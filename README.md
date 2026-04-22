@@ -30,3 +30,5 @@ Subsequent `omarchy-update` runs pull from Ryoku Arch.
 ## License
 
 MIT. See `LICENSE` for the full text and both the Ryoku and original omarchy copyright notices. See `NOTICE` for upstream attribution.
+
+<!-- update-loop probe: 20260422T214957Z -->
