@@ -279,6 +279,44 @@ Options, from least to most automated:
 6. **No AI attribution.** No `Co-Authored-By: Claude`, no "Generated with", no mention of Claude/Anthropic/AI/LLM in commit messages, code comments, or documentation that ships with the repo.
 7. **No em-dashes.** Use colons, commas, periods, or parens. This applies to anything committed: commits, docs, code comments, the README.
 
+## Git hooks
+
+Ryoku Arch ships a set of git hooks that enforce the safety rules above mechanically. They live in `.githooks/` at the repo root and get activated per-clone via `core.hooksPath`.
+
+### What's enforced
+
+- **commit-msg:** rejects a commit if its message contains a `Co-Authored-By` trailer, a term like `Claude`, `Anthropic`, `ChatGPT`, `GPT-N`, `LLM`, or `assistant`, phrasing like "generated with", or any em-dash (U+2014).
+- **pre-commit:** before the commit is recorded, scans staged text files (`.md`, `.txt`, `.sh`, config files, LICENSE, NOTICE, README, AGENTS.md) for em-dashes and runs `bash -n` on staged shell scripts. Blocks the commit on any finding.
+- **pre-push:** refuses to push `upstream-dev` or `upstream-master` to `origin` (belt-and-suspenders on top of the `pushRemote=no_push` config), and blocks force-pushes to `main` that would rewrite published history.
+
+### Activation
+
+Clone a fresh copy of the repo, then run:
+
+```bash
+cd ryoku-arch
+bin/ryoku-dev-install-hooks
+```
+
+That sets `core.hooksPath = .githooks` in the local clone's config and makes every hook executable. Re-run it after pulling new hooks. Setup is idempotent.
+
+Verify the hooks are active:
+
+```bash
+git config --get core.hooksPath        # should print: .githooks
+ls -la .githooks                       # all files executable
+```
+
+### Bypass paths (use sparingly)
+
+- `git commit --no-verify` skips `commit-msg` and `pre-commit` for one invocation. Do not use habitually.
+- `git push --no-verify` skips `pre-push` for one invocation.
+- `RYOKU_ALLOW_FORCE_MAIN=1 git push origin main` explicitly opts in to a force-push to main. Use only for deliberate history rewrites you have thought through, and prefer to coordinate with anyone who has a live clone first.
+
+### Extending
+
+To add a new check, edit the relevant hook file in `.githooks/`, commit, push. Contributors pulling the change then re-run `bin/ryoku-dev-install-hooks` to pick up the new `chmod +x` if needed (no config change required; `core.hooksPath` stays the same).
+
 ## Rollback
 
 ### Revert a pushed commit

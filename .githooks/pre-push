@@ -1,0 +1,51 @@
+#!/bin/bash
+
+# Ryoku Arch pre-push hook.
+# Safety net for pushes to origin.
+#   1. Blocks force-push to main (rewriting history that users pull from).
+#   2. Refuses pushes of upstream-tracking branches that carry pushRemote=no_push.
+# Bypass with --no-verify or set RYOKU_ALLOW_FORCE_MAIN=1 to override intentionally.
+
+set -e
+
+remote="$1"
+
+zero='0000000000000000000000000000000000000000'
+
+fail() {
+  echo "" >&2
+  echo "pre-push hook rejected this push:" >&2
+  echo "  $1" >&2
+  echo "" >&2
+  exit 1
+}
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  # Skip deletions (local_sha is all zeros).
+  [[ $local_sha == "$zero" ]] && continue
+
+  # 1. Block force-pushes to main.
+  if [[ $remote_ref == "refs/heads/main" && $remote_sha != "$zero" ]]; then
+    if ! git merge-base --is-ancestor "$remote_sha" "$local_sha" 2>/dev/null; then
+      if [[ -z $RYOKU_ALLOW_FORCE_MAIN ]]; then
+        echo "pre-push hook: this push rewrites history on main." >&2
+        echo "  local  $local_sha" >&2
+        echo "  remote $remote_sha" >&2
+        echo "" >&2
+        echo "users who pulled the old main will have broken updates." >&2
+        echo "to proceed anyway, re-run with RYOKU_ALLOW_FORCE_MAIN=1." >&2
+        fail "force-push to main blocked."
+      fi
+    fi
+  fi
+
+  # 2. Refuse pushes of upstream-tracking branches.
+  # These branches mirror basecamp/omarchy and should never land on origin.
+  case "$local_ref" in
+    refs/heads/upstream-dev|refs/heads/upstream-master)
+      fail "refusing to push $local_ref: this branch mirrors upstream omarchy and must not be published to origin."
+      ;;
+  esac
+done
+
+exit 0

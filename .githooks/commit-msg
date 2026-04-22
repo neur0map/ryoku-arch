@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# Ryoku Arch commit-msg hook.
+# Blocks commits whose message contains AI attribution, Co-Authored-By
+# trailers, or em-dashes. Enforces project-wide commit hygiene rules.
+# Bypass with --no-verify only when you know what you are doing.
+
+set -e
+
+msg_file="$1"
+msg=$(cat "$msg_file")
+
+fail() {
+  echo "" >&2
+  echo "commit-msg hook rejected this commit:" >&2
+  echo "  $1" >&2
+  echo "" >&2
+  echo "fix the message and re-run git commit." >&2
+  exit 1
+}
+
+if grep -qiE '^co-authored-by:|^[[:space:]]+co-authored-by:' <<<"$msg"; then
+  fail "forbidden Co-Authored-By trailer found in commit message."
+fi
+
+if grep -qiE '\b(claude|anthropic|assistant|LLM|chatgpt|gpt-[0-9])\b' <<<"$msg"; then
+  fail "forbidden AI attribution term (claude/anthropic/assistant/LLM/chatgpt/gpt) found in commit message."
+fi
+
+if grep -qiE 'generated with|written by (claude|ai|an llm)|created using an AI' <<<"$msg"; then
+  fail "forbidden AI-generation phrasing found in commit message."
+fi
+
+if grep -q $'\xe2\x80\x94' <<<"$msg"; then
+  fail "em-dash (U+2014) found in commit message. use : or , or . instead."
+fi
+
+exit 0

@@ -1,0 +1,56 @@
+#!/bin/bash
+
+# Ryoku Arch pre-commit hook.
+# Runs lightweight checks on staged content before a commit is recorded.
+#   1. bash syntax check on any staged shell script
+#   2. em-dash scan on staged text, docs, and config files
+# Bypass with --no-verify only when you know what you are doing.
+
+set -e
+
+fail() {
+  echo "" >&2
+  echo "pre-commit hook rejected this commit:" >&2
+  echo "  $1" >&2
+  echo "" >&2
+  exit 1
+}
+
+# Text-file types where em-dashes are forbidden. Binary files, images,
+# and asset directories are skipped.
+text_pattern='\.(md|txt|sh|bash|yml|yaml|toml|json|conf|tpl)$|^LICENSE$|^NOTICE$|^README$|^AGENTS\.md$'
+
+# Build the list of staged Added/Copied/Modified paths once.
+staged=$(git diff --cached --name-only --diff-filter=ACM || true)
+
+# 1. em-dash scan
+for f in $staged; do
+  [[ -f $f ]] || continue
+  if [[ $f =~ $text_pattern ]]; then
+    if git show ":$f" | grep -q $'\xe2\x80\x94'; then
+      echo "pre-commit hook: em-dash(es) found in staged $f:" >&2
+      git show ":$f" | grep -n $'\xe2\x80\x94' >&2
+      fail "remove em-dashes from $f before committing. use : or , or . instead."
+    fi
+  fi
+done
+
+# 2. bash syntax check on shell scripts
+for f in $staged; do
+  [[ -f $f ]] || continue
+  case "$f" in
+    *.sh|*.bash|bin/*)
+      firstline=$(git show ":$f" | head -n1)
+      # Only parse files that look like bash (shebang or no shebang for migrations).
+      if [[ $firstline == "#!/bin/bash" || $firstline == "#!/usr/bin/env bash" || $firstline != \#!* ]]; then
+        if ! git show ":$f" | bash -n 2>/tmp/ryoku-bash-n.err; then
+          echo "pre-commit hook: bash syntax error in staged $f:" >&2
+          cat /tmp/ryoku-bash-n.err >&2
+          fail "fix the syntax error in $f before committing."
+        fi
+      fi
+      ;;
+  esac
+done
+
+exit 0
