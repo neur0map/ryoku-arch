@@ -1,0 +1,6 @@
+# Ryoku Arch: developer-local session notes.
+# Individual session logs stay out of the repo; only the README and
+# TEMPLATE ship.
+/logs/*.md
+!/logs/README.md
+!/logs/TEMPLATE.md
