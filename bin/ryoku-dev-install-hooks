@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# Installs Ryoku Arch's git hooks for this clone.
+# Run once after cloning the repo or after pulling in new hooks.
+
+set -e
+
+repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
+  echo "not inside a git repository" >&2
+  exit 1
+}
+
+cd "$repo_root"
+
+if [[ ! -d .githooks ]]; then
+  echo ".githooks directory not found at $repo_root/.githooks" >&2
+  exit 1
+fi
+
+git config core.hooksPath .githooks
+
+for h in .githooks/*; do
+  [[ -f $h ]] && chmod +x "$h"
+done
+
+echo "Ryoku Arch git hooks installed for $repo_root."
+echo "core.hooksPath = $(git config --get core.hooksPath)"
+echo "hooks:"
+ls -1 .githooks/
