@@ -3,6 +3,15 @@
 set -e
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
+if [[ -z ${RYOKU_UPDATE_INHIBITED:-} ]] && command -v systemd-inhibit >/dev/null 2>&1; then
+  exec env RYOKU_UPDATE_INHIBITED=1 systemd-inhibit \
+    --what=sleep:shutdown:idle:handle-lid-switch:handle-suspend-key:handle-hibernate-key \
+    --who=ryoku-update \
+    --why="Ryoku system update in progress" \
+    --mode=block \
+    "$0" "$@"
+fi
+
 # Run the update inside a PTY so pacman/yay keep showing download progress
 # while still logging the full session for later analysis.
 if [[ -z $RYOKU_UPDATE_LOGGED ]]; then
@@ -11,6 +20,37 @@ if [[ -z $RYOKU_UPDATE_LOGGED ]]; then
 fi
 
 trap 'echo ""; echo -e "\033[0;31mSomething went wrong during the update!\n\nPlease review the output above carefully, correct the error, and retry the update.\n\nIf you need assistance, get help from the community at https://omarchy.org/discord\033[0m"' ERR
+
+if [[ -z ${RYOKU_UPDATE_POWER_CHECKED:-} ]]; then
+  battery_level=""
+
+  for battery in /sys/class/power_supply/BAT*; do
+    [[ -r $battery/capacity ]] || continue
+    battery_level=$(<"$battery/capacity")
+    break
+  done
+
+  if [[ -n $battery_level ]]; then
+    ac_online=0
+
+    for supply in /sys/class/power_supply/*; do
+      [[ -r $supply/type && -r $supply/online ]] || continue
+
+      if [[ $(<"$supply/type") == "Mains" && $(<"$supply/online") == "1" ]]; then
+        ac_online=1
+        break
+      fi
+    done
+
+    if ((ac_online == 0 && battery_level < 25)); then
+      echo -e "\033[0;31mUpdate blocked: battery is at ${battery_level}% and AC power is not online.\033[0m"
+      echo "Connect power or charge above 25%, then run the update again."
+      exit 1
+    fi
+  fi
+
+  export RYOKU_UPDATE_POWER_CHECKED=1
+fi
 
 if [[ $1 == "-y" ]] || ryoku-update-confirm; then
   ryoku-snapshot create || (($? == 127))
