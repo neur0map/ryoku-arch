@@ -47,13 +47,13 @@ Concrete failure modes this spec mitigates:
 - Renaming `omarchy_linux.efi`, `omarchy_resume.conf`, `/usr/share/sddm/themes/omarchy`, `omarchy.ttf`, or any other local-filename relic. Those are carried forward in a boot-and-assets spec of their own.
 - Replacing SDDM or any other subsystem the user has flagged for later removal. This spec changes only the package supply chain.
 - Rewriting the Ryoku Elephant provider set beyond parity with what ships today. Any feature improvement rides in a later spec.
-- Chasing `omarchy-chromium`, `omarchy-chromium-bin`, `omarchy-lazyvim` if they are not actually installed or actively referenced from the update path. Migrations that touch those packages are already past; the base package list controls current behavior.
+- Chasing `omarchy-chromium`, `omarchy-chromium-bin`, `omarchy-lazyvim`. Migrations that name these are historical, have already run on every current install, and do not appear in `install/ryoku-base.packages`. Chunk 9 confirms this with `pacman -Qq | grep '^omarchy-'` on the live clone and records the actual installed set; any unexpected package becomes a documented follow-up, not a scope expansion mid-pass.
 
 ## Target State
 
 After this pass:
 
-**Mirrors.** `default/pacman/mirrorlist-stable`, `mirrorlist-rc`, and `mirrorlist-edge` contain only standard Arch mirrors. The repo commits a reflector-produced snapshot and documents the regeneration command. Channel distinction at the mirror level is dropped; all three mirrorlists are identical snapshots unless a future channel model requires real separation.
+**Mirrors.** `default/pacman/mirrorlist-stable`, `mirrorlist-rc`, and `mirrorlist-edge` contain only standard Arch mirrors. The repo commits a reflector-produced snapshot and documents the regeneration command. All three mirrorlists are identical snapshots pointing at upstream Arch: the three filenames survive as scaffolding so the channel machinery stays wired, but the contents do not differ until a future Ryoku channel model earns real separation. Updating mirrors is a manual reflector refresh committed like any other repo change; it is not a runtime concern.
 
 **Pacman config.** `default/pacman/pacman-stable.conf`, `pacman-rc.conf`, and `pacman-edge.conf` contain only `[core]`, `[extra]`, and `[multilib]`. No `[omarchy]` section. `install/preflight/pacman.sh` still copies the active channel's config at install time, but the channel selection no longer determines a remote repo - it only selects the commit pin of the mirrorlist snapshot.
 
@@ -63,7 +63,7 @@ After this pass:
 
 **Neovim.** Upstream `neovim` from `extra` replaces `omarchy-nvim`. `$RYOKU_PATH/default/nvim/` holds a committed starter configuration (LazyVim-derived or fresh, operator's choice at plan time). `bin/ryoku-nvim-setup` becomes the real implementation: it copies `default/nvim/` into `~/.config/nvim/` with backup of any existing user config. No reference to the AUR command `omarchy-nvim-setup` remains.
 
-**Channel detection.** `bin/ryoku-version-channel` reads `$RYOKU_STATE_PATH/channel` (one-line plaintext: `stable`, `rc`, or `edge`). `bin/ryoku-channel-set` writes that state file and triggers `ryoku-refresh-pacman` to lay down the matching mirrorlist snapshot. Pacman URL grepping is removed.
+**Channel detection.** `bin/ryoku-version-channel` reads `$RYOKU_STATE_PATH/channel` (one-line plaintext: `stable`, `rc`, or `edge`; default `stable` on absence). `bin/ryoku-channel-set` writes that state file and triggers `ryoku-refresh-pacman` to lay down the matching mirrorlist snapshot. Pacman URL grepping is removed. Channels do not point at distinct upstream infrastructure today; the state file records intent so the channel concept survives for a future Ryoku model.
 
 **Migrations.** Every migration that still installs, drops, or refreshes `omarchy-keyring`, `omarchy-nvim`, `omarchy-walker`, `omarchy-lazyvim`, or `omarchy-chromium(-bin)` either runs to completion on pre-cutover systems or is gated by a feature flag that makes it a no-op on post-cutover systems. New migrations handle the cutover itself.
 
@@ -89,6 +89,18 @@ This cutover is the single highest-risk change in the Ryoku rebrand program beca
 **User data preservation.** Any config that a user might have customized (`~/.config/nvim`, `~/.config/walker`) must be backed up before overwrite. The plan must specify a single backup convention (`.bak.<epoch>` suffix or equivalent) and document it once.
 
 **Repo-live parity.** After each committed chunk, the repository state and the live system state must match. If a chunk edits a shipped config file, the same chunk applies the change to any live equivalent that exists outside the repo (for example, running `ryoku-refresh-pacman` on the live clone, or merging updated `~/.config/walker/config.toml` from the new defaults). The commit message and session log both record which live files were touched and how they were verified.
+
+**AUR precondition check.** Chunks 3-6 depend on AUR access through `yay`. Every cutover migration that installs from AUR begins by running `ryoku-pkg-aur-accessible`. On failure (no network, rate-limited, yay missing) the migration exits with a clear message and a non-zero code, leaving omarchy packages installed and the `[omarchy]` section intact. The plan also adds an install-flow guard so fresh installs cannot land on the post-cutover config without a working yay.
+
+**Walker kill-before-replace.** Chunk 4 must stop the running Walker process before `pacman -R omarchy-walker` and restart against the upstream binary after install. Concretely: `pkill -x walker || true` before replace, `ryoku-refresh-walker` after. If Waybar re-spawns Walker mid-replace the replace still succeeds, but the new binary is what becomes authoritative.
+
+**Atomic file writes.** Migrations that rewrite `/etc/pacman.conf`, `/etc/pacman.d/mirrorlist`, or any other privileged file use the temp-file-plus-rename pattern: write to `<path>.ryoku.tmp`, validate with a format-appropriate check (for pacman.conf, run `pacman-conf --config <tmp>` to parse it), then `sudo mv -f <tmp> <path>`. No chunk is allowed to leave a partially-written privileged file on disk if the migration aborts.
+
+**User section preservation in `/etc/pacman.conf`.** The user may have added third-party repo sections (chaotic-aur, endeavouros, a local repo). The pacman-config migration reads the live file, removes only the `[omarchy]` section and the `[core]`/`[extra]`/`[multilib]` blocks under its own `Include` management, preserves everything else verbatim, and writes the result atomically. The plan spells out the exact awk/sed-safe detection pattern.
+
+**Orphan cleanup after removals.** `pacman -Rdd` skips dependency checks. After chunk 4, chunk 6, or chunk 8 removes omarchy packages, the migration ends with `sudo pacman -Rns $(pacman -Qdtq) --noconfirm` or an explicit confirmation if orphans are found, so the system does not accumulate dead packages. The plan names the expected orphan set at commit time so the user can confirm the list before confirming removal.
+
+**Partial-upgrade safety gate.** A user who pulls HEAD after skipping several cycles will queue every cutover migration in one `ryoku-migrate` pass. That is the exact failure mode this spec guards against. The first cutover migration (chunk 2's mirror swap) drops a marker file `$RYOKU_STATE_PATH/independence-cutover.started`. Each subsequent cutover migration (chunks 4, 6, 7, 8) checks the marker and, if present, runs `ryoku-snapshot create` before its own work regardless of whether the previous migration already snapshotted. The final cutover migration (chunk 8) removes the marker. If any cutover migration fails, the marker stays; the next run resumes where the previous one left off and takes a fresh snapshot before the retry.
 
 ## Execution Model
 
@@ -119,6 +131,34 @@ High-risk chunks use maximal verification. In this spec, maximal verification is
 | 9 | Final sweep and close-out | `docs/rebrand-inventory.md`, session log, remaining `omarchy-*` or `omarchy.org` references audited and justified | Final grep suite excluding docs/legal passes; Category 1 package-facing policy retired; rebrand inventory updated |
 
 Order is strict. Chunks 3–4 and 5–6 are paired; do not split one from its cutover across an unrelated commit. Chunks 7 and 8 must follow 4 and 6 because they remove surfaces those chunks still depend on.
+
+## Rollback Protocol
+
+Because migrations mutate pacman state that `git revert` cannot reverse, the rollback plan is snapshot-based and chunk-scoped.
+
+**Primary rollback: snapper restore.** Every cutover migration runs `ryoku-snapshot create` as its first action and records the resulting snapshot ID in the session log. Restore is `sudo snapper -c root undochange <pre-snapshot>..<post-snapshot>` or a full `snapper rollback <pre-snapshot>` and reboot, whichever is appropriate for the damage. The plan names the exact snapper invocation for each chunk because chunk 4 (walker) is user-session-recoverable without reboot and chunk 7 (pacman.conf) is better served by `undochange` alone.
+
+**Fallback rollback: manual steps.** When snapper is unavailable (exit 127 from `ryoku-snapshot create`), the migration still proceeds, but the session log records the absence and the plan lists per-chunk manual-rollback recipes:
+
+- Chunk 2 (mirror swap): `sudo cp /etc/pacman.d/mirrorlist.ryoku.bak /etc/pacman.d/mirrorlist`. The migration writes `.ryoku.bak` before it writes.
+- Chunk 4 (walker): `sudo pacman -S --asdeps omarchy-walker` (still in the omarchy repo while it exists), then `ryoku-refresh-walker`.
+- Chunk 6 (nvim): restore `~/.config/nvim` from the timestamped backup the migration created; reinstall `omarchy-nvim`.
+- Chunk 7 (pacman.conf): `sudo cp /etc/pacman.conf.ryoku.bak /etc/pacman.conf`. The migration writes `.ryoku.bak` before the atomic write.
+- Chunk 8 (keyring): `sudo pacman -S omarchy-keyring` while the repo is still reachable (requires rolling back chunk 7 first).
+
+**Git revert is cosmetic.** Reverting a cutover commit reverses the repo side only. The live system rollback is always the snapshot or the per-chunk manual recipe above. The plan makes this explicit in every chunk's rollback note so we do not rely on `git revert` for safety.
+
+**Rollback test gate.** Before each cutover chunk (4, 6, 7, 8) lands on the live clone, the user confirms they have an accessible non-GUI shell (local TTY or SSH from another machine). The plan refuses to proceed without confirmation.
+
+## Fresh-Install Validation
+
+Every chunk that touches `install/preflight/`, `install/packaging/`, or `default/pacman/` can silently break fresh installs while leaving live-clone verification green. The spec requires per-chunk fresh-install validation, scoped to what is realistically testable.
+
+**Primary method: chroot + arch-install-scripts.** Each time a chunk edits a file under `install/preflight/` or `install/packaging/`, the plan prescribes a `pacstrap` against a tmpfs or btrfs subvolume with the new config, followed by a sourced run of the touched install step inside `arch-chroot`. This does not exercise Hyprland or Walker, but it catches every pacman, keyring, and package-list regression before push.
+
+**Secondary method: VM boot drill.** Before declaring Path A complete, the user runs `boot.sh` once against a fresh Arch VM (libvirt or otherwise). The session log records the VM image used, the full install transcript, and the first `ryoku-update` inside the VM. This catches integration failures the chroot method cannot reproduce.
+
+**Accepted limitation.** Between chunks, the chroot method is the only gate. A chunk can pass chroot verification and still break VM install if the bug is in UWSM, Hyprland autostart, or SDDM. Those subsystems are live-clone-tested only. The plan documents this gap and schedules the VM drill as the final chunk gate.
 
 ## Verification Contract
 
@@ -213,7 +253,7 @@ Path A is complete only when:
 - `bin/ryoku-update-keyring`, `install/preflight/pacman.sh`, and `install/ryoku-base.packages` do not name `omarchy-keyring`, `omarchy-nvim`, or `omarchy-walker`.
 - The walker and nvim subsystems work against upstream packages on the live clone.
 - `ryoku-version-channel` identifies the channel via state file, not by grepping mirror URLs.
-- The final grep suite from Category 1, extended with `omarchy\.org`, `pkgs\.omarchy\.org`, `omarchy-keyring`, `omarchy-nvim`, `omarchy-walker`, returns only documentation, legal, and historical migration content.
+- The final grep suite from Category 1, extended with `omarchy\.org`, `pkgs\.omarchy\.org`, `omarchy-keyring`, `omarchy-nvim`, `omarchy-walker`, `omarchy-chromium`, `omarchy-lazyvim`, returns only documentation, legal, and historical migration content. Each remaining hit is justified in `docs/rebrand-inventory.md` with one line naming the category (legal, historical migration, external URL, brand asset, boot-rename-pending).
 - `docs/rebrand-inventory.md` records Path A complete; the package-facing name policy block is marked retired.
 
 ## Risks
@@ -232,10 +272,12 @@ The highest-risk failure modes and their mitigations:
 ## Out-of-Scope Reminders
 
 - Standing up a Ryoku package repo. Path B.
-- Boot-name rename (`omarchy_linux.efi`, `omarchy_resume.conf`). Tracked separately; note added to `docs/rebrand-inventory.md` as a follow-up plan.
+- Boot-name rename (`omarchy_linux.efi`, `omarchy_resume.conf`). Tracked separately; note added to `docs/rebrand-inventory.md` under "Deferred cross-spec work" as a follow-up plan.
 - SDDM removal or theme-name rename. Flagged for a future desktop-session spec.
 - Font family name in `omarchy.ttf`. Deferred; will change when the logo is redrawn.
 - Upstream branch adoption (`upstream/dev` merges). Unchanged by this spec; the Ryoku maintenance doc already covers that discipline.
+
+Chunk 9 adds a `## Deferred cross-spec work` section to `docs/rebrand-inventory.md` that lists each deferred item with a one-line status: what it is, why it is deferred, and what spec or plan will track it when one exists. That section is the single source of truth for follow-up work escaping Path A.
 
 ## Recommended Next Step
 
