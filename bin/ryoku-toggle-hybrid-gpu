@@ -39,7 +39,7 @@ case "$gpu_mode" in
     # Remove the startup delay override (not needed for Hybrid mode)
     sudo rm -rf /etc/systemd/system/supergfxd.service.d/delay-start.conf
 
-    omarchy-system-reboot
+    ryoku-system-reboot
   fi
   ;;
 "Hybrid")
@@ -57,7 +57,7 @@ case "$gpu_mode" in
     sudo mkdir -p /etc/systemd/system/supergfxd.service.d
     sudo cp -p $RYOKU_PATH/default/systemd/system/supergfxd.service.d/delay-start.conf /etc/systemd/system/supergfxd.service.d/
 
-    omarchy-system-reboot
+    ryoku-system-reboot
   fi
   ;;
 *)

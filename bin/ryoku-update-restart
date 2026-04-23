@@ -5,14 +5,14 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 echo
 
 if [[ ! -d /usr/lib/modules/$(uname -r) ]]; then
-  gum confirm "Linux kernel has been updated. Reboot?" && omarchy-system-reboot
+  gum confirm "Linux kernel has been updated. Reboot?" && ryoku-system-reboot
 elif [[ -f $RYOKU_STATE_PATH/reboot-required ]]; then
-  gum confirm "Updates require reboot. Ready?" && omarchy-system-reboot
+  gum confirm "Updates require reboot. Ready?" && ryoku-system-reboot
 fi
 
 running_hyprland=$(readlink /proc/$(pgrep -x Hyprland)/exe 2>/dev/null)
 if [[ $running_hyprland == *"(deleted)"* ]]; then
-  gum confirm "Hyprland has been updated. Reboot?" && omarchy-system-reboot
+  gum confirm "Hyprland has been updated. Reboot?" && ryoku-system-reboot
 fi
 
 for file in "$RYOKU_STATE_PATH"/restart-*-required; do
@@ -21,6 +21,6 @@ for file in "$RYOKU_STATE_PATH"/restart-*-required; do
     service=$(echo "$filename" | sed 's/restart-\(.*\)-required/\1/')
     echo "Restarting $service"
     ryoku-state clear "$filename"
-    omarchy-restart-"$service"
+    ryoku-restart-"$service"
   fi
 done

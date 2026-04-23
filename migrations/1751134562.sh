@@ -1,5 +1,5 @@
 echo "Ensure all indexes and packages are up to date"
 
-omarchy-update-keyring
-omarchy-refresh-pacman
+ryoku-update-keyring
+ryoku-refresh-pacman
 sudo pacman -Syu --noconfirm

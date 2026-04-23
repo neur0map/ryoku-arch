@@ -7,4 +7,4 @@ if grep -q "scrolltouchpad" ~/.config/hypr/input.conf; then
 fi
 
 # Ensure we restart to pair new Hyprland settings with new version
-omarchy-state set reboot-required
+ryoku-state set reboot-required

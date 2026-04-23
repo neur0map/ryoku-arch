@@ -17,5 +17,5 @@ bind -n M-Up switch-client -p\
 bind -n M-Down switch-client -n' "$TMUX_CONF"
   fi
 
-  omarchy-restart-tmux
+  ryoku-restart-tmux
 fi

@@ -17,7 +17,7 @@ iso2sd() {
       return 1
     fi
 
-    drive=$(omarchy-drive-select "$available_sds")
+    drive=$(ryoku-drive-select "$available_sds")
 
     if [[ -z $drive ]]; then
       echo "No drive selected"

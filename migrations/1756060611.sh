@@ -1,13 +1,13 @@
 echo "Migrate AUR packages to official repos where possible"
 
 reinstall_package_opr() {
-  if omarchy-pkg-present $1; then
+  if ryoku-pkg-present $1; then
     sudo pacman -Rns --noconfirm $1
     sudo pacman -S --noconfirm ${2:-$1}
   fi
 }
 
-omarchy-pkg-drop yay-bin-debug
+ryoku-pkg-drop yay-bin-debug
 
 reinstall_package_opr yay-bin yay
 reinstall_package_opr obsidian-bin obsidian

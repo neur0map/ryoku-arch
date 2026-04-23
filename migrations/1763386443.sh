@@ -1,8 +1,8 @@
-echo "Uniquely identify terminal apps with custom app-ids using omarchy-launch-tui"
+echo "Uniquely identify terminal apps with custom app-ids using ryoku-launch-tui"
 
-# Replace terminal -e calls with omarchy-launch-tui in bindings
-sed -i 's/\$terminal -e \([^ ]*\)/omarchy-launch-tui \1/g' ~/.config/hypr/bindings.conf
+# Replace terminal -e calls with ryoku-launch-tui in bindings
+sed -i 's/\$terminal -e \([^ ]*\)/ryoku-launch-tui \1/g' ~/.config/hypr/bindings.conf
 
-# Update waybar to use omarchy-launch-or-focus with omarchy-launch-tui for TUI apps
-sed -i 's|xdg-terminal-exec btop|omarchy-launch-or-focus-tui btop|' ~/.config/waybar/config.jsonc
-sed -i 's|xdg-terminal-exec --app-id=com\.omarchy\.Wiremix -e wiremix|omarchy-launch-or-focus-tui wiremix|' ~/.config/waybar/config.jsonc
+# Update waybar to use ryoku-launch-or-focus with ryoku-launch-tui for TUI apps
+sed -i 's|xdg-terminal-exec btop|ryoku-launch-or-focus-tui btop|' ~/.config/waybar/config.jsonc
+sed -i 's|xdg-terminal-exec --app-id=com\.omarchy\.Wiremix -e wiremix|ryoku-launch-or-focus-tui wiremix|' ~/.config/waybar/config.jsonc

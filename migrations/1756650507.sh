@@ -1,5 +1,5 @@
 echo "Fix JetBrains font setting"
 
-if [[ $(omarchy-font-current) == JetBrains* ]]; then
-  omarchy-font-set "JetBrainsMono Nerd Font"
+if [[ $(ryoku-font-current) == JetBrains* ]]; then
+  ryoku-font-set "JetBrainsMono Nerd Font"
 fi

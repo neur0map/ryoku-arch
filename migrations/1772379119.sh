@@ -9,5 +9,5 @@ bind -n M-S-Left swap-window -t -1 \\; select-window -t -1\
 bind -n M-S-Right swap-window -t +1 \\; select-window -t +1' "$TMUX_CONF"
   fi
 
-  omarchy-restart-tmux
+  ryoku-restart-tmux
 fi

@@ -2,7 +2,7 @@ echo "Reset DNS configuration to DHCP (remove forced Cloudflare DNS)"
 
 # Reset DNS to use DHCP by default instead of forcing Cloudflare
 # This preserves local development environments (.local domains, etc.)
-# Users can still opt-in to Cloudflare DNS using: omarchy-setup-dns cloudflare
+# Users can still opt-in to Cloudflare DNS using: ryoku-setup-dns cloudflare
 
 if [[ -f /etc/systemd/resolved.conf ]]; then
   # Backup current config with timestamp
@@ -18,8 +18,8 @@ if [[ -f /etc/systemd/resolved.conf ]]; then
   echo "FallbackDNS=" | sudo tee -a /etc/systemd/resolved.conf >/dev/null
 
   # Remove any forced DNS config from systemd-networkd
-  if [[ -f /etc/systemd/network/99-omarchy-dns.network ]]; then
-    sudo rm -f /etc/systemd/network/99-omarchy-dns.network
+  if [[ -f /etc/systemd/network/99-ryoku-dns.network ]]; then
+    sudo rm -f /etc/systemd/network/99-ryoku-dns.network
     sudo systemctl restart systemd-networkd
   fi
 
@@ -27,5 +27,5 @@ if [[ -f /etc/systemd/resolved.conf ]]; then
   sudo systemctl restart systemd-resolved
 
   echo "DNS configuration reset to use DHCP (router DNS)"
-  echo "To use Cloudflare DNS, run: omarchy-setup-dns Cloudflare"
+  echo "To use Cloudflare DNS, run: ryoku-setup-dns Cloudflare"
 fi

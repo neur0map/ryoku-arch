@@ -1,3 +1,3 @@
 echo "Installing missing fd terminal tool for finding files"
 
-omarchy-pkg-add fd
+ryoku-pkg-add fd

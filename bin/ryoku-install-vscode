@@ -24,6 +24,6 @@ EOF
 printf '{\n  "update.mode": "none"\n}\n' > ~/.config/Code/User/settings.json
 
 # Apply Ryoku theme to VSCode
-omarchy-theme-set-vscode
+ryoku-theme-set-vscode
 
 setsid gtk-launch code

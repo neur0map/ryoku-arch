@@ -1,7 +1,7 @@
 echo "Migrate suspend toggle from opt-in to opt-out"
 
-SUSPEND_ON=~/.local/state/omarchy/toggles/suspend-on
-SUSPEND_OFF=~/.local/state/omarchy/toggles/suspend-off
+SUSPEND_ON=~/.local/state/ryoku/toggles/suspend-on
+SUSPEND_OFF=~/.local/state/ryoku/toggles/suspend-off
 
 if [[ -f $SUSPEND_ON ]]; then
   # User had suspend enabled, remove old file (suspend is now on by default)

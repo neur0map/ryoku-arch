@@ -10,5 +10,5 @@ if ! grep -q '"headphone": ""' "$HOME/.config/waybar/config.jsonc"; then
     }
   ' "$HOME/.config/waybar/config.jsonc"
 
-  omarchy-restart-waybar
+  ryoku-restart-waybar
 fi

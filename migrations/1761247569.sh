@@ -1,2 +1,2 @@
-echo "Install expac and inxi for omarchy-debug"
-omarchy-pkg-add expac inxi
+echo "Install expac and inxi for ryoku-debug"
+ryoku-pkg-add expac inxi

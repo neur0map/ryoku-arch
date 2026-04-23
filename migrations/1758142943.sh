@@ -6,7 +6,7 @@ echo "Turn off VSCode's own auto-update feature (we rely on pacman)"
 VS_CODE_SETTINGS="$HOME/.config/Code/User/settings.json"
 
 # If VSCode is installed, ensure that the "update.mode" setting is set to "none"
-if omarchy-cmd-present code; then
+if ryoku-cmd-present code; then
   mkdir -p "$(dirname "$VS_CODE_SETTINGS")"
 
   if [[ ! -f $VS_CODE_SETTINGS ]]; then

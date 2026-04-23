@@ -115,5 +115,5 @@ sudo limine-update
 echo
 
 if [[ $1 != "--force" ]] && gum confirm "Reboot to enable hibernation?"; then
-  omarchy-system-reboot
+  ryoku-system-reboot
 fi

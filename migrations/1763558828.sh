@@ -1,6 +1,6 @@
 echo "Make Alacritty compatible with X-TerminalArgs"
 
-if omarchy-pkg-present alacritty; then
+if ryoku-pkg-present alacritty; then
   mkdir -p ~/.local/share/applications
   cat > ~/.local/share/applications/Alacritty.desktop << EOF
 [Desktop Entry]

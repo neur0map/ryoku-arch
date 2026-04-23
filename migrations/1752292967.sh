@@ -1,6 +1,6 @@
 echo "Update to use UWSM and seamless login"
 
-if omarchy-cmd-missing uwsm; then
+if ryoku-cmd-missing uwsm; then
   sudo rm -f /etc/systemd/system/getty@tty1.service.d/override.conf
   sudo rmdir /etc/systemd/system/getty@tty1.service.d/ 2>/dev/null || true
 

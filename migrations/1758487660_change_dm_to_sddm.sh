@@ -11,7 +11,7 @@ trap error_exit ERR
 
 echo "Change display manager to SDDM"
 
-omarchy-pkg-add sddm libsecret gnome-keyring || error_exit
+ryoku-pkg-add sddm libsecret gnome-keyring || error_exit
 
 sudo mkdir -p /etc/sddm.conf.d
 

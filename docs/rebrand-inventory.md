@@ -78,6 +78,8 @@ rg -c 'omarchy' bin/ | sort -t: -k2 -n -r | head -20
 - [x] Categorized (categories above are final; line-level categorization happens in the rename pass)
 - [x] Command rename pass executed (Category 1 and 3 commands in `bin/`)
 - [x] Install-path rename pass executed (Category 1 path references)
+- [x] Migration backlog sweep executed (Category 1 migrations rewritten to Ryoku command/path names; preserved tokens limited to AUR package names, legacy systemd units under cleanup, `OMARCHY_PATH` compat export, and `~/.local/share/omarchy` until Category 5 share-path move)
+- [x] Final Category 1 grep gate passed (remaining matches are Category 2 legal, Category 4 brand assets, Category 5 installer defaults, sanctioned compatibility bridges, or external URL/package names)
 - [ ] Installer migration pass executed (Category 5 boot defaults, mirrors, and package-facing names still have deferred work)
 - [ ] Brand assets pass executed (Category 4)
 - [ ] Verified end-to-end install still works post-rename
@@ -91,3 +93,20 @@ rg -c 'omarchy' bin/ | sort -t: -k2 -n -r | head -20
   - `omarchy-nvim`
   - `omarchy-walker`
 - Live boot-theme migration is still incomplete until the Ryoku Plymouth asset path is installed and activated everywhere.
+
+## Category 1 Close-out (2026-04-23)
+
+Category 1 rename is complete for active code. The owned Category 1 chunk queue from the rename program has been fully executed:
+
+- Runtime contract, state/share/config namespace bridges, and shell/session env are on Ryoku canonical names.
+- All core lifecycle, package, theme, menu, launcher, hardware, Hyprland, Waybar, and privileged-file surfaces have canonical Ryoku entry points; legacy `omarchy-*` names remain only as compatibility wrappers.
+- Migration backlog has been rewritten: every `omarchy-*` command call in `migrations/*.sh` is now `ryoku-*`, and every `~/.config/omarchy`/`~/.local/state/omarchy` path is now on the Ryoku namespace, with preserved tokens limited to AUR package names (`omarchy-nvim`, `omarchy-walker`, `omarchy-keyring`, `omarchy-chromium(-bin)`, `omarchy-lazyvim`), legacy systemd units being disabled/removed (`omarchy-battery-monitor.*`, `omarchy-seamless-login.service`), `omarchy-nvim-setup` (provided by the `omarchy-nvim` AUR package), and the `OMARCHY_PATH` compat env var exported by `lib/runtime-env.sh`.
+- Active callers in `bin/ryoku-*` all resolve through `ryoku-*` names; 18 previously-unwrapped `omarchy-*` utilities gained thin `ryoku-*` wrappers so the menu, install helpers, and lifecycle helpers no longer reference `omarchy-*` at the source-of-truth level.
+
+What is intentionally still left:
+
+- Compatibility `omarchy-*` wrappers in `bin/` - kept because legacy migrations, legacy user-created webapps, and legacy shell snippets can still resolve them. Removal is gated on downstream cleanup, not Category 1 completion.
+- `~/.local/share/omarchy/` - still the canonical live repo path because `boot.sh` defaults and the share-path migration belong to Category 5.
+- `OMARCHY_PATH`, `OMARCHY_INSTALL`, `OMARCHY_INSTALL_LOG_FILE` env exports - sanctioned bridges in `lib/runtime-env.sh` until downstream consumers stop reading them.
+- `omarchy.ttf`, logo/icon assets, Plymouth boot theme - Category 4 brand assets.
+- `boot.sh` repo/branch/mirror defaults and pacman mirror URLs - Category 5 installer migration.

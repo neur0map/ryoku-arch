@@ -6,6 +6,6 @@ if [[ -f ~/.config/tmux/tmux.conf ]]; then
 set -gw automatic-rename on\
 set -gw automatic-rename-format '\''#{b:pane_current_path}'\''\
 ' ~/.config/tmux/tmux.conf
-    omarchy-restart-tmux
+    ryoku-restart-tmux
   fi
 fi

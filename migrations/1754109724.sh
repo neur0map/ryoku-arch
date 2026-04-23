@@ -3,4 +3,4 @@ if ! command -v hyprsunset &>/dev/null; then
   sudo pacman -S --noconfirm --needed hyprsunset
 fi
 
-omarchy-refresh-hyprsunset
+ryoku-refresh-hyprsunset

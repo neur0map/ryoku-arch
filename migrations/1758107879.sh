@@ -21,7 +21,7 @@ PACKAGES=(
 )
 
 for pkg in "${PACKAGES[@]}"; do
-  if ! omarchy-pkg-present "$pkg"; then
+  if ! ryoku-pkg-present "$pkg"; then
     NEEDS_MIGRATION=true
     break
   fi
@@ -39,17 +39,17 @@ cp -r ~/.local/share/omarchy/config/walker/* ~/.config/walker/
 if $NEEDS_MIGRATION; then
   kill -9 $(pgrep -x walker) 2>/dev/null || true
 
-  omarchy-pkg-drop walker-bin walker-bin-debug
+  ryoku-pkg-drop walker-bin walker-bin-debug
 
-  omarchy-pkg-add "${PACKAGES[@]}"
+  ryoku-pkg-add "${PACKAGES[@]}"
 
   source $OMARCHY_PATH/install/config/walker-elephant.sh
 
   rm -rf ~/.config/walker/themes
 
-  omarchy-refresh-config walker/config.toml
-  omarchy-refresh-config elephant/calc.toml
-  omarchy-refresh-config elephant/desktopapplications.toml
+  ryoku-refresh-config walker/config.toml
+  ryoku-refresh-config elephant/calc.toml
+  ryoku-refresh-config elephant/desktopapplications.toml
 fi
 
 echo # Assure final success

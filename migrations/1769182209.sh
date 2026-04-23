@@ -1,4 +1,4 @@
 echo "Enable auto-pasting for the emoji picker"
 
-omarchy-refresh-config elephant/symbols.toml
-omarchy-restart-walker
+ryoku-refresh-config elephant/symbols.toml
+ryoku-restart-walker

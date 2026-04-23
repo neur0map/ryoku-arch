@@ -14,4 +14,4 @@ chmod +x GeForceNOWSetup.bin
 
 # Ensure a separate browser process not started by GFN is available.
 # If not, it seems like GFN has a tendency to hang on login.
-setsid omarchy-launch-browser
+setsid ryoku-launch-browser
