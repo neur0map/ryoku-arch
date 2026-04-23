@@ -46,4 +46,4 @@ brightnessctl -d "$device" set "$new_brightness" >/dev/null
 
 # Use SwayOSD to display the new brightness setting.
 percent=$((new_brightness * 100 / max_brightness))
-ryoku-swayosd-kbd-brightness "$percent"
+omarchy-swayosd-kbd-brightness "$percent"

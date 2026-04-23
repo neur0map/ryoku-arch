@@ -1,2 +1,5 @@
 #!/bin/bash
-exec ryoku-swayosd-client "$@"
+
+# Wrapper for swayosd-client that targets the currently focused monitor.
+
+exec swayosd-client --monitor "$(omarchy-hyprland-monitor-focused)" "$@"

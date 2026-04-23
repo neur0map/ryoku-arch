@@ -108,7 +108,7 @@ show_trigger_menu() {
 
 show_capture_menu() {
   case $(menu "Capture" "  Screenshot\n  Screenrecord\n󰃉  Color") in
-  *Screenshot*) ryoku-cmd-screenshot ;;
+  *Screenshot*) omarchy-cmd-screenshot ;;
   *Screenrecord*) show_screenrecord_menu ;;
   *Color*) pkill hyprpicker || hyprpicker -a ;;
   *) back_to show_trigger_menu ;;
@@ -143,18 +143,18 @@ show_webcam_select_menu() {
 }
 
 show_screenrecord_menu() {
-  ryoku-cmd-screenrecord --stop-recording && exit 0
+  omarchy-cmd-screenrecord --stop-recording && exit 0
 
   case $(menu "Screenrecord" "  With no audio\n  With desktop audio\n  With desktop + microphone audio\n  With desktop + microphone audio + webcam") in
-  *"With no audio") ryoku-cmd-screenrecord ;;
-  *"With desktop audio") ryoku-cmd-screenrecord --with-desktop-audio ;;
-  *"With desktop + microphone audio") ryoku-cmd-screenrecord --with-desktop-audio --with-microphone-audio ;;
+  *"With no audio") omarchy-cmd-screenrecord ;;
+  *"With desktop audio") omarchy-cmd-screenrecord --with-desktop-audio ;;
+  *"With desktop + microphone audio") omarchy-cmd-screenrecord --with-desktop-audio --with-microphone-audio ;;
   *"With desktop + microphone audio + webcam")
     local device=$(show_webcam_select_menu) || {
       back_to show_capture_menu
       return
     }
-    ryoku-cmd-screenrecord --with-desktop-audio --with-microphone-audio --with-webcam --webcam-device="$device"
+    omarchy-cmd-screenrecord --with-desktop-audio --with-microphone-audio --with-webcam --webcam-device="$device"
     ;;
   *) back_to show_capture_menu ;;
   esac
@@ -162,9 +162,9 @@ show_screenrecord_menu() {
 
 show_share_menu() {
   case $(menu "Share" "  Clipboard\n  File \n  Folder") in
-  *Clipboard*) ryoku-cmd-share clipboard ;;
-  *File*) terminal bash -c "ryoku-cmd-share file" ;;
-  *Folder*) terminal bash -c "ryoku-cmd-share folder" ;;
+  *Clipboard*) omarchy-cmd-share clipboard ;;
+  *File*) terminal bash -c "omarchy-cmd-share file" ;;
+  *Folder*) terminal bash -c "omarchy-cmd-share folder" ;;
   *) back_to show_trigger_menu ;;
   esac
 }
@@ -599,7 +599,7 @@ show_system_menu() {
 
   case $(menu "System" "$options") in
   *Screensaver*) ryoku-launch-screensaver force ;;
-  *Lock*) ryoku-lock-screen ;;
+  *Lock*) omarchy-lock-screen ;;
   *Suspend*) systemctl suspend ;;
   *Hibernate*) systemctl hibernate ;;
   *Logout*) omarchy-system-logout ;;

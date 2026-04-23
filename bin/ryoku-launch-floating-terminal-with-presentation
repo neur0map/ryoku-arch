@@ -2,8 +2,8 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Launch a floating terminal with the Ryoku logo presentation, then execute the command passed in, and finally end with the ryoku-show-done presentation.
+# Launch a floating terminal with the Omarchy logo presentation, then execute the command passed in, and finally end with the omarchy-show-done presentation.
 # Used by actions such as Update System.
 
 cmd="$*"
-exec setsid uwsm-app -- xdg-terminal-exec --app-id=org.omarchy.terminal --title=Ryoku -e bash -c "ryoku-show-logo; $cmd; if (( \$? != 130 )); then ryoku-show-done; fi"
+exec setsid uwsm-app -- xdg-terminal-exec --app-id=org.omarchy.terminal --title=Ryoku -e bash -c "omarchy-show-logo; $cmd; if (( \$? != 130 )); then omarchy-show-done; fi"

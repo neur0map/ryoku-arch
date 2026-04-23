@@ -10,5 +10,5 @@ else
   device="$(sudo asdcontrol --detect /dev/usb/hiddev* | grep ^/dev/usb/hiddev | cut -d: -f1)"
   sudo asdcontrol "$device" -- "$1" >/dev/null
   value="$(sudo asdcontrol "$device" | awk -F= '/BRIGHTNESS=/{print $2+0}')"
-  ryoku-swayosd-brightness "$(( value * 100 / 60000 ))"
+  omarchy-swayosd-brightness "$(( value * 100 / 60000 ))"
 fi
