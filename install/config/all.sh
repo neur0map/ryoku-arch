@@ -16,7 +16,6 @@ run_logged $RYOKU_INSTALL/config/docker.sh
 run_logged $RYOKU_INSTALL/config/mimetypes.sh
 run_logged $RYOKU_INSTALL/config/nautilus-python.sh
 run_logged $RYOKU_INSTALL/config/localdb.sh
-run_logged $RYOKU_INSTALL/config/walker-elephant.sh
 run_logged $RYOKU_INSTALL/config/fast-shutdown.sh
 run_logged $RYOKU_INSTALL/config/unmount-fuse.sh
 run_logged $RYOKU_INSTALL/config/sudoless-asdcontrol.sh

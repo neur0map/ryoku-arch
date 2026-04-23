@@ -3,52 +3,16 @@
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
 # Historical name preserved so Hyprland bindings stay stable. Dispatches
-# by argument shape:
-#   --dmenu [...]      Ryoku menu / picker stdin -> tofi (if installed), else walker
-#   -m <mode> [...]    walker-provider mode (symbols, clipboard, etc.); goes to walker
-#   otherwise          app launcher -> tofi-drun (if installed), else walker
+# tofi for both dmenu and app-launcher modes.
 #
-# The -m branch exists because tofi has no provider framework. Once Task 4
-# removes walker and the -m-based Hyprland bindings are swapped for dedicated
-# helpers (cliphist for clipboard, emoji picker for symbols), this shim
-# collapses to a clean tofi-only dispatcher.
-
-use_tofi() { command -v tofi >/dev/null 2>&1; }
+#   --dmenu [...]   piped selection -> tofi --dmenu
+#   otherwise       app launcher    -> tofi-drun
+#
+# Pre-cutover walker fallback was removed in Task 4.
 
 if [[ ${1:-} == "--dmenu" ]]; then
   shift
-  if use_tofi; then
-    exec tofi --config "$RYOKU_PATH/default/tofi/config" "$@"
-  fi
-  exec walker --dmenu "$@"
+  exec tofi --config "$RYOKU_PATH/default/tofi/config" "$@"
 fi
 
-# walker provider mode: keep routing to walker until Task 4 swaps the
-# -m consumers for tofi-native helpers. Restore the walker-era window
-# sizing so the clipboard, symbols, and other provider panels render
-# with the geometry users expect.
-for arg in "$@"; do
-  if [[ $arg == "-m" ]]; then
-    if ! pgrep -x elephant >/dev/null; then
-      setsid uwsm-app -- elephant &
-    fi
-    if ! pgrep -f "walker --gapplication-service" >/dev/null; then
-      setsid uwsm-app -- env GSK_RENDERER=cairo walker --gapplication-service &
-    fi
-    exec walker --width 644 --maxheight 300 --minheight 300 "$@"
-  fi
-done
-
-# App-launcher mode
-if use_tofi; then
-  exec tofi-drun --config "$RYOKU_PATH/default/tofi/config" "$@"
-fi
-
-# Walker app-launcher legacy path
-if ! pgrep -x elephant >/dev/null; then
-  setsid uwsm-app -- elephant &
-fi
-if ! pgrep -f "walker --gapplication-service" >/dev/null; then
-  setsid uwsm-app -- env GSK_RENDERER=cairo walker --gapplication-service &
-fi
-exec walker --width 644 --maxheight 300 --minheight 300 "$@"
+exec tofi-drun --config "$RYOKU_PATH/default/tofi/config" "$@"
