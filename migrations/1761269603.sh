@@ -1,4 +1,4 @@
-echo "Add right-click terminal action to waybar omarchy menu icon"
+echo "Add right-click terminal action to waybar Ryoku menu icon"
 
 WAYBAR_CONFIG="$HOME/.config/waybar/config.jsonc"
 

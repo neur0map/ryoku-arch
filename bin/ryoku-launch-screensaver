@@ -10,7 +10,7 @@ if ! command -v tte &>/dev/null; then
 fi
 
 # Exit early if screensave is already running
-pgrep -f org.omarchy.screensaver && exit 0
+pgrep -f org.ryoku.screensaver && exit 0
 
 # Allow screensaver to be turned off but also force started
 if ryoku-toggle-enabled screensaver-off && [[ $1 != "force" ]]; then
@@ -29,20 +29,20 @@ for m in $(hyprctl monitors -j | jq -r '.[] | .name'); do
   case $terminal in
   *Alacritty*)
     hyprctl dispatch exec -- \
-      alacritty --class=org.omarchy.screensaver \
+      alacritty --class=org.ryoku.screensaver \
       --config-file $RYOKU_PATH/default/alacritty/screensaver.toml \
       -e ryoku-cmd-screensaver
     ;;
   *ghostty*)
     hyprctl dispatch exec -- \
-      ghostty --class=org.omarchy.screensaver \
+      ghostty --class=org.ryoku.screensaver \
       --config-file=$RYOKU_PATH/default/ghostty/screensaver \
       --font-size=18 \
       -e ryoku-cmd-screensaver
     ;;
   *kitty*)
     hyprctl dispatch exec -- \
-      kitty --class=org.omarchy.screensaver \
+      kitty --class=org.ryoku.screensaver \
       --override font_size=18 \
       --override window_padding_width=0 \
       -e ryoku-cmd-screensaver

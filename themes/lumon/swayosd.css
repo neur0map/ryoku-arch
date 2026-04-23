@@ -5,7 +5,7 @@
 @define-color progress #6fb8e3;
 @define-color edge-light #f2fcff;
 
-/* Cancel out Omarchy defaults */
+/* Cancel out Ryoku defaults */
 window:not(:backdrop),
 window:backdrop {
     border: none;

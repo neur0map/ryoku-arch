@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Add an EFI boot entry for the Omarchy UKI, allowing the system to boot directly
+# Add an EFI boot entry for the Ryoku UKI, allowing the system to boot directly
 # without a bootloader like Limine. Requires UEFI firmware and a built UKI.
 
 if [[ ! -d /sys/firmware/efi ]]; then
@@ -26,7 +26,7 @@ fi
 uki_file=$(find /boot/EFI/Linux/ -name "omarchy*.efi" -printf "%f\n" 2>/dev/null | head -1)
 
 if [[ -z $uki_file ]]; then
-  echo "Error: No Omarchy UKI found in /boot/EFI/Linux/" >&2
+  echo "Error: No Ryoku UKI found in /boot/EFI/Linux/" >&2
   exit 1
 fi
 
@@ -40,6 +40,6 @@ if gum confirm "Setup direct boot (so snapshot booting must be done via bios)?";
   sudo efibootmgr --create \
     --disk "$disk" \
     --part "$part" \
-    --label "Omarchy" \
+    --label "Ryoku" \
     --loader "\\EFI\\Linux\\$uki_file"
 fi

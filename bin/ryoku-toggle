@@ -2,7 +2,7 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Toggle Omarchy features between enabled and disabled
+# Toggle Ryoku features between enabled and disabled
 
 ENABLED_NOTIFICATION=""
 DISABLED_NOTIFICATION=""

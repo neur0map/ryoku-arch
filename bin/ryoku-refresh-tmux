@@ -2,7 +2,7 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Overwrite the user tmux config with the Omarchy default and reload tmux.
+# Overwrite the user tmux config with the Ryoku default and reload tmux.
 
 ryoku-refresh-config tmux/tmux.conf
 ryoku-restart-tmux

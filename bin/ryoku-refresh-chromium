@@ -2,7 +2,7 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Refresh the ~/.config/chromium-flags.conf file from the Omarchy defaults.
+# Refresh the ~/.config/chromium-flags.conf file from the Ryoku defaults.
 
 CONFIG_FILE="$HOME/.config/chromium-flags.conf"
 INSTALL_GOOGLE_ACCOUNTS=false

@@ -2,7 +2,7 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Overwrite the user config for hypridle with the Omarchy default and restart the service.
+# Overwrite the user config for hypridle with the Ryoku default and restart the service.
 
 ryoku-refresh-config hypr/hypridle.conf
 ryoku-restart-hypridle

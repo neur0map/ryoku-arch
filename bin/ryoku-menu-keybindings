@@ -179,7 +179,7 @@ prioritize_entries() {
     if (match(line, /Browser/) && !match(line, /Browser[[:space:]]*\(/) && !match(line, /SUPER SHIFT.*\+.*B.*→.*Browser/)) prio = 2
     if (match(line, /File manager/) && !match(line, /File manager \(cwd\)/))  prio = 3
     if (match(line, /Launch apps/))  prio = 4
-    if (match(line, /(Ryoku|Omarchy) menu/))  prio = 5
+    if (match(line, /(Ryoku|Ryoku) menu/))  prio = 5
     if (match(line, /System menu/))  prio = 6
     if (match(line, /Theme menu/))  prio = 7
     if (match(line, /Full screen/))  prio = 8

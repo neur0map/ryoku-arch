@@ -2,6 +2,6 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Reload hyprland configuration (used by the Omarchy theme switching).
+# Reload hyprland configuration (used by the Ryoku theme switching).
 
 hyprctl reload >/dev/null

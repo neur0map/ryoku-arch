@@ -18,14 +18,14 @@ if command -v limine &>/dev/null && [[ -f /etc/default/limine ]]; then
     if [[ -n $uki_file ]]; then
       while IFS= read -r bootnum; do
         sudo efibootmgr -b "$bootnum" -B >/dev/null 2>&1
-      done < <(efibootmgr | grep -E "^Boot[0-9]{4}\*? Omarchy" | sed 's/^Boot\([0-9]\{4\}\).*/\1/')
+      done < <(efibootmgr | grep -E "^Boot[0-9]{4}\*? Ryoku" | sed 's/^Boot\([0-9]\{4\}\).*/\1/')
 
       # Skip EFI entry creation on Apple hardware
       if ! cat /sys/class/dmi/id/bios_vendor 2>/dev/null | grep -qi "Apple"; then
         sudo efibootmgr --create \
           --disk "$(findmnt -n -o SOURCE /boot | sed 's/p\?[0-9]*$//')" \
           --part "$(findmnt -n -o SOURCE /boot | grep -o 'p\?[0-9]*$' | sed 's/^p//')" \
-          --label "Omarchy" \
+          --label "Ryoku" \
           --loader "\\EFI\\Linux\\$uki_file"
       fi
     fi

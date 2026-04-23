@@ -2,6 +2,6 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Launch the Omarchy audio controls TUI (provided by wiremix).
+# Launch the Ryoku audio controls TUI (provided by wiremix).
 
 ryoku-launch-or-focus-tui wiremix

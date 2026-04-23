@@ -2,7 +2,7 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# ryoku-theme-remove: Remove a theme from Omarchy by name
+# ryoku-theme-remove: Remove a theme from Ryoku by name
 # Usage: ryoku-theme-remove <theme-name>
 
 if [[ -z $1 ]]; then

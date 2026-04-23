@@ -2,7 +2,7 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Overwrite the user configs for the Walker application launcher (which also powers the Omarchy Menu) and restart the services.
+# Overwrite the user configs for the Walker application launcher (which also powers the Ryoku Menu) and restart the services.
 
 # Ensure walker is set to autostart
 mkdir -p ~/.config/autostart/

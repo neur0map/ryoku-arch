@@ -2,6 +2,6 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Reload btop configuration (used by the Omarchy theme switching).
+# Reload btop configuration (used by the Ryoku theme switching).
 
 pkill -SIGUSR2 btop

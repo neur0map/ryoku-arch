@@ -2,7 +2,7 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Sync Omarchy theme to VS Code, VSCodium, and Cursor
+# Sync Ryoku theme to VS Code, VSCodium, and Cursor
 
 VS_CODE_THEME="$RYOKU_CONFIG_PATH/current/theme/vscode.json"
 

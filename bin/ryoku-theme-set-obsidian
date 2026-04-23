@@ -2,7 +2,7 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Sync Omarchy theme to all Obsidian vaults
+# Sync Ryoku theme to all Obsidian vaults
 
 CURRENT_THEME_DIR="$RYOKU_CONFIG_PATH/current/theme"
 
@@ -11,17 +11,17 @@ CURRENT_THEME_DIR="$RYOKU_CONFIG_PATH/current/theme"
 jq -r '.vaults | values[].path' ~/.config/obsidian/obsidian.json 2>/dev/null | while read -r vault_path; do
   [[ -d $vault_path/.obsidian ]] || continue
 
-  theme_dir="$vault_path/.obsidian/themes/Omarchy"
+  theme_dir="$vault_path/.obsidian/themes/Ryoku"
   mkdir -p "$theme_dir"
 
   [[ -f $theme_dir/manifest.json ]] || cat >"$theme_dir/manifest.json" <<'EOF'
 {
-  "name": "Omarchy",
+  "name": "Ryoku",
   "version": "1.0.0",
   "minAppVersion": "0.16.0",
-  "description": "Automatically syncs with your current Omarchy system theme colors and fonts",
-  "author": "Omarchy",
-  "authorUrl": "https://omarchy.org"
+  "description": "Automatically syncs with your current Ryoku system theme colors and fonts",
+  "author": "Ryoku",
+  "authorUrl": "https://github.com/neur0map/ryoku-arch"
 }
 EOF
 

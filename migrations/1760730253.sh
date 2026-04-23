@@ -1,3 +1,3 @@
-echo "Install Aether for Omarchy theme creation"
+echo "Install Aether for Ryoku theme creation"
 
 ryoku-pkg-add aether

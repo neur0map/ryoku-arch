@@ -1,9 +1,9 @@
 #!/bin/bash
 set -e
 
-# Attempt to reinstall all default Omarchy packages and reset all the default configs.
+# Attempt to reinstall all default Ryoku packages and reset all the default configs.
 
-echo -e "This will reinstall all the default Omarchy packages and reset all default configs.\nWarning: All user changes to configs will be lost.\n"
+echo -e "This will reinstall all the default Ryoku packages and reset all default configs.\nWarning: All user changes to configs will be lost.\n"
 
 if gum confirm "Are you sure you want to reinstall and lose all config changes?"; then
   omarchy-reinstall-git

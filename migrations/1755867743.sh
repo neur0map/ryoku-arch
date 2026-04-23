@@ -1,4 +1,4 @@
-echo "Copy Omarchy logo to ~/.config/ryoku/branding/screensaver.txt so screensaver can be personalized"
+echo "Copy Ryoku logo to ~/.config/ryoku/branding/screensaver.txt so screensaver can be personalized"
 
 mkdir -p ~/.config/ryoku/branding
 cp $OMARCHY_PATH/logo.txt ~/.config/ryoku/branding/screensaver.txt

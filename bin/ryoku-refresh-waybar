@@ -2,7 +2,7 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Overwrite the user configs for the Waybar menu bar with the Omarchy defaults and restart the service.
+# Overwrite the user configs for the Waybar menu bar with the Ryoku defaults and restart the service.
 
 ryoku-refresh-config waybar/config.jsonc
 ryoku-refresh-config waybar/style.css

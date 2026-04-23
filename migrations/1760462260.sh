@@ -1,4 +1,4 @@
-echo -e "Offer new Omarchy hotkeys\n"
+echo -e "Offer new Ryoku hotkeys\n"
 
 cat <<EOF
 * Add SUPER + C / V for unified clipboard in both terminal and other apps

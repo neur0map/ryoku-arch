@@ -1,3 +1,3 @@
-echo "Remove old Omarchy TUI app now that we have the Omarchy Menu"
+echo "Remove old Ryoku TUI app now that we have the Ryoku Menu"
 
 rm -f ~/.local/share/applications/omarchy.desktop

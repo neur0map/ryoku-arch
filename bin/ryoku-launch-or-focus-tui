@@ -5,7 +5,7 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 # Launch or focus on a given TUI identified by the passed in as the command.
 # Use by commands like ryoku-launch-wifi to ensure there is only one wifi configuration screen open.
 
-APP_ID="org.omarchy.$(basename "$1")"
+APP_ID="org.ryoku.$(basename "$1")"
 LAUNCH_COMMAND="ryoku-launch-tui $@"
 
 exec ryoku-launch-or-focus "$APP_ID" "$LAUNCH_COMMAND"

@@ -1,6 +1,6 @@
 echo "Migrate to new theme setup"
 
-# Move user-added backgrounds from Omarchy theme folders to user config
+# Move user-added backgrounds from Ryoku theme folders to user config
 OMARCHY_DIR="$HOME/.local/share/omarchy"
 USER_BACKGROUNDS_DIR="$HOME/.config/ryoku/backgrounds"
 

@@ -52,7 +52,7 @@ fi
 # Update hyprland window rules to use DNS-format class names
 system_conf=~/.config/hypr/apps/system.conf
 if [[ -f $system_conf ]]; then
-  if grep -q 'class:(.*|Impala|' "$system_conf" || grep -q 'class:(.*|Wiremix|' "$system_conf" || grep -q '|Omarchy|' "$system_conf"; then
-    sed -i 's/\bImpala\b/com.omarchy.Impala/g; s/\bWiremix\b/com.omarchy.Wiremix/g; s/|Omarchy|/|com.omarchy.Omarchy|/g' "$system_conf"
+  if grep -q 'class:(.*|Impala|' "$system_conf" || grep -q 'class:(.*|Wiremix|' "$system_conf" || grep -q '|Ryoku|' "$system_conf"; then
+    sed -i 's/\bImpala\b/com.omarchy.Impala/g; s/\bWiremix\b/com.omarchy.Wiremix/g; s/|Ryoku|/|com.omarchy.Ryoku|/g' "$system_conf"
   fi
 fi

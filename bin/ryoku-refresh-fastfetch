@@ -2,6 +2,6 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Overwrite the user config for fastfetch with the Omarchy default.
+# Overwrite the user config for fastfetch with the Ryoku default.
 
 ryoku-refresh-config fastfetch/config.jsonc

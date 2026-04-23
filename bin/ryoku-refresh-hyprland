@@ -2,7 +2,7 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Overwrite all the user configs in ~/.config/hypr with the Omarchy defaults.
+# Overwrite all the user configs in ~/.config/hypr with the Ryoku defaults.
 
 ryoku-refresh-config hypr/autostart.conf
 ryoku-refresh-config hypr/bindings.conf

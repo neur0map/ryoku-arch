@@ -48,7 +48,7 @@ menu() {
 }
 
 terminal() {
-  xdg-terminal-exec --app-id=org.omarchy.terminal "$@"
+  xdg-terminal-exec --app-id=org.ryoku.terminal "$@"
 }
 
 present_terminal() {
@@ -87,7 +87,7 @@ aur_install_and_launch() {
 show_learn_menu() {
   case $(menu "Learn" "  Keybindings\n  Ryoku\n  Hyprland\n󰣇  Arch\n  Neovim\n󱆃  Bash") in
   *Keybindings*) ryoku-menu-keybindings ;;
-  *Ryoku*) ryoku-launch-webapp "https://learn.omacom.io/2/the-omarchy-manual" ;;
+  *Ryoku*) ryoku-launch-webapp "https://github.com/neur0map/ryoku-arch#readme" ;;
   *Hyprland*) ryoku-launch-webapp "https://wiki.hypr.land/" ;;
   *Arch*) ryoku-launch-webapp "https://wiki.archlinux.org/title/Main_page" ;;
   *Bash*) ryoku-launch-webapp "https://devhints.io/bash" ;;

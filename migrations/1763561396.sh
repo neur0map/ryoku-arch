@@ -1,3 +1,3 @@
-echo "Switch to stable Omarchy Package Repository builds"
+echo "Switch to stable Ryoku Package Repository builds"
 
 ryoku-refresh-pacman
