@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This hook is called after an Omarchy system update has been performed.
+# This hook is called after a Ryoku system update has been performed.
 # To put it into use, remove .sample from the name.
 
 # Example: Show notification after the system has been updated.

@@ -1,7 +1,7 @@
 force_keyboard_focus = true                                                 # forces keyboard forcus to stay in Walker
 selection_wrap = true                                                       # wrap list if at bottom or top
-theme = "omarchy-default"                                                   # theme to use
-additional_theme_location = "~/.local/share/omarchy/default/walker/themes/"
+theme = "ryoku-default"                                                     # theme to use
+additional_theme_location = "~/.local/share/ryoku/default/walker/themes/"
 hide_action_hints = true                                                    # globally hide the action hints
 
 [placeholders]
@@ -46,4 +46,4 @@ provider = "clipboard"
 
 [[emergencies]]
 text = "Restart Walker"
-command = "omarchy-restart-walker"
+command = "ryoku-restart-walker"
