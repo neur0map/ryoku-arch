@@ -9,7 +9,7 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 sudo cp -f /etc/pacman.conf /etc/pacman.conf.bak
 sudo cp -f /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.bak
 
-channel="${1:-stable}"
+channel="${1:-$(ryoku-channel-current)}"
 
 if [[ $channel != "stable" && $channel != "rc" && $channel != "edge" ]]; then
   echo "Error: Invalid channel '$channel'. Must be one of: stable, rc, edge"
