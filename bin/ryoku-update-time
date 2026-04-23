@@ -1,0 +1,6 @@
+#!/bin/bash
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+echo "Updating time..."
+sudo systemctl restart systemd-timesyncd

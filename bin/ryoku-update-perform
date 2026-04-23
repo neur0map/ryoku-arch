@@ -1,0 +1,23 @@
+#!/bin/bash
+
+set -e
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+# Ensure screensaver/sleep doesn't set in during updates
+hyprctl dispatch tagwindow +noidle &>/dev/null || true
+
+# Perform all update steps
+ryoku-update-keyring
+ryoku-update-available-reset
+ryoku-update-system-pkgs
+ryoku-migrate
+ryoku-update-aur-pkgs
+ryoku-update-orphan-pkgs
+ryoku-hook post-update
+
+omarchy-update-analyze-logs
+
+ryoku-update-restart
+
+# Re-enable screensaver/sleep after updates
+hyprctl dispatch tagwindow -- -noidle &>/dev/null || true

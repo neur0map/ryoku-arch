@@ -1,10 +1,2 @@
 #!/bin/bash
-
-orphans=$(pacman -Qtdq || true)
-if [[ -n $orphans ]]; then
-  echo -e "\e[32m\nRemove orphan system packages\e[0m"
-  for pkg in $orphans; do
-    sudo pacman -Rs --noconfirm "$pkg" || true
-  done
-  echo
-fi
+exec ryoku-update-orphan-pkgs "$@"
