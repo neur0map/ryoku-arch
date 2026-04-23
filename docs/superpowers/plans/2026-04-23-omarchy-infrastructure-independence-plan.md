@@ -141,114 +141,174 @@ Apply live via local-remote fast-forward. Run the migration explicitly: `bash ~/
 
 ---
 
-## Task 3: Walker replacement preparation
+## Task 3: Tofi replacement preparation
 
 **Files:**
-- Create or update: `default/elephant/ryoku_*.lua` providers (full parity with what `omarchy-walker` ships today; list the expected provider set here after the preflight audit)
-- Create: `install/packaging/walker.sh` (new) that installs `walker-bin` and the Elephant framework via `ryoku-pkg-aur-install`
-- Modify: `install/packaging/all.sh` (source the new walker installer)
-- Modify: `bin/ryoku-launch-walker`, `bin/ryoku-refresh-walker` (retarget paths if needed - usually just the Elephant provider dir)
+- Create: `default/tofi/config` (tofi INI with Ryoku-themed colors, size, prompt; no behavior binding yet)
+- Create: `default/tofi/pickers/` directory with shell scripts that replace the retired elephant Lua providers (theme picker, background picker). Each picker prints a list to stdin of a `tofi --dmenu`-style invocation and passes the selection back to its caller.
+- Create: `install/packaging/tofi.sh` (new) that installs `tofi` via `ryoku-pkg-aur-install`
+- Modify: `install/packaging/all.sh` (source the new tofi installer after the base package list step)
+- Modify: `bin/ryoku-launch-walker`, `bin/ryoku-refresh-walker`, `bin/ryoku-restart-walker` (rewrite as thin tofi shims; filenames preserved)
 
-- [ ] **Step 3.1: Audit what `omarchy-walker` installs**
+The preparation chunk is allowed to land the shim rewrites because they do not take effect until tofi is installed on the live clone at Task 4. Any Hyprland binding that calls `ryoku-launch-walker` continues to hit walker through the old omarchy-walker package until the cutover runs.
 
-On the live clone, run `pacman -Ql omarchy-walker | head -80` and record the output in the session log. The list pins the provider and asset set we must reproduce.
+- [ ] **Step 3.1: Verify tofi in AUR**
 
-- [ ] **Step 3.2: Verify upstream AUR package**
+Run `yay -Si tofi | grep -E '^(Name|Version|Depends On)'`. If tofi is unavailable or the name has drifted, stop and amend the plan. Record the exact version observed in the session log.
 
-Run `yay -Si walker-bin | grep -E '^(Name|Version|Depends On)'` and `yay -Si elephant-bin | grep -E '^(Name|Version)'` (package name may differ; update the plan if it does). Record the exact package name in the session log; if the upstream name has drifted, this plan is amended before proceeding.
+- [ ] **Step 3.2: Write `default/tofi/config`**
 
-- [ ] **Step 3.3: Port each provider into `default/elephant/`**
+Minimal INI that works immediately and does not require theming. Example shape (operator adjusts colors at plan execution time to match the current Ryoku theme):
+```
+font = "JetBrainsMono Nerd Font"
+font-size = 12
+prompt-text = "> "
+width = 50%
+height = 50%
+anchor = center
+background-color = #181818
+text-color = #ffffff
+selection-color = #00afff
+border-width = 2
+outline-width = 1
+corner-radius = 6
+```
+Commit only after a local `tofi --config default/tofi/config < /etc/hostname` invocation returns without error (tofi parses the INI).
 
-For every Ryoku-authored Elephant provider currently under `default/elephant/ryoku_*.lua`, confirm it runs against upstream Elephant. For any provider that is omarchy-authored and not yet ryoku-mirrored (themes, background selector are already done; audit calc, desktopapplications, etc.), write a ryoku-mirror. Each provider passes `luac -p`.
+- [ ] **Step 3.3: Port the picker scripts**
 
-- [ ] **Step 3.4: Create `install/packaging/walker.sh`**
+Under `default/tofi/pickers/` create one shell script per retired elephant provider that Ryoku actually uses. At minimum: `themes.sh` and `backgrounds.sh`. Each script:
+1. Enumerates the relevant list (themes from `~/.config/ryoku/themes/`, backgrounds from the active theme's `backgrounds/` directory).
+2. Pipes it into `tofi --dmenu` (not `tofi` in app-launcher mode).
+3. Captures the selection and passes it to the downstream ryoku command (for example, `ryoku-theme-set "$selection"`).
 
-Contents: guard against running in a chroot if AUR is unreachable (`ryoku-pkg-aur-accessible || return 1`), then `ryoku-pkg-aur-install walker-bin` and the Elephant package. Source from `install/packaging/all.sh`.
+`bash -n` passes on every script.
 
-- [ ] **Step 3.5: Dry-run in chroot**
+- [ ] **Step 3.4: Rewrite launcher shim scripts**
 
-Pacstrap a sandbox, run the preflight, packaging/base, then packaging/walker steps. Walker must install without errors. Record the transcript.
+`bin/ryoku-launch-walker` becomes:
+```bash
+#!/bin/bash
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+if [[ $1 == --dmenu ]]; then
+  shift
+  exec tofi --dmenu "$@" --config "$RYOKU_PATH/default/tofi/config"
+fi
+exec tofi-drun --config "$RYOKU_PATH/default/tofi/config" "$@"
+```
+(`tofi-drun` is the app-launcher binary the tofi package provides.)
 
-- [ ] **Step 3.6: Syntax check**
+`bin/ryoku-refresh-walker` and `bin/ryoku-restart-walker` become no-ops (tofi is not a daemon). Keep the files as thin shebangs with a comment explaining the historical name.
 
-`bash -n install/packaging/walker.sh install/packaging/all.sh bin/ryoku-launch-walker bin/ryoku-refresh-walker`. `luac -p default/elephant/ryoku_*.lua`. All pass.
+- [ ] **Step 3.5: Create `install/packaging/tofi.sh`**
 
-- [ ] **Step 3.7: Commit**
+Contents:
+```bash
+ryoku-pkg-aur-accessible || return 1
+ryoku-pkg-aur-install tofi
+```
+Source from `install/packaging/all.sh` after the base package step.
 
-Commit message: `prep: port walker provider set off omarchy-walker`. This commit does not alter live-system behavior; the cutover happens in Task 4.
+- [ ] **Step 3.6: Chroot dry-run**
 
-- [ ] **Step 3.8: Push after live fast-forward**
+Pacstrap a sandbox, run preflight + packaging/base + packaging/tofi. Tofi installs without errors. Record the transcript.
 
-Fast-forward the live clone. Confirm `ls ~/.local/share/ryoku/default/elephant/` shows the new providers. Walker on the live system still runs the omarchy-walker binary; no functional change.
+- [ ] **Step 3.7: Syntax checks**
 
-**Rollback note for Task 3:** `git revert <sha>`. Nothing runs on the live system beyond the fast-forward pull of new files in `default/elephant/`, which are harmless until chunk 4 activates them.
+`bash -n install/packaging/tofi.sh install/packaging/all.sh bin/ryoku-launch-walker bin/ryoku-refresh-walker bin/ryoku-restart-walker default/tofi/pickers/*.sh`. All pass.
+
+- [ ] **Step 3.8: Commit**
+
+Commit message: `prep: swap walker shims for tofi`. This commit does not alter live behavior; Super+Space still opens walker because tofi is not yet installed on the live clone.
+
+- [ ] **Step 3.9: Push after live fast-forward**
+
+Fast-forward the live clone. Do not yet run any migration. Confirm `ls ~/.local/share/ryoku/default/tofi/` shows the new config and pickers.
+
+**Rollback note for Task 3:** `git revert <sha>`. Nothing runs on the live system beyond the fast-forward. The launcher-shim rewrites would only affect live behavior if tofi were already installed; at the end of Task 3 it is not.
 
 ---
 
-## Task 4: Walker cutover
+## Task 4: Launcher cutover
 
-**Display-critical.** Confirm a non-GUI shell is available before running the live migration.
+**Display-critical.** Confirm a non-GUI shell (local TTY or SSH from another machine) is available before running the live migration. The plan refuses to proceed without confirmation.
 
 **Files:**
-- Modify: `install/ryoku-base.packages`, `install/omarchy-base.packages` (replace `omarchy-walker` with `walker-bin`)
-- Create: migration via `ryoku-dev-add-migration --no-edit` that performs the atomic swap
-- Modify: migrations `1762150269.sh` and `1758107879.sh` (add a post-cutover guard that makes them no-op if `$RYOKU_STATE_PATH/independence-cutover.walker.done` exists)
+- Modify: `install/ryoku-base.packages`, `install/omarchy-base.packages` (drop `omarchy-walker`, add `tofi`)
+- Modify: `bin/ryoku-menu` (every `ryoku-launch-walker --dmenu ...` call is rewritten to match tofi's flag surface; use the `--config` and `--prompt-text` forms)
+- Create: migration via `ryoku-dev-add-migration --no-edit` that performs the atomic launcher swap
+- Modify: migrations `1762150269.sh` and `1758107879.sh` (add `independence-cutover.launcher.done` guard)
+- Delete: `default/elephant/ryoku_*.lua` (retired; picker scripts in `default/tofi/pickers/` replace them)
+- Delete: `default/walker/themes/ryoku-default/` (no longer consumed)
 
 - [ ] **Step 4.1: Pre-cutover snapshot**
 
-On the live clone, run `ryoku-snapshot create` manually before applying the migration. Record the snapshot number. This is the rollback target if the cutover regresses.
+On the live clone, run `ryoku-snapshot create` manually before applying the migration. Record the snapshot number.
 
 - [ ] **Step 4.2: Update base package lists**
 
-Remove `omarchy-walker` from `install/ryoku-base.packages` and `install/omarchy-base.packages`. Add `walker-bin` to `install/ryoku-base.packages` (omarchy-base keeps the old name for historical reference; this file is legacy and scheduled for eventual deletion). Do not yet commit.
+Remove `omarchy-walker` from `install/ryoku-base.packages` and `install/omarchy-base.packages`. Add `tofi` to `install/ryoku-base.packages`.
 
-- [ ] **Step 4.3: Gate legacy walker migrations**
+- [ ] **Step 4.3: Rewrite `bin/ryoku-menu` call sites**
+
+For every `ryoku-launch-walker --dmenu ...` call in `bin/ryoku-menu`, rewrite the flags to match tofi. Most existing flags (`--width`, `--prompt`, `--maxheight`, `--minheight`) do not exist on tofi; either replace with the tofi equivalent (`--width`, `--height`, `--prompt-text`) or delete the flag. Preserve the piped-stdin + captured-selection pattern. Every rewritten call is verified by hand against the tofi manpage at plan execution time.
+
+- [ ] **Step 4.4: Delete retired walker/elephant assets**
+
+`git rm -r default/elephant/` and `git rm -r default/walker/themes/ryoku-default/`. Any remaining `default/walker/` contents used only by omarchy-walker go with them. Verify with `rg -l walker default/` that no references point into the deleted paths.
+
+- [ ] **Step 4.5: Gate legacy walker migrations**
 
 Prepend to `migrations/1762150269.sh` and `migrations/1758107879.sh`:
 ```bash
-[[ -f $HOME/.local/state/ryoku/independence-cutover.walker.done ]] && exit 0
+[[ -f $HOME/.local/state/ryoku/independence-cutover.launcher.done ]] && exit 0
 ```
-So that on fresh installs after the cutover, the legacy "install omarchy-walker" migrations skip.
+So fresh installs after the cutover skip the "install omarchy-walker" migrations.
 
-- [ ] **Step 4.4: Write the cutover migration**
+- [ ] **Step 4.6: Write the cutover migration**
 
-Generate via `ryoku-dev-add-migration --no-edit`. Contents:
+Generate via `ryoku-dev-add-migration --no-edit`. Contents (idempotent throughout):
 1. `ryoku-pkg-aur-accessible || { echo "AUR unavailable, aborting"; exit 1; }`
-2. `[[ -f $HOME/.local/state/ryoku/independence-cutover.walker.done ]] && exit 0`
+2. `[[ -f $HOME/.local/state/ryoku/independence-cutover.launcher.done ]] && exit 0`
 3. `ryoku-snapshot create || true`
 4. `pkill -x walker || true`
-5. `sudo pacman -R --noconfirm omarchy-walker 2>/dev/null || true` (may already be uninstalled on re-run)
-6. `ryoku-pkg-aur-install walker-bin <elephant-pkg-name>`
-7. `ryoku-refresh-walker`
-8. `touch $HOME/.local/state/ryoku/independence-cutover.walker.done`
+5. `ryoku-pkg-aur-install tofi`
+6. `sudo pacman -Rdd --noconfirm omarchy-walker 2>/dev/null || true`
+7. Orphan sweep: `orphans=$(pacman -Qdtq || true); if [[ -n $orphans ]]; then echo "Orphans: $orphans"; sudo pacman -Rns --noconfirm $orphans; fi` (expect the elephant provider packages to appear as orphans and be removed here)
+8. `touch $HOME/.local/state/ryoku/independence-cutover.launcher.done`
 
-Every step is idempotent: re-running the migration on a machine past step 8 exits immediately at step 2.
+- [ ] **Step 4.7: Chroot validation**
 
-- [ ] **Step 4.5: Chroot validation**
+Run steps 1, 5, and 7 in a pacstrap sandbox. `tofi --help` must return without error after step 5.
 
-Run the migration end-to-end in a pacstrap sandbox. Walker must install and `walker --version` must return a sane version string. Record the output.
+- [ ] **Step 4.8: Syntax check**
 
-- [ ] **Step 4.6: Syntax check**
+`bash -n migrations/<new>.sh migrations/1762150269.sh migrations/1758107879.sh bin/ryoku-menu`. All pass.
 
-`bash -n migrations/<new>.sh migrations/1762150269.sh migrations/1758107879.sh`. Pass.
+- [ ] **Step 4.9: Commit**
 
-- [ ] **Step 4.7: Commit**
+Commit message: `refactor: swap omarchy-walker for tofi`. Stage the modified migrations, the new cutover migration, the two base-packages files, the rewritten `bin/ryoku-menu`, and the deleted elephant/walker directories.
 
-Commit message: `refactor: swap omarchy-walker for upstream walker-bin`. Stage the two migrations modified, the new cutover migration, the two base-packages files.
-
-- [ ] **Step 4.8: Apply live under recovery-ready conditions**
+- [ ] **Step 4.10: Apply live under recovery-ready conditions**
 
 1. Confirm the local TTY or SSH path. Session log records it.
 2. Fast-forward the live clone.
-3. Run `bash ~/.local/share/ryoku/migrations/<new>.sh` in a shell that is not itself the Hyprland session. Prefer a second TTY or an SSH shell so a walker restart cannot kill the migration.
-4. On success, the session log records the new `walker --version`, a screenshot of the Ryoku menu opening, and `pacman -Qi walker-bin` output.
-5. On failure, rollback: `snapper rollback <snapshot>` and reboot. The session log records the failure and the rollback action.
+3. Run `bash ~/.local/share/ryoku/migrations/<new>.sh` in a shell that is not itself the Hyprland session.
+4. Verify:
+   - `which tofi` resolves to `/usr/bin/tofi`.
+   - `pacman -Qi tofi` reports installed.
+   - `pacman -Qi omarchy-walker` reports not found.
+   - Super+Space opens tofi with an application list; selecting an app launches it.
+   - Super+Alt+Space opens the Ryoku menu; navigating a submenu returns a valid selection.
+   - Theme picker and background picker both invoke tofi and apply the selection.
+5. Session log records the verification transcript.
+6. On failure, rollback: `snapper rollback <snapshot>` and reboot.
 
-- [ ] **Step 4.9: Push**
+- [ ] **Step 4.11: Push**
 
-Push only after Step 4.8 records a successful live run, including at least one Ryoku menu invocation that opens and dispatches a command.
+Push only after Step 4.10 records a successful Super+Space, Super+Alt+Space, theme picker, and background picker round trip.
 
-**Rollback note for Task 4:** `snapper rollback <pre-cutover>` and reboot; or manually `sudo pacman -R walker-bin && sudo pacman -S --asdeps omarchy-walker && ryoku-refresh-walker` (only works while chunk 7 has not yet landed). Repo-side `git revert` alone is insufficient.
+**Rollback note for Task 4:** Snapshot restore is the clean rollback (both launcher UI and package state roll back in one operation). Manual rollback is possible only while chunk 7 has not yet landed: `sudo pacman -R tofi && sudo pacman -S --asdeps omarchy-walker`, then copy `bin/ryoku-launch-walker` and `bin/ryoku-menu` from `git show HEAD~1:<path>` on the live clone. Repo-side `git revert` alone is insufficient.
 
 ---
 
@@ -517,7 +577,7 @@ Path A is complete when all of the following are simultaneously true:
 - `bin/ryoku-update-keyring` contains no reference to `omarchy-keyring` or the hardcoded fingerprint.
 - `install/ryoku-base.packages` does not name `omarchy-keyring`, `omarchy-nvim`, or `omarchy-walker`.
 - `ryoku-version-channel` reads from `$RYOKU_STATE_PATH/channel` and not from pacman config.
-- Walker opens via `ryoku-menu` and runs upstream `walker-bin`.
+- Super+Space and Super+Alt+Space open tofi on the live clone; theme picker and background picker both return valid selections via tofi.
 - Nvim launches and reports upstream neovim version.
 - `ryoku-update` completes end-to-end without contacting any `omarchy.org` host.
 - VM boot drill from a fresh Arch VM via `boot.sh` completes install and first update without network error.
@@ -534,6 +594,5 @@ Path A is complete when all of the following are simultaneously true:
 ## Open questions to resolve at plan execution time
 
 1. **Nvim starter:** LazyVim, NvChad, kickstart, or Ryoku-authored minimal? Decided at Task 5 Step 1 before any code is written.
-2. **Walker AUR package name:** `walker-bin` or the current upstream name at execution time? Verified at Task 3 Step 2 via `yay -Si`.
-3. **Elephant AUR package name:** ditto; verified at the same step.
-4. **Reflector country and age filters:** recorded in the session log at Task 2 Step 2; quarterly regeneration cadence documented in `docs/maintenance.md`.
+2. **Tofi availability and version:** verified at Task 3 Step 1 via `yay -Si tofi`. If the package is gone or has drifted, the plan is amended with an alternative (fuzzel, wofi) before proceeding.
+3. **Reflector country and age filters:** recorded in the session log at Task 2 Step 2; quarterly regeneration cadence documented in `docs/maintenance.md`.
