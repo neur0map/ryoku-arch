@@ -24,7 +24,9 @@ if [[ ${1:-} == "--dmenu" ]]; then
 fi
 
 # walker provider mode: keep routing to walker until Task 4 swaps the
-# -m consumers for tofi-native helpers
+# -m consumers for tofi-native helpers. Restore the walker-era window
+# sizing so the clipboard, symbols, and other provider panels render
+# with the geometry users expect.
 for arg in "$@"; do
   if [[ $arg == "-m" ]]; then
     if ! pgrep -x elephant >/dev/null; then
@@ -33,7 +35,7 @@ for arg in "$@"; do
     if ! pgrep -f "walker --gapplication-service" >/dev/null; then
       setsid uwsm-app -- env GSK_RENDERER=cairo walker --gapplication-service &
     fi
-    exec walker "$@"
+    exec walker --width 644 --maxheight 300 --minheight 300 "$@"
   fi
 done
 
