@@ -24,5 +24,5 @@ if [[ -n $pkg_names ]]; then
 
   echo "$pkg_names" | sed 's/^/aur\//' | tr '\n' ' ' | xargs yay -S --noconfirm
   sudo updatedb
-  ryoku-show-done
+  omarchy-show-done
 fi

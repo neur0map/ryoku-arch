@@ -21,5 +21,5 @@ if [[ -n $pkg_names ]]; then
 
   # Convert newline-separated selections to space-separated for pacman
   echo "$pkg_names" | tr '\n' ' ' | xargs sudo pacman -S --noconfirm
-  ryoku-show-done
+  omarchy-show-done
 fi
