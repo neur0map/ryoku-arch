@@ -3,10 +3,10 @@
 # Prints Ryoku Arch version and current HEAD.
 # Pre-alpha: version is derived from the git tip, not a tagged release.
 
-OMARCHY_PATH="${OMARCHY_PATH:-$HOME/.local/share/omarchy}"
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
 echo "Ryoku Arch (pre-alpha)"
-if [[ -d $OMARCHY_PATH/.git ]]; then
-  tip=$(git -C "$OMARCHY_PATH" rev-parse --short HEAD 2>/dev/null)
+if [[ -d $RYOKU_PATH/.git ]]; then
+  tip=$(git -C "$RYOKU_PATH" rev-parse --short HEAD 2>/dev/null)
   [[ -n $tip ]] && echo "HEAD: $tip"
 fi

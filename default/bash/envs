@@ -2,6 +2,10 @@
 export SUDO_EDITOR="$EDITOR"
 export BAT_THEME=ansi
 
-# Duplicated from .config/uwsm/env so SSH works too
-export OMARCHY_PATH=$HOME/.local/share/omarchy
-export PATH=$OMARCHY_PATH/bin:$PATH:$HOME/.local/bin
+# Mirror the desktop session runtime contract so SSH shells behave the same way.
+source "$HOME/.local/share/ryoku/lib/runtime-env.sh" 2>/dev/null || source "$HOME/.local/share/omarchy/lib/runtime-env.sh"
+
+case ":$PATH:" in
+  *":$HOME/.local/bin:"*) ;;
+  *) export PATH="$PATH:$HOME/.local/bin" ;;
+esac
