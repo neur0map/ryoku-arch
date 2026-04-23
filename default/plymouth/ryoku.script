@@ -1,4 +1,4 @@
-# Omarchy Plymouth Theme Script
+# Ryoku Plymouth Theme Script
 
 Window.SetBackgroundTopColor(0.101, 0.105, 0.149);
 Window.SetBackgroundBottomColor(0.101, 0.105,  0.149);

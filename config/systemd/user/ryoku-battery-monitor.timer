@@ -1,6 +1,6 @@
 [Unit]
-Description=Ryoku Battery Monitor Compatibility Timer
-Requires=omarchy-battery-monitor.service
+Description=Ryoku Battery Monitor Timer
+Requires=ryoku-battery-monitor.service
 
 [Timer]
 OnBootSec=1min

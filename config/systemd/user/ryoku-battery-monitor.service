@@ -1,5 +1,5 @@
 [Unit]
-Description=Ryoku Battery Monitor Compatibility Check
+Description=Ryoku Battery Monitor Check
 After=graphical-session.target
 
 [Service]

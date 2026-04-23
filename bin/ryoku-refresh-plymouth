@@ -2,10 +2,12 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Overwrite the user config for the Plymouth drive decryption and boot sequence with the Omarchy default and rebuild it.
+# Overwrite the user config for the Plymouth drive decryption and boot sequence with the Ryoku default and rebuild it.
 
-sudo cp $RYOKU_PATH/default/plymouth/* /usr/share/plymouth/themes/omarchy/
-sudo plymouth-set-default-theme omarchy
+sudo rm -rf /usr/share/plymouth/themes/ryoku
+sudo mkdir -p /usr/share/plymouth/themes/ryoku/
+sudo cp $RYOKU_PATH/default/plymouth/* /usr/share/plymouth/themes/ryoku/
+sudo plymouth-set-default-theme ryoku
 
 if command -v limine-mkinitcpio &>/dev/null; then
   sudo limine-mkinitcpio
