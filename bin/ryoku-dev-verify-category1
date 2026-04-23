@@ -37,8 +37,8 @@ if [[ $script_dir == "$script_path" ]]; then
   script_dir=.
 fi
 
-script_dir="$(cd "$script_dir" && pwd)"
-repo_root="$(cd "$script_dir/.." && pwd)"
+script_dir="$(cd -P "$script_dir" && pwd -P)"
+repo_root="$(cd -P "$script_dir/.." && pwd -P)"
 
 cd "$repo_root"
 
