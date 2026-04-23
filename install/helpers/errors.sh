@@ -1,19 +1,3 @@
-# Directs user to Omarchy Discord
-QR_CODE='
-█▀▀▀▀▀█ ▄ ▄ ▀▄▄▄█ █▀▀▀▀▀█
-█ ███ █ ▄▄▄▄▀▄▀▄▀ █ ███ █
-█ ▀▀▀ █ ▄█  ▄█▄▄▀ █ ▀▀▀ █
-▀▀▀▀▀▀▀ ▀▄█ █ █ █ ▀▀▀▀▀▀▀
-▀▀█▀▀▄▀▀▀▀▄█▀▀█  ▀ █ ▀ █
-█▄█ ▄▄▀▄▄ ▀ ▄ ▀█▄▄▄▄ ▀ ▀█
-▄ ▄▀█ ▀▄▀▀▀▄ ▄█▀▄█▀▄▀▄▀█▀
-█ ▄▄█▄▀▄█ ▄▄▄  ▀ ▄▀██▀ ▀█
-▀ ▀   ▀ █ ▀▄  ▀▀█▀▀▀█▄▀
-█▀▀▀▀▀█ ▀█  ▄▀▀ █ ▀ █▄▀██
-█ ███ █ █▀▄▄▀ █▀███▀█▄██▄
-█ ▀▀▀ █ ██  ▀ █▄█ ▄▄▄█▀ █
-▀▀▀▀▀▀▀ ▀ ▀ ▀▀▀  ▀ ▀▀▀▀▀▀'
-
 # Track if we're already handling an error to prevent double-trapping
 ERROR_HANDLING=false
 
@@ -24,11 +8,11 @@ show_cursor() {
 
 # Display truncated log lines from the install log
 show_log_tail() {
-  if [[ -f $OMARCHY_INSTALL_LOG_FILE ]]; then
+  if [[ -f $RYOKU_INSTALL_LOG_FILE ]]; then
     local log_lines=$((TERM_HEIGHT - LOGO_HEIGHT - 35))
     local max_line_width=$((LOGO_WIDTH - 4))
 
-    tail -n $log_lines "$OMARCHY_INSTALL_LOG_FILE" | while IFS= read -r line; do
+    tail -n $log_lines "$RYOKU_INSTALL_LOG_FILE" | while IFS= read -r line; do
       if ((${#line} > max_line_width)); then
         local truncated_line="${line:0:$max_line_width}..."
       else
@@ -90,22 +74,20 @@ catch_errors() {
   clear_logo
   show_cursor
 
-  gum style --foreground 1 --padding "1 0 1 $PADDING_LEFT" "Omarchy installation stopped!"
+  gum style --foreground 1 --padding "1 0 1 $PADDING_LEFT" "Ryoku installation stopped!"
   show_log_tail
 
   gum style "This command halted with exit code $exit_code:"
   show_failed_script_or_command
 
-  gum style "$QR_CODE"
-  echo
-  gum style "Get help from the community via QR code or at https://discord.gg/tXFUdasqhY"
+  gum style "Review the log, then file an issue at https://github.com/neur0map/ryoku-arch/issues if you need help."
 
   # Offer options menu
   while true; do
     options=()
 
     # If online install, show retry first
-    if [[ -n ${OMARCHY_ONLINE_INSTALL:-} ]]; then
+    if [[ -n ${RYOKU_ONLINE_INSTALL:-} ]]; then
       options+=("Retry installation")
     fi
 
@@ -122,18 +104,18 @@ catch_errors() {
 
     case "$choice" in
     "Retry installation")
-      bash ~/.local/share/omarchy/install.sh
+      bash ~/.local/share/ryoku/install.sh
       break
       ;;
     "View full log")
       if command -v less &>/dev/null; then
-        less "$OMARCHY_INSTALL_LOG_FILE"
+        less "$RYOKU_INSTALL_LOG_FILE"
       else
-        tail "$OMARCHY_INSTALL_LOG_FILE"
+        tail "$RYOKU_INSTALL_LOG_FILE"
       fi
       ;;
     "Upload log for support")
-      omarchy-upload-log
+      ryoku-upload-log
       ;;
     "Exit" | "")
       exit 1

@@ -1,2 +1,2 @@
 # Enable hibernation
-omarchy-hibernation-setup --force
+ryoku-hibernation-setup --force

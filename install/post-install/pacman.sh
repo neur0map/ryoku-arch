@@ -1,6 +1,7 @@
 # Configure pacman
-sudo cp -f ~/.local/share/omarchy/default/pacman/pacman-${OMARCHY_MIRROR:-stable}.conf /etc/pacman.conf
-sudo cp -f ~/.local/share/omarchy/default/pacman/mirrorlist-${OMARCHY_MIRROR:-stable} /etc/pacman.d/mirrorlist
+channel="${RYOKU_MIRROR:-${OMARCHY_MIRROR:-stable}}"
+sudo cp -f ~/.local/share/ryoku/default/pacman/pacman-${channel}.conf /etc/pacman.conf
+sudo cp -f ~/.local/share/ryoku/default/pacman/mirrorlist-${channel} /etc/pacman.d/mirrorlist
 
 if lspci -nn | grep -q "106b:180[12]"; then
   cat <<EOF | sudo tee -a /etc/pacman.conf >/dev/null

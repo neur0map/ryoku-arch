@@ -10,9 +10,9 @@ if [[ $MACBOOK_MODEL =~ MacBook(8,1|9,1|10,1)|MacBookPro13,[123]|MacBookPro14,[1
   if [[ -f $NVME_DEVICE ]]; then
     echo "Applying NVMe suspend fix..."
 
-    cat <<EOF | sudo tee /etc/systemd/system/omarchy-nvme-suspend-fix.service >/dev/null
+    cat <<EOF | sudo tee /etc/systemd/system/ryoku-nvme-suspend-fix.service >/dev/null
 [Unit]
-Description=Omarchy NVMe Suspend Fix for MacBook
+Description=Ryoku NVMe Suspend Fix for MacBook
 
 [Service]
 ExecStart=/bin/bash -c 'echo 0 > /sys/bus/pci/devices/0000\:01\:00.0/d3cold_allowed'
@@ -21,7 +21,7 @@ ExecStart=/bin/bash -c 'echo 0 > /sys/bus/pci/devices/0000\:01\:00.0/d3cold_allo
 WantedBy=multi-user.target
 EOF
 
-    chrootable_systemctl_enable omarchy-nvme-suspend-fix.service
+    chrootable_systemctl_enable ryoku-nvme-suspend-fix.service
     sudo systemctl daemon-reload
   else
     echo "Warning: NVMe device not found at expected PCI address (0000:01:00.0)"

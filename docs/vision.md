@@ -10,7 +10,7 @@ Ryoku (力) means "power" or "strength" in Japanese. Ryoku Arch combines that wo
 
 ## What it is
 
-An opinionated Arch Linux distribution that layers a curated cybersecurity toolset on top of a ricing-focused desktop. Built from omarchy as a starting point so the install framework, theme system, and update mechanism come pre-built.
+An opinionated Arch Linux distribution that layers a curated cybersecurity toolset on top of a ricing-focused desktop. Ryoku owns its command surface, config paths, documentation, and maintenance workflow.
 
 ## Who it is for
 
@@ -19,20 +19,20 @@ People studying or working in cybersecurity who also care about how their machin
 ## What distinguishes it
 
 - A curated set of security tools (from the BlackArch repository and beyond), opinionated about which are included by default.
-- A ricing baseline inherited from omarchy (Hyprland, Waybar, keybindings, themes) with Ryoku-specific defaults layered on top.
+- A Hyprland/Waybar/Walker desktop stack with Ryoku-specific defaults and branding.
 - A Japanese minimalism aesthetic for branding and theme work.
 
 ## What it is not
 
 - A general-purpose desktop distribution.
-- A fork of BlackArch. Ryoku Arch starts from omarchy and pulls security tooling in, rather than starting from a security-focused distribution and adding ricing.
-- A drop-in replacement for omarchy. Paths, command names, and install flow match omarchy's during the bootstrap phase; they will diverge over time.
+- A fork of BlackArch. Ryoku Arch layers security tooling into its own desktop opinion rather than starting from a security-first distribution and bolting ricing on afterward.
+- A re-skinned Omarchy. Upstream history matters, but Ryoku now treats `ryoku-*`, `~/.config/ryoku`, and `~/.local/share/ryoku` as the canonical surfaces.
 
 ## Roadmap
 
 This document is load-bearing across multiple specs. The initial scaffolding spec (`docs/specs/2026-04-22-ryoku-arch-scaffolding-design.md`) only sets up the repo and the dev loop. Follow-on specs cover, in rough priority order:
 
-1. Command and path rename: `omarchy-*` to `ryoku-*`.
+1. Complete the remaining compatibility cleanup after the command and path rename.
 2. Installer migration: `boot.sh` defaults, pacman mirror configuration.
 3. Security tooling curation and integration.
 4. Brand assets: logo, icons, boot splash, theme defaults.

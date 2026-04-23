@@ -6,7 +6,7 @@
 # Also disables I2C runtime PM to prevent the haptic engine losing state
 # across suspend/resume.
 
-if omarchy-hw-match "XPS" \
+if ryoku-hw-match "XPS" \
   && ls /sys/bus/i2c/devices/i2c-VEN_06CB:00 2>/dev/null; then
 
   # Keep I2C controller power on to prevent haptic engine losing state
@@ -24,7 +24,7 @@ After=systemd-udev-settle.service
 
 [Service]
 Type=simple
-ExecStart=$OMARCHY_PATH/bin/omarchy-haptic-touchpad
+ExecStart=$RYOKU_PATH/bin/ryoku-haptic-touchpad
 Restart=on-failure
 RestartSec=2
 

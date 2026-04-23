@@ -6,18 +6,19 @@ An opinionated Arch Linux distribution combining desktop ricing with a cybersecu
 
 ## Status
 
-Pre-alpha. Not installable as a standalone distribution yet. The repository currently tracks a working fork of omarchy with Ryoku-specific documentation and branding. See `docs/vision.md` for the north star and `docs/rebrand-inventory.md` for the list of pending rename work.
+Pre-alpha. Not installable as a standalone distribution yet. The repository now treats Ryoku as the canonical command, config, and documentation surface. See `docs/vision.md` for the project direction and `docs/rebrand-inventory.md` for the remaining legacy and deferred rename work.
 
 ## Credit
 
-Ryoku Arch is built on top of [Omarchy](https://github.com/basecamp/omarchy) by DHH. The install framework, update mechanism, theme system, and configuration conventions are inherited from omarchy; Ryoku Arch layers on a security tooling focus and a distinct aesthetic identity.
+Ryoku Arch started as a fork of [Omarchy](https://github.com/basecamp/omarchy) by DHH. Upstream attribution remains in `NOTICE`, `LICENSE`, and maintenance docs, but the active project identity, command surface, and operator workflow are Ryoku-first.
 
-## Migrating an existing omarchy install
+## Migrating an Existing Install
 
-If you already have omarchy installed at `~/.local/share/omarchy/` and want to switch the update system to Ryoku:
+If you already have an older Omarchy-based install and want to repoint it at Ryoku, run this from your existing local clone of the install repo:
 
 ```bash
-cd ~/.local/share/omarchy
+REPO_DIR="${RYOKU_PATH:-$HOME/.local/share/ryoku}"
+cd "$REPO_DIR"
 git diff --quiet && git diff --cached --quiet || { echo "dirty tree, commit or stash first"; exit 1; }
 git remote set-url origin https://github.com/neur0map/ryoku-arch.git
 git fetch origin --tags --prune
@@ -25,7 +26,7 @@ git checkout -b main --track origin/main
 git branch -D master
 ```
 
-Subsequent `omarchy-update` runs pull from Ryoku Arch.
+After that, `ryoku-update` is the canonical updater. Legacy updater wrappers still exist during the migration backlog, but the documented interface is Ryoku.
 
 ## License
 

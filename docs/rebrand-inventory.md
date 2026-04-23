@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Exhaustive catalog of omarchy references in this repository. Each entry states what the reference is, where it lives, and what the Ryoku-state equivalent should be. This document is consumed by follow-on specs (rename pass, installer migration) to make sure nothing is missed.
+Working inventory of the remaining Omarchy-era surfaces in this repository. It now serves as a close-out ledger rather than a greenfield rename spec: most runtime and docs surfaces have moved to Ryoku, and the remaining references are either compatibility bridges, package-name deferments, upstream attribution, or brand-asset backlog.
 
 ## Generation
 
@@ -20,7 +20,7 @@ Every reference falls into one of five categories.
 
 ### Category 1: MUST change (functional)
 
-Command names, package names, install paths, user-visible strings. Changing these is the core work of the rename pass.
+Command names, package names, install paths, user-visible strings. Most of this category is complete for active runtime and installed-system behavior. The main unresolved pieces are package-facing names and a shrinking set of compatibility bridges.
 
 - `bin/omarchy-*` command names (all ~200 scripts)
 - `$OMARCHY_PATH` runtime path references
@@ -42,7 +42,7 @@ Internal identifiers and comments that are not user-visible but should be rename
 
 - Environment variables: `$OMARCHY_PATH`, `$OMARCHY_REPO`, `$OMARCHY_REF`, `$OMARCHY_MIRROR`, `$OMARCHY_ONLINE_INSTALL`, `$OMARCHY_USER_NAME`, `$OMARCHY_USER_EMAIL`, `$OMARCHY_CHROOT_INSTALL`, `$OMARCHY_UPDATE_LOGGED`.
 - Comments and log strings inside scripts.
-- `AGENTS.md`: the entire document is omarchy-voiced; rewrite for Ryoku.
+- `AGENTS.md`: rewrite complete; keep revisiting if new Omarchy-language drift appears.
 
 ### Category 4: Brand assets (deferred)
 
@@ -74,10 +74,20 @@ rg -c 'omarchy' bin/ | sort -t: -k2 -n -r | head -20
 
 ## Status checklist
 
-- [ ] Raw grep done (initial, at scaffolding)
-- [ ] Categorized (categories above are final; line-level categorization happens in the rename pass)
-- [ ] Command rename pass executed (Category 1 and 3 commands in `bin/`)
-- [ ] Install-path rename pass executed (Category 1 path references)
-- [ ] Installer migration pass executed (Category 5)
+- [x] Raw grep done (initial, at scaffolding)
+- [x] Categorized (categories above are final; line-level categorization happens in the rename pass)
+- [x] Command rename pass executed (Category 1 and 3 commands in `bin/`)
+- [x] Install-path rename pass executed (Category 1 path references)
+- [ ] Installer migration pass executed (Category 5 boot defaults, mirrors, and package-facing names still have deferred work)
 - [ ] Brand assets pass executed (Category 4)
 - [ ] Verified end-to-end install still works post-rename
+
+## Current Reality
+
+- Canonical runtime surfaces are `ryoku-*`, `~/.config/ryoku`, `~/.local/state/ryoku`, and `~/.local/share/ryoku`.
+- Legacy `omarchy-*` wrappers still exist where migration safety or package compatibility still depends on them.
+- Package-facing names remain deferred until Ryoku-native replacements exist:
+  - `omarchy-keyring`
+  - `omarchy-nvim`
+  - `omarchy-walker`
+- Live boot-theme migration is still incomplete until the Ryoku Plymouth asset path is installed and activated everywhere.

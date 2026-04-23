@@ -1,8 +1,8 @@
 # Fix audio volume on Asus ROG laptops by using a soft mixer.
 
-if omarchy-hw-asus-rog; then
+if ryoku-hw-asus-rog; then
   mkdir -p ~/.config/wireplumber/wireplumber.conf.d/
-  cp $OMARCHY_PATH/default/wireplumber/wireplumber.conf.d/alsa-soft-mixer.conf ~/.config/wireplumber/wireplumber.conf.d/
+  cp $RYOKU_PATH/default/wireplumber/wireplumber.conf.d/alsa-soft-mixer.conf ~/.config/wireplumber/wireplumber.conf.d/
   rm -rf ~/.local/state/wireplumber/default-routes
 
   # Unmute the Master control on the ALC285 card (often muted by default)
