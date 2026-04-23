@@ -8,10 +8,28 @@ required_commands=(
   hyprctl
 )
 
+require_command() {
+  local cmd="$1"
+
+  if ! command -v "$cmd" >/dev/null; then
+    echo "missing command: $cmd" >&2
+    exit 1
+  fi
+}
+
+require_file() {
+  local path="$1"
+
+  if [[ ! -f $path ]]; then
+    echo "missing file: $path" >&2
+    exit 1
+  fi
+}
+
 for cmd in "${required_commands[@]}"; do
-  command -v "$cmd" >/dev/null
+  require_command "$cmd"
 done
 
-test -f config/hypr/hyprland.conf
-test -f config/waybar/config.jsonc
-test -f config/waybar/style.css
+require_file config/hypr/hyprland.conf
+require_file config/waybar/config.jsonc
+require_file config/waybar/style.css
