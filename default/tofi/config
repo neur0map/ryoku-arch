@@ -1,6 +1,4 @@
 # Ryoku default tofi configuration.
-# Minimal defaults; themes may override via ~/.config/ryoku/current/theme/tofi.conf
-# (not wired up yet; acts as a passive inclusion hook).
 
 font = JetBrainsMono Nerd Font
 font-size = 12
@@ -13,7 +11,9 @@ horizontal = false
 
 background-color = #181818
 text-color = #ebdbb2
-selection-color = #8ec07c
+selection-color = #fabd2f
+selection-background = #3c3836
+selection-background-padding = 4
 prompt-color = #fabd2f
 input-color = #ebdbb2
 
@@ -22,13 +22,14 @@ border-color = #3c3836
 outline-width = 0
 corner-radius = 6
 
-padding-top = 16
-padding-bottom = 16
-padding-left = 16
-padding-right = 16
+padding-top = 8
+padding-bottom = 8
+padding-left = 8
+padding-right = 8
+prompt-padding = 4
 
 num-results = 10
-result-spacing = 6
+result-spacing = 2
 
 hide-cursor = true
 ascii-input = false

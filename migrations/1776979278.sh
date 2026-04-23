@@ -18,8 +18,8 @@ ryoku-snapshot create || true
 pkill -x walker 2>/dev/null || true
 
 # Install replacements first so the system is never without a launcher.
-# tofi and bemoji come from AUR; cliphist is in Arch extra.
-ryoku-pkg-aur-add tofi bemoji
+# tofi comes from AUR; cliphist is in Arch extra.
+ryoku-pkg-aur-add tofi
 ryoku-pkg-add cliphist
 
 # Stop and disable walker autostart unit
