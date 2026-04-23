@@ -1,3 +1,3 @@
-if omarchy-hw-surface; then
+if ryoku-hw-surface; then
   ryoku-pkg-add linux-firmware-marvell
 fi

@@ -6,7 +6,7 @@ Developer-facing documentation for Ryoku Arch.
 
 - `vision.md`: project goals, audience, and non-goals in long form.
 - `maintenance.md`: how to maintain the repo. Branch topology, shipping changes, cherry-picking from upstream, safety rules. Read this first if you are about to make a change.
-- `rebrand-inventory.md`: catalog of every `omarchy` reference still in the tree, categorized by the kind of change each needs.
+- `rebrand-inventory.md`: catalog of remaining legacy Omarchy references still in the tree, categorized by whether they are compatibility bridges, package-name deferments, or historical/legal references.
 - `specs/`: design specs. One file per change, dated `YYYY-MM-DD-*.md`.
 - `plans/`: step-by-step implementation plans produced from specs.
 

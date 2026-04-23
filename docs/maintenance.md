@@ -15,7 +15,7 @@ How to maintain the Ryoku Arch repository: branch topology, shipping changes to 
 
 | Branch | Local or remote | Tracks | Role |
 |---|---|---|---|
-| `main` | local + `origin/main` | `origin/main` | The Ryoku Arch tip. Users pull this via `omarchy-update`. |
+| `main` | local + `origin/main` | `origin/main` | The Ryoku Arch tip. Users pull this via `ryoku-update`. |
 | `upstream-dev` | local only | `upstream/dev` | A passive mirror of omarchy's `dev` branch. Used for browsing upstream state and cherry-picking. Configured `pushRemote=no_push` so it cannot be pushed to `origin` by accident. |
 | `upstream-master` | local only | `upstream/master` | Same as above but for omarchy's stable `master` branch. Configured `pushRemote=no_push`. |
 
@@ -29,19 +29,19 @@ How to maintain the Ryoku Arch repository: branch topology, shipping changes to 
 
 ## The update loop
 
-The short version: push to `origin/main`, users run `omarchy-update`, changes apply.
+The short version: push to `origin/main`, users run `ryoku-update`, changes apply.
 
-### What `omarchy-update` does
+### What `ryoku-update` does
 
-When a user runs `omarchy-update` on their Ryoku Arch system:
+When a user runs `ryoku-update` on their Ryoku Arch system:
 
 1. Prompts for confirmation (or `-y` skips).
-2. Takes a btrfs snapshot via `omarchy-snapshot create` for rollback insurance.
-3. Runs `omarchy-update-git`: `git -C ~/.local/share/omarchy pull --autostash`. This pulls new commits from `origin/main` (which is Ryoku Arch).
-4. Runs `omarchy-update-perform`, which in sequence runs:
-   - `omarchy-migrate`: scans `migrations/*.sh`, runs any new ones, marks them applied.
-   - `omarchy-update-system-pkgs`: pacman system upgrade.
-   - `omarchy-update-aur-pkgs`: AUR package upgrade.
+2. Takes a btrfs snapshot via `ryoku-snapshot create` for rollback insurance.
+3. Runs `ryoku-update-git`: `git -C ~/.local/share/ryoku pull --autostash`. This pulls new commits from `origin/main` (which is Ryoku Arch).
+4. Runs `ryoku-update-perform`, which in sequence runs:
+   - `ryoku-migrate`: scans `migrations/*.sh`, runs any new ones, marks them applied.
+   - `ryoku-update-system-pkgs`: pacman system upgrade.
+   - `ryoku-update-aur-pkgs`: AUR package upgrade.
    - Keyring, firmware, orphan-package checks.
 5. Restarts affected components (Hyprland reload, etc.) if needed.
 
@@ -51,14 +51,14 @@ Because `git pull` pulls from whatever `origin` points at, and the live clone's 
 
 | Kind of change | What you do | How it reaches the user |
 |---|---|---|
-| New or modified command in `bin/` | Add or edit a file under `bin/`, commit, push | Immediately after `git pull`. The installer put `$OMARCHY_PATH/bin` on `PATH`, so the new command is live instantly. |
-| New theme, asset, or default-config template | Add file under `themes/`, `default/`, or similar | File is present after pull. If it is a default template (e.g., `default/hypr/*.tpl`), the user's `~/.config/` is NOT auto-updated. They must opt in via `omarchy-refresh-config <path>`, or you ship a migration that does the copy with backup. |
-| System state change (package install, service enable, systemd unit, config modification) | Write a migration script at `migrations/<unix-timestamp>.sh` | Picked up automatically by `omarchy-migrate` during the next `omarchy-update`. Runs once per user by convention. |
+| New or modified command in `bin/` | Add or edit a file under `bin/`, commit, push | Immediately after `git pull`. The installer put `$RYOKU_PATH/bin` on `PATH`, so the new command is live instantly. |
+| New theme, asset, or default-config template | Add file under `themes/`, `default/`, or similar | File is present after pull. If it is a default template (e.g., `default/hypr/*.tpl`), the user's `~/.config/` is NOT auto-updated. They must opt in via `ryoku-refresh-config <path>`, or you ship a migration that does the copy with backup. |
+| System state change (package install, service enable, systemd unit, config modification) | Write a migration script at `migrations/<unix-timestamp>.sh` | Picked up automatically by `ryoku-migrate` during the next `ryoku-update`. Runs once per user by convention. |
 
 ### What will NOT auto-propagate
 
 - **Config files the user has customized.** If they edited `~/.config/hypr/hyprland.conf` and you ship a new default, they keep their version. Use a migration to offer a merge or document a refresh command.
-- **Changes outside `~/.local/share/omarchy/`.** System services, `/etc/` configs, boot config, kernel params. Touch via a migration script that uses sudo.
+- **Changes outside `~/.local/share/ryoku/`.** System services, `/etc/` configs, boot config, kernel params. Touch via a migration script that uses sudo.
 - **User-installed binaries outside the clone.** Not affected by updates.
 
 ## Shipping your own changes
@@ -83,7 +83,7 @@ Example: ship `nmap` to all Ryoku Arch users.
 
 ```bash
 cd /home/omi/prowl/ryoku-arch
-omarchy-dev-add-migration --no-edit
+ryoku-dev-add-migration --no-edit
 ```
 
 This creates `migrations/<unix-timestamp>.sh`.
@@ -91,12 +91,12 @@ This creates `migrations/<unix-timestamp>.sh`.
 2. Edit the new file. Migration format (inherited from omarchy convention):
    - No shebang line.
    - Start with `echo` describing what the migration does.
-   - Use `$OMARCHY_PATH` to reference the repository root on the user's machine.
+   - Use `$RYOKU_PATH` to reference the repository root on the user's machine.
    - Be idempotent: running the migration twice should be harmless.
 
 ```bash
 echo "Install nmap for Ryoku cybersec baseline"
-omarchy-pkg-add nmap
+ryoku-pkg-add nmap
 ```
 
 3. Commit and push:
@@ -107,9 +107,9 @@ git commit -m "feat: add nmap to baseline tooling"
 git push origin main
 ```
 
-4. On the user's next `omarchy-update`, `omarchy-migrate` runs the new migration, installs nmap, records the migration as applied, and moves on.
+4. On the user's next `ryoku-update`, `ryoku-migrate` runs the new migration, installs nmap, records the migration as applied, and moves on.
 
-Tip: test the migration on your own live clone before pushing by pulling and running `omarchy-update` locally.
+Tip: test the migration on your own live clone before pushing by pulling and running `ryoku-update` locally.
 
 ### Testing the update loop
 
@@ -123,7 +123,7 @@ git commit -am "test: update-loop probe"
 git push origin main
 
 # Live clone
-cd ~/.local/share/omarchy
+cd ~/.local/share/ryoku
 git pull
 tail -1 README.md    # the probe line should appear
 
@@ -132,13 +132,13 @@ cd /home/omi/prowl/ryoku-arch
 git revert --no-edit HEAD
 git push origin main
 
-cd ~/.local/share/omarchy
+cd ~/.local/share/ryoku
 git pull
 ```
 
 ## Tracking upstream omarchy
 
-Omarchy ships new work on `basecamp/omarchy`. You decide commit-by-commit whether to adopt any of it. Do not merge upstream wholesale: after the rename pass the merge conflicts become unmanageable, and you will end up with omarchy-specific choices you did not want (branding updates, mirror changes).
+Omarchy ships new work on `basecamp/omarchy`. You decide commit-by-commit whether to adopt any of it. Do not merge upstream wholesale: after the rename pass the merge conflicts become unmanageable, and you will end up with upstream-specific choices you did not want (branding updates, mirror changes).
 
 ### See what's new
 
@@ -215,10 +215,10 @@ git cherry-pick --no-commit <sha>     # stage the changes, do not commit
 # inspect the staged changes
 git status
 # manually port the fix to the renamed file
-# example: upstream changed bin/omarchy-foo, we have bin/ryoku-foo
-git restore --staged bin/omarchy-foo
-# edit bin/ryoku-foo to include the equivalent fix
-git add bin/ryoku-foo
+# example: upstream changed the legacy command path, we keep the Ryoku rename
+git restore --staged bin/legacy-tool
+# edit bin/ryoku-tool to include the equivalent fix
+git add bin/ryoku-tool
 git commit -m "backport: <description> (from omarchy <short-sha>)"
 git push origin main
 ```
@@ -250,8 +250,8 @@ git push origin main
 ### Usually skip
 
 - Omarchy branding changes (logo, README text, copyright-year bumps).
-- Features that conflict with Ryoku's direction (e.g., a Basecamp-specific shortcut, an omarchy-community link).
-- Changes to `boot.sh` defaults where we've already decided to diverge (the `OMARCHY_REPO` default, pacman-mirror URL rewrites).
+- Features that conflict with Ryoku's direction (e.g., a Basecamp-specific shortcut, an upstream community link).
+- Changes to `boot.sh` defaults where we've already decided to diverge (the `RYOKU_REPO` default, pacman-mirror URL rewrites).
 - Upstream version bumps on files we have forked heavily.
 
 ### Case by case
@@ -329,14 +329,14 @@ git revert --no-edit <bad-sha>
 git push origin main
 ```
 
-Users get the revert on their next `omarchy-update`.
+Users get the revert on their next `ryoku-update`.
 
 ### Revert the Ryoku Arch migration on a user system
 
 If something catastrophic ships and a user needs to fall back to upstream omarchy:
 
 ```bash
-cd ~/.local/share/omarchy
+cd ~/.local/share/ryoku
 git remote set-url origin https://github.com/basecamp/omarchy.git
 git fetch origin
 git checkout -b master --track origin/master   # or whatever upstream branch they want
@@ -346,11 +346,11 @@ git branch -D main
 Or restore from the btrfs snapshot taken before the migration:
 
 ```bash
-omarchy-snapshot list
-omarchy-snapshot restore <snapshot-id>
+ryoku-snapshot list
+ryoku-snapshot restore <snapshot-id>
 ```
 
-(Exact rollback command depends on the omarchy snapshot tooling; check `omarchy-snapshot` usage on the target system.)
+(Exact rollback command depends on the omarchy snapshot tooling; check `ryoku-snapshot` usage on the target system.)
 
 ## Session logs and decisions
 
