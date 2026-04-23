@@ -352,6 +352,49 @@ ryoku-snapshot restore <snapshot-id>
 
 (Exact rollback command depends on the omarchy snapshot tooling; check `ryoku-snapshot` usage on the target system.)
 
+## Mirrorlist refresh
+
+The Ryoku default mirrorlists in `default/pacman/mirrorlist-{stable,rc,edge}` are snapshots of Arch Linux mirror-status-filtered HTTPS mirrors. All three files are byte-identical today; the three filenames survive as channel scaffolding, not as distinct upstreams.
+
+Regenerate when a visible mirror regression appears or at least quarterly. Two options:
+
+**Option A (no extra package, uses curl):**
+
+```bash
+curl -sf 'https://archlinux.org/mirrorlist/?country=US&protocol=https&use_mirror_status=on' -o /tmp/arch-mirrorlist-raw
+# Uncomment the top 20 Server entries, preserve the ## country headers above them:
+python3 -c '
+import re
+with open("/tmp/arch-mirrorlist-raw") as f: lines = f.readlines()
+kept, country, active = [], None, 0
+for l in lines:
+    if l.startswith("##"): kept.append(l); continue
+    if l.startswith("## "): country = l; continue
+    m = re.match(r"^#Server\s*=\s*(https://\S+)", l)
+    if m and active < 20:
+        if country: kept.append(country); country = None
+        kept.append(f"Server = {m.group(1)}\n"); active += 1
+with open("/tmp/ryoku-mirrorlist", "w") as f: f.write("".join(kept))
+'
+cp /tmp/ryoku-mirrorlist default/pacman/mirrorlist-stable
+cp /tmp/ryoku-mirrorlist default/pacman/mirrorlist-rc
+cp /tmp/ryoku-mirrorlist default/pacman/mirrorlist-edge
+git add default/pacman/mirrorlist-* && git commit -m "chore: refresh arch mirrorlist snapshot"
+```
+
+**Option B (with reflector):**
+
+```bash
+sudo pacman -S --needed reflector
+sudo reflector --country 'United States' --age 12 --protocol https --sort rate --save /tmp/ryoku-mirrorlist
+cp /tmp/ryoku-mirrorlist default/pacman/mirrorlist-stable
+cp /tmp/ryoku-mirrorlist default/pacman/mirrorlist-rc
+cp /tmp/ryoku-mirrorlist default/pacman/mirrorlist-edge
+git add default/pacman/mirrorlist-* && git commit -m "chore: refresh arch mirrorlist snapshot"
+```
+
+Adjust `--country` to your own location if you are generating for a non-US audience. Record the exact command and date in the commit message.
+
 ## Session logs and decisions
 
 Working notes for each session go in `logs/YYYY-MM-DD-session-NN.md`. These files are gitignored. They are meant as handoff notes between sessions, not as project history.
