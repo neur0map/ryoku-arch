@@ -46,7 +46,7 @@ Concrete failure modes this spec mitigates:
 - Introducing signing infrastructure. All replacement repos use upstream Arch signing already.
 - Renaming `omarchy_linux.efi`, `omarchy_resume.conf`, `/usr/share/sddm/themes/omarchy`, `omarchy.ttf`, or any other local-filename relic. Those are carried forward in a boot-and-assets spec of their own.
 - Replacing SDDM or any other subsystem the user has flagged for later removal. This spec changes only the package supply chain.
-- Rewriting the Ryoku Elephant provider set beyond parity with what ships today. Any feature improvement rides in a later spec.
+- Replacing any launcher affordance that was an upstream walker/elephant feature but never wired into Ryoku (calc, clipboard, todo, unicode, symbols, websearch, runner, bluetooth, desktopapplications). Ryoku's workflow does not bind those. If you want them back after the cutover, pick a dedicated tool for each and add it later.
 - Chasing `omarchy-chromium`, `omarchy-chromium-bin`, `omarchy-lazyvim`. Migrations that name these are historical, have already run on every current install, and do not appear in `install/ryoku-base.packages`. Chunk 9 confirms this with `pacman -Qq | grep '^omarchy-'` on the live clone and records the actual installed set; any unexpected package becomes a documented follow-up, not a scope expansion mid-pass.
 
 ## Target State
@@ -59,7 +59,7 @@ After this pass:
 
 **Keyring.** `bin/ryoku-update-keyring` runs `pacman -Sy --needed archlinux-keyring` only. No custom key import, no hardcoded fingerprint, no `omarchy-keyring` package reference. `install/ryoku-base.packages` and `install/preflight/pacman.sh` drop the keyring entry entirely.
 
-**Walker.** `walker-bin` and its Elephant framework come from AUR (via `ryoku-pkg-aur-install`). Ryoku-owned provider Lua lives under `$RYOKU_PATH/default/elephant/` and is installed to the runtime Elephant providers directory by a Ryoku script. `install/ryoku-base.packages` replaces `omarchy-walker` with `walker-bin` or whatever the current upstream AUR name is at implementation time. `bin/ryoku-launch-walker`, `bin/ryoku-refresh-walker`, and `bin/ryoku-menu` continue to work against the upstream binary.
+**Launcher.** Ryoku replaces the walker/elephant stack entirely with `tofi` from AUR. Ryoku's use of the launcher is limited to two patterns: dmenu-style pickers (piped stdin, captured line back) and `.desktop` app launching. Tofi covers both in a single binary with an INI config and no provider framework. `install/ryoku-base.packages` drops `omarchy-walker` and adds `tofi`. `bin/ryoku-launch-walker`, `bin/ryoku-refresh-walker`, and `bin/ryoku-restart-walker` are rewritten as thin shims that invoke tofi and keep the existing command names for muscle memory and Hyprland-binding stability; a follow-up spec may rename them later. `bin/ryoku-menu` swaps every `ryoku-launch-walker --dmenu ...` call for the equivalent `tofi --prompt-text ...` form. The custom elephant provider Lua (`default/elephant/ryoku_*.lua`) is retired; theme and background selectors become short shell scripts that print a list to stdin and read the chosen line back. Walker and elephant audio/tui pickers that were never actually invoked by Ryoku (calc, clipboard, todo, unicode, symbols, websearch, runner, bluetooth, desktopapplications) are not replaced; they were upstream walker features, not Ryoku features.
 
 **Neovim.** Upstream `neovim` from `extra` replaces `omarchy-nvim`. `$RYOKU_PATH/default/nvim/` holds a committed starter configuration (LazyVim-derived or fresh, operator's choice at plan time). `bin/ryoku-nvim-setup` becomes the real implementation: it copies `default/nvim/` into `~/.config/nvim/` with backup of any existing user config. No reference to the AUR command `omarchy-nvim-setup` remains.
 
@@ -76,11 +76,11 @@ This cutover is the single highest-risk change in the Ryoku rebrand program beca
 **Ordering is load-bearing.** The cutover must land in a sequence where every intermediate state is bootable, updatable, and returns a usable graphical session. Concretely:
 
 1. The mirror swap lands before any pacman-conf edit. Standard Arch mirrors must already be serving `[core]`/`[extra]`/`[multilib]` from the user's perspective before the `[omarchy]` section is removed, so a `pacman -Syu` inside the migration window never depends on an omarchy-served proxy for Arch base packages.
-2. Replacement packages install before omarchy packages are removed. Walker and nvim replacements must succeed on the live system before `pacman -Rdd omarchy-walker omarchy-nvim omarchy-keyring` runs. If the replacement install fails, the migration aborts with omarchy packages intact and the repo still wired up.
+2. Replacement packages install before omarchy packages are removed. Tofi and neovim must be installed and working on the live system before `pacman -Rdd omarchy-walker omarchy-nvim omarchy-keyring` runs. If the replacement install fails, the migration aborts with omarchy packages intact and the repo still wired up.
 3. The `[omarchy]` repo section is removed only after the three packages are gone. Pacman should never be asked to sync a repo that still declares as authoritative packages the user no longer has.
 4. `omarchy-keyring` is removed only after the `[omarchy]` section is gone. The keyring exists specifically to verify that repo; removing it first is harmless on a `TrustAll` repo but creates noise.
 
-**Every migration step is idempotent.** A partial failure that leaves the system on an intermediate state must converge on the next `ryoku-update` or `ryoku-migrate` without manual intervention. That means every step checks its own precondition (is the omarchy section still present? is walker-bin installed? does the user's `~/.config/nvim` already match the new layout?) before acting.
+**Every migration step is idempotent.** A partial failure that leaves the system on an intermediate state must converge on the next `ryoku-update` or `ryoku-migrate` without manual intervention. That means every step checks its own precondition (is the omarchy section still present? is tofi installed? does the user's `~/.config/nvim` already match the new layout?) before acting.
 
 **Snapshot gate.** The migration that performs the atomic walker swap and the one that performs the nvim swap must each call `ryoku-snapshot create` as their first action. If snapper is unavailable (exit 127), the migration logs the condition and proceeds, but the implementation plan must declare this risk explicitly.
 
@@ -92,7 +92,7 @@ This cutover is the single highest-risk change in the Ryoku rebrand program beca
 
 **AUR precondition check.** Chunks 3-6 depend on AUR access through `yay`. Every cutover migration that installs from AUR begins by running `ryoku-pkg-aur-accessible`. On failure (no network, rate-limited, yay missing) the migration exits with a clear message and a non-zero code, leaving omarchy packages installed and the `[omarchy]` section intact. The plan also adds an install-flow guard so fresh installs cannot land on the post-cutover config without a working yay.
 
-**Walker kill-before-replace.** Chunk 4 must stop the running Walker process before `pacman -R omarchy-walker` and restart against the upstream binary after install. Concretely: `pkill -x walker || true` before replace, `ryoku-refresh-walker` after. If Waybar re-spawns Walker mid-replace the replace still succeeds, but the new binary is what becomes authoritative.
+**Launcher kill-before-replace.** Chunk 4 must stop the running Walker process before `pacman -R omarchy-walker` and leave no tofi/walker race. Concretely: `pkill -x walker || true` before the package swap; tofi is invoked on-demand (not a daemon) so no restart step is required after install. If Waybar re-spawns Walker mid-replace the replace still succeeds, and by then the `bin/ryoku-launch-walker` shim has been swapped to invoke tofi.
 
 **Atomic file writes.** Migrations that rewrite `/etc/pacman.conf`, `/etc/pacman.d/mirrorlist`, or any other privileged file use the temp-file-plus-rename pattern: write to `<path>.ryoku.tmp`, validate with a format-appropriate check (for pacman.conf, run `pacman-conf --config <tmp>` to parse it), then `sudo mv -f <tmp> <path>`. No chunk is allowed to leave a partially-written privileged file on disk if the migration aborts.
 
@@ -122,8 +122,8 @@ High-risk chunks use maximal verification. In this spec, maximal verification is
 |---|---|---|---|
 | 1 | State-file channel plumbing | `bin/ryoku-version-channel`, `bin/ryoku-channel-set`, `$RYOKU_STATE_PATH/channel` writer, migration that backfills the state file from the current mirror URL | Channel detection no longer reads `omarchy.org` URLs; pre-cutover systems report the same channel after migration as before |
 | 2 | Mirror swap | `default/pacman/mirrorlist-stable`, `mirrorlist-rc`, `mirrorlist-edge`, `bin/ryoku-refresh-pacman`, migration that rewrites `/etc/pacman.d/mirrorlist` on live systems | No `omarchy.org` hostname in any mirrorlist; `pacman -Sy` succeeds; `pacman -Syu` is a no-op on systems already current |
-| 3 | Walker replacement preparation | `default/elephant/*.lua` providers (full parity with today's Ryoku set), `install/packaging/walker.sh` (new) that resolves walker + elephant from AUR, `bin/ryoku-launch-walker` retargeting if needed | `walker-bin` and its elephant dependency install cleanly; new provider Lua passes `luac -p`; no live change yet |
-| 4 | Walker cutover | Migration that atomically removes `omarchy-walker`, installs `walker-bin`, and reloads the live Walker service; `install/ryoku-base.packages` and `install/omarchy-base.packages` updated; migrations `1762150269.sh` and `1758107879.sh` gated to no-op post-cutover | Live `walker --help` resolves the new binary; Ryoku menu opens; theme picker and background selector still work; `ryoku-refresh-walker` reloads cleanly |
+| 3 | Tofi replacement preparation | `default/tofi/config` (INI theme and sizing), `install/packaging/tofi.sh` (new) that installs tofi from AUR, rewritten `bin/ryoku-launch-walker`/`ryoku-refresh-walker`/`ryoku-restart-walker` as thin tofi shims (file names preserved to keep Hyprland bindings stable), ported picker scripts in `default/tofi/pickers/` replacing the retired elephant Lua providers | `tofi --help` runs on the live clone; shims resolve tofi; no live behavior change yet (omarchy-walker still the Super+Space binding target) |
+| 4 | Launcher cutover | Migration that swaps the Super+Space binding source and every `ryoku-launch-walker --dmenu ...` call in `bin/ryoku-menu` over to tofi; atomically removes `omarchy-walker`, installs `tofi`; `install/ryoku-base.packages` and `install/omarchy-base.packages` updated; migrations `1762150269.sh` and `1758107879.sh` gated to no-op post-cutover | Live `tofi --help` resolves; Super+Space opens tofi with app list; Ryoku menu (Super+Alt+Space) opens and navigates through tofi; theme picker and background picker return a valid selection |
 | 5 | Nvim replacement preparation | `default/nvim/` starter config committed, `bin/ryoku-nvim-setup` rewritten to use Ryoku-owned path, `install/packaging/nvim.sh` (new or adjusted) that installs stock `neovim` | `nvim -c 'q!'` runs against the Ryoku config without errors on a scratch home; no live change yet |
 | 6 | Nvim cutover | Migration that backs up existing `~/.config/nvim`, removes `omarchy-nvim`, installs `neovim`, runs the new `ryoku-nvim-setup`; base package list updated; migrations `1760434895.sh`, `1760724934.sh`, `1761585764.sh` gated | Live `nvim --version` reports upstream neovim; existing user plugins either preserved via backup or explicitly replaced from the Ryoku defaults; documented in session log |
 | 7 | Pacman config drop | `default/pacman/pacman-stable.conf`, `pacman-rc.conf`, `pacman-edge.conf` lose the `[omarchy]` section; migration rewrites live `/etc/pacman.conf` | `pacman -Sy` sees only `core`, `extra`, `multilib`; no omarchy entries in `/etc/pacman.conf` on repo or live |
@@ -141,7 +141,7 @@ Because migrations mutate pacman state that `git revert` cannot reverse, the rol
 **Fallback rollback: manual steps.** When snapper is unavailable (exit 127 from `ryoku-snapshot create`), the migration still proceeds, but the session log records the absence and the plan lists per-chunk manual-rollback recipes:
 
 - Chunk 2 (mirror swap): `sudo cp /etc/pacman.d/mirrorlist.ryoku.bak /etc/pacman.d/mirrorlist`. The migration writes `.ryoku.bak` before it writes.
-- Chunk 4 (walker): `sudo pacman -S --asdeps omarchy-walker` (still in the omarchy repo while it exists), then `ryoku-refresh-walker`.
+- Chunk 4 (launcher): `sudo pacman -R tofi` if installed, then `sudo pacman -S --asdeps omarchy-walker` (still in the omarchy repo while it exists), then revert `bin/ryoku-launch-walker` and `bin/ryoku-menu` to the pre-cutover commit on the live clone by copying them out of `git show HEAD~1:<path>`.
 - Chunk 6 (nvim): restore `~/.config/nvim` from the timestamped backup the migration created; reinstall `omarchy-nvim`.
 - Chunk 7 (pacman.conf): `sudo cp /etc/pacman.conf.ryoku.bak /etc/pacman.conf`. The migration writes `.ryoku.bak` before the atomic write.
 - Chunk 8 (keyring): `sudo pacman -S omarchy-keyring` while the repo is still reachable (requires rolling back chunk 7 first).
@@ -154,7 +154,7 @@ Because migrations mutate pacman state that `git revert` cannot reverse, the rol
 
 Every chunk that touches `install/preflight/`, `install/packaging/`, or `default/pacman/` can silently break fresh installs while leaving live-clone verification green. The spec requires per-chunk fresh-install validation, scoped to what is realistically testable.
 
-**Primary method: chroot + arch-install-scripts.** Each time a chunk edits a file under `install/preflight/` or `install/packaging/`, the plan prescribes a `pacstrap` against a tmpfs or btrfs subvolume with the new config, followed by a sourced run of the touched install step inside `arch-chroot`. This does not exercise Hyprland or Walker, but it catches every pacman, keyring, and package-list regression before push.
+**Primary method: chroot + arch-install-scripts.** Each time a chunk edits a file under `install/preflight/` or `install/packaging/`, the plan prescribes a `pacstrap` against a tmpfs or btrfs subvolume with the new config, followed by a sourced run of the touched install step inside `arch-chroot`. This does not exercise Hyprland or the launcher UI, but it catches every pacman, keyring, and package-list regression before push.
 
 **Secondary method: VM boot drill.** Before declaring Path A complete, the user runs `boot.sh` once against a fresh Arch VM (libvirt or otherwise). The session log records the VM image used, the full install transcript, and the first `ryoku-update` inside the VM. This catches integration failures the chroot method cannot reproduce.
 
@@ -178,7 +178,7 @@ Per file type:
 - Shell scripts and migrations: `bash -n` passes; any changed migration also executes successfully under `ryoku-migrate` in the live clone or is gated by a precondition that makes it a no-op on already-migrated systems.
 - Pacman configs: `sudo pacman --config <path> -Sy` succeeds in a sandbox or on the live clone after the swap.
 - Mirrorlist: every line parses as a `Server = …` directive; `curl -I` against each listed host returns HTTP 200 for at least the first five entries.
-- Elephant Lua providers: `luac -p` passes; Walker loads the provider without errors in the journal.
+- Tofi config and picker scripts: config is a valid INI; picker scripts pass `bash -n`; tofi launches from each call site and returns a selection.
 - Systemd user units touched (if any): `systemd-analyze --user verify` passes.
 - The final Category 1 grep suite from the earlier plan continues to pass after every chunk.
 
@@ -190,8 +190,8 @@ Chunks 4 (walker cutover) and 6 (nvim cutover) are the display-critical chunks. 
 
 - A non-GUI recovery path is tested before either chunk begins.
 - `ryoku-snapshot create` runs immediately before the live cutover.
-- Walker and Hyprland must continue to resolve launcher commands at every step; if the launcher breaks, revert the last commit before debugging forward.
-- If a Walker theme provider throws at runtime, `ryoku-refresh-walker` must still start Walker cleanly. The plan's walker chunk verifies this with a deliberate provider check.
+- Hyprland must continue to resolve the launcher command at every step; if the launcher breaks, revert the last commit before debugging forward.
+- Tofi is invoked on demand, not daemonized, so there is no "walker not running" failure mode. The plan's chunk-4 verification does a deliberate Super+Space invocation and a Ryoku menu invocation before declaring done.
 
 ## Commit and Push Rules
 
@@ -260,8 +260,8 @@ Path A is complete only when:
 
 The highest-risk failure modes and their mitigations:
 
-- **Replacement package unavailable.** The AUR name for walker or elephant may have moved since last audit. Mitigation: the plan names the exact AUR package at execution time, verifies it via `pacman -Si` or `yay -Si` before staging the cutover migration, and falls back to a deferred chunk if the dependency is not ready.
-- **Walker regression.** Upstream Walker may have changed Elephant provider loading. Mitigation: run the live `walker --help`, then launch the Ryoku menu end to end, before declaring the chunk done. Revert on any user-visible regression.
+- **Tofi unavailable from AUR.** Package may be momentarily gone or renamed. Mitigation: chunk 3 verifies `yay -Si tofi` succeeds before staging the cutover; if not, the chunk is deferred and the plan revisits with an alternative (fuzzel, wofi).
+- **Tofi feature regression.** Tofi is minimal by design. Some walker behaviors (fuzzy matching, plugins, animations) are not replicated. Mitigation: chunk 3 preparation walks every call site in `bin/ryoku-menu` and confirms tofi can return the same selection. If any site cannot be replicated, the chunk documents the gap and the plan explicitly accepts or refuses the loss before cutover.
 - **Nvim plugin regression.** Users may have added plugins on top of `omarchy-nvim`. Mitigation: the nvim cutover migration backs up `~/.config/nvim` with a dated suffix, points the user at the backup in the session log, and does not delete it.
 - **Split brain during pacman-config rewrite.** A `pacman -Sy` run between mirror swap and repo-section drop could succeed against a stale cache. Mitigation: the migration always runs `pacman -Syy` (force database refresh) immediately after rewriting either `/etc/pacman.d/mirrorlist` or `/etc/pacman.conf`.
 - **Key rotation mid-cutover.** If DHH rotates the keyring during the cutover window, the live clone's `pacman -Sy` may fail with signature errors before we drop the `[omarchy]` section. Mitigation: the plan's first step after mirror swap is to refresh the omarchy keyring one last time; if that fails, drop the section immediately and bail out of the legacy key path.
