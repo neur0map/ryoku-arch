@@ -1,2 +1,3 @@
 #!/bin/bash
-exec ryoku-battery-monitor "$@"
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+exec "$RYOKU_PATH/bin/ryoku-battery-monitor" "$@"
