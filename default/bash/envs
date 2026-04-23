@@ -3,7 +3,15 @@ export SUDO_EDITOR="$EDITOR"
 export BAT_THEME=ansi
 
 # Mirror the desktop session runtime contract so SSH shells behave the same way.
-source "$HOME/.local/share/ryoku/lib/runtime-env.sh" 2>/dev/null || source "$HOME/.local/share/omarchy/lib/runtime-env.sh"
+for _ryoku_runtime_env in \
+  "$HOME/.local/share/ryoku/lib/runtime-env.sh" \
+  "$HOME/.local/share/omarchy/lib/runtime-env.sh"; do
+  if [[ -r $_ryoku_runtime_env ]]; then
+    source "$_ryoku_runtime_env"
+    break
+  fi
+done
+unset _ryoku_runtime_env
 
 case ":$PATH:" in
   *":$HOME/.local/bin:"*) ;;

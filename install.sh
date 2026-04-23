@@ -3,8 +3,11 @@
 # Exit immediately if a command exits with a non-zero status
 set -eEo pipefail
 
-# Load the shared runtime contract for installer paths and compatibility aliases.
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/runtime-env.sh"
+# Pin the runtime contract to this checkout so the installer runs against the
+# repo it was invoked from, not whatever tree happens to live at ~/.local/share.
+RYOKU_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+export RYOKU_PATH
+source "$RYOKU_PATH/lib/runtime-env.sh"
 
 # Install
 source "$RYOKU_INSTALL/helpers/all.sh"
