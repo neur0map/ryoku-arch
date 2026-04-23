@@ -20,4 +20,4 @@ fi
 
 # Ensure we have the latest archlinux-keyring, maintainer keys might have changed
 echo -e "\e[32m\nUpdate Arch signing keys\e[0m"
-sudo pacman -Sy --noconfirm archlinux-keyring >/dev/null
+sudo pacman -Sy --noconfirm --needed archlinux-keyring >/dev/null
