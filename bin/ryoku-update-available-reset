@@ -1,0 +1,7 @@
+#!/bin/bash
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+# Ensure Waybar icon offering the available update is removed
+pkill -RTMIN+7 waybar
+exit 0

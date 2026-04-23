@@ -1,0 +1,19 @@
+#!/bin/bash
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+# Set the branch for Ryoku's git repository.
+
+if (($# == 0)); then
+  echo "Usage: ryoku-branch-set [master|rc|dev]"
+  exit 1
+else
+  branch="$1"
+fi
+
+if [[ $branch != "master" && $branch != "rc" && $branch != "dev" ]]; then
+  echo "Error: Invalid branch '$branch'. Must be one of: master, rc, dev"
+  exit 1
+fi
+
+git -C $RYOKU_PATH switch $branch

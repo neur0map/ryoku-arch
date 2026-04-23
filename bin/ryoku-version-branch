@@ -1,0 +1,5 @@
+#!/bin/bash
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+echo $(git -C "$RYOKU_PATH" rev-parse --abbrev-ref HEAD)

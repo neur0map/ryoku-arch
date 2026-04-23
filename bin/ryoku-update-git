@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -e
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+echo -e "\e[32mUpdate Ryoku\e[0m"
+
+ryoku-update-time
+
+# Suppress Hyprland config errors while git updates default config files mid-pull
+hyprctl keyword debug:suppress_errors true &>/dev/null || true
+
+git -C $RYOKU_PATH pull --autostash
+git -C $RYOKU_PATH --no-pager diff --check || git -C $RYOKU_PATH reset --merge
+
+hyprctl reload &>/dev/null || true

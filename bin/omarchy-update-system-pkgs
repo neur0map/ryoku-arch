@@ -1,6 +1,2 @@
 #!/bin/bash
-
-set -e
-
-echo -e "\e[32m\nUpdate system packages\e[0m"
-sudo pacman -Syyu --noconfirm
+exec ryoku-update-system-pkgs "$@"
