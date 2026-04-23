@@ -1,5 +1,5 @@
-# Install omarchy SDDM theme
-omarchy-refresh-sddm
+# Install Ryoku SDDM theme
+ryoku-refresh-sddm
 
 # Setup SDDM login service
 sudo mkdir -p /etc/sddm.conf.d
@@ -10,8 +10,10 @@ User=$USER
 Session=hyprland-uwsm
 
 [Theme]
-Current=omarchy
+Current=ryoku
 EOF
+else
+  sudo sed -i 's/^Current=.*/Current=ryoku/' /etc/sddm.conf.d/autologin.conf
 fi
 
 # Prevent password-based SDDM logins from creating an encrypted login keyring
