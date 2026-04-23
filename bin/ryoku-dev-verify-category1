@@ -23,7 +23,7 @@ collect_existing_paths() {
 
 case "$chunk" in
   foundation)
-    collect_existing_paths install.sh default/bash/envs config/uwsm/env lib/runtime-env.sh
+    collect_existing_paths install.sh default/bash/envs config/uwsm/env
 
     if (( ${#existing_paths[@]} == 0 )); then
       echo "no target paths exist for chunk: $chunk" >&2

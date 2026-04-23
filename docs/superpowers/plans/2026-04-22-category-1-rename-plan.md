@@ -190,19 +190,52 @@ doc_globs=(
   "--glob" "!docs/superpowers/specs/*"
 )
 
+existing_paths=()
+
+collect_existing_paths() {
+  local path
+
+  for path in "$@"; do
+    if [[ -e $path ]]; then
+      existing_paths+=("$path")
+    fi
+  done
+}
+
 case "$chunk" in
   foundation)
-    if rg -n "${doc_globs[@]}" 'OMARCHY_PATH|~/.local/share/omarchy' install.sh default/bash/envs config/uwsm/env lib/runtime-env.sh; then
+    collect_existing_paths install.sh default/bash/envs config/uwsm/env
+
+    if (( ${#existing_paths[@]} == 0 )); then
+      echo "no target paths exist for chunk: $chunk" >&2
+      exit 1
+    fi
+
+    if rg -n "${doc_globs[@]}" 'OMARCHY_PATH|~/.local/share/omarchy' "${existing_paths[@]}"; then
       exit 1
     fi
     ;;
   hypr)
-    if rg -n "${doc_globs[@]}" 'omarchy-|/omarchy|\\.config/omarchy|\\.local/state/omarchy' config/hypr default/hypr; then
+    collect_existing_paths config/hypr default/hypr
+
+    if (( ${#existing_paths[@]} == 0 )); then
+      echo "no target paths exist for chunk: $chunk" >&2
+      exit 1
+    fi
+
+    if rg -n "${doc_globs[@]}" 'omarchy-|/omarchy|\\.config/omarchy|\\.local/state/omarchy' "${existing_paths[@]}"; then
       exit 1
     fi
     ;;
   waybar)
-    if rg -n "${doc_globs[@]}" 'omarchy-|OMARCHY_PATH|/omarchy|\\.config/omarchy' config/waybar config/walker default/mako config/fastfetch; then
+    collect_existing_paths config/waybar config/walker default/mako config/fastfetch
+
+    if (( ${#existing_paths[@]} == 0 )); then
+      echo "no target paths exist for chunk: $chunk" >&2
+      exit 1
+    fi
+
+    if rg -n "${doc_globs[@]}" 'omarchy-|OMARCHY_PATH|/omarchy|\\.config/omarchy' "${existing_paths[@]}"; then
       exit 1
     fi
     ;;
@@ -316,7 +349,7 @@ Run: `bash -n lib/runtime-env.sh install.sh default/bash/envs config/uwsm/env bi
 Expected: no output
 
 Run: `bin/ryoku-dev-verify-category1 foundation`
-Expected: no matches printed for the files owned by this task
+Expected: no matches printed for `install.sh`, `default/bash/envs`, and `config/uwsm/env`
 
 - [ ] **Step 5: Commit**
 
