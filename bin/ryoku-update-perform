@@ -15,7 +15,7 @@ ryoku-update-aur-pkgs
 ryoku-update-orphan-pkgs
 ryoku-hook post-update
 
-omarchy-update-analyze-logs
+ryoku-update-analyze-logs
 
 ryoku-update-restart
 
