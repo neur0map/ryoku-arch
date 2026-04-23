@@ -6,10 +6,19 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 
 # Where we store an empty file for each migration that has already been performed.
 STATE_DIR="$RYOKU_STATE_PATH/migrations"
+LEGACY_STATE_DIR="$HOME/.local/state/omarchy/migrations"
+
 mkdir -p "$STATE_DIR"
 
 # Skipped migrations are tracked separately
 mkdir -p "$STATE_DIR/skipped"
+
+# Bridge historical migration markers from the legacy omarchy state dir so
+# migrations already applied under the old namespace do not re-run under
+# the new one. Idempotent: cp -an never clobbers existing ryoku markers.
+if [[ -d $LEGACY_STATE_DIR ]]; then
+  cp -an "$LEGACY_STATE_DIR/." "$STATE_DIR/" 2>/dev/null || true
+fi
 
 # Run any pending migrations
 for file in $RYOKU_PATH/migrations/*.sh; do
