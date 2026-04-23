@@ -310,8 +310,16 @@ else
   export RYOKU_PATH="${RYOKU_PATH:-$RYOKU_LEGACY_PATH}"
 fi
 
-export OMARCHY_PATH="${OMARCHY_PATH:-$RYOKU_PATH}"
-export PATH="$RYOKU_PATH/bin:$PATH"
+export RYOKU_INSTALL="${RYOKU_INSTALL:-$RYOKU_PATH/install}"
+export RYOKU_INSTALL_LOG_FILE="${RYOKU_INSTALL_LOG_FILE:-/var/log/ryoku-install.log}"
+export OMARCHY_PATH="$RYOKU_PATH"
+export OMARCHY_INSTALL="${OMARCHY_INSTALL:-$RYOKU_INSTALL}"
+export OMARCHY_INSTALL_LOG_FILE="${OMARCHY_INSTALL_LOG_FILE:-$RYOKU_INSTALL_LOG_FILE}"
+
+case ":$PATH:" in
+  *":$RYOKU_PATH/bin:"*) ;;
+  *) export PATH="$RYOKU_PATH/bin:$PATH" ;;
+esac
 ```
 
 - [ ] **Step 2: Source the helper from installer and shell/session entrypoints**
@@ -319,14 +327,26 @@ export PATH="$RYOKU_PATH/bin:$PATH"
 ```bash
 # install.sh
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/runtime-env.sh"
-export RYOKU_INSTALL="$RYOKU_PATH/install"
-export RYOKU_INSTALL_LOG_FILE="/var/log/ryoku-install.log"
+source "$RYOKU_INSTALL/helpers/all.sh"
+source "$RYOKU_INSTALL/preflight/all.sh"
+source "$RYOKU_INSTALL/packaging/all.sh"
+source "$RYOKU_INSTALL/config/all.sh"
+source "$RYOKU_INSTALL/login/all.sh"
+source "$RYOKU_INSTALL/post-install/all.sh"
 
 # default/bash/envs
 source "$HOME/.local/share/ryoku/lib/runtime-env.sh" 2>/dev/null || source "$HOME/.local/share/omarchy/lib/runtime-env.sh"
+case ":$PATH:" in
+  *":$HOME/.local/bin:"*) ;;
+  *) export PATH="$PATH:$HOME/.local/bin" ;;
+esac
 
 # config/uwsm/env
 source "$HOME/.local/share/ryoku/lib/runtime-env.sh" 2>/dev/null || source "$HOME/.local/share/omarchy/lib/runtime-env.sh"
+case ":$PATH:" in
+  *":$HOME/.local/bin:"*) ;;
+  *) export PATH="$PATH:$HOME/.local/bin" ;;
+esac
 omarchy-cmd-present mise && eval "$(mise activate bash --shims)"
 ```
 
