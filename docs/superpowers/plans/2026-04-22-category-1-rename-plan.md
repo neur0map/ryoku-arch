@@ -327,7 +327,7 @@ source "$HOME/.local/share/ryoku/lib/runtime-env.sh" 2>/dev/null || source "$HOM
 
 # config/uwsm/env
 source "$HOME/.local/share/ryoku/lib/runtime-env.sh" 2>/dev/null || source "$HOME/.local/share/omarchy/lib/runtime-env.sh"
-ryoku-cmd-present mise && eval "$(mise activate bash --shims)"
+omarchy-cmd-present mise && eval "$(mise activate bash --shims)"
 ```
 
 - [ ] **Step 3: Update `bin/ryoku-version` to use the shared helper and Ryoku-facing output**
