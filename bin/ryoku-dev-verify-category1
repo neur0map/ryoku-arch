@@ -1,7 +1,36 @@
 #!/bin/bash
 set -euo pipefail
 
-script_path="$(readlink -f "${BASH_SOURCE[0]}")"
+resolve_script_path() {
+  local path="$1"
+  local link_target link_dir
+
+  while [[ -L $path ]]; do
+    if ! command -v readlink >/dev/null; then
+      echo "missing command: readlink" >&2
+      return 1
+    fi
+
+    if ! link_target="$(readlink "$path")"; then
+      echo "failed to resolve script path: $path" >&2
+      return 1
+    fi
+
+    if [[ $link_target == /* ]]; then
+      path="$link_target"
+    else
+      link_dir="${path%/*}"
+      if [[ $link_dir == "$path" ]]; then
+        link_dir=.
+      fi
+      path="$link_dir/$link_target"
+    fi
+  done
+
+  printf '%s\n' "$path"
+}
+
+script_path="$(resolve_script_path "${BASH_SOURCE[0]}")"
 script_dir="${script_path%/*}"
 
 if [[ $script_dir == "$script_path" ]]; then
