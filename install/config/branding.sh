@@ -1,4 +1,4 @@
 # Allow the user to change the branding for fastfetch and screensaver
-mkdir -p ~/.config/omarchy/branding
-cp ~/.local/share/omarchy/icon.txt ~/.config/omarchy/branding/about.txt
-cp ~/.local/share/omarchy/logo.txt ~/.config/omarchy/branding/screensaver.txt
+mkdir -p ~/.config/ryoku/branding
+cp "$RYOKU_PATH/icon.txt" ~/.config/ryoku/branding/about.txt
+cp "$RYOKU_PATH/logo.txt" ~/.config/ryoku/branding/screensaver.txt
