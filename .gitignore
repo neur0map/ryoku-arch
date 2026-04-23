@@ -4,3 +4,4 @@
 /logs/*.md
 !/logs/README.md
 !/logs/TEMPLATE.md
+/.worktrees/
