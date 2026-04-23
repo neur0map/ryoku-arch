@@ -1,3 +1,2 @@
 #!/bin/bash
-
-(($(lspci | grep -cE 'VGA|3D|Display') >= 2))
+exec ryoku-hw-hybrid-gpu "$@"

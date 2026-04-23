@@ -1,0 +1,9 @@
+#!/bin/bash
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+ASUSCTL_THEME=$RYOKU_CONFIG_PATH/current/theme/keyboard.rgb
+
+if ryoku-cmd-present asusctl; then
+  asusctl aura effect static -c $(sed 's/^#//' $ASUSCTL_THEME)
+fi

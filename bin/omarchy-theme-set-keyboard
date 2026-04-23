@@ -1,4 +1,2 @@
 #!/bin/bash
-
-omarchy-theme-set-keyboard-asus-rog
-omarchy-theme-set-keyboard-f16
+exec ryoku-theme-set-keyboard "$@"

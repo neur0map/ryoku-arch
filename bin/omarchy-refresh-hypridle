@@ -1,6 +1,2 @@
 #!/bin/bash
-
-# Overwrite the user config for hypridle with the Omarchy default and restart the service.
-
-omarchy-refresh-config hypr/hypridle.conf
-omarchy-restart-hypridle
+exec ryoku-refresh-hypridle "$@"

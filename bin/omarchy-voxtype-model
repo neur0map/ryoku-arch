@@ -1,5 +1,2 @@
 #!/bin/bash
-set -e
-
-omarchy-launch-floating-terminal-with-presentation "voxtype setup model"
-omarchy-restart-waybar
+exec ryoku-voxtype-model "$@"

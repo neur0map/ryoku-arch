@@ -1,0 +1,8 @@
+#!/bin/bash
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+# Overwrite the user config for hyprsunset with the Omarchy default and restart the service.
+#
+ryoku-refresh-config hypr/hyprsunset.conf
+ryoku-restart-hyprsunset

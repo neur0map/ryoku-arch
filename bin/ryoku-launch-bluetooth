@@ -1,0 +1,9 @@
+#!/bin/bash
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+# Launch the Omarchy bluetooth controls TUI (provided by bluetui).
+# Also attempts to unblock bluetooth service if rfkill had blocked it.
+
+rfkill unblock bluetooth
+exec ryoku-launch-or-focus-tui bluetui

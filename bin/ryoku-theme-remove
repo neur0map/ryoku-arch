@@ -1,0 +1,37 @@
+#!/bin/bash
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+# ryoku-theme-remove: Remove a theme from Omarchy by name
+# Usage: ryoku-theme-remove <theme-name>
+
+if [[ -z $1 ]]; then
+  mapfile -t extra_themes < <(find $RYOKU_CONFIG_PATH/themes -mindepth 1 -maxdepth 1 -type d ! -xtype l -printf '%f\n')
+
+  if (( ${#extra_themes[@]} > 0 )); then
+    THEME_NAME=$(printf '%s\n' "${extra_themes[@]}" | sort | gum choose --header="Remove extra theme")
+  else
+    echo "No extra themes installed."
+    exit 1
+  fi
+else
+  THEME_NAME="$1"
+fi
+
+THEMES_DIR="$RYOKU_CONFIG_PATH/themes"
+CURRENT_DIR="$RYOKU_CONFIG_PATH/current"
+THEME_PATH="$THEMES_DIR/$THEME_NAME"
+
+# Ensure a theme was set
+if [[ -z $THEME_NAME ]]; then
+  exit 1
+fi
+
+# Check if theme exists before attempting removal
+if [[ ! -d $THEME_PATH ]]; then
+  echo "Error: Theme '$THEME_NAME' not found."
+  exit 1
+fi
+
+# Now remove the theme directory for THEME_NAME
+rm -rf "$THEME_PATH"

@@ -1,0 +1,23 @@
+#!/bin/bash
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+# Overwrite the user configs for the Walker application launcher (which also powers the Omarchy Menu) and restart the services.
+
+# Ensure walker is set to autostart
+mkdir -p ~/.config/autostart/
+cp $RYOKU_PATH/default/walker/walker.desktop ~/.config/autostart/
+
+# And restarts if it crashes or is killed
+mkdir -p ~/.config/systemd/user/app-walker@autostart.service.d/
+cp $RYOKU_PATH/default/walker/restart.conf ~/.config/systemd/user/app-walker@autostart.service.d/restart.conf
+
+systemctl --user daemon-reload
+
+# Refresh configs
+ryoku-refresh-config walker/config.toml
+ryoku-refresh-config elephant/calc.toml
+ryoku-refresh-config elephant/desktopapplications.toml
+
+# Restart service
+ryoku-restart-walker

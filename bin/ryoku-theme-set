@@ -1,0 +1,62 @@
+#!/bin/bash
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+if [[ -z $1 ]]; then
+  echo "Usage: ryoku-theme-set <theme-name>"
+  exit 1
+fi
+
+CURRENT_THEME_PATH="$RYOKU_CONFIG_PATH/current/theme"
+NEXT_THEME_PATH="$RYOKU_CONFIG_PATH/current/next-theme"
+USER_THEMES_PATH="$RYOKU_CONFIG_PATH/themes"
+RYOKU_THEMES_PATH="$RYOKU_PATH/themes"
+
+THEME_NAME=$(echo "$1" | sed -E 's/<[^>]+>//g' | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
+
+if [[ ! -d $RYOKU_THEMES_PATH/$THEME_NAME ]] && [[ ! -d $USER_THEMES_PATH/$THEME_NAME ]]; then
+  echo "Theme '$THEME_NAME' does not exist"
+  exit 1
+fi
+
+# Setup clean next theme directory (for atomic theme config swapping)
+rm -rf "$NEXT_THEME_PATH"
+mkdir -p "$NEXT_THEME_PATH"
+
+# Copy official theme first, then overlay user customizations on top
+cp -r "$RYOKU_THEMES_PATH/$THEME_NAME/"* "$NEXT_THEME_PATH/" 2>/dev/null
+cp -r "$USER_THEMES_PATH/$THEME_NAME/"* "$NEXT_THEME_PATH/" 2>/dev/null
+
+# Generate dynamic configs
+ryoku-theme-set-templates
+
+# Swap next theme in as current
+rm -rf "$CURRENT_THEME_PATH"
+mv "$NEXT_THEME_PATH" "$CURRENT_THEME_PATH"
+
+# Store theme name for reference
+echo "$THEME_NAME" >"$RYOKU_CONFIG_PATH/current/theme.name"
+
+# Change background with theme
+ryoku-theme-bg-next
+
+# Restart components to apply new theme
+if pgrep -x waybar >/dev/null; then
+  ryoku-restart-waybar
+fi
+ryoku-restart-swayosd
+ryoku-restart-terminal
+ryoku-restart-hyprctl
+ryoku-restart-btop
+ryoku-restart-opencode
+ryoku-restart-mako
+
+# Change app-specific themes
+ryoku-theme-set-gnome
+ryoku-theme-set-browser
+ryoku-theme-set-vscode
+ryoku-theme-set-obsidian
+ryoku-theme-set-keyboard
+
+# Call hook on theme set
+ryoku-hook theme-set "$THEME_NAME"

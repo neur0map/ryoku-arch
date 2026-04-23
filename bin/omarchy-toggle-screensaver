@@ -1,6 +1,2 @@
 #!/bin/bash
-
-omarchy-toggle \
-  --enabled-notification "󱄄   Screensaver disabled" \
-  --disabled-notification "󱄄   Screensaver enabled" \
-  screensaver-off
+exec ryoku-toggle-screensaver "$@"

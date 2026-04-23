@@ -1,0 +1,10 @@
+#!/bin/bash
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+for dir in $RYOKU_CONFIG_PATH/themes/*/; do
+  if [[ -d $dir ]] && [[ ! -L ${dir%/} ]] && [[ -d $dir/.git ]]; then
+    echo "Updating: $(basename "$dir")"
+    git -C "$dir" pull
+  fi
+done

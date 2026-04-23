@@ -1,0 +1,7 @@
+#!/bin/bash
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+# Launch the TUI command passed in as an argument in the default terminal with an org.omarchy.COMMAND app id for styling.
+
+exec setsid uwsm-app -- xdg-terminal-exec --app-id=org.omarchy.$(basename $1) -e "$1" "${@:2}"

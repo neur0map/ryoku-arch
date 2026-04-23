@@ -1,0 +1,7 @@
+#!/bin/bash
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+# Overwrite the user config for hyprlock with the Omarchy default.
+
+ryoku-refresh-config hypr/hyprlock.conf

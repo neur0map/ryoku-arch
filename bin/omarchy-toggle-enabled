@@ -1,4 +1,2 @@
 #!/bin/bash
-
-# Check if a toggle is enabled (flag file exists)
-[[ -f "$HOME/.local/state/omarchy/toggles/$1" ]]
+exec ryoku-toggle-enabled "$@"

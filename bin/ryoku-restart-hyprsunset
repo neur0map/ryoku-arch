@@ -1,0 +1,7 @@
+#!/bin/bash
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+# Restart the hyprsunset service (used for blue light filtering/night light).
+
+ryoku-restart-app hyprsunset

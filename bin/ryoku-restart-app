@@ -1,0 +1,9 @@
+#!/bin/bash
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+# Restart an application by killing it and relaunching via uwsm.
+# Usage: ryoku-restart-app <application-name> [application-args...]
+
+pkill -x $1
+setsid uwsm-app -- "$@" >/dev/null 2>&1 &

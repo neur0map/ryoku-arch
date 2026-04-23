@@ -1,0 +1,8 @@
+#!/bin/bash
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+# Refresh the SDDM theme from default
+
+sudo rm -rf /usr/share/sddm/themes/omarchy
+sudo cp -r $RYOKU_PATH/default/sddm/omarchy /usr/share/sddm/themes/omarchy

@@ -1,5 +1,2 @@
 #!/bin/bash
-
-# Reload mako configuration (used by the Omarchy theme switching).
-
-makoctl reload
+exec ryoku-restart-mako "$@"

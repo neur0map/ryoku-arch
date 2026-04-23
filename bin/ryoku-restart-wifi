@@ -1,0 +1,9 @@
+#!/bin/bash
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+# Unblock and restart the Wi-Fi service.
+
+echo -e "Unblocking wifi...\n"
+rfkill unblock wifi
+rfkill list wifi

@@ -1,0 +1,8 @@
+#!/bin/bash
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+# Returns the name of the current monospace font being used by extracting it from the Waybar stylesheet.
+# This can be changed using ryoku-font-set.
+
+grep -oP 'font-family:\s*["'\'']?\K[^;"'\'']+' ~/.config/waybar/style.css | head -n1

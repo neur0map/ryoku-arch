@@ -1,3 +1,2 @@
 #!/bin/bash
-
-omarchy-restart-app swayosd-server
+exec ryoku-restart-swayosd "$@"
