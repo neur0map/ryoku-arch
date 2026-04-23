@@ -2,10 +2,10 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Launch the default editor as determined by $EDITOR (set via ~/.config/uwsm/default) (or hx if missing).
+# Launch the default editor as determined by $EDITOR (set via ~/.config/uwsm/default) (or helix if missing).
 # Starts suitable editors in a terminal window and otherwise as a regular application.
 
-ryoku-cmd-present "$EDITOR" || EDITOR=hx
+ryoku-cmd-present "$EDITOR" || EDITOR=helix
 
 case "$EDITOR" in
 nvim | vim | nano | micro | hx | helix | fresh)

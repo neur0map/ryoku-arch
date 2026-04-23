@@ -41,7 +41,7 @@ fi
 
 # Flip EDITOR on existing user config
 if [[ -f $HOME/.config/uwsm/default ]]; then
-  sed -i 's|^export EDITOR=nvim|export EDITOR=hx|' "$HOME/.config/uwsm/default"
+  sed -i 's|^export EDITOR=nvim|export EDITOR=helix|' "$HOME/.config/uwsm/default"
 fi
 
 mkdir -p "$HOME/.local/state/ryoku"
