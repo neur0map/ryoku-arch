@@ -82,13 +82,13 @@ aur_install_and_launch() {
 }
 
 show_learn_menu() {
-  case $(menu "Learn" "  Keybindings\n  Omarchy Manual (upstream)\n  Hyprland\n󰣇  Arch\n  Neovim\n󱆃  Bash") in
+  case $(menu "Learn" "  Keybindings\n  Omarchy Manual (upstream)\n  Hyprland\n󰣇  Arch\n  Helix\n󱆃  Bash") in
   *Keybindings*) ryoku-menu-keybindings ;;
   *Omarchy*) ryoku-launch-webapp "https://learn.omacom.io/2/the-omarchy-manual" ;;
   *Hyprland*) ryoku-launch-webapp "https://wiki.hypr.land/" ;;
   *Arch*) ryoku-launch-webapp "https://wiki.archlinux.org/title/Main_page" ;;
   *Bash*) ryoku-launch-webapp "https://devhints.io/bash" ;;
-  *Neovim*) ryoku-launch-webapp "https://www.lazyvim.org/keymaps" ;;
+  *Helix*) ryoku-launch-webapp "https://docs.helix-editor.com/" ;;
   *) show_main_menu ;;
   esac
 }

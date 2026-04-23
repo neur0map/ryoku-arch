@@ -1,3 +1,5 @@
+[[ -f $HOME/.local/state/ryoku/independence-cutover.nvim.done ]] && exit 0
+
 # Handles changes since 3.1.0-RC
 
 echo "Add shift+insert for kitty"

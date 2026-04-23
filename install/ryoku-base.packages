@@ -88,11 +88,10 @@ noto-fonts
 noto-fonts-cjk
 noto-fonts-emoji
 nss-mdns
-nvim
+helix
 cliphist
 obs-studio
 obsidian
-omarchy-nvim
 pamixer
 pinta
 playerctl
