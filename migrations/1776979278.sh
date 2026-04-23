@@ -19,8 +19,8 @@ pkill -x walker 2>/dev/null || true
 
 # Install replacements first so the system is never without a launcher.
 # tofi and bemoji come from AUR; cliphist is in Arch extra.
-ryoku-pkg-aur-install tofi bemoji
-sudo pacman -S --needed --noconfirm cliphist
+ryoku-pkg-aur-add tofi bemoji
+ryoku-pkg-add cliphist
 
 # Stop and disable walker autostart unit
 systemctl --user disable --now app-walker@autostart.service 2>/dev/null || true
