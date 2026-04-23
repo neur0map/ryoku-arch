@@ -1,3 +1,5 @@
+[[ -f $HOME/.local/state/ryoku/independence-cutover.launcher.done ]] && exit 0
+
 echo "Migrate to Walker 2.0.0"
 
 NEEDS_MIGRATION=false

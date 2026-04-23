@@ -1,29 +1,4 @@
 #!/bin/bash
-
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
-
-# If tofi is installed, this is a no-op: tofi has no daemon, no autostart
-# unit, and no cached config. Once Task 4 completes the cutover, this
-# script never has work to do.
-#
-# Otherwise, preserve the legacy walker refresh flow so pre-cutover
-# systems still get their autostart unit and config templates refreshed.
-
-if command -v tofi >/dev/null 2>&1; then
-  exit 0
-fi
-
-# Legacy walker refresh
-mkdir -p ~/.config/autostart/
-cp $RYOKU_PATH/default/walker/walker.desktop ~/.config/autostart/
-
-mkdir -p ~/.config/systemd/user/app-walker@autostart.service.d/
-cp $RYOKU_PATH/default/walker/restart.conf ~/.config/systemd/user/app-walker@autostart.service.d/restart.conf
-
-systemctl --user daemon-reload
-
-ryoku-refresh-config walker/config.toml
-ryoku-refresh-config elephant/calc.toml
-ryoku-refresh-config elephant/desktopapplications.toml
-
-ryoku-restart-walker
+# Historical name preserved for command-surface stability. Tofi has no
+# daemon, no autostart unit, and no cached config. No-op.
+exit 0

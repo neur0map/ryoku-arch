@@ -1,0 +1,13 @@
+#!/bin/bash
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+# Clipboard picker: list history via cliphist, pick via tofi dmenu,
+# decode selection and copy it back to the Wayland clipboard.
+
+if ! command -v cliphist >/dev/null; then
+  notify-send -u critical "Clipboard" "cliphist is not installed"
+  exit 1
+fi
+
+cliphist list | tofi --config "$RYOKU_PATH/default/tofi/config" --prompt-text "Clipboard: " | cliphist decode | wl-copy
