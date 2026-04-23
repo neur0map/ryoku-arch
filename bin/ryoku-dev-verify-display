@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-script_path="${BASH_SOURCE[0]}"
+script_path="$(readlink -f "${BASH_SOURCE[0]}")"
 script_dir="${script_path%/*}"
 
 if [[ $script_dir == "$script_path" ]]; then
