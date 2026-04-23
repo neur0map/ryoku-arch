@@ -1,3 +1,3 @@
 if omarchy-hw-asus-rog; then
-  omarchy-pkg-add asusctl
+  ryoku-pkg-add asusctl
 fi
