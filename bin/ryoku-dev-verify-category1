@@ -42,7 +42,7 @@ case "$chunk" in
       exit 1
     fi
 
-    if rg -n "${doc_globs[@]}" 'omarchy-|/omarchy|\\.config/omarchy|\\.local/state/omarchy' "${existing_paths[@]}"; then
+    if rg -n "${doc_globs[@]}" 'omarchy-|/omarchy|\.config/omarchy|\.local/state/omarchy' "${existing_paths[@]}"; then
       exit 1
     fi
     ;;
@@ -54,7 +54,7 @@ case "$chunk" in
       exit 1
     fi
 
-    if rg -n "${doc_globs[@]}" 'omarchy-|OMARCHY_PATH|/omarchy|\\.config/omarchy' "${existing_paths[@]}"; then
+    if rg -n "${doc_globs[@]}" 'omarchy-|OMARCHY_PATH|/omarchy|\.config/omarchy' "${existing_paths[@]}"; then
       exit 1
     fi
     ;;
