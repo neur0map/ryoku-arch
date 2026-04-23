@@ -1,0 +1,17 @@
+#!/bin/bash
+set -euo pipefail
+
+required_commands=(
+  xdg-terminal-exec
+  walker
+  waybar
+  hyprctl
+)
+
+for cmd in "${required_commands[@]}"; do
+  command -v "$cmd" >/dev/null
+done
+
+test -f config/hypr/hyprland.conf
+test -f config/waybar/config.jsonc
+test -f config/waybar/style.css
