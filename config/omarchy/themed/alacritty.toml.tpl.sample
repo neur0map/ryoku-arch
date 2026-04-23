@@ -1,4 +1,4 @@
-# Omarchy User Template Example: Alacritty
+# Ryoku User Template Example: Alacritty
 #
 # This is a sample template file demonstrating how to create custom themed
 # configurations. Templates use placeholder variables that get replaced with
@@ -9,8 +9,8 @@
 #   2. Customize it as needed
 #   3. Change your theme to apply the template
 #
-# User templates in ~/.config/omarchy/themed/ take priority over the built-in
-# templates in the Omarchy default/themed/ directory. This lets you override
+# User templates in ~/.config/ryoku/themed/ take priority over the built-in
+# templates in the Ryoku default/themed/ directory. This lets you override
 # any built-in template or create templates for applications not included
 # by default.
 #

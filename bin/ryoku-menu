@@ -526,7 +526,7 @@ show_update_menu() {
   *Process*) show_update_process_menu ;;
   *Hardware*) show_update_hardware_menu ;;
   *Firmware*) present_terminal ryoku-update-firmware ;;
-  *Timezone*) present_terminal omarchy-tz-select ;;
+  *Timezone*) present_terminal ryoku-tz-select ;;
   *Time*) present_terminal ryoku-update-time ;;
   *Password*) show_update_password_menu ;;
   *) show_main_menu ;;

@@ -1,4 +1,4 @@
-@import "../omarchy/current/theme/waybar.css";
+@import "../ryoku/current/theme/waybar.css";
 
 * {
   background-color: @background;
@@ -33,7 +33,7 @@
 #cpu,
 #battery,
 #pulseaudio,
-#custom-omarchy,
+#custom-ryoku,
 #custom-update {
   min-width: 12px;
   margin: 0 7.5px;

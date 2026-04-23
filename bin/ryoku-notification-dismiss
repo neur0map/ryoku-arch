@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# Dismiss a mako notification by summary. Used by first-run notifications after clicking an action.
+
+if (($# == 0)); then
+  echo "Usage: ryoku-notification-dismiss <summary>"
+  exit 1
+fi
+
+notification_id=$(makoctl list | grep -F "$1" | head -n1 | sed -E 's/^Notification ([0-9]+):.*/\1/')
+
+if [[ -n $notification_id ]]; then
+  makoctl dismiss -n "$notification_id"
+fi
