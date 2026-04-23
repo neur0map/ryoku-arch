@@ -2,6 +2,14 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
+# If tofi is installed, this is a no-op: tofi has no daemon.
+# Otherwise, preserve the legacy walker restart flow so pre-cutover
+# systems still restart elephant + walker user units.
+
+if command -v tofi >/dev/null 2>&1; then
+  exit 0
+fi
+
 restart_services() {
   if systemctl --user is-enabled elephant.service &>/dev/null; then
     systemctl --user restart elephant.service

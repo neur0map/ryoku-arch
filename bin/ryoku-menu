@@ -22,6 +22,10 @@ back_to() {
 }
 
 toggle_existing_menu() {
+  if pgrep -x tofi >/dev/null; then
+    pkill -x tofi >/dev/null 2>&1
+    exit 0
+  fi
   if pgrep -f "walker.*--dmenu" >/dev/null; then
     walker --close >/dev/null 2>&1
     exit 0
@@ -32,19 +36,12 @@ menu() {
   local prompt="$1"
   local options="$2"
   local extra="$3"
-  local preselect="$4"
+  # preselect is unused under tofi (no native support); kept in the
+  # signature so existing callers do not need to change argument counts.
 
   read -r -a args <<<"$extra"
 
-  if [[ -n $preselect ]]; then
-    local index
-    index=$(echo -e "$options" | grep -nxF "$preselect" | cut -d: -f1)
-    if [[ -n $index ]]; then
-      args+=("-c" "$index")
-    fi
-  fi
-
-  echo -e "$options" | ryoku-launch-walker --dmenu --width 295 --minheight 1 --maxheight 630 -p "$prompt…" "${args[@]}" 2>/dev/null
+  echo -e "$options" | ryoku-launch-walker --dmenu --prompt-text "$prompt: " "${args[@]}" 2>/dev/null
 }
 
 terminal() {
@@ -217,11 +214,11 @@ show_style_menu() {
 }
 
 show_theme_menu() {
-  ryoku-launch-walker -m menus:ryokuthemes --width 800 --minheight 400
+  exec bash "$RYOKU_PATH/default/tofi/pickers/themes.sh"
 }
 
 show_background_menu() {
-  ryoku-launch-walker -m menus:ryokuBackgroundSelector --width 800 --minheight 400
+  exec bash "$RYOKU_PATH/default/tofi/pickers/backgrounds.sh"
 }
 
 show_font_menu() {
@@ -274,14 +271,14 @@ show_setup_security_menu() {
 }
 
 show_setup_config_menu() {
-  case $(menu "Setup" "  Defaults\n  Hyprland\n  Hypridle\n  Hyprlock\n  Hyprsunset\n  Swayosd\n󰌧  Walker\n󰍜  Waybar\n󰞅  XCompose") in
+  case $(menu "Setup" "  Defaults\n  Hyprland\n  Hypridle\n  Hyprlock\n  Hyprsunset\n  Swayosd\n󰌧  Launcher\n󰍜  Waybar\n󰞅  XCompose") in
   *Defaults*) open_in_editor ~/.config/uwsm/default ;;
   *Hyprland*) open_in_editor ~/.config/hypr/hyprland.conf ;;
   *Hypridle*) open_in_editor ~/.config/hypr/hypridle.conf && ryoku-restart-hypridle ;;
   *Hyprlock*) open_in_editor ~/.config/hypr/hyprlock.conf ;;
   *Hyprsunset*) open_in_editor ~/.config/hypr/hyprsunset.conf && ryoku-restart-hyprsunset ;;
   *Swayosd*) open_in_editor ~/.config/swayosd/config.toml && ryoku-restart-swayosd ;;
-  *Walker*) open_in_editor ~/.config/walker/config.toml && ryoku-restart-walker ;;
+  *Launcher*) open_in_editor "$RYOKU_CONFIG_PATH/tofi/config" ;;
   *Waybar*) open_in_editor ~/.config/waybar/config.jsonc && ryoku-restart-waybar ;;
   *XCompose*) open_in_editor ~/.XCompose && ryoku-restart-xcompose ;;
   *) show_setup_menu ;;
@@ -543,19 +540,19 @@ show_update_channel_menu() {
   esac
 }
 show_update_process_menu() {
-  case $(menu "Restart" "  Hypridle\n  Hyprsunset\n󰎟  Mako\n  Swayosd\n󰌧  Walker\n󰍜  Waybar") in
+  case $(menu "Restart" "  Hypridle\n  Hyprsunset\n󰎟  Mako\n  Swayosd\n󰌧  Launcher\n󰍜  Waybar") in
   *Hypridle*) ryoku-restart-hypridle ;;
   *Hyprsunset*) ryoku-restart-hyprsunset ;;
   *Mako*) ryoku-restart-mako ;;
   *Swayosd*) ryoku-restart-swayosd ;;
-  *Walker*) ryoku-restart-walker ;;
+  *Launcher*) notify-send "Launcher" "Tofi has no daemon; nothing to restart." ;;
   *Waybar*) ryoku-restart-waybar ;;
   *) show_update_menu ;;
   esac
 }
 
 show_update_config_menu() {
-  case $(menu "Use default config" "  Hyprland\n  Hypridle\n  Hyprlock\n  Hyprsunset\n󱣴  Plymouth\n  Swayosd\n  Tmux\n󰌧  Walker\n󰍜  Waybar") in
+  case $(menu "Use default config" "  Hyprland\n  Hypridle\n  Hyprlock\n  Hyprsunset\n󱣴  Plymouth\n  Swayosd\n  Tmux\n󰌧  Launcher\n󰍜  Waybar") in
   *Hyprland*) present_terminal ryoku-refresh-hyprland ;;
   *Hypridle*) present_terminal ryoku-refresh-hypridle ;;
   *Hyprlock*) present_terminal ryoku-refresh-hyprlock ;;
@@ -563,7 +560,7 @@ show_update_config_menu() {
   *Plymouth*) present_terminal ryoku-refresh-plymouth ;;
   *Swayosd*) present_terminal ryoku-refresh-swayosd ;;
   *Tmux*) present_terminal ryoku-refresh-tmux ;;
-  *Walker*) present_terminal ryoku-refresh-walker ;;
+  *Launcher*) present_terminal "mkdir -p $RYOKU_CONFIG_PATH/tofi && cp $RYOKU_PATH/default/tofi/config $RYOKU_CONFIG_PATH/tofi/config" ;;
   *Waybar*) present_terminal ryoku-refresh-waybar ;;
   *) show_update_menu ;;
   esac
@@ -615,7 +612,7 @@ show_main_menu() {
 
 go_to_menu() {
   case "${1,,}" in
-  *apps*) walker -p "Launch…" ;;
+  *apps*) ryoku-launch-walker ;;
   *learn*) show_learn_menu ;;
   *trigger*) show_trigger_menu ;;
   *toggle*) show_toggle_menu ;;

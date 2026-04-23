@@ -24,7 +24,6 @@ When = PostTransaction
 Exec = $RYOKU_PATH/bin/ryoku-restart-walker
 EOF
 
-# Link the visual theme menu config
-mkdir -p ~/.config/elephant/menus
-ln -snf $RYOKU_PATH/default/elephant/ryoku_themes.lua ~/.config/elephant/menus/ryoku_themes.lua
-ln -snf $RYOKU_PATH/default/elephant/ryoku_background_selector.lua ~/.config/elephant/menus/ryoku_background_selector.lua
+# Theme and background pickers run through Ryoku shell scripts under
+# default/tofi/pickers/ rather than elephant Lua providers. Nothing to
+# link here; Task 4 removes this file entirely with the walker cutover.

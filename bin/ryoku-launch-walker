@@ -2,16 +2,51 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Launch the Walker application launcher while ensuring that it's data provider (called elephant) is running first.
+# Historical name preserved so Hyprland bindings stay stable. Dispatches
+# by argument shape:
+#   --dmenu [...]      Ryoku menu / picker stdin -> tofi (if installed), else walker
+#   -m <mode> [...]    walker-provider mode (symbols, clipboard, etc.); goes to walker
+#   otherwise          app launcher -> tofi-drun (if installed), else walker
+#
+# The -m branch exists because tofi has no provider framework. Once Task 4
+# removes walker and the -m-based Hyprland bindings are swapped for dedicated
+# helpers (cliphist for clipboard, emoji picker for symbols), this shim
+# collapses to a clean tofi-only dispatcher.
 
-# Ensure elephant is running before launching walker
-if ! pgrep -x elephant > /dev/null; then
+use_tofi() { command -v tofi >/dev/null 2>&1; }
+
+if [[ ${1:-} == "--dmenu" ]]; then
+  shift
+  if use_tofi; then
+    exec tofi --config "$RYOKU_PATH/default/tofi/config" "$@"
+  fi
+  exec walker --dmenu "$@"
+fi
+
+# walker provider mode: keep routing to walker until Task 4 swaps the
+# -m consumers for tofi-native helpers
+for arg in "$@"; do
+  if [[ $arg == "-m" ]]; then
+    if ! pgrep -x elephant >/dev/null; then
+      setsid uwsm-app -- elephant &
+    fi
+    if ! pgrep -f "walker --gapplication-service" >/dev/null; then
+      setsid uwsm-app -- env GSK_RENDERER=cairo walker --gapplication-service &
+    fi
+    exec walker "$@"
+  fi
+done
+
+# App-launcher mode
+if use_tofi; then
+  exec tofi-drun --config "$RYOKU_PATH/default/tofi/config" "$@"
+fi
+
+# Walker app-launcher legacy path
+if ! pgrep -x elephant >/dev/null; then
   setsid uwsm-app -- elephant &
 fi
-
-# Ensure walker service is running
-if ! pgrep -f "walker --gapplication-service" > /dev/null; then
+if ! pgrep -f "walker --gapplication-service" >/dev/null; then
   setsid uwsm-app -- env GSK_RENDERER=cairo walker --gapplication-service &
 fi
-
 exec walker --width 644 --maxheight 300 --minheight 300 "$@"
