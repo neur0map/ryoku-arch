@@ -3,7 +3,9 @@
 # Prints Ryoku Arch version and current HEAD.
 # Pre-alpha: version is derived from the git tip, not a tagged release.
 
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+RYOKU_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+export RYOKU_PATH
+source "$RYOKU_PATH/lib/runtime-env.sh"
 
 echo "Ryoku Arch (pre-alpha)"
 if [[ -d $RYOKU_PATH/.git ]]; then
