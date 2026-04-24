@@ -1,6 +1,6 @@
-# Starting the installer with OMARCHY_CHROOT_INSTALL=1 will put it into chroot mode
+# Starting the installer with RYOKU_CHROOT_INSTALL=1 will put it into chroot mode
 chrootable_systemctl_enable() {
-  if [[ -n ${OMARCHY_CHROOT_INSTALL:-} ]]; then
+  if [[ -n ${RYOKU_CHROOT_INSTALL:-} ]]; then
     sudo systemctl enable $1
   else
     sudo systemctl enable --now $1

@@ -3,9 +3,6 @@
 # Ryoku Arch online bootstrap. Entry point for curl-to-shell installs.
 
 export RYOKU_ONLINE_INSTALL=true
-# Transitional alias so downstream installer scripts that still read
-# OMARCHY_ONLINE_INSTALL continue to work during the cutover.
-export OMARCHY_ONLINE_INSTALL=true
 
 ansi_art='                                                                                            __
                                                                                            /\ \
@@ -21,38 +18,34 @@ ansi_art='                                                                      
 '
 
 clear
-echo -e "\n$ryoku_arc$ansi_art\n"
+echo -e "\n$ansi_art\n"
 
 # Channel selection: stable (master), rc (rc branch), dev (dev branch).
 # All three currently share the same upstream Arch mirror snapshot; the
 # channel concept survives as scaffolding for future differentiation.
-RYOKU_REF="${RYOKU_REF:-${OMARCHY_REF:-master}}"
+RYOKU_REF="${RYOKU_REF:-master}"
 
 case "$RYOKU_REF" in
   dev) export RYOKU_MIRROR=edge ;;
   rc)  export RYOKU_MIRROR=rc ;;
   *)   export RYOKU_MIRROR=stable ;;
 esac
-export OMARCHY_MIRROR="$RYOKU_MIRROR"
 
 # Seed a minimal mirrorlist so the initial sync succeeds before the full
 # mirrorlist snapshot is copied into place by install/preflight/pacman.sh.
-# Use the Arch Linux mirror status API's top mirror to avoid hardcoding a
-# specific host.
 if ! sudo test -s /etc/pacman.d/mirrorlist; then
   echo 'Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch' | sudo tee /etc/pacman.d/mirrorlist >/dev/null
 fi
 
 sudo pacman -Syu --noconfirm --needed git
 
-# Ryoku Arch repo default, with the transitional OMARCHY_REPO alias honored.
-RYOKU_REPO="${RYOKU_REPO:-${OMARCHY_REPO:-neur0map/ryoku-arch}}"
+RYOKU_REPO="${RYOKU_REPO:-neur0map/ryoku-arch}"
 
 echo -e "\nCloning Ryoku Arch from: https://github.com/${RYOKU_REPO}.git"
 rm -rf "$HOME/.local/share/ryoku"
-# If the legacy path exists from a prior Omarchy install, take it out of
-# the way so git clone does not fight a stale tree. The upgrade path
-# (existing install -> Ryoku) goes through migrations, not this script.
+# If the legacy path exists from a pre-rename checkout, take it out of
+# the way so git clone does not fight a stale tree. Upgrades from an
+# existing install go through migrations, not this script.
 rm -rf "$HOME/.local/share/omarchy"
 git clone "https://github.com/${RYOKU_REPO}.git" "$HOME/.local/share/ryoku" >/dev/null
 

@@ -11,7 +11,7 @@ if ! grep -q "map shift+insert paste_from_clipboard" "$KITTY_CONF"; then
 fi
 
 echo "Copy hooks examples"
-cp -r $OMARCHY_PATH/config/omarchy/* $HOME/.config/ryoku/
+cp -r $RYOKU_PATH/config/omarchy/* $HOME/.config/ryoku/
 
 echo "Add packages for updated ryoku-cmd-screenshot"
 ryoku-pkg-add grim slurp

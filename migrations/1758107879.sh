@@ -45,7 +45,7 @@ if $NEEDS_MIGRATION; then
 
   ryoku-pkg-add "${PACKAGES[@]}"
 
-  source $OMARCHY_PATH/install/config/walker-elephant.sh
+  source $RYOKU_PATH/install/config/walker-elephant.sh
 
   rm -rf ~/.config/walker/themes
 

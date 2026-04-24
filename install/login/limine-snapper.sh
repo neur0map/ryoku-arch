@@ -51,7 +51,7 @@ EOF
   sudo cp $RYOKU_PATH/default/limine/limine.conf /boot/limine.conf
 
   # Match Snapper configs if not installing from the ISO
-  if [[ -z ${RYOKU_CHROOT_INSTALL:-${OMARCHY_CHROOT_INSTALL:-}} ]]; then
+  if [[ -z ${RYOKU_CHROOT_INSTALL:-} ]]; then
     if ! sudo snapper list-configs 2>/dev/null | grep -q "root"; then
       sudo snapper -c root create-config /
     fi

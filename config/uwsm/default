@@ -8,7 +8,7 @@ export TERMINAL=xdg-terminal-exec
 export EDITOR=helix
 
 # Use a custom directory for screenshots (remember to make the directory!)
-# export OMARCHY_SCREENSHOT_DIR="$HOME/Pictures/Screenshots"
+# export RYOKU_SCREENSHOT_DIR="$HOME/Pictures/Screenshots"
 
 # Use a custom directory for screenrecordings (remember to make the directory!)
-# export OMARCHY_SCREENRECORD_DIR="$HOME/Videos/Screencasts"
+# export RYOKU_SCREENRECORD_DIR="$HOME/Videos/Screencasts"

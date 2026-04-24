@@ -1,12 +1,12 @@
 echo "Add UWSM env"
 
-export OMARCHY_PATH="$HOME/.local/share/omarchy"
-export PATH="$OMARCHY_PATH/bin:$PATH"
+export RYOKU_PATH="$HOME/.local/share/ryoku"
+export PATH="$RYOKU_PATH/bin:$PATH"
 
 mkdir -p "$HOME/.config/uwsm/"
 cat <<EOF | tee "$HOME/.config/uwsm/env"
-export OMARCHY_PATH=$HOME/.local/share/omarchy
-export PATH=$OMARCHY_PATH/bin/:$PATH
+export RYOKU_PATH=$HOME/.local/share/ryoku
+export PATH=$RYOKU_PATH/bin/:$PATH
 EOF
 
 # Ensure we have the latest repos and are ready to pull
@@ -22,7 +22,7 @@ touch ~/.local/state/ryoku/migrations/1751134560.sh
 ryoku-pkg-drop zoom qt5-remoteobjects wf-recorder wl-screenrec
 
 # Get rid of old AUR packages
-bash $OMARCHY_PATH/migrations/1756060611.sh
+bash $RYOKU_PATH/migrations/1756060611.sh
 touch ~/.local/state/ryoku/migrations/1756060611.sh
 
 bash ryoku-update-perform

@@ -4,6 +4,6 @@ ryoku-pkg-add tmux
 
 if [[ ! -f ~/.config/tmux/tmux.conf ]]; then
   mkdir -p ~/.config/tmux
-  cp $OMARCHY_PATH/config/tmux/tmux.conf ~/.config/tmux/tmux.conf
+  cp $RYOKU_PATH/config/tmux/tmux.conf ~/.config/tmux/tmux.conf
   ryoku-theme-refresh
 fi
