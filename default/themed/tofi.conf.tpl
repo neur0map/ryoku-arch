@@ -36,3 +36,8 @@ result-spacing = 2
 
 hide-cursor = true
 ascii-input = false
+
+# Tofi defaults drun-launch to false, which only prints the Exec= line
+# to stdout instead of launching. ryoku-launch-walker does not capture
+# that output, so leaving the default means Super+Space silently fails.
+drun-launch = true
