@@ -95,6 +95,7 @@ power-profiles-daemon
 python-gobject
 python-poetry-core
 qt5-wayland
+quickshell
 ripgrep
 ruby
 rust
