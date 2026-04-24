@@ -1,9 +1,10 @@
 pragma Singleton
 
 import QtQuick
+import Quickshell
 import Quickshell.Io
 
-QtObject {
+Scope {
     id: root
 
     readonly property int frameThickness: 8
@@ -16,7 +17,7 @@ QtObject {
 
     FileView {
         id: themeColors
-        path: Qt.resolvedUrl(Qt.application.env.HOME + "/.config/ryoku/current/theme/quickshell-colors.qml")
+        path: Quickshell.env("HOME") + "/.config/ryoku/current/theme/quickshell-colors.qml"
         watchChanges: true
 
         onLoaded: {

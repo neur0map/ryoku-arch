@@ -1,8 +1,6 @@
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
-import ryoku.config
-
 Scope {
     id: root
 
