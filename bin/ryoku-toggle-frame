@@ -20,12 +20,17 @@ write_dropin() {
 # right=bottom=left=16 (4 visible frame + 12 matboard). Commas are
 # required: Hyprland's gaps_out parser only accepts the comma form
 # for per-edge vec4.
+#
+# border_size = 0 so the theme's window border does not eat into the
+# wallpaper matboard. With the frame active, the frame itself is the
+# visual container; an extra per-window border muddles the look.
 general {
     gaps_out = 8,16,16,16
     gaps_in = 6
+    border_size = 0
 }
 decoration {
-    rounding = 4
+    rounding = 8
 }
 EOF
 }
