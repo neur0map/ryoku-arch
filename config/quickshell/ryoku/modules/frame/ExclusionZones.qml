@@ -42,15 +42,8 @@ Scope {
         anchors { bottom: true; left: true; right: true }
     }
 
-    // Top edge (matboard only; Waybar reserves its own 26 px above this)
-    PanelWindow {
-        screen: root.modelData
-        WlrLayershell.layer: WlrLayer.Bottom
-        color: "transparent"
-        mask: Region {}
-        exclusiveZone: Config.topExclusion
-        implicitWidth: 1
-        implicitHeight: 1
-        anchors { top: true; left: true; right: true }
-    }
+    // No top ExclusionZone: Waybar owns the top edge. Our bottom-layer
+    // exclusions apply to all upper layers, so reserving space on top
+    // would push Waybar away from the screen edge and break the
+    // "frame is an extension of the bar" look.
 }
