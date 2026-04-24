@@ -1,7 +1,7 @@
 import QtQuick
-import QtQuick.Shapes
 import Quickshell
 import Quickshell.Wayland
+
 PanelWindow {
     id: root
 
@@ -21,48 +21,31 @@ PanelWindow {
         right: true
     }
 
-    Shape {
-        anchors.fill: parent
-        asynchronous: false
-        preferredRendererType: Shape.CurveRenderer
+    // Left strip: opaque, full height. Waybar covers its top portion (y=0..waybarHeight)
+    // since Waybar sits on WlrLayer.Top above this.
+    Rectangle {
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        width: Config.frameThickness
+        color: Config.frameColor
+    }
 
-        ShapePath {
-            strokeWidth: 0
-            strokeColor: "transparent"
-            fillColor: Config.frameColor
-            fillRule: ShapePath.OddEvenFill
+    // Right strip: mirror of the left.
+    Rectangle {
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.right: parent.right
+        width: Config.frameThickness
+        color: Config.frameColor
+    }
 
-            // Outer rectangle (the full monitor), clockwise
-            startX: 0
-            startY: 0
-            PathLine { x: root.width; y: 0 }
-            PathLine { x: root.width; y: root.height }
-            PathLine { x: 0; y: root.height }
-            PathLine { x: 0; y: 0 }
-
-            // Inner cutout: rounded-rect with no rounding on the top corners
-            // (top edge has no drawn frame; the cutout reaches pixel 0 on top).
-            PathMove { x: Config.sideExclusion; y: 0 }
-            PathLine { x: Config.sideExclusion; y: root.height - Config.sideExclusion - Config.rounding }
-            // Bottom-left cutout corner: south-to-east transition, CCW in Qt screen coords
-            PathArc {
-                x: Config.sideExclusion + Config.rounding
-                y: root.height - Config.sideExclusion
-                radiusX: Config.rounding
-                radiusY: Config.rounding
-                direction: PathArc.Counterclockwise
-            }
-            PathLine { x: root.width - Config.sideExclusion - Config.rounding; y: root.height - Config.sideExclusion }
-            // Bottom-right cutout corner: east-to-north transition, CW in Qt screen coords
-            PathArc {
-                x: root.width - Config.sideExclusion
-                y: root.height - Config.sideExclusion - Config.rounding
-                radiusX: Config.rounding
-                radiusY: Config.rounding
-                direction: PathArc.Clockwise
-            }
-            PathLine { x: root.width - Config.sideExclusion; y: 0 }
-            PathLine { x: Config.sideExclusion; y: 0 }
-        }
+    // Bottom strip: spans full width.
+    Rectangle {
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        height: Config.frameThickness
+        color: Config.frameColor
     }
 }

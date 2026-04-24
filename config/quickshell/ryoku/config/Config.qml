@@ -7,10 +7,11 @@ import Quickshell.Io
 Scope {
     id: root
 
-    readonly property int frameThickness: 8
-    readonly property int matboard: 8
-    readonly property int rounding: 16
-    readonly property int topExclusion: matboard
+    readonly property int frameThickness: 4
+    readonly property int matboard: 12
+    readonly property int topMatboard: 8
+    readonly property int rounding: 0
+    readonly property int topExclusion: topMatboard
     readonly property int sideExclusion: frameThickness + matboard
 
     property color frameColor: "#171717"
