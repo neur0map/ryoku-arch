@@ -16,8 +16,11 @@ write_dropin() {
   mkdir -p "$DROPIN_DIR"
   cat > "$DROPIN" <<'EOF'
 # Auto-managed by ryoku-toggle-frame. Do not edit by hand.
+# Per-edge gaps: top=0 (Waybar owns the top), right=bottom=left=16
+# (8 visible frame + 8 matboard). Commas are required: Hyprland's
+# gaps_out parser only accepts the comma form for per-edge vec4.
 general {
-    gaps_out = 0
+    gaps_out = 0,16,16,16
     gaps_in = 6
 }
 decoration {
