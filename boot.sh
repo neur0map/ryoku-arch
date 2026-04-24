@@ -76,9 +76,9 @@ echo -e "\nCloning Ryoku Arch from: https://github.com/${RYOKU_REPO}.git"
 # compat shim) or absent, leave it alone.
 OMARCHY_DIR="$HOME/.local/share/omarchy"
 if [[ -d $OMARCHY_DIR && ! -L $OMARCHY_DIR ]]; then
-  MIGRATED_DIR="$HOME/.local/share/ryoku.migrated-$(date +%s)"
+  MIGRATED_DIR="$HOME/.local/share/ryoku.migrated-$(date +%s%N)"
   mv "$OMARCHY_DIR" "$MIGRATED_DIR"
-  echo "Archived legacy ~/.local/share/omarchy to $MIGRATED_DIR"
+  echo -e "\nArchived legacy ~/.local/share/omarchy to $MIGRATED_DIR"
 fi
 
 # boot.sh is a fresh-install entrypoint. For upgrades, use ryoku-update,
