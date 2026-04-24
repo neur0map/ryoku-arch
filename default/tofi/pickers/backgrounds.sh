@@ -6,6 +6,9 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)/lib/runtime-env.sh"
 
+TOFI_CONFIG="$RYOKU_CONFIG_PATH/current/theme/tofi.conf"
+[[ -f $TOFI_CONFIG ]] || TOFI_CONFIG="$RYOKU_PATH/default/tofi/config"
+
 THEME_DIR="$RYOKU_CONFIG_PATH/current/theme"
 BG_DIR="$THEME_DIR/backgrounds"
 
@@ -21,7 +24,7 @@ if (( ${#backgrounds[@]} == 0 )); then
   exit 1
 fi
 
-selection=$(printf '%s\n' "${backgrounds[@]}" | tofi --config "$RYOKU_PATH/default/tofi/config" --prompt-text "Background: ")
+selection=$(printf '%s\n' "${backgrounds[@]}" | tofi --config "$TOFI_CONFIG" --prompt-text "Background: ")
 
 if [[ -n $selection ]]; then
   setter="$RYOKU_PATH/bin/ryoku-theme-bg-set"

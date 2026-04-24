@@ -8,6 +8,9 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)/lib/runtime-env.sh"
 
+TOFI_CONFIG="$RYOKU_CONFIG_PATH/current/theme/tofi.conf"
+[[ -f $TOFI_CONFIG ]] || TOFI_CONFIG="$RYOKU_PATH/default/tofi/config"
+
 SHIPPED_DIR="$RYOKU_PATH/themes"
 USER_DIR="$RYOKU_CONFIG_PATH/themes"
 
@@ -24,7 +27,7 @@ if (( ${#themes[@]} == 0 )); then
   exit 1
 fi
 
-selection=$(printf '%s\n' "${themes[@]}" | tofi --config "$RYOKU_PATH/default/tofi/config" --prompt-text "Theme: ")
+selection=$(printf '%s\n' "${themes[@]}" | tofi --config "$TOFI_CONFIG" --prompt-text "Theme: ")
 
 if [[ -n $selection ]]; then
   exec ryoku-theme-set "$selection"
