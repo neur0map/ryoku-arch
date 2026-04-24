@@ -1,6 +1,10 @@
 #!/bin/bash
 
 # Ryoku Arch online bootstrap. Entry point for curl-to-shell installs.
+#
+# Fresh-install only. Upgrades go through ryoku-update, not this script.
+
+set -eEo pipefail
 
 export RYOKU_ONLINE_INSTALL=true
 
