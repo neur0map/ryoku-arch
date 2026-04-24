@@ -21,4 +21,7 @@ if [[ ${1:-} == "--dmenu" ]]; then
   exec tofi --config "$TOFI_CONFIG" "$@"
 fi
 
-exec tofi-drun --config "$TOFI_CONFIG" "$@"
+# Force drun-launch on the CLI as well: tofi's system default is false,
+# which would otherwise print the Exec line to stdout instead of running
+# it. CLI value beats config; guarantees the launcher actually launches.
+exec tofi-drun --drun-launch=true --config "$TOFI_CONFIG" "$@"
