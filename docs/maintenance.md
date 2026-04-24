@@ -2,6 +2,37 @@
 
 How to maintain the Ryoku Arch repository: branch topology, shipping changes to users, tracking upstream omarchy, and safety rules.
 
+## How changes reach users
+
+Ryoku has two code paths that apply to user systems. Know the difference before editing.
+
+### Fresh-install path (`install/`)
+
+Scripts under `install/` run **once**, when a user bootstraps Ryoku for the first time via `boot.sh`. They do not re-run during `ryoku-update`. Anything you add here reaches new installs only; existing installs will not pick it up.
+
+Examples: `install/packaging/base.sh`, `install/login/sddm.sh`, `install/config/theme.sh`.
+
+### Update path (`migrations/<unix-ts>.sh`)
+
+Migrations under `migrations/` run during `ryoku-update` (via `ryoku-migrate`) in timestamp order. Each migration runs **once per machine** (tracked via markers under `~/.local/state/ryoku/migrations/`). Migrations reach existing installs.
+
+Every migration must be idempotent - re-running a migration on a machine that already applied it must be a no-op. Use a marker under `~/.local/state/ryoku/independence-cutover.<name>.done` for guard gates on cutover-style migrations.
+
+### Commands (`bin/`)
+
+Scripts under `bin/` are invoked by users or other scripts. Adding a new command, or changing an existing one, takes effect on the next `ryoku-update` (which pulls the new file into `~/.local/share/ryoku/bin/`).
+
+### When to pick each
+
+| Intent | Mechanism |
+|---|---|
+| Change what future fresh installs do | `install/` |
+| Converge existing installs to a new state | `migrations/` |
+| Give users a new command to run on demand | `bin/` |
+| Any of the above that is interactive or heavy | `bin/` + docs nudge, optionally invoked by `install/` (fresh) and nudged by a migration (existing) |
+
+A change that needs to reach both fresh installs and existing installs needs an entry in both `install/` and `migrations/`.
+
 ## Repo topology
 
 ### Remotes

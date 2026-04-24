@@ -1,0 +1,86 @@
+#!/bin/bash
+set -e
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+# Manage SDDM autologin for the current user. Autologin, when enabled,
+# skips the SDDM greeter on boot and lands straight in Hyprland.
+# Without autologin, SDDM shows the login screen (and any qylock theme
+# configured via ryoku-install-qylock).
+#
+# Usage:
+#   ryoku-sddm-autologin status         show current state
+#   ryoku-sddm-autologin enable [user]  write [Autologin] block (defaults to $USER)
+#   ryoku-sddm-autologin disable        remove [Autologin] block
+
+CONF="/etc/sddm.conf.d/autologin.conf"
+
+cmd="${1:-status}"
+
+write_conf() {
+  local user="${1:-$USER}"
+  sudo mkdir -p "$(dirname "$CONF")"
+  # Preserve any existing non-Autologin blocks (e.g. [Theme] Current=...)
+  local rest=""
+  if [[ -f $CONF ]]; then
+    rest=$(awk '
+      BEGIN { skip = 0 }
+      /^\[Autologin\]/ { skip = 1; next }
+      /^\[/ { skip = 0 }
+      skip == 0 { print }
+    ' "$CONF")
+  fi
+  {
+    echo "[Autologin]"
+    echo "User=$user"
+    echo "Session=hyprland-uwsm"
+    if [[ -n $rest ]]; then
+      echo ""
+      printf '%s\n' "$rest"
+    fi
+  } | sudo tee "$CONF" >/dev/null
+}
+
+disable_conf() {
+  [[ -f $CONF ]] || return 0
+  sudo awk -i inplace '
+    BEGIN { skip = 0 }
+    /^\[Autologin\]/ { skip = 1; next }
+    /^\[/ { skip = 0 }
+    skip == 0 { print }
+  ' "$CONF" 2>/dev/null || {
+    # awk -i inplace requires gawk; fall back to tmp-file + mv.
+    local tmp
+    tmp=$(sudo mktemp)
+    sudo awk '
+      BEGIN { skip = 0 }
+      /^\[Autologin\]/ { skip = 1; next }
+      /^\[/ { skip = 0 }
+      skip == 0 { print }
+    ' "$CONF" | sudo tee "$tmp" >/dev/null
+    sudo mv -f "$tmp" "$CONF"
+  }
+}
+
+case "$cmd" in
+  status)
+    if [[ -f $CONF ]] && grep -q '^\[Autologin\]' "$CONF"; then
+      user=$(awk -F= '/^User=/ { print $2; exit }' "$CONF")
+      echo "autologin: enabled (user=${user:-unknown})"
+    else
+      echo "autologin: disabled"
+    fi
+    ;;
+  enable)
+    write_conf "${2:-$USER}"
+    echo "autologin enabled for user: ${2:-$USER}"
+    ;;
+  disable)
+    disable_conf
+    echo "autologin disabled; SDDM greeter will show at next boot"
+    ;;
+  *)
+    echo "Usage: ryoku-sddm-autologin [status|enable [user]|disable]" >&2
+    exit 1
+    ;;
+esac
