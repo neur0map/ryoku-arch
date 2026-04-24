@@ -28,5 +28,13 @@ else
   update-desktop-database "$HOME/.local/share/applications" >/dev/null 2>&1 || true
 fi
 
+# Tofi caches its app list at ~/.cache/tofi-drun and does not revalidate
+# on .desktop-file changes; drop the cache so the next tofi-drun picks
+# up the override above.
+if [[ -f $HOME/.cache/tofi-drun ]]; then
+  echo "  clearing ~/.cache/tofi-drun"
+  rm -f "$HOME/.cache/tofi-drun"
+fi
+
 mkdir -p "$HOME/.local/state/ryoku"
 touch "$MARKER"
