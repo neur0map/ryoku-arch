@@ -76,23 +76,18 @@ sudo limine-update
 echo "  running limine-snapper-sync"
 sudo limine-snapper-sync || true
 
-# Swap the EFI boot entry to point at the new UKI name.
+# Drop any pre-existing Ryoku HD NVRAM entries that direct-boot the UKI.
+# Limine loads the UKI for us; a separate UEFI entry that bypasses Limine
+# hides the boot menu and breaks framebuffer handoff on some firmware,
+# which is why we never recreate one here.
 if command -v efibootmgr &>/dev/null && [[ -d /sys/firmware/efi ]]; then
+  current=$(efibootmgr 2>/dev/null | awk '/^BootCurrent/{print $2}')
   while IFS= read -r bootnum; do
-    sudo efibootmgr -b "$bootnum" -B >/dev/null 2>&1
-  done < <(efibootmgr 2>/dev/null | grep -E "^Boot[0-9]{4}\*? Ryoku" | sed 's/^Boot\([0-9]\{4\}\).*/\1/')
-
-  if ! cat /sys/class/dmi/id/bios_vendor 2>/dev/null | grep -qi "Apple"; then
-    DISK=$(findmnt -n -o SOURCE /boot | sed 's/p\?[0-9]*$//')
-    PART=$(findmnt -n -o SOURCE /boot | grep -o 'p\?[0-9]*$' | sed 's/^p//')
-    if [[ -n $DISK && -n $PART ]]; then
-      sudo efibootmgr --create \
-        --disk "$DISK" \
-        --part "$PART" \
-        --label "Ryoku" \
-        --loader "\\EFI\\Linux\\ryoku_linux.efi" >/dev/null
-    fi
-  fi
+    [[ $bootnum == "$current" ]] && continue
+    sudo efibootmgr -b "$bootnum" -B >/dev/null 2>&1 || true
+  done < <(efibootmgr 2>/dev/null \
+    | grep -E "^Boot[0-9]{4}\*? Ryoku\s+HD\(" \
+    | sed 's/^Boot\([0-9]\{4\}\).*/\1/')
 fi
 
 # Only drop the legacy UKI once everything above succeeded.
