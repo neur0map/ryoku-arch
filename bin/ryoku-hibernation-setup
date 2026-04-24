@@ -15,7 +15,7 @@ if ! command -v limine-mkinitcpio &>/dev/null; then
   exit 0
 fi
 
-MKINITCPIO_CONF="/etc/mkinitcpio.conf.d/omarchy_resume.conf"
+MKINITCPIO_CONF="/etc/mkinitcpio.conf.d/ryoku_resume.conf"
 SWAP_FILE="/swap/swapfile"
 RESUME_DROP_IN="/etc/limine-entry-tool.d/resume.conf"
 

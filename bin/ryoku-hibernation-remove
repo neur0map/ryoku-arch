@@ -5,10 +5,16 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 # Removes hibernation setup: disables swap, removes swapfile, removes fstab entry,
 # removes resume hook, and removes suspend-then-hibernate configuration.
 
-MKINITCPIO_CONF="/etc/mkinitcpio.conf.d/omarchy_resume.conf"
+MKINITCPIO_CONF="/etc/mkinitcpio.conf.d/ryoku_resume.conf"
+LEGACY_CONF="/etc/mkinitcpio.conf.d/omarchy_resume.conf"
 
-# Check if hibernation is configured
-if [[ ! -f $MKINITCPIO_CONF ]] || ! grep -q "^HOOKS+=(resume)$" "$MKINITCPIO_CONF"; then
+# Check if hibernation is configured (under either name during transition)
+if [[ -f $MKINITCPIO_CONF ]] && grep -q "^HOOKS+=(resume)$" "$MKINITCPIO_CONF"; then
+  :
+elif [[ -f $LEGACY_CONF ]] && grep -q "^HOOKS+=(resume)$" "$LEGACY_CONF"; then
+  # Act on the legacy filename if it's what's present.
+  MKINITCPIO_CONF="$LEGACY_CONF"
+else
   echo "Hibernation is not set up"
   exit 0
 fi
