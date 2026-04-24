@@ -80,18 +80,19 @@ rg -c 'omarchy' bin/ | sort -t: -k2 -n -r | head -20
 - [x] Install-path rename pass executed (Category 1 path references)
 - [x] Migration backlog sweep executed (Category 1 migrations rewritten to Ryoku command/path names; preserved tokens limited to AUR package names, legacy systemd units under cleanup, `OMARCHY_PATH` compat export, and `~/.local/share/omarchy` until Category 5 share-path move)
 - [x] Final Category 1 grep gate passed (remaining matches are Category 2 legal, Category 4 brand assets, Category 5 installer defaults, sanctioned compatibility bridges, or external URL/package names)
-- [ ] Installer migration pass executed (Category 5 boot defaults, mirrors, and package-facing names still have deferred work)
-- [ ] Brand assets pass executed (Category 4)
-- [ ] Verified end-to-end install still works post-rename
+- [x] Installer migration pass executed (Path A complete: upstream Arch mirrors, `[omarchy]` repo dropped, keyring simplified, boot.sh repo/repo-pin defaults repointed to `neur0map/ryoku-arch`, package-facing names resolved via AUR rebuilds or tool replacement)
+- [ ] Brand assets pass executed (Category 4; font/UKI/logo work)
+- [ ] Verified end-to-end install still works post-rename (VM boot drill pending)
 
 ## Current Reality
 
 - Canonical runtime surfaces are `ryoku-*`, `~/.config/ryoku`, `~/.local/state/ryoku`, and `~/.local/share/ryoku`.
-- Legacy `omarchy-*` wrappers still exist where migration safety or package compatibility still depends on them.
-- Package-facing names remain deferred until Ryoku-native replacements exist:
-  - `omarchy-keyring`
-  - `omarchy-nvim`
-  - `omarchy-walker`
+- No Ryoku component contacts `omarchy.org` or `pkgs.omarchy.org` during install, update, or runtime.
+- `omarchy-nvim` (LazyVim bundle) replaced by the Helix editor from Arch extra.
+- `omarchy-walker` (meta) and the Elephant provider framework replaced by tofi from AUR plus Ryoku-owned shell pickers.
+- `omarchy-keyring` and the hardcoded third-party signing key are gone; `archlinux-keyring` is the only keyring in play.
+- Mirrors point at standard Arch upstream via a reflector-produced snapshot.
+- Legacy `omarchy-*` wrappers remain in `bin/` only where legacy migrations, legacy user webapp `.desktop` files, or legacy shell snippets still need them; they forward to Ryoku-native implementations.
 - Live boot-theme migration is still incomplete until the Ryoku Plymouth asset path is installed and activated everywhere.
 
 ## Category 1 Close-out (2026-04-23)
@@ -110,3 +111,31 @@ What is intentionally still left:
 - `OMARCHY_PATH`, `OMARCHY_INSTALL`, `OMARCHY_INSTALL_LOG_FILE` env exports - sanctioned bridges in `lib/runtime-env.sh` until downstream consumers stop reading them.
 - `omarchy.ttf`, logo/icon assets, Plymouth boot theme - Category 4 brand assets.
 - `boot.sh` repo/branch/mirror defaults and pacman mirror URLs - Category 5 installer migration.
+
+## Path A Close-out (2026-04-23)
+
+Path A (Omarchy Infrastructure Independence) is complete for active code. Nine tasks shipped, each live-verified and pushed:
+
+1. Channel state-file plumbing (`$RYOKU_STATE_PATH/channel`, `bin/ryoku-channel-current`).
+2. Mirror swap: mirrorlists now source upstream Arch directly (reflector snapshot).
+3. Tofi preparation: shims, config, picker scripts, AUR install step.
+4. Launcher cutover: omarchy-walker/elephant family removed, tofi + cliphist active, keybindings rewired.
+5-6. Editor swap: omarchy-nvim (LazyVim bundle) replaced by Helix (Arch extra), EDITOR=helix, Learn menu points at https://docs.helix-editor.com/.
+7. `[omarchy]` pacman repo section dropped; 15 of the packages it hosted moved to an AUR install step, 2 retired, 1 kept as-is.
+8. `ryoku-update-keyring` reduced to archlinux-keyring only; hardcoded fingerprint and omarchy-keyring install removed.
+9. Final sweep; legacy compat battery-monitor units, empty sddm/omarchy/ dir, legacy packages files, and the category1-rename worktree retired.
+
+Remaining intentional omarchy references now fall into four buckets:
+
+- **Compatibility env var aliases** in `lib/runtime-env.sh`, `boot.sh`, `install/preflight/pacman.sh`, `install/post-install/pacman.sh`, `install/login/limine-snapper.sh`, `install/helpers/chroot.sh`, `install/config/mise-work.sh`, `install/config/git.sh`: `OMARCHY_PATH`, `OMARCHY_INSTALL`, `OMARCHY_MIRROR`, `OMARCHY_REPO`, `OMARCHY_REF`, `OMARCHY_ONLINE_INSTALL`, `OMARCHY_CHROOT_INSTALL`, `OMARCHY_USER_NAME`, `OMARCHY_USER_EMAIL`. Each is now the fallback form for its `RYOKU_*` counterpart.
+- **Legacy filesystem cleanup paths** in `install/first-run/cleanup-reboot-sudoers.sh`, `install/post-install/finished.sh`, and `boot.sh`'s `rm -rf "$HOME/.local/share/omarchy"` - these only *remove* legacy state.
+- **Category 4 brand assets** (deferred): `config/waybar/config.jsonc` `font='omarchy'`, `config/omarchy.ttf`, `default/limine/default.conf` `CUSTOM_UKI_NAME="omarchy"`, `/run/user/$UID/omarchy_battery_notified` flag filename.
+- **External identifiers** (must not change): `themes/{ethereal,hackerman,vantablack}/vscode.json` extension IDs like `Bjarne.vantablack-omarchy`, upstream Omarchy manual URL in the Learn menu, `basecamp/omarchy` references in attribution docs and the `.githooks/pre-push` upstream-mirror guard.
+
+## Deferred cross-spec work
+
+Tracked here as the single source of truth for Path A follow-ups:
+
+- **Category 4 brand assets**: rebuild `omarchy.ttf` with a Ryoku family name (affects Waybar span); rename the UKI from `omarchy_linux.efi` to `ryoku_linux.efi` (boot-critical, needs its own snapshot-gated migration); rename `/etc/mkinitcpio.conf.d/omarchy_resume.conf`; rename `/usr/share/sddm/themes/omarchy` or (per a planned desktop-session spec) drop SDDM entirely; update logo and icons.
+- **Path B package repo**: stand up a Ryoku-hosted pacman repo on the VPS once there are meaningfully Ryoku-native packages to publish. No urgency now that every Path A dependency routes through Arch extras or AUR.
+- **omarchy-* wrapper cleanup**: once no installed system has the legacy webapp `.desktop` files or legacy shell calls, the `bin/omarchy-*` wrappers can be removed. Requires either a population survey or a generous deprecation window.

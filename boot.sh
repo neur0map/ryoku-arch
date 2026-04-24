@@ -1,50 +1,65 @@
 #!/bin/bash
 
-# Set install mode to online since boot.sh is used for curl installations
+# Ryoku Arch online bootstrap. Entry point for curl-to-shell installs.
+
+export RYOKU_ONLINE_INSTALL=true
+# Transitional alias so downstream installer scripts that still read
+# OMARCHY_ONLINE_INSTALL continue to work during the cutover.
 export OMARCHY_ONLINE_INSTALL=true
 
-ansi_art='                 ▄▄▄
- ▄█████▄    ▄███████████▄    ▄███████   ▄███████   ▄███████   ▄█   █▄    ▄█   █▄
-███   ███  ███   ███   ███  ███   ███  ███   ███  ███   ███  ███   ███  ███   ███
-███   ███  ███   ███   ███  ███   ███  ███   ███  ███   █▀   ███   ███  ███   ███
-███   ███  ███   ███   ███ ▄███▄▄▄███ ▄███▄▄▄██▀  ███       ▄███▄▄▄███▄ ███▄▄▄███
-███   ███  ███   ███   ███ ▀███▀▀▀███ ▀███▀▀▀▀    ███      ▀▀███▀▀▀███  ▀▀▀▀▀▀███
-███   ███  ███   ███   ███  ███   ███ ██████████  ███   █▄   ███   ███  ▄██   ███
-███   ███  ███   ███   ███  ███   ███  ███   ███  ███   ███  ███   ███  ███   ███
- ▀█████▀    ▀█   ███   █▀   ███   █▀   ███   ███  ███████▀   ███   █▀    ▀█████▀
-                                       ███   █▀                                  '
+ansi_art='                                                                                            __
+                                                                                           /\ \
+ _ __    __  __    ___    _ __    __  __               __       _ __    ___    ___         \ \ \___
+/\  __`\/\ \/\ \  / __`\ /\  __`\/\ \/\ \    /_______ /`__`\   /\  __`\/ _  `\ / ___\        \ \  _ `\
+\ \ \L\ \ \ \_\ \/\ \L\ \\ \ \L\ \ \ \_\ \  /\______\/\ \L\.\_ \ \ \L\ \/\_\ \ /\ \__/         \ \ \ \ \
+ \ \ ,__/\/`____ \ \____/ \ \ ,__/\/`____ \ \/______/\ \__/.\_\ \ \ ,__/\ \____\ \____\        /\ \ \ \ \
+  \ \ \/  `/___/> \/___/   \ \ \/  `/___/> \          \/__/\/_/  \ \ \/ \/___/   \/____/        \ \_\ \_\
+   \ \_\     /\___/         \ \_\     /\___/                      \ \_\                         \/_/\/_/
+    \/_/     \/__/           \/_/     \/__/                        \/_/
+
+                    Ryoku Arch: opinionated Arch Linux for power and beauty.
+'
 
 clear
-echo -e "\n$ansi_art\n"
+echo -e "\n$ryoku_arc$ansi_art\n"
 
-# Use custom branch if instructed, otherwise default to master
-OMARCHY_REF="${OMARCHY_REF:-master}"
+# Channel selection: stable (master), rc (rc branch), dev (dev branch).
+# All three currently share the same upstream Arch mirror snapshot; the
+# channel concept survives as scaffolding for future differentiation.
+RYOKU_REF="${RYOKU_REF:-${OMARCHY_REF:-master}}"
 
-# Set mirror based on branch
-if [[ $OMARCHY_REF == "dev" ]]; then
-  export OMARCHY_MIRROR=edge
-  echo 'Server = https://mirror.omarchy.org/$repo/os/$arch' | sudo tee /etc/pacman.d/mirrorlist >/dev/null
-elif [[ $OMARCHY_REF == "rc" ]]; then
-  export OMARCHY_MIRROR=rc
-  echo 'Server = https://rc-mirror.omarchy.org/$repo/os/$arch' | sudo tee /etc/pacman.d/mirrorlist >/dev/null
-else
-  export OMARCHY_MIRROR=stable
-  echo 'Server = https://stable-mirror.omarchy.org/$repo/os/$arch' | sudo tee /etc/pacman.d/mirrorlist >/dev/null
+case "$RYOKU_REF" in
+  dev) export RYOKU_MIRROR=edge ;;
+  rc)  export RYOKU_MIRROR=rc ;;
+  *)   export RYOKU_MIRROR=stable ;;
+esac
+export OMARCHY_MIRROR="$RYOKU_MIRROR"
+
+# Seed a minimal mirrorlist so the initial sync succeeds before the full
+# mirrorlist snapshot is copied into place by install/preflight/pacman.sh.
+# Use the Arch Linux mirror status API's top mirror to avoid hardcoding a
+# specific host.
+if ! sudo test -s /etc/pacman.d/mirrorlist; then
+  echo 'Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch' | sudo tee /etc/pacman.d/mirrorlist >/dev/null
 fi
 
 sudo pacman -Syu --noconfirm --needed git
 
-# Use custom repo if specified, otherwise default to basecamp/omarchy
-OMARCHY_REPO="${OMARCHY_REPO:-basecamp/omarchy}"
+# Ryoku Arch repo default, with the transitional OMARCHY_REPO alias honored.
+RYOKU_REPO="${RYOKU_REPO:-${OMARCHY_REPO:-neur0map/ryoku-arch}}"
 
-echo -e "\nCloning Omarchy from: https://github.com/${OMARCHY_REPO}.git"
-rm -rf ~/.local/share/omarchy/
-git clone "https://github.com/${OMARCHY_REPO}.git" ~/.local/share/omarchy >/dev/null
+echo -e "\nCloning Ryoku Arch from: https://github.com/${RYOKU_REPO}.git"
+rm -rf "$HOME/.local/share/ryoku"
+# If the legacy path exists from a prior Omarchy install, take it out of
+# the way so git clone does not fight a stale tree. The upgrade path
+# (existing install -> Ryoku) goes through migrations, not this script.
+rm -rf "$HOME/.local/share/omarchy"
+git clone "https://github.com/${RYOKU_REPO}.git" "$HOME/.local/share/ryoku" >/dev/null
 
-echo -e "\e[32mUsing branch: $OMARCHY_REF\e[0m"
-cd ~/.local/share/omarchy
-git fetch origin "${OMARCHY_REF}" && git checkout "${OMARCHY_REF}"
-cd -
+echo -e "\e[32mUsing branch: $RYOKU_REF\e[0m"
+cd "$HOME/.local/share/ryoku"
+git fetch origin "${RYOKU_REF}" && git checkout "${RYOKU_REF}"
+cd - >/dev/null
 
 echo -e "\nInstallation starting..."
-source ~/.local/share/omarchy/install.sh
+source "$HOME/.local/share/ryoku/install.sh"
