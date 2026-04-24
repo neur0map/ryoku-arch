@@ -247,5 +247,5 @@ if [[ $1 == "--print" || $1 == "-p" ]]; then
   output_keybindings
 else
   output_keybindings |
-    ryoku-launch-walker --dmenu --prompt-text "Keybindings: " --width 800
+    ryoku-launch-drun --dmenu --prompt-text "Keybindings: " --width 800
 fi

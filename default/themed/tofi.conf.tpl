@@ -1,8 +1,7 @@
 # Ryoku tofi config rendered per-theme. Every theme with a colors.toml
 # gets its own rendering of this template dropped at
-# ~/.config/ryoku/current/theme/tofi.conf. bin/ryoku-launch-walker
-# (the launcher wrapper that dispatches tofi) prefers that path; this
-# template is the source of those colors.
+# ~/.config/ryoku/current/theme/tofi.conf. bin/ryoku-launch-drun prefers
+# that path; this template is the source of those colors.
 
 font = JetBrainsMono Nerd Font
 font-size = 12

@@ -6,14 +6,14 @@
 
 **力と美のために** &middot; *For the sake of power and beauty.*
 
-An opinionated **Hyprland desktop setup for Arch Linux**, built around a curated **cybersecurity toolkit** and a Japanese-minimalism aesthetic. For operators who study or ship security work and still care how their machine looks.
+An opinionated **Arch Linux environment** for security work, built around **Hyprland**, curated tooling, and a cohesive visual system. For people who want a workstation that feels deliberate end to end.
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-F25623?style=for-the-badge)](LICENSE)
 [![Built on Arch Linux](https://img.shields.io/badge/Arch_Linux-1793D1?style=for-the-badge&logo=archlinux&logoColor=white)](https://archlinux.org)
 [![Hyprland](https://img.shields.io/badge/Hyprland-58E1C2?style=for-the-badge&logoColor=white)](https://hyprland.org)
 [![Status: pre-alpha](https://img.shields.io/badge/status-pre--alpha-F25623?style=for-the-badge)](#status)
 
-[Vision](docs/vision.md) &middot; [Install](#install) &middot; [Themes](#themes) &middot; [Commands](#command-surface) &middot; [Docs](docs/) &middot; [Upstream: Omarchy](https://github.com/basecamp/omarchy)
+[Vision](docs/vision.md) &middot; [Install](#install) &middot; [Themes](#themes) &middot; [Commands](#command-surface) &middot; [Docs](docs/)
 
 </div>
 
@@ -21,18 +21,18 @@ An opinionated **Hyprland desktop setup for Arch Linux**, built around a curated
 
 ## Why Ryoku
 
-Ryoku layers an opinionated Hyprland + Waybar + tofi desktop on top of a base Arch Linux install, then adds curated security tooling and a strong brand. It is not a distribution &mdash; it is a configuration you apply to Arch that gives you a consistent, themed, security-ready workstation.
+Ryoku is a focused Arch workstation environment for people doing security work who also care about a coherent desktop. It owns its command surface, config paths, and maintenance workflow, so the machine behaves like one system instead of a pile of unrelated tweaks.
 
-- **Security-first toolkit** &mdash; curated picks from BlackArch and beyond, no kitchen-sink bloat.
-- **Hyprland-native** &mdash; tiled Wayland with Waybar, tofi, hypridle, and hyprlock wired up.
+- **Curated security tooling** &mdash; selected packages from BlackArch and beyond, without kitchen-sink sprawl.
+- **Hyprland desktop stack** &mdash; tiled Wayland with Waybar, tofi, hypridle, hyprlock, and Ryoku defaults wired together.
 - **19 first-class themes** &mdash; Catppuccin, Tokyo Night, Kanagawa, Gruvbox, Rose Pine, Everforest, and more, swappable at runtime.
-- **One command surface** &mdash; every action is a `ryoku-*` command. Tab-complete to discover.
-- **Japanese-minimalism brand** &mdash; the 力 kanji anchors a considered aesthetic across theme, boot, and lockscreen.
+- **One command surface** &mdash; primary actions live under `ryoku-*`, which makes discovery and maintenance simpler.
+- **Deliberate visual language** &mdash; themes, boot surfaces, and lock surfaces are meant to read as one system.
 - **Hardware-aware** &mdash; detection helpers for ASUS ROG, Framework 16, Dell XPS OLED, Apple Silicon, hybrid GPU, and more.
 
 ## Status
 
-**Pre-alpha.** Ryoku is not yet a one-shot installer you curl-to-shell on a fresh Arch box. The repository is the canonical source of commands, configs, and docs &mdash; see [`docs/vision.md`](docs/vision.md) for direction and [`docs/rebrand-inventory.md`](docs/rebrand-inventory.md) for the remaining cleanup.
+**Pre-alpha.** Ryoku is not yet a one-shot installer you curl-to-shell on a fresh Arch box. The repository is the source of truth for commands, configs, install flow, and docs. See [`docs/vision.md`](docs/vision.md) for direction and [`docs/rebrand-inventory.md`](docs/rebrand-inventory.md) for the remaining cleanup.
 
 > Running Ryoku on an existing desktop **will replace your configuration.** Use a fresh Arch install or a VM.
 
@@ -164,7 +164,7 @@ ryoku-arch/
 
 ## Credits
 
-Ryoku Arch started as a fork of [**Omarchy**](https://github.com/basecamp/omarchy) by DHH. Upstream attribution is preserved in [`NOTICE`](NOTICE) and [`LICENSE`](LICENSE); the active project surface (`ryoku-*` commands, `~/.config/ryoku`, `~/.local/share/ryoku`) is Ryoku-first.
+Ryoku builds on work that began in [**Omarchy**](https://github.com/basecamp/omarchy). Upstream attribution remains in [`NOTICE`](NOTICE) and [`LICENSE`](LICENSE); the maintained project surface here is Ryoku (`ryoku-*`, `~/.config/ryoku`, `~/.local/share/ryoku`).
 
 SDDM greeter and Quickshell lockscreen themes ship via [**qylock**](https://github.com/Darkkal44/qylock) by Darkkal44.
 

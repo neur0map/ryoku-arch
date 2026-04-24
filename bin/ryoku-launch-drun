@@ -2,8 +2,7 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Historical name preserved so Hyprland bindings stay stable. Dispatches
-# tofi for both dmenu and app-launcher modes.
+# Dispatches tofi for both dmenu and app-launcher modes.
 #
 #   --dmenu [...]   piped selection -> tofi --dmenu
 #   otherwise       app launcher    -> tofi-drun

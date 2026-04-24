@@ -16,7 +16,6 @@ if [[ -f $FIRST_RUN_MODE ]]; then
   bash "$RYOKU_PATH/install/first-run/firewall.sh"
   bash "$RYOKU_PATH/install/first-run/dns-resolver.sh"
   bash "$RYOKU_PATH/install/first-run/gnome-theme.sh"
-  bash "$RYOKU_PATH/install/first-run/elephant.sh"
   sudo rm -f /etc/sudoers.d/first-run
 
   bash "$RYOKU_PATH/install/first-run/welcome.sh"

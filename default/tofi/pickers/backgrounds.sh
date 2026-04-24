@@ -1,5 +1,5 @@
 #!/bin/bash
-# Background picker. Replaces the elephant ryokuBackgroundSelector provider.
+# Background picker.
 # Enumerates wallpapers from the active theme's backgrounds/ directory,
 # pipes the basenames to tofi, and applies the selection via ryoku-theme-bg-next
 # or the direct setter.

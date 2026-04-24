@@ -1,5 +1,5 @@
 #!/bin/bash
-# Theme picker. Replaces the elephant ryokuthemes provider.
+# Theme picker.
 # Enumerates themes from both $RYOKU_PATH/themes (shipped library) and
 # $RYOKU_CONFIG_PATH/themes (user customizations), pipes the unique set
 # to tofi, and hands the selection to ryoku-theme-set. ryoku-theme-set

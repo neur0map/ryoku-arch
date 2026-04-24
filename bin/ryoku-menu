@@ -37,7 +37,7 @@ menu() {
 
   read -r -a args <<<"$extra"
 
-  echo -e "$options" | ryoku-launch-walker --dmenu --prompt-text "$prompt: " "${args[@]}" 2>/dev/null
+  echo -e "$options" | ryoku-launch-drun --dmenu --prompt-text "$prompt: " "${args[@]}" 2>/dev/null
 }
 
 terminal() {
@@ -608,7 +608,7 @@ show_main_menu() {
 
 go_to_menu() {
   case "${1,,}" in
-  *apps*) ryoku-launch-walker ;;
+  *apps*) ryoku-launch-drun ;;
   *learn*) show_learn_menu ;;
   *trigger*) show_trigger_menu ;;
   *toggle*) show_toggle_menu ;;
