@@ -1,2 +1,5 @@
 #!/bin/bash
-exec omarchy-update-without-idle "$@"
+
+# No-op now that ryoku-update-perform is responsible for idle management.
+# But this file can't be removed since it was referenced in old ryoku-update files,
+# which would fail if this file is missing.

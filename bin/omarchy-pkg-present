@@ -1,2 +1,0 @@
-#!/bin/bash
-exec ryoku-pkg-present "$@"

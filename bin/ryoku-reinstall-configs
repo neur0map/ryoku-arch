@@ -1,2 +1,21 @@
 #!/bin/bash
-exec omarchy-reinstall-configs "$@"
+set -e
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+# Overwrite all user configs with the Ryoku defaults.
+
+if (( EUID == 0 )); then
+  echo "Error: This script should not be run as root"
+  exit 1
+fi
+
+echo "Resetting all Ryoku configs"
+cp -R "$RYOKU_PATH/config/"* ~/.config/
+cp "$RYOKU_PATH/default/bashrc" ~/.bashrc
+echo '[[ -f ~/.bashrc ]] && . ~/.bashrc' | tee ~/.bash_profile >/dev/null
+
+bash "$RYOKU_PATH/install/config/theme.sh"
+
+ryoku-refresh-limine
+ryoku-refresh-plymouth

@@ -1,2 +1,0 @@
-#!/bin/bash
-exec ryoku-tui-remove-all "$@"

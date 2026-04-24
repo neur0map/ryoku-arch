@@ -1,2 +1,0 @@
-#!/bin/bash
-exec "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/ryoku-update-analyze-logs" "$@"
