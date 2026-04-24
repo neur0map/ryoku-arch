@@ -329,6 +329,7 @@ PanelWindow {
             // (top edge has no drawn frame; the cutout reaches pixel 0 on top).
             PathMove { x: Config.sideExclusion; y: 0 }
             PathLine { x: Config.sideExclusion; y: root.height - Config.sideExclusion - Config.rounding }
+            // Bottom-left cutout corner: south-to-east transition, CCW in Qt screen coords
             PathArc {
                 x: Config.sideExclusion + Config.rounding
                 y: root.height - Config.sideExclusion
@@ -337,12 +338,13 @@ PanelWindow {
                 direction: PathArc.Counterclockwise
             }
             PathLine { x: root.width - Config.sideExclusion - Config.rounding; y: root.height - Config.sideExclusion }
+            // Bottom-right cutout corner: east-to-north transition, CW in Qt screen coords
             PathArc {
                 x: root.width - Config.sideExclusion
                 y: root.height - Config.sideExclusion - Config.rounding
                 radiusX: Config.rounding
                 radiusY: Config.rounding
-                direction: PathArc.Counterclockwise
+                direction: PathArc.Clockwise
             }
             PathLine { x: root.width - Config.sideExclusion; y: 0 }
             PathLine { x: Config.sideExclusion; y: 0 }
