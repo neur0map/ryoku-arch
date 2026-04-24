@@ -1,0 +1,48 @@
+#!/bin/bash
+
+# Toggles the Ryoku Quickshell-rendered frame.
+#  enabled  -> writes ~/.local/state/ryoku/toggles/hypr/frame.conf
+#              (sourced by hyprland.conf), reloads Hyprland, launches quickshell
+#  disabled -> removes the drop-in, reloads Hyprland, kills quickshell
+
+set -eEo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+DROPIN_DIR="$HOME/.local/state/ryoku/toggles/hypr"
+DROPIN="$DROPIN_DIR/frame.conf"
+
+write_dropin() {
+  mkdir -p "$DROPIN_DIR"
+  cat > "$DROPIN" <<'EOF'
+# Auto-managed by ryoku-toggle-frame. Do not edit by hand.
+general {
+    gaps_out = 0
+    gaps_in = 6
+}
+decoration {
+    rounding = 16
+}
+EOF
+}
+
+remove_dropin() {
+  rm -f "$DROPIN"
+}
+
+if ryoku-toggle-enabled frame-off; then
+  # Currently disabled; enable it.
+  ryoku-toggle-enabled frame-off off
+  write_dropin
+  hyprctl reload >/dev/null
+  pkill -x quickshell 2>/dev/null || true
+  uwsm-app -- ryoku-launch-shell >/dev/null 2>&1 &
+  notify-send -u low "▢  Ryoku frame: on"
+else
+  # Currently enabled; disable it.
+  ryoku-toggle-enabled frame-off on
+  remove_dropin
+  hyprctl reload >/dev/null
+  pkill -x quickshell 2>/dev/null || true
+  notify-send -u low "▢  Ryoku frame: off"
+fi
