@@ -81,7 +81,17 @@ rg -c 'omarchy' bin/ | sort -t: -k2 -n -r | head -20
 - [x] Migration backlog sweep executed (Category 1 migrations rewritten to Ryoku command/path names; preserved tokens limited to AUR package names, legacy systemd units under cleanup, `OMARCHY_PATH` compat export, and `~/.local/share/omarchy` until Category 5 share-path move)
 - [x] Final Category 1 grep gate passed (remaining matches are Category 2 legal, Category 4 brand assets, Category 5 installer defaults, sanctioned compatibility bridges, or external URL/package names)
 - [x] Installer migration pass executed (Path A complete: upstream Arch mirrors, `[omarchy]` repo dropped, keyring simplified, boot.sh repo/repo-pin defaults repointed to `neur0map/ryoku-arch`, package-facing names resolved via AUR rebuilds or tool replacement)
-- [ ] Brand assets pass executed (Category 4; font/UKI/logo work)
+- [x] Category 3 cosmetic rename executed (every active `OMARCHY_*` env var swept to `RYOKU_*`; redundant compat exports dropped from `lib/runtime-env.sh`)
+- [~] Brand assets pass (Category 4) partially executed:
+    - [x] `logo.txt` (RYOKU word-art), `icon.txt` (力 via Noto CJK), `boot.sh` inline ANSI art
+    - [x] Terminal accent color swapped from terminal-green to Japanese old red `#8F1D21` in `bin/ryoku-show-logo` and the fastfetch logo
+    - [x] SDDM theme set: hand-rolled `default/sddm/ryoku/` retired in favor of the [qylock](https://github.com/Darkkal44/qylock) theme bundle; `ryoku-install-qylock` handles the install/switch flow; autologin disabled by default so the greeter is actually visible
+    - [x] Hibernation drop-in renamed `omarchy_resume.conf` -> `ryoku_resume.conf`; existing installs converge via migration `1777001391`
+    - [x] Runtime battery notification flag renamed `omarchy_battery_notified` -> `ryoku_battery_notified`
+    - [ ] `config/omarchy.ttf` font family still `omarchy` (requires regenerating the TTF's internal family-name metadata via fonttools or FontForge); `config/waybar/config.jsonc` still references `font='omarchy'`
+    - [ ] Plymouth boot theme still `omarchy` (needs Ryoku Plymouth assets + initramfs rebuild)
+    - [ ] UKI filename still `omarchy_linux.efi` / `CUSTOM_UKI_NAME="omarchy"` in Limine default; renaming is boot-critical and needs a dedicated snapshot-gated migration
+    - [ ] `logo.svg`, `icon.png` vector/raster still upstream-omarchy artwork
 - [ ] Verified end-to-end install still works post-rename (VM boot drill pending)
 
 ## Current Reality
