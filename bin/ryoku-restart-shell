@@ -1,0 +1,11 @@
+#!/bin/bash
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+# Restart the Ryoku Quickshell so it picks up theme changes, config
+# edits, or QML reloads. Called by ryoku-theme-set after a theme swap
+# because Quickshell's FileView cannot detect the theme symlink target
+# swap via inotify; a process restart is the reliable path.
+
+pkill -x quickshell
+setsid uwsm-app -- ryoku-launch-shell >/dev/null 2>&1 &

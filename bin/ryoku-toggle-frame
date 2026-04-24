@@ -1,14 +1,27 @@
 #!/bin/bash
 
 # Toggles the Ryoku Quickshell-rendered frame.
-#  enabled  -> writes ~/.local/state/ryoku/toggles/hypr/frame.conf
-#              (sourced by hyprland.conf), reloads Hyprland, launches quickshell
-#  disabled -> removes the drop-in, reloads Hyprland, kills quickshell
+#
+# Behavior is driven by the current state of the `quickshell` process:
+#  running  -> frame is currently visible; this call will disable it
+#              (kills quickshell, removes the Hyprland drop-in, reloads
+#              Hyprland, and sets the `frame-off` flag so the autostart
+#              line in default/hypr/autostart.conf also skips on next login)
+#  stopped  -> frame is currently disabled; this call will enable it
+#              (writes the Hyprland drop-in, reloads Hyprland, starts
+#              quickshell via uwsm-app, and removes the `frame-off` flag)
+#
+# Future users who want different frame geometry should edit
+# config/quickshell/ryoku/config/Config.qml for visual tunables
+# (frameThickness, matboard, rounding, waybarHeight, topMatboard) and
+# this script's write_dropin() function for Hyprland side (gaps_out,
+# gaps_in, border_size, border colors, window rounding).
 
 set -eEo pipefail
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
+FLAG="$RYOKU_STATE_PATH/toggles/frame-off"
 DROPIN_DIR="$HOME/.local/state/ryoku/toggles/hypr"
 DROPIN="$DROPIN_DIR/frame.conf"
 
@@ -16,8 +29,10 @@ write_dropin() {
   mkdir -p "$DROPIN_DIR"
   cat > "$DROPIN" <<'EOF'
 # Auto-managed by ryoku-toggle-frame. Do not edit by hand.
+# Edit write_dropin() in ryoku-toggle-frame instead.
+#
 # Per-edge gaps: top=8 (matboard between Waybar and windows),
-# right=bottom=left=16 (4 visible frame + 12 matboard). Commas are
+# right=bottom=left=12 (4 visible frame + 8 matboard). Commas are
 # required: Hyprland's gaps_out parser only accepts the comma form
 # for per-edge vec4.
 #
@@ -25,7 +40,7 @@ write_dropin() {
 # focused window is clearly marked; inactive border is transparent so
 # the wallpaper matboard shows without a dark line on its inner edge.
 general {
-    gaps_out = 8,16,16,16
+    gaps_out = 8,12,12,12
     gaps_in = 6
     border_size = 2
     col.active_border = rgb(F25623)
@@ -37,23 +52,17 @@ decoration {
 EOF
 }
 
-remove_dropin() {
+if pgrep -x quickshell >/dev/null; then
+  pkill -x quickshell
   rm -f "$DROPIN"
-}
-
-if ryoku-toggle-enabled frame-off; then
-  # Currently disabled; enable it.
-  ryoku-toggle-enabled frame-off off
+  hyprctl reload >/dev/null
+  mkdir -p "$(dirname "$FLAG")"
+  touch "$FLAG"
+  notify-send -u low "▢  Ryoku frame: off"
+else
   write_dropin
   hyprctl reload >/dev/null
-  pkill -x quickshell 2>/dev/null || true
+  rm -f "$FLAG"
   uwsm-app -- ryoku-launch-shell >/dev/null 2>&1 &
   notify-send -u low "▢  Ryoku frame: on"
-else
-  # Currently enabled; disable it.
-  ryoku-toggle-enabled frame-off on
-  remove_dropin
-  hyprctl reload >/dev/null
-  pkill -x quickshell 2>/dev/null || true
-  notify-send -u low "▢  Ryoku frame: off"
 fi
