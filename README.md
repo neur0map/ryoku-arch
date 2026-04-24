@@ -12,6 +12,8 @@ Pre-alpha. Not installable as a standalone distribution yet. The repository now 
 
 Ryoku Arch started as a fork of [Omarchy](https://github.com/basecamp/omarchy) by DHH. Upstream attribution remains in `NOTICE`, `LICENSE`, and maintenance docs, but the active project identity, command surface, and operator workflow are Ryoku-first.
 
+The SDDM and Quickshell lockscreen theme catalog ships via [qylock](https://github.com/Darkkal44/qylock) by Darkkal44 - a cozy, minimalist bundle of greeter and lockscreen themes. Install or swap the active theme at any time with `ryoku-install-qylock`.
+
 ## Migrating an Existing Install
 
 If you already have an older Omarchy-based install and want to repoint it at Ryoku, run this from your existing local clone of the install repo:
