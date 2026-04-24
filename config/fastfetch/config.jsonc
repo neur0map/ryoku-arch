@@ -3,7 +3,7 @@
   "logo": {
     "type": "file",
     "source": "~/.config/ryoku/branding/about.txt",
-    "color": { "1": "green" },
+    "color": { "1": "#8F1D21" },
     "padding": {
       "top": 2,
       "right": 6,
