@@ -227,9 +227,15 @@ QtObject {
         watchChanges: true
 
         onLoaded: {
-            const loaded = Qt.createQmlObject(themeColors.text(), root, "quickshell-colors.qml")
-            if (loaded && loaded.frame)
-                root.frameColor = loaded.frame
+            try {
+                const loaded = Qt.createQmlObject(themeColors.text(), root, "quickshell-colors.qml")
+                if (loaded !== null && loaded.frame !== undefined) {
+                    root.frameColor = loaded.frame
+                    loaded.destroy()
+                }
+            } catch (e) {
+                console.warn("Config: failed to parse theme colors:", e.message)
+            }
         }
     }
 }
