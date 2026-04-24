@@ -17,8 +17,8 @@ if ryoku-toggle-enabled screensaver-off && [[ $1 != "force" ]]; then
   exit 1
 fi
 
-# Silently quit Walker on overlay
-walker -q
+# Close any open launcher overlay before taking the screen
+pkill -x tofi 2>/dev/null || true
 
 focused=$(ryoku-hyprland-monitor-focused)
 terminal=$(xdg-terminal-exec --print-id)

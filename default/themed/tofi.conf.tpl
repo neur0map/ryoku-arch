@@ -1,7 +1,8 @@
 # Ryoku tofi config rendered per-theme. Every theme with a colors.toml
 # gets its own rendering of this template dropped at
 # ~/.config/ryoku/current/theme/tofi.conf. bin/ryoku-launch-walker
-# prefers that path; this template is the source of those colors.
+# (the launcher wrapper that dispatches tofi) prefers that path; this
+# template is the source of those colors.
 
 font = JetBrainsMono Nerd Font
 font-size = 12
@@ -38,6 +39,6 @@ hide-cursor = true
 ascii-input = false
 
 # Tofi defaults drun-launch to false, which only prints the Exec= line
-# to stdout instead of launching. ryoku-launch-walker does not capture
+# to stdout instead of launching. The launcher wrapper does not capture
 # that output, so leaving the default means Super+Space silently fails.
 drun-launch = true

@@ -26,10 +26,6 @@ toggle_existing_menu() {
     pkill -x tofi >/dev/null 2>&1
     exit 0
   fi
-  if pgrep -f "walker.*--dmenu" >/dev/null; then
-    walker --close >/dev/null 2>&1
-    exit 0
-  fi
 }
 
 menu() {

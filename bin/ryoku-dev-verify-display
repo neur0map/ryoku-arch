@@ -44,7 +44,7 @@ cd "$repo_root"
 
 required_commands=(
   xdg-terminal-exec
-  walker
+  tofi
   waybar
   hyprctl
 )
