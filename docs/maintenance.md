@@ -97,7 +97,7 @@ Because `git pull` pulls from whatever `origin` points at, and the live clone's 
 ### Simple change (command, doc, config template)
 
 ```bash
-cd /home/omi/prowl/ryoku-arch
+cd $HOME/prowl/ryoku-arch
 # edit files
 git add <specific paths>
 git commit -m "<type>: <description>"
@@ -113,7 +113,7 @@ Example: ship `nmap` to all Ryoku Arch users.
 1. Create the migration file named after the current unix timestamp, using omarchy's helper:
 
 ```bash
-cd /home/omi/prowl/ryoku-arch
+cd $HOME/prowl/ryoku-arch
 ryoku-dev-add-migration --no-edit
 ```
 
@@ -148,7 +148,7 @@ Run a probe whenever you want to sanity-check that pushes flow to the live syste
 
 ```bash
 # Dev folder
-cd /home/omi/prowl/ryoku-arch
+cd $HOME/prowl/ryoku-arch
 printf "\n<!-- probe: %s -->\n" "$(date -u +%Y%m%dT%H%M%SZ)" >> README.md
 git commit -am "test: update-loop probe"
 git push origin main
@@ -159,7 +159,7 @@ git pull
 tail -1 README.md    # the probe line should appear
 
 # Revert
-cd /home/omi/prowl/ryoku-arch
+cd $HOME/prowl/ryoku-arch
 git revert --no-edit HEAD
 git push origin main
 
@@ -174,7 +174,7 @@ Omarchy ships new work on `basecamp/omarchy`. You decide commit-by-commit whethe
 ### See what's new
 
 ```bash
-cd /home/omi/prowl/ryoku-arch
+cd $HOME/prowl/ryoku-arch
 git fetch upstream
 
 # Every commit omarchy has made since we forked
@@ -193,7 +193,7 @@ git log upstream-baseline..upstream/dev -- install/
 To pull the latest upstream state into the local `upstream-dev` and `upstream-master` branches:
 
 ```bash
-cd /home/omi/prowl/ryoku-arch
+cd $HOME/prowl/ryoku-arch
 git fetch upstream
 
 # Update the local upstream branches to match remote
@@ -214,7 +214,7 @@ git checkout main
 To browse omarchy's state as if you were on omarchy:
 
 ```bash
-cd /home/omi/prowl/ryoku-arch
+cd $HOME/prowl/ryoku-arch
 git stash push -m "wip"    # if there are uncommitted changes
 git checkout upstream-dev
 # ...browse, read, inspect files...
@@ -227,7 +227,7 @@ git stash pop              # if you stashed
 When upstream has a bug fix or feature you want to adopt:
 
 ```bash
-cd /home/omi/prowl/ryoku-arch
+cd $HOME/prowl/ryoku-arch
 git fetch upstream
 git checkout main
 git cherry-pick <sha>                 # preserves DHH's authorship on the new commit
@@ -241,7 +241,7 @@ git push origin main
 After the command rename pass, many upstream commits will touch paths we have renamed. Cherry-pick in stages:
 
 ```bash
-cd /home/omi/prowl/ryoku-arch
+cd $HOME/prowl/ryoku-arch
 git cherry-pick --no-commit <sha>     # stage the changes, do not commit
 # inspect the staged changes
 git status
@@ -259,7 +259,7 @@ git push origin main
 If you want one file from upstream wholesale, without a cherry-pick commit:
 
 ```bash
-cd /home/omi/prowl/ryoku-arch
+cd $HOME/prowl/ryoku-arch
 git fetch upstream
 git checkout main
 git checkout upstream-dev -- bin/some-new-tool
@@ -355,7 +355,7 @@ To add a new check, edit the relevant hook file in `.githooks/`, commit, push. C
 For a reversible mistake on `main`:
 
 ```bash
-cd /home/omi/prowl/ryoku-arch
+cd $HOME/prowl/ryoku-arch
 git revert --no-edit <bad-sha>
 git push origin main
 ```
