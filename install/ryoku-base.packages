@@ -1,12 +1,8 @@
 # Ryoku core package list installed via install/packaging/base.sh
 # This file is also used by the ISO builder when determining needs
 
-1password-beta
-1password-cli
-aether
 alacritty
 alsa-utils
-asdcontrol
 avahi
 base-devel
 bash-completion
@@ -17,7 +13,6 @@ brightnessctl
 btop
 chromium
 clang
-claude-code
 cups
 cups-browsed
 cups-filters
@@ -52,7 +47,6 @@ gvfs-smb
 hypridle
 hyprland
 hyprland-guiutils
-hyprland-preview-share-picker
 hyprlock
 hyprpicker
 hyprsunset
@@ -74,7 +68,6 @@ libyaml
 libqalculate
 libreoffice-fresh
 llvm
-localsend
 luarocks
 mako
 man-db
@@ -93,7 +86,6 @@ cliphist
 obs-studio
 obsidian
 pamixer
-pinta
 playerctl
 plocate
 plymouth
@@ -102,7 +94,6 @@ postgresql-libs
 power-profiles-daemon
 python-gobject
 python-poetry-core
-python-terminaltexteffects
 qt5-wayland
 ripgrep
 ruby
@@ -111,7 +102,6 @@ satty
 sddm
 signal-desktop
 slurp
-spotify
 socat
 starship
 sushi
@@ -121,13 +111,9 @@ system-config-printer
 tldr
 tree-sitter-cli
 tmux
-tobi-try
-ttf-ia-writer
 ttf-jetbrains-mono-nerd
-typora
 tzupdate
 ufw
-ufw-docker
 unzip
 usage
 uwsm
@@ -140,9 +126,7 @@ wl-clipboard
 woff2-font-awesome
 xdg-desktop-portal-gtk
 xdg-desktop-portal-hyprland
-xdg-terminal-exec
 xmlstarlet
 xournalpp
-yaru-icon-theme
 yay
 zoxide
