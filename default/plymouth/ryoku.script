@@ -1,7 +1,8 @@
 # Ryoku Plymouth Theme Script
 
-Window.SetBackgroundTopColor(0.101, 0.105, 0.149);
-Window.SetBackgroundBottomColor(0.101, 0.105,  0.149);
+# Greek Noir background (#171717), matches logo.png canvas and Limine.
+Window.SetBackgroundTopColor(0.0902, 0.0902, 0.0902);
+Window.SetBackgroundBottomColor(0.0902, 0.0902, 0.0902);
 
 logo.image = Image("logo.png");
 logo.sprite = Sprite(logo.image);
