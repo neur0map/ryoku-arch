@@ -27,6 +27,13 @@ The banner art also carries a legacy shape at the top that no longer reads as an
 - No package list changes, no first-run script changes, no migration changes. boot.sh delegates all of that to `install.sh`; those surfaces evolve separately.
 - No fix for ryoku-update divergence. Upgrade-path reliability is out of scope; boot.sh remains the fresh-install entrypoint only.
 
+## Environment assumptions
+
+- **Terminal supports 24-bit color.** All common modern terminals (Alacritty, Kitty, Ghostty, WezTerm, foot, Konsole, GNOME Terminal, plus xterm with `COLORTERM=truecolor`) qualify. The Arch installer TTY (`linux` kernel console) falls back to 8 or 16 colors and the orange will render as the closest indexed approximation, which is acceptable degradation.
+- **Terminal has a CJK-capable font for the tagline.** The tagline `力と美のために` renders as tofu boxes on terminals without CJK glyphs (notably the Arch installer TTY). This is acceptable; the tagline is decorative, not load-bearing. The kanji in the banner is drawn as `██` block art and does not depend on CJK font support.
+- **bash 5** (shipped in Arch base) for `[[ ]]` / heredoc behavior.
+- **sudo, curl, git** (curl on the user side, bash/sudo in the shell; git is installed by the script itself).
+
 ## Locked decisions
 
 | Decision | Choice | Rationale |
@@ -38,18 +45,21 @@ The banner art also carries a legacy shape at the top that no longer reads as an
 
 ## Architecture
 
-boot.sh phases (unchanged from today):
+boot.sh phases:
 
 ```
-1. Print banner             <- refresh
-2. Set env vars (REF, REPO) <- fix defaults, drop MIRROR
+0. set -eEo pipefail                          <- NEW: fail fast
+1. Print banner                                <- refresh
+2. Set env vars (REF, REPO)                    <- fix defaults, drop MIRROR
 3. Seed mirrorlist
 4. pacman -Syu git
-5. Handle ~/.local/share/omarchy legacy path  <- migrate, do not nuke
-6. rm -rf + git clone to ~/.local/share/ryoku (fresh-install guarantee)
+5. Handle ~/.local/share/omarchy legacy path   <- migrate, do not nuke
+6. rm -rf + git clone to ~/.local/share/ryoku  <- fresh-install guarantee
 7. git fetch + checkout RYOKU_REF
 8. source install.sh
 ```
+
+Phase 0 is new: add `set -eEo pipefail` right after the shebang so a failed network clone, failed sudo, or failed pacman does not continue into `install.sh` with a half-populated tree. Every subsequent step stays as-is except where listed.
 
 All four edits land inside the same file. There is no other file to touch: the banner text is embedded as a heredoc in boot.sh itself, not sourced from the repo (which is not cloned yet at banner time).
 
@@ -98,7 +108,7 @@ printf '\033[38;2;242;86;35m%s\n%s\033[0m\n' "$kanji_art" "$wordmark"
 printf '\033[38;2;174;171;148m%s\033[0m\n\n' "$tagline"
 ```
 
-The exact ASCII block art for the kanji is a working sketch; the implementation step will iterate on it until it renders cleanly in a 26-column-wide block above the wordmark. The spec locks the approach, not the exact glyph pixels.
+**Locked kanji source.** The exact kanji art is not invented fresh. Take the existing `config/fastfetch/about.txt` (hand-tuned 力 inside a frame, already in use), strip the outer `██`-border frame and the blank surround rows, and embed the inner rows. This guarantees (a) the banner art is already a glyph the project has approved, (b) `about.txt` and boot.sh stay visually consistent, (c) no new art-authoring scope sneaks into this task. The implementation step mechanically transforms `about.txt`; no pixel-level invention required.
 
 **Env var block (current lines 37..44):**
 
