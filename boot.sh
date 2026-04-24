@@ -34,16 +34,11 @@ clear
 # Japanese old red #8F1D21 via truecolor ANSI
 printf "\033[38;2;143;29;33m%s\033[0m\n" "$ansi_art"
 
-# Channel selection: stable (master), rc (rc branch), dev (dev branch).
-# All three currently share the same upstream Arch mirror snapshot; the
-# channel concept survives as scaffolding for future differentiation.
-RYOKU_REF="${RYOKU_REF:-master}"
-
-case "$RYOKU_REF" in
-  dev) export RYOKU_MIRROR=edge ;;
-  rc)  export RYOKU_MIRROR=rc ;;
-  *)   export RYOKU_MIRROR=stable ;;
-esac
+# Branch selection. Default to main (the repo's default branch). Users
+# can override with RYOKU_REF=<branch> when calling boot.sh. No mirror
+# variable: Ryoku does not operate named mirrors; the legacy
+# RYOKU_MIRROR block was dead code inherited from Omarchy.
+RYOKU_REF="${RYOKU_REF:-main}"
 
 # Seed a minimal mirrorlist so the initial sync succeeds before the full
 # mirrorlist snapshot is copied into place by install/preflight/pacman.sh.
