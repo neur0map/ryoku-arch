@@ -21,13 +21,15 @@ write_dropin() {
 # required: Hyprland's gaps_out parser only accepts the comma form
 # for per-edge vec4.
 #
-# border_size = 0 so the theme's window border does not eat into the
-# wallpaper matboard. With the frame active, the frame itself is the
-# visual container; an extra per-window border muddles the look.
+# Slim 2 px border: active window gets the Ryoku orange accent so the
+# focused window is clearly marked; inactive border is transparent so
+# the wallpaper matboard shows without a dark line on its inner edge.
 general {
     gaps_out = 8,16,16,16
     gaps_in = 6
-    border_size = 0
+    border_size = 2
+    col.active_border = rgb(F25623)
+    col.inactive_border = rgba(00000000)
 }
 decoration {
     rounding = 8
