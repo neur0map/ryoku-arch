@@ -1,0 +1,42 @@
+#!/bin/bash
+set -e
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+# Install qylock (Darkkal44/qylock) as the Ryoku SDDM / lockscreen theme
+# bundle. Qylock is a curated collection of SDDM + Quickshell themes. On
+# first run this clones the repo, installs required Qt6/GStreamer deps,
+# and hands control to qylock's own sddm.sh picker so the user chooses
+# a theme from the bundled catalog.
+#
+# Subsequent runs re-invoke the picker so you can swap themes without
+# re-cloning.
+
+QYLOCK_DIR="$HOME/.local/share/qylock"
+QYLOCK_REPO="https://github.com/Darkkal44/qylock.git"
+
+echo -e "\033[38;2;143;29;33m\nInstalling qylock SDDM / lockscreen theme bundle\033[0m"
+
+# Core + video + GStreamer dependencies qylock sddm themes expect.
+ryoku-pkg-add \
+  qt6-declarative \
+  qt6-5compat \
+  qt6-svg \
+  qt6-multimedia \
+  qt6-multimedia-ffmpeg \
+  gst-plugins-base \
+  gst-plugins-good \
+  gst-plugins-bad \
+  gst-plugins-ugly
+
+# Clone or update
+if [[ -d $QYLOCK_DIR/.git ]]; then
+  git -C "$QYLOCK_DIR" pull --ff-only
+else
+  rm -rf "$QYLOCK_DIR"
+  git clone --depth=1 "$QYLOCK_REPO" "$QYLOCK_DIR"
+fi
+
+# Hand off to qylock's interactive installer
+cd "$QYLOCK_DIR"
+bash sddm.sh

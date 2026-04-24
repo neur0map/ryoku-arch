@@ -2,8 +2,12 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Refresh the SDDM theme from default
+# The Ryoku SDDM theme set comes from qylock (Darkkal44/qylock).
+# ryoku-refresh-sddm drops any legacy omarchy/ryoku custom theme dirs
+# and then hands off to the qylock installer, which lets the user pick
+# or re-pick a theme from the bundled catalog.
 
 sudo rm -rf /usr/share/sddm/themes/omarchy
 sudo rm -rf /usr/share/sddm/themes/ryoku
-sudo cp -r $RYOKU_PATH/default/sddm/ryoku /usr/share/sddm/themes/ryoku
+
+exec ryoku-install-qylock
