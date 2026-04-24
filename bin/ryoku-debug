@@ -34,7 +34,7 @@ fi
 cat > "$LOG_FILE" <<EOF
 Date: $(date)
 Hostname: $(hostname)
-Ryoku Branch: $(git -C "$OMARCHY_PATH" branch --show-current 2>/dev/null || echo "unknown")
+Ryoku Branch: $(git -C "$RYOKU_PATH" branch --show-current 2>/dev/null || echo "unknown")
 
 =========================================
 SYSTEM INFORMATION

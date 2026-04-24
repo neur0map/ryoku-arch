@@ -1,5 +1,5 @@
 # Configure pacman
-channel="${RYOKU_MIRROR:-${OMARCHY_MIRROR:-stable}}"
+channel="${RYOKU_MIRROR:-stable}"
 sudo cp -f ~/.local/share/ryoku/default/pacman/pacman-${channel}.conf /etc/pacman.conf
 sudo cp -f ~/.local/share/ryoku/default/pacman/mirrorlist-${channel} /etc/pacman.d/mirrorlist
 

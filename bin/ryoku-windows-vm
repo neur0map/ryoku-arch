@@ -42,8 +42,8 @@ install_windows() {
   mkdir -p "$HOME/.local/share/applications/icons"
 
   # Install Windows VM icon and desktop file
-  if [[ -f $OMARCHY_PATH/applications/icons/windows.png ]]; then
-    cp "$OMARCHY_PATH/applications/icons/windows.png" "$HOME/.local/share/applications/icons/windows.png"
+  if [[ -f $RYOKU_PATH/applications/icons/windows.png ]]; then
+    cp "$RYOKU_PATH/applications/icons/windows.png" "$HOME/.local/share/applications/icons/windows.png"
   fi
 
   cat << EOF | tee "$HOME/.local/share/applications/windows-vm.desktop" > /dev/null

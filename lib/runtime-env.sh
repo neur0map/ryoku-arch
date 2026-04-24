@@ -1,6 +1,9 @@
 #!/bin/bash
 
-# Resolve the active Ryoku repo path with a legacy fallback during the rename.
+# Resolve the active Ryoku repo path. RYOKU_LEGACY_PATH is a last-ditch
+# fallback for systems that still have the pre-rename ~/.local/share/omarchy
+# checkout; it lets tools keep working on an unmigrated box until the
+# share-path migration converges the directory layout.
 export RYOKU_PATH_DEFAULT="$HOME/.local/share/ryoku"
 export RYOKU_LEGACY_PATH="$HOME/.local/share/omarchy"
 export RYOKU_STATE_PATH="${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}"
@@ -16,11 +19,6 @@ fi
 
 export RYOKU_INSTALL="${RYOKU_INSTALL:-$RYOKU_PATH/install}"
 export RYOKU_INSTALL_LOG_FILE="${RYOKU_INSTALL_LOG_FILE:-/var/log/ryoku-install.log}"
-
-# Keep installer compatibility until downstream scripts stop reading OMARCHY_*.
-export OMARCHY_PATH="${OMARCHY_PATH:-$RYOKU_PATH}"
-export OMARCHY_INSTALL="${OMARCHY_INSTALL:-$RYOKU_INSTALL}"
-export OMARCHY_INSTALL_LOG_FILE="${OMARCHY_INSTALL_LOG_FILE:-$RYOKU_INSTALL_LOG_FILE}"
 
 case ":$PATH:" in
   *":$RYOKU_PATH/bin:"*) ;;

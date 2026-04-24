@@ -1,11 +1,11 @@
 echo "Migrate to new theme setup"
 
 # Move user-added backgrounds from Ryoku theme folders to user config
-OMARCHY_DIR="$HOME/.local/share/omarchy"
+RYOKU_DIR="$HOME/.local/share/omarchy"
 USER_BACKGROUNDS_DIR="$HOME/.config/ryoku/backgrounds"
 
-if [[ -d $OMARCHY_DIR/themes ]]; then
-  cd "$OMARCHY_DIR"
+if [[ -d $RYOKU_DIR/themes ]]; then
+  cd "$RYOKU_DIR"
 
   # Get list of git-tracked background files (relative to omarchy dir)
   mapfile -t TRACKED_BACKGROUNDS < <(git ls-files --cached 'themes/*/backgrounds/*' 2>/dev/null)

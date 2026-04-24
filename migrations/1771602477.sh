@@ -7,7 +7,7 @@ CONFIG_FILE=~/.config/waybar/config.jsonc
 if ! grep -q "custom/idle-indicator" "$CONFIG_FILE"; then
   sed -i 's/"custom\/screenrecording-indicator"]/"custom\/screenrecording-indicator", "custom\/idle-indicator"]/' "$CONFIG_FILE"
 
-  sed -i '/"tray": {/i\  "custom/idle-indicator": {\n    "on-click": "ryoku-toggle-idle",\n    "exec": "$OMARCHY_PATH/default/waybar/indicators/idle.sh",\n    "signal": 9,\n    "return-type": "json"\n  },' "$CONFIG_FILE"
+  sed -i '/"tray": {/i\  "custom/idle-indicator": {\n    "on-click": "ryoku-toggle-idle",\n    "exec": "$RYOKU_PATH/default/waybar/indicators/idle.sh",\n    "signal": 9,\n    "return-type": "json"\n  },' "$CONFIG_FILE"
 fi
 
 # Add idle-indicator CSS if not present

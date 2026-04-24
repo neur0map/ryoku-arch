@@ -1,7 +1,7 @@
 echo "Ensure .config/hypr/looknfeel.conf is available and included"
 
 if [[ ! -f ~/.config/hypr/looknfeel.conf ]]; then
-  cp $OMARCHY_PATH/config/hypr/looknfeel.conf ~/.config/hypr/looknfeel.conf
+  cp $RYOKU_PATH/config/hypr/looknfeel.conf ~/.config/hypr/looknfeel.conf
 fi
 
 if [[ -f ~/.config/hypr/hyprland.conf ]]; then
