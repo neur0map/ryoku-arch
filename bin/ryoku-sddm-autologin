@@ -42,24 +42,28 @@ write_conf() {
 }
 
 disable_conf() {
-  [[ -f $CONF ]] || return 0
-  sudo awk -i inplace '
-    BEGIN { skip = 0 }
-    /^\[Autologin\]/ { skip = 1; next }
-    /^\[/ { skip = 0 }
-    skip == 0 { print }
-  ' "$CONF" 2>/dev/null || {
-    # awk -i inplace requires gawk; fall back to tmp-file + mv.
-    local tmp
-    tmp=$(sudo mktemp)
-    sudo awk '
+  # Write an explicit empty-user [Autologin] override. This wins over
+  # anything SDDM might have cached or inherited from the default
+  # /usr/lib/sddm/sddm.conf.d/default.conf layer.
+  sudo mkdir -p "$(dirname "$CONF")"
+  local rest=""
+  if [[ -f $CONF ]]; then
+    rest=$(awk '
       BEGIN { skip = 0 }
       /^\[Autologin\]/ { skip = 1; next }
       /^\[/ { skip = 0 }
       skip == 0 { print }
-    ' "$CONF" | sudo tee "$tmp" >/dev/null
-    sudo mv -f "$tmp" "$CONF"
-  }
+    ' "$CONF")
+  fi
+  {
+    echo "[Autologin]"
+    echo "User="
+    echo "Session="
+    if [[ -n $rest ]]; then
+      echo ""
+      printf '%s\n' "$rest"
+    fi
+  } | sudo tee "$CONF" >/dev/null
 }
 
 case "$cmd" in

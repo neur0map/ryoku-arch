@@ -3,21 +3,41 @@ set -e
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Install qylock (Darkkal44/qylock) as the Ryoku SDDM / lockscreen theme
-# bundle. Qylock is a curated collection of SDDM + Quickshell themes. On
-# first run this clones the repo, installs required Qt6/GStreamer deps,
-# and hands control to qylock's own sddm.sh picker so the user chooses
-# a theme from the bundled catalog.
+# Install qylock (Darkkal44/qylock) as the Ryoku SDDM theme bundle.
 #
-# Subsequent runs re-invoke the picker so you can swap themes without
-# re-cloning.
+# Usage:
+#   ryoku-install-qylock                  interactive picker (qylock's sddm.sh)
+#   ryoku-install-qylock --theme <name>   non-interactive; installs <name>
+#   ryoku-install-qylock --default        non-interactive; installs dog-samurai
+#                                         if no qylock theme is installed yet
+#
+# On first run this installs the Qt6 + GStreamer dependencies qylock needs
+# and clones the qylock repo to ~/.local/share/qylock.
 
 QYLOCK_DIR="$HOME/.local/share/qylock"
 QYLOCK_REPO="https://github.com/Darkkal44/qylock.git"
+DEFAULT_THEME="dog-samurai"
 
-echo -e "\033[38;2;143;29;33m\nInstalling qylock SDDM / lockscreen theme bundle\033[0m"
+mode="${1:-interactive}"
 
-# Core + video + GStreamer dependencies qylock sddm themes expect.
+case "$mode" in
+  --theme)
+    theme="${2:?theme name required after --theme}"
+    ;;
+  --default)
+    theme="$DEFAULT_THEME"
+    ;;
+  interactive)
+    theme=""
+    ;;
+  *)
+    echo "Usage: ryoku-install-qylock [--theme <name> | --default]" >&2
+    exit 1
+    ;;
+esac
+
+echo -e "\033[38;2;143;29;33m\nInstalling qylock SDDM theme bundle\033[0m"
+
 ryoku-pkg-add \
   qt6-declarative \
   qt6-5compat \
@@ -29,14 +49,52 @@ ryoku-pkg-add \
   gst-plugins-bad \
   gst-plugins-ugly
 
-# Clone or update
 if [[ -d $QYLOCK_DIR/.git ]]; then
-  git -C "$QYLOCK_DIR" pull --ff-only
+  git -C "$QYLOCK_DIR" pull --ff-only >/dev/null
 else
   rm -rf "$QYLOCK_DIR"
-  git clone --depth=1 "$QYLOCK_REPO" "$QYLOCK_DIR"
+  git clone --depth=1 "$QYLOCK_REPO" "$QYLOCK_DIR" >/dev/null
 fi
 
-# Hand off to qylock's interactive installer
-cd "$QYLOCK_DIR"
-bash sddm.sh
+if [[ -z $theme ]]; then
+  # Fall back to qylock's interactive picker.
+  cd "$QYLOCK_DIR"
+  exec bash sddm.sh
+fi
+
+# --default short-circuits if a qylock theme is already active so an
+# existing install is not reset to dog-samurai just because ryoku-update
+# ran.
+if [[ $mode == "--default" ]]; then
+  for candidate_dir in /usr/share/sddm/themes/*/; do
+    candidate=$(basename "$candidate_dir")
+    if [[ -d $QYLOCK_DIR/themes/$candidate ]]; then
+      echo "  qylock theme already installed: $candidate (keeping)"
+      ensure_current="$candidate"
+      break
+    fi
+  done
+fi
+
+if [[ -z ${ensure_current:-} ]]; then
+  src="$QYLOCK_DIR/themes/$theme"
+  if [[ ! -d $src ]]; then
+    echo "  theme '$theme' not found under $QYLOCK_DIR/themes" >&2
+    echo "  available:" >&2
+    (cd "$QYLOCK_DIR/themes" && ls -1 | sed 's/^/    /') >&2
+    exit 1
+  fi
+  echo "  installing theme: $theme"
+  sudo rm -rf "/usr/share/sddm/themes/$theme"
+  sudo cp -r "$src" "/usr/share/sddm/themes/$theme"
+  ensure_current="$theme"
+fi
+
+# Write the Theme section to SDDM config without touching Autologin.
+sudo mkdir -p /etc/sddm.conf.d
+sudo tee /etc/sddm.conf.d/theme.conf >/dev/null <<EOF
+[Theme]
+Current=$ensure_current
+EOF
+
+echo "  qylock theme active: $ensure_current"
