@@ -69,11 +69,22 @@ sudo pacman -Syu --noconfirm --needed git
 RYOKU_REPO="${RYOKU_REPO:-neur0map/ryoku-arch}"
 
 echo -e "\nCloning Ryoku Arch from: https://github.com/${RYOKU_REPO}.git"
+
+# If the pre-rename ~/.local/share/omarchy is a real directory (legacy
+# Omarchy install), archive it by renaming so the user keeps their git
+# history and local commits. If it is a symlink (the post-rename
+# compat shim) or absent, leave it alone.
+OMARCHY_DIR="$HOME/.local/share/omarchy"
+if [[ -d $OMARCHY_DIR && ! -L $OMARCHY_DIR ]]; then
+  MIGRATED_DIR="$HOME/.local/share/ryoku.migrated-$(date +%s)"
+  mv "$OMARCHY_DIR" "$MIGRATED_DIR"
+  echo "Archived legacy ~/.local/share/omarchy to $MIGRATED_DIR"
+fi
+
+# boot.sh is a fresh-install entrypoint. For upgrades, use ryoku-update,
+# which preserves the local clone and applies migrations. Re-running
+# boot.sh on an installed system will destroy the local clone.
 rm -rf "$HOME/.local/share/ryoku"
-# If the legacy path exists from a pre-rename checkout, take it out of
-# the way so git clone does not fight a stale tree. Upgrades from an
-# existing install go through migrations, not this script.
-rm -rf "$HOME/.local/share/omarchy"
 git clone "https://github.com/${RYOKU_REPO}.git" "$HOME/.local/share/ryoku" >/dev/null
 
 echo -e "\e[32mUsing branch: $RYOKU_REF\e[0m"
