@@ -191,6 +191,8 @@ git commit -m "quickshell: theme-rendered singleton for frame color"
 - Create: `config/quickshell/ryoku/config/Config.qml`
 - Create: `config/quickshell/ryoku/config/qmldir`
 
+> **Note on Quickshell 0.2.1 module resolution.** Tasks 4-7 use the root-qmldir pattern (all types declared in `config/quickshell/ryoku/qmldir`) rather than per-subdirectory library modules (`ryoku.config`, `ryoku.modules.frame`). Quickshell 0.2.1 uses Qt's QDir-based `locateLocalQmldir` which cannot resolve the `qs:@/` virtual filesystem scheme that quickshell uses for config paths, so dotted library imports fail. Types listed in the root qmldir are accessible to every QML file in the shell via the implicit root directory import. See commit `817a6638` for the discovery and fix.
+
 - [ ] **Step 4.1: Register the config directory as a QML module**
 
 Write `config/quickshell/ryoku/config/qmldir` with:
@@ -208,9 +210,10 @@ Write `config/quickshell/ryoku/config/Config.qml`:
 pragma Singleton
 
 import QtQuick
+import Quickshell
 import Quickshell.Io
 
-QtObject {
+Scope {
     id: root
 
     readonly property int frameThickness: 8
@@ -223,7 +226,7 @@ QtObject {
 
     FileView {
         id: themeColors
-        path: Qt.resolvedUrl(Qt.application.env.HOME + "/.config/ryoku/current/theme/quickshell-colors.qml")
+        path: Quickshell.env("HOME") + "/.config/ryoku/current/theme/quickshell-colors.qml"
         watchChanges: true
 
         onLoaded: {
@@ -285,7 +288,6 @@ import QtQuick
 import QtQuick.Shapes
 import Quickshell
 import Quickshell.Wayland
-import ryoku.config
 
 PanelWindow {
     id: root
@@ -375,7 +377,6 @@ Write `config/quickshell/ryoku/modules/frame/ExclusionZones.qml`:
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
-import ryoku.config
 
 Scope {
     id: root
@@ -453,6 +454,9 @@ Write `config/quickshell/ryoku/qmldir`:
 
 ```
 module ryoku
+singleton Config 1.0 config/Config.qml
+Frame 1.0 modules/frame/Frame.qml
+ExclusionZones 1.0 modules/frame/ExclusionZones.qml
 ```
 
 - [ ] **Step 7.2: Write `shell.qml`**
@@ -463,23 +467,16 @@ Write `config/quickshell/ryoku/shell.qml`:
 //@ pragma Env QS_NO_RELOAD_POPUP=1
 
 import Quickshell
-import ryoku.modules.frame
 
 ShellRoot {
     Variants {
         model: Quickshell.screens
-
-        Frame {
-            required property ShellScreen modelData
-        }
+        Frame {}
     }
 
     Variants {
         model: Quickshell.screens
-
-        ExclusionZones {
-            required property ShellScreen modelData
-        }
+        ExclusionZones {}
     }
 }
 ```
