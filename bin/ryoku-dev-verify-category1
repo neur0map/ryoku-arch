@@ -108,7 +108,7 @@ case "$chunk" in
     run_rg 'omarchy-|/omarchy|\.config/omarchy|\.local/state/omarchy' "${existing_paths[@]}"
     ;;
   waybar)
-    collect_existing_paths config/waybar config/walker default/mako config/fastfetch
+    collect_existing_paths config/waybar config/tofi default/mako config/fastfetch
 
     if (( ${#existing_paths[@]} == 0 )); then
       echo "no target paths exist for chunk: $chunk" >&2

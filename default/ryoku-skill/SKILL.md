@@ -2,10 +2,10 @@
 name: ryoku
 description: >
   REQUIRED for end-user customization of Linux desktop, window manager, or system config.
-  Use when editing ~/.config/hypr/, ~/.config/waybar/, ~/.config/walker/,
+  Use when editing ~/.config/hypr/, ~/.config/waybar/, ~/.config/tofi/,
   ~/.config/alacritty/, ~/.config/kitty/, ~/.config/ghostty/, ~/.config/mako/,
   or ~/.config/ryoku/. Triggers: Hyprland, window rules, animations, keybindings,
-  monitors, gaps, borders, blur, opacity, waybar, walker, terminal config, themes,
+  monitors, gaps, borders, blur, opacity, waybar, tofi, terminal config, themes,
   wallpaper, night light, idle, lock screen, screenshots, layer rules, workspace
   settings, display config, and user-facing ryoku commands. Excludes Ryoku
   source development in ~/.local/share/ryoku/ and ryoku-dev-* workflows.
@@ -13,7 +13,7 @@ description: >
 
 # Ryoku Skill
 
-Manage Ryoku Linux systems built around Hyprland, Waybar, Walker, themed terminals, and the Ryoku command set.
+Manage Ryoku Linux systems built around Hyprland, Waybar, tofi, themed terminals, and the Ryoku command set.
 
 This skill is for end-user customization on installed systems.
 It is not for contributing to Ryoku source code.
@@ -23,7 +23,7 @@ It is not for contributing to Ryoku source code.
 **ALWAYS invoke this skill for end-user requests involving ANY of these:**
 
 - Editing ANY file in `~/.config/hypr/` (window rules, animations, keybindings, monitors, etc.)
-- Editing ANY file in `~/.config/waybar/`, `~/.config/walker/`, `~/.config/mako/`
+- Editing ANY file in `~/.config/waybar/`, `~/.config/tofi/`, `~/.config/mako/`
 - Editing terminal configs (alacritty, kitty, ghostty)
 - Editing ANY file in `~/.config/ryoku/`
 - Window behavior, animations, opacity, blur, gaps, borders
@@ -77,7 +77,7 @@ Ryoku is built on:
 | **Arch Linux** | Base OS | `/etc/`, `~/.config/` |
 | **Hyprland** | Wayland compositor/WM | `~/.config/hypr/` |
 | **Waybar** | Status bar | `~/.config/waybar/` |
-| **Walker** | App launcher | `~/.config/walker/` |
+| **tofi** | App launcher | `~/.config/tofi/` or theme-rendered `~/.config/ryoku/current/theme/tofi.conf` |
 | **Alacritty/Kitty/Ghostty** | Terminals | `~/.config/<terminal>/` |
 | **Mako** | Notifications | `~/.config/mako/` |
 | **SwayOSD** | On-screen display | `~/.config/swayosd/` |
@@ -167,7 +167,7 @@ cat $(which ryoku-theme-set)
 | lazygit | `~/.config/lazygit/config.yml` |
 | starship | `~/.config/starship.toml` |
 | git | `~/.config/git/config` |
-| walker | `~/.config/walker/config.toml` |
+| tofi | `~/.config/tofi/config` |
 
 ## Safe Customization Patterns
 
@@ -187,7 +187,7 @@ cp ~/.config/hypr/bindings.conf ~/.config/hypr/bindings.conf.bak.$(date +%s)
 # 4. Apply changes
 # - Hyprland: auto-reloads on save (no restart needed)
 # - Waybar: MUST restart with ryoku-restart-waybar
-# - Walker: MUST restart with ryoku-restart-walker
+# - tofi: launcher starts on-demand; nothing to restart
 # - Terminals: MUST restart with ryoku-restart-terminal
 ```
 

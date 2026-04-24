@@ -21,10 +21,10 @@ An opinionated **Hyprland desktop setup for Arch Linux**, built around a curated
 
 ## Why Ryoku
 
-Ryoku layers an opinionated Hyprland + Waybar + Walker desktop on top of a base Arch Linux install, then adds curated security tooling and a strong brand. It is not a distribution &mdash; it is a configuration you apply to Arch that gives you a consistent, themed, security-ready workstation.
+Ryoku layers an opinionated Hyprland + Waybar + tofi desktop on top of a base Arch Linux install, then adds curated security tooling and a strong brand. It is not a distribution &mdash; it is a configuration you apply to Arch that gives you a consistent, themed, security-ready workstation.
 
 - **Security-first toolkit** &mdash; curated picks from BlackArch and beyond, no kitchen-sink bloat.
-- **Hyprland-native** &mdash; tiled Wayland with Waybar, Walker, tofi, hypridle, and hyprlock wired up.
+- **Hyprland-native** &mdash; tiled Wayland with Waybar, tofi, hypridle, and hyprlock wired up.
 - **19 first-class themes** &mdash; Catppuccin, Tokyo Night, Kanagawa, Gruvbox, Rose Pine, Everforest, and more, swappable at runtime.
 - **One command surface** &mdash; every action is a `ryoku-*` command. Tab-complete to discover.
 - **Japanese-minimalism brand** &mdash; the 力 kanji anchors a considered aesthetic across theme, boot, and lockscreen.
