@@ -82,16 +82,16 @@ rg -c 'omarchy' bin/ | sort -t: -k2 -n -r | head -20
 - [x] Final Category 1 grep gate passed (remaining matches are Category 2 legal, Category 4 brand assets, Category 5 installer defaults, sanctioned compatibility bridges, or external URL/package names)
 - [x] Installer migration pass executed (Path A complete: upstream Arch mirrors, `[omarchy]` repo dropped, keyring simplified, boot.sh repo/repo-pin defaults repointed to `neur0map/ryoku-arch`, package-facing names resolved via AUR rebuilds or tool replacement)
 - [x] Category 3 cosmetic rename executed (every active `OMARCHY_*` env var swept to `RYOKU_*`; redundant compat exports dropped from `lib/runtime-env.sh`)
-- [~] Brand assets pass (Category 4) partially executed:
+- [x] Brand assets pass (Category 4) executed:
     - [x] `logo.txt` (RYOKU word-art), `icon.txt` (力 via Noto CJK), `boot.sh` inline ANSI art
     - [x] Terminal accent color swapped from terminal-green to Japanese old red `#8F1D21` in `bin/ryoku-show-logo` and the fastfetch logo
     - [x] SDDM theme set: hand-rolled `default/sddm/ryoku/` retired in favor of the [qylock](https://github.com/Darkkal44/qylock) theme bundle; `ryoku-install-qylock` handles the install/switch flow; autologin disabled by default so the greeter is actually visible
     - [x] Hibernation drop-in renamed `omarchy_resume.conf` -> `ryoku_resume.conf`; existing installs converge via migration `1777001391`
     - [x] Runtime battery notification flag renamed `omarchy_battery_notified` -> `ryoku_battery_notified`
-    - [ ] `config/omarchy.ttf` font family still `omarchy` (requires regenerating the TTF's internal family-name metadata via fonttools or FontForge); `config/waybar/config.jsonc` still references `font='omarchy'`
-    - [ ] Plymouth boot theme still `omarchy` (needs Ryoku Plymouth assets + initramfs rebuild)
-    - [ ] UKI filename still `omarchy_linux.efi` / `CUSTOM_UKI_NAME="omarchy"` in Limine default; renaming is boot-critical and needs a dedicated snapshot-gated migration
-    - [ ] `logo.svg`, `icon.png` vector/raster still upstream-omarchy artwork
+    - [x] `logo.svg`, `icon.png` redrawn as the 力 kanji in the Greek Noir palette (commit `5d0860ab`)
+    - [x] Plymouth boot theme renamed to `ryoku`; assets regenerated with the new 力 logo and activated via migration `1777006137` (commit `5d0860ab`)
+    - [x] `config/ryoku.ttf` rebuilt from Noto Sans Mono CJK JP with the 力 glyph mapped to both `U+529B` and `U+E900`; waybar reference updated from `font='omarchy'` to `font='ryoku'`; existing installs converge via migrations `1777007260` (font refresh) and `1777007437` (waybar span patch) (commits `d0a0c923`, `3d9e46b7`)
+    - [x] UKI filename flipped to `ryoku_linux.efi` with `CUSTOM_UKI_NAME="ryoku"`, `TARGET_OS_NAME="Ryoku"`, and `interface_branding: Ryoku Bootloader`; existing installs converge via the snapshot-gated migration `1777006624` (commit `9a9aaff0`)
 - [ ] Verified end-to-end install still works post-rename (VM boot drill pending)
 
 ## Current Reality
@@ -119,7 +119,7 @@ What is intentionally still left:
 - Compatibility `omarchy-*` wrappers in `bin/` - kept because legacy migrations, legacy user-created webapps, and legacy shell snippets can still resolve them. Removal is gated on downstream cleanup, not Category 1 completion.
 - `~/.local/share/omarchy/` - still the canonical live repo path because `boot.sh` defaults and the share-path migration belong to Category 5.
 - `OMARCHY_PATH`, `OMARCHY_INSTALL`, `OMARCHY_INSTALL_LOG_FILE` env exports - sanctioned bridges in `lib/runtime-env.sh` until downstream consumers stop reading them.
-- `omarchy.ttf`, logo/icon assets, Plymouth boot theme - Category 4 brand assets.
+- Category 4 brand assets closed out: `config/ryoku.ttf` rebuilt with the 力 glyph at `U+E900`, logo/icon redrawn, Plymouth activated as `ryoku`, and the UKI flipped to `ryoku_linux.efi`. Remaining artifacts are legacy state being cleaned up by one-shot migrations.
 - `boot.sh` repo/branch/mirror defaults and pacman mirror URLs - Category 5 installer migration.
 
 ## Path A Close-out (2026-04-23)
@@ -139,13 +139,13 @@ Remaining intentional omarchy references now fall into four buckets:
 
 - **Compatibility env var aliases** in `lib/runtime-env.sh`, `boot.sh`, `install/preflight/pacman.sh`, `install/post-install/pacman.sh`, `install/login/limine-snapper.sh`, `install/helpers/chroot.sh`, `install/config/mise-work.sh`, `install/config/git.sh`: `OMARCHY_PATH`, `OMARCHY_INSTALL`, `OMARCHY_MIRROR`, `OMARCHY_REPO`, `OMARCHY_REF`, `OMARCHY_ONLINE_INSTALL`, `OMARCHY_CHROOT_INSTALL`, `OMARCHY_USER_NAME`, `OMARCHY_USER_EMAIL`. Each is now the fallback form for its `RYOKU_*` counterpart.
 - **Legacy filesystem cleanup paths** in `install/first-run/cleanup-reboot-sudoers.sh`, `install/post-install/finished.sh`, and `boot.sh`'s `rm -rf "$HOME/.local/share/omarchy"` - these only *remove* legacy state.
-- **Category 4 brand assets** (deferred): `config/waybar/config.jsonc` `font='omarchy'`, `config/omarchy.ttf`, `default/limine/default.conf` `CUSTOM_UKI_NAME="omarchy"`, `/run/user/$UID/omarchy_battery_notified` flag filename.
+- **Legacy brand cleanup in transit**: the `/run/user/$UID/omarchy_battery_notified` flag filename is the last omarchy-named runtime touchpoint and is retired by the battery-notification rename. Cleanup of `/etc/mkinitcpio.conf.d/omarchy_resume.conf` and `/usr/share/sddm/themes/omarchy` happens through their respective migrations (`1777001391` for hibernation, qylock install for SDDM).
 - **External identifiers** (must not change): `themes/{ethereal,hackerman,vantablack}/vscode.json` extension IDs like `Bjarne.vantablack-omarchy`, upstream Omarchy manual URL in the Learn menu, `basecamp/omarchy` references in attribution docs and the `.githooks/pre-push` upstream-mirror guard.
 
 ## Deferred cross-spec work
 
 Tracked here as the single source of truth for Path A follow-ups:
 
-- **Category 4 brand assets**: rebuild `omarchy.ttf` with a Ryoku family name (affects Waybar span); rename the UKI from `omarchy_linux.efi` to `ryoku_linux.efi` (boot-critical, needs its own snapshot-gated migration); rename `/etc/mkinitcpio.conf.d/omarchy_resume.conf`; rename `/usr/share/sddm/themes/omarchy` or (per a planned desktop-session spec) drop SDDM entirely; update logo and icons.
+- **Category 4 brand assets**: complete. Font rebuilt (`config/ryoku.ttf`, migrations `1777006265`/`1777007260`/`1777007437`), Plymouth activated (migration `1777006137`), UKI flipped (migration `1777006624`), logo/icon redrawn, SDDM migrated to qylock. Hibernation drop-in covered by `1777001391`. What is left is a VM boot drill to confirm the installer story end-to-end.
 - **Path B package repo**: stand up a Ryoku-hosted pacman repo on the VPS once there are meaningfully Ryoku-native packages to publish. No urgency now that every Path A dependency routes through Arch extras or AUR.
 - **omarchy-* wrapper cleanup**: once no installed system has the legacy webapp `.desktop` files or legacy shell calls, the `bin/omarchy-*` wrappers can be removed. Requires either a population survey or a generous deprecation window.
