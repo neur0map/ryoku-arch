@@ -2,6 +2,8 @@
 #
 # Ryoku live ISO welcome greeter, run inside Alacritty on first boot.
 # Truecolor renders here because Alacritty is a real graphical terminal.
+# Shows the brand banner for a moment, then drops the user straight into
+# `ryoku-install` (matching archinstall's flow on omarchy).
 
 ORANGE='\033[38;2;242;86;35m'
 SUBDUED='\033[38;2;174;171;148m'
@@ -39,24 +41,10 @@ BANNER
 printf "${RESET}\n"
 printf "${SUBDUED}            力と美のために  :  For the sake of power and beauty.${RESET}\n\n"
 
-cat <<EOF
+sleep 2
 
-$(printf "${ORANGE}")Ryoku Arch live installer.$(printf "${RESET}")
-
-You are running a temporary live Ryoku desktop. Nothing you do here
-persists after reboot. To install Ryoku to a real disk:
-
-  $(printf "${ORANGE}")ryoku-install$(printf "${RESET}")
-
-The installer is a 10-stage flow that partitions the disk with LUKS2 +
-btrfs subvolumes, lays down limine, then runs Ryoku's boot.sh inside the
-new install before reboot. You will be prompted for the target disk,
-hostname, username, and passwords (user, root, disk encryption).
-
-For Wi-Fi: nmtui. For ethernet/DHCP: usually automatic.
-Hotkey: Super+Shift+E exits Hyprland back to the TTY.
-
-EOF
-
-# Drop into an interactive bash so the user can run ryoku-install.
+# Hand straight off to the gum-styled installer. If it exits (cancel /
+# error), drop the user at a bash prompt so they can troubleshoot or
+# rerun manually.
+ryoku-install
 exec bash
