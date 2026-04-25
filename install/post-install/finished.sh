@@ -32,11 +32,10 @@ else
   echo_in_style "Finished installing"
 fi
 
-for sudoers_file in /etc/sudoers.d/99-ryoku-installer /etc/sudoers.d/99-omarchy-installer; do
-  if sudo test -f "$sudoers_file"; then
-    sudo rm -f "$sudoers_file" &>/dev/null
-  fi
-done
+# Remove the install-wide NOPASSWD drop-in. Use a single sudo invocation
+# so we don't get prompted for a password on the second iteration of a
+# loop after NOPASSWD has just been pulled.
+sudo rm -f /etc/sudoers.d/99-ryoku-installer /etc/sudoers.d/99-omarchy-installer &>/dev/null
 
 # Exit gracefully if user chooses not to reboot
 if gum confirm --padding "0 0 0 $((PADDING_LEFT + 32))" --show-help=false --default --affirmative "Reboot Now" --negative "" ""; then

@@ -20,3 +20,10 @@ fi
 
 # Don't use chrootable here as --now will cause issues for manual installs
 sudo systemctl enable sddm.service
+
+# archinstall leaves default.target = multi-user.target (no DM in its
+# config). Without flipping it the system boots to a getty on tty1 and
+# SDDM never starts. Manually-installed Arch SDDM users hit the same
+# thing via the pacman post-install hook; in our chroot install that
+# hook does not fire, so we set it explicitly here.
+sudo systemctl set-default graphical.target
