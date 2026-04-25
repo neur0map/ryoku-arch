@@ -16,6 +16,7 @@ foreground = "#aeab94"
 padding = { x = 24, y = 24 }
 opacity = 1.0
 decorations = "none"
+startup_mode = "Maximized"
 
 [scrolling]
 history = 10000
