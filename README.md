@@ -38,19 +38,26 @@ Ryoku is a focused Arch workstation environment for people doing security work w
 
 ## Install
 
-On a fresh Arch Linux system:
+Boot the official [Arch Linux ISO](https://archlinux.org/download/) (UEFI is recommended). From the live env, connect to the network (`iwctl` for Wi-Fi, ethernet is usually automatic), then:
 
 ```bash
-git clone https://github.com/neur0map/ryoku-arch.git ~/.local/share/ryoku
-cd ~/.local/share/ryoku
-./install.sh
+bash <(curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/main/boot.sh)
 ```
 
-After install, `ryoku-update` is the canonical updater. An `ISO`-based installer and stable `boot.sh` one-liner are on the roadmap.
+`boot.sh` runs `archinstall` for partition + base, then layers Ryoku (Hyprland, Waybar, themes, configs). After the install completes and reboots, `ryoku-update` is the canonical updater.
 
-### Migrating from Omarchy
+### Migrating from Omarchy (snapshot rollback)
 
-If you already run an Omarchy-based install, repoint your local clone at Ryoku:
+Already running Omarchy? Run the same `boot.sh` from inside Omarchy and it will:
+
+1. Detect the existing Omarchy install
+2. Take a `snapper` snapshot of `/` and `/home` ("pre-ryoku-migration")
+3. Apply Ryoku on top
+4. Record the snapshot ids in `~/.local/state/ryoku/migration-state.txt`
+
+If you change your mind, run `ryoku-rollback` (or open the menu with **Super + Alt + Space** → Update → Rollback to Omarchy) and the snapshot is restored on the next reboot.
+
+If you'd rather just repoint your local clone at Ryoku without the Hyprland/theme/config overlay:
 
 ```bash
 REPO_DIR="${RYOKU_PATH:-$HOME/.local/share/ryoku}"

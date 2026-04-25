@@ -70,15 +70,62 @@ RYOKU_REPO="${RYOKU_REPO:-neur0map/ryoku-arch}"
 
 echo -e "\nCloning Ryoku Arch from: https://github.com/${RYOKU_REPO}.git"
 
-# If the pre-rename ~/.local/share/omarchy is a real directory (legacy
-# Omarchy install), archive it by renaming so the user keeps their git
-# history and local commits. If it is a symlink (the post-rename
-# compat shim) or absent, leave it alone.
+# Detect existing Omarchy install. If found, snapshot the system with
+# snapper before overlaying Ryoku, and record snapshot ids so the user
+# can `ryoku-rollback` from the menu (Update > Rollback) to restore
+# their Omarchy state. Best-effort: if snapper or btrfs is missing the
+# install proceeds without rollback support and the user gets a warning.
 OMARCHY_DIR="$HOME/.local/share/omarchy"
-if [[ -d $OMARCHY_DIR && ! -L $OMARCHY_DIR ]]; then
-  MIGRATED_DIR="$HOME/.local/share/ryoku.migrated-$(date +%s%N)"
-  mv "$OMARCHY_DIR" "$MIGRATED_DIR"
-  echo -e "\nArchived legacy ~/.local/share/omarchy to $MIGRATED_DIR"
+omarchy_present=false
+if [[ -d $OMARCHY_DIR && ! -L $OMARCHY_DIR ]] || \
+   [[ -d $HOME/.config/omarchy ]] || \
+   [[ -f /etc/omarchy-release ]]; then
+  omarchy_present=true
+fi
+
+if [[ $omarchy_present == true ]]; then
+  echo -e "\n\033[38;2;242;86;35mExisting Omarchy install detected.\033[0m"
+  STATE_DIR="$HOME/.local/state/ryoku"
+  mkdir -p "$STATE_DIR"
+
+  if command -v snapper >/dev/null; then
+    echo "Creating snapshots so you can roll back to Omarchy if you change your mind..."
+    ROOT_SNAP=$(sudo snapper -c root create --print-number \
+      --description "pre-ryoku-migration" \
+      --userdata "ryoku=migration" 2>/dev/null) || ROOT_SNAP=""
+    HOME_SNAP=$(sudo snapper -c home create --print-number \
+      --description "pre-ryoku-migration" \
+      --userdata "ryoku=migration" 2>/dev/null) || HOME_SNAP=""
+
+    if [[ -n $ROOT_SNAP || -n $HOME_SNAP ]]; then
+      cat > "$STATE_DIR/migration-state.txt" <<STATE
+# Created by boot.sh during Omarchy to Ryoku migration.
+# Run 'ryoku-rollback' (or Update > Rollback in the Ryoku menu) to
+# restore the Omarchy state from these snapshots.
+created_at=$(date -Iseconds)
+root_snapshot=$ROOT_SNAP
+home_snapshot=$HOME_SNAP
+STATE
+      echo -e "\033[32mRollback point ready.\033[0m"
+      echo "  Root snapshot:  ${ROOT_SNAP:-skipped}"
+      echo "  Home snapshot:  ${HOME_SNAP:-skipped}"
+      echo "  To roll back later: 'ryoku-rollback' (or Update > Rollback)"
+    else
+      echo -e "\033[33mWarning: snapper did not produce snapshots; rollback will not be available.\033[0m"
+    fi
+  else
+    echo -e "\033[33mWarning: snapper is not installed; cannot create rollback snapshots.\033[0m"
+    echo "Install Ryoku will continue, but reverting to Omarchy will require manual recovery."
+  fi
+
+  # Archive the legacy Omarchy clone so we keep their git history and
+  # local commits accessible at ~/.local/share/ryoku.migrated-* even
+  # after Ryoku owns ~/.local/share/ryoku.
+  if [[ -d $OMARCHY_DIR && ! -L $OMARCHY_DIR ]]; then
+    MIGRATED_DIR="$HOME/.local/share/ryoku.migrated-$(date +%s%N)"
+    mv "$OMARCHY_DIR" "$MIGRATED_DIR"
+    echo "Archived legacy ~/.local/share/omarchy to $MIGRATED_DIR"
+  fi
 fi
 
 # boot.sh is a fresh-install entrypoint. For upgrades, use ryoku-update,

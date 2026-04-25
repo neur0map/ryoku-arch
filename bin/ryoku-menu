@@ -511,7 +511,14 @@ show_remove_elixir_menu() {
 }
 
 show_update_menu() {
-  case $(menu "Update" "  Ryoku\n󰔫  Channel\n  Config\n󰸌  Extra Themes\n  Process\n󰇅  Hardware\n  Firmware\n  Password\n  Timezone\n  Time") in
+  # Show "Rollback to Omarchy" only when boot.sh recorded a migration
+  # snapshot, otherwise the entry has nothing to undo.
+  local rollback_entry=""
+  if [[ -f $HOME/.local/state/ryoku/migration-state.txt ]]; then
+    rollback_entry="\n󰕖  Rollback to Omarchy"
+  fi
+
+  case $(menu "Update" "  Ryoku\n󰔫  Channel\n  Config\n󰸌  Extra Themes\n  Process\n󰇅  Hardware\n  Firmware\n  Password\n  Timezone\n  Time${rollback_entry}") in
   *Ryoku*) present_terminal ryoku-update ;;
   *Channel*) show_update_channel_menu ;;
   *Config*) show_update_config_menu ;;
@@ -522,6 +529,7 @@ show_update_menu() {
   *Timezone*) present_terminal ryoku-tz-select ;;
   *Time*) present_terminal ryoku-update-time ;;
   *Password*) show_update_password_menu ;;
+  *Rollback*) present_terminal ryoku-rollback ;;
   *) show_main_menu ;;
   esac
 }
