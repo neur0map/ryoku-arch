@@ -79,12 +79,15 @@ if [[ $(lsblk -dn -o ROTA "$TARGET_DISK") == 0 ]]; then
 fi
 
 mount -o "$mount_opts" /dev/mapper/cryptroot /mnt
-mkdir -p /mnt/{efi,home,.snapshots,var/log,var/cache,var/cache/pacman/pkg}
+mkdir -p /mnt/{efi,home,.snapshots,var/log,var/cache}
 
 mount -o "${mount_opts/subvol=@/subvol=@home}" /dev/mapper/cryptroot /mnt/home
 mount -o "${mount_opts/subvol=@/subvol=@snapshots}" /dev/mapper/cryptroot /mnt/.snapshots
 mount -o "${mount_opts/subvol=@/subvol=@log}" /dev/mapper/cryptroot /mnt/var/log
 mount -o "${mount_opts/subvol=@/subvol=@cache}" /dev/mapper/cryptroot /mnt/var/cache
+# /mnt/var/cache is now an empty subvolume; create the pacman cache path
+# inside it before mounting @pkg over it.
+mkdir -p /mnt/var/cache/pacman/pkg
 mount -o "${mount_opts/subvol=@/subvol=@pkg}" /dev/mapper/cryptroot /mnt/var/cache/pacman/pkg
 mount "$EFI_PART" /mnt/efi
 
