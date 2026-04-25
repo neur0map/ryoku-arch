@@ -1,0 +1,28 @@
+# Minimum-viable Arch base for the Ryoku installer.
+# After pacstrap, boot.sh + install.sh layer the full Ryoku desktop on top
+# (see install/ryoku-base.packages for the rest).
+
+# Core
+base
+base-devel
+linux
+linux-firmware
+intel-ucode
+amd-ucode
+
+# Filesystem + encryption
+btrfs-progs
+cryptsetup
+
+# Bootloader (only the core; AUR pieces install via boot.sh later)
+limine
+
+# Network
+networkmanager
+iwd
+
+# Tools needed by boot.sh
+sudo
+curl
+git
+nano
