@@ -140,7 +140,7 @@ mako
 swaybg
 swayosd
 fastfetch
-tofi
+# tofi (AUR-only, dropped from live ISO; lands on installed system via boot.sh)
 brightnessctl
 playerctl
 imv
@@ -162,5 +162,5 @@ noto-fonts
 noto-fonts-cjk
 noto-fonts-emoji
 ttf-jetbrains-mono-nerd
-ttf-ia-writer
-NetworkManager
+ttf-iawriter-nerd
+networkmanager
