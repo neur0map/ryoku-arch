@@ -113,6 +113,19 @@ install_base_system() {
   # we need to ensure the offline pacman.conf is in place
   cp /etc/pacman.conf /mnt/etc/pacman.conf
 
+  # arch-chroot bind-mounts the live ISO's /etc/resolv.conf into the
+  # chroot, but in offline-install mode that file may be empty. Write
+  # a working resolv.conf so the chroot can resolve mirror hostnames
+  # when install.sh switches pacman to online repos and yay clones
+  # from AUR. Cloudflare + Google as resilient defaults.
+  cat > /mnt/etc/resolv.conf <<RESOLV
+# written by ryoku-iso during install; install.sh / NetworkManager will
+# replace this on first boot with the system-managed config.
+nameserver 1.1.1.1
+nameserver 8.8.8.8
+RESOLV
+  chmod 644 /mnt/etc/resolv.conf
+
   # Mount the offline mirror so it's accessible in the chroot
   mkdir -p /mnt/var/cache/ryoku/mirror/offline
   mount --bind /var/cache/ryoku/mirror/offline /mnt/var/cache/ryoku/mirror/offline
