@@ -51,7 +51,7 @@ fi
 # Add our additional packages to packages.x86_64. Apple T2 (linux-t2)
 # is omarchy-only (DHH ships MacBooks); we use the standard linux
 # kernel that the releng base already pulls.
-arch_packages=(git gum jq openssl plymouth tzupdate)
+arch_packages=(git gum jq openssl plymouth)
 printf '%s\n' "${arch_packages[@]}" >>"$build_cache_dir/packages.x86_64"
 
 # Build list of all the packages needed for the offline mirror.
