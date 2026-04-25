@@ -130,7 +130,6 @@ install_base_system() {
   # the usual lecture..." banner so the install output stays clean.
   mkdir -p /mnt/etc/sudoers.d
   cat >/mnt/etc/sudoers.d/99-ryoku-installer <<EOF
-Defaults !lecture
 Defaults lecture=never
 root ALL=(ALL:ALL) NOPASSWD: ALL
 %wheel ALL=(ALL:ALL) NOPASSWD: ALL
