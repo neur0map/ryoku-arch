@@ -117,9 +117,13 @@ install_base_system() {
   mkdir -p /mnt/var/cache/ryoku/mirror/offline
   mount --bind /var/cache/ryoku/mirror/offline /mnt/var/cache/ryoku/mirror/offline
 
-  # Mount the packages dir so it's accessible in the chroot
-  mkdir -p /mnt/opt/packages
-  mount --bind /opt/packages /mnt/opt/packages
+  # omarchy bundles Node.js + other extras under /opt/packages and binds
+  # them into the chroot. We do not ship those extras, so only do the
+  # bind-mount if the dir actually exists in the live env.
+  if [[ -d /opt/packages ]]; then
+    mkdir -p /mnt/opt/packages
+    mount --bind /opt/packages /mnt/opt/packages
+  fi
 
   # No need to ask for sudo during the installation (ryoku itself responsible for removing after install)
   mkdir -p /mnt/etc/sudoers.d
