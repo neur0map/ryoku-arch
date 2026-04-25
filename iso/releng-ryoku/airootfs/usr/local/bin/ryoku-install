@@ -1,0 +1,67 @@
+#!/bin/bash
+#
+# Ryoku Arch installer wrapper for the live ISO.
+#
+# Flow:
+#   1. Run `archinstall` so the user partitions, formats, and installs
+#      base Arch to /mnt. Also creates their regular user.
+#   2. Inside the new install (arch-chroot /mnt), run Ryoku's boot.sh.
+#      That clones the repo to ~/.local/share/ryoku and executes
+#      install.sh which lays down all Ryoku packages and configs.
+#   3. Prompt the user to reboot. After reboot they boot into a Ryoku
+#      desktop on their real hardware.
+#
+# Run from the live ISO as root (auto-login already gives you root).
+
+set -eEo pipefail
+
+ORANGE='\033[38;2;242;86;35m'
+SUBDUED='\033[38;2;174;171;148m'
+RESET='\033[0m'
+
+if [[ $EUID -ne 0 ]]; then
+  echo "ryoku-install must run as root (the live ISO auto-logs you in as root)." >&2
+  exit 1
+fi
+
+echo -e "${ORANGE}Ryoku install: stage 1 of 2 (archinstall)${RESET}"
+echo "Pick a disk, set a hostname, create a regular user. Skip 'install profile'"
+echo "(do not pick a desktop) since Ryoku will lay its own desktop on top next."
+echo
+
+if ! command -v archinstall >/dev/null 2>&1; then
+  echo "archinstall is missing from this live ISO. This is an ISO build bug." >&2
+  exit 1
+fi
+
+archinstall
+
+if [[ ! -d /mnt/etc ]]; then
+  echo "archinstall did not produce a mounted system at /mnt. Aborting." >&2
+  exit 1
+fi
+
+echo
+echo -e "${ORANGE}Ryoku install: stage 2 of 2 (boot.sh inside the new install)${RESET}"
+echo "About to chroot into /mnt and run Ryoku's boot.sh as the user you just"
+echo "created. Press Enter to continue, or Ctrl+C to abort and inspect."
+read -r _
+
+NEW_USER="$(awk -F: '$3 >= 1000 && $3 < 65534 {print $1; exit}' /mnt/etc/passwd)"
+if [[ -z $NEW_USER ]]; then
+  echo "No regular user (UID >= 1000) found in /mnt/etc/passwd. Did you skip" >&2
+  echo "the user creation step in archinstall? Re-run ryoku-install." >&2
+  exit 1
+fi
+
+echo "Running boot.sh as $NEW_USER inside /mnt ..."
+arch-chroot /mnt sudo -u "$NEW_USER" bash -c '
+  set -eEo pipefail
+  cd "$HOME"
+  bash <(curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/main/boot.sh)
+'
+
+echo
+echo -e "${ORANGE}Ryoku install complete.${RESET}"
+echo -e "${SUBDUED}Reboot to enter your installed Ryoku desktop:${RESET}"
+echo "  reboot"
