@@ -7,7 +7,6 @@ intel-ucode
 linux-firmware
 linux
 limine
-ryoku-keyring
 openssh
 pipewire
 snapper

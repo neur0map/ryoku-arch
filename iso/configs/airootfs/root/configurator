@@ -4,7 +4,8 @@
 source "$RYOKU_INSTALL/helpers/all.sh"
 
 # Ensure tzupdate is available for guessing timezone
-command -v tzupdate >/dev/null || sudo pacman -Sy --noconfirm tzupdate
+# tzupdate is AUR-only; skip if not present (user picks tz manually)
+command -v tzupdate >/dev/null || true
 
 abort() {
   gum style "${1:-Aborted installation}"
@@ -428,8 +429,7 @@ cat <<-_EOF_ >user_configuration.json
     },
     "packages": [
         "base-devel",
-        "git",
-        "ryoku-keyring"
+        "git"
     ],
     "profile_config": {
         "gfx_driver": null,
