@@ -17,7 +17,11 @@ else
   export RYOKU_PATH="$RYOKU_LEGACY_PATH"
 fi
 
-export RYOKU_INSTALL="${RYOKU_INSTALL:-$RYOKU_PATH/install}"
+# Always derive RYOKU_INSTALL from the active RYOKU_PATH. arch-chroot
+# carries over the live-env value (/root/ryoku/install) through to the
+# chroot session, where it resolves to a path the new user cannot read.
+# Don't trust the inherited value, pin it to the path we just picked.
+export RYOKU_INSTALL="$RYOKU_PATH/install"
 export RYOKU_INSTALL_LOG_FILE="${RYOKU_INSTALL_LOG_FILE:-/var/log/ryoku-install.log}"
 
 case ":$PATH:" in
