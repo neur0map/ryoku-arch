@@ -20,6 +20,7 @@ hwclock --systohc
 sed -i 's/^#en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen
 locale-gen
 echo 'LANG=en_US.UTF-8' > /etc/locale.conf
+echo 'KEYMAP=us' > /etc/vconsole.conf
 
 echo '$HOSTNAME' > /etc/hostname
 cat > /etc/hosts <<HOSTS

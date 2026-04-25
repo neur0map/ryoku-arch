@@ -24,8 +24,10 @@ pacstrap -K /mnt "${packages[@]}"
 # Generate fstab from the current /mnt mount state.
 genfstab -U /mnt > /mnt/etc/fstab
 
-# Sanity check: fstab must mention root and /efi.
-if ! grep -q 'subvol=@' /mnt/etc/fstab || \
+# Sanity check: fstab must mention btrfs subvolumes and /efi.
+# genfstab writes subvol with a leading slash (e.g. subvol=/@), so match
+# on that prefix.
+if ! grep -q 'subvol=/@' /mnt/etc/fstab || \
    ! grep -q '/efi' /mnt/etc/fstab; then
   abort "genfstab produced an incomplete /mnt/etc/fstab" \
         "Inspect /mnt/etc/fstab and rerun stage 6."
