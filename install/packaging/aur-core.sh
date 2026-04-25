@@ -21,7 +21,6 @@ fi
 aur_packages=(
   1password-beta
   1password-cli
-  aether
   claude-code
   limine-mkinitcpio-hook
   limine-snapper-sync
