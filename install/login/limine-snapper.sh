@@ -42,13 +42,16 @@ EOF
     sudo sed -i '/^ENABLE_UKI=/d; /^ENABLE_LIMINE_FALLBACK=/d' /etc/default/limine
   fi
 
-  # Remove the original config file if it's not /boot/limine.conf
-  if [[ $limine_config != "/boot/limine.conf" ]] && [[ -f $limine_config ]]; then
-    sudo rm "$limine_config"
+  # Only overwrite /boot/limine.conf with the snapshot-aware template if
+  # limine-update is available to fill it in. Otherwise keep whatever the
+  # installer's stage-8 wrote, which already has working boot entries.
+  if command -v limine-update &>/dev/null; then
+    # Remove the original config file if it's not /boot/limine.conf
+    if [[ $limine_config != "/boot/limine.conf" ]] && [[ -f $limine_config ]]; then
+      sudo rm "$limine_config"
+    fi
+    sudo cp $RYOKU_PATH/default/limine/limine.conf /boot/limine.conf
   fi
-
-  # We overwrite the whole thing knowing the limine-update will add the entries for us
-  sudo cp $RYOKU_PATH/default/limine/limine.conf /boot/limine.conf
 
   # Match Snapper configs if not installing from the ISO
   if [[ -z ${RYOKU_CHROOT_INSTALL:-} ]]; then
