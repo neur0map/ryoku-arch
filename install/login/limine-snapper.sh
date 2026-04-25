@@ -90,11 +90,18 @@ fi
 
 echo "mkinitcpio hooks re-enabled"
 
+# Force initramfs rebuild now so the plymouth + sd-encrypt hooks we
+# wrote into /etc/mkinitcpio.conf.d/ryoku_hooks.conf actually take
+# effect. omarchy relies on limine-mkinitcpio-hook (AUR) to trigger
+# this when limine-update runs; we do it explicitly so the boot
+# experience is consistent even when the AUR install was unreachable.
+sudo mkinitcpio -P
+
 # limine-update ships with the AUR-only `limine-snapper-sync` package. If
 # that AUR install fails (transient AUR outage), skip the snapshot-aware
 # bootloader update with a warning rather than aborting the whole install.
-# The base limine.conf written by the ISO installer's stage 8 already boots
-# the system fine; the user can add snapshot rollback later by installing
+# The base limine.conf written by archinstall already boots the system
+# fine; the user can add snapshot rollback later by installing
 # limine-snapper-sync and running limine-update.
 if command -v limine-update &>/dev/null; then
   sudo limine-update
