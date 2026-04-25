@@ -87,12 +87,23 @@ fi
 
 echo "mkinitcpio hooks re-enabled"
 
-sudo limine-update
+# limine-update ships with the AUR-only `limine-snapper-sync` package. If
+# that AUR install fails (transient AUR outage), skip the snapshot-aware
+# bootloader update with a warning rather than aborting the whole install.
+# The base limine.conf written by the ISO installer's stage 8 already boots
+# the system fine; the user can add snapshot rollback later by installing
+# limine-snapper-sync and running limine-update.
+if command -v limine-update &>/dev/null; then
+  sudo limine-update
 
-# Verify that limine-update actually added boot entries
-if ! grep -q "^/+" /boot/limine.conf; then
-  echo "Error: limine-update failed to add boot entries to /boot/limine.conf" >&2
-  exit 1
+  if ! grep -q "^/+" /boot/limine.conf; then
+    echo "Error: limine-update failed to add boot entries to /boot/limine.conf" >&2
+    exit 1
+  fi
+else
+  echo "WARNING: limine-update not found (limine-snapper-sync not installed)."
+  echo "  Skipping snapshot-aware boot entries. To enable rollback later:"
+  echo "    yay -S limine-snapper-sync limine-mkinitcpio-hook && sudo limine-update"
 fi
 
 if [[ -n $EFI ]] && efibootmgr &>/dev/null; then
