@@ -1,0 +1,44 @@
+
+[38;2;242;86;35m
+                   ████████
+                   ████████
+                   ████████
+                   ████████
+     ██████████████████████████████████████████
+   ██████████████████████████████████████████████
+   ██████████████████████████████████████████████
+                   ████████              ████████
+                   ██████                ██████
+                 ████████                ██████
+               ████████                  ██████
+             ██████████                  ██████
+         ██████████                    ████████
+       ██████████                      ██████
+   ████████████              ████████████████
+     ████                      ████████
+
+ ██████╗ ██╗   ██╗ ██████╗ ██╗  ██╗██╗   ██╗
+ ██╔══██╗╚██╗ ██╔╝██╔═══██╗██║ ██╔╝██║   ██║
+ ██████╔╝ ╚████╔╝ ██║   ██║█████╔╝ ██║   ██║
+ ██╔══██╗  ╚██╔╝  ██║   ██║██╔═██╗ ██║   ██║
+ ██║  ██║   ██║   ╚██████╔╝██║  ██╗╚██████╔╝
+ ╚═╝  ╚═╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝ ╚═════╝
+[0m
+[38;2;174;171;148m            力と美のために  :  For the sake of power and beauty.[0m
+
+[38;2;242;86;35mRyoku Arch live installer.[0m
+
+You are in a temporary live environment with networking and tools.
+Nothing you do here persists after reboot.
+
+To install Ryoku to a real disk:
+
+  [38;2;242;86;35mryoku-install[0m
+
+The installer wraps the official `archinstall` (for partitioning + base
+Arch) and then runs Ryoku's `boot.sh` inside the new install before
+reboot. You will be prompted for disk, timezone, locale, hostname,
+and a regular user during archinstall.
+
+For Wi-Fi: [35miwctl[0m. For ethernet/DHCP: usually automatic.
+

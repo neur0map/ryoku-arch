@@ -5,3 +5,7 @@
 !/logs/README.md
 !/logs/TEMPLATE.md
 /.worktrees/
+
+# ISO build artifacts.
+/iso/out/
+/iso/work/
