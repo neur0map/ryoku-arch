@@ -20,14 +20,16 @@ if bootctl status 2>/dev/null | grep -q 'Secure Boot: enabled'; then
 fi
 info "✓ Secure Boot disabled"
 
-# Network up. Test what boot.sh actually needs (HTTPS to GitHub) rather
-# than ICMP, which is blocked under QEMU user-mode networking and on
-# some corporate networks even when the network is otherwise fine.
-if ! curl -fsSL --max-time 8 -o /dev/null https://github.com 2>/dev/null; then
-  abort "Network is required." \
-        "Use 'nmtui' to connect to Wi-Fi, or check your ethernet cable."
+# Network is not gated here. omarchy's flow lets the user configure
+# network during/after the install rather than before, so we follow
+# the same pattern. Stage 6 (pacstrap) and stage 9 (boot.sh) will
+# surface their own clear errors if the network is unreachable when
+# they need it. The user can connect via nmtui at any point.
+if curl -fsSL --max-time 4 -o /dev/null https://github.com 2>/dev/null; then
+  info "✓ Network detected"
+else
+  info "○ Network not detected (set up later with 'nmtui' if needed)"
 fi
-info "✓ Network OK"
 
 # Suitable disks: at least one block device of type 'disk' that is at
 # least 20 GiB. Small enough to flag obvious mistakes (a tiny USB) but
