@@ -12,3 +12,9 @@ pipewire
 snapper
 sof-firmware
 zram-generator
+pipewire-alsa
+pipewire-jack
+pipewire-pulse
+gst-plugin-pipewire
+libpulse
+wireplumber

@@ -46,20 +46,24 @@ install_ryoku() {
 # brand mark and the installed-system theme.
 set_ryoku_colors() {
   if [[ $(tty) == "/dev/tty"* ]]; then
+    # Map every ANSI color slot the Ryoku installer uses for accents
+    # to the brand orange (#F25623). The installer's prompts/branding
+    # rendering tends to use yellow (P3) and red (P1) for emphasis;
+    # keep both on the brand so the RYOKU mark and headers stay orange.
     echo -en "\e]P0171717" # black (background)
-    echo -en "\e]P1F25623" # red -> Ryoku orange (accent)
-    echo -en "\e]P28a8a4d" # green (muted)
-    echo -en "\e]P3aeab94" # yellow -> Ryoku subdued
-    echo -en "\e]P45f6772" # blue (muted)
-    echo -en "\e]P5b08bcd" # magenta
-    echo -en "\e]P67d8c8a" # cyan
-    echo -en "\e]P7aeab94" # white -> Ryoku subdued
+    echo -en "\e]P1F25623" # red -> Ryoku orange
+    echo -en "\e]P2F25623" # green -> Ryoku orange
+    echo -en "\e]P3F25623" # yellow -> Ryoku orange
+    echo -en "\e]P45f6772" # blue (muted gray-blue)
+    echo -en "\e]P5F25623" # magenta -> Ryoku orange
+    echo -en "\e]P67d8c8a" # cyan (muted)
+    echo -en "\e]P7CCD0CF" # white (foreground)
     echo -en "\e]P8333333" # bright black
     echo -en "\e]P9F25623" # bright red -> Ryoku orange
-    echo -en "\e]PAa8b070" # bright green
-    echo -en "\e]PBcfc8a8" # bright yellow
+    echo -en "\e]PAF25623" # bright green -> Ryoku orange
+    echo -en "\e]PBF25623" # bright yellow -> Ryoku orange
     echo -en "\e]PC8aa0b8" # bright blue
-    echo -en "\e]PDcfa9d8" # bright magenta
+    echo -en "\e]PDF25623" # bright magenta -> Ryoku orange
     echo -en "\e]PE9eb1ae" # bright cyan
     echo -en "\e]PFCCD0CF" # bright white (foreground)
 
