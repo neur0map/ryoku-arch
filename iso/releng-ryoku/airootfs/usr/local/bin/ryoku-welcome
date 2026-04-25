@@ -1,0 +1,62 @@
+#!/bin/bash
+#
+# Ryoku live ISO welcome greeter, run inside Alacritty on first boot.
+# Truecolor renders here because Alacritty is a real graphical terminal.
+
+ORANGE='\033[38;2;242;86;35m'
+SUBDUED='\033[38;2;174;171;148m'
+RESET='\033[0m'
+
+clear
+
+printf "${ORANGE}"
+cat <<'BANNER'
+
+                   ████████
+                   ████████
+                   ████████
+                   ████████
+     ██████████████████████████████████████████
+   ██████████████████████████████████████████████
+   ██████████████████████████████████████████████
+                   ████████              ████████
+                   ██████                ██████
+                 ████████                ██████
+               ████████                  ██████
+             ██████████                  ██████
+         ██████████                    ████████
+       ██████████                      ██████
+   ████████████              ████████████████
+     ████                      ████████
+
+ ██████╗ ██╗   ██╗ ██████╗ ██╗  ██╗██╗   ██╗
+ ██╔══██╗╚██╗ ██╔╝██╔═══██╗██║ ██╔╝██║   ██║
+ ██████╔╝ ╚████╔╝ ██║   ██║█████╔╝ ██║   ██║
+ ██╔══██╗  ╚██╔╝  ██║   ██║██╔═██╗ ██║   ██║
+ ██║  ██║   ██║   ╚██████╔╝██║  ██╗╚██████╔╝
+ ╚═╝  ╚═╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝ ╚═════╝
+BANNER
+printf "${RESET}\n"
+printf "${SUBDUED}            力と美のために  :  For the sake of power and beauty.${RESET}\n\n"
+
+cat <<EOF
+
+$(printf "${ORANGE}")Ryoku Arch live installer.$(printf "${RESET}")
+
+You are running a temporary live Ryoku desktop. Nothing you do here
+persists after reboot. To install Ryoku to a real disk:
+
+  $(printf "${ORANGE}")ryoku-install$(printf "${RESET}")
+
+The installer wraps the official archinstall for partitioning and base
+Arch, then runs Ryoku's boot.sh inside the new install before reboot.
+You will be prompted for disk, timezone, locale, hostname, and a
+regular user during archinstall.
+
+For Wi-Fi: iwctl. For ethernet/DHCP: usually automatic.
+Hotkey: Super+Shift+E exits Hyprland back to the TTY.
+
+EOF
+
+# Drop into an interactive bash so the user can run ryoku-install.
+exec bash
