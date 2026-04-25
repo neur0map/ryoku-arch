@@ -20,8 +20,10 @@ if bootctl status 2>/dev/null | grep -q 'Secure Boot: enabled'; then
 fi
 info "✓ Secure Boot disabled"
 
-# Network up (boot.sh curls itself from GitHub).
-if ! ping -c1 -W3 1.1.1.1 >/dev/null 2>&1; then
+# Network up. Test what boot.sh actually needs (HTTPS to GitHub) rather
+# than ICMP, which is blocked under QEMU user-mode networking and on
+# some corporate networks even when the network is otherwise fine.
+if ! curl -fsSL --max-time 8 -o /dev/null https://github.com 2>/dev/null; then
   abort "Network is required." \
         "Use 'nmtui' to connect to Wi-Fi, or check your ethernet cable."
 fi

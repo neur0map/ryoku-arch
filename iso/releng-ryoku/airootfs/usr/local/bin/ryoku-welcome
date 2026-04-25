@@ -48,12 +48,12 @@ persists after reboot. To install Ryoku to a real disk:
 
   $(printf "${ORANGE}")ryoku-install$(printf "${RESET}")
 
-The installer wraps the official archinstall for partitioning and base
-Arch, then runs Ryoku's boot.sh inside the new install before reboot.
-You will be prompted for disk, timezone, locale, hostname, and a
-regular user during archinstall.
+The installer is a 10-stage flow that partitions the disk with LUKS2 +
+btrfs subvolumes, lays down limine, then runs Ryoku's boot.sh inside the
+new install before reboot. You will be prompted for the target disk,
+hostname, username, and passwords (user, root, disk encryption).
 
-For Wi-Fi: iwctl. For ethernet/DHCP: usually automatic.
+For Wi-Fi: nmtui. For ethernet/DHCP: usually automatic.
 Hotkey: Super+Shift+E exits Hyprland back to the TTY.
 
 EOF
