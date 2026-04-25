@@ -1,0 +1,8 @@
+ryoku:x:1000:
+wheel:x:998:ryoku
+audio:x:996:ryoku
+video:x:992:ryoku
+input:x:993:ryoku
+storage:x:994:ryoku
+optical:x:990:ryoku
+network:x:991:ryoku

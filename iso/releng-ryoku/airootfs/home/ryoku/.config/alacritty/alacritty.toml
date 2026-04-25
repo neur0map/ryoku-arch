@@ -1,0 +1,21 @@
+# Ryoku live ISO Alacritty config. Truecolor terminal so the welcome
+# banner renders properly (the bare TTY cannot show truecolor escapes).
+
+[font]
+size = 11
+
+[font.normal]
+family = "JetBrainsMono Nerd Font"
+style = "Regular"
+
+[colors.primary]
+background = "#171717"
+foreground = "#aeab94"
+
+[window]
+padding = { x = 24, y = 24 }
+opacity = 1.0
+decorations = "none"
+
+[scrolling]
+history = 10000
