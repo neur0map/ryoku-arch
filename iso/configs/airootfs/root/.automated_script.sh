@@ -10,7 +10,7 @@ use_ryoku_helpers() {
 }
 
 run_configurator() {
-  set_tokyo_night_colors
+  set_ryoku_colors
   ./configurator
   export RYOKU_USER="$(jq -r '.users[0].username' user_credentials.json)"
 }
@@ -41,26 +41,27 @@ install_ryoku() {
   fi
 }
 
-# Set Tokyo Night color scheme for the terminal
-set_tokyo_night_colors() {
+# Set Ryoku color scheme for the terminal: dark background, accent
+# orange (#F25623), subdued foreground (#aeab94). Matches the Ryoku
+# brand mark and the installed-system theme.
+set_ryoku_colors() {
   if [[ $(tty) == "/dev/tty"* ]]; then
-    # Tokyo Night color palette
-    echo -en "\e]P01a1b26" # black (background)
-    echo -en "\e]P1f7768e" # red
-    echo -en "\e]P29ece6a" # green
-    echo -en "\e]P3e0af68" # yellow
-    echo -en "\e]P47aa2f7" # blue
-    echo -en "\e]P5bb9af7" # magenta
-    echo -en "\e]P67dcfff" # cyan
-    echo -en "\e]P7a9b1d6" # white
-    echo -en "\e]P8414868" # bright black
-    echo -en "\e]P9f7768e" # bright red
-    echo -en "\e]PA9ece6a" # bright green
-    echo -en "\e]PBe0af68" # bright yellow
-    echo -en "\e]PC7aa2f7" # bright blue
-    echo -en "\e]PDbb9af7" # bright magenta
-    echo -en "\e]PE7dcfff" # bright cyan
-    echo -en "\e]PFc0caf5" # bright white (foreground)
+    echo -en "\e]P0171717" # black (background)
+    echo -en "\e]P1F25623" # red -> Ryoku orange (accent)
+    echo -en "\e]P28a8a4d" # green (muted)
+    echo -en "\e]P3aeab94" # yellow -> Ryoku subdued
+    echo -en "\e]P45f6772" # blue (muted)
+    echo -en "\e]P5b08bcd" # magenta
+    echo -en "\e]P67d8c8a" # cyan
+    echo -en "\e]P7aeab94" # white -> Ryoku subdued
+    echo -en "\e]P8333333" # bright black
+    echo -en "\e]P9F25623" # bright red -> Ryoku orange
+    echo -en "\e]PAa8b070" # bright green
+    echo -en "\e]PBcfc8a8" # bright yellow
+    echo -en "\e]PC8aa0b8" # bright blue
+    echo -en "\e]PDcfa9d8" # bright magenta
+    echo -en "\e]PE9eb1ae" # bright cyan
+    echo -en "\e]PFCCD0CF" # bright white (foreground)
 
     # Set default foreground and background
     echo -en "\033[0m"
