@@ -23,7 +23,6 @@ aur_packages=(
   1password-cli
   claude-code
   limine-mkinitcpio-hook
-  limine-snapper-sync
   localsend
   pinta
   python-terminaltexteffects
