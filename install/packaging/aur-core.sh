@@ -31,6 +31,7 @@ ryoku-pkg-aur-add \
   spotify \
   ttf-ia-writer \
   typora \
+  tzupdate \
   ufw-docker \
   xdg-terminal-exec \
   yaru-icon-theme

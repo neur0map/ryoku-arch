@@ -35,6 +35,12 @@ printf '%s\n%s\n' '$USER_PW' '$USER_PW' | passwd '$USERNAME'
 echo '%wheel ALL=(ALL:ALL) ALL' > /etc/sudoers.d/wheel
 chmod 440 /etc/sudoers.d/wheel
 
+# Temporary NOPASSWD for the new user so boot.sh can run unattended
+# inside the chroot. firstboot.sh removes this drop-in after boot.sh
+# returns, so the password prompt is restored on first real login.
+echo '$USERNAME ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/00-ryoku-install
+chmod 440 /etc/sudoers.d/00-ryoku-install
+
 # mkinitcpio with sd-encrypt for LUKS unlock at boot.
 sed -i 's/^HOOKS=.*/HOOKS=(base systemd autodetect microcode modconf kms keyboard sd-vconsole block sd-encrypt filesystems fsck)/' /etc/mkinitcpio.conf
 mkinitcpio -P

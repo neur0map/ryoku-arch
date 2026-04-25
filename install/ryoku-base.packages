@@ -113,7 +113,6 @@ tldr
 tree-sitter-cli
 tmux
 ttf-jetbrains-mono-nerd
-tzupdate
 ufw
 unzip
 usage
@@ -129,5 +128,4 @@ xdg-desktop-portal-gtk
 xdg-desktop-portal-hyprland
 xmlstarlet
 xournalpp
-yay
 zoxide

@@ -11,12 +11,18 @@ info "themes, etc.) and lays down all Ryoku configs. It can take 10-20 min."
 
 # Run boot.sh as the regular user inside the chroot. arch-chroot bind
 # mounts /etc/resolv.conf so DNS works for the curl.
+#
+# chroot-setup.sh dropped /etc/sudoers.d/00-ryoku-install for the user
+# so all the nested sudos inside boot.sh succeed without a password
+# prompt. We remove that drop-in after boot.sh exits so the installed
+# system reverts to the standard wheel password policy.
 arch-chroot /mnt /bin/bash -e <<CHROOT
 sudo -u '$USERNAME' bash -c '
   set -eEo pipefail
   cd "\$HOME"
   bash <(curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/main/boot.sh)
 '
+rm -f /etc/sudoers.d/00-ryoku-install
 CHROOT
 
 success "Ryoku layer installed."
