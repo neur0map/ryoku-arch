@@ -32,44 +32,11 @@ Ryoku is a focused Arch workstation environment for people doing security work w
 
 ## Status
 
-**Pre-alpha.** Ryoku is not yet a one-shot installer you curl-to-shell on a fresh Arch box. The repository is the source of truth for commands, configs, install flow, and docs. See [`docs/vision.md`](docs/vision.md) for direction and [`docs/rebrand-inventory.md`](docs/rebrand-inventory.md) for the remaining cleanup.
+**Pre-alpha. Not ready for installation.**
 
-> Running Ryoku on an existing desktop **will replace your configuration.** Use a fresh Arch install or a VM.
+The repo is the source of truth for commands, configs, themes, and docs. The install flow (boot.sh, install.sh, archinstall integration, Omarchy migration with snapshot rollback) is being iterated on and is **not** stable enough to run on a real machine yet. See [`docs/vision.md`](docs/vision.md) for direction.
 
-## Install
-
-Boot the official [Arch Linux ISO](https://archlinux.org/download/) (UEFI is recommended). From the live env, connect to the network (`iwctl` for Wi-Fi, ethernet is usually automatic), then:
-
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/main/boot.sh)
-```
-
-`boot.sh` runs `archinstall` for partition + base, then layers Ryoku (Hyprland, Waybar, themes, configs). After the install completes and reboots, `ryoku-update` is the canonical updater.
-
-### Migrating from Omarchy (snapshot rollback)
-
-Already running Omarchy? Run the same `boot.sh` from inside Omarchy and it will:
-
-1. Detect the existing Omarchy install
-2. Take a `snapper` snapshot of `/` and `/home` ("pre-ryoku-migration")
-3. Apply Ryoku on top
-4. Record the snapshot ids in `~/.local/state/ryoku/migration-state.txt`
-
-If you change your mind, run `ryoku-rollback` (or open the menu with **Super + Alt + Space** → Update → Rollback to Omarchy) and the snapshot is restored on the next reboot.
-
-If you'd rather just repoint your local clone at Ryoku without the Hyprland/theme/config overlay:
-
-```bash
-REPO_DIR="${RYOKU_PATH:-$HOME/.local/share/ryoku}"
-cd "$REPO_DIR"
-git diff --quiet && git diff --cached --quiet || { echo "dirty tree, commit or stash first"; exit 1; }
-git remote set-url origin https://github.com/neur0map/ryoku-arch.git
-git fetch origin --tags --prune
-git checkout -b main --track origin/main
-git branch -D master
-```
-
-From there, `ryoku-update` takes over.
+If you're a contributor browsing the repo: explore `bin/`, `config/`, `themes/`, `default/` for the installed-system surface.
 
 ## Themes
 
