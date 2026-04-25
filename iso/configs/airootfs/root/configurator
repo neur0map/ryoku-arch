@@ -1,0 +1,457 @@
+#!/bin/bash
+
+# Rely on Ryoku for styling and error handling
+source "$RYOKU_INSTALL/helpers/all.sh"
+
+# Ensure tzupdate is available for guessing timezone
+command -v tzupdate >/dev/null || sudo pacman -Sy --noconfirm tzupdate
+
+abort() {
+  gum style "${1:-Aborted installation}"
+  echo
+  gum style "You can retry later by running: ./.automated_script.sh"
+  exit 1
+}
+
+step() {
+  clear_logo
+  echo
+  gum style "$1"
+  echo
+}
+
+notice() {
+  clear_logo
+  echo
+  gum spin --spinner "pulse" --title "$1" -- sleep "${2:-2}"
+  echo
+}
+
+# STEP 1: KEYBOARD LAYOUT
+
+keyboard_form() {
+  step "Let's setup your machine..."
+  keyboards=$'Azerbaijani|azerty
+Belarusian|by
+Belgian|be-latin1
+Bosnian|ba
+Bulgarian|bg-cp1251
+Croatian|croat
+Czech|cz
+Danish|dk-latin1
+Dutch|nl
+English (UK)|uk
+English (US)|us
+English (US, Dvorak)|dvorak
+Estonian|et
+Finnish|fi
+French|fr
+French (Canada)|cf
+French (Switzerland)|fr_CH
+Georgian|ge
+German|de
+German (Switzerland)|de_CH-latin1
+Greek|gr
+Hebrew|il
+Hungarian|hu
+Icelandic|is-latin1
+Irish|ie
+Italian|it
+Japanese|jp106
+Kazakh|kazakh
+Khmer (Cambodia)|khmer
+Kyrgyz|kyrgyz
+Lao|la-latin1
+Latvian|lv
+Lithuanian|lt
+Macedonian|mk-utf
+Norwegian|no-latin1
+Polish|pl
+Portuguese|pt-latin1
+Portuguese (Brazil)|br-abnt2
+Romanian|ro
+Russian|ru
+Serbian|sr-latin
+Slovak|sk-qwertz
+Slovenian|slovene
+Spanish|es
+Spanish (Latin American)|la-latin1
+Swedish|sv-latin1
+Tajik|tj_alt-UTF8
+Turkish|trq
+Ukrainian|ua'
+  choice=$(printf '%s\n' "$keyboards" | cut -d'|' -f1 | gum choose --height 10 --selected "English (US)" --header "Select keyboard layout") || abort
+  keyboard=$(printf '%s\n' "$keyboards" | awk -F'|' -v c="$choice" '$1==c{print $2; exit}')
+
+  # Only attempt to load keyboard layout if we're on a real console
+  # loadkeys only works on Linux virtual consoles (tty), not in terminal emulators
+  if [[ $(tty 2>/dev/null) == "/dev/tty"* ]]; then
+    loadkeys "$keyboard" 2>/dev/null
+  fi
+}
+
+keyboard_form
+
+# STEP 2: USER
+
+user_form() {
+  step "Let's setup your user account..."
+
+  while true; do
+    username=$(gum input --placeholder "Alphanumeric without spaces (like dhh)" --prompt.foreground="#845DF9" --prompt "Username> ") || abort
+
+    if [[ "$username" =~ ^[a-z_][a-z0-9_-]*[$]?$ ]]; then
+      break
+    else
+      notice "Username must be alphanumeric with no spaces" 1
+    fi
+  done
+
+  while true; do
+    password=$(gum input --placeholder "Used for user + root + encryption" --prompt.foreground="#845DF9" --password --prompt "Password> ") || abort
+    password_confirmation=$(gum input --placeholder "Must match the password you just typed" --prompt.foreground="#845DF9" --password --prompt "Confirm> ") || abort
+
+    if [[ -n "$password" && "$password" == "$password_confirmation" ]]; then
+      break
+    elif [[ -z "$password" ]]; then
+      notice "Your password can't be blank!" 1
+    else
+      notice "Passwords didn't match!" 1
+    fi
+  done
+
+  # Hash the password using yescrypt
+  password_hash=$(printf '%s' "$password" | openssl passwd -6 -stdin)
+
+  full_name=$(gum input --placeholder "Used for git authentication (hit return to skip)" --prompt.foreground="#845DF9" --prompt "Full name> ")
+  email_address=$(gum input --placeholder "Used for git authentication (hit return to skip)" --prompt.foreground="#845DF9" --prompt "Email address> ")
+
+  while true; do
+    hostname=$(gum input --placeholder "Alphanumeric without spaces (or return for 'ryoku')" --prompt.foreground="#845DF9" --prompt "Hostname> ")
+
+    if [[ "$hostname" =~ ^[A-Za-z_][A-Za-z0-9_-]*\$?$ ]]; then
+      break
+    elif [[ -z $hostname ]]; then
+      hostname="ryoku"
+      break
+    else
+      notice "Hostname must be alphanumeric using dashes or underscores but no spaces" 1
+    fi
+  done
+
+  # Pick timezone
+  geo_guessed_timezone=$(tzupdate -p 2>/dev/null)
+
+  if [[ -n $geo_guessed_timezone ]]; then
+    timezone=$(timedatectl list-timezones | gum choose --height 10 --selected "$geo_guessed_timezone" --header "Timezone") || abort
+  else
+    timezone=$(timedatectl list-timezones | gum filter --height 10 --header "Timezone") || abort
+  fi
+}
+
+user_form
+
+while true; do
+  # Add manual padding since gum table -p doesn't respect padding
+  echo -e "Field,Value
+Username,$username
+Password,$(printf "%${#password}s" | tr ' ' '*')
+Full name,${full_name:-[Skipped]}
+Email address,${email_address:-[Skipped]}
+Hostname,$hostname
+Timezone,$timezone
+Keyboard,$keyboard" |
+    gum table -s "," -p | sed "s/^/${PADDING_LEFT_SPACES}/"
+
+  echo
+  if gum confirm --negative "No, change it" "Does this look right?"; then
+    break
+  else
+    keyboard_form
+    user_form
+  fi
+done
+
+# STEP 3: DISK
+
+get_disk_info() {
+  local device="$1"
+  local size vendor model label
+
+  # Get basic disk information
+  size=$(lsblk -dno SIZE "$device" 2>/dev/null)
+  vendor=$(lsblk -dno VENDOR "$device" 2>/dev/null | sed 's/ *$//')
+  model=$(lsblk -dno MODEL "$device" 2>/dev/null | sed 's/ *$//')
+
+  # Combine vendor and model, avoiding duplication
+  label=""
+  if [[ -n $vendor && -n $model ]]; then
+    if [[ $model == *$vendor* ]]; then
+      label="$model"
+    else
+      label="$vendor $model"
+    fi
+  elif [[ -n $model ]]; then
+    label="$model"
+  elif [[ -n $vendor ]]; then
+    label="$vendor"
+  fi
+
+  # Format display string
+  local display="$device"
+  [[ -n $size ]] && display="$display ($size)"
+  [[ -n $label ]] && display="$display - $label"
+
+  # Append compact partition summary
+  local part_summary
+  part_summary=$(lsblk -nro TYPE,NAME,FSTYPE,MOUNTPOINT "$device" 2>/dev/null | \
+    awk '$1=="part" { printf "%s%s%s", s, ($3==""?"unknown":$3), ($4==""?"":"("$4")"); s=", " }')
+  [[ -n $part_summary ]] && display+=" [$part_summary]"
+
+  echo "$display"
+}
+
+get_root_disk() {
+  local device="$1"
+  local parent
+
+  [[ -n $device ]] || return 1
+
+  # /run/archiso/bootmnt usually resolves to the boot partition, but the
+  # installer picker works with whole disks. Walk back to the parent disk so
+  # the install media itself never shows up as a wipe target.
+  device=$(readlink -f "$device" 2>/dev/null || printf "%s\n" "$device")
+
+  while true; do
+    parent=$(lsblk -no PKNAME "$device" 2>/dev/null | tail -n1)
+    [[ -n $parent ]] || break
+    device="/dev/$parent"
+  done
+
+  if [[ $(lsblk -dno TYPE "$device" 2>/dev/null) == "disk" ]]; then
+    printf "%s\n" "$device"
+  fi
+}
+
+disk_form() {
+  step "Let's select where to install Ryoku..."
+
+  # Don't offer the install media as an option (Arch ISO mounts it here)
+  local boot_source
+  local exclude_disk
+  boot_source=$(findmnt -no SOURCE /run/archiso/bootmnt 2>/dev/null || true)
+  exclude_disk=$(get_root_disk "$boot_source")
+
+  # List all installable disks, excluding the boot device if present
+  local available_disks
+  available_disks=$(
+    lsblk -dpno NAME,TYPE |
+      awk '$2=="disk"{print $1}' |
+      grep -E '/dev/(sd|hd|vd|nvme|mmcblk|xv)' |
+      { if [[ -n "$exclude_disk" ]]; then grep -Fvx "$exclude_disk"; else cat; fi; }
+  )
+
+  # Get available disks and format them with info
+  local disk_options=""
+  while IFS= read -r device; do
+    if [[ -n "$device" ]]; then
+      disk_info=$(get_disk_info "$device")
+      disk_options="$disk_options$disk_info"$'\n'
+    fi
+  done <<<"$available_disks"
+
+  selected_display=$(echo "$disk_options" | gum choose --header "Select install disk") || abort
+  disk=$(echo "$selected_display" | awk '{print $1}')
+}
+
+disk_form
+
+while true; do
+  gum style "Everything will be overwritten. There is no recovery possible."
+
+  echo
+  if gum confirm --affirmative "Yes, format disk" --negative "No, change it" "Confirm overwriting ${disk}"; then
+    break
+  else
+    disk_form
+  fi
+done
+
+clear
+
+# Save user full name and email address, so the autostart can
+# set them as RYOKU_USER_NAME and RYOKU_USER_EMAIL
+echo "$full_name" >user_full_name.txt
+echo "$email_address" >user_email_address.txt
+
+# Escape username and password for safe inclusion
+password_escaped=$(echo -n "$password" | jq -Rsa)
+password_hash_escaped=$(echo -n "$password_hash" | jq -Rsa)
+username_escaped=$(echo -n "$username" | jq -Rsa)
+
+cat <<-_EOF_ >user_credentials.json
+{
+    "encryption_password": $password_escaped,
+    "root_enc_password": $password_hash_escaped,
+    "users": [
+        {
+            "enc_password": $password_hash_escaped,
+            "groups": [],
+            "sudo": true,
+            "username": $username_escaped
+        }
+    ]
+}
+_EOF_
+
+# Setup partition layout
+disk_size=$(lsblk -bdno SIZE "$disk")
+mib=$((1024 * 1024))
+gib=$((mib * 1024))
+disk_size_in_mib=$((disk_size / mib * mib)) # Rounds to nearest MiB
+
+gpt_backup_reserve=$((mib))
+boot_partition_start=$((mib))
+boot_partition_size=$((2 * gib))
+
+main_partition_start=$((boot_partition_size + boot_partition_start))
+main_partition_size=$((disk_size_in_mib - main_partition_start - gpt_backup_reserve))
+
+# Detect T2 Mac and set appropriate kernel
+if lspci -nn 2>/dev/null | grep -q "106b:180[12]"; then
+  kernel_choice="linux-t2"
+else
+  kernel_choice="linux"
+fi
+
+cat <<-_EOF_ >user_configuration.json
+{
+    "app_config": null,
+    "archinstall-language": "English",
+    "auth_config": {},
+    "audio_config": { "audio": "pipewire" },
+    "bootloader": "Limine",
+    "custom_commands": [],
+    "disk_config": {
+        "btrfs_options": { 
+          "snapshot_config": {
+            "type": "Snapper"
+          }
+        },
+        "config_type": "default_layout",
+        "device_modifications": [
+            {
+                "device": "$disk",
+                "partitions": [
+                    {
+                        "btrfs": [],
+                        "dev_path": null,
+                        "flags": [ "boot", "esp" ],
+                        "fs_type": "fat32",
+                        "mount_options": [],
+                        "mountpoint": "/boot",
+                        "obj_id": "ea21d3f2-82bb-49cc-ab5d-6f81ae94e18d",
+                        "size": {
+                            "sector_size": { "unit": "B", "value": 512 },
+                            "unit": "B",
+                            "value": $boot_partition_size
+                        },
+                        "start": {
+                            "sector_size": { "unit": "B", "value": 512 },
+                            "unit": "B",
+                            "value": $boot_partition_start
+                        },
+                        "status": "create",
+                        "type": "primary"
+                    },
+                    {
+                        "btrfs": [
+                            { "mountpoint": "/", "name": "@" },
+                            { "mountpoint": "/home", "name": "@home" },
+                            { "mountpoint": "/var/log", "name": "@log" },
+                            { "mountpoint": "/var/cache/pacman/pkg", "name": "@pkg" }
+                        ],
+                        "dev_path": null,
+                        "flags": [],
+                        "fs_type": "btrfs",
+                        "mount_options": [ "compress=zstd" ],
+                        "mountpoint": null,
+                        "obj_id": "8c2c2b92-1070-455d-b76a-56263bab24aa",
+                        "size": {
+                            "sector_size": { "unit": "B", "value": 512 },
+                            "unit": "B",
+                            "value": $main_partition_size
+                        },
+                        "start": {
+                            "sector_size": { "unit": "B", "value": 512 },
+                            "unit": "B",
+                            "value": $main_partition_start
+                        },
+                        "status": "create",
+                        "type": "primary"
+                    }
+                ],
+                "wipe": true
+            }
+        ],
+        "disk_encryption": {
+            "encryption_type": "luks",
+            "lvm_volumes": [],
+            "iter_time": 2000,
+            "partitions": [ "8c2c2b92-1070-455d-b76a-56263bab24aa" ],
+            "encryption_password": $password_escaped
+        }
+    },
+    "hostname": "$hostname",
+    "kernels": [ "$kernel_choice" ],
+    "network_config": { "type": "iso" },
+    "ntp": true,
+    "parallel_downloads": 8,
+    "script": null,
+    "services": [],
+    "swap": true,
+    "timezone": "$timezone",
+    "locale_config": {
+        "kb_layout": "$keyboard",
+        "sys_enc": "UTF-8",
+        "sys_lang": "en_US.UTF-8"
+    },
+    "mirror_config": {
+        "custom_repositories": [],
+        "custom_servers": [
+            {"url": "https://mirror.github.com/neur0map/ryoku-arch/\$repo/os/\$arch"},
+            {"url": "https://mirror.rackspace.com/archlinux/\$repo/os/\$arch"},
+            {"url": "https://geo.mirror.pkgbuild.com/\$repo/os/\$arch"}
+        ],
+        "mirror_regions": {},
+        "optional_repositories": []
+    },
+    "packages": [
+        "base-devel",
+        "git",
+        "ryoku-keyring"
+    ],
+    "profile_config": {
+        "gfx_driver": null,
+        "greeter": null,
+        "profile": {}
+    },
+    "version": "3.0.9"
+}
+_EOF_
+
+if [[ $1 == "dry" ]]; then
+  echo -e "User Configuration:"
+  cat user_configuration.json
+
+  echo -e "\n\nUser Credentials:"
+  cat user_credentials.json
+
+  echo -e "\n\nUser Full Name:"
+  cat user_full_name.txt
+
+  echo -e "\nUser Email Address:"
+  cat user_email_address.txt
+
+  rm user_configuration.json user_credentials.json user_full_name.txt user_email_address.txt
+fi

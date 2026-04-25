@@ -1,0 +1,102 @@
+#!/bin/bash
+
+# Abort if anything fails
+set -e
+
+# Parse command line arguments
+NO_CACHE=""
+while [[ $# -gt 0 ]]; do
+  case $1 in
+  --no-cache)
+    NO_CACHE=1
+    shift
+    ;;
+  --no-boot-offer)
+    NO_BOOT_OFFER=1
+    shift
+    ;;
+  --local-source)
+    LOCAL_SOURCE=1
+    RYOKU_MIRROR=edge
+    shift
+    ;;
+  --dev)
+    RYOKU_INSTALLER_REF=dev
+    RYOKU_MIRROR=edge
+    shift
+    ;;
+  --rc)
+    RYOKU_MIRROR=rc
+    RYOKU_INSTALLER_REF=rc
+    shift
+    ;;
+  *)
+    echo "Unknown option: $1"
+    echo "Usage: $0 [--no-cache] [--no-boot-offer] [--local-source] [--dev] [--rc]"
+    exit 1
+    ;;
+  esac
+done
+
+# Clear out old packages
+sudo rm -rf /var/cache/pacman/pkg/* 2>/dev/null || true
+
+# Prepare build repo
+BUILD_SCRIPT="builder/build-iso.sh"
+BUILD_ROOT=$(realpath "${BASH_SOURCE[0]%/*}/..")
+BUILD_RELEASE_PATH="$BUILD_ROOT/release"
+mkdir -p "$BUILD_RELEASE_PATH"
+
+RYOKU_INSTALLER_REPO="${RYOKU_INSTALLER_REPO:-neur0map/ryoku-arch}"
+RYOKU_INSTALLER_REF="${RYOKU_INSTALLER_REF:-main}"
+RYOKU_MIRROR="${RYOKU_MIRROR:-stable}"
+
+# omarchy pins archiso via submodule; we just install archiso inside the
+# container and reference /usr/share/archiso/configs/releng/.
+DOCKER_ARGS=(
+  --rm
+  --privileged
+  -e "RYOKU_INSTALLER_REPO=$RYOKU_INSTALLER_REPO"
+  -e "RYOKU_INSTALLER_REF=$RYOKU_INSTALLER_REF"
+  -e "RYOKU_MIRROR=$RYOKU_MIRROR"
+  -e "HOST_UID=$(id -u)"
+  -e "HOST_GID=$(id -g)"
+  -v "$BUILD_RELEASE_PATH/:/out/"
+  -v "$BUILD_ROOT/$BUILD_SCRIPT:/$BUILD_SCRIPT:ro"
+  -v "$BUILD_ROOT/builder:/builder:ro"
+  -v "$BUILD_ROOT/configs:/configs:ro"
+)
+
+# Use local source of Ryoku from $RYOKU_PATH instead of git checkout
+if [[ -n "${LOCAL_SOURCE-}" ]]; then
+  DOCKER_ARGS+=(-v "$RYOKU_PATH:/ryoku:ro")
+fi
+
+# Use local pacman cache if you already have one on host to speed up repeat runs
+if [ -d "/var/cache/pacman/pkg" ]; then
+  DOCKER_ARGS+=(-v "/var/cache/pacman/pkg:/var/cache/pacman/pkg")
+fi
+
+# Mount the build cache directory where packages are downloaded
+if [[ -z "$NO_CACHE" ]]; then
+  # using a dated dir on the host to refresh daily if building multiple times
+  BUILD_DATE=$(date +%Y-%m-%d)
+  OFFLINE_REPO_BUILD_CACHE_DIR="$HOME/.cache/ryoku/iso_${BUILD_DATE}/airootfs/var/cache/ryoku"
+  mkdir -p "$OFFLINE_REPO_BUILD_CACHE_DIR"
+  # Mount to /var/cache/airootfs/var/cache/ryoku since that's where repo packages go in the ISO
+  DOCKER_ARGS+=(-v "$OFFLINE_REPO_BUILD_CACHE_DIR:/var/cache/airootfs/var/cache/ryoku")
+fi
+
+# Run the builder with assembled args
+docker run "${DOCKER_ARGS[@]}" archlinux/archlinux:latest /$BUILD_SCRIPT
+
+# Move as install ref
+latest_iso=$(\ls -t "$BUILD_RELEASE_PATH"/*.iso | head -n1)
+iso_ref="${latest_iso%.*}-$RYOKU_INSTALLER_REF.iso"
+mv -f "$latest_iso" "$iso_ref"
+
+# Offer to boot the new build
+if [[ -z "$NO_BOOT_OFFER" ]]; then
+  echo
+  gum confirm "Boot $iso_ref?" && ryoku-iso-boot "$iso_ref"
+fi

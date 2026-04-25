@@ -1,0 +1,14 @@
+alsa-firmware
+amd-ucode
+base
+base-devel
+efibootmgr
+intel-ucode
+linux-firmware
+linux
+limine
+ryoku-keyring
+openssh
+pipewire
+snapper
+sof-firmware

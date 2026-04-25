@@ -1,0 +1,111 @@
+#!/bin/bash
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VM_DIR="$(dirname "$SCRIPT_DIR")/vm-saves"
+TMP_DISK="/tmp/ryoku-iso-boot.qcow2"
+TMP_OVMF="/tmp/OVMF_VARS.4m.fd"
+
+mkdir -p "$VM_DIR"
+
+save_vm() {
+  local name="$1"
+
+  if [[ -z "$name" ]]; then
+    name=$(gum input --placeholder "Enter VM snapshot name")
+    [[ -z "$name" ]] && exit 1
+  fi
+
+  if [[ ! -f "$TMP_DISK" || ! -f "$TMP_OVMF" ]]; then
+    echo "Error: No active VM found in /tmp"
+    echo "Boot a VM first with: ryoku-iso-boot [iso]"
+    exit 1
+  fi
+
+  local vm_path="$VM_DIR/$name"
+
+  if [[ -d "$vm_path" ]]; then
+    if ! gum confirm "VM '$name' exists. Overwrite?"; then
+      exit 0
+    fi
+  fi
+
+  mkdir -p "$vm_path"
+
+  echo "Saving VM snapshot '$name'..."
+  cp "$TMP_DISK" "$vm_path/ryoku-iso-boot.qcow2"
+  cp "$TMP_OVMF" "$vm_path/OVMF_VARS.4m.fd"
+
+  gum style --foreground 212 "✓ Saved to $vm_path"
+}
+
+list_vms() {
+  if [[ ! -d "$VM_DIR" ]] || [[ -z "$(ls -A "$VM_DIR")" ]]; then
+    echo "No VM snapshots found"
+    return 1
+  fi
+
+  echo "Available VM snapshots:"
+  for vm in "$VM_DIR"/*; do
+    [[ -d "$vm" ]] && echo "  • $(basename "$vm")"
+  done
+}
+
+boot_vm() {
+  local name="$1"
+
+  if [[ -z "$(ls -A "$VM_DIR" 2>/dev/null)" ]]; then
+    echo "No VM snapshots available"
+    exit 1
+  fi
+
+  if [[ -z "$name" ]]; then
+    name=$(ls -1 "$VM_DIR" | gum choose --header "Select VM to boot:")
+    [[ -z "$name" ]] && exit 0
+  fi
+
+  local vm_path="$VM_DIR/$name"
+
+  if [[ ! -d "$vm_path" ]]; then
+    echo "Error: VM '$name' not found"
+    list_vms
+    exit 1
+  fi
+
+  if [[ -f "$TMP_DISK" ]] && ! gum confirm "Override existing /tmp VM?"; then
+    exit 0
+  fi
+
+  echo "Copying VM '$name' to /tmp..."
+  cp "$vm_path/ryoku-iso-boot.qcow2" "$TMP_DISK"
+  cp "$vm_path/OVMF_VARS.4m.fd" "$TMP_OVMF"
+
+  gum style --foreground 212 "✓ VM ready. Booting..."
+
+  exec ryoku-iso-boot /dev/null reuse
+}
+
+case "${1:-}" in
+  save)
+    save_vm "$2"
+    ;;
+  boot)
+    boot_vm "$2"
+    ;;
+  list)
+    list_vms
+    ;;
+  *)
+    gum style --border rounded --padding "0 1" --border-foreground 212 \
+      "$(gum style --bold 'ryoku-vm') - VM snapshot manager" \
+      "" \
+      "$(gum style --foreground 245 'Commands:')" \
+      "  save [name]  Save current VM from /tmp" \
+      "  boot [name]  Boot saved VM (interactive if no name)" \
+      "  list         List available VMs" \
+      "" \
+      "$(gum style --foreground 245 'Current VMs:')"
+    list_vms 2>/dev/null || echo "  None"
+    ;;
+esac
