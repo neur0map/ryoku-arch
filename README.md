@@ -13,7 +13,7 @@ An opinionated **Arch Linux environment** for security work, built around **Hypr
 [![Hyprland](https://img.shields.io/badge/Hyprland-58E1C2?style=for-the-badge&logoColor=white)](https://hyprland.org)
 [![Status: pre-alpha](https://img.shields.io/badge/status-pre--alpha-F25623?style=for-the-badge)](#status)
 
-[Vision](docs/vision.md) &middot; [Install](#install) &middot; [Themes](#themes) &middot; [Commands](#command-surface) &middot; [Docs](docs/)
+[Vision](docs/vision.md) &middot; [Install](#install) &middot; [Themes](#themes) &middot; [Commands](#command-surface) &middot; [Customize](docs/customization-inventory.md) &middot; [Docs](docs/)
 
 </div>
 
@@ -159,6 +159,7 @@ ryoku-arch/
 - [**Vision**](docs/vision.md) &mdash; what Ryoku is, who it is for, what it is not
 - [**Maintenance**](docs/maintenance.md) &mdash; release process and workflow
 - [**Rebrand Inventory**](docs/rebrand-inventory.md) &mdash; migration status from legacy names
+- [**Customization Inventory**](docs/customization-inventory.md) &mdash; exhaustive table of shipped text-based customization surfaces and their safe locations
 - [**AGENTS.md**](AGENTS.md) &mdash; style guide, command naming, migration format
 - [**Specs &amp; Plans**](docs/) &mdash; design docs for in-flight work
 
