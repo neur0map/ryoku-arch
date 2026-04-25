@@ -1,12 +1,24 @@
 stop_install_log
 
+# tte (python-terminaltexteffects) is AUR-only. If aur-core could not
+# reach AUR during install, fall back to plain output so this script
+# doesn't blow up at the very end of the run with "tte: command not
+# found" right when the user is reading it.
 echo_in_style() {
-  echo "$1" | tte --canvas-width 0 --anchor-text c --frame-rate 640 print
+  if command -v tte >/dev/null; then
+    echo "$1" | tte --canvas-width 0 --anchor-text c --frame-rate 640 print
+  else
+    echo "$1"
+  fi
 }
 
 clear
 echo
-tte -i ~/.local/share/ryoku/logo.txt --canvas-width 0 --anchor-text c --frame-rate 920 laseretch
+if command -v tte >/dev/null; then
+  tte -i ~/.local/share/ryoku/logo.txt --canvas-width 0 --anchor-text c --frame-rate 920 laseretch
+else
+  cat ~/.local/share/ryoku/logo.txt 2>/dev/null
+fi
 echo
 
 # Display installation time if available
