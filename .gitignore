@@ -9,3 +9,7 @@
 # ISO build artifacts.
 /iso/out/
 /iso/work/
+
+# Editor / agent metadata
+/.claude/
+/.codex
