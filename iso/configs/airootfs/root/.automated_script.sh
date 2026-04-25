@@ -126,8 +126,12 @@ install_base_system() {
   fi
 
   # No need to ask for sudo during the installation (ryoku itself responsible for removing after install)
+  # `Defaults !lecture` suppresses the standard "We trust you have received
+  # the usual lecture..." banner so the install output stays clean.
   mkdir -p /mnt/etc/sudoers.d
   cat >/mnt/etc/sudoers.d/99-ryoku-installer <<EOF
+Defaults !lecture
+Defaults lecture=never
 root ALL=(ALL:ALL) NOPASSWD: ALL
 %wheel ALL=(ALL:ALL) NOPASSWD: ALL
 $RYOKU_USER ALL=(ALL:ALL) NOPASSWD: ALL
@@ -151,12 +155,15 @@ EOF
 chroot_bash() {
   HOME=/home/$RYOKU_USER \
     arch-chroot -u $RYOKU_USER /mnt/ \
-    env RYOKU_CHROOT_INSTALL=1 \
+    env -i RYOKU_CHROOT_INSTALL=1 \
+    RYOKU_ONLINE_INSTALL=1 \
     RYOKU_USER_NAME="$(<user_full_name.txt)" \
     RYOKU_USER_EMAIL="$(<user_email_address.txt)" \
     RYOKU_MIRROR="$RYOKU_MIRROR" \
     USER="$RYOKU_USER" \
     HOME="/home/$RYOKU_USER" \
+    PATH=/usr/local/sbin:/usr/local/bin:/usr/bin \
+    TERM="${TERM:-xterm-256color}" \
     /bin/bash "$@"
 }
 
