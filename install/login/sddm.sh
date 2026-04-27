@@ -1,29 +1,28 @@
-# Set up SDDM as the graphical login manager. Match omarchy 1:1: install
-# the SDDM theme via ryoku-refresh-sddm, configure autologin into the
-# hyprland-uwsm session, then enable the service. The user lands
-# directly on the Ryoku desktop after a single LUKS unlock.
+# Set up SDDM as the graphical login manager. Fresh installs should
+# land on the bundled Ryoku greeter after the LUKS unlock, not drop to a
+# tty and not bypass the greeter via autologin.
 
 ryoku-refresh-sddm
 
-sudo mkdir -p /etc/sddm.conf.d
-
-# Autologin so the user goes straight to Hyprland after the LUKS unlock.
-if [[ ! -f /etc/sddm.conf.d/autologin.conf ]]; then
-  cat <<EOF | sudo tee /etc/sddm.conf.d/autologin.conf
-[Autologin]
-User=$USER
-Session=hyprland-uwsm
-
-[Theme]
-Current=ryoku
-EOF
-fi
+# Explicitly disable autologin so the bundled SDDM theme is shown on
+# first boot. Users can re-enable it later via ryoku-sddm-autologin.
+ryoku-sddm-autologin disable >/dev/null
 
 # Prevent password-based SDDM logins from creating an encrypted login
 # keyring (which conflicts with the passwordless Default_keyring used
 # for auto-unlock).
 sudo sed -i '/-auth.*pam_gnome_keyring\.so/d' /etc/pam.d/sddm
 sudo sed -i '/-password.*pam_gnome_keyring\.so/d' /etc/pam.d/sddm
+
+[[ -f /usr/share/sddm/themes/pixel-rainyroom/metadata.desktop ]] || {
+  echo "Error: bundled pixel-rainyroom theme is missing from /usr/share/sddm/themes" >&2
+  exit 1
+}
+
+[[ -f /usr/share/wayland-sessions/hyprland-uwsm.desktop ]] || {
+  echo "Error: hyprland-uwsm session file is missing; graphical login would land incorrectly" >&2
+  exit 1
+}
 
 # Don't use chrootable here as --now will cause issues for manual installs
 sudo systemctl enable sddm.service
