@@ -13,6 +13,18 @@
 #                                  left.
 #   tobi-try                       Unknown provenance; dropped.
 
+# Offline installs defer all network operations to first-boot, where the
+# wifi-bootstrap notification → ryoku-update flow installs AUR packages
+# after the user has explicitly set up the network. Match the same gate
+# already used by preflight/yay-bootstrap.sh and preflight/pacman.sh
+# (RYOKU_ONLINE_INSTALL is the explicit "online install" opt-in) so a
+# future change that pre-installs yay in offline-chroot can't trigger
+# AUR work during the install.
+if [[ -z ${RYOKU_ONLINE_INSTALL:-} ]]; then
+  echo "Offline install, deferring AUR-core packages to post-install (ryoku-update after network setup)"
+  exit 0
+fi
+
 if ! ryoku-pkg-aur-accessible; then
   echo "AUR unavailable, skipping AUR-core install"
   exit 0
@@ -22,7 +34,6 @@ aur_packages=(
   1password-beta
   1password-cli
   claude-code
-  limine-mkinitcpio-hook
   localsend
   pinta
   python-terminaltexteffects
@@ -31,7 +42,6 @@ aur_packages=(
   typora
   tzupdate
   ufw-docker
-  xdg-terminal-exec
   yaru-icon-theme
 )
 

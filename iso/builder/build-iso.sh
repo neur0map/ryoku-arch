@@ -36,7 +36,7 @@ echo "$RYOKU_MIRROR" > "$build_cache_dir/airootfs/root/ryoku_mirror"
 
 # Setup Ryoku itself
 if [[ -d /ryoku ]]; then
-  cp -rp /ryoku "$build_cache_dir/airootfs/root/ryoku"
+  /bin/bash /builder/sync-local-source.sh /ryoku "$build_cache_dir/airootfs/root/ryoku"
 else
   git clone -b $RYOKU_INSTALLER_REF https://github.com/$RYOKU_INSTALLER_REPO.git "$build_cache_dir/airootfs/root/ryoku"
 fi
@@ -54,16 +54,44 @@ fi
 arch_packages=(git gum jq openssl plymouth)
 printf '%s\n' "${arch_packages[@]}" >>"$build_cache_dir/packages.x86_64"
 
+# Build the boot-critical AUR overlay (limine-mkinitcpio-hook,
+# limine-snapper-sync) into the offline mirror BEFORE downloading the
+# official packages, so the installed system can pacstrap a branded
+# bootloader without reaching out to AUR on first boot.
+mapfile -t overlay_packages < <(grep -v '^#' /builder/ryoku-boot-overlay.packages | grep -v '^$')
+/bin/bash /builder/build-boot-overlay.sh /builder/ryoku-boot-overlay.packages "$offline_mirror_dir"
+
 # Build list of all the packages needed for the offline mirror.
 # omarchy splits ryoku-base.packages + ryoku-other.packages; we only
 # have ryoku-base.packages today.
-all_packages=($(cat "$build_cache_dir/packages.x86_64"))
-all_packages+=($(grep -v '^#' "$build_cache_dir/airootfs/root/ryoku/install/ryoku-base.packages" | grep -v '^$'))
-all_packages+=($(grep -v '^#' /builder/archinstall.packages | grep -v '^$'))
+mapfile -t all_packages < <(
+  {
+    cat "$build_cache_dir/packages.x86_64"
+    grep -v '^#' "$build_cache_dir/airootfs/root/ryoku/install/ryoku-base.packages" | grep -v '^$'
+    grep -v '^#' /builder/archinstall.packages | grep -v '^$'
+  } | awk 'NF { print }'
+)
+
+# Drop overlay packages from the official-mirror download list so pacman
+# doesn't try to fetch them from the Arch CDN (they live in AUR).
+official_packages=()
+for pkg in "${all_packages[@]}"; do
+  skip=0
+  for overlay_pkg in "${overlay_packages[@]}"; do
+    if [[ $pkg == "$overlay_pkg" ]]; then
+      skip=1
+      break
+    fi
+  done
+  (( skip == 0 )) && official_packages+=("$pkg")
+done
 
 # Download all the packages to the offline mirror inside the ISO
 mkdir -p /tmp/offlinedb
-pacman --config /configs/pacman-online-${RYOKU_MIRROR}.conf --noconfirm -Syw "${all_packages[@]}" --cachedir $offline_mirror_dir/ --dbpath /tmp/offlinedb
+pacman --config /configs/pacman-online-${RYOKU_MIRROR}.conf \
+  --noconfirm -Syw "${official_packages[@]}" \
+  --cachedir "$offline_mirror_dir/" --dbpath /tmp/offlinedb
+
 repo-add --new "$offline_mirror_dir/offline.db.tar.gz" "$offline_mirror_dir/"*.pkg.tar.zst
 
 # Create a symlink to the offline mirror instead of duplicating it.

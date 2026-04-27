@@ -33,7 +33,12 @@ fcitx5-qt
 fd
 ffmpegthumbnailer
 fontconfig
+fuzzel
 fzf
+gst-plugins-bad
+gst-plugins-base
+gst-plugins-good
+gst-plugins-ugly
 github-cli
 gnome-calculator
 gnome-keyring
@@ -67,6 +72,8 @@ libsecret
 libyaml
 libqalculate
 libreoffice-fresh
+limine-mkinitcpio-hook
+limine-snapper-sync
 llvm
 luarocks
 mako
@@ -94,6 +101,11 @@ postgresql-libs
 power-profiles-daemon
 python-gobject
 python-poetry-core
+qt6-5compat
+qt6-declarative
+qt6-multimedia
+qt6-multimedia-ffmpeg
+qt6-svg
 qt5-wayland
 quickshell
 ripgrep
