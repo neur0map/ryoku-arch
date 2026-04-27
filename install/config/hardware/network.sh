@@ -34,11 +34,6 @@ RouteMetric=100
 EOF
 fi
 
-# Point resolv.conf at the systemd-resolved stub. archinstall does this
-# during base install; redo it here so an offline install where the stub
-# wasn't symlinked still resolves DNS on first boot.
-sudo ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
-
 # Prevent systemd-networkd-wait-online from blocking boot when no cable
 # is plugged in or DHCP takes a moment.
 sudo systemctl disable systemd-networkd-wait-online.service
@@ -54,7 +49,9 @@ sudo systemctl is-enabled systemd-resolved.service >/dev/null 2>&1 || {
   exit 1
 }
 
-[[ -L /etc/resolv.conf ]] || {
-  echo "Error: /etc/resolv.conf must be a systemd-resolved symlink for first-boot VM DNS" >&2
-  exit 1
-}
+# /etc/resolv.conf is bind-mounted from the live ISO during arch-chroot,
+# so we can't reliably swap it to a systemd-resolved symlink from in
+# here. The static resolv.conf written by .automated_script.sh on /mnt
+# (1.1.1.1 + 8.8.8.8) is what ends up on the installed disk and is
+# enough for first-boot DNS; systemd-resolved will take over if/when
+# the user later swaps the file for the stub-resolv.conf symlink.
