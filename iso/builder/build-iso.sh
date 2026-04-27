@@ -92,7 +92,16 @@ pacman --config /configs/pacman-online-${RYOKU_MIRROR}.conf \
   --noconfirm -Syw "${official_packages[@]}" \
   --cachedir "$offline_mirror_dir/" --dbpath /tmp/offlinedb
 
-repo-add --new "$offline_mirror_dir/offline.db.tar.gz" "$offline_mirror_dir/"*.pkg.tar.zst
+# Drop any prior db so repo-add always reflects this build's actual
+# package files. With --new (skip-if-present), an overlay package
+# rebuilt with a different byte size would still carry the old
+# %CSIZE% entry and pacman would reject it as size-mismatched.
+rm -f "$offline_mirror_dir/offline.db.tar.gz" \
+      "$offline_mirror_dir/offline.db" \
+      "$offline_mirror_dir/offline.files.tar.gz" \
+      "$offline_mirror_dir/offline.files"
+
+repo-add "$offline_mirror_dir/offline.db.tar.gz" "$offline_mirror_dir/"*.pkg.tar.zst
 
 # Create a symlink to the offline mirror instead of duplicating it.
 # mkarchiso needs packages at /var/cache/ryoku/mirror/offline in the container,
