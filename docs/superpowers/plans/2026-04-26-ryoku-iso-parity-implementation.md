@@ -733,7 +733,7 @@ git commit -m "iso: embed offline boot overlay and clean install inputs"
 - Verify: `iso/vm-saves/*`
 - Verify: `~/.cache/ryoku/iso_2026-04-26`
 
-- [ ] **Step 1: Write the failing artifact-state check**
+- [x] **Step 1: Write the failing artifact-state check**
 
 Run:
 
@@ -753,7 +753,7 @@ TMP_OVMF_PRESENT
 ISO_CACHE_PRESENT
 ```
 
-- [ ] **Step 2: Remove stale ISO, VM, and cache artifacts**
+- [x] **Step 2: Remove stale ISO, VM, and cache artifacts**
 
 Run:
 
@@ -764,7 +764,7 @@ rm -rf iso/vm-saves/*
 rm -rf "$HOME/.cache/ryoku/iso_2026-04-26"
 ```
 
-- [ ] **Step 3: Build a fresh ISO with the current checkout**
+- [x] **Step 3: Build a fresh ISO with the current checkout**
 
 Run:
 
@@ -779,7 +779,7 @@ Expected:
 ... release/<new-iso-name>.iso created ...
 ```
 
-- [ ] **Step 4: Boot the new ISO into a fresh VM and validate the release contract**
+- [~] **Step 4: Boot the new ISO into a fresh VM and validate the release contract**
 
 Run:
 
@@ -796,6 +796,12 @@ Expected manual validation:
 4. Logging in reaches the Ryoku session.
 5. Installed VM gets NAT ethernet on first boot.
 ```
+
+> Status: chroot install reaches "installation succeeded" in offline mode
+> after a series of fixes captured in
+> `docs/superpowers/specs/2026-04-27-ryoku-iso-build-recipe-design.md`.
+> First-boot validation (items 1-5) is still pending a contributor
+> rebooting the VM and confirming the branded boot.
 
 - [ ] **Step 5: Commit the verification-support changes**
 
