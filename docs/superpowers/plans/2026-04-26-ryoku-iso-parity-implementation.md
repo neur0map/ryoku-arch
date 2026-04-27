@@ -425,7 +425,7 @@ git commit -m "boot: restore ryoku direct uki normal boot"
 - Modify: `install/login/limine-snapper.sh`
 - Modify: `install/login/sddm.sh`
 
-- [ ] **Step 1: Write the failing static checks**
+- [x] **Step 1: Write the failing static checks**
 
 Run:
 
@@ -443,7 +443,12 @@ install/login/limine-snapper.sh:124:  echo "WARNING: limine-update not found (li
 install/login/sddm.sh:18:sudo systemctl enable sddm.service
 ```
 
-- [ ] **Step 2: Replace warning fallbacks with production-fatal checks**
+- [x] **Step 2: Replace warning fallbacks with production-fatal checks**
+
+> Live-system note: prescribed text omits the `.disabled` mkinitcpio
+> pacman-hook restoration block (created by
+> `install/preflight/disable-mkinitcpio.sh`). Implementation preserves
+> that block so live updates trigger initramfs rebuilds.
 
 In `install/login/limine-snapper.sh`, replace the opening package block with:
 
@@ -504,7 +509,7 @@ sudo systemctl enable sddm.service
 sudo systemctl set-default graphical.target
 ```
 
-- [ ] **Step 3: Re-run the static checks**
+- [x] **Step 3: Re-run the static checks**
 
 Run:
 
@@ -557,7 +562,7 @@ git commit -m "install: require branded boot and graphical parity"
 - Modify: `iso/configs/airootfs/root/configurator`
 - Modify: `install/config/hardware/network.sh`
 
-- [ ] **Step 1: Write the failing static checks**
+- [x] **Step 1: Write the failing static checks**
 
 Run:
 
@@ -577,7 +582,7 @@ iso/configs/airootfs/root/configurator:423:            {"url": "https://mirror.g
 install/packaging/aur-core.sh:37:  limine-mkinitcpio-hook
 ```
 
-- [ ] **Step 2: Add the overlay manifest and builder**
+- [x] **Step 2: Add the overlay manifest and builder**
 
 Create `iso/builder/ryoku-boot-overlay.packages`:
 
@@ -615,7 +620,7 @@ while IFS= read -r pkg; do
 done < "$packages_file"
 ```
 
-- [ ] **Step 3: Wire the overlay into the ISO and installer**
+- [x] **Step 3: Wire the overlay into the ISO and installer**
 
 In `install/ryoku-base.packages`, add:
 
