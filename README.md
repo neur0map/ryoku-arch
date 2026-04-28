@@ -40,7 +40,7 @@ If you're a contributor browsing the repo: explore `bin/`, `config/`, `themes/`,
 
 ## Hardware compatibility
 
-The Ryoku ISO installs **fully offline** on a wide range of modern hardware. Drivers are bundled in the ISO's offline mirror, including AUR-built packages that Ryoku makepkgs in the build container so users do not need a hosted Ryoku pacman repo. Specifically supported with no network during install:
+The Ryoku ISO installs **fully offline** on most modern hardware. Drivers ship in the ISO's offline mirror, including AUR-built packages that Ryoku makepkgs in the build container, so users do not need a hosted Ryoku pacman repo. Supported with no network during install:
 
 - Intel iGPU (HD/UHD/Iris/Xe/Arc) and AMD iGPU (Renoir, Phoenix, etc.)
 - AMD discrete GPUs (RX 5xxx/6xxx/7xxx/9xxx)
