@@ -62,12 +62,17 @@ mapfile -t overlay_packages < <(grep -v '^#' /builder/ryoku-boot-overlay.package
 /bin/bash /builder/build-boot-overlay.sh /builder/ryoku-boot-overlay.packages "$offline_mirror_dir"
 
 # Build list of all the packages needed for the offline mirror.
-# omarchy splits ryoku-base.packages + ryoku-other.packages; we only
-# have ryoku-base.packages today.
+# Mirrors omarchy's split: ryoku-base.packages is what every install
+# pacstraps; ryoku-other.packages is what conditional hardware scripts
+# (vulkan.sh, nvidia.sh, intel/video-acceleration.sh, fix-bcm43xx.sh,
+# etc.) might pacman-install on the matching hardware. Both lists are
+# pulled into the offline mirror so a truly offline install on a real
+# AMD/NVIDIA/Intel machine has the drivers reachable in [offline].
 mapfile -t all_packages < <(
   {
     cat "$build_cache_dir/packages.x86_64"
     grep -v '^#' "$build_cache_dir/airootfs/root/ryoku/install/ryoku-base.packages" | grep -v '^$'
+    grep -v '^#' "$build_cache_dir/airootfs/root/ryoku/install/ryoku-other.packages" | grep -v '^$'
     grep -v '^#' /builder/archinstall.packages | grep -v '^$'
   } | awk 'NF { print }'
 )

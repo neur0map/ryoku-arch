@@ -1,0 +1,52 @@
+# Packages that are NOT installed for everyone (so they don't belong in
+# install/ryoku-base.packages) but MUST be present in the ISO's offline
+# mirror so the chroot install's conditional hardware scripts
+# (install/config/hardware/*.sh) can pacman-install them on machines
+# that need them. Without this list, an offline install on a real
+# machine with NVIDIA/AMD/Intel discrete graphics would abort at the
+# vulkan/nvidia/intel-video step with "target not found".
+#
+# Omarchy parity: equivalent to upstream's install/omarchy-other.packages.
+# We intentionally exclude AUR-only hardware drivers that omarchy ships via
+# its hosted [omarchy] repo (linux-t2, nvidia-580xx-dkms,
+# tuxedo-drivers-nocompatcheck-dkms, yt6801-dkms,
+# macbook12-spi-driver-dkms, linux-ptl, etc.). Those affect specific
+# hardware (Apple T2 Macs, legacy NVIDIA Maxwell/Pascal/Volta, Tuxedo
+# laptops, Motorcomm yt6801 NICs). On those machines the matching
+# install/config/hardware/*.sh script will fail offline; first-boot
+# online via ryoku-update is required. See docs/TODO.md.
+
+# Vulkan drivers (selected by install/config/hardware/vulkan.sh)
+vulkan-intel
+vulkan-radeon
+vulkan-asahi
+
+# NVIDIA Turing+ stack: RTX 20xx-50xx, GTX 16xx, RTX Pro, Quadro RTX,
+# datacenter A/H/T/L. Selected by install/config/hardware/nvidia.sh.
+nvidia-open-dkms
+nvidia-utils
+lib32-nvidia-utils
+libva-nvidia-driver
+
+# DKMS targets need matching kernel headers
+linux-headers
+
+# Intel video acceleration (HD Graphics, UHD, Iris, Xe, Arc)
+# Selected by install/config/hardware/intel/video-acceleration.sh
+intel-media-driver
+libvpl
+vpl-gpu-rt
+libva-intel-driver
+
+# AMD video acceleration via mesa
+libva-mesa-driver
+
+# Intel power + thermal daemons
+# Selected by install/config/hardware/intel/{lpmd,thermald}.sh
+thermald
+intel-lpmd
+
+# Broadcom proprietary wifi bridge
+# Selected by install/config/hardware/fix-bcm43xx.sh
+broadcom-wl
+dkms
