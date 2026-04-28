@@ -9,6 +9,20 @@ trap 'rm -rf "$build_root"' EXIT
 
 pacman --noconfirm -Sy --needed base-devel git sudo
 
+# Enable [multilib] so makepkg --syncdeps can pull lib32-* build/runtime
+# deps for AUR packages like lib32-nvidia-580xx-utils. Default Arch
+# pacman.conf ships [multilib] commented out; sed-uncomment that block
+# without touching anything else, then refresh the package db.
+if grep -q '^#\[multilib\]' /etc/pacman.conf; then
+  sed -i '/^#\[multilib\]$/,/^#Include/ s/^#//' /etc/pacman.conf
+  pacman --noconfirm -Sy
+fi
+
+# Some AUR PKGBUILDs (DKMS modules, kernels) have hard build-deps that
+# makepkg --syncdeps will pull. Pre-install the common ones so each
+# package does not redo the dep resolution from scratch.
+pacman --noconfirm -S --needed dkms
+
 id -u builder >/dev/null 2>&1 || useradd -m builder
 printf '%s\n' 'builder ALL=(ALL) NOPASSWD: ALL' >/etc/sudoers.d/90-builder
 chmod 440 /etc/sudoers.d/90-builder

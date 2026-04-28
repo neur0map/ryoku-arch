@@ -26,24 +26,22 @@ Project-level work that is queued but not yet in a plan or spec. Each item is on
 - [ ] **Real-hardware install test.** Everything in `docs/iso-build-recipe.md` was verified in QEMU/UEFI. Drive a bare-metal install on at least one machine (laptop without ethernet at install is a representative case for the offline path) before promoting the ISO past "tester-grade".
 - [ ] **Online install path smoke test.** `RYOKU_ONLINE_INSTALL=1` in the chroot env was deliberately turned off (laptops without ethernet at install must not fail), but the path still exists and has a fix in `5a554eee` that has never been exercised end-to-end.
 
-## AUR-only hardware drivers not yet in the offline mirror
+## AUR-only hardware drivers
 
-`install/ryoku-other.packages` covers upstream-Arch GPU + hardware drivers (Vulkan, nvidia-open, intel-media, broadcom-wl, etc.) so an offline install on a standard NVIDIA / AMD / Intel machine has working drivers. The following AUR-only hardware drivers are NOT yet bundled, so an offline install on the affected hardware will silently degrade (the matching `install/config/hardware/*.sh` script will fail with "target not found", but the install continues without that hardware support):
+`install/ryoku-other.packages` covers upstream-Arch GPU + hardware drivers. AUR-only drivers are now built into the offline mirror via `iso/builder/ryoku-boot-overlay.packages` (Path 2: makepkg at ISO-build time, no external dep at runtime).
 
-- [ ] **NVIDIA legacy stack** (Maxwell/Pascal/Volta: GTX 9xx/10xx, GT 10xx, MX, Titan X/Xp/V): `nvidia-580xx-dkms`, `nvidia-580xx-utils`, `lib32-nvidia-580xx-utils`. Used by `install/config/hardware/nvidia.sh` for older NVIDIA cards.
-- [ ] **Apple T2 Mac support**: `linux-t2`, `linux-t2-headers`, `apple-t2-audio-config`, `apple-bcm-firmware`, `t2fanrd`, `tiny-dfr`. Used by `install/config/hardware/apple/fix-t2.sh`. Apple T2 was explicitly de-scoped in commit `ebdf7906` ("drop ... Apple T2 kernel for now") so this is intentional, not accidental.
-- [ ] **MacBook 12-inch SPI keyboard**: `macbook12-spi-driver-dkms`. Used by `install/config/hardware/apple/fix-spi-keyboard.sh`.
-- [ ] **Intel Panther Lake kernel**: `linux-ptl`, `linux-ptl-headers`. Used by `install/config/hardware/intel/ptl-kernel.sh`.
-- [ ] **Intel IPU7 camera firmware**: `intel-ipu7-camera`. Used by `install/config/hardware/intel/ipu7-camera.sh`.
-- [ ] **Tuxedo laptops backlight fix**: `tuxedo-drivers-nocompatcheck-dkms`. Used by `install/config/hardware/fix-tuxedo-backlight.sh`.
-- [ ] **Motorcomm yt6801 ethernet**: `yt6801-dkms`. Used by `install/config/hardware/fix-yt6801-ethernet-adapter.sh`.
+Bundled by the boot overlay (resolved):
+- [x] NVIDIA legacy stack (Maxwell/Pascal/Volta): `nvidia-580xx-dkms`, `nvidia-580xx-utils`, `lib32-nvidia-580xx-utils`
+- [x] MacBook 12-inch SPI keyboard: `macbook12-spi-driver-dkms`
+- [x] Intel IPU7 camera firmware: `intel-ipu7-camera`
+- [x] Tuxedo laptops backlight fix: `tuxedo-drivers-nocompatcheck-dkms`
+- [x] Motorcomm yt6801 ethernet: `yt6801-dkms`
 
-omarchy ships these via its hosted `[omarchy]` pacman repo, which Ryoku does not yet have (see `iso/builder/build-iso.sh` comment block: "We do not yet ship a custom [ryoku] pacman repo / keyring"). Two ways to close the gap:
+Still deferred:
 
-1. Add each AUR package to `iso/builder/ryoku-boot-overlay.packages` so the build container makepkgs them at ISO-build time. Cheap per-package but stacks up (each needs full kernel headers + DKMS build inside the container, ~5-10 min each).
-2. Stand up a hosted `[ryoku]` pacman repo with pre-built AUR packages, mirror omarchy's model.
-
-Option 2 is the right long-term answer; option 1 is an acceptable bridge for the most-impacted drivers.
+- [ ] **Apple T2 Mac support**: `linux-t2`, `linux-t2-headers`, `apple-t2-audio-config`, `apple-bcm-firmware`, `t2fanrd`, `tiny-dfr`. `linux-t2` is a full kernel build (~30-60 min CI cost) and the audience is small. Pick up once GH Actions release pipeline (above) is up so the cost is amortized across nightly builds, not local dev iterations.
+- [ ] **Intel Panther Lake kernel**: `linux-ptl`, `linux-ptl-headers`. Same reason as Apple T2 (kernel compile cost).
+- [ ] **Hosted `[ryoku]` pacman repo**. Long-term plan to retire the per-ISO-build AUR rebuild cost: ship pre-built AUR packages from R2 (or wherever the ISO ends up hosted) so users get driver updates without rebuilding the ISO, and so dev iteration speed stops being tied to overlay rebuild time. Comes after the GH Actions + R2 release pipeline above.
 
 ## Build/runtime polish (low priority)
 
