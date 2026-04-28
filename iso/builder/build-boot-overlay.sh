@@ -32,7 +32,13 @@ chmod 440 /etc/sudoers.d/90-builder
 chown builder:builder "$build_root"
 chown builder:builder "$output_dir"
 
+# Skip blank lines and comments (lines starting with #) so the
+# overlay manifest can carry inline documentation without each
+# comment being treated as a package name to clone from AUR.
 while IFS= read -r pkg; do
+  pkg="${pkg%%#*}"
+  pkg="${pkg// /}"
+  pkg="${pkg//$'\t'/}"
   [[ -n $pkg ]] || continue
   work_dir="$build_root/$pkg"
 
