@@ -34,6 +34,10 @@ tuxedo-drivers-nocompatcheck-dkms
 yt6801-dkms
 macbook12-spi-driver-dkms
 
+# Intel low-power-mode daemon. AUR-only; selected by
+# install/config/hardware/intel/lpmd.sh on Intel CPUs.
+intel-lpmd
+
 # intel-ipu7-camera-bin: NOT listed here. The AUR PKGBUILD has a
 # runtime dep on intel-ipu7-dkms-git which is itself AUR-only, and
 # makepkg --syncdeps inside the bare build container has no AUR

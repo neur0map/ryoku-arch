@@ -38,13 +38,15 @@ libvpl
 vpl-gpu-rt
 libva-intel-driver
 
-# AMD video acceleration via mesa
-libva-mesa-driver
+# AMD video acceleration via mesa: libva-mesa-driver was retired
+# upstream and the libva backend is now part of mesa itself, which
+# is already pulled in transitively by hyprland / qt / chromium.
 
 # Intel power + thermal daemons
-# Selected by install/config/hardware/intel/{lpmd,thermald}.sh
+# Selected by install/config/hardware/intel/{lpmd,thermald}.sh.
+# intel-lpmd is AUR-only (PackageBase intel-lpmd) and lives in
+# iso/builder/ryoku-boot-overlay.packages, not here.
 thermald
-intel-lpmd
 
 # Broadcom proprietary wifi bridge
 # Selected by install/config/hardware/fix-bcm43xx.sh
