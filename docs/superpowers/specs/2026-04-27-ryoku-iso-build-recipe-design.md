@@ -97,6 +97,47 @@ When adding things, mirror these patterns or expect a regression in the offline 
 5. **Editing `iso/builder/build-iso.sh`.** Never reintroduce `repo-add --new`. Always rebuild `offline.db` from the current set of `.pkg.tar.zst` files.
 6. **Editing `install/config/hardware/network.sh`.** Don't try to manipulate `/etc/resolv.conf` inside the chroot. The bind-mount makes it a no-op at best and a hard error at worst.
 
+## Adding new dotfiles / configs / commands
+
+The `--local-source` build mounts the working tree into the build container as `/ryoku`, then `iso/builder/sync-local-source.sh` tars it (with `.git`, excluding only `iso/release`) into the airootfs at `/root/ryoku`. `iso/configs/airootfs/root/.automated_script.sh` then `cp -r /root/ryoku /mnt/home/<user>/.local/share/ryoku` during install. So **anything you put in the working tree, committed or not, ends up at `~/.local/share/ryoku/<same-relative-path>` on the installed system.** No special "ship this file" registration step is required.
+
+That tells you where to put things:
+
+- **App configs (Hyprland, alacritty, mako, hypr, waybar, fuzzel, tofi, etc.)** : drop them under `default/<app>/`. The `install/config/<app>.sh` script (or a new one you author) is responsible for symlinking the files into `~/.config/<app>/` at install time. Look at `install/config/theme.sh` and the existing siblings for the pattern.
+- **A new dotfile that has no install/config step yet** : add the file under `default/<app>/`, then add a small `install/config/<app>.sh` that does the symlink/copy. Source it from `install/config/all.sh`.
+- **A new bin script (`ryoku-foo`, helpers, launchers)** : drop it in `bin/` and `chmod +x`. `default/hypr/envs.conf` already prepends `$HOME/.local/share/ryoku/bin` to the user's `PATH`, so it is callable from Hyprland bindings, terminal, anywhere.
+- **A new package the system needs** : see "Customization safety rails" above. Pure-Arch goes in `install/ryoku-base.packages`; AUR-only that has to be available at first boot goes in `iso/builder/ryoku-boot-overlay.packages` AND `install/ryoku-base.packages`; AUR-only that can wait until first-boot online updates goes in `install/packaging/aur-core.sh`.
+- **A new theme** : add the dir under `themes/<theme-name>/`, mirroring the existing themes. `omarchy-theme-set` (or its Ryoku equivalent) reads from `themes/`.
+- **A change that should run once per user on first login** : `install/first-run/<step>.sh`, plus a `bash "$RYOKU_PATH/install/first-run/<step>.sh"` line in `bin/ryoku-cmd-first-run`. The first-run marker file gates these so they only fire once.
+- **A change that has to run as part of a system update** : add a migration script under `migrations/<unix-timestamp>.sh` and it will run on the next `ryoku-update`.
+
+### One-shot dev cycle for a new customization
+
+```bash
+# 1. Make the change in the working tree (edit, add, commit if you want).
+$EDITOR default/alacritty/alacritty.toml      # for example
+
+# 2. Sanity-check that the file the install will copy is what you expect.
+git status                                    # untracked is fine, will be in the ISO
+ls -la default/alacritty/alacritty.toml
+
+# 3. Rebuild + boot. The --local-source flag mounts the working tree; the
+#    new file rides in via sync-local-source.sh. Cache is warm so this is
+#    ~5-10 min total.
+rm -f iso/release/*.iso /tmp/ryoku-iso-boot.qcow2 /tmp/OVMF_VARS.4m.fd
+./iso/bin/ryoku-iso-make --local-source --no-boot-offer
+./iso/bin/ryoku-iso-boot iso/release/ryoku-*-main.iso
+
+# 4. Drive the install in QEMU, log in, verify the customization landed:
+#    cat ~/.config/alacritty/alacritty.toml   # inside the VM
+#    or whatever check is appropriate.
+```
+
+Two recurring traps to avoid:
+
+- **The dev tree's HEAD ships, not just the working tree.** Because we no longer strip `.git` (commit `03442325`), the `.git` directory of the dev tree goes onto the installed system. `git pull` from origin works without auth, but if your local commits are not pushed and origin is ahead/diverged, the user's first `ryoku-update` will try to merge and may conflict. Push your commits to origin before treating the ISO as "shippable", or accept that the ISO is a private build.
+- **Adding a config file under `default/<app>/` is not enough on its own.** Without an `install/config/<app>.sh` step that symlinks or copies it into `~/.config/<app>/`, the file just sits in `~/.local/share/ryoku/default/<app>/` and the app never reads it.
+
 ## Verification after adding customizations
 
 After any non-trivial change, re-run the recipe. Warm cache makes this ~5-10 min:
