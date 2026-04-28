@@ -38,6 +38,32 @@ The repo is the source of truth for commands, configs, themes, and docs. The ins
 
 If you're a contributor browsing the repo: explore `bin/`, `config/`, `themes/`, `default/` for the installed-system surface.
 
+## Hardware compatibility
+
+The Ryoku ISO installs **fully offline** on most modern hardware. Specifically supported with no network during install:
+
+- Intel iGPU (HD/UHD/Iris/Xe/Arc) and AMD iGPU (Renoir, Phoenix, etc.)
+- AMD discrete GPUs (RX 5xxx/6xxx/7xxx/9xxx)
+- NVIDIA Turing or newer: GTX 16xx, RTX 20xx-50xx, RTX Pro, Quadro RTX, datacenter A/H/T/L
+- NVIDIA + Intel and NVIDIA + AMD hybrid laptops
+- Apple Silicon (M1/M2/M3/M4) via Asahi
+- Broadcom Wi-Fi (BCM43xx)
+- Intel power/thermal stack (thermald, intel-lpmd)
+
+The following hardware is **not yet supported on a truly air-gapped install** because the required drivers are AUR-only and Ryoku does not yet host its own pacman repo. The install will abort at the affected hardware-detection step. Workaround: connect to Wi-Fi before starting the installer, or run `ryoku-update` after first boot to pull the missing drivers from AUR.
+
+| Hardware | Missing AUR package |
+|---|---|
+| NVIDIA Maxwell/Pascal/Volta (GTX 9xx, GT/GTX 10xx, MX 1xx-2xx, Titan X/Xp/V, Tesla V100, Quadro M/P/GV) | `nvidia-580xx-dkms` |
+| Apple T2 Mac (2018-2020 Intel MacBook Pro/Air/Mini) | `linux-t2` + Apple T2 audio/firmware bundle |
+| Apple MacBook 12-inch SPI keyboard (2015-2017) | `macbook12-spi-driver-dkms` |
+| Tuxedo Computers laptops (backlight fix) | `tuxedo-drivers-nocompatcheck-dkms` |
+| Motorcomm `yt6801` ethernet adapter (some mini PCs) | `yt6801-dkms` |
+| Intel Panther Lake kernel optimization (Core Ultra 3xxx) | `linux-ptl` |
+| Intel IPU7 camera (Lunar Lake / Panther Lake laptops) | `intel-ipu7-camera` |
+
+Tracking the bridge to full coverage in [`docs/TODO.md`](docs/TODO.md): either bundle each AUR package via the boot overlay, or stand up a hosted `[ryoku]` pacman repo (omarchy's model).
+
 ## Themes
 
 Ryoku ships 19 themes out of the box. Swap any of them at runtime:
@@ -80,7 +106,10 @@ ryoku-theme-set tokyo-night
 
 **Lockscreen &amp; SDDM**
 
-Greeter and lockscreen themes ship via [qylock](https://github.com/Darkkal44/qylock) by Darkkal44. Install or swap with:
+Fresh installs ship with the bundled `pixel-rainyroom` SDDM greeter so
+the ISO works fully offline. Optional extra greeter and lockscreen
+themes are available via [qylock](https://github.com/Darkkal44/qylock)
+by Darkkal44. Install or swap extras with:
 
 ```bash
 ryoku-install-qylock
