@@ -8,6 +8,12 @@
 # Arch repos cannot fetch them. The build-iso.sh filter strips overlay
 # package names from the official-Arch download list to avoid
 # "target not found" during the upstream sync.
+#
+# IMPORTANT: list each package by its AUR PackageBase. Split-package
+# PKGBUILDs (e.g. nvidia-580xx-utils ships both nvidia-580xx-dkms and
+# nvidia-580xx-utils) live at one git repo named after the base; one
+# makepkg run produces every split output. Listing the split names
+# directly clones empty repos.
 
 # Boot-critical: limine bootloader's snapshot-aware companions.
 # Required by install/login/limine-snapper.sh hard checks.
@@ -17,7 +23,7 @@ limine-snapper-sync
 # NVIDIA legacy stack (Maxwell / Pascal / Volta: GTX 9xx, GT/GTX 10xx,
 # MX 1xx-2xx, Titan X/Xp/V, Quadro M/P/GV, Tesla V100). Selected by
 # install/config/hardware/nvidia.sh when the matching GPU is detected.
-nvidia-580xx-dkms
+# nvidia-580xx-utils ships nvidia-580xx-dkms + nvidia-580xx-utils as splits.
 nvidia-580xx-utils
 lib32-nvidia-580xx-utils
 
@@ -27,4 +33,4 @@ lib32-nvidia-580xx-utils
 tuxedo-drivers-nocompatcheck-dkms
 yt6801-dkms
 macbook12-spi-driver-dkms
-intel-ipu7-camera
+intel-ipu7-camera-bin
