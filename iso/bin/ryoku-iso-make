@@ -44,6 +44,7 @@ sudo rm -rf /var/cache/pacman/pkg/* 2>/dev/null || true
 # Prepare build repo
 BUILD_SCRIPT="builder/build-iso.sh"
 BUILD_ROOT=$(realpath "${BASH_SOURCE[0]%/*}/..")
+REPO_ROOT=$(realpath "$BUILD_ROOT/..")
 BUILD_RELEASE_PATH="$BUILD_ROOT/release"
 mkdir -p "$BUILD_RELEASE_PATH"
 
@@ -67,9 +68,10 @@ DOCKER_ARGS=(
   -v "$BUILD_ROOT/configs:/configs:ro"
 )
 
-# Use local source of Ryoku from $RYOKU_PATH instead of git checkout
+# Use the checkout that contains this script instead of whatever
+# installed copy might currently be exported in $RYOKU_PATH.
 if [[ -n "${LOCAL_SOURCE-}" ]]; then
-  DOCKER_ARGS+=(-v "$RYOKU_PATH:/ryoku:ro")
+  DOCKER_ARGS+=(-v "$REPO_ROOT:/ryoku:ro")
 fi
 
 # Use local pacman cache if you already have one on host to speed up repeat runs
