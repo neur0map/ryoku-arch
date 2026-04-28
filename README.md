@@ -40,29 +40,29 @@ If you're a contributor browsing the repo: explore `bin/`, `config/`, `themes/`,
 
 ## Hardware compatibility
 
-The Ryoku ISO installs **fully offline** on most modern hardware. Specifically supported with no network during install:
+The Ryoku ISO installs **fully offline** on a wide range of modern hardware. Drivers are bundled in the ISO's offline mirror, including AUR-built packages that Ryoku makepkgs in the build container so users do not need a hosted Ryoku pacman repo. Specifically supported with no network during install:
 
 - Intel iGPU (HD/UHD/Iris/Xe/Arc) and AMD iGPU (Renoir, Phoenix, etc.)
 - AMD discrete GPUs (RX 5xxx/6xxx/7xxx/9xxx)
-- NVIDIA Turing or newer: GTX 16xx, RTX 20xx-50xx, RTX Pro, Quadro RTX, datacenter A/H/T/L
+- NVIDIA Turing or newer: GTX 16xx, RTX 20xx-50xx, RTX Pro, Quadro RTX, datacenter A/H/T/L (`nvidia-open-dkms`)
+- NVIDIA Maxwell/Pascal/Volta legacy: GTX 9xx, GT/GTX 10xx, MX 1xx-2xx, Titan X/Xp/V, Tesla V100, Quadro M/P/GV (`nvidia-580xx-dkms`, AUR-built)
 - NVIDIA + Intel and NVIDIA + AMD hybrid laptops
 - Apple Silicon (M1/M2/M3/M4) via Asahi
 - Broadcom Wi-Fi (BCM43xx)
 - Intel power/thermal stack (thermald, intel-lpmd)
+- Tuxedo Computers laptops (`tuxedo-drivers-nocompatcheck-dkms`, AUR-built)
+- Motorcomm `yt6801` ethernet adapter (`yt6801-dkms`, AUR-built)
+- Apple MacBook 12-inch SPI keyboard, 2015-2017 (`macbook12-spi-driver-dkms`, AUR-built)
+- Intel IPU7 camera (Lunar Lake / Panther Lake laptops, `intel-ipu7-camera`, AUR-built)
 
-The following hardware is **not yet supported on a truly air-gapped install** because the required drivers are AUR-only and Ryoku does not yet host its own pacman repo. The install will abort at the affected hardware-detection step. Workaround: connect to Wi-Fi before starting the installer, or run `ryoku-update` after first boot to pull the missing drivers from AUR.
+The following hardware is **not yet supported on a truly air-gapped install**. The install will abort at the affected hardware-detection step. Workaround: connect to Wi-Fi before starting the installer, or run `ryoku-update` after first boot.
 
-| Hardware | Missing AUR package |
-|---|---|
-| NVIDIA Maxwell/Pascal/Volta (GTX 9xx, GT/GTX 10xx, MX 1xx-2xx, Titan X/Xp/V, Tesla V100, Quadro M/P/GV) | `nvidia-580xx-dkms` |
-| Apple T2 Mac (2018-2020 Intel MacBook Pro/Air/Mini) | `linux-t2` + Apple T2 audio/firmware bundle |
-| Apple MacBook 12-inch SPI keyboard (2015-2017) | `macbook12-spi-driver-dkms` |
-| Tuxedo Computers laptops (backlight fix) | `tuxedo-drivers-nocompatcheck-dkms` |
-| Motorcomm `yt6801` ethernet adapter (some mini PCs) | `yt6801-dkms` |
-| Intel Panther Lake kernel optimization (Core Ultra 3xxx) | `linux-ptl` |
-| Intel IPU7 camera (Lunar Lake / Panther Lake laptops) | `intel-ipu7-camera` |
+| Hardware | Missing AUR package | Why deferred |
+|---|---|---|
+| Apple T2 Mac (2018-2020 Intel MacBook Pro/Air/Mini) | `linux-t2`, `apple-t2-audio-config`, `apple-bcm-firmware`, `t2fanrd`, `tiny-dfr` | Niche audience; `linux-t2` is a full kernel build (~30-60 min CI cost) |
+| Intel Panther Lake kernel optimization (Core Ultra 3xxx, late-2025+) | `linux-ptl`, `linux-ptl-headers` | Kernel build cost; small audience today |
 
-Tracking the bridge to full coverage in [`docs/TODO.md`](docs/TODO.md): either bundle each AUR package via the boot overlay, or stand up a hosted `[ryoku]` pacman repo (omarchy's model).
+Coverage tracked in [`docs/TODO.md`](docs/TODO.md). The long-term plan is to host a `[ryoku]` pacman repo so updates ship without rebuilding the ISO; until then, AUR-built drivers refresh on each ISO build.
 
 ## Themes
 

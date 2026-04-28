@@ -1,2 +1,30 @@
+# AUR-only packages built into the offline mirror at ISO build time
+# via iso/builder/build-boot-overlay.sh (clones from AUR, runs makepkg
+# inside the build container, drops the resulting .pkg.tar.zst into the
+# offline mirror so the chroot install can pacman -S them locally).
+#
+# These appear in the offline mirror but NOT in install/ryoku-base.packages
+# or install/ryoku-other.packages, because pacman -Syw against upstream
+# Arch repos cannot fetch them. The build-iso.sh filter strips overlay
+# package names from the official-Arch download list to avoid
+# "target not found" during the upstream sync.
+
+# Boot-critical: limine bootloader's snapshot-aware companions.
+# Required by install/login/limine-snapper.sh hard checks.
 limine-mkinitcpio-hook
 limine-snapper-sync
+
+# NVIDIA legacy stack (Maxwell / Pascal / Volta: GTX 9xx, GT/GTX 10xx,
+# MX 1xx-2xx, Titan X/Xp/V, Quadro M/P/GV, Tesla V100). Selected by
+# install/config/hardware/nvidia.sh when the matching GPU is detected.
+nvidia-580xx-dkms
+nvidia-580xx-utils
+lib32-nvidia-580xx-utils
+
+# Per-vendor / niche hw drivers. Each is selected by a matching script
+# under install/config/hardware/. Unused on machines that do not have
+# the hardware (vulkan.sh / nvidia.sh-style lspci gating).
+tuxedo-drivers-nocompatcheck-dkms
+yt6801-dkms
+macbook12-spi-driver-dkms
+intel-ipu7-camera
