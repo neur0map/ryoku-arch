@@ -804,7 +804,7 @@ Expected manual validation:
 > Hyprland session with a working terminal. Item 5 (NAT ethernet) is
 > implicit since git/networked tools work post-login. Outstanding
 > first-boot polish (cursor theme, ryoku-update git repo) tracked in
-> the build recipe spec.
+> `docs/iso-build-recipe.md`.
 
 - [ ] **Step 5: Commit the verification-support changes**
 
