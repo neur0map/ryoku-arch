@@ -1,0 +1,145 @@
+name: Build ISO
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: 'Release channel'
+        required: true
+        default: 'stable'
+        type: choice
+        options:
+          - stable
+          - rc
+          - edge
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      CHANNEL: ${{ github.event.inputs.channel || 'stable' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify required secrets are present
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: |
+          missing=()
+          [[ -z "$R2_ACCESS_KEY_ID" ]]      && missing+=("R2_ACCESS_KEY_ID")
+          [[ -z "$R2_SECRET_ACCESS_KEY" ]]  && missing+=("R2_SECRET_ACCESS_KEY")
+          [[ -z "$R2_ENDPOINT" ]]           && missing+=("R2_ENDPOINT")
+          [[ -z "$GPG_PRIVATE_KEY" ]]       && missing+=("GPG_PRIVATE_KEY")
+          if (( ${#missing[@]} > 0 )); then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            echo "See docs/release-pipeline.md for setup."
+            exit 1
+          fi
+
+      - name: Free disk space on runner
+        run: |
+          # ubuntu-latest ships ~14 GB free; the ISO build needs ~10 GB
+          # transient. Strip preinstalled toolchains we do not use to
+          # buy headroom before the docker build runs.
+          sudo rm -rf /opt/hostedtoolcache /usr/share/dotnet /opt/ghc \
+                      /usr/local/lib/android /usr/local/share/boost
+          docker system prune -af
+          df -h /
+
+      - name: Build ISO
+        run: |
+          ./iso/bin/ryoku-iso-make --local-source --no-boot-offer
+          ls -la iso/release/
+
+      - name: Capture ISO path
+        id: iso
+        run: |
+          iso=$(ls -t iso/release/*.iso | head -n1)
+          echo "path=$iso" >> "$GITHUB_OUTPUT"
+          echo "name=$(basename "$iso")" >> "$GITHUB_OUTPUT"
+
+      - name: Sign ISO with GPG
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          # Import the private key into a fresh ephemeral keyring.
+          # GNUPGHOME is the runner-local dir we just made; the key
+          # never touches /home or persistent storage.
+          export GNUPGHOME="$(mktemp -d)"
+          chmod 700 "$GNUPGHOME"
+          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+
+          iso="${{ steps.iso.outputs.path }}"
+          if [[ -n "$GPG_PASSPHRASE" ]]; then
+            echo "$GPG_PASSPHRASE" | gpg --batch --pinentry-mode loopback \
+              --passphrase-fd 0 --output "$iso.sig" --detach-sign "$iso"
+          else
+            gpg --batch --output "$iso.sig" --detach-sign "$iso"
+          fi
+
+          gpg --verify "$iso.sig" "$iso"
+
+      - name: Generate SHA256 checksum
+        run: |
+          iso="${{ steps.iso.outputs.path }}"
+          (cd "$(dirname "$iso")" && sha256sum "$(basename "$iso")" "$(basename "$iso").sig" > "$(basename "$iso").sha256")
+          cat "$iso.sha256"
+
+      - name: Install rclone
+        run: |
+          curl -fsSL https://rclone.org/install.sh | sudo bash
+
+      - name: Upload to Cloudflare R2
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          mkdir -p ~/.config/rclone
+          cat > ~/.config/rclone/rclone.conf <<EOF
+          [Ryoku]
+          type = s3
+          provider = Cloudflare
+          access_key_id = ${R2_ACCESS_KEY_ID}
+          secret_access_key = ${R2_SECRET_ACCESS_KEY}
+          endpoint = ${R2_ENDPOINT}
+          EOF
+
+          # R2_BUCKET secret can be either a plain bucket name (e.g.
+          # "ryoku-iso") or a path-style "bucket/prefix"
+          # (e.g. "ryoku-iso/${CHANNEL}"). If unset, default to
+          # "ryoku/${CHANNEL}" to match iso/bin/ryoku-iso-upload's
+          # historical layout.
+          dest="${R2_BUCKET:-ryoku/$CHANNEL}"
+
+          iso="${{ steps.iso.outputs.path }}"
+          rclone copy "$iso"        "Ryoku:$dest/" -P
+          rclone copy "$iso.sig"    "Ryoku:$dest/" -P
+          rclone copy "$iso.sha256" "Ryoku:$dest/" -P
+
+          echo "::notice::Uploaded to R2 path Ryoku:$dest/"
+
+      - name: Upload artifacts to workflow run
+        uses: actions/upload-artifact@v4
+        with:
+          name: ryoku-iso-${{ env.CHANNEL }}
+          path: |
+            iso/release/*.iso
+            iso/release/*.sig
+            iso/release/*.sha256
+          retention-days: 14

@@ -1,0 +1,155 @@
+# Ryoku ISO Release Pipeline
+
+How a Ryoku ISO gets built, signed, and published. The local equivalent
+of this flow is `iso/bin/ryoku-iso-release` (uses 1Password for
+credentials); CI uses GitHub Secrets instead.
+
+## What runs in CI
+
+`.github/workflows/build-iso.yml` builds the ISO end to end on a
+GitHub-hosted `ubuntu-latest` runner:
+
+1. Checkout (full history so `.git` ships into the ISO via `--local-source`)
+2. Verify required secrets are present, fail with a clear message if not
+3. Free disk space on the runner (strip preinstalled toolchains we do not use)
+4. Build the ISO via `iso/bin/ryoku-iso-make --local-source --no-boot-offer`
+5. Sign the ISO with the GPG key from `GPG_PRIVATE_KEY` secret
+6. Generate `<iso>.sha256` containing the iso + sig hashes
+7. Upload all three (`<iso>`, `<iso>.sig`, `<iso>.sha256`) to Cloudflare R2 via rclone
+8. Attach the same files as a workflow-run artifact for 14 days as a fallback
+
+## Triggers
+
+- `workflow_dispatch` (manual). Pick a release channel (`stable`, `rc`, `edge`). Default `stable`.
+- Pushing a `v*` tag (e.g. `v0.1.0`). Always builds the `stable` channel.
+
+## GitHub Secrets the workflow needs
+
+Configure under **Settings -> Secrets and variables -> Actions** in the repo.
+
+| Secret | Required | Purpose |
+|---|---|---|
+| `R2_ACCESS_KEY_ID` | yes | Cloudflare R2 API token, access key ID |
+| `R2_SECRET_ACCESS_KEY` | yes | Cloudflare R2 API token, secret access key |
+| `R2_ENDPOINT` | yes | Account-scoped R2 endpoint, e.g. `https://<account>.r2.cloudflarestorage.com` |
+| `R2_BUCKET` | optional | Bucket + prefix to upload into. Defaults to `ryoku/<channel>`. Set to e.g. `ryoku-iso/stable` if you use a different bucket name. |
+| `GPG_PRIVATE_KEY` | yes | Armored private GPG signing key, full block including `-----BEGIN PGP PRIVATE KEY BLOCK-----` and `-----END PGP PRIVATE KEY BLOCK-----` |
+| `GPG_PASSPHRASE` | optional | Passphrase for the GPG key, omit if the key has no passphrase |
+
+## Setting up Cloudflare R2
+
+1. Cloudflare dashboard -> R2 -> Create bucket. Name it whatever (the workflow defaults to `ryoku/<channel>` as the upload path; if your bucket is also named `ryoku` you do not need to set `R2_BUCKET`).
+2. R2 -> Manage R2 API Tokens -> Create token. Permission: "Object Read & Write" on this bucket only. Copy the access key ID + secret access key when shown (they are not shown again).
+3. From the bucket detail page, copy the S3-compatible endpoint URL: `https://<account>.r2.cloudflarestorage.com`.
+4. Bucket settings -> Public Access -> enable the `r2.dev` subdomain so users can download. You will get a URL like `https://pub-<hash>.r2.dev`.
+5. Add the three R2 values + the `GPG_PRIVATE_KEY` (and passphrase if any) to GitHub Secrets.
+
+## Setting up the GPG signing key
+
+If you do not already have a Ryoku release key:
+
+```bash
+gpg --quick-generate-key 'Ryoku Releases <releases@ryoku.dev>' rsa4096 sign 5y
+```
+
+Pick a passphrase or skip it (passphrase-protected is more secure; CI handles both).
+
+Export the private key as an ASCII-armored block:
+
+```bash
+gpg --armor --export-secret-keys 'releases@ryoku.dev' > ryoku-release-key.asc
+```
+
+Paste the entire contents (including the `-----BEGIN`/`-----END` lines) into the
+GitHub Secret `GPG_PRIVATE_KEY`. **Delete `ryoku-release-key.asc` from disk after pasting.**
+
+Export the public key for users to verify against:
+
+```bash
+gpg --armor --export 'releases@ryoku.dev' > ryoku-release-key.pub.asc
+```
+
+Commit `ryoku-release-key.pub.asc` to the repo (or publish to a key
+server) so users have something to verify against. Standard locations:
+
+- `keys/ryoku-release-key.pub.asc` in the repo
+- `https://ryoku.dev/release-key.asc` once the site is live
+
+## Triggering a build
+
+Manual:
+
+1. GitHub repo -> Actions -> Build ISO
+2. Run workflow -> select channel -> Run
+
+Tag a release:
+
+```bash
+git tag -a v0.1.0 -m "Ryoku v0.1.0"
+git push origin v0.1.0
+```
+
+Either kicks off the workflow. ~30-60 min on cold cache (DKMS overlay
+compiles dominate). The workflow page shows live logs and the final
+artifact upload.
+
+## Where users download
+
+After a successful run, the bucket has:
+
+```
+ryoku/stable/
+├── ryoku-2026.04.28-x86_64.iso
+├── ryoku-2026.04.28-x86_64.iso.sig
+└── ryoku-2026.04.28-x86_64.iso.sha256
+```
+
+Direct URLs (assuming `r2.dev` public access enabled):
+
+```
+https://pub-<hash>.r2.dev/ryoku/stable/ryoku-<date>-x86_64.iso
+https://pub-<hash>.r2.dev/ryoku/stable/ryoku-<date>-x86_64.iso.sig
+https://pub-<hash>.r2.dev/ryoku/stable/ryoku-<date>-x86_64.iso.sha256
+```
+
+Once `iso.ryoku.dev` is live, point a custom domain at the bucket and use that instead.
+
+## How users verify the ISO
+
+```bash
+# Download the iso, sig, sha256, and the public key
+curl -LO https://pub-<hash>.r2.dev/ryoku/stable/ryoku-2026.04.28-x86_64.iso
+curl -LO https://pub-<hash>.r2.dev/ryoku/stable/ryoku-2026.04.28-x86_64.iso.sig
+curl -LO https://pub-<hash>.r2.dev/ryoku/stable/ryoku-2026.04.28-x86_64.iso.sha256
+curl -LO https://raw.githubusercontent.com/neur0map/ryoku-arch/main/keys/ryoku-release-key.pub.asc
+
+# Import the public key
+gpg --import ryoku-release-key.pub.asc
+
+# Check the signature on the ISO
+gpg --verify ryoku-2026.04.28-x86_64.iso.sig ryoku-2026.04.28-x86_64.iso
+# Expected output: "Good signature from Ryoku Releases <releases@ryoku.dev>"
+
+# Cross-check the sha256
+sha256sum -c ryoku-2026.04.28-x86_64.iso.sha256
+# Expected output: "ryoku-2026.04.28-x86_64.iso: OK"
+```
+
+## Failure modes worth knowing
+
+- **Disk space exhausted on runner**. Visible as `mkarchiso` failing to write the squashfs. The `Free disk space` step strips ~25 GB of preinstalled toolchains; if a future bump pushes the build past that, switch to a self-hosted runner or use a `larger` GitHub-hosted runner.
+- **Build timeout**. Workflow `timeout-minutes: 120`. Cold builds rarely exceed 60 min; if Apple T2 or `linux-ptl` get added to the boot overlay later, this may need to grow.
+- **GPG sign fails**. Usually a malformed `GPG_PRIVATE_KEY` (missing the BEGIN/END lines, or a stray newline broke the armored block). Re-export and re-paste.
+- **rclone upload fails**. Typically an `R2_ENDPOINT` mismatch (must be the account-scoped one, not the bucket URL).
+
+## Local equivalent (no CI required)
+
+`iso/bin/ryoku-iso-release v0.1.0` does the same chain locally if you have:
+
+- 1Password CLI (`op`) logged into the Ryoku account, OR
+- Manually configured `~/.config/rclone/rclone.conf` with the `[Ryoku]` remote
+- A GPG signing key in your default keyring
+
+This is the path used pre-CI. Once CI is set up, prefer CI for shareable
+releases (reproducible runner) and use the local script for one-off
+builds you only intend to give to one person.

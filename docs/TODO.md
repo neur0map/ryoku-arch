@@ -4,18 +4,13 @@ Project-level work that is queued but not yet in a plan or spec. Each item is on
 
 ## ISO release pipeline
 
-- [ ] **GitHub Actions workflow that builds + signs + uploads ISOs to Cloudflare R2.**
-  - Trigger: `workflow_dispatch` (manual) for now; add tag-push trigger (`v*`) once the manual path is proven.
-  - Channel: `stable` only at first; add `rc` and `edge` once the workflow is stable.
-  - Runner: GitHub-hosted `ubuntu-latest` with a free-disk-space step at the top (the build needs ~10 GB transient space and the runner only ships 14 GB free).
-  - Steps: free disk -> docker build via `iso/bin/ryoku-iso-make` -> import GPG private key from secret -> `ryoku-iso-sign` -> `sha256sum` -> `rclone copy` to R2.
-  - Secrets needed: `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_ENDPOINT`, `R2_BUCKET`, `GPG_PRIVATE_KEY` (armored), `GPG_PASSPHRASE` (if the key is passphrase-protected).
-  - Bucket layout: `ryoku/ryoku-stable.iso` (always-latest, overwritten each release) + `ryoku/archive/ryoku-<version>-<channel>.iso` (versioned, retained for rollback). `.sig` and `.sha256` next to each `.iso`.
-  - Local equivalent already exists: `iso/bin/ryoku-iso-release v1.2.3` does the same chain via 1Password CLI for credentials. Port that flow to CI.
+The workflow + R2 wiring landed in `.github/workflows/build-iso.yml` and `docs/release-pipeline.md`. Outstanding setup tasks before the first run:
 
-- [ ] **R2 public access for downloads.**
-  - Pick: `r2.dev` subdomain (zero-config, ugly URL) for the first ISO drop, or custom domain (`iso.ryoku.dev`) once `ryoku.dev` is registered.
-  - Add the resulting download URL to README install instructions.
+- [ ] **Configure GitHub Secrets** for the workflow: `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_ENDPOINT`, optional `R2_BUCKET`, `GPG_PRIVATE_KEY`, optional `GPG_PASSPHRASE`. See `docs/release-pipeline.md`.
+- [ ] **Create the R2 bucket** on Cloudflare with `r2.dev` public access enabled, copy the `pub-<hash>.r2.dev` URL into the README once first publish lands.
+- [ ] **Generate the Ryoku release signing key** (or use an existing one), add the public key under `keys/ryoku-release-key.pub.asc` so users can verify.
+- [ ] **First manual workflow run** to confirm the pipeline lights up end to end before tagging `v0.1.0`.
+- [ ] **Add the always-latest pointer** (e.g. `ryoku-stable.iso` overwritten each release) and the optional custom domain (`iso.ryoku.dev`) once `ryoku.dev` is registered.
 
 ## Site
 
