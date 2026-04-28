@@ -33,4 +33,15 @@ lib32-nvidia-580xx-utils
 tuxedo-drivers-nocompatcheck-dkms
 yt6801-dkms
 macbook12-spi-driver-dkms
-intel-ipu7-camera-bin
+
+# intel-ipu7-camera-bin: NOT listed here. The AUR PKGBUILD has a
+# runtime dep on intel-ipu7-dkms-git which is itself AUR-only, and
+# makepkg --syncdeps inside the bare build container has no AUR
+# helper to resolve transitive AUR deps. Adding it requires either
+# (a) bootstrapping yay/paru into the container and switching to a
+# helper-driven build loop, or (b) listing the dep chain explicitly
+# (intel-ipu7-dkms-git first, then intel-ipu7-camera-bin) AND
+# registering each freshly-built package as a temp pacman repo so
+# subsequent builds can resolve from it. Both are reasonable but
+# out of scope for this pass; tracked in docs/TODO.md alongside
+# Apple T2 / linux-ptl as deferred AUR hw drivers.

@@ -28,12 +28,12 @@ The workflow + R2 wiring landed in `.github/workflows/build-iso.yml` and `docs/r
 Bundled by the boot overlay (resolved):
 - [x] NVIDIA legacy stack (Maxwell/Pascal/Volta): `nvidia-580xx-dkms`, `nvidia-580xx-utils`, `lib32-nvidia-580xx-utils`
 - [x] MacBook 12-inch SPI keyboard: `macbook12-spi-driver-dkms`
-- [x] Intel IPU7 camera firmware: `intel-ipu7-camera`
 - [x] Tuxedo laptops backlight fix: `tuxedo-drivers-nocompatcheck-dkms`
 - [x] Motorcomm yt6801 ethernet: `yt6801-dkms`
 
 Still deferred:
 
+- [ ] **Intel IPU7 camera firmware**: `intel-ipu7-camera-bin`. The AUR PKGBUILD has a runtime dep on `intel-ipu7-dkms-git` which is itself AUR-only, and makepkg --syncdeps in the bare build container has no AUR helper to resolve transitive AUR deps. Closing this requires either bootstrapping yay/paru into the build container OR listing the dep chain in the overlay manifest AND registering each freshly-built package as a temp pacman repo for subsequent builds to resolve from.
 - [ ] **Apple T2 Mac support**: `linux-t2`, `linux-t2-headers`, `apple-t2-audio-config`, `apple-bcm-firmware`, `t2fanrd`, `tiny-dfr`. `linux-t2` is a full kernel build (~30-60 min CI cost) and the audience is small. Pick up once GH Actions release pipeline (above) is up so the cost is amortized across nightly builds, not local dev iterations.
 - [ ] **Intel Panther Lake kernel**: `linux-ptl`, `linux-ptl-headers`. Same reason as Apple T2 (kernel compile cost).
 - [ ] **Hosted `[ryoku]` pacman repo**. Long-term plan to retire the per-ISO-build AUR rebuild cost: ship pre-built AUR packages from R2 (or wherever the ISO ends up hosted) so users get driver updates without rebuilding the ISO, and so dev iteration speed stops being tied to overlay rebuild time. Comes after the GH Actions + R2 release pipeline above.
