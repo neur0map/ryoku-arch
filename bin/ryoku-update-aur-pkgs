@@ -2,8 +2,24 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Update AUR packages if any are installed
-if pacman -Qem >/dev/null; then
+# Offline ISO installs intentionally skip yay bootstrap during install
+# (preflight/yay-bootstrap.sh exits when RYOKU_ONLINE_INSTALL is unset).
+# Once the user is on the network and runs ryoku-update, bootstrap yay
+# now so subsequent AUR-dependent work can proceed. Bootstrap failures
+# are non-fatal: ryoku-update keeps running through the rest of the
+# update flow rather than aborting the whole thing.
+if ! command -v yay >/dev/null 2>&1; then
+  if ping -c1 -W2 1.1.1.1 >/dev/null 2>&1; then
+    echo -e "\e[32m\nBootstrap yay (deferred from offline install)\e[0m"
+    RYOKU_ONLINE_INSTALL=1 bash "$RYOKU_PATH/install/preflight/yay-bootstrap.sh" || true
+  fi
+fi
+
+# Update AUR packages only if at least one is actually installed.
+# `pacman -Qem` exits 0 even when its output is empty, so the previous
+# guard fired the "AUR unavailable" warning even on systems that had
+# no AUR packages and nothing to update.
+if [[ -n $(pacman -Qem 2>/dev/null) ]]; then
   if ryoku-pkg-aur-accessible; then
     echo -e "\e[32m\nUpdate AUR packages\e[0m"
     yay -Sua --noconfirm --cleanafter --ignore gcc14,gcc14-libs
