@@ -118,6 +118,11 @@ jobs:
           access_key_id = ${R2_ACCESS_KEY_ID}
           secret_access_key = ${R2_SECRET_ACCESS_KEY}
           endpoint = ${R2_ENDPOINT}
+          # The scoped R2 API token has Object Read+Write only, not
+          # bucket-level perms. Without this flag rclone calls
+          # HeadBucket then CreateBucket, both of which 403, and the
+          # upload aborts. The bucket already exists; skip the check.
+          no_check_bucket = true
           EOF
 
           # R2_BUCKET secret can be either a plain bucket name (e.g.
