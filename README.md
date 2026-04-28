@@ -13,7 +13,7 @@ An opinionated **Arch Linux environment** for security work, built around **Hypr
 [![Hyprland](https://img.shields.io/badge/Hyprland-58E1C2?style=for-the-badge&logoColor=white)](https://hyprland.org)
 [![Status: pre-alpha](https://img.shields.io/badge/status-pre--alpha-F25623?style=for-the-badge)](#status)
 
-[Vision](docs/vision.md) &middot; [Install](#install) &middot; [Themes](#themes) &middot; [Commands](#command-surface) &middot; [Customize](docs/customization-inventory.md) &middot; [Docs](docs/)
+[Vision](docs/vision.md) &middot; [Themes](#themes) &middot; [Commands](#command-surface) &middot; [Customize](docs/customization-inventory.md) &middot; [Docs](docs/)
 
 </div>
 
@@ -32,37 +32,17 @@ Ryoku is a focused Arch workstation environment for people doing security work w
 
 ## Status
 
-**Pre-alpha. Not ready for installation.**
+**Pre-alpha. Not ready for general installation.**
 
-The repo is the source of truth for commands, configs, themes, and docs. The install flow (boot.sh, install.sh, archinstall integration, Omarchy migration with snapshot rollback) is being iterated on and is **not** stable enough to run on a real machine yet. See [`docs/vision.md`](docs/vision.md) for direction.
+The ISO installs cleanly in a fresh VM and is in tester-grade rotation on real hardware. See [`docs/vision.md`](docs/vision.md) for direction.
 
-If you're a contributor browsing the repo: explore `bin/`, `config/`, `themes/`, `default/` for the installed-system surface.
+Browsing the repo? Start in `bin/`, `config/`, `themes/`, `default/`.
 
-## Hardware compatibility
+## Hardware
 
-The Ryoku ISO installs **fully offline** on most modern hardware. Drivers ship in the ISO's offline mirror, including AUR-built packages that Ryoku makepkgs in the build container, so users do not need a hosted Ryoku pacman repo. Supported with no network during install:
+Installs offline on most modern Intel, AMD, NVIDIA, hybrid, Apple Silicon (Asahi), and Broadcom Wi-Fi systems. Apple T2 Macs and brand-new Intel Panther Lake laptops still need a network during install for now.
 
-- Intel iGPU (HD/UHD/Iris/Xe/Arc) and AMD iGPU (Renoir, Phoenix, etc.)
-- AMD discrete GPUs (RX 5xxx/6xxx/7xxx/9xxx)
-- NVIDIA Turing or newer: GTX 16xx, RTX 20xx-50xx, RTX Pro, Quadro RTX, datacenter A/H/T/L (`nvidia-open-dkms`)
-- NVIDIA Maxwell/Pascal/Volta legacy: GTX 9xx, GT/GTX 10xx, MX 1xx-2xx, Titan X/Xp/V, Tesla V100, Quadro M/P/GV (`nvidia-580xx-dkms`, AUR-built)
-- NVIDIA + Intel and NVIDIA + AMD hybrid laptops
-- Apple Silicon (M1/M2/M3/M4) via Asahi
-- Broadcom Wi-Fi (BCM43xx)
-- Intel power/thermal stack (thermald, intel-lpmd)
-- Tuxedo Computers laptops (`tuxedo-drivers-nocompatcheck-dkms`, AUR-built)
-- Motorcomm `yt6801` ethernet adapter (`yt6801-dkms`, AUR-built)
-- Apple MacBook 12-inch SPI keyboard, 2015-2017 (`macbook12-spi-driver-dkms`, AUR-built)
-- Intel IPU7 camera (Lunar Lake / Panther Lake laptops, `intel-ipu7-camera`, AUR-built)
-
-The following hardware is **not yet supported on a truly air-gapped install**. The install will abort at the affected hardware-detection step. Workaround: connect to Wi-Fi before starting the installer, or run `ryoku-update` after first boot.
-
-| Hardware | Missing AUR package | Why deferred |
-|---|---|---|
-| Apple T2 Mac (2018-2020 Intel MacBook Pro/Air/Mini) | `linux-t2`, `apple-t2-audio-config`, `apple-bcm-firmware`, `t2fanrd`, `tiny-dfr` | Niche audience; `linux-t2` is a full kernel build (~30-60 min CI cost) |
-| Intel Panther Lake kernel optimization (Core Ultra 3xxx, late-2025+) | `linux-ptl`, `linux-ptl-headers` | Kernel build cost; small audience today |
-
-Coverage tracked in [`docs/TODO.md`](docs/TODO.md). The long-term plan is to host a `[ryoku]` pacman repo so updates ship without rebuilding the ISO; until then, AUR-built drivers refresh on each ISO build.
+Full hardware matrix and driver list lives in [`docs/iso-build-recipe.md`](docs/iso-build-recipe.md).
 
 ## Themes
 
@@ -154,7 +134,7 @@ ryoku-arch/
 ├── applications/     # .desktop files shipped with Ryoku
 ├── lib/              # shared bash helpers
 ├── docs/             # vision, specs, plans, maintenance
-└── boot.sh           # online bootstrap (pre-alpha)
+└── boot.sh           # online bootstrap
 ```
 
 ## Documentation
