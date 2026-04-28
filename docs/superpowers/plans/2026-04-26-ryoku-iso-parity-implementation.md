@@ -779,7 +779,7 @@ Expected:
 ... release/<new-iso-name>.iso created ...
 ```
 
-- [~] **Step 4: Boot the new ISO into a fresh VM and validate the release contract**
+- [x] **Step 4: Boot the new ISO into a fresh VM and validate the release contract**
 
 Run:
 
@@ -797,11 +797,14 @@ Expected manual validation:
 5. Installed VM gets NAT ethernet on first boot.
 ```
 
-> Status: chroot install reaches "installation succeeded" in offline mode
-> after a series of fixes captured in
-> `docs/superpowers/specs/2026-04-27-ryoku-iso-build-recipe-design.md`.
-> First-boot validation (items 1-5) is still pending a contributor
-> rebooting the VM and confirming the branded boot.
+> Status (2026-04-28): items 1-4 confirmed end-to-end. Limine boot
+> menu loads with the Ryoku branding (color tracked separately under
+> commit 3932a787 for limine 12 hex syntax), branded Plymouth decrypt
+> prompt renders, pixel-rainyroom SDDM appears, login reaches a
+> Hyprland session with a working terminal. Item 5 (NAT ethernet) is
+> implicit since git/networked tools work post-login. Outstanding
+> first-boot polish (cursor theme, ryoku-update git repo) tracked in
+> the build recipe spec.
 
 - [ ] **Step 5: Commit the verification-support changes**
 
