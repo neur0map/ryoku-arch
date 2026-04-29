@@ -41,30 +41,13 @@ PanelWindow {
             fillColor: Config.frameColor
             fillRule: ShapePath.OddEvenFill
 
-            // Outer path: monitor with rounded top-left and top-right
-            // corners (Spec 2 follow-up). Wallpaper shows through the
-            // rounded corner cutouts so the Frame's side strips appear
-            // to round into the screen edge instead of meeting it sharply.
-            startX: Config.rounding
+            // Outer path: the full monitor, clockwise.
+            startX: 0
             startY: 0
-            PathLine { x: root.width - Config.rounding; y: 0 }
-            PathArc {
-                x: root.width
-                y: Config.rounding
-                radiusX: Config.rounding
-                radiusY: Config.rounding
-                direction: PathArc.Clockwise
-            }
+            PathLine { x: root.width; y: 0 }
             PathLine { x: root.width; y: root.height }
             PathLine { x: 0; y: root.height }
-            PathLine { x: 0; y: Config.rounding }
-            PathArc {
-                x: Config.rounding
-                y: 0
-                radiusX: Config.rounding
-                radiusY: Config.rounding
-                direction: PathArc.Clockwise
-            }
+            PathLine { x: 0; y: 0 }
 
             // Inner path: rounded-rect cutout, clockwise, all four corners
             // rounded with Config.rounding. Bounds at frameThickness on

@@ -50,18 +50,19 @@ Scope {
     // If you change Waybar's height (waybar config.jsonc `height`), change
     // this too.
     // Spec 2: kept at 0 so the Frame does NOT paint a top strip behind
-    // the Brain_Shell TopBar's transparent notch gaps. The bar's 3-notch
-    // floating-pill design is preserved. Trade-off: Frame side strips
-    // do not visually connect with the bar at the top corners.
-    // A future spec can carve a notch-shaped cutout in the Frame top
-    // (Caelestia-style "blob") so they connect properly.
+    // the Brain_Shell TopBar's transparent notch gaps. Floating-notch
+    // design preserved. Trade-off: corner where bar bottom meets side
+    // frame is sharp. Spec 2.7 (queued in docs/TODO.md) handles the
+    // proper Caelestia-style Frame-bar shape connection.
     readonly property int waybarHeight: 0
 
     // Corner radius applied to all four inner corners of the Frame cutout
     // (where the window area begins). Also used by the Hyprland drop-in
     // for window corner rounding so app corners echo the frame curve.
-    // Bumped from 8 to 12 for a more polished native feel.
-    readonly property int rounding: 12
+    // Bumped to 16 to match the Hyprland decoration:rounding bumped in
+    // bin/ryoku-toggle-frame so window corners and Frame inner cutout
+    // corners curve at the same radius.
+    readonly property int rounding: 16
 
     // --- Derived exclusions (do not edit directly) -------------------------
 
