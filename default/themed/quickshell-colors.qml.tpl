@@ -3,9 +3,9 @@ import QtQuick
 
 QtObject {
     // Used by the decorative Frame (Config.qml reads this). Mapped to
-    // theme accent for visibility against arbitrary wallpapers; switches
-    // automatically when the user runs ryoku-theme-set.
-    readonly property color frame: "{{ accent }}"
+    // theme background so it visually matches the bar's notch fill;
+    // switches automatically when the user runs ryoku-theme-set.
+    readonly property color frame: "{{ background }}"
 
     // Properties added in Spec 1 for Brain_Shell components that prefer
     // QML import over JSON file watching. Currently unused; reserved for
