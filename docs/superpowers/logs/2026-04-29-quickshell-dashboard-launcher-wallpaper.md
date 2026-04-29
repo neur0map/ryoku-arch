@@ -8,7 +8,7 @@ Date: 2026-04-29
 - Added display refresh reporting and safe power-saver refresh switching with blackout transition.
 - Replaced the dashboard clock card with a clock-only card.
 - Added a Quickshell app launcher on `SUPER SPACE`, with compact topbar-extension geometry and launch-row animation.
-- Added a Quickshell wallpaper switcher on `SUPER CTRL SPACE`, replacing the old background menu shortcut.
+- Added a Quickshell wallpaper switcher on `SUPER CTRL SPACE`, replacing the old background menu shortcut and keeping Brain Shell's bottom-opening pattern.
 
 ## Verification Commands
 

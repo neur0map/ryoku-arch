@@ -47,18 +47,24 @@ grep -q 'Binding { target: Popups; property: "wallpaperVisible"' "$wallpaper_pop
   || fail "WallpaperPopup should expose visual presence to TopBar"
 grep -q 'WlrKeyboardFocus.Exclusive' "$wallpaper_popup" \
   || fail "WallpaperPopup should own keyboard focus while open"
-grep -q 'attachedEdge: "top"' "$wallpaper_popup" \
-  || fail "WallpaperPopup should attach visually to the topbar"
-grep -q 'readonly property int panelWidth:  620' "$wallpaper_popup" \
-  || fail "WallpaperPopup should use compact width"
-grep -q 'readonly property int panelHeight: 300' "$wallpaper_popup" \
-  || fail "WallpaperPopup should use compact height"
+grep -q 'attachedEdge: "bottom"' "$wallpaper_popup" \
+  || fail "WallpaperPopup should open from the bottom like Brain Shell"
+grep -q 'implicitHeight: root.panelHeight + Theme.borderWidth' "$wallpaper_popup" \
+  || fail "WallpaperPopup should be a bottom layer surface, not fullscreen"
+grep -q 'readonly property int panelWidth:  980' "$wallpaper_popup" \
+  || fail "WallpaperPopup should use Brain Shell width"
+grep -q 'readonly property int panelHeight: 420' "$wallpaper_popup" \
+  || fail "WallpaperPopup should use Brain Shell height"
 grep -q 'bottom: true' "$wallpaper_popup" \
-  || fail "WallpaperPopup should own outside-click area"
-grep -q 'onClicked: Popups.closeAll()' "$wallpaper_popup" \
-  || fail "WallpaperPopup should close on outside click"
-! grep -q 'mask: Region' "$wallpaper_popup" \
-  || fail "WallpaperPopup should not mask away its outside-click area"
+  || fail "WallpaperPopup should anchor to the bottom edge"
+! grep -q 'top:    true' "$wallpaper_popup" \
+  || fail "WallpaperPopup should not be top anchored"
+grep -q 'mask: Region { item: maskProxy }' "$wallpaper_popup" \
+  || fail "WallpaperPopup should mask clicks to the bottom panel only"
+grep -q 'anchors.bottomMargin:     Theme.borderWidth' "$wallpaper_popup" \
+  || fail "WallpaperPopup should sit above the Ryoku frame border"
+grep -q 'visible: Popups.anyOpen || (ShellState.screenRecord && !ScreenRecService.recording)' "$popup_dismiss" \
+  || fail "PopupDismiss should remain responsible for wallpaper outside-click close"
 grep -q 'applyActive:' "$wallpaper_popup" \
   || fail "WallpaperPopup should keep explicit apply state"
 grep -q 'previewWall !== WallpaperService.currentWall' "$wallpaper_popup" \
