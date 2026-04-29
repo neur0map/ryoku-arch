@@ -14,7 +14,11 @@ Row {
 	// 2. Workspaces
 	Workspaces {} 
 	
-	//3. LayoutDisplay
-	LayoutDisplayer {}
+	// Ryoku Patch 9: LayoutDisplayer removed from the bar.
+	// Upstream's display-only indicator shipped placeholder-text returns
+	// (><, M, bracketed counts) that look like a broken button. The
+	// LayoutDisplayer.qml file stays vendored for future re-introduction
+	// as a clickable layout-switcher widget (see docs/TODO.md Spec 2.5).
+	// LayoutDisplayer {}
 
 }
