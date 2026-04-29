@@ -30,15 +30,19 @@ QtObject {
     property int borderWidth:   6
     property int cornerRadius:  17
     property int notchRadius:   15
-    property int notchHeight:   40
-    property int exclusionGap:  34
+    // Ryoku Patch 10: shrink bar dimensions for 14-inch laptop screens.
+    // Originals: notchHeight 40, exclusionGap 34, notchPadding 16,
+    // notchHorizontalPadding 20, notchVerticalPadding 10. Dashboard
+    // originals: 900x520. See vendor/brain-shell/UPSTREAM.md.
+    property int notchHeight:   28
+    property int exclusionGap:  22
     property int spacing:       10
 
     // -- Notch Content Padding --
     // Space added around the content inside each notch
-    property int notchPadding:           16   // horizontal padding each side
-    property int notchHorizontalPadding: 20
-    property int notchVerticalPadding:   10
+    property int notchPadding:           10   // Ryoku Patch 10 (was 16)
+    property int notchHorizontalPadding: 14   // Ryoku Patch 10 (was 20)
+    property int notchVerticalPadding:    6   // Ryoku Patch 10 (was 10)
     property int notchSideMargin:        10
 
     // -- Notch Width Constraints --
@@ -54,8 +58,8 @@ QtObject {
 
     // -- Dashboard Dimensions --
     // Target size the center notch expands to when the dashboard is open.
-    property int dashboardWidth:  900
-    property int dashboardHeight: 520
+    property int dashboardWidth:  720   // Ryoku Patch 10 (was 900)
+    property int dashboardHeight: 420   // Ryoku Patch 10 (was 520)
 
     // -- Notifications Popup Width --
     property int notificationsWidth: 400
