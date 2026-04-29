@@ -111,6 +111,16 @@ QtObject {
         root.busy = true
 
         var gov = (profile === "performance") ? "performance" : "powersave"
+        // Ryoku: validate gov against allowlist before shell interpolation.
+        // Linux kernel governors are a fixed set; reject anything else as
+        // defense-in-depth even though the current ternary only produces
+        // "performance" or "powersave".
+        var allowed = ["performance", "powersave", "ondemand", "conservative", "schedutil", "userspace"]
+        if (allowed.indexOf(gov) === -1) {
+            console.warn("[ryoku-shell] rejected unknown CPU governor:", gov)
+            root.busy = false
+            return
+        }
         _setProc.command = [
             "sh", "-c",
             "echo " + gov + " | tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor"
