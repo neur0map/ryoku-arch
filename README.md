@@ -150,6 +150,8 @@ ryoku-arch/
 
 Ryoku builds on work that began in [**Omarchy**](https://github.com/basecamp/omarchy). Upstream attribution remains in [`NOTICE`](NOTICE) and [`LICENSE`](LICENSE); the maintained project surface here is Ryoku (`ryoku-*`, `~/.config/ryoku`, `~/.local/share/ryoku`).
 
+The Quickshell visual layer (top bar, dashboard, popups, frame) is derived from [**Brain_Shell**](https://github.com/Brainitech/Brain_Shell) by **Venkat Saahit Kamu (Brainitech)**, MIT licensed and used with explicit permission. Vendored under `config/quickshell/ryoku/vendor/brain-shell/`; modifications are recorded in that directory's `UPSTREAM.md`. See [`CREDITS.md`](CREDITS.md) for full attribution.
+
 SDDM greeter and Quickshell lockscreen themes ship via [**qylock**](https://github.com/Darkkal44/qylock) by Darkkal44.
 
 ## License
