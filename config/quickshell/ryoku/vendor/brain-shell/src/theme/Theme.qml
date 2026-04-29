@@ -30,7 +30,7 @@ QtObject {
     property int borderWidth:   6
     property int cornerRadius:  17
     property int notchRadius:   15
-    property int notchHeight:   36   // Ryoku Patch 10 incremental: was 40
+    property int notchHeight:   32   // Ryoku Patch 10 incremental: was 40 (then 36)
     property int exclusionGap:  34
     property int spacing:       10
 
