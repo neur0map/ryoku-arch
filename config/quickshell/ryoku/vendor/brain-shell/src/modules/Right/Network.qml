@@ -100,7 +100,7 @@ Item {
             color:          root._netColor
             font.pixelSize: 13
             anchors.verticalCenter: parent.verticalCenter
-            Behavior on color { ColorAnimation { duration: 400; easing.type: Easing.InOutCubic } }
+            Behavior on color { ColorAnimation { duration: 700; easing.type: Easing.OutQuart } }
         }
 
         // VPN shield — opens to vpn tab
@@ -131,7 +131,7 @@ Item {
             font.pixelSize: 11
             anchors.verticalCenter: parent.verticalCenter
             color: ShellState.btConnected ? (hov.hovered ? Theme.active : Theme.text) : Qt.rgba(1,1,1,0.32)
-            Behavior on color { ColorAnimation { duration: 400; easing.type: Easing.InOutCubic } }
+            Behavior on color { ColorAnimation { duration: 700; easing.type: Easing.OutQuart } }
             MouseArea {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
@@ -150,7 +150,7 @@ Item {
             font.pixelSize: 11
             anchors.verticalCenter: parent.verticalCenter
             color:          Theme.active
-            Behavior on color { ColorAnimation { duration: 400; easing.type: Easing.InOutCubic } }
+            Behavior on color { ColorAnimation { duration: 700; easing.type: Easing.OutQuart } }
             MouseArea {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor

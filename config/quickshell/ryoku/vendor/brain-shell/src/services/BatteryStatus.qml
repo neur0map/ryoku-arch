@@ -109,7 +109,7 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
 
             // Ryoku: smooth color transition on hover.
-            Behavior on color { ColorAnimation { duration: 400; easing.type: Easing.InOutCubic } }
+            Behavior on color { ColorAnimation { duration: 700; easing.type: Easing.OutQuart } }
 
             // Pulse when critically low and discharging
             SequentialAnimation on opacity {
@@ -135,7 +135,7 @@ Item {
             font.pixelSize:         11
             anchors.verticalCenter: parent.verticalCenter
             visible:                root.showPercentage || hov.hovered
-            Behavior on color { ColorAnimation { duration: 400; easing.type: Easing.InOutCubic } }
+            Behavior on color { ColorAnimation { duration: 700; easing.type: Easing.OutQuart } }
         }
     }
 
