@@ -335,10 +335,11 @@ property var _discardTimer: Timer {
 
         _cavaRecProc.command = [
             "bash", "-c",
-            "mkdir -p /tmp/brain_shell && printf '%s\\n' '" +
+            // Ryoku: /tmp/brain_shell -> /tmp/ryoku-shell rebrand.
+            "mkdir -p /tmp/ryoku-shell && printf '%s\\n' '" +
             config.replace(/'/g, "'\\''") +
-            "' > /tmp/brain_shell/cava_rec.ini && " +
-            "exec cava -p /tmp/brain_shell/cava_rec.ini 2>/dev/null"
+            "' > /tmp/ryoku-shell/cava_rec.ini && " +
+            "exec cava -p /tmp/ryoku-shell/cava_rec.ini 2>/dev/null"
         ]
         _cavaRecProc.running = false
         _cavaRecProc.running = true
