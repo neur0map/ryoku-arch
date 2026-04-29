@@ -50,22 +50,26 @@ Item {
         }
     }
 
-    // Polling
+    // Ryoku: nmcli-free polling using ip + /proc/net/wireless. Works on
+    // any Linux regardless of NetworkManager / iwd / systemd-networkd.
     Process {
         id: wifiPoll
-        command: ["bash", "-c", "nmcli -t -f ACTIVE,SIGNAL dev wifi 2>/dev/null | grep '^yes:' | head -1 | cut -d: -f2"]
+        command: ["bash", "-c",
+            "awk 'NR>2 {printf \"%d\\n\", $3*100/70; exit} END {if (NR<3) print 0}' /proc/net/wireless 2>/dev/null"]
         running: false
         stdout: SplitParser { onRead: function(l) { var s = parseInt(l.trim()); root._signal = isNaN(s) ? 0 : s } }
     }
     Process {
         id: ethPoll
-        command: ["bash", "-c", "nmcli -t -f TYPE,STATE dev 2>/dev/null | grep -c 'ethernet:connected'"]
+        command: ["bash", "-c",
+            "ip route show default 2>/dev/null | awk '{for(i=1;i<NF;i++) if ($i == \"dev\") print $(i+1); exit}' | grep -cE '^(en|eth)'"]
         running: false
         stdout: SplitParser { onRead: function(l) { root._ethernet = parseInt(l.trim()) > 0 } }
     }
     Process {
         id: connPoll
-        command: ["bash", "-c", "nmcli -t -f CONNECTIVITY general 2>/dev/null | head -1"]
+        command: ["bash", "-c",
+            "ip route show default 2>/dev/null | head -1 | grep -q . && echo full || echo none"]
         running: false
         stdout: SplitParser {
             onRead: function(l) { var v = l.trim().toLowerCase(); if (v !== "") root._connectivity = v }
