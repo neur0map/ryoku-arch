@@ -27,15 +27,12 @@ PanelWindow {
     property string page: "home"
 
     // ── Per-page content widths ───────────────────────────────────────────────
-    // Ryoku Patch 11: per-tab widths reduced from 900 to 720 to match
-    // Patch 10's reduced Theme.dashboardWidth. Launcher tab was already
-    // tuned to 560 and stays. See vendor/brain-shell/UPSTREAM.md.
     readonly property var _pageWidths: ({
-        "home":     720,
-        "stats":    720,
-        "kanban":   720,
+        "home":     900,
+        "stats":    900,
+        "kanban":   900,
         "launcher": 560,
-        "config":   720
+        "config":   900
     })
 
     function _applyPageWidth(p) {
