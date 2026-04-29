@@ -13,12 +13,11 @@ PanelWindow {
 
     Binding { target: Popups; property: "wallpaperVisible"; value: sizer.visible }
 
-    anchors {
-        top:    true
-        left:   true
-        right:  true
-        bottom: true
-    }
+    anchors.left:   true
+    anchors.right:  true
+    anchors.bottom: true
+
+    implicitHeight: root.panelHeight + Theme.borderWidth
 
     exclusionMode: ExclusionMode.Ignore
     color:         "transparent"
@@ -26,10 +25,19 @@ PanelWindow {
     WlrLayershell.layer:         WlrLayer.Overlay
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
 
-    readonly property int panelWidth:  620
-    readonly property int panelHeight: 300
+    readonly property int panelWidth:  980
+    readonly property int panelHeight: 420
     readonly property int fw:          Theme.notchRadius
     readonly property int fh:          Theme.notchRadius
+
+    mask: Region { item: maskProxy }
+    Item {
+        id: maskProxy
+        x:      (root.width - sizer.width) / 2
+        y:      root.height - sizer.height - Theme.borderWidth
+        width:  sizer.width
+        height: sizer.height
+    }
 
     property bool windowVisible: false
     visible: windowVisible
@@ -108,12 +116,6 @@ PanelWindow {
         }
     }
 
-    MouseArea {
-        anchors.fill: parent
-        enabled: root.windowVisible
-        onClicked: Popups.closeAll()
-    }
-
     Connections {
         target: WallpaperService
         function onWallpapersChanged() {
@@ -134,7 +136,8 @@ PanelWindow {
     Item {
         id: sizer
         anchors.horizontalCenter: parent.horizontalCenter
-        anchors.top:              parent.top
+        anchors.bottom:           parent.bottom
+        anchors.bottomMargin:     Theme.borderWidth
         clip: true
 
         width:  Popups.wallpaperOpen
@@ -154,7 +157,7 @@ PanelWindow {
 
         PopupShape {
             anchors.fill: parent
-            attachedEdge: "top"
+            attachedEdge: "bottom"
             color:        Theme.background
             radius:       Theme.cornerRadius
             flareWidth:   root.fw
@@ -171,10 +174,10 @@ PanelWindow {
             z: 1
             anchors {
                 fill:         parent
-                topMargin:    Theme.notchHeight + 8
-                bottomMargin: 8
-                leftMargin:   root.fw + 12
-                rightMargin:  root.fw + 12
+                topMargin:    16
+                bottomMargin: root.fh + 8
+                leftMargin:   root.fw + 16
+                rightMargin:  root.fw + 16
             }
 
             property string searchQuery:     ""
