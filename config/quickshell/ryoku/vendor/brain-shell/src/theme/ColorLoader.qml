@@ -2,11 +2,16 @@ import QtQuick
 import Quickshell.Io
 
 // ============================================================
-// ColorLoader — watches ~/.cache/brain-shell/colors.json
-// and exposes parsed color properties.
+// Ryoku: ColorLoader watches the Ryoku theme pipeline output at
+// $HOME/.config/ryoku/current/theme/ryoku-shell-colors.json (rendered
+// by ryoku-theme-set-templates from
+// default/themed/ryoku-shell-colors.json.tpl).
 //
 // Not a singleton. Instantiated as a property inside Theme.qml.
 // Theme.qml reads loader.background, loader.active etc.
+//
+// Original upstream header referenced ~/.cache/brain-shell/colors.json
+// which no longer applies under the Ryoku theme pipeline.
 // ============================================================
 
 QtObject {
@@ -36,7 +41,7 @@ QtObject {
             onRead: function(line) {
                 var h = line.trim()
                 if (h !== "")
-                    colorsFile.path = h + "/.cache/brain-shell/colors.json"
+                    colorsFile.path = h + "/.config/ryoku/current/theme/ryoku-shell-colors.json"
             }
         }
     }
