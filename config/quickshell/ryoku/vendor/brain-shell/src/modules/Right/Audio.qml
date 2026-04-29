@@ -31,15 +31,15 @@ Item {
         id: hov
     }
 
-    // Ryoku: subtle background highlight on hover. Animates reliably
-    // (Rectangle.color is a true color property) where Text.color
-    // animations have been flaky.
+    // Ryoku: subtle background highlight on hover. Uses opacity
+    // NumberAnimation (more reliable than ColorAnimation across alpha).
     Rectangle {
         anchors.fill: parent
         anchors.margins: 2
         radius:  6
-        color:   hov.hovered ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(1, 1, 1, 0.0)
-        Behavior on color { ColorAnimation { duration: 600; easing.type: Easing.OutQuart } }
+        color:   "white"
+        opacity: hov.hovered ? 0.08 : 0.0
+        Behavior on opacity { NumberAnimation { duration: 800; easing.type: Easing.OutQuart } }
     }
 
     Row {

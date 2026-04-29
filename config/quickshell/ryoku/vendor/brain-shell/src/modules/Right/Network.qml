@@ -87,13 +87,14 @@ Item {
 
     HoverHandler { id: hov; onHoveredChanged: Popups.networkTriggerHovered = hovered }
 
-    // Ryoku: subtle background highlight on hover, animates cleanly.
+    // Ryoku: subtle background highlight on hover, opacity animation.
     Rectangle {
         anchors.fill: parent
         anchors.margins: 2
         radius:  6
-        color:   hov.hovered ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(1, 1, 1, 0.0)
-        Behavior on color { ColorAnimation { duration: 600; easing.type: Easing.OutQuart } }
+        color:   "white"
+        opacity: hov.hovered ? 0.08 : 0.0
+        Behavior on opacity { NumberAnimation { duration: 800; easing.type: Easing.OutQuart } }
         z: -1
     }
 
