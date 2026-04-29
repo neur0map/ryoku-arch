@@ -108,6 +108,23 @@ grep -q 'DashHome\s*{' \
   || fail "Dashboard should mount DashHome"
 pass "dashboard unified shell"
 
+# --- Dashboard telemetry rail ----------------------------------------
+[[ -f config/quickshell/ryoku/vendor/brain-shell/src/services/home/TelemetryRail.qml ]] \
+  || fail "TelemetryRail.qml missing"
+grep -q 'TelemetryRail\s*{' \
+  config/quickshell/ryoku/vendor/brain-shell/src/services/home/DashHome.qml \
+  || fail "DashHome should mount TelemetryRail"
+! grep -q 'QuickSettings\s*{' \
+  config/quickshell/ryoku/vendor/brain-shell/src/services/home/DashHome.qml \
+  || fail "DashHome QuickSettings column should stay removed"
+! grep -q 'Speedometer\s*{' \
+  config/quickshell/ryoku/vendor/brain-shell/src/services/home/TelemetryRail.qml \
+  || fail "Telemetry rail should not reuse Speedometer widgets"
+grep -q 'Canvas\s*{' \
+  config/quickshell/ryoku/vendor/brain-shell/src/services/home/TelemetryRail.qml \
+  || fail "Telemetry rail should render a custom graph canvas"
+pass "dashboard telemetry rail"
+
 # --- Existing stack untouched -----------------------------------------
 grep -q "uwsm-app -- waybar" default/hypr/autostart.conf \
   || fail "waybar exec-once was removed (Spec 1 requires it stay)"
@@ -129,7 +146,8 @@ echo "  1. ryoku-refresh-quickshell  (mirror dev tree to ~/.config)"
 echo "  2. ryoku-restart-shell       (or run the migration script)"
 echo "  3. Visually verify TopBar appears alongside waybar"
 echo "  4. Click center notch -> Dashboard opens as one unified home view"
-echo "  5. Verify the dashboard has no tab bar and shows home content immediately"
-echo "  6. ryoku-theme-set <other-theme> -> colors update across Frame plus TopBar plus Dashboard"
-echo "  7. ryoku-toggle-frame -> everything (Frame plus Brain_Shell) disappears"
-echo "  8. ryoku-toggle-frame again -> everything comes back"
+echo "  5. Verify Profile, Calendar, Clock, Player, and the telemetry rail appear together"
+echo "  6. Verify the rail shows a CPU graph, RAM bar, thermal lanes, network bars, and compact GPU/disk summaries"
+echo "  7. ryoku-theme-set <other-theme> -> colors update across Frame plus TopBar plus Dashboard"
+echo "  8. ryoku-toggle-frame -> everything (Frame plus Brain_Shell) disappears"
+echo "  9. ryoku-toggle-frame again -> everything comes back"

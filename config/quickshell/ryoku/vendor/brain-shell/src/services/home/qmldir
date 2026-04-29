@@ -3,3 +3,4 @@ CalendarCard   CalendarCard.qml
 ClockCard      ClockCard.qml
 PlayerCard     PlayerCard.qml
 QuickSettings  QuickSettings.qml
+TelemetryRail  TelemetryRail.qml
