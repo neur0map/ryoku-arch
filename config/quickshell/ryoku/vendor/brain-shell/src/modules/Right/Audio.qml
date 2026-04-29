@@ -50,19 +50,17 @@ Item {
         Text {
             id: iconText
             text:           root.icon
-            color:          hov.hovered ? Theme.active : Theme.text
+            color:          Theme.text
             font.pixelSize: 14
             anchors.verticalCenter: parent.verticalCenter
-            Behavior on color { ColorAnimation { duration: 700; easing.type: Easing.OutQuart } }
         }
 
         Text {
             text:           root.pct + "%"
-            color:          hov.hovered ? Theme.active : Theme.text
+            color:          Theme.text
             font.pixelSize: 12
             anchors.verticalCenter: parent.verticalCenter
             visible:        root.showPercentage || hov.hovered
-            Behavior on color { ColorAnimation { duration: 700; easing.type: Easing.OutQuart } }
         }
     }
 
