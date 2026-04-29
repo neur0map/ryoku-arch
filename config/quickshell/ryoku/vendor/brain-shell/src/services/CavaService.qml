@@ -30,13 +30,14 @@ QtObject {
     property var _proc: Process {
         command: [
             "bash", "-c",
-            "mkdir -p /tmp/brain_shell && " +
+            // Ryoku: /tmp/brain_shell -> /tmp/ryoku-shell rebrand.
+            "mkdir -p /tmp/ryoku-shell && " +
             "printf '[general]\\nbars = 32\\nframerate = 30\\nnoise_reduction = 77\\n\\n" +
             "[output]\\nmethod = raw\\nraw_target = /dev/stdout\\n" +
             "data_format = ascii\\nascii_max_range = 100\\n" +
             "bar_delimiter = 59\\nframe_delimiter = 10\\n' " +
-            "> /tmp/brain_shell/cava_shared.ini && " +
-            "exec cava -p /tmp/brain_shell/cava_shared.ini 2>/dev/null"
+            "> /tmp/ryoku-shell/cava_shared.ini && " +
+            "exec cava -p /tmp/ryoku-shell/cava_shared.ini 2>/dev/null"
         ]
         running: true
         stdout: SplitParser {
