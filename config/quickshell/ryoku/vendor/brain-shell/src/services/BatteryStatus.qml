@@ -141,6 +141,16 @@ Item {
 
     HoverHandler { id: hov }
 
+    // Ryoku: subtle background highlight on hover, animates cleanly.
+    Rectangle {
+        anchors.fill: parent
+        anchors.margins: 2
+        radius:  6
+        color:   hov.hovered ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(1, 1, 1, 0.0)
+        Behavior on color { ColorAnimation { duration: 600; easing.type: Easing.OutQuart } }
+        z: -1
+    }
+
     // ── Warning window ────────────────────────────────────────────────────────
     BatteryWarning {
         id:      warningWindow
