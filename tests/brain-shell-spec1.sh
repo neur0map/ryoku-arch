@@ -87,6 +87,21 @@ DORMANT=$(grep -cE '^\s*//\s*(ArchMenu|WallpaperPopup|AudioPopup|QuickControl|No
 [[ $DORMANT -eq 8 ]] || fail "expected 8 dormant popups, got $DORMANT"
 pass "PopupLayer activation matches Reading X"
 
+# --- Dashboard unified shell -----------------------------------------
+! grep -q 'TabSwitcher\s*{' \
+  config/quickshell/ryoku/vendor/brain-shell/src/popups/Dashboard.qml \
+  || fail "Dashboard tab bar should be removed"
+! grep -q 'property string page:' \
+  config/quickshell/ryoku/vendor/brain-shell/src/popups/Dashboard.qml \
+  || fail "Dashboard page state should be removed"
+! grep -q 'DashStats\s*{' \
+  config/quickshell/ryoku/vendor/brain-shell/src/popups/Dashboard.qml \
+  || fail "Dashboard should not mount DashStats directly"
+grep -q 'DashHome\s*{' \
+  config/quickshell/ryoku/vendor/brain-shell/src/popups/Dashboard.qml \
+  || fail "Dashboard should mount DashHome"
+pass "dashboard unified shell"
+
 # --- Existing stack untouched -----------------------------------------
 grep -q "uwsm-app -- waybar" default/hypr/autostart.conf \
   || fail "waybar exec-once was removed (Spec 1 requires it stay)"
@@ -107,8 +122,8 @@ echo "Static checks passed. Run the manual checklist next:"
 echo "  1. ryoku-refresh-quickshell  (mirror dev tree to ~/.config)"
 echo "  2. ryoku-restart-shell       (or run the migration script)"
 echo "  3. Visually verify TopBar appears alongside waybar"
-echo "  4. Click center notch -> Dashboard opens with launcher tab"
-echo "  5. Launch a real app from launcher tab -> window appears"
+echo "  4. Click center notch -> Dashboard opens as one unified home view"
+echo "  5. Verify the dashboard has no tab bar and shows home content immediately"
 echo "  6. ryoku-theme-set <other-theme> -> colors update across Frame plus TopBar plus Dashboard"
 echo "  7. ryoku-toggle-frame -> everything (Frame plus Brain_Shell) disappears"
 echo "  8. ryoku-toggle-frame again -> everything comes back"
