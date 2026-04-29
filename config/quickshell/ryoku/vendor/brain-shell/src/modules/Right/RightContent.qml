@@ -32,8 +32,11 @@ Item {
         Audio{}
         Battery{}
         Clock{}
-        SysTray{}
-        Notifications{}
+        // Ryoku: SysTray + Notifications removed from bar (icons became
+        // visually unfit; their popups are dormant per Spec 1 Reading X
+        // anyway). Re-add when the popups activate in Spec 3+.
+        // SysTray{}
+        // Notifications{}
     }
 
     // ── Open indicator — fades in when any right popup opens ──────────────────
