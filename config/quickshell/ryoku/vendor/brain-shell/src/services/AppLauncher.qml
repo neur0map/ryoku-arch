@@ -17,6 +17,10 @@ Item {
     property bool loading:  true
     property int  selIndex: -1
     property string query:  ""
+    property bool active: visible
+    property bool launchPending: false
+    property string launchingExec: ""
+    property string _pendingExec: ""
 
     readonly property var filtered: {
         var q = query.toLowerCase().trim()
@@ -29,7 +33,7 @@ Item {
     // ── Load apps ─────────────────────────────────────────────────────────────
     Process {
         id: listProc
-        command: ["python3", Quickshell.shellDir + "/src/scripts/list_apps.py"]
+        command: ["python3", Quickshell.shellDir + "/vendor/brain-shell/src/scripts/list_apps.py"]
         running: false
         stdout: StdioCollector {
             id: listBuf
@@ -42,8 +46,14 @@ Item {
         }
     }
 
-    onVisibleChanged: {
-        if (!visible) return
+    onActiveChanged: {
+        if (!active) {
+            launchTimer.stop()
+            root.launchPending = false
+            root.launchingExec = ""
+            root._pendingExec  = ""
+            return
+        }
         root.loading   = true
         root.apps      = []
         root.query     = ""
@@ -67,33 +77,54 @@ Item {
         running: false
     }
 
-    function launch(exec) {
+    Timer {
+        id: launchTimer
+        interval: 140
+        repeat: false
+        onTriggered: root._launchNow()
+    }
+
+    function _parseExec(raw) {
         // Ryoku: parse Exec per freedesktop spec (whitespace-split respecting
         // quoted args, strip %f/%u/%i/%c/%k field codes), then exec via Process
         // command array directly. Avoids shell injection from malicious or
         // buggy .desktop Exec= fields.
-        function parseExec(raw) {
-            var stripped = raw.replace(/%[a-zA-Z]/g, "").trim()
-            var args = []
-            var cur = ""
-            var inQuote = null
-            for (var i = 0; i < stripped.length; ++i) {
-                var c = stripped[i]
-                if (inQuote) {
-                    if (c === inQuote) { inQuote = null } else { cur += c }
-                } else if (c === '"' || c === "'") {
-                    inQuote = c
-                } else if (c === ' ' || c === '\t') {
-                    if (cur) { args.push(cur); cur = "" }
-                } else { cur += c }
+        var stripped = raw.replace(/%[a-zA-Z]/g, "").trim()
+        var args = []
+        var cur = ""
+        var inQuote = null
+        for (var i = 0; i < stripped.length; ++i) {
+            var c = stripped[i]
+            if (inQuote) {
+                if (c === inQuote) { inQuote = null } else { cur += c }
+            } else if (c === '"' || c === "'") {
+                inQuote = c
+            } else if (c === ' ' || c === '\t') {
+                if (cur) { args.push(cur); cur = "" }
+            } else {
+                cur += c
             }
-            if (cur) args.push(cur)
-            return args
         }
-        launcher.command = ["setsid"].concat(parseExec(exec))
+        if (cur) args.push(cur)
+        return args
+    }
+
+    function launch(exec) {
+        if (root.launchPending) return
+        root.launchPending = true
+        root.launchingExec = exec
+        root._pendingExec  = exec
+        launchTimer.restart()
+    }
+
+    function _launchNow() {
+        launcher.command = ["setsid"].concat(root._parseExec(root._pendingExec))
         launcher.running = false
         launcher.running = true
-        Popups.dashboardOpen = false
+        Popups.launcherOpen = false
+        root.launchPending = false
+        root.launchingExec = ""
+        root._pendingExec  = ""
     }
 
     // ── Layout ────────────────────────────────────────────────────────────────
@@ -171,21 +202,27 @@ Item {
                     required property int index
 
                     width:  appList.width - 8
-                    height: 46
-                    radius: 9
+                    height: 40
+                    radius: 8
 
                     readonly property bool isSel: root.selIndex === index
+                    readonly property bool isLaunching: root.launchPending
+                                                        && root.launchingExec === modelData.exec
 
                     color: isSel
-                           ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.14)
+                           ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, isLaunching ? 0.28 : 0.14)
                            : rowH.hovered ? Qt.rgba(1,1,1,0.06) : "transparent"
                     border.color: isSel
-                                  ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.28)
+                                  ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, isLaunching ? 0.65 : 0.28)
                                   : rowH.hovered ? Qt.rgba(1,1,1,0.08) : "transparent"
                     border.width: 1
+                    opacity: root.launchPending && !isLaunching ? 0.48 : 1
+                    scale: isLaunching ? 0.97 : 1
 
                     Behavior on color        { ColorAnimation { duration: 100 } }
                     Behavior on border.color { ColorAnimation { duration: 100 } }
+                    Behavior on opacity      { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+                    Behavior on scale        { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
 
                     Row {
                         anchors {
@@ -197,7 +234,7 @@ Item {
 
                         // App icon
                         Item {
-                            width: 28; height: 28
+                            width: 24; height: 24
                             anchors.verticalCenter: parent.verticalCenter
 
                             Image {
@@ -211,8 +248,8 @@ Item {
                                 }
                                 fillMode:          Image.PreserveAspectFit
                                 smooth:            true
-                                sourceSize.width:  28
-                                sourceSize.height: 28
+                                sourceSize.width:  24
+                                sourceSize.height: 24
                             }
 
                             // Letter fallback
@@ -224,7 +261,7 @@ Item {
                                 Text {
                                     anchors.centerIn: parent
                                     text:           modelData.name.charAt(0).toUpperCase()
-                                    font.pixelSize: 13; font.bold: true
+                                    font.pixelSize: 12; font.bold: true
                                     color:          Theme.active
                                 }
                             }
@@ -232,10 +269,10 @@ Item {
 
                         // App name
                         Text {
-                            width: parent.width - 28 - parent.spacing
+                            width: parent.width - 24 - parent.spacing
                             anchors.verticalCenter: parent.verticalCenter
                             text:           modelData.name
-                            font.pixelSize: 13
+                            font.pixelSize: 12
                             color:          isSel ? Theme.active : Theme.text
                             elide:          Text.ElideRight
                             Behavior on color { ColorAnimation { duration: 100 } }
@@ -257,7 +294,7 @@ Item {
         // Search bar
         Rectangle {
             id: searchBar
-            width: parent.width; height: 44; radius: 12
+            width: parent.width; height: 38; radius: 10
             color: Qt.rgba(1,1,1,0.06)
             border.color: searchInput.activeFocus
                           ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.50)
@@ -287,7 +324,7 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         text:    "Search apps…"
                         color:   Qt.rgba(1,1,1,0.22)
-                        font.pixelSize: 13
+                        font.pixelSize: 12
                         visible: searchInput.text === ""
                     }
 
@@ -296,7 +333,7 @@ Item {
                         anchors { fill: parent; topMargin: 2; bottomMargin: 2 }
                         verticalAlignment: TextInput.AlignVCenter
                         color:          Theme.text
-                        font.pixelSize: 13
+                        font.pixelSize: 12
                         selectionColor: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.35)
                         clip: true
 
@@ -330,7 +367,7 @@ Item {
                             if (text !== "") {
                                 text = ""
                             } else {
-                                Popups.dashboardOpen = false
+                                Popups.launcherOpen = false
                             }
                         }
                     }

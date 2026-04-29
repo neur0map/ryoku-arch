@@ -24,7 +24,7 @@ PanelWindow {
     // the two shapes read as one continuous surface during open and
     // close. Bound to Popups.dashboardVisible (set by Dashboard.qml)
     // so the layer holds through the full close animation.
-    WlrLayershell.layer: Popups.dashboardVisible ? WlrLayer.Overlay : WlrLayer.Top
+    WlrLayershell.layer: Popups.dashboardVisible || Popups.launcherVisible || Popups.wallpaperVisible ? WlrLayer.Overlay : WlrLayer.Top
 
     anchors {
         top:   true

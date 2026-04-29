@@ -32,10 +32,11 @@ Item {
 
     // Active in Spec 1
     Dashboard { anchorWindow: root.topBar }
+    AppLauncherPopup {}
+    WallpaperPopup {}
 
     // Dormant in follow-up specs.
     // ArchMenu              { anchorWindow: root.leftBorder }
-    // WallpaperPopup        {}
     // AudioPopup            { anchorWindow: root.rightBorder }
     // QuickControl          { anchorWindow: root.topBar }
     // NotificationsPopup    { anchorWindow: root.topBar }

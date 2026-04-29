@@ -1,14 +1,42 @@
 //@ pragma Env QS_NO_RELOAD_POPUP=1
 
 import Quickshell
+import Quickshell.Io
 import QtQuick
 
 // Brain_Shell vendored components (MIT, Brainiac/Brainitech).
 // See config/quickshell/ryoku/vendor/brain-shell/UPSTREAM.md.
+import "vendor/brain-shell/src" as BS
 import "vendor/brain-shell/src/windows" as BSW
 import "vendor/brain-shell/src/popups" as BSP
 
 ShellRoot {
+    // CLI entry points: `qs ipc call -c ryoku popups <fn>`. Used by
+    // Hyprland keybindings (e.g. SUPER+D toggles the dashboard).
+    IpcHandler {
+        target: "popups"
+
+        function toggleDashboard(): void {
+            BS.Popups.dashboardOpen = !BS.Popups.dashboardOpen
+        }
+
+        function toggleLauncher(): void {
+            const opening = !BS.Popups.launcherOpen
+            BS.Popups.closeAll()
+            BS.Popups.launcherOpen = opening
+        }
+
+        function toggleWallpaper(): void {
+            const opening = !BS.Popups.wallpaperOpen
+            BS.Popups.closeAll()
+            BS.Popups.wallpaperOpen = opening
+        }
+
+        function closeAll(): void {
+            BS.Popups.closeAll()
+        }
+    }
+
     // Existing decorative Frame, untouched.
     Variants {
         model: Quickshell.screens
@@ -45,6 +73,8 @@ ShellRoot {
                     // border system). PopupLayer Patch 7 softens these
                     // from required to property defaults.
                 }
+
+                BSW.DisplayTransitionOverlay { screen: modelData }
             }
         }
     }
