@@ -68,7 +68,29 @@ Item {
     }
 
     function launch(exec) {
-        launcher.command = ["bash", "-c", "setsid " + exec + " &>/dev/null &"]
+        // Ryoku: parse Exec per freedesktop spec (whitespace-split respecting
+        // quoted args, strip %f/%u/%i/%c/%k field codes), then exec via Process
+        // command array directly. Avoids shell injection from malicious or
+        // buggy .desktop Exec= fields.
+        function parseExec(raw) {
+            var stripped = raw.replace(/%[a-zA-Z]/g, "").trim()
+            var args = []
+            var cur = ""
+            var inQuote = null
+            for (var i = 0; i < stripped.length; ++i) {
+                var c = stripped[i]
+                if (inQuote) {
+                    if (c === inQuote) { inQuote = null } else { cur += c }
+                } else if (c === '"' || c === "'") {
+                    inQuote = c
+                } else if (c === ' ' || c === '\t') {
+                    if (cur) { args.push(cur); cur = "" }
+                } else { cur += c }
+            }
+            if (cur) args.push(cur)
+            return args
+        }
+        launcher.command = ["setsid"].concat(parseExec(exec))
         launcher.running = false
         launcher.running = true
         Popups.dashboardOpen = false
