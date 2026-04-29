@@ -1,6 +1,7 @@
 //@ pragma Env QS_NO_RELOAD_POPUP=1
 
 import Quickshell
+import QtQuick
 
 // Brain_Shell vendored components (MIT, Brainiac/Brainitech).
 // See config/quickshell/ryoku/vendor/brain-shell/UPSTREAM.md.
