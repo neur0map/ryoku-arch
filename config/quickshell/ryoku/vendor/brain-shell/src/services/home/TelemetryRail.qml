@@ -14,19 +14,22 @@ Item {
     id: root
 
     readonly property int railRadius:       Theme.cornerRadius + 6
-    readonly property int contentMargin:    14
-    readonly property int sectionSpacing:   12
-    readonly property int cpuSectionH:      96
-    readonly property int memorySectionH:   46
-    readonly property int thermalsSectionH: 70
-    readonly property int networkSectionH:  78
-    readonly property int summarySectionH:  76
+    readonly property int contentMargin:    10
+    readonly property int sectionSpacing:    8
+    readonly property int cpuSectionH:      88
+    readonly property int memorySectionH:   42
+    readonly property int thermalsSectionH: 64
+    readonly property int networkSectionH:  70
+    readonly property int summarySectionH:  68
 
     property real _upBps:   0
     property real _downBps: 0
     property real _netPeak: 65536
     property string activeDisplayName: "Display"
-    property int activeRefreshHz: 0
+    property int currentDisplayRefreshHz: 0
+    readonly property string displaySummary: root.currentDisplayRefreshHz > 0
+        ? root.activeDisplayName + " · " + root.currentDisplayRefreshHz + " Hz"
+        : root.activeDisplayName
 
     CpuService         { id: cpu;     active: root.visible }
     MemService         { id: mem;     active: root.visible }
@@ -101,10 +104,18 @@ Item {
                     }
 
                     root.activeDisplayName = mon.name || "Display"
-                    root.activeRefreshHz = Math.round(mon.refreshRate || 0)
+                    root.currentDisplayRefreshHz = Math.round(mon.refreshRate || 0)
                 } catch (e) {
                 }
             }
+        }
+    }
+
+    Connections {
+        target: PowerProfile
+        function onDisplayRefreshGenerationChanged() {
+            displayRead.running = false
+            displayRead.running = true
         }
     }
 
@@ -357,67 +368,70 @@ Item {
             width:  parent.width
             height: root.thermalsSectionH
 
-            Column {
-                anchors.fill: parent
-                spacing: 8
+            Text {
+                anchors.left: parent.left
+                anchors.top:  parent.top
+                text:           "Thermals"
+                font.pixelSize: 11
+                font.weight:    Font.DemiBold
+                color:          Qt.rgba(1, 1, 1, 0.45)
+            }
 
-                Text {
-                    text:           "Thermals"
-                    font.pixelSize: 11
-                    font.weight:    Font.DemiBold
-                    color:          Qt.rgba(1, 1, 1, 0.45)
-                }
+            Repeater {
+                model: [
+                    { label: "CPU", temp: thermal.cpuTemp, text: thermal.cpuTempStr },
+                    { label: "GPU", temp: thermal.gpuTemp, text: root.usingDgpu ? thermal.gpuTempStr : "idle" }
+                ]
+                delegate: Item {
+                    required property var modelData
+                    required property int index
+                    width:  parent.width
+                    height: 16
+                    y:      17 + index * 17
 
-                Repeater {
-                    model: [
-                        { label: "CPU", temp: thermal.cpuTemp, text: thermal.cpuTempStr },
-                        { label: "GPU", temp: thermal.gpuTemp, text: root.usingDgpu ? thermal.gpuTempStr : "idle" }
-                    ]
-                    delegate: Item {
-                        required property var modelData
-                        width:  parent.width
-                        height: 16
+                    Text {
+                        anchors.left:           parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        text:           modelData.label
+                        font.pixelSize: 10
+                        font.weight:    Font.DemiBold
+                        color:          Qt.rgba(1, 1, 1, 0.42)
+                    }
 
-                        Text {
-                            anchors.left:           parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            text:           modelData.label
-                            font.pixelSize: 10
-                            font.weight:    Font.DemiBold
-                            color:          Qt.rgba(1, 1, 1, 0.42)
-                        }
+                    WaveBar {
+                        anchors.left:           parent.left
+                        anchors.leftMargin:     32
+                        anchors.right:          tempLabel.left
+                        anchors.rightMargin:    8
+                        anchors.verticalCenter: parent.verticalCenter
+                        value:        Math.max(0, Math.min(1, modelData.temp / 100))
+                        color:        root._tempColor(modelData.temp)
+                        wavelength:   12
+                        amplitude:    2
+                        strokeWidth:  2
+                    }
 
-                        WaveBar {
-                            anchors.left:           parent.left
-                            anchors.leftMargin:     32
-                            anchors.right:          tempLabel.left
-                            anchors.rightMargin:    8
-                            anchors.verticalCenter: parent.verticalCenter
-                            value:        Math.max(0, Math.min(1, modelData.temp / 100))
-                            color:        root._tempColor(modelData.temp)
-                            wavelength:   12
-                            amplitude:    2
-                            strokeWidth:  2
-                        }
-
-                        Text {
-                            id: tempLabel
-                            anchors.right:          parent.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            text:           modelData.text
-                            font.pixelSize: 10
-                            font.family:    "JetBrains Mono"
-                            color:          Qt.rgba(1, 1, 1, 0.68)
-                        }
+                    Text {
+                        id: tempLabel
+                        anchors.right:          parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        text:           modelData.text
+                        font.pixelSize: 10
+                        font.family:    "JetBrains Mono"
+                        color:          Qt.rgba(1, 1, 1, 0.68)
                     }
                 }
+            }
 
-                Text {
-                    text:           root.fanSummary
-                    font.pixelSize: 9
-                    font.family:    "JetBrains Mono"
-                    color:          Qt.rgba(1, 1, 1, 0.35)
-                }
+            Text {
+                text:           root.fanSummary
+                anchors.left:   parent.left
+                anchors.right:  parent.right
+                anchors.bottom: parent.bottom
+                elide:          Text.ElideRight
+                font.pixelSize: 9
+                font.family:    "JetBrains Mono"
+                color:          Qt.rgba(1, 1, 1, 0.35)
             }
         }
 
@@ -426,67 +440,70 @@ Item {
             width:  parent.width
             height: root.networkSectionH
 
-            Column {
-                anchors.fill: parent
-                spacing: 8
+            Text {
+                anchors.left: parent.left
+                anchors.top:  parent.top
+                text:           "Network"
+                font.pixelSize: 11
+                font.weight:    Font.DemiBold
+                color:          Qt.rgba(1, 1, 1, 0.45)
+            }
 
-                Text {
-                    text:           "Network"
-                    font.pixelSize: 11
-                    font.weight:    Font.DemiBold
-                    color:          Qt.rgba(1, 1, 1, 0.45)
-                }
+            Repeater {
+                model: [
+                    { label: "UP",   color: "#90ef90", value: net.upSpeed,   fill: Math.max(0, Math.min(1, root._upBps   / root._netPeak)) },
+                    { label: "DOWN", color: "#a6d0f7", value: net.downSpeed, fill: Math.max(0, Math.min(1, root._downBps / root._netPeak)) }
+                ]
+                delegate: Item {
+                    required property var modelData
+                    required property int index
+                    width:  parent.width
+                    height: 18
+                    y:      19 + index * 19
 
-                Repeater {
-                    model: [
-                        { label: "UP",   color: "#90ef90", value: net.upSpeed,   fill: Math.max(0, Math.min(1, root._upBps   / root._netPeak)) },
-                        { label: "DOWN", color: "#a6d0f7", value: net.downSpeed, fill: Math.max(0, Math.min(1, root._downBps / root._netPeak)) }
-                    ]
-                    delegate: Item {
-                        required property var modelData
-                        width:  parent.width
-                        height: 18
+                    Text {
+                        anchors.left:           parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        text:           modelData.label
+                        font.pixelSize: 10
+                        font.weight:    Font.DemiBold
+                        color:          modelData.color
+                    }
 
-                        Text {
-                            anchors.left:           parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            text:           modelData.label
-                            font.pixelSize: 10
-                            font.weight:    Font.DemiBold
-                            color:          modelData.color
-                        }
+                    WaveBar {
+                        anchors.left:           parent.left
+                        anchors.leftMargin:     40
+                        anchors.right:          speedLabel.left
+                        anchors.rightMargin:    8
+                        anchors.verticalCenter: parent.verticalCenter
+                        value:        modelData.fill
+                        color:        modelData.color
+                        wavelength:   12
+                        amplitude:    2
+                        strokeWidth:  2
+                    }
 
-                        WaveBar {
-                            anchors.left:           parent.left
-                            anchors.leftMargin:     40
-                            anchors.right:          speedLabel.left
-                            anchors.rightMargin:    8
-                            anchors.verticalCenter: parent.verticalCenter
-                            value:        modelData.fill
-                            color:        modelData.color
-                            wavelength:   12
-                            amplitude:    2
-                            strokeWidth:  2
-                        }
-
-                        Text {
-                            id: speedLabel
-                            anchors.right:          parent.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            text:           modelData.value
-                            font.pixelSize: 10
-                            font.family:    "JetBrains Mono"
-                            color:          Qt.rgba(1, 1, 1, 0.68)
-                        }
+                    Text {
+                        id: speedLabel
+                        anchors.right:          parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        text:           modelData.value
+                        font.pixelSize: 10
+                        font.family:    "JetBrains Mono"
+                        color:          Qt.rgba(1, 1, 1, 0.68)
                     }
                 }
+            }
 
-                Text {
-                    text:           net.iface !== "—" ? ("Interface  " + net.iface) : "Interface unavailable"
-                    font.pixelSize: 9
-                    font.family:    "JetBrains Mono"
-                    color:          Qt.rgba(1, 1, 1, 0.35)
-                }
+            Text {
+                text:           net.iface !== "—" ? ("Interface  " + net.iface) : "Interface unavailable"
+                anchors.left:   parent.left
+                anchors.right:  parent.right
+                anchors.bottom: parent.bottom
+                elide:          Text.ElideRight
+                font.pixelSize: 9
+                font.family:    "JetBrains Mono"
+                color:          Qt.rgba(1, 1, 1, 0.35)
             }
         }
 
@@ -497,11 +514,11 @@ Item {
 
             Column {
                 anchors.fill: parent
-                spacing: 10
+                spacing: 5
 
                 Item {
                     width:  parent.width
-                    height: 22
+                    height: 20
 
                     Text {
                         anchors.left:           parent.left
@@ -535,7 +552,7 @@ Item {
 
                 Item {
                     width:  parent.width
-                    height: 26
+                    height: 22
                     visible: root.rootDisk !== null
 
                     Text {
@@ -567,31 +584,40 @@ Item {
                         strokeWidth:  2
                     }
                 }
-            }
 
-            Item {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                height: 12
+                Rectangle {
+                    width:  parent.width
+                    height: 16
+                    radius: 6
+                    color: Qt.rgba(1, 1, 1, 0.035)
+                    border.color: Qt.rgba(1, 1, 1, 0.07)
+                    border.width: 1
 
-                Text {
-                    anchors.left: parent.left
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "Display " + root.activeDisplayName
-                    font.pixelSize: 9
-                    font.weight: Font.DemiBold
-                    color: Qt.rgba(1, 1, 1, 0.35)
-                }
+                    Text {
+                        id: displayLabel
+                        anchors.left: parent.left
+                        anchors.leftMargin: 7
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "Display"
+                        font.pixelSize: 8
+                        font.weight: Font.DemiBold
+                        color: Qt.rgba(1, 1, 1, 0.36)
+                    }
 
-                Text {
-                    anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: root.activeRefreshHz > 0 ? root.activeRefreshHz + " Hz" : "-- Hz"
-                    font.pixelSize: 9
-                    font.family: "JetBrains Mono"
-                    font.weight: Font.Bold
-                    color: Qt.rgba(1, 1, 1, 0.55)
+                    Text {
+                        anchors.left: displayLabel.right
+                        anchors.leftMargin: 6
+                        anchors.right: parent.right
+                        anchors.rightMargin: 7
+                        anchors.verticalCenter: parent.verticalCenter
+                        horizontalAlignment: Text.AlignRight
+                        text: root.displaySummary
+                        font.pixelSize: 8
+                        font.family: "JetBrains Mono"
+                        font.weight: Font.Bold
+                        elide: Text.ElideRight
+                        color: Qt.rgba(1, 1, 1, 0.58)
+                    }
                 }
             }
         }

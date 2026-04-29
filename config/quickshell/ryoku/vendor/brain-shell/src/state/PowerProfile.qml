@@ -10,9 +10,10 @@ import ".."
 // Theme.staticMode = true (freezes high-visibility motion — the rest of
 // the UI keeps working normally).
 //
-// performance restores brightness/refresh saved at the moment of
-// entering powersave (or sensible defaults if never saved), CPU governor
-// "performance", AMD EPP "performance", and Theme.staticMode = false.
+// performance restores brightness saved at the moment of entering
+// powersave, switches the focused display to its highest advertised refresh
+// rate, CPU governor "performance", AMD EPP "performance", and
+// Theme.staticMode = false.
 //
 // All side-effects are best-effort: brightnessctl needs an udev/setuid
 // rule, and scaling_governor / EPP sysfs writes may need elevated access.
@@ -36,8 +37,17 @@ QtObject {
     property string monitorName:     ""
     property string monitorRes:      ""
     property string monitorScale:    ""
-    property string savedRefresh:    ""
     property string targetRefresh:   ""
+    property string _pendingMode:    ""
+    property string _pendingRefresh: ""
+
+    // Display refresh changes blank the panel briefly. Keep this state public so
+    // the fullscreen overlay can fade in before the Hyprland mode command runs.
+    property bool displayTransitionActive: false
+    property int displayRefreshGeneration: 0
+    readonly property int displayTransitionFadeDuration: 320
+    readonly property int displayTransitionPreDelay:     1000
+    readonly property int displayTransitionPostDelay:    1800
 
     // ── Brightness read (brightnessctl -m → "dev,name,X%,cur,max") ─────────────
     property var _brightRead: Process {
@@ -66,32 +76,31 @@ QtObject {
 
     // ── Monitor info read (name, resolution, refresh, scale) ───────────────────
     property var _monRead: Process {
-        command: ["bash", "-c",
-            "hyprctl monitors -j | python3 -c '" +
-            "import sys,json;" +
-            "mons=json.load(sys.stdin);" +
-            "m=next((x for x in mons if x.get(\"focused\")), mons[0]);" +
-            "res=\"%dx%d\"%(m[\"width\"],m[\"height\"]);" +
-            "prefix=res+\"@\";" +
-            "target_hz=\"" + root.powersaveRefresh + "\";" +
-            "target=next((mode.split(\"@\")[1].replace(\"Hz\",\"\") for mode in m.get(\"availableModes\",[]) if mode.startswith(prefix) and mode.split(\"@\")[1].startswith(target_hz)), \"\");" +
-            "print(m[\"name\"]);" +
-            "print(res);" +
-            "print(int(round(m[\"refreshRate\"])));" +
-            "print(m[\"scale\"]);" +
-            "print(target);" +
-            "'"]
+        command: ["hyprctl", "monitors", "-j"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
-                var lines = text.trim().split("\n")
-                if (lines.length < 5) return
-                root.monitorName   = lines[0].trim()
-                root.monitorRes    = lines[1].trim()
-                root.savedRefresh  = lines[2].trim()
-                root.monitorScale  = lines[3].trim()
-                root.targetRefresh = lines[4].trim()
-                if (root.targetRefresh !== "") root._setMonitorRefresh(root.targetRefresh)
+                try {
+                    var mons = JSON.parse(text)
+                    if (!mons || mons.length === 0) return
+
+                    var mon = mons[0]
+                    for (var i = 0; i < mons.length; i++) {
+                        if (mons[i].focused) {
+                            mon = mons[i]
+                            break
+                        }
+                    }
+
+                    root.monitorName   = mon.name || ""
+                    root.monitorRes    = (mon.width || 0) + "x" + (mon.height || 0)
+                    root.monitorScale  = String(mon.scale || 1)
+                    root.targetRefresh = root._targetRefreshForMode(mon, root._pendingMode)
+
+                    if (root.targetRefresh !== "")
+                        root._beginDisplayTransition(root.targetRefresh)
+                } catch (e) {
+                }
             }
         }
     }
@@ -112,6 +121,129 @@ QtObject {
         _monSet.running = false
         _monSet.running = true
     }
+
+    function _refreshFromMode(mode) {
+        var m = String(mode).match(/@([0-9.]+)Hz/)
+        return m ? parseFloat(m[1]) : 0
+    }
+
+    function _modeMatchesCurrentRes(mode, mon) {
+        return String(mode).indexOf((mon.width || 0) + "x" + (mon.height || 0) + "@") === 0
+    }
+
+    function _maxRefreshHz(mon) {
+        var modes = mon.availableModes || []
+        var bestHz = 0
+        var bestText = ""
+
+        for (var i = 0; i < modes.length; i++) {
+            if (!root._modeMatchesCurrentRes(modes[i], mon)) continue
+
+            var hz = root._refreshFromMode(modes[i])
+            if (hz > bestHz) {
+                bestHz = hz
+                bestText = String(hz)
+            }
+        }
+
+        if (bestText !== "") return bestText
+        return mon.refreshRate ? String(Math.round(mon.refreshRate)) : ""
+    }
+
+    function _powersaveRefreshHz(mon) {
+        var modes = mon.availableModes || []
+        for (var i = 0; i < modes.length; i++) {
+            if (!root._modeMatchesCurrentRes(modes[i], mon)) continue
+
+            var hz = root._refreshFromMode(modes[i])
+            if (Math.round(hz) === root.powersaveRefresh) return String(hz)
+        }
+
+        return ""
+    }
+
+    function _targetRefreshForMode(mon, target) {
+        if (target === "performance") return root._maxRefreshHz(mon)
+        if (target === "powersave") return root._powersaveRefreshHz(mon)
+        return ""
+    }
+
+    function _beginDisplayTransition(hz) {
+        root._pendingRefresh = hz
+        root.displayTransitionActive = true
+        _displayPostSwitch.stop()
+        _displayPreSwitch.restart()
+    }
+
+    function _scheduleDisplayRefresh(target) {
+        root._pendingMode = target
+        _monRead.running = false
+        _monRead.running = true
+    }
+
+    property var _displayPreSwitch: Timer {
+        id: _displayPreSwitch
+        interval: root.displayTransitionPreDelay
+        repeat: false
+        onTriggered: {
+            if (root._pendingRefresh !== "") root._setMonitorRefresh(root._pendingRefresh)
+            root.displayRefreshGeneration++
+            _displayPostSwitch.restart()
+        }
+    }
+
+    property var _displayPostSwitch: Timer {
+        id: _displayPostSwitch
+        interval: root.displayTransitionPostDelay
+        repeat: false
+        onTriggered: {
+            root.displayRefreshGeneration++
+            root.displayTransitionActive = false
+        }
+    }
+
+    // ── Mode persistence ───────────────────────────────────────────────────────
+    // Quickshell exits and relaunches on theme switches (ryoku-restart-shell)
+    // and other config refreshes, wiping in-memory state. The `hyprctl reload`
+    // that runs alongside also re-applies monitors.conf, so any runtime refresh
+    // override is lost. Persist the user's mode under $XDG_RUNTIME_DIR (cleared
+    // at logout) so the choice survives the restart and side effects re-apply.
+
+    property bool _restoring: false
+
+    property var _stateWrite: Process {
+        command: []
+        running: false
+    }
+
+    function _persistMode(m) {
+        // setMode validates m before getting here, but keep the allowlist
+        // local for defense-in-depth before shell interpolation.
+        if (m !== "performance" && m !== "powersave") return
+        _stateWrite.command = [
+            "sh", "-c",
+            "printf %s " + m + " > \"${XDG_RUNTIME_DIR:-/tmp}/ryoku-power-mode\""
+        ]
+        _stateWrite.running = false
+        _stateWrite.running = true
+    }
+
+    property var _stateRead: Process {
+        command: ["sh", "-c", "cat \"${XDG_RUNTIME_DIR:-/tmp}/ryoku-power-mode\" 2>/dev/null || true"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var saved = String(text).trim()
+                if (saved !== "powersave" && saved !== "performance") return
+                if (saved === root.mode) return
+                root._restoring = true
+                root.setMode(saved)
+                root._restoring = false
+            }
+        }
+    }
+
+    Component.onCompleted: _stateRead.running = true
 
     // ── CPU governor write ─────────────────────────────────────────────────────
     property var _govSet: Process {
@@ -168,16 +300,15 @@ QtObject {
             _setEpp("powersave")
             _brightRead.running = false
             _brightRead.running = true
-            _monRead.running    = false
-            _monRead.running    = true
+            _scheduleDisplayRefresh(target)
         } else {
             _setGovernor("performance")
             _setEpp("performance")
             _setBrightness(root.savedBrightness > 0 ? root.savedBrightness : 100)
-            if (root.monitorName !== "" && root.monitorRes !== "" && root.savedRefresh !== "") {
-                _setMonitorRefresh(root.savedRefresh)
-            }
+            _scheduleDisplayRefresh(target)
         }
+
+        if (!root._restoring) _persistMode(target)
     }
 
     function toggle() {

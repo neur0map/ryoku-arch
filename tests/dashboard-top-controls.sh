@@ -87,9 +87,17 @@ grep -q '"hyprctl", "monitors", "-j"' "$rail" \
   || fail "Telemetry rail should read monitor state"
 grep -q 'property string activeDisplayName' "$rail" \
   || fail "Telemetry rail should track active display name"
-grep -q 'property int activeRefreshHz' "$rail" \
-  || fail "Telemetry rail should track active display Hz"
-grep -q 'activeRefreshHz + " Hz"' "$rail" \
-  || fail "Telemetry rail should render active display Hz"
+grep -q 'property int currentDisplayRefreshHz' "$rail" \
+  || fail "Telemetry rail should track current display Hz"
+grep -q 'currentDisplayRefreshHz + " Hz"' "$rail" \
+  || fail "Telemetry rail should render current display Hz"
+grep -q 'property string displaySummary' "$rail" \
+  || fail "Telemetry rail should render display name and current Hz as one compact summary"
+grep -q 'root.currentDisplayRefreshHz = Math.round(mon.refreshRate' "$rail" \
+  || fail "Telemetry rail should display the active refreshRate"
+grep -q 'target: PowerProfile' "$rail" \
+  || fail "Telemetry rail should react to power-profile display changes"
+grep -q 'onDisplayRefreshGenerationChanged' "$rail" \
+  || fail "Telemetry rail should refresh after power-profile display changes"
 
 pass "dashboard top controls and active display Hz"

@@ -11,31 +11,25 @@ import "../"
 PanelWindow {
     id: root
 
-    anchors.left:   true
-    anchors.right:  true
-    anchors.bottom: true
+    Binding { target: Popups; property: "wallpaperVisible"; value: sizer.visible }
 
-    implicitHeight: root.panelHeight + Theme.borderWidth
+    anchors {
+        top:    true
+        left:   true
+        right:  true
+        bottom: true
+    }
 
     exclusionMode: ExclusionMode.Ignore
     color:         "transparent"
 
     WlrLayershell.layer:         WlrLayer.Overlay
-    WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+    WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
 
-    readonly property int panelWidth:  980
-    readonly property int panelHeight: 420
+    readonly property int panelWidth:  620
+    readonly property int panelHeight: 300
     readonly property int fw:          Theme.notchRadius
     readonly property int fh:          Theme.notchRadius
-
-    mask: Region { item: maskProxy }
-    Item {
-        id: maskProxy
-        x:      (root.width - sizer.width) / 2
-        y:      root.height - sizer.height - Theme.borderWidth
-        width:  sizer.width
-        height: sizer.height
-    }
 
     property bool windowVisible: false
     visible: windowVisible
@@ -114,6 +108,12 @@ PanelWindow {
         }
     }
 
+    MouseArea {
+        anchors.fill: parent
+        enabled: root.windowVisible
+        onClicked: Popups.closeAll()
+    }
+
     Connections {
         target: WallpaperService
         function onWallpapersChanged() {
@@ -134,8 +134,7 @@ PanelWindow {
     Item {
         id: sizer
         anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom:           parent.bottom
-        anchors.bottomMargin:     Theme.borderWidth
+        anchors.top:              parent.top
         clip: true
 
         width:  Popups.wallpaperOpen
@@ -143,6 +142,7 @@ PanelWindow {
                     : Theme.cNotchMinWidth + 2 * root.fw
 
         height: Popups.wallpaperOpen ? root.panelHeight : 0
+        visible: height > 0
 
         Behavior on width  { NumberAnimation { duration: Theme.animDuration; easing.type: Easing.InOutCubic } }
         Behavior on height { NumberAnimation { duration: Theme.animDuration; easing.type: Easing.InOutCubic } }
@@ -154,21 +154,27 @@ PanelWindow {
 
         PopupShape {
             anchors.fill: parent
-            attachedEdge: "bottom"
+            attachedEdge: "top"
             color:        Theme.background
             radius:       Theme.cornerRadius
             flareWidth:   root.fw
             flareHeight:  root.fh
         }
 
+        MouseArea {
+            anchors.fill: parent
+            onClicked: mouse.accepted = true
+        }
+
         Item {
             id: content
+            z: 1
             anchors {
                 fill:         parent
-                topMargin:    16
-                bottomMargin: root.fh + 8
-                leftMargin:   root.fw + 16
-                rightMargin:  root.fw + 16
+                topMargin:    Theme.notchHeight + 8
+                bottomMargin: 8
+                leftMargin:   root.fw + 12
+                rightMargin:  root.fw + 12
             }
 
             property string searchQuery:     ""
@@ -185,9 +191,8 @@ PanelWindow {
             }
 
             readonly property bool applyActive:
-                WallpaperService.previewWall !== "" ||
-                (WallpaperService.currentWall !== "" &&
-                 WallpaperService.scheme !== content.appliedScheme)
+                WallpaperService.previewWall !== "" &&
+                WallpaperService.previewWall !== WallpaperService.currentWall
 
             opacity: Popups.wallpaperOpen ? 1 : 0
             Behavior on opacity {
@@ -361,7 +366,8 @@ PanelWindow {
 
                     Rectangle {
                         id: folderBtn
-                        width:  32; height: 32; radius: 8
+                        visible: false
+                        width:  0; height: 32; radius: 8
                         color: content.folderMode
                             ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.18)
                             : folderHov.hovered ? Qt.rgba(1,1,1,0.08) : Qt.rgba(1,1,1,0.04)
@@ -439,6 +445,14 @@ PanelWindow {
                                     Popups.wallpaperOpen = false
                                 }
 
+                                Keys.onEscapePressed: {
+                                    if (text !== "") {
+                                        text = ""
+                                    } else {
+                                        Popups.wallpaperOpen = false
+                                    }
+                                }
+
                                 Keys.onLeftPressed: {
                                     var walls = content.filteredWallpapers
                                     if (!walls || walls.length === 0) return
@@ -511,7 +525,8 @@ PanelWindow {
 
                     Rectangle {
                         id: schemeBtn
-                        width:  schemeBtnRow.implicitWidth + 20
+                        visible: false
+                        width:  0
                         height: 32; radius: 8
                         color: content.schemePopupOpen
                             ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.18)

@@ -1,5 +1,6 @@
 pragma Singleton
 import QtQuick
+import Quickshell
 import Quickshell.Io
 
 // ============================================================
@@ -8,7 +9,7 @@ import Quickshell.Io
 // Flow:
 //   Component.onCompleted → readConfigProc (sets currentWall etc.)
 //                         → refresh() (populates wallpapers list)
-//   apply(path)           → awww img + ln -sf ~/.curr_wall + matugen
+//   apply(path)           → ryoku-theme-bg-set
 //                         → saveConfig() (writes src/user_data/wallpaper.json)
 // ============================================================
 
@@ -25,7 +26,7 @@ QtObject {
     property string previewWall:  ""
     property string scheme:       "content"
     property bool   applying:     false
-    property string wallpaperDir: "~/Pictures/Wallpapers"
+    property string wallpaperDir: Quickshell.env("HOME") + "/.config/ryoku/current/theme/backgrounds"
 
     readonly property var schemes: [
         "content", "tonal-spot", "fidelity","fruit-salad", "neutral", "monochrome"
@@ -43,10 +44,13 @@ QtObject {
 
     property var listProc: Process {
         command: [
-            "bash", "-c",
-            "find " + root.wallpaperDir + " -maxdepth 1 -type f " +
-            "\\( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' " +
-            "-o -iname '*.gif' -o -iname '*.webp' \\) | sort"
+            "bash", "-lc",
+            "theme_name=$(cat \"$HOME/.config/ryoku/current/theme.name\" 2>/dev/null); " +
+            "find -L \"$HOME/.config/ryoku/backgrounds/$theme_name\" " +
+            "\"$HOME/.config/ryoku/current/theme/backgrounds\" " +
+            "-maxdepth 1 -type f \\( -iname '*.jpg' -o -iname '*.jpeg' " +
+            "-o -iname '*.png' -o -iname '*.gif' -o -iname '*.webp' \\) " +
+            "-print 2>/dev/null | sort -u"
         ]
         stdout: SplitParser {
             onRead: function(line) {
@@ -107,13 +111,8 @@ QtObject {
         root.applying    = true
         root.currentWall = path
         applyProc.command = [
-            "bash", "-c",
-            "awww img --transition-type grow --transition-step 200 --transition-duration 1.2 --transition-fps 60 --transition-pos bottom \"" + path + "\" " +
-            "&& ln -sf \"" + path + "\" ~/.curr_wall " +
-            "&& if [[ \"" + path + "\" == *.gif ]]; then " +
-            "rm -f ~/.curr_wall_static.jpg && magick \"" + path + "[0]\" ~/.curr_wall_static.jpg; " +
-            "else ln -sf \"" + path + "\" ~/.curr_wall_static.jpg; fi " +
-            "&& matugen image \"$(readlink -f ~/.curr_wall)\" --source-color-index 0 --type scheme-" + root.scheme
+            Quickshell.env("HOME") + "/.local/share/ryoku/bin/ryoku-theme-bg-set",
+            path
         ]
         applyProc.running = true
     }
