@@ -37,6 +37,13 @@ QtObject {
         }
     }
 
+    // Refresh immediately when the consumer becomes active (e.g. dashboard
+    // opens) so the bar doesn't sit on a stale value for up to 2 s.
+    onActiveChanged: if (active) {
+        _proc.running = false
+        _proc.running = true
+    }
+
     function _parse(text) {
         var total = 0, avail = 0
         var lines = text.split("\n")

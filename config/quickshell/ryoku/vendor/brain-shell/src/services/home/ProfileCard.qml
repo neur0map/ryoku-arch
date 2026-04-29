@@ -11,6 +11,13 @@ StatCard {
     padding: 0
 
     property string avatarPath: ""
+    readonly property bool compact: root.width <= 170
+    readonly property int sideMargin: root.compact ? 14 : 16
+    readonly property int rowSpacing: root.compact ? 12 : 18
+    readonly property int avatarSize: root.compact ? 60 : 72
+    readonly property int textSpacing: root.compact ? 8 : 10
+    readonly property int nameSize: root.compact ? 15 : 17
+    readonly property int metaSize: root.compact ? 11 : 12
 
     property string _user:   ""
     property string _wm:     ""
@@ -58,15 +65,15 @@ StatCard {
 
     Row {
         anchors {
-            left:           parent.left;  leftMargin:  16
-            right:          parent.right; rightMargin: 16
+            left:           parent.left;  leftMargin:  root.sideMargin
+            right:          parent.right; rightMargin: root.sideMargin
             verticalCenter: parent.verticalCenter
         }
-        spacing: 18
+        spacing: root.rowSpacing
 
         // Circular avatar
         Item {
-            width: 72; height: 72
+            width: root.avatarSize; height: root.avatarSize
             anchors.verticalCenter: parent.verticalCenter
 
             Rectangle {
@@ -106,7 +113,7 @@ StatCard {
             Text {
                 anchors.centerIn: parent
                 text:           "󰀄"
-                font.pixelSize: 28
+                font.pixelSize: root.compact ? 24 : 28
                 color:          Theme.active
                 visible:        root.avatarPath === ""
             }
@@ -115,38 +122,49 @@ StatCard {
         // Text stats
         Column {
             anchors.verticalCenter: parent.verticalCenter
-            spacing: 10
+            width: Math.max(0, parent.width - root.avatarSize - root.rowSpacing)
+            spacing: root.textSpacing
 
             Text {
+                width:          parent.width
                 text:           root._user
-                font.pixelSize: 17; font.weight: Font.DemiBold
+                font.pixelSize: root.nameSize; font.weight: Font.DemiBold
                 color:          Theme.active
+                elide:          Text.ElideRight
             }
 
             Row {
-                spacing: 8
+                width: parent.width
+                spacing: root.compact ? 6 : 8
                 Text {
-                    text: "󰣇"; font.pixelSize: 12; color: Theme.active
+                    id: wmIcon
+                    text: "󰣇"; font.pixelSize: root.metaSize; color: Theme.active
                     anchors.verticalCenter: parent.verticalCenter
                 }
                 Text {
-                    text: root._wm; font.pixelSize: 12
+                    width: parent.width - wmIcon.width - parent.spacing
+                    text: root._wm; font.pixelSize: root.metaSize
                     color: Qt.rgba(205/255,214/255,244/255,0.55)
                     anchors.verticalCenter: parent.verticalCenter
+                    elide: Text.ElideRight
                 }
             }
 
             Row {
-                spacing: 8
+                width: parent.width
+                spacing: root.compact ? 6 : 8
                 Text {
-                    text: "󰔚"; font.pixelSize: 12; color: Theme.active
+                    id: uptimeIcon
+                    text: "󰔚"; font.pixelSize: root.metaSize; color: Theme.active
                     anchors.verticalCenter: parent.verticalCenter
                 }
                 Text {
-                    text: root._uptime; font.pixelSize: 12
+                    width: parent.width - uptimeIcon.width - parent.spacing
+                    text: root._uptime; font.pixelSize: root.metaSize
                     font.family: "JetBrains Mono"
                     color: Qt.rgba(205/255,214/255,244/255,0.55)
                     anchors.verticalCenter: parent.verticalCenter
+                    elide: Text.ElideRight
                 }
             }
         }

@@ -7,7 +7,10 @@ import "../"
 //
 // shell.qml creates the anchor windows and passes them in.
 //
-// Ryoku Spec 1 activation: only Dashboard is instantiated.
+// Ryoku Spec 1 activation: only Dashboard is instantiated. The dashboard
+// is its own layer-shell window that slides down from above the screen
+// (caelestia-style spatial motion) so the TopBar surface itself never
+// resizes during animation.
 // Other popups are vendored as code but commented out; each is
 // re-enabled in a follow-up spec when its replacement for the
 // existing Ryoku surface (mako, swayosd, fuzzel, etc.) is
@@ -30,7 +33,7 @@ Item {
     // Active in Spec 1
     Dashboard { anchorWindow: root.topBar }
 
-    // Dormant in Spec 1; re-enable in follow-up specs.
+    // Dormant in follow-up specs.
     // ArchMenu              { anchorWindow: root.leftBorder }
     // WallpaperPopup        {}
     // AudioPopup            { anchorWindow: root.rightBorder }

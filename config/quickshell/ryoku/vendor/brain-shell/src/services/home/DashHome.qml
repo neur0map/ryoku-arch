@@ -6,12 +6,12 @@ import "../../components"
 Item {
     id: root
 
-    readonly property int colW:     190
-    readonly property int centerW:  380
-    readonly property int railW:    260
-    readonly property int gap:        8
-    readonly property int profileH: 154
-    readonly property int clockH:   210
+    readonly property int colW:     166
+    readonly property int centerW:  300
+    readonly property int railW:    190
+    readonly property int gap:        6
+    readonly property int profileH: 140
+    readonly property int clockH:   188
 
     property string _avatarPath: ""
     property string _staticJpg:  ""

@@ -1,9 +1,11 @@
 import Quickshell
+import Quickshell.Wayland
 import QtQuick
 import "../components"
 import "../modules/Center/"
 import "../modules/Right/"
 import "../modules/Left/"
+import "../services/home"
 import "../"
 import "../shapes/"
 
@@ -13,6 +15,16 @@ PanelWindow {
     property string screenName: screen ? screen.name : ""
 
     color: "transparent"
+
+    // Layer is dynamic. Default Top so the bar yields to fullscreen
+    // apps (screensaver, video) the way every other layer-shell bar
+    // does. Promoted to Overlay only while the dashboard card is
+    // visually present, so the bar's center pill paints over the
+    // card's top strip — the card's flares tuck behind the notch and
+    // the two shapes read as one continuous surface during open and
+    // close. Bound to Popups.dashboardVisible (set by Dashboard.qml)
+    // so the layer holds through the full close animation.
+    WlrLayershell.layer: Popups.dashboardVisible ? WlrLayer.Overlay : WlrLayer.Top
 
     anchors {
         top:   true
@@ -24,17 +36,25 @@ PanelWindow {
     Binding { target: ShellState; property: "topBarCWidth"; value: root.cWidth }
     Binding { target: ShellState; property: "topBarRWidth"; value: root.rWidth }
 
-    // ── Height shrinks to a border strip in focus mode ───────────────────────
-    // Safe to animate on PanelWindow (anchored, no position jank).
-    // PopupWindow is the one that must never have animated implicitHeight.
+    // Height shrinks to a border strip in focus mode. The dashboard popup
+    // is its own window now — bar height stays constant when it opens.
     implicitHeight: ShellState.focusMode ? Theme.borderWidth : Theme.notchHeight
     Behavior on implicitHeight {
+        enabled: !Theme.staticMode
         NumberAnimation { duration: Theme.animDuration; easing.type: Easing.InOutCubic }
     }
 
     exclusiveZone: ShellState.focusMode ? 0 : Theme.exclusionGap
     Behavior on exclusiveZone {
+        enabled: !Theme.staticMode
         NumberAnimation { duration: Theme.animDuration; easing.type: Easing.InOutCubic }
+    }
+
+    Connections {
+        target: ShellState
+        function onFocusModeChanged() {
+            if (ShellState.focusMode) Popups.dashboardOpen = false
+        }
     }
 
     readonly property int lWidth: Math.max(
@@ -43,16 +63,15 @@ PanelWindow {
                  leftContent.implicitWidth + Theme.notchPadding * 2)
     )
 
-    // cWidth uses Popups.dashboardPageWidth when the dashboard is open,
-    // so the center notch tracks the active tab's declared width.
-    property int cWidth: Popups.dashboardOpen
-        ? Popups.dashboardPageWidth
-        : Math.max(
-            Theme.cNotchMinWidth,
-            Math.min(Theme.cNotchMaxWidth,
-                     centerContent.implicitWidth + Theme.notchPadding * 2)
-          )
+    // Keep the center notch at its natural pill width. The dashboard popup
+    // animates independently so the bar does not widen as a separate motion.
+    property int cWidth: Math.max(
+        Theme.cNotchMinWidth,
+        Math.min(Theme.cNotchMaxWidth,
+                 centerContent.implicitWidth + Theme.notchPadding * 2)
+      )
     Behavior on cWidth {
+        enabled: !Theme.staticMode
         NumberAnimation { duration: Theme.animDuration; easing.type: Easing.InOutCubic }
     }
 
@@ -67,6 +86,7 @@ PanelWindow {
                          rightContent.implicitWidth + Theme.notchPadding * 2)
               )
     Behavior on rWidth {
+        enabled: !Theme.staticMode
         NumberAnimation { duration: Theme.animDuration; easing.type: Easing.InOutCubic }
     }
 
@@ -79,6 +99,7 @@ PanelWindow {
         color: Theme.background
         opacity: ShellState.focusMode ? 1 : 0
         Behavior on opacity {
+            enabled: !Theme.staticMode
             NumberAnimation { duration: Theme.animDuration; easing.type: Easing.InOutCubic }
         }
     }
@@ -88,6 +109,7 @@ PanelWindow {
         anchors.fill: parent
         opacity: ShellState.focusMode ? 0 : 1
         Behavior on opacity {
+            enabled: !Theme.staticMode
             NumberAnimation { duration: Theme.animDuration; easing.type: Easing.InOutCubic }
         }
 
@@ -120,6 +142,23 @@ PanelWindow {
             CenterContent {
                 id: centerContent
                 anchors.centerIn: parent
+            }
+
+            DashboardTopControls {
+                anchors {
+                    centerIn: parent
+                    // The dashboard clock column sits 12px left of screen
+                    // center because the telemetry rail is wider than the
+                    // profile/calendar column.
+                    horizontalCenterOffset: -12
+                }
+                width: Math.min(parent.width - 12, 320)
+                visible: Popups.dashboardOpen
+                opacity: Popups.dashboardOpen ? 1 : 0
+                Behavior on opacity {
+                    enabled: !Theme.staticMode
+                    NumberAnimation { duration: Theme.motionEffectsDuration; easing.type: Easing.OutCubic }
+                }
             }
         }
 
