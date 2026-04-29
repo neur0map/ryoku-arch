@@ -24,7 +24,7 @@ Spec 2 patches the vendored Brain_Shell to address each, with no changes to Ryok
 ### In scope (Spec 2)
 
 - **Patch 8**: Replace the Arch logo glyph in `vendor/brain-shell/src/modules/Left/ControlPanel.qml` with the Ryoku monogram (kanji 力, "chikara/ryoku") rendered from `logo-mark.svg` via QML `Image`. Tinted to `Theme.accent` via `MultiEffect` color-overlay. PNG fallback at `logo-mark.png` if SVG renders poorly.
-- **Patch 9**: Replace the placeholder-text layout indicators in `vendor/brain-shell/src/modules/Left/LayoutDisplayer.qml` (`><`, `M`) with the Nerd Font glyphs upstream documented in the comment block at lines 11-14 of that file. Audit all four cases (`dwindle`, `master`, `monocle`, `scrolling`) and the `default` fallback.
+- **Patch 9**: Comment out the `LayoutDisplayer {}` instantiation in `vendor/brain-shell/src/modules/Left/LeftContent.qml`. The display-only layout indicator (with its placeholder-text quirks) is removed from the bar entirely. The `LayoutDisplayer.qml` file itself stays vendored (untouched) for future re-introduction as part of a clickable layout-switcher widget (queued in `docs/TODO.md` as Spec 2.5).
 - **Patch 10**: Shrink the bar in `vendor/brain-shell/src/theme/Theme.qml`:
   - `notchHeight: 40` → `28`
   - `notchPadding: 16` → `10`
@@ -111,46 +111,49 @@ The Ryoku-prefixed comment for cherry-pick re-application:
 // stays for when ArchMenu is activated in Spec 8.
 ```
 
-## 4. Patch 9: Real Nerd Font glyphs in LayoutDisplayer
+## 4. Patch 9: Remove LayoutDisplayer from the bar
 
-`vendor/brain-shell/src/modules/Left/LayoutDisplayer.qml` lines 36-44:
+`vendor/brain-shell/src/modules/Left/LeftContent.qml` currently mounts three modules in the left notch:
 
 ```qml
-function layoutSymbol(name) {
-    switch (name.toLowerCase()) {
-        case "dwindle":  return "><"   // nf-md-view_quilt
-        case "master":   return "M"   // nf-md-view_split_vertical
-        case "monocle":  return "|"+root.numWindows+"|"  // nf-md-fullscreen
-        case "scrolling": return "<"+root.numWindows+">"  // nf-md-scroll_horizontal (hyprscroller)
-        default:         return "Unknown"  // nf-md-view_dashboard (unknown fallback)
-    }
+Row {
+    spacing: 5
+    // 1. Arch Icon (Power Menu Trigger)
+    ControlPanel{}
+
+    // 2. Workspaces
+    Workspaces {}
+
+    //3. LayoutDisplay
+    LayoutDisplayer {}
 }
 ```
 
-Replace each placeholder with the actual Nerd Font codepoint. Upstream's comment block at lines 11-14 already shows the intended glyphs (visible in the file when read as UTF-8). The implementer reads those bytes and copies them into the return values.
+The `LayoutDisplayer` is a display-only indicator (polls `hyprctl -j activeworkspace` periodically; no click handling). Upstream ships placeholder-text returns (`><` for dwindle, `M` for master, bracketed window counts for monocle and scrolling), making the indicator both ugly and confusing (looks like a broken button). Per user direction, the indicator is removed from the bar in Spec 2.
 
-Expected Nerd Font codepoints (approximate; implementer confirms by reading lines 11-14 of the file):
+Comment out the instantiation. Keep the `LayoutDisplayer.qml` file unchanged in `vendor/brain-shell/src/modules/Left/` for re-introduction as part of a future clickable layout-switcher widget (Spec 2.5, queued in `docs/TODO.md`).
 
-| Layout | Glyph | Material Design name | Approximate codepoint |
-|---|---|---|---|
-| dwindle | view_quilt | `nf-md-view_quilt` | U+F0F37 |
-| master | view_split_vertical | `nf-md-view_split_vertical` | U+F051C |
-| monocle | fullscreen | `nf-md-fullscreen` | U+F0293 |
-| scrolling | scroll_horizontal | `nf-md-scroll_horizontal` | U+F0DA9 |
-| default (unknown) | view_dashboard | `nf-md-view_dashboard` | U+F0F58 |
-
-For monocle and scrolling, preserve the window-count display by formatting the glyph plus the count rather than using bracketed text.
-
-The Ryoku-prefixed comment:
+The Ryoku-prefixed change:
 
 ```qml
-// Ryoku: replace upstream placeholder-text layout symbols (><, M,
-// bracketed window counts) with the Nerd Font glyphs upstream
-// documented in the comment block above but never shipped in the
-// switch statement.
+Row {
+    spacing: 5
+    // 1. Arch Icon (Power Menu Trigger) - Ryoku Patch 8: now Ryoku monogram
+    ControlPanel{}
+
+    // 2. Workspaces
+    Workspaces {}
+
+    // Ryoku Patch 9: LayoutDisplayer removed from the bar.
+    // Upstream's display-only indicator shipped placeholder-text returns
+    // (><, M, bracketed counts) that look like a broken button. The
+    // LayoutDisplayer.qml file stays vendored for future re-introduction
+    // as a clickable layout-switcher widget (see docs/TODO.md Spec 2.5).
+    // LayoutDisplayer {}
+}
 ```
 
-If the implementer cannot find the glyphs in upstream's comments, use the codepoints in the table above. Verify visually after restart that each layout shows a recognizable icon.
+The file `LayoutDisplayer.qml` itself is NOT modified.
 
 ## 5. Patch 10: Smaller bar via Theme.qml constants
 
@@ -202,9 +205,11 @@ Append Patches 8-11 to the modifications list under the existing 1-7. New entrie
 8. Branding: ControlPanel.qml. Replace Arch logo glyph and Arch teal
    color with Ryoku monogram (kanji 力) loaded from logo-mark.svg
    and tinted to Theme.accent.
-9. Cosmetic: LayoutDisplayer.qml. Replace placeholder-text layout
-   symbols ("><", "M", bracketed window counts) with the Nerd Font
-   glyphs upstream documented in the file's own comment block.
+9. Activation: LeftContent.qml. Comment out LayoutDisplayer
+   instantiation. Upstream's display-only indicator shipped
+   placeholder-text returns that looked like a broken button. The
+   LayoutDisplayer.qml file stays vendored for future re-introduction
+   as a clickable layout-switcher widget (Spec 2.5, see docs/TODO.md).
 10. Branding: Theme.qml. Reduce notchHeight, notchPadding,
     notchHorizontalPadding, notchVerticalPadding, exclusionGap, and
     dashboard dimensions for 14-inch laptop screens. Original values
@@ -239,12 +244,14 @@ Extend `tests/brain-shell-spec1.sh` (or add a new `tests/brain-shell-spec2.sh`) 
 grep -q "Ryoku: replace Arch logo glyph" \
   config/quickshell/ryoku/vendor/brain-shell/src/modules/Left/ControlPanel.qml \
   || fail "Patch 8 missing"
-grep -q "Ryoku: replace upstream placeholder-text layout symbols" \
-  config/quickshell/ryoku/vendor/brain-shell/src/modules/Left/LayoutDisplayer.qml \
+grep -q "Ryoku Patch 9: LayoutDisplayer removed" \
+  config/quickshell/ryoku/vendor/brain-shell/src/modules/Left/LeftContent.qml \
   || fail "Patch 9 missing"
-! grep -q '"><"' \
-  config/quickshell/ryoku/vendor/brain-shell/src/modules/Left/LayoutDisplayer.qml \
-  || fail "LayoutDisplayer still has >< placeholder"
+grep -q "^\s*//\s*LayoutDisplayer\s*{}" \
+  config/quickshell/ryoku/vendor/brain-shell/src/modules/Left/LeftContent.qml \
+  || fail "LayoutDisplayer instantiation not commented out"
+[[ -f config/quickshell/ryoku/vendor/brain-shell/src/modules/Left/LayoutDisplayer.qml ]] \
+  || fail "LayoutDisplayer.qml file should stay vendored for future re-use"
 grep -q "Ryoku: shrink bar dimensions" \
   config/quickshell/ryoku/vendor/brain-shell/src/theme/Theme.qml \
   || fail "Patch 10 missing"
@@ -266,7 +273,7 @@ After applying patches, mirroring dev to live config, and restarting Quickshell:
 1. **Bar visibly shorter**: TopBar height feels around 28px (down from 40px).
 2. **Bar visibly less padded**: notch internal padding feels tighter.
 3. **Left-corner icon is the kanji 力 in accent color**: not the Arch teal logo.
-4. **Layout indicator shows a real glyph**: dwindle layout shows the view_quilt icon (or similar recognizable shape), not `><`.
+4. **Layout indicator gone from the bar**: the `><`/`M` placeholder text is no longer visible. The left notch contains only the Ryoku monogram and the Workspaces module.
 5. **Dashboard opens to a smaller size**: ~720x420, occupies less than 60% of a 1280x800 screen.
 6. **Center-notch animation still tracks Dashboard width**: opening Dashboard expands the center notch from its closed width to 720, smoothly.
 7. **No regressions**: Frame still around screen edges, theme colors still flow correctly, no QML errors in stderr.
