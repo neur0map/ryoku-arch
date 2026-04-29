@@ -161,27 +161,40 @@ echo "Brain_Shell HEAD SHA: $(cat /tmp/bs-probe-sha)"
 
 Expected: clone succeeds, SHA printed (for use in UPSTREAM.md in Task 4).
 
-- [ ] **Step 2: Try running upstream shell directly**
+- [ ] **Step 2: Try running upstream shell directly (use -p NOT -c)**
+
+The Quickshell 0.2.x CLI marks `-c` and `-p` as mutually exclusive (per `quickshell --help`: "Excludes: --path" / "Excludes: --config"). For an out-of-tree probe, use `-p` (filesystem path), NOT `-c` (XDG-managed config name).
 
 ```bash
-quickshell -c bs-probe -p /tmp/bs-probe 2>&1 | head -30 &
-PROBE_PID=$!
-sleep 2
-pgrep -f "quickshell.*bs-probe" >/dev/null && echo "OK: probe daemon up" || echo "FAIL: probe daemon did not start"
+rm -f /tmp/bs-probe-stderr
+(setsid quickshell -p /tmp/bs-probe </dev/null >/dev/null 2>/tmp/bs-probe-stderr & disown)
+sleep 3
+PROBE_PID=$(ps -eo pid,cmd --no-headers | awk '$2 == "quickshell" && $3 == "-p" {print $1}')
+if [[ -n $PROBE_PID ]]; then
+  echo "OK: probe daemon up at PID $PROBE_PID"
+else
+  echo "FAIL: probe daemon did not start"
+  cat /tmp/bs-probe-stderr
+fi
 ```
 
-Expected: "OK: probe daemon up". If FAIL, capture stderr from the head output and identify the API mismatch (likely an API renamed in Quickshell 0.2.x). Document as an additional patch in Task 4's UPSTREAM.md.
+Expected: "OK: probe daemon up at PID <n>". If FAIL, the stderr will name the missing or mismatched API. Document as an additional patch in Task 4's UPSTREAM.md before vendoring.
 
-- [ ] **Step 3: If the probe started, do not interact (avoid touching the user's session); kill it**
+- [ ] **Step 3: Kill ONLY the probe (not the user's running quickshell -c ryoku)**
+
+DO NOT use `pkill -f "quickshell"` or `pkill -x quickshell`: both would also kill the user's existing `quickshell -c ryoku` process and take down their decorative Frame. Kill by PID instead.
 
 ```bash
-pkill -f "quickshell.*bs-probe" 2>/dev/null
-sleep 0.5
-pgrep -f "quickshell.*bs-probe" >/dev/null && \
-  pkill -9 -f "quickshell.*bs-probe"
+PROBE_PID=$(ps -eo pid,cmd --no-headers | awk '$2 == "quickshell" && $3 == "-p" {print $1}')
+[[ -n $PROBE_PID ]] && kill "$PROBE_PID"
+sleep 1
+PROBE_STILL=$(ps -eo pid,cmd --no-headers | awk '$2 == "quickshell" && $3 == "-p" {print $1}')
+[[ -z $PROBE_STILL ]] && echo "OK: probe killed; user shell intact" \
+  || { echo "WARN: probe still up; force-killing"; kill -9 "$PROBE_STILL"; }
+ps -eo pid,cmd --no-headers | awk '$2 == "quickshell" {print}'
 ```
 
-Expected: probe daemon is gone (`pgrep` returns nothing).
+Expected: "OK: probe killed; user shell intact"; the surviving line shows `quickshell -c ryoku` (the user's daemon).
 
 - [ ] **Step 4: If probe FAILED with QML errors, STOP and resolve**
 
