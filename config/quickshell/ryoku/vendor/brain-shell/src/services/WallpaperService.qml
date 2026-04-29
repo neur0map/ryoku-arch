@@ -59,7 +59,13 @@ QtObject {
     // ── Config read — runs on startup, then calls refresh() ──────────────────
     property string _cfgBuf: ""
     property var readConfigProc: Process {
-        command: ["bash", "-c", "cat '" + root.configPath + "' 2>/dev/null"]
+        // Ryoku: drop the shell wrapper; pass path as a Process arg directly.
+        // Eliminates single-quote-escape injection in path strings. Note:
+        // the write path at lines ~90-91 still shell-interpolates configPath,
+        // but configPath is hardcoded internal (Qt.resolvedUrl of a vendored
+        // user_data path), so practical risk is bounded. A follow-up spec
+        // can patch the write path; out of scope for Spec 1.
+        command: ["cat", root.configPath]
         stdout: SplitParser {
             onRead: function(line) { root._cfgBuf += line }
         }
