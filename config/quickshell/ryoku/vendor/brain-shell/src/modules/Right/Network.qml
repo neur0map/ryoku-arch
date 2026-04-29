@@ -92,7 +92,8 @@ Item {
         anchors.centerIn: parent
         spacing: 4
 
-        // WiFi/ethernet icon — opens to wifi tab
+        // WiFi/ethernet icon — display-only (Ryoku: click + cursor
+        // removed since NetworkPopup is dormant; re-add when Spec 5 lands).
         Text {
             id: netIcon
             text:           root._netIcon
@@ -100,15 +101,6 @@ Item {
             font.pixelSize: 13
             anchors.verticalCenter: parent.verticalCenter
             Behavior on color { ColorAnimation { duration: 200 } }
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    Popups.closeAll()
-                    Popups.networkPage = "wifi"
-                    Popups.networkOpen = true
-                }
-            }
         }
 
         // VPN shield — opens to vpn tab

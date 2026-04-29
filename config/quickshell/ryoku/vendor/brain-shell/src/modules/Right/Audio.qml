@@ -42,7 +42,7 @@ Item {
             color:          hov.hovered ? Theme.active : Theme.text
             font.pixelSize: 14
             anchors.verticalCenter: parent.verticalCenter
-            Behavior on color { ColorAnimation { duration: 120 } }
+            Behavior on color { ColorAnimation { duration: 250; easing.type: Easing.OutQuad } }
         }
 
         Text {
@@ -51,7 +51,7 @@ Item {
             font.pixelSize: 12
             anchors.verticalCenter: parent.verticalCenter
             visible:        root.showPercentage || hov.hovered
-            Behavior on color { ColorAnimation { duration: 120 } }
+            Behavior on color { ColorAnimation { duration: 250; easing.type: Easing.OutQuad } }
         }
     }
 
