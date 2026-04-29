@@ -10,6 +10,8 @@ PanelWindow {
 
     required property var anchorWindow
 
+    Binding { target: Popups; property: "dashboardPageWidth"; value: Theme.dashboardWidth }
+
     readonly property int fw: Theme.notchRadius
     readonly property int fh: Theme.notchRadius
     readonly property int animDuration: Theme.animDuration
@@ -62,7 +64,7 @@ PanelWindow {
         anchors.horizontalCenter: parent.horizontalCenter
         clip: true
 
-        width:  Popups.dashboardOpen ? Theme.dashboardWidth + 2 * root.fw : Theme.cNotchMinWidth + 2 * root.fw
+        width:  Popups.dashboardOpen ? Popups.dashboardPageWidth + 2 * root.fw : Theme.cNotchMinWidth + 2 * root.fw
         height: Popups.dashboardOpen ? Theme.dashboardHeight : Theme.notchHeight / 2
 
         Behavior on width  { NumberAnimation { duration: root.animDuration; easing.type: Easing.InOutCubic } }

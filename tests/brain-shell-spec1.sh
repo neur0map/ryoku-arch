@@ -97,6 +97,12 @@ pass "PopupLayer activation matches Reading X"
 ! grep -q 'DashStats\s*{' \
   config/quickshell/ryoku/vendor/brain-shell/src/popups/Dashboard.qml \
   || fail "Dashboard should not mount DashStats directly"
+grep -q 'property:\s*"dashboardPageWidth"' \
+  config/quickshell/ryoku/vendor/brain-shell/src/popups/Dashboard.qml \
+  || fail "Dashboard should bind Popups.dashboardPageWidth"
+grep -q 'value:\s*Theme\.dashboardWidth' \
+  config/quickshell/ryoku/vendor/brain-shell/src/popups/Dashboard.qml \
+  || fail "Dashboard should sync Popups.dashboardPageWidth to Theme.dashboardWidth"
 grep -q 'DashHome\s*{' \
   config/quickshell/ryoku/vendor/brain-shell/src/popups/Dashboard.qml \
   || fail "Dashboard should mount DashHome"
