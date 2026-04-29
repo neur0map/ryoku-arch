@@ -49,12 +49,13 @@ Scope {
     // below Waybar so the rounded top inner corners appear right under it.
     // If you change Waybar's height (waybar config.jsonc `height`), change
     // this too.
-    // Spec 2 update: restored to match Brain_Shell TopBar notch height
-    // (currently 32 in vendor/brain-shell/src/theme/Theme.qml). With
-    // frame color matching bar background, the Frame's top strip + bar
-    // notches read as one continuous chrome wrapping the top edge.
-    // Update this value if Theme.notchHeight changes.
-    readonly property int waybarHeight: 32
+    // Spec 2: kept at 0 so the Frame does NOT paint a top strip behind
+    // the Brain_Shell TopBar's transparent notch gaps. The bar's 3-notch
+    // floating-pill design is preserved. Trade-off: Frame side strips
+    // do not visually connect with the bar at the top corners.
+    // A future spec can carve a notch-shaped cutout in the Frame top
+    // (Caelestia-style "blob") so they connect properly.
+    readonly property int waybarHeight: 0
 
     // Corner radius applied to all four inner corners of the Frame cutout
     // (where the window area begins). Also used by the Hyprland drop-in
