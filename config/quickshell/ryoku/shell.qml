@@ -21,6 +21,12 @@ ShellRoot {
         ExclusionZones {}
     }
 
+    // Spec 2 follow-up: rounded physical-display corners overlay.
+    Variants {
+        model: Quickshell.screens
+        CornerOverlay {}
+    }
+
     // Brain_Shell additions (Spec 1: TopBar plus PopupDismiss plus
     // ConfirmDialog plus PopupLayer with Dashboard active).
     Variants {
