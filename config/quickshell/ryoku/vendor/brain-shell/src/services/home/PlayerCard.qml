@@ -99,6 +99,7 @@ Item {
     // ── Shared cava bars (32 bars from CavaService) ───────────────────────────
     readonly property int _cavaBars: 32
     readonly property var _bars: CavaService.bars
+    readonly property bool _barsPlaying: CavaService.isPlaying
 
     // ── Player icon helper ────────────────────────────────────────────────────
     function _playerIcon(player) {
@@ -471,7 +472,7 @@ Item {
                     Rectangle {
                         anchors.bottom: parent.bottom
                         width:  parent.width
-                        readonly property real _amp: root.isPlaying ? (modelData / 100) : 0
+                        readonly property real _amp: root._barsPlaying ? (modelData / 100) : 0
                         height: Math.max(2, _amp * 32)
                         radius: width / 2
                         color:  Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.25 + _amp * 0.65)

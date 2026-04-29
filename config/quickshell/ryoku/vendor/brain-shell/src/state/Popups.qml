@@ -9,6 +9,11 @@ QtObject {
     property bool notificationsOpen: false
     property bool archMenuOpen:      false
     property bool dashboardOpen:     false
+    // True while the dashboard card is visually present (open, opening,
+    // or closing). Driven from Dashboard.qml; TopBar uses this to hold
+    // its surface on the Overlay layer for the entire close animation
+    // so the bar's pill keeps painting over the retracting card.
+    property bool dashboardVisible:  false
     property bool wallpaperOpen:     false
     property bool notificationToastOpen:    false
     property bool quickOpen: false

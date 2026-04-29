@@ -210,7 +210,14 @@ Item {
 
 		opacity: Popups.dashboardOpen ? 0 : 1
 		visible: opacity > 0
-		Behavior on opacity { NumberAnimation { duration: 150 } }
+		Behavior on opacity {
+			enabled: !Theme.staticMode
+			NumberAnimation {
+				duration:           Theme.motionEffectsDuration
+				easing.type:        Easing.BezierSpline
+				easing.bezierCurve: Theme.motionEffectsCurve
+			}
+		}
 
 		WheelHandler {
 			acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad

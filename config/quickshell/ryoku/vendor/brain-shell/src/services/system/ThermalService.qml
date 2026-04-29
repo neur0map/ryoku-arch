@@ -80,15 +80,18 @@ QtObject {
         for (var i = 0; i < lines.length; i++) {
             var line = lines[i]
 
-            // CPU package temp — "Package id 0:  +52.0°C"
-            if (/Package id 0:/i.test(line)) {
+            // CPU package temp — Intel "Package id 0:", AMD k10temp "Tctl:" /
+            // "Tdie:" all reported as "+NN.N°C". First match wins; sensors
+            // never reports more than one of these on a single CPU.
+            if (/^\s*(?:Package id 0|Tctl|Tdie)\s*:/i.test(line)) {
                 var m = line.match(/\+([0-9.]+)°C/)
-                if (m) pkg = parseFloat(m[1])
+                if (m && pkg < 0) pkg = parseFloat(m[1])
                 continue
             }
 
-            // Fan lines — "fan1:   2400 RPM" or "Fan Speed:  2400 RPM"
-            var fm = line.match(/fan\d\s*:\s+([0-9]+)\s+RPM/i)
+            // Fan lines — standard "fan1: 2400 RPM" plus ASUS WMI labels
+            // "cpu_fan:" / "gpu_fan:" exposed by the asus-wmi driver.
+            var fm = line.match(/^\s*(?:fan\d+|cpu_fan|gpu_fan)\s*:\s+([0-9]+)\s+RPM/i)
             if (fm) {
                 fans.push(parseInt(fm[1]))
                 continue
