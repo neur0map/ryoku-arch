@@ -7,8 +7,8 @@ import "../../services/"
 
 IconBtn {
     text: ShellState.dnd
-          ? "󰂛"
-          : NotificationService.count > 0 ? "󰂚" : "󰂜"
+          ? ""
+          : NotificationService.count > 0 ? "" : ""
 
     onClicked: {
         var next = !Popups.notificationsOpen
