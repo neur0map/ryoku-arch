@@ -38,6 +38,19 @@ Still deferred:
 - [ ] **Intel Panther Lake kernel**: `linux-ptl`, `linux-ptl-headers`. Same reason as Apple T2 (kernel compile cost).
 - [ ] **Hosted `[ryoku]` pacman repo**. Long-term plan to retire the per-ISO-build AUR rebuild cost: ship pre-built AUR packages from R2 (or wherever the ISO ends up hosted) so users get driver updates without rebuilding the ISO, and so dev iteration speed stops being tied to overlay rebuild time. Comes after the GH Actions + R2 release pipeline above.
 
+## Brain_Shell migration follow-up specs
+
+Spec 1 of the Brain_Shell port shipped 2026-04-28: vendored Brain_Shell under MIT, applied 3 security patches and 4 branding patches, theme-bridged Ryoku's `colors.toml` palette into Brain_Shell's ColorLoader, mounted TopBar plus Dashboard in `config/quickshell/ryoku/shell.qml`. waybar retired during runtime verification. See `docs/superpowers/specs/2026-04-28-brain-shell-port-spec1.md` and `docs/superpowers/plans/2026-04-28-brain-shell-port-spec1.md`. Future specs:
+
+- [ ] **Spec 2: TopBar visual rework.** Default Brain_Shell TopBar visuals "kinda look bad" per user. Override `Theme.qml` constants (notch sizes, padding, corner radius, color usage) without touching vendored code. Brainstorm what specifically to change before writing the spec.
+- [ ] **Spec 3: Activate NotificationsPopup + NotificationToast; retire mako.** Uncomment in `vendor/brain-shell/src/popups/PopupLayer.qml`. Disable mako via existing toggle pattern. Patch the upstream notification-server registration if needed (mako-conflict warning currently shows in stderr).
+- [ ] **Spec 4: Activate AudioPopup + QuickControl; retire swayosd.** Uncomment in PopupLayer.qml. Disable swayosd-server via toggle. Verify volume/brightness/audio events surface through Brain_Shell instead.
+- [ ] **Spec 5: Activate NetworkPopup (wifi/bluetooth/vpn).** Uncomment in PopupLayer.qml. Wire to existing network state. Decide on retirement of `bin/ryoku-launch-wifi`, `bin/ryoku-launch-bluetooth`. May require adding `wireguard-tools` or `iwd` to package set.
+- [ ] **Spec 6: Activate WallpaperPopup; retire tofi backgrounds picker.** Uncomment in PopupLayer.qml. Replace the matugen call in `vendor/brain-shell/src/services/WallpaperService.qml` with `ryoku-theme-bg-set` so wallpaper changes flow through Ryoku's pipeline. Retire `default/tofi/pickers/backgrounds.sh`.
+- [ ] **Spec 7: Activate ScreenRecOptionsPopup.** Uncomment in PopupLayer.qml. Decide if it replaces or augments `ryoku-cmd-screenrecord`. Address the `user_data/screenrec.json missing` warning from runtime.
+- [ ] **Spec 8: Activate ArchMenu and Brain_Shell Border.** Uncomment in PopupLayer.qml. Decide whether Brain_Shell Border replaces the existing decorative Frame, or if Frame stays. If Border replaces Frame, retire `config/quickshell/ryoku/modules/frame/` and `bin/ryoku-toggle-frame`.
+- [ ] **Spec 9: Cleanup pass after Brain_Shell migration.** Rename `bin/ryoku-toggle-frame` to `bin/ryoku-toggle-shell` since it now controls more than the Frame. Update `bin/ryoku-menu`'s `Update -> Process -> Launcher` entry. Remove tofi shim references where Brain_Shell handles the surface. Update CREDITS / UPSTREAM for any new modifications.
+
 ## Build/runtime polish (low priority)
 
 - [ ] **Suppress the chroot pacman-hook noise during install.** `limine-mkinitcpio-hook` and `limine-snapper-sync` print "detected chroot env, skipping" / "kernel cmdline is not available" / "this does not update limine" during the chroot install. Harmless but ugly. Reorder `mkinitcpio -P` + `limine-update` so the user-facing transcript stays clean.
