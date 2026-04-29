@@ -41,7 +41,7 @@ Item {
         anchors.centerIn: parent
         text:           "▾"
         color:          Theme.active
-        font.pixelSize: 14
+        font.pixelSize: 12
         opacity:        (Popups.notificationsOpen || Popups.networkOpen) ? 1 : 0
         visible:        opacity > 0
         Behavior on opacity { NumberAnimation { duration: 150 } }

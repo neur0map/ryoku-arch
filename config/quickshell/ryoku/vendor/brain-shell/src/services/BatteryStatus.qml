@@ -23,7 +23,7 @@ Item {
                                      : false
 
     implicitWidth:  statusRow.implicitWidth + 6
-    implicitHeight: statusRow.implicitHeight
+    implicitHeight: Theme.notchHeight
 
     // ── Warning tracker ──────────────────────────────────────────────────────
     // warnedLevels stores which thresholds have fired this discharge cycle.
@@ -105,7 +105,7 @@ Item {
             id: iconText
             text:                   root.icon
             color:                  root.iconColor
-            font.pixelSize:         16
+            font.pixelSize:         13
             anchors.verticalCenter: parent.verticalCenter
 
             // Pulse when critically low and discharging
@@ -129,7 +129,7 @@ Item {
         Text {
             text:                   root.pct + "%"
             color:                  root.iconColor
-            font.pixelSize:         14
+            font.pixelSize:         11
             anchors.verticalCenter: parent.verticalCenter
             visible:                root.showPercentage || hov.hovered
         }

@@ -7,7 +7,7 @@ Item {
     id: root
 
     implicitWidth:  row.implicitWidth + 6
-    implicitHeight: row.implicitHeight
+    implicitHeight: Theme.notchHeight
 
     property int    _signal:       0
     property bool   _ethernet:     false
@@ -93,7 +93,7 @@ Item {
             id: netIcon
             text:           root._netIcon
             color:          root._netColor
-            font.pixelSize: 16
+            font.pixelSize: 13
             anchors.verticalCenter: parent.verticalCenter
             Behavior on color { ColorAnimation { duration: 200 } }
             MouseArea {
@@ -111,7 +111,7 @@ Item {
         Text {
             visible:        ShellState.vpnActive || ShellState.vpnConnecting
             text:           ShellState.vpnConnecting ? "󱦚" : "󰦝"
-            font.pixelSize: 14
+            font.pixelSize: 11
             anchors.verticalCenter: parent.verticalCenter
             opacity:        root._vpnOpacity
             color: ShellState.vpnActive ? Theme.active : Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.70)
@@ -132,7 +132,7 @@ Item {
         Text {
             visible:        ShellState.btPowered
             text:           ShellState.btConnected ? "󰂱" : "󰂯"
-            font.pixelSize: 14
+            font.pixelSize: 11
             anchors.verticalCenter: parent.verticalCenter
             color: ShellState.btConnected ? (hov.hovered ? Theme.active : Theme.text) : Qt.rgba(1,1,1,0.32)
             Behavior on color { ColorAnimation { duration: 200 } }
@@ -151,7 +151,7 @@ Item {
         Text {
             visible:        ShellState.hotspot
             text:           "󰀂"
-            font.pixelSize: 14
+            font.pixelSize: 11
             anchors.verticalCenter: parent.verticalCenter
             color:          Theme.active
             Behavior on color { ColorAnimation { duration: 200 } }

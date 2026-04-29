@@ -21,7 +21,7 @@ Rectangle {
         color:       "#F25623"  // Ryoku Greek-Noir accent orange
         font.family: "Noto Sans CJK JP"
         font.weight: Font.Black
-        font.pixelSize: 18
+        font.pixelSize: 14
     }
 
     HoverHandler {

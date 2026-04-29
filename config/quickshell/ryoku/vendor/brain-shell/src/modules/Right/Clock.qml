@@ -7,7 +7,7 @@ Text {
     color: Theme.text
     font.bold: true
     anchors.verticalCenter: parent.verticalCenter
-    font.pixelSize: 16
+    font.pixelSize: 13
 
     property int formatMode: 0
 

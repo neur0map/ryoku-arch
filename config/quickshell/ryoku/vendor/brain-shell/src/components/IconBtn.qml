@@ -21,7 +21,7 @@ Rectangle {
         // 2. FIX: Changed 'root.hoverHandler.hovered' to 'hover.hovered'
         color: hover.hovered ? Theme.background : root.textColor
         
-        font.pixelSize: 14
+        font.pixelSize: 12
     }
 
     HoverHandler {
