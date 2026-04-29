@@ -3,63 +3,40 @@ import Quickshell
 import "../"
 
 // ============================================================
-// PopupLayer — the only file that instantiates popup windows.
+// PopupLayer - the only file that instantiates popup windows.
 //
 // shell.qml creates the anchor windows and passes them in.
-// To add a new popup:
-//   1. Create the .qml file in src/popups/
-//   2. Add its anchor window as a property here (if new)
-//   3. Instantiate it below under the right section
+//
+// Ryoku Spec 1 activation: only Dashboard is instantiated.
+// Other popups are vendored as code but commented out; each is
+// re-enabled in a follow-up spec when its replacement for the
+// existing Ryoku surface (mako, swayosd, fuzzel, etc.) is
+// validated. Border-anchor properties softened from
+// `required property var` to `property var ... : null` so
+// callers can pass null when no Border is mounted.
 // ============================================================
 
 Item {
     id: root
 
-    // ── Anchor windows (set by shell.qml) ───────────────────
-    required property var topBar       // TopBar PanelWindow
-    required property var leftBorder   // left Border PanelWindow
-    required property var rightBorder  // right Border PanelWindow
-    required property var bottomBorder // bottom Border PanelWindow
+    // Anchor windows (set by shell.qml). Border anchors default to null
+    // because Brain_Shell's Border is dormant in Spec 1 (Ryoku Frame
+    // provides the border surface).
+    required property var topBar
+    property var leftBorder:   null
+    property var rightBorder:  null
+    property var bottomBorder: null
 
-    // ── Border-anchored popups ───────────────────────────────
+    // Active in Spec 1
+    Dashboard { anchorWindow: root.topBar }
 
-    // Left border → center
-    ArchMenu {
-        anchorWindow: root.leftBorder
-    }
-
-    // Bottom border → slides up
-    WallpaperPopup {}
-
-    // ── TopBar-anchored popups ───────────────────────────────
-
-    // Right notch — audio
-    AudioPopup {
-        anchorWindow: root.rightBorder
-    }
-    QuickControl {
-        anchorWindow: root.topBar
-    }
-
-    // Center notch — dashboard (expands below the center notch)
-    Dashboard {
-        anchorWindow: root.topBar
-    }
-
-    // Right notch
-    NotificationsPopup {
-        anchorWindow: root.topBar
-    }
-
-    NotificationToast {
-        anchorWindow: root.rightBorder
-    }
-
-    // Screen recorder strip options — appears below center notch on hover
-    ScreenRecOptionsPopup {
-        anchorWindow: root.topBar
-    }
-
-    NetworkPopup {}
-    // SysTrayPopup { anchorWindow: root.topBar }
+    // Dormant in Spec 1; re-enable in follow-up specs.
+    // ArchMenu              { anchorWindow: root.leftBorder }
+    // WallpaperPopup        {}
+    // AudioPopup            { anchorWindow: root.rightBorder }
+    // QuickControl          { anchorWindow: root.topBar }
+    // NotificationsPopup    { anchorWindow: root.topBar }
+    // NotificationToast     { anchorWindow: root.rightBorder }
+    // ScreenRecOptionsPopup { anchorWindow: root.topBar }
+    // NetworkPopup          {}
 }
