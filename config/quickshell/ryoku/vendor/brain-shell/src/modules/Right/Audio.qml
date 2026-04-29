@@ -8,7 +8,7 @@ Item {
 
     property bool showPercentage: false
 
-    implicitWidth:  row.implicitWidth + 6
+    implicitWidth:  row.implicitWidth + 16
     implicitHeight: Theme.notchHeight
 
     readonly property var sink: Pipewire.defaultAudioSink
@@ -42,7 +42,7 @@ Item {
             color:          hov.hovered ? Theme.active : Theme.text
             font.pixelSize: 14
             anchors.verticalCenter: parent.verticalCenter
-            Behavior on color { ColorAnimation { duration: 250; easing.type: Easing.OutQuad } }
+            Behavior on color { ColorAnimation { duration: 400; easing.type: Easing.InOutCubic } }
         }
 
         Text {
@@ -51,7 +51,7 @@ Item {
             font.pixelSize: 12
             anchors.verticalCenter: parent.verticalCenter
             visible:        root.showPercentage || hov.hovered
-            Behavior on color { ColorAnimation { duration: 250; easing.type: Easing.OutQuad } }
+            Behavior on color { ColorAnimation { duration: 400; easing.type: Easing.InOutCubic } }
         }
     }
 
