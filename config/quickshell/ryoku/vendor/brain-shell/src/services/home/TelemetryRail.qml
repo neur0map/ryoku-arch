@@ -7,6 +7,13 @@ Item {
 
     readonly property int railRadius: Theme.cornerRadius + 6
     readonly property int sampleCount: 28
+    readonly property int contentMargin: 12
+    readonly property int sectionSpacing: 10
+    readonly property int cpuSectionH: 122
+    readonly property int memorySectionH: 58
+    readonly property int thermalsSectionH: 76
+    readonly property int networkSectionH: 82
+    readonly property int summarySectionH: 74
 
     property var  _cpuHistory: []
     property real _upBps:      0
@@ -118,13 +125,13 @@ Item {
     Column {
         anchors {
             fill:    parent
-            margins: 14
+            margins: root.contentMargin
         }
-        spacing: 14
+        spacing: root.sectionSpacing
 
         Item {
             width:  parent.width
-            height: 122
+            height: root.cpuSectionH
 
             Text {
                 anchors.left: parent.left
@@ -203,7 +210,7 @@ Item {
 
         Item {
             width:  parent.width
-            height: 58
+            height: root.memorySectionH
 
             Text {
                 anchors.left: parent.left
@@ -254,7 +261,7 @@ Item {
 
         Item {
             width:  parent.width
-            height: 76
+            height: root.thermalsSectionH
 
             Column {
                 anchors.fill: parent
@@ -328,7 +335,7 @@ Item {
 
         Item {
             width:  parent.width
-            height: 82
+            height: root.networkSectionH
 
             Column {
                 anchors.fill: parent
@@ -402,7 +409,7 @@ Item {
 
         Item {
             width:  parent.width
-            height: 74
+            height: root.summarySectionH
 
             Column {
                 anchors.fill: parent

@@ -123,6 +123,54 @@ grep -q 'TelemetryRail\s*{' \
 grep -q 'Canvas\s*{' \
   config/quickshell/ryoku/vendor/brain-shell/src/services/home/TelemetryRail.qml \
   || fail "Telemetry rail should render a custom graph canvas"
+python3 - <<'PY' || fail "Telemetry rail layout budget exceeds dashboard body"
+import pathlib
+import re
+import sys
+
+theme = pathlib.Path("config/quickshell/ryoku/vendor/brain-shell/src/theme/Theme.qml").read_text()
+dashboard = pathlib.Path("config/quickshell/ryoku/vendor/brain-shell/src/popups/Dashboard.qml").read_text()
+home = pathlib.Path("config/quickshell/ryoku/vendor/brain-shell/src/services/home/DashHome.qml").read_text()
+rail = pathlib.Path("config/quickshell/ryoku/vendor/brain-shell/src/services/home/TelemetryRail.qml").read_text()
+
+def grab(pattern, text, label):
+    m = re.search(pattern, text, re.S)
+    if not m:
+        print(f"missing {label}", file=sys.stderr)
+        sys.exit(1)
+    return int(m.group(1))
+
+dashboard_height = grab(r'property int dashboardHeight:\s*([0-9]+)', theme, "Theme.dashboardHeight")
+notch_radius = grab(r'property int notchRadius:\s*([0-9]+)', theme, "Theme.notchRadius")
+dash_gap = grab(r'readonly property int gap:\s*([0-9]+)', home, "DashHome.gap")
+rail_margin = grab(r'readonly property int contentMargin:\s*([0-9]+)', rail, "TelemetryRail.contentMargin")
+rail_spacing = grab(r'readonly property int sectionSpacing:\s*([0-9]+)', rail, "TelemetryRail.sectionSpacing")
+
+section_heights = [
+    grab(r'readonly property int cpuSectionH:\s*([0-9]+)', rail, "TelemetryRail.cpuSectionH"),
+    grab(r'readonly property int memorySectionH:\s*([0-9]+)', rail, "TelemetryRail.memorySectionH"),
+    grab(r'readonly property int thermalsSectionH:\s*([0-9]+)', rail, "TelemetryRail.thermalsSectionH"),
+    grab(r'readonly property int networkSectionH:\s*([0-9]+)', rail, "TelemetryRail.networkSectionH"),
+    grab(r'readonly property int summarySectionH:\s*([0-9]+)', rail, "TelemetryRail.summarySectionH"),
+]
+
+if 'topMargin:    root.fh + 8' not in dashboard or 'bottomMargin: 8' not in dashboard:
+    print("unexpected dashboard body margins", file=sys.stderr)
+    sys.exit(1)
+if 'height: parent.height' not in home:
+    print("expected rail height binding missing", file=sys.stderr)
+    sys.exit(1)
+if len(re.findall(r'height:\s*root\.(?:cpuSectionH|memorySectionH|thermalsSectionH|networkSectionH|summarySectionH)', rail)) != 5:
+    print("expected section heights to be property-backed", file=sys.stderr)
+    sys.exit(1)
+
+available_height = dashboard_height - (notch_radius + 8) - 8 - dash_gap
+declared_budget = rail_margin * 2 + rail_spacing * 4 + sum(section_heights)
+
+if declared_budget > available_height:
+    print(f"budget {declared_budget} exceeds available {available_height}", file=sys.stderr)
+    sys.exit(1)
+PY
 pass "dashboard telemetry rail"
 
 # --- Existing stack untouched -----------------------------------------
