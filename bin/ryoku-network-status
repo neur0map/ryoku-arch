@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# Held network-status TUI used by ryoku-launch-wifi as the fallback when
+# no wireless device exists (libvirt VMs, desktops on ethernet only).
+# Impala would exit immediately and the launcher window would flash-and-
+# close in that case — this gives the user a visible read on the wired
+# connection that's actually carrying their traffic.
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+clear
+
+if command -v gum >/dev/null 2>&1; then
+  gum style --bold --foreground 3 --padding "0 2" "  Network Status"
+else
+  printf '\n  Network Status\n'
+fi
+
+printf '\nNo wireless device detected — wifi controls unavailable.\n'
+printf 'Showing active wired/virtual interfaces.\n\n'
+
+printf '── Interfaces ──\n'
+if command -v networkctl >/dev/null 2>&1; then
+  networkctl --no-legend list 2>/dev/null
+else
+  ip -brief link show
+fi
+
+printf '\n── Addresses ──\n'
+ip -brief addr show | grep -v '^lo'
+
+printf '\n── Default route ──\n'
+ip route show default 2>/dev/null
+
+printf '\n── DNS ──\n'
+if command -v resolvectl >/dev/null 2>&1; then
+  resolvectl status 2>/dev/null | sed -n '/Global/,/Link 2/p' | head -8
+else
+  cat /etc/resolv.conf 2>/dev/null
+fi
+
+printf '\nPress any key to close.\n'
+read -r -s -n 1
