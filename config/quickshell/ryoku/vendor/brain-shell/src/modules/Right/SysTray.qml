@@ -4,32 +4,43 @@ import "../../components"
 import "../../windows"
 import "../../"
 
-Row{
-    id: root
-Row {
-        id: trayRow
-        spacing: 5
-        visible: false
+// Ryoku: wrap in a notch-height Item so the chevron + tray icons
+// vertically center in the bar instead of top-aligning at row top.
+Item {
+    implicitWidth:  contentRow.implicitWidth
+    implicitHeight: Theme.notchHeight
 
-        Repeater {
-            model: SystemTray.items
-            delegate: Image {
-                width: 16
-                height: 16
-                source: modelData.icon
-                anchors.verticalCenter: parent.verticalCenter
+    Row {
+        id: contentRow
+        anchors.centerIn: parent
 
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: modelData.activate()
+        Row {
+            id: trayRow
+            spacing: 5
+            visible: false
+            anchors.verticalCenter: parent.verticalCenter
+
+            Repeater {
+                model: SystemTray.items
+                delegate: Image {
+                    width: 16
+                    height: 16
+                    source: modelData.icon
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: modelData.activate()
+                    }
                 }
             }
         }
-    }
 
-    // Tray Toggle Button
-    IconBtn {
-        text: trayRow.visible ? "" : ""
-        onClicked: trayRow.visible = !trayRow.visible
+        IconBtn {
+            id: toggleBtn
+            anchors.verticalCenter: parent.verticalCenter
+            text: trayRow.visible ? "" : ""
+            onClicked: trayRow.visible = !trayRow.visible
+        }
     }
 }
