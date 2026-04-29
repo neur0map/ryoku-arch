@@ -87,6 +87,18 @@ DORMANT=$(grep -cE '^\s*//\s*(ArchMenu|WallpaperPopup|AudioPopup|QuickControl|No
 [[ $DORMANT -eq 8 ]] || fail "expected 8 dormant popups, got $DORMANT"
 pass "PopupLayer activation matches Reading X"
 
+# --- Dormant network popup has no live right-bar triggers -------------
+grep -q '^\s*//\s*NetworkPopup\s*{' \
+  config/quickshell/ryoku/vendor/brain-shell/src/popups/PopupLayer.qml \
+  || fail "NetworkPopup should remain dormant in PopupLayer"
+! grep -q 'Popups\.networkOpen = true' \
+  config/quickshell/ryoku/vendor/brain-shell/src/modules/Right/Network.qml \
+  || fail "Right bar should not open dormant NetworkPopup"
+! grep -q 'Popups\.networkPage =' \
+  config/quickshell/ryoku/vendor/brain-shell/src/modules/Right/Network.qml \
+  || fail "Right bar should not target dormant network popup pages"
+pass "dormant network popup has no live right-bar triggers"
+
 # --- Dashboard unified shell -----------------------------------------
 ! grep -q 'TabSwitcher\s*{' \
   config/quickshell/ryoku/vendor/brain-shell/src/popups/Dashboard.qml \

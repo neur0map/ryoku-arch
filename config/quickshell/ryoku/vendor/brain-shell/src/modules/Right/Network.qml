@@ -114,7 +114,7 @@ Item {
             Behavior on color { ColorAnimation { duration: 700; easing.type: Easing.OutQuart } }
         }
 
-        // VPN shield — opens to vpn tab
+        // VPN shield — display-only while NetworkPopup stays dormant.
         Text {
             visible:        ShellState.vpnActive || ShellState.vpnConnecting
             text:           ShellState.vpnConnecting ? "󱦚" : "󰦝"
@@ -124,18 +124,9 @@ Item {
             color: ShellState.vpnActive ? Theme.active : Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.70)
             Behavior on color   { ColorAnimation  { duration: 200 } }
             Behavior on opacity { NumberAnimation { duration: 80  } }
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    Popups.closeAll()
-                    Popups.networkPage = "vpn"
-                    Popups.networkOpen = true
-                }
-            }
         }
 
-        // Bluetooth — opens to bluetooth tab
+        // Bluetooth — display-only while NetworkPopup stays dormant.
         Text {
             visible:        ShellState.btPowered
             text:           ShellState.btConnected ? "󰂱" : "󰂯"
@@ -143,18 +134,9 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             color: ShellState.btConnected ? (hov.hovered ? Theme.active : Theme.text) : Qt.rgba(1,1,1,0.32)
             Behavior on color { ColorAnimation { duration: 700; easing.type: Easing.OutQuart } }
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    Popups.closeAll()
-                    Popups.networkPage = "bluetooth"
-                    Popups.networkOpen = true
-                }
-            }
         }
 
-        // Hotspot — opens to hotspot tab
+        // Hotspot — display-only while NetworkPopup stays dormant.
         Text {
             visible:        ShellState.hotspot
             text:           "󰀂"
@@ -162,15 +144,6 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             color:          Theme.active
             Behavior on color { ColorAnimation { duration: 700; easing.type: Easing.OutQuart } }
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    Popups.closeAll()
-                    Popups.networkPage = "hotspot"
-                    Popups.networkOpen = true
-                }
-            }
         }
     }
 }
