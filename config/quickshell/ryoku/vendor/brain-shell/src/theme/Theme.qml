@@ -31,7 +31,10 @@ QtObject {
     property int cornerRadius:  17
     property int notchRadius:   15
     property int notchHeight:   40
-    property int exclusionGap:  34
+    // Ryoku Patch 10 (partial): reduce exclusionGap (was 34) so the bar
+    // reserves less screen real estate; notchHeight stays 40 because
+    // module internals are hard-coupled to it.
+    property int exclusionGap:  22
     property int spacing:       10
 
     // -- Notch Content Padding --
