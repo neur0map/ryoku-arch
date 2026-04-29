@@ -590,10 +590,13 @@ Before writing any vendoring patch, verify the assumed Quickshell APIs work agai
    `git clone --depth 1 https://github.com/Brainitech/Brain_Shell /tmp/bs-probe`
 2. Note the upstream commit SHA.
 3. Try running the upstream shell directly without any patches:
-   `qs -c bs-probe -p /tmp/bs-probe` (or `quickshell -c bs-probe -p /tmp/bs-probe`)
+   `quickshell -p /tmp/bs-probe` (the `-p` and `-c` flags are mutually
+   exclusive in Quickshell 0.2.x; `-p` takes a filesystem path and is
+   the right form for an out-of-tree probe; `-c` would assume a config
+   under an XDG config dir which the probe is not).
 4. If the daemon starts cleanly without QML errors, the API surface is compatible. Record the SHA in UPSTREAM.md and proceed.
 5. If errors appear, identify which APIs Quickshell renamed/removed and adapt vendored files (add to UPSTREAM.md as additional patches).
-6. Tear down: `pkill -f "qs -c bs-probe"` and remove `/tmp/bs-probe`.
+6. Tear down: kill the probe by PID (do NOT use `pkill -f "quickshell"` or `pkill -x quickshell` because those would also kill the user's running `quickshell -c ryoku` process). Find the probe PID with `ps -eo pid,cmd --no-headers | awk '$2 == "quickshell" && $3 == "-p" {print $1}'` and `kill <pid>`. Then remove `/tmp/bs-probe`.
 
 ### Snapshot evidence
 
