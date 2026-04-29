@@ -31,7 +31,11 @@ Scope {
     // Thickness of the opaque colored strip on the left, right, and bottom
     // edges of the screen. The top edge is covered by Waybar so no separate
     // strip is drawn there.
-    readonly property int frameThickness: 4
+    // Spec 2 follow-up: reduced from 4 to 1 for a slim hairline look
+    // matching internal dashboard divider weight. Run `ryoku-toggle-frame`
+    // twice (off then on) to regenerate the Hyprland gaps drop-in if you
+    // also want windows to come closer to the screen edge.
+    readonly property int frameThickness: 6
 
     // Thickness of the wallpaper-visible strip between the frame and the
     // window (on the left, right, and bottom edges).
@@ -55,7 +59,8 @@ Scope {
     // Corner radius applied to all four inner corners of the Frame cutout
     // (where the window area begins). Also used by the Hyprland drop-in
     // for window corner rounding so app corners echo the frame curve.
-    readonly property int rounding: 8
+    // Bumped from 8 to 12 for a more polished native feel.
+    readonly property int rounding: 12
 
     // --- Derived exclusions (do not edit directly) -------------------------
 

@@ -2,8 +2,10 @@ pragma Singleton
 import QtQuick
 
 QtObject {
-    // Existing property used by the decorative Frame (Config.qml reads this).
-    readonly property color frame: "{{ background }}"
+    // Used by the decorative Frame (Config.qml reads this). Mapped to
+    // theme accent for visibility against arbitrary wallpapers; switches
+    // automatically when the user runs ryoku-theme-set.
+    readonly property color frame: "{{ accent }}"
 
     // Properties added in Spec 1 for Brain_Shell components that prefer
     // QML import over JSON file watching. Currently unused; reserved for
