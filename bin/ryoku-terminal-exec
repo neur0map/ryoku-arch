@@ -1,0 +1,143 @@
+#!/bin/bash
+
+set -euo pipefail
+
+RYOKU_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+export RYOKU_PATH
+source "$RYOKU_PATH/lib/runtime-env.sh"
+
+app_id=""
+title=""
+working_directory=""
+print_id=0
+command=()
+
+while (($# > 0)); do
+  case $1 in
+    --print-id)
+      print_id=1
+      shift
+      ;;
+    --app-id)
+      app_id="${2:-}"
+      shift 2
+      ;;
+    --app-id=*)
+      app_id="${1#*=}"
+      shift
+      ;;
+    --title)
+      title="${2:-}"
+      shift 2
+      ;;
+    --title=*)
+      title="${1#*=}"
+      shift
+      ;;
+    --dir)
+      working_directory="${2:-}"
+      shift 2
+      ;;
+    --dir=*)
+      working_directory="${1#*=}"
+      shift
+      ;;
+    -e|--command|--)
+      shift
+      command=("$@")
+      break
+      ;;
+    *)
+      command=("$@")
+      break
+      ;;
+  esac
+done
+
+terminal_ids=()
+for list in "$HOME/.config/xdg-terminals.list" "$RYOKU_PATH/config/xdg-terminals.list"; do
+  [[ -f $list ]] || continue
+
+  while IFS= read -r line; do
+    [[ -z $line || $line == \#* ]] && continue
+    terminal_ids+=("$line")
+  done < "$list"
+done
+
+if ((${#terminal_ids[@]} == 0)); then
+  terminal_ids=("Alacritty.desktop" "com.mitchellh.ghostty.desktop" "kitty.desktop")
+fi
+
+selected_id=""
+selected_bin=""
+selected_kind=""
+
+for terminal_id in "${terminal_ids[@]}"; do
+  case $terminal_id in
+    "Alacritty.desktop")
+      if command -v alacritty >/dev/null 2>&1; then
+        selected_id="$terminal_id"
+        selected_bin="alacritty"
+        selected_kind="alacritty"
+        break
+      fi
+      ;;
+    "com.mitchellh.ghostty.desktop")
+      if command -v ghostty >/dev/null 2>&1; then
+        selected_id="$terminal_id"
+        selected_bin="ghostty"
+        selected_kind="ghostty"
+        break
+      fi
+      ;;
+    "kitty.desktop")
+      if command -v kitty >/dev/null 2>&1; then
+        selected_id="$terminal_id"
+        selected_bin="kitty"
+        selected_kind="kitty"
+        break
+      fi
+      ;;
+  esac
+done
+
+if [[ -z $selected_bin ]]; then
+  echo "No supported terminal emulator found. Install alacritty, ghostty, or kitty." >&2
+  exit 1
+fi
+
+if (( print_id == 1 )); then
+  printf '%s\n' "$selected_id"
+  exit 0
+fi
+
+args=("$selected_bin")
+
+case $selected_kind in
+  "alacritty")
+    [[ -n $app_id ]] && args+=("--class=$app_id")
+    [[ -n $title ]] && args+=("--title=$title")
+    [[ -n $working_directory ]] && args+=("--working-directory=$working_directory")
+    if ((${#command[@]} > 0)); then
+      args+=("-e" "${command[@]}")
+    fi
+    ;;
+  "ghostty")
+    [[ -n $app_id ]] && args+=("--class=$app_id")
+    [[ -n $title ]] && args+=("--title=$title")
+    [[ -n $working_directory ]] && args+=("--working-directory=$working_directory")
+    if ((${#command[@]} > 0)); then
+      args+=("-e" "${command[@]}")
+    fi
+    ;;
+  "kitty")
+    [[ -n $app_id ]] && args+=("--class=$app_id")
+    [[ -n $title ]] && args+=("--title=$title")
+    [[ -n $working_directory ]] && args+=("--directory=$working_directory")
+    if ((${#command[@]} > 0)); then
+      args+=("${command[@]}")
+    fi
+    ;;
+esac
+
+exec "${args[@]}"
