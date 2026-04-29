@@ -10,8 +10,8 @@ import Quickshell.Io
 // Not a singleton. Instantiated as a property inside Theme.qml.
 // Theme.qml reads loader.background, loader.active etc.
 //
-// Original upstream header referenced ~/.cache/brain-shell/colors.json
-// which no longer applies under the Ryoku theme pipeline.
+// Original upstream used XDG_CACHE_HOME for colors which no longer
+// applies under the Ryoku theme pipeline.
 // ============================================================
 
 QtObject {
