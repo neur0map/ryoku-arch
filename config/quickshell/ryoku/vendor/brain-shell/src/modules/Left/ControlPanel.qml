@@ -1,12 +1,13 @@
 import QtQuick
-import Quickshell
 import "../../"
 
-// Ryoku Patch 8: Arch logo replaced with Ryoku monogram (kanji 力 from
-// logo-mark.svg) in canonical Ryoku Greek-Noir orange. ArchMenu trigger
-// behavior preserved for when ArchMenu is activated in Spec 8.
-// Rewritten as a self-contained Rectangle + Image + MouseArea instead
-// of using IconBtn (which is text-only). See vendor/brain-shell/UPSTREAM.md.
+// Ryoku Patch 8: Arch logo replaced with Ryoku monogram (kanji 力).
+// Rendered as a QML Text element with Noto Sans CJK JP rather than
+// loaded from logo-mark.svg, because that SVG's text baseline is too
+// high in its viewBox and the top horizontal stroke of 力 gets clipped.
+// QML Text positions the kanji properly inside the button bounds.
+// ArchMenu trigger behavior preserved for when ArchMenu is activated
+// in Spec 8. See vendor/brain-shell/UPSTREAM.md.
 Rectangle {
     id: root
     width:  24
@@ -14,13 +15,13 @@ Rectangle {
     radius: 4
     color:  hover.hovered ? Theme.active : "transparent"
 
-    Image {
+    Text {
         anchors.centerIn: parent
-        source:      "file://" + Quickshell.env("HOME") + "/.local/share/ryoku/logo-mark.svg"
-        sourceSize:  Qt.size(20, 20)
-        width:       20
-        height:      20
-        fillMode:    Image.PreserveAspectFit
+        text:        "力"   // U+529B kanji 力 (chikara/ryoku, "power")
+        color:       "#F25623"  // Ryoku Greek-Noir accent orange
+        font.family: "Noto Sans CJK JP"
+        font.weight: Font.Black
+        font.pixelSize: 18
     }
 
     HoverHandler {
