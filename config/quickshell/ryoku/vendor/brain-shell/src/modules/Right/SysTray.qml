@@ -29,7 +29,7 @@ Row {
 
     // Tray Toggle Button
     IconBtn {
-        text: trayRow.visible ? "" : ""
+        text: trayRow.visible ? "" : ""
         onClicked: trayRow.visible = !trayRow.visible
     }
 }
