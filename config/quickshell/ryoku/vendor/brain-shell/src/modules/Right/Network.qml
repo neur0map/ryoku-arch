@@ -75,15 +75,48 @@ Item {
             onRead: function(l) { var v = l.trim().toLowerCase(); if (v !== "") root._connectivity = v }
         }
     }
+    // Ryoku: own Bluetooth poll so the topbar icon reflects state even
+    // when the dashboard's QuickSettings panel hasn't been opened yet
+    // (QuickSettings owns the canonical poll but only runs while loaded).
+    // Uses busctl (org.bluez DBus) so it works without bluez-utils CLI.
+    Process {
+        id: btPowerPoll
+        command: ["bash", "-c",
+            "ADAPTER=$(busctl --system tree org.bluez 2>/dev/null | grep -oE '/org/bluez/hci[0-9]+$' | head -1); " +
+            "[ -z \"$ADAPTER\" ] && { echo false; exit; }; " +
+            "busctl --system get-property org.bluez \"$ADAPTER\" org.bluez.Adapter1 Powered 2>/dev/null | awk '{print $2}'"]
+        running: false
+        stdout: SplitParser { onRead: function(l) { ShellState.btPowered = l.trim() === "true" } }
+    }
+    Process {
+        id: btConnPoll
+        command: ["bash", "-c",
+            "busctl --system tree org.bluez 2>/dev/null | grep -oE '/org/bluez/hci[0-9]+/dev_[A-F0-9_]+$' | " +
+            "while read p; do busctl --system get-property org.bluez \"$p\" org.bluez.Device1 Connected 2>/dev/null | awk '{print $2}'; done | " +
+            "grep -c '^true$'"]
+        running: false
+        stdout: SplitParser { onRead: function(l) { ShellState.btConnected = parseInt(l.trim()) > 0 } }
+    }
+    // Ryoku: launchers for the click-to-open-TUI bindings on wifi/bt icons.
+    Process { id: launchWifi; command: ["ryoku-launch-wifi"];      running: false }
+    Process { id: launchBt;   command: ["ryoku-launch-bluetooth"]; running: false }
     Timer {
         interval: 5000; running: true; repeat: true
         onTriggered: {
-            wifiPoll.running = false; wifiPoll.running = true
-            ethPoll.running  = false; ethPoll.running  = true
-            connPoll.running = false; connPoll.running = true
+            wifiPoll.running   = false; wifiPoll.running   = true
+            ethPoll.running    = false; ethPoll.running    = true
+            connPoll.running   = false; connPoll.running   = true
+            btPowerPoll.running = false; btPowerPoll.running = true
+            btConnPoll.running  = false; btConnPoll.running  = true
         }
     }
-    Component.onCompleted: { wifiPoll.running = true; ethPoll.running = true; connPoll.running = true }
+    Component.onCompleted: {
+        wifiPoll.running    = true
+        ethPoll.running     = true
+        connPoll.running    = true
+        btPowerPoll.running = true
+        btConnPoll.running  = true
+    }
 
     HoverHandler { id: hov; onHoveredChanged: Popups.networkTriggerHovered = hovered }
 
@@ -103,15 +136,26 @@ Item {
         anchors.centerIn: parent
         spacing: 4
 
-        // WiFi/ethernet icon — display-only (Ryoku: click + cursor
-        // removed since NetworkPopup is dormant; re-add when Spec 5 lands).
-        Text {
-            id: netIcon
-            text:           root._netIcon
-            color:          root._netColor
-            font.pixelSize: 13
+        // WiFi/ethernet icon — Ryoku: click opens the wifi TUI (impala).
+        Item {
             anchors.verticalCenter: parent.verticalCenter
-            Behavior on color { ColorAnimation { duration: 700; easing.type: Easing.OutQuart } }
+            implicitWidth:  netIcon.implicitWidth
+            implicitHeight: netIcon.implicitHeight
+
+            Text {
+                id: netIcon
+                anchors.centerIn: parent
+                text:           root._netIcon
+                color:          root._netColor
+                font.pixelSize: 13
+                Behavior on color { ColorAnimation { duration: 700; easing.type: Easing.OutQuart } }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: { launchWifi.running = false; launchWifi.running = true }
+            }
         }
 
         // VPN shield — display-only while NetworkPopup stays dormant.
@@ -126,14 +170,35 @@ Item {
             Behavior on opacity { NumberAnimation { duration: 80  } }
         }
 
-        // Bluetooth — display-only while NetworkPopup stays dormant.
-        Text {
-            visible:        ShellState.btPowered
-            text:           ShellState.btConnected ? "󰂱" : "󰂯"
-            font.pixelSize: 11
+        // Bluetooth — Ryoku: always visible, click opens the bluetooth TUI
+        // (bluetui). Glyph reflects off / on / connected state.
+        Item {
             anchors.verticalCenter: parent.verticalCenter
-            color: ShellState.btConnected ? (hov.hovered ? Theme.active : Theme.text) : Qt.rgba(1,1,1,0.32)
-            Behavior on color { ColorAnimation { duration: 700; easing.type: Easing.OutQuart } }
+            implicitWidth:  btIcon.implicitWidth
+            implicitHeight: btIcon.implicitHeight
+
+            HoverHandler { id: btHov }
+
+            Text {
+                id: btIcon
+                anchors.centerIn: parent
+                text: ShellState.btPowered
+                    ? (ShellState.btConnected ? "󰂱" : "󰂯")
+                    : "󰂲"
+                font.pixelSize: 11
+                color: !ShellState.btPowered
+                    ? Qt.rgba(1, 1, 1, 0.28)
+                    : ShellState.btConnected
+                        ? (btHov.hovered ? Theme.active : Theme.text)
+                        : (btHov.hovered ? Theme.active : Qt.rgba(1, 1, 1, 0.55))
+                Behavior on color { ColorAnimation { duration: 700; easing.type: Easing.OutQuart } }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: { launchBt.running = false; launchBt.running = true }
+            }
         }
 
         // Hotspot — display-only while NetworkPopup stays dormant.
