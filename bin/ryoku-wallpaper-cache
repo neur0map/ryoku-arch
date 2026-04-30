@@ -1,0 +1,175 @@
+#!/bin/bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+usage() {
+  echo "Usage: ryoku-wallpaper-cache rebuild" >&2
+}
+
+wallpaper_dirs() {
+  local theme_name=""
+
+  theme_name="$(cat "$RYOKU_CONFIG_PATH/current/theme.name" 2>/dev/null || true)"
+  printf '%s\0' "$RYOKU_CONFIG_PATH/backgrounds/$theme_name"
+  printf '%s\0' "$RYOKU_CONFIG_PATH/current/theme/backgrounds"
+}
+
+file_type() {
+  local path="$1"
+
+  case "${path,,}" in
+    *.jpg|*.jpeg|*.png|*.webp|*.gif)
+      echo "image"
+      ;;
+    *.mp4|*.webm|*.mkv|*.mov)
+      echo "video"
+      ;;
+    *)
+      echo ""
+      ;;
+  esac
+}
+
+thumb_for() {
+  local path="$1"
+  local name
+
+  name="$(printf '%s' "$path" | sha256sum | awk '{ print $1 }')"
+  printf '%s/thumbs/%s.jpg\n' "$RYOKU_STATE_PATH/wallpaper" "$name"
+}
+
+hue_for_thumb() {
+  local thumb="$1"
+
+  magick "$thumb" -resize '1x1!' -colorspace sRGB \
+    -format '%[fx:int(255*r)] %[fx:int(255*g)] %[fx:int(255*b)]\n' info: 2>/dev/null \
+    | awk '
+      function max3(a, b, c) {
+        return a > b ? (a > c ? a : c) : (b > c ? b : c)
+      }
+
+      function min3(a, b, c) {
+        return a < b ? (a < c ? a : c) : (b < c ? b : c)
+      }
+
+      {
+        r = $1 / 255
+        g = $2 / 255
+        b = $3 / 255
+        max = max3(r, g, b)
+        min = min3(r, g, b)
+        delta = max - min
+
+        if (max == 0 || delta / max < 0.12) {
+          print 99
+          next
+        }
+
+        if (max == r) {
+          hue = (g - b) / delta
+          if (g < b) {
+            hue += 6
+          }
+        } else if (max == g) {
+          hue = ((b - r) / delta) + 2
+        } else {
+          hue = ((r - g) / delta) + 4
+        }
+
+        bin = int((hue / 6) * 12) % 12
+        print bin
+      }
+    '
+}
+
+build_thumb() {
+  local type="$1"
+  local path="$2"
+  local thumb="$3"
+
+  mkdir -p "$(dirname "$thumb")"
+  if [[ $type == "video" ]]; then
+    if ryoku-cmd-present ffmpegthumbnailer; then
+      ffmpegthumbnailer -i "$path" -o "$thumb" -s 640 -q 8 >/dev/null 2>&1
+    else
+      magick -size 640x360 xc:'#202020' "$thumb" >/dev/null 2>&1
+    fi
+  else
+    magick "$path" -auto-orient -resize '640x360^' -gravity center -extent 640x360 "$thumb" >/dev/null 2>&1
+  fi
+}
+
+rebuild() {
+  local list="$RYOKU_STATE_PATH/wallpaper/list.jsonl"
+  local tmp
+  local path type thumb hue mtime name dir
+
+  mkdir -p "$RYOKU_STATE_PATH/wallpaper/thumbs"
+  tmp="$(mktemp "$RYOKU_STATE_PATH/wallpaper/list.jsonl.XXXXXX")"
+  trap 'rm -f "$tmp"' RETURN
+  : > "$tmp"
+
+  while IFS= read -r -d '' path; do
+    [[ -f $path ]] || continue
+    type="$(file_type "$path")"
+    [[ -n $type ]] || continue
+    thumb="$(thumb_for "$path")"
+    if [[ ! -f $thumb || $path -nt $thumb ]]; then
+      if ! build_thumb "$type" "$path" "$thumb"; then
+        echo "ryoku-wallpaper-cache: warning: failed to thumbnail $path" >&2
+        rm -f "$thumb"
+        continue
+      fi
+    fi
+    if [[ ! -f $thumb ]]; then
+      echo "ryoku-wallpaper-cache: warning: missing thumbnail for $path" >&2
+      continue
+    fi
+    if ! hue="$(hue_for_thumb "$thumb")"; then
+      echo "ryoku-wallpaper-cache: warning: failed to read thumbnail hue for $path" >&2
+      rm -f "$thumb"
+      continue
+    fi
+    mtime="$(stat -c '%Y' "$path" 2>/dev/null || echo 0)"
+    name="$(basename "$path")"
+    jq -cn \
+      --arg source "local" \
+      --arg type "$type" \
+      --arg path "$path" \
+      --arg thumb "$thumb" \
+      --arg name "$name" \
+      --argjson hue "$hue" \
+      --argjson mtime "$mtime" \
+      '{source:$source, type:$type, path:$path, thumb:$thumb, name:$name, hue:$hue, mtime:$mtime}' \
+      >> "$tmp"
+  done < <(
+    while IFS= read -r -d '' dir; do
+      [[ -d $dir ]] || continue
+      find -L "$dir" -maxdepth 1 -type f \
+        \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' -o -iname '*.gif' -o -iname '*.mp4' -o -iname '*.webm' -o -iname '*.mkv' -o -iname '*.mov' \) \
+        -print0 2>/dev/null
+    done < <(wallpaper_dirs)
+  )
+
+  sort -u "$tmp" -o "$tmp"
+  mv "$tmp" "$list"
+  trap - RETURN
+  rm -f "$tmp"
+  echo "rebuilt"
+}
+
+case "${1:-}" in
+  rebuild)
+    if (( $# != 1 )); then
+      usage
+      exit 2
+    fi
+    rebuild
+    ;;
+  *)
+    usage
+    exit 2
+    ;;
+esac

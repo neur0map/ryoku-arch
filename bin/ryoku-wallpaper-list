@@ -1,0 +1,18 @@
+#!/bin/bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+list="$RYOKU_STATE_PATH/wallpaper/list.jsonl"
+
+if (( $# != 1 )) || [[ ${1:-} != "--jsonl" ]]; then
+  echo "Usage: ryoku-wallpaper-list --jsonl" >&2
+  exit 2
+fi
+
+if [[ ! -f $list ]]; then
+  "$RYOKU_PATH/bin/ryoku-wallpaper-cache" rebuild >/dev/null
+fi
+
+cat "$list"
