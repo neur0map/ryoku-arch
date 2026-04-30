@@ -29,6 +29,10 @@ active_has "$player" 'StatCard {' \
   || fail "PlayerCard should use the shared StatCard surface"
 active_has "$player" 'padding: 0' \
   || fail "PlayerCard should opt into full-surface custom layout inside StatCard"
+active_has "$player" 'backgroundAlpha: 0' \
+  || fail "PlayerCard should disable the shared StatCard fill so only the audio card is see-through"
+active_has "$player" 'borderAlpha: 0' \
+  || fail "PlayerCard should disable the shared StatCard border and use its own transparent border"
 active_has "$player" 'id: discConsole' \
   || fail "PlayerCard should expose a disc-console root layout"
 active_has "$player" 'id: albumDisc' \
@@ -41,8 +45,12 @@ active_has "$player" 'id: cavaOrbit' \
   || fail "PlayerCard should render Cava as a disc orbit"
 active_has "$player" 'readonly property int _orbitBars' \
   || fail "PlayerCard should define a stable Cava orbit bar count"
+active_has "$player" 'readonly property int _orbitBars: 36' \
+  || fail "PlayerCard Cava orbit should have enough samples to read as a synthesizer"
 active_has "$player" 'root._barValue(index)' \
   || fail "Cava orbit ticks should read shared Cava values"
+active_has "$player" 'height: 4 + amp * 22' \
+  || fail "Cava orbit ticks should visibly react to audio amplitude"
 active_has "$player" 'CavaService.isPlaying' \
   || fail "PlayerCard should keep shared CavaService playback gating"
 active_has "$player" 'id: sourcePicker' \
@@ -71,7 +79,7 @@ active_has "$player" 'id: playbackControls' \
   || fail "PlayerCard should render explicit playback controls"
 active_has "$player" 'objectName: "playbackDeck"' \
   || fail "Playback controls should use the transport deck layout"
-active_has "$player" 'width: isPlay ? 38 : 32' \
+active_has "$player" 'width: isPlay ? 34 : 29' \
   || fail "Playback controls should use compact round command nodes"
 active_has "$player" 'radius: width / 2' \
   || fail "Playback controls should render as circular command nodes"
@@ -103,6 +111,8 @@ active_has "$player" 'readonly property real _panelAlpha' \
   || fail "PlayerCard should expose a separate transparent panel opacity"
 active_has "$player" 'root._panelAlpha' \
   || fail "PlayerCard panel background should use its opacity without fading UI components"
+active_has "$player" 'readonly property real _panelAlpha: 0.075' \
+  || fail "PlayerCard inner panel should stay low-opacity"
 
 if active_has "$player" 'id: bgSource'; then
   fail "PlayerCard should not keep the old full-card album-art background source"
