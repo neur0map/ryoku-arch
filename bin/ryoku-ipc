@@ -10,8 +10,12 @@ Usage:
   ryoku-ipc --help
   ryoku-ipc shell command wallpaper
   ryoku-ipc shell command launcher
+  ryoku-ipc shell command themes
   ryoku-ipc shell toggle wallpaper
   ryoku-ipc shell toggle launcher
+  ryoku-ipc shell toggle themes
+  ryoku-ipc theme list --jsonl
+  ryoku-ipc theme apply THEME
   ryoku-ipc wallpaper settings get --json
   ryoku-ipc wallpaper list --jsonl
   ryoku-ipc wallpaper cache rebuild
@@ -26,7 +30,7 @@ shell_command() {
   local target="${1:-}"
 
   if (( $# != 1 )); then
-    echo "ryoku-ipc: expected shell command wallpaper|launcher" >&2
+    echo "ryoku-ipc: expected shell command wallpaper|launcher|themes" >&2
     return 2
   fi
 
@@ -36,6 +40,9 @@ shell_command() {
       ;;
     launcher)
       printf '%s\n' "qs -c ryoku ipc call popups toggleLauncher"
+      ;;
+    themes)
+      printf '%s\n' "qs -c ryoku ipc call popups toggleThemes"
       ;;
     *)
       echo "ryoku-ipc: unknown shell command target: $target" >&2
@@ -48,7 +55,7 @@ shell_toggle() {
   local target="${1:-}"
 
   if (( $# != 1 )); then
-    echo "ryoku-ipc: expected shell toggle wallpaper|launcher" >&2
+    echo "ryoku-ipc: expected shell toggle wallpaper|launcher|themes" >&2
     return 2
   fi
 
@@ -58,6 +65,9 @@ shell_toggle() {
       ;;
     launcher)
       exec qs -c ryoku ipc call popups toggleLauncher
+      ;;
+    themes)
+      exec qs -c ryoku ipc call popups toggleThemes
       ;;
     *)
       echo "ryoku-ipc: unknown shell toggle target: $target" >&2
@@ -96,6 +106,32 @@ wallpaper_settings_get() {
         mute: true
       }
     }'
+}
+
+theme_dispatch() {
+  local action="${1:-}"
+  shift || true
+
+  case "$action" in
+    list)
+      if (( $# != 1 )) || [[ ${1:-} != "--jsonl" ]]; then
+        echo "ryoku-ipc: expected theme list --jsonl" >&2
+        return 2
+      fi
+      exec "$RYOKU_PATH/bin/ryoku-theme-list" --jsonl
+      ;;
+    apply)
+      if (( $# != 1 )); then
+        echo "ryoku-ipc: expected theme apply THEME" >&2
+        return 2
+      fi
+      exec "$RYOKU_PATH/bin/ryoku-theme-set" "$1"
+      ;;
+    *)
+      echo "ryoku-ipc: unknown theme action: $action" >&2
+      return 2
+      ;;
+  esac
 }
 
 wallpaper_dispatch() {
@@ -162,6 +198,10 @@ main() {
     wallpaper)
       shift
       wallpaper_dispatch "$@"
+      ;;
+    theme)
+      shift
+      theme_dispatch "$@"
       ;;
     *)
       echo "ryoku-ipc: unknown namespace: ${1:-}" >&2

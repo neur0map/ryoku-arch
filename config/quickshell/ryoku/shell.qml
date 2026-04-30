@@ -27,8 +27,16 @@ ShellRoot {
         }
 
         function toggleWallpaper(): void {
-            const opening = !BS.Popups.wallpaperOpen
+            const opening = !(BS.Popups.wallpaperOpen && BS.Popups.wallpaperMode === "wallpaper")
             BS.Popups.closeAll()
+            BS.Popups.wallpaperMode = "wallpaper"
+            BS.Popups.wallpaperOpen = opening
+        }
+
+        function toggleThemes(): void {
+            const opening = !(BS.Popups.wallpaperOpen && BS.Popups.wallpaperMode === "theme")
+            BS.Popups.closeAll()
+            BS.Popups.wallpaperMode = "theme"
             BS.Popups.wallpaperOpen = opening
         }
 

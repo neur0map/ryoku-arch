@@ -20,6 +20,8 @@ QtObject {
     // so the bar's pill keeps painting over the retracting card.
     property bool dashboardVisible:  false
     property bool wallpaperOpen:     false
+    // "wallpaper" and "theme" share the bottom selector surface.
+    property string wallpaperMode:   "wallpaper"
     // True while the wallpaper selector is visually present. Driven
     // from WallpaperPopup.qml for shared dismissal and visual-state
     // checks; the selector is a fullscreen modal layer above the bar.

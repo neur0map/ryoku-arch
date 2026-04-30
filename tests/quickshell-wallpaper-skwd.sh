@@ -164,12 +164,16 @@ grep -q 'signal rebuildRequested' "$filter" \
   || fail "WallpaperFilterBar should expose rebuildRequested"
 grep -q 'signal searchSubmitted' "$filter" \
   || fail "WallpaperFilterBar should notify the popup after submitting search"
+grep -q 'property string activeMode' "$filter" \
+  || fail "WallpaperFilterBar should track wallpaper/theme mode"
+grep -q 'signal modeRequested' "$filter" \
+  || fail "WallpaperFilterBar should request mode switches"
 grep -q 'function submitWallhavenSearch' "$filter" \
   || fail "WallpaperFilterBar should centralize Wallhaven search submission"
 grep -q 'implicitWidth:' "$filter" \
   || fail "WallpaperFilterBar should expose stable implicitWidth"
-grep -q 'implicitHeight:' "$filter" \
-  || fail "WallpaperFilterBar should expose stable implicitHeight"
+grep -Eq 'implicitHeight:[[:space:]]+36' "$filter" \
+  || fail "WallpaperFilterBar should use a compact 36px height"
 grep -q 'Flickable' "$filter" \
   || fail "WallpaperFilterBar should keep overflow scrollable"
 grep -q 'id: row' "$filter" \
@@ -182,10 +186,16 @@ grep -q 'WallpaperService.selectedTypeFilter' "$filter" \
   || fail "WallpaperFilterBar should update the type filter"
 grep -q 'WallpaperService.selectedSourceFilter' "$filter" \
   || fail "WallpaperFilterBar should update the source filter"
+grep -q 'root.modeRequested(modelData.mode)' "$filter" \
+  || fail "WallpaperFilterBar should switch between wallpapers and themes"
+grep -q 'root.activeMode === "wallpaper"' "$filter" \
+  || fail "WallpaperFilterBar should hide wallpaper-only controls in theme mode"
 grep -q 'modelData.source === "wallhaven" && searchInput.text.trim() !== ""' "$filter" \
   || fail "WallpaperFilterBar should submit the typed query when switching to Web"
 grep -q 'WallpaperService.searchQuery' "$filter" \
   || fail "WallpaperFilterBar should update searchQuery"
+grep -q 'ThemeService.searchQuery' "$filter" \
+  || fail "WallpaperFilterBar should update theme searchQuery"
 grep -q 'WallpaperService.searchWallhaven' "$filter" \
   || fail "WallpaperFilterBar should trigger Wallhaven search"
 grep -q 'root.searchSubmitted()' "$filter" \
@@ -196,6 +206,8 @@ grep -q 'WallpaperService.selectedColorFilter' "$filter" \
   || fail "WallpaperFilterBar should update color filtering"
 grep -q 'model: 13' "$filter" \
   || fail "WallpaperFilterBar should render hue and neutral swatches"
+grep -q 'width: 14' "$filter" \
+  || fail "WallpaperFilterBar should use compact color swatches"
 
 grep -q 'property bool open' "$settings" \
   || fail "WallpaperSettingsPane should expose open state"
