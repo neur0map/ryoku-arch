@@ -48,6 +48,7 @@ PanelWindow {
     id: systemActions
 
     ListElement { label: "Screensaver"; hint: "Start now"; icon: "󰍹"; action: "screensaver"; accent: "#91d7e3"; danger: false }
+    ListElement { label: "Update";      hint: "System";    icon: "󰚰"; action: "update";      accent: "#c6a0f6"; danger: false }
     ListElement { label: "Lock";        hint: "Secure";    icon: "󰌾"; action: "lock";        accent: "#8aadf4"; danger: false }
     ListElement { label: "Suspend";     hint: "Sleep";     icon: "⏾"; action: "suspend";     accent: "#a6da95"; danger: false }
     ListElement { label: "Hibernate";   hint: "Disk";      icon: "󰒲"; action: "hibernate";   accent: "#eed49f"; danger: false }
@@ -86,6 +87,9 @@ PanelWindow {
     switch (action) {
     case "screensaver":
       actionRunner.command = ["ryoku-launch-screensaver", "force"]
+      break
+    case "update":
+      actionRunner.command = ["ryoku-launch-floating-terminal-with-presentation", "ryoku-update"]
       break
     case "lock":
       actionRunner.command = ["ryoku-lock-screen"]

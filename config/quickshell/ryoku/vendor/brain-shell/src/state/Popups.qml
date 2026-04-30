@@ -12,6 +12,7 @@ QtObject {
     property bool launcherOpen:      false
     property bool systemMenuOpen:    false
     property bool settingsMenuOpen:  false
+    property bool dotfilesOpen:      false
     // True while the launcher card is visually present. Driven from
     // AppLauncherPopup.qml so TopBar can stay on Overlay and make the
     // card read as an extension of the center pill during close.
@@ -20,6 +21,7 @@ QtObject {
     // these so TopBar can remain on Overlay through close animations.
     property bool systemMenuVisible:   false
     property bool settingsMenuVisible: false
+    property bool dotfilesVisible:     false
     // True while the dashboard card is visually present (open, opening,
     // or closing). Driven from Dashboard.qml; TopBar uses this to hold
     // its surface on the Overlay layer for the entire close animation
@@ -93,6 +95,7 @@ QtObject {
         launcherOpen      = false
         systemMenuOpen     = false
         settingsMenuOpen   = false
+        dotfilesOpen       = false
         wallpaperOpen     = false
         quickOpen           = false
     }

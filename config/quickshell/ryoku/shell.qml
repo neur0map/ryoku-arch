@@ -52,6 +52,12 @@ ShellRoot {
             BS.Popups.settingsMenuOpen = opening
         }
 
+        function toggleDotfiles(): void {
+            const opening = !BS.Popups.dotfilesOpen
+            BS.Popups.closeAll()
+            BS.Popups.dotfilesOpen = opening
+        }
+
         function closeAll(): void {
             BS.Popups.closeAll()
         }

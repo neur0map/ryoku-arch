@@ -12,12 +12,11 @@ PanelWindow {
 
   readonly property int fw: Theme.notchRadius
   readonly property int fh: Theme.notchRadius
-  readonly property int menuWidth: 316
-  readonly property int menuHeight: 262
+  readonly property int menuWidth: 300
+  readonly property int menuHeight: 184
   readonly property int fullCardWidth: root.menuWidth + 2 * root.fw
   readonly property int fullCardHeight: Theme.notchHeight + root.menuHeight
   readonly property int initialCardHeight: Theme.notchHeight
-  readonly property string homeDir: Quickshell.env("HOME")
 
   property bool windowVisible: false
   property real openProgress: Popups.settingsMenuOpen ? 1 : 0
@@ -48,16 +47,11 @@ PanelWindow {
   ListModel {
     id: settingsActions
 
-    ListElement { label: "Apps";       hint: "Launcher"; icon: "󰀻"; action: "apps";      accent: "#8bd5ca" }
-    ListElement { label: "Wallpapers"; hint: "Desktop";  icon: "󰸉"; action: "wallpaper"; accent: "#91d7e3" }
-    ListElement { label: "Themes";     hint: "System";   icon: "󰔎"; action: "theme";     accent: "#c6a0f6" }
     ListElement { label: "Audio";      hint: "Sound";    icon: "󰕾"; action: "audio";     accent: "#eed49f" }
     ListElement { label: "Wi-Fi";      hint: "Network";  icon: "󰤨"; action: "wifi";      accent: "#7dc4e4" }
     ListElement { label: "Bluetooth";  hint: "Devices";  icon: "󰂯"; action: "bluetooth"; accent: "#8aadf4" }
     ListElement { label: "Activity";   hint: "btop";     icon: "󰍛"; action: "activity";  accent: "#a6da95" }
-    ListElement { label: "Config";     hint: "Hyprland"; icon: "󰒓"; action: "config";    accent: "#f5bde6" }
-    ListElement { label: "Update";     hint: "System";   icon: "󰚰"; action: "update";    accent: "#f5a97f" }
-    ListElement { label: "Power";      hint: "Session";  icon: "⏻"; action: "system";    accent: "#ed8796" }
+    ListElement { label: "Dotfiles";   hint: "Config hub"; icon: "󰒓"; action: "dotfiles"; accent: "#f5bde6" }
   }
 
   Connections {
@@ -88,23 +82,10 @@ PanelWindow {
 
   function runAction(action) {
     switch (action) {
-    case "wallpaper":
+    case "dotfiles":
       Popups.closeAll()
-      Popups.wallpaperMode = "wallpaper"
-      Popups.wallpaperOpen = true
+      Popups.dotfilesOpen = true
       return
-    case "theme":
-      Popups.closeAll()
-      Popups.wallpaperMode = "theme"
-      Popups.wallpaperOpen = true
-      return
-    case "system":
-      Popups.closeAll()
-      Popups.systemMenuOpen = true
-      return
-    case "apps":
-      actionRunner.command = ["ryoku-launch-drun"]
-      break
     case "audio":
       actionRunner.command = ["ryoku-launch-audio"]
       break
@@ -116,12 +97,6 @@ PanelWindow {
       break
     case "activity":
       actionRunner.command = ["ryoku-launch-tui", "btop"]
-      break
-    case "config":
-      actionRunner.command = ["ryoku-launch-editor", root.homeDir + "/.config/hypr/hyprland.conf"]
-      break
-    case "update":
-      actionRunner.command = ["ryoku-launch-floating-terminal-with-presentation", "ryoku-update"]
       break
     default:
       return

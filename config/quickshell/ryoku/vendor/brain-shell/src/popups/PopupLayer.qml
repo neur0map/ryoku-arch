@@ -36,6 +36,7 @@ Item {
     WallpaperPopup {}
     SystemMenuPopup {}
     SettingsMenuPopup {}
+    DotfilesHubPopup {}
 
     // Dormant in follow-up specs.
     // ArchMenu              { anchorWindow: root.leftBorder }
