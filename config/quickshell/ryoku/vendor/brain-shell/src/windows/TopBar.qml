@@ -24,7 +24,8 @@ PanelWindow {
     // the two shapes read as one continuous surface during open and
     // close. Bound to visual states for popups that attach to the
     // bar; fullscreen modal surfaces stay above the bar instead.
-    WlrLayershell.layer: Popups.dashboardVisible || Popups.launcherVisible ? WlrLayer.Overlay : WlrLayer.Top
+    WlrLayershell.layer: Popups.dashboardVisible || Popups.launcherVisible || Popups.systemMenuVisible || Popups.settingsMenuVisible
+                         ? WlrLayer.Overlay : WlrLayer.Top
 
     anchors {
         top:   true

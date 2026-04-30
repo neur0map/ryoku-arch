@@ -6,8 +6,8 @@ import "../../"
 // loaded from logo-mark.svg, because that SVG's text baseline is too
 // high in its viewBox and the top horizontal stroke of 力 gets clipped.
 // QML Text positions the kanji properly inside the button bounds.
-// ArchMenu trigger behavior preserved for when ArchMenu is activated
-// in Spec 8. See vendor/brain-shell/UPSTREAM.md.
+// Ryoku's left topbar control opens the compact system menu. The full
+// upstream ArchMenu remains vendored but dormant.
 Rectangle {
     id: root
     width:  24
@@ -32,9 +32,9 @@ Rectangle {
     MouseArea {
         anchors.fill: parent
         onClicked: {
-            var next = !Popups.archMenuOpen
+            var next = !Popups.systemMenuOpen
             Popups.closeAll()
-            Popups.archMenuOpen = next
+            Popups.systemMenuOpen = next
         }
     }
 }

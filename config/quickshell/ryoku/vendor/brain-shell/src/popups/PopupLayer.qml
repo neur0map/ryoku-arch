@@ -34,6 +34,8 @@ Item {
     Dashboard { anchorWindow: root.topBar }
     AppLauncherPopup {}
     WallpaperPopup {}
+    SystemMenuPopup {}
+    SettingsMenuPopup {}
 
     // Dormant in follow-up specs.
     // ArchMenu              { anchorWindow: root.leftBorder }

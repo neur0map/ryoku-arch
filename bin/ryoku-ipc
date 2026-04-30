@@ -11,9 +11,13 @@ Usage:
   ryoku-ipc shell command wallpaper
   ryoku-ipc shell command launcher
   ryoku-ipc shell command themes
+  ryoku-ipc shell command system-menu
+  ryoku-ipc shell command settings-menu
   ryoku-ipc shell toggle wallpaper
   ryoku-ipc shell toggle launcher
   ryoku-ipc shell toggle themes
+  ryoku-ipc shell toggle system-menu
+  ryoku-ipc shell toggle settings-menu
   ryoku-ipc theme list --jsonl
   ryoku-ipc theme apply THEME
   ryoku-ipc wallpaper settings get --json
@@ -30,7 +34,7 @@ shell_command() {
   local target="${1:-}"
 
   if (( $# != 1 )); then
-    echo "ryoku-ipc: expected shell command wallpaper|launcher|themes" >&2
+    echo "ryoku-ipc: expected shell command wallpaper|launcher|themes|system-menu|settings-menu" >&2
     return 2
   fi
 
@@ -44,6 +48,12 @@ shell_command() {
     themes)
       printf '%s\n' "qs -c ryoku ipc call popups toggleThemes"
       ;;
+    system-menu)
+      printf '%s\n' "qs -c ryoku ipc call popups toggleSystemMenu"
+      ;;
+    settings-menu)
+      printf '%s\n' "qs -c ryoku ipc call popups toggleSettingsMenu"
+      ;;
     *)
       echo "ryoku-ipc: unknown shell command target: $target" >&2
       return 2
@@ -55,7 +65,7 @@ shell_toggle() {
   local target="${1:-}"
 
   if (( $# != 1 )); then
-    echo "ryoku-ipc: expected shell toggle wallpaper|launcher|themes" >&2
+    echo "ryoku-ipc: expected shell toggle wallpaper|launcher|themes|system-menu|settings-menu" >&2
     return 2
   fi
 
@@ -68,6 +78,12 @@ shell_toggle() {
       ;;
     themes)
       exec qs -c ryoku ipc call popups toggleThemes
+      ;;
+    system-menu)
+      exec qs -c ryoku ipc call popups toggleSystemMenu
+      ;;
+    settings-menu)
+      exec qs -c ryoku ipc call popups toggleSettingsMenu
       ;;
     *)
       echo "ryoku-ipc: unknown shell toggle target: $target" >&2
