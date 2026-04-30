@@ -163,13 +163,12 @@ show_share_menu() {
 }
 
 show_toggle_menu() {
-  local options="󱄄  Screensaver\n󰔎  Nightlight\n󱫖  Idle Lock\n󰍜  Top Bar\n󱂬  Workspace Layout\n  Window Gaps\n  1-Window Ratio\n󰍹  Monitor Scaling\n"
+  local options="󱄄  Screensaver\n󰔎  Nightlight\n󱫖  Idle Lock\n󱂬  Workspace Layout\n  Window Gaps\n  1-Window Ratio\n󰍹  Monitor Scaling\n"
 
   case $(menu "Toggle" "$options") in
   *Screensaver*) ryoku-toggle-screensaver ;;
   *Nightlight*) ryoku-toggle-nightlight ;;
   *Idle*) ryoku-toggle-idle ;;
-  *Bar*) ryoku-toggle-waybar ;;
   *Layout*) ryoku-hyprland-workspace-layout-toggle ;;
   *Ratio*) ryoku-hyprland-window-single-square-aspect-toggle ;;
   *Gaps*) ryoku-hyprland-window-gaps-toggle ;;
