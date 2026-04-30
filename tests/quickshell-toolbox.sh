@@ -204,8 +204,23 @@ if active_has "$toolbox" 'actionDelay'; then
 fi
 active_has "$toolbox" 'function closeToolboxNow' \
   || fail "ToolboxPopup should hide before launching interactive helpers"
+active_has "$toolbox" 'id: actionStartTimer' \
+  || fail "ToolboxPopup should launch helper commands from the close animation timer"
+active_has "$toolbox" 'interval: Theme.motionExpandDuration + 40' \
+  || fail "ToolboxPopup should launch helper commands after the pill has collapsed"
+active_has "$toolbox" 'interval: Theme.motionExpandDuration + Theme.motionEffectsDuration + 120' \
+  || fail "ToolboxPopup should keep the layer alive through the closing fade"
+active_has "$toolbox" 'readonly property real toolsOpacity' \
+  || fail "ToolboxPopup should tie icon fade to the open/close progress"
+active_has "$toolbox" '? Math.min(1, root.openProgress * 1.8)' \
+  || fail "ToolboxPopup should keep the open icon reveal snappy"
+active_has "$toolbox" ': root.openProgress' \
+  || fail "ToolboxPopup should fade icons for the whole close animation"
+if active_lines "$toolbox" | awk '/function closeToolboxNow/,/^  }/' | grep 'root.windowVisible = false' >/dev/null; then
+  fail "ToolboxPopup should not cut off the close animation from closeToolboxNow"
+fi
 active_has "$toolbox" 'actionRunner.running = true' \
-  || fail "ToolboxPopup should launch helper commands on the same click"
+  || fail "ToolboxPopup should launch helper commands from a single click"
 active_has "$toolbox" 'CaffeineService.toggle()' \
   || fail "ToolboxPopup should toggle shared CaffeineService"
 active_has "$toolbox" 'Popups.mirrorOpen = true' \

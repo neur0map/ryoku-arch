@@ -36,6 +36,9 @@ PanelWindow {
   property string hoveredTooltip: ""
   property bool tooltipVisible: false
   property real openProgress: Popups.toolboxOpen ? 1 : 0
+  readonly property real toolsOpacity: Popups.toolboxOpen
+                                       ? Math.min(1, root.openProgress * 1.8)
+                                       : root.openProgress
 
   Behavior on openProgress {
     enabled: !Theme.staticMode
@@ -84,6 +87,8 @@ PanelWindow {
     function onToolboxOpenChanged() {
       if (Popups.toolboxOpen) {
         closeTimer.stop()
+        actionStartTimer.stop()
+        actionStartTimer.command = []
         root.windowVisible = true
         root.tooltipVisible = false
         root.hoveredTooltip = ""
@@ -97,8 +102,21 @@ PanelWindow {
 
   Timer {
     id: closeTimer
-    interval: Theme.motionExpandDuration + 50
+    interval: Theme.motionExpandDuration + Theme.motionEffectsDuration + 120
     onTriggered: root.windowVisible = false
+  }
+
+  Timer {
+    id: actionStartTimer
+    interval: Theme.motionExpandDuration + 40
+    repeat: false
+    property var command: []
+    onTriggered: {
+      actionRunner.running = false
+      actionRunner.command = command
+      actionRunner.running = true
+      command = []
+    }
   }
 
   Timer {
@@ -146,18 +164,16 @@ PanelWindow {
 
   function closeToolboxNow() {
     tooltipTimer.stop()
-    closeTimer.stop()
     root.tooltipVisible = false
     root.hoveredTooltip = ""
     Popups.closeAll()
-    root.windowVisible = false
+    if (root.windowVisible) closeTimer.restart()
   }
 
   function runProcess(command) {
     closeToolboxNow()
-    actionRunner.running = false
-    actionRunner.command = command
-    actionRunner.running = true
+    actionStartTimer.command = command
+    actionStartTimer.restart()
   }
 
   function screenRecordTooltip() {
@@ -286,7 +302,7 @@ PanelWindow {
 
       anchors.centerIn: parent
       spacing: root.buttonSpacing
-      opacity: Math.min(1, root.openProgress * 1.8)
+      opacity: root.toolsOpacity
 
       Behavior on opacity {
         enabled: !Theme.staticMode
