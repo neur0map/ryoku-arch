@@ -1,0 +1,40 @@
+#!/bin/bash
+
+set -e
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+cursor_theme="${1:-}"
+cursor_size="${2:-24}"
+
+install_package() {
+  local package="$1"
+
+  if ryoku-pkg-present "$package"; then
+    return
+  fi
+
+  if pacman -Si "$package" >/dev/null 2>&1; then
+    ryoku-pkg-add "$package"
+  else
+    ryoku-pkg-aur-add "$package"
+  fi
+}
+
+case "$cursor_theme" in
+  Bibata-*)
+    install_package bibata-cursor-theme-bin
+    ;;
+  Adwaita)
+    install_package adwaita-cursors
+    ;;
+  Yaru)
+    install_package yaru-icon-theme
+    ;;
+  *)
+    echo "Usage: ryoku-cursor-install <cursor-theme> [size]" >&2
+    exit 2
+    ;;
+esac
+
+ryoku-cursor-set "$cursor_theme" "$cursor_size"

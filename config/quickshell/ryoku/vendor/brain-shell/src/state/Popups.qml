@@ -3,6 +3,7 @@ import QtQuick
 
 QtObject {
     signal toolboxActionRequested(string action)
+    signal batteryWarningRequested(int level)
 
     // ── Per-popup open state ───────────────────────────────────────────────────
     property bool audioOpen:         false
@@ -11,6 +12,7 @@ QtObject {
     property bool notificationsOpen: false
     property bool archMenuOpen:      false
     property bool dashboardOpen:     false
+    property bool playerEqualizerOpen: false
     property bool launcherOpen:      false
     property bool toolboxOpen:       false
     property bool screenshotToolOpen: false
@@ -19,6 +21,8 @@ QtObject {
     property string mirrorScreenName: ""
     property bool systemMenuOpen:    false
     property bool settingsMenuOpen:  false
+    property string settingsMenuRequestedPage:    "home"
+    property string settingsMenuRequestedSubpage: ""
     property bool dotfilesOpen:      false
     // True while the launcher card is visually present. Driven from
     // AppLauncherPopup.qml so TopBar can stay on Overlay and make the
@@ -35,7 +39,7 @@ QtObject {
     // so the bar's pill keeps painting over the retracting card.
     property bool dashboardVisible:  false
     property bool wallpaperOpen:     false
-    // "wallpaper" and "theme" share the bottom selector surface.
+    // Appearance modes share the bottom selector surface.
     property string wallpaperMode:   "wallpaper"
     // True while the wallpaper selector is visually present. Driven
     // from WallpaperPopup.qml for shared dismissal and visual-state
@@ -91,6 +95,18 @@ QtObject {
         toolboxActionRequested(action)
     }
 
+    function requestSettingsMenuPage(page, subpage) {
+        settingsMenuRequestedPage = page && page !== "" ? page : "home"
+        settingsMenuRequestedSubpage = subpage && subpage !== "" ? subpage : ""
+    }
+
+    function requestBatteryWarning(level) {
+        var numericLevel = Number(level)
+        if (isNaN(numericLevel)) numericLevel = 10
+        numericLevel = Math.max(1, Math.min(100, Math.round(numericLevel)))
+        batteryWarningRequested(numericLevel)
+    }
+
     // ── Global state ──────────────────────────────────────────────────────────
     readonly property bool anyOpen: audioOpen || networkOpen || batteryOpen
                                     || notificationsOpen || archMenuOpen
@@ -104,6 +120,7 @@ QtObject {
         notificationsOpen = false
         archMenuOpen      = false
         dashboardOpen     = false
+        playerEqualizerOpen = false
         launcherOpen      = false
         toolboxOpen       = false
         screenshotToolOpen = false

@@ -55,7 +55,14 @@ ShellRoot {
 
         function toggleScreenshot(): void {
             const opening = !BS.Popups.screenshotToolOpen
-            BS.Popups.closeAll()
+            if (!opening) {
+                BS.ScreenshotService.cancelCapture()
+                BS.Popups.screenshotToolOpen = false
+                return
+            }
+
+            BS.Popups.toolboxOpen = false
+            BS.Popups.screenRecordToolOpen = false
             if (opening) {
                 BS.ScreenshotService.startCapture("normal")
                 BS.Popups.screenshotToolOpen = true
@@ -69,11 +76,15 @@ ShellRoot {
             }
 
             const opening = !BS.Popups.screenRecordToolOpen
-            BS.Popups.closeAll()
-            if (opening) {
-                BS.ScreenRecService.initialize()
-                BS.Popups.screenRecordToolOpen = true
+            if (!opening) {
+                BS.Popups.screenRecordToolOpen = false
+                return
             }
+
+            BS.Popups.toolboxOpen = false
+            BS.Popups.screenshotToolOpen = false
+            BS.ScreenRecService.initialize()
+            BS.Popups.screenRecordToolOpen = true
         }
 
         function toggleWallpaper(): void {
@@ -90,6 +101,20 @@ ShellRoot {
             BS.Popups.wallpaperOpen = opening
         }
 
+        function toggleFonts(): void {
+            const opening = !(BS.Popups.wallpaperOpen && BS.Popups.wallpaperMode === "font")
+            BS.Popups.closeAll()
+            BS.Popups.wallpaperMode = "font"
+            BS.Popups.wallpaperOpen = opening
+        }
+
+        function toggleCursors(): void {
+            const opening = !(BS.Popups.wallpaperOpen && BS.Popups.wallpaperMode === "cursor")
+            BS.Popups.closeAll()
+            BS.Popups.wallpaperMode = "cursor"
+            BS.Popups.wallpaperOpen = opening
+        }
+
         function toggleSystemMenu(): void {
             const opening = !BS.Popups.systemMenuOpen
             BS.Popups.closeAll()
@@ -99,13 +124,38 @@ ShellRoot {
         function toggleSettingsMenu(): void {
             const opening = !BS.Popups.settingsMenuOpen
             BS.Popups.closeAll()
+            if (opening) {
+                BS.Popups.requestSettingsMenuPage("home", "")
+            }
             BS.Popups.settingsMenuOpen = opening
+        }
+
+        function openSettingsMenuHome(): void {
+            BS.Popups.closeAll()
+            BS.Popups.requestSettingsMenuPage("home", "")
+            BS.Popups.settingsMenuOpen = true
+        }
+
+        function openSettingsMenuShare(): void {
+            BS.Popups.closeAll()
+            BS.Popups.requestSettingsMenuPage("share", "")
+            BS.Popups.settingsMenuOpen = true
+        }
+
+        function openSettingsMenuHardware(): void {
+            BS.Popups.closeAll()
+            BS.Popups.requestSettingsMenuPage("setup", "hardware")
+            BS.Popups.settingsMenuOpen = true
         }
 
         function toggleDotfiles(): void {
             const opening = !BS.Popups.dotfilesOpen
             BS.Popups.closeAll()
             BS.Popups.dotfilesOpen = opening
+        }
+
+        function previewBatteryWarning(): void {
+            BS.Popups.requestBatteryWarning(10)
         }
 
         function closeAll(): void {

@@ -1,0 +1,35 @@
+#!/bin/bash
+
+set -e
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+cursor_theme="${1:-}"
+cursor_size="${2:-24}"
+
+if [[ -z $cursor_theme ]]; then
+  echo "Usage: ryoku-cursor-set <cursor-theme> [size]" >&2
+  exit 2
+fi
+
+if [[ ! -d /usr/share/icons/$cursor_theme/cursors && ! -d $HOME/.local/share/icons/$cursor_theme/cursors ]]; then
+  echo "Cursor theme '$cursor_theme' is not installed." >&2
+  exit 1
+fi
+
+mkdir -p "$RYOKU_STATE_PATH/toggles/hypr"
+{
+  printf 'env = XCURSOR_THEME,%s\n' "$cursor_theme"
+  printf 'env = HYPRCURSOR_THEME,%s\n' "$cursor_theme"
+  printf 'env = XCURSOR_SIZE,%s\n' "$cursor_size"
+  printf 'env = HYPRCURSOR_SIZE,%s\n' "$cursor_size"
+} >"$RYOKU_STATE_PATH/toggles/hypr/cursor.conf"
+
+if ryoku-cmd-present gsettings; then
+  gsettings set org.gnome.desktop.interface cursor-theme "$cursor_theme" || true
+  gsettings set org.gnome.desktop.interface cursor-size "$cursor_size" || true
+fi
+
+if ryoku-cmd-present hyprctl; then
+  hyprctl setcursor "$cursor_theme" "$cursor_size" >/dev/null || true
+fi

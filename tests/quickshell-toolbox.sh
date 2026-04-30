@@ -32,7 +32,6 @@ topbar="config/quickshell/ryoku/vendor/brain-shell/src/windows/TopBar.qml"
 dismiss="config/quickshell/ryoku/vendor/brain-shell/src/windows/PopupDismiss.qml"
 layer="config/quickshell/ryoku/vendor/brain-shell/src/popups/PopupLayer.qml"
 toolbox="config/quickshell/ryoku/vendor/brain-shell/src/modules/Center/ToolboxContent.qml"
-old_toolbox="config/quickshell/ryoku/vendor/brain-shell/src/popups/ToolboxPopup.qml"
 mirror="config/quickshell/ryoku/vendor/brain-shell/src/windows/MirrorWindow.qml"
 screenshot_tool="config/quickshell/ryoku/vendor/brain-shell/src/windows/ScreenshotTool.qml"
 screenshot_overlay="config/quickshell/ryoku/vendor/brain-shell/src/windows/ScreenshotOverlay.qml"
@@ -43,6 +42,7 @@ screenrec_service="config/quickshell/ryoku/vendor/brain-shell/src/services/Scree
 services_qmldir="config/quickshell/ryoku/vendor/brain-shell/src/services/qmldir"
 quick_settings="config/quickshell/ryoku/vendor/brain-shell/src/services/home/QuickSettings.qml"
 ipc="bin/ryoku-ipc"
+menu="bin/ryoku-menu"
 bindings="default/hypr/bindings/utilities.conf"
 plain_bindings="default/hypr/plain-bindings.conf"
 packages="install/ryoku-base.packages"
@@ -59,7 +59,7 @@ helpers=(
   bin/ryoku-cmd-google-lens
 )
 
-for path in "$shell" "$popups" "$shell_state" "$topbar" "$dismiss" "$layer" "$mirror" "$screenshot_tool" "$screenshot_overlay" "$screenrecord_tool" "$screenshot_service" "$screenrec_service" "$services_qmldir" "$quick_settings" "$ipc" "$bindings" "$plain_bindings" "$packages" "$aur_packages" "$hypr_apps"; do
+for path in "$shell" "$popups" "$shell_state" "$topbar" "$dismiss" "$layer" "$mirror" "$screenshot_tool" "$screenshot_overlay" "$screenrecord_tool" "$screenshot_service" "$screenrec_service" "$services_qmldir" "$quick_settings" "$ipc" "$menu" "$bindings" "$plain_bindings" "$packages" "$aur_packages" "$hypr_apps"; do
   [[ -f $path ]] || fail "$path missing"
 done
 
@@ -77,10 +77,16 @@ active_has "$shell" 'function toggleScreenshot' \
   || fail "shell IPC should expose toggleScreenshot"
 active_has "$shell" 'BS.ScreenshotService.startCapture("normal")' \
   || fail "toggleScreenshot should start the screenshot provider"
+if active_lines "$shell" | awk '/function toggleScreenshot/,/function toggleScreenRecorder/' | grep -F 'BS.Popups.closeAll()' >/dev/null; then
+  fail "toggleScreenshot should not close visible popups before capture"
+fi
 active_has "$shell" 'function toggleScreenRecorder' \
   || fail "shell IPC should expose toggleScreenRecorder"
 active_has "$shell" 'BS.ScreenRecService.initialize()' \
   || fail "toggleScreenRecorder should initialize the recording provider"
+if active_lines "$shell" | awk '/function toggleScreenRecorder/,/function toggleWallpaper/' | grep -F 'BS.Popups.closeAll()' >/dev/null; then
+  fail "toggleScreenRecorder should not close visible popups before capture"
+fi
 active_has "$shell" 'screen: modelData' \
   || fail "shell should pass the screen into PopupLayer"
 
@@ -114,7 +120,6 @@ active_has "$popups" 'mirrorOpen        = false' \
 active_has "$popups" 'mirrorScreenName  = ""' \
   || fail "closeAll should clear the target mirror screen"
 
-[[ ! -f $old_toolbox ]] || fail "ToolboxPopup overlay should be removed"
 if active_has_ere "$layer" '^[[:space:]]*ToolboxPopup[[:space:]]*\{'; then
   fail "PopupLayer should not instantiate a separate ToolboxPopup overlay"
 fi
@@ -177,6 +182,11 @@ grep -q 'bindd = , PRINT, Screenshot, exec, ryoku-ipc shell toggle screenshot' "
   || fail "PRINT should open the screenshot provider"
 grep -q 'bindd = ALT, PRINT, Screenrecording, exec, ryoku-ipc shell toggle screen-record' "$bindings" \
   || fail "ALT+PRINT should open the screen recorder provider"
+grep -q 'bindd = SUPER CTRL, C, Screenshot, exec, ryoku-ipc shell toggle screenshot' "$bindings" \
+  || fail "SUPER+CTRL+C should open the screenshot provider"
+if grep -q 'ryoku-menu capture' "$bindings"; then
+  fail "SUPER+CTRL+C should not open the old capture menu"
+fi
 active_super_s_count="$({ grep -Rhs '^bindd = SUPER, S,' default/hypr/bindings/*.conf || true; } | wc -l)"
 (( active_super_s_count == 2 )) \
   || fail "there should be one global and one toolbox-submap SUPER+S binding in default/hypr/bindings"
@@ -189,6 +199,11 @@ for path in "${helpers[@]}"; do
   [[ -x $path ]] || fail "$path should be executable"
   bash -n "$path" || fail "$path has a syntax error"
 done
+bash -n "$menu" || fail "$menu has a syntax error"
+[[ ! -f bin/ryoku-cmd-screenshot ]] || fail "legacy Omarchy screenshot helper should be removed"
+if active_has "$menu" 'ryoku-cmd-screenshot'; then
+  fail "ryoku-menu should not launch the legacy screenshot helper"
+fi
 
 grep -Eq 'mktemp .*ryoku-ocr\.' bin/ryoku-cmd-ocr \
   || fail "OCR helper should use mktemp for screenshots"
@@ -282,10 +297,12 @@ active_has "$toolbox" 'toolItem.active' \
   || fail "ToolboxContent should render persistent active tool state"
 active_has "$toolbox" 'activeIconColor' \
   || fail "ToolboxContent should keep active icons readable against active fill"
-active_has "$toolbox" 'brandIconColor: "#F25623"' \
-  || fail "ToolboxContent icons should use Ryoku brand orange"
-active_has "$toolbox" 'selectedIconColor: brandIconColor' \
-  || fail "ToolboxContent selected icons should stay in the brand color"
+active_has "$toolbox" 'selectionAccentColor: "#F25623"' \
+  || fail "ToolboxContent should keep brand accents for selection fills"
+active_has "$toolbox" 'idleIconColor: "#ffffff"' \
+  || fail "ToolboxContent idle icons should be white"
+active_has "$toolbox" 'selectedIconColor: idleIconColor' \
+  || fail "ToolboxContent selected icons should stay white"
 active_has "$toolbox" 'id: selectionCursor' \
   || fail "ToolboxContent should render a moving keyboard selection cursor"
 active_has "$toolbox" 'id: cursorTrailNear' && active_has "$toolbox" 'id: cursorTrailFar' \

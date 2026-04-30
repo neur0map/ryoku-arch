@@ -397,6 +397,8 @@ pass "player bars follow shared MPRIS playback"
 # --- Active Brain_Shell deps are packaged -----------------------------
 grep -qx 'cava' install/ryoku-base.packages \
   || fail "install/ryoku-base.packages should include cava for active player visualizers"
+grep -qx 'easyeffects' install/ryoku-base.packages \
+  || fail "install/ryoku-base.packages should include easyeffects for dashboard audio controls"
 pass "active Brain_Shell deps are packaged"
 
 # --- Runtime stack wiring ---------------------------------------------

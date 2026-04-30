@@ -1,0 +1,393 @@
+#!/bin/bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+preset_name="Ryoku Dashboard"
+server_socket="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/EasyEffectsServer"
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/ryoku"
+state_file="$state_dir/audio-effects.env"
+
+bass=0
+width=0
+loud=50
+eq_bands="0 0 0 0 0 0 0 0 0 0"
+loaded_socket_stamp=""
+
+usage() {
+  cat >&2 <<'EOF'
+Usage:
+  ryoku-audio-effects status
+  ryoku-audio-effects apply BASS WIDTH LOUD
+  ryoku-audio-effects bass VALUE
+  ryoku-audio-effects width VALUE
+  ryoku-audio-effects loud VALUE
+  ryoku-audio-effects eq-set BAND GAIN
+
+VALUE is an integer from 0 to 100. BAND is 1..10. GAIN is -12..12.
+EOF
+}
+
+die() {
+  echo "ryoku-audio-effects: $1" >&2
+  usage
+  exit 2
+}
+
+quiet_noop() {
+  if [[ ${RYOKU_AUDIO_EFFECTS_DEBUG:-0} == "1" ]]; then
+    echo "ryoku-audio-effects: $1" >&2
+  fi
+  exit 0
+}
+
+socket_ready() {
+  [[ -S $server_socket ]]
+}
+
+normalize_percent() {
+  local value="${1:-}"
+  local number
+
+  [[ $value =~ ^[0-9]+$ ]] || die "value must be an integer from 0 to 100"
+
+  if [[ $value == -* ]]; then
+    number=$((-10#${value#-}))
+  else
+    number=$((10#$value))
+  fi
+
+  if (( number > 100 )); then
+    number=100
+  fi
+
+  printf '%s\n' "$number"
+}
+
+normalize_gain() {
+  local value="${1:-}"
+  local number
+
+  [[ $value =~ ^-?[0-9]+$ ]] || die "gain must be an integer from -12 to 12"
+
+  number=$((10#$value))
+
+  if (( number < -12 )); then
+    number=-12
+  elif (( number > 12 )); then
+    number=12
+  fi
+
+  printf '%s\n' "$number"
+}
+
+normalize_eq_bands() {
+  local -a parts
+  local i
+
+  read -r -a parts <<<"${eq_bands:-}"
+
+  if (( ${#parts[@]} != 10 )); then
+    parts=(0 0 0 0 0 0 0 0 0 0)
+  fi
+
+  for i in "${!parts[@]}"; do
+    parts[$i]="$(normalize_gain "${parts[$i]}")"
+  done
+
+  eq_bands="${parts[*]}"
+}
+
+scale_float() {
+  local value="$1"
+  local min="$2"
+  local max="$3"
+
+  awk -v value="$value" -v min="$min" -v max="$max" \
+    'BEGIN { printf "%.3f", min + ((max - min) * value / 100) }'
+}
+
+read_state() {
+  if [[ -f $state_file ]]; then
+    # shellcheck source=/dev/null
+    source "$state_file"
+  fi
+
+  bass="$(normalize_percent "${bass:-0}")"
+  width="$(normalize_percent "${width:-0}")"
+  loud="$(normalize_percent "${loud:-50}")"
+  normalize_eq_bands
+  loaded_socket_stamp="${loaded_socket_stamp:-}"
+}
+
+write_state() {
+  mkdir -p "$state_dir"
+  {
+    printf 'bass=%s\n' "$bass"
+    printf 'width=%s\n' "$width"
+    printf 'loud=%s\n' "$loud"
+    printf 'eq_bands=%q\n' "$eq_bands"
+    printf 'loaded_socket_stamp=%q\n' "$loaded_socket_stamp"
+  } > "$state_file"
+}
+
+write_equalizer_preset_file() {
+  local dir="$1"
+  local file="$dir/$preset_name.json"
+
+  mkdir -p "$dir"
+
+  jq -n --arg vals "$eq_bands" '
+    ($vals | split(" ") | map(tonumber)) as $g |
+    [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000] as $f |
+    def bands:
+      reduce range(0; 10) as $i ({};
+        .["band\($i)"] = {
+          frequency: $f[$i],
+          gain: $g[$i],
+          mode: "Bell",
+          mute: false,
+          q: 1.0,
+          solo: false,
+          width: 1.0,
+          slope: "x1"
+        }
+      );
+    {
+      output: {
+        blocklist: [],
+        plugins_order: ["equalizer"],
+        equalizer: {
+          bypass: false,
+          "input-gain": 0.0,
+          "output-gain": 0.0,
+          left: bands,
+          right: bands,
+          mode: "IIR",
+          "num-bands": 10,
+          "split-channels": false
+        }
+      }
+    }
+  ' > "$file"
+}
+
+ensure_equalizer_preset() {
+  local data_home="${XDG_DATA_HOME:-$HOME/.local/share}"
+
+  write_equalizer_preset_file "$data_home/easyeffects/output"
+  write_equalizer_preset_file "$HOME/.config/easyeffects/output"
+}
+
+write_preset_file() {
+  local dir="$1"
+  local file="$dir/$preset_name.json"
+
+  mkdir -p "$dir"
+
+  if [[ -f $file ]]; then
+    return 0
+  fi
+
+  cat > "$file" <<'JSON'
+{
+  "output": {
+    "bass_enhancer#0": {
+      "amount": 0.0,
+      "blend": 0.0,
+      "floor": 20.0,
+      "floor-active": false,
+      "harmonics": 8.0,
+      "input-gain": 0.0,
+      "listen": false,
+      "output-gain": 0.0,
+      "scope": 100.0
+    },
+    "blocklist": [],
+    "loudness#0": {
+      "input-gain": 0.0,
+      "output-gain": 0.0,
+      "volume": 0.0
+    },
+    "plugins_order": [
+      "bass_enhancer#0",
+      "stereo_tools#0",
+      "loudness#0"
+    ],
+    "stereo_tools#0": {
+      "balance-in": 0.0,
+      "balance-out": 0.0,
+      "delay": 0.0,
+      "input-gain": 0.0,
+      "middle-level": 0.0,
+      "middle-panorama": 0.0,
+      "mode": "LR > LR",
+      "mutel": false,
+      "muter": false,
+      "output-gain": 0.0,
+      "phasel": false,
+      "phaser": false,
+      "sc-level": 1.0,
+      "side-balance": 0.0,
+      "side-level": 0.0,
+      "softclip": false,
+      "stereo-base": 0.0,
+      "stereo-phase": 0.0
+    }
+  }
+}
+JSON
+}
+
+ensure_preset() {
+  local data_home="${XDG_DATA_HOME:-$HOME/.local/share}"
+
+  write_preset_file "$data_home/easyeffects/output"
+  write_preset_file "$HOME/.config/easyeffects/output"
+}
+
+load_equalizer_preset() {
+  if ryoku-cmd-missing easyeffects; then
+    return 0
+  fi
+
+  if ensure_server; then
+    send_raw "load_preset:output:$preset_name" || true
+  else
+    setsid easyeffects -l "$preset_name" >/dev/null 2>&1 &
+  fi
+}
+
+ensure_server() {
+  if ryoku-cmd-missing socat; then
+    return 1
+  fi
+
+  if ryoku-cmd-missing easyeffects; then
+    return 1
+  fi
+
+  if socket_ready; then
+    return 0
+  fi
+
+  if ! pgrep -x easyeffects >/dev/null 2>&1; then
+    setsid easyeffects --gapplication-service >/dev/null 2>&1 &
+  fi
+
+  for _ in {1..30}; do
+    if socket_ready; then
+      return 0
+    fi
+    sleep 0.05
+  done
+
+  return 1
+}
+
+send_raw() {
+  local message="$1"
+
+  printf '%s\n' "$message" | socat - "UNIX-CONNECT:$server_socket" >/dev/null 2>&1
+}
+
+server_stamp() {
+  stat -c '%i:%Y' "$server_socket" 2>/dev/null || printf 'unknown'
+}
+
+load_dashboard_preset_once() {
+  local stamp
+
+  stamp="$(server_stamp)"
+  if [[ ${loaded_socket_stamp:-} == $stamp ]]; then
+    return 0
+  fi
+
+  send_raw "load_preset:output:$preset_name" || true
+  loaded_socket_stamp="$stamp"
+}
+
+apply_values() {
+  bass="$(normalize_percent "$1")"
+  width="$(normalize_percent "$2")"
+  loud="$(normalize_percent "$3")"
+
+  write_state
+  ensure_preset
+
+  if ! ensure_server; then
+    quiet_noop "EasyEffects or its local server is not available"
+  fi
+
+  load_dashboard_preset_once
+
+  send_raw "set_property:output:bass_enhancer:0:amount:$(scale_float "$bass" 0 10)" || true
+  send_raw "set_property:output:bass_enhancer:0:blend:$(scale_float "$bass" 0 8)" || true
+  send_raw "set_property:output:stereo_tools:0:stereoBase:$(scale_float "$width" 0 0.45)" || true
+  send_raw "set_property:output:loudness:0:volume:$(scale_float "$loud" -4 4)" || true
+
+  write_state
+}
+
+set_eq_band() {
+  local index="${1:-}"
+  local gain="${2:-}"
+  local -a parts
+
+  [[ $index =~ ^[0-9]+$ ]] || die "band must be an integer from 1 to 10"
+  index=$((10#$index))
+  (( index >= 1 && index <= 10 )) || die "band must be an integer from 1 to 10"
+
+  gain="$(normalize_gain "$gain")"
+  read -r -a parts <<<"$eq_bands"
+  parts[$((index - 1))]="$gain"
+  eq_bands="${parts[*]}"
+
+  write_state
+  ensure_equalizer_preset
+  load_equalizer_preset
+}
+
+read_state
+
+case "${1:-}" in
+  status)
+    if ryoku-cmd-missing easyeffects || ryoku-cmd-missing socat; then
+      echo "missing"
+    elif socket_ready; then
+      echo "ready"
+    else
+      echo "inactive"
+    fi
+    ;;
+  apply)
+    (( $# == 4 )) || die "apply requires BASS WIDTH LOUD"
+    apply_values "$2" "$3" "$4"
+    ;;
+  bass)
+    (( $# == 2 )) || die "bass requires VALUE"
+    bass="$(normalize_percent "$2")"
+    apply_values "$bass" "$width" "$loud"
+    ;;
+  width)
+    (( $# == 2 )) || die "width requires VALUE"
+    width="$(normalize_percent "$2")"
+    apply_values "$bass" "$width" "$loud"
+    ;;
+  loud)
+    (( $# == 2 )) || die "loud requires VALUE"
+    loud="$(normalize_percent "$2")"
+    apply_values "$bass" "$width" "$loud"
+    ;;
+  eq-set)
+    (( $# == 3 )) || die "eq-set requires BAND GAIN"
+    set_eq_band "$2" "$3"
+    ;;
+  --help|-h|"")
+    usage
+    ;;
+  *)
+    die "unknown action: $1"
+    ;;
+esac

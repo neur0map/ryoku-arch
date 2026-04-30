@@ -1,18 +1,30 @@
 import QtQuick
 import Quickshell
+import Quickshell.Wayland
 import "../"
 
-// Low battery warning — FloatingWindow, centered by the WM (Hyprland floats center).
-// Auto-dismisses after `timeout` ms. Click anywhere to dismiss early.
+// Low battery warning. Small top-right toast, auto-dismisses after
+// `timeout` ms. Click anywhere on the toast to dismiss early.
 
-FloatingWindow {
+PanelWindow {
     id: root
 
     property int warnLevel: 30
     property int timeout:   8000
 
-    minimumSize: Qt.size(320, 100)
-    maximumSize: Qt.size(320, 100)
+    anchors.top: true
+    anchors.right: true
+
+    margins.top: Theme.notchHeight + Theme.borderWidth + 10
+    margins.right: Theme.borderWidth + 12
+
+    implicitWidth: 260
+    implicitHeight: 64
+
+    exclusionMode: ExclusionMode.Ignore
+
+    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
     color: "transparent"
     
@@ -29,52 +41,70 @@ FloatingWindow {
     // ── Severity helpers ─────────────────────────────────────────────────────
     readonly property color accentColor: warnLevel <= 5  ? "#ff4444" :
                                          warnLevel <= 10 ? "#ff6b00" : "#ffcc00"
-    readonly property string title:      warnLevel <= 5  ? "Critical Battery" :
-                                         warnLevel <= 10 ? "Very Low Battery"  : "Low Battery"
-    readonly property string message:    warnLevel <= 5
-                                             ? "Battery at " + warnLevel + "% — plug in now!"
-                                             : "Battery at " + warnLevel + "% — consider charging." // for testing visuals without changing actual battery level
+    readonly property string title:      "Battery " + warnLevel + "%"
+    readonly property string message:    warnLevel <= 5  ? "Plug in now" :
+                                         warnLevel <= 10 ? "Find power soon" :
+                                                          "Consider charging"
 
     // ── Visuals ───────────────────────────────────────────────────────────────
     Rectangle {
         anchors.fill: parent
-        radius:       Theme.cornerRadius + 4
-        color:        Theme.background
+        radius:       12
+        color:        Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, 0.96)
+        border.color: Qt.rgba(root.accentColor.r, root.accentColor.g, root.accentColor.b, 0.35)
+        border.width: 1
+        clip: true
 
         // Left accent bar
         Rectangle {
-            width:                  4
-            height:                 parent.height - 20
-            radius:                 2
+            width:                  3
+            height:                 parent.height - 18
+            radius:                 1.5
             anchors.left:           parent.left
-            anchors.leftMargin:     8
+            anchors.leftMargin:     9
             anchors.verticalCenter: parent.verticalCenter
             color:                  root.accentColor
         }
 
-        Column {
+        Row {
             anchors {
                 left:           parent.left
-                leftMargin:     22
+                leftMargin:     20
                 right:          parent.right
                 rightMargin:    12
                 verticalCenter: parent.verticalCenter
             }
-            spacing: 5
+            spacing: 10
 
             Text {
-                text:           "⚠  " + root.title
+                text:           "!"
                 color:          root.accentColor
-                font.pixelSize: 13
+                font.pixelSize: 18
                 font.bold:      true
+                anchors.verticalCenter: parent.verticalCenter
             }
 
-            Text {
-                text:           root.message
-                color:          Theme.text
-                font.pixelSize: 12
-                width:          parent.width
-                wrapMode:       Text.WordWrap
+            Column {
+                width: Math.max(0, parent.width - 28)
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 2
+
+                Text {
+                    text:           root.title
+                    color:          root.accentColor
+                    font.pixelSize: 12
+                    font.bold:      true
+                    width:          parent.width
+                    elide:          Text.ElideRight
+                }
+
+                Text {
+                    text:           root.message
+                    color:          Theme.text
+                    font.pixelSize: 11
+                    width:          parent.width
+                    elide:          Text.ElideRight
+                }
             }
         }
 

@@ -45,7 +45,8 @@ mpvpaper
 # bin/ryoku-launch-screensaver and install/post-install/finished.sh.
 python-terminaltexteffects
 
-# ── Fonts & icon themes ───────────────────────────────────────────────
+# ── Cursors, fonts & icon themes ──────────────────────────────────────
+bibata-cursor-theme-bin
 ttf-ia-writer
 ttf-phosphor-icons
 yaru-icon-theme

@@ -22,8 +22,14 @@ active_has() {
 }
 
 player="config/quickshell/ryoku/vendor/brain-shell/src/services/home/PlayerCard.qml"
+dashboard="config/quickshell/ryoku/vendor/brain-shell/src/popups/Dashboard.qml"
+popups="config/quickshell/ryoku/vendor/brain-shell/src/state/Popups.qml"
+audio_helper="bin/ryoku-audio-effects"
 
 [[ -f $player ]] || fail "$player missing"
+[[ -f $dashboard ]] || fail "$dashboard missing"
+[[ -f $popups ]] || fail "$popups missing"
+[[ -x $audio_helper ]] || fail "$audio_helper should be executable"
 
 active_has "$player" 'StatCard {' \
   || fail "PlayerCard should use the shared StatCard surface"
@@ -45,11 +51,11 @@ active_has "$player" 'id: cavaOrbit' \
   || fail "PlayerCard should render Cava as a disc orbit"
 active_has "$player" 'readonly property int _orbitBars' \
   || fail "PlayerCard should define a stable Cava orbit bar count"
-active_has "$player" 'readonly property int _orbitBars: 36' \
+active_has "$player" 'readonly property int _orbitBars: 44' \
   || fail "PlayerCard Cava orbit should have enough samples to read as a synthesizer"
 active_has "$player" 'root._barValue(index)' \
   || fail "Cava orbit ticks should read shared Cava values"
-active_has "$player" 'height: 4 + amp * 22' \
+active_has "$player" 'height: 5 + amp * 26' \
   || fail "Cava orbit ticks should visibly react to audio amplitude"
 active_has "$player" 'CavaService.isPlaying' \
   || fail "PlayerCard should keep shared CavaService playback gating"
@@ -67,10 +73,18 @@ active_has "$player" 'id: mediaStack' \
   || fail "PlayerCard should keep metadata, wavebar, and controls grouped"
 active_has "$player" 'objectName: "playerSideConsole"' \
   || fail "Metadata/control stack should use the side-console layout"
-active_has "$player" 'anchors.left: panelBody.left' \
-  || fail "Side console should be anchored to the offset panel"
-active_has "$player" 'anchors.leftMargin: root._contentLeftInset' \
-  || fail "Side console should reserve room for the overlapping disc"
+active_has "$player" 'id: titleLabel' \
+  || fail "PlayerCard should put the track title across the top of the card"
+active_has "$player" 'anchors.rightMargin: sourcePicker.visible ? 122 : 18' \
+  || fail "Top title should reserve room for the source picker only when needed"
+active_has "$player" 'anchors.left: discStage.right' \
+  || fail "Side console should sit to the right of the album disc"
+active_has "$player" 'anchors.leftMargin: 42' \
+  || fail "Side console should clear the Cava orbit around the album disc"
+active_has "$player" 'id: albumLabel' \
+  || fail "Side console should expose album/source metadata below the artist"
+active_has "$player" 'root.album' \
+  || fail "PlayerCard should read album metadata when MPRIS provides it"
 active_has "$player" 'component TransportGlyph' \
   || fail "Playback controls should use custom Ryoku transport glyphs"
 active_has "$player" 'component ChevronMark' \
@@ -79,10 +93,14 @@ active_has "$player" 'id: playbackControls' \
   || fail "PlayerCard should render explicit playback controls"
 active_has "$player" 'objectName: "playbackDeck"' \
   || fail "Playback controls should use the transport deck layout"
-active_has "$player" 'width: isPlay ? 34 : 29' \
-  || fail "Playback controls should use compact round command nodes"
-active_has "$player" 'radius: width / 2' \
-  || fail "Playback controls should render as circular command nodes"
+active_has "$player" 'objectName: "playerBottomControls"' \
+  || fail "Playback controls should be pinned in a named bottom deck"
+active_has "$player" 'anchors.bottom: parent.bottom' \
+  || fail "Playback controls should sit at the bottom of the side console"
+active_has "$player" 'width: isPlay ? 50 : 42' \
+  || fail "Playback controls should use boxed command keys"
+active_has "$player" 'radius: 8' \
+  || fail "Playback controls should render as rounded boxes, not circles"
 active_has "$player" 'root.player.canTogglePlaying' \
   || fail "Play button should preserve canTogglePlaying guard"
 active_has "$player" 'root.player.canGoPrevious' \
@@ -113,6 +131,52 @@ active_has "$player" 'root._panelAlpha' \
   || fail "PlayerCard panel background should use its opacity without fading UI components"
 active_has "$player" 'readonly property real _panelAlpha: 0.075' \
   || fail "PlayerCard inner panel should stay low-opacity"
+active_has "$player" 'component EqualizerBand' \
+  || fail "PlayerCard should expose proper equalizer band controls"
+active_has "$player" 'objectName: "audioEffectDeck"' \
+  || fail "PlayerCard should reserve the lower deck for sound effect controls"
+active_has "$player" 'anchors.bottom: controlsBlock.top' \
+  || fail "Audio effect bars should sit directly above the bottom controls"
+active_has "$player" 'height: root._effectsOpen ? 132 : 28' \
+  || fail "Audio effects should use a compact expandable deck"
+active_has "$player" 'id: effectsToggle' \
+  || fail "Audio effects should expose a dedicated FX expand button"
+active_has "$player" 'root._effectsOpen = !root._effectsOpen' \
+  || fail "FX button should expand and collapse the full slider deck"
+active_has "$player" 'Popups.playerEqualizerOpen = root._effectsOpen' \
+  || fail "FX expansion should grow the dashboard instead of cramming the card"
+active_has "$player" 'visible: root._effectsOpen' \
+  || fail "Full effect sliders should appear only in the expanded FX deck"
+active_has "$player" 'model: root._eqBandModel' \
+  || fail "Expanded equalizer should render the full 10-band model"
+active_has "$player" 'id: eqLightningCanvas' \
+  || fail "Expanded equalizer should include the lightning animation canvas"
+active_has "$player" 'id: eqLightningAnim' \
+  || fail "Expanded equalizer should animate lightning on equalizer changes"
+active_has "$player" 'root._setEqBand(modelData.idx, value)' \
+  || fail "Equalizer bands should be wired to the helper"
+active_has "$player" 'ryoku-audio-effects' \
+  || fail "PlayerCard effect bars should call the Ryoku audio effects helper"
+active_has "$player" '"eq-set",' \
+  || fail "Equalizer bands should call the helper per band"
+active_has "$dashboard" 'readonly property int equalizerExtraHeight' \
+  || fail "Dashboard should define an expandable equalizer height budget"
+active_has "$dashboard" 'Popups.playerEqualizerOpen ? root.equalizerExtraHeight : 0' \
+  || fail "Dashboard height should grow only while player equalizer is open"
+active_has "$popups" 'property bool playerEqualizerOpen' \
+  || fail "Popups should track player equalizer expansion state"
+active_has "$popups" 'playerEqualizerOpen = false' \
+  || fail "closeAll should collapse the player equalizer"
+active_has "$audio_helper" 'EasyEffectsServer' \
+  || fail "Audio helper should target the EasyEffects local server socket"
+active_has "$audio_helper" 'plugins_order' \
+  || fail "Audio helper should generate an EasyEffects output preset"
+active_has "$audio_helper" 'equalizer' \
+  || fail "Audio helper should wire the expanded controls to EasyEffects equalizer"
+active_has "$audio_helper" 'eq-set)' \
+  || fail "Audio helper should expose per-band equalizer control"
+grep -qx 'easyeffects' install/ryoku-base.packages \
+  || fail "install/ryoku-base.packages should include easyeffects for dashboard sound controls"
 
 if active_has "$player" 'id: bgSource'; then
   fail "PlayerCard should not keep the old full-card album-art background source"
@@ -140,6 +204,12 @@ if active_has "$player" '⏵'; then
 fi
 if active_has "$player" 'property bool left'; then
   fail "PlayerCard should not define a Chevron property that collides with Item.left"
+fi
+if active_has "$player" 'component EffectSlider'; then
+  fail "PlayerCard should not keep the cramped mini FX sliders"
+fi
+if active_has "$player" 'border.color: Qt.rgba(1, 1, 1, 0.035)'; then
+  fail "PlayerCard should not keep the duplicate full-card border box"
 fi
 
 if command -v qmllint >/dev/null; then

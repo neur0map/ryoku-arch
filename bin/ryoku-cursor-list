@@ -1,0 +1,107 @@
+#!/bin/bash
+
+set -e
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+trap 'exit 0' PIPE
+
+if [[ ${1:-} != "--jsonl" ]]; then
+  echo "Usage: ryoku-cursor-list --jsonl" >&2
+  exit 2
+fi
+
+current_cursor=""
+cursor_dropin="$RYOKU_STATE_PATH/toggles/hypr/cursor.conf"
+
+if [[ -f $cursor_dropin ]]; then
+  current_cursor="$(sed -n 's/^env = XCURSOR_THEME,//p' "$cursor_dropin" | tail -1)"
+fi
+
+if [[ -z $current_cursor && -f $RYOKU_PATH/default/hypr/envs.conf ]]; then
+  current_cursor="$(sed -n 's/^env = XCURSOR_THEME,//p' "$RYOKU_PATH/default/hypr/envs.conf" | tail -1)"
+fi
+
+cursor_installed() {
+  local name="$1"
+  [[ -d /usr/share/icons/$name/cursors || -d $HOME/.local/share/icons/$name/cursors ]]
+}
+
+display_name() {
+  printf '%s\n' "$1" | sed 's/-/ /g'
+}
+
+preview_asset() {
+  printf '%s/config/quickshell/ryoku/assets/appearance/cursors/%s\n' "$RYOKU_PATH" "$1"
+}
+
+preview_for() {
+  case "$1" in
+    Bibata-*Amber-Right) printf '%s\n' "$(preview_asset bibata-amber-right.png)" ;;
+    Bibata-*Classic-Right) printf '%s\n' "$(preview_asset bibata-classic-right.png)" ;;
+    Bibata-*Ice-Right) printf '%s\n' "$(preview_asset bibata-ice-right.png)" ;;
+    Bibata-*Amber) printf '%s\n' "$(preview_asset bibata-amber.png)" ;;
+    Bibata-*Classic) printf '%s\n' "$(preview_asset bibata-classic.png)" ;;
+    Bibata-*Ice) printf '%s\n' "$(preview_asset bibata-ice.png)" ;;
+    Yaru) printf '%s\n' "$(preview_asset yaru.svg)" ;;
+    Adwaita|*) printf '%s\n' "$(preview_asset adwaita.svg)" ;;
+  esac
+}
+
+package_for() {
+  case "$1" in
+    Bibata-*) printf '%s\n' "bibata-cursor-theme-bin" ;;
+    Adwaita) printf '%s\n' "adwaita-cursors" ;;
+    Yaru) printf '%s\n' "yaru-icon-theme" ;;
+    *) printf '\n' ;;
+  esac
+}
+
+emit_cursor_json() {
+  local name="$1"
+  local display="$2"
+  local package="$3"
+  local source="$4"
+  local preview="$5"
+  local installed="false"
+  local active="false"
+
+  cursor_installed "$name" && installed="true"
+  [[ $name == "$current_cursor" ]] && active="true"
+
+  jq -cn \
+    --arg name "$name" \
+    --arg display "$display" \
+    --arg package "$package" \
+    --arg source "$source" \
+    --arg preview "$preview" \
+    --argjson installed "$installed" \
+    --argjson active "$active" \
+    '{name: $name, display: $display, packageName: $package, source: $source, preview: $preview, installed: $installed, active: $active}' \
+    2>/dev/null || exit 0
+}
+
+declare -A seen=()
+
+for name in \
+  Bibata-Modern-Classic \
+  Bibata-Modern-Ice \
+  Bibata-Modern-Amber \
+  Bibata-Original-Classic \
+  Bibata-Original-Ice \
+  Bibata-Original-Amber \
+  Adwaita; do
+  seen[$name]=1
+  emit_cursor_json "$name" "$(display_name "$name")" "$(package_for "$name")" "curated" "$(preview_for "$name")"
+done
+
+while IFS= read -r name; do
+  [[ -n $name ]] || continue
+  [[ -n ${seen[$name]:-} ]] && continue
+  seen[$name]=1
+  emit_cursor_json "$name" "$(display_name "$name")" "$(package_for "$name")" "installed" "$(preview_for "$name")"
+done < <(
+  find /usr/share/icons "$HOME/.local/share/icons" -maxdepth 2 -name cursors -type d 2>/dev/null \
+    | sed 's#/cursors$##' \
+    | xargs -r -n1 basename \
+    | sort -u
+)

@@ -27,21 +27,6 @@ Item {
 
     readonly property int pct: sink?.ready ? Math.round(sink.audio.volume * 100) : 0
 
-    HoverHandler {
-        id: hov
-    }
-
-    // Ryoku: subtle background highlight on hover. Uses opacity
-    // NumberAnimation (more reliable than ColorAnimation across alpha).
-    Rectangle {
-        anchors.fill: parent
-        anchors.margins: 2
-        radius:  6
-        color:   "white"
-        opacity: hov.hovered ? 0.08 : 0.0
-        Behavior on opacity { NumberAnimation { duration: 800; easing.type: Easing.OutQuart } }
-    }
-
     Row {
         id: row
         anchors.centerIn: parent
@@ -60,7 +45,7 @@ Item {
             color:          Theme.text
             font.pixelSize: 12
             anchors.verticalCenter: parent.verticalCenter
-            visible:        root.showPercentage || hov.hovered
+            visible:        root.showPercentage
         }
     }
 

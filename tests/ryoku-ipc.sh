@@ -28,14 +28,34 @@ apply_bin="bin/ryoku-wallpaper-apply"
   || fail "help should document wallhaven search"
 "$ipc" --help | grep -q "ryoku-ipc shell toggle themes" \
   || fail "help should document shell themes toggle"
+"$ipc" --help | grep -q "ryoku-ipc shell toggle fonts" \
+  || fail "help should document shell fonts toggle"
+"$ipc" --help | grep -q "ryoku-ipc shell toggle cursors" \
+  || fail "help should document shell cursors toggle"
 "$ipc" --help | grep -q "ryoku-ipc shell toggle system-menu" \
   || fail "help should document shell system-menu toggle"
 "$ipc" --help | grep -q "ryoku-ipc shell toggle settings-menu" \
   || fail "help should document shell settings-menu toggle"
+"$ipc" --help | grep -q "ryoku-ipc shell command settings-menu-home" \
+  || fail "help should document shell command settings-menu-home"
+"$ipc" --help | grep -q "ryoku-ipc shell command settings-menu-share" \
+  || fail "help should document shell command settings-menu-share"
+"$ipc" --help | grep -q "ryoku-ipc shell command settings-menu-hardware" \
+  || fail "help should document shell command settings-menu-hardware"
+"$ipc" --help | grep -q "ryoku-ipc shell settings-menu home" \
+  || fail "help should document shell settings-menu home route"
+"$ipc" --help | grep -q "ryoku-ipc shell settings-menu share" \
+  || fail "help should document shell settings-menu share route"
+"$ipc" --help | grep -q "ryoku-ipc shell settings-menu hardware" \
+  || fail "help should document shell settings-menu hardware route"
 "$ipc" --help | grep -q "ryoku-ipc theme list --jsonl" \
   || fail "help should document theme list"
 "$ipc" --help | grep -q "ryoku-ipc theme apply THEME" \
   || fail "help should document theme apply"
+"$ipc" --help | grep -q "ryoku-ipc font list --jsonl" \
+  || fail "help should document font list"
+"$ipc" --help | grep -q "ryoku-ipc cursor list --jsonl" \
+  || fail "help should document cursor list"
 
 tmpdir=$(mktemp -d)
 trap 'rm -rf "$tmpdir"' EXIT
@@ -51,7 +71,7 @@ exit 0
 EOF
 chmod +x "$tmpdir/path/qs"
 
-for helper in ryoku-wallpaper-list ryoku-wallpaper-cache ryoku-theme-list; do
+for helper in ryoku-wallpaper-list ryoku-wallpaper-cache ryoku-theme-list ryoku-font-list ryoku-cursor-list; do
   cat >"$tmpdir/ryoku/bin/$helper" <<'EOF'
 #!/bin/bash
 exit 0
@@ -72,6 +92,34 @@ mkdir -p "$RYOKU_STATE_PATH"
 printf '%s\n' "$@" >"$RYOKU_STATE_PATH/apply.args"
 EOF
 chmod +x "$tmpdir/ryoku/bin/ryoku-wallpaper-apply"
+
+cat >"$tmpdir/ryoku/bin/ryoku-font-set" <<'EOF'
+#!/bin/bash
+mkdir -p "$RYOKU_STATE_PATH"
+printf '%s\n' "$@" >"$RYOKU_STATE_PATH/font.args"
+EOF
+chmod +x "$tmpdir/ryoku/bin/ryoku-font-set"
+
+cat >"$tmpdir/ryoku/bin/ryoku-font-install" <<'EOF'
+#!/bin/bash
+mkdir -p "$RYOKU_STATE_PATH"
+printf '%s\n' "$@" >"$RYOKU_STATE_PATH/font-install.args"
+EOF
+chmod +x "$tmpdir/ryoku/bin/ryoku-font-install"
+
+cat >"$tmpdir/ryoku/bin/ryoku-cursor-set" <<'EOF'
+#!/bin/bash
+mkdir -p "$RYOKU_STATE_PATH"
+printf '%s\n' "$@" >"$RYOKU_STATE_PATH/cursor.args"
+EOF
+chmod +x "$tmpdir/ryoku/bin/ryoku-cursor-set"
+
+cat >"$tmpdir/ryoku/bin/ryoku-cursor-install" <<'EOF'
+#!/bin/bash
+mkdir -p "$RYOKU_STATE_PATH"
+printf '%s\n' "$@" >"$RYOKU_STATE_PATH/cursor-install.args"
+EOF
+chmod +x "$tmpdir/ryoku/bin/ryoku-cursor-install"
 
 rejects_trailing_args() {
   local description="$1"
@@ -112,6 +160,20 @@ RYOKU_STATE_PATH="$tmpdir/state" \
 RYOKU_PATH="$PWD" \
 RYOKU_CONFIG_PATH="$tmpdir/config" \
 RYOKU_STATE_PATH="$tmpdir/state" \
+  "$ipc" shell command fonts \
+  | grep -q 'qs -c ryoku ipc call popups toggleFonts' \
+  || fail "shell command fonts should print the shared selector IPC command"
+
+RYOKU_PATH="$PWD" \
+RYOKU_CONFIG_PATH="$tmpdir/config" \
+RYOKU_STATE_PATH="$tmpdir/state" \
+  "$ipc" shell command cursors \
+  | grep -q 'qs -c ryoku ipc call popups toggleCursors' \
+  || fail "shell command cursors should print the shared selector IPC command"
+
+RYOKU_PATH="$PWD" \
+RYOKU_CONFIG_PATH="$tmpdir/config" \
+RYOKU_STATE_PATH="$tmpdir/state" \
   "$ipc" shell command system-menu \
   | grep -q 'qs -c ryoku ipc call popups toggleSystemMenu' \
   || fail "shell command system-menu should print the Quickshell IPC command"
@@ -123,17 +185,52 @@ RYOKU_STATE_PATH="$tmpdir/state" \
   | grep -q 'qs -c ryoku ipc call popups toggleSettingsMenu' \
   || fail "shell command settings-menu should print the Quickshell IPC command"
 
+RYOKU_PATH="$PWD" \
+RYOKU_CONFIG_PATH="$tmpdir/config" \
+RYOKU_STATE_PATH="$tmpdir/state" \
+  "$ipc" shell command settings-menu-home \
+  | grep -q 'qs -c ryoku ipc call popups openSettingsMenuHome' \
+  || fail "shell command settings-menu-home should print the Quickshell IPC command"
+
+RYOKU_PATH="$PWD" \
+RYOKU_CONFIG_PATH="$tmpdir/config" \
+RYOKU_STATE_PATH="$tmpdir/state" \
+  "$ipc" shell command settings-menu-share \
+  | grep -q 'qs -c ryoku ipc call popups openSettingsMenuShare' \
+  || fail "shell command settings-menu-share should print the Quickshell IPC command"
+
+RYOKU_PATH="$PWD" \
+RYOKU_CONFIG_PATH="$tmpdir/config" \
+RYOKU_STATE_PATH="$tmpdir/state" \
+  "$ipc" shell command settings-menu-hardware \
+  | grep -q 'qs -c ryoku ipc call popups openSettingsMenuHardware' \
+  || fail "shell command settings-menu-hardware should print the Quickshell IPC command"
+
 rejects_trailing_args "shell command wallpaper" shell command wallpaper extra
 rejects_trailing_args "shell command themes" shell command themes extra
+rejects_trailing_args "shell command fonts" shell command fonts extra
+rejects_trailing_args "shell command cursors" shell command cursors extra
 rejects_trailing_args "shell command system-menu" shell command system-menu extra
 rejects_trailing_args "shell command settings-menu" shell command settings-menu extra
+rejects_trailing_args "shell command settings-menu-home" shell command settings-menu-home extra
+rejects_trailing_args "shell command settings-menu-share" shell command settings-menu-share extra
+rejects_trailing_args "shell command settings-menu-hardware" shell command settings-menu-hardware extra
 rejects_trailing_args "shell toggle wallpaper" shell toggle wallpaper extra
 rejects_trailing_args "shell toggle themes" shell toggle themes extra
+rejects_trailing_args "shell toggle fonts" shell toggle fonts extra
+rejects_trailing_args "shell toggle cursors" shell toggle cursors extra
 rejects_trailing_args "shell toggle system-menu" shell toggle system-menu extra
 rejects_trailing_args "shell toggle settings-menu" shell toggle settings-menu extra
+rejects_trailing_args "shell settings-menu home" shell settings-menu home extra
+rejects_trailing_args "shell settings-menu share" shell settings-menu share extra
+rejects_trailing_args "shell settings-menu hardware" shell settings-menu hardware extra
 rejects_trailing_args "wallpaper settings get --json" wallpaper settings get --json extra
 rejects_trailing_args "wallpaper list --jsonl" wallpaper list --jsonl extra
 rejects_trailing_args "wallpaper cache rebuild" wallpaper cache rebuild extra
+rejects_trailing_args "font list --jsonl" font list --jsonl extra
+rejects_trailing_args "font apply" font apply
+rejects_trailing_args "font install" font install
+rejects_trailing_args "cursor list --jsonl" cursor list --jsonl extra
 
 assert_apply_args() {
   local description="$1"
@@ -190,6 +287,59 @@ RYOKU_STATE_PATH="$tmpdir/state" \
 mapfile -t theme_args < "$tmpdir/state/theme.args"
 (( ${#theme_args[@]} == 1 )) || fail "theme apply should pass exactly one argument"
 [[ ${theme_args[0]} == "tokyo-night" ]] || fail "theme apply should preserve theme name"
+
+RYOKU_PATH="$tmpdir/ryoku" \
+RYOKU_CONFIG_PATH="$tmpdir/config" \
+RYOKU_STATE_PATH="$tmpdir/state" \
+  "$ipc" font list --jsonl >/dev/null \
+  || fail "font list should route to ryoku-font-list"
+
+RYOKU_PATH="$tmpdir/ryoku" \
+RYOKU_CONFIG_PATH="$tmpdir/config" \
+RYOKU_STATE_PATH="$tmpdir/state" \
+  "$ipc" font apply "CaskaydiaMono Nerd Font" >/dev/null \
+  || fail "font apply should route to ryoku-font-set"
+
+mapfile -t font_args < "$tmpdir/state/font.args"
+(( ${#font_args[@]} == 1 )) || fail "font apply should pass exactly one argument"
+[[ ${font_args[0]} == "CaskaydiaMono Nerd Font" ]] || fail "font apply should preserve spaces"
+
+RYOKU_PATH="$tmpdir/ryoku" \
+RYOKU_CONFIG_PATH="$tmpdir/config" \
+RYOKU_STATE_PATH="$tmpdir/state" \
+  "$ipc" font install "cascadia-mono" >/dev/null \
+  || fail "font install should route to ryoku-font-install"
+
+mapfile -t font_install_args < "$tmpdir/state/font-install.args"
+(( ${#font_install_args[@]} == 1 )) || fail "font install should pass exactly one argument"
+[[ ${font_install_args[0]} == "cascadia-mono" ]] || fail "font install should preserve font id"
+
+RYOKU_PATH="$tmpdir/ryoku" \
+RYOKU_CONFIG_PATH="$tmpdir/config" \
+RYOKU_STATE_PATH="$tmpdir/state" \
+  "$ipc" cursor list --jsonl >/dev/null \
+  || fail "cursor list should route to ryoku-cursor-list"
+
+RYOKU_PATH="$tmpdir/ryoku" \
+RYOKU_CONFIG_PATH="$tmpdir/config" \
+RYOKU_STATE_PATH="$tmpdir/state" \
+  "$ipc" cursor apply "Bibata-Modern-Ice" 24 >/dev/null \
+  || fail "cursor apply should route to ryoku-cursor-set"
+
+mapfile -t cursor_args < "$tmpdir/state/cursor.args"
+(( ${#cursor_args[@]} == 2 )) || fail "cursor apply should pass theme and size"
+[[ ${cursor_args[0]} == "Bibata-Modern-Ice" ]] || fail "cursor apply should preserve cursor theme"
+[[ ${cursor_args[1]} == "24" ]] || fail "cursor apply should preserve cursor size"
+
+RYOKU_PATH="$tmpdir/ryoku" \
+RYOKU_CONFIG_PATH="$tmpdir/config" \
+RYOKU_STATE_PATH="$tmpdir/state" \
+  "$ipc" cursor install "Bibata-Modern-Ice" >/dev/null \
+  || fail "cursor install should route to ryoku-cursor-install"
+
+mapfile -t cursor_install_args < "$tmpdir/state/cursor-install.args"
+(( ${#cursor_install_args[@]} == 1 )) || fail "cursor install should pass the theme when size is omitted"
+[[ ${cursor_install_args[0]} == "Bibata-Modern-Ice" ]] || fail "cursor install should preserve cursor theme"
 
 make_core_path() {
   local core_path="$1"

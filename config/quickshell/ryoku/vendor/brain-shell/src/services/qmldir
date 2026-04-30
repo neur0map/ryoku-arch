@@ -20,6 +20,8 @@ NotificationList ./notifications/NotificationList.qml
 singleton CaffeineService 1.0 CaffeineService.qml
 singleton WallpaperService 1.0 WallpaperService.qml
 singleton ThemeService 1.0 ThemeService.qml
+singleton FontService 1.0 FontService.qml
+singleton CursorService 1.0 CursorService.qml
 singleton ScreenshotService 1.0 ScreenshotService.qml
 singleton ScreenRecService 1.0 ScreenRecService.qml
 KanbanBoard KanbanBoard.qml
