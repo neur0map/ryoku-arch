@@ -51,10 +51,18 @@ active_has "$player" 'root.filteredPlayers.length > 1' \
   || fail "Source picker should only appear when multiple players exist"
 active_has "$player" 'root.selectedPlayerIndex = index' \
   || fail "Source picker should update selectedPlayerIndex"
+active_has "$player" 'id: panelBody' \
+  || fail "PlayerCard should render the offset console panel"
+active_has "$player" 'objectName: "playerOffsetPanel"' \
+  || fail "Offset console panel should be addressable for visual regression checks"
 active_has "$player" 'id: mediaStack' \
-  || fail "Metadata and controls should be stacked together to avoid overlap"
-active_has "$player" 'anchors.bottom: progressBlock.top' \
-  || fail "Metadata/control stack should reserve the progress area"
+  || fail "PlayerCard should keep metadata, wavebar, and controls grouped"
+active_has "$player" 'objectName: "playerSideConsole"' \
+  || fail "Metadata/control stack should use the side-console layout"
+active_has "$player" 'anchors.left: panelBody.left' \
+  || fail "Side console should be anchored to the offset panel"
+active_has "$player" 'anchors.leftMargin: root._contentLeftInset' \
+  || fail "Side console should reserve room for the overlapping disc"
 active_has "$player" 'component TransportGlyph' \
   || fail "Playback controls should use custom Ryoku transport glyphs"
 active_has "$player" 'component ChevronMark' \
@@ -63,10 +71,10 @@ active_has "$player" 'id: playbackControls' \
   || fail "PlayerCard should render explicit playback controls"
 active_has "$player" 'objectName: "playbackDeck"' \
   || fail "Playback controls should use the transport deck layout"
-active_has "$player" 'visible: isPlay' \
-  || fail "Only the play control should render a persistent center node"
-active_has "$player" 'visible: !isPlay' \
-  || fail "Previous/next controls should use separate side-control styling"
+active_has "$player" 'width: isPlay ? 46 : 38' \
+  || fail "Playback controls should use large round command nodes"
+active_has "$player" 'radius: width / 2' \
+  || fail "Playback controls should render as circular command nodes"
 active_has "$player" 'root.player.canTogglePlaying' \
   || fail "Play button should preserve canTogglePlaying guard"
 active_has "$player" 'root.player.canGoPrevious' \
@@ -77,6 +85,8 @@ active_has "$player" 'id: progressTrack' \
   || fail "PlayerCard should render a named progress track"
 active_has "$player" 'id: seekWaveBar' \
   || fail "Progress track should render as a wave seekbar"
+active_has "$player" 'objectName: "playerWaveSeek"' \
+  || fail "Wave seekbar should be addressable as part of the side console"
 active_has "$player" 'readonly property int _seekBars' \
   || fail "Wave seekbar should define a stable bar count"
 active_has "$player" 'root._seekValue(index)' \
