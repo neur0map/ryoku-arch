@@ -8,6 +8,7 @@ export RYOKU_PATH_DEFAULT="$HOME/.local/share/ryoku"
 export RYOKU_LEGACY_PATH="$HOME/.local/share/omarchy"
 export RYOKU_STATE_PATH="${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}"
 export RYOKU_CONFIG_PATH="${RYOKU_CONFIG_PATH:-$HOME/.config/ryoku}"
+export RYOKU_WALLPAPER_DIR="${RYOKU_WALLPAPER_DIR:-${XDG_PICTURES_DIR:-$HOME/Pictures}/Wallpapers}"
 
 if [[ -n ${RYOKU_PATH:-} ]]; then
   export RYOKU_PATH

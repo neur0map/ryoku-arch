@@ -70,23 +70,25 @@ wallpaper_settings_get() {
   local theme_file="$RYOKU_CONFIG_PATH/current/theme.name"
   local theme_name=""
   local theme_dir="$RYOKU_CONFIG_PATH/current/theme/backgrounds"
-  local user_dir
+  local user_dir="$RYOKU_WALLPAPER_DIR"
+  local legacy_user_dir
   local state_dir="$RYOKU_STATE_PATH/wallpaper"
 
   if [[ -f $theme_file ]]; then
     theme_name="$(<"$theme_file")"
   fi
 
-  user_dir="$RYOKU_CONFIG_PATH/backgrounds/$theme_name"
+  legacy_user_dir="$RYOKU_CONFIG_PATH/backgrounds/$theme_name"
 
   jq -n \
     --arg theme_name "$theme_name" \
     --arg user_dir "$user_dir" \
+    --arg legacy_user_dir "$legacy_user_dir" \
     --arg theme_dir "$theme_dir" \
     --arg state_dir "$state_dir" \
     '{
       theme_name: $theme_name,
-      wallpaper_dirs: [$user_dir, $theme_dir],
+      wallpaper_dirs: [$user_dir, $legacy_user_dir, $theme_dir],
       state_dir: $state_dir,
       wallhaven: {
         categories: "111",

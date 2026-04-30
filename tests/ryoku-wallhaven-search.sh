@@ -76,6 +76,8 @@ JSON
   || fail "parse should emit normalized wallhaven rows"
 
 mkdir -p "$tmpdir/mockbin" "$tmpdir/config/current"
+wallpaper_dir="$tmpdir/Pictures/Wallpapers"
+mkdir -p "$wallpaper_dir"
 printf '%s\n' "test theme" > "$tmpdir/config/current/theme.name"
 cat > "$tmpdir/mockbin/curl" <<'EOF'
 #!/bin/bash
@@ -141,10 +143,11 @@ downloaded=$(
   RYOKU_PATH="$PWD" \
   RYOKU_CONFIG_PATH="$tmpdir/config" \
   RYOKU_STATE_PATH="$tmpdir/state" \
+  RYOKU_WALLPAPER_DIR="$wallpaper_dir" \
     "$script" download abc123 "https://w.wallhaven.cc/full/ab/wallhaven-abc123.png"
 )
 
-[[ $downloaded == "$tmpdir/config/backgrounds/test theme/wallhaven-abc123.png" ]] \
+[[ $downloaded == "$wallpaper_dir/wallhaven-abc123.png" ]] \
   || fail "download should print target path, got $downloaded"
 [[ -f $downloaded ]] || fail "download should create target file"
 
@@ -152,6 +155,7 @@ if PATH="$tmpdir/mockbin:$PATH" \
   RYOKU_PATH="$PWD" \
   RYOKU_CONFIG_PATH="$tmpdir/config" \
   RYOKU_STATE_PATH="$tmpdir/state" \
+  RYOKU_WALLPAPER_DIR="$wallpaper_dir" \
     "$script" download "../bad" "https://w.wallhaven.cc/full/ab/wallhaven-bad.jpg" >/dev/null 2>"$tmpdir/error.log"; then
   fail "invalid Wallhaven ID should fail"
 fi
@@ -164,17 +168,18 @@ fi
 grep -q "conflicting output modes" "$tmpdir/error.log" \
   || fail "conflicting modes should report a validation error"
 
-failed_target="$tmpdir/config/backgrounds/test theme/wallhaven-fail123.jpg"
+failed_target="$wallpaper_dir/wallhaven-fail123.jpg"
 if PATH="$tmpdir/mockbin:$PATH" \
   MOCK_WALLHAVEN_FAIL_DOWNLOAD="1" \
   RYOKU_PATH="$PWD" \
   RYOKU_CONFIG_PATH="$tmpdir/config" \
   RYOKU_STATE_PATH="$tmpdir/state" \
+  RYOKU_WALLPAPER_DIR="$wallpaper_dir" \
     "$script" download fail123 "https://w.wallhaven.cc/full/fa/wallhaven-fail123.jpg" >/dev/null 2>"$tmpdir/error.log"; then
   fail "failed download should fail"
 fi
 [[ ! -e $failed_target ]] || fail "failed download should not leave final target"
-if find "$tmpdir/config/backgrounds/test theme" -maxdepth 1 -name '.wallhaven-fail123.jpg.*.tmp' | grep -q .; then
+if find "$wallpaper_dir" -maxdepth 1 -name '.wallhaven-fail123.jpg.*.tmp' | grep -q .; then
   fail "failed download should clean temporary target"
 fi
 

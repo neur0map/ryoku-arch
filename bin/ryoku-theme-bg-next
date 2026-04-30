@@ -6,10 +6,11 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 
 THEME_NAME=$(cat "$RYOKU_CONFIG_PATH/current/theme.name" 2>/dev/null)
 THEME_BACKGROUNDS_PATH="$RYOKU_CONFIG_PATH/current/theme/backgrounds/"
-USER_BACKGROUNDS_PATH="$RYOKU_CONFIG_PATH/backgrounds/$THEME_NAME/"
+USER_BACKGROUNDS_PATH="$RYOKU_WALLPAPER_DIR/"
+LEGACY_USER_BACKGROUNDS_PATH="$RYOKU_CONFIG_PATH/backgrounds/$THEME_NAME/"
 CURRENT_BACKGROUND_LINK="$RYOKU_CONFIG_PATH/current/background"
 
-mapfile -d '' -t BACKGROUNDS < <(find -L "$USER_BACKGROUNDS_PATH" "$THEME_BACKGROUNDS_PATH" -maxdepth 1 -type f -print0 2>/dev/null | sort -z)
+mapfile -d '' -t BACKGROUNDS < <(find -L "$USER_BACKGROUNDS_PATH" "$LEGACY_USER_BACKGROUNDS_PATH" "$THEME_BACKGROUNDS_PATH" -maxdepth 1 -type f -print0 2>/dev/null | sort -z)
 TOTAL=${#BACKGROUNDS[@]}
 
 if (( TOTAL == 0 )); then

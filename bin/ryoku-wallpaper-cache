@@ -3,17 +3,10 @@
 set -euo pipefail
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/wallpaper-dirs.sh"
 
 usage() {
   echo "Usage: ryoku-wallpaper-cache rebuild" >&2
-}
-
-wallpaper_dirs() {
-  local theme_name=""
-
-  theme_name="$(cat "$RYOKU_CONFIG_PATH/current/theme.name" 2>/dev/null || true)"
-  printf '%s\0' "$RYOKU_CONFIG_PATH/backgrounds/$theme_name"
-  printf '%s\0' "$RYOKU_CONFIG_PATH/current/theme/backgrounds"
 }
 
 file_type() {
@@ -150,7 +143,7 @@ rebuild() {
       find -L "$dir" -maxdepth 1 -type f \
         \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' -o -iname '*.gif' -o -iname '*.mp4' -o -iname '*.webm' -o -iname '*.mkv' -o -iname '*.mov' \) \
         -print0 2>/dev/null
-    done < <(wallpaper_dirs)
+    done < <(ryoku_wallpaper_dirs_print0)
   )
 
   sort -u "$tmp" -o "$tmp"
