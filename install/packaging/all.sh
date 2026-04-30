@@ -1,7 +1,6 @@
 run_logged $RYOKU_INSTALL/packaging/base.sh
 run_logged $RYOKU_INSTALL/packaging/aur-core.sh
 run_logged $RYOKU_INSTALL/packaging/fonts.sh
-run_logged $RYOKU_INSTALL/packaging/tofi.sh
 run_logged $RYOKU_INSTALL/packaging/helix.sh
 run_logged $RYOKU_INSTALL/packaging/icons.sh
 run_logged $RYOKU_INSTALL/packaging/webapps.sh

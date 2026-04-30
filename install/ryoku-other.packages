@@ -1,54 +1,62 @@
-# Packages that are NOT installed for everyone (so they don't belong in
-# install/ryoku-base.packages) but MUST be present in the ISO's offline
-# mirror so the chroot install's conditional hardware scripts
-# (install/config/hardware/*.sh) can pacman-install them on machines
-# that need them. Without this list, an offline install on a real
-# machine with NVIDIA/AMD/Intel discrete graphics would abort at the
-# vulkan/nvidia/intel-video step with "target not found".
+# Ryoku conditional-hardware packages (official Arch repos).
 #
-# Omarchy parity: equivalent to upstream's install/omarchy-other.packages.
-# We intentionally exclude AUR-only hardware drivers that omarchy ships via
-# its hosted [omarchy] repo (linux-t2, nvidia-580xx-dkms,
-# tuxedo-drivers-nocompatcheck-dkms, yt6801-dkms,
-# macbook12-spi-driver-dkms, linux-ptl, etc.). Those affect specific
-# hardware (Apple T2 Macs, legacy NVIDIA Maxwell/Pascal/Volta, Tuxedo
-# laptops, Motorcomm yt6801 NICs). On those machines the matching
-# install/config/hardware/*.sh script will fail offline; first-boot
-# online via ryoku-update is required. See docs/TODO.md.
+# These are NOT installed by default — install/ryoku-base.packages covers
+# the universal set. Listed here so the offline ISO mirror has them for
+# the conditional hardware scripts (install/config/hardware/*.sh) to
+# pacman-install on machines that need them. Without this list, an
+# offline install on a real machine with NVIDIA / AMD / Intel discrete
+# graphics or a Surface device would abort at the matching hardware
+# script with "target not found".
+#
+# Sectioned by hardware family so adds/removes are obvious. Lines
+# starting with '#' and blank lines are ignored by readers.
+#
+# AUR-only hardware drivers (asusctl, qmk-hid, nvidia-580xx,
+# tuxedo-drivers, yt6801, macbook12-spi, intel-lpmd) live in
+# iso/builder/ryoku-boot-overlay.packages because they need to be built
+# from AUR by the ISO builder, not pulled from the official Arch CDN.
 
-# Vulkan drivers (selected by install/config/hardware/vulkan.sh)
+# ── Vulkan drivers (selected by install/config/hardware/vulkan.sh) ────
+vulkan-asahi
 vulkan-intel
 vulkan-radeon
-vulkan-asahi
 
-# NVIDIA Turing+ stack: RTX 20xx-50xx, GTX 16xx, RTX Pro, Quadro RTX,
-# datacenter A/H/T/L. Selected by install/config/hardware/nvidia.sh.
-nvidia-open-dkms
-nvidia-utils
+# ── NVIDIA Turing+ stack ──────────────────────────────────────────────
+# RTX 20xx-50xx, GTX 16xx, RTX Pro, Quadro RTX, datacenter A/H/T/L.
+# Selected by install/config/hardware/nvidia.sh.
 lib32-nvidia-utils
 libva-nvidia-driver
+nvidia-open-dkms
+nvidia-utils
 
 # DKMS targets need matching kernel headers
 linux-headers
 
-# Intel video acceleration (HD Graphics, UHD, Iris, Xe, Arc)
-# Selected by install/config/hardware/intel/video-acceleration.sh
+# ── Intel video acceleration (HD, UHD, Iris, Xe, Arc) ─────────────────
+# Selected by install/config/hardware/intel/video-acceleration.sh.
 intel-media-driver
+libva-intel-driver
 libvpl
 vpl-gpu-rt
-libva-intel-driver
 
 # AMD video acceleration via mesa: libva-mesa-driver was retired
 # upstream and the libva backend is now part of mesa itself, which
 # is already pulled in transitively by hyprland / qt / chromium.
 
-# Intel power + thermal daemons
+# ── Intel power + thermal daemons ─────────────────────────────────────
 # Selected by install/config/hardware/intel/{lpmd,thermald}.sh.
 # intel-lpmd is AUR-only (PackageBase intel-lpmd) and lives in
 # iso/builder/ryoku-boot-overlay.packages, not here.
 thermald
 
-# Broadcom proprietary wifi bridge
-# Selected by install/config/hardware/fix-bcm43xx.sh
+# ── Broadcom proprietary wifi bridge ──────────────────────────────────
+# Selected by install/config/hardware/fix-bcm43xx.sh.
 broadcom-wl
 dkms
+
+# ── Microsoft Surface (wifi/bluetooth firmware) ───────────────────────
+# Selected by install/packaging/surface.sh when ryoku-hw-surface returns
+# true. The Marvell chip on Surface devices needs this firmware blob; on
+# a fully-offline install the packaging step would abort with "target
+# not found" without it being in the offline mirror.
+linux-firmware-marvell

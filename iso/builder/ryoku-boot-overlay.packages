@@ -1,7 +1,8 @@
-# AUR-only packages built into the offline mirror at ISO build time
-# via iso/builder/build-boot-overlay.sh (clones from AUR, runs makepkg
-# inside the build container, drops the resulting .pkg.tar.zst into the
-# offline mirror so the chroot install can pacman -S them locally).
+# AUR conditional-hardware + boot-infra packages baked into the offline
+# mirror at ISO build time via iso/builder/build-boot-overlay.sh
+# (clones from AUR, runs makepkg inside the build container, drops the
+# resulting .pkg.tar.zst into the offline mirror so the chroot install
+# can pacman -S them locally).
 #
 # These appear in the offline mirror but NOT in install/ryoku-base.packages
 # or install/ryoku-other.packages, because pacman -Syw against upstream
@@ -9,33 +10,54 @@
 # package names from the official-Arch download list to avoid
 # "target not found" during the upstream sync.
 #
+# Companion file: install/ryoku-aur.packages
+#   That file lists the AUR packages every install pacstraps by default
+#   (apps, CLIs, fonts). build-iso.sh feeds it into the same makepkg
+#   pipeline as this file, so the offline mirror covers both default and
+#   conditional AUR packages.
+#
 # IMPORTANT: list each package by its AUR PackageBase. Split-package
 # PKGBUILDs (e.g. nvidia-580xx-utils ships both nvidia-580xx-dkms and
 # nvidia-580xx-utils) live at one git repo named after the base; one
 # makepkg run produces every split output. Listing the split names
 # directly clones empty repos.
+#
+# Sectioned by purpose so adds/removes are obvious. Lines starting with
+# '#' and blank lines are ignored by build-boot-overlay.sh and
+# build-iso.sh.
 
-# Boot-critical: limine bootloader's snapshot-aware companions.
+# ── Boot-critical: limine bootloader companions ───────────────────────
 # Required by install/login/limine-snapper.sh hard checks.
 limine-mkinitcpio-hook
 limine-snapper-sync
 
-# NVIDIA legacy stack (Maxwell / Pascal / Volta: GTX 9xx, GT/GTX 10xx,
-# MX 1xx-2xx, Titan X/Xp/V, Quadro M/P/GV, Tesla V100). Selected by
-# install/config/hardware/nvidia.sh when the matching GPU is detected.
-# nvidia-580xx-utils ships nvidia-580xx-dkms + nvidia-580xx-utils as splits.
-nvidia-580xx-utils
+# ── NVIDIA legacy stack (Maxwell / Pascal / Volta) ────────────────────
+# GTX 9xx, GT/GTX 10xx, MX 1xx-2xx, Titan X/Xp/V, Quadro M/P/GV,
+# Tesla V100. Selected by install/config/hardware/nvidia.sh when the
+# matching GPU is detected. nvidia-580xx-utils ships nvidia-580xx-dkms
+# and nvidia-580xx-utils as splits.
 lib32-nvidia-580xx-utils
+nvidia-580xx-utils
 
-# Per-vendor / niche hw drivers. Each is selected by a matching script
-# under install/config/hardware/. Unused on machines that do not have
-# the hardware (vulkan.sh / nvidia.sh-style lspci gating).
+# ── Per-vendor / niche hardware drivers ───────────────────────────────
+# Each is selected by a matching script under install/config/hardware/
+# (lspci-style gating). Unused on machines that do not have the
+# hardware.
+macbook12-spi-driver-dkms
 tuxedo-drivers-nocompatcheck-dkms
 yt6801-dkms
-macbook12-spi-driver-dkms
 
-# Intel low-power-mode daemon. AUR-only; selected by
-# install/config/hardware/intel/lpmd.sh on Intel CPUs.
+# ── Conditional hardware AUR drivers (chosen by packaging scripts) ────
+# Selected by install/packaging/{asus-rog,framework16}.sh after the
+# matching ryoku-hw-* probe. Listed here so the offline mirror has them
+# pre-built and a fully-offline first boot does not have to reach AUR.
+asusctl
+qmk-hid
+
+# ── Intel low-power-mode daemon ───────────────────────────────────────
+# AUR-only; selected by install/config/hardware/intel/lpmd.sh on Intel
+# CPUs. Note: thermald is the official-repo equivalent and lives in
+# install/ryoku-other.packages.
 intel-lpmd
 
 # intel-ipu7-camera-bin: NOT listed here. The AUR PKGBUILD has a

@@ -15,6 +15,11 @@ if command -v yay >/dev/null; then
   exit 0
 fi
 
+if [[ -z ${RYOKU_ONLINE_INSTALL:-} ]]; then
+  echo "Offline install, deferring yay bootstrap until network is available"
+  exit 0
+fi
+
 ryoku-pkg-add base-devel git curl
 
 work=$(mktemp -d)

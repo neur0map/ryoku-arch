@@ -1,146 +1,204 @@
-# Ryoku core package list installed via install/packaging/base.sh
-# This file is also used by the ISO builder when determining needs
+# Ryoku base packages — installed via install/packaging/base.sh.
+# Source-of-truth for the official-Arch slice of the offline ISO mirror.
+#
+# Sectioned by category so you can scan the list and add/remove one line
+# without breaking adjacent groups. Keep alphabetical inside each section.
+#
+# Lines starting with '#' and blank lines are ignored by the readers
+# (install/packaging/base.sh and iso/builder/build-iso.sh).
+#
+# Companion lists:
+#   install/ryoku-other.packages            Arch, conditional hardware
+#   install/ryoku-aur.packages              AUR, default install
+#   iso/builder/ryoku-boot-overlay.packages AUR, conditional hardware + boot
 
-adwaita-cursors
-alacritty
-alsa-utils
-avahi
-base-devel
+# ── Shell, CLI tooling, fuzzy finders ─────────────────────────────────
 bash-completion
 bat
 curl
-bluetui
-bolt
-brightnessctl
-btop
-cava
-chromium
-clang
-cups
-cups-browsed
-cups-filters
-cups-pdf
-docker
-docker-buildx
-docker-compose
-dotnet-runtime-9.0
 dust
-evince
-exfatprogs
 expac
 eza
 fastfetch
-fcitx5
-fcitx5-gtk
-fcitx5-qt
 fd
 ffmpegthumbnailer
-fontconfig
-fuzzel
 fzf
-gst-plugins-bad
-gst-plugins-base
-gst-plugins-good
-gst-plugins-ugly
-github-cli
-gnome-calculator
-gnome-keyring
-gnome-themes-extra
-grim
-gpu-screen-recorder
 gum
-gvfs-mtp
-gvfs-nfs
-gvfs-smb
+inxi
+jq
+less
+man-db
+mise
+plocate
+ripgrep
+socat
+starship
+tldr
+tmux
+tree-sitter-cli
+unzip
+usage
+whois
+xmlstarlet
+zoxide
+
+# ── TUI apps (terminal-rendered interactive) ──────────────────────────
+bluetui
+btop
+helix
+impala
+lazydocker
+lazygit
+wiremix
+
+# ── Terminal emulator + app launcher ──────────────────────────────────
+alacritty
+fuzzel
+
+# ── Programming languages, runtimes, dev toolchains ───────────────────
+base-devel
+clang
+dotnet-runtime-9.0
+github-cli
+llvm
+luarocks
+python-gobject
+python-poetry-core
+ruby
+rust
+
+# ── Database client libraries ─────────────────────────────────────────
+libyaml
+mariadb-libs
+postgresql-libs
+
+# ── Containers ────────────────────────────────────────────────────────
+docker
+docker-buildx
+docker-compose
+
+# ── GUI apps — browsers + communication ───────────────────────────────
+chromium
+signal-desktop
+
+# ── GUI apps — productivity, viewers, file manager ────────────────────
+evince
+gnome-calculator
+imv
+libqalculate
+libreoffice-fresh
+mpv
+nautilus
+nautilus-python
+obsidian
+sushi
+xournalpp
+
+# ── GUI apps — multimedia editing & screen capture ────────────────────
+gpu-screen-recorder
+imagemagick
+kdenlive
+obs-studio
+
+# ── Hyprland window manager + Wayland desktop stack ───────────────────
 hypridle
 hyprland
 hyprland-guiutils
 hyprlock
 hyprpicker
 hyprsunset
-imagemagick
-impala
-imv
-inetutils
-inxi
-iwd
-jq
-kdenlive
-kernel-modules-hook
-kvantum-qt5
-lazydocker
-lazygit
-less
-libsecret
-libyaml
-libqalculate
-libreoffice-fresh
-limine-mkinitcpio-hook
-limine-snapper-sync
-llvm
-luarocks
 mako
-man-db
-mariadb-libs
-mise
-mpv
-nautilus
-nautilus-python
+quickshell
+swaybg
+swayosd
+uwsm
+waybar
+wl-clipboard
+xdg-desktop-portal-gtk
+xdg-desktop-portal-hyprland
+
+# ── Screenshot / clipboard / region picker ────────────────────────────
+cliphist
+grim
+satty
+slurp
+
+# ── Display manager + boot splash ─────────────────────────────────────
+plymouth
+sddm
+
+# ── Audio system + visualizer ─────────────────────────────────────────
+alsa-utils
+cava
+gst-plugins-bad
+gst-plugins-base
+gst-plugins-good
+gst-plugins-ugly
+pamixer
+playerctl
+wireplumber
+
+# ── Authentication / secrets / polkit ─────────────────────────────────
+gnome-keyring
+libsecret
+polkit-gnome
+
+# ── Networking ────────────────────────────────────────────────────────
+avahi
+inetutils
+iwd
+nss-mdns
+ufw
+wireless-regdb
+
+# ── Power management ──────────────────────────────────────────────────
+brightnessctl
+power-profiles-daemon
+
+# ── Hardware daemons ──────────────────────────────────────────────────
+bolt
+
+# ── Storage / filesystems / disk management ───────────────────────────
+exfatprogs
 gnome-disk-utility
+gvfs-mtp
+gvfs-nfs
+gvfs-smb
+
+# ── Printing ──────────────────────────────────────────────────────────
+cups
+cups-browsed
+cups-filters
+cups-pdf
+system-config-printer
+
+# ── Input methods (CJK / IME) ─────────────────────────────────────────
+fcitx5
+fcitx5-gtk
+fcitx5-qt
+
+# ── Fonts ─────────────────────────────────────────────────────────────
 noto-fonts
 noto-fonts-cjk
 noto-fonts-emoji
-nss-mdns
-helix
-cliphist
-obs-studio
-obsidian
-pamixer
-playerctl
-plocate
-plymouth
-polkit-gnome
-postgresql-libs
-power-profiles-daemon
-python-gobject
-python-poetry-core
+ttf-jetbrains-mono-nerd
+woff2-font-awesome
+
+# ── Cursors, GTK + Qt theming ─────────────────────────────────────────
+adwaita-cursors
+fontconfig
+gnome-themes-extra
+kvantum-qt5
+qt5-wayland
 qt6-5compat
 qt6-declarative
 qt6-multimedia
 qt6-multimedia-ffmpeg
 qt6-svg
-qt5-wayland
-quickshell
-ripgrep
-ruby
-rust
-satty
-sddm
-signal-desktop
-slurp
-socat
-starship
-sushi
-swaybg
-swayosd
-system-config-printer
-tldr
-tree-sitter-cli
-tmux
-ttf-jetbrains-mono-nerd
-ufw
-unzip
-usage
-uwsm
-waybar
-whois
-wireless-regdb
-wiremix
-wireplumber
-wl-clipboard
-woff2-font-awesome
-xdg-desktop-portal-gtk
-xdg-desktop-portal-hyprland
-xmlstarlet
-xournalpp
-zoxide
+
+# ── Bootloader + initramfs (limine snapshot-aware stack) ──────────────
+# limine-mkinitcpio-hook + limine-snapper-sync are AUR; build-iso.sh
+# bakes them into the offline mirror via iso/builder/ryoku-boot-overlay.packages.
+kernel-modules-hook
+limine-mkinitcpio-hook
+limine-snapper-sync

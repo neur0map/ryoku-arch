@@ -54,31 +54,58 @@ fi
 arch_packages=(git gum jq openssl plymouth)
 printf '%s\n' "${arch_packages[@]}" >>"$build_cache_dir/packages.x86_64"
 
-# Build the boot-critical AUR overlay (limine-mkinitcpio-hook,
-# limine-snapper-sync) into the offline mirror BEFORE downloading the
-# official packages, so the installed system can pacstrap a branded
-# bootloader without reaching out to AUR on first boot.
-mapfile -t overlay_packages < <(grep -v '^#' /builder/ryoku-boot-overlay.packages | grep -v '^$')
-/bin/bash /builder/build-boot-overlay.sh /builder/ryoku-boot-overlay.packages "$offline_mirror_dir"
+# Build the AUR overlay into the offline mirror BEFORE downloading the
+# official packages. Two manifests feed this step:
+#
+#   iso/builder/ryoku-boot-overlay.packages
+#     Boot-critical (limine hooks) + AUR-only conditional hardware
+#     drivers (NVIDIA legacy, asusctl, qmk-hid, intel-lpmd, etc.).
+#
+#   install/ryoku-aur.packages
+#     Default-install AUR apps and CLIs (1password, claude-code,
+#     localsend, spotify, typora, tofi, ...). Baking these into the
+#     mirror lets aur-core.sh use a pacman -S resolved from [offline]
+#     instead of reaching out to AUR over the network on first boot.
+#
+# Both lists end up in the same offline-mirror flat directory so the
+# rest of the pipeline (overlay-strip filter, repo-add) only needs one
+# union to reason about.
+aur_overlay_manifest="/builder/ryoku-boot-overlay.packages"
+aur_default_manifest="$build_cache_dir/airootfs/root/ryoku/install/ryoku-aur.packages"
+
+mapfile -t overlay_packages < <(
+  {
+    grep -v '^#' "$aur_overlay_manifest" | grep -v '^$'
+    grep -v '^#' "$aur_default_manifest" | grep -v '^$'
+  } | awk 'NF { print }'
+)
+
+/bin/bash /builder/build-boot-overlay.sh \
+  "$aur_overlay_manifest" \
+  "$aur_default_manifest" \
+  "$offline_mirror_dir"
 
 # Build list of all the packages needed for the offline mirror.
-# Mirrors omarchy's split: ryoku-base.packages is what every install
-# pacstraps; ryoku-other.packages is what conditional hardware scripts
-# (vulkan.sh, nvidia.sh, intel/video-acceleration.sh, fix-bcm43xx.sh,
-# etc.) might pacman-install on the matching hardware. Both lists are
-# pulled into the offline mirror so a truly offline install on a real
-# AMD/NVIDIA/Intel machine has the drivers reachable in [offline].
+# ryoku-base.packages is what every install pacstraps; ryoku-other.packages
+# is what conditional hardware scripts (vulkan.sh, nvidia.sh,
+# intel/video-acceleration.sh, fix-bcm43xx.sh, etc.) might pacman-install
+# on the matching hardware. ryoku-aur.packages is what aur-core.sh
+# pacstraps from the [offline] mirror. All three are pulled into the
+# mirror so a truly offline install on real hardware has every driver
+# and default app reachable in [offline].
 mapfile -t all_packages < <(
   {
     cat "$build_cache_dir/packages.x86_64"
     grep -v '^#' "$build_cache_dir/airootfs/root/ryoku/install/ryoku-base.packages" | grep -v '^$'
     grep -v '^#' "$build_cache_dir/airootfs/root/ryoku/install/ryoku-other.packages" | grep -v '^$'
+    grep -v '^#' "$aur_default_manifest" | grep -v '^$'
     grep -v '^#' /builder/archinstall.packages | grep -v '^$'
   } | awk 'NF { print }'
 )
 
-# Drop overlay packages from the official-mirror download list so pacman
-# doesn't try to fetch them from the Arch CDN (they live in AUR).
+# Drop AUR-overlay packages from the official-mirror download list so
+# pacman doesn't try to fetch them from the Arch CDN (they live in AUR
+# and were just makepkg'd into the offline mirror above).
 official_packages=()
 for pkg in "${all_packages[@]}"; do
   skip=0
