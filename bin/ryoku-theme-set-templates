@@ -13,9 +13,24 @@ hex_to_rgb() {
   printf "%d,%d,%d" "0x${hex:0:2}" "0x${hex:2:2}" "0x${hex:4:2}"
 }
 
+emit_color_replacements() {
+  local key="$1"
+  local value="$2"
+  local rgb
+
+  printf 's|{{ %s }}|%s|g\n' "$key" "$value"            # {{ key }} -> value
+  printf 's|{{ %s_strip }}|%s|g\n' "$key" "${value#\#}" # {{ key_strip }} -> value without leading #
+  if [[ $value =~ ^# ]]; then
+    rgb=$(hex_to_rgb "$value")
+    echo "s|{{ ${key}_rgb }}|${rgb}|g"
+  fi
+}
+
 # Only generate dynamic templates for themes with a colors.toml definition
 if [[ -f $COLORS_FILE ]]; then
   sed_script=$(mktemp)
+  accent=""
+  active_border_color=""
 
   while IFS='=' read -r key value; do
     key="${key//[\"\' ]/}"                # strip quotes and spaces from key
@@ -23,13 +38,14 @@ if [[ -f $COLORS_FILE ]]; then
     value="${value#*[\"\']}"
     value="${value%%[\"\']*}" # extract value between quotes (ignores inline comments)
 
-    printf 's|{{ %s }}|%s|g\n' "$key" "$value"            # {{ key }} -> value
-    printf 's|{{ %s_strip }}|%s|g\n' "$key" "${value#\#}" # {{ key_strip }} -> value without leading #
-    if [[ $value =~ ^# ]]; then
-      rgb=$(hex_to_rgb "$value")
-      echo "s|{{ ${key}_rgb }}|${rgb}|g"
-    fi
+    [[ $key == "accent" ]] && accent="$value"
+    [[ $key == "active_border_color" ]] && active_border_color="$value"
+    emit_color_replacements "$key" "$value"
   done <"$COLORS_FILE" >"$sed_script"
+
+  if [[ -z $active_border_color && -n $accent ]]; then
+    emit_color_replacements "active_border_color" "$accent" >>"$sed_script"
+  fi
 
   shopt -s nullglob
 
