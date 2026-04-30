@@ -99,6 +99,10 @@ active_has "$player" 'NO SIGNAL' \
   || fail "PlayerCard should provide a designed no-player fallback"
 active_has "$player" 'readonly property real _surfaceAlpha' \
   || fail "PlayerCard should expose a transparent surface opacity"
+active_has "$player" 'readonly property real _panelAlpha' \
+  || fail "PlayerCard should expose a separate transparent panel opacity"
+active_has "$player" 'root._panelAlpha' \
+  || fail "PlayerCard panel background should use its opacity without fading UI components"
 
 if active_has "$player" 'id: bgSource'; then
   fail "PlayerCard should not keep the old full-card album-art background source"

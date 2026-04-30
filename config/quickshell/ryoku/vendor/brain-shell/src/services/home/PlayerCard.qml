@@ -102,7 +102,8 @@ StatCard {
   // Shared Cava signal
   readonly property int _orbitBars: 24
   readonly property int _stripBars: 32
-  readonly property real _surfaceAlpha: 0.26
+  readonly property real _surfaceAlpha: 0.10
+  readonly property real _panelAlpha: 0.16
   readonly property var _bars: CavaService.bars
   readonly property bool _barsPlaying: CavaService.isPlaying
 
@@ -291,9 +292,9 @@ StatCard {
       anchors.fill: parent
       radius: Theme.cornerRadius
       gradient: Gradient {
-        GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.028) }
-        GradientStop { position: 0.55; color: Qt.rgba(1, 1, 1, 0.010) }
-        GradientStop { position: 1.0; color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.034) }
+        GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.012) }
+        GradientStop { position: 0.55; color: Qt.rgba(1, 1, 1, 0.004) }
+        GradientStop { position: 1.0; color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.014) }
       }
     }
 
@@ -307,9 +308,9 @@ StatCard {
       anchors.rightMargin: 18
       height: Math.max(140, Math.min(parent.height - 32, 184))
       radius: Math.max(18, Theme.cornerRadius)
-      color: Qt.rgba(9 / 255, 14 / 255, 22 / 255, 0.42)
+      color: Qt.rgba(9 / 255, 14 / 255, 22 / 255, root._panelAlpha)
       border.width: 1
-      border.color: Qt.rgba(1, 1, 1, 0.075)
+      border.color: Qt.rgba(1, 1, 1, 0.045)
     }
 
     Rectangle {
@@ -823,7 +824,7 @@ StatCard {
       radius: Theme.cornerRadius
       color: "transparent"
       border.width: 1
-      border.color: Qt.rgba(1, 1, 1, 0.065)
+      border.color: Qt.rgba(1, 1, 1, 0.035)
     }
 
     TapHandler {
