@@ -158,6 +158,14 @@ grep -q 'WlrLayershell.layer: WlrLayer.Overlay' "$dotfiles_popup" \
   || fail "DotfilesHubPopup should use a centered overlay layer"
 grep -q 'id: hyprFiles' "$dotfiles_popup" \
   || fail "DotfilesHubPopup should group Hyprland files"
+grep -q 'id: categoryRail' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should provide a category rail"
+grep -q 'id: fileList' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should render files in a dedicated list pane"
+grep -q 'Dotfile Control' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should use a branded hero header"
+grep -q 'Edit these files carefully' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should show the config risk notice"
 grep -q '.config/hypr/hyprland.conf' "$dotfiles_popup" \
   || fail "DotfilesHubPopup should include Hyprland main config"
 grep -q '.config/hypr/monitors.conf' "$dotfiles_popup" \
@@ -172,6 +180,8 @@ grep -q 'Keys.onEscapePressed: Popups.closeAll()' "$dotfiles_popup" \
   || fail "DotfilesHubPopup should close with Escape"
 grep -q 'onClicked: Popups.closeAll()' "$dotfiles_popup" \
   || fail "DotfilesHubPopup should close on outside click"
+! grep -q 'height: parent.height - y' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should not size scroll content from y"
 
 "$ipc" --help | grep -q "ryoku-ipc shell toggle system-menu" \
   || fail "ryoku-ipc help should document system-menu toggle"
