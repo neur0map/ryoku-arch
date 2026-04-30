@@ -1,0 +1,94 @@
+#!/bin/bash
+
+set -e
+cd "$(dirname "$0")/.."
+
+fail() {
+  echo "FAIL: $1" >&2
+  exit 1
+}
+
+pass() {
+  echo "OK: $1"
+}
+
+service="config/quickshell/ryoku/vendor/brain-shell/src/services/WallpaperService.qml"
+popup="config/quickshell/ryoku/vendor/brain-shell/src/popups/WallpaperPopup.qml"
+card="config/quickshell/ryoku/vendor/brain-shell/src/popups/WallpaperSkewCard.qml"
+filter="config/quickshell/ryoku/vendor/brain-shell/src/popups/WallpaperFilterBar.qml"
+settings="config/quickshell/ryoku/vendor/brain-shell/src/popups/WallpaperSettingsPane.qml"
+
+[[ -f $service ]] || fail "$service missing"
+[[ -f $popup ]] || fail "$popup missing"
+
+grep -q 'property var wallpaperModel: ListModel' "$service" \
+  || fail "WallpaperService should expose wallpaperModel"
+grep -q 'property var filteredModel: ListModel' "$service" \
+  || fail "WallpaperService should expose filteredModel"
+grep -q 'property string selectedSourceFilter' "$service" \
+  || fail "WallpaperService should expose selectedSourceFilter"
+grep -q 'property string selectedTypeFilter' "$service" \
+  || fail "WallpaperService should expose selectedTypeFilter"
+grep -q 'property int selectedColorFilter' "$service" \
+  || fail "WallpaperService should expose selectedColorFilter"
+grep -q 'property string searchQuery' "$service" \
+  || fail "WallpaperService should expose searchQuery"
+grep -q 'property string statusText' "$service" \
+  || fail "WallpaperService should expose statusText"
+grep -q 'property bool cacheLoading' "$service" \
+  || fail "WallpaperService should expose cacheLoading"
+grep -q 'property bool wallhavenLoading' "$service" \
+  || fail "WallpaperService should expose wallhavenLoading"
+grep -q 'property string pendingApplyPath' "$service" \
+  || fail "WallpaperService should hold pending apply path separately from currentWall"
+grep -q 'ryoku-ipc' "$service" \
+  || fail "WallpaperService should call ryoku-ipc"
+grep -q 'wallpaper", "list", "--jsonl"' "$service" \
+  || fail "WallpaperService should load JSONL wallpaper list"
+grep -q 'JSON.parse(t)' "$service" \
+  || fail "WallpaperService should parse JSONL rows"
+grep -q 'function updateFilteredModel' "$service" \
+  || fail "WallpaperService should update filtered model"
+grep -q 'selectedSourceFilter !== ""' "$service" \
+  || fail "WallpaperService should filter by source"
+grep -q 'selectedTypeFilter !== ""' "$service" \
+  || fail "WallpaperService should filter by type"
+grep -q 'selectedColorFilter >= 0' "$service" \
+  || fail "WallpaperService should filter by color"
+grep -q 'onSearchQueryChanged: updateFilteredModel' "$service" \
+  || fail "WallpaperService should react to search changes"
+grep -q 'function searchWallhaven' "$service" \
+  || fail "WallpaperService should support wallhaven search"
+grep -q 'function clearWallhavenRows' "$service" \
+  || fail "WallpaperService should clear stale Wallhaven rows"
+grep -q 'item.source === "wallhaven"' "$service" \
+  || fail "WallpaperService should only remove Wallhaven rows"
+grep -q 'root.clearWallhavenRows()' "$service" \
+  || fail "WallpaperService should clear stale Wallhaven rows before search"
+grep -q 'wallpaper", "wallhaven", "search"' "$service" \
+  || fail "WallpaperService should call ryoku-ipc Wallhaven search"
+grep -q 'function applyItem' "$service" \
+  || fail "WallpaperService should apply model items"
+grep -q 'wallpaper", "apply", "--type"' "$service" \
+  || fail "WallpaperService should apply through ryoku-ipc"
+! grep -q 'root.currentWall = item.path' "$service" \
+  || fail "WallpaperService should not change currentWall before apply success"
+grep -q 'root.currentWall = root.pendingApplyPath' "$service" \
+  || fail "WallpaperService should commit currentWall only after apply success"
+grep -q 'root.statusText = "Could not apply wallpaper"' "$service" \
+  || fail "WallpaperService should surface apply failures"
+grep -q 'root.pendingApplyPath = ""' "$service" \
+  || fail "WallpaperService should clear pending apply path after exit"
+grep -q 'root.pendingApplyType = ""' "$service" \
+  || fail "WallpaperService should clear pending apply type after exit"
+grep -q 'function apply(path)' "$service" \
+  || fail "WallpaperService should keep compatibility apply wrapper"
+
+if [[ -f $card && -f $filter && -f $settings ]]; then
+  grep -q 'WallpaperService.filteredModel' "$popup" \
+    || fail "WallpaperPopup should consume the filtered model once SKWD components exist"
+else
+  echo "SKIP: Task 7 wallpaper component assertions pending"
+fi
+
+pass "quickshell skwd wallpaper service"

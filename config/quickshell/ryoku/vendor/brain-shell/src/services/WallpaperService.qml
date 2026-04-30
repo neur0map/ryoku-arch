@@ -4,12 +4,12 @@ import Quickshell
 import Quickshell.Io
 
 // ============================================================
-// WallpaperService — wallpaper list + apply pipeline
+// WallpaperService — wallpaper model + apply pipeline
 //
 // Flow:
 //   Component.onCompleted → readConfigProc (sets currentWall etc.)
-//                         → refresh() (populates wallpapers list)
-//   apply(path)           → ryoku-theme-bg-set
+//                         → refresh() (populates wallpaperModel)
+//   applyItem(item)       → ryoku-ipc wallpaper apply --type image|video PATH
 //                         → saveConfig() (writes src/user_data/wallpaper.json)
 // ============================================================
 
@@ -21,12 +21,27 @@ QtObject {
                                             .toString().replace(/^file:\/\//, "")
 
     // ── State ─────────────────────────────────────────────────────────────────
+    property var wallpaperModel: ListModel {}
+    property var filteredModel: ListModel {}
+
+    // Compatibility view for the pre-SKWD WallpaperPopup until Task 8 lands.
     property var    wallpapers:   []
     property string currentWall:  ""
     property string previewWall:  ""
     property string scheme:       "content"
     property bool   applying:     false
     property string wallpaperDir: Quickshell.env("HOME") + "/.config/ryoku/current/theme/backgrounds"
+    readonly property string userWallpaperDir: Quickshell.env("HOME") + "/.config/ryoku/backgrounds/"
+
+    property string selectedSourceFilter: "local"
+    property string selectedTypeFilter: ""
+    property int selectedColorFilter: -1
+    property string searchQuery: ""
+    property string statusText: ""
+    property bool cacheLoading: false
+    property bool wallhavenLoading: false
+    property string pendingApplyPath: ""
+    property string pendingApplyType: ""
 
     readonly property var schemes: [
         "content", "tonal-spot", "fidelity","fruit-salad", "neutral", "monochrome"
@@ -35,30 +50,100 @@ QtObject {
     // Emitted when the full apply pipeline exits cleanly (exitCode === 0).
     signal wallpaperApplied(string path)
 
-    // ── File listing ──────────────────────────────────────────────────────────
+    // ── Model loading/filtering ───────────────────────────────────────────────
     function refresh() {
         if (listProc.running) return
+        root.cacheLoading = true
+        root.statusText = ""
+        root.wallpaperModel.clear()
+        root.filteredModel.clear()
         root.wallpapers = []
+        listProc.command = [
+            Quickshell.env("HOME") + "/.local/share/ryoku/bin/ryoku-ipc",
+            "wallpaper", "list", "--jsonl"
+        ]
         listProc.running = true
     }
 
     property var listProc: Process {
-        command: [
-            "bash", "-lc",
-            "theme_name=$(cat \"$HOME/.config/ryoku/current/theme.name\" 2>/dev/null); " +
-            "find -L \"$HOME/.config/ryoku/backgrounds/$theme_name\" " +
-            "\"$HOME/.config/ryoku/current/theme/backgrounds\" " +
-            "-maxdepth 1 -type f \\( -iname '*.jpg' -o -iname '*.jpeg' " +
-            "-o -iname '*.png' -o -iname '*.gif' -o -iname '*.webp' \\) " +
-            "-print 2>/dev/null | sort -u"
-        ]
         stdout: SplitParser {
             onRead: function(line) {
                 var t = line.trim()
-                if (t !== "") root.wallpapers = root.wallpapers.concat([t])
+                if (t === "") return
+                try {
+                    var obj = JSON.parse(t)
+                    root.wallpaperModel.append(obj)
+                } catch(e) {
+                    root.statusText = "Could not parse wallpaper cache"
+                }
             }
         }
+        onExited: function(exitCode, exitStatus) {
+            root.cacheLoading = false
+            if (exitCode !== 0) root.statusText = "Could not load wallpaper cache"
+            root.updateFilteredModel()
+        }
     }
+
+    function itemName(item) {
+        if (item.name) return item.name
+        if (!item.path) return ""
+        var parts = item.path.split("/")
+        return parts.length > 0 ? parts[parts.length - 1] : item.path
+    }
+
+    function itemHue(item) {
+        return item.hue === undefined ? 99 : Number(item.hue)
+    }
+
+    function itemMtime(item) {
+        return item.mtime === undefined ? 0 : Number(item.mtime)
+    }
+
+    function updateFilteredModel() {
+        var rows = []
+        var paths = []
+        var q = root.searchQuery.toLowerCase()
+
+        for (var i = 0; i < root.wallpaperModel.count; i++) {
+            var item = root.wallpaperModel.get(i)
+            var name = root.itemName(item)
+
+            if (root.selectedSourceFilter !== "" && item.source !== root.selectedSourceFilter) continue
+            if (root.selectedTypeFilter !== "" && item.type !== root.selectedTypeFilter) continue
+            if (root.selectedColorFilter >= 0 && root.itemHue(item) !== root.selectedColorFilter) continue
+            if (q !== "" && name.toLowerCase().indexOf(q) === -1) continue
+
+            rows.push(item)
+        }
+
+        rows.sort(function(a, b) {
+            var ah = root.itemHue(a) === 99 ? 100 : root.itemHue(a)
+            var bh = root.itemHue(b) === 99 ? 100 : root.itemHue(b)
+            if (ah !== bh) return ah - bh
+            return root.itemMtime(b) - root.itemMtime(a)
+        })
+
+        root.filteredModel.clear()
+        for (var j = 0; j < rows.length; j++) {
+            root.filteredModel.append(rows[j])
+            if (rows[j].path) paths.push(rows[j].path)
+        }
+        root.wallpapers = paths
+    }
+
+    function clearWallhavenRows() {
+        for (var i = root.wallpaperModel.count - 1; i >= 0; i--) {
+            var item = root.wallpaperModel.get(i)
+            if (item.source === "wallhaven") root.wallpaperModel.remove(i)
+        }
+        root.updateFilteredModel()
+    }
+
+    onSelectedSourceFilterChanged: updateFilteredModel()
+    onSelectedTypeFilterChanged: updateFilteredModel()
+    onSelectedColorFilterChanged: updateFilteredModel()
+    onSearchQueryChanged: updateFilteredModel()
 
     // ── Config read — runs on startup, then calls refresh() ──────────────────
     property string _cfgBuf: ""
@@ -105,25 +190,84 @@ QtObject {
 
     property var saveConfigProc: Process {}   // silent — no stdout/stderr needed
 
+    // ── Wallhaven search ──────────────────────────────────────────────────────
+    function searchWallhaven(query, page) {
+        if (wallhavenProc.running) return
+        root.wallhavenLoading = true
+        root.statusText = ""
+        root.clearWallhavenRows()
+        root.selectedSourceFilter = "wallhaven"
+        wallhavenProc.command = [
+            Quickshell.env("HOME") + "/.local/share/ryoku/bin/ryoku-ipc",
+            "wallpaper", "wallhaven", "search",
+            "--query", query,
+            "--page", String(page || 1),
+            "--json"
+        ]
+        wallhavenProc.running = true
+    }
+
+    property var wallhavenProc: Process {
+        stdout: SplitParser {
+            onRead: function(line) {
+                var t = line.trim()
+                if (t === "") return
+                try {
+                    var obj = JSON.parse(t)
+                    root.wallpaperModel.append(obj)
+                } catch(e) {
+                    root.statusText = "Could not parse Wallhaven result"
+                }
+            }
+        }
+        onExited: function(exitCode, exitStatus) {
+            root.wallhavenLoading = false
+            if (exitCode !== 0) root.statusText = "Could not search Wallhaven"
+            root.updateFilteredModel()
+        }
+    }
+
     // ── Apply pipeline ────────────────────────────────────────────────────────
-    function apply(path) {
-        if (root.applying || path === "") return
+    // Image apply is routed through ryoku-ipc; its backend owns ryoku-theme-bg-set.
+    function applyItem(item) {
+        if (root.applying || !item || !item.path || item.path === "") return
         root.applying    = true
-        root.currentWall = path
+        root.statusText  = ""
+        root.pendingApplyPath = item.path
+        root.pendingApplyType = item.type === "video" ? "video" : "image"
         applyProc.command = [
-            Quickshell.env("HOME") + "/.local/share/ryoku/bin/ryoku-theme-bg-set",
-            path
+            Quickshell.env("HOME") + "/.local/share/ryoku/bin/ryoku-ipc",
+            "wallpaper", "apply", "--type", root.pendingApplyType,
+            root.pendingApplyPath
         ]
         applyProc.running = true
+    }
+
+    function typeForPath(path) {
+        var lower = path.toLowerCase()
+        if (lower.match(/\.(mp4|mkv|webm|mov|avi)$/)) return "video"
+        return "image"
+    }
+
+    function apply(path) {
+        root.applyItem({
+            path: path,
+            type: root.typeForPath(path)
+        })
     }
 
     property var applyProc: Process {
         onExited: function(exitCode, exitStatus) {
             root.applying = false
             if (exitCode === 0) {
+                root.currentWall = root.pendingApplyPath
                 root.wallpaperApplied(root.currentWall)
                 root.saveConfig()
+            } else {
+                root.statusText = "Could not apply wallpaper"
             }
+            root.pendingApplyPath = ""
+            root.pendingApplyType = ""
         }
     }
 
