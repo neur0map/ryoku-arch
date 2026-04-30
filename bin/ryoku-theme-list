@@ -1,10 +1,77 @@
 #!/bin/bash
 
+set -euo pipefail
+
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-{
-  find $RYOKU_CONFIG_PATH/themes/ -mindepth 1 -maxdepth 1 \( -type d -o -type l \) -printf '%f\n'
-  find "$RYOKU_PATH/themes/" -mindepth 1 -maxdepth 1 -type d -printf '%f\n'
-} | sort -u | while read -r name; do
-  echo "$name" | sed -E 's/(^|-)([a-z])/\1\u\2/g; s/-/ /g'
-done
+usage() {
+  echo "Usage: ryoku-theme-list --jsonl" >&2
+}
+
+collect_theme_names() {
+  local dir="$1"
+
+  if [[ ! -d $dir ]]; then
+    return 0
+  fi
+
+  find "$dir" -mindepth 1 -maxdepth 1 \( -type d -o -type l \) -printf '%f\n'
+}
+
+theme_path_for() {
+  local name="$1"
+
+  if [[ -d $RYOKU_CONFIG_PATH/themes/$name || -L $RYOKU_CONFIG_PATH/themes/$name ]]; then
+    printf '%s\n' "$RYOKU_CONFIG_PATH/themes/$name"
+  else
+    printf '%s\n' "$RYOKU_PATH/themes/$name"
+  fi
+}
+
+preview_path_for() {
+  local name="$1"
+  local user_preview="$RYOKU_CONFIG_PATH/themes/$name/preview.png"
+  local shipped_preview="$RYOKU_PATH/themes/$name/preview.png"
+
+  if [[ -f $user_preview ]]; then
+    printf '%s\n' "$user_preview"
+  elif [[ -f $shipped_preview ]]; then
+    printf '%s\n' "$shipped_preview"
+  else
+    printf '\n'
+  fi
+}
+
+if (( $# != 1 )) || [[ ${1:-} != "--jsonl" ]]; then
+  usage
+  exit 2
+fi
+
+active_theme=""
+if [[ -f $RYOKU_CONFIG_PATH/current/theme.name ]]; then
+  active_theme="$(tr -d '\n' < "$RYOKU_CONFIG_PATH/current/theme.name")"
+fi
+
+while IFS= read -r name; do
+  [[ -n $name ]] || continue
+
+  path="$(theme_path_for "$name")"
+  preview="$(preview_path_for "$name")"
+  display="${name//-/ }"
+  active=false
+  if [[ $name == "$active_theme" ]]; then
+    active=true
+  fi
+
+  jq -cn \
+    --arg source "theme" \
+    --arg name "$name" \
+    --arg display "$display" \
+    --arg path "$path" \
+    --arg preview "$preview" \
+    --argjson active "$active" \
+    '{source: $source, name: $name, display: $display, path: $path, preview: $preview, active: $active}'
+done < <({
+  collect_theme_names "$RYOKU_PATH/themes"
+  collect_theme_names "$RYOKU_CONFIG_PATH/themes"
+} | sort -u)

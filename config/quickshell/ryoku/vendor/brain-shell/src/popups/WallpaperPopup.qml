@@ -56,10 +56,7 @@ PanelWindow {
     closeTimer.stop()
     hoverCloseTimer.stop()
     root.windowVisible = true
-    WallpaperService.refresh()
-    WallpaperService.previewWall = ""
-    content.selectedPath = WallpaperService.currentWall
-    content.settingsOpen = false
+    content.setMode(Popups.wallpaperMode)
     keyScope.forceActiveFocus()
   }
 
@@ -90,6 +87,12 @@ PanelWindow {
         root.openSelector()
       } else {
         closeTimer.restart()
+      }
+    }
+
+    function onWallpaperModeChanged() {
+      if (Popups.wallpaperOpen) {
+        content.setMode(Popups.wallpaperMode)
       }
     }
   }
@@ -142,7 +145,9 @@ PanelWindow {
 
     MouseArea {
       anchors.fill: parent
-      onClicked: mouse.accepted = true
+      onClicked: function(mouse) {
+        mouse.accepted = true
+      }
     }
 
     Item {
@@ -151,12 +156,35 @@ PanelWindow {
         fill: parent
         leftMargin: root.fw + 16
         rightMargin: root.fw + 16
-        topMargin: 16
+        topMargin: 14
         bottomMargin: root.fh + 14
       }
 
+      property string activeMode: "wallpaper"
       property string selectedPath: ""
+      property string selectedThemeName: ""
       property bool settingsOpen: false
+
+      function setMode(mode) {
+        var nextMode = mode === "theme" ? "theme" : "wallpaper"
+        activeMode = nextMode
+        Popups.wallpaperMode = nextMode
+        settingsOpen = false
+
+        if (nextMode === "theme") {
+          WallpaperService.previewWall = ""
+          selectedThemeName = ThemeService.currentTheme
+          ThemeService.refresh()
+          syncThemeSelection()
+        } else {
+          WallpaperService.refresh()
+          WallpaperService.previewWall = ""
+          selectedPath = WallpaperService.currentWall
+          syncSelection()
+        }
+
+        keyScope.forceActiveFocus()
+      }
 
       function itemAt(index) {
         if (index < 0 || index >= WallpaperService.filteredModel.count) return null
@@ -184,7 +212,47 @@ PanelWindow {
         wallList.positionViewAtIndex(index, ListView.Center)
       }
 
+      function themeItemAt(index) {
+        if (index < 0 || index >= ThemeService.filteredModel.count) return null
+        return ThemeService.filteredModel.get(index)
+      }
+
+      function themeSelectedIndex() {
+        for (var i = 0; i < ThemeService.filteredModel.count; i++) {
+          var item = ThemeService.filteredModel.get(i)
+          if (item.name === selectedThemeName) return i
+        }
+
+        for (var j = 0; j < ThemeService.filteredModel.count; j++) {
+          var activeItem = ThemeService.filteredModel.get(j)
+          if (activeItem.active) return j
+        }
+
+        return ThemeService.filteredModel.count > 0 ? 0 : -1
+      }
+
+      function selectedThemeItem() {
+        var idx = themeSelectedIndex()
+        return idx >= 0 ? themeItemAt(idx) : null
+      }
+
+      function selectThemeItem(item, index) {
+        if (!item || !item.name) return
+        selectedThemeName = item.name
+        themeList.currentIndex = index
+        themeList.positionViewAtIndex(index, ListView.Center)
+      }
+
       function selectRelative(delta) {
+        if (activeMode === "theme") {
+          var themeCount = ThemeService.filteredModel.count
+          if (themeCount <= 0) return
+          var themeIndex = themeSelectedIndex()
+          themeIndex = themeIndex < 0 ? 0 : (themeIndex + delta + themeCount) % themeCount
+          selectThemeItem(themeItemAt(themeIndex), themeIndex)
+          return
+        }
+
         var count = WallpaperService.filteredModel.count
         if (count <= 0) return
         var idx = selectedIndex()
@@ -193,6 +261,14 @@ PanelWindow {
       }
 
       function applySelected() {
+        if (activeMode === "theme") {
+          var item = selectedThemeItem()
+          if (!item || ThemeService.applying) return
+          ThemeService.applyItem(item)
+          Popups.wallpaperOpen = false
+          return
+        }
+
         var item = selectedItem()
         if (!item || WallpaperService.applying) return
         WallpaperService.applyItem(item)
@@ -200,9 +276,33 @@ PanelWindow {
       }
 
       function syncSelection() {
+        if (activeMode !== "wallpaper") return
         var idx = selectedIndex()
         if (idx < 0) return
         selectItem(itemAt(idx), idx)
+      }
+
+      function syncThemeSelection() {
+        if (activeMode !== "theme") return
+        var idx = themeSelectedIndex()
+        if (idx < 0) return
+        selectThemeItem(themeItemAt(idx), idx)
+      }
+
+      function statusText() {
+        if (activeMode === "theme") {
+          if (ThemeService.loading) return "Loading"
+          if (ThemeService.applying) return "Applying"
+          return ThemeService.statusText
+        }
+
+        if (WallpaperService.cacheLoading) return "Loading"
+        if (WallpaperService.wallhavenLoading) return "Searching"
+        return WallpaperService.statusText
+      }
+
+      function applying() {
+        return activeMode === "theme" ? ThemeService.applying : WallpaperService.applying
       }
 
       WallpaperFilterBar {
@@ -210,6 +310,10 @@ PanelWindow {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         width: Math.min(implicitWidth, parent.width)
+        activeMode: content.activeMode
+        onModeRequested: function(mode) {
+          content.setMode(mode)
+        }
         onSettingsRequested: content.settingsOpen = !content.settingsOpen
         onRebuildRequested: WallpaperService.rebuildCache()
         onSearchSubmitted: keyScope.forceActiveFocus()
@@ -218,7 +322,7 @@ PanelWindow {
       ListView {
         id: wallList
         anchors.left: parent.left
-        anchors.right: settingsPane.left
+        anchors.right: content.settingsOpen ? settingsPane.left : parent.right
         anchors.rightMargin: content.settingsOpen ? 18 : 0
         anchors.top: filterBar.bottom
         anchors.topMargin: 18
@@ -232,6 +336,7 @@ PanelWindow {
         preferredHighlightEnd: width / 2 + 180
         highlightRangeMode: ListView.ApplyRange
         currentIndex: 0
+        visible: content.activeMode === "wallpaper"
         model: WallpaperService.filteredModel
         onCountChanged: content.syncSelection()
 
@@ -273,10 +378,78 @@ PanelWindow {
         }
       }
 
+      ListView {
+        id: themeList
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: filterBar.bottom
+        anchors.topMargin: 18
+        anchors.bottom: applyBar.top
+        anchors.bottomMargin: 12
+        orientation: ListView.Horizontal
+        spacing: -6
+        clip: true
+        boundsBehavior: Flickable.StopAtBounds
+        preferredHighlightBegin: width / 2 - 118
+        preferredHighlightEnd: width / 2 + 118
+        highlightRangeMode: ListView.ApplyRange
+        currentIndex: 0
+        visible: content.activeMode === "theme"
+        model: ThemeService.filteredModel
+        onCountChanged: content.syncThemeSelection()
+
+        delegate: Item {
+          id: themeDelegateRoot
+
+          required property int index
+          required property string source
+          required property string name
+          required property string display
+          required property string path
+          required property string preview
+          required property bool active
+
+          readonly property var item: ({
+            source: source,
+            name: name,
+            display: display,
+            path: path,
+            preview: preview,
+            active: active
+          })
+
+          width: card.width
+          height: themeList.height
+
+          ThemeCard {
+            id: card
+            anchors.verticalCenter: parent.verticalCenter
+            itemData: themeDelegateRoot.item
+            selected: content.selectedThemeName === themeDelegateRoot.name
+              || (content.selectedThemeName === "" && themeDelegateRoot.active)
+            onActivated: {
+              if (content.selectedThemeName === themeDelegateRoot.name) {
+                content.applySelected()
+              } else {
+                content.selectThemeItem(themeDelegateRoot.item, themeDelegateRoot.index)
+              }
+            }
+          }
+        }
+      }
+
       Text {
         anchors.centerIn: wallList
-        visible: !WallpaperService.cacheLoading && wallList.count === 0
+        visible: content.activeMode === "wallpaper" && !WallpaperService.cacheLoading && wallList.count === 0
         text: WallpaperService.statusText
+        color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.42)
+        font.pixelSize: 13
+      }
+
+      Text {
+        anchors.centerIn: themeList
+        visible: content.activeMode === "theme" && !ThemeService.loading && themeList.count === 0
+        text: ThemeService.statusText !== "" ? ThemeService.statusText : "No themes found"
         color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.42)
         font.pixelSize: 13
       }
@@ -287,13 +460,13 @@ PanelWindow {
         anchors.topMargin: 18
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        open: content.settingsOpen
+        open: content.activeMode === "wallpaper" && content.settingsOpen
         onCloseRequested: content.settingsOpen = false
       }
 
       Row {
         id: applyBar
-        anchors.horizontalCenter: wallList.horizontalCenter
+        anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         spacing: 8
 
@@ -302,26 +475,23 @@ PanelWindow {
           height: 30
           radius: 7
           color: Qt.rgba(1, 1, 1, 0.07)
-          visible: WallpaperService.statusText !== "" || WallpaperService.cacheLoading || WallpaperService.wallhavenLoading
+          visible: content.statusText() !== ""
 
           Text {
             id: statusLabel
             anchors.centerIn: parent
-            text: WallpaperService.cacheLoading
-              ? "Loading"
-              : WallpaperService.wallhavenLoading
-                ? "Searching"
-                : WallpaperService.statusText
+            text: content.statusText()
             color: Theme.subtext
             font.pixelSize: 12
           }
         }
 
         Rectangle {
+          id: applyButton
           width: 104
           height: 30
           radius: 7
-          color: WallpaperService.applying
+          color: content.applying()
             ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.12)
             : Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.22)
           border.width: 1
@@ -329,18 +499,18 @@ PanelWindow {
 
           Text {
             anchors.centerIn: parent
-            text: WallpaperService.applying ? "Applying" : "Apply"
+            text: content.applying() ? "Applying" : "Apply"
             color: Theme.active
             font.pixelSize: 12
             font.weight: Font.Medium
           }
 
           HoverHandler {
-            cursorShape: WallpaperService.applying ? Qt.ArrowCursor : Qt.PointingHandCursor
+            cursorShape: content.applying() ? Qt.ArrowCursor : Qt.PointingHandCursor
           }
 
           TapHandler {
-            enabled: !WallpaperService.applying
+            enabled: !content.applying()
             onTapped: content.applySelected()
           }
         }

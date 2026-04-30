@@ -12,6 +12,7 @@ Date: 2026-04-29
 - Follow-up: fixed Wallhaven UI searches so API results are not hidden by local filename filtering, and the Web source chip can submit the typed query.
 - Follow-up: improved selector UX so Wallhaven submit returns focus to card navigation, and wallpaper cards expand/lift smoothly on hover.
 - Follow-up: made `~/Pictures/Wallpapers` the only user-visible local wallpaper source for selector detection and Wallhaven downloads, with cache auto-refresh when files are moved in.
+- Follow-up: compacted the selector filter strip and added a shared theme mode, so `SUPER+CTRL+SPACE` opens the wallpaper/theme selector and `SUPER+CTRL+SHIFT+SPACE` enters the same selector in theme mode.
 
 ## Verification
 
@@ -20,14 +21,19 @@ Date: 2026-04-29
 - `bash tests/ryoku-wallhaven-search.sh` passed.
 - `bash tests/quickshell-wallpaper-skwd.sh` passed.
 - `bash tests/quickshell-wallpaper-switcher.sh` passed.
+- `bash tests/ryoku-theme-list.sh` passed.
+- `qmllint -I config/quickshell/ryoku/vendor/brain-shell/src config/quickshell/ryoku/vendor/brain-shell/src/services/ThemeService.qml config/quickshell/ryoku/vendor/brain-shell/src/popups/ThemeCard.qml config/quickshell/ryoku/vendor/brain-shell/src/popups/WallpaperFilterBar.qml config/quickshell/ryoku/vendor/brain-shell/src/popups/WallpaperPopup.qml` passed.
 - `bash tests/quickshell-app-launcher.sh` passed.
 - `bash tests/dashboard-top-controls.sh` passed.
 - `git diff --check` passed.
 - `env RYOKU_PATH=/home/omi/prowl/ryoku-arch bin/ryoku-refresh-quickshell` refreshed the live Quickshell config.
 - `bin/ryoku-restart-shell` relaunched `quickshell -c ryoku`.
 - `install -m 0644 default/hypr/bindings/utilities.conf /home/omi/.local/share/ryoku/default/hypr/bindings/utilities.conf` applied the live binding copy.
+- `install -m 0755 bin/ryoku-ipc /home/omi/.local/share/ryoku/bin/ryoku-ipc` and `install -m 0755 bin/ryoku-theme-list /home/omi/.local/share/ryoku/bin/ryoku-theme-list` applied the live IPC helpers.
 - `hyprctl reload` returned `ok`.
 - `/home/omi/.local/share/ryoku/bin/ryoku-ipc shell toggle wallpaper` opened the selector after installing the new helpers to `~/.local/share/ryoku/bin`.
+- `/home/omi/.local/share/ryoku/bin/ryoku-ipc shell toggle themes` opened the shared selector in theme mode after installing the new helpers.
+- `/home/omi/.local/share/ryoku/bin/ryoku-ipc theme list --jsonl | head -3 | jq -c .` returned theme JSON rows with `source`, `name`, `display`, `path`, `preview`, and `active`.
 - `hyprctl layers -j` showed Quickshell layers on the active display, including a fullscreen overlay layer while the selector was open.
 - `qs -c ryoku log --tail 180` showed no wallpaper selector QML load errors after the video-preview fix.
 - `/home/omi/.local/share/ryoku/bin/ryoku-ipc wallpaper cache rebuild` returned `rebuilt`.

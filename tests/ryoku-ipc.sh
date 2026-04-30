@@ -26,6 +26,12 @@ apply_bin="bin/ryoku-wallpaper-apply"
   || fail "help should document wallpaper list JSONL"
 "$ipc" --help | grep -q "ryoku-ipc wallpaper wallhaven search" \
   || fail "help should document wallhaven search"
+"$ipc" --help | grep -q "ryoku-ipc shell toggle themes" \
+  || fail "help should document shell themes toggle"
+"$ipc" --help | grep -q "ryoku-ipc theme list --jsonl" \
+  || fail "help should document theme list"
+"$ipc" --help | grep -q "ryoku-ipc theme apply THEME" \
+  || fail "help should document theme apply"
 
 tmpdir=$(mktemp -d)
 trap 'rm -rf "$tmpdir"' EXIT
@@ -41,13 +47,20 @@ exit 0
 EOF
 chmod +x "$tmpdir/path/qs"
 
-for helper in ryoku-wallpaper-list ryoku-wallpaper-cache; do
+for helper in ryoku-wallpaper-list ryoku-wallpaper-cache ryoku-theme-list; do
   cat >"$tmpdir/ryoku/bin/$helper" <<'EOF'
 #!/bin/bash
 exit 0
 EOF
   chmod +x "$tmpdir/ryoku/bin/$helper"
 done
+
+cat >"$tmpdir/ryoku/bin/ryoku-theme-set" <<'EOF'
+#!/bin/bash
+mkdir -p "$RYOKU_STATE_PATH"
+printf '%s\n' "$@" >"$RYOKU_STATE_PATH/theme.args"
+EOF
+chmod +x "$tmpdir/ryoku/bin/ryoku-theme-set"
 
 cat >"$tmpdir/ryoku/bin/ryoku-wallpaper-apply" <<'EOF'
 #!/bin/bash
@@ -85,8 +98,17 @@ RYOKU_STATE_PATH="$tmpdir/state" \
   | grep -q 'qs -c ryoku ipc call popups toggleWallpaper' \
   || fail "shell command wallpaper should print the Quickshell IPC command"
 
+RYOKU_PATH="$PWD" \
+RYOKU_CONFIG_PATH="$tmpdir/config" \
+RYOKU_STATE_PATH="$tmpdir/state" \
+  "$ipc" shell command themes \
+  | grep -q 'qs -c ryoku ipc call popups toggleThemes' \
+  || fail "shell command themes should print the shared selector IPC command"
+
 rejects_trailing_args "shell command wallpaper" shell command wallpaper extra
+rejects_trailing_args "shell command themes" shell command themes extra
 rejects_trailing_args "shell toggle wallpaper" shell toggle wallpaper extra
+rejects_trailing_args "shell toggle themes" shell toggle themes extra
 rejects_trailing_args "wallpaper settings get --json" wallpaper settings get --json extra
 rejects_trailing_args "wallpaper list --jsonl" wallpaper list --jsonl extra
 rejects_trailing_args "wallpaper cache rebuild" wallpaper cache rebuild extra
@@ -130,6 +152,22 @@ RYOKU_STATE_PATH="$tmpdir/state" \
   || fail "wallpaper video apply should route to ryoku-wallpaper-apply"
 
 assert_apply_args "wallpaper video apply" "video" "$sample_video"
+
+RYOKU_PATH="$tmpdir/ryoku" \
+RYOKU_CONFIG_PATH="$tmpdir/config" \
+RYOKU_STATE_PATH="$tmpdir/state" \
+  "$ipc" theme list --jsonl >/dev/null \
+  || fail "theme list should route to ryoku-theme-list"
+
+RYOKU_PATH="$tmpdir/ryoku" \
+RYOKU_CONFIG_PATH="$tmpdir/config" \
+RYOKU_STATE_PATH="$tmpdir/state" \
+  "$ipc" theme apply "tokyo-night" >/dev/null \
+  || fail "theme apply should route to ryoku-theme-set"
+
+mapfile -t theme_args < "$tmpdir/state/theme.args"
+(( ${#theme_args[@]} == 1 )) || fail "theme apply should pass exactly one argument"
+[[ ${theme_args[0]} == "tokyo-night" ]] || fail "theme apply should preserve theme name"
 
 make_core_path() {
   local core_path="$1"

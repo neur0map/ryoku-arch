@@ -20,19 +20,27 @@ popup_dismiss="config/quickshell/ryoku/vendor/brain-shell/src/windows/PopupDismi
 layer="config/quickshell/ryoku/vendor/brain-shell/src/popups/PopupLayer.qml"
 wallpaper_popup="config/quickshell/ryoku/vendor/brain-shell/src/popups/WallpaperPopup.qml"
 wallpaper_service="config/quickshell/ryoku/vendor/brain-shell/src/services/WallpaperService.qml"
+theme_service="config/quickshell/ryoku/vendor/brain-shell/src/services/ThemeService.qml"
+theme_card="config/quickshell/ryoku/vendor/brain-shell/src/popups/ThemeCard.qml"
 bindings="default/hypr/bindings/utilities.conf"
 
-for path in "$shell" "$popups" "$topbar" "$popup_dismiss" "$layer" "$wallpaper_popup" "$wallpaper_service" "$bindings"; do
+for path in "$shell" "$popups" "$topbar" "$popup_dismiss" "$layer" "$wallpaper_popup" "$wallpaper_service" "$theme_service" "$theme_card" "$bindings"; do
   [[ -f $path ]] || fail "$path missing"
 done
 
 grep -q 'function toggleWallpaper' "$shell" \
   || fail "shell IPC should expose toggleWallpaper"
+grep -q 'function toggleThemes' "$shell" \
+  || fail "shell IPC should expose toggleThemes"
 grep -q 'BS.Popups.wallpaperOpen = opening' "$shell" \
   || fail "toggleWallpaper should open wallpaper switcher after closing other popups"
+grep -q 'BS.Popups.wallpaperMode = "theme"' "$shell" \
+  || fail "toggleThemes should open the shared selector in theme mode"
 
 grep -q 'property bool wallpaperVisible' "$popups" \
   || fail "Popups should track wallpaper visual presence"
+grep -q 'property string wallpaperMode' "$popups" \
+  || fail "Popups should track whether the shared selector is showing wallpapers or themes"
 grep -q 'Popups.dashboardVisible || Popups.launcherVisible ? WlrLayer.Overlay : WlrLayer.Top' "$topbar" \
   || fail "TopBar should only promote bar-attached popups to overlay"
 ! grep -q 'Popups.dashboardVisible || Popups.launcherVisible || Popups.wallpaperVisible' "$topbar" \
@@ -79,10 +87,22 @@ grep -q 'WallpaperSkewCard' "$wallpaper_popup" \
   || fail "WallpaperPopup should use skewed wallpaper cards"
 grep -q 'WallpaperSettingsPane' "$wallpaper_popup" \
   || fail "WallpaperPopup should expose selector settings"
+grep -q 'ThemeCard' "$wallpaper_popup" \
+  || fail "WallpaperPopup should render theme cards in the shared selector"
+grep -q 'property string activeMode' "$wallpaper_popup" \
+  || fail "WallpaperPopup should track active wallpaper/theme mode"
+grep -q 'activeMode: content.activeMode' "$wallpaper_popup" \
+  || fail "WallpaperPopup should pass active mode into the compact filter bar"
 grep -q 'model: WallpaperService.filteredModel' "$wallpaper_popup" \
   || fail "WallpaperPopup should use the filtered model"
+grep -q 'model: ThemeService.filteredModel' "$wallpaper_popup" \
+  || fail "WallpaperPopup should bind themes to the filtered theme model"
 grep -q 'WallpaperService.rebuildCache()' "$wallpaper_popup" \
   || fail "WallpaperPopup should rebuild cache from the filter bar"
+grep -q 'ThemeService.refresh()' "$wallpaper_popup" \
+  || fail "WallpaperPopup should refresh themes through ThemeService"
+grep -q 'ThemeService.applyItem(item)' "$wallpaper_popup" \
+  || fail "WallpaperPopup should apply selected themes through ThemeService"
 grep -q 'Popups.wallpaperOpen = false' "$wallpaper_popup" \
   || fail "Escape/apply should close the wallpaper switcher"
 
@@ -96,10 +116,20 @@ grep -q 'wallpaper", "apply", "--type"' "$wallpaper_service" \
   || fail "WallpaperService should not expose bundled theme backgrounds as selector wallpaper sources"
 grep -q 'picturesDir + "/Wallpapers"' "$wallpaper_service" \
   || fail "WallpaperService should expose Pictures/Wallpapers as the user wallpaper folder"
+grep -q 'theme", "list", "--jsonl"' "$theme_service" \
+  || fail "ThemeService should list themes through ryoku-ipc"
+grep -q 'theme", "apply"' "$theme_service" \
+  || fail "ThemeService should apply themes through ryoku-ipc"
+grep -q 'required property var itemData' "$theme_card" \
+  || fail "ThemeCard should accept theme model rows"
 
 grep -q 'bindd = SUPER CTRL, SPACE, Theme background menu, exec, ryoku-ipc shell toggle wallpaper' "$bindings" \
   || fail "SUPER+CTRL+SPACE should open the Quickshell wallpaper switcher through ryoku-ipc"
+grep -q 'bindd = SUPER SHIFT CTRL, SPACE, Theme menu, exec, ryoku-ipc shell toggle themes' "$bindings" \
+  || fail "SUPER+CTRL+SHIFT+SPACE should open the shared selector in theme mode"
 ! grep -q 'bindd = SUPER CTRL, SPACE, Theme background menu, exec, qs -c ryoku ipc call popups toggleWallpaper' "$bindings" \
   || fail "SUPER+CTRL+SPACE should no longer call qs directly"
+! grep -q 'bindd = SUPER SHIFT CTRL, SPACE, Theme menu, exec, ryoku-menu theme' "$bindings" \
+  || fail "SUPER+CTRL+SHIFT+SPACE should no longer open the old tofi theme menu"
 
 pass "quickshell wallpaper switcher wiring"
