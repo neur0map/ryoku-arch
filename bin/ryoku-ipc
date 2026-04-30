@@ -1,0 +1,177 @@
+#!/bin/bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  ryoku-ipc --help
+  ryoku-ipc shell command wallpaper
+  ryoku-ipc shell command launcher
+  ryoku-ipc shell toggle wallpaper
+  ryoku-ipc shell toggle launcher
+  ryoku-ipc wallpaper settings get --json
+  ryoku-ipc wallpaper list --jsonl
+  ryoku-ipc wallpaper cache rebuild
+  ryoku-ipc wallpaper apply --type image PATH
+  ryoku-ipc wallpaper apply --type video PATH
+  ryoku-ipc wallpaper wallhaven search --query QUERY --page PAGE --json
+  ryoku-ipc wallpaper wallhaven download ID URL
+EOF
+}
+
+shell_command() {
+  local target="${1:-}"
+
+  if (( $# != 1 )); then
+    echo "ryoku-ipc: expected shell command wallpaper|launcher" >&2
+    return 2
+  fi
+
+  case "$target" in
+    wallpaper)
+      printf '%s\n' "qs -c ryoku ipc call popups toggleWallpaper"
+      ;;
+    launcher)
+      printf '%s\n' "qs -c ryoku ipc call popups toggleLauncher"
+      ;;
+    *)
+      echo "ryoku-ipc: unknown shell command target: $target" >&2
+      return 2
+      ;;
+  esac
+}
+
+shell_toggle() {
+  local target="${1:-}"
+
+  if (( $# != 1 )); then
+    echo "ryoku-ipc: expected shell toggle wallpaper|launcher" >&2
+    return 2
+  fi
+
+  case "$target" in
+    wallpaper)
+      exec qs -c ryoku ipc call popups toggleWallpaper
+      ;;
+    launcher)
+      exec qs -c ryoku ipc call popups toggleLauncher
+      ;;
+    *)
+      echo "ryoku-ipc: unknown shell toggle target: $target" >&2
+      return 2
+      ;;
+  esac
+}
+
+wallpaper_settings_get() {
+  local theme_file="$RYOKU_CONFIG_PATH/current/theme.name"
+  local theme_name=""
+  local theme_dir="$RYOKU_CONFIG_PATH/current/theme/backgrounds"
+  local user_dir
+  local state_dir="$RYOKU_STATE_PATH/wallpaper"
+
+  if [[ -f $theme_file ]]; then
+    theme_name="$(<"$theme_file")"
+  fi
+
+  user_dir="$RYOKU_CONFIG_PATH/backgrounds/$theme_name"
+
+  jq -n \
+    --arg theme_name "$theme_name" \
+    --arg user_dir "$user_dir" \
+    --arg theme_dir "$theme_dir" \
+    --arg state_dir "$state_dir" \
+    '{
+      theme_name: $theme_name,
+      wallpaper_dirs: [$user_dir, $theme_dir],
+      state_dir: $state_dir,
+      wallhaven: {
+        categories: "111",
+        purity: "100",
+        sorting: "date_added",
+        order: "desc",
+        api_key_env: "WALLHAVEN_API_KEY"
+      },
+      video: {
+        backend: "mpvpaper",
+        mute: true
+      }
+    }'
+}
+
+wallpaper_dispatch() {
+  local action="${1:-}"
+  shift || true
+
+  case "$action" in
+    settings)
+      if (( $# != 2 )) || [[ ${1:-} != "get" || ${2:-} != "--json" ]]; then
+        echo "ryoku-ipc: expected wallpaper settings get --json" >&2
+        return 2
+      fi
+      wallpaper_settings_get
+      ;;
+    list)
+      if (( $# != 1 )) || [[ ${1:-} != "--jsonl" ]]; then
+        echo "ryoku-ipc: expected wallpaper list --jsonl" >&2
+        return 2
+      fi
+      exec "$RYOKU_PATH/bin/ryoku-wallpaper-list" --jsonl
+      ;;
+    cache)
+      if (( $# != 1 )) || [[ ${1:-} != "rebuild" ]]; then
+        echo "ryoku-ipc: expected wallpaper cache rebuild" >&2
+        return 2
+      fi
+      exec "$RYOKU_PATH/bin/ryoku-wallpaper-cache" rebuild
+      ;;
+    apply)
+      exec "$RYOKU_PATH/bin/ryoku-wallpaper-apply" "$@"
+      ;;
+    wallhaven)
+      exec "$RYOKU_PATH/bin/ryoku-wallhaven-search" "$@"
+      ;;
+    *)
+      echo "ryoku-ipc: unknown wallpaper action: $action" >&2
+      return 2
+      ;;
+  esac
+}
+
+main() {
+  case "${1:-}" in
+    --help|-h|"")
+      usage
+      ;;
+    shell)
+      shift
+      case "${1:-}" in
+        command)
+          shift
+          shell_command "$@"
+          ;;
+        toggle)
+          shift
+          shell_toggle "$@"
+          ;;
+        *)
+          echo "ryoku-ipc: unknown shell action: ${1:-}" >&2
+          return 2
+          ;;
+      esac
+      ;;
+    wallpaper)
+      shift
+      wallpaper_dispatch "$@"
+      ;;
+    *)
+      echo "ryoku-ipc: unknown namespace: ${1:-}" >&2
+      return 2
+      ;;
+  esac
+}
+
+main "$@"
