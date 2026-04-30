@@ -56,7 +56,12 @@ Rectangle {
 
           HoverHandler { cursorShape: Qt.PointingHandCursor }
           TapHandler {
-            onTapped: WallpaperService.selectedSourceFilter = modelData.source
+            onTapped: {
+              WallpaperService.selectedSourceFilter = modelData.source
+              if (modelData.source === "wallhaven" && searchInput.text.trim() !== "") {
+                WallpaperService.searchWallhaven(searchInput.text, 1)
+              }
+            }
           }
         }
       }
@@ -118,7 +123,10 @@ Rectangle {
           verticalAlignment: TextInput.AlignVCenter
           clip: true
           onTextChanged: WallpaperService.searchQuery = text
-          Keys.onReturnPressed: WallpaperService.searchWallhaven(text, 1)
+          Keys.onReturnPressed: function(event) {
+            WallpaperService.searchWallhaven(text, 1)
+            event.accepted = true
+          }
           Keys.onEscapePressed: Popups.wallpaperOpen = false
         }
       }

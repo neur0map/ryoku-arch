@@ -9,6 +9,7 @@ Date: 2026-04-29
 - Added local wallpaper cache, thumbnails, color grouping, Wallhaven search/download, and image/video apply helpers.
 - Replaced the simple wallpaper strip with a fullscreen SKWD-style selector rendered inside Ryoku Quickshell.
 - Added runtime packages for Wallhaven and video preview/apply: `curl`, `qt6-multimedia-ffmpeg`, and `mpvpaper`.
+- Follow-up: fixed Wallhaven UI searches so API results are not hidden by local filename filtering, and the Web source chip can submit the typed query.
 
 ## Verification
 
@@ -29,6 +30,7 @@ Date: 2026-04-29
 - `qs -c ryoku log --tail 180` showed no wallpaper selector QML load errors after the video-preview fix.
 - `/home/omi/.local/share/ryoku/bin/ryoku-ipc wallpaper cache rebuild` returned `rebuilt`.
 - `/home/omi/.local/share/ryoku/bin/ryoku-ipc wallpaper list --jsonl | head -5 | jq -c .` returned local wallpaper JSON rows with `source`, `type`, `path`, `thumb`, `name`, `hue`, and `mtime`.
+- `/home/omi/.local/share/ryoku/bin/ryoku-ipc wallpaper wallhaven search --query "samurai city" --page 1 --json` returned Wallhaven JSON rows from the live deployed helper.
 
 ## Notes
 

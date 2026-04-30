@@ -37,6 +37,7 @@ QtObject {
     property string selectedTypeFilter: ""
     property int selectedColorFilter: -1
     property string searchQuery: ""
+    property string activeWallhavenQuery: ""
     property string statusText: ""
     property bool wallhavenLoading: false
     property string pendingApplyPath: ""
@@ -137,6 +138,13 @@ QtObject {
         return item.mtime === undefined ? 0 : Number(item.mtime)
     }
 
+    function searchMatchesItem(item, name, q) {
+        if (q === "") return true
+        if (item.source === "wallhaven" && q === root.activeWallhavenQuery) return true
+        if (item.source === "wallhaven") return false
+        return name.toLowerCase().indexOf(q) !== -1
+    }
+
     function updateFilteredModel() {
         var rows = []
         var paths = []
@@ -149,7 +157,7 @@ QtObject {
             if (root.selectedSourceFilter !== "" && item.source !== root.selectedSourceFilter) continue
             if (root.selectedTypeFilter !== "" && item.type !== root.selectedTypeFilter) continue
             if (root.selectedColorFilter >= 0 && root.itemHue(item) !== root.selectedColorFilter) continue
-            if (q !== "" && name.toLowerCase().indexOf(q) === -1) continue
+            if (!root.searchMatchesItem(item, name, q)) continue
 
             rows.push(item)
         }
@@ -230,14 +238,19 @@ QtObject {
     // ── Wallhaven search ──────────────────────────────────────────────────────
     function searchWallhaven(query, page) {
         if (wallhavenProc.running) return
+        var trimmedQuery = String(query || "").trim()
+        root.selectedSourceFilter = "wallhaven"
+        root.activeWallhavenQuery = trimmedQuery.toLowerCase()
+        root.searchQuery = trimmedQuery
+        root.clearWallhavenRows()
+        if (trimmedQuery === "") return
+
         root.wallhavenLoading = true
         root.statusText = ""
-        root.clearWallhavenRows()
-        root.selectedSourceFilter = "wallhaven"
         wallhavenProc.command = [
             Quickshell.env("HOME") + "/.local/share/ryoku/bin/ryoku-ipc",
             "wallpaper", "wallhaven", "search",
-            "--query", query,
+            "--query", trimmedQuery,
             "--page", String(page || 1),
             "--json"
         ]
