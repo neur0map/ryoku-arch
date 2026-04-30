@@ -8,7 +8,7 @@
 
 The top-right pill should open a polished Ryoku-native control center, not a tiny shortcut grid and not the old tofi menu. It should keep the current topbar eye candy: notch-attached geometry, dark translucent surfaces, compact motion, active state accents, and dense but readable controls.
 
-The control center should replace the old user-facing `ryoku-menu` navigation. Legacy menu commands may stay as compatibility/fallback paths, but the primary `SUPER+ALT+SPACE` experience should be native QML pages inside the top-right popup.
+The control center should replace the old user-facing `ryoku-menu` navigation. Legacy menu commands may stay as compatibility/fallback paths, but the primary `SUPER+ALT+SPACE` experience and the related old submenu bindings should route to native QML pages inside the top-right popup.
 
 ## Current State
 
@@ -74,6 +74,15 @@ The dashboard owns personal, media, and telemetry content:
 
 The top-right control center must not add volume or brightness sliders. Power Saver stays in the telemetry rail for this pass. Activity/btop should not be duplicated on the control center home.
 
+### App Launcher
+
+The dedicated app launcher owns the old Apps entry:
+
+- `SUPER+SPACE` opens `AppLauncherPopup.qml`
+- `toggleLauncher()` is already exposed through Quickshell IPC
+
+The top-right control center must not add an Apps page or a launcher tile. The old menu's Apps path is considered mapped to the active app launcher.
+
 ### System Menu
 
 The left system menu owns session and power actions:
@@ -89,6 +98,8 @@ The left system menu owns session and power actions:
 - Shutdown
 
 The top-right control center must not duplicate lock, suspend, hibernate, logout, restart, or shutdown.
+
+The system menu's `Update` action remains the quick one-shot update entry point. Detailed update and maintenance workflows belong under `Manage -> Maintain` in the control center, so the two surfaces do not expose the same action at the same depth.
 
 ### Dormant Vendored Popups
 
@@ -111,6 +122,14 @@ The popup should feel like a shell control surface, not a generic card dashboard
 - no decorative blobs, oversized marketing hero areas, or generic AI-style card clutter
 
 Escape closes the popup. Clicking outside closes it. A page back control returns from a section page to the home view.
+
+Related old submenu bindings should open the matching native destination instead of launching `ryoku-menu`:
+
+- `SUPER+CTRL+O` opens the control center home view for quick toggles.
+- `SUPER+CTRL+H` opens `Setup -> Hardware`.
+- `SUPER+CTRL+S` opens the Share page.
+
+`SUPER+SPACE` continues to open the app launcher. `SUPER+ESCAPE` continues to open the left system menu.
 
 ## Home View
 
@@ -142,7 +161,7 @@ Show these navigation sections:
 - Manage
 - About
 
-`Manage` groups the old Install, Remove, and Update areas so the first screen stays clean.
+`Manage` groups the old Install, Remove, and maintenance/update areas so the first screen stays clean.
 
 Do not show a top-level System section in this popup. System actions stay in the left system menu.
 
@@ -151,6 +170,8 @@ Do not show the old Trigger section as a single page. Split it into better nativ
 - old Toggle actions map to quick controls on the home view where they are in scope
 - old Share actions map to the Share page
 - old Hardware actions map to the Setup page
+
+Do not show the old Apps section. Apps are already handled by the native launcher on `SUPER+SPACE`.
 
 ## Native Pages
 
@@ -225,6 +246,10 @@ Include:
 - Config
 - Hardware
 
+The Audio, Wi-Fi, and Bluetooth entries here are detailed setup launchers. They should call the existing external control helpers and should not duplicate the home quick toggle state tiles.
+
+`System Sleep` is a setup workflow for sleep-related configuration. It is not an immediate suspend or hibernate command.
+
 Security opens a child page with:
 
 - Fingerprint
@@ -232,6 +257,7 @@ Security opens a child page with:
 
 Config opens a child page with:
 
+- Dotfiles Hub
 - Defaults
 - Hyprland
 - Hypridle
@@ -254,7 +280,7 @@ Use a segmented control or compact tabs for:
 
 - Install
 - Remove
-- Update
+- Maintain
 
 Install includes:
 
@@ -284,7 +310,7 @@ Remove includes:
 - Fingerprint
 - Fido2
 
-Update includes:
+Maintain includes the old Update options:
 
 - Ryoku
 - Channel
@@ -346,6 +372,7 @@ The popup should continue to:
 - attach to the top-right topbar notch
 - expose `settingsMenuVisible`
 - use `Popups.settingsMenuOpen`
+- support a requested page/subpage so bindings and IPC can open direct native destinations
 - close through `Popups.closeAll()`
 - stay mapped through close animation
 - avoid interfering with `PopupDismiss`
@@ -366,8 +393,12 @@ Quickshell must be restarted after the live config is updated.
 Add or update static regression coverage so the intended ownership boundaries stay clear:
 
 - `SUPER+ALT+SPACE` still toggles `settings-menu`.
+- `SUPER+CTRL+O`, `SUPER+CTRL+H`, and `SUPER+CTRL+S` no longer call `ryoku-menu toggle`, `ryoku-menu hardware`, or `ryoku-menu share`.
+- `ryoku-ipc` exposes direct control-center page commands for home quick controls, Share, and Setup/Hardware.
+- `SUPER+SPACE` still opens the app launcher and the control center does not expose an Apps page.
 - `SettingsMenuPopup` exposes quick controls for Wi-Fi, Bluetooth, Airplane Mode, Hotspot, Night Light, Focus Mode, Do Not Disturb, and Filter.
 - `SettingsMenuPopup` exposes native sections Learn, Share, Style, Setup, Manage, and About.
+- `SettingsMenuPopup` preserves Dotfiles access through Setup/Config.
 - `SettingsMenuPopup` does not expose toolbox-owned actions such as Screenshot, OCR, QR, Google Lens, Mirror, Caffeine, Open Screenshots, or Open Recordings.
 - `SettingsMenuPopup` does not expose dashboard-owned volume or brightness sliders.
 - `SettingsMenuPopup` does not expose system-owned lock, suspend, hibernate, logout, restart, or shutdown controls.
@@ -392,6 +423,8 @@ This pass does not move volume or brightness out of the dashboard.
 This pass does not move Caffeine or capture tools out of the toolbox.
 
 This pass does not move lock, suspend, hibernate, logout, restart, or shutdown out of the system menu.
+
+This pass does not move the app launcher out of `SUPER+SPACE`.
 
 This pass does not revive dormant `AudioPopup`, `NetworkPopup`, or `QuickControl`.
 
