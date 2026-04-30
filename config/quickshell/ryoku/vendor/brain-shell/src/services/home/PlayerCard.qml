@@ -61,27 +61,27 @@ StatCard {
   readonly property var player: root.filteredPlayers.length > 0
                                 ? root.filteredPlayers[root.selectedPlayerIndex] : null
 
-  readonly property bool isPlaying: root.player?.playbackState === MprisPlaybackState.Playing ?? false
-  readonly property string artUrl: root.player?.trackArtUrl ?? ""
+  readonly property bool isPlaying: root.player ? root.player.playbackState === MprisPlaybackState.Playing : false
+  readonly property string artUrl: root.player ? (root.player.trackArtUrl || "") : ""
 
   readonly property string title: {
-    var t = root.player?.trackTitle
+    var t = root.player ? root.player.trackTitle : ""
     return (t && t !== "") ? t : "Nothing Playing"
   }
   readonly property string artist: {
-    var a = root.player?.trackArtists
+    var a = root.player ? root.player.trackArtists : ""
     if (!a) return ""
     if (typeof a === "string") return a
     if (typeof a.join === "function") return a.join(", ")
     return a.toString()
   }
   readonly property string album: {
-    var al = root.player?.trackAlbum
+    var al = root.player ? root.player.trackAlbum : ""
     return (al && al !== "") ? al : ""
   }
 
-  readonly property real length: root.player?.length ?? 0
-  readonly property real position: root.player?.position ?? 0
+  readonly property real length: root.player ? root.player.length : 0
+  readonly property real position: root.player ? root.player.position : 0
 
   property var _eqBands: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
   readonly property var _eqBandModel: [
@@ -106,7 +106,6 @@ StatCard {
     if (!visible) {
       root._dropdownOpen = false
       root._effectsOpen = false
-      Popups.playerEqualizerOpen = false
     }
   }
 
@@ -191,14 +190,12 @@ StatCard {
     function onDashboardOpenChanged() {
       if (!Popups.dashboardOpen) {
         root._effectsOpen = false
-        Popups.playerEqualizerOpen = false
       }
     }
   }
 
   function _toggleEffects() {
     root._effectsOpen = !root._effectsOpen
-    Popups.playerEqualizerOpen = root._effectsOpen
     if (root._effectsOpen)
       root._triggerEqLightning()
   }
@@ -268,49 +265,18 @@ StatCard {
   readonly property int _discSize: Math.max(68, Math.min(90, Math.floor(root.height * 0.32)))
   readonly property int _orbitSize: root._discSize + 44
 
-  component ChevronMark: Item {
-    id: chevron
-    property bool pointsLeft: false
-    property color strokeColor: Theme.text
-
-    width: 7
-    height: 11
-
-    Rectangle {
-      width: 2
-      height: 8
-      radius: 1
-      x: chevron.pointsLeft ? 2 : 3
-      y: 1
-      rotation: chevron.pointsLeft ? 38 : -38
-      color: chevron.strokeColor
-      antialiasing: true
-    }
-
-    Rectangle {
-      width: 2
-      height: 8
-      radius: 1
-      x: chevron.pointsLeft ? 2 : 3
-      y: 5
-      rotation: chevron.pointsLeft ? -38 : 38
-      color: chevron.strokeColor
-      antialiasing: true
-    }
-  }
-
   component TransportGlyph: Item {
     id: glyph
     property string mode: "play"
     property bool playing: false
     property color glyphColor: Theme.text
 
-    width: 20
+    width: 22
     height: 18
 
     Rectangle {
       visible: glyph.mode === "prev"
-      x: 2
+      x: 4
       y: 4
       width: 2
       height: 10
@@ -328,34 +294,42 @@ StatCard {
       color: glyph.glyphColor
     }
 
-    ChevronMark {
+    Shape {
       visible: glyph.mode === "prev"
-      pointsLeft: true
-      strokeColor: glyph.glyphColor
-      x: 6
-      y: 4
-    }
-
-    ChevronMark {
-      visible: glyph.mode === "prev"
-      pointsLeft: true
-      strokeColor: glyph.glyphColor
-      x: 11
-      y: 4
-    }
-
-    ChevronMark {
-      visible: glyph.mode === "next"
-      strokeColor: glyph.glyphColor
-      x: 2
-      y: 4
-    }
-
-    ChevronMark {
-      visible: glyph.mode === "next"
-      strokeColor: glyph.glyphColor
       x: 7
-      y: 4
+      y: 2
+      width: 12
+      height: 14
+      preferredRendererType: Shape.CurveRenderer
+
+      ShapePath {
+        fillColor: glyph.glyphColor
+        strokeWidth: 0
+        startX: 11
+        startY: 2
+        PathLine { x: 3; y: 7 }
+        PathLine { x: 11; y: 12 }
+        PathLine { x: 11; y: 2 }
+      }
+    }
+
+    Shape {
+      visible: glyph.mode === "next"
+      x: 3
+      y: 2
+      width: 12
+      height: 14
+      preferredRendererType: Shape.CurveRenderer
+
+      ShapePath {
+        fillColor: glyph.glyphColor
+        strokeWidth: 0
+        startX: 3
+        startY: 2
+        PathLine { x: 11; y: 7 }
+        PathLine { x: 3; y: 12 }
+        PathLine { x: 3; y: 2 }
+      }
     }
 
     Shape {
@@ -552,7 +526,7 @@ StatCard {
       anchors.topMargin: 10
       width: 96
       height: sourcePill.height
-      visible: root.filteredPlayers.length > 1
+      visible: !root._effectsOpen && root.filteredPlayers.length > 1
       z: 40
 
       Rectangle {
@@ -641,6 +615,7 @@ StatCard {
 
     Text {
       id: titleLabel
+      visible: !root._effectsOpen
       anchors.left: panelBody.left
       anchors.right: panelBody.right
       anchors.top: panelBody.top
@@ -657,6 +632,7 @@ StatCard {
 
     Item {
       id: discStage
+      visible: !root._effectsOpen
       anchors.left: panelBody.left
       anchors.top: titleLabel.bottom
       anchors.leftMargin: 18
@@ -771,10 +747,11 @@ StatCard {
     Item {
       id: mediaStack
       objectName: "playerSideConsole"
+      visible: !root._effectsOpen
       anchors.left: discStage.right
       anchors.right: panelBody.right
       anchors.top: titleLabel.bottom
-      anchors.bottom: effectDeck.top
+      anchors.bottom: effectsToggle.top
       anchors.leftMargin: 42
       anchors.rightMargin: 18
       anchors.topMargin: 10
@@ -894,96 +871,135 @@ StatCard {
 
     }
 
-    Item {
-      id: effectDeck
+    Rectangle {
+      id: effectsToggle
       objectName: "audioEffectDeck"
-      anchors.left: root._effectsOpen ? panelBody.left : discStage.right
+      visible: !root._effectsOpen
+      anchors.left: discStage.right
       anchors.right: panelBody.right
       anchors.bottom: controlsBlock.top
-      anchors.leftMargin: root._effectsOpen ? 18 : 42
+      anchors.leftMargin: 42
       anchors.rightMargin: 18
       anchors.bottomMargin: 10
-      height: root._effectsOpen ? 132 : 28
-      clip: true
+      height: 28
+      radius: 9
       z: 30
+      color: Qt.rgba(12 / 255, 18 / 255, 24 / 255, fxHit.hovered ? 0.32 : 0.22)
+      border.width: 1
+      border.color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, fxHit.hovered ? 0.34 : 0.20)
 
-      Behavior on height {
-        enabled: !Theme.staticMode
-        NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+      Text {
+        anchors.left: parent.left
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.leftMargin: 10
+        text: "FX"
+        font.pixelSize: 8
+        font.weight: Font.Bold
+        font.family: "JetBrains Mono"
+        color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.76)
       }
 
-      Rectangle {
+      Row {
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.rightMargin: 10
+        spacing: 2
+
+        Repeater {
+          model: root._eqBandModel
+
+          Rectangle {
+            required property var modelData
+            readonly property real bandValue: root._eqBands[modelData.idx - 1] || 0
+            width: 5
+            height: 4 + Math.abs(bandValue) * 0.35
+            radius: 2
+            color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.32 + root._eqNorm(bandValue) * 0.24)
+          }
+        }
+      }
+
+      HoverHandler {
+        id: fxHit
+        cursorShape: Qt.PointingHandCursor
+      }
+
+      MouseArea {
         anchors.fill: parent
-        radius: 9
-        color: Qt.rgba(12 / 255, 18 / 255, 24 / 255, root._effectsOpen ? 0.60 : 0.22)
-        border.width: 1
-        border.color: Qt.rgba(1, 1, 1, root._effectsOpen ? 0.12 : 0.07)
+        cursorShape: Qt.PointingHandCursor
+        onClicked: root._toggleEffects()
       }
+    }
 
-      Rectangle {
-        id: effectsToggle
+    Item {
+      id: equalizerView
+      objectName: "playerEqualizerScreen"
+      visible: root._effectsOpen
+      anchors.fill: panelBody
+      anchors.margins: 14
+      clip: true
+      z: 32
+
+      Item {
+        id: eqHeader
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        height: root._effectsOpen ? 24 : parent.height
-        radius: 9
-        color: Qt.rgba(1, 1, 1, fxHit.hovered ? 0.070 : 0.038)
-        border.width: root._effectsOpen ? 0 : 1
-        border.color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, fxHit.hovered ? 0.34 : 0.20)
+        height: 31
 
         Text {
           anchors.left: parent.left
           anchors.verticalCenter: parent.verticalCenter
-          anchors.leftMargin: 10
-          text: root._effectsOpen ? "EQ 10" : "FX"
-          font.pixelSize: 8
+          anchors.leftMargin: 12
+          text: "EQ 10"
+          font.pixelSize: 11
           font.weight: Font.Bold
           font.family: "JetBrains Mono"
-          color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.76)
-        }
-
-        Row {
-          anchors.right: parent.right
-          anchors.verticalCenter: parent.verticalCenter
-          anchors.rightMargin: 10
-          spacing: 2
-          visible: !root._effectsOpen
-
-          Repeater {
-            model: root._eqBandModel
-
-            Rectangle {
-              required property var modelData
-              readonly property real bandValue: root._eqBands[modelData.idx - 1] || 0
-              width: 5
-              height: 4 + Math.abs(bandValue) * 0.35
-              radius: 2
-              color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.32 + root._eqNorm(bandValue) * 0.24)
-            }
-          }
+          color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.78)
         }
 
         Text {
+          anchors.left: parent.left
+          anchors.verticalCenter: parent.verticalCenter
+          anchors.leftMargin: 58
+          text: root.title
+          elide: Text.ElideRight
+          width: parent.width - 126
+          font.pixelSize: 9
+          font.family: "JetBrains Mono"
+          color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.46)
+        }
+
+        Rectangle {
           anchors.right: parent.right
           anchors.verticalCenter: parent.verticalCenter
-          anchors.rightMargin: 10
-          visible: root._effectsOpen
-          text: "CLOSE"
-          font.pixelSize: 7
-          font.weight: Font.Bold
-          font.family: "JetBrains Mono"
-          color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.44)
-        }
+          anchors.rightMargin: 8
+          width: 52
+          height: 21
+          radius: 7
+          color: Qt.rgba(1, 1, 1, backHit.hovered ? 0.070 : 0.040)
+          border.width: 1
+          border.color: Qt.rgba(1, 1, 1, backHit.hovered ? 0.16 : 0.08)
 
-        HoverHandler {
-          id: fxHit
-          cursorShape: Qt.PointingHandCursor
-        }
+          Text {
+            anchors.centerIn: parent
+            text: "BACK"
+            font.pixelSize: 7
+            font.weight: Font.Bold
+            font.family: "JetBrains Mono"
+            color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.62)
+          }
 
-        MouseArea {
-          anchors.fill: parent
-          cursorShape: Qt.PointingHandCursor
-          onClicked: root._toggleEffects()
+          HoverHandler {
+            id: backHit
+            cursorShape: Qt.PointingHandCursor
+          }
+
+          MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: root._toggleEffects()
+          }
         }
       }
 
@@ -991,13 +1007,12 @@ StatCard {
         id: eqPanel
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.top: effectsToggle.bottom
+        anchors.top: eqHeader.bottom
         anchors.bottom: parent.bottom
         anchors.leftMargin: 12
         anchors.rightMargin: 12
         anchors.topMargin: 4
-        anchors.bottomMargin: 5
-        visible: root._effectsOpen
+        anchors.bottomMargin: 9
 
         Canvas {
           id: eqLightningCanvas
@@ -1096,13 +1111,14 @@ StatCard {
     Item {
       id: controlsBlock
       objectName: "playerBottomControls"
-      anchors.left: panelBody.left
+      visible: !root._effectsOpen
       anchors.right: panelBody.right
       anchors.bottom: panelBody.bottom
-      anchors.leftMargin: 18
-      anchors.rightMargin: 18
-      anchors.bottomMargin: 16
-      height: 32
+      anchors.left: discStage.right
+      anchors.leftMargin: 36
+      anchors.rightMargin: 32
+      anchors.bottomMargin: 15
+      height: 34
       z: 34
 
       Row {
@@ -1110,7 +1126,7 @@ StatCard {
         objectName: "playbackDeck"
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
-        spacing: 10
+        spacing: 12
 
         Repeater {
           model: [ { key: "prev" }, { key: "play" }, { key: "next" } ]
@@ -1126,38 +1142,17 @@ StatCard {
               return false
             }
 
-            width: isPlay ? 50 : 42
-            height: 28
-            radius: 8
-            opacity: actionEnabled ? 1 : 0.42
+            width: isPlay ? 56 : 46
+            height: 30
+            radius: 10
+            opacity: actionEnabled ? 1 : 0.74
             color: isPlay
-              ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, controlHit.hovered ? 0.30 : 0.22)
-              : Qt.rgba(18 / 255, 30 / 255, 36 / 255, controlHit.hovered ? 0.42 : 0.28)
+              ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, controlHit.hovered ? 0.36 : 0.26)
+              : Qt.rgba(14 / 255, 20 / 255, 27 / 255, controlHit.hovered ? 0.46 : 0.30)
             border.width: 1
             border.color: isPlay
-              ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, controlHit.hovered ? 0.62 : 0.44)
-              : Qt.rgba(1, 1, 1, controlHit.hovered ? 0.16 : 0.08)
-
-            Rectangle {
-              anchors.fill: parent
-              anchors.margins: 4
-              radius: 6
-              color: Qt.rgba(1, 1, 1, parent.isPlay ? 0.038 : 0.024)
-            }
-
-            Rectangle {
-              anchors.horizontalCenter: parent.horizontalCenter
-              anchors.top: parent.top
-              anchors.topMargin: parent.isPlay ? 7 : 6
-              width: parent.isPlay ? 14 : 10
-              height: 1
-              color: Qt.rgba(
-                parent.isPlay ? Theme.active.r : 1,
-                parent.isPlay ? Theme.active.g : 1,
-                parent.isPlay ? Theme.active.b : 1,
-                parent.isPlay ? 0.50 : 0.16
-              )
-            }
+              ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, controlHit.hovered ? 0.70 : 0.48)
+              : Qt.rgba(1, 1, 1, controlHit.hovered ? 0.18 : 0.10)
 
             Behavior on color {
               enabled: !Theme.staticMode
@@ -1168,8 +1163,8 @@ StatCard {
               anchors.centerIn: parent
               mode: modelData.key
               playing: root.isPlaying
-              glyphColor: isPlay ? Theme.text
-                                  : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, controlHit.hovered ? 0.84 : 0.58)
+              glyphColor: isPlay ? Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.92)
+                                  : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, controlHit.hovered ? 0.84 : 0.68)
             }
 
             HoverHandler {

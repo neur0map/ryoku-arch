@@ -12,7 +12,6 @@ QtObject {
     property bool notificationsOpen: false
     property bool archMenuOpen:      false
     property bool dashboardOpen:     false
-    property bool playerEqualizerOpen: false
     property bool launcherOpen:      false
     property bool toolboxOpen:       false
     property bool screenshotToolOpen: false
@@ -120,7 +119,6 @@ QtObject {
         notificationsOpen = false
         archMenuOpen      = false
         dashboardOpen     = false
-        playerEqualizerOpen = false
         launcherOpen      = false
         toolboxOpen       = false
         screenshotToolOpen = false

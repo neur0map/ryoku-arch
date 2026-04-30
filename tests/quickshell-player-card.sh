@@ -79,28 +79,40 @@ active_has "$player" 'anchors.rightMargin: sourcePicker.visible ? 122 : 18' \
   || fail "Top title should reserve room for the source picker only when needed"
 active_has "$player" 'anchors.left: discStage.right' \
   || fail "Side console should sit to the right of the album disc"
+active_has "$player" 'anchors.bottom: effectsToggle.top' \
+  || fail "Side console should reserve space above the compact FX entry button"
 active_has "$player" 'anchors.leftMargin: 42' \
   || fail "Side console should clear the Cava orbit around the album disc"
 active_has "$player" 'id: albumLabel' \
   || fail "Side console should expose album/source metadata below the artist"
 active_has "$player" 'root.album' \
   || fail "PlayerCard should read album metadata when MPRIS provides it"
+active_has "$player" 'property bool _effectsOpen: false' \
+  || fail "PlayerCard equalizer should start closed when the dashboard opens"
+active_has "$player" 'root._effectsOpen = false' \
+  || fail "PlayerCard should collapse the equalizer when hidden"
 active_has "$player" 'component TransportGlyph' \
   || fail "Playback controls should use custom Ryoku transport glyphs"
-active_has "$player" 'component ChevronMark' \
-  || fail "Previous/next controls should use drawn chevron geometry"
 active_has "$player" 'id: playbackControls' \
   || fail "PlayerCard should render explicit playback controls"
 active_has "$player" 'objectName: "playbackDeck"' \
   || fail "Playback controls should use the transport deck layout"
 active_has "$player" 'objectName: "playerBottomControls"' \
   || fail "Playback controls should be pinned in a named bottom deck"
-active_has "$player" 'anchors.bottom: parent.bottom' \
-  || fail "Playback controls should sit at the bottom of the side console"
-active_has "$player" 'width: isPlay ? 50 : 42' \
-  || fail "Playback controls should use boxed command keys"
-active_has "$player" 'radius: 8' \
+active_has "$player" 'anchors.left: discStage.right' \
+  || fail "Playback controls should stay in the right-side column and clear the disc orbit"
+active_has "$player" 'anchors.bottom: panelBody.bottom' \
+  || fail "Playback controls should sit at the bottom of the audio card"
+active_has "$player" 'width: isPlay ? 56 : 46' \
+  || fail "Playback controls should use larger boxed command keys"
+active_has "$player" 'radius: 10' \
   || fail "Playback controls should render as rounded boxes, not circles"
+active_has "$player" 'anchors.rightMargin: 32' \
+  || fail "Playback controls should stay clear of the card edge"
+active_has "$player" 'opacity: actionEnabled ? 1 : 0.74' \
+  || fail "Unavailable playback controls should remain legible"
+active_has "$player" 'ShapePath {' \
+  || fail "Transport glyphs should use clean vector shapes"
 active_has "$player" 'root.player.canTogglePlaying' \
   || fail "Play button should preserve canTogglePlaying guard"
 active_has "$player" 'root.player.canGoPrevious' \
@@ -134,19 +146,19 @@ active_has "$player" 'readonly property real _panelAlpha: 0.075' \
 active_has "$player" 'component EqualizerBand' \
   || fail "PlayerCard should expose proper equalizer band controls"
 active_has "$player" 'objectName: "audioEffectDeck"' \
-  || fail "PlayerCard should reserve the lower deck for sound effect controls"
-active_has "$player" 'anchors.bottom: controlsBlock.top' \
-  || fail "Audio effect bars should sit directly above the bottom controls"
-active_has "$player" 'height: root._effectsOpen ? 132 : 28' \
-  || fail "Audio effects should use a compact expandable deck"
+  || fail "PlayerCard should expose a compact FX entry button"
+active_has "$player" 'objectName: "playerEqualizerScreen"' \
+  || fail "PlayerCard should render equalizer as a second in-card screen"
+active_has "$player" 'anchors.fill: panelBody' \
+  || fail "Equalizer screen should stay inside the audio card panel"
 active_has "$player" 'id: effectsToggle' \
   || fail "Audio effects should expose a dedicated FX expand button"
-active_has "$player" 'root._effectsOpen = !root._effectsOpen' \
-  || fail "FX button should expand and collapse the full slider deck"
-active_has "$player" 'Popups.playerEqualizerOpen = root._effectsOpen' \
-  || fail "FX expansion should grow the dashboard instead of cramming the card"
+active_has "$player" 'onClicked: root._toggleEffects()' \
+  || fail "FX button should switch between player and equalizer screens"
+active_has "$player" 'visible: !root._effectsOpen' \
+  || fail "Player UI should disappear when the equalizer screen is open"
 active_has "$player" 'visible: root._effectsOpen' \
-  || fail "Full effect sliders should appear only in the expanded FX deck"
+  || fail "Equalizer screen should appear only after clicking FX"
 active_has "$player" 'model: root._eqBandModel' \
   || fail "Expanded equalizer should render the full 10-band model"
 active_has "$player" 'id: eqLightningCanvas' \
@@ -159,14 +171,6 @@ active_has "$player" 'ryoku-audio-effects' \
   || fail "PlayerCard effect bars should call the Ryoku audio effects helper"
 active_has "$player" '"eq-set",' \
   || fail "Equalizer bands should call the helper per band"
-active_has "$dashboard" 'readonly property int equalizerExtraHeight' \
-  || fail "Dashboard should define an expandable equalizer height budget"
-active_has "$dashboard" 'Popups.playerEqualizerOpen ? root.equalizerExtraHeight : 0' \
-  || fail "Dashboard height should grow only while player equalizer is open"
-active_has "$popups" 'property bool playerEqualizerOpen' \
-  || fail "Popups should track player equalizer expansion state"
-active_has "$popups" 'playerEqualizerOpen = false' \
-  || fail "closeAll should collapse the player equalizer"
 active_has "$audio_helper" 'EasyEffectsServer' \
   || fail "Audio helper should target the EasyEffects local server socket"
 active_has "$audio_helper" 'plugins_order' \
@@ -205,8 +209,45 @@ fi
 if active_has "$player" 'property bool left'; then
   fail "PlayerCard should not define a Chevron property that collides with Item.left"
 fi
+if active_has "$player" 'component ChevronMark'; then
+  fail "PlayerCard should not keep the old crowded chevron glyph component"
+fi
+if active_has "$player" 'root._effectsOpen = true'; then
+  fail "PlayerCard should not force the equalizer open when the dashboard appears"
+fi
+if active_has "$player" 'parent.isPlay ? 0.038'; then
+  fail "Playback controls should not keep the old nested stripe treatment"
+fi
 if active_has "$player" 'component EffectSlider'; then
   fail "PlayerCard should not keep the cramped mini FX sliders"
+fi
+if active_has "$player" 'Popups.playerEqualizerOpen'; then
+  fail "PlayerCard equalizer should not resize the dashboard"
+fi
+if active_has "$player" 'anchors.bottom: effectDeck.top'; then
+  fail "PlayerCard should not anchor player UI to the removed effectDeck"
+fi
+if ! awk '
+  /id: controlsBlock/ { in_block = 1 }
+  in_block && /visible: !root\._effectsOpen/ { found = 1 }
+  in_block && /id: quietCavaStrip/ { exit }
+  END { exit found ? 0 : 1 }
+' "$player"; then
+  fail "Playback controls should disappear on the in-card equalizer screen"
+fi
+if awk '
+  /id: controlsBlock/ { in_block = 1 }
+  in_block && /anchors\.left: panelBody\.left/ { found = 1 }
+  in_block && /id: quietCavaStrip/ { exit }
+  END { exit found ? 0 : 1 }
+' "$player"; then
+  fail "Playback controls should not span the full card under the album disc"
+fi
+if active_has "$dashboard" 'equalizerExtraHeight'; then
+  fail "Dashboard should not grow for the audio-card equalizer screen"
+fi
+if active_has "$popups" 'playerEqualizerOpen'; then
+  fail "Popups should not track player equalizer expansion globally"
 fi
 if active_has "$player" 'border.color: Qt.rgba(1, 1, 1, 0.035)'; then
   fail "PlayerCard should not keep the duplicate full-card border box"
