@@ -37,6 +37,8 @@ grep -q 'property int selectedColorFilter' "$service" \
   || fail "WallpaperService should expose selectedColorFilter"
 grep -q 'property string searchQuery' "$service" \
   || fail "WallpaperService should expose searchQuery"
+grep -q 'property string activeWallhavenQuery' "$service" \
+  || fail "WallpaperService should track the query that produced Wallhaven rows"
 grep -q 'property string statusText' "$service" \
   || fail "WallpaperService should expose statusText"
 grep -q 'property bool cacheLoading' "$service" \
@@ -59,6 +61,10 @@ grep -q 'JSON.parse(t)' "$service" \
   || fail "WallpaperService should parse JSONL rows"
 grep -q 'function updateFilteredModel' "$service" \
   || fail "WallpaperService should update filtered model"
+grep -q 'function searchMatchesItem' "$service" \
+  || fail "WallpaperService should centralize local vs Wallhaven search filtering"
+grep -q 'item.source === "wallhaven" && q === root.activeWallhavenQuery' "$service" \
+  || fail "WallpaperService should show Wallhaven rows for the API query that produced them"
 grep -q 'function rebuildCache()' "$service" \
   || fail "WallpaperService should expose cache rebuild"
 grep -q 'wallpaper", "cache", "rebuild"' "$service" \
@@ -79,6 +85,10 @@ grep -q 'item.source === "wallhaven"' "$service" \
   || fail "WallpaperService should only remove Wallhaven rows"
 grep -q 'root.clearWallhavenRows()' "$service" \
   || fail "WallpaperService should clear stale Wallhaven rows before search"
+grep -q 'root.activeWallhavenQuery = trimmedQuery.toLowerCase()' "$service" \
+  || fail "WallpaperService should remember the normalized Wallhaven query before loading results"
+grep -q 'root.searchQuery = trimmedQuery' "$service" \
+  || fail "WallpaperService should keep UI filtering synchronized with submitted Wallhaven searches"
 grep -q 'wallpaper", "wallhaven", "search"' "$service" \
   || fail "WallpaperService should call ryoku-ipc Wallhaven search"
 grep -q 'wallpaper", "wallhaven", "download"' "$service" \
@@ -158,10 +168,14 @@ grep -q 'WallpaperService.selectedTypeFilter' "$filter" \
   || fail "WallpaperFilterBar should update the type filter"
 grep -q 'WallpaperService.selectedSourceFilter' "$filter" \
   || fail "WallpaperFilterBar should update the source filter"
+grep -q 'modelData.source === "wallhaven" && searchInput.text.trim() !== ""' "$filter" \
+  || fail "WallpaperFilterBar should submit the typed query when switching to Web"
 grep -q 'WallpaperService.searchQuery' "$filter" \
   || fail "WallpaperFilterBar should update searchQuery"
 grep -q 'WallpaperService.searchWallhaven' "$filter" \
   || fail "WallpaperFilterBar should trigger Wallhaven search"
+grep -q 'event.accepted = true' "$filter" \
+  || fail "WallpaperFilterBar should keep Return from bubbling to the popup apply shortcut"
 grep -q 'WallpaperService.selectedColorFilter' "$filter" \
   || fail "WallpaperFilterBar should update color filtering"
 grep -q 'model: 13' "$filter" \
