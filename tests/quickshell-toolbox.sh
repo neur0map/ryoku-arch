@@ -125,10 +125,11 @@ if grep -q '\$\$.*\.png' bin/ryoku-cmd-ocr bin/ryoku-cmd-qr-scan bin/ryoku-cmd-g
 fi
 grep -Eq 'for cmd in .*xdg-open' bin/ryoku-cmd-qr-scan \
   || fail "QR helper should require xdg-open for URL actions"
-grep -Fq 'uguu.se as a public URL' bin/ryoku-cmd-google-lens \
-  || fail "Google Lens helper should disclose public upload behavior"
-grep -Fq 'upload=Upload' bin/ryoku-cmd-google-lens \
-  || fail "Google Lens helper should require explicit upload consent"
+grep -Fq 'Uploading selected screenshot and opening Google Lens' bin/ryoku-cmd-google-lens \
+  || fail "Google Lens helper should disclose automatic screenshot upload"
+if grep -Fq 'upload=Upload' bin/ryoku-cmd-google-lens; then
+  fail "Google Lens helper should not wait for a notification action before opening Lens"
+fi
 grep -Fq -- '--connect-timeout 10 --max-time 45' bin/ryoku-cmd-google-lens \
   || fail "Google Lens helper should use curl timeouts"
 
@@ -268,7 +269,7 @@ grep -Fq 'lens.google.com/uploadbyurl' bin/ryoku-cmd-google-lens \
   || fail "Google Lens helper should open uploadbyurl"
 grep -Fq 'https://uguu.se/upload' bin/ryoku-cmd-google-lens \
   || fail "Google Lens helper should upload the selected image"
-grep -q 'Uploading selected image' bin/ryoku-cmd-google-lens \
-  || fail "Google Lens helper should notify before upload"
+grep -q 'xdg-open "https://lens.google.com/uploadbyurl?url=$encoded_url"' bin/ryoku-cmd-google-lens \
+  || fail "Google Lens helper should automatically open the browser after upload"
 
 pass "toolbox static contract"

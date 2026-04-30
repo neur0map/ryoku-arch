@@ -27,15 +27,7 @@ fi
 
 grim -g "$geometry" "$tmp"
 
-if ! action="$(notify-send -u normal "Google Lens" "Uploads the selected image to uguu.se as a public URL before opening Google Lens." -A "upload=Upload" -A "cancel=Cancel")"; then
-  exit 0
-fi
-
-if [[ $action != "upload" ]]; then
-  exit 0
-fi
-
-notify-send -u normal "Google Lens" "Uploading selected image for reverse image search"
+notify-send -u normal "Google Lens" "Uploading selected screenshot and opening Google Lens"
 
 if ! response="$(curl -fsS --connect-timeout 10 --max-time 45 -F "files[]=@$tmp" https://uguu.se/upload)"; then
   notify-send -u critical "Google Lens" "Image upload failed"
