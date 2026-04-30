@@ -12,8 +12,8 @@ PanelWindow {
 
   readonly property int fw: Theme.notchRadius
   readonly property int fh: Theme.notchRadius
-  readonly property int menuWidth: 300
-  readonly property int menuHeight: 184
+  readonly property int menuWidth: 282
+  readonly property int menuHeight: 162
   readonly property int fullCardWidth: root.menuWidth + 2 * root.fw
   readonly property int fullCardHeight: Theme.notchHeight + root.menuHeight
   readonly property int initialCardHeight: Theme.notchHeight
@@ -129,7 +129,7 @@ PanelWindow {
       color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, 0.96)
       strokeColor: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.24)
       strokeWidth: 1
-      radius: Theme.cornerRadius
+      radius: 8
       flareWidth: root.fw
       flareHeight: root.fh
     }
@@ -143,9 +143,9 @@ PanelWindow {
       anchors {
         fill: parent
         topMargin: Theme.notchHeight + 8
-        leftMargin: root.fw + 10
-        rightMargin: root.fw + 10
-        bottomMargin: 10
+        leftMargin: root.fw + 9
+        rightMargin: root.fw + 9
+        bottomMargin: 8
       }
 
       opacity: Math.min(1, root.openProgress * 1.35)
@@ -157,34 +157,25 @@ PanelWindow {
 
       Column {
         anchors.fill: parent
-        spacing: 8
+        spacing: 7
 
         Item {
           width: parent.width
-          height: 28
+          height: 24
 
           Rectangle {
-            id: headerMark
-            width: 24
-            height: 24
-            radius: 8
+            id: headerRule
+            width: 3
+            height: 18
+            radius: 2
             anchors.verticalCenter: parent.verticalCenter
-            color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.18)
-
-            Text {
-              anchors.centerIn: parent
-              text: "力"
-              color: Theme.active
-              font.family: "Noto Sans CJK JP"
-              font.pixelSize: 13
-              font.bold: true
-            }
+            color: Theme.active
           }
 
           Column {
             anchors {
-              left: headerMark.right
-              leftMargin: 8
+              left: headerRule.right
+              leftMargin: 9
               verticalCenter: parent.verticalCenter
             }
             spacing: -1
@@ -192,7 +183,7 @@ PanelWindow {
             Text {
               text: "Ryoku"
               color: Theme.text
-              font.pixelSize: 13
+              font.pixelSize: 12
               font.bold: true
             }
 
@@ -210,7 +201,7 @@ PanelWindow {
             }
             text: "settings"
             color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.42)
-            font.pixelSize: 10
+            font.pixelSize: 9
           }
         }
 
@@ -218,7 +209,7 @@ PanelWindow {
           id: grid
           width: parent.width
           columns: 2
-          rowSpacing: 6
+          rowSpacing: 5
           columnSpacing: 6
 
           Repeater {
@@ -234,48 +225,41 @@ PanelWindow {
               required property string action
 
               width: (grid.width - grid.columnSpacing) / 2
-              height: 38
-              radius: 8
-              color: hover.hovered ? Qt.rgba(tile.accent.r, tile.accent.g, tile.accent.b, 0.18)
-                                   : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.045)
+              height: 32
+              radius: 6
+              color: hover.hovered ? Qt.rgba(tile.accent.r, tile.accent.g, tile.accent.b, 0.14)
+                                   : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.034)
               border.width: 1
-              border.color: hover.hovered ? Qt.rgba(tile.accent.r, tile.accent.g, tile.accent.b, 0.46)
-                                          : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.08)
-              scale: hover.hovered ? 1.025 : 1
+              border.color: hover.hovered ? Qt.rgba(tile.accent.r, tile.accent.g, tile.accent.b, 0.38)
+                                          : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.055)
 
               Behavior on color { ColorAnimation { duration: 130 } }
               Behavior on border.color { ColorAnimation { duration: 130 } }
-              Behavior on scale {
-                enabled: !Theme.staticMode
-                NumberAnimation { duration: Theme.motionEffectsDuration; easing.type: Easing.OutCubic }
+
+              Rectangle {
+                width: 3
+                radius: 2
+                anchors {
+                  top: parent.top
+                  bottom: parent.bottom
+                  left: parent.left
+                  topMargin: 8
+                  bottomMargin: 8
+                }
+                color: tile.accent
+                opacity: hover.hovered ? 0.95 : 0.55
               }
 
               Row {
                 anchors {
                   fill: parent
-                  leftMargin: 7
+                  leftMargin: 11
                   rightMargin: 8
                 }
-                spacing: 7
-
-                Rectangle {
-                  id: iconBadge
-                  width: 26
-                  height: 26
-                  radius: 8
-                  anchors.verticalCenter: parent.verticalCenter
-                  color: Qt.rgba(tile.accent.r, tile.accent.g, tile.accent.b, hover.hovered ? 0.28 : 0.16)
-
-                  Text {
-                    anchors.centerIn: parent
-                    text: tile.icon
-                    color: Theme.text
-                    font.pixelSize: 13
-                  }
-                }
+                spacing: 0
 
                 Column {
-                  width: parent.width - iconBadge.width - parent.spacing
+                  width: parent.width
                   anchors.verticalCenter: parent.verticalCenter
                   spacing: -1
 
@@ -283,7 +267,7 @@ PanelWindow {
                     width: parent.width
                     text: tile.label
                     color: Theme.text
-                    font.pixelSize: 11
+                    font.pixelSize: 10
                     font.bold: true
                     elide: Text.ElideRight
                   }
@@ -292,7 +276,7 @@ PanelWindow {
                     width: parent.width
                     text: tile.hint
                     color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.42)
-                    font.pixelSize: 9
+                    font.pixelSize: 8
                     elide: Text.ElideRight
                   }
                 }

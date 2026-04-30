@@ -80,9 +80,9 @@ grep -q 'ListModel {' "$system_popup" \
   || fail "SystemMenuPopup should use stable ListModel roles for visible labels"
 grep -q 'Binding { target: Popups; property: "systemMenuVisible"' "$system_popup" \
   || fail "SystemMenuPopup should expose visual presence"
-grep -Eq 'readonly property int menuWidth:[[:space:]]+306' "$system_popup" \
+grep -Eq 'readonly property int menuWidth:[[:space:]]+292' "$system_popup" \
   || fail "SystemMenuPopup should stay compact"
-grep -Eq 'readonly property int menuHeight:[[:space:]]+270' "$system_popup" \
+grep -Eq 'readonly property int menuHeight:[[:space:]]+232' "$system_popup" \
   || fail "SystemMenuPopup should stay slim"
 grep -q 'width: root.fullCardWidth' "$system_popup" \
   || fail "SystemMenuPopup should not expand into an oversized drawer"
@@ -108,16 +108,18 @@ grep -q 'onClicked: Popups.closeAll()' "$system_popup" \
   || fail "SystemMenuPopup should own outside-click dismissal"
 grep -q 'required property string label' "$system_popup" \
   || fail "SystemMenuPopup delegates should bind labels from stable ListModel roles"
-grep -q 'iconBadge' "$system_popup" \
-  || fail "SystemMenuPopup should render styled icon badges"
+grep -q 'id: headerRule' "$system_popup" \
+  || fail "SystemMenuPopup should render a restrained header rule"
+! grep -q 'iconBadge' "$system_popup" \
+  || fail "SystemMenuPopup should avoid oversized icon badges"
 
 grep -q 'ListModel {' "$settings_popup" \
   || fail "SettingsMenuPopup should use stable ListModel roles for visible labels"
 grep -q 'Binding { target: Popups; property: "settingsMenuVisible"' "$settings_popup" \
   || fail "SettingsMenuPopup should expose visual presence"
-grep -Eq 'readonly property int menuWidth:[[:space:]]+300' "$settings_popup" \
+grep -Eq 'readonly property int menuWidth:[[:space:]]+282' "$settings_popup" \
   || fail "SettingsMenuPopup should stay compact"
-grep -Eq 'readonly property int menuHeight:[[:space:]]+184' "$settings_popup" \
+grep -Eq 'readonly property int menuHeight:[[:space:]]+162' "$settings_popup" \
   || fail "SettingsMenuPopup should stay slim"
 grep -q 'width: root.fullCardWidth' "$settings_popup" \
   || fail "SettingsMenuPopup should not expand into an oversized drawer"
@@ -149,8 +151,10 @@ grep -q 'onClicked: Popups.closeAll()' "$settings_popup" \
   || fail "SettingsMenuPopup should own outside-click dismissal"
 grep -q 'required property string label' "$settings_popup" \
   || fail "SettingsMenuPopup delegates should bind labels from stable ListModel roles"
-grep -q 'iconBadge' "$settings_popup" \
-  || fail "SettingsMenuPopup should render styled icon badges"
+grep -q 'id: headerRule' "$settings_popup" \
+  || fail "SettingsMenuPopup should render a restrained header rule"
+! grep -q 'iconBadge' "$settings_popup" \
+  || fail "SettingsMenuPopup should avoid oversized icon badges"
 ! grep -q 'modelData && modelData.label' "$settings_popup" \
   || fail "SettingsMenuPopup should not render blank modelData fallbacks"
 
