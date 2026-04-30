@@ -50,8 +50,8 @@ grep -q 'PanelWindow' "$launcher_popup" \
   || fail "AppLauncherPopup should be its own layer shell window"
 grep -q 'WlrKeyboardFocus.Exclusive' "$launcher_popup" \
   || fail "AppLauncherPopup should own keyboard focus while open"
-grep -q 'Popups.launcherOpen || Popups.wallpaperOpen ? WlrKeyboardFocus.None : WlrKeyboardFocus.OnDemand' "$popup_dismiss" \
-  || fail "PopupDismiss should not steal keyboard focus from searchable popups"
+grep -q 'Popups.launcherOpen || Popups.wallpaperOpen || Popups.toolboxOpen ? WlrKeyboardFocus.None : WlrKeyboardFocus.OnDemand' "$popup_dismiss" \
+  || fail "PopupDismiss should not steal keyboard focus from focus-owned popups"
 grep -q 'Binding { target: Popups; property: "launcherVisible"' "$launcher_popup" \
   || fail "AppLauncherPopup should expose visual presence to TopBar"
 grep -q 'launcherWidth: Math.min(420, Theme.dashboardWidth)' "$launcher_popup" \

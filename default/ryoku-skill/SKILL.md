@@ -108,7 +108,7 @@ cat $(which ryoku-theme-set)
 | `ryoku-theme-*` | Theme management | `ryoku-theme-set <name>` |
 | `ryoku-install-*` | Install optional software | `ryoku-install-docker-dbs` |
 | `ryoku-launch-*` | Launch apps | `ryoku-launch-browser` |
-| `ryoku-cmd-*` | System commands | `ryoku-cmd-screenshot` |
+| `ryoku-cmd-*` | System commands | `ryoku-cmd-ocr` |
 | `ryoku-pkg-*` | Package management | `ryoku-pkg-install <pkg>` |
 | `ryoku-setup-*` | Initial setup tasks | `ryoku-setup-fingerprint` |
 | `ryoku-update-*` | System updates | `ryoku-update` |

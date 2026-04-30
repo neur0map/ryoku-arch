@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg version="1.1"
+	 id="Sample" xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:svg="http://www.w3.org/2000/svg"
+	 xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 400 575"
+	 style="enable-background:new 0 0 400 575;" xml:space="preserve">
+<g           font-family="monospace" font-style="normal" font-weight="normal" font-stretch="normal" font-size="36px">
+	<text x=" 12" y=" 64" >monospace</text>
+	<text x=" 12" y="280" style="font-size: 50px;">Wikipedia</text>
+	<text x="388" y="220" style="font-size:180px;text-anchor:end;">A</text>
+	<text x=" 12" y="208" style="font-size: 50px;font-style:italic;">Bb Gg Jj</text>
+	<text x=" 12" y="136" style="font-size: 50px;">Aa Ee Rr</text>
+	<rect x="  0" y="300" width="400" height="170"/>
+	<text x=" 12" y="340" style="fill:#FFFFFF;">abcdefghijklm</text>
+	<text x=" 12" y="380" style="fill:#FFFFFF;">nopqrstuvwxyz</text>
+	<text x=" 12" y="420" style="fill:#FFFFFF;">ﬁ ﬄ ﬅ ẞ äéñ&amp;@</text>
+	<text x="388" y="460" style="fill:#FFFFFF;text-anchor:end;">0123456789</text>
+	<text x=" 50" y="480" font-size="8px" font-family="sans-serif">normal</text>
+	<text x="100" y="480" font-size="8px" font-family="sans-serif">italic</text>
+	<text x="150" y="480" font-size="8px" font-family="sans-serif">oblique</text>
+	<text x=" 12" y="490" font-size="8px" font-family="sans-serif">100</text>
+	<text x=" 12" y="500" font-size="8px" font-family="sans-serif">200</text>
+	<text x=" 12" y="510" font-size="8px" font-family="sans-serif">300</text>
+	<text x=" 12" y="520" font-size="8px" font-family="sans-serif">normal</text>
+	<text x=" 12" y="530" font-size="8px" font-family="sans-serif">500</text>
+	<text x=" 12" y="540" font-size="8px" font-family="sans-serif">600</text>
+	<text x=" 12" y="550" font-size="8px" font-family="sans-serif">bold</text>
+	<text x=" 12" y="560" font-size="8px" font-family="sans-serif">800</text>
+	<text x=" 12" y="570" font-size="8px" font-family="sans-serif">900</text>
+	<text x=" 50" y="490" font-size="8px" font-weight="100">Wikipedia</text>
+	<text x=" 50" y="500" font-size="8px" font-weight="200">Wikipedia</text>
+	<text x=" 50" y="510" font-size="8px" font-weight="300">Wikipedia</text>
+	<text x=" 50" y="520" font-size="8px" font-weight="normal">Wikipedia</text>
+	<text x=" 50" y="530" font-size="8px" font-weight="500">Wikipedia</text>
+	<text x=" 50" y="540" font-size="8px" font-weight="600">Wikipedia</text>
+	<text x=" 50" y="550" font-size="8px" font-weight="bold">Wikipedia</text>
+	<text x=" 50" y="560" font-size="8px" font-weight="800">Wikipedia</text>
+	<text x=" 50" y="570" font-size="8px" font-weight="900">Wikipedia</text>
+	<text x="100" y="490" font-size="8px" font-weight="100" font-style="italic">Wikipedia</text>
+	<text x="100" y="500" font-size="8px" font-weight="200" font-style="italic">Wikipedia</text>
+	<text x="100" y="510" font-size="8px" font-weight="300" font-style="italic">Wikipedia</text>
+	<text x="100" y="520" font-size="8px" font-weight="normal" font-style="italic">Wikipedia</text>
+	<text x="100" y="530" font-size="8px" font-weight="500" font-style="italic">Wikipedia</text>
+	<text x="100" y="540" font-size="8px" font-weight="600" font-style="italic">Wikipedia</text>
+	<text x="100" y="550" font-size="8px" font-weight="bold" font-style="italic">Wikipedia</text>
+	<text x="100" y="560" font-size="8px" font-weight="800" font-style="italic">Wikipedia</text>
+	<text x="100" y="570" font-size="8px" font-weight="900" font-style="italic">Wikipedia</text>
+	<text x="150" y="490" font-size="8px" font-weight="100" font-style="oblique">Wikipedia</text>
+	<text x="150" y="500" font-size="8px" font-weight="200" font-style="oblique">Wikipedia</text>
+	<text x="150" y="510" font-size="8px" font-weight="300" font-style="oblique">Wikipedia</text>
+	<text x="150" y="520" font-size="8px" font-weight="normal" font-style="oblique">Wikipedia</text>
+	<text x="150" y="530" font-size="8px" font-weight="500" font-style="oblique">Wikipedia</text>
+	<text x="150" y="540" font-size="8px" font-weight="600" font-style="oblique">Wikipedia</text>
+	<text x="150" y="550" font-size="8px" font-weight="bold" font-style="oblique">Wikipedia</text>
+	<text x="150" y="560" font-size="8px" font-weight="800" font-style="oblique">Wikipedia</text>
+	<text x="150" y="570" font-size="8px" font-weight="900" font-style="oblique">Wikipedia</text>
+</g>
+</svg>

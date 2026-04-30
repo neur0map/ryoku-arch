@@ -1,7 +1,92 @@
 #!/bin/bash
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+trap 'exit 0' PIPE
 
-# Returns a list of all the monospace fonts available on the system that can be set using ryoku-font-set.
+# Returns a list of all the monospace fonts available on the system that
+# can be set using ryoku-font-set. With --jsonl, returns the curated
+# Ryoku/Omarchy font catalog plus any extra installed monospace families.
 
-fc-list :spacing=100 -f "%{family[0]}\n" | grep -v -i -E 'emoji|signwriting|ryoku  |omarchy' | sort -u
+current_font="$(ryoku-font-current 2>/dev/null || true)"
+
+font_installed() {
+  local family="$1"
+  fc-list :spacing=100 -f "%{family[0]}\n" \
+    | grep -v -i -E 'emoji|signwriting|^ryoku$|omarchy' \
+    | grep -Fxqi "$family"
+}
+
+emit_font_json() {
+  local id="$1"
+  local display="$2"
+  local family="$3"
+  local package="$4"
+  local source="$5"
+  local preview="$6"
+  local installed="false"
+  local active="false"
+
+  font_installed "$family" && installed="true"
+  [[ $family == "$current_font" ]] && active="true"
+
+  jq -cn \
+    --arg id "$id" \
+    --arg display "$display" \
+    --arg family "$family" \
+    --arg package "$package" \
+    --arg source "$source" \
+    --arg preview "$preview" \
+    --argjson installed "$installed" \
+    --argjson active "$active" \
+    '{fontId: $id, display: $display, family: $family, packageName: $package, source: $source, preview: $preview, installed: $installed, active: $active}' \
+    2>/dev/null || exit 0
+}
+
+preview_asset() {
+  printf '%s/config/quickshell/ryoku/assets/appearance/fonts/%s\n' "$RYOKU_PATH" "$1"
+}
+
+preview_for_family() {
+  case "$1" in
+    *JetBrainsMono*) preview_asset jetbrains-mono.svg ;;
+    *Caskaydia*|*Cascadia*) preview_asset cascadia-mono.jpg ;;
+    *Meslo*) preview_asset meslo-lg-mono.png ;;
+    *FiraCode*|*"Fira Code"*) preview_asset fira-code.svg ;;
+    *VictorMono*|*"Victor Mono"*) preview_asset victor-mono.svg ;;
+    *BitstromWera*|*"Bitstream Vera"*) preview_asset bitstream-vera-mono.svg ;;
+    *Iosevka*) preview_asset iosevka.svg ;;
+    *"iA Writer"*) preview_asset ia-writer-mono.png ;;
+    *) preview_asset monospace.svg ;;
+  esac
+}
+
+if [[ ${1:-} == "--jsonl" ]]; then
+  declare -A seen=()
+
+  emit_font_json "jetbrains-mono" "JetBrains Mono" "JetBrainsMono Nerd Font" "ttf-jetbrains-mono-nerd" "curated" "$(preview_asset jetbrains-mono.svg)"
+  seen["JetBrainsMono Nerd Font"]=1
+  emit_font_json "cascadia-mono" "Cascadia Mono" "CaskaydiaMono Nerd Font" "ttf-cascadia-mono-nerd" "curated" "$(preview_asset cascadia-mono.jpg)"
+  seen["CaskaydiaMono Nerd Font"]=1
+  emit_font_json "meslo-lg-mono" "Meslo LG Mono" "MesloLGL Nerd Font" "ttf-meslo-nerd" "curated" "$(preview_asset meslo-lg-mono.png)"
+  seen["MesloLGL Nerd Font"]=1
+  emit_font_json "fira-code" "Fira Code" "FiraCode Nerd Font" "ttf-firacode-nerd" "curated" "$(preview_asset fira-code.svg)"
+  seen["FiraCode Nerd Font"]=1
+  emit_font_json "victor-mono" "Victor Mono" "VictorMono Nerd Font" "ttf-victor-mono-nerd" "curated" "$(preview_asset victor-mono.svg)"
+  seen["VictorMono Nerd Font"]=1
+  emit_font_json "bitstream-vera-mono" "Bitstream Vera Mono" "BitstromWera Nerd Font" "ttf-bitstream-vera-mono-nerd" "curated" "$(preview_asset bitstream-vera-mono.svg)"
+  seen["BitstromWera Nerd Font"]=1
+  emit_font_json "iosevka" "Iosevka" "Iosevka Nerd Font Mono" "ttf-iosevka-nerd" "curated" "$(preview_asset iosevka.svg)"
+  seen["Iosevka Nerd Font Mono"]=1
+  emit_font_json "ia-writer-mono" "iA Writer Mono" "iA Writer Mono S" "ttf-ia-writer" "curated" "$(preview_asset ia-writer-mono.png)"
+  seen["iA Writer Mono S"]=1
+
+  while IFS= read -r family; do
+    [[ -n $family ]] || continue
+    [[ -n ${seen[$family]:-} ]] && continue
+    seen[$family]=1
+    emit_font_json "$(printf '%s' "$family" | tr '[:upper:] ' '[:lower:]-')" "$family" "$family" "" "installed" "$(preview_for_family "$family")"
+  done < <(fc-list :spacing=100 -f "%{family[0]}\n" | grep -v -i -E 'emoji|signwriting|^ryoku$|omarchy' | sort -u)
+  exit 0
+fi
+
+fc-list :spacing=100 -f "%{family[0]}\n" | grep -v -i -E 'emoji|signwriting|^ryoku$|omarchy' | sort -u

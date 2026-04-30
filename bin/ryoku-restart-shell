@@ -7,5 +7,6 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 # because Quickshell's FileView cannot detect the theme symlink target
 # swap via inotify; a process restart is the reliable path.
 
-pkill -x quickshell
+pkill -x quickshell >/dev/null 2>&1 || true
+pkill -f '^qs -c ryoku($| )' >/dev/null 2>&1 || true
 setsid uwsm-app -- ryoku-launch-shell >/dev/null 2>&1 &

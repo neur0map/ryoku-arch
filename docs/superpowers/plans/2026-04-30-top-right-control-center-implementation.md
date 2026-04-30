@@ -24,7 +24,7 @@ These findings are already fixed in `docs/superpowers/specs/2026-04-30-top-right
 
 - Modify `bin/ryoku-ipc`: add `shell settings-menu home|share|hardware` and printable command targets for direct routes.
 - Modify `default/hypr/bindings/utilities.conf`: replace old `ryoku-menu toggle`, `ryoku-menu hardware`, and `ryoku-menu share` bindings with native control-center routes.
-- Modify `config/quickshell/ryoku/shell.qml`: add `openSettingsMenuPage(page, subpage)` IPC and make `toggleSettingsMenu()` reset to home when opening.
+- Modify `config/quickshell/ryoku/shell.qml`: add IPC-callable `openSettingsMenuHome`, `openSettingsMenuShare`, and `openSettingsMenuHardware` route functions, and make `toggleSettingsMenu()` reset to home when opening.
 - Modify `config/quickshell/ryoku/vendor/brain-shell/src/state/Popups.qml`: add requested settings page/subpage state.
 - Replace most of `config/quickshell/ryoku/vendor/brain-shell/src/popups/SettingsMenuPopup.qml`: keep the topbar-attached window pattern, but add native pages, quick controls, page routing, command execution, and visual polish.
 - Modify `tests/ryoku-ipc.sh`: cover new IPC route commands and argument validation.
@@ -61,21 +61,21 @@ RYOKU_PATH="$PWD" \
 RYOKU_CONFIG_PATH="$tmpdir/config" \
 RYOKU_STATE_PATH="$tmpdir/state" \
   "$ipc" shell command settings-menu-home \
-  | grep -q 'qs -c ryoku ipc call popups openSettingsMenuPage home' \
+  | grep -q 'qs -c ryoku ipc call popups openSettingsMenuHome' \
   || fail "shell command settings-menu-home should print the home route IPC command"
 
 RYOKU_PATH="$PWD" \
 RYOKU_CONFIG_PATH="$tmpdir/config" \
 RYOKU_STATE_PATH="$tmpdir/state" \
   "$ipc" shell command settings-menu-share \
-  | grep -q 'qs -c ryoku ipc call popups openSettingsMenuPage share' \
+  | grep -q 'qs -c ryoku ipc call popups openSettingsMenuShare' \
   || fail "shell command settings-menu-share should print the share route IPC command"
 
 RYOKU_PATH="$PWD" \
 RYOKU_CONFIG_PATH="$tmpdir/config" \
 RYOKU_STATE_PATH="$tmpdir/state" \
   "$ipc" shell command settings-menu-hardware \
-  | grep -q 'qs -c ryoku ipc call popups openSettingsMenuPage setup hardware' \
+  | grep -q 'qs -c ryoku ipc call popups openSettingsMenuHardware' \
   || fail "shell command settings-menu-hardware should print the hardware route IPC command"
 ```
 
@@ -95,10 +95,18 @@ rejects_trailing_args "shell settings-menu hardware" shell settings-menu hardwar
 In `tests/quickshell-topbar-settings-menus.sh`, add these assertions after the `toggleSettingsMenu` shell IPC assertion:
 
 ```bash
-grep -q 'function openSettingsMenuPage(page, subpage)' "$shell" \
-  || fail "shell IPC should expose routed settings menu pages"
-grep -q 'BS.Popups.requestSettingsMenuPage(page, subpage || "")' "$shell" \
-  || fail "openSettingsMenuPage should request the settings route before opening"
+grep -q 'function openSettingsMenuHome(): void' "$shell" \
+  || fail "shell IPC should expose the settings home route"
+grep -q 'function openSettingsMenuShare(): void' "$shell" \
+  || fail "shell IPC should expose the settings share route"
+grep -q 'function openSettingsMenuHardware(): void' "$shell" \
+  || fail "shell IPC should expose the settings hardware route"
+grep -q 'BS.Popups.requestSettingsMenuPage("home", "")' "$shell" \
+  || fail "settings home route should request the home page"
+grep -q 'BS.Popups.requestSettingsMenuPage("share", "")' "$shell" \
+  || fail "settings share route should request the share page"
+grep -q 'BS.Popups.requestSettingsMenuPage("setup", "hardware")' "$shell" \
+  || fail "settings hardware route should request the setup hardware page"
 ```
 
 Add these assertions after the existing `settingsMenuOpen` state check:
@@ -163,13 +171,13 @@ Add these cases after `settings-menu)`:
 
 ```bash
     settings-menu-home)
-      printf '%s\n' "qs -c ryoku ipc call popups openSettingsMenuPage home"
+      printf '%s\n' "qs -c ryoku ipc call popups openSettingsMenuHome"
       ;;
     settings-menu-share)
-      printf '%s\n' "qs -c ryoku ipc call popups openSettingsMenuPage share"
+      printf '%s\n' "qs -c ryoku ipc call popups openSettingsMenuShare"
       ;;
     settings-menu-hardware)
-      printf '%s\n' "qs -c ryoku ipc call popups openSettingsMenuPage setup hardware"
+      printf '%s\n' "qs -c ryoku ipc call popups openSettingsMenuHardware"
       ;;
 ```
 
@@ -186,13 +194,13 @@ shell_settings_menu() {
 
   case "$route" in
     home|quick|quick-controls)
-      exec qs -c ryoku ipc call popups openSettingsMenuPage home
+      exec qs -c ryoku ipc call popups openSettingsMenuHome
       ;;
     share)
-      exec qs -c ryoku ipc call popups openSettingsMenuPage share
+      exec qs -c ryoku ipc call popups openSettingsMenuShare
       ;;
     hardware)
-      exec qs -c ryoku ipc call popups openSettingsMenuPage setup hardware
+      exec qs -c ryoku ipc call popups openSettingsMenuHardware
       ;;
     *)
       echo "ryoku-ipc: unknown settings-menu route: $route" >&2
@@ -246,12 +254,24 @@ In `config/quickshell/ryoku/shell.qml`, update `toggleSettingsMenu()` to reset t
         }
 ```
 
-Add this function after `toggleSettingsMenu()`:
+Add these IPC-callable wrappers after `toggleSettingsMenu()`. The no-argument wrappers are used because Quickshell IPC call dispatch does not reliably call parameterized QML helper functions:
 
 ```qml
-        function openSettingsMenuPage(page, subpage): void {
+        function openSettingsMenuHome(): void {
             BS.Popups.closeAll()
-            BS.Popups.requestSettingsMenuPage(page, subpage || "")
+            BS.Popups.requestSettingsMenuPage("home", "")
+            BS.Popups.settingsMenuOpen = true
+        }
+
+        function openSettingsMenuShare(): void {
+            BS.Popups.closeAll()
+            BS.Popups.requestSettingsMenuPage("share", "")
+            BS.Popups.settingsMenuOpen = true
+        }
+
+        function openSettingsMenuHardware(): void {
+            BS.Popups.closeAll()
+            BS.Popups.requestSettingsMenuPage("setup", "hardware")
             BS.Popups.settingsMenuOpen = true
         }
 ```
@@ -1408,5 +1428,5 @@ git commit -m "feat: add top right control center"
 ## Self-Review
 
 - Spec coverage: Task 1 covers routed IPC and direct binding replacement. Task 2 covers topbar-attached control-center structure, Apps exclusion, Dotfiles preservation, and ownership tests. Task 3 covers in-scope quick toggles while excluding brightness, Caffeine, and capture tools. Task 4 covers native pages, Manage/Maintain, leaf actions, and old-menu section replacement. Task 5 covers live/share deployment and restart.
-- Type consistency: routed page names are `home`, `share`, and `setup hardware`; popup route properties are `settingsMenuRequestedPage` and `settingsMenuRequestedSubpage`; QML entry point is `openSettingsMenuPage(page, subpage)`.
+- Type consistency: routed page names are `home`, `share`, and `setup hardware`; popup route properties are `settingsMenuRequestedPage` and `settingsMenuRequestedSubpage`; IPC-callable QML entry points are `openSettingsMenuHome`, `openSettingsMenuShare`, and `openSettingsMenuHardware`.
 - Command consistency: top-level toggle remains `ryoku-ipc shell toggle settings-menu`; direct old submenu replacements use `ryoku-ipc shell settings-menu home|share|hardware`; app launching remains `SUPER+SPACE`.

@@ -5,6 +5,7 @@ import QtQuick.Shapes
 import QtMultimedia
 import "../"
 
+// Slice behavior adapted from liixini/skwd-wall's MIT-licensed SliceDelegate.
 Item {
   id: root
 
@@ -12,15 +13,21 @@ Item {
   property bool selected: false
   property bool hovered: false
   property int skewOffset: 22
+  property int expandedWidth: 344
+  property int hoverWidth: 214
+  property int sliceWidth: 104
+  property bool appeared: false
   signal activated()
 
-  width: expanded ? 300 : 92
-  height: 236
-  scale: root.hovered && !root.selected ? 1.025 : 1.0
+  width: root.selected ? root.expandedWidth : (root.hovered ? root.hoverWidth : root.sliceWidth)
+  height: 278
   z: root.selected ? 3 : (root.hovered ? 2 : 1)
   clip: false
+  opacity: root.appeared ? 1 : 0
+  scale: root.appeared ? 1 : 0.985
 
   readonly property bool expanded: root.selected || root.hovered
+  readonly property real mediaScale: root.selected ? 1.0 : (root.hovered ? 1.05 : 1.18)
   readonly property bool isVideo: root.itemData.type === "video"
   readonly property string previewPath: root.itemData.thumb || root.itemData.path || ""
   readonly property string previewSource: mediaSource(previewPath)
@@ -34,17 +41,37 @@ Item {
 
   Behavior on width {
     NumberAnimation {
-      duration: Theme.animDuration
+      duration: Theme.animDuration + 110
+      easing.type: Easing.OutCubic
+    }
+  }
+
+  Behavior on opacity {
+    NumberAnimation {
+      duration: Theme.animDuration + 100
       easing.type: Easing.OutCubic
     }
   }
 
   Behavior on scale {
     NumberAnimation {
-      duration: Theme.animDuration
+      duration: Theme.animDuration + 100
       easing.type: Easing.OutCubic
     }
   }
+
+  transform: Translate {
+    x: root.appeared ? 0 : 28
+
+    Behavior on x {
+      NumberAnimation {
+        duration: Theme.animDuration + 100
+        easing.type: Easing.OutCubic
+      }
+    }
+  }
+
+  Component.onCompleted: root.appeared = true
 
   Item {
     id: cardContent
@@ -52,11 +79,21 @@ Item {
     visible: false
 
     Image {
+      id: imagePreview
       anchors.fill: parent
       source: root.previewSource
       fillMode: Image.PreserveAspectCrop
       asynchronous: true
+      scale: root.mediaScale
+      transformOrigin: Item.Center
       visible: !root.isVideo || !root.selected
+
+      Behavior on scale {
+        NumberAnimation {
+          duration: Theme.animDuration + 90
+          easing.type: Easing.OutCubic
+        }
+      }
     }
 
     MediaPlayer {
@@ -77,7 +114,16 @@ Item {
       id: videoOutput
       anchors.fill: parent
       fillMode: VideoOutput.PreserveAspectCrop
+      scale: root.mediaScale
+      transformOrigin: Item.Center
       visible: root.itemData.type === "video" && root.selected
+
+      Behavior on scale {
+        NumberAnimation {
+          duration: Theme.animDuration + 90
+          easing.type: Easing.OutCubic
+        }
+      }
     }
 
     Rectangle {

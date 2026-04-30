@@ -1,0 +1,60 @@
+#!/bin/bash
+
+set -e
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+font_id="${1:-}"
+
+install_package() {
+  local package="$1"
+
+  if ryoku-pkg-present "$package"; then
+    return
+  fi
+
+  if pacman -Si "$package" >/dev/null 2>&1; then
+    ryoku-pkg-add "$package"
+  else
+    ryoku-pkg-aur-add "$package"
+  fi
+}
+
+case "$font_id" in
+  jetbrains-mono|"JetBrainsMono Nerd Font")
+    install_package ttf-jetbrains-mono-nerd
+    ryoku-font-set "JetBrainsMono Nerd Font"
+    ;;
+  cascadia-mono|"CaskaydiaMono Nerd Font")
+    install_package ttf-cascadia-mono-nerd
+    ryoku-font-set "CaskaydiaMono Nerd Font"
+    ;;
+  meslo-lg-mono|"MesloLGL Nerd Font")
+    install_package ttf-meslo-nerd
+    ryoku-font-set "MesloLGL Nerd Font"
+    ;;
+  fira-code|"FiraCode Nerd Font")
+    install_package ttf-firacode-nerd
+    ryoku-font-set "FiraCode Nerd Font"
+    ;;
+  victor-mono|"VictorMono Nerd Font")
+    install_package ttf-victor-mono-nerd
+    ryoku-font-set "VictorMono Nerd Font"
+    ;;
+  bitstream-vera-mono|"BitstromWera Nerd Font")
+    install_package ttf-bitstream-vera-mono-nerd
+    ryoku-font-set "BitstromWera Nerd Font"
+    ;;
+  iosevka|"Iosevka Nerd Font Mono")
+    install_package ttf-iosevka-nerd
+    ryoku-font-set "Iosevka Nerd Font Mono"
+    ;;
+  ia-writer-mono|"iA Writer Mono S")
+    install_package ttf-ia-writer
+    ryoku-font-set "iA Writer Mono S"
+    ;;
+  *)
+    echo "Usage: ryoku-font-install <font-id>" >&2
+    exit 2
+    ;;
+esac

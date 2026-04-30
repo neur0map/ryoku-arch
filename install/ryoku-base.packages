@@ -139,6 +139,7 @@ sddm
 # ── Audio system + visualizer ─────────────────────────────────────────
 alsa-utils
 cava
+easyeffects
 gst-plugins-bad
 gst-plugins-base
 gst-plugins-good

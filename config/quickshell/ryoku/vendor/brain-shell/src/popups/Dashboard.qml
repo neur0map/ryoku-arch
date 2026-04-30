@@ -37,8 +37,10 @@ PanelWindow {
 
     readonly property int  fw:                Theme.notchRadius
     readonly property int  fh:                Theme.notchRadius
+    readonly property int equalizerExtraHeight: 122
     readonly property real fullCardWidth:     Popups.dashboardPageWidth + 2 * root.fw
     readonly property real fullCardHeight:    Theme.notchHeight + Theme.dashboardHeight
+                                                + (Popups.playerEqualizerOpen ? root.equalizerExtraHeight : 0)
     // Initial card matches the bar's center pill: same width (plus the
     // 2*fw flare allowance so the popup body equals the pill body), and
     // height equal to the notch strip. At expandScale=0 the card is
@@ -99,6 +101,7 @@ PanelWindow {
                 closeTimer.stop()
                 root.windowVisible = true
             } else {
+                Popups.playerEqualizerOpen = false
                 closeTimer.restart()
             }
         }

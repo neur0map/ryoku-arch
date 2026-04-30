@@ -19,6 +19,8 @@ QtObject {
     // ── Config path — src/user_data/wallpaper.json (relative to this file) ──────
     readonly property string configPath: Qt.resolvedUrl("../user_data/wallpaper.json")
                                             .toString().replace(/^file:\/\//, "")
+    readonly property string metaPath: Qt.resolvedUrl("../user_data/wallpaper-meta.json")
+                                        .toString().replace(/^file:\/\//, "")
 
     // ── State ─────────────────────────────────────────────────────────────────
     property var wallpaperModel: ListModel {}
@@ -39,6 +41,74 @@ QtObject {
     property string selectedSourceFilter: "local"
     property string selectedTypeFilter: ""
     property int selectedColorFilter: -1
+    property string sortMode: "color"
+    property string displayMode: "slices"
+    property bool matugenEnabled: true
+    property bool ollamaEnabled: false
+    property bool steamEnabled: false
+    property bool wallhavenEnabled: true
+    property string matugenMode: "dark"
+    property string matugenSchemeType: "scheme-fidelity"
+    property bool closeOnSelection: true
+    property bool reopenAtLastSelection: false
+    property bool wallpaperMute: true
+    property string selectedMonitor: ""
+    property int randomInterval: 300
+    property bool randomIncludeImage: true
+    property bool randomIncludeVideo: true
+    property bool randomIncludeFavourites: false
+    property bool randomRotationActive: false
+    property string imageOptimizePreset: "balanced"
+    property string imageOptimizeResolution: "2k"
+    property bool autoOptimizeImages: false
+    property int imageTrashDays: 7
+    property string videoConvertPreset: "balanced"
+    property string videoConvertResolution: "2k"
+    property bool autoConvertVideos: false
+    property int videoTrashDays: 7
+    property string externalWallpaperCommand: ""
+    property var postProcessingCommands: []
+    property string wallhavenSorting: "date_added"
+    property string wallhavenOrder: "desc"
+    property string wallhavenPurity: "100"
+    property string wallhavenCategories: "111"
+    property string wallhavenApiKeyEnv: "WALLHAVEN_API_KEY"
+    property string steamApiKey: ""
+    property string steamUsername: ""
+    property string steamRoot: Quickshell.env("HOME") + "/.local/share/Steam"
+    property string ollamaUrl: "http://localhost:11434"
+    property string ollamaModel: "gemma3:4b"
+    property bool ollamaConsolidateEnabled: true
+    property bool ollamaTaggingActive: false
+    property int ollamaProgress: 0
+    property int ollamaTotal: 0
+    property string ollamaEta: ""
+    property string ollamaLogLine: ""
+    property bool imageOptimizeRunning: false
+    property int imageOptimizeProgress: 0
+    property int imageOptimizeTotal: 0
+    property string imageOptimizeFile: ""
+    property bool videoConvertRunning: false
+    property int videoConvertProgress: 0
+    property int videoConvertTotal: 0
+    property string videoConvertFile: ""
+    property int sliceWidth: 118
+    property int hoverWidth: 174
+    property int expandedWidth: 330
+    property int sliceHeight: 278
+    property int sliceSpacing: 8
+    property int skewOffset: 22
+    property int gridThumbWidth: 188
+    property int gridThumbHeight: 128
+    property int hexThumbWidth: 166
+    property int hexThumbHeight: 146
+    property int mosaicThumbWidth: 210
+    property int mosaicThumbHeight: 142
+    property var selectedTags: []
+    property var popularTags: []
+    property var tagsDb: ({})
+    property var favouritesDb: ({})
+    property bool favouriteFilterActive: false
     property string searchQuery: ""
     property string activeWallhavenQuery: ""
     property string statusText: ""
@@ -141,11 +211,190 @@ QtObject {
         return item.mtime === undefined ? 0 : Number(item.mtime)
     }
 
+    function itemKey(item) {
+        if (!item) return ""
+        if (item.weId !== undefined && item.weId !== "") return String(item.weId)
+        if (item.id !== undefined && item.id !== "") return String(item.id)
+        var name = root.itemName(item)
+        if (name !== "") return name.replace(/\.[^.]+$/, "")
+        return item.path || ""
+    }
+
+    function isFavourite(item) {
+        var key = root.itemKey(item)
+        return key !== "" && !!root.favouritesDb[key]
+    }
+
+    function toggleFavourite(item) {
+        var key = root.itemKey(item)
+        if (key === "") return
+        var db = JSON.parse(JSON.stringify(root.favouritesDb))
+        if (db[key]) {
+            delete db[key]
+        } else {
+            db[key] = true
+        }
+        root.favouritesDb = db
+        root.saveMeta()
+        if (root.favouriteFilterActive) root.updateFilteredModel()
+    }
+
+    function getWallpaperTags(item) {
+        var key = root.itemKey(item)
+        if (key !== "" && root.tagsDb[key]) return root.tagsDb[key]
+        var name = root.itemName(item)
+        if (name !== "" && root.tagsDb[name]) return root.tagsDb[name]
+        return []
+    }
+
+    function setWallpaperTags(item, tags) {
+        var key = root.itemKey(item)
+        if (key === "") return
+        var normalized = []
+        for (var i = 0; i < tags.length; i++) {
+            var tag = String(tags[i]).trim().toLowerCase()
+            if (tag !== "" && normalized.indexOf(tag) === -1) normalized.push(tag)
+        }
+        var db = JSON.parse(JSON.stringify(root.tagsDb))
+        db[key] = normalized
+        root.tagsDb = db
+        root.rebuildPopularTags()
+        root.saveMeta()
+        root.updateFilteredModel()
+    }
+
+    function rebuildPopularTags() {
+        var counts = {}
+        for (var key in root.tagsDb) {
+            var tags = root.tagsDb[key] || []
+            for (var i = 0; i < tags.length; i++) {
+                counts[tags[i]] = (counts[tags[i]] || 0) + 1
+            }
+        }
+        var rows = []
+        for (var tag in counts) rows.push({ tag: tag, count: counts[tag] })
+        rows.sort(function(a, b) {
+            if (a.count !== b.count) return b.count - a.count
+            return a.tag.localeCompare(b.tag)
+        })
+        root.popularTags = rows
+    }
+
+    function settingsKeys() {
+        return [
+            "matugenEnabled", "ollamaEnabled", "steamEnabled", "wallhavenEnabled",
+            "matugenMode", "matugenSchemeType", "closeOnSelection",
+            "reopenAtLastSelection", "wallpaperMute", "selectedMonitor",
+            "randomInterval", "randomIncludeImage", "randomIncludeVideo",
+            "randomIncludeFavourites", "randomRotationActive",
+            "imageOptimizePreset", "imageOptimizeResolution", "autoOptimizeImages",
+            "imageTrashDays", "videoConvertPreset", "videoConvertResolution",
+            "autoConvertVideos", "videoTrashDays", "externalWallpaperCommand",
+            "postProcessingCommands", "wallhavenSorting", "wallhavenOrder",
+            "wallhavenPurity", "wallhavenCategories", "wallhavenApiKeyEnv",
+            "steamApiKey", "steamUsername", "steamRoot", "ollamaUrl",
+            "ollamaModel", "ollamaConsolidateEnabled", "sliceWidth",
+            "hoverWidth", "expandedWidth", "sliceHeight", "sliceSpacing",
+            "skewOffset", "gridThumbWidth", "gridThumbHeight", "hexThumbWidth",
+            "hexThumbHeight", "mosaicThumbWidth", "mosaicThumbHeight"
+        ]
+    }
+
+    function setSetting(key, value) {
+        if (root.settingsKeys().indexOf(key) === -1) return
+        root[key] = value
+        root.saveMeta()
+    }
+
+    function settingsSummary() {
+        var shown = root.filteredModel.count
+        var total = root.wallpaperModel.count
+        if (shown === total) return String(total)
+        return shown + "/" + total
+    }
+
+    function randomEligible(item) {
+        if (!item) return false
+        if (item.source !== "local") return false
+        if (item.type === "image" && !root.randomIncludeImage) return false
+        if (item.type === "video" && !root.randomIncludeVideo) return false
+        if (root.randomIncludeFavourites && !root.isFavourite(item)) return false
+        return true
+    }
+
+    function stopRandomRotation() {
+        randomTimer.stop()
+        root.randomRotationActive = false
+        root.saveMeta()
+    }
+
+    function startRandomRotation() {
+        var eligible = false
+        for (var i = 0; i < root.filteredModel.count; i++) {
+            if (root.randomEligible(root.filteredModel.get(i))) {
+                eligible = true
+                break
+            }
+        }
+        if (!eligible) {
+            root.statusText = "No random-eligible wallpapers"
+            return
+        }
+        root.randomRotationActive = true
+        randomTimer.interval = Math.max(10, root.randomInterval) * 1000
+        randomTimer.restart()
+        root.randomApply()
+        root.saveMeta()
+    }
+
+    function toggleRandomRotation() {
+        if (root.randomRotationActive) root.stopRandomRotation()
+        else root.startRandomRotation()
+    }
+
+    function optimizeImages() {
+        if (root.imageOptimizeRunning) return
+        root.imageOptimizeRunning = true
+        root.imageOptimizeProgress = 0
+        root.imageOptimizeTotal = 0
+        root.imageOptimizeFile = root.imageOptimizePreset + " / " + root.imageOptimizeResolution
+        root.statusText = "Image optimization is staged in settings"
+        imageOptimizeFinish.restart()
+    }
+
+    function convertVideos() {
+        if (root.videoConvertRunning) return
+        root.videoConvertRunning = true
+        root.videoConvertProgress = 0
+        root.videoConvertTotal = 0
+        root.videoConvertFile = root.videoConvertPreset + " / " + root.videoConvertResolution
+        root.statusText = "Video conversion is staged in settings"
+        videoConvertFinish.restart()
+    }
+
+    function startOllamaTagging() {
+        if (!root.ollamaEnabled) {
+            root.statusText = "Enable Ollama in settings first"
+            return
+        }
+        root.ollamaTaggingActive = !root.ollamaTaggingActive
+        root.ollamaProgress = root.ollamaTaggingActive ? 0 : root.ollamaProgress
+        root.ollamaTotal = root.ollamaTaggingActive ? root.filteredModel.count : root.ollamaTotal
+        root.ollamaEta = root.ollamaTaggingActive ? "queued" : ""
+        root.ollamaLogLine = root.ollamaTaggingActive ? root.ollamaModel : ""
+        root.statusText = root.ollamaTaggingActive ? "Ollama tagging queued" : "Ollama tagging stopped"
+    }
+
     function searchMatchesItem(item, name, q) {
         if (q === "") return true
         if (item.source === "wallhaven" && q === root.activeWallhavenQuery) return true
         if (item.source === "wallhaven") return false
-        return name.toLowerCase().indexOf(q) !== -1
+        if (name.toLowerCase().indexOf(q) !== -1) return true
+        var tags = root.getWallpaperTags(item)
+        for (var i = 0; i < tags.length; i++) {
+            if (String(tags[i]).toLowerCase().indexOf(q) !== -1) return true
+        }
+        return false
     }
 
     function updateFilteredModel() {
@@ -160,17 +409,33 @@ QtObject {
             if (root.selectedSourceFilter !== "" && item.source !== root.selectedSourceFilter) continue
             if (root.selectedTypeFilter !== "" && item.type !== root.selectedTypeFilter) continue
             if (root.selectedColorFilter >= 0 && root.itemHue(item) !== root.selectedColorFilter) continue
+            if (root.favouriteFilterActive && !root.isFavourite(item)) continue
+            if (root.selectedTags.length > 0) {
+                var itemTags = root.getWallpaperTags(item)
+                var tagsMatch = true
+                for (var t = 0; t < root.selectedTags.length; t++) {
+                    if (itemTags.indexOf(root.selectedTags[t]) === -1) {
+                        tagsMatch = false
+                        break
+                    }
+                }
+                if (!tagsMatch) continue
+            }
             if (!root.searchMatchesItem(item, name, q)) continue
 
             rows.push(item)
         }
 
-        rows.sort(function(a, b) {
-            var ah = root.itemHue(a) === 99 ? 100 : root.itemHue(a)
-            var bh = root.itemHue(b) === 99 ? 100 : root.itemHue(b)
-            if (ah !== bh) return ah - bh
-            return root.itemMtime(b) - root.itemMtime(a)
-        })
+        if (root.sortMode === "date") {
+            rows.sort(function(a, b) { return root.itemMtime(b) - root.itemMtime(a) })
+        } else {
+            rows.sort(function(a, b) {
+                var ah = root.itemHue(a) === 99 ? 100 : root.itemHue(a)
+                var bh = root.itemHue(b) === 99 ? 100 : root.itemHue(b)
+                if (ah !== bh) return ah - bh
+                return root.itemMtime(b) - root.itemMtime(a)
+            })
+        }
 
         root.filteredModel.clear()
         for (var j = 0; j < rows.length; j++) {
@@ -192,6 +457,78 @@ QtObject {
     onSelectedTypeFilterChanged: updateFilteredModel()
     onSelectedColorFilterChanged: updateFilteredModel()
     onSearchQueryChanged: updateFilteredModel()
+    onSortModeChanged: {
+        root.saveMeta()
+        root.updateFilteredModel()
+    }
+    onFavouriteFilterActiveChanged: updateFilteredModel()
+    onSelectedTagsChanged: updateFilteredModel()
+    onDisplayModeChanged: root.saveMeta()
+
+    property var randomTimer: Timer {
+        id: randomTimer
+        repeat: true
+        onTriggered: root.randomApply()
+    }
+
+    property var imageOptimizeFinish: Timer {
+        id: imageOptimizeFinish
+        interval: 1200
+        onTriggered: {
+            root.imageOptimizeRunning = false
+            root.imageOptimizeFile = ""
+        }
+    }
+
+    property var videoConvertFinish: Timer {
+        id: videoConvertFinish
+        interval: 1200
+        onTriggered: {
+            root.videoConvertRunning = false
+            root.videoConvertFile = ""
+        }
+    }
+
+    property var metaFile: FileView {
+        path: root.metaPath
+        preload: true
+    }
+
+    function loadMeta() {
+        metaFile.reload()
+        var raw = metaFile.text()
+        if (!raw || raw.trim() === "") return
+        try {
+            var obj = JSON.parse(raw)
+            root.tagsDb = obj.tags || {}
+            root.favouritesDb = obj.favourites || {}
+            if (obj.displayMode) root.displayMode = obj.displayMode
+            if (obj.sortMode) root.sortMode = obj.sortMode
+            var settings = obj.settings || {}
+            var keys = root.settingsKeys()
+            for (var i = 0; i < keys.length; i++) {
+                if (settings[keys[i]] !== undefined) root[keys[i]] = settings[keys[i]]
+            }
+            if (root.randomRotationActive) root.startRandomRotation()
+            root.rebuildPopularTags()
+        } catch(e) {
+            root.statusText = "Could not load wallpaper metadata"
+        }
+    }
+
+    function saveMeta() {
+        var settings = {}
+        var keys = root.settingsKeys()
+        for (var i = 0; i < keys.length; i++) settings[keys[i]] = root[keys[i]]
+        var json = JSON.stringify({
+            tags: root.tagsDb,
+            favourites: root.favouritesDb,
+            displayMode: root.displayMode,
+            sortMode: root.sortMode,
+            settings: settings
+        }, null, 2)
+        metaFile.setText(json + "\n")
+    }
 
     // ── Config read — runs on startup, then calls refresh() ──────────────────
     property string _cfgBuf: ""
@@ -345,6 +682,38 @@ QtObject {
         })
     }
 
+    function randomApply() {
+        if (root.filteredModel.count <= 0 || root.applying) return
+        var tries = Math.max(1, root.filteredModel.count * 2)
+        for (var i = 0; i < tries; i++) {
+            var idx = Math.floor(Math.random() * root.filteredModel.count)
+            var item = root.filteredModel.get(idx)
+            if (root.randomEligible(item)) {
+                root.applyItem(item)
+                return
+            }
+        }
+        root.statusText = "No random-eligible wallpapers"
+    }
+
+    function deleteWallpaperItem(item) {
+        if (!item) return
+        var key = root.itemKey(item)
+        for (var i = root.wallpaperModel.count - 1; i >= 0; i--) {
+            if (root.itemKey(root.wallpaperModel.get(i)) === key) root.wallpaperModel.remove(i)
+        }
+        var favs = JSON.parse(JSON.stringify(root.favouritesDb))
+        delete favs[key]
+        root.favouritesDb = favs
+        var tags = JSON.parse(JSON.stringify(root.tagsDb))
+        delete tags[key]
+        root.tagsDb = tags
+        root.rebuildPopularTags()
+        root.saveMeta()
+        root.updateFilteredModel()
+        root.statusText = "Removed from selector"
+    }
+
     property var downloadProc: Process {
         stdout: SplitParser {
             onRead: function(line) {
@@ -381,5 +750,8 @@ QtObject {
     }
 
     // Read config first (sets currentWall/wallpaperDir/scheme), then refresh()
-    Component.onCompleted: readConfigProc.running = true
+    Component.onCompleted: {
+        root.loadMeta()
+        readConfigProc.running = true
+    }
 }

@@ -12,12 +12,12 @@ Item {
   readonly property int iconSize: 13
   readonly property int buttonSpacing: 8
   readonly property int separatorWidth: 1
-  readonly property color brandIconColor: "#F25623"
-  readonly property color idleIconColor: brandIconColor
-  readonly property color selectedFill: Qt.rgba(brandIconColor.r, brandIconColor.g, brandIconColor.b, 0.16)
-  readonly property color selectedIconColor: brandIconColor
-  readonly property color activeFill: Qt.rgba(brandIconColor.r, brandIconColor.g, brandIconColor.b, 0.24)
-  readonly property color activeIconColor: brandIconColor
+  readonly property color selectionAccentColor: "#F25623"
+  readonly property color idleIconColor: "#ffffff"
+  readonly property color selectedFill: Qt.rgba(selectionAccentColor.r, selectionAccentColor.g, selectionAccentColor.b, 0.16)
+  readonly property color selectedIconColor: idleIconColor
+  readonly property color activeFill: Qt.rgba(selectionAccentColor.r, selectionAccentColor.g, selectionAccentColor.b, 0.24)
+  readonly property color activeIconColor: idleIconColor
   readonly property color separatorColor: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.16)
 
   property bool legacyRecording: false
@@ -427,7 +427,7 @@ Item {
           color: toolItem.active
                ? root.activeFill
                : !toolItem.selected && clickArea.containsMouse
-                 ? Qt.rgba(root.brandIconColor.r, root.brandIconColor.g, root.brandIconColor.b, 0.1)
+                 ? Qt.rgba(root.selectionAccentColor.r, root.selectionAccentColor.g, root.selectionAccentColor.b, 0.1)
                  : "transparent"
 
           Behavior on color {
@@ -495,7 +495,7 @@ Item {
       width: root.buttonSize
       height: root.buttonSize
       radius: width / 2
-      color: Qt.rgba(root.brandIconColor.r, root.brandIconColor.g, root.brandIconColor.b, 0.08)
+      color: Qt.rgba(root.selectionAccentColor.r, root.selectionAccentColor.g, root.selectionAccentColor.b, 0.08)
       opacity: root.trailActive ? 1 : 0
 
       Behavior on x {
@@ -516,7 +516,7 @@ Item {
       width: root.buttonSize
       height: root.buttonSize
       radius: width / 2
-      color: Qt.rgba(root.brandIconColor.r, root.brandIconColor.g, root.brandIconColor.b, 0.14)
+      color: Qt.rgba(root.selectionAccentColor.r, root.selectionAccentColor.g, root.selectionAccentColor.b, 0.14)
       opacity: root.trailActive ? 1 : 0
 
       Behavior on x {

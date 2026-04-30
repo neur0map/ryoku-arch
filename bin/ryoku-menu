@@ -90,66 +90,11 @@ show_learn_menu() {
 }
 
 show_trigger_menu() {
-  case $(menu "Trigger" "  Capture\n  Share\n󰔎  Toggle\n  Hardware") in
-  *Capture*) show_capture_menu ;;
+  case $(menu "Trigger" "  Share\n󰔎  Toggle\n  Hardware") in
   *Share*) show_share_menu ;;
   *Toggle*) show_toggle_menu ;;
   *Hardware*) show_hardware_menu ;;
   *) show_main_menu ;;
-  esac
-}
-
-show_capture_menu() {
-  case $(menu "Capture" "  Screenshot\n  Screenrecord\n󰃉  Color") in
-  *Screenshot*) ryoku-cmd-screenshot ;;
-  *Screenrecord*) show_screenrecord_menu ;;
-  *Color*) pkill hyprpicker || hyprpicker -a ;;
-  *) back_to show_trigger_menu ;;
-  esac
-}
-
-get_webcam_list() {
-  v4l2-ctl --list-devices 2>/dev/null | while IFS= read -r line; do
-    if [[ $line != $'\t'* && -n $line ]]; then
-      local name="$line"
-      IFS= read -r device || break
-      device=$(echo "$device" | tr -d '\t' | head -1)
-      [[ -n $device ]] && echo "$device  $name"
-    fi
-  done
-}
-
-show_webcam_select_menu() {
-  local devices=$(get_webcam_list)
-  local count=$(echo "$devices" | grep -c . 2>/dev/null || echo 0)
-
-  if [[ -z $devices ]] || ((count == 0)); then
-    notify-send "No webcam devices found" -u critical -t 3000
-    return 1
-  fi
-
-  if ((count == 1)); then
-    echo "$devices" | awk '{print $1}'
-  else
-    menu "Select Webcam" "$devices" | awk '{print $1}'
-  fi
-}
-
-show_screenrecord_menu() {
-  ryoku-cmd-screenrecord --stop-recording && exit 0
-
-  case $(menu "Screenrecord" "  With no audio\n  With desktop audio\n  With desktop + microphone audio\n  With desktop + microphone audio + webcam") in
-  *"With no audio") ryoku-cmd-screenrecord ;;
-  *"With desktop audio") ryoku-cmd-screenrecord --with-desktop-audio ;;
-  *"With desktop + microphone audio") ryoku-cmd-screenrecord --with-desktop-audio --with-microphone-audio ;;
-  *"With desktop + microphone audio + webcam")
-    local device=$(show_webcam_select_menu) || {
-      back_to show_capture_menu
-      return
-    }
-    ryoku-cmd-screenrecord --with-desktop-audio --with-microphone-audio --with-webcam --webcam-device="$device"
-    ;;
-  *) back_to show_capture_menu ;;
   esac
 }
 
@@ -623,10 +568,8 @@ go_to_menu() {
   *hardware*) show_hardware_menu ;;
   *share*) show_share_menu ;;
   *background*) show_background_menu ;;
-  *capture*) show_capture_menu ;;
   *style*) show_style_menu ;;
   *theme*) show_theme_menu ;;
-  *screenrecord*) show_screenrecord_menu ;;
   *setup*) show_setup_menu ;;
   *power*) show_setup_power_menu ;;
   *install*) show_install_menu ;;

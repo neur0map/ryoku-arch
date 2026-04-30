@@ -108,7 +108,7 @@ Item {
             font.pixelSize:         13
             anchors.verticalCenter: parent.verticalCenter
 
-            // Ryoku: smooth color transition on hover.
+            // Ryoku: smooth color transition for battery state changes.
             Behavior on color { ColorAnimation { duration: 700; easing.type: Easing.OutQuart } }
 
             // Pulse when critically low and discharging
@@ -134,27 +134,22 @@ Item {
             color:                  root.iconColor
             font.pixelSize:         11
             anchors.verticalCenter: parent.verticalCenter
-            visible:                root.showPercentage || hov.hovered
+            visible:                root.showPercentage
             Behavior on color { ColorAnimation { duration: 700; easing.type: Easing.OutQuart } }
         }
-    }
-
-    HoverHandler { id: hov }
-
-    // Ryoku: subtle background highlight on hover, opacity animation.
-    Rectangle {
-        anchors.fill: parent
-        anchors.margins: 2
-        radius:  6
-        color:   "white"
-        opacity: hov.hovered ? 0.08 : 0.0
-        Behavior on opacity { NumberAnimation { duration: 800; easing.type: Easing.OutQuart } }
-        z: -1
     }
 
     // ── Warning window ────────────────────────────────────────────────────────
     BatteryWarning {
         id:      warningWindow
         visible: false
+    }
+
+    Connections {
+        target: Popups
+        function onBatteryWarningRequested(level) {
+            warningWindow.warnLevel = level
+            warningWindow.visible   = true
+        }
     }
 }
