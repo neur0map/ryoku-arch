@@ -118,6 +118,13 @@ grep -q 'required property var itemData' "$card" \
   || fail "WallpaperSkewCard should accept model item data"
 grep -q 'MediaPlayer' "$card" \
   || fail "WallpaperSkewCard should use MediaPlayer for selected videos"
+grep -q 'AudioOutput' "$card" \
+  || fail "WallpaperSkewCard should mute video previews through AudioOutput"
+grep -q 'audioOutput: mutedOutput' "$card" \
+  || fail "WallpaperSkewCard should attach muted AudioOutput to MediaPlayer"
+if grep -A8 'MediaPlayer {' "$card" | grep -Eq '^[[:space:]]*muted:'; then
+  fail "WallpaperSkewCard should not assign unsupported MediaPlayer.muted"
+fi
 grep -q 'VideoOutput' "$card" \
   || fail "WallpaperSkewCard should render video output"
 grep -q 'MultiEffect' "$card" \
