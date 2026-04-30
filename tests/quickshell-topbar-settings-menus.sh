@@ -166,8 +166,12 @@ grep -q 'id: fileList' "$dotfiles_popup" \
   || fail "DotfilesHubPopup should render files in a dedicated list pane"
 grep -q 'Dotfile Control' "$dotfiles_popup" \
   || fail "DotfilesHubPopup should use a branded hero header"
-grep -q 'Edit these files carefully' "$dotfiles_popup" \
+grep -q 'Modify at your own risk' "$dotfiles_popup" \
   || fail "DotfilesHubPopup should show the config risk notice"
+! grep -q 'id: sectionCount' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should not use count badges in the category rail"
+! grep -q 'id: fileIcon' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should avoid oversized row icons"
 grep -q '.config/hypr/hyprland.conf' "$dotfiles_popup" \
   || fail "DotfilesHubPopup should include Hyprland main config"
 grep -q '.config/hypr/monitors.conf' "$dotfiles_popup" \
