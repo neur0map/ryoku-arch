@@ -9,8 +9,8 @@ PanelWindow {
 
   Binding { target: Popups; property: "dotfilesVisible"; value: modal.visible }
 
-  readonly property int modalWidth: 840
-  readonly property int modalHeight: 590
+  readonly property int modalWidth: 790
+  readonly property int modalHeight: 540
   readonly property string homeDir: Quickshell.env("HOME")
 
   property bool windowVisible: false
@@ -188,7 +188,7 @@ PanelWindow {
     visible: root.openProgress > 0
     opacity: root.openProgress
     scale: 0.975 + 0.025 * root.openProgress
-    radius: Theme.cornerRadius
+    radius: 10
     color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, 0.98)
     border.width: 1
     border.color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.30)
@@ -223,9 +223,9 @@ PanelWindow {
         right: parent.right
         margins: 14
       }
-      height: 130
-      radius: 14
-      color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.12)
+      height: 98
+      radius: 8
+      color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.09)
       border.width: 1
       border.color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.22)
       clip: true
@@ -241,64 +241,25 @@ PanelWindow {
         opacity: 0.86
       }
 
-      Rectangle {
-        width: 76
-        height: 76
-        radius: 22
-        anchors {
-          right: parent.right
-          rightMargin: 56
-          verticalCenter: parent.verticalCenter
-        }
-        color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.10)
-
-        Text {
-          anchors.centerIn: parent
-          text: "󰒓"
-          color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.42)
-          font.pixelSize: 34
-        }
-      }
-
       Item {
         anchors {
           fill: parent
           leftMargin: 24
-          rightMargin: 112
-          topMargin: 18
+          rightMargin: 54
+          topMargin: 16
           bottomMargin: 16
-        }
-
-        Rectangle {
-          id: riskBadge
-          width: riskText.implicitWidth + 20
-          height: 24
-          radius: 8
-          color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.18)
-          border.width: 1
-          border.color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.26)
-
-          Text {
-            id: riskText
-            anchors.centerIn: parent
-            text: "USER CONFIG"
-            color: Theme.text
-            font.pixelSize: 9
-            font.bold: true
-          }
         }
 
         Text {
           id: heroTitle
           anchors {
-            top: riskBadge.bottom
-            topMargin: 8
+            top: parent.top
             left: parent.left
             right: parent.right
           }
           text: "Dotfile Control"
           color: Theme.text
-          font.pixelSize: 22
+          font.pixelSize: 20
           font.bold: true
           elide: Text.ElideRight
         }
@@ -310,7 +271,7 @@ PanelWindow {
             left: parent.left
             right: parent.right
           }
-          text: "Edit these files carefully. Broken config can affect login, input, keybindings, or shell startup."
+          text: "Modify at your own risk. Broken config can affect login, input, keybindings, or shell startup."
           color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.66)
           font.pixelSize: 11
           wrapMode: Text.WordWrap
@@ -321,12 +282,12 @@ PanelWindow {
       Rectangle {
         width: 30
         height: 30
-        radius: 10
+        radius: 7
         anchors {
           top: parent.top
           right: parent.right
-          topMargin: 14
-          rightMargin: 14
+          topMargin: 12
+          rightMargin: 12
         }
         color: closeHover.hovered ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.18)
                                   : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.07)
@@ -354,29 +315,29 @@ PanelWindow {
         left: parent.left
         right: parent.right
         bottom: parent.bottom
-        topMargin: 14
+        topMargin: 12
         leftMargin: 14
         rightMargin: 14
         bottomMargin: 14
       }
-      spacing: 12
+      spacing: 10
 
       Rectangle {
         id: categoryRail
 
-        width: 218
+        width: 190
         height: parent.height
-        radius: 12
-        color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.045)
+        radius: 8
+        color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.030)
         border.width: 1
-        border.color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.07)
+        border.color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.055)
 
         Column {
           anchors {
             fill: parent
-            margins: 10
+            margins: 8
           }
-          spacing: 8
+          spacing: 6
 
           Text {
             width: parent.width
@@ -403,8 +364,8 @@ PanelWindow {
               readonly property bool active: root.selectedSection === sectionButton.key
 
               width: parent.width
-              height: 58
-              radius: 10
+              height: 48
+              radius: 6
               color: sectionButton.active ? Qt.rgba(sectionButton.accent.r, sectionButton.accent.g, sectionButton.accent.b, 0.18)
                                           : sectionHover.hovered ? Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.07)
                                                                  : "transparent"
@@ -420,77 +381,38 @@ PanelWindow {
                   top: parent.top
                   bottom: parent.bottom
                   left: parent.left
-                  topMargin: 12
-                  bottomMargin: 12
+                  topMargin: 10
+                  bottomMargin: 10
                 }
                 color: sectionButton.accent
                 opacity: sectionButton.active ? 1 : 0
               }
 
-              Row {
+              Column {
                 anchors {
-                  fill: parent
-                  leftMargin: 10
+                  left: parent.left
+                  right: parent.right
+                  verticalCenter: parent.verticalCenter
+                  leftMargin: 12
                   rightMargin: 10
                 }
-                spacing: 9
+                spacing: -1
 
-                Rectangle {
-                  width: 30
-                  height: 30
-                  radius: 10
-                  anchors.verticalCenter: parent.verticalCenter
-                  color: Qt.rgba(sectionButton.accent.r, sectionButton.accent.g, sectionButton.accent.b, sectionButton.active ? 0.30 : 0.15)
-
-                  Text {
-                    anchors.centerIn: parent
-                    text: sectionButton.icon
-                    color: Theme.text
-                    font.pixelSize: 13
-                    font.bold: sectionButton.icon === "力"
-                  }
+                Text {
+                  width: parent.width
+                  text: sectionButton.label
+                  color: Theme.text
+                  font.pixelSize: 11
+                  font.bold: true
+                  elide: Text.ElideRight
                 }
 
-                Column {
-                  width: parent.width - 30 - parent.spacing - sectionCount.width
-                  anchors.verticalCenter: parent.verticalCenter
-                  spacing: -1
-
-                  Text {
-                    width: parent.width
-                    text: sectionButton.label
-                    color: Theme.text
-                    font.pixelSize: 11
-                    font.bold: true
-                    elide: Text.ElideRight
-                  }
-
-                  Text {
-                    width: parent.width
-                    text: sectionButton.hint
-                    color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.43)
-                    font.pixelSize: 9
-                    elide: Text.ElideRight
-                  }
-                }
-
-                Rectangle {
-                  id: sectionCount
-                  width: 28
-                  height: 22
-                  radius: 8
-                  anchors.verticalCenter: parent.verticalCenter
-                  color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, 0.32)
-                  border.width: 1
-                  border.color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.06)
-
-                  Text {
-                    anchors.centerIn: parent
-                    text: sectionButton.fileCount
-                    color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.58)
-                    font.pixelSize: 9
-                    font.bold: true
-                  }
+                Text {
+                  width: parent.width
+                  text: sectionButton.hint
+                  color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.43)
+                  font.pixelSize: 9
+                  elide: Text.ElideRight
                 }
               }
 
@@ -513,10 +435,10 @@ PanelWindow {
 
         width: parent.width - categoryRail.width - parent.spacing
         height: parent.height
-        radius: 12
-        color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.030)
+        radius: 8
+        color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.024)
         border.width: 1
-        border.color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.065)
+        border.color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.055)
 
         Item {
           id: fileHeader
@@ -532,7 +454,7 @@ PanelWindow {
           Column {
             anchors {
               left: parent.left
-              right: countBadge.left
+              right: fileMeta.left
               rightMargin: 12
               verticalCenter: parent.verticalCenter
             }
@@ -556,26 +478,18 @@ PanelWindow {
             }
           }
 
-          Rectangle {
-            id: countBadge
-            width: 72
-            height: 28
-            radius: 9
+          Text {
+            id: fileMeta
+            width: 56
             anchors {
               right: parent.right
               verticalCenter: parent.verticalCenter
             }
-            color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.13)
-            border.width: 1
-            border.color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.20)
-
-            Text {
-              anchors.centerIn: parent
-              text: fileList.count + " files"
-              color: Theme.text
-              font.pixelSize: 10
-              font.bold: true
-            }
+            text: fileList.count + " files"
+            color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.48)
+            font.pixelSize: 10
+            horizontalAlignment: Text.AlignRight
+            elide: Text.ElideRight
           }
         }
 
@@ -648,13 +562,13 @@ PanelWindow {
       required property color accent
 
       width: filesColumn.width
-      height: 62
-      radius: 10
+      height: 54
+      radius: 6
       color: rowHover.hovered ? Qt.rgba(row.accent.r, row.accent.g, row.accent.b, 0.14)
-                              : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.045)
+                              : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.034)
       border.width: 1
       border.color: rowHover.hovered ? Qt.rgba(row.accent.r, row.accent.g, row.accent.b, 0.40)
-                                     : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.07)
+                                     : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.055)
 
       Behavior on color { ColorAnimation { duration: 130 } }
       Behavior on border.color { ColorAnimation { duration: 130 } }
@@ -662,31 +576,25 @@ PanelWindow {
       Row {
         anchors {
           fill: parent
-          leftMargin: 11
-          rightMargin: 10
+          leftMargin: 12
+          rightMargin: 12
         }
-        spacing: 10
+        spacing: 8
 
         Rectangle {
-          id: fileIcon
-          width: 34
-          height: 34
-          radius: 11
+          id: fileMark
+          width: 4
+          height: 28
+          radius: 2
           anchors.verticalCenter: parent.verticalCenter
-          color: Qt.rgba(row.accent.r, row.accent.g, row.accent.b, rowHover.hovered ? 0.28 : 0.16)
-
-          Text {
-            anchors.centerIn: parent
-            text: row.icon
-            color: Theme.text
-            font.pixelSize: 14
-          }
+          color: row.accent
+          opacity: rowHover.hovered ? 0.95 : 0.62
         }
 
         Column {
-          width: parent.width - fileIcon.width - parent.spacing - openPill.width - 10
+          width: parent.width - fileMark.width - parent.spacing - openAction.width - 8
           anchors.verticalCenter: parent.verticalCenter
-          spacing: 1
+          spacing: 0
 
           Row {
             width: parent.width
@@ -719,28 +627,15 @@ PanelWindow {
           }
         }
 
-        Rectangle {
-          id: openPill
-          width: 58
-          height: 28
-          radius: 9
+        Text {
+          id: openAction
+          width: 42
           anchors.verticalCenter: parent.verticalCenter
-          color: rowHover.hovered ? Qt.rgba(row.accent.r, row.accent.g, row.accent.b, 0.22)
-                                  : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.055)
-          border.width: 1
-          border.color: rowHover.hovered ? Qt.rgba(row.accent.r, row.accent.g, row.accent.b, 0.40)
-                                         : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.08)
-
-          Behavior on color { ColorAnimation { duration: 130 } }
-          Behavior on border.color { ColorAnimation { duration: 130 } }
-
-          Text {
-            anchors.centerIn: parent
-            text: "Open"
-            color: Theme.text
-            font.pixelSize: 10
-            font.bold: true
-          }
+          text: "Open"
+          color: rowHover.hovered ? Theme.text : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.46)
+          font.pixelSize: 10
+          font.bold: rowHover.hovered
+          horizontalAlignment: Text.AlignRight
         }
       }
 
