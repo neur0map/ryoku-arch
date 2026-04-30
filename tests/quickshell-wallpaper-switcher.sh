@@ -94,8 +94,8 @@ grep -q 'wallpaper", "apply", "--type"' "$wallpaper_service" \
   || fail "WallpaperService should not run upstream awww pipeline"
 grep -q '.config/ryoku/current/theme/backgrounds' "$wallpaper_service" \
   || fail "WallpaperService should list active theme backgrounds"
-grep -q '.config/ryoku/backgrounds/' "$wallpaper_service" \
-  || fail "WallpaperService should list user backgrounds for the active theme"
+grep -q 'picturesDir + "/Wallpapers"' "$wallpaper_service" \
+  || fail "WallpaperService should expose Pictures/Wallpapers as the user wallpaper folder"
 
 grep -q 'bindd = SUPER CTRL, SPACE, Theme background menu, exec, ryoku-ipc shell toggle wallpaper' "$bindings" \
   || fail "SUPER+CTRL+SPACE should open the Quickshell wallpaper switcher through ryoku-ipc"

@@ -32,6 +32,7 @@ trap 'rm -rf "$tmpdir"' EXIT
 
 mkdir -p "$tmpdir/config/current/theme/backgrounds" "$tmpdir/config/backgrounds/test"
 mkdir -p "$tmpdir/ryoku/bin" "$tmpdir/path"
+wallpaper_dir="$tmpdir/Pictures/Wallpapers"
 printf '%s\n' "test" > "$tmpdir/config/current/theme.name"
 
 cat >"$tmpdir/path/qs" <<'EOF'
@@ -71,8 +72,10 @@ rejects_trailing_args() {
 RYOKU_PATH="$PWD" \
 RYOKU_CONFIG_PATH="$tmpdir/config" \
 RYOKU_STATE_PATH="$tmpdir/state" \
+RYOKU_WALLPAPER_DIR="$wallpaper_dir" \
   "$ipc" wallpaper settings get --json \
-  | jq -e '.wallpaper_dirs | length >= 2' >/dev/null \
+  | jq -e --arg wallpaper_dir "$wallpaper_dir" \
+      '.wallpaper_dirs | length >= 2 and .[0] == $wallpaper_dir' >/dev/null \
   || fail "settings get should emit wallpaper dirs as JSON"
 
 RYOKU_PATH="$PWD" \

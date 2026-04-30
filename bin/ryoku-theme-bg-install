@@ -2,8 +2,5 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-CURRENT_THEME_NAME=$(cat "$RYOKU_CONFIG_PATH/current/theme.name")
-THEME_USER_BACKGROUNDS="$RYOKU_CONFIG_PATH/backgrounds/$CURRENT_THEME_NAME"
-
-mkdir -p "$THEME_USER_BACKGROUNDS"
-nautilus "$THEME_USER_BACKGROUNDS"
+mkdir -p "$RYOKU_WALLPAPER_DIR"
+nautilus "$RYOKU_WALLPAPER_DIR"

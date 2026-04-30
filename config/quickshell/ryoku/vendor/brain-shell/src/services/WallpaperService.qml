@@ -30,8 +30,12 @@ QtObject {
     property string previewWall:  ""
     property string scheme:       "content"
     property bool   applying:     false
-    property string wallpaperDir: Quickshell.env("HOME") + "/.config/ryoku/current/theme/backgrounds"
-    readonly property string userWallpaperDir: Quickshell.env("HOME") + "/.config/ryoku/backgrounds/"
+    readonly property string picturesDir: Quickshell.env("XDG_PICTURES_DIR") !== ""
+                                           ? Quickshell.env("XDG_PICTURES_DIR")
+                                           : Quickshell.env("HOME") + "/Pictures"
+    readonly property string themeWallpaperDir: Quickshell.env("HOME") + "/.config/ryoku/current/theme/backgrounds"
+    property string wallpaperDir: userWallpaperDir
+    readonly property string userWallpaperDir: picturesDir + "/Wallpapers"
 
     property string selectedSourceFilter: "local"
     property string selectedTypeFilter: ""

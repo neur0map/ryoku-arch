@@ -134,14 +134,13 @@ search_wallhaven() {
 download_wallpaper() {
   local id="$1"
   local url="$2"
-  local theme_name target_dir clean_url ext target tmp
+  local target_dir clean_url ext target tmp
 
   [[ -n $id ]] || die "missing download ID"
   [[ -n $url ]] || die "missing download URL"
   [[ $id =~ ^[A-Za-z0-9]+$ ]] || die "invalid Wallhaven ID: $id"
 
-  theme_name="$(cat "$RYOKU_CONFIG_PATH/current/theme.name" 2>/dev/null || true)"
-  target_dir="$RYOKU_CONFIG_PATH/backgrounds/$theme_name"
+  target_dir="$RYOKU_WALLPAPER_DIR"
   mkdir -p "$target_dir"
 
   clean_url="${url%%\?*}"
