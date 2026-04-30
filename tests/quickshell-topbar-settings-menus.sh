@@ -82,7 +82,7 @@ grep -q 'Binding { target: Popups; property: "systemMenuVisible"' "$system_popup
   || fail "SystemMenuPopup should expose visual presence"
 grep -Eq 'readonly property int menuWidth:[[:space:]]+306' "$system_popup" \
   || fail "SystemMenuPopup should stay compact"
-grep -Eq 'readonly property int menuHeight:[[:space:]]+226' "$system_popup" \
+grep -Eq 'readonly property int menuHeight:[[:space:]]+270' "$system_popup" \
   || fail "SystemMenuPopup should stay slim"
 grep -q 'width: root.fullCardWidth' "$system_popup" \
   || fail "SystemMenuPopup should not expand into an oversized drawer"
@@ -100,6 +100,8 @@ grep -q 'systemctl", "hibernate"' "$system_popup" \
   || fail "SystemMenuPopup should keep the hibernate action"
 grep -q 'ryoku-launch-floating-terminal-with-presentation", "ryoku-update"' "$system_popup" \
   || fail "SystemMenuPopup should expose the update action"
+grep -q 'ryoku-snapshot", "create"' "$system_popup" \
+  || fail "SystemMenuPopup should expose the snapshot action"
 grep -q 'showConfirm' "$system_popup" \
   || fail "SystemMenuPopup should confirm destructive power actions"
 grep -q 'onClicked: Popups.closeAll()' "$system_popup" \
