@@ -39,6 +39,7 @@ ipc="bin/ryoku-ipc"
 bindings="default/hypr/bindings/utilities.conf"
 plain_bindings="default/hypr/plain-bindings.conf"
 packages="install/ryoku-base.packages"
+aur_packages="install/ryoku-aur.packages"
 
 helpers=(
   bin/ryoku-cmd-colorpicker
@@ -47,7 +48,7 @@ helpers=(
   bin/ryoku-cmd-google-lens
 )
 
-for path in "$shell" "$popups" "$shell_state" "$topbar" "$layer" "$mirror" "$services_qmldir" "$quick_settings" "$ipc" "$bindings" "$plain_bindings" "$packages"; do
+for path in "$shell" "$popups" "$shell_state" "$topbar" "$layer" "$mirror" "$services_qmldir" "$quick_settings" "$ipc" "$bindings" "$plain_bindings" "$packages" "$aur_packages"; do
   [[ -f $path ]] || fail "$path missing"
 done
 
@@ -79,8 +80,9 @@ active_has "$popups" 'mirrorOpen        = false' \
 active_has "$popups" 'mirrorScreenName  = ""' \
   || fail "closeAll should clear the target mirror screen"
 
-active_has "$topbar" 'Popups.toolboxVisible' \
-  || fail "TopBar should stay on overlay while toolbox animates"
+if active_has "$topbar" 'Popups.toolboxVisible'; then
+  fail "TopBar should not paint over the icon-only toolbox strip"
+fi
 if [[ ! -f $toolbox ]] && active_has_ere "$layer" '^[[:space:]]*ToolboxPopup[[:space:]]*\{'; then
   fail "PopupLayer should not instantiate ToolboxPopup before ToolboxPopup.qml exists"
 fi
@@ -145,8 +147,31 @@ grep -Eq 'Binding[[:space:]]*\{[[:space:]]*target:[[:space:]]*Popups;?[[:space:]
   || fail "ToolboxPopup should expose visual presence"
 active_has "$toolbox" 'attachedEdge: "top"' \
   || fail "ToolboxPopup should attach to the topbar"
+active_has "$toolbox" 'WlrLayershell.layer: WlrLayer.Overlay' \
+  || fail "ToolboxPopup should render above the center pill"
+active_has "$toolbox" 'color: Theme.background' \
+  || fail "ToolboxPopup should use the same opaque fill as the center pill"
+active_has "$toolbox" 'strokeColor: "transparent"' \
+  || fail "ToolboxPopup should not draw a separate outline around the center pill"
+active_has "$toolbox" 'strokeWidth: 0' \
+  || fail "ToolboxPopup should not draw a border around the toolkit strip"
 active_has "$toolbox" 'ListModel {' \
   || fail "ToolboxPopup should use stable ListModel roles"
+active_has "$toolbox" 'font.family: "Phosphor"' \
+  || fail "ToolboxPopup should use the Ambxst Phosphor icon font"
+active_has "$toolbox" 'buttonSize: 26' \
+  || fail "ToolboxPopup should use compact icon-only buttons"
+active_has "$toolbox" 'required property int index' \
+  || fail "ToolboxPopup delegate should bind the model index for selected icon state"
+active_has "$toolbox" 'separator: true' \
+  || fail "ToolboxPopup should keep Ambxst-style separators"
+active_has "$toolbox" 'icon: "\ue10e"' \
+  || fail "ToolboxPopup should use Ambxst camera icon codepoint"
+active_has "$toolbox" 'icon: "\ue292"' \
+  || fail "ToolboxPopup should use Ambxst Google icon codepoint"
+if active_has "$toolbox" 'label:' || active_has "$toolbox" 'hint:' || active_has "$toolbox" 'Column {'; then
+  fail "ToolboxPopup should be an icon-only strip, not a labeled card menu"
+fi
 for label in "Screenshot" "Open Screenshots" "Screen Recorder" "Open Recordings" "Color Picker" "OCR" "QR Code" "Google Lens" "Mirror" "Caffeine"; do
   active_has "$toolbox" "$label" || fail "ToolboxPopup should include $label"
 done
@@ -174,8 +199,13 @@ active_has "config/quickshell/ryoku/vendor/brain-shell/src/services/ScreenRecSer
   || fail "ScreenRecService should use XDG videos directory as recording fallback"
 active_has "$toolbox" 'screen_recordings' \
   || fail "ToolboxPopup should include the default Quickshell screen_recordings directory"
-active_has "$toolbox" 'actionDelay' \
-  || fail "ToolboxPopup should delay interactive helper launch until the popup closes"
+if active_has "$toolbox" 'actionDelay'; then
+  fail "ToolboxPopup should not depend on a post-close action timer"
+fi
+active_has "$toolbox" 'function closeToolboxNow' \
+  || fail "ToolboxPopup should hide before launching interactive helpers"
+active_has "$toolbox" 'actionRunner.running = true' \
+  || fail "ToolboxPopup should launch helper commands on the same click"
 active_has "$toolbox" 'CaffeineService.toggle()' \
   || fail "ToolboxPopup should toggle shared CaffeineService"
 active_has "$toolbox" 'Popups.mirrorOpen = true' \
@@ -228,6 +258,8 @@ fi
 for pkg in libnotify tesseract tesseract-data-eng tesseract-data-spa xdg-user-dirs xdg-utils zbar; do
   grep -qx "$pkg" "$packages" || fail "$pkg should be in ryoku-base packages"
 done
+grep -qx 'ttf-phosphor-icons' "$aur_packages" \
+  || fail "Phosphor icon font package should be in ryoku AUR packages"
 
 grep -q 'hyprpicker' bin/ryoku-cmd-colorpicker \
   || fail "color picker helper should use hyprpicker"

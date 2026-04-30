@@ -23,8 +23,9 @@ PanelWindow {
     // card's top strip — the card's flares tuck behind the notch and
     // the two shapes read as one continuous surface during open and
     // close. Bound to visual states for popups that attach to the
-    // bar; fullscreen modal surfaces stay above the bar instead.
-    WlrLayershell.layer: Popups.dashboardVisible || Popups.launcherVisible || Popups.toolboxVisible || Popups.systemMenuVisible || Popups.settingsMenuVisible
+    // bar; the toolbox is itself an Overlay strip because it replaces
+    // the center pill content rather than tucking behind it.
+    WlrLayershell.layer: Popups.dashboardVisible || Popups.launcherVisible || Popups.systemMenuVisible || Popups.settingsMenuVisible
                          ? WlrLayer.Overlay : WlrLayer.Top
 
     anchors {

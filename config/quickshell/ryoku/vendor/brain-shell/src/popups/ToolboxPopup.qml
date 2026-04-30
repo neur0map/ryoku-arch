@@ -13,15 +13,28 @@ PanelWindow {
 
   readonly property int fw: Theme.notchRadius
   readonly property int fh: Theme.notchRadius
-  readonly property int menuWidth: 454
-  readonly property int menuHeight: 244
+  readonly property int buttonSize: 26
+  readonly property int iconSize: 13
+  readonly property int buttonSpacing: 8
+  readonly property int separatorWidth: 1
+  readonly property int buttonCount: 10
+  readonly property int separatorCount: 2
+  readonly property int menuWidth: buttonCount * buttonSize + separatorCount * separatorWidth
+                                   + (buttonCount + separatorCount - 1) * buttonSpacing + 16
   readonly property int fullCardWidth: root.menuWidth + 2 * root.fw
-  readonly property int fullCardHeight: Theme.notchHeight + root.menuHeight
+  readonly property int fullCardHeight: Theme.notchHeight
   readonly property int initialCardWidth: ShellState.topBarCWidth + 2 * root.fw
   readonly property int initialCardHeight: Theme.notchHeight
+  readonly property color idleIconColor: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.58)
+  readonly property color selectedFill: Theme.text
+  readonly property color selectedIconColor: Theme.background
+  readonly property color separatorColor: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.16)
 
   property bool windowVisible: false
   property bool legacyRecording: false
+  property int currentIndex: 0
+  property string hoveredTooltip: ""
+  property bool tooltipVisible: false
   property real openProgress: Popups.toolboxOpen ? 1 : 0
 
   Behavior on openProgress {
@@ -45,22 +58,24 @@ PanelWindow {
     bottom: true
   }
 
-  WlrLayershell.layer: WlrLayer.Top
+  WlrLayershell.layer: WlrLayer.Overlay
   WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
 
   ListModel {
     id: toolActions
 
-    ListElement { label: "Screenshot";       hint: "Capture"; icon: "󰹑"; action: "screenshot";   accent: "#91d7e3" }
-    ListElement { label: "Open Screenshots"; hint: "Folder";  icon: "󰉋"; action: "screenshots";  accent: "#8aadf4" }
-    ListElement { label: "Screen Recorder";  hint: "Record";  icon: "󰻂"; action: "screenrecord"; accent: "#ed8796" }
-    ListElement { label: "Open Recordings";  hint: "Folder";  icon: "󰉋"; action: "recordings";   accent: "#f5a97f" }
-    ListElement { label: "Color Picker";     hint: "Pick";    icon: "󰈋"; action: "colorpicker";  accent: "#c6a0f6" }
-    ListElement { label: "OCR";              hint: "Text";    icon: "󰷊"; action: "ocr";          accent: "#8bd5ca" }
-    ListElement { label: "QR Code";          hint: "Scan";    icon: "󰐲"; action: "qr";           accent: "#eed49f" }
-    ListElement { label: "Google Lens";      hint: "Search";  icon: "󰊭"; action: "google-lens";  accent: "#8aadf4" }
-    ListElement { label: "Mirror";           hint: "Camera";  icon: "󰄀"; action: "mirror";       accent: "#f5bde6" }
-    ListElement { label: "Caffeine";         hint: "Off";     icon: "󰅶"; action: "caffeine";     accent: "#a6da95" }
+    ListElement { separator: false; tooltip: "Screenshot";       icon: "\ue10e"; action: "screenshot" }
+    ListElement { separator: false; tooltip: "Open Screenshots"; icon: "\ue2cc"; action: "screenshots" }
+    ListElement { separator: true;  tooltip: "";                 icon: "";       action: "" }
+    ListElement { separator: false; tooltip: "Screen Recorder";  icon: "\ue4da"; action: "screenrecord" }
+    ListElement { separator: false; tooltip: "Open Recordings";  icon: "\ue792"; action: "recordings" }
+    ListElement { separator: true;  tooltip: "";                 icon: "";       action: "" }
+    ListElement { separator: false; tooltip: "Color Picker";     icon: "\ue568"; action: "colorpicker" }
+    ListElement { separator: false; tooltip: "OCR";              icon: "\ue48a"; action: "ocr" }
+    ListElement { separator: false; tooltip: "QR Code";          icon: "\ue3e6"; action: "qr" }
+    ListElement { separator: false; tooltip: "Google Lens";      icon: "\ue292"; action: "google-lens" }
+    ListElement { separator: false; tooltip: "Mirror";           icon: "\ue9b2"; action: "mirror" }
+    ListElement { separator: false; tooltip: "Caffeine";         icon: "\ue1c2"; action: "caffeine" }
   }
 
   Connections {
@@ -70,6 +85,9 @@ PanelWindow {
       if (Popups.toolboxOpen) {
         closeTimer.stop()
         root.windowVisible = true
+        root.tooltipVisible = false
+        root.hoveredTooltip = ""
+        root.currentIndex = 0
         root.refreshLegacyRecording()
       } else {
         closeTimer.restart()
@@ -83,24 +101,18 @@ PanelWindow {
     onTriggered: root.windowVisible = false
   }
 
+  Timer {
+    id: tooltipTimer
+    interval: 500
+    repeat: false
+    onTriggered: root.tooltipVisible = root.hoveredTooltip !== ""
+  }
+
   Process {
     id: actionRunner
     command: []
     running: false
     onRunningChanged: if (!running) command = []
-  }
-
-  Timer {
-    id: actionDelay
-    interval: Theme.motionExpandDuration + 80
-    repeat: false
-    property var command: []
-    onTriggered: {
-      actionRunner.running = false
-      actionRunner.command = command
-      actionRunner.running = true
-      command = []
-    }
   }
 
   Process {
@@ -132,10 +144,49 @@ PanelWindow {
     legacyRecorderCheck.running = true
   }
 
-  function runProcess(command) {
+  function closeToolboxNow() {
+    tooltipTimer.stop()
+    closeTimer.stop()
+    root.tooltipVisible = false
+    root.hoveredTooltip = ""
     Popups.closeAll()
-    actionDelay.command = command
-    actionDelay.restart()
+    root.windowVisible = false
+  }
+
+  function runProcess(command) {
+    closeToolboxNow()
+    actionRunner.running = false
+    actionRunner.command = command
+    actionRunner.running = true
+  }
+
+  function screenRecordTooltip() {
+    if (ScreenRecService.recording || root.legacyRecording) return "Stop Recording"
+    if (ShellState.screenRecord) return "Cancel Setup"
+    return "Screen Recorder"
+  }
+
+  function actionTooltip(action, tooltip) {
+    if (action === "screenrecord") return screenRecordTooltip()
+    if (action === "mirror" && Popups.mirrorOpen) return "Close Mirror"
+    if (action === "caffeine" && CaffeineService.active) return "Caffeine On"
+    return tooltip
+  }
+
+  function actionIcon(action, icon) {
+    if (action === "screenrecord" && (ScreenRecService.recording || root.legacyRecording)) return "\ue46c"
+    if (action === "screenrecord" && ShellState.screenRecord) return "\ue4f6"
+    if (action === "mirror" && Popups.mirrorOpen) return "\uecdc"
+    return icon
+  }
+
+  function isActionActive(action) {
+    if (action === "screenrecord") {
+      return ScreenRecService.recording || root.legacyRecording || ShellState.screenRecord
+    }
+    if (action === "mirror") return Popups.mirrorOpen
+    if (action === "caffeine") return CaffeineService.active
+    return false
   }
 
   function runAction(action) {
@@ -156,7 +207,7 @@ PanelWindow {
         legacyRecorderStop.running = true
       }
       if (recordingActive) {
-        Popups.closeAll()
+        closeToolboxNow()
         return
       }
 
@@ -166,7 +217,7 @@ PanelWindow {
         ShellState.screenRecord = true
       }
 
-      Popups.closeAll()
+      closeToolboxNow()
       return
     case "recordings":
       runProcess(["bash", "-c", "[[ -f ~/.config/user-dirs.dirs ]] && source ~/.config/user-dirs.dirs; dir=\"${RYOKU_SCREENRECORD_DIR:-${XDG_VIDEOS_DIR:-$HOME/Videos}/screen_recordings}\"; mkdir -p \"$dir\"; xdg-open \"$dir\""])
@@ -184,12 +235,13 @@ PanelWindow {
       runProcess(["ryoku-cmd-google-lens"])
       return
     case "mirror":
-      Popups.closeAll()
+      closeToolboxNow()
       Popups.mirrorScreenName = screen ? screen.name : ""
       Popups.mirrorOpen = true
       return
     case "caffeine":
       CaffeineService.toggle()
+      closeToolboxNow()
       return
     default:
       return
@@ -216,9 +268,9 @@ PanelWindow {
     PopupShape {
       anchors.fill: parent
       attachedEdge: "top"
-      color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, 0.96)
-      strokeColor: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.24)
-      strokeWidth: 1
+      color: Theme.background
+      strokeColor: "transparent"
+      strokeWidth: 0
       radius: Theme.cornerRadius
       flareWidth: root.fw
       flareHeight: root.fh
@@ -229,131 +281,133 @@ PanelWindow {
       onClicked: mouse.accepted = true
     }
 
-    Item {
-      anchors {
-        fill: parent
-        topMargin: Theme.notchHeight + 8
-        leftMargin: root.fw + 10
-        rightMargin: root.fw + 10
-        bottomMargin: 10
-      }
+    Row {
+      id: toolsRow
 
-      opacity: Math.min(1, root.openProgress * 1.35)
+      anchors.centerIn: parent
+      spacing: root.buttonSpacing
+      opacity: Math.min(1, root.openProgress * 1.8)
 
       Behavior on opacity {
         enabled: !Theme.staticMode
         NumberAnimation { duration: Theme.motionEffectsDuration }
       }
 
-      Grid {
-        id: grid
-        width: parent.width
-        columns: 2
-        rowSpacing: 6
-        columnSpacing: 6
+      Repeater {
+        model: toolActions
 
-        readonly property int buttonWidth: (width - columnSpacing) / 2
-        readonly property int buttonHeight: 38
+        delegate: Item {
+          id: toolItem
 
-        Repeater {
-          model: toolActions
+          required property bool separator
+          required property string tooltip
+          required property string icon
+          required property string action
+          required property int index
 
-          delegate: Rectangle {
-            id: button
+          readonly property bool selected: !separator && index === root.currentIndex
+          readonly property bool active: !separator && root.isActionActive(action)
 
-            required property string label
-            required property string hint
-            required property string icon
-            required property string action
-            required property color accent
+          width: separator ? root.separatorWidth : root.buttonSize
+          height: root.buttonSize
 
-            readonly property bool recordingAction: button.action === "screenrecord"
-            readonly property bool caffeineAction: button.action === "caffeine"
-            readonly property bool recorderActiveAction: button.recordingAction && (ScreenRecService.recording || root.legacyRecording)
-            readonly property bool recorderSetupAction: button.recordingAction && ShellState.screenRecord && !ScreenRecService.recording && !root.legacyRecording
-            readonly property bool activeAction: button.recorderActiveAction || button.recorderSetupAction
-                                         || button.caffeineAction && CaffeineService.active
+          Rectangle {
+            visible: toolItem.separator
+            anchors.centerIn: parent
+            width: root.separatorWidth
+            height: 12
+            radius: 1
+            color: root.separatorColor
+          }
 
-            width: grid.buttonWidth
-            height: grid.buttonHeight
-            radius: 7
-            color: button.activeAction ? Qt.rgba(button.accent.r, button.accent.g, button.accent.b, 0.18)
-                  : hover.hovered ? Qt.rgba(button.accent.r, button.accent.g, button.accent.b, 0.12)
-                  : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.04)
-            border.color: button.activeAction ? Qt.rgba(button.accent.r, button.accent.g, button.accent.b, 0.46)
-                        : hover.hovered ? Qt.rgba(button.accent.r, button.accent.g, button.accent.b, 0.32)
-                        : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.10)
-            border.width: 1
+          Rectangle {
+            visible: !toolItem.separator
+            anchors.fill: parent
+            radius: width / 2
+            color: toolItem.selected
+                 ? root.selectedFill
+                 : clickArea.containsMouse
+                   ? Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.08)
+                   : "transparent"
 
-            Behavior on color { ColorAnimation { duration: 120 } }
-            Behavior on border.color { ColorAnimation { duration: 120 } }
-
-            Rectangle {
-              id: iconBadge
-              anchors {
-                left: parent.left
-                leftMargin: 8
-                verticalCenter: parent.verticalCenter
-              }
-              width: 24
-              height: 24
-              radius: 7
-              color: Qt.rgba(button.accent.r, button.accent.g, button.accent.b, button.activeAction ? 0.26 : 0.14)
-
-              Text {
-                anchors.centerIn: parent
-                text: button.recorderActiveAction ? "⏹"
-                    : button.recorderSetupAction ? "✕"
-                    : button.icon
-                color: button.accent
-                font.pixelSize: 13
-              }
-            }
-
-            Column {
-              anchors {
-                left: iconBadge.right
-                leftMargin: 8
-                right: parent.right
-                rightMargin: 8
-                verticalCenter: parent.verticalCenter
-              }
-              spacing: -1
-
-              Text {
-                width: parent.width
-                text: button.recorderActiveAction ? "Stop Recording"
-                    : button.recorderSetupAction ? "Cancel Setup"
-                    : button.label
-                color: Theme.text
-                font.pixelSize: 10
-                font.weight: Font.Medium
-                elide: Text.ElideRight
-              }
-
-              Text {
-                width: parent.width
-                text: button.recorderActiveAction ? "Active"
-                    : button.recorderSetupAction ? "Setup"
-                    : button.caffeineAction && CaffeineService.active ? "On"
-                    : button.hint
-                color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.44)
-                font.pixelSize: 8
-                elide: Text.ElideRight
-              }
-            }
-
-            HoverHandler {
-              id: hover
-              cursorShape: Qt.PointingHandCursor
-            }
-
-            MouseArea {
-              anchors.fill: parent
-              onClicked: root.runAction(button.action)
+            Behavior on color {
+              enabled: !Theme.staticMode
+              ColorAnimation { duration: 110 }
             }
           }
+
+          Text {
+            visible: !toolItem.separator
+            anchors.centerIn: parent
+            text: root.actionIcon(toolItem.action, toolItem.icon)
+            font.family: "Phosphor"
+            font.pixelSize: root.iconSize
+            font.weight: Font.Bold
+            color: toolItem.selected ? root.selectedIconColor
+                 : toolItem.active ? Theme.active
+                 : root.idleIconColor
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+
+            Behavior on color {
+              enabled: !Theme.staticMode
+              ColorAnimation { duration: 110 }
+            }
+          }
+
+          MouseArea {
+            id: clickArea
+
+            anchors.fill: parent
+            enabled: !toolItem.separator
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+
+            onEntered: {
+              root.currentIndex = index
+              root.hoveredTooltip = root.actionTooltip(toolItem.action, toolItem.tooltip)
+              root.tooltipVisible = false
+              tooltipTimer.restart()
+            }
+
+            onExited: {
+              tooltipTimer.stop()
+              root.tooltipVisible = false
+              root.hoveredTooltip = ""
+            }
+
+            onClicked: root.runAction(toolItem.action)
+          }
         }
+      }
+    }
+
+    Rectangle {
+      id: tooltipBubble
+
+      anchors {
+        horizontalCenter: toolsRow.horizontalCenter
+        top: toolsRow.bottom
+        topMargin: 7
+      }
+
+      width: tooltipText.implicitWidth + 16
+      height: 24
+      radius: 6
+      visible: root.tooltipVisible
+      opacity: root.tooltipVisible ? 1 : 0
+      color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, 0.98)
+      border.color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.16)
+      border.width: 1
+
+      Text {
+        id: tooltipText
+
+        anchors.centerIn: parent
+        text: root.hoveredTooltip
+        color: Theme.text
+        font.pixelSize: 10
+        font.weight: Font.Medium
       }
     }
   }
