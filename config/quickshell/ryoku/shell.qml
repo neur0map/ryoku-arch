@@ -40,6 +40,18 @@ ShellRoot {
             BS.Popups.wallpaperOpen = opening
         }
 
+        function toggleSystemMenu(): void {
+            const opening = !BS.Popups.systemMenuOpen
+            BS.Popups.closeAll()
+            BS.Popups.systemMenuOpen = opening
+        }
+
+        function toggleSettingsMenu(): void {
+            const opening = !BS.Popups.settingsMenuOpen
+            BS.Popups.closeAll()
+            BS.Popups.settingsMenuOpen = opening
+        }
+
         function closeAll(): void {
             BS.Popups.closeAll()
         }

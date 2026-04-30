@@ -28,6 +28,10 @@ apply_bin="bin/ryoku-wallpaper-apply"
   || fail "help should document wallhaven search"
 "$ipc" --help | grep -q "ryoku-ipc shell toggle themes" \
   || fail "help should document shell themes toggle"
+"$ipc" --help | grep -q "ryoku-ipc shell toggle system-menu" \
+  || fail "help should document shell system-menu toggle"
+"$ipc" --help | grep -q "ryoku-ipc shell toggle settings-menu" \
+  || fail "help should document shell settings-menu toggle"
 "$ipc" --help | grep -q "ryoku-ipc theme list --jsonl" \
   || fail "help should document theme list"
 "$ipc" --help | grep -q "ryoku-ipc theme apply THEME" \
@@ -105,10 +109,28 @@ RYOKU_STATE_PATH="$tmpdir/state" \
   | grep -q 'qs -c ryoku ipc call popups toggleThemes' \
   || fail "shell command themes should print the shared selector IPC command"
 
+RYOKU_PATH="$PWD" \
+RYOKU_CONFIG_PATH="$tmpdir/config" \
+RYOKU_STATE_PATH="$tmpdir/state" \
+  "$ipc" shell command system-menu \
+  | grep -q 'qs -c ryoku ipc call popups toggleSystemMenu' \
+  || fail "shell command system-menu should print the Quickshell IPC command"
+
+RYOKU_PATH="$PWD" \
+RYOKU_CONFIG_PATH="$tmpdir/config" \
+RYOKU_STATE_PATH="$tmpdir/state" \
+  "$ipc" shell command settings-menu \
+  | grep -q 'qs -c ryoku ipc call popups toggleSettingsMenu' \
+  || fail "shell command settings-menu should print the Quickshell IPC command"
+
 rejects_trailing_args "shell command wallpaper" shell command wallpaper extra
 rejects_trailing_args "shell command themes" shell command themes extra
+rejects_trailing_args "shell command system-menu" shell command system-menu extra
+rejects_trailing_args "shell command settings-menu" shell command settings-menu extra
 rejects_trailing_args "shell toggle wallpaper" shell toggle wallpaper extra
 rejects_trailing_args "shell toggle themes" shell toggle themes extra
+rejects_trailing_args "shell toggle system-menu" shell toggle system-menu extra
+rejects_trailing_args "shell toggle settings-menu" shell toggle settings-menu extra
 rejects_trailing_args "wallpaper settings get --json" wallpaper settings get --json extra
 rejects_trailing_args "wallpaper list --jsonl" wallpaper list --jsonl extra
 rejects_trailing_args "wallpaper cache rebuild" wallpaper cache rebuild extra
