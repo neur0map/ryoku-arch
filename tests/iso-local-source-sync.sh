@@ -39,9 +39,9 @@ assert_sync_excludes_release_artifacts_and_git_metadata() {
     fail "sync-local-source should exclude iso/release artifacts"
   }
 
-  [[ ! -e $target_dir/.git ]] || {
+  [[ -f $target_dir/.git/objects/keep-me-out ]] || {
     rm -rf "$temp_dir"
-    fail "sync-local-source should exclude git metadata"
+    fail "sync-local-source should preserve git metadata for updateable local-source dev builds"
   }
 
   rm -rf "$temp_dir"

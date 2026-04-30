@@ -1,77 +1,63 @@
 #!/bin/bash
-# Install the AUR-only packages that used to come from the [omarchy]
-# pacman repo. After Path A dropped the repo, these are pulled from
-# AUR instead so the install flow still converges without touching
-# DHH-hosted infrastructure.
+# Install the AUR packages every Ryoku machine ships with. The list lives
+# in install/ryoku-aur.packages (sectioned, source-of-truth) so the same
+# file feeds both this installer and the offline-mirror builder
+# (iso/builder/build-iso.sh).
 #
-# Packages intentionally excluded:
-#   asdcontrol                     Apple display brightness (only useful
-#                                  with Apple USB-C displays; kept on
-#                                  live systems but not reinstalled).
-#   hyprland-preview-share-picker  Screen-share visual picker; we accepted
-#                                  the feature loss when the omarchy repo
-#                                  left.
-#   tobi-try                       Unknown provenance; dropped.
+# Strategy:
+#   1. Try sudo pacman -S first. The chroot install's pacman.conf
+#      registers the [offline] mirror that build-iso.sh populated with
+#      every AUR PackageBase from install/ryoku-aur.packages, so
+#      pacman -S resolves them locally with zero network.
+#   2. Fall back to yay (ryoku-pkg-aur-add) for online installs that
+#      bypass the offline mirror, or for packages the offline mirror
+#      didn't manage to bake in (e.g. a transient AUR outage during ISO
+#      build that left some PackageBase missing).
+#
+# Failures during the fallback path do not abort the install; they're
+# recorded to /var/log/ryoku-aur-failed so the user can re-run via
+# 'ryoku-update-system-pkgs' once AUR is reachable.
 
-# Offline installs defer all network operations to first-boot, where the
-# wifi-bootstrap notification → ryoku-update flow installs AUR packages
-# after the user has explicitly set up the network. Match the same gate
-# already used by preflight/yay-bootstrap.sh and preflight/pacman.sh
-# (RYOKU_ONLINE_INSTALL is the explicit "online install" opt-in) so a
-# future change that pre-installs yay in offline-chroot can't trigger
-# AUR work during the install.
-if [[ -z ${RYOKU_ONLINE_INSTALL:-} ]]; then
-  echo "Offline install, deferring AUR-core packages to post-install (ryoku-update after network setup)"
-  exit 0
-fi
-
-if ! ryoku-pkg-aur-accessible; then
-  echo "AUR unavailable, skipping AUR-core install"
-  exit 0
-fi
-
-aur_packages=(
-  1password-beta
-  1password-cli
-  claude-code
-  localsend
-  pinta
-  python-terminaltexteffects
-  spotify
-  ttf-ia-writer
-  typora
-  tzupdate
-  ufw-docker
-  yaru-icon-theme
+mapfile -t aur_packages < <(
+  grep -v '^#' "$RYOKU_INSTALL/ryoku-aur.packages" | grep -v '^$' | awk 'NF { print }'
 )
 
-# AUR can be flaky during installs (RPC timeouts, TLS handshake failures,
-# package-build network errors). Try the whole batch first; on failure,
-# retry per-package up to 3 times each. Packages that ultimately fail are
-# reported as a warning and recorded in /var/log/ryoku-aur-failed so the
-# user can `ryoku-update-system-pkgs` later, but we do not abort the
-# install over a flaky AUR.
-
-if ryoku-pkg-aur-add "${aur_packages[@]}"; then
+if (( ${#aur_packages[@]} == 0 )); then
+  echo "install/ryoku-aur.packages is empty; nothing to do."
   exit 0
 fi
 
-echo "Batch AUR install hit a snag, retrying packages individually..."
+# Step 1: bulk pacman -S (offline mirror covers the list when present).
+if sudo pacman -S --noconfirm --needed "${aur_packages[@]}" 2>/dev/null; then
+  exit 0
+fi
+
+# Step 2: per-package pacman attempt, then yay fallback. Track failures.
+echo "Bulk pacman install missed some AUR packages; retrying per-package with yay fallback..."
 
 failed_pkgs=()
 for pkg in "${aur_packages[@]}"; do
-  installed=0
-  for attempt in 1 2 3; do
-    if ryoku-pkg-aur-add "$pkg"; then
-      installed=1
-      break
-    fi
-    echo "AUR install of $pkg failed (attempt $attempt/3), retrying..."
-    sleep 5
-  done
-  if (( installed == 0 )); then
-    failed_pkgs+=("$pkg")
+  if pacman -Q "$pkg" &>/dev/null; then
+    continue
   fi
+
+  if sudo pacman -S --noconfirm --needed "$pkg" 2>/dev/null; then
+    continue
+  fi
+
+  installed=0
+  if command -v yay >/dev/null 2>&1 && ryoku-pkg-aur-accessible 2>/dev/null; then
+    for attempt in 1 2 3; do
+      if ryoku-pkg-aur-add "$pkg"; then
+        installed=1
+        break
+      fi
+      echo "AUR install of $pkg failed (attempt $attempt/3), retrying in 5s..."
+      sleep 5
+    done
+  fi
+
+  (( installed == 0 )) && failed_pkgs+=("$pkg")
 done
 
 if (( ${#failed_pkgs[@]} > 0 )); then
@@ -80,8 +66,8 @@ if (( ${#failed_pkgs[@]} > 0 )); then
   echo "WARNING: the following AUR packages could not be installed and were skipped:"
   printf '  %s\n' "${failed_pkgs[@]}"
   echo
-  echo "Run 'yay -S ${failed_pkgs[*]}' after reboot to retry, or wait for"
-  echo "AUR to come back and run 'ryoku-update-system-pkgs'."
+  echo "They should already be in the offline mirror; if not, run"
+  echo "'ryoku-update-system-pkgs' once the network is up."
 fi
 
 exit 0

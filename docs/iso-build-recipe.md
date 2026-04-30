@@ -51,8 +51,8 @@ Port 2222 on the host is hostfwd'd to the VM's port 22, so `ssh -p 2222 root@loc
    3. `install_arch` calls `archinstall --silent` against the configurator JSON, mounts `/var/cache/ryoku/mirror/offline` into `/mnt`, copies `/root/ryoku` into `/mnt/home/<user>/.local/share/`, writes static `/mnt/etc/resolv.conf` (1.1.1.1 + 8.8.8.8).
    4. `install_ryoku` runs `arch-chroot /mnt /bin/bash <user>'s install.sh` with `env -i RYOKU_CHROOT_INSTALL=1`.
 4. The chroot `install.sh` runs `preflight/all.sh` then `packaging/all.sh` then `config/all.sh` then `login/all.sh` then `post-install/all.sh`.
-   - In offline mode (`RYOKU_ONLINE_INSTALL` unset, the default in the live ISO env), `preflight/pacman.sh`, `preflight/yay-bootstrap.sh`, `packaging/aur-core.sh`, `packaging/tofi.sh`, etc. exit early.
-   - `packaging/base.sh` installs everything in `install/ryoku-base.packages` from the offline mirror's `[offline]` repo. The mirror also contains everything listed in `install/ryoku-other.packages` (Vulkan/NVIDIA/Intel video drivers, kernel headers, broadcom-wl, thermald, etc.) so the hardware-detection scripts in `install/config/hardware/*.sh` can pacman-install matching drivers without network. Mirrors omarchy's `omarchy-base.packages` + `omarchy-other.packages` split.
+   - In offline mode (`RYOKU_ONLINE_INSTALL` unset, the default in the live ISO env), `preflight/pacman.sh` and `preflight/yay-bootstrap.sh` exit early. `packaging/aur-core.sh` no longer exits early: it pacman-installs every AUR PackageBase listed in `install/ryoku-aur.packages` from the `[offline]` mirror (build-iso.sh bakes those packages into the mirror via `iso/builder/build-boot-overlay.sh`).
+   - `packaging/base.sh` installs everything in `install/ryoku-base.packages` from the offline mirror's `[offline]` repo. The mirror also contains everything listed in `install/ryoku-other.packages` (Vulkan/NVIDIA/Intel video drivers, kernel headers, broadcom-wl, thermald, linux-firmware-marvell, etc.) so the hardware-detection scripts in `install/config/hardware/*.sh` can pacman-install matching drivers without network. The AUR halves of those splits live in `install/ryoku-aur.packages` (default install) and `iso/builder/ryoku-boot-overlay.packages` (boot-critical + conditional hardware AUR drivers like asusctl, qmk-hid, nvidia-580xx).
    - `login/limine-snapper.sh` hard-fails if `limine`, `limine-snapper-sync`, `limine-mkinitcpio-hook`, or `limine-update` is missing; runs `mkinitcpio -P` + `limine-update`; asserts `/boot/EFI/Linux/ryoku_linux.efi` and a `^/+Ryoku` entry in `/boot/limine.conf`.
    - `login/sddm.sh` refuses to enable SDDM unless the bundled pixel-rainyroom theme + the hyprland-uwsm session file exist.
    - `post-install/pacman.sh` swaps `/etc/pacman.conf` to the upstream-only config, dropping the temporary `[offline]` entry from the user's installed system.
@@ -92,12 +92,13 @@ These commits make the offline path work. Reverting any of them re-breaks the in
 
 When adding things, mirror these patterns or expect a regression in the offline install path.
 
-1. **New base packages.** Add to `install/ryoku-base.packages`. They will be pulled from the offline mirror IF they're in upstream Arch. AUR-only base packages MUST also be added to `iso/builder/ryoku-boot-overlay.packages` so the build container makepkgs them and dumps them into the offline mirror.
-2. **New AUR-only packages that are not boot-critical.** Add to `install/packaging/aur-core.sh` (or a sibling under `install/packaging/`). They install at first-boot via `ryoku-update`, not at install time, so the offline ISO doesn't need them in the overlay.
-3. **New `install/login/*` or `install/post-install/*` scripts.** Don't do anything that requires network unconditionally. Gate online-only work behind `[[ -n ${RYOKU_ONLINE_INSTALL:-} ]]` so the offline install keeps working.
-4. **Editing `login/limine-snapper.sh` or `login/sddm.sh`.** Keep the hard-check guard at the top and the post-`limine-update` verifications. They are the only thing keeping a silently broken boot from shipping.
-5. **Editing `iso/builder/build-iso.sh`.** Never reintroduce `repo-add --new`. Always rebuild `offline.db` from the current set of `.pkg.tar.zst` files.
-6. **Editing `install/config/hardware/network.sh`.** Don't try to manipulate `/etc/resolv.conf` inside the chroot. The bind-mount makes it a no-op at best and a hard error at worst.
+1. **New base packages (official Arch).** Add to `install/ryoku-base.packages` under the matching section header (CLI, TUI, GUI app, Hyprland, fonts, etc.). They will be pulled from the offline mirror via the upstream Arch sync.
+2. **New AUR packages, default install (every machine gets them).** Add to `install/ryoku-aur.packages` under the matching section. `aur-core.sh` reads this file and pacman-installs them from `[offline]`; `iso/builder/build-iso.sh` feeds the same file into the AUR overlay builder so the packages end up in the mirror.
+3. **New AUR packages, conditional hardware drivers.** Add to `iso/builder/ryoku-boot-overlay.packages` under a hardware section. These don't auto-install; the matching `install/packaging/{asus-rog,framework16}.sh` or `install/config/hardware/*.sh` script invokes `ryoku-pkg-add` after the `ryoku-hw-*` probe.
+4. **New `install/login/*` or `install/post-install/*` scripts.** Don't do anything that requires network unconditionally. Gate online-only work behind `[[ -n ${RYOKU_ONLINE_INSTALL:-} ]]` so the offline install keeps working.
+5. **Editing `login/limine-snapper.sh` or `login/sddm.sh`.** Keep the hard-check guard at the top and the post-`limine-update` verifications. They are the only thing keeping a silently broken boot from shipping.
+6. **Editing `iso/builder/build-iso.sh`.** Never reintroduce `repo-add --new`. Always rebuild `offline.db` from the current set of `.pkg.tar.zst` files.
+7. **Editing `install/config/hardware/network.sh`.** Don't try to manipulate `/etc/resolv.conf` inside the chroot. The bind-mount makes it a no-op at best and a hard error at worst.
 
 ## Verification after adding customizations
 
