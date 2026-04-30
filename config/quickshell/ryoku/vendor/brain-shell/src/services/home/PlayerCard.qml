@@ -581,19 +581,20 @@ StatCard {
 
       Item {
         width: parent.width
-        height: 36
+        height: 38
         anchors.top: metadata.bottom
-        anchors.topMargin: 7
+        anchors.topMargin: 8
 
         Row {
           id: playbackControls
+          objectName: "playbackDeck"
           anchors.centerIn: parent
-          spacing: 12
+          spacing: 4
 
           Repeater {
             model: [ { key: "prev" }, { key: "play" }, { key: "next" } ]
 
-            delegate: Rectangle {
+            delegate: Item {
               required property var modelData
               readonly property bool isPlay: modelData.key === "play"
               readonly property bool actionEnabled: {
@@ -604,44 +605,74 @@ StatCard {
                 return false
               }
 
-              width: isPlay ? 34 : 28
-              height: width
-              radius: 7
-              color: isPlay
-                ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, controlHit.hovered ? 0.16 : 0.08)
-                : Qt.rgba(1, 1, 1, controlHit.hovered ? 0.06 : 0.024)
-              border.width: 1
-              border.color: isPlay
-                ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.44)
-                : Qt.rgba(1, 1, 1, 0.13)
+              width: isPlay ? 46 : 40
+              height: 38
               opacity: actionEnabled ? 1 : 0.42
 
               Rectangle {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.leftMargin: 7
-                anchors.rightMargin: 7
-                anchors.topMargin: 5
-                height: 1
-                color: Qt.rgba(
-                  isPlay ? Theme.active.r : 1,
-                  isPlay ? Theme.active.g : 1,
-                  isPlay ? Theme.active.b : 1,
-                  isPlay ? 0.38 : 0.16
-                )
+                visible: !isPlay
+                anchors.centerIn: parent
+                width: controlHit.hovered ? 32 : 28
+                height: controlHit.hovered ? 24 : 18
+                radius: 5
+                color: Qt.rgba(1, 1, 1, controlHit.hovered ? 0.045 : 0.0)
+                border.width: controlHit.hovered ? 1 : 0
+                border.color: Qt.rgba(1, 1, 1, 0.11)
               }
 
-              Behavior on color {
+              Rectangle {
+                visible: !isPlay
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.verticalCenterOffset: -10
+                width: 16
+                height: 1
+                color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.20)
+              }
+
+              Rectangle {
+                visible: isPlay
+                anchors.centerIn: parent
+                width: 36
+                height: 36
+                radius: width / 2
+                color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, controlHit.hovered ? 0.16 : 0.09)
+                border.width: 1
+                border.color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, controlHit.hovered ? 0.52 : 0.34)
+              }
+
+              Rectangle {
+                visible: isPlay
+                anchors.centerIn: parent
+                width: 22
+                height: 22
+                radius: width / 2
+                color: Qt.rgba(8 / 255, 12 / 255, 18 / 255, 0.26)
+                border.width: 1
+                border.color: Qt.rgba(1, 1, 1, 0.08)
+              }
+
+              Rectangle {
+                visible: isPlay
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.top: parent.top
+                anchors.topMargin: 5
+                width: 16
+                height: 1
+                color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.42)
+              }
+
+              Behavior on opacity {
                 enabled: !Theme.staticMode
-                ColorAnimation { duration: 120 }
+                NumberAnimation { duration: 120 }
               }
 
               TransportGlyph {
                 anchors.centerIn: parent
                 mode: modelData.key
                 playing: root.isPlaying
-                glyphColor: isPlay ? Theme.active : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.74)
+                glyphColor: isPlay ? Theme.active
+                                    : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, controlHit.hovered ? 0.88 : 0.62)
               }
 
               HoverHandler {
@@ -682,14 +713,15 @@ StatCard {
       anchors.leftMargin: 18
       anchors.rightMargin: 18
       anchors.bottomMargin: 11
-      height: 34
+      height: 36
 
       Item {
         id: progressTrack
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        height: 16
+        anchors.topMargin: 5
+        height: 14
 
         Row {
           id: seekWaveBar
@@ -708,7 +740,7 @@ StatCard {
               readonly property real amp: root._seekValue(index) / 100
               readonly property bool played: root.length > 0 && ((index + 0.5) / root._seekBars) <= root._progress
               width: seekWaveBar.barW
-              height: Math.max(3, 4 + amp * 11)
+              height: Math.max(3, 4 + amp * 9)
               anchors.verticalCenter: parent.verticalCenter
               radius: width / 2
               color: played
@@ -727,7 +759,7 @@ StatCard {
           x: Math.max(0, Math.min(parent.width - width, parent.width * root._progress - width / 2))
           anchors.verticalCenter: parent.verticalCenter
           width: 3
-          height: 15
+          height: 13
           radius: 1
           color: Qt.rgba(1, 1, 1, 0.62)
           visible: root.length > 0
