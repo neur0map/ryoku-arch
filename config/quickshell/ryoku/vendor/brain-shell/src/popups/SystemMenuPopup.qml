@@ -12,75 +12,11 @@ PanelWindow {
 
   readonly property int fw: Theme.notchRadius
   readonly property int fh: Theme.notchRadius
-  readonly property int menuWidth: 288
-  readonly property int menuHeight: 322
+  readonly property int menuWidth: 306
+  readonly property int menuHeight: 226
   readonly property int fullCardWidth: root.menuWidth + 2 * root.fw
   readonly property int fullCardHeight: Theme.notchHeight + root.menuHeight
-  readonly property int initialCardWidth: Math.max(Theme.lNotchMinWidth, ShellState.topBarLWidth) + 2 * root.fw
   readonly property int initialCardHeight: Theme.notchHeight
-
-  readonly property var sessionActions: [
-    {
-      label: "Screensaver",
-      hint: "Start now",
-      icon: "󰍹",
-      command: ["ryoku-launch-screensaver", "force"]
-    },
-    {
-      label: "Lock",
-      hint: "Secure session",
-      icon: "󰌾",
-      command: ["ryoku-lock-screen"]
-    },
-    {
-      label: "Suspend",
-      hint: "Sleep",
-      icon: "⏾",
-      command: ["systemctl", "suspend"]
-    },
-    {
-      label: "Hibernate",
-      hint: "Save to disk",
-      icon: "󰒲",
-      command: ["systemctl", "hibernate"]
-    }
-  ]
-
-  readonly property var powerActions: [
-    {
-      label: "Log Out",
-      hint: "End session",
-      icon: "󰍃",
-      danger: true,
-      confirm: true,
-      title: "Log Out?",
-      message: "You will be logged out of your session. Save your work before continuing.",
-      confirmLabel: "Log Out",
-      action: "logout"
-    },
-    {
-      label: "Restart",
-      hint: "Reboot system",
-      icon: "↺",
-      danger: true,
-      confirm: true,
-      title: "Restart?",
-      message: "Your computer will restart. Save your work before continuing.",
-      confirmLabel: "Restart",
-      action: "reboot"
-    },
-    {
-      label: "Shutdown",
-      hint: "Power off",
-      icon: "⏻",
-      danger: true,
-      confirm: true,
-      title: "Shut Down?",
-      message: "Your computer will power off. Save your work before continuing.",
-      confirmLabel: "Shut Down",
-      action: "shutdown"
-    }
-  ]
 
   property bool windowVisible: false
   property real openProgress: Popups.systemMenuOpen ? 1 : 0
@@ -90,7 +26,7 @@ PanelWindow {
     NumberAnimation {
       duration: Theme.motionExpandDuration
       easing.type: Popups.systemMenuOpen ? Easing.OutBack : Easing.OutQuart
-      easing.overshoot: 1.08
+      easing.overshoot: 1.06
     }
   }
 
@@ -107,6 +43,18 @@ PanelWindow {
 
   WlrLayershell.layer: WlrLayer.Top
   WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
+
+  ListModel {
+    id: systemActions
+
+    ListElement { label: "Screensaver"; hint: "Start now"; icon: "󰍹"; action: "screensaver"; accent: "#91d7e3"; danger: false }
+    ListElement { label: "Lock";        hint: "Secure";    icon: "󰌾"; action: "lock";        accent: "#8aadf4"; danger: false }
+    ListElement { label: "Suspend";     hint: "Sleep";     icon: "⏾"; action: "suspend";     accent: "#a6da95"; danger: false }
+    ListElement { label: "Hibernate";   hint: "Disk";      icon: "󰒲"; action: "hibernate";   accent: "#eed49f"; danger: false }
+    ListElement { label: "Log Out";     hint: "Session";   icon: "󰍃"; action: "logout";      accent: "#f5a97f"; danger: true }
+    ListElement { label: "Restart";     hint: "Reboot";    icon: "↺"; action: "reboot";      accent: "#f5a97f"; danger: true }
+    ListElement { label: "Shutdown";    hint: "Power off"; icon: "⏻"; action: "shutdown";    accent: "#ed8796"; danger: true }
+  }
 
   Connections {
     target: Popups
@@ -135,15 +83,50 @@ PanelWindow {
   }
 
   function runAction(action) {
-    if (!action) return
-
-    if (action.confirm) {
+    switch (action) {
+    case "screensaver":
+      actionRunner.command = ["ryoku-launch-screensaver", "force"]
+      break
+    case "lock":
+      actionRunner.command = ["ryoku-lock-screen"]
+      break
+    case "suspend":
+      actionRunner.command = ["systemctl", "suspend"]
+      break
+    case "hibernate":
+      actionRunner.command = ["systemctl", "hibernate"]
+      break
+    case "logout":
       Popups.closeAll()
-      Popups.showConfirm(action.title, action.message, action.confirmLabel, action.action)
+      Popups.showConfirm(
+        "Log Out?",
+        "You will be logged out of your session. Save your work before continuing.",
+        "Log Out",
+        "logout"
+      )
+      return
+    case "reboot":
+      Popups.closeAll()
+      Popups.showConfirm(
+        "Restart?",
+        "Your computer will restart. Save your work before continuing.",
+        "Restart",
+        "reboot"
+      )
+      return
+    case "shutdown":
+      Popups.closeAll()
+      Popups.showConfirm(
+        "Shut Down?",
+        "Your computer will power off. Save your work before continuing.",
+        "Shut Down",
+        "shutdown"
+      )
+      return
+    default:
       return
     }
 
-    actionRunner.command = action.command
     actionRunner.running = true
     Popups.closeAll()
   }
@@ -160,7 +143,7 @@ PanelWindow {
     anchors.left: parent.left
     anchors.top: parent.top
 
-    width: root.initialCardWidth + (root.fullCardWidth - root.initialCardWidth) * root.openProgress
+    width: root.fullCardWidth
     height: root.initialCardHeight + (root.fullCardHeight - root.initialCardHeight) * root.openProgress
     visible: root.openProgress > 0
     clip: true
@@ -168,7 +151,9 @@ PanelWindow {
     PopupShape {
       anchors.fill: parent
       attachedEdge: "top"
-      color: Theme.background
+      color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, 0.96)
+      strokeColor: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.24)
+      strokeWidth: 1
       radius: Theme.cornerRadius
       flareWidth: root.fw
       flareHeight: root.fh
@@ -182,13 +167,13 @@ PanelWindow {
     Item {
       anchors {
         fill: parent
-        topMargin: Theme.notchHeight + 9
+        topMargin: Theme.notchHeight + 8
         leftMargin: root.fw + 10
         rightMargin: root.fw + 10
-        bottomMargin: 12
+        bottomMargin: 10
       }
 
-      opacity: Math.min(1, root.openProgress * 1.4)
+      opacity: Math.min(1, root.openProgress * 1.35)
 
       Behavior on opacity {
         enabled: !Theme.staticMode
@@ -196,55 +181,158 @@ PanelWindow {
       }
 
       Column {
-        id: content
         anchors.fill: parent
-        spacing: 7
+        spacing: 8
 
-        Text {
+        Item {
           width: parent.width
-          text: "Session"
-          color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.58)
-          font.pixelSize: 11
-          font.bold: true
-        }
+          height: 28
 
-        Repeater {
-          model: root.sessionActions
+          Rectangle {
+            id: headerMark
+            width: 24
+            height: 24
+            radius: 8
+            anchors.verticalCenter: parent.verticalCenter
+            color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.18)
 
-          MenuButton {
-            width: content.width
-            label: modelData && modelData.label ? modelData.label : ""
-            hint: modelData && modelData.hint ? modelData.hint : ""
-            icon: modelData && modelData.icon ? modelData.icon : ""
-            danger: false
-            onClicked: root.runAction(modelData)
+            Text {
+              anchors.centerIn: parent
+              text: "⏻"
+              color: Theme.active
+              font.pixelSize: 13
+              font.bold: true
+            }
+          }
+
+          Column {
+            anchors {
+              left: headerMark.right
+              leftMargin: 8
+              verticalCenter: parent.verticalCenter
+            }
+            spacing: -1
+
+            Text {
+              text: "System"
+              color: Theme.text
+              font.pixelSize: 13
+              font.bold: true
+            }
+
+            Text {
+              text: "Session controls"
+              color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.42)
+              font.pixelSize: 9
+            }
+          }
+
+          Text {
+            anchors {
+              right: parent.right
+              verticalCenter: parent.verticalCenter
+            }
+            text: "power"
+            color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.42)
+            font.pixelSize: 10
           }
         }
 
-        Rectangle {
+        Grid {
+          id: grid
           width: parent.width
-          height: 1
-          color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.08)
-        }
+          columns: 2
+          rowSpacing: 6
+          columnSpacing: 6
 
-        Text {
-          width: parent.width
-          text: "Power"
-          color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.58)
-          font.pixelSize: 11
-          font.bold: true
-        }
+          Repeater {
+            model: systemActions
 
-        Repeater {
-          model: root.powerActions
+            delegate: Rectangle {
+              id: button
 
-          MenuButton {
-            width: content.width
-            label: modelData && modelData.label ? modelData.label : ""
-            hint: modelData && modelData.hint ? modelData.hint : ""
-            icon: modelData && modelData.icon ? modelData.icon : ""
-            danger: !!(modelData && modelData.danger)
-            onClicked: root.runAction(modelData)
+              required property string label
+              required property string hint
+              required property string icon
+              required property color accent
+              required property bool danger
+              required property string action
+
+              width: (grid.width - grid.columnSpacing) / 2
+              height: 38
+              radius: 8
+              color: hover.hovered ? Qt.rgba(button.accent.r, button.accent.g, button.accent.b, button.danger ? 0.24 : 0.18)
+                                   : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.045)
+              border.width: 1
+              border.color: hover.hovered ? Qt.rgba(button.accent.r, button.accent.g, button.accent.b, 0.48)
+                                          : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.08)
+              scale: hover.hovered ? 1.025 : 1
+
+              Behavior on color { ColorAnimation { duration: 130 } }
+              Behavior on border.color { ColorAnimation { duration: 130 } }
+              Behavior on scale {
+                enabled: !Theme.staticMode
+                NumberAnimation { duration: Theme.motionEffectsDuration; easing.type: Easing.OutCubic }
+              }
+
+              Row {
+                anchors {
+                  fill: parent
+                  leftMargin: 7
+                  rightMargin: 8
+                }
+                spacing: 7
+
+                Rectangle {
+                  id: iconBadge
+                  width: 26
+                  height: 26
+                  radius: 8
+                  anchors.verticalCenter: parent.verticalCenter
+                  color: Qt.rgba(button.accent.r, button.accent.g, button.accent.b, hover.hovered ? 0.30 : 0.16)
+
+                  Text {
+                    anchors.centerIn: parent
+                    text: button.icon
+                    color: button.danger && hover.hovered ? "#ff9a9a" : Theme.text
+                    font.pixelSize: 13
+                  }
+                }
+
+                Column {
+                  width: parent.width - iconBadge.width - parent.spacing
+                  anchors.verticalCenter: parent.verticalCenter
+                  spacing: -1
+
+                  Text {
+                    width: parent.width
+                    text: button.label
+                    color: button.danger && hover.hovered ? "#ff9a9a" : Theme.text
+                    font.pixelSize: 11
+                    font.bold: true
+                    elide: Text.ElideRight
+                  }
+
+                  Text {
+                    width: parent.width
+                    text: button.hint
+                    color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.42)
+                    font.pixelSize: 9
+                    elide: Text.ElideRight
+                  }
+                }
+              }
+
+              HoverHandler {
+                id: hover
+                cursorShape: Qt.PointingHandCursor
+              }
+
+              MouseArea {
+                anchors.fill: parent
+                onClicked: root.runAction(button.action)
+              }
+            }
           }
         }
       }
@@ -255,79 +343,5 @@ PanelWindow {
     anchors.fill: parent
     focus: root.visible
     Keys.onEscapePressed: Popups.closeAll()
-  }
-
-  component MenuButton: Rectangle {
-    id: button
-
-    required property string label
-    required property string icon
-    property string hint: ""
-    property bool danger: false
-
-    signal clicked()
-
-    height: 32
-    radius: 7
-    color: hover.hovered
-           ? (button.danger ? Qt.rgba(0.45, 0.12, 0.12, 0.55) : Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.18))
-           : "transparent"
-    scale: hover.hovered ? 1.015 : 1
-
-    Behavior on color { ColorAnimation { duration: 130 } }
-    Behavior on scale {
-      enabled: !Theme.staticMode
-      NumberAnimation { duration: Theme.motionEffectsDuration; easing.type: Easing.OutCubic }
-    }
-
-    Row {
-      anchors {
-        fill: parent
-        leftMargin: 9
-        rightMargin: 9
-      }
-      spacing: 9
-
-      Text {
-        width: 20
-        anchors.verticalCenter: parent.verticalCenter
-        text: button.icon
-        color: button.danger && hover.hovered ? "#ff7777" : Theme.text
-        font.pixelSize: 14
-        horizontalAlignment: Text.AlignHCenter
-      }
-
-      Column {
-        width: parent.width - 29
-        anchors.verticalCenter: parent.verticalCenter
-        spacing: 0
-
-        Text {
-          width: parent.width
-          text: button.label
-          color: Theme.text
-          font.pixelSize: 12
-          elide: Text.ElideRight
-        }
-
-        Text {
-          width: parent.width
-          text: button.hint
-          color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.42)
-          font.pixelSize: 10
-          elide: Text.ElideRight
-        }
-      }
-    }
-
-    HoverHandler {
-      id: hover
-      cursorShape: Qt.PointingHandCursor
-    }
-
-    MouseArea {
-      anchors.fill: parent
-      onClicked: button.clicked()
-    }
   }
 }
