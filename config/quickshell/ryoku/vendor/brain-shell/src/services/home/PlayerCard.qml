@@ -103,7 +103,7 @@ StatCard {
   readonly property int _orbitBars: 24
   readonly property int _seekBars: 42
   readonly property int _stripBars: 32
-  readonly property real _surfaceAlpha: 0.44
+  readonly property real _surfaceAlpha: 0.34
   readonly property var _bars: CavaService.bars
   readonly property bool _barsPlaying: CavaService.isPlaying
 
@@ -298,9 +298,9 @@ StatCard {
       anchors.fill: parent
       radius: Theme.cornerRadius
       gradient: Gradient {
-        GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.035) }
-        GradientStop { position: 0.55; color: Qt.rgba(1, 1, 1, 0.014) }
-        GradientStop { position: 1.0; color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.045) }
+        GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.028) }
+        GradientStop { position: 0.55; color: Qt.rgba(1, 1, 1, 0.010) }
+        GradientStop { position: 1.0; color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.034) }
       }
     }
 
@@ -550,7 +550,7 @@ StatCard {
       anchors.bottom: progressBlock.top
       anchors.leftMargin: 18
       anchors.rightMargin: 18
-      anchors.topMargin: -14
+      anchors.topMargin: -22
       anchors.bottomMargin: 8
 
       Column {
@@ -608,8 +608,8 @@ StatCard {
               height: width
               radius: 7
               color: isPlay
-                ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, controlHit.hovered ? 0.18 : 0.105)
-                : Qt.rgba(1, 1, 1, controlHit.hovered ? 0.075 : 0.032)
+                ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, controlHit.hovered ? 0.16 : 0.08)
+                : Qt.rgba(1, 1, 1, controlHit.hovered ? 0.06 : 0.024)
               border.width: 1
               border.color: isPlay
                 ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.44)
@@ -681,7 +681,7 @@ StatCard {
       anchors.bottom: parent.bottom
       anchors.leftMargin: 18
       anchors.rightMargin: 18
-      anchors.bottomMargin: 10
+      anchors.bottomMargin: 11
       height: 34
 
       Item {
@@ -689,7 +689,7 @@ StatCard {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        height: 20
+        height: 16
 
         Row {
           id: seekWaveBar
@@ -708,7 +708,7 @@ StatCard {
               readonly property real amp: root._seekValue(index) / 100
               readonly property bool played: root.length > 0 && ((index + 0.5) / root._seekBars) <= root._progress
               width: seekWaveBar.barW
-              height: Math.max(4, 5 + amp * 13)
+              height: Math.max(3, 4 + amp * 11)
               anchors.verticalCenter: parent.verticalCenter
               radius: width / 2
               color: played
@@ -727,7 +727,7 @@ StatCard {
           x: Math.max(0, Math.min(parent.width - width, parent.width * root._progress - width / 2))
           anchors.verticalCenter: parent.verticalCenter
           width: 3
-          height: 18
+          height: 15
           radius: 1
           color: Qt.rgba(1, 1, 1, 0.62)
           visible: root.length > 0
@@ -780,7 +780,7 @@ StatCard {
       anchors.right: parent.right
       anchors.bottom: parent.bottom
       height: 14
-      opacity: 0.26
+      opacity: 0.18
 
       Row {
         anchors.left: parent.left
