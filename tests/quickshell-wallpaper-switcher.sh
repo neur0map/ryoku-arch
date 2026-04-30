@@ -51,9 +51,9 @@ grep -q 'attachedEdge: "bottom"' "$wallpaper_popup" \
   || fail "WallpaperPopup should open from the bottom like Brain Shell"
 grep -q 'implicitHeight: root.panelHeight + Theme.borderWidth' "$wallpaper_popup" \
   || fail "WallpaperPopup should be a bottom layer surface, not fullscreen"
-grep -q 'readonly property int panelWidth:  980' "$wallpaper_popup" \
+grep -Eq 'readonly property int panelWidth:[[:space:]]+980' "$wallpaper_popup" \
   || fail "WallpaperPopup should use Brain Shell width"
-grep -q 'readonly property int panelHeight: 420' "$wallpaper_popup" \
+grep -Eq 'readonly property int panelHeight:[[:space:]]+420' "$wallpaper_popup" \
   || fail "WallpaperPopup should use Brain Shell height"
 grep -q 'bottom: true' "$wallpaper_popup" \
   || fail "WallpaperPopup should anchor to the bottom edge"
@@ -69,8 +69,10 @@ grep -q 'applyActive:' "$wallpaper_popup" \
   || fail "WallpaperPopup should keep explicit apply state"
 grep -q 'previewWall !== WallpaperService.currentWall' "$wallpaper_popup" \
   || fail "WallpaperPopup should apply only changed wallpaper previews"
-grep -q 'visible: false' "$wallpaper_popup" \
-  || fail "WallpaperPopup should hide unused upstream folder/scheme controls"
+grep -A3 'id: folderBtn' "$wallpaper_popup" | grep -q 'visible: false' \
+  || fail "WallpaperPopup should hide unused upstream folder control"
+grep -A3 'id: schemeBtn' "$wallpaper_popup" | grep -q 'visible: false' \
+  || fail "WallpaperPopup should hide unused upstream scheme control"
 grep -q 'Popups.wallpaperOpen = false' "$wallpaper_popup" \
   || fail "Escape/apply should close the wallpaper switcher"
 
@@ -85,9 +87,9 @@ grep -q '.config/ryoku/current/theme/backgrounds' "$wallpaper_service" \
 grep -q '.config/ryoku/backgrounds/' "$wallpaper_service" \
   || fail "WallpaperService should list user backgrounds for the active theme"
 
-grep -q 'bindd = SUPER CTRL, SPACE, Theme background menu, exec, qs -c ryoku ipc call popups toggleWallpaper' "$bindings" \
-  || fail "SUPER+CTRL+SPACE should open the Quickshell wallpaper switcher"
-! grep -q 'bindd = SUPER CTRL, SPACE, Theme background menu, exec, ryoku-menu background' "$bindings" \
-  || fail "SUPER+CTRL+SPACE should no longer use the old tofi background picker"
+grep -q 'bindd = SUPER CTRL, SPACE, Theme background menu, exec, ryoku-ipc shell toggle wallpaper' "$bindings" \
+  || fail "SUPER+CTRL+SPACE should open the Quickshell wallpaper switcher through ryoku-ipc"
+! grep -q 'bindd = SUPER CTRL, SPACE, Theme background menu, exec, qs -c ryoku ipc call popups toggleWallpaper' "$bindings" \
+  || fail "SUPER+CTRL+SPACE should no longer call qs directly"
 
 pass "quickshell wallpaper switcher wiring"
