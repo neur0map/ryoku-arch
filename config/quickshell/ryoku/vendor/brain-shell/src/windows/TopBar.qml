@@ -22,9 +22,9 @@ PanelWindow {
     // visually present, so the bar's center pill paints over the
     // card's top strip — the card's flares tuck behind the notch and
     // the two shapes read as one continuous surface during open and
-    // close. Bound to Popups.dashboardVisible (set by Dashboard.qml)
-    // so the layer holds through the full close animation.
-    WlrLayershell.layer: Popups.dashboardVisible || Popups.launcherVisible || Popups.wallpaperVisible ? WlrLayer.Overlay : WlrLayer.Top
+    // close. Bound to visual states for popups that attach to the
+    // bar; fullscreen modal surfaces stay above the bar instead.
+    WlrLayershell.layer: Popups.dashboardVisible || Popups.launcherVisible ? WlrLayer.Overlay : WlrLayer.Top
 
     anchors {
         top:   true

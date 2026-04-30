@@ -37,6 +37,12 @@ grep -q 'property string statusText' "$service" \
   || fail "WallpaperService should expose statusText"
 grep -q 'property bool cacheLoading' "$service" \
   || fail "WallpaperService should expose cacheLoading"
+grep -q 'property bool listLoading' "$service" \
+  || fail "WallpaperService should track list loading separately"
+grep -q 'property bool cacheRebuilding' "$service" \
+  || fail "WallpaperService should track cache rebuild separately"
+grep -q 'property bool reloadAfterRebuild' "$service" \
+  || fail "WallpaperService should queue reloads after overlapping rebuilds"
 grep -q 'property bool wallhavenLoading' "$service" \
   || fail "WallpaperService should expose wallhavenLoading"
 grep -q 'property string pendingApplyPath' "$service" \
@@ -49,6 +55,10 @@ grep -q 'JSON.parse(t)' "$service" \
   || fail "WallpaperService should parse JSONL rows"
 grep -q 'function updateFilteredModel' "$service" \
   || fail "WallpaperService should update filtered model"
+grep -q 'function rebuildCache()' "$service" \
+  || fail "WallpaperService should expose cache rebuild"
+grep -q 'wallpaper", "cache", "rebuild"' "$service" \
+  || fail "WallpaperService should rebuild cache through ryoku-ipc"
 grep -q 'selectedSourceFilter !== ""' "$service" \
   || fail "WallpaperService should filter by source"
 grep -q 'selectedTypeFilter !== ""' "$service" \
@@ -67,6 +77,12 @@ grep -q 'root.clearWallhavenRows()' "$service" \
   || fail "WallpaperService should clear stale Wallhaven rows before search"
 grep -q 'wallpaper", "wallhaven", "search"' "$service" \
   || fail "WallpaperService should call ryoku-ipc Wallhaven search"
+grep -q 'wallpaper", "wallhaven", "download"' "$service" \
+  || fail "WallpaperService should download Wallhaven rows before applying"
+grep -q 'function isRemotePath' "$service" \
+  || fail "WallpaperService should detect remote Wallhaven paths"
+grep -q 'root.startApply(root.downloadedWallhavenPath, "image")' "$service" \
+  || fail "WallpaperService should apply downloaded Wallhaven files"
 grep -q 'function applyItem' "$service" \
   || fail "WallpaperService should apply model items"
 grep -q 'wallpaper", "apply", "--type"' "$service" \
@@ -142,17 +158,50 @@ grep -q 'signal closeRequested' "$settings" \
   || fail "WallpaperSettingsPane should expose closeRequested"
 grep -q 'videoBackend' "$settings" \
   || fail "WallpaperSettingsPane should show video backend status"
-grep -q 'wallpaper", "cache", "rebuild"' "$settings" \
-  || fail "WallpaperSettingsPane should rebuild cache through ryoku-ipc"
-grep -q 'WallpaperService.refresh()' "$settings" \
-  || fail "WallpaperSettingsPane should refresh the model after rebuild"
+grep -q 'WallpaperService.rebuildCache()' "$settings" \
+  || fail "WallpaperSettingsPane should rebuild through WallpaperService"
 ! grep -q 'rebuildRequested' "$settings" \
   || fail "WallpaperSettingsPane should not expose unused rebuild ownership"
 grep -q 'anchors.margins: root.open ? 16 : 0' "$settings" \
   || fail "WallpaperSettingsPane should avoid negative inner width while closed"
 
+grep -q 'WallpaperFilterBar' "$popup" \
+  || fail "WallpaperPopup should render the SKWD filter bar"
+grep -q 'WallpaperSkewCard' "$popup" \
+  || fail "WallpaperPopup should render skewed wallpaper cards"
+grep -q 'WallpaperSettingsPane' "$popup" \
+  || fail "WallpaperPopup should render the settings pane"
+grep -q 'model: WallpaperService.filteredModel' "$popup" \
+  || fail "WallpaperPopup should bind cards to the filtered model"
+grep -q 'WallpaperService.applyItem(item)' "$popup" \
+  || fail "WallpaperPopup should apply selected model items"
+grep -q 'WallpaperService.previewWall = item.path' "$popup" \
+  || fail "WallpaperPopup should preview using model item paths"
+grep -q 'anchors.fill: parent' "$popup" \
+  || fail "WallpaperPopup should use a fullscreen overlay content area"
+grep -q 'WlrKeyboardFocus.Exclusive' "$popup" \
+  || fail "WallpaperPopup should keep exclusive keyboard focus"
+grep -q 'Keys.onEscapePressed: Popups.wallpaperOpen = false' "$popup" \
+  || fail "WallpaperPopup should close on Escape"
+grep -q 'onClicked: Popups.wallpaperOpen = false' "$popup" \
+  || fail "WallpaperPopup should close on outside click"
+grep -q 'WallpaperService.refresh()' "$popup" \
+  || fail "WallpaperPopup should refresh wallpapers on open"
+grep -q 'WallpaperService.rebuildCache()' "$popup" \
+  || fail "WallpaperPopup should rebuild cache from the filter bar"
+grep -q 'anchors.top:    true' "$popup" \
+  || fail "WallpaperPopup should be a fullscreen overlay"
+grep -q 'anchors.bottom: true' "$popup" \
+  || fail "WallpaperPopup should cover the bottom edge"
+! grep -q 'model: content.filteredWallpapers' "$popup" \
+  || fail "WallpaperPopup should not use the old path-array filtered wallpaper model"
+! grep -q 'WallpaperService.wallpapers' "$popup" \
+  || fail "WallpaperPopup should not depend on the old wallpaper path array"
+! grep -q 'attachedEdge: "bottom"' "$popup" \
+  || fail "WallpaperPopup should not keep the old bottom strip shape"
+
 if command -v qmllint >/dev/null; then
-  qmllint -I config/quickshell/ryoku/vendor/brain-shell/src "$card" "$filter" "$settings"
+  qmllint -I config/quickshell/ryoku/vendor/brain-shell/src "$service" "$popup" "$card" "$filter" "$settings"
 fi
 
 pass "quickshell skwd wallpaper service"
