@@ -71,8 +71,8 @@ active_has "$player" 'id: playbackControls' \
   || fail "PlayerCard should render explicit playback controls"
 active_has "$player" 'objectName: "playbackDeck"' \
   || fail "Playback controls should use the transport deck layout"
-active_has "$player" 'width: isPlay ? 46 : 38' \
-  || fail "Playback controls should use large round command nodes"
+active_has "$player" 'width: isPlay ? 38 : 32' \
+  || fail "Playback controls should use compact round command nodes"
 active_has "$player" 'radius: width / 2' \
   || fail "Playback controls should render as circular command nodes"
 active_has "$player" 'root.player.canTogglePlaying' \
@@ -84,13 +84,13 @@ active_has "$player" 'root.player.canGoNext' \
 active_has "$player" 'id: progressTrack' \
   || fail "PlayerCard should render a named progress track"
 active_has "$player" 'id: seekWaveBar' \
-  || fail "Progress track should render as a wave seekbar"
+  || fail "Progress track should render a named wave seekbar"
 active_has "$player" 'objectName: "playerWaveSeek"' \
   || fail "Wave seekbar should be addressable as part of the side console"
-active_has "$player" 'readonly property int _seekBars' \
-  || fail "Wave seekbar should define a stable bar count"
-active_has "$player" 'root._seekValue(index)' \
-  || fail "Wave seekbar should read shared Cava values"
+active_has "$player" 'WaveBar {' \
+  || fail "PlayerCard seekbar should reuse the TelemetryRail WaveBar component"
+active_has "$player" 'value: root._progress' \
+  || fail "Wave seekbar should bind to MPRIS playback progress"
 active_has "$player" 'root.player.position = f * root.length' \
   || fail "Progress track should preserve click-to-seek"
 active_has "$player" 'font.family: "JetBrains Mono"' \

@@ -100,8 +100,7 @@ StatCard {
   readonly property real _progress: root.length > 0 ? root._pos / root.length : 0
 
   // Shared Cava signal
-  readonly property int _orbitBars: 28
-  readonly property int _seekBars: 56
+  readonly property int _orbitBars: 24
   readonly property int _stripBars: 32
   readonly property real _surfaceAlpha: 0.26
   readonly property var _bars: CavaService.bars
@@ -117,14 +116,6 @@ StatCard {
     if (!root._bars || root._bars.length === 0) return 0
     var idx = Math.min(root._bars.length - 1, Math.floor(i * root._bars.length / Math.max(1, root._stripBars)))
     return root._bars[idx] || 0
-  }
-
-  function _seekValue(i) {
-    if (root._bars && root._bars.length > 0 && root._barsPlaying) {
-      var idx = Math.min(root._bars.length - 1, Math.floor(i * root._bars.length / Math.max(1, root._seekBars)))
-      return root._bars[idx] || 0
-    }
-    return 18 + ((i * 17) % 41)
   }
 
   function _playerIcon(player) {
@@ -154,10 +145,10 @@ StatCard {
     return player.identity || "Player"
   }
 
-  readonly property int _discSize: Math.max(104, Math.min(142, Math.floor(root.height * 0.40)))
-  readonly property int _orbitSize: root._discSize + 34
-  readonly property int _panelLeft: Math.max(72, Math.floor(root._discSize * 0.58))
-  readonly property int _contentLeftInset: Math.max(128, root._orbitSize - root._panelLeft + 24)
+  readonly property int _discSize: Math.max(76, Math.min(104, Math.floor(root.height * 0.25)))
+  readonly property int _orbitSize: root._discSize + 26
+  readonly property int _panelLeft: Math.max(52, Math.floor(root._discSize * 0.54))
+  readonly property int _contentLeftInset: Math.max(96, root._orbitSize - root._panelLeft + 22)
 
   component ChevronMark: Item {
     id: chevron
@@ -311,12 +302,10 @@ StatCard {
       objectName: "playerOffsetPanel"
       anchors.left: parent.left
       anchors.right: parent.right
-      anchors.top: parent.top
-      anchors.bottom: parent.bottom
+      anchors.verticalCenter: parent.verticalCenter
       anchors.leftMargin: root._panelLeft
-      anchors.rightMargin: 12
-      anchors.topMargin: 18
-      anchors.bottomMargin: 18
+      anchors.rightMargin: 18
+      height: Math.max(140, Math.min(parent.height - 32, 184))
       radius: Math.max(18, Theme.cornerRadius)
       color: Qt.rgba(9 / 255, 14 / 255, 22 / 255, 0.42)
       border.width: 1
@@ -327,9 +316,9 @@ StatCard {
       anchors.left: panelBody.left
       anchors.right: panelBody.right
       anchors.top: panelBody.top
-      anchors.leftMargin: 18
-      anchors.rightMargin: 18
-      anchors.topMargin: 16
+      anchors.leftMargin: 16
+      anchors.rightMargin: 16
+      anchors.topMargin: 14
       height: 1
       color: Qt.rgba(1, 1, 1, 0.065)
     }
@@ -337,9 +326,9 @@ StatCard {
     Rectangle {
       anchors.left: panelBody.left
       anchors.top: panelBody.top
-      anchors.leftMargin: 18
-      anchors.topMargin: 16
-      width: 42
+      anchors.leftMargin: 16
+      anchors.topMargin: 14
+      width: 36
       height: 1
       color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.48)
     }
@@ -347,8 +336,8 @@ StatCard {
     Text {
       anchors.left: panelBody.left
       anchors.top: panelBody.top
-      anchors.leftMargin: 20
-      anchors.topMargin: 22
+      anchors.leftMargin: 18
+      anchors.topMargin: 20
       text: root.player ? "AUDIO" : "NO SIGNAL"
       font.pixelSize: 8
       font.weight: Font.Bold
@@ -361,9 +350,9 @@ StatCard {
       id: sourcePicker
       anchors.right: panelBody.right
       anchors.top: panelBody.top
-      anchors.rightMargin: 18
-      anchors.topMargin: 12
-      width: 106
+      anchors.rightMargin: 16
+      anchors.topMargin: 10
+      width: 96
       height: sourcePill.height
       visible: root.filteredPlayers.length > 1
       z: 40
@@ -456,8 +445,7 @@ StatCard {
       id: discStage
       anchors.left: parent.left
       anchors.verticalCenter: panelBody.verticalCenter
-      anchors.leftMargin: 8
-      anchors.verticalCenterOffset: -12
+      anchors.leftMargin: 14
       width: root._orbitSize
       height: root._orbitSize
       z: 8
@@ -474,10 +462,10 @@ StatCard {
             readonly property real amp: root._barsPlaying ? (root._barValue(index) / 100) : 0
             readonly property real angleDeg: -150 + index * (300 / Math.max(1, root._orbitBars - 1))
             readonly property real angleRad: angleDeg * Math.PI / 180
-            readonly property real orbitRadius: Math.min(cavaOrbit.width, cavaOrbit.height) / 2 - 9
+            readonly property real orbitRadius: Math.min(cavaOrbit.width, cavaOrbit.height) / 2 - 8
 
-            width: 3
-            height: 7 + amp * 18
+            width: 2
+            height: 5 + amp * 12
             radius: width / 2
             x: cavaOrbit.width / 2 + Math.cos(angleRad) * orbitRadius - width / 2
             y: cavaOrbit.height / 2 + Math.sin(angleRad) * orbitRadius - height / 2
@@ -499,7 +487,7 @@ StatCard {
 
       Rectangle {
         anchors.centerIn: parent
-        width: root._discSize + 14
+        width: root._discSize + 10
         height: width
         radius: width / 2
         color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.075)
@@ -573,9 +561,9 @@ StatCard {
       anchors.top: panelBody.top
       anchors.bottom: panelBody.bottom
       anchors.leftMargin: root._contentLeftInset
-      anchors.rightMargin: 24
-      anchors.topMargin: 34
-      anchors.bottomMargin: 18
+      anchors.rightMargin: 20
+      anchors.topMargin: 30
+      anchors.bottomMargin: 14
       z: 6
 
       Text {
@@ -586,7 +574,7 @@ StatCard {
         text: root.title
         elide: Text.ElideRight
         horizontalAlignment: Text.AlignHCenter
-        font.pixelSize: 18
+        font.pixelSize: 16
         font.weight: Font.DemiBold
         color: Theme.text
       }
@@ -600,7 +588,7 @@ StatCard {
         text: root.artist !== "" ? root.artist : root._playerLabel(root.player)
         elide: Text.ElideRight
         horizontalAlignment: Text.AlignHCenter
-        font.pixelSize: 10
+        font.pixelSize: 9
         font.family: "JetBrains Mono"
         color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.46)
       }
@@ -611,57 +599,39 @@ StatCard {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: artistLabel.bottom
-        anchors.topMargin: 8
-        height: 34
+        anchors.topMargin: 7
+        height: 28
 
         Item {
           id: progressTrack
           anchors.left: parent.left
           anchors.right: parent.right
           anchors.top: parent.top
-          height: 18
+          height: 16
 
-          Row {
+          WaveBar {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            value: 1
+            color: Qt.rgba(1, 1, 1, 0.13)
+            wavelength: 14
+            amplitude: 2
+            strokeWidth: 2
+            speed: 5200
+          }
+
+          WaveBar {
             id: seekWaveBar
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            height: parent.height
-            spacing: 1
-            readonly property real barW: Math.max(2, (width - spacing * (root._seekBars - 1)) / root._seekBars)
-
-            Repeater {
-              model: root._seekBars
-
-              delegate: Rectangle {
-                required property int index
-                readonly property real amp: root._seekValue(index) / 100
-                readonly property bool played: root.length > 0 && ((index + 0.5) / root._seekBars) <= root._progress
-                width: seekWaveBar.barW
-                height: Math.max(3, 4 + amp * 10)
-                anchors.verticalCenter: parent.verticalCenter
-                radius: width / 2
-                color: played
-                  ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.50 + amp * 0.34)
-                  : Qt.rgba(1, 1, 1, 0.075 + amp * 0.12)
-
-                Behavior on height {
-                  enabled: !Theme.staticMode
-                  NumberAnimation { duration: 75; easing.type: Easing.OutCubic }
-                }
-              }
-            }
-          }
-
-          Rectangle {
-            x: Math.max(0, Math.min(parent.width - width, parent.width * root._progress - width / 2))
-            anchors.verticalCenter: parent.verticalCenter
-            width: 8
-            height: 8
-            radius: width / 2
+            value: root._progress
             color: Theme.active
-            border.width: 1
-            border.color: Qt.rgba(1, 1, 1, 0.35)
+            wavelength: 14
+            amplitude: 2
+            strokeWidth: 2
+            speed: 4000
             visible: root.length > 0
           }
 
@@ -710,16 +680,15 @@ StatCard {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: progressBlock.bottom
-        anchors.topMargin: 6
-        height: 50
+        anchors.topMargin: 5
+        height: 38
 
         Row {
           id: playbackControls
           objectName: "playbackDeck"
           anchors.horizontalCenter: parent.horizontalCenter
-          anchors.horizontalCenterOffset: -14
           anchors.verticalCenter: parent.verticalCenter
-          spacing: 8
+          spacing: 6
 
           Repeater {
             model: [ { key: "prev" }, { key: "play" }, { key: "next" } ]
@@ -735,7 +704,7 @@ StatCard {
                 return false
               }
 
-              width: isPlay ? 46 : 38
+              width: isPlay ? 38 : 32
               height: width
               radius: width / 2
               opacity: actionEnabled ? 1 : 0.42
@@ -749,7 +718,7 @@ StatCard {
 
               Rectangle {
                 anchors.centerIn: parent
-                width: parent.width - (parent.isPlay ? 18 : 16)
+                width: parent.width - (parent.isPlay ? 14 : 12)
                 height: width
                 radius: width / 2
                 color: Qt.rgba(1, 1, 1, parent.isPlay ? 0.040 : 0.026)
@@ -758,8 +727,8 @@ StatCard {
               Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.top
-                anchors.topMargin: parent.isPlay ? 10 : 8
-                width: parent.isPlay ? 20 : 16
+                anchors.topMargin: parent.isPlay ? 8 : 7
+                width: parent.isPlay ? 16 : 12
                 height: 1
                 color: Qt.rgba(
                   parent.isPlay ? Theme.active.r : 1,
@@ -819,6 +788,7 @@ StatCard {
       anchors.bottom: parent.bottom
       height: 14
       opacity: 0.18
+      visible: false
 
       Row {
         anchors.left: parent.left
