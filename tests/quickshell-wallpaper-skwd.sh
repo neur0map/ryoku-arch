@@ -126,10 +126,20 @@ grep -q 'import QtMultimedia' "$card" \
   || fail "WallpaperSkewCard should support video previews"
 grep -q 'required property var itemData' "$card" \
   || fail "WallpaperSkewCard should accept model item data"
-grep -q 'width: selected ? 300 : 92' "$card" \
-  || fail "WallpaperSkewCard should use slimmer card widths"
 grep -q 'height: 236' "$card" \
   || fail "WallpaperSkewCard should use slimmer card height"
+grep -q 'property bool hovered' "$card" \
+  || fail "WallpaperSkewCard should track hover state"
+grep -q 'readonly property bool expanded: root.selected || root.hovered' "$card" \
+  || fail "WallpaperSkewCard should expand on hover without changing selection"
+grep -q 'width: expanded ? 300 : 92' "$card" \
+  || fail "WallpaperSkewCard should use hover/selection expansion width"
+grep -q 'scale: root.hovered && !root.selected ? 1.025 : 1.0' "$card" \
+  || fail "WallpaperSkewCard should subtly lift hovered cards"
+grep -q 'Behavior on scale' "$card" \
+  || fail "WallpaperSkewCard should animate hover lift"
+grep -q 'onHoveredChanged: root.hovered = hovered' "$card" \
+  || fail "WallpaperSkewCard should update hover state from HoverHandler"
 grep -q 'MediaPlayer' "$card" \
   || fail "WallpaperSkewCard should use MediaPlayer for selected videos"
 grep -q 'AudioOutput' "$card" \
@@ -152,6 +162,10 @@ grep -q 'signal settingsRequested' "$filter" \
   || fail "WallpaperFilterBar should expose settingsRequested"
 grep -q 'signal rebuildRequested' "$filter" \
   || fail "WallpaperFilterBar should expose rebuildRequested"
+grep -q 'signal searchSubmitted' "$filter" \
+  || fail "WallpaperFilterBar should notify the popup after submitting search"
+grep -q 'function submitWallhavenSearch' "$filter" \
+  || fail "WallpaperFilterBar should centralize Wallhaven search submission"
 grep -q 'implicitWidth:' "$filter" \
   || fail "WallpaperFilterBar should expose stable implicitWidth"
 grep -q 'implicitHeight:' "$filter" \
@@ -174,6 +188,8 @@ grep -q 'WallpaperService.searchQuery' "$filter" \
   || fail "WallpaperFilterBar should update searchQuery"
 grep -q 'WallpaperService.searchWallhaven' "$filter" \
   || fail "WallpaperFilterBar should trigger Wallhaven search"
+grep -q 'root.searchSubmitted()' "$filter" \
+  || fail "WallpaperFilterBar should emit after Wallhaven search submission"
 grep -q 'event.accepted = true' "$filter" \
   || fail "WallpaperFilterBar should keep Return from bubbling to the popup apply shortcut"
 grep -q 'WallpaperService.selectedColorFilter' "$filter" \
@@ -232,6 +248,8 @@ grep -q 'WallpaperService.refresh()' "$popup" \
   || fail "WallpaperPopup should refresh wallpapers on open"
 grep -q 'WallpaperService.rebuildCache()' "$popup" \
   || fail "WallpaperPopup should rebuild cache from the filter bar"
+grep -q 'onSearchSubmitted: keyScope.forceActiveFocus()' "$popup" \
+  || fail "WallpaperPopup should restore selector keyboard navigation after searches"
 grep -q 'anchors.top:    true' "$popup" \
   || fail "WallpaperPopup should be a fullscreen overlay"
 grep -q 'anchors.bottom: true' "$popup" \

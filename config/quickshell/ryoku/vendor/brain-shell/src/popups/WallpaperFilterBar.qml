@@ -8,6 +8,7 @@ Rectangle {
 
   signal settingsRequested()
   signal rebuildRequested()
+  signal searchSubmitted()
 
   implicitWidth: Math.min(row.implicitWidth + 24, 980)
   implicitHeight: 46
@@ -17,6 +18,11 @@ Rectangle {
   border.width: 1
   border.color: Qt.rgba(1, 1, 1, 0.08)
   clip: true
+
+  function submitWallhavenSearch() {
+    WallpaperService.searchWallhaven(searchInput.text, 1)
+    root.searchSubmitted()
+  }
 
   Flickable {
     id: scroller
@@ -59,7 +65,7 @@ Rectangle {
             onTapped: {
               WallpaperService.selectedSourceFilter = modelData.source
               if (modelData.source === "wallhaven" && searchInput.text.trim() !== "") {
-                WallpaperService.searchWallhaven(searchInput.text, 1)
+                root.submitWallhavenSearch()
               }
             }
           }
@@ -124,7 +130,7 @@ Rectangle {
           clip: true
           onTextChanged: WallpaperService.searchQuery = text
           Keys.onReturnPressed: function(event) {
-            WallpaperService.searchWallhaven(text, 1)
+            root.submitWallhavenSearch()
             event.accepted = true
           }
           Keys.onEscapePressed: Popups.wallpaperOpen = false

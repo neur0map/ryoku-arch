@@ -212,6 +212,7 @@ PanelWindow {
         width: Math.min(implicitWidth, parent.width)
         onSettingsRequested: content.settingsOpen = !content.settingsOpen
         onRebuildRequested: WallpaperService.rebuildCache()
+        onSearchSubmitted: keyScope.forceActiveFocus()
       }
 
       ListView {

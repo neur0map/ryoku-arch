@@ -10,6 +10,7 @@ Date: 2026-04-29
 - Replaced the simple wallpaper strip with a fullscreen SKWD-style selector rendered inside Ryoku Quickshell.
 - Added runtime packages for Wallhaven and video preview/apply: `curl`, `qt6-multimedia-ffmpeg`, and `mpvpaper`.
 - Follow-up: fixed Wallhaven UI searches so API results are not hidden by local filename filtering, and the Web source chip can submit the typed query.
+- Follow-up: improved selector UX so Wallhaven submit returns focus to card navigation, and wallpaper cards expand/lift smoothly on hover.
 
 ## Verification
 

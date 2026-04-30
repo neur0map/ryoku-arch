@@ -10,13 +10,17 @@ Item {
 
   required property var itemData
   property bool selected: false
+  property bool hovered: false
   property int skewOffset: 22
   signal activated()
 
-  width: selected ? 300 : 92
+  width: expanded ? 300 : 92
   height: 236
+  scale: root.hovered && !root.selected ? 1.025 : 1.0
+  z: root.selected ? 3 : (root.hovered ? 2 : 1)
   clip: false
 
+  readonly property bool expanded: root.selected || root.hovered
   readonly property bool isVideo: root.itemData.type === "video"
   readonly property string previewPath: root.itemData.thumb || root.itemData.path || ""
   readonly property string previewSource: mediaSource(previewPath)
@@ -29,6 +33,13 @@ Item {
   }
 
   Behavior on width {
+    NumberAnimation {
+      duration: Theme.animDuration
+      easing.type: Easing.OutCubic
+    }
+  }
+
+  Behavior on scale {
     NumberAnimation {
       duration: Theme.animDuration
       easing.type: Easing.OutCubic
@@ -108,8 +119,10 @@ Item {
 
     ShapePath {
       fillColor: "transparent"
-      strokeColor: root.selected ? Theme.active : Qt.rgba(1, 1, 1, 0.18)
-      strokeWidth: root.selected ? 3 : 1
+      strokeColor: root.selected
+        ? Theme.active
+        : (root.hovered ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.58) : Qt.rgba(1, 1, 1, 0.18))
+      strokeWidth: root.selected ? 3 : (root.hovered ? 2 : 1)
       startX: root.skewOffset
       startY: 0
 
@@ -142,6 +155,7 @@ Item {
 
   HoverHandler {
     cursorShape: Qt.PointingHandCursor
+    onHoveredChanged: root.hovered = hovered
   }
 
   TapHandler {
