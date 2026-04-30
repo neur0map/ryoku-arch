@@ -20,7 +20,6 @@ QtObject {
     // AppLauncherPopup.qml so TopBar can stay on Overlay and make the
     // card read as an extension of the center pill during close.
     property bool launcherVisible:   false
-    property bool toolboxVisible:    false
     // Topbar-attached menu visual states. The popup windows drive
     // these so TopBar can remain on Overlay through close animations.
     property bool systemMenuVisible:   false
@@ -87,7 +86,8 @@ QtObject {
     // ── Global state ──────────────────────────────────────────────────────────
     readonly property bool anyOpen: audioOpen || networkOpen || batteryOpen
                                     || notificationsOpen || archMenuOpen
-                                    || dashboardOpen || wallpaperOpen || quickOpen
+                                    || dashboardOpen || wallpaperOpen
+                                    || toolboxOpen || quickOpen
 
     function closeAll() {
         audioOpen         = false

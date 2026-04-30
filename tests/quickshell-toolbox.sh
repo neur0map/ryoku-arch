@@ -30,7 +30,8 @@ popups="config/quickshell/ryoku/vendor/brain-shell/src/state/Popups.qml"
 shell_state="config/quickshell/ryoku/vendor/brain-shell/src/state/ShellState.qml"
 topbar="config/quickshell/ryoku/vendor/brain-shell/src/windows/TopBar.qml"
 layer="config/quickshell/ryoku/vendor/brain-shell/src/popups/PopupLayer.qml"
-toolbox="config/quickshell/ryoku/vendor/brain-shell/src/popups/ToolboxPopup.qml"
+toolbox="config/quickshell/ryoku/vendor/brain-shell/src/modules/Center/ToolboxContent.qml"
+old_toolbox="config/quickshell/ryoku/vendor/brain-shell/src/popups/ToolboxPopup.qml"
 mirror="config/quickshell/ryoku/vendor/brain-shell/src/windows/MirrorWindow.qml"
 caffeine="config/quickshell/ryoku/vendor/brain-shell/src/services/CaffeineService.qml"
 services_qmldir="config/quickshell/ryoku/vendor/brain-shell/src/services/qmldir"
@@ -61,15 +62,12 @@ active_has "$shell" 'screen: modelData' \
 
 active_has "$popups" 'property bool toolboxOpen' \
   || fail "Popups should track toolboxOpen"
-active_has "$popups" 'property bool toolboxVisible' \
-  || fail "Popups should track toolbox visual presence"
 active_has "$popups" 'property bool mirrorOpen' \
   || fail "Popups should track mirrorOpen"
 active_has "$popups" 'property string mirrorScreenName' \
   || fail "Popups should track the target mirror screen"
-if active_lines "$popups" | awk '/readonly property bool anyOpen:/,/function closeAll/' | grep 'toolboxOpen' >/dev/null; then
-  fail "PopupDismiss should not be responsible for toolbox outside-click handling"
-fi
+active_lines "$popups" | awk '/readonly property bool anyOpen:/,/function closeAll/' | grep 'toolboxOpen' >/dev/null \
+  || fail "PopupDismiss should close the topbar-hosted toolbox on outside click"
 if active_lines "$popups" | awk '/readonly property bool anyOpen:/,/function closeAll/' | grep 'launcherOpen' >/dev/null; then
   fail "PopupDismiss should not be responsible for launcher outside-click handling"
 fi
@@ -80,12 +78,22 @@ active_has "$popups" 'mirrorOpen        = false' \
 active_has "$popups" 'mirrorScreenName  = ""' \
   || fail "closeAll should clear the target mirror screen"
 
-if active_has "$topbar" 'Popups.toolboxVisible'; then
-  fail "TopBar should not paint over the icon-only toolbox strip"
+[[ ! -f $old_toolbox ]] || fail "ToolboxPopup overlay should be removed"
+if active_has_ere "$layer" '^[[:space:]]*ToolboxPopup[[:space:]]*\{'; then
+  fail "PopupLayer should not instantiate a separate ToolboxPopup overlay"
 fi
-if [[ ! -f $toolbox ]] && active_has_ere "$layer" '^[[:space:]]*ToolboxPopup[[:space:]]*\{'; then
-  fail "PopupLayer should not instantiate ToolboxPopup before ToolboxPopup.qml exists"
-fi
+active_has "$topbar" 'ToolboxContent {' \
+  || fail "TopBar should host the toolbox inside the center pill"
+active_has "$topbar" 'Popups.toolboxOpen' \
+  || fail "TopBar should animate the center pill width for toolboxOpen"
+active_has "$topbar" 'toolboxContent.implicitWidth + Theme.notchPadding * 2' \
+  || fail "TopBar should size the center pill to the toolbox icon row"
+active_has "$topbar" 'readonly property bool toolboxMorphActive' \
+  || fail "TopBar should keep the morph timing active through close"
+active_has "$topbar" 'duration: root.toolboxMorphActive ? Theme.motionExpandDuration + 80 : Theme.animDuration' \
+  || fail "TopBar should give the toolbox close animation enough time to merge back"
+active_has "$topbar" 'opacity: Popups.toolboxOpen ? 0' \
+  || fail "Center content should fade out when the toolbox is open"
 "$ipc" --help | grep "ryoku-ipc shell toggle toolbox" >/dev/null \
   || fail "ryoku-ipc help should document toolbox toggle"
 "$ipc" shell command toolbox | grep 'qs -c ryoku ipc call popups toggleToolbox' >/dev/null \
@@ -142,98 +150,72 @@ active_has "$caffeine" '[C]affeine mode' \
 
 [[ -f $toolbox ]] || fail "$toolbox missing"
 
-active_toolbox_text="$(active_lines "$toolbox" | tr '\n' ' ')"
-grep -Eq 'Binding[[:space:]]*\{[[:space:]]*target:[[:space:]]*Popups;?[[:space:]]*property:[[:space:]]*"toolboxVisible"' <<< "$active_toolbox_text" \
-  || fail "ToolboxPopup should expose visual presence"
-active_has "$toolbox" 'attachedEdge: "top"' \
-  || fail "ToolboxPopup should attach to the topbar"
-active_has "$toolbox" 'WlrLayershell.layer: WlrLayer.Overlay' \
-  || fail "ToolboxPopup should render above the center pill"
-active_has "$toolbox" 'color: Theme.background' \
-  || fail "ToolboxPopup should use the same opaque fill as the center pill"
-active_has "$toolbox" 'strokeColor: "transparent"' \
-  || fail "ToolboxPopup should not draw a separate outline around the center pill"
-active_has "$toolbox" 'strokeWidth: 0' \
-  || fail "ToolboxPopup should not draw a border around the toolkit strip"
 active_has "$toolbox" 'ListModel {' \
-  || fail "ToolboxPopup should use stable ListModel roles"
+  || fail "ToolboxContent should use stable ListModel roles"
 active_has "$toolbox" 'font.family: "Phosphor"' \
-  || fail "ToolboxPopup should use the Ambxst Phosphor icon font"
+  || fail "ToolboxContent should use the Ambxst Phosphor icon font"
 active_has "$toolbox" 'buttonSize: 26' \
-  || fail "ToolboxPopup should use compact icon-only buttons"
+  || fail "ToolboxContent should use compact icon-only buttons"
 active_has "$toolbox" 'required property int index' \
-  || fail "ToolboxPopup delegate should bind the model index for selected icon state"
+  || fail "ToolboxContent delegate should bind the model index for selected icon state"
 active_has "$toolbox" 'separator: true' \
-  || fail "ToolboxPopup should keep Ambxst-style separators"
+  || fail "ToolboxContent should keep Ambxst-style separators"
 active_has "$toolbox" 'icon: "\ue10e"' \
-  || fail "ToolboxPopup should use Ambxst camera icon codepoint"
+  || fail "ToolboxContent should use Ambxst camera icon codepoint"
 active_has "$toolbox" 'icon: "\ue292"' \
-  || fail "ToolboxPopup should use Ambxst Google icon codepoint"
+  || fail "ToolboxContent should use Ambxst Google icon codepoint"
 if active_has "$toolbox" 'label:' || active_has "$toolbox" 'hint:' || active_has "$toolbox" 'Column {'; then
-  fail "ToolboxPopup should be an icon-only strip, not a labeled card menu"
+  fail "ToolboxContent should be an icon-only strip, not a labeled card menu"
 fi
 for label in "Screenshot" "Open Screenshots" "Screen Recorder" "Open Recordings" "Color Picker" "OCR" "QR Code" "Google Lens" "Mirror" "Caffeine"; do
-  active_has "$toolbox" "$label" || fail "ToolboxPopup should include $label"
+  active_has "$toolbox" "$label" || fail "ToolboxContent should include $label"
 done
 active_has "$toolbox" 'ScreenRecService.recording' \
-  || fail "ToolboxPopup should reuse ScreenRecService recording state"
+  || fail "ToolboxContent should reuse ScreenRecService recording state"
 active_has "$toolbox" 'legacyRecording' \
-  || fail "ToolboxPopup should track legacy gpu-screen-recorder state"
+  || fail "ToolboxContent should track legacy gpu-screen-recorder state"
 active_has "$toolbox" '^gpu-screen-recorder' \
-  || fail "ToolboxPopup should detect legacy gpu-screen-recorder with pgrep"
+  || fail "ToolboxContent should detect legacy gpu-screen-recorder with pgrep"
 active_has "$toolbox" 'ShellState.screenRecord = true' \
-  || fail "ToolboxPopup should open the existing recording setup surface"
+  || fail "ToolboxContent should open the existing recording setup surface"
 active_has "$toolbox" 'ScreenRecService.cancelSetup()' \
-  || fail "ToolboxPopup should cancel existing recording setup"
+  || fail "ToolboxContent should cancel existing recording setup"
 active_has "$toolbox" 'ryoku-cmd-screenrecord", "--stop-recording"' \
-  || fail "ToolboxPopup should stop legacy gpu-screen-recorder as fallback"
+  || fail "ToolboxContent should stop legacy gpu-screen-recorder as fallback"
 active_has "$toolbox" 'Cancel Setup' \
-  || fail "ToolboxPopup should show setup-open recorder state"
+  || fail "ToolboxContent should show setup-open recorder state"
 active_has "$toolbox" 'RYOKU_SCREENRECORD_DIR' \
-  || fail "ToolboxPopup should respect configured recording directory"
+  || fail "ToolboxContent should respect configured recording directory"
 active_has "$toolbox" 'XDG_VIDEOS_DIR' \
-  || fail "ToolboxPopup should use XDG videos directory as recording fallback"
+  || fail "ToolboxContent should use XDG videos directory as recording fallback"
 active_has "config/quickshell/ryoku/vendor/brain-shell/src/services/ScreenRecService.qml" 'RYOKU_SCREENRECORD_DIR' \
   || fail "ScreenRecService should respect configured recording directory"
 active_has "config/quickshell/ryoku/vendor/brain-shell/src/services/ScreenRecService.qml" 'XDG_VIDEOS_DIR' \
   || fail "ScreenRecService should use XDG videos directory as recording fallback"
 active_has "$toolbox" 'screen_recordings' \
-  || fail "ToolboxPopup should include the default Quickshell screen_recordings directory"
+  || fail "ToolboxContent should include the default Quickshell screen_recordings directory"
 if active_has "$toolbox" 'actionDelay'; then
-  fail "ToolboxPopup should not depend on a post-close action timer"
+  fail "ToolboxContent should not depend on a post-close action timer"
 fi
-active_has "$toolbox" 'function closeToolboxNow' \
-  || fail "ToolboxPopup should hide before launching interactive helpers"
+active_has "$toolbox" 'function closeToolbox' \
+  || fail "ToolboxContent should close the pill before launching interactive helpers"
 active_has "$toolbox" 'id: actionStartTimer' \
-  || fail "ToolboxPopup should launch helper commands from the close animation timer"
-active_has "$toolbox" 'interval: Theme.motionExpandDuration + 40' \
-  || fail "ToolboxPopup should launch helper commands after the pill has collapsed"
-active_has "$toolbox" 'interval: Theme.motionExpandDuration + Theme.motionEffectsDuration + 120' \
-  || fail "ToolboxPopup should keep the layer alive through the closing fade"
-active_has "$toolbox" 'readonly property real toolsOpacity' \
-  || fail "ToolboxPopup should tie icon fade to the open/close progress"
-active_has "$toolbox" '? Math.min(1, root.openProgress * 1.8)' \
-  || fail "ToolboxPopup should keep the open icon reveal snappy"
-active_has "$toolbox" ': root.openProgress' \
-  || fail "ToolboxPopup should fade icons for the whole close animation"
-if active_lines "$toolbox" | awk '/function closeToolboxNow/,/^  }/' | grep 'root.windowVisible = false' >/dev/null; then
-  fail "ToolboxPopup should not cut off the close animation from closeToolboxNow"
-fi
+  || fail "ToolboxContent should launch helper commands from the close animation timer"
+active_has "$toolbox" 'interval: Theme.motionExpandDuration + 120' \
+  || fail "ToolboxContent should launch helper commands after the pill has collapsed"
+active_has "$toolbox" 'Popups.toolboxOpen = false' \
+  || fail "ToolboxContent should collapse the actual center pill"
 active_has "$toolbox" 'actionRunner.running = true' \
-  || fail "ToolboxPopup should launch helper commands from a single click"
+  || fail "ToolboxContent should launch helper commands from a single click"
 active_has "$toolbox" 'CaffeineService.toggle()' \
-  || fail "ToolboxPopup should toggle shared CaffeineService"
+  || fail "ToolboxContent should toggle shared CaffeineService"
 active_has "$toolbox" 'Popups.mirrorOpen = true' \
-  || fail "ToolboxPopup should open the mirror window"
+  || fail "ToolboxContent should open the mirror window"
 active_has "$toolbox" 'Popups.mirrorScreenName = screen ? screen.name : ""' \
-  || fail "ToolboxPopup should target the mirror to its screen"
+  || fail "ToolboxContent should target the mirror to its screen"
 
-active_has_ere "$layer" '^[[:space:]]*ToolboxPopup[[:space:]]*\{' \
-  || fail "PopupLayer should instantiate ToolboxPopup"
 active_has "$layer" 'required property var screen' \
   || fail "PopupLayer should require the current screen"
-active_has "$layer" 'ToolboxPopup { screen: root.screen }' \
-  || fail "PopupLayer should pass screen to ToolboxPopup"
 
   active_has_ere "$mirror" '^[[:space:]]*Camera[[:space:]]*\{' \
     || fail "MirrorWindow should use QtMultimedia Camera"

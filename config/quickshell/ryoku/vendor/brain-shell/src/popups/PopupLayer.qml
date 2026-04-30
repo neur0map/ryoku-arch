@@ -33,7 +33,6 @@ Item {
     SystemMenuPopup {}
     SettingsMenuPopup {}
     DotfilesHubPopup {}
-    ToolboxPopup { screen: root.screen }
     MirrorWindow { screen: root.screen }
 
     // Dormant in follow-up specs.

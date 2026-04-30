@@ -22,9 +22,10 @@ PanelWindow {
     // visually present, so the bar's center pill paints over the
     // card's top strip — the card's flares tuck behind the notch and
     // the two shapes read as one continuous surface during open and
-    // close. Bound to visual states for popups that attach to the
-    // bar; the toolbox is itself an Overlay strip because it replaces
-    // the center pill content rather than tucking behind it.
+    // close. Bound to visual states for popups that attach to the bar.
+    // The toolbox is rendered inside the center notch so the actual
+    // pill width expands and collapses instead of an overlay surface
+    // disappearing over it.
     WlrLayershell.layer: Popups.dashboardVisible || Popups.launcherVisible || Popups.systemMenuVisible || Popups.settingsMenuVisible
                          ? WlrLayer.Overlay : WlrLayer.Top
 
@@ -65,17 +66,28 @@ PanelWindow {
                  leftContent.implicitWidth + Theme.notchPadding * 2)
     )
 
-    // Keep the center notch at its natural pill width. The dashboard popup
-    // animates independently so the bar does not widen as a separate motion.
-    property int cWidth: Math.max(
-        Theme.cNotchMinWidth,
-        Math.min(Theme.cNotchMaxWidth,
-                 centerContent.implicitWidth + Theme.notchPadding * 2)
-      )
+    // Keep the center notch at its natural pill width except for the
+    // toolbox, which is hosted inside the notch so the pill itself
+    // warps into the toolkit strip and back.
+    property int cWidth: Popups.toolboxOpen
+        ? Math.max(Theme.cNotchMinWidth,
+                   toolboxContent.implicitWidth + Theme.notchPadding * 2)
+        : Math.max(
+            Theme.cNotchMinWidth,
+            Math.min(Theme.cNotchMaxWidth,
+                     centerContent.implicitWidth + Theme.notchPadding * 2)
+          )
     Behavior on cWidth {
         enabled: !Theme.staticMode
-        NumberAnimation { duration: Theme.animDuration; easing.type: Easing.InOutCubic }
+        NumberAnimation {
+            duration: root.toolboxMorphActive ? Theme.motionExpandDuration + 80 : Theme.animDuration
+            easing.type: root.toolboxMorphActive
+                ? Popups.toolboxOpen ? Easing.OutBack : Easing.OutQuart
+                : Easing.InOutCubic
+            easing.overshoot: 1.05
+        }
     }
+    readonly property bool toolboxMorphActive: Popups.toolboxOpen || toolboxContent.visible
 
     // Width matches sizer open width: popupWidth + notchRadius (fw) in both popups
     property int rWidth: Popups.notificationsOpen
@@ -143,6 +155,21 @@ PanelWindow {
 
             CenterContent {
                 id: centerContent
+                anchors.centerIn: parent
+                opacity: Popups.toolboxOpen ? 0 : Popups.dashboardOpen ? 0 : 1
+                visible: opacity > 0
+                Behavior on opacity {
+                    enabled: !Theme.staticMode
+                    NumberAnimation {
+                        duration: Theme.motionExpandDuration
+                        easing.type: Easing.OutQuart
+                    }
+                }
+            }
+
+            ToolboxContent {
+                id: toolboxContent
+                screen: root.screen
                 anchors.centerIn: parent
             }
 
