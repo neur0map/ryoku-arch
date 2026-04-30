@@ -50,6 +50,12 @@ When recording is active, the screen-record button changes from "Screen Recorder
 
 ## Architecture
 
+### Scope Boundaries
+
+The implementation must stand on its own. Do not rely on any separate in-progress keybinding or menu work being present.
+
+If the implementation branch already has another `SUPER+S` binding, the toolbox change must resolve that conflict in the same branch so Hyprland has exactly one active `SUPER+S` binding. The preferred outcome is that `SUPER+S` opens Toolbox; any displaced behavior should either keep its existing alternate binding or be moved explicitly in the toolbox change.
+
 ### Popup State
 
 Extend `Popups.qml` with toolbox state:
@@ -82,6 +88,8 @@ Bind `SUPER+S` to the toolbox:
 bindd = SUPER, S, Toolbox, exec, ryoku-ipc shell toggle toolbox
 ```
 
+Update the plain-text keybinding reference and any keybinding-menu tests that assert default bindings. The shipped help surface should not lag behind the actual Hyprland binding.
+
 ### Popup Component
 
 Add a new popup component:
@@ -98,6 +106,9 @@ The popup should follow the same mapped-surface pattern used by current topbar-a
 - expose input only over the visible card
 - stay mapped through close animation using a visible-state timer if needed
 - avoid interfering with `PopupDismiss`
+- close any other topbar popup before opening, so dashboard, launcher, settings, system menu, dotfiles, wallpaper selector, and toolbox do not overlap
+
+Interactive one-shot tools that open their own selection surface should close the toolbox before starting the external selector. This avoids the toolbox `PanelWindow` or `PopupDismiss` stealing input from `slurp`, screenshot capture, OCR, QR scan, color picking, or Google Lens capture.
 
 ### Shared Action Row
 
@@ -136,15 +147,18 @@ Use XDG Pictures when available, falling back to `$HOME/Pictures`. Ryoku's curre
 
 ### Screen Recorder And Stop Recording
 
-Use Ryoku's existing screen-record command for the default action:
+Use Ryoku's existing Quickshell recording state for the default action, not the legacy text menu:
 
-```bash
-ryoku-cmd-screenrecord
-```
+- if no Ryoku shell recording is active, set `ShellState.screenRecord = true` so the existing center-pill recording setup appears
+- if `ScreenRecService.recording` is active, call `ScreenRecService.stopRecording()`
+- if a legacy `gpu-screen-recorder` process is active from `ryoku-cmd-screenrecord`, show Stop Recording and stop it through `ryoku-cmd-screenrecord --stop-recording`
 
-When a `gpu-screen-recorder` process is active, the same button becomes Stop Recording and calls the same command, which already toggles stop behavior.
+The button state should reflect both recording paths:
 
-The button state should poll or process-check `gpu-screen-recorder` so it stays accurate when recording starts or stops outside the toolbox.
+- `ScreenRecService.recording`
+- `gpu-screen-recorder` process status
+
+This avoids a common mismatch where the toolbox starts one recorder while the center pill watches another service.
 
 ### Open Recordings
 
@@ -160,7 +174,7 @@ Ryoku's existing `ryoku-cmd-screenrecord` saves directly into that directory.
 
 ### Color Picker
 
-The toolbox should launch a richer color picker helper based on Ambxst's `colorpicker.py`, adapted to Ryoku style and command naming.
+The toolbox should launch a richer color picker helper based on Ambxst's `colorpicker.py` behavior, adapted to Ryoku style and command naming.
 
 Add:
 
@@ -173,6 +187,8 @@ Behavior:
 - read RGB with ImageMagick `magick`
 - copy HEX to clipboard by default
 - show a notification with actions to copy HEX, RGB, or HSV
+
+Implement this as Bash unless Python removes real complexity. The helper is a Ryoku command and should follow the repo shell style rules.
 
 The existing direct keybind using `hyprpicker -a` can stay as a separate shortcut unless implementation explicitly consolidates it later.
 
@@ -223,6 +239,8 @@ Behavior:
 
 The helper must make clear through notification text that the selected image is uploaded to a third-party host for Google Lens. This is necessary because the feature cannot work by local file path alone.
 
+Do not block the whole toolbox on Google Lens network failure. A failed upload should produce a critical notification and exit without leaving stale temp files behind.
+
 ### Mirror
 
 Add a Quickshell mirror window based on Ambxst's `MirrorWindow.qml`, adapted to Ryoku theme imports and state.
@@ -247,6 +265,8 @@ Behavior:
 
 The implementation should reuse `QtMultimedia` already present in Ryoku's package list.
 
+If no camera is available or Qt Multimedia cannot activate one, the mirror surface should show a small failure state with a close button instead of leaving a blank black window.
+
 ### Caffeine
 
 Caffeine is the Ryoku extra item. It should use the existing systemd-inhibit pattern already present in `QuickSettings.qml`.
@@ -261,6 +281,14 @@ Recommended implementation:
 
 If a shared service is extracted, update dashboard Quick Settings to use it too. That reduces duplicated state and prevents the dashboard tile from disagreeing with the toolbox item.
 
+The shared-service path is preferred. Duplicating the process checks is acceptable only if the implementation stays very small and the dashboard tile is still verified to reflect toolbox changes.
+
+## Failure Behavior
+
+Each action should fail independently and visibly. A missing optional dependency should notify the user with the missing command name and exit without closing or breaking the Quickshell process.
+
+The toolbox should still open if OCR, QR, camera, or Google Lens dependencies are absent. Disable the affected action only if detection is cheap and reliable; otherwise let the helper report the dependency error.
+
 ## Packages
 
 Ryoku already includes most required packages:
@@ -273,15 +301,35 @@ Ryoku already includes most required packages:
 - `hyprpicker`
 - `qt6-multimedia`
 - `qt6-multimedia-ffmpeg`
+- `curl`
+- `jq`
 
 Add default packages if absent:
 
+- `libnotify`
 - `tesseract`
 - `tesseract-data-eng`
 - `tesseract-data-spa`
+- `xdg-user-dirs`
+- `xdg-utils`
 - `zbar`
 
-`curl`, `jq`, `xdg-utils`, `libnotify`, and XDG user-dir support should be verified before adding. If they are already installed transitively or listed elsewhere, do not duplicate them unnecessarily.
+Do not rely on transitive package pulls for commands that the toolbox helpers call directly. If `notify-send`, `xdg-open`, or `xdg-user-dir` are used, their owning packages should be explicit in `install/ryoku-base.packages`.
+
+## Existing Installs And Live Rollout
+
+The dev repo change is not enough by itself because the live session reads from installed paths and live Quickshell config.
+
+Implementation must include a live-system rollout step:
+
+- install or update new `bin/ryoku-cmd-*` helpers in the live Ryoku bin directory when testing locally
+- mirror `config/quickshell/ryoku/` into `~/.config/quickshell/ryoku/` with `RYOKU_PATH=/home/omi/prowl/ryoku-arch bin/ryoku-refresh-quickshell`
+- restart the shell with `bin/ryoku-restart-shell`
+- copy changed default Hyprland binding files into the live `~/.local/share/ryoku/default/hypr/bindings/` tree when testing locally
+- reload Hyprland after live binding changes
+- install any new runtime packages before verifying OCR, QR, Google Lens, and mirror behavior
+
+For normal users, adding packages to `install/ryoku-base.packages` is enough for `ryoku-update-system-pkgs` to install them on the next `ryoku-update`.
 
 ## Testing
 
@@ -291,24 +339,33 @@ Add focused static tests for:
 - `shell.qml` exposes `toggleToolbox()`
 - `bin/ryoku-ipc` supports `shell command toolbox` and `shell toggle toolbox`
 - default Hyprland bindings include `SUPER+S` toolbox
+- default Hyprland bindings do not contain a second active `SUPER+S` binding
+- keybinding menu/static references include Toolbox on `SUPER+S`
 - package list includes OCR/QR dependencies
 - new helper scripts use `#!/bin/bash`, pass `bash -n`, and use Ryoku command naming
+- helper scripts report missing dependencies without crashing
 
 Runtime verification should include:
 
 - `ryoku-ipc shell command toolbox`
 - `qs -c ryoku ipc call popups toggleToolbox`
 - `SUPER+S` opens and closes the row in the live session
+- opening Toolbox closes other open popups
 - Screenshot launches and saves/copies
 - Open Screenshots opens the intended folder
-- Screen Recorder starts/stops or opens the existing recording setup flow
+- Screen Recorder opens the existing center-pill recording setup when idle
+- Stop Recording stops active `ScreenRecService` recordings
+- Stop Recording also handles a legacy `gpu-screen-recorder` process if one is active
 - Open Recordings opens the intended folder
 - Color Picker copies a HEX value
 - OCR copies selected text
 - QR copies decoded content
 - Google Lens opens the browser after upload
+- Google Lens reports upload failure cleanly when offline
 - Mirror opens, flips, resizes, drags, and closes
+- Mirror shows a useful failure state if no camera is available
 - Caffeine toggles inhibit state and reflects active state
+- Dashboard Quick Settings Caffeine state agrees with Toolbox Caffeine state
 
 ## Non-Goals
 
