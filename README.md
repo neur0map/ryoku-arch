@@ -53,37 +53,12 @@ Full hardware matrix and driver list lives in [`docs/iso-build-recipe.md`](docs/
 
 ## Credits
 
-Ryoku stands on the shoulders of three upstream projects. Full attribution lives in [`CREDITS.md`](CREDITS.md) and [`NOTICE`](NOTICE).
+Ryoku stands on the shoulders of upstream projects and visual references. Full attribution lives in [`CREDITS.md`](CREDITS.md) and [`NOTICE`](NOTICE).
 
-<table>
-<tr>
-<td width="33%" valign="top" align="center">
-
-### [Brain_Shell](https://github.com/Brainitech/Brain_Shell)
-
-**Venkat Saahit Kamu** (Brainitech)
-
-Quickshell visual layer: top bar, dashboard, popups, frame. MIT, used with permission. Vendored under [`config/quickshell/ryoku/vendor/brain-shell/`](config/quickshell/ryoku/vendor/brain-shell/).
-
-</td>
-<td width="33%" valign="top" align="center">
-
-### [Omarchy](https://github.com/basecamp/omarchy)
-
-The original opinionated-Hyprland-Arch project that Ryoku descends from. Tooling backbone (`ryoku-*` script ecosystem, theme pipeline, install flow) inherits its shape.
-
-</td>
-<td width="33%" valign="top" align="center">
-
-### [qylock](https://github.com/Darkkal44/qylock)
-
-**Darkkal44**
-
-Optional SDDM greeter and Quickshell lockscreen themes, swappable via `ryoku-install-qylock`.
-
-</td>
-</tr>
-</table>
+- [**Brain_Shell**](https://github.com/Brainitech/Brain_Shell): Quickshell visual layer by **Venkat Saahit Kamu** (Brainitech): top bar, dashboard, popups, frame. MIT, used with permission. Vendored under [`config/quickshell/ryoku/vendor/brain-shell/`](config/quickshell/ryoku/vendor/brain-shell/).
+- [**Omarchy**](https://github.com/basecamp/omarchy): the original opinionated-Hyprland-Arch project that Ryoku descends from. Ryoku's command ecosystem, theme pipeline, and install flow inherit its shape.
+- [**qylock**](https://github.com/Darkkal44/qylock): optional SDDM greeter and Quickshell lockscreen themes by **Darkkal44**, swappable via `ryoku-install-qylock`.
+- [**ilyamiro/nixos-configuration**](https://github.com/ilyamiro/nixos-configuration): dashboard audio equalizer and music-popup interaction inspiration, especially the music popup and equalizer work. Ryoku's player is a separate implementation tailored to its own dashboard, Cava, and EasyEffects wiring.
 
 ## Star history
 

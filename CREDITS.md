@@ -20,3 +20,29 @@ Ryoku's tooling backbone (the ryoku-* script ecosystem, theme
 pipeline shape, menu architecture) descends from Omarchy. Reference
 is preserved in script structure and patterns rather than file
 headers.
+
+- Upstream: https://github.com/basecamp/omarchy
+- Notice: see NOTICE
+
+## qylock
+
+Ryoku's optional SDDM greeter and Quickshell lockscreen themes use
+the qylock theme bundle by Darkkal44. The install and switch flow is
+handled through ryoku-install-qylock.
+
+- Upstream: https://github.com/Darkkal44/qylock
+- Usage: optional SDDM greeter and lockscreen theme integration
+
+## ilyamiro/nixos-configuration
+
+Ryoku's dashboard audio equalizer screen and music-popup interaction
+direction were inspired by ilyamiro's NixOS configuration, especially
+the Quickshell music popup and equalizer work. Ryoku does not vendor
+source from this repository; the dashboard player is a separate
+implementation shaped for Ryoku's visual system, Cava animation, and
+EasyEffects helper wiring.
+
+- Upstream: https://github.com/ilyamiro/nixos-configuration
+- Relevant references:
+  - config/sessions/hyprland/scripts/quickshell/music/MusicPopup.qml
+  - config/sessions/hyprland/scripts/quickshell/music/equalizer.sh
