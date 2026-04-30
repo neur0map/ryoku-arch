@@ -33,8 +33,10 @@ grep -q 'BS.Popups.wallpaperOpen = opening' "$shell" \
 
 grep -q 'property bool wallpaperVisible' "$popups" \
   || fail "Popups should track wallpaper visual presence"
-grep -q 'Popups.dashboardVisible || Popups.launcherVisible || Popups.wallpaperVisible' "$topbar" \
-  || fail "TopBar should stay visually connected while wallpaper switcher opens"
+grep -q 'Popups.dashboardVisible || Popups.launcherVisible ? WlrLayer.Overlay : WlrLayer.Top' "$topbar" \
+  || fail "TopBar should only promote bar-attached popups to overlay"
+! grep -q 'Popups.dashboardVisible || Popups.launcherVisible || Popups.wallpaperVisible' "$topbar" \
+  || fail "TopBar should not compete with fullscreen wallpaper overlay"
 grep -q 'Popups.launcherOpen || Popups.wallpaperOpen ? WlrKeyboardFocus.None : WlrKeyboardFocus.OnDemand' "$popup_dismiss" \
   || fail "PopupDismiss should not steal keyboard focus from searchable popups"
 
@@ -47,37 +49,43 @@ grep -q 'Binding { target: Popups; property: "wallpaperVisible"' "$wallpaper_pop
   || fail "WallpaperPopup should expose visual presence to TopBar"
 grep -q 'WlrKeyboardFocus.Exclusive' "$wallpaper_popup" \
   || fail "WallpaperPopup should own keyboard focus while open"
-grep -q 'attachedEdge: "bottom"' "$wallpaper_popup" \
-  || fail "WallpaperPopup should open from the bottom like Brain Shell"
-grep -q 'implicitHeight: root.panelHeight + Theme.borderWidth' "$wallpaper_popup" \
-  || fail "WallpaperPopup should be a bottom layer surface, not fullscreen"
-grep -Eq 'readonly property int panelWidth:[[:space:]]+980' "$wallpaper_popup" \
-  || fail "WallpaperPopup should use Brain Shell width"
-grep -Eq 'readonly property int panelHeight:[[:space:]]+420' "$wallpaper_popup" \
-  || fail "WallpaperPopup should use Brain Shell height"
+! grep -q 'attachedEdge: "bottom"' "$wallpaper_popup" \
+  || fail "WallpaperPopup should not keep the old bottom strip shape"
+grep -q 'implicitHeight: root.overlayHeight' "$wallpaper_popup" \
+  || fail "WallpaperPopup should expose fullscreen overlay height"
+grep -q 'anchors.centerIn: parent' "$wallpaper_popup" \
+  || fail "WallpaperPopup should center the fullscreen selector"
+grep -Eq 'readonly property int selectorMaxWidth:[[:space:]]+1540' "$wallpaper_popup" \
+  || fail "WallpaperPopup should use the SKWD selector max width"
+grep -Eq 'readonly property int selectorMaxHeight:[[:space:]]+620' "$wallpaper_popup" \
+  || fail "WallpaperPopup should use the SKWD selector max height"
+grep -q 'Qt.rgba(0, 0, 0, Popups.wallpaperOpen ? 0.50 : 0.0)' "$wallpaper_popup" \
+  || fail "WallpaperPopup should dim the fullscreen overlay"
+grep -q 'scale: Popups.wallpaperOpen ? 1 : 0.96' "$wallpaper_popup" \
+  || fail "WallpaperPopup should animate selector scale"
+grep -q 'top:    true' "$wallpaper_popup" \
+  || fail "WallpaperPopup should anchor to the top edge"
 grep -q 'bottom: true' "$wallpaper_popup" \
   || fail "WallpaperPopup should anchor to the bottom edge"
-! grep -q 'top:    true' "$wallpaper_popup" \
-  || fail "WallpaperPopup should not be top anchored"
-grep -q 'mask: Region { item: maskProxy }' "$wallpaper_popup" \
-  || fail "WallpaperPopup should mask clicks to the bottom panel only"
-grep -q 'anchors.bottomMargin:     Theme.borderWidth' "$wallpaper_popup" \
-  || fail "WallpaperPopup should sit above the Ryoku frame border"
+grep -q 'onClicked: Popups.wallpaperOpen = false' "$wallpaper_popup" \
+  || fail "WallpaperPopup should close from fullscreen outside clicks"
 grep -q 'visible: Popups.anyOpen || (ShellState.screenRecord && !ScreenRecService.recording)' "$popup_dismiss" \
-  || fail "PopupDismiss should remain responsible for wallpaper outside-click close"
-grep -q 'applyActive:' "$wallpaper_popup" \
-  || fail "WallpaperPopup should keep explicit apply state"
-grep -q 'previewWall !== WallpaperService.currentWall' "$wallpaper_popup" \
-  || fail "WallpaperPopup should apply only changed wallpaper previews"
-grep -A3 'id: folderBtn' "$wallpaper_popup" | grep -q 'visible: false' \
-  || fail "WallpaperPopup should hide unused upstream folder control"
-grep -A3 'id: schemeBtn' "$wallpaper_popup" | grep -q 'visible: false' \
-  || fail "WallpaperPopup should hide unused upstream scheme control"
+  || fail "PopupDismiss should still track popup visual state for shared dismissal wiring"
+grep -q 'WallpaperFilterBar' "$wallpaper_popup" \
+  || fail "WallpaperPopup should use the SKWD filter bar"
+grep -q 'WallpaperSkewCard' "$wallpaper_popup" \
+  || fail "WallpaperPopup should use skewed wallpaper cards"
+grep -q 'WallpaperSettingsPane' "$wallpaper_popup" \
+  || fail "WallpaperPopup should expose selector settings"
+grep -q 'model: WallpaperService.filteredModel' "$wallpaper_popup" \
+  || fail "WallpaperPopup should use the filtered model"
+grep -q 'WallpaperService.rebuildCache()' "$wallpaper_popup" \
+  || fail "WallpaperPopup should rebuild cache from the filter bar"
 grep -q 'Popups.wallpaperOpen = false' "$wallpaper_popup" \
   || fail "Escape/apply should close the wallpaper switcher"
 
-grep -q 'ryoku-theme-bg-set' "$wallpaper_service" \
-  || fail "WallpaperService should apply through Ryoku background setter"
+grep -q 'wallpaper", "apply", "--type"' "$wallpaper_service" \
+  || fail "WallpaperService should apply through ryoku-ipc"
 ! grep -q 'matugen image' "$wallpaper_service" \
   || fail "WallpaperService should not run upstream matugen pipeline"
 ! grep -q 'awww img' "$wallpaper_service" \

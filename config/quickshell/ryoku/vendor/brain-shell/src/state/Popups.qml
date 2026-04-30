@@ -20,9 +20,9 @@ QtObject {
     // so the bar's pill keeps painting over the retracting card.
     property bool dashboardVisible:  false
     property bool wallpaperOpen:     false
-    // True while the wallpaper switcher card is visually present. Driven
-    // from WallpaperPopup.qml so TopBar can stay on Overlay and make the
-    // card read as an extension of the center pill during close.
+    // True while the wallpaper selector is visually present. Driven
+    // from WallpaperPopup.qml for shared dismissal and visual-state
+    // checks; the selector is a fullscreen modal layer above the bar.
     property bool wallpaperVisible:  false
     property bool notificationToastOpen:    false
     property bool quickOpen: false

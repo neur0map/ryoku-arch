@@ -38,10 +38,16 @@ QtObject {
     property int selectedColorFilter: -1
     property string searchQuery: ""
     property string statusText: ""
-    property bool cacheLoading: false
     property bool wallhavenLoading: false
     property string pendingApplyPath: ""
     property string pendingApplyType: ""
+    property string pendingDownloadId: ""
+    property string pendingDownloadUrl: ""
+    property string downloadedWallhavenPath: ""
+    property bool listLoading: false
+    property bool cacheRebuilding: false
+    property bool reloadAfterRebuild: false
+    readonly property bool cacheLoading: listLoading || cacheRebuilding
 
     readonly property var schemes: [
         "content", "tonal-spot", "fidelity","fruit-salad", "neutral", "monochrome"
@@ -53,7 +59,7 @@ QtObject {
     // ── Model loading/filtering ───────────────────────────────────────────────
     function refresh() {
         if (listProc.running) return
-        root.cacheLoading = true
+        root.listLoading = true
         root.statusText = ""
         root.wallpaperModel.clear()
         root.filteredModel.clear()
@@ -63,6 +69,17 @@ QtObject {
             "wallpaper", "list", "--jsonl"
         ]
         listProc.running = true
+    }
+
+    function rebuildCache() {
+        if (cacheRebuildProc.running) return
+        root.cacheRebuilding = true
+        root.statusText = ""
+        cacheRebuildProc.command = [
+            Quickshell.env("HOME") + "/.local/share/ryoku/bin/ryoku-ipc",
+            "wallpaper", "cache", "rebuild"
+        ]
+        cacheRebuildProc.running = true
     }
 
     property var listProc: Process {
@@ -79,9 +96,29 @@ QtObject {
             }
         }
         onExited: function(exitCode, exitStatus) {
-            root.cacheLoading = false
+            root.listLoading = false
             if (exitCode !== 0) root.statusText = "Could not load wallpaper cache"
             root.updateFilteredModel()
+            if (root.reloadAfterRebuild) {
+                root.reloadAfterRebuild = false
+                root.refresh()
+            }
+        }
+    }
+
+    property var cacheRebuildProc: Process {
+        onExited: function(exitCode, exitStatus) {
+            root.cacheRebuilding = false
+            if (exitCode === 0) {
+                root.statusText = "Cache rebuilt"
+                if (listProc.running) {
+                    root.reloadAfterRebuild = true
+                } else {
+                    root.refresh()
+                }
+            } else {
+                root.statusText = "Could not rebuild cache"
+            }
         }
     }
 
@@ -229,12 +266,48 @@ QtObject {
 
     // ── Apply pipeline ────────────────────────────────────────────────────────
     // Image apply is routed through ryoku-ipc; its backend owns ryoku-theme-bg-set.
+    function isRemotePath(path) {
+        return path.indexOf("https://") === 0 || path.indexOf("http://") === 0
+    }
+
+    function wallhavenId(item) {
+        if (item.id !== undefined && item.id !== "") return String(item.id)
+        var name = root.itemName(item)
+        if (name.indexOf("wallhaven-") === 0) return name.substring(10)
+        return ""
+    }
+
     function applyItem(item) {
         if (root.applying || !item || !item.path || item.path === "") return
         root.applying    = true
         root.statusText  = ""
-        root.pendingApplyPath = item.path
-        root.pendingApplyType = item.type === "video" ? "video" : "image"
+
+        if (item.source === "wallhaven" || root.isRemotePath(item.path)) {
+            var id = root.wallhavenId(item)
+            if (id === "") {
+                root.applying = false
+                root.statusText = "Could not identify Wallhaven wallpaper"
+                return
+            }
+            root.pendingDownloadId = id
+            root.pendingDownloadUrl = item.path
+            root.downloadedWallhavenPath = ""
+            downloadProc.command = [
+                Quickshell.env("HOME") + "/.local/share/ryoku/bin/ryoku-ipc",
+                "wallpaper", "wallhaven", "download",
+                root.pendingDownloadId,
+                root.pendingDownloadUrl
+            ]
+            downloadProc.running = true
+            return
+        }
+
+        root.startApply(item.path, item.type)
+    }
+
+    function startApply(path, type) {
+        root.pendingApplyPath = path
+        root.pendingApplyType = type === "video" ? "video" : "image"
         applyProc.command = [
             Quickshell.env("HOME") + "/.local/share/ryoku/bin/ryoku-ipc",
             "wallpaper", "apply", "--type", root.pendingApplyType,
@@ -254,6 +327,26 @@ QtObject {
             path: path,
             type: root.typeForPath(path)
         })
+    }
+
+    property var downloadProc: Process {
+        stdout: SplitParser {
+            onRead: function(line) {
+                var t = line.trim()
+                if (t !== "") root.downloadedWallhavenPath = t
+            }
+        }
+        onExited: function(exitCode, exitStatus) {
+            if (exitCode === 0 && root.downloadedWallhavenPath !== "") {
+                root.startApply(root.downloadedWallhavenPath, "image")
+            } else {
+                root.applying = false
+                root.statusText = "Could not download wallpaper"
+            }
+            root.pendingDownloadId = ""
+            root.pendingDownloadUrl = ""
+            root.downloadedWallhavenPath = ""
+        }
     }
 
     property var applyProc: Process {
