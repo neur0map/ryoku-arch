@@ -100,10 +100,10 @@ StatCard {
   readonly property real _progress: root.length > 0 ? root._pos / root.length : 0
 
   // Shared Cava signal
-  readonly property int _orbitBars: 24
-  readonly property int _seekBars: 42
+  readonly property int _orbitBars: 28
+  readonly property int _seekBars: 56
   readonly property int _stripBars: 32
-  readonly property real _surfaceAlpha: 0.34
+  readonly property real _surfaceAlpha: 0.26
   readonly property var _bars: CavaService.bars
   readonly property bool _barsPlaying: CavaService.isPlaying
 
@@ -154,8 +154,10 @@ StatCard {
     return player.identity || "Player"
   }
 
-  readonly property int _discSize: Math.max(78, Math.min(92, Math.floor(root.height * 0.38)))
+  readonly property int _discSize: Math.max(104, Math.min(142, Math.floor(root.height * 0.40)))
   readonly property int _orbitSize: root._discSize + 34
+  readonly property int _panelLeft: Math.max(72, Math.floor(root._discSize * 0.58))
+  readonly property int _contentLeftInset: Math.max(128, root._orbitSize - root._panelLeft + 24)
 
   component ChevronMark: Item {
     id: chevron
@@ -305,29 +307,48 @@ StatCard {
     }
 
     Rectangle {
+      id: panelBody
+      objectName: "playerOffsetPanel"
       anchors.left: parent.left
       anchors.right: parent.right
       anchors.top: parent.top
-      anchors.margins: 10
+      anchors.bottom: parent.bottom
+      anchors.leftMargin: root._panelLeft
+      anchors.rightMargin: 12
+      anchors.topMargin: 18
+      anchors.bottomMargin: 18
+      radius: Math.max(18, Theme.cornerRadius)
+      color: Qt.rgba(9 / 255, 14 / 255, 22 / 255, 0.42)
+      border.width: 1
+      border.color: Qt.rgba(1, 1, 1, 0.075)
+    }
+
+    Rectangle {
+      anchors.left: panelBody.left
+      anchors.right: panelBody.right
+      anchors.top: panelBody.top
+      anchors.leftMargin: 18
+      anchors.rightMargin: 18
+      anchors.topMargin: 16
       height: 1
       color: Qt.rgba(1, 1, 1, 0.065)
     }
 
     Rectangle {
-      anchors.left: parent.left
-      anchors.top: parent.top
-      anchors.leftMargin: 12
-      anchors.topMargin: 10
+      anchors.left: panelBody.left
+      anchors.top: panelBody.top
+      anchors.leftMargin: 18
+      anchors.topMargin: 16
       width: 42
       height: 1
       color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.48)
     }
 
     Text {
-      anchors.left: parent.left
-      anchors.top: parent.top
-      anchors.leftMargin: 14
-      anchors.topMargin: 14
+      anchors.left: panelBody.left
+      anchors.top: panelBody.top
+      anchors.leftMargin: 20
+      anchors.topMargin: 22
       text: root.player ? "AUDIO" : "NO SIGNAL"
       font.pixelSize: 8
       font.weight: Font.Bold
@@ -338,11 +359,11 @@ StatCard {
 
     Item {
       id: sourcePicker
-      anchors.right: parent.right
-      anchors.top: parent.top
-      anchors.rightMargin: 10
-      anchors.topMargin: 8
-      width: 92
+      anchors.right: panelBody.right
+      anchors.top: panelBody.top
+      anchors.rightMargin: 18
+      anchors.topMargin: 12
+      width: 106
       height: sourcePill.height
       visible: root.filteredPlayers.length > 1
       z: 40
@@ -433,11 +454,13 @@ StatCard {
 
     Item {
       id: discStage
-      anchors.horizontalCenter: parent.horizontalCenter
-      anchors.top: parent.top
-      anchors.topMargin: 18
+      anchors.left: parent.left
+      anchors.verticalCenter: panelBody.verticalCenter
+      anchors.leftMargin: 8
+      anchors.verticalCenterOffset: -12
       width: root._orbitSize
       height: root._orbitSize
+      z: 8
 
       Item {
         id: cavaOrbit
@@ -479,7 +502,7 @@ StatCard {
         width: root._discSize + 14
         height: width
         radius: width / 2
-        color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.08)
+        color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.075)
         border.width: 1
         border.color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.32)
       }
@@ -544,57 +567,164 @@ StatCard {
 
     Item {
       id: mediaStack
-      anchors.left: parent.left
-      anchors.right: parent.right
-      anchors.top: discStage.bottom
-      anchors.bottom: progressBlock.top
-      anchors.leftMargin: 18
-      anchors.rightMargin: 18
-      anchors.topMargin: -22
-      anchors.bottomMargin: 8
+      objectName: "playerSideConsole"
+      anchors.left: panelBody.left
+      anchors.right: panelBody.right
+      anchors.top: panelBody.top
+      anchors.bottom: panelBody.bottom
+      anchors.leftMargin: root._contentLeftInset
+      anchors.rightMargin: 24
+      anchors.topMargin: 34
+      anchors.bottomMargin: 18
+      z: 6
 
-      Column {
-        id: metadata
-        width: parent.width
+      Text {
+        id: titleLabel
+        anchors.left: parent.left
+        anchors.right: parent.right
         anchors.top: parent.top
-        spacing: 1
+        text: root.title
+        elide: Text.ElideRight
+        horizontalAlignment: Text.AlignHCenter
+        font.pixelSize: 18
+        font.weight: Font.DemiBold
+        color: Theme.text
+      }
 
-        Text {
-          width: parent.width
-          text: root.title
-          elide: Text.ElideRight
-          horizontalAlignment: Text.AlignHCenter
-          font.pixelSize: 14
-          font.weight: Font.DemiBold
-          color: Theme.text
+      Text {
+        id: artistLabel
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: titleLabel.bottom
+        anchors.topMargin: 2
+        text: root.artist !== "" ? root.artist : root._playerLabel(root.player)
+        elide: Text.ElideRight
+        horizontalAlignment: Text.AlignHCenter
+        font.pixelSize: 10
+        font.family: "JetBrains Mono"
+        color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.46)
+      }
+
+      Item {
+        id: progressBlock
+        objectName: "playerWaveSeek"
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: artistLabel.bottom
+        anchors.topMargin: 8
+        height: 34
+
+        Item {
+          id: progressTrack
+          anchors.left: parent.left
+          anchors.right: parent.right
+          anchors.top: parent.top
+          height: 18
+
+          Row {
+            id: seekWaveBar
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            height: parent.height
+            spacing: 1
+            readonly property real barW: Math.max(2, (width - spacing * (root._seekBars - 1)) / root._seekBars)
+
+            Repeater {
+              model: root._seekBars
+
+              delegate: Rectangle {
+                required property int index
+                readonly property real amp: root._seekValue(index) / 100
+                readonly property bool played: root.length > 0 && ((index + 0.5) / root._seekBars) <= root._progress
+                width: seekWaveBar.barW
+                height: Math.max(3, 4 + amp * 10)
+                anchors.verticalCenter: parent.verticalCenter
+                radius: width / 2
+                color: played
+                  ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.50 + amp * 0.34)
+                  : Qt.rgba(1, 1, 1, 0.075 + amp * 0.12)
+
+                Behavior on height {
+                  enabled: !Theme.staticMode
+                  NumberAnimation { duration: 75; easing.type: Easing.OutCubic }
+                }
+              }
+            }
+          }
+
+          Rectangle {
+            x: Math.max(0, Math.min(parent.width - width, parent.width * root._progress - width / 2))
+            anchors.verticalCenter: parent.verticalCenter
+            width: 8
+            height: 8
+            radius: width / 2
+            color: Theme.active
+            border.width: 1
+            border.color: Qt.rgba(1, 1, 1, 0.35)
+            visible: root.length > 0
+          }
+
+          MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: function(mouse) {
+              if (root.player && root.length > 0) {
+                var f = Math.max(0, Math.min(1, mouse.x / width))
+                root.player.position = f * root.length
+                root._pos = f * root.length
+              }
+            }
+          }
         }
 
-        Text {
-          width: parent.width
-          text: root.artist !== "" ? root.artist : root._playerLabel(root.player)
-          elide: Text.ElideRight
-          horizontalAlignment: Text.AlignHCenter
-          font.pixelSize: 10
-          color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.50)
+        Row {
+          anchors.left: parent.left
+          anchors.right: parent.right
+          anchors.bottom: parent.bottom
+
+          Text {
+            id: startTime
+            text: root._fmt(root._pos)
+            font.pixelSize: 9
+            font.family: "JetBrains Mono"
+            color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.42)
+          }
+
+          Item {
+            width: Math.max(0, parent.width - startTime.width - endTime.width)
+            height: 1
+          }
+
+          Text {
+            id: endTime
+            text: root._fmt(root.length)
+            font.pixelSize: 9
+            font.family: "JetBrains Mono"
+            color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.42)
+          }
         }
       }
 
       Item {
-        width: parent.width
-        height: 38
-        anchors.top: metadata.bottom
-        anchors.topMargin: 8
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: progressBlock.bottom
+        anchors.topMargin: 6
+        height: 50
 
         Row {
           id: playbackControls
           objectName: "playbackDeck"
-          anchors.centerIn: parent
-          spacing: 4
+          anchors.horizontalCenter: parent.horizontalCenter
+          anchors.horizontalCenterOffset: -14
+          anchors.verticalCenter: parent.verticalCenter
+          spacing: 8
 
           Repeater {
             model: [ { key: "prev" }, { key: "play" }, { key: "next" } ]
 
-            delegate: Item {
+            delegate: Rectangle {
               required property var modelData
               readonly property bool isPlay: modelData.key === "play"
               readonly property bool actionEnabled: {
@@ -605,74 +735,51 @@ StatCard {
                 return false
               }
 
-              width: isPlay ? 46 : 40
-              height: 38
+              width: isPlay ? 46 : 38
+              height: width
+              radius: width / 2
               opacity: actionEnabled ? 1 : 0.42
+              color: isPlay
+                ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, controlHit.hovered ? 0.32 : 0.24)
+                : Qt.rgba(18 / 255, 36 / 255, 42 / 255, controlHit.hovered ? 0.46 : 0.34)
+              border.width: 1
+              border.color: isPlay
+                ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, controlHit.hovered ? 0.62 : 0.44)
+                : Qt.rgba(1, 1, 1, controlHit.hovered ? 0.16 : 0.08)
 
               Rectangle {
-                visible: !isPlay
                 anchors.centerIn: parent
-                width: controlHit.hovered ? 32 : 28
-                height: controlHit.hovered ? 24 : 18
-                radius: 5
-                color: Qt.rgba(1, 1, 1, controlHit.hovered ? 0.045 : 0.0)
-                border.width: controlHit.hovered ? 1 : 0
-                border.color: Qt.rgba(1, 1, 1, 0.11)
-              }
-
-              Rectangle {
-                visible: !isPlay
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.verticalCenterOffset: -10
-                width: 16
-                height: 1
-                color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.20)
-              }
-
-              Rectangle {
-                visible: isPlay
-                anchors.centerIn: parent
-                width: 36
-                height: 36
+                width: parent.width - (parent.isPlay ? 18 : 16)
+                height: width
                 radius: width / 2
-                color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, controlHit.hovered ? 0.16 : 0.09)
-                border.width: 1
-                border.color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, controlHit.hovered ? 0.52 : 0.34)
+                color: Qt.rgba(1, 1, 1, parent.isPlay ? 0.040 : 0.026)
               }
 
               Rectangle {
-                visible: isPlay
-                anchors.centerIn: parent
-                width: 22
-                height: 22
-                radius: width / 2
-                color: Qt.rgba(8 / 255, 12 / 255, 18 / 255, 0.26)
-                border.width: 1
-                border.color: Qt.rgba(1, 1, 1, 0.08)
-              }
-
-              Rectangle {
-                visible: isPlay
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.top
-                anchors.topMargin: 5
-                width: 16
+                anchors.topMargin: parent.isPlay ? 10 : 8
+                width: parent.isPlay ? 20 : 16
                 height: 1
-                color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.42)
+                color: Qt.rgba(
+                  parent.isPlay ? Theme.active.r : 1,
+                  parent.isPlay ? Theme.active.g : 1,
+                  parent.isPlay ? Theme.active.b : 1,
+                  parent.isPlay ? 0.50 : 0.16
+                )
               }
 
-              Behavior on opacity {
+              Behavior on color {
                 enabled: !Theme.staticMode
-                NumberAnimation { duration: 120 }
+                ColorAnimation { duration: 130 }
               }
 
               TransportGlyph {
                 anchors.centerIn: parent
                 mode: modelData.key
                 playing: root.isPlaying
-                glyphColor: isPlay ? Theme.active
-                                    : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, controlHit.hovered ? 0.88 : 0.62)
+                glyphColor: isPlay ? Theme.text
+                                    : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, controlHit.hovered ? 0.84 : 0.58)
               }
 
               HoverHandler {
@@ -701,107 +808,6 @@ StatCard {
               }
             }
           }
-        }
-      }
-    }
-
-    Item {
-      id: progressBlock
-      anchors.left: parent.left
-      anchors.right: parent.right
-      anchors.bottom: parent.bottom
-      anchors.leftMargin: 18
-      anchors.rightMargin: 18
-      anchors.bottomMargin: 11
-      height: 36
-
-      Item {
-        id: progressTrack
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.topMargin: 5
-        height: 14
-
-        Row {
-          id: seekWaveBar
-          anchors.left: parent.left
-          anchors.right: parent.right
-          anchors.verticalCenter: parent.verticalCenter
-          height: parent.height
-          spacing: 2
-          readonly property real barW: Math.max(2, (width - spacing * (root._seekBars - 1)) / root._seekBars)
-
-          Repeater {
-            model: root._seekBars
-
-            delegate: Rectangle {
-              required property int index
-              readonly property real amp: root._seekValue(index) / 100
-              readonly property bool played: root.length > 0 && ((index + 0.5) / root._seekBars) <= root._progress
-              width: seekWaveBar.barW
-              height: Math.max(3, 4 + amp * 9)
-              anchors.verticalCenter: parent.verticalCenter
-              radius: width / 2
-              color: played
-                ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.42 + amp * 0.38)
-                : Qt.rgba(1, 1, 1, 0.11 + amp * 0.16)
-
-              Behavior on height {
-                enabled: !Theme.staticMode
-                NumberAnimation { duration: 75; easing.type: Easing.OutCubic }
-              }
-            }
-          }
-        }
-
-        Rectangle {
-          x: Math.max(0, Math.min(parent.width - width, parent.width * root._progress - width / 2))
-          anchors.verticalCenter: parent.verticalCenter
-          width: 3
-          height: 13
-          radius: 1
-          color: Qt.rgba(1, 1, 1, 0.62)
-          visible: root.length > 0
-        }
-
-        MouseArea {
-          anchors.fill: parent
-          cursorShape: Qt.PointingHandCursor
-          onClicked: function(mouse) {
-            if (root.player && root.length > 0) {
-              var f = Math.max(0, Math.min(1, mouse.x / width))
-              root.player.position = f * root.length
-              root._pos = f * root.length
-            }
-          }
-        }
-      }
-
-      Row {
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-
-        Text {
-          id: startTime
-          text: root._fmt(root._pos)
-          font.pixelSize: 9
-          font.family: "JetBrains Mono"
-          color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.42)
-        }
-
-        Item {
-          width: Math.max(0, parent.width - startTime.width - endTime.width)
-          height: 1
-        }
-
-        Text {
-          id: endTime
-          text: root._fmt(root.length)
-          font.pixelSize: 9
-          font.family: "JetBrains Mono"
-          color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.42)
         }
       }
     }
