@@ -116,6 +116,10 @@ grep -q 'import QtMultimedia' "$card" \
   || fail "WallpaperSkewCard should support video previews"
 grep -q 'required property var itemData' "$card" \
   || fail "WallpaperSkewCard should accept model item data"
+grep -q 'width: selected ? 300 : 92' "$card" \
+  || fail "WallpaperSkewCard should use slimmer card widths"
+grep -q 'height: 236' "$card" \
+  || fail "WallpaperSkewCard should use slimmer card height"
 grep -q 'MediaPlayer' "$card" \
   || fail "WallpaperSkewCard should use MediaPlayer for selected videos"
 grep -q 'AudioOutput' "$card" \
@@ -189,7 +193,21 @@ grep -q 'WallpaperService.applyItem(item)' "$popup" \
 grep -q 'WallpaperService.previewWall = item.path' "$popup" \
   || fail "WallpaperPopup should preview using model item paths"
 grep -q 'anchors.fill: parent' "$popup" \
-  || fail "WallpaperPopup should use a fullscreen overlay content area"
+  || fail "WallpaperPopup should keep a transparent outside-click surface"
+grep -q 'attachedEdge: "bottom"' "$popup" \
+  || fail "WallpaperPopup should attach the selector shape to the bottom edge"
+grep -Eq 'readonly property int selectorMaxWidth:[[:space:]]+1040' "$popup" \
+  || fail "WallpaperPopup should use a slimmer selector width"
+grep -Eq 'readonly property int selectorHeight:[[:space:]]+380' "$popup" \
+  || fail "WallpaperPopup should use a slimmer selector height"
+grep -q 'y: Popups.wallpaperOpen ? parent.height - height : parent.height + Theme.borderWidth' "$popup" \
+  || fail "WallpaperPopup should slide up from the bottom"
+! grep -q 'id: scrim' "$popup" \
+  || fail "WallpaperPopup should not use a dimming fullscreen scrim"
+! grep -q 'Behavior on opacity' "$popup" \
+  || fail "WallpaperPopup should not fade in or out"
+! grep -q 'scale: Popups.wallpaperOpen' "$popup" \
+  || fail "WallpaperPopup should not scale-fade"
 grep -q 'WlrKeyboardFocus.Exclusive' "$popup" \
   || fail "WallpaperPopup should keep exclusive keyboard focus"
 grep -q 'Keys.onEscapePressed: Popups.wallpaperOpen = false' "$popup" \
@@ -208,8 +226,6 @@ grep -q 'anchors.bottom: true' "$popup" \
   || fail "WallpaperPopup should not use the old path-array filtered wallpaper model"
 ! grep -q 'WallpaperService.wallpapers' "$popup" \
   || fail "WallpaperPopup should not depend on the old wallpaper path array"
-! grep -q 'attachedEdge: "bottom"' "$popup" \
-  || fail "WallpaperPopup should not keep the old bottom strip shape"
 
 grep -q '^curl$' "$base_packages" \
   || fail "curl should be explicitly installed for Wallhaven integration"

@@ -49,20 +49,22 @@ grep -q 'Binding { target: Popups; property: "wallpaperVisible"' "$wallpaper_pop
   || fail "WallpaperPopup should expose visual presence to TopBar"
 grep -q 'WlrKeyboardFocus.Exclusive' "$wallpaper_popup" \
   || fail "WallpaperPopup should own keyboard focus while open"
-! grep -q 'attachedEdge: "bottom"' "$wallpaper_popup" \
-  || fail "WallpaperPopup should not keep the old bottom strip shape"
 grep -q 'implicitHeight: root.overlayHeight' "$wallpaper_popup" \
   || fail "WallpaperPopup should expose fullscreen overlay height"
-grep -q 'anchors.centerIn: parent' "$wallpaper_popup" \
-  || fail "WallpaperPopup should center the fullscreen selector"
-grep -Eq 'readonly property int selectorMaxWidth:[[:space:]]+1540' "$wallpaper_popup" \
-  || fail "WallpaperPopup should use the SKWD selector max width"
-grep -Eq 'readonly property int selectorMaxHeight:[[:space:]]+620' "$wallpaper_popup" \
-  || fail "WallpaperPopup should use the SKWD selector max height"
-grep -q 'Qt.rgba(0, 0, 0, Popups.wallpaperOpen ? 0.50 : 0.0)' "$wallpaper_popup" \
-  || fail "WallpaperPopup should dim the fullscreen overlay"
-grep -q 'scale: Popups.wallpaperOpen ? 1 : 0.96' "$wallpaper_popup" \
-  || fail "WallpaperPopup should animate selector scale"
+grep -q 'attachedEdge: "bottom"' "$wallpaper_popup" \
+  || fail "WallpaperPopup should attach the selector to the bottom edge"
+grep -Eq 'readonly property int selectorMaxWidth:[[:space:]]+1040' "$wallpaper_popup" \
+  || fail "WallpaperPopup should use a slimmer selector width"
+grep -Eq 'readonly property int selectorHeight:[[:space:]]+380' "$wallpaper_popup" \
+  || fail "WallpaperPopup should use a slimmer selector height"
+grep -q 'y: Popups.wallpaperOpen ? parent.height - height : parent.height + Theme.borderWidth' "$wallpaper_popup" \
+  || fail "WallpaperPopup should slide up from the bottom"
+! grep -q 'id: scrim' "$wallpaper_popup" \
+  || fail "WallpaperPopup should not use a dimming fullscreen scrim"
+! grep -q 'Behavior on opacity' "$wallpaper_popup" \
+  || fail "WallpaperPopup should not fade in or out"
+! grep -q 'scale: Popups.wallpaperOpen' "$wallpaper_popup" \
+  || fail "WallpaperPopup should not scale-fade"
 grep -q 'top:    true' "$wallpaper_popup" \
   || fail "WallpaperPopup should anchor to the top edge"
 grep -q 'bottom: true' "$wallpaper_popup" \
