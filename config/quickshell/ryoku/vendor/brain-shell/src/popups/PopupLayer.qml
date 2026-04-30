@@ -1,22 +1,17 @@
 import QtQuick
 import Quickshell
 import "../"
+import "../windows"
 
 // ============================================================
 // PopupLayer - the only file that instantiates popup windows.
 //
 // shell.qml creates the anchor windows and passes them in.
 //
-// Ryoku Spec 1 activation: only Dashboard is instantiated. The dashboard
-// is its own layer-shell window that slides down from above the screen
-// (caelestia-style spatial motion) so the TopBar surface itself never
-// resizes during animation.
-// Other popups are vendored as code but commented out; each is
-// re-enabled in a follow-up spec when its replacement for the
-// existing Ryoku surface (mako, swayosd, fuzzel, etc.) is
-// validated. Border-anchor properties softened from
-// `required property var` to `property var ... : null` so
-// callers can pass null when no Border is mounted.
+// Active popups are instantiated here as their Ryoku replacements land.
+// Dormant vendored popups stay commented until their replacement for the
+// existing Ryoku surface is validated. Border-anchor properties are soft
+// nullable so callers can pass null when no Border is mounted.
 // ============================================================
 
 Item {
@@ -26,17 +21,20 @@ Item {
     // because Brain_Shell's Border is dormant in Spec 1 (Ryoku Frame
     // provides the border surface).
     required property var topBar
+    required property var screen
     property var leftBorder:   null
     property var rightBorder:  null
     property var bottomBorder: null
 
-    // Active in Spec 1
+    // Active Ryoku popup windows.
     Dashboard { anchorWindow: root.topBar }
     AppLauncherPopup {}
     WallpaperPopup {}
     SystemMenuPopup {}
     SettingsMenuPopup {}
     DotfilesHubPopup {}
+    ToolboxPopup { screen: root.screen }
+    MirrorWindow { screen: root.screen }
 
     // Dormant in follow-up specs.
     // ArchMenu              { anchorWindow: root.leftBorder }

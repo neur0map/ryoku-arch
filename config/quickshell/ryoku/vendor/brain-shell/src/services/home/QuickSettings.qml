@@ -139,28 +139,6 @@ StatCard {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    //  Caffeine  (systemd-inhibit)
-    // ─────────────────────────────────────────────────────────────────────────
-    property bool caffeineOn: false
-
-    Process { id: caffeineCheck
-        command: ["bash", "-c", "pgrep -f 'systemd-inhibit.*Caffeine'"]; running: false
-        stdout: SplitParser { onRead: function(l) { if (l.trim() !== "") root.caffeineOn = true } } }
-    Process { id: caffeineProc
-        command: ["systemd-inhibit","--what=idle:sleep",
-                  "--who=Brain Shell","--why=Caffeine mode","sleep","infinity"]
-        running: false }
-    Process { id: caffeineKill
-        command: ["bash", "-c", "pkill -f 'systemd-inhibit.*Caffeine'"]; running: false
-        onRunningChanged: if (!running) root.caffeineOn = false }
-    function _caffeineToggle() {
-        if (root.caffeineOn) {
-            caffeineProc.running = false
-            caffeineKill.running = false; caffeineKill.running = true
-        } else { caffeineProc.running = true; root.caffeineOn = true }
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
     //  Do Not Disturb
     // ─────────────────────────────────────────────────────────────────────────
     function _dndToggle() {
@@ -566,7 +544,6 @@ StatCard {
         brightRead.running      = true
         _wifiPoll(); _btPoll()
         nlCheck.running         = true
-        caffeineCheck.running   = true
         hotspotCheck.running    = true
         airplaneCheck.running   = true
         filterCheckProc.running = true
@@ -779,8 +756,8 @@ StatCard {
                     }
                     TglBtn {
                         width: tileGrid.btnW; height: tileGrid.btnH
-                        on: root.caffeineOn; icon: "󰅶"; label: "Caffeine"
-                        onToggled: root._caffeineToggle()
+                        on: CaffeineService.active; icon: "󰅶"; label: "Caffeine"
+                        onToggled: CaffeineService.toggle()
                     }
                     TglBtn {
                         width: tileGrid.btnW; height: tileGrid.btnH

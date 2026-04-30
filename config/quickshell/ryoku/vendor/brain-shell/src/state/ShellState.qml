@@ -5,7 +5,7 @@ import QtQuick
 //
 // WiFi / Bluetooth  — owned by QuickSettings (nmcli / bluetoothctl)
 // Night Light       — owned by QuickSettings (hyprsunset)
-// Caffeine          — owned by QuickSettings (systemd-inhibit)
+// Caffeine          - owned by CaffeineService
 // Hotspot           — owned by QuickSettings (nmcli hotspot)
 // Airplane Mode     — owned by QuickSettings (rfkill)
 // Focus Mode        — owned by QuickSettings; TopBar reacts to hide + zero gaps

@@ -1,17 +1,12 @@
 #!/bin/bash
 
-# Start and stop a screenrecording, which will be saved to ~/Videos by default.
-# Alternative location can be set via RYOKU_SCREENRECORD_DIR or XDG_VIDEOS_DIR ENVs.
+# Start and stop a screenrecording, saved under ~/Videos/screen_recordings by default.
+# RYOKU_SCREENRECORD_DIR can set the exact output directory; XDG_VIDEOS_DIR sets the videos base.
 # Resolution is capped to 4K for monitors above 4K, native otherwise.
 # Override via --resolution= (e.g. --resolution=1920x1080, --resolution=0x0 for native).
 
 [[ -f ~/.config/user-dirs.dirs ]] && source ~/.config/user-dirs.dirs
-OUTPUT_DIR="${RYOKU_SCREENRECORD_DIR:-${XDG_VIDEOS_DIR:-$HOME/Videos}}"
-
-if [[ ! -d $OUTPUT_DIR ]]; then
-  notify-send "Screen recording directory does not exist: $OUTPUT_DIR" -u critical -t 3000
-  exit 1
-fi
+OUTPUT_DIR="${RYOKU_SCREENRECORD_DIR:-${XDG_VIDEOS_DIR:-$HOME/Videos}/screen_recordings}"
 
 DESKTOP_AUDIO="false"
 MICROPHONE_AUDIO="false"
@@ -31,6 +26,11 @@ for arg in "$@"; do
   --stop-recording) STOP_RECORDING="true" ;;
   esac
 done
+
+if [[ $STOP_RECORDING != "true" && ! -d $OUTPUT_DIR ]]; then
+  notify-send "Screen recording directory does not exist: $OUTPUT_DIR" -u critical -t 3000
+  exit 1
+fi
 
 start_webcam_overlay() {
   cleanup_webcam

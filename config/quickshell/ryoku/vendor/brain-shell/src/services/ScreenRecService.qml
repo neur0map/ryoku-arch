@@ -215,10 +215,12 @@ QtObject {
     function _buildCmd() {
         // Use $HOME — ~ does NOT expand inside double-quoted bash strings
         var ts  = Qt.formatDateTime(new Date(), "yyyyMMdd_HHmmss")
-        root._currentFile = "$HOME/Videos/screen_recordings/" + ts + ".mp4"
-        var cmd = "mkdir -p $HOME/Videos/screen_recordings && " +
+        root._currentFile = "${RYOKU_SCREENRECORD_DIR:-${XDG_VIDEOS_DIR:-$HOME/Videos}/screen_recordings}/" + ts + ".mp4"
+        var cmd = "source ~/.config/user-dirs.dirs 2>/dev/null || true; " +
+                  "dir=\"${RYOKU_SCREENRECORD_DIR:-${XDG_VIDEOS_DIR:-$HOME/Videos}/screen_recordings}\"; " +
+                  "mkdir -p \"$dir\" && " +
                   "LIBVA_DRIVER_NAME=iHD wl-screenrec" +
-                  " --filename " + root._currentFile
+                  " --filename \"" + root._currentFile + "\""
         if (root._pendingGeometry !== "")
             cmd += " --geometry '" + root._pendingGeometry + "'"
         var hasAudio = root.audioMic || root.audioSystem

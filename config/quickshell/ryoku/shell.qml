@@ -26,6 +26,12 @@ ShellRoot {
             BS.Popups.launcherOpen = opening
         }
 
+        function toggleToolbox(): void {
+            const opening = !BS.Popups.toolboxOpen
+            BS.Popups.closeAll()
+            BS.Popups.toolboxOpen = opening
+        }
+
         function toggleWallpaper(): void {
             const opening = !(BS.Popups.wallpaperOpen && BS.Popups.wallpaperMode === "wallpaper")
             BS.Popups.closeAll()
@@ -95,6 +101,7 @@ ShellRoot {
 
                 BSP.PopupLayer {
                     topBar: bsTopBar
+                    screen: modelData
                     // Border anchors stay null in Spec 1 (Frame is the
                     // border system). PopupLayer Patch 7 softens these
                     // from required to property defaults.

@@ -1,0 +1,56 @@
+#!/bin/bash
+
+set -euo pipefail
+
+for cmd in curl grim jq notify-send slurp xdg-open; do
+  if ryoku-cmd-missing "$cmd"; then
+    notify-send -u normal "Google Lens" "$cmd is not installed"
+    exit 1
+  fi
+done
+
+tmp_dir="${XDG_RUNTIME_DIR:-/tmp}"
+tmp="$(mktemp "$tmp_dir/ryoku-google-lens.XXXXXX.png")"
+
+cleanup() {
+  rm -f "$tmp"
+}
+trap cleanup EXIT
+
+if ! geometry="$(slurp 2>/dev/null)"; then
+  exit 130
+fi
+
+if [[ -z $geometry ]]; then
+  exit 0
+fi
+
+grim -g "$geometry" "$tmp"
+
+if ! action="$(notify-send -u normal "Google Lens" "Uploads the selected image to uguu.se as a public URL before opening Google Lens." -A "upload=Upload" -A "cancel=Cancel")"; then
+  exit 0
+fi
+
+if [[ $action != "upload" ]]; then
+  exit 0
+fi
+
+notify-send -u normal "Google Lens" "Uploading selected image for reverse image search"
+
+if ! response="$(curl -fsS --connect-timeout 10 --max-time 45 -F "files[]=@$tmp" https://uguu.se/upload)"; then
+  notify-send -u critical "Google Lens" "Image upload failed"
+  exit 1
+fi
+
+if ! remote_url="$(printf '%s' "$response" | jq -r '.files[0].url // .files[0].src // empty')"; then
+  notify-send -u critical "Google Lens" "Upload response did not include an image URL"
+  exit 1
+fi
+
+if [[ -z $remote_url ]]; then
+  notify-send -u critical "Google Lens" "Upload response did not include an image URL"
+  exit 1
+fi
+
+encoded_url="$(jq -nr --arg url "$remote_url" '$url|@uri')"
+xdg-open "https://lens.google.com/uploadbyurl?url=$encoded_url" >/dev/null 2>&1

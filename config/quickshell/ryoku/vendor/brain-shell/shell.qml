@@ -30,6 +30,7 @@ ShellRoot {
                 // Add new popups in src/popups/PopupLayer.qml only
                 PopupLayer {
                     topBar:       topBar
+                    screen:       modelData
                     leftBorder:   leftBorder
                     rightBorder:  rightBorder
                     bottomBorder: bottomBorder

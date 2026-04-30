@@ -1,0 +1,48 @@
+#!/bin/bash
+
+set -euo pipefail
+
+for cmd in grim slurp zbarimg wl-copy notify-send xdg-open; do
+  if ryoku-cmd-missing "$cmd"; then
+    notify-send -u normal "QR Code" "$cmd is not installed"
+    exit 1
+  fi
+done
+
+tmp_dir="${XDG_RUNTIME_DIR:-/tmp}"
+tmp="$(mktemp "$tmp_dir/ryoku-qr.XXXXXX.png")"
+
+cleanup() {
+  rm -f "$tmp"
+}
+trap cleanup EXIT
+
+if ! geometry="$(slurp 2>/dev/null)"; then
+  exit 130
+fi
+
+if [[ -z $geometry ]]; then
+  exit 0
+fi
+
+grim -g "$geometry" "$tmp"
+result="$(zbarimg --raw "$tmp" 2>/dev/null | head -n 1 || true)"
+
+if [[ -z $result ]]; then
+  notify-send -u normal "QR Code" "No QR code found in the selected area"
+  exit 0
+fi
+
+printf '%s\n' "$result" | wl-copy
+
+case "$result" in
+  http://*|https://*)
+    action="$(notify-send -u normal "QR Code" "Copied URL to clipboard" -A "default=Open" || true)"
+    if [[ $action == "default" ]]; then
+      xdg-open "$result" >/dev/null 2>&1 || true
+    fi
+    ;;
+  *)
+    notify-send -u normal "QR Code" "Copied result to clipboard"
+    ;;
+esac

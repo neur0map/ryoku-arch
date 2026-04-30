@@ -65,7 +65,7 @@ grep -q 'settingsMenuOpen   = false' "$popups" \
 grep -q 'dotfilesOpen       = false' "$popups" \
   || fail "closeAll should close the dotfiles hub"
 
-grep -q 'Popups.dashboardVisible || Popups.launcherVisible || Popups.systemMenuVisible || Popups.settingsMenuVisible' "$topbar" \
+grep -q 'Popups.dashboardVisible || Popups.launcherVisible || Popups.toolboxVisible || Popups.systemMenuVisible || Popups.settingsMenuVisible' "$topbar" \
   || fail "TopBar should stay on overlay while topbar menus animate"
 grep -q 'Popups.systemMenuOpen' "$control_panel" \
   || fail "left topbar control should toggle the new system menu"

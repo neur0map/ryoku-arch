@@ -39,6 +39,8 @@ tree-sitter-cli
 unzip
 usage
 whois
+xdg-user-dirs
+xdg-utils
 xmlstarlet
 zoxide
 
@@ -98,6 +100,7 @@ xournalpp
 gpu-screen-recorder
 imagemagick
 kdenlive
+libnotify
 obs-studio
 
 # ── Hyprland window manager + Wayland desktop stack ───────────────────
@@ -122,6 +125,10 @@ cliphist
 grim
 satty
 slurp
+tesseract
+tesseract-data-eng
+tesseract-data-spa
+zbar
 
 # ── Display manager + boot splash ─────────────────────────────────────
 plymouth

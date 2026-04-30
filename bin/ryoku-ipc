@@ -10,12 +10,14 @@ Usage:
   ryoku-ipc --help
   ryoku-ipc shell command wallpaper
   ryoku-ipc shell command launcher
+  ryoku-ipc shell command toolbox
   ryoku-ipc shell command themes
   ryoku-ipc shell command dotfiles
   ryoku-ipc shell command system-menu
   ryoku-ipc shell command settings-menu
   ryoku-ipc shell toggle wallpaper
   ryoku-ipc shell toggle launcher
+  ryoku-ipc shell toggle toolbox
   ryoku-ipc shell toggle themes
   ryoku-ipc shell toggle dotfiles
   ryoku-ipc shell toggle system-menu
@@ -36,7 +38,7 @@ shell_command() {
   local target="${1:-}"
 
   if (( $# != 1 )); then
-    echo "ryoku-ipc: expected shell command wallpaper|launcher|themes|dotfiles|system-menu|settings-menu" >&2
+    echo "ryoku-ipc: expected shell command wallpaper|launcher|toolbox|themes|dotfiles|system-menu|settings-menu" >&2
     return 2
   fi
 
@@ -46,6 +48,9 @@ shell_command() {
       ;;
     launcher)
       printf '%s\n' "qs -c ryoku ipc call popups toggleLauncher"
+      ;;
+    toolbox)
+      printf '%s\n' "qs -c ryoku ipc call popups toggleToolbox"
       ;;
     themes)
       printf '%s\n' "qs -c ryoku ipc call popups toggleThemes"
@@ -70,7 +75,7 @@ shell_toggle() {
   local target="${1:-}"
 
   if (( $# != 1 )); then
-    echo "ryoku-ipc: expected shell toggle wallpaper|launcher|themes|dotfiles|system-menu|settings-menu" >&2
+    echo "ryoku-ipc: expected shell toggle wallpaper|launcher|toolbox|themes|dotfiles|system-menu|settings-menu" >&2
     return 2
   fi
 
@@ -80,6 +85,9 @@ shell_toggle() {
       ;;
     launcher)
       exec qs -c ryoku ipc call popups toggleLauncher
+      ;;
+    toolbox)
+      exec qs -c ryoku ipc call popups toggleToolbox
       ;;
     themes)
       exec qs -c ryoku ipc call popups toggleThemes

@@ -10,6 +10,9 @@ QtObject {
     property bool archMenuOpen:      false
     property bool dashboardOpen:     false
     property bool launcherOpen:      false
+    property bool toolboxOpen:       false
+    property bool mirrorOpen:        false
+    property string mirrorScreenName: ""
     property bool systemMenuOpen:    false
     property bool settingsMenuOpen:  false
     property bool dotfilesOpen:      false
@@ -17,6 +20,7 @@ QtObject {
     // AppLauncherPopup.qml so TopBar can stay on Overlay and make the
     // card read as an extension of the center pill during close.
     property bool launcherVisible:   false
+    property bool toolboxVisible:    false
     // Topbar-attached menu visual states. The popup windows drive
     // these so TopBar can remain on Overlay through close animations.
     property bool systemMenuVisible:   false
@@ -93,6 +97,9 @@ QtObject {
         archMenuOpen      = false
         dashboardOpen     = false
         launcherOpen      = false
+        toolboxOpen       = false
+        mirrorOpen        = false
+        mirrorScreenName  = ""
         systemMenuOpen     = false
         settingsMenuOpen   = false
         dotfilesOpen       = false

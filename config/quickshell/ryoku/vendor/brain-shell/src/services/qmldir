@@ -17,6 +17,7 @@ FanControl ./system/FanControl.qml
 DashHome home/DashHome.qml
 singleton NotificationService 1.0 ./notifications/NotificationService.qml
 NotificationList ./notifications/NotificationList.qml
+singleton CaffeineService 1.0 CaffeineService.qml
 singleton WallpaperService 1.0 WallpaperService.qml
 singleton ThemeService 1.0 ThemeService.qml
 singleton ScreenRecService 1.0 ScreenRecService.qml
