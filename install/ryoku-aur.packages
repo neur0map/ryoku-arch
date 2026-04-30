@@ -1,0 +1,49 @@
+# Ryoku AUR packages installed by default on every machine via
+# install/packaging/aur-core.sh. Source-of-truth for the AUR slice of
+# the offline ISO mirror (build-iso.sh feeds this list into the same
+# makepkg pipeline as iso/builder/ryoku-boot-overlay.packages, so a
+# fully-offline first boot already has these packages locally).
+#
+# Sectioned by category so apps/CLIs/fonts/themes are easy to spot and
+# adds/removes touch one line. Keep alphabetical inside each section.
+# Lines starting with '#' and blank lines are ignored by readers.
+#
+# Each entry must be the AUR PackageBase. Split packages share one
+# PKGBUILD git repo; listing the split names directly clones empty repos.
+#
+# Companion lists:
+#   install/ryoku-base.packages             Arch, default install
+#   install/ryoku-other.packages            Arch, conditional hardware
+#   iso/builder/ryoku-boot-overlay.packages AUR, conditional hardware + boot
+
+# ── GUI apps ──────────────────────────────────────────────────────────
+1password-beta
+1password-cli
+pinta
+spotify
+typora
+
+# ── CLI agents / dev tools ────────────────────────────────────────────
+claude-code
+
+# ── File sharing / sync ───────────────────────────────────────────────
+# Used by bin/ryoku-cmd-share, default/nautilus-python/extensions/localsend.py,
+# and default/hypr/apps/localsend.conf window rules.
+localsend
+
+# ── Networking / system ───────────────────────────────────────────────
+tzupdate
+ufw-docker
+
+# ── Launcher (with fuzzel fallback in bin/tofi + bin/tofi-drun) ───────
+tofi
+
+# ── Eye-candy / utilities ─────────────────────────────────────────────
+mpvpaper
+# python-terminaltexteffects ships the `tte` binary used by
+# bin/ryoku-launch-screensaver and install/post-install/finished.sh.
+python-terminaltexteffects
+
+# ── Fonts & icon themes ───────────────────────────────────────────────
+ttf-ia-writer
+yaru-icon-theme

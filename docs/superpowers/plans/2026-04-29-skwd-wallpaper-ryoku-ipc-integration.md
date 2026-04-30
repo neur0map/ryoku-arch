@@ -1737,6 +1737,8 @@ In `install/ryoku-base.packages`, add `curl` inside the CLI tooling section alph
 
 If `pacman -Ss '^mpvpaper$'` or the AUR lookup confirms an installable package source, add `mpvpaper` in the appropriate package manifest and update this plan log with the source used. If no Arch/AUR source is available, leave package manifests unchanged and keep `ryoku-wallpaper-apply --type video` returning the explicit `mpvpaper is required for video wallpapers` JSON error.
 
+Implementation note: `yay -Ss mpvpaper` confirmed `aur/mpvpaper 1.8-1`, so `mpvpaper` is listed in `install/ryoku-aur.packages`.
+
 - [ ] **Step 4: Run tests**
 
 Run:
