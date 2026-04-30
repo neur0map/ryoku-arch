@@ -127,6 +127,7 @@ Paths are repo-relative or generic runtime/install targets only; there are no ma
 | `default/hypr/looknfeel.conf` | `~/.local/share/ryoku/default/hypr/looknfeel.conf` | Default Hyprland gaps, borders, shadows, blur, animations, and layout behavior. |
 | `default/hypr/plain-bindings.conf` | `~/.local/share/ryoku/default/hypr/plain-bindings.conf` | Plain-text keybinding reference used by help surfaces. |
 | `default/hypr/toggles/flags.conf` | `~/.local/state/ryoku/toggles/hypr/flags.conf` | Permanent toggle-state anchor file for Hyprland toggle directory loading. |
+| `default/hypr/toggles/global-opacity.conf` | `~/.local/state/ryoku/toggles/hypr/global-opacity.conf` | Toggle snippet that applies a subtle global opacity override to app windows. |
 | `default/hypr/toggles/internal-monitor-disable.conf` | `~/.local/state/ryoku/toggles/hypr/internal-monitor-disable.conf` | Toggle snippet that disables the internal laptop display. |
 | `default/hypr/toggles/single-window-aspect-ratio.conf` | `~/.local/state/ryoku/toggles/hypr/single-window-aspect-ratio.conf` | Toggle snippet that limits overly wide single-window layouts. |
 | `default/hypr/toggles/window-no-gaps.conf` | `~/.local/state/ryoku/toggles/hypr/window-no-gaps.conf` | Toggle snippet that removes gaps and borders. |
