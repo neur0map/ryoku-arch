@@ -84,11 +84,75 @@ grep -q 'root.pendingApplyType = ""' "$service" \
 grep -q 'function apply(path)' "$service" \
   || fail "WallpaperService should keep compatibility apply wrapper"
 
-if [[ -f $card && -f $filter && -f $settings ]]; then
-  grep -q 'WallpaperService.filteredModel' "$popup" \
-    || fail "WallpaperPopup should consume the filtered model once SKWD components exist"
-else
-  echo "SKIP: Task 7 wallpaper component assertions pending"
+for path in "$card" "$filter" "$settings"; do
+  [[ -f $path ]] || fail "$path missing"
+done
+
+grep -q 'import QtQuick.Shapes' "$card" \
+  || fail "WallpaperSkewCard should use QtQuick Shapes for the skew mask"
+grep -q 'import QtQuick.Effects' "$card" \
+  || fail "WallpaperSkewCard should use QtQuick Effects for masking"
+grep -q 'import QtMultimedia' "$card" \
+  || fail "WallpaperSkewCard should support video previews"
+grep -q 'required property var itemData' "$card" \
+  || fail "WallpaperSkewCard should accept model item data"
+grep -q 'MediaPlayer' "$card" \
+  || fail "WallpaperSkewCard should use MediaPlayer for selected videos"
+grep -q 'VideoOutput' "$card" \
+  || fail "WallpaperSkewCard should render video output"
+grep -q 'MultiEffect' "$card" \
+  || fail "WallpaperSkewCard should apply the skew mask through MultiEffect"
+grep -q 'root.itemData.type === "video"' "$card" \
+  || fail "WallpaperSkewCard should branch on video wallpaper type"
+grep -q 'signal activated' "$card" \
+  || fail "WallpaperSkewCard should expose activation for popup integration"
+
+grep -q 'signal settingsRequested' "$filter" \
+  || fail "WallpaperFilterBar should expose settingsRequested"
+grep -q 'signal rebuildRequested' "$filter" \
+  || fail "WallpaperFilterBar should expose rebuildRequested"
+grep -q 'implicitWidth:' "$filter" \
+  || fail "WallpaperFilterBar should expose stable implicitWidth"
+grep -q 'implicitHeight:' "$filter" \
+  || fail "WallpaperFilterBar should expose stable implicitHeight"
+grep -q 'Flickable' "$filter" \
+  || fail "WallpaperFilterBar should keep overflow scrollable"
+grep -q 'id: row' "$filter" \
+  || fail "WallpaperFilterBar should give the content row a stable id"
+grep -q 'contentWidth: row.implicitWidth' "$filter" \
+  || fail "WallpaperFilterBar should size scroll content from the row"
+grep -q 'clip: true' "$filter" \
+  || fail "WallpaperFilterBar should clip constrained overflow"
+grep -q 'WallpaperService.selectedTypeFilter' "$filter" \
+  || fail "WallpaperFilterBar should update the type filter"
+grep -q 'WallpaperService.selectedSourceFilter' "$filter" \
+  || fail "WallpaperFilterBar should update the source filter"
+grep -q 'WallpaperService.searchQuery' "$filter" \
+  || fail "WallpaperFilterBar should update searchQuery"
+grep -q 'WallpaperService.searchWallhaven' "$filter" \
+  || fail "WallpaperFilterBar should trigger Wallhaven search"
+grep -q 'WallpaperService.selectedColorFilter' "$filter" \
+  || fail "WallpaperFilterBar should update color filtering"
+grep -q 'model: 13' "$filter" \
+  || fail "WallpaperFilterBar should render hue and neutral swatches"
+
+grep -q 'property bool open' "$settings" \
+  || fail "WallpaperSettingsPane should expose open state"
+grep -q 'signal closeRequested' "$settings" \
+  || fail "WallpaperSettingsPane should expose closeRequested"
+grep -q 'videoBackend' "$settings" \
+  || fail "WallpaperSettingsPane should show video backend status"
+grep -q 'wallpaper", "cache", "rebuild"' "$settings" \
+  || fail "WallpaperSettingsPane should rebuild cache through ryoku-ipc"
+grep -q 'WallpaperService.refresh()' "$settings" \
+  || fail "WallpaperSettingsPane should refresh the model after rebuild"
+! grep -q 'rebuildRequested' "$settings" \
+  || fail "WallpaperSettingsPane should not expose unused rebuild ownership"
+grep -q 'anchors.margins: root.open ? 16 : 0' "$settings" \
+  || fail "WallpaperSettingsPane should avoid negative inner width while closed"
+
+if command -v qmllint >/dev/null; then
+  qmllint -I config/quickshell/ryoku/vendor/brain-shell/src "$card" "$filter" "$settings"
 fi
 
 pass "quickshell skwd wallpaper service"
