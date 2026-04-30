@@ -13,9 +13,12 @@ pass() {
 }
 
 ipc="bin/ryoku-ipc"
+apply_bin="bin/ryoku-wallpaper-apply"
 
 [[ -f $ipc ]] || fail "bin/ryoku-ipc missing"
 [[ -x $ipc ]] || fail "bin/ryoku-ipc should be executable"
+[[ -f $apply_bin ]] || fail "bin/ryoku-wallpaper-apply missing"
+[[ -x $apply_bin ]] || fail "bin/ryoku-wallpaper-apply should be executable"
 
 "$ipc" --help | grep -q "ryoku-ipc shell toggle wallpaper" \
   || fail "help should document shell wallpaper toggle"
@@ -44,6 +47,13 @@ exit 0
 EOF
   chmod +x "$tmpdir/ryoku/bin/$helper"
 done
+
+cat >"$tmpdir/ryoku/bin/ryoku-wallpaper-apply" <<'EOF'
+#!/bin/bash
+mkdir -p "$RYOKU_STATE_PATH"
+printf '%s\n' "$@" >"$RYOKU_STATE_PATH/apply.args"
+EOF
+chmod +x "$tmpdir/ryoku/bin/ryoku-wallpaper-apply"
 
 rejects_trailing_args() {
   local description="$1"
@@ -77,5 +87,104 @@ rejects_trailing_args "shell toggle wallpaper" shell toggle wallpaper extra
 rejects_trailing_args "wallpaper settings get --json" wallpaper settings get --json extra
 rejects_trailing_args "wallpaper list --jsonl" wallpaper list --jsonl extra
 rejects_trailing_args "wallpaper cache rebuild" wallpaper cache rebuild extra
+
+assert_apply_args() {
+  local description="$1"
+  local expected_type="$2"
+  local expected_path="$3"
+  local line_count
+
+  line_count=$(wc -l < "$tmpdir/state/apply.args")
+  (( line_count == 3 )) || fail "$description should pass exactly three arguments"
+  mapfile -t apply_args < "$tmpdir/state/apply.args"
+
+  [[ ${apply_args[0]} == "--type" ]] \
+    || fail "$description should pass --type as the first argument"
+  [[ ${apply_args[1]} == "$expected_type" ]] \
+    || fail "$description should pass $expected_type as the second argument"
+  [[ ${apply_args[2]} == "$expected_path" ]] \
+    || fail "$description should preserve the wallpaper path as one argument"
+}
+
+sample_image="$tmpdir/wallpaper with spaces.jpg"
+: >"$sample_image"
+
+RYOKU_PATH="$tmpdir/ryoku" \
+RYOKU_CONFIG_PATH="$tmpdir/config" \
+RYOKU_STATE_PATH="$tmpdir/state" \
+  "$ipc" wallpaper apply --type image "$sample_image" >/dev/null \
+  || fail "wallpaper image apply should route to ryoku-wallpaper-apply"
+
+assert_apply_args "wallpaper image apply" "image" "$sample_image"
+
+sample_video="$tmpdir/video wallpaper with spaces.mp4"
+: >"$sample_video"
+
+RYOKU_PATH="$tmpdir/ryoku" \
+RYOKU_CONFIG_PATH="$tmpdir/config" \
+RYOKU_STATE_PATH="$tmpdir/state" \
+  "$ipc" wallpaper apply --type video "$sample_video" >/dev/null \
+  || fail "wallpaper video apply should route to ryoku-wallpaper-apply"
+
+assert_apply_args "wallpaper video apply" "video" "$sample_video"
+
+make_core_path() {
+  local core_path="$1"
+  local cmd
+
+  mkdir -p "$core_path"
+  for cmd in dirname mkdir ln sleep; do
+    ln -s "$(command -v "$cmd")" "$core_path/$cmd"
+  done
+}
+
+write_stub() {
+  local path="$1"
+  local body="$2"
+
+  printf '%s\n' "#!/bin/bash" "$body" >"$path"
+  chmod +x "$path"
+}
+
+theme_test_dir="$tmpdir/theme-bg-set"
+theme_core_path="$theme_test_dir/core"
+theme_stub_path="$theme_test_dir/stubs"
+mkdir -p "$theme_stub_path"
+make_core_path "$theme_core_path"
+
+theme_image="$theme_test_dir/wallpaper with spaces.jpg"
+mkdir -p "$(dirname "$theme_image")"
+: >"$theme_image"
+
+write_stub "$theme_stub_path/uwsm-app" 'exit 0'
+
+if RYOKU_PATH="$PWD" \
+  RYOKU_CONFIG_PATH="$theme_test_dir/config-missing-swaybg" \
+  RYOKU_STATE_PATH="$theme_test_dir/state-missing-swaybg" \
+  PATH="$theme_stub_path:$theme_core_path:$PWD/bin" \
+  bin/ryoku-theme-bg-set "$theme_image" >/dev/null 2>&1; then
+  fail "ryoku-theme-bg-set should fail when swaybg is missing"
+fi
+
+write_stub "$theme_stub_path/swaybg" 'exit 0'
+write_stub "$theme_stub_path/pkill" 'exit 0'
+write_stub "$theme_stub_path/setsid" 'exit 7'
+
+if RYOKU_PATH="$PWD" \
+  RYOKU_CONFIG_PATH="$theme_test_dir/config-launch-failure" \
+  RYOKU_STATE_PATH="$theme_test_dir/state-launch-failure" \
+  PATH="$theme_stub_path:$theme_core_path:$PWD/bin" \
+  bin/ryoku-theme-bg-set "$theme_image" >/dev/null 2>&1; then
+  fail "ryoku-theme-bg-set should fail when swaybg launcher exits nonzero"
+fi
+
+write_stub "$theme_stub_path/setsid" 'exit 0'
+
+RYOKU_PATH="$PWD" \
+RYOKU_CONFIG_PATH="$theme_test_dir/config-zero-handoff" \
+RYOKU_STATE_PATH="$theme_test_dir/state-zero-handoff" \
+PATH="$theme_stub_path:$theme_core_path:$PWD/bin" \
+  bin/ryoku-theme-bg-set "$theme_image" >/dev/null \
+  || fail "ryoku-theme-bg-set should accept a quick zero-status launcher handoff"
 
 pass "ryoku-ipc contract"

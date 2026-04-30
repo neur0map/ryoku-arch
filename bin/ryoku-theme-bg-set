@@ -1,20 +1,63 @@
 #!/bin/bash
 
+set -euo pipefail
+
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
 # Sets the specified image as the current background
 
-if [[ -z $1 ]]; then
+if (( $# != 1 )); then
   echo "Usage: ryoku-theme-bg-set <path-to-image>" >&2
-  exit 1
+  exit 2
 fi
 
 BACKGROUND="$1"
+CURRENT_BACKGROUND_DIR="$RYOKU_CONFIG_PATH/current"
 CURRENT_BACKGROUND_LINK="$RYOKU_CONFIG_PATH/current/background"
 
-# Create symlink to the new background
-ln -nsf "$BACKGROUND" "$CURRENT_BACKGROUND_LINK"
+if [[ ! -f $BACKGROUND ]]; then
+  echo "ryoku-theme-bg-set: image file not found: $BACKGROUND" >&2
+  exit 1
+fi
 
-# Kill existing swaybg and start new one
-pkill -x swaybg
+if ryoku-cmd-missing uwsm-app; then
+  echo "ryoku-theme-bg-set: uwsm-app is required to launch swaybg" >&2
+  exit 1
+fi
+
+if ryoku-cmd-missing swaybg; then
+  echo "ryoku-theme-bg-set: swaybg is required to apply image wallpapers" >&2
+  exit 1
+fi
+
+if ! mkdir -p "$CURRENT_BACKGROUND_DIR"; then
+  echo "ryoku-theme-bg-set: failed to create current config directory: $CURRENT_BACKGROUND_DIR" >&2
+  exit 1
+fi
+
+if [[ ! -d $CURRENT_BACKGROUND_DIR ]]; then
+  echo "ryoku-theme-bg-set: current config path is not a directory: $CURRENT_BACKGROUND_DIR" >&2
+  exit 1
+fi
+
+# Create symlink to the new background
+if ! ln -nsf "$BACKGROUND" "$CURRENT_BACKGROUND_LINK"; then
+  echo "ryoku-theme-bg-set: failed to update current background: $CURRENT_BACKGROUND_LINK" >&2
+  exit 1
+fi
+
+# Kill existing wallpaper backends and start new swaybg
+pkill -x mpvpaper 2>/dev/null || true
+pkill -x swaybg 2>/dev/null || true
 setsid uwsm-app -- swaybg -i "$CURRENT_BACKGROUND_LINK" -m fill >/dev/null 2>&1 &
+launch_pid=$!
+launch_status=0
+
+sleep 0.2
+if ! kill -0 "$launch_pid" 2>/dev/null; then
+  wait "$launch_pid" || launch_status=$?
+  if (( launch_status != 0 )); then
+    echo "ryoku-theme-bg-set: failed to launch swaybg" >&2
+    exit "$launch_status"
+  fi
+fi
