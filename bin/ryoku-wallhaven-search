@@ -1,0 +1,195 @@
+#!/bin/bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+usage() {
+  cat >&2 <<'EOF'
+Usage:
+  ryoku-wallhaven-search search --query QUERY --page PAGE [--json|--print-url]
+  ryoku-wallhaven-search parse FILE
+  ryoku-wallhaven-search download ID URL
+EOF
+}
+
+die() {
+  echo "ryoku-wallhaven-search: $1" >&2
+  usage
+  exit 2
+}
+
+urlencode() {
+  jq -rn --arg v "$1" '$v | @uri'
+}
+
+wallhaven_url() {
+  local query="$1"
+  local page="$2"
+  local categories="111"
+  local purity="100"
+  local sorting="date_added"
+  local order="desc"
+  local api_key="${WALLHAVEN_API_KEY:-}"
+
+  printf 'https://wallhaven.cc/api/v1/search?q=%s&page=%s&categories=%s&purity=%s&sorting=%s&order=%s' \
+    "$(urlencode "$query")" \
+    "$(urlencode "$page")" \
+    "$(urlencode "$categories")" \
+    "$(urlencode "$purity")" \
+    "$(urlencode "$sorting")" \
+    "$(urlencode "$order")"
+
+  if [[ -n $api_key ]]; then
+    printf '&apikey=%s' "$(urlencode "$api_key")"
+  fi
+
+  printf '\n'
+}
+
+parse_response() {
+  local file="$1"
+
+  [[ -f $file ]] || die "parse input does not exist: $file"
+
+  jq -c '
+    .data[] |
+    {
+      source: "wallhaven",
+      type: "image",
+      id: (.id | tostring),
+      name: ("wallhaven-" + (.id | tostring)),
+      path: .path,
+      thumb: (.thumbs.small // .thumbs.original // .thumbs.large // .path),
+      wallhaven_url: .url,
+      resolution: .resolution,
+      colors: (.colors // []),
+      hue: 99,
+      mtime: 0
+    }
+  ' "$file"
+}
+
+search_wallhaven() {
+  local query=""
+  local page=""
+  local mode="json"
+  local json_mode=0
+  local print_url_mode=0
+  local url tmp
+
+  while (( $# )); do
+    case "$1" in
+      --query)
+        (( $# >= 2 )) || die "missing value for --query"
+        query="$2"
+        shift 2
+        ;;
+      --page)
+        (( $# >= 2 )) || die "missing value for --page"
+        page="$2"
+        shift 2
+        ;;
+      --json)
+        json_mode=1
+        mode="json"
+        shift
+        ;;
+      --print-url)
+        print_url_mode=1
+        mode="print-url"
+        shift
+        ;;
+      --*)
+        die "unknown option: $1"
+        ;;
+      *)
+        die "unexpected argument: $1"
+        ;;
+      esac
+  done
+
+  if (( json_mode && print_url_mode )); then
+    die "conflicting output modes: --json and --print-url"
+  fi
+  [[ -n $query ]] || die "missing --query"
+  [[ -n $page ]] || die "missing --page"
+  [[ $page =~ ^[0-9]+$ ]] || die "--page must be a positive integer"
+  (( 10#$page > 0 )) || die "--page must be a positive integer"
+
+  url="$(wallhaven_url "$query" "$page")"
+  if [[ $mode == "print-url" ]]; then
+    printf '%s\n' "$url"
+    return
+  fi
+
+  tmp="$(mktemp)"
+  trap 'rm -f "$tmp"' RETURN
+  curl -fsSL --retry 2 --connect-timeout 10 --max-time 30 "$url" -o "$tmp"
+  parse_response "$tmp"
+  trap - RETURN
+  rm -f "$tmp"
+}
+
+download_wallpaper() {
+  local id="$1"
+  local url="$2"
+  local theme_name target_dir clean_url ext target tmp
+
+  [[ -n $id ]] || die "missing download ID"
+  [[ -n $url ]] || die "missing download URL"
+  [[ $id =~ ^[A-Za-z0-9]+$ ]] || die "invalid Wallhaven ID: $id"
+
+  theme_name="$(cat "$RYOKU_CONFIG_PATH/current/theme.name" 2>/dev/null || true)"
+  target_dir="$RYOKU_CONFIG_PATH/backgrounds/$theme_name"
+  mkdir -p "$target_dir"
+
+  clean_url="${url%%\?*}"
+  ext="${clean_url##*.}"
+  case "${ext,,}" in
+    jpg|jpeg)
+      ext="jpg"
+      ;;
+    png|webp)
+      ;;
+    *)
+      ext="jpg"
+      ;;
+  esac
+
+  target="$target_dir/wallhaven-$id.$ext"
+  tmp="$(mktemp "$target_dir/.wallhaven-$id.$ext.XXXXXX.tmp")"
+  if ! curl -fL --retry 2 --connect-timeout 10 -o "$tmp" "$url"; then
+    rm -f "$tmp"
+    return 1
+  fi
+  if ! mv "$tmp" "$target"; then
+    rm -f "$tmp"
+    return 1
+  fi
+  printf '%s\n' "$target"
+}
+
+case "${1:-}" in
+  search)
+    shift
+    search_wallhaven "$@"
+    ;;
+  parse)
+    (( $# == 2 )) || die "parse requires FILE"
+    parse_response "$2"
+    ;;
+  download)
+    (( $# == 3 )) || die "download requires ID and URL"
+    download_wallpaper "$2" "$3"
+    ;;
+  --help|-h)
+    usage
+    ;;
+  "")
+    die "missing command"
+    ;;
+  *)
+    die "unknown command: $1"
+    ;;
+esac
