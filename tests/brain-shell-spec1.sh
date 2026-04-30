@@ -79,15 +79,15 @@ else
 fi
 
 # --- PopupLayer scope -------------------------------------------------
-ACTIVE=$(grep -cE '^\s*(ArchMenu|WallpaperPopup|AudioPopup|QuickControl|NotificationsPopup|NotificationToast|ScreenRecOptionsPopup|NetworkPopup)\s*\{' \
+ACTIVE=$(grep -cE '^\s*(Dashboard|AppLauncherPopup|WallpaperPopup|SystemMenuPopup|SettingsMenuPopup|DotfilesHubPopup|MirrorWindow|ScreenshotTool|ScreenshotOverlay|ScreenRecordTool)\s*\{' \
   config/quickshell/ryoku/vendor/brain-shell/src/popups/PopupLayer.qml || true)
-DORMANT=$(grep -cE '^\s*//\s*(ArchMenu|WallpaperPopup|AudioPopup|QuickControl|NotificationsPopup|NotificationToast|ScreenRecOptionsPopup|NetworkPopup)\s*\{' \
-  config/quickshell/ryoku/vendor/brain-shell/src/popups/PopupLayer.qml)
-! grep -q '^\s*Dashboard\s*{' \
+DORMANT=$(grep -cE '^\s*//\s*(ArchMenu|AudioPopup|QuickControl|NotificationsPopup|NotificationToast|ScreenRecOptionsPopup|NetworkPopup)\s*\{' \
+  config/quickshell/ryoku/vendor/brain-shell/src/popups/PopupLayer.qml || true)
+grep -q '^\s*Dashboard\s*{' \
   config/quickshell/ryoku/vendor/brain-shell/src/popups/PopupLayer.qml \
-  || fail "PopupLayer should not instantiate Dashboard after drawer integration"
-[[ $ACTIVE -eq 0 ]]  || fail "expected 0 active popups in PopupLayer, got $ACTIVE"
-[[ $DORMANT -eq 8 ]] || fail "expected 8 dormant popups, got $DORMANT"
+  || fail "PopupLayer should instantiate the dashboard PanelWindow"
+[[ $ACTIVE -eq 10 ]] || fail "expected 10 active popup/window surfaces in PopupLayer, got $ACTIVE"
+[[ $DORMANT -eq 7 ]] || fail "expected 7 dormant vendored popups, got $DORMANT"
 pass "PopupLayer scope"
 
 # --- Dormant network popup has no live right-bar triggers -------------
@@ -104,8 +104,8 @@ pass "dormant network popup has no live right-bar triggers"
 
 # --- Dashboard unified shell -----------------------------------------
 grep -q 'Dashboard\s*{' \
-  config/quickshell/ryoku/vendor/brain-shell/src/windows/TopBar.qml \
-  || fail "TopBar should mount the integrated dashboard drawer"
+  config/quickshell/ryoku/vendor/brain-shell/src/popups/PopupLayer.qml \
+  || fail "PopupLayer should mount the dashboard window"
 ! grep -q 'TabSwitcher\s*{' \
   config/quickshell/ryoku/vendor/brain-shell/src/popups/Dashboard.qml \
   || fail "Dashboard tab bar should be removed"
@@ -115,12 +115,12 @@ grep -q 'Dashboard\s*{' \
 ! grep -q 'DashStats\s*{' \
   config/quickshell/ryoku/vendor/brain-shell/src/popups/Dashboard.qml \
   || fail "Dashboard should not mount DashStats directly"
-! grep -q 'PanelWindow\s*{' \
+grep -q 'PanelWindow\s*{' \
   config/quickshell/ryoku/vendor/brain-shell/src/popups/Dashboard.qml \
-  || fail "Dashboard should no longer be a detached PanelWindow"
-! grep -q 'required property var anchorWindow' \
+  || fail "Dashboard should remain a masked PanelWindow surface"
+grep -q 'required property var anchorWindow' \
   config/quickshell/ryoku/vendor/brain-shell/src/popups/Dashboard.qml \
-  || fail "Dashboard should not require an external anchor window"
+  || fail "Dashboard should keep the TopBar anchor property"
 grep -q 'property:\s*"dashboardPageWidth"' \
   config/quickshell/ryoku/vendor/brain-shell/src/popups/Dashboard.qml \
   || fail "Dashboard should bind Popups.dashboardPageWidth"
@@ -133,9 +133,9 @@ grep -q 'DashHome\s*{' \
 pass "dashboard unified shell"
 
 # --- Dashboard motion -------------------------------------------------
-grep -q 'property real offsetScale:' \
+grep -q 'property real expandScale:' \
   config/quickshell/ryoku/vendor/brain-shell/src/popups/Dashboard.qml \
-  || fail "Dashboard should use a single scalar offsetScale"
+  || fail "Dashboard should use a single scalar expandScale"
 ! grep -q 'property real openProgress:' \
   config/quickshell/ryoku/vendor/brain-shell/src/popups/Dashboard.qml \
   || fail "Dashboard should not use detached popup openProgress motion anymore"
@@ -145,61 +145,63 @@ grep -q 'property real offsetScale:' \
 ! grep -q 'property real contentProgress:' \
   config/quickshell/ryoku/vendor/brain-shell/src/popups/Dashboard.qml \
   || fail "Dashboard should not keep a separate contentProgress timeline"
-grep -q 'Behavior on offsetScale' \
+grep -q 'Behavior on expandScale' \
   config/quickshell/ryoku/vendor/brain-shell/src/popups/Dashboard.qml \
-  || fail "Dashboard should animate offsetScale like an integrated drawer"
-! grep -q 'Component\.onCompleted:' \
+  || fail "Dashboard should animate expandScale"
+grep -q 'property bool windowVisible: false' \
   config/quickshell/ryoku/vendor/brain-shell/src/popups/Dashboard.qml \
-  || fail "Dashboard should not need popup window visibility bootstrap"
-python3 - <<'PY' || fail "Dashboard motion should be drawer-style and geometry-stable"
+  || fail "Dashboard should use the documented manual visibility flag"
+python3 - <<'PY' || fail "Dashboard motion should keep the documented PanelWindow mask choreography"
 import pathlib
 import re
 import sys
 
 dashboard = pathlib.Path("config/quickshell/ryoku/vendor/brain-shell/src/popups/Dashboard.qml").read_text()
+theme = pathlib.Path("config/quickshell/ryoku/vendor/brain-shell/src/theme/Theme.qml").read_text()
 
-def grab(pattern, label):
-    m = re.search(pattern, dashboard)
+def grab(pattern, text, label):
+    m = re.search(pattern, text)
     if not m:
         print(f"missing {label}", file=sys.stderr)
         sys.exit(1)
     return int(m.group(1))
 
-motion_duration = grab(r'readonly property int motionDuration:\s*Math\.max\(([0-9]+),', "motionDuration")
+motion_duration = grab(r'property int motionExpandDuration:\s*([0-9]+)', theme, "Theme.motionExpandDuration")
 
 if motion_duration < 340:
-    print(f"motionDuration floor {motion_duration} is too fast", file=sys.stderr)
+    print(f"motionExpandDuration {motion_duration} is too fast", file=sys.stderr)
     sys.exit(1)
 
-required_literals = [
-    'readonly property real revealedHeight:',
-    'readonly property real panelHeight:',
-    'height: Theme.notchHeight + root.revealedHeight',
-    'opacity: 1 - root.offsetScale',
-    'clip: true',
-    'topMargin:    Theme.notchHeight + 8',
+required_patterns = [
+    (r'readonly property real fullCardWidth:', "fullCardWidth"),
+    (r'readonly property real fullCardHeight:', "fullCardHeight"),
+    (r'readonly property real initialCardWidth:', "initialCardWidth"),
+    (r'readonly property real initialCardHeight:', "initialCardHeight"),
+    (r'visible:\s*windowVisible', "windowVisible binding"),
+    (r'mask:\s*Region\s*\{\s*item:\s*maskProxy\s*\}', "maskProxy region"),
+    (r'height:\s*card\.visible \? card\.height : -1', "empty mask height"),
+    (r'clip:\s*true', "card clipping"),
+    (r'topMargin:\s*Theme\.notchHeight \+ 8', "dashboard body top margin"),
 ]
 
-for literal in required_literals:
-    if literal not in dashboard:
-        print(f"missing {literal}", file=sys.stderr)
+for pattern, label in required_patterns:
+    if not re.search(pattern, dashboard):
+        print(f"missing {label}", file=sys.stderr)
         sys.exit(1)
 
 for forbidden in [
-    "PanelWindow",
-    "WlrLayershell.layer",
+    "offsetScale",
     "shellProgress",
     "contentProgress",
     "openProgress",
-    "windowVisible",
 ]:
     if forbidden in dashboard:
-        print(f"unexpected legacy motion token {forbidden}", file=sys.stderr)
+        print(f"unexpected stale motion token {forbidden}", file=sys.stderr)
         sys.exit(1)
 PY
 grep -q 'NumberAnimation\s*{' \
   config/quickshell/ryoku/vendor/brain-shell/src/popups/Dashboard.qml \
-  || fail "Dashboard should animate offsetScale"
+  || fail "Dashboard should animate expandScale"
 ! grep -q 'Behavior on width' \
   config/quickshell/ryoku/vendor/brain-shell/src/popups/Dashboard.qml \
   || fail "Dashboard should not rely on generic width Behavior animations"
@@ -218,27 +220,21 @@ pass "dashboard motion"
 ! grep -q 'Popups\.dashboardPageWidth' \
   config/quickshell/ryoku/vendor/brain-shell/src/windows/TopBar.qml \
   || fail "TopBar should not track dashboardPageWidth"
-grep -q 'dashboardDrawer\.revealedHeight' \
+grep -q 'Popups\.dashboardVisible' \
   config/quickshell/ryoku/vendor/brain-shell/src/windows/TopBar.qml \
-  || fail "TopBar height should account for integrated dashboard reveal height"
-grep -q 'WlrLayershell\.layer:\s*WlrLayer\.Overlay' \
+  || fail "TopBar should promote to Overlay while the dashboard card is visible"
+grep -q 'WlrLayer\.Overlay : WlrLayer\.Top' \
   config/quickshell/ryoku/vendor/brain-shell/src/windows/TopBar.qml \
-  || fail "TopBar should sit above PopupDismiss while dashboard is integrated"
-grep -q 'id: notchSurface' \
-  config/quickshell/ryoku/vendor/brain-shell/src/windows/TopBar.qml \
-  || fail "TopBar should define a fixed notch surface separate from the dashboard drawer"
+  || fail "TopBar should return to Top when attached popups close"
 grep -q 'height:\s*Theme\.notchHeight' \
   config/quickshell/ryoku/vendor/brain-shell/src/windows/TopBar.qml \
-  || fail "TopBar notch surface should keep the bar at Theme.notchHeight"
-! grep -q 'SeamlessBarShape\s*{[^}]*anchors\.fill:\s*parent' \
+  || fail "TopBar notch content should keep Theme.notchHeight"
+grep -q 'opacity: Popups\.toolboxOpen ? 0 : Popups\.dashboardOpen ? 0 : 1' \
   config/quickshell/ryoku/vendor/brain-shell/src/windows/TopBar.qml \
-  || fail "SeamlessBarShape should not fill the expanded TopBar window"
-! grep -q 'Behavior on opacity' \
+  || fail "TopBar should hide center content while dashboard or toolbox is open"
+grep -Eq 'opacity:\s*Popups\.dashboardOpen \? 0 : 1' \
   config/quickshell/ryoku/vendor/brain-shell/src/modules/Center/CenterContent.qml \
-  || fail "CenterContent should not animate opacity during dashboard handoff"
-grep -Eq 'visible:\s*!Popups\.dashboardOpen' \
-  config/quickshell/ryoku/vendor/brain-shell/src/modules/Center/CenterContent.qml \
-  || fail "CenterContent carousel should hide immediately while dashboard is open"
+  || fail "CenterContent carousel should hide while dashboard is open"
 pass "top bar stays stable during dashboard open"
 
 # --- Dashboard surface integration ------------------------------------
@@ -327,9 +323,12 @@ grep -q 'TelemetryRail\s*{' \
 ! grep -q 'Speedometer\s*{' \
   config/quickshell/ryoku/vendor/brain-shell/src/services/home/TelemetryRail.qml \
   || fail "Telemetry rail should not reuse Speedometer widgets"
-grep -q 'Canvas\s*{' \
+grep -q 'WaveBar\s*{' \
   config/quickshell/ryoku/vendor/brain-shell/src/services/home/TelemetryRail.qml \
-  || fail "Telemetry rail should render a custom graph canvas"
+  || fail "Telemetry rail should render custom WaveBar graphs"
+grep -q 'import QtQuick.Shapes' \
+  config/quickshell/ryoku/vendor/brain-shell/src/services/home/WaveBar.qml \
+  || fail "WaveBar should use QtQuick.Shapes for GPU-rendered waves"
 python3 - <<'PY' || fail "Telemetry rail layout budget exceeds dashboard body"
 import pathlib
 import re
@@ -371,7 +370,7 @@ if len(re.findall(r'height:\s*root\.(?:cpuSectionH|memorySectionH|thermalsSectio
     print("expected section heights to be property-backed", file=sys.stderr)
     sys.exit(1)
 
-available_height = dashboard_height - (notch_height + 8) - 8 - dash_gap
+available_height = dashboard_height - 16 - dash_gap
 declared_budget = rail_margin * 2 + rail_spacing * 4 + sum(section_heights)
 
 if declared_budget > available_height:
@@ -400,26 +399,28 @@ grep -qx 'cava' install/ryoku-base.packages \
   || fail "install/ryoku-base.packages should include cava for active player visualizers"
 pass "active Brain_Shell deps are packaged"
 
-# --- Existing stack untouched -----------------------------------------
-grep -q "uwsm-app -- waybar" default/hypr/autostart.conf \
-  || fail "waybar exec-once was removed (Spec 1 requires it stay)"
+# --- Runtime stack wiring ---------------------------------------------
+! grep -q "uwsm-app -- waybar" default/hypr/autostart.conf \
+  || fail "waybar should remain retired from runtime autostart"
 grep -q "uwsm-app -- mako" default/hypr/autostart.conf \
-  || fail "mako exec-once was removed (Spec 1 requires it stay)"
+  || fail "mako exec-once was removed"
 grep -q "uwsm-app -- swayosd-server" default/hypr/autostart.conf \
-  || fail "swayosd exec-once was removed (Spec 1 requires it stay)"
+  || fail "swayosd exec-once was removed"
+grep -q "uwsm-app -- ryoku-launch-shell" default/hypr/autostart.conf \
+  || fail "ryoku shell autostart was removed"
 [[ -x bin/tofi && -x bin/tofi-drun ]] \
-  || fail "tofi shims were removed (Spec 1 requires they stay)"
+  || fail "tofi shims were removed"
 [[ -x bin/ryoku-launch-shell ]]  || fail "ryoku-launch-shell removed"
 [[ -x bin/ryoku-restart-shell ]] || fail "ryoku-restart-shell removed"
 [[ -x bin/ryoku-refresh-quickshell ]] || fail "ryoku-refresh-quickshell removed"
 [[ -x bin/ryoku-toggle-frame ]]  || fail "ryoku-toggle-frame removed"
-pass "existing stack untouched"
+pass "runtime stack wiring"
 
 echo ""
 echo "Static checks passed. Run the manual checklist next:"
 echo "  1. ryoku-refresh-quickshell  (mirror dev tree to ~/.config)"
 echo "  2. ryoku-restart-shell       (or run the migration script)"
-echo "  3. Visually verify TopBar appears alongside waybar"
+echo "  3. Visually verify the Ryoku TopBar appears"
 echo "  4. Click center notch -> Dashboard opens as one unified home view"
 echo "  5. Verify Profile, Calendar, Clock, Player, and the telemetry rail appear together"
 echo "  6. Verify the rail shows a CPU graph, RAM bar, thermal lanes, network bars, and compact GPU/disk summaries"
