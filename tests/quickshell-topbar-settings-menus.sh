@@ -172,6 +172,20 @@ grep -q 'Dotfile Control' "$dotfiles_popup" \
   || fail "DotfilesHubPopup should use a branded hero header"
 grep -q 'Modify at your own risk' "$dotfiles_popup" \
   || fail "DotfilesHubPopup should show the config risk notice"
+grep -q 'id: searchBar' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should include a compact search bar"
+grep -q 'id: searchInput' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should expose a stable search input"
+grep -q 'function fileMatches' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should filter visible rows from search text"
+grep -q 'function refreshSearchResults' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should rebuild global search results"
+grep -q 'id: searchFiles' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should keep a global search result model"
+grep -q 'root.searchQuery.trim() === "" ? root.activeModel() : searchFiles' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should search across every section"
+grep -q 'height: row.matchesSearch ? 54 : 0' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should collapse rows that do not match search"
 ! grep -q 'id: sectionCount' "$dotfiles_popup" \
   || fail "DotfilesHubPopup should not use count badges in the category rail"
 ! grep -q 'id: fileIcon' "$dotfiles_popup" \
@@ -180,10 +194,54 @@ grep -q '.config/hypr/hyprland.conf' "$dotfiles_popup" \
   || fail "DotfilesHubPopup should include Hyprland main config"
 grep -q '.config/hypr/monitors.conf' "$dotfiles_popup" \
   || fail "DotfilesHubPopup should include monitor config"
+grep -q '.config/hypr/xdph.conf' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should include desktop portal config"
 grep -q '.config/quickshell/ryoku/config/Config.qml' "$dotfiles_popup" \
   || fail "DotfilesHubPopup should include Quickshell config"
+grep -q '.config/swayosd/style.css' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should include OSD styling"
+grep -q '.config/hyprland-preview-share-picker/config.yaml' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should include share picker config"
+grep -q '.config/uwsm/env' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should include session environment config"
+grep -q '.config/waybar/config.jsonc' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should include legacy Waybar config"
+grep -q '.config/waybar/style.css' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should include legacy Waybar styling"
+grep -q '.config/fontconfig/fonts.conf' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should include fontconfig customization"
+grep -q '.config/environment.d/fcitx.conf' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should include input method environment config"
+grep -q '.XCompose' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should include XCompose customization"
 grep -q '.config/ghostty/config' "$dotfiles_popup" \
   || fail "DotfilesHubPopup should include terminal config"
+grep -q '.config/starship.toml' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should include prompt config"
+grep -q '.config/lazygit/config.yml' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should include Lazygit config"
+grep -q '.config/opencode/opencode.json' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should include OpenCode config"
+grep -q '.config/voxtype/config.toml' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should include voice input config"
+grep -q '.config/chromium-flags.conf' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should include Chromium flags"
+grep -q '.config/brave-flags.conf' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should include Brave flags"
+grep -q '.config/imv/config' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should include image viewer config"
+grep -q '.config/wiremix/wiremix.toml' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should include audio mixer config"
+grep -q '.config/mimeapps.list' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should include default app chooser config"
+grep -q '.config/xdg-terminals.list' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should include default terminal list"
+grep -q '.config/ryoku/hooks/battery-low' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should include battery hook"
+grep -q '.config/ryoku/hooks/font-set' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should include font hook"
+grep -q '.config/ryoku/branding/about.txt' "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should include branding text"
 grep -q 'ryoku-launch-editor' "$dotfiles_popup" \
   || fail "DotfilesHubPopup should open dotfiles in the configured editor"
 grep -q 'Keys.onEscapePressed: Popups.closeAll()' "$dotfiles_popup" \

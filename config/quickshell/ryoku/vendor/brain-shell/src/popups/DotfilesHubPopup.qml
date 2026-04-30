@@ -16,6 +16,9 @@ PanelWindow {
   property bool windowVisible: false
   property real openProgress: Popups.dotfilesOpen ? 1 : 0
   property string selectedSection: "hypr"
+  property string searchQuery: ""
+
+  onSearchQueryChanged: refreshSearchResults()
 
   Behavior on openProgress {
     enabled: !Theme.staticMode
@@ -45,6 +48,7 @@ PanelWindow {
     function onDotfilesOpenChanged() {
       if (Popups.dotfilesOpen) {
         closeTimer.stop()
+        root.searchQuery = ""
         root.windowVisible = true
         focusScope.forceActiveFocus()
       } else {
@@ -72,6 +76,8 @@ PanelWindow {
   }
 
   function activeTitle() {
+    if (root.searchQuery.trim() !== "") return "Search results"
+
     switch (root.selectedSection) {
     case "ui": return "Shell and UI"
     case "apps": return "Applications"
@@ -81,12 +87,61 @@ PanelWindow {
   }
 
   function activeHint() {
+    if (root.searchQuery.trim() !== "") return "Matching dotfiles across every customization section."
+
     switch (root.selectedSection) {
     case "ui": return "Quickshell, notifications, launcher, and session environment."
     case "apps": return "Terminal and system app configuration."
     case "ryoku": return "Hooks, menu extensions, and theme templates."
     default: return "Compositor, displays, input, keybindings, and lock behavior."
     }
+  }
+
+  function activeModel() {
+    switch (root.selectedSection) {
+    case "ui": return uiFiles
+    case "apps": return appFiles
+    case "ryoku": return ryokuFiles
+    default: return hyprFiles
+    }
+  }
+
+  function fileMatches(label, hint, path) {
+    var query = root.searchQuery.trim().toLowerCase()
+    if (query === "") return true
+
+    return label.toLowerCase().indexOf(query) !== -1
+        || hint.toLowerCase().indexOf(query) !== -1
+        || path.toLowerCase().indexOf(query) !== -1
+  }
+
+  function filteredCount() {
+    return root.searchQuery.trim() === "" ? activeModel().count : searchFiles.count
+  }
+
+  function appendSearchMatches(model, sectionLabel) {
+    for (var i = 0; i < model.count; i++) {
+      var item = model.get(i)
+      if (!fileMatches(item.label, item.hint, item.path)) continue
+
+      searchFiles.append({
+        "label": item.label,
+        "hint": sectionLabel + " / " + item.hint,
+        "icon": item.icon,
+        "path": item.path,
+        "accent": item.accent
+      })
+    }
+  }
+
+  function refreshSearchResults() {
+    searchFiles.clear()
+    if (root.searchQuery.trim() === "") return
+
+    appendSearchMatches(hyprFiles, "Hyprland")
+    appendSearchMatches(uiFiles, "Shell and UI")
+    appendSearchMatches(appFiles, "Applications")
+    appendSearchMatches(ryokuFiles, "Ryoku")
   }
 
   function openDotfile(path) {
@@ -101,10 +156,10 @@ PanelWindow {
   ListModel {
     id: categories
 
-    ListElement { key: "hypr";  label: "Hyprland";     hint: "Window system"; icon: ""; fileCount: 9; accent: "#91d7e3" }
-    ListElement { key: "ui";    label: "Shell and UI"; icon: "󱂬"; hint: "Ryoku surface"; fileCount: 6; accent: "#8bd5ca" }
-    ListElement { key: "apps";  label: "Apps";         icon: ""; hint: "Daily tools";   fileCount: 7; accent: "#c6a0f6" }
-    ListElement { key: "ryoku"; label: "Ryoku";        icon: "力"; hint: "Hooks";         fileCount: 4; accent: "#f5bde6" }
+    ListElement { key: "hypr";  label: "Hyprland";     hint: "Window system"; icon: ""; fileCount: 10; accent: "#91d7e3" }
+    ListElement { key: "ui";    label: "Shell and UI"; icon: "󱂬"; hint: "Ryoku surface"; fileCount: 14; accent: "#8bd5ca" }
+    ListElement { key: "apps";  label: "Apps";         icon: ""; hint: "Daily tools";   fileCount: 17; accent: "#c6a0f6" }
+    ListElement { key: "ryoku"; label: "Ryoku";        icon: "力"; hint: "Hooks";         fileCount: 8; accent: "#f5bde6" }
   }
 
   ListModel {
@@ -119,6 +174,7 @@ PanelWindow {
     ListElement { label: "Hypridle";   hint: "Idle";        icon: "󰒲"; path: ".config/hypr/hypridle.conf"; accent: "#eed49f" }
     ListElement { label: "Hyprlock";   hint: "Lock screen"; icon: "󰌾"; path: ".config/hypr/hyprlock.conf"; accent: "#ed8796" }
     ListElement { label: "Hyprsunset"; hint: "Night color"; icon: "󰔎"; path: ".config/hypr/hyprsunset.conf"; accent: "#f5a97f" }
+    ListElement { label: "XDPortal";   hint: "Screen share"; icon: "󰍹"; path: ".config/hypr/xdph.conf"; accent: "#8bd5ca" }
   }
 
   ListModel {
@@ -128,8 +184,16 @@ PanelWindow {
     ListElement { label: "Shell Root"; icon: "󰘳"; hint: "QML entry";     path: ".config/quickshell/ryoku/shell.qml"; accent: "#91d7e3" }
     ListElement { label: "Mako";       icon: "󰍡"; hint: "Notifications"; path: ".config/mako/core.ini"; accent: "#f5bde6" }
     ListElement { label: "SwayOSD";    icon: "󰕾"; hint: "Controls";      path: ".config/swayosd/config.toml"; accent: "#eed49f" }
+    ListElement { label: "OSD Style";  icon: "󰉼"; hint: "Controls CSS";  path: ".config/swayosd/style.css"; accent: "#f5a97f" }
     ListElement { label: "Tofi";       icon: "󰀻"; hint: "Launcher";      path: ".config/tofi/config"; accent: "#a6da95" }
     ListElement { label: "UWSM";       icon: "󰒓"; hint: "Environment";   path: ".config/uwsm/default"; accent: "#8aadf4" }
+    ListElement { label: "UWSM Env";   icon: "󰒓"; hint: "Session vars";  path: ".config/uwsm/env"; accent: "#91d7e3" }
+    ListElement { label: "Share Pick"; icon: "󰹑"; hint: "Portal picker"; path: ".config/hyprland-preview-share-picker/config.yaml"; accent: "#c6a0f6" }
+    ListElement { label: "Waybar";     icon: "󰍜"; hint: "Legacy bar";    path: ".config/waybar/config.jsonc"; accent: "#ed8796" }
+    ListElement { label: "Waybar CSS"; icon: "󰉼"; hint: "Legacy style";  path: ".config/waybar/style.css"; accent: "#f5bde6" }
+    ListElement { label: "Fonts";      icon: "󰛖"; hint: "Fontconfig";    path: ".config/fontconfig/fonts.conf"; accent: "#eed49f" }
+    ListElement { label: "Fcitx Env";  icon: "󰌌"; hint: "Input method";  path: ".config/environment.d/fcitx.conf"; accent: "#8aadf4" }
+    ListElement { label: "XCompose";   icon: "󰌌"; hint: "Compose keys";  path: ".XCompose"; accent: "#91d7e3" }
   }
 
   ListModel {
@@ -142,6 +206,16 @@ PanelWindow {
     ListElement { label: "Fastfetch"; icon: "󰇅"; hint: "System info";  path: ".config/fastfetch/config.jsonc"; accent: "#f5a97f" }
     ListElement { label: "Git";       icon: "󰊢"; hint: "Git config";   path: ".config/git/config"; accent: "#ed8796" }
     ListElement { label: "Tmux";      icon: ""; hint: "Terminal mux"; path: ".config/tmux/tmux.conf"; accent: "#eed49f" }
+    ListElement { label: "Starship";  icon: "󰄛"; hint: "Prompt";       path: ".config/starship.toml"; accent: "#8bd5ca" }
+    ListElement { label: "Lazygit";   icon: "󰊢"; hint: "Git TUI";      path: ".config/lazygit/config.yml"; accent: "#c6a0f6" }
+    ListElement { label: "OpenCode";  icon: "󰚩"; hint: "AI coding";    path: ".config/opencode/opencode.json"; accent: "#91d7e3" }
+    ListElement { label: "Voxtype";   icon: "󰍬"; hint: "Voice input";  path: ".config/voxtype/config.toml"; accent: "#f5bde6" }
+    ListElement { label: "Chromium";  icon: ""; hint: "Flags";        path: ".config/chromium-flags.conf"; accent: "#8aadf4" }
+    ListElement { label: "Brave";     icon: "󰖟"; hint: "Flags";        path: ".config/brave-flags.conf"; accent: "#f5a97f" }
+    ListElement { label: "IMV";       icon: "󰋩"; hint: "Image viewer"; path: ".config/imv/config"; accent: "#8bd5ca" }
+    ListElement { label: "Wiremix";   icon: "󰕾"; hint: "Audio mixer";  path: ".config/wiremix/wiremix.toml"; accent: "#ed8796" }
+    ListElement { label: "Defaults";  icon: "󰈙"; hint: "App chooser";  path: ".config/mimeapps.list"; accent: "#a6da95" }
+    ListElement { label: "Terminals"; icon: ""; hint: "Default list";  path: ".config/xdg-terminals.list"; accent: "#eed49f" }
   }
 
   ListModel {
@@ -151,6 +225,14 @@ PanelWindow {
     ListElement { label: "Post Update";    icon: "󰚰"; hint: "Hook";       path: ".config/ryoku/hooks/post-update"; accent: "#c6a0f6" }
     ListElement { label: "Theme Hook";     icon: "󰔎"; hint: "Hook";       path: ".config/ryoku/hooks/theme-set"; accent: "#f5bde6" }
     ListElement { label: "Theme Template"; icon: "󰈔"; hint: "Sample";     path: ".config/ryoku/themed/alacritty.toml.tpl.sample"; accent: "#91d7e3" }
+    ListElement { label: "Battery Hook";   icon: "󰂄"; hint: "Hook";       path: ".config/ryoku/hooks/battery-low"; accent: "#eed49f" }
+    ListElement { label: "Font Hook";      icon: "󰛖"; hint: "Hook";       path: ".config/ryoku/hooks/font-set"; accent: "#8aadf4" }
+    ListElement { label: "About Text";     icon: "󰋼"; hint: "Branding";   path: ".config/ryoku/branding/about.txt"; accent: "#8bd5ca" }
+    ListElement { label: "Screen Text";    icon: "󰹑"; hint: "Branding";   path: ".config/ryoku/branding/screensaver.txt"; accent: "#f5a97f" }
+  }
+
+  ListModel {
+    id: searchFiles
   }
 
   Rectangle {
@@ -454,7 +536,7 @@ PanelWindow {
           Column {
             anchors {
               left: parent.left
-              right: fileMeta.left
+              right: searchBar.left
               rightMargin: 12
               verticalCenter: parent.verticalCenter
             }
@@ -478,18 +560,60 @@ PanelWindow {
             }
           }
 
-          Text {
-            id: fileMeta
-            width: 56
+          Rectangle {
+            id: searchBar
+            width: 176
+            height: 26
             anchors {
               right: parent.right
               verticalCenter: parent.verticalCenter
             }
-            text: fileList.count + " files"
-            color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.48)
-            font.pixelSize: 10
-            horizontalAlignment: Text.AlignRight
-            elide: Text.ElideRight
+            radius: 6
+            color: searchInput.activeFocus ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.10)
+                                           : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.035)
+            border.width: 1
+            border.color: searchInput.activeFocus ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.32)
+                                                  : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.065)
+
+            Behavior on color { ColorAnimation { duration: 130 } }
+            Behavior on border.color { ColorAnimation { duration: 130 } }
+
+            Text {
+              anchors {
+                left: parent.left
+                leftMargin: 9
+                verticalCenter: parent.verticalCenter
+              }
+              text: "Search"
+              visible: searchInput.text === ""
+              color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.34)
+              font.pixelSize: 10
+            }
+
+            TextInput {
+              id: searchInput
+              anchors {
+                fill: parent
+                leftMargin: 9
+                rightMargin: 9
+              }
+              verticalAlignment: TextInput.AlignVCenter
+              color: Theme.text
+              selectionColor: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.35)
+              selectedTextColor: Theme.text
+              font.pixelSize: 10
+              clip: true
+              focus: false
+              text: root.searchQuery
+              onTextChanged: root.searchQuery = text
+              Keys.onEscapePressed: {
+                if (text === "") {
+                  Popups.closeAll()
+                } else {
+                  text = ""
+                }
+              }
+            }
           }
         }
 
@@ -523,24 +647,16 @@ PanelWindow {
           contentHeight: filesColumn.implicitHeight
           clip: true
           boundsBehavior: Flickable.StopAtBounds
-          property int count: filesColumn.fileCount
+          property int count: root.filteredCount()
 
           Column {
             id: filesColumn
-
-            property int fileCount: root.selectedSection === "hypr" ? hyprFiles.count
-                                    : root.selectedSection === "ui" ? uiFiles.count
-                                    : root.selectedSection === "apps" ? appFiles.count
-                                    : ryokuFiles.count
 
             width: fileList.width
             spacing: 8
 
             Repeater {
-              model: root.selectedSection === "hypr" ? hyprFiles
-                     : root.selectedSection === "ui" ? uiFiles
-                     : root.selectedSection === "apps" ? appFiles
-                     : ryokuFiles
+              model: root.searchQuery.trim() === "" ? root.activeModel() : searchFiles
               delegate: dotfileRow
             }
           }
@@ -561,8 +677,11 @@ PanelWindow {
       required property string path
       required property color accent
 
+      readonly property bool matchesSearch: root.fileMatches(row.label, row.hint, row.path)
+
       width: filesColumn.width
-      height: 54
+      height: row.matchesSearch ? 54 : 0
+      visible: row.matchesSearch
       radius: 6
       color: rowHover.hovered ? Qt.rgba(row.accent.r, row.accent.g, row.accent.b, 0.14)
                               : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.034)
