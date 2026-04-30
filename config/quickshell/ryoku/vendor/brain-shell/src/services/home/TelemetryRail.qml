@@ -111,6 +111,12 @@ Item {
         }
     }
 
+    Process {
+        id: advancedLauncher
+        command: ["ryoku-launch-tui", "btop"]
+        running: false
+    }
+
     Connections {
         target: PowerProfile
         function onDisplayRefreshGenerationChanged() {
@@ -173,12 +179,61 @@ Item {
             height: root.cpuSectionH
 
             Text {
+                id: telemetryLabel
                 anchors.left: parent.left
                 anchors.top:  parent.top
                 text:           "Telemetry"
                 font.pixelSize: 11
                 font.weight:    Font.DemiBold
                 color:          Qt.rgba(1, 1, 1, 0.45)
+            }
+
+            Rectangle {
+                id: advancedButton
+                anchors.left: telemetryLabel.right
+                anchors.leftMargin: 8
+                anchors.verticalCenter: telemetryLabel.verticalCenter
+                width: 66
+                height: 18
+                radius: 6
+                color: advancedHit.containsMouse
+                    ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.18)
+                    : Qt.rgba(1, 1, 1, 0.055)
+                border.width: 1
+                border.color: advancedHit.containsMouse
+                    ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.44)
+                    : Qt.rgba(1, 1, 1, 0.12)
+
+                Behavior on color {
+                    enabled: !Theme.staticMode
+                    ColorAnimation { duration: 130 }
+                }
+                Behavior on border.color {
+                    enabled: !Theme.staticMode
+                    ColorAnimation { duration: 130 }
+                }
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "Advanced"
+                    font.pixelSize: 9
+                    font.weight: Font.DemiBold
+                    color: advancedHit.containsMouse
+                        ? Theme.active
+                        : Qt.rgba(1, 1, 1, 0.58)
+                }
+
+                MouseArea {
+                    id: advancedHit
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        advancedLauncher.running = false
+                        advancedLauncher.running = true
+                        Popups.closeAll()
+                    }
+                }
             }
 
             Text {

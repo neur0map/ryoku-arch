@@ -116,5 +116,11 @@ grep -q 'target: PowerProfile' "$rail" \
   || fail "Telemetry rail should react to power-profile display changes"
 grep -q 'onDisplayRefreshGenerationChanged' "$rail" \
   || fail "Telemetry rail should refresh after power-profile display changes"
+grep -q 'text:[[:space:]]*"Advanced"' "$rail" \
+  || fail "Telemetry rail should expose an Advanced button"
+grep -q 'id: advancedButton' "$rail" \
+  || fail "Telemetry rail should keep the Advanced button as a stable control"
+grep -q 'ryoku-launch-tui", "btop"' "$rail" \
+  || fail "Telemetry rail Advanced button should open btop directly"
 
 pass "dashboard top controls and active display Hz"
