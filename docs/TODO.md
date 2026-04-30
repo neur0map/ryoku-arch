@@ -38,6 +38,10 @@ Still deferred:
 - [ ] **Intel Panther Lake kernel**: `linux-ptl`, `linux-ptl-headers`. Same reason as Apple T2 (kernel compile cost).
 - [ ] **Hosted `[ryoku]` pacman repo**. Long-term plan to retire the per-ISO-build AUR rebuild cost: ship pre-built AUR packages from R2 (or wherever the ISO ends up hosted) so users get driver updates without rebuilding the ISO, and so dev iteration speed stops being tied to overlay rebuild time. Comes after the GH Actions + R2 release pipeline above.
 
+## Shell IPC and wallpaper selector
+
+- [ ] **Introduce `ryoku-ipc` as the stable shell integration facade.** Start as a Bash dispatcher in `bin/ryoku-ipc` with subcommands for Quickshell popup toggles and wallpaper list/cache/apply/Wallhaven operations, then keep Hyprland keybinds and QML wired to that facade so it can become a compiled binary later without changing callers. First consumer: the SKWD-style wallpaper selector plan in `docs/superpowers/plans/2026-04-29-skwd-wallpaper-ryoku-ipc-integration.md`.
+
 ## Brain_Shell migration follow-up specs
 
 Spec 1 of the Brain_Shell port shipped 2026-04-28: vendored Brain_Shell under MIT, applied 3 security patches and 4 branding patches, theme-bridged Ryoku's `colors.toml` palette into Brain_Shell's ColorLoader, mounted TopBar plus Dashboard in `config/quickshell/ryoku/shell.qml`. waybar retired during runtime verification. See `docs/superpowers/specs/2026-04-28-brain-shell-port-spec1.md` and `docs/superpowers/plans/2026-04-28-brain-shell-port-spec1.md`. Future specs:
