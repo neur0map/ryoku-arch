@@ -17,9 +17,13 @@ popup="config/quickshell/ryoku/vendor/brain-shell/src/popups/WallpaperPopup.qml"
 card="config/quickshell/ryoku/vendor/brain-shell/src/popups/WallpaperSkewCard.qml"
 filter="config/quickshell/ryoku/vendor/brain-shell/src/popups/WallpaperFilterBar.qml"
 settings="config/quickshell/ryoku/vendor/brain-shell/src/popups/WallpaperSettingsPane.qml"
+base_packages="install/ryoku-base.packages"
+aur_packages="install/ryoku-aur.packages"
 
 [[ -f $service ]] || fail "$service missing"
 [[ -f $popup ]] || fail "$popup missing"
+[[ -f $base_packages ]] || fail "$base_packages missing"
+[[ -f $aur_packages ]] || fail "$aur_packages missing"
 
 grep -q 'property var wallpaperModel: ListModel' "$service" \
   || fail "WallpaperService should expose wallpaperModel"
@@ -199,6 +203,19 @@ grep -q 'anchors.bottom: true' "$popup" \
   || fail "WallpaperPopup should not depend on the old wallpaper path array"
 ! grep -q 'attachedEdge: "bottom"' "$popup" \
   || fail "WallpaperPopup should not keep the old bottom strip shape"
+
+grep -q '^curl$' "$base_packages" \
+  || fail "curl should be explicitly installed for Wallhaven integration"
+grep -q '^jq$' "$base_packages" \
+  || fail "jq should be installed for wallpaper JSON helpers"
+grep -q '^imagemagick$' "$base_packages" \
+  || fail "imagemagick should be installed for image thumbnails"
+grep -q '^ffmpegthumbnailer$' "$base_packages" \
+  || fail "ffmpegthumbnailer should be installed for video thumbnails"
+grep -q '^qt6-multimedia-ffmpeg$' "$base_packages" \
+  || fail "qt6 multimedia ffmpeg backend should be installed for QML video preview"
+grep -q '^mpvpaper$' "$aur_packages" \
+  || fail "mpvpaper should be installed for video wallpaper apply"
 
 if command -v qmllint >/dev/null; then
   qmllint -I config/quickshell/ryoku/vendor/brain-shell/src "$service" "$popup" "$card" "$filter" "$settings"
