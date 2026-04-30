@@ -61,6 +61,12 @@ active_has "$player" 'component ChevronMark' \
   || fail "Previous/next controls should use drawn chevron geometry"
 active_has "$player" 'id: playbackControls' \
   || fail "PlayerCard should render explicit playback controls"
+active_has "$player" 'objectName: "playbackDeck"' \
+  || fail "Playback controls should use the transport deck layout"
+active_has "$player" 'visible: isPlay' \
+  || fail "Only the play control should render a persistent center node"
+active_has "$player" 'visible: !isPlay' \
+  || fail "Previous/next controls should use separate side-control styling"
 active_has "$player" 'root.player.canTogglePlaying' \
   || fail "Play button should preserve canTogglePlaying guard"
 active_has "$player" 'root.player.canGoPrevious' \
