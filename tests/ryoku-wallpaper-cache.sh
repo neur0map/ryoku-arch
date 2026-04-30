@@ -40,7 +40,7 @@ RYOKU_WALLPAPER_DIR="$wallpaper_dir" \
   || fail "cache should write list.jsonl"
 
 line_count=$(wc -l < "$tmpdir/state/wallpaper/list.jsonl")
-(( line_count == 3 )) || fail "expected three wallpaper rows, got $line_count"
+(( line_count == 1 )) || fail "expected one wallpaper row from Pictures/Wallpapers, got $line_count"
 
 RYOKU_PATH="$PWD" \
 RYOKU_CONFIG_PATH="$tmpdir/config" \
@@ -48,13 +48,14 @@ RYOKU_STATE_PATH="$tmpdir/state" \
 RYOKU_WALLPAPER_DIR="$wallpaper_dir" \
   "$list_bin" --jsonl \
   | jq -se '
-      length == 3
+      length == 1
       and all(.[]; .source == "local"
         and .type == "image"
         and (.thumb | length > 0)
         and (.hue | type == "number")
         and .hue >= 0)
       and any(.[]; .path | endswith("/Pictures/Wallpapers/green.webp"))
+      and all(.[]; .path | contains("/Pictures/Wallpapers/"))
     ' >/dev/null \
   || fail "list should emit local image rows with hue and thumbnail"
 
@@ -65,7 +66,7 @@ RYOKU_CONFIG_PATH="$tmpdir/config" \
 RYOKU_STATE_PATH="$tmpdir/state" \
 RYOKU_WALLPAPER_DIR="$wallpaper_dir" \
   "$list_bin" --jsonl \
-  | jq -se 'length == 4 and any(.[]; .path | endswith("/Pictures/Wallpapers/moved-in.png"))' >/dev/null \
+  | jq -se 'length == 2 and any(.[]; .path | endswith("/Pictures/Wallpapers/moved-in.png")) and all(.[]; .path | contains("/Pictures/Wallpapers/"))' >/dev/null \
   || fail "list should refresh when a wallpaper is moved into Pictures/Wallpapers"
 
 pass "ryoku wallpaper cache"

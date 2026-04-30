@@ -75,7 +75,7 @@ RYOKU_STATE_PATH="$tmpdir/state" \
 RYOKU_WALLPAPER_DIR="$wallpaper_dir" \
   "$ipc" wallpaper settings get --json \
   | jq -e --arg wallpaper_dir "$wallpaper_dir" \
-      '.wallpaper_dirs | length >= 2 and .[0] == $wallpaper_dir' >/dev/null \
+      '.wallpaper_dirs == [$wallpaper_dir]' >/dev/null \
   || fail "settings get should emit wallpaper dirs as JSON"
 
 RYOKU_PATH="$PWD" \

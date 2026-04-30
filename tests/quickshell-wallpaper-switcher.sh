@@ -92,8 +92,8 @@ grep -q 'wallpaper", "apply", "--type"' "$wallpaper_service" \
   || fail "WallpaperService should not run upstream matugen pipeline"
 ! grep -q 'awww img' "$wallpaper_service" \
   || fail "WallpaperService should not run upstream awww pipeline"
-grep -q '.config/ryoku/current/theme/backgrounds' "$wallpaper_service" \
-  || fail "WallpaperService should list active theme backgrounds"
+! grep -q 'themeWallpaperDir' "$wallpaper_service" \
+  || fail "WallpaperService should not expose bundled theme backgrounds as selector wallpaper sources"
 grep -q 'picturesDir + "/Wallpapers"' "$wallpaper_service" \
   || fail "WallpaperService should expose Pictures/Wallpapers as the user wallpaper folder"
 
