@@ -16,12 +16,37 @@ PanelWindow {
 
     color: "transparent"
 
+    // Dashboard and PopupDismiss both live on the Top layer. Keep the
+    // dashboard card out of this fullscreen dismiss mask so click
+    // delivery does not depend on compositor ordering between siblings.
+    property bool dashboardDismissHole: Popups.dashboardOpen || Popups.dashboardVisible
+    property real dashboardHoleWidth:  Popups.dashboardPageWidth + 2 * Theme.notchRadius
+    property real dashboardHoleHeight: Theme.notchHeight + Theme.dashboardHeight
+    property real dashboardHoleX:      Math.max(Theme.borderWidth, (root.width - root.dashboardHoleWidth) / 2)
+    property real dashboardHoleRight:  Math.min(root.width - Theme.borderWidth, root.dashboardHoleX + root.dashboardHoleWidth)
+
     mask: Region {
         Region {
             x:      Theme.borderWidth
             y:      Theme.notchHeight - Theme.borderWidth
-            width:  root.width - (Theme.borderWidth * 2)
+            width:  root.dashboardDismissHole ? Math.max(0, root.dashboardHoleX - Theme.borderWidth)
+                                               : root.width - (Theme.borderWidth * 2)
             height: root.height - Theme.notchHeight - Theme.borderWidth
+        }
+        Region {
+            x:      root.dashboardHoleRight
+            y:      Theme.notchHeight - Theme.borderWidth
+            width:  root.dashboardDismissHole ? Math.max(0, root.width - root.dashboardHoleRight - Theme.borderWidth)
+                                               : 0
+            height: root.height - Theme.notchHeight - Theme.borderWidth
+        }
+        Region {
+            x:      root.dashboardHoleX
+            y:      root.dashboardHoleHeight
+            width:  root.dashboardDismissHole ? Math.max(0, root.dashboardHoleRight - root.dashboardHoleX)
+                                               : 0
+            height: root.dashboardDismissHole ? Math.max(0, root.height - root.dashboardHoleHeight - Theme.borderWidth)
+                                               : 0
         }
         Region {
             x:      ShellState.topBarLWidth - Theme.borderWidth

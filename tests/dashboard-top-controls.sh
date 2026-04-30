@@ -15,12 +15,14 @@ pass() {
 
 home="config/quickshell/ryoku/vendor/brain-shell/src/services/home/DashHome.qml"
 topbar="config/quickshell/ryoku/vendor/brain-shell/src/windows/TopBar.qml"
+popup_dismiss="config/quickshell/ryoku/vendor/brain-shell/src/windows/PopupDismiss.qml"
 controls="config/quickshell/ryoku/vendor/brain-shell/src/services/home/DashboardTopControls.qml"
 rail="config/quickshell/ryoku/vendor/brain-shell/src/services/home/TelemetryRail.qml"
 qmldir="config/quickshell/ryoku/vendor/brain-shell/src/services/home/qmldir"
 
 [[ -f $home ]] || fail "DashHome.qml missing"
 [[ -f $topbar ]] || fail "TopBar.qml missing"
+[[ -f $popup_dismiss ]] || fail "PopupDismiss.qml missing"
 [[ -f $controls ]] || fail "DashboardTopControls.qml missing"
 [[ -f $rail ]] || fail "TelemetryRail.qml missing"
 
@@ -36,6 +38,21 @@ grep -Eq 'anchors\.centerIn:[[:space:]]*parent' "$topbar" \
   || fail "Dashboard controls should be centered in the top notch"
 grep -Eq 'horizontalCenterOffset:[[:space:]]*-12' "$topbar" \
   || fail "Dashboard controls should align to the clock card center"
+
+grep -q 'property bool dashboardDismissHole' "$popup_dismiss" \
+  || fail "PopupDismiss should track the dashboard click-through hole"
+grep -q 'Popups.dashboardOpen || Popups.dashboardVisible' "$popup_dismiss" \
+  || fail "PopupDismiss dashboard hole should stay active through dashboard animation"
+grep -q 'property real dashboardHoleWidth' "$popup_dismiss" \
+  || fail "PopupDismiss should compute the dashboard hole width"
+grep -q 'property real dashboardHoleHeight' "$popup_dismiss" \
+  || fail "PopupDismiss should compute the dashboard hole height"
+grep -q 'root.dashboardDismissHole ? Math.max(0, root.dashboardHoleX - Theme.borderWidth)' "$popup_dismiss" \
+  || fail "PopupDismiss should leave the dashboard card out of the left dismissal region"
+grep -q 'root.dashboardDismissHole ? Math.max(0, root.width - root.dashboardHoleRight - Theme.borderWidth)' "$popup_dismiss" \
+  || fail "PopupDismiss should leave the dashboard card out of the right dismissal region"
+grep -q 'root.dashboardDismissHole ? Math.max(0, root.height - root.dashboardHoleHeight - Theme.borderWidth)' "$popup_dismiss" \
+  || fail "PopupDismiss should only dismiss below the dashboard card"
 
 for expected in \
   'readonly property int colW:     166' \

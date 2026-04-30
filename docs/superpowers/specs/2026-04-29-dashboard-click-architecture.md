@@ -13,7 +13,7 @@
 | `Frame` | `Bottom` | always | Decorative cutout. Yields to fullscreen. |
 | `TopBar` | **dynamic**: `Popups.dashboardVisible ? Overlay : Top` | always | On `Top` it yields to fullscreen apps (screensaver, video). Promotes to `Overlay` while the dashboard card is on screen so the bar's pill paints above the card's top `notchHeight` strip. |
 | `Dashboard` | `Top` | `Popups.dashboardOpen \|\| card.visible` | Surface unmaps entirely when the dashboard is fully closed; only mapped during open animation, while open, and during close animation. |
-| `PopupDismiss` | `Top` | `Popups.anyOpen \|\| (screenRecord && !recording)` | Full-screen mask with cutouts for the bar's notch slots; clicks in the masked area call `Popups.closeAll()`. |
+| `PopupDismiss` | `Top` | `Popups.anyOpen \|\| (screenRecord && !recording)` | Full-screen mask with cutouts for the bar's notch slots and the dashboard card while it is open; clicks in the masked area call `Popups.closeAll()`. |
 | `ConfirmDialog` | `Overlay` | `confirmOpen \|\| confirmRunning` | Stays in `hyprctl layers` even when `visible=false` on this Quickshell version - Quickshell appears not to unmap it. Treat its input region as effectively absent when `visible=false`. |
 
 ## How a click inside the dashboard reaches QML handlers
@@ -22,7 +22,7 @@
 2. Wayland routes the event to the topmost mapped surface whose **input region** covers `(x, y)`.
 3. If `(x, y)` is in the bar's 32px-tall strip at the top of the screen, the bar grabs the click - its `TapHandler` runs `Popups.closeAll(); Popups.dashboardOpen = !old` and the dashboard closes. **This is by design** for the bar's pill, but it also means clicks on the bar's notch area visually overlap the dashboard's top strip, and the bar wins.
 4. Outside the bar strip, the next candidate is `Dashboard`. Its mask (`Region { item: card }`) covers exactly the visible card geometry. If the click is inside, QML hit-tests `card → DashHome → ...` and a child `MouseArea` / `TapHandler` runs.
-5. If the click is **outside the card mask but inside the dashboard window**, it falls through to `PopupDismiss`, which calls `closeAll()`. **This is by design** - clicks on transparent dashboard window space close the dashboard.
+5. If the click is **outside the card mask but inside the dashboard window**, it falls through to `PopupDismiss`, which calls `closeAll()`. **This is by design** - clicks on transparent dashboard window space close the dashboard. `PopupDismiss` must leave the dashboard card rectangle out of its own mask while `Popups.dashboardOpen || Popups.dashboardVisible`, so inside-card clicks do not depend on compositor ordering between same-layer surfaces.
 
 If clicks "everywhere" close the dashboard, exactly one of:
 - (a) the dashboard surface isn't mapped when you expect it to be, so all clicks fall through to PopupDismiss;
@@ -74,6 +74,12 @@ PanelWindow {
   shadows `card`'s `x/y/width` and forces `height: -1` when the card is
   hidden - Quickshell's Region treats negative height as an empty
   region, so clicks fall through cleanly when the dashboard is gone.
+- `PopupDismiss` also computes a dashboard-card hole from
+  `Popups.dashboardPageWidth`, `Theme.notchRadius`, `Theme.notchHeight`,
+  and `Theme.dashboardHeight`. This is a defensive layer-order fix:
+  Dashboard and PopupDismiss are both `WlrLayer.Top`, and different
+  remap cycles can leave PopupDismiss above Dashboard. The dismiss mask
+  should own only outside-dashboard clicks, never the card body.
 - `WlrLayershell.layer: Top` on the dashboard, dynamic on TopBar (see
   below). Don't put the dashboard on `Overlay`.
 
