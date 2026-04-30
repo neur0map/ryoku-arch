@@ -52,9 +52,14 @@ Item {
       id: player
       source: root.videoSource
       videoOutput: videoOutput
+      audioOutput: mutedOutput
       loops: MediaPlayer.Infinite
-      muted: true
       autoPlay: root.selected && root.isVideo
+    }
+
+    AudioOutput {
+      id: mutedOutput
+      muted: true
     }
 
     VideoOutput {
