@@ -97,11 +97,13 @@ sushi
 xournalpp
 
 # ── GUI apps — multimedia editing & screen capture ────────────────────
+ffmpeg
 gpu-screen-recorder
 imagemagick
 kdenlive
 libnotify
 obs-studio
+x264
 
 # ── Hyprland window manager + Wayland desktop stack ───────────────────
 hypridle
@@ -142,6 +144,7 @@ gst-plugins-base
 gst-plugins-good
 gst-plugins-ugly
 pamixer
+pipewire
 playerctl
 wireplumber
 

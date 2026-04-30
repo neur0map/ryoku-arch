@@ -85,7 +85,7 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Top
     
     // Detech Keyboard events for Escape key to dismiss popups
-    WlrLayershell.keyboardFocus: Popups.launcherOpen || Popups.wallpaperOpen ? WlrKeyboardFocus.None : WlrKeyboardFocus.OnDemand
+    WlrLayershell.keyboardFocus: Popups.launcherOpen || Popups.wallpaperOpen || Popups.toolboxOpen ? WlrKeyboardFocus.None : WlrKeyboardFocus.OnDemand
 
     // --- Click anywhere to dismiss ---
     MouseArea {

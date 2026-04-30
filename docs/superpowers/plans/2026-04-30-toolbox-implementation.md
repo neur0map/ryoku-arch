@@ -1,8 +1,8 @@
-# Ambxst Toolbox Implementation Plan
+# Toolbox Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add an Ambxst-style tools menu to Ryoku's center pill, expose it through `ryoku-ipc shell toggle toolbox`, bind it to `SUPER+S`, and ship the helper commands needed by every toolbox action.
+**Goal:** Add a tools menu to Ryoku's center pill, expose it through `ryoku-ipc shell toggle toolbox`, bind it to `SUPER+S`, and ship the helper commands needed by every toolbox action.
 
 **Architecture:** The toolbox is a new Quickshell popup attached to the center topbar notch, with state tracked in `Popups.qml` alongside the launcher. Tool actions call small Ryoku `bin/ryoku-cmd-*` helpers for shell-driven features, reuse the existing Quickshell screen recording service for recording, and use a shared Caffeine singleton so the dashboard tile and toolbox stay synchronized.
 
@@ -15,7 +15,7 @@
 ## File Map
 
 - Create `tests/quickshell-toolbox.sh`: static regression coverage for popup state, IPC, keybinding, packages, helper scripts, Caffeine singleton, and mirror wiring.
-- Create `config/quickshell/ryoku/vendor/brain-shell/src/popups/ToolboxPopup.qml`: center-pill popup with Ambxst tool actions plus Caffeine.
+- Create `config/quickshell/ryoku/vendor/brain-shell/src/popups/ToolboxPopup.qml`: center-pill popup with tool actions plus Caffeine.
 - Create `config/quickshell/ryoku/vendor/brain-shell/src/windows/MirrorWindow.qml`: webcam mirror window opened from the toolbox.
 - Create `config/quickshell/ryoku/vendor/brain-shell/src/services/CaffeineService.qml`: shared singleton for `systemd-inhibit` Caffeine state.
 - Create `bin/ryoku-cmd-colorpicker`: copied-to-clipboard color picker helper.
@@ -1418,7 +1418,7 @@ Expected: commit succeeds.
 
 Spec coverage:
 
-- Ambxst menu set is covered by `ToolboxPopup.qml`: Screenshot, Open Screenshots, Screen Recorder, Open Recordings, Color Picker, OCR, QR Code, Google Lens, Mirror, and Caffeine.
+- Toolbox menu set is covered by `ToolboxPopup.qml`: Screenshot, Open Screenshots, Screen Recorder, Open Recordings, Color Picker, OCR, QR Code, Google Lens, Mirror, and Caffeine.
 - Center pill behavior is covered by `Popups.toolboxOpen`, `Popups.toolboxVisible`, `TopBar.qml`, and `ToolboxPopup.qml`.
 - `SUPER+S` is covered by `default/hypr/bindings/utilities.conf` and `default/hypr/plain-bindings.conf`.
 - IPC is covered by `shell.qml`, `bin/ryoku-ipc`, and the static test.

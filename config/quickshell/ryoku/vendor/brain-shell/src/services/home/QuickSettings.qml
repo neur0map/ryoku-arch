@@ -773,17 +773,18 @@ StatCard {
                     }
                     TglBtn {
                         width: tileGrid.btnW; height: tileGrid.btnH
-                        on:    ShellState.screenRecord || ScreenRecService.recording
+                        on:    Popups.screenRecordToolOpen || ScreenRecService.recording
                         icon:  ScreenRecService.recording ? "⏹" : "󰻂"
                         label: ScreenRecService.recording ? "Recording" : "Screen Capture"
                         onToggled: {
                             if (ScreenRecService.recording) {
                                 ScreenRecService.stopRecording()
-                            } else if (ShellState.screenRecord) {
-                                ScreenRecService.cancelSetup()
+                            } else if (Popups.screenRecordToolOpen) {
+                                Popups.screenRecordToolOpen = false
                             } else {
                                 Popups.closeAll()
-                                ShellState.screenRecord = true
+                                ScreenRecService.initialize()
+                                Popups.screenRecordToolOpen = true
                             }
                         }
                     }

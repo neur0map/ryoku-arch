@@ -18,16 +18,12 @@ PanelWindow {
 
     // Layer is dynamic. Default Top so the bar yields to fullscreen
     // apps (screensaver, video) the way every other layer-shell bar
-    // does. Promoted to Overlay only while the dashboard card is
-    // visually present, so the bar's center pill paints over the
-    // card's top strip — the card's flares tuck behind the notch and
-    // the two shapes read as one continuous surface during open and
-    // close. Bound to visual states for popups that attach to the bar.
-    // The toolbox is rendered inside the center notch so the actual
-    // pill width expands and collapses instead of an overlay surface
-    // disappearing over it.
-    WlrLayershell.layer: Popups.dashboardVisible || Popups.launcherVisible || Popups.systemMenuVisible || Popups.settingsMenuVisible
+    // does. Promoted to Overlay while attached center/topbar surfaces
+    // are visually present so they keep painting and receiving input
+    // as one continuous surface during open and close.
+    WlrLayershell.layer: Popups.toolboxOpen || Popups.dashboardVisible || Popups.launcherVisible || Popups.systemMenuVisible || Popups.settingsMenuVisible
                          ? WlrLayer.Overlay : WlrLayer.Top
+    WlrLayershell.keyboardFocus: Popups.toolboxOpen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
     anchors {
         top:   true
@@ -60,6 +56,27 @@ PanelWindow {
         }
     }
 
+    Connections {
+        target: Popups
+        function onToolboxOpenChanged() {
+            if (Popups.toolboxOpen) {
+                Qt.callLater(function() { toolboxKeyScope.forceActiveFocus() })
+                toolboxFocusTimer.restart()
+            } else {
+                toolboxFocusTimer.stop()
+            }
+        }
+    }
+
+    Timer {
+        id: toolboxFocusTimer
+        interval: 35
+        repeat: false
+        onTriggered: {
+            if (Popups.toolboxOpen) toolboxKeyScope.forceActiveFocus()
+        }
+    }
+
     readonly property int lWidth: Math.max(
         Theme.lNotchMinWidth,
         Math.min(Theme.lNotchMaxWidth,
@@ -87,7 +104,7 @@ PanelWindow {
             easing.overshoot: 1.05
         }
     }
-    readonly property bool toolboxMorphActive: Popups.toolboxOpen || toolboxContent.visible
+    readonly property bool toolboxMorphActive: Popups.toolboxOpen || toolboxContent.opacity > 0
 
     // Width matches sizer open width: popupWidth + notchRadius (fw) in both popups
     property int rWidth: Popups.notificationsOpen
@@ -200,6 +217,42 @@ PanelWindow {
             RightContent {
                 id: rightContent
                 anchors.centerIn: parent
+            }
+        }
+    }
+
+    FocusScope {
+        id: toolboxKeyScope
+        anchors.fill: parent
+        enabled: Popups.toolboxOpen
+        focus: Popups.toolboxOpen
+
+        Keys.onPressed: function(event) {
+            if (!Popups.toolboxOpen) return
+
+            switch (event.key) {
+            case Qt.Key_Left:
+            case Qt.Key_Up:
+                toolboxContent.moveSelection(-1)
+                event.accepted = true
+                return
+            case Qt.Key_Right:
+            case Qt.Key_Down:
+                toolboxContent.moveSelection(1)
+                event.accepted = true
+                return
+            case Qt.Key_Return:
+            case Qt.Key_Enter:
+            case Qt.Key_Space:
+                toolboxContent.activateCurrent()
+                event.accepted = true
+                return
+            case Qt.Key_Escape:
+                toolboxContent.closeToolbox()
+                event.accepted = true
+                return
+            default:
+                return
             }
         }
     }

@@ -9,14 +9,9 @@ import "../"
 // Recording bug fix: ~ does not expand inside double-quoted bash strings.
 // Use $HOME instead throughout all path construction.
 //
-// Cava always runs during recording — source depends on audio selection:
-//   mic only      → default PulseAudio source (microphone)
-//   system only   → default sink .monitor
-//   both          → sink .monitor (PipeWire mixes both at capture level)
-//   none          → sink .monitor (visualiser stays alive, just silent)
-//
-// wl-screenrec audio: single --audio flag with one resolved device.
-// If both mic+system selected we use the sink monitor (PipeWire routes both).
+// Cava always runs during recording. Recording itself uses a
+// gpu-screen-recorder provider model: portal/screen/region targets and
+// default_output/default_input audio sources.
 
 QtObject {
     id: root
@@ -25,10 +20,12 @@ QtObject {
     property string captureTarget: "screen"
     property bool   audioMic:      false
     property bool   audioSystem:   false
+    property bool   canRecordDirectly: true
+    property bool   _initialized: false
 
     // ── Display helpers ───────────────────────────────────────────────────────
-    readonly property var _captureIcons:  ({ screen: "󰍹", window: "󱂬", region: "󰩭" })
-    readonly property var _captureLabels: ({ screen: "Screen", window: "Window", region: "Region" })
+    readonly property var _captureIcons:  ({ screen: "󰍹", window: "󱂬", region: "󰩭", portal: "󰹑" })
+    readonly property var _captureLabels: ({ screen: "Screen", window: "Window", region: "Region", portal: "Portal" })
     readonly property string captureIcon:  _captureIcons[captureTarget]  ?? "󰍹"
     readonly property string captureLabel: _captureLabels[captureTarget] ?? "Screen"
 
@@ -55,6 +52,7 @@ QtObject {
     property bool   recording: false
     property int    elapsed:   0
     property string _currentFile: ""   // tracked so discard can delete it
+    property string _lastSavedFile: ""
 
     readonly property string elapsedDisplay: {
         var m = Math.floor(elapsed / 60)
@@ -127,6 +125,32 @@ QtObject {
     // ── Recording process ─────────────────────────────────────────────────────
     property string _pendingGeometry: ""
     property string _resolvedAudioDevice: ""
+    property string _pendingMonitorName: ""
+
+    function initialize() {
+        if (root._initialized) return
+
+        root._initialized = true
+        _capabilityProc.running = true
+    }
+
+    property var _capabilityProc: Process {
+        command: [
+            "bash", "-c",
+            "if ! ryoku-cmd-present gpu-screen-recorder; then exit 1; fi; " +
+            "if [[ -f /run/current-system/sw/bin/nixos-version ]]; then " +
+            "path=\"$(type -p gpu-screen-recorder)\"; [[ $path == *\"/run/wrappers/bin/\"* ]]; " +
+            "else true; fi"
+        ]
+        running: false
+        onExited: function(exitCode, exitStatus) {
+            root.canRecordDirectly = exitCode === 0
+        }
+    }
+
+    function _shellQuote(value) {
+        return "'" + String(value).replace(/'/g, "'\"'\"'") + "'"
+    }
 
     property var _windowPickerProc: Process {
         command: []
@@ -202,13 +226,19 @@ QtObject {
         command: []
         running: false
         onExited: function(exitCode, exitStatus) {
+            var savedFile = root._currentFile
             root.recording        = false
             root.elapsed          = 0
             root._pendingGeometry = ""
+            root._pendingMonitorName = ""
             root._currentFile     = ""
             root._cavaRecProc.running = false
             root.audioBars        = [0, 0, 0, 0, 0, 0]
             ShellState.screenRecord = false
+            if (savedFile !== "" && (exitCode === 0 || exitCode === 2 || exitCode === 130)) {
+                root._lastSavedFile = savedFile
+                root._notifyRecordingSaved()
+            }
         }
     }
 
@@ -219,13 +249,32 @@ QtObject {
         var cmd = "source ~/.config/user-dirs.dirs 2>/dev/null || true; " +
                   "dir=\"${RYOKU_SCREENRECORD_DIR:-${XDG_VIDEOS_DIR:-$HOME/Videos}/screen_recordings}\"; " +
                   "mkdir -p \"$dir\" && " +
-                  "LIBVA_DRIVER_NAME=iHD wl-screenrec" +
-                  " --filename \"" + root._currentFile + "\""
-        if (root._pendingGeometry !== "")
-            cmd += " --geometry '" + root._pendingGeometry + "'"
-        var hasAudio = root.audioMic || root.audioSystem
-        if (hasAudio && root._resolvedAudioDevice !== "")
-            cmd += " --audio --audio-device " + root._resolvedAudioDevice
+                  "exec gpu-screen-recorder -f 60 -k auto -fm cfr -fallback-cpu-encoding yes"
+
+        if (root.captureTarget === "portal") {
+            cmd += " -w portal"
+        } else if (root.captureTarget === "region" || root.captureTarget === "window") {
+            cmd += " -w region"
+            if (root._pendingGeometry !== "")
+                cmd += " -region " + root._shellQuote(root._pendingGeometry)
+        } else if (root.captureTarget === "screen") {
+            if (root._pendingMonitorName !== "")
+                cmd += " -w " + root._shellQuote(root._pendingMonitorName)
+            else
+                cmd += " -w portal"
+        } else {
+            cmd += " -w portal"
+        }
+
+        var audioSources = []
+        if (root.audioSystem) audioSources.push("default_output")
+        if (root.audioMic)    audioSources.push("default_input")
+        if (audioSources.length === 1)
+            cmd += " -a " + audioSources[0]
+        else if (audioSources.length > 1)
+            cmd += " -a " + root._shellQuote(audioSources.join("|"))
+
+        cmd += " -o \"$dir/" + ts + ".mp4\""
         return cmd
     }
 
@@ -240,10 +289,25 @@ QtObject {
             _startCavaWithSource(root._resolvedAudioDevice)
     }
 
-    function startRecording() {
+    function startRecording(mode, geometry, recordSystemAudio, recordMicAudio, monitorName) {
+        if (root.recording) return
+
+        initialize()
+
+        if (mode !== undefined && mode !== "") root.captureTarget = mode
+        if (geometry !== undefined) root._pendingGeometry = geometry
+        else root._pendingGeometry = ""
+        if (monitorName !== undefined) root._pendingMonitorName = monitorName
+        else root._pendingMonitorName = ""
+        if (typeof recordSystemAudio === "boolean") root.audioSystem = recordSystemAudio
+        if (typeof recordMicAudio === "boolean") root.audioMic = recordMicAudio
+
         root._pendingGeometry = ""
         saveConfig()
-        if (root.captureTarget === "screen") {
+        if (geometry !== undefined && geometry !== "") {
+            root._pendingGeometry = geometry
+            root._resolveAudio()
+        } else if (root.captureTarget === "screen" || root.captureTarget === "portal") {
             root._resolveAudio()
         } else if (root.captureTarget === "window") {
             _windowPickerProc.command = [
@@ -268,7 +332,7 @@ QtObject {
     }
 
     function stopRecording() {
-        _sigProc.command = ["bash", "-c", "pkill -INT wl-screenrec"]
+        _sigProc.command = ["bash", "-c", "pkill -SIGINT -f \"^gpu-screen-recorder\""]
         _sigProc.running = false
         _sigProc.running = true
     }
@@ -276,10 +340,10 @@ QtObject {
     function discardRecording() {
         // Stop recording and delete the file
         var fileToDelete = root._currentFile
-        _sigProc.command = ["bash", "-c", "pkill -INT wl-screenrec"]
+        _sigProc.command = ["bash", "-c", "pkill -SIGINT -f \"^gpu-screen-recorder\""]
         _sigProc.running = false
         _sigProc.running = true
-        // Delete after a short delay so wl-screenrec has time to close the file
+        // Delete after a short delay so gpu-screen-recorder has time to close the file
         _discardTimer.fileToDelete = fileToDelete
         _discardTimer.restart()
     }
@@ -300,6 +364,28 @@ property var _discardTimer: Timer {
     }
 
     property var _discardDeleteProc: Process { command: []; running: false }
+
+    property var _recordingSavedProc: Process {
+        command: []
+        running: false
+    }
+
+    function _notifyRecordingSaved() {
+        var path = root._lastSavedFile.replace(/"/g, "\\\"")
+        _recordingSavedProc.command = [
+            "bash", "-c",
+            "source ~/.config/user-dirs.dirs 2>/dev/null || true; " +
+            "file=\"" + path + "\"; " +
+            "action=$(notify-send \"Screen recording saved\" \"Open or edit recording\" " +
+            "-t 10000 -i \"$file\" -A \"open=Open\" -A \"edit=Edit with Kdenlive\" || true); " +
+            "case \"$action\" in " +
+            "edit) ryoku-cmd-video-edit \"$file\" ;; " +
+            "open) xdg-open \"$file\" ;; " +
+            "esac"
+        ]
+        _recordingSavedProc.running = false
+        _recordingSavedProc.running = true
+    }
 
     function cancelSetup() {
         root.openStrip = ""

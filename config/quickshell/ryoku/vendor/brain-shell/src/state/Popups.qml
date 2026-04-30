@@ -2,6 +2,8 @@ pragma Singleton
 import QtQuick
 
 QtObject {
+    signal toolboxActionRequested(string action)
+
     // ── Per-popup open state ───────────────────────────────────────────────────
     property bool audioOpen:         false
     property bool networkOpen:       false
@@ -11,6 +13,8 @@ QtObject {
     property bool dashboardOpen:     false
     property bool launcherOpen:      false
     property bool toolboxOpen:       false
+    property bool screenshotToolOpen: false
+    property bool screenRecordToolOpen: false
     property bool mirrorOpen:        false
     property string mirrorScreenName: ""
     property bool systemMenuOpen:    false
@@ -83,6 +87,10 @@ QtObject {
         confirmGfxMode = ""
     }
 
+    function requestToolboxAction(action) {
+        toolboxActionRequested(action)
+    }
+
     // ── Global state ──────────────────────────────────────────────────────────
     readonly property bool anyOpen: audioOpen || networkOpen || batteryOpen
                                     || notificationsOpen || archMenuOpen
@@ -98,6 +106,8 @@ QtObject {
         dashboardOpen     = false
         launcherOpen      = false
         toolboxOpen       = false
+        screenshotToolOpen = false
+        screenRecordToolOpen = false
         mirrorOpen        = false
         mirrorScreenName  = ""
         systemMenuOpen     = false

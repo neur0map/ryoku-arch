@@ -137,7 +137,7 @@
     "on-scroll-right": ""
   },
   "custom/screenrecording-indicator": {
-    "on-click": "ryoku-cmd-screenrecord",
+    "on-click": "ryoku-ipc shell toggle screen-record",
     "exec": "$RYOKU_PATH/default/waybar/indicators/screen-recording.sh",
     "signal": 8,
     "return-type": "json"

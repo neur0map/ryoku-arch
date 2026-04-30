@@ -33,6 +33,18 @@ modification listed here.
    Ryoku Spec 1; other popups are commented out and re-enabled in
    follow-up specs. Border anchor properties softened from
    `required property var` to `property var ... : null`.
+8. Ryoku provider swap: ScreenshotService.qml, ScreenshotTool.qml,
+   ScreenshotOverlay.qml, and ScreenRecordTool.qml add screenshot and
+   recording surfaces adapted to Ryoku theme/state.
+9. Ryoku provider swap: ScreenRecService.qml records through
+   gpu-screen-recorder instead of wl-screenrec while preserving the
+   existing center-pill active recording UI.
+10. Ryoku IPC: shell.qml exposes screenshot and screen-recorder IPC
+    entry points so keybindings can launch the Quickshell providers.
+11. Ryoku editor integration: ScreenshotOverlay.qml opens captured
+    images through `ryoku-cmd-image-edit` (Gradia/Flatpak Gradia
+    fallback), and ScreenRecService.qml offers a saved-recording action
+    that opens `ryoku-cmd-video-edit` (Kdenlive fallback chain).
 
 ## Cherry-pick procedure
 

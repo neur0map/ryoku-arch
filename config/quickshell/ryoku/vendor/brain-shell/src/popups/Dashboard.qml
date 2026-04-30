@@ -5,7 +5,7 @@ import "../shapes"
 import "../services/"
 import "../"
 
-// Dashboard popup window — pill-expansion model (after Axenide/Ambxst, MIT).
+// Dashboard popup window — pill-expansion model.
 //
 // Architecture:
 //   - The dashboard does not slide in. Instead a card collapsed to the
@@ -20,7 +20,7 @@ import "../"
 //   - mask = card region only, so clicks outside the card fall through
 //     to PopupDismiss (which closes all popups).
 //
-// Easing follows Ambxst exactly:
+// Easing:
 //   - Open:  OutBack with overshoot 1.2 (the pill "springs" outward)
 //   - Close: OutQuart (smooth retraction, no overshoot)
 

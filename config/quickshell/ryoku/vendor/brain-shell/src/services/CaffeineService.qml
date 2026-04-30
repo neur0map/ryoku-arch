@@ -3,93 +3,82 @@ import QtQuick
 import Quickshell.Io
 
 QtObject {
-    id: root
+  id: root
 
-    property bool active: false
-    property bool busy: false
-    property bool _refreshAgain: false
-    property int _generation: 0
-    property int _refreshGeneration: 0
-    readonly property string _inhibitPattern: "systemd-inhibit.*--who=Ryoku.*--why=[C]affeine mode"
+  property bool active: false
+  property bool busy: false
+  property bool _stopping: false
 
-    function refresh() {
-        if (_checkProc.running) {
-            root._refreshAgain = true
-            return
-        }
+  function refresh() {
+    if (_checkProc.running) return
 
-        root._refreshAgain = false
-        root._refreshGeneration = root._generation
-        _checkProc.running = true
+    _checkProc.running = true
+  }
+
+  function start() {
+    if (root.busy || root.active) return
+
+    root.busy = true
+    root._stopping = false
+    root.active = true
+    _stopProc.running = false
+    _startProc.running = false
+    _startProc.running = true
+  }
+
+  function stop() {
+    if (root.busy || !root.active) return
+
+    root.busy = true
+    root._stopping = true
+    root.active = false
+    _startProc.running = false
+    _stopProc.running = false
+    _stopProc.running = true
+  }
+
+  function toggle() {
+    if (root.busy) return
+    if (root.active) root.stop()
+    else root.start()
+  }
+
+  property var _checkProc: Process {
+    command: ["ryoku-cmd-caffeine", "status"]
+    running: false
+    onExited: function(exitCode, exitStatus) {
+      if (!root.busy && !_startProc.running)
+        root.active = exitCode === 0
     }
+  }
 
-    function start() {
-        if (root.busy || root.active) return
-
-        root._generation++
-        root.busy = true
-        root.active = true
-        _startProc.running = false
-        _startProc.running = true
+  property var _startProc: Process {
+    command: ["ryoku-cmd-caffeine", "start"]
+    running: false
+    onExited: function(exitCode, exitStatus) {
+      root.busy = false
+      if (!root._stopping)
+        root.active = exitCode === 0
+      root.refresh()
     }
+  }
 
-    function stop() {
-        if (root.busy || !root.active) return
-
-        root._generation++
-        root.busy = true
-        root.active = false
-        _startProc.running = false
-        _stopProc.running = false
-        _stopProc.running = true
+  property var _stopProc: Process {
+    command: ["ryoku-cmd-caffeine", "stop"]
+    running: false
+    onExited: function(exitCode, exitStatus) {
+      root.busy = false
+      root._stopping = false
+      root.active = false
     }
+  }
 
-    function toggle() {
-        if (root.busy) return
-        if (root.active) root.stop()
-        else root.start()
-    }
+  property var _refreshTimer: Timer {
+    interval: 5000
+    running: true
+    repeat: true
+    onTriggered: root.refresh()
+  }
 
-    property var _checkProc: Process {
-        command: ["pgrep", "-f", root._inhibitPattern]
-        running: false
-        onExited: function(exitCode, exitStatus) {
-            if (root._refreshGeneration === root._generation && !root.busy)
-                root.active = exitCode === 0
-
-            if (root._refreshAgain)
-                root.refresh()
-        }
-    }
-
-    property var _startProc: Process {
-        command: [
-            "systemd-inhibit",
-            "--what=idle:sleep",
-            "--who=Ryoku",
-            "--why=Caffeine mode",
-            "sleep",
-            "infinity"
-        ]
-        running: false
-        onRunningChanged: {
-            if (running) {
-                root.busy = false
-                root.active = true
-            } else if (root.active) {
-                root.refresh()
-            }
-        }
-    }
-
-    property var _stopProc: Process {
-        command: ["pkill", "-f", root._inhibitPattern]
-        running: false
-        onExited: function(exitCode, exitStatus) {
-            root.busy = false
-            root.refresh()
-        }
-    }
-
-    Component.onCompleted: refresh()
+  Component.onCompleted: refresh()
 }

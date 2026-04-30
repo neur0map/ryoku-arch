@@ -32,6 +32,50 @@ ShellRoot {
             BS.Popups.toolboxOpen = opening
         }
 
+        function openToolbox(): void {
+            BS.Popups.closeAll()
+            BS.Popups.toolboxOpen = true
+        }
+
+        function toolboxPrevious(): void {
+            BS.Popups.requestToolboxAction("previous")
+        }
+
+        function toolboxNext(): void {
+            BS.Popups.requestToolboxAction("next")
+        }
+
+        function toolboxActivate(): void {
+            BS.Popups.requestToolboxAction("activate")
+        }
+
+        function toolboxClose(): void {
+            BS.Popups.requestToolboxAction("close")
+        }
+
+        function toggleScreenshot(): void {
+            const opening = !BS.Popups.screenshotToolOpen
+            BS.Popups.closeAll()
+            if (opening) {
+                BS.ScreenshotService.startCapture("normal")
+                BS.Popups.screenshotToolOpen = true
+            }
+        }
+
+        function toggleScreenRecorder(): void {
+            if (BS.ScreenRecService.recording) {
+                BS.ScreenRecService.stopRecording()
+                return
+            }
+
+            const opening = !BS.Popups.screenRecordToolOpen
+            BS.Popups.closeAll()
+            if (opening) {
+                BS.ScreenRecService.initialize()
+                BS.Popups.screenRecordToolOpen = true
+            }
+        }
+
         function toggleWallpaper(): void {
             const opening = !(BS.Popups.wallpaperOpen && BS.Popups.wallpaperMode === "wallpaper")
             BS.Popups.closeAll()

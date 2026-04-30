@@ -106,7 +106,7 @@ QtObject {
     property int motionEffectsDuration: 200
     property var motionEffectsCurve: [0.34, 0.80, 0.34, 1.0, 1.0, 1.0]
 
-    // -- Pill-expand motion (Axenide/Ambxst). Used by the dashboard to
+    // -- Pill-expand motion. Used by the dashboard to
     //    grow out of the bar's center pill: OutBack (overshoot 1.2) on
     //    open, OutQuart on close.
     property int motionExpandDuration: 360

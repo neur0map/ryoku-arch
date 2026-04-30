@@ -24,6 +24,7 @@ if gum confirm "Are you sure you want to remove all preinstalled web apps, TUI w
     libreoffice-fresh \
     1password-beta \
     1password-cli \
+    gradia \
     xournalpp \
     signal-desktop \
     pinta \

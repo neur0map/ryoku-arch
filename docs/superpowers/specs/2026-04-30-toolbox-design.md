@@ -1,29 +1,20 @@
-# Ambxst Toolbox For Ryoku Center Pill
+# Toolbox For Ryoku Center Pill
 
 **Status:** Approved for implementation
 **Date:** 2026-04-30
-**Scope:** Add an Ambxst-style toolbox popup to Ryoku's Quickshell center pill and bind it to `SUPER+S`.
+**Scope:** Add a toolbox popup to Ryoku's Quickshell center pill and bind it to `SUPER+S`.
 
 ## Goal
 
-Ryoku should have the Ambxst toolbox experience available from the center pill. Pressing `SUPER+S` opens a compact topbar-attached row of tool buttons. The row should use Ambxst's current toolbox as the source of truth, with one Ryoku-requested addition: Caffeine.
+Ryoku should have a toolbox experience available from the center pill. Pressing `SUPER+S` opens a compact topbar-attached row of tool buttons. The row should include the requested tool set, with one Ryoku-requested addition: Caffeine.
 
-The toolbox should feel native to Ryoku's current Brain Shell based topbar instead of importing Ambxst's whole shell state system. The implementation should keep Ryoku's existing command names, package lists, IPC facade, and center-pill popup architecture.
-
-Primary upstream references:
-
-- `https://github.com/Axenide/Ambxst/blob/main/modules/widgets/tools/ToolsMenu.qml`
-- `https://github.com/Axenide/Ambxst/blob/main/modules/components/ActionGrid.qml`
-- `https://github.com/Axenide/Ambxst/blob/main/modules/tools/MirrorWindow.qml`
-- `https://github.com/Axenide/Ambxst/blob/main/scripts/ocr.sh`
-- `https://github.com/Axenide/Ambxst/blob/main/scripts/qr_scan.sh`
-- `https://github.com/Axenide/Ambxst/blob/main/scripts/google_lens.sh`
+The toolbox should feel native to Ryoku's current Brain Shell based topbar instead of importing another shell state system. The implementation should keep Ryoku's existing command names, package lists, IPC facade, and center-pill popup architecture.
 
 ## User-Approved Direction
 
 Use the Ryoku-native port approach.
 
-Do not directly import Ambxst's full subsystem. Ambxst's menu depends on its own `GlobalStates`, `Config`, `Icons`, `Styling`, screenshot services, and loaders. Ryoku should copy the menu behavior and tool set while wiring each action into Ryoku-owned services or small helpers.
+Do not directly import another shell subsystem. The implementation should wire each action into Ryoku-owned services or small helpers.
 
 The toolbox row includes:
 
@@ -46,7 +37,7 @@ The popup is a compact horizontal button row attached to the topbar center notch
 
 The menu should close after launching one-shot tools such as screenshot, color picker, OCR, QR, and Google Lens. Persistent toggles such as Mirror and Caffeine can update their active state immediately; closing the row after activation is acceptable and matches the action-menu flow.
 
-When recording is active, the screen-record button changes from "Screen Recorder" to "Stop Recording" and shows the active/error visual state, mirroring Ambxst's behavior.
+When recording is active, the screen-record button changes from "Screen Recorder" to "Stop Recording" and shows the active/error visual state.
 
 ## Architecture
 
@@ -114,7 +105,7 @@ Interactive one-shot tools that open their own selection surface should close th
 
 Either add a small local `ToolboxActionRow` component or implement the row inside `ToolboxPopup.qml`.
 
-The row should preserve Ambxst's grouping:
+The row should preserve this grouping:
 
 1. Screenshot and Open Screenshots
 2. Screen Recorder or Stop Recording and Open Recordings
@@ -174,7 +165,7 @@ Ryoku's existing `ryoku-cmd-screenrecord` saves directly into that directory.
 
 ### Color Picker
 
-The toolbox should launch a richer color picker helper based on Ambxst's `colorpicker.py` behavior, adapted to Ryoku style and command naming.
+The toolbox should launch a richer color picker helper adapted to Ryoku style and command naming.
 
 Add:
 
@@ -206,7 +197,7 @@ Behavior:
 - copy detected text to the clipboard
 - notify success, no text, or missing dependency
 
-Default languages should match Ambxst's default: `eng+spa`.
+Default languages should be `eng+spa`.
 
 ### QR Code
 
@@ -232,7 +223,7 @@ Behavior:
 
 - select a region with `slurp`
 - save it to a temp image path
-- upload it to a temporary image host as Ambxst does
+- upload it to a temporary image host
 - open `https://lens.google.com/uploadbyurl?url=<uploaded-url>`
 - clean up the temp file
 - notify upload or browser errors
@@ -243,7 +234,7 @@ Do not block the whole toolbox on Google Lens network failure. A failed upload s
 
 ### Mirror
 
-Add a Quickshell mirror window based on Ambxst's `MirrorWindow.qml`, adapted to Ryoku theme imports and state.
+Add a Quickshell mirror window adapted to Ryoku theme imports and state.
 
 New state:
 
@@ -371,6 +362,6 @@ Runtime verification should include:
 
 This feature does not replace Ryoku's dashboard, launcher, wallpaper selector, system menu, settings menu, or standalone capture keybinds.
 
-This feature does not import Ambxst's full shell architecture, configuration system, global state service, or styling system.
+This feature does not import another shell architecture, configuration system, global state service, or styling system.
 
 This feature does not redesign the existing screen-record center-pill active recording carousel. The toolbox can launch or stop recording, while the existing center-pill recording status remains responsible for active recording controls.
