@@ -1,0 +1,11 @@
+#!/bin/bash
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+# Hide the scratchpad only when it is the active workspace.
+
+workspace="$(hyprctl activeworkspace -j | jq -r '.name // ""')"
+
+if [[ $workspace == "special:scratchpad" ]]; then
+  hyprctl dispatch togglespecialworkspace scratchpad
+fi
