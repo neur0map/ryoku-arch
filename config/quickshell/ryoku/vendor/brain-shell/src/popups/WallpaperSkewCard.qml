@@ -10,11 +10,11 @@ Item {
 
   required property var itemData
   property bool selected: false
-  property int skewOffset: 28
+  property int skewOffset: 22
   signal activated()
 
-  width: selected ? 360 : 118
-  height: 300
+  width: selected ? 300 : 92
+  height: 236
   clip: false
 
   readonly property bool isVideo: root.itemData.type === "video"

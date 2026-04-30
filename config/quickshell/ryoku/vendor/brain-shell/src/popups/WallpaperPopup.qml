@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import Quickshell
 import Quickshell.Wayland
+import "../shapes"
 import "../services"
 import "../"
 
@@ -24,10 +25,10 @@ PanelWindow {
   WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
 
   readonly property int overlayHeight: 1080
-  readonly property int selectorMaxWidth: 1540
-  readonly property int selectorMaxHeight: 620
-  readonly property int selectorMarginX: 80
-  readonly property int selectorMarginY: 120
+  readonly property int selectorMaxWidth: 1040
+  readonly property int selectorHeight: 380
+  readonly property int fw: Theme.notchRadius
+  readonly property int fh: Theme.notchRadius
 
   property bool windowVisible: false
   property bool selfHovered: true
@@ -99,17 +100,6 @@ PanelWindow {
     onClicked: Popups.wallpaperOpen = false
   }
 
-  Rectangle {
-    id: scrim
-    anchors.fill: parent
-    visible: root.windowVisible
-    color: Qt.rgba(0, 0, 0, Popups.wallpaperOpen ? 0.50 : 0.0)
-
-    Behavior on color {
-      ColorAnimation { duration: 220 }
-    }
-  }
-
   FocusScope {
     id: keyScope
     anchors.fill: parent
@@ -123,24 +113,16 @@ PanelWindow {
 
   Item {
     id: selector
-    anchors.centerIn: parent
-    width: Math.max(0, Math.min(parent.width - root.selectorMarginX, root.selectorMaxWidth))
-    height: Math.max(0, Math.min(parent.height - root.selectorMarginY, root.selectorMaxHeight))
-    opacity: Popups.wallpaperOpen ? 1 : 0
-    scale: Popups.wallpaperOpen ? 1 : 0.96
+    anchors.horizontalCenter: parent.horizontalCenter
+    y: Popups.wallpaperOpen ? parent.height - height : parent.height + Theme.borderWidth
+    width: Math.max(0, Math.min(root.selectorMaxWidth + 2 * root.fw, parent.width - 32))
+    height: root.selectorHeight + root.fh
     visible: root.windowVisible
     clip: true
 
-    Behavior on opacity {
+    Behavior on y {
       NumberAnimation {
-        duration: 220
-        easing.type: Easing.OutCubic
-      }
-    }
-
-    Behavior on scale {
-      NumberAnimation {
-        duration: 220
+        duration: Theme.animDuration + 80
         easing.type: Easing.OutCubic
       }
     }
@@ -149,12 +131,13 @@ PanelWindow {
       onHoveredChanged: root.selfHovered = hovered
     }
 
-    Rectangle {
+    PopupShape {
       anchors.fill: parent
       color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, 0.92)
       radius: Theme.cornerRadius
-      border.width: 1
-      border.color: Qt.rgba(1, 1, 1, 0.10)
+      flareWidth: root.fw
+      flareHeight: root.fh
+      attachedEdge: "bottom"
     }
 
     MouseArea {
@@ -166,9 +149,11 @@ PanelWindow {
       id: content
       anchors {
         fill: parent
-        margins: 20
+        leftMargin: root.fw + 16
+        rightMargin: root.fw + 16
+        topMargin: 16
+        bottomMargin: root.fh + 14
       }
-      opacity: Popups.wallpaperOpen ? 1 : 0
 
       property string selectedPath: ""
       property bool settingsOpen: false
@@ -220,12 +205,6 @@ PanelWindow {
         selectItem(itemAt(idx), idx)
       }
 
-      Behavior on opacity {
-        NumberAnimation {
-          duration: Popups.wallpaperOpen ? Theme.animDuration * 0.5 : Theme.animDuration * 0.15
-        }
-      }
-
       WallpaperFilterBar {
         id: filterBar
         anchors.horizontalCenter: parent.horizontalCenter
@@ -241,9 +220,9 @@ PanelWindow {
         anchors.right: settingsPane.left
         anchors.rightMargin: content.settingsOpen ? 18 : 0
         anchors.top: filterBar.bottom
-        anchors.topMargin: 34
+        anchors.topMargin: 18
         anchors.bottom: applyBar.top
-        anchors.bottomMargin: 18
+        anchors.bottomMargin: 12
         orientation: ListView.Horizontal
         spacing: -22
         clip: true
@@ -304,7 +283,7 @@ PanelWindow {
       WallpaperSettingsPane {
         id: settingsPane
         anchors.top: filterBar.bottom
-        anchors.topMargin: 34
+        anchors.topMargin: 18
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         open: content.settingsOpen
@@ -315,11 +294,11 @@ PanelWindow {
         id: applyBar
         anchors.horizontalCenter: wallList.horizontalCenter
         anchors.bottom: parent.bottom
-        spacing: 10
+        spacing: 8
 
         Rectangle {
           width: statusLabel.implicitWidth + 24
-          height: 34
+          height: 30
           radius: 7
           color: Qt.rgba(1, 1, 1, 0.07)
           visible: WallpaperService.statusText !== "" || WallpaperService.cacheLoading || WallpaperService.wallhavenLoading
@@ -338,8 +317,8 @@ PanelWindow {
         }
 
         Rectangle {
-          width: 112
-          height: 34
+          width: 104
+          height: 30
           radius: 7
           color: WallpaperService.applying
             ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.12)
