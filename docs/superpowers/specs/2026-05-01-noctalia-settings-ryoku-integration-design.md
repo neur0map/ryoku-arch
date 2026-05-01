@@ -76,6 +76,25 @@ That adapter layer owns:
   process.
 - Service adapters for system-backed features.
 
+Runtime QML should not import the upstream tree directly if Noctalia's
+`qs.*` imports would resolve to the Ryoku shell root. The implementation should
+create adapted runtime copies under:
+
+`config/quickshell/ryoku/Noctalia/`
+
+Those runtime copies should mechanically rewrite Noctalia imports from `qs.*`
+to `qs.Noctalia.*`, redirect asset paths to the vendored Noctalia assets, and
+replace backend service imports with Ryoku adapters. The byte-for-byte upstream
+tree remains under `vendor/noctalia-shell/upstream/` for attribution and drift
+review. Runtime copies may differ only for imports, paths, backend wiring,
+feature availability guards, and documented disabled-state handling.
+
+The Ryoku shell should instantiate only the settings window and the settings
+services it needs. It must not run Noctalia's full `ShellRoot` bootstrap,
+desktop widgets, bar, dock, telemetry, updater, plugin loader, or setup wizard.
+Services copied for type compatibility should stay inert unless the settings
+panel explicitly needs them.
+
 The old Brain Shell menu remains at:
 
 `config/quickshell/ryoku/vendor/brain-shell/src/popups/SettingsMenuPopup.qml`
@@ -97,6 +116,9 @@ the visual target:
 - Transparent outer window and rounded settings surface.
 - Approximate Noctalia dimensions: `840 * Style.uiScaleRatio` by
   `910 * Style.uiScaleRatio`.
+- The panel must not render offscreen on smaller laptop displays. Keep
+  Noctalia's proportions and internal scrolling, but cap the window to the
+  active screen's available geometry with margins.
 - Left sidebar with Noctalia tab model, icons, search, collapsed behavior, and
   selection styling.
 - Right content pane with Noctalia header, close button, scroll area, subtabs,
@@ -132,8 +154,19 @@ to Ryoku. It should support:
 - Signal and connection detail display.
 
 The adapter may use Noctalia's existing approach based on Quickshell Networking
-and `nmcli`, adjusted for Ryoku. Ryoku already uses `nmcli` in current quick
-settings, so this is a first-pass supported backend.
+and command-backed providers, but it must not require NetworkManager as the only
+Wi-Fi backend. Ryoku's base package/config footprint includes `iwd` and
+`impala`, and does not currently list NetworkManager as a required package. The
+first implementation should therefore use a provider adapter:
+
+- Prefer an `iwd`/`iwctl` provider when `iwd` is the active Ryoku network stack.
+- Use a NetworkManager/`nmcli` provider when NetworkManager is present.
+- Use Quickshell Networking only when it works with the active provider.
+- Disable only the unavailable provider-specific actions, not the whole Wi-Fi
+  tab, unless no supported backend is available.
+
+The Noctalia Wi-Fi UI remains the target. Only service internals and command
+routing should change.
 
 The Bluetooth page should use Noctalia's `BluetoothSubTab.qml` and service
 model, adapted to Ryoku. It should support:
@@ -154,7 +187,15 @@ current quick settings, so this is a first-pass supported backend.
 
 Existing TUI launchers such as `ryoku-launch-wifi` and
 `ryoku-launch-bluetooth` become fallback/debug actions, not the primary
-settings UX.
+settings UX. Existing direct keybindings for those launchers should be rerouted
+to the new settings panel's Wi-Fi and Bluetooth subtabs where practical, with
+separate fallback commands retained for manual debugging.
+
+Wi-Fi password and enterprise credential handling should avoid exposing secrets
+through logs or process lists. Prefer provider APIs, temporary stdin, or
+backend-supported secret prompts over building shell command strings that place
+passwords directly in `ps` output. Static tests should reject obvious password
+string interpolation into command arrays or shell snippets.
 
 ### Color Scheme And Wallpaper
 
@@ -257,15 +298,28 @@ Settings routes should be expanded and aliased to the closest Noctalia tabs:
 - `ryoku-ipc shell settings-menu display` -> Display tab.
 - `ryoku-ipc shell settings-menu audio` -> Audio tab.
 - `ryoku-ipc shell settings-menu power` -> Session Menu tab.
-- `ryoku-ipc shell settings-menu hardware` -> Connections tab by default, with
-  hardware-specific controls disabled or redirected once exact hardware pages
-  exist.
+- `ryoku-ipc shell settings-menu hardware` -> legacy hardware route in v1,
+  until a Noctalia-styled Ryoku hardware page exists.
 
 Existing routes such as `home`, `share`, and `hardware` should remain accepted
 where current tests or bindings expect them. They should route into the new
-settings panel or the closest equivalent tab instead of opening the old compact
-menu by default. The `share` route should open General in v1 unless a better
-Noctalia-backed sharing page is added during implementation.
+settings panel or a deliberate fallback instead of silently going somewhere
+unrelated. The `share` route should continue opening the legacy share page in
+v1, because Noctalia does not provide an equivalent settings page. The
+`hardware` route should continue opening the legacy hardware page in v1 for the
+same reason.
+
+Existing direct bindings should be updated as follows:
+
+- `Super+Ctrl+W` should open the new settings panel at Connections -> Wi-Fi.
+- `Super+Ctrl+B` should open the new settings panel at Connections -> Bluetooth.
+- Separate fallback/debug commands should remain available for
+  `ryoku-launch-wifi` and `ryoku-launch-bluetooth`.
+
+If the Noctalia settings runtime fails to instantiate, `toggleSettingsMenu()`
+should fail visibly in logs and leave the fallback IPC route usable. A temporary
+automatic fallback to the legacy settings menu is acceptable during rollout, but
+it must not hide repeated runtime-load failures from tests or logs.
 
 The new centered panel should not participate in topbar-attached popup layer
 behavior. It is a centered settings window, not a topbar menu. The old fallback
@@ -288,11 +342,41 @@ The first pass should mark Wi-Fi and Bluetooth as supported when their required
 tools/services are available. It should not grey out those pages just because
 Ryoku previously used TUI launchers.
 
+Search should keep disabled settings discoverable. Selecting a disabled search
+result should navigate to the owning tab/control and show its unavailable state;
+it should not silently omit the entry unless the upstream control is truly
+irrelevant to Ryoku and has no visible disabled row.
+
+## Dependencies
+
+Before implementation, audit Ryoku's package lists and service setup against the
+settings backends:
+
+- `install/ryoku-base.packages`
+- `install/ryoku-aur.packages`
+- `install/ryoku-other.packages`
+- `install/config/hardware/network.sh`
+- `install/config/hardware/bluetooth.sh`
+
+Wi-Fi support must account for Ryoku's existing `iwd`/`impala` setup. Do not add
+a NetworkManager dependency just to match Noctalia unless the implementation
+plan explicitly justifies migrating the network stack and includes migration,
+service conflict, and rollback handling.
+
+Bluetooth support should verify that BlueZ and `bluetoothctl` are installed and
+that `bluetooth.service` is enabled by Ryoku's install path. If a package is
+missing from the lists, the implementation plan should add it explicitly or mark
+the affected controls unavailable.
+
 ## Error Handling
 
-- Missing `nmcli` disables Wi-Fi controls and shows an unavailable state.
-- Missing NetworkManager or unsupported Wi-Fi hardware disables Wi-Fi controls
-  without hiding the tab.
+- Missing `nmcli` disables only the NetworkManager provider. It must not disable
+  Wi-Fi controls when the `iwd`/`iwctl` provider is available.
+- Missing `iwctl` or inactive `iwd` disables only the iwd provider. It must not
+  disable Wi-Fi controls when NetworkManager is available.
+- The Wi-Fi tab becomes unavailable only when no supported provider and no
+  compatible Quickshell Networking backend are available, or when no supported
+  Wi-Fi hardware is detected.
 - Failed Wi-Fi scan/connect/disconnect/forget actions keep the panel open and
   surface an error/status through the Noctalia UI.
 - Missing Bluetooth adapter disables Bluetooth controls and keeps the tab
@@ -327,13 +411,24 @@ Add or update static regression tests for:
 - Noctalia-only services such as telemetry/update/supporter/plugin services do
   not run unless explicitly supported.
 - Noctalia path writes are redirected to Ryoku-owned paths or blocked.
+- Runtime Noctalia imports use the isolated `qs.Noctalia.*` namespace and do
+  not require copying Noctalia directories into the Ryoku root namespace.
+- The full Noctalia `ShellRoot` bootstrap is not imported or instantiated by
+  Ryoku.
+- `Super+Ctrl+W` and `Super+Ctrl+B` route to the new graphical Wi-Fi and
+  Bluetooth settings subtabs, with TUI fallback commands still present.
 
 Add backend-oriented tests where practical for:
 
-- Wi-Fi scan command construction.
-- Wi-Fi connect, disconnect, and forget command construction.
+- Wi-Fi provider selection for `iwd`/`iwctl` and NetworkManager/`nmcli`.
+- Wi-Fi scan command construction for each supported command provider.
+- Wi-Fi connect, disconnect, and forget command construction for each supported
+  command provider.
+- Wi-Fi password handling does not place secrets in command strings or logs.
 - Bluetooth power, scan, pair, connect, disconnect, and remove command
   construction.
+- Dependency and service detection for `iwd`, NetworkManager, BlueZ, and
+  `bluetoothctl`.
 - Feature availability decisions for missing commands/services.
 - Theme and wallpaper command routing through Ryoku commands.
 - Disabled feature actions being blocked.
@@ -343,7 +438,11 @@ Manual verification:
 - Restart Quickshell.
 - Open `Super+Alt+Space`.
 - Confirm the panel appears centered and matches Noctalia's settings layout.
+- Confirm the panel stays usable on the smallest supported laptop display and
+  scrolls internally rather than clipping offscreen.
 - Use the search field and navigate search results.
+- Search for a disabled setting and confirm it remains discoverable but
+  unavailable.
 - Toggle Wi-Fi and connect/disconnect from the panel.
 - Forget a saved Wi-Fi network from the panel.
 - Pair, connect, disconnect, and remove a Bluetooth device from the panel.
@@ -380,8 +479,8 @@ upstream vendor tree.
   unrelated Noctalia shell features.
 - Quickshell module names may conflict if copied Noctalia code expects the root
   `qs` import namespace. Wrappers may be needed to keep imports stable.
-- Full Wi-Fi and Bluetooth behavior depends on local NetworkManager, BlueZ,
-  Quickshell Networking, and Quickshell Bluetooth behavior.
+- Full Wi-Fi and Bluetooth behavior depends on local `iwd` or NetworkManager,
+  BlueZ, Quickshell Networking, and Quickshell Bluetooth behavior.
 - Noctalia's settings schema is broad. Ryoku should avoid adopting settings that
   do not map cleanly to Ryoku behavior.
 - Static tests can verify routing and source structure, but visual fidelity will
