@@ -229,6 +229,30 @@ PanelWindow {
         }
 
         Item {
+            id: rightGap
+            anchors {
+                left: centerNotch.right
+                right: rightNotch.left
+                top: parent.top
+            }
+            height: Theme.notchHeight
+            clip: true
+
+            VolumeToast {
+                id: volumeToast
+                width: Math.min(implicitWidth, Math.max(0, parent.width - 18))
+                height: implicitHeight
+                anchors.horizontalCenter: parent.horizontalCenter
+                active: VolumeFeedback.visible
+                        && parent.width >= implicitWidth + 18
+                        && !Popups.toolboxOpen
+                        && !Popups.dashboardOpen
+                        && !Popups.networkOpen
+                        && !Popups.notificationsOpen
+            }
+        }
+
+        Item {
             id:            rightNotch
             width:         root.rWidth
             height:        Theme.notchHeight
