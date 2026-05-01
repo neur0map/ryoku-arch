@@ -75,8 +75,10 @@ Item {
   onEffectivelyVisibleChanged: {
     if (effectivelyVisible) {
       SystemStatService.registerComponent("wifi-subtab");
-      if (RyokuNetworkService.wifiEnabled && !RyokuNetworkService.scanningActive && !showOnlyLists) {
+      if (!RyokuNetworkService.scanningActive && !showOnlyLists) {
         RyokuNetworkService.scan();
+      }
+      if (RyokuNetworkService.wifiEnabled && !showOnlyLists) {
         RyokuNetworkService.refreshActiveWifiDetails();
       }
     } else {

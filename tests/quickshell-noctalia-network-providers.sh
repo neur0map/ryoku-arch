@@ -81,6 +81,8 @@ grep -q 'Powered' "$network_dir/IwdProvider.qml" \
   || fail "iwd provider should parse or query iwd powered state"
 grep -q 'connect-hidden' "$network_dir/IwdProvider.qml" \
   || fail "iwd provider should support hidden-network connects"
+! grep -q 'parts\.length >= 4' "$network_dir/IwdProvider.qml" \
+  || fail "iwd provider should not treat non-station device rows as usable stations"
 assert_no_secret_command_args
 
 grep -q 'nmcli' "$network_dir/NmcliProvider.qml" \
@@ -102,6 +104,9 @@ grep -q 'customSsid, addNetworkPopup.customSecurityKey, addNetworkPopup.customPa
   || fail "hidden-network connects should pass the hidden flag to the Ryoku network service"
 grep -A3 'id: miscSettingsBox' "$runtime/Modules/Panels/Settings/Tabs/Connections/WifiSubTab.qml" | grep -q 'visible: false' \
   || fail "Wi-Fi subtab should hide airplane mode until the shared Bluetooth adapter exists"
+if grep -A8 'if (effectivelyVisible)' "$runtime/Modules/Panels/Settings/Tabs/Connections/WifiSubTab.qml" | grep -q 'if (RyokuNetworkService\.wifiEnabled.*RyokuNetworkService\.scan'; then
+  fail "Wi-Fi subtab should request scans while visible even before provider detection completes"
+fi
 
 [[ -f $network_dir/RyokuBluetoothService.qml ]] \
   || fail "Ryoku Bluetooth service should exist"
