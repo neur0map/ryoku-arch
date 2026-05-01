@@ -20,6 +20,13 @@ apply_bin="bin/ryoku-wallpaper-apply"
 [[ -f $apply_bin ]] || fail "bin/ryoku-wallpaper-apply missing"
 [[ -x $apply_bin ]] || fail "bin/ryoku-wallpaper-apply should be executable"
 
+assert_has_route() {
+  local route="$1"
+
+  "$ipc" --help | grep -Fq "ryoku-ipc $route" \
+    || fail "help should document $route"
+}
+
 "$ipc" --help | grep -q "ryoku-ipc shell toggle wallpaper" \
   || fail "help should document shell wallpaper toggle"
 "$ipc" --help | grep -q "ryoku-ipc wallpaper list --jsonl" \
@@ -36,6 +43,14 @@ apply_bin="bin/ryoku-wallpaper-apply"
   || fail "help should document shell system-menu toggle"
 "$ipc" --help | grep -q "ryoku-ipc shell toggle settings-menu" \
   || fail "help should document shell settings-menu toggle"
+assert_has_route "shell toggle settings-menu"
+assert_has_route "shell toggle legacy-settings-menu"
+assert_has_route "shell settings-menu wifi"
+assert_has_route "shell settings-menu bluetooth"
+assert_has_route "shell settings-menu color-scheme"
+assert_has_route "shell settings-menu wallpaper"
+assert_has_route "shell settings-menu display"
+assert_has_route "shell settings-menu audio"
 "$ipc" --help | grep -q "ryoku-ipc shell command settings-menu-home" \
   || fail "help should document shell command settings-menu-home"
 "$ipc" --help | grep -q "ryoku-ipc shell command settings-menu-share" \

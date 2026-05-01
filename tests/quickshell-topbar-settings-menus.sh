@@ -71,66 +71,54 @@ done
 
 grep -q 'function toggleSystemMenu' "$shell" \
   || fail "shell IPC should expose toggleSystemMenu"
-grep -q 'function toggleSettingsMenu' "$shell" \
-  || fail "shell IPC should expose toggleSettingsMenu"
-grep -q 'function openSettingsMenuHome(): void' "$shell" \
-  || fail "shell IPC should expose openSettingsMenuHome"
-grep -q 'function openSettingsMenuShare(): void' "$shell" \
-  || fail "shell IPC should expose openSettingsMenuShare"
-grep -q 'function openSettingsMenuHardware(): void' "$shell" \
-  || fail "shell IPC should expose openSettingsMenuHardware"
+grep -q 'function toggleLegacySettingsMenu' "$shell" \
+  || fail "shell IPC should expose toggleLegacySettingsMenu"
 grep -q 'function toggleDotfiles' "$shell" \
   || fail "shell IPC should expose toggleDotfiles"
 grep -q 'BS.Popups.systemMenuOpen = opening' "$shell" \
   || fail "toggleSystemMenu should open system menu after closing other popups"
-grep -q 'BS.Popups.settingsMenuOpen = opening' "$shell" \
-  || fail "toggleSettingsMenu should open settings menu after closing other popups"
-grep -q 'BS.Popups.requestSettingsMenuPage("home", "")' "$shell" \
-  || fail "openSettingsMenuHome should request the home route"
-grep -q 'BS.Popups.requestSettingsMenuPage("share", "")' "$shell" \
-  || fail "openSettingsMenuShare should request the share route"
-grep -q 'BS.Popups.requestSettingsMenuPage("setup", "hardware")' "$shell" \
-  || fail "openSettingsMenuHardware should request the hardware route"
+grep -q 'BS.Popups.legacySettingsMenuOpen = opening' "$shell" \
+  || fail "toggleLegacySettingsMenu should open the legacy settings menu after closing other popups"
 grep -q 'BS.Popups.dotfilesOpen = opening' "$shell" \
   || fail "toggleDotfiles should open the dotfiles hub after closing other popups"
 
 grep -q 'property bool systemMenuOpen' "$popups" \
   || fail "Popups should track systemMenuOpen"
-grep -q 'property bool settingsMenuOpen' "$popups" \
-  || fail "Popups should track settingsMenuOpen"
-grep -q 'property string settingsMenuRequestedPage' "$popups" \
-  || fail "Popups should track the requested settings menu page"
-grep -q 'property string settingsMenuRequestedSubpage' "$popups" \
-  || fail "Popups should track the requested settings menu subpage"
-grep -q 'function requestSettingsMenuPage(page, subpage)' "$popups" \
-  || fail "Popups should expose a settings menu page request helper"
+grep -q 'property bool legacySettingsMenuOpen' "$popups" \
+  || fail "Brain Shell settings popup should be guarded by legacy settings-menu state"
+grep -q 'property string legacySettingsMenuRequestedPage' "$popups" \
+  || fail "Popups should track the requested legacy settings menu page"
+grep -q 'property string legacySettingsMenuRequestedSubpage' "$popups" \
+  || fail "Popups should track the requested legacy settings menu subpage"
+grep -q 'function requestLegacySettingsMenuPage(page, subpage)' "$popups" \
+  || fail "Popups should expose a legacy settings menu page request helper"
 grep -q 'property bool dotfilesOpen' "$popups" \
   || fail "Popups should track dotfilesOpen"
 grep -q 'property bool systemMenuVisible' "$popups" \
   || fail "Popups should track system menu visual presence"
-grep -q 'property bool settingsMenuVisible' "$popups" \
-  || fail "Popups should track settings menu visual presence"
+grep -q 'property bool legacySettingsMenuVisible' "$popups" \
+  || fail "Popups should track legacy settings menu visual presence"
 grep -q 'property bool dotfilesVisible' "$popups" \
   || fail "Popups should track dotfiles hub visual presence"
 ! awk '/readonly property bool anyOpen:/,/function closeAll/' "$popups" | grep -q 'systemMenuOpen' \
   || fail "PopupDismiss should not be responsible for system menu outside-click handling"
-! awk '/readonly property bool anyOpen:/,/function closeAll/' "$popups" | grep -q 'settingsMenuOpen' \
-  || fail "PopupDismiss should not be responsible for settings menu outside-click handling"
+! awk '/readonly property bool anyOpen:/,/function closeAll/' "$popups" | grep -q 'legacySettingsMenuOpen' \
+  || fail "PopupDismiss should not be responsible for legacy settings menu outside-click handling"
 grep -q 'systemMenuOpen     = false' "$popups" \
   || fail "closeAll should close the system menu"
-grep -q 'settingsMenuOpen   = false' "$popups" \
-  || fail "closeAll should close the settings menu"
+grep -q 'legacySettingsMenuOpen = false' "$popups" \
+  || fail "closeAll should close the legacy settings menu"
 grep -q 'dotfilesOpen       = false' "$popups" \
   || fail "closeAll should close the dotfiles hub"
 
-grep -q 'Popups.dashboardVisible || Popups.launcherVisible || Popups.systemMenuVisible || Popups.settingsMenuVisible' "$topbar" \
+grep -q 'Popups.dashboardVisible || Popups.launcherVisible || Popups.systemMenuVisible || Popups.legacySettingsMenuVisible' "$topbar" \
   || fail "TopBar should stay on overlay while topbar menus animate"
 grep -q 'Popups.systemMenuOpen' "$control_panel" \
   || fail "left topbar control should toggle the new system menu"
 grep -q 'SystemMenuPopup' "$layer" \
   || fail "PopupLayer should instantiate SystemMenuPopup"
-grep -q 'SettingsMenuPopup' "$layer" \
-  || fail "PopupLayer should instantiate SettingsMenuPopup"
+grep -q 'legacySettingsMenuOpen' "$layer" \
+  || fail "Legacy settings popup should be mounted through the legacy popup state"
 grep -q 'DotfilesHubPopup' "$layer" \
   || fail "PopupLayer should instantiate DotfilesHubPopup"
 
@@ -173,12 +161,12 @@ grep -q 'id: headerRule' "$system_popup" \
 
 grep -q 'ListModel {' "$settings_popup" \
   || fail "SettingsMenuPopup should use stable ListModel roles for visible labels"
-grep -q 'Binding { target: Popups; property: "settingsMenuVisible"' "$settings_popup" \
-  || fail "SettingsMenuPopup should expose visual presence"
+grep -q 'Binding { target: Popups; property: "legacySettingsMenuVisible"' "$settings_popup" \
+  || fail "SettingsMenuPopup should expose legacy visual presence"
 grep -q 'property bool windowVisible: false' "$settings_popup" \
   || fail "SettingsMenuPopup should preserve the popup window through close animation"
-grep -q 'property real openProgress: Popups.settingsMenuOpen ? 1 : 0' "$settings_popup" \
-  || fail "SettingsMenuPopup should animate from popup open state"
+grep -q 'property real openProgress: Popups.legacySettingsMenuOpen ? 1 : 0' "$settings_popup" \
+  || fail "SettingsMenuPopup should animate from legacy popup open state"
 grep -q 'id: closeTimer' "$settings_popup" \
   || fail "SettingsMenuPopup should delay window unmapping until close animation ends"
 grep -q 'onTriggered: root.windowVisible = false' "$settings_popup" \
@@ -201,10 +189,10 @@ grep -q 'function openRequestedRoute()' "$settings_popup" \
   || fail "SettingsMenuPopup should consume requested routes"
 grep -q 'root.openRequestedRoute()' "$settings_popup" \
   || fail "SettingsMenuPopup should apply requested routes when opening"
-grep -q 'Popups.settingsMenuRequestedPage' "$settings_popup" \
-  || fail "SettingsMenuPopup should read requested page state"
-grep -q 'Popups.settingsMenuRequestedSubpage' "$settings_popup" \
-  || fail "SettingsMenuPopup should read requested subpage state"
+grep -q 'Popups.legacySettingsMenuRequestedPage' "$settings_popup" \
+  || fail "SettingsMenuPopup should read requested legacy page state"
+grep -q 'Popups.legacySettingsMenuRequestedSubpage' "$settings_popup" \
+  || fail "SettingsMenuPopup should read requested legacy subpage state"
 grep -q 'id: quickControlsModel' "$settings_popup" \
   || fail "SettingsMenuPopup should define quick controls for the home view"
 grep -q 'id: nativeSectionsModel' "$settings_popup" \
@@ -859,14 +847,14 @@ grep -q 'onClicked: Popups.closeAll()' "$dotfiles_popup" \
 
 "$ipc" --help | grep -q "ryoku-ipc shell toggle system-menu" \
   || fail "ryoku-ipc help should document system-menu toggle"
-"$ipc" --help | grep -q "ryoku-ipc shell toggle settings-menu" \
-  || fail "ryoku-ipc help should document settings-menu toggle"
+"$ipc" --help | grep -q "ryoku-ipc shell toggle legacy-settings-menu" \
+  || fail "ryoku-ipc help should document legacy settings-menu toggle"
 "$ipc" --help | grep -q "ryoku-ipc shell toggle dotfiles" \
   || fail "ryoku-ipc help should document dotfiles toggle"
 "$ipc" shell command system-menu | grep -q 'qs -c ryoku ipc call popups toggleSystemMenu' \
   || fail "ryoku-ipc should print the system-menu IPC command"
-"$ipc" shell command settings-menu | grep -q 'qs -c ryoku ipc call popups toggleSettingsMenu' \
-  || fail "ryoku-ipc should print the settings-menu IPC command"
+"$ipc" shell command legacy-settings-menu | grep -q 'qs -c ryoku ipc call popups toggleLegacySettingsMenu' \
+  || fail "ryoku-ipc should print the legacy settings-menu IPC command"
 "$ipc" shell command dotfiles | grep -q 'qs -c ryoku ipc call popups toggleDotfiles' \
   || fail "ryoku-ipc should print the dotfiles IPC command"
 
@@ -874,16 +862,6 @@ grep -q 'bindd = SUPER, ESCAPE, System menu, exec, ryoku-ipc shell toggle system
   || fail "SUPER+ESC should open the Quickshell system menu"
 grep -q 'bindld = , XF86PowerOff, Power menu, exec, ryoku-ipc shell toggle system-menu' "$bindings" \
   || fail "hardware power key should open the Quickshell system menu"
-grep -q 'bindd = SUPER CTRL ALT, SPACE, Ryoku settings menu, exec, ryoku-ipc shell toggle settings-menu' "$bindings" \
-  || fail "SUPER+CTRL+ALT+SPACE should open the Quickshell settings menu"
-grep -q 'bindd = SUPER ALT, SPACE, Ryoku menu, exec, ryoku-ipc shell toggle settings-menu' "$bindings" \
-  || fail "SUPER+ALT+SPACE should no longer open the old Omarchy picker"
-grep -q 'bindd = SUPER CTRL, O, Toggle menu, exec, ryoku-ipc shell settings-menu home' "$bindings" \
-  || fail "SUPER+CTRL+O should route to the settings menu home page"
-grep -q 'bindd = SUPER CTRL, H, Hardware menu, exec, ryoku-ipc shell settings-menu hardware' "$bindings" \
-  || fail "SUPER+CTRL+H should route to the settings menu hardware page"
-grep -q 'bindd = SUPER CTRL, S, Share, exec, ryoku-ipc shell settings-menu share' "$bindings" \
-  || fail "SUPER+CTRL+S should route to the settings menu share page"
 ! grep -q 'bindd = SUPER, ESCAPE, System menu, exec, ryoku-menu system' "$bindings" \
   || fail "SUPER+ESC should no longer open the old Omarchy picker"
 ! grep -q 'bindld = , XF86PowerOff, Power menu, exec, ryoku-menu system' "$bindings" \
