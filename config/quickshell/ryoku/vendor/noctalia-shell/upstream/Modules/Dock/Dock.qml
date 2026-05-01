@@ -1,0 +1,951 @@
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Effects
+import QtQuick.Layouts
+import Quickshell
+import Quickshell.Wayland
+import Quickshell.Widgets
+import qs.Commons
+import qs.Services.Compositor
+import qs.Services.System
+import qs.Services.UI
+import qs.Widgets
+
+Loader {
+
+  active: Settings.data.dock.enabled
+  sourceComponent: Variants {
+    model: Quickshell.screens
+
+    delegate: Item {
+      id: root
+
+      required property ShellScreen modelData
+
+      property bool barIsReady: modelData ? BarService.isBarReady(modelData.name) : false
+
+      Connections {
+        target: BarService
+        function onBarReadyChanged(screenName) {
+          if (screenName === modelData.name) {
+            barIsReady = true;
+          }
+        }
+      }
+
+      // Update dock apps when window list change
+      Connections {
+        target: CompositorService
+        function onWindowListChanged() {
+          updateDockApps();
+        }
+      }
+
+      // Update dock apps when toplevels change
+      Connections {
+        target: ToplevelManager ? ToplevelManager.toplevels : null
+        function onValuesChanged() {
+          updateDockApps();
+        }
+      }
+
+      // Update dock apps when pinned apps change
+      Connections {
+        target: Settings.data.dock
+        function onPinnedAppsChanged() {
+          updateDockApps();
+        }
+        function onOnlySameOutputChanged() {
+          updateDockApps();
+        }
+        function onGroupAppsChanged() {
+          updateDockApps();
+        }
+      }
+
+      // Initial update when component is ready
+      Component.onCompleted: {
+        if (ToplevelManager) {
+          updateDockApps();
+        }
+      }
+
+      // Refresh icons and names when DesktopEntries becomes available (or updates)
+      Connections {
+        target: DesktopEntries.applications
+        function onValuesChanged() {
+          root.iconRevision++;
+          root._desktopEntryIdCache = {};
+          updateDockApps();
+        }
+      }
+
+      // Shared properties between peek and dock windows
+      readonly property string displayMode: Settings.data.dock.displayMode
+      readonly property bool autoHide: displayMode === "auto_hide"
+      readonly property bool exclusive: displayMode === "exclusive"
+      readonly property bool isAttachedMode: Settings.data.dock.dockType === "attached"
+      readonly property int hideDelay: 500
+      readonly property int showDelay: 100
+      readonly property int hideAnimationDuration: Math.max(0, Math.round(Style.animationFast / (Settings.data.dock.animationSpeed || 1.0)))
+      readonly property int showAnimationDuration: Math.max(0, Math.round(Style.animationFast / (Settings.data.dock.animationSpeed || 1.0)))
+      readonly property int peekThickness: 1
+      readonly property int indicatorThickness: Settings.data.dock.indicatorThickness || 3
+      readonly property string indicatorColorKey: Settings.data.dock.indicatorColor || "primary"
+      readonly property real indicatorOpacity: Settings.data.dock.indicatorOpacity !== undefined ? Settings.data.dock.indicatorOpacity : 0.6
+      readonly property int iconSize: Math.round(12 + 24 * (Settings.data.dock.size ?? 1))
+      readonly property int floatingMargin: Settings.data.dock.floatingRatio * Style.marginL
+      readonly property int maxWidth: modelData ? modelData.width * 0.8 : 1000
+      readonly property int maxHeight: modelData ? modelData.height * 0.8 : 1000
+
+      // Dock position properties
+      readonly property string dockPosition: Settings.data.dock.position
+      readonly property bool isVertical: dockPosition === "left" || dockPosition === "right"
+
+      // Bar detection and positioning properties
+      readonly property bool hasBar: modelData && modelData.name ? (Settings.data.bar.monitors.includes(modelData.name) || (Settings.data.bar.monitors.length === 0)) : false
+      readonly property bool barAtSameEdge: hasBar && Settings.getBarPositionForScreen(modelData?.name) === dockPosition
+      readonly property string barPosition: Settings.getBarPositionForScreen(modelData?.name)
+      readonly property bool barIsVertical: barPosition === "left" || barPosition === "right"
+      readonly property bool barIsFramed: Settings.data.bar.barType === "framed" && hasBar
+      readonly property bool barFloating: Settings.data.bar.barType === "floating"
+      readonly property real barMarginH: barFloating ? Math.ceil(Settings.data.bar.marginHorizontal) : 0
+      readonly property real barMarginV: barFloating ? Math.ceil(Settings.data.bar.marginVertical) : 0
+      readonly property int barHeight: Style.getBarHeightForScreen(modelData?.name)
+      readonly property bool staticPanelOpen: {
+        if (!isAttachedMode)
+          return false;
+        var panel = getStaticDockPanel();
+        if (panel && panel.isPanelOpen !== undefined)
+          return panel.isPanelOpen;
+        return false;
+      }
+      readonly property int peekEdgeLength: {
+        const edgeSize = isVertical ? Math.round(modelData?.height || maxHeight) : Math.round(modelData?.width || maxWidth);
+        const minLength = Math.max(1, Math.round(edgeSize * (Settings.data.dock.showDockIndicator ? 0.1 : 0.25)));
+        return Math.max(minLength, dockIndicatorLength);
+      }
+      readonly property int peekCenterOffsetX: {
+        if (isVertical)
+          return 0;
+        const edgeSize = Math.round(modelData?.width || maxWidth);
+        if (barIsVertical) {
+          if (barPosition === "left") {
+            const availableStart = (barIsFramed ? 0 : barMarginH) + barHeight;
+            const availableWidth = edgeSize - availableStart - (barIsFramed ? Settings.data.bar.frameThickness : 0);
+            return Math.max(0, Math.round(availableStart + (availableWidth - peekEdgeLength) / 2));
+          }
+          if (barPosition === "right") {
+            const availableWidth = edgeSize - (barIsFramed ? 0 : barMarginH) - barHeight - (barIsFramed ? Settings.data.bar.frameThickness : 0);
+            return Math.max(0, Math.round((barIsFramed ? Settings.data.bar.frameThickness : 0) + (availableWidth - peekEdgeLength) / 2));
+          }
+        }
+        return Math.max(0, Math.round((edgeSize - peekEdgeLength) / 2));
+      }
+      readonly property int peekCenterOffsetY: {
+        if (!isVertical)
+          return 0;
+        const edgeSize = Math.round(modelData?.height || maxHeight);
+        if (!barIsVertical) {
+          if (barPosition === "top") {
+            const availableStart = (barIsFramed ? 0 : barMarginV) + barHeight;
+            const availableHeight = edgeSize - availableStart - (barIsFramed ? Settings.data.bar.frameThickness : 0);
+            return Math.max(0, Math.round(availableStart + (availableHeight - peekEdgeLength) / 2));
+          }
+          if (barPosition === "bottom") {
+            const availableHeight = edgeSize - (barIsFramed ? 0 : barMarginV) - barHeight - (barIsFramed ? Settings.data.bar.frameThickness : 0);
+            return Math.max(0, Math.round((barIsFramed ? Settings.data.bar.frameThickness : 0) + (availableHeight - peekEdgeLength) / 2));
+          }
+        }
+        return Math.max(0, Math.round((edgeSize - peekEdgeLength) / 2));
+      }
+      readonly property bool showDockIndicator: {
+        if (!Settings.data.dock.showDockIndicator || (!autoHide && !isAttachedMode) || !hidden)
+          return false;
+        return !staticPanelOpen;
+      }
+      readonly property int dockItemCount: dockApps.length + (Settings.data.dock.showLauncherIcon ? 1 : 0)
+      readonly property bool indicatorVisible: showDockIndicator && dockIndicatorLength > 0
+      readonly property int dockIndicatorLength: {
+        if (dockItemCount <= 0)
+          return 0;
+        const spacing = Style.marginS;
+        const layoutLength = (iconSize * dockItemCount) + (spacing * Math.max(0, dockItemCount - 1));
+        const padded = layoutLength + Style.marginXL;
+        return Math.min(padded, isVertical ? maxHeight : maxWidth);
+      }
+
+      // Shared state between windows
+      property bool dockHovered: false
+      property bool anyAppHovered: false
+      property bool menuHovered: false
+      property bool hidden: autoHide
+      property bool peekHovered: false
+
+      // Separate property to control Loader - stays true during animations
+      property bool dockLoaded: !autoHide // Start loaded if autoHide is off
+
+      // Track the currently open context menu
+      property var currentContextMenu: null
+
+      // Combined model of running apps and pinned apps
+      property var dockApps: []
+      property var groupCycleIndices: ({})
+
+      // Track the session order of apps (transient reordering)
+      property var sessionAppOrder: []
+
+      // Drag and Drop state for visual feedback
+      property int dragSourceIndex: -1
+      property int dragTargetIndex: -1
+
+      // when dragging ended but the cursor is outside the dock area, restart the timer
+      onDragSourceIndexChanged: {
+        if (dragSourceIndex === -1) {
+          if (autoHide && !dockHovered && !anyAppHovered && !peekHovered && !menuHovered) {
+            hideTimer.restart();
+          }
+        }
+      }
+
+      // Revision counter to force icon re-evaluation
+      property int iconRevision: 0
+
+      // Function to close any open context menu
+      function closeAllContextMenus() {
+        if (currentContextMenu && currentContextMenu.visible) {
+          currentContextMenu.hide();
+        }
+      }
+
+      function getStaticDockPanel() {
+        return PanelService.getPanel("staticDockPanel", modelData, false);
+      }
+
+      function getAppKey(appData) {
+        if (!appData)
+          return null;
+
+        if (Settings.data.dock.groupApps) {
+          return appData.appId;
+        }
+
+        // Use stable appId for pinned apps to maintain their slot regardless of running state
+        if (appData.type === "pinned" || appData.type === "pinned-running") {
+          return appData.appId;
+        }
+
+        // prefer toplevel object identity for unpinned running apps to distinguish instances
+        if (appData.toplevel)
+          return appData.toplevel;
+
+        // fallback to appId
+        return appData.appId;
+      }
+
+      function sortDockApps(apps) {
+        if (!sessionAppOrder || sessionAppOrder.length === 0) {
+          return apps;
+        }
+
+        const sorted = [];
+        const remaining = [...apps];
+
+        // Pick apps that are in the session order
+        for (let i = 0; i < sessionAppOrder.length; i++) {
+          const key = sessionAppOrder[i];
+
+          // Pick ALL matching apps (e.g. all instances of a pinned app)
+          while (true) {
+            const idx = remaining.findIndex(app => getAppKey(app) === key);
+            if (idx !== -1) {
+              sorted.push(remaining[idx]);
+              remaining.splice(idx, 1);
+            } else {
+              break;
+            }
+          }
+        }
+
+        // Append any new/remaining apps
+        remaining.forEach(app => sorted.push(app));
+
+        return sorted;
+      }
+
+      function reorderApps(fromIndex, toIndex) {
+        if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= dockApps.length || toIndex >= dockApps.length)
+          return;
+
+        const list = [...dockApps];
+        const item = list.splice(fromIndex, 1)[0];
+        list.splice(toIndex, 0, item);
+
+        dockApps = list;
+        sessionAppOrder = dockApps.map(getAppKey);
+        savePinnedOrder();
+      }
+
+      function savePinnedOrder() {
+        const currentPinned = Settings.data.dock.pinnedApps || [];
+        const newPinned = [];
+        const seen = new Set();
+
+        // Extract pinned apps in their current visual order
+        dockApps.forEach(app => {
+                           if (app.appId && !seen.has(app.appId)) {
+                             const isPinned = currentPinned.some(p => normalizeAppId(p) === normalizeAppId(app.appId));
+
+                             if (isPinned) {
+                               newPinned.push(app.appId);
+                               seen.add(app.appId);
+                             }
+                           }
+                         });
+
+        // Check if any pinned apps were missed (unlikely if dockApps is correct)
+        currentPinned.forEach(p => {
+                                if (!seen.has(p)) {
+                                  newPinned.push(p);
+                                  seen.add(p);
+                                }
+                              });
+
+        if (JSON.stringify(currentPinned) !== JSON.stringify(newPinned)) {
+          Settings.data.dock.pinnedApps = newPinned;
+        }
+      }
+
+      // Helper function to normalize app IDs for case-insensitive matching
+      function normalizeAppId(appId) {
+        if (!appId || typeof appId !== 'string')
+          return "";
+        let id = appId.toLowerCase().trim();
+        if (id.endsWith(".desktop"))
+          id = id.substring(0, id.length - 8);
+        return id;
+      }
+
+      // Helper function to check if an app ID matches a pinned app (case-insensitive)
+      function isAppIdPinned(appId, pinnedApps) {
+        if (!appId || !pinnedApps || pinnedApps.length === 0)
+          return false;
+        const normalizedId = normalizeAppId(appId);
+        // Direct match
+        if (pinnedApps.some(pinnedId => normalizeAppId(pinnedId) === normalizedId))
+          return true;
+        // Resolve via desktop entry lookup (handles StartupWMClass != .desktop filename)
+        const resolved = resolveToDesktopEntryId(appId);
+        if (resolved !== appId) {
+          const normalizedResolved = normalizeAppId(resolved);
+          return pinnedApps.some(pinnedId => normalizeAppId(pinnedId) === normalizedResolved);
+        }
+        return false;
+      }
+
+      // Desktop entry ID resolution cache (cleared when DesktopEntries change)
+      property var _desktopEntryIdCache: ({})
+
+      // Resolve a toplevel appId to its canonical .desktop entry ID via heuristic lookup.
+      // This handles cases where the Wayland appId (e.g. "zen" from StartupWMClass)
+      // differs from the .desktop filename (e.g. "zen-browser-bin").
+      function resolveToDesktopEntryId(appId) {
+        if (!appId)
+          return appId;
+        if (_desktopEntryIdCache.hasOwnProperty(appId))
+          return _desktopEntryIdCache[appId];
+        try {
+          if (typeof DesktopEntries !== 'undefined' && DesktopEntries.heuristicLookup) {
+            const entry = DesktopEntries.heuristicLookup(appId);
+            if (entry && entry.id) {
+              _desktopEntryIdCache[appId] = entry.id;
+              return entry.id;
+            }
+          }
+        } catch (e) {}
+        _desktopEntryIdCache[appId] = appId;
+        return appId;
+      }
+
+      // Helper function to get app name from desktop entry
+      function getAppNameFromDesktopEntry(appId) {
+        if (!appId)
+          return appId;
+
+        try {
+          if (typeof DesktopEntries !== 'undefined' && DesktopEntries.heuristicLookup) {
+            const entry = DesktopEntries.heuristicLookup(appId);
+            if (entry && entry.name) {
+              return entry.name;
+            }
+          }
+
+          if (typeof DesktopEntries !== 'undefined' && DesktopEntries.byId) {
+            const entry = DesktopEntries.byId(appId);
+            if (entry && entry.name) {
+              return entry.name;
+            }
+          }
+        } catch (e)
+          // Fall through to return original appId
+        {}
+
+        // Return original appId if we can't find a desktop entry
+        return appId;
+      }
+
+      function getToplevelsForEntry(appData) {
+        if (!appData)
+          return [];
+
+        if (appData.toplevels && appData.toplevels.length > 0) {
+          return appData.toplevels.filter(toplevel => toplevel && (!Settings.data.dock.onlySameOutput || !toplevel.screens || toplevel.screens.includes(modelData)));
+        }
+
+        if (!appData.toplevel)
+          return [];
+
+        if (Settings.data.dock.onlySameOutput && appData.toplevel.screens && !appData.toplevel.screens.includes(modelData))
+          return [];
+
+        return [appData.toplevel];
+      }
+
+      function getPrimaryToplevelForEntry(appData) {
+        const toplevels = getToplevelsForEntry(appData);
+        if (toplevels.length === 0)
+          return null;
+
+        if (ToplevelManager && ToplevelManager.activeToplevel && toplevels.includes(ToplevelManager.activeToplevel))
+          return ToplevelManager.activeToplevel;
+
+        return toplevels[0];
+      }
+
+      // Build grouped render model without mutating the raw toplevel list.
+      function buildGroupedDockApps(apps) {
+        if (!Settings.data.dock.groupApps) {
+          return apps.map(app => {
+                            const entry = Object.assign({}, app);
+                            entry.toplevels = getToplevelsForEntry(app);
+                            return entry;
+                          });
+        }
+
+        const grouped = [];
+        const groupedById = new Map();
+
+        apps.forEach(app => {
+                       const appId = app.appId;
+                       const toplevels = getToplevelsForEntry(app);
+                       const existing = groupedById.get(appId);
+
+                       if (existing) {
+                         toplevels.forEach(toplevel => {
+                                             if (!existing.toplevels.includes(toplevel)) {
+                                               existing.toplevels.push(toplevel);
+                                             }
+                                           });
+                         if (app.type === "pinned" || app.type === "pinned-running") {
+                           existing.isPinned = true;
+                         }
+                       } else {
+                         const entry = {
+                           "type": app.type,
+                           "appId": appId,
+                           "title": app.title,
+                           "toplevels": toplevels.slice(),
+                           "isPinned": app.type === "pinned" || app.type === "pinned-running"
+                         };
+                         grouped.push(entry);
+                         groupedById.set(appId, entry);
+                       }
+                     });
+
+        grouped.forEach(entry => {
+                          entry.toplevel = getPrimaryToplevelForEntry(entry);
+                          if (entry.toplevels.length > 0 && entry.isPinned) {
+                            entry.type = "pinned-running";
+                          } else if (entry.toplevels.length > 0) {
+                            entry.type = "running";
+                          } else {
+                            entry.type = "pinned";
+                          }
+                          if (entry.toplevel && entry.toplevel.title && entry.toplevel.title.trim() !== "") {
+                            entry.title = entry.toplevel.title;
+                          }
+                        });
+
+        return grouped;
+      }
+
+      // Function to update the combined dock apps model
+      function updateDockApps() {
+        const runningApps = ToplevelManager ? (ToplevelManager.toplevels.values || []) : [];
+        const pinnedApps = Settings.data.dock.pinnedApps || [];
+        const combined = [];
+        const processedToplevels = new Set();
+        const processedPinnedAppIds = new Set();
+
+        //push an app onto combined with the given appType
+        function pushApp(appType, toplevel, appId, title) {
+          // Use canonical ID for pinned apps to ensure key stability
+          const canonicalId = isAppIdPinned(appId, pinnedApps) ? (pinnedApps.find(p => normalizeAppId(p) === normalizeAppId(appId)) || appId) : appId;
+
+          // For running apps, track by toplevel object to allow multiple instances
+          if (toplevel) {
+            if (processedToplevels.has(toplevel)) {
+              return; // Already processed this toplevel instance
+            }
+            if (Settings.data.dock.onlySameOutput && toplevel.screens && !toplevel.screens.includes(modelData)) {
+              return; // Filtered out by onlySameOutput setting
+            }
+            combined.push({
+                            "type": appType,
+                            "toplevel": toplevel,
+                            "toplevels": toplevel ? [toplevel] : [],
+                            "appId": canonicalId,
+                            "title": title
+                          });
+            processedToplevels.add(toplevel);
+          } else {
+            // For pinned apps that aren't running, track by appId to avoid duplicates
+            if (processedPinnedAppIds.has(canonicalId)) {
+              return; // Already processed this pinned app
+            }
+            combined.push({
+                            "type": appType,
+                            "toplevel": toplevel,
+                            "toplevels": [],
+                            "appId": canonicalId,
+                            "title": title
+                          });
+            processedPinnedAppIds.add(canonicalId);
+          }
+        }
+
+        function pushRunning(first) {
+          runningApps.forEach(toplevel => {
+                                if (toplevel) {
+                                  // Use robust matching to check if pinned
+                                  const isPinned = isAppIdPinned(toplevel.appId, pinnedApps);
+                                  if (!first && isPinned && processedToplevels.has(toplevel)) {
+                                    return; // Already added by pushPinned()
+                                  }
+                                  pushApp((first && isPinned) ? "pinned-running" : "running", toplevel, toplevel.appId, toplevel.title);
+                                }
+                              });
+        }
+
+        function pushPinned() {
+          pinnedApps.forEach(pinnedAppId => {
+                               // Find all running instances of this pinned app using robust matching
+                               // Also resolve toplevel appId via desktop entry lookup to handle
+                               // StartupWMClass != .desktop filename (e.g. zen -> zen-browser-bin)
+                               const normalizedPinned = normalizeAppId(pinnedAppId);
+                               const matchingToplevels = runningApps.filter(app => {
+                                                                              if (!app)
+                                                                              return false;
+                                                                              if (normalizeAppId(app.appId) === normalizedPinned)
+                                                                              return true;
+                                                                              const resolved = resolveToDesktopEntryId(app.appId);
+                                                                              return resolved !== app.appId && normalizeAppId(resolved) === normalizedPinned;
+                                                                            });
+
+                               if (matchingToplevels.length > 0) {
+                                 // Add all running instances as pinned-running
+                                 matchingToplevels.forEach(toplevel => {
+                                                             pushApp("pinned-running", toplevel, pinnedAppId, toplevel.title);
+                                                           });
+                               } else {
+                                 // App is pinned but not running - add once
+                                 pushApp("pinned", null, pinnedAppId, getAppNameFromDesktopEntry(pinnedAppId) || pinnedAppId);
+                               }
+                             });
+        }
+
+        //if pinnedStatic then push all pinned and then all remaining running apps
+        if (Settings.data.dock.pinnedStatic) {
+          pushPinned();
+          pushRunning(false);
+
+          //else add all running apps and then remaining pinned apps
+        } else {
+          pushRunning(true);
+          pushPinned();
+        }
+
+        const sortedApps = sortDockApps(combined);
+        dockApps = buildGroupedDockApps(sortedApps);
+        const cycleState = root.groupCycleIndices || {};
+        const nextCycleState = {};
+        dockApps.forEach(app => {
+                           if (app && app.appId && cycleState[app.appId] !== undefined) {
+                             nextCycleState[app.appId] = cycleState[app.appId];
+                           }
+                         });
+        root.groupCycleIndices = nextCycleState;
+
+        // Sync session order if needed
+        // Instead of resetting everything when length changes, we reconcile the keys
+        if (!sessionAppOrder || sessionAppOrder.length === 0) {
+          sessionAppOrder = dockApps.map(getAppKey);
+        } else {
+          const currentKeys = new Set(dockApps.map(getAppKey));
+          const existingKeys = new Set();
+          const newOrder = [];
+
+          // Keep existing keys that are still present
+          sessionAppOrder.forEach(key => {
+                                    if (currentKeys.has(key)) {
+                                      newOrder.push(key);
+                                      existingKeys.add(key);
+                                    }
+                                  });
+
+          // Add new keys at the end
+          dockApps.forEach(app => {
+                             const key = getAppKey(app);
+                             if (!existingKeys.has(key)) {
+                               newOrder.push(key);
+                               existingKeys.add(key);
+                             }
+                           });
+
+          if (JSON.stringify(newOrder) !== JSON.stringify(sessionAppOrder)) {
+            sessionAppOrder = newOrder;
+          }
+        }
+      }
+
+      // Timer to unload dock after hide animation completes
+      Timer {
+        id: unloadTimer
+        interval: hideAnimationDuration + 50 // Add small buffer
+        onTriggered: {
+          if (hidden && autoHide) {
+            dockLoaded = false;
+          }
+        }
+      }
+
+      property alias hideTimer: hideTimer
+      property alias showTimer: showTimer
+      property alias unloadTimer: unloadTimer
+
+      // Timer for auto-hide delay
+      Timer {
+        id: hideTimer
+        interval: hideDelay
+        onTriggered: {
+          // do not hide if dragging
+          if (root.dragSourceIndex !== -1) {
+            return;
+          }
+
+          // Force menuHovered to false if no menu is current or visible
+          if (!root.currentContextMenu || !root.currentContextMenu.visible) {
+            menuHovered = false;
+          }
+          if (autoHide && !dockHovered && !anyAppHovered && !peekHovered && !menuHovered) {
+            if (isAttachedMode) {
+              const panel = getStaticDockPanel();
+              if (panel && (panel.menuHovered || (panel.currentContextMenu && panel.currentContextMenu.visible))) {
+                restart();
+                return;
+              }
+              if (panel && (panel.isDockHovered || panel.dockHovered || panel.anyAppHovered)) {
+                restart();
+                return;
+              }
+              if (panel)
+                panel.close();
+            } else {
+              closeAllContextMenus();
+            }
+            hidden = true;
+            unloadTimer.restart(); // Start unload timer when hiding
+          } else if (autoHide && !dockHovered && !peekHovered) {
+            // Restart timer if menu is closing (handles race condition)
+            restart();
+          }
+        }
+      }
+
+      // Timer for show delay
+      Timer {
+        id: showTimer
+        interval: showDelay
+        onTriggered: {
+          if (autoHide) {
+            if (!isAttachedMode) {
+              dockLoaded = true; // Load dock immediately
+            }
+            hidden = false; // Then trigger show animation
+            unloadTimer.stop(); // Cancel any pending unload
+          }
+        }
+      }
+
+      // Watch for autoHide setting changes
+      onAutoHideChanged: {
+        if (!autoHide) {
+          hidden = false;
+          dockLoaded = true;
+          hideTimer.stop();
+          showTimer.stop();
+          unloadTimer.stop();
+        } else {
+          hidden = true;
+          unloadTimer.restart(); // Schedule unload after animation
+        }
+      }
+
+      // PEEK WINDOW — only needed when dock can auto-hide or is in attached mode
+      Loader {
+        active: (autoHide || isAttachedMode) && (barIsReady || !hasBar) && modelData && (Settings.data.dock.monitors.length === 0 || Settings.data.dock.monitors.includes(modelData.name))
+
+        sourceComponent: PanelWindow {
+          id: peekWindow
+
+          screen: modelData
+          // Dynamic anchors based on dock position
+          anchors.top: dockPosition === "top" || isVertical
+          anchors.bottom: dockPosition === "bottom"
+          anchors.left: dockPosition === "left" || !isVertical
+          anchors.right: dockPosition === "right"
+          focusable: false
+          color: "transparent"
+
+          margins.top: peekCenterOffsetY
+          margins.left: peekCenterOffsetX
+
+          WlrLayershell.namespace: "noctalia-dock-peek-" + (screen?.name || "unknown")
+          WlrLayershell.layer: WlrLayer.Overlay
+          WlrLayershell.exclusionMode: ExclusionMode.Ignore
+          // Larger peek area when bar is at same edge, normal 1px otherwise
+          implicitHeight: isVertical ? peekEdgeLength : peekThickness
+          implicitWidth: isVertical ? peekThickness : peekEdgeLength
+
+          MouseArea {
+            id: peekArea
+            anchors.fill: parent
+            hoverEnabled: true
+
+            onEntered: {
+              peekHovered = true;
+              if (isAttachedMode) {
+                if (dockItemCount <= 0)
+                  return;
+                const panel = getStaticDockPanel();
+                if (panel && !panel.isPanelOpen)
+                  panel.open();
+                return;
+              }
+              if (hidden) {
+                showTimer.start();
+              }
+            }
+
+            onExited: {
+              peekHovered = false;
+              showTimer.stop();
+              if (isAttachedMode) {
+                // Start hideTimer which checks panel.isDockHovered before closing
+                if (!dockHovered && !anyAppHovered && !menuHovered) {
+                  hideTimer.restart();
+                }
+              } else if (!hidden && !dockHovered && !anyAppHovered && !menuHovered) {
+                hideTimer.restart();
+              }
+            }
+          }
+        }
+      }
+
+      // DOCK INDICATOR WINDOW — only needed when dock can auto-hide/attach and indicator is enabled
+      Loader {
+        active: (autoHide || isAttachedMode) && Settings.data.dock.showDockIndicator && (barIsReady || !hasBar) && modelData && (Settings.data.dock.monitors.length === 0 || Settings.data.dock.monitors.includes(modelData.name))
+
+        sourceComponent: PanelWindow {
+          id: dockIndicatorWindow
+
+          screen: modelData
+          // Dynamic anchors based on dock position
+          anchors.top: dockPosition === "top" || isVertical
+          anchors.bottom: dockPosition === "bottom"
+          anchors.left: dockPosition === "left" || !isVertical
+          anchors.right: dockPosition === "right"
+          focusable: false
+          color: "transparent"
+
+          margins.top: peekCenterOffsetY
+          margins.left: peekCenterOffsetX
+
+          WlrLayershell.namespace: "noctalia-dock-indicator-" + (screen?.name || "unknown")
+          WlrLayershell.layer: WlrLayer.Top
+          WlrLayershell.exclusionMode: ExclusionMode.Ignore
+          WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+          implicitHeight: isVertical ? peekEdgeLength : indicatorThickness
+          implicitWidth: isVertical ? indicatorThickness : peekEdgeLength
+
+          // Hide the window surface when indicator is not visible, so the compositor
+          // can skip compositing this layer-shell surface entirely (saves GPU on NVIDIA)
+          visible: indicatorRect.opacity > 0 || indicatorVisible
+
+          Rectangle {
+            id: indicatorRect
+            anchors.fill: parent
+            radius: indicatorThickness
+            color: Qt.alpha(Color.resolveColorKey(indicatorColorKey), indicatorOpacity)
+            opacity: indicatorVisible ? 1 : 0
+
+            Behavior on opacity {
+              NumberAnimation {
+                duration: Style.animationNormal
+                easing.type: Easing.InOutQuad
+              }
+            }
+          }
+        }
+      }
+
+      // Force dock reload when position changes to fix anchor/layout issues
+      // Force dock reload when position/mode changes to fix anchor/layout issues
+      property bool _reloading: false
+      function handleReload() {
+        if (!autoHide && dockLoaded && !_reloading) {
+          _reloading = true;
+          // Brief unload/reload cycle to reset layout
+          Qt.callLater(() => {
+                         dockLoaded = false;
+                         Qt.callLater(() => {
+                                        dockLoaded = true;
+                                        _reloading = false;
+                                      });
+                       });
+        }
+      }
+
+      onDockPositionChanged: handleReload()
+      onExclusiveChanged: handleReload()
+
+      Loader {
+        id: dockWindowLoader
+        active: Settings.data.dock.enabled && !isAttachedMode && (barIsReady || !hasBar) && modelData && (Settings.data.dock.monitors.length === 0 || Settings.data.dock.monitors.includes(modelData.name)) && dockLoaded && ToplevelManager && (dockApps.length > 0)
+
+        sourceComponent: PanelWindow {
+          id: dockWindow
+
+          screen: modelData
+
+          focusable: false
+          color: "transparent"
+
+          WlrLayershell.namespace: "noctalia-dock-" + (screen?.name || "unknown")
+          WlrLayershell.exclusionMode: exclusive ? ExclusionMode.Auto : ExclusionMode.Ignore
+
+          // Slide animation: content slides inside a fixed window, no margin animation.
+          // Only reserve extra space for sliding when auto-hide is enabled
+          property int slideDistance: autoHide ? ((isVertical ? dockContainerWrapper.contentWidth : dockContainerWrapper.contentHeight) + floatingMargin + 10) : 0
+          property real slideOffset: hidden ? slideDistance : 0
+
+          Behavior on slideOffset {
+            NumberAnimation {
+              duration: hidden ? hideAnimationDuration : showAnimationDuration
+              easing.type: hidden ? Easing.InCubic : Easing.OutCubic
+            }
+          }
+
+          // Signed slide: positive pushes content toward its edge (off-screen)
+          readonly property real slideX: dockPosition === "left" ? -slideOffset : dockPosition === "right" ? slideOffset : 0
+          readonly property real slideY: dockPosition === "top" ? -slideOffset : dockPosition === "bottom" ? slideOffset : 0
+
+          // Blur behind dock — offset by slide so it follows the content
+          BackgroundEffect.blurRegion: Settings.data.general.enableBlurBehind ? dockBlurRegion : null
+          Region {
+            id: dockBlurRegion
+            Region {
+              x: Math.round(dockContainerWrapper.x + dockContent.dockContainer.x + dockWindow.slideX)
+              y: Math.round(dockContainerWrapper.y + dockContent.dockContainer.y + dockWindow.slideY)
+              width: Math.round(dockContent.dockContainer.width)
+              height: Math.round(dockContent.dockContainer.height)
+              radius: Style.radiusL
+            }
+          }
+
+          // Window sized to fit content + slide distance so content can slide off-edge.
+          // When auto-hide is disabled, slideDistance is 0 so the window (and thus
+          // the exclusion zone) matches the dock content size.
+          implicitWidth: dockContainerWrapper.width + (isVertical ? slideDistance : 0)
+          implicitHeight: dockContainerWrapper.height + (!isVertical ? slideDistance : 0)
+
+          // Position based on dock setting
+          anchors.top: dockPosition === "top"
+          anchors.bottom: dockPosition === "bottom"
+          anchors.left: dockPosition === "left"
+          anchors.right: dockPosition === "right"
+
+          // Static margins — no animation, window stays put
+          margins.top: dockPosition === "top" ? (barAtSameEdge && !exclusive ? barHeight + (barFloating ? Settings.data.bar.marginVertical : 0) + floatingMargin : floatingMargin) : 0
+          margins.bottom: dockPosition === "bottom" ? (barAtSameEdge && !exclusive ? barHeight + (barFloating ? Settings.data.bar.marginVertical : 0) + floatingMargin : floatingMargin) : 0
+          margins.left: dockPosition === "left" ? (barAtSameEdge && !exclusive ? barHeight + (barFloating ? Settings.data.bar.marginHorizontal : 0) + floatingMargin : floatingMargin) : 0
+          margins.right: dockPosition === "right" ? (barAtSameEdge && !exclusive ? barHeight + (barFloating ? Settings.data.bar.marginHorizontal : 0) + floatingMargin : floatingMargin) : 0
+
+          // Container wrapper for animations
+          Item {
+            id: dockContainerWrapper
+
+            // Helper properties for orthogonal bar detection
+            readonly property string screenBarPosition: Settings.getBarPositionForScreen(modelData?.name)
+            readonly property bool barOnLeft: hasBar && screenBarPosition === "left" && !barFloating
+            readonly property bool barOnRight: hasBar && screenBarPosition === "right" && !barFloating
+            readonly property bool barOnTop: hasBar && screenBarPosition === "top" && !barFloating
+            readonly property bool barOnBottom: hasBar && screenBarPosition === "bottom" && !barFloating
+
+            // Calculate padding needed to shift center to match exclusive mode
+            readonly property int extraTop: (isVertical && !exclusive && barOnTop) ? barHeight : 0
+            readonly property int extraBottom: (isVertical && !exclusive && barOnBottom) ? barHeight : 0
+            readonly property int extraLeft: (!isVertical && !exclusive && barOnLeft) ? barHeight : 0
+            readonly property int extraRight: (!isVertical && !exclusive && barOnRight) ? barHeight : 0
+
+            // Expose content size for window sizing (before slide padding)
+            readonly property int contentWidth: dockContent.dockContainer.width + extraLeft + extraRight + 2
+            readonly property int contentHeight: dockContent.dockContainer.height + extraTop + extraBottom + 2
+
+            // Add +2 buffer for fractional scaling issues
+            width: contentWidth
+            height: contentHeight
+
+            anchors.horizontalCenter: isVertical ? undefined : parent.horizontalCenter
+            anchors.verticalCenter: isVertical ? parent.verticalCenter : undefined
+
+            anchors.top: dockPosition === "top" ? parent.top : undefined
+            anchors.bottom: dockPosition === "bottom" ? parent.bottom : undefined
+            anchors.left: dockPosition === "left" ? parent.left : undefined
+            anchors.right: dockPosition === "right" ? parent.right : undefined
+
+            // Slide content inside the fixed window
+            transform: Translate {
+              x: dockWindow.slideX
+              y: dockWindow.slideY
+            }
+
+            // Enable layer caching to reduce GPU usage from continuous animations
+            layer.enabled: true
+
+            DockContent {
+              id: dockContent
+              anchors.fill: parent
+              dockRoot: root
+              extraTop: dockContainerWrapper.extraTop
+              extraBottom: dockContainerWrapper.extraBottom
+              extraLeft: dockContainerWrapper.extraLeft
+              extraRight: dockContainerWrapper.extraRight
+            }
+          }
+        }
+      }
+    }
+  }
+}

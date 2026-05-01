@@ -66,6 +66,8 @@ Full hardware matrix and driver list lives in [`docs/iso-build-recipe.md`](docs/
 
 Ryoku stands on the shoulders of upstream projects and visual references. Full attribution lives in [`CREDITS.md`](CREDITS.md) and [`NOTICE`](NOTICE).
 
+Ryoku's centered settings panel UI is adapted from Noctalia Shell, MIT licensed, with Ryoku-specific backend adapters. See `config/quickshell/ryoku/vendor/noctalia-shell/UPSTREAM.md`.
+
 - [**Brain_Shell**](https://github.com/Brainitech/Brain_Shell): Quickshell visual layer by **Venkat Saahit Kamu** (Brainitech): top bar, dashboard, popups, frame. MIT, used with permission. Vendored under [`config/quickshell/ryoku/vendor/brain-shell/`](config/quickshell/ryoku/vendor/brain-shell/).
 - [**Omarchy**](https://github.com/basecamp/omarchy): the original opinionated-Hyprland-Arch project that Ryoku descends from. Ryoku's command ecosystem, theme pipeline, and install flow inherit its shape.
 - [**qylock**](https://github.com/Darkkal44/qylock): optional SDDM greeter and Quickshell lockscreen themes by **Darkkal44**, swappable via `ryoku-install-qylock`.

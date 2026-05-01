@@ -1,0 +1,161 @@
+import QtQuick
+import qs.Commons
+import qs.Services.UI
+
+Item {
+  id: root
+
+  // Provider metadata
+  property string name: I18n.tr("common.settings")
+  property var launcher: null
+  property bool handleSearch: Settings.data.appLauncher.enableSettingsSearch
+  property string supportedLayouts: "list"
+  property string iconMode: Settings.data.appLauncher.iconMode
+
+  function init() {
+    Logger.d("SettingsProvider", "Initialized");
+  }
+
+  // Check if this provider handles the command
+  function handleCommand(searchText) {
+    return searchText.startsWith(">settings");
+  }
+
+  // Return available commands when user types ">"
+  function commands() {
+    return [
+          {
+            "name": ">settings",
+            "description": I18n.tr("launcher.providers.settings-search-description"),
+            "icon": iconMode === "tabler" ? "settings" : "preferences-system",
+            "isTablerIcon": true,
+            "isImage": false,
+            "onActivate": function () {
+              launcher.setSearchText(">settings ");
+            }
+          }
+        ];
+  }
+
+  function getResults(query) {
+    if (!query || SettingsSearchService.searchIndex.length === 0)
+      return [];
+
+    var trimmed = query.trim();
+
+    // Handle command mode: ">settings" or ">settings <search>"
+    var isCommandMode = trimmed.startsWith(">settings");
+    if (isCommandMode) {
+      // Extract search term after ">settings "
+      var searchTerm = trimmed.substring(9).trim();
+      // In command mode, show all settings if no search term
+      if (searchTerm.length === 0) {
+        return getAllSettings();
+      }
+      trimmed = searchTerm;
+    } else {
+      // Regular search mode - require at least 2 chars
+      if (!trimmed || trimmed.length < 2)
+        return [];
+    }
+
+    // Build searchable items with resolved translations, filtering out invisible entries
+    let items = [];
+    for (let j = 0; j < SettingsSearchService.searchIndex.length; j++) {
+      const entry = SettingsSearchService.searchIndex[j];
+      if (!SettingsSearchService.isEntryVisible(entry))
+        continue;
+      items.push({
+                   "labelKey": entry.labelKey,
+                   "descriptionKey": entry.descriptionKey,
+                   "widget": entry.widget,
+                   "tab": entry.tab,
+                   "tabLabel": entry.tabLabel,
+                   "subTab": entry.subTab,
+                   "subTabLabel": entry.subTabLabel || null,
+                   "label": I18n.tr(entry.labelKey),
+                   "description": entry.descriptionKey ? I18n.tr(entry.descriptionKey) : "",
+                   "subTabName": entry.subTabLabel ? I18n.tr(entry.subTabLabel) : ""
+                 });
+    }
+
+    const results = FuzzySort.go(trimmed, items, {
+                                   "keys": ["label", "subTabName", "description"],
+                                   "limit": 10,
+                                   "scoreFn": function (r) {
+                                     const labelScore = r[0].score;
+                                     const subTabScore = r[1].score * 1.5;
+                                     const descScore = r[2].score;
+                                     return Math.max(labelScore, subTabScore, descScore);
+                                   }
+                                 });
+
+    let launcherItems = [];
+    for (let i = 0; i < results.length; i++) {
+      const entry = results[i].obj;
+      const score = results[i].score;
+      const tabName = I18n.tr(entry.tabLabel);
+      const subTabName = entry.subTabName || "";
+      const breadcrumb = subTabName ? (tabName + " › " + subTabName) : tabName;
+
+      launcherItems.push({
+                           "name": entry.label,
+                           "description": breadcrumb,
+                           "icon": iconMode === "tabler" ? "settings" : "preferences-system",
+                           "isTablerIcon": true,
+                           "isImage": false,
+                           "_score": score - 2,
+                           "provider": root,
+                           "onActivate": createActivateHandler(entry)
+                         });
+    }
+
+    return launcherItems;
+  }
+
+  function getAllSettings() {
+    var launcherItems = [];
+
+    for (var j = 0; j < SettingsSearchService.searchIndex.length; j++) {
+      var entry = SettingsSearchService.searchIndex[j];
+      if (!SettingsSearchService.isEntryVisible(entry))
+        continue;
+      var label = I18n.tr(entry.labelKey);
+      var tabName = I18n.tr(entry.tabLabel);
+      var subTabName = entry.subTabLabel ? I18n.tr(entry.subTabLabel) : "";
+      var breadcrumb = subTabName ? (tabName + " › " + subTabName) : tabName;
+
+      launcherItems.push({
+                           "name": label,
+                           "description": breadcrumb,
+                           "icon": iconMode === "tabler" ? "settings" : "preferences-system",
+                           "isTablerIcon": true,
+                           "isImage": false,
+                           "_score": 0,
+                           "provider": root,
+                           "onActivate": createActivateHandler({
+                                                                 "labelKey": entry.labelKey,
+                                                                 "descriptionKey": entry.descriptionKey,
+                                                                 "widget": entry.widget,
+                                                                 "tab": entry.tab,
+                                                                 "tabLabel": entry.tabLabel,
+                                                                 "subTab": entry.subTab,
+                                                                 "subTabLabel": entry.subTabLabel || null
+                                                               })
+                         });
+    }
+
+    return launcherItems;
+  }
+
+  function createActivateHandler(entry) {
+    return function () {
+      if (launcher)
+        launcher.close();
+
+      Qt.callLater(() => {
+                     SettingsPanelService.openToEntry(entry, launcher.screen);
+                   });
+    };
+  }
+}

@@ -1,0 +1,433 @@
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import Quickshell
+import qs.Commons
+import qs.Services.System
+import qs.Widgets
+
+ColumnLayout {
+  id: root
+  spacing: Style.marginL
+  Layout.fillWidth: true
+
+  readonly property color launcherPreviewColor: Color.resolveColorKey((Settings.data.dock.launcherIconColor !== undefined) ? Settings.data.dock.launcherIconColor : "none")
+
+  NToggle {
+    Layout.fillWidth: true
+    label: I18n.tr("panels.dock.enabled-label")
+    description: I18n.tr("panels.dock.enabled-description")
+    checked: Settings.data.dock.enabled
+    defaultValue: Settings.getDefaultValue("dock.enabled")
+    onToggled: checked => Settings.data.dock.enabled = checked
+  }
+
+  ColumnLayout {
+    spacing: Style.marginL
+    enabled: Settings.data.dock.enabled
+
+    NComboBox {
+      Layout.fillWidth: true
+      label: I18n.tr("panels.dock.appearance-position-label")
+      description: I18n.tr("panels.dock.appearance-position-description")
+      model: [
+        {
+          "key": "top",
+          "name": I18n.tr("positions.top")
+        },
+        {
+          "key": "bottom",
+          "name": I18n.tr("positions.bottom")
+        },
+        {
+          "key": "left",
+          "name": I18n.tr("positions.left")
+        },
+        {
+          "key": "right",
+          "name": I18n.tr("positions.right")
+        }
+      ]
+      currentKey: Settings.data.dock.position
+      defaultValue: Settings.getDefaultValue("dock.position")
+      onSelected: key => Settings.data.dock.position = key
+    }
+
+    NComboBox {
+      Layout.fillWidth: true
+      label: I18n.tr("panels.dock.appearance-type-label")
+      description: I18n.tr("panels.dock.appearance-type-description")
+      model: [
+        {
+          "key": "floating",
+          "name": I18n.tr("panels.dock.appearance-type-floating")
+        },
+        {
+          "key": "attached",
+          "name": I18n.tr("panels.dock.appearance-type-attached")
+        }
+      ]
+      currentKey: Settings.data.dock.dockType
+      defaultValue: Settings.getDefaultValue("dock.dockType")
+      onSelected: key => Settings.data.dock.dockType = key
+    }
+
+    NComboBox {
+      visible: Settings.data.dock.dockType === "floating"
+      Layout.fillWidth: true
+      label: I18n.tr("panels.display.title")
+      description: I18n.tr("panels.dock.appearance-display-description")
+      model: [
+        {
+          "key": "always_visible",
+          "name": I18n.tr("hide-modes.visible")
+        },
+        {
+          "key": "auto_hide",
+          "name": I18n.tr("panels.dock.appearance-display-auto-hide")
+        },
+        {
+          "key": "exclusive",
+          "name": I18n.tr("panels.dock.appearance-display-exclusive")
+        }
+      ]
+      currentKey: Settings.data.dock.displayMode
+      defaultValue: Settings.getDefaultValue("dock.displayMode")
+      onSelected: key => {
+                    Settings.data.dock.displayMode = key;
+                  }
+    }
+
+    NToggle {
+      Layout.fillWidth: true
+      visible: Settings.data.dock.dockType === "attached" && Settings.data.bar.barType === "framed"
+      label: I18n.tr("panels.dock.appearance-sit-on-frame-label")
+      description: I18n.tr("panels.dock.appearance-sit-on-frame-description")
+      checked: Settings.data.dock.sitOnFrame
+      defaultValue: Settings.getDefaultValue("dock.sitOnFrame")
+      onToggled: checked => Settings.data.dock.sitOnFrame = checked
+    }
+
+    NToggle {
+      Layout.fillWidth: true
+      label: I18n.tr("panels.dock.appearance-dock-indicator-label")
+      description: I18n.tr("panels.dock.appearance-dock-indicator-description")
+      checked: Settings.data.dock.showDockIndicator
+      defaultValue: Settings.getDefaultValue("dock.showDockIndicator")
+      onToggled: checked => Settings.data.dock.showDockIndicator = checked
+    }
+
+    NToggle {
+      Layout.fillWidth: true
+      visible: Settings.data.dock.showDockIndicator
+      label: I18n.tr("panels.dock.appearance-indicator-thickness-label")
+      description: I18n.tr("panels.dock.appearance-indicator-thickness-description")
+      checked: (Settings.data.dock.indicatorThickness || 3) >= 6
+      defaultValue: (Settings.getDefaultValue("dock.indicatorThickness") || 3) >= 6
+      onToggled: checked => Settings.data.dock.indicatorThickness = checked ? 6 : 3
+    }
+
+    NColorChoice {
+      Layout.fillWidth: true
+      visible: Settings.data.dock.showDockIndicator
+      label: I18n.tr("panels.dock.appearance-indicator-color-label")
+      description: I18n.tr("panels.dock.appearance-indicator-color-description")
+      currentKey: Settings.data.dock.indicatorColor || "primary"
+      defaultValue: Settings.getDefaultValue("dock.indicatorColor")
+      onSelected: key => Settings.data.dock.indicatorColor = key
+    }
+
+    NValueSlider {
+      Layout.fillWidth: true
+      visible: Settings.data.dock.showDockIndicator
+      label: I18n.tr("panels.dock.appearance-indicator-opacity-label")
+      description: I18n.tr("panels.dock.appearance-indicator-opacity-description")
+      from: 0.1
+      to: 1
+      stepSize: 0.01
+      showReset: true
+      value: Settings.data.dock.indicatorOpacity
+      defaultValue: Settings.getDefaultValue("dock.indicatorOpacity")
+      onMoved: value => Settings.data.dock.indicatorOpacity = value
+      text: Math.floor(Settings.data.dock.indicatorOpacity * 100) + "%"
+    }
+
+    NValueSlider {
+      Layout.fillWidth: true
+      label: I18n.tr("panels.osd.background-opacity-label")
+      description: I18n.tr("panels.dock.appearance-background-opacity-description")
+      from: 0
+      to: 1
+      stepSize: 0.01
+      showReset: true
+      value: Settings.data.dock.backgroundOpacity
+      defaultValue: Settings.getDefaultValue("dock.backgroundOpacity")
+      onMoved: value => Settings.data.dock.backgroundOpacity = value
+      text: Math.floor(Settings.data.dock.backgroundOpacity * 100) + "%"
+    }
+
+    NValueSlider {
+      Layout.fillWidth: true
+      label: I18n.tr("panels.dock.appearance-dead-opacity-label")
+      description: I18n.tr("panels.dock.appearance-dead-opacity-description")
+      from: 0
+      to: 1
+      stepSize: 0.01
+      showReset: true
+      value: Settings.data.dock.deadOpacity
+      defaultValue: Settings.getDefaultValue("dock.deadOpacity")
+      onMoved: value => Settings.data.dock.deadOpacity = value
+      text: Math.floor(Settings.data.dock.deadOpacity * 100) + "%"
+    }
+
+    NValueSlider {
+      Layout.fillWidth: true
+      visible: Settings.data.dock.dockType === "floating"
+      label: I18n.tr("panels.dock.appearance-floating-distance-label")
+      description: I18n.tr("panels.dock.appearance-floating-distance-description")
+      from: 0
+      to: 4
+      stepSize: 0.01
+      showReset: true
+      value: Settings.data.dock.floatingRatio
+      defaultValue: Settings.getDefaultValue("dock.floatingRatio")
+      onMoved: value => Settings.data.dock.floatingRatio = value
+      text: Math.floor(Settings.data.dock.floatingRatio * 100) + "%"
+    }
+
+    NValueSlider {
+      Layout.fillWidth: true
+      label: I18n.tr("panels.dock.appearance-icon-size-label")
+      description: I18n.tr("panels.dock.appearance-icon-size-description")
+      from: 0
+      to: 2
+      stepSize: 0.01
+      showReset: true
+      value: Settings.data.dock.size
+      defaultValue: Settings.getDefaultValue("dock.size")
+      onMoved: value => Settings.data.dock.size = value
+      text: Math.floor(Settings.data.dock.size * 100) + "%"
+    }
+
+    NValueSlider {
+      visible: Settings.data.dock.dockType === "floating" && Settings.data.dock.displayMode === "auto_hide"
+      Layout.fillWidth: true
+      label: I18n.tr("panels.dock.appearance-hide-show-speed-label")
+      description: I18n.tr("panels.dock.appearance-hide-show-speed-description")
+      from: 0.1
+      to: 2.0
+      stepSize: 0.01
+      showReset: true
+      value: Settings.data.dock.animationSpeed
+      defaultValue: Settings.getDefaultValue("dock.animationSpeed")
+      onMoved: value => Settings.data.dock.animationSpeed = value
+      text: (Settings.data.dock.animationSpeed * 100).toFixed(0) + "%"
+    }
+
+    NToggle {
+      label: I18n.tr("panels.dock.appearance-inactive-indicators-label")
+      description: I18n.tr("panels.dock.appearance-inactive-indicators-description")
+      checked: Settings.data.dock.inactiveIndicators
+      defaultValue: Settings.getDefaultValue("dock.inactiveIndicators")
+      onToggled: checked => Settings.data.dock.inactiveIndicators = checked
+    }
+
+    NToggle {
+      label: I18n.tr("panels.dock.appearance-pinned-static-label")
+      description: I18n.tr("panels.dock.appearance-pinned-static-description")
+      checked: Settings.data.dock.pinnedStatic
+      defaultValue: Settings.getDefaultValue("dock.pinnedStatic")
+      onToggled: checked => Settings.data.dock.pinnedStatic = checked
+    }
+
+    NToggle {
+      label: I18n.tr("panels.dock.appearance-group-apps-label")
+      description: I18n.tr("panels.dock.appearance-group-apps-description")
+      checked: Settings.data.dock.groupApps
+      defaultValue: Settings.getDefaultValue("dock.groupApps")
+      onToggled: checked => Settings.data.dock.groupApps = checked
+    }
+
+    NComboBox {
+      Layout.fillWidth: true
+      visible: Settings.data.dock.groupApps
+      label: I18n.tr("panels.dock.appearance-group-click-action-label")
+      description: I18n.tr("panels.dock.appearance-group-click-action-description")
+      model: [
+        {
+          "key": "cycle",
+          "name": I18n.tr("panels.dock.appearance-group-click-action-cycle")
+        },
+        {
+          "key": "list",
+          "name": I18n.tr("panels.dock.appearance-group-click-action-list")
+        }
+      ]
+      currentKey: Settings.data.dock.groupClickAction
+      defaultValue: Settings.getDefaultValue("dock.groupClickAction")
+      onSelected: key => Settings.data.dock.groupClickAction = key
+    }
+
+    NComboBox {
+      Layout.fillWidth: true
+      visible: Settings.data.dock.groupApps
+      label: I18n.tr("panels.dock.appearance-group-context-menu-mode-label")
+      description: I18n.tr("panels.dock.appearance-group-context-menu-mode-description")
+      model: [
+        {
+          "key": "list",
+          "name": I18n.tr("panels.dock.appearance-group-context-menu-mode-list")
+        },
+        {
+          "key": "extended",
+          "name": I18n.tr("panels.dock.appearance-group-context-menu-mode-extended")
+        }
+      ]
+      currentKey: Settings.data.dock.groupContextMenuMode
+      defaultValue: Settings.getDefaultValue("dock.groupContextMenuMode")
+      onSelected: key => Settings.data.dock.groupContextMenuMode = key
+    }
+
+    NComboBox {
+      Layout.fillWidth: true
+      visible: Settings.data.dock.groupApps
+      label: I18n.tr("panels.dock.appearance-group-indicator-style-label")
+      description: I18n.tr("panels.dock.appearance-group-indicator-style-description")
+      model: [
+        {
+          "key": "number",
+          "name": I18n.tr("panels.dock.appearance-group-indicator-style-number")
+        },
+        {
+          "key": "dots",
+          "name": I18n.tr("panels.dock.appearance-group-indicator-style-dots")
+        }
+      ]
+      currentKey: Settings.data.dock.groupIndicatorStyle
+      defaultValue: Settings.getDefaultValue("dock.groupIndicatorStyle")
+      onSelected: key => Settings.data.dock.groupIndicatorStyle = key
+    }
+
+    NToggle {
+      label: I18n.tr("panels.dock.monitors-only-same-monitor-label")
+      description: I18n.tr("panels.dock.monitors-only-same-monitor-description")
+      checked: Settings.data.dock.onlySameOutput
+      defaultValue: Settings.getDefaultValue("dock.onlySameOutput")
+      onToggled: checked => Settings.data.dock.onlySameOutput = checked
+    }
+
+    NToggle {
+      Layout.fillWidth: true
+      label: I18n.tr("panels.dock.appearance-colorize-icons-label")
+      description: I18n.tr("panels.dock.appearance-colorize-icons-description")
+      checked: Settings.data.dock.colorizeIcons
+      defaultValue: Settings.getDefaultValue("dock.colorizeIcons")
+      onToggled: checked => Settings.data.dock.colorizeIcons = checked
+    }
+
+    NToggle {
+      Layout.fillWidth: true
+      label: I18n.tr("panels.dock.appearance-show-launcher-icon-label")
+      description: I18n.tr("panels.dock.appearance-show-launcher-icon-description")
+      checked: Settings.data.dock.showLauncherIcon
+      defaultValue: Settings.getDefaultValue("dock.showLauncherIcon")
+      onToggled: checked => Settings.data.dock.showLauncherIcon = checked
+    }
+
+    NComboBox {
+      Layout.fillWidth: true
+      visible: Settings.data.dock.showLauncherIcon
+      label: I18n.tr("panels.dock.appearance-launcher-position-label")
+      description: I18n.tr("panels.dock.appearance-launcher-position-description")
+      model: [
+        {
+          "key": "start",
+          "name": I18n.tr("panels.dock.appearance-launcher-position-start")
+        },
+        {
+          "key": "end",
+          "name": I18n.tr("panels.dock.appearance-launcher-position-end")
+        }
+      ]
+      currentKey: Settings.data.dock.launcherPosition
+      defaultValue: Settings.getDefaultValue("dock.launcherPosition")
+      onSelected: key => Settings.data.dock.launcherPosition = key
+    }
+
+    NToggle {
+      Layout.fillWidth: true
+      visible: Settings.data.dock.showLauncherIcon
+      label: I18n.tr("panels.dock.appearance-launcher-use-distro-logo-label")
+      description: I18n.tr("panels.dock.appearance-launcher-use-distro-logo-description")
+      checked: Settings.data.dock.launcherUseDistroLogo
+      defaultValue: Settings.getDefaultValue("dock.launcherUseDistroLogo")
+      onToggled: checked => Settings.data.dock.launcherUseDistroLogo = checked
+    }
+
+    RowLayout {
+      visible: Settings.data.dock.showLauncherIcon
+      Layout.fillWidth: true
+
+      NLabel {
+        Layout.fillWidth: true
+        label: I18n.tr("panels.dock.appearance-launcher-icon-label")
+        description: I18n.tr("panels.dock.appearance-launcher-icon-description")
+      }
+
+      NIconButton {
+        visible: !Settings.data.dock.launcherUseDistroLogo
+        enabled: !Settings.data.dock.launcherUseDistroLogo
+        icon: (Settings.data.dock.launcherIcon && Settings.data.dock.launcherIcon !== "") ? Settings.data.dock.launcherIcon : "search"
+        colorFg: root.launcherPreviewColor
+        colorFgHover: root.launcherPreviewColor
+        tooltipText: I18n.tr("bar.control-center.browse-library")
+        onClicked: launcherIconPicker.open()
+      }
+
+      Rectangle {
+        visible: Settings.data.dock.launcherUseDistroLogo
+        width: Style.toOdd(Style.baseWidgetSize * Style.uiScaleRatio)
+        height: width
+        radius: Math.min(Style.iRadiusL, width / 2)
+        color: Color.smartAlpha(Color.mSurfaceVariant)
+        border.color: Color.mOutline
+        border.width: Style.borderS
+
+        Image {
+          anchors.centerIn: parent
+          width: parent.width * 0.62
+          height: width
+          source: HostService.osLogo
+          fillMode: Image.PreserveAspectFit
+          smooth: true
+          asynchronous: true
+          layer.enabled: visible
+          layer.effect: ShaderEffect {
+            property color targetColor: root.launcherPreviewColor
+            property real colorizeMode: 2.0
+
+            fragmentShader: Qt.resolvedUrl(Quickshell.shellDir + "/Shaders/qsb/appicon_colorize.frag.qsb")
+          }
+        }
+      }
+    }
+
+    NIconPicker {
+      id: launcherIconPicker
+      initialIcon: (Settings.data.dock.launcherIcon && Settings.data.dock.launcherIcon !== "") ? Settings.data.dock.launcherIcon : "search"
+      onIconSelected: iconName => {
+                        Settings.data.dock.launcherIcon = iconName;
+                        Settings.saveImmediate();
+                      }
+    }
+
+    NColorChoice {
+      Layout.fillWidth: true
+      visible: Settings.data.dock.showLauncherIcon
+      label: I18n.tr("common.select-icon-color")
+      currentKey: Settings.data.dock.launcherIconColor
+      defaultValue: Settings.getDefaultValue("dock.launcherIconColor")
+      onSelected: key => Settings.data.dock.launcherIconColor = key
+    }
+  }
+}

@@ -1,0 +1,370 @@
+/**
+* @name Noctalia Midnight
+* @description A fork of 'Midnight' for Noctalia Shell
+* @author refact0r
+* @version 2.1.1
+* @invite nz87hXyvcy
+* @website https://github.com/refact0r/midnight-discord
+* @source https://github.com/refact0r/midnight-discord/blob/master/themes/midnight.theme.css
+* @authorId 508863359777505290
+* @authorLink https://www.refact0r.dev
+*/
+
+/* import theme modules */
+@import url('https://refact0r.github.io/midnight-discord/build/midnight.css');
+
+body {
+  /* font options */
+  --font: ''; /* change to '' for default discord font */
+  --code-font: ''; /* change to '' for default discord font */
+  font-weight: 400; /* normal text font weight. DOES NOT AFFECT BOLD TEXT */
+
+  /* sizes */
+  --gap: 12px; /* spacing between panels */
+  --divider-thickness: 4px; /* thickness of unread messages divider and highlighted message borders */
+  --border-thickness: 1px; /* thickness of borders around main panels. DOES NOT AFFECT OTHER BORDERS */
+
+  /* animation/transition options */
+  --animations: on; /* off: disable animations/transitions, on: enable animations/transitions */
+  --list-item-transition: 0.2s ease; /* transition for list items */
+  --dms-icon-svg-transition: 0.4s ease; /* transition for the dms icon */
+  --border-hover-transition: 0.2s ease; /* transition for borders when hovered */
+
+  /* top bar options */
+  --top-bar-height: var(--gap); /* height of the top bar (discord default is 36px, old discord style is 24px, var(--gap) recommended if button position is set to titlebar) */
+  --top-bar-button-position: titlebar; /* off: default position, hide: hide buttons completely, serverlist: move inbox button to server list, titlebar: move inbox button to channel titlebar (will hide title) */
+  --top-bar-title-position: off; /* off: default centered position, hide: hide title completely, left: left align title (like old discord) */
+  --subtle-top-bar-title: off; /* off: default, on: hide the icon and use subtle text color (like old discord) */
+
+  /* window controls */
+  --custom-window-controls: on; /* off: default window controls, on: custom window controls */
+  --window-control-size: 14px; /* size of custom window controls */
+
+  /* dms button options */
+  --custom-dms-icon: custom; /* off: use default discord icon, hide: remove icon entirely, custom: use custom icon */
+  --dms-icon-svg-url: url('data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjwhLS0gQ3JlYXRlZCB3aXRoIElua3NjYXBlIChodHRwOi8vd3d3Lmlua3NjYXBlLm9yZy8pIC0tPgoKPHN2ZwogICB3aWR0aD0iMjU2IgogICBoZWlnaHQ9IjI1NiIKICAgdmlld0JveD0iMCAwIDY3LjczMzMzNCA2Ny43MzMzMzQiCiAgIHZlcnNpb249IjEuMSIKICAgaWQ9InN2ZzEiCiAgIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICAgeG1sbnM6c3ZnPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPGRlZnMKICAgICBpZD0iZGVmczEiIC8+CiAgPGcKICAgICBpZD0iZzEiCiAgICAgdHJhbnNmb3JtPSJtYXRyaXgoMS4xMDEwODY5LDAsMCwxLjEwMTA4NjksLTMuNDIzODM0NywtMy40MjM0ODkzKSI+CiAgICA8ZwogICAgICAgaWQ9Imc1NSIKICAgICAgIHN0eWxlPSJmaWxsOiMwMDAwMDA7ZmlsbC1vcGFjaXR5OjEiCiAgICAgICB0cmFuc2Zvcm09Im1hdHJpeCg0LjIwNTU5MDUsMCwwLDQuMjA1NTkwNSwtMTQuNzg4ODk4LC0xODAuNDMzNjIpIj4KICAgICAgPHBhdGgKICAgICAgICAgaWQ9InBhdGg1NSIKICAgICAgICAgc3R5bGU9ImZpbGw6IzAwMDAwMDtmaWxsLW9wYWNpdHk6MTtzdHJva2U6bm9uZTtzdHJva2Utd2lkdGg6MTtzdHJva2UtbGluZWNhcDpyb3VuZDtzdHJva2UtbGluZWpvaW46cm91bmQ7c3Ryb2tlLW1pdGVybGltaXQ6OS4xO3N0cm9rZS1kYXNoYXJyYXk6bm9uZTtwYWludC1vcmRlcjpmaWxsIG1hcmtlcnMgc3Ryb2tlIgogICAgICAgICBkPSJtIDExLjY0NjQ4NCw0My42NDI1NzggYSA3LjMxNDEzNTYsNy4zMTQxMzU2IDAgMCAwIC03LjMxMjQ5OTYsNy4zMTI1IDcuMzE0MTM1Niw3LjMxNDEzNTYgMCAwIDAgNy4zMTI0OTk2LDcuMzE0NDUzIDcuMzE0MTM1Niw3LjMxNDEzNTYgMCAwIDAgNy4xNTgyMDQsLTUuODk4NDM3IDYuMjIwMzMwMiw2LjIyMDMzMDIgMCAwIDEgLTMuNDE2MDE2LDMuNDY0ODQ0IGMgMC4wMDE1LDAuMjc3NDA2IDAuMDAzOSwwLjUzMjU1IDAuMDAzOSwwLjcyNjU2MiAtMC43Mzk0NDUsMCAtMS4zNzU4MzUsLTAuMTAxODg2IC0xLjkyMTg3NSwtMC4yNzE0ODQgYSA2LjIyMDMzMDIsNi4yMjAzMzAyIDAgMCAxIC0wLjQ0MTQwNiwwLjAzNTE2IDYuMjIwMzMwMiw2LjIyMDMzMDIgMCAwIDEgLTYuMjIwNzAzMiwtNi4yMjA3MDMgNi4yMjAzMzAyLDYuMjIwMzMwMiAwIDAgMSA2LjIyMDcwMzIsLTYuMjIwNzAzIDYuMjIwMzMwMiw2LjIyMDMzMDIgMCAwIDEgMC41NzYxNzIsMC4wMjczNCA3LjMxNDEzNTYsNy4zMTQxMzU2IDAgMCAwIC0xLjk1ODk4NSwtMC4yNjk1MzEgeiIgLz4KICAgIDwvZz4KICAgIDxwYXRoCiAgICAgICBpZD0icGF0aDU2IgogICAgICAgc3R5bGU9ImZpbGw6IzAwMDAwMDtmaWxsLW9wYWNpdHk6MTtzdHJva2U6bm9uZTtzdHJva2Utd2lkdGg6MS4zNDYwODtzdHJva2UtbWl0ZXJsaW1pdDo5LjE7cGFpbnQtb3JkZXI6ZmlsbCBtYXJrZXJzIHN0cm9rZSIKICAgICAgIGQ9Im0gNDIuNjY0NDQsMzEuMjkxNDc0IGMgLTEuODAyODgyLDIuMDIzMTA1IC00Ljk1MDEzOSwyLjQ5MjY2MSAtOC41MjU0LDIuNTAyOCAtMi43MTgxNiwtMC4wMDc3IC01LjQ1MDQ3NiwtMC4xMjgyMjcgLTcuMjY5NTYsLTEuMzg5NTUxIC0xLjgxNjU0MiwwLjMyNDE4MiAtMi41NzkxNTcsMi4zNDQwMzMgLTIuNDE1ODY2LDQuNzAyNzc3IDEuMTY0NjQ3LDE2LjgyMjk2NyAxMS44MTY3MiwxNS43MzQ2NDUgMTEuOTEyMTk4LDE1LjcwNzE0NSAtNy43OTMzNjYsLTMuODAyNDQ3IC02LjUxNjQ5OCwtMTAuMDAwNDggLTYuNzcyNjIyLC0xMS45NzUyOTMgMC4zMjA5MjgsMy4zNDIzMyAzLjg5NTkyNiwxMi44NTY3NjQgMTcuMjM1NDk0LDEyLjg1Njc2NCAwLC00LjAwOTY1NSAwLjAxOTkyLC0xNC4zMTEwMzUgLTEuMjc5MDgsLTE3LjQ4NzAyNCAtMC40MDkxMjQsLTEuMjM3MzEyIC0xLjUyNTI2LC00LjU0Njk2MyAtMi44ODUxNjQsLTQuOTE3NjE4IHoiIC8+CiAgICA8cGF0aAogICAgICAgaWQ9InBhdGg1NyIKICAgICAgIHN0eWxlPSJmaWxsOiMwMDAwMDA7ZmlsbC1vcGFjaXR5OjE7c3Ryb2tlOm5vbmU7c3Ryb2tlLXdpZHRoOjMuNzY1NjU7c3Ryb2tlLW1pdGVybGltaXQ6OS4xO3BhaW50LW9yZGVyOmZpbGwgbWFya2VycyBzdHJva2UiCiAgICAgICBkPSJtIDIwLjk5MjAxMywxNi4wODcwMDQgYyAwLjYwODk0NCwxLjg2NTU0NSAxLjgzNTMzNCwzLjcwNDMxNCAzLjQ4MDA4Niw0LjQwMTc0NSAtMC40NTg3ODEsMS4zODI4MDQgLTAuNDYwODMxLDMuMDI0OTQ5IC0wLjQ2MDgzMSw0Ljc4MzEyNiAwLDQuOTI3ODk1IDQuNTMzNjk4LDguOTE5NDEzIDEwLjEzMDM1OSw4LjkzODU1OSA1LjU5NjY2NCwtMC4wMTkxMiAxMC4xMzAzNjcsLTQuMDEwNjY3IDEwLjEzMDM2NywtOC45Mzg1NTkgMCwtMS43NTgxNzcgLTAuMDAyMSwtMy40MDAzMjIgLTAuNDYwODMzLC00Ljc4MzEyNiAxLjY0NDc1MywtMC42OTc0MzEgMi44NzExNDIsLTIuNTM2MiAzLjQ4MDA4NCwtNC40MDE3NDUgLTEuOTg3Nzc2LC0wLjAzMDUgLTUuMTUwOTA4LDAuNzAwNzU3IC03Ljg1MDA0NywwLjc4NjU5NSAtMS4zNTE1MzksLTAuMzUxODQ1IC0zLjA4NjEzNywtMC41NDU4NjggLTUuMjk5NTcxLC0wLjU0ODIzMyAtMi4yMTM0MzEsMC4wMDI0IC0zLjk0ODAyNywwLjE5NjM2NyAtNS4yOTk1NjgsMC41NDgyMzMgLTIuNjk5MTM1LC0wLjA4NTg0IC01Ljg2MjI2NiwtMC44MTcxODcgLTcuODUwMDQ2LC0wLjc4NjU5NSB6IG0gNi43Nzc0MTksNC42NDgwNTMgYyAwLjU1NTQ3LC0wLjAxMzgzIDEuMjk5Nzc5LDAuMDYyMDQgMi4zMDQxNjEsMC4yNDYzMTkgMC42NzIxOTgsMC4xMjMzMDIgMS41MjM1MzYsMC40NTI0MDIgMi4wMzQwMTksMC43NTQ4MTMgMC45NTA4MDcsMC41NjMyNjQgMS4wNzM1OTUsMS4yMDc2OTcgMi4wMzQwMTUsMS4yMDc2OTcgMC45NjA0MiwwIDEuMDgzMjA3LC0wLjY0NDQzMyAyLjAzNDAxOCwtMS4yMDc2OTcgMC41MTA0ODMsLTAuMzAyNDE4IDEuMzYxODIyLC0wLjYzMTUxMSAyLjAzNDAyMSwtMC43NTQ4MTMgNC41OTE0NTksLTAuODQyMzI4IDMuODIxNzMyLDAuNTIzOTYyIDMuODIxNzMyLDIuODM2NTA1IDAsMi4zODcxMzIgLTEuOTM1MTU1LDQuMzIyMjkgLTQuMzIyMjkxLDQuMzIyMjkgLTAuNzYyOTUsLTAuMDAzNyAtMS41MTEzMzIsLTAuMjA5MzQgLTIuMTY5MDkxLC0wLjU5NTkwNSAtMC4wMTU0NiwwLjAzMzc1IC0wLjAyODg3LDAuMDY0ODQgLTAuMDQ3NjgsMC4wOTUzNSBsIC0wLjk2OTMzOCwxLjU3MzE4OSBjIC0wLjEwNTIzOSwwLjE3MTIyMiAtMC4yNDM3OTcsMC4yNTc0NjcgLTAuMzgxMzc4LDAuMjU0MjUxIC0wLjEzNzU4LDAuMDAzMSAtMC4yNzYxMzksLTAuMDgzMDMgLTAuMzgxMzc4LC0wLjI1NDI1MSBsIC0wLjk2OTMzOCwtMS41NzMxODkgYyAtMC4wMTg3MSwtMC4wMzA1IC0wLjAzMjEyLC0wLjA2MTU5IC0wLjA0NzY4LC0wLjA5NTM1IC0wLjY1Nzc2MywwLjM4NjU4NSAtMS40MDYxNDIsMC41OTIxODggLTIuMTY5MDkxLDAuNTk1OTA1IC0yLjM4NzEzNywwIC00LjMyMjI5LC0xLjkzNTE1OCAtNC4zMjIyOSwtNC4zMjIyOSAwLC0xLjgwNjY3MyAtMC40NjYyNzEsLTMuMDMzMTczIDEuNTE3NTY5LC0zLjA4MjgxNCB6IiAvPgogICAgPHBhdGgKICAgICAgIGlkPSJwYXRoNTgiCiAgICAgICBzdHlsZT0iZmlsbDpub25lO3N0cm9rZTojMDAwMDAwO3N0cm9rZS13aWR0aDoxLjIyMDUyO3N0cm9rZS1saW5lY2FwOnJvdW5kO3N0cm9rZS1taXRlcmxpbWl0OjkuMTtzdHJva2UtZGFzaGFycmF5Om5vbmU7c3Ryb2tlLW9wYWNpdHk6MTtwYWludC1vcmRlcjpmaWxsIG1hcmtlcnMgc3Ryb2tlIgogICAgICAgZD0iTSAzMi4zMDQyLDI1LjMwMDU5NiBBIDEuOTkxNDQzOCwxLjk5MTQ0MzggMCAwIDEgMzAuNTc5NTU5LDI2LjI5NjMyIDEuOTkxNDQzOCwxLjk5MTQ0MzggMCAwIDEgMjguODU0OTE4LDI1LjMwMDU5NiIgLz4KICAgIDxwYXRoCiAgICAgICBpZD0icGF0aDU5IgogICAgICAgc3R5bGU9ImZpbGw6bm9uZTtzdHJva2U6IzAwMDAwMDtzdHJva2Utd2lkdGg6MS4yMjA1MjtzdHJva2UtbGluZWNhcDpyb3VuZDtzdHJva2UtbWl0ZXJsaW1pdDo5LjE7c3Ryb2tlLWRhc2hhcnJheTpub25lO3N0cm9rZS1vcGFjaXR5OjE7cGFpbnQtb3JkZXI6ZmlsbCBtYXJrZXJzIHN0cm9rZSIKICAgICAgIGQ9Ik0gMzkuNDI4MzM0LDI1LjMwMDU5NiBBIDEuOTkxNDQzOCwxLjk5MTQ0MzggMCAwIDEgMzcuNzAzNjk2LDI2LjI5NjMyIDEuOTkxNDQzOCwxLjk5MTQ0MzggMCAwIDEgMzUuOTc5MDUzLDI1LjMwMDU5NiIgLz4KICA8L2c+Cjwvc3ZnPg=='); /* icon svg url. MUST BE A SVG. */
+  --dms-icon-svg-size: 90%; /* size of the svg (css mask-size property) */
+  --dms-icon-color-before: var(--icon-subtle); /* normal icon color */
+  --dms-icon-color-after: var(--white); /* icon color when button is hovered/selected */
+  --custom-dms-background: off; /* off to disable, image to use a background image (must set url variable below), color to use a custom color/gradient */
+  --dms-background-image-url: url(''); /* url of the background image */
+  --dms-background-image-size: cover; /* size of the background image (css background-size property) */
+  --dms-background-color: linear-gradient(70deg, var(--blue-2), var(--purple-2), var(--red-2)); /* fixed color/gradient (css background property) */
+
+  /* background image options */
+  --background-image: off; /* off: no background image, on: enable background image (must set url variable below) */
+  --background-image-url: url(''); /* url of the background image */
+
+  /* transparency/blur options */
+  /* NOTE: TO USE TRANSPARENCY/BLUR, YOU MUST HAVE TRANSPARENT BG COLORS. FOR EXAMPLE: --bg-4: hsla(220, 15%, 10%, 0.7); */
+  --transparency-tweaks: off; /* off: no changes, on: remove some elements for better transparency */
+  --remove-bg-layer: off; /* off: no changes, on: remove the base --bg-3 layer for use with window transparency (WILL OVERRIDE BACKGROUND IMAGE) */
+  --panel-blur: off; /* off: no changes, on: blur the background of panels */
+  --blur-amount: 12px; /* amount of blur */
+  --bg-floating: var(--bg-3); /* set this to a more opaque color if floating panels look too transparent. only applies if panel blur is on  */
+
+  /* chatbar options */
+  --custom-chatbar: separated; /* off: default chatbar, separated: chatbar separated from chat */
+  --chatbar-height: 56px; /* height of the chatbar (56px by default, 47px to align with user panel, 56px recommended for separated) */
+
+  /* other options */
+  --small-user-panel: off; /* off: default user panel, on: smaller user panel like in old discord */
+
+}
+
+/* color options */
+:root {
+  --colors: on; /* off: discord default colors, on: midnight custom colors */
+
+  /* text colors */
+  --text-0: {{colors.background.default.hex}}; /* text on colored elements */
+  --text-1: {{colors.on_background.default.hex}}; /* other normally white text */
+  --text-2: {{colors.on_surface.default.hex}}; /* headings and important text */
+  --text-3: {{colors.on_surface_variant.default.hex}}; /* normal text */
+  --text-4: {{colors.outline.default.hex}}; /* icon buttons and channels */
+  --text-5: {{colors.outline_variant.default.hex}}; /* muted channels/chats and timestamps */
+
+  /* background and dark colors */
+  --bg-1: {{colors.surface_container_lowest.default.hex}}; /* dark buttons when clicked */
+  --bg-2: {{colors.surface_container_low.default.hex}}; /* dark buttons */
+  --bg-3: {{colors.surface_container.default.hex}}; /* spacing, secondary elements */
+  --bg-4: {{colors.surface.default.hex}}; /* main background color */
+  --hover: {{colors.on_surface.default.hex}}15; /* channels and buttons when hovered */
+  --active: {{colors.surface_container_highest.default.hex}}; /* channels and buttons when clicked or selected */
+  --active-2: {{colors.surface.default.hex}}; /* extra state for transparent buttons */
+  --message-hover: {{colors.surface_variant.default.hex}}40; /* messages when hovered */
+
+  /* accent colors */
+  --accent-1: {{colors.primary.default.hex}}; /* links and other accent text */
+  --accent-2: {{colors.primary_container.default.hex}}; /* small accent elements */
+  --accent-3: {{colors.secondary.default.hex}}; /* accent buttons */
+  --accent-4: {{colors.on_secondary_container.default.hex}}; /* accent buttons when hovered */
+  --accent-5: {{colors.secondary.default.hex}}; /* accent buttons when clicked */
+  --accent-new: {{colors.error.default.hex}}; /* stuff that's normally red like mute/deafen buttons */
+
+    --mention: linear-gradient(to right, color-mix(in hsl, {{colors.primary_container.default.hex}}, transparent 90%) 40%, transparent); /* background of messages that mention you */
+  --mention-hover: linear-gradient(to right, color-mix(in hsl, {{colors.primary_container.default.hex}}, transparent 95%) 40%, transparent); /* background of messages that mention you when hovered */
+
+    --reply: linear-gradient(to right, color-mix(in hsl, {{colors.tertiary_container.default.hex}}, transparent 90%) 40%, transparent); /* background of messages that reply to you */
+  --reply-hover: linear-gradient(to right, color-mix(in hsl, {{colors.tertiary_container.default.hex}}, transparent 95%) 40%, transparent); /* background of messages that reply to you when hovered */
+
+  /* status indicator colors */
+  --online: var(--green-2); /* change to #43a25a for default */
+  --dnd: var(--red-2); /* change to #d83a42 for default */
+  --idle: var(--yellow-2); /* change to #ca9654 for default */
+  --streaming: var(--purple-2); /* change to #593695 for default */
+  --offline: var(--text-4); /* change to #83838b for default offline color */
+
+  /* border colors */
+  --border-light: var(--hover); /* general light border color */
+  --border: var(--active); /* general normal border color */
+  --border-hover: var(--active); /* border color of panels when hovered */
+  --button-border: hsl(230, 0%, 100%, 0.1); /* neutral border color of buttons */
+
+  /* base colors */
+  --red-1: hsl(351deg, 74%, 78%);
+  --red-2: hsl(351deg, 74%, 73%);
+  --red-3: hsl(351deg, 74%, 73%);
+  --red-4: hsl(351deg, 74%, 68%);
+  --red-5: hsl(351deg, 74%, 63%);
+
+  --green-1: hsl(105deg, 48%, 77%);
+  --green-2: hsl(105deg, 48%, 72%);
+  --green-3: hsl(105deg, 48%, 72%);
+  --green-4: hsl(105deg, 48%, 67%);
+  --green-5: hsl(105deg, 48%, 62%);
+
+  --blue-1: hsl(199deg, 66%, 74%);
+  --blue-2: hsl(199deg, 66%, 69%);
+  --blue-3: hsl(199deg, 66%, 69%);
+  --blue-4: hsl(199deg, 66%, 64%);
+  --blue-5: hsl(199deg, 66%, 59%);
+
+  --yellow-1: hsl(40deg, 70%, 83%);
+  --yellow-2: hsl(40deg, 70%, 78%);
+  --yellow-3: hsl(40deg, 70%, 78%);
+  --yellow-4: hsl(40deg, 70%, 73%);
+  --yellow-5: hsl(40deg, 70%, 68%);
+
+  --purple-1: hsl(267deg, 83%, 85%);
+  --purple-2: hsl(267deg, 83%, 80%);
+  --purple-3: hsl(267deg, 83%, 80%);
+  --purple-4: hsl(267deg, 83%, 75%);
+  --purple-5: hsl(267deg, 83%, 70%);
+}
+
+/* Dividers (Channel list and messages) */
+[class*="divider"]:not([class*="isUnread"]) {
+  border-color: var(--bg-2) !important;
+}
+
+/* Profile Banners */
+[class*="bannerButton"], 
+[class*="bannerColor"] {
+  color: var(--text-1) !important;
+}
+
+/* Prevent scaling animation on Home/DMS icon */
+[class*="guildsnav"] [class*="wrapper"][data-list-item-id='guildsnav___home']:hover > [class*="childWrapper"]::before,
+[class*="guildsnav"] [class*="wrapper"][data-list-item-id='guildsnav___home'][class*="selected"] > [class*="childWrapper"]::before {
+  transform: rotate(-360deg) scale(1) !important;
+}
+
+/* Timestamps */
+[class*="timestamp"],
+[class*="timestampInline"],
+[class*="timestamp"] time {
+  color: var(--text-4) !important;
+}
+
+/* Forum/Thread Titles */
+[class*="postTitleText"],
+[class*="postTitleText"] [class*="highlight"] {
+  color: var(--text-2) !important;
+}
+
+/* Message Content */
+[class*="messageContent"] {
+  color: var(--text-3) !important;
+}
+
+[class*="messageContent"] [class*="highlight"] {
+  color: var(--text-2) !important;
+}
+
+/* Slowmode/Cooldown Text */
+[class*="cooldownText"] {
+  color: var(--text-4) !important;
+}
+
+/* Checkbox styling overrides */
+[class*="checkboxIndicator"] {
+  background-color: transparent !important;
+  border-color: var(--text-4) !important;
+}
+
+[class*="checkboxOption"]:hover [class*="checkboxIndicator"] {
+  background-color: color-mix(in srgb, var(--accent-1) 20%, transparent) !important;
+  border-color: var(--accent-3) !important;
+}
+
+[class*="checkboxOption"][data-selected] [class*="checkboxIndicator"] {
+  background-color: var(--accent-1) !important;
+  border-color: var(--accent-3) !important;
+}
+
+[class*="checkboxOption"][data-selected]:hover [class*="checkboxIndicator"] {
+  background-color: var(--accent-1) !important;
+  border-color: var(--accent-3) !important;
+}
+
+[data-slate-node="element"],
+[data-slate-node="text"],
+[data-slate-string="true"] {
+  color: var(--text-3) !important;
+}
+
+[class*="eyebrow"][class*="badge"][class*="expressive"] {
+  color: var(--accent-1) !important;
+  background-color: color-mix(in srgb, var(--accent-1) 15%, transparent) !important;
+}
+
+/* Outer circle (non-selected background) */
+[class*="outerRadioBase"] {
+    fill: var(--bg-1) !important;      /* background for non-selected radios */
+    stroke: var(--border) !important;  /* ring border */
+    stroke-width: 1px;
+    transition: stroke 0.2s ease;
+}
+
+/* Outer circle fill (selected) */
+[class*="outerRadioFill"] {
+    fill: var(--bg-1) !important;  /* accent color for selected */
+    stroke: var(--border) !important;
+    opacity: 0;                        /* hidden by default */
+    transition: opacity 0.2s ease;
+}
+
+/* Inner dot (selected) */
+[class*="innerDotRadio"] {
+    fill: var(--accent-3) !important;      /* contrast dot */
+    opacity: 0;                        /* hidden by default */
+    transition: opacity 0.2s ease;
+}
+
+/* Show outer fill + inner dot when selected */
+[class*="radioSelection"][data-selected="true"] [class*="outerRadioFill"],
+[class*="radioSelection"][data-selected="true"] [class*="innerDotRadio"],
+[class*="radioSelection"][aria-checked="true"] [class*="outerRadioFill"],
+[class*="radioSelection"][aria-checked="true"] [class*="innerDotRadio"],
+[class*="parentSelected"] [class*="outerRadioFill"],
+[class*="parentSelected"] [class*="innerDotRadio"] {
+    opacity: 1 !important;
+}
+
+/* Hover effect for base ring */
+[class*="outerRadioBase"]:hover {
+    stroke: var(--accent-1) !important;
+}
+
+/* Checkbox checkmark and background for selected */
+[class*="checkboxOption"][data-selected="true"] [class*="checkboxIndicator"] {
+    background-color: transparent !important; /* Removes the solid fill when selected */
+    border-color: var(--accent-1) !important; /* Changes border to accent color when selected */
+}
+
+[class*="checkboxIndicator"] {
+    background-color: transparent !important;
+    border-color: var(--border) !important;
+    transition: border-color 0.2s ease;
+}
+
+[class*="checkboxOption"][data-selected="true"] [class*="checkStroke"],
+[class*="checkboxOption"][data-selected="true"] [class*="dot"] {
+    color: var(--accent-3) !important; /* checkmark color */
+}
+
+/* Hover effect for selected checkbox */
+[class*="checkboxOption"]:hover [class*="checkboxIndicator"] {
+    border-color: var(--accent-1) /* keep background consistent on hover */
+}
+
+/* Fix hover color for channel mentions */
+.channelMention:hover {
+  color: var(--text-1) !important;
+}
+
+[class*="unreadTop"],
+[class*="unreadBottom"],
+[class*="unreadMentionsIndicator"] {
+    background-color: transparent !important;
+}
+
+[class*="unreadBar"],
+[class*="unreadMentionsBar"] {
+    background-color: var(--accent-1) !important;
+    border: 1px solid var(--border);
+}
+
+[class*="unreadBar"][class*="mention"],
+[class*="unreadMentionsBar"][class*="mention"] {
+    background-color: var(--accent-1) !important;
+}
+
+[class*="unreadBar"][class*="unread"],
+[class*="unreadMentionsBar"][class*="unread"] {
+    background-color: var(--bg-1) !important;
+    border-color: var(--accent-1) !important;
+}
+
+[class*="unreadBar"] [class*="text"],
+[class*="unreadMentionsBar"] [class*="text"] {
+    color: var(--text-1) !important;
+    font-weight: 700;
+}
+
+/* Fix polls visibility */
+[class*="pollContainer_"] [class*="selected__"] [class*="radioForeground_"] {
+    fill: var(--accent-3) !important;
+}
+
+[class*="pollContainer_"] [class*="selected__"] {
+    border: 2px solid var(--active) !important;
+}
+
+[class*="votedStyles_"] [class*="votePercentageBar_"] {
+    background-color: var(--active-2) !important;
+    opacity: 0.5;
+}
+
+[class*="pollContainer_"] [class*="answerSelectionIcon_"] circle {
+    fill: var(--accent-3) !important;
+}
+
+[class*="pollContainer_"] [class*="votedStyles_"] [class*="answerSelectionIcon_"] path {
+    fill: var(--bg-1) !important;
+}
+
+[class*="pollContainer_"] [class*="answer__"]:not([class*="votedStyles_"]) [class*="answerSelectionIcon_"] path {
+    fill: var(--accent-1) !important;
+}
+
+[class*="pollContainer_"] [class*="votesData_"] {
+    color: var(--text-2) !important;
+}
+
+[class*="pollContainer_"] [class*="votedStyles_"] [class*="answerInner_"] {
+    border: 2px solid var(--active) !important;
+}
+
+/* Invite to server button override*/
+[class*="inviteButton_"] svg path,
+[class*="actionIcon_"] path[d^="M14.5 8a3 3 0"] {
+    fill: var(--accent-1) !important;
+    color: var(--accent-1) !important;
+}
+
+[class*="inviteButton_"]:hover svg path {
+    fill: var(--accent-3) !important;
+    color: var(--accent-3) !important;
+}

@@ -3,6 +3,14 @@
 Ryoku is built on the work of others. The most significant external
 contributions are below.
 
+## Noctalia Shell
+
+Ryoku's centered settings panel UI, layout, widgets, and settings-page structure are adapted from Noctalia Shell.
+
+- Repository: https://github.com/noctalia-dev/noctalia-shell
+- License: MIT
+- Pinned snapshot: `9f8dd48c8df5ab1f7f87ddf9842627e1e5682186`
+
 ## Brain_Shell
 
 The Ryoku Quickshell visual layer is derived from Brain_Shell by
