@@ -76,8 +76,10 @@ grep -q 'WaveBar {' "$toast" \
   || fail "Volume toast should use the animated WaveBar"
 ! grep -q 'PopupShape {' "$toast" \
   || fail "Volume toast should not render a floating popup background"
-grep -q 'readonly property color wrapperColor: Qt.rgba(0, 0, 0, 0.76)' "$toast" \
-  || fail "Volume toast should render a black inline wrapper"
+grep -q 'readonly property color wrapperColor: Theme.background' "$toast" \
+  || fail "Volume toast wrapper should match the topbar color exactly"
+grep -q 'strokeWidth: 0' "$toast" \
+  || fail "Volume toast wrapper should not add a translucent border"
 grep -q 'id: wrapperShape' "$toast" \
   || fail "Volume toast should render a shaped inline wrapper"
 grep -q 'root._wrapperPath(root.width, root.height, root.wrapperRadius)' "$toast" \
