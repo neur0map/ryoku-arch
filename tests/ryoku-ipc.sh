@@ -280,7 +280,7 @@ assert_qs_call \
   shell settings-menu audio
 assert_qs_call \
   "shell settings-menu home" \
-  "-c ryoku ipc call popups openSettingsMenuHome" \
+  "-c ryoku ipc call popups openSettingsRoute general" \
   shell settings-menu home
 assert_qs_call \
   "shell settings-menu share" \

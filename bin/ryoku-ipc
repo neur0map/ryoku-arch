@@ -253,7 +253,7 @@ shell_settings_menu() {
       exec qs -c ryoku ipc call popups openSettingsRoute "$route"
       ;;
     home|quick|quick-controls)
-      exec qs -c ryoku ipc call popups openSettingsMenuHome
+      exec qs -c ryoku ipc call popups openSettingsRoute general
       ;;
     share)
       exec qs -c ryoku ipc call popups openSettingsMenuShare

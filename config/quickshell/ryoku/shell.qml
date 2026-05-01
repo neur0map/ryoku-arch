@@ -149,6 +149,7 @@ ShellRoot {
 
         function toggleLegacySettingsMenu(): void {
             const opening = !BS.Popups.legacySettingsMenuOpen
+            NoctaliaUI.RyokuSettingsPanelService.close()
             BS.Popups.closeAll()
             if (opening) {
                 BS.Popups.requestLegacySettingsMenuPage("home", "")
@@ -162,17 +163,18 @@ ShellRoot {
 
         function openSettingsMenuHome(): void {
             BS.Popups.closeAll()
-            BS.Popups.requestLegacySettingsMenuPage("home", "")
-            BS.Popups.legacySettingsMenuOpen = true
+            NoctaliaUI.RyokuSettingsPanelService.openRoute("general")
         }
 
         function openSettingsMenuShare(): void {
+            NoctaliaUI.RyokuSettingsPanelService.close()
             BS.Popups.closeAll()
             BS.Popups.requestLegacySettingsMenuPage("share", "")
             BS.Popups.legacySettingsMenuOpen = true
         }
 
         function openSettingsMenuHardware(): void {
+            NoctaliaUI.RyokuSettingsPanelService.close()
             BS.Popups.closeAll()
             BS.Popups.requestLegacySettingsMenuPage("setup", "hardware")
             BS.Popups.legacySettingsMenuOpen = true
