@@ -124,14 +124,22 @@ ShellRoot {
         }
 
         function toggleSettingsMenu(): void {
-            NoctaliaUI.RyokuSettingsPanelService.toggle(0, -1)
+            if (NoctaliaUI.RyokuSettingsPanelService.isWindowOpen) {
+                NoctaliaUI.RyokuSettingsPanelService.close()
+                return
+            }
+
+            BS.Popups.closeAll()
+            NoctaliaUI.RyokuSettingsPanelService.openRoute("general")
         }
 
         function openSettingsMenu(): void {
-            NoctaliaUI.RyokuSettingsPanelService.openWindow(0)
+            BS.Popups.closeAll()
+            NoctaliaUI.RyokuSettingsPanelService.openRoute("general")
         }
 
         function openSettingsRoute(route: string): void {
+            BS.Popups.closeAll()
             NoctaliaUI.RyokuSettingsPanelService.openRoute(route)
         }
 
