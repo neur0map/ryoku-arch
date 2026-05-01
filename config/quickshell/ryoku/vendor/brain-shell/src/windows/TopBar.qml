@@ -14,7 +14,6 @@ PanelWindow {
     id: root
 
     property string screenName: screen ? screen.name : ""
-    readonly property int volumeFeedbackDropHeight: 36
 
     color: "transparent"
 
@@ -39,9 +38,7 @@ PanelWindow {
 
     // Height shrinks to a border strip in focus mode. The dashboard popup
     // is its own window now — bar height stays constant when it opens.
-    implicitHeight: ShellState.focusMode
-        ? Theme.borderWidth
-        : Theme.notchHeight + (VolumeFeedback.visible ? root.volumeFeedbackDropHeight : 0)
+    implicitHeight: ShellState.focusMode ? Theme.borderWidth : Theme.notchHeight
     Behavior on implicitHeight {
         enabled: !Theme.staticMode
         NumberAnimation { duration: Theme.animDuration; easing.type: Easing.InOutCubic }
@@ -228,32 +225,6 @@ PanelWindow {
                     enabled: !Theme.staticMode
                     NumberAnimation { duration: Theme.motionEffectsDuration; easing.type: Easing.OutCubic }
                 }
-            }
-        }
-
-        Item {
-            id: rightGap
-            anchors {
-                left: centerNotch.right
-                right: rightNotch.left
-                top: parent.top
-            }
-            height: parent.height
-            clip: true
-
-            VolumeToast {
-                id: volumeToast
-                width: Math.min(implicitWidth, Math.max(0, parent.width - 18))
-                height: implicitHeight
-                anchors {
-                    horizontalCenter: parent.horizontalCenter
-                }
-                active: VolumeFeedback.visible
-                        && parent.width >= implicitWidth + 18
-                        && !Popups.toolboxOpen
-                        && !Popups.dashboardOpen
-                        && !Popups.networkOpen
-                        && !Popups.notificationsOpen
             }
         }
 

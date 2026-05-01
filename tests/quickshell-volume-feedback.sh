@@ -14,20 +14,24 @@ pass() {
 }
 
 topbar="config/quickshell/ryoku/vendor/brain-shell/src/windows/TopBar.qml"
+window="config/quickshell/ryoku/vendor/brain-shell/src/windows/VolumeFeedbackWindow.qml"
 day="config/quickshell/ryoku/vendor/brain-shell/src/modules/Gap/DayWidget.qml"
 toast="config/quickshell/ryoku/vendor/brain-shell/src/modules/Gap/VolumeToast.qml"
 state="config/quickshell/ryoku/vendor/brain-shell/src/state/VolumeFeedback.qml"
 qmldir="config/quickshell/ryoku/vendor/brain-shell/src/qmldir"
 shell="config/quickshell/ryoku/shell.qml"
+popup_layer="config/quickshell/ryoku/vendor/brain-shell/src/popups/PopupLayer.qml"
 media="default/hypr/bindings/media.conf"
 volume="bin/ryoku-volume"
 
 [[ -f $topbar ]] || fail "$topbar missing"
+[[ -f $window ]] || fail "$window missing"
 [[ -f $day ]] || fail "$day missing"
 [[ -f $toast ]] || fail "$toast missing"
 [[ -f $state ]] || fail "$state missing"
 [[ -f $qmldir ]] || fail "$qmldir missing"
 [[ -f $shell ]] || fail "$shell missing"
+[[ -f $popup_layer ]] || fail "$popup_layer missing"
 [[ -f $media ]] || fail "$media missing"
 [[ -x $volume ]] || fail "$volume missing or not executable"
 
@@ -48,18 +52,29 @@ grep -q 'id: leftGap' "$topbar" \
   || fail "TopBar should reserve the left gap"
 grep -q 'DayWidget {' "$topbar" \
   || fail "TopBar should mount the day widget"
-grep -q 'id: rightGap' "$topbar" \
-  || fail "TopBar should reserve the right gap"
-grep -q 'VolumeToast {' "$topbar" \
-  || fail "TopBar should mount the volume toast"
-grep -q 'VolumeFeedback.visible' "$topbar" \
-  || fail "TopBar should gate the toast on keyboard-volume feedback"
-grep -q 'volumeFeedbackDropHeight' "$topbar" \
-  || fail "TopBar should grow while volume feedback drops down"
-grep -q 'height: parent.height' "$topbar" \
-  || fail "right gap should allow the toast to extend below the notch"
-grep -q 'horizontalCenter: parent.horizontalCenter' "$topbar" \
-  || fail "volume toast should be centered in the right gap"
+! grep -q 'VolumeToast {' "$topbar" \
+  || fail "TopBar should not host the transient volume toast"
+! grep -q 'volumeFeedbackDropHeight' "$topbar" \
+  || fail "TopBar should not resize for volume feedback"
+grep -q 'implicitHeight: ShellState.focusMode ? Theme.borderWidth : Theme.notchHeight' "$topbar" \
+  || fail "TopBar height should remain stable during volume feedback"
+
+grep -q 'VolumeFeedbackWindow { screen: root.screen }' "$popup_layer" \
+  || fail "PopupLayer should mount the separate volume feedback window"
+grep -q 'PanelWindow {' "$window" \
+  || fail "Volume feedback should use a separate panel surface"
+grep -q 'exclusionMode: ExclusionMode.Ignore' "$window" \
+  || fail "Volume feedback window should not reserve space"
+grep -q 'WlrLayershell.layer: WlrLayer.Overlay' "$window" \
+  || fail "Volume feedback window should render above the bar"
+grep -q 'ShellState.topBarCWidth' "$window" \
+  || fail "Volume feedback window should calculate the center gap from topbar state"
+grep -q 'ShellState.topBarRWidth' "$window" \
+  || fail "Volume feedback window should calculate the right gap from topbar state"
+grep -q 'VolumeToast {' "$window" \
+  || fail "Volume feedback window should host the toast"
+grep -q 'active: VolumeFeedback.visible && root.canShow' "$window" \
+  || fail "Volume feedback window should gate the toast on keyboard-volume feedback"
 
 grep -q 'font.family: "iA Writer Quattro S"' "$day" \
   || fail "Day widget should use the rice-style display font"
@@ -74,7 +89,7 @@ grep -q 'WaveBar {' "$toast" \
   || fail "Volume toast should use the animated WaveBar"
 grep -q 'PopupShape {' "$toast" \
   || fail "Volume toast should render as a topbar extension shape"
-grep -q 'y: active ? Theme.notchHeight + 4 : -height - 2' "$toast" \
+grep -q 'y: active ? Theme.notchHeight - 8 : -height - 2' "$toast" \
   || fail "Volume toast should slide down from the topbar"
 grep -q 'Behavior on y' "$toast" \
   || fail "Volume toast should animate with a vertical slide"
