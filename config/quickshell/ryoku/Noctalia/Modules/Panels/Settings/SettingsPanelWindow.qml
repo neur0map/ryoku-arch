@@ -56,7 +56,7 @@ FloatingWindow {
     if (isInitialized) {
       Qt.callLater(() => settingsContent.navigateToResult(entry));
     } else {
-      settingsContent.requestedTab = entry.tab;
+      settingsContent.requestedTabIndex = entry.tab;
       settingsContent.initialize();
       Qt.callLater(() => settingsContent.navigateToResult(entry));
       isInitialized = true;

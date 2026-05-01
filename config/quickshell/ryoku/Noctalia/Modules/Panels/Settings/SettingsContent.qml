@@ -41,6 +41,7 @@ Item {
 
   // Input: which tab to show initially
   property int requestedTab: 0
+  property int requestedTabIndex: -1
   property string requestedRoute: ""
 
   // Exposed state for parent to access
@@ -156,6 +157,17 @@ Item {
     const tabIndex = entry.tabIndex !== undefined ? entry.tabIndex : entry.tab;
     if (tabIndex < 0 || tabIndex >= tabsModel.length)
       return;
+
+    if (tabsModel[tabIndex]?.featureAvailable === false) {
+      clearHighlightImmediately();
+      highlightLabelKey = "";
+      _pendingSubTab = -1;
+      activeTabContent = null;
+      navigatingFromSearch = true;
+      currentTabIndex = tabIndex;
+      navigatingFromSearch = false;
+      return;
+    }
 
     highlightLabelKey = entry.labelKey;
     _pendingSubTab = (entry.subTab !== null && entry.subTab !== undefined) ? entry.subTab : -1;
@@ -640,6 +652,14 @@ Item {
     currentTabIndex = 0;
   }
 
+  function selectTabByIndex(tabIndex) {
+    if (tabIndex >= 0 && tabIndex < tabsModel.length) {
+      currentTabIndex = tabIndex;
+      return;
+    }
+    currentTabIndex = 0;
+  }
+
   function initialize() {
     ProgramCheckerService.checkAllPrograms();
     // Guard _pendingSubTab during model rebuild: updateTabsModel() triggers
@@ -648,8 +668,13 @@ Item {
     const savedPendingSubTab = _pendingSubTab;
     _pendingSubTab = -1;
     updateTabsModel();
-    _pendingSubTab = savedPendingSubTab;
-    selectTabById(requestedTab);
+    _pendingSubTab = requestedTabIndex >= 0 ? -1 : savedPendingSubTab;
+    if (requestedTabIndex >= 0) {
+      selectTabByIndex(requestedTabIndex);
+      requestedTabIndex = -1;
+    } else {
+      selectTabById(requestedTab);
+    }
     // Skip auto-focus on Nvidia GPUs - cursor blink causes UI choppiness
     const isNvidia = SystemStatService.gpuType === "nvidia";
     if (sidebarExpanded && !isNvidia) {
