@@ -1,0 +1,12 @@
+blank_issues_enabled: false
+issue_templates:
+  - name: "Bug Report"
+    description: "Report a bug in the system."
+    title: "[Bug]: "
+    labels: ["bug"]
+    body: "./ISSUE_TEMPLATE/bug_report.md"
+  - name: "Feature Request"
+    description: "Propose a new feature or improvement."
+    title: "[Feature]: "
+    labels: ["enhancement"]
+    body: "./ISSUE_TEMPLATE/feature_request.md"
