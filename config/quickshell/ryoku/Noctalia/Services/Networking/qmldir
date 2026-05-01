@@ -1,0 +1,5 @@
+module qs.Noctalia.Services.Networking
+BluetoothRssi 1.0 BluetoothRssi.qml
+singleton BluetoothService 1.0 BluetoothService.qml
+singleton NetworkService 1.0 NetworkService.qml
+singleton VPNService 1.0 VPNService.qml

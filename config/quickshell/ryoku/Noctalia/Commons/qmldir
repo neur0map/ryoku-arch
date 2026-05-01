@@ -1,0 +1,13 @@
+module qs.Noctalia.Commons
+singleton Color 1.0 Color.qml
+singleton FuzzySort 1.0 FuzzySort.qml
+singleton I18n 1.0 I18n.qml
+singleton Icons 1.0 Icons.qml
+singleton IconsTabler 1.0 IconsTabler.qml
+singleton Keybinds 1.0 Keybinds.qml
+singleton Logger 1.0 Logger.qml
+singleton Settings 1.0 Settings.qml
+singleton ShellState 1.0 ShellState.qml
+singleton Style 1.0 Style.qml
+singleton ThemeIcons 1.0 ThemeIcons.qml
+singleton Time 1.0 Time.qml

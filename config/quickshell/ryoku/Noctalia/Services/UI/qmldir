@@ -1,0 +1,14 @@
+module qs.Noctalia.Services.UI
+singleton BarService 1.0 BarService.qml
+singleton BarWidgetRegistry 1.0 BarWidgetRegistry.qml
+singleton ControlCenterWidgetRegistry 1.0 ControlCenterWidgetRegistry.qml
+singleton DesktopWidgetRegistry 1.0 DesktopWidgetRegistry.qml
+singleton ImageCacheService 1.0 ImageCacheService.qml
+singleton LauncherProviderRegistry 1.0 LauncherProviderRegistry.qml
+singleton PanelService 1.0 PanelService.qml
+singleton SettingsPanelService 1.0 SettingsPanelService.qml
+singleton SettingsSearchService 1.0 SettingsSearchService.qml
+singleton ToastService 1.0 ToastService.qml
+singleton TooltipService 1.0 TooltipService.qml
+singleton WallhavenService 1.0 WallhavenService.qml
+singleton WallpaperService 1.0 WallpaperService.qml
