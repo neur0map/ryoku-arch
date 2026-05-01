@@ -13,6 +13,9 @@ Item {
   readonly property real volume: sink?.ready ? Math.max(0, Math.min(1, sink.audio.volume)) : 0
   readonly property int pct: Math.round(volume * 100)
   readonly property bool muted: sink?.ready ? sink.audio.muted : false
+  readonly property real wrapperRadius: 9
+  readonly property color wrapperColor: Qt.rgba(0, 0, 0, 0.76)
+  readonly property color wrapperBorderColor: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.12)
   readonly property string icon: {
     if (!sink?.ready) return "󰕾"
     if (muted) return "󰝟"
@@ -49,37 +52,19 @@ Item {
     onTriggered: VolumeFeedback.hide()
   }
 
-  Rectangle {
-    anchors.fill: parent
-    radius: height / 2
-    color: Qt.rgba(0, 0, 0, 0.74)
-    border.width: 1
-    border.color: Qt.rgba(Theme.border.r, Theme.border.g, Theme.border.b, 0.32)
-    antialiasing: true
-  }
-
   Shape {
-    id: topbarCornerCaps
+    id: wrapperShape
     anchors.fill: parent
     preferredRendererType: Shape.CurveRenderer
 
     ShapePath {
-      fillColor: Theme.background
-      strokeColor: "transparent"
-      strokeWidth: 0
+      fillColor: root.wrapperColor
+      strokeColor: root.wrapperBorderColor
+      strokeWidth: 1
+      joinStyle: ShapePath.RoundJoin
 
       PathSvg {
-        path: "M 0 0 L 16 0 Q 16 8 8 8 L 0 8 Z"
-      }
-    }
-
-    ShapePath {
-      fillColor: Theme.background
-      strokeColor: "transparent"
-      strokeWidth: 0
-
-      PathSvg {
-        path: "M " + root.width + " 0 L " + (root.width - 16) + " 0 Q " + (root.width - 16) + " 8 " + (root.width - 8) + " 8 L " + root.width + " 8 Z"
+        path: root._wrapperPath(root.width, root.height, root.wrapperRadius)
       }
     }
   }
@@ -143,5 +128,15 @@ Item {
         valueDuration: 140
       }
     }
+  }
+
+  function _wrapperPath(w, h, r) {
+    return "M 0 0"
+      + " L " + w + " 0"
+      + " L " + w + " " + (h - r)
+      + " A " + r + " " + r + " 0 0 1 " + (w - r) + " " + h
+      + " L " + r + " " + h
+      + " A " + r + " " + r + " 0 0 1 0 " + (h - r)
+      + " Z"
   }
 }

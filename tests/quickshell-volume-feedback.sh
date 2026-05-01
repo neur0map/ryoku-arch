@@ -76,12 +76,14 @@ grep -q 'WaveBar {' "$toast" \
   || fail "Volume toast should use the animated WaveBar"
 ! grep -q 'PopupShape {' "$toast" \
   || fail "Volume toast should not render a floating popup background"
-grep -q 'color: Qt.rgba(0, 0, 0, 0.74)' "$toast" \
+grep -q 'readonly property color wrapperColor: Qt.rgba(0, 0, 0, 0.76)' "$toast" \
   || fail "Volume toast should render a black inline wrapper"
-grep -q 'id: topbarCornerCaps' "$toast" \
-  || fail "Volume toast should add topbar-colored corner caps"
-grep -q 'fillColor: Theme.background' "$toast" \
-  || fail "Volume toast corner caps should match the topbar color"
+grep -q 'id: wrapperShape' "$toast" \
+  || fail "Volume toast should render a shaped inline wrapper"
+grep -q 'root._wrapperPath(root.width, root.height, root.wrapperRadius)' "$toast" \
+  || fail "Volume toast wrapper should use an attached top shape"
+! grep -q 'id: topbarCornerCaps' "$toast" \
+  || fail "Volume toast should not render blocky topbar-color caps"
 grep -q 'y: active ? (Theme.notchHeight - height) / 2 : -height' "$toast" \
   || fail "Volume toast should slide into the existing topbar gap"
 grep -q 'Behavior on y' "$toast" \
