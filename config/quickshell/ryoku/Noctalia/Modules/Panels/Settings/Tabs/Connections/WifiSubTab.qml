@@ -37,33 +37,33 @@ Item {
   onPasswordSsidChanged: {
     if (passwordSsid && passwordSsid.length > 0) {
       try {
-        cachedNetworks = JSON.parse(JSON.stringify(NetworkService.networks));
+        cachedNetworks = JSON.parse(JSON.stringify(RyokuNetworkService.networks));
       } catch (e) {
-        cachedNetworks = Object.assign({}, NetworkService.networks);
+        cachedNetworks = Object.assign({}, RyokuNetworkService.networks);
       }
     } else {
       cachedNetworks = ({});
     }
   }
 
-  readonly property var activeNetworks: (passwordSsid && passwordSsid.length > 0) ? Object.values(cachedNetworks) : Object.values(NetworkService.networks)
+  readonly property var activeNetworks: (passwordSsid && passwordSsid.length > 0) ? Object.values(cachedNetworks) : Object.values(RyokuNetworkService.networks)
 
   readonly property var connectedNetworks: {
-    if (!NetworkService.wifiEnabled) {
+    if (!RyokuNetworkService.wifiEnabled) {
       return [];
     }
     return activeNetworks.filter(n => n.connected).sort((a, b) => b.signal - a.signal);
   }
 
   readonly property var savedNetworks: {
-    if (!NetworkService.wifiEnabled) {
+    if (!RyokuNetworkService.wifiEnabled) {
       return [];
     }
     return activeNetworks.filter(n => !n.connected && n.existing).sort((a, b) => b.signal - a.signal);
   }
 
   readonly property var availableNetworks: {
-    if (!NetworkService.wifiEnabled) {
+    if (!RyokuNetworkService.wifiEnabled) {
       return [];
     }
     return activeNetworks.filter(n => !n.connected && !n.existing).sort((a, b) => b.signal - a.signal);
@@ -75,9 +75,9 @@ Item {
   onEffectivelyVisibleChanged: {
     if (effectivelyVisible) {
       SystemStatService.registerComponent("wifi-subtab");
-      if (NetworkService.wifiEnabled && !NetworkService.scanningActive && !showOnlyLists) {
-        NetworkService.scan();
-        NetworkService.refreshActiveWifiDetails();
+      if (RyokuNetworkService.wifiEnabled && !RyokuNetworkService.scanningActive && !showOnlyLists) {
+        RyokuNetworkService.scan();
+        RyokuNetworkService.refreshActiveWifiDetails();
       }
     } else {
       SystemStatService.unregisterComponent("wifi-subtab");
@@ -99,7 +99,7 @@ Item {
     expandedSsid = "";
   }
   function submitPassword(ssid, password, identity = "") {
-    NetworkService.connect(ssid, password, false, identity, {
+    RyokuNetworkService.connect(ssid, password, false, identity, {
                              eap: enterpriseEap,
                              phase2: enterprisePhase2,
                              anonIdentity: enterpriseAnonIdentity,
@@ -114,7 +114,7 @@ Item {
     expandedSsid = (expandedSsid === ssid) ? "" : ssid;
   }
   function confirmForget(ssid) {
-    NetworkService.forget(ssid);
+    RyokuNetworkService.forget(ssid);
     expandedSsid = "";
   }
   function cancelForget() {
@@ -146,21 +146,21 @@ Item {
 
           NToggle {
             label: I18n.tr("common.wifi")
-            icon: NetworkService.wifiEnabled ? "wifi" : "wifi-off"
-            checked: NetworkService.wifiEnabled
-            enabled: !NetworkService.airplaneModeEnabled && NetworkService.wifiAvailable
-            onToggled: checked => NetworkService.setWifiEnabled(checked)
+            icon: RyokuNetworkService.wifiEnabled ? "wifi" : "wifi-off"
+            checked: RyokuNetworkService.wifiEnabled
+            enabled: !RyokuNetworkService.airplaneModeEnabled && RyokuNetworkService.wifiAvailable
+            onToggled: checked => RyokuNetworkService.setWifiEnabled(checked)
             Layout.alignment: Qt.AlignVCenter
           }
         }
 
         NDivider {
           Layout.fillWidth: true
-          visible: NetworkService.wifiEnabled
+          visible: RyokuNetworkService.wifiEnabled
         }
 
         NText {
-          visible: !root.showOnlyLists && NetworkService.wifiEnabled
+          visible: !root.showOnlyLists && RyokuNetworkService.wifiEnabled
           Layout.fillWidth: true
           text: I18n.tr("panels.connections.wifi-header-text")
           color: Color.mOnSurfaceVariant
@@ -179,7 +179,7 @@ Item {
     // Network List [1] (Connected)
     NBox {
       id: connectedBox
-      visible: root.connectedNetworks.length > 0 && NetworkService.wifiEnabled
+      visible: root.connectedNetworks.length > 0 && RyokuNetworkService.wifiEnabled
       Layout.fillWidth: true
       Layout.preferredHeight: connectedCol.implicitHeight + Style.margin2M
       border.color: showOnlyLists ? Style.boxBorderColor : "transparent"
@@ -210,7 +210,7 @@ Item {
     // Network List [2] (Saved)
     NBox {
       id: savedBox
-      visible: root.savedNetworks.length > 0 && NetworkService.wifiEnabled
+      visible: root.savedNetworks.length > 0 && RyokuNetworkService.wifiEnabled
       Layout.fillWidth: true
       Layout.preferredHeight: savedCol.implicitHeight + Style.margin2M
       border.color: showOnlyLists ? Style.boxBorderColor : "transparent"
@@ -241,7 +241,7 @@ Item {
     // Network List [3] (Available)
     NBox {
       id: availableBox
-      visible: root.availableNetworks.length > 0 && NetworkService.wifiEnabled
+      visible: root.availableNetworks.length > 0 && RyokuNetworkService.wifiEnabled
       Layout.fillWidth: true
       Layout.preferredHeight: availableCol.implicitHeight + Style.margin2M
       border.color: showOnlyLists ? Style.boxBorderColor : "transparent"
@@ -317,14 +317,14 @@ Item {
     }
 
     Item {
-      visible: !showOnlyLists && NetworkService.wifiEnabled
+      visible: !showOnlyLists && RyokuNetworkService.wifiEnabled
       Layout.fillWidth: true
     }
 
     // Airplane Mode
     NBox {
       id: miscSettingsBox
-      visible: !root.showOnlyLists && NetworkService.wifiAvailable && BluetoothService.bluetoothAvailable
+      visible: !root.showOnlyLists && RyokuNetworkService.wifiAvailable && BluetoothService.bluetoothAvailable
       Layout.fillWidth: true
       Layout.preferredHeight: miscSettingsCol.implicitHeight + Style.margin2XL
       color: Color.mSurface
@@ -336,12 +336,12 @@ Item {
         spacing: Style.marginM
 
         NToggle {
-          visible: NetworkService.wifiAvailable && BluetoothService.bluetoothAvailable
+          visible: RyokuNetworkService.wifiAvailable && BluetoothService.bluetoothAvailable
           label: I18n.tr("toast.airplane-mode.title")
           description: I18n.tr("toast.airplane-mode.description")
-          icon: NetworkService.airplaneModeEnabled ? "plane" : "plane-off"
-          checked: NetworkService.airplaneModeEnabled
-          onToggled: checked => NetworkService.setAirplaneMode(checked)
+          icon: RyokuNetworkService.airplaneModeEnabled ? "plane" : "plane-off"
+          checked: RyokuNetworkService.airplaneModeEnabled
+          onToggled: checked => RyokuNetworkService.setAirplaneMode(checked)
         }
       }
     }
@@ -437,7 +437,7 @@ Item {
         onTextChanged: addNetworkPopup.customSsid = text
         onEditingFinished: {
           if (addNetworkPopup.customSsid.length > 0 && (addNetworkPopup.customSecurityKey === "open" || addNetworkPopup.customPassword.length > 0)) {
-            NetworkService.connect(addNetworkPopup.customSsid, addNetworkPopup.customPassword, addNetworkPopup.customIsHidden, addNetworkPopup.customSecurityKey, addNetworkPopup.customIdentity, {
+            RyokuNetworkService.connect(addNetworkPopup.customSsid, addNetworkPopup.customPassword, addNetworkPopup.customIsHidden, addNetworkPopup.customSecurityKey, addNetworkPopup.customIdentity, {
                                      eap: addNetworkPopup.customEnterpriseEap,
                                      phase2: addNetworkPopup.customEnterprisePhase2,
                                      anonIdentity: addNetworkPopup.customEnterpriseAnonIdentity,
@@ -450,7 +450,7 @@ Item {
 
       NComboBox {
         Layout.fillWidth: true
-        model: NetworkService.supportedSecurityTypes
+        model: RyokuNetworkService.supportedSecurityTypes
         currentKey: addNetworkPopup.customSecurityKey
         onSelected: key => {
                       addNetworkPopup.customSecurityKey = key;
@@ -561,7 +561,7 @@ Item {
         inputItem.echoMode: addNetworkPopup.customShowPassword ? TextInput.Normal : TextInput.Password
         onEditingFinished: {
           if (addNetworkPopup.customSsid.length > 0 && addNetworkPopup.customPassword.length > 0) {
-            NetworkService.connect(addNetworkPopup.customSsid, addNetworkPopup.customPassword, addNetworkPopup.customIsHidden, addNetworkPopup.customSecurityKey, addNetworkPopup.customIdentity, {
+            RyokuNetworkService.connect(addNetworkPopup.customSsid, addNetworkPopup.customPassword, addNetworkPopup.customIsHidden, addNetworkPopup.customSecurityKey, addNetworkPopup.customIdentity, {
                                      eap: addNetworkPopup.customEnterpriseEap,
                                      phase2: addNetworkPopup.customEnterprisePhase2,
                                      anonIdentity: addNetworkPopup.customEnterpriseAnonIdentity,
@@ -616,7 +616,7 @@ Item {
           textColor: Color.mOnPrimary
           enabled: addNetworkPopup.customSsid.length > 0 && (addNetworkPopup.customSecurityKey === "open" || addNetworkPopup.customPassword.length > 0) && (addNetworkPopup.customSecurityKey.indexOf("-eap") === -1 || addNetworkPopup.customIdentity.length > 0)
           onClicked: {
-            NetworkService.connect(addNetworkPopup.customSsid, addNetworkPopup.customPassword, addNetworkPopup.customIsHidden, addNetworkPopup.customSecurityKey, addNetworkPopup.customIdentity, {
+            RyokuNetworkService.connect(addNetworkPopup.customSsid, addNetworkPopup.customPassword, addNetworkPopup.customIsHidden, addNetworkPopup.customSecurityKey, addNetworkPopup.customIdentity, {
                                      eap: addNetworkPopup.customEnterpriseEap,
                                      phase2: addNetworkPopup.customEnterprisePhase2,
                                      anonIdentity: addNetworkPopup.customEnterpriseAnonIdentity,
@@ -635,21 +635,21 @@ Item {
     NBox {
       id: networkItem
 
-      readonly property bool isBusy: NetworkService.connectingTo === modelData.ssid || NetworkService.disconnectingFrom === modelData.ssid || NetworkService.forgettingNetwork === modelData.ssid
+      readonly property bool isBusy: RyokuNetworkService.connectingTo === modelData.ssid || RyokuNetworkService.disconnectingFrom === modelData.ssid || RyokuNetworkService.forgettingNetwork === modelData.ssid
       readonly property bool isExpanded: root.infoSsid === modelData.ssid
-      readonly property bool isEnterprise: NetworkService.isEnterprise(modelData.security)
+      readonly property bool isEnterprise: RyokuNetworkService.isEnterprise(modelData.security)
 
       function getContentColors(defaultColors = [Color.mSurface, Color.mOnSurface]) {
-        if (root.passwordSsid === modelData.ssid || NetworkService.connectingTo === modelData.ssid) {
+        if (root.passwordSsid === modelData.ssid || RyokuNetworkService.connectingTo === modelData.ssid) {
           return [Color.mPrimary, Color.mOnPrimary];
         }
-        if (modelData.connected && NetworkService.internetConnectivity && NetworkService.disconnectingFrom !== modelData.ssid) {
+        if (modelData.connected && RyokuNetworkService.internetConnectivity && RyokuNetworkService.disconnectingFrom !== modelData.ssid) {
           return [Color.mPrimary, Color.mOnPrimary];
         }
-        if (NetworkService.disconnectingFrom === modelData.ssid || NetworkService.forgettingNetwork === modelData.ssid) {
+        if (RyokuNetworkService.disconnectingFrom === modelData.ssid || RyokuNetworkService.forgettingNetwork === modelData.ssid) {
           return [Color.mError, Color.mOnError];
         }
-        if (modelData.connected && !NetworkService.internetConnectivity) {
+        if (modelData.connected && !RyokuNetworkService.internetConnectivity) {
           return [Color.mError, Color.mOnError];
         }
         return defaultColors;
@@ -677,14 +677,14 @@ Item {
           NIcon {
             Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
             horizontalAlignment: Text.AlignLeft
-            icon: NetworkService.getSignalInfo(modelData.signal, modelData.connected).icon
+            icon: RyokuNetworkService.getSignalInfo(modelData.signal, modelData.connected).icon
             pointSize: Style.fontSizeXXL
             color: networkItem.getContentColors()[1]
 
             MouseArea {
               anchors.fill: parent
               hoverEnabled: true
-              onEntered: TooltipService.show(parent, NetworkService.getSignalInfo(modelData.signal, modelData.connected).label + " (" + modelData.signal + "%)")
+              onEntered: TooltipService.show(parent, RyokuNetworkService.getSignalInfo(modelData.signal, modelData.connected).label + " (" + modelData.signal + "%)")
               onExited: TooltipService.hide()
             }
           }
@@ -706,22 +706,22 @@ Item {
               spacing: Style.marginXS
 
               NIcon {
-                icon: NetworkService.isSecured(modelData.security) ? "lock" : "lock-open"
+                icon: RyokuNetworkService.isSecured(modelData.security) ? "lock" : "lock-open"
                 pointSize: Style.fontSizeXXS
                 color: Qt.alpha(networkItem.getContentColors()[1], Style.opacityHeavy)
-                visible: !modelData.connected && NetworkService.disconnectingFrom !== modelData.ssid && NetworkService.forgettingNetwork !== modelData.ssid
+                visible: !modelData.connected && RyokuNetworkService.disconnectingFrom !== modelData.ssid && RyokuNetworkService.forgettingNetwork !== modelData.ssid
               }
 
               NText {
                 text: {
-                  if (NetworkService.disconnectingFrom === modelData.ssid) {
+                  if (RyokuNetworkService.disconnectingFrom === modelData.ssid) {
                     return I18n.tr("wifi.panel.disconnecting");
                   }
-                  if (NetworkService.forgettingNetwork === modelData.ssid) {
+                  if (RyokuNetworkService.forgettingNetwork === modelData.ssid) {
                     return I18n.tr("wifi.panel.forgetting");
                   }
                   if (modelData.connected) {
-                    switch (NetworkService.networkConnectivity) {
+                    switch (RyokuNetworkService.networkConnectivity) {
                     case "full":
                       return I18n.tr("common.connected");
                     case "limited":
@@ -729,10 +729,10 @@ Item {
                     case "portal":
                       return I18n.tr("wifi.panel.action-required");
                     default:
-                      return NetworkService.networkConnectivity;
+                      return RyokuNetworkService.networkConnectivity;
                     }
                   }
-                  return NetworkService.isSecured(modelData.security) ? modelData.security : I18n.tr("wifi.panel.security-open");
+                  return RyokuNetworkService.isSecured(modelData.security) ? modelData.security : I18n.tr("wifi.panel.security-open");
                 }
                 pointSize: Style.fontSizeXXS
                 color: Qt.alpha(networkItem.getContentColors()[1], Style.opacityHeavy)
@@ -740,7 +740,7 @@ Item {
 
               // Network speed indicators (visible when connected and speed > 0)
               RowLayout {
-                visible: (modelData.connected && NetworkService.networkConnectivity === "full") && (SystemStatService.rxSpeed > 0 || SystemStatService.txSpeed > 0)
+                visible: (modelData.connected && RyokuNetworkService.networkConnectivity === "full") && (SystemStatService.rxSpeed > 0 || SystemStatService.txSpeed > 0)
                 spacing: 2
                 Layout.leftMargin: Style.marginXS
                 Layout.fillWidth: false
@@ -799,7 +799,7 @@ Item {
             }
 
             NIconButton {
-              visible: modelData.connected && NetworkService.disconnectingFrom !== modelData.ssid
+              visible: modelData.connected && RyokuNetworkService.disconnectingFrom !== modelData.ssid
               icon: "info"
               tooltipText: I18n.tr("common.info")
               baseSize: Style.baseWidgetSize * 0.75
@@ -812,7 +812,7 @@ Item {
                   root.infoSsid = "";
                 } else {
                   root.infoSsid = modelData.ssid;
-                  NetworkService.refreshActiveWifiDetails();
+                  RyokuNetworkService.refreshActiveWifiDetails();
                 }
               }
             }
@@ -831,15 +831,15 @@ Item {
 
             NButton {
               id: button
-              visible: !modelData.connected && NetworkService.connectingTo !== modelData.ssid && root.passwordSsid !== modelData.ssid
-              enabled: !NetworkService.connecting && !networkItem.isBusy
+              visible: !modelData.connected && RyokuNetworkService.connectingTo !== modelData.ssid && root.passwordSsid !== modelData.ssid
+              enabled: !RyokuNetworkService.connecting && !networkItem.isBusy
               fontSize: Style.fontSizeS
               backgroundColor: Color.mPrimary
               textColor: Color.mOnPrimary
               text: I18n.tr("common.connect")
               onClicked: {
-                if (modelData.existing || !NetworkService.isSecured(modelData.security)) {
-                  NetworkService.connect(modelData.ssid);
+                if (modelData.existing || !RyokuNetworkService.isSecured(modelData.security)) {
+                  RyokuNetworkService.connect(modelData.ssid);
                 } else {
                   root.requestPassword(modelData.ssid);
                 }
@@ -848,12 +848,12 @@ Item {
 
             NButton {
               id: disconnectButton
-              visible: modelData.connected && NetworkService.disconnectingFrom !== modelData.ssid
+              visible: modelData.connected && RyokuNetworkService.disconnectingFrom !== modelData.ssid
               text: I18n.tr("common.disconnect")
               fontSize: Style.fontSizeS
               backgroundColor: Color.mSurfaceVariant
               textColor: Color.mOnSurface
-              onClicked: NetworkService.disconnect(modelData.ssid)
+              onClicked: RyokuNetworkService.disconnect(modelData.ssid)
             }
           }
         }
@@ -925,7 +925,7 @@ Item {
                 }
               }
               NText {
-                text: NetworkService.activeWifiIf || "-"
+                text: RyokuNetworkService.activeWifiIf || "-"
                 pointSize: Style.fontSizeXS
                 color: Color.mOnSurface
                 Layout.fillWidth: true
@@ -936,13 +936,13 @@ Item {
 
                 MouseArea {
                   anchors.fill: parent
-                  enabled: (NetworkService.activeWifiIf && NetworkService.activeWifiIf.length > 0)
+                  enabled: (RyokuNetworkService.activeWifiIf && RyokuNetworkService.activeWifiIf.length > 0)
                   hoverEnabled: true
                   cursorShape: Qt.PointingHandCursor
                   onEntered: TooltipService.show(parent, I18n.tr("tooltips.copy-address"))
                   onExited: TooltipService.hide()
                   onClicked: {
-                    const value = NetworkService.activeWifiIf || "";
+                    const value = RyokuNetworkService.activeWifiIf || "";
                     if (value.length > 0) {
                       Quickshell.execDetached(["wl-copy", value]);
                       ToastService.showNotice(I18n.tr("common.wifi"), I18n.tr("common.copied-to-clipboard"), "wifi");
@@ -968,7 +968,7 @@ Item {
                 }
               }
               NText {
-                text: NetworkService.activeWifiDetails.band || "-"
+                text: RyokuNetworkService.activeWifiDetails.band || "-"
                 pointSize: Style.fontSizeXS
                 Layout.fillWidth: true
               }
@@ -990,7 +990,7 @@ Item {
                 }
               }
               NText {
-                text: (NetworkService.activeWifiDetails.rateShort && NetworkService.activeWifiDetails.rateShort.length > 0) ? NetworkService.activeWifiDetails.rateShort : ((NetworkService.activeWifiDetails.rate && NetworkService.activeWifiDetails.rate.length > 0) ? NetworkService.activeWifiDetails.rate : "-")
+                text: (RyokuNetworkService.activeWifiDetails.rateShort && RyokuNetworkService.activeWifiDetails.rateShort.length > 0) ? RyokuNetworkService.activeWifiDetails.rateShort : ((RyokuNetworkService.activeWifiDetails.rate && RyokuNetworkService.activeWifiDetails.rate.length > 0) ? RyokuNetworkService.activeWifiDetails.rate : "-")
                 pointSize: Style.fontSizeXS
                 color: Color.mOnSurface
                 Layout.fillWidth: true
@@ -1017,20 +1017,20 @@ Item {
                 }
               }
               NText {
-                text: root.ipVersion === 4 ? (NetworkService.activeWifiDetails.ipv4 || "-") : ((NetworkService.activeWifiDetails.ipv6 || []).join(", ") || "-")
+                text: root.ipVersion === 4 ? (RyokuNetworkService.activeWifiDetails.ipv4 || "-") : ((RyokuNetworkService.activeWifiDetails.ipv6 || []).join(", ") || "-")
                 pointSize: Style.fontSizeXS
                 color: Color.mOnSurface
                 Layout.fillWidth: true
 
                 MouseArea {
                   anchors.fill: parent
-                  enabled: root.ipVersion === 4 ? !!(NetworkService.activeWifiDetails.ipv4 && NetworkService.activeWifiDetails.ipv4.length > 0) : !!(NetworkService.activeWifiDetails.ipv6 && NetworkService.activeWifiDetails.ipv6.length > 0)
+                  enabled: root.ipVersion === 4 ? !!(RyokuNetworkService.activeWifiDetails.ipv4 && RyokuNetworkService.activeWifiDetails.ipv4.length > 0) : !!(RyokuNetworkService.activeWifiDetails.ipv6 && RyokuNetworkService.activeWifiDetails.ipv6.length > 0)
                   hoverEnabled: true
                   cursorShape: Qt.PointingHandCursor
                   onEntered: TooltipService.show(parent, I18n.tr("tooltips.copy-address"))
                   onExited: TooltipService.hide()
                   onClicked: {
-                    const value = root.ipVersion === 4 ? (NetworkService.activeWifiDetails.ipv4 || "") : ((NetworkService.activeWifiDetails.ipv6 || []).join(", ") || "");
+                    const value = root.ipVersion === 4 ? (RyokuNetworkService.activeWifiDetails.ipv4 || "") : ((RyokuNetworkService.activeWifiDetails.ipv6 || []).join(", ") || "");
                     if (value.length > 0) {
                       Quickshell.execDetached(["wl-copy", value]);
                       ToastService.showNotice(I18n.tr("common.wifi"), I18n.tr("common.copied-to-clipboard"), "wifi");
@@ -1060,20 +1060,20 @@ Item {
                 }
               }
               NText {
-                text: root.ipVersion === 4 ? ((NetworkService.activeWifiDetails.dns4 || []).join(", ") || "-") : ((NetworkService.activeWifiDetails.dns6 || []).join(", ") || "-")
+                text: root.ipVersion === 4 ? ((RyokuNetworkService.activeWifiDetails.dns4 || []).join(", ") || "-") : ((RyokuNetworkService.activeWifiDetails.dns6 || []).join(", ") || "-")
                 pointSize: Style.fontSizeXS
                 color: Color.mOnSurface
                 Layout.fillWidth: true
 
                 MouseArea {
                   anchors.fill: parent
-                  enabled: root.ipVersion === 4 ? !!(NetworkService.activeWifiDetails.dns4 && NetworkService.activeWifiDetails.dns4.length > 0) : !!(NetworkService.activeWifiDetails.dns6 && NetworkService.activeWifiDetails.dns6.length > 0)
+                  enabled: root.ipVersion === 4 ? !!(RyokuNetworkService.activeWifiDetails.dns4 && RyokuNetworkService.activeWifiDetails.dns4.length > 0) : !!(RyokuNetworkService.activeWifiDetails.dns6 && RyokuNetworkService.activeWifiDetails.dns6.length > 0)
                   hoverEnabled: true
                   cursorShape: Qt.PointingHandCursor
                   onEntered: TooltipService.show(parent, I18n.tr("tooltips.copy-address"))
                   onExited: TooltipService.hide()
                   onClicked: {
-                    const value = root.ipVersion === 4 ? ((NetworkService.activeWifiDetails.dns4 || []).join(", ") || "") : ((NetworkService.activeWifiDetails.dns6 || []).join(", ") || "");
+                    const value = root.ipVersion === 4 ? ((RyokuNetworkService.activeWifiDetails.dns4 || []).join(", ") || "") : ((RyokuNetworkService.activeWifiDetails.dns6 || []).join(", ") || "");
                     if (value.length > 0) {
                       Quickshell.execDetached(["wl-copy", value]);
                       ToastService.showNotice(I18n.tr("common.wifi"), I18n.tr("common.copied-to-clipboard"), "wifi");
@@ -1103,20 +1103,20 @@ Item {
                 }
               }
               NText {
-                text: root.ipVersion === 4 ? (NetworkService.activeWifiDetails.gateway4 || "-") : ((NetworkService.activeWifiDetails.gateway6 || []).join(", ") || "-")
+                text: root.ipVersion === 4 ? (RyokuNetworkService.activeWifiDetails.gateway4 || "-") : ((RyokuNetworkService.activeWifiDetails.gateway6 || []).join(", ") || "-")
                 pointSize: Style.fontSizeXS
                 color: Color.mOnSurface
                 Layout.fillWidth: true
 
                 MouseArea {
                   anchors.fill: parent
-                  enabled: root.ipVersion === 4 ? !!(NetworkService.activeWifiDetails.gateway4 && NetworkService.activeWifiDetails.gateway4.length > 0) : !!(NetworkService.activeWifiDetails.gateway6 && NetworkService.activeWifiDetails.gateway6.length > 0)
+                  enabled: root.ipVersion === 4 ? !!(RyokuNetworkService.activeWifiDetails.gateway4 && RyokuNetworkService.activeWifiDetails.gateway4.length > 0) : !!(RyokuNetworkService.activeWifiDetails.gateway6 && RyokuNetworkService.activeWifiDetails.gateway6.length > 0)
                   hoverEnabled: true
                   cursorShape: Qt.PointingHandCursor
                   onEntered: TooltipService.show(parent, I18n.tr("tooltips.copy-address"))
                   onExited: TooltipService.hide()
                   onClicked: {
-                    const value = root.ipVersion === 4 ? (NetworkService.activeWifiDetails.gateway4 || "") : ((NetworkService.activeWifiDetails.gateway6 || []).join(", ") || "");
+                    const value = root.ipVersion === 4 ? (RyokuNetworkService.activeWifiDetails.gateway4 || "") : ((RyokuNetworkService.activeWifiDetails.gateway6 || []).join(", ") || "");
                     if (value.length > 0) {
                       Quickshell.execDetached(["wl-copy", value]);
                       ToastService.showNotice(I18n.tr("common.wifi"), I18n.tr("common.copied-to-clipboard"), "wifi");
@@ -1338,7 +1338,7 @@ Item {
                     }
                   }
                   onEditingFinished: {
-                    if (text && !NetworkService.connecting) {
+                    if (text && !RyokuNetworkService.connecting) {
                       if (!networkItem.isEnterprise || identityInput.text.length > 0) {
                         root.submitPassword(modelData.ssid, text, identityInput.text);
                       }
@@ -1367,7 +1367,7 @@ Item {
               NButton {
                 text: I18n.tr("common.connect")
                 fontSize: Style.fontSizeS
-                enabled: pwdInput.text.length > 0 && (!networkItem.isEnterprise || identityInput.text.length > 0) && !NetworkService.connecting
+                enabled: pwdInput.text.length > 0 && (!networkItem.isEnterprise || identityInput.text.length > 0) && !RyokuNetworkService.connecting
                 outlined: true
                 onClicked: root.submitPassword(modelData.ssid, pwdInput.text, identityInput.text)
               }
