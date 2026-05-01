@@ -17,6 +17,7 @@ Singleton {
   property var sinks: []
   property var sources: []
   property bool ryokuVolumeAvailable: true
+  property var _volumeCommandQueue: []
 
   function init() {
     refresh();
@@ -64,11 +65,24 @@ Singleton {
   }
 
   function runVolumeCommand(commandArgs) {
-    if (volumeCommandProcess.running)
+    if (volumeCommandProcess.running) {
+      _volumeCommandQueue.push(commandArgs);
       return;
+    }
 
     volumeCommandProcess.command = commandArgs;
     volumeCommandProcess.running = true;
+  }
+
+  function runNextVolumeCommand() {
+    if (volumeCommandProcess.running || _volumeCommandQueue.length === 0) {
+      return false;
+    }
+
+    const nextCommand = _volumeCommandQueue.shift();
+    volumeCommandProcess.command = nextCommand;
+    volumeCommandProcess.running = true;
+    return true;
   }
 
   function parseWpctlVolume(output) {
@@ -111,7 +125,8 @@ Singleton {
     stderr: StdioCollector {}
 
     onExited: function () {
-      root.refresh();
+      if (!root.runNextVolumeCommand())
+        root.refresh();
     }
   }
 }

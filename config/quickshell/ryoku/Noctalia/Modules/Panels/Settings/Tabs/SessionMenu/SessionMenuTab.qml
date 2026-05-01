@@ -161,7 +161,8 @@ ColumnLayout {
                                             "entryIndex": index,
                                             "entryData": entry,
                                             "entryId": entry.id,
-                                            "entryText": entry.text
+                                            "entryText": entry.text,
+                                            "ryokuManagedCommand": RyokuSessionActions.isSafeAction(entry.id)
                                           });
 
       if (dialog) {

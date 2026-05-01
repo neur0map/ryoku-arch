@@ -13,6 +13,7 @@ Popup {
   property string entryId: ""
   property string entryText: ""
   property string keybindInputText: ""
+  property bool ryokuManagedCommand: false
 
   signal updateEntryProperties(int index, var properties)
 
@@ -50,7 +51,7 @@ Popup {
 
   function save() {
     root.updateEntryProperties(root.entryIndex, {
-                                 "command": commandInput.text,
+                                 "command": root.ryokuManagedCommand && root.entryData ? root.entryData.command || "" : commandInput.text,
                                  "keybind": keybindInputText
                                });
   }
@@ -110,6 +111,7 @@ Popup {
         Layout.fillWidth: true
         label: I18n.tr("common.command")
         description: I18n.tr("panels.session-menu.entry-settings-command-description")
+        enabled: !root.ryokuManagedCommand
         placeholderText: I18n.tr("panels.session-menu.entry-settings-command-placeholder")
         onTextChanged: root.save()
       }
