@@ -205,19 +205,21 @@ Singleton {
       if (parts.length === 0) {
         continue;
       }
-      if (parts[parts.length - 1] === "station" || parts.length >= 4) {
-        let powered = null;
-        for (let j = 1; j < parts.length; j++) {
-          powered = parsePowerToken(parts[j]);
-          if (powered !== null) {
-            break;
-          }
-        }
-        return {
-          "name": parts[0],
-          "powered": powered === null ? true : powered
-        };
+      if (parts[parts.length - 1] !== "station") {
+        continue;
       }
+
+      let powered = null;
+      for (let j = 1; j < parts.length; j++) {
+        powered = parsePowerToken(parts[j]);
+        if (powered !== null) {
+          break;
+        }
+      }
+      return {
+        "name": parts[0],
+        "powered": powered === null ? true : powered
+      };
     }
     return {
       "name": "",
