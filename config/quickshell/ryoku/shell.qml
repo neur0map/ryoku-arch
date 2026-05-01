@@ -148,30 +148,34 @@ ShellRoot {
         }
 
         function toggleLegacySettingsMenu(): void {
-            const opening = !BS.Popups.settingsMenuOpen
+            const opening = !BS.Popups.legacySettingsMenuOpen
             BS.Popups.closeAll()
             if (opening) {
-                BS.Popups.requestSettingsMenuPage("home", "")
+                BS.Popups.requestLegacySettingsMenuPage("home", "")
             }
-            BS.Popups.settingsMenuOpen = opening
+            BS.Popups.legacySettingsMenuOpen = opening
+        }
+
+        function closeLegacySettingsMenu(): void {
+            BS.Popups.legacySettingsMenuOpen = false
         }
 
         function openSettingsMenuHome(): void {
             BS.Popups.closeAll()
-            BS.Popups.requestSettingsMenuPage("home", "")
-            BS.Popups.settingsMenuOpen = true
+            BS.Popups.requestLegacySettingsMenuPage("home", "")
+            BS.Popups.legacySettingsMenuOpen = true
         }
 
         function openSettingsMenuShare(): void {
             BS.Popups.closeAll()
-            BS.Popups.requestSettingsMenuPage("share", "")
-            BS.Popups.settingsMenuOpen = true
+            BS.Popups.requestLegacySettingsMenuPage("share", "")
+            BS.Popups.legacySettingsMenuOpen = true
         }
 
         function openSettingsMenuHardware(): void {
             BS.Popups.closeAll()
-            BS.Popups.requestSettingsMenuPage("setup", "hardware")
-            BS.Popups.settingsMenuOpen = true
+            BS.Popups.requestLegacySettingsMenuPage("setup", "hardware")
+            BS.Popups.legacySettingsMenuOpen = true
         }
 
         function toggleDotfiles(): void {
