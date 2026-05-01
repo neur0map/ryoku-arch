@@ -56,7 +56,7 @@ Singleton {
     scanProcess.running = true;
   }
 
-  function connect(ssid, security, passphrase) {
+  function connect(ssid, security, passphrase, hidden) {
     if (connecting || !ssid) {
       return;
     }
@@ -66,6 +66,11 @@ Singleton {
     }
     if (isEnterprise(security)) {
       error = "Enterprise Wi-Fi is not supported by the nmcli settings adapter";
+      lastError = error;
+      return;
+    }
+    if (hidden) {
+      error = "Hidden Wi-Fi connections are not supported by the nmcli settings adapter";
       lastError = error;
       return;
     }

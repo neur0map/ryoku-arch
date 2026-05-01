@@ -323,7 +323,7 @@ Item {
     // Airplane Mode
     NBox {
       id: miscSettingsBox
-      visible: !root.showOnlyLists && RyokuNetworkService.wifiAvailable && BluetoothService.bluetoothAvailable
+      visible: false
       Layout.fillWidth: true
       Layout.preferredHeight: miscSettingsCol.implicitHeight + Style.margin2XL
       color: Color.mSurface
@@ -436,7 +436,7 @@ Item {
         onTextChanged: addNetworkPopup.customSsid = text
         onEditingFinished: {
           if (addNetworkPopup.customSsid.length > 0 && (addNetworkPopup.customSecurityKey === "open" || addNetworkPopup.customPassword.length > 0)) {
-            RyokuNetworkService.connect(addNetworkPopup.customSsid, addNetworkPopup.customSecurityKey, addNetworkPopup.customPassword);
+            RyokuNetworkService.connect(addNetworkPopup.customSsid, addNetworkPopup.customSecurityKey, addNetworkPopup.customPassword, addNetworkPopup.customIsHidden);
             addNetworkPopup.close();
           }
         }
@@ -555,7 +555,7 @@ Item {
         inputItem.echoMode: addNetworkPopup.customShowPassword ? TextInput.Normal : TextInput.Password
         onEditingFinished: {
           if (addNetworkPopup.customSsid.length > 0 && addNetworkPopup.customPassword.length > 0) {
-            RyokuNetworkService.connect(addNetworkPopup.customSsid, addNetworkPopup.customSecurityKey, addNetworkPopup.customPassword);
+            RyokuNetworkService.connect(addNetworkPopup.customSsid, addNetworkPopup.customSecurityKey, addNetworkPopup.customPassword, addNetworkPopup.customIsHidden);
             addNetworkPopup.close();
           }
         }
@@ -605,7 +605,7 @@ Item {
           textColor: Color.mOnPrimary
           enabled: addNetworkPopup.customSsid.length > 0 && (addNetworkPopup.customSecurityKey === "open" || addNetworkPopup.customPassword.length > 0) && (addNetworkPopup.customSecurityKey.indexOf("-eap") === -1 || addNetworkPopup.customIdentity.length > 0)
           onClicked: {
-            RyokuNetworkService.connect(addNetworkPopup.customSsid, addNetworkPopup.customSecurityKey, addNetworkPopup.customPassword);
+            RyokuNetworkService.connect(addNetworkPopup.customSsid, addNetworkPopup.customSecurityKey, addNetworkPopup.customPassword, addNetworkPopup.customIsHidden);
             addNetworkPopup.close();
           }
         }
