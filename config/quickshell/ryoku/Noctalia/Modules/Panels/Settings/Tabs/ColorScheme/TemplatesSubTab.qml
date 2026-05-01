@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import qs.Noctalia.Commons
+import qs.Noctalia.Services.Ryoku
 import qs.Noctalia.Services.System
 import qs.Noctalia.Services.Theming
 import qs.Noctalia.Services.UI
@@ -12,6 +13,7 @@ ColumnLayout {
   id: root
   spacing: Style.marginL
   Layout.fillWidth: true
+  enabled: RyokuThemeActions.templateControlsAvailable
 
   // Helper to format path description
   function getDesc(fallbackPath) {
@@ -187,7 +189,7 @@ ColumnLayout {
   }
 
   NText {
-    text: I18n.tr("panels.color-scheme.templates-desc")
+    text: RyokuThemeActions.unavailableReason
     wrapMode: Text.WordWrap
     Layout.fillWidth: true
   }

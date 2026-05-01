@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import qs.Noctalia.Commons
 import qs.Noctalia.Services.Location
+import qs.Noctalia.Services.Ryoku
 import qs.Noctalia.Services.UI
 import qs.Noctalia.Widgets
 
@@ -12,12 +13,14 @@ ColumnLayout {
   Layout.fillWidth: true
 
   property var timeOptions
+  readonly property bool monitorMutationsAvailable: false
 
   signal checkWlsunset
 
   NToggle {
     label: I18n.tr("panels.display.night-light-enable-label")
     description: I18n.tr("panels.display.night-light-enable-description")
+    enabled: root.monitorMutationsAvailable
     checked: Settings.data.nightLight.enabled
     onToggled: checked => {
                  if (checked) {
@@ -32,7 +35,7 @@ ColumnLayout {
   }
 
   ColumnLayout {
-    enabled: Settings.data.nightLight.enabled
+    enabled: Settings.data.nightLight.enabled && root.monitorMutationsAvailable
     spacing: Style.marginL
     Layout.fillWidth: true
 
@@ -215,5 +218,13 @@ ColumnLayout {
                    }
                  }
     }
+  }
+
+  NText {
+    text: RyokuFeatureAvailability.unavailableReason
+    pointSize: Style.fontSizeS
+    color: Color.mOnSurfaceVariant
+    wrapMode: Text.WordWrap
+    Layout.fillWidth: true
   }
 }

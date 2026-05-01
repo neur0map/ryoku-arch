@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import qs.Noctalia.Commons
+import qs.Noctalia.Services.Ryoku
 import qs.Noctalia.Services.UI
 import qs.Noctalia.Widgets
 
@@ -9,7 +10,7 @@ ColumnLayout {
   id: root
   spacing: Style.marginL
   Layout.fillWidth: true
-  enabled: Settings.data.wallpaper.enabled
+  enabled: Settings.data.wallpaper.enabled && RyokuWallpaperActions.noctaliaWallpaperControlsAvailable
 
   NToggle {
     label: I18n.tr("panels.wallpaper.automation-scheduled-change-label")

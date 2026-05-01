@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import qs.Noctalia.Commons
+import qs.Noctalia.Services.Ryoku
 import qs.Noctalia.Services.System
 import qs.Noctalia.Services.Theming
 import qs.Noctalia.Services.UI
@@ -209,9 +210,38 @@ ColumnLayout {
     Layout.fillWidth: true
   }
 
+  RowLayout {
+    spacing: Style.marginM
+    Layout.fillWidth: true
+
+    NLabel {
+      label: I18n.tr("panels.color-scheme.title")
+      description: RyokuThemeActions.unavailableReason
+      Layout.fillWidth: true
+    }
+
+    NButton {
+      text: I18n.tr("common.refresh")
+      icon: "refresh"
+      outlined: true
+      onClicked: RyokuThemeActions.refreshTheme()
+    }
+
+    NButton {
+      text: "Themes"
+      icon: "palette"
+      onClicked: RyokuThemeActions.openThemePicker()
+    }
+  }
+
+  NDivider {
+    Layout.fillWidth: true
+  }
+
   NToggle {
     label: I18n.tr("panels.color-scheme.color-source-use-wallpaper-colors-label")
     description: I18n.tr("panels.color-scheme.color-source-use-wallpaper-colors-description")
+    enabled: RyokuThemeActions.wallpaperColorControlsAvailable
     checked: Settings.data.colorSchemes.useWallpaperColors
     defaultValue: Settings.getDefaultValue("colorSchemes.useWallpaperColors")
     onToggled: checked => {
@@ -231,7 +261,7 @@ ColumnLayout {
     Layout.fillWidth: true
     label: I18n.tr("panels.color-scheme.wallpaper-monitor-source-label")
     description: I18n.tr("panels.color-scheme.wallpaper-monitor-source-description")
-    enabled: Settings.data.colorSchemes.useWallpaperColors
+    enabled: Settings.data.colorSchemes.useWallpaperColors && RyokuThemeActions.wallpaperColorControlsAvailable
     model: {
       var m = [];
       if (Quickshell.screens) {
@@ -258,7 +288,7 @@ ColumnLayout {
     Layout.fillWidth: true
     label: I18n.tr("panels.color-scheme.wallpaper-method-label")
     description: I18n.tr("panels.color-scheme.wallpaper-method-description")
-    enabled: Settings.data.colorSchemes.useWallpaperColors
+    enabled: Settings.data.colorSchemes.useWallpaperColors && RyokuThemeActions.wallpaperColorControlsAvailable
     model: TemplateProcessor.schemeTypes
     currentKey: Settings.data.colorSchemes.generationMethod
     onSelected: key => {
@@ -316,7 +346,7 @@ ColumnLayout {
   ColumnLayout {
     spacing: Style.marginM
     Layout.fillWidth: true
-    enabled: !Settings.data.colorSchemes.useWallpaperColors
+    enabled: !Settings.data.colorSchemes.useWallpaperColors && RyokuThemeActions.templateControlsAvailable
 
     NHeader {
       label: I18n.tr("panels.color-scheme.predefined-title")

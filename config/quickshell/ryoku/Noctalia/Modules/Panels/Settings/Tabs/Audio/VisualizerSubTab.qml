@@ -2,12 +2,23 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import qs.Noctalia.Commons
+import qs.Noctalia.Services.Ryoku
 import qs.Noctalia.Widgets
 
 ColumnLayout {
   id: root
   spacing: Style.marginL
   Layout.fillWidth: true
+  enabled: advancedControlsAvailable
+  readonly property bool advancedControlsAvailable: false
+
+  NText {
+    text: RyokuFeatureAvailability.unavailableReason
+    pointSize: Style.fontSizeS
+    color: Color.mOnSurfaceVariant
+    wrapMode: Text.WordWrap
+    Layout.fillWidth: true
+  }
 
   NComboBox {
     label: I18n.tr("panels.audio.visualizer-type-label")

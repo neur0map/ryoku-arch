@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import qs.Noctalia.Commons
+import qs.Noctalia.Services.Ryoku
 import qs.Noctalia.Widgets
 
 ColumnLayout {
@@ -165,7 +166,8 @@ ColumnLayout {
 
             MouseArea {
               anchors.fill: parent
-              cursorShape: Qt.PointingHandCursor
+              enabled: modelData.safeAction !== false
+              cursorShape: modelData.safeAction !== false ? Qt.PointingHandCursor : Qt.ArrowCursor
               onClicked: {
                 root.updateEntry(index, {
                                    "enabled": !modelData.enabled
@@ -177,7 +179,7 @@ ColumnLayout {
           // Label
           NText {
             Layout.fillWidth: true
-            text: modelData.text
+            text: modelData.safeAction === false ? modelData.text + " - " + RyokuSessionActions.unavailableReason : modelData.text
             color: Color.mOnSurface
             verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight
@@ -200,6 +202,7 @@ ColumnLayout {
           NIconButton {
             icon: "settings"
             tooltipText: I18n.tr("panels.session-menu.entry-settings-tooltip")
+            enabled: modelData.safeAction !== false
             baseSize: Style.baseWidgetSize * 0.8
             Layout.alignment: Qt.AlignVCenter
             onClicked: root.openEntrySettingsDialog(delegateItem.index)

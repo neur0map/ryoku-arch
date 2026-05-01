@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import Quickshell
 import qs.Noctalia.Commons
 import qs.Noctalia.Services.Media
+import qs.Noctalia.Services.Ryoku
 import qs.Noctalia.Services.System
 import qs.Noctalia.Widgets
 
@@ -13,6 +14,7 @@ ColumnLayout {
   Layout.fillWidth: true
 
   property real localVolume: AudioService.volume
+  readonly property bool advancedControlsAvailable: false
 
   Connections {
     target: AudioService
@@ -87,7 +89,7 @@ ColumnLayout {
     }
 
     ColumnLayout {
-      enabled: SoundService.multimediaAvailable && Settings.data.audio.volumeFeedback
+      enabled: root.advancedControlsAvailable && SoundService.multimediaAvailable && Settings.data.audio.volumeFeedback
       spacing: Style.marginXXS
       Layout.fillWidth: true
 
@@ -117,6 +119,7 @@ ColumnLayout {
   ColumnLayout {
     spacing: Style.marginXS
     Layout.fillWidth: true
+    enabled: root.advancedControlsAvailable
 
     NValueSlider {
       Layout.fillWidth: true
@@ -135,6 +138,7 @@ ColumnLayout {
   ColumnLayout {
     spacing: Style.marginS
     Layout.fillWidth: true
+    enabled: root.advancedControlsAvailable
 
     NToggle {
       label: I18n.tr("panels.audio.volumes-mute-input-label")
@@ -148,6 +152,7 @@ ColumnLayout {
   ColumnLayout {
     spacing: Style.marginS
     Layout.fillWidth: true
+    enabled: root.advancedControlsAvailable
 
     NSpinBox {
       Layout.fillWidth: true
@@ -171,6 +176,7 @@ ColumnLayout {
   ColumnLayout {
     spacing: Style.marginS
     Layout.fillWidth: true
+    enabled: root.advancedControlsAvailable
 
     NToggle {
       label: I18n.tr("panels.audio.volumes-volume-overdrive-label")
@@ -179,6 +185,14 @@ ColumnLayout {
       defaultValue: Settings.getDefaultValue("audio.volumeOverdrive")
       onToggled: checked => Settings.data.audio.volumeOverdrive = checked
     }
+  }
+
+  NText {
+    text: RyokuFeatureAvailability.unavailableReason
+    pointSize: Style.fontSizeS
+    color: Color.mOnSurfaceVariant
+    wrapMode: Text.WordWrap
+    Layout.fillWidth: true
   }
 
   NFilePicker {

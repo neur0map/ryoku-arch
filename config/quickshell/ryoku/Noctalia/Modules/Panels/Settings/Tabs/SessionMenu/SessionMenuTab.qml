@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import qs.Noctalia.Commons
+import qs.Noctalia.Services.Ryoku
 import qs.Noctalia.Services.UI
 import qs.Noctalia.Widgets
 
@@ -17,48 +18,56 @@ ColumnLayout {
       "id": "lock",
       "text": I18n.tr("common.lock"),
       "enabled": true,
+      "safeAction": RyokuSessionActions.isSafeAction("lock"),
       "required": false
     },
     {
       "id": "suspend",
       "text": I18n.tr("common.suspend"),
-      "enabled": true,
+      "enabled": false,
+      "safeAction": RyokuSessionActions.isSafeAction("suspend"),
       "required": false
     },
     {
       "id": "hibernate",
       "text": I18n.tr("common.hibernate"),
-      "enabled": true,
+      "enabled": false,
+      "safeAction": RyokuSessionActions.isSafeAction("hibernate"),
       "required": false
     },
     {
       "id": "reboot",
       "text": I18n.tr("common.reboot"),
       "enabled": true,
+      "safeAction": RyokuSessionActions.isSafeAction("reboot"),
       "required": false
     },
     {
       "id": "userspaceReboot",
       "text": I18n.tr("common.userspace-reboot"),
       "enabled": false,
+      "safeAction": RyokuSessionActions.isSafeAction("userspaceReboot"),
       "required": false
     },
     {
       "id": "rebootToUefi",
       "text": I18n.tr("common.reboot-to-uefi"),
-      "enabled": true,
+      "enabled": false,
+      "safeAction": RyokuSessionActions.isSafeAction("rebootToUefi"),
       "required": false
     },
     {
       "id": "logout",
       "text": I18n.tr("common.logout"),
       "enabled": true,
+      "safeAction": RyokuSessionActions.isSafeAction("logout"),
       "required": false
     },
     {
       "id": "shutdown",
       "text": I18n.tr("common.shutdown"),
       "enabled": true,
+      "safeAction": RyokuSessionActions.isSafeAction("shutdown"),
       "required": false
     }
   ]
@@ -69,8 +78,9 @@ ColumnLayout {
 
     for (var i = 0; i < entriesModel.length; i++) {
       var keybind = entriesModel[i].keybind || "";
+      const safeAction = RyokuSessionActions.isSafeAction(entriesModel[i].id);
 
-      if (entriesModel[i].enabled) {
+      if (entriesModel[i].enabled && safeAction) {
         // For enabled entries with numeric or empty keybinds, assign sequential number
         if (keybind === "" || /^\d+$/.test(keybind)) {
           keybind = String(enabledNumber);
@@ -85,9 +95,9 @@ ColumnLayout {
 
       toSave.push({
                     "action": entriesModel[i].id,
-                    "enabled": entriesModel[i].enabled,
+                    "enabled": entriesModel[i].enabled && safeAction,
                     "countdownEnabled": entriesModel[i].countdownEnabled !== undefined ? entriesModel[i].countdownEnabled : true,
-                    "command": entriesModel[i].command || "",
+                    "command": safeAction ? RyokuSessionActions.commandForAction(entriesModel[i].id).join(" ") : "",
                     "keybind": keybind
                   });
     }
@@ -106,7 +116,11 @@ ColumnLayout {
 
   function updateEntry(idx, properties) {
     var newModel = entriesModel.slice();
-    newModel[idx] = Object.assign({}, newModel[idx], properties);
+    const safeAction = RyokuSessionActions.isSafeAction(newModel[idx].id);
+    newModel[idx] = Object.assign({}, newModel[idx], properties, {
+                                    "safeAction": safeAction,
+                                    "enabled": safeAction && properties.enabled !== undefined ? properties.enabled : newModel[idx].enabled
+                                  });
     entriesModel = newModel;
     saveEntries();
   }
@@ -191,12 +205,13 @@ ColumnLayout {
 
       for (var j = 0; j < entriesDefault.length; j++) {
         if (settingEntry.action === entriesDefault[j].id) {
-          var entry = entriesDefault[j];
-          entry.enabled = settingEntry.enabled;
+          var entry = Object.assign({}, entriesDefault[j]);
+          entry.safeAction = RyokuSessionActions.isSafeAction(entry.id);
+          entry.enabled = entry.safeAction && settingEntry.enabled;
           // Default countdownEnabled to true for backward compatibility
           entry.countdownEnabled = settingEntry.countdownEnabled !== undefined ? settingEntry.countdownEnabled : true;
           // Load custom command if defined
-          entry.command = settingEntry.command || "";
+          entry.command = entry.safeAction ? RyokuSessionActions.commandForAction(entry.id).join(" ") : "";
           entry.keybind = settingEntry.keybind || "";
           entriesModel.push(entry);
         }
@@ -214,11 +229,13 @@ ColumnLayout {
       }
 
       if (!found) {
-        var entry = entriesDefault[i];
+        var entry = Object.assign({}, entriesDefault[i]);
+        entry.safeAction = RyokuSessionActions.isSafeAction(entry.id);
+        entry.enabled = entry.enabled && entry.safeAction;
         // Default countdownEnabled to true for new entries
         entry.countdownEnabled = true;
         // Default command to empty string for new entries
-        entry.command = "";
+        entry.command = entry.safeAction ? RyokuSessionActions.commandForAction(entry.id).join(" ") : "";
         entry.keybind = "";
         entriesModel.push(entry);
       }

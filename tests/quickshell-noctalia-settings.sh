@@ -39,6 +39,36 @@ grep -q 'MIT License' "$vendor/LICENSE" \
   || fail "Ryoku settings panel service should exist"
 [[ -f $runtime/Services/Ryoku/RyokuFeatureAvailability.qml ]] \
   || fail "Ryoku feature availability service should exist"
+[[ -f $runtime/Services/Ryoku/RyokuThemeActions.qml ]] \
+  || fail "Ryoku theme settings actions should exist"
+[[ -f $runtime/Services/Ryoku/RyokuWallpaperActions.qml ]] \
+  || fail "Ryoku wallpaper settings actions should exist"
+[[ -f $runtime/Services/Ryoku/RyokuSessionActions.qml ]] \
+  || fail "Ryoku session settings actions should exist"
+grep -q 'singleton RyokuThemeActions 1.0 RyokuThemeActions.qml' "$runtime/Services/Ryoku/qmldir" \
+  || fail "Ryoku theme actions should be exported from qmldir"
+grep -q 'singleton RyokuWallpaperActions 1.0 RyokuWallpaperActions.qml' "$runtime/Services/Ryoku/qmldir" \
+  || fail "Ryoku wallpaper actions should be exported from qmldir"
+grep -q 'singleton RyokuSessionActions 1.0 RyokuSessionActions.qml' "$runtime/Services/Ryoku/qmldir" \
+  || fail "Ryoku session actions should be exported from qmldir"
+grep -q 'ryoku-theme-refresh' "$runtime/Services/Ryoku/RyokuThemeActions.qml" \
+  || fail "Ryoku theme actions should refresh theme templates"
+grep -q 'ryoku-ipc.*shell.*toggle.*themes' "$runtime/Services/Ryoku/RyokuThemeActions.qml" \
+  || fail "Ryoku theme actions should open the Ryoku theme picker"
+grep -q 'ryoku-ipc.*shell.*toggle.*wallpaper' "$runtime/Services/Ryoku/RyokuWallpaperActions.qml" \
+  || fail "Ryoku wallpaper actions should open the Ryoku wallpaper picker"
+grep -q 'ryoku-ipc.*wallpaper.*wallhaven' "$runtime/Services/Ryoku/RyokuWallpaperActions.qml" \
+  || fail "Ryoku wallpaper actions should open Wallhaven search"
+grep -q 'ryoku-ipc.*wallpaper.*cache.*rebuild' "$runtime/Services/Ryoku/RyokuWallpaperActions.qml" \
+  || fail "Ryoku wallpaper actions should rebuild wallpaper cache"
+grep -q 'ryoku-lock-screen' "$runtime/Services/Ryoku/RyokuSessionActions.qml" \
+  || fail "Ryoku session actions should lock through Ryoku"
+grep -q 'ryoku-system-logout' "$runtime/Services/Ryoku/RyokuSessionActions.qml" \
+  || fail "Ryoku session actions should logout through Ryoku"
+grep -q 'ryoku-system-reboot' "$runtime/Services/Ryoku/RyokuSessionActions.qml" \
+  || fail "Ryoku session actions should reboot through Ryoku"
+grep -q 'ryoku-system-shutdown' "$runtime/Services/Ryoku/RyokuSessionActions.qml" \
+  || fail "Ryoku session actions should power off through Ryoku"
 
 grep -q 'import qs.Noctalia.Commons' "$settings_window" \
   || fail "Runtime settings window should import the Noctalia runtime namespace"
@@ -96,6 +126,53 @@ grep -q 'property var _pendingChecks' "$runtime/Services/Ryoku/RyokuCommand.qml"
   || fail "Ryoku command presence checks should preserve concurrent callbacks"
 grep -q 'property var _checkQueue' "$runtime/Services/Ryoku/RyokuCommand.qml" \
   || fail "Ryoku command presence checks should serialize the shared process"
+
+grep -q 'RyokuThemeActions' "$runtime/Modules/Panels/Settings/Tabs/ColorScheme/ColorsSubTab.qml" \
+  || fail "Color scheme page should use Ryoku theme actions"
+grep -q 'RyokuThemeActions.refreshTheme' "$runtime/Modules/Panels/Settings/Tabs/ColorScheme/ColorsSubTab.qml" \
+  || fail "Color scheme page should expose Ryoku theme refresh"
+grep -q 'RyokuThemeActions.openThemePicker' "$runtime/Modules/Panels/Settings/Tabs/ColorScheme/ColorsSubTab.qml" \
+  || fail "Color scheme page should expose the Ryoku theme picker"
+grep -q 'enabled:.*RyokuThemeActions.wallpaperColorControlsAvailable' "$runtime/Modules/Panels/Settings/Tabs/ColorScheme/ColorsSubTab.qml" \
+  || fail "Wallpaper-derived color controls should stay visible but disabled"
+grep -q 'RyokuThemeActions.templateControlsAvailable' "$runtime/Modules/Panels/Settings/Tabs/ColorScheme/TemplatesSubTab.qml" \
+  || fail "Template controls should stay visible but disabled"
+
+grep -q 'RyokuWallpaperActions' "$runtime/Modules/Panels/Settings/Tabs/Wallpaper/GeneralSubTab.qml" \
+  || fail "Wallpaper page should use Ryoku wallpaper actions"
+grep -q 'RyokuWallpaperActions.openWallpaperPicker' "$runtime/Modules/Panels/Settings/Tabs/Wallpaper/GeneralSubTab.qml" \
+  || fail "Wallpaper page should expose Ryoku wallpaper picker"
+grep -q 'RyokuWallpaperActions.openWallhaven' "$runtime/Modules/Panels/Settings/Tabs/Wallpaper/GeneralSubTab.qml" \
+  || fail "Wallpaper page should expose Wallhaven"
+grep -q 'RyokuWallpaperActions.rebuildCache' "$runtime/Modules/Panels/Settings/Tabs/Wallpaper/GeneralSubTab.qml" \
+  || fail "Wallpaper page should expose cache rebuild"
+grep -q 'RyokuWallpaperActions.noctaliaWallpaperControlsAvailable' "$runtime/Modules/Panels/Settings/Tabs/Wallpaper/LookAndFeelSubTab.qml" \
+  || fail "Unavailable wallpaper look controls should stay visible but disabled"
+grep -q 'RyokuWallpaperActions.noctaliaWallpaperControlsAvailable' "$runtime/Modules/Panels/Settings/Tabs/Wallpaper/AutomationSubTab.qml" \
+  || fail "Unavailable wallpaper automation controls should stay visible but disabled"
+
+grep -q 'ryoku-volume' "$runtime/Services/Media/AudioService.qml" \
+  || fail "Audio service should use the existing Ryoku volume backend"
+grep -q 'wpctl' "$runtime/Services/Media/AudioService.qml" \
+  || fail "Audio service should read local PipeWire volume state"
+grep -q 'advancedControlsAvailable' "$runtime/Modules/Panels/Settings/Tabs/Audio/DevicesSubTab.qml" \
+  || fail "Advanced audio device controls should stay visible but disabled"
+grep -q 'advancedControlsAvailable' "$runtime/Modules/Panels/Settings/Tabs/Audio/VisualizerSubTab.qml" \
+  || fail "Advanced audio visualizer controls should stay visible but disabled"
+
+grep -q 'Quickshell.screens' "$runtime/Modules/Panels/Settings/Tabs/Display/BrightnessSubTab.qml" \
+  || fail "Display page should expose local monitor status"
+grep -q 'monitorMutationsAvailable' "$runtime/Modules/Panels/Settings/Tabs/Display/BrightnessSubTab.qml" \
+  || fail "Display mutation controls should be explicitly disabled"
+grep -q 'monitorMutationsAvailable' "$runtime/Modules/Panels/Settings/Tabs/Display/NightLightSubTab.qml" \
+  || fail "Night light mutation controls should be explicitly disabled"
+
+grep -q 'RyokuSessionActions' "$runtime/Modules/Panels/Settings/Tabs/SessionMenu/SessionMenuTab.qml" \
+  || fail "Session settings should use Ryoku session action safety"
+grep -q 'RyokuSessionActions.isSafeAction' "$runtime/Modules/Panels/Settings/Tabs/SessionMenu/SessionMenuTab.qml" \
+  || fail "Session settings should only enable safe Ryoku session actions"
+grep -q 'RyokuFeatureAvailability.unavailableReason' "$runtime/Modules/Panels/Settings/Tabs/Idle/IdleTab.qml" \
+  || fail "Idle settings should stay visible but disabled with an unavailable reason"
 
 grep -q 'ryoku/noctalia-settings/settings.json' "$runtime/Commons/Settings.qml" \
   || fail "Runtime settings should use a Ryoku-owned settings path"
