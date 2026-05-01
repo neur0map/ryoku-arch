@@ -10,15 +10,15 @@ import qs.Noctalia.Widgets
 FloatingWindow {
   id: root
 
-  readonly property int panelWidth: Math.round(840 * Style.uiScaleRatio)
-  readonly property int panelHeight: Math.round(910 * Style.uiScaleRatio)
+  readonly property int panelWidth: 840
+  readonly property int panelHeight: 910
 
   title: "Noctalia"
   width: Math.min(panelWidth, screen ? screen.width - 24 : panelWidth)
   height: Math.min(panelHeight, screen ? screen.height - 24 : panelHeight)
   minimumSize: Qt.size(Math.min(panelWidth, screen ? screen.width - 24 : panelWidth), Math.min(panelHeight, screen ? screen.height - 24 : panelHeight))
-  implicitWidth: 840 * Style.uiScaleRatio
-  implicitHeight: 910 * Style.uiScaleRatio
+  implicitWidth: panelWidth
+  implicitHeight: panelHeight
   color: "transparent"
 
   visible: false
