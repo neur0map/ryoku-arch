@@ -84,6 +84,12 @@ grep -q 'tabsModel\[entry.tab\]' "$runtime/Modules/Panels/Settings/SettingsConte
   || fail "Settings search metadata should resolve from the entry tab index"
 rg -U 'sourceComponent:[[:space:]]+root\.tabsModel\[index\]\?\.featureAvailable[[:space:]]*\?[[:space:]]*root\.tabsModel\[index\]\?\.source[[:space:]]*:[[:space:]]*null' "$runtime/Modules/Panels/Settings/SettingsContent.qml" >/dev/null \
   || fail "Unavailable settings pages should not instantiate unsupported tab components"
+grep -q 'requestedTabIndex' "$runtime/Modules/Panels/Settings/SettingsContent.qml" \
+  || fail "Settings content should support initializing from a search tab index"
+! rg -n 'requestedTab[[:space:]]*=[[:space:]]*(entry|requestedEntry)\.tab' "$settings_window" "$runtime/Modules/Panels/Settings/SettingsPanel.qml" \
+  || fail "Search entry opens should not treat entry.tab index as a tab enum"
+rg -U 'tabsModel\[tabIndex\]\?\.featureAvailable[[:space:]]*===[[:space:]]*false[\s\S]{0,260}_pendingSubTab[[:space:]]*=[[:space:]]*-1' "$runtime/Modules/Panels/Settings/SettingsContent.qml" >/dev/null \
+  || fail "Unavailable search navigation should clear pending subtab state"
 grep -q 'property var _commandCache' "$runtime/Services/Ryoku/RyokuCommand.qml" \
   || fail "Ryoku command presence checks should cache results"
 grep -q 'property var _pendingChecks' "$runtime/Services/Ryoku/RyokuCommand.qml" \

@@ -167,7 +167,7 @@ SmartPanel {
   onOpened: {
     if (_settingsContent) {
       if (requestedEntry) {
-        _settingsContent.requestedTab = requestedEntry.tab;
+        _settingsContent.requestedTabIndex = requestedEntry.tab;
         _settingsContent.initialize();
         const entry = requestedEntry;
         requestedEntry = null;
