@@ -14,7 +14,6 @@ pass() {
 }
 
 topbar="config/quickshell/ryoku/vendor/brain-shell/src/windows/TopBar.qml"
-window="config/quickshell/ryoku/vendor/brain-shell/src/windows/VolumeFeedbackWindow.qml"
 day="config/quickshell/ryoku/vendor/brain-shell/src/modules/Gap/DayWidget.qml"
 toast="config/quickshell/ryoku/vendor/brain-shell/src/modules/Gap/VolumeToast.qml"
 state="config/quickshell/ryoku/vendor/brain-shell/src/state/VolumeFeedback.qml"
@@ -25,7 +24,6 @@ media="default/hypr/bindings/media.conf"
 volume="bin/ryoku-volume"
 
 [[ -f $topbar ]] || fail "$topbar missing"
-[[ -f $window ]] || fail "$window missing"
 [[ -f $day ]] || fail "$day missing"
 [[ -f $toast ]] || fail "$toast missing"
 [[ -f $state ]] || fail "$state missing"
@@ -52,29 +50,18 @@ grep -q 'id: leftGap' "$topbar" \
   || fail "TopBar should reserve the left gap"
 grep -q 'DayWidget {' "$topbar" \
   || fail "TopBar should mount the day widget"
-! grep -q 'VolumeToast {' "$topbar" \
-  || fail "TopBar should not host the transient volume toast"
+grep -q 'id: rightGap' "$topbar" \
+  || fail "TopBar should reserve the right gap"
+grep -q 'VolumeToast {' "$topbar" \
+  || fail "TopBar should host the inline volume toast"
+grep -q 'VolumeFeedback.visible' "$topbar" \
+  || fail "TopBar should gate the toast on keyboard-volume feedback"
 ! grep -q 'volumeFeedbackDropHeight' "$topbar" \
   || fail "TopBar should not resize for volume feedback"
 grep -q 'implicitHeight: ShellState.focusMode ? Theme.borderWidth : Theme.notchHeight' "$topbar" \
   || fail "TopBar height should remain stable during volume feedback"
-
-grep -q 'VolumeFeedbackWindow { screen: root.screen }' "$popup_layer" \
-  || fail "PopupLayer should mount the separate volume feedback window"
-grep -q 'PanelWindow {' "$window" \
-  || fail "Volume feedback should use a separate panel surface"
-grep -q 'exclusionMode: ExclusionMode.Ignore' "$window" \
-  || fail "Volume feedback window should not reserve space"
-grep -q 'WlrLayershell.layer: WlrLayer.Overlay' "$window" \
-  || fail "Volume feedback window should render above the bar"
-grep -q 'ShellState.topBarCWidth' "$window" \
-  || fail "Volume feedback window should calculate the center gap from topbar state"
-grep -q 'ShellState.topBarRWidth' "$window" \
-  || fail "Volume feedback window should calculate the right gap from topbar state"
-grep -q 'VolumeToast {' "$window" \
-  || fail "Volume feedback window should host the toast"
-grep -q 'active: VolumeFeedback.visible && root.canShow' "$window" \
-  || fail "Volume feedback window should gate the toast on keyboard-volume feedback"
+! grep -q 'VolumeFeedbackWindow' "$popup_layer" \
+  || fail "PopupLayer should not mount a separate volume overlay"
 
 grep -q 'font.family: "iA Writer Quattro S"' "$day" \
   || fail "Day widget should use the rice-style display font"
@@ -87,17 +74,19 @@ grep -q 'import "../../services/home/."' "$toast" \
   || fail "Volume toast should import shared home components"
 grep -q 'WaveBar {' "$toast" \
   || fail "Volume toast should use the animated WaveBar"
-grep -q 'PopupShape {' "$toast" \
-  || fail "Volume toast should render as a topbar extension shape"
-grep -q 'y: active ? Theme.notchHeight - 8 : -height - 2' "$toast" \
-  || fail "Volume toast should slide down from the topbar"
+! grep -q 'PopupShape {' "$toast" \
+  || fail "Volume toast should not render a floating popup background"
+grep -q 'color: Qt.rgba(0, 0, 0, 0.74)' "$toast" \
+  || fail "Volume toast should render a black inline wrapper"
+grep -q 'y: active ? (Theme.notchHeight - height) / 2 : -height' "$toast" \
+  || fail "Volume toast should slide into the existing topbar gap"
 grep -q 'Behavior on y' "$toast" \
   || fail "Volume toast should animate with a vertical slide"
 ! grep -q 'Behavior on opacity' "$toast" \
   || fail "Volume toast should not fade in"
 ! grep -q 'Behavior on scale' "$toast" \
   || fail "Volume toast should not scale in"
-grep -q 'implicitWidth: 150' "$toast" \
+grep -q 'implicitWidth: 142' "$toast" \
   || fail "Volume toast should stay compact"
 grep -q 'Timer {' "$toast" \
   || fail "Volume toast should auto-hide"

@@ -1,7 +1,6 @@
 import QtQuick
 import Quickshell.Services.Pipewire
 import "../../"
-import "../../shapes/"
 import "../../services/home/."
 
 Item {
@@ -21,14 +20,14 @@ Item {
     return "󰕿"
   }
 
-  implicitWidth: 150
-  implicitHeight: 28
-  visible: active || y > -height
-  y: active ? Theme.notchHeight - 8 : -height - 2
+  implicitWidth: 142
+  implicitHeight: 22
+  visible: active || y > -height + 1
+  y: active ? (Theme.notchHeight - height) / 2 : -height
 
   Behavior on y {
     enabled: !Theme.staticMode
-    NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+    NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
   }
 
   PwObjectTracker {
@@ -49,15 +48,13 @@ Item {
     onTriggered: VolumeFeedback.hide()
   }
 
-  PopupShape {
+  Rectangle {
     anchors.fill: parent
-    attachedEdge: "top"
-    radius: 13
-    flareWidth: 13
-    flareHeight: 8
-    color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, 0.94)
-    strokeWidth: 1
-    strokeColor: Qt.rgba(Theme.border.r, Theme.border.g, Theme.border.b, 0.34)
+    radius: height / 2
+    color: Qt.rgba(0, 0, 0, 0.74)
+    border.width: 1
+    border.color: Qt.rgba(Theme.border.r, Theme.border.g, Theme.border.b, 0.32)
+    antialiasing: true
   }
 
   Row {
@@ -65,10 +62,10 @@ Item {
       left: parent.left
       right: parent.right
       verticalCenter: parent.verticalCenter
-      leftMargin: 10
-      rightMargin: 10
+      leftMargin: 4
+      rightMargin: 4
     }
-    spacing: 6
+    spacing: 5
 
     Text {
       width: 16
@@ -81,7 +78,7 @@ Item {
     }
 
     Text {
-      width: 36
+      width: 34
       text: root.muted ? "MUTED" : root.pct + "%"
       color: root.muted ? Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.62) : Theme.text
       font.family: "JetBrains Mono"
@@ -93,7 +90,7 @@ Item {
     }
 
     Item {
-      width: Math.max(52, parent.width - 16 - 36 - parent.spacing * 2)
+      width: Math.max(48, parent.width - 16 - 34 - parent.spacing * 2)
       height: 11
       anchors.verticalCenter: parent.verticalCenter
 
