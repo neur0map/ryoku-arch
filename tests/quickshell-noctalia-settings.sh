@@ -96,6 +96,14 @@ grep -Eq 'implicitHeight:[[:space:]]+910|panelHeight:[[:space:]]+910|height:[[:s
   || fail "Settings panel should preserve Noctalia's 910px visual height"
 ! rg -n '(panelWidth|panelHeight|implicitWidth|implicitHeight):.*Style\.uiScaleRatio' "$settings_window" \
   || fail "Settings panel outer geometry should not scale beyond Noctalia's logical size"
+grep -q 'centeredX' "$settings_window" \
+  || fail "Settings panel should explicitly compute centered x position"
+grep -q 'centeredY' "$settings_window" \
+  || fail "Settings panel should explicitly compute centered y position"
+grep -q 'screen.width - width' "$settings_window" \
+  || fail "Settings panel x position should center within screen width"
+grep -q 'screen.height - height' "$settings_window" \
+  || fail "Settings panel y position should center within screen height"
 rg -U '(^|\n)[^\n]*(implicitWidth|panelWidth|width)[[:space:]]*:[[:space:]]*Math\.min\([\s\S]{0,240}(screen\.width|availableGeometry[\s\S]{0,40}width)' "$settings_window" >/dev/null \
   || fail "Settings panel should cap width to available screen geometry"
 rg -U '(^|\n)[^\n]*(implicitHeight|panelHeight|height)[[:space:]]*:[[:space:]]*Math\.min\([\s\S]{0,240}(screen\.height|availableGeometry[\s\S]{0,40}height)' "$settings_window" >/dev/null \

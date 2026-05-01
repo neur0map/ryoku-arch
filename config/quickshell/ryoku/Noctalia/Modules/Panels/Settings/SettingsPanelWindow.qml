@@ -12,8 +12,12 @@ FloatingWindow {
 
   readonly property int panelWidth: 840
   readonly property int panelHeight: 910
+  readonly property int centeredX: screen ? Math.round((screen.width - width) / 2) : 0
+  readonly property int centeredY: screen ? Math.round((screen.height - height) / 2) : 0
 
   title: "Noctalia"
+  x: centeredX
+  y: centeredY
   width: Math.min(panelWidth, screen ? screen.width - 24 : panelWidth)
   height: Math.min(panelHeight, screen ? screen.height - 24 : panelHeight)
   minimumSize: Qt.size(Math.min(panelWidth, screen ? screen.width - 24 : panelWidth), Math.min(panelHeight, screen ? screen.height - 24 : panelHeight))
