@@ -22,6 +22,9 @@ QtObject {
     property bool settingsMenuOpen:  false
     property string settingsMenuRequestedPage:    "home"
     property string settingsMenuRequestedSubpage: ""
+    property bool legacySettingsMenuOpen: false
+    property string legacySettingsMenuRequestedPage: "home"
+    property string legacySettingsMenuRequestedSubpage: ""
     property bool dotfilesOpen:      false
     // True while the launcher card is visually present. Driven from
     // AppLauncherPopup.qml so TopBar can stay on Overlay and make the
@@ -31,6 +34,7 @@ QtObject {
     // these so TopBar can remain on Overlay through close animations.
     property bool systemMenuVisible:   false
     property bool settingsMenuVisible: false
+    property bool legacySettingsMenuVisible: false
     property bool dotfilesVisible:     false
     // True while the dashboard card is visually present (open, opening,
     // or closing). Driven from Dashboard.qml; TopBar uses this to hold
@@ -99,6 +103,11 @@ QtObject {
         settingsMenuRequestedSubpage = subpage && subpage !== "" ? subpage : ""
     }
 
+    function requestLegacySettingsMenuPage(page, subpage) {
+        legacySettingsMenuRequestedPage = page && page !== "" ? page : "home"
+        legacySettingsMenuRequestedSubpage = subpage && subpage !== "" ? subpage : ""
+    }
+
     function requestBatteryWarning(level) {
         var numericLevel = Number(level)
         if (isNaN(numericLevel)) numericLevel = 10
@@ -127,6 +136,7 @@ QtObject {
         mirrorScreenName  = ""
         systemMenuOpen     = false
         settingsMenuOpen   = false
+        legacySettingsMenuOpen = false
         dotfilesOpen       = false
         wallpaperOpen     = false
         quickOpen           = false

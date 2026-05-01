@@ -8,7 +8,7 @@ import "../shapes"
 PanelWindow {
   id: root
 
-  Binding { target: Popups; property: "settingsMenuVisible"; value: card.visible }
+  Binding { target: Popups; property: "legacySettingsMenuVisible"; value: card.visible }
 
   readonly property int fw: Theme.notchRadius
   readonly property int fh: Theme.notchRadius
@@ -21,7 +21,7 @@ PanelWindow {
   readonly property string ryokuConfigPath: Quickshell.env("RYOKU_CONFIG_PATH") !== "" ? Quickshell.env("RYOKU_CONFIG_PATH") : root.homeDir + "/.config/ryoku"
 
   property bool windowVisible: false
-  property real openProgress: Popups.settingsMenuOpen ? 1 : 0
+  property real openProgress: Popups.legacySettingsMenuOpen ? 1 : 0
   property string currentPage: "home"
   property string currentSubpage: ""
   property string pageTitle: "Ryoku"
@@ -55,7 +55,7 @@ PanelWindow {
     enabled: !Theme.staticMode
     NumberAnimation {
       duration: Theme.motionExpandDuration
-      easing.type: Popups.settingsMenuOpen ? Easing.OutBack : Easing.OutQuart
+      easing.type: Popups.legacySettingsMenuOpen ? Easing.OutBack : Easing.OutQuart
       easing.overshoot: 1.06
     }
   }
@@ -420,8 +420,8 @@ PanelWindow {
   Connections {
     target: Popups
 
-    function onSettingsMenuOpenChanged() {
-      if (Popups.settingsMenuOpen) {
+    function onLegacySettingsMenuOpenChanged() {
+      if (Popups.legacySettingsMenuOpen) {
         closeTimer.stop()
         root.openRequestedRoute()
         root.windowVisible = true
@@ -812,7 +812,7 @@ PanelWindow {
   }
 
   function openRequestedRoute() {
-    root.openPage(Popups.settingsMenuRequestedPage, Popups.settingsMenuRequestedSubpage)
+    root.openPage(Popups.legacySettingsMenuRequestedPage, Popups.legacySettingsMenuRequestedSubpage)
   }
 
   function openPage(page, subpage) {

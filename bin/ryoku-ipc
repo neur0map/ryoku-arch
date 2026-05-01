@@ -26,6 +26,7 @@ Usage:
   ryoku-ipc shell command dotfiles
   ryoku-ipc shell command system-menu
   ryoku-ipc shell command settings-menu
+  ryoku-ipc shell command legacy-settings-menu
   ryoku-ipc shell command settings-menu-home
   ryoku-ipc shell command settings-menu-share
   ryoku-ipc shell command settings-menu-hardware
@@ -40,6 +41,15 @@ Usage:
   ryoku-ipc shell toggle dotfiles
   ryoku-ipc shell toggle system-menu
   ryoku-ipc shell toggle settings-menu
+  ryoku-ipc shell toggle legacy-settings-menu
+  ryoku-ipc shell settings-menu wifi
+  ryoku-ipc shell settings-menu bluetooth
+  ryoku-ipc shell settings-menu connections
+  ryoku-ipc shell settings-menu color-scheme
+  ryoku-ipc shell settings-menu wallpaper
+  ryoku-ipc shell settings-menu display
+  ryoku-ipc shell settings-menu audio
+  ryoku-ipc shell settings-menu general
   ryoku-ipc shell settings-menu home
   ryoku-ipc shell settings-menu share
   ryoku-ipc shell settings-menu hardware
@@ -65,7 +75,7 @@ shell_command() {
   local target="${1:-}"
 
   if (( $# != 1 )); then
-    echo "ryoku-ipc: expected shell command wallpaper|launcher|toolbox|screenshot|screen-record|battery-warning|themes|fonts|cursors|dotfiles|system-menu|settings-menu|settings-menu-home|settings-menu-share|settings-menu-hardware" >&2
+    echo "ryoku-ipc: expected shell command wallpaper|launcher|toolbox|screenshot|screen-record|battery-warning|themes|fonts|cursors|dotfiles|system-menu|settings-menu|legacy-settings-menu|settings-menu-home|settings-menu-share|settings-menu-hardware" >&2
     return 2
   fi
 
@@ -105,6 +115,9 @@ shell_command() {
       ;;
     settings-menu)
       printf '%s\n' "qs -c ryoku ipc call popups toggleSettingsMenu"
+      ;;
+    legacy-settings-menu)
+      printf '%s\n' "qs -c ryoku ipc call popups toggleLegacySettingsMenu"
       ;;
     settings-menu-home)
       printf '%s\n' "qs -c ryoku ipc call popups openSettingsMenuHome"
@@ -179,7 +192,7 @@ shell_toggle() {
   local target="${1:-}"
 
   if (( $# != 1 )); then
-    echo "ryoku-ipc: expected shell toggle wallpaper|launcher|toolbox|screenshot|screen-record|themes|fonts|cursors|dotfiles|system-menu|settings-menu" >&2
+    echo "ryoku-ipc: expected shell toggle wallpaper|launcher|toolbox|screenshot|screen-record|themes|fonts|cursors|dotfiles|system-menu|settings-menu|legacy-settings-menu" >&2
     return 2
   fi
 
@@ -217,6 +230,9 @@ shell_toggle() {
     settings-menu)
       exec qs -c ryoku ipc call popups toggleSettingsMenu
       ;;
+    legacy-settings-menu)
+      exec qs -c ryoku ipc call popups toggleLegacySettingsMenu
+      ;;
     *)
       echo "ryoku-ipc: unknown shell toggle target: $target" >&2
       return 2
@@ -228,11 +244,14 @@ shell_settings_menu() {
   local route="${1:-}"
 
   if (( $# != 1 )); then
-    echo "ryoku-ipc: expected shell settings-menu home|share|hardware" >&2
+    echo "ryoku-ipc: expected shell settings-menu wifi|bluetooth|connections|color-scheme|wallpaper|display|audio|general|home|share|hardware" >&2
     return 2
   fi
 
   case "$route" in
+    wifi|bluetooth|connections|color-scheme|wallpaper|display|audio|general)
+      exec qs -c ryoku ipc call popups openSettingsRoute "$route"
+      ;;
     home|quick|quick-controls)
       exec qs -c ryoku ipc call popups openSettingsMenuHome
       ;;

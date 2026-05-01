@@ -31,7 +31,9 @@ Item {
     AppLauncherPopup {}
     WallpaperPopup {}
     SystemMenuPopup {}
-    SettingsMenuPopup {}
+    SettingsMenuPopup {
+        property bool legacySettingsMenuOpen: Popups.legacySettingsMenuOpen
+    }
     DotfilesHubPopup {}
     MirrorWindow { screen: root.screen }
     ScreenshotTool { screen: root.screen }

@@ -22,7 +22,7 @@ PanelWindow {
     // does. Promoted to Overlay while attached center/topbar surfaces
     // are visually present so they keep painting and receiving input
     // as one continuous surface during open and close.
-    WlrLayershell.layer: Popups.toolboxOpen || Popups.dashboardVisible || Popups.launcherVisible || Popups.systemMenuVisible || Popups.settingsMenuVisible
+    WlrLayershell.layer: Popups.toolboxOpen || Popups.dashboardVisible || Popups.launcherVisible || Popups.systemMenuVisible || Popups.legacySettingsMenuVisible
                          ? WlrLayer.Overlay : WlrLayer.Top
     WlrLayershell.keyboardFocus: Popups.toolboxOpen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
