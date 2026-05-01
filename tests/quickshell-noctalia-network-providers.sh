@@ -121,6 +121,29 @@ grep -q 'connect' "$network_dir/RyokuBluetoothService.qml" \
   || fail "Bluetooth service should support connecting"
 grep -q 'trust' "$network_dir/RyokuBluetoothService.qml" \
   || fail "Bluetooth service should support trusted devices"
+grep -q 'id: scanProcess' "$network_dir/RyokuBluetoothService.qml" \
+  || fail "Bluetooth scanning should use a dedicated bounded process"
+grep -q 'id: scanOffProcess' "$network_dir/RyokuBluetoothService.qml" \
+  || fail "Bluetooth scan stop should not wait behind the action queue"
+grep -q -- '--timeout' "$network_dir/RyokuBluetoothService.qml" \
+  || fail "Bluetooth scan and pair commands should be bounded"
+! grep -q 'queueBluetoothctl(\["scan"' "$network_dir/RyokuBluetoothService.qml" \
+  || fail "Bluetooth scan commands should not run through the serialized action queue"
+! awk '
+  /function connectDeviceWithTrust/ { in_fn = 1 }
+  in_fn && /queueBluetoothctl\(\["trust"/ { found = 1 }
+  in_fn && /^  function / && !/function connectDeviceWithTrust/ { in_fn = 0 }
+  END { exit found ? 0 : 1 }
+' "$network_dir/RyokuBluetoothService.qml" \
+  || fail "Bluetooth connect should not implicitly persist device trust"
+grep -q 'readonly property bool advancedBluetoothControlsSupported: false' "$runtime/Modules/Panels/Settings/Tabs/Connections/BluetoothSubTab.qml" \
+  || fail "Bluetooth subtab should mark unsupported advanced controls disabled"
+grep -A5 'bluetooth-auto-connect-label' "$runtime/Modules/Panels/Settings/Tabs/Connections/BluetoothSubTab.qml" | grep -q 'enabled: root.advancedBluetoothControlsSupported' \
+  || fail "Global Bluetooth auto-connect control should be disabled for Ryoku"
+grep -A8 'common.auto-connect' "$runtime/Modules/Panels/Settings/Tabs/Connections/BluetoothSubTab.qml" | grep -q 'enabled: root.advancedBluetoothControlsSupported' \
+  || fail "Per-device Bluetooth auto-connect control should be disabled for Ryoku"
+grep -A5 'bluetooth-rssi-polling-label' "$runtime/Modules/Panels/Settings/Tabs/Connections/BluetoothSubTab.qml" | grep -q 'enabled: root.advancedBluetoothControlsSupported' \
+  || fail "Bluetooth RSSI polling control should be disabled for Ryoku"
 
 grep -q 'RyokuNetworkService' "$runtime/Modules/Panels/Settings/Tabs/Connections/WifiSubTab.qml" \
   || fail "Wi-Fi subtab should use the Ryoku network service"

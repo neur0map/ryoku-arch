@@ -40,6 +40,8 @@ Singleton {
   property string _busyAddress: ""
   property string _busyAction: ""
   property int _busyRevision: 0
+  property string _pairAddress: ""
+  property string _pairOutput: ""
 
   Component.onCompleted: refresh()
 
@@ -82,7 +84,10 @@ Singleton {
   function setScanActive(active) {
     if (!active) {
       root.scanning = false;
-      queueBluetoothctl(["scan", "off"], "", "");
+      if (scanProcess.running)
+        scanProcess.running = false;
+      if (!scanOffProcess.running)
+        scanOffProcess.running = true;
       return;
     }
 
@@ -92,7 +97,8 @@ Singleton {
     }
 
     root.scanning = true;
-    queueBluetoothctl(["scan", "on"], "", "");
+    if (!scanProcess.running)
+      scanProcess.running = true;
     refreshDebouncer.restart();
   }
 
@@ -107,7 +113,15 @@ Singleton {
     const normalizedAddress = normalizeAddress(address);
     if (!normalizedAddress)
       return;
-    queueBluetoothctl(["pair", normalizedAddress], normalizedAddress, "pairing");
+    if (pairProcess.running)
+      return;
+
+    root._pairAddress = normalizedAddress;
+    root._pairOutput = "";
+    root._busyAddress = normalizedAddress;
+    root._busyAction = "pairing";
+    root._busyRevision++;
+    pairProcess.running = true;
   }
 
   function trust(address) {
@@ -147,8 +161,7 @@ Singleton {
     if (!address)
       return;
 
-    queueBluetoothctl(["trust", address], address, "");
-    queueBluetoothctl(["connect", address], address, "connecting");
+    connect(address);
   }
 
   function disconnectDevice(device) {
@@ -282,7 +295,7 @@ Singleton {
     root._busyAddress = item.address || "";
     root._busyAction = item.busyAction || "";
     root._busyRevision++;
-    actionProcess.command = ["bluetoothctl"].concat(item.args);
+    actionProcess.command = ["bluetoothctl", "--timeout", "15"].concat(item.args);
     actionProcess.running = true;
   }
 
@@ -484,6 +497,80 @@ Singleton {
       root._infoAddress = "";
       root._infoText = "";
       root.runNextInfo();
+    }
+  }
+
+  Process {
+    id: scanProcess
+    running: false
+    command: ["bluetoothctl", "--timeout", "8", "scan", "on"]
+    stdout: StdioCollector {}
+    stderr: StdioCollector {
+      onStreamFinished: {
+        if (text.trim())
+          root.error = text.trim();
+      }
+    }
+    onExited: {
+      if (root.scanning && root.powered) {
+        refreshDebouncer.restart();
+        scanRestartTimer.restart();
+      }
+    }
+  }
+
+  Process {
+    id: scanOffProcess
+    running: false
+    command: ["bluetoothctl", "scan", "off"]
+    stdout: StdioCollector {}
+    stderr: StdioCollector {
+      onStreamFinished: {
+        if (text.trim())
+          root.error = text.trim();
+      }
+    }
+    onExited: refreshDebouncer.restart()
+  }
+
+  Timer {
+    id: scanRestartTimer
+    interval: 100
+    repeat: false
+    onTriggered: {
+      if (root.scanning && root.powered && !scanProcess.running)
+        scanProcess.running = true;
+    }
+  }
+
+  Process {
+    id: pairProcess
+    running: false
+    stdinEnabled: true
+    command: ["bluetoothctl", "--timeout", "45"]
+    onStarted: {
+      pairProcess.write("agent NoInputNoOutput\n");
+      pairProcess.write("default-agent\n");
+      pairProcess.write("pair " + root._pairAddress + "\n");
+      pairProcess.write("quit\n");
+    }
+    stdout: StdioCollector {
+      onStreamFinished: root._pairOutput = text
+    }
+    stderr: StdioCollector {
+      onStreamFinished: {
+        if (text.trim())
+          root.error = text.trim();
+      }
+    }
+    onExited: exitCode => {
+      if (exitCode !== 0 || root._pairOutput.match(/(Failed|Authentication|not available|rejected|timeout)/i)) {
+        root.error = root.error || "Bluetooth pairing failed. Authenticated PIN pairing is not supported by this Ryoku adapter.";
+      }
+      root._pairAddress = "";
+      root._pairOutput = "";
+      root.clearBusy();
+      refreshDebouncer.restart();
     }
   }
 
