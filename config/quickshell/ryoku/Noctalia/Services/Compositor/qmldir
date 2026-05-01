@@ -1,0 +1,2 @@
+module qs.Noctalia.Services.Compositor
+singleton CompositorService 1.0 CompositorService.qml
