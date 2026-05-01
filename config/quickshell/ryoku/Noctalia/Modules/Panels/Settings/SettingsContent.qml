@@ -106,10 +106,10 @@ Item {
       const entry = SettingsSearchService.searchIndex[j];
       if (!SettingsSearchService.isEntryVisible(entry))
         continue;
-      const tabIndex = tabIndexForId(entry.tab);
-      if (tabIndex < 0)
+      const tabIndex = entry.tab;
+      if (tabIndex < 0 || tabIndex >= tabsModel.length)
         continue;
-      const tabModel = tabsModel[tabIndex];
+      const tabModel = tabsModel[entry.tab];
       if (tabModel.searchable === false)
         continue;
       items.push({
@@ -153,7 +153,7 @@ Item {
   property int _pendingSubTab: -1
 
   function navigateToResult(entry) {
-    const tabIndex = entry.tabIndex !== undefined ? entry.tabIndex : tabIndexForId(entry.tab);
+    const tabIndex = entry.tabIndex !== undefined ? entry.tabIndex : entry.tab;
     if (tabIndex < 0 || tabIndex >= tabsModel.length)
       return;
 
@@ -1263,6 +1263,12 @@ Item {
                     width: scrollView.availableWidth
                     spacing: Style.marginL
 
+                    Component.onCompleted: {
+                      if (root.tabsModel[index]?.featureAvailable === false) {
+                        root.activeTabContent = null;
+                      }
+                    }
+
                     NBox {
                       width: parent.width
                       visible: root.tabsModel[index]?.featureAvailable === false
@@ -1301,7 +1307,7 @@ Item {
                       active: true
                       enabled: root.tabsModel[index]?.featureAvailable
                       opacity: root.tabsModel[index]?.featureAvailable ? 1.0 : 0.45
-                      sourceComponent: root.tabsModel[index]?.source
+                      sourceComponent: root.tabsModel[index]?.featureAvailable ? root.tabsModel[index]?.source : null
                       width: scrollView.availableWidth
                       onLoaded: {
                         if (item && item.hasOwnProperty("screen")) {

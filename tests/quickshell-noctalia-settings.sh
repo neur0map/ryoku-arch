@@ -78,6 +78,18 @@ grep -q 'enabled:.*featureAvailable' "$runtime/Modules/Panels/Settings/SettingsC
   || fail "Unavailable settings controls should be disabled"
 grep -q 'searchable' "$runtime/Modules/Panels/Settings/SettingsContent.qml" \
   || fail "Unavailable settings pages should remain searchable"
+! grep -q 'tabIndexForId(entry.tab)' "$runtime/Modules/Panels/Settings/SettingsContent.qml" \
+  || fail "Settings search entries should use their tab index directly"
+grep -q 'tabsModel\[entry.tab\]' "$runtime/Modules/Panels/Settings/SettingsContent.qml" \
+  || fail "Settings search metadata should resolve from the entry tab index"
+rg -U 'sourceComponent:[[:space:]]+root\.tabsModel\[index\]\?\.featureAvailable[[:space:]]*\?[[:space:]]*root\.tabsModel\[index\]\?\.source[[:space:]]*:[[:space:]]*null' "$runtime/Modules/Panels/Settings/SettingsContent.qml" >/dev/null \
+  || fail "Unavailable settings pages should not instantiate unsupported tab components"
+grep -q 'property var _commandCache' "$runtime/Services/Ryoku/RyokuCommand.qml" \
+  || fail "Ryoku command presence checks should cache results"
+grep -q 'property var _pendingChecks' "$runtime/Services/Ryoku/RyokuCommand.qml" \
+  || fail "Ryoku command presence checks should preserve concurrent callbacks"
+grep -q 'property var _checkQueue' "$runtime/Services/Ryoku/RyokuCommand.qml" \
+  || fail "Ryoku command presence checks should serialize the shared process"
 
 grep -q 'ryoku/noctalia-settings/settings.json' "$runtime/Commons/Settings.qml" \
   || fail "Runtime settings should use a Ryoku-owned settings path"
