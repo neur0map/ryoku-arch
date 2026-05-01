@@ -53,16 +53,18 @@ grep -q 'toggleLegacySettingsMenu' "$shell_qml" \
   || fail "Ryoku shell should keep a legacy settings-menu route"
 grep -q 'openSettingsRoute' "$shell_qml" \
   || fail "Ryoku shell should route settings subtabs through IPC"
-! rg -n 'ShellRoot|PluginRegistry\.init|TelemetryService|UpdateService|SetupWizard|shouldOpenSetupWizard' "$shell_qml" "$runtime" \
-  || fail "Ryoku should not bootstrap the full Noctalia shell"
+! rg -n 'PluginRegistry\.init|TelemetryService|UpdateService|SetupWizard|shouldOpenSetupWizard' "$shell_qml" "$runtime" \
+  || fail "Ryoku should not bootstrap Noctalia autonomous services"
+! rg -n 'ShellRoot|PluginRegistry\.init|TelemetryService|UpdateService|SetupWizard|shouldOpenSetupWizard' "$runtime" \
+  || fail "Noctalia runtime should not include full shell bootstrap code"
 
 grep -Eq 'implicitWidth:[[:space:]]+840|panelWidth:[[:space:]]+840|width:[[:space:]]+840' "$settings_window" \
   || fail "Settings panel should preserve Noctalia's 840px visual width"
 grep -Eq 'implicitHeight:[[:space:]]+910|panelHeight:[[:space:]]+910|height:[[:space:]]+910' "$settings_window" \
   || fail "Settings panel should preserve Noctalia's 910px visual height"
-rg -U 'Math\.min[\s\S]{0,160}(availableGeometry[\s\S]{0,40}width|screen\.width)|(availableGeometry[\s\S]{0,40}width|screen\.width)[\s\S]{0,160}Math\.min' "$settings_window" >/dev/null \
+rg -U '(^|\n)[^\n]*(implicitWidth|panelWidth|width)[[:space:]]*:[[:space:]]*Math\.min\([\s\S]{0,240}(screen\.width|availableGeometry[\s\S]{0,40}width)' "$settings_window" >/dev/null \
   || fail "Settings panel should cap width to available screen geometry"
-rg -U 'Math\.min[\s\S]{0,160}(availableGeometry[\s\S]{0,40}height|screen\.height)|(availableGeometry[\s\S]{0,40}height|screen\.height)[\s\S]{0,160}Math\.min' "$settings_window" >/dev/null \
+rg -U '(^|\n)[^\n]*(implicitHeight|panelHeight|height)[[:space:]]*:[[:space:]]*Math\.min\([\s\S]{0,240}(screen\.height|availableGeometry[\s\S]{0,40}height)' "$settings_window" >/dev/null \
   || fail "Settings panel should cap height to available screen geometry"
 
 for tab in General UserInterface ColorScheme Wallpaper Bar Dock DesktopWidgets ControlCenter Launcher Notifications OSD LockScreen SessionMenu Idle Audio Display Connections Location System Plugins Hooks About; do
