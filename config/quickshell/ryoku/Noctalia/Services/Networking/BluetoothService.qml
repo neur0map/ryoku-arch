@@ -89,33 +89,27 @@ Singleton {
       checkAirplaneMode();
     }
     function onEnabledChanged() {
-      if (adapter?.enabled && Settings.data.network.bluetoothAutoConnect) {
-        autoConnectTimer.restart();
-      }
+      autoConnectTimer.stop();
     }
   }
 
   Connections {
     target: Settings.data.network
     function onBluetoothAutoConnectChanged() {
-      if (Settings.data.network.bluetoothAutoConnect && adapter?.enabled) {
-        autoConnectTimer.restart();
-      } else {
-        autoConnectTimer.stop();
-      }
+      autoConnectTimer.stop();
     }
   }
 
   Component.onCompleted: {
     Logger.i("Bluetooth", "Service started");
-    autoConnectTimer.restart();
+    autoConnectTimer.stop();
   }
 
   Timer {
     id: autoConnectTimer
     interval: 1500
     repeat: false
-    onTriggered: attemptAutoConnect()
+    onTriggered: autoConnectTimer.stop()
   }
 
   Timer {
@@ -123,14 +117,8 @@ Singleton {
     interval: 500
     repeat: false
     onTriggered: {
-      var device = root._autoConnectQueue.shift();
-      if (device && device.paired && !device.connected && !device.blocked) {
-        Logger.i("Bluetooth", "Auto-connecting to:", device.name || device.deviceName);
-        connectDeviceWithTrust(device);
-      }
-      if (root._autoConnectQueue.length > 0) {
-        autoConnectStepTimer.restart();
-      }
+      root._autoConnectQueue = [];
+      autoConnectStepTimer.stop();
     }
   }
 
@@ -356,27 +344,8 @@ Singleton {
       return;
     }
 
-    Logger.i("Bluetooth", "pairWithBluetoothctl", addr);
-
-    if (pairingProcess.running) {
-      pairingProcess.running = false;
-    }
-    root.pinRequired = false;
-
-    const pairWait = Math.max(5, Number(root.pairWaitSeconds) | 0);
-    const attempts = Math.max(1, Number(root.connectAttempts) | 0);
-    const intervalMs = Math.max(500, Number(root.connectRetryIntervalMs) | 0);
-    const intervalSec = Math.max(1, Math.round(intervalMs / 1000));
-
-    // Temporarily pause discovery during pair/connect to reduce HCI churn
-    root._discoveryWasRunning = root.scanningActive;
-    if (root.scanningActive) {
-      root.setScanActive(false);
-    }
-
-    const scriptPath = Quickshell.shellDir + "/Scripts/python/src/network/bluetooth-pair.py";
-    pairingProcess.command = ["python3", scriptPath, String(addr), String(pairWait), String(attempts), String(intervalSec)];
-    pairingProcess.running = true;
+    Logger.w("Bluetooth", "Pairing is unavailable in the Ryoku Noctalia runtime");
+    ToastService.showWarning(I18n.tr("common.bluetooth"), I18n.tr("toast.bluetooth.pair-failed"));
   }
 
   // Helper to run bluetoothctl and scripts with consistent error logging
@@ -411,55 +380,24 @@ Singleton {
   }
 
   function getDeviceAutoConnect(device) {
-    if (!device || !device.address || !cacheAdapter.autoConnectSettings) {
-      return false;
-    }
-    const mac = device.address;
-    const settings = cacheAdapter.autoConnectSettings[mac];
-    return settings ? !!settings.autoConnect : false;
+    return false;
   }
 
   function setDeviceAutoConnect(device, enabled) {
-    if (!device || !device.address) {
-      return;
-    }
-    const mac = device.address;
-    let settings = cacheAdapter.autoConnectSettings || ({});
-    if (enabled) {
-      settings[mac] = {
-        autoConnect: true,
-        deviceName: device.name || device.deviceName || ""
-      };
-    } else {
-      delete settings[mac];
-    }
-    cacheAdapter.autoConnectSettings = settings;
-    cacheFileView.writeAdapter();
+    cacheAdapter.autoConnectSettings = ({});
   }
 
   function attemptAutoConnect() {
-    if (NetworkService.airplaneModeEnabled || !adapter || !adapter.enabled || !Settings.data.network.bluetoothAutoConnect) {
-      return;
-    }
-
-    _autoConnectQueue = adapter.devices.values.filter(dev => dev && dev.paired && !dev.connected && !dev.blocked && getDeviceAutoConnect(dev) === true);
-
-    if (root._autoConnectQueue.length > 0) {
-      autoConnectStepTimer.restart();
-    }
+    _autoConnectQueue = [];
+    autoConnectStepTimer.stop();
   }
 
   function connectDeviceWithTrust(device) {
     if (!device) {
       return;
     }
-    try {
-      device.trusted = true;
-      device.connect();
-    } catch (e) {
-      Logger.w("Bluetooth", "connectDeviceWithTrust failed", e);
-      ToastService.showWarning(I18n.tr("common.bluetooth"), I18n.tr("toast.bluetooth.connect-failed"));
-    }
+    Logger.w("Bluetooth", "Device connection is unavailable in the Ryoku Noctalia runtime");
+    ToastService.showWarning(I18n.tr("common.bluetooth"), I18n.tr("toast.bluetooth.connect-failed"));
   }
 
   function disconnectDevice(device) {

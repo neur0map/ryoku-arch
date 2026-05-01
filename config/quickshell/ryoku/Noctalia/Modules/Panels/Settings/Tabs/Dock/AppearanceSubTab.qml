@@ -406,7 +406,7 @@ ColumnLayout {
             property color targetColor: root.launcherPreviewColor
             property real colorizeMode: 2.0
 
-            fragmentShader: Qt.resolvedUrl(Quickshell.shellDir + "/Shaders/qsb/appicon_colorize.frag.qsb")
+            fragmentShader: Qt.resolvedUrl(RuntimePaths.shaders + "/qsb/appicon_colorize.frag.qsb")
           }
         }
       }

@@ -66,7 +66,7 @@ Item {
     property real vertical: root.vertical ? 1.0 : 0.0
     property real mirrored: root.mirrored ? 1.0 : 0.0
 
-    fragmentShader: Qt.resolvedUrl(Quickshell.shellDir + "/Shaders/qsb/wave_spectrum.frag.qsb")
+    fragmentShader: Qt.resolvedUrl(RuntimePaths.shaders + "/qsb/wave_spectrum.frag.qsb")
     blending: true
   }
 }

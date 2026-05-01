@@ -20,7 +20,7 @@ Singleton {
   property int fontVersion: 0
 
   // Create a unique cache-busting path
-  readonly property string cacheBustingPath: Quickshell.shellDir + fontPath + "?v=" + fontVersion + "&t=" + Date.now()
+  readonly property string cacheBustingPath: RuntimePaths.root + fontPath + "?v=" + fontVersion + "&t=" + Date.now()
 
   // Signal emitted when font is reloaded
   signal fontReloaded

@@ -228,7 +228,7 @@ Item {
     property real resY: height
     property real aaSize: root.antialiasing
 
-    fragmentShader: Qt.resolvedUrl(Quickshell.shellDir + "/Shaders/qsb/graph.frag.qsb")
+    fragmentShader: Qt.resolvedUrl(RuntimePaths.shaders + "/qsb/graph.frag.qsb")
     blending: true
   }
 }

@@ -9,14 +9,13 @@ Singleton {
   id: root
 
   Component.onCompleted: {
-    if (Settings.data.templates.enableUserTheming)
-    writeUserTemplatesToml();
+    Logger.i("TemplateRegistry", "Runtime template helpers are disabled");
   }
 
-  readonly property string templateApplyScript: Quickshell.shellDir + '/Scripts/bash/template-apply.sh'
-  readonly property string gtkRefreshScript: Quickshell.shellDir + '/Scripts/python/src/theming/gtk-refresh.py'
-  readonly property string kdeApplyScript: Quickshell.shellDir + '/Scripts/python/src/theming/kde-apply-scheme.py'
-  readonly property string vscodeHelperScript: Quickshell.shellDir + '/Scripts/python/src/theming/vscode-helper.py'
+  readonly property string templateApplyScript: ""
+  readonly property string gtkRefreshScript: ""
+  readonly property string kdeApplyScript: ""
+  readonly property string vscodeHelperScript: ""
 
   // Dynamically resolved VSCode extension theme paths (all matching noctalia extensions)
   property var resolvedCodePaths: []
@@ -92,7 +91,7 @@ Singleton {
           "input": "gtk4.css"
         }
       ],
-      "postProcess": mode => `python3 ${gtkRefreshScript} ${mode}`
+      "postProcess": mode => ""
     },
     {
       "id": "qt",
@@ -118,7 +117,7 @@ Singleton {
           "path": "~/.local/share/color-schemes/noctalia.colors"
         }
       ],
-      "postProcess": () => `${kdeApplyScript} noctalia`
+      "postProcess": () => ""
     },
     {
       "id": "fuzzel",
@@ -142,7 +141,7 @@ Singleton {
           "path": "~/.local/share/vicinae/themes/noctalia.toml"
         }
       ],
-      "postProcess": () => `cp --update=none ${Quickshell.shellDir}/Assets/noctalia.svg ~/.local/share/vicinae/themes/noctalia.svg && ${templateApplyScript} vicinae`
+      "postProcess": () => ""
     },
     {
       "id": "walker",
@@ -449,20 +448,7 @@ Singleton {
   ]
 
   // Extract Discord clients for ProgramCheckerService compatibility
-  readonly property var discordClients: {
-    var clients = [];
-    var discordApp = applications.find(app => app.id === "discord");
-    if (discordApp && discordApp.clients) {
-      discordApp.clients.forEach(client => {
-                                   clients.push({
-                                                  "name": client.name,
-                                                  "configPath": client.path,
-                                                  "themePath": `${client.path}/themes/noctalia.theme.css`
-                                                });
-                                 });
-    }
-    return clients;
-  }
+  readonly property var discordClients: []
 
   // Get resolved theme paths for a code client (returns array of all matching paths)
   function resolvedCodeClientPaths(clientName) {
@@ -474,36 +460,13 @@ Singleton {
   }
 
   // Extract Code clients for ProgramCheckerService compatibility
-  readonly property var codeClients: {
-    var clients = [];
-    var codeApp = applications.find(app => app.id === "code");
-    if (codeApp && codeApp.clients) {
-      codeApp.clients.forEach(client => {
-                                // Extract base config directory from theme path
-                                var themePath = client.path;
-                                var baseConfigDir = "";
-                                if (client.name === "code") {
-                                  // For VSCode: ~/.vscode/extensions/... -> ~/.vscode
-                                  baseConfigDir = "~/.vscode";
-                                } else if (client.name === "codium") {
-                                  // For VSCodium: ~/.vscode-oss/extensions/... -> ~/.vscode-oss
-                                  baseConfigDir = "~/.vscode-oss";
-                                }
-                                clients.push({
-                                               "name": client.name,
-                                               "configPath": baseConfigDir,
-                                               "themePath": "" // resolved dynamically via resolvedCodeClientPaths()
-                                             });
-                              });
-    }
-    return clients;
-  }
+  readonly property var codeClients: []
 
   // Resolve VSCode extension paths dynamically
   Process {
     id: codeResolverProcess
-    command: ["python3", vscodeHelperScript, "~/.vscode/extensions"]
-    running: true
+    command: ["true"]
+    running: false
     property var paths: []
     stdout: SplitParser {
       onRead: data => {
@@ -519,8 +482,8 @@ Singleton {
 
   Process {
     id: codiumResolverProcess
-    command: ["python3", vscodeHelperScript, "~/.vscode-oss/extensions"]
-    running: true
+    command: ["true"]
+    running: false
     property var paths: []
     stdout: SplitParser {
       onRead: data => {
@@ -550,7 +513,7 @@ Singleton {
     lines.push("");
     lines.push("# Remove this section and add your own templates");
     lines.push("#[templates.placeholder]");
-    lines.push("#input_path = \"" + Quickshell.shellDir + "/Assets/Templates/noctalia.json\"");
+    lines.push("#input_path = \"" + RuntimePaths.assets + "/Templates/noctalia.json\"");
     lines.push("#output_path = \"" + Settings.cacheDir + "placeholder.json\"");
     lines.push("");
 
@@ -581,20 +544,7 @@ Singleton {
   }
 
   // Extract Emacs clients for ProgramCheckerService compatibility
-  readonly property var emacsClients: [
-    {
-      "name": "doom",
-      "path": "~/.config/doom"
-    },
-    {
-      "name": "modern",
-      "path": "~/.config/emacs"
-    },
-    {
-      "name": "traditional",
-      "path": "~/.emacs.d"
-    }
-  ]
+  readonly property var emacsClients: []
 
   // Process for checking if user templates file exists and is non-empty
   Process {

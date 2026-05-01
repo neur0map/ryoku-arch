@@ -175,7 +175,7 @@ ColumnLayout {
     if (root.isGitVersion) {
       // On NixOS, extract commit hash from the store path first
       if (HostService.isNixOS) {
-        var shellDir = Quickshell.shellDir || "";
+        var shellDir = RuntimePaths.root || "";
         Logger.d("VersionSubTab", "Component.onCompleted - NixOS detected, shellDir:", shellDir);
         if (shellDir) {
           // Extract commit hash from path like: /nix/store/...-noctalia-shell-2025-11-30_225e6d3/share/noctalia-shell
@@ -196,7 +196,7 @@ ColumnLayout {
   }
 
   function fetchGitCommit() {
-    var shellDir = Quickshell.shellDir || "";
+    var shellDir = RuntimePaths.root || "";
     Logger.d("VersionSubTab", "fetchGitCommit - shellDir:", shellDir);
     if (!shellDir) {
       Logger.d("VersionSubTab", "fetchGitCommit - Cannot determine shell directory, skipping git commit fetch");
@@ -278,7 +278,7 @@ ColumnLayout {
 
   Process {
     id: fastfetchProcess
-    command: ["fastfetch", "--format", "json", "--config", Quickshell.shellDir + "/Assets/Services/fastfetch/system-info.jsonc"]
+    command: ["fastfetch", "--format", "json", "--config", RuntimePaths.assets + "/Services/fastfetch/system-info.jsonc"]
     running: false
 
     onExited: function (exitCode) {

@@ -87,7 +87,7 @@ Item {
       property real imageOpacity: 1.0
       property int fillMode: root.imageFillMode
 
-      fragmentShader: Qt.resolvedUrl(Quickshell.shellDir + "/Shaders/qsb/rounded_image.frag.qsb")
+      fragmentShader: Qt.resolvedUrl(RuntimePaths.shaders + "/qsb/rounded_image.frag.qsb")
       supportsAtlasTextures: false
       blending: true
     }

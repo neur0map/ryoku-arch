@@ -217,36 +217,14 @@ Singleton {
   }
 
   function connect(ssid, password = "", isHidden = false, securityKey = "", identity = "", enterpriseConfig = {}) {
-    if (!ProgramCheckerService.nmcliAvailable || connecting) {
+    if (connecting) {
       return;
     }
-
-    const isSaved = (networks[ssid] && networks[ssid].existing);
-    const isEnt = securityKey ? isEnterprise(securityKey) : isEnterprise(networks[ssid] ? networks[ssid].security : "");
-
-    connecting = true;
     connectingTo = ssid;
-    lastError = "";
-
-    connectProcess.ssid = ssid;
-    connectProcess.password = password;
-    connectProcess.isHidden = isHidden;
-
-    if (isSaved) {
-      connectProcess.mode = "saved";
-    } else if (isEnt || securityKey === "wep" || (securityKey && securityKey !== "open" && securityKey !== "wpa-psk" && securityKey !== "wpa2-psk")) {
-      connectProcess.mode = "manual";
-      connectProcess.securityKey = securityKey || (networks[ssid] ? networks[ssid].security : "wpa-psk");
-      connectProcess.identity = identity;
-      connectProcess.eap = enterpriseConfig.eap || "peap";
-      connectProcess.phase2 = enterpriseConfig.phase2 || "mschapv2";
-      connectProcess.anonIdentity = enterpriseConfig.anonIdentity || "";
-      connectProcess.caCert = enterpriseConfig.caCert || "";
-    } else {
-      connectProcess.mode = "new";
-    }
-
-    connectProcess.running = true;
+    lastError = I18n.tr("toast.wifi.connection-failed");
+    Logger.w("Network", "Wi-Fi connection requests are disabled in the Ryoku Noctalia runtime");
+    ToastService.showWarning(I18n.tr("common.wifi"), lastError, "wifi-exclamation");
+    connectingTo = "";
   }
 
   function disconnect(ssid) {
@@ -883,7 +861,6 @@ Singleton {
     id: connectProcess
     property string mode: "new" // "saved", "new", or "manual"
     property string ssid: ""
-    property string password: ""
     property bool isHidden: false
     // Manual properties
     property string securityKey: ""
@@ -893,60 +870,7 @@ Singleton {
     property string anonIdentity: ""
     property string caCert: ""
     running: false
-
-    command: {
-      if (mode === "saved") {
-        return ["nmcli", "-t", "connection", "up", "id", ssid];
-      } else if (mode === "manual") {
-        const nmArgs = ["connection", "add", "type", "wifi", "con-name", ssid, "ssid", ssid, "--", "802-11-wireless.hidden", isHidden ? "yes" : "no"];
-
-        if (securityKey === "wpa-psk" || securityKey === "wpa2-psk") {
-          nmArgs.push("wifi-sec.key-mgmt", "wpa-psk", "wifi-sec.psk", password);
-        } else if (securityKey === "sae") {
-          nmArgs.push("wifi-sec.key-mgmt", "sae", "wifi-sec.psk", password);
-        } else if (securityKey === "wep") {
-          nmArgs.push("wifi-sec.key-mgmt", "none", "wifi-sec.wep-key0", password);
-        } else if (securityKey && securityKey.indexOf("-eap") !== -1) {
-          nmArgs.push("wifi-sec.key-mgmt", "wpa-eap", "802-1x.eap", eap, "802-1x.phase2-auth", phase2, "802-1x.identity", identity, "802-1x.password", password);
-          if (anonIdentity) {
-            nmArgs.push("802-1x.anonymous-identity", anonIdentity);
-          }
-          if (caCert) {
-            nmArgs.push("802-1x.ca-cert", caCert);
-          }
-        }
-
-        const script = `
-        SSID="$1"
-        shift
-        # Find existing profile by Name and Type
-        UUID=$(nmcli -t -f NAME,UUID,TYPE connection show | awk -F: -v target="$SSID" '$1 == target && $3 == "802-11-wireless" { print $2; exit }')
-
-        if [ -n "$UUID" ]; then
-            echo "Using existing profile: $UUID"
-            nmcli connection delete uuid "$UUID" 2>/dev/null || true
-        else
-            echo "Creating new profile for $SSID"
-        fi
-        nmcli "$@"
-        nmcli connection up id "$SSID"
-      `;
-
-        return ["sh", "-c", script, "--", ssid].concat(nmArgs);
-      } else {
-        var cmd = ["nmcli", "-t", "device", "wifi", "connect", ssid];
-        if (isHidden) {
-          cmd.push("hidden", "yes");
-        }
-        if (password) {
-          cmd.push("password", password);
-        }
-        if (root.activeWifiIf) {
-          cmd.push("ifname", root.activeWifiIf);
-        }
-        return cmd;
-      }
-    }
+    command: ["true"]
 
     environment: ({
                     "LC_ALL": "C"

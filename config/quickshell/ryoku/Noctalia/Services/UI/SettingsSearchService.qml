@@ -14,7 +14,7 @@ Singleton {
   property var searchIndex: []
 
   FileView {
-    path: Quickshell.shellDir + "/Assets/settings-search-index.json"
+    path: RuntimePaths.assets + "/settings-search-index.json"
     watchChanges: false
     printErrors: false
 

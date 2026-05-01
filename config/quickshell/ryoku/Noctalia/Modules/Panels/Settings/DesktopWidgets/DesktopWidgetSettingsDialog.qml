@@ -266,7 +266,7 @@ Popup {
           break;
         }
       }
-      var fullPath = Qt.resolvedUrl(Quickshell.shellDir + "/Modules/Panels/Settings/DesktopWidgets/" + source);
+      var fullPath = Qt.resolvedUrl(RuntimePaths.modules + "/Panels/Settings/DesktopWidgets/" + source);
       settingsLoader.setSource(fullPath, {
                                  "widgetData": currentWidgetData,
                                  "widgetMetadata": DesktopWidgetRegistry.widgetMetadata[widgetId]

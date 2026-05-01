@@ -16,7 +16,7 @@ Singleton {
   signal colorsGenerated
 
   readonly property string dynamicConfigPath: Settings.cacheDir + "theming.dynamic.toml"
-  readonly property string templateProcessorScript: Quickshell.shellDir + "/Scripts/python/src/theming/template-processor.py"
+  readonly property string templateProcessorScript: ""
 
   // Debounce state for wallpaper processing
   property var pendingWallpaperRequest: null
@@ -86,13 +86,10 @@ Singleton {
   * Uses debouncing to prevent spawning multiple processes when spamming wallpaper changes
   */
   function processWallpaperColors(wallpaperPath, mode) {
-    Logger.d("TemplateProcessor", `processWallpaperColors called: path=${wallpaperPath}, mode=${mode}`);
-    pendingWallpaperRequest = {
-      wallpaperPath: wallpaperPath,
-      mode: mode
-    };
+    Logger.d("TemplateProcessor", "Wallpaper color processing is disabled in the Ryoku Noctalia runtime");
+    pendingWallpaperRequest = null;
     pendingPredefinedRequest = null;
-    debounceTimer.restart();
+    root.colorsGenerated();
   }
 
   function executeWallpaperColors(wallpaperPath, mode) {
@@ -117,13 +114,10 @@ Singleton {
   * Uses debouncing to prevent spawning multiple processes when spamming scheme changes
   */
   function processPredefinedScheme(schemeData, mode, wallpaperPath) {
-    pendingPredefinedRequest = {
-      schemeData: schemeData,
-      mode: mode,
-      wallpaperPath: wallpaperPath || ""
-    };
+    Logger.d("TemplateProcessor", "Predefined scheme processing is disabled in the Ryoku Noctalia runtime");
     pendingWallpaperRequest = null;
-    debounceTimer.restart();
+    pendingPredefinedRequest = null;
+    root.colorsGenerated();
   }
 
   function executePredefinedScheme(schemeData, mode, wallpaperPath) {
@@ -155,12 +149,7 @@ Singleton {
       script += tomlContent + "\n";
       script += `${tomlDelimiter}\n`;
 
-      // Run Python template processor with --scheme flag
-      // Don't pass --mode so templates get both dark and light colors (e.g., zed.json needs both)
-      // Pass --default-mode so "default" in templates resolves to the current theme mode
-      // Pass wallpaper as positional arg so image_path is available in templates (no extraction occurs when --scheme is used)
-      const wpArg = wallpaperPath ? `'${wallpaperPath.replace(/'/g, "'\\''")}'` : "";
-      script += `python3 "${templateProcessorScript}" ${wpArg} --scheme '${schemeJsonPathEsc}' --config '${configPathEsc}' --default-mode ${mode}\n`;
+      script += "true\n";
     }
 
     // Add user templates if enabled
@@ -181,7 +170,7 @@ Singleton {
     TemplateRegistry.terminals.forEach(terminal => {
                                          if (isTemplateEnabled(terminal.id)) {
                                            lines.push(`\n[templates.${terminal.id}]`);
-                                           lines.push(`input_path = "${Quickshell.shellDir}/Assets/Templates/${terminal.predefinedTemplatePath}"`);
+                                           lines.push(`input_path = "${RuntimePaths.assets}/Templates/${terminal.predefinedTemplatePath}"`);
                                            const outputPath = terminal.outputPath.replace("~", homeDir);
                                            lines.push(`output_path = "${outputPath}"`);
                                            const postHookEsc = escapeTomlString(terminal.postHook);
@@ -220,14 +209,14 @@ Singleton {
     const homeDir = Quickshell.env("HOME");
     // Noctalia colors JSON
     lines.push("[templates.noctalia]");
-    lines.push('input_path = "' + Quickshell.shellDir + '/Assets/Templates/noctalia.json"');
+    lines.push('input_path = "' + RuntimePaths.assets + '/Templates/noctalia.json"');
     lines.push('output_path = "' + Settings.configDir + 'colors.json"');
 
     // Terminal templates
     TemplateRegistry.terminals.forEach(terminal => {
                                          if (isTemplateEnabled(terminal.id)) {
                                            lines.push(`\n[templates.${terminal.id}]`);
-                                           lines.push(`input_path = "${Quickshell.shellDir}/Assets/Templates/${terminal.templatePath}"`);
+                                           lines.push(`input_path = "${RuntimePaths.assets}/Templates/${terminal.templatePath}"`);
                                            const outputPath = terminal.outputPath.replace("~", homeDir);
                                            lines.push(`output_path = "${outputPath}"`);
                                            const postHookEsc = escapeTomlString(terminal.postHook);
@@ -249,7 +238,7 @@ Singleton {
                                                                  app.clients.forEach(client => {
                                                                                        if (isDiscordClientEnabled(client.name)) {
                                                                                          lines.push(`\n[templates.discord_${themeSuffix}_${client.name}]`);
-                                                                                         lines.push(`input_path = "${Quickshell.shellDir}/Assets/Templates/${inputFile}"`);
+                                                                                         lines.push(`input_path = "${RuntimePaths.assets}/Templates/${inputFile}"`);
                                                                                          // First input uses legacy name for backward compatibility
                                                                                          const outputFile = idx === 0 ? "noctalia.theme.css" : `noctalia-${themeSuffix}.theme.css`;
                                                                                          const outputPath = client.path.replace("~", homeDir) + `/themes/${outputFile}`;
@@ -268,7 +257,7 @@ Singleton {
                                                                         resolvedPaths.forEach((resolvedPath, pathIndex) => {
                                                                                                 var suffix = resolvedPaths.length > 1 ? `_${pathIndex}` : "";
                                                                                                 lines.push(`\n[templates.code_${client.name}${suffix}]`);
-                                                                                                lines.push(`input_path = "${Quickshell.shellDir}/Assets/Templates/${app.input}"`);
+                                                                                                lines.push(`input_path = "${RuntimePaths.assets}/Templates/${app.input}"`);
                                                                                                 lines.push(`output_path = "${resolvedPath}"`);
                                                                                               });
                                                                       }
@@ -278,7 +267,7 @@ Singleton {
                                               if (isTemplateEnabled("emacs")) {
                                                 ProgramCheckerService.availableEmacsClients.forEach(client => {
                                                                                                       lines.push(`\n[templates.emacs_${client.name}]`);
-                                                                                                      lines.push(`input_path = "${Quickshell.shellDir}/Assets/Templates/${app.input}"`);
+                                                                                                      lines.push(`input_path = "${RuntimePaths.assets}/Templates/${app.input}"`);
                                                                                                       const expandedPath = client.path.replace("~", homeDir) + "/themes/noctalia-theme.el";
                                                                                                       lines.push(`output_path = "${expandedPath}"`);
                                                                                                       if (app.postProcess) {
@@ -293,7 +282,7 @@ Singleton {
                                                 app.outputs.forEach((output, idx) => {
                                                                       lines.push(`\n[templates.${app.id}_${idx}]`);
                                                                       const inputFile = output.input || app.input;
-                                                                      lines.push(`input_path = "${Quickshell.shellDir}/Assets/Templates/${inputFile}"`);
+                                                                      lines.push(`input_path = "${RuntimePaths.assets}/Templates/${inputFile}"`);
                                                                       const outputPath = output.path.replace("~", homeDir);
                                                                       lines.push(`output_path = "${outputPath}"`);
                                                                       if (app.postProcess) {
@@ -345,11 +334,7 @@ Singleton {
       const delimiter = "THEME_CONFIG_EOF_" + Math.random().toString(36).substr(2, 9);
       script += `cat > '${pathEsc}' << '${delimiter}'\n${content}\n${delimiter}\n`;
 
-      // Use template-processor.py (Python implementation)
-      // Don't pass --mode so templates get both dark and light colors (e.g., zed.json needs both)
-      // Pass --default-mode so "default" in templates resolves to the current theme mode
-      const schemeType = getSchemeType();
-      script += `python3 "${templateProcessorScript}" "$NOCTALIA_WP_PATH" --scheme-type ${schemeType} --config '${pathEsc}' --default-mode ${mode}\n`;
+      script += "true\n";
     }
 
     script += buildUserTemplateCommand("$NOCTALIA_WP_PATH", mode);
@@ -361,45 +346,11 @@ Singleton {
   // USER TEMPLATES, advanced usage
   // ================================================================================
   function buildUserTemplateCommand(input, mode) {
-    if (!Settings.data.templates.enableUserTheming)
-      return "";
-
-    const userConfigPath = getUserConfigPath();
-    let script = "\n# Execute user config if it exists\n";
-    script += `if [ -f '${userConfigPath}' ]; then\n`;
-    // If input is a shell variable (starts with $), use double quotes to allow expansion
-    // Otherwise, use single quotes for safety with file paths
-    const inputQuoted = input.startsWith("$") ? `"${input}"` : `'${input.replace(/'/g, "'\\''")}'`;
-
-    const schemeType = getSchemeType();
-    // Don't pass --mode so user templates get both dark and light colors
-    // Pass --default-mode so "default" in templates resolves to the current theme mode
-    script += `  python3 "${templateProcessorScript}" ${inputQuoted} --scheme-type ${schemeType} --config '${userConfigPath}' --default-mode ${mode}\n`;
-    script += "fi";
-
-    return script;
+    return "";
   }
 
   function buildUserTemplateCommandForPredefined(schemeData, mode, wallpaperPath) {
-    if (!Settings.data.templates.enableUserTheming)
-      return "";
-
-    const userConfigPath = getUserConfigPath();
-
-    // Reuse the scheme JSON already written by processPredefinedScheme()
-    const schemeJsonPathEsc = schemeJsonPath.replace(/'/g, "'\\''");
-    const wpArg = wallpaperPath ? `'${wallpaperPath.replace(/'/g, "'\\''")}'` : "";
-
-    let script = "\n# Execute user templates with predefined scheme colors\n";
-    script += `if [ -f '${userConfigPath}' ]; then\n`;
-    // Use --scheme flag with the already-written scheme JSON
-    // Don't pass --mode so user templates get both dark and light colors
-    // Pass --default-mode so "default" in templates resolves to the current theme mode
-    // Pass wallpaper as positional arg so image_path is available in templates
-    script += `  python3 "${templateProcessorScript}" ${wpArg} --scheme '${schemeJsonPathEsc}' --config '${userConfigPath}' --default-mode ${mode}\n`;
-    script += "fi";
-
-    return script;
+    return "";
   }
 
   function getUserConfigPath() {
@@ -446,7 +397,7 @@ Singleton {
   // ================================================================================
   Process {
     id: generateProcess
-    workingDirectory: Quickshell.shellDir
+    workingDirectory: RuntimePaths.root
     running: false
 
     onExited: function (exitCode, exitStatus) {

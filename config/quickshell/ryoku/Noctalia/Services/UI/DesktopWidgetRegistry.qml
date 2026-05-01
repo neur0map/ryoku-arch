@@ -39,7 +39,7 @@ Singleton {
   // Explicit URLs for core widgets. Inline Component.url returns the parent
   // file's URL, so we need these for Loader.setSource() with initial properties.
   // Plugin widgets use their Component.url directly (loaded from actual files).
-  readonly property string _widgetsDir: Quickshell.shellDir + "/Modules/DesktopWidgets/Widgets/"
+  readonly property string _widgetsDir: RuntimePaths.modules + "/DesktopWidgets/Widgets/"
   property var widgetUrls: ({})
 
   Component.onCompleted: {
@@ -298,7 +298,7 @@ Singleton {
       popupMenuWindow.hideDynamicMenu();
     }
 
-    var component = Qt.createComponent(Quickshell.shellDir + "/Modules/Panels/Settings/DesktopWidgets/DesktopWidgetSettingsDialog.qml");
+    var component = Qt.createComponent(RuntimePaths.modules + "/Panels/Settings/DesktopWidgets/DesktopWidgetSettingsDialog.qml");
 
     function instantiateAndOpen() {
       var dialog = component.createObject(popupMenuWindow.dialogParent, {

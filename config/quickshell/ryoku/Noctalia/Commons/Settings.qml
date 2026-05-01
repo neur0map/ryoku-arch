@@ -168,7 +168,7 @@ Singleton {
   // FileView to load default settings for comparison
   FileView {
     id: defaultSettingsFileView
-    path: Quickshell.shellDir + "/Assets/settings-default.json"
+    path: RuntimePaths.assets + "/settings-default.json"
     printErrors: false
     watchChanges: false
   }
@@ -610,7 +610,7 @@ Singleton {
       property string bluetoothDetailsViewMode: "grid" // "grid" or "list"
       property bool bluetoothHideUnnamedDevices: false
       property bool disableDiscoverability: false
-      property bool bluetoothAutoConnect: true
+      property bool bluetoothAutoConnect: false
     }
 
     // session menu
@@ -1092,7 +1092,7 @@ Singleton {
       var plainAdapter = QtObj2JS.qtObjectToPlainObject(adapter);
       var jsonData = JSON.stringify(plainAdapter, null, 2);
 
-      var defaultPath = Quickshell.shellDir + "/Assets/settings-default.json";
+      var defaultPath = RuntimePaths.assets + "/settings-default.json";
 
       Quickshell.execDetached(["sh", "-c", `cat > "${defaultPath}" << 'NOCTALIA_EOF'\n${jsonData}\nNOCTALIA_EOF`]);
     } catch (error) {
@@ -1116,7 +1116,7 @@ Singleton {
       };
       var jsonData = JSON.stringify(output, null, 2);
 
-      var defaultPath = Quickshell.shellDir + "/Assets/settings-widgets-default.json";
+      var defaultPath = RuntimePaths.assets + "/settings-widgets-default.json";
 
       Quickshell.execDetached(["sh", "-c", `cat > "${defaultPath}" << 'NOCTALIA_EOF'\n${jsonData}\nNOCTALIA_EOF`]);
     } catch (error) {

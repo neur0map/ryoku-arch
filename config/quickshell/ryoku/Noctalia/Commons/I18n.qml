@@ -65,7 +65,7 @@ Singleton {
 
         // Load English fallback for non-English languages (only after main file succeeds)
         if (root.langCode !== "en") {
-          fallbackFileView.path = `file://${Quickshell.shellDir}/Assets/Translations/en.json`;
+          fallbackFileView.path = `file://${RuntimePaths.assets}/Translations/en.json`;
         }
       } catch (e) {
         Logger.e("I18n", `Failed to parse translation file: ${e}`);
@@ -240,7 +240,7 @@ Singleton {
   function loadTranslations() {
     if (langCode === "")
       return;
-    const filePath = `file://${Quickshell.shellDir}/Assets/Translations/${langCode}.json`;
+    const filePath = `file://${RuntimePaths.assets}/Translations/${langCode}.json`;
     fileView.path = filePath;
     isLoaded = false;
   }

@@ -134,7 +134,7 @@ ColumnLayout {
     }
 
     var entry = entriesModel[index];
-    var component = Qt.createComponent(Quickshell.shellDir + "/Modules/Panels/Settings/Tabs/SessionMenu/SessionMenuEntrySettingsDialog.qml");
+    var component = Qt.createComponent(RuntimePaths.modules + "/Panels/Settings/Tabs/SessionMenu/SessionMenuEntrySettingsDialog.qml");
 
     function instantiateAndOpen() {
       if (root._activeDialog) {

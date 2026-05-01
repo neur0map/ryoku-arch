@@ -46,7 +46,7 @@ ColumnLayout {
     sectionName: root.barIsVertical ? I18n.tr("positions.top") : I18n.tr("positions.left")
     sectionId: "left"
     barIsVertical: root.barIsVertical
-    settingsDialogComponent: Qt.resolvedUrl(Quickshell.shellDir + "/Modules/Panels/Settings/Bar/BarWidgetSettingsDialog.qml")
+    settingsDialogComponent: Qt.resolvedUrl(RuntimePaths.modules + "/Panels/Settings/Bar/BarWidgetSettingsDialog.qml")
     widgetRegistry: BarWidgetRegistry
     widgetModel: Settings.data.bar.widgets.left
     sectionIcons: root.getSectionIcons()
@@ -64,7 +64,7 @@ ColumnLayout {
     sectionName: I18n.tr("positions.center")
     sectionId: "center"
     barIsVertical: root.barIsVertical
-    settingsDialogComponent: Qt.resolvedUrl(Quickshell.shellDir + "/Modules/Panels/Settings/Bar/BarWidgetSettingsDialog.qml")
+    settingsDialogComponent: Qt.resolvedUrl(RuntimePaths.modules + "/Panels/Settings/Bar/BarWidgetSettingsDialog.qml")
     widgetRegistry: BarWidgetRegistry
     widgetModel: Settings.data.bar.widgets.center
     sectionIcons: root.getSectionIcons()
@@ -82,7 +82,7 @@ ColumnLayout {
     sectionName: root.barIsVertical ? I18n.tr("positions.bottom") : I18n.tr("positions.right")
     sectionId: "right"
     barIsVertical: root.barIsVertical
-    settingsDialogComponent: Qt.resolvedUrl(Quickshell.shellDir + "/Modules/Panels/Settings/Bar/BarWidgetSettingsDialog.qml")
+    settingsDialogComponent: Qt.resolvedUrl(RuntimePaths.modules + "/Panels/Settings/Bar/BarWidgetSettingsDialog.qml")
     widgetRegistry: BarWidgetRegistry
     widgetModel: Settings.data.bar.widgets.right
     sectionIcons: root.getSectionIcons()

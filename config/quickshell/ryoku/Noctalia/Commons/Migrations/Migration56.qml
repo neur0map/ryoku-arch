@@ -6,16 +6,7 @@ QtObject {
   id: root
 
   function migrate(adapter, logger, rawJson) {
-    logger.i("Settings", "Migrating settings to v56 (Color Scheme Migration)");
-
-    const scriptPath = Quickshell.shellDir + "/Scripts/python/src/theming/migrate-colorschemes.py";
-    const configDir = Settings.configDir;
-
-    logger.i("Settings", `Running color scheme migration script: ${scriptPath} with configDir: ${configDir}`);
-
-    // Run the migration script detached
-    Quickshell.execDetached(["python3", scriptPath, configDir]);
-
+    logger.i("Settings", "Skipping upstream color scheme migration in Ryoku runtime");
     return true;
   }
 }

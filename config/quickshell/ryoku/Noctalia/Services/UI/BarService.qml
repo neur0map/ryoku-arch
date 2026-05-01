@@ -545,7 +545,7 @@ Singleton {
       PanelService.openedPanel.close();
     }
 
-    var component = Qt.createComponent(Quickshell.shellDir + "/Modules/Panels/Settings/Bar/BarWidgetSettingsDialog.qml");
+    var component = Qt.createComponent(RuntimePaths.modules + "/Panels/Settings/Bar/BarWidgetSettingsDialog.qml");
 
     function instantiateAndOpen() {
       // Use dialogParent (Item) instead of window directly for proper Popup anchoring
@@ -626,7 +626,7 @@ Singleton {
     // Close any existing dialogs first to prevent stacking
     closeExistingDialogs(popupMenuWindow);
 
-    var component = Qt.createComponent(Quickshell.shellDir + "/Widgets/NPluginSettingsPopup.qml");
+    var component = Qt.createComponent(RuntimePaths.widgets + "/NPluginSettingsPopup.qml");
 
     function instantiateAndOpen() {
       var dialog = component.createObject(popupMenuWindow.dialogParent, {

@@ -172,7 +172,7 @@ NBox {
       sectionId: "left"
       barIsVertical: root.barIsVertical
       screen: root.screen
-      settingsDialogComponent: Qt.resolvedUrl(Quickshell.shellDir + "/Modules/Panels/Settings/Bar/BarWidgetSettingsDialog.qml")
+      settingsDialogComponent: Qt.resolvedUrl(RuntimePaths.modules + "/Panels/Settings/Bar/BarWidgetSettingsDialog.qml")
       widgetRegistry: BarWidgetRegistry
       widgetModel: root.effectiveWidgets.left
       availableWidgets: availableWidgetsModel
@@ -190,7 +190,7 @@ NBox {
       sectionId: "center"
       barIsVertical: root.barIsVertical
       screen: root.screen
-      settingsDialogComponent: Qt.resolvedUrl(Quickshell.shellDir + "/Modules/Panels/Settings/Bar/BarWidgetSettingsDialog.qml")
+      settingsDialogComponent: Qt.resolvedUrl(RuntimePaths.modules + "/Panels/Settings/Bar/BarWidgetSettingsDialog.qml")
       widgetRegistry: BarWidgetRegistry
       widgetModel: root.effectiveWidgets.center
       availableWidgets: availableWidgetsModel
@@ -208,7 +208,7 @@ NBox {
       sectionId: "right"
       barIsVertical: root.barIsVertical
       screen: root.screen
-      settingsDialogComponent: Qt.resolvedUrl(Quickshell.shellDir + "/Modules/Panels/Settings/Bar/BarWidgetSettingsDialog.qml")
+      settingsDialogComponent: Qt.resolvedUrl(RuntimePaths.modules + "/Panels/Settings/Bar/BarWidgetSettingsDialog.qml")
       widgetRegistry: BarWidgetRegistry
       widgetModel: root.effectiveWidgets.right
       availableWidgets: availableWidgetsModel

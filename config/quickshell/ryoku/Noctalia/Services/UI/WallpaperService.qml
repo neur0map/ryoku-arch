@@ -39,7 +39,7 @@ Singleton {
   property string wallpaperCacheFile: ""
 
   readonly property bool scanning: (scanningCount > 0)
-  readonly property string noctaliaDefaultWallpaper: Quickshell.shellDir + "/Assets/Wallpaper/noctalia.png"
+  readonly property string noctaliaDefaultWallpaper: RuntimePaths.assets + "/Wallpaper/noctalia.png"
   property string defaultWallpaper: noctaliaDefaultWallpaper
 
   // Signals for reactive UI updates
