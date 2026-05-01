@@ -26,6 +26,7 @@ import qs.Noctalia.Modules.Panels.Settings.Tabs.UserInterface
 import qs.Noctalia.Modules.Panels.Settings.Tabs.Wallpaper
 import qs.Noctalia.Services.Compositor
 import qs.Noctalia.Services.Power
+import qs.Noctalia.Services.Ryoku
 import qs.Noctalia.Services.System
 import qs.Noctalia.Services.UI
 import qs.Noctalia.Widgets
@@ -50,6 +51,7 @@ Item {
   property bool sidebarExpanded: true
   // Track if sidebar was collapsed before searching started
   property bool wasCollapsedBeforeSearch: false
+  readonly property var currentTab: tabsModel[currentTabIndex] || ({})
 
   // Search state
   property string searchText: ""
@@ -104,14 +106,23 @@ Item {
       const entry = SettingsSearchService.searchIndex[j];
       if (!SettingsSearchService.isEntryVisible(entry))
         continue;
+      const tabIndex = tabIndexForId(entry.tab);
+      if (tabIndex < 0)
+        continue;
+      const tabModel = tabsModel[tabIndex];
+      if (tabModel.searchable === false)
+        continue;
       items.push({
                    "labelKey": entry.labelKey,
                    "descriptionKey": entry.descriptionKey,
                    "widget": entry.widget,
                    "tab": entry.tab,
+                   "tabIndex": tabIndex,
                    "tabLabel": entry.tabLabel,
                    "subTab": entry.subTab,
                    "subTabLabel": entry.subTabLabel || null,
+                   "featureAvailable": tabModel.featureAvailable,
+                   "disabledReason": tabModel.disabledReason,
                    "label": I18n.tr(entry.labelKey),
                    "description": entry.descriptionKey ? I18n.tr(entry.descriptionKey) : "",
                    "subTabName": entry.subTabLabel ? I18n.tr(entry.subTabLabel) : ""
@@ -142,15 +153,16 @@ Item {
   property int _pendingSubTab: -1
 
   function navigateToResult(entry) {
-    if (entry.tab < 0 || entry.tab >= tabsModel.length)
+    const tabIndex = entry.tabIndex !== undefined ? entry.tabIndex : tabIndexForId(entry.tab);
+    if (tabIndex < 0 || tabIndex >= tabsModel.length)
       return;
 
     highlightLabelKey = entry.labelKey;
     _pendingSubTab = (entry.subTab !== null && entry.subTab !== undefined) ? entry.subTab : -1;
 
-    const alreadyOnTab = (currentTabIndex === entry.tab);
+    const alreadyOnTab = (currentTabIndex === tabIndex);
     navigatingFromSearch = true;
-    currentTabIndex = entry.tab;
+    currentTabIndex = tabIndex;
     navigatingFromSearch = false;
 
     if (alreadyOnTab && activeTabContent) {
@@ -199,18 +211,50 @@ Item {
 
   function routeToTab(route) {
     switch (route) {
+    case "about":
+      return SettingsPanel.Tab.About;
+    case "audio":
+      return SettingsPanel.Tab.Audio;
+    case "bar":
+      return SettingsPanel.Tab.Bar;
+    case "color-scheme":
+      return SettingsPanel.Tab.ColorScheme;
+    case "control-center":
+      return SettingsPanel.Tab.ControlCenter;
+    case "desktop-widgets":
+      return SettingsPanel.Tab.DesktopWidgets;
+    case "display":
+      return SettingsPanel.Tab.Display;
+    case "dock":
+      return SettingsPanel.Tab.Dock;
+    case "hooks":
+      return SettingsPanel.Tab.Hooks;
+    case "idle":
+      return SettingsPanel.Tab.Idle;
+    case "launcher":
+      return SettingsPanel.Tab.Launcher;
+    case "location":
+      return SettingsPanel.Tab.Location;
+    case "lock-screen":
+      return SettingsPanel.Tab.LockScreen;
+    case "notifications":
+      return SettingsPanel.Tab.Notifications;
+    case "osd":
+      return SettingsPanel.Tab.OSD;
+    case "plugins":
+      return SettingsPanel.Tab.Plugins;
+    case "session-menu":
+      return SettingsPanel.Tab.SessionMenu;
+    case "system":
+      return SettingsPanel.Tab.System;
+    case "user-interface":
+      return SettingsPanel.Tab.UserInterface;
+    case "wallpaper":
+      return SettingsPanel.Tab.Wallpaper;
     case "wifi":
     case "bluetooth":
     case "connections":
       return SettingsPanel.Tab.Connections;
-    case "color-scheme":
-      return SettingsPanel.Tab.ColorScheme;
-    case "wallpaper":
-      return SettingsPanel.Tab.Wallpaper;
-    case "display":
-      return SettingsPanel.Tab.Display;
-    case "audio":
-      return SettingsPanel.Tab.Audio;
     default:
       return SettingsPanel.Tab.General;
     }
@@ -230,6 +274,14 @@ Item {
   function openRoute(route) {
     requestedRoute = route || "general";
     navigateToTab(routeToTab(requestedRoute), routeToSubTab(requestedRoute));
+  }
+
+  function tabIndexForId(tabId) {
+    for (let i = 0; i < tabsModel.length; i++) {
+      if (tabsModel[i].id === tabId)
+        return i;
+    }
+    return -1;
   }
 
   function searchSelectNext() {
@@ -535,140 +587,44 @@ Item {
     DesktopWidgetsTab {}
   }
 
+  function makeTab(tabId, label, icon, source, route) {
+    const featureAvailable = RyokuFeatureAvailability.isRouteEnabled(route);
+    return {
+      "id": tabId,
+      "label": label,
+      "icon": icon,
+      "source": source,
+      "route": route,
+      "searchable": true,
+      "featureAvailable": featureAvailable,
+      "disabledReason": RyokuFeatureAvailability.disabledReason(route)
+    };
+  }
+
   function updateTabsModel() {
     let newTabs = [
-          {
-            "id": SettingsPanel.Tab.General,
-            "label": "common.general",
-            "icon": "settings-general",
-            "source": generalTab
-          },
-          {
-            "id": SettingsPanel.Tab.UserInterface,
-            "label": "panels.user-interface.title",
-            "icon": "settings-user-interface",
-            "source": userInterfaceTab
-          },
-          {
-            "id": SettingsPanel.Tab.ColorScheme,
-            "label": "panels.color-scheme.title",
-            "icon": "settings-color-scheme",
-            "source": colorSchemeTab
-          },
-          {
-            "id": SettingsPanel.Tab.Wallpaper,
-            "label": "common.wallpaper",
-            "icon": "settings-wallpaper",
-            "source": wallpaperTab
-          },
-          {
-            "id": SettingsPanel.Tab.Bar,
-            "label": "panels.bar.title",
-            "icon": "settings-bar",
-            "source": barTab
-          },
-          {
-            "id": SettingsPanel.Tab.Dock,
-            "label": "panels.dock.title",
-            "icon": "settings-dock",
-            "source": dockTab
-          },
-          {
-            "id": SettingsPanel.Tab.DesktopWidgets,
-            "label": "panels.desktop-widgets.title",
-            "icon": "clock",
-            "source": desktopWidgetsTab
-          },
-          {
-            "id": SettingsPanel.Tab.ControlCenter,
-            "label": "panels.control-center.title",
-            "icon": "settings-control-center",
-            "source": controlCenterTab
-          },
-          {
-            "id": SettingsPanel.Tab.Launcher,
-            "label": "panels.launcher.title",
-            "icon": "settings-launcher",
-            "source": launcherTab
-          },
-          {
-            "id": SettingsPanel.Tab.Notifications,
-            "label": "common.notifications",
-            "icon": "settings-notifications",
-            "source": notificationsTab
-          },
-          {
-            "id": SettingsPanel.Tab.OSD,
-            "label": "panels.osd.title",
-            "icon": "settings-osd",
-            "source": osdTab
-          },
-          {
-            "id": SettingsPanel.Tab.LockScreen,
-            "label": "panels.lock-screen.title",
-            "icon": "settings-lock-screen",
-            "source": lockScreenTab
-          },
-          {
-            "id": SettingsPanel.Tab.SessionMenu,
-            "label": "session-menu.title",
-            "icon": "settings-session-menu",
-            "source": sessionMenuTab
-          },
-          {
-            "id": SettingsPanel.Tab.Idle,
-            "label": "panels.idle.title",
-            "icon": "settings-idle",
-            "source": idleTab
-          },
-          {
-            "id": SettingsPanel.Tab.Audio,
-            "label": "panels.audio.title",
-            "icon": "settings-audio",
-            "source": audioTab
-          },
-          {
-            "id": SettingsPanel.Tab.Display,
-            "label": "panels.display.title",
-            "icon": "settings-display",
-            "source": displayTab
-          },
-          {
-            "id": SettingsPanel.Tab.Connections,
-            "label": "panels.connections.title",
-            "icon": "settings-network",
-            "source": connectionsTab
-          },
-          {
-            "id": SettingsPanel.Tab.Location,
-            "label": "panels.region.title",
-            "icon": "settings-location",
-            "source": regionTab
-          },
-          {
-            "id": SettingsPanel.Tab.System,
-            "label": "panels.system.title",
-            "icon": "settings-system-monitor",
-            "source": systemMonitorTab
-          },
-          {
-            "id": SettingsPanel.Tab.Plugins,
-            "label": "panels.plugins.title",
-            "icon": "plugin",
-            "source": pluginsTab
-          },
-          {
-            "id": SettingsPanel.Tab.Hooks,
-            "label": "panels.hooks.title",
-            "icon": "settings-hooks",
-            "source": hooksTab
-          },
-          {
-            "id": SettingsPanel.Tab.About,
-            "label": "panels.about.title",
-            "icon": "settings-about",
-            "source": aboutTab
-          }
+          makeTab(SettingsPanel.Tab.General, "common.general", "settings-general", generalTab, "general"),
+          makeTab(SettingsPanel.Tab.UserInterface, "panels.user-interface.title", "settings-user-interface", userInterfaceTab, "user-interface"),
+          makeTab(SettingsPanel.Tab.ColorScheme, "panels.color-scheme.title", "settings-color-scheme", colorSchemeTab, "color-scheme"),
+          makeTab(SettingsPanel.Tab.Wallpaper, "common.wallpaper", "settings-wallpaper", wallpaperTab, "wallpaper"),
+          makeTab(SettingsPanel.Tab.Bar, "panels.bar.title", "settings-bar", barTab, "bar"),
+          makeTab(SettingsPanel.Tab.Dock, "panels.dock.title", "settings-dock", dockTab, "dock"),
+          makeTab(SettingsPanel.Tab.DesktopWidgets, "panels.desktop-widgets.title", "clock", desktopWidgetsTab, "desktop-widgets"),
+          makeTab(SettingsPanel.Tab.ControlCenter, "panels.control-center.title", "settings-control-center", controlCenterTab, "control-center"),
+          makeTab(SettingsPanel.Tab.Launcher, "panels.launcher.title", "settings-launcher", launcherTab, "launcher"),
+          makeTab(SettingsPanel.Tab.Notifications, "common.notifications", "settings-notifications", notificationsTab, "notifications"),
+          makeTab(SettingsPanel.Tab.OSD, "panels.osd.title", "settings-osd", osdTab, "osd"),
+          makeTab(SettingsPanel.Tab.LockScreen, "panels.lock-screen.title", "settings-lock-screen", lockScreenTab, "lock-screen"),
+          makeTab(SettingsPanel.Tab.SessionMenu, "session-menu.title", "settings-session-menu", sessionMenuTab, "session-menu"),
+          makeTab(SettingsPanel.Tab.Idle, "panels.idle.title", "settings-idle", idleTab, "idle"),
+          makeTab(SettingsPanel.Tab.Audio, "panels.audio.title", "settings-audio", audioTab, "audio"),
+          makeTab(SettingsPanel.Tab.Display, "panels.display.title", "settings-display", displayTab, "display"),
+          makeTab(SettingsPanel.Tab.Connections, "panels.connections.title", "settings-network", connectionsTab, "connections"),
+          makeTab(SettingsPanel.Tab.Location, "panels.region.title", "settings-location", regionTab, "location"),
+          makeTab(SettingsPanel.Tab.System, "panels.system.title", "settings-system-monitor", systemMonitorTab, "system"),
+          makeTab(SettingsPanel.Tab.Plugins, "panels.plugins.title", "plugin", pluginsTab, "plugins"),
+          makeTab(SettingsPanel.Tab.Hooks, "panels.hooks.title", "settings-hooks", hooksTab, "hooks"),
+          makeTab(SettingsPanel.Tab.About, "panels.about.title", "settings-about", aboutTab, "about")
         ];
 
     root.tabsModel = newTabs;
@@ -1010,9 +966,10 @@ Item {
                 width: searchResultsList.width - (searchResultsList.verticalScrollBarActive ? Style.marginM : 0)
                 height: resultColumn.implicitHeight + Style.margin2M
                 radius: Style.iRadiusS
+                readonly property bool featureAvailable: modelData.featureAvailable !== false
                 readonly property bool selected: index === root.searchSelectedIndex
                 readonly property bool effectiveHover: !root.ignoreMouseHover && resultMouseArea.containsMouse
-                color: (effectiveHover || selected) ? Color.mHover : "transparent"
+                color: (effectiveHover || selected) ? Qt.alpha(Color.mHover, featureAvailable ? 1.0 : 0.45) : "transparent"
 
                 Behavior on color {
                   enabled: !Color.isTransitioning
@@ -1030,12 +987,13 @@ Item {
                   anchors.topMargin: Style.marginM
                   anchors.bottomMargin: Style.marginM
                   spacing: 0
+                  opacity: resultItem.featureAvailable ? 1.0 : 0.55
 
                   NText {
                     text: I18n.tr(modelData.labelKey)
                     pointSize: Style.fontSizeM
                     font.weight: Style.fontWeightSemiBold
-                    color: (resultItem.effectiveHover || resultItem.selected) ? Color.mOnHover : Color.mOnSurface
+                    color: resultItem.featureAvailable ? ((resultItem.effectiveHover || resultItem.selected) ? Color.mOnHover : Color.mOnSurface) : Color.mOnSurfaceVariant
                     Layout.fillWidth: true
                     elide: Text.ElideRight
                     maximumLineCount: 1
@@ -1049,7 +1007,7 @@ Item {
                       return t;
                     }
                     pointSize: Style.fontSizeXS
-                    color: (resultItem.effectiveHover || resultItem.selected) ? Color.mOnHover : Color.mOnSurfaceVariant
+                    color: resultItem.featureAvailable && (resultItem.effectiveHover || resultItem.selected) ? Color.mOnHover : Color.mOnSurfaceVariant
                     Layout.fillWidth: true
                     elide: Text.ElideRight
                     maximumLineCount: 1
@@ -1092,10 +1050,11 @@ Item {
                 width: sidebarList.width
                 height: tabEntryRow.implicitHeight + Style.margin2XS
                 radius: Style.iRadiusS
-                color: selected ? Color.mPrimary : (tabItem.hovering ? Color.mHover : "transparent")
+                readonly property bool featureAvailable: modelData.featureAvailable !== false
+                color: featureAvailable ? (selected ? Color.mPrimary : (tabItem.hovering ? Color.mHover : "transparent")) : (tabItem.hovering ? Qt.alpha(Color.mHover, 0.45) : "transparent")
                 readonly property bool selected: index === root.currentTabIndex
                 property bool hovering: false
-                property color tabTextColor: selected ? Color.mOnPrimary : (tabItem.hovering ? Color.mOnHover : Color.mOnSurface)
+                property color tabTextColor: featureAvailable ? (selected ? Color.mOnPrimary : (tabItem.hovering ? Color.mOnHover : Color.mOnSurface)) : Color.mOnSurfaceVariant
 
                 Behavior on color {
                   enabled: !Color.isTransitioning
@@ -1119,6 +1078,7 @@ Item {
                   anchors.leftMargin: Style.marginS
                   anchors.rightMargin: Style.marginS
                   spacing: Style.marginM
+                  opacity: tabItem.featureAvailable ? 1.0 : 0.55
 
                   NIcon {
                     icon: modelData.icon
@@ -1155,7 +1115,7 @@ Item {
                     tabItem.hovering = true;
                     // Show tooltip when sidebar is collapsed
                     if (!root.sidebarExpanded) {
-                      TooltipService.show(tabItem, I18n.tr(modelData.label));
+                      TooltipService.show(tabItem, modelData.featureAvailable ? I18n.tr(modelData.label) : modelData.disabledReason);
                     }
                   }
                   onExited: {
@@ -1227,7 +1187,7 @@ Item {
 
             NIcon {
               icon: root.tabsModel[currentTabIndex]?.icon ?? ""
-              color: Color.mPrimary
+              color: root.currentTab.featureAvailable === false ? Color.mOnSurfaceVariant : Color.mPrimary
               pointSize: Style.fontSizeXXL
             }
 
@@ -1235,7 +1195,7 @@ Item {
               text: root.tabsModel[root.currentTabIndex]?.label ? I18n.tr(root.tabsModel[root.currentTabIndex].label) : ""
               pointSize: Style.fontSizeXL
               font.weight: Style.fontWeightBold
-              color: Color.mPrimary
+              color: root.currentTab.featureAvailable === false ? Color.mOnSurfaceVariant : Color.mPrimary
               Layout.fillWidth: true
               Layout.alignment: Qt.AlignVCenter
             }
@@ -1299,24 +1259,72 @@ Item {
                     root.activeScrollView = scrollView;
                   }
 
-                  Loader {
-                    active: true
-                    sourceComponent: root.tabsModel[index]?.source
+                  Column {
                     width: scrollView.availableWidth
-                    onLoaded: {
-                      if (item && item.hasOwnProperty("screen")) {
-                        item.screen = root.screen;
+                    spacing: Style.marginL
+
+                    NBox {
+                      width: parent.width
+                      visible: root.tabsModel[index]?.featureAvailable === false
+                      implicitHeight: unavailableContent.implicitHeight + Style.margin2L
+                      radius: Style.radiusM
+                      color: Color.mSurface
+                      border.color: Style.boxBorderColor
+
+                      RowLayout {
+                        id: unavailableContent
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.leftMargin: Style.marginL
+                        anchors.rightMargin: Style.marginL
+                        spacing: Style.marginM
+
+                        NIcon {
+                          icon: "warning"
+                          color: Color.mOnSurfaceVariant
+                          pointSize: Style.fontSizeXL
+                          Layout.alignment: Qt.AlignVCenter
+                        }
+
+                        NLabel {
+                          label: "Unavailable in Ryoku"
+                          description: root.tabsModel[index]?.disabledReason ?? ""
+                          Layout.fillWidth: true
+                          Layout.alignment: Qt.AlignVCenter
+                        }
                       }
-                      root.activeTabContent = item;
-                      if (root._pendingSubTab >= 0) {
-                        root.navigatingFromSearch = true;
-                        if (root.setSubTabIndex(root._pendingSubTab))
-                          root._pendingSubTab = -1;
-                        root.navigatingFromSearch = false;
+                    }
+
+                    Loader {
+                      id: guardedTabLoader
+                      active: true
+                      enabled: root.tabsModel[index]?.featureAvailable
+                      opacity: root.tabsModel[index]?.featureAvailable ? 1.0 : 0.45
+                      sourceComponent: root.tabsModel[index]?.source
+                      width: scrollView.availableWidth
+                      onLoaded: {
+                        if (item && item.hasOwnProperty("screen")) {
+                          item.screen = root.screen;
+                        }
+                        root.activeTabContent = item;
+                        if (root._pendingSubTab >= 0) {
+                          root.navigatingFromSearch = true;
+                          if (root.setSubTabIndex(root._pendingSubTab))
+                            root._pendingSubTab = -1;
+                          root.navigatingFromSearch = false;
+                        }
+                        if (root.highlightLabelKey) {
+                          highlightScrollTimer.targetKey = root.highlightLabelKey;
+                          highlightScrollTimer.restart();
+                        }
                       }
-                      if (root.highlightLabelKey) {
-                        highlightScrollTimer.targetKey = root.highlightLabelKey;
-                        highlightScrollTimer.restart();
+
+                      Behavior on opacity {
+                        NumberAnimation {
+                          duration: Style.animationFast
+                          easing.type: Easing.InOutQuad
+                        }
                       }
                     }
                   }

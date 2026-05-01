@@ -1,0 +1,3 @@
+module qs.Noctalia.Services.Ryoku
+singleton RyokuCommand 1.0 RyokuCommand.qml
+singleton RyokuFeatureAvailability 1.0 RyokuFeatureAvailability.qml
