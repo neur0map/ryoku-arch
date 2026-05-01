@@ -485,7 +485,7 @@ Popup {
                 anchors.fill: parent
                 anchors.margins: 1 // Avoid drawing over the border
 
-                fragmentShader: "../Shaders/qsb/color_picker.frag.qsb"
+                fragmentShader: Qt.resolvedUrl(RuntimePaths.shaders + "/qsb/color_picker.frag.qsb")
 
                 // Pass which radio is selected
                 readonly property real fixedVal: {
