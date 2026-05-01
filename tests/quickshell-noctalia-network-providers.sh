@@ -110,6 +110,12 @@ fi
 
 [[ -f $network_dir/RyokuBluetoothService.qml ]] \
   || fail "Ryoku Bluetooth service should exist"
+grep -q 'singleton NetworkService 1.0 RyokuNetworkService.qml' "$network_dir/qmldir" \
+  || fail "Legacy NetworkService type should resolve to the Ryoku network adapter"
+grep -q 'singleton BluetoothService 1.0 RyokuBluetoothService.qml' "$network_dir/qmldir" \
+  || fail "Legacy BluetoothService type should resolve to the Ryoku Bluetooth adapter"
+! grep -q 'Quickshell.Networking' "$network_dir/qmldir" \
+  || fail "Networking qmldir should not expose the upstream Quickshell.Networking service"
 
 grep -q 'bluetoothctl' "$network_dir/RyokuBluetoothService.qml" \
   || fail "Bluetooth service should use bluetoothctl"
@@ -147,5 +153,7 @@ grep -A5 'bluetooth-rssi-polling-label' "$runtime/Modules/Panels/Settings/Tabs/C
 
 grep -q 'RyokuNetworkService' "$runtime/Modules/Panels/Settings/Tabs/Connections/WifiSubTab.qml" \
   || fail "Wi-Fi subtab should use the Ryoku network service"
+! rg '(^|[^A-Za-z0-9_])BluetoothService\.' "$runtime/Modules/Panels/Settings/Tabs/Connections/WifiSubTab.qml" \
+  || fail "Wi-Fi subtab should not load the upstream BluetoothService"
 grep -q 'RyokuBluetoothService' "$runtime/Modules/Panels/Settings/Tabs/Connections/BluetoothSubTab.qml" \
   || fail "Bluetooth subtab should use the Ryoku Bluetooth service"

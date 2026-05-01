@@ -337,7 +337,7 @@ Item {
         spacing: Style.marginM
 
         NToggle {
-          visible: RyokuNetworkService.wifiAvailable && BluetoothService.bluetoothAvailable
+          visible: RyokuNetworkService.wifiAvailable && RyokuBluetoothService.bluetoothAvailable
           label: I18n.tr("toast.airplane-mode.title")
           description: I18n.tr("toast.airplane-mode.description")
           icon: RyokuNetworkService.airplaneModeEnabled ? "plane" : "plane-off"
