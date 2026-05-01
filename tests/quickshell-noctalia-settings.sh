@@ -146,6 +146,8 @@ grep -q 'RyokuWallpaperActions.openWallhaven' "$runtime/Modules/Panels/Settings/
   || fail "Wallpaper page should expose Wallhaven"
 grep -q 'RyokuWallpaperActions.rebuildCache' "$runtime/Modules/Panels/Settings/Tabs/Wallpaper/GeneralSubTab.qml" \
   || fail "Wallpaper page should expose cache rebuild"
+rg -U 'NTextInputButton[[:space:]]*\{[\s\S]{0,160}id:[[:space:]]+monitorDirInput[\s\S]{0,180}enabled:[[:space:]]+root\.noctaliaWallpaperControlsAvailable' "$runtime/Modules/Panels/Settings/Tabs/Wallpaper/GeneralSubTab.qml" >/dev/null \
+  || fail "Nested monitor-specific wallpaper directory controls should stay visible but disabled"
 grep -q 'RyokuWallpaperActions.noctaliaWallpaperControlsAvailable' "$runtime/Modules/Panels/Settings/Tabs/Wallpaper/LookAndFeelSubTab.qml" \
   || fail "Unavailable wallpaper look controls should stay visible but disabled"
 grep -q 'RyokuWallpaperActions.noctaliaWallpaperControlsAvailable' "$runtime/Modules/Panels/Settings/Tabs/Wallpaper/AutomationSubTab.qml" \
