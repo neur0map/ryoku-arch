@@ -19,6 +19,7 @@ usage() {
   cat >&2 <<'EOF'
 Usage:
   ryoku-audio-effects status
+  ryoku-audio-effects state
   ryoku-audio-effects apply BASS WIDTH LOUD
   ryoku-audio-effects bass VALUE
   ryoku-audio-effects width VALUE
@@ -71,7 +72,11 @@ normalize_gain() {
 
   [[ $value =~ ^-?[0-9]+$ ]] || die "gain must be an integer from -12 to 12"
 
-  number=$((10#$value))
+  if [[ $value == -* ]]; then
+    number=$((-10#${value#-}))
+  else
+    number=$((10#$value))
+  fi
 
   if (( number < -12 )); then
     number=-12
@@ -132,6 +137,20 @@ write_state() {
   } > "$state_file"
 }
 
+state_json() {
+  jq -n \
+    --arg bass "$bass" \
+    --arg width "$width" \
+    --arg loud "$loud" \
+    --arg vals "$eq_bands" \
+    '{
+      bass: ($bass | tonumber),
+      width: ($width | tonumber),
+      loud: ($loud | tonumber),
+      eqBands: ($vals | split(" ") | map(tonumber))
+    }'
+}
+
 write_equalizer_preset_file() {
   local dir="$1"
   local file="$dir/$preset_name.json"
@@ -140,12 +159,18 @@ write_equalizer_preset_file() {
 
   jq -n --arg vals "$eq_bands" '
     ($vals | split(" ") | map(tonumber)) as $g |
-    [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000] as $f |
+    [0, 3, 6, 9, 12, 15, 18, 21, 24, 27] as $slider_bands |
+    [32, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630, 800, 1000,
+      1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000, 12500, 16000,
+      20000, 22000, 24000, 24000] as $f |
+    def gain_for($i):
+      ($slider_bands | index($i)) as $slider_index
+      | if $slider_index == null then 0 else $g[$slider_index] end;
     def bands:
-      reduce range(0; 10) as $i ({};
+      reduce range(0; 32) as $i ({};
         .["band\($i)"] = {
           frequency: $f[$i],
-          gain: $g[$i],
+          gain: gain_for($i),
           mode: "Bell",
           mute: false,
           q: 1.0,
@@ -165,7 +190,7 @@ write_equalizer_preset_file() {
           left: bands,
           right: bands,
           mode: "IIR",
-          "num-bands": 10,
+          "num-bands": 32,
           "split-channels": false
         }
       }
@@ -248,15 +273,19 @@ ensure_preset() {
 }
 
 load_equalizer_preset() {
+  if [[ ${RYOKU_AUDIO_EFFECTS_NO_LIVE:-0} == "1" ]]; then
+    return 0
+  fi
+
   if ryoku-cmd-missing easyeffects; then
     return 0
   fi
 
   if ensure_server; then
     send_raw "load_preset:output:$preset_name" || true
-  else
-    setsid easyeffects -l "$preset_name" >/dev/null 2>&1 &
   fi
+
+  setsid easyeffects -l "$preset_name" >/dev/null 2>&1 &
 }
 
 ensure_server() {
@@ -360,6 +389,9 @@ case "${1:-}" in
     else
       echo "inactive"
     fi
+    ;;
+  state|get)
+    state_json
     ;;
   apply)
     (( $# == 4 )) || die "apply requires BASS WIDTH LOUD"

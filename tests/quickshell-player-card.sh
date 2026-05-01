@@ -91,8 +91,26 @@ active_has "$player" 'property bool _effectsOpen: false' \
   || fail "PlayerCard equalizer should start closed when the dashboard opens"
 active_has "$player" 'root._effectsOpen = false' \
   || fail "PlayerCard should collapse the equalizer when hidden"
+active_has "$player" 'id: audioEffectStateProc' \
+  || fail "PlayerCard should load persisted audio effect state"
+active_has "$player" 'root._loadEqState()' \
+  || fail "PlayerCard should refresh persisted EQ state when shown"
+active_has "$player" 'root._applyEqState(JSON.parse(text))' \
+  || fail "PlayerCard should parse helper EQ state JSON"
+active_has "$player" 'root._eqBands = next' \
+  || fail "PlayerCard should sync sliders from persisted EQ bands"
+active_has "$player" 'function _syncTimeline(trackChanged)' \
+  || fail "PlayerCard should normalize MPRIS progress into an internal timeline"
+active_has "$player" 'if ((trackChanged || root.isPlaying) && p >= len - 0.25)' \
+  || fail "PlayerCard should recover when a playing MPRIS source reports stale end-of-track progress"
+active_has "$player" 'onTitleChanged: root._syncTimeline(true)' \
+  || fail "PlayerCard should reset stale progress when the track changes"
+active_has "$player" 'onPositionChanged: root._syncTimeline(false)' \
+  || fail "PlayerCard should keep progress synced with MPRIS updates"
 active_has "$player" 'component TransportGlyph' \
   || fail "Playback controls should use custom Ryoku transport glyphs"
+active_has "$player" 'component EqualizerGlyph' \
+  || fail "FX entry should use a recognizable equalizer glyph instead of dot indicators"
 active_has "$player" 'id: playbackControls' \
   || fail "PlayerCard should render explicit playback controls"
 active_has "$player" 'objectName: "playbackDeck"' \
@@ -103,12 +121,27 @@ active_has "$player" 'anchors.left: discStage.right' \
   || fail "Playback controls should stay in the right-side column and clear the disc orbit"
 active_has "$player" 'anchors.bottom: panelBody.bottom' \
   || fail "Playback controls should sit at the bottom of the audio card"
-active_has "$player" 'width: isPlay ? 56 : 46' \
-  || fail "Playback controls should use larger boxed command keys"
-active_has "$player" 'radius: 10' \
-  || fail "Playback controls should render as rounded boxes, not circles"
-active_has "$player" 'anchors.rightMargin: 32' \
-  || fail "Playback controls should stay clear of the card edge"
+active_has "$player" 'width: isPlay ? 34 : 24' \
+  || fail "Playback controls should use compact command keys that fit in the side console"
+if ! awk '
+  /id: controlsBlock/ { in_block = 1 }
+  in_block && /anchors\.leftMargin: 42/ { left_margin = 1 }
+  in_block && /anchors\.rightMargin: 18/ { right_margin = 1 }
+  in_block && /id: quietCavaStrip/ { exit }
+  END { exit left_margin && right_margin ? 0 : 1 }
+' "$player"; then
+  fail "Playback controls should align to the same side column as metadata and EQ"
+fi
+if ! awk '
+  /id: playbackControls/ { in_block = 1 }
+  in_block && /spacing: 5/ { spacing = 1 }
+  in_block && /height: 22/ { height = 1 }
+  in_block && /radius: 8/ { radius = 1 }
+  in_block && /MouseArea/ { exit }
+  END { exit spacing && height && radius ? 0 : 1 }
+' "$player"; then
+  fail "Playback controls should use slim tightly-spaced rounded buttons"
+fi
 active_has "$player" 'opacity: actionEnabled ? 1 : 0.74' \
   || fail "Unavailable playback controls should remain legible"
 active_has "$player" 'ShapePath {' \
@@ -129,6 +162,8 @@ active_has "$player" 'WaveBar {' \
   || fail "PlayerCard seekbar should reuse the TelemetryRail WaveBar component"
 active_has "$player" 'value: root._progress' \
   || fail "Wave seekbar should bind to MPRIS playback progress"
+active_has "$player" 'valueDuration: 180' \
+  || fail "Wave seekbar should update quickly enough to show active song progress"
 active_has "$player" 'root.player.position = f * root.length' \
   || fail "Progress track should preserve click-to-seek"
 active_has "$player" 'font.family: "JetBrains Mono"' \
@@ -153,6 +188,8 @@ active_has "$player" 'anchors.fill: panelBody' \
   || fail "Equalizer screen should stay inside the audio card panel"
 active_has "$player" 'id: effectsToggle' \
   || fail "Audio effects should expose a dedicated FX expand button"
+active_has "$player" 'EqualizerGlyph {' \
+  || fail "Audio effects button should render a clear equalizer icon"
 active_has "$player" 'onClicked: root._toggleEffects()' \
   || fail "FX button should switch between player and equalizer screens"
 active_has "$player" 'visible: !root._effectsOpen' \
@@ -220,6 +257,9 @@ if active_has "$player" 'parent.isPlay ? 0.038'; then
 fi
 if active_has "$player" 'component EffectSlider'; then
   fail "PlayerCard should not keep the cramped mini FX sliders"
+fi
+if active_has "$player" 'height: 4 + Math.abs(bandValue)'; then
+  fail "FX entry should not render the equalizer as tiny dot bars"
 fi
 if active_has "$player" 'Popups.playerEqualizerOpen'; then
   fail "PlayerCard equalizer should not resize the dashboard"
