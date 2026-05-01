@@ -3,7 +3,6 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
 import Quickshell
-import Quickshell.Bluetooth
 
 import qs.Noctalia.Commons
 import qs.Noctalia.Services.Hardware
@@ -20,30 +19,30 @@ Item {
   // Configuration for shared use (e.g. by BluetoothPanel)
   property bool showOnlyLists: false
 
-  readonly property bool isScanningActive: BluetoothService.scanningActive
-  readonly property bool isDiscoverable: BluetoothService.discoverable
+  readonly property bool isScanningActive: RyokuBluetoothService.scanningActive
+  readonly property bool isDiscoverable: RyokuBluetoothService.discoverable
 
   // Device lists with local filtering logic
   readonly property var connectedDevices: {
-    if (!BluetoothService.adapter || !BluetoothService.adapter.devices)
+    if (!RyokuBluetoothService.adapter || !RyokuBluetoothService.adapter.devices)
       return [];
-    var filtered = BluetoothService.adapter.devices.values.filter(dev => dev && !dev.blocked && dev.connected);
-    filtered = BluetoothService.dedupeDevices(filtered);
-    return BluetoothService.sortDevices(filtered);
+    var filtered = RyokuBluetoothService.adapter.devices.values.filter(dev => dev && !dev.blocked && dev.connected);
+    filtered = RyokuBluetoothService.dedupeDevices(filtered);
+    return RyokuBluetoothService.sortDevices(filtered);
   }
 
   readonly property var pairedDevices: {
-    if (!BluetoothService.adapter || !BluetoothService.adapter.devices)
+    if (!RyokuBluetoothService.adapter || !RyokuBluetoothService.adapter.devices)
       return [];
-    var filtered = BluetoothService.adapter.devices.values.filter(dev => dev && !dev.blocked && !dev.connected && (dev.paired || dev.trusted));
-    filtered = BluetoothService.dedupeDevices(filtered);
-    return BluetoothService.sortDevices(filtered);
+    var filtered = RyokuBluetoothService.adapter.devices.values.filter(dev => dev && !dev.blocked && !dev.connected && (dev.paired || dev.trusted));
+    filtered = RyokuBluetoothService.dedupeDevices(filtered);
+    return RyokuBluetoothService.sortDevices(filtered);
   }
 
   readonly property var unnamedAvailableDevices: {
-    if (!BluetoothService.adapter || !BluetoothService.adapter.devices)
+    if (!RyokuBluetoothService.adapter || !RyokuBluetoothService.adapter.devices)
       return [];
-    return BluetoothService.adapter.devices.values.filter(dev => dev && !dev.blocked && !dev.paired && !dev.trusted);
+    return RyokuBluetoothService.adapter.devices.values.filter(dev => dev && !dev.blocked && !dev.paired && !dev.trusted);
   }
 
   readonly property var availableDevices: {
@@ -72,8 +71,8 @@ Item {
         return true;
       });
     }
-    list = BluetoothService.dedupeDevices(list);
-    return BluetoothService.sortDevices(list);
+    list = RyokuBluetoothService.dedupeDevices(list);
+    return RyokuBluetoothService.sortDevices(list);
   }
 
   // For managing expanded device details
@@ -84,7 +83,7 @@ Item {
   readonly property bool effectivelyVisible: root.visible && Window.window && Window.window.visible
 
   Connections {
-    target: BluetoothService
+    target: RyokuBluetoothService
     function onEnabledChanged() {
       stateChangeDebouncer.restart();
     }
@@ -103,21 +102,21 @@ Item {
   }
 
   function _updateScanningState() {
-    if (effectivelyVisible && BluetoothService.enabled && !showOnlyLists) {
+    if (effectivelyVisible && RyokuBluetoothService.enabled && !showOnlyLists) {
       Logger.d("BluetoothPrefs", "Panel/tab active");
       if (!isScanningActive) {
-        BluetoothService.setScanActive(true);
+        RyokuBluetoothService.setScanActive(true);
       }
       if (!Settings.data.network.disableDiscoverability && !isDiscoverable) {
-        BluetoothService.setDiscoverable(true);
+        RyokuBluetoothService.setDiscoverable(true);
       }
     } else {
       Logger.d("BluetoothPrefs", "Panel/tab inactive");
       if (isScanningActive && !showOnlyLists) {
-        BluetoothService.setScanActive(false);
+        RyokuBluetoothService.setScanActive(false);
       }
       if (isDiscoverable && !showOnlyLists) {
-        BluetoothService.setDiscoverable(false);
+        RyokuBluetoothService.setDiscoverable(false);
       }
     }
   }
@@ -125,11 +124,11 @@ Item {
   Component.onDestruction: {
     // Ensure scanning is stopped when component is closed
     if (isScanningActive && !showOnlyLists) {
-      BluetoothService.setScanActive(false);
+      RyokuBluetoothService.setScanActive(false);
     }
     // Ensure discoverable is disabled when component is closed
     if (isDiscoverable && !showOnlyLists) {
-      BluetoothService.setDiscoverable(false);
+      RyokuBluetoothService.setDiscoverable(false);
     }
     Logger.d("BluetoothPrefs", "Panel closed");
   }
@@ -159,21 +158,21 @@ Item {
 
           NToggle {
             label: I18n.tr("common.bluetooth")
-            icon: BluetoothService.enabled ? "bluetooth" : "bluetooth-off"
-            checked: BluetoothService.enabled
-            enabled: !NetworkService.airplaneModeEnabled && BluetoothService.bluetoothAvailable && !BluetoothService.blocked
-            onToggled: checked => BluetoothService.setBluetoothEnabled(checked)
+            icon: RyokuBluetoothService.enabled ? "bluetooth" : "bluetooth-off"
+            checked: RyokuBluetoothService.enabled
+            enabled: !RyokuNetworkService.airplaneModeEnabled && RyokuBluetoothService.bluetoothAvailable && !RyokuBluetoothService.blocked
+            onToggled: checked => RyokuBluetoothService.setBluetoothEnabled(checked)
             Layout.alignment: Qt.AlignVCenter
           }
         }
 
         NDivider {
           Layout.fillWidth: true
-          visible: BluetoothService.enabled && isDiscoverable
+          visible: RyokuBluetoothService.enabled && isDiscoverable
         }
 
         NText {
-          visible: BluetoothService.enabled && isDiscoverable
+          visible: RyokuBluetoothService.enabled && isDiscoverable
           Layout.fillWidth: true
           text: I18n.tr("panels.connections.bluetooth-discoverable", {
                           hostName: HostService.hostName
@@ -194,7 +193,7 @@ Item {
     // Device List [1] (Connected)
     NBox {
       id: connectedDevicesBox
-      visible: root.connectedDevices.length > 0 && BluetoothService.enabled
+      visible: root.connectedDevices.length > 0 && RyokuBluetoothService.enabled
       Layout.fillWidth: true
       Layout.preferredHeight: connectedDevicesCol.implicitHeight + Style.margin2M
       border.color: showOnlyLists ? Style.boxBorderColor : "transparent"
@@ -225,7 +224,7 @@ Item {
     // Devices List [2] (Paired)
     NBox {
       id: pairedDevicesBox
-      visible: root.pairedDevices.length > 0 && BluetoothService.enabled
+      visible: root.pairedDevices.length > 0 && RyokuBluetoothService.enabled
       Layout.fillWidth: true
       Layout.preferredHeight: pairedDevicesCol.implicitHeight + Style.margin2M
       border.color: showOnlyLists ? Style.boxBorderColor : "transparent"
@@ -256,7 +255,7 @@ Item {
     // Device List [3] (Available)
     NBox {
       id: availableDevicesBox
-      visible: !root.showOnlyLists && root.unnamedAvailableDevices.length > 0 && BluetoothService.enabled
+      visible: !root.showOnlyLists && root.unnamedAvailableDevices.length > 0 && RyokuBluetoothService.enabled
       Layout.fillWidth: true
       Layout.preferredHeight: availableDevicesCol.implicitHeight + Style.margin2M
       border.color: "transparent"
@@ -276,7 +275,7 @@ Item {
 
           NLabel {
             label: I18n.tr("bluetooth.panel.available-devices")
-            description: BluetoothService.scanningActive ? I18n.tr("bluetooth.panel.scanning") : ""
+            description: RyokuBluetoothService.scanningActive ? I18n.tr("bluetooth.panel.scanning") : ""
             Layout.fillWidth: true
           }
         }
@@ -305,7 +304,7 @@ Item {
 
     NBox {
       id: miscSettingsBox
-      visible: !root.showOnlyLists && BluetoothService.enabled
+      visible: !root.showOnlyLists && RyokuBluetoothService.enabled
       Layout.fillWidth: true
       Layout.preferredHeight: miscSettingsCol.implicitHeight + Style.margin2XL
       color: Color.mSurface
@@ -336,7 +335,7 @@ Item {
           checked: Settings.data.network.disableDiscoverability
           onToggled: checked => {
                        Settings.data.network.disableDiscoverability = checked;
-                       BluetoothService.setDiscoverable(!checked);
+                       RyokuBluetoothService.setDiscoverable(!checked);
                      }
         }
 
@@ -370,20 +369,21 @@ Item {
     NBox {
       id: device
 
-      readonly property bool canConnect: BluetoothService.canConnect(modelData)
-      readonly property bool canDisconnect: BluetoothService.canDisconnect(modelData)
-      readonly property bool canPair: BluetoothService.canPair(modelData)
-      readonly property bool isBusy: BluetoothService.isDeviceBusy(modelData)
-      readonly property bool isExpanded: root.expandedDeviceKey === BluetoothService.deviceKey(modelData)
+      readonly property bool canConnect: RyokuBluetoothService.canConnect(modelData)
+      readonly property bool canDisconnect: RyokuBluetoothService.canDisconnect(modelData)
+      readonly property bool canPair: RyokuBluetoothService.canPair(modelData)
+      readonly property bool isBusy: RyokuBluetoothService.isDeviceBusy(modelData)
+      readonly property bool isExpanded: root.expandedDeviceKey === RyokuBluetoothService.deviceKey(modelData)
+      readonly property string statusKey: RyokuBluetoothService.getStatusKey(modelData)
 
       function getContentColors(defaultColors = [Color.mSurface, Color.mOnSurface]) {
-        if (modelData.pairing || modelData.state === BluetoothDeviceState.Connecting) {
+        if (modelData.pairing || statusKey === "connecting") {
           return [Color.mPrimary, Color.mOnPrimary];
         }
-        if (modelData.connected && modelData.state !== BluetoothDeviceState.Disconnecting) {
+        if (modelData.connected && statusKey !== "disconnecting") {
           return [Color.mPrimary, Color.mOnPrimary];
         }
-        if (modelData.blocked || modelData.state === BluetoothDeviceState.Disconnecting) {
+        if (modelData.blocked || statusKey === "disconnecting") {
           return [Color.mError, Color.mOnError];
         }
         return defaultColors;
@@ -411,7 +411,7 @@ Item {
           NIcon {
             Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
             horizontalAlignment: Text.AlignLeft
-            icon: BluetoothService.getDeviceIcon(modelData)
+            icon: RyokuBluetoothService.getDeviceIcon(modelData)
             pointSize: Style.fontSizeXXL
             color: device.getContentColors()[1]
           }
@@ -431,7 +431,7 @@ Item {
 
             NText {
               text: {
-                const k = BluetoothService.getStatusKey(modelData);
+                const k = RyokuBluetoothService.getStatusKey(modelData);
                 if (k === "pairing")
                   return I18n.tr("common.pairing");
                 if (k === "blocked")
@@ -452,7 +452,7 @@ Item {
               spacing: Style.marginS
               NIcon {
                 icon: {
-                  var b = BluetoothService.getBatteryPercent(modelData);
+                  var b = RyokuBluetoothService.getBatteryPercent(modelData);
                   return BatteryService.getIcon(b !== null ? b : 0, false, false, b !== null);
                 }
                 pointSize: Style.fontSizeXS
@@ -460,7 +460,7 @@ Item {
               }
               NText {
                 text: {
-                  var b = BluetoothService.getBatteryPercent(modelData);
+                  var b = RyokuBluetoothService.getBatteryPercent(modelData);
                   return b === null ? "-" : (b + "%");
                 }
                 pointSize: Style.fontSizeXS
@@ -484,7 +484,7 @@ Item {
             }
 
             NIconButton {
-              visible: modelData.connected && modelData.state !== BluetoothDeviceState.Disconnecting
+              visible: modelData.connected && device.statusKey !== "disconnecting"
               icon: "info"
               tooltipText: I18n.tr("common.info")
               baseSize: Style.baseWidgetSize * 0.75
@@ -493,7 +493,7 @@ Item {
               colorBorder: "transparent"
               colorBorderHover: "transparent"
               onClicked: {
-                const key = BluetoothService.deviceKey(modelData);
+                const key = RyokuBluetoothService.deviceKey(modelData);
                 root.expandedDeviceKey = (root.expandedDeviceKey === key) ? "" : key;
               }
             }
@@ -507,12 +507,12 @@ Item {
               colorFg: Color.mOnPrimary
               colorBorder: "transparent"
               colorBorderHover: "transparent"
-              onClicked: BluetoothService.unpairDevice(modelData)
+              onClicked: RyokuBluetoothService.unpairDevice(modelData)
             }
 
             NButton {
               id: button
-              visible: modelData.state !== BluetoothDeviceState.Connecting && modelData.state !== BluetoothDeviceState.Disconnecting
+              visible: device.statusKey !== "connecting" && device.statusKey !== "disconnecting"
               enabled: (canConnect || canDisconnect || (root.showOnlyLists ? false : canPair)) && !isBusy
               fontSize: Style.fontSizeS
               backgroundColor: modelData.connected ? Color.mSurfaceVariant : Color.mPrimary
@@ -530,12 +530,12 @@ Item {
               }
               onClicked: {
                 if (modelData.connected) {
-                  BluetoothService.disconnectDevice(modelData);
+                  RyokuBluetoothService.disconnectDevice(modelData);
                 } else {
                   if (!root.showOnlyLists && device.canPair) {
-                    BluetoothService.pairDevice(modelData);
+                    RyokuBluetoothService.pairDevice(modelData);
                   } else {
-                    BluetoothService.connectDeviceWithTrust(modelData);
+                    RyokuBluetoothService.connectDeviceWithTrust(modelData);
                   }
                 }
               }
@@ -584,12 +584,12 @@ Item {
               Layout.preferredWidth: 1
               spacing: Style.marginXS
               NIcon {
-                icon: BluetoothService.getSignalIcon(modelData)
+                icon: RyokuBluetoothService.getSignalIcon(modelData)
                 pointSize: Style.fontSizeXS
                 color: Color.mOnSurface
               }
               NText {
-                text: BluetoothService.getSignalStrength(modelData)
+                text: RyokuBluetoothService.getSignalStrength(modelData)
                 pointSize: Style.fontSizeXS
                 color: Color.mOnSurface
                 Layout.fillWidth: true
@@ -603,7 +603,7 @@ Item {
               spacing: Style.marginXS
               NIcon {
                 icon: {
-                  var b = BluetoothService.getBatteryPercent(modelData);
+                  var b = RyokuBluetoothService.getBatteryPercent(modelData);
                   return BatteryService.getIcon(b !== null ? b : 0, false, false, b !== null);
                 }
                 pointSize: Style.fontSizeXS
@@ -611,7 +611,7 @@ Item {
               }
               NText {
                 text: {
-                  var b = BluetoothService.getBatteryPercent(modelData);
+                  var b = RyokuBluetoothService.getBatteryPercent(modelData);
                   return b === null ? "-" : (b + "%");
                 }
                 pointSize: Style.fontSizeXS
@@ -678,15 +678,15 @@ Item {
               spacing: Style.marginXS
               visible: Settings.data.network.bluetoothAutoConnect
               NIcon {
-                icon: BluetoothService.getDeviceAutoConnect(modelData) ? "repeat" : "repeat-off"
+                icon: RyokuBluetoothService.getDeviceAutoConnect(modelData) ? "repeat" : "repeat-off"
                 pointSize: Style.fontSizeXS
               }
               NCheckbox {
                 label: I18n.tr("common.auto-connect")
                 labelSize: Style.fontSizeXS
                 baseSize: Style.baseWidgetSize * 0.5
-                checked: BluetoothService.getDeviceAutoConnect(modelData)
-                onToggled: checked => BluetoothService.setDeviceAutoConnect(modelData, checked)
+                checked: RyokuBluetoothService.getDeviceAutoConnect(modelData)
+                onToggled: checked => RyokuBluetoothService.setDeviceAutoConnect(modelData, checked)
               }
             }
           }
@@ -698,7 +698,7 @@ Item {
   // PIN Authentication Overlay (This part needs some love :P)
   Rectangle {
     id: pinOverlay
-    visible: !root.showOnlyLists && BluetoothService.pinRequired
+    visible: !root.showOnlyLists && RyokuBluetoothService.pinRequired
     anchors.centerIn: parent
     width: Math.min(parent.width * 0.9, 400)
     height: pinCol.implicitHeight + Style.margin2L
@@ -756,7 +756,7 @@ Item {
         }
         inputItem.onEditingFinished: {
           if (text.length > 0) {
-            BluetoothService.submitPin(text);
+            RyokuBluetoothService.submitPin(text);
             text = "";
           }
         }
@@ -767,7 +767,7 @@ Item {
         NButton {
           text: I18n.tr("common.cancel")
           icon: "x"
-          onClicked: BluetoothService.cancelPairing()
+          onClicked: RyokuBluetoothService.cancelPairing()
         }
         NButton {
           text: I18n.tr("common.confirm")
@@ -776,7 +776,7 @@ Item {
           textColor: Color.mOnPrimary
           enabled: pinInput.text.length > 0
           onClicked: {
-            BluetoothService.submitPin(pinInput.text);
+            RyokuBluetoothService.submitPin(pinInput.text);
             pinInput.text = "";
           }
         }
