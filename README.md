@@ -15,6 +15,16 @@ An opinionated **Arch Linux environment** for security work, built around **Hypr
 
 [Vision](docs/vision.md) &middot; [Roadmap](docs/TODO.md) &middot; [Customize](docs/customization-inventory.md) &middot; [Docs](docs/)
 
+<p>
+  <a href="docs/media/showcase.mp4">
+    <img src="docs/media/showcase-poster.jpg" alt="Ryoku Arch showcase video preview" width="960" />
+  </a>
+</p>
+
+<p>
+  <a href="docs/media/showcase.mp4"><strong>Watch the showcase</strong></a>
+</p>
+
 </div>
 
 ---
