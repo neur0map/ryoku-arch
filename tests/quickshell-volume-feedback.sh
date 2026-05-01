@@ -54,6 +54,12 @@ grep -q 'VolumeToast {' "$topbar" \
   || fail "TopBar should mount the volume toast"
 grep -q 'VolumeFeedback.visible' "$topbar" \
   || fail "TopBar should gate the toast on keyboard-volume feedback"
+grep -q 'volumeFeedbackDropHeight' "$topbar" \
+  || fail "TopBar should grow while volume feedback drops down"
+grep -q 'height: parent.height' "$topbar" \
+  || fail "right gap should allow the toast to extend below the notch"
+grep -q 'horizontalCenter: parent.horizontalCenter' "$topbar" \
+  || fail "volume toast should be centered in the right gap"
 
 grep -q 'font.family: "iA Writer Quattro S"' "$day" \
   || fail "Day widget should use the rice-style display font"
@@ -62,6 +68,22 @@ grep -q 'Qt.formatDateTime(new Date(), "dddd").toUpperCase()' "$day" \
 
 grep -q 'Quickshell.Services.Pipewire' "$toast" \
   || fail "Volume toast should read PipeWire audio state"
+grep -q 'import "../../services/home/."' "$toast" \
+  || fail "Volume toast should import shared home components"
+grep -q 'WaveBar {' "$toast" \
+  || fail "Volume toast should use the animated WaveBar"
+grep -q 'PopupShape {' "$toast" \
+  || fail "Volume toast should render as a topbar extension shape"
+grep -q 'y: active ? Theme.notchHeight + 4 : -height - 2' "$toast" \
+  || fail "Volume toast should slide down from the topbar"
+grep -q 'Behavior on y' "$toast" \
+  || fail "Volume toast should animate with a vertical slide"
+! grep -q 'Behavior on opacity' "$toast" \
+  || fail "Volume toast should not fade in"
+! grep -q 'Behavior on scale' "$toast" \
+  || fail "Volume toast should not scale in"
+grep -q 'implicitWidth: 150' "$toast" \
+  || fail "Volume toast should stay compact"
 grep -q 'Timer {' "$toast" \
   || fail "Volume toast should auto-hide"
 grep -q 'VolumeFeedback.hide()' "$toast" \

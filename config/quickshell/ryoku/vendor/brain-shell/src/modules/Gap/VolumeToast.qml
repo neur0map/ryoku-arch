@@ -1,6 +1,8 @@
 import QtQuick
 import Quickshell.Services.Pipewire
 import "../../"
+import "../../shapes/"
+import "../../services/home/."
 
 Item {
   id: root
@@ -19,21 +21,14 @@ Item {
     return "󰕿"
   }
 
-  implicitWidth: 186
-  implicitHeight: 26
-  visible: active || opacity > 0.01
-  opacity: active ? 1 : 0
-  scale: active ? 1 : 0.96
-  transformOrigin: Item.Right
+  implicitWidth: 150
+  implicitHeight: 28
+  visible: active || y > -height
+  y: active ? Theme.notchHeight + 4 : -height - 2
 
-  Behavior on opacity {
+  Behavior on y {
     enabled: !Theme.staticMode
-    NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
-  }
-
-  Behavior on scale {
-    enabled: !Theme.staticMode
-    NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
+    NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
   }
 
   PwObjectTracker {
@@ -54,12 +49,15 @@ Item {
     onTriggered: VolumeFeedback.hide()
   }
 
-  Rectangle {
+  PopupShape {
     anchors.fill: parent
-    radius: height / 2
+    attachedEdge: "top"
+    radius: 13
+    flareWidth: 13
+    flareHeight: 8
     color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, 0.94)
-    border.width: 1
-    border.color: Qt.rgba(Theme.border.r, Theme.border.g, Theme.border.b, 0.34)
+    strokeWidth: 1
+    strokeColor: Qt.rgba(Theme.border.r, Theme.border.g, Theme.border.b, 0.34)
   }
 
   Row {
@@ -67,13 +65,13 @@ Item {
       left: parent.left
       right: parent.right
       verticalCenter: parent.verticalCenter
-      leftMargin: 11
-      rightMargin: 11
+      leftMargin: 10
+      rightMargin: 10
     }
-    spacing: 8
+    spacing: 6
 
     Text {
-      width: 18
+      width: 16
       text: root.icon
       color: root.muted ? Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.56) : Theme.text
       font.pixelSize: 14
@@ -83,7 +81,7 @@ Item {
     }
 
     Text {
-      width: 48
+      width: 36
       text: root.muted ? "MUTED" : root.pct + "%"
       color: root.muted ? Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.62) : Theme.text
       font.family: "JetBrains Mono"
@@ -95,30 +93,30 @@ Item {
     }
 
     Item {
-      width: Math.max(46, parent.width - 18 - 48 - parent.spacing * 2)
-      height: 5
+      width: Math.max(52, parent.width - 16 - 36 - parent.spacing * 2)
+      height: 11
       anchors.verticalCenter: parent.verticalCenter
-
-      Rectangle {
-        anchors.fill: parent
-        radius: height / 2
-        color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.15)
-      }
 
       Rectangle {
         anchors {
           left: parent.left
-          top: parent.top
-          bottom: parent.bottom
+          right: parent.right
+          verticalCenter: parent.verticalCenter
         }
-        width: root.muted ? 0 : parent.width * root.volume
-        radius: height / 2
-        color: Theme.active
+        height: 2
+        radius: 1
+        color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.15)
+      }
 
-        Behavior on width {
-          enabled: !Theme.staticMode
-          NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
-        }
+      WaveBar {
+        anchors.fill: parent
+        value: root.muted ? 0 : root.volume
+        color: Theme.active
+        wavelength: 12
+        amplitude: 1.8
+        strokeWidth: 2
+        speed: 1400
+        valueDuration: 140
       }
     }
   }
