@@ -10,17 +10,22 @@ import qs.Noctalia.Widgets
 FloatingWindow {
   id: root
 
+  readonly property int panelWidth: Math.round(840 * Style.uiScaleRatio)
+  readonly property int panelHeight: Math.round(910 * Style.uiScaleRatio)
+
   title: "Noctalia"
-  minimumSize: Qt.size(840 * Style.uiScaleRatio, 910 * Style.uiScaleRatio)
-  implicitWidth: Math.round(840 * Style.uiScaleRatio)
-  implicitHeight: Math.round(910 * Style.uiScaleRatio)
+  width: Math.min(panelWidth, screen ? screen.width - 24 : panelWidth)
+  height: Math.min(panelHeight, screen ? screen.height - 24 : panelHeight)
+  minimumSize: Qt.size(Math.min(panelWidth, screen ? screen.width - 24 : panelWidth), Math.min(panelHeight, screen ? screen.height - 24 : panelHeight))
+  implicitWidth: 840 * Style.uiScaleRatio
+  implicitHeight: 910 * Style.uiScaleRatio
   color: "transparent"
 
   visible: false
 
-  // Register with SettingsPanelService
+  // Register with RyokuSettingsPanelService
   Component.onCompleted: {
-    SettingsPanelService.settingsWindow = root;
+    RyokuSettingsPanelService.settingsWindow = root;
   }
 
   property bool isInitialized: false
@@ -58,13 +63,23 @@ FloatingWindow {
     }
   }
 
+  function navigateToRoute(route) {
+    const targetRoute = route || "general";
+    if (!isInitialized) {
+      settingsContent.requestedRoute = targetRoute;
+      settingsContent.initialize();
+      isInitialized = true;
+    }
+    settingsContent.openRoute(targetRoute);
+  }
+
   // Sync visibility with service
   onVisibleChanged: {
     if (visible) {
-      SettingsPanelService.isWindowOpen = true;
+      RyokuSettingsPanelService.isWindowOpen = true;
     } else {
       isInitialized = false;
-      SettingsPanelService.isWindowOpen = false;
+      RyokuSettingsPanelService.isWindowOpen = false;
     }
   }
 
@@ -72,7 +87,7 @@ FloatingWindow {
   Shortcut {
     sequence: "Escape"
     enabled: !PanelService.isKeybindRecording
-    onActivated: SettingsPanelService.closeWindow()
+    onActivated: RyokuSettingsPanelService.closeWindow()
   }
 
   Shortcut {
@@ -124,7 +139,7 @@ FloatingWindow {
     SettingsContent {
       id: settingsContent
       anchors.fill: parent
-      onCloseRequested: SettingsPanelService.closeWindow()
+      onCloseRequested: RyokuSettingsPanelService.closeWindow()
     }
   }
 }
