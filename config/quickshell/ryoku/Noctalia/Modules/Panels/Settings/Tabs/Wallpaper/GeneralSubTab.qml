@@ -174,6 +174,7 @@ ColumnLayout {
 
             NTextInputButton {
               id: monitorDirInput
+              enabled: root.noctaliaWallpaperControlsAvailable
               text: WallpaperService.getMonitorDirectory(modelData.name)
               buttonIcon: "folder-open"
               buttonTooltip: I18n.tr("panels.wallpaper.settings-monitor-specific-tooltip")
