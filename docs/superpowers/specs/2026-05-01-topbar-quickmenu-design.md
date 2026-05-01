@@ -26,6 +26,8 @@ routes that already exist.
 - Put quick toggles first, with Wi-Fi, Bluetooth, Airplane Mode, Hotspot,
   Night Light, Focus Mode, Do Not Disturb, and Filter represented primarily by
   icon buttons.
+- Make the default home view materially smaller than the current 456x520
+  control-center drawer.
 - Keep deeper menus available from the same surface, but restyle them to match
   the same compact topbar-extension language.
 - Move status text out of every quick toggle and into a compact status line
@@ -57,7 +59,7 @@ The home view should be the quick action surface, not a settings directory.
 Top to bottom:
 
 1. A compact header integrated with the right topbar notch.
-2. An icon toggle rail or grid with eight stable buttons:
+2. A single-row icon toggle rail with eight stable buttons:
    - Wi-Fi
    - Bluetooth
    - Airplane Mode
@@ -66,18 +68,34 @@ Top to bottom:
    - Focus Mode
    - Do Not Disturb
    - Filter
-3. A single status strip that summarizes the selected or most relevant state.
+3. A single status strip that summarizes the hovered, focused, recently
+   toggled, or most relevant state.
 4. Compact section entries for Learn, Share, Style, Setup, Manage, and About.
 
 Toggle buttons should be square or near-square icon controls. They can expose
 active, hover, pressed, busy, unavailable, and warning states through fill,
 stroke, accent, opacity, or a small marker. They should not use full labels in
-the normal layout. Short labels may be available as tooltips or in an adjacent
-status strip if the QML stack supports that cleanly.
+the normal layout. The status strip is the required text fallback: when a
+toggle is hovered or focused, it shows that toggle's label and state. Tooltips
+are not part of the first implementation unless the existing imports already
+support them with no extra framework churn.
 
 The status strip should avoid noisy repetition. It should show concise state
 such as `Wi-Fi: NetworkName`, `Bluetooth: DeviceName`, `Hotspot: No ethernet`,
 `Focus: External`, `Filter: blue-light`, or `All quick controls idle`.
+
+Status priority should be deterministic:
+
+1. Hovered or keyboard-focused quick toggle.
+2. Most recently clicked quick toggle for a short period.
+3. Warning or externally-owned state, such as hotspot failure or external
+   focus mode.
+4. Active filter, connected Wi-Fi, or connected Bluetooth.
+5. Quiet default text.
+
+Airplane Mode is a special case. When it is active, the status strip should
+make that obvious and Wi-Fi/Bluetooth toggle state should not imply normal
+connectivity.
 
 ### Deeper Menus
 
@@ -92,10 +110,14 @@ The existing route structure remains:
 - Existing setup/manage subpages
 
 Those pages should stop reading as large card grids. They should use compact
-topbar-style rows or slim tiles with small icons, quiet text, and restrained
-accent rails. The shape should remain playful but dense: rounded 6-8px
-controls, small icon cells, subtle active fills, and no oversized decorative
-cards.
+topbar-style rows or slim two-column chips with small icons, quiet text, and
+restrained accent rails. The shape should remain playful but dense: rounded
+6-8px controls, small icon cells, subtle active fills, and no oversized
+decorative cards.
+
+Long pages must scroll inside the popup instead of forcing the whole popup to
+grow. This is important for Manage and setup subpages with many actions. The
+outer topbar-attached shape stays stable; only the route content scrolls.
 
 The Manage page may keep tab-like controls for Install, Remove, and Maintain,
 but the tabs should use the same compact segmented control language as the
@@ -106,7 +128,8 @@ topbar rather than large card buttons.
 The popup remains anchored to the top-right edge and uses `PopupShape` with
 `attachedEdge: "top"`. The background should match the topbar more closely:
 
-- Same `Theme.background` base color.
+- Same `Theme.background` base color as the topbar. The main card should not
+  use the current translucent drawer treatment as its default background.
 - Subtle active stroke only where it helps the surface read as connected.
 - No detached translucent drawer effect.
 - Opening height should start at `Theme.notchHeight` and expand downward.
@@ -114,6 +137,19 @@ The popup remains anchored to the top-right edge and uses `PopupShape` with
 The menu should stay substantially smaller than the current full-size home
 view. Route pages can be taller when needed, but the default quickmenu should
 open as a compact topbar extension.
+
+Target dimensions:
+
+- Body width: 344px, plus the existing top flare width on both sides.
+- Home body height: 276px below the topbar notch.
+- Detail body height: 440px below the topbar notch, capped downward by the
+  screen height and `Theme.popupMaxHeight` on smaller screens.
+- Button rail: eight 34px icon buttons with tight spacing.
+- Detail rows/chips: 38px high by default.
+
+The implementation should replace the single fixed 520px body height with a
+page-aware target height. The home view should not pay for the tallest Manage
+subpage; long route pages should use a `Flickable`.
 
 ## Architecture
 
@@ -134,6 +170,12 @@ If the local components make the file too difficult to work in, they can move
 to `src/components/` in a follow-up. For this pass, keeping the change scoped
 to `SettingsMenuPopup.qml` is preferred.
 
+Icon data should be explicit. The current model uses semantic icon names such
+as `wifi`, `bluetooth`, and `filter`; the implementation should add either a
+small glyph role to the models or local mapping functions such as
+`quickIconGlyph(icon)` and `actionIconGlyph(icon)`. Missing mappings should
+fall back to a neutral dot or short initial, not blank space.
+
 No new shell IPC is required. The existing functions stay as the behavior
 surface:
 
@@ -146,10 +188,20 @@ surface:
 
 ## Data Flow
 
-The quick toggle data continues to come from `quickControlsModel`. The model
-may add compact display roles if needed, such as a glyph or short status key,
-but it should keep stable labels and actions so tests and accessibility text
-remain meaningful.
+The quick toggle data continues to come from `quickControlsModel`. Keep the
+stable labels and actions so tests and accessibility text remain meaningful.
+Use local glyph/status mapping functions by default; add compact model roles
+only if that makes the QML simpler without duplicating state.
+
+The popup should track lightweight presentation state in QML:
+
+- hovered or focused quick action
+- last clicked quick action
+- reset timer for the last-clicked status text
+
+That state is visual only. It must not replace the existing process-backed
+state for Wi-Fi, Bluetooth, hotspot, airplane mode, night light, focus mode,
+DND, or filters.
 
 Opening the settings menu continues to:
 
@@ -170,6 +222,9 @@ subpage actions continue through `runAction(action)`.
   `No ethernet`.
 - Externally-owned states, such as externally-owned hotspot or focus mode, stay
   visible in the compact status strip.
+- Icon-only controls must never become ambiguous in failure states. If a toggle
+  is busy, blocked, externally-owned, or failed, the status strip must expose
+  that state.
 - Missing optional commands should fail quietly in the same way current actions
   do, unless the current implementation already exposes a status label.
 
@@ -184,6 +239,10 @@ Update `tests/quickshell-topbar-settings-menus.sh` to reflect the new design:
 - Assert quick toggles bind `active` state and call `runQuickAction(action)`.
 - Assert quick toggles use icon-first compact delegates rather than the old
   62px labeled tile grid.
+- Assert the main popup background uses `Theme.background` directly rather than
+  the old translucent drawer background.
+- Assert the status strip exists and is driven by quick-control status helpers.
+- Assert detail pages use a `Flickable` clipped scrolling region.
 - Assert section/action pages use compact route delegates and do not rely on
   oversized card-grid dimensions.
 - Preserve existing checks for route functions, command routing, state polling,
