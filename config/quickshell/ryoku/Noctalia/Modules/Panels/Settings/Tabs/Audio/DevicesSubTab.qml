@@ -4,12 +4,22 @@ import QtQuick.Layouts
 import Quickshell.Services.Pipewire
 import qs.Noctalia.Commons
 import qs.Noctalia.Services.Media
+import qs.Noctalia.Services.Ryoku
 import qs.Noctalia.Widgets
 
 ColumnLayout {
   id: root
   spacing: Style.marginL
   Layout.fillWidth: true
+  readonly property bool advancedControlsAvailable: false
+
+  NText {
+    text: RyokuFeatureAvailability.unavailableReason
+    pointSize: Style.fontSizeS
+    color: Color.mOnSurfaceVariant
+    wrapMode: Text.WordWrap
+    Layout.fillWidth: true
+  }
 
   // Output Devices
   ButtonGroup {
@@ -20,6 +30,7 @@ ColumnLayout {
     spacing: Style.marginXS
     Layout.fillWidth: true
     Layout.bottomMargin: Style.marginL
+    enabled: root.advancedControlsAvailable
 
     NLabel {
       label: I18n.tr("panels.audio.devices-output-device-label")
@@ -49,6 +60,7 @@ ColumnLayout {
   ColumnLayout {
     spacing: Style.marginXS
     Layout.fillWidth: true
+    enabled: root.advancedControlsAvailable
 
     NLabel {
       label: I18n.tr("panels.audio.devices-input-device-label")

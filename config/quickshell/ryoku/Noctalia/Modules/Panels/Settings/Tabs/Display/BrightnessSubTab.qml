@@ -5,12 +5,14 @@ import Quickshell
 import qs.Noctalia.Commons
 import qs.Noctalia.Services.Compositor
 import qs.Noctalia.Services.Hardware
+import qs.Noctalia.Services.Ryoku
 import qs.Noctalia.Widgets
 
 ColumnLayout {
   id: root
   spacing: Style.marginL
   Layout.fillWidth: true
+  readonly property bool monitorMutationsAvailable: false
 
   ColumnLayout {
     spacing: Style.marginL
@@ -148,7 +150,7 @@ ColumnLayout {
                 to: 1
                 value: localBrightness
                 stepSize: 0.01
-                enabled: brightnessMonitor ? brightnessMonitor.brightnessControlAvailable : false
+                enabled: brightnessMonitor && root.monitorMutationsAvailable ? brightnessMonitor.brightnessControlAvailable : false
                 onMoved: value => {
                            if (brightnessMonitor && brightnessMonitor.brightnessControlAvailable) {
                              localBrightness = value;
@@ -202,6 +204,7 @@ ColumnLayout {
             NComboBox {
               Layout.fillWidth: true
               visible: brightnessMonitor && brightnessMonitor.method === "internal"
+              enabled: root.monitorMutationsAvailable
               label: I18n.tr("panels.display.monitors-backlight-device-label")
               description: I18n.tr("panels.display.monitors-backlight-device-description")
               model: backlightDeviceOptions
@@ -215,6 +218,7 @@ ColumnLayout {
 
     NSpinBox {
       Layout.fillWidth: true
+      enabled: root.monitorMutationsAvailable
       label: I18n.tr("panels.display.monitors-brightness-step-label")
       description: I18n.tr("panels.display.monitors-brightness-step-description")
       minimum: 1
@@ -228,6 +232,7 @@ ColumnLayout {
 
     NToggle {
       Layout.fillWidth: true
+      enabled: root.monitorMutationsAvailable
       label: I18n.tr("panels.display.monitors-enforce-minimum-label")
       description: I18n.tr("panels.display.monitors-enforce-minimum-description")
       checked: Settings.data.brightness.enforceMinimum
@@ -237,6 +242,7 @@ ColumnLayout {
 
     NToggle {
       Layout.fillWidth: true
+      enabled: root.monitorMutationsAvailable
       label: I18n.tr("panels.display.monitors-external-brightness-label")
       description: I18n.tr("panels.display.monitors-external-brightness-description")
       checked: Settings.data.brightness.enableDdcSupport
@@ -244,6 +250,14 @@ ColumnLayout {
                    Settings.data.brightness.enableDdcSupport = checked;
                  }
       defaultValue: Settings.getDefaultValue("brightness.enableDdcSupport")
+    }
+
+    NText {
+      text: RyokuFeatureAvailability.unavailableReason
+      pointSize: Style.fontSizeS
+      color: Color.mOnSurfaceVariant
+      wrapMode: Text.WordWrap
+      Layout.fillWidth: true
     }
   }
 }

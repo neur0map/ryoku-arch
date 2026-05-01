@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import Quickshell
 import qs.Noctalia.Commons
 import qs.Noctalia.Services.Compositor
+import qs.Noctalia.Services.Ryoku
 import qs.Noctalia.Services.UI
 import qs.Noctalia.Widgets
 
@@ -17,16 +18,18 @@ ColumnLayout {
   signal openMainFolderPicker
   signal openMonitorFolderPicker(string monitorName)
 
+  readonly property bool noctaliaWallpaperControlsAvailable: RyokuWallpaperActions.noctaliaWallpaperControlsAvailable
+
   NToggle {
     label: I18n.tr("panels.wallpaper.settings-enable-management-label")
     description: I18n.tr("panels.wallpaper.settings-enable-management-description")
+    enabled: root.noctaliaWallpaperControlsAvailable
     checked: Settings.data.wallpaper.enabled
     onToggled: checked => Settings.data.wallpaper.enabled = checked
     defaultValue: Settings.getDefaultValue("wallpaper.enabled")
   }
 
   ColumnLayout {
-    enabled: Settings.data.wallpaper.enabled
     spacing: Style.marginL
     Layout.fillWidth: true
 
@@ -41,11 +44,18 @@ ColumnLayout {
       NIconButton {
         icon: "wallpaper-selector"
         tooltipText: I18n.tr("tooltips.wallpaper-selector")
-        onClicked: PanelService.getPanel("wallpaperPanel", root.screen)?.toggle()
+        onClicked: RyokuWallpaperActions.openWallpaperPicker()
+      }
+
+      NIconButton {
+        icon: "world-search"
+        tooltipText: "Wallhaven"
+        onClicked: RyokuWallpaperActions.openWallhaven()
       }
     }
 
     NComboBox {
+      enabled: root.noctaliaWallpaperControlsAvailable
       label: I18n.tr("common.position")
       description: I18n.tr("panels.wallpaper.settings-selector-position-description")
       Layout.fillWidth: true
@@ -89,6 +99,7 @@ ColumnLayout {
     }
 
     NComboBox {
+      enabled: root.noctaliaWallpaperControlsAvailable
       label: I18n.tr("panels.wallpaper.settings-view-mode-label")
       description: I18n.tr("panels.wallpaper.settings-view-mode-description")
       Layout.fillWidth: true
@@ -113,6 +124,7 @@ ColumnLayout {
 
     NTextInputButton {
       id: wallpaperPathInput
+      enabled: root.noctaliaWallpaperControlsAvailable
       label: I18n.tr("panels.wallpaper.settings-folder-label")
       description: I18n.tr("panels.wallpaper.settings-folder-description")
       text: Settings.data.wallpaper.directory
@@ -124,6 +136,7 @@ ColumnLayout {
     }
 
     NToggle {
+      enabled: root.noctaliaWallpaperControlsAvailable
       label: I18n.tr("panels.wallpaper.settings-monitor-specific-label")
       description: I18n.tr("panels.wallpaper.settings-monitor-specific-description")
       checked: Settings.data.wallpaper.enableMultiMonitorDirectories
@@ -182,7 +195,7 @@ ColumnLayout {
     label: I18n.tr("panels.wallpaper.settings-use-original-images-label")
     description: I18n.tr("panels.wallpaper.settings-use-original-images-description")
     checked: Settings.data.wallpaper.useOriginalImages
-    enabled: Settings.data.wallpaper.enabled
+    enabled: Settings.data.wallpaper.enabled && root.noctaliaWallpaperControlsAvailable
     onToggled: checked => Settings.data.wallpaper.useOriginalImages = checked
     defaultValue: Settings.getDefaultValue("wallpaper.useOriginalImages")
   }
@@ -190,7 +203,6 @@ ColumnLayout {
   RowLayout {
     spacing: Style.marginM
     Layout.fillWidth: true
-    enabled: Settings.data.wallpaper.enabled
 
     NLabel {
       label: I18n.tr("panels.wallpaper.settings-clear-cache-label")
@@ -202,10 +214,7 @@ ColumnLayout {
       icon: "trash"
       text: I18n.tr("panels.wallpaper.settings-clear-cache-button")
       outlined: true
-      onClicked: {
-        ImageCacheService.clearLarge();
-        ToastService.showNotice(I18n.tr("panels.wallpaper.settings-clear-cache-toast"));
-      }
+      onClicked: RyokuWallpaperActions.rebuildCache()
     }
   }
 
@@ -216,7 +225,7 @@ ColumnLayout {
 
   ColumnLayout {
     visible: CompositorService.isNiri
-    enabled: Settings.data.wallpaper.enabled
+    enabled: Settings.data.wallpaper.enabled && root.noctaliaWallpaperControlsAvailable
     spacing: Style.marginL
     Layout.fillWidth: true
 
