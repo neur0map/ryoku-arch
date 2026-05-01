@@ -11,6 +11,49 @@ fail() {
 runtime="config/quickshell/ryoku/Noctalia"
 network_dir="$runtime/Services/Networking"
 
+assert_no_secret_command_args() {
+  local leaks
+
+  if ! leaks="$(
+    awk '
+      function finish_array() {
+        if (array_text ~ /(password|passphrase|psk|secret)/) {
+          print FILENAME ":" array_start ": secret-like value in command argument array"
+          found = 1
+        }
+        in_array = 0
+        array_text = ""
+      }
+
+      {
+        line = tolower($0)
+        if (line ~ /(command|args|argv|arguments)[[:space:]]*[:=]/ && line ~ /(password|passphrase|psk|secret)/) {
+          print FILENAME ":" FNR ": " $0
+          found = 1
+        }
+        if (!in_array && line ~ /(command|args|argv|arguments)[[:space:]]*[:=][[:space:]]*\[/) {
+          in_array = 1
+          array_start = FNR
+          array_text = line
+          if (line ~ /\]/) finish_array()
+          next
+        }
+        if (in_array) {
+          array_text = array_text "\n" line
+          if (line ~ /\]/) finish_array()
+        }
+      }
+
+      END {
+        exit found ? 1 : 0
+      }
+    ' "$network_dir"/*.qml
+  )"; then
+    printf '%s\n' "$leaks" >&2
+    fail "Wi-Fi passwords should not be placed in command arguments"
+  fi
+}
+
 [[ -f $network_dir/RyokuNetworkService.qml ]] \
   || fail "Ryoku network service should exist"
 [[ -f $network_dir/IwdProvider.qml ]] \
@@ -30,8 +73,7 @@ grep -q 'passphrase' "$network_dir/IwdProvider.qml" \
   || fail "iwd provider should support secured network connections"
 grep -Eq 'stdin|write|input|process\.stdin' "$network_dir/IwdProvider.qml" \
   || fail "Wi-Fi secrets should be supplied through process input, not argv"
-! rg -n 'iwctl.*(password|passphrase|psk|secret).*argv|command:.*(password|passphrase|psk|secret)' "$network_dir" \
-  || fail "Wi-Fi passwords should not be placed in command arguments"
+assert_no_secret_command_args
 
 grep -q 'nmcli' "$network_dir/NmcliProvider.qml" \
   || fail "optional NetworkManager provider should use nmcli"

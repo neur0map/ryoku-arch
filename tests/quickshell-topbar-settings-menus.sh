@@ -1,5 +1,7 @@
 #!/bin/bash
 # Static regression checks for the topbar-attached settings menus.
+# Run through bash in repo checks; this file intentionally keeps its
+# existing non-executable mode.
 
 set -e
 cd "$(dirname "$0")/.."
@@ -117,7 +119,16 @@ grep -q 'Popups.systemMenuOpen' "$control_panel" \
   || fail "left topbar control should toggle the new system menu"
 grep -q 'SystemMenuPopup' "$layer" \
   || fail "PopupLayer should instantiate SystemMenuPopup"
-grep -q 'legacySettingsMenuOpen' "$layer" \
+grep -Eq 'SettingsMenuPopup[[:space:]]*\{' "$layer" \
+  || fail "PopupLayer should instantiate SettingsMenuPopup"
+settings_layer_block="$(awk '
+  /SettingsMenuPopup[[:space:]]*\{/ { printing = 1 }
+  printing { print }
+  printing && /\}/ { exit }
+' "$layer")"
+[[ -n $settings_layer_block ]] \
+  || fail "PopupLayer should include a SettingsMenuPopup block"
+grep -q 'legacySettingsMenuOpen' <<< "$settings_layer_block" \
   || fail "Legacy settings popup should be mounted through the legacy popup state"
 grep -q 'DotfilesHubPopup' "$layer" \
   || fail "PopupLayer should instantiate DotfilesHubPopup"

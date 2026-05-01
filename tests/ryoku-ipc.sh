@@ -27,6 +27,45 @@ assert_has_route() {
     || fail "help should document $route"
 }
 
+assert_shell_command_prints() {
+  local description="$1"
+  local expected="$2"
+  shift 2
+  local actual
+
+  actual="$(
+    RYOKU_PATH="$PWD" \
+    RYOKU_CONFIG_PATH="$tmpdir/config" \
+    RYOKU_STATE_PATH="$tmpdir/state" \
+      "$ipc" "$@"
+  )" || fail "$description should be accepted by the parser"
+
+  [[ $actual == $expected ]] \
+    || fail "$description should print: $expected"
+}
+
+assert_qs_call() {
+  local description="$1"
+  local expected="$2"
+  shift 2
+  local actual
+
+  rm -f "$tmpdir/state/qs.args"
+  RYOKU_PATH="$PWD" \
+  RYOKU_CONFIG_PATH="$tmpdir/config" \
+  RYOKU_STATE_PATH="$tmpdir/state" \
+  PATH="$tmpdir/path:$PATH" \
+    "$ipc" "$@" >/dev/null \
+    || fail "$description should be accepted by the parser"
+
+  [[ -f $tmpdir/state/qs.args ]] \
+    || fail "$description should invoke qs"
+  mapfile -t qs_args < "$tmpdir/state/qs.args"
+  actual="${qs_args[*]}"
+  [[ $actual == $expected ]] \
+    || fail "$description should call: $expected"
+}
+
 "$ipc" --help | grep -q "ryoku-ipc shell toggle wallpaper" \
   || fail "help should document shell wallpaper toggle"
 "$ipc" --help | grep -q "ryoku-ipc wallpaper list --jsonl" \
@@ -82,6 +121,8 @@ printf '%s\n' "test" > "$tmpdir/config/current/theme.name"
 
 cat >"$tmpdir/path/qs" <<'EOF'
 #!/bin/bash
+mkdir -p "$RYOKU_STATE_PATH"
+printf '%s\n' "$@" >"$RYOKU_STATE_PATH/qs.args"
 exit 0
 EOF
 chmod +x "$tmpdir/path/qs"
@@ -200,6 +241,44 @@ RYOKU_STATE_PATH="$tmpdir/state" \
   | grep -q 'qs -c ryoku ipc call popups toggleSettingsMenu' \
   || fail "shell command settings-menu should print the Quickshell IPC command"
 
+assert_shell_command_prints \
+  "shell command legacy-settings-menu" \
+  "qs -c ryoku ipc call popups toggleLegacySettingsMenu" \
+  shell command legacy-settings-menu
+
+assert_qs_call \
+  "shell toggle settings-menu" \
+  "-c ryoku ipc call popups toggleSettingsMenu" \
+  shell toggle settings-menu
+assert_qs_call \
+  "shell toggle legacy-settings-menu" \
+  "-c ryoku ipc call popups toggleLegacySettingsMenu" \
+  shell toggle legacy-settings-menu
+assert_qs_call \
+  "shell settings-menu wifi" \
+  "-c ryoku ipc call popups openSettingsRoute wifi" \
+  shell settings-menu wifi
+assert_qs_call \
+  "shell settings-menu bluetooth" \
+  "-c ryoku ipc call popups openSettingsRoute bluetooth" \
+  shell settings-menu bluetooth
+assert_qs_call \
+  "shell settings-menu color-scheme" \
+  "-c ryoku ipc call popups openSettingsRoute color-scheme" \
+  shell settings-menu color-scheme
+assert_qs_call \
+  "shell settings-menu wallpaper" \
+  "-c ryoku ipc call popups openSettingsRoute wallpaper" \
+  shell settings-menu wallpaper
+assert_qs_call \
+  "shell settings-menu display" \
+  "-c ryoku ipc call popups openSettingsRoute display" \
+  shell settings-menu display
+assert_qs_call \
+  "shell settings-menu audio" \
+  "-c ryoku ipc call popups openSettingsRoute audio" \
+  shell settings-menu audio
+
 RYOKU_PATH="$PWD" \
 RYOKU_CONFIG_PATH="$tmpdir/config" \
 RYOKU_STATE_PATH="$tmpdir/state" \
@@ -236,9 +315,16 @@ rejects_trailing_args "shell toggle fonts" shell toggle fonts extra
 rejects_trailing_args "shell toggle cursors" shell toggle cursors extra
 rejects_trailing_args "shell toggle system-menu" shell toggle system-menu extra
 rejects_trailing_args "shell toggle settings-menu" shell toggle settings-menu extra
+rejects_trailing_args "shell toggle legacy-settings-menu" shell toggle legacy-settings-menu extra
 rejects_trailing_args "shell settings-menu home" shell settings-menu home extra
 rejects_trailing_args "shell settings-menu share" shell settings-menu share extra
 rejects_trailing_args "shell settings-menu hardware" shell settings-menu hardware extra
+rejects_trailing_args "shell settings-menu wifi" shell settings-menu wifi extra
+rejects_trailing_args "shell settings-menu bluetooth" shell settings-menu bluetooth extra
+rejects_trailing_args "shell settings-menu color-scheme" shell settings-menu color-scheme extra
+rejects_trailing_args "shell settings-menu wallpaper" shell settings-menu wallpaper extra
+rejects_trailing_args "shell settings-menu display" shell settings-menu display extra
+rejects_trailing_args "shell settings-menu audio" shell settings-menu audio extra
 rejects_trailing_args "wallpaper settings get --json" wallpaper settings get --json extra
 rejects_trailing_args "wallpaper list --jsonl" wallpaper list --jsonl extra
 rejects_trailing_args "wallpaper cache rebuild" wallpaper cache rebuild extra

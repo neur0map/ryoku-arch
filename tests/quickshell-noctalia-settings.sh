@@ -11,6 +11,7 @@ fail() {
 vendor="config/quickshell/ryoku/vendor/noctalia-shell"
 runtime="config/quickshell/ryoku/Noctalia"
 shell_qml="config/quickshell/ryoku/shell.qml"
+settings_window="$runtime/Modules/Panels/Settings/SettingsPanelWindow.qml"
 
 [[ -f $vendor/UPSTREAM.md ]] || fail "Noctalia vendor metadata should exist"
 [[ -f $vendor/LICENSE ]] || fail "Noctalia MIT license should be copied"
@@ -39,7 +40,7 @@ grep -q 'MIT License' "$vendor/LICENSE" \
 [[ -f $runtime/Services/Ryoku/RyokuFeatureAvailability.qml ]] \
   || fail "Ryoku feature availability service should exist"
 
-grep -q 'import qs.Noctalia.Commons' "$runtime/Modules/Panels/Settings/SettingsPanelWindow.qml" \
+grep -q 'import qs.Noctalia.Commons' "$settings_window" \
   || fail "Runtime settings window should import the Noctalia runtime namespace"
 ! rg -n '^import qs\.(Commons|Widgets|Services|Modules|Assets)' "$runtime" \
   || fail "Runtime Noctalia files should not import the upstream root namespace"
@@ -55,12 +56,14 @@ grep -q 'openSettingsRoute' "$shell_qml" \
 ! rg -n 'ShellRoot|PluginRegistry\.init|TelemetryService|UpdateService|SetupWizard|shouldOpenSetupWizard' "$shell_qml" "$runtime" \
   || fail "Ryoku should not bootstrap the full Noctalia shell"
 
-grep -Eq 'implicitWidth:[[:space:]]+840|panelWidth:[[:space:]]+840|width:[[:space:]]+840' "$runtime/Modules/Panels/Settings/SettingsPanelWindow.qml" \
+grep -Eq 'implicitWidth:[[:space:]]+840|panelWidth:[[:space:]]+840|width:[[:space:]]+840' "$settings_window" \
   || fail "Settings panel should preserve Noctalia's 840px visual width"
-grep -Eq 'implicitHeight:[[:space:]]+910|panelHeight:[[:space:]]+910|height:[[:space:]]+910' "$runtime/Modules/Panels/Settings/SettingsPanelWindow.qml" \
+grep -Eq 'implicitHeight:[[:space:]]+910|panelHeight:[[:space:]]+910|height:[[:space:]]+910' "$settings_window" \
   || fail "Settings panel should preserve Noctalia's 910px visual height"
-grep -Eq 'Math\.min|availableGeometry|screen\.width|screen\.height' "$runtime/Modules/Panels/Settings/SettingsPanelWindow.qml" \
-  || fail "Settings panel should cap size to available screen geometry"
+rg -U 'Math\.min[\s\S]{0,160}(availableGeometry[\s\S]{0,40}width|screen\.width)|(availableGeometry[\s\S]{0,40}width|screen\.width)[\s\S]{0,160}Math\.min' "$settings_window" >/dev/null \
+  || fail "Settings panel should cap width to available screen geometry"
+rg -U 'Math\.min[\s\S]{0,160}(availableGeometry[\s\S]{0,40}height|screen\.height)|(availableGeometry[\s\S]{0,40}height|screen\.height)[\s\S]{0,160}Math\.min' "$settings_window" >/dev/null \
+  || fail "Settings panel should cap height to available screen geometry"
 
 for tab in General UserInterface ColorScheme Wallpaper Bar Dock DesktopWidgets ControlCenter Launcher Notifications OSD LockScreen SessionMenu Idle Audio Display Connections Location System Plugins Hooks About; do
   grep -q "SettingsPanel.Tab.$tab" "$runtime/Modules/Panels/Settings/SettingsContent.qml" \
