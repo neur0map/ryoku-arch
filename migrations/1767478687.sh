@@ -1,9 +1,1 @@
-echo "Add opencode with system themeing"
-
-ryoku-pkg-add opencode
-
-# Add config using omarchy theme by default
-if [[ ! -f ~/.config/opencode/opencode.json ]]; then
-  mkdir -p ~/.config/opencode
-  cp $RYOKU_PATH/config/opencode/opencode.json ~/.config/opencode/opencode.json
-fi
+echo "Skip legacy optional coding tool install"

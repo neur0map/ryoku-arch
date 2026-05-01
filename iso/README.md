@@ -1,21 +1,21 @@
 # Ryoku ISO
 
-The Ryoku ISO streamlines [the installation of Ryoku](https://github.com/neur0map/ryoku-arch/2/the-ryoku-manual/50/getting-started). It includes the Ryoku Configurator as a front-end to archinstall and automatically launches the [Ryoku Installer](https://github.com/neur0map/ryoku-arch) after base arch has been setup.
+The Ryoku ISO provides a guided Arch install path for Ryoku. It includes the Ryoku Configurator as a front end to archinstall and automatically launches the Ryoku installer after the base system is set up.
 
 ## Downloading the latest ISO
 
-See the ISO link on [github.com/neur0map/ryoku-arch](https://github.com/neur0map/ryoku-arch).
+Signed public ISO links will be added to the root README when the first release is published.
 
 ## Creating the ISO
 
-Run `./bin/ryoku-iso-make` and the output goes into `./release`. You can build from your local $RYOKU_PATH for testing by using `--local-source` or from a checkout of the dev branch (instead of master) by using `--dev`.
+From the repository root, run `./iso/bin/ryoku-iso-make`. Output goes into `iso/release`. You can build from the local checkout for testing with `--local-source`.
 
 ### Environment Variables
 
 You can customize the repositories used during the build process by passing in variables:
 
 - `RYOKU_INSTALLER_REPO` - GitHub repository for the installer (default: `neur0map/ryoku-arch`)
-- `RYOKU_INSTALLER_REF` - Git ref (branch/tag) for the installer (default: `master`)
+- `RYOKU_INSTALLER_REF` - Git ref (branch/tag) for the installer (default: `main`)
 
 Example usage:
 ```bash

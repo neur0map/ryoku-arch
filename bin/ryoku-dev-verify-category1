@@ -47,7 +47,6 @@ chunk="${1:?chunk name required}"
 doc_globs=(
   "--glob" "!docs/specs/*"
   "--glob" "!docs/plans/*"
-  "--glob" "!docs/superpowers/specs/*"
 )
 
 existing_paths=()

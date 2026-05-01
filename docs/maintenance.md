@@ -104,7 +104,7 @@ git commit -m "<type>: <description>"
 git push origin main
 ```
 
-Commit message types follow the pattern already in history: `feat:`, `fix:`, `docs:`, `refactor:`, `chore:`, `scaffold:`, etc. No `Co-Authored-By` trailer. No heredoc commit-message block. Plain `-m` flags only.
+Commit message types follow the pattern already in history: `feat:`, `fix:`, `docs:`, `refactor:`, `chore:`, `scaffold:`, etc. No authorship trailers. No heredoc commit-message block. Plain `-m` flags only.
 
 ### Adding a migration (install a tool, enable a service, etc.)
 
@@ -305,9 +305,9 @@ Options, from least to most automated:
 1. **Never push `upstream-dev` or `upstream-master` to `origin`.** `pushRemote=no_push` is configured to prevent this. If you ever see a push attempt targeting `no_push`, git will error out; that is the safety net working. Do not clear the config.
 2. **Never push `--all` or `--mirror`.** These push every local branch to `origin`, which would include the upstream branches. Always specify the branch: `git push origin main`.
 3. **Never rebase or force-push `main`.** The live clones of everyone running Ryoku Arch pull from `origin/main`. Rewriting that history breaks their updates.
-4. **Cherry-pick preserves authorship.** `git cherry-pick <sha>` creates a new commit on Ryoku with DHH as the author and you as the committer. Do not amend to change author. Do not add `Co-Authored-By` trailers.
+4. **Cherry-pick preserves authorship.** `git cherry-pick <sha>` creates a new commit on Ryoku with DHH as the author and you as the committer. Do not amend to change author. Do not add extra authorship trailers.
 5. **Commit identity.** Commits authored from the dev folder use `user.name = "Carlos Mejia (neur0map)"` and a GitHub no-reply email. Local-only git config. Do not lift this to global scope unless you want all repos on this machine to inherit it.
-6. **No AI attribution.** No `Co-Authored-By: Claude`, no "Generated with", no mention of Claude/Anthropic/AI/LLM in commit messages, code comments, or documentation that ships with the repo.
+6. **No generated-content attribution.** Commit messages and shipped files should describe the work, not the tools used to produce it.
 7. **No em-dashes.** Use colons, commas, periods, or parens. This applies to anything committed: commits, docs, code comments, the README.
 
 ## Git hooks
@@ -316,7 +316,7 @@ Ryoku Arch ships a set of git hooks that enforce the safety rules above mechanic
 
 ### What's enforced
 
-- **commit-msg:** rejects a commit if its message contains a `Co-Authored-By` trailer, a term like `Claude`, `Anthropic`, `ChatGPT`, `GPT-N`, `LLM`, or `assistant`, phrasing like "generated with", or any em-dash (U+2014).
+- **commit-msg:** rejects a commit if its message contains authorship trailers, generated-content attribution phrases, or any em-dash (U+2014).
 - **pre-commit:** before the commit is recorded, scans staged text files (`.md`, `.txt`, `.sh`, config files, LICENSE, NOTICE, README, AGENTS.md) for em-dashes and runs `bash -n` on staged shell scripts. Blocks the commit on any finding.
 - **pre-push:** refuses to push `upstream-dev` or `upstream-master` to `origin` (belt-and-suspenders on top of the `pushRemote=no_push` config), and blocks force-pushes to `main` that would rewrite published history.
 

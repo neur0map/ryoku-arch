@@ -48,7 +48,6 @@ ryoku-restart-swayosd
 ryoku-restart-terminal
 ryoku-restart-hyprctl
 ryoku-restart-btop
-ryoku-restart-opencode
 ryoku-restart-mako
 if pgrep -x quickshell >/dev/null; then
   ryoku-restart-shell

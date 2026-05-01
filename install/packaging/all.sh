@@ -5,7 +5,6 @@ run_logged $RYOKU_INSTALL/packaging/helix.sh
 run_logged $RYOKU_INSTALL/packaging/icons.sh
 run_logged $RYOKU_INSTALL/packaging/webapps.sh
 run_logged $RYOKU_INSTALL/packaging/tuis.sh
-run_logged $RYOKU_INSTALL/packaging/npx.sh
 run_logged $RYOKU_INSTALL/packaging/asus-rog.sh
 run_logged $RYOKU_INSTALL/packaging/framework16.sh
 run_logged $RYOKU_INSTALL/packaging/surface.sh

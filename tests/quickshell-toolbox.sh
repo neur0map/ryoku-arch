@@ -48,6 +48,10 @@ plain_bindings="default/hypr/plain-bindings.conf"
 packages="install/ryoku-base.packages"
 aur_packages="install/ryoku-aur.packages"
 hypr_apps="default/hypr/apps/system.conf"
+gradia_migrations=()
+mapfile -t gradia_migrations < <(
+  grep -Rl '^echo "Install Gradia image editor for screenshot editing"$' migrations 2>/dev/null || true
+)
 
 helpers=(
   bin/ryoku-cmd-caffeine
@@ -481,6 +485,19 @@ for pkg in ffmpeg gpu-screen-recorder kdenlive libnotify pipewire playerctl tess
 done
 grep -qx 'gradia' "$aur_packages" \
   || fail "Gradia image editor should be in ryoku AUR packages"
+(( ${#gradia_migrations[@]} > 0 )) \
+  || fail "Gradia image editor should have a migration for existing installs"
+for migration in "${gradia_migrations[@]}"; do
+  if head -n 1 "$migration" | grep -q '^#!'; then
+    fail "$migration should not have a shebang"
+  fi
+  grep -q 'RYOKU_ONLINE_INSTALL=1 bash "$RYOKU_PATH/install/preflight/yay-bootstrap.sh"' "$migration" \
+    || fail "$migration should bootstrap yay for online existing installs when needed"
+  grep -q 'ryoku-pkg-aur-accessible' "$migration" \
+    || fail "$migration should check AUR availability before installing Gradia"
+  grep -q 'ryoku-pkg-aur-add gradia' "$migration" \
+    || fail "$migration should install Gradia from AUR for existing users"
+done
 grep -qx 'ttf-phosphor-icons' "$aur_packages" \
   || fail "Phosphor icon font package should be in ryoku AUR packages"
 

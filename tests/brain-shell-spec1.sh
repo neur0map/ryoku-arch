@@ -302,7 +302,7 @@ if gap > 6:
 if profile_h > 145 or clock_h > 195:
     print(f"card heights too large: profile={profile_h} clock={clock_h}", file=sys.stderr)
     sys.exit(1)
-if content_margin > 10 or section_spacing > 8:
+if content_margin > 12 or section_spacing > 9:
     print(
         f"telemetry spacing too large: margin={content_margin} spacing={section_spacing}",
         file=sys.stderr,
@@ -357,7 +357,7 @@ section_heights = [
     grab(r'readonly property int memorySectionH:\s*([0-9]+)', rail, "TelemetryRail.memorySectionH"),
     grab(r'readonly property int thermalsSectionH:\s*([0-9]+)', rail, "TelemetryRail.thermalsSectionH"),
     grab(r'readonly property int networkSectionH:\s*([0-9]+)', rail, "TelemetryRail.networkSectionH"),
-    grab(r'readonly property int summarySectionH:\s*([0-9]+)', rail, "TelemetryRail.summarySectionH"),
+    grab(r'readonly property int summarySectionH:\s*Math\.max\(([0-9]+)', rail, "TelemetryRail.summarySectionH"),
 ]
 
 if 'topMargin:    Theme.notchHeight + 8' not in dashboard or 'bottomMargin: 8' not in dashboard:

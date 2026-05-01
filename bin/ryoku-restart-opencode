@@ -1,9 +1,0 @@
-#!/bin/bash
-
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
-
-# Reload opencode configuration (used by the Ryoku theme switching).
-
-if pgrep -x opencode >/dev/null; then
-  killall -SIGUSR2 opencode
-fi

@@ -1,65 +1,31 @@
-# TODO
+# Roadmap
 
-Project-level work that is queued but not yet in a plan or spec. Each item is one-line per task with enough context that the next person reading it can decide whether to pick it up.
+Ryoku is public while the first signed ISO and showcase materials are still being finished. This list is intentionally high-level: implementation notes live in code review and commit history, not in the public front door.
 
-## ISO release pipeline
+## Release Readiness
 
-The workflow + R2 wiring landed in `.github/workflows/build-iso.yml` and `docs/release-pipeline.md`. Outstanding setup tasks before the first run:
+- [ ] Publish the first signed ISO and verification instructions.
+- [ ] Add a stable download URL and an always-latest ISO pointer.
+- [ ] Add public screenshots and a short navigation video to the README.
+- [ ] Complete at least one fresh bare-metal install pass before calling the ISO stable.
+- [ ] Smoke-test the online install fallback in addition to the offline ISO path.
 
-- [ ] **Configure GitHub Secrets** for the workflow: `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_ENDPOINT`, optional `R2_BUCKET`, `GPG_PRIVATE_KEY`, optional `GPG_PASSPHRASE`. See `docs/release-pipeline.md`.
-- [ ] **Create the R2 bucket** on Cloudflare with `r2.dev` public access enabled, copy the `pub-<hash>.r2.dev` URL into the README once first publish lands.
-- [ ] **Generate the Ryoku release signing key** (or use an existing one), add the public key under `keys/ryoku-release-key.pub.asc` so users can verify.
-- [ ] **First manual workflow run** to confirm the pipeline lights up end to end before tagging `v0.1.0`.
-- [ ] **Add the always-latest pointer** (e.g. `ryoku-stable.iso` overwritten each release) and the optional custom domain (`iso.ryoku.dev`) once `ryoku.dev` is registered.
+## Security Workstation Baseline
 
-## Site
+- [ ] Define the default security-tooling set by category: recon, web, wireless, forensics, reverse engineering, wordlists, and reporting.
+- [ ] Keep heavy, niche, or legally sensitive tools optional instead of default.
+- [ ] Add a short "what ships by default" section once the first baseline lands.
+- [ ] Document how to install optional tool packs without turning Ryoku into a kitchen-sink distribution.
 
-- [ ] **Stand up `https://ryoku.dev`.** Domain not registered / site not live as of this TODO. See `docs/branding.md` for the suggested subdomain layout (`ryoku.dev`, `iso.ryoku.dev`, `docs.ryoku.dev`).
+## Shell And Visual Polish
 
-## Verification gaps from the offline ISO recipe
+- [ ] Finish the native Quickshell settings/control surfaces.
+- [ ] Finish screenshot, recording, notifications, network, and audio popup polish.
+- [ ] Keep desktop scale and dashboard sizing comfortable on compact high-DPI laptops.
+- [ ] Add an in-system About/Credits surface for upstream acknowledgements.
 
-- [ ] **Real-hardware install test.** Everything in `docs/iso-build-recipe.md` was verified in QEMU/UEFI. Drive a bare-metal install on at least one machine (laptop without ethernet at install is a representative case for the offline path) before promoting the ISO past "tester-grade".
-- [ ] **Online install path smoke test.** `RYOKU_ONLINE_INSTALL=1` in the chroot env was deliberately turned off (laptops without ethernet at install must not fail), but the path still exists and has a fix in `5a554eee` that has never been exercised end-to-end.
-- [ ] **2026-04-29 AUR-into-offline-mirror restructure: UNVERIFIED, smoke-test on next ISO build.** Touched files: `install/ryoku-aur.packages` (NEW source-of-truth list, 14 default-install AUR packages), `install/packaging/aur-core.sh` (rewritten: reads the new list, drops the `RYOKU_ONLINE_INSTALL` early-exit gate, prefers `pacman -S` from `[offline]` with yay fallback), `install/packaging/tofi.sh` (deleted; tofi moved to `ryoku-aur.packages`), `install/packaging/all.sh` (drops the `tofi.sh` line), `iso/builder/build-boot-overlay.sh` (signature now `<manifest...> <output_dir>` instead of `<manifest> <output_dir>`, dedupes across manifests), `iso/builder/build-iso.sh` (passes both `ryoku-boot-overlay.packages` + `ryoku-aur.packages` to the AUR builder, includes `ryoku-aur.packages` in the package union and the official-mirror strip filter), `install/ryoku-other.packages` (added `linux-firmware-marvell`), `iso/builder/ryoku-boot-overlay.packages` (added `asusctl` + `qmk-hid`), `install/ryoku-base.packages` (pure section reorg, set unchanged). If the next `ryoku-iso-make` run breaks, **start here**: likely failure modes: (a) one of the new AUR PackageBases (1password-beta/cli, bibata-cursor-theme-bin, claude-code, localsend, pinta, python-terminaltexteffects, spotify, tofi, ttf-ia-writer, typora, tzupdate, ufw-docker, yaru-icon-theme) fails to `makepkg --syncdeps` inside the build container, proprietary blob downloaders (1password, spotify, typora) can fail if their PKGBUILD's external mirror is rate-limiting; (b) transitive AUR deps for any of those packages (none expected, but if a build aborts with `target not found` for a non-Arch-repo dep, that's the cause); (c) `aur-core.sh` running unconditionally now means a flaky offline mirror could surface failures the old early-exit hid. Build cost will go up: expect cold first build to add ~5-15 min for the 14 extra `makepkg` runs.
+## Infrastructure
 
-## AUR-only hardware drivers
-
-`install/ryoku-other.packages` covers upstream-Arch GPU + hardware drivers. AUR-only drivers are now built into the offline mirror via `iso/builder/ryoku-boot-overlay.packages` (Path 2: makepkg at ISO-build time, no external dep at runtime).
-
-Bundled by the boot overlay (resolved):
-- [x] NVIDIA legacy stack (Maxwell/Pascal/Volta): `nvidia-580xx-dkms`, `nvidia-580xx-utils`, `lib32-nvidia-580xx-utils`
-- [x] MacBook 12-inch SPI keyboard: `macbook12-spi-driver-dkms`
-- [x] Tuxedo laptops backlight fix: `tuxedo-drivers-nocompatcheck-dkms`
-- [x] Motorcomm yt6801 ethernet: `yt6801-dkms`
-
-Still deferred:
-
-- [ ] **Intel IPU7 camera firmware**: `intel-ipu7-camera-bin`. The AUR PKGBUILD has a runtime dep on `intel-ipu7-dkms-git` which is itself AUR-only, and makepkg --syncdeps in the bare build container has no AUR helper to resolve transitive AUR deps. Closing this requires either bootstrapping yay/paru into the build container OR listing the dep chain in the overlay manifest AND registering each freshly-built package as a temp pacman repo for subsequent builds to resolve from.
-- [ ] **Apple T2 Mac support**: `linux-t2`, `linux-t2-headers`, `apple-t2-audio-config`, `apple-bcm-firmware`, `t2fanrd`, `tiny-dfr`. `linux-t2` is a full kernel build (~30-60 min CI cost) and the audience is small. Pick up once GH Actions release pipeline (above) is up so the cost is amortized across nightly builds, not local dev iterations.
-- [ ] **Intel Panther Lake kernel**: `linux-ptl`, `linux-ptl-headers`. Same reason as Apple T2 (kernel compile cost).
-- [ ] **Hosted `[ryoku]` pacman repo**. Long-term plan to retire the per-ISO-build AUR rebuild cost: ship pre-built AUR packages from R2 (or wherever the ISO ends up hosted) so users get driver updates without rebuilding the ISO, and so dev iteration speed stops being tied to overlay rebuild time. Comes after the GH Actions + R2 release pipeline above.
-
-## Shell IPC and wallpaper selector
-
-- [ ] **Introduce `ryoku-ipc` as the stable shell integration facade.** Start as a Bash dispatcher in `bin/ryoku-ipc` with subcommands for Quickshell popup toggles and wallpaper list/cache/apply/Wallhaven operations, then keep Hyprland keybinds and QML wired to that facade so it can become a compiled binary later without changing callers. First consumer: the SKWD-style wallpaper selector plan in `docs/superpowers/plans/2026-04-29-skwd-wallpaper-ryoku-ipc-integration.md`.
-
-## Brain_Shell migration follow-up specs
-
-Spec 1 of the Brain_Shell port shipped 2026-04-28: vendored Brain_Shell under MIT, applied 3 security patches and 4 branding patches, theme-bridged Ryoku's `colors.toml` palette into Brain_Shell's ColorLoader, mounted TopBar plus Dashboard in `config/quickshell/ryoku/shell.qml`. waybar retired during runtime verification. See `docs/superpowers/specs/2026-04-28-brain-shell-port-spec1.md` and `docs/superpowers/plans/2026-04-28-brain-shell-port-spec1.md`. Future specs:
-
-- [ ] **Spec 2: TopBar visual rework.** Default Brain_Shell TopBar visuals "kinda look bad" per user. Override `Theme.qml` constants (notch sizes, padding, corner radius, color usage) without touching vendored code. Brainstorm what specifically to change before writing the spec.
-- [ ] **Spec 2.7: Frame-bar Caelestia-style connection.** Bar's 3-notch floating-pill design is preserved (waybarHeight=0). Frame side strips currently do not visually connect with the bar at the top. To make them connect: redesign `config/quickshell/ryoku/modules/frame/Frame.qml` Shape with a notch-shaped cutout in the top (where the bar pills sit) instead of a flat top strip. Reference: Caelestia's BlobInvertedRect (the existing Frame.qml comment notes this lineage). Effect should be: chrome wraps top corners with rounded bumps, the bar notches sit inside carved notches in the chrome, side+top+bottom of frame visually flow as one piece.
-- [ ] **Spec 2.6: Per-component bar and Dashboard resize.** Brain_Shell's TopBar modules (Workspaces, Audio, Battery, Clock, Network, Notifications, SysTray, ControlPanel) and Dashboard tabs (DashHome, DashStats, KanbanBoard, AppLauncher, Config) all hard-code internal sizing assuming `notchHeight: 40` and dashboard width `900`. Spec 2 attempted blanket Theme reductions and broke layout. Real fix is per-component review: (a) audit each module for hardcoded heights / paddings tied to notchHeight, (b) audit each Dashboard tab for content reflow at smaller widths, (c) reduce Theme constants AFTER the modules tolerate it. Bigger spec; defer until current Brain_Shell visuals settle.
-- [ ] **Spec 2.5: Clickable Hyprland tiling-layout switcher widget.** Re-introduce `vendor/brain-shell/src/modules/Left/LayoutDisplayer.qml` (kept vendored after Spec 2 commented out its instantiation) as a CLICKABLE control rather than a display-only indicator. Behavior: click to cycle Hyprland's active tiling layout. Support targets: Hyprland's built-in `dwindle` and `master` layouts (zero deps), and `hyprscroller` plugin for Niri-like scrolling tiling within Hyprland (optional dep, install if user wants Niri feel). Use the Nerd Font glyphs upstream documented in LayoutDisplayer.qml comment block. Out of scope: switching the actual compositor (Hyprland to Niri proper); that requires logout and a different Quickshell config. If Niri-as-compositor is wanted later, that is its own spec.
-- [ ] **Spec 3: Activate NotificationsPopup + NotificationToast; retire mako.** Uncomment in `vendor/brain-shell/src/popups/PopupLayer.qml`. Disable mako via existing toggle pattern. Patch the upstream notification-server registration if needed (mako-conflict warning currently shows in stderr).
-- [ ] **Spec 4: Activate AudioPopup + QuickControl; retire swayosd.** Uncomment in PopupLayer.qml. Disable swayosd-server via toggle. Verify volume/brightness/audio events surface through Brain_Shell instead.
-- [ ] **Spec 5: Activate NetworkPopup (wifi/bluetooth/vpn).** Uncomment in PopupLayer.qml. Wire to existing network state. Decide on retirement of `bin/ryoku-launch-wifi`, `bin/ryoku-launch-bluetooth`. May require adding `wireguard-tools` or `iwd` to package set.
-- [ ] **Spec 6: Activate WallpaperPopup; retire tofi backgrounds picker.** Uncomment in PopupLayer.qml. Replace the matugen call in `vendor/brain-shell/src/services/WallpaperService.qml` with `ryoku-theme-bg-set` so wallpaper changes flow through Ryoku's pipeline. Retire `default/tofi/pickers/backgrounds.sh`.
-- [ ] **Spec 7: Activate ScreenRecOptionsPopup.** Uncomment in PopupLayer.qml. Decide if it replaces or augments `ryoku-cmd-screenrecord`. Address the `user_data/screenrec.json missing` warning from runtime.
-- [ ] **Spec 8: Activate ArchMenu and Brain_Shell Border.** Uncomment in PopupLayer.qml. Decide whether Brain_Shell Border replaces the existing decorative Frame, or if Frame stays. If Border replaces Frame, retire `config/quickshell/ryoku/modules/frame/` and `bin/ryoku-toggle-frame`.
-- [ ] **Spec 9: Cleanup pass after Brain_Shell migration.** Rename `bin/ryoku-toggle-frame` to `bin/ryoku-toggle-shell` since it now controls more than the Frame. Update `bin/ryoku-menu`'s `Update -> Process -> Launcher` entry. Remove tofi shim references where Brain_Shell handles the surface. Update CREDITS / UPSTREAM for any new modifications.
-
-## Build/runtime polish (low priority)
-
-- [ ] **Suppress the chroot pacman-hook noise during install.** `limine-mkinitcpio-hook` and `limine-snapper-sync` print "detected chroot env, skipping" / "kernel cmdline is not available" / "this does not update limine" during the chroot install. Harmless but ugly. Reorder `mkinitcpio -P` + `limine-update` so the user-facing transcript stays clean.
-- [ ] **Direct EFI UKI normal-boot path** (Task 3 of `docs/superpowers/plans/2026-04-26-ryoku-iso-parity-implementation.md`). Limine is currently the normal path, which is fine; the parity plan also wants a direct UKI option.
+- [ ] Move expensive AUR rebuilds toward a hosted Ryoku package repo after the release pipeline is stable.
+- [ ] Continue expanding hardware coverage for Apple T2, Panther Lake, and other uncommon platforms.
+- [ ] Keep legacy compatibility wrappers until existing installs have had a clear migration window.

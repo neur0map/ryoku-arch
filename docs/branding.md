@@ -14,7 +14,7 @@ Use "Ryoku" in prose. Use the "Ryoku Arch" full name on first mention in user-fa
 
 ## Website
 
-`https://ryoku.dev` (placeholder, not live yet). Reserve the domain and any subdomains in the same family before publishing the first release. Suggested layout once the site is up:
+`https://ryoku.dev` is reserved for the public site. Suggested layout once the site is up:
 
 | Subdomain | Purpose |
 |---|---|
@@ -22,7 +22,7 @@ Use "Ryoku" in prose. Use the "Ryoku Arch" full name on first mention in user-fa
 | `iso.ryoku.dev` | Custom domain in front of the Cloudflare R2 bucket that hosts the ISO |
 | `docs.ryoku.dev` | (optional) hosted version of `docs/` if it grows past README-readable |
 
-Until `ryoku.dev` is live, use the GitHub repo URL (`https://github.com/neur0map/ryoku-arch`) as the canonical pointer.
+Until the site is published, use the GitHub repo URL (`https://github.com/neur0map/ryoku-arch`) as the canonical pointer.
 
 ## Brand colors (Greek Noir palette)
 

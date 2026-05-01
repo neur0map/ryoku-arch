@@ -73,12 +73,12 @@ type_delay_ms = 1
 # Post-processing command (optional)
 # Pipe transcribed text through an external command for cleanup before output.
 # The command receives text on stdin and outputs processed text on stdout.
-# Useful for LLM-based text cleanup, grammar correction, filler word removal.
+# Useful for external text cleanup, grammar correction, filler word removal.
 # On any failure (timeout, error), falls back to original transcription.
 #
 # [output.post_process]
 # command = "ollama run llama3.2:1b 'Clean up this dictation. Fix grammar, remove filler words. Output only the cleaned text:'"
-# timeout_ms = 30000  # 30 second timeout (generous for LLM)
+# timeout_ms = 30000  # 30 second timeout for network-backed cleanup
 
 [output.notification]
 # Show notification when recording starts (hotkey pressed)

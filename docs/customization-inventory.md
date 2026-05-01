@@ -45,7 +45,6 @@ Paths are repo-relative or generic runtime/install targets only; there are no ma
 | `config/imv/config` | `~/.config/imv/config` | Image viewer keybinds for print, delete, and rotate actions. |
 | `config/kitty/kitty.conf` | `~/.config/kitty/kitty.conf` | Kitty behavior, font, padding, and themed color include. |
 | `config/lazygit/config.yml` | `~/.config/lazygit/config.yml` | Lazygit overrides; currently reserved for future custom settings. |
-| `config/opencode/opencode.json` | `~/.config/opencode/opencode.json` | OpenCode UI theme mode and update behavior. |
 | `config/quickshell/ryoku/config/Config.qml` | `~/.config/quickshell/ryoku/config/Config.qml` | Decorative frame sizing, rounding, exclusions, and live theme color binding for Quickshell. |
 | `config/quickshell/ryoku/config/qmldir` | `~/.config/quickshell/ryoku/config/qmldir` | QML module manifest for the Quickshell config singleton. |
 | `config/quickshell/ryoku/modules/frame/ExclusionZones.qml` | `~/.config/quickshell/ryoku/modules/frame/ExclusionZones.qml` | Placeholder Quickshell exclusion-zone module for frame layout coordination. |
@@ -83,7 +82,7 @@ Paths are repo-relative or generic runtime/install targets only; there are no ma
 | `default/bash/fns/compression` | `~/.local/share/ryoku/default/bash/fns/compression` | Bash helper functions for archive compression/extraction. |
 | `default/bash/fns/drives` | `~/.local/share/ryoku/default/bash/fns/drives` | Bash helper functions for imaging and formatting removable drives. |
 | `default/bash/fns/ssh-port-forwarding` | `~/.local/share/ryoku/default/bash/fns/ssh-port-forwarding` | Bash helpers for local SSH port forwards. |
-| `default/bash/fns/tmux` | `~/.local/share/ryoku/default/bash/fns/tmux` | Bash helpers for tmux AI/dev layouts. |
+| `default/bash/fns/tmux` | `~/.local/share/ryoku/default/bash/fns/tmux` | Bash helpers for tmux split-session layouts. |
 | `default/bash/fns/transcoding` | `~/.local/share/ryoku/default/bash/fns/transcoding` | Bash helpers for video/image transcoding. |
 | `default/bash/fns/worktrees` | `~/.local/share/ryoku/default/bash/fns/worktrees` | Bash helpers for git worktree creation/removal. |
 | `default/bash/functions` | `~/.local/share/ryoku/default/bash/functions` | Loader that sources all Bash function bundles. |
@@ -144,7 +143,6 @@ Paths are repo-relative or generic runtime/install targets only; there are no ma
 | `default/pacman/pacman-stable.conf` | `/etc/pacman.conf` | Pacman repository configuration for the stable channel. |
 | `default/plymouth/ryoku.plymouth` | `Plymouth theme bundle` | Plymouth theme metadata and plugin selection. |
 | `default/plymouth/ryoku.script` | `Plymouth theme bundle` | Plymouth script logic for the boot splash. |
-| `default/ryoku-skill/SKILL.md` | `~/.claude/skills/ryoku/SKILL.md` | Installed AI assistant skill describing safe end-user Ryoku customization workflows. |
 | `default/systemd/faster-shutdown.conf` | `/etc/systemd/system.conf.d/10-faster-shutdown.conf` | Systemd manager override that shortens shutdown stop timeouts. |
 | `default/systemd/system-sleep/force-igpu` | `/usr/lib/systemd/system-sleep/force-igpu` | Sleep hook for forcing integrated-GPU mode on supported hybrid systems. |
 | `default/systemd/system-sleep/keyboard-backlight` | `/usr/lib/systemd/system-sleep/keyboard-backlight` | Sleep hook that disables keyboard backlight before hibernate on affected hardware. |

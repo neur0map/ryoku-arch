@@ -20,7 +20,6 @@ run_logged $RYOKU_INSTALL/config/fast-shutdown.sh
 run_logged $RYOKU_INSTALL/config/unmount-fuse.sh
 run_logged $RYOKU_INSTALL/config/sudoless-asdcontrol.sh
 run_logged $RYOKU_INSTALL/config/input-group.sh
-run_logged $RYOKU_INSTALL/config/ryoku-ai-skill.sh
 run_logged $RYOKU_INSTALL/config/ryoku-toggles.sh
 run_logged $RYOKU_INSTALL/config/kernel-modules-hook.sh
 run_logged $RYOKU_INSTALL/config/powerprofilesctl-rules.sh

@@ -89,7 +89,7 @@ rg -c 'omarchy' bin/ | sort -t: -k2 -n -r | head -20
     - [x] Hibernation drop-in renamed `omarchy_resume.conf` -> `ryoku_resume.conf`; existing installs converge via migration `1777001391`
     - [x] Runtime battery notification flag renamed `omarchy_battery_notified` -> `ryoku_battery_notified`
     - [x] `logo.svg`, `icon.png` redrawn as the 力 kanji in the Greek Noir palette (commit `5d0860ab`)
-    - [x] Plymouth boot theme renamed to `ryoku`; assets regenerated with the new 力 logo and activated via migration `1777006137` (commit `5d0860ab`)
+    - [x] Plymouth boot theme renamed to `ryoku`; assets rebuilt using the new 力 logo and activated via migration `1777006137` (commit `5d0860ab`)
     - [x] `config/ryoku.ttf` rebuilt from Noto Sans Mono CJK JP with the 力 glyph mapped to both `U+529B` and `U+E900`; waybar reference updated from `font='omarchy'` to `font='ryoku'`; existing installs converge via migrations `1777007260` (font refresh) and `1777007437` (waybar span patch) (commits `d0a0c923`, `3d9e46b7`)
     - [x] UKI filename flipped to `ryoku_linux.efi` with `CUSTOM_UKI_NAME="ryoku"`, `TARGET_OS_NAME="Ryoku"`, and `interface_branding: Ryoku Bootloader`; existing installs converge via the snapshot-gated migration `1777006624` (commit `9a9aaff0`)
 - [ ] Verified end-to-end install still works post-rename (VM boot drill pending)

@@ -1,17 +1,17 @@
 name: Bug
-description: Report a validated bug -- NOT FOR SUPPORT REQUESTS
+description: Report a reproducible Ryoku bug
 labels: [bug]
 body:
   - type: markdown
     attributes:
       value: |
-        Remember: Ryoku is an open source gift, not a product you bought from a vendor
+        Thanks for helping test Ryoku. Please include enough detail for the issue to be reproduced.
 
   - type: input
     id: system-details
     attributes:
       label: System details
-      placeholder: e.g. AMD 9950X, NVIDIA 5090, Ryoku 2.1.0
+      placeholder: e.g. AMD 9950X, NVIDIA 5090, Ryoku preview ISO date or commit
     validations:
       required: true
 
