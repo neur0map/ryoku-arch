@@ -101,9 +101,17 @@ StatCard {
   property real _eqLightningFade: 1
 
   property real _pos: 0
-  onPositionChanged: root._pos = position
+  onPlayerChanged: root._syncTimeline(true)
+  onTitleChanged: root._syncTimeline(true)
+  onArtistChanged: root._syncTimeline(true)
+  onAlbumChanged: root._syncTimeline(true)
+  onLengthChanged: root._syncTimeline(false)
+  onPositionChanged: root._syncTimeline(false)
   onVisibleChanged: {
-    if (!visible) {
+    if (visible) {
+      root._syncTimeline(false)
+      root._loadEqState()
+    } else {
       root._dropdownOpen = false
       root._effectsOpen = false
     }
@@ -113,6 +121,20 @@ StatCard {
     id: audioEffectProc
     command: []
     running: false
+  }
+
+  Process {
+    id: audioEffectStateProc
+    command: ["ryoku-audio-effects", "state"]
+    running: false
+
+    stdout: StdioCollector {
+      onStreamFinished: {
+        try {
+          root._applyEqState(JSON.parse(text))
+        } catch (e) {}
+      }
+    }
   }
 
   SequentialAnimation {
@@ -163,7 +185,29 @@ StatCard {
     return Math.floor(s / 60) + ":" + (s % 60 < 10 ? "0" : "") + (s % 60)
   }
 
-  readonly property real _progress: root.length > 0 ? root._pos / root.length : 0
+  function _timelinePosition(rawPosition, trackChanged) {
+    var len = Number(root.length)
+    var p = Number(rawPosition)
+
+    if (isNaN(len) || !isFinite(len) || len < 0)
+      len = 0
+    if (isNaN(p) || !isFinite(p))
+      p = 0
+
+    if (len > 0) {
+      if ((trackChanged || root.isPlaying) && p >= len - 0.25)
+        p = 0
+      return Math.max(0, Math.min(len, p))
+    }
+
+    return Math.max(0, p)
+  }
+
+  function _syncTimeline(trackChanged) {
+    root._pos = root._timelinePosition(root.position, trackChanged)
+  }
+
+  readonly property real _progress: root.length > 0 ? Math.max(0, Math.min(1, root._pos / root.length)) : 0
 
   // Shared Cava signal
   readonly property int _orbitBars: 44
@@ -202,6 +246,25 @@ StatCard {
 
   function _eqNorm(value) {
     return Math.max(0, Math.min(1, (value + 12) / 24))
+  }
+
+  function _applyEqState(parsed) {
+    if (!parsed || !parsed.eqBands || parsed.eqBands.length !== root._eqBands.length)
+      return
+
+    var next = []
+    for (var i = 0; i < root._eqBands.length; i++) {
+      var value = Number(parsed.eqBands[i])
+      if (isNaN(value)) value = 0
+      next.push(Math.max(-12, Math.min(12, Math.round(value))))
+    }
+
+    root._eqBands = next
+  }
+
+  function _loadEqState() {
+    audioEffectStateProc.running = false
+    audioEffectStateProc.running = true
   }
 
   function _triggerEqLightning() {
@@ -265,60 +328,65 @@ StatCard {
   readonly property int _discSize: Math.max(68, Math.min(90, Math.floor(root.height * 0.32)))
   readonly property int _orbitSize: root._discSize + 44
 
+  Component.onCompleted: {
+    root._syncTimeline(false)
+    root._loadEqState()
+  }
+
   component TransportGlyph: Item {
     id: glyph
     property string mode: "play"
     property bool playing: false
     property color glyphColor: Theme.text
 
-    width: 22
-    height: 18
+    width: 16
+    height: 14
 
     Rectangle {
       visible: glyph.mode === "prev"
-      x: 4
-      y: 4
+      x: 3
+      y: 3
       width: 2
-      height: 10
+      height: 8
       radius: 1
       color: glyph.glyphColor
     }
 
     Rectangle {
       visible: glyph.mode === "next"
-      x: 16
-      y: 4
+      x: 12
+      y: 3
       width: 2
-      height: 10
+      height: 8
       radius: 1
       color: glyph.glyphColor
     }
 
     Shape {
       visible: glyph.mode === "prev"
-      x: 7
+      x: 5
       y: 2
-      width: 12
-      height: 14
+      width: 10
+      height: 10
       preferredRendererType: Shape.CurveRenderer
 
       ShapePath {
         fillColor: glyph.glyphColor
         strokeWidth: 0
-        startX: 11
+        startX: 10
         startY: 2
         PathLine { x: 3; y: 7 }
-        PathLine { x: 11; y: 12 }
-        PathLine { x: 11; y: 2 }
+        PathLine { x: 10; y: 12 }
+        PathLine { x: 10; y: 2 }
       }
     }
 
     Shape {
       visible: glyph.mode === "next"
-      x: 3
+      x: 1
       y: 2
-      width: 12
-      height: 14
+      width: 10
+      height: 10
       preferredRendererType: Shape.CurveRenderer
 
       ShapePath {
@@ -335,34 +403,86 @@ StatCard {
     Shape {
       visible: glyph.mode === "play" && !glyph.playing
       anchors.centerIn: parent
-      width: 15
-      height: 16
+      width: 12
+      height: 12
       preferredRendererType: Shape.CurveRenderer
 
       ShapePath {
         fillColor: glyph.glyphColor
         strokeWidth: 0
-        startX: 4
-        startY: 3
-        PathLine { x: 4; y: 13 }
-        PathLine { x: 12; y: 8 }
-        PathLine { x: 4; y: 3 }
+        startX: 3
+        startY: 2
+        PathLine { x: 3; y: 10 }
+        PathLine { x: 10; y: 6 }
+        PathLine { x: 3; y: 2 }
       }
     }
 
     Row {
       visible: glyph.mode === "play" && glyph.playing
       anchors.centerIn: parent
-      spacing: 4
+      spacing: 3
 
       Repeater {
         model: 2
 
         Rectangle {
-          width: 3
-          height: 11
+          width: 2
+          height: 9
           radius: 1
           color: glyph.glyphColor
+        }
+      }
+    }
+  }
+
+  component EqualizerGlyph: Item {
+    id: eqGlyph
+    property var values: []
+    property color glyphColor: Theme.active
+
+    width: 22
+    height: 15
+
+    function _valueAt(index) {
+      var value = Number(eqGlyph.values ? eqGlyph.values[index] : 0)
+      if (isNaN(value) || !isFinite(value))
+        return 0
+      return Math.max(-12, Math.min(12, value))
+    }
+
+    function _knobY(index) {
+      var norm = root._eqNorm(eqGlyph._valueAt(index))
+      return Math.max(0, Math.min(eqGlyph.height - 3, (1 - norm) * (eqGlyph.height - 3)))
+    }
+
+    Repeater {
+      model: [0, 4, 9]
+
+      delegate: Item {
+        required property var modelData
+        required property int index
+
+        x: index * 8
+        width: 6
+        height: eqGlyph.height
+
+        Rectangle {
+          anchors.horizontalCenter: parent.horizontalCenter
+          anchors.top: parent.top
+          anchors.bottom: parent.bottom
+          width: 2
+          radius: 1
+          color: Qt.rgba(eqGlyph.glyphColor.r, eqGlyph.glyphColor.g, eqGlyph.glyphColor.b, 0.30)
+        }
+
+        Rectangle {
+          anchors.horizontalCenter: parent.horizontalCenter
+          y: eqGlyph._knobY(modelData)
+          width: 8
+          height: 3
+          radius: 1.5
+          color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.72)
         }
       }
     }
@@ -825,6 +945,7 @@ StatCard {
             amplitude: 2
             strokeWidth: 2
             speed: 4000
+            valueDuration: 180
             visible: root.length > 0
           }
 
@@ -880,42 +1001,31 @@ StatCard {
       anchors.bottom: controlsBlock.top
       anchors.leftMargin: 42
       anchors.rightMargin: 18
-      anchors.bottomMargin: 10
-      height: 28
-      radius: 9
+      anchors.bottomMargin: 8
+      height: 24
+      radius: 8
       z: 30
       color: Qt.rgba(12 / 255, 18 / 255, 24 / 255, fxHit.hovered ? 0.32 : 0.22)
       border.width: 1
       border.color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, fxHit.hovered ? 0.34 : 0.20)
 
-      Text {
-        anchors.left: parent.left
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.leftMargin: 10
-        text: "FX"
-        font.pixelSize: 8
-        font.weight: Font.Bold
-        font.family: "JetBrains Mono"
-        color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.76)
-      }
-
       Row {
-        anchors.right: parent.right
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.rightMargin: 10
-        spacing: 2
+        anchors.centerIn: parent
+        spacing: 8
 
-        Repeater {
-          model: root._eqBandModel
+        EqualizerGlyph {
+          anchors.verticalCenter: parent.verticalCenter
+          values: root._eqBands
+          glyphColor: Theme.active
+        }
 
-          Rectangle {
-            required property var modelData
-            readonly property real bandValue: root._eqBands[modelData.idx - 1] || 0
-            width: 5
-            height: 4 + Math.abs(bandValue) * 0.35
-            radius: 2
-            color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.32 + root._eqNorm(bandValue) * 0.24)
-          }
+        Text {
+          anchors.verticalCenter: parent.verticalCenter
+          text: "EQ"
+          font.pixelSize: 8
+          font.weight: Font.Bold
+          font.family: "JetBrains Mono"
+          color: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.82)
         }
       }
 
@@ -1115,10 +1225,10 @@ StatCard {
       anchors.right: panelBody.right
       anchors.bottom: panelBody.bottom
       anchors.left: discStage.right
-      anchors.leftMargin: 36
-      anchors.rightMargin: 32
-      anchors.bottomMargin: 15
-      height: 34
+      anchors.leftMargin: 42
+      anchors.rightMargin: 18
+      anchors.bottomMargin: 14
+      height: 24
       z: 34
 
       Row {
@@ -1126,7 +1236,7 @@ StatCard {
         objectName: "playbackDeck"
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
-        spacing: 12
+        spacing: 5
 
         Repeater {
           model: [ { key: "prev" }, { key: "play" }, { key: "next" } ]
@@ -1142,17 +1252,17 @@ StatCard {
               return false
             }
 
-            width: isPlay ? 56 : 46
-            height: 30
-            radius: 10
+            width: isPlay ? 34 : 24
+            height: 22
+            radius: 8
             opacity: actionEnabled ? 1 : 0.74
             color: isPlay
-              ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, controlHit.hovered ? 0.36 : 0.26)
-              : Qt.rgba(14 / 255, 20 / 255, 27 / 255, controlHit.hovered ? 0.46 : 0.30)
+              ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, controlHit.hovered ? 0.34 : 0.24)
+              : Qt.rgba(14 / 255, 20 / 255, 27 / 255, controlHit.hovered ? 0.38 : 0.24)
             border.width: 1
             border.color: isPlay
-              ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, controlHit.hovered ? 0.70 : 0.48)
-              : Qt.rgba(1, 1, 1, controlHit.hovered ? 0.18 : 0.10)
+              ? Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, controlHit.hovered ? 0.66 : 0.44)
+              : Qt.rgba(1, 1, 1, controlHit.hovered ? 0.16 : 0.075)
 
             Behavior on color {
               enabled: !Theme.staticMode

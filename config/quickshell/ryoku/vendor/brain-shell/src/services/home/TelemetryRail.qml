@@ -190,8 +190,7 @@ Item {
 
             Rectangle {
                 id: advancedButton
-                anchors.left: telemetryLabel.right
-                anchors.leftMargin: 8
+                anchors.right: parent.right
                 anchors.verticalCenter: telemetryLabel.verticalCenter
                 width: 66
                 height: 18
@@ -255,21 +254,29 @@ Item {
             // Nerd Font fallback. Tap flips PowerProfile.mode → side-effects:
             // brightness 45 %, 60 Hz when advertised, CPU governor / EPP
             // "powersave", and Theme.staticMode = true (freezes motion).
-            Row {
+            Item {
                 id: powerToggle
+                anchors.left:           cpuPct.right
+                anchors.leftMargin:     10
                 anchors.right:          parent.right
                 anchors.verticalCenter: cpuPct.verticalCenter
-                spacing: 6
+                height: 34
+                clip: true
 
                 readonly property bool savingOn: PowerProfile.mode === "powersave"
 
                 Text {
-                    anchors.verticalCenter: parent.verticalCenter
+                    id: powerSaverLabel
+                    anchors.left:           parent.left
+                    anchors.right:          parent.right
+                    anchors.top:            parent.top
+                    horizontalAlignment:    Text.AlignRight
+                    elide:                  Text.ElideRight
                     text:           "POWER SAVER"
                     font.pixelSize: 9
                     font.weight:    Font.Bold
                     font.family:    "JetBrains Mono"
-                    font.letterSpacing: 0.4
+                    font.letterSpacing: 0
                     color: powerToggle.savingOn
                         ? Theme.active
                         : Qt.rgba(1, 1, 1, 0.55)
@@ -277,7 +284,9 @@ Item {
 
                 Item {
                     id: switchControl
-                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.right:          parent.right
+                    anchors.top:            powerSaverLabel.bottom
+                    anchors.topMargin:      2
                     width:  34
                     height: 18
 
