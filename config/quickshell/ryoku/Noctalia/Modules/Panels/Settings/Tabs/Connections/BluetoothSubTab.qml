@@ -19,6 +19,8 @@ Item {
   // Configuration for shared use (e.g. by BluetoothPanel)
   property bool showOnlyLists: false
 
+  readonly property bool advancedBluetoothControlsSupported: false
+  readonly property string unsupportedAdvancedControlText: "Unavailable in Ryoku"
   readonly property bool isScanningActive: RyokuBluetoothService.scanningActive
   readonly property bool isDiscoverable: RyokuBluetoothService.discoverable
 
@@ -317,7 +319,8 @@ Item {
 
         NToggle {
           label: I18n.tr("panels.connections.bluetooth-auto-connect-label")
-          description: I18n.tr("panels.connections.bluetooth-auto-connect-description")
+          description: root.advancedBluetoothControlsSupported ? I18n.tr("panels.connections.bluetooth-auto-connect-description") : root.unsupportedAdvancedControlText
+          enabled: root.advancedBluetoothControlsSupported
           checked: Settings.data.network.bluetoothAutoConnect
           onToggled: checked => Settings.data.network.bluetoothAutoConnect = checked
         }
@@ -342,7 +345,8 @@ Item {
         // RSSI Polling
         NToggle {
           label: I18n.tr("panels.connections.bluetooth-rssi-polling-label")
-          description: I18n.tr("panels.connections.bluetooth-rssi-polling-description")
+          description: root.advancedBluetoothControlsSupported ? I18n.tr("panels.connections.bluetooth-rssi-polling-description") : root.unsupportedAdvancedControlText
+          enabled: root.advancedBluetoothControlsSupported
           checked: Settings.data.network.bluetoothRssiPollingEnabled
           onToggled: checked => Settings.data.network.bluetoothRssiPollingEnabled = checked
         }
@@ -356,8 +360,9 @@ Item {
           defaultValue: Settings.getDefaultValue("network.bluetoothRssiPollIntervalMs")
           onValueChanged: Settings.data.network.bluetoothRssiPollIntervalMs = value
           suffix: " ms"
+          enabled: root.advancedBluetoothControlsSupported
           Layout.alignment: Qt.AlignVCenter
-          visible: Settings.data.network.bluetoothRssiPollingEnabled
+          visible: root.advancedBluetoothControlsSupported && Settings.data.network.bluetoothRssiPollingEnabled
         }
       }
     }
@@ -676,7 +681,7 @@ Item {
               Layout.preferredWidth: 1
               Layout.topMargin: -Style.marginXXS
               spacing: Style.marginXS
-              visible: Settings.data.network.bluetoothAutoConnect
+              visible: root.advancedBluetoothControlsSupported && Settings.data.network.bluetoothAutoConnect
               NIcon {
                 icon: RyokuBluetoothService.getDeviceAutoConnect(modelData) ? "repeat" : "repeat-off"
                 pointSize: Style.fontSizeXS
@@ -685,6 +690,7 @@ Item {
                 label: I18n.tr("common.auto-connect")
                 labelSize: Style.fontSizeXS
                 baseSize: Style.baseWidgetSize * 0.5
+                enabled: root.advancedBluetoothControlsSupported
                 checked: RyokuBluetoothService.getDeviceAutoConnect(modelData)
                 onToggled: checked => RyokuBluetoothService.setDeviceAutoConnect(modelData, checked)
               }
