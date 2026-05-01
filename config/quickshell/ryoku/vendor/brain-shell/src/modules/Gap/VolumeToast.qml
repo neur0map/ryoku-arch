@@ -14,8 +14,7 @@ Item {
   readonly property int pct: Math.round(volume * 100)
   readonly property bool muted: sink?.ready ? sink.audio.muted : false
   readonly property real wrapperRadius: 9
-  readonly property color wrapperColor: Qt.rgba(0, 0, 0, 0.76)
-  readonly property color wrapperBorderColor: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.12)
+  readonly property color wrapperColor: Theme.background
   readonly property string icon: {
     if (!sink?.ready) return "󰕾"
     if (muted) return "󰝟"
@@ -59,8 +58,8 @@ Item {
 
     ShapePath {
       fillColor: root.wrapperColor
-      strokeColor: root.wrapperBorderColor
-      strokeWidth: 1
+      strokeColor: "transparent"
+      strokeWidth: 0
       joinStyle: ShapePath.RoundJoin
 
       PathSvg {
