@@ -167,6 +167,7 @@ brightnessctl
 power-profiles-daemon
 
 # ── Hardware daemons ──────────────────────────────────────────────────
+bluez-utils
 bolt
 
 # ── Storage / filesystems / disk management ───────────────────────────
