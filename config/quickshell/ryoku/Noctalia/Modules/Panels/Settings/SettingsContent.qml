@@ -40,6 +40,7 @@ Item {
 
   // Input: which tab to show initially
   property int requestedTab: 0
+  property string requestedRoute: ""
 
   // Exposed state for parent to access
   property int currentTabIndex: 0
@@ -194,6 +195,41 @@ Item {
       setSubTabIndex(subTabIndex);
       _pendingSubTab = -1;
     }
+  }
+
+  function routeToTab(route) {
+    switch (route) {
+    case "wifi":
+    case "bluetooth":
+    case "connections":
+      return SettingsPanel.Tab.Connections;
+    case "color-scheme":
+      return SettingsPanel.Tab.ColorScheme;
+    case "wallpaper":
+      return SettingsPanel.Tab.Wallpaper;
+    case "display":
+      return SettingsPanel.Tab.Display;
+    case "audio":
+      return SettingsPanel.Tab.Audio;
+    default:
+      return SettingsPanel.Tab.General;
+    }
+  }
+
+  function routeToSubTab(route) {
+    switch (route) {
+    case "wifi":
+      return 0;
+    case "bluetooth":
+      return 1;
+    default:
+      return -1;
+    }
+  }
+
+  function openRoute(route) {
+    requestedRoute = route || "general";
+    navigateToTab(routeToTab(requestedRoute), routeToSubTab(requestedRoute));
   }
 
   function searchSelectNext() {

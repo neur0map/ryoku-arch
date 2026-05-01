@@ -9,6 +9,8 @@ import QtQuick
 import "vendor/brain-shell/src" as BS
 import "vendor/brain-shell/src/windows" as BSW
 import "vendor/brain-shell/src/popups" as BSP
+import qs.Noctalia.Modules.Panels.Settings as NoctaliaSettings
+import qs.Noctalia.Services.UI as NoctaliaUI
 
 ShellRoot {
     // CLI entry points: `qs ipc call -c ryoku popups <fn>`. Used by
@@ -122,6 +124,22 @@ ShellRoot {
         }
 
         function toggleSettingsMenu(): void {
+            NoctaliaUI.RyokuSettingsPanelService.toggle(0, -1)
+        }
+
+        function openSettingsMenu(): void {
+            NoctaliaUI.RyokuSettingsPanelService.openWindow(0)
+        }
+
+        function openSettingsRoute(route: string): void {
+            NoctaliaUI.RyokuSettingsPanelService.openRoute(route)
+        }
+
+        function closeSettingsMenu(): void {
+            NoctaliaUI.RyokuSettingsPanelService.close()
+        }
+
+        function toggleLegacySettingsMenu(): void {
             const opening = !BS.Popups.settingsMenuOpen
             BS.Popups.closeAll()
             if (opening) {
@@ -169,6 +187,10 @@ ShellRoot {
         function flash(): void {
             BS.VolumeFeedback.show()
         }
+    }
+
+    NoctaliaSettings.SettingsPanelWindow {
+        id: noctaliaSettingsPanel
     }
 
     // Existing decorative Frame, untouched.
