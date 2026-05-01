@@ -1,4 +1,4 @@
-echo "Add Shift+Return keyboard binding for multi-line as used by Claude Code to Alacritty"
+echo "Add Shift+Return keyboard binding for multi-line terminal input"
 
 ALACRITTY_CONFIG=~/.config/alacritty/alacritty.toml
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Static regression checks for fixed-height telemetry sections.
+# Static regression checks for the narrow dashboard telemetry rail.
 
 set -e
 cd "$(dirname "$0")/.."
@@ -14,77 +14,63 @@ pass() {
 }
 
 rail="config/quickshell/ryoku/vendor/brain-shell/src/services/home/TelemetryRail.qml"
+home="config/quickshell/ryoku/vendor/brain-shell/src/services/home/DashHome.qml"
 
 [[ -f $rail ]] || fail "TelemetryRail.qml missing"
+[[ -f $home ]] || fail "DashHome.qml missing"
 
-python3 - <<'PY' || fail "telemetry thermals/network sections can overflow"
+python3 - <<'PY' || fail "telemetry rail lost narrow single-surface layout"
 import pathlib
 import re
 import sys
 
 rail = pathlib.Path("config/quickshell/ryoku/vendor/brain-shell/src/services/home/TelemetryRail.qml").read_text()
+home = pathlib.Path("config/quickshell/ryoku/vendor/brain-shell/src/services/home/DashHome.qml").read_text()
 
-def section(start, end):
-  m = re.search(start + r"(.*?)" + end, rail, re.S)
-  if not m:
-    print(f"missing section between {start} and {end}", file=sys.stderr)
-    sys.exit(1)
-  return m.group(1)
-
-thermals = section(r"// ── Thermals", r"// ── Network")
-network = section(r"// ── Network", r"// ── GPU \+ Disk summary")
-
-for name, body in (("Thermals", thermals), ("Network", network)):
-  if re.search(r"Column\s*\{\s*anchors\.fill:\s*parent\s*spacing:\s*8", body, re.S):
-    print(f"{name} still uses an overflowing filled column", file=sys.stderr)
+def require(pattern, message, body=rail):
+  if not re.search(pattern, body, re.S):
+    print(message, file=sys.stderr)
     sys.exit(1)
 
-if not re.search(r"text:\s*root\.fanSummary.*?anchors\.bottom:\s*parent\.bottom", thermals, re.S):
-  print("fan summary should be anchored to the thermal section bottom", file=sys.stderr)
-  sys.exit(1)
+def reject(pattern, message, body=rail):
+  if re.search(pattern, body, re.S):
+    print(message, file=sys.stderr)
+    sys.exit(1)
 
-if not re.search(r"text:\s*net\.iface.*?anchors\.bottom:\s*parent\.bottom", network, re.S):
-  print("network interface should be anchored to the network section bottom", file=sys.stderr)
+require(r"readonly property int railW:\s*190", "telemetry rail width should stay narrow", home)
+
+for component in ("RailDivider", "SectionHeader", "MetricLine", "InfoLine"):
+  require(rf"component\s+{component}\s*:", f"{component} helper component missing")
+
+require(r"id:\s*advancedButton.*?Item\s*\{", "Advanced should be a plain text control, not a filled chip")
+reject(r"Rectangle\s*\{\s*id:\s*advancedButton", "Advanced control should not be a nested card/chip")
+reject(r"StatCard\s*\{", "telemetry rail should not use nested cards")
+
+require(r"id:\s*powerToggle.*?anchors\.bottom:\s*parent\.bottom", "power toggle should sit on a compact bottom row")
+reject(r"id:\s*powerToggle.*?anchors\.left:\s*cpuPct\.right", "power toggle should not crowd the CPU percentage")
+reject(r"id:\s*powerSaverLabel", "old wide power-saver label should not return")
+
+require(r"id:\s*cpuPct.*?font\.pixelSize:\s*27", "CPU percentage should be reduced from the old oversized treatment")
+reject(r"font\.letterSpacing:\s*-", "telemetry typography should not use negative tracking")
+
+for title in ("Memory", "Thermals", "Network", "System"):
+  require(rf"SectionHeader\s*\{{.*?title:\s*\"{title}\"", f"{title} should use the shared section header")
+
+for label in ("RAM", "CPU", "GPU", "UP", "DOWN"):
+  require(rf"MetricLine\s*\{{.*?label:\s*\"{label}\"", f"{label} should use aligned metric rows")
+
+require(r"InfoLine\s*\{.*?label:\s*\"Display\"", "display summary should be a plain footer row")
+reject(r"Rectangle\s*\{[^{}]*radius:\s*6[^{}]*color:\s*Qt\.rgba\(1,\s*1,\s*1,\s*0\.035\)",
+       "display summary should not use the old internal rounded chip")
+
+divider_count = len(re.findall(r"RailDivider\s*\{", rail))
+if divider_count < 4:
+  print("section rhythm should be set by dividers, not nested boxes", file=sys.stderr)
   sys.exit(1)
 PY
 
-python3 - <<'PY' || fail "telemetry CPU header can overlap compact power control"
-import pathlib
-import re
-import sys
+if command -v qmllint >/dev/null; then
+  qmllint "$rail" >/dev/null || fail "TelemetryRail.qml qmllint failed"
+fi
 
-rail = pathlib.Path("config/quickshell/ryoku/vendor/brain-shell/src/services/home/TelemetryRail.qml").read_text()
-
-cpu = re.search(r"// ── CPU.*?// ── Memory", rail, re.S)
-if not cpu:
-  print("missing CPU section", file=sys.stderr)
-  sys.exit(1)
-
-body = cpu.group(0)
-
-advanced = re.search(r"Rectangle\s*\{\s*id:\s*advancedButton(.*?)Text\s*\{\s*id:\s*cpuPct", body, re.S)
-if not advanced:
-  print("missing advanced button block", file=sys.stderr)
-  sys.exit(1)
-advanced_body = advanced.group(1)
-if not re.search(r"anchors\.right:\s*parent\.right", advanced_body, re.S):
-  print("advanced button should sit on the right side of the telemetry header", file=sys.stderr)
-  sys.exit(1)
-if not re.search(r"id:\s*powerToggle.*?anchors\.left:\s*cpuPct\.right", body, re.S):
-  print("power toggle should start after the CPU percentage", file=sys.stderr)
-  sys.exit(1)
-if not re.search(r"id:\s*powerToggle.*?anchors\.right:\s*parent\.right", body, re.S):
-  print("power toggle should keep a fixed right edge inside the rail", file=sys.stderr)
-  sys.exit(1)
-if not re.search(r"id:\s*powerSaverLabel.*?elide:\s*Text\.ElideRight", body, re.S):
-  print("power saver label should elide before colliding with the CPU percentage", file=sys.stderr)
-  sys.exit(1)
-if not re.search(r"id:\s*switchControl.*?anchors\.top:\s*powerSaverLabel\.bottom", body, re.S):
-  print("power switch should sit below the label to keep the compact rail readable", file=sys.stderr)
-  sys.exit(1)
-if re.search(r"Row\s*\{\s*id:\s*powerToggle", body, re.S):
-  print("power toggle should not use the old wide horizontal row", file=sys.stderr)
-  sys.exit(1)
-PY
-
-pass "telemetry sections keep thermals and network separated"
+pass "telemetry rail keeps narrow single-surface layout"

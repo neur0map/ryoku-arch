@@ -24,9 +24,6 @@ pinta
 spotify
 typora
 
-# ── CLI agents / dev tools ────────────────────────────────────────────
-claude-code
-
 # ── File sharing / sync ───────────────────────────────────────────────
 # Used by bin/ryoku-cmd-share, default/nautilus-python/extensions/localsend.py,
 # and default/hypr/apps/localsend.conf window rules.

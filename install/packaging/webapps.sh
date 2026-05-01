@@ -5,7 +5,6 @@ ryoku-webapp-install "Google Photos" https://photos.google.com/ "Google Photos.p
 ryoku-webapp-install "Google Contacts" https://contacts.google.com/ "Google Contacts.png"
 ryoku-webapp-install "Google Messages" https://messages.google.com/web/conversations "Google Messages.png"
 ryoku-webapp-install "Google Maps" https://maps.google.com "Google Maps.png"
-ryoku-webapp-install "ChatGPT" https://chatgpt.com/ ChatGPT.png
 ryoku-webapp-install "YouTube" https://youtube.com/ YouTube.png
 ryoku-webapp-install "GitHub" https://github.com/ GitHub.png
 ryoku-webapp-install "X" https://x.com/ X.png

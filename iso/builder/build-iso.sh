@@ -62,8 +62,8 @@ printf '%s\n' "${arch_packages[@]}" >>"$build_cache_dir/packages.x86_64"
 #     drivers (NVIDIA legacy, asusctl, qmk-hid, intel-lpmd, etc.).
 #
 #   install/ryoku-aur.packages
-#     Default-install AUR apps and CLIs (1password, claude-code,
-#     localsend, spotify, typora, tofi, ...). Baking these into the
+#     Default-install AUR apps and CLIs (1password, localsend,
+#     spotify, typora, tofi, ...). Baking these into the
 #     mirror lets aur-core.sh use a pacman -S resolved from [offline]
 #     instead of reaching out to AUR over the network on first boot.
 #

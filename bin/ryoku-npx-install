@@ -4,7 +4,7 @@
 # Usage: ryoku-npx-install <package> [command-name]
 #
 # If command-name is omitted, it defaults to the package name.
-# Example: ryoku-npx-install opencode-ai opencode
+# Example: ryoku-npx-install playwright playwright-cli
 
 if [[ -z $1 ]]; then
   echo "Usage: ryoku-npx-install <package> [command-name]"

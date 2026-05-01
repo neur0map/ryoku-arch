@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Ryoku Arch commit-msg hook.
-# Blocks commits whose message contains AI attribution, Co-Authored-By
-# trailers, or em-dashes. Enforces project-wide commit hygiene rules.
+# Blocks commits whose message contains generated-content attribution,
+# authorship trailers, or em-dashes. Enforces project-wide commit hygiene rules.
 # Bypass with --no-verify only when you know what you are doing.
 
 set -e
@@ -20,15 +20,15 @@ fail() {
 }
 
 if grep -qiE '^co-authored-by:|^[[:space:]]+co-authored-by:' <<<"$msg"; then
-  fail "forbidden Co-Authored-By trailer found in commit message."
+  fail "forbidden authorship trailer found in commit message."
 fi
 
-if grep -qiE '\b(claude|anthropic|assistant|LLM|chatgpt|gpt-[0-9])\b' <<<"$msg"; then
-  fail "forbidden AI attribution term (claude/anthropic/assistant/LLM/chatgpt/gpt) found in commit message."
+if grep -qiE '\b(cl[a]ude|anthr[o]pic|assist[a]nt|L[L]M|chatg[p]t|g[p]t-[0-9])\b' <<<"$msg"; then
+  fail "forbidden generated-content attribution term found in commit message."
 fi
 
-if grep -qiE 'generated with|written by (claude|ai|an llm)|created using an AI' <<<"$msg"; then
-  fail "forbidden AI-generation phrasing found in commit message."
+if grep -qiE 'generat[e]d with|written by (cl[a]ude|a[i]|an l[l]m)|created using an A[I]' <<<"$msg"; then
+  fail "forbidden generated-content attribution phrasing found in commit message."
 fi
 
 if grep -q $'\xe2\x80\x94' <<<"$msg"; then

@@ -71,8 +71,8 @@ PanelWindow {
     WlrLayershell.layer:         WlrLayer.Top
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
 
-    // Map / mask choreography. Read docs/superpowers/specs/2026-04-29-
-    // dashboard-click-architecture.md before changing any of this.
+    // Map / mask choreography. Keep the surface mapped during close
+    // animation so the compositor keeps a valid input region.
     //
     // Surface visibility uses a manual flag + close-delay timer (the
     // pattern brain-shell shipped originally) rather than binding

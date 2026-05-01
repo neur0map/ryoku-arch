@@ -1,4 +1,4 @@
-echo "Remove makima key remapping service (Copilot key now handled natively by Hyprland)"
+echo "Remove makima key remapping service"
 
 if systemctl is-enabled makima &>/dev/null; then
   sudo systemctl disable --now makima

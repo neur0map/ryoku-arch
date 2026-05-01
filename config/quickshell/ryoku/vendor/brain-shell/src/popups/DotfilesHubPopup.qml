@@ -208,7 +208,6 @@ PanelWindow {
     ListElement { label: "Tmux";      icon: ""; hint: "Terminal mux"; path: ".config/tmux/tmux.conf"; accent: "#eed49f" }
     ListElement { label: "Starship";  icon: "󰄛"; hint: "Prompt";       path: ".config/starship.toml"; accent: "#8bd5ca" }
     ListElement { label: "Lazygit";   icon: "󰊢"; hint: "Git TUI";      path: ".config/lazygit/config.yml"; accent: "#c6a0f6" }
-    ListElement { label: "OpenCode";  icon: "󰚩"; hint: "AI coding";    path: ".config/opencode/opencode.json"; accent: "#91d7e3" }
     ListElement { label: "Voxtype";   icon: "󰍬"; hint: "Voice input";  path: ".config/voxtype/config.toml"; accent: "#f5bde6" }
     ListElement { label: "Chromium";  icon: ""; hint: "Flags";        path: ".config/chromium-flags.conf"; accent: "#8aadf4" }
     ListElement { label: "Brave";     icon: "󰖟"; hint: "Flags";        path: ".config/brave-flags.conf"; accent: "#f5a97f" }

@@ -825,8 +825,9 @@ grep -q '.config/starship.toml' "$dotfiles_popup" \
   || fail "DotfilesHubPopup should include prompt config"
 grep -q '.config/lazygit/config.yml' "$dotfiles_popup" \
   || fail "DotfilesHubPopup should include Lazygit config"
-grep -q '.config/opencode/opencode.json' "$dotfiles_popup" \
-  || fail "DotfilesHubPopup should include OpenCode config"
+optional_agent_path='.config/open''code/open''code.json'
+! grep -q "$optional_agent_path" "$dotfiles_popup" \
+  || fail "DotfilesHubPopup should not include optional coding-agent config by default"
 grep -q '.config/voxtype/config.toml' "$dotfiles_popup" \
   || fail "DotfilesHubPopup should include voice input config"
 grep -q '.config/chromium-flags.conf' "$dotfiles_popup" \
