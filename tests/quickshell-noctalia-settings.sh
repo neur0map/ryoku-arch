@@ -57,8 +57,10 @@ grep -q 'ryoku-ipc.*shell.*toggle.*themes' "$runtime/Services/Ryoku/RyokuThemeAc
   || fail "Ryoku theme actions should open the Ryoku theme picker"
 grep -q 'ryoku-ipc.*shell.*toggle.*wallpaper' "$runtime/Services/Ryoku/RyokuWallpaperActions.qml" \
   || fail "Ryoku wallpaper actions should open the Ryoku wallpaper picker"
-grep -q 'ryoku-ipc.*wallpaper.*wallhaven' "$runtime/Services/Ryoku/RyokuWallpaperActions.qml" \
-  || fail "Ryoku wallpaper actions should open Wallhaven search"
+! rg -U 'function openWallhaven\(\)[\s\S]{0,160}ryoku-ipc", "wallpaper", "wallhaven"\][\s\S]{0,80}' "$runtime/Services/Ryoku/RyokuWallpaperActions.qml" >/dev/null \
+  || fail "Ryoku wallpaper actions should not call bare invalid Wallhaven IPC"
+rg -U 'function openWallhaven\(\)[\s\S]{0,160}openWallpaperPicker\(\)' "$runtime/Services/Ryoku/RyokuWallpaperActions.qml" >/dev/null \
+  || fail "Ryoku Wallhaven action should route to the wallpaper picker UI"
 grep -q 'ryoku-ipc.*wallpaper.*cache.*rebuild' "$runtime/Services/Ryoku/RyokuWallpaperActions.qml" \
   || fail "Ryoku wallpaper actions should rebuild wallpaper cache"
 grep -q 'ryoku-lock-screen' "$runtime/Services/Ryoku/RyokuSessionActions.qml" \
@@ -157,6 +159,10 @@ grep -q 'ryoku-volume' "$runtime/Services/Media/AudioService.qml" \
   || fail "Audio service should use the existing Ryoku volume backend"
 grep -q 'wpctl' "$runtime/Services/Media/AudioService.qml" \
   || fail "Audio service should read local PipeWire volume state"
+grep -q 'property var _volumeCommandQueue' "$runtime/Services/Media/AudioService.qml" \
+  || fail "Audio service should queue rapid Ryoku volume commands"
+grep -q 'runNextVolumeCommand' "$runtime/Services/Media/AudioService.qml" \
+  || fail "Audio service should drain queued Ryoku volume commands"
 grep -q 'advancedControlsAvailable' "$runtime/Modules/Panels/Settings/Tabs/Audio/DevicesSubTab.qml" \
   || fail "Advanced audio device controls should stay visible but disabled"
 grep -q 'advancedControlsAvailable' "$runtime/Modules/Panels/Settings/Tabs/Audio/VisualizerSubTab.qml" \
@@ -173,6 +179,14 @@ grep -q 'RyokuSessionActions' "$runtime/Modules/Panels/Settings/Tabs/SessionMenu
   || fail "Session settings should use Ryoku session action safety"
 grep -q 'RyokuSessionActions.isSafeAction' "$runtime/Modules/Panels/Settings/Tabs/SessionMenu/SessionMenuTab.qml" \
   || fail "Session settings should only enable safe Ryoku session actions"
+grep -q 'ryokuManagedCommand' "$runtime/Modules/Panels/Settings/Tabs/SessionMenu/SessionMenuTab.qml" \
+  || fail "Session entry dialog should receive a Ryoku-managed command flag"
+grep -q 'property bool ryokuManagedCommand' "$runtime/Modules/Panels/Settings/Tabs/SessionMenu/SessionMenuEntrySettingsDialog.qml" \
+  || fail "Session entry dialog should expose a Ryoku-managed command flag"
+rg -U 'NTextInput[[:space:]]*\{[\s\S]{0,180}id:[[:space:]]+commandInput[\s\S]{0,220}enabled:[[:space:]]+!root\.ryokuManagedCommand' "$runtime/Modules/Panels/Settings/Tabs/SessionMenu/SessionMenuEntrySettingsDialog.qml" >/dev/null \
+  || fail "Ryoku-managed session commands should be visible but not editable"
+rg -U 'NIconButtonHot[[:space:]]*\{[\s\S]{0,220}visible:[^\n]*Settings\.data\.sessionMenu\.enableCountdown[\s\S]{0,220}enabled:[[:space:]]+modelData\.safeAction[[:space:]]+!==[[:space:]]+false' "$runtime/Modules/Panels/Settings/Tabs/SessionMenu/ActionsSubTab.qml" >/dev/null \
+  || fail "Unsupported session countdown toggles should be disabled"
 grep -q 'RyokuFeatureAvailability.unavailableReason' "$runtime/Modules/Panels/Settings/Tabs/Idle/IdleTab.qml" \
   || fail "Idle settings should stay visible but disabled with an unavailable reason"
 

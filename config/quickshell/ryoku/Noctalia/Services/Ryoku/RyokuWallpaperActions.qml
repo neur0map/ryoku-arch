@@ -19,7 +19,7 @@ Singleton {
   }
 
   function openWallhaven() {
-    run(["ryoku-ipc", "wallpaper", "wallhaven"], "Wallhaven search opened");
+    openWallpaperPicker();
   }
 
   function rebuildCache() {

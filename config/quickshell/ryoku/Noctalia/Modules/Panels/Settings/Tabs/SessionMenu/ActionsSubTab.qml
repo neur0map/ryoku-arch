@@ -188,6 +188,7 @@ ColumnLayout {
           // Countdown toggle (only shown when global countdown is enabled)
           NIconButtonHot {
             visible: Settings.data.sessionMenu.enableCountdown
+            enabled: modelData.safeAction !== false
             icon: "clock"
             hot: modelData.countdownEnabled !== undefined ? modelData.countdownEnabled : true
             baseSize: Style.baseWidgetSize * 0.8
