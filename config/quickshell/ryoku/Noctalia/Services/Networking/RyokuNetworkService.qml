@@ -12,7 +12,7 @@ Singleton {
   readonly property bool available: provider !== null
   readonly property bool usingIwd: providerName === "iwd"
   readonly property bool usingNmcli: providerName === "nmcli"
-  readonly property bool hasCommand: IwdProvider.available || NmcliProvider.available
+  readonly property bool hasCommand: IwdProvider.commandAvailable || NmcliProvider.commandAvailable
 
   readonly property bool wifiAvailable: available && provider.wifiAvailable
   readonly property bool wifiEnabled: available ? provider.wifiEnabled : false
@@ -33,6 +33,7 @@ Singleton {
   readonly property bool airplaneModeEnabled: available ? provider.airplaneModeEnabled : false
   readonly property bool internetConnectivity: available ? provider.internetConnectivity : false
   readonly property string networkConnectivity: available ? provider.networkConnectivity : "unknown"
+  property bool pendingScan: false
 
   readonly property var supportedSecurityTypes: [
     {
@@ -71,12 +72,26 @@ Singleton {
 
   Component.onCompleted: refresh()
 
+  Connections {
+    target: IwdProvider
+    function onAvailableChanged() {
+      root.flushPendingScan();
+    }
+  }
+
+  Connections {
+    target: NmcliProvider
+    function onAvailableChanged() {
+      root.flushPendingScan();
+    }
+  }
+
   function commandExists(name) {
     if (name === "iwctl") {
-      return IwdProvider.available;
+      return IwdProvider.commandAvailable;
     }
     if (name === "nmcli") {
-      return NmcliProvider.available;
+      return NmcliProvider.commandAvailable;
     }
     return false;
   }
@@ -89,14 +104,17 @@ Singleton {
   function scan() {
     if (provider) {
       provider.scan();
+    } else {
+      pendingScan = true;
+      refresh();
     }
   }
 
-  function connect(ssid, security, passphrase) {
+  function connect(ssid, security, passphrase, hidden) {
     if (!provider) {
       return;
     }
-    provider.connect(ssid, security || securityForSsid(ssid), passphrase || "");
+    provider.connect(ssid, security || securityForSsid(ssid), passphrase || "", !!hidden);
   }
 
   function disconnect(ssid) {
@@ -124,8 +142,15 @@ Singleton {
   }
 
   function setAirplaneMode(state) {
-    IwdProvider.setWifiEnabled(!state);
-    NmcliProvider.setWifiEnabled(!state);
+    return;
+  }
+
+  function flushPendingScan() {
+    if (!pendingScan || !provider) {
+      return;
+    }
+    pendingScan = false;
+    provider.scan();
   }
 
   function getSignalInfo(signal, isConnected) {

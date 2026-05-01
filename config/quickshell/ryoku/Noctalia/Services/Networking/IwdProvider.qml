@@ -7,9 +7,10 @@ import Quickshell.Io
 Singleton {
   id: root
 
-  readonly property bool available: commandAvailable
-  readonly property bool wifiAvailable: available && stationDevice.length > 0
-  readonly property bool wifiEnabled: wifiAvailable
+  readonly property bool ready: stationDevice.length > 0
+  readonly property bool available: commandAvailable && ready
+  readonly property bool wifiAvailable: available
+  readonly property bool wifiEnabled: wifiAvailable && wifiPowered
   readonly property bool scanningActive: scanning
   readonly property bool wifiConnected: activeSsid.length > 0
   readonly property bool internetConnectivity: wifiConnected
@@ -24,6 +25,7 @@ Singleton {
   property string lastError: error
   property string stationDevice: ""
   property string activeWifiIf: stationDevice
+  property bool wifiPowered: false
   property bool connecting: false
   property string connectingTo: ""
   property string disconnectingFrom: ""
@@ -47,13 +49,19 @@ Singleton {
 
   function scan() {
     error = "";
-    if (!available) {
+    if (!commandAvailable) {
+      pendingScan = true;
+      commandCheckProcess.running = true;
       error = "iwctl is not available";
       return;
     }
-    if (!stationDevice) {
+    if (!ready) {
       pendingScan = true;
       deviceListProcess.running = true;
+      return;
+    }
+    if (!wifiEnabled) {
+      pendingScan = true;
       return;
     }
     if (scanProcess.running || networkListProcess.running) {
@@ -65,7 +73,7 @@ Singleton {
     scanProcess.running = true;
   }
 
-  function connect(ssid, security, passphrase) {
+  function connect(ssid, security, passphrase, hidden) {
     if (connecting || !ssid) {
       return;
     }
@@ -89,7 +97,7 @@ Singleton {
     connectingTo = ssid;
     error = "";
 
-    const args = ["iwctl", "station", stationDevice, "connect", ssid];
+    const args = ["iwctl", "station", stationDevice, hidden ? "connect-hidden" : "connect", ssid];
     connectProcess.command = args;
     connectProcess.stdinEnabled = pendingConnectPassphrase.length > 0;
     connectProcess.running = true;
@@ -175,6 +183,17 @@ Singleton {
     return value.toUpperCase();
   }
 
+  function parsePowerToken(token) {
+    const value = String(token || "").toLowerCase();
+    if (value === "on" || value === "yes" || value === "true") {
+      return true;
+    }
+    if (value === "off" || value === "no" || value === "false") {
+      return false;
+    }
+    return null;
+  }
+
   function parseDeviceList(text) {
     const lines = text.split("\n");
     for (let i = 0; i < lines.length; i++) {
@@ -187,16 +206,35 @@ Singleton {
         continue;
       }
       if (parts[parts.length - 1] === "station" || parts.length >= 4) {
-        return parts[0];
+        let powered = null;
+        for (let j = 1; j < parts.length; j++) {
+          powered = parsePowerToken(parts[j]);
+          if (powered !== null) {
+            break;
+          }
+        }
+        return {
+          "name": parts[0],
+          "powered": powered === null ? true : powered
+        };
       }
     }
-    return "";
+    return {
+      "name": "",
+      "powered": false
+    };
   }
 
   function parseActiveSsid(text) {
     const lines = text.split("\n");
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
+      if (line.indexOf("Powered") === 0) {
+        const powered = parsePowerToken(line.replace(/^Powered\s+/i, "").trim());
+        if (powered !== null) {
+          wifiPowered = powered;
+        }
+      }
       if (line.indexOf("Connected network") === 0) {
         return line.replace(/^Connected network\s+/i, "").trim();
       }
@@ -288,14 +326,18 @@ Singleton {
     command: ["iwctl", "device", "list"]
     stdout: StdioCollector {
       onStreamFinished: {
-        root.stationDevice = root.parseDeviceList(text);
+        const station = root.parseDeviceList(text);
+        root.stationDevice = station.name;
+        root.wifiPowered = station.powered;
         root.activeWifiIf = root.stationDevice;
         if (root.stationDevice) {
           activeStatusProcess.running = true;
           knownNetworksProcess.running = true;
           if (root.pendingScan) {
             root.pendingScan = false;
-            root.scan();
+            if (root.wifiEnabled) {
+              root.scan();
+            }
           }
         } else {
           root.error = "No iwd Wi-Fi station was found";
