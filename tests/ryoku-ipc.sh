@@ -278,6 +278,18 @@ assert_qs_call \
   "shell settings-menu audio" \
   "-c ryoku ipc call popups openSettingsRoute audio" \
   shell settings-menu audio
+assert_qs_call \
+  "shell settings-menu home" \
+  "-c ryoku ipc call popups openSettingsMenuHome" \
+  shell settings-menu home
+assert_qs_call \
+  "shell settings-menu share" \
+  "-c ryoku ipc call popups openSettingsMenuShare" \
+  shell settings-menu share
+assert_qs_call \
+  "shell settings-menu hardware" \
+  "-c ryoku ipc call popups openSettingsMenuHardware" \
+  shell settings-menu hardware
 
 RYOKU_PATH="$PWD" \
 RYOKU_CONFIG_PATH="$tmpdir/config" \
