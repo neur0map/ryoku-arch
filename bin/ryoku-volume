@@ -1,0 +1,83 @@
+#!/bin/bash
+
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage:
+  ryoku-volume up [STEP]
+  ryoku-volume down [STEP]
+  ryoku-volume mute-toggle
+  ryoku-volume show
+EOF
+}
+
+notify_shell() {
+  if ryoku-cmd-present qs; then
+    qs -c ryoku ipc call volume flash >/dev/null 2>&1 || true
+  fi
+}
+
+require_amount() {
+  local amount="$1"
+
+  if [[ ! $amount =~ ^[0-9]+$ ]] || (( amount < 1 || amount > 100 )); then
+    echo "ryoku-volume: STEP must be an integer from 1 to 100" >&2
+    return 2
+  fi
+}
+
+if (( $# < 1 || $# > 2 )); then
+  usage >&2
+  exit 2
+fi
+
+action="$1"
+amount="${2:-5}"
+
+case "$action" in
+  up|raise)
+    require_amount "$amount"
+    ryoku-cmd-present wpctl || {
+      echo "ryoku-volume: wpctl is not installed" >&2
+      exit 1
+    }
+    wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ "${amount}%+"
+    notify_shell
+    ;;
+  down|lower)
+    require_amount "$amount"
+    ryoku-cmd-present wpctl || {
+      echo "ryoku-volume: wpctl is not installed" >&2
+      exit 1
+    }
+    wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ "${amount}%-"
+    notify_shell
+    ;;
+  mute|mute-toggle|toggle)
+    if (( $# != 1 )); then
+      usage >&2
+      exit 2
+    fi
+    ryoku-cmd-present wpctl || {
+      echo "ryoku-volume: wpctl is not installed" >&2
+      exit 1
+    }
+    wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
+    notify_shell
+    ;;
+  show)
+    if (( $# != 1 )); then
+      usage >&2
+      exit 2
+    fi
+    notify_shell
+    ;;
+  --help|-h)
+    usage
+    ;;
+  *)
+    usage >&2
+    exit 2
+    ;;
+esac
