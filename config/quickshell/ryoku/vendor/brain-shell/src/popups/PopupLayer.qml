@@ -37,6 +37,7 @@ Item {
     ScreenshotTool { screen: root.screen }
     ScreenshotOverlay { screen: root.screen }
     ScreenRecordTool { screen: root.screen }
+    VolumeFeedbackWindow { screen: root.screen }
 
     // Dormant in follow-up specs.
     // ArchMenu              { anchorWindow: root.leftBorder }

@@ -24,7 +24,7 @@ Item {
   implicitWidth: 150
   implicitHeight: 28
   visible: active || y > -height
-  y: active ? Theme.notchHeight + 4 : -height - 2
+  y: active ? Theme.notchHeight - 8 : -height - 2
 
   Behavior on y {
     enabled: !Theme.staticMode
