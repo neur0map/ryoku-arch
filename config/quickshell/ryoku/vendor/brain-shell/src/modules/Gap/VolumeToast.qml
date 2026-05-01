@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Shapes
 import Quickshell.Services.Pipewire
 import "../../"
 import "../../services/home/."
@@ -55,6 +56,32 @@ Item {
     border.width: 1
     border.color: Qt.rgba(Theme.border.r, Theme.border.g, Theme.border.b, 0.32)
     antialiasing: true
+  }
+
+  Shape {
+    id: topbarCornerCaps
+    anchors.fill: parent
+    preferredRendererType: Shape.CurveRenderer
+
+    ShapePath {
+      fillColor: Theme.background
+      strokeColor: "transparent"
+      strokeWidth: 0
+
+      PathSvg {
+        path: "M 0 0 L 16 0 Q 16 8 8 8 L 0 8 Z"
+      }
+    }
+
+    ShapePath {
+      fillColor: Theme.background
+      strokeColor: "transparent"
+      strokeWidth: 0
+
+      PathSvg {
+        path: "M " + root.width + " 0 L " + (root.width - 16) + " 0 Q " + (root.width - 16) + " 8 " + (root.width - 8) + " 8 L " + root.width + " 8 Z"
+      }
+    }
   }
 
   Row {
