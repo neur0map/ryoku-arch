@@ -535,7 +535,7 @@ Popup {
     var downloadProcess = Qt.createQmlObject(`
                                              import QtQuick
                                              import Quickshell.Io
-                                             import qs.Commons
+                                             import qs.Noctalia.Commons
                                              Process {
                                              id: downloadProcess
                                              command: ["sh", "-c", ` + JSON.stringify(downloadScript) + `]

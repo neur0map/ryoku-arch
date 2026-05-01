@@ -77,7 +77,7 @@ ScrollView {
 
     Qt.createQmlObject(`
       import QtQuick
-      import qs.Commons
+      import qs.Noctalia.Commons
       Rectangle {
         x: root.leftPadding
         y: root.topPadding
@@ -98,7 +98,7 @@ ScrollView {
 
     Qt.createQmlObject(`
       import QtQuick
-      import qs.Commons
+      import qs.Noctalia.Commons
       Rectangle {
         x: root.leftPadding
         y: root.height - root.bottomPadding - height + 1

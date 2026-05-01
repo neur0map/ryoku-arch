@@ -266,7 +266,7 @@ Item {
 
     Qt.createQmlObject(`
       import QtQuick
-      import qs.Commons
+      import qs.Noctalia.Commons
       Rectangle {
         x: 0
         y: 0
@@ -287,7 +287,7 @@ Item {
 
     Qt.createQmlObject(`
       import QtQuick
-      import qs.Commons
+      import qs.Noctalia.Commons
       Rectangle {
         x: 0
         anchors.bottom: parent.bottom
