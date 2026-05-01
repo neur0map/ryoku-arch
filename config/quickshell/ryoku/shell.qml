@@ -163,6 +163,14 @@ ShellRoot {
         }
     }
 
+    IpcHandler {
+        target: "volume"
+
+        function flash(): void {
+            BS.VolumeFeedback.show()
+        }
+    }
+
     // Existing decorative Frame, untouched.
     Variants {
         model: Quickshell.screens

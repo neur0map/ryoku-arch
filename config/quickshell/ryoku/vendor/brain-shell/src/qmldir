@@ -1,6 +1,7 @@
 singleton Theme      theme/Theme.qml
 singleton Popups     state/Popups.qml
 singleton ShellState state/ShellState.qml
+singleton VolumeFeedback state/VolumeFeedback.qml
 singleton ClockState state/ClockState.qml
 singleton PowerProfile state/PowerProfile.qml
 singleton ScreenRecService 1.0 services/ScreenRecService.qml

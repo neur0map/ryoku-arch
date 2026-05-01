@@ -5,6 +5,7 @@ import "../components"
 import "../modules/Center/"
 import "../modules/Right/"
 import "../modules/Left/"
+import "../modules/Gap/"
 import "../services/home"
 import "../"
 import "../shapes/"
@@ -165,6 +166,25 @@ PanelWindow {
         }
 
         Item {
+            id: leftGap
+            anchors {
+                left: leftNotch.right
+                right: centerNotch.left
+                top: parent.top
+            }
+            height: Theme.notchHeight
+            clip: true
+
+            DayWidget {
+                id: dayWidget
+                anchors.centerIn: parent
+                active: parent.width >= implicitWidth + 20
+                        && !Popups.toolboxOpen
+                        && !Popups.dashboardOpen
+            }
+        }
+
+        Item {
             id:               centerNotch
             width:            root.cWidth
             height:           Theme.notchHeight
@@ -205,6 +225,34 @@ PanelWindow {
                     enabled: !Theme.staticMode
                     NumberAnimation { duration: Theme.motionEffectsDuration; easing.type: Easing.OutCubic }
                 }
+            }
+        }
+
+        Item {
+            id: rightGap
+            anchors {
+                left: centerNotch.right
+                right: rightNotch.left
+                top: parent.top
+            }
+            height: Theme.notchHeight
+            clip: true
+
+            VolumeToast {
+                id: volumeToast
+                width: Math.min(implicitWidth, Math.max(0, parent.width - 18))
+                height: implicitHeight
+                anchors {
+                    right: parent.right
+                    rightMargin: 9
+                    verticalCenter: parent.verticalCenter
+                }
+                active: VolumeFeedback.visible
+                        && parent.width >= implicitWidth + 18
+                        && !Popups.toolboxOpen
+                        && !Popups.dashboardOpen
+                        && !Popups.networkOpen
+                        && !Popups.notificationsOpen
             }
         }
 
