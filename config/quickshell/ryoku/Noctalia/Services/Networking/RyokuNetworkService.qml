@@ -96,22 +96,7 @@ Singleton {
     if (!provider) {
       return;
     }
-
-    let resolvedSecurity = security || securityForSsid(ssid);
-    let resolvedPassphrase = passphrase || "";
-
-    if (arguments.length >= 4) {
-      resolvedPassphrase = security || "";
-      resolvedSecurity = arguments[3] || securityForSsid(ssid);
-    } else if (arguments.length >= 3 && typeof passphrase === "boolean") {
-      resolvedPassphrase = security || "";
-      resolvedSecurity = securityForSsid(ssid);
-    } else if (arguments.length === 2) {
-      resolvedPassphrase = "";
-      resolvedSecurity = security || securityForSsid(ssid);
-    }
-
-    provider.connect(ssid, resolvedSecurity, resolvedPassphrase);
+    provider.connect(ssid, security || securityForSsid(ssid), passphrase || "");
   }
 
   function disconnect(ssid) {

@@ -98,13 +98,12 @@ Item {
     enterpriseCaCert = "";
     expandedSsid = "";
   }
+  function securityForSsid(ssid) {
+    const source = (passwordSsid && passwordSsid.length > 0) ? cachedNetworks : RyokuNetworkService.networks;
+    return source && source[ssid] ? (source[ssid].security || "") : "";
+  }
   function submitPassword(ssid, password, identity = "") {
-    RyokuNetworkService.connect(ssid, password, false, identity, {
-                             eap: enterpriseEap,
-                             phase2: enterprisePhase2,
-                             anonIdentity: enterpriseAnonIdentity,
-                             caCert: enterpriseCaCert
-                           });
+    RyokuNetworkService.connect(ssid, securityForSsid(ssid), password);
     passwordSsid = "";
   }
   function cancelPassword() {
@@ -437,12 +436,7 @@ Item {
         onTextChanged: addNetworkPopup.customSsid = text
         onEditingFinished: {
           if (addNetworkPopup.customSsid.length > 0 && (addNetworkPopup.customSecurityKey === "open" || addNetworkPopup.customPassword.length > 0)) {
-            RyokuNetworkService.connect(addNetworkPopup.customSsid, addNetworkPopup.customPassword, addNetworkPopup.customIsHidden, addNetworkPopup.customSecurityKey, addNetworkPopup.customIdentity, {
-                                     eap: addNetworkPopup.customEnterpriseEap,
-                                     phase2: addNetworkPopup.customEnterprisePhase2,
-                                     anonIdentity: addNetworkPopup.customEnterpriseAnonIdentity,
-                                     caCert: addNetworkPopup.customEnterpriseCaCert
-                                   });
+            RyokuNetworkService.connect(addNetworkPopup.customSsid, addNetworkPopup.customSecurityKey, addNetworkPopup.customPassword);
             addNetworkPopup.close();
           }
         }
@@ -561,12 +555,7 @@ Item {
         inputItem.echoMode: addNetworkPopup.customShowPassword ? TextInput.Normal : TextInput.Password
         onEditingFinished: {
           if (addNetworkPopup.customSsid.length > 0 && addNetworkPopup.customPassword.length > 0) {
-            RyokuNetworkService.connect(addNetworkPopup.customSsid, addNetworkPopup.customPassword, addNetworkPopup.customIsHidden, addNetworkPopup.customSecurityKey, addNetworkPopup.customIdentity, {
-                                     eap: addNetworkPopup.customEnterpriseEap,
-                                     phase2: addNetworkPopup.customEnterprisePhase2,
-                                     anonIdentity: addNetworkPopup.customEnterpriseAnonIdentity,
-                                     caCert: addNetworkPopup.customEnterpriseCaCert
-                                   });
+            RyokuNetworkService.connect(addNetworkPopup.customSsid, addNetworkPopup.customSecurityKey, addNetworkPopup.customPassword);
             addNetworkPopup.close();
           }
         }
@@ -616,12 +605,7 @@ Item {
           textColor: Color.mOnPrimary
           enabled: addNetworkPopup.customSsid.length > 0 && (addNetworkPopup.customSecurityKey === "open" || addNetworkPopup.customPassword.length > 0) && (addNetworkPopup.customSecurityKey.indexOf("-eap") === -1 || addNetworkPopup.customIdentity.length > 0)
           onClicked: {
-            RyokuNetworkService.connect(addNetworkPopup.customSsid, addNetworkPopup.customPassword, addNetworkPopup.customIsHidden, addNetworkPopup.customSecurityKey, addNetworkPopup.customIdentity, {
-                                     eap: addNetworkPopup.customEnterpriseEap,
-                                     phase2: addNetworkPopup.customEnterprisePhase2,
-                                     anonIdentity: addNetworkPopup.customEnterpriseAnonIdentity,
-                                     caCert: addNetworkPopup.customEnterpriseCaCert
-                                   });
+            RyokuNetworkService.connect(addNetworkPopup.customSsid, addNetworkPopup.customSecurityKey, addNetworkPopup.customPassword);
             addNetworkPopup.close();
           }
         }
@@ -839,7 +823,7 @@ Item {
               text: I18n.tr("common.connect")
               onClicked: {
                 if (modelData.existing || !RyokuNetworkService.isSecured(modelData.security)) {
-                  RyokuNetworkService.connect(modelData.ssid);
+                  RyokuNetworkService.connect(modelData.ssid, modelData.security, "");
                 } else {
                   root.requestPassword(modelData.ssid);
                 }
