@@ -14,11 +14,9 @@ FloatingWindow {
   readonly property int panelHeight: 910
 
   title: "Ryoku Settings"
-  width: Math.min(panelWidth, screen ? screen.width - 24 : panelWidth)
-  height: Math.min(panelHeight, screen ? screen.height - 24 : panelHeight)
-  minimumSize: Qt.size(width, height)
-  implicitWidth: panelWidth
-  implicitHeight: panelHeight
+  implicitWidth: Math.min(panelWidth, screen ? screen.width - 24 : panelWidth)
+  implicitHeight: Math.min(panelHeight, screen ? screen.height - 24 : panelHeight)
+  minimumSize: Qt.size(implicitWidth, implicitHeight)
   color: "transparent"
   visible: false
 
