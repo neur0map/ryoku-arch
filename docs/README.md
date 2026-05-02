@@ -9,7 +9,9 @@ Documentation for Ryoku Arch.
 - `branding.md`: visual + verbal identity. Brand colors (Greek Noir palette), logo files and how to regenerate them, where the brand surfaces, don't-do list.
 - `iso-build-recipe.md`: working recipe for building the offline ISO end-to-end, list of fixes that have to stay applied, harmless chroot warnings to ignore, verification commands.
 - `release-pipeline.md`: how Ryoku ISOs get built, signed, and pushed to Cloudflare R2 via GitHub Actions. Secrets to configure, R2 bucket setup, GPG key generation, how users verify a downloaded ISO.
+- `keybindings.md`: current Niri and shell keyboard reference generated from the shipped Niri config.
 - `TODO.md`: public roadmap and release-readiness checklist.
+- `omarchy-heritage.md`: user-facing explanation of what remains from upstream Omarchy and what has been removed.
 - `rebrand-inventory.md`: historical maintenance ledger for the Omarchy-to-Ryoku rename.
 - `customization-inventory.md`: shipped text-based customization surfaces with repo-safe locations.
 - `../CONTRIBUTING.md`: focused ways to help while Ryoku is early.
