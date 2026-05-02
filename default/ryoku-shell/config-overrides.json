@@ -1,0 +1,79 @@
+{
+  "appearance": {
+    "theme": "custom",
+    "globalStyle": "material",
+    "softenColors": false,
+    "palette": {
+      "type": "scheme-tonal-spot",
+      "accentColor": "#F25623"
+    },
+    "iconTheme": "Yaru-red",
+    "customTheme": {
+      "darkmode": true,
+      "m3background": "#171717",
+      "m3onBackground": "#CCD0CF",
+      "m3surface": "#171717",
+      "m3surfaceDim": "#111111",
+      "m3surfaceBright": "#333333",
+      "m3surfaceContainerLowest": "#111111",
+      "m3surfaceContainerLow": "#171717",
+      "m3surfaceContainer": "#1f1f1f",
+      "m3surfaceContainerHigh": "#2a2a2a",
+      "m3surfaceContainerHighest": "#333333",
+      "m3onSurface": "#CCD0CF",
+      "m3surfaceVariant": "#333333",
+      "m3onSurfaceVariant": "#aeab94",
+      "m3inverseSurface": "#CCD0CF",
+      "m3inverseOnSurface": "#171717",
+      "m3outline": "#757d75",
+      "m3outlineVariant": "#4D4D4D",
+      "m3shadow": "#000000",
+      "m3scrim": "#000000",
+      "m3surfaceTint": "#F25623",
+      "m3primary": "#F25623",
+      "m3onPrimary": "#171717",
+      "m3primaryContainer": "#4D4D4D",
+      "m3onPrimaryContainer": "#F25623",
+      "m3inversePrimary": "#F56E0F",
+      "m3secondary": "#88A57D",
+      "m3onSecondary": "#171717",
+      "m3secondaryContainer": "#333333",
+      "m3onSecondaryContainer": "#CCD0CF",
+      "m3tertiary": "#F56E0F",
+      "m3onTertiary": "#171717",
+      "m3tertiaryContainer": "#333333",
+      "m3onTertiaryContainer": "#CCD0CF",
+      "m3error": "#ef4444",
+      "m3onError": "#171717",
+      "m3errorContainer": "#7f1d1d",
+      "m3onErrorContainer": "#fee2e2",
+      "m3primaryFixed": "#F25623",
+      "m3primaryFixedDim": "#F56E0F",
+      "m3onPrimaryFixed": "#171717",
+      "m3onPrimaryFixedVariant": "#333333",
+      "m3secondaryFixed": "#88A57D",
+      "m3secondaryFixedDim": "#757d75",
+      "m3onSecondaryFixed": "#171717",
+      "m3onSecondaryFixedVariant": "#333333",
+      "m3tertiaryFixed": "#F56E0F",
+      "m3tertiaryFixedDim": "#F25623",
+      "m3onTertiaryFixed": "#171717",
+      "m3onTertiaryFixedVariant": "#333333",
+      "m3success": "#88A57D",
+      "m3onSuccess": "#171717",
+      "m3successContainer": "#333333",
+      "m3onSuccessContainer": "#CCD0CF"
+    }
+  },
+  "background": {
+    "backdrop": {
+      "dim": 40,
+      "saturation": 0,
+      "vignetteEnabled": true
+    },
+    "effects": {
+      "enableBlur": true,
+      "dim": 30
+    }
+  }
+}
