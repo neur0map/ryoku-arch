@@ -18,13 +18,20 @@ Item {
                        contentRow.implicitWidth
     implicitHeight: contentRow.implicitHeight
 
+    function toggleControlCenter() {
+        var next = !Popups.settingsMenuOpen
+        Popups.closeAll()
+        Popups.requestSettingsMenuPage("home", "")
+        Popups.settingsMenuOpen = next
+    }
+
     // ── Normal content — fades out when any right popup opens ─────────────────
     Row {
         id: contentRow
         anchors.centerIn: parent
         spacing: 6
 
-        opacity: (Popups.notificationsOpen || Popups.networkOpen) ? 0 : 1
+        opacity: (Popups.notificationsOpen || Popups.networkOpen || Popups.settingsMenuOpen) ? 0 : 1
         visible: opacity > 0
         Behavior on opacity { NumberAnimation { duration: 150 } }
 
@@ -39,13 +46,22 @@ Item {
         // Notifications{}
     }
 
+    MouseArea {
+        id: rightPillControlCenterMouse
+        anchors.fill: parent
+        acceptedButtons: Qt.LeftButton
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        onClicked: root.toggleControlCenter()
+    }
+
     // ── Open indicator — fades in when any right popup opens ──────────────────
     Text {
         anchors.centerIn: parent
         text:           "▾"
         color:          Theme.active
         font.pixelSize: 12
-        opacity:        (Popups.notificationsOpen || Popups.networkOpen) ? 1 : 0
+        opacity:        (Popups.notificationsOpen || Popups.networkOpen || Popups.settingsMenuOpen) ? 1 : 0
         visible:        opacity > 0
         Behavior on opacity { NumberAnimation { duration: 150 } }
     }
