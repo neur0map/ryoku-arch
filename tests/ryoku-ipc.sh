@@ -203,113 +203,113 @@ RYOKU_PATH="$PWD" \
 RYOKU_CONFIG_PATH="$tmpdir/config" \
 RYOKU_STATE_PATH="$tmpdir/state" \
   "$ipc" shell command wallpaper \
-  | grep -q 'qs -c ryoku ipc call popups toggleWallpaper' \
+  | grep -q 'qs -c ryoku ipc --newest call popups toggleWallpaper' \
   || fail "shell command wallpaper should print the Quickshell IPC command"
 
 RYOKU_PATH="$PWD" \
 RYOKU_CONFIG_PATH="$tmpdir/config" \
 RYOKU_STATE_PATH="$tmpdir/state" \
   "$ipc" shell command themes \
-  | grep -q 'qs -c ryoku ipc call popups toggleThemes' \
+  | grep -q 'qs -c ryoku ipc --newest call popups toggleThemes' \
   || fail "shell command themes should print the shared selector IPC command"
 
 RYOKU_PATH="$PWD" \
 RYOKU_CONFIG_PATH="$tmpdir/config" \
 RYOKU_STATE_PATH="$tmpdir/state" \
   "$ipc" shell command fonts \
-  | grep -q 'qs -c ryoku ipc call popups toggleFonts' \
+  | grep -q 'qs -c ryoku ipc --newest call popups toggleFonts' \
   || fail "shell command fonts should print the shared selector IPC command"
 
 RYOKU_PATH="$PWD" \
 RYOKU_CONFIG_PATH="$tmpdir/config" \
 RYOKU_STATE_PATH="$tmpdir/state" \
   "$ipc" shell command cursors \
-  | grep -q 'qs -c ryoku ipc call popups toggleCursors' \
+  | grep -q 'qs -c ryoku ipc --newest call popups toggleCursors' \
   || fail "shell command cursors should print the shared selector IPC command"
 
 RYOKU_PATH="$PWD" \
 RYOKU_CONFIG_PATH="$tmpdir/config" \
 RYOKU_STATE_PATH="$tmpdir/state" \
   "$ipc" shell command system-menu \
-  | grep -q 'qs -c ryoku ipc call popups toggleSystemMenu' \
+  | grep -q 'qs -c ryoku ipc --newest call popups toggleSystemMenu' \
   || fail "shell command system-menu should print the Quickshell IPC command"
 
 RYOKU_PATH="$PWD" \
 RYOKU_CONFIG_PATH="$tmpdir/config" \
 RYOKU_STATE_PATH="$tmpdir/state" \
   "$ipc" shell command settings-menu \
-  | grep -q 'qs -c ryoku ipc call popups toggleSettingsMenu' \
+  | grep -q 'qs -c ryoku ipc --newest call popups toggleSettingsMenu' \
   || fail "shell command settings-menu should print the Quickshell IPC command"
 
 assert_shell_command_prints \
   "shell command legacy-settings-menu" \
-  "qs -c ryoku ipc call popups toggleLegacySettingsMenu" \
+  "qs -c ryoku ipc --newest call popups toggleLegacySettingsMenu" \
   shell command legacy-settings-menu
 
 assert_qs_call \
   "shell toggle settings-menu" \
-  "-c ryoku ipc call popups toggleSettingsMenu" \
+  "-c ryoku ipc --newest call popups toggleSettingsMenu" \
   shell toggle settings-menu
 assert_qs_call \
   "shell toggle legacy-settings-menu" \
-  "-c ryoku ipc call popups toggleLegacySettingsMenu" \
+  "-c ryoku ipc --newest call popups toggleLegacySettingsMenu" \
   shell toggle legacy-settings-menu
 assert_qs_call \
   "shell settings-menu wifi" \
-  "-c ryoku ipc call popups openSettingsRoute wifi" \
+  "-c ryoku ipc --newest call popups openSettingsRoute wifi" \
   shell settings-menu wifi
 assert_qs_call \
   "shell settings-menu bluetooth" \
-  "-c ryoku ipc call popups openSettingsRoute bluetooth" \
+  "-c ryoku ipc --newest call popups openSettingsRoute bluetooth" \
   shell settings-menu bluetooth
 assert_qs_call \
   "shell settings-menu color-scheme" \
-  "-c ryoku ipc call popups openSettingsRoute color-scheme" \
+  "-c ryoku ipc --newest call popups openSettingsRoute color-scheme" \
   shell settings-menu color-scheme
 assert_qs_call \
   "shell settings-menu wallpaper" \
-  "-c ryoku ipc call popups openSettingsRoute wallpaper" \
+  "-c ryoku ipc --newest call popups openSettingsRoute wallpaper" \
   shell settings-menu wallpaper
 assert_qs_call \
   "shell settings-menu display" \
-  "-c ryoku ipc call popups openSettingsRoute display" \
+  "-c ryoku ipc --newest call popups openSettingsRoute display" \
   shell settings-menu display
 assert_qs_call \
   "shell settings-menu audio" \
-  "-c ryoku ipc call popups openSettingsRoute audio" \
+  "-c ryoku ipc --newest call popups openSettingsRoute audio" \
   shell settings-menu audio
 assert_qs_call \
   "shell settings-menu home" \
-  "-c ryoku ipc call popups openSettingsRoute general" \
+  "-c ryoku ipc --newest call popups openSettingsRoute general" \
   shell settings-menu home
 assert_qs_call \
   "shell settings-menu share" \
-  "-c ryoku ipc call popups openSettingsMenuShare" \
+  "-c ryoku ipc --newest call popups openSettingsMenuShare" \
   shell settings-menu share
 assert_qs_call \
   "shell settings-menu hardware" \
-  "-c ryoku ipc call popups openSettingsMenuHardware" \
+  "-c ryoku ipc --newest call popups openSettingsMenuHardware" \
   shell settings-menu hardware
 
 RYOKU_PATH="$PWD" \
 RYOKU_CONFIG_PATH="$tmpdir/config" \
 RYOKU_STATE_PATH="$tmpdir/state" \
   "$ipc" shell command settings-menu-home \
-  | grep -q 'qs -c ryoku ipc call popups openSettingsMenuHome' \
+  | grep -q 'qs -c ryoku ipc --newest call popups openSettingsMenuHome' \
   || fail "shell command settings-menu-home should print the Quickshell IPC command"
 
 RYOKU_PATH="$PWD" \
 RYOKU_CONFIG_PATH="$tmpdir/config" \
 RYOKU_STATE_PATH="$tmpdir/state" \
   "$ipc" shell command settings-menu-share \
-  | grep -q 'qs -c ryoku ipc call popups openSettingsMenuShare' \
+  | grep -q 'qs -c ryoku ipc --newest call popups openSettingsMenuShare' \
   || fail "shell command settings-menu-share should print the Quickshell IPC command"
 
 RYOKU_PATH="$PWD" \
 RYOKU_CONFIG_PATH="$tmpdir/config" \
 RYOKU_STATE_PATH="$tmpdir/state" \
   "$ipc" shell command settings-menu-hardware \
-  | grep -q 'qs -c ryoku ipc call popups openSettingsMenuHardware' \
+  | grep -q 'qs -c ryoku ipc --newest call popups openSettingsMenuHardware' \
   || fail "shell command settings-menu-hardware should print the Quickshell IPC command"
 
 rejects_trailing_args "shell command wallpaper" shell command wallpaper extra

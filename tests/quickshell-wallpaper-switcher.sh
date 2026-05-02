@@ -162,7 +162,7 @@ grep -q 'bindd = SUPER CTRL, SPACE, Appearance menu, exec, ryoku-ipc shell toggl
   || fail "SUPER+CTRL+SPACE should open the Quickshell appearance selector through ryoku-ipc"
 grep -q 'bindd = SUPER SHIFT CTRL, SPACE, Theme menu, exec, ryoku-ipc shell toggle themes' "$bindings" \
   || fail "SUPER+CTRL+SHIFT+SPACE should open the shared selector in theme mode"
-! grep -q 'bindd = SUPER CTRL, SPACE, Theme background menu, exec, qs -c ryoku ipc call popups toggleWallpaper' "$bindings" \
+! grep -q 'bindd = SUPER CTRL, SPACE, Theme background menu, exec, qs -c ryoku ipc --newest call popups toggleWallpaper' "$bindings" \
   || fail "SUPER+CTRL+SPACE should no longer call qs directly"
 ! grep -q 'bindd = SUPER SHIFT CTRL, SPACE, Theme menu, exec, ryoku-menu theme' "$bindings" \
   || fail "SUPER+CTRL+SHIFT+SPACE should no longer open the old tofi theme menu"

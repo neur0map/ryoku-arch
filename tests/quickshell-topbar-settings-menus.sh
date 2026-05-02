@@ -866,11 +866,11 @@ grep -q 'onClicked: Popups.closeAll()' "$dotfiles_popup" \
   || fail "ryoku-ipc help should document legacy settings-menu toggle"
 "$ipc" --help | grep -q "ryoku-ipc shell toggle dotfiles" \
   || fail "ryoku-ipc help should document dotfiles toggle"
-"$ipc" shell command system-menu | grep -q 'qs -c ryoku ipc call popups toggleSystemMenu' \
+"$ipc" shell command system-menu | grep -q 'qs -c ryoku ipc --newest call popups toggleSystemMenu' \
   || fail "ryoku-ipc should print the system-menu IPC command"
-"$ipc" shell command legacy-settings-menu | grep -q 'qs -c ryoku ipc call popups toggleLegacySettingsMenu' \
+"$ipc" shell command legacy-settings-menu | grep -q 'qs -c ryoku ipc --newest call popups toggleLegacySettingsMenu' \
   || fail "ryoku-ipc should print the legacy settings-menu IPC command"
-"$ipc" shell command dotfiles | grep -q 'qs -c ryoku ipc call popups toggleDotfiles' \
+"$ipc" shell command dotfiles | grep -q 'qs -c ryoku ipc --newest call popups toggleDotfiles' \
   || fail "ryoku-ipc should print the dotfiles IPC command"
 
 grep -q 'bindd = SUPER, ESCAPE, System menu, exec, ryoku-ipc shell toggle system-menu' "$bindings" \

@@ -96,7 +96,7 @@ grep -q 'Popups.launcherOpen = false' "$launcher" \
 ! grep -q 'Popups.dashboardOpen = false' "$launcher" \
   || fail "Launcher should not try to close dashboard on Escape"
 
-grep -q 'bindd = SUPER, SPACE, Launch apps, exec, qs -c ryoku ipc call popups toggleLauncher' "$bindings" \
+grep -q 'bindd = SUPER, SPACE, Launch apps, exec, qs -c ryoku ipc --newest call popups toggleLauncher' "$bindings" \
   || fail "SUPER+SPACE should open the Quickshell launcher"
 ! grep -q 'bindd = SUPER, SPACE, Launch apps, exec, ryoku-launch-drun' "$bindings" \
   || fail "SUPER+SPACE should no longer use the old tofi/fuzzel launcher"

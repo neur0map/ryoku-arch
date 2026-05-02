@@ -60,7 +60,7 @@ grep -q 'onBatteryWarningRequested' "$status" \
   || fail "BatteryStatus should respond to battery warning preview requests"
 "$ipc" --help | grep -q 'ryoku-ipc shell preview battery-warning' \
   || fail "ryoku-ipc help should document battery warning preview"
-"$ipc" shell command battery-warning | grep -q 'qs -c ryoku ipc call popups previewBatteryWarning' \
+"$ipc" shell command battery-warning | grep -q 'qs -c ryoku ipc --newest call popups previewBatteryWarning' \
   || fail "ryoku-ipc should print the battery warning preview command"
 
 pass "quickshell battery warning toast"

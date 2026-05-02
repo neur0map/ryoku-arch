@@ -165,9 +165,9 @@ active_has "$topbar" 'toolboxContent.activateCurrent()' \
   || fail "ryoku-ipc help should document screenshot toggle"
 "$ipc" --help | grep "ryoku-ipc shell toggle screen-record" >/dev/null \
   || fail "ryoku-ipc help should document screen recorder toggle"
-"$ipc" shell command screenshot | grep 'qs -c ryoku ipc call popups toggleScreenshot' >/dev/null \
+"$ipc" shell command screenshot | grep 'qs -c ryoku ipc --newest call popups toggleScreenshot' >/dev/null \
   || fail "ryoku-ipc should print the screenshot provider IPC command"
-"$ipc" shell command screen-record | grep 'qs -c ryoku ipc call popups toggleScreenRecorder' >/dev/null \
+"$ipc" shell command screen-record | grep 'qs -c ryoku ipc --newest call popups toggleScreenRecorder' >/dev/null \
   || fail "ryoku-ipc should print the screen recorder provider IPC command"
 
 grep -q 'bindd = SUPER, S, Toolbox, exec, ryoku-ipc shell toolbox open' "$bindings" \

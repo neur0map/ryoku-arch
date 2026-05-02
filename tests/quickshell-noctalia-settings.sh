@@ -62,6 +62,10 @@ grep -q 'adapter.ui.fontFixed = "JetBrainsMono Nerd Font"' "$runtime/Commons/Set
   || fail "Noctalia runtime fixed font should be Ryoku themed"
 ! grep -Eq '#(fff59b|fef29a)' "$runtime/Assets/ColorScheme/Noctalia-default/Noctalia-default.json" \
   || fail "Noctalia default scheme should not expose the upstream yellow primary"
+! grep -Eiq '#(a9aefe|8e93d8|9bfece|0e0e43)' \
+  "$runtime/Assets/ColorScheme/Noctalia-default/Noctalia-default.json" \
+  "$runtime/Assets/noctalia.svg" \
+  || fail "Noctalia runtime assets should not expose upstream blue/green accent colors"
 grep -q 'singleton RyokuThemeActions 1.0 RyokuThemeActions.qml' "$runtime/Services/Ryoku/qmldir" \
   || fail "Ryoku theme actions should be exported from qmldir"
 grep -q 'singleton RyokuWallpaperActions 1.0 RyokuWallpaperActions.qml' "$runtime/Services/Ryoku/qmldir" \

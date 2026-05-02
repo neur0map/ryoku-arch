@@ -116,7 +116,7 @@ grep -q 'XF86AudioMute, Mute, exec, ryoku-volume mute-toggle' "$media" \
 
 grep -q 'wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@' "$volume" \
   || fail "ryoku-volume should clamp output volume to 100%"
-grep -q 'qs -c ryoku ipc call volume flash' "$volume" \
+grep -q 'qs -c ryoku ipc --newest call volume flash' "$volume" \
   || fail "ryoku-volume should notify Quickshell"
 
 pass "quickshell volume feedback"
