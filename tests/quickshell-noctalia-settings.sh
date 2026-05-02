@@ -107,10 +107,12 @@ grep -q 'title: "Ryoku Settings"' "$settings_window" \
   || fail "Settings panel should not grab exclusive layer-shell focus"
 ! grep -q 'mask: Region' "$settings_window" \
   || fail "Settings panel should not create a fullscreen masked layer-shell surface"
-grep -q 'width: Math.min(panelWidth, screen ? screen.width - 24 : panelWidth)' "$settings_window" \
+grep -q 'implicitWidth: Math.min(panelWidth, screen ? screen.width - 24 : panelWidth)' "$settings_window" \
   || fail "Settings panel should cap width to available screen geometry"
-grep -q 'height: Math.min(panelHeight, screen ? screen.height - 24 : panelHeight)' "$settings_window" \
+grep -q 'implicitHeight: Math.min(panelHeight, screen ? screen.height - 24 : panelHeight)' "$settings_window" \
   || fail "Settings panel should cap height to available screen geometry"
+! rg -n '^[[:space:]]+(width|height):' "$settings_window" \
+  || fail "Settings FloatingWindow should use implicit dimensions to avoid Quickshell deprecation warnings"
 grep -q 'windowrule = float on, match:title \^Ryoku Settings\$' "$hypr_system" \
   || fail "Hyprland should float the Ryoku settings window"
 grep -q 'windowrule = center on, match:title \^Ryoku Settings\$' "$hypr_system" \
