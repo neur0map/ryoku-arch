@@ -4,6 +4,24 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 
 ASUSCTL_THEME=$RYOKU_CONFIG_PATH/current/theme/keyboard.rgb
 
-if ryoku-cmd-present asusctl; then
-  asusctl aura effect static -c $(sed 's/^#//' $ASUSCTL_THEME)
+asusctl_colour() {
+  local value r g b
+
+  value="$(tr -d '[:space:]' <"$ASUSCTL_THEME")"
+  value="${value#\#}"
+
+  if [[ $value == *,*,* ]]; then
+    IFS=, read -r r g b <<<"$value"
+    if [[ $r =~ ^[0-9]+$ && $g =~ ^[0-9]+$ && $b =~ ^[0-9]+$ ]] &&
+      (( r >= 0 && r <= 255 && g >= 0 && g <= 255 && b >= 0 && b <= 255 )); then
+      printf '%02x%02x%02x\n' "$r" "$g" "$b"
+      return 0
+    fi
+  fi
+
+  printf '%s\n' "$value"
+}
+
+if ryoku-cmd-present asusctl && [[ -f $ASUSCTL_THEME ]]; then
+  asusctl aura effect static -c "$(asusctl_colour)"
 fi
