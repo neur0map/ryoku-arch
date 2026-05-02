@@ -8,6 +8,7 @@ contributions are below.
 Ryoku's centered settings panel UI, layout, widgets, and settings-page structure are adapted from Noctalia Shell.
 
 - Repository: https://github.com/noctalia-dev/noctalia-shell
+- Copyright holder: noctalia-dev (2025)
 - License: MIT
 - Pinned snapshot: `9f8dd48c8df5ab1f7f87ddf9842627e1e5682186`
 
