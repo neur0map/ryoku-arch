@@ -18,8 +18,8 @@
 
 - [x] Create `docs/superpowers/specs/2026-05-02-ryoku-shell-rebrand-design.md`.
 - [x] Create this implementation plan.
-- [ ] Commit the spec.
-- [ ] Commit the plan.
+- [x] Commit the spec.
+- [x] Commit the plan.
 
 **Verification:**
 
@@ -33,6 +33,8 @@ rg -n "Phase 1|Phase 2|Phase 3|Phase 4|Phase 5|Phase 6" docs/superpowers/specs/2
 ## Phase 1: Safe Ryoku Overlay
 
 **Scope:** Execute now.
+
+**Status:** Completed on 2026-05-02. The Ryoku theme, overlay, installer wiring, runtime labels, migration, live application, and focused checks are complete. Continue at Phase 2 in the next session.
 
 ### Task 1: Add Rebrand Contract Test
 
