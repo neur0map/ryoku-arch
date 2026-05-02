@@ -7,6 +7,16 @@
       "type": "scheme-tonal-spot",
       "accentColor": "#F25623"
     },
+    "wallpaperTheming": {
+      "enableAppsAndShell": false,
+      "enableTerminal": false,
+      "enableQtApps": false,
+      "enableVSCode": false,
+      "enableChrome": false,
+      "enableVesktop": false,
+      "enableZed": false,
+      "enablePearDesktop": false
+    },
     "iconTheme": "Yaru-red",
     "customTheme": {
       "darkmode": true,
