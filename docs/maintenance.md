@@ -1,6 +1,6 @@
 # Maintenance Guide
 
-How to maintain the Ryoku Arch repository: branch topology, shipping changes to users, tracking upstream omarchy, and safety rules.
+How to maintain the Ryoku Arch repository: branch topology, shipping changes to users, tracking upstream Omarchy, and safety rules.
 
 ## How changes reach users
 
@@ -74,7 +74,7 @@ When a user runs `ryoku-update` on their Ryoku Arch system:
    - `ryoku-update-system-pkgs`: pacman system upgrade.
    - `ryoku-update-aur-pkgs`: AUR package upgrade.
    - Keyring, firmware, orphan-package checks.
-5. Restarts affected components (Hyprland reload, etc.) if needed.
+5. Restarts affected components (Niri config reload, shell restart, etc.) if needed.
 
 Because `git pull` pulls from whatever `origin` points at, and the live clone's `origin` was repointed to `neur0map/ryoku-arch` during the scaffolding pass, your pushes flow through automatically. No user action required to "opt in" to Ryoku changes beyond the initial migration.
 
@@ -83,12 +83,12 @@ Because `git pull` pulls from whatever `origin` points at, and the live clone's 
 | Kind of change | What you do | How it reaches the user |
 |---|---|---|
 | New or modified command in `bin/` | Add or edit a file under `bin/`, commit, push | Immediately after `git pull`. The installer put `$RYOKU_PATH/bin` on `PATH`, so the new command is live instantly. |
-| New theme, asset, or default-config template | Add file under `themes/`, `default/`, or similar | File is present after pull. If it is a default template (e.g., `default/hypr/*.tpl`), the user's `~/.config/` is NOT auto-updated. They must opt in via `ryoku-refresh-config <path>`, or you ship a migration that does the copy with backup. |
+| New theme, asset, or default-config template | Add file under `themes/`, `default/`, or similar | File is present after pull. If it is a default config or template, the user's `~/.config/` is NOT auto-updated. They must opt in via `ryoku-refresh-config <path>`, or you ship a migration that does the copy with backup. |
 | System state change (package install, service enable, systemd unit, config modification) | Write a migration script at `migrations/<unix-timestamp>.sh` | Picked up automatically by `ryoku-migrate` during the next `ryoku-update`. Runs once per user by convention. |
 
 ### What will NOT auto-propagate
 
-- **Config files the user has customized.** If they edited `~/.config/hypr/hyprland.conf` and you ship a new default, they keep their version. Use a migration to offer a merge or document a refresh command.
+- **Config files the user has customized.** If they edited `~/.config/niri/config.kdl` or a file under `~/.config/niri/config.d/` and you ship a new default, they keep their version. Use a migration to offer a merge or document a refresh command.
 - **Changes outside `~/.local/share/ryoku/`.** System services, `/etc/` configs, boot config, kernel params. Touch via a migration script that uses sudo.
 - **User-installed binaries outside the clone.** Not affected by updates.
 
@@ -110,7 +110,7 @@ Commit message types follow the pattern already in history: `feat:`, `fix:`, `do
 
 Example: ship `nmap` to all Ryoku Arch users.
 
-1. Create the migration file named after the current unix timestamp, using omarchy's helper:
+1. Create the migration file named after the current unix timestamp, using the Ryoku helper:
 
 ```bash
 cd $HOME/prowl/ryoku-arch
@@ -119,7 +119,7 @@ ryoku-dev-add-migration --no-edit
 
 This creates `migrations/<unix-timestamp>.sh`.
 
-2. Edit the new file. Migration format (inherited from omarchy convention):
+2. Edit the new file. Migration format:
    - No shebang line.
    - Start with `echo` describing what the migration does.
    - Use `$RYOKU_PATH` to reference the repository root on the user's machine.
