@@ -34,7 +34,7 @@ Use a Ryoku overlay that runs after the upstream shell install. The overlay patc
 - SDDM visible labels where available
 - Ryoku theme defaults in this repository
 
-This avoids a full source rename while the Niri session is still being stabilized. The actual binary and a few internal paths may stay in compatibility form until Phase 2.
+This avoids a full source rename while the Niri session is still being stabilized. The actual binary and a few internal paths may stay in compatibility form until Phase 3.
 
 ## Phase Map
 
@@ -68,7 +68,22 @@ Verification:
 - The default theme installer selects `ryoku`.
 - The live shell checkout receives Ryoku visible labels and assets when the overlay runs.
 
-### Phase 2: Ryoku Shell Command And Service Wrappers
+### Phase 2: Legacy Tooling Inventory And Port
+
+1. Inventory every pre-Niri Ryoku tool, setup script, service, migration, and default config.
+2. Mark each item as keep, port, replace, or remove.
+3. Keep Ryoku-owned tools that are compositor-independent, including theme helpers, wallpaper helpers, screenshots, screensavers, setup wizards, package helpers, dev scanners, boot branding, SDDM branding, and Plymouth branding.
+4. Port Ryoku-owned tools that currently call old shell-specific services so they use Niri-compatible helpers.
+5. Replace shell-specific tools that conflict with Niri, including old Hyprland autostart, Waybar, Walker, Hyprlock, Hypridle, and old notification/OSD assumptions.
+6. Remove old Omarchy files only after the Ryoku equivalent is mapped and verified.
+
+Verification:
+
+- The inventory document has a decision for each legacy runtime path.
+- Tests cover retained screensavers and compositor-independent Ryoku tools.
+- No old Hyprland service, bind, or config is enabled by fresh install paths unless explicitly documented as compatibility-only.
+
+### Phase 3: Ryoku Shell Command And Service Wrappers
 
 1. Add a `ryoku-shell` command wrapper for the current upstream shell launcher.
 2. Add a `ryoku-shell.service` user unit that uses Ryoku naming while delegating to the proven launcher.
@@ -82,7 +97,7 @@ Verification:
 - Restart helpers bring back the shell through the Ryoku wrapper.
 - Existing sessions survive logout/login.
 
-### Phase 3: Offline ISO Source And Patch Pinning
+### Phase 4: Offline ISO Source And Patch Pinning
 
 1. Pin the upstream shell source or release artifact for offline ISO builds.
 2. Store the Ryoku patchset or overlay inputs in the repository.
@@ -94,7 +109,7 @@ Verification:
 - A clean offline install path can install the Niri shell without network access.
 - Patch application fails loudly if upstream content changes in incompatible ways.
 
-### Phase 4: Full Source Fork Rebrand
+### Phase 5: Full Source Fork Rebrand
 
 1. Fork or vendor the shell source under a Ryoku-owned path.
 2. Rename public command names, service names, desktop files, schema labels, and documentation.
@@ -106,7 +121,7 @@ Verification:
 - No normal installed file exposes upstream system naming outside credit/license docs.
 - Existing user config migrates without losing panel, launcher, wallpaper, or theme settings.
 
-### Phase 5: Compatibility Cleanup
+### Phase 6: Compatibility Cleanup
 
 1. Remove old command and service bridges after the migration window.
 2. Remove legacy path fallbacks from installers and helpers.

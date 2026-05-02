@@ -25,7 +25,7 @@
 
 ```bash
 git status --short
-rg -n "Phase 1|Phase 2|Phase 3|Phase 4|Phase 5" docs/superpowers/specs/2026-05-02-ryoku-shell-rebrand-design.md docs/superpowers/plans/2026-05-02-ryoku-shell-rebrand.md
+rg -n "Phase 1|Phase 2|Phase 3|Phase 4|Phase 5|Phase 6" docs/superpowers/specs/2026-05-02-ryoku-shell-rebrand-design.md docs/superpowers/plans/2026-05-02-ryoku-shell-rebrand.md
 ```
 
 ---
@@ -268,7 +268,73 @@ pgrep -a -x quickshell
 
 ---
 
-## Phase 2: Ryoku Shell Wrappers And Service Names
+## Phase 2: Legacy Tooling Inventory And Port
+
+**Scope:** Deferred, but must happen before deeper wrapper/source rename work.
+
+**Files:**
+
+- `docs/legacy-tooling-inventory.md`
+- `tests/niri-legacy-tooling.sh`
+- Legacy runtime files discovered during inventory
+
+**Tasks:**
+
+- Inventory all old pre-Niri runtime surfaces:
+  - `bin/ryoku-*` commands
+  - `install/config/*.sh` setup scripts
+  - `config/systemd/user/*.service` and timers
+  - `config/hypr`, `config/niri`, lockscreen, idle, notification, launcher, OSD, wallpaper, and screenshot configs
+  - `default/`, `themes/`, `migrations/`, boot branding, SDDM, Plymouth, and Limine assets
+- Classify each item as:
+  - keep unchanged
+  - port to Niri/Ryoku shell
+  - replace with a Niri-native tool
+  - remove after equivalent is verified
+- Keep Ryoku-owned compositor-independent tools:
+  - theme and wallpaper helpers
+  - screenshot and recording helpers
+  - screensavers
+  - package and hardware helpers
+  - dev scanners and githooks
+  - setup wizards that still apply
+  - boot, SDDM, Plymouth, and Limine branding
+- Port old shell-specific Ryoku tools:
+  - restart helpers
+  - launcher IPC helpers
+  - notification and OSD helpers
+  - lock and idle integration
+  - wallpaper application paths
+- Replace or remove old shell-specific pieces only after the inventory proves the Niri path exists:
+  - Hyprland configs, services, and binds
+  - Waybar
+  - Walker
+  - Hyprlock
+  - Hypridle
+  - stale notification or OSD setup
+  - old Omarchy paths and packages
+- Add a test that fails if fresh install paths still enable old Hyprland or Omarchy runtime files.
+- Add a test that proves retained screensavers are still shipped.
+
+**Verification:**
+
+```bash
+bash tests/niri-legacy-tooling.sh
+rg -n "hyprland|hyprlock|hypridle|waybar|walker|omarchy" bin install config default themes migrations docs
+```
+
+The `rg` output must be reviewed against the inventory. Remaining matches need an explicit keep/port/remove decision.
+
+**Commit:**
+
+```bash
+git add docs/legacy-tooling-inventory.md tests/niri-legacy-tooling.sh <ported-files>
+git commit -m "docs: inventory legacy ryoku tooling for niri"
+```
+
+---
+
+## Phase 3: Ryoku Shell Wrappers And Service Names
 
 **Scope:** Deferred.
 
@@ -291,7 +357,7 @@ ryoku-restart-ui --quiet
 
 ---
 
-## Phase 3: Offline ISO Shell Source
+## Phase 4: Offline ISO Shell Source
 
 **Scope:** Deferred.
 
@@ -310,7 +376,7 @@ RYOKU_OFFLINE=1 ./setup install -y --skip-deps --skip-sysupdate
 
 ---
 
-## Phase 4: Full Source Fork Rebrand
+## Phase 5: Full Source Fork Rebrand
 
 **Scope:** Deferred.
 
@@ -332,7 +398,7 @@ Use the real scanner from the phase implementation instead of the placeholder qu
 
 ---
 
-## Phase 5: Remove Compatibility
+## Phase 6: Remove Compatibility
 
 **Scope:** Deferred until after at least one tested ISO.
 
