@@ -57,7 +57,13 @@ Item {
         command: ["bash", "-c",
             "awk 'NR>2 {printf \"%d\\n\", $3*100/70; exit} END {if (NR<3) print 0}' /proc/net/wireless 2>/dev/null"]
         running: false
-        stdout: SplitParser { onRead: function(l) { var s = parseInt(l.trim()); root._signal = isNaN(s) ? 0 : s } }
+        stdout: SplitParser {
+            onRead: function(l) {
+                var s = parseInt(l.trim())
+                root._signal = isNaN(s) ? 0 : s
+                ShellState.wifiOn = root._signal > 0 && !ShellState.hotspot
+            }
+        }
     }
     Process {
         id: ethPoll

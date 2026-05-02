@@ -52,7 +52,7 @@ grep -q 'property bool wallpaperVisible' "$popups" \
   || fail "Popups should track wallpaper visual presence"
 grep -q 'property string wallpaperMode' "$popups" \
   || fail "Popups should track which appearance selector section is showing"
-grep -q 'Popups.dashboardVisible || Popups.launcherVisible || Popups.systemMenuVisible || Popups.settingsMenuVisible' "$topbar" \
+grep -q 'Popups.dashboardVisible || Popups.launcherVisible || Popups.systemMenuVisible || Popups.legacySettingsMenuVisible' "$topbar" \
   || fail "TopBar should only promote bar-attached popups to overlay"
 ! grep -q 'Popups.dashboardVisible || Popups.launcherVisible || Popups.wallpaperVisible' "$topbar" \
   || fail "TopBar should not compete with fullscreen wallpaper overlay"
