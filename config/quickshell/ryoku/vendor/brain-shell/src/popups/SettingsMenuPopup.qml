@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
@@ -8,24 +9,40 @@ import "../shapes"
 PanelWindow {
   id: root
 
-  Binding { target: Popups; property: "legacySettingsMenuVisible"; value: card.visible }
+  Binding { target: Popups; property: "settingsMenuVisible"; value: card.visible }
 
   readonly property int fw: Theme.notchRadius
   readonly property int fh: Theme.notchRadius
-  readonly property int menuWidth: 456
-  readonly property int menuHeight: 520
+  readonly property int menuWidth: 440
+  readonly property int shortcutsHeight: 52
+  readonly property int noctaliaMarginS: 6
+  readonly property int noctaliaMarginL: 13
+  readonly property int noctaliaRadiusM: 16
+  readonly property int noctaliaInteractiveRadiusL: 20
+  readonly property int noctaliaBorderS: 1
+  readonly property int noctaliaBaseWidgetSize: 33
+  readonly property int homeMenuHeight: root.noctaliaMarginS + root.shortcutsHeight + root.noctaliaMarginL
+  readonly property int targetMenuHeight: root.homeMenuHeight
   readonly property int fullCardWidth: root.menuWidth + 2 * root.fw
-  readonly property int fullCardHeight: Theme.notchHeight + root.menuHeight
+  readonly property int fullCardHeight: root.targetMenuHeight
   readonly property int initialCardHeight: Theme.notchHeight
+  readonly property int closeAnimationDuration: 140
+  readonly property color noctaliaSurfaceVariant: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.045)
+  readonly property color noctaliaOutline: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.070)
+  readonly property color noctaliaHover: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.20)
+  readonly property color noctaliaOnHover: Theme.text
+  readonly property color noctaliaPrimary: Theme.active
+  readonly property color noctaliaOnPrimary: Theme.background
+  readonly property string noctaliaIconFont: noctaliaTablerIcons.name !== "" ? noctaliaTablerIcons.name : "sans-serif"
   readonly property string homeDir: Quickshell.env("HOME")
   readonly property string ryokuConfigPath: Quickshell.env("RYOKU_CONFIG_PATH") !== "" ? Quickshell.env("RYOKU_CONFIG_PATH") : root.homeDir + "/.config/ryoku"
 
   property bool windowVisible: false
-  property real openProgress: Popups.legacySettingsMenuOpen ? 1 : 0
+  property real openProgress: Popups.settingsMenuOpen ? 1 : 0
   property string currentPage: "home"
   property string currentSubpage: ""
-  property string pageTitle: "Ryoku"
-  property string pageKicker: "Control center"
+  property string pageTitle: "Control center"
+  property string pageKicker: "Quick controls ready"
   property string manageTab: "install"
   property bool wifiOn: false
   property string wifiSSID: ""
@@ -50,12 +67,15 @@ PanelWindow {
   property bool rollbackAvailable: false
   property int savedGapsIn: 5
   property int savedGapsOut: 10
+  property string hoveredQuickAction: ""
+  property string focusedQuickAction: ""
+  property string lastQuickAction: ""
 
   Behavior on openProgress {
     enabled: !Theme.staticMode
     NumberAnimation {
-      duration: Theme.motionExpandDuration
-      easing.type: Popups.legacySettingsMenuOpen ? Easing.OutBack : Easing.OutQuart
+      duration: Popups.settingsMenuOpen ? Theme.motionExpandDuration : root.closeAnimationDuration
+      easing.type: Popups.settingsMenuOpen ? Easing.OutBack : Easing.OutQuart
       easing.overshoot: 1.06
     }
   }
@@ -71,8 +91,13 @@ PanelWindow {
     bottom: true
   }
 
-  WlrLayershell.layer: WlrLayer.Top
-  WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
+  WlrLayershell.layer: WlrLayer.Overlay
+  WlrLayershell.keyboardFocus: Popups.settingsMenuOpen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+
+  FontLoader {
+    id: noctaliaTablerIcons
+    source: "../assets/fonts/noctalia-tabler-icons.ttf"
+  }
 
   ListModel {
     id: quickControlsModel
@@ -94,10 +119,6 @@ PanelWindow {
     ListElement { label: "Setup"; hint: "Controls and config"; page: "setup"; accent: "#a6da95" }
     ListElement { label: "Manage"; hint: "Install, remove, maintain"; page: "manage"; accent: "#eed49f" }
     ListElement { label: "About"; hint: "Ryoku details"; page: "about"; accent: "#f5a97f" }
-  }
-
-  ListModel {
-    id: emptyActions
   }
 
   ListModel {
@@ -424,15 +445,19 @@ PanelWindow {
   Connections {
     target: Popups
 
-    function onLegacySettingsMenuOpenChanged() {
-      if (Popups.legacySettingsMenuOpen) {
+    function onSettingsMenuOpenChanged() {
+      if (Popups.settingsMenuOpen) {
         closeTimer.stop()
         root.openRequestedRoute()
         root.windowVisible = true
+        root.syncQuickControlsFromShellState()
         root.pollQuickControls()
         root.pollRollbackAvailability()
       } else {
         root.filterPickerOpen = false
+        root.hoveredQuickAction = ""
+        root.focusedQuickAction = ""
+        root.lastQuickAction = ""
         closeTimer.restart()
       }
     }
@@ -440,7 +465,7 @@ PanelWindow {
 
   Timer {
     id: closeTimer
-    interval: Theme.motionExpandDuration + 50
+    interval: root.closeAnimationDuration + 40
     onTriggered: root.windowVisible = false
   }
 
@@ -461,12 +486,13 @@ PanelWindow {
   }
 
   Process {
-    id: wifiRadioRead
-    command: ["bash", "-c", "nmcli radio wifi"]
+    id: wifiSignalRead
+    command: ["bash", "-c", "awk 'NR>2 {printf \"%d\\n\", $3*100/70; exit} END {if (NR<3) print 0}' /proc/net/wireless 2>/dev/null"]
     running: false
     stdout: StdioCollector {
       onStreamFinished: {
-        root.wifiOn = text.trim() === "enabled"
+        var signal = parseInt(text.trim())
+        root.wifiOn = !isNaN(signal) && signal > 0
         ShellState.wifiOn = root.wifiOn && !root.hotspotOn
       }
     }
@@ -490,11 +516,14 @@ PanelWindow {
 
   Process {
     id: btPowerRead
-    command: ["bash", "-c", "bluetoothctl show 2>/dev/null | grep '^\\s*Powered:' | awk '{print $2}'"]
+    command: ["bash", "-c",
+      "ADAPTER=$(busctl --system tree org.bluez 2>/dev/null | grep -oE '/org/bluez/hci[0-9]+$' | head -1); " +
+      "[ -z \"$ADAPTER\" ] && { echo false; exit; }; " +
+      "busctl --system get-property org.bluez \"$ADAPTER\" org.bluez.Adapter1 Powered 2>/dev/null | awk '{print $2}'"]
     running: false
     stdout: StdioCollector {
       onStreamFinished: {
-        root.btOn = text.trim() === "yes"
+        root.btOn = text.trim() === "true"
         ShellState.btPowered = root.btOn
         if (!root.btOn) {
           ShellState.btConnected = false
@@ -505,12 +534,16 @@ PanelWindow {
 
   Process {
     id: btDeviceRead
-    command: ["bash", "-c", "bluetoothctl devices Connected 2>/dev/null | head -1 | cut -d' ' -f3-"]
+    command: ["bash", "-c",
+      "busctl --system tree org.bluez 2>/dev/null | grep -oE '/org/bluez/hci[0-9]+/dev_[A-F0-9_]+$' | " +
+      "while read -r p; do busctl --system get-property org.bluez \"$p\" org.bluez.Device1 Connected 2>/dev/null | awk '{print $2}'; done | " +
+      "grep -c '^true$'"]
     running: false
     stdout: StdioCollector {
       onStreamFinished: {
-        root.btDevice = text.trim()
-        ShellState.btConnected = root.btDevice !== ""
+        var connected = parseInt(text.trim()) > 0
+        root.btDevice = connected ? "Connected" : ""
+        ShellState.btConnected = connected
       }
     }
   }
@@ -587,7 +620,7 @@ PanelWindow {
     stdout: StdioCollector {
       onStreamFinished: {
         if (parseInt(text.trim()) > 0) {
-          root.hotspotWifiWasOff = !root.wifiOn
+          root.hotspotWifiWasOff = !ShellState.wifiOn
           hotspotConfigLoad.running = false
           hotspotConfigLoad.running = true
         } else {
@@ -683,7 +716,7 @@ PanelWindow {
       if (root.hotspotWifiWasOff) {
         root.wifiOn = false
         ShellState.wifiOn = false
-        wifiToggleProc.command = ["bash", "-c", "nmcli radio wifi off"]
+        wifiToggleProc.command = ["bash", "-c", "nmcli radio wifi off 2>/dev/null || true; rfkill block wifi"]
         wifiToggleProc.running = false
         wifiToggleProc.running = true
         root.hotspotWifiWasOff = false
@@ -706,6 +739,13 @@ PanelWindow {
     interval: 3000
     repeat: false
     onTriggered: if (root.focusLabel === "External") root.focusLabel = ""
+  }
+
+  Timer {
+    id: quickStatusReset
+    interval: 2600
+    repeat: false
+    onTriggered: root.lastQuickAction = ""
   }
 
   Process {
@@ -816,22 +856,26 @@ PanelWindow {
   }
 
   function openRequestedRoute() {
-    root.openPage(Popups.legacySettingsMenuRequestedPage, Popups.legacySettingsMenuRequestedSubpage)
+    root.openPage(Popups.settingsMenuRequestedPage, Popups.settingsMenuRequestedSubpage)
   }
+
+  function syncQuickControlsFromShellState() {
+    root.wifiOn = ShellState.wifiOn
+    root.btOn = ShellState.btPowered
+    root.btDevice = ShellState.btConnected ? "Connected" : ""
+    root.hotspotOn = ShellState.hotspot
+  }
+
+  function resetDetailScroll() {}
 
   function openPage(page, subpage) {
     root.currentPage = page && page !== "" ? page : "home"
     root.currentSubpage = subpage && subpage !== "" ? subpage : ""
-    if (root.currentPage === "home") {
-      root.pageTitle = "Ryoku"
-      root.pageKicker = "Control center"
-    } else if (root.currentSubpage !== "") {
-      root.pageTitle = root.pageLabel(root.currentSubpage)
-      root.pageKicker = root.pageLabel(root.currentPage)
-    } else {
-      root.pageTitle = root.pageLabel(root.currentPage)
-      root.pageKicker = "Control center"
-    }
+    root.hoveredQuickAction = ""
+    root.focusedQuickAction = ""
+    root.pageTitle = "Control center"
+    root.pageKicker = root.quickStatusText(root.selectedQuickAction())
+    root.resetDetailScroll()
   }
 
   function back() {
@@ -880,7 +924,6 @@ PanelWindow {
   }
 
   function pageModel() {
-    if (root.currentPage === "home") return emptyActions
     if (root.currentPage === "learn") return learnActions
     if (root.currentPage === "share") return shareActions
     if (root.currentPage === "style") return styleActions
@@ -914,7 +957,7 @@ PanelWindow {
     if (root.currentPage === "manage" && root.manageTab === "maintain") return manageMaintainActions
     if (root.currentPage === "manage") return manageInstallActions
     if (root.currentPage === "about") return aboutActions
-    return emptyActions
+    return nativeSectionsModel
   }
 
   function runCommand(command) {
@@ -1088,6 +1131,7 @@ PanelWindow {
       root.currentSubpage = ""
       root.pageTitle = "Manage"
       root.pageKicker = "Control center"
+      root.resetDetailScroll()
       return
     case "page-install-service":
       root.openPage("manage", "install-service")
@@ -1333,19 +1377,191 @@ PanelWindow {
 
   function wifiStatusText() {
     if (root.hotspotOn) return "Used by Hotspot"
-    if (!root.wifiOn) return "Off"
+    if (!ShellState.wifiOn) return "Off"
     return root.wifiSSID !== "" ? root.wifiSSID : "On"
   }
 
   function bluetoothStatusText() {
-    if (!root.btOn) return "Off"
-    return root.btDevice !== "" ? root.btDevice : "On"
+    if (!ShellState.btPowered) return "Off"
+    return ShellState.btConnected ? "Connected" : "On"
+  }
+
+  function quickIconGlyph(icon) {
+    switch (icon) {
+    case "wifi": return "󰤨"
+    case "bluetooth": return "󰂯"
+    case "airplane": return "󰀝"
+    case "hotspot": return "󱜠"
+    case "night": return "󰖔"
+    case "focus": return "󰃟"
+    case "dnd": return "󰂛"
+    case "filter": return "󰈲"
+    default: return "•"
+    }
+  }
+
+  function sectionIconGlyph(page) {
+    switch (page) {
+    case "learn": return "󰑴"
+    case "share": return "󰒟"
+    case "style": return "󰏘"
+    case "setup": return "󰒓"
+    case "manage": return "󰏗"
+    case "about": return "󰋼"
+    default: return "•"
+    }
+  }
+
+  function actionIconGlyph(icon) {
+    switch (icon) {
+    case "keys": return "󰌌"
+    case "docs": return "󰈙"
+    case "hypr": return "󱗼"
+    case "arch": return "󰣇"
+    case "editor": return "󰏫"
+    case "terminal": return "󰆍"
+    case "clipboard": return "󰅌"
+    case "file": return "󰈔"
+    case "folder": return "󰉋"
+    case "palette": return "󰏘"
+    case "type": return "󰬴"
+    case "image": return "󰋩"
+    case "text": return "󰉿"
+    case "info": return "󰋼"
+    case "audio": return "󰕾"
+    case "wifi": return "󰤨"
+    case "bluetooth": return "󰂯"
+    case "power": return "󰐥"
+    case "sleep": return "⏾"
+    case "display": return "󰍹"
+    case "dns": return "󰌘"
+    case "shield": return "󰒃"
+    case "sliders": return "󰒓"
+    case "chip": return "󰘚"
+    case "fingerprint": return "󰈷"
+    case "key": return "󰌋"
+    case "folder-cog": return "󱁿"
+    case "default": return "󰘳"
+    case "osd": return "󰍜"
+    case "launcher": return "󰀻"
+    case "keyboard": return "󰌌"
+    case "gpu": return "󰢮"
+    case "touchpad": return "󰟸"
+    case "plus": return "+"
+    case "minus": return "-"
+    case "wrench": return "󰖷"
+    case "package": return "󰏗"
+    case "web": return "󰖟"
+    case "service": return "󰒋"
+    case "code": return "󰅩"
+    case "ai": return "󰚩"
+    case "windows": return "󰖳"
+    case "game": return "󰊴"
+    case "clean": return "󰃢"
+    case "mic": return "󰍬"
+    case "update": return "󰚰"
+    case "branch": return "󰘬"
+    case "refresh": return "󰑐"
+    case "process": return "󰒋"
+    case "hardware": return "󰘚"
+    case "firmware": return "󰁰"
+    case "globe": return "󰖟"
+    case "clock": return "󰥔"
+    case "rollback": return "󰦛"
+    default: return "•"
+    }
+  }
+
+  function quickStateText(action) {
+    switch (action) {
+    case "wifi-toggle": return root.wifiStatusText()
+    case "bluetooth-toggle": return root.bluetoothStatusText()
+    case "airplane-toggle": return root.airplaneOn ? "On" : "Off"
+    case "hotspot-toggle": return root.hotspotLabel !== "" ? root.hotspotLabel : (root.hotspotOn ? "Active" : "Off")
+    case "nightlight-toggle": return root.nightLightOn ? "On" : "Off"
+    case "focus-toggle": return root.focusLabel !== "" ? root.focusLabel : (ShellState.focusMode ? "On" : "Off")
+    case "dnd-toggle": return ShellState.dnd ? "On" : "Off"
+    case "filter-open": return root.currentFilter !== "" ? root.currentFilter : "Off"
+    default: return ""
+    }
+  }
+
+  function quickLabel(action) {
+    switch (action) {
+    case "wifi-toggle": return "Wi-Fi"
+    case "bluetooth-toggle": return "Bluetooth"
+    case "airplane-toggle": return "Airplane Mode"
+    case "hotspot-toggle": return "Hotspot"
+    case "nightlight-toggle": return "Night Light"
+    case "focus-toggle": return "Focus Mode"
+    case "dnd-toggle": return "Do Not Disturb"
+    case "filter-open": return "Filter"
+    default: return "Quick Control"
+    }
+  }
+
+  function quickIconName(action) {
+    switch (action) {
+    case "wifi-toggle": return ShellState.wifiOn && !root.hotspotOn ? "wifi" : "wifi-off"
+    case "bluetooth-toggle": return ShellState.btPowered ? (ShellState.btConnected ? "bluetooth-connected" : "bluetooth") : "bluetooth-off"
+    case "airplane-toggle": return root.airplaneOn ? "plane" : "plane-off"
+    case "hotspot-toggle": return "antenna"
+    case "nightlight-toggle": return root.nightLightOn ? "nightlight-on" : "nightlight-off"
+    case "focus-toggle": return "focus"
+    case "dnd-toggle": return ShellState.dnd ? "bell-off" : "bell"
+    case "filter-open": return "filter"
+    default: return "settings"
+    }
+  }
+
+  function noctaliaIconGlyph(icon) {
+    switch (icon) {
+    case "wifi": return "\u{eb52}"
+    case "wifi-off": return "\u{ecfa}"
+    case "bluetooth": return "\u{ea37}"
+    case "bluetooth-connected": return "\u{ecea}"
+    case "bluetooth-off": return "\u{eceb}"
+    case "plane": return "\u{eb6f}"
+    case "plane-off": return "\u{f17a}"
+    case "antenna": return "\u{f094}"
+    case "nightlight-on":
+    case "moon": return "\u{eaf8}"
+    case "nightlight-off":
+    case "moon-off": return "\u{f162}"
+    case "focus": return "\u{eb8d}"
+    case "bell": return "\u{ea35}"
+    case "bell-off": return "\u{ece9}"
+    case "filter": return "\u{eaa5}"
+    case "settings": return "\u{eb20}"
+    default: return "\u{eb20}"
+    }
+  }
+
+  function selectedQuickAction() {
+    if (root.hoveredQuickAction !== "") return root.hoveredQuickAction
+    if (root.focusedQuickAction !== "") return root.focusedQuickAction
+    if (root.lastQuickAction !== "") return root.lastQuickAction
+    if (root.hotspotLabel !== "") return "hotspot-toggle"
+    if (root.focusLabel !== "") return "focus-toggle"
+    if (root.airplaneOn) return "airplane-toggle"
+    if (root.currentFilter !== "") return "filter-open"
+    if (ShellState.wifiOn && !root.hotspotOn) return "wifi-toggle"
+    if (ShellState.btConnected) return "bluetooth-toggle"
+    return ""
+  }
+
+  function quickStatusText(action) {
+    if (root.airplaneOn) return "Airplane Mode: On"
+    if (action === "") return "Quick controls ready"
+
+    var state = root.quickStateText(action)
+    return root.quickLabel(action) + (state !== "" ? ": " + state : "")
   }
 
   function quickActive(action) {
     switch (action) {
-    case "wifi-toggle": return root.wifiOn && !root.hotspotOn
-    case "bluetooth-toggle": return root.btOn
+    case "wifi-toggle": return ShellState.wifiOn && !root.hotspotOn
+    case "bluetooth-toggle": return ShellState.btPowered
     case "airplane-toggle": return root.airplaneOn
     case "hotspot-toggle": return root.hotspotOn || root.hotspotBusy
     case "nightlight-toggle": return root.nightLightOn
@@ -1357,6 +1573,9 @@ PanelWindow {
   }
 
   function runQuickAction(action) {
+    root.lastQuickAction = action
+    quickStatusReset.restart()
+
     switch (action) {
     case "wifi-toggle":
       root.toggleWifi()
@@ -1408,8 +1627,8 @@ PanelWindow {
   }
 
   function pollWifi() {
-    wifiRadioRead.running = false
-    wifiRadioRead.running = true
+    wifiSignalRead.running = false
+    wifiSignalRead.running = true
     wifiSSIDRead.running = false
     wifiSSIDRead.running = true
   }
@@ -1425,21 +1644,25 @@ PanelWindow {
     if (root.hotspotOn || root.hotspotBusy) {
       return
     }
-    root.wifiOn = !root.wifiOn
-    ShellState.wifiOn = root.wifiOn
-    wifiToggleProc.command = ["bash", "-c", "nmcli radio wifi " + (root.wifiOn ? "on" : "off")]
+    var turningOn = !(ShellState.wifiOn && !root.hotspotOn)
+    root.wifiOn = turningOn
+    ShellState.wifiOn = turningOn
+    wifiToggleProc.command = ["bash", "-c", turningOn ? "rfkill unblock wifi; nmcli radio wifi on 2>/dev/null || true" : "nmcli radio wifi off 2>/dev/null || true; rfkill block wifi"]
     wifiToggleProc.running = false
     wifiToggleProc.running = true
   }
 
   function toggleBluetooth() {
-    root.btOn = !root.btOn
-    ShellState.btPowered = root.btOn
-    if (!root.btOn) {
+    var turningOn = !ShellState.btPowered
+    root.btOn = turningOn
+    ShellState.btPowered = turningOn
+    if (!turningOn) {
       root.btDevice = ""
       ShellState.btConnected = false
     }
-    btToggleProc.command = ["bash", "-c", "bluetoothctl power " + (root.btOn ? "on" : "off")]
+    btToggleProc.command = ["bash", "-c",
+      "ADAPTER=$(busctl --system tree org.bluez 2>/dev/null | grep -oE '/org/bluez/hci[0-9]+$' | head -1); " +
+      "[[ -n $ADAPTER ]] && busctl --system set-property org.bluez \"$ADAPTER\" org.bluez.Adapter1 Powered b " + (turningOn ? "true" : "false")]
     btToggleProc.running = false
     btToggleProc.running = true
   }
@@ -1543,6 +1766,435 @@ PanelWindow {
     filterApplyProc.running = true
   }
 
+  // Copied and adapted from noctalia-dev/noctalia-shell (MIT):
+  // Widgets/NIcon.qml, Widgets/NIconButtonHot.qml, Modules/Cards/ShortcutsCard.qml.
+  component NoctaliaIcon: Text {
+    id: iconText
+
+    required property string icon
+    property real pointSize: 13
+
+    visible: iconText.icon !== ""
+    text: root.noctaliaIconGlyph(iconText.icon)
+    font.family: root.noctaliaIconFont
+    font.pixelSize: Math.max(1, Math.round(iconText.pointSize))
+    color: Theme.text
+    verticalAlignment: Text.AlignVCenter
+    horizontalAlignment: Text.AlignHCenter
+  }
+
+  component NoctaliaIconButtonHot: Rectangle {
+    id: button
+
+    required property string label
+    required property string icon
+    required property string action
+    property real baseSize: root.noctaliaBaseWidgetSize
+    property string tooltipText: root.quickStatusText(action)
+    property bool allowClickWhenDisabled: false
+    property bool hot: root.quickActive(action)
+    property bool hovering: false
+    property bool pressed: false
+    property color colorBg: root.noctaliaSurfaceVariant
+    property color colorFg: root.noctaliaPrimary
+    property color colorBgHover: root.noctaliaHover
+    property color colorFgHover: root.noctaliaOnHover
+    property color colorBorder: root.noctaliaOutline
+    property color colorBorderHover: Qt.rgba(root.noctaliaPrimary.r, root.noctaliaPrimary.g, root.noctaliaPrimary.b, 0.28)
+    property color colorBgHot: root.noctaliaPrimary
+    property color colorFgHot: root.noctaliaOnPrimary
+
+    signal entered
+    signal exited
+    signal clicked
+    signal rightClicked
+    signal middleClicked
+    signal activated(string action)
+    signal hoverChanged(string action, bool hovered)
+    signal quickFocusChanged(string action, bool focused)
+
+    implicitWidth: Math.round(button.baseSize)
+    implicitHeight: Math.round(button.baseSize)
+    opacity: enabled ? 1.0 : 0.6
+    radius: Math.min(root.noctaliaInteractiveRadiusL, width / 2)
+    activeFocusOnTab: true
+
+    color: {
+      if ((button.enabled && button.hovering) || button.pressed) {
+        return button.colorBgHover
+      }
+      if (button.hot) {
+        return button.colorBgHot
+      }
+      return button.colorBg
+    }
+    border.width: root.noctaliaBorderS
+    border.color: button.enabled && button.hovering ? button.colorBorderHover : button.colorBorder
+
+    Behavior on color {
+      enabled: !Theme.staticMode
+      ColorAnimation {
+        duration: 150
+        easing.type: Easing.InOutQuad
+      }
+    }
+
+    Behavior on border.color {
+      enabled: !Theme.staticMode
+      ColorAnimation {
+        duration: 150
+        easing.type: Easing.InOutQuad
+      }
+    }
+
+    NoctaliaIcon {
+      icon: button.icon
+      pointSize: Math.max(1, Math.round(button.width * 0.48))
+      color: {
+        if ((button.enabled && button.hovering) || button.pressed) {
+          return button.colorFgHover
+        }
+        if (button.hot) {
+          return button.colorFgHot
+        }
+        return button.colorFg
+      }
+      x: (button.width - width) / 2
+      y: (button.height - height) / 2 + (height - contentHeight) / 2
+
+      Behavior on color {
+        enabled: !Theme.staticMode
+        ColorAnimation {
+          duration: 150
+          easing.type: Easing.InOutQuad
+        }
+      }
+    }
+
+    MouseArea {
+      id: toggleMouse
+      enabled: true
+      anchors.fill: parent
+      cursorShape: Qt.PointingHandCursor
+      acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+      hoverEnabled: true
+
+      onEntered: {
+        button.hovering = button.enabled
+        button.entered()
+        button.hoverChanged(button.action, true)
+      }
+
+      onExited: {
+        button.hovering = false
+        button.exited()
+        button.hoverChanged(button.action, false)
+      }
+
+      onPressed: {
+        if (button.enabled) {
+          button.pressed = true
+        }
+        button.forceActiveFocus()
+      }
+
+      onReleased: {
+        button.pressed = false
+      }
+
+      onCanceled: {
+        button.hovering = false
+        button.pressed = false
+      }
+
+      onClicked: function(mouse) {
+        if (!button.enabled && !button.allowClickWhenDisabled) {
+          return
+        }
+        if (mouse.button === Qt.LeftButton) {
+          button.clicked()
+          button.activated(button.action)
+        } else if (mouse.button === Qt.RightButton) {
+          button.rightClicked()
+        } else if (mouse.button === Qt.MiddleButton) {
+          button.middleClicked()
+        }
+      }
+    }
+
+    onActiveFocusChanged: button.quickFocusChanged(button.action, activeFocus)
+    Keys.onReturnPressed: button.activated(button.action)
+    Keys.onEnterPressed: button.activated(button.action)
+    Keys.onSpacePressed: button.activated(button.action)
+  }
+
+  component NoctaliaShortcutBox: Rectangle {
+    id: box
+
+    required property int startIndex
+
+    Layout.fillWidth: true
+    Layout.preferredHeight: root.shortcutsHeight
+    radius: root.noctaliaRadiusM
+    color: root.noctaliaSurfaceVariant
+    border.color: root.noctaliaOutline
+    border.width: root.noctaliaBorderS
+
+    RowLayout {
+      anchors.fill: parent
+      spacing: root.noctaliaMarginS
+
+      Item {
+        Layout.fillWidth: true
+      }
+
+      Repeater {
+        model: 4
+
+        delegate: NoctaliaIconButtonHot {
+          required property int index
+
+          property var control: quickControlsModel.get(box.startIndex + index)
+
+          Layout.fillWidth: false
+          Layout.alignment: Qt.AlignVCenter
+          label: control.label
+          action: control.action
+          icon: root.quickIconName(action)
+          tooltipText: root.quickStatusText(action)
+
+          onActivated: function(action) {
+            root.runQuickAction(action)
+          }
+          onHoverChanged: function(action, hovered) {
+            root.hoveredQuickAction = hovered ? action : (root.hoveredQuickAction === action ? "" : root.hoveredQuickAction)
+          }
+          onQuickFocusChanged: function(action, focused) {
+            root.focusedQuickAction = focused ? action : (root.focusedQuickAction === action ? "" : root.focusedQuickAction)
+          }
+        }
+      }
+
+      Item {
+        Layout.fillWidth: true
+      }
+    }
+  }
+
+  component LegacyStrip: Rectangle {
+    required property string text
+
+    width: parent ? parent.width : 0
+    height: 28
+    radius: 7
+    color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.035)
+    border.width: 1
+    border.color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.055)
+
+    Text {
+      anchors {
+        left: parent.left
+        right: parent.right
+        verticalCenter: parent.verticalCenter
+        leftMargin: 10
+        rightMargin: 10
+      }
+      text: parent.text
+      color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.68)
+      font.pixelSize: 10
+      elide: Text.ElideRight
+      verticalAlignment: Text.AlignVCenter
+    }
+  }
+
+  component LegacySectionChip: Rectangle {
+    id: chip
+
+    required property string label
+    required property string hint
+    required property string page
+    required property string glyph
+    required property color accent
+
+    signal opened(string page)
+
+    width: 0
+    height: 38
+    radius: 7
+    color: sectionMouse.pressed ? Qt.rgba(chip.accent.r, chip.accent.g, chip.accent.b, 0.17)
+                                : sectionMouse.containsMouse ? Qt.rgba(chip.accent.r, chip.accent.g, chip.accent.b, 0.11)
+                                                             : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.035)
+    border.width: 1
+    border.color: sectionMouse.containsMouse ? Qt.rgba(chip.accent.r, chip.accent.g, chip.accent.b, 0.33)
+                                             : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.055)
+
+    Text {
+      width: 22
+      anchors {
+        left: parent.left
+        verticalCenter: parent.verticalCenter
+        leftMargin: 8
+      }
+      text: chip.glyph
+      color: chip.accent
+      opacity: 0.86
+      font.pixelSize: 14
+      horizontalAlignment: Text.AlignHCenter
+      verticalAlignment: Text.AlignVCenter
+    }
+
+    Column {
+      anchors {
+        left: parent.left
+        right: parent.right
+        verticalCenter: parent.verticalCenter
+        leftMargin: 34
+        rightMargin: 8
+      }
+      spacing: 0
+
+      Text {
+        width: parent.width
+        text: chip.label
+        color: Theme.text
+        font.pixelSize: 10
+        font.bold: true
+        elide: Text.ElideRight
+      }
+
+      Text {
+        width: parent.width
+        text: chip.hint
+        color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.42)
+        font.pixelSize: 8
+        elide: Text.ElideRight
+      }
+    }
+
+    MouseArea {
+      id: sectionMouse
+      anchors.fill: parent
+      hoverEnabled: true
+      cursorShape: Qt.PointingHandCursor
+      onClicked: chip.opened(chip.page)
+    }
+  }
+
+  component LegacyManageSegment: Rectangle {
+    id: segment
+
+    required property string label
+    required property string action
+    required property color accent
+    property bool selected: false
+
+    signal activated(string action)
+
+    width: 0
+    height: 28
+    radius: 7
+    color: segmentMouse.pressed ? Qt.rgba(segment.accent.r, segment.accent.g, segment.accent.b, 0.20)
+                                : segment.selected ? Qt.rgba(segment.accent.r, segment.accent.g, segment.accent.b, 0.15)
+                                                   : segmentMouse.containsMouse ? Qt.rgba(segment.accent.r, segment.accent.g, segment.accent.b, 0.10)
+                                                                                : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.035)
+    border.width: 1
+    border.color: segment.selected ? Qt.rgba(segment.accent.r, segment.accent.g, segment.accent.b, 0.42)
+                                   : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.055)
+
+    Text {
+      anchors.centerIn: parent
+      text: segment.label
+      color: segment.selected ? segment.accent : Theme.text
+      font.pixelSize: 10
+      font.bold: true
+      elide: Text.ElideRight
+    }
+
+    MouseArea {
+      id: segmentMouse
+      anchors.fill: parent
+      hoverEnabled: true
+      cursorShape: Qt.PointingHandCursor
+      onClicked: segment.activated(segment.action)
+    }
+  }
+
+  component LegacyActionChip: Rectangle {
+    id: chip
+
+    required property string label
+    required property string hint
+    required property string icon
+    required property string action
+    required property string glyph
+    required property color accent
+    property bool actionAvailable: true
+
+    signal activated(string action)
+
+    width: 0
+    height: actionAvailable ? 38 : 0
+    visible: actionAvailable
+    radius: 7
+    color: actionMouse.pressed ? Qt.rgba(chip.accent.r, chip.accent.g, chip.accent.b, 0.18)
+                               : actionMouse.containsMouse ? Qt.rgba(chip.accent.r, chip.accent.g, chip.accent.b, 0.11)
+                                                           : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.035)
+    border.width: 1
+    border.color: actionMouse.containsMouse ? Qt.rgba(chip.accent.r, chip.accent.g, chip.accent.b, 0.34)
+                                            : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.055)
+
+    Text {
+      width: 22
+      anchors {
+        left: parent.left
+        verticalCenter: parent.verticalCenter
+        leftMargin: 8
+      }
+      text: chip.glyph
+      color: chip.accent
+      opacity: 0.86
+      font.pixelSize: 14
+      horizontalAlignment: Text.AlignHCenter
+      verticalAlignment: Text.AlignVCenter
+    }
+
+    Column {
+      anchors {
+        left: parent.left
+        right: parent.right
+        verticalCenter: parent.verticalCenter
+        leftMargin: 34
+        rightMargin: 8
+      }
+      spacing: 0
+
+      Text {
+        width: parent.width
+        text: chip.label
+        color: Theme.text
+        font.pixelSize: 10
+        font.bold: true
+        elide: Text.ElideRight
+      }
+
+      Text {
+        width: parent.width
+        text: chip.hint
+        color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.42)
+        font.pixelSize: 8
+        elide: Text.ElideRight
+      }
+    }
+
+    MouseArea {
+      id: actionMouse
+      anchors.fill: parent
+      hoverEnabled: true
+      cursorShape: Qt.PointingHandCursor
+      onClicked: chip.activated(chip.action)
+    }
+  }
+
   MouseArea {
     anchors.fill: parent
     enabled: root.windowVisible
@@ -1556,16 +2208,19 @@ PanelWindow {
     anchors.top: parent.top
 
     width: root.fullCardWidth
-    height: root.initialCardHeight + (root.fullCardHeight - root.initialCardHeight) * root.openProgress
+    height: root.fullCardHeight
     visible: root.openProgress > 0
+    opacity: root.openProgress
+    transformOrigin: Item.TopRight
+    scale: 0.94 + 0.06 * root.openProgress
     clip: true
 
     PopupShape {
       anchors.fill: parent
       attachedEdge: "top"
-      color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, 0.95)
-      strokeColor: Qt.rgba(Theme.active.r, Theme.active.g, Theme.active.b, 0.22)
-      strokeWidth: 1
+      color: Theme.background
+      strokeColor: Theme.background
+      strokeWidth: 0
       radius: 8
       flareWidth: root.fw
       flareHeight: root.fh
@@ -1579,30 +2234,45 @@ PanelWindow {
     Item {
       anchors {
         fill: parent
-        topMargin: Theme.notchHeight + 10
-        leftMargin: root.fw + 12
-        rightMargin: root.fw + 12
-        bottomMargin: 12
+        topMargin: root.noctaliaMarginS
+        leftMargin: root.fw + root.noctaliaMarginL
+        rightMargin: root.fw + root.noctaliaMarginL
+        bottomMargin: root.noctaliaMarginL
       }
 
-      opacity: Math.min(1, root.openProgress * 1.35)
+      ColumnLayout {
+        id: controlCenterLayout
+        anchors.fill: parent
+        spacing: root.noctaliaMarginL
 
-      Behavior on opacity {
-        enabled: !Theme.staticMode
-        NumberAnimation { duration: Theme.motionEffectsDuration }
+        RowLayout {
+          id: noctaliaShortcutsCard
+          Layout.fillWidth: true
+          Layout.preferredHeight: root.shortcutsHeight
+          spacing: root.noctaliaMarginL
+
+          NoctaliaShortcutBox {
+            startIndex: 0
+          }
+
+          NoctaliaShortcutBox {
+            startIndex: 4
+          }
+        }
       }
 
       Column {
         anchors.fill: parent
-        spacing: 10
+        spacing: 8
+        visible: false
 
         Item {
           id: header
           width: parent.width
-          height: 42
+          height: 32
 
           Rectangle {
-            id: headerRule
+            id: legacyHeaderRule
             width: 3
             height: 28
             radius: 2
@@ -1615,7 +2285,7 @@ PanelWindow {
             width: 28
             height: 28
             anchors {
-              left: headerRule.right
+              left: legacyHeaderRule.right
               leftMargin: root.currentPage === "home" ? 0 : 9
               verticalCenter: parent.verticalCenter
             }
@@ -1644,7 +2314,7 @@ PanelWindow {
 
           Column {
             anchors {
-              left: root.currentPage === "home" ? headerRule.right : backControl.right
+              left: root.currentPage === "home" ? legacyHeaderRule.right : backControl.right
               leftMargin: 9
               verticalCenter: parent.verticalCenter
             }
@@ -1658,6 +2328,14 @@ PanelWindow {
             }
 
             Text {
+              visible: root.currentPage === "home"
+              text: "Control center"
+              color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.46)
+              font.pixelSize: 10
+            }
+
+            Text {
+              visible: root.currentPage !== "home"
               text: root.pageKicker
               color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.46)
               font.pixelSize: 10
@@ -1678,7 +2356,7 @@ PanelWindow {
         Item {
           id: pageStack
           width: parent.width
-          height: parent.height - header.height - 10
+          height: parent.height - header.height - 8
           clip: true
 
           Column {
@@ -1688,342 +2366,145 @@ PanelWindow {
             spacing: 12
             visible: root.currentPage === "home"
 
-            Text {
+            Row {
+              id: legacyQuickToggleRail
               width: parent.width
-              text: "Control center"
-              color: Theme.text
-              font.pixelSize: 12
-              font.bold: true
-            }
-
-            Grid {
-              id: quickGrid
-              width: parent.width
-              columns: 4
-              rowSpacing: 7
-              columnSpacing: 7
+              height: 34
+              spacing: 7
 
               Repeater {
-                model: quickControlsModel
+                model: 0
 
-                delegate: Rectangle {
-                  id: quickTile
+                delegate: NoctaliaIconButtonHot {
+                  required property int index
 
-                  required property string label
-                  required property string icon
-                  required property string action
-                  required property color accent
-                  property bool active: root.quickActive(action)
-                  property string status: {
-                    switch (action) {
-                    case "wifi-toggle": return root.wifiStatusText()
-                    case "bluetooth-toggle": return root.bluetoothStatusText()
-                    case "hotspot-toggle": return root.hotspotLabel !== "" ? root.hotspotLabel : (root.hotspotOn ? "Active" : "Off")
-                    case "focus-toggle": return root.focusLabel !== "" ? root.focusLabel : (active ? "On" : "Off")
-                    case "filter-open": return root.currentFilter !== "" ? root.currentFilter : "Off"
-                    default: return active ? "On" : "Off"
-                    }
+                  property var control: quickControlsModel.get(index)
+
+                  label: control.label
+                  icon: root.quickIconName(control.action)
+                  action: control.action
+
+                  onActivated: function(action) {
+                    root.runQuickAction(action)
                   }
-
-                  width: (quickGrid.width - quickGrid.columnSpacing * 3) / 4
-                  height: 62
-                  radius: 7
-                  color: quickMouse.pressed ? Qt.rgba(quickTile.accent.r, quickTile.accent.g, quickTile.accent.b, quickTile.active ? 0.24 : 0.18)
-                                            : quickTile.active ? Qt.rgba(quickTile.accent.r, quickTile.accent.g, quickTile.accent.b, 0.16)
-                                                               : quickMouse.containsMouse ? Qt.rgba(quickTile.accent.r, quickTile.accent.g, quickTile.accent.b, 0.11)
-                                                                                          : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.035)
-                  border.width: 1
-                  border.color: quickTile.active ? Qt.rgba(quickTile.accent.r, quickTile.accent.g, quickTile.accent.b, 0.42)
-                                                 : quickMouse.containsMouse ? Qt.rgba(quickTile.accent.r, quickTile.accent.g, quickTile.accent.b, 0.32)
-                                                                            : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.055)
-
-                  Behavior on color { ColorAnimation { duration: 120 } }
-                  Behavior on border.color { ColorAnimation { duration: 120 } }
-
-                  Rectangle {
-                    width: 22
-                    height: 3
-                    radius: 2
-                    anchors {
-                      top: parent.top
-                      left: parent.left
-                      topMargin: 8
-                      leftMargin: 8
-                    }
-                    color: quickTile.accent
-                    opacity: quickTile.active ? 0.95 : quickMouse.containsMouse ? 0.8 : 0.5
+                  onHoverChanged: function(action, hovered) {
+                    root.hoveredQuickAction = hovered ? action : (root.hoveredQuickAction === action ? "" : root.hoveredQuickAction)
                   }
-
-                  Column {
-                    anchors {
-                      left: parent.left
-                      right: parent.right
-                      bottom: parent.bottom
-                      leftMargin: 8
-                      rightMargin: 8
-                      bottomMargin: 7
-                    }
-                    spacing: 1
-
-                    Text {
-                      width: parent.width
-                      height: 13
-                      text: quickTile.label
-                      color: Theme.text
-                      font.pixelSize: 10
-                      font.bold: true
-                      elide: Text.ElideRight
-                      horizontalAlignment: Text.AlignLeft
-                      verticalAlignment: Text.AlignVCenter
-                    }
-
-                    Text {
-                      width: parent.width
-                      height: 11
-                      text: quickTile.status
-                      color: quickTile.active ? Qt.rgba(quickTile.accent.r, quickTile.accent.g, quickTile.accent.b, 0.88)
-                                              : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.42)
-                      font.pixelSize: 8
-                      elide: Text.ElideRight
-                      horizontalAlignment: Text.AlignLeft
-                      verticalAlignment: Text.AlignVCenter
-                    }
-                  }
-
-                  MouseArea {
-                    id: quickMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.runQuickAction(action)
+                  onQuickFocusChanged: function(action, focused) {
+                    root.focusedQuickAction = focused ? action : (root.focusedQuickAction === action ? "" : root.focusedQuickAction)
                   }
                 }
               }
             }
 
+            LegacyStrip {
+              id: quickStatusStrip
+              width: parent.width
+              text: root.quickStatusText(root.selectedQuickAction())
+            }
+
             Grid {
-              id: sectionGrid
+              id: legacySectionGrid
               width: parent.width
               columns: 2
-              rowSpacing: 7
-              columnSpacing: 7
+              rowSpacing: 6
+              columnSpacing: 6
 
               Repeater {
-                model: nativeSectionsModel
+                model: 0
 
-                delegate: Rectangle {
-                  id: sectionTile
+                delegate: LegacySectionChip {
+                  required property int index
 
-                  required property string label
-                  required property string hint
-                  required property string page
-                  required property color accent
+                  property var section: nativeSectionsModel.get(index)
 
-                  width: (sectionGrid.width - sectionGrid.columnSpacing) / 2
-                  height: 54
-                  radius: 7
-                  color: sectionMouse.pressed ? Qt.rgba(sectionTile.accent.r, sectionTile.accent.g, sectionTile.accent.b, 0.17)
-                                              : sectionMouse.containsMouse ? Qt.rgba(sectionTile.accent.r, sectionTile.accent.g, sectionTile.accent.b, 0.12)
-                                                                           : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.035)
-                  border.width: 1
-                  border.color: sectionMouse.containsMouse ? Qt.rgba(sectionTile.accent.r, sectionTile.accent.g, sectionTile.accent.b, 0.34)
-                                                           : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.055)
-
-                  Behavior on color { ColorAnimation { duration: 120 } }
-                  Behavior on border.color { ColorAnimation { duration: 120 } }
-
-                  Rectangle {
-                    width: 3
-                    radius: 2
-                    anchors {
-                      top: parent.top
-                      bottom: parent.bottom
-                      left: parent.left
-                      topMargin: 10
-                      bottomMargin: 10
-                    }
-                    color: sectionTile.accent
-                    opacity: sectionMouse.containsMouse ? 0.95 : 0.55
-                  }
-
-                  Column {
-                    anchors {
-                      left: parent.left
-                      right: parent.right
-                      verticalCenter: parent.verticalCenter
-                      leftMargin: 13
-                      rightMargin: 10
-                    }
-                    spacing: 1
-
-                    Text {
-                      width: parent.width
-                      text: sectionTile.label
-                      color: Theme.text
-                      font.pixelSize: 11
-                      font.bold: true
-                      elide: Text.ElideRight
-                    }
-
-                    Text {
-                      width: parent.width
-                      text: sectionTile.hint
-                      color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.42)
-                      font.pixelSize: 9
-                      elide: Text.ElideRight
-                    }
-                  }
-
-                  MouseArea {
-                    id: sectionMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.openPage(sectionTile.page, "")
+                  width: (legacySectionGrid.width - legacySectionGrid.columnSpacing) / 2
+                  label: section.label
+                  hint: section.hint
+                  page: section.page
+                  accent: section.accent
+                  glyph: root.sectionIconGlyph(section.page)
+                  onOpened: function(page) {
+                    root.openPage(page, "")
                   }
                 }
               }
             }
           }
 
-          Column {
-            id: detailPage
+          Item {
+            id: legacyDetailPage
             width: parent.width
             height: parent.height
-            spacing: 8
             visible: root.currentPage !== "home"
 
             Row {
               id: manageTabs
               width: parent.width
-              height: root.currentPage === "manage" && root.currentSubpage === "" ? 30 : 0
+              height: root.currentPage === "manage" && root.currentSubpage === "" ? 28 : 0
               spacing: 6
               visible: height > 0
 
               Repeater {
-                model: manageTabsModel
+                model: 0
 
-                delegate: Rectangle {
-                  id: manageTab
+                delegate: LegacyManageSegment {
+                  required property int index
 
-                  required property string label
-                  required property string action
-                  required property color accent
-                  property bool selected: root.manageTab === action.replace("manage-", "")
+                  property var tab: manageTabsModel.get(index)
 
                   width: (manageTabs.width - manageTabs.spacing * 2) / 3
-                  height: manageTabs.height
-                  radius: 6
-                  color: manageTabMouse.pressed ? Qt.rgba(manageTab.accent.r, manageTab.accent.g, manageTab.accent.b, 0.18)
-                                                : manageTab.selected ? Qt.rgba(manageTab.accent.r, manageTab.accent.g, manageTab.accent.b, 0.14)
-                                                                     : manageTabMouse.containsMouse ? Qt.rgba(manageTab.accent.r, manageTab.accent.g, manageTab.accent.b, 0.10)
-                                                                                                     : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.035)
-                  border.width: 1
-                  border.color: manageTab.selected ? Qt.rgba(manageTab.accent.r, manageTab.accent.g, manageTab.accent.b, 0.38)
-                                                   : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.055)
-
-                  Text {
-                    anchors.centerIn: parent
-                    text: manageTab.label
-                    color: manageTab.selected ? manageTab.accent : Theme.text
-                    font.pixelSize: 10
-                    font.bold: true
-                    elide: Text.ElideRight
-                  }
-
-                  MouseArea {
-                    id: manageTabMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.runAction(manageTab.action)
+                  label: tab.label
+                  action: tab.action
+                  accent: tab.accent
+                  selected: root.manageTab === tab.action.replace("manage-", "")
+                  onActivated: function(action) {
+                    root.runAction(action)
                   }
                 }
               }
             }
 
-            Grid {
-              id: actionGrid
-              width: parent.width
-              columns: 2
-              rowSpacing: 7
-              columnSpacing: 7
+            Flickable {
+              id: detailFlickable
+              anchors {
+                left: parent.left
+                right: parent.right
+                top: manageTabs.visible ? manageTabs.bottom : parent.top
+                bottom: parent.bottom
+                topMargin: manageTabs.visible ? 7 : 0
+              }
+              contentWidth: width
+              contentHeight: actionGrid.implicitHeight
+              clip: true
+              boundsBehavior: Flickable.StopAtBounds
 
-              Repeater {
-                model: root.pageModel()
+              Grid {
+                id: actionGrid
+                width: detailFlickable.width
+                columns: 2
+                rowSpacing: 6
+                columnSpacing: 6
 
-                delegate: Rectangle {
-                  id: actionTile
+                Repeater {
+                  model: 0
 
-                  required property string label
-                  required property string hint
-                  required property string icon
-                  required property string action
-                  required property color accent
-                  property bool actionAvailable: action === "maintain-rollback" ? root.rollbackAvailable : true
+                  delegate: LegacyActionChip {
+                    required property int index
 
-                  width: (actionGrid.width - actionGrid.columnSpacing) / 2
-                  height: actionAvailable ? 58 : 0
-                  visible: actionAvailable
-                  radius: 7
-                  color: actionMouse.pressed ? Qt.rgba(actionTile.accent.r, actionTile.accent.g, actionTile.accent.b, 0.18)
-                                             : actionMouse.containsMouse ? Qt.rgba(actionTile.accent.r, actionTile.accent.g, actionTile.accent.b, 0.12)
-                                                                         : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.035)
-                  border.width: 1
-                  border.color: actionMouse.containsMouse ? Qt.rgba(actionTile.accent.r, actionTile.accent.g, actionTile.accent.b, 0.36)
-                                                          : Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.055)
+                    property var detailAction: root.pageModel().get(index)
 
-                  Behavior on color { ColorAnimation { duration: 120 } }
-                  Behavior on border.color { ColorAnimation { duration: 120 } }
-
-                  Rectangle {
-                    width: 3
-                    radius: 2
-                    anchors {
-                      top: parent.top
-                      bottom: parent.bottom
-                      left: parent.left
-                      topMargin: 10
-                      bottomMargin: 10
+                    width: (actionGrid.width - actionGrid.columnSpacing) / 2
+                    label: detailAction.label
+                    hint: detailAction.hint
+                    icon: detailAction.icon
+                    action: detailAction.action
+                    accent: detailAction.accent
+                    glyph: root.actionIconGlyph(detailAction.icon)
+                    actionAvailable: detailAction.action === "maintain-rollback" ? root.rollbackAvailable : true
+                    onActivated: function(action) {
+                      root.runAction(action)
                     }
-                    color: actionTile.accent
-                    opacity: actionMouse.containsMouse ? 0.95 : 0.55
-                  }
-
-                  Column {
-                    anchors {
-                      left: parent.left
-                      right: parent.right
-                      verticalCenter: parent.verticalCenter
-                      leftMargin: 13
-                      rightMargin: 10
-                    }
-                    spacing: 1
-
-                    Text {
-                      width: parent.width
-                      text: actionTile.label
-                      color: Theme.text
-                      font.pixelSize: 11
-                      font.bold: true
-                      elide: Text.ElideRight
-                    }
-
-                    Text {
-                      width: parent.width
-                      text: actionTile.hint
-                      color: Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.42)
-                      font.pixelSize: 9
-                      elide: Text.ElideRight
-                    }
-                  }
-
-                  MouseArea {
-                    id: actionMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.runAction(actionTile.action)
                   }
                 }
               }

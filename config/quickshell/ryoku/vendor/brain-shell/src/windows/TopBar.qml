@@ -20,9 +20,10 @@ PanelWindow {
     // Layer is dynamic. Default Top so the bar yields to fullscreen
     // apps (screensaver, video) the way every other layer-shell bar
     // does. Promoted to Overlay while attached center/topbar surfaces
-    // are visually present so they keep painting and receiving input
-    // as one continuous surface during open and close.
-    WlrLayershell.layer: Popups.toolboxOpen || Popups.dashboardVisible || Popups.launcherVisible || Popups.systemMenuVisible || Popups.legacySettingsMenuVisible
+    // are visually present so they keep painting and receiving input.
+    // SettingsMenuPopup stays above the bar as a compact control-center
+    // surface, so the topbar must not promote itself over that popup.
+    WlrLayershell.layer: Popups.toolboxOpen || Popups.dashboardVisible || Popups.launcherVisible
                          ? WlrLayer.Overlay : WlrLayer.Top
     WlrLayershell.keyboardFocus: Popups.toolboxOpen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
