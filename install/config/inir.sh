@@ -42,7 +42,7 @@ else
 
   if [[ -z $INIR_SOURCE ]]; then
     if [[ $INIR_REQUIRE_LOCAL_SOURCE == "1" ]]; then
-      echo "install/config/inir.sh: missing bundled iNiR checkout for offline install" >&2
+      echo "install/config/inir.sh: missing bundled Ryoku shell checkout for offline install" >&2
       echo "Expected one of: $INIR_PATH, $RYOKU_PATH/vendor/inir, /root/inir, /opt/ryoku/inir" >&2
       exit 1
     fi
@@ -70,6 +70,8 @@ fi
     ./setup install -y --skip-deps --skip-sysupdate
   fi
 )
+
+"$RYOKU_PATH/install/config/ryoku-shell-branding.sh"
 
 inir_launcher="$HOME/.local/bin/inir"
 if [[ -x $inir_launcher ]]; then
