@@ -7,7 +7,7 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 USER_BACKGROUNDS_PATH="$RYOKU_WALLPAPER_DIR/"
 CURRENT_BACKGROUND_LINK="$RYOKU_CONFIG_PATH/current/background"
 
-apply_inir_background() {
+apply_ryoku_shell_background() {
   local background="$1"
   local config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/inir"
   local config_file="$config_dir/config.json"
@@ -58,5 +58,5 @@ else
 
   # Set new background symlink
   ln -nsf "$NEW_BACKGROUND" "$CURRENT_BACKGROUND_LINK"
-  apply_inir_background "$CURRENT_BACKGROUND_LINK"
+  apply_ryoku_shell_background "$CURRENT_BACKGROUND_LINK"
 fi

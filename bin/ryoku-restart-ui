@@ -14,7 +14,7 @@ Usage:
   ryoku-restart-ui [--quiet]
 
 Restarts Ryoku shell/session UI components that commonly get stuck:
-iNiR shell state, portals, and clipboard watchers.
+Ryoku shell state, portals, and clipboard watchers.
 USAGE
 }
 
