@@ -1,0 +1,264 @@
+#!/bin/bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+THEME_DIR="$RYOKU_CONFIG_PATH/current/theme"
+COLORS_FILE="$THEME_DIR/colors.toml"
+SHELL_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/inir"
+SHELL_CONFIG_FILE="$SHELL_CONFIG_DIR/config.json"
+
+declare -A THEME_COLORS=()
+
+read_theme_colors() {
+  local key value
+
+  [[ -f $COLORS_FILE ]] || return 1
+
+  while IFS='=' read -r key value; do
+    key="${key//[\"\' ]/}"
+    [[ -n $key && ${key:0:1} != "#" ]] || continue
+    value="${value#*[\"\']}"
+    value="${value%%[\"\']*}"
+    [[ -n $value ]] || continue
+    THEME_COLORS["$key"]="$value"
+  done <"$COLORS_FILE"
+}
+
+theme_color() {
+  local key="$1"
+  local fallback="$2"
+
+  printf '%s\n' "${THEME_COLORS[$key]:-$fallback}"
+}
+
+sync_file() {
+  local source="$1"
+  local target="$2"
+
+  [[ -f $source ]] || return 0
+  mkdir -p "$(dirname "$target")"
+  cp "$source" "$target"
+}
+
+update_shell_config() {
+  local accent background foreground surface surface_high outline secondary tertiary error
+  local color0 color1 color2 color3 color4 color5 color6 color7 color8 color9 color10 color11 color12 color13 color14 color15
+  local temp_file
+
+  ryoku-cmd-present jq || return 0
+
+  accent="$(theme_color accent "#F25623")"
+  background="$(theme_color background "#171717")"
+  foreground="$(theme_color foreground "#CCD0CF")"
+  surface="$(theme_color color0 "$background")"
+  surface_high="$(theme_color color8 "$surface")"
+  outline="$(theme_color color3 "$surface_high")"
+  secondary="$(theme_color color4 "$accent")"
+  tertiary="$(theme_color color5 "$accent")"
+  error="$(theme_color color1 "#ef4444")"
+  color0="$(theme_color color0 "$background")"
+  color1="$(theme_color color1 "$error")"
+  color2="$(theme_color color2 "$accent")"
+  color3="$(theme_color color3 "$outline")"
+  color4="$(theme_color color4 "$secondary")"
+  color5="$(theme_color color5 "$tertiary")"
+  color6="$(theme_color color6 "$foreground")"
+  color7="$(theme_color color7 "$foreground")"
+  color8="$(theme_color color8 "$surface_high")"
+  color9="$(theme_color color9 "$color1")"
+  color10="$(theme_color color10 "$color2")"
+  color11="$(theme_color color11 "$color3")"
+  color12="$(theme_color color12 "$color4")"
+  color13="$(theme_color color13 "$color5")"
+  color14="$(theme_color color14 "$color6")"
+  color15="$(theme_color color15 "$color7")"
+
+  mkdir -p "$SHELL_CONFIG_DIR"
+  [[ -f $SHELL_CONFIG_FILE ]] || printf '{}\n' >"$SHELL_CONFIG_FILE"
+
+  temp_file=$(mktemp)
+  jq \
+    --arg accent "$accent" \
+    --arg background "$background" \
+    --arg foreground "$foreground" \
+    --arg surface "$surface" \
+    --arg surface_high "$surface_high" \
+    --arg outline "$outline" \
+    --arg secondary "$secondary" \
+    --arg tertiary "$tertiary" \
+    --arg error "$error" \
+    '
+      .appearance.theme = "custom"
+      | .appearance.palette.type = "scheme-tonal-spot"
+      | .appearance.palette.accentColor = $accent
+      | .appearance.customTheme = ((.appearance.customTheme // {}) + {
+          darkmode: true,
+          m3background: $background,
+          m3onBackground: $foreground,
+          m3surface: $surface,
+          m3surfaceDim: $background,
+          m3surfaceBright: $surface_high,
+          m3surfaceContainerLowest: $background,
+          m3surfaceContainerLow: $surface,
+          m3surfaceContainer: $surface,
+          m3surfaceContainerHigh: $surface_high,
+          m3surfaceContainerHighest: $surface_high,
+          m3onSurface: $foreground,
+          m3surfaceVariant: $surface_high,
+          m3onSurfaceVariant: $foreground,
+          m3inverseSurface: $foreground,
+          m3inverseOnSurface: $background,
+          m3outline: $outline,
+          m3outlineVariant: $surface_high,
+          m3shadow: "#000000",
+          m3scrim: "#000000",
+          m3surfaceTint: $accent,
+          m3primary: $accent,
+          m3onPrimary: $background,
+          m3primaryContainer: $surface_high,
+          m3onPrimaryContainer: $accent,
+          m3inversePrimary: $accent,
+          m3secondary: $secondary,
+          m3onSecondary: $background,
+          m3secondaryContainer: $surface_high,
+          m3onSecondaryContainer: $foreground,
+          m3tertiary: $tertiary,
+          m3onTertiary: $background,
+          m3tertiaryContainer: $surface_high,
+          m3onTertiaryContainer: $foreground,
+          m3error: $error,
+          m3onError: $background,
+          m3errorContainer: $surface_high,
+          m3onErrorContainer: $foreground,
+          m3primaryFixed: $accent,
+          m3primaryFixedDim: $accent,
+          m3onPrimaryFixed: $background,
+          m3onPrimaryFixedVariant: $surface_high,
+          m3secondaryFixed: $secondary,
+          m3secondaryFixedDim: $secondary,
+          m3onSecondaryFixed: $background,
+          m3onSecondaryFixedVariant: $surface_high,
+          m3tertiaryFixed: $tertiary,
+          m3tertiaryFixedDim: $tertiary,
+          m3onTertiaryFixed: $background,
+          m3onTertiaryFixedVariant: $surface_high,
+          m3success: $secondary,
+          m3onSuccess: $background,
+          m3successContainer: $surface_high,
+          m3onSuccessContainer: $foreground
+        })
+      | .appearance.wallpaperTheming.enableAppsAndShell = false
+      | .appearance.wallpaperTheming.enableTerminal = false
+      | .appearance.wallpaperTheming.enableQtApps = false
+      | .appearance.wallpaperTheming.enableVSCode = false
+      | .appearance.wallpaperTheming.enableChrome = false
+      | .appearance.wallpaperTheming.enableVesktop = false
+      | .appearance.wallpaperTheming.enableZed = false
+      | .appearance.wallpaperTheming.enablePearDesktop = false
+    ' "$SHELL_CONFIG_FILE" >"$temp_file"
+  mv "$temp_file" "$SHELL_CONFIG_FILE"
+
+  write_starship_palette \
+    "$accent" "$background" "$foreground" "$surface" "$surface_high" \
+    "$secondary" "$tertiary" "$color0" "$color1" "$color2" "$color3" \
+    "$color4" "$color5" "$color6" "$color7" "$color8" "$color9" \
+    "$color10" "$color11" "$color12" "$color13" "$color14" "$color15"
+}
+
+write_starship_palette() {
+  local accent="$1"
+  local background="$2"
+  local foreground="$3"
+  local surface="$4"
+  local surface_high="$5"
+  local secondary="$6"
+  local tertiary="$7"
+  local color0="$8"
+  local color1="$9"
+  local color2="${10}"
+  local color3="${11}"
+  local color4="${12}"
+  local color5="${13}"
+  local color6="${14}"
+  local color7="${15}"
+  local color8="${16}"
+  local color9="${17}"
+  local color10="${18}"
+  local color11="${19}"
+  local color12="${20}"
+  local color13="${21}"
+  local color14="${22}"
+  local color15="${23}"
+  local palette_dir="${XDG_CONFIG_HOME:-$HOME/.config}/starship"
+  local palette_file="$palette_dir/ii-palette.toml"
+  local starship_file="${XDG_CONFIG_HOME:-$HOME/.config}/starship.toml"
+  local temp_palette temp_starship
+
+  mkdir -p "$palette_dir"
+  temp_palette=$(mktemp)
+  cat >"$temp_palette" <<EOF
+# Auto-generated by Ryoku theme sync
+# Do not edit manually - changes will be overwritten
+
+[palettes.ii]
+primary = '$accent'
+onPrimary = '$background'
+secondary = '$secondary'
+onSecondary = '$background'
+tertiary = '$tertiary'
+onTertiary = '$background'
+surface = '$surface'
+onSurface = '$foreground'
+background = '$background'
+foreground = '$foreground'
+black = '$color0'
+red = '$color1'
+green = '$color2'
+yellow = '$color3'
+blue = '$color4'
+magenta = '$color5'
+cyan = '$color6'
+white = '$color7'
+bright_black = '$color8'
+bright_red = '$color9'
+bright_green = '$color10'
+bright_yellow = '$color11'
+bright_blue = '$color12'
+bright_magenta = '$color13'
+bright_cyan = '$color14'
+bright_white = '$color15'
+EOF
+
+  cp "$temp_palette" "$palette_file"
+
+  if [[ -f $starship_file ]] && grep -q '^\[palettes\.ii\]' "$starship_file"; then
+    temp_starship=$(mktemp)
+    awk '
+      BEGIN { skip = 0 }
+      /^\[palettes\.ii\]$/ { skip = 1; next }
+      skip && /^\[/ { skip = 0 }
+      !skip { print }
+    ' "$starship_file" >"$temp_starship"
+    printf '\n' >>"$temp_starship"
+    cat "$temp_palette" >>"$temp_starship"
+    mv "$temp_starship" "$starship_file"
+  fi
+
+  rm -f "$temp_palette"
+}
+
+sync_terminal_files() {
+  sync_file "$THEME_DIR/alacritty.toml" "${XDG_CONFIG_HOME:-$HOME/.config}/alacritty/colors.toml"
+  sync_file "$THEME_DIR/kitty.conf" "${XDG_CONFIG_HOME:-$HOME/.config}/kitty/current-theme.conf"
+  sync_file "$THEME_DIR/btop.theme" "${XDG_CONFIG_HOME:-$HOME/.config}/btop/themes/ii-auto.theme"
+}
+
+main() {
+  read_theme_colors || exit 0
+  update_shell_config
+  sync_terminal_files
+}
+
+main "$@"

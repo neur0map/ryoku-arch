@@ -345,6 +345,7 @@ assert_executable bin/ryoku-restart-ui
 assert_executable bin/ryoku-restart-shell
 assert_executable bin/ryoku-ipc
 assert_executable bin/ryoku-lock-screen
+assert_executable bin/ryoku-theme-set-shell
 assert_executable bin/ryoku-system-logout
 assert_executable bin/ryoku-sddm-autologin
 assert_executable bin/ryoku-refresh-sddm
@@ -354,6 +355,7 @@ bash -n bin/ryoku-restart-ui
 bash -n bin/ryoku-restart-shell
 bash -n bin/ryoku-ipc
 bash -n bin/ryoku-lock-screen
+bash -n bin/ryoku-theme-set-shell
 bash -n bin/ryoku-system-logout
 bash -n bin/ryoku-sddm-autologin
 bash -n bin/ryoku-refresh-sddm
@@ -383,6 +385,7 @@ assert_contains bin/ryoku-restart-ui 'ryoku-restart-shell|inir\.service|inir res
 assert_not_contains bin/ryoku-restart-ui 'hyprctl reload|restart_always "mako"|swayosd-server|restart_if_running "waybar"|restart_if_running "hypridle"' "ryoku-restart-ui should not restart old Hyprland-era UI services"
 assert_contains bin/ryoku-restart-shell 'inir\.service|inir restart' "ryoku-restart-shell should target iNiR"
 assert_not_contains bin/ryoku-restart-shell 'qs -c ryoku|ryoku-launch-shell|pkill -x quickshell' "ryoku-restart-shell should not target the old Ryoku Quickshell shell"
+assert_contains bin/ryoku-theme-set 'ryoku-theme-set-shell' "theme switching should sync Ryoku colors into the Niri shell"
 assert_contains bin/ryoku-lock-screen 'inir lock activate' "lock screen should use iNiR lock"
 assert_not_contains bin/ryoku-lock-screen 'hyprlock|hyprctl' "lock screen should not use Hyprland lock helpers"
 assert_contains bin/ryoku-system-logout 'inir session (toggle|open)' "logout command should open the iNiR session UI"
