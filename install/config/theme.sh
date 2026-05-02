@@ -5,17 +5,9 @@ sudo ln -snf /usr/share/icons/Adwaita/symbolic/actions/go-next-symbolic.svg /usr
 # Setup user theme folder
 mkdir -p ~/.config/ryoku/themes
 
-# Install Greek Noir as the default Ryoku theme. The installer handles
-# the omarchy- repo prefix and drops the theme into
-# ~/.config/ryoku/themes/greek-noir. Falls back to Tokyo Night from the
-# shipped library if the install cannot reach github (offline ISO etc.).
-if ryoku-pkg-aur-accessible 2>/dev/null || ping -c1 -W2 github.com >/dev/null 2>&1; then
-  ryoku-theme-install https://github.com/HANCORE-linux/omarchy-greek-noir-theme.git \
-    && ryoku-theme-set "greek-noir" \
-    || ryoku-theme-set "Tokyo Night"
-else
-  ryoku-theme-set "Tokyo Night"
-fi
+# Use the shipped Ryoku theme so fresh installs and offline images start
+# from the same branded defaults.
+ryoku-theme-set "ryoku"
 rm -rf ~/.config/chromium/SingletonLock # otherwise archiso will own the chromium singleton
 
 # Set specific app links for current theme
