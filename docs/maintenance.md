@@ -309,6 +309,7 @@ Options, from least to most automated:
 5. **Commit identity.** Commits authored from the dev folder use `user.name = "Carlos Mejia (neur0map)"` and a GitHub no-reply email. Local-only git config. Do not lift this to global scope unless you want all repos on this machine to inherit it.
 6. **No generated-content attribution.** Commit messages and shipped files should describe the work, not the tools used to produce it.
 7. **No em-dashes.** Use colons, commas, periods, or parens. This applies to anything committed: commits, docs, code comments, the README.
+8. **No personal machine paths.** Repo files should use portable paths like `$HOME`, `~`, `$RYOKU_PATH`, repo-relative paths, or runtime discovery. Do not commit hardcoded user home paths, runtime UID paths, per-run logs, or machine-id boot paths unless a historical recovery document explicitly needs them.
 
 ## Git hooks
 
@@ -317,7 +318,7 @@ Ryoku Arch ships a set of git hooks that enforce the safety rules above mechanic
 ### What's enforced
 
 - **commit-msg:** rejects a commit if its message contains authorship trailers, generated-content attribution phrases, or any em-dash (U+2014).
-- **pre-commit:** before the commit is recorded, scans staged text files (`.md`, `.txt`, `.sh`, config files, LICENSE, NOTICE, README, AGENTS.md) for em-dashes and runs `bash -n` on staged shell scripts. Blocks the commit on any finding.
+- **pre-commit:** before the commit is recorded, scans staged text files for personal machine path leaks, scans staged text files (`.md`, `.txt`, `.sh`, config files, LICENSE, NOTICE, README, AGENTS.md) for em-dashes, and runs `bash -n` on staged shell scripts. Blocks the commit on any finding.
 - **pre-push:** refuses to push `upstream-dev` or `upstream-master` to `origin` (belt-and-suspenders on top of the `pushRemote=no_push` config), and blocks force-pushes to `main` that would rewrite published history.
 
 ### Activation

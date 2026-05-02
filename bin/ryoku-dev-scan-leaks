@@ -1,0 +1,183 @@
+#!/bin/bash
+
+set -euo pipefail
+
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  ryoku-dev-scan-leaks --staged
+  ryoku-dev-scan-leaks --files FILE [FILE...]
+
+Scans text files for accidental personal machine paths before they enter git.
+Use portable paths such as $HOME, ~, $RYOKU_PATH, repo-relative paths, or
+runtime-discovered paths instead of hardcoded user or machine paths.
+EOF
+}
+
+failures=0
+
+relative_path() {
+  local path="$1"
+
+  case "$path" in
+    "$repo_root"/*)
+      printf '%s\n' "${path#"$repo_root"/}"
+      ;;
+    *)
+      printf '%s\n' "$path"
+      ;;
+  esac
+}
+
+is_allowlisted_file() {
+  local path
+
+  path="$(relative_path "$1")"
+
+  case "$path" in
+    tests/git-leak-scanner.sh)
+      return 0
+      ;;
+    docs/superpowers/plans/2026-05-02-ryoku-live-recovery-niri-transition.md)
+      return 0
+      ;;
+    docs/superpowers/specs/2026-05-02-ryoku-live-recovery-niri-transition-design.md)
+      return 0
+      ;;
+  esac
+
+  return 1
+}
+
+is_text_file() {
+  local file="$1"
+
+  [[ -f $file ]] || return 1
+  LC_ALL=C grep -Iq . "$file"
+}
+
+is_staged_text_file() {
+  local path="$1"
+
+  git show ":$path" 2>/dev/null | LC_ALL=C grep -Iq .
+}
+
+report_match() {
+  local label="$1"
+  local line_no="$2"
+  local description="$3"
+  local line="$4"
+
+  echo "ryoku-dev-scan-leaks: $label:$line_no: $description" >&2
+  echo "  $line" >&2
+  failures=1
+}
+
+scan_stream() {
+  local label="$1"
+  local line
+  local line_no=0
+
+  while IFS= read -r line || [[ -n $line ]]; do
+    (( line_no += 1 ))
+
+    if [[ $line =~ /(home|Users|mnt/home|var/home)/[A-Za-z0-9._-]+ ]]; then
+      report_match "$label" "$line_no" "hardcoded Unix user home path" "$line"
+    fi
+
+    if [[ $line =~ [A-Za-z]:\\Users\\[A-Za-z0-9._-]+ ]]; then
+      report_match "$label" "$line_no" "hardcoded Windows user profile path" "$line"
+    fi
+
+    if [[ $line =~ /run/user/[0-9]+ ]]; then
+      report_match "$label" "$line_no" "hardcoded user runtime UID path" "$line"
+    fi
+
+    if [[ $line =~ /tmp/[A-Za-z][A-Za-z0-9._-]*-[0-9]+\.log ]]; then
+      report_match "$label" "$line_no" "hardcoded per-run temporary log path" "$line"
+    fi
+
+    if [[ $line =~ /boot/EFI/Linux/[A-Fa-f0-9]{32}_linux\.efi ]]; then
+      report_match "$label" "$line_no" "hardcoded machine-id UKI path" "$line"
+    fi
+  done
+}
+
+scan_file() {
+  local file="$1"
+
+  is_allowlisted_file "$file" && return 0
+  is_text_file "$file" || return 0
+
+  scan_stream "$(relative_path "$file")" <"$file"
+}
+
+scan_staged_file() {
+  local path="$1"
+
+  is_allowlisted_file "$path" && return 0
+  is_staged_text_file "$path" || return 0
+
+  scan_stream "$path" < <(git show ":$path")
+}
+
+scan_staged() {
+  local path
+
+  while IFS= read -r -d '' path; do
+    scan_staged_file "$path"
+  done < <(git diff --cached --name-only --diff-filter=ACM -z)
+}
+
+scan_files() {
+  local file
+
+  if (( $# == 0 )); then
+    usage >&2
+    exit 2
+  fi
+
+  for file in "$@"; do
+    scan_file "$file"
+  done
+}
+
+main() {
+  if (( $# == 0 )); then
+    usage >&2
+    exit 2
+  fi
+
+  case "$1" in
+    --staged)
+      shift
+      if (( $# != 0 )); then
+        usage >&2
+        exit 2
+      fi
+      scan_staged
+      ;;
+    --files)
+      shift
+      scan_files "$@"
+      ;;
+    -h|--help)
+      usage
+      ;;
+    *)
+      usage >&2
+      exit 2
+      ;;
+  esac
+
+  if (( failures != 0 )); then
+    echo "" >&2
+    echo "ryoku-dev-scan-leaks: personal machine path leak detected." >&2
+    echo "Use portable forms like \$HOME, ~, \$RYOKU_PATH, or runtime discovery." >&2
+    exit 1
+  fi
+}
+
+main "$@"
