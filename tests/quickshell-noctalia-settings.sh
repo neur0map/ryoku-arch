@@ -12,6 +12,7 @@ vendor="config/quickshell/ryoku/vendor/noctalia-shell"
 runtime="config/quickshell/ryoku/Noctalia"
 shell_qml="config/quickshell/ryoku/shell.qml"
 settings_window="$runtime/Modules/Panels/Settings/SettingsPanelWindow.qml"
+hypr_system="default/hypr/apps/system.conf"
 
 [[ -f $vendor/UPSTREAM.md ]] || fail "Noctalia vendor metadata should exist"
 [[ -f $vendor/LICENSE ]] || fail "Noctalia MIT license should be copied"
@@ -96,24 +97,24 @@ grep -Eq 'implicitHeight:[[:space:]]+910|panelHeight:[[:space:]]+910|height:[[:s
   || fail "Settings panel should preserve Noctalia's 910px visual height"
 ! rg -n '(panelWidth|panelHeight|implicitWidth|implicitHeight):.*Style\.uiScaleRatio' "$settings_window" \
   || fail "Settings panel outer geometry should not scale beyond Noctalia's logical size"
-grep -q 'PanelWindow' "$settings_window" \
-  || fail "Settings panel should use a supported layer-shell host for compositor-level centering"
-! grep -q 'title:' "$settings_window" \
-  || fail "Settings PanelWindow should not assign FloatingWindow-only title"
+grep -q 'FloatingWindow' "$settings_window" \
+  || fail "Settings panel should use a normal window instead of a fullscreen layer-shell host"
+grep -q 'title: "Ryoku Settings"' "$settings_window" \
+  || fail "Settings FloatingWindow should expose a dedicated title for Hyprland rules"
 ! rg -n '(^|[[:space:]])[xy][[:space:]]*:' "$settings_window" \
   || fail "Settings panel should not assign unsupported FloatingWindow x/y properties"
-grep -q 'anchors.centerIn: parent' "$settings_window" \
-  || fail "Settings panel content should be centered in its screen host"
-grep -q 'mask: Region' "$settings_window" \
-  || fail "Settings panel should not leave a full-screen input region active around the centered panel"
-grep -q 'availablePanelWidth:.*width - 24' "$settings_window" \
-  || fail "Settings panel should derive available width from the screen-sized host"
-grep -q 'availablePanelHeight:.*height - 24' "$settings_window" \
-  || fail "Settings panel should derive available height from the screen-sized host"
-grep -q 'width: Math.min(root.panelWidth, root.availablePanelWidth)' "$settings_window" \
+! grep -q 'WlrKeyboardFocus.Exclusive' "$settings_window" \
+  || fail "Settings panel should not grab exclusive layer-shell focus"
+! grep -q 'mask: Region' "$settings_window" \
+  || fail "Settings panel should not create a fullscreen masked layer-shell surface"
+grep -q 'width: Math.min(panelWidth, screen ? screen.width - 24 : panelWidth)' "$settings_window" \
   || fail "Settings panel should cap width to available screen geometry"
-grep -q 'height: Math.min(root.panelHeight, root.availablePanelHeight)' "$settings_window" \
+grep -q 'height: Math.min(panelHeight, screen ? screen.height - 24 : panelHeight)' "$settings_window" \
   || fail "Settings panel should cap height to available screen geometry"
+grep -q 'windowrule = float on, match:title \^Ryoku Settings\$' "$hypr_system" \
+  || fail "Hyprland should float the Ryoku settings window"
+grep -q 'windowrule = center on, match:title \^Ryoku Settings\$' "$hypr_system" \
+  || fail "Hyprland should center the Ryoku settings window"
 
 for tab in General UserInterface ColorScheme Wallpaper Bar Dock DesktopWidgets ControlCenter Launcher Notifications OSD LockScreen SessionMenu Idle Audio Display Connections Location System Plugins Hooks About; do
   grep -q "SettingsPanel.Tab.$tab" "$runtime/Modules/Panels/Settings/SettingsContent.qml" \

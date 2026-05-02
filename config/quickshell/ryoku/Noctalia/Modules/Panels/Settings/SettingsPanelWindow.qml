@@ -7,30 +7,20 @@ import qs.Noctalia.Commons
 import qs.Noctalia.Services.UI
 import qs.Noctalia.Widgets
 
-PanelWindow {
+FloatingWindow {
   id: root
 
   readonly property int panelWidth: 840
   readonly property int panelHeight: 910
-  readonly property int availablePanelWidth: Math.max(1, width - 24)
-  readonly property int availablePanelHeight: Math.max(1, height - 24)
 
+  title: "Ryoku Settings"
+  width: Math.min(panelWidth, screen ? screen.width - 24 : panelWidth)
+  height: Math.min(panelHeight, screen ? screen.height - 24 : panelHeight)
+  minimumSize: Qt.size(width, height)
+  implicitWidth: panelWidth
+  implicitHeight: panelHeight
   color: "transparent"
   visible: false
-
-  anchors {
-    top: true
-    bottom: true
-    left: true
-    right: true
-  }
-
-  WlrLayershell.layer: WlrLayer.Overlay
-  WlrLayershell.keyboardFocus: visible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
-  WlrLayershell.namespace: "ryoku-noctalia-settings-" + (screen?.name || "unknown")
-  WlrLayershell.exclusionMode: ExclusionMode.Ignore
-
-  mask: Region { item: panelChrome }
 
   // Register with RyokuSettingsPanelService
   Component.onCompleted: {
@@ -141,11 +131,7 @@ PanelWindow {
 
   // Main content
   Rectangle {
-    id: panelChrome
-
-    width: Math.min(root.panelWidth, root.availablePanelWidth)
-    height: Math.min(root.panelHeight, root.availablePanelHeight)
-    anchors.centerIn: parent
+    anchors.fill: parent
     color: Qt.alpha(Color.mSurface, Settings.data.ui.panelBackgroundOpacity)
     radius: Style.radiusL
 
