@@ -2,8 +2,9 @@
 
 # Ryoku Arch pre-commit hook.
 # Runs lightweight checks on staged content before a commit is recorded.
-#   1. bash syntax check on any staged shell script
-#   2. em-dash scan on staged text, docs, and config files
+#   1. personal machine path leak scan on staged text files
+#   2. bash syntax check on any staged shell script
+#   3. em-dash scan on staged text, docs, and config files
 # Bypass with --no-verify only when you know what you are doing.
 
 set -e
@@ -23,7 +24,10 @@ text_pattern='\.(md|txt|sh|bash|yml|yaml|toml|json|conf|tpl)$|^LICENSE$|^NOTICE$
 # Build the list of staged Added/Copied/Modified paths once.
 staged=$(git diff --cached --name-only --diff-filter=ACM || true)
 
-# 1. em-dash scan
+# 1. personal machine path leak scan
+"$(git rev-parse --show-toplevel)/bin/ryoku-dev-scan-leaks" --staged
+
+# 2. em-dash scan
 for f in $staged; do
   [[ -f $f ]] || continue
   if [[ $f =~ $text_pattern ]]; then
@@ -35,7 +39,7 @@ for f in $staged; do
   fi
 done
 
-# 2. bash syntax check on shell scripts
+# 3. bash syntax check on shell scripts
 for f in $staged; do
   [[ -f $f ]] || continue
   case "$f" in
