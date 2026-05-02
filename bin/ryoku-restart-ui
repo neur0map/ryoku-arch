@@ -14,8 +14,7 @@ Usage:
   ryoku-restart-ui [--quiet]
 
 Restarts Ryoku shell/session UI components that commonly get stuck:
-Quickshell, Hyprland config state, notifications, OSD, portals, clipboard
-watchers, and already-running legacy bars/idle helpers.
+iNiR shell state, portals, and clipboard watchers.
 USAGE
 }
 
@@ -46,41 +45,8 @@ command_present() {
   ryoku-cmd-present "$1"
 }
 
-launch_background() {
-  if command_present uwsm-app; then
-    setsid uwsm-app -- "$@" >/dev/null 2>&1 &
-  else
-    setsid "$@" >/dev/null 2>&1 &
-  fi
-}
-
 process_running() {
   pgrep -x "$1" >/dev/null 2>&1
-}
-
-restart_always() {
-  local process="$1"
-  shift
-
-  if ! command_present "$1"; then
-    log "skip $process: $1 missing"
-    return
-  fi
-
-  log "restart $process"
-  pkill -x "$process" >/dev/null 2>&1 || true
-  launch_background "$@"
-}
-
-restart_if_running() {
-  local process="$1"
-  shift
-
-  if process_running "$process"; then
-    restart_always "$process" "$@"
-  else
-    log "skip $process: not running"
-  fi
 }
 
 try_restart_user_service() {
@@ -116,26 +82,13 @@ restart_clipboard_watchers() {
   log "restart clipboard watchers"
   pkill -f '(^|/)wl-paste --type text --watch cliphist store$' >/dev/null 2>&1 || true
   pkill -f '(^|/)wl-paste --type image --watch cliphist store$' >/dev/null 2>&1 || true
-  launch_background wl-paste --type text --watch cliphist store
-  launch_background wl-paste --type image --watch cliphist store
-}
-
-reset_hyprland() {
-  if ! command_present hyprctl; then
-    log "skip Hyprland reload: hyprctl missing"
-    return
-  fi
-
-  log "reset Hyprland submap"
-  hyprctl dispatch submap reset >/dev/null 2>&1 || true
-
-  log "reload Hyprland"
-  hyprctl reload >/dev/null 2>&1 || true
+  setsid wl-paste --type text --watch cliphist store >/dev/null 2>&1 &
+  setsid wl-paste --type image --watch cliphist store >/dev/null 2>&1 &
 }
 
 restart_portals() {
   try_restart_user_service xdg-desktop-portal.service
-  try_restart_user_service xdg-desktop-portal-hyprland.service
+  try_restart_user_service xdg-desktop-portal-gnome.service
   try_restart_user_service xdg-desktop-portal-gtk.service
 }
 
@@ -147,12 +100,7 @@ notify_finished() {
 
 log "Ryoku hard refresh"
 refresh_activation_environment
-reset_hyprland
 ryoku-restart-shell >/dev/null 2>&1 || true
-restart_always "mako" mako
-restart_always "swayosd-server" swayosd-server
-restart_if_running "waybar" waybar
-restart_if_running "hypridle" hypridle
 restart_clipboard_watchers
 restart_portals
 notify_finished

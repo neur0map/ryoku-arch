@@ -85,7 +85,7 @@ run_rg() {
 
 case "$chunk" in
   foundation)
-    collect_existing_paths install.sh default/bash/envs config/uwsm/env
+    collect_existing_paths install.sh default/bash/envs config/niri/config.d/40-environment.kdl
 
     if (( ${#existing_paths[@]} == 0 )); then
       echo "no target paths exist for chunk: $chunk" >&2
@@ -95,8 +95,8 @@ case "$chunk" in
     command -v rg >/dev/null || { echo "missing command: rg" >&2; exit 1; }
     run_rg 'OMARCHY_PATH|~/.local/share/omarchy' "${existing_paths[@]}"
     ;;
-  hypr)
-    collect_existing_paths config/hypr default/hypr
+  niri)
+    collect_existing_paths config/niri config/fuzzel config/systemd/user/inir.service
 
     if (( ${#existing_paths[@]} == 0 )); then
       echo "no target paths exist for chunk: $chunk" >&2
@@ -106,8 +106,8 @@ case "$chunk" in
     command -v rg >/dev/null || { echo "missing command: rg" >&2; exit 1; }
     run_rg 'omarchy-|/omarchy|\.config/omarchy|\.local/state/omarchy' "${existing_paths[@]}"
     ;;
-  waybar)
-    collect_existing_paths config/waybar config/tofi default/mako config/fastfetch
+  shell)
+    collect_existing_paths config/niri config/fuzzel config/fastfetch
 
     if (( ${#existing_paths[@]} == 0 )); then
       echo "no target paths exist for chunk: $chunk" >&2

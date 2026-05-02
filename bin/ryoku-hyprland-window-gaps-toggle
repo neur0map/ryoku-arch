@@ -1,7 +1,0 @@
-#!/bin/bash
-
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
-
-# Toggles the window gaps globally between no gaps and the default.
-
-ryoku-hyprland-toggle window-no-gaps

@@ -13,8 +13,8 @@ EOF
 }
 
 notify_shell() {
-  if ryoku-cmd-present qs; then
-    qs -c ryoku ipc --newest call volume flash >/dev/null 2>&1 || true
+  if ryoku-cmd-present inir; then
+    inir osdVolume trigger >/dev/null 2>&1 || true
   fi
 }
 

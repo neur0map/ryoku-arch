@@ -1,2 +1,0 @@
-module ryoku.config
-singleton Config 1.0 Config.qml

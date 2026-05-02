@@ -7,13 +7,28 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 USER_BACKGROUNDS_PATH="$RYOKU_WALLPAPER_DIR/"
 CURRENT_BACKGROUND_LINK="$RYOKU_CONFIG_PATH/current/background"
 
+apply_inir_background() {
+  local background="$1"
+  local config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/inir"
+  local config_file="$config_dir/config.json"
+  local temp_file
+
+  if [[ ! -f $config_file ]] || ryoku-cmd-missing jq; then
+    return 0
+  fi
+
+  temp_file=$(mktemp)
+  jq --arg path "$background" \
+    '.background.wallpaperPath = $path | .background.thumbnailPath = ""' \
+    "$config_file" >"$temp_file" &&
+    mv "$temp_file" "$config_file"
+}
+
 mapfile -d '' -t BACKGROUNDS < <(find -L "$USER_BACKGROUNDS_PATH" -maxdepth 1 -type f -print0 2>/dev/null | sort -z)
 TOTAL=${#BACKGROUNDS[@]}
 
 if (( TOTAL == 0 )); then
   notify-send "No background was found for theme" -t 2000
-  pkill -x swaybg
-  setsid uwsm-app -- swaybg --color '#000000' >/dev/null 2>&1 &
 else
   # Get current background from symlink
   if [[ -L $CURRENT_BACKGROUND_LINK ]]; then
@@ -43,8 +58,5 @@ else
 
   # Set new background symlink
   ln -nsf "$NEW_BACKGROUND" "$CURRENT_BACKGROUND_LINK"
-
-  # Relaunch swaybg
-  pkill -x swaybg
-  setsid uwsm-app -- swaybg -i "$CURRENT_BACKGROUND_LINK" -m fill >/dev/null 2>&1 &
+  apply_inir_background "$CURRENT_BACKGROUND_LINK"
 fi

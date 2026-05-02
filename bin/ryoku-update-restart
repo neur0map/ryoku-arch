@@ -10,11 +10,6 @@ elif [[ -f $RYOKU_STATE_PATH/reboot-required ]]; then
   gum confirm "Updates require reboot. Ready?" && ryoku-system-reboot
 fi
 
-running_hyprland=$(readlink /proc/$(pgrep -x Hyprland)/exe 2>/dev/null)
-if [[ $running_hyprland == *"(deleted)"* ]]; then
-  gum confirm "Hyprland has been updated. Reboot?" && ryoku-system-reboot
-fi
-
 for file in "$RYOKU_STATE_PATH"/restart-*-required; do
   if [[ -f $file ]]; then
     filename=$(basename "$file")

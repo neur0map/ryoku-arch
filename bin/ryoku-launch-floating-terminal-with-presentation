@@ -6,4 +6,4 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 # Used by actions such as Update System.
 
 cmd="$*"
-exec setsid uwsm-app -- xdg-terminal-exec --app-id=org.ryoku.terminal --title=Ryoku -e bash -c "ryoku-show-logo; $cmd; if (( \$? != 130 )); then ryoku-show-done; fi"
+exec setsid xdg-terminal-exec --app-id=org.ryoku.terminal --title=Ryoku -e bash -c "ryoku-show-logo; $cmd; if (( \$? != 130 )); then ryoku-show-done; fi"

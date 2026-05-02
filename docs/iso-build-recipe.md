@@ -4,6 +4,12 @@
 > of 2026-04-27. Intended for: future contributors who want to add
 > customizations without breaking the offline install path, and for the
 > next time the install regresses.
+>
+> Niri/iNiR transition note, 2026-05-02: the table below includes the
+> last fully boot-tested Hyprland ISO result. The current source now
+> targets Niri/iNiR, bundles iNiR into the ISO build, and validates
+> `ii-pixel` plus `niri.desktop`; a new ISO build/boot verification is
+> intentionally deferred to a follow-up session.
 
 ## What is verified
 
@@ -13,7 +19,7 @@
 | Live ISO boots in QEMU/UEFI VM | yes | `iso/bin/ryoku-iso-boot iso/release/ryoku-*-main.iso` opens GTK + reaches the configurator UI |
 | `archinstall` pacstraps base from the offline mirror | yes | No internet needed to reach the configurator finish line |
 | Chroot install runs `install/*` to completion | yes | Exits with `/mnt/var/tmp/ryoku-install-completed`, VM auto-reboots |
-| First-boot reaches branded boot + SDDM + Hyprland | yes | Confirmed 2026-04-28: Limine boot menu (color caveat below) -> Plymouth decrypt prompt -> pixel-rainyroom SDDM -> Hyprland session with a working terminal |
+| First-boot reaches branded boot + SDDM + Niri | pending | Niri/iNiR source transition landed after the 2026-04-28 Hyprland ISO proof. Expected path: Limine boot menu -> Plymouth decrypt prompt -> ii-pixel SDDM -> Niri session |
 | Online install (`RYOKU_ONLINE_INSTALL=1` in chroot env) | NOT smoke-tested | The live ISO currently runs the chroot in offline mode; online path is intentional fallback only |
 
 ## Local prerequisites
@@ -54,7 +60,7 @@ Port 2222 on the host is hostfwd'd to the VM's port 22, so `ssh -p 2222 root@loc
    - In offline mode (`RYOKU_ONLINE_INSTALL` unset, the default in the live ISO env), `preflight/pacman.sh` and `preflight/yay-bootstrap.sh` exit early. `packaging/aur-core.sh` no longer exits early: it pacman-installs every AUR PackageBase listed in `install/ryoku-aur.packages` from the `[offline]` mirror (build-iso.sh bakes those packages into the mirror via `iso/builder/build-boot-overlay.sh`).
    - `packaging/base.sh` installs everything in `install/ryoku-base.packages` from the offline mirror's `[offline]` repo. The mirror also contains everything listed in `install/ryoku-other.packages` (Vulkan/NVIDIA/Intel video drivers, kernel headers, broadcom-wl, thermald, linux-firmware-marvell, etc.) so the hardware-detection scripts in `install/config/hardware/*.sh` can pacman-install matching drivers without network. The AUR halves of those splits live in `install/ryoku-aur.packages` (default install) and `iso/builder/ryoku-boot-overlay.packages` (boot-critical + conditional hardware AUR drivers like asusctl, qmk-hid, nvidia-580xx).
    - `login/limine-snapper.sh` hard-fails if `limine`, `limine-snapper-sync`, `limine-mkinitcpio-hook`, or `limine-update` is missing; runs `mkinitcpio -P` + `limine-update`; asserts `/boot/EFI/Linux/ryoku_linux.efi` and a `^/+Ryoku` entry in `/boot/limine.conf`.
-   - `login/sddm.sh` refuses to enable SDDM unless the bundled pixel-rainyroom theme + the hyprland-uwsm session file exist.
+   - `login/sddm.sh` refuses to enable SDDM unless the iNiR `ii-pixel` theme + the `niri.desktop` session file exist.
    - `post-install/pacman.sh` swaps `/etc/pacman.conf` to the upstream-only config, dropping the temporary `[offline]` entry from the user's installed system.
    - `post-install/finished.sh` writes `/mnt/var/tmp/ryoku-install-completed` and triggers a reboot.
 
@@ -92,7 +98,7 @@ These commits make the offline path work. Reverting any of them re-breaks the in
 
 When adding things, mirror these patterns or expect a regression in the offline install path.
 
-1. **New base packages (official Arch).** Add to `install/ryoku-base.packages` under the matching section header (CLI, TUI, GUI app, Hyprland, fonts, etc.). They will be pulled from the offline mirror via the upstream Arch sync.
+1. **New base packages (official Arch).** Add to `install/ryoku-base.packages` under the matching section header (CLI, TUI, GUI app, desktop stack, fonts, etc.). They will be pulled from the offline mirror via the upstream Arch sync.
 2. **New AUR packages, default install (every machine gets them).** Add to `install/ryoku-aur.packages` under the matching section. `aur-core.sh` reads this file and pacman-installs them from `[offline]`; `iso/builder/build-iso.sh` feeds the same file into the AUR overlay builder so the packages end up in the mirror.
 3. **New AUR packages, conditional hardware drivers.** Add to `iso/builder/ryoku-boot-overlay.packages` under a hardware section. These don't auto-install; the matching `install/packaging/{asus-rog,framework16}.sh` or `install/config/hardware/*.sh` script invokes `ryoku-pkg-add` after the `ryoku-hw-*` probe.
 4. **New `install/login/*` or `install/post-install/*` scripts.** Don't do anything that requires network unconditionally. Gate online-only work behind `[[ -n ${RYOKU_ONLINE_INSTALL:-} ]]` so the offline install keeps working.
@@ -115,8 +121,8 @@ Watch for:
 - Build container exits 0. Look for `[mkarchiso] INFO: Done!` near the end of the build log, then `Writing to 'stdio:/out/...iso' completed successfully`.
 - VM reaches the configurator UI without a kernel panic.
 - Configurator + archinstall + chroot install reach `installation completed` without aborting at a `Failed script:` line.
-- Reboot lands at the pixel-rainyroom SDDM greeter (Ryoku branded).
-- Logging in reaches the Hyprland session.
+- Reboot lands at the iNiR `ii-pixel` SDDM greeter.
+- Logging in reaches the Niri session.
 
 If any of the above breaks, the failure menu in the live ISO offers `View full log`. Screenshot the `Failed script:` line + the error block above it; that points at the regressing script.
 

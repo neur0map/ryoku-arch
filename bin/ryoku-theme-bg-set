@@ -20,16 +20,6 @@ if [[ ! -f $BACKGROUND ]]; then
   exit 1
 fi
 
-if ryoku-cmd-missing uwsm-app; then
-  echo "ryoku-theme-bg-set: uwsm-app is required to launch swaybg" >&2
-  exit 1
-fi
-
-if ryoku-cmd-missing swaybg; then
-  echo "ryoku-theme-bg-set: swaybg is required to apply image wallpapers" >&2
-  exit 1
-fi
-
 if ! mkdir -p "$CURRENT_BACKGROUND_DIR"; then
   echo "ryoku-theme-bg-set: failed to create current config directory: $CURRENT_BACKGROUND_DIR" >&2
   exit 1
@@ -46,18 +36,18 @@ if ! ln -nsf "$BACKGROUND" "$CURRENT_BACKGROUND_LINK"; then
   exit 1
 fi
 
-# Kill existing wallpaper backends and start new swaybg
-pkill -x mpvpaper 2>/dev/null || true
-pkill -x swaybg 2>/dev/null || true
-setsid uwsm-app -- swaybg -i "$CURRENT_BACKGROUND_LINK" -m fill >/dev/null 2>&1 &
-launch_pid=$!
-launch_status=0
+config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/inir"
+config_file="$config_dir/config.json"
 
-sleep 0.2
-if ! kill -0 "$launch_pid" 2>/dev/null; then
-  wait "$launch_pid" || launch_status=$?
-  if (( launch_status != 0 )); then
-    echo "ryoku-theme-bg-set: failed to launch swaybg" >&2
-    exit "$launch_status"
+if [[ -f $config_file ]]; then
+  if ryoku-cmd-missing jq; then
+    echo "ryoku-theme-bg-set: jq is required to update iNiR wallpaper config" >&2
+    exit 1
   fi
+
+  temp_file=$(mktemp)
+  jq --arg path "$CURRENT_BACKGROUND_LINK" \
+    '.background.wallpaperPath = $path | .background.thumbnailPath = ""' \
+    "$config_file" >"$temp_file" &&
+    mv "$temp_file" "$config_file"
 fi

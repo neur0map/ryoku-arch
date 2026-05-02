@@ -40,8 +40,7 @@ libvpl
 vpl-gpu-rt
 
 # AMD video acceleration via mesa: libva-mesa-driver was retired
-# upstream and the libva backend is now part of mesa itself, which
-# is already pulled in transitively by hyprland / qt / chromium.
+# upstream and the libva backend is now part of mesa itself.
 
 # ── Intel power + thermal daemons ─────────────────────────────────────
 # Selected by install/config/hardware/intel/{lpmd,thermald}.sh.

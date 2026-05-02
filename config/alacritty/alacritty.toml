@@ -1,4 +1,6 @@
-general.import = [ "~/.config/ryoku/current/theme/alacritty.toml" ]
+# iNiR wallpaper theming - import must be at top to override colors
+[general]
+import = ["~/.config/alacritty/colors.toml"]
 
 [env]
 TERM = "xterm-256color"

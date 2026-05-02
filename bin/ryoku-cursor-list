@@ -11,14 +11,14 @@ if [[ ${1:-} != "--jsonl" ]]; then
 fi
 
 current_cursor=""
-cursor_dropin="$RYOKU_STATE_PATH/toggles/hypr/cursor.conf"
+cursor_dropin="$RYOKU_STATE_PATH/toggles/cursor.conf"
 
 if [[ -f $cursor_dropin ]]; then
-  current_cursor="$(sed -n 's/^env = XCURSOR_THEME,//p' "$cursor_dropin" | tail -1)"
+  current_cursor="$(sed -n 's/^XCURSOR_THEME=//p' "$cursor_dropin" | tail -1)"
 fi
 
-if [[ -z $current_cursor && -f $RYOKU_PATH/default/hypr/envs.conf ]]; then
-  current_cursor="$(sed -n 's/^env = XCURSOR_THEME,//p' "$RYOKU_PATH/default/hypr/envs.conf" | tail -1)"
+if [[ -z $current_cursor && -f $HOME/.config/niri/config.d/10-input-and-cursor.kdl ]]; then
+  current_cursor="$(sed -n 's/^[[:space:]]*xcursor-theme "\(.*\)"/\1/p' "$HOME/.config/niri/config.d/10-input-and-cursor.kdl" | tail -1)"
 fi
 
 cursor_installed() {
@@ -31,7 +31,7 @@ display_name() {
 }
 
 preview_asset() {
-  printf '%s/config/quickshell/ryoku/assets/appearance/cursors/%s\n' "$RYOKU_PATH" "$1"
+  printf '\n'
 }
 
 preview_for() {

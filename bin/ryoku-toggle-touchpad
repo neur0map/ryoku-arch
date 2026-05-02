@@ -2,7 +2,7 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-STATE_CONF="$RYOKU_STATE_PATH/toggles/hypr/touchpad-disabled.conf"
+STATE_CONF="$RYOKU_STATE_PATH/toggles/touchpad-disabled"
 
 device="$(ryoku-hw-touchpad)"
 
@@ -12,16 +12,14 @@ if [[ -z $device ]]; then
 fi
 
 enable() {
-  hyprctl keyword "device[$device]:enabled" true >/dev/null
   rm -f "$STATE_CONF"
-  ryoku-swayosd-client --custom-icon input-touchpad-symbolic --custom-message "Touchpad enabled"
+  notify-send -u low "Touchpad toggle is managed in Niri settings" >/dev/null 2>&1 || true
 }
 
 disable() {
-  hyprctl keyword "device[$device]:enabled" false >/dev/null
   mkdir -p "$(dirname "$STATE_CONF")"
-  printf 'device {\n    name = %s\n    enabled = false\n}\n' "$device" > "$STATE_CONF"
-  ryoku-swayosd-client --custom-icon touchpad-disabled-symbolic --custom-message "Touchpad disabled"
+  : >"$STATE_CONF"
+  notify-send -u low "Touchpad toggle is managed in Niri settings" >/dev/null 2>&1 || true
 }
 
 case "${1:-toggle}" in

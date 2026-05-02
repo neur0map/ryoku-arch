@@ -1,6 +1,0 @@
-module qs.Noctalia.Services.Ryoku
-singleton RyokuCommand 1.0 RyokuCommand.qml
-singleton RyokuFeatureAvailability 1.0 RyokuFeatureAvailability.qml
-singleton RyokuThemeActions 1.0 RyokuThemeActions.qml
-singleton RyokuWallpaperActions 1.0 RyokuWallpaperActions.qml
-singleton RyokuSessionActions 1.0 RyokuSessionActions.qml

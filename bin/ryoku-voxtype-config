@@ -2,6 +2,6 @@
 set -e
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Used by Voxtype waybar module to open config on right click
+# Open the Voxtype config.
 
 exec ryoku-launch-editor ~/.config/voxtype/config.toml

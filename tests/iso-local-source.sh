@@ -10,16 +10,17 @@ fail() {
 }
 
 assert_local_source_uses_checkout_even_when_ryoku_path_is_set() {
-  local temp_dir project_dir bin_dir home_dir log_file expected_mount status
+  local temp_dir project_dir bin_dir home_dir inir_dir log_file expected_mount expected_inir_mount status
 
   temp_dir=$(mktemp -d)
   project_dir="$temp_dir/project"
   bin_dir="$temp_dir/bin"
   home_dir="$temp_dir/home"
+  inir_dir="$temp_dir/inir"
   log_file="$temp_dir/docker-args.log"
   status=0
 
-  mkdir -p "$project_dir/iso/bin" "$project_dir/iso/builder" "$project_dir/iso/configs" "$bin_dir" "$home_dir" "$temp_dir/stale"
+  mkdir -p "$project_dir/iso/bin" "$project_dir/iso/builder" "$project_dir/iso/configs" "$bin_dir" "$home_dir" "$temp_dir/stale" "$inir_dir/.git"
   cp "$ROOT_DIR/iso/bin/ryoku-iso-make" "$project_dir/iso/bin/ryoku-iso-make"
 
   cat > "$bin_dir/docker" <<'EOF'
@@ -49,10 +50,12 @@ EOF
   chmod +x "$bin_dir/docker" "$bin_dir/sudo" "$project_dir/iso/bin/ryoku-iso-make"
 
   expected_mount="$project_dir:/ryoku:ro"
+  expected_inir_mount="$inir_dir:/inir:ro"
 
   PATH="$bin_dir:$PATH" \
     HOME="$home_dir" \
     RYOKU_PATH="$temp_dir/stale" \
+    RYOKU_INIR_SOURCE="$inir_dir" \
     DOCKER_ARGS_FILE="$log_file" \
     "$project_dir/iso/bin/ryoku-iso-make" --local-source --no-boot-offer >/dev/null 2>&1 || status=$?
 
@@ -65,6 +68,12 @@ EOF
     cat "$log_file" >&2
     rm -rf "$temp_dir"
     fail "--local-source should mount the current checkout instead of \$RYOKU_PATH"
+  fi
+
+  if ! grep -F -- "$expected_inir_mount" "$log_file" >/dev/null; then
+    cat "$log_file" >&2
+    rm -rf "$temp_dir"
+    fail "--local-source should mount a local iNiR checkout when available"
   fi
 
   rm -rf "$temp_dir"

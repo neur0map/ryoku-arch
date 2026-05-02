@@ -2,10 +2,6 @@
 
 set -euo pipefail
 
-if ryoku-cmd-missing hyprpicker; then
-  notify-send -u normal "Color Picker" "hyprpicker is not installed"
-  exit 1
-fi
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-pkill hyprpicker 2>/dev/null || true
-exec hyprpicker -a
+exec inir colorpicker

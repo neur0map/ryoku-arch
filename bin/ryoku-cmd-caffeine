@@ -5,7 +5,6 @@ set -euo pipefail
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
 state_dir="${XDG_RUNTIME_DIR:-/tmp}"
-hypridle_state="$state_dir/ryoku-caffeine-hypridle-was-running"
 inhibit_pattern="[r]yoku-caffeine-inhibit"
 
 usage() {
@@ -43,13 +42,6 @@ start_caffeine() {
     return 0
   fi
 
-  if pgrep -x hypridle >/dev/null; then
-    touch "$hypridle_state"
-    pkill -x hypridle >/dev/null 2>&1 || true
-  else
-    rm -f "$hypridle_state"
-  fi
-
   start_inhibitor
 
   for _ in {1..20}; do
@@ -64,13 +56,6 @@ start_caffeine() {
 
 stop_caffeine() {
   stop_inhibitor
-
-  if [[ -f $hypridle_state ]]; then
-    rm -f "$hypridle_state"
-    if ! pgrep -x hypridle >/dev/null; then
-      setsid uwsm-app -- hypridle >/dev/null 2>&1 &
-    fi
-  fi
 }
 
 case "${1:-}" in

@@ -1,5 +1,0 @@
-module ryoku
-singleton Config 1.0 config/Config.qml
-Frame 1.0 modules/frame/Frame.qml
-ExclusionZones 1.0 modules/frame/ExclusionZones.qml
-CornerOverlay 1.0 modules/frame/CornerOverlay.qml

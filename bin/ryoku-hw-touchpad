@@ -2,5 +2,11 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-device=$(hyprctl devices -j | jq -r '[.mice[] | .name | select(test("touchpad|trackpad"; "i"))] | first // empty')
-[[ -n $device ]] && echo "$device"
+for name_file in /sys/class/input/event*/device/name; do
+  [[ -f $name_file ]] || continue
+  device="$(<"$name_file")"
+  if [[ $device =~ [Tt]ouchpad|[Tt]rackpad ]]; then
+    echo "$device"
+    exit 0
+  fi
+done

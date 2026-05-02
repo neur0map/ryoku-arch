@@ -2,12 +2,4 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-makoctl mode -t do-not-disturb
-
-if makoctl mode | grep -q 'do-not-disturb'; then
-  notify-send -u low "󰂛    Silenced notifications"
-else
-  notify-send -u low "󰂚    Enabled notifications"
-fi
-
-pkill -RTMIN+10 waybar
+exec inir notifications toggleSilent

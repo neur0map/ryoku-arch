@@ -41,7 +41,7 @@ The palette is named **Greek Noir** in the codebase. It is the Ryoku-branded ref
 | Cyan replacement | `#8A8A8A` | Standard cyan slot, neutralized. |
 | Light gray | `#bcbfbc` | White slot in normal palette. |
 | Faded foreground | `#757d75` | White slot in bright palette, subtle hint text. |
-| SDDM neutral foreground | `#f0ede8` | Used in `default/sddm/pixel-rainyroom/theme.conf` over the rainy-room video background. |
+| SDDM neutral foreground | `#f0ede8` | Pending rebrand value for the iNiR `ii-pixel` greeter. |
 
 ### Limine boot menu palette (literal config)
 
@@ -94,7 +94,7 @@ The kanji `力` is rendered at weight 900 in **Noto Sans CJK JP** at the size th
 |---|---|
 | `~/.local/share/ryoku/logo-mark.png` | Repo asset, available for any Ryoku-aware app |
 | `~/.local/share/ryoku/logo.txt` | ASCII wordmark, used by `ryoku-cmd-first-run` and `install/post-install/finished.sh` |
-| `/usr/share/sddm/themes/pixel-rainyroom/logo.png` | SDDM greeter avatar/branding |
+| `/usr/share/sddm/themes/ii-pixel/` | iNiR SDDM greeter; Ryoku visual rebrand is pending |
 | `/usr/share/plymouth/themes/ryoku/logo.png` | Plymouth boot-splash branding |
 
 ### How to regenerate the SVG mark
@@ -150,8 +150,8 @@ The kanji-block art used by `boot.sh` is also hand-drawn block-text (`█` and f
 | Live ISO configurator | `bin/ryoku-cmd-first-run` ANSI palette setup | Brand-orange terminal accents during install |
 | Limine boot menu | `default/limine/limine.conf` | Orange branding text "Ryoku Bootloader", Greek Noir terminal palette |
 | Plymouth decrypt | `default/plymouth/ryoku.script` + `default/plymouth/*.png` | Dark window, branded progress bar + lock icon |
-| SDDM greeter | `default/sddm/pixel-rainyroom/` (theme) + bundled rainy-room background video | "pixel-rainyroom" themed login |
-| Hyprland session | `themes/<theme>/` per active theme | Greek Noir is the brand-accurate one; other 18 themes are user-selectable but not "the brand" |
+| SDDM greeter | iNiR `ii-pixel` theme | Upstream iNiR login theme until the Ryoku rebrand pass |
+| Niri/iNiR session | `themes/<theme>/` per active theme | Greek Noir is the brand-accurate one; other themes are user-selectable but not "the brand" |
 | First-boot welcome notification | `install/first-run/welcome.sh` | Branded notification copy |
 
 ## What "on-brand" means

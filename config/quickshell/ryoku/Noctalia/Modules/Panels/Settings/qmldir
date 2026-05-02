@@ -1,4 +1,0 @@
-module qs.Noctalia.Modules.Panels.Settings
-SettingsContent 1.0 SettingsContent.qml
-SettingsPanel 1.0 SettingsPanel.qml
-SettingsPanelWindow 1.0 SettingsPanelWindow.qml

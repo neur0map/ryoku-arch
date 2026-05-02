@@ -1,11 +1,7 @@
 #!/bin/bash
 
-# Logout command that first closes all application windows (thus giving them a chance to save state),
-# then stops the session, returning to the SDDM login screen.
+set -euo pipefail
 
-# Schedule the session stop after closing windows (detached from terminal)
-nohup bash -c "sleep 2 && uwsm stop" >/dev/null 2>&1 &
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Now close all windows
-ryoku-hyprland-window-close-all
-sleep 1 # Allow apps like Chrome to shutdown correctly
+exec inir session toggle

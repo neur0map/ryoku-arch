@@ -1,9 +1,0 @@
-#!/bin/bash
-
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
-
-# Overwrite the user configs for swayosd (controls on-screen feedback for changing volume/songs etc) with the Ryoku defaults and restart the service.
-
-ryoku-refresh-config swayosd/config.toml
-ryoku-refresh-config swayosd/style.css
-ryoku-restart-swayosd

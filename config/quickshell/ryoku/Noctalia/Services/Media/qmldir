@@ -1,3 +1,0 @@
-module qs.Noctalia.Services.Media
-singleton AudioService 1.0 AudioService.qml
-singleton MediaService 1.0 MediaService.qml

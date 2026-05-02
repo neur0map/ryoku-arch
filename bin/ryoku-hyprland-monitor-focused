@@ -1,7 +1,0 @@
-#!/bin/bash
-
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
-
-# Print the name of the currently focused Hyprland monitor.
-
-hyprctl monitors -j | jq -r '.[] | select(.focused == true).name'

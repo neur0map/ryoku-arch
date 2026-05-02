@@ -44,6 +44,5 @@ fi
 # Set the new brightness.
 brightnessctl -d "$device" set "$new_brightness" >/dev/null
 
-# Use SwayOSD to display the new brightness setting.
 percent=$((new_brightness * 100 / max_brightness))
-ryoku-swayosd-kbd-brightness "$percent"
+notify-send -u low "Keyboard brightness ${percent}%" >/dev/null 2>&1 || true

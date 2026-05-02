@@ -1,4 +1,0 @@
-#!/bin/bash
-# Historical name preserved for command-surface stability. Tofi has no
-# daemon, no autostart unit, and no cached config. No-op.
-exit 0

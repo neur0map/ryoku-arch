@@ -1,9 +1,0 @@
-#!/bin/bash
-
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
-
-if ! hyprctl clients -j | jq -e 'any(.[]; .workspace.name == "special:scratchpad")' >/dev/null; then
-  exit 0
-fi
-
-hyprctl dispatch togglespecialworkspace scratchpad

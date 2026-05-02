@@ -25,18 +25,17 @@ spotify
 typora
 
 # ── File sharing / sync ───────────────────────────────────────────────
-# Used by bin/ryoku-cmd-share, default/nautilus-python/extensions/localsend.py,
-# and default/hypr/apps/localsend.conf window rules.
+# Used by bin/ryoku-cmd-share and default/nautilus-python/extensions/localsend.py.
 localsend
 
 # ── Networking / system ───────────────────────────────────────────────
+limine-mkinitcpio-hook
+limine-snapper-sync
 tzupdate
 ufw-docker
 
-# ── Launcher (with fuzzel fallback in bin/tofi + bin/tofi-drun) ───────
-tofi
-
 # ── Eye-candy / utilities ─────────────────────────────────────────────
+darkly-bin
 mpvpaper
 # python-terminaltexteffects ships the `tte` binary used by
 # bin/ryoku-launch-screensaver and install/post-install/finished.sh.

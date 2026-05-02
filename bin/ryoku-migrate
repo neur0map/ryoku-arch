@@ -30,7 +30,10 @@ for file in $RYOKU_PATH/migrations/*.sh; do
     if bash $file; then
       touch "$STATE_DIR/$filename"
     else
-      if gum confirm "Migration ${filename%.sh} failed. Skip and continue?"; then
+      exit_code=$?
+      if (( exit_code == 75 )); then
+        echo "Migration ${filename%.sh} deferred; it will be retried later."
+      elif gum confirm "Migration ${filename%.sh} failed. Skip and continue?"; then
         touch "$STATE_DIR/skipped/$filename"
       else
         exit 1

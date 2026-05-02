@@ -2,5 +2,5 @@
 echo "Defaults passwd_tries=10" | sudo tee /etc/sudoers.d/passwd-tries
 sudo chmod 440 /etc/sudoers.d/passwd-tries
 
-# Set for hyprlock too
+# Set for PAM-backed lock/auth prompts too
 sudo sed -i 's/^# *deny = .*/deny = 10/' /etc/security/faillock.conf

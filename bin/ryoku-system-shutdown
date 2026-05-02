@@ -9,5 +9,11 @@ ryoku-state clear re*-required
 nohup bash -c "sleep 2 && systemctl poweroff --no-wall" >/dev/null 2>&1 &
 
 # Now close all windows
-ryoku-hyprland-window-close-all
+if ryoku-cmd-present niri; then
+  niri msg -j windows 2>/dev/null |
+    jq -r '.[].id' |
+    while read -r id; do
+      niri msg action close-window --id "$id" >/dev/null 2>&1 || true
+    done
+fi
 sleep 1 # Allow apps like Chrome to shutdown correctly

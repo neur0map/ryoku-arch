@@ -2,12 +2,10 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-if pgrep -x hypridle >/dev/null; then
-  pkill -x hypridle
-  notify-send -u low "󱫖    Stop locking computer when idle"
+if pgrep -x swayidle >/dev/null; then
+  pkill -x swayidle
+  notify-send -u low "Stop locking computer when idle"
 else
-  uwsm-app -- hypridle >/dev/null 2>&1 &
-  notify-send -u low "󱫖    Now locking computer when idle"
+  ryoku-restart-shell >/dev/null 2>&1 || true
+  notify-send -u low "Now locking computer when idle"
 fi
-
-pkill -RTMIN+9 waybar

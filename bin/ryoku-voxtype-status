@@ -2,7 +2,7 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Clean up the voxtype --follow child when Waybar reloads
+# Clean up the voxtype --follow child when the caller exits.
 trap 'kill 0' EXIT
 
 if ryoku-cmd-present voxtype; then

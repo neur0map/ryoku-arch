@@ -1,17 +1,13 @@
 #!/bin/bash
 
-# Locks the system using hyprlock, but not before ensuring 1password has also been locked, and the screensaver stopped.
+set -euo pipefail
 
-# Lock the screen
-pidof hyprlock || hyprlock &
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Set keyboard layout to default (first layout)
-hyprctl switchxkblayout all 0 > /dev/null 2>&1
-
-# Ensure 1password is locked
 if pgrep -x "1password" >/dev/null; then
-  1password --lock &
+  1password --lock >/dev/null 2>&1 &
 fi
 
-# Avoid running screensaver when locked
-pkill -f org.ryoku.screensaver
+pkill -f org.ryoku.screensaver >/dev/null 2>&1 || true
+
+exec inir lock activate

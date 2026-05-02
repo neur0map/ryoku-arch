@@ -1,9 +1,0 @@
-module qs.Noctalia.Services.Networking
-BluetoothRssi 1.0 BluetoothRssi.qml
-singleton IwdProvider 1.0 IwdProvider.qml
-singleton NmcliProvider 1.0 NmcliProvider.qml
-singleton BluetoothService 1.0 RyokuBluetoothService.qml
-singleton RyokuBluetoothService 1.0 RyokuBluetoothService.qml
-singleton NetworkService 1.0 RyokuNetworkService.qml
-singleton RyokuNetworkService 1.0 RyokuNetworkService.qml
-singleton VPNService 1.0 VPNService.qml
