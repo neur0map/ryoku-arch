@@ -57,6 +57,8 @@ assert_shell_overlay() {
   assert_file "default/ryoku-shell/branding-replacements.tsv"
   assert_contains "default/ryoku-shell/config-overrides.json" '"accentColor": "#F25623"' \
     "Ryoku shell config overlay should set the Ryoku accent"
+  assert_contains "default/ryoku-shell/config-overrides.json" '"ssid": "Ryoku Hotspot"' \
+    "Ryoku shell config overlay should set the branded hotspot name"
   assert_contains "default/ryoku-shell/branding-replacements.tsv" 'Welcome to Ryoku' \
     "Ryoku shell replacement map should include the welcome copy"
   assert_not_contains "install/config/ryoku-shell-branding.sh" 'echo .*iNiR|printf .*iNiR' \

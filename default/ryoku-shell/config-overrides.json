@@ -75,5 +75,8 @@
       "enableBlur": true,
       "dim": 30
     }
+  },
+  "hotspot": {
+    "ssid": "Ryoku Hotspot"
   }
 }
