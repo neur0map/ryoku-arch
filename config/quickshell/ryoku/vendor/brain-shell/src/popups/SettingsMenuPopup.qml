@@ -97,6 +97,10 @@ PanelWindow {
   }
 
   ListModel {
+    id: emptyActions
+  }
+
+  ListModel {
     id: learnActions
     ListElement { label: "Keybindings"; icon: "keys"; hint: "Shortcut reference"; action: "learn-keybindings"; accent: "#8aadf4" }
     ListElement { label: "Omarchy Manual"; icon: "docs"; hint: "Upstream manual"; action: "learn-omarchy"; accent: "#91d7e3" }
@@ -876,6 +880,7 @@ PanelWindow {
   }
 
   function pageModel() {
+    if (root.currentPage === "home") return emptyActions
     if (root.currentPage === "learn") return learnActions
     if (root.currentPage === "share") return shareActions
     if (root.currentPage === "style") return styleActions
@@ -909,7 +914,7 @@ PanelWindow {
     if (root.currentPage === "manage" && root.manageTab === "maintain") return manageMaintainActions
     if (root.currentPage === "manage") return manageInstallActions
     if (root.currentPage === "about") return aboutActions
-    return nativeSectionsModel
+    return emptyActions
   }
 
   function runCommand(command) {

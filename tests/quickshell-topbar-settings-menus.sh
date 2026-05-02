@@ -208,6 +208,8 @@ grep -q 'id: quickControlsModel' "$settings_popup" \
   || fail "SettingsMenuPopup should define quick controls for the home view"
 grep -q 'id: nativeSectionsModel' "$settings_popup" \
   || fail "SettingsMenuPopup should define native sections for the home view"
+grep -q 'id: emptyActions' "$settings_popup" \
+  || fail "SettingsMenuPopup should avoid constructing detail delegates on the home view"
 page_stack_block="$(awk '
   /id: pageStack/ { printing = 1 }
   printing { print }
@@ -225,6 +227,8 @@ grep -q 'text: "Control center"' "$settings_popup" \
   || fail "SettingsMenuPopup home view should title the control center"
 grep -q 'function pageModel()' "$settings_popup" \
   || fail "SettingsMenuPopup should expose the route-selected page model"
+grep -q 'if (root.currentPage === "home") return emptyActions' "$settings_popup" \
+  || fail "SettingsMenuPopup should not feed section rows into detail action delegates"
 grep -q 'model: root.pageModel()' "$settings_popup" \
   || fail "SettingsMenuPopup should render route-selected actions"
 grep -q 'function runAction(action)' "$settings_popup" \
