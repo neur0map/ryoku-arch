@@ -2,40 +2,6 @@
 
 set -euo pipefail
 
-for cmd in grim slurp tesseract wl-copy notify-send; do
-  if ryoku-cmd-missing "$cmd"; then
-    notify-send -u normal "OCR" "$cmd is not installed"
-    exit 1
-  fi
-done
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-tmp_dir="${XDG_RUNTIME_DIR:-/tmp}"
-tmp="$(mktemp "$tmp_dir/ryoku-ocr.XXXXXX.png")"
-
-cleanup() {
-  rm -f "$tmp"
-}
-trap cleanup EXIT
-
-if ! geometry="$(slurp 2>/dev/null)"; then
-  exit 130
-fi
-
-if [[ -z $geometry ]]; then
-  exit 0
-fi
-
-grim -g "$geometry" "$tmp"
-
-if ! text="$(tesseract "$tmp" stdout -l eng+spa 2>/dev/null | sed '/^[[:space:]]*$/d')"; then
-  notify-send -u normal "OCR" "Could not read text from the selected area"
-  exit 1
-fi
-
-if [[ -z $text ]]; then
-  notify-send -u normal "OCR" "No text found in the selected area"
-  exit 0
-fi
-
-printf '%s\n' "$text" | wl-copy
-notify-send -u normal "OCR" "Copied recognized text to clipboard"
+exec inir region ocr

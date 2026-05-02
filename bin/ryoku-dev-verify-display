@@ -44,9 +44,9 @@ cd "$repo_root"
 
 required_commands=(
   xdg-terminal-exec
-  tofi
-  waybar
-  hyprctl
+  fuzzel
+  inir
+  niri
 )
 
 require_command() {
@@ -71,6 +71,6 @@ for cmd in "${required_commands[@]}"; do
   require_command "$cmd"
 done
 
-require_file config/hypr/hyprland.conf
-require_file config/waybar/config.jsonc
-require_file config/waybar/style.css
+require_file config/niri/config.kdl
+require_file config/fuzzel/fuzzel.ini
+require_file config/systemd/user/inir.service

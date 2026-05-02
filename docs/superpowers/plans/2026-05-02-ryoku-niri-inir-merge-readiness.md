@@ -8,6 +8,8 @@
 
 **Tech Stack:** Bash 5, Arch package manifests, Ryoku installer scripts, systemd user services, SDDM, Niri, iNiR, Quickshell, shell-based static tests.
 
+**Post-review correction:** The final implementation removes `xdg-desktop-portal-hyprland` from the default stack, validates iNiR's `ii-pixel` SDDM theme, reconciles default package manifests during `ryoku-update`, bundles iNiR into production ISO builds before install time, and guards the screensaver migration against self-copies.
+
 ---
 
 ## Source Spec
@@ -392,13 +394,12 @@ wtype
 xdg-desktop-portal
 xdg-desktop-portal-gnome
 xdg-desktop-portal-gtk
-xdg-desktop-portal-hyprland
 xwayland-satellite
 ydotool
 yt-dlp
 ```
 
-Keep `hyprpicker` and `xdg-desktop-portal-hyprland` for this merge because the confirmed live system still keeps them.
+Keep `hyprpicker` for iNiR color picking. Do not keep `xdg-desktop-portal-hyprland`; Niri uses the GNOME and GTK portal stack here.
 
 - [ ] **Step 2: Remove old package entries from the full base manifest**
 
@@ -693,7 +694,6 @@ The `restart_portals` function must restart these services:
 try_restart_user_service xdg-desktop-portal.service
 try_restart_user_service xdg-desktop-portal-gnome.service
 try_restart_user_service xdg-desktop-portal-gtk.service
-try_restart_user_service xdg-desktop-portal-hyprland.service
 ```
 
 - [ ] **Step 3: Replace `bin/ryoku-lock-screen`**
@@ -757,9 +757,7 @@ grep -q 'xdg-desktop-portal-gnome.service' "$script" \
   || fail "hard refresh should try-restart the GNOME portal used by Niri"
 grep -q 'xdg-desktop-portal-gtk.service' "$script" \
   || fail "hard refresh should try-restart the GTK portal"
-grep -q 'xdg-desktop-portal-hyprland.service' "$script" \
-  || fail "hard refresh should keep the Hyprland portal while Niri still packages it"
-if grep -Eq 'hyprctl reload|restart_always "mako"|swayosd-server|restart_if_running "waybar"|restart_if_running "hypridle"' "$script"; then
+if grep -Eq 'hyprctl reload|xdg-desktop-portal-hyprland|restart_always "mako"|swayosd-server|restart_if_running "waybar"|restart_if_running "hypridle"' "$script"; then
   fail "hard refresh should not manage old Hyprland-era UI daemons"
 fi
 ```

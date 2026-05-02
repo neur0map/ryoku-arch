@@ -6,7 +6,7 @@ sinks=$(pactl -f json list sinks | jq '[.[] | select((.ports | length == 0) or (
 sinks_count=$(echo "$sinks" | jq '. | length')
 
 if (( sinks_count == 0 )); then
-  ryoku-swayosd-client --custom-message "No audio devices found"
+  notify-send -u low "No audio devices found" >/dev/null 2>&1 || true
   exit 1
 fi
 
@@ -57,6 +57,7 @@ if [[ $next_sink_name != $current_sink_name ]]; then
   wpctl set-default "$next_sink_wpid"
 fi
 
-ryoku-swayosd-client \
-  --custom-message "$next_sink_description" \
-  --custom-icon "$next_sink_volume_icon"
+notify-send -u low "$next_sink_description" >/dev/null 2>&1 || true
+if ryoku-cmd-present inir; then
+  inir osdVolume trigger >/dev/null 2>&1 || true
+fi

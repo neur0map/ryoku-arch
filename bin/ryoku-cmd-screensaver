@@ -5,11 +5,12 @@
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
 screensaver_in_focus() {
-  hyprctl activewindow -j | jq -e '.class == "org.ryoku.screensaver"' >/dev/null 2>&1
+  niri msg -j focused-window 2>/dev/null |
+    jq -e '.app_id == "org.ryoku.screensaver"' >/dev/null 2>&1 ||
+    return 0
 }
 
 exit_screensaver() {
-  hyprctl keyword cursor:invisible false &>/dev/null || true
   pkill -x tte 2>/dev/null
   pkill -f org.ryoku.screensaver 2>/dev/null
   exit 0
@@ -19,8 +20,6 @@ exit_screensaver() {
 trap exit_screensaver SIGINT SIGTERM SIGHUP SIGQUIT
 
 printf '\033]11;rgb:00/00/00\007'  # Set background color to black
-
-hyprctl keyword cursor:invisible true &>/dev/null
 
 tty=$(tty 2>/dev/null)
 

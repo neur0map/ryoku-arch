@@ -1,12 +1,14 @@
 #!/bin/bash
 
+set -euo pipefail
+
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Restart the Ryoku Quickshell so it picks up theme changes, config
-# edits, or QML reloads. Called by ryoku-theme-set after a theme swap
-# because Quickshell's FileView cannot detect the theme symlink target
-# swap via inotify; a process restart is the reliable path.
-
-pkill -x quickshell >/dev/null 2>&1 || true
-pkill -f '^qs -c ryoku($| )' >/dev/null 2>&1 || true
-setsid uwsm-app -- ryoku-launch-shell >/dev/null 2>&1 &
+if ryoku-cmd-present systemctl && systemctl --user status inir.service >/dev/null 2>&1; then
+  systemctl --user try-restart inir.service
+elif ryoku-cmd-present inir; then
+  inir restart
+else
+  echo "ryoku-restart-shell: inir is not installed or not on PATH" >&2
+  exit 127
+fi

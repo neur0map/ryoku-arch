@@ -1,5 +1,0 @@
-module qs.Noctalia.Services.Noctalia
-singleton GitHubService 1.0 GitHubService.qml
-singleton PluginRegistry 1.0 PluginRegistry.qml
-singleton PluginService 1.0 PluginService.qml
-singleton SupporterService 1.0 SupporterService.qml

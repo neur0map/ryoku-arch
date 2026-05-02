@@ -89,9 +89,11 @@ assert_json_error "missing image" 1
 video="$tmpdir/video with spaces.mp4"
 : >"$video"
 run_apply --type video "$video"
-assert_json_error "video missing dependency" 3
+(( APPLY_STATUS == 0 )) || fail "video apply should succeed through iNiR wallpaper config"
+printf '%s\n' "$APPLY_OUTPUT" | jq -e --arg path "$video" '.ok == true and .type == "video" and .path == $path' >/dev/null \
+  || fail "video apply should emit JSON OK"
 [[ ! -f $tmpdir/pkill.args ]] \
-  || fail "video missing dependency should not launch or stop wallpaper processes"
+  || fail "video apply should not launch or stop legacy wallpaper processes"
 
 image="$tmpdir/image with spaces.jpg"
 : >"$image"

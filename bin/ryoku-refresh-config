@@ -12,14 +12,14 @@ if [[ -z $config_file ]]; then
   Usage: $0 [config_file]
 
   Must provide a file path from the .config directory to be refreshed.
-  To copy \$RYOKU_PATH/config/hypr/hyprlock.conf to ~/.config/hypr/hyprlock.conf
+  To copy \$RYOKU_PATH/config/niri/config.kdl to ~/.config/niri/config.kdl
 
-    $0 hypr/hyprlock.conf
+    $0 niri/config.kdl
 USAGE
   exit 1
 fi
 
-# Backup the destination file (with timestamp) to avoid clobbering (Ex: hyprlock.conf.bak.1753817951)
+# Backup the destination file with a timestamp to avoid clobbering.
 user_config_file="${HOME}/.config/$config_file"
 default_config_file="${RYOKU_PATH}/config/$config_file"
 backup_config_file="$user_config_file.bak.$(date +%s)"

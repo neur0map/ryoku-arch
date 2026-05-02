@@ -7,6 +7,13 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 
 step="${1:-+5%}"
 
+if ryoku-cmd-present inir; then
+  case $step in
+  +*) exec inir brightness increment ;;
+  -*) exec inir brightness decrement ;;
+  esac
+fi
+
 # Start with the first possible output, then refine to the most likely given an order heuristic.
 device="$(ls -1 /sys/class/backlight 2>/dev/null | head -n1)"
 for candidate in amdgpu_bl* intel_backlight acpi_video*; do
@@ -18,6 +25,3 @@ done
 
 # Set the actual brightness of the display device.
 brightnessctl -d "$device" set "$step" >/dev/null
-
-# Use SwayOSD to display the new brightness setting.
-ryoku-swayosd-brightness "$(brightnessctl -d "$device" -m | cut -d',' -f4 | tr -d '%')"

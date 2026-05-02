@@ -38,6 +38,4 @@ if [[ -e /sys/class/leds/platform::micmute/brightness ]]; then
   done
 fi
 
-ryoku-swayosd-client \
-  --custom-message "$osd_message" \
-  --custom-icon "$osd_icon"
+notify-send -u low "$osd_message" >/dev/null 2>&1 || true

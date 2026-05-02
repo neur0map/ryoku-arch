@@ -4,7 +4,7 @@ set -e
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
 # Manage SDDM autologin for the current user. Autologin, when enabled,
-# skips the SDDM greeter on boot and lands straight in Hyprland.
+# skips the SDDM greeter on boot and lands straight in Niri.
 # Without autologin, SDDM shows the login screen (and any qylock theme
 # configured via ryoku-install-qylock).
 #
@@ -33,7 +33,7 @@ write_conf() {
   {
     echo "[Autologin]"
     echo "User=$user"
-    echo "Session=hyprland-uwsm"
+    echo "Session=niri.desktop"
     if [[ -n $rest ]]; then
       echo ""
       printf '%s\n' "$rest"

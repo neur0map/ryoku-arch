@@ -41,17 +41,9 @@ echo "$THEME_NAME" >"$RYOKU_CONFIG_PATH/current/theme.name"
 ryoku-theme-bg-next
 
 # Restart components to apply new theme
-if pgrep -x waybar >/dev/null; then
-  ryoku-restart-waybar
-fi
-ryoku-restart-swayosd
 ryoku-restart-terminal
-ryoku-restart-hyprctl
 ryoku-restart-btop
-ryoku-restart-mako
-if pgrep -x quickshell >/dev/null; then
-  ryoku-restart-shell
-fi
+ryoku-restart-shell >/dev/null 2>&1 || true
 
 # Change app-specific themes
 ryoku-theme-set-gnome

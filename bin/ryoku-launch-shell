@@ -1,15 +1,7 @@
 #!/bin/bash
 
-# Launches the Ryoku Quickshell config. Idempotent: safe to re-run while
-# quickshell is already running (quickshell will reject a duplicate with
-# a clear stderr message and exit non-zero, which the autostart gate
-# silently swallows).
+# Compatibility launcher for the shell managed by iNiR.
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-if ryoku-cmd-missing quickshell; then
-  echo "ryoku-launch-shell: quickshell is not installed; run 'sudo pacman -S quickshell'" >&2
-  exit 1
-fi
-
-exec quickshell -c ryoku "$@"
+exec inir run "$@"

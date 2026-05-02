@@ -130,6 +130,11 @@ RESOLV
   mkdir -p /mnt/var/cache/ryoku/mirror/offline
   mount --bind /var/cache/ryoku/mirror/offline /mnt/var/cache/ryoku/mirror/offline
 
+  if [[ -d /var/cache/ryoku/uv ]]; then
+    mkdir -p /mnt/var/cache/ryoku/uv
+    mount --bind /var/cache/ryoku/uv /mnt/var/cache/ryoku/uv
+  fi
+
   # omarchy bundles Node.js + other extras under /opt/packages and binds
   # them into the chroot. We do not ship those extras, so only do the
   # bind-mount if the dir actually exists in the live env.
@@ -153,15 +158,15 @@ EOF
   # Copy the local ryoku repo to the user's home directory
   mkdir -p /mnt/home/$RYOKU_USER/.local/share/
   cp -r /root/ryoku /mnt/home/$RYOKU_USER/.local/share/
+  if [[ -d /root/inir ]]; then
+    cp -r /root/inir /mnt/home/$RYOKU_USER/.local/share/
+  fi
 
   chown -R 1000:1000 /mnt/home/$RYOKU_USER/.local/
 
   # Ensure all necessary scripts are executable
   find /mnt/home/$RYOKU_USER/.local/share/ryoku -type f -path "*/bin/*" -exec chmod +x {} \;
   chmod +x /mnt/home/$RYOKU_USER/.local/share/ryoku/boot.sh 2>/dev/null || true
-  chmod +x /mnt/home/$RYOKU_USER/.local/share/ryoku/default/waybar/indicators/screen-recording.sh 2>/dev/null || true
-  chmod +x /mnt/home/$RYOKU_USER/.local/share/ryoku/default/waybar/indicators/idle.sh 2>/dev/null || true
-  chmod +x /mnt/home/$RYOKU_USER/.local/share/ryoku/default/waybar/indicators/notification-silencing.sh 2>/dev/null || true
 }
 
 chroot_bash() {

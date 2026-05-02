@@ -1,7 +1,0 @@
-#!/bin/bash
-
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
-
-# Returns true when no monitors are connected
-
-(( $(hyprctl monitors -j 2>/dev/null | jq length) == 0 ))

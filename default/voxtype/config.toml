@@ -3,7 +3,7 @@
 # Location: ~/.config/voxtype/config.toml
 # All settings can be overridden via CLI flags
 #
-# State file for external integrations (Waybar, polybar, etc.)
+# State file for external integrations.
 # Use "auto" for default location ($XDG_RUNTIME_DIR/voxtype/state),
 # a custom path, or "disabled" to turn off. The daemon writes state
 # ("idle", "recording", "transcribing") to this file whenever it changes.
@@ -11,7 +11,7 @@
 state_file = "auto"
 
 [hotkey]
-# Hotkey is configured in Hyprland. Default is Super + Ctrl + X
+# Hotkey is configured by Niri/iNiR. Default is Super + Ctrl + X
 enabled = false
 
 [audio]
@@ -97,4 +97,4 @@ on_transcription = false
 # spoken_punctuation = false
 #
 # Custom word replacements (case-insensitive)
-# replacements = { "hyperwhisper" = "hyprwhspr" }
+# replacements = { "example phrase" = "replacement" }

@@ -1,3 +1,0 @@
-module qs.Noctalia.Services.Location
-singleton LocationService 1.0 LocationService.qml
-singleton NightLightService 1.0 NightLightService.qml

@@ -1,5 +1,0 @@
-module qs.Noctalia.Services.Theming
-singleton AppThemeService 1.0 AppThemeService.qml
-singleton ColorSchemeService 1.0 ColorSchemeService.qml
-singleton TemplateProcessor 1.0 TemplateProcessor.qml
-singleton TemplateRegistry 1.0 TemplateRegistry.qml

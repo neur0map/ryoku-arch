@@ -5,7 +5,7 @@ set -e
 # Note that these are packages installed to the Arch container used to build the ISO.
 pacman-key --init
 pacman --noconfirm -Sy archlinux-keyring
-pacman --noconfirm -Sy archiso git sudo base-devel jq grub
+pacman --noconfirm -Sy archiso git sudo base-devel jq grub uv
 
 # We do not yet ship a custom [ryoku] pacman repo / keyring (omarchy
 # parity item, but signing infrastructure is out of scope right now).
@@ -33,12 +33,29 @@ cp -r /configs/* $build_cache_dir/
 
 # Persist RYOKU_MIRROR so it's available at install time
 echo "$RYOKU_MIRROR" > "$build_cache_dir/airootfs/root/ryoku_mirror"
+RYOKU_INIR_REPO="${RYOKU_INIR_REPO:-https://github.com/snowarch/iNiR.git}"
 
 # Setup Ryoku itself
 if [[ -d /ryoku ]]; then
   /bin/bash /builder/sync-local-source.sh /ryoku "$build_cache_dir/airootfs/root/ryoku"
 else
   git clone -b $RYOKU_INSTALLER_REF https://github.com/$RYOKU_INSTALLER_REPO.git "$build_cache_dir/airootfs/root/ryoku"
+fi
+
+if [[ -d /inir ]]; then
+  /bin/bash /builder/sync-local-source.sh /inir "$build_cache_dir/airootfs/root/inir"
+else
+  git clone "$RYOKU_INIR_REPO" "$build_cache_dir/airootfs/root/inir"
+fi
+
+inir_requirements="$build_cache_dir/airootfs/root/inir/sdata/uv/requirements.txt"
+inir_uv_cache="$build_cache_dir/airootfs/var/cache/ryoku/uv"
+if [[ -f $inir_requirements ]]; then
+  mkdir -p "$inir_uv_cache"
+  inir_uv_venv=$(mktemp -d)
+  UV_CACHE_DIR="$inir_uv_cache" uv venv --prompt ryoku-inir-cache "$inir_uv_venv"
+  VIRTUAL_ENV="$inir_uv_venv" UV_CACHE_DIR="$inir_uv_cache" uv pip install -r "$inir_requirements"
+  rm -rf "$inir_uv_venv"
 fi
 
 # Copy the Ryoku Plymouth theme to the ISO if the installer ships one.

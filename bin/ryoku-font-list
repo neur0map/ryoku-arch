@@ -43,7 +43,7 @@ emit_font_json() {
 }
 
 preview_asset() {
-  printf '%s/config/quickshell/ryoku/assets/appearance/fonts/%s\n' "$RYOKU_PATH" "$1"
+  printf '\n'
 }
 
 preview_for_family() {

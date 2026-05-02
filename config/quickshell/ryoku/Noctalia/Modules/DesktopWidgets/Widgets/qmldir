@@ -1,6 +1,0 @@
-module qs.Noctalia.Modules.DesktopWidgets.Widgets
-DesktopAudioVisualizer 1.0 DesktopAudioVisualizer.qml
-DesktopClock 1.0 DesktopClock.qml
-DesktopMediaPlayer 1.0 DesktopMediaPlayer.qml
-DesktopSystemStat 1.0 DesktopSystemStat.qml
-DesktopWeather 1.0 DesktopWeather.qml

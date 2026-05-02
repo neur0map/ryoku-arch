@@ -1,7 +1,0 @@
-#!/bin/bash
-
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
-
-# Reload mako configuration (used by the Ryoku theme switching).
-
-makoctl reload

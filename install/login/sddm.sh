@@ -14,13 +14,13 @@ ryoku-sddm-autologin disable >/dev/null
 sudo sed -i '/-auth.*pam_gnome_keyring\.so/d' /etc/pam.d/sddm
 sudo sed -i '/-password.*pam_gnome_keyring\.so/d' /etc/pam.d/sddm
 
-[[ -f /usr/share/sddm/themes/pixel-rainyroom/metadata.desktop ]] || {
-  echo "Error: bundled pixel-rainyroom theme is missing from /usr/share/sddm/themes" >&2
+[[ -f /usr/share/sddm/themes/ii-pixel/metadata.desktop ]] || {
+  echo "Error: bundled ii-pixel theme is missing from /usr/share/sddm/themes" >&2
   exit 1
 }
 
-[[ -f /usr/share/wayland-sessions/hyprland-uwsm.desktop ]] || {
-  echo "Error: hyprland-uwsm session file is missing; graphical login would land incorrectly" >&2
+[[ -f /usr/share/wayland-sessions/niri.desktop ]] || {
+  echo "Error: niri session file is missing; graphical login would land incorrectly" >&2
   exit 1
 }
 

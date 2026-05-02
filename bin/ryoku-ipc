@@ -8,51 +8,17 @@ usage() {
   cat <<'EOF'
 Usage:
   ryoku-ipc --help
-  ryoku-ipc shell command wallpaper
-  ryoku-ipc shell command launcher
-  ryoku-ipc shell command toolbox
-  ryoku-ipc shell command screenshot
-  ryoku-ipc shell command screen-record
-  ryoku-ipc shell command battery-warning
-  ryoku-ipc shell preview battery-warning
-  ryoku-ipc shell toolbox open
-  ryoku-ipc shell toolbox previous
-  ryoku-ipc shell toolbox next
-  ryoku-ipc shell toolbox activate
-  ryoku-ipc shell toolbox close
-  ryoku-ipc shell command themes
-  ryoku-ipc shell command fonts
-  ryoku-ipc shell command cursors
-  ryoku-ipc shell command dotfiles
-  ryoku-ipc shell command system-menu
-  ryoku-ipc shell command settings-menu
-  ryoku-ipc shell command legacy-settings-menu
-  ryoku-ipc shell command settings-menu-home
-  ryoku-ipc shell command settings-menu-share
-  ryoku-ipc shell command settings-menu-hardware
-  ryoku-ipc shell toggle wallpaper
-  ryoku-ipc shell toggle launcher
-  ryoku-ipc shell toggle toolbox
-  ryoku-ipc shell toggle screenshot
-  ryoku-ipc shell toggle screen-record
-  ryoku-ipc shell toggle themes
-  ryoku-ipc shell toggle fonts
-  ryoku-ipc shell toggle cursors
-  ryoku-ipc shell toggle dotfiles
-  ryoku-ipc shell toggle system-menu
-  ryoku-ipc shell toggle settings-menu
-  ryoku-ipc shell toggle legacy-settings-menu
-  ryoku-ipc shell settings-menu wifi
-  ryoku-ipc shell settings-menu bluetooth
-  ryoku-ipc shell settings-menu connections
-  ryoku-ipc shell settings-menu color-scheme
-  ryoku-ipc shell settings-menu wallpaper
-  ryoku-ipc shell settings-menu display
-  ryoku-ipc shell settings-menu audio
-  ryoku-ipc shell settings-menu general
-  ryoku-ipc shell settings-menu home
-  ryoku-ipc shell settings-menu share
-  ryoku-ipc shell settings-menu hardware
+  ryoku-ipc overview toggle
+  ryoku-ipc clipboard toggle
+  ryoku-ipc settings open
+  ryoku-ipc settings toggle
+  ryoku-ipc lock activate
+  ryoku-ipc session toggle
+  ryoku-ipc launcher toggle
+  ryoku-ipc region screenshot
+  ryoku-ipc region ocr
+  ryoku-ipc region record
+  ryoku-ipc region record-with-sound
   ryoku-ipc theme list --jsonl
   ryoku-ipc theme apply THEME
   ryoku-ipc font list --jsonl
@@ -71,218 +37,114 @@ Usage:
 EOF
 }
 
-qs_ipc_command() {
-  local arg
+exec_inir() {
+  if ! ryoku-cmd-present inir; then
+    echo "ryoku-ipc: inir is not installed or not on PATH" >&2
+    return 127
+  fi
 
-  printf '%s' "qs -c ryoku ipc --newest call"
-  for arg in "$@"; do
-    printf ' %s' "$arg"
-  done
-  printf '\n'
+  exec inir "$@"
 }
 
-qs_ipc() {
-  qs -c ryoku ipc --newest call "$@"
+expect_one() {
+  local expected="$1"
+  local actual="${2:-}"
+  local usage_text="$3"
+
+  if (( $# != 3 )) || [[ $actual != "$expected" ]]; then
+    echo "ryoku-ipc: expected $usage_text" >&2
+    return 2
+  fi
 }
 
-exec_qs_ipc() {
-  exec qs -c ryoku ipc --newest call "$@"
-}
-
-shell_command() {
-  local target="${1:-}"
-
-  if (( $# != 1 )); then
-    echo "ryoku-ipc: expected shell command wallpaper|launcher|toolbox|screenshot|screen-record|battery-warning|themes|fonts|cursors|dotfiles|system-menu|settings-menu|legacy-settings-menu|settings-menu-home|settings-menu-share|settings-menu-hardware" >&2
+overview_dispatch() {
+  if (( $# != 1 )) || [[ ${1:-} != "toggle" ]]; then
+    echo "ryoku-ipc: expected overview toggle" >&2
     return 2
   fi
 
-  case "$target" in
-    wallpaper)
-      qs_ipc_command popups toggleWallpaper
-      ;;
-    launcher)
-      qs_ipc_command popups toggleLauncher
-      ;;
-    toolbox)
-      printf '%s\n' "ryoku-ipc shell toolbox open"
-      ;;
-    screenshot)
-      qs_ipc_command popups toggleScreenshot
-      ;;
-    screen-record)
-      qs_ipc_command popups toggleScreenRecorder
-      ;;
-    battery-warning)
-      qs_ipc_command popups previewBatteryWarning
-      ;;
-    themes)
-      qs_ipc_command popups toggleThemes
-      ;;
-    fonts)
-      qs_ipc_command popups toggleFonts
-      ;;
-    cursors)
-      qs_ipc_command popups toggleCursors
-      ;;
-    dotfiles)
-      qs_ipc_command popups toggleDotfiles
-      ;;
-    system-menu)
-      qs_ipc_command popups toggleSystemMenu
-      ;;
-    settings-menu)
-      qs_ipc_command popups toggleSettingsMenu
-      ;;
-    legacy-settings-menu)
-      qs_ipc_command popups toggleLegacySettingsMenu
-      ;;
-    settings-menu-home)
-      qs_ipc_command popups openSettingsMenuHome
-      ;;
-    settings-menu-share)
-      qs_ipc_command popups openSettingsMenuShare
-      ;;
-    settings-menu-hardware)
-      qs_ipc_command popups openSettingsMenuHardware
-      ;;
-    *)
-      echo "ryoku-ipc: unknown shell command target: $target" >&2
-      return 2
-      ;;
-  esac
+  exec_inir overview toggle
 }
 
-shell_toolbox() {
-  local action="${1:-}"
-
-  if (( $# != 1 )); then
-    echo "ryoku-ipc: expected shell toolbox open|previous|next|activate|close" >&2
+clipboard_dispatch() {
+  if (( $# != 1 )) || [[ ${1:-} != "toggle" ]]; then
+    echo "ryoku-ipc: expected clipboard toggle" >&2
     return 2
   fi
 
-  case "$action" in
-    open)
-      qs_ipc popups openToolbox
-      hyprctl dispatch submap toolbox >/dev/null 2>&1 || true
-      ;;
-    previous)
-      exec_qs_ipc popups toolboxPrevious
-      ;;
-    next)
-      exec_qs_ipc popups toolboxNext
-      ;;
-    activate)
-      qs_ipc popups toolboxActivate
-      hyprctl dispatch submap reset >/dev/null 2>&1 || true
-      ;;
-    close)
-      qs_ipc popups toolboxClose
-      hyprctl dispatch submap reset >/dev/null 2>&1 || true
-      ;;
-    *)
-      echo "ryoku-ipc: unknown shell toolbox action: $action" >&2
-      return 2
-      ;;
-  esac
+  exec_inir clipboard toggle
 }
 
-shell_preview() {
-  local target="${1:-}"
-  shift || true
-
-  case "$target" in
-    battery-warning)
-      if (( $# != 0 )); then
-        echo "ryoku-ipc: expected shell preview battery-warning" >&2
-        return 2
-      fi
-      exec_qs_ipc popups previewBatteryWarning
-      ;;
-    *)
-      echo "ryoku-ipc: unknown shell preview target: $target" >&2
-      return 2
-      ;;
-  esac
-}
-
-shell_toggle() {
-  local target="${1:-}"
-
+settings_dispatch() {
   if (( $# != 1 )); then
-    echo "ryoku-ipc: expected shell toggle wallpaper|launcher|toolbox|screenshot|screen-record|themes|fonts|cursors|dotfiles|system-menu|settings-menu|legacy-settings-menu" >&2
+    echo "ryoku-ipc: expected settings open|toggle" >&2
     return 2
   fi
 
-  case "$target" in
-    wallpaper)
-      exec_qs_ipc popups toggleWallpaper
-      ;;
-    launcher)
-      exec_qs_ipc popups toggleLauncher
-      ;;
-    toolbox)
-      exec_qs_ipc popups toggleToolbox
-      ;;
-    screenshot)
-      exec_qs_ipc popups toggleScreenshot
-      ;;
-    screen-record)
-      exec_qs_ipc popups toggleScreenRecorder
-      ;;
-    themes)
-      exec_qs_ipc popups toggleThemes
-      ;;
-    fonts)
-      exec_qs_ipc popups toggleFonts
-      ;;
-    cursors)
-      exec_qs_ipc popups toggleCursors
-      ;;
-    dotfiles)
-      exec_qs_ipc popups toggleDotfiles
-      ;;
-    system-menu)
-      exec_qs_ipc popups toggleSystemMenu
-      ;;
-    settings-menu)
-      exec_qs_ipc popups toggleSettingsMenu
-      ;;
-    legacy-settings-menu)
-      exec_qs_ipc popups toggleLegacySettingsMenu
-      ;;
-    *)
-      echo "ryoku-ipc: unknown shell toggle target: $target" >&2
-      return 2
-      ;;
+  case "$1" in
+  open)
+    exec_inir settings
+    ;;
+  toggle)
+    exec_inir settings toggle
+    ;;
+  *)
+    echo "ryoku-ipc: unknown settings action: $1" >&2
+    return 2
+    ;;
   esac
 }
 
-shell_settings_menu() {
-  local route="${1:-}"
-
-  if (( $# != 1 )); then
-    echo "ryoku-ipc: expected shell settings-menu wifi|bluetooth|connections|color-scheme|wallpaper|display|audio|general|home|share|hardware" >&2
+lock_dispatch() {
+  if (( $# != 1 )) || [[ ${1:-} != "activate" ]]; then
+    echo "ryoku-ipc: expected lock activate" >&2
     return 2
   fi
 
-  case "$route" in
-    wifi|bluetooth|connections|color-scheme|wallpaper|display|audio|general)
-      exec_qs_ipc popups openSettingsRoute "$route"
-      ;;
-    home|quick|quick-controls)
-      exec_qs_ipc popups openSettingsRoute general
-      ;;
-    share)
-      exec_qs_ipc popups openSettingsMenuShare
-      ;;
-    hardware)
-      exec_qs_ipc popups openSettingsMenuHardware
-      ;;
-    *)
-      echo "ryoku-ipc: unknown settings-menu route: $route" >&2
-      return 2
-      ;;
+  exec_inir lock activate
+}
+
+session_dispatch() {
+  if (( $# != 1 )) || [[ ${1:-} != "toggle" ]]; then
+    echo "ryoku-ipc: expected session toggle" >&2
+    return 2
+  fi
+
+  exec_inir session toggle
+}
+
+launcher_dispatch() {
+  if (( $# != 1 )) || [[ ${1:-} != "toggle" ]]; then
+    echo "ryoku-ipc: expected launcher toggle" >&2
+    return 2
+  fi
+
+  exec_inir overview toggle
+}
+
+region_dispatch() {
+  if (( $# != 1 )); then
+    echo "ryoku-ipc: expected region screenshot|ocr|record|record-with-sound" >&2
+    return 2
+  fi
+
+  case "$1" in
+  screenshot)
+    exec_inir region screenshot
+    ;;
+  ocr)
+    exec_inir region ocr
+    ;;
+  record)
+    exec_inir region record
+    ;;
+  record-with-sound)
+    exec_inir region recordWithSound
+    ;;
+  *)
+    echo "ryoku-ipc: unknown region action: $1" >&2
+    return 2
+    ;;
   esac
 }
 
@@ -323,24 +185,24 @@ theme_dispatch() {
   shift || true
 
   case "$action" in
-    list)
-      if (( $# != 1 )) || [[ ${1:-} != "--jsonl" ]]; then
-        echo "ryoku-ipc: expected theme list --jsonl" >&2
-        return 2
-      fi
-      exec "$RYOKU_PATH/bin/ryoku-theme-list" --jsonl
-      ;;
-    apply)
-      if (( $# != 1 )); then
-        echo "ryoku-ipc: expected theme apply THEME" >&2
-        return 2
-      fi
-      exec "$RYOKU_PATH/bin/ryoku-theme-set" "$1"
-      ;;
-    *)
-      echo "ryoku-ipc: unknown theme action: $action" >&2
+  list)
+    if (( $# != 1 )) || [[ ${1:-} != "--jsonl" ]]; then
+      echo "ryoku-ipc: expected theme list --jsonl" >&2
       return 2
-      ;;
+    fi
+    exec "$RYOKU_PATH/bin/ryoku-theme-list" --jsonl
+    ;;
+  apply)
+    if (( $# != 1 )); then
+      echo "ryoku-ipc: expected theme apply THEME" >&2
+      return 2
+    fi
+    exec "$RYOKU_PATH/bin/ryoku-theme-set" "$1"
+    ;;
+  *)
+    echo "ryoku-ipc: unknown theme action: $action" >&2
+    return 2
+    ;;
   esac
 }
 
@@ -349,31 +211,31 @@ font_dispatch() {
   shift || true
 
   case "$action" in
-    list)
-      if (( $# != 1 )) || [[ ${1:-} != "--jsonl" ]]; then
-        echo "ryoku-ipc: expected font list --jsonl" >&2
-        return 2
-      fi
-      exec "$RYOKU_PATH/bin/ryoku-font-list" --jsonl
-      ;;
-    apply)
-      if (( $# != 1 )); then
-        echo "ryoku-ipc: expected font apply FONT_FAMILY" >&2
-        return 2
-      fi
-      exec "$RYOKU_PATH/bin/ryoku-font-set" "$1"
-      ;;
-    install)
-      if (( $# != 1 )); then
-        echo "ryoku-ipc: expected font install FONT_ID" >&2
-        return 2
-      fi
-      exec "$RYOKU_PATH/bin/ryoku-font-install" "$1"
-      ;;
-    *)
-      echo "ryoku-ipc: unknown font action: $action" >&2
+  list)
+    if (( $# != 1 )) || [[ ${1:-} != "--jsonl" ]]; then
+      echo "ryoku-ipc: expected font list --jsonl" >&2
       return 2
-      ;;
+    fi
+    exec "$RYOKU_PATH/bin/ryoku-font-list" --jsonl
+    ;;
+  apply)
+    if (( $# != 1 )); then
+      echo "ryoku-ipc: expected font apply FONT_FAMILY" >&2
+      return 2
+    fi
+    exec "$RYOKU_PATH/bin/ryoku-font-set" "$1"
+    ;;
+  install)
+    if (( $# != 1 )); then
+      echo "ryoku-ipc: expected font install FONT_ID" >&2
+      return 2
+    fi
+    exec "$RYOKU_PATH/bin/ryoku-font-install" "$1"
+    ;;
+  *)
+    echo "ryoku-ipc: unknown font action: $action" >&2
+    return 2
+    ;;
   esac
 }
 
@@ -382,31 +244,31 @@ cursor_dispatch() {
   shift || true
 
   case "$action" in
-    list)
-      if (( $# != 1 )) || [[ ${1:-} != "--jsonl" ]]; then
-        echo "ryoku-ipc: expected cursor list --jsonl" >&2
-        return 2
-      fi
-      exec "$RYOKU_PATH/bin/ryoku-cursor-list" --jsonl
-      ;;
-    apply)
-      if (( $# < 1 || $# > 2 )); then
-        echo "ryoku-ipc: expected cursor apply THEME [SIZE]" >&2
-        return 2
-      fi
-      exec "$RYOKU_PATH/bin/ryoku-cursor-set" "$@"
-      ;;
-    install)
-      if (( $# < 1 || $# > 2 )); then
-        echo "ryoku-ipc: expected cursor install THEME [SIZE]" >&2
-        return 2
-      fi
-      exec "$RYOKU_PATH/bin/ryoku-cursor-install" "$@"
-      ;;
-    *)
-      echo "ryoku-ipc: unknown cursor action: $action" >&2
+  list)
+    if (( $# != 1 )) || [[ ${1:-} != "--jsonl" ]]; then
+      echo "ryoku-ipc: expected cursor list --jsonl" >&2
       return 2
-      ;;
+    fi
+    exec "$RYOKU_PATH/bin/ryoku-cursor-list" --jsonl
+    ;;
+  apply)
+    if (( $# < 1 || $# > 2 )); then
+      echo "ryoku-ipc: expected cursor apply THEME [SIZE]" >&2
+      return 2
+    fi
+    exec "$RYOKU_PATH/bin/ryoku-cursor-set" "$@"
+    ;;
+  install)
+    if (( $# < 1 || $# > 2 )); then
+      echo "ryoku-ipc: expected cursor install THEME [SIZE]" >&2
+      return 2
+    fi
+    exec "$RYOKU_PATH/bin/ryoku-cursor-install" "$@"
+    ;;
+  *)
+    echo "ryoku-ipc: unknown cursor action: $action" >&2
+    return 2
+    ;;
   esac
 }
 
@@ -415,94 +277,93 @@ wallpaper_dispatch() {
   shift || true
 
   case "$action" in
-    settings)
-      if (( $# != 2 )) || [[ ${1:-} != "get" || ${2:-} != "--json" ]]; then
-        echo "ryoku-ipc: expected wallpaper settings get --json" >&2
-        return 2
-      fi
-      wallpaper_settings_get
-      ;;
-    list)
-      if (( $# != 1 )) || [[ ${1:-} != "--jsonl" ]]; then
-        echo "ryoku-ipc: expected wallpaper list --jsonl" >&2
-        return 2
-      fi
-      exec "$RYOKU_PATH/bin/ryoku-wallpaper-list" --jsonl
-      ;;
-    cache)
-      if (( $# != 1 )) || [[ ${1:-} != "rebuild" ]]; then
-        echo "ryoku-ipc: expected wallpaper cache rebuild" >&2
-        return 2
-      fi
-      exec "$RYOKU_PATH/bin/ryoku-wallpaper-cache" rebuild
-      ;;
-    apply)
-      exec "$RYOKU_PATH/bin/ryoku-wallpaper-apply" "$@"
-      ;;
-    wallhaven)
-      exec "$RYOKU_PATH/bin/ryoku-wallhaven-search" "$@"
-      ;;
-    *)
-      echo "ryoku-ipc: unknown wallpaper action: $action" >&2
+  settings)
+    if (( $# != 2 )) || [[ ${1:-} != "get" || ${2:-} != "--json" ]]; then
+      echo "ryoku-ipc: expected wallpaper settings get --json" >&2
       return 2
-      ;;
+    fi
+    wallpaper_settings_get
+    ;;
+  list)
+    if (( $# != 1 )) || [[ ${1:-} != "--jsonl" ]]; then
+      echo "ryoku-ipc: expected wallpaper list --jsonl" >&2
+      return 2
+    fi
+    exec "$RYOKU_PATH/bin/ryoku-wallpaper-list" --jsonl
+    ;;
+  cache)
+    if (( $# != 1 )) || [[ ${1:-} != "rebuild" ]]; then
+      echo "ryoku-ipc: expected wallpaper cache rebuild" >&2
+      return 2
+    fi
+    exec "$RYOKU_PATH/bin/ryoku-wallpaper-cache" rebuild
+    ;;
+  apply)
+    exec "$RYOKU_PATH/bin/ryoku-wallpaper-apply" "$@"
+    ;;
+  wallhaven)
+    exec "$RYOKU_PATH/bin/ryoku-wallhaven-search" "$@"
+    ;;
+  *)
+    echo "ryoku-ipc: unknown wallpaper action: $action" >&2
+    return 2
+    ;;
   esac
 }
 
 main() {
   case "${1:-}" in
-    --help|-h|"")
-      usage
-      ;;
-    shell)
-      shift
-      case "${1:-}" in
-        command)
-          shift
-          shell_command "$@"
-          ;;
-        toggle)
-          shift
-          shell_toggle "$@"
-          ;;
-        settings-menu)
-          shift
-          shell_settings_menu "$@"
-          ;;
-        toolbox)
-          shift
-          shell_toolbox "$@"
-          ;;
-        preview)
-          shift
-          shell_preview "$@"
-          ;;
-        *)
-          echo "ryoku-ipc: unknown shell action: ${1:-}" >&2
-          return 2
-          ;;
-      esac
-      ;;
-    wallpaper)
-      shift
-      wallpaper_dispatch "$@"
-      ;;
-    theme)
-      shift
-      theme_dispatch "$@"
-      ;;
-    font)
-      shift
-      font_dispatch "$@"
-      ;;
-    cursor)
-      shift
-      cursor_dispatch "$@"
-      ;;
-    *)
-      echo "ryoku-ipc: unknown namespace: ${1:-}" >&2
-      return 2
-      ;;
+  --help|-h|"")
+    usage
+    ;;
+  overview)
+    shift
+    overview_dispatch "$@"
+    ;;
+  clipboard)
+    shift
+    clipboard_dispatch "$@"
+    ;;
+  settings)
+    shift
+    settings_dispatch "$@"
+    ;;
+  lock)
+    shift
+    lock_dispatch "$@"
+    ;;
+  session)
+    shift
+    session_dispatch "$@"
+    ;;
+  launcher)
+    shift
+    launcher_dispatch "$@"
+    ;;
+  region)
+    shift
+    region_dispatch "$@"
+    ;;
+  wallpaper)
+    shift
+    wallpaper_dispatch "$@"
+    ;;
+  theme)
+    shift
+    theme_dispatch "$@"
+    ;;
+  font)
+    shift
+    font_dispatch "$@"
+    ;;
+  cursor)
+    shift
+    cursor_dispatch "$@"
+    ;;
+  *)
+    echo "ryoku-ipc: unknown namespace: ${1:-}" >&2
+    return 2
+    ;;
   esac
 }
 

@@ -105,22 +105,84 @@ libnotify
 obs-studio
 x264
 
-# ── Hyprland window manager + Wayland desktop stack ───────────────────
-hypridle
-hyprland
-hyprland-guiutils
-hyprlock
+# ── Niri compositor + iNiR desktop stack ──────────────────────────────
+adwaita-icon-theme
+awww
+bc
+blueman
+brightnessctl
+breeze-icons
+coreutils
+ddcutil
+fish
+fprintd
+frameworkintegration
+geoclue
+git
+glib2
+hicolor-icon-theme
 hyprpicker
-hyprsunset
-mako
+jemalloc
+kdialog
+kdecoration
+kconfig
+kirigami
+kitty
+kvantum
+libdbusmenu-gtk3
+libdrm
+libpipewire
+libxcb
+mesa
+mission-center
+mpv-mpris
+networkmanager
+niri
+pacman-contrib
+papirus-icon-theme
+pavucontrol
+pipewire-alsa
+pipewire-pulse
+plasma-integration
+polkit
+python
+python-evdev
+python-pillow
+qt6-base
+qt6-imageformats
+qt6-positioning
+qt6-quicktimeline
+qt6-sensors
+qt6-tools
+qt6-translations
+qt6-virtualkeyboard
+qt6-wayland
+qt5-graphicaleffects
+qt6ct
 quickshell
-swaybg
-swayosd
-uwsm
-waybar
-wl-clipboard
+rsync
+swayidle
+swaylock
+swappy
+syntax-highlighting
+ttf-dejavu
+ttf-liberation
+ttf-material-symbols-variable
+ttf-roboto
+ttf-roboto-mono
+upower
+uv
+wayland
+wf-recorder
+wget
+wlsunset
+wtype
+xdg-desktop-portal
+xdg-desktop-portal-gnome
 xdg-desktop-portal-gtk
-xdg-desktop-portal-hyprland
+xwayland-satellite
+ydotool
+yt-dlp
 
 # ── Screenshot / clipboard / region picker ────────────────────────────
 cliphist
@@ -130,6 +192,7 @@ slurp
 tesseract
 tesseract-data-eng
 tesseract-data-spa
+wl-clipboard
 zbar
 
 # ── Display manager + boot splash ─────────────────────────────────────
@@ -163,7 +226,6 @@ ufw
 wireless-regdb
 
 # ── Power management ──────────────────────────────────────────────────
-brightnessctl
 power-profiles-daemon
 
 # ── Hardware daemons ──────────────────────────────────────────────────
@@ -209,8 +271,4 @@ qt6-multimedia-ffmpeg
 qt6-svg
 
 # ── Bootloader + initramfs (limine snapshot-aware stack) ──────────────
-# limine-mkinitcpio-hook + limine-snapper-sync are AUR; build-iso.sh
-# bakes them into the offline mirror via iso/builder/ryoku-boot-overlay.packages.
 kernel-modules-hook
-limine-mkinitcpio-hook
-limine-snapper-sync

@@ -17,40 +17,69 @@ if ryoku-toggle-enabled screensaver-off && [[ $1 != "force" ]]; then
   exit 1
 fi
 
-# Close any open launcher overlay before taking the screen
-pkill -x tofi 2>/dev/null || true
-
-focused=$(ryoku-hyprland-monitor-focused)
 terminal=$(xdg-terminal-exec --print-id)
 
-for m in $(hyprctl monitors -j | jq -r '.[] | .name'); do
-  hyprctl dispatch focusmonitor $m
-
+build_command() {
   case $terminal in
   *Alacritty*)
-    hyprctl dispatch exec -- \
-      alacritty --class=org.ryoku.screensaver \
-      --config-file $RYOKU_PATH/default/alacritty/screensaver.toml \
+    command=(
+      alacritty
+      --class=org.ryoku.screensaver
+      --config-file "$RYOKU_PATH/default/alacritty/screensaver.toml"
       -e ryoku-cmd-screensaver
-    ;;
+    )
+  ;;
   *ghostty*)
-    hyprctl dispatch exec -- \
-      ghostty --class=org.ryoku.screensaver \
-      --config-file=$RYOKU_PATH/default/ghostty/screensaver \
-      --font-size=18 \
+    command=(
+      ghostty
+      --class=org.ryoku.screensaver
+      --config-file=$RYOKU_PATH/default/ghostty/screensaver
+      --font-size=18
       -e ryoku-cmd-screensaver
-    ;;
+    )
+  ;;
   *kitty*)
-    hyprctl dispatch exec -- \
-      kitty --class=org.ryoku.screensaver \
-      --override font_size=18 \
-      --override window_padding_width=0 \
+    command=(
+      kitty
+      --class=org.ryoku.screensaver
+      --override font_size=18
+      --override window_padding_width=0
       -e ryoku-cmd-screensaver
-    ;;
+    )
+  ;;
   *)
-    notify-send -u low "✋  Screensaver only runs in Alacritty, Ghostty, or Kitty"
-    ;;
+    notify-send -u low "Screensaver only runs in Alacritty, Ghostty, or Kitty"
+    exit 1
+  ;;
   esac
-done
+}
 
-hyprctl dispatch focusmonitor $focused
+spawn_screensaver() {
+  if ryoku-cmd-present niri; then
+    niri msg action spawn -- "${command[@]}" >/dev/null 2>&1 && return 0
+  fi
+
+  setsid "${command[@]}" >/dev/null 2>&1 &
+}
+
+build_command
+
+focused=""
+if ryoku-cmd-present niri; then
+  focused="$(niri msg -j focused-output 2>/dev/null | jq -r '.name // empty' 2>/dev/null || true)"
+fi
+
+mapfile -t monitors < <(niri msg -j outputs 2>/dev/null | jq -r 'if type == "array" then .[].name else keys[] end' 2>/dev/null || true)
+
+if (( ${#monitors[@]} == 0 )); then
+  spawn_screensaver
+else
+  for monitor in "${monitors[@]}"; do
+    niri msg action focus-monitor "$monitor" >/dev/null 2>&1 || true
+    spawn_screensaver
+  done
+
+  if [[ -n $focused ]]; then
+    niri msg action focus-monitor "$focused" >/dev/null 2>&1 || true
+  fi
+fi

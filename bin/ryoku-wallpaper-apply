@@ -45,16 +45,6 @@ apply_video() {
     return 1
   fi
 
-  if ryoku-cmd-missing mpvpaper; then
-    json_error "mpvpaper is required for video wallpapers"
-    return 3
-  fi
-
-  if ryoku-cmd-missing uwsm-app; then
-    json_error "uwsm-app is required to launch video wallpapers"
-    return 3
-  fi
-
   mkdir -p "$(dirname "$poster")"
   rm -f "$poster"
   if ryoku-cmd-present ffmpegthumbnailer; then
@@ -72,19 +62,9 @@ apply_video() {
     fi
   fi
 
-  pkill -x swaybg 2>/dev/null || true
-  pkill -x mpvpaper 2>/dev/null || true
-  setsid uwsm-app -- mpvpaper -o "loop-file=inf --mute=yes" "*" "$path" >/dev/null 2>&1 &
-  local launch_pid=$!
-  local launch_status=0
-
-  sleep 0.2
-  if ! kill -0 "$launch_pid" 2>/dev/null; then
-    wait "$launch_pid" || launch_status=$?
-    if (( launch_status != 0 )); then
-      json_error "failed to launch video wallpaper"
-      return "$launch_status"
-    fi
+  if ! "$RYOKU_PATH/bin/ryoku-theme-bg-set" "$path" >/dev/null; then
+    json_error "failed to apply video wallpaper"
+    return 4
   fi
 
   json_ok "video" "$path"

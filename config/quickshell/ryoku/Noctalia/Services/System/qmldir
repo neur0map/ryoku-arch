@@ -1,8 +1,0 @@
-module qs.Noctalia.Services.System
-singleton FontService 1.0 FontService.qml
-singleton HostService 1.0 HostService.qml
-singleton NotificationRulesService 1.0 NotificationRulesService.qml
-singleton NotificationService 1.0 NotificationService.qml
-singleton ProgramCheckerService 1.0 ProgramCheckerService.qml
-singleton SoundService 1.0 SoundService.qml
-singleton SystemStatService 1.0 SystemStatService.qml

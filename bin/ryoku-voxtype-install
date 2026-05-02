@@ -17,6 +17,6 @@ if gum confirm "Install Voxtype + AI model (~150MB) to enable dictation?"; then
   fi
   voxtype setup systemd
 
-  ryoku-restart-waybar
+  ryoku-restart-shell >/dev/null 2>&1 || true
   notify-send "    Voxtype Dictation Ready" "Press Super + Ctrl + X to toggle dictation.\nEdit ~/.config/voxtype/config.toml for options." -t 10000
 fi

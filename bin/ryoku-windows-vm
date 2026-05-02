@@ -50,7 +50,7 @@ install_windows() {
 [Desktop Entry]
 Name=Windows
 Comment=Start Windows VM via Docker and connect with RDP
-Exec=uwsm app -- ryoku-windows-vm launch
+Exec=ryoku-windows-vm launch
 Icon=$HOME/.local/share/applications/icons/windows.png
 Terminal=false
 Type=Application
@@ -329,9 +329,8 @@ To stop: ryoku-windows-vm stop"
     "" \
     "$LIFECYCLE"
 
-  # Detect display scale from Hyprland
-  HYPR_SCALE=$(hyprctl monitors -j | jq -r '.[] | select (.focused == true) | .scale')
-  SCALE_PERCENT=$(echo "$HYPR_SCALE" | awk '{print int($1 * 100)}')
+  # Detect display scale from Niri when available.
+  SCALE_PERCENT=$(niri msg -j focused-output 2>/dev/null | jq -r '(.scale // 1) * 100 | floor' 2>/dev/null || echo 100)
 
   RDP_SCALE=""
   if (( SCALE_PERCENT >= 170 )); then

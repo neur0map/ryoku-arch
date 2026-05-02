@@ -1,29 +1,7 @@
 #!/bin/bash
 
-# Mirrors $RYOKU_PATH/config/quickshell/ryoku into ~/.config/quickshell/ryoku,
-# backing up any file that differs. Companion to ryoku-refresh-config, which
-# handles individual files; this one handles the whole QS subtree.
-
-set -eEo pipefail
+set -euo pipefail
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-SRC="$RYOKU_PATH/config/quickshell/ryoku"
-DEST="$HOME/.config/quickshell/ryoku"
-
-if [[ ! -d $SRC ]]; then
-  echo "ryoku-refresh-quickshell: missing source $SRC" >&2
-  exit 1
-fi
-
-mkdir -p "$(dirname "$DEST")"
-
-if [[ -d $DEST ]]; then
-  TS="$(date +%s)"
-  BACKUP="$DEST.bak.$TS"
-  echo "backing up existing $DEST -> $BACKUP"
-  mv "$DEST" "$BACKUP"
-fi
-
-cp -r "$SRC" "$DEST"
-echo "refreshed $DEST from $SRC"
+exec inir repair

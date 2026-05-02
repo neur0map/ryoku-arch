@@ -1,2 +1,0 @@
-module qs.Noctalia.Services.Control
-singleton HooksService 1.0 HooksService.qml

@@ -17,7 +17,4 @@ fi
 
 brightnessctl --device="platform::micmute" set "$led_value" >/dev/null 2>&1 || true
 
-swayosd-client \
-  --monitor "$(ryoku-hyprland-monitor-focused)" \
-  --custom-message "$osd_message" \
-  --custom-icon "$osd_icon"
+notify-send -u low "$osd_message" >/dev/null 2>&1 || true

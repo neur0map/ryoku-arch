@@ -71,7 +71,8 @@ captured in source:
   - `xwayland-satellite`
   - `swayidle`
   - `hyprpicker`
-  - `xdg-desktop-portal-hyprland`
+  - `xdg-desktop-portal-gnome`
+  - `xdg-desktop-portal-gtk`
 - Removed old live user configs:
   - `~/.config/hypr`
   - `~/.config/waybar`
@@ -108,7 +109,6 @@ Keep or add:
 - `xdg-desktop-portal`
 - `xdg-desktop-portal-gtk`
 - `xdg-desktop-portal-gnome`
-- `xdg-desktop-portal-hyprland` while Niri package/runtime still expects it
 - `swayidle`
 - `wl-clipboard`
 - `cliphist`
@@ -267,8 +267,6 @@ verification should show `./setup doctor` with zero failures.
 
 - Whether to vendor iNiR into Ryoku source or keep installing it as a tracked
   external checkout under `~/.local/share/inir`.
-- Whether `xdg-desktop-portal-hyprland` remains required by the current Arch
-  `niri` package over time.
 - Whether `hyprpicker` should remain the color picker backend or be replaced
   with an iNiR/Niri-native alternative.
 - Whether Ryoku's Brain Shell code should be archived, removed, or retained as

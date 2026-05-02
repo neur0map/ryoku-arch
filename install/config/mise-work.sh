@@ -13,6 +13,11 @@ mise trust ~/Work/.mise.toml
 if [[ -n ${RYOKU_CHROOT_INSTALL:-} ]]; then
   NODE_TARBALL=$(find /opt/packages -name "node-v*-linux-x64.tar.gz" -type f 2>/dev/null | head -n1)
 
+  if [[ -z $NODE_TARBALL ]]; then
+    echo "No offline Node.js payload found; skipping global Node.js selection."
+    exit 0
+  fi
+
   NODE_VERSION=$(basename "$NODE_TARBALL" | sed 's/node-v\(.*\)-linux-x64.tar.gz/\1/')
   NODE_INSTALL_DIR="$HOME/.local/share/mise/installs/node/$NODE_VERSION"
 

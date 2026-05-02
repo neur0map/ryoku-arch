@@ -1,3 +1,0 @@
-module qs.Noctalia.Services.Hardware
-singleton BatteryService 1.0 BatteryService.qml
-singleton BrightnessService 1.0 BrightnessService.qml
