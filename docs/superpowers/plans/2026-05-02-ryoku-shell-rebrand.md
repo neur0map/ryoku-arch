@@ -34,9 +34,25 @@ rg -n "Phase 1|Phase 2|Phase 3|Phase 4|Phase 5|Phase 6" docs/superpowers/specs/2
 
 **Scope:** Execute now.
 
-**Status:** Completed on 2026-05-02. The Ryoku theme, overlay, installer wiring, runtime labels, migration, live application, and focused checks are complete. Continue at Phase 2 in the next session.
+**Status:** Completed on 2026-05-02. The Ryoku theme, overlay, installer wiring, runtime labels, migration, live application, focused checks, and post-completion theme ownership fix are complete. Continue at Phase 2 in the next session.
+
+**Completion Commits:**
+
+- `e46fed54 feat: add ryoku default theme`
+- `ce107eb7 feat: default fresh installs to ryoku theme`
+- `2955a2ff feat: add ryoku shell branding overlay`
+- `08f9ffcd feat: apply ryoku shell branding during install`
+- `8fdee755 chore: use ryoku labels for shell runtime`
+- `03b7ee8e test: cover ryoku shell branding contract`
+- `166bc354 chore: migrate installs to ryoku shell branding`
+- `09dac22d fix: brand shell hotspot defaults`
+- `46f63e40 fix: format asus keyboard color for theme sync`
+- `fadf1607 docs: mark ryoku shell phase one complete`
+- `4ecc278d fix: keep ryoku themes from shell color override`
 
 ### Task 1: Add Rebrand Contract Test
+
+**Status:** Completed by `03b7ee8e`.
 
 **Files:**
 
@@ -69,6 +85,8 @@ git commit -m "test: cover ryoku shell branding contract"
 ```
 
 ### Task 2: Add Shipped Ryoku Theme
+
+**Status:** Completed by `e46fed54`.
 
 **Files:**
 
@@ -105,6 +123,8 @@ git commit -m "feat: add ryoku default theme"
 
 ### Task 3: Make Ryoku The Fresh Install Theme
 
+**Status:** Completed by `ce107eb7`.
+
 **Files:**
 
 - `install/config/theme.sh`
@@ -131,6 +151,8 @@ git commit -m "feat: default fresh installs to ryoku theme"
 ```
 
 ### Task 4: Add Ryoku Shell Branding Overlay
+
+**Status:** Completed by `2955a2ff`, with config ownership hardening in `09dac22d` and `4ecc278d`.
 
 **Files:**
 
@@ -165,6 +187,8 @@ git commit -m "feat: add ryoku shell branding overlay"
 
 ### Task 5: Wire Overlay Into Installer
 
+**Status:** Completed by `08f9ffcd`.
+
 **Files:**
 
 - `install/config/inir.sh`
@@ -190,6 +214,8 @@ git commit -m "feat: apply ryoku shell branding during install"
 ```
 
 ### Task 6: Update Ryoku Runtime Messages And Service Labels
+
+**Status:** Completed by `8fdee755`.
 
 **Files:**
 
@@ -222,6 +248,8 @@ git commit -m "chore: use ryoku labels for shell runtime"
 
 ### Task 7: Add Existing Install Migration
 
+**Status:** Completed by `166bc354`.
+
 **Files:**
 
 - `migrations/<timestamp>.sh`
@@ -249,6 +277,8 @@ git commit -m "chore: migrate installs to ryoku shell branding"
 
 ### Task 8: Live Application Probe
 
+**Status:** Completed on the live user session. `inir.service` reports `Ryoku shell`; the actual running shell process is `qs`.
+
 **Scope:** Run after repository implementation is green.
 
 **Steps:**
@@ -263,10 +293,41 @@ git commit -m "chore: migrate installs to ryoku shell branding"
 RYOKU_PATH="$PWD" bash install/config/ryoku-shell-branding.sh
 ryoku-restart-ui --quiet
 systemctl --user status inir.service --no-pager
-pgrep -a -x quickshell
+pgrep -a -x qs
 ```
 
 **Commit:** None unless repository files change during the live probe.
+
+### Task 9: Preserve Selected Ryoku Theme Colors
+
+**Status:** Completed by `4ecc278d`.
+
+**Reason:** After Phase 1, changing themes briefly showed the selected Ryoku colors, then the shell wallpaper color generator overwrote terminal/app colors with a lighter generated Material palette.
+
+**Files:**
+
+- `bin/ryoku-theme-set-shell`
+- `bin/ryoku-theme-set`
+- `default/ryoku-shell/config-overrides.json`
+- `tests/ryoku-theme-shell-sync.sh`
+- `tests/ryoku-shell-branding.sh`
+- `tests/niri-inir-merge-readiness.sh`
+
+**Verification:**
+
+```bash
+bash tests/ryoku-theme-shell-sync.sh
+bash tests/ryoku-shell-branding.sh
+bash tests/niri-inir-merge-readiness.sh
+```
+
+**Live Check:**
+
+```bash
+ryoku-theme-set ryoku
+jq -r '.appearance.wallpaperTheming.enableTerminal, .appearance.palette.accentColor' ~/.config/inir/config.json
+sed -n '1,16p' ~/.config/alacritty/colors.toml
+```
 
 ---
 
