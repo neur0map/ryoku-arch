@@ -96,17 +96,23 @@ grep -Eq 'implicitHeight:[[:space:]]+910|panelHeight:[[:space:]]+910|height:[[:s
   || fail "Settings panel should preserve Noctalia's 910px visual height"
 ! rg -n '(panelWidth|panelHeight|implicitWidth|implicitHeight):.*Style\.uiScaleRatio' "$settings_window" \
   || fail "Settings panel outer geometry should not scale beyond Noctalia's logical size"
-grep -q 'centeredX' "$settings_window" \
-  || fail "Settings panel should explicitly compute centered x position"
-grep -q 'centeredY' "$settings_window" \
-  || fail "Settings panel should explicitly compute centered y position"
-grep -q 'screen.width - width' "$settings_window" \
-  || fail "Settings panel x position should center within screen width"
-grep -q 'screen.height - height' "$settings_window" \
-  || fail "Settings panel y position should center within screen height"
-rg -U '(^|\n)[^\n]*(implicitWidth|panelWidth|width)[[:space:]]*:[[:space:]]*Math\.min\([\s\S]{0,240}(screen\.width|availableGeometry[\s\S]{0,40}width)' "$settings_window" >/dev/null \
+grep -q 'PanelWindow' "$settings_window" \
+  || fail "Settings panel should use a supported layer-shell host for compositor-level centering"
+! grep -q 'title:' "$settings_window" \
+  || fail "Settings PanelWindow should not assign FloatingWindow-only title"
+! rg -n '(^|[[:space:]])[xy][[:space:]]*:' "$settings_window" \
+  || fail "Settings panel should not assign unsupported FloatingWindow x/y properties"
+grep -q 'anchors.centerIn: parent' "$settings_window" \
+  || fail "Settings panel content should be centered in its screen host"
+grep -q 'mask: Region' "$settings_window" \
+  || fail "Settings panel should not leave a full-screen input region active around the centered panel"
+grep -q 'availablePanelWidth:.*width - 24' "$settings_window" \
+  || fail "Settings panel should derive available width from the screen-sized host"
+grep -q 'availablePanelHeight:.*height - 24' "$settings_window" \
+  || fail "Settings panel should derive available height from the screen-sized host"
+grep -q 'width: Math.min(root.panelWidth, root.availablePanelWidth)' "$settings_window" \
   || fail "Settings panel should cap width to available screen geometry"
-rg -U '(^|\n)[^\n]*(implicitHeight|panelHeight|height)[[:space:]]*:[[:space:]]*Math\.min\([\s\S]{0,240}(screen\.height|availableGeometry[\s\S]{0,40}height)' "$settings_window" >/dev/null \
+grep -q 'height: Math.min(root.panelHeight, root.availablePanelHeight)' "$settings_window" \
   || fail "Settings panel should cap height to available screen geometry"
 
 for tab in General UserInterface ColorScheme Wallpaper Bar Dock DesktopWidgets ControlCenter Launcher Notifications OSD LockScreen SessionMenu Idle Audio Display Connections Location System Plugins Hooks About; do
