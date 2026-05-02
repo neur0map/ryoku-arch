@@ -84,7 +84,29 @@ assert_tofi_template_preserves_explicit_active_border_color() {
     || fail "tofi border color should preserve explicit active_border_color"
 }
 
+assert_noctalia_template_maps_ryoku_theme() {
+  local config_dir="$TEMP_DIR/noctalia-config"
+  local colors_json="$config_dir/current/next-theme/noctalia-colors.json"
+
+  render_to_temp_theme "$config_dir"
+
+  [[ -f $colors_json ]] || fail "Noctalia color bridge should render"
+  ! grep -q '{{ ' "$colors_json" \
+    || fail "Noctalia color bridge should not contain unresolved template variables"
+  grep -q '"mPrimary": "#F25623"' "$colors_json" \
+    || fail "Noctalia primary color should use Ryoku brand orange"
+  grep -q '"mSurface": "#2d353b"' "$colors_json" \
+    || fail "Noctalia surface color should use the Ryoku theme background"
+  grep -q '"mOnSurface": "#d3c6aa"' "$colors_json" \
+    || fail "Noctalia text color should use the Ryoku theme foreground"
+  grep -q '"mSecondary": "#7fbbb3"' "$colors_json" \
+    || fail "Noctalia secondary color should use the Ryoku theme accent"
+  python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$colors_json" \
+    || fail "Noctalia color bridge should render valid JSON"
+}
+
 assert_tofi_template_falls_back_to_accent_border
 assert_tofi_template_preserves_explicit_active_border_color
+assert_noctalia_template_maps_ryoku_theme
 
 echo "PASS: theme template rendering"

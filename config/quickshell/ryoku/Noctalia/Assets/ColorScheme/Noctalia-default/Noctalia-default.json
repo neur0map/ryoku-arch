@@ -1,7 +1,7 @@
 {
   "dark": {
-    "mPrimary": "#fff59b",
-    "mOnPrimary": "#0e0e43",
+    "mPrimary": "#F25623",
+    "mOnPrimary": "#171717",
     "mSecondary": "#a9aefe",
     "mOnSecondary": "#0e0e43",
     "mTertiary": "#9BFECE",
@@ -21,7 +21,7 @@
         "black": "#11112d",
         "red": "#FD4663",
         "green": "#9BFECE",
-        "yellow": "#fff59b",
+        "yellow": "#F25623",
         "blue": "#a9aefe",
         "magenta": "#FD4663",
         "cyan": "#9BFECE",
@@ -31,7 +31,7 @@
         "black": "#21215F",
         "red": "#FD4663",
         "green": "#9BFECE",
-        "yellow": "#fff59b",
+        "yellow": "#F25623",
         "blue": "#a9aefe",
         "magenta": "#FD4663",
         "cyan": "#9BFECE",
@@ -42,16 +42,16 @@
       "selectionFg": "#070722",
       "selectionBg": "#f3edf7",
       "cursorText": "#070722",
-      "cursor": "#fff59b"
+      "cursor": "#F25623"
     }
   },
   "light": {
-    "mPrimary": "#5d65f5",
-    "mOnPrimary": "#dadcff",
+    "mPrimary": "#F25623",
+    "mOnPrimary": "#171717",
     "mSecondary": "#8E93D8",
     "mOnSecondary": "#dadcff",
     "mTertiary": "#0e0e43",
-    "mOnTertiary": "#fef29a",
+    "mOnTertiary": "#F25623",
     "mError": "#FD4663",
     "mOnError": "#0e0e43",
     "mSurface": "#e6e8fa",
@@ -61,13 +61,13 @@
     "mOutline": "#8288fc",
     "mShadow": "#f3edf7",
     "mHover": "#0e0e43",
-    "mOnHover": "#fef29a",
+    "mOnHover": "#F25623",
     "terminal": {
       "normal": {
         "black": "#eff0ff",
         "red": "#FD4663",
         "green": "#0e0e43",
-        "yellow": "#5d65f5",
+        "yellow": "#F25623",
         "blue": "#8E93D8",
         "magenta": "#FD4663",
         "cyan": "#0e0e43",
@@ -77,7 +77,7 @@
         "black": "#8288fc",
         "red": "#FD4663",
         "green": "#0e0e43",
-        "yellow": "#5d65f5",
+        "yellow": "#F25623",
         "blue": "#8E93D8",
         "magenta": "#FD4663",
         "cyan": "#0e0e43",
@@ -88,7 +88,7 @@
       "selectionFg": "#e6e8fa",
       "selectionBg": "#4b55c8",
       "cursorText": "#e6e8fa",
-      "cursor": "#5d65f5"
+      "cursor": "#F25623"
     }
   }
 }

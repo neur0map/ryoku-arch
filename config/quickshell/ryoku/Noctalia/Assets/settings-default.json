@@ -145,8 +145,8 @@
     "smoothScrollEnabled": true
   },
   "ui": {
-    "fontDefault": "",
-    "fontFixed": "",
+    "fontDefault": "JetBrainsMono Nerd Font",
+    "fontFixed": "JetBrainsMono Nerd Font",
     "fontDefaultScale": 1,
     "fontFixedScale": 1,
     "tooltipsEnabled": true,

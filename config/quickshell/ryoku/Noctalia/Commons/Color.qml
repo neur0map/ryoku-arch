@@ -20,6 +20,9 @@ Singleton {
   id: root
 
   property bool reloadColors: false
+  readonly property string ryokuConfigDir: Quickshell.env("RYOKU_CONFIG_PATH") || (Quickshell.env("HOME") + "/.config/ryoku")
+  readonly property string ryokuThemeDir: ryokuConfigDir + "/current/theme"
+  readonly property string ryokuThemeColorsFile: ryokuThemeDir + "/noctalia-colors.json"
 
   // Debounce external reload requests (file watcher + directory watcher)
   // so atomic replacements only trigger one reload.
@@ -392,47 +395,45 @@ Singleton {
   ]
 
   // --------------------------------
-  // Default colors: Noctalia (default) dark — must match Assets/ColorScheme/Noctalia-default
+  // Default colors: Ryoku Greek Noir fallback. The active theme normally
+  // replaces these through ~/.config/ryoku/current/theme/noctalia-colors.json.
   QtObject {
     id: defaultColors
 
-    readonly property color mPrimary: "#fff59b"
-    readonly property color mOnPrimary: "#0e0e43"
+    readonly property color mPrimary: "#F25623"
+    readonly property color mOnPrimary: "#171717"
 
-    readonly property color mSecondary: "#a9aefe"
-    readonly property color mOnSecondary: "#0e0e43"
+    readonly property color mSecondary: "#F56E0F"
+    readonly property color mOnSecondary: "#171717"
 
-    readonly property color mTertiary: "#9BFECE"
-    readonly property color mOnTertiary: "#0e0e43"
+    readonly property color mTertiary: "#88A57D"
+    readonly property color mOnTertiary: "#171717"
 
-    readonly property color mError: "#FD4663"
-    readonly property color mOnError: "#0e0e43"
+    readonly property color mError: "#D35F5F"
+    readonly property color mOnError: "#171717"
 
-    readonly property color mSurface: "#070722"
-    readonly property color mOnSurface: "#f3edf7"
+    readonly property color mSurface: "#171717"
+    readonly property color mOnSurface: "#CCD0CF"
 
-    readonly property color mSurfaceVariant: "#11112d"
-    readonly property color mOnSurfaceVariant: "#7c80b4"
+    readonly property color mSurfaceVariant: "#333333"
+    readonly property color mOnSurfaceVariant: "#aeab94"
 
-    readonly property color mOutline: "#21215F"
-    readonly property color mShadow: "#070722"
+    readonly property color mOutline: "#4D4D4D"
+    readonly property color mShadow: "#171717"
 
-    readonly property color mHover: "#9BFECE"
-    readonly property color mOnHover: "#0e0e43"
+    readonly property color mHover: "#F56E0F"
+    readonly property color mOnHover: "#171717"
   }
 
   // ----------------------------------------------------------------
-  // FileView to load custom colors data from colors.json
+  // FileView to load Ryoku-rendered active theme colors.
   FileView {
     id: customColorsFile
-    path: Settings.directoriesCreated ? (Settings.configDir + "colors.json") : undefined
+    path: Settings.directoriesCreated ? root.ryokuThemeColorsFile : undefined
     printErrors: false
     watchChanges: true
     onFileChanged: scheduleExternalColorReload()
-    onAdapterUpdated: {
-      Logger.d("Color", "Writing colors to disk");
-      writeAdapter();
-    }
+    onAdapterUpdated: {}
 
     onLoaded: {
       if (root.skipTransition) {
@@ -460,11 +461,7 @@ Singleton {
         });
       }
 
-      // Error code 2 = ENOENT (No such file or directory)
-      if (error === 2 || error.toString().includes("No such file")) {
-        // File doesn't exist, create it with default values
-        writeAdapter();
-      }
+      Logger.w("Color", "Ryoku theme colors unavailable; using Greek Noir fallback:", error);
     }
     JsonAdapter {
       id: customColorsData
@@ -495,11 +492,11 @@ Singleton {
     }
   }
 
-  // Watch parent config directory as a fallback for declarative setups where
-  // colors.json may be replaced atomically (e.g., symlink/store-path swap).
+  // Watch parent theme directory as a fallback for renderers that replace
+  // noctalia-colors.json atomically.
   FileView {
     id: colorsDirWatcher
-    path: Settings.directoriesCreated ? Settings.configDir : undefined
+    path: Settings.directoriesCreated ? root.ryokuThemeDir : undefined
     printErrors: false
     watchChanges: true
     onFileChanged: scheduleExternalColorReload()

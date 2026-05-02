@@ -46,6 +46,22 @@ grep -q 'MIT License' "$vendor/LICENSE" \
   || fail "Ryoku wallpaper settings actions should exist"
 [[ -f $runtime/Services/Ryoku/RyokuSessionActions.qml ]] \
   || fail "Ryoku session settings actions should exist"
+[[ -f default/themed/noctalia-colors.json.tpl ]] \
+  || fail "Ryoku should render Noctalia-compatible colors from each theme"
+grep -q '#F25623' "$runtime/Commons/Color.qml" \
+  || fail "Noctalia fallback primary should use Ryoku brand orange"
+grep -q 'current/theme/noctalia-colors.json' "$runtime/Commons/Color.qml" \
+  || fail "Noctalia colors should load from the active Ryoku theme render"
+grep -q '"fontDefault": "JetBrainsMono Nerd Font"' "$runtime/Assets/settings-default.json" \
+  || fail "Noctalia settings defaults should use the Ryoku font"
+grep -q '"fontFixed": "JetBrainsMono Nerd Font"' "$runtime/Assets/settings-default.json" \
+  || fail "Noctalia fixed-width settings default should use the Ryoku font"
+grep -q 'adapter.ui.fontDefault = "JetBrainsMono Nerd Font"' "$runtime/Commons/Settings.qml" \
+  || fail "Noctalia runtime font default should be Ryoku themed"
+grep -q 'adapter.ui.fontFixed = "JetBrainsMono Nerd Font"' "$runtime/Commons/Settings.qml" \
+  || fail "Noctalia runtime fixed font should be Ryoku themed"
+! grep -Eq '#(fff59b|fef29a)' "$runtime/Assets/ColorScheme/Noctalia-default/Noctalia-default.json" \
+  || fail "Noctalia default scheme should not expose the upstream yellow primary"
 grep -q 'singleton RyokuThemeActions 1.0 RyokuThemeActions.qml' "$runtime/Services/Ryoku/qmldir" \
   || fail "Ryoku theme actions should be exported from qmldir"
 grep -q 'singleton RyokuWallpaperActions 1.0 RyokuWallpaperActions.qml' "$runtime/Services/Ryoku/qmldir" \

@@ -81,8 +81,8 @@ Singleton {
     // Patch-in the local default, resolved to user's home
     adapter.general.avatarImage = defaultAvatar;
     adapter.wallpaper.directory = defaultWallpapersDirectory;
-    adapter.ui.fontDefault = Qt.application.font.family;
-    adapter.ui.fontFixed = "monospace";
+    adapter.ui.fontDefault = "JetBrainsMono Nerd Font";
+    adapter.ui.fontFixed = "JetBrainsMono Nerd Font";
 
     // Set the adapter to the settingsFileView to trigger the real settings load
     settingsFileView.adapter = adapter;
