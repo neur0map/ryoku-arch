@@ -154,8 +154,10 @@ assert_topbar_frame_overlay() {
     "Topbar frame patch should keep center spacers laid out but visually hidden"
   assert_contains "install/config/ryoku-shell-branding.sh" 'visible: \(Config.options\?\.bar.borderless\) \\&\\& !root.ryokuTopbarHugFrame' \
     "Topbar frame patch should hide old borderless separators in frame gaps"
-  assert_contains_multiline "install/config/ryoku-shell-branding.sh" 'TimerIndicator \{\n\s*visible: !root\.ryokuTopbarHugFrame' \
-    "Topbar frame patch should hide the timer indicator from the bar"
+  assert_not_contains_multiline "install/config/ryoku-shell-branding.sh" 'TimerIndicator \{\n\s*visible: !root\.ryokuTopbarHugFrame\n\/s;' \
+    "Topbar frame patch should no longer force-hide the timer indicator under the hug frame"
+  assert_contains "install/config/ryoku-shell-branding.sh" '# Regress force-hide: TimerIndicator' \
+    "Topbar frame patch should regress (remove) any previously-injected TimerIndicator force-hide line"
   assert_contains_multiline "install/config/ryoku-shell-branding.sh" 'ShellUpdateIndicator \{\n\s*visible: !root\.ryokuTopbarHugFrame' \
     "Topbar frame patch should hide the shell update indicator from the bar"
   assert_json_expr "default/ryoku-shell/config-overrides.json" '.bar.ryokuTopbarHugFrame == true' \
