@@ -21,14 +21,21 @@ and the right notch attached to the top-right edge.
 - Draw a single seamless Canvas frame with three top-attached notches.
 - Keep transparent open space below the thin top strip between notches.
 - Keep logo plus active window title/status on the left.
-- Keep workspace numbers centered.
-- Keep the combined right status button and weather on the right.
+- Keep the center notch as an empty placeholder (fixed width). Future content
+  will fill it; for now it preserves the three-notch frame shape.
+- Place workspace numbers in the right notch, adjacent to `rightSidebarButton`
+  inside the dark notch area.
+- Keep the combined right status button and weather on the right, alongside
+  workspaces and the visible-on-demand timer and shell-update indicators.
 - Preserve the top-left hot-corner left-sidebar behavior by leaving
   `modules/screenCorners/ScreenCorners.qml` out of scope.
 - Preserve left-side brightness scroll, right-side volume scroll, and existing
   right-click behavior.
 - Hide topbar renderers for time/date, resources/system monitor, media/player,
-  quick actions, battery, tray, timer, and shell update indicators.
+  quick actions, battery, and system tray.
+- Reserve layout space for `TimerIndicator` and `ShellUpdateIndicator` in the
+  right notch so they appear on demand (active timer, pending update) without
+  pushing other elements around.
 
 ## Non-Goals
 
@@ -46,17 +53,27 @@ rectangles. It has:
 
 1. Left notch: starts at screen x=0 and extends down from the top edge around
    the logo/sidebar button and active-window/taskbar content.
-2. Center notch: centered on the screen and sized around workspaces.
-3. Right notch: ends at the screen right edge and extends down around weather
-   plus `rightSidebarButton`.
+2. Center notch: centered on the screen, fixed-width empty placeholder
+   reserved for future content.
+3. Right notch: ends at the screen right edge and extends down around
+   workspaces, weather, the timer/update indicators, and `rightSidebarButton`.
 
 The gaps between notches remain visually open below a thin top strip. This
 matches the reference image better than separate BarGroup surfaces because the
 corners read as part of a top frame, not detached pills.
 
-The middle flanking groups remain in layout with zero opacity so workspace
-centering stays stable. Their resource/media/clock/util/battery content is
-disabled while the Ryoku hug frame is active.
+The right notch's right-to-left content order is `rightSidebarButton`,
+`Workspaces`, `TimerIndicator`, `ShellUpdateIndicator`, fill spacer, and
+`WeatherBar`, all anchored inside the dark notch interior. `SysTray` remains
+hidden because its width grows with running tray clients and would fight
+fixed-width notch sizing.
+
+The middle flanking groups (`leftCenterGroup`, `rightCenterGroupContent`)
+remain in layout with zero opacity so the rest of the bar measurement stays
+stable. Their resource/media/clock/util/battery content is disabled while the
+Ryoku hug frame is active. The `middleCenterGroup` keeps a fixed implicit
+width while the hug frame is active so the empty center notch retains a
+consistent shape independent of any (now-absent) workspace child.
 
 ## Architecture
 
@@ -91,6 +108,34 @@ The script also upgrades the rejected legacy marker,
 `root.ryokuThreeIslandFrame`, so live systems already patched with the pill
 implementation can be corrected in-place.
 
+The patch also moves the `Workspaces { id: workspacesWidget … }` instance out
+of `middleCenterGroup` and re-inserts the same block inside
+`rightSectionRowLayout` as the second child (declared immediately after
+`rightSidebarButton`). Because the layout uses `Qt.RightToLeft`, the second
+declared child renders one slot to the left of the first, which places
+workspaces inside the dark notch interior right next to the status button.
+The `Workspaces.qml` component itself is unchanged; only the instance
+location moves.
+
+To support the empty center notch, `middleCenterGroup.implicitWidth` is
+replaced with a fixed `100` while the hug frame is active. With the existing
+`ryokuCenterNotchWidth` clamp `Math.min(Math.max(middleCenterGroup.implicitWidth + ryokuNotchPadding * 2, 96), 220)`,
+this resolves to roughly 140 px, which is wide enough to read as a real
+notch but compact enough to leave room for future content without redrawing
+the whole frame.
+
+The right notch widens accordingly: `ryokuRightContentWidth` adds
+`workspacesWidget.implicitWidth + rightSectionRowLayout.spacing`, and
+`ryokuRightNotchWidth`'s upper cap increases from 360 to 480 so the wider
+content fits.
+
+Re-runs of the script must remain a no-op. The relocation step uses the same
+`if (already-patched) { upgrade } else { apply }` shape as the existing
+hug-frame patches: it detects whether the live tree already has Workspaces in
+`rightSectionRowLayout`, and only moves the block on the first run. A new
+migration in `migrations/` re-invokes the branding script so live systems
+pick up the relocation on the next update.
+
 ## Data Flow
 
 No new services are introduced. Existing data sources remain unchanged:
@@ -109,15 +154,27 @@ Static coverage in `tests/ryoku-shell-branding.sh` asserts that the overlay:
 - Defines `apply_topbar_hug_frame_to_file()`.
 - Adds the `ryokuTopbarHugFrame` marker.
 - Draws one `Canvas` frame using rounded `ctx.arcTo()` transitions.
-- Sizes the left, center, and right notches from their content.
+- Sizes the left and right notches from their content; sizes the center
+  notch from a fixed placeholder width while the hug frame is active.
 - Patches source and runtime `BarContent.qml`.
 - Does not patch `ScreenCorners.qml`.
 - Keeps Hug mode enabled through `showBackground=true` and `cornerStyle=0`.
 - Suppresses BarGroup pill backgrounds with `borderless=true`.
 - Hides old borderless separators inside the frame gaps.
-- Hides removed topbar modules without deleting their component files.
+- Hides clock, util buttons, battery, and sys-tray modules without deleting
+  their component files.
+- Does NOT force-hide `TimerIndicator` and `ShellUpdateIndicator` while the
+  hug frame is active (they remain space-reserving and on-demand visible).
+- Places the `Workspaces` instance inside `rightSectionRowLayout` and not
+  inside `middleCenterGroup`.
+- Replaces `middleCenterGroup.implicitWidth` so it does not reference
+  `workspacesWidget` while the hug frame is active.
+- Includes `workspacesWidget.implicitWidth` in `ryokuRightContentWidth`.
 
-Manual verification should restart the shell and inspect the screenshot: left
-and right notches must touch the screen corners, the center notch must attach
-to the top edge, the gaps must be open below the top strip, and the top-left
-hot corner plus left/right scroll controls must still work.
+Manual verification should restart the shell and inspect the screenshot:
+left, right, and center notches must touch the top frame correctly; the
+right notch must contain the workspace strip adjacent to the status button;
+an active timer or pending shell update must surface its indicator inside
+the right notch without overlapping workspaces or weather; the gaps must be
+open below the top strip; and the top-left hot corner plus left/right
+scroll controls must still work.
