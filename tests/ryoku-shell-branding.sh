@@ -122,6 +122,10 @@ assert_topbar_frame_overlay() {
     "Topbar frame patch should include workspaces in the right-notch content width"
   assert_contains "install/config/ryoku-shell-branding.sh" 'ryokuRightContentWidth \+ Appearance\.rounding\.screenRounding \+ ryokuNotchPadding, 150\), 480' \
     "Topbar frame patch should cap the right-notch width at 480 (raised from 360 to fit workspaces + status indicators)"
+  assert_contains "install/config/ryoku-shell-branding.sh" 'implicitWidth: root\.ryokuTopbarHugFrame \? 100 : 0' \
+    "Topbar frame patch should set middleCenterGroup to a fixed 100px placeholder under the hug frame"
+  assert_not_contains "install/config/ryoku-shell-branding.sh" 'implicitWidth: root\.ryokuTopbarHugFrame \? Math\.min\(workspacesWidget\.implicitWidth' \
+    "Topbar frame patch should no longer derive middleCenterGroup width from workspacesWidget"
   assert_contains "install/config/ryoku-shell-branding.sh" 'id: weatherBarLoader' \
     "Topbar frame patch should measure weather as part of the right island"
   assert_contains "install/config/ryoku-shell-branding.sh" 'apply_topbar_hug_frame_to_workspaces_file' \
