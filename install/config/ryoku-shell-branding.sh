@@ -222,6 +222,266 @@ apply_sidebar_right_keep_mapped_workaround() {
   apply_sidebar_right_keep_mapped_workaround_to_file "$RUNTIME_SHELL_PATH/modules/sidebarRight/SidebarRight.qml"
 }
 
+qml_file_contains() {
+  local file="$1"
+  local pattern="$2"
+
+  perl -0ne 'BEGIN { $pattern = shift; $found = 0 } $found = 1 if index($_, $pattern) >= 0; END { exit($found ? 0 : 1) }' \
+    "$pattern" "$file"
+}
+
+apply_topbar_hug_frame_to_file() {
+  local file="$1"
+  local frame_properties frame_component frame_instance
+
+  [[ -f $file ]] || return 0
+  grep -q 'property alias backgroundItem: barBackground' "$file" || return 0
+  grep -q 'id: leftSectionRowLayout' "$file" || return 0
+  grep -q 'id: rightSectionRowLayout' "$file" || return 0
+  grep -q 'id: leftCenterGroup' "$file" || return 0
+  grep -q 'id: middleCenterGroup' "$file" || return 0
+  grep -q 'id: rightCenterGroupContent' "$file" || return 0
+  qml_file_contains "$file" 'visible: (Config.options?.bar?.showBackground ?? true) && !gameModeMinimal' || \
+    qml_file_contains "$file" 'visible: (Config.options?.bar?.showBackground ?? true) && !gameModeMinimal && !root.ryokuThreeIslandFrame' || return 0
+
+  frame_properties=$(cat <<'QML'
+    readonly property bool ryokuTopbarHugFrame: (Config.options?.bar?.ryokuTopbarHugFrame ?? true) && !(Config.options?.bar?.bottom ?? false) && !(Config.options?.bar?.vertical ?? false)
+    readonly property real ryokuFrameHeight: Appearance.sizes.baseBarHeight
+    readonly property real ryokuFrameRadius: Math.min(Appearance.rounding.screenRounding, Math.max(8, ryokuFrameHeight / 2 - 2))
+    readonly property real ryokuTopBorderWidth: Math.max(4, Math.round(ryokuFrameHeight * 0.15))
+    readonly property int ryokuNotchPadding: 20
+    readonly property int ryokuIslandSpacing: 10
+    readonly property int ryokuLeftContentWidth: (leftSidebarButton.visible ? leftSidebarButton.implicitWidth : 0)
+        + ((leftSidebarButton.visible && (activeWindowWidget.visible || taskbarLoader.visible)) ? leftSectionRowLayout.spacing : 0)
+        + (activeWindowWidget.visible ? activeWindowWidget.Layout.preferredWidth : 0)
+        + (taskbarLoader.visible ? taskbarLoader.Layout.preferredWidth : 0)
+    readonly property int ryokuRightContentWidth: (rightSidebarButton.visible ? rightSidebarButton.implicitWidth : 0)
+        + (weatherBarLoader.visible ? weatherBarLoader.implicitWidth + rightSectionRowLayout.spacing : 0)
+    readonly property int ryokuLeftNotchWidth: Math.min(Math.max(ryokuLeftContentWidth + Appearance.rounding.screenRounding + ryokuNotchPadding, 180), Math.min(520, Math.max(240, (root.screen?.width ?? 1920) * 0.24)))
+    readonly property int ryokuCenterNotchWidth: Math.min(Math.max(middleCenterGroup.implicitWidth + ryokuNotchPadding * 2, 96), 220)
+    readonly property int ryokuRightNotchWidth: Math.min(Math.max(ryokuRightContentWidth + Appearance.rounding.screenRounding + ryokuNotchPadding, 150), 360)
+    readonly property color ryokuFrameColor: {
+        if (Appearance.angelEverywhere) return Appearance.angel.colGlassCard
+        if (Appearance.inirEverywhere) return Appearance.inir.colLayer0
+        if (Appearance.auroraEverywhere) return Appearance.aurora.colPopupSurface
+        return Appearance.colors.colLayer0
+    }
+QML
+)
+
+  frame_component=$(cat <<'QML'
+    component RyokuTopbarHugFrame: Canvas {
+        id: frame
+        property int leftWidth: root.ryokuLeftNotchWidth
+        property int centerWidth: root.ryokuCenterNotchWidth
+        property int rightWidth: root.ryokuRightNotchWidth
+        property int notchHeight: root.ryokuFrameHeight
+        property int radius: root.ryokuFrameRadius
+        property int topBorderWidth: root.ryokuTopBorderWidth
+        property color frameColor: root.ryokuFrameColor
+        readonly property int rightStart: width - rightWidth
+        readonly property int minimumGap: radius * 2
+        readonly property int centerStart: Math.max(leftWidth + minimumGap, (width / 2) - (centerWidth / 2))
+        readonly property int centerEnd: Math.min(rightStart - minimumGap, (width / 2) + (centerWidth / 2))
+
+        onWidthChanged: requestPaint()
+        onHeightChanged: requestPaint()
+        onLeftWidthChanged: requestPaint()
+        onCenterWidthChanged: requestPaint()
+        onRightWidthChanged: requestPaint()
+        onNotchHeightChanged: requestPaint()
+        onRadiusChanged: requestPaint()
+        onTopBorderWidthChanged: requestPaint()
+        onFrameColorChanged: requestPaint()
+
+        onPaint: {
+            var ctx = getContext("2d");
+            ctx.reset();
+
+            var leftW = frame.leftWidth;
+            var centerW = frame.centerWidth;
+            var rightW = frame.rightWidth;
+            var r = Math.min(frame.radius, Math.max(1, (frame.notchHeight - frame.topBorderWidth) / 2 - 1));
+            var h = frame.notchHeight;
+            var b = frame.topBorderWidth;
+            var w = width;
+
+            var centerStart = Math.max(leftW + r * 2, (w / 2) - (centerW / 2));
+            var centerEnd = Math.min(w - rightW - r * 2, (w / 2) + (centerW / 2));
+            var rightStart = w - rightW;
+            if (centerStart >= centerEnd) {
+                centerStart = w / 2;
+                centerEnd = w / 2;
+            }
+
+            ctx.beginPath();
+            ctx.fillStyle = frame.frameColor;
+
+            ctx.moveTo(0, h);
+            ctx.lineTo(leftW - r, h);
+            ctx.arcTo(leftW, h, leftW, h - r, r);
+            ctx.lineTo(leftW, b + r);
+            ctx.arcTo(leftW, b, leftW + r, b, r);
+
+            ctx.lineTo(centerStart - r, b);
+            if (centerStart < centerEnd) {
+                ctx.arcTo(centerStart, b, centerStart, b + r, r);
+                ctx.lineTo(centerStart, h - r);
+                ctx.arcTo(centerStart, h, centerStart + r, h, r);
+                ctx.lineTo(centerEnd - r, h);
+                ctx.arcTo(centerEnd, h, centerEnd, h - r, r);
+                ctx.lineTo(centerEnd, b + r);
+                ctx.arcTo(centerEnd, b, centerEnd + r, b, r);
+            }
+
+            ctx.lineTo(rightStart - r, b);
+            ctx.arcTo(rightStart, b, rightStart, b + r, r);
+            ctx.lineTo(rightStart, h - r);
+            ctx.arcTo(rightStart, h, rightStart + r, h, r);
+            ctx.lineTo(w, h);
+
+            ctx.lineTo(w, 0);
+            ctx.lineTo(0, 0);
+            ctx.lineTo(0, h);
+
+            ctx.fill();
+        }
+    }
+QML
+)
+
+  frame_instance=$(cat <<'QML'
+    RyokuTopbarHugFrame {
+        id: ryokuTopbarHugFrameCanvas
+        anchors.fill: parent
+        leftWidth: root.ryokuLeftNotchWidth
+        centerWidth: root.ryokuCenterNotchWidth
+        rightWidth: root.ryokuRightNotchWidth
+        visible: root.ryokuTopbarHugFrame && !Appearance.gameModeMinimal
+        z: 1
+    }
+QML
+)
+
+  RYOKU_FRAME_PROPERTIES="$frame_properties" \
+    RYOKU_FRAME_COMPONENT="$frame_component" \
+    RYOKU_FRAME_INSTANCE="$frame_instance" \
+    perl -0pi -e '
+    BEGIN {
+      $props = $ENV{RYOKU_FRAME_PROPERTIES} . "\n";
+      $component = $ENV{RYOKU_FRAME_COMPONENT};
+      $instance = $ENV{RYOKU_FRAME_INSTANCE};
+    }
+    s/\n    readonly property bool ryokuThreeIslandFrame: true\n    readonly property int ryokuIslandVerticalMargin: 4\n    readonly property int ryokuIslandHorizontalPadding: 10\n/\n/s;
+    s/\n        Rectangle \{\n            id: leftIslandBackground\n.*?\n        \}\n\n(        RowLayout \{\n            id: leftSectionRowLayout)/\n$1/s;
+    s/\n        Rectangle \{\n            id: rightIslandBackground\n.*?\n        \}\n\n(        RowLayout \{\n            id: rightSectionRowLayout)/\n$1/s;
+    s/root\.ryokuThreeIslandFrame/root.ryokuTopbarHugFrame/g;
+    s/^import QtQuick\.Shapes\n//mg;
+    s/\n    readonly property color ryokuGapColor: [^\n]+\n//g;
+
+    if (/readonly property bool ryokuTopbarHugFrame:/) {
+      s/    readonly property bool ryokuTopbarHugFrame:.*?\n    \/\/ Right-click context menu anchor/$props\n    \/\/ Right-click context menu anchor/s;
+    } else {
+      s/(    property alias backgroundItem: barBackground\n)/$1$props/s;
+    }
+
+    if (/component RyokuTopbarHugFrame: /) {
+      s#    component RyokuTopbarHugFrame: (?:Canvas|Shape) \{.*?\n    \}\n\n    // Background shadow#$component\n\n    // Background shadow#s;
+    } else {
+      s/(    component VerticalBarSeparator: Rectangle \{.*?    \}\n)/$1\n$component\n/s;
+    }
+
+    s/(&& \(Config\.options\?\.bar\?\.showBackground \?\? true\)\n            && )/$1!root.ryokuTopbarHugFrame\n            \&\& /;
+    s/visible: \(Config\.options\?\.bar\?\.showBackground \?\? true\) && !gameModeMinimal(?: && !root\.ryokuTopbarHugFrame)?/visible: (Config.options?.bar?.showBackground ?? true) \&\& !gameModeMinimal \&\& !root.ryokuTopbarHugFrame/;
+
+    s/\n    Rectangle \{\n        id: ryoku(?:Left|Right)TopbarGap\n.*?    \}\n//gs;
+    if (/id: ryokuTopbarHugFrameCanvas/) {
+      s#    RyokuTopbarHugFrame \{\n        id: ryokuTopbarHugFrameCanvas\n.*?    \}\n#$instance\n#s;
+    } else {
+      s/(\n    FocusedScrollMouseArea \{ \/\/ Left side)/\n$instance\n$1/s;
+    }
+    s/(    FocusedScrollMouseArea \{ \/\/ Left side \| scroll to change brightness\n        id: barLeftSideMouseArea\n)(?!        z: root\.ryokuTopbarHugFrame)/$1        z: root.ryokuTopbarHugFrame ? 2 : 0\n/s;
+    s/(    Row \{ \/\/ Middle section\n        id: middleSection\n)(?!        z: root\.ryokuTopbarHugFrame)/$1        z: root.ryokuTopbarHugFrame ? 2 : 0\n/s;
+    s/(    FocusedScrollMouseArea \{ \/\/ Right side \| scroll to change volume\n        id: barRightSideMouseArea\n)(?!        z: root\.ryokuTopbarHugFrame)/$1        z: root.ryokuTopbarHugFrame ? 2 : 0\n/s;
+
+    s/(            LeftSidebarButton \{ \/\/ Left sidebar button\n)(?!                id: leftSidebarButton\n)/$1                id: leftSidebarButton\n/s;
+    s/(            ActiveWindow \{\n)(?!                id: activeWindowWidget\n)/$1                id: activeWindowWidget\n/s;
+    s/(            ActiveWindow \{\n                id: activeWindowWidget\n                visible: \(Config\.options\?\.bar\?\.modules\?\.activeWindow \?\? true\) && root\.useShortenedForm === 0 && !root\.taskbarEnabled\n                Layout\.fillWidth: )!root\.taskbarEnabled(\n                Layout\.fillHeight: true\n            \})/$1!root.ryokuTopbarHugFrame \&\& !root.taskbarEnabled\n                Layout.preferredWidth: root.ryokuTopbarHugFrame ? Math.min(300, Math.max(160, (root.screen?.width ?? 1920) * 0.16)) : -1$2/s;
+
+    s/(            Loader \{\n                active: root\.taskbarEnabled\n)(?!                id: taskbarLoader\n)/            Loader {\n                id: taskbarLoader\n                active: root.taskbarEnabled\n/s;
+    s/(            Loader \{\n                id: taskbarLoader\n                active: root\.taskbarEnabled\n                visible: active\n                Layout\.fillWidth: )true(\n                Layout\.fillHeight: true)/$1!root.ryokuTopbarHugFrame\n                Layout.preferredWidth: root.ryokuTopbarHugFrame ? Math.min(300, Math.max(160, (root.screen?.width ?? 1920) * 0.16)) : -1$2/s;
+
+    s/(        BarGroup \{\n            id: leftCenterGroup\n)(?!            opacity:)/$1            opacity: root.ryokuTopbarHugFrame ? 0 : 1\n/s;
+    s/(            Loader \{\n                active: )Config\.options\?\.bar\?\.modules\?\.resources \?\? true/$1!root.ryokuTopbarHugFrame \&\& (Config.options?.bar?.modules?.resources ?? true)/;
+    s/(            Loader \{\n                active: )\(Config\.options\?\.bar\?\.modules\?\.media \?\? true\) && root\.useShortenedForm < 2/$1!root.ryokuTopbarHugFrame \&\& (Config.options?.bar?.modules?.media ?? true) \&\& root.useShortenedForm < 2/;
+    s/visible: Config\.options\?\.bar\.borderless/visible: (Config.options?.bar.borderless) \&\& !root.ryokuTopbarHugFrame/g;
+
+    s/(        BarGroup \{\n            id: middleCenterGroup\n)(?!            implicitWidth: root\.ryokuTopbarHugFrame)/$1            implicitWidth: root.ryokuTopbarHugFrame ? Math.min(workspacesWidget.implicitWidth + middleCenterGroup.padding * 2, 180) : workspacesWidget.implicitWidth + middleCenterGroup.padding * 2\n            clip: root.ryokuTopbarHugFrame\n/s;
+    s/(            Workspaces \{\n                id: workspacesWidget\n)(?!                clip: root\.ryokuTopbarHugFrame\n)/$1                clip: root.ryokuTopbarHugFrame\n/s;
+    s/(            BarGroup \{\n                id: rightCenterGroupContent\n)(?!                opacity:)/$1                opacity: root.ryokuTopbarHugFrame ? 0 : 1\n/s;
+    s/visible: Config\.options\?\.bar\?\.modules\?\.clock \?\? true/visible: !root.ryokuTopbarHugFrame \&\& (Config.options?.bar?.modules?.clock ?? true)/;
+    s/visible: \(Config\.options\?\.bar\?\.modules\?\.utilButtons \?\? true\) && \(\(Config\.options\?\.bar\?\.verbose \?\? true\) && root\.useShortenedForm === 0\)/visible: !root.ryokuTopbarHugFrame \&\& (Config.options?.bar?.modules?.utilButtons ?? true) \&\& ((Config.options?.bar?.verbose ?? true) \&\& root.useShortenedForm === 0)/;
+    s/visible: \(Config\.options\?\.bar\?\.modules\?\.battery \?\? true\) && \(root\.useShortenedForm < 2 && Battery\.available\)/visible: !root.ryokuTopbarHugFrame \&\& (Config.options?.bar?.modules?.battery ?? true) \&\& (root.useShortenedForm < 2 \&\& Battery.available)/;
+
+    s/visible: \(Config\.options\?\.bar\?\.modules\?\.sysTray \?\? true\) && root\.useShortenedForm === 0/visible: !root.ryokuTopbarHugFrame \&\& (Config.options?.bar?.modules?.sysTray ?? true) \&\& root.useShortenedForm === 0/;
+    s/            TimerIndicator \{\n(?!                visible:)/            TimerIndicator {
+                visible: !root.ryokuTopbarHugFrame
+/s;
+    s/            ShellUpdateIndicator \{\n(?!                visible:)/            ShellUpdateIndicator {
+                visible: !root.ryokuTopbarHugFrame
+/s;
+    s/(            Item \{\n                Layout\.fillWidth: )true(\n                Layout\.fillHeight: )true/$1!root.ryokuTopbarHugFrame$2!root.ryokuTopbarHugFrame/;
+    s/(            Loader \{\n                Layout\.leftMargin: 4\n                active: \(Config\.options\?\.bar\?\.modules\?\.weather \?\? true\) && \(Config\.options\?\.bar\?\.weather\?\.enable \?\? false\)\n)(?!                id: weatherBarLoader\n)/            Loader {\n                id: weatherBarLoader\n                Layout.leftMargin: 4\n                active: (Config.options?.bar?.modules?.weather ?? true) && (Config.options?.bar?.weather?.enable ?? false)\n/s;
+    s/root\.ryokuThreeIslandFrame/root.ryokuTopbarHugFrame/g;
+  ' "$file"
+}
+
+apply_topbar_hug_frame_to_workspaces_file() {
+  local file="$1"
+
+  [[ -f $file ]] || return 0
+  grep -q 'readonly property bool dynamicCount:' "$file" || return 0
+  if grep -q 'Config.options?.bar?.ryokuTopbarHugFrame' "$file"; then
+    perl -0pi -e '
+      s/Config\.options\?\.bar\?\.ryokuTopbarHugFrame \?\? false/Config.options?.bar?.ryokuTopbarHugFrame ?? true/g;
+    ' "$file"
+    return 0
+  fi
+
+  perl -0pi -e '
+    s/readonly property bool dynamicCount: \(wsConfig\.dynamicCount \?\? true\) && CompositorService\.isNiri/readonly property bool dynamicCount: !(Config.options?.bar?.ryokuTopbarHugFrame ?? true) \&\& (wsConfig.dynamicCount ?? true) \&\& CompositorService.isNiri/s;
+  ' "$file"
+}
+
+apply_topbar_hug_frame_to_bar_file() {
+  local file="$1"
+
+  [[ -f $file ]] || return 0
+  grep -q 'id: barRoot' "$file" || return 0
+  grep -q 'exclusiveZone: GameMode.shouldHidePanels' "$file" || return 0
+
+  if grep -q 'ryokuTopbarReservedHeight' "$file"; then
+    perl -0pi -e '
+      s/Config\.options\?\.bar\?\.ryokuTopbarHugFrame \?\? false/Config.options?.bar?.ryokuTopbarHugFrame ?? true/g;
+    ' "$file"
+    return 0
+  fi
+
+  perl -0pi -e '
+    s/(                readonly property int centerSideModuleWidth: \(useShortenedForm == 2\) \? Appearance\.sizes\.barCenterSideModuleWidthHellaShortened : \(useShortenedForm == 1\) \? Appearance\.sizes\.barCenterSideModuleWidthShortened : Appearance\.sizes\.barCenterSideModuleWidth\n)/$1                readonly property bool ryokuTopbarHugFrame: (Config.options?.bar?.ryokuTopbarHugFrame ?? true) \&\& !(Config.options?.bar?.bottom ?? false) \&\& !(Config.options?.bar?.vertical ?? false)\n                readonly property real ryokuTopbarReservedHeight: ryokuTopbarHugFrame\n                    ? Math.round(Appearance.sizes.baseBarHeight * 0.55)\n                    : Appearance.sizes.baseBarHeight + ((((Config.options?.bar?.cornerStyle ?? 0) === 1) || ((Config.options?.bar?.cornerStyle ?? 0) === 3)) ? (Appearance.sizes.hyprlandGapsOut * 2) : 0)\n/s;
+    s/(                exclusiveZone: GameMode\.shouldHidePanels \? 0 :\n                    \(GlobalStates\.coverflowSelectorOpen \|\| \(Config\?\.options\.bar\.autoHide\.enable && \(!mustShow \|\| !Config\?\.options\.bar\.autoHide\.pushWindows\)\)\) \? 0 :\n                    )Appearance\.sizes\.baseBarHeight \+ \(\(\(\(Config\.options\?\.bar\?\.cornerStyle \?\? 0\) === 1\) \|\| \(\(Config\.options\?\.bar\?\.cornerStyle \?\? 0\) === 3\)\) \? \(Appearance\.sizes\.hyprlandGapsOut \* 2\) : 0\)/$1ryokuTopbarReservedHeight/s;
+  ' "$file"
+}
+
+apply_topbar_hug_frame() {
+  apply_topbar_hug_frame_to_file "$SHELL_PATH/modules/bar/BarContent.qml"
+  apply_topbar_hug_frame_to_file "$RUNTIME_SHELL_PATH/modules/bar/BarContent.qml"
+  apply_topbar_hug_frame_to_bar_file "$SHELL_PATH/modules/bar/Bar.qml"
+  apply_topbar_hug_frame_to_bar_file "$RUNTIME_SHELL_PATH/modules/bar/Bar.qml"
+  apply_topbar_hug_frame_to_workspaces_file "$SHELL_PATH/modules/bar/Workspaces.qml"
+  apply_topbar_hug_frame_to_workspaces_file "$RUNTIME_SHELL_PATH/modules/bar/Workspaces.qml"
+}
+
 apply_installed_labels() {
   local installed_service="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/inir.service"
 
@@ -290,6 +550,23 @@ merge_config_overrides() {
   rm -f "$temp_file"
 }
 
+merge_default_config_overrides() {
+  local defaults_file temp_file
+
+  [[ -f $CONFIG_OVERRIDES_FILE ]] || return 0
+
+  if ryoku-cmd-missing jq; then
+    return 0
+  fi
+
+  for defaults_file in "$SHELL_PATH/defaults/config.json" "$RUNTIME_SHELL_PATH/defaults/config.json"; do
+    [[ -f $defaults_file ]] || continue
+    temp_file=$(mktemp)
+    jq -s '.[0] * .[1]' "$defaults_file" "$CONFIG_OVERRIDES_FILE" >"$temp_file"
+    mv "$temp_file" "$defaults_file"
+  done
+}
+
 main() {
   if [[ ! -d $SHELL_PATH ]]; then
     log "checkout not found, branding will apply after shell install"
@@ -301,10 +578,12 @@ main() {
   apply_screen_corners_input_mask_guard
   apply_wallpaper_resolution_patch
   apply_sidebar_right_keep_mapped_workaround
+  apply_topbar_hug_frame
   apply_replacements_to_tree "$SHELL_PATH"
   apply_replacements_to_tree "$RUNTIME_SHELL_PATH"
   apply_lock_security_guard
   apply_installed_labels
+  merge_default_config_overrides
   merge_config_overrides
 
   log "applied"
