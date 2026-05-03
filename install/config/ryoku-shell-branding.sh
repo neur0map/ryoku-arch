@@ -426,9 +426,8 @@ QML
     s/visible: \(Config\.options\?\.bar\?\.modules\?\.sysTray \?\? true\) && root\.useShortenedForm === 0/visible: !root.ryokuTopbarHugFrame \&\& (Config.options?.bar?.modules?.sysTray ?? true) \&\& root.useShortenedForm === 0/;
     # Regress force-hide: TimerIndicator visible whenever its own logic says so
     s/(            TimerIndicator \{\n)                visible: !root\.ryokuTopbarHugFrame\n/$1/s;
-    s/            ShellUpdateIndicator \{\n(?!                visible:)/            ShellUpdateIndicator {
-                visible: !root.ryokuTopbarHugFrame
-/s;
+    # Regress force-hide: ShellUpdateIndicator visible whenever its own logic says so
+    s/(            ShellUpdateIndicator \{\n)                visible: !root\.ryokuTopbarHugFrame\n/$1/s;
     s/(            Item \{\n                Layout\.fillWidth: )true(\n                Layout\.fillHeight: )true/$1!root.ryokuTopbarHugFrame$2!root.ryokuTopbarHugFrame/;
     s/(            Loader \{\n                Layout\.leftMargin: 4\n                active: \(Config\.options\?\.bar\?\.modules\?\.weather \?\? true\) && \(Config\.options\?\.bar\?\.weather\?\.enable \?\? false\)\n)(?!                id: weatherBarLoader\n)/            Loader {\n                id: weatherBarLoader\n                Layout.leftMargin: 4\n                active: (Config.options?.bar?.modules?.weather ?? true) && (Config.options?.bar?.weather?.enable ?? false)\n/s;
     s/root\.ryokuThreeIslandFrame/root.ryokuTopbarHugFrame/g;

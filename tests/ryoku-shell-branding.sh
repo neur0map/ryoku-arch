@@ -158,8 +158,10 @@ assert_topbar_frame_overlay() {
     "Topbar frame patch should no longer force-hide the timer indicator under the hug frame"
   assert_contains "install/config/ryoku-shell-branding.sh" '# Regress force-hide: TimerIndicator' \
     "Topbar frame patch should regress (remove) any previously-injected TimerIndicator force-hide line"
-  assert_contains_multiline "install/config/ryoku-shell-branding.sh" 'ShellUpdateIndicator \{\n\s*visible: !root\.ryokuTopbarHugFrame' \
-    "Topbar frame patch should hide the shell update indicator from the bar"
+  assert_not_contains_multiline "install/config/ryoku-shell-branding.sh" 'ShellUpdateIndicator \{\n\s*visible: !root\.ryokuTopbarHugFrame\n\/s;' \
+    "Topbar frame patch should no longer force-hide the shell update indicator under the hug frame"
+  assert_contains "install/config/ryoku-shell-branding.sh" '# Regress force-hide: ShellUpdateIndicator' \
+    "Topbar frame patch should regress (remove) any previously-injected ShellUpdateIndicator force-hide line"
   assert_json_expr "default/ryoku-shell/config-overrides.json" '.bar.ryokuTopbarHugFrame == true' \
     "Ryoku shell config overlay should enable the top-attached hug frame"
   assert_json_expr "default/ryoku-shell/config-overrides.json" '.bar.cornerStyle == 0' \
