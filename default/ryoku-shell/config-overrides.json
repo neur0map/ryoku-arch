@@ -97,6 +97,26 @@
     "showOnDesktop": false,
     "pinnedOnStartup": false
   },
+  "bar": {
+    "borderless": false,
+    "showBackground": false,
+    "modules": {
+      "activeWindow": true,
+      "battery": false,
+      "clock": false,
+      "leftSidebarButton": true,
+      "media": false,
+      "resources": false,
+      "rightSidebarButton": true,
+      "sysTray": false,
+      "utilButtons": false,
+      "weather": true,
+      "workspaces": true
+    },
+    "weather": {
+      "enable": true
+    }
+  },
   "enabledPanels": [
     "iiBar",
     "iiBackground",
