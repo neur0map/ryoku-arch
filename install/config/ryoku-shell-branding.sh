@@ -417,7 +417,10 @@ QML
     s/(            Loader \{\n                active: )\(Config\.options\?\.bar\?\.modules\?\.media \?\? true\) && root\.useShortenedForm < 2/$1!root.ryokuTopbarHugFrame \&\& (Config.options?.bar?.modules?.media ?? true) \&\& root.useShortenedForm < 2/;
     s/visible: Config\.options\?\.bar\.borderless/visible: (Config.options?.bar.borderless) \&\& !root.ryokuTopbarHugFrame/g;
 
-    s/(        BarGroup \{\n            id: middleCenterGroup\n)(?!            implicitWidth: root\.ryokuTopbarHugFrame)/$1            implicitWidth: root.ryokuTopbarHugFrame ? Math.min(workspacesWidget.implicitWidth + middleCenterGroup.padding * 2, 180) : workspacesWidget.implicitWidth + middleCenterGroup.padding * 2\n            clip: root.ryokuTopbarHugFrame\n/s;
+    # Already-patched: replace old workspacesWidget-derived formula with fixed placeholder
+    s/(            id: middleCenterGroup\n            )implicitWidth: root\.ryokuTopbarHugFrame \? Math\.min\(workspacesWidget\.implicitWidth \+ middleCenterGroup\.padding \* 2, 180\) : workspacesWidget\.implicitWidth \+ middleCenterGroup\.padding \* 2\n/$1implicitWidth: root.ryokuTopbarHugFrame ? 100 : 0\n/s;
+    # Fresh source: insert fixed implicitWidth + clip
+    s/(        BarGroup \{\n            id: middleCenterGroup\n)(?!            implicitWidth: )/$1            implicitWidth: root.ryokuTopbarHugFrame ? 100 : 0\n            clip: root.ryokuTopbarHugFrame\n/s;
     s/(            Workspaces \{\n                id: workspacesWidget\n)(?!                clip: root\.ryokuTopbarHugFrame\n)/$1                clip: root.ryokuTopbarHugFrame\n/s;
     s/(            BarGroup \{\n                id: rightCenterGroupContent\n)(?!                opacity:)/$1                opacity: root.ryokuTopbarHugFrame ? 0 : 1\n/s;
     s/visible: Config\.options\?\.bar\?\.modules\?\.clock \?\? true/visible: !root.ryokuTopbarHugFrame \&\& (Config.options?.bar?.modules?.clock ?? true)/;
