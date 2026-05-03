@@ -134,6 +134,58 @@ install_visible_assets() {
   fi
 }
 
+restore_shell_panels_original_frame_state_to_file() {
+  local file="$1"
+
+  [[ -f $file ]] || return 0
+
+  perl -0pi -e '
+    s/^import qs\.modules\.frame\n//mg;
+    s/^\s*PanelLoader \{ identifier: "iiScreenFrame"; component: ScreenFrame \{\} \}\n//mg;
+  ' "$file"
+}
+
+restore_shell_panels_original_frame_state() {
+  restore_shell_panels_original_frame_state_to_file "$SHELL_PATH/ShellIiPanels.qml"
+  restore_shell_panels_original_frame_state_to_file "$RUNTIME_SHELL_PATH/ShellIiPanels.qml"
+}
+
+apply_screen_corners_input_mask_guard_to_file() {
+  local file="$1"
+
+  [[ -f $file ]] || return 0
+  grep -q 'id: emptyMask' "$file" && return 0
+  grep -q 'item: sidebarCornerOpenInteractionLoader.active ? sidebarCornerOpenInteractionLoader : null' "$file" || return 0
+
+  perl -0pi -e '
+    s/(        exclusionMode: ExclusionMode\.Ignore\n)        mask: Region \{\n            item: sidebarCornerOpenInteractionLoader\.active \? sidebarCornerOpenInteractionLoader : null\n        \}/$1        Item { id: emptyMask; width: 0; height: 0 }\n        mask: Region {\n            item: sidebarCornerOpenInteractionLoader.active ? sidebarCornerOpenInteractionLoader : emptyMask\n        }/s
+  ' "$file"
+}
+
+apply_screen_corners_input_mask_guard() {
+  apply_screen_corners_input_mask_guard_to_file "$SHELL_PATH/modules/screenCorners/ScreenCorners.qml"
+  apply_screen_corners_input_mask_guard_to_file "$RUNTIME_SHELL_PATH/modules/screenCorners/ScreenCorners.qml"
+}
+
+apply_wallpaper_resolution_patch_to_file() {
+  local file="$1"
+
+  [[ -f $file ]] || return 0
+
+  perl -0pi -e '
+    s/    readonly property string _resolvedMainWallpaperPath: \{\n        if \(WallpaperListener\.multiMonitorEnabled\) \{\n            const focused = WallpaperListener\.getFocusedMonitor\(\)\n            if \(focused\) \{\n                const data = WallpaperListener\.effectivePerMonitor\[focused\]\n                if \(data && data\.path\) return data\.path\n            \}\n        \}\n        return Config\.options\?\.background\?\.wallpaperPath \?\? ""\n    \}/    readonly property string _resolvedMainWallpaperPath: Config.options?.background?.wallpaperPath ?? ""/s
+  ' "$file"
+
+  perl -0pi -e '
+    s/        const targetMonitor = monitorName \|\| \(WallpaperListener\.multiMonitorEnabled \? WallpaperListener\.getFocusedMonitor\(\) : ""\)/        const targetMonitor = monitorName/s
+  ' "$file"
+}
+
+apply_wallpaper_resolution_patch() {
+  apply_wallpaper_resolution_patch_to_file "$SHELL_PATH/services/Wallpapers.qml"
+  apply_wallpaper_resolution_patch_to_file "$RUNTIME_SHELL_PATH/services/Wallpapers.qml"
+}
+
 apply_installed_labels() {
   local installed_service="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/inir.service"
 
@@ -158,7 +210,7 @@ apply_installed_labels() {
 merge_config_overrides() {
   local config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/inir"
   local config_file="$config_dir/config.json"
-  local temp_file temp_file_with_wallpaper wallpaper_path
+  local temp_file temp_file_with_wallpaper wallpaper_path existing_wallpaper_path
 
   [[ -f $CONFIG_OVERRIDES_FILE ]] || return 0
 
@@ -176,21 +228,27 @@ merge_config_overrides() {
     fi
   fi
 
+  existing_wallpaper_path=$(jq -r '.background.wallpaperPath // empty' "$config_file" 2>/dev/null || true)
+
   temp_file=$(mktemp)
   jq -s '.[0] * .[1]' "$config_file" "$CONFIG_OVERRIDES_FILE" >"$temp_file"
 
-  wallpaper_path="$RYOKU_CONFIG_PATH/current/background"
-  if [[ ! -e $wallpaper_path && -f $RYOKU_PATH/themes/ryoku/backgrounds/1-ryoku.png ]]; then
-    wallpaper_path="$RYOKU_PATH/themes/ryoku/backgrounds/1-ryoku.png"
-  fi
-
   temp_file_with_wallpaper=$(mktemp)
-  jq --arg path "$wallpaper_path" \
-    '.background.wallpaperPath = $path
-      | .background.thumbnailPath = ""
-      | .background.backdrop.wallpaperPath = $path
-      | .background.backdrop.thumbnailPath = ""' \
-    "$temp_file" >"$temp_file_with_wallpaper"
+  if [[ -n $existing_wallpaper_path ]]; then
+    cp "$temp_file" "$temp_file_with_wallpaper"
+  else
+    wallpaper_path="$RYOKU_CONFIG_PATH/current/background"
+    if [[ ! -e $wallpaper_path && -f $RYOKU_PATH/themes/ryoku/backgrounds/1-ryoku.png ]]; then
+      wallpaper_path="$RYOKU_PATH/themes/ryoku/backgrounds/1-ryoku.png"
+    fi
+
+    jq --arg path "$wallpaper_path" \
+      '.background.wallpaperPath = $path
+        | .background.thumbnailPath = ""
+        | .background.backdrop.wallpaperPath = $path
+        | .background.backdrop.thumbnailPath = ""' \
+      "$temp_file" >"$temp_file_with_wallpaper"
+  fi
 
   mv "$temp_file_with_wallpaper" "$config_file"
   rm -f "$temp_file"
@@ -203,6 +261,9 @@ main() {
   fi
 
   install_visible_assets
+  restore_shell_panels_original_frame_state
+  apply_screen_corners_input_mask_guard
+  apply_wallpaper_resolution_patch
   apply_replacements_to_tree "$SHELL_PATH"
   apply_replacements_to_tree "$RUNTIME_SHELL_PATH"
   apply_lock_security_guard
