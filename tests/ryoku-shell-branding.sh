@@ -40,6 +40,34 @@ assert_not_contains() {
   fi
 }
 
+assert_contains_multiline() {
+  local path="$1"
+  local pattern="$2"
+  local message="$3"
+
+  perl -0ne 'BEGIN { $pattern = shift } if (/$pattern/) { $found = 1; exit } END { exit($found ? 0 : 1) }' \
+    "$pattern" "$ROOT_DIR/$path" || fail "$message"
+}
+
+assert_not_contains_multiline() {
+  local path="$1"
+  local pattern="$2"
+  local message="$3"
+
+  if perl -0ne 'BEGIN { $pattern = shift } if (/$pattern/) { $found = 1; exit } END { exit($found ? 0 : 1) }' \
+    "$pattern" "$ROOT_DIR/$path"; then
+    fail "$message"
+  fi
+}
+
+assert_json_expr() {
+  local path="$1"
+  local jq_expr="$2"
+  local message="$3"
+
+  jq -e "$jq_expr" "$ROOT_DIR/$path" >/dev/null || fail "$message"
+}
+
 assert_ryoku_theme() {
   assert_file "themes/ryoku/colors.toml"
   assert_file "themes/ryoku/btop.theme"
@@ -65,6 +93,53 @@ assert_shell_overlay() {
     "Ryoku shell replacement map should include the welcome copy"
   assert_not_contains "install/config/ryoku-shell-branding.sh" 'echo .*iNiR|printf .*iNiR' \
     "Ryoku shell overlay should not print upstream shell branding"
+}
+
+assert_topbar_frame_overlay() {
+  assert_contains "install/config/ryoku-shell-branding.sh" 'apply_topbar_three_island_frame_to_file\(\)' \
+    "Ryoku shell overlay should define the topbar three-island patch"
+  assert_contains "install/config/ryoku-shell-branding.sh" 'readonly property bool ryokuThreeIslandFrame: true' \
+    "Topbar frame patch should use an explicit idempotency marker"
+  assert_contains "install/config/ryoku-shell-branding.sh" 'apply_topbar_three_island_frame_to_file "\$SHELL_PATH/modules/bar/BarContent.qml"' \
+    "Topbar frame patch should apply to the source BarContent.qml"
+  assert_contains "install/config/ryoku-shell-branding.sh" 'apply_topbar_three_island_frame_to_file "\$RUNTIME_SHELL_PATH/modules/bar/BarContent.qml"' \
+    "Topbar frame patch should apply to the runtime BarContent.qml"
+  assert_not_contains_multiline "install/config/ryoku-shell-branding.sh" "apply_topbar_three_island_frame_to_file\\s+[\"']?\\$[A-Z_]+/modules/screenCorners/ScreenCorners\\.qml" \
+    "Topbar frame patch should not patch screen corner behavior"
+  assert_contains "install/config/ryoku-shell-branding.sh" 'id: leftIslandBackground' \
+    "Topbar frame patch should add a left island background"
+  assert_contains "install/config/ryoku-shell-branding.sh" 'id: rightIslandBackground' \
+    "Topbar frame patch should add a right island background"
+  assert_contains "install/config/ryoku-shell-branding.sh" 'opacity: root.ryokuThreeIslandFrame \? 0 : 1' \
+    "Topbar frame patch should keep center spacers laid out but visually hidden"
+  assert_contains_multiline "install/config/ryoku-shell-branding.sh" 'TimerIndicator \{\n\s*visible: !root\.ryokuThreeIslandFrame' \
+    "Topbar frame patch should hide the timer indicator from the bar"
+  assert_contains_multiline "install/config/ryoku-shell-branding.sh" 'ShellUpdateIndicator \{\n\s*visible: !root\.ryokuThreeIslandFrame' \
+    "Topbar frame patch should hide the shell update indicator from the bar"
+  assert_json_expr "default/ryoku-shell/config-overrides.json" '.bar.showBackground == false' \
+    "Ryoku shell config overlay should hide the continuous bar background"
+  assert_json_expr "default/ryoku-shell/config-overrides.json" '.bar.borderless == false' \
+    "Ryoku shell config overlay should allow BarGroup island backgrounds"
+  assert_json_expr "default/ryoku-shell/config-overrides.json" '.bar.modules.resources == false' \
+    "Ryoku shell config overlay should hide resource/system monitor modules"
+  assert_json_expr "default/ryoku-shell/config-overrides.json" '.bar.modules.media == false' \
+    "Ryoku shell config overlay should hide the media/player module"
+  assert_json_expr "default/ryoku-shell/config-overrides.json" '.bar.modules.utilButtons == false' \
+    "Ryoku shell config overlay should hide quick action buttons"
+  assert_json_expr "default/ryoku-shell/config-overrides.json" '.bar.modules.clock == false' \
+    "Ryoku shell config overlay should hide time and date"
+  assert_json_expr "default/ryoku-shell/config-overrides.json" '.bar.modules.battery == false' \
+    "Ryoku shell config overlay should hide battery from the topbar"
+  assert_json_expr "default/ryoku-shell/config-overrides.json" '.bar.modules.sysTray == false' \
+    "Ryoku shell config overlay should hide the tray from the topbar"
+  assert_json_expr "default/ryoku-shell/config-overrides.json" '.bar.modules.activeWindow == true' \
+    "Ryoku shell config overlay should keep active window text"
+  assert_json_expr "default/ryoku-shell/config-overrides.json" '.bar.modules.workspaces == true' \
+    "Ryoku shell config overlay should keep workspace numbers"
+  assert_json_expr "default/ryoku-shell/config-overrides.json" '.bar.modules.rightSidebarButton == true' \
+    "Ryoku shell config overlay should keep the combined right status button"
+  assert_json_expr "default/ryoku-shell/config-overrides.json" '.bar.modules.weather == true' \
+    "Ryoku shell config overlay should keep weather in the right island"
 }
 
 assert_install_wiring() {
@@ -98,6 +173,7 @@ assert_credit_kept() {
 
 assert_ryoku_theme
 assert_shell_overlay
+assert_topbar_frame_overlay
 assert_install_wiring
 assert_runtime_labels
 assert_credit_kept
