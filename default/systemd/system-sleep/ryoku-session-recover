@@ -65,7 +65,7 @@ if [[ ${RYOKU_SESSION_RECOVER_SYNC:-0} == "1" ]]; then
   run_recovery
 else
   (
-    sleep 3
+    sleep 1
     run_recovery
   ) &
 fi

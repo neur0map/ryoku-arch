@@ -1,13 +1,8 @@
 [Unit]
 Description=Ryoku shell
-# Lifecycle: stop/restart Ryoku shell when the graphical session stops/restarts.
-PartOf=graphical-session.target
 # Ordering: wait for the compositor to signal readiness (niri is Type=notify,
 # so graphical-session.target is only reached once the Wayland socket exists).
 After=graphical-session.target
-# Guard: fail immediately if the graphical session isn't active or starting.
-# Ryoku shell is a session consumer, not a producer; it must never pull in the target.
-Requisite=graphical-session.target
 # Rate-limit restarts: max 3 attempts in 30 seconds, then stop trying.
 # These MUST live in [Unit], not [Service] — systemd ignores them elsewhere.
 StartLimitIntervalSec=30
@@ -36,7 +31,7 @@ KillSignal=SIGTERM
 # excluded via SuccessExitStatus=143.  The rate limiter (3 in 30s) prevents
 # infinite crash loops — after 3 rapid failures systemd gives up.
 Restart=on-failure
-RestartSec=5
+RestartSec=1
 TimeoutStopSec=15
 
 # Disable coredumps and QS crash reports.  Unpatched Quickshell segfaults
