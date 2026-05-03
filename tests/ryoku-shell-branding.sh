@@ -126,6 +126,12 @@ assert_topbar_frame_overlay() {
     "Topbar frame patch should set middleCenterGroup to a fixed 100px placeholder under the hug frame"
   assert_not_contains "install/config/ryoku-shell-branding.sh" 'implicitWidth: root\.ryokuTopbarHugFrame \? Math\.min\(workspacesWidget\.implicitWidth' \
     "Topbar frame patch should no longer derive middleCenterGroup width from workspacesWidget"
+  assert_contains "install/config/ryoku-shell-branding.sh" '// Ryoku: workspaces relocated to right notch' \
+    "Topbar frame patch should mark the Workspaces relocation with a sentinel comment for idempotency"
+  assert_contains "install/config/ryoku-shell-branding.sh" 'unless \(/\\/\\/ Ryoku: workspaces relocated to right notch/\)' \
+    "Topbar frame patch should guard the Workspaces relocation behind its sentinel comment"
+  assert_contains "install/config/ryoku-shell-branding.sh" 'SysTray \\\{' \
+    "Topbar frame patch should target the SysTray declaration as the right-section anchor for relocation"
   assert_contains "install/config/ryoku-shell-branding.sh" 'id: weatherBarLoader' \
     "Topbar frame patch should measure weather as part of the right island"
   assert_contains "install/config/ryoku-shell-branding.sh" 'apply_topbar_hug_frame_to_workspaces_file' \
