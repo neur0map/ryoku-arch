@@ -1,0 +1,98 @@
+#!/bin/bash
+
+# ryoku-dev-check-drift, maintainer-only sanity check.
+#
+# Verifies that the installer-time patches the dev repo claims to apply
+# are actually present on the live system.  Runs from the pre-commit
+# hook so a maintainer cannot accidentally commit a tweak to an
+# install/config patch that they have not actually re-applied locally.
+#
+# Default state: skipped silently.  This script only runs when:
+#   - environment variable RYOKU_DEV=1, or
+#   - `git config --local ryoku.devmode true` has been set on this clone
+#
+# Bypass for a single commit:    RYOKU_DEV_SKIP=1 git commit ...
+# Disable permanently:           git config --local --unset ryoku.devmode
+# Re-enable permanently:         git config --local ryoku.devmode true
+#
+# Exit codes:
+#   0  not opted in, or all checks pass
+#   1  drift detected; commit blocked
+
+set -euo pipefail
+
+is_dev_mode() {
+  [[ ${RYOKU_DEV_SKIP:-} == "1" ]] && return 1
+  [[ ${RYOKU_DEV:-} == "1" ]] && return 0
+  [[ "$(git config --get ryoku.devmode 2>/dev/null || true)" == "true" ]] && return 0
+  return 1
+}
+
+is_dev_mode || exit 0
+
+repo_root="$(git rev-parse --show-toplevel)"
+runtime_shell="${RYOKU_SHELL_RUNTIME_PATH:-${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/inir}"
+
+failures=()
+
+# fail label, file, marker, fix-hint
+expect_marker() {
+  local label="$1" file="$2" marker="$3" hint="$4"
+
+  if [[ ! -f $file ]]; then
+    failures+=("[$label] live file missing: $file ($hint)")
+    return
+  fi
+  if ! grep -qF -- "$marker" "$file"; then
+    failures+=("[$label] $file is missing patch marker '$marker' ($hint)")
+  fi
+}
+
+# Patches applied by install/config/ryoku-shell-branding.sh.  Each
+# apply_*_to_file function injects content into the runtime shell tree;
+# the markers below are the unique-by-design strings that prove the
+# patch ran.  If you add a new apply_*_to_file, add a marker here.
+expect_marker "sidebar-right keep-mapped (qt6 dpr workaround)" \
+  "$runtime_shell/modules/sidebarRight/SidebarRight.qml" \
+  "id: _emptyMask" \
+  "rerun: install/config/ryoku-shell-branding.sh"
+
+expect_marker "screen-corners input mask guard" \
+  "$runtime_shell/modules/screenCorners/ScreenCorners.qml" \
+  "id: emptyMask" \
+  "rerun: install/config/ryoku-shell-branding.sh"
+
+expect_marker "lock security guard" \
+  "$runtime_shell/modules/lock/Lock.qml" \
+  "Lock session did not become secure" \
+  "rerun: install/config/ryoku-shell-branding.sh"
+
+expect_marker "wallpaper resolution simplification" \
+  "$runtime_shell/services/Wallpapers.qml" \
+  '_resolvedMainWallpaperPath: Config.options?.background?.wallpaperPath ?? ""' \
+  "rerun: install/config/ryoku-shell-branding.sh"
+
+# qt6-qiooperation-patch is optional, only check if its verify.sh is
+# present in the repo and the live drop-in directory has been touched.
+qt6_verify="$repo_root/distro/arch/qt6-qiooperation-patch/verify.sh"
+qt6_dropin="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/inir.service.d/qt6-qiooperation-patch.conf"
+if [[ -x $qt6_verify && -f $qt6_dropin ]]; then
+  if ! "$qt6_verify" >/dev/null 2>&1; then
+    failures+=("[qt6-qiooperation-patch] verify.sh failed (rerun: distro/arch/qt6-qiooperation-patch/apply.sh)")
+  fi
+fi
+
+if (( ${#failures[@]} > 0 )); then
+  printf '\n' >&2
+  printf 'ryoku-dev-check-drift: live system does not match repo patches.\n' >&2
+  printf 'Your install is stale or a patch was changed without rerunning install.\n' >&2
+  printf '\n' >&2
+  for m in "${failures[@]}"; do printf '  %s\n' "$m" >&2; done
+  printf '\n' >&2
+  printf 'Bypass for this commit:  RYOKU_DEV_SKIP=1 git commit ...\n' >&2
+  printf 'Disable permanently:     git config --local --unset ryoku.devmode\n' >&2
+  printf '\n' >&2
+  exit 1
+fi
+
+exit 0

@@ -5,6 +5,7 @@
 #   1. personal machine path leak scan on staged text files
 #   2. bash syntax check on any staged shell script
 #   3. em-dash scan on staged text, docs, and config files
+#   4. live-system drift check (maintainers only; opt-in)
 # Bypass with --no-verify only when you know what you are doing.
 
 set -e
@@ -56,5 +57,10 @@ for f in $staged; do
       ;;
   esac
 done
+
+# 4. live-system drift check (maintainers only; opt-in via
+#    `git config --local ryoku.devmode true` or env RYOKU_DEV=1).
+#    Skips silently for contributors who do not run a Ryoku install.
+"$(git rev-parse --show-toplevel)/bin/ryoku-dev-check-drift"
 
 exit 0
