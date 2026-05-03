@@ -345,6 +345,7 @@ assert_executable bin/ryoku-restart-ui
 assert_executable bin/ryoku-restart-shell
 assert_executable bin/ryoku-session-recover
 assert_executable bin/ryoku-shell-cleanup-orphans
+assert_executable bin/ryoku-refresh-limine
 assert_executable bin/ryoku-ipc
 assert_executable bin/ryoku-lock-screen
 assert_executable bin/ryoku-theme-set-shell
@@ -359,6 +360,7 @@ bash -n bin/ryoku-restart-ui
 bash -n bin/ryoku-restart-shell
 bash -n bin/ryoku-session-recover
 bash -n bin/ryoku-shell-cleanup-orphans
+bash -n bin/ryoku-refresh-limine
 bash -n bin/ryoku-ipc
 bash -n bin/ryoku-lock-screen
 bash -n bin/ryoku-theme-set-shell
@@ -399,6 +401,11 @@ assert_contains bin/ryoku-session-recover 'ryoku-restart-ui --quiet' "resume rec
 assert_contains bin/ryoku-shell-cleanup-orphans 'inir cleanup-orphans' "Ryoku cleanup should preserve upstream shell runtime cleanup"
 assert_contains config/systemd/user/inir.service 'ryoku-shell-cleanup-orphans --quiet' "Ryoku shell service should clean stale shell helpers after stop"
 assert_contains default/systemd/system-sleep/ryoku-session-recover 'ryoku-session-recover' "system sleep hook should trigger Ryoku session recovery"
+assert_contains default/limine/default.conf '^TARGET_OS_NAME="Ryoku"$' "Limine default OS name should be Ryoku"
+assert_contains default/limine/default.conf '^CUSTOM_UKI_NAME="ryoku"$' "Limine default UKI name should be ryoku"
+assert_contains default/limine/limine.conf '^interface_branding: Ryoku Bootloader$' "Limine boot menu branding should be Ryoku"
+assert_contains bin/ryoku-refresh-limine 'limine-mkinitcpio' "Limine refresh should regenerate the Ryoku UKI"
+assert_contains bin/ryoku-refresh-limine 'omarchy_linux\.efi' "Limine refresh should remove the legacy Omarchy UKI after Ryoku verification"
 assert_contains bin/ryoku-theme-set 'ryoku-theme-set-shell' "theme switching should sync Ryoku colors into the Niri shell"
 assert_contains bin/ryoku-lock-screen 'inir lock activate' "lock screen should use iNiR lock"
 assert_not_contains bin/ryoku-lock-screen 'hyprlock|hyprctl' "lock screen should not use Hyprland lock helpers"
