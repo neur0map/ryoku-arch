@@ -343,6 +343,8 @@ done
 
 assert_executable bin/ryoku-restart-ui
 assert_executable bin/ryoku-restart-shell
+assert_executable bin/ryoku-session-recover
+assert_executable bin/ryoku-shell-cleanup-orphans
 assert_executable bin/ryoku-ipc
 assert_executable bin/ryoku-lock-screen
 assert_executable bin/ryoku-theme-set-shell
@@ -350,9 +352,13 @@ assert_executable bin/ryoku-system-logout
 assert_executable bin/ryoku-sddm-autologin
 assert_executable bin/ryoku-refresh-sddm
 assert_executable install/config/inir.sh
+assert_executable install/config/session-recover.sh
+assert_executable default/systemd/system-sleep/ryoku-session-recover
 
 bash -n bin/ryoku-restart-ui
 bash -n bin/ryoku-restart-shell
+bash -n bin/ryoku-session-recover
+bash -n bin/ryoku-shell-cleanup-orphans
 bash -n bin/ryoku-ipc
 bash -n bin/ryoku-lock-screen
 bash -n bin/ryoku-theme-set-shell
@@ -360,8 +366,11 @@ bash -n bin/ryoku-system-logout
 bash -n bin/ryoku-sddm-autologin
 bash -n bin/ryoku-refresh-sddm
 bash -n install/config/inir.sh
+bash -n install/config/session-recover.sh
+bash -n default/systemd/system-sleep/ryoku-session-recover
 
 assert_contains install/config/all.sh 'config/inir\.sh' "installer should run the iNiR bridge"
+assert_contains install/config/all.sh 'config/session-recover\.sh' "installer should install Ryoku session resume recovery"
 assert_contains install/packaging/fonts.sh 'config/fonts' "font packaging should install bundled iNiR-visible fonts for offline installs"
 assert_contains bin/ryoku-update-perform 'packaging/base\.sh' "updates should reconcile the default pacman package manifest before running iNiR"
 assert_contains bin/ryoku-update-perform 'packaging/aur-core\.sh' "updates should reconcile the default AUR package manifest before running iNiR"
@@ -385,6 +394,11 @@ assert_contains bin/ryoku-restart-ui 'ryoku-restart-shell|inir\.service|inir res
 assert_not_contains bin/ryoku-restart-ui 'hyprctl reload|restart_always "mako"|swayosd-server|restart_if_running "waybar"|restart_if_running "hypridle"' "ryoku-restart-ui should not restart old Hyprland-era UI services"
 assert_contains bin/ryoku-restart-shell 'inir\.service|inir restart' "ryoku-restart-shell should target iNiR"
 assert_not_contains bin/ryoku-restart-shell 'qs -c ryoku|ryoku-launch-shell|pkill -x quickshell' "ryoku-restart-shell should not target the old Ryoku Quickshell shell"
+assert_contains bin/ryoku-session-recover 'niri msg action power-on-monitors' "resume recovery should power Niri outputs back on"
+assert_contains bin/ryoku-session-recover 'ryoku-restart-ui --quiet' "resume recovery should hard-refresh Ryoku UI"
+assert_contains bin/ryoku-shell-cleanup-orphans 'inir cleanup-orphans' "Ryoku cleanup should preserve upstream shell runtime cleanup"
+assert_contains config/systemd/user/inir.service 'ryoku-shell-cleanup-orphans --quiet' "Ryoku shell service should clean stale shell helpers after stop"
+assert_contains default/systemd/system-sleep/ryoku-session-recover 'ryoku-session-recover' "system sleep hook should trigger Ryoku session recovery"
 assert_contains bin/ryoku-theme-set 'ryoku-theme-set-shell' "theme switching should sync Ryoku colors into the Niri shell"
 assert_contains bin/ryoku-lock-screen 'inir lock activate' "lock screen should use iNiR lock"
 assert_not_contains bin/ryoku-lock-screen 'hyprlock|hyprctl' "lock screen should not use Hyprland lock helpers"

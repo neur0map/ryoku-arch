@@ -19,6 +19,7 @@ run_logged $RYOKU_INSTALL/config/nautilus-python.sh
 run_logged $RYOKU_INSTALL/config/localdb.sh
 run_logged $RYOKU_INSTALL/config/fast-shutdown.sh
 run_logged $RYOKU_INSTALL/config/unmount-fuse.sh
+run_logged $RYOKU_INSTALL/config/session-recover.sh
 run_logged $RYOKU_INSTALL/config/sudoless-asdcontrol.sh
 run_logged $RYOKU_INSTALL/config/input-group.sh
 run_logged $RYOKU_INSTALL/config/ryoku-toggles.sh

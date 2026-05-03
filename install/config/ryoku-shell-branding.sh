@@ -5,6 +5,7 @@ set -euo pipefail
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)/lib/runtime-env.sh"
 
 SHELL_PATH="${RYOKU_SHELL_PATH:-${RYOKU_INIR_PATH:-$HOME/.local/share/inir}}"
+RUNTIME_SHELL_PATH="${RYOKU_SHELL_RUNTIME_PATH:-${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/inir}"
 REPLACEMENTS_FILE="$RYOKU_PATH/default/ryoku-shell/branding-replacements.tsv"
 CONFIG_OVERRIDES_FILE="$RYOKU_PATH/default/ryoku-shell/config-overrides.json"
 
@@ -75,6 +76,24 @@ apply_replacements_to_tree() {
   done <"$REPLACEMENTS_FILE"
 }
 
+apply_service_cleanup() {
+  local service="$1"
+  local cleanup_cmd="$RYOKU_PATH/bin/ryoku-shell-cleanup-orphans"
+  local cleanup_line
+
+  [[ -f $service ]] || return 0
+  [[ -x $cleanup_cmd ]] || cleanup_cmd="$HOME/.local/share/ryoku/bin/ryoku-shell-cleanup-orphans"
+
+  cleanup_line="ExecStopPost=-$cleanup_cmd --quiet"
+
+  if grep -q '^ExecStopPost=' "$service"; then
+    RYOKU_CLEANUP_LINE="$cleanup_line" perl -0pi -e \
+      's/^ExecStopPost=.*$/$ENV{RYOKU_CLEANUP_LINE}/mg' "$service"
+  else
+    printf '\n%s\n' "$cleanup_line" >>"$service"
+  fi
+}
+
 install_visible_assets() {
   local background="$RYOKU_PATH/themes/ryoku/backgrounds/1-ryoku.png"
   local icon_dir="$HOME/.local/share/icons/hicolor/scalable/apps"
@@ -96,10 +115,13 @@ install_visible_assets() {
 }
 
 apply_installed_labels() {
+  local installed_service="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/inir.service"
+
   apply_replacements_to_file "assets/applications/inir.desktop" \
     "${XDG_DATA_HOME:-$HOME/.local/share}/applications/inir.desktop"
   apply_replacements_to_file "assets/systemd/inir.service" \
-    "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/inir.service"
+    "$installed_service"
+  apply_service_cleanup "$installed_service"
 
   if [[ -d /usr/share/sddm/themes/ii-pixel ]]; then
     apply_replacements_to_root_file "dots/sddm/pixel/metadata.desktop" \
@@ -162,6 +184,7 @@ main() {
 
   install_visible_assets
   apply_replacements_to_tree "$SHELL_PATH"
+  apply_replacements_to_tree "$RUNTIME_SHELL_PATH"
   apply_installed_labels
   merge_config_overrides
 

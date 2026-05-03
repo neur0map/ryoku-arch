@@ -87,3 +87,6 @@ if [[ -f $inir_service ]]; then
   ln -sf "$inir_service" "$inir_wants_dir/inir.service"
   systemctl --user daemon-reload >/dev/null 2>&1 || true
 fi
+
+"$RYOKU_PATH/install/config/ryoku-shell-branding.sh"
+systemctl --user daemon-reload >/dev/null 2>&1 || true

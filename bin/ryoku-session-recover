@@ -1,0 +1,126 @@
+#!/bin/bash
+
+# Recover Ryoku/Niri session UI after suspend, lid resume, or DRM wake delays.
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+QUIET=false
+RESUME=false
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  ryoku-session-recover [--quiet] [--resume]
+
+Refreshes the compositor-facing session state, powers Niri outputs back on,
+cleans stale Ryoku shell helpers, and restarts Ryoku UI components.
+USAGE
+}
+
+for arg in "$@"; do
+  case "$arg" in
+  --quiet)
+    QUIET=true
+    ;;
+  --resume)
+    RESUME=true
+    ;;
+  --help)
+    usage
+    exit 0
+    ;;
+  *)
+    echo "ryoku-session-recover: unknown option: $arg" >&2
+    usage >&2
+    exit 2
+    ;;
+  esac
+done
+
+log() {
+  if [[ $QUIET == "false" ]]; then
+    printf '%s\n' "$1"
+  fi
+}
+
+command_present() {
+  ryoku-cmd-present "$1"
+}
+
+find_niri_socket() {
+  local runtime_dir socket
+
+  if [[ -n ${NIRI_SOCKET:-} && -S ${NIRI_SOCKET:-} ]]; then
+    printf '%s\n' "$NIRI_SOCKET"
+    return 0
+  fi
+
+  runtime_dir="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+  for socket in "$runtime_dir"/niri.*.sock; do
+    [[ -S $socket ]] || continue
+    printf '%s\n' "$socket"
+    return 0
+  done
+
+  return 1
+}
+
+refresh_activation_environment() {
+  if command_present systemctl; then
+    systemctl --user import-environment \
+      DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE NIRI_SOCKET XCURSOR_THEME XCURSOR_SIZE \
+      >/dev/null 2>&1 || true
+  fi
+
+  if command_present dbus-update-activation-environment; then
+    dbus-update-activation-environment --systemd --all >/dev/null 2>&1 || true
+  fi
+}
+
+prime_niri_socket_environment() {
+  local socket
+
+  socket="$(find_niri_socket || true)"
+  [[ -n $socket ]] || return 0
+  export NIRI_SOCKET="$socket"
+}
+
+power_on_niri_monitors() {
+  local socket
+
+  command_present niri || return 0
+
+  socket="$(find_niri_socket || true)"
+  if [[ -n $socket ]]; then
+    log "power on Niri monitors"
+    NIRI_SOCKET="$socket" niri msg action power-on-monitors >/dev/null 2>&1 || true
+  else
+    log "power on Niri monitors"
+    niri msg action power-on-monitors >/dev/null 2>&1 || true
+  fi
+}
+
+cleanup_shell_helpers() {
+  if command_present ryoku-shell-cleanup-orphans; then
+    ryoku-shell-cleanup-orphans --quiet
+  fi
+}
+
+restart_session_ui() {
+  if command_present ryoku-restart-ui; then
+    ryoku-restart-ui --quiet
+  fi
+}
+
+if [[ $RESUME == "true" ]]; then
+  sleep 1
+fi
+
+log "Ryoku session recovery"
+prime_niri_socket_environment
+refresh_activation_environment
+power_on_niri_monitors
+cleanup_shell_helpers
+restart_session_ui
