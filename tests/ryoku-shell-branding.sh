@@ -104,7 +104,7 @@ assert_topbar_frame_overlay() {
     "Topbar frame patch should apply to the source BarContent.qml"
   assert_contains "install/config/ryoku-shell-branding.sh" 'apply_topbar_three_island_frame_to_file "\$RUNTIME_SHELL_PATH/modules/bar/BarContent.qml"' \
     "Topbar frame patch should apply to the runtime BarContent.qml"
-  assert_not_contains_multiline "install/config/ryoku-shell-branding.sh" "apply_topbar_three_island_frame_to_file\\s+[\"']?\\$[A-Z_]+/modules/screenCorners/ScreenCorners\\.qml" \
+  assert_not_contains_multiline "install/config/ryoku-shell-branding.sh" 'apply_topbar_three_island_frame_to_file[[:space:]\\]+[^[:space:]]*ScreenCorners\.qml' \
     "Topbar frame patch should not patch screen corner behavior"
   assert_contains "install/config/ryoku-shell-branding.sh" 'id: leftIslandBackground' \
     "Topbar frame patch should add a left island background"
