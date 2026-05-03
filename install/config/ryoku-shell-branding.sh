@@ -447,6 +447,8 @@ QML
     s/visible: \(Config\.options\?\.bar\?\.modules\?\.sysTray \?\? true\) && root\.useShortenedForm === 0/visible: !root.ryokuTopbarHugFrame \&\& (Config.options?.bar?.modules?.sysTray ?? true) \&\& root.useShortenedForm === 0/;
     # Regress force-hide: TimerIndicator visible whenever its own logic says so
     s/(            TimerIndicator \{\n)                visible: !root\.ryokuTopbarHugFrame\n/$1/s;
+    # Gap on TimerIndicator visual-left so it does not butt against ShellUpdateIndicator under hug frame
+    s/(            TimerIndicator \{\n)(?!                Layout\.leftMargin: root\.ryokuTopbarHugFrame)/$1                Layout.leftMargin: root.ryokuTopbarHugFrame ? 12 : 0\n/s;
     # Regress force-hide: ShellUpdateIndicator visible whenever its own logic says so
     s/(            ShellUpdateIndicator \{\n)                visible: !root\.ryokuTopbarHugFrame\n/$1/s;
     # Restore spacer Item fill so it absorbs slack and keeps weather + workspaces packed
