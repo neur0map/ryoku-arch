@@ -130,6 +130,8 @@ assert_topbar_frame_overlay() {
     "Topbar frame patch should mark the Weather relocation with a sentinel comment for idempotency"
   assert_contains "install/config/ryoku-shell-branding.sh" 'unless \(/\\/\\/ Ryoku: weather relocated to right notch interior/\)' \
     "Topbar frame patch should guard the Weather relocation behind its sentinel comment"
+  assert_contains "install/config/ryoku-shell-branding.sh" 'root\.ryokuTopbarHugFrame \? 48 : 4' \
+    "Topbar frame patch should widen weather leftMargin under hug frame so on-demand indicators sit further left in the gap"
   assert_contains "install/config/ryoku-shell-branding.sh" 'implicitWidth: root\.ryokuTopbarHugFrame \? 100 : 0' \
     "Topbar frame patch should set middleCenterGroup to a fixed 100px placeholder under the hug frame"
   assert_not_contains "install/config/ryoku-shell-branding.sh" 'implicitWidth: root\.ryokuTopbarHugFrame \? Math\.min\(workspacesWidget\.implicitWidth' \

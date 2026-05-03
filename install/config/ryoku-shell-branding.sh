@@ -455,6 +455,8 @@ QML
     s/(            Loader \{\n                Layout\.leftMargin: 4\n                active: \(Config\.options\?\.bar\?\.modules\?\.weather \?\? true\) && \(Config\.options\?\.bar\?\.weather\?\.enable \?\? false\)\n)(?!                id: weatherBarLoader\n)/            Loader {\n                id: weatherBarLoader\n                Layout.leftMargin: 4\n                active: (Config.options?.bar?.modules?.weather ?? true) && (Config.options?.bar?.weather?.enable ?? false)\n/s;
     # Regress: drop the Layout.rightMargin we briefly used; weather is now relocated next to workspaces inside the notch.
     s/(                id: weatherBarLoader\n                Layout\.leftMargin: 4\n)                Layout\.rightMargin: root\.ryokuTopbarHugFrame \? 32 : 0\n/$1/s;
+    # Push on-demand indicators away from weather under hug frame by widening weather visual-left margin.
+    s/(                id: weatherBarLoader\n                Layout\.leftMargin: )4(\n                active:)/$1root.ryokuTopbarHugFrame ? 48 : 4$2/s;
     # Move weatherBarLoader from after the spacer to immediately after the relocated Workspaces (idempotent via sentinel).
     # Pairs with the restored spacer fillWidth: weather sits inside the right notch interior next to workspaces;
     # TimerIndicator and ShellUpdateIndicator float in the gap to the left of the notch when active.
