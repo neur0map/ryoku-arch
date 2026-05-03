@@ -222,6 +222,56 @@ apply_sidebar_right_keep_mapped_workaround() {
   apply_sidebar_right_keep_mapped_workaround_to_file "$RUNTIME_SHELL_PATH/modules/sidebarRight/SidebarRight.qml"
 }
 
+apply_topbar_three_island_frame_to_file() {
+  local file="$1"
+
+  [[ -f $file ]] || return 0
+  grep -q 'readonly property bool ryokuThreeIslandFrame: true' "$file" && return 0
+  grep -q 'property alias backgroundItem: barBackground' "$file" || return 0
+  grep -q 'id: leftSectionRowLayout' "$file" || return 0
+  grep -q 'id: rightSectionRowLayout' "$file" || return 0
+  grep -q 'id: leftCenterGroup' "$file" || return 0
+  grep -q 'id: rightCenterGroupContent' "$file" || return 0
+
+  perl -0pi -e '
+    s/(    property alias backgroundItem: barBackground\n)/$1    readonly property bool ryokuThreeIslandFrame: true\n    readonly property int ryokuIslandVerticalMargin: 4\n    readonly property int ryokuIslandHorizontalPadding: 10\n/s;
+
+    s/visible: \(Config\.options\?\.bar\?\.showBackground \?\? true\) && !gameModeMinimal/visible: (Config.options?.bar?.showBackground ?? true) && !gameModeMinimal && !root.ryokuThreeIslandFrame/;
+
+    s/(        RowLayout \{\n            id: leftSectionRowLayout)/        Rectangle {\n            id: leftIslandBackground\n            anchors {\n                left: parent.left\n                leftMargin: Appearance.rounding.screenRounding\n                verticalCenter: parent.verticalCenter\n            }\n            width: Math.min(leftSectionRowLayout.implicitWidth + root.ryokuIslandHorizontalPadding * 2,\n                Math.max(260, (root.screen?.width ?? 1920) * 0.32))\n            height: Appearance.sizes.baseBarHeight - root.ryokuIslandVerticalMargin * 2\n            radius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall\n                : Appearance.inirEverywhere ? Appearance.inir.roundingNormal\n                : Appearance.rounding.small\n            color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard\n                : Appearance.inirEverywhere ? Appearance.inir.colLayer1\n                : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface\n                : Appearance.colors.colLayer1\n            border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth\n                : Appearance.inirEverywhere ? 1 : 0\n            border.color: Appearance.angelEverywhere ? Appearance.angel.colCardBorder\n                : Appearance.inirEverywhere ? Appearance.inir.colBorder : Appearance.colors.colLayer0Border\n            visible: root.ryokuThreeIslandFrame\n            z: -1\n        }\n\n$1/s;
+
+    s/(                Layout\.fillWidth: )!root\.taskbarEnabled/$1!root.ryokuThreeIslandFrame \&\& !root.taskbarEnabled/;
+    s/(                Layout\.fillHeight: true\n            \})/                Layout.preferredWidth: root.ryokuThreeIslandFrame ? Math.min(360, Math.max(180, (root.screen?.width ?? 1920) * 0.22)) : -1\n$1/s;
+
+    s/(            Loader \{\n                active: root\.taskbarEnabled\n                visible: active\n                Layout\.fillWidth: )true(\n                Layout\.fillHeight: true)/$1!root.ryokuThreeIslandFrame\n                Layout.preferredWidth: root.ryokuThreeIslandFrame ? Math.min(360, Math.max(180, (root.screen?.width ?? 1920) * 0.22)) : -1$2/s;
+
+    s/(        BarGroup \{\n            id: leftCenterGroup\n)/$1            opacity: root.ryokuThreeIslandFrame ? 0 : 1\n/s;
+    s/(            Loader \{\n                active: )Config\.options\?\.bar\?\.modules\?\.resources \?\? true/$1!root.ryokuThreeIslandFrame \&\& (Config.options?.bar?.modules?.resources ?? true)/;
+    s/(            Loader \{\n                active: )\(Config\.options\?\.bar\?\.modules\?\.media \?\? true\) && root\.useShortenedForm < 2/$1!root.ryokuThreeIslandFrame \&\& (Config.options?.bar?.modules?.media ?? true) \&\& root.useShortenedForm < 2/;
+
+    s/(            BarGroup \{\n                id: rightCenterGroupContent\n)/$1                opacity: root.ryokuThreeIslandFrame ? 0 : 1\n/s;
+    s/visible: Config\.options\?\.bar\?\.modules\?\.clock \?\? true/visible: !root.ryokuThreeIslandFrame \&\& (Config.options?.bar?.modules?.clock ?? true)/;
+    s/visible: \(Config\.options\?\.bar\?\.modules\?\.utilButtons \?\? true\) && \(\(Config\.options\?\.bar\?\.verbose \?\? true\) && root\.useShortenedForm === 0\)/visible: !root.ryokuThreeIslandFrame \&\& (Config.options?.bar?.modules?.utilButtons ?? true) \&\& ((Config.options?.bar?.verbose ?? true) \&\& root.useShortenedForm === 0)/;
+    s/visible: \(Config\.options\?\.bar\?\.modules\?\.battery \?\? true\) && \(root\.useShortenedForm < 2 && Battery\.available\)/visible: !root.ryokuThreeIslandFrame \&\& (Config.options?.bar?.modules?.battery ?? true) \&\& (root.useShortenedForm < 2 \&\& Battery.available)/;
+
+    s/(        RowLayout \{\n            id: rightSectionRowLayout)/        Rectangle {\n            id: rightIslandBackground\n            anchors {\n                right: parent.right\n                rightMargin: Appearance.rounding.screenRounding\n                verticalCenter: parent.verticalCenter\n            }\n            width: rightSectionRowLayout.implicitWidth + root.ryokuIslandHorizontalPadding * 2\n            height: Appearance.sizes.baseBarHeight - root.ryokuIslandVerticalMargin * 2\n            radius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall\n                : Appearance.inirEverywhere ? Appearance.inir.roundingNormal\n                : Appearance.rounding.small\n            color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard\n                : Appearance.inirEverywhere ? Appearance.inir.colLayer1\n                : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface\n                : Appearance.colors.colLayer1\n            border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth\n                : Appearance.inirEverywhere ? 1 : 0\n            border.color: Appearance.angelEverywhere ? Appearance.angel.colCardBorder\n                : Appearance.inirEverywhere ? Appearance.inir.colBorder : Appearance.colors.colLayer0Border\n            visible: root.ryokuThreeIslandFrame\n            z: -1\n        }\n\n$1/s;
+
+    s/visible: \(Config\.options\?\.bar\?\.modules\?\.sysTray \?\? true\) && root\.useShortenedForm === 0/visible: !root.ryokuThreeIslandFrame \&\& (Config.options?.bar?.modules?.sysTray ?? true) \&\& root.useShortenedForm === 0/;
+    s/            TimerIndicator \{\n/            TimerIndicator {
+                visible: !root.ryokuThreeIslandFrame
+/s;
+    s/            ShellUpdateIndicator \{\n/            ShellUpdateIndicator {
+                visible: !root.ryokuThreeIslandFrame
+/s;
+    s/(            Item \{\n                Layout\.fillWidth: )true(\n                Layout\.fillHeight: )true/$1!root.ryokuThreeIslandFrame$2!root.ryokuThreeIslandFrame/;
+  ' "$file"
+}
+
+apply_topbar_three_island_frame() {
+  apply_topbar_three_island_frame_to_file "$SHELL_PATH/modules/bar/BarContent.qml"
+  apply_topbar_three_island_frame_to_file "$RUNTIME_SHELL_PATH/modules/bar/BarContent.qml"
+}
+
 apply_installed_labels() {
   local installed_service="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/inir.service"
 
@@ -301,6 +351,7 @@ main() {
   apply_screen_corners_input_mask_guard
   apply_wallpaper_resolution_patch
   apply_sidebar_right_keep_mapped_workaround
+  apply_topbar_three_island_frame
   apply_replacements_to_tree "$SHELL_PATH"
   apply_replacements_to_tree "$RUNTIME_SHELL_PATH"
   apply_lock_security_guard
