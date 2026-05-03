@@ -422,6 +422,20 @@ QML
     # Fresh source: insert fixed implicitWidth + clip
     s/(        BarGroup \{\n            id: middleCenterGroup\n)(?!            implicitWidth: )/$1            implicitWidth: root.ryokuTopbarHugFrame ? 100 : 0\n            clip: root.ryokuTopbarHugFrame\n/s;
     s/(            Workspaces \{\n                id: workspacesWidget\n)(?!                clip: root\.ryokuTopbarHugFrame\n)/$1                clip: root.ryokuTopbarHugFrame\n/s;
+    # Move Workspaces from middleCenterGroup to rightSectionRowLayout (idempotent via sentinel).
+    # In RTL layout, the second declared child of rightSectionRowLayout renders one slot
+    # left of the first; placing Workspaces immediately before SysTray puts it visually
+    # adjacent to rightSidebarButton, inside the dark notch interior.
+    unless (/\/\/ Ryoku: workspaces relocated to right notch/) {
+        my $workspaces_block = "";
+        if (s{\n(            Workspaces \{\n                id: workspacesWidget\n(?:(?:                [^\n]+|)\n)+?            \})\n}{\n}s) {
+            $workspaces_block = $1;
+        }
+        if ($workspaces_block) {
+            my $insertion = "\n            // Ryoku: workspaces relocated to right notch\n${workspaces_block}\n";
+            s/(\n            SysTray \{)/$insertion$1/s;
+        }
+    }
     s/(            BarGroup \{\n                id: rightCenterGroupContent\n)(?!                opacity:)/$1                opacity: root.ryokuTopbarHugFrame ? 0 : 1\n/s;
     s/visible: Config\.options\?\.bar\?\.modules\?\.clock \?\? true/visible: !root.ryokuTopbarHugFrame \&\& (Config.options?.bar?.modules?.clock ?? true)/;
     s/visible: \(Config\.options\?\.bar\?\.modules\?\.utilButtons \?\? true\) && \(\(Config\.options\?\.bar\?\.verbose \?\? true\) && root\.useShortenedForm === 0\)/visible: !root.ryokuTopbarHugFrame \&\& (Config.options?.bar?.modules?.utilButtons ?? true) \&\& ((Config.options?.bar?.verbose ?? true) \&\& root.useShortenedForm === 0)/;
@@ -475,6 +489,17 @@ apply_topbar_hug_frame_to_bar_file() {
   ' "$file"
 }
 
+apply_weather_bar_font_to_file() {
+  local file="$1"
+
+  [[ -f $file ]] || return 0
+  grep -q 'font.pixelSize: Appearance.font.pixelSize.small' "$file" || return 0
+
+  perl -0pi -e '
+    s/(        StyledText \{\n            visible: true\n)            font.pixelSize: Appearance.font.pixelSize.small/$1            font.weight: Font.Medium\n            font.pixelSize: Appearance.font.pixelSize.normal/s;
+  ' "$file"
+}
+
 apply_topbar_hug_frame() {
   apply_topbar_hug_frame_to_file "$SHELL_PATH/modules/bar/BarContent.qml"
   apply_topbar_hug_frame_to_file "$RUNTIME_SHELL_PATH/modules/bar/BarContent.qml"
@@ -482,6 +507,8 @@ apply_topbar_hug_frame() {
   apply_topbar_hug_frame_to_bar_file "$RUNTIME_SHELL_PATH/modules/bar/Bar.qml"
   apply_topbar_hug_frame_to_workspaces_file "$SHELL_PATH/modules/bar/Workspaces.qml"
   apply_topbar_hug_frame_to_workspaces_file "$RUNTIME_SHELL_PATH/modules/bar/Workspaces.qml"
+  apply_weather_bar_font_to_file "$SHELL_PATH/modules/bar/weather/WeatherBar.qml"
+  apply_weather_bar_font_to_file "$RUNTIME_SHELL_PATH/modules/bar/weather/WeatherBar.qml"
 }
 
 apply_installed_labels() {
