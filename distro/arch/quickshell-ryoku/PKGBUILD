@@ -1,0 +1,85 @@
+# Maintainer: Carlos Mejia (neur0map)
+# Contributor: Caleb Maclennan <caleb@alerque.com>  (upstream Arch PKGBUILD)
+#
+# Drop-in replacement for the official `quickshell` package with the iNiR
+# project's `fix-extension-uaf.patch` applied.  Without that patch QS 0.2.1
+# has a use-after-free in IpcHandlerRegistry that fires when the QML root
+# is destroyed (extensions are freed before the root, leaving a dangling
+# pointer in the extensions hash).  Symptoms range from `pure virtual
+# method called` aborts to outright SIGSEGV when a sufficiently busy shell
+# tears down components, iNiR's panel-family system + 50+ IpcHandlers
+# makes the race virtually guaranteed.
+#
+# This package conflicts with and provides `quickshell`, so installing it
+# replaces the stock package.  Build with:
+#
+#     cd distro/arch/quickshell-ryoku
+#     makepkg -si
+#
+# To keep pacman from clobbering it on `-Syu`, add an IgnorePkg = quickshell
+# line to /etc/pacman.conf, or rebuild this PKGBUILD whenever upstream Arch
+# bumps `pkgver`.
+
+pkgname=quickshell-ryoku
+_upstream=quickshell
+pkgver=0.2.1
+pkgrel=1
+pkgdesc='Flexible toolkit for making desktop shells with QtQuick (iNiR fix-extension-uaf patch applied)'
+arch=(x86_64 aarch64)
+url="https://git.outfoxxed.me/$_upstream/$_upstream"
+license=(LGPL-3.0-only)
+provides=("$_upstream=$pkgver-$pkgrel")
+conflicts=("$_upstream")
+depends=(gcc-libs
+         glibc
+         hicolor-icon-theme
+         jemalloc libjemalloc.so
+         libdrm
+         libglvnd libEGL.so libOpenGL.so
+         libpipewire libpipewire-0.3.so
+         libxcb
+         mesa
+         pam libpam.so
+         qt6-base
+         qt6-declarative
+         qt6-svg
+         qt6-wayland
+         wayland libwayland-client.so)
+makedepends=(cli11
+             cmake
+             ninja
+             qt6-shadertools
+             spirv-tools
+             wayland-protocols)
+_archive="$_upstream-$pkgver"
+source=("$_archive.tar.gz::$url/archive/v$pkgver.tar.gz"
+        fix-extension-uaf.patch)
+sha256sums=('d815c5f99f4a0a28545ffaa90464420c773b7c0ab62f713d9d8735a8e7282ca7'
+            'abf0891a1270e6df6762facef881c8572176f91d700af5ade57ba20d88547155')
+
+prepare() {
+	cd "$_upstream"
+	patch -Np1 -i "$srcdir/fix-extension-uaf.patch"
+}
+
+build() {
+	cd "$_upstream"
+	local cmake_options=(
+		-D CMAKE_BUILD_TYPE=RelWithDebInfo
+		-D DISTRIBUTOR='Ryoku Arch (iNiR-patched)'
+		-D DISTRIBUTOR_DEBUGINFO_AVAILABLE=Yes
+		-D CRASH_REPORTER=Off
+		-D CMAKE_INSTALL_PREFIX=/usr
+		-D INSTALL_QML_PREFIX=lib/qt6/qml
+	)
+	cmake -G Ninja -B build -W no-dev "${cmake_options[@]}"
+	cmake --build build
+}
+
+package() {
+	cd "$_upstream"
+	DESTDIR="$pkgdir" cmake --install build
+	install -Dm0644 -t "$pkgdir/usr/share/licenses/$pkgname/" LICENSE
+	install -Dm0644 "$srcdir/fix-extension-uaf.patch" \
+		"$pkgdir/usr/share/doc/$pkgname/fix-extension-uaf.patch"
+}
