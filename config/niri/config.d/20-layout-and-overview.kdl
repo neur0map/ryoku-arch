@@ -48,10 +48,9 @@ layout {
     // Drawn around the focused window on the active monitor.
     // With prefer-no-csd, it draws *around* the window geometry.
     focus-ring {
-        off
-        width 1
-        active-color   "#808080"
-        inactive-color "#505050"
+        width 3
+        active-gradient from="#F25623" to="#F56E0F" angle=45 relative-to="workspace-view" in="oklch"
+        inactive-color "#00000000"
 
         // Gradient alternative (CSS linear-gradient style):
         // active-gradient from="#80c8ff" to="#c7ff7f" angle=45
