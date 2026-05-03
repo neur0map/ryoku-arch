@@ -424,9 +424,8 @@ QML
     s/visible: \(Config\.options\?\.bar\?\.modules\?\.battery \?\? true\) && \(root\.useShortenedForm < 2 && Battery\.available\)/visible: !root.ryokuTopbarHugFrame \&\& (Config.options?.bar?.modules?.battery ?? true) \&\& (root.useShortenedForm < 2 \&\& Battery.available)/;
 
     s/visible: \(Config\.options\?\.bar\?\.modules\?\.sysTray \?\? true\) && root\.useShortenedForm === 0/visible: !root.ryokuTopbarHugFrame \&\& (Config.options?.bar?.modules?.sysTray ?? true) \&\& root.useShortenedForm === 0/;
-    s/            TimerIndicator \{\n(?!                visible:)/            TimerIndicator {
-                visible: !root.ryokuTopbarHugFrame
-/s;
+    # Regress force-hide: TimerIndicator visible whenever its own logic says so
+    s/(            TimerIndicator \{\n)                visible: !root\.ryokuTopbarHugFrame\n/$1/s;
     s/            ShellUpdateIndicator \{\n(?!                visible:)/            ShellUpdateIndicator {
                 visible: !root.ryokuTopbarHugFrame
 /s;
