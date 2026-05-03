@@ -98,8 +98,10 @@
     "pinnedOnStartup": false
   },
   "bar": {
-    "borderless": false,
-    "showBackground": false,
+    "ryokuTopbarHugFrame": true,
+    "borderless": true,
+    "cornerStyle": 0,
+    "showBackground": true,
     "modules": {
       "activeWindow": true,
       "battery": false,
