@@ -449,10 +449,25 @@ QML
     s/(            TimerIndicator \{\n)                visible: !root\.ryokuTopbarHugFrame\n/$1/s;
     # Regress force-hide: ShellUpdateIndicator visible whenever its own logic says so
     s/(            ShellUpdateIndicator \{\n)                visible: !root\.ryokuTopbarHugFrame\n/$1/s;
-    s/(            Item \{\n                Layout\.fillWidth: )true(\n                Layout\.fillHeight: )true/$1!root.ryokuTopbarHugFrame$2!root.ryokuTopbarHugFrame/;
+    # Restore spacer Item fill so it absorbs slack and keeps weather + workspaces packed
+    # inside the right notch; on-demand indicators float to the left of the notch in the gap.
+    s/(            Item \{\n                Layout\.fillWidth: )!root\.ryokuTopbarHugFrame(\n                Layout\.fillHeight: )!root\.ryokuTopbarHugFrame/$1true$2true/;
     s/(            Loader \{\n                Layout\.leftMargin: 4\n                active: \(Config\.options\?\.bar\?\.modules\?\.weather \?\? true\) && \(Config\.options\?\.bar\?\.weather\?\.enable \?\? false\)\n)(?!                id: weatherBarLoader\n)/            Loader {\n                id: weatherBarLoader\n                Layout.leftMargin: 4\n                active: (Config.options?.bar?.modules?.weather ?? true) && (Config.options?.bar?.weather?.enable ?? false)\n/s;
-    # Add right-margin to weather under hug frame so it does not butt against the workspaces strip
-    s/(                id: weatherBarLoader\n                Layout\.leftMargin: 4\n)(?!                Layout\.rightMargin:)/$1                Layout.rightMargin: root.ryokuTopbarHugFrame ? 32 : 0\n/s;
+    # Regress: drop the Layout.rightMargin we briefly used; weather is now relocated next to workspaces inside the notch.
+    s/(                id: weatherBarLoader\n                Layout\.leftMargin: 4\n)                Layout\.rightMargin: root\.ryokuTopbarHugFrame \? 32 : 0\n/$1/s;
+    # Move weatherBarLoader from after the spacer to immediately after the relocated Workspaces (idempotent via sentinel).
+    # Pairs with the restored spacer fillWidth: weather sits inside the right notch interior next to workspaces;
+    # TimerIndicator and ShellUpdateIndicator float in the gap to the left of the notch when active.
+    unless (/\/\/ Ryoku: weather relocated to right notch interior/) {
+        my $weather_block = "";
+        if (s{\n            // Weather\n(            Loader \{\n                id: weatherBarLoader\n(?:(?:                [^\n]+|)\n)+?            \})\n}{\n}s) {
+            $weather_block = $1;
+        }
+        if ($weather_block) {
+            my $insertion = "\n            // Ryoku: weather relocated to right notch interior\n${weather_block}\n";
+            s{(\n            SysTray \{)}{$insertion$1}s;
+        }
+    }
     s/root\.ryokuThreeIslandFrame/root.ryokuTopbarHugFrame/g;
   ' "$file"
 }
