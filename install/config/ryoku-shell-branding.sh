@@ -260,7 +260,7 @@ apply_topbar_hug_frame_to_file() {
         + (weatherBarLoader.visible ? weatherBarLoader.implicitWidth + rightSectionRowLayout.spacing : 0)
     readonly property int ryokuLeftNotchWidth: Math.min(Math.max(ryokuLeftContentWidth + Appearance.rounding.screenRounding + ryokuNotchPadding, 180), Math.min(520, Math.max(240, (root.screen?.width ?? 1920) * 0.24)))
     readonly property int ryokuCenterNotchWidth: Math.min(Math.max(middleCenterGroup.implicitWidth + ryokuNotchPadding * 2, 96), 220)
-    readonly property int ryokuRightNotchWidth: Math.min(Math.max(ryokuRightContentWidth + Appearance.rounding.screenRounding + ryokuNotchPadding, 150), 480)
+    readonly property int ryokuRightNotchWidth: Math.min(Math.max(ryokuRightContentWidth + Appearance.rounding.screenRounding + ryokuNotchPadding, 150), 560)
     readonly property color ryokuFrameColor: {
         if (Appearance.angelEverywhere) return Appearance.angel.colGlassCard
         if (Appearance.inirEverywhere) return Appearance.inir.colLayer0
@@ -492,6 +492,17 @@ apply_topbar_hug_frame_to_bar_file() {
   ' "$file"
 }
 
+apply_weather_bar_dynamic_color_to_file() {
+  local file="$1"
+
+  [[ -f $file ]] || return 0
+  grep -qF 'wallpaperBlendedColors?.colOnLayer1' "$file" && return 0
+
+  perl -0pi -e '
+    s/color: Appearance\.angelEverywhere \? Appearance\.angel\.colText[ \t]*\n[ \t]*: Appearance\.inirEverywhere \? Appearance\.inir\.colText : Appearance\.colors\.colOnLayer1/color: (Appearance.wallpaperBlendedColors?.colOnLayer1) ?? (Appearance.angelEverywhere ? Appearance.angel.colText : Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer1)/g;
+  ' "$file"
+}
+
 apply_topbar_hug_frame() {
   apply_topbar_hug_frame_to_file "$SHELL_PATH/modules/bar/BarContent.qml"
   apply_topbar_hug_frame_to_file "$RUNTIME_SHELL_PATH/modules/bar/BarContent.qml"
@@ -499,6 +510,8 @@ apply_topbar_hug_frame() {
   apply_topbar_hug_frame_to_bar_file "$RUNTIME_SHELL_PATH/modules/bar/Bar.qml"
   apply_topbar_hug_frame_to_workspaces_file "$SHELL_PATH/modules/bar/Workspaces.qml"
   apply_topbar_hug_frame_to_workspaces_file "$RUNTIME_SHELL_PATH/modules/bar/Workspaces.qml"
+  apply_weather_bar_dynamic_color_to_file "$SHELL_PATH/modules/bar/weather/WeatherBar.qml"
+  apply_weather_bar_dynamic_color_to_file "$RUNTIME_SHELL_PATH/modules/bar/weather/WeatherBar.qml"
 }
 
 apply_installed_labels() {

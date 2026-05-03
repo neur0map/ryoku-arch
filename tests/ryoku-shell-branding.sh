@@ -120,8 +120,12 @@ assert_topbar_frame_overlay() {
     "Topbar frame patch should size the right notch from kept widgets"
   assert_contains "install/config/ryoku-shell-branding.sh" 'workspacesWidget\.visible \? workspacesWidget\.implicitWidth' \
     "Topbar frame patch should include workspaces in the right-notch content width"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'ryokuRightContentWidth \+ Appearance\.rounding\.screenRounding \+ ryokuNotchPadding, 150\), 480' \
-    "Topbar frame patch should cap the right-notch width at 480 (raised from 360 to fit workspaces + status indicators)"
+  assert_contains "install/config/ryoku-shell-branding.sh" 'ryokuRightContentWidth \+ Appearance\.rounding\.screenRounding \+ ryokuNotchPadding, 150\), 560' \
+    "Topbar frame patch should cap the right-notch width at 560 (raised to push weather away from workspaces strip)"
+  assert_contains "install/config/ryoku-shell-branding.sh" 'apply_weather_bar_dynamic_color_to_file' \
+    "Topbar branding should patch WeatherBar to use wallpaper-blended color with theme fallback"
+  assert_contains "install/config/ryoku-shell-branding.sh" 'wallpaperBlendedColors\?\.colOnLayer1' \
+    "WeatherBar color patch should bind to Appearance.wallpaperBlendedColors with optional chaining"
   assert_contains "install/config/ryoku-shell-branding.sh" 'implicitWidth: root\.ryokuTopbarHugFrame \? 100 : 0' \
     "Topbar frame patch should set middleCenterGroup to a fixed 100px placeholder under the hug frame"
   assert_not_contains "install/config/ryoku-shell-branding.sh" 'implicitWidth: root\.ryokuTopbarHugFrame \? Math\.min\(workspacesWidget\.implicitWidth' \
