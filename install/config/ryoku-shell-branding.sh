@@ -222,6 +222,14 @@ apply_sidebar_right_keep_mapped_workaround() {
   apply_sidebar_right_keep_mapped_workaround_to_file "$RUNTIME_SHELL_PATH/modules/sidebarRight/SidebarRight.qml"
 }
 
+qml_file_contains() {
+  local file="$1"
+  local pattern="$2"
+
+  perl -0ne 'BEGIN { $pattern = shift; $found = 0 } $found = 1 if index($_, $pattern) >= 0; END { exit($found ? 0 : 1) }' \
+    "$pattern" "$file"
+}
+
 apply_topbar_three_island_frame_to_file() {
   local file="$1"
 
@@ -232,6 +240,22 @@ apply_topbar_three_island_frame_to_file() {
   grep -q 'id: rightSectionRowLayout' "$file" || return 0
   grep -q 'id: leftCenterGroup' "$file" || return 0
   grep -q 'id: rightCenterGroupContent' "$file" || return 0
+  qml_file_contains "$file" 'visible: (Config.options?.bar?.showBackground ?? true) && !gameModeMinimal' || return 0
+  qml_file_contains "$file" $'        RowLayout {\n            id: leftSectionRowLayout' || return 0
+  qml_file_contains "$file" $'            ActiveWindow {\n                visible: (Config.options?.bar?.modules?.activeWindow ?? true) && root.useShortenedForm === 0 && !root.taskbarEnabled\n                Layout.fillWidth: !root.taskbarEnabled\n                Layout.fillHeight: true\n            }' || return 0
+  qml_file_contains "$file" $'            Loader {\n                active: root.taskbarEnabled\n                visible: active\n                Layout.fillWidth: true\n                Layout.fillHeight: true' || return 0
+  qml_file_contains "$file" $'        BarGroup {\n            id: leftCenterGroup\n' || return 0
+  qml_file_contains "$file" 'active: Config.options?.bar?.modules?.resources ?? true' || return 0
+  qml_file_contains "$file" 'active: (Config.options?.bar?.modules?.media ?? true) && root.useShortenedForm < 2' || return 0
+  qml_file_contains "$file" $'            BarGroup {\n                id: rightCenterGroupContent\n' || return 0
+  qml_file_contains "$file" 'visible: Config.options?.bar?.modules?.clock ?? true' || return 0
+  qml_file_contains "$file" 'visible: (Config.options?.bar?.modules?.utilButtons ?? true) && ((Config.options?.bar?.verbose ?? true) && root.useShortenedForm === 0)' || return 0
+  qml_file_contains "$file" 'visible: (Config.options?.bar?.modules?.battery ?? true) && (root.useShortenedForm < 2 && Battery.available)' || return 0
+  qml_file_contains "$file" $'        RowLayout {\n            id: rightSectionRowLayout' || return 0
+  qml_file_contains "$file" 'visible: (Config.options?.bar?.modules?.sysTray ?? true) && root.useShortenedForm === 0' || return 0
+  qml_file_contains "$file" $'            TimerIndicator {\n                Layout.alignment: Qt.AlignVCenter' || return 0
+  qml_file_contains "$file" $'            ShellUpdateIndicator {\n                Layout.alignment: Qt.AlignVCenter' || return 0
+  qml_file_contains "$file" $'            Item {\n                Layout.fillWidth: true\n                Layout.fillHeight: true\n            }' || return 0
 
   perl -0pi -e '
     s/(    property alias backgroundItem: barBackground\n)/$1    readonly property bool ryokuThreeIslandFrame: true\n    readonly property int ryokuIslandVerticalMargin: 4\n    readonly property int ryokuIslandHorizontalPadding: 10\n/s;
@@ -240,8 +264,7 @@ apply_topbar_three_island_frame_to_file() {
 
     s/(        RowLayout \{\n            id: leftSectionRowLayout)/        Rectangle {\n            id: leftIslandBackground\n            anchors {\n                left: parent.left\n                leftMargin: Appearance.rounding.screenRounding\n                verticalCenter: parent.verticalCenter\n            }\n            width: Math.min(leftSectionRowLayout.implicitWidth + root.ryokuIslandHorizontalPadding * 2,\n                Math.max(260, (root.screen?.width ?? 1920) * 0.32))\n            height: Appearance.sizes.baseBarHeight - root.ryokuIslandVerticalMargin * 2\n            radius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall\n                : Appearance.inirEverywhere ? Appearance.inir.roundingNormal\n                : Appearance.rounding.small\n            color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard\n                : Appearance.inirEverywhere ? Appearance.inir.colLayer1\n                : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface\n                : Appearance.colors.colLayer1\n            border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth\n                : Appearance.inirEverywhere ? 1 : 0\n            border.color: Appearance.angelEverywhere ? Appearance.angel.colCardBorder\n                : Appearance.inirEverywhere ? Appearance.inir.colBorder : Appearance.colors.colLayer0Border\n            visible: root.ryokuThreeIslandFrame\n            z: -1\n        }\n\n$1/s;
 
-    s/(                Layout\.fillWidth: )!root\.taskbarEnabled/$1!root.ryokuThreeIslandFrame \&\& !root.taskbarEnabled/;
-    s/(                Layout\.fillHeight: true\n            \})/                Layout.preferredWidth: root.ryokuThreeIslandFrame ? Math.min(360, Math.max(180, (root.screen?.width ?? 1920) * 0.22)) : -1\n$1/s;
+    s/(            ActiveWindow \{\n                visible: \(Config\.options\?\.bar\?\.modules\?\.activeWindow \?\? true\) && root\.useShortenedForm === 0 && !root\.taskbarEnabled\n                Layout\.fillWidth: )!root\.taskbarEnabled(\n                Layout\.fillHeight: true\n            \})/$1!root.ryokuThreeIslandFrame \&\& !root.taskbarEnabled\n                Layout.preferredWidth: root.ryokuThreeIslandFrame ? Math.min(360, Math.max(180, (root.screen?.width ?? 1920) * 0.22)) : -1$2/s;
 
     s/(            Loader \{\n                active: root\.taskbarEnabled\n                visible: active\n                Layout\.fillWidth: )true(\n                Layout\.fillHeight: true)/$1!root.ryokuThreeIslandFrame\n                Layout.preferredWidth: root.ryokuThreeIslandFrame ? Math.min(360, Math.max(180, (root.screen?.width ?? 1920) * 0.22)) : -1$2/s;
 
