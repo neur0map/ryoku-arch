@@ -94,6 +94,26 @@ apply_service_cleanup() {
   fi
 }
 
+apply_lock_security_guard_to_file() {
+  local file="$1"
+
+  [[ -f $file ]] || return 0
+  grep -q 'Lock session did not become secure' "$file" && return 0
+  grep -q 'running: GlobalStates.screenLocked && !lockSurfaceLoader.item' "$file" || return 0
+
+  perl -0pi -e \
+    's/running: GlobalStates\.screenLocked && !lockSurfaceLoader\.item/running: GlobalStates.screenLocked && (!lock.secure || !lockSurfaceLoader.item)/' \
+    "$file"
+  perl -0pi -e \
+    's/console\.warn\("\[Lock\] Lock surface failed to load, using swaylock fallback"\)/console.warn(lock.secure ? "[Lock] Lock surface failed to load, using swaylock fallback" : "[Lock] Lock session did not become secure, using swaylock fallback")/' \
+    "$file"
+}
+
+apply_lock_security_guard() {
+  apply_lock_security_guard_to_file "$SHELL_PATH/modules/lock/Lock.qml"
+  apply_lock_security_guard_to_file "$RUNTIME_SHELL_PATH/modules/lock/Lock.qml"
+}
+
 install_visible_assets() {
   local background="$RYOKU_PATH/themes/ryoku/backgrounds/1-ryoku.png"
   local icon_dir="$HOME/.local/share/icons/hicolor/scalable/apps"
@@ -185,6 +205,7 @@ main() {
   install_visible_assets
   apply_replacements_to_tree "$SHELL_PATH"
   apply_replacements_to_tree "$RUNTIME_SHELL_PATH"
+  apply_lock_security_guard
   apply_installed_labels
   merge_config_overrides
 
