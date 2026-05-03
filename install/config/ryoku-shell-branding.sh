@@ -427,6 +427,9 @@ QML
     # left of the first; placing Workspaces immediately before SysTray puts it visually
     # adjacent to rightSidebarButton, inside the dark notch interior.
     unless (/\/\/ Ryoku: workspaces relocated to right notch/) {
+        # Inner alternation hard-codes 16-space body indent (12-space block close).
+        # If iNiR upstream re-indents BarContent.qml the extraction silently fails,
+        # the sentinel is never written, and Workspaces stays in middleCenterGroup.
         my $workspaces_block = "";
         if (s{\n(            Workspaces \{\n                id: workspacesWidget\n(?:(?:                [^\n]+|)\n)+?            \})\n}{\n}s) {
             $workspaces_block = $1;
@@ -489,17 +492,6 @@ apply_topbar_hug_frame_to_bar_file() {
   ' "$file"
 }
 
-apply_weather_bar_font_to_file() {
-  local file="$1"
-
-  [[ -f $file ]] || return 0
-  grep -q 'font.pixelSize: Appearance.font.pixelSize.small' "$file" || return 0
-
-  perl -0pi -e '
-    s/(        StyledText \{\n            visible: true\n)            font.pixelSize: Appearance.font.pixelSize.small/$1            font.weight: Font.Medium\n            font.pixelSize: Appearance.font.pixelSize.normal/s;
-  ' "$file"
-}
-
 apply_topbar_hug_frame() {
   apply_topbar_hug_frame_to_file "$SHELL_PATH/modules/bar/BarContent.qml"
   apply_topbar_hug_frame_to_file "$RUNTIME_SHELL_PATH/modules/bar/BarContent.qml"
@@ -507,8 +499,6 @@ apply_topbar_hug_frame() {
   apply_topbar_hug_frame_to_bar_file "$RUNTIME_SHELL_PATH/modules/bar/Bar.qml"
   apply_topbar_hug_frame_to_workspaces_file "$SHELL_PATH/modules/bar/Workspaces.qml"
   apply_topbar_hug_frame_to_workspaces_file "$RUNTIME_SHELL_PATH/modules/bar/Workspaces.qml"
-  apply_weather_bar_font_to_file "$SHELL_PATH/modules/bar/weather/WeatherBar.qml"
-  apply_weather_bar_font_to_file "$RUNTIME_SHELL_PATH/modules/bar/weather/WeatherBar.qml"
 }
 
 apply_installed_labels() {
