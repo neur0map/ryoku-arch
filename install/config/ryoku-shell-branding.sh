@@ -256,10 +256,11 @@ apply_topbar_hug_frame_to_file() {
         + (activeWindowWidget.visible ? activeWindowWidget.Layout.preferredWidth : 0)
         + (taskbarLoader.visible ? taskbarLoader.Layout.preferredWidth : 0)
     readonly property int ryokuRightContentWidth: (rightSidebarButton.visible ? rightSidebarButton.implicitWidth : 0)
+        + (workspacesWidget.visible ? workspacesWidget.implicitWidth + rightSectionRowLayout.spacing : 0)
         + (weatherBarLoader.visible ? weatherBarLoader.implicitWidth + rightSectionRowLayout.spacing : 0)
     readonly property int ryokuLeftNotchWidth: Math.min(Math.max(ryokuLeftContentWidth + Appearance.rounding.screenRounding + ryokuNotchPadding, 180), Math.min(520, Math.max(240, (root.screen?.width ?? 1920) * 0.24)))
     readonly property int ryokuCenterNotchWidth: Math.min(Math.max(middleCenterGroup.implicitWidth + ryokuNotchPadding * 2, 96), 220)
-    readonly property int ryokuRightNotchWidth: Math.min(Math.max(ryokuRightContentWidth + Appearance.rounding.screenRounding + ryokuNotchPadding, 150), 360)
+    readonly property int ryokuRightNotchWidth: Math.min(Math.max(ryokuRightContentWidth + Appearance.rounding.screenRounding + ryokuNotchPadding, 150), 480)
     readonly property color ryokuFrameColor: {
         if (Appearance.angelEverywhere) return Appearance.angel.colGlassCard
         if (Appearance.inirEverywhere) return Appearance.inir.colLayer0
