@@ -186,6 +186,42 @@ apply_wallpaper_resolution_patch() {
   apply_wallpaper_resolution_patch_to_file "$RUNTIME_SHELL_PATH/services/Wallpapers.qml"
 }
 
+# Workaround for Qt 6.11.0 use-after-free in updatePixelRatioHelper.
+#
+# niri sends wl_surface.preferred_buffer_scale on every layer-shell surface
+# (re)map, which makes Qt walk the entire QQuickItem tree to fire
+# ItemDevicePixelRatioHasChanged on each.  In Qt 6.11.0 that walk hits a
+# dangling pointer on a freed item, pure-virtual abort or SIGSEGV depending
+# on heap luck.  See distro/arch/qt6-qiooperation-patch/README.md for the
+# full diagnosis.
+#
+# Mitigation here: keep the SidebarRight PanelWindow's surface mapped at all
+# times (visible: true), and use a Region mask sized 0×0 when "closed" so
+# clicks fall through.  The existing slide animation still hides content
+# visually.  This eliminates the user-reported reproduction (rapid clicks on
+# the empty space between weather and the bluetooth cluster).
+#
+# A second, defence-in-depth fix lives at
+# distro/arch/qt6-qiooperation-patch/, a binary patch of libQt6Core scoped
+# to inir.service via LD_LIBRARY_PATH.  That one isn't run from this script
+# because it's a system-library patch, not a shell-tree patch.
+apply_sidebar_right_keep_mapped_workaround_to_file() {
+  local file="$1"
+
+  [[ -f $file ]] || return 0
+  grep -q 'id: _emptyMask' "$file" && return 0
+  grep -q 'visible = GlobalStates.sidebarRightOpen' "$file" || return 0
+
+  perl -0pi -e '
+    s/        Component\.onCompleted: \{\n            visible = GlobalStates\.sidebarRightOpen\n            root\._sidebarShown = GlobalStates\.sidebarRightOpen\n        \}\n\n        Connections \{\n            target: GlobalStates\n            function onSidebarRightOpenChanged\(\) \{\n                if \(GlobalStates\.sidebarRightOpen\) \{\n                    _closeTimer\.stop\(\)\n                    sidebarRoot\.visible = true\n                    \/\/ Let the surface map for one frame before sliding in\n                    Qt\.callLater\(\(\) => \{ root\._sidebarShown = true \}\)\n                \} else if \(root\.instantOpen \|\| !Appearance\.animationsEnabled\) \{\n                    root\._sidebarShown = false\n                    _closeTimer\.stop\(\)\n                    sidebarRoot\.visible = false\n                \} else \{\n                    root\._sidebarShown = false\n                    _closeTimer\.restart\(\)\n                \}\n            \}\n        \}\n\n        Timer \{\n            id: _closeTimer\n            interval: 300\n            onTriggered: sidebarRoot\.visible = false\n        \}/        \/\/ Workaround for Qt 6.11.0 UAF in updatePixelRatioHelper: niri sends\n        \/\/ wl_surface.preferred_buffer_scale on every layer-shell surface\n        \/\/ (re)map, which triggers a recursive QML tree walk that can hit a\n        \/\/ freed item, pure-virtual abort or SIGSEGV depending on heap luck.\n        \/\/ Keep the surface mapped at all times; control input\/visibility via\n        \/\/ the mask region below and the existing slide animation.\n        visible: true\n\n        \/\/ _emptyMask shrinks the surface\x27s input region to zero when the\n        \/\/ sidebar is closed so clicks fall through.  _fullMask covers the\n        \/\/ whole panel when open so the backdropClickArea (close-on-click-\n        \/\/ outside) and sidebarContentLoader (interactive widgets) both\n        \/\/ receive input.  Region \{ item: null \} would mean \"no mask\" and\n        \/\/ is interpreted by Quickshell as zero-input here, breaking both.\n        Item \{ id: _emptyMask; width: 0; height: 0 \}\n        Item \{ id: _fullMask;  anchors.fill: parent \}\n        mask: Region \{\n            item: GlobalStates.sidebarRightOpen ? _fullMask : _emptyMask\n        \}\n\n        Component.onCompleted: \{\n            root._sidebarShown = GlobalStates.sidebarRightOpen\n        \}\n\n        Connections \{\n            target: GlobalStates\n            function onSidebarRightOpenChanged\(\) \{\n                if \(GlobalStates.sidebarRightOpen\) \{\n                    _closeTimer.stop\(\)\n                    Qt.callLater\(\(\) => \{ root._sidebarShown = true \}\)\n                \} else if \(root.instantOpen \|\| !Appearance.animationsEnabled\) \{\n                    root._sidebarShown = false\n                    _closeTimer.stop\(\)\n                \} else \{\n                    root._sidebarShown = false\n                    _closeTimer.restart\(\)\n                \}\n            \}\n        \}\n\n        Timer \{\n            id: _closeTimer\n            interval: 300\n            \/\/ surface stays mapped; nothing to do on close-animation finish\n        \}/s
+  ' "$file"
+}
+
+apply_sidebar_right_keep_mapped_workaround() {
+  apply_sidebar_right_keep_mapped_workaround_to_file "$SHELL_PATH/modules/sidebarRight/SidebarRight.qml"
+  apply_sidebar_right_keep_mapped_workaround_to_file "$RUNTIME_SHELL_PATH/modules/sidebarRight/SidebarRight.qml"
+}
+
 apply_installed_labels() {
   local installed_service="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/inir.service"
 
@@ -264,6 +300,7 @@ main() {
   restore_shell_panels_original_frame_state
   apply_screen_corners_input_mask_guard
   apply_wallpaper_resolution_patch
+  apply_sidebar_right_keep_mapped_workaround
   apply_replacements_to_tree "$SHELL_PATH"
   apply_replacements_to_tree "$RUNTIME_SHELL_PATH"
   apply_lock_security_guard
