@@ -126,6 +126,8 @@ assert_topbar_frame_overlay() {
     "Topbar branding should patch WeatherBar to use wallpaper-blended color with theme fallback"
   assert_contains "install/config/ryoku-shell-branding.sh" 'wallpaperBlendedColors\?\.colOnLayer1' \
     "WeatherBar color patch should bind to Appearance.wallpaperBlendedColors with optional chaining"
+  assert_contains "install/config/ryoku-shell-branding.sh" 'Layout\.rightMargin: root\.ryokuTopbarHugFrame \? 32 : 0' \
+    "Topbar frame patch should add a right-margin to weatherBarLoader so it does not butt against the workspaces strip"
   assert_contains "install/config/ryoku-shell-branding.sh" 'implicitWidth: root\.ryokuTopbarHugFrame \? 100 : 0' \
     "Topbar frame patch should set middleCenterGroup to a fixed 100px placeholder under the hug frame"
   assert_not_contains "install/config/ryoku-shell-branding.sh" 'implicitWidth: root\.ryokuTopbarHugFrame \? Math\.min\(workspacesWidget\.implicitWidth' \

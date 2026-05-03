@@ -451,6 +451,8 @@ QML
     s/(            ShellUpdateIndicator \{\n)                visible: !root\.ryokuTopbarHugFrame\n/$1/s;
     s/(            Item \{\n                Layout\.fillWidth: )true(\n                Layout\.fillHeight: )true/$1!root.ryokuTopbarHugFrame$2!root.ryokuTopbarHugFrame/;
     s/(            Loader \{\n                Layout\.leftMargin: 4\n                active: \(Config\.options\?\.bar\?\.modules\?\.weather \?\? true\) && \(Config\.options\?\.bar\?\.weather\?\.enable \?\? false\)\n)(?!                id: weatherBarLoader\n)/            Loader {\n                id: weatherBarLoader\n                Layout.leftMargin: 4\n                active: (Config.options?.bar?.modules?.weather ?? true) && (Config.options?.bar?.weather?.enable ?? false)\n/s;
+    # Add right-margin to weather under hug frame so it does not butt against the workspaces strip
+    s/(                id: weatherBarLoader\n                Layout\.leftMargin: 4\n)(?!                Layout\.rightMargin:)/$1                Layout.rightMargin: root.ryokuTopbarHugFrame ? 32 : 0\n/s;
     s/root\.ryokuThreeIslandFrame/root.ryokuTopbarHugFrame/g;
   ' "$file"
 }
