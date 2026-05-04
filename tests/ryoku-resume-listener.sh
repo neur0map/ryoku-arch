@@ -80,7 +80,13 @@ assert_listener_script() {
     "Listener should invoke the recovery binary with --quiet and --resume on the resume edge"
 }
 
+assert_installer_chained() {
+  assert_contains "install/config/all.sh" 'run_logged \$RYOKU_INSTALL/config/ryoku-resume-listener\.sh' \
+    "Installer should be chained into install/config/all.sh so fresh installs enable the listener"
+}
+
 assert_listener_installer
+assert_installer_chained
 assert_listener_unit
 assert_listener_script
 
