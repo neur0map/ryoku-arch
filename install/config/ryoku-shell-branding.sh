@@ -114,6 +114,30 @@ apply_lock_security_guard() {
   apply_lock_security_guard_to_file "$RUNTIME_SHELL_PATH/modules/lock/Lock.qml"
 }
 
+# Disable iNiR's internal swayidle spawn. Replaced by hypridle.service
+# (managed by install/config/ryoku-hypridle.sh + config/hypr/hypridle.conf).
+# hypridle's lock_cmd fires the standalone hyprlock binary which renders
+# <100ms, fast enough to beat niri's ~1-second ext_session_lock_v1
+# secure-surface timeout. iNiR's embedded Lock.qml could not, leading to
+# self-release races on lid-close. Mod+Alt+L still uses iNiR Lock (the
+# interactive path doesn't race against suspend).
+apply_idle_disable_swayidle_to_file() {
+  local file="$1"
+
+  [[ -f $file ]] || return 0
+  grep -q 'RYOKU: swayidle replaced by hypridle' "$file" && return 0
+  grep -qF 'function _startSwayidle()' "$file" || return 0
+
+  perl -0pi -e '
+    s|(    function _startSwayidle\(\)\s*\{\n)(\s+if\s*\(\s*inhibit\s*\)\s*return\n)|$1        // RYOKU: swayidle replaced by hypridle (managed via systemd user unit\n        // hypridle.service). hypridle has `inhibit_sleep = 3` which blocks\n        // suspend until the lock surface is secure on the compositor.\n        // This is the race-protection swayidle lacks.\n        // See ~/.config/hypr/hypridle.conf.\n        return\n\n$2|s;
+  ' "$file"
+}
+
+apply_idle_disable_swayidle() {
+  apply_idle_disable_swayidle_to_file "$SHELL_PATH/services/Idle.qml"
+  apply_idle_disable_swayidle_to_file "$RUNTIME_SHELL_PATH/services/Idle.qml"
+}
+
 install_visible_assets() {
   local background="$RYOKU_PATH/themes/ryoku/backgrounds/1-ryoku.png"
   local icon_dir="$HOME/.local/share/icons/hicolor/scalable/apps"
@@ -635,6 +659,7 @@ main() {
   apply_replacements_to_tree "$SHELL_PATH"
   apply_replacements_to_tree "$RUNTIME_SHELL_PATH"
   apply_lock_security_guard
+  apply_idle_disable_swayidle
   apply_installed_labels
   merge_default_config_overrides
   merge_config_overrides
