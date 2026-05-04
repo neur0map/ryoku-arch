@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Listen for systemd-logind PrepareForSleep(false,) resume signal and run
-# ryoku-session-recover --resume in the user session. Pure user-space
-# fallback for the broken root-side system-sleep hook.
+# Listen for systemd-logind PrepareForSleep on the system bus and run
+# ryoku-session-recover --resume in the user session on the resume edge.
+# Pure user-space fallback for the broken root-side system-sleep hook.
 
 set -euo pipefail
 
@@ -25,7 +25,6 @@ gdbus monitor \
     case "$line" in
       *PrepareForSleep*\(false,\)*)
         if [[ -x $RECOVER_BIN ]]; then
-          # ryoku-session-recover --quiet --resume
           "$RECOVER_BIN" --quiet --resume &
         fi
         ;;

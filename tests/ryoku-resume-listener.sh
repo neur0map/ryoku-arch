@@ -40,10 +40,10 @@ assert_listener_script() {
     "Listener should target the systemd-logind destination"
   assert_contains "bin/ryoku-resume-listener" 'PrepareForSleep' \
     "Listener should match the PrepareForSleep signal name"
-  assert_contains "bin/ryoku-resume-listener" '\(false,\)' \
+  assert_contains "bin/ryoku-resume-listener" '\\\(false,\\\)' \
     "Listener should match the falsey (resume) argument shape"
-  assert_contains "bin/ryoku-resume-listener" 'ryoku-session-recover --quiet --resume' \
-    "Listener should invoke ryoku-session-recover with --quiet and --resume"
+  assert_contains "bin/ryoku-resume-listener" 'RECOVER_BIN.*--quiet.*--resume' \
+    "Listener should invoke the recovery binary with --quiet and --resume on the resume edge"
 }
 
 assert_listener_script
