@@ -1,0 +1,13 @@
+[Unit]
+Description=Ryoku resume listener (logind PrepareForSleep)
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/share/ryoku/bin/ryoku-resume-listener
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target
