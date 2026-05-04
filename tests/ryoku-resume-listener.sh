@@ -30,6 +30,20 @@ assert_contains() {
   grep -Eq -- "$pattern" "$ROOT_DIR/$path" || fail "$message"
 }
 
+assert_listener_installer() {
+  assert_executable "install/config/ryoku-resume-listener.sh"
+  assert_contains "install/config/ryoku-resume-listener.sh" 'config/systemd/user/ryoku-resume-listener\.service' \
+    "Installer should reference the unit source file in the repo"
+  assert_contains "install/config/ryoku-resume-listener.sh" 'systemd/user/ryoku-resume-listener\.service' \
+    "Installer should reference the unit destination filename"
+  assert_contains "install/config/ryoku-resume-listener.sh" '\$\{XDG_CONFIG_HOME:-\$HOME/\.config\}/systemd/user' \
+    "Installer should target the user systemd directory under XDG_CONFIG_HOME"
+  assert_contains "install/config/ryoku-resume-listener.sh" 'systemctl --user daemon-reload' \
+    "Installer should reload the user systemd manager"
+  assert_contains "install/config/ryoku-resume-listener.sh" 'systemctl --user enable --now ryoku-resume-listener\.service' \
+    "Installer should enable and immediately start the listener service"
+}
+
 assert_listener_unit() {
   assert_file "config/systemd/user/ryoku-resume-listener.service"
   assert_contains "config/systemd/user/ryoku-resume-listener.service" 'Description=' \
@@ -66,6 +80,7 @@ assert_listener_script() {
     "Listener should invoke the recovery binary with --quiet and --resume on the resume edge"
 }
 
+assert_listener_installer
 assert_listener_unit
 assert_listener_script
 
