@@ -85,9 +85,16 @@ assert_installer_chained() {
     "Installer should be chained into install/config/all.sh so fresh installs enable the listener"
 }
 
+assert_migration_present() {
+  assert_file "migrations/1777856216.sh"
+  assert_contains "migrations/1777856216.sh" 'install/config/ryoku-resume-listener\.sh' \
+    "Migration should re-invoke the listener installer for existing installs"
+}
+
 assert_listener_installer
 assert_installer_chained
 assert_listener_unit
 assert_listener_script
+assert_migration_present
 
 echo "PASS: ryoku resume listener"
