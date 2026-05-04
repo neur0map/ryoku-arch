@@ -34,8 +34,8 @@ assert_listener_installer() {
   assert_executable "install/config/ryoku-resume-listener.sh"
   assert_contains "install/config/ryoku-resume-listener.sh" 'config/systemd/user/ryoku-resume-listener\.service' \
     "Installer should reference the unit source file in the repo"
-  assert_contains "install/config/ryoku-resume-listener.sh" 'systemd/user/ryoku-resume-listener\.service' \
-    "Installer should reference the unit destination filename"
+  assert_contains "install/config/ryoku-resume-listener.sh" 'UNIT_DEST=.*ryoku-resume-listener\.service' \
+    "Installer should assign the destination path including the unit filename"
   assert_contains "install/config/ryoku-resume-listener.sh" '\$\{XDG_CONFIG_HOME:-\$HOME/\.config\}/systemd/user' \
     "Installer should target the user systemd directory under XDG_CONFIG_HOME"
   assert_contains "install/config/ryoku-resume-listener.sh" 'systemctl --user daemon-reload' \
