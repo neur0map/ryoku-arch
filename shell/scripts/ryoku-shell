@@ -200,7 +200,7 @@ service_link_summary() {
 
 print_cli_context() {
     local version_file version install_mode update_strategy runtime_path setup_dir launcher_path branch service_state
-    version_file="$(inir_version_file 2>/dev/null || true)"
+    version_file="$(ryoku_shell_version_file 2>/dev/null || true)"
     version="$(read_version_field "$version_file" '.version' '"version"[[:space:]]*:[[:space:]]*"\([^"]*\)"')"
     install_mode="$(read_version_field "$version_file" '.installMode // .install_mode' '"installMode"[[:space:]]*:[[:space:]]*"\([^"]*\)"')"
     [[ -z "$install_mode" ]] && install_mode="$(read_version_field "$version_file" '.install_mode' '"install_mode"[[:space:]]*:[[:space:]]*"\([^"]*\)"')"
@@ -482,7 +482,7 @@ check_setup_version_sync() {
 
     # Read version from version.json (written by setup at install/update time)
     local version_json
-    version_json="$(inir_version_file 2>/dev/null || echo "")"
+    version_json="$(ryoku_shell_version_file 2>/dev/null || echo "")"
     [[ -z "$version_json" || ! -f "$version_json" ]] && return 0
 
     if command -v jq >/dev/null 2>&1; then
@@ -637,7 +637,7 @@ apply_gpu_policy() {
     local monitor_gpu="true"
     if command -v jq >/dev/null 2>&1; then
         local _gpu_cfg
-        _gpu_cfg="$(inir_config_file 2>/dev/null)"
+        _gpu_cfg="$(ryoku_shell_config_file 2>/dev/null)"
         if [[ -n "$_gpu_cfg" && -f "$_gpu_cfg" ]]; then
             monitor_gpu="$(jq -r '.resources.monitorGpu // true' "$_gpu_cfg" 2>/dev/null || true)"
             [[ -z "$monitor_gpu" ]] && monitor_gpu="true"
@@ -1359,7 +1359,7 @@ resolve_setup_dir() {
     fi
 
     local version_file
-    version_file="$(inir_version_file)"
+    version_file="$(ryoku_shell_version_file)"
     local stored_repo=""
     if [[ -f "$version_file" ]]; then
         if command -v jq >/dev/null 2>&1; then
@@ -1962,7 +1962,7 @@ show_version() {
 
     local runtime_version_file=""
     local local_version_file
-    local_version_file="$(inir_version_file)"
+    local_version_file="$(ryoku_shell_version_file)"
     local version_file=""
 
     if [[ -n "$runtime_path" ]]; then
@@ -2176,7 +2176,7 @@ run_ipc_target_command() {
 
 launch_configured_browser() {
     local config_file
-    config_file="$(inir_config_file)"
+    config_file="$(ryoku_shell_config_file)"
     local browser=""
 
     if [[ -f "$config_file" ]]; then
