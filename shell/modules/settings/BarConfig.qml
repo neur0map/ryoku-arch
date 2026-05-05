@@ -16,6 +16,9 @@ ContentPage {
     readonly property bool isHugStyle: Config.options?.bar?.cornerStyle === 0
     readonly property bool isFloatStyle: Config.options?.bar?.cornerStyle === 1
     readonly property bool isRectStyle: Config.options?.bar?.cornerStyle === 2
+    readonly property bool isThreeIslandStyle: Config.options?.bar?.cornerStyle === 4
+    readonly property bool threeIslandOnBottom: isThreeIslandStyle && (Config.options?.bar?.bottom ?? false)
+    readonly property bool threeIslandOnVertical: isThreeIslandStyle && (Config.options?.bar?.vertical ?? false)
     readonly property bool isGlobalCards: Config.options?.dock?.cardStyle && Config.options?.sidebar?.cardStyle && isCardStyle
     readonly property bool hasVignette: Config.options?.bar?.vignette?.enabled ?? false
     readonly property bool isAutoHide: Config.options?.bar?.autoHide?.enable ?? false
@@ -131,7 +134,8 @@ ContentPage {
                             { displayName: Translation.tr("Hug"), icon: "line_curve", value: 0 },
                             { displayName: Translation.tr("Float"), icon: "page_header", value: 1 },
                             { displayName: Translation.tr("Rect"), icon: "toolbar", value: 2 },
-                            { displayName: Translation.tr("Card"), icon: "branding_watermark", value: 3 }
+                            { displayName: Translation.tr("Card"), icon: "branding_watermark", value: 3 },
+                            { displayName: Translation.tr("Three-Island"), icon: "view_column_2", value: 4 }
                         ]
                     }
                 }
@@ -164,6 +168,13 @@ ContentPage {
                 warning: true
                 icon: "sync_problem"
                 text: Translation.tr("Card style here doesn't match dock/sidebar. Go to Themes → Global Style for consistency.")
+            }
+
+            ConflictNote {
+                visible: root.threeIslandOnBottom || root.threeIslandOnVertical
+                warning: true
+                icon: "sync_problem"
+                text: Translation.tr("Three-Island layout is top-edge only. Switch position to Top to enable it.")
             }
 
             ConfigSpinBox {
@@ -465,6 +476,28 @@ ContentPage {
                     opacity: enabled ? 1 : 0.5
                 }
                 Item { Layout.fillWidth: true }
+            }
+
+            ConfigRow {
+                uniform: true
+                SettingsSwitch {
+                    buttonIcon: "schedule"
+                    text: Translation.tr("Kanji clock")
+                    checked: Config.options?.bar?.modules?.kanjiClock ?? true
+                    onCheckedChanged: Config.setNestedValue("bar.modules.kanjiClock", checked)
+                }
+                SettingsSwitch {
+                    buttonIcon: "vpn_lock"
+                    text: Translation.tr("Security pulse")
+                    checked: Config.options?.bar?.modules?.secPulse ?? true
+                    onCheckedChanged: Config.setNestedValue("bar.modules.secPulse", checked)
+                }
+            }
+
+            ConflictNote {
+                visible: ((Config.options?.bar?.modules?.kanjiClock ?? true) || (Config.options?.bar?.modules?.secPulse ?? true)) && !root.isThreeIslandStyle
+                icon: "info"
+                text: Translation.tr("Kanji clock and Security pulse are active only in Three-Island corner style.")
             }
 
             SettingsDivider {}
@@ -1045,6 +1078,71 @@ ContentPage {
                 onCheckedChanged: Config.setNestedValue("bar.indicators.notifications.showUnreadCount", checked)
                 StyledToolTip {
                     text: Translation.tr("Show number instead of just a dot")
+                }
+            }
+        }
+    }
+
+    // ===================================================================
+    // KANJI CLOCK (Three-Island only)
+    // ===================================================================
+    SettingsCardSection {
+        visible: root.isIiActive && root.isThreeIslandStyle
+        expanded: false
+        icon: "schedule"
+        title: Translation.tr("Kanji Clock")
+
+        SettingsGroup {
+            SettingsSwitch {
+                buttonIcon: "calendar_today"
+                text: Translation.tr("Show date")
+                checked: Config.options?.bar?.kanjiClock?.showDate ?? true
+                onCheckedChanged: Config.setNestedValue("bar.kanjiClock.showDate", checked)
+            }
+            SettingsSwitch {
+                buttonIcon: "translate"
+                text: Translation.tr("Use kanji digits (一二三)")
+                checked: Config.options?.bar?.kanjiClock?.useKanjiDigits ?? true
+                onCheckedChanged: Config.setNestedValue("bar.kanjiClock.useKanjiDigits", checked)
+            }
+        }
+    }
+
+    // ===================================================================
+    // SECURITY PULSE (Three-Island only)
+    // ===================================================================
+    SettingsCardSection {
+        visible: root.isIiActive && root.isThreeIslandStyle
+        expanded: false
+        icon: "vpn_lock"
+        title: Translation.tr("Security Pulse")
+
+        SettingsGroup {
+            SettingsSwitch {
+                buttonIcon: "lock"
+                text: Translation.tr("Show VPN status")
+                checked: Config.options?.bar?.secPulse?.showVpn ?? true
+                onCheckedChanged: Config.setNestedValue("bar.secPulse.showVpn", checked)
+                StyledToolTip {
+                    text: Translation.tr("Cheap: polls 'wg show interfaces' every 30s")
+                }
+            }
+            SettingsSwitch {
+                buttonIcon: "public"
+                text: Translation.tr("Show public IP")
+                checked: Config.options?.bar?.secPulse?.showPublicIp ?? false
+                onCheckedChanged: Config.setNestedValue("bar.secPulse.showPublicIp", checked)
+                StyledToolTip {
+                    text: Translation.tr("Hits ifconfig.me every 5 min when enabled")
+                }
+            }
+            SettingsSwitch {
+                buttonIcon: "hearing"
+                text: Translation.tr("Show listening socket count")
+                checked: Config.options?.bar?.secPulse?.showListening ?? false
+                onCheckedChanged: Config.setNestedValue("bar.secPulse.showListening", checked)
+                StyledToolTip {
+                    text: Translation.tr("Spawns 'ss -lntH' every 30s when enabled")
                 }
             }
         }
