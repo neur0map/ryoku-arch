@@ -18,8 +18,14 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 # is empty when already root and "sudo" otherwise.
 
 if (( EUID == 0 )); then
+  # pkexec sets PKEXEC_UID (numeric UID of invoker), not SUDO_USER.
+  # Resolve a username from either source so this helper works under
+  # both `sudo` and `pkexec` invocation paths.
+  if [[ -z ${SUDO_USER:-} && -n ${PKEXEC_UID:-} ]]; then
+    SUDO_USER=$(getent passwd "$PKEXEC_UID" | cut -d: -f1)
+  fi
   if [[ -z ${SUDO_USER:-} ]]; then
-    echo "ryoku-install-qylock: refusing to run as root with no SUDO_USER set" >&2
+    echo "ryoku-install-qylock: cannot resolve invoking user (need SUDO_USER or PKEXEC_UID)" >&2
     exit 1
   fi
   TARGET_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)

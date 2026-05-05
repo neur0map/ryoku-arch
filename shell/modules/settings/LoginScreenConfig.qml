@@ -410,8 +410,9 @@ ContentPage {
                     Rectangle {
                         visible: provider.kind === "builtin"
                         radius: 999
-                        color: Appearance.colors.colPrimary
-                        opacity: 0.18
+                        color: Qt.rgba(Appearance.colors.colPrimary.r,
+                                       Appearance.colors.colPrimary.g,
+                                       Appearance.colors.colPrimary.b, 0.18)
                         implicitWidth: builtinPillText.implicitWidth + 16
                         implicitHeight: builtinPillText.implicitHeight + 6
                         StyledText {
@@ -444,8 +445,9 @@ ContentPage {
                     Rectangle {
                         visible: provider.kind === "external" && providerCardRoot.installed
                         radius: 999
-                        color: provider.accentColor
-                        opacity: 0.18
+                        color: Qt.rgba(Qt.color(provider.accentColor).r,
+                                       Qt.color(provider.accentColor).g,
+                                       Qt.color(provider.accentColor).b, 0.18)
                         implicitWidth: installedPillText.implicitWidth + 16
                         implicitHeight: installedPillText.implicitHeight + 6
                         StyledText {
@@ -497,7 +499,7 @@ ContentPage {
                     RippleButton {
                         visible: provider.kind === "external" && providerCardRoot.installed
                         buttonText: Translation.tr("Update")
-                        onClicked: providerCardRoot.applyTheme(providerCardRoot.activeTheme)
+                        onClicked: providerCardRoot.installProvider()
                     }
 
                     RippleButton {

@@ -1628,7 +1628,7 @@ Scope {
         { label: Translation.tr("Appearance"), pages: [0, 4, 3] },
         { label: Translation.tr("Layout"), pages: [2, 5, 6, 10] },
         { label: Translation.tr("System"), pages: [1, 7, 8] },
-        { label: Translation.tr("Reference"), pages: [9, 11, 12, 13] }
+        { label: Translation.tr("Reference"), pages: [9, 11, 12, 14] }
     ]
 
     property var overlayPages: [
