@@ -37,8 +37,9 @@ Scope {
         visible: !GameMode.shouldHidePanels && (showFakeRounding || shouldShowCornerOpen)
 
         exclusionMode: ExclusionMode.Ignore
+        Item { id: emptyMask; width: 0; height: 0 }
         mask: Region {
-            item: sidebarCornerOpenInteractionLoader.active ? sidebarCornerOpenInteractionLoader : null
+            item: sidebarCornerOpenInteractionLoader.active ? sidebarCornerOpenInteractionLoader : emptyMask
         }
         WlrLayershell.namespace: "quickshell:screenCorners"
         WlrLayershell.layer: WlrLayer.Overlay
