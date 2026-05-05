@@ -1,4 +1,4 @@
-# Ryoku and iNiR-visible user fonts
+# Ryoku and Ryoku-visible user fonts
 mkdir -p ~/.local/share/fonts
 cp "$RYOKU_PATH/config/ryoku.ttf" ~/.local/share/fonts/
 

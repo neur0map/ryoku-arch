@@ -1,15 +1,15 @@
-assets/applications/inir.desktop	Name=iNiR Settings	Name=Ryoku Settings
-assets/applications/inir.desktop	Comment=Open iNiR settings	Comment=Open Ryoku settings
-assets/applications/inir.desktop	Icon=inir	Icon=ryoku
-assets/systemd/inir.service	Description=iNiR shell	Description=Ryoku shell
-assets/systemd/inir.service	# Lifecycle: stop/restart inir when the graphical session stops/restarts.	# Lifecycle: stop/restart Ryoku shell when the graphical session stops/restarts.
-assets/systemd/inir.service	# inir is a session consumer, not a producer	# Ryoku shell is a session consumer, not a producer
-assets/systemd/inir.service	# No [Install] section	# No [Install] section
-assets/systemd/inir.service	# inir only starts under the correct compositor	# Ryoku shell only starts under the correct compositor
+assets/applications/ryoku-shell.desktop	Name=Ryoku Settings	Name=Ryoku Settings
+assets/applications/ryoku-shell.desktop	Comment=Open Ryoku settings	Comment=Open Ryoku settings
+assets/applications/ryoku-shell.desktop	Icon=ryoku-shell	Icon=ryoku
+assets/systemd/ryoku-shell.service	Description=Ryoku shell	Description=Ryoku shell
+assets/systemd/ryoku-shell.service	# Lifecycle: stop/restart Ryoku shell when the graphical session stops/restarts.	# Lifecycle: stop/restart Ryoku shell when the graphical session stops/restarts.
+assets/systemd/ryoku-shell.service	# Ryoku shell is a session consumer, not a producer	# Ryoku shell is a session consumer, not a producer
+assets/systemd/ryoku-shell.service	# No [Install] section	# No [Install] section
+assets/systemd/ryoku-shell.service	# Ryoku shell only starts under the correct compositor	# Ryoku shell only starts under the correct compositor
 welcome.qml	Welcome to inir	Welcome to Ryoku
 welcome.qml	You can re-open this wizard anytime with:\n  inir welcome	You can re-open this wizard from Ryoku settings.
 welcome.qml	Everything iNiR has to offer. Recommended if you like to tinker.	Ryoku defaults with every shell module enabled. Recommended if you like to tune the system.
-welcome.qml	{ displayName: "Inir", icon: "terminal", value: "inir" }	{ displayName: "Ryoku", icon: "terminal", value: "inir" }
+welcome.qml	{ displayName: "Inir", icon: "terminal", value: "inir" }	{ displayName: "Ryoku", icon: "terminal", value: "ryoku-shell" }
 welcome.qml	iNiR Wiki	Ryoku Wiki
 welcome.qml	https://github.com/snowarch/inir/wiki/Troubleshooting	https://github.com/neur0map/ryoku-arch
 welcome.qml	https://github.com/snowarch/inir/wiki	https://github.com/neur0map/ryoku-arch

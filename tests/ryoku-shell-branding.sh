@@ -100,16 +100,16 @@ assert_install_wiring() {
     "Fresh install theme setup should select the shipped Ryoku theme"
   assert_not_contains "install/config/theme.sh" 'omarchy-greek-noir|HANCORE-linux|Greek Noir' \
     "Fresh install theme setup should not install the external Omarchy-derived theme"
-  assert_contains "install/config/inir.sh" 'ryoku-shell-branding.sh' \
+  assert_contains "install/config/shell.sh" 'ryoku-shell-branding.sh' \
     "Shell installer should run the Ryoku branding overlay"
-  assert_not_contains "install/config/inir.sh" 'missing bundled iNiR|iNiR shell' \
+  assert_not_contains "install/config/shell.sh" 'missing bundled iNiR|iNiR shell' \
     "Shell installer errors should use Ryoku-facing names"
 }
 
 assert_runtime_labels() {
-  assert_contains "config/systemd/user/inir.service" 'Description=Ryoku shell' \
+  assert_contains "config/systemd/user/ryoku-shell.service" 'Description=Ryoku shell' \
     "User service should have a Ryoku-visible description"
-  assert_not_contains "config/systemd/user/inir.service" 'iNiR|inir shell' \
+  assert_not_contains "config/systemd/user/ryoku-shell.service" 'iNiR|inir shell' \
     "User service should not expose upstream shell branding"
   assert_not_contains "bin/ryoku-theme-bg-set" 'iNiR|apply_inir_background' \
     "Wallpaper setter should use Ryoku-facing shell names"

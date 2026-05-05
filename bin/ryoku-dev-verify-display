@@ -45,7 +45,7 @@ cd "$repo_root"
 required_commands=(
   xdg-terminal-exec
   fuzzel
-  inir
+  ryoku-shell
   niri
 )
 
@@ -73,4 +73,4 @@ done
 
 require_file config/niri/config.kdl
 require_file config/fuzzel/fuzzel.ini
-require_file config/systemd/user/inir.service
+require_file config/systemd/user/ryoku-shell.service

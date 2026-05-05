@@ -1,6 +1,6 @@
 echo "Tune Ryoku shell resume recovery: faster restart and no graphical-session kill tie"
 
-tmp_service="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/inir.service"
+tmp_service="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/ryoku-shell.service"
 
 if [[ -f $tmp_service ]]; then
   sed -i \

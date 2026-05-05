@@ -58,6 +58,6 @@ if [[ $next_sink_name != $current_sink_name ]]; then
 fi
 
 notify-send -u low "$next_sink_description" >/dev/null 2>&1 || true
-if ryoku-cmd-present inir; then
-  inir osdVolume trigger >/dev/null 2>&1 || true
+if ryoku-cmd-present ryoku-shell; then
+  ryoku-shell osdVolume trigger >/dev/null 2>&1 || true
 fi

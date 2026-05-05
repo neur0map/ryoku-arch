@@ -69,14 +69,14 @@ terminate_pattern() {
   pkill -TERM -f "$pattern" >/dev/null 2>&1 || true
 }
 
-if command_present inir; then
-  inir cleanup-orphans >/dev/null 2>&1 || true
+if command_present ryoku-shell; then
+  ryoku-shell cleanup-orphans >/dev/null 2>&1 || true
 fi
 
 terminate_exact swayidle "idle daemon"
 terminate_exact awww-daemon "wallpaper daemon"
-terminate_pattern '/quickshell/inir/scripts/daemon/keyboard_lock_state_daemon\.py' "keyboard indicator daemon"
+terminate_pattern '/quickshell/ryoku-shell/scripts/daemon/keyboard_lock_state_daemon\.py' "keyboard indicator daemon"
 terminate_pattern '(^|/)nmcli monitor$' "network monitor"
-terminate_pattern '/quickshell/inir/scripts/colors/switchwall\.sh' "wallpaper color worker"
+terminate_pattern '/quickshell/ryoku-shell/scripts/colors/switchwall\.sh' "wallpaper color worker"
 terminate_pattern '/\.local/state/quickshell/\.venv/bin/kde-material-you-colors( |$)' "KDE color worker"
 terminate_pattern '(^|/)notify-send .* -a Wallpaper switcher' "wallpaper notification action"

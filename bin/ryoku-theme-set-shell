@@ -6,7 +6,7 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 
 THEME_DIR="$RYOKU_CONFIG_PATH/current/theme"
 COLORS_FILE="$THEME_DIR/colors.toml"
-SHELL_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/inir"
+SHELL_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/ryoku-shell"
 SHELL_CONFIG_FILE="$SHELL_CONFIG_DIR/config.json"
 
 declare -A THEME_COLORS=()

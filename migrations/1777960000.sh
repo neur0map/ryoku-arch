@@ -8,7 +8,7 @@ if [[ -x $RYOKU_PATH/install/config/ryoku-hypridle.sh ]]; then
   "$RYOKU_PATH/install/config/ryoku-hypridle.sh"
 fi
 
-# Re-apply branding so iNiR's Idle.qml gets patched to skip its swayidle spawn
+# Re-apply branding so Ryoku's Idle.qml gets patched to skip its swayidle spawn
 if [[ -x $RYOKU_PATH/install/config/ryoku-shell-branding.sh ]]; then
   "$RYOKU_PATH/install/config/ryoku-shell-branding.sh"
 fi
@@ -17,4 +17,4 @@ fi
 pkill -x swayidle >/dev/null 2>&1 || true
 
 systemctl --user daemon-reload >/dev/null 2>&1 || true
-systemctl --user restart inir.service >/dev/null 2>&1 || true
+systemctl --user restart ryoku-shell.service >/dev/null 2>&1 || true

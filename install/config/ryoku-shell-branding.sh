@@ -4,8 +4,8 @@ set -euo pipefail
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)/lib/runtime-env.sh"
 
-SHELL_PATH="${RYOKU_SHELL_PATH:-${RYOKU_INIR_PATH:-$HOME/.local/share/inir}}"
-RUNTIME_SHELL_PATH="${RYOKU_SHELL_RUNTIME_PATH:-${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/inir}"
+SHELL_PATH="${RYOKU_SHELL_PATH:-$HOME/.local/share/ryoku-shell}"
+RUNTIME_SHELL_PATH="${RYOKU_SHELL_RUNTIME_PATH:-${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell}"
 REPLACEMENTS_FILE="$RYOKU_PATH/default/ryoku-shell/branding-replacements.tsv"
 CONFIG_OVERRIDES_FILE="$RYOKU_PATH/default/ryoku-shell/config-overrides.json"
 
@@ -114,12 +114,12 @@ apply_lock_security_guard() {
   apply_lock_security_guard_to_file "$RUNTIME_SHELL_PATH/modules/lock/Lock.qml"
 }
 
-# Disable iNiR's internal swayidle spawn. Replaced by hypridle.service
+# Disable Ryoku's internal swayidle spawn. Replaced by hypridle.service
 # (managed by install/config/ryoku-hypridle.sh + config/hypr/hypridle.conf).
 # hypridle's lock_cmd fires the standalone hyprlock binary which renders
 # <100ms, fast enough to beat niri's ~1-second ext_session_lock_v1
-# secure-surface timeout. iNiR's embedded Lock.qml could not, leading to
-# self-release races on lid-close. Mod+Alt+L still uses iNiR Lock (the
+# secure-surface timeout. Ryoku's embedded Lock.qml could not, leading to
+# self-release races on lid-close. Mod+Alt+L still uses Ryoku Lock (the
 # interactive path doesn't race against suspend).
 apply_idle_disable_swayidle_to_file() {
   local file="$1"
@@ -145,7 +145,7 @@ install_visible_assets() {
   install_asset "$RYOKU_PATH/logo-mark.svg" "$SHELL_PATH/assets/icons/ryoku.svg"
   install_asset "$RYOKU_PATH/logo-mark.svg" "$SHELL_PATH/assets/icons/desktop-symbolic.svg"
   install_asset "$RYOKU_PATH/logo-mark.svg" "$icon_dir/ryoku.svg"
-  install_asset "$RYOKU_PATH/logo-mark.svg" "$icon_dir/inir.svg"
+  install_asset "$RYOKU_PATH/logo-mark.svg" "$icon_dir/ryoku-shell.svg"
   install_asset "$background" "$SHELL_PATH/dots/sddm/pixel/assets/background.png"
 
   if [[ -d /usr/share/sddm/themes/ii-pixel ]]; then
@@ -227,7 +227,7 @@ apply_wallpaper_resolution_patch() {
 #
 # A second, defence-in-depth fix lives at
 # distro/arch/qt6-qiooperation-patch/, a binary patch of libQt6Core scoped
-# to inir.service via LD_LIBRARY_PATH.  That one isn't run from this script
+# to ryoku-shell.service via LD_LIBRARY_PATH.  That one isn't run from this script
 # because it's a system-library patch, not a shell-tree patch.
 apply_sidebar_right_keep_mapped_workaround_to_file() {
   local file="$1"
@@ -255,11 +255,11 @@ qml_file_contains() {
 }
 
 apply_installed_labels() {
-  local installed_service="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/inir.service"
+  local installed_service="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/ryoku-shell.service"
 
-  apply_replacements_to_file "assets/applications/inir.desktop" \
-    "${XDG_DATA_HOME:-$HOME/.local/share}/applications/inir.desktop"
-  apply_replacements_to_file "assets/systemd/inir.service" \
+  apply_replacements_to_file "assets/applications/ryoku-shell.desktop" \
+    "${XDG_DATA_HOME:-$HOME/.local/share}/applications/ryoku-shell.desktop"
+  apply_replacements_to_file "assets/systemd/ryoku-shell.service" \
     "$installed_service"
   apply_service_cleanup "$installed_service"
 
@@ -276,7 +276,7 @@ apply_installed_labels() {
 }
 
 merge_config_overrides() {
-  local config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/inir"
+  local config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/ryoku-shell"
   local config_file="$config_dir/config.json"
   local temp_file temp_file_with_wallpaper wallpaper_path existing_wallpaper_path
 

@@ -9,4 +9,4 @@ if [[ ${1:-} == "--dmenu" ]]; then
   exec fuzzel --dmenu "$@"
 fi
 
-exec inir overview toggle
+exec ryoku-shell overview toggle

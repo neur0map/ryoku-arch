@@ -105,7 +105,7 @@ libnotify
 obs-studio
 x264
 
-# ── Niri compositor + iNiR desktop stack ──────────────────────────────
+# ── Niri compositor + Ryoku desktop stack ─────────────────────────────
 adwaita-icon-theme
 awww
 bc

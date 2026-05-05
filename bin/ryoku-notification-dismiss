@@ -7,4 +7,4 @@ if (($# == 0)); then
   exit 1
 fi
 
-inir notifications clearAll >/dev/null 2>&1 || true
+ryoku-shell notifications clearAll >/dev/null 2>&1 || true

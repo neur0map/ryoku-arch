@@ -7,7 +7,7 @@
 // Use `wev` to discover XKB key names.
 // Most actions here can also be triggered via `niri msg action <name>`.
 //
-// iNiR binds route through the `inir` launcher which talks to Quickshell
+// Ryoku binds route through the `ryoku-shell` launcher which talks to Quickshell
 // via IPC. Niri-native actions (focus, move, resize…) go directly to Niri.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -30,54 +30,54 @@ binds {
     Mod+Shift+O { power-off-monitors; }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // iNiR shell overlays & tools
+    // Ryoku shell overlays & tools
     // ═══════════════════════════════════════════════════════════════════════
 
-    // Alt-Tab window switcher (iNiR's animated switcher).
-    Alt+Tab { spawn "inir" "altSwitcher" "next"; }
-    Alt+Shift+Tab { spawn "inir" "altSwitcher" "previous"; }
+    // Alt-Tab window switcher (Ryoku's animated switcher).
+    Alt+Tab { spawn "ryoku-shell" "altSwitcher" "next"; }
+    Alt+Shift+Tab { spawn "ryoku-shell" "altSwitcher" "previous"; }
 
     // Crosshair overlay toggle.
-    Super+G { spawn "inir" "overlay" "toggle"; }
+    Super+G { spawn "ryoku-shell" "overlay" "toggle"; }
 
-    // iNiR app launcher / overview.
-    Mod+Space repeat=false { spawn "inir" "overview" "toggle"; }
+    // Ryoku app launcher / overview.
+    Mod+Space repeat=false { spawn "ryoku-shell" "overview" "toggle"; }
 
     // Clipboard history overlay.
-    Mod+V { spawn "inir" "clipboard" "toggle"; }
+    Mod+V { spawn "ryoku-shell" "clipboard" "toggle"; }
 
     // Lock screen.
-    Mod+Alt+L allow-when-locked=true { spawn "inir" "lock" "activate"; }
+    Mod+Alt+L allow-when-locked=true { spawn "ryoku-shell" "lock" "activate"; }
 
     // Region selector: screenshot / OCR / Google Lens search.
-    Mod+Shift+S { spawn "inir" "region" "screenshot"; }
-    Mod+Shift+X { spawn "inir" "region" "ocr"; }
-    Mod+Shift+A { spawn "inir" "region" "search"; }
+    Mod+Shift+S { spawn "ryoku-shell" "region" "screenshot"; }
+    Mod+Shift+X { spawn "ryoku-shell" "region" "ocr"; }
+    Mod+Shift+A { spawn "ryoku-shell" "region" "search"; }
 
     // Wallpaper picker, settings, cheatsheet, panel family switch.
-    Ctrl+Alt+T { spawn "inir" "wallpaperSelector" "toggle"; }
-    Mod+Comma { spawn "inir" "settings"; }
-    Mod+Slash { spawn "inir" "cheatsheet" "toggle"; }
-    Mod+Shift+W { spawn "inir" "panelFamily" "cycle"; }
+    Ctrl+Alt+T { spawn "ryoku-shell" "wallpaperSelector" "toggle"; }
+    Mod+Comma { spawn "ryoku-shell" "settings"; }
+    Mod+Slash { spawn "ryoku-shell" "cheatsheet" "toggle"; }
+    Mod+Shift+W { spawn "ryoku-shell" "panelFamily" "cycle"; }
 
     // Session / power dialog.
-    Mod+Shift+Q { spawn "inir" "session" "toggle"; }
+    Mod+Shift+Q { spawn "ryoku-shell" "session" "toggle"; }
 
     // ═══════════════════════════════════════════════════════════════════════
     // App launchers
     // ═══════════════════════════════════════════════════════════════════════
 
-    Mod+T { spawn "inir" "terminal"; }
-    Mod+Return { spawn "inir" "terminal"; }
+    Mod+T { spawn "ryoku-shell" "terminal"; }
+    Mod+Return { spawn "ryoku-shell" "terminal"; }
     Super+E { spawn "nautilus"; }
-    Super+W { spawn "inir" "browser"; }
+    Super+W { spawn "ryoku-shell" "browser"; }
 
     // ═══════════════════════════════════════════════════════════════════════
     // Window management
     // ═══════════════════════════════════════════════════════════════════════
 
-    // Close window (iNiR's close with confirmation dialog for unsaved work).
-    Mod+Q repeat=false { spawn "inir" "close-window"; }
+    // Close window (Ryoku's close with confirmation dialog for unsaved work).
+    Mod+Q repeat=false { spawn "ryoku-shell" "close-window"; }
 
     // Maximize column (fills screen width, keeps gaps/bar).
     Mod+D { maximize-column; }
@@ -231,7 +231,7 @@ binds {
     Mod+WheelScrollLeft  { focus-column-left; }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // Screenshots (Niri native — iNiR has its own region selector above)
+    // Screenshots (Niri native — Ryoku has its own region selector above)
     // ═══════════════════════════════════════════════════════════════════════
 
     Print      { screenshot; }
@@ -239,31 +239,31 @@ binds {
     Alt+Print  { screenshot-window; }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // Hardware keys → iNiR IPC (with OSD feedback)
+    // Hardware keys → Ryoku IPC (with OSD feedback)
     // ═══════════════════════════════════════════════════════════════════════
 
-    // Volume (routed through iNiR for OSD + EasyEffects-aware sink resolution).
-    XF86AudioRaiseVolume allow-when-locked=true { spawn "inir" "audio" "volumeUp"; }
-    XF86AudioLowerVolume allow-when-locked=true { spawn "inir" "audio" "volumeDown"; }
-    XF86AudioMute        allow-when-locked=true { spawn "inir" "audio" "mute"; }
-    XF86AudioMicMute     allow-when-locked=true { spawn "inir" "audio" "micMute"; }
+    // Volume (routed through Ryoku for OSD + EasyEffects-aware sink resolution).
+    XF86AudioRaiseVolume allow-when-locked=true { spawn "ryoku-shell" "audio" "volumeUp"; }
+    XF86AudioLowerVolume allow-when-locked=true { spawn "ryoku-shell" "audio" "volumeDown"; }
+    XF86AudioMute        allow-when-locked=true { spawn "ryoku-shell" "audio" "mute"; }
+    XF86AudioMicMute     allow-when-locked=true { spawn "ryoku-shell" "audio" "micMute"; }
 
     // Brightness.
-    XF86MonBrightnessUp   allow-when-locked=true { spawn "inir" "brightness" "increment"; }
-    XF86MonBrightnessDown allow-when-locked=true { spawn "inir" "brightness" "decrement"; }
+    XF86MonBrightnessUp   allow-when-locked=true { spawn "ryoku-shell" "brightness" "increment"; }
+    XF86MonBrightnessDown allow-when-locked=true { spawn "ryoku-shell" "brightness" "decrement"; }
 
     // Media playback (MPRIS — works with any player: Spotify, Firefox, mpv…).
-    XF86AudioPlay  { spawn "inir" "mpris" "playPause"; }
-    XF86AudioPause { spawn "inir" "mpris" "playPause"; }
-    XF86AudioNext  { spawn "inir" "mpris" "next"; }
-    XF86AudioPrev  { spawn "inir" "mpris" "previous"; }
+    XF86AudioPlay  { spawn "ryoku-shell" "mpris" "playPause"; }
+    XF86AudioPause { spawn "ryoku-shell" "mpris" "playPause"; }
+    XF86AudioNext  { spawn "ryoku-shell" "mpris" "next"; }
+    XF86AudioPrev  { spawn "ryoku-shell" "mpris" "previous"; }
 
     // Keyboard shortcuts for media (when no media keys are available).
-    Ctrl+Mod+Space { spawn "inir" "mpris" "playPause"; }
-    Mod+Alt+N      { spawn "inir" "mpris" "next"; }
-    Mod+Alt+P      { spawn "inir" "mpris" "previous"; }
-    Mod+Shift+M    { spawn "inir" "audio" "mute"; }
-    Mod+Shift+P    { spawn "inir" "mpris" "playPause"; }
-    Mod+Shift+N    { spawn "inir" "mpris" "next"; }
-    Mod+Shift+B    { spawn "inir" "mpris" "previous"; }
+    Ctrl+Mod+Space { spawn "ryoku-shell" "mpris" "playPause"; }
+    Mod+Alt+N      { spawn "ryoku-shell" "mpris" "next"; }
+    Mod+Alt+P      { spawn "ryoku-shell" "mpris" "previous"; }
+    Mod+Shift+M    { spawn "ryoku-shell" "audio" "mute"; }
+    Mod+Shift+P    { spawn "ryoku-shell" "mpris" "playPause"; }
+    Mod+Shift+N    { spawn "ryoku-shell" "mpris" "next"; }
+    Mod+Shift+B    { spawn "ryoku-shell" "mpris" "previous"; }
 }

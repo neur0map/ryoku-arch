@@ -4,4 +4,4 @@ set -euo pipefail
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-exec inir clipboard toggle
+exec ryoku-shell clipboard toggle

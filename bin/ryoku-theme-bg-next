@@ -9,7 +9,7 @@ CURRENT_BACKGROUND_LINK="$RYOKU_CONFIG_PATH/current/background"
 
 apply_ryoku_shell_background() {
   local background="$1"
-  local config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/inir"
+  local config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/ryoku-shell"
   local config_file="$config_dir/config.json"
   local temp_file
 

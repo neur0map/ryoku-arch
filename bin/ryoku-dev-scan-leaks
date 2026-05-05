@@ -46,7 +46,7 @@ is_allowlisted_file() {
     docs/superpowers/specs/2026-05-02-ryoku-live-recovery-niri-transition-design.md)
       return 0
       ;;
-    # Vendored upstream iNiR tree — not Ryoku-authored; any home-path
+    # Vendored upstream Ryoku shell tree — not Ryoku-arch-authored; any home-path
     # patterns are intentional (UI placeholder text, inline comments, etc.).
     shell/*)
       return 0

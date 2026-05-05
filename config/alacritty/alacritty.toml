@@ -1,4 +1,4 @@
-# iNiR wallpaper theming - import must be at top to override colors
+# Ryoku wallpaper theming - import must be at top to override colors
 [general]
 import = ["~/.config/alacritty/colors.toml"]
 

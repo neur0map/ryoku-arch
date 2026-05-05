@@ -4,11 +4,11 @@ set -euo pipefail
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-if ryoku-cmd-present systemctl && systemctl --user status inir.service >/dev/null 2>&1; then
-  systemctl --user try-restart inir.service
-elif ryoku-cmd-present inir; then
-  inir restart
+if ryoku-cmd-present systemctl && systemctl --user status ryoku-shell.service >/dev/null 2>&1; then
+  systemctl --user try-restart ryoku-shell.service
+elif ryoku-cmd-present ryoku-shell; then
+  ryoku-shell restart
 else
-  echo "ryoku-restart-shell: inir is not installed or not on PATH" >&2
+  echo "ryoku-restart-shell: ryoku-shell is not installed or not on PATH" >&2
   exit 127
 fi

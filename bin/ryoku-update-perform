@@ -12,7 +12,7 @@ ryoku-update-system-pkgs
 "$RYOKU_INSTALL/packaging/base.sh"
 ryoku-update-aur-pkgs
 "$RYOKU_INSTALL/packaging/aur-core.sh"
-"$RYOKU_INSTALL/config/inir.sh"
+"$RYOKU_INSTALL/config/shell.sh"
 ryoku-migrate
 ryoku-update-orphan-pkgs
 ryoku-hook post-update

@@ -11,7 +11,7 @@ layout {
     // Gap between windows and from windows to screen edges (logical px).
     gaps 25
 
-    // Transparent so iNiR's own wallpaper/backdrop shows through.
+    // Transparent so Ryoku's own wallpaper/backdrop shows through.
     background-color "transparent"
 
     // When focusing a column that's off-screen, how should the view scroll?
@@ -59,7 +59,7 @@ layout {
 
     // ── Border ──────────────────────────────────────────────────────────────
     // Always-visible border (unlike focus-ring which only shows on the active window).
-    // iNiR disables both ring and border by default; the shell draws its own highlights.
+    // Ryoku disables both ring and border by default; the shell draws its own highlights.
     border {
         off
         width 4
@@ -87,7 +87,7 @@ layout {
     // ── Struts ──────────────────────────────────────────────────────────────
     // Shrink the tiling area, like permanent outer gaps.
     // Left/right struts keep the next column partially visible.
-    // iNiR's bar uses layer-shell, so struts are usually not needed.
+    // Ryoku's bar uses layer-shell, so struts are usually not needed.
     struts {
         // left 64
         // right 64
@@ -98,7 +98,7 @@ layout {
 
 // ── Niri's built-in overview ────────────────────────────────────────────────
 // Triggered by Mod+Tab or hot corners. Shows a zoomed-out workspace view.
-// Note: iNiR also has its own app-launcher overlay (Mod+Space).
+// Note: Ryoku also has its own app-launcher overlay (Mod+Space).
 overview {
     zoom 0.75
 

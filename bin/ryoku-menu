@@ -6,15 +6,15 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 
 case "${1:-settings}" in
   overview|launcher)
-    exec inir overview toggle
+    exec ryoku-shell overview toggle
     ;;
   actions)
-    exec inir globalActions open
+    exec ryoku-shell globalActions open
     ;;
   keybindings|keys|cheatsheet)
-    exec inir cheatsheet toggle
+    exec ryoku-shell cheatsheet toggle
     ;;
   settings|*)
-    exec inir settings
+    exec ryoku-shell settings
     ;;
 esac

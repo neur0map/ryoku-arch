@@ -37,13 +37,13 @@ Usage:
 EOF
 }
 
-exec_inir() {
-  if ! ryoku-cmd-present inir; then
-    echo "ryoku-ipc: inir is not installed or not on PATH" >&2
+exec_shell() {
+  if ! ryoku-cmd-present ryoku-shell; then
+    echo "ryoku-ipc: ryoku-shell is not installed or not on PATH" >&2
     return 127
   fi
 
-  exec inir "$@"
+  exec ryoku-shell "$@"
 }
 
 expect_one() {
@@ -63,7 +63,7 @@ overview_dispatch() {
     return 2
   fi
 
-  exec_inir overview toggle
+  exec_shell overview toggle
 }
 
 clipboard_dispatch() {
@@ -72,7 +72,7 @@ clipboard_dispatch() {
     return 2
   fi
 
-  exec_inir clipboard toggle
+  exec_shell clipboard toggle
 }
 
 settings_dispatch() {
@@ -83,10 +83,10 @@ settings_dispatch() {
 
   case "$1" in
   open)
-    exec_inir settings
+    exec_shell settings
     ;;
   toggle)
-    exec_inir settings toggle
+    exec_shell settings toggle
     ;;
   *)
     echo "ryoku-ipc: unknown settings action: $1" >&2
@@ -101,7 +101,7 @@ lock_dispatch() {
     return 2
   fi
 
-  exec_inir lock activate
+  exec_shell lock activate
 }
 
 session_dispatch() {
@@ -110,7 +110,7 @@ session_dispatch() {
     return 2
   fi
 
-  exec_inir session toggle
+  exec_shell session toggle
 }
 
 launcher_dispatch() {
@@ -119,7 +119,7 @@ launcher_dispatch() {
     return 2
   fi
 
-  exec_inir overview toggle
+  exec_shell overview toggle
 }
 
 region_dispatch() {
@@ -130,16 +130,16 @@ region_dispatch() {
 
   case "$1" in
   screenshot)
-    exec_inir region screenshot
+    exec_shell region screenshot
     ;;
   ocr)
-    exec_inir region ocr
+    exec_shell region ocr
     ;;
   record)
-    exec_inir region record
+    exec_shell region record
     ;;
   record-with-sound)
-    exec_inir region recordWithSound
+    exec_shell region recordWithSound
     ;;
   *)
     echo "ryoku-ipc: unknown region action: $1" >&2
