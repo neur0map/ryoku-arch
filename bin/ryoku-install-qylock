@@ -23,6 +23,10 @@ if (( EUID == 0 )); then
     exit 1
   fi
   TARGET_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
+  if [[ -z $TARGET_HOME ]]; then
+    echo "ryoku-install-qylock: failed to resolve home dir for $SUDO_USER" >&2
+    exit 1
+  fi
   _priv() { "$@"; }
   _user() { sudo -u "$SUDO_USER" "$@"; }
 else
