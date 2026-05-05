@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// iNiR — Niri Compositor Configuration
+// Ryoku — Niri Compositor Configuration
 // ─────────────────────────────────────────────────────────────────────────────
 //
 // This config is split into modular files under config.d/ so you can edit
@@ -11,8 +11,8 @@
 //   40  Environment variables (Qt, XDG, theming)
 //   50  Processes spawned at login
 //   60  Animations (spring physics tuning)
-//   70  Key bindings (iNiR shell + window management)
-//   80  Layer rules (backdrop surfaces for iNiR panels)
+//   70  Key bindings (Ryoku shell + window management)
+//   80  Layer rules (backdrop surfaces for Ryoku panels)
 //   90  Your personal overrides (never touched by updates)
 //
 // Docs: https://niri-wm.github.io/niri/Configuration:-Introduction
@@ -24,13 +24,13 @@
 // Restart apps after toggling this.
 prefer-no-csd
 
-// Hide the built-in hotkey cheatsheet on startup (iNiR has its own: Mod+/).
+// Hide the built-in hotkey cheatsheet on startup (Ryoku has its own: Mod+/).
 hotkey-overlay {
     skip-at-startup
 }
 
 // Where native Niri screenshots land (Print key).
-// iNiR's region selector (Mod+Shift+S) uses its own path.
+// Ryoku's region selector (Mod+Shift+S) uses its own path.
 screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
 
 // ── Modular includes ────────────────────────────────────────────────────────

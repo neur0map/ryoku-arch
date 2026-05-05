@@ -14,19 +14,19 @@ Rectangle {
     implicitHeight: wallpaperLayout.implicitHeight + 16
     readonly property bool showSchemeChips: Config.options?.controlPanel?.showWallpaperSchemeChips ?? false
     
-    readonly property bool inirEverywhere: Appearance.inirEverywhere
+    readonly property bool ryokuEverywhere: Appearance.ryokuEverywhere
     readonly property bool auroraEverywhere: Appearance.auroraEverywhere
 
     radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-         : inirEverywhere ? Appearance.inir.roundingNormal : Appearance.rounding.normal
+         : ryokuEverywhere ? Appearance.ryoku.roundingNormal : Appearance.rounding.normal
     color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-         : inirEverywhere ? Appearance.inir.colLayer1
+         : ryokuEverywhere ? Appearance.ryoku.colLayer1
          : auroraEverywhere ? Appearance.aurora.colSubSurface
          : Appearance.colors.colLayer1
     border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth
-               : inirEverywhere ? 1 : 0
+               : ryokuEverywhere ? 1 : 0
     border.color: Appearance.angelEverywhere ? Appearance.angel.colCardBorder
-               : inirEverywhere ? Appearance.inir.colBorder : "transparent"
+               : ryokuEverywhere ? Appearance.ryoku.colBorder : "transparent"
 
     ColumnLayout {
         id: wallpaperLayout
@@ -42,7 +42,7 @@ Rectangle {
             MaterialSymbol {
                 text: "wallpaper"
                 iconSize: 16
-                color: root.inirEverywhere ? Appearance.inir.colPrimary
+                color: root.ryokuEverywhere ? Appearance.ryoku.colPrimary
                      : root.auroraEverywhere ? Appearance.m3colors.m3primary
                      : Appearance.colors.colPrimary
             }
@@ -51,7 +51,7 @@ Rectangle {
                 text: Translation.tr("Wallpaper")
                 font.pixelSize: Appearance.font.pixelSize.small
                 font.weight: Font.Medium
-                color: root.inirEverywhere ? Appearance.inir.colText
+                color: root.ryokuEverywhere ? Appearance.ryoku.colText
                      : root.auroraEverywhere ? Appearance.m3colors.m3onSurface
                      : Appearance.colors.colOnLayer1
             }
@@ -61,9 +61,9 @@ Rectangle {
             RippleButton {
                 implicitWidth: 26
                 implicitHeight: 26
-                buttonRadius: root.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.full
+                buttonRadius: root.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.full
                 colBackground: "transparent"
-                colBackgroundHover: root.inirEverywhere ? Appearance.inir.colLayer2Hover 
+                colBackgroundHover: root.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover 
                     : root.auroraEverywhere ? Appearance.aurora.colSubSurfaceHover
                     : Appearance.colors.colLayer2Hover
                 onClicked: Wallpapers.randomFromCurrentFolder()
@@ -71,7 +71,7 @@ Rectangle {
                     anchors.centerIn: parent
                     text: "shuffle"
                     iconSize: 14
-                    color: root.inirEverywhere ? Appearance.inir.colTextSecondary
+                    color: root.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
                          : root.auroraEverywhere ? Appearance.m3colors.m3onSurfaceVariant
                          : Appearance.colors.colSubtext
                 }
@@ -81,9 +81,9 @@ Rectangle {
             RippleButton {
                 implicitWidth: 26
                 implicitHeight: 26
-                buttonRadius: root.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.full
+                buttonRadius: root.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.full
                 colBackground: "transparent"
-                colBackgroundHover: root.inirEverywhere ? Appearance.inir.colLayer2Hover 
+                colBackgroundHover: root.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover 
                     : root.auroraEverywhere ? Appearance.aurora.colSubSurfaceHover
                     : Appearance.colors.colLayer2Hover
                 onClicked: GlobalActions.runLauncher(["wallpaperSelector", "toggle"])
@@ -91,7 +91,7 @@ Rectangle {
                     anchors.centerIn: parent
                     text: "folder_open"
                     iconSize: 14
-                    color: root.inirEverywhere ? Appearance.inir.colTextSecondary
+                    color: root.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
                          : root.auroraEverywhere ? Appearance.m3colors.m3onSurfaceVariant
                          : Appearance.colors.colSubtext
                 }
@@ -108,7 +108,7 @@ Rectangle {
             Rectangle {
                 id: previewMask
                 anchors.fill: parent
-                radius: root.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.small
+                radius: root.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.small
                 visible: false
             }
 
@@ -140,7 +140,7 @@ Rectangle {
                 Rectangle {
                     id: fadeMask
                     anchors.fill: parent
-                    radius: root.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.small
+                    radius: root.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.small
                     visible: false
                 }
 

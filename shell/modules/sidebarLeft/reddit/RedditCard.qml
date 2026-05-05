@@ -14,11 +14,11 @@ RippleButton {
     
     implicitHeight: compact ? 60 : (post.thumbnail ? 90 : 70)
     buttonRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-        : Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.small
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.small
     
     colBackground: "transparent"
     colBackgroundHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer2Hover
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
         : Appearance.colors.colLayer2Hover
     
@@ -34,7 +34,7 @@ RippleButton {
             Layout.preferredHeight: root.compact ? 50 : 70
             Layout.alignment: Qt.AlignVCenter
             visible: post.thumbnail && post.thumbnail.length > 0
-            radius: Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.verysmall
+            radius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.verysmall
             color: Appearance.colors.colLayer2
             clip: true
             
@@ -71,7 +71,7 @@ RippleButton {
             Layout.preferredHeight: root.compact ? 50 : 70
             Layout.alignment: Qt.AlignVCenter
             visible: !post.thumbnail || post.thumbnail.length === 0
-            radius: Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.verysmall
+            radius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.verysmall
             color: Appearance.colors.colLayer2
             
             MaterialSymbol {

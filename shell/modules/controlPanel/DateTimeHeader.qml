@@ -11,7 +11,7 @@ Rectangle {
     Layout.fillWidth: true
     implicitHeight: dateTimeRow.implicitHeight + 24
     
-    readonly property bool inirEverywhere: Appearance.inirEverywhere
+    readonly property bool ryokuEverywhere: Appearance.ryokuEverywhere
     readonly property bool auroraEverywhere: Appearance.auroraEverywhere
     
     // Reactive property to force date re-evaluation
@@ -19,14 +19,14 @@ Rectangle {
     readonly property date _currentDate: { _tick; return new Date() }
 
     radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-        : inirEverywhere ? Appearance.inir.roundingNormal : Appearance.rounding.normal
+        : ryokuEverywhere ? Appearance.ryoku.roundingNormal : Appearance.rounding.normal
     color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-         : inirEverywhere ? Appearance.inir.colLayer1
+         : ryokuEverywhere ? Appearance.ryoku.colLayer1
          : auroraEverywhere ? Appearance.aurora.colSubSurface
          : Appearance.colors.colLayer1
-    border.width: Appearance.angelEverywhere ? 0 : (inirEverywhere ? 1 : 0)
+    border.width: Appearance.angelEverywhere ? 0 : (ryokuEverywhere ? 1 : 0)
     border.color: Appearance.angelEverywhere ? "transparent"
-        : inirEverywhere ? Appearance.inir.colBorder : "transparent"
+        : ryokuEverywhere ? Appearance.ryoku.colBorder : "transparent"
 
     AngelPartialBorder { targetRadius: parent.radius; coverage: 0.45 }
 
@@ -45,7 +45,7 @@ Rectangle {
                 font.pixelSize: Appearance.font.pixelSize.small
                 font.weight: Font.Medium
                 color: Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                     : root.inirEverywhere ? Appearance.inir.colPrimary
+                     : root.ryokuEverywhere ? Appearance.ryoku.colPrimary
                      : root.auroraEverywhere ? Appearance.m3colors.m3primary
                      : Appearance.colors.colPrimary
             }
@@ -55,7 +55,7 @@ Rectangle {
                 font.pixelSize: Appearance.font.pixelSize.larger
                 font.weight: Font.Medium
                 color: Appearance.angelEverywhere ? Appearance.angel.colText
-                     : root.inirEverywhere ? Appearance.inir.colText
+                     : root.ryokuEverywhere ? Appearance.ryoku.colText
                      : root.auroraEverywhere ? Appearance.m3colors.m3onSurface
                      : Appearance.colors.colOnLayer1
             }
@@ -64,7 +64,7 @@ Rectangle {
                 text: Translation.tr("Uptime") + ": " + DateTime.uptime
                 font.pixelSize: Appearance.font.pixelSize.smallest
                 color: Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
-                     : root.inirEverywhere ? Appearance.inir.colTextSecondary
+                     : root.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
                      : root.auroraEverywhere ? Appearance.m3colors.m3onSurfaceVariant
                      : Appearance.colors.colSubtext
             }
@@ -76,7 +76,7 @@ Rectangle {
             font.weight: Font.Light
             font.family: Appearance.font.family.numbers
             color: Appearance.angelEverywhere ? Appearance.angel.colText
-                 : root.inirEverywhere ? Appearance.inir.colText
+                 : root.ryokuEverywhere ? Appearance.ryoku.colText
                  : root.auroraEverywhere ? Appearance.m3colors.m3onSurface
                  : Appearance.colors.colOnLayer1
         }

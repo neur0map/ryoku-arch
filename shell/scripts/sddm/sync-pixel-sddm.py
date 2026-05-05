@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Sync ii-pixel SDDM theme colors with current Material You palette.
 
-Reads generated colors from iNiR's colors.json and updates
+Reads generated colors from Ryoku's colors.json and updates
 the ii-pixel theme.conf with matching colors.
-Reads wallpaper path from iNiR state and updates background image.
+Reads wallpaper path from Ryoku state and updates background image.
 
 Note: install-pixel-sddm.sh transfers ownership of the theme directory to
 the current user at install time, so no sudo/polkit is required here.
@@ -25,11 +25,11 @@ ASSETS_DIR = os.path.join(THEME_DIR, "assets")
 THEME_CONF_TEMPLATE = """\
 [SddmTheme]
 Name=ii-pixel
-Description=iNiR SDDM login screen — Material You dynamic colors
+Description=Ryoku SDDM login screen — Material You dynamic colors
 Type=sddm-theme
-Author=iNiR project
+Author=Ryoku project
 Version=1.0
-Website=https://github.com/snowarch/iNiR
+Website=https://github.com/snowarch/Ryoku
 Screenshot=
 MainScript=Main.qml
 ConfigFile=theme.conf
@@ -39,7 +39,7 @@ background=assets/background.png
 defaultBackground=assets/background.png
 blurRadius=50
 
-# iNiR Material You colors — updated automatically by sync-pixel-sddm.py on wallpaper change"""
+# Ryoku Material You colors — updated automatically by sync-pixel-sddm.py on wallpaper change"""
 
 # When invoked via `sudo`, resolve paths against the real user's home,
 # not root's home — SUDO_USER contains the original username.
@@ -59,13 +59,13 @@ COLORS_JSON = os.path.join(STATE_DIR, "user", "generated", "colors.json")
 
 CONFIG_JSON = os.path.join(
     os.environ.get("XDG_CONFIG_HOME") or os.path.join(_real_home, ".config"),
-    "inir",
+    "ryoku-shell",
     "config.json",
 )
 
 
 def read_colors():
-    """Read Material You colors from iNiR's generated colors.json.
+    """Read Material You colors from Ryoku's generated colors.json.
 
     Handles both output formats:
     - Flat:   { "primary": "#...", "on_primary": "#...", ... }   (current contract)
@@ -100,7 +100,7 @@ def read_colors():
 
 
 def read_wallpaper():
-    """Read current wallpaper path from iNiR config.json."""
+    """Read current wallpaper path from Ryoku config.json."""
     if not os.path.isfile(CONFIG_JSON):
         return None
     try:

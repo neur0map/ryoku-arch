@@ -21,7 +21,7 @@ SpinBox {
 
     background: Rectangle {
         color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-            : Appearance.inirEverywhere ? Appearance.inir.colLayer2 : Appearance.colors.colLayer2
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2 : Appearance.colors.colLayer2
         radius: root.radius
     }
 

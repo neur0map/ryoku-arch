@@ -23,8 +23,8 @@ import qs.services
 ShellRoot {
     id: root
 
-    readonly property bool disableHotReload: Quickshell.env("INIR_DISABLE_HOT_RELOAD") === "1"
-        || Quickshell.env("INIR_DISABLE_HOT_RELOAD") === "true"
+    readonly property bool disableHotReload: Quickshell.env("RYOKU_SHELL_DISABLE_HOT_RELOAD") === "1"
+        || Quickshell.env("RYOKU_SHELL_DISABLE_HOT_RELOAD") === "true"
 
     function _log(msg: string): void {
         if (Quickshell.env("QS_DEBUG") === "1") console.log(msg);
@@ -190,14 +190,14 @@ ShellRoot {
 
             if (isWaffle) {
                 // Waffle always opens its own Win11-style settings window
-                Quickshell.execDetached([Quickshell.shellPath("scripts/inir"),
+                Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"),
                     "waffle-settings-window"])
             } else if (Config.options?.settingsUi?.overlayMode ?? false) {
                 // ii overlay mode — toggle inline panel
                 GlobalStates.settingsOverlayOpen = !GlobalStates.settingsOverlayOpen
             } else {
                 // ii window mode (default) — launch separate process
-                Quickshell.execDetached([Quickshell.shellPath("scripts/inir"),
+                Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"),
                     "settings-window"])
             }
         }

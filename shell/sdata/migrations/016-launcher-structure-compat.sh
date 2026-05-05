@@ -1,17 +1,17 @@
 MIGRATION_ID="016-launcher-structure-compat"
-MIGRATION_TITLE="Launcher compatibility for the current iNiR structure"
-MIGRATION_DESCRIPTION="Updates old Niri launcher bindings from qs/ii-era commands and hardcoded runtime script paths to the current inir launcher structure."
+MIGRATION_TITLE="Launcher compatibility for the current Ryoku structure"
+MIGRATION_DESCRIPTION="Updates old Niri launcher bindings from qs/ii-era commands and hardcoded runtime script paths to the current ryoku-shell launcher structure."
 MIGRATION_TARGET_FILE="~/.config/niri/config.kdl"
 MIGRATION_REQUIRED=true
 
 migration_check() {
   local config="${XDG_CONFIG_HOME:-$HOME/.config}/niri/config.kdl"
   [[ -f "$config" ]] || return 1
-  grep -Eq 'spawn-at-startup "qs" "-c" "(ii|inir)"|spawn-at-startup "inir" "start"|spawn "qs" "-c" "(ii|inir)"( "ipc" "call")?|spawn "inir"( "ipc" "call")? |\.config/quickshell/(ii|inir)/scripts/(launch-terminal|close-window)\.sh|\$\(inir path\)/scripts/(launch-terminal|close-window)\.sh' "$config"
+  grep -Eq 'spawn-at-startup "qs" "-c" "(ii|inir)"|spawn-at-startup "ryoku-shell" "start"|spawn "qs" "-c" "(ii|inir)"( "ipc" "call")?|spawn "ryoku-shell"( "ipc" "call")? |\.config/quickshell/(ii|inir)/scripts/(launch-terminal|close-window)\.sh|\$\(inir path\)/scripts/(launch-terminal|close-window)\.sh' "$config"
 }
 
 migration_preview() {
-  local launcher_path="${XDG_BIN_HOME:-$HOME/.local/bin}/inir"
+  local launcher_path="${XDG_BIN_HOME:-$HOME/.local/bin}/ryoku-shell"
   echo -e "${STY_RED}- spawn-at-startup \"inir\" \"start\"${STY_RST}"
   echo -e "${STY_GREEN}+ spawn-at-startup \"${launcher_path}\" \"start\"${STY_RST}"
   echo ""
@@ -24,24 +24,24 @@ migration_preview() {
 
 migration_diff() {
   local config="${XDG_CONFIG_HOME:-$HOME/.config}/niri/config.kdl"
-  grep -E 'spawn-at-startup|spawn "qs"|spawn "inir"|spawn ".*/inir"|launch-terminal\.sh|close-window\.sh' "$config" 2>/dev/null | head -20
+  grep -E 'spawn-at-startup|spawn "qs"|spawn "ryoku-shell"|spawn ".*/inir"|launch-terminal\.sh|close-window\.sh' "$config" 2>/dev/null | head -20
 }
 
 migration_apply() {
   local config="${XDG_CONFIG_HOME:-$HOME/.config}/niri/config.kdl"
-  local launcher_path="${XDG_BIN_HOME:-$HOME/.local/bin}/inir"
+  local launcher_path="${XDG_BIN_HOME:-$HOME/.local/bin}/ryoku-shell"
 
   if ! migration_check; then
     return 0
   fi
 
-  export INIR_MIGRATION_LAUNCHER_PATH="${launcher_path}"
+  export RYOKU_SHELL_MIGRATION_LAUNCHER_PATH="${launcher_path}"
   python3 << 'MIGRATE'
 import os
 import re
 
 config_path = os.path.expanduser(os.environ.get("XDG_CONFIG_HOME", "~/.config")) + "/niri/config.kdl"
-launcher_path = os.environ.get("INIR_MIGRATION_LAUNCHER_PATH", os.path.expanduser("~/.local/bin/inir"))
+launcher_path = os.environ.get("RYOKU_SHELL_MIGRATION_LAUNCHER_PATH", os.path.expanduser("~/.local/bin/ryoku-shell"))
 with open(config_path, "r", encoding="utf-8") as f:
     content = f.read()
 
@@ -89,7 +89,7 @@ content = re.sub(
 )
 
 content = re.sub(
-    r'spawn\s+"inir"\s+"([^"]+)"\s*;',
+    r'spawn\s+"ryoku-shell"\s+"([^"]+)"\s*;',
     lambda match: f'spawn "{launcher_path}" "{match.group(1)}";',
     content,
 )

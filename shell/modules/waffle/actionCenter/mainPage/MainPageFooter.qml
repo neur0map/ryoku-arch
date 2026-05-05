@@ -43,7 +43,7 @@ FooterRectangle {
 
         onClicked: {
             GlobalStates.waffleActionCenterOpen = false;
-            Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "settings"]);
+            Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "settings"]);
         }
 
         contentItem: FluentIcon {

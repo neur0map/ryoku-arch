@@ -31,20 +31,20 @@ Item {
 
     // Style tokens
     readonly property color colText: Appearance.angelEverywhere ? Appearance.angel.colText
-        : Appearance.inirEverywhere ? Appearance.inir.colText
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colText
         : Appearance.colors.colOnLayer1
-    readonly property color colTextSecondary: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary
+    readonly property color colTextSecondary: Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
         : Appearance.colors.colSubtext
     readonly property color colBg: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
         : Appearance.auroraEverywhere ? "transparent"
         : Appearance.colors.colLayer1
     readonly property color colBgHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer1Hover
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1Hover
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
         : Appearance.colors.colLayer1Hover
     readonly property color colBorder: Appearance.angelEverywhere ? Appearance.angel.colCardBorder
-        : Appearance.inirEverywhere ? Appearance.inir.colBorder
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
         : Appearance.colors.colLayer0Border
     readonly property real rounding: Appearance.rounding.small
 
@@ -192,7 +192,7 @@ Item {
                 implicitHeight: addFormCol.implicitHeight + 20
                 radius: root.rounding
                 color: root.colBg
-                border.width: Appearance.inirEverywhere || Appearance.angelEverywhere ? 1 : 0
+                border.width: Appearance.ryokuEverywhere || Appearance.angelEverywhere ? 1 : 0
                 border.color: root.colBorder
                 visible: root.showAddForm
                 clip: true
@@ -227,7 +227,7 @@ Item {
                             implicitHeight: 36
                             radius: root.rounding
                             color: Appearance.angelEverywhere ? Qt.rgba(0,0,0,0.15)
-                                 : Appearance.inirEverywhere ? Appearance.inir.colLayer0
+                                 : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer0
                                  : Appearance.colors.colLayer0
                             border.width: urlInput.activeFocus ? 2 : 1
                             border.color: urlInput.activeFocus ? Appearance.colors.colPrimary : root.colBorder

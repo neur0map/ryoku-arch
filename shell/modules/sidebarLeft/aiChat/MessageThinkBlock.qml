@@ -57,7 +57,7 @@ Item {
         Rectangle { // Header background
             id: header
             color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                : Appearance.inirEverywhere ? Appearance.inir.colLayer2 
+                : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2 
                 : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurface : Appearance.colors.colSurfaceContainerHighest
             Layout.fillWidth: true
             implicitHeight: thinkBlockTitleBarRowLayout.implicitHeight + thinkBlockHeaderPaddingVertical * 2
@@ -154,7 +154,7 @@ Item {
                 anchors.bottom: parent.bottom
                 implicitHeight: messageTextBlock.implicitHeight
                 color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                    : Appearance.inirEverywhere ? Appearance.inir.colLayer2 : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurface : Appearance.colors.colLayer2
+                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2 : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurface : Appearance.colors.colLayer2
 
                 // Load data for the message at the correct scope
                 property bool editing: root.editing

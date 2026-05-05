@@ -28,12 +28,12 @@ Item {
     
     implicitHeight: background.implicitHeight
     
-    readonly property bool inirEverywhere: Appearance.inirEverywhere
+    readonly property bool ryokuEverywhere: Appearance.ryokuEverywhere
     readonly property bool angelEverywhere: Appearance.angelEverywhere
     readonly property bool auroraEverywhere: Appearance.auroraEverywhere
     
     readonly property string wallpaperUrl: Wallpapers.effectiveWallpaperUrl
-    readonly property bool useWallpaperBackdrop: root.auroraEverywhere && !root.inirEverywhere && !Appearance.gameModeMinimal && root.wallpaperUrl.length > 0
+    readonly property bool useWallpaperBackdrop: root.auroraEverywhere && !root.ryokuEverywhere && !Appearance.gameModeMinimal && root.wallpaperUrl.length > 0
     
     ColorQuantizer {
         id: wallpaperColorQuantizer
@@ -50,7 +50,7 @@ Item {
     // Shadow
     StyledRectangularShadow {
         target: background
-        visible: (Appearance.angelEverywhere || (!root.inirEverywhere && !root.auroraEverywhere)) && !Appearance.gameModeMinimal
+        visible: (Appearance.angelEverywhere || (!root.ryokuEverywhere && !root.auroraEverywhere)) && !Appearance.gameModeMinimal
     }
 
     Rectangle {
@@ -60,17 +60,17 @@ Item {
         anchors.top: parent.top
         implicitHeight: flickable.contentHeight + 24
         
-        color: root.inirEverywhere ? Appearance.inir.colLayer0
+        color: root.ryokuEverywhere ? Appearance.ryoku.colLayer0
              : root.auroraEverywhere ? ColorUtils.applyAlpha((root.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0), 1)
              : Appearance.colors.colLayer0
         
         radius: root.angelEverywhere ? Appearance.angel.roundingLarge
-            : root.inirEverywhere ? Appearance.inir.roundingLarge
+            : root.ryokuEverywhere ? Appearance.ryoku.roundingLarge
             : Appearance.rounding.large
         
-        border.width: root.inirEverywhere ? 1 : (root.auroraEverywhere ? 1 : 1)
+        border.width: root.ryokuEverywhere ? 1 : (root.auroraEverywhere ? 1 : 1)
         border.color: root.angelEverywhere ? Appearance.angel.colBorder
-                    : root.inirEverywhere ? Appearance.inir.colBorder 
+                    : root.ryokuEverywhere ? Appearance.ryoku.colBorder 
                     : root.auroraEverywhere ? Appearance.aurora.colTooltipBorder 
                     : Appearance.colors.colLayer0Border
         
@@ -99,7 +99,7 @@ Item {
             sourceSize.height: root.screenHeight
             asynchronous: true
 
-            layer.enabled: Appearance.effectsEnabled && root.auroraEverywhere && !root.inirEverywhere
+            layer.enabled: Appearance.effectsEnabled && root.auroraEverywhere && !root.ryokuEverywhere
             layer.effect: MultiEffect {
                 source: blurredWallpaper
                 anchors.fill: source

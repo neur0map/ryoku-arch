@@ -71,15 +71,15 @@ Item {
                         height: 54
                         color: minutesInput.activeFocus 
                             ? (Appearance.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colPrimary, 0.8)
-                             : Appearance.inirEverywhere ? Appearance.inir.colSecondaryContainer
+                             : Appearance.ryokuEverywhere ? Appearance.ryoku.colSecondaryContainer
                              : Appearance.colors.colPrimaryContainer)
                             : "transparent"
                         radius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-                            : Appearance.inirEverywhere ? Appearance.inir.roundingSmall
+                            : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall
                             : Appearance.rounding.small
                         border.width: minutesInput.activeFocus ? 2 : 0
                         border.color: Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                            : Appearance.inirEverywhere ? Appearance.inir.colPrimary
+                            : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary
                             : Appearance.colors.colPrimary
 
                         TextInput {
@@ -90,7 +90,7 @@ Item {
                             font.pixelSize: Math.round(38 * Appearance.fontSizeScale)
                             font.family: Appearance.font.family.main
                             color: Appearance.angelEverywhere ? Appearance.angel.colText
-                                : Appearance.inirEverywhere ? Appearance.inir.colText
+                                : Appearance.ryokuEverywhere ? Appearance.ryoku.colText
                                 : Appearance.m3colors.m3onSurface
                             horizontalAlignment: Text.AlignHCenter
                             validator: IntValidator { bottom: 0; top: 99 }
@@ -122,7 +122,7 @@ Item {
                         text: ":"
                         font.pixelSize: Math.round(38 * Appearance.fontSizeScale)
                         color: Appearance.angelEverywhere ? Appearance.angel.colText
-                            : Appearance.inirEverywhere ? Appearance.inir.colText
+                            : Appearance.ryokuEverywhere ? Appearance.ryoku.colText
                             : Appearance.m3colors.m3onSurface
                     }
 
@@ -133,15 +133,15 @@ Item {
                         height: 54
                         color: secondsInput.activeFocus 
                             ? (Appearance.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colPrimary, 0.8)
-                             : Appearance.inirEverywhere ? Appearance.inir.colSecondaryContainer
+                             : Appearance.ryokuEverywhere ? Appearance.ryoku.colSecondaryContainer
                              : Appearance.colors.colPrimaryContainer)
                             : "transparent"
                         radius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-                            : Appearance.inirEverywhere ? Appearance.inir.roundingSmall
+                            : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall
                             : Appearance.rounding.small
                         border.width: secondsInput.activeFocus ? 2 : 0
                         border.color: Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                            : Appearance.inirEverywhere ? Appearance.inir.colPrimary
+                            : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary
                             : Appearance.colors.colPrimary
 
                         TextInput {
@@ -152,7 +152,7 @@ Item {
                             font.pixelSize: Math.round(38 * Appearance.fontSizeScale)
                             font.family: Appearance.font.family.main
                             color: Appearance.angelEverywhere ? Appearance.angel.colText
-                                : Appearance.inirEverywhere ? Appearance.inir.colText
+                                : Appearance.ryokuEverywhere ? Appearance.ryoku.colText
                                 : Appearance.m3colors.m3onSurface
                             horizontalAlignment: Text.AlignHCenter
                             validator: IntValidator { bottom: 0; top: 59 }
@@ -193,7 +193,7 @@ Item {
                     }
                     font.pixelSize: Math.round(40 * Appearance.fontSizeScale)
                     color: Appearance.angelEverywhere ? Appearance.angel.colText
-                        : Appearance.inirEverywhere ? Appearance.inir.colText
+                        : Appearance.ryokuEverywhere ? Appearance.ryoku.colText
                         : Appearance.m3colors.m3onSurface
                 }
 
@@ -202,7 +202,7 @@ Item {
                     text: root.editMode ? Translation.tr("Tap to edit") : TimerService.countdownRunning ? Translation.tr("Running") : Translation.tr("Paused")
                     font.pixelSize: Appearance.font.pixelSize.normal
                     color: Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
-                        : Appearance.inirEverywhere ? Appearance.inir.colTextSecondary
+                        : Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
                         : Appearance.colors.colSubtext
                 }
             }
@@ -229,13 +229,13 @@ Item {
                     implicitWidth: 45
                     buttonRadius: Appearance.rounding.small
                     colBackground: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                        : Appearance.inirEverywhere ? Appearance.inir.colLayer2
+                        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
                         : Appearance.auroraEverywhere ? "transparent" : Appearance.colors.colLayer2
                     colBackgroundHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-                        : Appearance.inirEverywhere ? Appearance.inir.colLayer2Hover
+                        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover
                         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface : Appearance.colors.colLayer2Hover
                     colRipple: Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
-                        : Appearance.inirEverywhere ? Appearance.inir.colLayer2Active
+                        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Active
                         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive : Appearance.colors.colLayer2Active
                     onClicked: TimerService.setCountdownDuration(modelData.seconds)
 
@@ -244,7 +244,7 @@ Item {
                         horizontalAlignment: Text.AlignHCenter
                         text: modelData.label
                         font.pixelSize: Appearance.font.pixelSize.smaller
-                        color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer2
+                        color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer2
                     }
                 }
             }
@@ -262,17 +262,17 @@ Item {
                 enabled: TimerService.countdownDuration > 0
                 colBackground: TimerService.countdownRunning 
                     ? (Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                        : Appearance.inirEverywhere ? Appearance.inir.colLayer2
+                        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
                         : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurface : Appearance.colors.colSecondaryContainer)
                     : Appearance.colors.colPrimary
                 colBackgroundHover: TimerService.countdownRunning 
                     ? (Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-                        : Appearance.inirEverywhere ? Appearance.inir.colLayer2Hover
+                        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover
                         : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurfaceHover : Appearance.colors.colSecondaryContainerHover)
                     : Appearance.colors.colPrimaryHover
                 colRipple: TimerService.countdownRunning 
                     ? (Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
-                        : Appearance.inirEverywhere ? Appearance.inir.colLayer2Active
+                        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Active
                         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive : Appearance.colors.colSecondaryContainerActive)
                     : Appearance.colors.colPrimaryActive
 
@@ -280,7 +280,7 @@ Item {
                     horizontalAlignment: Text.AlignHCenter
                     color: TimerService.countdownRunning 
                         ? (Appearance.angelEverywhere ? Appearance.angel.colText
-                            : Appearance.inirEverywhere ? Appearance.inir.colText
+                            : Appearance.ryokuEverywhere ? Appearance.ryoku.colText
                             : Appearance.auroraEverywhere ? Appearance.colors.colOnLayer2 : Appearance.colors.colOnSecondaryContainer)
                         : Appearance.colors.colOnPrimary
                     text: TimerService.countdownRunning ? Translation.tr("Pause") : TimerService.countdownSecondsLeft === TimerService.countdownDuration ? Translation.tr("Start") : Translation.tr("Resume")
@@ -293,15 +293,15 @@ Item {
                 onClicked: TimerService.resetCountdown()
                 enabled: TimerService.countdownSecondsLeft < TimerService.countdownDuration || TimerService.countdownRunning
                 colBackground: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                    : Appearance.inirEverywhere ? Appearance.inir.colLayer2
+                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
                     : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurface
                     : Appearance.colors.colErrorContainer
                 colBackgroundHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-                    : Appearance.inirEverywhere ? Appearance.inir.colLayer2Hover
+                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover
                     : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurfaceHover
                     : Appearance.colors.colErrorContainerHover
                 colRipple: Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
-                    : Appearance.inirEverywhere ? Appearance.inir.colLayer2Active
+                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Active
                     : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive
                     : Appearance.colors.colErrorContainerActive
 
@@ -309,7 +309,7 @@ Item {
                     horizontalAlignment: Text.AlignHCenter
                     text: Translation.tr("Reset")
                     color: Appearance.angelEverywhere ? Appearance.angel.colText
-                        : Appearance.inirEverywhere ? Appearance.inir.colText
+                        : Appearance.ryokuEverywhere ? Appearance.ryoku.colText
                         : Appearance.auroraEverywhere ? Appearance.colors.colOnLayer2
                         : Appearance.colors.colOnErrorContainer
                 }

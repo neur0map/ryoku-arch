@@ -57,14 +57,14 @@ StyledFlickable {
             Layout.fillWidth: true
             Layout.preferredHeight: tableColumn.implicitHeight + root.cardPadding * 2
             radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-                  : Appearance.inirEverywhere ? Appearance.inir.roundingNormal : Appearance.rounding.normal
+                  : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal : Appearance.rounding.normal
             color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+                : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
                 : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface : Appearance.colors.colLayer1
             border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth
-                        : Appearance.inirEverywhere ? 1 : 0
+                        : Appearance.ryokuEverywhere ? 1 : 0
             border.color: Appearance.angelEverywhere ? Appearance.angel.colCardBorder
-                        : Appearance.inirEverywhere ? Appearance.inir.colBorder : "transparent"
+                        : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder : "transparent"
 
             Column {
                 id: tableColumn

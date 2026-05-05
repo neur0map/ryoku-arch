@@ -984,7 +984,7 @@ Variants {
                 closeOnHoverLost: true
                 model: [
                     { text: Translation.tr("Settings"), iconName: "settings", monochromeIcon: true,
-                        action: () => { Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "settings"]) } },
+                        action: () => { Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "settings"]) } },
                     { type: "separator" },
                     { text: Translation.tr("Change wallpaper"), iconName: "image", monochromeIcon: true,
                         action: () => { GlobalActions.runLauncher(["wallpaperSelector", "toggle"]) } },

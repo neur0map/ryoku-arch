@@ -16,42 +16,42 @@ ComboBox {
 
     property real baseHeight: 38
     property real radius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-        : Appearance.inirEverywhere ? Appearance.inir.roundingSmall
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall
         : Appearance.rounding.small
 
     hoverEnabled: true
     opacity: root.enabled ? 1 : 0.4
 
     readonly property color _bgColor: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer2
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
         : Appearance.colors.colLayer2
     readonly property color _bgHoverColor: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer2Hover
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceHover
         : Appearance.colors.colLayer2Hover
     readonly property color _bgActiveColor: Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer2Active
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Active
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive
         : Appearance.colors.colLayer2Active
     readonly property color _textColor: Appearance.angelEverywhere ? Appearance.angel.colText
-        : Appearance.inirEverywhere ? Appearance.inir.colText
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colText
         : Appearance.colors.colOnLayer2
     readonly property color _subtextColor: Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
-        : Appearance.inirEverywhere ? Appearance.inir.colTextSecondary
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
         : Appearance.colors.colSubtext
     readonly property color _borderColor: Appearance.angelEverywhere ? Appearance.angel.colBorder
-        : Appearance.inirEverywhere ? Appearance.inir.colBorder
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
         : "transparent"
-    readonly property real _borderWidth: (Appearance.angelEverywhere || Appearance.inirEverywhere) ? 1 : 0
-    readonly property color _popupColor: Appearance.inirEverywhere ? Appearance.inir.colLayer2
+    readonly property real _borderWidth: (Appearance.angelEverywhere || Appearance.ryokuEverywhere) ? 1 : 0
+    readonly property color _popupColor: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
         : Appearance.colors.colLayer3Base
     readonly property color _popupBorderColor: Appearance.angelEverywhere ? Appearance.angel.colCardBorder
-        : Appearance.inirEverywhere ? Appearance.inir.colBorder
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
         : Appearance.auroraEverywhere ? Appearance.aurora.colPopupBorder
         : Appearance.colors.colLayer0Border
     readonly property color _selectedColor: Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
-        : Appearance.inirEverywhere ? Appearance.inir.colPrimaryContainer
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimaryContainer
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive
         : Appearance.colors.colPrimaryContainer
 
@@ -64,7 +64,7 @@ ComboBox {
         border.width: root._borderWidth
         border.color: root.activeFocus
             ? (Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                : Appearance.inirEverywhere ? Appearance.inir.colBorderFocus
+                : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorderFocus
                 : root._borderColor)
             : root._borderColor
 
@@ -143,7 +143,7 @@ ComboBox {
 
         background: Rectangle {
             radius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-                : Appearance.inirEverywhere ? Appearance.inir.roundingSmall
+                : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall
                 : Appearance.rounding.unsharpenmore
             color: delegateItem.index === root.currentIndex ? root._selectedColor
                 : delegateItem.hovered ? root._bgHoverColor

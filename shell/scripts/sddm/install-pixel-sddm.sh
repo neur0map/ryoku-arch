@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install ii-pixel SDDM theme for iNiR
+# Install ii-pixel SDDM theme for Ryoku
 # Pixel aesthetic with Material You dynamic colors matching the Quickshell lockscreen.
 # Requires: sddm, qt6-declarative, qt6-5compat
 
@@ -9,8 +9,8 @@ THEME_NAME="ii-pixel"
 THEME_SRC="${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}/dots/sddm/pixel"
 THEME_DIR="/usr/share/sddm/themes/${THEME_NAME}"
 SYNC_SCRIPT="${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}/scripts/sddm/sync-pixel-sddm.py"
-SDDM_CONF="/etc/sddm.conf.d/inir-theme.conf"
-AUTO_APPLY_MODE="${INIR_SDDM_AUTO_APPLY:-ask}" # ask|yes|no
+SDDM_CONF="/etc/sddm.conf.d/ryoku-shell-theme.conf"
+AUTO_APPLY_MODE="${RYOKU_SHELL_SDDM_AUTO_APPLY:-ask}" # ask|yes|no
 
 log_info() { echo -e "\033[0;36m[sddm] $*\033[0m"; }
 log_ok()   { echo -e "\033[0;32m[sddm] ✓ $*\033[0m"; }
@@ -67,7 +67,7 @@ should_apply_theme() {
         return 0
     fi
     if [[ "$AUTO_APPLY_MODE" == "no" ]]; then
-        log_info "Skipping SDDM Current theme switch by policy (INIR_SDDM_AUTO_APPLY=no)"
+        log_info "Skipping SDDM Current theme switch by policy (RYOKU_SHELL_SDDM_AUTO_APPLY=no)"
         return 1
     fi
 
@@ -101,7 +101,7 @@ fi
 
 # Install theme files
 # If user already owns the theme dir (from a previous install), skip sudo entirely.
-# This allows IPC-triggered updates (inir shell update) to refresh the theme
+# This allows IPC-triggered updates (ryoku-shell shell update) to refresh the theme
 # without needing a terminal for sudo prompts.
 
 # Checksum comparison: skip copy if source and target are identical.
@@ -140,7 +140,7 @@ fi
 # Create a placeholder background (symlinked to wallpaper later by sync script)
 if [[ ! -f "${THEME_DIR}/assets/background.png" ]]; then
     log_info "No background.png yet — creating placeholder..."
-    # Copy default wallpaper from iNiR assets as initial background
+    # Copy default wallpaper from Ryoku assets as initial background
     repo_root="${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
     default_wall="${repo_root}/assets/images/default_wallpaper.png"
     if [[ -f "$default_wall" ]]; then
@@ -242,5 +242,5 @@ fi
 
 log_ok "${THEME_NAME} installed and configured"
 log_info "Test with: sddm-greeter-qt6 --test-mode --theme ${THEME_DIR}"
-log_info "Colors auto-sync on wallpaper change via the iNiR theming pipeline"
+log_info "Colors auto-sync on wallpaper change via the Ryoku theming pipeline"
 log_info "Manual re-sync: python3 ~/.local/bin/sync-pixel-sddm.py"

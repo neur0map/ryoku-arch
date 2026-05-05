@@ -83,7 +83,7 @@ QtObject {
             return value;
 
         const separator = value.indexOf("?") >= 0 ? "&" : "?";
-        return `${value}${separator}inir_art=${Qt.md5(root.metadataKey + ":" + root._generation)}`;
+        return `${value}${separator}ryoku_art=${Qt.md5(root.metadataKey + ":" + root._generation)}`;
     }
 
     function _setReadySource(url: string): void {

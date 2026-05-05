@@ -138,7 +138,7 @@ MouseArea { // Notification group area
 
     StyledRectangularShadow {
         target: background
-        visible: popup && !Appearance.inirEverywhere
+        visible: popup && !Appearance.ryokuEverywhere
     }
 
     Rectangle { // Background of the notification
@@ -149,17 +149,17 @@ MouseArea { // Notification group area
         // For popup: glass blur for aurora/angel, solid for others
         // For sidebar: transparent to show parent's blur
         color: Appearance.angelEverywhere ? (popup ? "transparent" : Appearance.angel.colGlassCard)
-            : Appearance.inirEverywhere ? (popup ? Appearance.inir.colLayer2 : Appearance.inir.colLayer1)
+            : Appearance.ryokuEverywhere ? (popup ? Appearance.ryoku.colLayer2 : Appearance.ryoku.colLayer1)
             : Appearance.auroraEverywhere ? "transparent"
             : (popup ? ColorUtils.applyAlpha(Appearance.colors.colLayer2, 1 - Appearance.backgroundTransparency)
                      : Appearance.colors.colLayer2)
 
         radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-            : Appearance.inirEverywhere ? Appearance.inir.roundingNormal : Appearance.rounding.normal
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal : Appearance.rounding.normal
         border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth
-            : (Appearance.inirEverywhere || (Appearance.auroraEverywhere && popup)) ? 1 : 0
+            : (Appearance.ryokuEverywhere || (Appearance.auroraEverywhere && popup)) ? 1 : 0
         border.color: Appearance.angelEverywhere ? Appearance.angel.colBorder
-            : Appearance.inirEverywhere ? Appearance.inir.colBorder
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
             : Appearance.auroraEverywhere ? Appearance.aurora.colTooltipBorder : "transparent"
         anchors.leftMargin: root.xOffset
 
@@ -175,7 +175,7 @@ MouseArea { // Notification group area
         clip: true
 
         // Rounded corner clipping for glass blur
-        layer.enabled: root.popup && Appearance.auroraEverywhere && !Appearance.inirEverywhere
+        layer.enabled: root.popup && Appearance.auroraEverywhere && !Appearance.ryokuEverywhere
         layer.effect: GE.OpacityMask {
             maskSource: Rectangle {
                 width: background.width
@@ -204,7 +204,7 @@ MouseArea { // Notification group area
         Image {
             id: notifBlurredWallpaper
             anchors.fill: parent
-            visible: root.popup && Appearance.auroraEverywhere && !Appearance.inirEverywhere
+            visible: root.popup && Appearance.auroraEverywhere && !Appearance.ryokuEverywhere
             source: Wallpapers.effectiveWallpaperUrl
             fillMode: Image.PreserveAspectCrop
             cache: true
@@ -212,7 +212,7 @@ MouseArea { // Notification group area
             sourceSize.height: 270
             asynchronous: true
 
-            layer.enabled: Appearance.effectsEnabled && Appearance.auroraEverywhere && !Appearance.inirEverywhere
+            layer.enabled: Appearance.effectsEnabled && Appearance.auroraEverywhere && !Appearance.ryokuEverywhere
             layer.effect: MultiEffect {
                 source: notifBlurredWallpaper
                 anchors.fill: source
@@ -230,7 +230,7 @@ MouseArea { // Notification group area
         // Glass tint overlay
         Rectangle {
             anchors.fill: parent
-            visible: root.popup && Appearance.auroraEverywhere && !Appearance.inirEverywhere
+            visible: root.popup && Appearance.auroraEverywhere && !Appearance.ryokuEverywhere
             color: Appearance.angelEverywhere
                 ? ColorUtils.transparentize(Appearance.colors.colLayer0Base, Appearance.angel.overlayOpacity)
                 : ColorUtils.transparentize(Appearance.colors.colLayer0Base, Appearance.aurora.popupTransparentize)

@@ -58,7 +58,7 @@ Item { // Bar content region
                 monochromeIcon: true,
                 text: Translation.tr("Settings"),
                 action: () => {
-                    Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "settings"])
+                    Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "settings"])
                 },
             },
         ]
@@ -100,7 +100,7 @@ Item { // Bar content region
     readonly property QtObject blendedColors: root._useGlobalQuantizer
         ? Appearance.wallpaperBlendedColors : _localBlendedColors
 
-    readonly property bool inirEverywhere: Appearance.inirEverywhere
+    readonly property bool ryokuEverywhere: Appearance.ryokuEverywhere
     readonly property bool angelEverywhere: Appearance.angelEverywhere
     readonly property string leftAction: Config.options?.bar?.leftScrollAction ?? "brightness"
     readonly property string rightAction: Config.options?.bar?.rightScrollAction ?? "volume"
@@ -149,12 +149,12 @@ Item { // Bar content region
         Layout.bottomMargin: Appearance.sizes.baseBarHeight / 3
         Layout.fillHeight: true
         implicitWidth: 1
-        color: root.inirEverywhere ? Appearance.inir.colBorderSubtle : root.separatorColor
+        color: root.ryokuEverywhere ? Appearance.ryoku.colBorderSubtle : root.separatorColor
     }
 
     // Background shadow
     Loader {
-        active: !root.inirEverywhere
+        active: !root.ryokuEverywhere
             && (Appearance.angelEverywhere || !Appearance.auroraEverywhere)
             && !Appearance.gameModeMinimal
             && (Config.options?.bar?.showBackground ?? true)
@@ -194,8 +194,8 @@ Item { // Bar content region
                     return ColorUtils.transparentize(base, Appearance.angel.compositorPanelTransparentize)
                 return ColorUtils.applyAlpha(base, 1)
             }
-            if (root.inirEverywhere) {
-                return Appearance.inir.colLayer0
+            if (root.ryokuEverywhere) {
+                return Appearance.ryoku.colLayer0
             }
             if (auroraEverywhere) {
                 const base = blendedColors?.colLayer0 ?? Appearance.colors.colLayer0
@@ -220,10 +220,10 @@ Item { // Bar content region
             if (root.angelEverywhere) {
                 return (cornerStyle === 1 || cornerStyle === 3) ? Appearance.angel.roundingNormal : 0
             }
-            if (root.inirEverywhere) {
-                // Inir: use inir rounding for Float/Card, 0 for Hug/Rect
+            if (root.ryokuEverywhere) {
+                // Inir: use ryoku rounding for Float/Card, 0 for Hug/Rect
                 if (cornerStyle === 1 || cornerStyle === 3) {
-                    return Appearance.inir.roundingNormal
+                    return Appearance.ryoku.roundingNormal
                 }
                 return 0
             }
@@ -237,7 +237,7 @@ Item { // Bar content region
         // Border logic per global style
         border.width: {
             if (root.angelEverywhere) return Appearance.angel.panelBorderWidth
-            if (root.inirEverywhere) {
+            if (root.ryokuEverywhere) {
                 return (cornerStyle === 1 || cornerStyle === 3) ? 1 : 0
             }
             if (auroraEverywhere) {
@@ -247,8 +247,8 @@ Item { // Bar content region
         }
         border.color: {
             if (root.angelEverywhere) return Appearance.angel.colPanelBorder
-            if (root.inirEverywhere) {
-                return Appearance.inir.colBorder
+            if (root.ryokuEverywhere) {
+                return Appearance.ryoku.colBorder
             }
             if (auroraEverywhere) {
                 return Appearance.aurora.colTooltipBorder
@@ -258,7 +258,7 @@ Item { // Bar content region
 
         clip: true
 
-        layer.enabled: auroraEverywhere && !root.inirEverywhere && !gameModeMinimal
+        layer.enabled: auroraEverywhere && !root.ryokuEverywhere && !gameModeMinimal
         layer.effect: GE.OpacityMask {
             maskSource: Rectangle {
                 width: barBackground.width
@@ -273,7 +273,7 @@ Item { // Bar content region
             y: barBackground.isBottom ? -(root.screen?.height ?? 1080) + barBackground.height + barBackground.barMargin : -barBackground.barMargin
             width: root.screen?.width ?? 1920
             height: root.screen?.height ?? 1080
-            visible: barBackground.auroraEverywhere && !root.inirEverywhere && !barBackground.gameModeMinimal && !Appearance.compositorBlurActive
+            visible: barBackground.auroraEverywhere && !root.ryokuEverywhere && !barBackground.gameModeMinimal && !Appearance.compositorBlurActive
             source: Appearance.compositorBlurActive ? "" : root.wallpaperUrl
             fillMode: Image.PreserveAspectCrop
             cache: true
@@ -281,7 +281,7 @@ Item { // Bar content region
             sourceSize.height: root.screen?.height ?? 1080
             asynchronous: true
 
-            layer.enabled: Appearance.effectsEnabled && barBackground.auroraEverywhere && !root.inirEverywhere
+            layer.enabled: Appearance.effectsEnabled && barBackground.auroraEverywhere && !root.ryokuEverywhere
             layer.effect: MultiEffect {
                 source: blurredWallpaper
                 anchors.fill: source
@@ -681,7 +681,7 @@ Item { // Bar content region
                 Layout.alignment: Qt.AlignVCenter
             }
 
-            // iNiR shell update indicator
+            // Ryoku shell update indicator
             ShellUpdateIndicator {
                 Layout.alignment: Qt.AlignVCenter
             }

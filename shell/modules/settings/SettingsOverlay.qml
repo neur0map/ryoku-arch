@@ -106,9 +106,9 @@ Scope {
         { pageIndex: 3, pageName: overlayPages[3].name, section: Translation.tr("Widget: Weather"), label: Translation.tr("Background weather widget"), description: Translation.tr("Weather display on the desktop background"), keywords: ["weather", "widget", "background", "temperature"] },
         { pageIndex: 3, pageName: overlayPages[3].name, section: Translation.tr("Widget: Media"), label: Translation.tr("Background media widget"), description: Translation.tr("Media player controls on the desktop background"), keywords: ["media", "widget", "background", "player", "music", "album"] },
         // Themes (page 4)
-        { pageIndex: 4, pageName: overlayPages[4].name, section: Translation.tr("Global Style"), label: Translation.tr("Global Style"), description: Translation.tr("Material, Cards, Aurora glass effect, Inir TUI style"), keywords: ["global", "style", "aurora", "inir", "material", "cards", "glass", "tui", "transparency", "blur"] },
+        { pageIndex: 4, pageName: overlayPages[4].name, section: Translation.tr("Global Style"), label: Translation.tr("Global Style"), description: Translation.tr("Material, Cards, Aurora glass effect, Inir TUI style"), keywords: ["global", "style", "aurora", "ryoku-shell", "material", "cards", "glass", "tui", "transparency", "blur"] },
         { pageIndex: 4, pageName: overlayPages[4].name, section: Translation.tr("Global Style"), label: Translation.tr("Aurora"), description: Translation.tr("Glass effect with wallpaper blur behind panels"), keywords: ["aurora", "glass", "blur", "transparency", "style", "translucent"] },
-        { pageIndex: 4, pageName: overlayPages[4].name, section: Translation.tr("Global Style"), label: Translation.tr("Inir"), description: Translation.tr("TUI-inspired style with accent borders"), keywords: ["inir", "tui", "terminal", "borders", "style", "minimal"] },
+        { pageIndex: 4, pageName: overlayPages[4].name, section: Translation.tr("Global Style"), label: Translation.tr("Inir"), description: Translation.tr("TUI-inspired style with accent borders"), keywords: ["ryoku-shell", "tui", "terminal", "borders", "style", "minimal"] },
         { pageIndex: 4, pageName: overlayPages[4].name, section: Translation.tr("Global Style"), label: Translation.tr("Material"), description: Translation.tr("Material Design solid backgrounds"), keywords: ["material", "solid", "style", "default", "google"] },
         { pageIndex: 4, pageName: overlayPages[4].name, section: Translation.tr("Global Style"), label: Translation.tr("Cards"), description: Translation.tr("Card-style elevated containers"), keywords: ["cards", "card", "style", "elevated", "shadow"] },
         { pageIndex: 4, pageName: overlayPages[4].name, section: Translation.tr("Theme Presets"), label: Translation.tr("Theme Presets"), description: Translation.tr("Predefined color themes like Gruvbox, Catppuccin, Nord, Dracula"), keywords: ["theme", "preset", "gruvbox", "catppuccin", "nord", "dracula", "material", "colors", "palette", "monokai", "solarized", "tokyo", "night", "everforest", "rose", "pine"] },
@@ -605,19 +605,19 @@ Scope {
                 width: maxCardWidth
                 height: maxCardHeight
                 radius: Appearance.angelEverywhere ? Appearance.angel.roundingLarge
-                      : Appearance.inirEverywhere ? Appearance.inir.roundingLarge
+                      : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingLarge
                       : Appearance.rounding.windowRounding
                 // backgroundOpacity only applies to glass styles (aurora/angel) — solid styles stay opaque
                 color: Appearance.auroraEverywhere ? "transparent"
-                     : Appearance.inirEverywhere ? Appearance.inir.colLayer0
+                     : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer0
                      : Appearance.m3colors.m3background
                 clip: true
 
                 border.width: Appearance.angelEverywhere ? Appearance.angel.panelBorderWidth
-                            : Appearance.inirEverywhere ? 1 : 0
+                            : Appearance.ryokuEverywhere ? 1 : 0
                 border.color: Appearance.angelEverywhere ? Appearance.angel.colPanelBorder
-                            : Appearance.inirEverywhere
-                                ? (Appearance.inir?.colBorder ?? Appearance.colors.colLayer0Border)
+                            : Appearance.ryokuEverywhere
+                                ? (Appearance.ryoku?.colBorder ?? Appearance.colors.colLayer0Border)
                                 : "transparent"
 
                 // Scale + fade animation
@@ -647,7 +647,7 @@ Scope {
                 GlassBackground {
                     anchors.fill: parent
                     z: -1
-                    visible: Appearance.auroraEverywhere && !Appearance.inirEverywhere
+                    visible: Appearance.auroraEverywhere && !Appearance.ryokuEverywhere
                     screenX: settingsCard.x
                     screenY: settingsCard.y
                     screenWidth: settingsPanel.width
@@ -691,7 +691,7 @@ Scope {
                                 radius: width / 2
                                 color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
                                     : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
-                                    : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+                                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
                                     : Appearance.colors.colLayer1
                                 border.width: 1
                                 border.color: Appearance.colors.colPrimary
@@ -776,18 +776,18 @@ Scope {
                             color: overlaySearchField.activeFocus
                                 ? (Appearance.angelEverywhere ? Appearance.angel.colGlassCard
                                   : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
-                                  : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+                                  : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
                                   : Appearance.colors.colLayer1)
                                 : (Appearance.angelEverywhere ? Appearance.angel.colGlassCard
                                   : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
-                                  : Appearance.inirEverywhere ? Appearance.inir.colLayer0
+                                  : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer0
                                   : Appearance.m3colors.m3surfaceContainerLow)
                             border.width: overlaySearchField.activeFocus ? 2
                                 : (Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth : 1)
                             border.color: overlaySearchField.activeFocus
                                 ? Appearance.colors.colPrimary
                                 : (Appearance.angelEverywhere ? Appearance.angel.colCardBorder
-                                  : Appearance.inirEverywhere ? Appearance.inir.colBorderMuted
+                                  : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorderMuted
                                   : Appearance.m3colors.m3outlineVariant)
 
                             Behavior on color {
@@ -975,7 +975,7 @@ Scope {
                             buttonRadius: Appearance.rounding.full
                             implicitWidth: 36
                             implicitHeight: 36
-                            onClicked: Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "lock", "activate"])
+                            onClicked: Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "lock", "activate"])
                             contentItem: MaterialSymbol {
                                 anchors.centerIn: parent
                                 horizontalAlignment: Text.AlignHCenter
@@ -1049,22 +1049,22 @@ Scope {
                                             colBackground: "transparent"
                                             colBackgroundToggled: Appearance.angelEverywhere
                                                 ? Appearance.angel.colGlassCard
-                                                : Appearance.inirEverywhere
-                                                    ? Appearance.inir.colLayer2
+                                                : Appearance.ryokuEverywhere
+                                                    ? Appearance.ryoku.colLayer2
                                                     : Appearance.auroraEverywhere
                                                         ? Appearance.aurora.colElevatedSurface
                                                         : Appearance.colors.colLayer1
                                             colBackgroundToggledHover: Appearance.angelEverywhere
                                                 ? Appearance.angel.colGlassCardHover
-                                                : Appearance.inirEverywhere
-                                                    ? Appearance.inir.colLayer1Hover
+                                                : Appearance.ryokuEverywhere
+                                                    ? Appearance.ryoku.colLayer1Hover
                                                     : Appearance.auroraEverywhere
                                                         ? Appearance.aurora.colElevatedSurface
                                                         : Appearance.colors.colLayer1Hover
                                             colBackgroundHover: Appearance.angelEverywhere
                                                 ? Appearance.angel.colGlassCard
-                                                : Appearance.inirEverywhere
-                                                    ? Appearance.inir.colLayer1Hover
+                                                : Appearance.ryokuEverywhere
+                                                    ? Appearance.ryoku.colLayer1Hover
                                                     : Appearance.auroraEverywhere
                                                         ? Appearance.aurora.colSubSurface
                                                         : CF.ColorUtils.transparentize(Appearance.colors.colLayer1Hover, 0.5)
@@ -1084,8 +1084,8 @@ Scope {
                                                     anchors.verticalCenter: parent.verticalCenter
                                                     color: Appearance.angelEverywhere
                                                         ? Appearance.angel.colPrimary
-                                                        : Appearance.inirEverywhere
-                                                            ? Appearance.inir.colAccent
+                                                        : Appearance.ryokuEverywhere
+                                                            ? Appearance.ryoku.colAccent
                                                             : Appearance.colors.colPrimary
                                                     opacity: navBtn.toggled ? 1 : 0
 
@@ -1109,8 +1109,8 @@ Scope {
                                                         text: modelData.icon
                                                         iconSize: 18
                                                         color: navBtn.toggled
-                                                            ? (Appearance.inirEverywhere
-                                                                ? Appearance.inir.colAccent
+                                                            ? (Appearance.ryokuEverywhere
+                                                                ? Appearance.ryoku.colAccent
                                                                 : Appearance.colors.colPrimary)
                                                             : Appearance.colors.colOnSurfaceVariant
                                                         rotation: modelData.iconRotation || 0
@@ -1158,8 +1158,8 @@ Scope {
                                 colBackground: "transparent"
                                 colBackgroundHover: Appearance.angelEverywhere
                                     ? Appearance.angel.colGlassCard
-                                    : Appearance.inirEverywhere
-                                        ? Appearance.inir.colLayer1Hover
+                                    : Appearance.ryokuEverywhere
+                                        ? Appearance.ryoku.colLayer1Hover
                                         : Appearance.auroraEverywhere
                                             ? Appearance.aurora.colSubSurface
                                             : CF.ColorUtils.transparentize(Appearance.colors.colLayer1Hover, 0.5)
@@ -1170,7 +1170,7 @@ Scope {
                                     // component (timers and all), so a deferred restart
                                     // never gets to fire.  The spawned process survives
                                     // independently of our QML scope.
-                                    Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "settings-window"])
+                                    Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "settings-window"])
                                     Config.setNestedValue("settingsUi.overlayMode", false)
                                     GlobalStates.settingsOverlayOpen = false
                                 }
@@ -1211,22 +1211,22 @@ Scope {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
                             radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-                                 : Appearance.inirEverywhere ? Appearance.inir.roundingNormal
+                                 : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal
                                  : Appearance.rounding.normal
                             color: Appearance.auroraEverywhere ? "transparent"
-                                 : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+                                 : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
                                  : Appearance.m3colors.m3surfaceContainerLow
                             border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth
-                                        : Appearance.inirEverywhere ? 1 : 0
+                                        : Appearance.ryokuEverywhere ? 1 : 0
                             border.color: Appearance.angelEverywhere ? Appearance.angel.colCardBorder
-                                        : Appearance.inirEverywhere ? Appearance.inir.colBorderSubtle : "transparent"
+                                        : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorderSubtle : "transparent"
                             clip: true
 
                             // Glass background for aurora/angel wallpaper blur in content area
                             GlassBackground {
                                 anchors.fill: parent
                                 z: -1
-                                visible: Appearance.auroraEverywhere && !Appearance.inirEverywhere
+                                visible: Appearance.auroraEverywhere && !Appearance.ryokuEverywhere
                                 screenX: settingsCard.x + overlayContentContainer.x + 16
                                 screenY: settingsCard.y + overlayContentContainer.y + 16
                                 screenWidth: settingsPanel.width
@@ -1368,16 +1368,16 @@ Scope {
                         anchors.top: parent.top
                         anchors.topMargin: 56
                         radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-                             : Appearance.inirEverywhere ? Appearance.inir.roundingNormal
+                             : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal
                              : Appearance.rounding.normal
                         color: Appearance.angelEverywhere ? Appearance.angel.colGlassPopup
                             : Appearance.auroraEverywhere ? Appearance.colors.colLayer1Base
-                            : Appearance.inirEverywhere ? Appearance.inir.colLayer2
+                            : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
                             : Appearance.colors.colLayer1
                         border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth
-                                    : Appearance.inirEverywhere ? 1 : 1
+                                    : Appearance.ryokuEverywhere ? 1 : 1
                         border.color: Appearance.angelEverywhere ? Appearance.angel.colCardBorder
-                            : Appearance.inirEverywhere ? Appearance.inir.colBorder
+                            : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
                             : Appearance.m3colors.m3outlineVariant
 
                         layer.enabled: Appearance.effectsEnabled && !Appearance.auroraEverywhere
@@ -1478,12 +1478,12 @@ Scope {
 
                                     colBackground: resultDelegate.ListView.isCurrentItem
                                         ? (Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-                                          : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+                                          : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
                                           : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurface
                                           : Appearance.colors.colLayer2)
                                         : "transparent"
                                     colBackgroundHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-                                                      : Appearance.inirEverywhere ? Appearance.inir.colLayer1Hover
+                                                      : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1Hover
                                                       : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
                                                       : Appearance.colors.colLayer2
 
@@ -1559,7 +1559,7 @@ Scope {
                         radius: Appearance.rounding.full
                         color: Appearance.angelEverywhere ? Appearance.angel.colGlassPopup
                              : Appearance.auroraEverywhere ? Appearance.colors.colLayer1Base
-                             : Appearance.inirEverywhere ? Appearance.inir.colLayer2
+                             : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
                              : Appearance.colors.colLayer1
                         z: 100
 

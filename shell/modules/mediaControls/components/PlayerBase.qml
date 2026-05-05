@@ -73,11 +73,11 @@ QtObject {
     )
     
     // Style tokens (Inir fixed colors)
-    readonly property color inirText: Appearance.inir.colText
-    readonly property color inirTextSecondary: Appearance.inir.colTextSecondary
-    readonly property color inirPrimary: Appearance.inir.colPrimary
-    readonly property color inirLayer1: Appearance.inir.colLayer1
-    readonly property color inirLayer2: Appearance.inir.colLayer2
+    readonly property color ryokuText: Appearance.ryoku.colText
+    readonly property color ryokuTextSecondary: Appearance.ryoku.colTextSecondary
+    readonly property color ryokuPrimary: Appearance.ryoku.colPrimary
+    readonly property color ryokuLayer1: Appearance.ryoku.colLayer1
+    readonly property color ryokuLayer2: Appearance.ryoku.colLayer2
     
     // Player actions
     function togglePlaying(): void {

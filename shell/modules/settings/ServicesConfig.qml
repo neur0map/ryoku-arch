@@ -164,7 +164,7 @@ ContentPage {
             MaterialTextArea {
                 Layout.fillWidth: true
                 placeholderText: Translation.tr("Network name (SSID)")
-                text: Config.options?.hotspot?.ssid ?? "iNiR Hotspot"
+                text: Config.options?.hotspot?.ssid ?? "Ryoku Hotspot"
                 wrapMode: TextEdit.Wrap
                 onTextChanged: Config.setNestedValue("hotspot.ssid", text)
                 StyledToolTip {
@@ -175,7 +175,7 @@ ContentPage {
             MaterialTextArea {
                 Layout.fillWidth: true
                 placeholderText: Translation.tr("Password")
-                text: Config.options?.hotspot?.password ?? "inirhotspot"
+                text: Config.options?.hotspot?.password ?? "ryoku-shell-hotspot"
                 wrapMode: TextEdit.Wrap
                 onTextChanged: Config.setNestedValue("hotspot.password", text)
                 StyledToolTip {
@@ -371,12 +371,12 @@ ContentPage {
     SettingsCardSection {
         expanded: false
         icon: "deployed_code_update"
-        title: Translation.tr("iNiR Shell Updates")
+        title: Translation.tr("Ryoku Shell Updates")
 
         SettingsGroup {
             StyledText {
                 Layout.fillWidth: true
-                text: Translation.tr("Automatically checks the iNiR git repository for new versions and shows a notification in the bar.")
+                text: Translation.tr("Automatically checks the Ryoku git repository for new versions and shows a notification in the bar.")
                 color: Appearance.colors.colOnSurfaceVariant
                 font.pixelSize: Appearance.font.pixelSize.small
                 wrapMode: Text.WordWrap
@@ -399,7 +399,7 @@ ContentPage {
                 onValueChanged: Config.setNestedValue("shellUpdates.checkIntervalMinutes", value)
                 enabled: Config.options?.shellUpdates?.enabled ?? true
                 StyledToolTip {
-                    text: Translation.tr("How often to check for iNiR updates (in minutes). Default: 360 (6 hours)")
+                    text: Translation.tr("How often to check for Ryoku updates (in minutes). Default: 360 (6 hours)")
                 }
             }
 
@@ -725,7 +725,7 @@ ContentPage {
                             // Separate window mode (default): settings.qml is a separate qs process.
                             // Singletons are isolated per-process, so we must use IPC to reach
                             // the main shell's ShellUpdates.openOverlay() instead.
-                            Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "shellUpdate", "open"])
+                            Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "shellUpdate", "open"])
                         }
                     }
 

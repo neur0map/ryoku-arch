@@ -23,35 +23,35 @@ Scope {
 
     // Style-aware tokens (no hardcoded hex fallbacks)
     readonly property color accentColor: Appearance.angelEverywhere ? Appearance.angel.colPrimary
-        : Appearance.inirEverywhere ? (Appearance.inir?.colAccent ?? Appearance.m3colors.m3primary)
+        : Appearance.ryokuEverywhere ? (Appearance.ryoku?.colAccent ?? Appearance.m3colors.m3primary)
         : Appearance.auroraEverywhere ? (Appearance.aurora?.colAccent ?? Appearance.m3colors.m3primary)
         : Appearance.m3colors.m3primary
 
     readonly property color layerColor: Appearance.angelEverywhere ? Appearance.colors.colLayer0Base
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer0
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer0
         : Appearance.auroraEverywhere ? (Appearance.aurora?.colSurface ?? Appearance.colors.colLayer0)
         : Appearance.colors.colLayer0
 
     readonly property color surfaceColor: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
         : Appearance.auroraEverywhere ? (Appearance.aurora?.colSubSurface ?? Appearance.m3colors.m3surfaceContainerLow)
         : Appearance.m3colors.m3surfaceContainerLow
 
     readonly property color textColor: Appearance.angelEverywhere ? Appearance.angel.colText : Appearance.colors.colOnSurface
     readonly property color subtextColor: Appearance.angelEverywhere ? Appearance.angel.colTextSecondary : Appearance.colors.colSubtext
     readonly property color borderColor: Appearance.angelEverywhere ? Appearance.angel.colBorder
-        : Appearance.inirEverywhere ? Appearance.inir.colBorder
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
         : Appearance.colors.colLayer0Border
 
     // Adaptive rounding
     readonly property real cardRadius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-        : Appearance.inirEverywhere ? Appearance.inir.roundingNormal
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal
         : Appearance.rounding.windowRounding
     readonly property real sectionRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-        : Appearance.inirEverywhere ? Appearance.inir.roundingSmall
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall
         : Appearance.rounding.small
     readonly property real pillRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-        : Appearance.inirEverywhere ? Appearance.inir.roundingSmall : 999
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : 999
 
     // Parse commit log lines: "hash|subject|relative_date|author"
     function parseCommits(raw) {
@@ -176,12 +176,12 @@ Scope {
             MultiEffect {
                 anchors.fill: parent
                 source: wallpaperSource
-                blurEnabled: Appearance.effectsEnabled && !Appearance.inirEverywhere
-                blur: (Appearance.effectsEnabled && !Appearance.inirEverywhere) ? 1.0 : 0
+                blurEnabled: Appearance.effectsEnabled && !Appearance.ryokuEverywhere
+                blur: (Appearance.effectsEnabled && !Appearance.ryokuEverywhere) ? 1.0 : 0
                 blurMax: 100
                 blurMultiplier: 1.0
-                saturation: (Appearance.effectsEnabled && !Appearance.inirEverywhere) ? 0.2 : 0
-                visible: !Appearance.inirEverywhere
+                saturation: (Appearance.effectsEnabled && !Appearance.ryokuEverywhere) ? 0.2 : 0
+                visible: !Appearance.ryokuEverywhere
                 opacity: root.isOpen ? 1 : 0
 
                 Behavior on opacity {
@@ -196,7 +196,7 @@ Scope {
 
             Rectangle {
                 anchors.fill: parent
-                color: Appearance.inirEverywhere
+                color: Appearance.ryokuEverywhere
                     ? ColorUtils.applyAlpha(root.layerColor, 0.95)
                     : ColorUtils.applyAlpha(root.layerColor, 0.85)
                 opacity: root.isOpen ? 1 : 0
@@ -310,8 +310,8 @@ Scope {
                         height: 44
                         radius: root.sectionRadius
                         color: ColorUtils.transparentize(root.accentColor, 0.85)
-                        border.width: Appearance.inirEverywhere ? 1 : 0
-                        border.color: Appearance.inirEverywhere ? root.borderColor : "transparent"
+                        border.width: Appearance.ryokuEverywhere ? 1 : 0
+                        border.color: Appearance.ryokuEverywhere ? root.borderColor : "transparent"
                         Layout.alignment: Qt.AlignVCenter
 
                         MaterialSymbol {
@@ -349,8 +349,8 @@ Scope {
                                 implicitHeight: versionRow.implicitHeight + 10
                                 radius: root.pillRadius
                                 color: root.surfaceColor
-                                border.width: Appearance.inirEverywhere ? 1 : 0
-                                border.color: Appearance.inirEverywhere ? root.borderColor : "transparent"
+                                border.width: Appearance.ryokuEverywhere ? 1 : 0
+                                border.color: Appearance.ryokuEverywhere ? root.borderColor : "transparent"
 
                                 RowLayout {
                                     id: versionRow
@@ -540,10 +540,10 @@ Scope {
                                 console.log("[ShellUpdates] Diagnostics:\n" + diag)
                                 Notifications.notify({
                                     summary: "Update System Diagnostics",
-                                    body: "Diagnostics printed to console. Run: qs log -c inir | tail -50",
+                                    body: "Diagnostics printed to console. Run: qs log -c ryoku-shell | tail -50",
                                     urgency: NotificationUrgency.Normal,
                                     timeout: 8000,
-                                    appName: "iNiR Shell"
+                                    appName: "Ryoku Shell"
                                 })
                             }
 
@@ -611,8 +611,8 @@ Scope {
                                 implicitHeight: sysInfoCol.implicitHeight + 28
                                 radius: root.sectionRadius
                                 color: root.surfaceColor
-                                border.width: Appearance.inirEverywhere ? 1 : 0
-                                border.color: Appearance.inirEverywhere ? root.borderColor : "transparent"
+                                border.width: Appearance.ryokuEverywhere ? 1 : 0
+                                border.color: Appearance.ryokuEverywhere ? root.borderColor : "transparent"
 
                                 ColumnLayout {
                                     id: sysInfoCol
@@ -980,8 +980,8 @@ Scope {
                                     implicitHeight: changelogText.implicitHeight + 24
                                     radius: root.sectionRadius
                                     color: root.surfaceColor
-                                    border.width: Appearance.inirEverywhere ? 1 : 0
-                                    border.color: Appearance.inirEverywhere ? root.borderColor : "transparent"
+                                    border.width: Appearance.ryokuEverywhere ? 1 : 0
+                                    border.color: Appearance.ryokuEverywhere ? root.borderColor : "transparent"
 
                                     StyledText {
                                         id: changelogText
@@ -1035,8 +1035,8 @@ Scope {
                                     implicitHeight: incomingCommitsCol.implicitHeight + 16
                                     radius: root.sectionRadius
                                     color: root.surfaceColor
-                                    border.width: Appearance.inirEverywhere ? 1 : 0
-                                    border.color: Appearance.inirEverywhere ? root.borderColor : "transparent"
+                                    border.width: Appearance.ryokuEverywhere ? 1 : 0
+                                    border.color: Appearance.ryokuEverywhere ? root.borderColor : "transparent"
 
                                     ColumnLayout {
                                         id: incomingCommitsCol
@@ -1056,7 +1056,7 @@ Scope {
                                                 required property int index
                                                 Layout.fillWidth: true
                                                 implicitHeight: incomingRow.implicitHeight + 12
-                                                radius: Appearance.inirEverywhere ? 2 : (Appearance.rounding?.smaller ?? 4)
+                                                radius: Appearance.ryokuEverywhere ? 2 : (Appearance.rounding?.smaller ?? 4)
                                                 color: index % 2 === 0
                                                     ? "transparent"
                                                     : ColorUtils.transparentize(root.layerColor, 0.5)
@@ -1149,8 +1149,8 @@ Scope {
                                     implicitHeight: localCommitsCol.implicitHeight + 16
                                     radius: root.sectionRadius
                                     color: root.surfaceColor
-                                    border.width: Appearance.inirEverywhere ? 1 : 0
-                                    border.color: Appearance.inirEverywhere ? root.borderColor : "transparent"
+                                    border.width: Appearance.ryokuEverywhere ? 1 : 0
+                                    border.color: Appearance.ryokuEverywhere ? root.borderColor : "transparent"
 
                                     ColumnLayout {
                                         id: localCommitsCol
@@ -1170,7 +1170,7 @@ Scope {
                                                 required property int index
                                                 Layout.fillWidth: true
                                                 implicitHeight: localRow.implicitHeight + 12
-                                                radius: Appearance.inirEverywhere ? 2 : (Appearance.rounding?.smaller ?? 4)
+                                                radius: Appearance.ryokuEverywhere ? 2 : (Appearance.rounding?.smaller ?? 4)
                                                 color: index % 2 === 0
                                                     ? "transparent"
                                                     : ColorUtils.transparentize(root.layerColor, 0.5)

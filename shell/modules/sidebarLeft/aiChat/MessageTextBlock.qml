@@ -156,10 +156,10 @@ ColumnLayout {
             font.family: Appearance.font.family.reading
             font.hintingPreference: Font.PreferNoHinting // Prevent weird bold text
             font.pixelSize: Appearance.font.pixelSize.small
-            selectedTextColor: Appearance.inirEverywhere ? Appearance.inir.colOnSelection : Appearance.m3colors.m3onSecondaryContainer
-            selectionColor: Appearance.inirEverywhere ? Appearance.inir.colSelection : Appearance.colors.colSecondaryContainer
+            selectedTextColor: Appearance.ryokuEverywhere ? Appearance.ryoku.colOnSelection : Appearance.m3colors.m3onSecondaryContainer
+            selectionColor: Appearance.ryokuEverywhere ? Appearance.ryoku.colSelection : Appearance.colors.colSecondaryContainer
             wrapMode: TextEdit.Wrap
-            color: root.messageData?.thinking ? (Appearance.inirEverywhere ? Appearance.inir.colTextSecondary : Appearance.colors.colSubtext) : (Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer1)
+            color: root.messageData?.thinking ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary : Appearance.colors.colSubtext) : (Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer1)
             textFormat: renderMarkdown ? TextEdit.MarkdownText : TextEdit.PlainText
             text: modelData
 

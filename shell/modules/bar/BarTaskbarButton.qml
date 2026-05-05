@@ -101,26 +101,26 @@ RippleButton {
     rightInset: 2
 
     buttonRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-        : Appearance.inirEverywhere ? Appearance.inir.roundingSmall
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall
         : Appearance.rounding.small
 
     colBackground: "transparent"
     colBackgroundHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer1Hover
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1Hover
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
         : Appearance.colors.colLayer1Hover
     colRipple: Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer1Active
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1Active
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive
         : Appearance.colors.colLayer1Active
 
     // Active app gets a subtle background tint
     colBackgroundToggled: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer2
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
         : Appearance.colors.colSecondaryContainer
     colBackgroundToggledHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer2Hover
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive
         : Appearance.colors.colSecondaryContainerHover
     colRippleToggled: Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive
@@ -363,7 +363,7 @@ RippleButton {
                         anchors.fill: desat
                         source: desat
                         color: ColorUtils.transparentize(
-                            Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary, 0.9)
+                            Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary, 0.9)
                     }
                 }
             }
@@ -411,11 +411,11 @@ RippleButton {
                             implicitHeight: root.vertical ? (isFocused ? 8 : 3) : 2
                             color: isFocused
                                 ? (Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                                : Appearance.inirEverywhere ? Appearance.inir.colPrimary
+                                : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary
                                 : Appearance.colors.colPrimary)
                                 : ColorUtils.transparentize(
                                     Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
-                                    : Appearance.inirEverywhere ? Appearance.inir.colText
+                                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colText
                                     : Appearance.colors.colOnLayer0, 0.5)
 
                             Behavior on implicitWidth {
@@ -437,7 +437,7 @@ RippleButton {
                         radius: 1
                         color: ColorUtils.transparentize(
                             Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
-                            : Appearance.inirEverywhere ? Appearance.inir.colText
+                            : Appearance.ryokuEverywhere ? Appearance.ryoku.colText
                             : Appearance.colors.colOnLayer0, 0.5)
                     }
                 }
@@ -452,7 +452,7 @@ RippleButton {
         sourceComponent: Rectangle {
             width: root.vertical ? (root.barSize / 2.5) : 1
             height: root.vertical ? 1 : (root.barSize / 2.5)
-            color: Appearance.inirEverywhere ? Appearance.inir.colBorderSubtle
+            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colBorderSubtle
                  : Appearance.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colOnLayer0, 0.7)
                  : Appearance.colors.colOutlineVariant
         }

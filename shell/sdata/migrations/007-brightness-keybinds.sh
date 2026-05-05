@@ -3,7 +3,7 @@
 
 MIGRATION_ID="007-brightness-keybinds"
 MIGRATION_TITLE="Brightness Hardware Keys"
-MIGRATION_DESCRIPTION="Adds XF86MonBrightnessUp/Down keybinds that use iNiR IPC.
+MIGRATION_DESCRIPTION="Adds XF86MonBrightnessUp/Down keybinds that use Ryoku IPC.
   Shows on-screen display when changing brightness."
 MIGRATION_TARGET_FILE="~/.config/niri/config.kdl"
 MIGRATION_REQUIRED=false
@@ -14,8 +14,8 @@ migration_check() {
 }
 
 migration_preview() {
-  echo -e "${STY_GREEN}+ XF86MonBrightnessUp { spawn \"inir\" \"brightness\" \"increment\"; }${STY_RST}"
-  echo -e "${STY_GREEN}+ XF86MonBrightnessDown { spawn \"inir\" \"brightness\" \"decrement\"; }${STY_RST}"
+  echo -e "${STY_GREEN}+ XF86MonBrightnessUp { spawn \"ryoku-shell\" \"brightness\" \"increment\"; }${STY_RST}"
+  echo -e "${STY_GREEN}+ XF86MonBrightnessDown { spawn \"ryoku-shell\" \"brightness\" \"decrement\"; }${STY_RST}"
 }
 
 migration_apply() {
@@ -51,8 +51,8 @@ for i, line in enumerate(lines):
 if insert_idx is not None:
     brightness_block = '''
     // Brightness (hardware keys)
-    XF86MonBrightnessUp { spawn "inir" "brightness" "increment"; }
-    XF86MonBrightnessDown { spawn "inir" "brightness" "decrement"; }
+    XF86MonBrightnessUp { spawn "ryoku-shell" "brightness" "increment"; }
+    XF86MonBrightnessDown { spawn "ryoku-shell" "brightness" "decrement"; }
 '''
     lines.insert(insert_idx + 1, brightness_block)
     

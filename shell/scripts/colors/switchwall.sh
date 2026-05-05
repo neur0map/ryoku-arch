@@ -10,7 +10,7 @@ SHELL_ROOT="$(cd "$SCRIPT_DIR/../.." 2>/dev/null && pwd)"
 
 # shellcheck source=scripts/lib/config-path.sh
 source "$SCRIPT_DIR/../lib/config-path.sh"
-SHELL_CONFIG_FILE="$(inir_config_file)"
+SHELL_CONFIG_FILE="$(ryoku_shell_config_file)"
 TEMPLATE_DIR="$XDG_CONFIG_HOME/matugen"
 terminalscheme="$SCRIPT_DIR/terminal/scheme-base.json"
 
@@ -149,7 +149,7 @@ check_and_prompt_upscale() {
 
     # Check if upscale notifications are disabled in config
     local config_file
-    config_file="$(inir_config_file)"
+    config_file="$(ryoku_shell_config_file)"
     if [[ -f "$config_file" ]] && command -v jq &>/dev/null; then
         local hide_upscale
         hide_upscale=$(jq -r '.background.hideUpscaleNotification // false' "$config_file" 2>/dev/null)
@@ -665,8 +665,8 @@ switch() {
     fi
 
     # Generate colors and render templates in one unified Python pass
-    if [[ -n "${INIR_VENV:-}" ]]; then
-        _ii_venv="$(eval echo "$INIR_VENV")"
+    if [[ -n "${RYOKU_SHELL_VENV:-}" ]]; then
+        _ii_venv="$(eval echo "$RYOKU_SHELL_VENV")"
     elif [[ -n "${ILLOGICAL_IMPULSE_VIRTUAL_ENV:-}" ]]; then
         _ii_venv="$(eval echo "$ILLOGICAL_IMPULSE_VIRTUAL_ENV")"
     else
@@ -797,8 +797,8 @@ main() {
     detect_scheme_type_from_image() {
         local img="$1"
         local _det_venv
-        if [[ -n "${INIR_VENV:-}" ]]; then
-            _det_venv="$(eval echo "$INIR_VENV")"
+        if [[ -n "${RYOKU_SHELL_VENV:-}" ]]; then
+            _det_venv="$(eval echo "$RYOKU_SHELL_VENV")"
         elif [[ -n "${ILLOGICAL_IMPULSE_VIRTUAL_ENV:-}" ]]; then
             _det_venv="$(eval echo "$ILLOGICAL_IMPULSE_VIRTUAL_ENV")"
         else

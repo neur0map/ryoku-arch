@@ -1,6 +1,6 @@
 //@ pragma UseQApplication
 //@ pragma Env QS_NO_RELOAD_POPUP=1
-//@ pragma Env INIR_STANDALONE_WINDOW=1
+//@ pragma Env RYOKU_SHELL_STANDALONE_WINDOW=1
 //@ pragma Env QT_QUICK_CONTROLS_STYLE=Basic
 //@ pragma Env QT_QUICK_FLICKABLE_WHEEL_DECELERATION=10000
 // Launcher keeps QT_SCALE_FACTOR=1; shell scaling lives in appearance.typography.sizeScale
@@ -523,7 +523,7 @@ ApplicationWindow {
             section: Translation.tr("Global Style"),
             label: Translation.tr("Global Style"),
             description: Translation.tr("Material, Cards, Aurora glass effect, Inir TUI style"),
-            keywords: ["global", "style", "aurora", "inir", "material", "cards", "glass", "tui", "transparency", "blur"]
+            keywords: ["global", "style", "aurora", "ryoku-shell", "material", "cards", "glass", "tui", "transparency", "blur"]
         },
         {
             pageIndex: 4, pageName: pages[4].name,
@@ -537,7 +537,7 @@ ApplicationWindow {
             section: Translation.tr("Global Style"),
             label: Translation.tr("Inir"),
             description: Translation.tr("TUI-inspired style with accent borders"),
-            keywords: ["inir", "tui", "terminal", "borders", "style", "minimal"]
+            keywords: ["ryoku-shell", "tui", "terminal", "borders", "style", "minimal"]
         },
         {
             pageIndex: 4, pageName: pages[4].name,
@@ -1672,7 +1672,7 @@ ApplicationWindow {
     width: 1100
     height: 750
     color: root.uiReady
-        ? (Appearance.inirEverywhere ? Appearance.inir.colLayer0
+        ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer0
           : Appearance.m3colors.m3background)
         : "transparent"
 
@@ -1830,18 +1830,18 @@ ApplicationWindow {
                 color: settingsSearchField.activeFocus
                     ? (Appearance.angelEverywhere ? Appearance.angel.colGlassCard
                       : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
-                      : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+                      : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
                       : Appearance.colors.colLayer1)
                     : (Appearance.angelEverywhere ? Appearance.angel.colGlassCard
                       : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
-                      : Appearance.inirEverywhere ? Appearance.inir.colLayer0
+                      : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer0
                       : Appearance.colors.colLayer0)
                 border.width: settingsSearchField.activeFocus ? 2
                     : (Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth : 1)
                 border.color: settingsSearchField.activeFocus
                     ? Appearance.colors.colPrimary
                     : (Appearance.angelEverywhere ? Appearance.angel.colCardBorder
-                      : Appearance.inirEverywhere ? Appearance.inir.colBorderMuted
+                      : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorderMuted
                       : Appearance.m3colors.m3outlineVariant)
 
                 Behavior on color { ColorAnimation { duration: 150 } }
@@ -2020,7 +2020,7 @@ ApplicationWindow {
                     buttonRadius: Appearance.rounding.full
                     implicitWidth: 35
                     implicitHeight: 35
-                    onClicked: Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "lock", "activate"])
+                    onClicked: Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "lock", "activate"])
                     contentItem: MaterialSymbol {
                         anchors.centerIn: parent
                         horizontalAlignment: Text.AlignHCenter
@@ -2227,7 +2227,7 @@ ApplicationWindow {
                     id: settingsRestartTimer
                     interval: 500
                     onTriggered: {
-                        Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "settings"])
+                        Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "settings"])
                         Qt.quit()
                     }
                 }
@@ -2238,15 +2238,15 @@ ApplicationWindow {
                 Layout.fillHeight: true
                 color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
                      : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
-                     : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+                     : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
                      : Appearance.m3colors.m3surfaceContainerLow
                 radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-                      : Appearance.inirEverywhere ? Appearance.inir.roundingNormal
+                      : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal
                       : Appearance.rounding.windowRounding - root.contentPadding
                 border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth
-                            : Appearance.inirEverywhere ? 1 : 0
+                            : Appearance.ryokuEverywhere ? 1 : 0
                 border.color: Appearance.angelEverywhere ? Appearance.angel.colCardBorder
-                            : Appearance.inirEverywhere ? Appearance.inir.colBorderSubtle
+                            : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorderSubtle
                             : "transparent"
 
                 Item {
@@ -2341,13 +2341,13 @@ ApplicationWindow {
                         anchors.top: parent.top
                         anchors.topMargin: 8
                         radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-                             : Appearance.inirEverywhere ? Appearance.inir.roundingNormal
+                             : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal
                              : Appearance.rounding.normal
                         color: "transparent"
                         border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth
-                                    : Appearance.inirEverywhere ? 1 : 1
+                                    : Appearance.ryokuEverywhere ? 1 : 1
                         border.color: Appearance.angelEverywhere ? Appearance.angel.colCardBorder
-                            : Appearance.inirEverywhere ? Appearance.inir.colBorder
+                            : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
                             : Appearance.auroraEverywhere ? Appearance.aurora.colPopupBorder
                             : Appearance.m3colors.m3outlineVariant
 
@@ -2360,7 +2360,7 @@ ApplicationWindow {
                             screenHeight: Quickshell.screens[0]?.height ?? root.height
                             hovered: false
                             fallbackColor: Appearance.colors.colLayer1
-                            inirColor: Appearance.inir.colLayer2
+                            ryokuColor: Appearance.ryoku.colLayer2
                             auroraTransparency: Math.max(0.22, Appearance.aurora.popupTransparentize - 0.12)
                         }
 
@@ -2415,17 +2415,17 @@ ApplicationWindow {
                                 width: resultsListView.width
                                 implicitHeight: 52
                                 buttonRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-                                            : Appearance.inirEverywhere ? Appearance.inir.roundingSmall
+                                            : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall
                                             : Appearance.rounding.small
 
                                 colBackground: ListView.isCurrentItem
                                     ? (Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-                                      : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+                                      : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
                                       : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurface
                                       : Appearance.colors.colPrimaryContainer)
                                     : "transparent"
                                 colBackgroundHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-                                                  : Appearance.inirEverywhere ? Appearance.inir.colLayer1Hover
+                                                  : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1Hover
                                                   : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
                                                   : Appearance.colors.colLayer2
 
@@ -2544,7 +2544,7 @@ ApplicationWindow {
                         screenHeight: Quickshell.screens[0]?.height ?? root.height
                         hovered: false
                         fallbackColor: Appearance.colors.colLayer1
-                        inirColor: Appearance.inir.colLayer2
+                        ryokuColor: Appearance.ryoku.colLayer2
                         auroraTransparency: Math.max(0.22, Appearance.aurora.popupTransparentize - 0.12)
                     }
 

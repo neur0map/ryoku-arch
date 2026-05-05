@@ -46,14 +46,14 @@ Rectangle {
         id: dialogBackground
         anchors.horizontalCenter: parent.horizontalCenter
         radius: Appearance.angelEverywhere ? Appearance.angel.roundingLarge
-            : Appearance.inirEverywhere ? Appearance.inir.roundingLarge
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingLarge
             : Appearance.rounding.large
         fallbackColor: Appearance.m3colors.m3surfaceContainerHigh
-        inirColor: Appearance.inir.colLayer2
+        ryokuColor: Appearance.ryoku.colLayer2
         auroraTransparency: Appearance.aurora.popupTransparentize * 0.85
-        border.width: (Appearance.angelEverywhere || Appearance.inirEverywhere || Appearance.auroraEverywhere) ? 1 : 0
+        border.width: (Appearance.angelEverywhere || Appearance.ryokuEverywhere || Appearance.auroraEverywhere) ? 1 : 0
         border.color: Appearance.angelEverywhere ? Appearance.angel.colBorder
-            : Appearance.inirEverywhere ? Appearance.inir.colBorder 
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder 
             : Appearance.auroraEverywhere ? Appearance.aurora.colTooltipBorder : "transparent"
         
         property real targetY: root.height / 2 - root.backgroundHeight / 2

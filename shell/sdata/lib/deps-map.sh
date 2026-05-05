@@ -1,4 +1,4 @@
-# Dependency mapping for iNiR across distributions
+# Dependency mapping for Ryoku across distributions
 # This file maps generic dependency names to distro-specific package names
 # Format: DEPS_<CATEGORY>_<GENERIC_NAME>="arch:pkg fedora:pkg debian:pkg opensuse:pkg void:pkg"
 #

@@ -18,22 +18,22 @@ RippleButton { // Expand button
     buttonRadius: Appearance.rounding.full
     colBackground: Appearance.angelEverywhere
         ? Appearance.angel.colGlassCard
-        : Appearance.inirEverywhere 
-        ? Appearance.inir.colLayer2Hover
+        : Appearance.ryokuEverywhere 
+        ? Appearance.ryoku.colLayer2Hover
         : Appearance.auroraEverywhere 
         ? Appearance.aurora.colSubSurface
         : ColorUtils.mix(Appearance?.colors.colLayer2, Appearance?.colors.colLayer2Hover, 0.5)
     colBackgroundHover: Appearance.angelEverywhere
         ? Appearance.angel.colGlassCardHover
-        : Appearance.inirEverywhere 
-        ? Appearance.inir.colLayer3Hover
+        : Appearance.ryokuEverywhere 
+        ? Appearance.ryoku.colLayer3Hover
         : Appearance.auroraEverywhere 
         ? Appearance.aurora.colSubSurfaceHover
         : Appearance?.colors.colLayer2Hover ?? "#E5DFED"
     colRipple: Appearance.angelEverywhere
         ? Appearance.angel.colGlassCardActive
-        : Appearance.inirEverywhere 
-        ? Appearance.inir.colLayer3Active
+        : Appearance.ryokuEverywhere 
+        ? Appearance.ryoku.colLayer3Active
         : Appearance.auroraEverywhere 
         ? Appearance.aurora.colSubSurfaceActive
         : Appearance?.colors.colLayer2Active ?? "#D6CEE2"

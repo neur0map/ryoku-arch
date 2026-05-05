@@ -25,7 +25,7 @@ Item {
             Layout.fillWidth: true
             Layout.topMargin: 2
             height: 1
-            color: Appearance.inirEverywhere ? Appearance.inir.colBorder
+            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
                 : Appearance.angelEverywhere ? Appearance.angel.colBorderSubtle
                 : Appearance.colors.colOutlineVariant
             opacity: 0.35
@@ -37,7 +37,7 @@ Item {
             font.pixelSize: root.fontSize
             font.weight: root.fontWeight
             font.letterSpacing: 0.5
-            color: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary
+            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
                 : Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
                 : Appearance.colors.colSubtext
             opacity: 0.8

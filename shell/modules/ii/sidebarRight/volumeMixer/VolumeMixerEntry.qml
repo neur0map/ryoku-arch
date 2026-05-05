@@ -16,7 +16,7 @@ Rectangle {
     implicitHeight: rowLayout.implicitHeight + Appearance.sizes.spacingMedium * 2
     radius: Appearance.rounding.small
     color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer2
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
         : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurface : Appearance.colors.colLayer2
 
     RowLayout {

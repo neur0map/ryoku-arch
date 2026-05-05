@@ -31,9 +31,9 @@ Item {
             lineWidth: Appearance.rounding.unsharpen
             value: percentage
             implicitSize: 20
-            colPrimary: root.warning ? (Appearance.inirEverywhere ? Appearance.inir.colError : Appearance.colors.colError) : 
-                        root.caution ? (Appearance.inirEverywhere ? Appearance.inir.colWarning : Appearance.m3colors.m3tertiary) :
-                        (Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnSecondaryContainer)
+            colPrimary: root.warning ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colError : Appearance.colors.colError) : 
+                        root.caution ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colWarning : Appearance.m3colors.m3tertiary) :
+                        (Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnSecondaryContainer)
             accountForLightBleeding: !root.warning && !root.caution
             enableAnimation: false
 
@@ -48,7 +48,7 @@ Item {
                     fill: 1
                     text: iconName
                     iconSize: Appearance.font.pixelSize.normal
-                    color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.m3colors.m3onSecondaryContainer
+                    color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.m3colors.m3onSecondaryContainer
                 }
             }
         }
@@ -67,7 +67,7 @@ Item {
             StyledText {
                 id: percentageText
                 anchors.centerIn: parent
-                color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer1
+                color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer1
                 font.pixelSize: Appearance.font.pixelSize.small
                 text: `${Math.round(percentage * 100).toString()}`
             }

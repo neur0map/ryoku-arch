@@ -17,19 +17,19 @@ Item {
 
     // Style tokens
     readonly property color colPrimary: Appearance.angelEverywhere ? Appearance.angel.colPrimary
-        : Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary
     readonly property color colText: Appearance.angelEverywhere ? Appearance.angel.colText
-        : Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer1
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer1
     readonly property color colSubtext: Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
-        : Appearance.inirEverywhere ? Appearance.inir.colTextSecondary : Appearance.colors.colSubtext
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary : Appearance.colors.colSubtext
     readonly property color colBadgeBg: Appearance.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colPrimary, 0.70)
-        : Appearance.inirEverywhere ? Appearance.inir.colSecondaryContainer
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colSecondaryContainer
         : Appearance.colors.colSecondaryContainer
     readonly property color colBadgeText: Appearance.angelEverywhere ? Appearance.angel.colOnPrimary
-        : Appearance.inirEverywhere ? Appearance.inir.colOnSecondaryContainer
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colOnSecondaryContainer
         : Appearance.colors.colOnSecondaryContainer
     readonly property color colEmptyBg: Appearance.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colPrimary, 0.85)
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
         : Appearance.auroraEverywhere ? (Appearance.aurora?.colSubSurface ?? Appearance.colors.colSecondaryContainer)
         : Appearance.colors.colSecondaryContainer
     

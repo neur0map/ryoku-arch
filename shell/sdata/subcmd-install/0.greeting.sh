@@ -1,4 +1,4 @@
-# Greeting for iNiR installer
+# Greeting for Ryoku installer
 # This script is meant to be sourced.
 
 # shellcheck shell=bash

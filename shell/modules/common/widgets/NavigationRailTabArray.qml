@@ -23,7 +23,7 @@ Item {
         }
         radius: Appearance.rounding.full
         color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-             : Appearance.inirEverywhere ? Appearance.inir.colSecondaryContainer
+             : Appearance.ryokuEverywhere ? Appearance.ryoku.colSecondaryContainer
              : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurface 
              : Appearance.colors.colSecondaryContainer
         implicitHeight: root.expanded ? itemHeight : baseHighlightHeight

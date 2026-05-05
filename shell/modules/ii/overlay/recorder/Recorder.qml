@@ -72,7 +72,7 @@ StyledOverlayWidget {
                     name: Translation.tr("Screenshot region")
                     onClicked: {
                         GlobalStates.overlayOpen = false;
-                        Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "region", "screenshot"]);
+                        Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "region", "screenshot"]);
                     }
                 }
 
@@ -95,7 +95,7 @@ StyledOverlayWidget {
                             Quickshell.execDetached([Directories.recordScriptPath]);
                         } else {
                             GlobalStates.overlayOpen = false;
-                            Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "region", "recordWithSound"]);
+                            Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "region", "recordWithSound"]);
                         }
                     }
                     property bool isFullscreenRecording: false

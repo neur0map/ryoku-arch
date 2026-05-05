@@ -23,7 +23,7 @@ RippleButton {
 
     toggled: (isToday == 1) && !isHeader
     buttonRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-        : Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.small
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.small
 
     contentItem: Item {
         anchors.fill: parent
@@ -36,15 +36,15 @@ RippleButton {
             font.weight: button.bold ? Font.DemiBold : Font.Normal
             color: button.isHeader && (button.isToday == 1)
                 ? (Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                    : Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary)
+                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary)
                 : (button.isToday == 1)
                     ? (Appearance.angelEverywhere ? Appearance.angel.colOnPrimary
-                        : Appearance.inirEverywhere ? Appearance.inir.colOnPrimary : Appearance.colors.colOnPrimary)
+                        : Appearance.ryokuEverywhere ? Appearance.ryoku.colOnPrimary : Appearance.colors.colOnPrimary)
                     : (button.isToday == 0)
                         ? (Appearance.angelEverywhere ? Appearance.angel.colText
-                            : Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer1)
+                            : Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer1)
                         : (Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
-                            : Appearance.inirEverywhere ? Appearance.inir.colTextSecondary
+                            : Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
                             : Appearance.auroraEverywhere ? Appearance.colors.colSubtext
                             : Appearance.colors.colOutlineVariant)
 
@@ -71,9 +71,9 @@ RippleButton {
                         if (button.eventCount > 0) {
                             const primary = button.isToday == 1
                                 ? (Appearance.angelEverywhere ? Appearance.angel.colOnPrimary
-                                    : Appearance.inirEverywhere ? Appearance.inir.colOnPrimary : Appearance.colors.colOnPrimary)
+                                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colOnPrimary : Appearance.colors.colOnPrimary)
                                 : (Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                                    : Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary)
+                                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary)
                             return [primary]
                         }
                         return []
@@ -104,9 +104,9 @@ RippleButton {
                 font.weight: Font.Bold
                 color: button.isToday == 1
                     ? (Appearance.angelEverywhere ? Appearance.angel.colOnPrimary
-                        : Appearance.inirEverywhere ? Appearance.inir.colOnPrimary : Appearance.colors.colOnPrimary)
+                        : Appearance.ryokuEverywhere ? Appearance.ryoku.colOnPrimary : Appearance.colors.colOnPrimary)
                     : (Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
-                        : Appearance.inirEverywhere ? Appearance.inir.colTextSecondary : Appearance.colors.colSubtext)
+                        : Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary : Appearance.colors.colSubtext)
             }
         }
     }

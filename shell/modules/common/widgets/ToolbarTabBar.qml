@@ -68,37 +68,37 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 readonly property real padding: 4
                 implicitWidth: contentItem.implicitWidth + padding * 2
-                height: Appearance.angelEverywhere ? 36 : Appearance.inirEverywhere ? 36 : 40
+                height: Appearance.angelEverywhere ? 36 : Appearance.ryokuEverywhere ? 36 : 40
                 x: flick.contentWidth > flick.width ? 0 : Math.max(0, (flick.width - width) / 2)
 
                 Rectangle {
                     id: groupBackground
                     anchors.fill: parent
                     radius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-                        : Appearance.inirEverywhere ? Appearance.inir.roundingSmall : height / 2
+                        : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : height / 2
                     color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                        : Appearance.inirEverywhere ? "transparent" 
+                        : Appearance.ryokuEverywhere ? "transparent" 
                          : Appearance.auroraEverywhere ? "transparent"
                          : Appearance.colors.colSurfaceContainer
-                    border.width: (Appearance.angelEverywhere || Appearance.inirEverywhere) ? 1 : 0
+                    border.width: (Appearance.angelEverywhere || Appearance.ryokuEverywhere) ? 1 : 0
                     border.color: Appearance.angelEverywhere ? Appearance.angel.colBorder
-                        : Appearance.inirEverywhere ? Appearance.inir.colBorder : "transparent"
+                        : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder : "transparent"
                 }
 
                 Rectangle {
                     id: activeIndicator
                     z: 1
                     color: Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                        : Appearance.inirEverywhere ? ColorUtils.transparentize(Appearance.inir.colPrimary, 0.85) 
+                        : Appearance.ryokuEverywhere ? ColorUtils.transparentize(Appearance.ryoku.colPrimary, 0.85) 
                         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
                         : Appearance.colors.colSecondaryContainer
-                    border.width: (Appearance.angelEverywhere || Appearance.inirEverywhere) ? 1 : 0
+                    border.width: (Appearance.angelEverywhere || Appearance.ryokuEverywhere) ? 1 : 0
                     border.color: Appearance.angelEverywhere ? Appearance.angel.colBorderHover
-                        : Appearance.inirEverywhere ? Appearance.inir.colBorderAccent : "transparent"
+                        : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorderAccent : "transparent"
                     implicitWidth: targetItem ? targetItem.implicitWidth : 0
-                    implicitHeight: targetItem ? (Appearance.angelEverywhere ? 28 : Appearance.inirEverywhere ? 28 : (Appearance.auroraEverywhere ? 32 : targetItem.implicitHeight)) : 0
+                    implicitHeight: targetItem ? (Appearance.angelEverywhere ? 28 : Appearance.ryokuEverywhere ? 28 : (Appearance.auroraEverywhere ? 32 : targetItem.implicitHeight)) : 0
                     radius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-                        : Appearance.inirEverywhere ? Appearance.inir.roundingSmall : height / 2
+                        : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : height / 2
                     anchors.verticalCenter: parent.verticalCenter
                     // Animation
                     property Item targetItem: tabRepeater.itemAt(root.currentIndex)

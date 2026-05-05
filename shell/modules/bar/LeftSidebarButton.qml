@@ -10,28 +10,29 @@ RippleButton {
     property bool showPing: false
 
     property real buttonPadding: 5
+    readonly property string configuredIcon: Config.options?.bar?.topLeftIcon ?? "ryoku"
     implicitWidth: distroIcon.width + buttonPadding * 2
     implicitHeight: distroIcon.height + buttonPadding * 2
     buttonRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-        : Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.full
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.full
     colBackgroundHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer1Hover 
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1Hover 
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface 
         : Appearance.colors.colLayer1Hover
     colRipple: Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer1Active 
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1Active 
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive 
         : Appearance.colors.colLayer1Active
     colBackgroundToggled: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-        : Appearance.inirEverywhere ? Appearance.inir.colPrimaryContainer 
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimaryContainer 
         : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurface 
         : Appearance.colors.colSecondaryContainer
     colBackgroundToggledHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-        : Appearance.inirEverywhere ? Appearance.inir.colSelectionHover 
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colSelectionHover 
         : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurfaceHover 
         : Appearance.colors.colSecondaryContainerHover
     colRippleToggled: Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
-        : Appearance.inirEverywhere ? Appearance.inir.colPrimaryActive 
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimaryActive 
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive 
         : Appearance.colors.colSecondaryContainerActive
     toggled: GlobalStates.sidebarLeftOpen
@@ -74,9 +75,9 @@ RippleButton {
     CustomIcon {
         id: distroIcon
         anchors.centerIn: parent
-        width: 19.5
-        height: 19.5
-        source: (Config.options?.bar?.topLeftIcon ?? 'distro') == 'distro' ? SystemInfo.distroIcon : `${Config.options?.bar?.topLeftIcon ?? 'distro'}-symbolic`
+        width: 20
+        height: 20
+        source: root.configuredIcon == 'distro' ? SystemInfo.distroIcon : `${root.configuredIcon}-symbolic`
         colorize: true
         color: Appearance.colors.colOnLayer0
 

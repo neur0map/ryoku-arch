@@ -17,12 +17,12 @@ Rectangle {
     required property bool downloaded
     
     // Optional properties
-    property real artRadius: Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.small
-    property color placeholderColor: Appearance.inirEverywhere 
-        ? Appearance.inir.colLayer2 
+    property real artRadius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.small
+    property color placeholderColor: Appearance.ryokuEverywhere 
+        ? Appearance.ryoku.colLayer2 
         : Appearance.colors.colLayer1
-    property color iconColor: Appearance.inirEverywhere 
-        ? Appearance.inir.colTextSecondary 
+    property color iconColor: Appearance.ryokuEverywhere 
+        ? Appearance.ryoku.colTextSecondary 
         : Appearance.colors.colSubtext
     property int iconSize: 32
     property bool enableBlurTransition: true

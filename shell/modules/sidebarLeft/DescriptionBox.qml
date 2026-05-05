@@ -17,7 +17,7 @@ Item { // Tag suggestion description
     Rectangle {
         id: tagDescriptionBackground
         color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-            : Appearance.inirEverywhere ? Appearance.inir.colLayer2 : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurface : Appearance.colors.colLayer2
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2 : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurface : Appearance.colors.colLayer2
         anchors.fill: parent
         radius: Appearance.rounding.verysmall
         implicitHeight: descriptionRow.implicitHeight + 5 * 2

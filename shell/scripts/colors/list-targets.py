@@ -16,7 +16,7 @@ def resolve_default_config_path() -> Path:
     xdg_config_home = Path(
         os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))
     )
-    new_file = xdg_config_home / "inir" / "config.json"
+    new_file = xdg_config_home / "ryoku-shell" / "config.json"
     old_file = xdg_config_home / "illogical-impulse" / "config.json"
 
     if old_file.is_symlink() and new_file.exists():
@@ -187,7 +187,7 @@ def scaffold_target(args, colors_dir: Path, targets_dir: Path) -> int:
         return 1
 
     label = args.label or slug_to_label(target_id)
-    description = args.description or f"Apply generated iNiR palette to {label}."
+    description = args.description or f"Apply generated Ryoku palette to {label}."
     inputs = args.inputs or ["palette.json"]
 
     manifest = {
@@ -214,7 +214,7 @@ def scaffold_target(args, colors_dir: Path, targets_dir: Path) -> int:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="iNiR theming target tools")
+    parser = argparse.ArgumentParser(description="Ryoku theming target tools")
     parser.add_argument(
         "command",
         nargs="?",

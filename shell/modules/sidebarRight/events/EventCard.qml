@@ -20,16 +20,16 @@ Item {
     
     // Style tokens
     readonly property color colPrimary: Appearance.angelEverywhere ? Appearance.angel.colPrimary
-        : Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary
     readonly property color colText: Appearance.angelEverywhere ? Appearance.angel.colText
-        : Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer1
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer1
     readonly property color colSubtext: Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
-        : Appearance.inirEverywhere ? Appearance.inir.colTextSecondary : Appearance.colors.colSubtext
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary : Appearance.colors.colSubtext
     readonly property color colError: Appearance.angelEverywhere ? Appearance.angel.colError
-        : Appearance.inirEverywhere ? (Appearance.inir?.colError ?? Appearance.m3colors.m3error)
+        : Appearance.ryokuEverywhere ? (Appearance.ryoku?.colError ?? Appearance.m3colors.m3error)
         : Appearance.m3colors.m3error
     readonly property color colBadge: Appearance.angelEverywhere ? Appearance.angel.colBorderSubtle
-        : Appearance.inirEverywhere ? ColorUtils.transparentize(Appearance.inir.colBorder, 0.5)
+        : Appearance.ryokuEverywhere ? ColorUtils.transparentize(Appearance.ryoku.colBorder, 0.5)
         : Appearance.auroraEverywhere ? (Appearance.aurora?.colSubSurface ?? ColorUtils.transparentize(Appearance.colors.colPrimary, 0.90))
         : ColorUtils.transparentize(Appearance.colors.colPrimary, 0.90)
 
@@ -52,30 +52,30 @@ Item {
     
     StyledRectangularShadow {
         target: cardBg
-        visible: !Appearance.inirEverywhere && !Appearance.auroraEverywhere
+        visible: !Appearance.ryokuEverywhere && !Appearance.auroraEverywhere
     }
     
     Rectangle {
         id: cardBg
         anchors.fill: parent
         radius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-            : Appearance.inirEverywhere ? Appearance.inir.roundingSmall
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall
             : Appearance.rounding.small
         color: {
             if (editMA.containsMouse && !root.isExternal) {
                 if (Appearance.angelEverywhere) return Appearance.angel.colGlassCardHover
-                if (Appearance.inirEverywhere) return Appearance.inir.colLayer2Hover
+                if (Appearance.ryokuEverywhere) return Appearance.ryoku.colLayer2Hover
                 if (Appearance.auroraEverywhere) return Appearance.aurora?.colSubSurface ?? Appearance.colors.colLayer2Hover
                 return Appearance.colors.colLayer2Hover
             }
             if (Appearance.angelEverywhere) return Appearance.angel.colGlassCard
-            if (Appearance.inirEverywhere) return Appearance.inir.colLayer2
+            if (Appearance.ryokuEverywhere) return Appearance.ryoku.colLayer2
             if (Appearance.auroraEverywhere) return Appearance.aurora?.colSubSurface ?? Appearance.colors.colLayer2
             return Appearance.m3colors?.m3surfaceContainerHigh ?? Appearance.colors.colLayer2
         }
         border.width: 1
         border.color: Appearance.angelEverywhere ? Appearance.angel.colBorder
-            : Appearance.inirEverywhere ? Appearance.inir.colBorder
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
             : Appearance.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.78)
             : ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.72)
         Behavior on color {
@@ -223,7 +223,7 @@ Item {
                 visible: !root.isExternal
                 colBackground: "transparent"
                 colBackgroundHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-                    : Appearance.inirEverywhere ? Appearance.inir.colLayer2Hover
+                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover
                     : Appearance.colors.colLayer1Hover
                 onClicked: root.removeClicked()
                 

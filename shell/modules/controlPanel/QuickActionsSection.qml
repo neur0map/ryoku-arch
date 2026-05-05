@@ -14,18 +14,18 @@ Rectangle {
     implicitHeight: actionsGrid.implicitHeight + 16
     readonly property bool compactMode: Config.options?.controlPanel?.compactMode ?? true
     
-    readonly property bool inirEverywhere: Appearance.inirEverywhere
+    readonly property bool ryokuEverywhere: Appearance.ryokuEverywhere
     readonly property bool auroraEverywhere: Appearance.auroraEverywhere
 
     radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-        : inirEverywhere ? Appearance.inir.roundingNormal : Appearance.rounding.normal
+        : ryokuEverywhere ? Appearance.ryoku.roundingNormal : Appearance.rounding.normal
     color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-         : inirEverywhere ? Appearance.inir.colLayer1
+         : ryokuEverywhere ? Appearance.ryoku.colLayer1
          : auroraEverywhere ? Appearance.aurora.colSubSurface
          : Appearance.colors.colLayer1
-    border.width: Appearance.angelEverywhere ? 0 : (inirEverywhere ? 1 : 0)
+    border.width: Appearance.angelEverywhere ? 0 : (ryokuEverywhere ? 1 : 0)
     border.color: Appearance.angelEverywhere ? "transparent"
-        : inirEverywhere ? Appearance.inir.colBorder : "transparent"
+        : ryokuEverywhere ? Appearance.ryoku.colBorder : "transparent"
 
     AngelPartialBorder { targetRadius: parent.radius; coverage: 0.45 }
 
@@ -101,7 +101,7 @@ Rectangle {
             icon: "settings"
             onClicked: {
                 GlobalStates.controlPanelOpen = false
-                Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "settings"])
+                Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "settings"])
             }
         }
 
@@ -109,14 +109,14 @@ Rectangle {
             icon: "lock"
             onClicked: {
                 GlobalStates.controlPanelOpen = false
-                Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "lock", "activate"])
+                Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "lock", "activate"])
             }
         }
 
         ActionTile {
             icon: "power_settings_new"
             iconColor: Appearance.angelEverywhere ? Appearance.m3colors.m3error
-                     : root.inirEverywhere ? Appearance.inir.colError
+                     : root.ryokuEverywhere ? Appearance.ryoku.colError
                      : root.auroraEverywhere ? Appearance.m3colors.m3error
                      : Appearance.colors.colError
             onClicked: {
@@ -132,11 +132,11 @@ Rectangle {
         property bool active: false
         property color iconColor: active 
             ? (Appearance.angelEverywhere ? Appearance.angel.colOnPrimary
-             : root.inirEverywhere ? Appearance.inir.colOnPrimary 
+             : root.ryokuEverywhere ? Appearance.ryoku.colOnPrimary 
              : root.auroraEverywhere ? Appearance.m3colors.m3onPrimary
              : Appearance.colors.colOnPrimary)
             : (Appearance.angelEverywhere ? Appearance.angel.colText
-             : root.inirEverywhere ? Appearance.inir.colText 
+             : root.ryokuEverywhere ? Appearance.ryoku.colText 
              : root.auroraEverywhere ? Appearance.m3colors.m3onSurface
              : Appearance.colors.colOnLayer1)
         signal clicked()
@@ -144,31 +144,31 @@ Rectangle {
         Layout.fillWidth: true
         implicitHeight: root.compactMode ? 30 : 36
         radius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-            : root.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.small
+            : root.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.small
         
         color: tileMouseArea.containsMouse 
             ? (active 
                 ? (Appearance.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colPrimaryHover, 0.35)
-                 : root.inirEverywhere ? Appearance.inir.colPrimaryHover 
+                 : root.ryokuEverywhere ? Appearance.ryoku.colPrimaryHover 
                  : root.auroraEverywhere ? Appearance.colors.colPrimaryHover
                  : Appearance.colors.colPrimaryHover)
                 : (Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-                 : root.inirEverywhere ? Appearance.inir.colLayer2Hover 
+                 : root.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover 
                  : root.auroraEverywhere ? Appearance.aurora.colSubSurfaceHover
                  : Appearance.colors.colLayer2Hover))
             : (active 
                 ? (Appearance.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colPrimary, 0.45)
-                 : root.inirEverywhere ? Appearance.inir.colPrimary 
+                 : root.ryokuEverywhere ? Appearance.ryoku.colPrimary 
                  : root.auroraEverywhere ? Appearance.m3colors.m3primary
                  : Appearance.colors.colPrimary)
                 : (Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                 : root.inirEverywhere ? Appearance.inir.colLayer2 
+                 : root.ryokuEverywhere ? Appearance.ryoku.colLayer2 
                  : root.auroraEverywhere ? Appearance.aurora.colSubSurface
                  : Appearance.colors.colLayer2))
 
-        border.width: Appearance.angelEverywhere ? 0 : (root.inirEverywhere ? 1 : 0)
+        border.width: Appearance.angelEverywhere ? 0 : (root.ryokuEverywhere ? 1 : 0)
         border.color: Appearance.angelEverywhere ? "transparent"
-            : root.inirEverywhere ? (active ? Appearance.inir.colPrimary : Appearance.inir.colBorderSubtle) : "transparent"
+            : root.ryokuEverywhere ? (active ? Appearance.ryoku.colPrimary : Appearance.ryoku.colBorderSubtle) : "transparent"
 
         AngelPartialBorder { targetRadius: parent.radius; coverage: 0.4; borderColor: active ? Appearance.angel.colPrimary : Appearance.angel.colBorderSubtle }
 

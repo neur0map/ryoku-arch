@@ -105,19 +105,19 @@ TabButton {
             // When collapsed, only show icon area; when expanded, show full width with text
             implicitWidth: root.expanded ? root.visualWidth : root.baseSize
             radius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-                : Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.full
+                : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.full
             color: Appearance.angelEverywhere
                 ? (toggled
                     ? (root.showToggledHighlight
                         ? (root.down ? Appearance.angel.colGlassCardActive : root.hovered ? Appearance.angel.colGlassCardHover : Appearance.angel.colGlassCard)
                         : "transparent")
                     : (root.down ? Appearance.angel.colGlassCardActive : root.hovered ? Appearance.angel.colGlassCardHover : "transparent"))
-                : Appearance.inirEverywhere
+                : Appearance.ryokuEverywhere
                 ? (toggled
                     ? (root.showToggledHighlight
-                        ? (root.down ? Appearance.inir.colLayer2Active : root.hovered ? Appearance.inir.colLayer2Hover : Appearance.inir.colLayer2)
+                        ? (root.down ? Appearance.ryoku.colLayer2Active : root.hovered ? Appearance.ryoku.colLayer2Hover : Appearance.ryoku.colLayer2)
                         : "transparent")
-                    : (root.down ? Appearance.inir.colLayer2Active : root.hovered ? Appearance.inir.colLayer2Hover : "transparent"))
+                    : (root.down ? Appearance.ryoku.colLayer2Active : root.hovered ? Appearance.ryoku.colLayer2Hover : "transparent"))
                 : Appearance.auroraEverywhere
                     ? (toggled ?
                         root.showToggledHighlight ?

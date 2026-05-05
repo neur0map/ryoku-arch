@@ -121,7 +121,7 @@ RowLayout {
         onClicked: {
             GlobalStates.overviewOpen = false;
             // Use IPC to trigger region search (works for both Hyprland and Niri)
-            Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "region", "googleLens"]);
+            Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "region", "googleLens"]);
         }
         text: "image_search"
         StyledToolTip {
@@ -142,7 +142,7 @@ RowLayout {
             text: Translation.tr("Recognize music")
         }
 
-        colText: toggled ? (Appearance.inirEverywhere ? Appearance.inir.colOnPrimary : Appearance.colors.colOnPrimary) : (Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnSurfaceVariant)
+        colText: toggled ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colOnPrimary : Appearance.colors.colOnPrimary) : (Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnSurfaceVariant)
         background: MaterialShape {
             RotationAnimation on rotation {
                 running: songRecButton.toggled
@@ -161,9 +161,9 @@ RowLayout {
             }
             color: {
                 if (songRecButton.toggled) {
-                    return songRecButton.hovered ? (Appearance.inirEverywhere ? Appearance.inir.colPrimaryHover : Appearance.colors.colPrimaryHover) : (Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary)
+                    return songRecButton.hovered ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimaryHover : Appearance.colors.colPrimaryHover) : (Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary)
                 } else {
-                    return songRecButton.hovered ? (Appearance.inirEverywhere ? Appearance.inir.colLayer2Hover : Appearance.colors.colSurfaceContainerHigh) : (Appearance.inirEverywhere ? Appearance.inir.colLayer2 : ColorUtils.transparentize(Appearance.colors.colSurfaceContainerHigh))
+                    return songRecButton.hovered ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover : Appearance.colors.colSurfaceContainerHigh) : (Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2 : ColorUtils.transparentize(Appearance.colors.colSurfaceContainerHigh))
                 }
             }
             Behavior on color {

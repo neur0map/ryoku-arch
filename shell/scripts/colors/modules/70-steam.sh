@@ -17,7 +17,7 @@ XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 
 GENERATED_CSS="$STATE_DIR/user/generated/steam-colortheme.css"
 COLORS_JSON="$STATE_DIR/user/generated/colors.json"
-THEME_NAME="inir"
+THEME_NAME="ryoku-shell"
 
 # AdwSteamGtk's extracted skin cache
 ADWSTEAM_COLORTHEMES="$XDG_CACHE_HOME/AdwSteamInstaller/extracted/adwaita/colorthemes"
@@ -49,7 +49,7 @@ read_token() {
 generate_css_from_colors_json() {
   cat <<EOCSS
 /**
- * iNiR Material You for Adwaita-for-Steam
+ * Ryoku Material You for Adwaita-for-Steam
  * Auto-generated from wallpaper colors. Do not edit.
  */
 :root

@@ -668,7 +668,7 @@ Item {
                         : -(listView.spacing + height) / 2)
                     : (parent.height - height) / 2
 
-                color: Appearance.inirEverywhere ? Appearance.inir.colPrimary
+                color: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary
                      : Appearance.colors.colPrimary
 
                 opacity: dockDelegate.isDropTarget ? 0.9 : 0

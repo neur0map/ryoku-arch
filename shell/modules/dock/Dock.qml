@@ -160,7 +160,7 @@ Scope {
                                     id: dockVisualBackground
                                     property bool cardStyle: Config.options?.dock?.cardStyle ?? false
                                     readonly property bool auroraEverywhere: Appearance.auroraEverywhere
-                                    readonly property bool inirEverywhere: Appearance.inirEverywhere
+                                    readonly property bool ryokuEverywhere: Appearance.ryokuEverywhere
                                     readonly property bool gameModeMinimal: Appearance.gameModeMinimal
                                     readonly property string wallpaperUrl: {
                                         const _dep1 = WallpaperListener.multiMonitorEnabled
@@ -191,18 +191,18 @@ Scope {
                                 // Hide in macOS mode — DockMacBackground is the unified shelf
                                 visible: (Config.options?.dock?.showBackground ?? true) && !gameModeMinimal && !root.isPillStyle && !root.isMacosStyle
                                 color: auroraEverywhere ? ColorUtils.applyAlpha((blendedColors?.colLayer0 ?? Appearance.colors.colLayer0), 1)
-                                    : inirEverywhere ? Appearance.inir.colLayer1
+                                    : ryokuEverywhere ? Appearance.ryoku.colLayer1
                                     : (cardStyle ? Appearance.colors.colLayer1 : Appearance.colors.colLayer0)
                                 border.width: Appearance.angelEverywhere ? Appearance.angel.panelBorderWidth : 1
                                 border.color: Appearance.angelEverywhere ? Appearance.angel.colPanelBorder
-                                    : inirEverywhere ? Appearance.inir.colBorder
+                                    : ryokuEverywhere ? Appearance.ryoku.colBorder
                                     : Appearance.colors.colLayer0Border
                                 radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-                                    : inirEverywhere ? Appearance.inir.roundingNormal
+                                    : ryokuEverywhere ? Appearance.ryoku.roundingNormal
                                     : cardStyle ? Appearance.rounding.normal : Appearance.rounding.large
 
                                 clip: true
-                                layer.enabled: auroraEverywhere && !inirEverywhere && !gameModeMinimal
+                                layer.enabled: auroraEverywhere && !ryokuEverywhere && !gameModeMinimal
                                 layer.effect: GE.OpacityMask {
                                     maskSource: Rectangle {
                                         width: dockVisualBackground.width
@@ -221,7 +221,7 @@ Scope {
                                         : (root.isTop ? 0 : (-(dockRoot.screen?.height ?? 1080) + dockVisualBackground.height + Appearance.sizes.hyprlandGapsOut))
                                     width: dockRoot.screen?.width ?? 1920
                                     height: dockRoot.screen?.height ?? 1080
-                                    visible: dockVisualBackground.auroraEverywhere && !dockVisualBackground.inirEverywhere && !dockVisualBackground.gameModeMinimal
+                                    visible: dockVisualBackground.auroraEverywhere && !dockVisualBackground.ryokuEverywhere && !dockVisualBackground.gameModeMinimal
                                     source: dockVisualBackground.wallpaperUrl
                                     fillMode: Image.PreserveAspectCrop
                                     cache: true
@@ -229,7 +229,7 @@ Scope {
                                     sourceSize.height: dockRoot.screen?.height ?? 1080
                                     asynchronous: true
 
-                                    layer.enabled: Appearance.effectsEnabled && dockVisualBackground.auroraEverywhere && !dockVisualBackground.inirEverywhere && !dockVisualBackground.gameModeMinimal
+                                    layer.enabled: Appearance.effectsEnabled && dockVisualBackground.auroraEverywhere && !dockVisualBackground.ryokuEverywhere && !dockVisualBackground.gameModeMinimal
                                     layer.effect: MultiEffect {
                                         source: dockBlurredWallpaper
                                         anchors.fill: source

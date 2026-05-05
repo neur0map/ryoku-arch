@@ -15,7 +15,7 @@ Item {
     implicitHeight: 56
     Layout.fillWidth: true
     
-    readonly property bool inirEverywhere: Appearance.inirEverywhere
+    readonly property bool ryokuEverywhere: Appearance.ryokuEverywhere
     readonly property bool auroraEverywhere: Appearance.auroraEverywhere
 
     function getGreeting(): string {
@@ -33,7 +33,7 @@ Item {
 
     function lockScreen(): void {
         GlobalStates.controlPanelOpen = false
-        Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "lock", "activate"])
+        Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "lock", "activate"])
     }
 
     RowLayout {
@@ -53,7 +53,7 @@ Item {
                 color: "transparent"
                 border.width: 2
                 border.color: Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                            : root.inirEverywhere ? Appearance.inir.colPrimary 
+                            : root.ryokuEverywhere ? Appearance.ryoku.colPrimary 
                             : root.auroraEverywhere ? Appearance.m3colors.m3primary
                             : Appearance.colors.colPrimary
             }
@@ -113,7 +113,7 @@ Item {
                     anchors.fill: parent
                     radius: width / 2
                     color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                         : root.inirEverywhere ? Appearance.inir.colLayer2 
+                         : root.ryokuEverywhere ? Appearance.ryoku.colLayer2 
                          : root.auroraEverywhere ? Appearance.aurora.colSubSurface
                          : Appearance.colors.colLayer2
                     visible: avatarImg.status !== Image.Ready
@@ -123,7 +123,7 @@ Item {
                         text: "person"
                         iconSize: 22
                         color: Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                             : root.inirEverywhere ? Appearance.inir.colPrimary 
+                             : root.ryokuEverywhere ? Appearance.ryoku.colPrimary 
                              : root.auroraEverywhere ? Appearance.m3colors.m3primary
                              : Appearance.colors.colPrimary
                     }
@@ -138,7 +138,7 @@ Item {
                 text: root.getGreeting()
                 font.pixelSize: Appearance.font.pixelSize.smaller
                 color: Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                     : root.inirEverywhere ? Appearance.inir.colPrimary 
+                     : root.ryokuEverywhere ? Appearance.ryoku.colPrimary 
                      : root.auroraEverywhere ? Appearance.m3colors.m3primary
                      : Appearance.colors.colPrimary
             }
@@ -148,7 +148,7 @@ Item {
                 font.weight: Font.Medium
                 font.capitalization: Font.Capitalize
                 color: Appearance.angelEverywhere ? Appearance.angel.colText
-                     : root.inirEverywhere ? Appearance.inir.colText 
+                     : root.ryokuEverywhere ? Appearance.ryoku.colText 
                      : root.auroraEverywhere ? Appearance.m3colors.m3onSurface
                      : Appearance.colors.colOnLayer0
             }
@@ -164,10 +164,10 @@ Item {
                 implicitWidth: 32
                 implicitHeight: 32
                 buttonRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-                            : root.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.full
+                            : root.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.full
                 colBackground: "transparent"
                 colBackgroundHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-                                  : root.inirEverywhere ? Appearance.inir.colLayer2Hover 
+                                  : root.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover 
                                   : root.auroraEverywhere ? Appearance.aurora.colSubSurfaceHover
                                   : Appearance.colors.colLayer2Hover
                 onClicked: root.lockScreen()
@@ -176,7 +176,7 @@ Item {
                     text: "lock"
                     iconSize: 18
                     color: Appearance.angelEverywhere ? Appearance.angel.colText
-                         : root.inirEverywhere ? Appearance.inir.colText 
+                         : root.ryokuEverywhere ? Appearance.ryoku.colText 
                          : root.auroraEverywhere ? Appearance.m3colors.m3onSurface
                          : Appearance.colors.colOnLayer0
                 }
@@ -187,10 +187,10 @@ Item {
                 implicitWidth: 32
                 implicitHeight: 32
                 buttonRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-                            : root.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.full
+                            : root.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.full
                 colBackground: "transparent"
                 colBackgroundHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-                                  : root.inirEverywhere ? Appearance.inir.colLayer2Hover 
+                                  : root.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover 
                                   : root.auroraEverywhere ? Appearance.aurora.colSubSurfaceHover
                                   : Appearance.colors.colLayer2Hover
                 onClicked: root.openAccountSettings()
@@ -199,7 +199,7 @@ Item {
                     text: "manage_accounts"
                     iconSize: 18
                     color: Appearance.angelEverywhere ? Appearance.angel.colText
-                         : root.inirEverywhere ? Appearance.inir.colText
+                         : root.ryokuEverywhere ? Appearance.ryoku.colText
                          : root.auroraEverywhere ? Appearance.m3colors.m3onSurface
                          : Appearance.colors.colOnLayer0
                 }
@@ -210,10 +210,10 @@ Item {
                 implicitWidth: 32
                 implicitHeight: 32
                 buttonRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-                            : root.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.full
+                            : root.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.full
                 colBackground: "transparent"
                 colBackgroundHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-                                  : root.inirEverywhere ? Appearance.inir.colLayer2Hover 
+                                  : root.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover 
                                   : root.auroraEverywhere ? Appearance.aurora.colSubSurfaceHover
                                   : Appearance.colors.colLayer2Hover
                 onClicked: {
@@ -224,7 +224,7 @@ Item {
                     anchors.centerIn: parent
                     text: "power_settings_new"
                     iconSize: 18
-                    color: root.inirEverywhere ? Appearance.inir.colError ?? Appearance.colors.colError
+                    color: root.ryokuEverywhere ? Appearance.ryoku.colError ?? Appearance.colors.colError
                          : root.auroraEverywhere ? Appearance.m3colors.m3error
                          : Appearance.colors.colError 
                 }
@@ -235,10 +235,10 @@ Item {
                 implicitWidth: 32
                 implicitHeight: 32
                 buttonRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-                            : root.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.full
+                            : root.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.full
                 colBackground: "transparent"
                 colBackgroundHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-                                  : root.inirEverywhere ? Appearance.inir.colLayer2Hover 
+                                  : root.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover 
                                   : root.auroraEverywhere ? Appearance.aurora.colSubSurfaceHover
                                   : Appearance.colors.colLayer2Hover
                 onClicked: GlobalStates.controlPanelOpen = false
@@ -247,7 +247,7 @@ Item {
                     text: "close"
                     iconSize: 18
                     color: Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
-                         : root.inirEverywhere ? Appearance.inir.colTextSecondary 
+                         : root.ryokuEverywhere ? Appearance.ryoku.colTextSecondary 
                          : root.auroraEverywhere ? Appearance.m3colors.m3outline
                          : Appearance.colors.colSubtext
                 }

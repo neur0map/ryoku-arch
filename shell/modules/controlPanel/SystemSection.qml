@@ -14,18 +14,18 @@ Rectangle {
 
     readonly property bool compactMode: Config.options?.controlPanel?.compactMode ?? true
     
-    readonly property bool inirEverywhere: Appearance.inirEverywhere
+    readonly property bool ryokuEverywhere: Appearance.ryokuEverywhere
     readonly property bool auroraEverywhere: Appearance.auroraEverywhere
 
     radius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-        : inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.small
+        : ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.small
     color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-         : inirEverywhere ? Appearance.inir.colLayer1
+         : ryokuEverywhere ? Appearance.ryoku.colLayer1
          : auroraEverywhere ? Appearance.aurora.colSubSurface
          : Appearance.colors.colLayer1
-    border.width: Appearance.angelEverywhere ? 0 : (inirEverywhere ? 1 : 0)
+    border.width: Appearance.angelEverywhere ? 0 : (ryokuEverywhere ? 1 : 0)
     border.color: Appearance.angelEverywhere ? "transparent"
-        : inirEverywhere ? Appearance.inir.colBorder : "transparent"
+        : ryokuEverywhere ? Appearance.ryoku.colBorder : "transparent"
 
     AngelPartialBorder { targetRadius: parent.radius; coverage: 0.45 }
 
@@ -42,7 +42,7 @@ Rectangle {
             value: (ResourceUsage.cpuUsage ?? 0) * 100
             barColor: ((ResourceUsage.cpuUsage ?? 0) * 100) > 80 ? Appearance.colors.colError
                     : (Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                    : root.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary)
+                    : root.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary)
         }
 
         // RAM
@@ -52,7 +52,7 @@ Rectangle {
             value: (ResourceUsage.memoryUsedPercentage ?? 0) * 100
             barColor: (ResourceUsage.memoryUsedPercentage ?? 0) > 0.85 ? Appearance.colors.colError
                     : (Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                    : root.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary)
+                    : root.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary)
         }
 
         // Battery (if available)
@@ -65,7 +65,7 @@ Rectangle {
                 barColor: (Battery.percentage ?? 0) * 100 < 20 ? Appearance.colors.colError
                         : Battery.charging ? Appearance.colors.colSuccess
                         : (Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                        : root.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary)
+                        : root.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary)
             }
         }
     }
@@ -75,7 +75,7 @@ Rectangle {
         property string label
         property real value: 0
         property color barColor: Appearance.angelEverywhere ? Appearance.angel.colPrimary
-            : root.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary
+            : root.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary
 
         spacing: 2
 
@@ -85,7 +85,7 @@ Rectangle {
                 text: bar.label
                 font.pixelSize: Appearance.font.pixelSize.smallest
                 color: Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
-                     : root.inirEverywhere ? Appearance.inir.colTextSecondary
+                     : root.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
                      : root.auroraEverywhere ? Appearance.m3colors.m3onSurfaceVariant
                      : Appearance.colors.colSubtext
             }
@@ -95,7 +95,7 @@ Rectangle {
                 font.pixelSize: Appearance.font.pixelSize.smallest
                 font.family: Appearance.font.family.numbers
                 color: Appearance.angelEverywhere ? Appearance.angel.colText
-                     : root.inirEverywhere ? Appearance.inir.colText
+                     : root.ryokuEverywhere ? Appearance.ryoku.colText
                      : root.auroraEverywhere ? Appearance.m3colors.m3onSurface
                      : Appearance.colors.colOnLayer1
             }
@@ -106,7 +106,7 @@ Rectangle {
             height: root.compactMode ? 3 : 4
             radius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall : 2
             color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                 : root.inirEverywhere ? Appearance.inir.colLayer2
+                 : root.ryokuEverywhere ? Appearance.ryoku.colLayer2
                  : root.auroraEverywhere ? ColorUtils.transparentize(Appearance.aurora.colSubSurface, 0.5)
                  : Appearance.colors.colLayer2
 

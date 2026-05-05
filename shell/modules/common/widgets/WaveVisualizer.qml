@@ -12,7 +12,7 @@ Canvas { // Visualizer
     property int smoothing: 2
     property bool live: true
     property color color: Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                        : Appearance.inirEverywhere ? Appearance.inir.colPrimary
+                        : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary
                         : Appearance.auroraEverywhere ? Appearance.m3colors.m3primary
                         : Appearance.colors.colPrimary
 

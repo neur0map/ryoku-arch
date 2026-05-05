@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-preview_dir="$HOME/.cache/inir/window-previews"
+preview_dir="$HOME/.cache/ryoku-shell/window-previews"
 mkdir -p "$preview_dir"
 
 niri_bin="/usr/bin/niri"
@@ -48,7 +48,7 @@ if [[ -x "$wl_paste_bin" && -x "$wl_copy_bin" ]]; then
   fi
 
   if [[ -n "$saved_clip_mime" ]]; then
-    saved_clip_file="$(mktemp -t inir-clipboard.XXXXXX 2>/dev/null || true)"
+    saved_clip_file="$(mktemp -t ryoku-clipboard.XXXXXX 2>/dev/null || true)"
     if [[ -n "$saved_clip_file" ]]; then
       if ! "$wl_paste_bin" --type "$saved_clip_mime" >"$saved_clip_file" 2>/dev/null; then
         saved_clip_mime=""

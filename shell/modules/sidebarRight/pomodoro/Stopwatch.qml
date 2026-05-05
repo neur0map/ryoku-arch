@@ -58,7 +58,7 @@ Item {
                 // Layout.preferredWidth: elapsedIndicator.width * 0.6 // Prevent shakiness
                 font.pixelSize: Math.round(40 * Appearance.fontSizeScale)
                 color: Appearance.angelEverywhere ? Appearance.angel.colText
-                    : Appearance.inirEverywhere ? Appearance.inir.colText
+                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colText
                     : Appearance.m3colors.m3onSurface
                 text: {
                     let totalSeconds = Math.floor(TimerService.stopwatchTime) / 100
@@ -71,7 +71,7 @@ Item {
                 Layout.fillWidth: true
                 font.pixelSize: Math.round(40 * Appearance.fontSizeScale)
                 color: Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
-                    : Appearance.inirEverywhere ? Appearance.inir.colTextSecondary
+                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
                     : Appearance.colors.colSubtext
                 text: {
                     return `:<sub>${(Math.floor(TimerService.stopwatchTime) % 100).toString().padStart(2, '0')}</sub>`
@@ -108,7 +108,7 @@ Item {
                 implicitHeight: lapRow.implicitHeight + verticalPadding * 2
                 implicitWidth: lapRow.implicitWidth + horizontalPadding * 2
                 color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                    : Appearance.inirEverywhere ? Appearance.inir.colLayer2
+                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
                     : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurface : Appearance.colors.colLayer2
                 radius: Appearance.rounding.small
 
@@ -125,7 +125,7 @@ Item {
                     StyledText {
                         font.pixelSize: Appearance.font.pixelSize.small
                         color: Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
-                            : Appearance.inirEverywhere ? Appearance.inir.colTextSecondary
+                            : Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
                             : Appearance.colors.colSubtext
                         text: `${TimerService.stopwatchLaps.length - lapItem.index}.`
                     }
@@ -206,22 +206,22 @@ Item {
                 }
 
                 colBackground: (TimerService.stopwatchRunning && !TimerService.stopwatchPaused)
-                    ? (Appearance.inirEverywhere ? Appearance.inir.colLayer2
+                    ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
                         : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurface : Appearance.colors.colSecondaryContainer)
                     : Appearance.colors.colPrimary
                 colBackgroundHover: (TimerService.stopwatchRunning && !TimerService.stopwatchPaused)
-                    ? (Appearance.inirEverywhere ? Appearance.inir.colLayer2Hover
+                    ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover
                         : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurfaceHover : Appearance.colors.colSecondaryContainerHover)
                     : Appearance.colors.colPrimaryHover
                 colRipple: (TimerService.stopwatchRunning && !TimerService.stopwatchPaused)
-                    ? (Appearance.inirEverywhere ? Appearance.inir.colLayer2Active
+                    ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Active
                         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive : Appearance.colors.colSecondaryContainerActive)
                     : Appearance.colors.colPrimaryActive 
 
                 contentItem: StyledText {
                     horizontalAlignment: Text.AlignHCenter
                     color: (TimerService.stopwatchRunning && !TimerService.stopwatchPaused)
-                        ? (Appearance.inirEverywhere ? Appearance.inir.colText
+                        ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colText
                             : Appearance.auroraEverywhere ? Appearance.colors.colOnLayer2 : Appearance.colors.colOnSecondaryContainer)
                         : Appearance.colors.colOnPrimary
                     text: (TimerService.stopwatchRunning && !TimerService.stopwatchPaused) ? Translation.tr("Pause")
@@ -243,25 +243,25 @@ Item {
                 enabled: TimerService.stopwatchTime > 0 || TimerService.stopwatchLaps.length > 0
 
                 colBackground: (TimerService.stopwatchRunning && !TimerService.stopwatchPaused)
-                    ? (Appearance.inirEverywhere ? Appearance.inir.colLayer2
+                    ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
                         : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurface : Appearance.colors.colLayer2)
-                    : (Appearance.inirEverywhere ? Appearance.inir.colLayer2
+                    : (Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
                         : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurface : Appearance.colors.colLayer2)
                 colBackgroundHover: (TimerService.stopwatchRunning && !TimerService.stopwatchPaused)
-                    ? (Appearance.inirEverywhere ? Appearance.inir.colLayer2Hover
+                    ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover
                         : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurfaceHover : Appearance.colors.colLayer2Hover)
-                    : (Appearance.inirEverywhere ? Appearance.inir.colLayer2Hover
+                    : (Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover
                         : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurfaceHover : Appearance.colors.colLayer2Hover)
                 colRipple: (TimerService.stopwatchRunning && !TimerService.stopwatchPaused)
-                    ? (Appearance.inirEverywhere ? Appearance.inir.colLayer2Active
+                    ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Active
                         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive : Appearance.colors.colLayer2Active)
-                    : (Appearance.inirEverywhere ? Appearance.inir.colLayer2Active
+                    : (Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Active
                         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive : Appearance.colors.colLayer2Active)
 
                 contentItem: StyledText {
                     horizontalAlignment: Text.AlignHCenter
                     text: (TimerService.stopwatchRunning && !TimerService.stopwatchPaused) ? Translation.tr("Lap") : Translation.tr("Reset")
-                    color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer2
+                    color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer2
                 }
             }
         }

@@ -1,10 +1,10 @@
 {
   "$schema": "https://zed.dev/schema/themes/v0.2.0.json",
-  "name": "iNiR(lighter borders)",
+  "name": "Ryoku(lighter borders)",
   "author": "Orcus",
   "themes": [
     {
-      "name": "iNiR-alt Dark",
+      "name": "Ryoku-alt Dark",
       "appearance": "dark",
       "style": {
         "accents": [
@@ -296,7 +296,7 @@
       }
     },
     {
-      "name": "iNiR-alt Light",
+      "name": "Ryoku-alt Light",
       "appearance": "light",
       "style": {
         "accents": [

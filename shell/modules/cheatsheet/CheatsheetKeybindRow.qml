@@ -32,11 +32,11 @@ Item {
         anchors.fill: rowContent
         color: hovered
             ? (Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-             : Appearance.inirEverywhere ? Appearance.inir.colLayer2Hover
+             : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover
              : Appearance.colors.colLayer2Hover)
             : "transparent"
         radius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-              : Appearance.inirEverywhere ? Appearance.inir.roundingSmall
+              : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall
               : Appearance.rounding.verysmall
         Behavior on color {
             enabled: Appearance.animationsEnabled
@@ -64,7 +64,7 @@ Item {
             Layout.alignment: Qt.AlignVCenter
             text: root.category
             font.pixelSize: Appearance.font.pixelSize.small
-            color: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary
+            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
                  : Appearance.colors.colSubtext
             elide: Text.ElideRight
             leftPadding: 16
@@ -88,7 +88,7 @@ Item {
             StyledText {
                 visible: root.showMainKey && root.hasModifiers
                 text: "+"
-                color: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary
+                color: Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
                      : Appearance.colors.colSubtext
                 anchors.verticalCenter: parent.verticalCenter
                 font.pixelSize: Appearance.font.pixelSize.small
@@ -105,7 +105,7 @@ Item {
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignVCenter
             font.pixelSize: Appearance.font.pixelSize.normal
-            color: Appearance.inirEverywhere ? Appearance.inir.colText
+            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText
                  : Appearance.colors.colOnLayer1
             text: root.description
             elide: Text.ElideRight
@@ -124,7 +124,7 @@ Item {
         }
         height: 1
         color: Appearance.angelEverywhere ? Appearance.angel.colCardBorder
-             : Appearance.inirEverywhere ? Appearance.inir.colBorderSubtle
+             : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorderSubtle
              : Appearance.colors.colOutlineVariant
         opacity: 0.3
         visible: root.showDivider

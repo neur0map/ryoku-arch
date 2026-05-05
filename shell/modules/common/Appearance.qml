@@ -14,7 +14,7 @@ Singleton {
     property QtObject animation
     property QtObject animationCurves
     property QtObject aurora
-    property QtObject inir
+    property QtObject ryoku
     property QtObject angel
     property QtObject colors
     property QtObject rounding
@@ -69,7 +69,7 @@ Singleton {
 
     // Global style - centralized style detection (reactive bindings)
     readonly property string globalStyle: Config?.options?.appearance?.globalStyle ?? "material"
-    readonly property bool inirEverywhere: globalStyle === "inir"
+    readonly property bool ryokuEverywhere: globalStyle === "ryoku-shell"
     // angelEverywhere - flagship neo-brutalism glass style (superset of aurora)
     readonly property bool angelEverywhere: globalStyle === "angel"
     // auroraEverywhere controls blur/glass backgrounds — angel inherits aurora blur
@@ -336,7 +336,7 @@ Singleton {
     // 2. Theme requests mono (Matrix, Vesper) -> Monospace
     // 3. Theme requests serif (Angel) -> Serif (if mapped)
     // 4. Default -> Config Main Font
-    readonly property bool _forceMono: globalStyle === "inir" || _themeMeta.fontStyle === "mono"
+    readonly property bool _forceMono: globalStyle === "ryoku-shell" || _themeMeta.fontStyle === "mono"
     readonly property string _angelFont: "Oxanium"
     readonly property bool _useAngelFont: globalStyle === "angel"
     
@@ -555,7 +555,7 @@ Singleton {
         readonly property real popupSurfaceTransparentize: popupTransparentize
     }
 
-    inir: QtObject {
+    ryoku: QtObject {
         // Inir style - Elegant terminal UI aesthetic
         
         // ═══════════════════════════════════════════════════════════════

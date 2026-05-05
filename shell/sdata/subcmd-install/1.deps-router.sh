@@ -1,4 +1,4 @@
-# Dependency installation router for iNiR
+# Dependency installation router for Ryoku
 # This script is meant to be sourced.
 
 # shellcheck shell=bash
@@ -46,12 +46,12 @@ case "$OS_GROUP_ID" in
   nixos)
     printf "${STY_YELLOW}NixOS requires declarative configuration${STY_RST}\n"
     echo ""
-    echo "For NixOS, add iNiR to your configuration.nix or home-manager."
-    echo "See: https://github.com/snowarch/inir/wiki/NixOS"
+    echo "For NixOS, add Ryoku to your configuration.nix or home-manager."
+    echo "See: https://github.com/neur0map/ryoku-arch/wiki/NixOS"
     echo ""
     echo "Basic steps:"
     echo "  1. Add quickshell and niri to your system packages"
-    echo "  2. Clone this repo to ~/.config/quickshell/inir"
+    echo "  2. Clone this repo to ~/.config/quickshell/ryoku-shell"
     echo "  3. Run: ./setup install --skip-deps"
     echo ""
     

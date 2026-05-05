@@ -1294,7 +1294,7 @@ ContentPage {
                     case "material": return styles.material ?? 1
                     case "cards": return styles.cards ?? 3
                     case "aurora": return styles.aurora ?? 1
-                    case "inir": return styles.inir ?? 1
+                    case "ryoku-shell": return styles.ryoku ?? 1
                     case "angel": return styles.angel ?? 1
                     default: return 1
                 }
@@ -1325,7 +1325,7 @@ ContentPage {
                     return;
                 }
 
-                if (styleId === "inir") {
+                if (styleId === "ryoku-shell") {
                     Config.setNestedValue("dock.cardStyle", false)
                     Config.setNestedValue("sidebar.cardStyle", false)
                     Config.setNestedValue("bar.cornerStyle", cornerStyle)
@@ -1363,7 +1363,7 @@ ContentPage {
                         { displayName: Translation.tr("Material"), icon: "tune", value: "material" },
                         { displayName: Translation.tr("Cards"), icon: "branding_watermark", value: "cards" },
                         { displayName: Translation.tr("Aurora"), icon: "blur_on", value: "aurora" },
-                        { displayName: Translation.tr("Inir"), icon: "terminal", value: "inir" },
+                        { displayName: Translation.tr("Inir"), icon: "terminal", value: "ryoku-shell" },
                         { displayName: Translation.tr("Angel"), icon: "raven", value: "angel" }
                     ]
                 }

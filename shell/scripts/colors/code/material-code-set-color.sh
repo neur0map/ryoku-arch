@@ -4,7 +4,7 @@ COLOR_FILE_PATH="${XDG_STATE_HOME:-$HOME/.local/state}/quickshell/user/generated
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib/config-path.sh
 source "$SCRIPT_DIR/../../lib/config-path.sh"
-SHELL_CONFIG_FILE="$(inir_config_file)"
+SHELL_CONFIG_FILE="$(ryoku_shell_config_file)"
 
 # Define an array of possible VSCode settings file paths for various forks
 settings_paths=(

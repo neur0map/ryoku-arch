@@ -22,7 +22,7 @@ AndroidQuickToggleButton {
         interval: 300
         repeat: false
         onTriggered: {
-            Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "region", "screenshot"])
+            Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "region", "screenshot"])
         }
     }
 

@@ -38,17 +38,17 @@ Slider {
     property real handleDefaultWidth: 3
     property real handlePressedWidth: 1.5
     property color highlightColor: Appearance.angelEverywhere ? Appearance.angel.colPrimary
-        : Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary
     property color trackColor: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer2 
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2 
         : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurface 
         : Appearance.colors.colSecondaryContainer
     property color handleColor: Appearance.angelEverywhere ? Appearance.angel.colPrimary
-        : Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary
     property color dotColor: Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
-        : Appearance.inirEverywhere ? Appearance.inir.colTextSecondary : Appearance.m3colors.m3onSecondaryContainer
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary : Appearance.m3colors.m3onSecondaryContainer
     property color dotColorHighlighted: Appearance.angelEverywhere ? Appearance.angel.colOnPrimary
-        : Appearance.inirEverywhere ? Appearance.inir.colOnPrimary : Appearance.m3colors.m3onPrimary
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colOnPrimary : Appearance.m3colors.m3onPrimary
     property real unsharpenRadius: Appearance.rounding.unsharpen
     property real trackWidth: configuration
     property real trackRadius: trackWidth >= StyledSlider.Configuration.XL ? 21

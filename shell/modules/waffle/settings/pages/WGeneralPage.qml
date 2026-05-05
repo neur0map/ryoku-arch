@@ -370,7 +370,7 @@ WSettingsPage {
             label: Translation.tr("Network name (SSID)")
             icon: "wifi-tethering"
             description: Translation.tr("The name your hotspot will broadcast")
-            text: Config.options?.hotspot?.ssid ?? "iNiR Hotspot"
+            text: Config.options?.hotspot?.ssid ?? "Ryoku Hotspot"
             onTextEdited: (newText) => Config.setNestedValue("hotspot.ssid", newText)
         }
 
@@ -378,7 +378,7 @@ WSettingsPage {
             label: Translation.tr("Password")
             icon: "key"
             description: Translation.tr("WPA2 passphrase for the hotspot")
-            text: Config.options?.hotspot?.password ?? "inirhotspot"
+            text: Config.options?.hotspot?.password ?? "ryoku-shell-hotspot"
             onTextEdited: (newText) => Config.setNestedValue("hotspot.password", newText)
         }
 

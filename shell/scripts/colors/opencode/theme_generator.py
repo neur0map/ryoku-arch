@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
 Generate OpenCode TUI theme from Material You colors (material_colors.scss).
-Outputs ~/.config/opencode/themes/inir.json
+Outputs ~/.config/opencode/themes/ryoku.json
 
-Part of iNiR wallpaper theming pipeline.
+Part of Ryoku wallpaper theming pipeline.
 Called from applycolor.sh via generate_terminal_configs.py or directly.
 """
 
@@ -264,7 +264,7 @@ def generate_opencode_config(
         output_dir = os.path.expanduser("~/.config/opencode/themes")
 
     os.makedirs(output_dir, exist_ok=True)
-    output_path = os.path.join(output_dir, "inir.json")
+    output_path = os.path.join(output_dir, "ryoku.json")
 
     with open(output_path, "w") as f:
         json.dump(theme, f, indent=2)

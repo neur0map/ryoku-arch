@@ -58,7 +58,7 @@ Rectangle {
     property real verticalPadding: 10
     radius: Appearance.rounding.small - anchors.margins
     color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer2 : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurface : Appearance.colors.colLayer2
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2 : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurface : Appearance.colors.colLayer2
     implicitHeight: visible ? (contentItem.implicitHeight + verticalPadding * 2) : 0
 
     ColumnLayout {
@@ -104,7 +104,7 @@ Rectangle {
                 Layout.alignment: Qt.AlignTop
                 buttonRadius: Appearance.rounding.full
                 colBackground: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                    : Appearance.inirEverywhere ? Appearance.inir.colLayer1 
+                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1 
                     : Appearance.auroraEverywhere ? "transparent" : Appearance.colors.colLayer2
                 implicitHeight: 28
                 implicitWidth: 28
@@ -113,7 +113,7 @@ Rectangle {
                     text: "close"
                     horizontalAlignment: Text.AlignHCenter
                     iconSize: Appearance.font.pixelSize.larger
-                    color: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary : Appearance.colors.colOnSurfaceVariant
+                    color: Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary : Appearance.colors.colOnSurfaceVariant
                 }
 
                 onClicked: root.remove()
@@ -151,7 +151,7 @@ Rectangle {
                         anchors.fill: parent
                         color: "transparent"
                         border.width: 1
-                        border.color: Appearance.inirEverywhere ? Appearance.inir.colBorder : Appearance.colors.colOutlineVariant
+                        border.color: Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder : Appearance.colors.colOutlineVariant
                         radius: Appearance.rounding.normal
                     }
                 }

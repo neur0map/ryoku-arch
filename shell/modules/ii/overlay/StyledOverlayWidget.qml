@@ -205,7 +205,7 @@ AbstractOverlayWidget {
             if (Appearance.angelEverywhere) {
                 return (root.fancyBorders && GlobalStates.overlayOpen) ? "transparent" : "transparent"
             }
-            const baseColor = Appearance.inirEverywhere ? Appearance.inir.colLayer1
+            const baseColor = Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
                             : Appearance.auroraEverywhere ? Appearance.colors.colLayer1Base
                             : Appearance.colors.colLayer1
             return ColorUtils.transparentize(baseColor, (root.fancyBorders && GlobalStates.overlayOpen) ? 0 : 1)
@@ -276,7 +276,7 @@ AbstractOverlayWidget {
                 implicitHeight: titleBarRow.implicitHeight + root.padding * 2
                 color: root.fancyBorders ? "transparent" 
                      : Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                     : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+                     : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
                      : Appearance.auroraEverywhere ? Appearance.colors.colLayer1Base
                      : Appearance.colors.colLayer1
                 // border.color: Appearance.colors.colOutlineVariant

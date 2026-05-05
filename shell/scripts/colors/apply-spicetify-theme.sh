@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # apply-spicetify-theme.sh - Generate and apply Spicetify color scheme
-# from iNiR Material colors using custom theme with live updates.
+# from Ryoku Material colors using custom theme with live updates.
 #
 # Design:
 # - If Spotify is not running: only regenerate theme files (never start/open Spotify)
@@ -187,7 +187,7 @@ regenerate_user_css_bridge() {
 
   # ── Build the bridge block ────────────────────────────────────────────────
   local bridge_block
-  bridge_block="/* === iNiR CSS variable bridge - auto-generated, do not edit === */
+  bridge_block="/* === Ryoku CSS variable bridge - auto-generated, do not edit === */
 :root {
   /* Aliases for variables used by Sleek CSS but not in color.ini */
   --spice-main-secondary:      #$(strip_hash "$main_secondary");
@@ -213,7 +213,7 @@ regenerate_user_css_bridge() {
   --spice-rgb-shadow:          $(hex_to_rgb "${COLORS[shadow]}");
   --spice-rgb-misc:            $(hex_to_rgb "${COLORS[outline]}");
 }
-/* === end iNiR CSS variable bridge === */"
+/* === end Ryoku CSS variable bridge === */"
 
   # ── Replace only the bridge block in user.css (keep everything else) ──────
   # Use python3 for reliable multi-line regex replace without temp file races.
@@ -226,7 +226,7 @@ css_path = pathlib.Path(sys.argv[1])
 new_block = sys.argv[2]
 content = css_path.read_text()
 pattern = re.compile(
-    r'/\* === iNiR CSS variable bridge - auto-generated, do not edit === \*/.*?/\* === end iNiR CSS variable bridge === \*/\n?',
+    r'/\* === Ryoku CSS variable bridge - auto-generated, do not edit === \*/.*?/\* === end Ryoku CSS variable bridge === \*/\n?',
     re.DOTALL
 )
 # Strip ALL existing bridge blocks (including duplicates from prior bad runs)
@@ -250,7 +250,7 @@ regenerate_playback_controls_fix() {
   playback_rgb="$(hex_to_rgb "${COLORS[on_surface_variant]}")"
 
   local playback_block
-  playback_block="/* === iNiR playback controls fix - auto-generated === */
+  playback_block="/* === Ryoku playback controls fix - auto-generated === */
 .main-playbackBar__slider,
 .playback-bar__progress-time-elapsed,
 .main-playbackBar__slider::before {
@@ -274,7 +274,7 @@ regenerate_playback_controls_fix() {
 .progress-bar__bg {
   background-color: rgba($playback_rgb, 0.3) !important;
 }
-/* === end iNiR playback controls fix === */"
+/* === end Ryoku playback controls fix === */"
 
   python3 - "$css_file" "$playback_block" <<'PYEOF'
 import sys, re, pathlib
@@ -282,11 +282,11 @@ css_path = pathlib.Path(sys.argv[1])
 new_block = sys.argv[2]
 content = css_path.read_text()
 pattern = re.compile(
-    r'/\* === iNiR playback controls fix - auto-generated === \*/.*?(?=(/\* === end iNiR playback controls fix === \*/|/\* === iNiR playback controls fix - auto-generated === \*/|\Z))',
+    r'/\* === Ryoku playback controls fix - auto-generated === \*/.*?(?=(/\* === end Ryoku playback controls fix === \*/|/\* === Ryoku playback controls fix - auto-generated === \*/|\Z))',
     re.DOTALL
 )
 content = pattern.sub('', content)
-content = re.sub(r'/\* === end iNiR playback controls fix === \*/\n?', '', content)
+content = re.sub(r'/\* === end Ryoku playback controls fix === \*/\n?', '', content)
 content = content.lstrip('\n')
 content = new_block + '\n' + content
 css_path.write_text(content)

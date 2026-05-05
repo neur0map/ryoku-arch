@@ -34,7 +34,7 @@ Item {
         width: parent.width
         implicitHeight: stack.implicitHeight + 16
         radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-            : Appearance.inirEverywhere ? Appearance.inir.roundingNormal
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal
             : Appearance.rounding.normal
         color: "transparent"
 
@@ -76,7 +76,7 @@ Item {
                             ? (TimerService.pomodoroBreak ? "coffee" : "target")
                             : timerView.activeTimer === "stopwatch" ? "timer" : "hourglass_top"
                         iconSize: 16
-                        color: Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary
+                        color: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary
                     }
 
                     StyledText {
@@ -88,7 +88,7 @@ Item {
                             : Translation.tr("Timer")
                         font.pixelSize: Appearance.font.pixelSize.smaller
                         font.weight: Font.Medium
-                        color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer1
+                        color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer1
                     }
 
                     // Cycle badge for pomodoro
@@ -97,7 +97,7 @@ Item {
                         implicitWidth: cycleText.implicitWidth + 8
                         implicitHeight: 16
                         radius: 8
-                        color: Appearance.inirEverywhere ? Appearance.inir.colLayer2
+                        color: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
                             : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
                             : Appearance.colors.colSecondaryContainer
 
@@ -106,7 +106,7 @@ Item {
                             anchors.centerIn: parent
                             text: "%1/%2".arg(TimerService.pomodoroCycle + 1).arg(TimerService.cyclesBeforeLongBreak)
                             font.pixelSize: Appearance.font.pixelSize.smallest
-                            color: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary
+                            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
                                 : Appearance.colors.colOnSecondaryContainer
                         }
                     }
@@ -151,8 +151,8 @@ Item {
                     font.weight: Font.Light
                     font.family: Appearance.font.family.monospace
                     color: timerView.isPaused 
-                        ? (Appearance.inirEverywhere ? Appearance.inir.colTextMuted : Appearance.colors.colSubtext)
-                        : (Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer1)
+                        ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colTextMuted : Appearance.colors.colSubtext)
+                        : (Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer1)
                 }
 
                 // Progress
@@ -163,9 +163,9 @@ Item {
                         ? TimerService.pomodoroSecondsLeft / (TimerService.pomodoroLapDuration || 1)
                         : TimerService.countdownSecondsLeft / (TimerService.countdownDuration || 1)
                     highlightColor: timerView.isPaused 
-                        ? (Appearance.inirEverywhere ? Appearance.inir.colTextMuted : Appearance.colors.colSubtext)
-                        : (Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary)
-                    trackColor: Appearance.inirEverywhere ? Appearance.inir.colLayer2
+                        ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colTextMuted : Appearance.colors.colSubtext)
+                        : (Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary)
+                    trackColor: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
                         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
                         : Appearance.colors.colSecondaryContainer
                 }
@@ -185,7 +185,7 @@ Item {
                     MaterialSymbol {
                         text: Icons.getWeatherIcon(Weather.data.wCode, Weather.isNightNow()) ?? "cloud"
                         iconSize: 36
-                        color: Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary
+                        color: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary
                     }
 
                     StyledText {
@@ -193,7 +193,7 @@ Item {
                         font.pixelSize: Appearance.font.pixelSize.huge * 1.3
                         font.weight: Font.Medium
                         font.family: Appearance.font.family.numbers
-                        color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer1
+                        color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer1
                     }
 
                     ColumnLayout {
@@ -204,7 +204,7 @@ Item {
                             Layout.fillWidth: true
                             text: Weather.data.description || Translation.tr("Weather")
                             font.pixelSize: Appearance.font.pixelSize.small
-                            color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer1
+                            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer1
                             elide: Text.ElideRight
                         }
 
@@ -213,7 +213,7 @@ Item {
                             text: Weather.visibleCity
                             visible: Weather.showVisibleCity
                             font.pixelSize: Appearance.font.pixelSize.smallest
-                            color: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary : Appearance.colors.colSubtext
+                            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary : Appearance.colors.colSubtext
                             elide: Text.ElideRight
                         }
                     }
@@ -282,7 +282,7 @@ Item {
                         text: idleView.tabs[idleView.tab].icon
                         iconSize: 16
                         fill: 1
-                        color: Appearance.inirEverywhere ? Appearance.inir.colPrimary 
+                        color: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary 
                             : Appearance.auroraEverywhere ? Appearance.colors.colPrimary
                             : Appearance.colors.colPrimary
                     }
@@ -291,7 +291,7 @@ Item {
                         text: idleView.tabs[idleView.tab].label
                         font.pixelSize: Appearance.font.pixelSize.smaller
                         font.weight: Font.Medium
-                        color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer1
+                        color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer1
                     }
 
                     Item { Layout.fillWidth: true }
@@ -349,7 +349,7 @@ Item {
                             font.pixelSize: Appearance.font.pixelSize.huge * 1.5
                             font.weight: Font.Light
                             font.family: Appearance.font.family.monospace
-                            color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer1
+                            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer1
                         }
 
                         Rectangle {
@@ -357,10 +357,10 @@ Item {
                             implicitHeight: playIcon.implicitHeight + 8
                             radius: height / 2
                             color: timeMouseArea.containsMouse
-                                ? (Appearance.inirEverywhere ? Appearance.inir.colPrimary
+                                ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary
                                     : Appearance.auroraEverywhere ? Appearance.colors.colPrimary
                                     : Appearance.colors.colPrimary)
-                                : (Appearance.inirEverywhere ? Appearance.inir.colLayer2
+                                : (Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
                                     : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurface
                                     : Appearance.colors.colSecondaryContainer)
                             Behavior on color { enabled: Appearance.animationsEnabled; animation: ColorAnimation { duration: Appearance.animation.elementMoveFast.duration; easing.type: Appearance.animation.elementMoveFast.type; easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve } }
@@ -372,7 +372,7 @@ Item {
                                 iconSize: 18
                                 color: timeMouseArea.containsMouse
                                     ? Appearance.colors.colOnPrimary
-                                    : (Appearance.inirEverywhere ? Appearance.inir.colText
+                                    : (Appearance.ryokuEverywhere ? Appearance.ryoku.colText
                                         : Appearance.auroraEverywhere ? Appearance.colors.colOnSecondaryContainer
                                         : Appearance.colors.colOnSecondaryContainer)
                                 Behavior on color { enabled: Appearance.animationsEnabled; animation: ColorAnimation { duration: Appearance.animation.elementMoveFast.duration; easing.type: Appearance.animation.elementMoveFast.type; easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve } }
@@ -417,12 +417,12 @@ Item {
     component SmallIconButton: RippleButton {
         property string iconName
         implicitWidth: 26; implicitHeight: 26
-        buttonRadius: Appearance.inirEverywhere ? Appearance.inir.roundingSmall : 13
+        buttonRadius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : 13
         colBackground: "transparent"
-        colBackgroundHover: Appearance.inirEverywhere ? Appearance.inir.colLayer2Hover
+        colBackgroundHover: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover
             : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface 
             : Appearance.colors.colLayer2Hover
-        colRipple: Appearance.inirEverywhere ? Appearance.inir.colLayer2Active
+        colRipple: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Active
             : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive 
             : Appearance.colors.colLayer2Active
 
@@ -430,7 +430,7 @@ Item {
             anchors.centerIn: parent
             text: iconName
             iconSize: 16
-            color: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary : Appearance.colors.colSubtext
+            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary : Appearance.colors.colSubtext
         }
     }
 
@@ -448,13 +448,13 @@ Item {
             MaterialSymbol {
                 text: icon
                 iconSize: 14
-                color: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary : Appearance.colors.colSubtext
+                color: Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary : Appearance.colors.colSubtext
             }
             StyledText {
                 text: value
                 font.pixelSize: Appearance.font.pixelSize.small
                 font.family: Appearance.font.family.numbers
-                color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer1
+                color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer1
             }
         }
 

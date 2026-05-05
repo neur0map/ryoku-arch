@@ -19,8 +19,8 @@ MaterialSymbol {
             rightMargin: root.showUnreadCount ? 0 : 1
             topMargin: root.showUnreadCount ? 0 : 3
         }
-        radius: Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.full
-        color: Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colOnLayer0
+        radius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.full
+        color: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colOnLayer0
         z: 1
 
         implicitHeight: root.showUnreadCount ? Math.max(notificationCounterText.implicitWidth, notificationCounterText.implicitHeight) : 8
@@ -31,7 +31,7 @@ MaterialSymbol {
             visible: root.showUnreadCount
             anchors.centerIn: parent
             font.pixelSize: Appearance.font.pixelSize.smallest
-            color: Appearance.inirEverywhere ? Appearance.inir.colOnPrimary : Appearance.colors.colLayer0
+            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colOnPrimary : Appearance.colors.colLayer0
             text: Notifications.unread
         }
     }

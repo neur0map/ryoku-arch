@@ -26,13 +26,13 @@ Item {
             visible: active
             sourceComponent: CircleUtilButton {
                 Layout.alignment: Qt.AlignVCenter
-                onClicked: Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "region", "screenshot"])
+                onClicked: Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "region", "screenshot"])
                 MaterialSymbol {
                     horizontalAlignment: Qt.AlignHCenter
                     fill: 1
                     text: "screenshot_region"
                     iconSize: Appearance.font.pixelSize.large
-                    color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer2
+                    color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer2
                 }
             }
         }
@@ -67,8 +67,8 @@ Item {
                             text: "videocam"
                             iconSize: Appearance.font.pixelSize.large
                             color: recordButtonWrapper.isRecording
-                                ? (Appearance.inirEverywhere ? Appearance.inir.colError : Appearance.colors.colError)
-                                : (Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer2)
+                                ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colError : Appearance.colors.colError)
+                                : (Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer2)
                         }
 
                         // Pulsating indicator dot when recording
@@ -77,7 +77,7 @@ Item {
                             width: 6
                             height: 6
                             radius: 3
-                            color: Appearance.inirEverywhere ? Appearance.inir.colError : Appearance.colors.colError
+                            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colError : Appearance.colors.colError
                             anchors {
                                 top: parent.top
                                 right: parent.right
@@ -106,7 +106,7 @@ Item {
                     fill: 1
                     text: "colorize"
                     iconSize: Appearance.font.pixelSize.large
-                    color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer2
+                    color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer2
                 }
             }
         }
@@ -127,7 +127,7 @@ Item {
                     fill: 0
                     text: "edit_note"
                     iconSize: Appearance.font.pixelSize.large
-                    color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer2
+                    color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer2
                 }
             }
         }
@@ -143,7 +143,7 @@ Item {
                     fill: 0
                     text: "keyboard"
                     iconSize: Appearance.font.pixelSize.large
-                    color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer2
+                    color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer2
                 }
             }
         }
@@ -165,7 +165,7 @@ Item {
                         fill: 0
                         text: "language"
                         iconSize: Appearance.font.pixelSize.large
-                        color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer2
+                        color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer2
                     }
                 }
             }
@@ -194,9 +194,9 @@ Item {
                         text: micButton.isMuted ? "mic_off" : "mic"
                         iconSize: Appearance.font.pixelSize.large
                         color: micButton.isInUse && !micButton.isMuted
-                            ? (Appearance.inirEverywhere ? Appearance.inir.colError : Appearance.colors.colError)
+                            ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colError : Appearance.colors.colError)
                             : (Appearance.angelEverywhere ? Appearance.angel.colText
-                             : Appearance.inirEverywhere ? Appearance.inir.colOnLayer2
+                             : Appearance.ryokuEverywhere ? Appearance.ryoku.colOnLayer2
                              : Appearance.auroraEverywhere ? Appearance.m3colors.m3onSurface
                              : Appearance.colors.colOnLayer2)
                     }
@@ -206,7 +206,7 @@ Item {
                         width: 6
                         height: 6
                         radius: 3
-                        color: Appearance.inirEverywhere ? Appearance.inir.colError : Appearance.colors.colError
+                        color: Appearance.ryokuEverywhere ? Appearance.ryoku.colError : Appearance.colors.colError
                         anchors { top: parent.top; right: parent.right }
 
                         SequentialAnimation on opacity {
@@ -254,8 +254,8 @@ Item {
                         text: "visibility"
                         iconSize: Appearance.font.pixelSize.large
                         color: screenCastButton.isCasting
-                            ? (Appearance.inirEverywhere ? Appearance.inir.colError : Appearance.colors.colError)
-                            : (Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer2)
+                            ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colError : Appearance.colors.colError)
+                            : (Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer2)
                     }
 
                     Rectangle {
@@ -263,7 +263,7 @@ Item {
                         width: 6
                         height: 6
                         radius: 3
-                        color: Appearance.inirEverywhere ? Appearance.inir.colError : Appearance.colors.colError
+                        color: Appearance.ryokuEverywhere ? Appearance.ryoku.colError : Appearance.colors.colError
                         anchors {
                             top: parent.top
                             right: parent.right
@@ -293,7 +293,7 @@ Item {
                     fill: 0
                     text: Appearance.m3colors.darkmode ? "light_mode" : "dark_mode"
                     iconSize: Appearance.font.pixelSize.large
-                    color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer2
+                    color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer2
                 }
             }
         }
@@ -326,7 +326,7 @@ Item {
                         case PowerProfile.Performance: return "local_fire_department"
                     }
                     iconSize: Appearance.font.pixelSize.large
-                    color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer2
+                    color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer2
                 }
             }
         }

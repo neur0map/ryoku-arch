@@ -30,12 +30,12 @@ Item {
 
         width: contentLayout.implicitWidth + 32
         height: contentLayout.implicitHeight + 20
-        radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal : Appearance.inirEverywhere ? Appearance.inir.roundingNormal : Appearance.rounding.normal
+        radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal : Appearance.rounding.normal
         fallbackColor: Appearance.colors.colLayer1
-        inirColor: Appearance.inir.colLayer2
+        ryokuColor: Appearance.ryoku.colLayer2
         auroraTransparency: Appearance.aurora.popupTransparentize
         border.width: 1
-        border.color: root.isError ? (Appearance.inirEverywhere ? Appearance.inir.colError : Appearance.colors.colError) : (Appearance.angelEverywhere ? Appearance.angel.colBorder : Appearance.inirEverywhere ? Appearance.inir.colBorder : Appearance.auroraEverywhere ? Appearance.aurora.colTooltipBorder : Appearance.colors.colOutlineVariant)
+        border.color: root.isError ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colError : Appearance.colors.colError) : (Appearance.angelEverywhere ? Appearance.angel.colBorder : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder : Appearance.auroraEverywhere ? Appearance.aurora.colTooltipBorder : Appearance.colors.colOutlineVariant)
         Component.onCompleted: progressAnim.start()
 
         MouseArea {
@@ -57,7 +57,7 @@ Item {
             MaterialSymbol {
                 text: root.icon
                 iconSize: 20
-                color: root.isError ? (Appearance.angelEverywhere ? Appearance.m3colors.m3error : Appearance.inirEverywhere ? Appearance.inir.colError : Appearance.colors.colError) : (Appearance.angelEverywhere ? Appearance.angel.colPrimary : Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colOnLayer1)
+                color: root.isError ? (Appearance.angelEverywhere ? Appearance.m3colors.m3error : Appearance.ryokuEverywhere ? Appearance.ryoku.colError : Appearance.colors.colError) : (Appearance.angelEverywhere ? Appearance.angel.colPrimary : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colOnLayer1)
             }
 
             // Content

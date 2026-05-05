@@ -12,7 +12,7 @@ Rectangle {
     id: root
     
     property color fallbackColor: Appearance.colors.colLayer1
-    property color inirColor: Appearance.inir.colLayer1
+    property color ryokuColor: Appearance.ryoku.colLayer1
     property real auroraTransparency: Appearance.aurora.popupTransparentize
     
     // Screen-relative position for blur alignment (set by parent)
@@ -23,11 +23,11 @@ Rectangle {
     
     readonly property bool angelEverywhere: Appearance.angelEverywhere
     readonly property bool auroraEverywhere: Appearance.auroraEverywhere
-    readonly property bool inirEverywhere: Appearance.inirEverywhere
+    readonly property bool ryokuEverywhere: Appearance.ryokuEverywhere
     readonly property string wallpaperUrl: Wallpapers.effectiveWallpaperUrl
     
     color: auroraEverywhere ? "transparent"
-        : inirEverywhere ? inirColor
+        : ryokuEverywhere ? ryokuColor
         : fallbackColor
     
     property bool hovered: false
@@ -37,7 +37,7 @@ Rectangle {
 
     clip: true
     
-    layer.enabled: auroraEverywhere && !inirEverywhere
+    layer.enabled: auroraEverywhere && !ryokuEverywhere
     layer.effect: GE.OpacityMask {
         maskSource: Rectangle {
             width: root.width
@@ -52,8 +52,8 @@ Rectangle {
         y: -root.screenY
         width: root.screenWidth
         height: root.screenHeight
-        visible: root.auroraEverywhere && !root.inirEverywhere && status === Image.Ready
-        source: (root.auroraEverywhere && !root.inirEverywhere) ? root.wallpaperUrl : ""
+        visible: root.auroraEverywhere && !root.ryokuEverywhere && status === Image.Ready
+        source: (root.auroraEverywhere && !root.ryokuEverywhere) ? root.wallpaperUrl : ""
         fillMode: Image.PreserveAspectCrop
         // All GlassBackground instances share the same wallpaper URL and sourceSize,
         // so Qt's QPixmapCache serves a single decoded pixmap to all of them.
@@ -65,7 +65,7 @@ Rectangle {
         sourceSize.width: root.screenWidth
         sourceSize.height: root.screenHeight
 
-        layer.enabled: Appearance.effectsEnabled && root.auroraEverywhere && !root.inirEverywhere
+        layer.enabled: Appearance.effectsEnabled && root.auroraEverywhere && !root.ryokuEverywhere
         layer.effect: MultiEffect {
             source: blurredWallpaper
             anchors.fill: source
@@ -82,7 +82,7 @@ Rectangle {
 
     Rectangle {
         anchors.fill: parent
-        visible: root.auroraEverywhere && !root.inirEverywhere
+        visible: root.auroraEverywhere && !root.ryokuEverywhere
         color: root.angelEverywhere
             ? ColorUtils.transparentize(Appearance.colors.colLayer0Base, Appearance.angel.overlayOpacity)
             : ColorUtils.transparentize(Appearance.colors.colLayer0Base, root.auroraTransparency)

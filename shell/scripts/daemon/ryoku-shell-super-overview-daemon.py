@@ -60,7 +60,7 @@ def _find_ryoku_shell_pid():
         if exe != "qs":
             continue
         # Legacy: qs -c inir (old name)
-        if len(args) >= 3 and args[1] == "-c" and args[2] == "inir":
+        if len(args) >= 3 and args[1] == "-c" and args[2] == "ryoku-shell":
             return pid
         # Path-based: qs ... -p <path>/shell.qml  or  qs ... -p <path>
         # where <path> ends with /inir or /ryoku-shell or contains /inir/ or /ryoku-shell/

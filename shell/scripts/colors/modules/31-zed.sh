@@ -9,7 +9,7 @@ PALETTE_FILE="$STATE_DIR/user/generated/palette.json"
 TERMINAL_FILE="$STATE_DIR/user/generated/terminal.json"
 LEGACY_COLORS_FILE="$STATE_DIR/user/generated/colors.json"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-ZED_THEMEGEN_BIN="$STATE_DIR/user/generated/bin/inir-zed-themegen"
+ZED_THEMEGEN_BIN="$STATE_DIR/user/generated/bin/ryoku-zed-themegen"
 ZED_THEMEGEN_SRC="$SCRIPT_DIR/zed_themegen/main.go"
 ZED_OUTPUT_FILE="$HOME/.config/zed/themes/ii-theme.json"
 ZED_TEMPLATE_FILE="$REPO_ROOT/dots/.config/matugen/templates/zed-colors.json"
@@ -45,7 +45,7 @@ ensure_zed_themegen() {
     return 0
   fi
 
-  local tmp_bin="$STATE_DIR/user/generated/bin/.inir-zed-themegen.$$"
+  local tmp_bin="$STATE_DIR/user/generated/bin/.ryoku-zed-themegen.$$"
   if "$go_bin" build -o "$tmp_bin" "$ZED_THEMEGEN_SRC" >> "$ZED_THEMEGEN_LOG" 2>&1; then
     mv -f "$tmp_bin" "$ZED_THEMEGEN_BIN" >> "$ZED_THEMEGEN_LOG" 2>&1 || {
       rm -f "$tmp_bin"

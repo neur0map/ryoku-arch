@@ -19,7 +19,7 @@ Item {
         StyledText {
             font.pixelSize: Appearance.font.pixelSize.large
             color: Appearance.angelEverywhere ? Appearance.angel.colText
-                : Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer1
+                : Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer1
             text: DateTime.time
         }
 
@@ -27,7 +27,7 @@ Item {
             visible: root.showDate
             font.pixelSize: Appearance.font.pixelSize.small
             color: Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
-                : Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer1
+                : Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer1
             text: "•"
         }
 
@@ -35,7 +35,7 @@ Item {
             visible: root.showDate
             font.pixelSize: Appearance.font.pixelSize.small
             color: Appearance.angelEverywhere ? Appearance.angel.colText
-                : Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer1
+                : Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer1
             text: DateTime.date
         }
     }

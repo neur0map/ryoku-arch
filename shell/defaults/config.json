@@ -33,7 +33,7 @@
       "material": 1,
       "cards": 3,
       "aurora": 0,
-      "inir": 1,
+      "ryoku-shell": 1,
       "angel": 1
     },
     "themeSchedule": {
@@ -436,7 +436,7 @@
     "showScrollHints": true,
     "leftScrollAction": "brightness",
     "rightScrollAction": "volume",
-    "topLeftIcon": "spark",
+    "topLeftIcon": "ryoku",
     "tray": {
       "filterPassive": true,
       "invertPinnedItems": true,
@@ -1049,8 +1049,8 @@
     "niriWindowListUpdateIntervalMsGameMode": 500
   },
   "hotspot": {
-    "ssid": "iNiR Hotspot",
-    "password": "inirhotspot",
+    "ssid": "Ryoku Hotspot",
+    "password": "ryoku-shell-hotspot",
     "band": "bg"
   },
   "keyboardIndicators": {

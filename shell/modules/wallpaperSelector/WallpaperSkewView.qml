@@ -313,21 +313,21 @@ Item {
     // STYLE TOKENS
     // ═══════════════════════════════════════════════════
     readonly property color surfaceColor: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
         : Appearance.colors.colLayer1
     readonly property color baseColor: Appearance.angelEverywhere ? Appearance.angel.colGlassPanel
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer0
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer0
         : Appearance.auroraEverywhere ? Appearance.aurora.colOverlay
         : Appearance.colors.colLayer0
     readonly property color textColor: Appearance.angelEverywhere ? Appearance.angel.colText
-        : Appearance.inirEverywhere ? Appearance.inir.colText
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colText
         : Appearance.colors.colOnLayer1
     readonly property color borderColor: Appearance.angelEverywhere ? Appearance.angel.colBorderSubtle
-        : Appearance.inirEverywhere ? Appearance.inir.colBorderSubtle
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorderSubtle
         : ColorUtils.applyAlpha(Appearance.colors.colOutlineVariant, 0.45)
     readonly property real cardRadius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-        : Appearance.inirEverywhere ? Appearance.inir.roundingNormal
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal
         : Appearance.rounding.small
     readonly property bool isVerticalBar: Config.options?.bar?.vertical ?? false
     readonly property bool isTopBar: !isVerticalBar && !(Config.options?.bar?.bottom ?? false)
@@ -1695,7 +1695,7 @@ Item {
 
         // Shadow (matching Toolbar)
         Loader {
-            active: Appearance.angelEverywhere || (!Appearance.inirEverywhere && !Appearance.auroraEverywhere)
+            active: Appearance.angelEverywhere || (!Appearance.ryokuEverywhere && !Appearance.auroraEverywhere)
             anchors.fill: filterBarGlass
             sourceComponent: StyledRectangularShadow {
                 target: filterBarGlass
@@ -1707,15 +1707,15 @@ Item {
             id: filterBarGlass
             anchors.fill: parent
             fallbackColor: Appearance.m3colors.m3surfaceContainer
-            inirColor: Appearance.inir.colLayer2
+            ryokuColor: Appearance.ryoku.colLayer2
             auroraTransparency: Appearance.aurora.overlayTransparentize
             screenX: { const p = filterBar.mapToGlobal(0, 0); return p.x }
             screenY: { const p = filterBar.mapToGlobal(0, 0); return p.y }
             screenWidth: Quickshell.screens[0]?.width ?? 1920
             screenHeight: Quickshell.screens[0]?.height ?? 1080
-            border.width: (Appearance.angelEverywhere || Appearance.inirEverywhere || Appearance.auroraEverywhere) ? 1 : 0
+            border.width: (Appearance.angelEverywhere || Appearance.ryokuEverywhere || Appearance.auroraEverywhere) ? 1 : 0
             border.color: Appearance.angelEverywhere ? Appearance.angel.colBorder
-                : Appearance.inirEverywhere ? Appearance.inir.colBorder
+                : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
                 : Appearance.auroraEverywhere ? Appearance.aurora.colTooltipBorder : "transparent"
             implicitHeight: 40
             implicitWidth: filterBarRow.implicitWidth + 20
@@ -2023,7 +2023,7 @@ Item {
                 background: Rectangle {
                     radius: root.cardRadius
                     color: Appearance.angelEverywhere ? Appearance.angel.colGlassPanel
-                        : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+                        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
                         : Appearance.auroraEverywhere ? Appearance.aurora.colOverlay
                         : Appearance.m3colors.m3surfaceContainer
                     border.width: 1
@@ -2134,7 +2134,7 @@ Item {
         Rectangle {
             implicitWidth: 1; implicitHeight: 16
             color: Appearance.angelEverywhere ? Appearance.angel.colBorderSubtle
-                 : Appearance.inirEverywhere ? Appearance.inir.colBorderSubtle
+                 : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorderSubtle
                  : Appearance.colors.colOnSurfaceVariant
             opacity: 0.2
         }
@@ -2199,7 +2199,7 @@ Item {
         Rectangle {
             implicitWidth: 1; implicitHeight: 16
             color: Appearance.angelEverywhere ? Appearance.angel.colBorderSubtle
-                 : Appearance.inirEverywhere ? Appearance.inir.colBorderSubtle
+                 : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorderSubtle
                  : Appearance.colors.colOnSurfaceVariant
             opacity: 0.2
         }
@@ -2230,7 +2230,7 @@ Item {
         Rectangle {
             implicitWidth: 1; implicitHeight: 16
             color: Appearance.angelEverywhere ? Appearance.angel.colBorderSubtle
-                 : Appearance.inirEverywhere ? Appearance.inir.colBorderSubtle
+                 : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorderSubtle
                  : Appearance.colors.colOnSurfaceVariant
             opacity: 0.2
         }

@@ -81,8 +81,8 @@ Item {
                             }
                             WTextField {
                                 Layout.fillWidth: true
-                                placeholderText: "iNiR Hotspot"
-                                text: Config.options?.hotspot?.ssid ?? "iNiR Hotspot"
+                                placeholderText: "Ryoku Hotspot"
+                                text: Config.options?.hotspot?.ssid ?? "Ryoku Hotspot"
                                 onTextEdited: Config.setNestedValue("hotspot.ssid", text)
                             }
                         }
@@ -100,8 +100,8 @@ Item {
                             }
                             WTextField {
                                 Layout.fillWidth: true
-                                placeholderText: "inirhotspot"
-                                text: Config.options?.hotspot?.password ?? "inirhotspot"
+                                placeholderText: "ryoku-shell-hotspot"
+                                text: Config.options?.hotspot?.password ?? "ryoku-shell-hotspot"
                                 echoMode: TextInput.Password
                                 onTextEdited: Config.setNestedValue("hotspot.password", text)
                             }

@@ -104,13 +104,13 @@ PopupWindow {
             }
 
             color: Appearance.angelEverywhere ? Appearance.angel.colGlassPopup
-                : Appearance.inirEverywhere ? Appearance.inir.colLayer1 
+                : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1 
                 : Appearance.colors.colLayer0
             radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-                : Appearance.inirEverywhere ? Appearance.inir.roundingLarge : Appearance.rounding.windowRounding
+                : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingLarge : Appearance.rounding.windowRounding
             border.width: 1
             border.color: Appearance.angelEverywhere ? Appearance.angel.colBorder
-                : Appearance.inirEverywhere ? Appearance.inir.colBorder 
+                : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder 
                 : Appearance.colors.colLayer0Border
             clip: true
 

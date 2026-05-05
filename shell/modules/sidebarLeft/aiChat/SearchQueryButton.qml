@@ -14,15 +14,15 @@ RippleButton {
     leftPadding: 6
     rightPadding: 10
     buttonRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-        : Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.verysmall
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.verysmall
     colBackground: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer2 
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2 
         : Appearance.auroraEverywhere ? "transparent" : Appearance.colors.colSurfaceContainerHighest
     colBackgroundHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer2Hover 
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover 
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface : Appearance.colors.colSurfaceContainerHighestHover
     colRipple: Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer2Active 
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Active 
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive : Appearance.colors.colSurfaceContainerHighestActive
 
     PointingHandInteraction {}
@@ -46,13 +46,13 @@ RippleButton {
             MaterialSymbol {
                 text: "search"
                 iconSize: 20
-                color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.m3colors.m3onSurface
+                color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.m3colors.m3onSurface
             }
             StyledText {
                 id: text
                 horizontalAlignment: Text.AlignHCenter
                 text: root.query
-                color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.m3colors.m3onSurface
+                color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.m3colors.m3onSurface
             }
         }
     }

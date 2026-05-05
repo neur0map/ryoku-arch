@@ -1,4 +1,4 @@
-# Package installation functions for iNiR
+# Package installation functions for Ryoku
 # This is NOT a script for execution, but for loading functions
 # Shared across all distros
 
@@ -251,7 +251,7 @@ install-python-packages(){
     if declare -F get_runtime_shell_dir >/dev/null; then
       requirements_file="$(get_runtime_shell_dir)/sdata/uv/requirements.txt"
     else
-      requirements_file="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/inir/sdata/uv/requirements.txt"
+      requirements_file="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell/sdata/uv/requirements.txt"
     fi
   fi
 
@@ -669,8 +669,8 @@ setup-environment-config(){
   fi
 
   mkdir -p ~/.config/environment.d
-  cat > ~/.config/environment.d/inir.conf << EOF
-# iNiR environment variables
+  cat > ~/.config/environment.d/ryoku-shell.conf << EOF
+# Ryoku environment variables
 XCURSOR_THEME=${cursor_theme}
 XCURSOR_SIZE=24
 QT_QPA_PLATFORM=wayland
@@ -679,7 +679,7 @@ QT_STYLE_OVERRIDE=Darkly
 GTK_THEME=adw-gtk3-dark
 ELECTRON_OZONE_PLATFORM_HINT=auto
 ILLOGICAL_IMPULSE_VIRTUAL_ENV=\$HOME/.local/state/quickshell/.venv
-INIR_VENV=\$HOME/.local/state/quickshell/.venv
+RYOKU_SHELL_VENV=\$HOME/.local/state/quickshell/.venv
 EOF
 
   log_success "Environment configuration set"
@@ -706,7 +706,7 @@ pad=25x25
 
 bold-text-in-bright=no
 
-include=~/.config/foot/inir-colors.ini
+include=~/.config/foot/ryoku-shell-colors.ini
 
 [scrollback]
 lines=10000
@@ -738,8 +738,8 @@ EOF
   else
     # Existing config - ensure include line is present for theming
     if ! grep -q "include=.*inir-colors\.ini" ~/.config/foot/foot.ini; then
-      log_info "Adding inir-colors.ini include to existing foot.ini..."
-      sed -i '1i include=~/.config/foot/inir-colors.ini' ~/.config/foot/foot.ini
+      log_info "Adding ryoku-shell-colors.ini include to existing foot.ini..."
+      sed -i '1i include=~/.config/foot/ryoku-shell-colors.ini' ~/.config/foot/foot.ini
     fi
     # Remove stale colors.ini include if present (legacy matugen terminal template)
     sed -i '/^include=.*\/colors\.ini$/d' ~/.config/foot/foot.ini
@@ -756,7 +756,7 @@ setup-kitty-config(){
   # Only create if doesn't exist or is minimal
   if [[ ! -f ~/.config/kitty/kitty.conf ]] || [[ $(wc -l < ~/.config/kitty/kitty.conf) -lt 5 ]]; then
     cat > ~/.config/kitty/kitty.conf << 'EOF'
-# iNiR wallpaper theming - colors from quickshell
+# Ryoku wallpaper theming - colors from quickshell
 include current-theme.conf
 
 # Font configuration
@@ -859,7 +859,7 @@ if status is-interactive
         alias ls 'eza --icons'
     end
     alias clear "printf '\033[2J\033[3J\033[1;1H'"
-    alias q 'inir run'
+    alias q 'ryoku-shell run'
 
     # Add local bin to PATH
     fish_add_path ~/.local/bin
@@ -875,12 +875,12 @@ setup-bash-config(){
   log_info "Setting up Bash shell configuration..."
 
   local bashrc="$HOME/.bashrc"
-  local inir_config="$HOME/.config/inir/bashrc"
+  local ryoku_config="$HOME/.config/ryoku-shell/bashrc"
 
-  mkdir -p ~/.config/inir
+  mkdir -p ~/.config/ryoku-shell
 
   # Create ii bash config
-  cat > "$inir_config" << 'EOF'
+  cat > "$ryoku_config" << 'EOF'
 # ii shell integration - starship prompt and terminal colors
 
 # Load terminal colors from ii theming
@@ -901,7 +901,7 @@ if command -v eza &> /dev/null; then
 elif [[ -x ~/.local/bin/eza ]]; then
     alias ls='~/.local/bin/eza --icons'
 fi
-alias q='inir run'
+alias q='ryoku-shell run'
 
 # Add local bin to PATH
 export PATH="$HOME/.local/bin:$PATH"
@@ -910,16 +910,16 @@ EOF
   # Add source line to .bashrc if not present
   if [[ -f "$bashrc" ]]; then
     if grep -q "source.*ii/bashrc" "$bashrc" || grep -q "\..*ii/bashrc" "$bashrc"; then
-      sed -i 's|~/.config/ii/bashrc|~/.config/inir/bashrc|g' "$bashrc"
+      sed -i 's|~/.config/ii/bashrc|~/.config/ryoku-shell/bashrc|g' "$bashrc"
       log_success "Updated Bash integration path in .bashrc"
     elif ! grep -q "source.*inir/bashrc" "$bashrc" && ! grep -q "\..*inir/bashrc" "$bashrc"; then
-      echo -e "\n# ii shell integration\n[[ -f ~/.config/inir/bashrc ]] && source ~/.config/inir/bashrc" >> "$bashrc"
+      echo -e "\n# ii shell integration\n[[ -f ~/.config/ryoku-shell/bashrc ]] && source ~/.config/ryoku-shell/bashrc" >> "$bashrc"
       log_success "Added Bash integration to .bashrc"
     else
       log_info "Bash integration already in .bashrc"
     fi
   else
-    echo -e "# ii shell integration\n[[ -f ~/.config/inir/bashrc ]] && source ~/.config/inir/bashrc" > "$bashrc"
+    echo -e "# ii shell integration\n[[ -f ~/.config/ryoku-shell/bashrc ]] && source ~/.config/ryoku-shell/bashrc" > "$bashrc"
     log_success "Created .bashrc with Bash integration"
   fi
 
@@ -930,12 +930,12 @@ setup-zsh-config(){
   log_info "Setting up Zsh shell configuration..."
 
   local zshrc="$HOME/.zshrc"
-  local inir_config="$HOME/.config/inir/zshrc"
+  local ryoku_config="$HOME/.config/ryoku-shell/zshrc"
 
-  mkdir -p ~/.config/inir
+  mkdir -p ~/.config/ryoku-shell
 
   # Create ii zsh config
-  cat > "$inir_config" << 'EOF'
+  cat > "$ryoku_config" << 'EOF'
 # ii shell integration - starship prompt and terminal colors
 
 # Load terminal colors from ii theming
@@ -956,7 +956,7 @@ if command -v eza &> /dev/null; then
 elif [[ -x ~/.local/bin/eza ]]; then
     alias ls='~/.local/bin/eza --icons'
 fi
-alias q='inir run'
+alias q='ryoku-shell run'
 
 # Add local bin to PATH
 export PATH="$HOME/.local/bin:$PATH"
@@ -965,10 +965,10 @@ EOF
   # Add source line to .zshrc if not present
   if [[ -f "$zshrc" ]]; then
     if grep -q "source.*ii/zshrc" "$zshrc" || grep -q "\..*ii/zshrc" "$zshrc"; then
-      sed -i 's|~/.config/ii/zshrc|~/.config/inir/zshrc|g' "$zshrc"
+      sed -i 's|~/.config/ii/zshrc|~/.config/ryoku-shell/zshrc|g' "$zshrc"
       log_success "Updated Zsh integration path in .zshrc"
     elif ! grep -q "source.*inir/zshrc" "$zshrc" && ! grep -q "\..*inir/zshrc" "$zshrc"; then
-      echo -e "\n# ii shell integration\n[[ -f ~/.config/inir/zshrc ]] && source ~/.config/inir/zshrc" >> "$zshrc"
+      echo -e "\n# ii shell integration\n[[ -f ~/.config/ryoku-shell/zshrc ]] && source ~/.config/ryoku-shell/zshrc" >> "$zshrc"
       log_success "Added Zsh integration to .zshrc"
     else
       log_info "Zsh integration already in .zshrc"

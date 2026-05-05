@@ -161,14 +161,14 @@ Loader {
                 rightMargin: popupWindow.isHorizontalPopup && popupWindow.isLeftSide ? popupWindow.sourceEdgeMargin : (root.ambientShadowWidth + root.visualMargin)
             }
             fallbackColor: Appearance.colors.colSurfaceContainer
-            inirColor: Appearance.inir.colLayer2
+            ryokuColor: Appearance.ryoku.colLayer2
             auroraTransparency: Appearance.aurora.popupTransparentize
             radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-                : Appearance.inirEverywhere ? Appearance.inir.roundingNormal
+                : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal
                 : Appearance.rounding.normal
             border.width: 1
             border.color: Appearance.angelEverywhere ? Appearance.angel.colBorder
-                        : Appearance.inirEverywhere ? Appearance.inir.colBorder
+                        : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
                         : Appearance.auroraEverywhere 
                             ? Appearance.aurora.colTooltipBorder
                             : Appearance.colors.colSurfaceContainerHighest
@@ -193,7 +193,7 @@ Loader {
                                 Layout.fillWidth: true
                                 implicitHeight: 1
                                 color: Appearance.angelEverywhere ? Appearance.angel.colBorderSubtle
-                                    : Appearance.inirEverywhere ? Appearance.inir.colBorderSubtle
+                                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorderSubtle
                                     : Appearance.colors.colOutlineVariant
                             }
                         }
@@ -210,18 +210,18 @@ Loader {
                                 implicitWidth: Math.max(140, menuRow.implicitWidth + 20)
                                 implicitHeight: 32
                                 buttonRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-                                    : Appearance.inirEverywhere ? Appearance.inir.roundingSmall
+                                    : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall
                                     : Appearance.rounding.small
                                 colBackground: "transparent"
                                 colBackgroundHover: Appearance.angelEverywhere
                                     ? Appearance.angel.colGlassPopupHover
-                                    : Appearance.inirEverywhere 
-                                        ? Appearance.inir.colLayer2Hover
+                                    : Appearance.ryokuEverywhere 
+                                        ? Appearance.ryoku.colLayer2Hover
                                         : ColorUtils.transparentize(Appearance.colors.colPrimary, 0.85)
                                 colRipple: Appearance.angelEverywhere
                                     ? Appearance.angel.colGlassPopupActive
-                                    : Appearance.inirEverywhere
-                                        ? Appearance.inir.colLayer2Active
+                                    : Appearance.ryokuEverywhere
+                                        ? Appearance.ryoku.colLayer2Active
                                         : ColorUtils.transparentize(Appearance.colors.colPrimary, 0.7)
 
                                 onClicked: {
@@ -250,7 +250,7 @@ Loader {
                                                 text: menuBtn.modelData.iconName ?? ""
                                                 iconSize: Appearance.font.pixelSize.normal
                                                 color: Appearance.angelEverywhere ? Appearance.angel.colText
-                                                    : Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.m3colors.m3onSurface
+                                                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.m3colors.m3onSurface
                                             }
                                         }
 
@@ -266,7 +266,7 @@ Loader {
                                     StyledText {
                                         text: menuBtn.modelData.text ?? ""
                                         color: Appearance.angelEverywhere ? Appearance.angel.colText
-                                            : Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.m3colors.m3onSurface
+                                            : Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.m3colors.m3onSurface
                                         font.pixelSize: Appearance.font.pixelSize.small
                                         Layout.fillWidth: true
                                         Layout.alignment: Qt.AlignVCenter

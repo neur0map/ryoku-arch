@@ -18,7 +18,7 @@ Rectangle {
     Layout.fillWidth: true
     implicitHeight: Math.max(150, inputColumn.implicitHeight)
     color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer2
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
         : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurface : Appearance.colors.colLayer2
     radius: Appearance.rounding.normal
 

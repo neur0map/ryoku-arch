@@ -12,23 +12,23 @@ RippleButton {
     leftPadding: 15
     rightPadding: 15
     buttonRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-        : Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.small
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.small
     colBackground: (urgency == NotificationUrgency.Critical) 
         ? Appearance.colors.colSecondaryContainer 
         : Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer3
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer3
         : Appearance.auroraEverywhere ? "transparent" 
         : Appearance.colors.colLayer4
     colBackgroundHover: (urgency == NotificationUrgency.Critical) 
         ? Appearance.colors.colSecondaryContainerHover 
         : Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer3Hover
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer3Hover
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface 
         : Appearance.colors.colLayer4Hover
     colRipple: (urgency == NotificationUrgency.Critical) 
         ? Appearance.colors.colSecondaryContainerActive 
         : Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer3Active
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer3Active
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive 
         : Appearance.colors.colLayer4Active
 

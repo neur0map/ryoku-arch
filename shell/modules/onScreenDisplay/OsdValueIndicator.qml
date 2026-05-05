@@ -31,11 +31,11 @@ Item {
         }
         radius: Appearance.rounding.full
         fallbackColor: Appearance.colors.colLayer0
-        inirColor: Appearance.inir.colLayer1
+        ryokuColor: Appearance.ryoku.colLayer1
         auroraTransparency: Appearance.aurora.popupTransparentize
-        border.width: auroraEverywhere || inirEverywhere ? 1 : 0
+        border.width: auroraEverywhere || ryokuEverywhere ? 1 : 0
         border.color: Appearance.angelEverywhere ? Appearance.angel.colCardBorder
-            : inirEverywhere ? Appearance.inir.colBorder 
+            : ryokuEverywhere ? Appearance.ryoku.colBorder 
             : Appearance.auroraEverywhere ? Appearance.aurora.colTooltipBorder : Appearance.colors.colLayer0Border
 
         implicitWidth: valueRow.implicitWidth

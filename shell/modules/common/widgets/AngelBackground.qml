@@ -13,7 +13,7 @@ Rectangle {
     id: root
 
     property color fallbackColor: Appearance.colors.colLayer1
-    property color inirColor: Appearance.inir.colLayer1
+    property color ryokuColor: Appearance.ryoku.colLayer1
     property real auroraTransparency: Appearance.aurora.popupTransparentize
 
     // Screen-relative position for blur alignment (set by parent)
@@ -24,19 +24,19 @@ Rectangle {
 
     readonly property bool angelEverywhere: Appearance.angelEverywhere
     readonly property bool auroraEverywhere: Appearance.auroraEverywhere
-    readonly property bool inirEverywhere: Appearance.inirEverywhere
+    readonly property bool ryokuEverywhere: Appearance.ryokuEverywhere
     readonly property string wallpaperUrl: Wallpapers.effectiveWallpaperUrl
 
     property bool hovered: false
 
     color: angelEverywhere ? "transparent"
         : auroraEverywhere ? "transparent"
-        : inirEverywhere ? inirColor
+        : ryokuEverywhere ? ryokuColor
         : fallbackColor
 
     clip: true
 
-    layer.enabled: (auroraEverywhere || angelEverywhere) && !inirEverywhere
+    layer.enabled: (auroraEverywhere || angelEverywhere) && !ryokuEverywhere
     layer.effect: GE.OpacityMask {
         maskSource: Rectangle {
             width: root.width
@@ -52,15 +52,15 @@ Rectangle {
         y: -root.screenY
         width: root.screenWidth
         height: root.screenHeight
-        visible: (root.auroraEverywhere || root.angelEverywhere) && !root.inirEverywhere && status === Image.Ready
-        source: ((root.auroraEverywhere || root.angelEverywhere) && !root.inirEverywhere) ? root.wallpaperUrl : ""
+        visible: (root.auroraEverywhere || root.angelEverywhere) && !root.ryokuEverywhere && status === Image.Ready
+        source: ((root.auroraEverywhere || root.angelEverywhere) && !root.ryokuEverywhere) ? root.wallpaperUrl : ""
         fillMode: Image.PreserveAspectCrop
         cache: true
         sourceSize.width: root.screenWidth
         sourceSize.height: root.screenHeight
         asynchronous: true
 
-        layer.enabled: Appearance.effectsEnabled && (Appearance.auroraEverywhere || Appearance.angelEverywhere) && !Appearance.inirEverywhere
+        layer.enabled: Appearance.effectsEnabled && (Appearance.auroraEverywhere || Appearance.angelEverywhere) && !Appearance.ryokuEverywhere
         layer.effect: MultiEffect {
             source: blurredWallpaper
             anchors.fill: source
@@ -78,7 +78,7 @@ Rectangle {
     // Color overlay — angel uses higher opacity for refined look
     Rectangle {
         anchors.fill: parent
-        visible: (root.auroraEverywhere || root.angelEverywhere) && !root.inirEverywhere
+        visible: (root.auroraEverywhere || root.angelEverywhere) && !root.ryokuEverywhere
         color: root.angelEverywhere
             ? ColorUtils.transparentize(Appearance.colors.colLayer0Base, Appearance.angel.overlayOpacity)
             : ColorUtils.transparentize(Appearance.colors.colLayer0Base, root.auroraTransparency)

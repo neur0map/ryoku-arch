@@ -74,7 +74,7 @@ input {
 
 // ── Gestures ────────────────────────────────────────────────────────────────
 // Hot corners: move cursor to the top-left corner to open Niri's overview.
-// iNiR has its own overview (Mod+Space), so you may want to disable this.
+// Ryoku has its own overview (Mod+Space), so you may want to disable this.
 gestures {
     hot-corners {
         // off

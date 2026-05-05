@@ -55,7 +55,7 @@ migration_apply() {
   mkdir -p "$conf_dir"
 
   cat > "$conf" << 'ENVEOF'
-# Quickshell/iNiR memory optimization
+# Quickshell/Ryoku memory optimization
 # Prevents glibc malloc arenas from retaining freed wallpaper textures.
 # See: scripts/quickshell-env.sh for details.
 MALLOC_ARENA_MAX=2

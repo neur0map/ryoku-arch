@@ -23,7 +23,7 @@ Scope {
     readonly property real widgetHeight: Appearance.sizes.mediaControlsHeight
     readonly property real dockHeight: Config.options?.dock?.height ?? 60
     readonly property real dockMargin: Appearance.sizes.elevationMargin + Appearance.sizes.hyprlandGapsOut
-    property real popupRounding: Appearance.inirEverywhere ? Appearance.inir.roundingLarge : Appearance.rounding.large
+    property real popupRounding: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingLarge : Appearance.rounding.large
     readonly property bool visualizerActive: mediaControlsLoader.active && (root.allPlayers?.length ?? 0) > 0
 
     CavaProcess {
@@ -178,18 +178,18 @@ Scope {
 
                         StyledRectangularShadow {
                             target: placeholderBackground
-                            visible: Appearance.angelEverywhere || (!Appearance.inirEverywhere && !Appearance.auroraEverywhere)
+                            visible: Appearance.angelEverywhere || (!Appearance.ryokuEverywhere && !Appearance.auroraEverywhere)
                         }
 
                         Rectangle {
                             id: placeholderBackground
                             anchors.centerIn: parent
-                            color: Appearance.inirEverywhere ? Appearance.inir.colLayer1
+                            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
                                  : Appearance.auroraEverywhere ? Appearance.aurora.colPopupSurface
                                  : Appearance.colors.colLayer0
-                            radius: Appearance.inirEverywhere ? Appearance.inir.roundingLarge : root.popupRounding
-                            border.width: Appearance.inirEverywhere || Appearance.auroraEverywhere ? 1 : 0
-                            border.color: Appearance.inirEverywhere ? Appearance.inir.colBorder
+                            radius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingLarge : root.popupRounding
+                            border.width: Appearance.ryokuEverywhere || Appearance.auroraEverywhere ? 1 : 0
+                            border.color: Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
                                         : Appearance.auroraEverywhere ? Appearance.aurora.colTooltipBorder
                                         : "transparent"
                             property real padding: 20
@@ -203,10 +203,10 @@ Scope {
                                 StyledText {
                                     text: Translation.tr("No active player")
                                     font.pixelSize: Appearance.font.pixelSize.large
-                                    color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer0
+                                    color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer0
                                 }
                                 StyledText {
-                                    color: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary : Appearance.colors.colSubtext
+                                    color: Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary : Appearance.colors.colSubtext
                                     text: Translation.tr("Make sure your player has MPRIS support\\nor try turning off duplicate player filtering")
                                     font.pixelSize: Appearance.font.pixelSize.small
                                 }

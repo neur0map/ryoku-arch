@@ -59,24 +59,24 @@ Item {
     property QtObject blendedColors: AdaptedMaterialScheme { color: root.artColor }
 
     // Style tokens
-    readonly property color colText: Appearance.inirEverywhere ? Appearance.inir.colText
+    readonly property color colText: Appearance.ryokuEverywhere ? Appearance.ryoku.colText
         : (blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
-    readonly property color colTextSecondary: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary
+    readonly property color colTextSecondary: Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
         : (blendedColors?.colSubtext ?? Appearance.colors.colSubtext)
-    readonly property color colPrimary: Appearance.inirEverywhere ? Appearance.inir.colPrimary
+    readonly property color colPrimary: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary
         : (blendedColors?.colPrimary ?? Appearance.colors.colPrimary)
     readonly property color colBg: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
         : Appearance.auroraEverywhere ? ColorUtils.transparentize(blendedColors?.colLayer0 ?? Appearance.colors.colLayer0, 0.7)
         : (blendedColors?.colLayer0 ?? Appearance.colors.colLayer0)
-    readonly property color colLayer2: Appearance.inirEverywhere ? Appearance.inir.colLayer2
+    readonly property color colLayer2: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
         : (blendedColors?.colLayer1 ?? Appearance.colors.colLayer1)
     readonly property real radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-        : Appearance.inirEverywhere ? Appearance.inir.roundingNormal : Appearance.rounding.normal
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal : Appearance.rounding.normal
     readonly property real radiusSmall: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-        : Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.small
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.small
 
-    StyledRectangularShadow { target: card; visible: Appearance.angelEverywhere || (!Appearance.inirEverywhere && !Appearance.auroraEverywhere) }
+    StyledRectangularShadow { target: card; visible: Appearance.angelEverywhere || (!Appearance.ryokuEverywhere && !Appearance.auroraEverywhere) }
 
     Rectangle {
         id: card
@@ -85,9 +85,9 @@ Item {
         implicitHeight: 140
         radius: root.radius
         color: root.colBg
-        border.width: (Appearance.angelEverywhere || Appearance.inirEverywhere) ? 1 : 0
+        border.width: (Appearance.angelEverywhere || Appearance.ryokuEverywhere) ? 1 : 0
         border.color: Appearance.angelEverywhere ? Appearance.angel.colBorder
-            : Appearance.inirEverywhere ? Appearance.inir.colBorder : "transparent"
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder : "transparent"
         clip: true
 
         layer.enabled: true
@@ -102,7 +102,7 @@ Item {
             fillMode: Image.PreserveAspectCrop
             asynchronous: true
             cache: false
-            opacity: Appearance.inirEverywhere ? 0.15 : (Appearance.auroraEverywhere ? 0.25 : 0.5)
+            opacity: Appearance.ryokuEverywhere ? 0.15 : (Appearance.auroraEverywhere ? 0.25 : 0.5)
             visible: root.downloaded
             layer.enabled: Appearance.effectsEnabled
             layer.effect: MultiEffect { blurEnabled: true; blur: 0.2; blurMax: 16; saturation: 0.2 }
@@ -111,7 +111,7 @@ Item {
         // Gradient overlay for Material
         Rectangle {
             anchors.fill: parent
-            visible: !Appearance.inirEverywhere && !Appearance.auroraEverywhere
+            visible: !Appearance.ryokuEverywhere && !Appearance.auroraEverywhere
             gradient: Gradient {
                 orientation: Gradient.Horizontal
                 GradientStop { position: 0.0; color: "transparent" }

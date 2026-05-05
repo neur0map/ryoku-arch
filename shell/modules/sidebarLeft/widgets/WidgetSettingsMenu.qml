@@ -97,11 +97,11 @@ Loader {
             implicitHeight: contentCol.implicitHeight + 24
 
             fallbackColor: Appearance.colors.colSurfaceContainer
-            inirColor: Appearance.inir.colLayer2
+            ryokuColor: Appearance.ryoku.colLayer2
             auroraTransparency: Appearance.aurora.popupTransparentize
-            radius: Appearance.inirEverywhere ? Appearance.inir.roundingNormal : Appearance.rounding.normal
+            radius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal : Appearance.rounding.normal
             border.width: 1
-            border.color: Appearance.inirEverywhere ? Appearance.inir.colBorder : Appearance.colors.colOutlineVariant
+            border.color: Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder : Appearance.colors.colOutlineVariant
 
             StyledRectangularShadow {
                 anchors.fill: parent

@@ -2,7 +2,7 @@
 # Capture screenshots of windows for TaskView
 # Handles cliphist cleanup to prevent screenshot spam
 
-set -l preview_dir ~/.cache/inir/window-previews
+set -l preview_dir ~/.cache/ryoku-shell/window-previews
 set -l ids_to_capture
 set -l capture_all false
 
@@ -62,7 +62,7 @@ if test -x $wlpaste_bin; and test -x $wlcopy_bin
     end
 
     if test -n "$saved_clip_mime"
-        set saved_clip_file (mktemp -t inir-clipboard.XXXXXX 2>/dev/null)
+        set saved_clip_file (mktemp -t ryoku-clipboard.XXXXXX 2>/dev/null)
         if test -n "$saved_clip_file"
             $wlpaste_bin --type "$saved_clip_mime" > "$saved_clip_file" 2>/dev/null || begin
                 set saved_clip_mime ""

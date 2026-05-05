@@ -1,4 +1,4 @@
-# Generic dependency installation guide for iNiR
+# Generic dependency installation guide for Ryoku
 # This script provides instructions for unsupported distributions
 # It can also attempt to install what it can via common methods
 
@@ -9,7 +9,7 @@
 #####################################################################################
 echo ""
 echo -e "${STY_CYAN}╔══════════════════════════════════════════════════════════════════╗${STY_RST}"
-echo -e "${STY_CYAN}║           iNiR - Generic Installation Guide                      ║${STY_RST}"
+echo -e "${STY_CYAN}║           Ryoku - Generic Installation Guide                      ║${STY_RST}"
 echo -e "${STY_CYAN}╚══════════════════════════════════════════════════════════════════╝${STY_RST}"
 echo ""
 echo -e "${STY_YELLOW}Your distribution (${OS_PRETTY_NAME:-unknown}) is not directly supported.${STY_RST}"
@@ -371,7 +371,7 @@ fi
 
 echo ""
 echo -e "${STY_CYAN}For more help, see:${STY_RST}"
-echo "  - https://github.com/snowarch/inir/wiki/Manual-Installation"
+echo "  - https://github.com/neur0map/ryoku-arch/wiki/Manual-Installation"
 echo "  - https://quickshell.outfoxxed.me/docs"
 echo "  - https://github.com/YaLTeR/niri/wiki"
 echo ""

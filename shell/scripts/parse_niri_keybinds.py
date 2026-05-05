@@ -174,8 +174,8 @@ ACTION_MAP = {
 IPC_MAP = {
     ('altSwitcher', 'next'): 'Next window',
     ('altSwitcher', 'previous'): 'Previous window',
-    ('overlay', 'toggle'): 'iNiR Overlay',
-    ('overview', 'toggle'): 'iNiR Overview',
+    ('overlay', 'toggle'): 'Ryoku Overlay',
+    ('overview', 'toggle'): 'Ryoku Overview',
     ('clipboard', 'toggle'): 'Clipboard',
     ('lock', 'activate'): 'Lock screen',
     ('region', 'screenshot'): 'Screenshot region',
@@ -208,7 +208,7 @@ FILE_MANAGERS = ['dolphin', 'nautilus', 'thunar', 'nemo', 'pcmanfm', 'ranger']
 BROWSERS = ['firefox', 'zen-browser', 'chromium', 'brave', 'vivaldi']
 
 
-def parse_inir_action(action: str) -> tuple[str, str] | None:
+def parse_ryoku_action(action: str) -> tuple[str, str] | None:
     ipc_match = re.search(r'spawn\s+"(?:[^"]*/)?inir"\s+"ipc"\s+"call"\s+"([\w-]+)"\s+"([\w-]+)"', action)
     if ipc_match:
         return ipc_match.group(1), ipc_match.group(2)
@@ -260,9 +260,9 @@ def generate_comment(action: str) -> str:
     
     # Spawn commands
     if action.startswith('spawn'):
-        inir_action = parse_inir_action(action)
-        if inir_action:
-            target, func = inir_action
+        ryoku_action = parse_ryoku_action(action)
+        if ryoku_action:
+            target, func = ryoku_action
             return IPC_MAP.get((target, func), f'{target} {func}')
 
         ipc_match = re.search(r'ipc.*call.*"(\w+)".*"(\w+)"', action)
@@ -319,14 +319,14 @@ def categorize_keybind(kb: dict) -> str:
     if any(x in comment for x in ['niri overview', 'quit niri', 'inhibit', 'power off', 'hotkey overlay']):
         return 'System'
     
-    # iNiR Shell
-    if any(x in comment for x in ['inir ', 'clipboard', 'lock screen', 'wallpaper', 'settings', 'cheatsheet', 'panel style']):
-        return 'iNiR Shell'
-    inir_action = parse_inir_action(action)
-    if inir_action:
-        target, _func = inir_action
+    # Ryoku Shell
+    if any(x in comment for x in ['inir ', 'ryoku-shell ', 'clipboard', 'lock screen', 'wallpaper', 'settings', 'cheatsheet', 'panel style']):
+        return 'Ryoku Shell'
+    ryoku_action = parse_ryoku_action(action)
+    if ryoku_action:
+        target, _func = ryoku_action
         if target in ('overlay', 'overview', 'clipboard', 'lock', 'wallpaperSelector', 'settings', 'cheatsheet', 'panelFamily', 'session'):
-            return 'iNiR Shell'
+            return 'Ryoku Shell'
         if target == 'altSwitcher':
             return 'Window Switcher'
         if target in ('audio', 'mpris'):
@@ -334,7 +334,7 @@ def categorize_keybind(kb: dict) -> str:
         if target == 'brightness':
             return 'Brightness'
     if re.search(r'ipc.*call.*(overlay|overview|clipboard|lock|wallpaper|settings|cheatsheet|panelfamily)', action):
-        return 'iNiR Shell'
+        return 'Ryoku Shell'
     
     # Window Switcher
     if 'window' in comment and ('next' in comment or 'previous' in comment):
@@ -457,7 +457,7 @@ def parse_niri_config(config_path: Path) -> dict:
         })
     
     category_order = [
-        'System', 'iNiR Shell', 'Window Switcher', 'Screenshots',
+        'System', 'Ryoku Shell', 'Window Switcher', 'Screenshots',
         'Applications', 'Window Management', 'Layout', 'Resize',
         'Focus', 'Move Windows', 'Monitors', 'Workspaces',
         'Media', 'Brightness', 'Other'

@@ -6,7 +6,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 STATE_DIR="$XDG_STATE_HOME/quickshell"
 BIN_DIR="$STATE_DIR/user/generated/bin"
-GO_BIN="$BIN_DIR/inir-system24-themegen"
+GO_BIN="$BIN_DIR/ryoku-system24-themegen"
 LOG_FILE="$STATE_DIR/user/generated/system24_themegen.log"
 
 mkdir -p "$STATE_DIR/user/generated" "$BIN_DIR"

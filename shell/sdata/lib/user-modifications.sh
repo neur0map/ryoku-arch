@@ -1,4 +1,4 @@
-# User modification detection for iNiR
+# User modification detection for Ryoku
 # Detects and preserves user changes before updates overwrite them
 # This script is meant to be sourced.
 
@@ -18,8 +18,8 @@ TRACKED_PATTERNS=("*.qml" "*.js" "*.py" "*.sh" "*.fish")
 manifest_has_checksums() {
     local manifest_file="$1"
     [[ -f "$manifest_file" ]] || return 1
-    # v2 manifests may have either the legacy ii header or the current inir header
-    head -1 "$manifest_file" | grep -qE "(ii|inir)-manifest v2" && return 0
+    # v2 manifests may have either the legacy ii/inir header or the current ryoku header
+    head -1 "$manifest_file" | grep -qE "(ii|inir|ryoku)-manifest v2" && return 0
     # Fallback: check if any line has path:checksum format (64 hex chars)
     grep -q "^[^#].*:[a-f0-9]\{64\}$" "$manifest_file" 2>/dev/null
 }
@@ -27,7 +27,7 @@ manifest_has_checksums() {
 find_runtime_manifest_file() {
     local target_dir="$1"
     local manifest
-    for manifest in "${target_dir}/.inir-manifest" "${target_dir}/.ii-manifest"; do
+    for manifest in "${target_dir}/.ryoku-manifest" "${target_dir}/.inir-manifest" "${target_dir}/.ii-manifest"; do
         if [[ -f "$manifest" ]]; then
             printf '%s\n' "$manifest"
             return 0
@@ -240,6 +240,7 @@ preserve_runtime_tree() {
         --exclude='.git/' \
         --exclude='.ii-manifest' \
         --exclude='.inir-manifest' \
+        --exclude='.ryoku-manifest' \
         "${source_dir}/" "${preserve_dir}/${dir_name}/"
 
     local file_count=0
@@ -382,7 +383,7 @@ handle_user_modifications() {
                 tui_dim "    $PRESERVED_MODS_DIR"
                 echo ""
                 tui_info "To restore a file after update:"
-                tui_dim "    cp $PRESERVED_MODS_DIR/<path> ~/.config/quickshell/inir/<path>"
+                tui_dim "    cp $PRESERVED_MODS_DIR/<path> ~/.config/quickshell/ryoku-shell/<path>"
                 return 0
                 ;;
             "View Changes")

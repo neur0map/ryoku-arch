@@ -1,5 +1,5 @@
 #!/bin/bash
-# Versioning system for iNiR
+# Versioning system for Ryoku
 # Tracks installed version, compares with remote, manages updates
 # This script is meant to be sourced.
 
@@ -10,7 +10,7 @@
 #####################################################################################
 XDG_CONFIG_HOME_RESOLVED="${XDG_CONFIG_HOME:-$HOME/.config}"
 
-CONFIG_DIR_NEW="${XDG_CONFIG_HOME_RESOLVED}/inir"
+CONFIG_DIR_NEW="${XDG_CONFIG_HOME_RESOLVED}/ryoku-shell"
 CONFIG_DIR_LEGACY="${XDG_CONFIG_HOME_RESOLVED}/illogical-impulse"
 
 if [[ -L "$CONFIG_DIR_LEGACY" && -d "$CONFIG_DIR_NEW" ]]; then
@@ -23,27 +23,27 @@ else
     CONFIG_DIR="$CONFIG_DIR_NEW"
 fi
 
-RUNTIME_DIR_USER="${XDG_CONFIG_HOME_RESOLVED}/quickshell/inir"
-RUNTIME_DIR_SYSTEM_LOCAL="${INIR_SYSTEM_RUNTIME_DIR_LOCAL:-/usr/local/share/quickshell/inir}"
-RUNTIME_DIR_SYSTEM="${INIR_SYSTEM_RUNTIME_DIR:-/usr/share/quickshell/inir}"
+RUNTIME_DIR_USER="${XDG_CONFIG_HOME_RESOLVED}/quickshell/ryoku-shell"
+RUNTIME_DIR_SYSTEM_LOCAL="${RYOKU_SHELL_SYSTEM_RUNTIME_DIR_LOCAL:-/usr/local/share/quickshell/ryoku-shell}"
+RUNTIME_DIR_SYSTEM="${RYOKU_SHELL_SYSTEM_RUNTIME_DIR:-/usr/share/quickshell/ryoku-shell}"
 LEGACY_RUNTIME_DIR_USER="${XDG_CONFIG_HOME_RESOLVED}/quickshell/ii"
-LEGACY_RUNTIME_DIR_SYSTEM_LOCAL="${INIR_LEGACY_SYSTEM_RUNTIME_DIR_LOCAL:-/usr/local/share/quickshell/ii}"
-LEGACY_RUNTIME_DIR_SYSTEM="${INIR_LEGACY_SYSTEM_RUNTIME_DIR:-/usr/share/quickshell/ii}"
+LEGACY_RUNTIME_DIR_SYSTEM_LOCAL="${RYOKU_SHELL_LEGACY_SYSTEM_RUNTIME_DIR_LOCAL:-/usr/local/share/quickshell/ii}"
+LEGACY_RUNTIME_DIR_SYSTEM="${RYOKU_SHELL_LEGACY_SYSTEM_RUNTIME_DIR:-/usr/share/quickshell/ii}"
 VERSION_FILE_LOCAL="${CONFIG_DIR}/version.json"
 VERSION_FILE_RUNTIME_USER="${RUNTIME_DIR_USER}/version.json"
 VERSION_FILE_RUNTIME_SYSTEM_LOCAL="${RUNTIME_DIR_SYSTEM_LOCAL}/version.json"
 VERSION_FILE_RUNTIME_SYSTEM="${RUNTIME_DIR_SYSTEM}/version.json"
 VERSION_FILE_REPO="${REPO_ROOT}/VERSION"
 CHANGELOG_FILE="${REPO_ROOT}/CHANGELOG.md"
-GITHUB_REPO="snowarch/inir"
+GITHUB_REPO="neur0map/ryoku-arch"
 GITHUB_API="https://api.github.com/repos/${GITHUB_REPO}"
 
 # Cache for remote version checks (avoid hammering GitHub)
-VERSION_CACHE_FILE="${XDG_CACHE_HOME:-$HOME/.cache}/inir/version-cache.json"
+VERSION_CACHE_FILE="${XDG_CACHE_HOME:-$HOME/.cache}/ryoku-shell/version-cache.json"
 VERSION_CACHE_TTL=3600  # 1 hour in seconds
 
 get_runtime_shell_dir() {
-    local override="${INIR_RUNTIME_DIR:-}"
+    local override="${RYOKU_SHELL_RUNTIME_DIR:-}"
     if [[ -n "$override" && -f "$override/shell.qml" ]]; then
         printf '%s' "$override"
         return
@@ -119,7 +119,7 @@ get_installed_version_file() {
     local runtime_version_file
     runtime_version_file="$(get_runtime_version_file)"
 
-    if [[ -n "${INIR_RUNTIME_DIR:-}" && -f "$runtime_version_file" ]]; then
+    if [[ -n "${RYOKU_SHELL_RUNTIME_DIR:-}" && -f "$runtime_version_file" ]]; then
         printf '%s' "$runtime_version_file"
     elif is_package_managed_version_file "$runtime_version_file"; then
         printf '%s' "$runtime_version_file"
@@ -302,7 +302,7 @@ get_default_package_update_hint() {
         emerge) echo "sudo emerge --sync && sudo emerge -avuDN @world" ;;
         nix) echo "nixos-rebuild switch" ;;
         apk) echo "sudo apk upgrade" ;;
-        *) echo "use your package manager to update iNiR" ;;
+        *) echo "use your package manager to update Ryoku" ;;
     esac
 }
 
@@ -390,12 +390,12 @@ get_installed_repo_path() {
 }
 
 get_install_mode() {
-    if [[ -n "${INIR_INSTALL_MODE:-}" ]]; then
-        echo "$INIR_INSTALL_MODE"
+    if [[ -n "${RYOKU_SHELL_INSTALL_MODE:-}" ]]; then
+        echo "$RYOKU_SHELL_INSTALL_MODE"
         return
     fi
 
-    local target="${XDG_CONFIG_HOME_RESOLVED}/quickshell/inir"
+    local target="${XDG_CONFIG_HOME_RESOLVED}/quickshell/ryoku-shell"
     local repo_real=""
     local target_real=""
 
@@ -419,8 +419,8 @@ get_install_mode() {
 }
 
 get_update_strategy() {
-    if [[ -n "${INIR_UPDATE_STRATEGY:-}" ]]; then
-        echo "$INIR_UPDATE_STRATEGY"
+    if [[ -n "${RYOKU_SHELL_UPDATE_STRATEGY:-}" ]]; then
+        echo "$RYOKU_SHELL_UPDATE_STRATEGY"
         return
     fi
 
@@ -432,8 +432,8 @@ get_update_strategy() {
 }
 
 get_version_repo_path() {
-    if [[ -n "${INIR_REPO_PATH:-}" ]]; then
-        printf '%s' "$INIR_REPO_PATH"
+    if [[ -n "${RYOKU_SHELL_REPO_PATH:-}" ]]; then
+        printf '%s' "$RYOKU_SHELL_REPO_PATH"
         return
     fi
 
@@ -452,9 +452,9 @@ write_version_info_json() {
     local repo_path
     local install_mode
     local update_strategy
-    local package_manager="${INIR_PACKAGE_MANAGER:-}"
-    local package_name="${INIR_PACKAGE_NAME:-}"
-    local package_update_hint="${INIR_PACKAGE_UPDATE_HINT:-}"
+    local package_manager="${RYOKU_SHELL_PACKAGE_MANAGER:-}"
+    local package_name="${RYOKU_SHELL_PACKAGE_NAME:-}"
+    local package_update_hint="${RYOKU_SHELL_PACKAGE_UPDATE_HINT:-}"
 
     repo_path="$(get_version_repo_path)"
     install_mode="$(get_install_mode)"
@@ -697,7 +697,7 @@ show_version_status() {
     local repo_commit=$(get_repo_commit)
     
     echo ""
-    echo -e "${STY_CYAN}${STY_BOLD}iNiR Version Status${STY_RST}"
+    echo -e "${STY_CYAN}${STY_BOLD}Ryoku Version Status${STY_RST}"
     echo ""
     echo -e "  ${STY_BOLD}Installed:${STY_RST}  $installed (${installed_commit})"
     echo -e "  ${STY_BOLD}Mode:${STY_RST}      $installed_mode"
@@ -750,7 +750,7 @@ show_changelog() {
         return 1
     fi
     
-    echo -e "${STY_CYAN}${STY_BOLD}iNiR Changelog${STY_RST}"
+    echo -e "${STY_CYAN}${STY_BOLD}Ryoku Changelog${STY_RST}"
     echo ""
     head -n "$lines" "$CHANGELOG_FILE"
     

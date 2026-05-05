@@ -16,15 +16,15 @@ import QtQuick.Layouts
 Rectangle {
     id: root
     radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-        : Appearance.inirEverywhere ? Appearance.inir.roundingNormal
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal
         : Appearance.rounding.normal
     color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-         : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+         : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
          : Appearance.auroraEverywhere ? "transparent"
          : Appearance.colors.colLayer1
-    border.width: Appearance.angelEverywhere ? 0 : (Appearance.inirEverywhere ? 1 : 0)
+    border.width: Appearance.angelEverywhere ? 0 : (Appearance.ryokuEverywhere ? 1 : 0)
     border.color: Appearance.angelEverywhere ? "transparent"
-        : Appearance.inirEverywhere ? Appearance.inir.colBorder : "transparent"
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder : "transparent"
     clip: true
 
     AngelPartialBorder { targetRadius: root.radius; coverage: 0.5 }
@@ -183,7 +183,7 @@ Rectangle {
                     anchors.centerIn: parent
                     text: "keyboard_arrow_up"
                     iconSize: Appearance.font.pixelSize.larger
-                    color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer1
+                    color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer1
                 }
             }
         }
@@ -195,7 +195,7 @@ Rectangle {
             // text: `${DateTime.collapsedCalendarFormat}   •   ${remainingTasks} task${remainingTasks > 1 ? "s" : ""}`
             text: Translation.tr("%1   •   %2 tasks").arg(DateTime.collapsedCalendarFormat).arg(remainingTasks)
             font.pixelSize: Appearance.font.pixelSize.large
-            color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer1
+            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer1
         }
     }
 
@@ -243,7 +243,7 @@ Rectangle {
                         anchors.centerIn: parent
                         text: "keyboard_arrow_down"
                         iconSize: Appearance.font.pixelSize.larger
-                        color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer1
+                        color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer1
                     }
                 }
             }
@@ -310,7 +310,7 @@ Rectangle {
                 height: 20
                 visible: railFlickable.contentY > 0 && !Appearance.auroraEverywhere
                 gradient: Gradient {
-                    GradientStop { position: 0.0; color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard : Appearance.inirEverywhere ? Appearance.inir.colLayer1 : Appearance.colors.colLayer1 }
+                    GradientStop { position: 0.0; color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1 : Appearance.colors.colLayer1 }
                     GradientStop { position: 1.0; color: "transparent" }
                 }
             }
@@ -324,7 +324,7 @@ Rectangle {
                 visible: railFlickable.contentHeight > railFlickable.height && railFlickable.contentY < (railFlickable.contentHeight - railFlickable.height) && !Appearance.auroraEverywhere
                 gradient: Gradient {
                     GradientStop { position: 0.0; color: "transparent" }
-                    GradientStop { position: 1.0; color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard : Appearance.inirEverywhere ? Appearance.inir.colLayer1 : Appearance.colors.colLayer1 }
+                    GradientStop { position: 1.0; color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1 : Appearance.colors.colLayer1 }
                 }
             }
         }

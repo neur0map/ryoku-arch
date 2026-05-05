@@ -3,7 +3,7 @@
 
 MIGRATION_ID="006-close-confirm"
 MIGRATION_TITLE="Close Window Confirmation"
-MIGRATION_DESCRIPTION="Replaces Mod+Q close-window with iNiR's closeConfirm script.
+MIGRATION_DESCRIPTION="Replaces Mod+Q close-window with Ryoku's closeConfirm script.
   This shows a confirmation dialog before closing windows,
   preventing accidental data loss."
 MIGRATION_TARGET_FILE="~/.config/niri/config.kdl"
@@ -17,7 +17,7 @@ migration_check() {
 
 migration_preview() {
   echo -e "${STY_RED}- Mod+Q { close-window; }${STY_RST}"
-  echo -e "${STY_GREEN}+ Mod+Q { spawn \"inir\" \"close-window\"; }${STY_RST}"
+  echo -e "${STY_GREEN}+ Mod+Q { spawn \"ryoku-shell\" \"close-window\"; }${STY_RST}"
 }
 
 migration_apply() {
@@ -36,7 +36,7 @@ with open(config_path, 'r') as f:
     content = f.read()
 
 pattern = r'Mod\+Q[^}]*close-window[^}]*\}'
-replacement = 'Mod+Q repeat=false { spawn "inir" "close-window"; }'
+replacement = 'Mod+Q repeat=false { spawn "ryoku-shell" "close-window"; }'
 content = re.sub(pattern, replacement, content)
 
 with open(config_path, 'w') as f:

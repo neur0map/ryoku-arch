@@ -78,18 +78,18 @@ Item {
                     anchors.top: parent.top
                     anchors.horizontalCenter: parent.horizontalCenter
                     implicitWidth: 48; implicitHeight: 48
-                    buttonRadius: Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.full
-                    colBackground: Appearance.inirEverywhere 
+                    buttonRadius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.full
+                    colBackground: Appearance.ryokuEverywhere 
                         ? "transparent" 
                         : (isRunning ? Appearance.colors.colPrimaryContainer : "transparent")
                     colBackgroundHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-                        : Appearance.inirEverywhere 
-                        ? Appearance.inir.colLayer1Hover 
+                        : Appearance.ryokuEverywhere 
+                        ? Appearance.ryoku.colLayer1Hover 
                         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
                         : (isRunning ? Appearance.colors.colPrimaryContainerHover : Appearance.colors.colLayer1Hover)
                     colRipple: Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
-                        : Appearance.inirEverywhere 
-                        ? Appearance.inir.colLayer1Active 
+                        : Appearance.ryokuEverywhere 
+                        ? Appearance.ryoku.colLayer1Active 
                         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive
                         : (isRunning ? Appearance.colors.colPrimaryContainerActive : Appearance.colors.colLayer1Active)
                     
@@ -109,8 +109,8 @@ Item {
                             anchors.centerIn: parent
                             text: modelData.icon ?? "apps"
                             iconSize: 24
-                            color: Appearance.inirEverywhere 
-                                ? (launchBtn.isRunning ? Appearance.inir.colPrimary : Appearance.inir.colText) 
+                            color: Appearance.ryokuEverywhere 
+                                ? (launchBtn.isRunning ? Appearance.ryoku.colPrimary : Appearance.ryoku.colText) 
                                 : (launchBtn.isRunning ? Appearance.colors.colOnPrimaryContainer : Appearance.colors.colOnLayer0)
 
                             Behavior on color {
@@ -128,10 +128,10 @@ Item {
                     anchors.top: launchBtn.bottom
                     anchors.topMargin: 2
                     anchors.horizontalCenter: parent.horizontalCenter
-                    width: Appearance.inirEverywhere ? 12 : 6
-                    height: Appearance.inirEverywhere ? 2 : 6
-                    radius: Appearance.inirEverywhere ? 1 : 3
-                    color: Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary
+                    width: Appearance.ryokuEverywhere ? 12 : 6
+                    height: Appearance.ryokuEverywhere ? 2 : 6
+                    radius: Appearance.ryokuEverywhere ? 1 : 3
+                    color: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary
                     scale: launchBtn.isRunning ? 1 : 0
                     opacity: launchBtn.isRunning ? 1 : 0
 

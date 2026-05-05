@@ -210,7 +210,7 @@ maybe_compress_recording() {
     input_base="$(basename "$input_file")"
     input_stem="${input_base%.*}"
     output_file="$input_dir/${input_stem}.discord.mp4"
-    local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/inir"
+    local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/ryoku-shell"
     local lock_file="$cache_dir/discord-compress.lock"
     mkdir -p "$cache_dir"
 
@@ -409,7 +409,7 @@ start_recording_command() {
 }
 
 # Try to get save path from config, fallback to XDG Videos
-CONFIG_FILE="$(inir_config_file)"
+CONFIG_FILE="$(ryoku_shell_config_file)"
 SAVE_PATH=""
 QUALITY_PRESET="balanced"
 VIDEO_CODEC=""

@@ -25,7 +25,7 @@ ContentPage {
     // Global style detection
     readonly property string currentGlobalStyle: Config.options?.appearance?.globalStyle ?? "material"
     readonly property bool isAurora: currentGlobalStyle === "aurora"
-    readonly property bool isInir: currentGlobalStyle === "inir"
+    readonly property bool isInir: currentGlobalStyle === "ryoku-shell"
     readonly property bool isCards: currentGlobalStyle === "cards"
     readonly property bool isMaterial: currentGlobalStyle === "material"
     readonly property bool isAngel: currentGlobalStyle === "angel"
@@ -45,10 +45,10 @@ ContentPage {
 
         readonly property color noteColor: {
             if (warning) {
-                return Appearance.inirEverywhere ? Appearance.inir.colWarning
+                return Appearance.ryokuEverywhere ? Appearance.ryoku.colWarning
                      : Appearance.colors.colTertiary
             }
-            return Appearance.inirEverywhere ? Appearance.inir.colTextSecondary
+            return Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
                  : Appearance.colors.colSubtext
         }
 

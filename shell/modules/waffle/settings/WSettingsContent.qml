@@ -146,7 +146,7 @@ Item {
         { pageIndex: 5, pageName: "Gowall", section: "Operation", label: "Pixelate", targetLabel: "Operation", keywords: ["gowall", "pixelate", "pixel", "8bit"] },
         { pageIndex: 5, pageName: "Gowall", section: "Operation", label: "Upscale", targetLabel: "Operation", keywords: ["gowall", "upscale", "ai", "esrgan", "quality"] },
         { pageIndex: 5, pageName: "Gowall", section: "Color Scheme Source", label: "Built-in theme", targetLabel: "Color Scheme Source", keywords: ["gowall", "builtin", "theme", "catppuccin", "nord", "gruvbox"] },
-        { pageIndex: 5, pageName: "Gowall", section: "Color Scheme Source", label: "iNiR theme", targetLabel: "Color Scheme Source", keywords: ["gowall", "inir", "palette", "material you"] },
+        { pageIndex: 5, pageName: "Gowall", section: "Color Scheme Source", label: "Ryoku theme", targetLabel: "Color Scheme Source", keywords: ["gowall", "ryoku-shell", "palette", "material you"] },
         { pageIndex: 5, pageName: "Gowall", section: "Color Scheme Source", label: "Custom palette", targetLabel: "Color Scheme Source", keywords: ["gowall", "custom", "palette", "colors"] },
         { pageIndex: 5, pageName: "Gowall", section: "Output", label: "Format", targetLabel: "Format", keywords: ["gowall", "output", "format", "png", "webp", "jpg"] },
         { pageIndex: 5, pageName: "Gowall", section: "Extract Palette", label: "Extract colors", targetLabel: "Extract colors", keywords: ["gowall", "extract", "palette", "colors", "picker"] },
@@ -424,7 +424,7 @@ Item {
                     WBorderlessButton {
                         implicitWidth: 28
                         implicitHeight: 28
-                        onClicked: Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "lock", "activate"])
+                        onClicked: Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "lock", "activate"])
 
                         contentItem: FluentIcon {
                             anchors.centerIn: parent

@@ -224,7 +224,7 @@ def compress(args: argparse.Namespace) -> dict:
 
     temp_output = output_path.with_name(f".{output_path.stem}.tmp-{os.getpid()}{output_path.suffix or '.mp4'}")
     last_error = None
-    with tempfile.TemporaryDirectory(prefix="inir-discord-compress-") as temp_dir:
+    with tempfile.TemporaryDirectory(prefix="ryoku-shell-discord-compress-") as temp_dir:
         for attempt in range(max(0, args.retries) + 1):
             attempt_budget = max(1, int(budget_bytes * (0.88 ** attempt)))
             plan = build_plan(info, attempt_budget, args.audio_kbps, args.max_dimension)

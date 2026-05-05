@@ -78,15 +78,15 @@ Item {
                 width: volumeRow.width + 12
                 height: volumeRow.height + 8
                 radius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-                      : Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.verysmall
+                      : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.verysmall
                 color: Appearance.angelEverywhere ? Appearance.angel.colGlassPopup
-                     : Appearance.inirEverywhere ? Appearance.inir.colLayer2
+                     : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
                      : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
                      : Appearance.colors.colLayer3
                 border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth
-                            : (Appearance.inirEverywhere || Appearance.auroraEverywhere) ? 1 : 0
+                            : (Appearance.ryokuEverywhere || Appearance.auroraEverywhere) ? 1 : 0
                 border.color: Appearance.angelEverywhere ? Appearance.angel.colCardBorder
-                            : Appearance.inirEverywhere ? Appearance.inir.colBorder
+                            : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
                             : Appearance.auroraEverywhere ? Appearance.aurora.colPopupBorder
                             : Appearance.colors.colLayer3Hover
 
@@ -237,7 +237,7 @@ Item {
             lineWidth: Appearance.rounding.unsharpen
             value: (activePlayer && activePlayer.length > 0) ? (activePlayer.position / activePlayer.length) : 0
             implicitSize: 22
-            colPrimary: Appearance.inirEverywhere ? Appearance.inir.colPrimary
+            colPrimary: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary
                 : Appearance.auroraEverywhere ? Appearance.colors.colPrimary
                 : Appearance.colors.colOnSecondaryContainer
             enableAnimation: activePlayer?.playbackState === MprisPlaybackState.Playing
@@ -252,7 +252,7 @@ Item {
                     fill: 1
                     text: activePlayer?.isPlaying ? "pause" : "music_note"
                     iconSize: Appearance.font.pixelSize.normal
-                    color: Appearance.inirEverywhere ? Appearance.inir.colOnPrimary
+                    color: Appearance.ryokuEverywhere ? Appearance.ryoku.colOnPrimary
                         : Appearance.auroraEverywhere ? Appearance.colors.colOnLayer0
                         : Appearance.m3colors.m3onSecondaryContainer
                 }
@@ -267,7 +267,7 @@ Item {
             Layout.rightMargin: rowLayout.spacing
             horizontalAlignment: Text.AlignHCenter
             elide: Text.ElideRight
-            color: Appearance.inirEverywhere ? Appearance.inir.colText
+            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText
                 : Appearance.auroraEverywhere ? Appearance.colors.colOnLayer0
                 : Appearance.colors.colOnLayer1
             text: `${cleanedTitle}${activePlayer?.trackArtist ? ' • ' + activePlayer.trackArtist : ''}`

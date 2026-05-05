@@ -88,7 +88,7 @@ Item {
 
     StyledRectangularShadow {
         target: sidebarRightBackground
-        visible: !Appearance.inirEverywhere && !Appearance.gameModeMinimal
+        visible: !Appearance.ryokuEverywhere && !Appearance.gameModeMinimal
     }
     Rectangle {
         id: sidebarRightBackground
@@ -99,7 +99,7 @@ Item {
         property bool cardStyle: Config.options?.sidebar?.cardStyle ?? false
         readonly property bool angelEverywhere: Appearance.angelEverywhere
         readonly property bool auroraEverywhere: Appearance.auroraEverywhere
-        readonly property bool inirEverywhere: Appearance.inirEverywhere
+        readonly property bool ryokuEverywhere: Appearance.ryokuEverywhere
         readonly property bool gameModeMinimal: Appearance.gameModeMinimal
         readonly property string wallpaperUrl: {
             const _dep1 = WallpaperListener.multiMonitorEnabled
@@ -121,15 +121,15 @@ Item {
         }
 
         color: gameModeMinimal ? "transparent"
-            : inirEverywhere ? (cardStyle ? Appearance.inir.colLayer1 : Appearance.inir.colLayer0)
+            : ryokuEverywhere ? (cardStyle ? Appearance.ryoku.colLayer1 : Appearance.ryoku.colLayer0)
             : auroraEverywhere ? ColorUtils.applyAlpha((blendedColors?.colLayer0 ?? Appearance.colors.colLayer0), 1)
             : (cardStyle ? Appearance.colors.colLayer1 : Appearance.colors.colLayer0)
         border.width: gameModeMinimal ? 0 : (angelEverywhere ? Appearance.angel.panelBorderWidth : 1)
         border.color: angelEverywhere ? Appearance.angel.colPanelBorder
-            : inirEverywhere ? Appearance.inir.colBorder
+            : ryokuEverywhere ? Appearance.ryoku.colBorder
             : Appearance.colors.colLayer0Border
         radius: angelEverywhere ? Appearance.angel.roundingNormal
-            : inirEverywhere ? (cardStyle ? Appearance.inir.roundingLarge : Appearance.inir.roundingNormal)
+            : ryokuEverywhere ? (cardStyle ? Appearance.ryoku.roundingLarge : Appearance.ryoku.roundingNormal)
             : cardStyle ? Appearance.rounding.normal : (Appearance.rounding.screenRounding - Appearance.sizes.hyprlandGapsOut + 1)
 
         clip: true
@@ -149,7 +149,7 @@ Item {
             y: -Appearance.sizes.hyprlandGapsOut
             width: root.screenWidth ?? 1920
             height: root.screenHeight ?? 1080
-            visible: sidebarRightBackground.auroraEverywhere && !sidebarRightBackground.inirEverywhere && !sidebarRightBackground.gameModeMinimal
+            visible: sidebarRightBackground.auroraEverywhere && !sidebarRightBackground.ryokuEverywhere && !sidebarRightBackground.gameModeMinimal
             source: sidebarRightBackground.wallpaperUrl
             fillMode: Image.PreserveAspectCrop
             cache: true
@@ -157,7 +157,7 @@ Item {
             sourceSize.height: root.screenHeight ?? 1080
             asynchronous: true
 
-            layer.enabled: Appearance.effectsEnabled && sidebarRightBackground.auroraEverywhere && !sidebarRightBackground.inirEverywhere
+            layer.enabled: Appearance.effectsEnabled && sidebarRightBackground.auroraEverywhere && !sidebarRightBackground.ryokuEverywhere
             layer.effect: MultiEffect {
                 source: sidebarRightBlurredWallpaper
                 anchors.fill: source
@@ -535,7 +535,7 @@ Item {
                     console.log("[SidebarRight] Opening new settings window via IPC");
                     GlobalStates.sidebarRightOpen = false;
                     Qt.callLater(() => {
-                        Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "settings"]);
+                        Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "settings"]);
                     })
                 }
                 StyledToolTip {

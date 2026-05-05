@@ -21,20 +21,20 @@ Rectangle {
     property color  blendedLayer0: Appearance.colors.colLayer0
 
     readonly property bool auroraEverywhere: Appearance.auroraEverywhere
-    readonly property bool inirEverywhere:   Appearance.inirEverywhere
+    readonly property bool ryokuEverywhere:   Appearance.ryokuEverywhere
     readonly property bool angelEverywhere:  Appearance.angelEverywhere
     readonly property bool gameModeMinimal:  Appearance.gameModeMinimal
 
     // ─── Shape ───────────────────────────────────────────────────────
     radius: angelEverywhere ? Appearance.angel.roundingNormal
-          : inirEverywhere  ? Appearance.inir.roundingNormal
+          : ryokuEverywhere  ? Appearance.ryoku.roundingNormal
           :                   Appearance.rounding.large
 
     // ─── Fill: genuinely translucent for macOS look ──────────────────
     color: auroraEverywhere
         ? ColorUtils.transparentize(blendedLayer0, 0.18)
-        : inirEverywhere
-            ? ColorUtils.transparentize(Appearance.inir.colLayer1, 0.28)
+        : ryokuEverywhere
+            ? ColorUtils.transparentize(Appearance.ryoku.colLayer1, 0.28)
             : ColorUtils.transparentize(Appearance.colors.colLayer0, 0.22)
 
     Behavior on color {
@@ -46,8 +46,8 @@ Rectangle {
     border.width: angelEverywhere ? Appearance.angel.panelBorderWidth : 1
     border.color: angelEverywhere
         ? Appearance.angel.colPanelBorder
-        : inirEverywhere
-            ? ColorUtils.transparentize(Appearance.inir.colBorder, 0.4)
+        : ryokuEverywhere
+            ? ColorUtils.transparentize(Appearance.ryoku.colBorder, 0.4)
             : ColorUtils.transparentize(Appearance.colors.colLayer0Border, 0.5)
 
     Behavior on border.color {

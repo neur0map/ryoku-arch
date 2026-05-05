@@ -15,8 +15,8 @@ Item {
     property bool animateChange: false  // Compatibility with StyledText
     property bool forceNerd: false  // Force Nerd Font rendering (text is already a glyph)
     
-    // Auto-switch to Nerd Font when inir is active
-    readonly property bool useNerd: forceNerd || Appearance.inirEverywhere
+    // Auto-switch to Nerd Font when ryoku is active
+    readonly property bool useNerd: forceNerd || Appearance.ryokuEverywhere
     readonly property string nerdGlyph: forceNerd ? text : NerdIconMap.get(text)
     readonly property bool hasNerdGlyph: nerdGlyph !== ""
     

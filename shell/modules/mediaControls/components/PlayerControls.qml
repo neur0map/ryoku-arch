@@ -21,21 +21,21 @@ RowLayout {
     property int iconSize: 22
     property int playIconSize: 24
     property real buttonRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-        : Appearance.inirEverywhere ? Appearance.inir.roundingSmall 
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall 
         : Appearance.rounding.full
     property real playButtonRadius: buttonRadius
     property color buttonColor: "transparent"
     property color buttonHoverColor: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer2Hover 
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover 
         : Appearance.colors.colLayer1Hover
     property color buttonRippleColor: Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer2Active 
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Active 
         : Appearance.colors.colLayer1Active
     property color iconColor: Appearance.angelEverywhere ? Appearance.angel.colText
-        : Appearance.inirEverywhere ? Appearance.inir.colText 
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colText 
         : Appearance.colors.colOnLayer0
     property color playIconColor: Appearance.angelEverywhere ? Appearance.angel.colPrimary
-        : Appearance.inirEverywhere ? Appearance.inir.colPrimary 
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary 
         : Appearance.colors.colOnLayer1
     property bool showLabels: true
     property bool canGoPrevious: true

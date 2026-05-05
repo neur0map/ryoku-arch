@@ -544,7 +544,7 @@ Singleton {
         }
     ]
 
-    // Angel - Signature theme for iNiR
+    // Angel - Signature theme for Ryoku
     // Celestial twilight aesthetic: warm golden halos against deep cosmic void
     // Inspired by the image: amber eyes, ethereal glow, dark silhouette
     readonly property var angelColors: ({

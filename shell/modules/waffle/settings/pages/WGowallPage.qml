@@ -78,7 +78,7 @@ WSettingsPage {
         case "convert":
             if (convertSource === "custom")
                 GowallService.convertCustomTheme(sourcePath, customThemeName.trim(), customColors, selectedFormat)
-            else if (convertSource === "inir")
+            else if (convertSource === "ryoku-shell")
                 GowallService.convertCurrentTheme(sourcePath, selectedFormat)
             else if (selectedTheme.length > 0)
                 GowallService.convertTheme(sourcePath, selectedTheme, selectedFormat)
@@ -328,7 +328,7 @@ WSettingsPage {
                 Repeater {
                     model: [
                         { label: Translation.tr("Built-in"), value: "builtin" },
-                        { label: Translation.tr("iNiR theme"), value: "inir" },
+                        { label: Translation.tr("Ryoku theme"), value: "ryoku-shell" },
                         { label: Translation.tr("Custom"), value: "custom" }
                     ]
 
@@ -512,10 +512,10 @@ WSettingsPage {
         }
     }
 
-    // ── iNiR palette preview ──
+    // ── Ryoku palette preview ──
     WSettingsCard {
-        visible: GowallService.available && root.operationMode === "convert" && root.convertSource === "inir"
-        title: Translation.tr("Current iNiR Palette")
+        visible: GowallService.available && root.operationMode === "convert" && root.convertSource === "ryoku-shell"
+        title: Translation.tr("Current Ryoku Palette")
         icon: "eyedropper"
 
         WText {
@@ -523,7 +523,7 @@ WSettingsPage {
             Layout.fillWidth: true
             Layout.leftMargin: 14
             Layout.rightMargin: 14
-            text: Translation.tr("The current iNiR Material You palette is not available yet. Regenerate your wallpaper colors and try again.")
+            text: Translation.tr("The current Ryoku Material You palette is not available yet. Regenerate your wallpaper colors and try again.")
             font.pixelSize: Looks.font.pixelSize.small
             color: Looks.colors.subfg
             wrapMode: Text.WordWrap

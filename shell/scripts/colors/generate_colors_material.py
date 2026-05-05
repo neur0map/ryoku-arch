@@ -1,4 +1,4 @@
-#!/usr/bin/env -S\_/bin/sh\_-c\_"source\_\$(eval\_echo\_\${INIR_VENV:-\$ILLOGICAL_IMPULSE_VIRTUAL_ENV})/bin/activate&&exec\_python\_-E\_"\$0"\_"\$@""
+#!/usr/bin/env -S\_/bin/sh\_-c\_"source\_\$(eval\_echo\_\${RYOKU_SHELL_VENV:-\$ILLOGICAL_IMPULSE_VIRTUAL_ENV})/bin/activate&&exec\_python\_-E\_"\$0"\_"\$@""
 import argparse
 import math
 import json
@@ -758,7 +758,7 @@ if args.meta_output:
         json.dump(theme_meta, f, indent=2)
 
 # ---------------------------------------------------------------------------
-# Template rendering for iNiR's unified theming pipeline
+# Template rendering for Ryoku's unified theming pipeline
 # ---------------------------------------------------------------------------
 if args.render_templates:
     template_dir = args.render_templates

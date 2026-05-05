@@ -34,7 +34,7 @@ response=$(curl "https://konachan.net/post.json?tags=rating%3Asafe&limit=1&page=
 link=$(echo "$response" | jq '.[0].file_url' -r);
 ext=$(echo "$link" | awk -F. '{print $NF}')
 downloadPath="$PICTURES_DIR/Wallpapers/random_wallpaper.$ext"
-illogicalImpulseConfigPath="$(inir_config_file)"
+illogicalImpulseConfigPath="$(ryoku_shell_config_file)"
 currentWallpaperPath=$(jq -r '.background.wallpaperPath' $illogicalImpulseConfigPath)
 if [ "$downloadPath" == "$currentWallpaperPath" ]; then
     downloadPath="$PICTURES_DIR/Wallpapers/random_wallpaper-1.$ext"

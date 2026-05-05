@@ -124,11 +124,11 @@ Item {
                 implicitHeight: Appearance.angelEverywhere ? 2 : 4
                 color: isFocused
                     ? (Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                     : Appearance.inirEverywhere  ? Appearance.inir.colPrimary
+                     : Appearance.ryokuEverywhere  ? Appearance.ryoku.colPrimary
                      : Appearance.colors.colPrimary)
                     : ColorUtils.transparentize(
                         Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
-                      : Appearance.inirEverywhere  ? Appearance.inir.colText
+                      : Appearance.ryokuEverywhere  ? Appearance.ryoku.colText
                       : Appearance.colors.colOnLayer0, 0.5)
 
                 Behavior on implicitWidth {
@@ -150,7 +150,7 @@ Item {
             radius: Appearance.angelEverywhere ? 0 : 2.5
             color: ColorUtils.transparentize(
                 Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
-              : Appearance.inirEverywhere  ? Appearance.inir.colText
+              : Appearance.ryokuEverywhere  ? Appearance.ryoku.colText
               : Appearance.colors.colOnLayer0, 0.5)
         }
     }

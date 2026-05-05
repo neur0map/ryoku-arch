@@ -21,8 +21,8 @@ Singleton {
         return style === "aurora" || style === "angel"
     }
     property bool useMaterial: Config.options?.waffles?.theming?.useMaterialColors ?? false
-    // Glass mode: aurora/angel active (not iNiR which has its own aesthetic)
-    readonly property bool glassActive: root.auroraEverywhere && !Appearance.inirEverywhere
+    // Glass mode: aurora/angel active (not Ryoku which has its own aesthetic)
+    readonly property bool glassActive: root.auroraEverywhere && !Appearance.ryokuEverywhere
     
     // Font family - reactive property at root level for proper binding updates
     readonly property string fontFamily: {

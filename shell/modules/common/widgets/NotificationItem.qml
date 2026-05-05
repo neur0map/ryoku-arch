@@ -105,7 +105,7 @@ Item { // Notification item area
         width: parent.width
         anchors.left: parent.left
         radius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-            : Appearance.inirEverywhere ? Appearance.inir.roundingSmall
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall
             : Appearance.rounding.small
         anchors.leftMargin: root.xOffset
 
@@ -122,13 +122,13 @@ Item { // Notification item area
             (notificationObject?.urgency == NotificationUrgency.Critical) ?
                 ColorUtils.mix(Appearance.colors.colSecondaryContainer, Appearance.colors.colLayer2, 0.35) :
                 (Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                    : Appearance.inirEverywhere ? Appearance.inir.colLayer2
+                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
                     : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
                     : Appearance.colors.colLayer3) :
             "transparent"
-        border.width: (expanded && !onlyNotification && (Appearance.angelEverywhere || Appearance.auroraEverywhere || Appearance.inirEverywhere)) ? 1 : 0
+        border.width: (expanded && !onlyNotification && (Appearance.angelEverywhere || Appearance.auroraEverywhere || Appearance.ryokuEverywhere)) ? 1 : 0
         border.color: Appearance.angelEverywhere ? Appearance.angel.colBorder
-            : Appearance.inirEverywhere ? Appearance.inir.colBorder
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
             : Appearance.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colOutline, 0.8)
             : Appearance.colors.colLayer0Border
 
@@ -233,7 +233,7 @@ Item { // Notification item area
                             width: actionsFlickable.width
                             height: actionsFlickable.height
                             radius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-                                : Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.small
+                                : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.small
                         }
                     }
 

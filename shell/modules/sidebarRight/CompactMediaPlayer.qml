@@ -2,7 +2,7 @@ pragma ComponentBehavior: Bound
 // CompactMediaPlayer.qml
 // Redesigned media player for compact sidebar Controls section
 // Hero art background + filled accent transport + glow ring
-// Compatible with all 5 global styles: material, cards, aurora, inir, angel
+// Compatible with all 5 global styles: material, cards, aurora, ryoku, angel
 
 import qs
 import qs.services
@@ -35,41 +35,41 @@ Item {
 
     // ── Style tokens (5-style) ────────────────────────────────────
     readonly property bool angelStyle: Appearance.angelEverywhere
-    readonly property bool inirStyle: Appearance.inirEverywhere
+    readonly property bool ryokuStyle: Appearance.ryokuEverywhere
     readonly property bool auroraStyle: Appearance.auroraEverywhere
 
     readonly property color colText: angelStyle ? Appearance.angel.colText
-        : inirStyle ? Appearance.inir.colText : Appearance.colors.colOnLayer1
+        : ryokuStyle ? Appearance.ryoku.colText : Appearance.colors.colOnLayer1
     readonly property color colTextSecondary: angelStyle ? Appearance.angel.colTextSecondary
-        : inirStyle ? Appearance.inir.colTextSecondary : Appearance.colors.colSubtext
+        : ryokuStyle ? Appearance.ryoku.colTextSecondary : Appearance.colors.colSubtext
     readonly property color colCard: angelStyle ? Appearance.angel.colGlassCard
-        : inirStyle ? Appearance.inir.colLayer1
+        : ryokuStyle ? Appearance.ryoku.colLayer1
         : auroraStyle ? ColorUtils.transparentize(
             blendedColors?.colLayer0 ?? Appearance.aurora.colSubSurface, 0.7)
         : Appearance.colors.colLayer1
     readonly property color colBorder: angelStyle ? Appearance.angel.colCardBorder
-        : inirStyle ? Appearance.inir.colBorder : Appearance.colors.colLayer0Border
+        : ryokuStyle ? Appearance.ryoku.colBorder : Appearance.colors.colLayer0Border
     readonly property real cardRadius: angelStyle ? Appearance.angel.roundingNormal
-        : inirStyle ? Appearance.inir.roundingNormal : Appearance.rounding.normal
+        : ryokuStyle ? Appearance.ryoku.roundingNormal : Appearance.rounding.normal
     readonly property color colPrimary: angelStyle ? Appearance.angel.colPrimary
-        : inirStyle ? Appearance.inir.colPrimary : Appearance.colors.colPrimary
+        : ryokuStyle ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary
     readonly property color colOnPrimary: angelStyle ? Appearance.angel.colOnPrimary
-        : inirStyle ? Appearance.inir.colOnPrimary : Appearance.colors.colOnPrimary
+        : ryokuStyle ? Appearance.ryoku.colOnPrimary : Appearance.colors.colOnPrimary
     readonly property color colAuxHover: angelStyle ? Appearance.angel.colGlassCardHover
-        : inirStyle ? Appearance.inir.colLayer2Hover
+        : ryokuStyle ? Appearance.ryoku.colLayer2Hover
         : ColorUtils.transparentize(root.colText, 0.82)
     readonly property color colAuxActive: angelStyle ? Appearance.angel.colGlassCardActive
-        : inirStyle ? Appearance.inir.colLayer2Active
+        : ryokuStyle ? Appearance.ryoku.colLayer2Active
         : ColorUtils.transparentize(root.colText, 0.72)
 
     // Dynamic accent from album art
-    readonly property color accentColor: playerBase.downloaded && !inirStyle && !angelStyle
+    readonly property color accentColor: playerBase.downloaded && !ryokuStyle && !angelStyle
         ? (blendedColors?.colPrimary ?? colPrimary) : colPrimary
-    readonly property color onAccentColor: playerBase.downloaded && !inirStyle && !angelStyle
+    readonly property color onAccentColor: playerBase.downloaded && !ryokuStyle && !angelStyle
         ? (blendedColors?.colOnPrimary ?? colOnPrimary) : colOnPrimary
 
     // Art background opacity per style
-    readonly property real artBgOpacity: inirStyle ? 0.16
+    readonly property real artBgOpacity: ryokuStyle ? 0.16
         : angelStyle ? 0.24 : auroraStyle ? 0.28 : 0.38
 
     // ── Player card ───────────────────────────────────────────────
@@ -81,10 +81,10 @@ Item {
         color: root.colCard
 
         border.width: root.angelStyle ? Appearance.angel.cardBorderWidth
-            : root.inirStyle ? 1
+            : root.ryokuStyle ? 1
             : (playerBase.downloaded ? 1 : 0)
         border.color: root.angelStyle ? ColorUtils.transparentize(root.colBorder, 0.22)
-            : root.inirStyle ? root.colBorder
+            : root.ryokuStyle ? root.colBorder
             : (playerBase.downloaded
                 ? ColorUtils.transparentize(root.accentColor, 0.72)
                 : "transparent")
@@ -178,7 +178,7 @@ Item {
                             artSource: playerBase.displayedArtFilePath
                             downloaded: playerBase.downloaded
                             artRadius: root.angelStyle ? Appearance.angel.roundingSmall
-                                : root.inirStyle ? Appearance.inir.roundingSmall
+                                : root.ryokuStyle ? Appearance.ryoku.roundingSmall
                                 : Appearance.rounding.small
                             iconSize: 22
                             enableBlurTransition: true
@@ -348,7 +348,7 @@ Item {
                 isPlaying: playerBase.effectiveIsPlaying
                 highlightColor: root.accentColor
                 trackColor: root.angelStyle ? Appearance.angel.colBorderSubtle
-                    : root.inirStyle ? ColorUtils.transparentize(Appearance.inir.colBorder, 0.5)
+                    : root.ryokuStyle ? ColorUtils.transparentize(Appearance.ryoku.colBorder, 0.5)
                     : root.auroraStyle ? ColorUtils.transparentize(
                         root.blendedColors?.colLayer1 ?? Appearance.colors.colLayer2, 0.6)
                     : Appearance.colors.colLayer2
@@ -392,7 +392,7 @@ Item {
                     Rectangle {
                         anchors.fill: parent
                         radius: root.angelStyle ? Appearance.angel.roundingSmall
-                            : root.inirStyle ? Appearance.inir.roundingSmall
+                            : root.ryokuStyle ? Appearance.ryoku.roundingSmall
                             : height / 2
 
                         color: {
@@ -531,7 +531,7 @@ Item {
         Rectangle {
             anchors.fill: parent
             radius: root.angelStyle ? Appearance.angel.roundingSmall
-                : root.inirStyle ? Appearance.inir.roundingSmall
+                : root.ryokuStyle ? Appearance.ryoku.roundingSmall
                 : Appearance.rounding.full
 
             color: {
@@ -540,7 +540,7 @@ Item {
                 if (tBtn.toggled)
                     return root.angelStyle
                         ? ColorUtils.transparentize(root.accentColor, 0.64)
-                        : root.inirStyle ? Appearance.inir.colSecondaryContainer
+                        : root.ryokuStyle ? Appearance.ryoku.colSecondaryContainer
                         : ColorUtils.transparentize(root.accentColor, 0.78)
                 return "transparent"
             }
@@ -556,7 +556,7 @@ Item {
                 iconSize: tBtn.small ? 18 : 22
                 fill: tBtn.iconFill || tBtn.toggled ? 1 : 0
                 color: tBtn.toggled
-                    ? (root.inirStyle ? Appearance.inir.colOnSecondaryContainer
+                    ? (root.ryokuStyle ? Appearance.ryoku.colOnSecondaryContainer
                         : root.accentColor)
                     : (tBtn.enabled ? root.colText : root.colTextSecondary)
 

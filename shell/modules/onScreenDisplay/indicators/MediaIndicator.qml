@@ -37,13 +37,13 @@ Item {
         }
         radius: Appearance.rounding.normal
         color: Appearance.angelEverywhere ? Appearance.angel.colGlassPopup
-             : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+             : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
              : Appearance.auroraEverywhere ? Appearance.aurora.colPopupSurface
              : Appearance.colors.colLayer0
         border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth
-            : Appearance.auroraEverywhere || Appearance.inirEverywhere ? 1 : 0
+            : Appearance.auroraEverywhere || Appearance.ryokuEverywhere ? 1 : 0
         border.color: Appearance.angelEverywhere ? Appearance.angel.colCardBorder
-            : Appearance.inirEverywhere ? Appearance.inir.colBorder 
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder 
             : Appearance.auroraEverywhere ? Appearance.aurora.colTooltipBorder : "transparent"
         implicitHeight: contentRow.implicitHeight + 24
 
@@ -59,13 +59,13 @@ Item {
             Rectangle {
                 Layout.preferredWidth: 56
                 Layout.preferredHeight: 56
-                radius: Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.small
+                radius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.small
                 color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                     : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+                     : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
                      : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface 
                      : Appearance.colors.colLayer1
-                border.width: Appearance.inirEverywhere ? 1 : 0
-                border.color: Appearance.inirEverywhere ? Appearance.inir.colBorder : "transparent"
+                border.width: Appearance.ryokuEverywhere ? 1 : 0
+                border.color: Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder : "transparent"
                 clip: true
 
                 Image {

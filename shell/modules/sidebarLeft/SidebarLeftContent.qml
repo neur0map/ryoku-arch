@@ -135,10 +135,10 @@ Item {
              : (cardStyle ? Appearance.colors.colLayer1 : Appearance.colors.colLayer0)
         border.width: gameModeMinimal ? 0 : (angelEverywhere ? Appearance.angel.panelBorderWidth : 1)
         border.color: angelEverywhere ? Appearance.angel.colPanelBorder
-            : Appearance.inirEverywhere ? Appearance.inir.colBorder
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
             : Appearance.colors.colLayer0Border
         radius: angelEverywhere ? Appearance.angel.roundingNormal
-            : Appearance.inirEverywhere ? Appearance.inir.roundingNormal
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal
             : cardStyle ? Appearance.rounding.normal : (Appearance.rounding.screenRounding - Appearance.sizes.hyprlandGapsOut + 1)
 
         clip: true
@@ -209,16 +209,16 @@ Item {
             anchors.fill: parent
             anchors.margins: sidebarPadding
             anchors.topMargin: Appearance.angelEverywhere ? sidebarPadding + 4
-                : Appearance.inirEverywhere ? sidebarPadding + 6 : sidebarPadding
+                : Appearance.ryokuEverywhere ? sidebarPadding + 6 : sidebarPadding
             spacing: Appearance.angelEverywhere ? sidebarPadding + 2
-                : Appearance.inirEverywhere ? sidebarPadding + 4 : sidebarPadding
+                : Appearance.ryokuEverywhere ? sidebarPadding + 4 : sidebarPadding
 
             // Tab bar — hidden when webapp is fullscreen in sidebar
             Toolbar {
                 id: toolbarContainer
                 Layout.alignment: Qt.AlignHCenter
                 enableShadow: false
-                transparent: Appearance.auroraEverywhere || Appearance.inirEverywhere
+                transparent: Appearance.auroraEverywhere || Appearance.ryokuEverywhere
                 visible: !root.pluginViewActive
                 ToolbarTabBar {
                     id: tabBar
@@ -234,15 +234,15 @@ Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-                    : Appearance.inirEverywhere ? Appearance.inir.roundingNormal : Appearance.rounding.normal
+                    : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal : Appearance.rounding.normal
                 color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                    : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
                      : Appearance.auroraEverywhere ? "transparent"
                      : Appearance.colors.colLayer1
                 border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth
-                    : Appearance.inirEverywhere ? 1 : 0
+                    : Appearance.ryokuEverywhere ? 1 : 0
                 border.color: Appearance.angelEverywhere ? Appearance.angel.colCardBorder
-                    : Appearance.inirEverywhere ? Appearance.inir.colBorder : "transparent"
+                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder : "transparent"
 
                 // SwipeView with normal tab content
                 SwipeView {

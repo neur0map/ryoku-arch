@@ -16,7 +16,7 @@ import sys
 import asyncio
 
 CDP_URL = "http://127.0.0.1:8080/json"
-STYLE_ID = "inir-theme"
+STYLE_ID = "ryoku-theme"
 
 
 async def inject_into_page(ws_url: str, css: str) -> bool:

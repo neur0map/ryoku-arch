@@ -35,14 +35,14 @@ RippleButton {
     readonly property bool isCurrentItem: ListView.isCurrentItem
     readonly property bool isHighlighted: root.isCurrentItem
     readonly property color normalTextColor: Appearance.angelEverywhere ? Appearance.angel.colText
-        : Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer1
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer1
     readonly property color selectedTextColor: Appearance.angelEverywhere ? Appearance.angel.colText
-        : Appearance.inirEverywhere ? Appearance.inir.colText
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colText
         : Appearance.colors.colOnLayer1
     readonly property color descriptionTextColor: root.isHighlighted
         ? root.selectedTextColor
         : Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
-        : Appearance.inirEverywhere ? Appearance.inir.colTextSecondary
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
         : Appearance.colors.colSubtext
     readonly property color selectedBackgroundColor: Appearance.angelEverywhere
         ? Appearance.angel.colGlassCardHover
@@ -63,7 +63,7 @@ RippleButton {
     implicitHeight: rowLayout.implicitHeight + root.buttonVerticalPadding * 2
     implicitWidth: rowLayout.implicitWidth + root.buttonHorizontalPadding * 2
     buttonRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-        : Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.normal
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.normal
     colBackground: (root.down || root.keyboardDown)
         ? root.pressedBackgroundColor
         : (root.isHighlighted
@@ -72,7 +72,7 @@ RippleButton {
     colBackgroundHover: root.hoverBackgroundColor
     colRipple: root.activeRippleColor
 
-    property string highlightPrefix: `<u><font color="${Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary}">`
+    property string highlightPrefix: `<u><font color="${Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary}">`
     property string highlightSuffix: `</font></u>`
     function highlightContent(content, query) {
         if (!query || query.length === 0 || content == query || fontType === "monospace")

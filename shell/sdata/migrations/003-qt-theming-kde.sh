@@ -4,7 +4,7 @@
 MIGRATION_ID="003-qt-theming-kde"
 MIGRATION_TITLE="Qt Theming via KDE"
 MIGRATION_DESCRIPTION="Changes QT_QPA_PLATFORMTHEME from 'gtk3' to 'kde'.
-  This enables iNiR to theme Qt applications (Dolphin, Kate, etc.)
+  This enables Ryoku to theme Qt applications (Dolphin, Kate, etc.)
   using kdeglobals color schemes for consistent Material You theming."
 MIGRATION_TARGET_FILE="~/.config/niri/config.kdl"
 MIGRATION_REQUIRED=false

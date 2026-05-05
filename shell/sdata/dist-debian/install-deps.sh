@@ -1,4 +1,4 @@
-# Install dependencies for iNiR on Debian/Ubuntu-based systems
+# Install dependencies for Ryoku on Debian/Ubuntu-based systems
 # This script is meant to be sourced, not run directly.
 
 # shellcheck shell=bash

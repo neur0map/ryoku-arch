@@ -21,8 +21,8 @@ Item {
         anchors.fill: parent
         anchors.leftMargin: 16
         anchors.rightMargin: 16
-        anchors.topMargin: (Appearance.angelEverywhere || Appearance.inirEverywhere) ? 12 : 0
-        spacing: (Appearance.angelEverywhere || Appearance.inirEverywhere) ? 2 : 4
+        anchors.topMargin: (Appearance.angelEverywhere || Appearance.ryokuEverywhere) ? 12 : 0
+        spacing: (Appearance.angelEverywhere || Appearance.ryokuEverywhere) ? 2 : 4
 
         RowLayout {
             Layout.fillWidth: true
@@ -33,13 +33,13 @@ Item {
                 font.pixelSize: Appearance.font.pixelSize.huge * 2
                 font.weight: Font.Light
                 font.family: Appearance.font.family.numbers
-                color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer0
+                color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer0
                 animateChange: true
             }
 
             Item { Layout.fillWidth: true }
 
-            // Buttons container with inir styling
+            // Buttons container with ryoku styling
             Row {
                 spacing: 6
 
@@ -47,12 +47,12 @@ Item {
                 RippleButton {
                     implicitWidth: 36
                     implicitHeight: 36
-                    buttonRadius: Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.full
-                    colBackground: Appearance.inirEverywhere ? "transparent"
+                    buttonRadius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.full
+                    colBackground: Appearance.ryokuEverywhere ? "transparent"
                         : Appearance.auroraEverywhere ? "transparent" : Appearance.colors.colTertiaryContainer
-                    colBackgroundHover: Appearance.inirEverywhere ? Appearance.inir.colLayer1Hover
+                    colBackgroundHover: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1Hover
                         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface : (Appearance.colors.colTertiaryContainerHover ?? Appearance.colors.colTertiaryContainer)
-                    colRipple: Appearance.inirEverywhere ? Appearance.inir.colLayer1Active
+                    colRipple: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1Active
                         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive : (Appearance.colors.colTertiaryContainerActive ?? Appearance.colors.colTertiaryContainer)
                     visible: GameMode.active && (Config.options?.sidebar?.widgets?.glance?.showGameMode ?? true)
                     onClicked: GameMode.toggle()
@@ -63,7 +63,7 @@ Item {
                             text: "sports_esports"
                             iconSize: 18
                             fill: 1
-                            color: Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colOnTertiaryContainer
+                            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colOnTertiaryContainer
                         }
                     }
 
@@ -74,12 +74,12 @@ Item {
                 RippleButton {
                     implicitWidth: 36
                     implicitHeight: 36
-                    buttonRadius: Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.full
-                    colBackground: Appearance.inirEverywhere ? "transparent"
+                    buttonRadius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.full
+                    colBackground: Appearance.ryokuEverywhere ? "transparent"
                         : Appearance.auroraEverywhere ? "transparent" : Appearance.colors.colPrimaryContainer
-                    colBackgroundHover: Appearance.inirEverywhere ? Appearance.inir.colLayer1Hover
+                    colBackgroundHover: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1Hover
                         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface : Appearance.colors.colPrimaryContainerHover
-                    colRipple: Appearance.inirEverywhere ? Appearance.inir.colLayer1Active
+                    colRipple: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1Active
                         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive : Appearance.colors.colPrimaryContainerActive
                     visible: Notifications.silent && (Config.options?.sidebar?.widgets?.glance?.showDnd ?? true)
                     onClicked: Notifications.toggleSilent()
@@ -90,7 +90,7 @@ Item {
                             text: "do_not_disturb_on"
                             iconSize: 18
                             fill: 1
-                            color: Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colOnPrimaryContainer
+                            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colOnPrimaryContainer
                         }
                     }
 
@@ -108,11 +108,11 @@ Item {
                         anchors.fill: parent
                         implicitWidth: 60
                         implicitHeight: 36
-                        buttonRadius: Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.full
+                        buttonRadius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.full
                         colBackground: "transparent"
-                        colBackgroundHover: Appearance.inirEverywhere ? Appearance.inir.colLayer1Hover
+                        colBackgroundHover: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1Hover
                             : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface : Appearance.colors.colLayer1Hover
-                        colRipple: Appearance.inirEverywhere ? Appearance.inir.colLayer1Active
+                        colRipple: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1Active
                             : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive : Appearance.colors.colLayer1Active
                         onClicked: Audio.toggleMute()
 
@@ -129,8 +129,8 @@ Item {
                                     iconSize: 18
                                     fill: Audio.sink?.audio?.muted ? 1 : 0
                                     color: Audio.sink?.audio?.muted
-                                        ? (Appearance.inirEverywhere ? Appearance.inir.colTextSecondary : Appearance.colors.colSubtext)
-                                        : (Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer0)
+                                        ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary : Appearance.colors.colSubtext)
+                                        : (Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer0)
                                     Behavior on fill { enabled: Appearance.animationsEnabled; NumberAnimation { duration: Appearance.animation.elementMoveFast.duration } }
                                     Behavior on color { enabled: Appearance.animationsEnabled; animation: ColorAnimation { duration: Appearance.animation.elementMoveFast.duration; easing.type: Appearance.animation.elementMoveFast.type; easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve } }
                                 }
@@ -141,8 +141,8 @@ Item {
                                     font.pixelSize: Appearance.font.pixelSize.smaller
                                     font.family: Appearance.font.family.numbers
                                     color: Audio.sink?.audio?.muted
-                                        ? (Appearance.inirEverywhere ? Appearance.inir.colTextSecondary : Appearance.colors.colSubtext)
-                                        : (Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer0)
+                                        ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary : Appearance.colors.colSubtext)
+                                        : (Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer0)
 
                                     Behavior on color {
                                         enabled: Appearance.animationsEnabled
@@ -170,11 +170,11 @@ Item {
                     id: settingsBtn
                     implicitWidth: 36
                     implicitHeight: 36
-                    buttonRadius: Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.full
+                    buttonRadius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.full
                     colBackground: "transparent"
-                    colBackgroundHover: Appearance.inirEverywhere ? Appearance.inir.colLayer1Hover
+                    colBackgroundHover: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1Hover
                         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface : Appearance.colors.colLayer1Hover
-                    colRipple: Appearance.inirEverywhere ? Appearance.inir.colLayer1Active
+                    colRipple: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1Active
                         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive : Appearance.colors.colLayer1Active
 
                     onClicked: {
@@ -183,7 +183,7 @@ Item {
                         const pageIndex = isWaffle ? 6 : 5; // Modules (Waffle) vs Interface (ii)
                         const section = isWaffle ? Translation.tr("Widgets Panel") : Translation.tr("Widgets");
 
-                        Quickshell.execDetached(["/usr/bin/env", "QS_SETTINGS_PAGE=" + pageIndex, "QS_SETTINGS_SECTION=" + section, Quickshell.shellPath("scripts/inir"), isWaffle ? "waffle-settings-window" : "settings-window"]);
+                        Quickshell.execDetached(["/usr/bin/env", "QS_SETTINGS_PAGE=" + pageIndex, "QS_SETTINGS_SECTION=" + section, Quickshell.shellPath("scripts/ryoku-shell"), isWaffle ? "waffle-settings-window" : "settings-window"]);
                     }
 
                     contentItem: Item {
@@ -192,7 +192,7 @@ Item {
                             text: "tune" // or 'widgets'
                             iconSize: 18
                             fill: 0
-                            color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer0
+                            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer0
                         }
                     }
 
@@ -204,16 +204,16 @@ Item {
         // Subtitle with complementary info
         RowLayout {
             Layout.fillWidth: true
-            Layout.bottomMargin: Appearance.inirEverywhere ? 10 : 0
+            Layout.bottomMargin: Appearance.ryokuEverywhere ? 10 : 0
             spacing: 8
 
             StyledText {
-                // For inir: show weekday and month only (no day number since calendar shows it)
-                text: Appearance.inirEverywhere
+                // For ryoku: show weekday and month only (no day number since calendar shows it)
+                text: Appearance.ryokuEverywhere
                     ? root.locale.toString(DateTime.clock.date, "dddd, MMMM yyyy")
                     : root.locale.toString(DateTime.clock.date, "dddd, d MMMM")
                 font.pixelSize: Appearance.font.pixelSize.normal
-                color: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary : Appearance.colors.colSubtext
+                color: Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary : Appearance.colors.colSubtext
             }
         }
     }

@@ -95,7 +95,7 @@ WSettingsPage {
             ]
             onSelected: newValue => {
                 if (newValue !== Config.options?.panelFamily) {
-                    Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "panelFamily", "set", newValue])
+                    Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "panelFamily", "set", newValue])
                 }
             }
         }

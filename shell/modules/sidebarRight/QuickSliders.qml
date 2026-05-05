@@ -19,15 +19,15 @@ Rectangle {
     implicitWidth: contentItem.implicitWidth + root.horizontalPadding * 2
     implicitHeight: contentItem.implicitHeight + root.verticalPadding * 2
     radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-        : Appearance.inirEverywhere ? Appearance.inir.roundingNormal
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal
         : Appearance.rounding.normal
     color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-         : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+         : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
          : Appearance.auroraEverywhere ? "transparent" 
          : Appearance.colors.colLayer1
-    border.width: Appearance.angelEverywhere ? 0 : (Appearance.inirEverywhere ? 1 : 0)
+    border.width: Appearance.angelEverywhere ? 0 : (Appearance.ryokuEverywhere ? 1 : 0)
     border.color: Appearance.angelEverywhere ? "transparent"
-        : Appearance.inirEverywhere ? Appearance.inir.colBorder : "transparent"
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder : "transparent"
     property real verticalPadding: 4
     property real horizontalPadding: 12
 
@@ -112,11 +112,11 @@ Rectangle {
             iconSize: 20
             color: nearFull
                 ? (Appearance.angelEverywhere ? Appearance.angel.colOnPrimary
-                 : Appearance.inirEverywhere ? Appearance.inir.colOnPrimary
+                 : Appearance.ryokuEverywhere ? Appearance.ryoku.colOnPrimary
                  : Appearance.auroraEverywhere ? Appearance.m3colors.m3onPrimary
                  : Appearance.colors.colOnPrimary)
                 : (Appearance.angelEverywhere ? Appearance.angel.colText
-                 : Appearance.inirEverywhere ? Appearance.inir.colOnSecondaryContainer
+                 : Appearance.ryokuEverywhere ? Appearance.ryoku.colOnSecondaryContainer
                  : Appearance.auroraEverywhere ? Appearance.m3colors.m3onSecondaryContainer
                  : Appearance.colors.colOnSecondaryContainer)
             text: quickSlider.materialSymbol

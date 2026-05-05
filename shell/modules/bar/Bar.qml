@@ -187,10 +187,10 @@ Scope {
                             implicitHeight: Appearance.rounding.screenRounding
                             
                             readonly property bool isAurora: Appearance.auroraEverywhere
-                            readonly property bool isInir: Appearance.inirEverywhere
+                            readonly property bool isInir: Appearance.ryokuEverywhere
                             readonly property bool isBottom: Config.options?.bar?.bottom ?? false
                             readonly property color solidColor: showBarBackground 
-                                ? (isInir ? Appearance.inir.colLayer0 
+                                ? (isInir ? Appearance.ryoku.colLayer0 
                                     : isAurora ? Appearance.aurora.colPopupSurface
                                     : Appearance.colors.colLayer0) 
                                 : "transparent"

@@ -94,7 +94,7 @@ RowLayout {
             Layout.fillWidth: true
             text: root.text
             color: Appearance.angelEverywhere ? Appearance.angel.colText
-                : Appearance.inirEverywhere ? Appearance.inir.colText
+                : Appearance.ryokuEverywhere ? Appearance.ryoku.colText
                 : Appearance.colors.colOnSecondaryContainer
             opacity: root.enabled ? 1 : 0.4
         }

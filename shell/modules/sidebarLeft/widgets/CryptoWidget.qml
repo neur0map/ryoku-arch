@@ -213,7 +213,7 @@ Item {
         anchors.centerIn: parent
         width: parent.width
         implicitHeight: col.implicitHeight + 20
-        radius: Appearance.inirEverywhere ? Appearance.inir.roundingNormal : Appearance.rounding.normal
+        radius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal : Appearance.rounding.normal
         color: "transparent"
 
         ColumnLayout {
@@ -229,20 +229,20 @@ Item {
                 MaterialSymbol {
                     text: "currency_bitcoin"
                     iconSize: 16
-                    color: Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary
+                    color: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary
                 }
                 StyledText {
                     text: "Crypto"
                     font.pixelSize: Appearance.font.pixelSize.smaller
                     font.weight: Font.Medium
-                    color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer1
+                    color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer1
                 }
                 Item { Layout.fillWidth: true }
 
                 Rectangle {
                     visible: root.loading
                     width: 6; height: 6; radius: 3
-                    color: Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary
+                    color: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary
                     opacity: 0.6
                     SequentialAnimation on opacity {
                         running: root.loading && Appearance.animationsEnabled
@@ -254,13 +254,13 @@ Item {
 
                 RippleButton {
                     implicitWidth: 24; implicitHeight: 24
-                    buttonRadius: Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.full
+                    buttonRadius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.full
                     colBackground: "transparent"
-                    colBackgroundHover: Appearance.inirEverywhere ? Appearance.inir.colLayer1Hover : Appearance.colors.colLayer1Hover
+                    colBackgroundHover: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1Hover : Appearance.colors.colLayer1Hover
                     onClicked: root.fetchPrices()
                     contentItem: MaterialSymbol {
                         text: "refresh"; iconSize: 14
-                        color: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary : Appearance.colors.colOnLayer1Inactive
+                        color: Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary : Appearance.colors.colOnLayer1Inactive
                     }
                     StyledToolTip { text: Translation.tr("Refresh") }
                 }
@@ -285,7 +285,7 @@ Item {
                         text: root.getSymbol(row.modelData)
                         font.pixelSize: Appearance.font.pixelSize.smaller
                         font.family: Appearance.font.family.monospace
-                        color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer1
+                        color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer1
                         Layout.preferredWidth: 36
                     }
 
@@ -293,7 +293,7 @@ Item {
                         text: "$" + root.fmtPrice(row.price)
                         font.pixelSize: Appearance.font.pixelSize.smaller
                         font.family: Appearance.font.family.numbers
-                        color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer1
+                        color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer1
                         Layout.fillWidth: true
                     }
 
@@ -303,8 +303,8 @@ Item {
                         Layout.preferredHeight: 16
                         Layout.alignment: Qt.AlignVCenter
                         values: row.spark
-                        color: row.up ? (Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary)
-                                      : (Appearance.inirEverywhere ? Appearance.inir.colError : Appearance.colors.colError)
+                        color: row.up ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary)
+                                      : (Appearance.ryokuEverywhere ? Appearance.ryoku.colError : Appearance.colors.colError)
                         fillOpacity: 0.25
                         alignment: Graph.Alignment.Right
                     }
@@ -318,15 +318,15 @@ Item {
                         MaterialSymbol {
                             text: row.up ? "arrow_drop_up" : "arrow_drop_down"
                             iconSize: 14
-                            color: row.up ? (Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary)
-                                          : (Appearance.inirEverywhere ? Appearance.inir.colError : Appearance.colors.colError)
+                            color: row.up ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary)
+                                          : (Appearance.ryokuEverywhere ? Appearance.ryoku.colError : Appearance.colors.colError)
                         }
                         StyledText {
                             text: Math.abs(row.chg).toFixed(1) + "%"
                             font.pixelSize: Appearance.font.pixelSize.smallest
                             font.family: Appearance.font.family.numbers
-                            color: row.up ? (Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary)
-                                          : (Appearance.inirEverywhere ? Appearance.inir.colError : Appearance.colors.colError)
+                            color: row.up ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary)
+                                          : (Appearance.ryokuEverywhere ? Appearance.ryoku.colError : Appearance.colors.colError)
                         }
                     }
                 }
@@ -336,13 +336,13 @@ Item {
                 visible: root.error && Object.keys(root.cryptoData).length === 0
                 text: Translation.tr("Failed to load")
                 font.pixelSize: Appearance.font.pixelSize.smallest
-                color: Appearance.inirEverywhere ? Appearance.inir.colError : Appearance.colors.colError
+                color: Appearance.ryokuEverywhere ? Appearance.ryoku.colError : Appearance.colors.colError
             }
             StyledText {
                 visible: root.coins.length === 0
                 text: Translation.tr("No coins configured")
                 font.pixelSize: Appearance.font.pixelSize.smallest
-                color: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary : Appearance.colors.colSubtext
+                color: Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary : Appearance.colors.colSubtext
             }
         }
     }

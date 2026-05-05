@@ -9,15 +9,15 @@ Item {
     property int smoothing: 2
     property bool live: true
     property color colorLow: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                           : Appearance.inirEverywhere ? Appearance.inir.colSecondaryContainer
+                           : Appearance.ryokuEverywhere ? Appearance.ryoku.colSecondaryContainer
                            : Appearance.auroraEverywhere ? Appearance.m3colors.m3secondaryContainer
                            : Appearance.colors.colSecondaryContainer
     property color colorMed: Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                           : Appearance.inirEverywhere ? Appearance.inir.colPrimary
+                           : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary
                            : Appearance.auroraEverywhere ? Appearance.m3colors.m3primary
                            : Appearance.colors.colPrimary
     property color colorHigh: Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                            : Appearance.inirEverywhere ? Appearance.inir.colPrimary
+                            : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary
                             : Appearance.auroraEverywhere ? Appearance.m3colors.m3primary
                             : Appearance.colors.colPrimary
     property int barCount: 50

@@ -1,4 +1,4 @@
-# Install dependencies for iNiR on Fedora-based systems
+# Install dependencies for Ryoku on Fedora-based systems
 # This script is meant to be sourced, not run directly.
 
 # shellcheck shell=bash
@@ -499,7 +499,7 @@ tui_info "Installing critical fonts..."
 FONT_DIR="$HOME/.local/share/fonts"
 mkdir -p "$FONT_DIR"
 
-# Material Symbols Rounded (icons) - this is the font iNiR actually uses
+# Material Symbols Rounded (icons) - this is the font Ryoku actually uses
 if ! fc-list | grep -qi "Material Symbols Rounded"; then
   log_info "Downloading Material Symbols Rounded font..."
   
@@ -653,7 +653,7 @@ if ! fc-list | grep -qi "Rubik"; then
     log_success "Rubik installed"
 fi
 
-# Geist (used by default in iNiR)
+# Geist (used by default in Ryoku)
 if ! fc-list | grep -qi "Geist"; then
   log_info "Downloading Geist font..."
   TEMP_DIR="/tmp/geist-font-$$"

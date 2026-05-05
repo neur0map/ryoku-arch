@@ -41,7 +41,7 @@ WindowDialog {
                 rightMargin: 4
             }
             placeholderText: Translation.tr("Network name (SSID)")
-            text: Config.options?.hotspot?.ssid ?? "iNiR Hotspot"
+            text: Config.options?.hotspot?.ssid ?? "Ryoku Hotspot"
             onTextEdited: Config.setNestedValue("hotspot.ssid", text)
         }
 
@@ -53,7 +53,7 @@ WindowDialog {
                 rightMargin: 4
             }
             placeholderText: Translation.tr("Password")
-            text: Config.options?.hotspot?.password ?? "inirhotspot"
+            text: Config.options?.hotspot?.password ?? "ryoku-shell-hotspot"
             echoMode: TextInput.Password
             onTextEdited: Config.setNestedValue("hotspot.password", text)
         }

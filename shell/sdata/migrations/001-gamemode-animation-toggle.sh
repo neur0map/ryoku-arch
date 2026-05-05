@@ -1,9 +1,9 @@
 # Migration: Add //off to Niri animations block for GameMode support
-# This allows iNiR to toggle animations on/off for gaming
+# This allows Ryoku to toggle animations on/off for gaming
 
 MIGRATION_ID="001-gamemode-animation-toggle"
 MIGRATION_TITLE="GameMode Animation Toggle"
-MIGRATION_DESCRIPTION="Adds //off comment to Niri animations block, allowing iNiR
+MIGRATION_DESCRIPTION="Adds //off comment to Niri animations block, allowing Ryoku
   to toggle animations on/off when GameMode is activated.
   This improves gaming performance by disabling compositor animations."
 MIGRATION_TARGET_FILE="~/.config/niri/config.kdl"

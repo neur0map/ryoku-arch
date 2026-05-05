@@ -26,7 +26,7 @@ Item {
 
     // Standard rounding - not a full circle
     readonly property real pillRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-                                      : Appearance.inirEverywhere ? Appearance.inir.roundingSmall
+                                      : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall
                                       : Appearance.rounding.small
 
     // Background only visible when app is active/focused - translucent and aesthetic
@@ -34,7 +34,7 @@ Item {
         if (!appIsActive) return "transparent"
         // Active app: subtle translucent background
         if (Appearance.angelEverywhere) return ColorUtils.transparentize(Appearance.angel.colGlassCard, 0.35)
-        if (Appearance.inirEverywhere) return ColorUtils.transparentize(Appearance.inir.colLayer2, 0.45)
+        if (Appearance.ryokuEverywhere) return ColorUtils.transparentize(Appearance.ryoku.colLayer2, 0.45)
         if (Appearance.auroraEverywhere) return ColorUtils.transparentize(Appearance.aurora.colSubSurface, 0.4)
         return ColorUtils.transparentize(Appearance.colors.colLayer1, 0.45)
     }
@@ -43,7 +43,7 @@ Item {
     readonly property color _pillBorder: {
         if (!appIsActive) return "transparent"
         if (Appearance.angelEverywhere) return ColorUtils.transparentize(Appearance.angel.colBorder, 0.5)
-        if (Appearance.inirEverywhere) return ColorUtils.transparentize(Appearance.inir.colBorderAccent, 0.55)
+        if (Appearance.ryokuEverywhere) return ColorUtils.transparentize(Appearance.ryoku.colBorderAccent, 0.55)
         if (Appearance.auroraEverywhere) return ColorUtils.transparentize(Appearance.colors.colPrimary, 0.7)
         return ColorUtils.transparentize(Appearance.colors.colPrimary, 0.65)
     }
@@ -94,12 +94,12 @@ Item {
                 implicitHeight: Appearance.angelEverywhere ? 2 : root.countDotHeight
                 color: isFocused
                     ? (Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                     : Appearance.inirEverywhere  ? Appearance.inir.colPrimary
+                     : Appearance.ryokuEverywhere  ? Appearance.ryoku.colPrimary
                      : Appearance.auroraEverywhere ? Appearance.colors.colPrimary
                      : Appearance.colors.colPrimary)
                     : ColorUtils.transparentize(
                         Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
-                      : Appearance.inirEverywhere  ? Appearance.inir.colText
+                      : Appearance.ryokuEverywhere  ? Appearance.ryoku.colText
                       : Appearance.colors.colOnLayer0, 0.5)
 
                 Behavior on implicitWidth {
@@ -121,7 +121,7 @@ Item {
             radius: Appearance.angelEverywhere ? 0 : 2.5
             color: ColorUtils.transparentize(
                 Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
-              : Appearance.inirEverywhere  ? Appearance.inir.colText
+              : Appearance.ryokuEverywhere  ? Appearance.ryoku.colText
               : Appearance.colors.colOnLayer0, 0.5)
         }
     }

@@ -50,31 +50,31 @@ Item {
     }
 
     // Cached color properties to avoid repeated ternary evaluation
-    readonly property color colSubtext: Appearance.inirEverywhere ? Appearance.inir?.colTextMuted ?? Appearance.colors?.colSubtext ?? "gray"
+    readonly property color colSubtext: Appearance.ryokuEverywhere ? Appearance.ryoku?.colTextMuted ?? Appearance.colors?.colSubtext ?? "gray"
                                       : Appearance.auroraEverywhere ? Appearance.aurora?.colOnSubSurface ?? Appearance.colors?.colSubtext ?? "gray"
                                       : Appearance.colors?.colSubtext ?? "gray"
-    readonly property color colPrimary: Appearance.inirEverywhere ? Appearance.inir?.colPrimary ?? Appearance.colors?.colPrimary ?? "blue"
+    readonly property color colPrimary: Appearance.ryokuEverywhere ? Appearance.ryoku?.colPrimary ?? Appearance.colors?.colPrimary ?? "blue"
                                       : Appearance.auroraEverywhere ? Appearance.aurora?.colAccent ?? Appearance.colors?.colPrimary ?? "blue"
                                       : Appearance.colors?.colPrimary ?? "blue"
-    readonly property color colText: Appearance.inirEverywhere ? Appearance.inir?.colText ?? Appearance.colors?.colOnLayer1 ?? "white"
+    readonly property color colText: Appearance.ryokuEverywhere ? Appearance.ryoku?.colText ?? Appearance.colors?.colOnLayer1 ?? "white"
                                    : Appearance.auroraEverywhere ? Appearance.aurora?.colOnSurface ?? Appearance.colors?.colOnLayer1 ?? "white"
                                    : Appearance.colors?.colOnLayer1 ?? "white"
-    readonly property color colLabel: Appearance.inirEverywhere ? Appearance.inir?.colLabel ?? Appearance.colors?.colPrimary ?? "blue"
+    readonly property color colLabel: Appearance.ryokuEverywhere ? Appearance.ryoku?.colLabel ?? Appearance.colors?.colPrimary ?? "blue"
                                     : Appearance.colors?.colPrimary ?? "blue"
     readonly property color colLayer1Hover: Appearance.angelEverywhere ? Appearance.angel?.colGlassCardHover ?? Appearance.colors?.colLayer1Hover ?? "gray"
-                                          : Appearance.inirEverywhere ? Appearance.inir?.colLayer1Hover ?? Appearance.colors?.colLayer1Hover ?? "gray"
+                                          : Appearance.ryokuEverywhere ? Appearance.ryoku?.colLayer1Hover ?? Appearance.colors?.colLayer1Hover ?? "gray"
                                           : Appearance.auroraEverywhere ? Appearance.aurora?.colSubSurface ?? Appearance.colors?.colLayer1Hover ?? "gray"
                                           : Appearance.colors?.colLayer1Hover ?? "gray"
     readonly property color colLayer1Active: Appearance.angelEverywhere ? Appearance.angel?.colGlassCardActive ?? Appearance.colors?.colLayer1Active ?? "gray"
-                                           : Appearance.inirEverywhere ? Appearance.inir?.colLayer1Active ?? Appearance.colors?.colLayer1Active ?? "gray"
+                                           : Appearance.ryokuEverywhere ? Appearance.ryoku?.colLayer1Active ?? Appearance.colors?.colLayer1Active ?? "gray"
                                            : Appearance.auroraEverywhere ? Appearance.aurora?.colSubSurfaceActive ?? Appearance.colors?.colLayer1Active ?? "gray"
                                            : Appearance.colors?.colLayer1Active ?? "gray"
-    readonly property color colPrimaryContainer: Appearance.inirEverywhere ? Appearance.inir?.colPrimaryContainer ?? Appearance.colors?.colPrimaryContainer ?? "blue"
+    readonly property color colPrimaryContainer: Appearance.ryokuEverywhere ? Appearance.ryoku?.colPrimaryContainer ?? Appearance.colors?.colPrimaryContainer ?? "blue"
                                                : Appearance.colors?.colPrimaryContainer ?? "blue"
-    readonly property color colPrimaryActive: Appearance.inirEverywhere ? Appearance.inir?.colPrimaryActive ?? Appearance.colors?.colPrimaryContainerActive ?? "blue"
+    readonly property color colPrimaryActive: Appearance.ryokuEverywhere ? Appearance.ryoku?.colPrimaryActive ?? Appearance.colors?.colPrimaryContainerActive ?? "blue"
                                             : Appearance.colors?.colPrimaryContainerActive ?? "blue"
     readonly property real buttonRadius: Appearance.angelEverywhere ? Appearance.angel?.roundingSmall ?? 2
-                                       : Appearance.inirEverywhere ? Appearance.inir?.roundingSmall ?? Appearance.rounding?.small ?? 8
+                                       : Appearance.ryokuEverywhere ? Appearance.ryoku?.roundingSmall ?? Appearance.rounding?.small ?? 8
                                        : Appearance.rounding?.small ?? 8
 
     MouseArea {

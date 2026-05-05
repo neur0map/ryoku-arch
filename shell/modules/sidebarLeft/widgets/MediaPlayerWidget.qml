@@ -77,11 +77,11 @@ Item {
     property QtObject blendedColors: AdaptedMaterialScheme { color: root.artDominantColor }
     
     // Inir uses fixed colors instead of adaptive
-    readonly property color jiraColText: Appearance.inir.colText
-    readonly property color jiraColTextSecondary: Appearance.inir.colTextSecondary
-    readonly property color jiraColPrimary: Appearance.inir.colPrimary
-    readonly property color jiraColLayer1: Appearance.inir.colLayer1
-    readonly property color jiraColLayer2: Appearance.inir.colLayer2
+    readonly property color jiraColText: Appearance.ryoku.colText
+    readonly property color jiraColTextSecondary: Appearance.ryoku.colTextSecondary
+    readonly property color jiraColPrimary: Appearance.ryoku.colPrimary
+    readonly property color jiraColLayer1: Appearance.ryoku.colLayer1
+    readonly property color jiraColLayer2: Appearance.ryoku.colLayer2
 
     StyledRectangularShadow { target: card }
 
@@ -91,15 +91,15 @@ Item {
         width: parent.width - Appearance.sizes.elevationMargin
         implicitHeight: 130
         radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-            : Appearance.inirEverywhere ? Appearance.inir.roundingNormal
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal
             : Appearance.rounding.normal
         color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-             : Appearance.inirEverywhere ? Appearance.inir.colLayer1 
+             : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1 
              : Appearance.auroraEverywhere ? ColorUtils.transparentize(blendedColors?.colLayer0 ?? Appearance.colors.colLayer0, 0.7)
              : (blendedColors?.colLayer0 ?? Appearance.colors.colLayer0)
-        border.width: Appearance.angelEverywhere ? 0 : (Appearance.inirEverywhere ? 1 : 0)
+        border.width: Appearance.angelEverywhere ? 0 : (Appearance.ryokuEverywhere ? 1 : 0)
         border.color: Appearance.angelEverywhere ? "transparent"
-            : Appearance.inirEverywhere ? Appearance.inir.colBorder : "transparent"
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder : "transparent"
         clip: true
 
         AngelPartialBorder { targetRadius: card.radius; coverage: 0.5 }
@@ -109,7 +109,7 @@ Item {
             maskSource: Rectangle { width: card.width; height: card.height; radius: card.radius }
         }
 
-        // Cover art background - subtle for inir, more transparent for aurora
+        // Cover art background - subtle for ryoku, more transparent for aurora
         Image {
             id: bgArt
             anchors.fill: parent
@@ -117,22 +117,22 @@ Item {
             fillMode: Image.PreserveAspectCrop
             asynchronous: true
             cache: false
-            opacity: Appearance.angelEverywhere ? 0.2 : (Appearance.inirEverywhere ? 0.15 : (Appearance.auroraEverywhere ? 0.25 : 0.5))
+            opacity: Appearance.angelEverywhere ? 0.2 : (Appearance.ryokuEverywhere ? 0.15 : (Appearance.auroraEverywhere ? 0.25 : 0.5))
             visible: root.displayedArtFilePath !== ""
 
             layer.enabled: Appearance.effectsEnabled
             layer.effect: MultiEffect {
                 blurEnabled: true
-                blur: Appearance.inirEverywhere ? 0.3 : 0.15
+                blur: Appearance.ryokuEverywhere ? 0.3 : 0.15
                 blurMax: 16
-                saturation: Appearance.inirEverywhere ? 0.1 : 0.3
+                saturation: Appearance.ryokuEverywhere ? 0.1 : 0.3
             }
         }
 
         // Dark overlay for controls visibility - only for Material
         Rectangle {
             anchors.fill: parent
-            visible: !Appearance.inirEverywhere && !Appearance.auroraEverywhere
+            visible: !Appearance.ryokuEverywhere && !Appearance.auroraEverywhere
             gradient: Gradient {
                 orientation: Gradient.Horizontal
                 GradientStop { position: 0.0; color: "transparent" }
@@ -153,7 +153,7 @@ Item {
             smoothing: 2
             color: ColorUtils.transparentize(
                 Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                : Appearance.inirEverywhere ? root.jiraColPrimary : (blendedColors?.colPrimary ?? Appearance.colors.colPrimary), 
+                : Appearance.ryokuEverywhere ? root.jiraColPrimary : (blendedColors?.colPrimary ?? Appearance.colors.colPrimary), 
                 0.6
             )
         }
@@ -169,7 +169,7 @@ Item {
                 Layout.preferredWidth: 110
                 Layout.preferredHeight: 110
                 radius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-                    : Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.small
+                    : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.small
                 color: "transparent"
                 clip: true
 
@@ -179,7 +179,7 @@ Item {
                         width: 110
                         height: 110
                         radius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-                            : Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.small 
+                            : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.small 
                     }
                 }
 
@@ -245,7 +245,7 @@ Item {
                 Rectangle {
                     anchors.fill: parent
                     color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                        : Appearance.inirEverywhere ? root.jiraColLayer2 : (blendedColors?.colLayer1 ?? Appearance.colors.colLayer1)
+                        : Appearance.ryokuEverywhere ? root.jiraColLayer2 : (blendedColors?.colLayer1 ?? Appearance.colors.colLayer1)
                     visible: !root.downloaded
                     
                     MaterialSymbol {
@@ -253,7 +253,7 @@ Item {
                         text: "music_note"
                         iconSize: 32
                         color: Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
-                            : Appearance.inirEverywhere ? root.jiraColTextSecondary : (blendedColors?.colSubtext ?? Appearance.colors.colSubtext)
+                            : Appearance.ryokuEverywhere ? root.jiraColTextSecondary : (blendedColors?.colSubtext ?? Appearance.colors.colSubtext)
                     }
                 }
             }
@@ -271,7 +271,7 @@ Item {
                     font.pixelSize: Appearance.font.pixelSize.normal
                     font.weight: Font.Medium
                     color: Appearance.angelEverywhere ? Appearance.angel.colText
-                        : Appearance.inirEverywhere ? root.jiraColText : (blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
+                        : Appearance.ryokuEverywhere ? root.jiraColText : (blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
                     elide: Text.ElideRight
                     animateChange: true
                     animationDistanceX: 6
@@ -283,7 +283,7 @@ Item {
                     text: root.effectiveArtist || ""
                     font.pixelSize: Appearance.font.pixelSize.smaller
                     color: Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
-                        : Appearance.inirEverywhere ? root.jiraColTextSecondary : (blendedColors?.colSubtext ?? Appearance.colors.colSubtext)
+                        : Appearance.ryokuEverywhere ? root.jiraColTextSecondary : (blendedColors?.colSubtext ?? Appearance.colors.colSubtext)
                     elide: Text.ElideRight
                     visible: text !== ""
                 }
@@ -303,11 +303,11 @@ Item {
                             wavy: root.effectiveIsPlaying
                             animateWave: root.effectiveIsPlaying
                             highlightColor: Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                                : Appearance.inirEverywhere ? root.jiraColPrimary : (blendedColors?.colPrimary ?? Appearance.colors.colPrimary)
+                                : Appearance.ryokuEverywhere ? root.jiraColPrimary : (blendedColors?.colPrimary ?? Appearance.colors.colPrimary)
                             trackColor: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                                : Appearance.inirEverywhere ? Appearance.inir.colLayer2 : (blendedColors?.colSecondaryContainer ?? Appearance.colors.colSecondaryContainer)
+                                : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2 : (blendedColors?.colSecondaryContainer ?? Appearance.colors.colSecondaryContainer)
                             handleColor: Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                                : Appearance.inirEverywhere ? root.jiraColPrimary : (blendedColors?.colPrimary ?? Appearance.colors.colPrimary)
+                                : Appearance.ryokuEverywhere ? root.jiraColPrimary : (blendedColors?.colPrimary ?? Appearance.colors.colPrimary)
                             value: root.effectiveLength > 0 ? root.effectivePosition / root.effectiveLength : 0
                             onMoved: {
                                 if (root.isYtMusicPlayer) {
@@ -327,9 +327,9 @@ Item {
                             wavy: root.effectiveIsPlaying
                             animateWave: root.effectiveIsPlaying
                             highlightColor: Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                                : Appearance.inirEverywhere ? root.jiraColPrimary : (blendedColors?.colPrimary ?? Appearance.colors.colPrimary)
+                                : Appearance.ryokuEverywhere ? root.jiraColPrimary : (blendedColors?.colPrimary ?? Appearance.colors.colPrimary)
                             trackColor: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                                : Appearance.inirEverywhere ? Appearance.inir.colLayer2 : (blendedColors?.colSecondaryContainer ?? Appearance.colors.colSecondaryContainer)
+                                : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2 : (blendedColors?.colSecondaryContainer ?? Appearance.colors.colSecondaryContainer)
                             value: root.effectiveLength > 0 ? root.effectivePosition / root.effectiveLength : 0
                         }
                     }
@@ -345,7 +345,7 @@ Item {
                         font.pixelSize: Appearance.font.pixelSize.smallest
                         font.family: Appearance.font.family.numbers
                         color: Appearance.angelEverywhere ? Appearance.angel.colText
-                            : Appearance.inirEverywhere ? root.jiraColText : (blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
+                            : Appearance.ryokuEverywhere ? root.jiraColText : (blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
                     }
 
                     Item { Layout.fillWidth: true }
@@ -356,12 +356,12 @@ Item {
                         implicitHeight: 32
                         enabled: MprisController.canGoPrevious
                         buttonRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-                            : Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.full
+                            : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.full
                         colBackground: "transparent"
                         colBackgroundHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-                            : Appearance.inirEverywhere ? Appearance.inir.colLayer2Hover : ColorUtils.transparentize(blendedColors?.colLayer1 ?? Appearance.colors.colLayer1, 0.5)
+                            : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover : ColorUtils.transparentize(blendedColors?.colLayer1 ?? Appearance.colors.colLayer1, 0.5)
                         colRipple: Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
-                            : Appearance.inirEverywhere ? Appearance.inir.colLayer2Active : (blendedColors?.colLayer1Active ?? Appearance.colors.colLayer1Active)
+                            : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Active : (blendedColors?.colLayer1Active ?? Appearance.colors.colLayer1Active)
                         onClicked: MprisController.previous()
 
                         contentItem: Item {
@@ -371,7 +371,7 @@ Item {
                                 iconSize: 22
                                 fill: 1
                                 color: Appearance.angelEverywhere ? Appearance.angel.colText
-                                    : Appearance.inirEverywhere ? root.jiraColText : (blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
+                                    : Appearance.ryokuEverywhere ? root.jiraColText : (blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
                             }
                         }
 
@@ -383,12 +383,12 @@ Item {
                         implicitWidth: 40
                         implicitHeight: 40
                         buttonRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-                            : Appearance.inirEverywhere 
-                            ? Appearance.inir.roundingSmall 
+                            : Appearance.ryokuEverywhere 
+                            ? Appearance.ryoku.roundingSmall 
                             : (root.effectiveIsPlaying ? Appearance.rounding.normal : Appearance.rounding.full)
                         colBackground: Appearance.angelEverywhere
                             ? "transparent"
-                            : Appearance.inirEverywhere
+                            : Appearance.ryokuEverywhere
                             ? "transparent"
                             : Appearance.auroraEverywhere
                                 ? "transparent"
@@ -397,8 +397,8 @@ Item {
                                     : (blendedColors?.colSecondaryContainer ?? Appearance.colors.colSecondaryContainer))
                         colBackgroundHover: Appearance.angelEverywhere
                             ? Appearance.angel.colGlassCardHover
-                            : Appearance.inirEverywhere
-                            ? Appearance.inir.colLayer2Hover
+                            : Appearance.ryokuEverywhere
+                            ? Appearance.ryoku.colLayer2Hover
                             : Appearance.auroraEverywhere
                                 ? ColorUtils.transparentize(blendedColors?.colLayer1 ?? Appearance.colors.colLayer1, 0.5)
                                 : (root.effectiveIsPlaying 
@@ -406,8 +406,8 @@ Item {
                                     : (blendedColors?.colSecondaryContainerHover ?? Appearance.colors.colSecondaryContainerHover))
                         colRipple: Appearance.angelEverywhere
                             ? Appearance.angel.colGlassCardActive
-                            : Appearance.inirEverywhere
-                            ? Appearance.inir.colLayer2Active
+                            : Appearance.ryokuEverywhere
+                            ? Appearance.ryoku.colLayer2Active
                             : Appearance.auroraEverywhere
                                 ? (blendedColors?.colLayer1Active ?? Appearance.colors.colLayer1Active)
                                 : (root.effectiveIsPlaying 
@@ -416,7 +416,7 @@ Item {
                         onClicked: MprisController.togglePlaying()
 
                         Behavior on buttonRadius {
-                            enabled: Appearance.animationsEnabled && !Appearance.inirEverywhere
+                            enabled: Appearance.animationsEnabled && !Appearance.ryokuEverywhere
                             NumberAnimation { duration: Appearance.animation.elementMoveFast.duration }
                         }
 
@@ -428,7 +428,7 @@ Item {
                                 fill: 1
                                 color: Appearance.angelEverywhere
                                     ? Appearance.angel.colPrimary
-                                    : Appearance.inirEverywhere
+                                    : Appearance.ryokuEverywhere
                                     ? root.jiraColPrimary
                                     : Appearance.auroraEverywhere
                                         ? (blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
@@ -451,12 +451,12 @@ Item {
                         implicitHeight: 32
                         enabled: MprisController.canGoNext
                         buttonRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-                            : Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.full
+                            : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.full
                         colBackground: "transparent"
                         colBackgroundHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-                            : Appearance.inirEverywhere ? Appearance.inir.colLayer2Hover : ColorUtils.transparentize(blendedColors?.colLayer1 ?? Appearance.colors.colLayer1, 0.5)
+                            : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover : ColorUtils.transparentize(blendedColors?.colLayer1 ?? Appearance.colors.colLayer1, 0.5)
                         colRipple: Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
-                            : Appearance.inirEverywhere ? Appearance.inir.colLayer2Active : (blendedColors?.colLayer1Active ?? Appearance.colors.colLayer1Active)
+                            : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Active : (blendedColors?.colLayer1Active ?? Appearance.colors.colLayer1Active)
                         onClicked: MprisController.next()
 
                         contentItem: Item {
@@ -466,7 +466,7 @@ Item {
                                 iconSize: 22
                                 fill: 1
                                 color: Appearance.angelEverywhere ? Appearance.angel.colText
-                                    : Appearance.inirEverywhere ? root.jiraColText : (blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
+                                    : Appearance.ryokuEverywhere ? root.jiraColText : (blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
                             }
                         }
 
@@ -480,7 +480,7 @@ Item {
                         font.pixelSize: Appearance.font.pixelSize.smallest
                         font.family: Appearance.font.family.numbers
                         color: Appearance.angelEverywhere ? Appearance.angel.colText
-                            : Appearance.inirEverywhere ? root.jiraColText : (blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
+                            : Appearance.ryokuEverywhere ? root.jiraColText : (blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
                     }
                 }
             }

@@ -123,7 +123,7 @@ Item {
         radius: SettingsMaterialPreset.cardRadius
         color: SettingsMaterialPreset.cardColor
         border.width: Appearance.angelEverywhere ? 0
-                     : (Appearance.inirEverywhere ? 1
+                     : (Appearance.ryokuEverywhere ? 1
                      : (Appearance.auroraEverywhere ? 1 : 1))
         border.color: Appearance.angelEverywhere ? "transparent" : SettingsMaterialPreset.cardBorderColor
 

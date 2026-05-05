@@ -46,7 +46,7 @@ WSettingsPage {
                 spacing: 4
                 
                 WText {
-                    text: "iNiR"
+                    text: "Ryoku"
                     font.pixelSize: Looks.font.pixelSize.xlarger * 1.4
                     font.weight: Looks.font.weight.stronger
                 }
@@ -121,18 +121,18 @@ WSettingsPage {
         
         WSettingsButton {
             label: Translation.tr("GitHub Repository")
-            description: "github.com/snowarch/inir"
+            description: "github.com/neur0map/ryoku-arch"
             icon: "globe-search"
             buttonText: Translation.tr("Open")
-            onButtonClicked: Qt.openUrlExternally("https://github.com/snowarch/inir")
+            onButtonClicked: Qt.openUrlExternally("https://github.com/neur0map/ryoku-arch")
         }
 
         WSettingsButton {
             label: Translation.tr("Documentation")
-            description: "snowarch.github.io/iNiR/docs"
+            description: "snowarch.github.io/Ryoku/docs"
             icon: "library"
             buttonText: Translation.tr("Open")
-            onButtonClicked: Qt.openUrlExternally("https://snowarch.github.io/iNiR/docs/")
+            onButtonClicked: Qt.openUrlExternally("https://snowarch.github.io/Ryoku/docs/")
         }
         
         WSettingsButton {
@@ -197,7 +197,7 @@ WSettingsPage {
         
         WSettingsRow {
             label: Translation.tr("Shell path")
-            description: FileUtils.trimFileProtocol(`${Directories.config}/quickshell/inir/`)
+            description: FileUtils.trimFileProtocol(`${Directories.config}/quickshell/ryoku-shell/`)
             icon: "folder"
         }
         

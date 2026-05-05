@@ -7,7 +7,7 @@ import qs.modules.common.widgets
 import qs.modules.common.functions
 
 /**
- * Compact iNiR shell update indicator for the bar.
+ * Compact Ryoku shell update indicator for the bar.
  * Shows when a new version is available in the git repo, and handles live update progress.
  */
 MouseArea {
@@ -22,7 +22,7 @@ MouseArea {
     acceptedButtons: Qt.LeftButton | Qt.RightButton
 
     readonly property color accentColor: Appearance.angelEverywhere ? Appearance.angel.colPrimary
-        : Appearance.inirEverywhere ? (Appearance.inir?.colAccent ?? Appearance.m3colors.m3primary)
+        : Appearance.ryokuEverywhere ? (Appearance.ryoku?.colAccent ?? Appearance.m3colors.m3primary)
         : Appearance.auroraEverywhere ? (Appearance.aurora?.colAccent ?? Appearance.m3colors.m3primary)
         : Appearance.m3colors.m3primary
 
@@ -47,31 +47,31 @@ MouseArea {
         color: {
             if (ShellUpdates.isUpdating) {
                 if (Appearance.angelEverywhere) return ColorUtils.transparentize(Appearance.angel.colPrimary, 0.92)
-                if (Appearance.inirEverywhere) return ColorUtils.transparentize(Appearance.inir?.colAccent ?? Appearance.m3colors.m3primary, 0.92)
+                if (Appearance.ryokuEverywhere) return ColorUtils.transparentize(Appearance.ryoku?.colAccent ?? Appearance.m3colors.m3primary, 0.92)
                 if (Appearance.auroraEverywhere) return ColorUtils.transparentize(Appearance.aurora?.colAccent ?? Appearance.m3colors.m3primary, 0.92)
                 return ColorUtils.transparentize(Appearance.m3colors.m3primary, 0.92)
             }
             if (root.pressed) {
                 if (Appearance.angelEverywhere) return Appearance.angel.colGlassCardActive
-                if (Appearance.inirEverywhere) return Appearance.inir.colLayer2Active
+                if (Appearance.ryokuEverywhere) return Appearance.ryoku.colLayer2Active
                 if (Appearance.auroraEverywhere) return Appearance.aurora.colSubSurfaceActive
                 return Appearance.colors.colLayer1Active
             }
             if (root.containsMouse) {
                 if (Appearance.angelEverywhere) return Appearance.angel.colGlassCardHover
-                if (Appearance.inirEverywhere) return Appearance.inir.colLayer1Hover
+                if (Appearance.ryokuEverywhere) return Appearance.ryoku.colLayer1Hover
                 if (Appearance.auroraEverywhere) return Appearance.aurora.colSubSurface
                 return Appearance.colors.colLayer1Hover
             }
             if (Appearance.angelEverywhere) return ColorUtils.transparentize(Appearance.angel.colPrimary, 0.85)
-            if (Appearance.inirEverywhere) return ColorUtils.transparentize(Appearance.inir?.colAccent ?? Appearance.m3colors.m3primary, 0.85)
+            if (Appearance.ryokuEverywhere) return ColorUtils.transparentize(Appearance.ryoku?.colAccent ?? Appearance.m3colors.m3primary, 0.85)
             if (Appearance.auroraEverywhere) return ColorUtils.transparentize(Appearance.aurora?.colAccent ?? Appearance.m3colors.m3primary, 0.85)
             return ColorUtils.transparentize(Appearance.m3colors.m3primary, 0.88)
         }
 
-        border.width: (Appearance.angelEverywhere || Appearance.inirEverywhere) ? 1 : 0
+        border.width: (Appearance.angelEverywhere || Appearance.ryokuEverywhere) ? 1 : 0
         border.color: Appearance.angelEverywhere ? Appearance.angel.colBorder
-            : Appearance.inirEverywhere ? Appearance.inir.colBorder : "transparent"
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder : "transparent"
 
         Behavior on color {
             enabled: Appearance.animationsEnabled
@@ -165,7 +165,7 @@ MouseArea {
 
                 StyledText {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: ShellUpdates.isUpdating ? Translation.tr("Updating...") : Translation.tr("iNiR Update")
+                    text: ShellUpdates.isUpdating ? Translation.tr("Updating...") : Translation.tr("Ryoku Update")
                     font {
                         weight: Font.Medium
                         pixelSize: Appearance.font.pixelSize.normal
@@ -351,7 +351,7 @@ MouseArea {
                 Layout.topMargin: 2
                 Layout.bottomMargin: 2
                 color: Appearance.angelEverywhere ? Appearance.angel.colBorderSubtle
-                    : Appearance.inirEverywhere ? (Appearance.inir?.colBorder ?? Appearance.colors.colLayer0Border)
+                    : Appearance.ryokuEverywhere ? (Appearance.ryoku?.colBorder ?? Appearance.colors.colLayer0Border)
                     : Appearance.colors.colLayer0Border
                 opacity: 0.5
             }

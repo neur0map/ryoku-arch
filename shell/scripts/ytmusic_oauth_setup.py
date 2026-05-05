@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-YouTube Music OAuth Setup for iNiR
+YouTube Music OAuth Setup for Ryoku
 Interactive setup wizard that guides users through OAuth configuration
 for the YouTube like/unlike feature.
 
@@ -33,7 +33,7 @@ RED = "\033[31m"
 def banner():
     print(f"""
 {CYAN}{B}╔══════════════════════════════════════════════════════╗
-║         iNiR — YouTube Music OAuth Setup             ║
+║         Ryoku — YouTube Music OAuth Setup             ║
 ╚══════════════════════════════════════════════════════╝{R}
 """)
 
@@ -182,7 +182,7 @@ def main():
     banner()
     check_existing()
 
-    print(f"""{B}This wizard will set up OAuth so iNiR can like/unlike songs
+    print(f"""{B}This wizard will set up OAuth so Ryoku can like/unlike songs
 on YouTube Music from the sidebar player.{R}
 
 {DIM}You need a Google Cloud project with YouTube Data API v3 enabled.
@@ -195,7 +195,7 @@ This is free and takes ~2 minutes.{R}
   {DIM}If you already have a project with YouTube Data API, skip to step 2.{R}
 
   1. Go to {CYAN}https://console.cloud.google.com/projectcreate{R}
-  2. Name it anything (e.g. "inir-ytmusic")
+  2. Name it anything (e.g. "ryoku-ytmusic")
   3. Click {B}Create{R}
   4. Go to {CYAN}https://console.cloud.google.com/apis/library/youtube.googleapis.com{R}
   5. Click {B}Enable{R}
@@ -207,7 +207,7 @@ This is free and takes ~2 minutes.{R}
     print(f"""
   1. Go to {CYAN}https://console.cloud.google.com/apis/credentials/consent{R}
   2. User Type: {B}External{R} → Create
-  3. App name: anything (e.g. "iNiR")
+  3. App name: anything (e.g. "Ryoku")
   4. User support email: your email
   5. Developer contact: your email
   6. Click {B}Save and Continue{R} through Scopes and Test Users
@@ -223,7 +223,7 @@ This is free and takes ~2 minutes.{R}
   1. Go to {CYAN}https://console.cloud.google.com/apis/credentials{R}
   2. Click {B}+ CREATE CREDENTIALS{R} → {B}OAuth client ID{R}
   3. Application type: {B}TVs and Limited Input devices{R}
-  4. Name: anything (e.g. "inir-cli")
+  4. Name: anything (e.g. "ryoku-cli")
   5. Click {B}Create{R}
   6. Copy the {B}Client ID{R} and {B}Client Secret{R} below
 """)

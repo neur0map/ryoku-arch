@@ -15,7 +15,7 @@ import asyncio
 import argparse
 
 DEFAULT_PORT = 9222
-STYLE_ID = "inir-pear-theme"
+STYLE_ID = "ryoku-pear-theme"
 
 
 async def inject_into_page(ws_url: str, css: str) -> bool:

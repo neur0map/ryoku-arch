@@ -46,7 +46,7 @@ migration_apply() {
   cat >> "$config" << 'BACKDROP_RULES'
 
 // ============================================================================
-// Layer rules added by iNiR (required for backdrop in overview)
+// Layer rules added by Ryoku (required for backdrop in overview)
 // ============================================================================
 layer-rule {
     match namespace="quickshell:iiBackdrop"

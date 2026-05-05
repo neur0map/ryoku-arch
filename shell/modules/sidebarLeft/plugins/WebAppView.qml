@@ -40,20 +40,20 @@ Item {
 
     // Style tokens
     readonly property color colText: Appearance.angelEverywhere ? Appearance.angel.colText
-        : Appearance.inirEverywhere ? Appearance.inir.colText
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colText
         : Appearance.colors.colOnLayer1
-    readonly property color colTextSecondary: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary
+    readonly property color colTextSecondary: Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
         : Appearance.colors.colSubtext
     readonly property color colBg: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
         : Appearance.auroraEverywhere ? "transparent"
         : Appearance.colors.colLayer1
     readonly property color colBgHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer1Hover
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1Hover
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
         : Appearance.colors.colLayer1Hover
     readonly property color colBorder: Appearance.angelEverywhere ? Appearance.angel.colCardBorder
-        : Appearance.inirEverywhere ? Appearance.inir.colBorder
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
         : Appearance.colors.colLayer0Border
     readonly property real rounding: Appearance.rounding.verysmall
 
@@ -66,7 +66,7 @@ Item {
             Layout.fillWidth: true
             Layout.preferredHeight: 36
             color: root.colBg
-            border.width: Appearance.inirEverywhere || Appearance.angelEverywhere ? 1 : 0
+            border.width: Appearance.ryokuEverywhere || Appearance.angelEverywhere ? 1 : 0
             border.color: root.colBorder
             radius: root.rounding
 
@@ -296,7 +296,7 @@ Item {
         anchors.fill: parent
         anchors.topMargin: 36
         color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-             : Appearance.inirEverywhere ? Appearance.inir.colLayer0
+             : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer0
              : Appearance.colors.colLayer0
         visible: root.loadProgress < 0.1 && root.isLoading
         opacity: visible ? 1 : 0

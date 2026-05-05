@@ -117,7 +117,7 @@ ContentPage {
     SettingsCardSection {
         expanded: false
         icon: "deployed_code"
-        title: "iNiR"
+        title: "Ryoku"
 
         SettingsGroup {
             RowLayout {
@@ -209,7 +209,7 @@ ContentPage {
                     Layout.alignment: Qt.AlignVCenter
 
                     StyledText {
-                        text: "iNiR"
+                        text: "Ryoku"
                         font.pixelSize: Appearance.font.pixelSize.title
                     }
 
@@ -247,7 +247,7 @@ ContentPage {
                     }
 
                     StyledText {
-                        text: "[https://github.com/snowarch/inir](https://github.com/snowarch/inir)"
+                        text: "[https://github.com/neur0map/ryoku-arch](https://github.com/neur0map/ryoku-arch)"
                         font.pixelSize: Appearance.font.pixelSize.small
                         color: Appearance.m3colors.m3primary
                         textFormat: Text.MarkdownText
@@ -271,13 +271,13 @@ ContentPage {
                 RippleButtonWithIcon {
                     materialIcon: "auto_stories"
                     mainText: Translation.tr("Documentation")
-                    onClicked: Qt.openUrlExternally("https://snowarch.github.io/iNiR/docs/")
+                    onClicked: Qt.openUrlExternally("https://snowarch.github.io/Ryoku/docs/")
                 }
 
                 RippleButtonWithIcon {
                     materialIcon: "bug_report"
                     mainText: Translation.tr("Issues")
-                    onClicked: Qt.openUrlExternally("https://github.com/snowarch/inir/issues")
+                    onClicked: Qt.openUrlExternally("https://github.com/neur0map/ryoku-arch/issues")
                 }
 
             }

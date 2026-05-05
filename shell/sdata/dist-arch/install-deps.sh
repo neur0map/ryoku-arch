@@ -1,4 +1,4 @@
-# Install dependencies for iNiR on Arch-based systems
+# Install dependencies for Ryoku on Arch-based systems
 # This script is meant to be sourced, not run directly.
 
 # shellcheck shell=bash
@@ -226,20 +226,20 @@ _qs_shell_found=false
 for _qs_pkg in "${_qs_shell_conflicts[@]}"; do
   if pacman -Qi "$_qs_pkg" &>/dev/null 2>&1; then
     _qs_shell_found=true
-    log_warning "$_qs_pkg is installed and conflicts with iNiR"
+    log_warning "$_qs_pkg is installed and conflicts with Ryoku"
 
     # Stop related services before removal
     systemctl --user stop "${_qs_pkg}.service" 2>/dev/null || true
     systemctl --user disable "${_qs_pkg}.service" 2>/dev/null || true
 
     if $ask; then
-      if tui_confirm "Remove $_qs_pkg? (required for iNiR)"; then
+      if tui_confirm "Remove $_qs_pkg? (required for Ryoku)"; then
         log_info "Removing $_qs_pkg..."
         v pkg_sudo pacman -Rdd --noconfirm "$_qs_pkg" 2>/dev/null \
           || v pkg_sudo pacman -R --noconfirm "$_qs_pkg" \
           || log_warning "Could not remove $_qs_pkg — install may fail"
       else
-        log_warning "Keeping $_qs_pkg — iNiR may not work correctly"
+        log_warning "Keeping $_qs_pkg — Ryoku may not work correctly"
       fi
     else
       log_info "Non-interactive: removing $_qs_pkg"
@@ -391,7 +391,7 @@ if $INSTALL_FONTS; then
 fi
 
 if $INSTALL_AUDIO; then
-  : # cava moved to inir-audio PKGBUILD
+  : # cava moved to ryoku-audio PKGBUILD
 fi
 
 if $INSTALL_TOOLKIT; then
@@ -447,7 +447,7 @@ v install-python-packages
 
 #####################################################################################
 # Register dependencies with pacman via meta-package
-# This prevents "clean orphans" from removing iNiR's deps.
+# This prevents "clean orphans" from removing Ryoku's deps.
 # The meta-package contains no files — only dependency declarations.
 #####################################################################################
 tui_info "Registering dependencies with pacman..."
@@ -455,8 +455,8 @@ tui_info "Registering dependencies with pacman..."
 _meta_dir="./sdata/dist-arch/inir-deps"
 if [[ -f "$_meta_dir/PKGBUILD" ]]; then
   # Update pkgver from VERSION file
-  _inir_ver="$(cat ./VERSION 2>/dev/null || echo '2.24.0')"
-  sed -i "s/^pkgver=.*/pkgver=${_inir_ver}/" "$_meta_dir/PKGBUILD"
+  _ryoku_ver="$(cat ./VERSION 2>/dev/null || echo '2.24.0')"
+  sed -i "s/^pkgver=.*/pkgver=${_ryoku_ver}/" "$_meta_dir/PKGBUILD"
 
   (
     cd "$_meta_dir"
@@ -468,7 +468,7 @@ if [[ -f "$_meta_dir/PKGBUILD" ]]; then
       local_pkg=(*.pkg.tar.zst)
       if [[ -f "${local_pkg[0]}" ]]; then
         if pkg_sudo pacman -U --noconfirm --needed "${local_pkg[0]}" 2>/dev/null; then
-          log_success "Meta-package inir-deps registered — orphan cleaner will skip iNiR deps"
+          log_success "Meta-package inir-deps registered — orphan cleaner will skip Ryoku deps"
         else
           # Some deps might be AUR-only and not satisfy pacman's check.
           # Fall back to installing without dep verification.
@@ -485,13 +485,13 @@ if [[ -f "$_meta_dir/PKGBUILD" ]]; then
 else
   log_warning "Meta-package PKGBUILD not found at $_meta_dir"
 fi
-unset _meta_dir _inir_ver
+unset _meta_dir _ryoku_ver
 
 #####################################################################################
 # Post-install: Check for Qt/Quickshell ABI mismatch
 # pacman -Syu may update Qt while quickshell-git/quickshell-bin (AUR) was built
 # against the old Qt. Quickshell uses Qt private APIs, so minor bumps break ABI.
-# See: https://github.com/snowarch/iNiR/issues/93
+# See: https://github.com/snowarch/Ryoku/issues/93
 #####################################################################################
 if command -v qs >/dev/null 2>&1; then
   qs_abi_output="$(qs --version 2>&1 || true)"

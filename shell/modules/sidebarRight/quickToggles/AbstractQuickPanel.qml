@@ -10,12 +10,12 @@ Rectangle {
     readonly property bool cardStyle: Config.options?.sidebar?.cardStyle ?? false
 
     radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-        : Appearance.inirEverywhere ? Appearance.inir.roundingNormal
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal
         : Appearance.rounding.normal
     color: Appearance.angelEverywhere
         ? (cardStyle ? Appearance.angel.colGlassCard : "transparent")
         : cardStyle 
-            ? (Appearance.inirEverywhere ? Appearance.inir.colLayer1
+            ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
                 : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
                 : Appearance.colors.colLayer1)
             : "transparent"

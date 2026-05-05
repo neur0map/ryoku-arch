@@ -131,13 +131,13 @@ Item {
             background.implicitWidth: 24
             background.implicitHeight: 24
             background.anchors.centerIn: this
-            colBackgroundToggled: Appearance.inirEverywhere ? Appearance.inir.colSelection 
+            colBackgroundToggled: Appearance.ryokuEverywhere ? Appearance.ryoku.colSelection 
                 : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurface 
                 : Appearance.colors.colSecondaryContainer
-            colBackgroundToggledHover: Appearance.inirEverywhere ? Appearance.inir.colSelectionHover 
+            colBackgroundToggledHover: Appearance.ryokuEverywhere ? Appearance.ryoku.colSelectionHover 
                 : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurfaceHover 
                 : Appearance.colors.colSecondaryContainerHover
-            colRippleToggled: Appearance.inirEverywhere ? Appearance.inir.colPrimaryActive 
+            colRippleToggled: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimaryActive 
                 : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive 
                 : Appearance.colors.colSecondaryContainerActive
 
@@ -147,8 +147,8 @@ Item {
                 text: "expand_more"
                 horizontalAlignment: Text.AlignHCenter
                 color: root.trayOverflowOpen
-                    ? (Appearance.angelEverywhere ? Appearance.angel.colOnPrimary : Appearance.inirEverywhere ? Appearance.inir.colOnSelection : Appearance.colors.colOnSecondaryContainer)
-                    : (Appearance.angelEverywhere ? Appearance.angel.colText : Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer2)
+                    ? (Appearance.angelEverywhere ? Appearance.angel.colOnPrimary : Appearance.ryokuEverywhere ? Appearance.ryoku.colOnSelection : Appearance.colors.colOnSecondaryContainer)
+                    : (Appearance.angelEverywhere ? Appearance.angel.colText : Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer2)
                 rotation: (root.trayOverflowOpen ? 180 : 0) - (90 * root.vertical) + (180 * root.invertSide)
                 Behavior on rotation {
                     animation: NumberAnimation { duration: Appearance.animation.elementMoveFast.duration; easing.type: Appearance.animation.elementMoveFast.type; easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve }
@@ -212,7 +212,7 @@ Item {
             Layout.alignment: Qt.AlignVCenter | Qt.AlignHCenter
             font.pixelSize: Appearance.font.pixelSize.larger
             color: Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
-                : Appearance.inirEverywhere ? Appearance.inir.colTextSecondary : Appearance.colors.colSubtext
+                : Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary : Appearance.colors.colSubtext
             text: "•"
             visible: root.showSeparator && SystemTray.items.values.length > 0
         }

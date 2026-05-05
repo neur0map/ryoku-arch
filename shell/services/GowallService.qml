@@ -28,7 +28,7 @@ Singleton {
         || copyProc.running || extractProc.running || compressProc.running
 
     // Single reusable preview file — never spams new images
-    readonly property string previewFile: "/tmp/inir-gowall-preview"
+    readonly property string previewFile: "/tmp/ryoku-shell-gowall-preview"
     readonly property string previewUrl: _previewReady ? `file://${_currentPreviewPath}?rev=${previewRevision}` : ""
 
     // --- Internal state ---
@@ -48,7 +48,7 @@ Singleton {
     readonly property string _generatedThemePath: Directories.generatedMaterialThemePath
 
     // Shim dir with no-op kitty/xdg-open to prevent gowall from opening image viewers
-    readonly property string _shimDir: "/tmp/inir-gowall-shim"
+    readonly property string _shimDir: "/tmp/ryoku-shell-gowall-shim"
     readonly property var _gowallEnv: ({
         PATH: `${_shimDir}:${Quickshell.env("PATH") ?? "/usr/bin:/usr/local/bin"}`
     })
@@ -122,8 +122,8 @@ Singleton {
         const src = _norm(sourcePath)
         if (!_guardReady(src)) return
         const palette = _buildPalette(currentThemeColors)
-        if (palette.length === 0) { error = "Current iNiR theme palette is unavailable"; return }
-        const json = JSON.stringify({ name: "inir-current", colors: palette }, null, 2)
+        if (palette.length === 0) { error = "Current Ryoku theme palette is unavailable"; return }
+        const json = JSON.stringify({ name: "ryoku-shell-current", colors: palette }, null, 2)
         const fmt = _ext(format)
         _runOperation(["/usr/bin/gowall", "convert", src, "--theme", _customThemePath, "--output", _previewPathFor(fmt), "--format", fmt], fmt, json, true, _basenameWithoutExt(src))
     }

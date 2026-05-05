@@ -17,7 +17,7 @@ AppButton {
     checked: GlobalStates.waffleTaskViewOpen
     onClicked: {
         // Use IPC to toggle TaskView - this triggers preview capture before opening
-        Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "taskview", "toggle"])
+        Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "taskview", "toggle"])
     }
 
     BarToolTip {

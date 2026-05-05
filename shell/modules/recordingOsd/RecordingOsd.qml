@@ -162,13 +162,13 @@ Scope {
                     screenY: screenPos.y
 
                     fallbackColor: Appearance.colors.colLayer2
-                    inirColor: Appearance.inir.colLayer1
+                    ryokuColor: Appearance.ryoku.colLayer1
                     auroraTransparency: Appearance.aurora.popupTransparentize
 
                     radius: Appearance.rounding.large
                     border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth : 1
                     border.color: Appearance.angelEverywhere ? Appearance.angel.colCardBorder
-                                : Appearance.inirEverywhere ? Appearance.inir.colBorder
+                                : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
                                 : Appearance.colors.colOutlineVariant
                 }
 

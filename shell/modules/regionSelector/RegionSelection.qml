@@ -50,28 +50,28 @@ PanelWindow {
 
     // Tri-style color support
     property color overlayColor: Appearance.angelEverywhere ? "#55000000"
-        : Appearance.inirEverywhere ? "#88000000"
+        : Appearance.ryokuEverywhere ? "#88000000"
         : Appearance.auroraEverywhere ? "#66000000" : "#88111111"
-    property color brightText: Appearance.inirEverywhere ? Appearance.inir.colText
+    property color brightText: Appearance.ryokuEverywhere ? Appearance.ryoku.colText
         : Appearance.auroraEverywhere ? Appearance.colors.colOnLayer0
         : (Appearance.m3colors.darkmode ? Appearance.colors.colOnLayer0 : Appearance.colors.colLayer0)
-    property color brightSecondary: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary
+    property color brightSecondary: Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
         : Appearance.auroraEverywhere ? Appearance.aurora.colTextSecondary
         : (Appearance.m3colors.darkmode ? Appearance.colors.colSecondary : Appearance.colors.colOnSecondary)
-    property color brightTertiary: Appearance.inirEverywhere ? Appearance.inir.colPrimary
+    property color brightTertiary: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary
         : Appearance.auroraEverywhere ? Appearance.colors.colPrimary
         : (Appearance.m3colors.darkmode ? Appearance.colors.colTertiary : Qt.lighter(Appearance.colors.colPrimary))
-    property color selectionBorderColor: Appearance.inirEverywhere ? Appearance.inir.colBorder
+    property color selectionBorderColor: Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
         : Appearance.auroraEverywhere ? Appearance.aurora.colPopupBorder
         : ColorUtils.mix(brightText, brightSecondary, 0.5)
-    property color selectionFillColor: Appearance.inirEverywhere ? ColorUtils.transparentize(Appearance.inir.colPrimary, 0.8)
+    property color selectionFillColor: Appearance.ryokuEverywhere ? ColorUtils.transparentize(Appearance.ryoku.colPrimary, 0.8)
         : Appearance.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colPrimary, 0.8)
         : "#33ffffff"
     property color windowBorderColor: brightSecondary
     property color windowFillColor: ColorUtils.transparentize(windowBorderColor, 0.85)
     property color imageBorderColor: brightTertiary
     property color imageFillColor: ColorUtils.transparentize(imageBorderColor, 0.85)
-    property color onBorderColor: Appearance.inirEverywhere ? Appearance.inir.colText
+    property color onBorderColor: Appearance.ryokuEverywhere ? Appearance.ryoku.colText
         : Appearance.auroraEverywhere ? Appearance.colors.colOnLayer0 : "#ff000000"
     readonly property var windows: useNiri
         ? (NiriService.windows || [])

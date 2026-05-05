@@ -152,16 +152,16 @@ Scope {
             id: cheatsheetBackground
             anchors.centerIn: parent
             color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                 : Appearance.inirEverywhere ? Appearance.inir.colLayer0
+                 : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer0
                  : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
                  : Appearance.colors.colLayer0
             border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth
-                        : Appearance.inirEverywhere ? 1 : 1
+                        : Appearance.ryokuEverywhere ? 1 : 1
             border.color: Appearance.angelEverywhere ? Appearance.angel.colCardBorder
-                        : Appearance.inirEverywhere ? Appearance.inir.colBorder
+                        : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
                         : Appearance.colors.colLayer0Border
             radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-                  : Appearance.inirEverywhere ? Appearance.inir.roundingNormal
+                  : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal
                   : Appearance.rounding.windowRounding
 
             Behavior on color {

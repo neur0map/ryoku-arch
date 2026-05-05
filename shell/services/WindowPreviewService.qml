@@ -13,14 +13,14 @@ import qs.modules.common.functions
  * 
  * Strategy:
  * - Capture previews ONLY when TaskView opens
- * - Cache in ~/.cache/inir/window-previews/
+ * - Cache in ~/.cache/ryoku-shell/window-previews/
  * - Only capture windows that don't have a recent preview
  * - Clean up on window close
  */
 Singleton {
     id: root
 
-    readonly property string previewDir: FileUtils.trimFileProtocol(Directories.genericCache) + "/inir/window-previews"
+    readonly property string previewDir: FileUtils.trimFileProtocol(Directories.genericCache) + "/ryoku-shell/window-previews"
     
     // Map of windowId -> { path, timestamp }
     property var previewCache: ({})
@@ -74,7 +74,7 @@ Singleton {
     }
 
     function _saveClipboard(): void {
-        const tmpFile = "/tmp/inir-clipboard-qml-" + Date.now() + ".tmp"
+        const tmpFile = "/tmp/ryoku-shell-clipboard-qml-" + Date.now() + ".tmp"
         root._savedClipFile = tmpFile
         // Detect MIME and save in one shot
         clipboardSaveProcess.command = ["/usr/bin/bash", "-c",

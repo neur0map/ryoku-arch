@@ -30,7 +30,7 @@ Item {
         anchors.fill: parent
         implicitHeight: col.implicitHeight + 16
         radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-            : Appearance.inirEverywhere ? Appearance.inir.roundingNormal
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal
             : Appearance.rounding.normal
         color: "transparent"
 
@@ -47,25 +47,25 @@ Item {
                 MaterialSymbol {
                     text: "edit_note"
                     iconSize: 16
-                    color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer1
+                    color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer1
                 }
 
                 StyledText {
                     text: Translation.tr("Quick Note")
                     font.pixelSize: Appearance.font.pixelSize.small
                     font.weight: Font.Medium
-                    color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer1
+                    color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer1
                 }
 
                 Item { Layout.fillWidth: true }
 
                 RippleButton {
                     implicitWidth: 24; implicitHeight: 24
-                    buttonRadius: Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.full
+                    buttonRadius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.full
                     colBackground: "transparent"
-                    colBackgroundHover: Appearance.inirEverywhere ? Appearance.inir.colLayer2Hover
+                    colBackgroundHover: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover
                         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface : Appearance.colors.colLayer2Hover
-                    colRipple: Appearance.inirEverywhere ? Appearance.inir.colLayer2Active
+                    colRipple: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Active
                         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive : Appearance.colors.colLayer2Active
                     opacity: Notepad.text.trim() !== "" ? 1 : 0
                     visible: opacity > 0
@@ -81,7 +81,7 @@ Item {
                             anchors.centerIn: parent
                             text: "delete_outline"
                             iconSize: 14
-                            color: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary : Appearance.colors.colSubtext
+                            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary : Appearance.colors.colSubtext
                         }
                     }
 
@@ -92,12 +92,12 @@ Item {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: Math.min(120, Math.max(60, textArea.implicitHeight + 12))
-                radius: Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.small
-                color: Appearance.inirEverywhere 
-                    ? (root.editing ? Appearance.inir.colLayer2Hover : Appearance.inir.colLayer2)
+                radius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.small
+                color: Appearance.ryokuEverywhere 
+                    ? (root.editing ? Appearance.ryoku.colLayer2Hover : Appearance.ryoku.colLayer2)
                     : (root.editing ? Appearance.colors.colLayer2Hover : Appearance.colors.colLayer2)
-                border.width: Appearance.inirEverywhere ? 1 : (root.editing ? 2 : 0)
-                border.color: Appearance.inirEverywhere ? Appearance.inir.colBorder : Appearance.colors.colPrimary
+                border.width: Appearance.ryokuEverywhere ? 1 : (root.editing ? 2 : 0)
+                border.color: Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder : Appearance.colors.colPrimary
 
                 Behavior on color {
                     enabled: Appearance.animationsEnabled
@@ -119,8 +119,8 @@ Item {
                         wrapMode: TextEdit.Wrap
                         font.pixelSize: Appearance.font.pixelSize.small
                         font.family: Appearance.font.family.main
-                        color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer2
-                        placeholderTextColor: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary : Appearance.colors.colOutline
+                        color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer2
+                        placeholderTextColor: Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary : Appearance.colors.colOutline
                         background: null
                         padding: 0
 
@@ -166,7 +166,7 @@ Item {
                 StyledText {
                     text: root.draft.length > 0 ? `${root.draft.length} ${Translation.tr("chars")}` : Translation.tr("Ctrl+Enter to save")
                     font.pixelSize: Appearance.font.pixelSize.smallest
-                    color: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary : Appearance.colors.colOutline
+                    color: Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary : Appearance.colors.colOutline
                 }
 
                 Item { Layout.fillWidth: true }
@@ -174,11 +174,11 @@ Item {
                 // Cancel button
                 RippleButton {
                     implicitWidth: 24; implicitHeight: 24
-                    buttonRadius: Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.small
+                    buttonRadius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.small
                     colBackground: "transparent"
-                    colBackgroundHover: Appearance.inirEverywhere ? Appearance.inir.colLayer2Hover
+                    colBackgroundHover: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover
                         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface : Appearance.colors.colLayer2Hover
-                    colRipple: Appearance.inirEverywhere ? Appearance.inir.colLayer2Active
+                    colRipple: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Active
                         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive : Appearance.colors.colLayer2Active
                     onClicked: {
                         root.draft = Notepad.text
@@ -191,7 +191,7 @@ Item {
                             anchors.centerIn: parent
                             text: "close"
                             iconSize: 14
-                            color: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary : Appearance.colors.colSubtext
+                            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary : Appearance.colors.colSubtext
                         }
                     }
 
@@ -202,10 +202,10 @@ Item {
                 RippleButton {
                     implicitWidth: saveRow.implicitWidth + 12
                     implicitHeight: 24
-                    buttonRadius: Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.small
-                    colBackground: Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary
-                    colBackgroundHover: Appearance.inirEverywhere ? Appearance.inir.colPrimaryHover : Appearance.colors.colPrimaryHover
-                    colRipple: Appearance.inirEverywhere ? Appearance.inir.colPrimaryActive : Appearance.colors.colPrimaryActive
+                    buttonRadius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.small
+                    colBackground: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary
+                    colBackgroundHover: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimaryHover : Appearance.colors.colPrimaryHover
+                    colRipple: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimaryActive : Appearance.colors.colPrimaryActive
                     onClicked: {
                         Notepad.setTextValue(root.draft)
                         root.editing = false
@@ -220,13 +220,13 @@ Item {
                         MaterialSymbol {
                             text: "check"
                             iconSize: 12
-                            color: Appearance.inirEverywhere ? Appearance.inir.colOnPrimary : Appearance.colors.colOnPrimary
+                            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colOnPrimary : Appearance.colors.colOnPrimary
                         }
 
                         StyledText {
                             text: Translation.tr("Save")
                             font.pixelSize: Appearance.font.pixelSize.smallest
-                            color: Appearance.inirEverywhere ? Appearance.inir.colOnPrimary : Appearance.colors.colOnPrimary
+                            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colOnPrimary : Appearance.colors.colOnPrimary
                         }
                     }
                 }

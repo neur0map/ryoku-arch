@@ -13,20 +13,20 @@ RippleButton {
     property bool showLabel: true
     horizontalPadding: 10
 
-    implicitHeight: (Appearance.inirEverywhere || Appearance.angelEverywhere) ? 32 : 40
+    implicitHeight: (Appearance.ryokuEverywhere || Appearance.angelEverywhere) ? 32 : 40
     readonly property real _iconOnlyImplicitWidth: icon.implicitWidth + horizontalPadding * 2
     implicitWidth: root.showLabel ? (implicitContentWidth + horizontalPadding * 2) : root._iconOnlyImplicitWidth
     buttonRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-        : Appearance.inirEverywhere ? Appearance.inir.roundingSmall : height / 2
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : height / 2
 
     colBackground: "transparent"
     colBackgroundHover: current ? "transparent" 
         : Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-        : Appearance.inirEverywhere ? ColorUtils.transparentize(Appearance.inir.colText, 0.92)
+        : Appearance.ryokuEverywhere ? ColorUtils.transparentize(Appearance.ryoku.colText, 0.92)
         : ColorUtils.transparentize(Appearance.colors.colOnSurface, 0.95)
     colRipple: current ? "transparent" 
         : Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
-        : Appearance.inirEverywhere ? ColorUtils.transparentize(Appearance.inir.colText, 0.85)
+        : Appearance.ryokuEverywhere ? ColorUtils.transparentize(Appearance.ryoku.colText, 0.85)
         : ColorUtils.transparentize(Appearance.colors.colOnSurface, 0.95)
 
     contentItem: Row {
@@ -41,8 +41,8 @@ RippleButton {
             text: root.materialSymbol
             color: Appearance.angelEverywhere
                 ? (root.current ? Appearance.angel.colOnPrimary : Appearance.angel.colText)
-                : Appearance.inirEverywhere
-                ? (root.current ? Appearance.inir.colOnPrimary : Appearance.inir.colText)
+                : Appearance.ryokuEverywhere
+                ? (root.current ? Appearance.ryoku.colOnPrimary : Appearance.ryoku.colText)
                 : Appearance.m3colors.m3onSurface
         }
         Loader {
@@ -54,8 +54,8 @@ RippleButton {
                 text: root.text
                 color: Appearance.angelEverywhere
                     ? (root.current ? Appearance.angel.colOnPrimary : Appearance.angel.colText)
-                    : Appearance.inirEverywhere
-                    ? (root.current ? Appearance.inir.colOnPrimary : Appearance.inir.colText)
+                    : Appearance.ryokuEverywhere
+                    ? (root.current ? Appearance.ryoku.colOnPrimary : Appearance.ryoku.colText)
                     : Appearance.m3colors.m3onSurface
             }
         }

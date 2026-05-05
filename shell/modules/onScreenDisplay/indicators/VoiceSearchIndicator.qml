@@ -21,13 +21,13 @@ Item {
         }
         radius: Appearance.rounding.full
         color: Appearance.angelEverywhere ? Appearance.angel.colGlassPopup
-             : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+             : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
              : Appearance.auroraEverywhere ? Appearance.aurora.colPopupSurface
              : Appearance.colors.colLayer0
         border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth
-            : Appearance.auroraEverywhere || Appearance.inirEverywhere ? 1 : 0
+            : Appearance.auroraEverywhere || Appearance.ryokuEverywhere ? 1 : 0
         border.color: Appearance.angelEverywhere ? Appearance.angel.colCardBorder
-            : Appearance.inirEverywhere ? Appearance.inir.colBorder 
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder 
             : Appearance.auroraEverywhere ? Appearance.aurora.colTooltipBorder : "transparent"
         implicitHeight: contentRow.implicitHeight + 18
 

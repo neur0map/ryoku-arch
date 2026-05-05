@@ -1,4 +1,4 @@
-# Conflict detection for iNiR
+# Conflict detection for Ryoku
 # Checks for packages that might conflict with Quickshell's functionality
 
 check_conflicts() {
@@ -38,7 +38,7 @@ check_conflicts() {
     conflict_map["wpaperd"]="Wallpaper Daemon"
     
     # Quickshell-based shells — these are critical because they ship their own
-    # Quickshell fork or config that directly conflicts with iNiR at runtime.
+    # Quickshell fork or config that directly conflicts with Ryoku at runtime.
     # Noctalia (CachyOS default Niri shell)
     conflict_map["cachyos-niri-noctalia"]="Quickshell Shell (Noctalia/CachyOS)"
     conflict_map["noctalia-shell"]="Quickshell Shell (Noctalia)"
@@ -53,7 +53,7 @@ check_conflicts() {
     # BMS
     conflict_map["bms-shell-bin"]="Quickshell Shell (BMS)"
 
-    # Packages that are critical conflicts — they break iNiR at the package
+    # Packages that are critical conflicts — they break Ryoku at the package
     # level (provide/replace quickshell, or own overlapping config paths).
     # Unlike notification daemons or bars, these cannot coexist at all.
     declare -A critical_map
@@ -106,7 +106,7 @@ check_conflicts() {
         echo ""
 
         if [ ${#critical_conflicts[@]} -gt 0 ]; then
-            echo -e "${STY_RED}${STY_BOLD}Critical:${STY_RST} ${critical_conflicts[*]} must be removed for iNiR to work."
+            echo -e "${STY_RED}${STY_BOLD}Critical:${STY_RST} ${critical_conflicts[*]} must be removed for Ryoku to work."
             echo -e "These packages ship their own Quickshell runtime or configs that directly conflict."
             echo ""
 
@@ -127,7 +127,7 @@ check_conflicts() {
                     if tui_confirm "Remove conflicting packages? (${ordered_remove[*]})"; then
                         _remove_critical_conflicts "${ordered_remove[@]}"
                     else
-                        echo -e "${STY_YELLOW}Keeping conflicting packages — iNiR will NOT work correctly.${STY_RST}"
+                        echo -e "${STY_YELLOW}Keeping conflicting packages — Ryoku will NOT work correctly.${STY_RST}"
                     fi
                 else
                     echo -e "${STY_CYAN}Non-interactive mode: removing conflicting packages...${STY_RST}"
@@ -139,7 +139,7 @@ check_conflicts() {
             echo ""
         fi
 
-        echo -e "${STY_BOLD}iNiR provides its own bar, notifications, wallpaper, and shell.${STY_RST}"
+        echo -e "${STY_BOLD}Ryoku provides its own bar, notifications, wallpaper, and shell.${STY_RST}"
         echo -e "Running other shells/bars simultaneously causes visual glitches or double notifications."
         echo ""
         

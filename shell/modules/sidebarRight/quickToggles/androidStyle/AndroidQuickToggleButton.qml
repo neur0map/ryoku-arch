@@ -27,7 +27,7 @@ GroupButton {
     property bool editMode: false
     readonly property color colDarkSurface: Appearance.angelEverywhere
         ? ColorUtils.transparentize(Appearance.angel.colGlassCard, 0.76)
-        : Appearance.inirEverywhere ? ColorUtils.transparentize(Appearance.inir.colLayer1, 0.22)
+        : Appearance.ryokuEverywhere ? ColorUtils.transparentize(Appearance.ryoku.colLayer1, 0.22)
         : Appearance.auroraEverywhere ? ColorUtils.transparentize(
             Appearance.colors.colLayer0Base,
             Math.max(0.12, Appearance.aurora.subSurfaceTransparentize - 0.14)
@@ -35,7 +35,7 @@ GroupButton {
         : ColorUtils.transparentize(Appearance.colors.colLayer2, 0.24)
     readonly property color colDarkSurfaceHover: Appearance.angelEverywhere
         ? Appearance.angel.colGlassCardHover
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer2Hover
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover
         : Appearance.auroraEverywhere ? ColorUtils.transparentize(
             Appearance.colors.colLayer1,
             Math.max(0.16, Appearance.aurora.subSurfaceTransparentize - 0.10)
@@ -43,7 +43,7 @@ GroupButton {
         : ColorUtils.transparentize(Appearance.colors.colLayer2Hover, 0.20)
     readonly property color colDarkSurfaceActive: Appearance.angelEverywhere
         ? Appearance.angel.colGlassCardActive
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer2Active
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Active
         : Appearance.auroraEverywhere ? ColorUtils.transparentize(
             Appearance.colors.colLayer1,
             Math.max(0.12, Appearance.aurora.subSurfaceTransparentize - 0.14)
@@ -85,40 +85,40 @@ GroupButton {
     verticalPadding: padding
 
     colBackground: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer2 
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2 
         : root.colDarkSurface
     colBackgroundHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer2Hover 
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover 
         : root.colDarkSurfaceHover
     colBackgroundToggled: Appearance.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colPrimary, 0.45)
-        : Appearance.inirEverywhere 
-        ? Appearance.inir.colPrimaryContainer
+        : Appearance.ryokuEverywhere 
+        ? Appearance.ryoku.colPrimaryContainer
         : Appearance.colors.colPrimary
     colBackgroundToggledHover: Appearance.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colPrimaryHover, 0.35)
-        : Appearance.inirEverywhere 
-        ? Appearance.inir.colPrimaryContainerHover
+        : Appearance.ryokuEverywhere 
+        ? Appearance.ryoku.colPrimaryContainerHover
         : Appearance.colors.colPrimaryHover
     colBackgroundToggledActive: Appearance.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colPrimaryActive, 0.30)
-        : Appearance.inirEverywhere 
-        ? Appearance.inir.colPrimaryContainerActive
+        : Appearance.ryokuEverywhere 
+        ? Appearance.ryoku.colPrimaryContainerActive
         : Appearance.colors.colPrimaryActive
     buttonRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-        : Appearance.inirEverywhere 
-        ? Appearance.inir.roundingSmall 
+        : Appearance.ryokuEverywhere 
+        ? Appearance.ryoku.roundingSmall 
         : (toggled ? Appearance.rounding.large : baseHeight / 2)
     buttonRadiusPressed: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-        : Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.normal
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.normal
     property color colText: Appearance.angelEverywhere
         ? (toggled ? Appearance.angel.colOnPrimary : Appearance.angel.colText)
-        : Appearance.inirEverywhere
-        ? (toggled ? Appearance.inir.colOnPrimaryContainer : Appearance.inir.colText)
+        : Appearance.ryokuEverywhere
+        ? (toggled ? Appearance.ryoku.colOnPrimaryContainer : Appearance.ryoku.colText)
         : Appearance.auroraEverywhere
         ? (toggled ? Appearance.m3colors.m3onPrimary : Appearance.m3colors.m3onSurface)
         : toggled ? Appearance.colors.colOnPrimary : Appearance.colors.colOnLayer2
     property color colIcon: Appearance.angelEverywhere
         ? (toggled ? Appearance.angel.colOnPrimary : Appearance.angel.colText)
-        : Appearance.inirEverywhere
-        ? (toggled ? Appearance.inir.colOnPrimaryContainer : Appearance.inir.colText)
+        : Appearance.ryokuEverywhere
+        ? (toggled ? Appearance.ryoku.colOnPrimaryContainer : Appearance.ryoku.colText)
         : Appearance.auroraEverywhere
         ? (toggled ? Appearance.m3colors.m3onPrimary : Appearance.m3colors.m3onSurface)
         : toggled ? Appearance.colors.colOnPrimary : Appearance.colors.colOnLayer2

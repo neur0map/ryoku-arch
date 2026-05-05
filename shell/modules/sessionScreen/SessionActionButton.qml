@@ -13,20 +13,20 @@ RippleButton {
 
     buttonRadius: (button.focus || button.down) ? size / 2 
         : (Appearance.angelEverywhere ? Appearance.angel.roundingLarge
-            : Appearance.inirEverywhere ? Appearance.inir.roundingLarge : Appearance.rounding.verylarge)
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingLarge : Appearance.rounding.verylarge)
     colBackground: button.keyboardDown 
-        ? (Appearance.inirEverywhere ? Appearance.inir.colPrimaryActive : Appearance.colors.colSecondaryContainerActive)
+        ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimaryActive : Appearance.colors.colSecondaryContainerActive)
         : button.focus 
-            ? (Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary)
+            ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary)
             : (Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                : Appearance.inirEverywhere ? Appearance.inir.colLayer2 
+                : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2 
                 : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface 
                 : Appearance.colors.colSecondaryContainer)
-    colBackgroundHover: Appearance.inirEverywhere ? Appearance.inir.colPrimaryHover : Appearance.colors.colPrimary
-    colRipple: Appearance.inirEverywhere ? Appearance.inir.colPrimaryActive : Appearance.colors.colPrimaryActive
+    colBackgroundHover: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimaryHover : Appearance.colors.colPrimary
+    colRipple: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimaryActive : Appearance.colors.colPrimaryActive
     property color colText: (button.down || button.keyboardDown || button.focus || button.hovered) ?
-        (Appearance.inirEverywhere ? Appearance.inir.colOnPrimary : Appearance.m3colors.m3onPrimary) 
-        : (Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer0)
+        (Appearance.ryokuEverywhere ? Appearance.ryoku.colOnPrimary : Appearance.m3colors.m3onPrimary) 
+        : (Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer0)
 
     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
     background.implicitHeight: size

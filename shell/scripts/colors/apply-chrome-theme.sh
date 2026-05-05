@@ -334,7 +334,7 @@ apply_to_browser() {
 resolve_variant() {
   # Read variant from config
   local config_file
-  config_file="$(inir_config_file)"
+  config_file="$(ryoku_shell_config_file)"
   if [[ -f "$config_file" ]]; then
     local variant
     variant=$(jq -r '.appearance.palette.type // "auto"' "$config_file" 2>/dev/null)

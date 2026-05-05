@@ -7,18 +7,18 @@ ToolbarButton {
     implicitWidth: height
 
     colBackgroundToggled: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-        : Appearance.inirEverywhere ? Appearance.inir.colSelection 
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colSelection 
         : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurface 
         : Appearance.colors.colSecondaryContainer
     colBackgroundToggledHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-        : Appearance.inirEverywhere ? Appearance.inir.colSelectionHover 
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colSelectionHover 
         : Appearance.auroraEverywhere ? Appearance.aurora.colElevatedSurfaceHover 
         : Appearance.colors.colSecondaryContainerHover
     colRippleToggled: Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
-        : Appearance.inirEverywhere ? Appearance.inir.colPrimaryActive 
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimaryActive 
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive 
         : Appearance.colors.colSecondaryContainerActive
-    property color colText: toggled ? (Appearance.inirEverywhere ? Appearance.inir.colOnSelection : Appearance.colors.colOnSecondaryContainer) : (Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnSurfaceVariant)
+    property color colText: toggled ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colOnSelection : Appearance.colors.colOnSecondaryContainer) : (Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnSurfaceVariant)
 
     contentItem: MaterialSymbol {
         anchors.centerIn: parent

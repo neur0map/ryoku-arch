@@ -171,7 +171,7 @@ WSettingsPage {
             Config.setNestedValue("wallpaperSelector.selectionTarget", useMain ? "main" : "waffle")
         }
 
-        Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "wallpaperSelector", "toggle"])
+        Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "wallpaperSelector", "toggle"])
     }
 
     function navigateToParentFolder(): void {
@@ -1114,7 +1114,7 @@ WSettingsPage {
                             Qt.openUrlExternally(Directories.shellConfigPath)
                             break
                         case "shortcuts":
-                            Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "cheatsheet", "toggle"])
+                            Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "cheatsheet", "toggle"])
                             break
                         }
                     }

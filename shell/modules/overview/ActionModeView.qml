@@ -243,7 +243,7 @@ Item {
                         text: modelData.cmd
                         font.pixelSize: Appearance.font.pixelSize.smallest
                         font.family: Appearance.font.family.monospace
-                        color: Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary
+                        color: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary
                         opacity: 0.7
                     }
                     StyledText {
@@ -335,15 +335,15 @@ Item {
                 readonly property bool isCurrentItem: ListView.isCurrentItem
                 readonly property bool isHighlighted: delegateBtn.isCurrentItem
                 readonly property color normalTextColor: Appearance.angelEverywhere ? Appearance.angel.colText
-                    : Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer1
+                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer1
                 readonly property color selectedTextColor: Appearance.angelEverywhere ? Appearance.angel.colText
-                    : Appearance.inirEverywhere ? Appearance.inir.colText
+                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colText
                     : Appearance.colors.colOnLayer1
                 readonly property color descriptionTextColor: delegateBtn.isHighlighted
                     ? (Appearance.angelEverywhere ? Appearance.angel.colText
-                        : Appearance.inirEverywhere ? Appearance.inir.colTextSecondary
+                        : Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
                         : Appearance.colors.colOnLayer1)
-                    : (Appearance.inirEverywhere ? Appearance.inir.colTextSecondary : Appearance.colors.colSubtext)
+                    : (Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary : Appearance.colors.colSubtext)
                 readonly property color selectedBackgroundColor: Appearance.angelEverywhere
                     ? Appearance.angel.colGlassCardHover
                     : Appearance.colors.colLayer1
@@ -365,7 +365,7 @@ Item {
 
                 // Style tokens — exactly match SearchItem.qml
                 buttonRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-                    : Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.normal
+                    : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.normal
                 colBackground: (delegateBtn.down || delegateBtn.keyboardDown)
                     ? delegateBtn.pressedBackgroundColor
                     : (delegateBtn.isHighlighted
@@ -412,15 +412,15 @@ Item {
                         implicitHeight: 35
                         scale: delegateBtn.isHighlighted ? 1 : 0.96
                         radius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-                            : Appearance.inirEverywhere ? Appearance.inir.roundingSmall
+                            : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall
                             : Appearance.rounding.full
                         color: {
                             if (isPackage && entry.pkg?.installed)
                                 return ColorUtils.transparentize(
-                                    Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary, 0.3)
+                                    Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary, 0.3)
                             return delegateBtn.isHighlighted
                                 ? (Appearance.angelEverywhere ? Appearance.angel.colGlassElevatedHover : Appearance.colors.colLayer2Hover)
-                                : (Appearance.inirEverywhere ? Appearance.inir.colLayer2
+                                : (Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
                                     : Appearance.angelEverywhere ? Appearance.angel.colGlassCard
                                     : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
                                     : Appearance.colors.colSecondaryContainer)
@@ -451,10 +451,10 @@ Item {
                             fill: (isPackage && entry.pkg?.installed) ? 1 : 0
                             color: {
                                 if (isPackage && entry.pkg?.installed)
-                                    return Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary
+                                    return Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary
                                 return delegateBtn.isHighlighted
                                     ? (Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                                        : Appearance.inirEverywhere ? Appearance.inir.colPrimary
+                                        : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary
                                         : Appearance.colors.colPrimary)
                                     : delegateBtn.normalTextColor
                             }
@@ -530,8 +530,8 @@ Item {
                             implicitHeight: repoText.implicitHeight + 4
                             radius: height / 2
                             color: entry?.pkg?.isAur
-                                ? ColorUtils.transparentize(Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary, 0.3)
-                                : (Appearance.inirEverywhere ? Appearance.inir.colLayer2 : Appearance.colors.colSecondaryContainer)
+                                ? ColorUtils.transparentize(Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary, 0.3)
+                                : (Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2 : Appearance.colors.colSecondaryContainer)
 
                             StyledText {
                                 id: repoText
@@ -540,8 +540,8 @@ Item {
                                 font.pixelSize: Appearance.font.pixelSize.smallest
                                 font.weight: Font.Medium
                                 color: entry?.pkg?.isAur
-                                    ? (Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary)
-                                    : (Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnSecondaryContainer)
+                                    ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary)
+                                    : (Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnSecondaryContainer)
                             }
                         }
 
@@ -551,14 +551,14 @@ Item {
                             implicitHeight: installedText.implicitHeight + 4
                             radius: height / 2
                             color: ColorUtils.transparentize(
-                                Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary, 0.2)
+                                Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary, 0.2)
 
                             StyledText {
                                 id: installedText
                                 anchors.centerIn: parent
                                 text: Translation.tr("Installed")
                                 font.pixelSize: Appearance.font.pixelSize.smallest
-                                color: Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary
+                                color: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary
                             }
                         }
                     }
@@ -654,7 +654,7 @@ Item {
                         implicitWidth: keyLabel.implicitWidth + 8
                         implicitHeight: keyLabel.implicitHeight + 4
                         radius: Appearance.rounding.unsharpen
-                        color: Appearance.inirEverywhere ? Appearance.inir.colLayer2
+                        color: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
                             : Appearance.angelEverywhere ? Appearance.angel.colGlassCard
                             : Appearance.colors.colSecondaryContainer
                         StyledText {

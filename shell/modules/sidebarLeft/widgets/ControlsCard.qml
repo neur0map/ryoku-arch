@@ -18,7 +18,7 @@ Item {
     }
 
     function openSettings(): void {
-        Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "settings"])
+        Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "settings"])
     }
 
     RowLayout {
@@ -65,7 +65,7 @@ Item {
             height: 24
             radius: 0.5
             color: Appearance.angelEverywhere ? Appearance.angel.colBorderSubtle
-                : Appearance.inirEverywhere ? Appearance.inir.colBorderSubtle
+                : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorderSubtle
                 : Appearance.colors.colOutlineVariant
             opacity: 0.5
             Layout.leftMargin: 8
@@ -89,14 +89,14 @@ Item {
         implicitWidth: 40
         implicitHeight: 40
         buttonRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-            : Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.full
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.full
         colBackground: "transparent"
         colBackgroundHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-            : Appearance.inirEverywhere ? Appearance.inir.colLayer1Hover
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1Hover
             : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceHover
             : Appearance.colors.colLayer1Hover
         colRipple: Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
-            : Appearance.inirEverywhere ? Appearance.inir.colLayer1Active
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1Active
             : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive
             : Appearance.colors.colLayer1Active
 
@@ -113,11 +113,11 @@ Item {
                 fill: active ? 1 : 0
                 color: active
                     ? (Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                        : Appearance.inirEverywhere ? Appearance.inir.colPrimary
+                        : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary
                         : Appearance.auroraEverywhere ? Appearance.m3colors.m3primary
                         : Appearance.colors.colPrimary)
                     : (Appearance.angelEverywhere ? Appearance.angel.colText
-                        : Appearance.inirEverywhere ? Appearance.inir.colText
+                        : Appearance.ryokuEverywhere ? Appearance.ryoku.colText
                         : Appearance.auroraEverywhere ? Appearance.m3colors.m3onSurface
                         : Appearance.colors.colOnLayer0)
                 Behavior on fill { enabled: Appearance.animationsEnabled; NumberAnimation { duration: Appearance.animation.elementMoveFast.duration } }
@@ -135,13 +135,13 @@ Item {
         implicitWidth: 40
         implicitHeight: 40
         buttonRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-            : Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.full
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.full
         colBackground: "transparent"
         colBackgroundHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-            : Appearance.inirEverywhere ? Appearance.inir.colLayer1Hover 
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1Hover 
             : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface : Appearance.colors.colLayer1Hover
         colRipple: Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
-            : Appearance.inirEverywhere ? Appearance.inir.colLayer1Active 
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1Active 
             : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive : Appearance.colors.colLayer1Active
 
         contentItem: Item {
@@ -149,7 +149,7 @@ Item {
                 anchors.centerIn: parent
                 text: btnIcon
                 iconSize: 20
-                color: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary : Appearance.colors.colSubtext
+                color: Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary : Appearance.colors.colSubtext
             }
         }
 

@@ -9,7 +9,7 @@ import Quickshell.Io
 import Quickshell.Services.Notifications
 
 /*
- * iNiR shell update checker service.
+ * Ryoku shell update checker service.
  * Periodically checks the git repo for new commits and exposes
  * update state to UI widgets. Separate from system Updates service.
  *
@@ -96,7 +96,7 @@ Singleton {
     property string repoPath: configDir  // Will be updated after reading version.json
     property string pendingRepoPath: ""
     property bool repoPathLoaded: false
-    readonly property string manifestPath: configDir + "/.inir-manifest"
+    readonly property string manifestPath: configDir + "/.ryoku-manifest"
     property string installMode: "unknown"
     property string updateStrategy: "unknown"
     property string installSource: "unknown"
@@ -106,8 +106,8 @@ Singleton {
         ? "Updates Managed Externally"
         : "Updates Unavailable"
     readonly property string unavailableMessage: managedExternally
-        ? "This iNiR installation is managed outside the runtime copy. Use your package manager or installation workflow to update it."
-        : "Repository not found. The update system cannot locate the iNiR git repository."
+        ? "This Ryoku installation is managed outside the runtime copy. Use your package manager or installation workflow to update it."
+        : "Repository not found. The update system cannot locate the Ryoku git repository."
     readonly property string unavailableHint: managedExternally
         ? "Runtime diagnostics are still available, but in-shell self-update is disabled for this installation mode."
         : "Run './setup doctor' in your terminal to diagnose the issue, or use the diagnose command below."
@@ -121,7 +121,7 @@ Singleton {
                 body: root.unavailableHint,
                 urgency: NotificationUrgency.Normal,
                 timeout: 10000,
-                appName: "iNiR Shell"
+                appName: "Ryoku Shell"
             })
             print("[ShellUpdates] Notification sent: Updates unavailable")
         }
@@ -139,11 +139,11 @@ Singleton {
         const version = root.remoteVersion.length > 0 ? (" v" + root.remoteVersion) : ""
         const commits = root.commitsBehind > 0 ? (root.commitsBehind + " commits behind") : "New version available"
         Notifications.notify({
-            summary: "iNiR Update Available" + version,
+            summary: "Ryoku Update Available" + version,
             body: commits + ". Click the update indicator in the bar or open Settings → Services.",
             urgency: NotificationUrgency.Normal,
             timeout: 15000,
-            appName: "iNiR Shell"
+            appName: "Ryoku Shell"
         })
         Config.setNestedValue("shellUpdates.lastNotifiedCommit", remoteCommit)
         print("[ShellUpdates] Notification sent: Update available" + version)
@@ -223,7 +223,7 @@ Singleton {
         const termTail =
             "echo; " +
             "if [ $rc -eq 0 ]; then " +
-                "echo 'All good — iNiR updated successfully. The shell will restart on its own.'; " +
+                "echo 'All good — Ryoku updated successfully. The shell will restart on its own.'; " +
                 "echo 'You can close this window whenever you want.'; " +
             "else " +
                 "echo \"failed:$rc\" > '" + statusPath + "'; " +
@@ -311,7 +311,7 @@ Singleton {
     // ─────────────────────────────────────────────────────────────────────────
     // Resume update display after shell restart
     // ─────────────────────────────────────────────────────────────────────────
-    // `setup update` triggers `systemctl --user restart inir.service` as its
+    // `setup update` triggers `systemctl --user restart ryoku-shell.service` as its
     // last step, killing the shell mid-flow. The new shell instance must
     // detect the prior state from the status file and either clean up
     // (if the final step was reached) or resume polling so the bar indicator
@@ -560,14 +560,14 @@ Singleton {
             "if [[ -d \"" + root.configDir + "/.git\" ]]; then echo \"" + root.configDir + "\"; exit 0; fi; " +
             // Search for a git repo containing setup + shell.qml (our repo signature)
             // Check common locations first, then broader search
-            "for dir in ~/illogical-impulse ~/inir ~/iNiR " +
-            "~/.local/src/illogical-impulse ~/.local/src/inir " +
-            "~/Projects/illogical-impulse ~/Projects/inir " +
-            "~/Downloads/illogical-impulse ~/Downloads/inir " +
-            "~/src/illogical-impulse ~/src/inir; do " +
+            "for dir in ~/illogical-impulse ~/ryoku-arch ~/Ryoku " +
+            "~/.local/src/illogical-impulse ~/.local/src/ryoku-arch " +
+            "~/Projects/illogical-impulse ~/Projects/ryoku-arch " +
+            "~/Downloads/illogical-impulse ~/Downloads/ryoku-arch " +
+            "~/src/illogical-impulse ~/src/ryoku-arch; do " +
             "if [[ -d \"$dir/.git\" && -f \"$dir/setup\" && -f \"$dir/shell.qml\" ]]; then echo \"$dir\"; exit 0; fi; done; " +
             // Last resort: find in home (max depth 3, timeout 2s)
-            "timeout 2 find \"$HOME\" -maxdepth 3 -name setup \\( -path '*/inir/setup' -o -path '*/illogical-impulse/setup' -o -path '*/ii/setup' \\) 2>/dev/null | while read -r f; do [[ -f \"$(dirname \"$f\")/shell.qml\" ]] && dirname \"$f\" && break; done; "
+            "timeout 2 find \"$HOME\" -maxdepth 3 -name setup \\( -path '*/ryoku-arch/setup' -o -path '*/illogical-impulse/setup' -o -path '*/ii/setup' \\) 2>/dev/null | while read -r f; do [[ -f \"$(dirname \"$f\")/shell.qml\" ]] && dirname \"$f\" && break; done; "
         ]
         stdout: StdioCollector {
             onStreamFinished: {
@@ -773,14 +773,14 @@ Singleton {
                 // Notify after 3 consecutive failures (persistent problem)
                 if (root.consecutiveFetchErrors >= 3 && !root.fetchErrorNotificationShown) {
                     root.fetchErrorNotificationShown = true
-                    const title = "iNiR Update Check Failed"
+                    const title = "Ryoku Update Check Failed"
                     const body = "Cannot reach remote repository. Check your internet connection or run './setup doctor'."
                     Notifications.notify({
                         summary: title,
                         body: body,
                         urgency: NotificationUrgency.Low,
                         timeout: 8000,
-                        appName: "iNiR Shell"
+                        appName: "Ryoku Shell"
                     })
                     print("[ShellUpdates] Notification sent: Persistent fetch errors")
                 }

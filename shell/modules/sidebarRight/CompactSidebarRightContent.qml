@@ -9,7 +9,7 @@
 //   1 = Notifications
 //   2+ = Widgets  (calendar / events / todo / notepad / calc / sysmon / timer)
 //
-// Fully compatible with all global styles: material, aurora, inir, angel.
+// Fully compatible with all global styles: material, aurora, ryoku, angel.
 
 import qs
 import qs.services
@@ -142,7 +142,7 @@ Item {
 
                     StyledRectangularShadow {
                         target: calendarSurface
-                        visible: !bg.inirEverywhere && !bg.auroraEverywhere && !bg.angelEverywhere
+                        visible: !bg.ryokuEverywhere && !bg.auroraEverywhere && !bg.angelEverywhere
                         blur: 0.35 * Appearance.sizes.elevationMargin
                     }
 
@@ -151,14 +151,14 @@ Item {
                         anchors.fill: parent
                         implicitHeight: calWidget.implicitHeight + 12
                         radius: bg.angelEverywhere ? Appearance.angel.roundingNormal
-                            : bg.inirEverywhere ? Appearance.inir.roundingNormal
+                            : bg.ryokuEverywhere ? Appearance.ryoku.roundingNormal
                             : Appearance.rounding.normal
                         color: bg.angelEverywhere ? Appearance.angel.colGlassCard
-                            : bg.inirEverywhere ? Appearance.inir.colLayer1
+                            : bg.ryokuEverywhere ? Appearance.ryoku.colLayer1
                             : bg.colDarkSurface
                         border.width: bg.angelEverywhere ? Appearance.angel.cardBorderWidth : 1
                         border.color: bg.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colCardBorder, 0.22)
-                            : bg.inirEverywhere ? Appearance.inir.colBorder
+                            : bg.ryokuEverywhere ? Appearance.ryoku.colBorder
                             : bg.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.78)
                             : ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.72)
                         clip: true
@@ -185,13 +185,13 @@ Item {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
 
-                    readonly property color _colText: bg.inirEverywhere ? Appearance.inir.colText
+                    readonly property color _colText: bg.ryokuEverywhere ? Appearance.ryoku.colText
                         : bg.angelEverywhere ? Appearance.angel.colText
                         : Appearance.colors.colOnLayer1
-                    readonly property color _colSub: bg.inirEverywhere ? Appearance.inir.colTextSecondary
+                    readonly property color _colSub: bg.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
                         : bg.angelEverywhere ? Appearance.angel.colTextSecondary
                         : Appearance.colors.colSubtext
-                    readonly property color _colPrimary: bg.inirEverywhere ? Appearance.inir.colPrimary
+                    readonly property color _colPrimary: bg.ryokuEverywhere ? Appearance.ryoku.colPrimary
                         : bg.angelEverywhere ? Appearance.angel.colPrimary
                         : Appearance.colors.colPrimary
 
@@ -315,7 +315,7 @@ Item {
 
             StyledRectangularShadow {
                 target: eventsSurface
-                visible: !bg.inirEverywhere && !bg.auroraEverywhere && !bg.angelEverywhere
+                visible: !bg.ryokuEverywhere && !bg.auroraEverywhere && !bg.angelEverywhere
                 blur: 0.35 * Appearance.sizes.elevationMargin
             }
 
@@ -324,14 +324,14 @@ Item {
                 anchors.fill: parent
                 anchors.margins: 8
                 radius: bg.angelEverywhere ? Appearance.angel.roundingNormal
-                    : bg.inirEverywhere ? Appearance.inir.roundingNormal
+                    : bg.ryokuEverywhere ? Appearance.ryoku.roundingNormal
                     : Appearance.rounding.normal
                 color: bg.angelEverywhere ? Appearance.angel.colGlassCard
-                    : bg.inirEverywhere ? Appearance.inir.colLayer1
+                    : bg.ryokuEverywhere ? Appearance.ryoku.colLayer1
                     : bg.colDarkSurface
                 border.width: bg.angelEverywhere ? Appearance.angel.cardBorderWidth : 1
                 border.color: bg.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colCardBorder, 0.22)
-                    : bg.inirEverywhere ? Appearance.inir.colBorder
+                    : bg.ryokuEverywhere ? Appearance.ryoku.colBorder
                     : bg.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.78)
                     : ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.72)
                 clip: true
@@ -354,7 +354,7 @@ Item {
 
             StyledRectangularShadow {
                 target: todoSurface
-                visible: !bg.inirEverywhere && !bg.auroraEverywhere && !bg.angelEverywhere
+                visible: !bg.ryokuEverywhere && !bg.auroraEverywhere && !bg.angelEverywhere
                 blur: 0.35 * Appearance.sizes.elevationMargin
             }
 
@@ -363,14 +363,14 @@ Item {
                 anchors.fill: parent
                 anchors.margins: 8
                 radius: bg.angelEverywhere ? Appearance.angel.roundingNormal
-                    : bg.inirEverywhere ? Appearance.inir.roundingNormal
+                    : bg.ryokuEverywhere ? Appearance.ryoku.roundingNormal
                     : Appearance.rounding.normal
                 color: bg.angelEverywhere ? Appearance.angel.colGlassCard
-                    : bg.inirEverywhere ? Appearance.inir.colLayer1
+                    : bg.ryokuEverywhere ? Appearance.ryoku.colLayer1
                     : bg.colDarkSurface
                 border.width: bg.angelEverywhere ? Appearance.angel.cardBorderWidth : 1
                 border.color: bg.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colCardBorder, 0.22)
-                    : bg.inirEverywhere ? Appearance.inir.colBorder
+                    : bg.ryokuEverywhere ? Appearance.ryoku.colBorder
                     : bg.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.78)
                     : ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.72)
                 clip: true
@@ -389,7 +389,7 @@ Item {
 
             StyledRectangularShadow {
                 target: notepadSurface
-                visible: !bg.inirEverywhere && !bg.auroraEverywhere && !bg.angelEverywhere
+                visible: !bg.ryokuEverywhere && !bg.auroraEverywhere && !bg.angelEverywhere
                 blur: 0.35 * Appearance.sizes.elevationMargin
             }
 
@@ -398,14 +398,14 @@ Item {
                 anchors.fill: parent
                 anchors.margins: 8
                 radius: bg.angelEverywhere ? Appearance.angel.roundingNormal
-                    : bg.inirEverywhere ? Appearance.inir.roundingNormal
+                    : bg.ryokuEverywhere ? Appearance.ryoku.roundingNormal
                     : Appearance.rounding.normal
                 color: bg.angelEverywhere ? Appearance.angel.colGlassCard
-                    : bg.inirEverywhere ? Appearance.inir.colLayer1
+                    : bg.ryokuEverywhere ? Appearance.ryoku.colLayer1
                     : bg.colDarkSurface
                 border.width: bg.angelEverywhere ? Appearance.angel.cardBorderWidth : 1
                 border.color: bg.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colCardBorder, 0.22)
-                    : bg.inirEverywhere ? Appearance.inir.colBorder
+                    : bg.ryokuEverywhere ? Appearance.ryoku.colBorder
                     : bg.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.78)
                     : ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.72)
                 clip: true
@@ -424,7 +424,7 @@ Item {
 
             StyledRectangularShadow {
                 target: calculatorSurface
-                visible: !bg.inirEverywhere && !bg.auroraEverywhere && !bg.angelEverywhere
+                visible: !bg.ryokuEverywhere && !bg.auroraEverywhere && !bg.angelEverywhere
                 blur: 0.35 * Appearance.sizes.elevationMargin
             }
 
@@ -433,14 +433,14 @@ Item {
                 anchors.fill: parent
                 anchors.margins: 8
                 radius: bg.angelEverywhere ? Appearance.angel.roundingNormal
-                    : bg.inirEverywhere ? Appearance.inir.roundingNormal
+                    : bg.ryokuEverywhere ? Appearance.ryoku.roundingNormal
                     : Appearance.rounding.normal
                 color: bg.angelEverywhere ? Appearance.angel.colGlassCard
-                    : bg.inirEverywhere ? Appearance.inir.colLayer1
+                    : bg.ryokuEverywhere ? Appearance.ryoku.colLayer1
                     : bg.colDarkSurface
                 border.width: bg.angelEverywhere ? Appearance.angel.cardBorderWidth : 1
                 border.color: bg.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colCardBorder, 0.22)
-                    : bg.inirEverywhere ? Appearance.inir.colBorder
+                    : bg.ryokuEverywhere ? Appearance.ryoku.colBorder
                     : bg.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.78)
                     : ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.72)
                 clip: true
@@ -461,7 +461,7 @@ Item {
 
             StyledRectangularShadow {
                 target: sysmonSurface
-                visible: !bg.inirEverywhere && !bg.auroraEverywhere && !bg.angelEverywhere
+                visible: !bg.ryokuEverywhere && !bg.auroraEverywhere && !bg.angelEverywhere
                 blur: 0.35 * Appearance.sizes.elevationMargin
             }
 
@@ -470,14 +470,14 @@ Item {
                 anchors.fill: parent
                 anchors.margins: 8
                 radius: bg.angelEverywhere ? Appearance.angel.roundingNormal
-                    : bg.inirEverywhere ? Appearance.inir.roundingNormal
+                    : bg.ryokuEverywhere ? Appearance.ryoku.roundingNormal
                     : Appearance.rounding.normal
                 color: bg.angelEverywhere ? Appearance.angel.colGlassCard
-                    : bg.inirEverywhere ? Appearance.inir.colLayer1
+                    : bg.ryokuEverywhere ? Appearance.ryoku.colLayer1
                     : bg.colDarkSurface
                 border.width: bg.angelEverywhere ? Appearance.angel.cardBorderWidth : 1
                 border.color: bg.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colCardBorder, 0.22)
-                    : bg.inirEverywhere ? Appearance.inir.colBorder
+                    : bg.ryokuEverywhere ? Appearance.ryoku.colBorder
                     : bg.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.78)
                     : ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.72)
                 clip: true
@@ -496,7 +496,7 @@ Item {
 
             StyledRectangularShadow {
                 target: timerSurface
-                visible: !bg.inirEverywhere && !bg.auroraEverywhere && !bg.angelEverywhere
+                visible: !bg.ryokuEverywhere && !bg.auroraEverywhere && !bg.angelEverywhere
                 blur: 0.35 * Appearance.sizes.elevationMargin
             }
 
@@ -505,14 +505,14 @@ Item {
                 anchors.fill: parent
                 anchors.margins: 8
                 radius: bg.angelEverywhere ? Appearance.angel.roundingNormal
-                    : bg.inirEverywhere ? Appearance.inir.roundingNormal
+                    : bg.ryokuEverywhere ? Appearance.ryoku.roundingNormal
                     : Appearance.rounding.normal
                 color: bg.angelEverywhere ? Appearance.angel.colGlassCard
-                    : bg.inirEverywhere ? Appearance.inir.colLayer1
+                    : bg.ryokuEverywhere ? Appearance.ryoku.colLayer1
                     : bg.colDarkSurface
                 border.width: bg.angelEverywhere ? Appearance.angel.cardBorderWidth : 1
                 border.color: bg.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colCardBorder, 0.22)
-                    : bg.inirEverywhere ? Appearance.inir.colBorder
+                    : bg.ryokuEverywhere ? Appearance.ryoku.colBorder
                     : bg.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.78)
                     : ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.72)
                 clip: true
@@ -537,13 +537,13 @@ Item {
         implicitHeight: 48
 
         // Style helpers
-        readonly property color _colPrimary: bg.inirEverywhere ? Appearance.inir.colPrimary
+        readonly property color _colPrimary: bg.ryokuEverywhere ? Appearance.ryoku.colPrimary
             : bg.angelEverywhere ? Appearance.angel.colPrimary
             : Appearance.colors.colPrimary
-        readonly property color _colText: bg.inirEverywhere ? Appearance.inir.colText
+        readonly property color _colText: bg.ryokuEverywhere ? Appearance.ryoku.colText
             : bg.angelEverywhere ? Appearance.angel.colText
             : Appearance.colors.colOnLayer1
-        readonly property color _colSub: bg.inirEverywhere ? Appearance.inir.colTextSecondary
+        readonly property color _colSub: bg.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
             : bg.angelEverywhere ? Appearance.angel.colTextSecondary
             : Appearance.colors.colSubtext
 
@@ -551,15 +551,15 @@ Item {
             id: chipBg
             anchors.fill: parent
             radius: bg.angelEverywhere ? Appearance.angel.roundingSmall
-                : bg.inirEverywhere ? Appearance.inir.roundingSmall
+                : bg.ryokuEverywhere ? Appearance.ryoku.roundingSmall
                 : Appearance.rounding.small
             color: {
                 if (chipMA.containsPress)
-                    return bg.inirEverywhere ? Appearance.inir.colLayer2Active
+                    return bg.ryokuEverywhere ? Appearance.ryoku.colLayer2Active
                         : bg.angelEverywhere ? Appearance.angel.colGlassCardActive
                         : bg.colDarkSurfaceActive
                 if (chipMA.containsMouse)
-                    return bg.inirEverywhere ? Appearance.inir.colLayer2Hover
+                    return bg.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover
                         : bg.angelEverywhere ? Appearance.angel.colGlassCardHover
                         : bg.colDarkSurfaceHover
                 return "transparent"
@@ -697,7 +697,7 @@ Item {
     // ─────────────────────────────────────────────────────────────
     StyledRectangularShadow {
         target: bg
-        visible: !Appearance.inirEverywhere && !Appearance.gameModeMinimal
+        visible: !Appearance.ryokuEverywhere && !Appearance.gameModeMinimal
     }
 
     Rectangle {
@@ -707,7 +707,7 @@ Item {
         property bool cardStyle: Config.options?.sidebar?.cardStyle ?? false
         readonly property bool angelEverywhere:  Appearance.angelEverywhere
         readonly property bool auroraEverywhere: Appearance.auroraEverywhere
-        readonly property bool inirEverywhere:   Appearance.inirEverywhere
+        readonly property bool ryokuEverywhere:   Appearance.ryokuEverywhere
         readonly property bool gameModeMinimal:  Appearance.gameModeMinimal
 
         readonly property string wallpaperUrl: {
@@ -730,7 +730,7 @@ Item {
         }
         readonly property color colDarkSurface: angelEverywhere
             ? ColorUtils.transparentize(Appearance.angel.colGlassCard, 0.76)
-            : inirEverywhere ? ColorUtils.transparentize(Appearance.inir.colLayer1, 0.22)
+            : ryokuEverywhere ? ColorUtils.transparentize(Appearance.ryoku.colLayer1, 0.22)
             : auroraEverywhere ? ColorUtils.transparentize(
                 (blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base),
                 Math.max(0.10, Appearance.aurora.subSurfaceTransparentize - 0.16)
@@ -738,7 +738,7 @@ Item {
             : ColorUtils.transparentize(Appearance.colors.colLayer1, 0.22)
         readonly property color colDarkSurfaceHover: angelEverywhere
             ? Appearance.angel.colGlassCardHover
-            : inirEverywhere ? Appearance.inir.colLayer2Hover
+            : ryokuEverywhere ? Appearance.ryoku.colLayer2Hover
             : auroraEverywhere ? ColorUtils.transparentize(
                 (blendedColors?.colLayer1 ?? Appearance.colors.colLayer1),
                 Math.max(0.16, Appearance.aurora.subSurfaceTransparentize - 0.10)
@@ -746,7 +746,7 @@ Item {
             : ColorUtils.transparentize(Appearance.colors.colLayer1Hover, 0.20)
         readonly property color colDarkSurfaceActive: angelEverywhere
             ? Appearance.angel.colGlassCardActive
-            : inirEverywhere ? Appearance.inir.colLayer2Active
+            : ryokuEverywhere ? Appearance.ryoku.colLayer2Active
             : auroraEverywhere ? ColorUtils.transparentize(
                 (blendedColors?.colLayer1 ?? Appearance.colors.colLayer1),
                 Math.max(0.12, Appearance.aurora.subSurfaceTransparentize - 0.14)
@@ -754,17 +754,17 @@ Item {
             : ColorUtils.transparentize(Appearance.colors.colLayer1Active, 0.18)
 
         color: gameModeMinimal  ? "transparent"
-             : inirEverywhere   ? (cardStyle ? Appearance.inir.colLayer1 : Appearance.inir.colLayer0)
+             : ryokuEverywhere   ? (cardStyle ? Appearance.ryoku.colLayer1 : Appearance.ryoku.colLayer0)
              : auroraEverywhere ? ColorUtils.applyAlpha((blendedColors?.colLayer0 ?? Appearance.colors.colLayer0), 1)
              : (cardStyle ? Appearance.colors.colLayer1 : Appearance.colors.colLayer0)
 
         border.width: gameModeMinimal ? 0 : (angelEverywhere ? Appearance.angel.panelBorderWidth : 1)
         border.color: angelEverywhere  ? Appearance.angel.colPanelBorder
-                    : inirEverywhere   ? Appearance.inir.colBorder
+                    : ryokuEverywhere   ? Appearance.ryoku.colBorder
                     : Appearance.colors.colLayer0Border
 
         radius: angelEverywhere  ? Appearance.angel.roundingNormal
-              : inirEverywhere   ? (cardStyle ? Appearance.inir.roundingLarge : Appearance.inir.roundingNormal)
+              : ryokuEverywhere   ? (cardStyle ? Appearance.ryoku.roundingLarge : Appearance.ryoku.roundingNormal)
               : cardStyle        ? Appearance.rounding.normal
               : (Appearance.rounding.screenRounding - Appearance.sizes.hyprlandGapsOut + 1)
         clip: true
@@ -783,13 +783,13 @@ Item {
             y: -Appearance.sizes.hyprlandGapsOut
             width:  root.screenWidth  ?? 1920
             height: root.screenHeight ?? 1080
-            visible: bg.auroraEverywhere && !bg.inirEverywhere && !bg.gameModeMinimal
+            visible: bg.auroraEverywhere && !bg.ryokuEverywhere && !bg.gameModeMinimal
             source: bg.wallpaperUrl
             fillMode: Image.PreserveAspectCrop
             cache: true; asynchronous: true
             sourceSize.width: root.screenWidth ?? 1920
             sourceSize.height: root.screenHeight ?? 1080
-            layer.enabled: Appearance.effectsEnabled && bg.auroraEverywhere && !bg.inirEverywhere
+            layer.enabled: Appearance.effectsEnabled && bg.auroraEverywhere && !bg.ryokuEverywhere
             layer.effect: MultiEffect {
                 source: bgBlurWallpaper
                 anchors.fill: source
@@ -835,7 +835,7 @@ Item {
                 Layout.fillHeight: true
                 Layout.preferredWidth: 56
                 color: bg.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colGlassCard, 0.82)
-                    : bg.inirEverywhere ? ColorUtils.transparentize(Appearance.inir.colLayer1, 0.40)
+                    : bg.ryokuEverywhere ? ColorUtils.transparentize(Appearance.ryoku.colLayer1, 0.40)
                     : bg.auroraEverywhere ? ColorUtils.transparentize((bg.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base), 0.60)
                     : ColorUtils.transparentize(Appearance.colors.colLayer1, 0.72)
 
@@ -847,7 +847,7 @@ Item {
                     }
                     width: 1
                     color: bg.angelEverywhere  ? ColorUtils.transparentize(Appearance.angel.colCardBorder,  0.62)
-                         : bg.inirEverywhere   ? ColorUtils.transparentize(Appearance.inir.colBorder, 0.45)
+                         : bg.ryokuEverywhere   ? ColorUtils.transparentize(Appearance.ryoku.colBorder, 0.45)
                          : bg.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.78)
                          : ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.72)
                 }
@@ -870,15 +870,15 @@ Item {
                     width: leftRail.width - colLeft - colRight - navBgLeft
                     height: navBgH
                     radius: bg.angelEverywhere ? Appearance.angel.roundingSmall
-                          : bg.inirEverywhere  ? Appearance.inir.roundingSmall
+                          : bg.ryokuEverywhere  ? Appearance.ryoku.roundingSmall
                           : Appearance.rounding.small
-                    color: bg.inirEverywhere  ? Appearance.inir.colSecondaryContainer
+                    color: bg.ryokuEverywhere  ? Appearance.ryoku.colSecondaryContainer
                          : bg.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colPrimary, 0.60)
                          : bg.auroraEverywhere ? bg.colDarkSurfaceHover
                          : ColorUtils.transparentize(Appearance.colors.colSecondaryContainer, 0.20)
                     border.width: 1
                     border.color: bg.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colCardBorder, 0.38)
-                        : bg.inirEverywhere ? ColorUtils.transparentize(Appearance.inir.colBorder, 0.36)
+                        : bg.ryokuEverywhere ? ColorUtils.transparentize(Appearance.ryoku.colBorder, 0.36)
                         : bg.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.72)
                         : ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.66)
                     visible: root.activeSection >= 0 && root.activeSection < root.sections.length
@@ -901,7 +901,7 @@ Item {
                     width: 3
                     height: 26
                     radius: 2
-                    color: bg.inirEverywhere  ? Appearance.inir.colPrimary
+                    color: bg.ryokuEverywhere  ? Appearance.ryoku.colPrimary
                          : bg.angelEverywhere ? Appearance.angel.colPrimary
                          : Appearance.colors.colPrimary
                     visible: navIndicator.visible
@@ -958,23 +958,23 @@ Item {
                                 }
                                 height: 38
                                 radius: bg.angelEverywhere ? Appearance.angel.roundingSmall
-                                      : bg.inirEverywhere  ? Appearance.inir.roundingSmall
+                                      : bg.ryokuEverywhere  ? Appearance.ryoku.roundingSmall
                                       : Appearance.rounding.small
 
                                 color: {
                                     if (navMA.containsPress)
-                                        return bg.inirEverywhere  ? Appearance.inir.colLayer2Active
+                                        return bg.ryokuEverywhere  ? Appearance.ryoku.colLayer2Active
                                              : bg.angelEverywhere ? Appearance.angel.colGlassCardActive
                                              : Appearance.colors.colLayer1Active
                                     if (navMA.containsMouse)
-                                        return bg.inirEverywhere  ? Appearance.inir.colLayer2Hover
+                                        return bg.ryokuEverywhere  ? Appearance.ryoku.colLayer2Hover
                                              : bg.angelEverywhere ? Appearance.angel.colGlassCardHover
                                              : Appearance.colors.colLayer1Hover
                                     return "transparent"
                                 }
                                 border.width: (navMA.containsMouse || navItem.isActive) ? 1 : 0
                                 border.color: bg.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colCardBorder, 0.42)
-                                    : bg.inirEverywhere ? ColorUtils.transparentize(Appearance.inir.colBorder, 0.34)
+                                    : bg.ryokuEverywhere ? ColorUtils.transparentize(Appearance.ryoku.colBorder, 0.34)
                                     : bg.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.74)
                                     : ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.68)
                                 Behavior on color { enabled: Appearance.animationsEnabled; ColorAnimation { duration: Appearance.animation.elementMoveFast.duration } }
@@ -986,10 +986,10 @@ Item {
                                     font.weight: (navItem.isActive || navMA.containsMouse) ? Font.DemiBold : Font.Normal
                                     text: navItem.modelData.icon
                                     color: navItem.isActive
-                                        ? (bg.inirEverywhere  ? Appearance.inir.colOnSecondaryContainer
+                                        ? (bg.ryokuEverywhere  ? Appearance.ryoku.colOnSecondaryContainer
                                          : bg.angelEverywhere ? Appearance.angel.colOnPrimary
                                          : Appearance.m3colors.m3onSecondaryContainer)
-                                        : (bg.inirEverywhere  ? Appearance.inir.colTextSecondary
+                                        : (bg.ryokuEverywhere  ? Appearance.ryoku.colTextSecondary
                                          : bg.angelEverywhere ? Appearance.angel.colTextSecondary
                                          : Appearance.colors.colOnLayer1)
                                     Behavior on color { enabled: Appearance.animationsEnabled; ColorAnimation { duration: Appearance.animation.elementMoveFast.duration } }
@@ -1008,7 +1008,7 @@ Item {
                                     width: Math.max(16, badgeLabel.implicitWidth + 8)
                                     height: 16
                                     radius: 8
-                                    color: bg.inirEverywhere  ? Appearance.inir.colPrimary
+                                    color: bg.ryokuEverywhere  ? Appearance.ryoku.colPrimary
                                          : bg.angelEverywhere ? Appearance.angel.colPrimary
                                          : Appearance.colors.colPrimary
 
@@ -1019,7 +1019,7 @@ Item {
                                         font.pixelSize: 9
                                         font.weight: Font.Bold
                                         font.family: Appearance.font.family.numbers
-                                        color: bg.inirEverywhere  ? Appearance.inir.colOnPrimary
+                                        color: bg.ryokuEverywhere  ? Appearance.ryoku.colOnPrimary
                                              : bg.angelEverywhere ? Appearance.angel.colOnPrimary
                                              : Appearance.colors.colOnPrimary
                                     }
@@ -1063,7 +1063,7 @@ Item {
                         Layout.rightMargin: 4
                         height: 1
                         color: bg.angelEverywhere  ? ColorUtils.transparentize(Appearance.angel.colCardBorder, 0.68)
-                             : bg.inirEverywhere   ? ColorUtils.transparentize(Appearance.inir.colBorder, 0.5)
+                             : bg.ryokuEverywhere   ? ColorUtils.transparentize(Appearance.ryoku.colBorder, 0.5)
                              : bg.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.80)
                              : ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.76)
                     }
@@ -1094,22 +1094,22 @@ Item {
                                 }
                                 height: 34
                                 radius: bg.angelEverywhere ? Appearance.angel.roundingSmall
-                                      : bg.inirEverywhere  ? Appearance.inir.roundingSmall
+                                      : bg.ryokuEverywhere  ? Appearance.ryoku.roundingSmall
                                       : Appearance.rounding.small
                                 color: {
                                     if (sysMA.containsPress)
-                                        return bg.inirEverywhere  ? Appearance.inir.colLayer2Active
+                                        return bg.ryokuEverywhere  ? Appearance.ryoku.colLayer2Active
                                              : bg.angelEverywhere ? Appearance.angel.colGlassCardActive
                                              : Appearance.colors.colLayer1Active
                                     if (sysMA.containsMouse)
-                                        return bg.inirEverywhere  ? Appearance.inir.colLayer2Hover
+                                        return bg.ryokuEverywhere  ? Appearance.ryoku.colLayer2Hover
                                              : bg.angelEverywhere ? Appearance.angel.colGlassCardHover
                                              : Appearance.colors.colLayer1Hover
                                     return "transparent"
                                 }
                                 border.width: sysMA.containsMouse ? 1 : 0
                                 border.color: bg.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colCardBorder, 0.46)
-                                    : bg.inirEverywhere ? ColorUtils.transparentize(Appearance.inir.colBorder, 0.36)
+                                    : bg.ryokuEverywhere ? ColorUtils.transparentize(Appearance.ryoku.colBorder, 0.36)
                                     : bg.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.75)
                                     : ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.70)
                                 Behavior on color { enabled: Appearance.animationsEnabled; ColorAnimation { duration: Appearance.animation.elementMoveFast.duration } }
@@ -1118,7 +1118,7 @@ Item {
                                     anchors.centerIn: parent
                                     iconSize: 20
                                     text: sysItem.modelData.icon
-                                    color: bg.inirEverywhere  ? Appearance.inir.colTextSecondary
+                                    color: bg.ryokuEverywhere  ? Appearance.ryoku.colTextSecondary
                                          : bg.angelEverywhere ? Appearance.angel.colTextSecondary
                                          : Appearance.colors.colOnLayer1
                                 }
@@ -1150,22 +1150,22 @@ Item {
                             }
                             height: 34
                             radius: bg.angelEverywhere ? Appearance.angel.roundingSmall
-                                  : bg.inirEverywhere  ? Appearance.inir.roundingSmall
+                                  : bg.ryokuEverywhere  ? Appearance.ryoku.roundingSmall
                                   : Appearance.rounding.small
                             color: {
                                 if (layoutMA.containsPress)
-                                    return bg.inirEverywhere  ? Appearance.inir.colLayer2Active
+                                    return bg.ryokuEverywhere  ? Appearance.ryoku.colLayer2Active
                                          : bg.angelEverywhere ? Appearance.angel.colGlassCardActive
                                          : Appearance.colors.colLayer1Active
                                 if (layoutMA.containsMouse)
-                                    return bg.inirEverywhere  ? Appearance.inir.colLayer2Hover
+                                    return bg.ryokuEverywhere  ? Appearance.ryoku.colLayer2Hover
                                          : bg.angelEverywhere ? Appearance.angel.colGlassCardHover
                                          : Appearance.colors.colLayer1Hover
                                 return "transparent"
                             }
                             border.width: layoutMA.containsMouse ? 1 : 0
                             border.color: bg.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colCardBorder, 0.46)
-                                : bg.inirEverywhere ? ColorUtils.transparentize(Appearance.inir.colBorder, 0.36)
+                                : bg.ryokuEverywhere ? ColorUtils.transparentize(Appearance.ryoku.colBorder, 0.36)
                                 : bg.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.75)
                                 : ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.70)
                             Behavior on color { enabled: Appearance.animationsEnabled; ColorAnimation { duration: Appearance.animation.elementMoveFast.duration } }
@@ -1174,7 +1174,7 @@ Item {
                                 anchors.centerIn: parent
                                 iconSize: 18
                                 text: "view_agenda"
-                                color: bg.inirEverywhere  ? Appearance.inir.colPrimary
+                                color: bg.ryokuEverywhere  ? Appearance.ryoku.colPrimary
                                      : bg.angelEverywhere ? Appearance.angel.colPrimary
                                      : Appearance.colors.colPrimary
                             }
@@ -1344,7 +1344,7 @@ Item {
                                     }
                                     font.pixelSize: Appearance.font.pixelSize.small
                                     font.weight: Font.Medium
-                                    color: bg.inirEverywhere ? Appearance.inir.colPrimary
+                                    color: bg.ryokuEverywhere ? Appearance.ryoku.colPrimary
                                         : bg.angelEverywhere ? Appearance.angel.colPrimary
                                         : Appearance.colors.colPrimary
                                 }
@@ -1355,11 +1355,11 @@ Item {
                                     enabled: sectionDelegate.index > 0
                                     opacity: enabled ? 1 : 0.3
                                     colBackground: "transparent"
-                                    colBackgroundHover: bg.inirEverywhere ? Appearance.inir.colLayer1Hover
+                                    colBackgroundHover: bg.ryokuEverywhere ? Appearance.ryoku.colLayer1Hover
                                         : bg.angelEverywhere ? Appearance.angel.colGlassCardHover
                                         : Appearance.colors.colLayer1Hover
                                     onClicked: root.moveSectionUp(sectionDelegate.index)
-                                    contentItem: MaterialSymbol { anchors.centerIn: parent; text: "arrow_upward"; iconSize: 16; color: bg.inirEverywhere ? Appearance.inir.colText : bg.angelEverywhere ? Appearance.angel.colText : Appearance.colors.colOnLayer1 }
+                                    contentItem: MaterialSymbol { anchors.centerIn: parent; text: "arrow_upward"; iconSize: 16; color: bg.ryokuEverywhere ? Appearance.ryoku.colText : bg.angelEverywhere ? Appearance.angel.colText : Appearance.colors.colOnLayer1 }
                                     StyledToolTip { text: Translation.tr("Move up") }
                                 }
                                 
@@ -1369,11 +1369,11 @@ Item {
                                     enabled: sectionDelegate.index < root.controlsSectionOrder.length - 1
                                     opacity: enabled ? 1 : 0.3
                                     colBackground: "transparent"
-                                    colBackgroundHover: bg.inirEverywhere ? Appearance.inir.colLayer1Hover
+                                    colBackgroundHover: bg.ryokuEverywhere ? Appearance.ryoku.colLayer1Hover
                                         : bg.angelEverywhere ? Appearance.angel.colGlassCardHover
                                         : Appearance.colors.colLayer1Hover
                                     onClicked: root.moveSectionDown(sectionDelegate.index)
-                                    contentItem: MaterialSymbol { anchors.centerIn: parent; text: "arrow_downward"; iconSize: 16; color: bg.inirEverywhere ? Appearance.inir.colText : bg.angelEverywhere ? Appearance.angel.colText : Appearance.colors.colOnLayer1 }
+                                    contentItem: MaterialSymbol { anchors.centerIn: parent; text: "arrow_downward"; iconSize: 16; color: bg.ryokuEverywhere ? Appearance.ryoku.colText : bg.angelEverywhere ? Appearance.angel.colText : Appearance.colors.colOnLayer1 }
                                     StyledToolTip { text: Translation.tr("Move down") }
                                 }
                             }
@@ -1402,14 +1402,14 @@ Item {
                                             id: ccSurface
                                             anchors.fill: parent
                                             implicitHeight: ccCard.implicitHeight + 10
-                                            radius: bg.angelEverywhere ? Appearance.angel.roundingNormal : bg.inirEverywhere ? Appearance.inir.roundingNormal : Appearance.rounding.normal
+                                            radius: bg.angelEverywhere ? Appearance.angel.roundingNormal : bg.ryokuEverywhere ? Appearance.ryoku.roundingNormal : Appearance.rounding.normal
                                             color: bg.angelEverywhere ? Appearance.angel.colGlassCard
-                                                : bg.inirEverywhere ? Appearance.inir.colLayer1
+                                                : bg.ryokuEverywhere ? Appearance.ryoku.colLayer1
                                                 : "transparent"
                                             border.width: bg.angelEverywhere ? Appearance.angel.cardBorderWidth
-                                                : bg.inirEverywhere ? 1 : 0
+                                                : bg.ryokuEverywhere ? 1 : 0
                                             border.color: bg.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colCardBorder, 0.22)
-                                                : bg.inirEverywhere ? Appearance.inir.colBorder
+                                                : bg.ryokuEverywhere ? Appearance.ryoku.colBorder
                                                 : "transparent"
                                             ControlsCard { id: ccCard; anchors.fill: parent; anchors.margins: 4 }
                                             AngelPartialBorder { targetRadius: ccSurface.radius }
@@ -1644,7 +1644,7 @@ Item {
             }
         }
         GlobalStates.sidebarRightOpen = false
-        Qt.callLater(() => Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "settings"]))
+        Qt.callLater(() => Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "settings"]))
     }
 
     // ═════════════════════════════════════════════════════════════
@@ -1699,7 +1699,7 @@ Item {
                 text: sectionHeader.headerIcon
                 iconSize: 18
                 fill: 1
-                color: bg.inirEverywhere  ? Appearance.inir.colPrimary
+                color: bg.ryokuEverywhere  ? Appearance.ryoku.colPrimary
                      : bg.angelEverywhere ? Appearance.angel.colPrimary
                      : Appearance.colors.colPrimary
             }
@@ -1709,7 +1709,7 @@ Item {
                 text: sectionHeader.headerText
                 font.pixelSize: Appearance.font.pixelSize.small
                 font.weight: Font.Medium
-                color: bg.inirEverywhere  ? Appearance.inir.colText
+                color: bg.ryokuEverywhere  ? Appearance.ryoku.colText
                      : bg.angelEverywhere ? Appearance.angel.colText
                      : Appearance.colors.colOnLayer0
             }
@@ -1720,7 +1720,7 @@ Item {
                 implicitWidth: Math.max(18, badgeLabelInHeader.implicitWidth + 8)
                 implicitHeight: 18
                 radius: 9
-                color: bg.inirEverywhere  ? Appearance.inir.colSecondaryContainer
+                color: bg.ryokuEverywhere  ? Appearance.ryoku.colSecondaryContainer
                      : bg.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colPrimary, 0.70)
                      : Appearance.colors.colSecondaryContainer
 
@@ -1731,7 +1731,7 @@ Item {
                     font.pixelSize: Appearance.font.pixelSize.smallest
                     font.weight: Font.Bold
                     font.family: Appearance.font.family.numbers
-                    color: bg.inirEverywhere  ? Appearance.inir.colOnSecondaryContainer
+                    color: bg.ryokuEverywhere  ? Appearance.ryoku.colOnSecondaryContainer
                          : bg.angelEverywhere ? Appearance.angel.colOnPrimary
                          : Appearance.m3colors.m3onSecondaryContainer
                 }
@@ -1742,18 +1742,18 @@ Item {
                 visible: sectionHeader.showSecondaryAction
                 implicitWidth: 28; implicitHeight: 28
                 buttonRadius: bg.angelEverywhere ? Appearance.angel.roundingSmall
-                    : bg.inirEverywhere ? Appearance.inir.roundingSmall : 14
-                colBackground: bg.inirEverywhere ? ColorUtils.transparentize(Appearance.inir.colLayer1, 0.35)
+                    : bg.ryokuEverywhere ? Appearance.ryoku.roundingSmall : 14
+                colBackground: bg.ryokuEverywhere ? ColorUtils.transparentize(Appearance.ryoku.colLayer1, 0.35)
                     : bg.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colGlassCard, 0.72)
                     : bg.auroraEverywhere ? bg.colDarkSurface
                     : ColorUtils.transparentize(Appearance.colors.colLayer1, 0.68)
                 colBackgroundHover: bg.angelEverywhere ? Appearance.angel.colGlassCardHover
-                    : bg.inirEverywhere ? Appearance.inir.colLayer1Hover
+                    : bg.ryokuEverywhere ? Appearance.ryoku.colLayer1Hover
                     : Appearance.colors.colLayer1Hover
                 onClicked: sectionHeader.secondaryActionClicked()
                 contentItem: MaterialSymbol {
                     anchors.centerIn: parent; text: sectionHeader.secondaryActionIcon; iconSize: 16
-                    color: bg.inirEverywhere  ? Appearance.inir.colTextSecondary
+                    color: bg.ryokuEverywhere  ? Appearance.ryoku.colTextSecondary
                          : bg.angelEverywhere ? Appearance.angel.colTextSecondary
                          : Appearance.colors.colSubtext
                 }
@@ -1768,27 +1768,27 @@ Item {
                 visible: sectionHeader.showAction
                 implicitWidth: 28; implicitHeight: 28
                 buttonRadius: bg.angelEverywhere ? Appearance.angel.roundingSmall
-                    : bg.inirEverywhere ? Appearance.inir.roundingSmall : 14
+                    : bg.ryokuEverywhere ? Appearance.ryoku.roundingSmall : 14
                 colBackground: sectionHeader.actionToggled
-                    ? (bg.inirEverywhere ? Appearance.inir.colSecondaryContainer
+                    ? (bg.ryokuEverywhere ? Appearance.ryoku.colSecondaryContainer
                      : bg.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colPrimary, 0.60)
                      : Appearance.colors.colSecondaryContainer)
-                    : (bg.inirEverywhere ? ColorUtils.transparentize(Appearance.inir.colLayer1, 0.35)
+                    : (bg.ryokuEverywhere ? ColorUtils.transparentize(Appearance.ryoku.colLayer1, 0.35)
                      : bg.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colGlassCard, 0.72)
                      : bg.auroraEverywhere ? bg.colDarkSurface
                      : ColorUtils.transparentize(Appearance.colors.colLayer1, 0.68))
                 colBackgroundHover: bg.angelEverywhere ? Appearance.angel.colGlassCardHover
-                    : bg.inirEverywhere ? Appearance.inir.colLayer1Hover
+                    : bg.ryokuEverywhere ? Appearance.ryoku.colLayer1Hover
                     : Appearance.colors.colLayer1Hover
                 onClicked: sectionHeader.actionClicked()
                 contentItem: MaterialSymbol {
                     anchors.centerIn: parent; text: sectionHeader.actionIcon; iconSize: 16
                     fill: sectionHeader.actionToggled ? 1 : 0
                     color: sectionHeader.actionToggled
-                        ? (bg.inirEverywhere  ? Appearance.inir.colOnSecondaryContainer
+                        ? (bg.ryokuEverywhere  ? Appearance.ryoku.colOnSecondaryContainer
                          : bg.angelEverywhere ? Appearance.angel.colOnPrimary
                          : Appearance.m3colors.m3onSecondaryContainer)
-                        : (bg.inirEverywhere  ? Appearance.inir.colTextSecondary
+                        : (bg.ryokuEverywhere  ? Appearance.ryoku.colTextSecondary
                          : bg.angelEverywhere ? Appearance.angel.colTextSecondary
                          : Appearance.colors.colSubtext)
                 }
@@ -1827,24 +1827,24 @@ Item {
                 implicitWidth: dndChipContent.implicitWidth + 20
                 buttonRadius: Appearance.rounding.full
                 colBackground: Notifications.silent
-                    ? (bg.inirEverywhere ? Appearance.inir.colSecondaryContainer
+                    ? (bg.ryokuEverywhere ? Appearance.ryoku.colSecondaryContainer
                         : bg.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colPrimary, 0.60)
                         : Appearance.colors.colSecondaryContainer)
-                    : (bg.inirEverywhere ? Appearance.inir.colLayer1
+                    : (bg.ryokuEverywhere ? Appearance.ryoku.colLayer1
                         : bg.angelEverywhere ? Appearance.angel.colGlassCard
                         : bg.colDarkSurface)
                 colBackgroundHover: Notifications.silent
-                    ? (bg.inirEverywhere ? Appearance.inir.colSecondaryContainerHover
+                    ? (bg.ryokuEverywhere ? Appearance.ryoku.colSecondaryContainerHover
                         : bg.angelEverywhere ? Appearance.angel.colPrimaryHover
                         : Appearance.colors.colSecondaryContainerHover)
-                    : (bg.inirEverywhere ? Appearance.inir.colLayer1Hover
+                    : (bg.ryokuEverywhere ? Appearance.ryoku.colLayer1Hover
                         : bg.angelEverywhere ? Appearance.angel.colGlassCardHover
                         : bg.colDarkSurfaceHover)
                 colRipple: Notifications.silent
-                    ? (bg.inirEverywhere ? Appearance.inir.colSecondaryContainerActive
+                    ? (bg.ryokuEverywhere ? Appearance.ryoku.colSecondaryContainerActive
                         : bg.angelEverywhere ? Appearance.angel.colPrimaryActive
                         : Appearance.colors.colSecondaryContainerActive)
-                    : (bg.inirEverywhere ? Appearance.inir.colLayer1Active
+                    : (bg.ryokuEverywhere ? Appearance.ryoku.colLayer1Active
                         : bg.angelEverywhere ? Appearance.angel.colGlassCardActive
                         : bg.colDarkSurfaceActive)
                 onClicked: Notifications.silent = !Notifications.silent
@@ -1858,10 +1858,10 @@ Item {
                         text: Notifications.silent ? "notifications_active" : "notifications_off"
                         iconSize: 16
                         color: Notifications.silent
-                            ? (bg.inirEverywhere ? Appearance.inir.colOnSecondaryContainer
+                            ? (bg.ryokuEverywhere ? Appearance.ryoku.colOnSecondaryContainer
                                 : bg.angelEverywhere ? Appearance.angel.colOnPrimary
                                 : Appearance.m3colors.m3onSecondaryContainer)
-                            : (bg.inirEverywhere ? Appearance.inir.colTextSecondary
+                            : (bg.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
                                 : bg.angelEverywhere ? Appearance.angel.colTextSecondary
                                 : Appearance.colors.colSubtext)
                     }
@@ -1872,10 +1872,10 @@ Item {
                             : Translation.tr("Enable DND")
                         font.pixelSize: Appearance.font.pixelSize.smaller
                         color: Notifications.silent
-                            ? (bg.inirEverywhere ? Appearance.inir.colOnSecondaryContainer
+                            ? (bg.ryokuEverywhere ? Appearance.ryoku.colOnSecondaryContainer
                                 : bg.angelEverywhere ? Appearance.angel.colOnPrimary
                                 : Appearance.m3colors.m3onSecondaryContainer)
-                            : (bg.inirEverywhere ? Appearance.inir.colText
+                            : (bg.ryokuEverywhere ? Appearance.ryoku.colText
                                 : bg.angelEverywhere ? Appearance.angel.colText
                                 : Appearance.colors.colOnLayer1)
                     }
@@ -1906,7 +1906,7 @@ Item {
                 label: Translation.tr("Screenshot")
                 onClicked: {
                     GlobalStates.sidebarRightOpen = false
-                    Qt.callLater(() => Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "region", "screenshot"]))
+                    Qt.callLater(() => Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "region", "screenshot"]))
                 }
             }
 
@@ -1916,7 +1916,7 @@ Item {
                 label: Translation.tr("Record")
                 onClicked: {
                     GlobalStates.sidebarRightOpen = false
-                    Qt.callLater(() => Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "region", "record"]))
+                    Qt.callLater(() => Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "region", "record"]))
                 }
             }
 
@@ -1926,7 +1926,7 @@ Item {
                 label: Translation.tr("OCR")
                 onClicked: {
                     GlobalStates.sidebarRightOpen = false
-                    Qt.callLater(() => Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "region", "ocr"]))
+                    Qt.callLater(() => Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "region", "ocr"]))
                 }
             }
 
@@ -1936,7 +1936,7 @@ Item {
                 label: Translation.tr("Search")
                 onClicked: {
                     GlobalStates.sidebarRightOpen = false
-                    Qt.callLater(() => Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "region", "search"]))
+                    Qt.callLater(() => Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "region", "search"]))
                 }
             }
 
@@ -1991,7 +1991,7 @@ Item {
                 id: bubbleBackground
                 anchors.centerIn: parent
                 color: bg.angelEverywhere ? Appearance.angel.colPrimary
-                    : bg.inirEverywhere ? Appearance.inir.colPrimary
+                    : bg.ryokuEverywhere ? Appearance.ryoku.colPrimary
                     : Appearance.colors.colPrimary
                 radius: Appearance.rounding.full
                 implicitWidth: bubbleLabel.implicitWidth + 24
@@ -2004,7 +2004,7 @@ Item {
                     font.pixelSize: Appearance.font.pixelSize.small
                     font.weight: Font.Medium
                     color: bg.angelEverywhere ? Appearance.angel.colOnPrimary
-                        : bg.inirEverywhere ? Appearance.inir.colOnPrimary
+                        : bg.ryokuEverywhere ? Appearance.ryoku.colOnPrimary
                         : Appearance.colors.colOnPrimary
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
@@ -2025,16 +2025,16 @@ Item {
         implicitHeight: 52
 
         // Style helpers
-        readonly property color _colPrimary: bg.inirEverywhere ? Appearance.inir.colPrimary
+        readonly property color _colPrimary: bg.ryokuEverywhere ? Appearance.ryoku.colPrimary
             : bg.angelEverywhere ? Appearance.angel.colPrimary
             : Appearance.colors.colPrimary
-        readonly property color _colText: bg.inirEverywhere ? Appearance.inir.colText
+        readonly property color _colText: bg.ryokuEverywhere ? Appearance.ryoku.colText
             : bg.angelEverywhere ? Appearance.angel.colText
             : Appearance.colors.colOnLayer1
-        readonly property color _colOnToggle: bg.inirEverywhere ? Appearance.inir.colOnSecondaryContainer
+        readonly property color _colOnToggle: bg.ryokuEverywhere ? Appearance.ryoku.colOnSecondaryContainer
             : bg.angelEverywhere ? Appearance.angel.colOnPrimary
             : Appearance.m3colors.m3onSecondaryContainer
-        readonly property color _colToggleBg: bg.inirEverywhere ? Appearance.inir.colSecondaryContainer
+        readonly property color _colToggleBg: bg.ryokuEverywhere ? Appearance.ryoku.colSecondaryContainer
             : bg.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colPrimary, 0.6)
             : Appearance.colors.colSecondaryContainer
 
@@ -2042,15 +2042,15 @@ Item {
             id: qaBtnBg
             anchors.fill: parent
             radius: bg.angelEverywhere ? Appearance.angel.roundingSmall
-                : bg.inirEverywhere ? Appearance.inir.roundingSmall
+                : bg.ryokuEverywhere ? Appearance.ryoku.roundingSmall
                 : Appearance.rounding.small
             color: {
                 if (qaBtnMA.containsPress)
-                    return bg.inirEverywhere ? Appearance.inir.colLayer2Active
+                    return bg.ryokuEverywhere ? Appearance.ryoku.colLayer2Active
                         : bg.angelEverywhere ? Appearance.angel.colGlassCardActive
                         : bg.colDarkSurfaceActive
                 if (qaBtnMA.containsMouse)
-                    return bg.inirEverywhere ? Appearance.inir.colLayer2Hover
+                    return bg.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover
                         : bg.angelEverywhere ? Appearance.angel.colGlassCardHover
                         : bg.colDarkSurfaceHover
                 if (qaBtn.toggled)

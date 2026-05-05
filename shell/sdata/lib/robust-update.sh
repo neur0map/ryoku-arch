@@ -1,4 +1,4 @@
-# Robust update system for iNiR
+# Robust update system for Ryoku
 # Handles: manifest tracking, orphan cleanup, verification, rollback
 # This script is meant to be sourced.
 
@@ -7,9 +7,9 @@
 #####################################################################################
 # Configuration
 #####################################################################################
-II_TARGET="${XDG_CONFIG_HOME}/quickshell/inir"
+II_TARGET="${XDG_CONFIG_HOME}/quickshell/ryoku-shell"
 II_BACKUP_DIR="${XDG_STATE_HOME}/quickshell/backups"
-II_MANIFEST_FILE="${II_TARGET}/.inir-manifest"
+II_MANIFEST_FILE="${II_TARGET}/.ryoku-manifest"
 VERIFICATION_TIMEOUT=10
 
 #####################################################################################
@@ -80,7 +80,7 @@ generate_manifest() {
 
     } | sort -t: -k1 | {
         # Prepend header
-        echo "# inir-manifest v2"
+        echo "# ryoku-manifest v2"
         echo "# generated: $(date -Iseconds)"
         echo "# commit: $commit"
         cat
@@ -150,7 +150,7 @@ create_update_backup() {
     mkdir -p "$backup_path"
     
     # Only backup QML code, not user configs
-    rsync -a --exclude='.inir-manifest' "$target_dir/" "$backup_path/" 2>/dev/null
+    rsync -a --exclude='.ryoku-manifest' "$target_dir/" "$backup_path/" 2>/dev/null
     
     # Save backup path for potential rollback
     echo "$backup_path" > "${II_BACKUP_DIR}/.last-backup"

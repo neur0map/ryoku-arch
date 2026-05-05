@@ -58,11 +58,11 @@ Item {
         onOpened: IconThemeService.ensureInitialized()
         
         background: Rectangle {
-            color: Appearance.inirEverywhere ? Appearance.inir.colLayer2
+            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
                  : Appearance.colors.colLayer2Base
-            radius: Appearance.inirEverywhere ? Appearance.inir.roundingNormal : Appearance.rounding.normal
+            radius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal : Appearance.rounding.normal
             border.width: 1
-            border.color: Appearance.inirEverywhere ? Appearance.inir.colBorder
+            border.color: Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
                         : Appearance.colors.colLayer0Border
         }
 

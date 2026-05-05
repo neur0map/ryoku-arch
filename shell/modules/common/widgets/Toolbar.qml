@@ -26,7 +26,7 @@ Item {
     property real screenY: 0
 
     Loader {
-        active: root.enableShadow && !root.transparent && (Appearance.angelEverywhere || (!Appearance.inirEverywhere && !Appearance.auroraEverywhere))
+        active: root.enableShadow && !root.transparent && (Appearance.angelEverywhere || (!Appearance.ryokuEverywhere && !Appearance.auroraEverywhere))
         anchors.fill: background
         sourceComponent: StyledRectangularShadow {
             target: background
@@ -39,20 +39,20 @@ Item {
         anchors.fill: parent
         visible: !root.transparent
         fallbackColor: Appearance.m3colors.m3surfaceContainer
-        inirColor: Appearance.inir.colLayer2
+        ryokuColor: Appearance.ryoku.colLayer2
         auroraTransparency: Appearance.aurora.overlayTransparentize
         screenX: root.screenX
         screenY: root.screenY
         screenWidth: Quickshell.screens[0]?.width ?? 1920
         screenHeight: Quickshell.screens[0]?.height ?? 1080
-        border.width: (Appearance.angelEverywhere || Appearance.inirEverywhere || Appearance.auroraEverywhere) ? 1 : 0
+        border.width: (Appearance.angelEverywhere || Appearance.ryokuEverywhere || Appearance.auroraEverywhere) ? 1 : 0
         border.color: Appearance.angelEverywhere ? Appearance.angel.colBorder
-            : Appearance.inirEverywhere ? Appearance.inir.colBorder 
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder 
             : Appearance.auroraEverywhere ? Appearance.aurora.colTooltipBorder : "transparent"
         implicitHeight: 56
         implicitWidth: toolbarLayout.implicitWidth + root.padding * 2
         radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-            : Appearance.inirEverywhere ? Appearance.inir.roundingNormal : (height / 2)
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal : (height / 2)
     }
 
     RowLayout {

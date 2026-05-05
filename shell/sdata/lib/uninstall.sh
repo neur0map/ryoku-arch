@@ -16,7 +16,7 @@ RYOKU_SHELL_CONFIG_DIR="${DOTS_CORE_CONFDIR:-${XDG_CONFIG_HOME}/ryoku-shell}"
 # - user_data: User's personal data, preserve by default
 
 # Ryoku-exclusive files (safe to remove)
-declare -A INIR_ONLY_PATHS=(
+declare -A RYOKU_SHELL_ONLY_PATHS=(
     ["${XDG_CONFIG_HOME}/quickshell/ryoku-shell"]="Ryoku shell configuration"
     ["${RYOKU_SHELL_CONFIG_DIR}"]="Ryoku user preferences"
     ["${XDG_STATE_HOME}/quickshell/user"]="Ryoku state (notifications, todo)"
@@ -59,7 +59,7 @@ declare -A QUICKSHELL_SHARED=(
 # Packages that Ryoku may have installed - with usage context
 # Format: command -> "package_name|description|shared_usage"
 # shared_usage: ryoku_shell_only, compositor, system_tool, optional_tool
-declare -A INIR_PACKAGES=(
+declare -A RYOKU_SHELL_PACKAGES=(
     ["qs"]="quickshell|Shell framework|ryoku_shell_only"
     ["niri"]="niri|Wayland compositor|compositor"
     ["cliphist"]="cliphist|Clipboard history|system_tool"
@@ -222,7 +222,7 @@ package_has_dependents() {
 # Determine if a package is safe to suggest removal
 get_package_removal_safety() {
     local cmd="$1"
-    local meta="${INIR_PACKAGES[$cmd]}"
+    local meta="${RYOKU_SHELL_PACKAGES[$cmd]}"
     
     [[ -z "$meta" ]] && echo "unknown" && return
     
@@ -343,7 +343,7 @@ uninstall_remove_ryoku_shell_only() {
 
     # Pre-count existing items for N/M progress display
     local total=0
-    for path in "${!INIR_ONLY_PATHS[@]}"; do
+    for path in "${!RYOKU_SHELL_ONLY_PATHS[@]}"; do
         local ep
         ep=$(eval echo "$path")
         [[ -e "$ep" ]] && ((total++))
@@ -353,10 +353,10 @@ uninstall_remove_ryoku_shell_only() {
         echo -e "  ${STY_FAINT}Nothing to remove — already clean.${STY_RST}"
     else
         local idx=0
-        for path in "${!INIR_ONLY_PATHS[@]}"; do
+        for path in "${!RYOKU_SHELL_ONLY_PATHS[@]}"; do
             local ep
             ep=$(eval echo "$path")
-            local desc="${INIR_ONLY_PATHS[$path]}"
+            local desc="${RYOKU_SHELL_ONLY_PATHS[$path]}"
 
             if [[ -d "$ep" ]]; then
                 ((idx++))
@@ -683,11 +683,11 @@ uninstall_show_packages() {
     echo -e "${STY_CYAN}Package analysis:${STY_RST}"
     echo ""
 
-    for cmd in "${!INIR_PACKAGES[@]}"; do
+    for cmd in "${!RYOKU_SHELL_PACKAGES[@]}"; do
         # Skip if not installed
         command -v "$cmd" &>/dev/null || continue
 
-        local meta="${INIR_PACKAGES[$cmd]}"
+        local meta="${RYOKU_SHELL_PACKAGES[$cmd]}"
         IFS='|' read -r pkg_name pkg_desc pkg_usage <<< "$meta"
         
         local safety=$(get_package_removal_safety "$cmd")

@@ -194,7 +194,7 @@ MouseArea {
 
     StyledRectangularShadow {
         target: wallpaperGridBackground
-        visible: !Appearance.inirEverywhere
+        visible: !Appearance.ryokuEverywhere
     }
     GlassBackground {
         id: wallpaperGridBackground
@@ -204,15 +204,15 @@ MouseArea {
         }
         focus: true
         Keys.forwardTo: [root]
-        border.width: (Appearance.inirEverywhere || Appearance.auroraEverywhere) ? 1 : 1
+        border.width: (Appearance.ryokuEverywhere || Appearance.auroraEverywhere) ? 1 : 1
         border.color: Appearance.angelEverywhere ? Appearance.angel.colCardBorder
-            : Appearance.inirEverywhere ? Appearance.inir.colBorder 
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder 
             : Appearance.auroraEverywhere ? Appearance.aurora.colTooltipBorder : Appearance.colors.colLayer0Border
         fallbackColor: Appearance.colors.colLayer0
-        inirColor: Appearance.inir.colLayer0
+        ryokuColor: Appearance.ryoku.colLayer0
         auroraTransparency: Appearance.aurora.overlayTransparentize
         radius: Appearance.angelEverywhere ? Appearance.angel.roundingLarge
-            : Appearance.inirEverywhere ? Appearance.inir.roundingLarge 
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingLarge 
             : (Appearance.rounding.screenRounding - Appearance.sizes.hyprlandGapsOut + 1)
 
         property int calculatedRows: Math.ceil(grid.count / grid.columns)
@@ -231,7 +231,7 @@ MouseArea {
                 implicitWidth: quickDirColumnLayout.implicitWidth
                 implicitHeight: quickDirColumnLayout.implicitHeight
                 color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                    : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
                     : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface : Appearance.colors.colLayer1
                 radius: wallpaperGridBackground.radius - Layout.margins
 
@@ -323,12 +323,12 @@ MouseArea {
                     Layout.margins: 4
                     Layout.topMargin: 0
                     implicitHeight: visible ? monitorIndicatorText.implicitHeight + 16 : 0
-                    color: Appearance.inirEverywhere ? Appearance.inir.colLayer1
+                    color: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
                         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
                         : Appearance.colors.colLayer1
                     radius: wallpaperGridBackground.radius - Layout.margins
-                    border.width: Appearance.inirEverywhere ? 1 : 0
-                    border.color: Appearance.inirEverywhere ? Appearance.inir.colBorder : "transparent"
+                    border.width: Appearance.ryokuEverywhere ? 1 : 0
+                    border.color: Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder : "transparent"
 
                     RowLayout {
                         anchors.fill: parent

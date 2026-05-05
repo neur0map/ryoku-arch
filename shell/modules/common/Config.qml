@@ -9,7 +9,7 @@ Singleton {
     property string filePath: Directories.shellConfigPath
     property alias options: configOptionsJsonAdapter
     property bool ready: false
-    property bool isSettingsProcess: (Quickshell.env("INIR_STANDALONE_WINDOW") ?? "") === "1"
+    property bool isSettingsProcess: (Quickshell.env("RYOKU_SHELL_STANDALONE_WINDOW") ?? "") === "1"
     property int readWriteDelay: 50 // milliseconds
     property bool blockWrites: false
 
@@ -156,7 +156,7 @@ Singleton {
 
             property JsonObject appearance: JsonObject {
                 property string theme: "auto" // Theme preset ID: "auto" for wallpaper-based, or preset name like "gruvbox-dark", "catppuccin-mocha", "custom", etc.
-                property string globalStyle: "material" // "material" | "cards" | "aurora" | "inir" | "angel"
+                property string globalStyle: "material" // "material" | "cards" | "aurora" | "ryoku-shell" | "angel"
                 property string angelSubStyle: "frost" // "frost" | "neon" | "void"
                 property JsonObject angel: JsonObject {
                     property JsonObject blur: JsonObject {
@@ -236,7 +236,7 @@ Singleton {
                     property int material: 1
                     property int cards: 3
                     property int aurora: 0
-                    property int inir: 1
+                    property int ryoku: 1
                     property int angel: 1
                 }
                 property bool extraBackgroundTint: true
@@ -636,7 +636,7 @@ Singleton {
                 property int customRounding: -1 // -1: use global theme rounding | 0+: override bar rounding (px)
                 property bool floatStyleShadow: true // Show shadow behind bar when cornerStyle == 1 (Float)
                 property bool borderless: false // true for no grouping of items
-                property string topLeftIcon: "spark" // Options: "distro" or any icon name in ~/.config/quickshell/inir/assets/icons
+                property string topLeftIcon: "ryoku" // Options: "distro" or any icon name in ~/.config/quickshell/ryoku-shell/assets/icons
                 property bool showBackground: true
                 property bool showScrollHints: true // Show brightness/volume scroll hints on hover
                 property string leftScrollAction: "brightness" // "brightness", "volume", "workspace", "none"
@@ -922,8 +922,8 @@ Singleton {
             }
 
             property JsonObject hotspot: JsonObject {
-                property string ssid: "iNiR Hotspot"
-                property string password: "inirhotspot"
+                property string ssid: "Ryoku Hotspot"
+                property string password: "ryoku-shell-hotspot"
                 property string band: "bg" // "bg" = 2.4GHz, "a" = 5GHz
             }
 

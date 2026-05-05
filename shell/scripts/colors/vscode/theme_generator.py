@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Generate VSCode color customizations from iNiR theme data.
+Generate VSCode color customizations from Ryoku theme data.
 Injects into settings.json for instant auto-reload (no extension needed).
 """
 
@@ -88,7 +88,7 @@ def _adjust_lightness(
 
 
 def generate_vscode_colors(colors, scss_path):
-    """Generate VSCode workbench.colorCustomizations from iNiR theme data."""
+    """Generate VSCode workbench.colorCustomizations from Ryoku theme data."""
 
     # Parse terminal colors from SCSS
     term_colors = {}
@@ -896,7 +896,7 @@ def get_settings_path(fork_name: str) -> Path:
 
 
 def strip_vscode_theme(settings_path: str) -> bool:
-    """Remove iNiR color customizations from a VSCode settings.json.
+    """Remove Ryoku color customizations from a VSCode settings.json.
 
     Called when the user disables VSCode theming from Settings UI.
     Removes workbench.colorCustomizations, editor.tokenColorCustomizations,
@@ -926,7 +926,7 @@ def strip_vscode_theme(settings_path: str) -> bool:
         try:
             with open(settings_path, "w") as f:
                 json.dump(settings, f, indent=2, ensure_ascii=False)
-            print(f"✓ Stripped iNiR theme from {settings_path}")
+            print(f"✓ Stripped Ryoku theme from {settings_path}")
         except OSError as e:
             print(f"✗ Failed to write {settings_path}: {e}", file=sys.stderr)
             return False
@@ -935,7 +935,7 @@ def strip_vscode_theme(settings_path: str) -> bool:
 
 
 def strip_all_vscode_themes(forks: list = None):
-    """Strip iNiR theme from multiple VSCode forks."""
+    """Strip Ryoku theme from multiple VSCode forks."""
     if forks is None:
         forks = [
             key
@@ -966,7 +966,7 @@ def generate_all_vscode_themes(
     """Generate themes for multiple VSCode forks.
 
     Args:
-        colors_json_path: Path to iNiR palette.json (colors.json fallback is still accepted)
+        colors_json_path: Path to Ryoku palette.json (colors.json fallback is still accepted)
         scss_path: Path to material_colors.scss
         forks: List of fork keys to generate for (None = all installed)
     """
@@ -1035,7 +1035,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--strip",
         action="store_true",
-        help="Remove iNiR color customizations from settings.json (used when disabling theming)",
+        help="Remove Ryoku color customizations from settings.json (used when disabling theming)",
     )
 
     args = parser.parse_args()

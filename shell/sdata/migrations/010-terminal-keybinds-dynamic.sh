@@ -1,5 +1,5 @@
 # Migration: Dynamic terminal keybinds
-# Updates Mod+T and Mod+Return to use the iNiR launcher so the Settings UI
+# Updates Mod+T and Mod+Return to use the Ryoku launcher so the Settings UI
 # terminal selection controls which terminal opens.
 
 MIGRATION_ID="010-terminal-keybinds-dynamic"
@@ -13,7 +13,7 @@ migration_check() {
   [[ -f "$config" ]] || return 1
 
   # Already migrated?
-  if grep -qE 'Mod\+(T|Return).*spawn.*"inir"\s+"terminal"' "$config"; then
+  if grep -qE 'Mod\+(T|Return).*spawn.*"ryoku-shell"\s+"terminal"' "$config"; then
     return 1
   fi
 
@@ -25,8 +25,8 @@ migration_preview() {
   echo -e "${STY_RED}- Mod+T { spawn \"<terminal>\"; }${STY_RST}"
   echo -e "${STY_RED}- Mod+Return { spawn \"<terminal>\"; }${STY_RST}"
   echo ""
-  echo -e "${STY_GREEN}+ Mod+T { spawn \"inir\" \"terminal\"; }${STY_RST}"
-  echo -e "${STY_GREEN}+ Mod+Return { spawn \"inir\" \"terminal\"; }${STY_RST}"
+  echo -e "${STY_GREEN}+ Mod+T { spawn \"ryoku-shell\" \"terminal\"; }${STY_RST}"
+  echo -e "${STY_GREEN}+ Mod+Return { spawn \"ryoku-shell\" \"terminal\"; }${STY_RST}"
 }
 
 migration_diff() {
@@ -56,14 +56,14 @@ with open(config_path, "r", encoding="utf-8") as f:
 # Replace Mod+T with any hardcoded terminal
 content = re.sub(
     r'(Mod\+T\s*\{)\s*spawn\s+"(?:foot|kitty|alacritty|ghostty|wezterm|konsole)"[^}]*(\})',
-    r'\1 spawn "inir" "terminal"; \2',
+    r'\1 spawn "ryoku-shell" "terminal"; \2',
     content
 )
 
 # Replace Mod+Return with any hardcoded terminal
 content = re.sub(
     r'(Mod\+Return\s*\{)\s*spawn\s+"(?:foot|kitty|alacritty|ghostty|wezterm|konsole)"[^}]*(\})',
-    r'\1 spawn "inir" "terminal"; \2',
+    r'\1 spawn "ryoku-shell" "terminal"; \2',
     content
 )
 

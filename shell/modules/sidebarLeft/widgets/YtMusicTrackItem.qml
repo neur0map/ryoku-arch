@@ -30,15 +30,15 @@ Rectangle {
     signal addToPlaylistRequested()
 
     implicitHeight: 60
-    radius: Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.small
+    radius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.small
     color: root.isCurrentTrack
         ? (Appearance.angelEverywhere ? Appearance.angel.colGlassElevated
-            : Appearance.inirEverywhere ? Appearance.inir.colPrimaryContainer
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimaryContainer
             : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
             : Appearance.colors.colPrimaryContainer)
         : root.hovered
             ? (Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-                : Appearance.inirEverywhere ? Appearance.inir.colLayer1Hover
+                : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1Hover
                 : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
                 : Appearance.colors.colLayer1Hover)
             : "transparent"
@@ -76,7 +76,7 @@ Rectangle {
                 text: (root.trackIndex + 1).toString()
                 font.pixelSize: Appearance.font.pixelSize.small
                 font.family: Appearance.font.family.numbers
-                color: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary : Appearance.colors.colSubtext
+                color: Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary : Appearance.colors.colSubtext
             }
 
             MaterialSymbol {
@@ -84,7 +84,7 @@ Rectangle {
                 visible: root.isCurrentTrack
                 text: YtMusic.isPlaying ? "equalizer" : "pause"
                 iconSize: 18
-                color: Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary
+                color: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary
             }
         }
 
@@ -92,15 +92,15 @@ Rectangle {
         Rectangle {
             Layout.preferredWidth: 48
             Layout.preferredHeight: 48
-            radius: Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.small
-            color: Appearance.inirEverywhere ? Appearance.inir.colLayer2
+            radius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.small
+            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
                 : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
                 : Appearance.colors.colLayer2
             clip: true
 
             layer.enabled: true
             layer.effect: GE.OpacityMask {
-                maskSource: Rectangle { width: 48; height: 48; radius: Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.small }
+                maskSource: Rectangle { width: 48; height: 48; radius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.small }
             }
 
             Image {
@@ -119,7 +119,7 @@ Rectangle {
                 visible: thumbImage.status !== Image.Ready
                 text: "music_note"
                 iconSize: 20
-                color: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary : Appearance.colors.colSubtext
+                color: Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary : Appearance.colors.colSubtext
             }
 
             // Duration badge
@@ -155,8 +155,8 @@ Rectangle {
                 font.pixelSize: Appearance.font.pixelSize.small
                 font.weight: root.isCurrentTrack ? Font.Bold : Font.Medium
                 color: root.isCurrentTrack
-                    ? (Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary)
-                    : (Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer0)
+                    ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary)
+                    : (Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer0)
                 elide: Text.ElideRight
             }
 
@@ -164,7 +164,7 @@ Rectangle {
                 Layout.fillWidth: true
                 text: root.track?.artist ?? ""
                 font.pixelSize: Appearance.font.pixelSize.smaller
-                color: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary : Appearance.colors.colSubtext
+                color: Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary : Appearance.colors.colSubtext
                 elide: Text.ElideRight
                 visible: text !== ""
             }
@@ -211,14 +211,14 @@ Rectangle {
         width: 28; height: 28
         radius: 14
         color: hovered
-            ? (Appearance.inirEverywhere ? Appearance.inir.colLayer2Hover : Appearance.colors.colLayer2Hover)
+            ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover : Appearance.colors.colLayer2Hover)
             : "transparent"
 
         MaterialSymbol {
             anchors.centerIn: parent
             text: parent.icon
             iconSize: 18
-            color: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary : Appearance.colors.colSubtext
+            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary : Appearance.colors.colSubtext
         }
 
         MouseArea {

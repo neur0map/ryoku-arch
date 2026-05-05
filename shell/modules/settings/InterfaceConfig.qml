@@ -668,13 +668,13 @@ ContentPage {
                 SettingsSwitch {
                     buttonIcon: "branding_watermark"
                     text: Translation.tr("Use Card style")
-                    enabled: Appearance.globalStyle === "material" || Appearance.globalStyle === "inir"
+                    enabled: Appearance.globalStyle === "material" || Appearance.globalStyle === "ryoku-shell"
                     checked: Config.options.sidebar?.cardStyle ?? false
                     onCheckedChanged: {
                         Config.setNestedValue("sidebar.cardStyle", checked);
                     }
                     StyledToolTip {
-                        text: (Appearance.globalStyle === "material" || Appearance.globalStyle === "inir")
+                        text: (Appearance.globalStyle === "material" || Appearance.globalStyle === "ryoku-shell")
                             ? Translation.tr("Apply rounded card styling to sidebars")
                             : Translation.tr("Only available with Material or Inir global style")
                     }
@@ -1827,11 +1827,11 @@ ContentPage {
                         visible: coinInput.text.length > 0 && cryptoSection.filteredCoins().length > 0
 
                         background: Rectangle {
-                            color: Appearance.inirEverywhere ? Appearance.inir.colLayer2
+                            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
                                  : Appearance.colors.colLayer2Base
-                            radius: Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.small
+                            radius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.small
                             border.width: 1
-                            border.color: Appearance.inirEverywhere ? Appearance.inir.colBorder
+                            border.color: Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
                                         : Appearance.colors.colLayer0Border
                         }
 

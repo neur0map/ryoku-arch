@@ -38,7 +38,7 @@ migration_diff() {
 migration_apply() {
   local ii_dir
   ii_dir="$(get_runtime_shell_dir)"
-  ii_dir="${ii_dir:-${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/inir}"
+  ii_dir="${ii_dir:-${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell}"
   local wrapper_src="${ii_dir}/dots/.config/matugen/templates/kde/kde-material-you-colors-wrapper.sh"
   local wrapper_dst="${XDG_CONFIG_HOME:-$HOME/.config}/matugen/templates/kde/kde-material-you-colors-wrapper.sh"
 

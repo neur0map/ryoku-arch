@@ -16,11 +16,11 @@ ColumnLayout {
     required property string artist
     
     // Optional properties
-    property color titleColor: Appearance.inirEverywhere 
-        ? Appearance.inir.colText 
+    property color titleColor: Appearance.ryokuEverywhere 
+        ? Appearance.ryoku.colText 
         : Appearance.colors.colOnLayer0
-    property color artistColor: Appearance.inirEverywhere 
-        ? Appearance.inir.colTextSecondary 
+    property color artistColor: Appearance.ryokuEverywhere 
+        ? Appearance.ryoku.colTextSecondary 
         : Appearance.colors.colSubtext
     property int titleSize: Appearance.font.pixelSize.large
     property int artistSize: Appearance.font.pixelSize.small

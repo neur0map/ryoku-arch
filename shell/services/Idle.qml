@@ -14,7 +14,7 @@ Singleton {
     readonly property int screenOffTimeout: Config.options?.idle?.screenOffTimeout ?? 300
     readonly property int lockTimeout: Config.options?.idle?.lockTimeout ?? 600
     readonly property int suspendTimeout: Config.options?.idle?.suspendTimeout ?? 0
-    readonly property string launcherPath: Quickshell.shellPath("scripts/inir")
+    readonly property string launcherPath: Quickshell.shellPath("scripts/ryoku-shell")
 
     onScreenOffTimeoutChanged: _restartSwayidle()
     onLockTimeoutChanged: _restartSwayidle()

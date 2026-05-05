@@ -63,14 +63,14 @@ Item { // Bar content region
                 monochromeIcon: true,
                 text: Translation.tr("Settings"),
                 action: () => {
-                    Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "settings"])
+                    Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "settings"])
                 },
             },
         ]
     }
     readonly property bool cardStyleEverywhere: (Config.options?.dock?.cardStyle ?? false) && (Config.options?.sidebar?.cardStyle ?? false) && (Config.options?.bar?.cornerStyle === 3)
     readonly property color separatorColor: Appearance.colors.colOutlineVariant
-    readonly property bool inirEverywhere: Appearance.inirEverywhere
+    readonly property bool ryokuEverywhere: Appearance.ryokuEverywhere
     readonly property bool auroraEverywhere: Appearance.auroraEverywhere
     readonly property bool gameModeMinimal: Appearance.gameModeMinimal
 
@@ -127,7 +127,7 @@ Item { // Bar content region
                     return ColorUtils.transparentize(base, Appearance.angel.compositorPanelTransparentize)
                 return ColorUtils.applyAlpha(base, 1)
             }
-            if (root.inirEverywhere) return Appearance.inir.colLayer0
+            if (root.ryokuEverywhere) return Appearance.ryoku.colLayer0
             if (root.auroraEverywhere) {
                 const base = root.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0
                 if (Appearance.compositorBlurActive)
@@ -137,11 +137,11 @@ Item { // Bar content region
             return root.cardStyleEverywhere ? Appearance.colors.colLayer1 : ((Config.options?.bar?.cornerStyle ?? 0) === 3 ? Appearance.colors.colLayer1 : Appearance.colors.colLayer0)
         }
         radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-            : root.inirEverywhere ? Appearance.inir.roundingNormal
+            : root.ryokuEverywhere ? Appearance.ryoku.roundingNormal
             : floatingStyle ? ((Config.options?.bar?.cornerStyle ?? 0) === 3 ? Appearance.rounding.normal : Appearance.rounding.windowRounding) : 0
-        border.width: Appearance.angelEverywhere ? 0 : (root.inirEverywhere ? 1 : (floatingStyle ? 1 : 0))
+        border.width: Appearance.angelEverywhere ? 0 : (root.ryokuEverywhere ? 1 : (floatingStyle ? 1 : 0))
         border.color: Appearance.angelEverywhere ? "transparent"
-            : root.inirEverywhere ? Appearance.inir.colBorder
+            : root.ryokuEverywhere ? Appearance.ryoku.colBorder
             : Appearance.colors.colLayer0Border
 
         clip: true
@@ -169,7 +169,7 @@ Item { // Bar content region
     Item {
         id: auroraBlurLayer
         anchors.fill: barBackground
-        visible: root.auroraEverywhere && !root.inirEverywhere && !root.gameModeMinimal
+        visible: root.auroraEverywhere && !root.ryokuEverywhere && !root.gameModeMinimal
             && (Config.options?.bar?.showBackground ?? true) && !Appearance.compositorBlurActive
 
         // Clip + mask to barBackground shape
@@ -201,7 +201,7 @@ Item { // Bar content region
             sourceSize.height: root.screen?.height ?? 1080
             asynchronous: true
 
-            layer.enabled: Appearance.effectsEnabled && root.auroraEverywhere && !root.inirEverywhere && !Appearance.compositorBlurActive
+            layer.enabled: Appearance.effectsEnabled && root.auroraEverywhere && !root.ryokuEverywhere && !Appearance.compositorBlurActive
             layer.effect: MultiEffect {
                 source: blurredWallpaper
                 anchors.fill: source

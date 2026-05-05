@@ -1,5 +1,5 @@
 #!/bin/bash
-# TUI functions for iNiR setup
+# TUI functions for Ryoku setup
 # Ink design: whitespace over borders, color over chrome.
 # This script is meant to be sourced.
 
@@ -406,12 +406,12 @@ tui_banner() {
             "██║██║╚════╝██║╚██╗██║██║██╔══██╗██║" \
             "██║██║      ██║ ╚████║██║██║  ██║██║" \
             "╚═╝╚═╝      ╚═╝  ╚═══╝╚═╝╚═╝  ╚═╝╚═╝"
-        echo "iNiR — your niri shell" | gum style \
+        echo "Ryoku — your niri shell" | gum style \
             --foreground "$(_tui_color_value muted)" \
             --align center \
             --width 50
     else
-        local tagline="iNiR — your niri shell"
+        local tagline="Ryoku — your niri shell"
         local banner_width=50
         local left_pad=$(( (banner_width - ${#tagline}) / 2 ))
         (( left_pad < 0 )) && left_pad=0

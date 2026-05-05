@@ -36,7 +36,7 @@ randomIndex=$((RANDOM % images));
 link=$(echo "$response" | jq ".backgrounds[$randomIndex].url" -r)
 ext=$(echo "$link" | awk -F. '{print $NF}')
 downloadPath="$PICTURES_DIR/Wallpapers/random_wallpaper.$ext"
-illogicalImpulseConfigPath="$(inir_config_file)"
+illogicalImpulseConfigPath="$(ryoku_shell_config_file)"
 currentWallpaperPath=$(jq -r '.background.wallpaperPath' $illogicalImpulseConfigPath)
 if [ "$downloadPath" == "$currentWallpaperPath" ]; then
     downloadPath="$PICTURES_DIR/Wallpapers/random_wallpaper-1.$ext"

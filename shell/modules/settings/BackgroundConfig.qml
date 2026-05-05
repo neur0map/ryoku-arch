@@ -267,13 +267,13 @@ ContentPage {
                     Layout.preferredHeight: 180
                     radius: Appearance.rounding.normal
                     color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                         : Appearance.inirEverywhere ? Appearance.inir.colLayer0
+                         : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer0
                          : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
                          : Appearance.colors.colLayer0
                     border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth
-                        : Appearance.inirEverywhere ? 1 : (Appearance.auroraEverywhere ? 0 : 1)
+                        : Appearance.ryokuEverywhere ? 1 : (Appearance.auroraEverywhere ? 0 : 1)
                     border.color: Appearance.angelEverywhere ? Appearance.angel.colCardBorder
-                               : Appearance.inirEverywhere ? Appearance.inir.colBorder
+                               : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
                                : Appearance.colors.colLayer0Border
 
                     RowLayout {
@@ -324,14 +324,14 @@ ContentPage {
                                     height: bgMonDelegate.cardHeight
                                     radius: Appearance.rounding.small
                                     color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                                         : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+                                         : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
                                          : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
                                          : Appearance.colors.colLayer1
                                     border.width: bgMonDelegate.isSelected && bgMultiMonPanel.showBackdropView
-                                        ? (Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth : Appearance.inirEverywhere ? 1 : 2) : (Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth : Appearance.inirEverywhere ? 1 : 0)
+                                        ? (Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth : Appearance.ryokuEverywhere ? 1 : 2) : (Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth : Appearance.ryokuEverywhere ? 1 : 0)
                                     border.color: bgMonDelegate.isSelected && bgMultiMonPanel.showBackdropView
-                                        ? (Appearance.angelEverywhere ? Appearance.angel.colPrimary : Appearance.inirEverywhere ? Appearance.inir.colAccent : Appearance.colors.colPrimary)
-                                        : (Appearance.angelEverywhere ? Appearance.angel.colCardBorder : Appearance.inirEverywhere ? Appearance.inir.colBorder : "transparent")
+                                        ? (Appearance.angelEverywhere ? Appearance.angel.colPrimary : Appearance.ryokuEverywhere ? Appearance.ryoku.colAccent : Appearance.colors.colPrimary)
+                                        : (Appearance.angelEverywhere ? Appearance.angel.colCardBorder : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder : "transparent")
                                     clip: true
 
                                     layer.enabled: true
@@ -435,7 +435,7 @@ ContentPage {
                                         color: "transparent"
                                         visible: bgMultiMonPanel.showBackdropView && bgMonDelegate.isSelected
                                         border.width: 2
-                                        border.color: Appearance.inirEverywhere ? Appearance.inir.colAccent : Appearance.colors.colPrimary
+                                        border.color: Appearance.ryokuEverywhere ? Appearance.ryoku.colAccent : Appearance.colors.colPrimary
                                     }
                                 }
 
@@ -451,14 +451,14 @@ ContentPage {
                                     height: bgMonDelegate.cardHeight
                                     radius: Appearance.rounding.small
                                     color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                                         : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+                                         : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
                                          : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
                                          : Appearance.colors.colLayer1
                                     border.width: bgMonDelegate.isSelected && !bgMultiMonPanel.showBackdropView
-                                        ? (Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth : Appearance.inirEverywhere ? 1 : 2) : (Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth : Appearance.inirEverywhere ? 1 : 0)
+                                        ? (Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth : Appearance.ryokuEverywhere ? 1 : 2) : (Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth : Appearance.ryokuEverywhere ? 1 : 0)
                                     border.color: bgMonDelegate.isSelected && !bgMultiMonPanel.showBackdropView
-                                        ? (Appearance.angelEverywhere ? Appearance.angel.colPrimary : Appearance.inirEverywhere ? Appearance.inir.colAccent : Appearance.colors.colPrimary)
-                                        : (Appearance.angelEverywhere ? Appearance.angel.colCardBorder : Appearance.inirEverywhere ? Appearance.inir.colBorder : "transparent")
+                                        ? (Appearance.angelEverywhere ? Appearance.angel.colPrimary : Appearance.ryokuEverywhere ? Appearance.ryoku.colAccent : Appearance.colors.colPrimary)
+                                        : (Appearance.angelEverywhere ? Appearance.angel.colCardBorder : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder : "transparent")
                                     clip: true
 
                                     layer.enabled: true
@@ -651,12 +651,12 @@ ContentPage {
                     implicitHeight: bgMonPreviewCol.implicitHeight
                     radius: Appearance.rounding.small
                     color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                         : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+                         : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
                          : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
                          : Appearance.colors.colLayer1
                     border.width: Appearance.angelEverywhere ? (Appearance.angel?.cardBorderWidth ?? 1) : 1
                     border.color: Appearance.angelEverywhere ? (Appearance.angel?.colCardBorder ?? Appearance.colors.colLayer0Border)
-                               : Appearance.inirEverywhere ? (Appearance.inir?.colBorder ?? Appearance.colors.colLayer0Border)
+                               : Appearance.ryokuEverywhere ? (Appearance.ryoku?.colBorder ?? Appearance.colors.colLayer0Border)
                                : Appearance.colors.colLayer0Border
                     clip: true
 
@@ -824,8 +824,8 @@ ContentPage {
                         Rectangle {
                             Layout.fillWidth: true
                             implicitHeight: 1
-                            color: Appearance.inirEverywhere
-                                ? (Appearance.inir?.colBorder
+                            color: Appearance.ryokuEverywhere
+                                ? (Appearance.ryoku?.colBorder
                                     ?? Appearance.colors?.colLayer0Border
                                     ?? Appearance.colors?.colLayer0Border
                                     ?? Appearance.m3colors.m3outlineVariant)
@@ -883,7 +883,7 @@ ContentPage {
                                         if (mon) {
                                             Config.setNestedValue("wallpaperSelector.selectionTarget", "main")
                                             Config.setNestedValue("wallpaperSelector.targetMonitor", mon)
-                                            Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "wallpaperSelector", "toggle"])
+                                            Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "wallpaperSelector", "toggle"])
                                         }
                                     }
                                 }
@@ -927,7 +927,7 @@ ContentPage {
                                     }
                                     onClicked: {
                                         Config.setNestedValue("wallpaperSelector.selectionTarget", "backdrop")
-                                        Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "wallpaperSelector", "toggle"])
+                                        Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "wallpaperSelector", "toggle"])
                                     }
                                 }
                                 RippleButtonWithIcon {
@@ -1289,7 +1289,7 @@ ContentPage {
                         MaterialSymbol {
                             text: "open_with"
                             iconSize: 16
-                            color: Appearance.inirEverywhere ? Appearance.inir.colPrimary
+                            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary
                                  : Appearance.auroraEverywhere ? Appearance.m3colors.m3primary
                                  : Appearance.colors.colPrimary
                         }
@@ -1298,7 +1298,7 @@ ContentPage {
                             text: Translation.tr("Wallpaper position")
                             font.pixelSize: Appearance.font.pixelSize.small
                             font.weight: Font.Medium
-                            color: Appearance.inirEverywhere ? Appearance.inir.colText
+                            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText
                                  : Appearance.auroraEverywhere ? Appearance.m3colors.m3onSurface
                                  : Appearance.colors.colOnLayer1
                         }
@@ -1326,9 +1326,9 @@ ContentPage {
                             visible: panCard.hasPan
                             implicitWidth: 26
                             implicitHeight: 26
-                            buttonRadius: Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.full
+                            buttonRadius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.full
                             colBackground: "transparent"
-                            colBackgroundHover: Appearance.inirEverywhere ? Appearance.inir.colLayer2Hover
+                            colBackgroundHover: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover
                                 : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceHover
                                 : Appearance.colors.colLayer2Hover
                             onClicked: {
@@ -1340,7 +1340,7 @@ ContentPage {
                                 anchors.centerIn: parent
                                 text: "restart_alt"
                                 iconSize: 14
-                                color: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary
+                                color: Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
                                      : Appearance.auroraEverywhere ? Appearance.m3colors.m3onSurfaceVariant
                                      : Appearance.colors.colSubtext
                             }
@@ -1940,7 +1940,7 @@ ContentPage {
                     mainText: Translation.tr("Pick backdrop wallpaper")
                     onClicked: {
                         Config.setNestedValue("wallpaperSelector.selectionTarget", "backdrop")
-                        Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "wallpaperSelector", "toggle"]);
+                        Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "wallpaperSelector", "toggle"]);
                     }
                 }
 

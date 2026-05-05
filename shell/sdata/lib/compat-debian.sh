@@ -5,7 +5,7 @@
 
 echo -e "\033[0;34m[compat]: Applying compatibility fixes for Debian/Ubuntu...\033[0m"
 
-TARGET_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/inir"
+TARGET_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell"
 
 if [[ ! -d "$TARGET_DIR" ]]; then
   echo "Target directory not found: $TARGET_DIR"

@@ -24,16 +24,16 @@ migration_apply() {
     return 0
   fi
 
-  export INIR_MIGRATION_NIRI_CONFIG="$config"
-  export INIR_MIGRATION_LAUNCHER_PATH="${XDG_BIN_HOME:-$HOME/.local/bin}/inir"
+  export RYOKU_SHELL_MIGRATION_NIRI_CONFIG="$config"
+  export RYOKU_SHELL_MIGRATION_LAUNCHER_PATH="${XDG_BIN_HOME:-$HOME/.local/bin}/ryoku-shell"
   python3 << 'MIGRATE'
 import os
 import shutil
 import time
 from pathlib import Path
 
-config_path = Path(os.environ["INIR_MIGRATION_NIRI_CONFIG"]).expanduser()
-launcher_path = os.environ["INIR_MIGRATION_LAUNCHER_PATH"]
+config_path = Path(os.environ["RYOKU_SHELL_MIGRATION_NIRI_CONFIG"]).expanduser()
+launcher_path = os.environ["RYOKU_SHELL_MIGRATION_LAUNCHER_PATH"]
 niri_dir = config_path.parent
 modular_dir = niri_dir / "config.d"
 
@@ -123,11 +123,11 @@ if modular_dir.exists():
 modular_dir.mkdir(parents=True, exist_ok=True)
 
 startup_text = normalize_text(buckets["50"]).replace(
-    'spawn-at-startup "inir" "start"',
+    'spawn-at-startup "ryoku-shell" "start"',
     f'spawn-at-startup "{launcher_path}" "start"',
 )
 binds_text = normalize_text(buckets["70"]).replace(
-    'spawn "inir" "',
+    'spawn "ryoku-shell" "',
     f'spawn "{launcher_path}" "',
 ).replace(
     'spawn "bash" "-lc" "exec \\"$(inir path)/scripts/launch-terminal.sh\\""',
@@ -142,7 +142,7 @@ USER_EXTRA_TEMPLATE = """\
 // 90 — Your personal overrides
 // ─────────────────────────────────────────────────────────────────────────────
 //
-// This file is YOURS. iNiR updates will never overwrite it.
+// This file is YOURS. Ryoku updates will never overwrite it.
 // Put any custom configuration here: extra binds, per-app window rules,
 // output configuration, named workspaces, etc.
 //

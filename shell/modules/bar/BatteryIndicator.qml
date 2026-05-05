@@ -23,8 +23,8 @@ MouseArea {
         anchors.centerIn: parent
         value: percentage
         highlightColor: (isLow && !isCharging)
-            ? (Appearance.angelEverywhere ? Appearance.m3colors.m3error : Appearance.inirEverywhere ? Appearance.inir.colError : Appearance.m3colors.m3error)
-            : (Appearance.angelEverywhere ? Appearance.angel.colText : Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnSecondaryContainer)
+            ? (Appearance.angelEverywhere ? Appearance.m3colors.m3error : Appearance.ryokuEverywhere ? Appearance.ryoku.colError : Appearance.m3colors.m3error)
+            : (Appearance.angelEverywhere ? Appearance.angel.colText : Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnSecondaryContainer)
 
         Item {
             anchors.centerIn: parent

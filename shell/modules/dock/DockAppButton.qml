@@ -128,11 +128,11 @@ DockButton {
 
     // Suppress ripple/hover bg in macOS mode so no colored rect appears under icon
     colBackgroundHover: macosStyle ? "transparent" : (Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer1Hover
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1Hover
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
         : Appearance.colors.colLayer0Hover)
     colRipple: macosStyle ? "transparent" : (Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer1Active
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1Active
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive
         : Appearance.colors.colLayer0Active)
 
@@ -185,7 +185,7 @@ DockButton {
         sourceComponent: Rectangle {
             width: root.vertical ? root.separatorSize : 1
             height: root.vertical ? 1 : root.separatorSize
-            color: Appearance.inirEverywhere ? Appearance.inir.colBorderSubtle
+            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colBorderSubtle
                  : Appearance.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colOnLayer0, 0.7)
                  : Appearance.colors.colOutlineVariant
         }
@@ -448,7 +448,7 @@ DockButton {
                     ColorOverlay {
                         anchors.fill: desaturatedIcon
                         source: desaturatedIcon
-                        color: ColorUtils.transparentize(Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary, 0.9)
+                        color: ColorUtils.transparentize(Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary, 0.9)
                     }
                 }
             }
@@ -502,9 +502,9 @@ DockButton {
                             implicitHeight: Appearance.angelEverywhere ? 2 : root.countDotHeight
                             color: isFocusedWindow
                                    ? (Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                                   : Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary)
+                                   : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary)
                                    : ColorUtils.transparentize(Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
-                                   : Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer0, 0.5)
+                                   : Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer0, 0.5)
 
                             Behavior on implicitWidth {
                                 enabled: Appearance.animationsEnabled
@@ -520,7 +520,7 @@ DockButton {
                         height: Appearance.angelEverywhere ? 2 : 5
                         radius: Appearance.angelEverywhere ? 0 : 2.5
                         color: ColorUtils.transparentize(Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
-                            : Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer0, 0.5)
+                            : Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer0, 0.5)
                     }
                 }
             }

@@ -263,7 +263,7 @@ Scope {
         StyledRectangularShadow {
             target: panelBackground
             radius: panelBackground.radius
-            visible: Appearance.angelEverywhere || (!Appearance.inirEverywhere && !Appearance.auroraEverywhere)
+            visible: Appearance.angelEverywhere || (!Appearance.ryokuEverywhere && !Appearance.auroraEverywhere)
         }
 
         // Click outside the panel to close
@@ -288,7 +288,7 @@ Scope {
             width: panelWidth
             height: Math.min(contentColumn.implicitHeight, panelMaxHeight)
             fallbackColor: Appearance.colors.colLayer1
-            inirColor: Appearance.inir.colLayer1
+            ryokuColor: Appearance.ryoku.colLayer1
             auroraTransparency: Appearance.angelEverywhere
                 ? Appearance.angel.panelTransparentize
                 : Math.max(0.12, Appearance.aurora.subSurfaceTransparentize - 0.14)
@@ -299,11 +299,11 @@ Scope {
             border.width: Appearance.angelEverywhere ? Appearance.angel.panelBorderWidth
                 : Appearance.auroraEverywhere ? 1 : 1
             border.color: Appearance.angelEverywhere ? Appearance.angel.colPanelBorder
-                : Appearance.inirEverywhere ? Appearance.inir.colBorder 
+                : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder 
                 : Appearance.auroraEverywhere ? Appearance.aurora.colTooltipBorder 
                 : Appearance.colors.colOutlineVariant
             radius: Appearance.angelEverywhere ? Appearance.angel.roundingLarge
-                : Appearance.inirEverywhere ? Appearance.inir.roundingLarge : Appearance.rounding.screenRounding
+                : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingLarge : Appearance.rounding.screenRounding
             
             // Entry animation
             opacity: GlobalStates.clipboardOpen ? 1 : 0
@@ -346,14 +346,14 @@ Scope {
                     MaterialSymbol {
                         text: "content_paste"
                         iconSize: Appearance.font.pixelSize.huge
-                        color: Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary
+                        color: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary
                     }
 
                     StyledText {
                         Layout.alignment: Qt.AlignVCenter
                         text: Translation.tr("Clipboard history") + ` (${root.totalCount})`
                         font.pixelSize: Appearance.font.pixelSize.small
-                        color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.m3colors.m3onSurface
+                        color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.m3colors.m3onSurface
                         elide: Text.ElideRight
                     }
 
@@ -416,7 +416,7 @@ Scope {
                         visible: root.showClearConfirmation
                         text: Translation.tr("Clear all?")
                         font.pixelSize: Appearance.font.pixelSize.small
-                        color: Appearance.inirEverywhere ? Appearance.inir.colError : Appearance.colors.colError
+                        color: Appearance.ryokuEverywhere ? Appearance.ryoku.colError : Appearance.colors.colError
                     }
 
                     IconToolbarButton {
@@ -456,10 +456,10 @@ Scope {
                     Layout.fillHeight: true
                     implicitHeight: Math.min(480, Math.max(160, listView.contentHeight + 20))
                     radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-                        : Appearance.inirEverywhere ? Appearance.inir.roundingNormal : Appearance.rounding.normal
+                        : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal : Appearance.rounding.normal
                     color: Appearance.angelEverywhere
                         ? ColorUtils.transparentize(Appearance.angel.colGlassCard, 0.76)
-                        : Appearance.inirEverywhere ? Appearance.inir.colLayer2
+                        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
                         : Appearance.auroraEverywhere
                         ? ColorUtils.transparentize(Appearance.colors.colLayer0Base,
                             Math.max(0.12, Appearance.aurora.subSurfaceTransparentize - 0.14))
@@ -554,7 +554,7 @@ Scope {
                             visible: listView.count === 0
                             anchors.centerIn: parent
                             text: Translation.tr("No clipboard entries")
-                            color: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary : Appearance.colors.colSubtext
+                            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary : Appearance.colors.colSubtext
                             font.pixelSize: Appearance.font.pixelSize.small
                         }
                     }
@@ -576,10 +576,10 @@ Scope {
                         anchors.bottom: parent.bottom
                         implicitHeight: hintsColumn.implicitHeight + 16
                         radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-                            : Appearance.inirEverywhere ? Appearance.inir.roundingNormal : Appearance.rounding.normal
+                            : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal : Appearance.rounding.normal
                         color: Appearance.angelEverywhere
                             ? ColorUtils.transparentize(Appearance.angel.colGlassCard, 0.76)
-                            : Appearance.inirEverywhere ? Appearance.inir.colLayer2
+                            : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
                             : Appearance.auroraEverywhere
                             ? ColorUtils.transparentize(Appearance.colors.colLayer0Base,
                                 Math.max(0.12, Appearance.aurora.subSurfaceTransparentize - 0.14))
@@ -601,7 +601,7 @@ Scope {
                                 text: Translation.tr("↑/↓, J/K: Navigate • Enter: Paste")
                                 font.pixelSize: Appearance.font.pixelSize.smaller
                                 color: Appearance.angelEverywhere ? Appearance.angel.colText
-                                    : Appearance.inirEverywhere ? Appearance.inir.colText 
+                                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colText 
                                     : Appearance.auroraEverywhere ? Appearance.m3colors.m3onSurface 
                                     : Appearance.colors.colOnPrimaryContainer
                                 elide: Text.ElideRight
@@ -612,7 +612,7 @@ Scope {
                                 text: Translation.tr("Ctrl+C: Copy • Del: Delete • Shift+Del: Clear all • Esc: Close")
                                 font.pixelSize: Appearance.font.pixelSize.smaller
                                 color: Appearance.angelEverywhere ? Appearance.angel.colText
-                                    : Appearance.inirEverywhere ? Appearance.inir.colText 
+                                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colText 
                                     : Appearance.auroraEverywhere ? Appearance.m3colors.m3onSurface 
                                     : Appearance.colors.colOnPrimaryContainer
                                 elide: Text.ElideRight

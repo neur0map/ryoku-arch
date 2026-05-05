@@ -25,7 +25,7 @@ Item {
     property var monitorData: HyprlandData.monitors.find(m => m.id === root.monitor?.id)
     property real scale: Config.options?.overview?.scale ?? 0.18
     property color activeBorderColor: Appearance.angelEverywhere ? Appearance.angel.colPrimary
-        : Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colSecondary
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colSecondary
     property bool focusAnimEnabled: Config.options?.overview?.focusAnimationEnable ?? true
     property int focusAnimDuration: Config.options?.overview?.focusAnimationDurationMs ?? 180
     property real clampedPanelWidthRatio: {
@@ -54,9 +54,9 @@ Item {
         return workspaceImplicitWidth * aspect;
     }
     property real largeWorkspaceRadius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-        : Appearance.inirEverywhere ? Appearance.inir.roundingNormal : Appearance.rounding.large
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal : Appearance.rounding.large
     property real smallWorkspaceRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-        : Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.verysmall
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.verysmall
 
     property real workspaceNumberMargin: 80
     property real workspaceNumberSize: 250 * monitor.scale
@@ -120,12 +120,12 @@ Item {
         implicitHeight: workspaceColumnLayout.implicitHeight + padding * 2
         radius: root.largeWorkspaceRadius + padding
         color: Appearance.angelEverywhere ? Appearance.angel.colGlassPopup
-             : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+             : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
              : Appearance.auroraEverywhere ? Appearance.aurora.colPopupSurface
              : Appearance.colors.colBackgroundSurfaceContainer
         border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth : 1
         border.color: Appearance.angelEverywhere ? Appearance.angel.colCardBorder
-                    : Appearance.inirEverywhere ? Appearance.inir.colBorder
+                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
                     : Appearance.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.72)
                     : ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.68)
 
@@ -152,16 +152,16 @@ Item {
                             property int workspaceValue: root.workspaceGroup * root.workspacesShown + row.index * Config.options.overview.columns + colIndex + 1
                             property color defaultWorkspaceColor: Appearance.angelEverywhere
                                 ? Appearance.angel.colGlassCard
-                                : Appearance.inirEverywhere 
-                                    ? Appearance.inir.colLayer2 
+                                : Appearance.ryokuEverywhere 
+                                    ? Appearance.ryoku.colLayer2 
                                     : Appearance.auroraEverywhere 
                                         ? Appearance.aurora.colSubSurface 
                                         : ColorUtils.mix(Appearance.colors.colBackgroundSurfaceContainer, Appearance.colors.colSurfaceContainerHigh, 0.8)
                             property color hoveredWorkspaceColor: ColorUtils.mix(defaultWorkspaceColor, 
                                 Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-                                : Appearance.inirEverywhere ? Appearance.inir.colLayer2Hover : Appearance.colors.colLayer1Hover, 0.1)
+                                : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover : Appearance.colors.colLayer1Hover, 0.1)
                             property color hoveredBorderColor: Appearance.angelEverywhere ? Appearance.angel.colBorderHover
-                                : Appearance.inirEverywhere ? Appearance.inir.colBorder : Appearance.colors.colLayer2Hover
+                                : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder : Appearance.colors.colLayer2Hover
                             property bool hoveredWhileDragging: false
 
                             implicitWidth: root.workspaceImplicitWidth
@@ -179,7 +179,7 @@ Item {
                             border.color: hoveredWhileDragging
                                 ? hoveredBorderColor
                                 : (Appearance.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colCardBorder, 0.64)
-                                    : Appearance.inirEverywhere ? ColorUtils.transparentize(Appearance.inir.colBorder, 0.45)
+                                    : Appearance.ryokuEverywhere ? ColorUtils.transparentize(Appearance.ryoku.colBorder, 0.45)
                                     : Appearance.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.78)
                                     : ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.74))
 
@@ -193,7 +193,7 @@ Item {
                                 }
                                 color: ColorUtils.transparentize(
                                     Appearance.angelEverywhere ? Appearance.angel.colText
-                                    : Appearance.inirEverywhere ? Appearance.inir.colText
+                                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colText
                                     : Appearance.auroraEverywhere ? Appearance.colors.colOnLayer1
                                     : Appearance.colors.colOnLayer1,
                                     0.7
@@ -278,7 +278,7 @@ Item {
 
                 // Radius
                 property real minRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-                    : Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.small
+                    : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.small
                 property bool workspaceAtLeft: workspaceColIndex === 0
                 property bool workspaceAtRight: workspaceColIndex === Config.options.overview.columns - 1
                 property bool workspaceAtTop: workspaceRowIndex === 0

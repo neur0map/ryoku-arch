@@ -3,7 +3,7 @@ set -euo pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 runtime_root="$(cd -- "$script_dir/.." && pwd)"
-launcher="${INIR_LAUNCHER_PATH:-$runtime_root/scripts/inir}"
+launcher="${RYOKU_SHELL_LAUNCHER_PATH:-$runtime_root/scripts/ryoku-shell}"
 
 run_runtime=false
 if [[ "${1:-}" == "--with-runtime" ]]; then
@@ -17,7 +17,7 @@ step() {
 step "shell syntax"
 bash -n \
     "$runtime_root/setup" \
-    "$runtime_root/scripts/inir" \
+    "$runtime_root/scripts/ryoku-shell" \
     "$runtime_root/sdata/lib/"*.sh \
     "$runtime_root/sdata/subcmd-install/"*.sh \
     "$runtime_root/sdata/migrations/"*.sh
@@ -35,7 +35,7 @@ done < "$runtime_root/sdata/runtime-payload-dirs.txt"
 
 if [[ -f "$runtime_root/Makefile" ]]; then
     step "make install dry run"
-    make -n install PREFIX=/tmp/inir-stage-test -C "$runtime_root" >/dev/null
+    make -n install PREFIX=/tmp/ryoku-shell-stage-test -C "$runtime_root" >/dev/null
 fi
 
 if [[ -d "$runtime_root/distro/arch" ]]; then
@@ -67,13 +67,13 @@ fi
 
 if [[ "$run_runtime" == true ]]; then
     step "runtime restart"
-    bash scripts/inir kill >/dev/null 2>&1 || true
+    bash scripts/ryoku-shell kill >/dev/null 2>&1 || true
     sleep 1
-    bash scripts/inir run >/tmp/inir-test-local-runtime.log 2>&1 &
+    bash scripts/ryoku-shell run >/tmp/ryoku-shell-test-local-runtime.log 2>&1 &
     sleep 3
 
     step "runtime logs"
-    bash scripts/inir logs
+    bash scripts/ryoku-shell logs
 
     step "runtime filtered errors"
     bash "$launcher" logs --full | grep -iE 'error|ReferenceError|TypeError|binding loop' | tail -80 || true

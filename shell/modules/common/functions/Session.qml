@@ -79,7 +79,7 @@ Singleton {
     }
 
     function lock() {
-        Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "lock", "activate"]);
+        Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "lock", "activate"]);
     }
 
     function suspend() {

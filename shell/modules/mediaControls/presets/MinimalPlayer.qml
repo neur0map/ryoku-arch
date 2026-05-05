@@ -32,7 +32,7 @@ Item {
     
     StyledRectangularShadow { 
         target: card
-        visible: Appearance.angelEverywhere || (!Appearance.inirEverywhere && !Appearance.auroraEverywhere)
+        visible: Appearance.angelEverywhere || (!Appearance.ryokuEverywhere && !Appearance.auroraEverywhere)
     }
     
     Rectangle {
@@ -40,14 +40,14 @@ Item {
         anchors.centerIn: parent
         width: parent.width - Appearance.sizes.elevationMargin
         height: parent.height - Appearance.sizes.elevationMargin
-        radius: Appearance.inirEverywhere ? Appearance.inir.roundingNormal : root.radius
-        color: Appearance.inirEverywhere ? playerBase.inirLayer1
+        radius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal : root.radius
+        color: Appearance.ryokuEverywhere ? playerBase.ryokuLayer1
              : Appearance.auroraEverywhere ? ColorUtils.transparentize(
                  blendedColors?.colLayer0 ?? Appearance.colors.colLayer0, 0.7
                )
              : (blendedColors?.colLayer0 ?? Appearance.colors.colLayer0)
-        border.width: Appearance.inirEverywhere ? 1 : 0
-        border.color: Appearance.inirEverywhere ? Appearance.inir.colBorder : "transparent"
+        border.width: Appearance.ryokuEverywhere ? 1 : 0
+        border.color: Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder : "transparent"
         clip: true
         
         layer.enabled: true
@@ -80,14 +80,14 @@ Item {
                 Layout.alignment: Qt.AlignVCenter
                 artSource: playerBase.displayedArtFilePath
                 downloaded: playerBase.downloaded
-                artRadius: Appearance.inirEverywhere 
-                    ? Appearance.inir.roundingSmall 
+                artRadius: Appearance.ryokuEverywhere 
+                    ? Appearance.ryoku.roundingSmall 
                     : Appearance.rounding.small
-                placeholderColor: Appearance.inirEverywhere 
-                    ? playerBase.inirLayer2 
+                placeholderColor: Appearance.ryokuEverywhere 
+                    ? playerBase.ryokuLayer2 
                     : (blendedColors?.colLayer1 ?? Appearance.colors.colLayer1)
-                iconColor: Appearance.inirEverywhere 
-                    ? playerBase.inirTextSecondary 
+                iconColor: Appearance.ryokuEverywhere 
+                    ? playerBase.ryokuTextSecondary 
                     : (blendedColors?.colSubtext ?? Appearance.colors.colSubtext)
                 iconSize: 26
                 enableBlurTransition: false
@@ -105,8 +105,8 @@ Item {
                     text: StringUtils.cleanMusicTitle(playerBase.effectiveTitle) || "—"
                     font.pixelSize: Appearance.font.pixelSize.normal
                     font.weight: Font.Medium
-                    color: Appearance.inirEverywhere 
-                        ? playerBase.inirText 
+                    color: Appearance.ryokuEverywhere 
+                        ? playerBase.ryokuText 
                         : (blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
                     elide: Text.ElideRight
                     animateChange: true
@@ -118,8 +118,8 @@ Item {
                     Layout.fillWidth: true
                     text: playerBase.effectiveArtist || ""
                     font.pixelSize: Appearance.font.pixelSize.smaller
-                    color: Appearance.inirEverywhere 
-                        ? playerBase.inirTextSecondary 
+                    color: Appearance.ryokuEverywhere 
+                        ? playerBase.ryokuTextSecondary 
                         : (blendedColors?.colSubtext ?? Appearance.colors.colSubtext)
                     elide: Text.ElideRight
                     visible: text !== ""
@@ -135,13 +135,13 @@ Item {
                     length: playerBase.effectiveLength
                     canSeek: playerBase.effectiveCanSeek
                     isPlaying: playerBase.effectiveIsPlaying
-                    highlightColor: Appearance.inirEverywhere 
-                        ? playerBase.inirPrimary
+                    highlightColor: Appearance.ryokuEverywhere 
+                        ? playerBase.ryokuPrimary
                         : Appearance.auroraEverywhere 
                             ? Appearance.colors.colPrimary
                             : (blendedColors?.colPrimary ?? Appearance.colors.colPrimary)
-                    trackColor: Appearance.inirEverywhere 
-                        ? playerBase.inirLayer2
+                    trackColor: Appearance.ryokuEverywhere 
+                        ? playerBase.ryokuLayer2
                         : Appearance.auroraEverywhere 
                             ? Appearance.aurora.colElevatedSurface
                             : (blendedColors?.colSecondaryContainer ?? Appearance.colors.colSecondaryContainer)
@@ -162,28 +162,28 @@ Item {
                         iconSize: 18
                         playIconSize: 20
                         isPlaying: playerBase.effectiveIsPlaying
-                        buttonRadius: Appearance.inirEverywhere 
-                            ? Appearance.inir.roundingSmall 
+                        buttonRadius: Appearance.ryokuEverywhere 
+                            ? Appearance.ryoku.roundingSmall 
                             : Appearance.rounding.full
-                        buttonHoverColor: Appearance.inirEverywhere 
-                            ? Appearance.inir.colLayer2Hover
+                        buttonHoverColor: Appearance.ryokuEverywhere 
+                            ? Appearance.ryoku.colLayer2Hover
                             : Appearance.auroraEverywhere 
                                 ? Appearance.aurora.colSubSurface
                                 : ColorUtils.transparentize(
                                     blendedColors?.colLayer1 ?? Appearance.colors.colLayer1, 0.5
                                   )
-                        buttonRippleColor: Appearance.inirEverywhere 
-                            ? Appearance.inir.colLayer2Active
+                        buttonRippleColor: Appearance.ryokuEverywhere 
+                            ? Appearance.ryoku.colLayer2Active
                             : Appearance.auroraEverywhere 
                                 ? Appearance.aurora.colSubSurfaceActive
                                 : (blendedColors?.colLayer1Active ?? Appearance.colors.colLayer1Active)
-                        iconColor: Appearance.inirEverywhere 
-                            ? playerBase.inirText
+                        iconColor: Appearance.ryokuEverywhere 
+                            ? playerBase.ryokuText
                             : Appearance.auroraEverywhere 
                                 ? Appearance.colors.colOnLayer0
                                 : (blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
-                        playIconColor: Appearance.inirEverywhere 
-                            ? playerBase.inirPrimary
+                        playIconColor: Appearance.ryokuEverywhere 
+                            ? playerBase.ryokuPrimary
                             : Appearance.auroraEverywhere 
                                 ? Appearance.colors.colOnLayer0
                                 : Appearance.colors.colOnLayer1
@@ -201,8 +201,8 @@ Item {
                             + StringUtils.friendlyTimeForSeconds(playerBase.effectiveLength)
                         font.pixelSize: Appearance.font.pixelSize.smallest
                         font.family: Appearance.font.family.numbers
-                        color: Appearance.inirEverywhere 
-                            ? playerBase.inirTextSecondary 
+                        color: Appearance.ryokuEverywhere 
+                            ? playerBase.ryokuTextSecondary 
                             : (blendedColors?.colSubtext ?? Appearance.colors.colSubtext)
                     }
                 }

@@ -9,7 +9,7 @@ import qs.modules.common
 /**
  * FontSyncService - Synchronizes shell fonts with GTK and KDE applications.
  *
- * When the user changes typography settings in iNiR, this service automatically
+ * When the user changes typography settings in Ryoku, this service automatically
  * updates the system font settings for GTK (via gsettings) and KDE (via kwriteconfig6).
  */
 Singleton {

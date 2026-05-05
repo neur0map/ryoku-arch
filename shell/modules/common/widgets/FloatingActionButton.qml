@@ -16,19 +16,19 @@ RippleButton {
     implicitHeight: baseSize
     buttonRadius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal : (baseSize / 14 * 4)
     colBackground: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                 : Appearance.inirEverywhere ? Appearance.inir.colPrimaryContainer
+                 : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimaryContainer
                  : Appearance.auroraEverywhere ? Appearance.m3colors.m3primaryContainer
                  : Appearance.colors.colPrimaryContainer
     colBackgroundHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-                      : Appearance.inirEverywhere ? Appearance.inir.colPrimaryContainerHover
+                      : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimaryContainerHover
                       : Appearance.auroraEverywhere ? Appearance.m3colors.m3primaryContainer
                       : Appearance.colors.colPrimaryContainerHover
     colRipple: Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
-             : Appearance.inirEverywhere ? Appearance.inir.colPrimaryContainerActive
+             : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimaryContainerActive
              : Appearance.auroraEverywhere ? Appearance.m3colors.m3primaryContainer
              : Appearance.colors.colPrimaryContainerActive
     property color colOnBackground: Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                                  : Appearance.inirEverywhere ? Appearance.inir.colOnPrimaryContainer
+                                  : Appearance.ryokuEverywhere ? Appearance.ryoku.colOnPrimaryContainer
                                   : Appearance.auroraEverywhere ? Appearance.m3colors.m3onPrimaryContainer
                                   : Appearance.colors.colOnPrimaryContainer
     contentItem: Row {

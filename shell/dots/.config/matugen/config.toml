@@ -1,4 +1,4 @@
-# iNiR theming template configuration
+# Ryoku theming template configuration
 #
 # Templates are rendered by generate_colors_material.py (--render-templates flag).
 # The Python pipeline generates Material You colors AND renders all templates in
@@ -63,4 +63,4 @@ post_hook = 'bash -lc "[[ -x ~/.local/bin/sync-pixel-sddm.py && -d /usr/share/sd
 # Zed Editor Theme
 [templates.zed]
 input_path = '~/.config/matugen/templates/zed-colors.json'
-output_path = '~/.config/zed/themes/iNiR-alt.json'
+output_path = '~/.config/zed/themes/Ryoku-alt.json'

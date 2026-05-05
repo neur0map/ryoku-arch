@@ -13,7 +13,7 @@ import sys
 
 def resolve_shell_config_dir() -> str:
     xdg_config = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
-    new_dir = os.path.join(xdg_config, "inir")
+    new_dir = os.path.join(xdg_config, "ryoku-shell")
     legacy_dir = os.path.join(xdg_config, "illogical-impulse")
 
     if os.path.islink(legacy_dir) and os.path.isdir(new_dir):
@@ -27,7 +27,7 @@ def resolve_shell_config_dir() -> str:
 
 plugins_dir = os.path.join(resolve_shell_config_dir(), "plugins")
 
-# Find defaults/plugins/ relative to this script's location in the iNiR repo
+# Find defaults/plugins/ relative to this script's location in the Ryoku repo
 # scripts/scan-plugins.py → ../defaults/plugins/
 script_dir = os.path.dirname(os.path.abspath(__file__))
 defaults_dir = os.path.join(script_dir, "..", "defaults", "plugins")

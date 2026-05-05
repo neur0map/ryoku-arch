@@ -5,10 +5,10 @@ import subprocess
 import time
 
 def resolve_launcher():
-    env_launcher = os.environ.get("INIR_LAUNCHER_PATH")
-    script_launcher = Path(__file__).resolve().parents[1] / "inir"
-    xdg_bin_launcher = Path(os.environ.get("XDG_BIN_HOME", "~/.local/bin")).expanduser() / "inir"
-    path_launcher = shutil.which("inir")
+    env_launcher = os.environ.get("RYOKU_SHELL_LAUNCHER_PATH")
+    script_launcher = Path(__file__).resolve().parents[1] / "ryoku-shell"
+    xdg_bin_launcher = Path(os.environ.get("XDG_BIN_HOME", "~/.local/bin")).expanduser() / "ryoku-shell"
+    path_launcher = shutil.which("ryoku-shell")
 
     for candidate in (env_launcher, str(script_launcher), str(xdg_bin_launcher), path_launcher):
         if not candidate:
@@ -23,7 +23,7 @@ def main():
         if launcher:
             subprocess.Popen([launcher, "lock", "activate"])
         else:
-            print("Failed to lock: could not resolve inir launcher")
+            print("Failed to lock: could not resolve ryoku-shell launcher")
     except Exception as e:
         print(f"Failed to lock: {e}")
 

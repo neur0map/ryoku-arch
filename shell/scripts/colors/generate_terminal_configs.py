@@ -282,7 +282,7 @@ def fix_alacritty_import_order(config_path):
 
     # Build new content: [general] with import at top, then rest of config
     new_lines = [
-        "# iNiR wallpaper theming - import must be at top to override colors",
+        "# Ryoku wallpaper theming - import must be at top to override colors",
         "[general]",
         import_line,
     ]
@@ -294,10 +294,10 @@ def fix_alacritty_import_order(config_path):
     for line in lines:
         stripped = line.strip()
 
-        # Skip old bare import lines and their iNiR comments
+        # Skip old bare import lines and their Ryoku comments
         if re.match(bare_import_pat, stripped):
             continue
-        if stripped.startswith("# iNiR wallpaper theming"):
+        if stripped.startswith("# Ryoku wallpaper theming"):
             continue
 
         # Handle existing [general] section - absorb its non-import content
@@ -329,7 +329,7 @@ def fix_alacritty_import_order(config_path):
                 added_colors_comment = True
                 new_lines.append("")
                 new_lines.append(
-                    "# Color definitions commented out by iNiR wallpaper theming"
+                    "# Color definitions commented out by Ryoku wallpaper theming"
                 )
                 new_lines.append(
                     "# Colors are managed via the import in [general] above"
@@ -418,7 +418,7 @@ white   = '{colors.get("term15", "#EBDBB2")}'
     else:
         # Create new config with [general] import at top
         new_conf = (
-            "# iNiR wallpaper theming\n"
+            "# Ryoku wallpaper theming\n"
             "[general]\n"
             'import = ["~/.config/alacritty/colors.toml"]\n'
         )

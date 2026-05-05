@@ -37,27 +37,27 @@ RippleButton {
     implicitHeight: rowLayout.implicitHeight + root.buttonVerticalPadding * 2
     implicitWidth: rowLayout.implicitWidth + root.buttonHorizontalPadding * 2
     buttonRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-        : Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.small
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.small
     // M3 consistent colors: transparent by default, layer3 on hover/select, primaryContainer on press
     colBackground: (root.down || root.keyboardDown) 
         ? (Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
-            : Appearance.inirEverywhere ? Appearance.inir.colPrimaryActive : Appearance.colors.colPrimaryContainerActive)
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimaryActive : Appearance.colors.colPrimaryContainerActive)
         : ((root.hovered || root.focus || root.isSelected) 
             ? (Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-                : Appearance.inirEverywhere ? Appearance.inir.colLayer3 
+                : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer3 
                 : Appearance.auroraEverywhere ? Appearance.colors.colLayer3 
                 : Appearance.colors.colLayer3)
             : "transparent")
     colBackgroundHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer3Hover 
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer3Hover 
         : Appearance.auroraEverywhere ? Appearance.colors.colLayer3Hover 
         : Appearance.colors.colLayer3Hover
     colRipple: Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
-        : Appearance.inirEverywhere ? Appearance.inir.colPrimaryActive 
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimaryActive 
         : Appearance.auroraEverywhere ? Appearance.colors.colLayer3Active 
         : Appearance.colors.colPrimaryContainerActive
 
-    property string highlightPrefix: `<u><font color="${Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary}">`
+    property string highlightPrefix: `<u><font color="${Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary}">`
     property string highlightSuffix: `</font></u>`
     function highlightContent(content, query) {
         if (!query || query.length === 0 || content == query || fontType === "monospace")
@@ -163,7 +163,7 @@ RippleButton {
             MaterialSymbol {
                 text: root.materialSymbol
                 iconSize: 30
-                color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.m3colors.m3onSurface
+                color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.m3colors.m3onSurface
             }
         }
 
@@ -172,7 +172,7 @@ RippleButton {
             StyledText {
                 text: root.bigText
                 font.pixelSize: Appearance.font.pixelSize.larger
-                color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.m3colors.m3onSurface
+                color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.m3colors.m3onSurface
             }
         }
 
@@ -184,7 +184,7 @@ RippleButton {
             spacing: 0
             StyledText {
                 font.pixelSize: Appearance.font.pixelSize.smaller
-                color: (root.isSelected || root.hovered || root.focus) ? (Appearance.inirEverywhere ? Appearance.inir.colOnSelection : Appearance.m3colors.m3onPrimaryContainer) : (Appearance.inirEverywhere ? Appearance.inir.colTextSecondary : Appearance.colors.colSubtext)
+                color: (root.isSelected || root.hovered || root.focus) ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colOnSelection : Appearance.m3colors.m3onPrimaryContainer) : (Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary : Appearance.colors.colSubtext)
                 visible: root.itemType && root.itemType != Translation.tr("App")
                 text: root.itemType
             }
@@ -195,14 +195,14 @@ RippleButton {
                     sourceComponent: Rectangle {
                         implicitWidth: activeText.implicitHeight
                         implicitHeight: activeText.implicitHeight
-                        radius: Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.full
-                        color: Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary
+                        radius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.full
+                        color: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary
                         MaterialSymbol {
                             id: activeText
                             anchors.centerIn: parent
                             text: "check"
                             font.pixelSize: Appearance.font.pixelSize.normal
-                            color: Appearance.inirEverywhere ? Appearance.inir.colOnPrimary : Appearance.m3colors.m3onPrimary
+                            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colOnPrimary : Appearance.m3colors.m3onPrimary
                         }
                     }
                 }
@@ -220,7 +220,7 @@ RippleButton {
                     textFormat: Text.StyledText // RichText also works, but StyledText ensures elide work
                     font.pixelSize: Appearance.font.pixelSize.small
                     font.family: Appearance.font.family[root.fontType]
-                    color: (root.isSelected || root.hovered || root.focus) ? (Appearance.inirEverywhere ? Appearance.inir.colOnSelection : Appearance.m3colors.m3onPrimaryContainer) : (Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.m3colors.m3onSurface)
+                    color: (root.isSelected || root.hovered || root.focus) ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colOnSelection : Appearance.m3colors.m3onPrimaryContainer) : (Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.m3colors.m3onSurface)
                     horizontalAlignment: Text.AlignLeft
                     elide: Text.ElideRight
                     text: `${root.displayContent}`
@@ -246,7 +246,7 @@ RippleButton {
             visible: (root.hovered || root.focus)
             id: clickAction
             font.pixelSize: Appearance.font.pixelSize.normal
-            color: Appearance.inirEverywhere ? Appearance.inir.colOnSelection : Appearance.colors.colOnPrimaryContainer
+            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colOnSelection : Appearance.colors.colOnPrimaryContainer
             horizontalAlignment: Text.AlignRight
             text: root.itemClickActionName
         }
@@ -267,10 +267,10 @@ RippleButton {
                     property string materialIconName: modelData.materialIcon ?? ""
                     implicitHeight: 32
                     implicitWidth: 32
-                    buttonRadius: Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.small
+                    buttonRadius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.small
 
-                    colBackgroundHover: Appearance.inirEverywhere ? Appearance.inir.colLayer3Hover : Appearance.colors.colLayer4Hover
-                    colRipple: Appearance.inirEverywhere ? Appearance.inir.colPrimaryActive : Appearance.colors.colLayer4Active
+                    colBackgroundHover: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer3Hover : Appearance.colors.colLayer4Hover
+                    colRipple: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimaryActive : Appearance.colors.colLayer4Active
 
                     contentItem: Item {
                         id: actionContentItem
@@ -281,7 +281,7 @@ RippleButton {
                             sourceComponent: MaterialSymbol {
                                 text: actionButton.materialIconName
                                 font.pixelSize: Appearance.font.pixelSize.large
-                                color: Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.m3colors.m3onSurface
+                                color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.m3colors.m3onSurface
                             }
                         }
                         Loader {

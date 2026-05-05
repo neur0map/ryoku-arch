@@ -367,7 +367,7 @@ ContentPage {
         const icons = {
             "System": "settings_power",
             "ii Shell": "auto_awesome",
-            "iNiR Shell": "auto_awesome",
+            "Ryoku Shell": "auto_awesome",
             "Window Switcher": "swap_horiz",
             "Screenshots": "screenshot_region",
             "Applications": "apps",

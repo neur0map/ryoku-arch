@@ -64,7 +64,7 @@ Rectangle {
     }
 
     radius: cleanLayout ? 0 : Appearance.rounding.normal
-    color: cleanLayout ? "transparent" : (Appearance.inirEverywhere ? Appearance.inir.colLayer1 : (Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface : Appearance.colors.colLayer1))
+    color: cleanLayout ? "transparent" : (Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1 : (Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface : Appearance.colors.colLayer1))
 
     ColumnLayout {
         id: columnLayout

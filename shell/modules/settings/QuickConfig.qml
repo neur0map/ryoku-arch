@@ -45,13 +45,13 @@ ContentPage {
                 Layout.preferredHeight: 220
                 radius: Appearance.rounding.normal
                 color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                     : Appearance.inirEverywhere ? Appearance.inir.colLayer0
+                     : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer0
                      : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
                      : Appearance.colors.colLayer0
                 border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth
-                    : Appearance.inirEverywhere ? 1 : (Appearance.auroraEverywhere ? 0 : 1)
+                    : Appearance.ryokuEverywhere ? 1 : (Appearance.auroraEverywhere ? 0 : 1)
                 border.color: Appearance.angelEverywhere ? Appearance.angel.colCardBorder
-                           : Appearance.inirEverywhere ? Appearance.inir.colBorder
+                           : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
                            : Appearance.colors.colLayer0Border
                 layer.enabled: true
                 layer.smooth: true
@@ -387,7 +387,7 @@ ContentPage {
                                 if (Config.options?.background?.multiMonitor?.enable && multiMonitorPanel.selectedMonitor) {
                                     Config.setNestedValue("wallpaperSelector.targetMonitor", multiMonitorPanel.selectedMonitor)
                                 }
-                                Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "wallpaperSelector", "toggle"]);
+                                Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "wallpaperSelector", "toggle"]);
                             }
                             StyledToolTip {
                                 text: Translation.tr("Open the full wallpaper selector overlay")
@@ -401,12 +401,12 @@ ContentPage {
                         Layout.preferredHeight: visible ? bdModeRow.implicitHeight + 12 : 0
                         visible: multiMonitorPanel.visible && multiMonitorPanel.backdropViewActive
                         radius: Appearance.rounding.small
-                        color: Appearance.inirEverywhere
-                            ? Qt.rgba(Appearance.inir.colAccent.r, Appearance.inir.colAccent.g, Appearance.inir.colAccent.b, 0.15)
+                        color: Appearance.ryokuEverywhere
+                            ? Qt.rgba(Appearance.ryoku.colAccent.r, Appearance.ryoku.colAccent.g, Appearance.ryoku.colAccent.b, 0.15)
                             : Qt.rgba(Appearance.colors.colTertiary.r, Appearance.colors.colTertiary.g, Appearance.colors.colTertiary.b, 0.15)
                         border.width: 1
-                        border.color: Appearance.inirEverywhere
-                            ? Qt.rgba(Appearance.inir.colAccent.r, Appearance.inir.colAccent.g, Appearance.inir.colAccent.b, 0.3)
+                        border.color: Appearance.ryokuEverywhere
+                            ? Qt.rgba(Appearance.ryoku.colAccent.r, Appearance.ryoku.colAccent.g, Appearance.ryoku.colAccent.b, 0.3)
                             : Qt.rgba(Appearance.colors.colTertiary.r, Appearance.colors.colTertiary.g, Appearance.colors.colTertiary.b, 0.3)
 
                         RowLayout {
@@ -417,13 +417,13 @@ ContentPage {
                             MaterialSymbol {
                                 text: "blur_on"
                                 font.pixelSize: Appearance.font.pixelSize.normal
-                                color: Appearance.inirEverywhere ? Appearance.inir.colAccent : Appearance.colors.colTertiary
+                                color: Appearance.ryokuEverywhere ? Appearance.ryoku.colAccent : Appearance.colors.colTertiary
                             }
                             StyledText {
                                 Layout.fillWidth: true
                                 text: Translation.tr("Selecting backdrop wallpaper")
                                 font.pixelSize: Appearance.font.pixelSize.small
-                                color: Appearance.inirEverywhere ? Appearance.inir.colOnLayer1 : Appearance.colors.colOnLayer1
+                                color: Appearance.ryokuEverywhere ? Appearance.ryoku.colOnLayer1 : Appearance.colors.colOnLayer1
                             }
                             MaterialSymbol {
                                 text: "close"
@@ -456,13 +456,13 @@ ContentPage {
                         }
                         radius: Appearance.rounding.normal
                         color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                             : Appearance.inirEverywhere ? Appearance.inir.colLayer0
+                             : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer0
                              : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
                              : Appearance.colors.colLayer0
                         border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth
-                            : Appearance.inirEverywhere ? 1 : (Appearance.auroraEverywhere ? 0 : 1)
+                            : Appearance.ryokuEverywhere ? 1 : (Appearance.auroraEverywhere ? 0 : 1)
                         border.color: Appearance.angelEverywhere ? Appearance.angel.colCardBorder
-                                   : Appearance.inirEverywhere ? Appearance.inir.colBorder
+                                   : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
                                    : Appearance.colors.colLayer0Border
                         clip: true
 
@@ -639,13 +639,13 @@ ContentPage {
                     Layout.preferredHeight: 220
                     radius: Appearance.rounding.normal
                     color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                         : Appearance.inirEverywhere ? Appearance.inir.colLayer0
+                         : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer0
                          : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
                          : Appearance.colors.colLayer0
                     border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth
-                        : Appearance.inirEverywhere ? 1 : (Appearance.auroraEverywhere ? 0 : 1)
+                        : Appearance.ryokuEverywhere ? 1 : (Appearance.auroraEverywhere ? 0 : 1)
                     border.color: Appearance.angelEverywhere ? Appearance.angel.colCardBorder
-                               : Appearance.inirEverywhere ? Appearance.inir.colBorder
+                               : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
                                : Appearance.colors.colLayer0Border
 
                     RowLayout {
@@ -702,14 +702,14 @@ ContentPage {
                                     height: monitorCard.height
                                     radius: Appearance.rounding.small
                                     color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                                         : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+                                         : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
                                          : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
                                          : Appearance.colors.colLayer1
                                     border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth
-                                        : Appearance.inirEverywhere ? 1 : (monitorStack.showingBackdrop ? 2 : 1)
+                                        : Appearance.ryokuEverywhere ? 1 : (monitorStack.showingBackdrop ? 2 : 1)
                                     border.color: monitorStack.showingBackdrop
-                                        ? (Appearance.angelEverywhere ? (Appearance.angel?.colPrimary ?? Appearance.colors.colPrimary) : Appearance.inirEverywhere ? (Appearance.inir?.colAccent ?? Appearance.colors.colPrimary) : Appearance.colors.colPrimary)
-                                        : (Appearance.angelEverywhere ? (Appearance.angel?.colCardBorder ?? Appearance.colors.colLayer0Border) : Appearance.inirEverywhere ? (Appearance.inir?.colBorder ?? Appearance.colors.colLayer0Border) : Appearance.colors.colLayer0Border)
+                                        ? (Appearance.angelEverywhere ? (Appearance.angel?.colPrimary ?? Appearance.colors.colPrimary) : Appearance.ryokuEverywhere ? (Appearance.ryoku?.colAccent ?? Appearance.colors.colPrimary) : Appearance.colors.colPrimary)
+                                        : (Appearance.angelEverywhere ? (Appearance.angel?.colCardBorder ?? Appearance.colors.colLayer0Border) : Appearance.ryokuEverywhere ? (Appearance.ryoku?.colBorder ?? Appearance.colors.colLayer0Border) : Appearance.colors.colLayer0Border)
                                     clip: true
                                     z: monitorStack.showingBackdrop ? 2 : 0
                                     opacity: monitorStack.showingBackdrop ? 1.0 : 0.6
@@ -810,7 +810,7 @@ ContentPage {
                                         color: "transparent"
                                         visible: monitorStack.showingBackdrop && monitorStack.isSelected
                                         border.width: 2
-                                        border.color: Appearance.inirEverywhere ? Appearance.inir.colAccent : Appearance.colors.colPrimary
+                                        border.color: Appearance.ryokuEverywhere ? Appearance.ryoku.colAccent : Appearance.colors.colPrimary
                                     }
                                 }
 
@@ -825,14 +825,14 @@ ContentPage {
 
                                     radius: Appearance.rounding.small
                                     color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                                         : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+                                         : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
                                          : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
                                          : Appearance.colors.colLayer1
                                     border.width: monitorStack.isSelected && !monitorStack.showingBackdrop
-                                        ? (Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth : Appearance.inirEverywhere ? 1 : 2) : (Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth : Appearance.inirEverywhere ? 1 : 0)
+                                        ? (Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth : Appearance.ryokuEverywhere ? 1 : 2) : (Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth : Appearance.ryokuEverywhere ? 1 : 0)
                                     border.color: monitorStack.isSelected && !monitorStack.showingBackdrop
-                                        ? (Appearance.angelEverywhere ? Appearance.angel.colPrimary : Appearance.inirEverywhere ? Appearance.inir.colAccent : Appearance.colors.colPrimary)
-                                        : (Appearance.angelEverywhere ? Appearance.angel.colCardBorder : Appearance.inirEverywhere ? Appearance.inir.colBorder : "transparent")
+                                        ? (Appearance.angelEverywhere ? Appearance.angel.colPrimary : Appearance.ryokuEverywhere ? Appearance.ryoku.colAccent : Appearance.colors.colPrimary)
+                                        : (Appearance.angelEverywhere ? Appearance.angel.colCardBorder : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder : "transparent")
                                     clip: true
 
                                     layer.enabled: true
@@ -984,12 +984,12 @@ ContentPage {
                                         width: Appearance.font.pixelSize.normal + 2
                                         height: width
                                         radius: width / 2
-                                        color: Appearance.inirEverywhere ? Appearance.inir.colAccent : Appearance.colors.colPrimary
+                                        color: Appearance.ryokuEverywhere ? Appearance.ryoku.colAccent : Appearance.colors.colPrimary
                                         MaterialSymbol {
                                             anchors.centerIn: parent
                                             text: "check"
                                             font.pixelSize: Appearance.font.pixelSize.small
-                                            color: Appearance.inirEverywhere ? Appearance.inir.colOnPrimary : Appearance.colors.colOnPrimary
+                                            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colOnPrimary : Appearance.colors.colOnPrimary
                                         }
                                     }
 
@@ -1029,13 +1029,13 @@ ContentPage {
                     implicitHeight: splitPreviewCol.implicitHeight
                     radius: Appearance.rounding.normal
                     color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                         : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+                         : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
                          : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
                          : Appearance.colors.colLayer1
                     border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth
-                        : Appearance.inirEverywhere ? 1 : (Appearance.auroraEverywhere ? 0 : 1)
+                        : Appearance.ryokuEverywhere ? 1 : (Appearance.auroraEverywhere ? 0 : 1)
                     border.color: Appearance.angelEverywhere ? (Appearance.angel?.colCardBorder ?? Appearance.colors.colLayer0Border)
-                               : Appearance.inirEverywhere ? (Appearance.inir?.colBorder ?? Appearance.colors.colLayer0Border)
+                               : Appearance.ryokuEverywhere ? (Appearance.ryoku?.colBorder ?? Appearance.colors.colLayer0Border)
                                : Appearance.colors.colLayer0Border
                     clip: true
 
@@ -1079,14 +1079,14 @@ ContentPage {
 
                                         radius: Appearance.rounding.small
                                         color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                                             : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+                                             : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
                                              : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
                                              : Appearance.colors.colLayer1
                                         border.width: splitMonCard.isSelected
-                                            ? (Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth : Appearance.inirEverywhere ? 1 : 2) : (Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth : Appearance.inirEverywhere ? 1 : 0)
+                                            ? (Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth : Appearance.ryokuEverywhere ? 1 : 2) : (Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth : Appearance.ryokuEverywhere ? 1 : 0)
                                         border.color: splitMonCard.isSelected
-                                            ? (Appearance.angelEverywhere ? Appearance.angel.colPrimary : Appearance.inirEverywhere ? Appearance.inir.colAccent : Appearance.colors.colPrimary)
-                                            : (Appearance.angelEverywhere ? Appearance.angel.colCardBorder : Appearance.inirEverywhere ? Appearance.inir.colBorder : "transparent")
+                                            ? (Appearance.angelEverywhere ? Appearance.angel.colPrimary : Appearance.ryokuEverywhere ? Appearance.ryoku.colAccent : Appearance.colors.colPrimary)
+                                            : (Appearance.angelEverywhere ? Appearance.angel.colCardBorder : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder : "transparent")
                                         clip: true
 
                                         scale: splitMonCard.isSelected ? 1.0 : 0.95
@@ -1219,12 +1219,12 @@ ContentPage {
                                             width: Appearance.font.pixelSize.normal + 2
                                             height: width
                                             radius: width / 2
-                                            color: Appearance.inirEverywhere ? Appearance.inir.colAccent : Appearance.colors.colPrimary
+                                            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colAccent : Appearance.colors.colPrimary
                                             MaterialSymbol {
                                                 anchors.centerIn: parent
                                                 text: "check"
                                                 font.pixelSize: Appearance.font.pixelSize.small
-                                                color: Appearance.inirEverywhere ? Appearance.inir.colOnPrimary : Appearance.colors.colOnPrimary
+                                                color: Appearance.ryokuEverywhere ? Appearance.ryoku.colOnPrimary : Appearance.colors.colOnPrimary
                                             }
                                         }
 
@@ -1318,7 +1318,7 @@ ContentPage {
                                         if (mon) {
                                             Config.setNestedValue("wallpaperSelector.selectionTarget", "main")
                                             Config.setNestedValue("wallpaperSelector.targetMonitor", mon)
-                                            Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "wallpaperSelector", "toggle"])
+                                            Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "wallpaperSelector", "toggle"])
                                         }
                                     }
                                 }
@@ -1388,7 +1388,7 @@ ContentPage {
                                     visible: multiMonitorPanel.backdropEnabled
                                     onClicked: {
                                         Config.setNestedValue("wallpaperSelector.selectionTarget", "backdrop")
-                                        Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "wallpaperSelector", "toggle"])
+                                        Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "wallpaperSelector", "toggle"])
                                     }
                                     StyledToolTip {
                                         text: Translation.tr("Change the backdrop wallpaper (used for overview/blur)")
@@ -1690,7 +1690,7 @@ ContentPage {
                     buttonRadius: Appearance.rounding.small
                     materialIcon: "keyboard"
                     mainText: Translation.tr("Shortcuts")
-                    onClicked: Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "cheatsheet", "toggle"])
+                    onClicked: Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "cheatsheet", "toggle"])
                 }
             }
 

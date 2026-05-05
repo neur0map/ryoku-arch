@@ -51,15 +51,15 @@ WBarAttachedPanelContent {
             Quickshell.execDetached(["/usr/bin/nautilus"])
             break
         case "terminal":
-            Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "terminal"])
+            Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "terminal"])
             break
         case "settings":
-            Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "settings"])
+            Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "settings"])
             break
         case "wallpaper": {
             const useMain = Config.options?.waffles?.background?.useMainWallpaper ?? true
             Config.setNestedValue("wallpaperSelector.selectionTarget", useMain ? "main" : "waffle")
-            Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "wallpaperSelector", "toggle"])
+            Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "wallpaperSelector", "toggle"])
             break
         }
         case "screenshot":
@@ -144,7 +144,7 @@ WBarAttachedPanelContent {
                             implicitSize: Looks.dp(16)
                         }
                         onClicked: {
-                            Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "settings"])
+                            Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "settings"])
                             GlobalStates.waffleWidgetsOpen = false
                         }
                     }

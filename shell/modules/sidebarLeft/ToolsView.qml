@@ -19,18 +19,18 @@ Item {
 
     // Style tokens
     readonly property color colText: Appearance.angelEverywhere ? Appearance.angel.colText
-        : Appearance.inirEverywhere ? Appearance.inir.colText : Appearance.colors.colOnLayer1
-    readonly property color colTextSecondary: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary : Appearance.colors.colSubtext
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnLayer1
+    readonly property color colTextSecondary: Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary : Appearance.colors.colSubtext
     readonly property color colBg: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
         : Appearance.auroraEverywhere ? "transparent"
         : Appearance.colors.colLayer1
     readonly property color colBgHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer1Hover
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1Hover
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
         : Appearance.colors.colLayer1Hover
     readonly property real radius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-        : Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.verysmall
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.verysmall
 
     Flickable {
         id: flickable
@@ -139,17 +139,17 @@ Item {
                     ActionTile {
                         tileIcon: "screenshot_region"
                         label: Translation.tr("Region")
-                        onClicked: Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "region", "screenshot"])
+                        onClicked: Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "region", "screenshot"])
                     }
                     ActionTile {
                         tileIcon: "videocam"
                         label: Translation.tr("Record")
-                        onClicked: Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "region", "record"])
+                        onClicked: Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "region", "record"])
                     }
                     ActionTile {
                         tileIcon: "text_fields"
                         label: Translation.tr("OCR")
-                        onClicked: Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "region", "ocr"])
+                        onClicked: Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "region", "ocr"])
                     }
                     ActionTile {
                         tileIcon: "colorize"
@@ -180,7 +180,7 @@ Item {
                     ActionTile {
                         tileIcon: "terminal"
                         label: Translation.tr("Terminal")
-                        onClicked: Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "terminal"])
+                        onClicked: Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "terminal"])
                     }
                     ActionTile {
                         tileIcon: "folder"
@@ -190,7 +190,7 @@ Item {
                     ActionTile {
                         tileIcon: "settings"
                         label: Translation.tr("Settings")
-                        onClicked: Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "settings"])
+                        onClicked: Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "settings"])
                     }
                     ActionTile {
                         tileIcon: "tune"

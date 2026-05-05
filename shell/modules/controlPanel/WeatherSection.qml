@@ -13,7 +13,7 @@ Rectangle {
     visible: Weather.enabled && Weather.data.temp && !Weather.data.temp.startsWith("--")
     readonly property bool compactMode: Config.options?.controlPanel?.compactMode ?? true
     
-    readonly property bool inirEverywhere: Appearance.inirEverywhere
+    readonly property bool ryokuEverywhere: Appearance.ryokuEverywhere
     readonly property bool auroraEverywhere: Appearance.auroraEverywhere
     readonly property bool hideLocation: Config.options?.waffles?.widgetsPanel?.weatherHideLocation ?? false
     readonly property string weatherDescription: Weather.describeWeather(Weather.data?.wCode ?? "113")
@@ -21,14 +21,14 @@ Rectangle {
     readonly property string secondaryText: locationText || root.weatherDescription
 
     radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-        : inirEverywhere ? Appearance.inir.roundingNormal : Appearance.rounding.normal
+        : ryokuEverywhere ? Appearance.ryoku.roundingNormal : Appearance.rounding.normal
     color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-         : inirEverywhere ? Appearance.inir.colLayer1
+         : ryokuEverywhere ? Appearance.ryoku.colLayer1
          : auroraEverywhere ? Appearance.aurora.colSubSurface
          : Appearance.colors.colLayer1
-    border.width: Appearance.angelEverywhere ? 0 : (inirEverywhere ? 1 : 0)
+    border.width: Appearance.angelEverywhere ? 0 : (ryokuEverywhere ? 1 : 0)
     border.color: Appearance.angelEverywhere ? "transparent"
-        : inirEverywhere ? Appearance.inir.colBorder : "transparent"
+        : ryokuEverywhere ? Appearance.ryoku.colBorder : "transparent"
 
     AngelPartialBorder { targetRadius: parent.radius; coverage: 0.45 }
 
@@ -46,7 +46,7 @@ Rectangle {
                 text: Icons.getWeatherIcon(Weather.data?.wCode, Weather.isNightNow()) ?? "cloud"
                 iconSize: root.compactMode ? 26 : 32
                 color: Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                     : root.inirEverywhere ? Appearance.inir.colPrimary
+                     : root.ryokuEverywhere ? Appearance.ryoku.colPrimary
                      : root.auroraEverywhere ? Appearance.m3colors.m3primary
                      : Appearance.colors.colPrimary
                 Layout.alignment: Qt.AlignVCenter
@@ -58,7 +58,7 @@ Rectangle {
                 font.weight: Font.Medium
                 font.family: Appearance.font.family.numbers
                 color: Appearance.angelEverywhere ? Appearance.angel.colText
-                     : root.inirEverywhere ? Appearance.inir.colText
+                     : root.ryokuEverywhere ? Appearance.ryoku.colText
                      : root.auroraEverywhere ? Appearance.m3colors.m3onSurface
                      : Appearance.colors.colOnLayer1
                 Layout.alignment: Qt.AlignVCenter
@@ -76,7 +76,7 @@ Rectangle {
                     text: root.hideLocation ? "visibility_off" : "visibility"
                     iconSize: 14
                     color: Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
-                         : root.inirEverywhere ? Appearance.inir.colTextSecondary
+                         : root.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
                          : root.auroraEverywhere ? Appearance.m3colors.m3onSurfaceVariant
                          : Appearance.colors.colSubtext
                     opacity: root.hideLocation ? 1 : 0.7
@@ -98,10 +98,10 @@ Rectangle {
                 implicitWidth: root.compactMode ? 24 : 28
                 implicitHeight: root.compactMode ? 24 : 28
                 buttonRadius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall
-                    : root.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.full
+                    : root.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.full
                 colBackground: "transparent"
                 colBackgroundHover: Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
-                    : root.inirEverywhere ? Appearance.inir.colLayer2Hover
+                    : root.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover
                     : root.auroraEverywhere ? Appearance.aurora.colSubSurfaceHover
                     : Appearance.colors.colLayer2Hover
                 onClicked: Weather.forceRefresh()
@@ -110,7 +110,7 @@ Rectangle {
                     text: "refresh"
                     iconSize: root.compactMode ? 14 : 16
                     color: Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
-                         : root.inirEverywhere ? Appearance.inir.colTextSecondary
+                         : root.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
                          : root.auroraEverywhere ? Appearance.m3colors.m3onSurfaceVariant
                          : Appearance.colors.colSubtext
                 }
@@ -124,7 +124,7 @@ Rectangle {
             text: root.secondaryText
             font.pixelSize: root.hideLocation ? Appearance.font.pixelSize.small : Appearance.font.pixelSize.smallest
             color: Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
-                 : root.inirEverywhere ? Appearance.inir.colTextSecondary
+                 : root.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
                  : root.auroraEverywhere ? Appearance.m3colors.m3onSurfaceVariant
                  : Appearance.colors.colSubtext
             elide: Text.ElideRight

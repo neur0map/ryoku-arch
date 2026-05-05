@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 
 MIGRATION_ID="022-service-compositor-wants"
-MIGRATION_TITLE="Wire inir.service to compositor instead of graphical-session.target"
-MIGRATION_DESCRIPTION="Moves the inir.service wants link from graphical-session.target.wants/ to the detected compositor service (e.g. niri.service.wants/). Prevents inir from starting under KDE, GNOME, or other DEs."
-MIGRATION_TARGET_FILE="~/.config/systemd/user/*.wants/inir.service"
+MIGRATION_TITLE="Wire ryoku-shell.service to compositor instead of graphical-session.target"
+MIGRATION_DESCRIPTION="Moves the ryoku-shell.service wants link from graphical-session.target.wants/ to the detected compositor service (e.g. niri.service.wants/). Prevents Ryoku from starting under KDE, GNOME, or other DEs."
+MIGRATION_TARGET_FILE="~/.config/systemd/user/*.wants/ryoku-shell.service"
 MIGRATION_REQUIRED=true
 
 _systemd_user_dir="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
 
 _detect_compositor_for_migration() {
-  # Same logic as detect_compositor_service in scripts/inir.
+  # Same logic as detect_compositor_service in scripts/ryoku-shell.
   # Never falls back to graphical-session.target — that's the whole
   # point of this migration.
   if command -v systemctl >/dev/null 2>&1; then
@@ -27,7 +27,7 @@ _detect_compositor_for_migration() {
 
 migration_check() {
   # Needs migration if a graphical-session.target.wants link exists.
-  local old_link="${_systemd_user_dir}/graphical-session.target.wants/inir.service"
+  local old_link="${_systemd_user_dir}/graphical-session.target.wants/ryoku-shell.service"
 
   # No old link — nothing to migrate
   [[ -e "$old_link" || -L "$old_link" ]] || return 1
@@ -39,19 +39,19 @@ migration_check() {
 migration_preview() {
   local target
   if target="$(_detect_compositor_for_migration)"; then
-    echo -e "${STY_RED}- graphical-session.target.wants/inir.service${STY_RST}"
-    echo -e "${STY_GREEN}+ ${target}.wants/inir.service${STY_RST}"
+    echo -e "${STY_RED}- graphical-session.target.wants/ryoku-shell.service${STY_RST}"
+    echo -e "${STY_GREEN}+ ${target}.wants/ryoku-shell.service${STY_RST}"
   else
-    echo -e "${STY_RED}- graphical-session.target.wants/inir.service${STY_RST}"
+    echo -e "${STY_RED}- graphical-session.target.wants/ryoku-shell.service${STY_RST}"
     echo -e "${STY_YELLOW}  (no compositor detected — link will be removed but not rewired)${STY_RST}"
   fi
   echo ""
-  echo "This prevents iNiR from starting under KDE, GNOME, or other desktop environments."
+  echo "This prevents Ryoku from starting under KDE, GNOME, or other desktop environments."
 }
 
 migration_apply() {
-  local old_link="${_systemd_user_dir}/graphical-session.target.wants/inir.service"
-  local service_file="${_systemd_user_dir}/inir.service"
+  local old_link="${_systemd_user_dir}/graphical-session.target.wants/ryoku-shell.service"
+  local service_file="${_systemd_user_dir}/ryoku-shell.service"
 
   # Always remove the stale graphical-session.target link
   rm -f "$old_link"
@@ -61,7 +61,7 @@ migration_apply() {
   if target="$(_detect_compositor_for_migration)" && [[ -f "$service_file" ]]; then
     local new_wants_dir="${_systemd_user_dir}/${target}.wants"
     mkdir -p "$new_wants_dir"
-    ln -sf "$service_file" "$new_wants_dir/inir.service"
+    ln -sf "$service_file" "$new_wants_dir/ryoku-shell.service"
   fi
 
   if command -v systemctl >/dev/null 2>&1; then

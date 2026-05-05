@@ -109,7 +109,7 @@ WSettingsPage {
 
     function displayCategoryName(name: string): string {
         if (name === "ii Shell")
-            return Translation.tr("iNiR Shell")
+            return Translation.tr("Ryoku Shell")
         return name
     }
     

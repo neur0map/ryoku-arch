@@ -29,10 +29,10 @@ RippleButton {
     implicitWidth: contentItem.implicitWidth + 8 * 2
     implicitHeight: contentItem.implicitHeight + 4 * 2
 
-    colBackground: Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colSecondary
-    colBackgroundHover: Appearance.inirEverywhere ? Appearance.inir.colPrimaryHover : Appearance.colors.colSecondaryHover
-    colRipple: Appearance.inirEverywhere ? Appearance.inir.colPrimaryActive : Appearance.colors.colSecondaryActive
-    buttonRadius: Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.verysmall
+    colBackground: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colSecondary
+    colBackgroundHover: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimaryHover : Appearance.colors.colSecondaryHover
+    colRipple: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimaryActive : Appearance.colors.colSecondaryActive
+    buttonRadius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.verysmall
 
     downAction: () => {
         target.positionViewAtEnd()
@@ -45,14 +45,14 @@ RippleButton {
             anchors.verticalCenter: parent.verticalCenter
             text: "arrow_downward"
             font.pixelSize: Appearance.font.pixelSize.larger
-            color: Appearance.inirEverywhere ? Appearance.inir.colOnPrimary : Appearance.colors.colOnSecondary
+            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colOnPrimary : Appearance.colors.colOnSecondary
             verticalAlignment: Text.AlignVCenter
         }
         StyledText {
             anchors.verticalCenter: parent.verticalCenter
             text: Translation.tr("Scroll to Bottom")
             font.pixelSize: Appearance.font.pixelSize.smallie
-            color: Appearance.inirEverywhere ? Appearance.inir.colOnPrimary : Appearance.colors.colOnSecondary
+            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colOnPrimary : Appearance.colors.colOnSecondary
             verticalAlignment: Text.AlignVCenter
         }
     }

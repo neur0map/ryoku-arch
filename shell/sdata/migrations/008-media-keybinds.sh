@@ -14,10 +14,10 @@ migration_check() {
 }
 
 migration_preview() {
-  echo -e "${STY_GREEN}+ XF86AudioPlay { spawn \"inir\" \"mpris\" \"playPause\"; }${STY_RST}"
-  echo -e "${STY_GREEN}+ XF86AudioPause { spawn \"inir\" \"mpris\" \"playPause\"; }${STY_RST}"
-  echo -e "${STY_GREEN}+ XF86AudioNext { spawn \"inir\" \"mpris\" \"next\"; }${STY_RST}"
-  echo -e "${STY_GREEN}+ XF86AudioPrev { spawn \"inir\" \"mpris\" \"previous\"; }${STY_RST}"
+  echo -e "${STY_GREEN}+ XF86AudioPlay { spawn \"ryoku-shell\" \"mpris\" \"playPause\"; }${STY_RST}"
+  echo -e "${STY_GREEN}+ XF86AudioPause { spawn \"ryoku-shell\" \"mpris\" \"playPause\"; }${STY_RST}"
+  echo -e "${STY_GREEN}+ XF86AudioNext { spawn \"ryoku-shell\" \"mpris\" \"next\"; }${STY_RST}"
+  echo -e "${STY_GREEN}+ XF86AudioPrev { spawn \"ryoku-shell\" \"mpris\" \"previous\"; }${STY_RST}"
 }
 
 migration_apply() {
@@ -52,10 +52,10 @@ for i, line in enumerate(lines):
 if insert_idx is not None:
     media_block = '''
     // Media playback (hardware keys)
-    XF86AudioPlay { spawn "inir" "mpris" "playPause"; }
-    XF86AudioPause { spawn "inir" "mpris" "playPause"; }
-    XF86AudioNext { spawn "inir" "mpris" "next"; }
-    XF86AudioPrev { spawn "inir" "mpris" "previous"; }
+    XF86AudioPlay { spawn "ryoku-shell" "mpris" "playPause"; }
+    XF86AudioPause { spawn "ryoku-shell" "mpris" "playPause"; }
+    XF86AudioNext { spawn "ryoku-shell" "mpris" "next"; }
+    XF86AudioPrev { spawn "ryoku-shell" "mpris" "previous"; }
 '''
     lines.insert(insert_idx + 1, media_block)
     

@@ -17,11 +17,11 @@ Item {
     required property bool isPlaying
     
     // Optional properties
-    property color highlightColor: Appearance.inirEverywhere 
-        ? Appearance.inir.colPrimary 
+    property color highlightColor: Appearance.ryokuEverywhere 
+        ? Appearance.ryoku.colPrimary 
         : Appearance.colors.colPrimary
-    property color trackColor: Appearance.inirEverywhere 
-        ? Appearance.inir.colLayer2 
+    property color trackColor: Appearance.ryokuEverywhere 
+        ? Appearance.ryoku.colLayer2 
         : Appearance.colors.colSecondaryContainer
     property bool enableWavy: true
     property bool scrollable: true

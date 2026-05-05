@@ -33,7 +33,7 @@ Item {
     
     StyledRectangularShadow { 
         target: card
-        visible: Appearance.angelEverywhere || (!Appearance.inirEverywhere && !Appearance.auroraEverywhere)
+        visible: Appearance.angelEverywhere || (!Appearance.ryokuEverywhere && !Appearance.auroraEverywhere)
     }
     
     Rectangle {
@@ -41,7 +41,7 @@ Item {
         anchors.centerIn: parent
         width: parent.width - Appearance.sizes.elevationMargin
         height: parent.height - Appearance.sizes.elevationMargin
-        radius: Appearance.inirEverywhere ? Appearance.inir.roundingNormal : root.radius
+        radius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal : root.radius
         color: "transparent"
         clip: true
         
@@ -74,16 +74,16 @@ Item {
         Rectangle {
             anchors.fill: parent
             visible: !playerBase.downloaded
-            color: Appearance.inirEverywhere 
-                ? playerBase.inirLayer1
+            color: Appearance.ryokuEverywhere 
+                ? playerBase.ryokuLayer1
                 : (blendedColors?.colLayer0 ?? Appearance.colors.colLayer0)
             
             MaterialSymbol {
                 anchors.centerIn: parent
                 text: "music_note"
                 iconSize: 64
-                color: Appearance.inirEverywhere 
-                    ? playerBase.inirTextSecondary 
+                color: Appearance.ryokuEverywhere 
+                    ? playerBase.ryokuTextSecondary 
                     : (blendedColors?.colSubtext ?? Appearance.colors.colSubtext)
             }
         }

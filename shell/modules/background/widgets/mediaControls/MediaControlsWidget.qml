@@ -119,18 +119,18 @@ AbstractBackgroundWidget {
 
             StyledRectangularShadow {
                 target: placeholderBackground
-                visible: Appearance.angelEverywhere || (!Appearance.inirEverywhere && !Appearance.auroraEverywhere)
+                visible: Appearance.angelEverywhere || (!Appearance.ryokuEverywhere && !Appearance.auroraEverywhere)
             }
 
             Rectangle {
                 id: placeholderBackground
                 anchors.centerIn: parent
-                color: Appearance.inirEverywhere ? Appearance.inir.colLayer1
+                color: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
                      : Appearance.auroraEverywhere ? Appearance.aurora.colPopupSurface
                      : Appearance.colors.colLayer0
-                radius: Appearance.inirEverywhere ? Appearance.inir.roundingNormal : root.popupRounding
-                border.width: Appearance.inirEverywhere || Appearance.auroraEverywhere ? 1 : 0
-                border.color: Appearance.inirEverywhere ? Appearance.inir.colBorder
+                radius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal : root.popupRounding
+                border.width: Appearance.ryokuEverywhere || Appearance.auroraEverywhere ? 1 : 0
+                border.color: Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
                             : Appearance.auroraEverywhere ? Appearance.aurora.colPopupBorder
                             : "transparent"
                 property real padding: 20
@@ -144,12 +144,12 @@ AbstractBackgroundWidget {
                     StyledText {
                         text: Translation.tr("No active player")
                         font.pixelSize: Appearance.font.pixelSize.large
-                        color: Appearance.inirEverywhere ? Appearance.inir.colText
+                        color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText
                             : Appearance.auroraEverywhere ? Appearance.colors.colOnLayer0
                             : Appearance.colors.colOnLayer0
                     }
                     StyledText {
-                        color: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary
+                        color: Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
                             : Appearance.auroraEverywhere ? Appearance.aurora.colTextSecondary
                             : Appearance.colors.colSubtext
                         text: Translation.tr("Make sure your player has MPRIS support\nor try turning off duplicate player filtering")

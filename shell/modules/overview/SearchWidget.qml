@@ -416,11 +416,11 @@ Item { // Wrapper
         implicitHeight: columnLayout.implicitHeight
         radius: searchBar.height / 2 + searchBar.verticalPadding
         fallbackColor: Appearance.colors.colBackgroundSurfaceContainer
-        inirColor: Appearance.inir.colLayer1
+        ryokuColor: Appearance.ryoku.colLayer1
         auroraTransparency: Appearance.aurora.popupTransparentize
-        border.width: auroraEverywhere || inirEverywhere ? 1 : 0
+        border.width: auroraEverywhere || ryokuEverywhere ? 1 : 0
         border.color: Appearance.angelEverywhere ? Appearance.angel.colCardBorder
-            : inirEverywhere ? Appearance.inir.colBorder : Appearance.colors.colLayer0Border
+            : ryokuEverywhere ? Appearance.ryoku.colBorder : Appearance.colors.colLayer0Border
 
         Behavior on implicitHeight {
             id: searchHeightBehavior

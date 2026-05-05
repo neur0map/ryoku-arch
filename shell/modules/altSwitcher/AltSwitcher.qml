@@ -532,13 +532,13 @@ Scope {
                 z: 0
                 anchors.fill: parent
                 radius: Appearance.angelEverywhere ? Appearance.angel.roundingLarge
-                    : Appearance.inirEverywhere ? Appearance.inir.roundingLarge
+                    : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingLarge
                     : (Appearance.rounding.screenRounding - Appearance.sizes.hyprlandGapsOut + 1)
                 color: {
                     if (Appearance.angelEverywhere)
                         return Appearance.angel.colGlassPopup
-                    if (Appearance.inirEverywhere)
-                        return Appearance.inir.colLayer0
+                    if (Appearance.ryokuEverywhere)
+                        return Appearance.ryoku.colLayer0
                     if (Appearance.auroraEverywhere)
                         return Appearance.colors.colLayer0Base
                     if (root.altUseM3Layout)
@@ -547,9 +547,9 @@ Scope {
                     return ColorUtils.applyAlpha(base, root.altBackgroundOpacity)
                 }
                 border.width: Appearance.angelEverywhere ? Appearance.angel.panelBorderWidth
-                    : Appearance.inirEverywhere || Appearance.auroraEverywhere ? 1 : (root.altUseM3Layout ? 1 : 0)
+                    : Appearance.ryokuEverywhere || Appearance.auroraEverywhere ? 1 : (root.altUseM3Layout ? 1 : 0)
                 border.color: Appearance.angelEverywhere ? Appearance.angel.colPanelBorder
-                    : Appearance.inirEverywhere ? Appearance.inir.colBorder 
+                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder 
                     : Appearance.auroraEverywhere ? Appearance.colors.colLayer0Border 
                     : Appearance.colors.colLayer0Border
             }
@@ -559,22 +559,22 @@ Scope {
                 visible: root.compactStyle
                 anchors.fill: parent
                 radius: Appearance.angelEverywhere ? Appearance.angel.roundingLarge
-                    : Appearance.inirEverywhere ? Appearance.inir.roundingLarge : Appearance.rounding.large
+                    : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingLarge : Appearance.rounding.large
                 color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                    : Appearance.inirEverywhere ? Appearance.inir.colLayer2 
+                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2 
                     : Appearance.auroraEverywhere ? Appearance.colors.colLayer1Base 
                     : Appearance.m3colors.m3surfaceContainerHigh
                 border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth
-                    : Appearance.inirEverywhere || Appearance.auroraEverywhere ? 1 : 0
+                    : Appearance.ryokuEverywhere || Appearance.auroraEverywhere ? 1 : 0
                 border.color: Appearance.angelEverywhere ? Appearance.angel.colCardBorder
-                    : Appearance.inirEverywhere ? Appearance.inir.colBorder 
+                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder 
                     : Appearance.auroraEverywhere ? Appearance.colors.colLayer0Border 
                     : "transparent"
             }
 
             StyledRectangularShadow {
                 target: root.compactStyle ? compactBackground : panelBackground
-                visible: !root.listStyle && !root.skewStyle && (Appearance.angelEverywhere || (!Appearance.inirEverywhere && !Appearance.auroraEverywhere))
+                visible: !root.listStyle && !root.skewStyle && (Appearance.angelEverywhere || (!Appearance.ryokuEverywhere && !Appearance.auroraEverywhere))
             }
 
             MultiEffect {
@@ -833,14 +833,14 @@ Scope {
                                     GradientStop {
                                         position: 0.0
                                         color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                                            : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+                                            : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
                                             : Appearance.auroraEverywhere ? Appearance.colors.colLayer1Base
                                             : Appearance.colors.colLayer1
                                     }
                                     GradientStop {
                                         position: 1.0
                                         color: Appearance.angelEverywhere ? Appearance.angel.colGlassPanel
-                                            : Appearance.inirEverywhere ? Appearance.inir.colLayer0
+                                            : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer0
                                             : Appearance.auroraEverywhere ? Appearance.colors.colLayer0Base
                                             : Appearance.colors.colLayer0
                                     }
@@ -1085,16 +1085,16 @@ Scope {
                             width: parent.width
                             height: parent.height
                             radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-                                : Appearance.inirEverywhere ? Appearance.inir.roundingNormal 
+                                : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal 
                                 : Appearance.auroraEverywhere ? Appearance.rounding.normal 
                                 : Appearance.rounding.normal
                             color: listView.currentIndex === index 
                                    ? (Appearance.angelEverywhere ? Appearance.angel.colGlassCardActive
-                                       : Appearance.inirEverywhere ? Appearance.inir.colPrimary 
+                                       : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary 
                                        : Appearance.auroraEverywhere ? Appearance.colors.colPrimaryContainer 
                                        : Appearance.m3colors.m3primaryContainer)
                                    : (Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                                       : Appearance.inirEverywhere ? Appearance.inir.colLayer3 
+                                       : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer3 
                                        : Appearance.auroraEverywhere ? Appearance.colors.colLayer2Base 
                                        : Appearance.m3colors.m3surfaceContainerHighest)
                             scale: compactMouseArea.pressed ? 0.92 : (compactMouseArea.containsMouse && !root.isHighLoad ? 1.05 : 1.0)
@@ -1138,7 +1138,7 @@ Scope {
                                     ColorOverlay {
                                         anchors.fill: desaturatedCompactIcon
                                         source: desaturatedCompactIcon
-                                        color: ColorUtils.transparentize(Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.colors.colPrimary, 0.9)
+                                        color: ColorUtils.transparentize(Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.colors.colPrimary, 0.9)
                                     }
                                 }
                             }
@@ -1151,7 +1151,7 @@ Scope {
                                 width: 24
                                 height: 3
                                 radius: height / 2
-                                color: Appearance.inirEverywhere ? Appearance.inir.colPrimary : Appearance.m3colors.m3primary
+                                color: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary : Appearance.m3colors.m3primary
                             }
                         }
                         
@@ -1179,9 +1179,9 @@ Scope {
                 width: 400
                 implicitHeight: listHeader.height + listSeparator.height + listColumn.height
                 radius: Appearance.angelEverywhere ? Appearance.angel.roundingLarge
-                    : Appearance.inirEverywhere ? Appearance.inir.roundingLarge : Appearance.rounding.large
+                    : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingLarge : Appearance.rounding.large
                 color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                    : Appearance.inirEverywhere ? Appearance.inir.colLayer1 
+                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1 
                     : Appearance.auroraEverywhere ? Appearance.colors.colLayer1Base 
                     : Appearance.colors.colSurfaceContainer
                 border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth
@@ -1193,7 +1193,7 @@ Scope {
                     target: listContent
                     blur: 0.5 * Appearance.sizes.elevationMargin
                     spread: 0
-                    visible: Appearance.angelEverywhere || (!Appearance.inirEverywhere && !Appearance.auroraEverywhere)
+                    visible: Appearance.angelEverywhere || (!Appearance.ryokuEverywhere && !Appearance.auroraEverywhere)
                 }
 
                 Column {
@@ -1210,7 +1210,7 @@ Scope {
                             text: Translation.tr("Switch windows")
                             font.pixelSize: Appearance.font.pixelSize.larger
                             font.weight: Font.DemiBold
-                            color: Appearance.inirEverywhere ? Appearance.inir.colText 
+                            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colText 
                                 : Appearance.auroraEverywhere ? Appearance.colors.colOnLayer1 
                                 : Appearance.colors.colOnLayer1
                         }
@@ -1218,7 +1218,7 @@ Scope {
                         StyledText {
                             text: (root.itemSnapshot?.length ?? 0) + " " + Translation.tr("windows")
                             font.pixelSize: Appearance.font.pixelSize.small
-                            color: Appearance.inirEverywhere ? Appearance.inir.colTextSecondary 
+                            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary 
                                 : Appearance.auroraEverywhere ? Appearance.colors.colSubtext 
                                 : Appearance.colors.colSubtext
                         }
@@ -1229,7 +1229,7 @@ Scope {
                         id: listSeparator
                         width: parent.width
                         height: 1
-                        color: Appearance.inirEverywhere ? Appearance.inir.colBorderSubtle 
+                        color: Appearance.ryokuEverywhere ? Appearance.ryoku.colBorderSubtle 
                             : Appearance.auroraEverywhere ? Appearance.colors.colLayer0Border 
                             : Appearance.colors.colLayer0Border
                     }
@@ -1254,23 +1254,23 @@ Scope {
                                 width: listColumn.width - listColumn.leftPadding - listColumn.rightPadding
                                 implicitHeight: 52
                                 buttonRadius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-                                    : Appearance.inirEverywhere ? Appearance.inir.roundingNormal : Appearance.rounding.normal
+                                    : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal : Appearance.rounding.normal
                                 toggled: listView.currentIndex === index
 
                                 colBackground: "transparent"
-                                colBackgroundHover: Appearance.inirEverywhere ? Appearance.inir.colLayer2Hover 
+                                colBackgroundHover: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Hover 
                                     : Appearance.auroraEverywhere ? Appearance.colors.colLayer2Hover 
                                     : ColorUtils.transparentize(Appearance.colors.colPrimary, 0.88)
-                                colBackgroundToggled: Appearance.inirEverywhere ? Appearance.inir.colPrimary 
+                                colBackgroundToggled: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary 
                                     : Appearance.auroraEverywhere ? Appearance.colors.colPrimaryContainer 
                                     : Appearance.colors.colPrimaryContainer
-                                colBackgroundToggledHover: Appearance.inirEverywhere ? Appearance.inir.colPrimaryHover 
+                                colBackgroundToggledHover: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimaryHover 
                                     : Appearance.auroraEverywhere ? Appearance.colors.colPrimaryContainerHover 
                                     : ColorUtils.mix(Appearance.colors.colPrimaryContainer, Appearance.colors.colPrimary, 0.9)
-                                colRipple: Appearance.inirEverywhere ? Appearance.inir.colLayer2Active 
+                                colRipple: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Active 
                                     : Appearance.auroraEverywhere ? Appearance.colors.colLayer2Active 
                                     : ColorUtils.transparentize(Appearance.colors.colPrimary, 0.7)
-                                colRippleToggled: Appearance.inirEverywhere ? Appearance.inir.colPrimaryActive 
+                                colRippleToggled: Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimaryActive 
                                     : Appearance.auroraEverywhere ? Appearance.colors.colPrimaryContainerActive 
                                     : ColorUtils.transparentize(Appearance.colors.colOnPrimaryContainer, 0.7)
 
@@ -1292,7 +1292,7 @@ Scope {
                                         width: 6
                                         height: 6
                                         radius: 3
-                                        color: Appearance.inirEverywhere ? Appearance.inir.colOnPrimary 
+                                        color: Appearance.ryokuEverywhere ? Appearance.ryoku.colOnPrimary 
                                             : Appearance.auroraEverywhere ? Appearance.colors.colOnPrimaryContainer 
                                             : Appearance.colors.colOnPrimaryContainer
                                         visible: listTile.toggled
@@ -1317,10 +1317,10 @@ Scope {
                                             font.pixelSize: Appearance.font.pixelSize.normal
                                             font.weight: listTile.toggled ? Font.DemiBold : Font.Normal
                                             color: listTile.toggled 
-                                                ? (Appearance.inirEverywhere ? Appearance.inir.colOnPrimary 
+                                                ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colOnPrimary 
                                                     : Appearance.auroraEverywhere ? Appearance.colors.colOnPrimaryContainer 
                                                     : Appearance.colors.colOnPrimaryContainer)
-                                                : (Appearance.inirEverywhere ? Appearance.inir.colText 
+                                                : (Appearance.ryokuEverywhere ? Appearance.ryoku.colText 
                                                     : Appearance.auroraEverywhere ? Appearance.colors.colOnLayer1 
                                                     : Appearance.colors.colOnLayer1)
                                             elide: Text.ElideRight
@@ -1343,10 +1343,10 @@ Scope {
                                             font.pixelSize: Appearance.font.pixelSize.smaller
                                             color: listTile.toggled 
                                                 ? ColorUtils.transparentize(
-                                                    Appearance.inirEverywhere ? Appearance.inir.colOnPrimary 
+                                                    Appearance.ryokuEverywhere ? Appearance.ryoku.colOnPrimary 
                                                         : Appearance.auroraEverywhere ? Appearance.colors.colOnPrimaryContainer 
                                                         : Appearance.colors.colOnPrimaryContainer, 0.3)
-                                                : (Appearance.inirEverywhere ? Appearance.inir.colTextSecondary 
+                                                : (Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary 
                                                     : Appearance.auroraEverywhere ? Appearance.colors.colSubtext 
                                                     : Appearance.colors.colSubtext)
                                             elide: Text.ElideRight
@@ -1358,13 +1358,13 @@ Scope {
                                         visible: (listTile.modelData?.workspaceIdx ?? 0) > 0
                                         width: wsText.implicitWidth + 12
                                         height: 22
-                                        radius: Appearance.inirEverywhere ? Appearance.inir.roundingSmall : Appearance.rounding.small
+                                        radius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.small
                                         color: listTile.toggled 
                                             ? ColorUtils.transparentize(
-                                                Appearance.inirEverywhere ? Appearance.inir.colOnPrimary 
+                                                Appearance.ryokuEverywhere ? Appearance.ryoku.colOnPrimary 
                                                     : Appearance.auroraEverywhere ? Appearance.colors.colOnPrimaryContainer 
                                                     : Appearance.colors.colOnPrimaryContainer, 0.85)
-                                            : (Appearance.inirEverywhere ? Appearance.inir.colLayer3 
+                                            : (Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer3 
                                                 : Appearance.auroraEverywhere ? Appearance.colors.colLayer2 
                                                 : Appearance.colors.colLayer2)
 
@@ -1375,10 +1375,10 @@ Scope {
                                             font.pixelSize: Appearance.font.pixelSize.smaller
                                             font.weight: Font.DemiBold
                                             color: listTile.toggled 
-                                                ? (Appearance.inirEverywhere ? Appearance.inir.colOnPrimary 
+                                                ? (Appearance.ryokuEverywhere ? Appearance.ryoku.colOnPrimary 
                                                     : Appearance.auroraEverywhere ? Appearance.colors.colOnPrimaryContainer 
                                                     : Appearance.colors.colOnPrimaryContainer)
-                                                : (Appearance.inirEverywhere ? Appearance.inir.colTextSecondary 
+                                                : (Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary 
                                                     : Appearance.auroraEverywhere ? Appearance.colors.colSubtext 
                                                     : Appearance.colors.colSubtext)
                                         }
@@ -1854,7 +1854,7 @@ Scope {
     readonly property bool waffleFamilyActive: (Config.options?.panelFamily ?? "ii") === "waffle"
 
     function routeToWaffle(functionName: string): void {
-        Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "waffleAltSwitcher", functionName])
+        Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "waffleAltSwitcher", functionName])
     }
 
     IpcHandler {

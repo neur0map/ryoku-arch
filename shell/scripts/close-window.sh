@@ -9,7 +9,7 @@
 #    harmless no-op instead of killing a random window.
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-launcher_path="$script_dir/inir"
+launcher_path="$script_dir/ryoku-shell"
 
 # Capture focused window JSON immediately — this is the window the user intended to close.
 focused_window_json=$(niri msg -j focused-window 2>/dev/null)

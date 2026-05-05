@@ -232,7 +232,7 @@ Scope {
                                 property real padding: 10
                                 implicitHeight: protectionMessageRowLayout.implicitHeight + padding * 2
                                 implicitWidth: protectionMessageRowLayout.implicitWidth + padding * 2
-                                radius: Appearance.inirEverywhere ? Appearance.inir.roundingNormal : Appearance.rounding.normal
+                                radius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal : Appearance.rounding.normal
 
                                 RowLayout {
                                     id: protectionMessageRowLayout

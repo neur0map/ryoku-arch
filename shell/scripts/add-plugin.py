@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Add a plugin to the iNiR plugin directory.
+"""Add a plugin to the Ryoku plugin directory.
 
 Usage:
     add-plugin.py --url URL [--name NAME] [--icon ICON]
@@ -18,7 +18,7 @@ import urllib.request
 
 def resolve_shell_config_dir() -> str:
     xdg_config = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
-    new_dir = os.path.join(xdg_config, "inir")
+    new_dir = os.path.join(xdg_config, "ryoku-shell")
     legacy_dir = os.path.join(xdg_config, "illogical-impulse")
 
     if os.path.islink(legacy_dir) and os.path.isdir(new_dir):
@@ -231,7 +231,7 @@ def id_from_url(url: str) -> str:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Add a web plugin to the iNiR plugin directory."
+        description="Add a web plugin to the Ryoku plugin directory."
     )
     parser.add_argument("--url", required=True, help="URL of the plugin")
     parser.add_argument(

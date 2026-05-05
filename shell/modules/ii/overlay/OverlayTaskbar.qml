@@ -20,13 +20,13 @@ Rectangle {
     implicitWidth: contentRow.implicitWidth + (padding * 2)
     implicitHeight: contentRow.implicitHeight + (padding * 2)
     color: Appearance.angelEverywhere ? "transparent"
-        : Appearance.inirEverywhere ? Appearance.inir.colLayer1
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
         : Appearance.m3colors.m3surfaceContainer
     radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
-        : Appearance.inirEverywhere ? Appearance.inir.roundingNormal
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal
         : Appearance.rounding.large
     border.color: Appearance.angelEverywhere ? Appearance.angel.colBorder
-        : Appearance.inirEverywhere ? Appearance.inir.colBorder
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
         : Appearance.colors.colOutlineVariant
     border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth : 1
     clip: true
@@ -114,7 +114,7 @@ Rectangle {
     component Separator: Rectangle {
         implicitWidth: 1
         color: Appearance.angelEverywhere ? Appearance.angel.colBorderSubtle
-            : Appearance.inirEverywhere ? Appearance.inir.colBorderSubtle
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorderSubtle
             : Appearance.colors.colOutlineVariant
         Layout.fillHeight: true
         Layout.topMargin: 10

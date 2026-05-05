@@ -314,30 +314,30 @@ declare -gA IPC_FUNCTION_ARGS=(
 )
 
 declare -gA IPC_TARGET_EXAMPLE=(
-  [altSwitcher]='bind "Alt+Tab" { spawn "inir" "altSwitcher" "next"; }
-bind "Alt+Shift+Tab" { spawn "inir" "altSwitcher" "previous"; }'
-  [cheatsheet]='bind "Super+Slash" { spawn "inir" "cheatsheet" "toggle"; }'
-  [clipboard]='bind "Super+V" { spawn "inir" "clipboard" "toggle"; }'
-  [closeConfirm]='bind "Mod+Q" repeat=false { spawn "inir" "close-window"; }'
-  [gamemode]='bind "Super+F12" { spawn "inir" "gamemode" "toggle"; }'
-  [globalActions]='bind "Super+Slash" { spawn "inir" "globalActions" "open"; }
-bind "Super+M" { spawn "inir" "globalActions" "run" "toggle-mute"; }'
-  [keyboard]='bind "Mod+Alt+K" { spawn "inir" "keyboard" "switchLayout"; }'
-  [lock]='bind "Super+Alt+L" allow-when-locked=true { spawn "inir" "lock" "activate"; }'
-  [mpris]='bind "Ctrl+Mod+Space" { spawn "inir" "mpris" "playPause"; }
-bind "Mod+Alt+N" { spawn "inir" "mpris" "next"; }
-bind "Mod+Alt+P" { spawn "inir" "mpris" "previous"; }'
-  [overlay]='bind "Super+G" { spawn "inir" "overlay" "toggle"; }'
-  [overview]='bind "Mod+Space" { spawn "inir" "overview" "toggle"; }'
-  [panelFamily]='bind "Mod+Shift+W" { spawn "inir" "panelFamily" "cycle"; }'
-  [region]='bind "Super+Shift+S" { spawn "inir" "region" "screenshot"; }
-bind "Super+Shift+X" { spawn "inir" "region" "ocr"; }
-bind "Super+Shift+A" { spawn "inir" "region" "search"; }'
-  [session]='bind "Super+Shift+E" { spawn "inir" "session" "toggle"; }'
-  [settings]='bind "Super+Comma" { spawn "inir" "settings"; }'
-  [voiceSearch]='bind "Super+Shift+V" { spawn "inir" "voiceSearch" "toggle"; }'
-  [wallpaperSelector]='bind "Ctrl+Alt+T" { spawn "inir" "wallpaperSelector" "toggle"; }'
-  [ytmusic]='bind "Mod+M+Space" { spawn "inir" "ytmusic" "playPause"; }'
+  [altSwitcher]='bind "Alt+Tab" { spawn "ryoku-shell" "altSwitcher" "next"; }
+bind "Alt+Shift+Tab" { spawn "ryoku-shell" "altSwitcher" "previous"; }'
+  [cheatsheet]='bind "Super+Slash" { spawn "ryoku-shell" "cheatsheet" "toggle"; }'
+  [clipboard]='bind "Super+V" { spawn "ryoku-shell" "clipboard" "toggle"; }'
+  [closeConfirm]='bind "Mod+Q" repeat=false { spawn "ryoku-shell" "close-window"; }'
+  [gamemode]='bind "Super+F12" { spawn "ryoku-shell" "gamemode" "toggle"; }'
+  [globalActions]='bind "Super+Slash" { spawn "ryoku-shell" "globalActions" "open"; }
+bind "Super+M" { spawn "ryoku-shell" "globalActions" "run" "toggle-mute"; }'
+  [keyboard]='bind "Mod+Alt+K" { spawn "ryoku-shell" "keyboard" "switchLayout"; }'
+  [lock]='bind "Super+Alt+L" allow-when-locked=true { spawn "ryoku-shell" "lock" "activate"; }'
+  [mpris]='bind "Ctrl+Mod+Space" { spawn "ryoku-shell" "mpris" "playPause"; }
+bind "Mod+Alt+N" { spawn "ryoku-shell" "mpris" "next"; }
+bind "Mod+Alt+P" { spawn "ryoku-shell" "mpris" "previous"; }'
+  [overlay]='bind "Super+G" { spawn "ryoku-shell" "overlay" "toggle"; }'
+  [overview]='bind "Mod+Space" { spawn "ryoku-shell" "overview" "toggle"; }'
+  [panelFamily]='bind "Mod+Shift+W" { spawn "ryoku-shell" "panelFamily" "cycle"; }'
+  [region]='bind "Super+Shift+S" { spawn "ryoku-shell" "region" "screenshot"; }
+bind "Super+Shift+X" { spawn "ryoku-shell" "region" "ocr"; }
+bind "Super+Shift+A" { spawn "ryoku-shell" "region" "search"; }'
+  [session]='bind "Super+Shift+E" { spawn "ryoku-shell" "session" "toggle"; }'
+  [settings]='bind "Super+Comma" { spawn "ryoku-shell" "settings"; }'
+  [voiceSearch]='bind "Super+Shift+V" { spawn "ryoku-shell" "voiceSearch" "toggle"; }'
+  [wallpaperSelector]='bind "Ctrl+Alt+T" { spawn "ryoku-shell" "wallpaperSelector" "toggle"; }'
+  [ytmusic]='bind "Mod+M+Space" { spawn "ryoku-shell" "ytmusic" "playPause"; }'
 )
 
 IPC_ALL_TARGETS=(ai altSwitcher appCatalog audio bar brightness cheatsheet clipboard cliphistService closeConfirm controlPanel coverflowSelector gamemode globalActions keyboard lock mediaControls minimize mpris notifications osd osdVolume osk overlay overview packageSearch panelFamily region search session settings shellUpdate sidebarLeft sidebarRight taskview tiling voiceSearch wactionCenter waffleAltSwitcher wallpaperSelector wbar wnotificationCenter wwidgets ytmusic zoom)

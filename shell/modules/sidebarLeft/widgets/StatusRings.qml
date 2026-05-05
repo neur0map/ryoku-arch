@@ -96,7 +96,7 @@ Item {
             color: "transparent"
             border.width: 3
             border.color: Appearance.angelEverywhere ? Appearance.angel.colBorderSubtle
-                        : Appearance.inirEverywhere ? Appearance.inir.colBorderSubtle
+                        : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorderSubtle
                         : Appearance.auroraEverywhere ? "transparent" 
                         : Appearance.colors.colLayer2
 

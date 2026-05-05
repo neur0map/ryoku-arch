@@ -1,4 +1,4 @@
-# Core functions for iNiR installer
+# Core functions for Ryoku installer
 # This is NOT a script for execution, but for loading functions
 
 # shellcheck shell=bash
@@ -146,7 +146,7 @@ cp_file(){
   x mkdir -p "$(dirname "$dst")"
 
   # Avoid failing when source and destination are the same file
-  # (e.g. when ~/.config/quickshell/inir points into the repo).
+  # (e.g. when ~/.config/quickshell/ryoku-shell points into the repo).
   if [[ -e "$dst" ]]; then
     local src_real dst_real
     src_real="$(realpath -se "$src" 2>/dev/null || echo "$src")"
@@ -251,8 +251,8 @@ function ensure_launcher_path_in_shells(){
   local launcher_dir="$1"
   [[ -n "$launcher_dir" ]] || return 0
 
-  local marker="# iNiR launcher PATH"
-  local end_marker="# end iNiR launcher PATH"
+  local marker="# Ryoku launcher PATH"
+  local end_marker="# end Ryoku launcher PATH"
   local sh_block="
 ${marker}
 case \":\$PATH:\" in
@@ -271,7 +271,7 @@ ${end_marker}
 
   local fish_conf_dir="${XDG_CONFIG_HOME}/fish/conf.d"
   mkdir -p "$fish_conf_dir"
-  cat > "${fish_conf_dir}/inir-path.fish" << EOF
+  cat > "${fish_conf_dir}/ryoku-shell-path.fish" << EOF
 if not contains -- "${launcher_dir}" \$PATH
     set -gx PATH "${launcher_dir}" \$PATH
 end

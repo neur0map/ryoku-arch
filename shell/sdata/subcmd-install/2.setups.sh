@@ -1,4 +1,4 @@
-# System setup for iNiR
+# System setup for Ryoku
 # This script is meant to be sourced.
 
 # shellcheck shell=bash
@@ -116,10 +116,10 @@ function setup_systemd_services(){
 function setup_super_daemon(){
   tui_info "Setting up Super-tap daemon..."
   
-  local daemon_src="${REPO_ROOT}/scripts/daemon/inir_super_overview_daemon.py"
-  local service_src="${REPO_ROOT}/scripts/systemd/inir-super-overview.service"
-  local daemon_dst="${HOME}/.local/bin/inir_super_overview_daemon.py"
-  local service_dst="${XDG_CONFIG_HOME}/systemd/user/inir-super-overview.service"
+  local daemon_src="${REPO_ROOT}/scripts/daemon/ryoku-shell-super-overview-daemon.py"
+  local service_src="${REPO_ROOT}/scripts/systemd/ryoku-shell-super-overview.service"
+  local daemon_dst="${HOME}/.local/bin/ryoku-shell-super-overview-daemon.py"
+  local service_dst="${XDG_CONFIG_HOME}/systemd/user/ryoku-shell-super-overview.service"
   
   if [[ ! -f "$daemon_src" ]]; then
     log_warning "Super-tap daemon not found in repo, skipping"
@@ -138,10 +138,10 @@ function setup_super_daemon(){
   # Enable service if in graphical session
   if [[ -n "${DBUS_SESSION_BUS_ADDRESS}" ]]; then
     v systemctl --user daemon-reload
-    v systemctl --user enable inir-super-overview.service --now
+    v systemctl --user enable ryoku-shell-super-overview.service --now
   else
     log_warning "Not in graphical session. Enable later with:"
-    echo "  systemctl --user enable inir-super-overview.service --now"
+    echo "  systemctl --user enable ryoku-shell-super-overview.service --now"
   fi
   
   log_success "Super-tap daemon installed"
@@ -189,7 +189,7 @@ function setup_desktop_settings(){
   fi
   
   # gsettings for GNOME/GTK apps (Nautilus, etc.)
-  # Keep default icon theme aligned with iNiR defaults/config and installer payload.
+  # Keep default icon theme aligned with Ryoku defaults/config and installer payload.
   # If preferred theme is not installed, fall back to Adwaita.
   # If user later changes icon theme in Settings, IconThemeService persists and syncs it.
   if command -v gsettings &>/dev/null; then

@@ -567,7 +567,7 @@ WSettingsPage {
                     displayName: Translation.tr("Aurora")
                 },
                 {
-                    value: "inir",
+                    value: "ryoku-shell",
                     displayName: Translation.tr("Inir")
                 },
                 {

@@ -1,38 +1,38 @@
-# Migration: Rename ILLOGICAL_IMPULSE_VIRTUAL_ENV → INIR_VENV
-# Adds the canonical INIR_VENV alongside the legacy name in shell profiles
+# Migration: Rename ILLOGICAL_IMPULSE_VIRTUAL_ENV → RYOKU_SHELL_VENV
+# Adds the canonical RYOKU_SHELL_VENV alongside the legacy name in shell profiles
 # and Niri environment blocks. Scripts already have fallback logic.
 
 MIGRATION_ID="020-rename-venv-env-var"
 MIGRATION_TITLE="Rename Python venv environment variable"
-MIGRATION_DESCRIPTION="Introduces INIR_VENV as the canonical venv variable. Legacy ILLOGICAL_IMPULSE_VIRTUAL_ENV kept as alias for backwards compatibility."
+MIGRATION_DESCRIPTION="Introduces RYOKU_SHELL_VENV as the canonical venv variable. Legacy ILLOGICAL_IMPULSE_VIRTUAL_ENV kept as alias for backwards compatibility."
 MIGRATION_TARGET_FILE="Shell profiles + Niri config"
 MIGRATION_REQUIRED=true
 
 migration_check() {
   # Check if any shell profile or Niri config still uses ILLOGICAL_IMPULSE_VIRTUAL_ENV
-  # without also having INIR_VENV defined
+  # without also having RYOKU_SHELL_VENV defined
   local needs_update=false
 
   if [[ -f "$HOME/.bashrc" ]] && grep -q "ILLOGICAL_IMPULSE_VIRTUAL_ENV" "$HOME/.bashrc" 2>/dev/null \
-     && ! grep -q "INIR_VENV" "$HOME/.bashrc" 2>/dev/null; then
+     && ! grep -q "RYOKU_SHELL_VENV" "$HOME/.bashrc" 2>/dev/null; then
     needs_update=true
   fi
 
   if [[ -f "$HOME/.zshrc" ]] && grep -q "ILLOGICAL_IMPULSE_VIRTUAL_ENV" "$HOME/.zshrc" 2>/dev/null \
-     && ! grep -q "INIR_VENV" "$HOME/.zshrc" 2>/dev/null; then
+     && ! grep -q "RYOKU_SHELL_VENV" "$HOME/.zshrc" 2>/dev/null; then
     needs_update=true
   fi
 
-  local fish_conf="${XDG_CONFIG_HOME:-$HOME/.config}/fish/conf.d/inir-env.fish"
+  local fish_conf="${XDG_CONFIG_HOME:-$HOME/.config}/fish/conf.d/ryoku-shell-env.fish"
   if [[ -f "$fish_conf" ]] && grep -q "ILLOGICAL_IMPULSE_VIRTUAL_ENV" "$fish_conf" 2>/dev/null \
-     && ! grep -q "INIR_VENV" "$fish_conf" 2>/dev/null; then
+     && ! grep -q "RYOKU_SHELL_VENV" "$fish_conf" 2>/dev/null; then
     needs_update=true
   fi
 
   # Check Niri monolithic config
   local niri_config="${XDG_CONFIG_HOME:-$HOME/.config}/niri/config.kdl"
   if [[ -f "$niri_config" ]] && grep -q "ILLOGICAL_IMPULSE_VIRTUAL_ENV" "$niri_config" 2>/dev/null \
-     && ! grep -q "INIR_VENV" "$niri_config" 2>/dev/null; then
+     && ! grep -q "RYOKU_SHELL_VENV" "$niri_config" 2>/dev/null; then
     needs_update=true
   fi
 
@@ -43,7 +43,7 @@ migration_check() {
     for f in "$niri_configd"/*.kdl; do
       [[ -f "$f" ]] || continue
       if grep -q "ILLOGICAL_IMPULSE_VIRTUAL_ENV" "$f" 2>/dev/null \
-         && ! grep -q "INIR_VENV" "$f" 2>/dev/null; then
+         && ! grep -q "RYOKU_SHELL_VENV" "$f" 2>/dev/null; then
         needs_update=true
         break
       fi
@@ -55,8 +55,8 @@ migration_check() {
 
 migration_preview() {
   echo -e "${STY_RED}- export ILLOGICAL_IMPULSE_VIRTUAL_ENV=\"...\"${STY_RST}"
-  echo -e "${STY_GREEN}+ export INIR_VENV=\"...\"${STY_RST}"
-  echo -e "${STY_GREEN}+ export ILLOGICAL_IMPULSE_VIRTUAL_ENV=\"\$INIR_VENV\"${STY_RST}"
+  echo -e "${STY_GREEN}+ export RYOKU_SHELL_VENV=\"...\"${STY_RST}"
+  echo -e "${STY_GREEN}+ export ILLOGICAL_IMPULSE_VIRTUAL_ENV=\"\$RYOKU_SHELL_VENV\"${STY_RST}"
 }
 
 migration_apply() {
@@ -68,35 +68,35 @@ migration_apply() {
 
   # --- Bash ---
   if [[ -f "$HOME/.bashrc" ]] && grep -q "ILLOGICAL_IMPULSE_VIRTUAL_ENV" "$HOME/.bashrc" 2>/dev/null \
-     && ! grep -q "INIR_VENV" "$HOME/.bashrc" 2>/dev/null; then
+     && ! grep -q "RYOKU_SHELL_VENV" "$HOME/.bashrc" 2>/dev/null; then
     # Replace the old export line with the new pair
-    sed -i 's|^export ILLOGICAL_IMPULSE_VIRTUAL_ENV=.*|export INIR_VENV="'"${venv_path}"'"\nexport ILLOGICAL_IMPULSE_VIRTUAL_ENV="$INIR_VENV"|' "$HOME/.bashrc"
+    sed -i 's|^export ILLOGICAL_IMPULSE_VIRTUAL_ENV=.*|export RYOKU_SHELL_VENV="'"${venv_path}"'"\nexport ILLOGICAL_IMPULSE_VIRTUAL_ENV="$RYOKU_SHELL_VENV"|' "$HOME/.bashrc"
   fi
 
   # --- Zsh ---
   if [[ -f "$HOME/.zshrc" ]] && grep -q "ILLOGICAL_IMPULSE_VIRTUAL_ENV" "$HOME/.zshrc" 2>/dev/null \
-     && ! grep -q "INIR_VENV" "$HOME/.zshrc" 2>/dev/null; then
-    sed -i 's|^export ILLOGICAL_IMPULSE_VIRTUAL_ENV=.*|export INIR_VENV="'"${venv_path}"'"\nexport ILLOGICAL_IMPULSE_VIRTUAL_ENV="$INIR_VENV"|' "$HOME/.zshrc"
+     && ! grep -q "RYOKU_SHELL_VENV" "$HOME/.zshrc" 2>/dev/null; then
+    sed -i 's|^export ILLOGICAL_IMPULSE_VIRTUAL_ENV=.*|export RYOKU_SHELL_VENV="'"${venv_path}"'"\nexport ILLOGICAL_IMPULSE_VIRTUAL_ENV="$RYOKU_SHELL_VENV"|' "$HOME/.zshrc"
   fi
 
   # --- Fish ---
-  local fish_conf="${XDG_CONFIG_HOME:-$HOME/.config}/fish/conf.d/inir-env.fish"
+  local fish_conf="${XDG_CONFIG_HOME:-$HOME/.config}/fish/conf.d/ryoku-shell-env.fish"
   if [[ -f "$fish_conf" ]] && grep -q "ILLOGICAL_IMPULSE_VIRTUAL_ENV" "$fish_conf" 2>/dev/null \
-     && ! grep -q "INIR_VENV" "$fish_conf" 2>/dev/null; then
+     && ! grep -q "RYOKU_SHELL_VENV" "$fish_conf" 2>/dev/null; then
     # Rewrite the entire file (it's auto-generated, safe to overwrite)
     cat > "$fish_conf" << FEOF
-# iNiR environment — auto-generated by migration 020
-set -gx INIR_VENV "${venv_path}"
-set -gx ILLOGICAL_IMPULSE_VIRTUAL_ENV "\$INIR_VENV"
+# Ryoku environment — auto-generated by migration 020
+set -gx RYOKU_SHELL_VENV "${venv_path}"
+set -gx ILLOGICAL_IMPULSE_VIRTUAL_ENV "\$RYOKU_SHELL_VENV"
 FEOF
   fi
 
   # --- Niri monolithic config ---
   local niri_config="${XDG_CONFIG_HOME:-$HOME/.config}/niri/config.kdl"
   if [[ -f "$niri_config" ]] && grep -q "ILLOGICAL_IMPULSE_VIRTUAL_ENV" "$niri_config" 2>/dev/null \
-     && ! grep -q "INIR_VENV" "$niri_config" 2>/dev/null; then
-    # Add INIR_VENV line before the ILLOGICAL_IMPULSE_VIRTUAL_ENV line
-    sed -i '/ILLOGICAL_IMPULSE_VIRTUAL_ENV/i\    INIR_VENV "$HOME/.local/state/quickshell/.venv"' "$niri_config"
+     && ! grep -q "RYOKU_SHELL_VENV" "$niri_config" 2>/dev/null; then
+    # Add RYOKU_SHELL_VENV line before the ILLOGICAL_IMPULSE_VIRTUAL_ENV line
+    sed -i '/ILLOGICAL_IMPULSE_VIRTUAL_ENV/i\    RYOKU_SHELL_VENV "$HOME/.local/state/quickshell/.venv"' "$niri_config"
   fi
 
   # --- Niri modular config.d/ ---
@@ -106,8 +106,8 @@ FEOF
     for f in "$niri_configd"/*.kdl; do
       [[ -f "$f" ]] || continue
       if grep -q "ILLOGICAL_IMPULSE_VIRTUAL_ENV" "$f" 2>/dev/null \
-         && ! grep -q "INIR_VENV" "$f" 2>/dev/null; then
-        sed -i '/ILLOGICAL_IMPULSE_VIRTUAL_ENV/i\    INIR_VENV "$HOME/.local/state/quickshell/.venv"' "$f"
+         && ! grep -q "RYOKU_SHELL_VENV" "$f" 2>/dev/null; then
+        sed -i '/ILLOGICAL_IMPULSE_VIRTUAL_ENV/i\    RYOKU_SHELL_VENV "$HOME/.local/state/quickshell/.venv"' "$f"
       fi
     done
   fi
