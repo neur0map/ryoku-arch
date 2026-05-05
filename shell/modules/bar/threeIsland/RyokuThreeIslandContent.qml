@@ -19,7 +19,6 @@ Item {
 
     readonly property string leftAction: Config.options?.bar?.leftScrollAction ?? "brightness"
     readonly property string rightAction: Config.options?.bar?.rightScrollAction ?? "volume"
-    readonly property real centerInset: Appearance.sizes.hyprlandGapsOut
 
     // Right-click context menu plumbing (mirrors BarContent.qml)
     Item { id: barContextMenuAnchor; width: 1; height: 1 }
@@ -75,9 +74,10 @@ Item {
         else if (action === "volume") GlobalStates.osdVolumeOpen = false;
     }
 
-    // ----- Left pill (hugs TL) -----
+    // ----- Left island (hangs from TL: top + left flush, BR rounded) -----
     RyokuIsland {
         id: leftPill
+        hangFromTop: true
         hugLeft: true
         anchors.left: parent.left
         anchors.top: parent.top
@@ -104,14 +104,13 @@ Item {
         }
     }
 
-    // ----- Center pill (floating, fully rounded) -----
+    // ----- Center island (hangs from top: top flush, BL+BR rounded) -----
     RyokuIsland {
         id: centerPill
-        fullyRounded: true
+        hangFromTop: true
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
-        anchors.topMargin: root.centerInset
-        height: parent.height - 2 * root.centerInset
+        anchors.bottom: parent.bottom
         width: centerIsland.implicitWidth
 
         RyokuCenterIsland {
@@ -130,9 +129,10 @@ Item {
         }
     }
 
-    // ----- Right pill (hugs TR) -----
+    // ----- Right island (hangs from TR: top + right flush, BL rounded) -----
     RyokuIsland {
         id: rightPill
+        hangFromTop: true
         hugRight: true
         anchors.right: parent.right
         anchors.top: parent.top

@@ -18,9 +18,10 @@ Item {
 
     property var blendedColors: null
     property real cornerRadiusOverride: -1   // -1 = use computed; 0+ = explicit
-    property bool fullyRounded: false        // true for the floating center pill
-    property bool hugLeft: false             // hug screen left (sharp top-left)
-    property bool hugRight: false            // hug screen right (sharp top-right)
+    property bool fullyRounded: false        // true for a floating pill (all 4 corners rounded)
+    property bool hangFromTop: false         // flush top edge with screen top (clips top corners)
+    property bool hugLeft: false             // hug screen left (clips left corners)
+    property bool hugRight: false            // hug screen right (clips right corners)
 
     readonly property bool angelEverywhere: Appearance.angelEverywhere
     readonly property bool ryokuEverywhere: Appearance.ryokuEverywhere
@@ -89,11 +90,10 @@ Item {
         clip: true
     }
 
-    // For corner-hugged pills, extend the mask off the outer side so its
-    // rounded corners on that side are clipped, leaving sharp top+bottom
-    // outer corners that flush with the screen edge. The inner side keeps
-    // its rounded corners visible.
-    layer.enabled: root.hugLeft || root.hugRight
+    // Mask extends past whichever edges hug the screen; rounded corners on
+    // those edges get clipped off-screen, leaving the visible result with
+    // sharp edges flush to the screen and rounded corners only on the inside.
+    layer.enabled: root.hugLeft || root.hugRight || root.hangFromTop
     layer.effect: GE.OpacityMask {
         maskSource: Item {
             width: root.width
@@ -102,6 +102,7 @@ Item {
                 anchors.fill: parent
                 anchors.leftMargin: root.hugLeft ? -root.resolvedRadius : 0
                 anchors.rightMargin: root.hugRight ? -root.resolvedRadius : 0
+                anchors.topMargin: root.hangFromTop ? -root.resolvedRadius : 0
                 radius: root.resolvedRadius
             }
         }
