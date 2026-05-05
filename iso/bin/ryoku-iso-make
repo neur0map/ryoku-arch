@@ -51,7 +51,6 @@ mkdir -p "$BUILD_RELEASE_PATH"
 RYOKU_INSTALLER_REPO="${RYOKU_INSTALLER_REPO:-neur0map/ryoku-arch}"
 RYOKU_INSTALLER_REF="${RYOKU_INSTALLER_REF:-main}"
 RYOKU_MIRROR="${RYOKU_MIRROR:-stable}"
-RYOKU_INIR_REPO="${RYOKU_INIR_REPO:-https://github.com/snowarch/iNiR.git}"
 
 # omarchy pins archiso via submodule; we just install archiso inside the
 # container and reference /usr/share/archiso/configs/releng/.
@@ -61,7 +60,6 @@ DOCKER_ARGS=(
   -e "RYOKU_INSTALLER_REPO=$RYOKU_INSTALLER_REPO"
   -e "RYOKU_INSTALLER_REF=$RYOKU_INSTALLER_REF"
   -e "RYOKU_MIRROR=$RYOKU_MIRROR"
-  -e "RYOKU_INIR_REPO=$RYOKU_INIR_REPO"
   -e "HOST_UID=$(id -u)"
   -e "HOST_GID=$(id -g)"
   -v "$BUILD_RELEASE_PATH/:/out/"
@@ -74,15 +72,6 @@ DOCKER_ARGS=(
 # installed copy might currently be exported in $RYOKU_PATH.
 if [[ -n "${LOCAL_SOURCE-}" ]]; then
   DOCKER_ARGS+=(-v "$REPO_ROOT:/ryoku:ro")
-
-  INIR_SOURCE="${RYOKU_INIR_SOURCE:-$HOME/.local/share/inir}"
-  if [[ -d $INIR_SOURCE/.git ]]; then
-    DOCKER_ARGS+=(-v "$INIR_SOURCE:/inir:ro")
-  else
-    echo "--local-source Niri/iNiR builds require a local iNiR checkout." >&2
-    echo "Set RYOKU_INIR_SOURCE or install iNiR at ~/.local/share/inir." >&2
-    exit 1
-  fi
 fi
 
 # Use local pacman cache if you already have one on host to speed up repeat runs
