@@ -89,8 +89,8 @@ assert_shell_overlay() {
     "Ryoku shell config overlay should set the branded hotspot name"
   assert_contains "default/ryoku-shell/config-overrides.json" '"enableTerminal": false' \
     "Ryoku shell config overlay should leave Ryoku themes in charge of terminal colors"
-  assert_contains "default/ryoku-shell/branding-replacements.tsv" 'Welcome to Ryoku' \
-    "Ryoku shell replacement map should include the welcome copy"
+  assert_contains "default/ryoku-shell/branding-replacements.tsv" 'Ryoku SDDM login screen' \
+    "Ryoku shell replacement map should include the SDDM branding"
   assert_not_contains "install/config/ryoku-shell-branding.sh" 'echo .*iNiR|printf .*iNiR' \
     "Ryoku shell overlay should not print upstream shell branding"
 }

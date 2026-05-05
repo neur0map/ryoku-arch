@@ -6,15 +6,6 @@ assets/systemd/ryoku-shell.service	# Lifecycle: stop/restart Ryoku shell when th
 assets/systemd/ryoku-shell.service	# Ryoku shell is a session consumer, not a producer	# Ryoku shell is a session consumer, not a producer
 assets/systemd/ryoku-shell.service	# No [Install] section	# No [Install] section
 assets/systemd/ryoku-shell.service	# Ryoku shell only starts under the correct compositor	# Ryoku shell only starts under the correct compositor
-welcome.qml	Welcome to inir	Welcome to Ryoku
-welcome.qml	You can re-open this wizard anytime with:\n  inir welcome	You can re-open this wizard from Ryoku settings.
-welcome.qml	Everything iNiR has to offer. Recommended if you like to tinker.	Ryoku defaults with every shell module enabled. Recommended if you like to tune the system.
-welcome.qml	{ displayName: "Inir", icon: "terminal", value: "inir" }	{ displayName: "Ryoku", icon: "terminal", value: "ryoku-shell" }
-welcome.qml	iNiR Wiki	Ryoku Wiki
-welcome.qml	https://github.com/snowarch/inir/wiki/Troubleshooting	https://github.com/neur0map/ryoku-arch
-welcome.qml	https://github.com/snowarch/inir/wiki	https://github.com/neur0map/ryoku-arch
-welcome.qml	https://github.com/snowarch/inir/issues	https://github.com/neur0map/ryoku-arch/issues
-welcome.qml	https://github.com/snowarch/inir	https://github.com/neur0map/ryoku-arch
 dots/sddm/pixel/metadata.desktop	Name=ii-pixel	Name=Ryoku Pixel
 dots/sddm/pixel/metadata.desktop	iNiR SDDM login screen	Ryoku SDDM login screen
 dots/sddm/pixel/metadata.desktop	iNiR project	Ryoku project
