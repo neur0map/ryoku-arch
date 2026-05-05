@@ -1,5 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
-  <path
-    fill="#000000"
-    d="M5.25 4.25h13.5c.39 0 .75.16 1.01.43.26.27.39.64.36 1.03-.26 4.3-.72 7.81-1.38 10.54-.41 1.72-.95 2.91-1.62 3.57-.73.72-1.82 1.08-3.28 1.08h-2.62l-.69-3.14h2.75c.72 0 1.21-.12 1.47-.36.31-.29.59-.96.84-2.02.45-1.91.79-4.58 1.02-8.01h-4.16c-.27 2.84-.9 5.36-1.89 7.55-.99 2.2-2.38 4.19-4.16 5.96l-2.52-2.11c1.58-1.53 2.81-3.23 3.69-5.1.88-1.87 1.44-3.97 1.68-6.3h-4V4.25Z" />
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 512 512">
+  <!-- Ryoku logo mark: the kanji 力 in the Greek Noir accent orange.
+       Baseline-positioned for Qt SVG rendering and padded to avoid topbar clipping. -->
+  <text x="256" y="360"
+        font-family="Noto Sans CJK JP, sans-serif"
+        font-weight="900"
+        font-size="360"
+        fill="#F25623"
+        text-anchor="middle">力</text>
 </svg>
