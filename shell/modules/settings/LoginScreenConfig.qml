@@ -568,15 +568,13 @@ ContentPage {
             }))
         }
 
-        GridLayout {
+        Flow {
+            // Flow wraps items based on the parent's available width
+            // and respects each tile's natural width (no fillWidth
+            // stretching that would happen in a GridLayout). Each tile
+            // is a fixed 200x112; Flow places as many per row as fit.
             Layout.fillWidth: true
-            // Responsive: pack as many ~200px tiles as fit, with one tile
-            // minimum so the grid never collapses to zero columns.
-            // 220 = preferred tile width (200) + columnSpacing (8) + a
-            // little slack to avoid wrapping mid-resize.
-            columns: Math.max(1, Math.floor(width / 220))
-            rowSpacing: 8
-            columnSpacing: 8
+            spacing: 8
 
             Repeater {
                 model: stripRoot.themeList
@@ -601,8 +599,8 @@ ContentPage {
         property bool clickable: true
         signal clicked()
 
-        Layout.preferredWidth: 200
-        Layout.preferredHeight: 112
+        width: 200
+        height: 112
         radius: Appearance.rounding.small
         color: "transparent"
         clip: true
