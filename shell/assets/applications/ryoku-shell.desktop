@@ -1,8 +1,8 @@
 [Desktop Entry]
 Type=Application
-Name=iNiR Settings
-Comment=Open iNiR settings
-Exec=inir settings
-Icon=inir
+Name=Ryoku Settings
+Comment=Open Ryoku settings
+Exec=ryoku-shell settings
+Icon=ryoku-shell
 Terminal=false
 Categories=Settings;DesktopSettings;Utility;

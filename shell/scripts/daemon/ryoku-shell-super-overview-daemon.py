@@ -29,15 +29,15 @@ super_down_global = False
 interaction_since_super_down = False
 tap_handled = False
 
-# Cache of inir's environment so we don't hit /proc on every tap.
-INIR_ENV_CACHE = {}
-INIR_ENV_PID = None
+# Cache of Ryoku shell's environment so we don't hit /proc on every tap.
+RYOKU_SHELL_ENV_CACHE = {}
+RYOKU_SHELL_ENV_PID = None
 
 
-def _find_inir_pid():
-    """Locate the PID of the running iNiR quickshell process by inspecting /proc.
+def _find_ryoku_shell_pid():
+    """Locate the PID of the running Ryoku quickshell process by inspecting /proc.
 
-    Matches both legacy ``qs -c inir`` invocations and the current
+    Matches both legacy ``qs -c ryoku-shell`` (formerly inir) invocations and the current
     path-based ``qs -p <path>`` / ``qs -n -p <path>`` form.
     """
     proc_root = "/proc"
@@ -59,40 +59,40 @@ def _find_inir_pid():
         exe = os.path.basename(args[0])
         if exe != "qs":
             continue
-        # Legacy: qs -c inir
+        # Legacy: qs -c inir (old name)
         if len(args) >= 3 and args[1] == "-c" and args[2] == "inir":
             return pid
         # Path-based: qs ... -p <path>/shell.qml  or  qs ... -p <path>
-        # where <path> ends with /inir or contains /inir/
+        # where <path> ends with /inir or /ryoku-shell or contains /inir/ or /ryoku-shell/
         for i, arg in enumerate(args[1:], 1):
             if arg == "-p" and i + 1 < len(args):
                 p = args[i + 1]
-                if p.rstrip("/").endswith("/inir") or "/inir/" in p:
+                if p.rstrip("/").endswith("/inir") or "/inir/" in p or p.rstrip("/").endswith("/ryoku-shell") or "/ryoku-shell/" in p:
                     return pid
                 break
     return None
 
 
-def get_inir_env():
-    """Get relevant environment variables from the running iNiR quickshell
+def get_ryoku_shell_env():
+    """Get relevant environment variables from the running Ryoku quickshell
     session to reuse them when calling IPC.
 
     Caches the environment while the PID stays the same to reduce
     perceived latency for Super taps.
     """
-    global INIR_ENV_CACHE, INIR_ENV_PID
+    global RYOKU_SHELL_ENV_CACHE, RYOKU_SHELL_ENV_PID
     try:
-        pid = _find_inir_pid()
+        pid = _find_ryoku_shell_pid()
         if pid is None:
-            print("[inir-super-daemon] inir not running, cannot import env", flush=True)
-            INIR_ENV_CACHE = {}
-            INIR_ENV_PID = None
+            print("[ryoku-shell-super-daemon] ryoku-shell not running, cannot import env", flush=True)
+            RYOKU_SHELL_ENV_CACHE = {}
+            RYOKU_SHELL_ENV_PID = None
             return {}
 
-        if INIR_ENV_PID == pid and INIR_ENV_CACHE:
-            return INIR_ENV_CACHE
+        if RYOKU_SHELL_ENV_PID == pid and RYOKU_SHELL_ENV_CACHE:
+            return RYOKU_SHELL_ENV_CACHE
 
-        print(f"[inir-super-daemon] Found inir pid={pid}", flush=True)
+        print(f"[ryoku-shell-super-daemon] Found ryoku-shell pid={pid}", flush=True)
         environ_path = f"/proc/{pid}/environ"
         with open(environ_path, "rb") as f:
             raw = f.read().decode("utf-8", errors="ignore")
@@ -109,12 +109,12 @@ def get_inir_env():
                 "NIRI_SOCKET",
             ):
                 env_vars[k] = v
-        INIR_ENV_CACHE = env_vars
-        INIR_ENV_PID = pid
-        print(f"[inir-super-daemon] Imported env from inir: {env_vars}", flush=True)
-        return INIR_ENV_CACHE
+        RYOKU_SHELL_ENV_CACHE = env_vars
+        RYOKU_SHELL_ENV_PID = pid
+        print(f"[ryoku-shell-super-daemon] Imported env from ryoku-shell: {env_vars}", flush=True)
+        return RYOKU_SHELL_ENV_CACHE
     except Exception as e:
-        print(f"[inir-super-daemon] Error reading inir env: {e}", flush=True)
+        print(f"[ryoku-shell-super-daemon] Error reading ryoku-shell env: {e}", flush=True)
         return {}
 
 
@@ -126,7 +126,7 @@ def find_keyboard_devices():
             dev = InputDevice(path)
             caps = dev.capabilities().get(ecodes.EV_KEY, [])
         except Exception as e:
-            print(f"[inir-super-daemon] Error inspecting {path}: {e}", flush=True)
+            print(f"[ryoku-shell-super-daemon] Error inspecting {path}: {e}", flush=True)
             continue
 
         name = (dev.name or "").lower()
@@ -140,20 +140,20 @@ def find_keyboard_devices():
 
         if has_super:
             print(
-                f"[inir-super-daemon] Using keyboard device {path} ({dev.name}), has_super={has_super}",
+                f"[ryoku-shell-super-daemon] Using keyboard device {path} ({dev.name}), has_super={has_super}",
                 flush=True,
             )
             keyboards.append(path)
 
         if has_pointer_button:
             print(
-                f"[inir-super-daemon] Using pointer device {path} ({dev.name}), has_pointer_button={has_pointer_button}",
+                f"[ryoku-shell-super-daemon] Using pointer device {path} ({dev.name}), has_pointer_button={has_pointer_button}",
                 flush=True,
             )
             pointers.append(path)
 
     if not keyboards:
-        print("[inir-super-daemon] No suitable keyboard devices found", flush=True)
+        print("[ryoku-shell-super-daemon] No suitable keyboard devices found", flush=True)
 
     return keyboards, pointers
 
@@ -190,21 +190,21 @@ async def monitor_device(path):
                     and not interaction_since_super_down
                     and not tap_handled
                 ):
-                    # Tap of Super with no other keys or clicks: toggle inir overview
+                    # Tap of Super with no other keys or clicks: toggle Ryoku overview
                     # with a global debounce so multiple devices don't double-trigger.
                     now = time.monotonic()
                     if now - last_toggle_time >= DEBOUNCE_SEC:
                         last_toggle_time = now
                         tap_handled = True
                         print(
-                            "[inir-super-daemon] Super tap detected, toggling inir overview",
+                            "[ryoku-shell-super-daemon] Super tap detected, toggling Ryoku overview",
                             flush=True,
                         )
                         try:
-                            inir_env = get_inir_env()
-                            if not inir_env:
+                            ryoku_env = get_ryoku_shell_env()
+                            if not ryoku_env:
                                 print(
-                                    "[inir-super-daemon] No inir env available, skipping toggle",
+                                    "[ryoku-shell-super-daemon] No ryoku-shell env available, skipping toggle",
                                     flush=True,
                                 )
                                 super_down = False
@@ -213,22 +213,22 @@ async def monitor_device(path):
                                 continue
 
                             env = os.environ.copy()
-                            env.update(inir_env)
+                            env.update(ryoku_env)
 
-                            # Resolve the inir launcher for the IPC call
-                            inir_bin = os.environ.get(
-                                "INIR_LAUNCHER_PATH",
-                                shutil.which("inir") or "inir",
+                            # Resolve the Ryoku shell launcher for the IPC call
+                            ryoku_bin = os.environ.get(
+                                "RYOKU_SHELL_LAUNCHER_PATH",
+                                shutil.which("ryoku-shell") or "ryoku-shell",
                             )
                             subprocess.Popen(
-                                [inir_bin, "overview", "toggle"],
+                                [ryoku_bin, "overview", "toggle"],
                                 env=env,
                                 stdout=subprocess.DEVNULL,
                                 stderr=subprocess.DEVNULL,
                             )
                         except Exception as e:
                             print(
-                                f"[inir-super-daemon] Error running toggle command: {e}",
+                                f"[ryoku-shell-super-daemon] Error running toggle command: {e}",
                                 flush=True,
                             )
                 super_down = False
@@ -271,7 +271,7 @@ async def main():
         if keyboard_paths:
             break
         print(
-            "[inir-super-daemon] No keyboards with Super yet, retrying in 5s",
+            "[ryoku-shell-super-daemon] No keyboards with Super yet, retrying in 5s",
             flush=True,
         )
         await asyncio.sleep(5)
