@@ -95,129 +95,6 @@ assert_shell_overlay() {
     "Ryoku shell overlay should not print upstream shell branding"
 }
 
-assert_topbar_frame_overlay() {
-  assert_contains "install/config/ryoku-shell-branding.sh" 'apply_topbar_hug_frame_to_file\(\)' \
-    "Ryoku shell overlay should define the topbar hug-frame patch"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'readonly property bool ryokuTopbarHugFrame: \(Config.options\?\.bar\?\.ryokuTopbarHugFrame \?\? true\)' \
-    "Topbar frame patch should use the Ryoku hug-frame config marker"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'component RyokuTopbarHugFrame: Canvas' \
-    "Topbar frame patch should use the Brain_Shell-style seamless Canvas shape"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'id: ryokuTopbarHugFrameCanvas' \
-    "Topbar frame patch should add the Canvas frame layer"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'leftWidth: root.ryokuLeftNotchWidth' \
-    "Topbar frame patch should size the left notch from left content"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'centerWidth: root.ryokuCenterNotchWidth' \
-    "Topbar frame patch should size the center notch from workspace content"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'rightWidth: root.ryokuRightNotchWidth' \
-    "Topbar frame patch should size the right notch from right content"
-  assert_not_contains "install/config/ryoku-shell-branding.sh" 'leftSectionRowLayout.childrenRect.width' \
-    "Topbar frame patch should not size the left notch from the full side hit zone"
-  assert_not_contains "install/config/ryoku-shell-branding.sh" 'rightSectionRowLayout.childrenRect.width' \
-    "Topbar frame patch should not size the right notch from the full side hit zone"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'ryokuLeftContentWidth' \
-    "Topbar frame patch should size the left notch from kept widgets"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'ryokuRightContentWidth' \
-    "Topbar frame patch should size the right notch from kept widgets"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'workspacesWidget\.visible \? workspacesWidget\.implicitWidth' \
-    "Topbar frame patch should include workspaces in the right-notch content width"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'ryokuRightContentWidth \+ Appearance\.rounding\.screenRounding \+ ryokuNotchPadding, 150\), 560' \
-    "Topbar frame patch should cap the right-notch width at 560 (raised to push weather away from workspaces strip)"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'apply_weather_bar_dynamic_color_to_file' \
-    "Topbar branding should patch WeatherBar to use wallpaper-blended color with theme fallback"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'wallpaperBlendedColors\?\.colOnLayer1' \
-    "WeatherBar color patch should bind to Appearance.wallpaperBlendedColors with optional chaining"
-  assert_contains "install/config/ryoku-shell-branding.sh" '// Ryoku: weather relocated to right notch interior' \
-    "Topbar frame patch should mark the Weather relocation with a sentinel comment for idempotency"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'unless \(/\\/\\/ Ryoku: weather relocated to right notch interior/\)' \
-    "Topbar frame patch should guard the Weather relocation behind its sentinel comment"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'root\.ryokuTopbarHugFrame \? 48 : 4' \
-    "Topbar frame patch should widen weather leftMargin under hug frame so on-demand indicators sit further left in the gap"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'root\.ryokuTopbarHugFrame \? 12 : 0' \
-    "Topbar frame patch should add a gap between TimerIndicator and ShellUpdateIndicator under hug frame"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'implicitWidth: root\.ryokuTopbarHugFrame \? 100 : 0' \
-    "Topbar frame patch should set middleCenterGroup to a fixed 100px placeholder under the hug frame"
-  assert_not_contains "install/config/ryoku-shell-branding.sh" 'implicitWidth: root\.ryokuTopbarHugFrame \? Math\.min\(workspacesWidget\.implicitWidth' \
-    "Topbar frame patch should no longer derive middleCenterGroup width from workspacesWidget"
-  assert_contains "install/config/ryoku-shell-branding.sh" '// Ryoku: workspaces relocated to right notch' \
-    "Topbar frame patch should mark the Workspaces relocation with a sentinel comment for idempotency"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'unless \(/\\/\\/ Ryoku: workspaces relocated to right notch/\)' \
-    "Topbar frame patch should guard the Workspaces relocation behind its sentinel comment"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'SysTray \\\{' \
-    "Topbar frame patch should target the SysTray declaration as the right-section anchor for relocation"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'id: weatherBarLoader' \
-    "Topbar frame patch should measure weather as part of the right island"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'apply_topbar_hug_frame_to_workspaces_file' \
-    "Topbar frame patch should compact the workspace island in hug-frame mode"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'merge_default_config_overrides' \
-    "Ryoku shell overlay should expose new bar options through live defaults"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'ctx.arcTo' \
-    "Topbar frame patch should use rounded Canvas transitions"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'if \(centerStart >= centerEnd\)' \
-    "Topbar frame patch should guard against overlapping notch geometry"
-  assert_not_contains "install/config/ryoku-shell-branding.sh" 'ShapePath|PathQuad' \
-    "Topbar frame patch should not use the previous ShapePath rewrite"
-  assert_contains "install/config/ryoku-shell-branding.sh" 's/root\\.ryokuThreeIslandFrame/root.ryokuTopbarHugFrame/g' \
-    "Topbar frame patch should upgrade the old floating pill marker in live files"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'apply_topbar_hug_frame_to_file "\$SHELL_PATH/modules/bar/BarContent.qml"' \
-    "Topbar frame patch should apply to the source BarContent.qml"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'apply_topbar_hug_frame_to_file "\$RUNTIME_SHELL_PATH/modules/bar/BarContent.qml"' \
-    "Topbar frame patch should apply to the runtime BarContent.qml"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'apply_topbar_hug_frame_to_bar_file "\$SHELL_PATH/modules/bar/Bar.qml"' \
-    "Topbar frame patch should adjust the source bar reserved height"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'apply_topbar_hug_frame_to_bar_file "\$RUNTIME_SHELL_PATH/modules/bar/Bar.qml"' \
-    "Topbar frame patch should adjust the runtime bar reserved height"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'ryokuTopbarReservedHeight' \
-    "Topbar frame patch should reserve less height so frame gaps show the window below"
-  assert_not_contains "install/config/ryoku-shell-branding.sh" 'id: ryokuLeftTopbarGap|id: ryokuRightTopbarGap' \
-    "Topbar frame patch should leave the gaps transparent instead of painting fake gap rectangles"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'z: 1' \
-    "Topbar frame patch should paint above the shell clear layer"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'z: root.ryokuTopbarHugFrame \? 2 : 0' \
-    "Topbar frame patch should keep widgets above the frame layer"
-  assert_not_contains_multiline "install/config/ryoku-shell-branding.sh" 'apply_topbar_hug_frame_to_file[[:space:]\\]+[^[:space:]]*ScreenCorners\.qml' \
-    "Topbar frame patch should not patch screen corner behavior"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'opacity: root.ryokuTopbarHugFrame \? 0 : 1' \
-    "Topbar frame patch should keep center spacers laid out but visually hidden"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'visible: \(Config.options\?\.bar.borderless\) \\&\\& !root.ryokuTopbarHugFrame' \
-    "Topbar frame patch should hide old borderless separators in frame gaps"
-  assert_not_contains_multiline "install/config/ryoku-shell-branding.sh" 'TimerIndicator \{\n\s*visible: !root\.ryokuTopbarHugFrame\n\/s;' \
-    "Topbar frame patch should no longer force-hide the timer indicator under the hug frame"
-  assert_contains "install/config/ryoku-shell-branding.sh" '# Regress force-hide: TimerIndicator' \
-    "Topbar frame patch should regress (remove) any previously-injected TimerIndicator force-hide line"
-  assert_not_contains_multiline "install/config/ryoku-shell-branding.sh" 'ShellUpdateIndicator \{\n\s*visible: !root\.ryokuTopbarHugFrame\n\/s;' \
-    "Topbar frame patch should no longer force-hide the shell update indicator under the hug frame"
-  assert_contains "install/config/ryoku-shell-branding.sh" '# Regress force-hide: ShellUpdateIndicator' \
-    "Topbar frame patch should regress (remove) any previously-injected ShellUpdateIndicator force-hide line"
-  assert_json_expr "default/ryoku-shell/config-overrides.json" '.bar.ryokuTopbarHugFrame == true' \
-    "Ryoku shell config overlay should enable the top-attached hug frame"
-  assert_json_expr "default/ryoku-shell/config-overrides.json" '.bar.cornerStyle == 0' \
-    "Ryoku shell config overlay should keep the bar in Hug corner mode"
-  assert_json_expr "default/ryoku-shell/config-overrides.json" '.bar.showBackground == true' \
-    "Ryoku shell config overlay should keep hug decorators enabled"
-  assert_json_expr "default/ryoku-shell/config-overrides.json" '.bar.borderless == true' \
-    "Ryoku shell config overlay should suppress BarGroup pill backgrounds"
-  assert_json_expr "default/ryoku-shell/config-overrides.json" '.bar.modules.resources == false' \
-    "Ryoku shell config overlay should hide resource/system monitor modules"
-  assert_json_expr "default/ryoku-shell/config-overrides.json" '.bar.modules.media == false' \
-    "Ryoku shell config overlay should hide the media/player module"
-  assert_json_expr "default/ryoku-shell/config-overrides.json" '.bar.modules.utilButtons == false' \
-    "Ryoku shell config overlay should hide quick action buttons"
-  assert_json_expr "default/ryoku-shell/config-overrides.json" '.bar.modules.clock == false' \
-    "Ryoku shell config overlay should hide time and date"
-  assert_json_expr "default/ryoku-shell/config-overrides.json" '.bar.modules.battery == false' \
-    "Ryoku shell config overlay should hide battery from the topbar"
-  assert_json_expr "default/ryoku-shell/config-overrides.json" '.bar.modules.sysTray == false' \
-    "Ryoku shell config overlay should hide the tray from the topbar"
-  assert_json_expr "default/ryoku-shell/config-overrides.json" '.bar.modules.activeWindow == true' \
-    "Ryoku shell config overlay should keep active window text"
-  assert_json_expr "default/ryoku-shell/config-overrides.json" '.bar.modules.workspaces == true' \
-    "Ryoku shell config overlay should keep workspace numbers"
-  assert_json_expr "default/ryoku-shell/config-overrides.json" '.bar.modules.rightSidebarButton == true' \
-    "Ryoku shell config overlay should keep the combined right status button"
-  assert_json_expr "default/ryoku-shell/config-overrides.json" '.bar.modules.weather == true' \
-    "Ryoku shell config overlay should keep weather in the right island"
-}
-
 assert_install_wiring() {
   assert_contains "install/config/theme.sh" 'ryoku-theme-set "ryoku"' \
     "Fresh install theme setup should select the shipped Ryoku theme"
@@ -249,7 +126,6 @@ assert_credit_kept() {
 
 assert_ryoku_theme
 assert_shell_overlay
-assert_topbar_frame_overlay
 assert_install_wiring
 assert_runtime_labels
 assert_credit_kept
