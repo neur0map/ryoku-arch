@@ -40,6 +40,13 @@ Singleton {
     }
 
     function _startSwayidle() {
+        // RYOKU: swayidle replaced by hypridle (managed via systemd user unit
+        // hypridle.service). hypridle has `inhibit_sleep = 3` which blocks
+        // suspend until the lock surface is secure on the compositor.
+        // This is the race-protection swayidle lacks.
+        // See ~/.config/hypr/hypridle.conf.
+        return
+
         if (inhibit) return
 
         const cmd = ["/usr/bin/swayidle", "-w"]
