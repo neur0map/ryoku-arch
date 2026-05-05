@@ -160,13 +160,20 @@ defined in source. To add a new provider, an implementer adds a
 `shell/assets/sddm-providers/<providerId>/`.
 
 `installCommand` is a string identifier, not a literal command line.
-The page's apply logic resolves it to a real argv:
+The page's helper logic resolves it to a real argv:
 
-- `qylock`: `Quickshell.execDetached(["ryoku-install-qylock", "--theme", themeName])`
-- future providers: add a branch in `applyTheme()` keyed by `providerId`
+- `qylock` install: `["ryoku-install-qylock", "--default"]`
+- `qylock` apply theme: `["ryoku-install-qylock", "--theme", <themeName>]`
+- future providers: add a branch in the resolver keyed by `providerId`
 
-This is the one place provider-specific logic lives. The rest of the UI
-is data-driven.
+Both kinds of subprocess are run via Quickshell's `Process` component
+(matching the existing pattern in `GeneralConfig.qml`,
+`NiriConfig.qml`, `ToolsConfig.qml`, `QuickConfig.qml`), not via
+`Quickshell.execDetached`. `Process` exposes `running`, `exitCode`,
+and stdout/stderr capture, which the page needs to know when an
+install or apply has actually finished and whether to surface a
+failure toast. This is the one place provider-specific logic lives.
+The rest of the UI is data-driven.
 
 ### Page layout
 
@@ -243,15 +250,16 @@ Top to bottom:
 
 ### Install workflow
 
-Click "Install qylock" → page calls
-`Quickshell.execDetached(["ryoku-install-qylock", "--default"])`.
+Click "Install qylock" → page sets a single `Process` component's
+`command` to `["ryoku-install-qylock", "--default"]` and toggles
+`running = true`.
 
 `--default` is correct because:
 
-1. On a brand-new install with no qylock present, it clones qylock,
-   installs deps, and seats `dog-samurai`. This matches what the
-   migration does, so the picker behaves the same as the migration on
-   first run.
+1. On a brand-new install with no qylock present, the helper installs
+   Qt deps, clones qylock, and seats `dog-samurai`. This matches what
+   the migration does, so the picker behaves the same as the migration
+   on first run.
 2. If qylock is already partially installed somehow, the helper's
    own logic (the `if [[ -d $QYLOCK_DIR/.git ]]` branch) keeps the
    already-active theme rather than blowing it away. So clicking
@@ -262,26 +270,38 @@ running `polkit-gnome-authentication-agent-1` (already part of the
 Ryoku session) handles the prompt as a graphical dialog; no terminal
 needed.
 
-While the subprocess is running the page shows a non-blocking
+While `Process.running` is true the page shows a non-blocking
 "Installing qylock…" banner at the top and disables the Install
-button. Completion is detected by polling `~/.local/share/qylock/.git`
-existence on a 1s `Timer` until the directory shows up (or 60s
-timeout, after which the banner switches to "Install may have failed.
-Run `ryoku-install-qylock` in a terminal to see output.").
+button. The `Process.exited` signal (fires once with the exit code
+when the helper finishes) drives the next state:
+
+- `exitCode === 0`: re-evaluate provider state (the
+  `installRoot/.git` check now returns true; the page flips into
+  post-install layout, and the active-theme banner re-reads
+  `theme.conf`).
+- non-zero: surface a failure toast,
+  `"Install failed (exit <code>). Run 'ryoku-install-qylock' in a
+  terminal to see output."` Banner is dismissed.
+
+No timer-based polling. The exit signal is authoritative.
 
 ### Apply-theme workflow
 
-Click a tile in the post-install grid → page calls
-`Quickshell.execDetached(["ryoku-install-qylock", "--theme", themeName])`.
+Click a tile in the post-install grid → a second `Process` component
+(separate from the install one, so an in-flight install does not
+block apply or vice versa) gets `command` set to
+`["ryoku-install-qylock", "--theme", themeName]` and starts.
 
 The helper writes `theme.conf` and copies the theme dir into
-`/usr/share/sddm/themes/<name>`. Polkit prompts again. Page polls
-`/etc/sddm.conf.d/theme.conf` for the new `Current=` value (1s timer,
-30s timeout) and refreshes the active-theme banner + tile highlight
-when it lands.
+`/usr/share/sddm/themes/<name>`. Polkit prompts again. Tile shows a
+spinner overlay while the apply Process is running. On
+`Process.exited` with exit code 0, the page re-reads
+`/etc/sddm.conf.d/theme.conf` (`Current=` line) and updates the
+active-theme banner and tile highlight. On non-zero exit, surface a
+failure toast and leave the active theme unchanged.
 
-After successful apply, page shows a transient toast at the bottom of
-the page: `"Theme applied. Reboot or run 'systemctl restart sddm'."`
+After a successful apply, page shows a transient toast at the bottom
+of the page: `"Theme applied. Reboot or run 'systemctl restart sddm'."`
 (matching the banner caption copy).
 
 ### Visual identity (avoiding AI-template look)
@@ -380,27 +400,32 @@ of qylock and stays MIT.
 
 ### Tests
 
-A new shellcheck-and-syntax-only test under
-`tests/login-screen-config.sh`:
+A new bash test under `tests/login-screen-config.sh`, following the
+same pattern as existing static-validation tests in the repo (pure
+shell assertions, no QML runtime):
 
-1. Runs `qmllint` (via `quickshell --check` or `qml --quit`, whichever
-   the existing tests use) over `shell/modules/settings/LoginScreenConfig.qml`
-   and the modified `shell/settings.qml` and
-   `shell/modules/settings/SettingsOverlay.qml`.
-2. Asserts the new pageIndex appears in `SettingsOverlay.qml`'s search
-   index (grep for the keyword `"qylock"`).
-3. Asserts the new page is in `pages` array (grep for
-   `LoginScreenConfig.qml`).
-4. Asserts every `bundledThemes` entry has a matching asset under
+1. Asserts `shell/modules/settings/LoginScreenConfig.qml` exists and
+   contains the inline `providers` `ListModel` (grep for the
+   identifier).
+2. Asserts the new page is registered in `shell/settings.qml`'s
+   `pages` array (grep for `LoginScreenConfig.qml`).
+3. Asserts a search entry for the new page exists in
+   `shell/modules/settings/SettingsOverlay.qml` (grep for the keyword
+   `"qylock"` inside `settingsSearchIndex`).
+4. Asserts every `providerId: "qylock"` `bundledThemes` entry parsed
+   out of `LoginScreenConfig.qml` has a matching asset under
    `shell/assets/sddm-providers/qylock/themes/<name>.png`. This
    prevents the ListModel and asset directory from drifting.
 5. Asserts `shell/assets/sddm-providers/qylock/hero.png` and
-   `_placeholder.png` exist and are PNGs (file magic check).
+   `_placeholder.png` exist and are real PNGs (`file -b` magic check
+   contains `PNG image data`).
 
 The test does not run quickshell, does not start SDDM, does not call
-`ryoku-install-qylock`. It is pure static validation. Behavioral
-verification (does the install actually work, does the apply actually
-switch themes) stays manual.
+`ryoku-install-qylock`, and does not depend on `qmllint` or any other
+QML tooling (the repo currently has none and this spec does not
+introduce one). It is pure static validation. Behavioral verification
+(does the install actually work, does the apply actually switch
+themes) stays manual.
 
 ## Future Work
 
