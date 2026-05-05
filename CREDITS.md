@@ -40,14 +40,6 @@ qylock's GPL-3.0 license. The hero composite at
 `shell/assets/sddm-providers/qylock/hero.png` is an original Ryoku
 composition assembled from those screenshots.
 
-## ilyamiro/nixos-configuration
-
-Earlier Ryoku work was inspired by ilyamiro's NixOS configuration,
-especially the Quickshell music popup and equalizer work. Ryoku does not
-vendor source from this repository in the current Niri tree.
-
-- Upstream: https://github.com/ilyamiro/nixos-configuration
-
 ## Retired Prototype References
 
 Earlier Ryoku prototypes experimented with Brain_Shell and Noctalia Shell

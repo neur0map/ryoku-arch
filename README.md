@@ -71,7 +71,6 @@ Ryoku stands on the shoulders of upstream projects and visual references. Full a
 - [**iNiR**](https://github.com/snowarch/iNiR): the current shell layer and session UI Ryoku installs on top of Niri.
 - [**Omarchy**](https://github.com/basecamp/omarchy): the original opinionated Arch project that Ryoku descends from. Ryoku's command ecosystem, theme pipeline, and install flow inherit its shape.
 - [**qylock**](https://github.com/Darkkal44/qylock): optional SDDM theme bundle by **Darkkal44**, swappable via `ryoku-install-qylock`.
-- [**ilyamiro/nixos-configuration**](https://github.com/ilyamiro/nixos-configuration): earlier shell audio and music-popup interaction inspiration. Ryoku does not vendor source from this repository in the current Niri tree.
 
 ## License
 
