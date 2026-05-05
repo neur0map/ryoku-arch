@@ -143,7 +143,7 @@ ContentPage {
                         height: 60
                         sourceSize.width: 60
                         sourceSize.height: 60
-                        source: Quickshell.shellPath("assets/icons/sf.svg")
+                        source: Quickshell.shellPath("assets/icons/ryoku-symbolic.svg")
                         fillMode: Image.PreserveAspectFit
                         layer.enabled: Appearance.effectsEnabled
 
@@ -271,7 +271,7 @@ ContentPage {
                 RippleButtonWithIcon {
                     materialIcon: "auto_stories"
                     mainText: Translation.tr("Documentation")
-                    onClicked: Qt.openUrlExternally("https://snowarch.github.io/Ryoku/docs/")
+                    onClicked: Qt.openUrlExternally("https://github.com/neur0map/ryoku-arch")
                 }
 
                 RippleButtonWithIcon {
