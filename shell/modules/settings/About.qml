@@ -287,14 +287,6 @@ ContentPage {
 
                         RippleButtonWithIcon {
                             implicitHeight: 28
-                            visible: SystemInfo.supportUrl && SystemInfo.supportUrl.length > 0
-                            materialIcon: "support"
-                            mainText: Translation.tr("Help & Support")
-                            onClicked: Qt.openUrlExternally(SystemInfo.supportUrl)
-                        }
-
-                        RippleButtonWithIcon {
-                            implicitHeight: 28
                             visible: SystemInfo.bugReportUrl && SystemInfo.bugReportUrl.length > 0
                             materialIcon: "bug_report"
                             mainText: Translation.tr("Report a Bug")
