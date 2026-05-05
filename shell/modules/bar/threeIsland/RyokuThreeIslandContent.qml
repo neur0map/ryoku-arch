@@ -8,6 +8,8 @@ import qs.modules.common.functions
 import qs.modules.bar
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
+import Quickshell.Hyprland
 
 Item {
     id: root
