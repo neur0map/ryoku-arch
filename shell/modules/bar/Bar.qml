@@ -124,7 +124,7 @@ Scope {
                         readonly property var blendedColors: barContent.item?.blendedColors ?? null
                         readonly property string wallpaperUrl: barContent.item?.wallpaperUrl ?? ""
 
-                        implicitHeight: Appearance.sizes.barHeight
+                        height: Appearance.sizes.barHeight
                         anchors {
                             right: parent.right
                             left: parent.left
