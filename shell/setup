@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# iNiR setup - installer and maintenance entrypoint
+# Ryoku setup - installer and maintenance entrypoint
 # Commands: install, update, status, migrate, doctor, rollback, my-changes, uninstall (or TUI if no args)
 
 resolve_bootstrap_repo_root() {
@@ -11,7 +11,7 @@ resolve_bootstrap_repo_root() {
     fi
 
     local xdg_config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
-    local config_new="${xdg_config_home}/inir"
+    local config_new="${xdg_config_home}/ryoku-shell"
     local config_legacy="${xdg_config_home}/illogical-impulse"
     local config_dir=""
 
@@ -51,8 +51,8 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(resolve_bootstrap_repo_root "$SCRIPT_DIR")"
 
 if [[ ! -d "$REPO_ROOT" || ! -f "$REPO_ROOT/shell.qml" ]]; then
-    echo "Error: Could not find iNiR repository (resolved to: ${REPO_ROOT:-<empty>})" >&2
-    echo "Run this script from the iNiR repo directory, or fix ~/.config/inir/version.json" >&2
+    echo "Error: Could not find Ryoku repository (resolved to: ${REPO_ROOT:-<empty>})" >&2
+    echo "Run this script from the Ryoku repo directory, or fix ~/.config/ryoku-shell/version.json" >&2
     exit 1
 fi
 
@@ -72,7 +72,7 @@ cleanup() {
 ###############################################################################
 run_migrate() {
     echo ""
-    tui_title "iNiR Migrations"
+    tui_title "Ryoku Migrations"
     echo ""
 
     sync_launcher_from_repo
@@ -189,21 +189,21 @@ _check_privilege_prereqs() {
 }
 
 sync_launcher_from_repo() {
-    local launcher_target="${XDG_BIN_HOME}/inir"
-    if [[ -f "${REPO_ROOT}/scripts/inir" ]]; then
+    local launcher_target="${XDG_BIN_HOME}/ryoku-shell"
+    if [[ -f "${REPO_ROOT}/scripts/ryoku-shell" ]]; then
         mkdir -p "$XDG_BIN_HOME"
-        cp -f "${REPO_ROOT}/scripts/inir" "$launcher_target"
+        cp -f "${REPO_ROOT}/scripts/ryoku-shell" "$launcher_target"
         chmod +x "$launcher_target"
         ensure_launcher_path_in_shells "$XDG_BIN_HOME"
         printf '%s\n' "$launcher_target"
     fi
 }
 
-sync_user_inir_service_from_repo_if_present() {
-    local service_asset="${REPO_ROOT}/assets/systemd/inir.service"
+sync_user_ryoku-shell.service_from_repo_if_present() {
+    local service_asset="${REPO_ROOT}/assets/systemd/ryoku-shell.service"
     local service_target_dir="${XDG_CONFIG_HOME}/systemd/user"
-    local service_target="${service_target_dir}/inir.service"
-    local launcher_target="${XDG_BIN_HOME}/inir"
+    local service_target="${service_target_dir}/ryoku-shell.service"
+    local launcher_target="${XDG_BIN_HOME}/ryoku-shell"
     local tmp_file
     local changed=false
 
@@ -212,7 +212,7 @@ sync_user_inir_service_from_repo_if_present() {
 
     mkdir -p "$service_target_dir"
     mkdir -p "${XDG_CACHE_HOME:-$HOME/.cache}"
-    tmp_file="${XDG_CACHE_HOME:-$HOME/.cache}/inir.service.$$"
+    tmp_file="${XDG_CACHE_HOME:-$HOME/.cache}/ryoku-shell.service.$$"
 
     sed -e "s|^ExecStart=.*|ExecStart=${launcher_target//&/\\&} run --session|" \
         -e "s|^ExecStopPost=-.*|ExecStopPost=-${launcher_target//&/\\&} cleanup-orphans|" \
@@ -236,12 +236,12 @@ sync_user_inir_service_from_repo_if_present() {
     return 1
 }
 
-ensure_user_inir_service_enabled() {
+ensure_user_ryoku-shell.service_enabled() {
     if ! command -v systemctl >/dev/null 2>&1; then
         return 1
     fi
 
-    local service_path="${XDG_CONFIG_HOME}/systemd/user/inir.service"
+    local service_path="${XDG_CONFIG_HOME}/systemd/user/ryoku-shell.service"
     if [[ ! -f "$service_path" ]]; then
         return 1
     fi
@@ -260,9 +260,9 @@ ensure_user_inir_service_enabled() {
     fi
 
     local wants_dir="${XDG_CONFIG_HOME}/systemd/user/${target}.wants"
-    if [[ ! -e "$wants_dir/inir.service" ]]; then
+    if [[ ! -e "$wants_dir/ryoku-shell.service" ]]; then
         mkdir -p "$wants_dir"
-        ln -sf "$service_path" "$wants_dir/inir.service"
+        ln -sf "$service_path" "$wants_dir/ryoku-shell.service"
     fi
 
     systemctl --user daemon-reload >/dev/null 2>&1 || true
@@ -285,7 +285,7 @@ setup_service_link_summary() {
     local wants_dir
     for wants_dir in "${XDG_CONFIG_HOME}/systemd/user"/*.wants; do
         [[ -d "$wants_dir" ]] || continue
-        [[ -e "$wants_dir/inir.service" || -L "$wants_dir/inir.service" ]] || continue
+        [[ -e "$wants_dir/ryoku-shell.service" || -L "$wants_dir/ryoku-shell.service" ]] || continue
         links+=("$(basename "${wants_dir%.wants}")")
     done
 
@@ -391,7 +391,7 @@ show_setup_context_card() {
     runtime_dir="$(get_runtime_shell_dir)"
     current_branch="$(setup_current_branch)"
     tracked_branch="$(setup_tracked_branch)"
-    launcher_path="$(command -v inir 2>/dev/null || echo "${XDG_BIN_HOME}/inir")"
+    launcher_path="$(command -v ryoku-shell 2>/dev/null || echo "${XDG_BIN_HOME}/ryoku-shell")"
     service_links="$(setup_service_link_summary)"
     remote_state="$(setup_remote_state_summary)"
     runtime_state="$(setup_runtime_change_summary)"
@@ -417,9 +417,9 @@ show_setup_context_card() {
 
 show_help() {
     echo ""
-    tui_hero_card "iNiR setup" \
+    tui_hero_card "Ryoku setup" \
         "Install, sync, repair, inspect, and unfuck the shell without guessing which entrypoint owns what." \
-        "Use inir for daily runtime control. Use ./setup when you want the maintenance brain."
+        "Use ryoku-shell for daily runtime control. Use ./setup when you want the maintenance brain."
 
     tui_key_value "Usage:" "./setup [command] [options]"
     show_setup_context_card "Setup Overview"
@@ -446,13 +446,13 @@ show_help() {
     tui_list_item "rollback    Restore a previous snapshot"
     tui_list_item "my-changes  View or restore preserved user modifications"
     tui_list_item "reinstall   Re-run install pipeline for current setup"
-    tui_list_item "uninstall   Remove iNiR from the system"
+    tui_list_item "uninstall   Remove Ryoku from the system"
     tui_section_end
 
     tui_section_start "Customization"
     tui_list_item "config      View and edit shell settings"
     tui_list_item "theme       Change wallpaper and color scheme"
-    tui_list_item "extras      Install optional extras (iNiR-Walls / SDDM / YAMIS icons)"
+    tui_list_item "extras      Install optional extras (Ryoku-Walls / SDDM / YAMIS icons)"
     tui_section_end
 
     tui_section_start "Options"
@@ -465,12 +465,12 @@ show_help() {
     tui_section_end
 
     tui_section_start "Good defaults"
-    tui_list_item "./setup install      Install iNiR once"
+    tui_list_item "./setup install      Install Ryoku once"
     tui_list_item "./setup update       Pull, sync, and restart"
     tui_list_item "./setup doctor       Diagnose weird runtime breakage"
     tui_list_item "./setup status       See what is installed and what is drifting"
-    tui_list_item "inir run             Start the shell"
-    tui_list_item "inir logs            Read what the shell is complaining about"
+    tui_list_item "ryoku-shell run             Start the shell"
+    tui_list_item "ryoku-shell logs            Read what the shell is complaining about"
     tui_section_end
     echo ""
 }
@@ -539,7 +539,7 @@ show_version_info() {
     # Check for updates
     if [[ "$update_strategy" != "package-manager" && "$installed_commit" != "$repo_commit" ]]; then
         echo ""
-        tui_alert "info" "Update available" "Run './setup update' or 'inir update' to apply."
+        tui_alert "info" "Update available" "Run './setup update' or 'ryoku-shell update' to apply."
     fi
 }
 
@@ -570,7 +570,7 @@ tui_menu() {
             "${ICON_CHECK}|Doctor|Diagnose and fix problems" \
             "${ICON_DOT}|Config|View and edit shell settings" \
             "${ICON_STAR}|Theme|Change wallpaper and color scheme" \
-            "${ICON_DOT}|Extras|Install optional extras (iNiR-Walls / SDDM / YAMIS icons)" \
+            "${ICON_DOT}|Extras|Install optional extras (Ryoku-Walls / SDDM / YAMIS icons)" \
             "${ICON_INFO}|Info|System and shell details dashboard" \
             "${ICON_DOT}|Logs|View recent runtime logs" \
             "${ICON_DOT}|Migrate|Review and apply config migrations" \
@@ -578,7 +578,7 @@ tui_menu() {
             "${ICON_DOT}|Rollback|Restore a previous snapshot" \
             "${ICON_DOT}|My Changes|View your preserved modifications" \
             "${ICON_DOT}|Reinstall|Full reinstall from scratch" \
-            "${ICON_CROSS}|Uninstall|Remove iNiR from the system" \
+            "${ICON_CROSS}|Uninstall|Remove Ryoku from the system" \
             "${ICON_CIRCLE}|Help|Show commands and usage" \
             "${ICON_CIRCLE}|Exit|")
     else
@@ -665,7 +665,7 @@ show_status() {
     tui_table_row "Remote State" "$remote_state" 14 36
     tui_table_row "Runtime State" "$runtime_state" 14 36
     tui_table_row "Runtime Path" "$runtime_dir_display" 14 36
-    tui_table_row "Launcher" "inir run" 14 36
+    tui_table_row "Launcher" "ryoku-shell run" 14 36
     [[ -n "$repo_path_display" ]] && tui_table_row "Repo Path" "$repo_path_display" 14 36
     if [[ "$update_strategy" == "package-manager" ]]; then
         [[ -n "$update_hint" ]] && tui_table_row "Update Cmd" "$update_hint" 14 36
@@ -699,14 +699,14 @@ show_status() {
     fi
 
     local launcher_path
-    launcher_path="$(command -v inir 2>/dev/null || true)"
-    if [[ -n "$launcher_path" || -x "${REPO_ROOT}/scripts/inir" ]]; then
+    launcher_path="$(command -v ryoku-shell 2>/dev/null || true)"
+    if [[ -n "$launcher_path" || -x "${REPO_ROOT}/scripts/ryoku-shell" ]]; then
         tui_check_ok "Launcher available${launcher_path:+: $launcher_path}"
     else
         tui_check_warn "Launcher not available in PATH"
     fi
 
-    local service_path="${XDG_CONFIG_HOME}/systemd/user/inir.service"
+    local service_path="${XDG_CONFIG_HOME}/systemd/user/ryoku-shell.service"
     local service_links
     service_links="$(setup_service_link_summary)"
     if [[ -f "$service_path" ]]; then
@@ -772,7 +772,7 @@ show_status() {
 ###############################################################################
 show_info() {
     echo ""
-    tui_hero_card "iNiR System Information" \
+    tui_hero_card "Ryoku System Information" \
         "The useful stuff: platform, runtime, launcher, and the shell state that usually matters when something gets weird." \
         "This is the quick dashboard. Doctor is the one that actually gets its hands dirty."
 
@@ -803,7 +803,7 @@ show_info() {
     local kernel
     kernel=$(uname -r 2>/dev/null || echo "unknown")
 
-    # iNiR details
+    # Ryoku details
     local installed_ver=$(get_installed_version)
     local installed_commit=$(get_installed_commit)
     local installed_mode=$(get_installed_install_mode)
@@ -870,7 +870,7 @@ show_info() {
     tui_key_value "State:" "$state_dir"
     tui_key_value "Runtime:" "${runtime_dir:-"(not set)"}"
     tui_key_value "Repo:" "$REPO_ROOT"
-    tui_key_value "Launcher:" "$(command -v inir 2>/dev/null || echo "${XDG_BIN_HOME}/inir")"
+    tui_key_value "Launcher:" "$(command -v ryoku-shell 2>/dev/null || echo "${XDG_BIN_HOME}/ryoku-shell")"
     tui_key_value "Remote:" "$remote_state"
     tui_key_value "Runtime State:" "$runtime_state"
     tui_key_value "Preserved Mods:" "$preserved_mods"
@@ -902,7 +902,7 @@ show_info() {
     local snapshot_count=$(list_snapshots 2>/dev/null | wc -l)
     tui_check_ok "$snapshot_count snapshot(s) available"
 
-    local service_path="${XDG_CONFIG_HOME}/systemd/user/inir.service"
+    local service_path="${XDG_CONFIG_HOME}/systemd/user/ryoku-shell.service"
     if [[ -f "$service_path" ]]; then
         tui_check_ok "User service file present"
     else
@@ -910,7 +910,7 @@ show_info() {
     fi
 
     local launcher_path
-    launcher_path="$(command -v inir 2>/dev/null || true)"
+    launcher_path="$(command -v ryoku-shell 2>/dev/null || true)"
     if [[ -n "$launcher_path" ]]; then
         tui_check_ok "Launcher resolves to $launcher_path"
     else
@@ -937,7 +937,7 @@ show_info() {
 ###############################################################################
 run_config() {
     echo ""
-    tui_title "iNiR Configuration"
+    tui_title "Ryoku Configuration"
     echo ""
 
     local config_dir
@@ -993,7 +993,7 @@ run_config() {
             tui_info "Opening $config_file with $editor..."
             "$editor" "$config_file"
             tui_success "Config saved"
-            tui_info "Run 'inir restart' to apply changes"
+            tui_info "Run 'ryoku-shell restart' to apply changes"
             ;;
         "Panel Family")
             echo ""
@@ -1005,7 +1005,7 @@ run_config() {
                     tmp_file=$(mktemp)
                     jq --arg f "$new_family" '.panelFamily = $f' "$config_file" > "$tmp_file" && mv "$tmp_file" "$config_file"
                     tui_success "Panel family set to: $new_family"
-                    tui_info "Run 'inir restart' to apply"
+                    tui_info "Run 'ryoku-shell restart' to apply"
                 else
                     tui_warn "jq required to edit config programmatically"
                     tui_info "Edit $config_file manually"
@@ -1029,7 +1029,7 @@ run_config() {
                     cp "$config_file" "${config_file}.backup.$(date +%Y%m%d%H%M%S)"
                     cp "${REPO_ROOT}/defaults/config.json" "$config_file"
                     tui_success "Config reset to defaults (backup created)"
-                    tui_info "Run 'inir restart' to apply"
+                    tui_info "Run 'ryoku-shell restart' to apply"
                 else
                     tui_error "Default config not found"
                 fi
@@ -1064,9 +1064,9 @@ run_theme() {
             return 0
         fi
 
-        if command -v inir &>/dev/null; then
+        if command -v ryoku-shell &>/dev/null; then
             local runtime_dir
-            runtime_dir="$(inir path 2>/dev/null || true)"
+            runtime_dir="$(ryoku-shell path 2>/dev/null || true)"
             candidate="${runtime_dir}/scripts/colors/switchwall.sh"
             if [[ -x "$candidate" ]]; then
                 printf '%s' "$candidate"
@@ -1187,14 +1187,14 @@ run_extras() {
 
     local action
     action=$(tui_choose_rich "Extras" \
-        "${ICON_DOT}|Install iNiR-Walls|Download optional wallpaper pack and copy image files" \
-        "${ICON_DOT}|Install ii-pixel-sddm|Install/apply iNiR SDDM login theme" \
+        "${ICON_DOT}|Install Ryoku-Walls|Download optional wallpaper pack and copy image files" \
+        "${ICON_DOT}|Install ii-pixel-sddm|Install/apply Ryoku SDDM login theme" \
         "${ICON_DOT}|Install YAMIS icons|Install/update yet-another-monochrome-icon-set (GPL-3, ~23 MiB)" \
         "${ICON_DOT}|Install all|Run all optional installers" \
         "${ICON_CIRCLE}|Back|Return to main menu")
 
     case "$action" in
-        "Install iNiR-Walls")
+        "Install Ryoku-Walls")
             echo ""
             extras_install_inir_walls
             ;;
@@ -1287,7 +1287,7 @@ run_logs() {
 
     if [[ ${#log_sources[@]} -eq 0 ]]; then
         tui_warn "No log sources found"
-        tui_info "Start iNiR first: inir run"
+        tui_info "Start Ryoku first: ryoku-shell run"
         echo ""
         read -rp "Press Enter to continue..."
         return 0
@@ -1487,7 +1487,7 @@ run_install() {
     tui_task_finalize
 
     echo ""
-    tui_alert "success" "Installation complete" "Version $(get_repo_version) is ready.\nRun 'inir run' to start the shell, or log out and back in."
+    tui_alert "success" "Installation complete" "Version $(get_repo_version) is ready.\nRun 'ryoku-shell run' to start the shell, or log out and back in."
 }
 
 ###############################################################################
@@ -1664,7 +1664,7 @@ restore_all_user_mods() {
 
     echo ""
     tui_success "Restored $restored file(s)"
-    tui_info "Restart the shell to apply changes: inir restart"
+    tui_info "Restart the shell to apply changes: ryoku-shell restart"
 }
 
 # Helper: Restore a single file from user-mods backup
@@ -1716,7 +1716,7 @@ restore_single_user_mod() {
     mkdir -p "$(dirname "$dest_file")"
     cp "$src_file" "$dest_file"
     tui_success "Restored: $choice"
-    tui_info "Restart the shell to apply changes: inir restart"
+    tui_info "Restart the shell to apply changes: ryoku-shell restart"
 }
 
 ###############################################################################
@@ -1785,9 +1785,9 @@ run_update_simulated() {
 
     # Step 2 — verbose op: header + simulated per-file lines
     _step_phase_header 2 "Syncing files"
-    tui_info "Syncing iNiR..."
+    tui_info "Syncing Ryoku..."
     sleep 1
-    tui_check_ok "scripts/inir         (current)"
+    tui_check_ok "scripts/ryoku-shell         (current)"
     tui_check_ok "modules/bar          (3 files updated)"
     tui_check_ok "services/Audio.qml   (current)"
     tui_check_ok "translations/es.json (current)"
@@ -1803,7 +1803,7 @@ run_update_simulated() {
     _step_phase_header 4 "Finalizing"
     tui_info "Refreshing systemd unit..."
     sleep 1
-    tui_check_ok "inir.service reloaded"
+    tui_check_ok "ryoku-shell.service reloaded"
     tui_check_ok "Launcher path verified"
     tui_success "Service file refreshed"
 
@@ -1889,7 +1889,7 @@ run_update() {
     local update_hint=$(get_installed_package_update_hint)
 
     if [[ "$installed_strategy" == "package-manager" ]]; then
-        tui_warn "This iNiR installation is package-managed"
+        tui_warn "This Ryoku installation is package-managed"
         tui_status_line "Install Mode:" "$installed_mode" ""
         [[ -n "$package_name" ]] && tui_status_line "Package:" "$package_name" ""
         if [[ -n "$update_hint" ]]; then
@@ -1911,12 +1911,12 @@ run_update() {
             fi
         fi
 
-        ensure_user_inir_service_enabled >/dev/null 2>&1 || true
-        # Only start inir if we're running under a supported compositor.
+        ensure_user_ryoku-shell.service_enabled >/dev/null 2>&1 || true
+        # Only start ryoku-shell if we're running under a supported compositor.
         # WAYLAND_DISPLAY alone is not enough — KDE/GNOME set it too.
         if [[ -n "${NIRI_SOCKET:-}" ]] || pgrep -x niri &>/dev/null || pgrep -x Hyprland &>/dev/null; then
-            systemctl --user reset-failed inir.service >/dev/null 2>&1 || true
-            systemctl --user start inir.service >/dev/null 2>&1 || true
+            systemctl --user reset-failed ryoku-shell.service >/dev/null 2>&1 || true
+            systemctl --user start ryoku-shell.service >/dev/null 2>&1 || true
         fi
 
         # Even on package-managed installs, refresh the shipped ii-pixel theme from
@@ -2047,10 +2047,10 @@ run_update() {
     local repo_commit=$(get_repo_commit)
 
     _step_phase_header 2 "Syncing files"
-    tui_info "Syncing iNiR..."
+    tui_info "Syncing Ryoku..."
 
     II_SOURCE="${REPO_ROOT}"
-    II_TARGET="${XDG_CONFIG_HOME}/quickshell/inir"
+    II_TARGET="${XDG_CONFIG_HOME}/quickshell/ryoku-shell"
     local legacy_runtime_dir="${XDG_CONFIG_HOME}/quickshell/ii"
 
     for dir in "$XDG_BIN_HOME" "$XDG_CACHE_HOME" "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_STATE_HOME" "$II_TARGET"; do
@@ -2159,22 +2159,22 @@ run_update() {
     fi
 
     # Generate manifest
-    generate_manifest "$II_SOURCE" "${II_TARGET}/.inir-manifest"
+    generate_manifest "$II_SOURCE" "${II_TARGET}/.ryoku-shell-manifest"
 
     # Remove orphan files left from previous versions
-    cleanup_orphans "$II_TARGET" "${II_TARGET}/.inir-manifest"
+    cleanup_orphans "$II_TARGET" "${II_TARGET}/.ryoku-shell-manifest"
 
     # Fix permissions
     find "$II_TARGET/scripts" \( -name "*.sh" -o -name "*.fish" -o -name "*.py" \) -exec chmod +x {} \; 2>/dev/null || true
     [[ -f "${II_TARGET}/setup" ]] && chmod +x "${II_TARGET}/setup"
 
-    local launcher_target="${XDG_BIN_HOME}/inir"
-    if [[ -f "${REPO_ROOT}/scripts/inir" ]]; then
+    local launcher_target="${XDG_BIN_HOME}/ryoku-shell"
+    if [[ -f "${REPO_ROOT}/scripts/ryoku-shell" ]]; then
         mkdir -p "$XDG_BIN_HOME"
-        cp -f "${REPO_ROOT}/scripts/inir" "$launcher_target"
+        cp -f "${REPO_ROOT}/scripts/ryoku-shell" "$launcher_target"
         chmod +x "$launcher_target"
         ensure_launcher_path_in_shells "$XDG_BIN_HOME"
-        if ! command -v inir &>/dev/null && [[ ":$PATH:" != *":${XDG_BIN_HOME}:"* ]]; then
+        if ! command -v ryoku-shell &>/dev/null && [[ ":$PATH:" != *":${XDG_BIN_HOME}:"* ]]; then
             tui_warn "Launcher installed to ${launcher_target}, but ${XDG_BIN_HOME} is not in PATH for this shell"
         fi
     fi
@@ -2184,15 +2184,15 @@ run_update() {
     if [[ -f "${REPO_ROOT}/assets/icons/desktop-symbolic.svg" ]]; then
         local icon_target_dir="${XDG_DATA_HOME}/icons/hicolor/scalable/apps"
         mkdir -p "$icon_target_dir"
-        cp -f "${REPO_ROOT}/assets/icons/desktop-symbolic.svg" "${icon_target_dir}/inir.svg"
+        cp -f "${REPO_ROOT}/assets/icons/desktop-symbolic.svg" "${icon_target_dir}/ryoku-shell.svg"
     fi
 
-    if [[ -f "${REPO_ROOT}/assets/applications/inir.desktop" ]]; then
+    if [[ -f "${REPO_ROOT}/assets/applications/ryoku-shell.desktop" ]]; then
         local applications_dir="${XDG_DATA_HOME}/applications"
-        local desktop_tmp="${XDG_CACHE_HOME}/inir.desktop.$$"
+        local desktop_tmp="${XDG_CACHE_HOME}/ryoku-shell.desktop.$$"
         mkdir -p "$applications_dir"
-        sed "s|^Exec=.*|Exec=${launcher_target//&/\\&} settings|" "${REPO_ROOT}/assets/applications/inir.desktop" > "$desktop_tmp"
-        cp -f "$desktop_tmp" "${applications_dir}/inir.desktop"
+        sed "s|^Exec=.*|Exec=${launcher_target//&/\\&} settings|" "${REPO_ROOT}/assets/applications/ryoku-shell.desktop" > "$desktop_tmp"
+        cp -f "$desktop_tmp" "${applications_dir}/ryoku-shell.desktop"
         rm -f "$desktop_tmp"
     fi
 
@@ -2259,34 +2259,34 @@ run_update() {
 
     _step_phase_header 4 "Finalizing"
     _service_refresh_status=1
-    if sync_user_inir_service_from_repo_if_present; then
+    if sync_user_ryoku-shell.service_from_repo_if_present; then
         _service_refresh_status=0
     else
         _service_refresh_status=$?
     fi
     if [[ $_service_refresh_status -eq 0 ]]; then
-        tui_success "Updated existing user inir.service"
+        tui_success "Updated existing user ryoku-shell.service"
     fi
 
-    ensure_user_inir_service_enabled >/dev/null 2>&1 || true
+    ensure_user_ryoku-shell.service_enabled >/dev/null 2>&1 || true
 
     local niri_config="${XDG_CONFIG_HOME}/niri/config.kdl"
     local niri_startup_cfg="${XDG_CONFIG_HOME}/niri/config.d/50-startup.kdl"
     local niri_binds_cfg="${XDG_CONFIG_HOME}/niri/config.d/70-binds.kdl"
-    if [[ -f "$niri_config" && -x "${XDG_BIN_HOME}/inir" ]]; then
-        local launcher_target_escaped="${XDG_BIN_HOME}/inir"
+    if [[ -f "$niri_config" && -x "${XDG_BIN_HOME}/ryoku-shell" ]]; then
+        local launcher_target_escaped="${XDG_BIN_HOME}/ryoku-shell"
         launcher_target_escaped="${launcher_target_escaped//&/\\&}"
         if [[ -f "$niri_binds_cfg" ]]; then
             sed -i \
                 -e 's|spawn "bash" "-lc" "exec \"\$(inir path)/scripts/launch-terminal.sh\""|spawn "'"${launcher_target_escaped}"'" "terminal"|' \
                 -e 's|spawn "bash" "-lc" "exec \"\$(inir path)/scripts/close-window.sh\""|spawn "'"${launcher_target_escaped}"'" "close-window"|' \
-                -e 's|spawn "inir" "|spawn "'"${launcher_target_escaped}"'" "|g' \
+                -e 's|spawn "ryoku-shell" "|spawn "'"${launcher_target_escaped}"'" "|g' \
                 "$niri_binds_cfg"
         else
             sed -i \
                 -e 's|spawn "bash" "-lc" "exec \"\$(inir path)/scripts/launch-terminal.sh\""|spawn "'"${launcher_target_escaped}"'" "terminal"|' \
                 -e 's|spawn "bash" "-lc" "exec \"\$(inir path)/scripts/close-window.sh\""|spawn "'"${launcher_target_escaped}"'" "close-window"|' \
-                -e 's|spawn "inir" "|spawn "'"${launcher_target_escaped}"'" "|g' \
+                -e 's|spawn "ryoku-shell" "|spawn "'"${launcher_target_escaped}"'" "|g' \
                 "$niri_config"
         fi
     fi
@@ -2430,11 +2430,11 @@ run_update() {
     # Restart shell (only if we have access to the session)
     if [[ -n "$NIRI_SOCKET" ]] || [[ -n "$WAYLAND_DISPLAY" ]]; then
         _step_phase_start 7 "Restarting shell"
-        if command -v systemctl >/dev/null 2>&1 && systemctl --user cat inir.service >/dev/null 2>&1; then
-            nohup systemctl --user restart inir.service >/dev/null 2>&1 &
+        if command -v systemctl >/dev/null 2>&1 && systemctl --user cat ryoku-shell.service >/dev/null 2>&1; then
+            nohup systemctl --user restart ryoku-shell.service >/dev/null 2>&1 &
             disown
-        elif [[ -x "${II_TARGET}/scripts/inir" ]]; then
-            nohup bash "${II_TARGET}/scripts/inir" restart -c "${II_TARGET}" >/dev/null 2>&1 &
+        elif [[ -x "${II_TARGET}/scripts/ryoku-shell" ]]; then
+            nohup bash "${II_TARGET}/scripts/ryoku-shell" restart -c "${II_TARGET}" >/dev/null 2>&1 &
             disown
         else
             qs -p "${II_TARGET}" kill 2>/dev/null || true
@@ -2447,7 +2447,7 @@ run_update() {
         _step_phase_header 7 "Restarting shell"
         tui_warn "Not in graphical session - shell restart skipped"
         tui_info "The shell will use new files on next restart"
-        tui_info "Or run: inir restart"
+        tui_info "Or run: ryoku-shell restart"
     fi
 
     echo ""
@@ -2459,7 +2459,7 @@ run_update() {
 ###############################################################################
 run_doctor() {
     echo ""
-    tui_hero_card "iNiR Doctor" \
+    tui_hero_card "Ryoku Doctor" \
         "Checks the boring but important stuff: dependencies, runtime payload, launcher, service wiring, theming, and the usual desktop-shell landmines." \
         "It will apply safe fixes. It will not rewrite your git history like an idiot."
     show_setup_context_card "Doctor Context"

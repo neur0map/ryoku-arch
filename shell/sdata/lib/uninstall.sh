@@ -1,45 +1,45 @@
-# Uninstall command for iNiR
-# Safely removes iNiR while preserving user data and shared resources
+# Uninstall command for Ryoku
+# Safely removes Ryoku while preserving user data and shared resources
 # This script is meant to be sourced.
 
 # shellcheck shell=bash
 
-INIR_CONFIG_DIR="${DOTS_CORE_CONFDIR:-${XDG_CONFIG_HOME}/inir}"
+RYOKU_SHELL_CONFIG_DIR="${DOTS_CORE_CONFDIR:-${XDG_CONFIG_HOME}/ryoku-shell}"
 
 ###############################################################################
-# Configuration - What iNiR installs/manages
+# Configuration - What Ryoku installs/manages
 ###############################################################################
 
 # Categories of files:
-# - inir_only: Files created exclusively by iNiR, safe to remove
+# - ryoku_shell_only: Files created exclusively by Ryoku, safe to remove
 # - shared: Files that may be used by other apps, ask before removing
 # - user_data: User's personal data, preserve by default
 
-# iNiR-exclusive files (safe to remove)
+# Ryoku-exclusive files (safe to remove)
 declare -A INIR_ONLY_PATHS=(
-    ["${XDG_CONFIG_HOME}/quickshell/inir"]="iNiR shell configuration"
-    ["${INIR_CONFIG_DIR}"]="iNiR user preferences"
-    ["${XDG_STATE_HOME}/quickshell/user"]="iNiR state (notifications, todo)"
-    ["${XDG_CACHE_HOME}/quickshell/inir"]="iNiR cache"
-    ["${XDG_BIN_HOME}/inir"]="iNiR launcher"
-    ["${HOME}/.local/bin/inir_super_overview_daemon.py"]="iNiR super daemon"
-    ["${XDG_CONFIG_HOME}/systemd/user/inir.service"]="iNiR user service"
-    ["${XDG_CONFIG_HOME}/systemd/user/inir-super-overview.service"]="iNiR daemon service"
-    ["${XDG_CONFIG_HOME}/vesktop/themes/system24.theme.css"]="iNiR Vesktop theme"
-    ["${XDG_CONFIG_HOME}/vesktop/themes/ii-colors.css"]="iNiR Vesktop colors"
-    ["${XDG_CONFIG_HOME}/Vesktop/themes/system24.theme.css"]="iNiR Vesktop theme (alt)"
-    ["${XDG_CONFIG_HOME}/Vesktop/themes/ii-colors.css"]="iNiR Vesktop colors (alt)"
-    ["${XDG_DATA_HOME}/applications/inir.desktop"]="iNiR desktop entry"
-    ["${XDG_DATA_HOME}/icons/hicolor/scalable/apps/inir.svg"]="iNiR launcher icon"
-    ["${HOME}/.local/bin/sync-pixel-sddm.py"]="iNiR SDDM theme sync helper"
+    ["${XDG_CONFIG_HOME}/quickshell/ryoku-shell"]="Ryoku shell configuration"
+    ["${RYOKU_SHELL_CONFIG_DIR}"]="Ryoku user preferences"
+    ["${XDG_STATE_HOME}/quickshell/user"]="Ryoku state (notifications, todo)"
+    ["${XDG_CACHE_HOME}/quickshell/ryoku-shell"]="Ryoku cache"
+    ["${XDG_BIN_HOME}/ryoku-shell"]="Ryoku launcher"
+    ["${HOME}/.local/bin/ryoku-shell-super-overview-daemon.py"]="Ryoku super daemon"
+    ["${XDG_CONFIG_HOME}/systemd/user/ryoku-shell.service"]="Ryoku user service"
+    ["${XDG_CONFIG_HOME}/systemd/user/ryoku-shell-super-overview.service"]="Ryoku daemon service"
+    ["${XDG_CONFIG_HOME}/vesktop/themes/system24.theme.css"]="Ryoku Vesktop theme"
+    ["${XDG_CONFIG_HOME}/vesktop/themes/ii-colors.css"]="Ryoku Vesktop colors"
+    ["${XDG_CONFIG_HOME}/Vesktop/themes/system24.theme.css"]="Ryoku Vesktop theme (alt)"
+    ["${XDG_CONFIG_HOME}/Vesktop/themes/ii-colors.css"]="Ryoku Vesktop colors (alt)"
+    ["${XDG_DATA_HOME}/applications/ryoku-shell.desktop"]="Ryoku desktop entry"
+    ["${XDG_DATA_HOME}/icons/hicolor/scalable/apps/ryoku-shell.svg"]="Ryoku launcher icon"
+    ["${HOME}/.local/bin/sync-pixel-sddm.py"]="Ryoku SDDM theme sync helper"
 )
 
 # Shared configs - may be used by other apps or user customizations
 # Format: path -> "description|app_command|critical_level"
-# critical_level: essential (user likely needs), optional (can remove), inir_default (iNiR created)
+# critical_level: essential (user likely needs), optional (can remove), ryoku_shell_default (Ryoku created)
 declare -A SHARED_PATHS=(
     ["${XDG_CONFIG_HOME}/niri/config.kdl"]="Niri compositor config|niri|essential"
-    ["${XDG_CONFIG_HOME}/matugen"]="iNiR theming templates|python3|optional"
+    ["${XDG_CONFIG_HOME}/matugen"]="Ryoku theming templates|python3|optional"
     ["${XDG_CONFIG_HOME}/fuzzel"]="Fuzzel launcher config|fuzzel|optional"
     ["${XDG_CONFIG_HOME}/Kvantum"]="Kvantum Qt theme|kvantummanager|optional"
     ["${XDG_CONFIG_HOME}/kdeglobals"]="KDE global settings||optional"
@@ -47,7 +47,7 @@ declare -A SHARED_PATHS=(
     ["${XDG_CONFIG_HOME}/gtk-3.0/gtk.css"]="GTK3 custom styles||optional"
     ["${XDG_CONFIG_HOME}/gtk-4.0/gtk.css"]="GTK4 custom styles||optional"
     ["${XDG_CONFIG_HOME}/fontconfig"]="Font configuration||essential"
-    ["${XDG_DATA_HOME:-$HOME/.local/share}/color-schemes/Darkly.colors"]="Darkly color scheme||inir_default"
+    ["${XDG_DATA_HOME:-$HOME/.local/share}/color-schemes/Darkly.colors"]="Darkly color scheme||ryoku_shell_default"
 )
 
 # Quickshell state that may be shared with other quickshell configs
@@ -56,11 +56,11 @@ declare -A QUICKSHELL_SHARED=(
     ["${XDG_STATE_HOME}/quickshell/themes"]="Generated themes"
 )
 
-# Packages that iNiR may have installed - with usage context
+# Packages that Ryoku may have installed - with usage context
 # Format: command -> "package_name|description|shared_usage"
-# shared_usage: inir_only, compositor, system_tool, optional_tool
+# shared_usage: ryoku_shell_only, compositor, system_tool, optional_tool
 declare -A INIR_PACKAGES=(
-    ["qs"]="quickshell|Shell framework|inir_only"
+    ["qs"]="quickshell|Shell framework|ryoku_shell_only"
     ["niri"]="niri|Wayland compositor|compositor"
     ["cliphist"]="cliphist|Clipboard history|system_tool"
     ["fuzzel"]="fuzzel|Application launcher|system_tool"
@@ -85,7 +85,7 @@ has_other_quickshell_configs() {
     if [[ -d "$qs_dir" ]]; then
         local other_configs
         other_configs=$(find "$qs_dir" -mindepth 2 -maxdepth 2 -type f -name "shell.qml" \
-            ! -path "${qs_dir}/inir/shell.qml" \
+            ! -path "${qs_dir}/ryoku-shell/shell.qml" \
             ! -path "${qs_dir}/ii/shell.qml" 2>/dev/null | wc -l)
         [[ "$other_configs" -gt 0 ]]
     else
@@ -115,13 +115,13 @@ has_other_niri_usage() {
     [[ $niri_refs -gt 0 ]]
 }
 
-# Check if niri config has iNiR-specific content or is user-customized
-niri_config_is_inir_default() {
+# Check if niri config has Ryoku-specific content or is user-customized
+niri_config_is_ryoku_shell_default() {
     local config="${XDG_CONFIG_HOME}/niri/config.kdl"
-    [[ -f "$config" ]] && grep -qE 'spawn-at-startup "([^"]*/)?inir" "start"|spawn-at-startup "qs" "-c" "inir"|quickshell:iiBackdrop' "$config" 2>/dev/null
+    [[ -f "$config" ]] && grep -qE 'spawn-at-startup "([^"]*/)?inir" "start"|spawn-at-startup "qs" "-c" "ryoku-shell"|quickshell:iiBackdrop' "$config" 2>/dev/null
 }
 
-# Check if niri config has user customizations beyond iNiR defaults
+# Check if niri config has user customizations beyond Ryoku defaults
 niri_config_has_user_customizations() {
     local config="${XDG_CONFIG_HOME}/niri/config.kdl"
     [[ ! -f "$config" ]] && return 1
@@ -140,8 +140,8 @@ niri_config_has_user_customizations() {
         grep -qi "$marker" "$config" 2>/dev/null && return 0
     done
     
-    # Check if file was modified after iNiR install
-    local install_marker="${INIR_CONFIG_DIR}/installed_true"
+    # Check if file was modified after Ryoku install
+    local install_marker="${RYOKU_SHELL_CONFIG_DIR}/installed_true"
     if [[ -f "$install_marker" && -f "$config" ]]; then
         [[ "$config" -nt "$install_marker" ]] && return 0
     fi
@@ -229,8 +229,8 @@ get_package_removal_safety() {
     IFS='|' read -r pkg_name pkg_desc pkg_usage <<< "$meta"
     
     case "$pkg_usage" in
-        inir_only)
-            # Only used by iNiR - safe to remove if no other qs configs
+        ryoku_shell_only)
+            # Only used by Ryoku - safe to remove if no other qs configs
             if has_other_quickshell_configs; then
                 echo "keep_qs"
             else
@@ -270,30 +270,30 @@ get_package_removal_safety() {
 ###############################################################################
 
 uninstall_stop_services() {
-    tui_info "Stopping iNiR services..."
+    tui_info "Stopping Ryoku services..."
 
-    # Stop quickshell inir config
-    local runtime_target="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/inir"
+    # Stop quickshell ryoku-shell config
+    local runtime_target="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell"
     qs -p "$runtime_target" kill 2>/dev/null || true
 
     # Stop super daemon if running
     if command -v systemctl &>/dev/null && [[ -d /run/systemd/system ]]; then
         # Stop the service
-        systemctl --user stop inir.service 2>/dev/null || true
+        systemctl --user stop ryoku-shell.service 2>/dev/null || true
         # Remove all wants links (compositor-specific and legacy graphical-session)
         local _sd_user="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
         for _wd in "$_sd_user"/*.wants; do
             [[ -d "$_wd" ]] || continue
-            rm -f "$_wd/inir.service" 2>/dev/null || true
+            rm -f "$_wd/ryoku-shell.service" 2>/dev/null || true
         done
         # Also try legacy disable in case old [Install] symlinks exist
-        systemctl --user disable inir.service 2>/dev/null || true
-        systemctl --user reset-failed inir.service 2>/dev/null || true
+        systemctl --user disable ryoku-shell.service 2>/dev/null || true
+        systemctl --user reset-failed ryoku-shell.service 2>/dev/null || true
 
-        if systemctl --user is-active inir-super-overview.service &>/dev/null; then
-            systemctl --user disable --now inir-super-overview.service 2>/dev/null || true
+        if systemctl --user is-active ryoku-shell-super-overview.service &>/dev/null; then
+            systemctl --user disable --now ryoku-shell-super-overview.service 2>/dev/null || true
         fi
-        systemctl --user reset-failed inir-super-overview.service 2>/dev/null || true
+        systemctl --user reset-failed ryoku-shell-super-overview.service 2>/dev/null || true
     fi
 
     tui_success "Services stopped"
@@ -306,18 +306,18 @@ uninstall_reload_user_systemd() {
 }
 
 uninstall_create_backup() {
-    local backup_dir="${HOME}/.local/share/inir-uninstall-backup-$(date +%Y%m%d-%H%M%S)"
+    local backup_dir="${HOME}/.local/share/ryoku-shell-uninstall-backup-$(date +%Y%m%d-%H%M%S)"
 
     tui_info "Creating backup before uninstall..." >&2
     mkdir -p "$backup_dir"
 
-    # Backup iNiR-specific files
-    if [[ -d "${XDG_CONFIG_HOME}/quickshell/inir" ]]; then
-        cp -r "${XDG_CONFIG_HOME}/quickshell/inir" "$backup_dir/quickshell-inir"
+    # Backup Ryoku-specific files
+    if [[ -d "${XDG_CONFIG_HOME}/quickshell/ryoku-shell" ]]; then
+        cp -r "${XDG_CONFIG_HOME}/quickshell/ryoku-shell" "$backup_dir/quickshell-ryoku-shell"
     fi
 
-    if [[ -d "${INIR_CONFIG_DIR}" ]]; then
-        cp -r "${INIR_CONFIG_DIR}" "$backup_dir/$(basename "$INIR_CONFIG_DIR")"
+    if [[ -d "${RYOKU_SHELL_CONFIG_DIR}" ]]; then
+        cp -r "${RYOKU_SHELL_CONFIG_DIR}" "$backup_dir/$(basename "$RYOKU_SHELL_CONFIG_DIR")"
     fi
 
     # Backup niri config
@@ -334,11 +334,11 @@ uninstall_create_backup() {
     echo "$backup_dir"
 }
 
-uninstall_remove_inir_only() {
+uninstall_remove_ryoku_shell_only() {
     local removed=0
     local _start=$SECONDS
 
-    tui_info "Removing iNiR-exclusive files..."
+    tui_info "Removing Ryoku-exclusive files..."
     echo ""
 
     # Pre-count existing items for N/M progress display
@@ -379,7 +379,7 @@ uninstall_remove_inir_only() {
 
     echo ""
     local _elapsed=$(( SECONDS - _start ))
-    tui_success "Removed $removed iNiR-exclusive item(s)  (${_elapsed}s)"
+    tui_success "Removed $removed Ryoku-exclusive item(s)  (${_elapsed}s)"
 }
 
 uninstall_handle_shared_configs() {
@@ -426,12 +426,12 @@ uninstall_handle_shared_configs() {
                     reason="has custom changes"
                 else
                     rec="remove"
-                    reason="app not found, iNiR default"
+                    reason="app not found, Ryoku default"
                 fi
                 ;;
-            inir_default)
+            ryoku_shell_default)
                 rec="remove"
-                reason="created by iNiR"
+                reason="created by Ryoku"
                 ;;
         esac
 
@@ -549,7 +549,7 @@ uninstall_handle_shared_configs() {
             local rec="${_rec[$ep]}"
             local reason="${_reason[$ep]}"
             local level="${_level[$ep]}"
-            if [[ "$level" == "inir_default" ]]; then
+            if [[ "$level" == "ryoku_shell_default" ]]; then
                 [[ -d "$ep" ]] && rm -rf "$ep" || rm -f "$ep"
                 echo -e "  ${STY_RED}✗${STY_RST} Removed: $desc ($reason)"
                 ((removed++))
@@ -638,7 +638,7 @@ uninstall_show_manual_steps() {
     echo -e "  ${STY_YELLOW}•${STY_RST} SDDM theme: /usr/share/sddm/themes/ii-pixel"
     echo -e "    ${STY_FAINT}Used by: SDDM login screen${STY_RST}"
     echo ""
-    echo -e "  ${STY_YELLOW}•${STY_RST} SDDM theme drop-in: /etc/sddm.conf.d/inir-theme.conf"
+    echo -e "  ${STY_YELLOW}•${STY_RST} SDDM theme drop-in: /etc/sddm.conf.d/ryoku-shell-theme.conf"
     echo -e "    ${STY_FAINT}Used by: sets Current=ii-pixel${STY_RST}"
     echo ""
 
@@ -659,7 +659,7 @@ uninstall_show_manual_steps() {
         echo -e "  sudo rm -rf /usr/share/sddm/themes/ii-pixel"
         echo ""
         echo -e "  ${STY_CYAN}# Remove SDDM theme config drop-in${STY_RST}"
-        echo -e "  sudo rm -f /etc/sddm.conf.d/inir-theme.conf"
+        echo -e "  sudo rm -f /etc/sddm.conf.d/ryoku-shell-theme.conf"
         echo ""
     fi
 }
@@ -668,7 +668,7 @@ uninstall_show_packages() {
     echo ""
     tui_subtitle "Installed packages"
     echo ""
-    echo -e "${STY_FAINT}iNiR may have installed these packages. Review before removing.${STY_RST}"
+    echo -e "${STY_FAINT}Ryoku may have installed these packages. Review before removing.${STY_RST}"
     echo ""
 
     # Detect distro
@@ -696,7 +696,7 @@ uninstall_show_packages() {
             safe)
                 safe_to_remove+=("$pkg_name")
                 echo -e "  ${STY_GREEN}✓${STY_RST} $pkg_name - $pkg_desc"
-                echo -e "    ${STY_FAINT}Safe to remove (only used by iNiR)${STY_RST}"
+                echo -e "    ${STY_FAINT}Safe to remove (only used by Ryoku)${STY_RST}"
                 ;;
             ask)
                 ask_before_remove+=("$pkg_name")
@@ -811,7 +811,7 @@ run_uninstall() {
     local update_strategy
     local package_name
     echo ""
-    tui_title "iNiR Uninstaller"
+    tui_title "Ryoku Uninstaller"
     echo ""
 
     # Safety: if no TTY available, force non-interactive safe mode
@@ -824,11 +824,11 @@ run_uninstall() {
     fi
 
     # Check if installed
-    if [[ ! -f "${INIR_CONFIG_DIR}/installed_true" ]] && \
-       [[ ! -d "${XDG_CONFIG_HOME}/quickshell/inir" ]] && \
-       [[ ! -f "${INIR_CONFIG_DIR}/version.json" ]] && \
-       [[ ! -f "${XDG_BIN_HOME}/inir" ]]; then
-        tui_warn "iNiR does not appear to be installed"
+    if [[ ! -f "${RYOKU_SHELL_CONFIG_DIR}/installed_true" ]] && \
+       [[ ! -d "${XDG_CONFIG_HOME}/quickshell/ryoku-shell" ]] && \
+       [[ ! -f "${RYOKU_SHELL_CONFIG_DIR}/version.json" ]] && \
+       [[ ! -f "${XDG_BIN_HOME}/ryoku-shell" ]]; then
+        tui_warn "Ryoku does not appear to be installed"
         return 1
     fi
 
@@ -860,7 +860,7 @@ run_uninstall() {
     # Warning
     echo -e "${STY_RED}${STY_BOLD}⚠ WARNING${STY_RST}"
     echo ""
-    echo "This will remove iNiR from your system."
+    echo "This will remove Ryoku from your system."
     echo ""
     
     if [[ ${#warnings[@]} -gt 0 ]]; then
@@ -872,7 +872,7 @@ run_uninstall() {
     fi
     
     echo -e "${STY_FAINT}What will happen:${STY_RST}"
-    echo "  • iNiR shell configuration will be removed"
+    echo "  • Ryoku shell configuration will be removed"
     if is_running_niri_session; then
         echo -e "  • ${STY_YELLOW}Your Niri session will continue (without the shell UI)${STY_RST}"
         echo -e "  • ${STY_YELLOW}Niri config will be preserved (you're using it!)${STY_RST}"
@@ -910,8 +910,8 @@ run_uninstall() {
     # Stop services
     uninstall_stop_services
 
-    # Remove iNiR-exclusive files (always safe)
-    uninstall_remove_inir_only
+    # Remove Ryoku-exclusive files (always safe)
+    uninstall_remove_ryoku_shell_only
     uninstall_reload_user_systemd
 
     # Handle shared configs (ask user)
@@ -949,11 +949,11 @@ EOF
     echo -e "  $backup_dir"
     echo ""
     echo -e "${STY_FAINT}To restore from backup:${STY_RST}"
-    echo -e "  cp -r $backup_dir/quickshell-inir ${XDG_CONFIG_HOME}/quickshell/inir"
+    echo -e "  cp -r $backup_dir/quickshell-ryoku-shell ${XDG_CONFIG_HOME}/quickshell/ryoku-shell"
     echo ""
     local _total_elapsed=$(( SECONDS - _uninstall_start ))
-    echo -e "${STY_FAINT}To reinstall iNiR:${STY_RST}"
-    echo -e "  git clone https://github.com/snowarch/inir.git && cd inir && ./setup install"
+    echo -e "${STY_FAINT}To reinstall Ryoku:${STY_RST}"
+    echo -e "  git clone https://github.com/snowarch/ryoku-shell.git && cd ryoku-shell && ./setup install"
     echo ""
     echo -e "${STY_FAINT}Total time: ${_total_elapsed}s${STY_RST}"
     echo ""
@@ -965,11 +965,11 @@ EOF
 
 run_uninstall_quick() {
     echo ""
-    tui_title "iNiR Quick Uninstall"
+    tui_title "Ryoku Quick Uninstall"
     echo ""
 
     echo -e "${STY_YELLOW}Quick uninstall will:${STY_RST}"
-    echo "  • Remove iNiR-exclusive files only"
+    echo "  • Remove Ryoku-exclusive files only"
     echo "  • Keep all shared configs (Niri, themes, etc.)"
     echo "  • Keep all system packages"
     echo "  • Create a backup first"
@@ -987,13 +987,13 @@ run_uninstall_quick() {
     # Stop services
     uninstall_stop_services
 
-    # Remove only iNiR-exclusive files
+    # Remove only Ryoku-exclusive files
     ask=false  # Disable prompts for shared configs
-    uninstall_remove_inir_only
+    uninstall_remove_ryoku_shell_only
     uninstall_reload_user_systemd
 
     echo ""
-    tui_success "iNiR removed. All shared configs and packages preserved."
+    tui_success "Ryoku removed. All shared configs and packages preserved."
     echo ""
     echo -e "${STY_CYAN}Backup:${STY_RST} $backup_dir"
     echo ""
