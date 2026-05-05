@@ -48,8 +48,11 @@ rm -rf "$INIR_PATH"
 # Phase 7: Wipe Ryoku-only artifacts that iNiR's manifest does not track.
 rm -f "$RYOKU_ICON"
 
-# Phase 8: Clone fresh upstream iNiR.
-git clone https://github.com/snowarch/iNiR.git "$INIR_PATH"
+# Phase 8: Clone fresh iNiR. Source is the Ryoku-maintained iNiR fork
+# once it exists; defaults to the snowarch reference repo until then.
+# Override with RYOKU_INIR_REPO=... to point at any other remote.
+INIR_REPO="${RYOKU_INIR_REPO:-https://github.com/snowarch/iNiR.git}"
+git clone "$INIR_REPO" "$INIR_PATH"
 
 # Phase 9: Run iNiR's installer with non-interactive flags.
 "$INIR_PATH/setup" install -y --skip-deps --skip-sysupdate
