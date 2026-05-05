@@ -56,7 +56,7 @@ Scope {
         repeat: false
         onTriggered: {
             // first_run.txt is already written by FirstRunExperience before launching us
-            Quickshell.execDetached(["/usr/bin/notify-send", Translation.tr("Welcome to inir"), Translation.tr("Press Super+/ for all keyboard shortcuts."), "-a", "Shell"])
+            Quickshell.execDetached(["/usr/bin/notify-send", Translation.tr("Welcome to Ryoku"), Translation.tr("Press Super+/ for all keyboard shortcuts."), "-a", "Shell"])
             Qt.quit()
         }
     }
@@ -624,7 +624,7 @@ Scope {
                 }
 
                 StyledToolTip {
-                    text: Translation.tr("You can re-open this wizard anytime with:\n  inir welcome")
+                    text: Translation.tr("You can re-open this wizard anytime with:\n  ryoku-shell welcome")
                 }
 
                 HoverHandler {
@@ -657,7 +657,7 @@ Scope {
 
         StyledText {
             Layout.alignment: Qt.AlignHCenter
-            text: Translation.tr("Welcome to inir")
+            text: Translation.tr("Welcome to Ryoku")
             font.family: Appearance.font.family.title
             font.pixelSize: Appearance.font.pixelSize.hugeass + 6
         }
@@ -896,7 +896,7 @@ Scope {
                         }
                         StyledText {
                             Layout.fillWidth: true
-                            text: Translation.tr("Everything iNiR has to offer. Recommended if you like to tinker.")
+                            text: Translation.tr("Everything Ryoku has to offer. Recommended if you like to tinker.")
                             font.pixelSize: Appearance.font.pixelSize.smaller
                             wrapMode: Text.WordWrap
                             color: advancedCard.selected
@@ -1798,7 +1798,7 @@ Scope {
                         anchors.centerIn: parent
                         spacing: 8
                         MaterialSymbol { text: "menu_book"; iconSize: 16 }
-                        StyledText { text: Translation.tr("iNiR Wiki"); font.pixelSize: Appearance.font.pixelSize.small }
+                        StyledText { text: Translation.tr("Ryoku Wiki"); font.pixelSize: Appearance.font.pixelSize.small }
                     }
                 }
 
