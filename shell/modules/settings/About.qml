@@ -19,7 +19,7 @@ ContentPage {
         // ── Top row: Ryoku hero (2/3) + System info (1/3) ──────────────────
         RowLayout {
             Layout.fillWidth: true
-            Layout.preferredHeight: 240
+            Layout.preferredHeight: 280
             spacing: 16
 
             // ── Ryoku hero card ─────────────────────────────────────────────
@@ -172,6 +172,16 @@ ContentPage {
                                 PointingHandLinkHover {}
                             }
                         }
+                    }
+
+                    // Tagline (fills the breathing room above the action buttons)
+                    StyledText {
+                        Layout.fillWidth: true
+                        Layout.topMargin: 4
+                        text: Translation.tr("An opinionated Arch Linux environment for security work, built around Niri and a cohesive visual system.")
+                        font.pixelSize: Appearance.font.pixelSize.small
+                        color: Appearance.colors.colSubtext
+                        wrapMode: Text.WordWrap
                     }
 
                     // Spacer
