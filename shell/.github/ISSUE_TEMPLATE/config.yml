@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Discord
+    url: https://discord.gg/pAPTfAhZUJ
+    about: Chat with the community or get help
+  - name: Documentation
+    url: https://github.com/snowarch/inir/tree/main/docs
+    about: Installation, configuration, and reference guides

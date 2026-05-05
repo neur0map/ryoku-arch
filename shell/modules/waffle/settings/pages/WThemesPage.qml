@@ -1,0 +1,969 @@
+pragma ComponentBehavior: Bound
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import Quickshell
+import qs.services
+import qs.modules.common
+import qs.modules.common.functions
+import qs.modules.waffle.looks
+import qs.modules.waffle.settings
+
+WSettingsPage {
+    id: root
+    settingsPageIndex: 4
+    pageTitle: Translation.tr("Themes")
+    pageIcon: "dark-theme"
+    pageDescription: Translation.tr("Color themes and typography")
+
+    // Active theme preview
+    Rectangle {
+        Layout.fillWidth: true
+        Layout.preferredHeight: 56
+        radius: Looks.radius.medium
+        color: Looks.colors.bg2
+
+        RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: 12
+            anchors.rightMargin: 12
+            spacing: 10
+
+            // Active theme color swatches
+            Row {
+                spacing: -4
+
+                Repeater {
+                    model: {
+                        const preset = ThemePresets.getPreset(ThemeService.currentTheme);
+                        const c = preset?.colors;
+                        return [c?.m3primary ?? Appearance.m3colors.m3primary ?? Looks.colors.accent, c?.m3secondary ?? Appearance.m3colors.m3secondary ?? Looks.colors.bg2, c?.m3tertiary ?? Appearance.m3colors.m3tertiary ?? Looks.colors.bg1, c?.m3background ?? Appearance.m3colors.m3background ?? Looks.colors.bg0];
+                    }
+
+                    Rectangle {
+                        required property var modelData
+                        required property int index
+                        width: 20
+                        height: 20
+                        radius: 10
+                        color: modelData
+                        border.width: 1
+                        border.color: Qt.rgba(0, 0, 0, 0.2)
+                        z: 4 - index
+                    }
+                }
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 1
+
+                WText {
+                    text: ThemePresets.getPreset(ThemeService.currentTheme)?.name ?? "Auto"
+                    font.pixelSize: Looks.font.pixelSize.normal
+                    font.weight: Looks.font.weight.regular
+                }
+
+                WText {
+                    text: ThemePresets.getPreset(ThemeService.currentTheme)?.description ?? ""
+                    font.pixelSize: Looks.font.pixelSize.small
+                    color: Looks.colors.subfg
+                    elide: Text.ElideRight
+                    Layout.fillWidth: true
+                }
+            }
+
+            FluentIcon {
+                icon: "checkmark"
+                implicitSize: 14
+                color: Looks.colors.accent
+            }
+        }
+    }
+
+    // Color Theme card
+    WSettingsCard {
+        id: colorThemeCard
+        title: Translation.tr("Color Theme")
+        icon: "dark-theme"
+
+        property string searchQuery: ""
+        property int selectedTab: 0  // 0=All, 1=Dark, 2=Light
+        property string selectedTag: ""
+
+        function isDarkTheme(preset) {
+            if (preset.id === "auto" || preset.id === "custom")
+                return true;
+            if (!preset.colors)
+                return true;
+            const bg = preset.colors.m3background ?? "#000";
+            const r = parseInt(bg.slice(1, 3), 16) / 255;
+            const g = parseInt(bg.slice(3, 5), 16) / 255;
+            const b = parseInt(bg.slice(5, 7), 16) / 255;
+            return (0.299 * r + 0.587 * g + 0.114 * b) < 0.5;
+        }
+
+        function toggleTag(tagId) {
+            selectedTag = (selectedTag === tagId) ? "" : tagId;
+        }
+
+        readonly property var filteredPresets: {
+            let result = [];
+            for (let i = 0; i < ThemePresets.presets.length; i++) {
+                const preset = ThemePresets.presets[i];
+                if (selectedTab === 1 && !isDarkTheme(preset))
+                    continue;
+                if (selectedTab === 2 && isDarkTheme(preset))
+                    continue;
+                if (selectedTag.length > 0) {
+                    const presetTags = preset.tags ?? [];
+                    if (!presetTags.includes(selectedTag))
+                        continue;
+                }
+                if (searchQuery.length > 0) {
+                    const query = searchQuery.toLowerCase();
+                    const name = (preset.name ?? "").toLowerCase();
+                    const desc = (preset.description ?? "").toLowerCase();
+                    if (!name.includes(query) && !desc.includes(query))
+                        continue;
+                }
+                result.push(preset);
+            }
+            return result;
+        }
+
+        // Search + filter row
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.leftMargin: 14
+            Layout.rightMargin: 14
+            spacing: 8
+
+            // Search field
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 32
+                radius: Looks.radius.small
+                color: Looks.colors.bg1
+                border.width: themeSearchInput.activeFocus ? 1 : 0
+                border.color: Looks.colors.accent
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 10
+                    anchors.rightMargin: 8
+                    spacing: 6
+
+                    FluentIcon {
+                        icon: "search"
+                        implicitSize: 14
+                        color: Looks.colors.subfg
+                    }
+
+                    WTextInput {
+                        id: themeSearchInput
+                        Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignVCenter
+                        font.pixelSize: Looks.font.pixelSize.small
+                        color: Looks.colors.fg
+                        clip: true
+                        onTextChanged: colorThemeCard.searchQuery = text
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: Translation.tr("Search themes...")
+                            font: parent.font
+                            color: Looks.colors.subfg
+                            opacity: 0.6
+                            visible: !parent.text && !parent.activeFocus
+                        }
+                    }
+
+                    FluentIcon {
+                        visible: themeSearchInput.text.length > 0
+                        icon: "dismiss"
+                        implicitSize: 12
+                        color: Looks.colors.subfg
+
+                        MouseArea {
+                            anchors.fill: parent
+                            anchors.margins: -4
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: themeSearchInput.text = ""
+                        }
+                    }
+                }
+            }
+
+            // Dark/Light/All segmented tabs
+            Row {
+                spacing: 2
+
+                Repeater {
+                    model: [
+                        {
+                            label: Translation.tr("All"),
+                            icon: "apps"
+                        },
+                        {
+                            label: Translation.tr("Dark"),
+                            icon: "weather-moon"
+                        },
+                        {
+                            label: Translation.tr("Light"),
+                            icon: "weather-sunny"
+                        }
+                    ]
+
+                    Rectangle {
+                        required property var modelData
+                        required property int index
+
+                        readonly property bool isSelected: colorThemeCard.selectedTab === index
+
+                        width: tabLabel.implicitWidth + 24
+                        height: 28
+                        radius: Looks.radius.medium
+                        color: isSelected ? Looks.colors.accent : tabMouseArea.containsMouse ? Looks.colors.bg2Hover : Looks.colors.bg1
+
+                        Behavior on color {
+                            animation: ColorAnimation {
+                                duration: Looks.transition.enabled ? 70 : 0
+                                easing.type: Easing.BezierSpline
+                                easing.bezierCurve: Looks.transition.easing.bezierCurve.standard
+                            }
+                        }
+
+                        WText {
+                            id: tabLabel
+                            anchors.centerIn: parent
+                            text: modelData.label
+                            font.pixelSize: Looks.font.pixelSize.small
+                            font.weight: parent.isSelected ? Looks.font.weight.regular : Looks.font.weight.thin
+                            color: parent.isSelected ? Looks.colors.bg0 : Looks.colors.fg
+                        }
+
+                        MouseArea {
+                            id: tabMouseArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: colorThemeCard.selectedTab = index
+                        }
+                    }
+                }
+            }
+        }
+
+        // Tag filters
+        Flow {
+            Layout.fillWidth: true
+            Layout.leftMargin: 14
+            Layout.rightMargin: 14
+            spacing: 4
+
+            Repeater {
+                model: ThemePresets.availableTags.filter(t => t.id !== "dark" && t.id !== "light")
+
+                Rectangle {
+                    required property var modelData
+
+                    readonly property bool isActive: colorThemeCard.selectedTag === modelData.id
+
+                    width: tagRowLayout.implicitWidth + 16
+                    height: 24
+                    radius: Looks.radius.medium
+                    color: isActive ? Qt.alpha(Looks.colors.accent, 0.15) : tagFilterMouse.containsMouse ? Looks.colors.bg2Hover : Looks.colors.bg1
+
+                    Behavior on color {
+                        animation: ColorAnimation {
+                            duration: Looks.transition.enabled ? 70 : 0
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: Looks.transition.easing.bezierCurve.standard
+                        }
+                    }
+
+                    RowLayout {
+                        id: tagRowLayout
+                        anchors.centerIn: parent
+                        spacing: 4
+
+                        WText {
+                            text: modelData.name
+                            font.pixelSize: Looks.font.pixelSize.tiny
+                            color: parent.parent.isActive ? Looks.colors.accent : Looks.colors.fg
+                        }
+                    }
+
+                    MouseArea {
+                        id: tagFilterMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: colorThemeCard.toggleTag(modelData.id)
+                    }
+                }
+            }
+
+            // Clear tag button
+            Rectangle {
+                visible: colorThemeCard.selectedTag.length > 0
+                width: 24
+                height: 24
+                radius: Looks.radius.medium
+                color: clearTagMouse.containsMouse ? Looks.colors.bg2Hover : Looks.colors.bg1
+
+                Behavior on color {
+                    animation: ColorAnimation {
+                        duration: Looks.transition.enabled ? 70 : 0
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: Looks.transition.easing.bezierCurve.standard
+                    }
+                }
+
+                FluentIcon {
+                    anchors.centerIn: parent
+                    icon: "dismiss"
+                    implicitSize: 10
+                    color: Looks.colors.subfg
+                }
+
+                MouseArea {
+                    id: clearTagMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: colorThemeCard.selectedTag = ""
+                }
+            }
+        }
+
+        // Theme grid — 3 columns
+        Item {
+            Layout.fillWidth: true
+            Layout.leftMargin: 14
+            Layout.rightMargin: 14
+            Layout.bottomMargin: 4
+            implicitHeight: Math.min(300, themeGridContent.implicitHeight + 12)
+
+            Rectangle {
+                anchors.fill: parent
+                color: Looks.colors.bg0
+                radius: Looks.radius.small
+                clip: true
+
+                Flickable {
+                    id: themeGridFlickable
+                    anchors.fill: parent
+                    anchors.margins: 6
+                    contentHeight: themeGridContent.implicitHeight
+                    boundsBehavior: Flickable.StopAtBounds
+
+                    Grid {
+                        id: themeGridContent
+                        width: themeGridFlickable.width
+                        columns: 3
+                        columnSpacing: 4
+                        rowSpacing: 4
+
+                        Repeater {
+                            model: colorThemeCard.filteredPresets
+
+                            Rectangle {
+                                id: themeCard
+                                required property var modelData
+                                required property int index
+
+                                readonly property bool isActive: ThemeService.currentTheme === modelData.id
+
+                                function getColor(key, fallback) {
+                                    if (!modelData.colors)
+                                        return Appearance.m3colors[key] ?? fallback;
+                                    if (modelData.colors === "custom")
+                                        return Config.options?.appearance?.customTheme?.[key] ?? fallback;
+                                    return modelData.colors[key] ?? fallback;
+                                }
+
+                                width: (themeGridContent.width - themeGridContent.columnSpacing * 2) / 3
+                                height: 36
+                                radius: Looks.radius.small
+                                color: isActive ? Qt.alpha(Looks.colors.accent, 0.12) : cardMouseArea.containsMouse ? Looks.colors.bg2Hover : Looks.colors.bg2
+
+                                Behavior on color {
+                                    animation: ColorAnimation {
+                                        duration: Looks.transition.enabled ? 70 : 0
+                                        easing.type: Easing.BezierSpline
+                                        easing.bezierCurve: Looks.transition.easing.bezierCurve.standard
+                                    }
+                                }
+
+                                border.width: isActive ? 1 : 0
+                                border.color: Qt.alpha(Looks.colors.accent, 0.4)
+
+                                MouseArea {
+                                    id: cardMouseArea
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: ThemeService.setTheme(themeCard.modelData.id)
+                                    onDoubleClicked: ThemeService.setTheme(themeCard.modelData.id)
+                                }
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 6
+                                    anchors.rightMargin: 6
+                                    spacing: 6
+
+                                    // Overlapping color circles
+                                    Row {
+                                        spacing: -4
+
+                                        Repeater {
+                                            model: [
+                                                {
+                                                    key: "m3primary",
+                                                    fallback: "#6366f1"
+                                                },
+                                                {
+                                                    key: "m3secondary",
+                                                    fallback: "#818cf8"
+                                                },
+                                                {
+                                                    key: "m3tertiary",
+                                                    fallback: "#a78bfa"
+                                                },
+                                                {
+                                                    key: "m3background",
+                                                    fallback: "#0f0f23"
+                                                }
+                                            ]
+
+                                            Rectangle {
+                                                required property var modelData
+                                                required property int index
+                                                width: 14
+                                                height: 14
+                                                radius: 7
+                                                color: themeCard.getColor(modelData.key, modelData.fallback)
+                                                border.width: 1
+                                                border.color: Qt.rgba(0, 0, 0, 0.2)
+                                                z: 4 - index
+                                            }
+                                        }
+                                    }
+
+                                    // Theme name
+                                    WText {
+                                        Layout.fillWidth: true
+                                        text: themeCard.modelData.name
+                                        font.pixelSize: Looks.font.pixelSize.small
+                                        font.weight: themeCard.isActive ? Looks.font.weight.regular : Looks.font.weight.thin
+                                        color: themeCard.isActive ? Looks.colors.accent : Looks.colors.fg
+                                        elide: Text.ElideRight
+                                    }
+
+                                    // Active checkmark
+                                    FluentIcon {
+                                        visible: themeCard.isActive
+                                        icon: "checkmark"
+                                        implicitSize: 12
+                                        color: Looks.colors.accent
+                                    }
+                                }
+
+                                WToolTip {
+                                    text: themeCard.modelData.description ?? ""
+                                    extraVisibleCondition: cardMouseArea.containsMouse
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Empty state
+                ColumnLayout {
+                    visible: colorThemeCard.filteredPresets.length === 0
+                    anchors.centerIn: parent
+                    spacing: 8
+
+                    FluentIcon {
+                        Layout.alignment: Qt.AlignHCenter
+                        icon: "search"
+                        implicitSize: 32
+                        color: Looks.colors.subfg
+                        opacity: 0.5
+                    }
+
+                    WText {
+                        Layout.alignment: Qt.AlignHCenter
+                        text: Translation.tr("No themes found")
+                        font.pixelSize: Looks.font.pixelSize.small
+                        color: Looks.colors.subfg
+                    }
+                }
+            }
+        }
+    }
+
+    // Global Style card
+    WSettingsCard {
+        id: globalStyleCard
+        title: Translation.tr("Global Style")
+        icon: "eyedropper"
+
+        readonly property bool cardsEverywhere: (Config.options?.dock?.cardStyle ?? false) && (Config.options?.sidebar?.cardStyle ?? false) && (Config.options?.bar?.cornerStyle === 3)
+
+        readonly property string derivedStyle: cardsEverywhere ? "cards" : "material"
+        readonly property string currentStyle: (Config.options?.appearance?.globalStyle ?? "").length > 0 ? Config.options?.appearance?.globalStyle ?? "material" : derivedStyle
+
+        function _applyGlobalStyle(styleId) {
+            if (styleId === "cards") {
+                Config.setNestedValue("dock.cardStyle", true);
+                Config.setNestedValue("sidebar.cardStyle", true);
+                Config.setNestedValue("bar.cornerStyle", 3);
+                return;
+            }
+
+            if (styleId === "aurora") {
+                Config.setNestedValue("dock.cardStyle", false);
+                Config.setNestedValue("sidebar.cardStyle", false);
+                if ((Config.options?.bar?.cornerStyle ?? 1) === 3)
+                    Config.setNestedValue("bar.cornerStyle", 1);
+                return;
+            }
+
+            if (styleId === "angel") {
+                Config.setNestedValue("dock.cardStyle", false);
+                Config.setNestedValue("sidebar.cardStyle", false);
+                if ((Config.options?.bar?.cornerStyle ?? 1) === 3)
+                    Config.setNestedValue("bar.cornerStyle", 1);
+                return;
+            }
+
+            // material
+            Config.setNestedValue("dock.cardStyle", false);
+            Config.setNestedValue("sidebar.cardStyle", false);
+            if ((Config.options?.bar?.cornerStyle ?? 1) === 3)
+                Config.setNestedValue("bar.cornerStyle", 1);
+        }
+
+        WSettingsDropdown {
+            label: Translation.tr("Style")
+            icon: "eyedropper"
+            description: Translation.tr("Choose between Material, Cards, Aurora, Inir, and Angel global styling")
+            currentValue: globalStyleCard.currentStyle
+            options: [
+                {
+                    value: "material",
+                    displayName: Translation.tr("Material")
+                },
+                {
+                    value: "cards",
+                    displayName: Translation.tr("Cards")
+                },
+                {
+                    value: "aurora",
+                    displayName: Translation.tr("Aurora")
+                },
+                {
+                    value: "inir",
+                    displayName: Translation.tr("Inir")
+                },
+                {
+                    value: "angel",
+                    displayName: Translation.tr("Angel")
+                }
+            ]
+            onSelected: newValue => {
+                Config.setNestedValue("appearance.globalStyle", newValue);
+                globalStyleCard._applyGlobalStyle(newValue);
+            }
+        }
+    }
+
+    // Appearance card
+    WSettingsCard {
+        title: Translation.tr("Appearance")
+        icon: "weather-moon"
+
+        WSettingsDropdown {
+            label: Translation.tr("Mode")
+            icon: "weather-moon"
+            description: Translation.tr("Light or dark color scheme")
+            currentValue: Appearance.m3colors.darkmode ? "dark" : "light"
+            options: [
+                {
+                    value: "light",
+                    displayName: Translation.tr("Light")
+                },
+                {
+                    value: "dark",
+                    displayName: Translation.tr("Dark")
+                }
+            ]
+            onSelected: newValue => {
+                MaterialThemeLoader.setDarkMode(newValue === "dark");
+            }
+        }
+
+        WSettingsDropdown {
+            label: Translation.tr("Palette type")
+            icon: "dark-theme"
+            description: Translation.tr("How colors are generated from wallpaper")
+            currentValue: Config.options?.appearance?.palette?.type ?? "auto"
+            options: [
+                {
+                    value: "auto",
+                    displayName: Translation.tr("Auto")
+                },
+                {
+                    value: "scheme-content",
+                    displayName: Translation.tr("Content")
+                },
+                {
+                    value: "scheme-expressive",
+                    displayName: Translation.tr("Expressive")
+                },
+                {
+                    value: "scheme-fidelity",
+                    displayName: Translation.tr("Fidelity")
+                },
+                {
+                    value: "scheme-fruit-salad",
+                    displayName: Translation.tr("Fruit Salad")
+                },
+                {
+                    value: "scheme-monochrome",
+                    displayName: Translation.tr("Monochrome")
+                },
+                {
+                    value: "scheme-neutral",
+                    displayName: Translation.tr("Neutral")
+                },
+                {
+                    value: "scheme-rainbow",
+                    displayName: Translation.tr("Rainbow")
+                },
+                {
+                    value: "scheme-tonal-spot",
+                    displayName: Translation.tr("Tonal Spot")
+                }
+            ]
+            onSelected: newValue => {
+                Config.setNestedValue("appearance.palette.type", newValue);
+                if (!ThemeService.isAutoTheme) {
+                    // Manual preset: apply variant immediately via MaterialThemeLoader
+                    const hex = MaterialThemeLoader.colorToHex(Appearance.m3colors.m3primary);
+                    const mode = Appearance.m3colors.darkmode ? "dark" : "light";
+                    MaterialThemeLoader.applySchemeVariant(hex, newValue, mode);
+                }
+            // Auto theme: ThemeService detects palette type change in
+            // liveRegenSignature and runs regenerateAutoTheme automatically.
+            }
+        }
+    }
+
+    // Theming options
+    WSettingsCard {
+        title: Translation.tr("Theming")
+        icon: "eyedropper"
+
+        WSettingsSwitch {
+            label: Translation.tr("Use Material colors")
+            icon: "dark-theme"
+            description: Translation.tr("Apply Material color scheme instead of Windows 11 grey")
+            checked: Config.options?.waffles?.theming?.useMaterialColors ?? false
+            onCheckedChanged: Config.setNestedValue("waffles.theming.useMaterialColors", checked)
+        }
+
+        WSettingsSlider {
+            label: Translation.tr("Color strength")
+            icon: "eyedropper"
+            description: Translation.tr("Controls how vivid wallpaper-derived accent colors are")
+            from: 60
+            to: 180
+            stepSize: 5
+            suffix: "%"
+            value: Math.round((Config.options?.appearance?.wallpaperTheming?.colorStrength ?? 1.0) * 100)
+            property bool _ready: false
+            Component.onCompleted: _ready = true
+            onMoved: {
+                if (!_ready)
+                    return;
+                Config.setNestedValue("appearance.wallpaperTheming.colorStrength", value / 100);
+                colorStrengthRegenTimer.restart();
+            }
+        }
+
+        Timer {
+            id: colorStrengthRegenTimer
+            interval: 300
+            onTriggered: {
+                if (ThemeService.isAutoTheme)
+                    ThemeService.regenerateAutoTheme();
+            }
+        }
+
+        WSettingsSwitch {
+            label: Translation.tr("Soften colors")
+            icon: "paint-bucket"
+            description: Translation.tr("Subtly soften theme colors for a more natural look")
+            checked: Config.options?.appearance?.softenColors ?? true
+            onCheckedChanged: {
+                Config.setNestedValue("appearance.softenColors", checked);
+                ThemeService.regenerateAutoTheme();
+            }
+        }
+
+        WSettingsSwitch {
+            label: Translation.tr("Vesktop/Discord theming")
+            icon: "people"
+            description: Translation.tr("Generate Discord theme from wallpaper colors")
+            checked: Config.options?.appearance?.wallpaperTheming?.enableVesktop ?? true
+            onCheckedChanged: Config.setNestedValue("appearance.wallpaperTheming.enableVesktop", checked)
+        }
+
+        WSettingsSwitch {
+            label: Translation.tr("Spotify theming")
+            icon: "music-note-2"
+            description: Translation.tr("Generate and apply Spicetify theme from wallpaper colors")
+            checked: Config.options?.appearance?.wallpaperTheming?.enableSpicetify ?? false
+            onCheckedChanged: Config.setNestedValue("appearance.wallpaperTheming.enableSpicetify", checked)
+        }
+
+        WSettingsSwitch {
+            label: Translation.tr("Steam theming")
+            icon: "gamepad"
+            description: Translation.tr("Apply Material You colors to Steam via Adwaita for Steam (requires AdwSteamGtk)")
+            checked: Config.options?.appearance?.wallpaperTheming?.enableAdwSteam ?? false
+            onCheckedChanged: Config.setNestedValue("appearance.wallpaperTheming.enableAdwSteam", checked)
+        }
+
+        WSettingsSwitch {
+            label: Translation.tr("Pear Desktop (YouTube Music)")
+            icon: "music-note-2"
+            description: Translation.tr("Apply Material You colors to YouTube Music Desktop App")
+            checked: Config.options?.appearance?.wallpaperTheming?.enablePearDesktop ?? true
+            onCheckedChanged: Config.setNestedValue("appearance.wallpaperTheming.enablePearDesktop", checked)
+        }
+
+        WSettingsSwitch {
+            label: Translation.tr("Zed editor")
+            icon: "code-block"
+            description: Translation.tr("Generate Zed editor theme from wallpaper colors")
+            checked: Config.options?.appearance?.wallpaperTheming?.enableZed ?? true
+            onCheckedChanged: Config.setNestedValue("appearance.wallpaperTheming.enableZed", checked)
+        }
+
+        WSettingsSwitch {
+            label: Translation.tr("VSCode editors")
+            icon: "code-block"
+            description: Translation.tr("Generate theme for VSCode and its forks from wallpaper colors")
+            checked: Config.options?.appearance?.wallpaperTheming?.enableVSCode ?? true
+            onCheckedChanged: Config.setNestedValue("appearance.wallpaperTheming.enableVSCode", checked)
+        }
+
+        WSettingsSwitch {
+            label: Translation.tr("Chrome / Chromium")
+            icon: "globe"
+            description: Translation.tr("Apply wallpaper-derived colors to Chrome and Chromium browser")
+            checked: Config.options?.appearance?.wallpaperTheming?.enableChrome ?? true
+            onCheckedChanged: Config.setNestedValue("appearance.wallpaperTheming.enableChrome", checked)
+        }
+
+        WSettingsSwitch {
+            label: Translation.tr("OpenCode")
+            icon: "code-block"
+            description: Translation.tr("Apply wallpaper-derived theme to OpenCode AI editor")
+            checked: Config.options?.appearance?.wallpaperTheming?.enableOpenCode ?? false
+            onCheckedChanged: Config.setNestedValue("appearance.wallpaperTheming.enableOpenCode", checked)
+        }
+
+        WSettingsSwitch {
+            label: Translation.tr("Neovim / LazyVim")
+            icon: "code-block"
+            description: Translation.tr("Generate aether.nvim theme plugin for Neovim/LazyVim from wallpaper colors (writes to ~/.config/nvim/lua/plugins/neovim.lua)")
+            checked: Config.options?.appearance?.wallpaperTheming?.enableNeovim ?? false
+            onCheckedChanged: Config.setNestedValue("appearance.wallpaperTheming.enableNeovim", checked)
+        }
+
+        WSettingsSwitch {
+            label: Translation.tr("Transparency")
+            icon: "eye"
+            description: Translation.tr("Enable transparent UI elements")
+            checked: Config.options?.appearance?.transparency?.enable ?? false
+            onCheckedChanged: Config.setNestedValue("appearance.transparency.enable", checked)
+        }
+    }
+
+    // Terminal color adjustment
+    WSettingsCard {
+        title: Translation.tr("Terminal Colors")
+        icon: "window-console"
+
+        // Debounce timer for terminal color regeneration
+        Timer {
+            id: terminalColorDebounce
+            interval: 300
+            onTriggered: ThemeService.regenerateAutoTheme()
+        }
+
+        WSettingsSlider {
+            id: termSaturationSlider
+            label: Translation.tr("Color saturation")
+            icon: "dark-theme"
+            description: Translation.tr("How vivid semantic terminal colors are")
+            from: 10
+            to: 80
+            stepSize: 5
+            suffix: "%"
+            value: Math.round((Config.options?.appearance?.wallpaperTheming?.terminalColorAdjustments?.saturation ?? 0.65) * 100)
+            property bool _ready: false
+            Component.onCompleted: _ready = true
+            onMoved: {
+                if (!_ready)
+                    return;
+                Config.setNestedValue("appearance.wallpaperTheming.terminalColorAdjustments.saturation", value / 100);
+                terminalColorDebounce.restart();
+            }
+        }
+
+        WSettingsSlider {
+            id: termBrightnessSlider
+            label: Translation.tr("Color brightness")
+            icon: "brightness-high"
+            description: Translation.tr("Lightness of terminal foreground colors")
+            from: 35
+            to: 75
+            stepSize: 5
+            suffix: "%"
+            value: Math.round((Config.options?.appearance?.wallpaperTheming?.terminalColorAdjustments?.brightness ?? 0.60) * 100)
+            property bool _ready: false
+            Component.onCompleted: _ready = true
+            onMoved: {
+                if (!_ready)
+                    return;
+                Config.setNestedValue("appearance.wallpaperTheming.terminalColorAdjustments.brightness", value / 100);
+                terminalColorDebounce.restart();
+            }
+        }
+
+        WSettingsSlider {
+            id: termHarmonySlider
+            label: Translation.tr("Theme harmony")
+            icon: "color"
+            description: Translation.tr("Shifts terminal hues towards the theme's primary color")
+            from: 0
+            to: 100
+            stepSize: 5
+            suffix: "%"
+            value: Math.round((Config.options?.appearance?.wallpaperTheming?.terminalColorAdjustments?.harmony ?? 0.40) * 100)
+            property bool _ready: false
+            Component.onCompleted: _ready = true
+            onMoved: {
+                if (!_ready)
+                    return;
+                Config.setNestedValue("appearance.wallpaperTheming.terminalColorAdjustments.harmony", value / 100);
+                terminalColorDebounce.restart();
+            }
+        }
+
+        WSettingsSlider {
+            id: termBgBrightnessSlider
+            label: Translation.tr("Background brightness")
+            icon: "border-none"
+            description: Translation.tr("Terminal background darkness — lower is darker, 50% matches shell surfaces")
+            from: 10
+            to: 90
+            stepSize: 5
+            suffix: "%"
+            value: Math.round((Config.options?.appearance?.wallpaperTheming?.terminalColorAdjustments?.backgroundBrightness ?? 0.50) * 100)
+            property bool _ready: false
+            Component.onCompleted: _ready = true
+            onMoved: {
+                if (!_ready)
+                    return;
+                Config.setNestedValue("appearance.wallpaperTheming.terminalColorAdjustments.backgroundBrightness", value / 100);
+                terminalColorDebounce.restart();
+            }
+        }
+
+        WSettingsButton {
+            label: Translation.tr("Reset to defaults")
+            icon: "arrow-reset"
+            description: Translation.tr("Restore all terminal color settings to defaults")
+            buttonText: Translation.tr("Reset")
+            buttonIcon: "arrow-reset"
+            onButtonClicked: {
+                termSaturationSlider.value = 65;
+                termBrightnessSlider.value = 60;
+                termHarmonySlider.value = 40;
+                termBgBrightnessSlider.value = 50;
+                Config.setNestedValue("appearance.wallpaperTheming.terminalColorAdjustments.saturation", 0.65);
+                Config.setNestedValue("appearance.wallpaperTheming.terminalColorAdjustments.brightness", 0.60);
+                Config.setNestedValue("appearance.wallpaperTheming.terminalColorAdjustments.harmony", 0.40);
+                Config.setNestedValue("appearance.wallpaperTheming.terminalColorAdjustments.backgroundBrightness", 0.50);
+                terminalColorDebounce.restart();
+            }
+        }
+    }
+
+    // Waffle Typography card
+    WSettingsCard {
+        title: Translation.tr("Waffle Typography")
+        icon: "auto"
+
+        WText {
+            Layout.fillWidth: true
+            Layout.leftMargin: 14
+            Layout.rightMargin: 14
+            text: Translation.tr("These settings only affect the Windows 11 (Waffle) style panels.")
+            font.pixelSize: Looks.font.pixelSize.small
+            color: Looks.colors.subfg
+            wrapMode: Text.WordWrap
+        }
+
+        WSettingsDropdown {
+            label: Translation.tr("Font family")
+            icon: "auto"
+            description: Translation.tr("Font used in Waffle panels")
+            currentValue: Config.options?.waffles?.theming?.font?.family ?? "Noto Sans"
+            options: [
+                {
+                    value: "Segoe UI Variable",
+                    displayName: "Segoe UI"
+                },
+                {
+                    value: "Inter",
+                    displayName: "Inter"
+                },
+                {
+                    value: "Roboto",
+                    displayName: "Roboto"
+                },
+                {
+                    value: "Noto Sans",
+                    displayName: "Noto Sans"
+                },
+                {
+                    value: "Ubuntu",
+                    displayName: "Ubuntu"
+                }
+            ]
+            onSelected: newValue => Config.setNestedValue("waffles.theming.font.family", newValue)
+        }
+
+        WSettingsSpinBox {
+            label: Translation.tr("Font scale")
+            icon: "auto"
+            description: Translation.tr("Scale all text in Waffle panels")
+            suffix: "%"
+            from: 80
+            to: 150
+            stepSize: 5
+            value: Math.round((Config.options?.waffles?.theming?.font?.scale ?? 1.0) * 100)
+            onValueChanged: Config.setNestedValue("waffles.theming.font.scale", value / 100.0)
+        }
+    }
+}

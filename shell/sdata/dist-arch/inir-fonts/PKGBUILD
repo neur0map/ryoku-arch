@@ -1,0 +1,38 @@
+pkgname=inir-fonts
+pkgver=1.0
+pkgrel=1
+pkgdesc='iNiR - fonts and theming dependency bundle'
+arch=(any)
+license=(MIT)
+depends=(
+  fontconfig
+  noto-fonts-emoji
+  ttf-dejavu
+  ttf-liberation
+  ttf-roboto
+  ttf-roboto-mono
+  songrec
+  translate-shell
+  
+  # Launcher
+  fuzzel
+  glib2
+  
+  # Qt theming
+  kvantum
+  plasma-integration
+)
+
+
+# AUR dependencies (installed separately)
+# darkly-bin (Qt style for Material You colors)
+# matugen (now in official repos)
+# otf-space-grotesk
+# ttf-jetbrains-mono-nerd
+# ttf-material-symbols-variable-git
+# ttf-readex-pro
+# ttf-roboto-flex (CRITICAL - default UI font)
+# ttf-rubik-vf
+# ttf-twemoji
+# adw-gtk-theme-git
+# capitaine-cursors
