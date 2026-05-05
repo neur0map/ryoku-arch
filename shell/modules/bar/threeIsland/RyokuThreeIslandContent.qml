@@ -88,9 +88,36 @@ Item {
         visible: false
     }
 
-    readonly property int leftNotchWidth: Math.max(140, leftSizer.implicitWidth + 16)
-    readonly property int centerNotchWidth: Math.max(120, centerSizer.implicitWidth + 16)
-    readonly property int rightNotchWidth: Math.max(140, rightSizer.implicitWidth + 16)
+    // Notch widths track content; Behavior gives a bouncy resize when the
+    // active-window title (or any other content) changes width.
+    property int leftNotchWidth: Math.max(140, leftSizer.implicitWidth + 16)
+    property int centerNotchWidth: Math.max(120, centerSizer.implicitWidth + 16)
+    property int rightNotchWidth: Math.max(140, rightSizer.implicitWidth + 16)
+
+    Behavior on leftNotchWidth {
+        enabled: Appearance.animationsEnabled
+        NumberAnimation {
+            duration: 320
+            easing.type: Easing.OutBack
+            easing.overshoot: 1.6
+        }
+    }
+    Behavior on centerNotchWidth {
+        enabled: Appearance.animationsEnabled
+        NumberAnimation {
+            duration: 320
+            easing.type: Easing.OutBack
+            easing.overshoot: 1.6
+        }
+    }
+    Behavior on rightNotchWidth {
+        enabled: Appearance.animationsEnabled
+        NumberAnimation {
+            duration: 320
+            easing.type: Easing.OutBack
+            easing.overshoot: 1.6
+        }
+    }
 
     // Single Canvas frame: thin top strip + three drop-down notches.
     RyokuTopFrame {
