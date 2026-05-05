@@ -15,7 +15,7 @@ ContentPage {
     // bento grid stays consistent across windowed and floating settings
     // modes (same fixed 36x36 footprint regardless of card width).
     component CircleIconButton: RippleButton {
-        property string icon: ""
+        property string materialIcon: ""
         property string tooltip: ""
 
         implicitWidth: 36
@@ -25,7 +25,7 @@ ContentPage {
 
         contentItem: MaterialSymbol {
             anchors.centerIn: parent
-            text: icon
+            text: materialIcon
             iconSize: Appearance.font.pixelSize.large
             color: Appearance.colors.colOnSecondaryContainer
             fill: 1
@@ -216,13 +216,13 @@ ContentPage {
                         spacing: 8
 
                         CircleIconButton {
-                            icon: "auto_stories"
+                            materialIcon: "auto_stories"
                             tooltip: Translation.tr("Documentation")
                             onClicked: Qt.openUrlExternally("https://github.com/neur0map/ryoku-arch")
                         }
 
                         CircleIconButton {
-                            icon: "bug_report"
+                            materialIcon: "bug_report"
                             tooltip: Translation.tr("Issues")
                             onClicked: Qt.openUrlExternally("https://github.com/neur0map/ryoku-arch/issues")
                         }
@@ -310,14 +310,14 @@ ContentPage {
 
                         CircleIconButton {
                             visible: SystemInfo.documentationUrl && SystemInfo.documentationUrl.length > 0
-                            icon: "auto_stories"
+                            materialIcon: "auto_stories"
                             tooltip: Translation.tr("Documentation")
                             onClicked: Qt.openUrlExternally(SystemInfo.documentationUrl)
                         }
 
                         CircleIconButton {
                             visible: SystemInfo.bugReportUrl && SystemInfo.bugReportUrl.length > 0
-                            icon: "bug_report"
+                            materialIcon: "bug_report"
                             tooltip: Translation.tr("Report a Bug")
                             onClicked: Qt.openUrlExternally(SystemInfo.bugReportUrl)
                         }
@@ -373,7 +373,7 @@ ContentPage {
                     Item { Layout.fillHeight: true }
 
                     CircleIconButton {
-                        icon: "open_in_new"
+                        materialIcon: "open_in_new"
                         tooltip: "iNiR"
                         onClicked: Qt.openUrlExternally("https://github.com/snowarch/iNiR")
                     }
@@ -425,7 +425,7 @@ ContentPage {
                     Item { Layout.fillHeight: true }
 
                     CircleIconButton {
-                        icon: "open_in_new"
+                        materialIcon: "open_in_new"
                         tooltip: "illogical-impulse"
                         onClicked: Qt.openUrlExternally("https://github.com/end-4/dots-hyprland")
                     }
@@ -475,7 +475,7 @@ ContentPage {
                     Item { Layout.fillHeight: true }
 
                     CircleIconButton {
-                        icon: "open_in_new"
+                        materialIcon: "open_in_new"
                         tooltip: "Omarchy"
                         onClicked: Qt.openUrlExternally("https://github.com/basecamp/omarchy")
                     }
