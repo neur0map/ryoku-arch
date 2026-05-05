@@ -19,7 +19,7 @@ ContentPage {
         // ── Top row: Ryoku hero (2/3) + System info (1/3) ──────────────────
         RowLayout {
             Layout.fillWidth: true
-            Layout.preferredHeight: 280
+            Layout.preferredHeight: 240
             spacing: 16
 
             // ── Ryoku hero card ─────────────────────────────────────────────
@@ -183,12 +183,14 @@ ContentPage {
                         spacing: 8
 
                         RippleButtonWithIcon {
+                            implicitHeight: 28
                             materialIcon: "auto_stories"
                             mainText: Translation.tr("Documentation")
                             onClicked: Qt.openUrlExternally("https://github.com/neur0map/ryoku-arch")
                         }
 
                         RippleButtonWithIcon {
+                            implicitHeight: 28
                             materialIcon: "bug_report"
                             mainText: Translation.tr("Issues")
                             onClicked: Qt.openUrlExternally("https://github.com/neur0map/ryoku-arch/issues")
@@ -276,6 +278,7 @@ ContentPage {
                         spacing: 8
 
                         RippleButtonWithIcon {
+                            implicitHeight: 28
                             visible: SystemInfo.documentationUrl && SystemInfo.documentationUrl.length > 0
                             materialIcon: "auto_stories"
                             mainText: Translation.tr("Documentation")
@@ -283,6 +286,7 @@ ContentPage {
                         }
 
                         RippleButtonWithIcon {
+                            implicitHeight: 28
                             visible: SystemInfo.supportUrl && SystemInfo.supportUrl.length > 0
                             materialIcon: "support"
                             mainText: Translation.tr("Help & Support")
@@ -290,6 +294,7 @@ ContentPage {
                         }
 
                         RippleButtonWithIcon {
+                            implicitHeight: 28
                             visible: SystemInfo.bugReportUrl && SystemInfo.bugReportUrl.length > 0
                             materialIcon: "bug_report"
                             mainText: Translation.tr("Report a Bug")
@@ -303,7 +308,7 @@ ContentPage {
         // ── Bottom row: iNiR + illogical-impulse credit cards ───────────────
         RowLayout {
             Layout.fillWidth: true
-            Layout.preferredHeight: 220
+            Layout.preferredHeight: 180
             spacing: 16
 
             // ── iNiR credit card ────────────────────────────────────────────
@@ -347,6 +352,7 @@ ContentPage {
                     Item { Layout.fillHeight: true }
 
                     RippleButtonWithIcon {
+                        implicitHeight: 28
                         materialIcon: "open_in_new"
                         mainText: "iNiR"
                         onClicked: Qt.openUrlExternally("https://github.com/snowarch/iNiR")
@@ -399,6 +405,7 @@ ContentPage {
                     Item { Layout.fillHeight: true }
 
                     RippleButtonWithIcon {
+                        implicitHeight: 28
                         materialIcon: "open_in_new"
                         mainText: "illogical-impulse"
                         onClicked: Qt.openUrlExternally("https://github.com/end-4/dots-hyprland")
@@ -449,6 +456,7 @@ ContentPage {
                     Item { Layout.fillHeight: true }
 
                     RippleButtonWithIcon {
+                        implicitHeight: 28
                         materialIcon: "open_in_new"
                         mainText: "Omarchy"
                         onClicked: Qt.openUrlExternally("https://github.com/basecamp/omarchy")
