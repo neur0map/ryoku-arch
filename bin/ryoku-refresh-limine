@@ -104,6 +104,18 @@ fi
 
 sudo limine-update
 
+# Force-sync the NVRAM-targeted limine binary. limine-update (via
+# limine-install) refuses to upgrade past limine 11 because the
+# Arch limine-mkinitcpio-hook tool's limine-entry-tool only supports
+# limine <= 11, while the limine package is now 12. Without this
+# copy, /boot/EFI/limine/limine_x64.efi stays at the old version
+# while the limine.conf gets written in 12-only syntax (notably
+# the hex interface_branding_color), so UEFI boots a stale binary
+# that cannot render the new branding.
+if [[ -f /usr/share/limine/BOOTX64.EFI && -f /boot/EFI/limine/limine_x64.efi ]]; then
+  sudo cp -f /usr/share/limine/BOOTX64.EFI /boot/EFI/limine/limine_x64.efi
+fi
+
 if grep -q '^ENABLE_UKI=yes' /etc/default/limine \
   && [[ ! -f /boot/EFI/Linux/ryoku_linux.efi ]]; then
   echo "Error: missing /boot/EFI/Linux/ryoku_linux.efi after Limine refresh" >&2

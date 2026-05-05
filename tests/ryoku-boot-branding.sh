@@ -82,6 +82,8 @@ assert_contains bin/ryoku-refresh-limine 'grep -q.*Ryoku' \
   "Limine refresh should verify the generated menu has Ryoku entries"
 assert_contains bin/ryoku-refresh-limine 'limine-snapper-sync' \
   "Limine refresh should resync snapshot boot entries"
+assert_contains bin/ryoku-refresh-limine '/boot/EFI/limine/limine_x64\.efi' \
+  "Limine refresh should sync the NVRAM-targeted binary so the limine 11/12 entry-tool gap does not leave it stale"
 
 limine_repair_migration="$(grep -l 'ryoku-refresh-limine' migrations/*.sh 2>/dev/null | sort | tail -1)"
 [[ -n $limine_repair_migration ]] || \
