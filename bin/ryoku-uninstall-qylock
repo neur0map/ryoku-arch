@@ -1,0 +1,96 @@
+#!/bin/bash
+# Remove the qylock SDDM theme bundle and fall the active greeter
+# back to the built-in ii-pixel theme. Designed to be invoked via
+# pkexec, so refuses to run unprivileged.
+#
+# Order of operations matters: the active theme is switched FIRST so
+# SDDM never has a moment where Current= points at a directory we are
+# about to delete. A mid-uninstall crash leaves an orphaned qylock
+# clone but a working greeter; re-running this helper finishes the
+# cleanup.
+#
+# Stock SDDM themes (elarun, maldives, maya) and the built-in ii-pixel
+# are never touched: we only remove themes that exist in BOTH
+# ~/.local/share/qylock/themes/ and /usr/share/sddm/themes/.
+
+set -euo pipefail
+
+if (( EUID != 0 )); then
+  echo "ryoku-uninstall-qylock: must be run via pkexec (EUID=0)" >&2
+  exit 1
+fi
+
+if [[ -z ${SUDO_USER:-} ]]; then
+  echo "ryoku-uninstall-qylock: refusing to run with no SUDO_USER set" >&2
+  exit 1
+fi
+
+TARGET_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
+if [[ -z $TARGET_HOME ]]; then
+  echo "ryoku-uninstall-qylock: failed to resolve home dir for $SUDO_USER" >&2
+  exit 1
+fi
+
+QYLOCK_DIR="$TARGET_HOME/.local/share/qylock"
+SDDM_THEMES_DIR="/usr/share/sddm/themes"
+
+# Names that must NEVER be removed even if they somehow appear in both
+# directories. Defense in depth; the intersection check below already
+# rules these out for any normal install.
+GUARD_NAMES=("ii-pixel" "elarun" "maldives" "maya")
+
+is_guarded() {
+  local name="$1" g
+  for g in "${GUARD_NAMES[@]}"; do
+    [[ $name == "$g" ]] && return 0
+  done
+  return 1
+}
+
+# Step 1: switch active theme to ii-pixel BEFORE any deletion.
+if [[ -d $SDDM_THEMES_DIR/ii-pixel ]]; then
+  if [[ -f /etc/sddm.conf.d/ryoku-shell-theme.conf ]] \
+     && grep -qE '^\s*Current\s*=\s*ii-pixel\s*$' /etc/sddm.conf.d/ryoku-shell-theme.conf; then
+    # ryoku-shell-theme.conf already pins ii-pixel as the underlying
+    # default; deleting theme.conf is sufficient and matches a fresh
+    # install layout.
+    rm -f /etc/sddm.conf.d/theme.conf
+  else
+    mkdir -p /etc/sddm.conf.d
+    tee /etc/sddm.conf.d/theme.conf >/dev/null <<EOF
+[Theme]
+Current=ii-pixel
+EOF
+  fi
+  echo "  active SDDM theme: ii-pixel"
+else
+  echo "ryoku-uninstall-qylock: ii-pixel not installed; refusing to uninstall qylock without a fallback" >&2
+  exit 1
+fi
+
+# Step 2: remove qylock-sourced themes from /usr/share/sddm/themes.
+removed=0
+if [[ -d $QYLOCK_DIR/themes ]]; then
+  for src_dir in "$QYLOCK_DIR"/themes/*/; do
+    [[ -d $src_dir ]] || continue
+    name=$(basename "$src_dir")
+    if is_guarded "$name"; then
+      echo "  skipping guarded theme: $name"
+      continue
+    fi
+    target="$SDDM_THEMES_DIR/$name"
+    if [[ -d $target ]]; then
+      rm -rf "$target"
+      echo "  removed: $target"
+      removed=$((removed + 1))
+    fi
+  done
+fi
+
+# Step 3: drop the qylock clone (user-owned).
+if [[ -d $QYLOCK_DIR ]]; then
+  sudo -u "$SUDO_USER" rm -rf "$QYLOCK_DIR"
+  echo "  removed: $QYLOCK_DIR"
+fi
+
+echo "ryoku-uninstall-qylock: done ($removed system theme(s) removed)"

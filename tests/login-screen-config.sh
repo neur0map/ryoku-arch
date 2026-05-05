@@ -63,4 +63,19 @@ assert_grep "SUDO_USER"   "bin/ryoku-install-qylock"
 # Must use the _priv wrapper instead of bare sudo for the cp/tee path
 assert_grep "_priv"       "bin/ryoku-install-qylock"
 
+# -- ryoku-uninstall-qylock --------------------------------------------
+assert_file       "bin/ryoku-uninstall-qylock"
+assert_executable "bin/ryoku-uninstall-qylock"
+assert_grep "EUID"            "bin/ryoku-uninstall-qylock"
+assert_grep "SUDO_USER"       "bin/ryoku-uninstall-qylock"
+# Must reference the ii-pixel fallback by name
+assert_grep "ii-pixel"        "bin/ryoku-uninstall-qylock"
+# Guard list: stock SDDM themes that must never be removed by this helper
+assert_grep "elarun"          "bin/ryoku-uninstall-qylock"
+assert_grep "maldives"        "bin/ryoku-uninstall-qylock"
+assert_grep "maya"            "bin/ryoku-uninstall-qylock"
+# Must compute themes by intersection (not blindly delete from /usr/share/sddm/themes)
+assert_grep "/usr/share/sddm/themes/" "bin/ryoku-uninstall-qylock"
+assert_grep "\\.local/share/qylock"   "bin/ryoku-uninstall-qylock"
+
 echo "PASS: tests/login-screen-config.sh ($0)"
