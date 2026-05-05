@@ -46,8 +46,10 @@ for f in $staged; do
 done
 
 # 3. bash syntax check on shell scripts
-# (vendored upstream trees are exempt)
-bash_syntax_allowlist_pattern='^shell/'
+# Only emoji-data.sh in the vendored tree is intentionally non-parseable bash
+# (it stores data after a marker and reads itself via sed). Other shell scripts
+# under shell/ should still pass syntax checks.
+bash_syntax_allowlist_pattern='^shell/scripts/emoji/emoji-data\.sh$'
 
 for f in $staged; do
   [[ -f $f ]] || continue
