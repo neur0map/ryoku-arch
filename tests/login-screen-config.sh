@@ -45,4 +45,16 @@ assert_png() {
 # Assertions (filled in as tasks land code).
 # ---------------------------------------------------------------------
 
+# -- ryoku-set-sddm-theme ----------------------------------------------
+assert_file       "bin/ryoku-set-sddm-theme"
+assert_executable "bin/ryoku-set-sddm-theme"
+# Must validate the theme exists under /usr/share/sddm/themes
+assert_grep "/usr/share/sddm/themes/" "bin/ryoku-set-sddm-theme"
+# Must write to /etc/sddm.conf.d/theme.conf
+assert_grep "/etc/sddm\\.conf\\.d/theme\\.conf" "bin/ryoku-set-sddm-theme"
+# Must NOT call sudo: pkexec already runs it as root
+assert_no_grep "^[[:space:]]*sudo " "bin/ryoku-set-sddm-theme"
+# Must refuse to run unprivileged
+assert_grep "EUID" "bin/ryoku-set-sddm-theme"
+
 echo "PASS: tests/login-screen-config.sh ($0)"

@@ -1,0 +1,45 @@
+#!/bin/bash
+# Apply an SDDM greeter theme by writing /etc/sddm.conf.d/theme.conf.
+# Designed to be invoked via pkexec, so refuses to run unprivileged.
+#
+# Usage:
+#   pkexec ryoku-set-sddm-theme <theme-name>
+#
+# The named theme must already exist as a directory under
+# /usr/share/sddm/themes/. This helper does NOT install themes; for
+# qylock, see ryoku-install-qylock.
+
+set -euo pipefail
+
+if (( EUID != 0 )); then
+  echo "ryoku-set-sddm-theme: must be run via pkexec (EUID=0)" >&2
+  exit 1
+fi
+
+theme="${1:-}"
+if [[ -z $theme ]]; then
+  echo "Usage: ryoku-set-sddm-theme <theme-name>" >&2
+  exit 1
+fi
+
+# Reject anything that is not a plain identifier (no slashes, no .., no
+# whitespace). The directory check below is the real gate; this is
+# defense in depth for the conf file write.
+if ! [[ $theme =~ ^[A-Za-z0-9._-]+$ ]]; then
+  echo "ryoku-set-sddm-theme: invalid theme name: $theme" >&2
+  exit 1
+fi
+
+theme_dir="/usr/share/sddm/themes/$theme"
+if [[ ! -d $theme_dir ]]; then
+  echo "ryoku-set-sddm-theme: theme dir not found: $theme_dir" >&2
+  exit 1
+fi
+
+mkdir -p /etc/sddm.conf.d
+tee /etc/sddm.conf.d/theme.conf >/dev/null <<EOF
+[Theme]
+Current=$theme
+EOF
+
+echo "ryoku-set-sddm-theme: active theme set to $theme"
