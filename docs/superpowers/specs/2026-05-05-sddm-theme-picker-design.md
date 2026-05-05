@@ -55,8 +55,14 @@ The user wants a dedicated Settings page that:
 - All elevation goes through `pkexec` (not bare sudo) so the picker
   works without a controlling tty. The polkit-gnome agent already
   running in the Ryoku session surfaces a graphical password dialog.
-  See "Privileged helpers" below for the two scripts the picker
-  invokes under pkexec (`ryoku-set-sddm-theme`, `ryoku-install-qylock`).
+  See "Privileged helpers" below for the three scripts the picker
+  invokes under pkexec (`ryoku-set-sddm-theme`, `ryoku-install-qylock`,
+  `ryoku-uninstall-qylock`).
+- Uninstall flow exists and is symmetric with install: clicking
+  Uninstall on an installed external provider returns the system to
+  the prior built-in greeter (`ii-pixel`) cleanly, removing only the
+  files that provider added. Stock SDDM themes and the built-in are
+  never touched.
 - Page registers itself in `shell/settings.qml` and in the
   `SettingsOverlay.qml` search index so users can reach it via
   Ctrl+F search ("sddm", "login", "greeter", "qylock").
@@ -79,12 +85,10 @@ The user wants a dedicated Settings page that:
   explicit.
 - Do **not** touch `migrations/1777002317.sh`. The default-seat behavior
   on fresh installs stays as is; the picker is for changing it later.
-- Do **not** ship an "Uninstall qylock" button. Removing a theme
-  bundle is not a workflow most users will perform, and doing it
-  partially-correctly (leaving `/usr/share/sddm/themes/<name>`
-  orphaned, leaving `theme.conf` pointing at a missing dir) breaks
-  login. If the user wants to remove qylock they can `rm -rf
-  ~/.local/share/qylock` themselves; this is a conscious omission.
+- Do **not** offer a way to remove the built-in `ii-pixel` theme.
+  It ships with Ryoku-shell and the picker requires it as the safe
+  fallback when an external provider is uninstalled. Removing it
+  would leave the system with no guaranteed working greeter.
 
 ## Architecture
 
@@ -216,8 +220,8 @@ the existing `shell/setup` script uses (see
 
 ### Privileged helpers
 
-Two helpers live in `bin/` and are the only things the picker invokes
-under `pkexec`. Both are designed to be safe-to-run-as-root:
+Three helpers live in `bin/` and are the only things the picker
+invokes under `pkexec`. All are designed to be safe-to-run-as-root:
 
 1. **`bin/ryoku-set-sddm-theme <name>`** (new). Validates `name` is a
    directory under `/usr/share/sddm/themes/<name>` and writes
@@ -250,10 +254,43 @@ under `pkexec`. Both are designed to be safe-to-run-as-root:
    user at a shell) keeps working unchanged. Only adding a code path
    for root-mode entry.
 
+3. **`bin/ryoku-uninstall-qylock`** (new). Removes the qylock bundle
+   and falls back the active SDDM theme to `ii-pixel` (the built-in).
+   Steps, in this order so SDDM never points at a directory we are
+   about to delete:
+
+   - Compute the set of qylock-sourced themes by intersecting
+     `~/.local/share/qylock/themes/*` (when run via pkexec, resolve
+     `$SUDO_USER`'s home) with `/usr/share/sddm/themes/*`. **Only**
+     themes present in both directories are candidates for removal.
+     Stock SDDM themes (`elarun`, `maldives`, `maya`) and the
+     built-in (`ii-pixel`) are never touched because they do not
+     appear under qylock's themes dir.
+   - Write `[Theme]\nCurrent=ii-pixel` to `/etc/sddm.conf.d/theme.conf`
+     (or, equivalently, delete `theme.conf` so the underlying
+     `ryoku-shell-theme.conf` becomes the active definition; choose
+     deletion for symmetry with a fresh install). Verify
+     `ryoku-shell-theme.conf` exists and contains `Current=ii-pixel`
+     before deletion. If `ryoku-shell-theme.conf` is missing or sets
+     a different theme, write `theme.conf` with `Current=ii-pixel`
+     instead. Either path leaves ii-pixel as the effective active
+     theme.
+   - `rm -rf` each qylock-sourced theme dir under
+     `/usr/share/sddm/themes/`.
+   - As `$SUDO_USER` (drop privs), `rm -rf` the qylock clone at
+     `~/.local/share/qylock`.
+
+   Idempotent: running it twice in a row succeeds the second time
+   with no changes (qylock is gone after the first run; second run
+   finds nothing to remove and exits 0). Never removes ii-pixel,
+   never removes stock themes, never leaves SDDM pointing at a
+   missing directory.
+
 The picker invokes these only via the `pkexec` argv prefix:
 `["pkexec", "ryoku-set-sddm-theme", themeName]`,
 `["pkexec", "ryoku-install-qylock", "--default"]`,
-`["pkexec", "ryoku-install-qylock", "--theme", themeName]`.
+`["pkexec", "ryoku-install-qylock", "--theme", themeName]`,
+`["pkexec", "ryoku-uninstall-qylock"]`.
 
 ### Active-theme detection
 
@@ -367,11 +404,16 @@ Top to bottom:
      - Click target on the entire tile: applies that theme. While
        the apply subprocess is running, the tile shows a spinner
        overlay and ignores clicks.
-   - The Install button is replaced by a single `"Update qylock"`
-     ghost button (lower visual weight) that runs the same
-     `pkexec ryoku-install-qylock --theme <currently-active>` command;
-     this re-pulls the qylock repo and re-copies the active theme
-     so themes added upstream become available.
+   - The Install button is replaced by **two** small buttons in a row,
+     bottom-right of the card:
+     - `"Update"` ghost button (lower visual weight) that runs
+       `pkexec ryoku-install-qylock --theme <currently-active>`.
+       This re-pulls the qylock repo and re-copies the active theme
+       so themes added upstream become available.
+     - `"Uninstall"` text button styled as a danger action (no fill,
+       danger-color label, no border). Clicking opens a confirmation
+       dialog (see "Uninstall workflow" below). Visually de-emphasized
+       on purpose so users do not tap it by accident.
 
 ### Install workflow (external providers only)
 
@@ -436,6 +478,52 @@ the active theme unchanged.
 After a successful apply, page shows a transient toast at the bottom
 of the page: `"Theme applied. Reboot or run 'systemctl restart sddm'."`
 (matching the banner caption copy).
+
+### Uninstall workflow (external providers only)
+
+Click "Uninstall" on a post-install qylock card. The page does **not**
+immediately spawn the helper. Instead it opens a modal confirmation
+dialog (matching the existing `kdialog`-styled confirmations elsewhere
+in Settings) with:
+
+- Title: `"Remove qylock?"`
+- Body, two paragraphs:
+  - `"This removes the qylock theme bundle and all qylock-installed
+    SDDM themes from your system. Your active greeter will fall back
+    to the built-in ii-pixel theme."`
+  - `"Stock SDDM themes (elarun, maldives, maya) and the built-in
+    ii-pixel theme are not affected. This cannot be undone, but you
+    can re-install qylock at any time from this page."`
+- Primary button: `"Remove"` (danger style)
+- Secondary button: `"Cancel"`
+
+If the user clicks Remove, a third `Process` component (separate from
+install and apply, so cancelling does not interfere) gets `command`
+set to `["pkexec", "ryoku-uninstall-qylock"]` and runs.
+
+While `Process.running` is true the page shows a "Removing qylock…"
+banner and disables both Update and Uninstall buttons (and all theme
+tiles, since they are about to disappear).
+
+On `Process.exited`:
+
+- `exitCode === 0`: the card flips back to pre-install state. The
+  active-theme banner re-runs detection and shows `ii-pixel`. A
+  transient toast says `"qylock removed. ii-pixel is now active.
+  Reboot or run 'systemctl restart sddm'."`
+- `exitCode === 126` or `127` (polkit cancelled): silent return,
+  card unchanged.
+- other non-zero: failure toast,
+  `"Uninstall failed (exit <code>). Run 'ryoku-uninstall-qylock' in
+  a terminal to see output."` Card stays in post-install state. The
+  user can retry.
+
+Because `ryoku-uninstall-qylock` switches the active theme **before**
+deleting any directories, a partial failure mid-uninstall (helper
+crash, OOM, sudden reboot) can leave qylock files orphaned but still
+leaves SDDM pointing at a valid theme (ii-pixel). Re-running uninstall
+cleans up the rest. SDDM never sees a moment where `Current=` points
+at a missing directory.
 
 ### Visual identity (avoiding AI-template look)
 
@@ -573,8 +661,13 @@ shell assertions, no QML runtime):
 7. Asserts `bin/ryoku-install-qylock` contains the EUID-detection
    refactor (grep for `EUID` and `SUDO_USER`), confirming it is
    safe-to-run-via-pkexec.
-8. Lints both helper scripts via `shellcheck` if available (skip with
-   a warning otherwise).
+8. Asserts `bin/ryoku-uninstall-qylock` exists, is executable,
+   contains both the active-theme-fallback step (`Current=ii-pixel`)
+   and an explicit list of names it will **never** remove (`ii-pixel`,
+   `elarun`, `maldives`, `maya` should appear as a guard list, by
+   string match, even if implemented as a directory intersection).
+9. Lints all three helper scripts via `shellcheck` if available (skip
+   with a warning otherwise).
 
 The test does not run quickshell, does not start SDDM, does not call
 either privileged helper, and does not depend on `qmllint` or any
@@ -601,9 +694,10 @@ Out of scope for D0; documented so the design accommodates them.
   provider's bundled assets. Out of scope here.
 - **Additional providers.** `sddm-sugar-candy`, `sddm-astronaut`, and
   any other community SDDM theme bundle. Each only requires a
-  `ListElement` plus asset directory; no UI changes.
-- **Uninstall flow.** Deferred until the failure modes are well
-  understood. Listed in non-goals above.
+  `ListElement` plus asset directory; no UI changes. Uninstall for
+  future providers will need a per-provider uninstall helper following
+  the same pattern as `ryoku-uninstall-qylock` (compute the
+  intersection set, fall back to ii-pixel first, then remove).
 - **`inir-theme.conf` cleanup migration.** The stale file from before
   the iNiR-to-Ryoku rebrand is harmless (it sets the same theme as
   `ryoku-shell-theme.conf`) but should eventually be removed. Out of
