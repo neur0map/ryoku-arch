@@ -21,8 +21,27 @@ Scope {
     PanelWindow {
         id: sidebarRoot
 
+        // Workaround for Qt 6.11.0 UAF in updatePixelRatioHelper: niri sends
+        // wl_surface.preferred_buffer_scale on every layer-shell surface
+        // (re)map, which triggers a recursive QML tree walk that can hit a
+        // freed item, pure-virtual abort or SIGSEGV depending on heap luck.
+        // Keep the surface mapped at all times; control input/visibility via
+        // the mask region below and the existing slide animation.
+        visible: true
+
+        // _emptyMask shrinks the surface's input region to zero when the
+        // sidebar is closed so clicks fall through.  _fullMask covers the
+        // whole panel when open so the backdropClickArea (close-on-click-
+        // outside) and sidebarContentLoader (interactive widgets) both
+        // receive input.  Region { item: null } would mean "no mask" and
+        // is interpreted by Quickshell as zero-input here, breaking both.
+        Item { id: _emptyMask; width: 0; height: 0 }
+        Item { id: _fullMask;  anchors.fill: parent }
+        mask: Region {
+            item: GlobalStates.sidebarRightOpen ? _fullMask : _emptyMask
+        }
+
         Component.onCompleted: {
-            visible = GlobalStates.sidebarRightOpen
             root._sidebarShown = GlobalStates.sidebarRightOpen
         }
 
@@ -31,13 +50,10 @@ Scope {
             function onSidebarRightOpenChanged() {
                 if (GlobalStates.sidebarRightOpen) {
                     _closeTimer.stop()
-                    sidebarRoot.visible = true
-                    // Let the surface map for one frame before sliding in
                     Qt.callLater(() => { root._sidebarShown = true })
                 } else if (root.instantOpen || !Appearance.animationsEnabled) {
                     root._sidebarShown = false
                     _closeTimer.stop()
-                    sidebarRoot.visible = false
                 } else {
                     root._sidebarShown = false
                     _closeTimer.restart()
@@ -48,7 +64,7 @@ Scope {
         Timer {
             id: _closeTimer
             interval: 300
-            onTriggered: sidebarRoot.visible = false
+            // surface stays mapped; nothing to do on close-animation finish
         }
 
         function hide() {
