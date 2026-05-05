@@ -26,11 +26,11 @@ assert_match() {
   grep -Eq "$pattern" "$file" || fail "$message"
 }
 
-# install/config/inir.sh must source from the vendored shell/ tree, not clone
-assert_no_match install/config/inir.sh 'git clone' \
-  "install/config/inir.sh must not clone (vendored shell/ is the source of truth)"
-assert_match install/config/inir.sh 'shell"?/?' \
-  "install/config/inir.sh must reference the vendored shell/ tree"
+# install/config/shell.sh must source from the vendored shell/ tree, not clone
+assert_no_match install/config/shell.sh 'git clone' \
+  "install/config/shell.sh must not clone (vendored shell/ is the source of truth)"
+assert_match install/config/shell.sh 'shell"?/?' \
+  "install/config/shell.sh must reference the vendored shell/ tree"
 
 # migrations/1778000000.sh must source from the vendored shell/ tree
 assert_no_match migrations/1778000000.sh 'git clone' \
