@@ -1,23 +1,23 @@
-#compdef inir
-# Zsh completion for inir CLI
-# Install: eval "$(inir completions zsh)"
-# Or: inir completions zsh > ~/.zsh/completions/_inir
+#compdef ryoku-shell
+# Zsh completion for ryoku-shell CLI
+# Install: eval "$(ryoku-shell completions zsh)"
+# Or: ryoku-shell completions zsh > ~/.zsh/completions/_ryoku-shell
 
 # Source IPC registry for target data
-_inir_load_registry() {
-    local script_dir inir_bin
-    inir_bin="$(command -v inir 2>/dev/null || echo /usr/bin/inir)"
+_ryoku_shell_load_registry() {
+    local script_dir ryoku_shell_bin
+    ryoku_shell_bin="$(command -v ryoku-shell 2>/dev/null || echo /usr/bin/ryoku-shell)"
     # Follow symlinks to find the real scripts/ directory
-    if [[ -L "$inir_bin" ]]; then
-        script_dir="$(cd -- "$(dirname -- "$(readlink -f "$inir_bin")")" 2>/dev/null && pwd)"
+    if [[ -L "$ryoku_shell_bin" ]]; then
+        script_dir="$(cd -- "$(dirname -- "$(readlink -f "$ryoku_shell_bin")")" 2>/dev/null && pwd)"
     else
-        script_dir="$(cd -- "$(dirname -- "$inir_bin")" 2>/dev/null && pwd)"
+        script_dir="$(cd -- "$(dirname -- "$ryoku_shell_bin")" 2>/dev/null && pwd)"
     fi
     local candidate
     for candidate in \
         "${script_dir}/lib/ipc-registry.sh" \
-        "/usr/share/quickshell/inir/scripts/lib/ipc-registry.sh" \
-        "/usr/local/share/quickshell/inir/scripts/lib/ipc-registry.sh"; do
+        "/usr/share/quickshell/ryoku-shell/scripts/lib/ipc-registry.sh" \
+        "/usr/local/share/quickshell/ryoku-shell/scripts/lib/ipc-registry.sh"; do
         if [[ -f "$candidate" ]]; then
             source "$candidate"
             return 0
@@ -26,9 +26,9 @@ _inir_load_registry() {
     return 1
 }
 
-_inir() {
+_ryoku_shell() {
     local -a cli_commands=(
-        'install:Install iNiR'
+        'install:Install Ryoku shell'
         'start:Start the shell'
         'stop:Stop the shell'
         'run:Run the shell'
@@ -66,7 +66,7 @@ _inir() {
     local -a ipc_targets=()
     local -a ipc_aliases=()
 
-    if _inir_load_registry 2>/dev/null; then
+    if _ryoku_shell_load_registry 2>/dev/null; then
         local t
         for t in "${IPC_ALL_TARGETS[@]}"; do
             local desc="${IPC_TARGET_DESC[$t]:-}"
@@ -165,4 +165,4 @@ _inir() {
     esac
 }
 
-_inir "$@"
+_ryoku_shell "$@"

@@ -1,8 +1,8 @@
-# Bash completion for inir CLI
-# Install: eval "$(inir completions bash)"
-# Or: inir completions bash > /etc/bash_completion.d/inir
+# Bash completion for ryoku-shell CLI
+# Install: eval "$(ryoku-shell completions bash)"
+# Or: ryoku-shell completions bash > /etc/bash_completion.d/ryoku-shell
 
-_inir_completions() {
+_ryoku_shell_completions() {
     local cur prev
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
@@ -12,20 +12,20 @@ _inir_completions() {
     local cli_commands="install start stop run restart kill logs terminal browser close-window ipc settings settings-window waffle-settings-window repair path test-local setup service doctor migrate status update rollback my-changes uninstall config info backup version theme help completions"
 
     # Source IPC registry for target/function completion
-    local script_dir inir_bin
-    inir_bin="$(command -v inir 2>/dev/null || echo /usr/bin/inir)"
+    local script_dir ryoku_shell_bin
+    ryoku_shell_bin="$(command -v ryoku-shell 2>/dev/null || echo /usr/bin/ryoku-shell)"
     # Follow symlinks to find the real scripts/ directory
-    if [[ -L "$inir_bin" ]] && command -v readlink &>/dev/null; then
-        script_dir="$(cd -- "$(dirname -- "$(readlink -f "$inir_bin")")" 2>/dev/null && pwd)"
+    if [[ -L "$ryoku_shell_bin" ]] && command -v readlink &>/dev/null; then
+        script_dir="$(cd -- "$(dirname -- "$(readlink -f "$ryoku_shell_bin")")" 2>/dev/null && pwd)"
     else
-        script_dir="$(cd -- "$(dirname -- "$inir_bin")" 2>/dev/null && pwd)"
+        script_dir="$(cd -- "$(dirname -- "$ryoku_shell_bin")" 2>/dev/null && pwd)"
     fi
     local registry=""
     local candidate
     for candidate in \
         "${script_dir}/lib/ipc-registry.sh" \
-        "/usr/share/quickshell/inir/scripts/lib/ipc-registry.sh" \
-        "/usr/local/share/quickshell/inir/scripts/lib/ipc-registry.sh"; do
+        "/usr/share/quickshell/ryoku-shell/scripts/lib/ipc-registry.sh" \
+        "/usr/local/share/quickshell/ryoku-shell/scripts/lib/ipc-registry.sh"; do
         if [[ -f "$candidate" ]]; then
             registry="$candidate"
             break
@@ -89,4 +89,4 @@ _inir_completions() {
     esac
 }
 
-complete -F _inir_completions inir
+complete -F _ryoku_shell_completions ryoku-shell
