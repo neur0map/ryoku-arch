@@ -4,6 +4,7 @@
 # docs/superpowers/specs/2026-05-04-pristine-inir-restore-design.md.
 
 set -euo pipefail
+trap 'echo "Migration failed. Re-run with: bin/ryoku-migrate" >&2' ERR
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
@@ -63,4 +64,6 @@ systemctl --user start inir.service
 
 echo
 echo "Pristine iNiR restore complete."
-echo "Backup of prior config: $backup_dir/config.json.$ts"
+if [[ -f $backup_dir/config.json.$ts ]]; then
+  echo "Backup of prior config: $backup_dir/config.json.$ts"
+fi
