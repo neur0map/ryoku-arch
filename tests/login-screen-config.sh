@@ -96,4 +96,33 @@ assert_grep "providerId: \"qylock\""    "shell/modules/settings/LoginScreenConfi
 # Active-theme reader exists
 assert_grep "function readActiveTheme"  "shell/modules/settings/LoginScreenConfig.qml"
 
+# -- bundledThemes manifest sync ---------------------------------------
+QML_FILE="$ROOT_DIR/shell/modules/settings/LoginScreenConfig.qml"
+
+extract_bundled_themes() {
+  # Args: provider id
+  # Prints one theme name per line (or nothing if empty list).
+  local provider="$1"
+  awk -v provider="$provider" '
+    $0 ~ "providerId: \"" provider "\"" { in_block = 1 }
+    in_block && /bundledThemes:/ { in_list = 1; sub(/.*bundledThemes:[[:space:]]*\[/, ""); }
+    in_list {
+      while (match($0, /"[^"]+"/)) {
+        s = substr($0, RSTART + 1, RLENGTH - 2)
+        print s
+        $0 = substr($0, RSTART + RLENGTH)
+      }
+      if (index($0, "]")) { in_list = 0; in_block = 0 }
+    }
+  ' "$QML_FILE"
+}
+
+for provider in ii-pixel qylock; do
+  while IFS= read -r theme; do
+    [[ -z $theme ]] && continue
+    asset="shell/assets/sddm-providers/$provider/themes/$theme.png"
+    assert_png "$asset"
+  done < <(extract_bundled_themes "$provider")
+done
+
 echo "PASS: tests/login-screen-config.sh ($0)"
