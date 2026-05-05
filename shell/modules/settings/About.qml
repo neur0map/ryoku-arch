@@ -302,6 +302,67 @@ ContentPage {
                     width: 64
                     height: 64
 
+                    MaterialSymbol {
+                        anchors.centerIn: parent
+                        text: "favorite"
+                        iconSize: 64
+                        color: Appearance.m3colors.m3primary
+                    }
+
+                }
+
+                ColumnLayout {
+                    Layout.alignment: Qt.AlignVCenter
+
+                    StyledText {
+                        text: "iNiR"
+                        font.pixelSize: Appearance.font.pixelSize.title
+                    }
+
+                    StyledText {
+                        text: "[https://github.com/snowarch/inir](https://github.com/snowarch/inir)"
+                        font.pixelSize: Appearance.font.pixelSize.small
+                        color: Appearance.m3colors.m3primary
+                        textFormat: Text.MarkdownText
+                        onLinkActivated: (link) => {
+                            return Qt.openUrlExternally(link);
+                        }
+
+                        PointingHandLinkHover {
+                        }
+
+                    }
+
+                }
+
+            }
+
+            Flow {
+                Layout.fillWidth: true
+                Layout.topMargin: 10
+                spacing: 5
+
+                RippleButtonWithIcon {
+                    materialIcon: "open_in_new"
+                    mainText: "iNiR"
+                    onClicked: Qt.openUrlExternally("https://github.com/snowarch/inir")
+                }
+
+            }
+
+        }
+
+        SettingsGroup {
+            RowLayout {
+                Layout.alignment: Qt.AlignHCenter
+                spacing: 20
+                Layout.topMargin: 10
+                Layout.bottomMargin: 10
+
+                Item {
+                    width: 64
+                    height: 64
+
                     Image {
                         id: end4Icon
 
@@ -351,7 +412,7 @@ ContentPage {
 
             StyledText {
                 Layout.fillWidth: true
-                text: Translation.tr("This project is a fork of end-4's illogical-impulse, adapted for the Niri compositor.")
+                text: Translation.tr("Ryoku is built on iNiR, which is itself a fork of end-4's illogical-impulse adapted for the Niri compositor.")
                 color: Appearance.colors.colSubtext
                 font.pixelSize: Appearance.font.pixelSize.small
                 wrapMode: Text.WordWrap
