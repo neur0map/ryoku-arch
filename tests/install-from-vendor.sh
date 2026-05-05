@@ -49,4 +49,16 @@ assert_no_match iso/bin/ryoku-iso-make 'RYOKU_INIR_REPO' \
 [[ -d shell/services ]] || fail "shell/services must exist"
 [[ ! -d shell/.git ]] || fail "shell/.git must NOT exist (hermetic vendor)"
 
+# Phase 4 migration must use the uninstall+reinstall pattern
+migration_file=$(ls migrations/177810*.sh migrations/177820*.sh 2>/dev/null | sort | head -1 || true)
+if [[ -z $migration_file ]]; then
+  fail "Phase 4 migration not found in migrations/"
+fi
+assert_match "$migration_file" 'setup uninstall -y' \
+  "Phase 4 migration must run iNiR's own uninstall to clean tracked paths"
+assert_match "$migration_file" 'install/config/shell.sh' \
+  "Phase 4 migration must run the new shell install pipeline"
+assert_match "$migration_file" 'ryoku-shell.service' \
+  "Phase 4 migration must start the new ryoku-shell.service"
+
 echo "PASS: install from vendor"
