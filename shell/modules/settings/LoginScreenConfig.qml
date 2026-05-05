@@ -108,8 +108,38 @@ ContentPage {
         return providerInstallProbe.has(provider.providerId)
     }
 
+    property var qylockThemes: []
+
+    Process {
+        id: listQylockThemesProc
+        command: ["/usr/bin/bash", "-c",
+            "dir=\"$HOME/.local/share/qylock/themes\"; " +
+            "[[ -d $dir ]] || exit 0; " +
+            "(cd \"$dir\" && for d in */; do echo \"${d%/}\"; done)"
+        ]
+        property var _accum: []
+        stdout: SplitParser {
+            onRead: data => {
+                var line = data.trim()
+                if (line.length > 0) listQylockThemesProc._accum.push(line)
+            }
+        }
+        onExited: exitCode => {
+            // Assign a NEW array reference so QML binding picks up the change
+            // (in-place push on a `var` array does not trigger property updates).
+            root.qylockThemes = listQylockThemesProc._accum.slice()
+            listQylockThemesProc._accum = []
+        }
+    }
+
+    function refreshQylockThemes() {
+        listQylockThemesProc._accum = []
+        listQylockThemesProc.running = true
+    }
+
     function refreshProviderState() {
         probeQylockProc.running = true
+        refreshQylockThemes()
     }
 
     Component.onCompleted: {
@@ -349,20 +379,161 @@ ContentPage {
         }
     }
 
-    component ThemeTileStrip: Item {
+    component ThemeTileStrip: ColumnLayout {
+        id: stripRoot
         property var provider
         property bool installed: false
         property string activeTheme: ""
         signal applyTheme(string themeName)
 
         Layout.fillWidth: true
-        Layout.preferredHeight: 80
+        spacing: 8
 
-        StyledText {
-            anchors.centerIn: parent
-            text: Translation.tr("Theme grid lands in next task")
-            color: Appearance.colors.colSubtext
-            font.italic: true
+        // Build the list of theme entries to render.
+        property var themeList: {
+            if (provider.kind === "builtin") {
+                return provider.bundledThemes.map(name => ({
+                    name: name,
+                    source: Quickshell.shellPath(provider.bundledAssetDir + "/" + provider.themesAssetDir + "/" + name + ".png")
+                }))
+            }
+            if (!stripRoot.installed) {
+                if (provider.bundledThemes.length === 0) {
+                    return [{
+                        name: "preview-after-install",
+                        source: Quickshell.shellPath("assets/sddm-providers/_placeholder.png")
+                    }]
+                }
+                return provider.bundledThemes.map(name => ({
+                    name: name,
+                    source: Quickshell.shellPath(provider.bundledAssetDir + "/" + provider.themesAssetDir + "/" + name + ".png")
+                }))
+            }
+            // External post-install: live themes from disk; preview source
+            // resolves bundled or placeholder fallback in the delegate.
+            return root.qylockThemes.map(name => ({
+                name: name,
+                source: ""
+            }))
+        }
+
+        GridLayout {
+            Layout.fillWidth: true
+            columns: 4
+            rowSpacing: 8
+            columnSpacing: 8
+
+            Repeater {
+                model: stripRoot.themeList
+                delegate: ThemeTile {
+                    provider: stripRoot.provider
+                    themeName: modelData.name
+                    presetSource: modelData.source
+                    isActive: stripRoot.activeTheme === modelData.name
+                    clickable: stripRoot.provider.kind === "builtin" || stripRoot.installed
+                    onClicked: stripRoot.applyTheme(themeName)
+                }
+            }
+        }
+    }
+
+    component ThemeTile: Rectangle {
+        id: tileRoot
+        property var provider
+        property string themeName: ""
+        property string presetSource: ""
+        property bool isActive: false
+        property bool clickable: true
+        signal clicked()
+
+        Layout.preferredWidth: 200
+        Layout.preferredHeight: 112
+        radius: Appearance.rounding.small
+        color: "transparent"
+        clip: true
+
+        border.width: isActive ? 2 : 0
+        border.color: provider.kind === "builtin"
+                      ? Appearance.colors.colPrimary
+                      : provider.accentColor
+
+        function previewSource() {
+            if (presetSource) return presetSource
+            var live = Quickshell.env("HOME")
+                       + "/.local/share/qylock/themes/" + themeName + "/preview.png"
+            return "file://" + live
+        }
+
+        Image {
+            id: previewImage
+            anchors.fill: parent
+            source: tileRoot.previewSource()
+            fillMode: Image.PreserveAspectCrop
+            asynchronous: true
+            smooth: true
+
+            onStatusChanged: {
+                if (status === Image.Error) {
+                    var bundled = Quickshell.shellPath(
+                        tileRoot.provider.bundledAssetDir + "/"
+                        + tileRoot.provider.themesAssetDir + "/"
+                        + tileRoot.themeName + ".png")
+                    if (source.toString() !== bundled) {
+                        source = bundled
+                        return
+                    }
+                    source = Quickshell.shellPath("assets/sddm-providers/_placeholder.png")
+                }
+            }
+        }
+
+        Rectangle {
+            visible: tileRoot.isActive
+            anchors.top: parent.top
+            anchors.right: parent.right
+            anchors.margins: 6
+            radius: 999
+            color: tileRoot.provider.kind === "builtin"
+                   ? Appearance.colors.colPrimary
+                   : tileRoot.provider.accentColor
+            implicitWidth: activeChipText.implicitWidth + 14
+            implicitHeight: activeChipText.implicitHeight + 4
+            StyledText {
+                id: activeChipText
+                anchors.centerIn: parent
+                text: Translation.tr("Active")
+                color: "white"
+                font.pixelSize: 10
+                font.bold: true
+            }
+        }
+
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            height: 24
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: "transparent" }
+                GradientStop { position: 1.0; color: "#cc000000" }
+            }
+            StyledText {
+                anchors.left: parent.left
+                anchors.bottom: parent.bottom
+                anchors.leftMargin: 8
+                anchors.bottomMargin: 4
+                text: tileRoot.themeName
+                color: "white"
+                font.pixelSize: 11
+                font.family: "JetBrainsMono Nerd Font Mono"
+            }
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            enabled: tileRoot.clickable
+            cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+            onClicked: tileRoot.clicked()
         }
     }
 }
