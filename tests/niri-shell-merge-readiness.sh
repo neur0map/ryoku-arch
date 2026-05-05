@@ -44,7 +44,7 @@ assert_package_absent() {
 assert_path_absent() {
   local path="$1"
 
-  [[ ! -e $path ]] || fail "$path should not be a default source path after Niri/iNiR migration"
+  [[ ! -e $path ]] || fail "$path should not be a default source path after Niri/Ryoku migration"
 }
 
 assert_contains() {
@@ -333,7 +333,7 @@ new_backend_paths=(
   config/niri/config.kdl
   config/niri/config.d/70-binds.kdl
   config/starship/ii-palette.toml
-  config/systemd/user/inir.service
+  config/systemd/user/ryoku-shell.service
   config/xdg-desktop-portal/niri-portals.conf
 )
 
@@ -352,7 +352,7 @@ assert_executable bin/ryoku-theme-set-shell
 assert_executable bin/ryoku-system-logout
 assert_executable bin/ryoku-sddm-autologin
 assert_executable bin/ryoku-refresh-sddm
-assert_executable install/config/inir.sh
+assert_executable install/config/shell.sh
 assert_executable install/config/session-recover.sh
 assert_executable default/systemd/system-sleep/ryoku-session-recover
 
@@ -367,39 +367,36 @@ bash -n bin/ryoku-theme-set-shell
 bash -n bin/ryoku-system-logout
 bash -n bin/ryoku-sddm-autologin
 bash -n bin/ryoku-refresh-sddm
-bash -n install/config/inir.sh
+bash -n install/config/shell.sh
 bash -n install/config/session-recover.sh
 bash -n default/systemd/system-sleep/ryoku-session-recover
 
-assert_contains install/config/all.sh 'config/inir\.sh' "installer should run the iNiR bridge"
+assert_contains install/config/all.sh 'config/shell\.sh' "installer should run the Ryoku shell installer"
 assert_contains install/config/all.sh 'config/session-recover\.sh' "installer should install Ryoku session resume recovery"
-assert_contains install/packaging/fonts.sh 'config/fonts' "font packaging should install bundled iNiR-visible fonts for offline installs"
-assert_contains bin/ryoku-update-perform 'packaging/base\.sh' "updates should reconcile the default pacman package manifest before running iNiR"
-assert_contains bin/ryoku-update-perform 'packaging/aur-core\.sh' "updates should reconcile the default AUR package manifest before running iNiR"
-assert_contains bin/ryoku-update-perform 'config/inir\.sh' "updates should install or refresh iNiR before running migrations"
+assert_contains install/packaging/fonts.sh 'config/fonts' "font packaging should install bundled Ryoku-visible fonts for offline installs"
+assert_contains bin/ryoku-update-perform 'packaging/base\.sh' "updates should reconcile the default pacman package manifest before running Ryoku"
+assert_contains bin/ryoku-update-perform 'packaging/aur-core\.sh' "updates should reconcile the default AUR package manifest before running Ryoku"
+assert_contains bin/ryoku-update-perform 'config/shell\.sh' "updates should install or refresh Ryoku shell before running migrations"
 assert_order bin/ryoku-update-perform 'ryoku-update-aur-pkgs' 'packaging/aur-core\.sh' "updates should bootstrap/update AUR access before installing default AUR packages"
-assert_order bin/ryoku-update-perform 'packaging/aur-core\.sh' 'config/inir\.sh' "updates should install default AUR packages before running iNiR setup"
-assert_order bin/ryoku-update-perform 'config/inir\.sh' 'ryoku-migrate' "updates should install or refresh iNiR before migration cleanup"
-assert_contains install/config/inir.sh 'RYOKU_INIR_SOURCE' "iNiR installer should support local source injection"
-assert_contains install/config/inir.sh 'INIR_PATH' "iNiR installer should accept an already-copied chroot iNiR checkout"
-assert_contains install/config/inir.sh 'RYOKU_CHROOT_INSTALL|RYOKU_INIR_REQUIRE_LOCAL_SOURCE' "ISO installs should require a bundled iNiR checkout instead of falling back to a network clone"
-assert_contains install/config/inir.sh '/root/inir|/opt/ryoku/inir|vendor/inir' "iNiR installer should prefer bundled ISO sources before network clone"
-assert_contains install/config/inir.sh 'niri\.service\.wants' "iNiR installer should wire inir.service into niri.service.wants for first login"
-assert_contains install/config/inir.sh 'UV_CACHE_DIR|UV_OFFLINE' "iNiR installer should use the ISO-bundled uv cache in chroot installs"
-assert_contains iso/bin/ryoku-iso-make '/inir:ro' "local-source ISO builds should mount a local iNiR checkout when available"
-assert_contains iso/builder/build-iso.sh 'RYOKU_INIR_REPO|github\.com/snowarch/iNiR' "production ISO builds should bundle iNiR during the build, not during installed-system setup"
-assert_contains iso/builder/build-iso.sh 'sdata/uv/requirements\.txt|UV_CACHE_DIR' "ISO builder should prefetch iNiR Python wheels for offline setup"
-assert_contains iso/builder/build-iso.sh 'root/inir' "ISO builder should copy the mounted iNiR checkout into the live environment"
+assert_order bin/ryoku-update-perform 'packaging/aur-core\.sh' 'config/shell\.sh' "updates should install default AUR packages before running Ryoku shell setup"
+assert_order bin/ryoku-update-perform 'config/shell\.sh' 'ryoku-migrate' "updates should install or refresh Ryoku shell before migration cleanup"
+assert_contains install/config/shell.sh 'RYOKU_SHELL_PATH' "Ryoku shell installer should support custom install path injection"
+assert_contains install/config/shell.sh 'SHELL_VENDOR' "Ryoku shell installer should reference the vendored shell tree"
+assert_contains install/config/shell.sh 'niri\.service\.wants' "Ryoku installer should wire ryoku-shell.service into niri.service.wants for first login"
+assert_contains iso/bin/ryoku-iso-make '/ryoku:ro' "local-source ISO builds should mount a local Ryoku checkout when available"
+assert_contains iso/builder/build-iso.sh 'RYOKU_INSTALLER_REPO|github\.com/neur0map/ryoku-arch' "production ISO builds should bundle Ryoku during the build, not during installed-system setup"
+assert_contains iso/builder/build-iso.sh 'sdata/uv/requirements\.txt|UV_CACHE_DIR' "ISO builder should prefetch Ryoku Python wheels for offline setup"
+assert_contains iso/builder/build-iso.sh 'root/inir' "ISO builder should copy the mounted Ryoku checkout into the live environment"
 assert_contains iso/configs/airootfs/root/.automated_script.sh '/var/cache/ryoku/uv' "ISO installer should bind the bundled uv cache into the installed system"
-assert_contains iso/configs/airootfs/root/.automated_script.sh '/root/inir' "ISO installer should copy bundled iNiR into the installed user's source tree"
-assert_contains bin/ryoku-restart-ui 'ryoku-restart-shell|inir\.service|inir restart' "ryoku-restart-ui should restart iNiR"
+assert_contains iso/configs/airootfs/root/.automated_script.sh '/root/inir' "ISO installer should copy bundled Ryoku into the installed user's source tree"
+assert_contains bin/ryoku-restart-ui 'ryoku-restart-shell|ryoku-shell\.service' "ryoku-restart-ui should restart Ryoku shell"
 assert_not_contains bin/ryoku-restart-ui 'hyprctl reload|restart_always "mako"|swayosd-server|restart_if_running "waybar"|restart_if_running "hypridle"' "ryoku-restart-ui should not restart old Hyprland-era UI services"
-assert_contains bin/ryoku-restart-shell 'inir\.service|inir restart' "ryoku-restart-shell should target iNiR"
+assert_contains bin/ryoku-restart-shell 'ryoku-shell\.service|ryoku-shell restart' "ryoku-restart-shell should target Ryoku shell"
 assert_not_contains bin/ryoku-restart-shell 'qs -c ryoku|ryoku-launch-shell|pkill -x quickshell' "ryoku-restart-shell should not target the old Ryoku Quickshell shell"
 assert_contains bin/ryoku-session-recover 'niri msg action power-on-monitors' "resume recovery should power Niri outputs back on"
 assert_contains bin/ryoku-session-recover 'ryoku-restart-ui --quiet' "resume recovery should hard-refresh Ryoku UI"
-assert_contains bin/ryoku-shell-cleanup-orphans 'inir cleanup-orphans' "Ryoku cleanup should preserve upstream shell runtime cleanup"
-assert_contains config/systemd/user/inir.service 'ryoku-shell-cleanup-orphans --quiet' "Ryoku shell service should clean stale shell helpers after stop"
+assert_contains bin/ryoku-shell-cleanup-orphans 'ryoku-shell cleanup-orphans' "Ryoku cleanup should preserve upstream shell runtime cleanup"
+assert_contains config/systemd/user/ryoku-shell.service 'ryoku-shell-cleanup-orphans --quiet' "Ryoku shell service should clean stale shell helpers after stop"
 assert_contains default/systemd/system-sleep/ryoku-session-recover 'ryoku-session-recover' "system sleep hook should trigger Ryoku session recovery"
 assert_contains default/limine/default.conf '^TARGET_OS_NAME="Ryoku"$' "Limine default OS name should be Ryoku"
 assert_contains default/limine/default.conf '^CUSTOM_UKI_NAME="ryoku"$' "Limine default UKI name should be ryoku"
@@ -407,20 +404,20 @@ assert_contains default/limine/limine.conf '^interface_branding: Ryoku Bootloade
 assert_contains bin/ryoku-refresh-limine 'limine-mkinitcpio' "Limine refresh should regenerate the Ryoku UKI"
 assert_contains bin/ryoku-refresh-limine 'omarchy_linux\.efi' "Limine refresh should remove the legacy Omarchy UKI after Ryoku verification"
 assert_contains bin/ryoku-theme-set 'ryoku-theme-set-shell' "theme switching should sync Ryoku colors into the Niri shell"
-assert_contains bin/ryoku-lock-screen 'inir lock activate' "lock screen should use iNiR lock"
+assert_contains bin/ryoku-lock-screen 'ryoku-shell lock activate' "lock screen should use Ryoku shell lock"
 assert_not_contains bin/ryoku-lock-screen 'hyprlock|hyprctl' "lock screen should not use Hyprland lock helpers"
-assert_contains bin/ryoku-system-logout 'inir session (toggle|open)' "logout command should open the iNiR session UI"
+assert_contains bin/ryoku-system-logout 'ryoku-shell session (toggle|open)' "logout command should open the Ryoku session UI"
 assert_contains bin/ryoku-sddm-autologin 'Session=niri\.desktop' "SDDM autologin should target niri.desktop"
-assert_contains install/login/sddm.sh 'ii-pixel' "fresh installs should validate the iNiR ii-pixel SDDM theme"
+assert_contains install/login/sddm.sh 'ii-pixel' "fresh installs should validate the Ryoku ii-pixel SDDM theme"
 assert_not_contains install/login/sddm.sh 'pixel-rainyroom' "fresh installs should not validate the retired Ryoku pixel-rainyroom theme"
-assert_contains bin/ryoku-refresh-sddm 'ii-pixel|install-pixel-sddm|inir' "SDDM refresh should apply the iNiR ii-pixel theme"
-assert_contains config/alacritty/alacritty.toml '~/.config/alacritty/colors\.toml' "Alacritty should import iNiR generated colors"
+assert_contains bin/ryoku-refresh-sddm 'ii-pixel|install-pixel-sddm' "SDDM refresh should apply the Ryoku ii-pixel theme"
+assert_contains config/alacritty/alacritty.toml '~/.config/alacritty/colors\.toml' "Alacritty should import Ryoku generated colors"
 assert_not_contains config/alacritty/alacritty.toml '~/.config/ryoku/current/theme/alacritty\.toml' "Alacritty should not import the old Ryoku theme symlink"
-assert_contains config/btop/btop.conf 'color_theme = "ii-auto"' "btop should use the iNiR generated theme"
-assert_contains config/gtk-3.0/settings.ini 'gtk-font-name=Rubik 11' "GTK3 defaults should match the live iNiR font"
-assert_contains config/gtk-4.0/settings.ini 'gtk-font-name=Rubik 11' "GTK4 defaults should match the live iNiR font"
-assert_contains config/gtk-3.0/settings.ini 'gtk-cursor-theme-name=Bibata-Modern-Classic' "GTK3 defaults should match the live iNiR cursor"
-assert_contains config/gtk-4.0/settings.ini 'gtk-cursor-theme-name=Bibata-Modern-Classic' "GTK4 defaults should match the live iNiR cursor"
+assert_contains config/btop/btop.conf 'color_theme = "ii-auto"' "btop should use the Ryoku generated theme"
+assert_contains config/gtk-3.0/settings.ini 'gtk-font-name=Rubik 11' "GTK3 defaults should match the live Ryoku font"
+assert_contains config/gtk-4.0/settings.ini 'gtk-font-name=Rubik 11' "GTK4 defaults should match the live Ryoku font"
+assert_contains config/gtk-3.0/settings.ini 'gtk-cursor-theme-name=Bibata-Modern-Classic' "GTK3 defaults should match the live Ryoku cursor"
+assert_contains config/gtk-4.0/settings.ini 'gtk-cursor-theme-name=Bibata-Modern-Classic' "GTK4 defaults should match the live Ryoku cursor"
 assert_file config/fonts/Rubik.ttf
 assert_file config/fonts/SpaceGrotesk.ttf
 assert_file config/fonts/ReadexPro.ttf
@@ -428,8 +425,11 @@ assert_contains config/niri/config.d/50-startup.kdl 'polkit-gnome-authentication
 assert_not_contains config/niri/config.d/50-startup.kdl 'mate-polkit' "Niri startup should not reference a polkit agent Ryoku does not install"
 assert_contains migrations/1777751965.sh '-ef' "screensaver preservation should skip self-copies on normal installs"
 
-if rg -n 'hyprctl|hyprsunset|waybar|makoctl|swayosd|tofi|uwsm-app|qs -c ryoku|quickshell/ryoku|xdg-desktop-portal-hyprland|pixel-rainyroom' bin install config default lib >/dev/null; then
+if rg -n 'hyprctl|hyprsunset|waybar|makoctl|swayosd|tofi|uwsm-app|qs -c ryoku|xdg-desktop-portal-hyprland|pixel-rainyroom' bin install config default lib >/dev/null; then
   fail "runtime/install sources should not keep old Hyprland-era commands or config paths"
+fi
+if rg -nF 'quickshell/ryoku/' bin install config default lib | grep -qv 'quickshell/ryoku-shell'; then
+  fail "runtime/install sources should not keep the old quickshell/ryoku path (use quickshell/ryoku-shell)"
 fi
 
 "$PWD/bin/ryoku-ipc" --help | grep -Fq 'ryoku-ipc overview toggle' || fail "ryoku-ipc help should document overview toggle"
@@ -437,4 +437,4 @@ fi
 "$PWD/bin/ryoku-ipc" --help | grep -Fq 'ryoku-ipc settings open' || fail "ryoku-ipc help should document settings open"
 "$PWD/bin/ryoku-ipc" --help | grep -Fq 'ryoku-ipc settings toggle' || fail "ryoku-ipc help should document settings toggle"
 
-pass "Niri/iNiR merge readiness contract"
+pass "Niri/Ryoku merge readiness contract"
