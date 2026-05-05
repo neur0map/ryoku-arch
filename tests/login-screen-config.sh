@@ -41,6 +41,15 @@ assert_png() {
     || fail "$path: not a PNG"
 }
 
+assert_image() {
+  # Accepts PNG or GIF. Use this for theme-preview assets that may be
+  # animated (qylock ships GIFs; ii-pixel ships a static PNG).
+  local path="$1"
+  assert_file "$path"
+  file -b "$ROOT_DIR/$path" | grep -qE "PNG image data|GIF image data" \
+    || fail "$path: not a PNG or GIF"
+}
+
 # ---------------------------------------------------------------------
 # Assertions (filled in as tasks land code).
 # ---------------------------------------------------------------------
@@ -119,11 +128,13 @@ extract_bundled_themes() {
   ' "$QML_FILE"
 }
 
+declare -A PROVIDER_EXT=( [ii-pixel]=.png [qylock]=.gif )
 for provider in ii-pixel qylock; do
+  ext="${PROVIDER_EXT[$provider]}"
   while IFS= read -r theme; do
     [[ -z $theme ]] && continue
-    asset="shell/assets/sddm-providers/$provider/themes/$theme.png"
-    assert_png "$asset"
+    asset="shell/assets/sddm-providers/$provider/themes/$theme$ext"
+    assert_image "$asset"
   done < <(extract_bundled_themes "$provider")
 done
 

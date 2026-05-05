@@ -32,6 +32,7 @@ ContentPage {
             bundledAssetDir: "assets/sddm-providers/ii-pixel",
             heroAsset: "hero.png",
             themesAssetDir: "themes",
+            themesAssetExt: ".png",
             placeholderAsset: "../_placeholder.png",
             bundledThemes: ["ii-pixel"]
         }),
@@ -49,8 +50,15 @@ ContentPage {
             bundledAssetDir: "assets/sddm-providers/qylock",
             heroAsset: "hero.png",
             themesAssetDir: "themes",
+            themesAssetExt: ".gif",
             placeholderAsset: "../_placeholder.png",
-            bundledThemes: []
+            bundledThemes: [
+                "clockwork", "dog-samurai", "enfield", "forest", "Genshin",
+                "last-of-us", "minecraft", "nier-automata", "ninja_gaiden",
+                "osu", "pixel-coffee", "pixel-dusk-city", "pixel-hollowknight",
+                "pixel-munchlax", "pixel-night-city", "pixel-rainyroom",
+                "R1999_1", "R1999_2", "windows_7", "winter", "wuwa"
+            ]
         })
     ]
 
@@ -243,80 +251,77 @@ ContentPage {
         uninstallDialog.open()
     }
 
-    ColumnLayout {
-        anchors.fill: parent
-        anchors.margins: 20
-        spacing: 16
+    // ContentPage manages its own ColumnLayout (see modules/common/widgets/ContentPage.qml).
+    // Children below are added directly via the default contentData alias.
 
-        // Active-theme banner
-        SettingsCardSection {
-            Layout.fillWidth: true
-            expanded: true
-            icon: "login"
-            title: Translation.tr("Active SDDM theme")
+    // Active-theme banner
+    SettingsCardSection {
+        Layout.fillWidth: true
+        expanded: true
+        icon: "login"
+        title: Translation.tr("Active SDDM theme")
 
-            SettingsGroup {
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 12
+        SettingsGroup {
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 12
 
-                    StyledText {
-                        text: root.activeTheme || "breeze"
-                        font.family: "JetBrainsMono Nerd Font Mono"
-                        font.pixelSize: 16
-                    }
+                StyledText {
+                    text: root.activeTheme || "breeze"
+                    font.family: "JetBrainsMono Nerd Font Mono"
+                    font.pixelSize: 16
+                }
 
-                    Item { Layout.fillWidth: true }
+                Item { Layout.fillWidth: true }
 
-                    StyledText {
-                        text: Translation.tr("Greeter shown before login. Reboot or run 'systemctl restart sddm' to apply.")
-                        color: Appearance.colors.colSubtext
-                        font.pixelSize: 12
-                        wrapMode: Text.WordWrap
-                        Layout.maximumWidth: 360
-                        horizontalAlignment: Text.AlignRight
-                    }
+                StyledText {
+                    text: Translation.tr("Greeter shown before login. Reboot or run 'systemctl restart sddm' to apply.")
+                    color: Appearance.colors.colSubtext
+                    font.pixelSize: 12
+                    wrapMode: Text.WordWrap
+                    Layout.maximumWidth: 360
+                    horizontalAlignment: Text.AlignRight
                 }
             }
         }
+    }
 
-        // Provider cards
-        Repeater {
-            model: root.providers
-            delegate: ProviderCard {
-                provider: modelData
-                installed: root.providerInstalled(modelData)
-                activeTheme: root.activeTheme
-                onApplyTheme: themeName => root.applyTheme(modelData, themeName)
-                onInstallProvider: root.installProvider(modelData)
-                onUninstallProvider: root.confirmUninstall(modelData)
-            }
+    // Provider cards
+    Repeater {
+        model: root.providers
+        delegate: ProviderCard {
+            provider: modelData
+            installed: root.providerInstalled(modelData)
+            activeTheme: root.activeTheme
+            onApplyTheme: themeName => root.applyTheme(modelData, themeName)
+            onInstallProvider: root.installProvider(modelData)
+            onUninstallProvider: root.confirmUninstall(modelData)
         }
+    }
 
-        Rectangle {
-            visible: root.toastText.length > 0
-            Layout.fillWidth: true
-            Layout.preferredHeight: 36
-            radius: Appearance.rounding.small
-            color: Appearance.colors.colLayer1
-            StyledText {
-                anchors.centerIn: parent
-                text: root.toastText
-                font.pixelSize: 12
-            }
+    Rectangle {
+        visible: root.toastText.length > 0
+        Layout.fillWidth: true
+        Layout.preferredHeight: 36
+        radius: Appearance.rounding.small
+        color: Appearance.colors.colLayer1
+        StyledText {
+            anchors.centerIn: parent
+            text: root.toastText
+            font.pixelSize: 12
         }
+    }
 
-        Rectangle {
-            visible: root.busyMessage.length > 0
-            Layout.fillWidth: true
-            Layout.preferredHeight: 36
-            radius: Appearance.rounding.small
-            color: Appearance.colors.colLayer1
-            StyledText {
-                anchors.centerIn: parent
-                text: root.busyMessage
-                font.italic: true
-            }
+    Rectangle {
+        visible: root.busyMessage.length > 0
+        Layout.fillWidth: true
+        Layout.preferredHeight: 36
+        radius: Appearance.rounding.small
+        color: Appearance.colors.colLayer1
+        StyledText {
+            anchors.centerIn: parent
+            text: root.busyMessage
+            font.italic: true
         }
     }
 
@@ -445,16 +450,17 @@ ContentPage {
                     Rectangle {
                         visible: provider.kind === "external" && providerCardRoot.installed
                         radius: 999
-                        color: Qt.rgba(Qt.color(provider.accentColor).r,
-                                       Qt.color(provider.accentColor).g,
-                                       Qt.color(provider.accentColor).b, 0.18)
+                        readonly property color _accent: provider.accentColor && provider.accentColor.length > 0
+                                                         ? Qt.color(provider.accentColor)
+                                                         : Appearance.colors.colPrimary
+                        color: Qt.rgba(_accent.r, _accent.g, _accent.b, 0.18)
                         implicitWidth: installedPillText.implicitWidth + 16
                         implicitHeight: installedPillText.implicitHeight + 6
                         StyledText {
                             id: installedPillText
                             anchors.centerIn: parent
                             text: Translation.tr("Installed")
-                            color: provider.accentColor
+                            color: parent._accent
                             font.pixelSize: 11
                             font.bold: true
                         }
@@ -539,7 +545,7 @@ ContentPage {
             if (provider.kind === "builtin") {
                 return provider.bundledThemes.map(name => ({
                     name: name,
-                    source: Quickshell.shellPath(provider.bundledAssetDir + "/" + provider.themesAssetDir + "/" + name + ".png")
+                    source: Quickshell.shellPath(provider.bundledAssetDir + "/" + provider.themesAssetDir + "/" + name + (provider.themesAssetExt || ".png"))
                 }))
             }
             if (!stripRoot.installed) {
@@ -551,7 +557,7 @@ ContentPage {
                 }
                 return provider.bundledThemes.map(name => ({
                     name: name,
-                    source: Quickshell.shellPath(provider.bundledAssetDir + "/" + provider.themesAssetDir + "/" + name + ".png")
+                    source: Quickshell.shellPath(provider.bundledAssetDir + "/" + provider.themesAssetDir + "/" + name + (provider.themesAssetExt || ".png"))
                 }))
             }
             // External post-install: live themes from disk; preview source
@@ -609,20 +615,23 @@ ContentPage {
             return "file://" + live
         }
 
-        Image {
+        AnimatedImage {
             id: previewImage
             anchors.fill: parent
             source: tileRoot.previewSource()
             fillMode: Image.PreserveAspectCrop
             asynchronous: true
             smooth: true
+            playing: true
+            paused: false
 
             onStatusChanged: {
                 if (status === Image.Error) {
                     var bundled = Quickshell.shellPath(
                         tileRoot.provider.bundledAssetDir + "/"
                         + tileRoot.provider.themesAssetDir + "/"
-                        + tileRoot.themeName + ".png")
+                        + tileRoot.themeName
+                        + (tileRoot.provider.themesAssetExt || ".png"))
                     if (source.toString() !== bundled) {
                         source = bundled
                         return
