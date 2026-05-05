@@ -131,4 +131,7 @@ assert_grep "LoginScreenConfig\\.qml"            "shell/modules/settings/Setting
 # Search index has at least one entry referencing the new keyword
 assert_grep "qylock"                             "shell/modules/settings/SettingsOverlay.qml"
 
+# -- Credits attribution -----------------------------------------------
+assert_grep "shell/assets/sddm-providers/qylock/themes/" "CREDITS.md"
+
 echo "PASS: tests/login-screen-config.sh ($0)"

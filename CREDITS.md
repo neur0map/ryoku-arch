@@ -33,6 +33,13 @@ but qylock remains available through `ryoku-install-qylock`.
 - Upstream: https://github.com/Darkkal44/qylock
 - Usage: optional SDDM greeter and lockscreen theme integration
 
+Preview screenshots in `shell/assets/sddm-providers/qylock/themes/` are
+derived from qylock's upstream theme directories
+(https://github.com/Darkkal44/qylock) and are redistributed under
+qylock's GPL-3.0 license. The hero composite at
+`shell/assets/sddm-providers/qylock/hero.png` is an original Ryoku
+composition assembled from those screenshots.
+
 ## ilyamiro/nixos-configuration
 
 Earlier Ryoku work was inspired by ilyamiro's NixOS configuration,
