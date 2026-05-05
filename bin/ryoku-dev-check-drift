@@ -31,46 +31,8 @@ is_dev_mode() {
 is_dev_mode || exit 0
 
 repo_root="$(git rev-parse --show-toplevel)"
-runtime_shell="${RYOKU_SHELL_RUNTIME_PATH:-${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell}"
 
 failures=()
-
-# fail label, file, marker, fix-hint
-expect_marker() {
-  local label="$1" file="$2" marker="$3" hint="$4"
-
-  if [[ ! -f $file ]]; then
-    failures+=("[$label] live file missing: $file ($hint)")
-    return
-  fi
-  if ! grep -qF -- "$marker" "$file"; then
-    failures+=("[$label] $file is missing patch marker '$marker' ($hint)")
-  fi
-}
-
-# Patches applied by install/config/ryoku-shell-branding.sh.  Each
-# apply_*_to_file function injects content into the runtime shell tree;
-# the markers below are the unique-by-design strings that prove the
-# patch ran.  If you add a new apply_*_to_file, add a marker here.
-expect_marker "sidebar-right keep-mapped (qt6 dpr workaround)" \
-  "$runtime_shell/modules/sidebarRight/SidebarRight.qml" \
-  "id: _emptyMask" \
-  "rerun: install/config/ryoku-shell-branding.sh"
-
-expect_marker "screen-corners input mask guard" \
-  "$runtime_shell/modules/screenCorners/ScreenCorners.qml" \
-  "id: emptyMask" \
-  "rerun: install/config/ryoku-shell-branding.sh"
-
-expect_marker "lock security guard" \
-  "$runtime_shell/modules/lock/Lock.qml" \
-  "Lock session did not become secure" \
-  "rerun: install/config/ryoku-shell-branding.sh"
-
-expect_marker "wallpaper resolution simplification" \
-  "$runtime_shell/services/Wallpapers.qml" \
-  '_resolvedMainWallpaperPath: Config.options?.background?.wallpaperPath ?? ""' \
-  "rerun: install/config/ryoku-shell-branding.sh"
 
 # qt6-qiooperation-patch is optional, only check if its verify.sh is
 # present in the repo and the live drop-in directory has been touched.

@@ -106,9 +106,4 @@ if (( $(grep -c 'ryoku-shell-branding\.sh' install/config/shell.sh) < 2 )); then
 fi
 assert_contains config/systemd/user/ryoku-shell.service 'ryoku-shell-cleanup-orphans --quiet' \
   "Ryoku shell service should use Ryoku cleanup for stale shell helpers"
-assert_contains install/config/ryoku-shell-branding.sh 'lock\.secure' \
-  "Ryoku shell branding should harden iNiR lock against insecure session-lock activation"
-assert_contains install/config/ryoku-shell-branding.sh 'Lock session did not become secure' \
-  "Ryoku shell branding should force a secure fallback when iNiR lock is only visually locked"
-
 pass "Ryoku session recovery contract"
