@@ -25,7 +25,7 @@ fi
 # Reject anything that is not a plain identifier (no slashes, no .., no
 # whitespace). The directory check below is the real gate; this is
 # defense in depth for the conf file write.
-if ! [[ $theme =~ ^[A-Za-z0-9._-]+$ ]]; then
+if ! [[ $theme =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
   echo "ryoku-set-sddm-theme: invalid theme name: $theme" >&2
   exit 1
 fi
