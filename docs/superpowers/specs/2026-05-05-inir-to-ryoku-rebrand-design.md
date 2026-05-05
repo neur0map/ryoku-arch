@@ -77,9 +77,11 @@ of which roughly 43 MB is `assets/` (icons, wallpapers, fonts).
 Rewrite `install/config/inir.sh` to install from `shell/` instead of
 cloning from snowarch:
 
-- Replace the network-clone path with `cp -a "$RYOKU_PATH/shell/."
-  "$HOME/.local/share/inir/"`. Same target path for now; rename
-  happens in Phase 2.
+- Replace the network-clone path with: if the target does not exist,
+  `cp -a "$RYOKU_PATH/shell/." "$HOME/.local/share/inir/"`. If the
+  target exists and is currently a snowarch git checkout (legacy
+  state), `rm -rf` it first so we always end up with a clean copy
+  from `shell/`. Same target path for now; rename happens in Phase 2.
 - Drop the offline-fallback chain (vendor candidates, RYOKU_INIR_REPO).
   No network involvement, so the fallback is meaningless.
 - Keep the bundled `./setup install -y --skip-deps --skip-sysupdate`
@@ -105,7 +107,9 @@ reference iNiR:
 |---------|-------------|
 | `inir` (literal lowercase) | `ryoku-shell` |
 | `iNiR` (literal mixed case) | `Ryoku` |
-| `INIR_` (env var prefix) | `RYOKU_SHELL_` (where it shadows the renamed entity) |
+| `INIR_` (env var prefix in `shell/setup`) | `RYOKU_SHELL_` |
+| `RYOKU_INIR_PATH` (Ryoku-side env var) | `RYOKU_SHELL_PATH` |
+| `RYOKU_INIR_REPO`, `RYOKU_INIR_SOURCE`, `RYOKU_INIR_UPDATE`, `RYOKU_INIR_REQUIRE_LOCAL_SOURCE` | Removed entirely (no clone, no upstream pull, no offline fallback chain) |
 
 Includes:
 
@@ -119,6 +123,21 @@ Includes:
 - Source identifiers that match the literal: `inir setup` invocations,
   `inir cleanup-orphans` subcommand calls, every shell-script reference
   using the binary name.
+- Internal references inside the vendored `shell/setup` script. The
+  setup script hardcodes paths like `${XDG_CONFIG_HOME}/inir`,
+  `${XDG_BIN_HOME}/inir`, and `${XDG_CONFIG_HOME}/systemd/user/inir.service`
+  in its install/uninstall logic. All of these get renamed to
+  `ryoku-shell` so the setup script deploys to the new locations.
+- The full set of paths previously tracked by iNiR's `INIR_ONLY_PATHS`
+  in `shell/sdata/lib/uninstall.sh`: 15 entries spanning runtime tree,
+  user state, cache, launcher, daemon, helper script, two systemd units,
+  Vesktop themes (both case variants), desktop entry, and launcher icon.
+  Every entry containing `inir` gets renamed; entries that already use
+  non-iNiR names (e.g., `system24.theme.css`, `sync-pixel-sddm.py`)
+  stay as-is.
+- The test file `tests/niri-inir-merge-readiness.sh` is renamed to
+  `tests/niri-shell-merge-readiness.sh`. Its assertions get updated to
+  reference the new paths and identifiers.
 - Config namespace: the Ryoku JSON overlay key `bar.ryokuTopbarHugFrame`
   is already Ryoku-prefixed, so no change there. The iNiR-side config
   file `defaults/config.json` does not contain literal `inir` keys, so
@@ -172,31 +191,51 @@ the current 365.
 ### Phase 4: Migrate existing systems
 
 A new migration script that transitions live installs from the iNiR
-paths to the Ryoku-shell paths.
+paths to the Ryoku-shell paths. Mirrors the proven uninstall + reinstall
+pattern from `migrations/1778000000.sh` rather than manually moving
+files: iNiR's own `setup uninstall -y` already knows every path it
+manages (via `installed_listfile`), so delegating cleanup to it covers
+all 15 entries in `INIR_ONLY_PATHS` plus the user state directory in
+one shot.
 
 Steps:
 
 1. Print a banner warning of approximately 1 to 3 minutes of no
-   desktop chrome.
-2. Pre-flight: if `~/.local/share/inir/` does not exist, exit 0
-   (already migrated or never installed).
-3. Stop `inir.service` and `inir-super-overview.service`.
-4. Move user state: `~/.config/inir/` to
-   `~/.config/ryoku-shell/`. Backup-first if a Ryoku-shell config
-   already exists.
-5. Move runtime tree: `~/.config/quickshell/inir/` to
-   `~/.config/quickshell/ryoku-shell/`.
-6. Remove old systemd units, desktop entry, launcher binary, icons.
-7. Run the install pipeline's shell-install step against the renamed
-   target so the new paths are populated correctly.
-8. Re-create the `niri.service.wants` symlink for
-   `ryoku-shell.service`.
-9. `systemctl --user daemon-reload` and `systemctl --user start
-   ryoku-shell.service`.
+   desktop chrome. Tell the user not to lock the screen.
+2. Pre-flight: if `~/.local/share/inir/setup` does not exist, exit 0
+   (system was either never iNiR-installed or already migrated).
+3. Backup `~/.config/inir/config.json` to
+   `$RYOKU_STATE_PATH/inir-to-ryoku-shell-backup/config.json.<unix-ts>`
+   so the user can cherry-pick preferences back if needed. Skip
+   silently if the source does not exist.
+4. Stop services: `systemctl --user stop inir.service
+   inir-super-overview.service` (errors ignored).
+5. Run `~/.local/share/inir/setup uninstall -y`. iNiR's own uninstall
+   removes every iNiR-managed path: runtime tree, user state, cache,
+   state, launcher binary, super-overview daemon, sync-pixel-sddm
+   helper, both systemd units, Vesktop themes (both case variants),
+   desktop entry, launcher icon.
+6. `rm -rf ~/.local/share/inir`. The setup script does not delete its
+   own repo; we do it explicitly.
+7. `rm -f ~/.local/share/icons/hicolor/scalable/apps/ryoku.svg`. The
+   Ryoku-only icon previously installed by `install_visible_assets`
+   is no longer needed once the rename lands (the launcher icon will
+   be `ryoku-shell.svg` and live elsewhere).
+8. Run `install/config/shell.sh`. This deploys the vendored `shell/`
+   tree directly to the new Ryoku-shell paths
+   (`~/.config/quickshell/ryoku-shell/`,
+   `~/.config/ryoku-shell/`, `~/.local/bin/ryoku-shell`,
+   `~/.config/systemd/user/ryoku-shell.service`, etc.). The branding
+   script (now ~50-100 lines after Phase 3) runs as part of this and
+   layers asset copies + JSON overlay.
+9. Re-link the `niri.service.wants/ryoku-shell.service` symlink so
+   the unit auto-starts with niri.
+10. `systemctl --user daemon-reload` and `systemctl --user start
+    ryoku-shell.service`.
 
-Backup of the user's pre-migration config goes to
-`$RYOKU_STATE_PATH/inir-to-ryoku-shell-backup/` so cherry-picking
-preferences back is possible.
+The migration is one-shot, idempotent under the migration runner's
+state tracking, and fails safely: each step either succeeds or aborts
+under `set -euo pipefail` with the backup preserved.
 
 ## Repository Layout After Rebrand
 
