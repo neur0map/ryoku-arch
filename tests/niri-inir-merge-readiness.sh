@@ -87,12 +87,11 @@ assert_file "$aur_packages"
 
 removed_packages=(
   elephant
-  hypridle
   hyprland
   hyprland-guiutils
-  hyprlock
   hyprsunset
   mako
+  swayidle
   swayosd
   tofi
   walker
@@ -125,6 +124,8 @@ required_base_packages=(
   grim
   gum
   hicolor-icon-theme
+  hypridle
+  hyprlock
   hyprpicker
   imagemagick
   jq
@@ -183,7 +184,6 @@ required_base_packages=(
   slurp
   socat
   starship
-  swayidle
   swaylock
   swappy
   syntax-highlighting
@@ -277,7 +277,6 @@ old_default_paths=(
   bin/tofi
   bin/tofi-drun
   config/elephant
-  config/hypr
   config/hyprland-preview-share-picker
   config/quickshell/ryoku
   config/swayosd
@@ -428,7 +427,7 @@ assert_contains config/niri/config.d/50-startup.kdl 'polkit-gnome-authentication
 assert_not_contains config/niri/config.d/50-startup.kdl 'mate-polkit' "Niri startup should not reference a polkit agent Ryoku does not install"
 assert_contains migrations/1777751965.sh '-ef' "screensaver preservation should skip self-copies on normal installs"
 
-if rg -n 'hyprctl|hyprlock|hypridle|hyprsunset|waybar|makoctl|swayosd|tofi|uwsm-app|qs -c ryoku|quickshell/ryoku|xdg-desktop-portal-hyprland|pixel-rainyroom' bin install config default lib >/dev/null; then
+if rg -n 'hyprctl|hyprsunset|waybar|makoctl|swayosd|tofi|uwsm-app|qs -c ryoku|quickshell/ryoku|xdg-desktop-portal-hyprland|pixel-rainyroom' bin install config default lib >/dev/null; then
   fail "runtime/install sources should not keep old Hyprland-era commands or config paths"
 fi
 
