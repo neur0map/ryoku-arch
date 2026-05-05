@@ -269,6 +269,33 @@ ContentPage {
                     }
 
                     Item { Layout.fillHeight: true }
+
+                    // Action shortcuts: distro Documentation / Help / Bug
+                    Flow {
+                        Layout.fillWidth: true
+                        spacing: 8
+
+                        RippleButtonWithIcon {
+                            visible: SystemInfo.documentationUrl && SystemInfo.documentationUrl.length > 0
+                            materialIcon: "auto_stories"
+                            mainText: Translation.tr("Documentation")
+                            onClicked: Qt.openUrlExternally(SystemInfo.documentationUrl)
+                        }
+
+                        RippleButtonWithIcon {
+                            visible: SystemInfo.supportUrl && SystemInfo.supportUrl.length > 0
+                            materialIcon: "support"
+                            mainText: Translation.tr("Help & Support")
+                            onClicked: Qt.openUrlExternally(SystemInfo.supportUrl)
+                        }
+
+                        RippleButtonWithIcon {
+                            visible: SystemInfo.bugReportUrl && SystemInfo.bugReportUrl.length > 0
+                            materialIcon: "bug_report"
+                            mainText: Translation.tr("Report a Bug")
+                            onClicked: Qt.openUrlExternally(SystemInfo.bugReportUrl)
+                        }
+                    }
                 }
             }
         }
