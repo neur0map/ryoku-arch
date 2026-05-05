@@ -121,6 +121,8 @@ Scope {
                         readonly property bool useThreeIsland: (Config.options?.bar?.cornerStyle === 4)
                             && !(Config.options?.bar?.bottom ?? false)
                             && !(Config.options?.bar?.vertical ?? false)
+                        readonly property var blendedColors: barContent.item?.blendedColors ?? null
+                        readonly property string wallpaperUrl: barContent.item?.wallpaperUrl ?? ""
 
                         implicitHeight: Appearance.sizes.barHeight
                         anchors {
