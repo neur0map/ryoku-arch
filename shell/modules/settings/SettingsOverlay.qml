@@ -190,8 +190,10 @@ Scope {
         { pageIndex: 12, pageName: overlayPages[12].name, section: Translation.tr("Window Rules"), label: Translation.tr("Clip windows to rounded geometry"), description: Translation.tr("Round corners and clip windows to their visual geometry"), keywords: ["clip", "corner", "radius", "window rules", "rounded"] },
         { pageIndex: 12, pageName: overlayPages[12].name, section: Translation.tr("Animations"), label: Translation.tr("Per-animation toggles"), description: Translation.tr("Enable or disable specific compositor animations"), keywords: ["animation", "spring", "toggle", "workspace", "overview", "recent windows"] },
         { pageIndex: 12, pageName: overlayPages[12].name, section: Translation.tr("Niri config status"), label: Translation.tr("Managed overrides status"), description: Translation.tr("Actionable managed overrides and extra files in Niri config"), keywords: ["niri", "status", "managed", "override", "extra", "config.d", "kdl"] },
-        // About (page 13)
-        { pageIndex: 13, pageName: overlayPages[13].name, section: Translation.tr("About"), label: Translation.tr("About ii"), description: Translation.tr("Version info, credits and links"), keywords: ["about", "version", "credits", "github", "info"] }
+        // Login screen (page 13)
+        { pageIndex: 13, pageName: overlayPages[13].name, section: Translation.tr("Login screen"), label: Translation.tr("SDDM theme"), description: Translation.tr("Greeter theme shown before login"), keywords: ["sddm", "login", "greeter", "theme", "qylock", "lockscreen"] },
+        // About (page 14)
+        { pageIndex: 14, pageName: overlayPages[14].name, section: Translation.tr("About"), label: Translation.tr("About ii"), description: Translation.tr("Version info, credits and links"), keywords: ["about", "version", "credits", "github", "info"] }
     ]
 
     function getWaffleSettingsPageIndex() {
@@ -1734,6 +1736,14 @@ Scope {
             desc: Translation.tr("Display, input, layout"),
             essential: false,
             component: Quickshell.shellPath("modules/settings/NiriConfig.qml")
+        },
+        {
+            name: Translation.tr("Login screen"),
+            shortName: "",
+            icon: "login",
+            desc: Translation.tr("SDDM greeter theme"),
+            essential: false,
+            component: Quickshell.shellPath("modules/settings/LoginScreenConfig.qml")
         },
         {
             name: Translation.tr("About"),

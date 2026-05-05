@@ -104,6 +104,12 @@ ApplicationWindow {
             component: "modules/settings/NiriConfig.qml"
         },
         {
+            name: Translation.tr("Login screen"),
+            icon: "login",
+            essential: false,
+            component: "modules/settings/LoginScreenConfig.qml"
+        },
+        {
             name: Translation.tr("About"),
             icon: "info",
             essential: true,

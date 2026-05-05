@@ -11,7 +11,7 @@ import qs.modules.common.functions
 
 ContentPage {
     id: root
-    settingsPageIndex: -1   // set by integration in shell/settings.qml (Task 11)
+    settingsPageIndex: 13
     settingsPageName: Translation.tr("Login screen")
 
     // Provider data. The qylock bundledThemes list is populated in

@@ -125,4 +125,10 @@ for provider in ii-pixel qylock; do
   done < <(extract_bundled_themes "$provider")
 done
 
+# -- Page registration -------------------------------------------------
+assert_grep "LoginScreenConfig\\.qml"            "shell/settings.qml"
+assert_grep "LoginScreenConfig\\.qml"            "shell/modules/settings/SettingsOverlay.qml"
+# Search index has at least one entry referencing the new keyword
+assert_grep "qylock"                             "shell/modules/settings/SettingsOverlay.qml"
+
 echo "PASS: tests/login-screen-config.sh ($0)"
