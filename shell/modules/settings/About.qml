@@ -133,7 +133,7 @@ ContentPage {
                                 spacing: 6
 
                                 StyledText {
-                                    text: ShellUpdates.localVersion || "—"
+                                    text: "0.1.0-pre-alpha"
                                     font.pixelSize: Appearance.font.pixelSize.small
                                     color: Appearance.colors.colSubtext
                                 }
@@ -413,6 +413,56 @@ ContentPage {
                             mainText: Translation.tr("Support end-4")
                             onClicked: Qt.openUrlExternally("https://github.com/sponsors/end-4")
                         }
+                    }
+                }
+            }
+
+            // ── Omarchy credit card ─────────────────────────────────────────
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+
+                color: Appearance.colors.colSurfaceContainerLow
+                radius: 20
+                border.width: 1
+                border.color: Appearance.colors.colOutline
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 20
+                    spacing: 8
+
+                    StyledText {
+                        text: "Omarchy"
+                        font.pixelSize: Appearance.font.pixelSize.title
+                    }
+
+                    StyledText {
+                        text: Translation.tr("Opinionated Arch baseline")
+                        font.pixelSize: Appearance.font.pixelSize.small
+                        color: Appearance.colors.colSubtext
+                        Layout.fillWidth: true
+                        wrapMode: Text.WordWrap
+                    }
+
+                    StyledText {
+                        text: "[github.com/basecamp/omarchy](https://github.com/basecamp/omarchy)"
+                        font.pixelSize: Appearance.font.pixelSize.small
+                        color: Appearance.m3colors.m3primary
+                        textFormat: Text.MarkdownText
+                        Layout.fillWidth: true
+                        wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                        onLinkActivated: (link) => Qt.openUrlExternally(link)
+
+                        PointingHandLinkHover {}
+                    }
+
+                    Item { Layout.fillHeight: true }
+
+                    RippleButtonWithIcon {
+                        materialIcon: "open_in_new"
+                        mainText: "Omarchy"
+                        onClicked: Qt.openUrlExternally("https://github.com/basecamp/omarchy")
                     }
                 }
             }
