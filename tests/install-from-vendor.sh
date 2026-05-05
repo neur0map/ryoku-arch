@@ -1,0 +1,52 @@
+#!/bin/bash
+
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+fail() {
+  echo "FAIL: $1" >&2
+  exit 1
+}
+
+assert_no_match() {
+  local file="$1"
+  local pattern="$2"
+  local message="$3"
+
+  if grep -Eq "$pattern" "$file"; then
+    fail "$message"
+  fi
+}
+
+assert_match() {
+  local file="$1"
+  local pattern="$2"
+  local message="$3"
+
+  grep -Eq "$pattern" "$file" || fail "$message"
+}
+
+# install/config/inir.sh must source from the vendored shell/ tree, not clone
+assert_no_match install/config/inir.sh 'git clone' \
+  "install/config/inir.sh must not clone (vendored shell/ is the source of truth)"
+assert_match install/config/inir.sh 'shell"?/?' \
+  "install/config/inir.sh must reference the vendored shell/ tree"
+
+# migrations/1778000000.sh must source from the vendored shell/ tree
+assert_no_match migrations/1778000000.sh 'git clone' \
+  "migrations/1778000000.sh must not clone iNiR"
+
+# ISO builder must not pull from a remote
+assert_no_match iso/builder/build-iso.sh 'RYOKU_INIR_REPO' \
+  "iso/builder/build-iso.sh must not reference RYOKU_INIR_REPO"
+assert_no_match iso/bin/ryoku-iso-make 'RYOKU_INIR_REPO' \
+  "iso/bin/ryoku-iso-make must not reference RYOKU_INIR_REPO"
+
+# Vendored tree must exist with key entry points
+[[ -f shell/shell.qml ]] || fail "shell/shell.qml must exist"
+[[ -f shell/setup ]] || fail "shell/setup must exist"
+[[ -d shell/modules ]] || fail "shell/modules must exist"
+[[ -d shell/services ]] || fail "shell/services must exist"
+[[ ! -d shell/.git ]] || fail "shell/.git must NOT exist (hermetic vendor)"
+
+echo "PASS: install from vendor"
