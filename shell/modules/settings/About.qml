@@ -19,7 +19,7 @@ ContentPage {
         // ── Top row: Ryoku hero (2/3) + System info (1/3) ──────────────────
         RowLayout {
             Layout.fillWidth: true
-            Layout.preferredHeight: 320
+            Layout.preferredHeight: 280
             spacing: 16
 
             // ── Ryoku hero card ─────────────────────────────────────────────
@@ -35,7 +35,7 @@ ContentPage {
 
                 ColumnLayout {
                     anchors.fill: parent
-                    anchors.margins: 24
+                    anchors.margins: 20
                     spacing: 12
 
                     // Icon + title + version row
@@ -303,7 +303,7 @@ ContentPage {
         // ── Bottom row: iNiR + illogical-impulse credit cards ───────────────
         RowLayout {
             Layout.fillWidth: true
-            Layout.preferredHeight: 180
+            Layout.preferredHeight: 220
             spacing: 16
 
             // ── iNiR credit card ────────────────────────────────────────────
