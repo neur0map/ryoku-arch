@@ -15,7 +15,7 @@ Usage:
   ryoku-session-recover [--quiet] [--resume]
 
 Refreshes the compositor-facing session state, powers Niri outputs back on,
-cleans stale Ryoku shell helpers, and restarts Ryoku UI components.
+cleans stale Ryoku helpers, and restarts Ryoku UI components.
 USAGE
 }
 

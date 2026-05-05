@@ -8,7 +8,7 @@ SHELL_PATH="${RYOKU_SHELL_PATH:-$HOME/.local/share/ryoku-shell}"
 SDDM_SCRIPT="$SHELL_PATH/scripts/sddm/install-pixel-sddm.sh"
 
 if [[ ! -x $SDDM_SCRIPT ]]; then
-  echo "ryoku-refresh-sddm: missing Ryoku shell SDDM installer at $SDDM_SCRIPT" >&2
+  echo "ryoku-refresh-sddm: missing Ryoku SDDM installer at $SDDM_SCRIPT" >&2
   exit 1
 fi
 

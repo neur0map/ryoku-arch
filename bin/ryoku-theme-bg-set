@@ -41,7 +41,7 @@ config_file="$config_dir/config.json"
 
 if [[ -f $config_file ]]; then
   if ryoku-cmd-missing jq; then
-    echo "ryoku-theme-bg-set: jq is required to update Ryoku shell wallpaper config" >&2
+    echo "ryoku-theme-bg-set: jq is required to update Ryoku wallpaper config" >&2
     exit 1
   fi
 

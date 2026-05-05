@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Clean stale Ryoku shell helpers that can survive Quickshell restarts.
+# Clean stale Ryoku helpers that can survive Quickshell restarts.
 
 set -euo pipefail
 
@@ -13,7 +13,7 @@ usage() {
 Usage:
   ryoku-shell-cleanup-orphans [--quiet]
 
-Cleans Ryoku shell-owned helper processes that can be left behind after
+Cleans Ryoku-owned helper processes that can be left behind after
 Quickshell crashes, restarts, or suspend/resume recovery.
 USAGE
 }
