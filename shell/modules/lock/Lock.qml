@@ -182,9 +182,9 @@ Scope {
             Timer {
                 id: fallbackTimer
                 interval: 2000
-                running: GlobalStates.screenLocked && !lockSurfaceLoader.item
+                running: GlobalStates.screenLocked && (!lock.secure || !lockSurfaceLoader.item)
                 onTriggered: {
-                    console.warn("[Lock] Lock surface failed to load, using swaylock fallback")
+                    console.warn(lock.secure ? "[Lock] Lock surface failed to load, using swaylock fallback" : "[Lock] Lock session did not become secure, using swaylock fallback")
                     root.useFallbackLock()
                 }
             }
