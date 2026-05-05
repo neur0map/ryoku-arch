@@ -1093,7 +1093,6 @@ Expected: commit succeeds with only SDDM command changes.
 - Delete or rewrite: `tests/quickshell-toolbox.sh`
 - Delete or rewrite: `tests/quickshell-topbar-settings-menus.sh`
 - Delete or rewrite: `tests/quickshell-volume-feedback.sh`
-- Delete or rewrite: `tests/quickshell-wallpaper-skwd.sh`
 - Delete or rewrite: `tests/quickshell-wallpaper-switcher.sh`
 - Test: all remaining `tests/*.sh`
 
@@ -1116,7 +1115,7 @@ Expected output includes the files listed in this task.
 Use `git rm` for tests whose entire purpose is the removed Hyprland or Brain Shell implementation:
 
 ```bash
-git rm tests/brain-shell-spec1.sh tests/dashboard-clock-card.sh tests/dashboard-telemetry-layout.sh tests/dashboard-top-controls.sh tests/hypr-cursor-theme.sh tests/hyprland-focused-app-scratchpad.sh tests/quickshell-app-launcher.sh tests/quickshell-battery-warning.sh tests/quickshell-noctalia-network-providers.sh tests/quickshell-noctalia-settings.sh tests/quickshell-player-card.sh tests/quickshell-right-pill-hover.sh tests/quickshell-toolbox.sh tests/quickshell-topbar-settings-menus.sh tests/quickshell-volume-feedback.sh tests/quickshell-wallpaper-skwd.sh tests/quickshell-wallpaper-switcher.sh
+git rm tests/brain-shell-spec1.sh tests/dashboard-clock-card.sh tests/dashboard-telemetry-layout.sh tests/dashboard-top-controls.sh tests/hypr-cursor-theme.sh tests/hyprland-focused-app-scratchpad.sh tests/quickshell-app-launcher.sh tests/quickshell-battery-warning.sh tests/quickshell-noctalia-network-providers.sh tests/quickshell-noctalia-settings.sh tests/quickshell-player-card.sh tests/quickshell-right-pill-hover.sh tests/quickshell-toolbox.sh tests/quickshell-topbar-settings-menus.sh tests/quickshell-volume-feedback.sh tests/quickshell-wallpaper-switcher.sh
 ```
 
 Keep tests that validate Ryoku-owned data or commands that still exist, including wallpaper cache/search/apply tests, terminal launcher tests, theme template rendering, ISO source sync tests, AUR offline bootstrap static tests, and battery monitor tests.
