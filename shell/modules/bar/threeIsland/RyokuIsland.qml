@@ -89,8 +89,10 @@ Item {
         clip: true
     }
 
-    // For corner-hugged pills, mask out the outer rounded edge so the pill
-    // appears flush with the screen edge (sharp outer corners, rounded inner).
+    // For corner-hugged pills, extend the mask off the outer side so its
+    // rounded corners on that side are clipped, leaving sharp top+bottom
+    // outer corners that flush with the screen edge. The inner side keeps
+    // its rounded corners visible.
     layer.enabled: root.hugLeft || root.hugRight
     layer.effect: GE.OpacityMask {
         maskSource: Item {
@@ -100,7 +102,6 @@ Item {
                 anchors.fill: parent
                 anchors.leftMargin: root.hugLeft ? -root.resolvedRadius : 0
                 anchors.rightMargin: root.hugRight ? -root.resolvedRadius : 0
-                anchors.topMargin: -root.resolvedRadius
                 radius: root.resolvedRadius
             }
         }
