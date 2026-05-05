@@ -239,6 +239,7 @@ gnome-disk-utility
 gvfs-mtp
 gvfs-nfs
 gvfs-smb
+inotify-tools
 
 # ── Printing ──────────────────────────────────────────────────────────
 cups

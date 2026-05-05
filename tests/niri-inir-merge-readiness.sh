@@ -128,6 +128,7 @@ required_base_packages=(
   hyprlock
   hyprpicker
   imagemagick
+  inotify-tools
   jq
   jemalloc
   kdialog
