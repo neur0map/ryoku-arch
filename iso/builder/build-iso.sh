@@ -33,7 +33,6 @@ cp -r /configs/* $build_cache_dir/
 
 # Persist RYOKU_MIRROR so it's available at install time
 echo "$RYOKU_MIRROR" > "$build_cache_dir/airootfs/root/ryoku_mirror"
-RYOKU_INIR_REPO="${RYOKU_INIR_REPO:-https://github.com/snowarch/iNiR.git}"
 
 # Setup Ryoku itself
 if [[ -d /ryoku ]]; then
@@ -42,10 +41,16 @@ else
   git clone -b $RYOKU_INSTALLER_REF https://github.com/$RYOKU_INSTALLER_REPO.git "$build_cache_dir/airootfs/root/ryoku"
 fi
 
-if [[ -d /inir ]]; then
+# iNiR comes from the vendored shell/ tree in this Ryoku repo
+# (always mounted at /ryoku in the build container). /inir is a
+# legacy mount point retained for build hosts that still mount it.
+if [[ -d /ryoku/shell ]]; then
+  cp -a /ryoku/shell "$build_cache_dir/airootfs/root/inir"
+elif [[ -d /inir ]]; then
   /bin/bash /builder/sync-local-source.sh /inir "$build_cache_dir/airootfs/root/inir"
 else
-  git clone "$RYOKU_INIR_REPO" "$build_cache_dir/airootfs/root/inir"
+  echo "build-iso: no Ryoku shell/ tree available at /ryoku/shell" >&2
+  exit 1
 fi
 
 inir_requirements="$build_cache_dir/airootfs/root/inir/sdata/uv/requirements.txt"
