@@ -78,4 +78,12 @@ assert_grep "maya"            "bin/ryoku-uninstall-qylock"
 assert_grep "/usr/share/sddm/themes/" "bin/ryoku-uninstall-qylock"
 assert_grep "\\.local/share/qylock"   "bin/ryoku-uninstall-qylock"
 
+# -- Asset bundles -----------------------------------------------------
+assert_png "shell/assets/sddm-providers/_placeholder.png"
+assert_png "shell/assets/sddm-providers/ii-pixel/hero.png"
+assert_png "shell/assets/sddm-providers/ii-pixel/themes/ii-pixel.png"
+assert_png "shell/assets/sddm-providers/qylock/hero.png"
+# Per-theme qylock PNGs are validated by the manifest sync check
+# (Task 7), once the QML page declares the bundledThemes list.
+
 echo "PASS: tests/login-screen-config.sh ($0)"
