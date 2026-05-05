@@ -122,14 +122,247 @@ ContentPage {
         refreshProviderState()
     }
 
-    // Placeholder body. Real banner + cards land in Task 8.
+    // Page handlers (stubs; real Process wiring in Task 10)
+    function applyTheme(provider, themeName) {
+        console.log("applyTheme stub:", provider.providerId, themeName)
+    }
+    function installProvider(provider) {
+        console.log("installProvider stub:", provider.providerId)
+    }
+    function confirmUninstall(provider) {
+        console.log("confirmUninstall stub:", provider.providerId)
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 20
         spacing: 16
 
+        // Active-theme banner
+        SettingsCardSection {
+            Layout.fillWidth: true
+            expanded: true
+            icon: "login"
+            title: Translation.tr("Active SDDM theme")
+
+            SettingsGroup {
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 12
+
+                    StyledText {
+                        text: root.activeTheme || "breeze"
+                        font.family: "JetBrainsMono Nerd Font Mono"
+                        font.pixelSize: 16
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    StyledText {
+                        text: Translation.tr("Greeter shown before login. Reboot or run 'systemctl restart sddm' to apply.")
+                        color: Appearance.colors.colSubtext
+                        font.pixelSize: 12
+                        wrapMode: Text.WordWrap
+                        Layout.maximumWidth: 360
+                        horizontalAlignment: Text.AlignRight
+                    }
+                }
+            }
+        }
+
+        // Provider cards
+        Repeater {
+            model: root.providers
+            delegate: ProviderCard {
+                provider: modelData
+                installed: root.providerInstalled(modelData)
+                activeTheme: root.activeTheme
+                onApplyTheme: themeName => root.applyTheme(modelData, themeName)
+                onInstallProvider: root.installProvider(modelData)
+                onUninstallProvider: root.confirmUninstall(modelData)
+            }
+        }
+    }
+
+    component ProviderCard: SettingsCardSection {
+        id: providerCardRoot
+        property var provider
+        property bool installed: false
+        property string activeTheme: ""
+
+        signal applyTheme(string themeName)
+        signal installProvider()
+        signal uninstallProvider()
+
+        Layout.fillWidth: true
+        expanded: true
+        icon: provider.kind === "builtin" ? "verified" : "extension"
+        title: provider.displayName
+
+        SettingsGroup {
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 12
+
+                // Hero strip
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 140
+                    radius: Appearance.rounding.normal
+                    color: "transparent"
+                    clip: true
+
+                    Image {
+                        anchors.fill: parent
+                        source: Quickshell.shellPath(provider.bundledAssetDir + "/" + provider.heroAsset)
+                        fillMode: Image.PreserveAspectCrop
+                        smooth: true
+                        asynchronous: true
+                    }
+                }
+
+                // Name + author + status pill
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+
+                    StyledText {
+                        text: provider.displayName + (provider.author ? "  ·  by " + provider.author : "")
+                        font.pixelSize: 18
+                        font.bold: true
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    Rectangle {
+                        visible: provider.kind === "builtin"
+                        radius: 999
+                        color: Appearance.colors.colPrimary
+                        opacity: 0.18
+                        implicitWidth: builtinPillText.implicitWidth + 16
+                        implicitHeight: builtinPillText.implicitHeight + 6
+                        StyledText {
+                            id: builtinPillText
+                            anchors.centerIn: parent
+                            text: Translation.tr("Built-in")
+                            color: Appearance.colors.colPrimary
+                            font.pixelSize: 11
+                            font.bold: true
+                        }
+                    }
+
+                    Rectangle {
+                        visible: provider.kind === "external" && !providerCardRoot.installed
+                        radius: 999
+                        color: "transparent"
+                        border.width: 1
+                        border.color: Appearance.colors.colSubtext
+                        implicitWidth: notInstalledPillText.implicitWidth + 16
+                        implicitHeight: notInstalledPillText.implicitHeight + 6
+                        StyledText {
+                            id: notInstalledPillText
+                            anchors.centerIn: parent
+                            text: Translation.tr("Not installed")
+                            color: Appearance.colors.colSubtext
+                            font.pixelSize: 11
+                        }
+                    }
+
+                    Rectangle {
+                        visible: provider.kind === "external" && providerCardRoot.installed
+                        radius: 999
+                        color: provider.accentColor
+                        opacity: 0.18
+                        implicitWidth: installedPillText.implicitWidth + 16
+                        implicitHeight: installedPillText.implicitHeight + 6
+                        StyledText {
+                            id: installedPillText
+                            anchors.centerIn: parent
+                            text: Translation.tr("Installed")
+                            color: provider.accentColor
+                            font.pixelSize: 11
+                            font.bold: true
+                        }
+                    }
+                }
+
+                // Repo link (external only)
+                StyledText {
+                    visible: provider.kind === "external" && provider.repoUrl
+                    text: "<a href=\"" + provider.repoUrl + "\">" + provider.repoUrl + "</a>"
+                    onLinkActivated: link => Qt.openUrlExternally(link)
+                    font.pixelSize: 12
+                    color: Appearance.colors.colPrimary
+                    textFormat: Text.RichText
+                }
+
+                // Description
+                StyledText {
+                    Layout.fillWidth: true
+                    text: provider.description
+                    wrapMode: Text.WordWrap
+                    color: Appearance.colors.colSubtext
+                    font.pixelSize: 13
+                }
+
+                // Theme tiles (full grid lands in Task 9)
+                ThemeTileStrip {
+                    provider: providerCardRoot.provider
+                    installed: providerCardRoot.installed
+                    activeTheme: providerCardRoot.activeTheme
+                    onApplyTheme: themeName => providerCardRoot.applyTheme(themeName)
+                }
+
+                // Action row
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignRight
+                    spacing: 8
+
+                    Item { Layout.fillWidth: true }
+
+                    RippleButton {
+                        visible: provider.kind === "external" && providerCardRoot.installed
+                        buttonText: Translation.tr("Update")
+                        onClicked: providerCardRoot.applyTheme(providerCardRoot.activeTheme)
+                    }
+
+                    RippleButton {
+                        visible: provider.kind === "external" && providerCardRoot.installed
+                        buttonText: Translation.tr("Uninstall")
+                        colBackground: "transparent"
+                        colBackgroundHover: Qt.rgba(Appearance.colors.colError.r,
+                                                    Appearance.colors.colError.g,
+                                                    Appearance.colors.colError.b, 0.18)
+                        onClicked: providerCardRoot.uninstallProvider()
+                    }
+
+                    RippleButton {
+                        visible: provider.kind === "external" && !providerCardRoot.installed
+                        buttonText: Translation.tr("Install %1").arg(provider.displayName)
+                        colBackground: provider.accentColor
+                        colBackgroundHover: provider.accentColor
+                        onClicked: providerCardRoot.installProvider()
+                    }
+                }
+            }
+        }
+    }
+
+    component ThemeTileStrip: Item {
+        property var provider
+        property bool installed: false
+        property string activeTheme: ""
+        signal applyTheme(string themeName)
+
+        Layout.fillWidth: true
+        Layout.preferredHeight: 80
+
         StyledText {
-            text: Translation.tr("Login screen page (under construction). Active: %1").arg(root.activeTheme)
+            anchors.centerIn: parent
+            text: Translation.tr("Theme grid lands in next task")
+            color: Appearance.colors.colSubtext
+            font.italic: true
         }
     }
 }
