@@ -34,19 +34,7 @@ Singleton {
         ? ((Config.options?.waffles?.background?.backdrop?.enable ?? false) && (Config.options?.waffles?.background?.backdrop?.hideWallpaper ?? false))
         : ((Config.options?.background?.backdrop?.enable ?? false) && (Config.options?.background?.backdrop?.hideWallpaper ?? false))
 
-    // Resolve the "main" wallpaper path — multi-monitor aware
-    // When multi-monitor is enabled, uses the focused monitor's wallpaper
-    // so Aurora blur/glass on all panels matches what's actually on screen.
-    readonly property string _resolvedMainWallpaperPath: {
-        if (WallpaperListener.multiMonitorEnabled) {
-            const focused = WallpaperListener.getFocusedMonitor()
-            if (focused) {
-                const data = WallpaperListener.effectivePerMonitor[focused]
-                if (data && data.path) return data.path
-            }
-        }
-        return Config.options?.background?.wallpaperPath ?? ""
-    }
+    readonly property string _resolvedMainWallpaperPath: Config.options?.background?.wallpaperPath ?? ""
 
     readonly property bool useBackdropForColors: Config.options?.appearance?.wallpaperTheming?.useBackdropForColors ?? false
 
