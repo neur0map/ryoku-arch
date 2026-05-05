@@ -57,4 +57,10 @@ assert_no_grep "^[[:space:]]*sudo " "bin/ryoku-set-sddm-theme"
 # Must refuse to run unprivileged
 assert_grep "EUID" "bin/ryoku-set-sddm-theme"
 
+# -- ryoku-install-qylock pkexec safety --------------------------------
+assert_grep "EUID"        "bin/ryoku-install-qylock"
+assert_grep "SUDO_USER"   "bin/ryoku-install-qylock"
+# Must use the _priv wrapper instead of bare sudo for the cp/tee path
+assert_grep "_priv"       "bin/ryoku-install-qylock"
+
 echo "PASS: tests/login-screen-config.sh ($0)"
