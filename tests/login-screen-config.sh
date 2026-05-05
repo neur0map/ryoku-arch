@@ -13,11 +13,13 @@ fail() {
 }
 
 assert_file() {
-  [[ -f $ROOT_DIR/$1 ]] || fail "missing file: $1"
+  local path="$1"
+  [[ -f $ROOT_DIR/$path ]] || fail "missing file: $path"
 }
 
 assert_executable() {
-  [[ -x $ROOT_DIR/$1 ]] || fail "not executable: $1"
+  local path="$1"
+  [[ -x $ROOT_DIR/$path ]] || fail "not executable: $path"
 }
 
 assert_grep() {
