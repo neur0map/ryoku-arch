@@ -36,10 +36,22 @@ if [[ ! -d $theme_dir ]]; then
   exit 1
 fi
 
-mkdir -p /etc/sddm.conf.d
-tee /etc/sddm.conf.d/theme.conf >/dev/null <<EOF
+write_sddm_current_theme() {
+  local selected_theme="$1"
+
+  mkdir -p /etc/sddm.conf.d
+  rm -f /etc/sddm.conf.d/inir-theme.conf \
+        /etc/sddm.conf.d/ryoku-shell-theme.conf
+  if [[ -f /etc/sddm.conf ]]; then
+    sed -i '/^[[:space:]]*Current[[:space:]]*=/d' /etc/sddm.conf
+  fi
+  tee /etc/sddm.conf.d/theme.conf >/dev/null <<EOF
 [Theme]
-Current=$theme
+Current=$selected_theme
 EOF
+}
+
+mkdir -p /etc/sddm.conf.d
+write_sddm_current_theme "$theme"
 
 echo "ryoku-set-sddm-theme: active theme set to $theme"

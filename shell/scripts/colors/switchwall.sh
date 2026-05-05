@@ -1,8 +1,9 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
 XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
+RYOKU_CONFIG_PATH="${RYOKU_CONFIG_PATH:-$XDG_CONFIG_HOME/ryoku}"
 CACHE_DIR="$XDG_CACHE_HOME/quickshell"
 STATE_DIR="$XDG_STATE_HOME/quickshell"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -313,6 +314,30 @@ set_wallpaper_path() {
     fi
 }
 
+sync_ryoku_current_background() {
+    local lock_background="$1"
+
+    [[ -n $lock_background && -f $lock_background ]] || return 0
+    mkdir -p "$RYOKU_CONFIG_PATH/current" 2>/dev/null || return 0
+    ln -nsf "$lock_background" "$RYOKU_CONFIG_PATH/current/background" 2>/dev/null || true
+}
+
+sync_lock_background_for_wallpaper() {
+    local wallpaper_path="$1"
+    local lock_background="$wallpaper_path"
+
+    [[ -n $wallpaper_path && -f $wallpaper_path ]] || return 0
+
+    if is_video "$wallpaper_path" || is_gif "$wallpaper_path"; then
+        lock_background="$THUMBNAIL_DIR/$(echo -n "$wallpaper_path" | md5sum | cut -d' ' -f1).jpg"
+        if ! has_valid_file "$lock_background"; then
+            ensure_color_preview_for_media "$wallpaper_path" "$lock_background" || return 0
+        fi
+    fi
+
+    sync_ryoku_current_background "$lock_background"
+}
+
 set_wallpaper_path_per_monitor() {
     local path="$1"
     local monitor="$2"
@@ -476,6 +501,9 @@ switch() {
     fi
 
     if [[ "$color_flag" == "1" ]]; then
+        if [[ -z $noswitch_flag ]]; then
+            sync_lock_background_for_wallpaper "$imgpath"
+        fi
         generate_colors_material_args=(--color "$color")
     else
         if [[ -z "$imgpath" ]]; then
@@ -537,6 +565,10 @@ switch() {
                 exit 1
             fi
 
+            if [[ -z $noswitch_flag ]]; then
+                sync_ryoku_current_background "$thumbnail"
+            fi
+
             # Set wallpaper path (Qt Multimedia Video component will handle playback)
             if [[ "$skip_config_write" != "1" ]]; then
                 set_wallpaper_path "$imgpath"
@@ -559,6 +591,9 @@ switch() {
                 fi
             fi
             generate_colors_material_args=(--path "$color_source")
+            if [[ -z $noswitch_flag ]]; then
+                sync_ryoku_current_background "$color_source"
+            fi
             # Update wallpaper path in config
             if [[ "$skip_config_write" != "1" ]]; then
                 set_wallpaper_path "$imgpath"

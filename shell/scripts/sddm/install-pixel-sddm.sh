@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Install ii-pixel SDDM theme for Ryoku
 # Pixel aesthetic with Material You dynamic colors matching the Quickshell lockscreen.
 # Requires: sddm, qt6-declarative, qt6-5compat
@@ -9,8 +9,12 @@ THEME_NAME="ii-pixel"
 THEME_SRC="${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}/dots/sddm/pixel"
 THEME_DIR="/usr/share/sddm/themes/${THEME_NAME}"
 SYNC_SCRIPT="${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}/scripts/sddm/sync-pixel-sddm.py"
-SDDM_CONF="/etc/sddm.conf.d/ryoku-shell-theme.conf"
-AUTO_APPLY_MODE="${RYOKU_SHELL_SDDM_AUTO_APPLY:-ask}" # ask|yes|no
+SDDM_CONF="/etc/sddm.conf.d/theme.conf"
+LEGACY_SDDM_CONFS=(
+  "/etc/sddm.conf.d/inir-theme.conf"
+  "/etc/sddm.conf.d/ryoku-shell-theme.conf"
+)
+AUTO_APPLY_MODE="${RYOKU_SHELL_SDDM_AUTO_APPLY:-preserve}" # preserve|ask|yes|no
 
 log_info() { echo -e "\033[0;36m[sddm] $*\033[0m"; }
 log_ok()   { echo -e "\033[0;32m[sddm] ✓ $*\033[0m"; }
@@ -42,36 +46,71 @@ elevate() {
 }
 
 get_current_sddm_theme() {
-    local from_dropin=""
-    if [[ -f "$SDDM_CONF" ]]; then
-        from_dropin=$(awk -F= '/^[[:space:]]*Current[[:space:]]*=/{gsub(/[[:space:]]/,"",$2); print $2; exit}' "$SDDM_CONF" 2>/dev/null || true)
-    fi
-    if [[ -n "$from_dropin" ]]; then
-        echo "$from_dropin"
-        return 0
-    fi
+  local current="" value="" f
 
-    # Fallback to main sddm.conf if present
-    if [[ -f "/etc/sddm.conf" ]]; then
-        awk -F= '/^[[:space:]]*Current[[:space:]]*=/{gsub(/[[:space:]]/,"",$2); print $2; exit}' /etc/sddm.conf 2>/dev/null || true
-        return 0
+  shopt -s nullglob
+  for f in /etc/sddm.conf.d/*.conf; do
+    value=$(awk -F= '
+      /^[[:space:]]*Current[[:space:]]*=/ {
+        gsub(/[[:space:]]/, "", $2)
+        current = $2
+      }
+      END { print current }
+    ' "$f" 2>/dev/null || true)
+    if [[ -n $value ]]; then
+      current="$value"
     fi
-    echo ""
+  done
+  shopt -u nullglob
+
+  # Main sddm.conf can override drop-ins on some SDDM builds.
+  if [[ -f /etc/sddm.conf ]]; then
+    value=$(awk -F= '
+      /^[[:space:]]*Current[[:space:]]*=/ {
+        gsub(/[[:space:]]/, "", $2)
+        current = $2
+      }
+      END { print current }
+    ' /etc/sddm.conf 2>/dev/null || true)
+    if [[ -n $value ]]; then
+      current="$value"
+    fi
+  fi
+
+  echo "$current"
+}
+
+cleanup_legacy_current_dropins() {
+  local conf
+  for conf in "${LEGACY_SDDM_CONFS[@]}"; do
+    if [[ -f $conf ]]; then
+      log_info "Removing stale SDDM theme drop-in: ${conf}"
+      elevate rm -f "$conf"
+    fi
+  done
 }
 
 should_apply_theme() {
     local current_theme
     current_theme="$(get_current_sddm_theme)"
 
-    if [[ "$AUTO_APPLY_MODE" == "yes" ]]; then
+    if [[ $AUTO_APPLY_MODE == "yes" ]]; then
         return 0
     fi
-    if [[ "$AUTO_APPLY_MODE" == "no" ]]; then
+    if [[ $AUTO_APPLY_MODE == "no" ]]; then
         log_info "Skipping SDDM Current theme switch by policy (RYOKU_SHELL_SDDM_AUTO_APPLY=no)"
         return 1
     fi
+    if [[ $AUTO_APPLY_MODE == "preserve" ]]; then
+        if [[ -z $current_theme || $current_theme == "$THEME_NAME" ]]; then
+            return 0
+        fi
+        cleanup_legacy_current_dropins
+        log_info "Preserving current SDDM theme: ${current_theme}"
+        return 1
+    fi
 
-    if [[ -z "$current_theme" || "$current_theme" == "$THEME_NAME" ]]; then
+    if [[ -z $current_theme || $current_theme == "$THEME_NAME" ]]; then
         return 0
     fi
 
@@ -166,12 +205,13 @@ fi
 # Configure SDDM to use this theme (intelligent: optional if user has another theme)
 if should_apply_theme; then
     log_info "Configuring SDDM to use ${THEME_NAME}..."
+    cleanup_legacy_current_dropins
     
     # Remove any existing Current= line from /etc/sddm.conf to avoid conflicts
     # The drop-in /etc/sddm.conf.d/ only works if the main file doesn't override it
-    if [[ -f /etc/sddm.conf ]] && grep -q '^\s*Current\s*=' /etc/sddm.conf 2>/dev/null; then
+    if [[ -f /etc/sddm.conf ]] && grep -qE '^[[:space:]]*Current[[:space:]]*=' /etc/sddm.conf 2>/dev/null; then
         log_info "Removing conflicting theme setting from /etc/sddm.conf..."
-        elevate sed -i '/^\s*Current\s*=/d' /etc/sddm.conf
+        elevate sed -i '/^[[:space:]]*Current[[:space:]]*=/d' /etc/sddm.conf
     fi
     
     elevate mkdir -p /etc/sddm.conf.d

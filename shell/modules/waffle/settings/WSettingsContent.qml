@@ -195,7 +195,7 @@ Item {
         { pageIndex: 9, pageName: "Shortcuts", section: "", label: "Keyboard Shortcuts", targetLabel: "", keywords: ["shortcuts", "keybinds", "hotkeys", "keyboard", "niri", "super", "mod"] },
         
         // === About (10) ===
-        { pageIndex: 10, pageName: "About", section: "", label: "About ii", targetLabel: "", keywords: ["about", "version", "credits", "github", "info"] }
+        { pageIndex: 10, pageName: "About", section: "", label: "About ii", targetLabel: "", keywords: ["about", "version", "credits", "github", "info", "qylock", "sddm"] }
     ]
     
     function highlightTerms(text: string, terms: list<string>): string {

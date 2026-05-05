@@ -4,7 +4,13 @@ set -euo pipefail
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-SHELL_PATH="${RYOKU_SHELL_PATH:-$HOME/.local/share/ryoku-shell}"
+if [[ -n ${RYOKU_SHELL_PATH:-} ]]; then
+  SHELL_PATH="$RYOKU_SHELL_PATH"
+elif [[ -x $RYOKU_PATH/shell/scripts/sddm/install-pixel-sddm.sh ]]; then
+  SHELL_PATH="$RYOKU_PATH/shell"
+else
+  SHELL_PATH="$HOME/.local/share/ryoku-shell"
+fi
 SDDM_SCRIPT="$SHELL_PATH/scripts/sddm/install-pixel-sddm.sh"
 
 if [[ ! -x $SDDM_SCRIPT ]]; then
@@ -12,4 +18,4 @@ if [[ ! -x $SDDM_SCRIPT ]]; then
   exit 1
 fi
 
-RYOKU_SHELL_SDDM_AUTO_APPLY=yes REPO_ROOT="$SHELL_PATH" exec "$SDDM_SCRIPT"
+RYOKU_SHELL_SDDM_AUTO_APPLY="${RYOKU_SHELL_SDDM_AUTO_APPLY:-preserve}" REPO_ROOT="$SHELL_PATH" exec "$SDDM_SCRIPT"

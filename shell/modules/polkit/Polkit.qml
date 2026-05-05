@@ -29,7 +29,7 @@ Scope {
 
                 color: "transparent"
                 WlrLayershell.namespace: "quickshell:polkit"
-                WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+                WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
                 WlrLayershell.layer: WlrLayer.Overlay
                 exclusionMode: ExclusionMode.Ignore
 

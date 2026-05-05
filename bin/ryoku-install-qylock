@@ -1,7 +1,9 @@
 #!/bin/bash
 set -e
 
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+script_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+export RYOKU_PATH="$script_root"
+source "$RYOKU_PATH/lib/runtime-env.sh"
 
 # Install qylock (Darkkal44/qylock) as the Ryoku SDDM theme bundle.
 #
@@ -42,6 +44,7 @@ else
 fi
 
 QYLOCK_DIR="$TARGET_HOME/.local/share/qylock"
+QYLOCK_LOCK_DIR="$TARGET_HOME/.local/share/quickshell-lockscreen"
 QYLOCK_REPO="https://github.com/Darkkal44/qylock.git"
 DEFAULT_THEME="dog-samurai"
 
@@ -117,10 +120,39 @@ if [[ -z ${ensure_current:-} ]]; then
   ensure_current="$theme"
 fi
 
-_priv mkdir -p /etc/sddm.conf.d
-_priv tee /etc/sddm.conf.d/theme.conf >/dev/null <<EOF
+write_sddm_current_theme() {
+  local selected_theme="$1"
+
+  _priv mkdir -p /etc/sddm.conf.d
+  _priv rm -f /etc/sddm.conf.d/inir-theme.conf \
+              /etc/sddm.conf.d/ryoku-shell-theme.conf
+  if _priv test -f /etc/sddm.conf; then
+    _priv sed -i '/^[[:space:]]*Current[[:space:]]*=/d' /etc/sddm.conf
+  fi
+  _priv tee /etc/sddm.conf.d/theme.conf >/dev/null <<EOF
 [Theme]
-Current=$ensure_current
+Current=$selected_theme
 EOF
+}
+
+install_quickshell_lockscreen() {
+  local lock_src="$QYLOCK_DIR/quickshell-lockscreen"
+
+  if [[ ! -d $lock_src ]]; then
+    echo "ryoku-install-qylock: missing qylock Quickshell lockscreen at $lock_src" >&2
+    exit 1
+  fi
+
+  _user mkdir -p "$TARGET_HOME/.local/share"
+  _user rm -rf "$QYLOCK_LOCK_DIR"
+  _user cp -R "$lock_src" "$QYLOCK_LOCK_DIR"
+  _user ln -sfn "$QYLOCK_DIR/themes" "$QYLOCK_LOCK_DIR/themes_link"
+  _user chmod +x "$QYLOCK_LOCK_DIR/lock.sh"
+}
+
+_priv mkdir -p /etc/sddm.conf.d
+write_sddm_current_theme "$ensure_current"
+install_quickshell_lockscreen
 
 echo "  qylock theme active: $ensure_current"
+echo "  qylock lockscreen active: $ensure_current"

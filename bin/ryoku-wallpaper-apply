@@ -20,6 +20,27 @@ json_ok() {
   jq -cn --arg type "$1" --arg path "$2" '{ok:true,type:$type,path:$path}'
 }
 
+set_shell_wallpaper_config() {
+  local path="$1"
+  local thumbnail="${2:-}"
+  local config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/ryoku-shell"
+  local config_file="$config_dir/config.json"
+  local temp_file
+
+  [[ -f $config_file ]] || return 0
+
+  if ryoku-cmd-missing jq; then
+    echo "ryoku-wallpaper-apply: jq is required to update Ryoku wallpaper config" >&2
+    return 1
+  fi
+
+  temp_file=$(mktemp)
+  jq --arg path "$path" --arg thumbnail "$thumbnail" \
+    '.background.wallpaperPath = $path | .background.thumbnailPath = $thumbnail' \
+    "$config_file" >"$temp_file" &&
+    mv "$temp_file" "$config_file"
+}
+
 apply_image() {
   local path="$1"
 
@@ -39,6 +60,7 @@ apply_image() {
 apply_video() {
   local path="$1"
   local poster="$RYOKU_STATE_PATH/wallpaper/current-video-poster.jpg"
+  local thumbnail=""
 
   if [[ ! -f $path ]]; then
     json_error "video file not found"
@@ -52,6 +74,7 @@ apply_video() {
   fi
 
   if [[ -f $poster ]]; then
+    thumbnail="$poster"
     if ! mkdir -p "$RYOKU_CONFIG_PATH/current" 2>/dev/null; then
       json_error "failed to update video wallpaper poster"
       return 4
@@ -62,8 +85,8 @@ apply_video() {
     fi
   fi
 
-  if ! "$RYOKU_PATH/bin/ryoku-theme-bg-set" "$path" >/dev/null; then
-    json_error "failed to apply video wallpaper"
+  if ! set_shell_wallpaper_config "$path" "$thumbnail"; then
+    json_error "failed to update video wallpaper config"
     return 4
   fi
 

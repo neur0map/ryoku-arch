@@ -34,6 +34,25 @@ assert_no_grep() {
   fi
 }
 
+assert_grep_count() {
+  local expected="$1" pattern="$2" file="$3"
+  local count
+  count="$(grep -cE "$pattern" "$ROOT_DIR/$file" || true)"
+  (( count == expected )) \
+    || fail "$file: expected $expected matches for /$pattern/, found $count"
+}
+
+assert_order() {
+  local first_pattern="$1" second_pattern="$2" file="$3"
+  local first_line second_line
+  first_line="$(grep -nE "$first_pattern" "$ROOT_DIR/$file" | head -n1 | cut -d: -f1 || true)"
+  second_line="$(grep -nE "$second_pattern" "$ROOT_DIR/$file" | head -n1 | cut -d: -f1 || true)"
+  [[ -n $first_line ]] || fail "$file: missing first ordered pattern /$first_pattern/"
+  [[ -n $second_line ]] || fail "$file: missing second ordered pattern /$second_pattern/"
+  (( first_line < second_line )) \
+    || fail "$file: pattern /$first_pattern/ must appear before /$second_pattern/"
+}
+
 assert_png() {
   local path="$1"
   assert_file "$path"
@@ -61,6 +80,11 @@ assert_executable "bin/ryoku-set-sddm-theme"
 assert_grep "/usr/share/sddm/themes/" "bin/ryoku-set-sddm-theme"
 # Must write to /etc/sddm.conf.d/theme.conf
 assert_grep "/etc/sddm\\.conf\\.d/theme\\.conf" "bin/ryoku-set-sddm-theme"
+# Must remove stale legacy Ryoku/iNiR Current= drop-ins before writing the
+# selected theme. Some SDDM versions effectively keep the first Current=,
+# so leaving these files behind can pin ii-pixel over qylock.
+assert_grep "/etc/sddm\\.conf\\.d/inir-theme\\.conf" "bin/ryoku-set-sddm-theme"
+assert_grep "/etc/sddm\\.conf\\.d/ryoku-shell-theme\\.conf" "bin/ryoku-set-sddm-theme"
 # Must NOT call sudo: pkexec already runs it as root
 assert_no_grep "^[[:space:]]*sudo " "bin/ryoku-set-sddm-theme"
 # Must refuse to run unprivileged
@@ -72,6 +96,30 @@ assert_grep "SUDO_USER"   "bin/ryoku-install-qylock"
 assert_grep "PKEXEC_UID"  "bin/ryoku-install-qylock"
 # Must use the _priv wrapper instead of bare sudo for the cp/tee path
 assert_grep "_priv"       "bin/ryoku-install-qylock"
+# Must pin RYOKU_PATH from the helper's own install location before
+# sourcing runtime-env; pkexec runs with HOME=/root, so runtime-env
+# cannot safely infer the user install path from HOME.
+assert_grep "script_root="       "bin/ryoku-install-qylock"
+assert_grep "export RYOKU_PATH=" "bin/ryoku-install-qylock"
+# Must clean stale ii-pixel theme drop-ins before activating qylock.
+assert_grep "/etc/sddm\\.conf\\.d/inir-theme\\.conf" "bin/ryoku-install-qylock"
+assert_grep "/etc/sddm\\.conf\\.d/ryoku-shell-theme\\.conf" "bin/ryoku-install-qylock"
+
+# -- SDDM refresh must preserve qylock ---------------------------------
+assert_file       "bin/ryoku-refresh-sddm"
+assert_executable "bin/ryoku-refresh-sddm"
+# Refreshing/updating Ryoku's bundled ii-pixel files must not force
+# ii-pixel back over a selected qylock theme.
+assert_grep "RYOKU_SHELL_SDDM_AUTO_APPLY=\"\\$\\{RYOKU_SHELL_SDDM_AUTO_APPLY:-preserve\\}\"" "bin/ryoku-refresh-sddm"
+assert_no_grep "RYOKU_SHELL_SDDM_AUTO_APPLY=yes" "bin/ryoku-refresh-sddm"
+assert_grep '\$RYOKU_PATH/shell' "bin/ryoku-refresh-sddm"
+assert_no_grep 'SHELL_PATH="\$\{RYOKU_SHELL_PATH:-\$HOME/\.local/share/ryoku-shell\}"' "bin/ryoku-refresh-sddm"
+assert_grep "^#!/bin/bash$" "shell/scripts/sddm/install-pixel-sddm.sh"
+assert_grep "AUTO_APPLY_MODE=.*preserve" "shell/scripts/sddm/install-pixel-sddm.sh"
+assert_grep "for f in /etc/sddm\\.conf\\.d/\\*\\.conf" "shell/scripts/sddm/install-pixel-sddm.sh"
+assert_grep "Preserving current SDDM theme" "shell/scripts/sddm/install-pixel-sddm.sh"
+assert_grep "SDDM_CONF=\"/etc/sddm\\.conf\\.d/theme\\.conf\"" "shell/scripts/sddm/install-pixel-sddm.sh"
+assert_grep "LEGACY_SDDM_CONFS" "shell/scripts/sddm/install-pixel-sddm.sh"
 
 # -- ryoku-uninstall-qylock --------------------------------------------
 assert_file       "bin/ryoku-uninstall-qylock"
@@ -88,6 +136,10 @@ assert_grep "maya"            "bin/ryoku-uninstall-qylock"
 # Must compute themes by intersection (not blindly delete from /usr/share/sddm/themes)
 assert_grep "/usr/share/sddm/themes/" "bin/ryoku-uninstall-qylock"
 assert_grep "\\.local/share/qylock"   "bin/ryoku-uninstall-qylock"
+# Uninstall must also leave one authoritative Current= rather than
+# re-exposing stale legacy drop-ins.
+assert_grep "/etc/sddm\\.conf\\.d/inir-theme\\.conf" "bin/ryoku-uninstall-qylock"
+assert_grep "/etc/sddm\\.conf\\.d/ryoku-shell-theme\\.conf" "bin/ryoku-uninstall-qylock"
 
 # -- Asset bundles -----------------------------------------------------
 assert_png "shell/assets/sddm-providers/_placeholder.png"
@@ -106,6 +158,35 @@ assert_grep "providerId: \"ii-pixel\""  "shell/modules/settings/LoginScreenConfi
 assert_grep "providerId: \"qylock\""    "shell/modules/settings/LoginScreenConfig.qml"
 # Active-theme reader exists
 assert_grep "function readActiveTheme"  "shell/modules/settings/LoginScreenConfig.qml"
+# Elevated helpers must use absolute user-local paths because pkexec
+# sanitizes PATH to system directories.
+assert_grep "function helperPath" "shell/modules/settings/LoginScreenConfig.qml"
+assert_grep "RYOKU_PATH" "shell/modules/settings/LoginScreenConfig.qml"
+assert_grep "pkexec\", helperPath\\(\"ryoku-set-sddm-theme\"\\)" "shell/modules/settings/LoginScreenConfig.qml"
+assert_grep "pkexec\", helperPath\\(\"ryoku-install-qylock\"\\), \"--theme\"" "shell/modules/settings/LoginScreenConfig.qml"
+assert_grep "pkexec\", helperPath\\(\"ryoku-install-qylock\"\\), \"--default\"" "shell/modules/settings/LoginScreenConfig.qml"
+assert_grep "pkexec\", root\\.helperPath\\(\"ryoku-uninstall-qylock\"\\)" "shell/modules/settings/LoginScreenConfig.qml"
+# Busy status must be near the top of the page, not below all provider cards.
+assert_order "visible: root\\.busyMessage\\.length > 0" "Repeater \\{" "shell/modules/settings/LoginScreenConfig.qml"
+assert_grep "StyledIndeterminateProgressBar" "shell/modules/settings/LoginScreenConfig.qml"
+assert_grep "busy: root\\.busyProviderId === modelData\\.providerId" "shell/modules/settings/LoginScreenConfig.qml"
+# External polkit agents are normal Wayland windows and can sit behind
+# Ryoku's settings layer. The login-screen page must hide that overlay
+# before starting pkexec so the auth prompt can always surface.
+assert_grep "function yieldSettingsOverlayForPolkit" "shell/modules/settings/LoginScreenConfig.qml"
+assert_grep "GlobalStates\\.settingsOverlayOpen = false" "shell/modules/settings/LoginScreenConfig.qml"
+assert_grep_count 2 "^[[:space:]]*yieldSettingsOverlayForPolkit\\(\\)$" "shell/modules/settings/LoginScreenConfig.qml"
+assert_grep_count 1 "^[[:space:]]*root\\.yieldSettingsOverlayForPolkit\\(\\)$" "shell/modules/settings/LoginScreenConfig.qml"
+assert_order "yieldSettingsOverlayForPolkit\\(\\)" "applyProc\\.running = true" "shell/modules/settings/LoginScreenConfig.qml"
+assert_order "yieldSettingsOverlayForPolkit\\(\\)" "installProc\\.running = true" "shell/modules/settings/LoginScreenConfig.qml"
+assert_order "yieldSettingsOverlayForPolkit\\(\\)" "uninstallProc\\.running = true" "shell/modules/settings/LoginScreenConfig.qml"
+# If Settings was hidden for the sudo prompt, it must reopen after the
+# privileged command exits so users can see the result and continue.
+assert_grep "property bool reopenSettingsOverlayAfterPolkit: false" "shell/modules/settings/LoginScreenConfig.qml"
+assert_grep "reopenSettingsOverlayAfterPolkit = GlobalStates\\.settingsOverlayOpen" "shell/modules/settings/LoginScreenConfig.qml"
+assert_grep "function restoreSettingsOverlayAfterPolkit" "shell/modules/settings/LoginScreenConfig.qml"
+assert_grep "GlobalStates\\.settingsOverlayOpen = true" "shell/modules/settings/LoginScreenConfig.qml"
+assert_grep_count 3 "root\\.restoreSettingsOverlayAfterPolkit\\(\\)" "shell/modules/settings/LoginScreenConfig.qml"
 
 # -- bundledThemes manifest sync ---------------------------------------
 QML_FILE="$ROOT_DIR/shell/modules/settings/LoginScreenConfig.qml"
@@ -143,6 +224,18 @@ assert_grep "LoginScreenConfig\\.qml"            "shell/settings.qml"
 assert_grep "LoginScreenConfig\\.qml"            "shell/modules/settings/SettingsOverlay.qml"
 # Search index has at least one entry referencing the new keyword
 assert_grep "qylock"                             "shell/modules/settings/SettingsOverlay.qml"
+
+# -- Settings About qylock attribution --------------------------------
+assert_grep "Darkkal44/qylock" "shell/modules/settings/About.qml"
+assert_grep "Darkkal44/qylock" "shell/modules/waffle/settings/pages/WAboutPage.qml"
+assert_grep "import qs\\.modules\\.common\\.functions" "shell/modules/settings/About.qml"
+assert_grep "GridLayout \\{" "shell/modules/settings/About.qml"
+assert_grep "columns: 2" "shell/modules/settings/About.qml"
+assert_order "GridLayout \\{" "qylock credit card" "shell/modules/settings/About.qml"
+assert_grep "pageIndex: 14, pageName: pages\\[14\\]\\.name" "shell/settings.qml"
+assert_grep 'keywords: \["about", "version", "credits", "github", "info", "qylock", "sddm"\]' "shell/settings.qml"
+assert_grep 'keywords: \["about", "version", "credits", "github", "info", "qylock", "sddm"\]' "shell/modules/settings/SettingsOverlay.qml"
+assert_grep 'keywords: \["about", "version", "credits", "github", "info", "qylock", "sddm"\]' "shell/modules/waffle/settings/WSettingsContent.qml"
 
 # -- Credits attribution -----------------------------------------------
 assert_grep "shell/assets/sddm-providers/qylock/themes/" "CREDITS.md"

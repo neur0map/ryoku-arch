@@ -1,0 +1,57 @@
+#!/bin/bash
+
+set -euo pipefail
+
+QYLOCK_LOCK_SCRIPT="$HOME/.local/share/quickshell-lockscreen/lock.sh"
+QYLOCK_LOCK_QML="$HOME/.local/share/quickshell-lockscreen/lock_shell.qml"
+QYLOCK_DIR="$HOME/.local/share/qylock"
+
+fallback_hyprlock() {
+  if pgrep -x "hyprlock" >/dev/null; then
+    exit 0
+  fi
+
+  exec hyprlock
+}
+
+if pgrep -af "quickshell.*quickshell-lockscreen/lock_shell.qml" >/dev/null; then
+  exit 0
+fi
+
+read_active_sddm_theme() {
+  local current="" file value
+
+  shopt -s nullglob
+  for file in /etc/sddm.conf /etc/sddm.conf.d/*.conf; do
+    [[ -f $file ]] || continue
+    value=$(awk -F= '
+      /^[[:space:]]*Current[[:space:]]*=/ {
+        v = $2
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", v)
+        print v
+      }
+    ' "$file" | tail -n1)
+    [[ -n $value ]] && current="$value"
+  done
+
+  printf "%s\n" "$current"
+}
+
+theme=$(read_active_sddm_theme)
+if [[ -z $theme || ! $theme =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
+  fallback_hyprlock
+fi
+
+if [[ ! -d $QYLOCK_DIR/themes/$theme ]]; then
+  fallback_hyprlock
+fi
+
+if [[ ! -x $QYLOCK_LOCK_SCRIPT || ! -f $QYLOCK_LOCK_QML ]]; then
+  fallback_hyprlock
+fi
+
+if ! command -v quickshell >/dev/null 2>&1; then
+  fallback_hyprlock
+fi
+
+exec "$QYLOCK_LOCK_SCRIPT" "$theme"

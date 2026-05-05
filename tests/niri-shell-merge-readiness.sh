@@ -410,7 +410,9 @@ assert_contains bin/ryoku-system-logout 'ryoku-shell session (toggle|open)' "log
 assert_contains bin/ryoku-sddm-autologin 'Session=niri\.desktop' "SDDM autologin should target niri.desktop"
 assert_contains install/login/sddm.sh 'ii-pixel' "fresh installs should validate the Ryoku ii-pixel SDDM theme"
 assert_not_contains install/login/sddm.sh 'pixel-rainyroom' "fresh installs should not validate the retired Ryoku pixel-rainyroom theme"
-assert_contains bin/ryoku-refresh-sddm 'ii-pixel|install-pixel-sddm' "SDDM refresh should apply the Ryoku ii-pixel theme"
+assert_contains bin/ryoku-refresh-sddm 'install-pixel-sddm' "SDDM refresh should update the bundled ii-pixel theme files"
+assert_contains bin/ryoku-refresh-sddm 'preserve' "SDDM refresh should preserve selected non-Ryoku themes such as qylock"
+assert_not_contains bin/ryoku-refresh-sddm 'RYOKU_SHELL_SDDM_AUTO_APPLY=yes' "SDDM refresh should not force ii-pixel over qylock"
 assert_contains config/alacritty/alacritty.toml '~/.config/alacritty/colors\.toml' "Alacritty should import Ryoku generated colors"
 assert_not_contains config/alacritty/alacritty.toml '~/.config/ryoku/current/theme/alacritty\.toml' "Alacritty should not import the old Ryoku theme symlink"
 assert_contains config/btop/btop.conf 'color_theme = "ii-auto"' "btop should use the Ryoku generated theme"
@@ -421,8 +423,7 @@ assert_contains config/gtk-4.0/settings.ini 'gtk-cursor-theme-name=Bibata-Modern
 assert_file config/fonts/Rubik.ttf
 assert_file config/fonts/SpaceGrotesk.ttf
 assert_file config/fonts/ReadexPro.ttf
-assert_contains config/niri/config.d/50-startup.kdl 'polkit-gnome-authentication-agent-1' "Niri startup should use the polkit agent installed by Ryoku"
-assert_not_contains config/niri/config.d/50-startup.kdl 'mate-polkit' "Niri startup should not reference a polkit agent Ryoku does not install"
+assert_not_contains config/niri/config.d/50-startup.kdl 'polkit-gnome-authentication-agent-1|polkit-mate-authentication-agent-1|polkit-kde-authentication-agent-1|lxqt-policykit-agent|lxpolkit' "Niri startup should let Ryoku's layer-shell polkit agent own prompts"
 assert_contains migrations/1777751965.sh '-ef' "screensaver preservation should skip self-copies on normal installs"
 
 if rg -n 'hyprctl|hyprsunset|waybar|makoctl|swayosd|tofi|uwsm-app|qs -c ryoku|xdg-desktop-portal-hyprland|pixel-rainyroom' bin install config default lib >/dev/null; then

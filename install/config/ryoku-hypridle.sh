@@ -4,8 +4,10 @@
 # enables the system-shipped hypridle.service. hypridle replaces swayidle
 # (Ryoku's Idle.qml is patched by ryoku-shell-branding.sh to skip its
 # internal swayidle spawn). On lid-close / suspend-prep, hypridle's
-# before_sleep_cmd fires `loginctl lock-session`, which triggers
-# lock_cmd (hyprlock) via DBus.
+# before_sleep_cmd fires `loginctl lock-session`, which triggers lock_cmd
+# via DBus. The lock command reads the Settings-selected SDDM theme: qylock
+# themes use qylock's Quickshell lockscreen, default Ryoku themes use the
+# normal hyprlock fallback.
 #
 # See config/hypr/hypridle.conf header for the full architecture rationale
 # and the niri-protocol caveats around inhibit_sleep.

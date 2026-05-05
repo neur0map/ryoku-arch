@@ -1318,14 +1318,14 @@ ApplicationWindow {
         },
 
         // =====================================================================
-        // About (page 13)
+        // About (page 14)
         // =====================================================================
         {
-            pageIndex: 13, pageName: pages[13].name,
+            pageIndex: 14, pageName: pages[14].name,
             section: Translation.tr("About"),
             label: Translation.tr("About ii"),
             description: Translation.tr("Version info, credits and links"),
-            keywords: ["about", "version", "credits", "github", "info"]
+            keywords: ["about", "version", "credits", "github", "info", "qylock", "sddm"]
         }
     ]
 

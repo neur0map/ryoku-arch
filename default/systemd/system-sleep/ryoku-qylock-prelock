@@ -1,0 +1,94 @@
+#!/bin/bash
+
+set -euo pipefail
+
+active_sddm_theme() {
+  local current=""
+  local file
+  local key
+  local line
+  local value
+
+  for file in /etc/sddm.conf /etc/sddm.conf.d/*.conf; do
+    [[ -f $file ]] || continue
+
+    while IFS= read -r line; do
+      line="${line%%#*}"
+      [[ $line == *=* ]] || continue
+
+      key="${line%%=*}"
+      value="${line#*=}"
+      key="${key//[[:space:]]/}"
+      value="${value//[[:space:]]/}"
+
+      if [[ $key == "Current" ]]; then
+        current="$value"
+      fi
+    done < "$file"
+  done
+
+  [[ -n $current ]] || return 1
+  printf '%s\n' "$current"
+}
+
+home_for_uid() {
+  local entry
+  local uid="$1"
+  local home
+
+  entry="$(getent passwd "$uid" 2>/dev/null || true)"
+  [[ -n $entry ]] || return 1
+
+  IFS=: read -r _ _ _ _ _ home _ <<< "$entry"
+  [[ -n $home ]] || return 1
+  printf '%s\n' "$home"
+}
+
+has_qylock_session() {
+  local home
+  local found=0
+  local rest
+  local session
+  local theme="$1"
+  local uid
+  local user
+
+  while read -r session uid user rest; do
+    [[ -n ${session:-} ]] || continue
+    [[ -n ${uid:-} ]] || continue
+    [[ $uid =~ ^[0-9]+$ ]] || continue
+    (( uid >= 1000 )) || continue
+
+    home="$(home_for_uid "$uid")" || continue
+    [[ -d $home/.local/share/qylock/themes/$theme ]] || continue
+
+    found=1
+  done < <(loginctl list-sessions --no-legend 2>/dev/null || true)
+
+  (( found == 1 ))
+}
+
+phase="${1:-}"
+operation="${2:-}"
+delay="${RYOKU_QYLOCK_PRELOCK_DELAY:-3}"
+
+[[ $phase == "pre" ]] || exit 0
+
+case "$operation" in
+  suspend|hibernate|hybrid-sleep|suspend-then-hibernate)
+    ;;
+  *)
+    exit 0
+    ;;
+esac
+
+if [[ ! $delay =~ ^[0-9]+$ ]]; then
+  delay=3
+fi
+
+theme="$(active_sddm_theme)" || exit 0
+
+if has_qylock_session "$theme"; then
+  echo "Ryoku qylock pre-sleep: waiting ${delay}s for lockscreen theme $theme"
+  (( delay > 0 )) && sleep "$delay"
+fi

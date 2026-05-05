@@ -1216,6 +1216,14 @@ cleanup_orphans() {
                 ppid="$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ' || true)"
                 [[ "$ppid" == "$service_main_pid" ]] && continue
             fi
+            # Never kill the qylock session-lock client. Its parent is hypridle's
+            # lock.sh wrapper, not ryoku-shell.service, so the ppid check above
+            # doesn't catch it. Killing it during a resume cycle while niri's
+            # session-lock is still active leaves niri rendering its
+            # lock-surface-lost magenta backdrop with no input.
+            local cmdline
+            cmdline="$(tr '\0' ' ' </proc/"$pid"/cmdline 2>/dev/null || true)"
+            [[ "$cmdline" == *"quickshell-lockscreen"* ]] && continue
             kill "$pid" 2>/dev/null || true
         done <<< "$alive_pids"
     fi

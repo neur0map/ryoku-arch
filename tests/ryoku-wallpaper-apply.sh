@@ -20,6 +20,8 @@ tmpdir=$(mktemp -d)
 trap 'rm -rf "$tmpdir"' EXIT
 
 mkdir -p "$tmpdir/ryoku/bin" "$tmpdir/config/current" "$tmpdir/state" "$tmpdir/path"
+mkdir -p "$tmpdir/xdg-config/ryoku-shell"
+printf '%s\n' '{"background":{}}' >"$tmpdir/xdg-config/ryoku-shell/config.json"
 
 cat >"$tmpdir/ryoku/bin/ryoku-theme-bg-set" <<'EOF'
 #!/bin/bash
@@ -53,6 +55,7 @@ EOF
 chmod +x "$tmpdir/ryoku/bin/pkill"
 
 run_apply() {
+  rm -f "$tmpdir/apply.args" "$tmpdir/pkill.args"
   set +e
   APPLY_OUTPUT="$(
     APPLY_ARGS="$tmpdir/apply.args" \
@@ -60,6 +63,7 @@ run_apply() {
     RYOKU_PATH="$tmpdir/ryoku" \
     RYOKU_CONFIG_PATH="$tmpdir/config" \
     RYOKU_STATE_PATH="$tmpdir/state" \
+    XDG_CONFIG_HOME="$tmpdir/xdg-config" \
     PATH="$tmpdir/ryoku/bin:$PATH" \
       "$apply_bin" "$@" 2>&1
   )"
@@ -94,6 +98,11 @@ printf '%s\n' "$APPLY_OUTPUT" | jq -e --arg path "$video" '.ok == true and .type
   || fail "video apply should emit JSON OK"
 [[ ! -f $tmpdir/pkill.args ]] \
   || fail "video apply should not launch or stop legacy wallpaper processes"
+[[ ! -f $tmpdir/apply.args ]] \
+  || fail "video apply should not pass the video file to ryoku-theme-bg-set"
+jq -e --arg path "$video" '.background.wallpaperPath == $path and .background.thumbnailPath == ""' \
+  "$tmpdir/xdg-config/ryoku-shell/config.json" >/dev/null \
+  || fail "video apply should persist video wallpaper path without a poster"
 
 image="$tmpdir/image with spaces.jpg"
 : >"$image"

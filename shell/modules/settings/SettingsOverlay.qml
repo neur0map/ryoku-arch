@@ -21,6 +21,7 @@ Scope {
     id: root
 
     property bool settingsOpen: GlobalStates.settingsOverlayOpen ?? false
+    property bool polkitActive: PolkitService.active
 
     // Keep alive after first open for instant re-open
     property bool _everOpened: false
@@ -193,7 +194,7 @@ Scope {
         // Login screen (page 13)
         { pageIndex: 13, pageName: overlayPages[13].name, section: Translation.tr("Login screen"), label: Translation.tr("SDDM theme"), description: Translation.tr("Greeter theme shown before login"), keywords: ["sddm", "login", "greeter", "theme", "qylock", "lockscreen"] },
         // About (page 14)
-        { pageIndex: 14, pageName: overlayPages[14].name, section: Translation.tr("About"), label: Translation.tr("About ii"), description: Translation.tr("Version info, credits and links"), keywords: ["about", "version", "credits", "github", "info"] }
+        { pageIndex: 14, pageName: overlayPages[14].name, section: Translation.tr("About"), label: Translation.tr("About ii"), description: Translation.tr("Version info, credits and links"), keywords: ["about", "version", "credits", "github", "info", "qylock", "sddm"] }
     ]
 
     function getWaffleSettingsPageIndex() {
@@ -518,7 +519,7 @@ Scope {
         sourceComponent: PanelWindow {
             id: settingsPanel
 
-            visible: GlobalStates.settingsOverlayOpen ?? false
+            visible: root.settingsOpen && !root.polkitActive
 
             exclusionMode: ExclusionMode.Ignore
             WlrLayershell.namespace: "quickshell:settingsOverlay"
@@ -567,7 +568,7 @@ Scope {
             Timer {
                 id: grabTimer
                 interval: 100
-                onTriggered: grab.active = (GlobalStates.settingsOverlayOpen ?? false)
+                onTriggered: grab.active = root.settingsOpen && !root.polkitActive
             }
 
             // ── Scrim backdrop ──

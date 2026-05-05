@@ -22,7 +22,7 @@
 
 pkgname=quickshell-ryoku
 _upstream=quickshell
-pkgver=0.2.1
+pkgver=0.3.0
 pkgrel=1
 pkgdesc='Flexible toolkit for making desktop shells with QtQuick (iNiR fix-extension-uaf patch applied)'
 arch=(x86_64 aarch64)
@@ -40,6 +40,12 @@ depends=(gcc-libs
          libxcb
          mesa
          pam libpam.so
+         # polkit ships polkit-agent-1 + polkit-gobject-1, required by the
+         # SERVICE_POLKIT module added in Quickshell 0.3.0. Without it,
+         # Ryoku's in-shell polkit overlay cannot register as the auth agent
+         # and pkexec calls (e.g. Settings - Login screen - apply theme)
+         # silently fail because no agent prompts the user.
+         polkit
          qt6-base
          qt6-declarative
          qt6-svg
@@ -50,11 +56,14 @@ makedepends=(cli11
              ninja
              qt6-shadertools
              spirv-tools
+             # New in 0.3.0: src/wayland/buffer/CMakeLists.txt does
+             # find_package(VulkanHeaders) for dmabuf/buffer interop.
+             vulkan-headers
              wayland-protocols)
 _archive="$_upstream-$pkgver"
 source=("$_archive.tar.gz::$url/archive/v$pkgver.tar.gz"
         fix-extension-uaf.patch)
-sha256sums=('d815c5f99f4a0a28545ffaa90464420c773b7c0ab62f713d9d8735a8e7282ca7'
+sha256sums=('f4821f9084cab04bd2b5384cc92b9726aecc4ce3eb27200dca24edc67da3b6e5'
             'abf0891a1270e6df6762facef881c8572176f91d700af5ade57ba20d88547155')
 
 prepare() {
@@ -68,7 +77,13 @@ build() {
 		-D CMAKE_BUILD_TYPE=RelWithDebInfo
 		-D DISTRIBUTOR='Ryoku Arch (iNiR-patched)'
 		-D DISTRIBUTOR_DEBUGINFO_AVAILABLE=Yes
-		-D CRASH_REPORTER=Off
+		# Disable the in-binary crash handler. The actual upstream option is
+		# CRASH_HANDLER (the previous CRASH_REPORTER spelling was silently
+		# ignored by CMake); v0.3.0's handler hard-requires cpptrace which
+		# is AUR-only, and ryoku-shell.service already sets
+		# QS_DISABLE_CRASH_HANDLER=1 + LimitCORE=0 so the handler would
+		# never run anyway.
+		-D CRASH_HANDLER=OFF
 		-D CMAKE_INSTALL_PREFIX=/usr
 		-D INSTALL_QML_PREFIX=lib/qt6/qml
 	)

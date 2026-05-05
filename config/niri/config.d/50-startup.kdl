@@ -18,10 +18,8 @@ spawn-at-startup "bash" "-c" "systemctl --user import-environment XDG_MENU_PREFI
 spawn-at-startup "bash" "-c" "wl-paste --type text --watch cliphist store &"
 spawn-at-startup "bash" "-c" "wl-paste --type image --watch cliphist store &"
 
-// Polkit authentication agent — needed for GUI sudo prompts (software install,
-// disk mount, etc.). Ryoku's setup auto-detects which agent is installed and
-// patches this line accordingly (KDE, GNOME, MATE, LXQt, or lxpolkit).
-spawn-at-startup "/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"
+// Polkit authentication is handled by Ryoku's layer-shell polkit module so
+// password prompts can appear above Ryoku overlay windows.
 
 // ── Ryoku ──────────────────────────────────────────────────────────────
 // Ryoku is managed by the user systemd service (ryoku-shell.service).

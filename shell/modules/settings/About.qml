@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Widgets
 import qs.modules.common
+import qs.modules.common.functions
 import qs.modules.common.widgets
 import qs.services
 
@@ -326,11 +327,13 @@ ContentPage {
             }
         }
 
-        // ── Bottom row: iNiR + illogical-impulse credit cards ───────────────
-        RowLayout {
+        // ── Bottom grid: upstream and integration credit cards ──────────────
+        GridLayout {
             Layout.fillWidth: true
-            Layout.preferredHeight: 220
-            spacing: 16
+            Layout.preferredHeight: 456
+            columns: 2
+            rowSpacing: 16
+            columnSpacing: 16
 
             // ── iNiR credit card ────────────────────────────────────────────
             Rectangle {
@@ -478,6 +481,56 @@ ContentPage {
                         materialIcon: "open_in_new"
                         tooltip: "Omarchy"
                         onClicked: Qt.openUrlExternally("https://github.com/basecamp/omarchy")
+                    }
+                }
+            }
+
+            // ── qylock credit card ─────────────────────────────────────────
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+
+                color: Appearance.colors.colSurfaceContainerLow
+                radius: 20
+                border.width: 1
+                border.color: Appearance.colors.colOutline
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 20
+                    spacing: 8
+
+                    StyledText {
+                        text: "qylock"
+                        font.pixelSize: Appearance.font.pixelSize.title
+                    }
+
+                    StyledText {
+                        text: Translation.tr("Optional SDDM greeter themes by Darkkal44")
+                        font.pixelSize: Appearance.font.pixelSize.small
+                        color: Appearance.colors.colSubtext
+                        Layout.fillWidth: true
+                        wrapMode: Text.WordWrap
+                    }
+
+                    StyledText {
+                        text: "[github.com/Darkkal44/qylock](https://github.com/Darkkal44/qylock)"
+                        font.pixelSize: Appearance.font.pixelSize.small
+                        color: Appearance.m3colors.m3primary
+                        textFormat: Text.MarkdownText
+                        Layout.fillWidth: true
+                        wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                        onLinkActivated: (link) => Qt.openUrlExternally(link)
+
+                        PointingHandLinkHover {}
+                    }
+
+                    Item { Layout.fillHeight: true }
+
+                    CircleIconButton {
+                        materialIcon: "open_in_new"
+                        tooltip: "qylock"
+                        onClicked: Qt.openUrlExternally("https://github.com/Darkkal44/qylock")
                     }
                 }
             }

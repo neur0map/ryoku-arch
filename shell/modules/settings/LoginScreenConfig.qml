@@ -164,6 +164,14 @@ ContentPage {
 
     // ── Workflow processes ───────────────────────────────────────────
     property string busyMessage: ""
+    property string busyProviderId: ""
+    property bool reopenSettingsOverlayAfterPolkit: false
+    readonly property bool workflowRunning: applyProc.running || installProc.running || uninstallProc.running
+
+    function clearBusyState() {
+        busyMessage = ""
+        busyProviderId = ""
+    }
 
     Process {
         id: applyProc
@@ -178,7 +186,8 @@ ContentPage {
             } else {
                 root.toast(Translation.tr("Apply failed (exit %1).").arg(code))
             }
-            root.busyMessage = ""
+            root.clearBusyState()
+            root.restoreSettingsOverlayAfterPolkit()
         }
     }
 
@@ -190,11 +199,12 @@ ContentPage {
                 root.readActiveTheme()
                 root.toast(Translation.tr("qylock installed. Reboot or run 'systemctl restart sddm'."))
             } else if (code === 126 || code === 127) {
-                root.toast(Translation.tr("Install cancelled."))
+                root.toast(Translation.tr("Install did not start (exit %1).").arg(code))
             } else {
                 root.toast(Translation.tr("Install failed (exit %1). Run ryoku-install-qylock in a terminal to see output.").arg(code))
             }
-            root.busyMessage = ""
+            root.clearBusyState()
+            root.restoreSettingsOverlayAfterPolkit()
         }
     }
 
@@ -210,7 +220,8 @@ ContentPage {
             } else {
                 root.toast(Translation.tr("Uninstall failed (exit %1).").arg(code))
             }
-            root.busyMessage = ""
+            root.clearBusyState()
+            root.restoreSettingsOverlayAfterPolkit()
         }
     }
 
@@ -225,23 +236,51 @@ ContentPage {
     }
 
     // Page handlers
+    // pkexec sanitizes PATH to a system-only set, so ~/.local/share/ryoku/bin
+    // helpers must be invoked via absolute path or pkexec returns 127.
+    function helperPath(name) {
+        var ryokuPath = Quickshell.env("RYOKU_PATH")
+        if (!ryokuPath || ryokuPath.length === 0) {
+            ryokuPath = Quickshell.env("HOME") + "/.local/share/ryoku"
+        }
+        return ryokuPath + "/bin/" + name
+    }
+
+    function yieldSettingsOverlayForPolkit() {
+        reopenSettingsOverlayAfterPolkit = GlobalStates.settingsOverlayOpen
+        if (reopenSettingsOverlayAfterPolkit) {
+            GlobalStates.settingsOverlayOpen = false
+        }
+    }
+
+    function restoreSettingsOverlayAfterPolkit() {
+        if (reopenSettingsOverlayAfterPolkit) {
+            reopenSettingsOverlayAfterPolkit = false
+            GlobalStates.settingsOverlayOpen = true
+        }
+    }
+
     function applyTheme(provider, themeName) {
-        if (applyProc.running) return
+        if (workflowRunning) return
         applyProc.targetTheme = themeName
         if (provider.kind === "builtin") {
-            applyProc.command = ["pkexec", "ryoku-set-sddm-theme", themeName]
+            applyProc.command = ["pkexec", helperPath("ryoku-set-sddm-theme"), themeName]
         } else {
-            applyProc.command = ["pkexec", "ryoku-install-qylock", "--theme", themeName]
+            applyProc.command = ["pkexec", helperPath("ryoku-install-qylock"), "--theme", themeName]
         }
         busyMessage = Translation.tr("Applying %1...").arg(themeName)
+        busyProviderId = provider.providerId
+        yieldSettingsOverlayForPolkit()
         applyProc.running = true
     }
 
     function installProvider(provider) {
-        if (installProc.running) return
+        if (workflowRunning) return
         if (provider.providerId !== "qylock") return
-        installProc.command = ["pkexec", "ryoku-install-qylock", "--default"]
+        installProc.command = ["pkexec", helperPath("ryoku-install-qylock"), "--default"]
         busyMessage = Translation.tr("Installing %1...").arg(provider.displayName)
+        busyProviderId = provider.providerId
+        yieldSettingsOverlayForPolkit()
         installProc.running = true
     }
 
@@ -287,12 +326,54 @@ ContentPage {
     }
 
     // Provider cards
+    Rectangle {
+        id: busyStatus
+        visible: root.busyMessage.length > 0
+        Layout.fillWidth: true
+        Layout.preferredHeight: 50
+        radius: Appearance.rounding.small
+        color: Appearance.colors.colLayer1
+
+        RowLayout {
+            anchors.fill: parent
+            anchors.margins: 12
+            spacing: 12
+
+            StyledText {
+                text: Translation.tr("Working")
+                color: Appearance.colors.colPrimary
+                font.pixelSize: 12
+                font.bold: true
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 6
+
+                StyledText {
+                    Layout.fillWidth: true
+                    text: root.busyMessage
+                    color: Appearance.colors.colSubtext
+                    font.pixelSize: 12
+                    wrapMode: Text.WordWrap
+                }
+
+                StyledIndeterminateProgressBar {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 4
+                }
+            }
+        }
+    }
+
     Repeater {
         model: root.providers
         delegate: ProviderCard {
             provider: modelData
             installed: root.providerInstalled(modelData)
             activeTheme: root.activeTheme
+            busy: root.busyProviderId === modelData.providerId
+            busyMessage: root.busyMessage
             onApplyTheme: themeName => root.applyTheme(modelData, themeName)
             onInstallProvider: root.installProvider(modelData)
             onUninstallProvider: root.confirmUninstall(modelData)
@@ -309,19 +390,6 @@ ContentPage {
             anchors.centerIn: parent
             text: root.toastText
             font.pixelSize: 12
-        }
-    }
-
-    Rectangle {
-        visible: root.busyMessage.length > 0
-        Layout.fillWidth: true
-        Layout.preferredHeight: 36
-        radius: Appearance.rounding.small
-        color: Appearance.colors.colLayer1
-        StyledText {
-            anchors.centerIn: parent
-            text: root.busyMessage
-            font.italic: true
         }
     }
 
@@ -355,9 +423,11 @@ ContentPage {
         }
 
         onAccepted: {
-            if (uninstallProc.running) return
-            uninstallProc.command = ["pkexec", "ryoku-uninstall-qylock"]
+            if (root.workflowRunning) return
+            uninstallProc.command = ["pkexec", root.helperPath("ryoku-uninstall-qylock")]
             root.busyMessage = Translation.tr("Removing %1...").arg(providerToRemove.displayName)
+            root.busyProviderId = providerToRemove.providerId
+            root.yieldSettingsOverlayForPolkit()
             uninstallProc.running = true
         }
     }
@@ -367,6 +437,8 @@ ContentPage {
         property var provider
         property bool installed: false
         property string activeTheme: ""
+        property bool busy: false
+        property string busyMessage: ""
 
         signal applyTheme(string themeName)
         signal installProvider()
@@ -491,7 +563,27 @@ ContentPage {
                     provider: providerCardRoot.provider
                     installed: providerCardRoot.installed
                     activeTheme: providerCardRoot.activeTheme
+                    busy: providerCardRoot.busy
                     onApplyTheme: themeName => providerCardRoot.applyTheme(themeName)
+                }
+
+                RowLayout {
+                    visible: providerCardRoot.busy
+                    Layout.fillWidth: true
+                    spacing: 10
+
+                    StyledIndeterminateProgressBar {
+                        Layout.preferredWidth: 120
+                        Layout.preferredHeight: 4
+                    }
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        text: providerCardRoot.busyMessage
+                        color: Appearance.colors.colSubtext
+                        font.pixelSize: 12
+                        wrapMode: Text.WordWrap
+                    }
                 }
 
                 // Action row
@@ -504,12 +596,14 @@ ContentPage {
 
                     RippleButton {
                         visible: provider.kind === "external" && providerCardRoot.installed
+                        enabled: !providerCardRoot.busy
                         buttonText: Translation.tr("Update")
                         onClicked: providerCardRoot.installProvider()
                     }
 
                     RippleButton {
                         visible: provider.kind === "external" && providerCardRoot.installed
+                        enabled: !providerCardRoot.busy
                         buttonText: Translation.tr("Uninstall")
                         colBackground: "transparent"
                         colBackgroundHover: Qt.rgba(Appearance.colors.colError.r,
@@ -520,6 +614,7 @@ ContentPage {
 
                     RippleButton {
                         visible: provider.kind === "external" && !providerCardRoot.installed
+                        enabled: !providerCardRoot.busy
                         buttonText: Translation.tr("Install %1").arg(provider.displayName)
                         colBackground: provider.accentColor
                         colBackgroundHover: provider.accentColor
@@ -535,6 +630,7 @@ ContentPage {
         property var provider
         property bool installed: false
         property string activeTheme: ""
+        property bool busy: false
         signal applyTheme(string themeName)
 
         Layout.fillWidth: true
@@ -583,7 +679,7 @@ ContentPage {
                     themeName: modelData.name
                     presetSource: modelData.source
                     isActive: stripRoot.activeTheme === modelData.name
-                    clickable: stripRoot.provider.kind === "builtin" || stripRoot.installed
+                    clickable: !stripRoot.busy && (stripRoot.provider.kind === "builtin" || stripRoot.installed)
                     onClicked: stripRoot.applyTheme(themeName)
                 }
             }
