@@ -570,7 +570,11 @@ ContentPage {
 
         GridLayout {
             Layout.fillWidth: true
-            columns: 4
+            // Responsive: pack as many ~200px tiles as fit, with one tile
+            // minimum so the grid never collapses to zero columns.
+            // 220 = preferred tile width (200) + columnSpacing (8) + a
+            // little slack to avoid wrapping mid-resize.
+            columns: Math.max(1, Math.floor(width / 220))
             rowSpacing: 8
             columnSpacing: 8
 
