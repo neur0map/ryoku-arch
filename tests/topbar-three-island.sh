@@ -53,7 +53,7 @@ assert_file "shell/modules/bar/threeIsland/RyokuLeftIsland.qml"
 assert_file "shell/modules/bar/threeIsland/RyokuCenterIsland.qml"
 assert_file "shell/modules/bar/threeIsland/RyokuRightIsland.qml"
 assert_file "shell/modules/bar/threeIsland/RyokuKanjiClock.qml"
-assert_file "shell/modules/bar/threeIsland/RyokuSecPulse.qml"
+assert_file "shell/modules/bar/threeIsland/SecPulseIndicator.qml"
 
 # 2. Singleton service exists and is registered
 assert_file "shell/services/RyokuSecPulse.qml"

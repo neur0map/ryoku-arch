@@ -28,7 +28,7 @@ Item {
         anchors.rightMargin: 8
         spacing: 10
 
-        RyokuSecPulse {
+        SecPulseIndicator {
             visible: root.showSecPulse
             Layout.alignment: Qt.AlignVCenter
         }
