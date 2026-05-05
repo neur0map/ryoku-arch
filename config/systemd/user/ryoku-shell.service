@@ -1,5 +1,5 @@
 [Unit]
-Description=Ryoku shell
+Description=Ryoku
 # Ordering: wait for the compositor to signal readiness (niri is Type=notify,
 # so graphical-session.target is only reached once the Wayland socket exists).
 After=graphical-session.target
@@ -52,4 +52,4 @@ IOSchedulingPriority=2
 
 # No [Install] section; wiring is managed by Ryoku compatibility setup, which
 # creates a compositor-specific wants link (e.g. niri.service.wants/) so
-# Ryoku shell only starts under the correct compositor, not under KDE/GNOME/etc.
+# Ryoku only starts under the correct compositor, not under KDE/GNOME/etc.

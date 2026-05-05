@@ -10,7 +10,7 @@ REPLACEMENTS_FILE="$RYOKU_PATH/default/ryoku-shell/branding-replacements.tsv"
 CONFIG_OVERRIDES_FILE="$RYOKU_PATH/default/ryoku-shell/config-overrides.json"
 
 log() {
-  printf 'Ryoku shell branding: %s\n' "$1"
+  printf 'Ryoku branding: %s\n' "$1"
 }
 
 install_asset() {

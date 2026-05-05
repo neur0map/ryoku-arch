@@ -23,6 +23,6 @@ spawn-at-startup "bash" "-c" "wl-paste --type image --watch cliphist store &"
 // patches this line accordingly (KDE, GNOME, MATE, LXQt, or lxpolkit).
 spawn-at-startup "/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"
 
-// ── Ryoku shell ──────────────────────────────────────────────────────────────
+// ── Ryoku ──────────────────────────────────────────────────────────────
 // Ryoku is managed by the user systemd service (ryoku-shell.service).
 // Do not add a compositor startup entry here or you'll get two shells.

@@ -35,7 +35,7 @@ but qylock remains available through `ryoku-install-qylock`.
 
 ## ilyamiro/nixos-configuration
 
-Earlier Ryoku shell work was inspired by ilyamiro's NixOS configuration,
+Earlier Ryoku work was inspired by ilyamiro's NixOS configuration,
 especially the Quickshell music popup and equalizer work. Ryoku does not
 vendor source from this repository in the current Niri tree.
 
