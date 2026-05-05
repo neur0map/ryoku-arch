@@ -25,8 +25,12 @@ ships its own widgets and its own per-pill background painting.
 - Add `cornerStyle: 4` ("Three-Island") as a fifth, mutually exclusive value.
 - Render three separate pills: two hug the screen corners (top edge flush,
   inner corners rounded), one floats in the middle with full rounding.
-- Keep all existing files in `shell/modules/bar/` byte-identical except a
-  single `Loader` branch added in `Bar.qml`.
+- Keep all existing files in `shell/modules/bar/` byte-identical except
+  `Bar.qml`, which receives two small edits: (1) wrap the inline
+  `BarContent {}` in a `Loader` that switches between `BarContent` and the
+  new `RyokuThreeIslandContent`, and (2) extend the existing
+  `roundDecorators` Loader condition from `cornerStyle === 0` to
+  `cornerStyle === 0 || cornerStyle === 4`.
 - Reuse existing widgets (`Logo`, `ActiveWindow`, `BarTaskbar`, `Workspaces`)
   composed into the new layout without modification.
 - Add two new Ryoku-flavored widgets (`RyokuKanjiClock`, `RyokuSecPulse`)
@@ -64,31 +68,47 @@ ships its own widgets and its own per-pill background painting.
 
 ### Single Loader switch in `Bar.qml`
 
-`Bar.qml` already wraps `BarContent` inside a `MouseArea` (the hover region).
-That `BarContent` becomes the inactive branch of a new `Loader`:
+`Bar.qml` currently instantiates `BarContent { id: barContent; ...anchors;
+Behavior on topMargin; states... }` inside the hover region. The properties
+set at that use-site (id, height, anchors, animations, states) are not
+internal to `BarContent.qml` - they live in `Bar.qml`. They move onto a new
+`Loader` that takes BarContent's place:
 
 ```qml
 Loader {
-    id: barContentLoader
-    anchors { /* same anchors BarContent currently uses */ }
+    id: barContent
+    height: Appearance.sizes.barHeight
+    anchors { /* unchanged - same right/left/top + topMargin currently here */ }
+    Behavior on anchors.topMargin { /* unchanged */ }
+    Behavior on anchors.bottomMargin { /* unchanged */ }
+    states: State { /* unchanged - "bottom" state with AnchorChanges */ }
+
     sourceComponent: (Config.options?.bar?.cornerStyle === 4
                      && !(Config.options?.bar?.bottom ?? false)
                      && !(Config.options?.bar?.vertical ?? false))
         ? threeIslandComponent
         : barContentComponent
 }
-Component { id: barContentComponent; BarContent { /* existing usage */ } }
-Component { id: threeIslandComponent; RyokuThreeIslandContent { /* same anchors */ } }
+Component { id: barContentComponent; BarContent {} }
+Component { id: threeIslandComponent; RyokuThreeIslandContent {} }
 ```
 
-This is the only change to existing files in `shell/modules/bar/`. Every
-other property exposed by `BarContent` (`implicitHeight`, the Behavior on
-`anchors.topMargin`, the `states` block for bottom anchoring) is replicated
-on the Loader so the surrounding `Bar.qml` code reads from the loaded
-component identically. `BarContent.qml` itself is not edited.
+Both loaded components fill the Loader (the Loader has explicit `height`
+and edge-anchors). `BarContent.qml` itself is not edited - the only change
+is in `Bar.qml`, where the inline `BarContent { ... }` becomes a `Loader`
+with the same id and the same outer properties. Surrounding code that
+references `barContent` by id (`hoverMaskRegion.fill: barContent`,
+`roundDecorators.anchors.top: barContent.bottom`) continues to bind to the
+Loader, so it reads geometry identically.
+
+The `roundDecorators` Loader (Bar.qml line 169) currently activates when
+`cornerStyle === 0` (Hug). Its condition extends to
+`cornerStyle === 0 || cornerStyle === 4` so the corner-hug decorators draw
+under the Three-Island corner pills as well.
 
 When Three-Island is not selected, the Loader's source is `BarContent` and
-the bar behaves byte-identically to today.
+the bar behaves identically to today (the Loader wrap adds one extra QML
+node in the tree but no rendered pixels change).
 
 ### New file tree
 
@@ -291,6 +311,8 @@ workspace state, network/Bluetooth/notifications/mic/volume in
 
 - `Bar.qml` wraps the bar-content rendering in a `Loader` whose source
   switches on `cornerStyle === 4 && !bar.bottom && !bar.vertical`.
+- `Bar.qml`'s `roundDecorators` Loader condition includes
+  `cornerStyle === 4` alongside `cornerStyle === 0`.
 - `BarContent.qml` is byte-identical to the previous commit
   (`git show HEAD~:shell/modules/bar/BarContent.qml` diff is empty).
 - Files exist at every path under `shell/modules/bar/threeIsland/`.
