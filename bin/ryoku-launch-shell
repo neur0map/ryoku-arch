@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Compatibility launcher for the Ryoku shell.
+# Compatibility launcher for the Ryoku.
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 

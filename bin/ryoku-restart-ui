@@ -13,8 +13,8 @@ usage() {
 Usage:
   ryoku-restart-ui [--quiet]
 
-Restarts Ryoku shell/session UI components that commonly get stuck:
-Ryoku shell state, portals, and clipboard watchers.
+Restarts Ryoku/session UI components that commonly get stuck:
+Ryoku state, portals, and clipboard watchers.
 USAGE
 }
 
