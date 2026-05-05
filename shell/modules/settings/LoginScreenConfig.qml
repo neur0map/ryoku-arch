@@ -142,6 +142,70 @@ ContentPage {
         refreshQylockThemes()
     }
 
+    // ── Toast plumbing ───────────────────────────────────────────────
+    property string toastText: ""
+    Timer {
+        id: toastTimer
+        interval: 4000
+        onTriggered: root.toastText = ""
+    }
+    function toast(text) {
+        root.toastText = text
+        toastTimer.restart()
+    }
+
+    // ── Workflow processes ───────────────────────────────────────────
+    property string busyMessage: ""
+
+    Process {
+        id: applyProc
+        property string targetTheme: ""
+        onExited: code => {
+            if (code === 0) {
+                root.refreshProviderState()
+                root.readActiveTheme()
+                root.toast(Translation.tr("Theme applied. Reboot or run 'systemctl restart sddm'."))
+            } else if (code === 126 || code === 127) {
+                // user cancelled polkit dialog
+            } else {
+                root.toast(Translation.tr("Apply failed (exit %1).").arg(code))
+            }
+            root.busyMessage = ""
+        }
+    }
+
+    Process {
+        id: installProc
+        onExited: code => {
+            if (code === 0) {
+                root.refreshProviderState()
+                root.readActiveTheme()
+                root.toast(Translation.tr("qylock installed. Reboot or run 'systemctl restart sddm'."))
+            } else if (code === 126 || code === 127) {
+                root.toast(Translation.tr("Install cancelled."))
+            } else {
+                root.toast(Translation.tr("Install failed (exit %1). Run ryoku-install-qylock in a terminal to see output.").arg(code))
+            }
+            root.busyMessage = ""
+        }
+    }
+
+    Process {
+        id: uninstallProc
+        onExited: code => {
+            if (code === 0) {
+                root.refreshProviderState()
+                root.readActiveTheme()
+                root.toast(Translation.tr("qylock removed. ii-pixel is now active. Reboot or run 'systemctl restart sddm'."))
+            } else if (code === 126 || code === 127) {
+                // user cancelled polkit dialog
+            } else {
+                root.toast(Translation.tr("Uninstall failed (exit %1).").arg(code))
+            }
+            root.busyMessage = ""
+        }
+    }
+
     Component.onCompleted: {
         readActiveTheme()
         refreshProviderState()
@@ -152,15 +216,31 @@ ContentPage {
         refreshProviderState()
     }
 
-    // Page handlers (stubs; real Process wiring in Task 10)
+    // Page handlers
     function applyTheme(provider, themeName) {
-        console.log("applyTheme stub:", provider.providerId, themeName)
+        if (applyProc.running) return
+        applyProc.targetTheme = themeName
+        if (provider.kind === "builtin") {
+            applyProc.command = ["pkexec", "ryoku-set-sddm-theme", themeName]
+        } else {
+            applyProc.command = ["pkexec", "ryoku-install-qylock", "--theme", themeName]
+        }
+        busyMessage = Translation.tr("Applying %1...").arg(themeName)
+        applyProc.running = true
     }
+
     function installProvider(provider) {
-        console.log("installProvider stub:", provider.providerId)
+        if (installProc.running) return
+        if (provider.providerId !== "qylock") return
+        installProc.command = ["pkexec", "ryoku-install-qylock", "--default"]
+        busyMessage = Translation.tr("Installing %1...").arg(provider.displayName)
+        installProc.running = true
     }
+
     function confirmUninstall(provider) {
-        console.log("confirmUninstall stub:", provider.providerId)
+        if (provider.providerId !== "qylock") return
+        uninstallDialog.providerToRemove = provider
+        uninstallDialog.open()
     }
 
     ColumnLayout {
@@ -211,6 +291,69 @@ ContentPage {
                 onInstallProvider: root.installProvider(modelData)
                 onUninstallProvider: root.confirmUninstall(modelData)
             }
+        }
+
+        Rectangle {
+            visible: root.toastText.length > 0
+            Layout.fillWidth: true
+            Layout.preferredHeight: 36
+            radius: Appearance.rounding.small
+            color: Appearance.colors.colLayer1
+            StyledText {
+                anchors.centerIn: parent
+                text: root.toastText
+                font.pixelSize: 12
+            }
+        }
+
+        Rectangle {
+            visible: root.busyMessage.length > 0
+            Layout.fillWidth: true
+            Layout.preferredHeight: 36
+            radius: Appearance.rounding.small
+            color: Appearance.colors.colLayer1
+            StyledText {
+                anchors.centerIn: parent
+                text: root.busyMessage
+                font.italic: true
+            }
+        }
+    }
+
+    Dialog {
+        id: uninstallDialog
+        property var providerToRemove
+        modal: true
+        title: providerToRemove ? Translation.tr("Remove %1?").arg(providerToRemove.displayName) : ""
+        standardButtons: Dialog.Cancel | Dialog.Ok
+        Component.onCompleted: {
+            var okBtn = standardButton(Dialog.Ok)
+            if (okBtn) {
+                okBtn.text = Translation.tr("Remove")
+            }
+        }
+
+        contentItem: ColumnLayout {
+            spacing: 12
+            StyledText {
+                Layout.maximumWidth: 480
+                wrapMode: Text.WordWrap
+                text: Translation.tr("This removes the qylock theme bundle and all qylock-installed SDDM themes from your system. Your active greeter will fall back to the built-in ii-pixel theme.")
+            }
+            StyledText {
+                Layout.maximumWidth: 480
+                wrapMode: Text.WordWrap
+                color: Appearance.colors.colSubtext
+                font.pixelSize: 12
+                text: Translation.tr("Stock SDDM themes (elarun, maldives, maya) and the built-in ii-pixel theme are not affected. This cannot be undone, but you can re-install qylock at any time from this page.")
+            }
+        }
+
+        onAccepted: {
+            if (uninstallProc.running) return
+            uninstallProc.command = ["pkexec", "ryoku-uninstall-qylock"]
+            root.busyMessage = Translation.tr("Removing %1...").arg(providerToRemove.displayName)
+            uninstallProc.running = true
         }
     }
 
