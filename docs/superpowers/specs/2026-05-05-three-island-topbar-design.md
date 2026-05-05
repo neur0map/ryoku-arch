@@ -31,8 +31,8 @@ ships its own widgets and its own per-pill background painting.
   new `RyokuThreeIslandContent`, and (2) extend the existing
   `roundDecorators` Loader condition from `cornerStyle === 0` to
   `cornerStyle === 0 || cornerStyle === 4`.
-- Reuse existing widgets (`Logo`, `ActiveWindow`, `BarTaskbar`, `Workspaces`)
-  composed into the new layout without modification.
+- Reuse existing widgets (`LeftSidebarButton`, `ActiveWindow`, `BarTaskbar`,
+  `Workspaces`) composed into the new layout without modification.
 - Add two new Ryoku-flavored widgets (`RyokuKanjiClock`, `RyokuSecPulse`)
   registered as first-class modules under `bar.modules.*`, mirroring the
   existing module-toggle pattern.
@@ -118,7 +118,7 @@ Everything new lives under one isolated directory:
 shell/modules/bar/threeIsland/
 ├── RyokuThreeIslandContent.qml   # the layout swap target; owns 3 islands + 3 scroll regions
 ├── RyokuIsland.qml               # one pill: bg/border/rounding/blur (mirrors BarContent.barBackground)
-├── RyokuLeftIsland.qml           # composes Logo + ActiveWindow/Taskbar (existing widgets)
+├── RyokuLeftIsland.qml           # composes LeftSidebarButton + ActiveWindow/Taskbar (existing widgets)
 ├── RyokuCenterIsland.qml         # composes Workspaces (existing widget)
 ├── RyokuRightIsland.qml          # composes RyokuKanjiClock + RyokuSecPulse + rightSidebarButton
 ├── RyokuKanjiClock.qml           # NEW widget
@@ -135,7 +135,11 @@ the four existing styles.
 
 ### Service for `RyokuSecPulse`
 
-`shell/services/RyokuSecPulse.qml` - a singleton service exposing:
+`shell/services/RyokuSecPulse.qml` - a singleton service registered in
+`shell/services/qmldir` with the line
+`singleton RyokuSecPulse 1.0 RyokuSecPulse.qml` (alphabetically inserted
+to match the existing convention). Imported by widgets as
+`import qs.services` and used as `RyokuSecPulse.<property>`. Exposes:
 
 - `vpnActive` (bool) - derived from `wg show interfaces` having any output
 - `publicIp` (string) - populated only when `bar.secPulse.showPublicIp` is on
@@ -187,7 +191,8 @@ Three pills inside a transparent bar surface:
 
 ## Content per island (Loadout 1 - Signature)
 
-- **Left**: `Logo` (the 力 kanji button) + `ActiveWindow` (or `BarTaskbar`
+- **Left**: `LeftSidebarButton` (the existing 力 / `bar.topLeftIcon` button,
+  `shell/modules/bar/LeftSidebarButton.qml`) + `ActiveWindow` (or `BarTaskbar`
   if `bar.modules.taskbar` is on) - composes existing widgets unmodified.
 - **Center**: `Workspaces` only. The existing `Workspaces.qml` is reused
   as-is. Default number style remains whatever the user has configured at
@@ -236,7 +241,7 @@ widgets read both gates: they render only when
 
 Three additions; nothing existing is removed.
 
-1. The corner-style `ConfigSelectionArray` at line ~120 gets one new entry:
+1. The corner-style `ConfigSelectionArray` at line ~121 gets one new entry:
    `{ displayName: tr("Three-Island"), icon: "view_column_2", value: 4 }`.
 2. The Modules `SettingsCardSection` gets two new `SettingsSwitch` entries
    alongside Weather/Taskbar - one for `bar.modules.kanjiClock`, one for
@@ -280,13 +285,86 @@ Same one-entry addition to its corner-style `ConfigSelectionArray`.
 `default/ryoku-shell/config-overrides.json` is not modified. Ryoku-shell
 distro users continue to ship with whatever default they have today.
 
-## Migration
+## Deployment & live-system propagation
 
-No `migrations/<timestamp>.sh` script is required. `cornerStyle === 4` is
-opt-in, and the new `bar.modules.kanjiClock` / `bar.modules.secPulse`
-keys default to `true` only matter when a user has selected Three-Island.
-Existing user `config.json` files that do not contain these keys read the
-defaults from `Config.qml` and continue working unchanged.
+Three trees hold copies of the shell tree. Changes must reach all three:
+
+1. **Dev repo** - `$RYOKU_PATH/shell/` (vendored source, tracked in git;
+   `RYOKU_PATH` is set by `lib/runtime-env.sh`). All edits in this spec
+   are made here.
+2. **Vendor target** - `${RYOKU_SHELL_PATH:-$HOME/.local/share/ryoku-shell}/`
+   (`SHELL_PATH` in `install/config/shell.sh`). The deployed user-shared
+   shell tree.
+3. **Quickshell runtime** -
+   `${RYOKU_SHELL_RUNTIME_PATH:-$HOME/.config/quickshell/ryoku-shell}/`
+   (`RUNTIME_SHELL_PATH` in `install/config/ryoku-shell-branding.sh`).
+   What Quickshell actually loads.
+
+Existing flow: `install/config/shell.sh` only copies dev->vendor on first
+install (it has a `[[ ! -d $SHELL_PATH ]]` guard). After that, vendor->runtime
+is rsync'd by the vendored `setup install` using
+`shell/sdata/runtime-payload-dirs.txt` (which already lists `modules` and
+`services`, so the new files in `shell/modules/bar/threeIsland/` and the
+new `shell/services/RyokuSecPulse.qml` automatically rsync once they exist
+in the vendor tree).
+
+The gap is dev->vendor on existing installs. A new migration closes it.
+
+### Migration `migrations/<timestamp>.sh`
+
+Idempotent script that:
+
+1. Sources `lib/runtime-env.sh` (gives `RYOKU_PATH`, `RYOKU_STATE_PATH`).
+2. Resolves `SHELL_PATH="${RYOKU_SHELL_PATH:-$HOME/.local/share/ryoku-shell}"`.
+3. If `$SHELL_PATH` exists: refreshes the runtime-payload directories from
+   the dev tree using rsync against `$RYOKU_PATH/shell/sdata/runtime-payload-dirs.txt`:
+   ```bash
+   while IFS= read -r dir; do
+     [[ -n $dir ]] || continue
+     [[ -d "$RYOKU_PATH/shell/$dir" ]] || continue
+     mkdir -p "$SHELL_PATH/$dir"
+     rsync -a --exclude='AGENTS.md' "$RYOKU_PATH/shell/$dir/" "$SHELL_PATH/$dir/"
+   done < "$RYOKU_PATH/shell/sdata/runtime-payload-dirs.txt"
+   ```
+   No `--delete` flag - the migration is purely additive. Existing files in
+   `$SHELL_PATH/modules/bar/`, `$SHELL_PATH/services/`, etc. are overwritten
+   with their dev-tree counterparts (so the `Bar.qml` Loader edit, the
+   `Config.qml` schema additions, and the `BarConfig.qml` / `QuickConfig.qml`
+   / `welcome.qml` picker entries propagate).
+4. Re-runs the in-tree setup to push vendor->runtime:
+   ```bash
+   if [[ -x $SHELL_PATH/setup ]]; then
+     ( cd "$SHELL_PATH" && ./setup install -y --skip-deps --skip-sysupdate )
+   fi
+   ```
+5. `systemctl --user restart ryoku-shell.service || true` so the new files
+   load without the user manually restarting.
+
+Failure modes the migration handles:
+
+- `$SHELL_PATH` does not exist (fresh install path will copy on next
+  `install/config/shell.sh` run): exit 0 quietly.
+- `$RYOKU_PATH/shell/sdata/runtime-payload-dirs.txt` missing: fall back to
+  rsyncing a hard-coded `(modules services scripts assets translations defaults dots sdata)`
+  list.
+- `setup install` non-zero: surface error, do not restart shell (let
+  `bin/ryoku-migrate` report the failure with its standard re-run hint).
+
+### Why no perl-regex branding patch
+
+Unlike the `2026-05-03-topbar-three-island-frame-design.md` approach,
+this spec does not patch `BarContent.qml` via `install/config/ryoku-shell-branding.sh`.
+The dev-tree edits to `Bar.qml`, `Config.qml`, `BarConfig.qml`, `QuickConfig.qml`,
+and `welcome.qml` are first-class source edits, propagated to live by the
+migration above. `ryoku-shell-branding.sh` is left unchanged.
+
+### `config.json` compatibility
+
+`cornerStyle === 4` is opt-in. The new `bar.modules.kanjiClock` /
+`bar.modules.secPulse` / `bar.kanjiClock.*` / `bar.secPulse.*` keys default
+to the values in `Config.qml`; existing user `config.json` files that lack
+these keys read the defaults and continue working. No `config.json`
+rewriting is needed.
 
 ## Data flow
 
@@ -307,27 +385,51 @@ workspace state, network/Bluetooth/notifications/mic/volume in
 
 ## Testing
 
-### Static (`tests/three-island-bar.sh`, new file)
+### Static (`tests/topbar-three-island.sh`, new file - matches existing tests/ kebab-case naming)
 
-- `Bar.qml` wraps the bar-content rendering in a `Loader` whose source
-  switches on `cornerStyle === 4 && !bar.bottom && !bar.vertical`.
-- `Bar.qml`'s `roundDecorators` Loader condition includes
+- `shell/modules/bar/Bar.qml` wraps the bar-content rendering in a `Loader`
+  whose source switches on `cornerStyle === 4 && !bar.bottom && !bar.vertical`.
+- `shell/modules/bar/Bar.qml`'s `roundDecorators` Loader condition includes
   `cornerStyle === 4` alongside `cornerStyle === 0`.
-- `BarContent.qml` is byte-identical to the previous commit
-  (`git show HEAD~:shell/modules/bar/BarContent.qml` diff is empty).
-- Files exist at every path under `shell/modules/bar/threeIsland/`.
-- `Config.qml` declares the new keys with the documented defaults.
-- `BarConfig.qml`, `QuickConfig.qml`, and `welcome.qml` each contain
-  exactly one `value: 4` corner-style option.
-- `RyokuSecPulse.qml` does not call `process.start()` /
-  `process.startDetached()` unconditionally inside `Component.onCompleted`
-  - only inside the per-feature gated branches.
-- `tests/ryoku-shell-branding.sh` continues to pass (no regression of the
-  existing branding-script test surface).
+- `shell/modules/bar/BarContent.qml` is unchanged compared to the previous
+  commit (`git show HEAD~:shell/modules/bar/BarContent.qml | diff - shell/modules/bar/BarContent.qml`
+  is empty).
+- Files exist at every path under `shell/modules/bar/threeIsland/`
+  (`RyokuThreeIslandContent.qml`, `RyokuIsland.qml`, `RyokuLeftIsland.qml`,
+  `RyokuCenterIsland.qml`, `RyokuRightIsland.qml`, `RyokuKanjiClock.qml`,
+  `RyokuSecPulse.qml`).
+- `shell/services/RyokuSecPulse.qml` exists.
+- `shell/services/qmldir` contains the line
+  `singleton RyokuSecPulse 1.0 RyokuSecPulse.qml`.
+- `shell/modules/common/Config.qml` declares `bar.modules.kanjiClock`,
+  `bar.modules.secPulse`, `bar.kanjiClock.{showDate,useKanjiDigits}`, and
+  `bar.secPulse.{showVpn,showPublicIp,showListening}` with the documented
+  defaults.
+- `shell/modules/settings/BarConfig.qml`, `shell/modules/settings/QuickConfig.qml`,
+  and `shell/welcome.qml` each contain exactly one `value: 4` entry inside
+  the corner-style `ConfigSelectionArray`.
+- `shell/services/RyokuSecPulse.qml` does not call `process.start()` /
+  `process.startDetached()` unconditionally inside `Component.onCompleted` -
+  only inside the per-feature gated branches.
+- A migration script exists at `migrations/<timestamp>.sh` that references
+  `RYOKU_SHELL_PATH` / `runtime-payload-dirs.txt` and re-runs
+  `$SHELL_PATH/setup install`.
+- `tests/ryoku-shell-branding.sh` still passes (no regression of the
+  existing branding-script test surface; this spec does not modify
+  `install/config/ryoku-shell-branding.sh`).
 
 ### Manual
 
-Restart the shell on each scenario:
+Run the migration first - `bin/ryoku-migrate` - so the live system has the
+new files. Confirm files exist at:
+
+- `$SHELL_PATH/modules/bar/threeIsland/RyokuThreeIslandContent.qml`
+- `$SHELL_PATH/services/RyokuSecPulse.qml`
+- `$RUNTIME_SHELL_PATH/modules/bar/threeIsland/RyokuThreeIslandContent.qml`
+- `$RUNTIME_SHELL_PATH/services/RyokuSecPulse.qml`
+
+(`SHELL_PATH` and `RUNTIME_SHELL_PATH` resolve via `lib/runtime-env.sh`.)
+Then restart the shell on each scenario:
 
 1. Default config (`cornerStyle = 0`): bar identical to today.
 2. Cycle `cornerStyle = 1, 2, 3`: Float / Rect / Card all unchanged.
@@ -343,6 +445,9 @@ Restart the shell on each scenario:
 6. `bar.secPulse.showPublicIp = false && bar.secPulse.showListening = false`:
    confirm via `pgrep -P $(pgrep -x quickshell) | xargs -I {} ps -p {} -o comm=`
    that no `curl` or `ss` child process exists.
+7. Re-run `bin/ryoku-migrate`: migration script reports already-applied
+   (state-file in `$RYOKU_STATE_PATH/migrations/` exists, so the migration
+   is skipped). Idempotent.
 
 ## Risk
 
@@ -351,7 +456,7 @@ border / rounding / blur logic from `BarContent.qml`. If those upstream
 rules are tweaked later (e.g., a new global style is added, or Aurora's
 blur formula changes), the Three-Island pills will not pick up the change
 automatically. Mitigation: a comment in both files cross-references the
-other, and `tests/three-island-bar.sh` includes a string-grep assertion
+other, and `tests/topbar-three-island.sh` includes a string-grep assertion
 that the Aurora / Ryoku / Material / Cards / Angel branch names listed
 inside `RyokuIsland.qml` match the set listed in `BarContent.qml`'s
 `barBackground` color block. If the upstream set changes, the test fails
