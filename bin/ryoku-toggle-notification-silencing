@@ -2,4 +2,4 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-exec inir notifications toggleSilent
+exec ryoku-shell notifications toggleSilent

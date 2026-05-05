@@ -9,7 +9,7 @@
 //                  < 1.0 = bouncy / oscillates (try 0.5 for visible bounce)
 //                  = 1.0 = critically damped (settles fastest, no overshoot)
 //                  > 1.0 = overdamped (slow, sluggish stop)
-//                  iNiR default: 0.98 = fast settle with barely any bounce.
+//                  Ryoku default: 0.98 = fast settle with barely any bounce.
 //
 //   stiffness      How "snappy" the spring is. Higher = faster movement.
 //                  300 = smooth, 600 = responsive, 900+ = near-instant.

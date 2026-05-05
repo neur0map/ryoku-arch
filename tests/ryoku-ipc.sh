@@ -25,13 +25,13 @@ mkdir -p "$tmpdir/config/current/theme/backgrounds" "$tmpdir/config/backgrounds/
 mkdir -p "$tmpdir/ryoku/bin" "$tmpdir/path" "$tmpdir/state"
 printf '%s\n' "test" > "$tmpdir/config/current/theme.name"
 
-cat >"$tmpdir/path/inir" <<'EOF'
+cat >"$tmpdir/path/ryoku-shell" <<'EOF'
 #!/bin/bash
 mkdir -p "$RYOKU_STATE_PATH"
 printf '%s\n' "$@" >"$RYOKU_STATE_PATH/inir.args"
 exit 0
 EOF
-chmod +x "$tmpdir/path/inir"
+chmod +x "$tmpdir/path/ryoku-shell"
 
 for helper in ryoku-wallpaper-list ryoku-wallpaper-cache ryoku-theme-list ryoku-font-list ryoku-cursor-list; do
   cat >"$tmpdir/ryoku/bin/$helper" <<'EOF'

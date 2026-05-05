@@ -24,11 +24,11 @@ assert_json_eq() {
 
 config_dir="$TEMP_DIR/ryoku-config"
 home_dir="$TEMP_DIR/home"
-shell_config="$home_dir/.config/inir/config.json"
+shell_config="$home_dir/.config/ryoku-shell/config.json"
 
 mkdir -p \
   "$config_dir/current/theme" \
-  "$home_dir/.config/inir"
+  "$home_dir/.config/ryoku-shell"
 
 cat >"$config_dir/current/theme/colors.toml" <<'COLORS'
 accent = "#7fbbb3"

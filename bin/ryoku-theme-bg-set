@@ -36,7 +36,7 @@ if ! ln -nsf "$BACKGROUND" "$CURRENT_BACKGROUND_LINK"; then
   exit 1
 fi
 
-config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/inir"
+config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/ryoku-shell"
 config_file="$config_dir/config.json"
 
 if [[ -f $config_file ]]; then

@@ -16,7 +16,7 @@ for arg in "$@"; do
 Usage:
   ryoku-cmd-screenrecord [--with-desktop-audio] [--with-microphone-audio]
 
-Starts iNiR's region recorder. Audio flags select iNiR's sound-capable
+Starts Ryoku's region recorder. Audio flags select Ryoku's sound-capable
 recording route.
 USAGE
     exit 0
@@ -25,7 +25,7 @@ USAGE
 done
 
 if [[ $with_sound == "true" ]]; then
-  exec inir region recordWithSound
+  exec ryoku-shell region recordWithSound
 fi
 
-exec inir region record
+exec ryoku-shell region record

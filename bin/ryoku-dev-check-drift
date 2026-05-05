@@ -31,7 +31,7 @@ is_dev_mode() {
 is_dev_mode || exit 0
 
 repo_root="$(git rev-parse --show-toplevel)"
-runtime_shell="${RYOKU_SHELL_RUNTIME_PATH:-${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/inir}"
+runtime_shell="${RYOKU_SHELL_RUNTIME_PATH:-${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell}"
 
 failures=()
 
@@ -75,7 +75,7 @@ expect_marker "wallpaper resolution simplification" \
 # qt6-qiooperation-patch is optional, only check if its verify.sh is
 # present in the repo and the live drop-in directory has been touched.
 qt6_verify="$repo_root/distro/arch/qt6-qiooperation-patch/verify.sh"
-qt6_dropin="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/inir.service.d/qt6-qiooperation-patch.conf"
+qt6_dropin="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/ryoku-shell.service.d/qt6-qiooperation-patch.conf"
 if [[ -x $qt6_verify && -f $qt6_dropin ]]; then
   if ! "$qt6_verify" >/dev/null 2>&1; then
     failures+=("[qt6-qiooperation-patch] verify.sh failed (rerun: distro/arch/qt6-qiooperation-patch/apply.sh)")

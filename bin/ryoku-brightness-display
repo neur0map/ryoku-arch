@@ -7,10 +7,10 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 
 step="${1:-+5%}"
 
-if ryoku-cmd-present inir; then
+if ryoku-cmd-present ryoku-shell; then
   case $step in
-  +*) exec inir brightness increment ;;
-  -*) exec inir brightness decrement ;;
+  +*) exec ryoku-shell brightness increment ;;
+  -*) exec ryoku-shell brightness decrement ;;
   esac
 fi
 

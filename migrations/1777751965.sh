@@ -1,7 +1,7 @@
-echo "Clean old Hyprland shell config after Niri/iNiR migration"
+echo "Clean old Hyprland shell config after Niri/Ryoku migration"
 
-if ! command -v inir >/dev/null 2>&1; then
-  echo "iNiR is not installed; deferring old shell config cleanup"
+if ! command -v ryoku-shell >/dev/null 2>&1; then
+  echo "Ryoku is not installed; deferring old shell config cleanup"
   exit 75
 fi
 

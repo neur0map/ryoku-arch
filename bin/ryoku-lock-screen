@@ -10,4 +10,4 @@ fi
 
 pkill -f org.ryoku.screensaver >/dev/null 2>&1 || true
 
-exec inir lock activate
+exec ryoku-shell lock activate

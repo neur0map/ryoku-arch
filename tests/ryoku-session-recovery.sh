@@ -67,7 +67,7 @@ assert_contains bin/ryoku-session-recover 'dbus-update-activation-environment --
 assert_not_contains bin/ryoku-session-recover 'hyprctl|hypridle|waybar|mako|swayosd' \
   "session recovery should not target old Hyprland-era services"
 
-assert_contains bin/ryoku-shell-cleanup-orphans 'inir cleanup-orphans' \
+assert_contains bin/ryoku-shell-cleanup-orphans 'ryoku-shell cleanup-orphans' \
   "shell cleanup should keep upstream Quickshell runtime cleanup"
 assert_contains bin/ryoku-shell-cleanup-orphans 'terminate_exact swayidle' \
   "shell cleanup should stop stale swayidle instances"
@@ -101,10 +101,10 @@ assert_contains install/config/all.sh 'config/session-recover\.sh' \
   "fresh installs should install the Ryoku session recovery hook"
 assert_contains install/config/session-recover.sh 'default/systemd/system-sleep/ryoku-session-recover' \
   "session recovery installer should install the system sleep hook"
-if (( $(grep -c 'ryoku-shell-branding\.sh' install/config/inir.sh) < 2 )); then
-  fail "iNiR setup should re-apply Ryoku branding after service enable rewrites the unit"
+if (( $(grep -c 'ryoku-shell-branding\.sh' install/config/shell.sh) < 2 )); then
+  fail "Shell setup should re-apply Ryoku branding after service enable rewrites the unit"
 fi
-assert_contains config/systemd/user/inir.service 'ryoku-shell-cleanup-orphans --quiet' \
+assert_contains config/systemd/user/ryoku-shell.service 'ryoku-shell-cleanup-orphans --quiet' \
   "Ryoku shell service should use Ryoku cleanup for stale shell helpers"
 assert_contains install/config/ryoku-shell-branding.sh 'lock\.secure' \
   "Ryoku shell branding should harden iNiR lock against insecure session-lock activation"

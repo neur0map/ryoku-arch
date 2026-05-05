@@ -6,8 +6,8 @@ if ryoku-hw-match "XPS"; then
   ryoku-cmd-mic-mute-xps
 elif ryoku-hw-match "ThinkPad"; then
   ryoku-cmd-mic-mute-thinkpad
-elif ryoku-cmd-present inir; then
-  inir audio micMute
+elif ryoku-cmd-present ryoku-shell; then
+  ryoku-shell audio micMute
 else
   wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle
 fi

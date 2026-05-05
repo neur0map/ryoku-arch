@@ -17,7 +17,7 @@ Type=simple
 Environment=QT_SCALE_FACTOR=1
 Environment=QT_LOGGING_RULES=quickshell.dbus.properties=false;qt.qml.settings.warning=false;qt.core.qsettings.warning=false;kf.xmlgui=false;kf.coreaddons=false;kf.config.core=false;kf.iconthemes=false
 
-ExecStart=%h/.local/bin/inir run --session
+ExecStart=%h/.local/bin/ryoku-shell run --session
 SuccessExitStatus=143
 
 # process mode: only SIGTERM the main PID so user-spawned apps (terminals,

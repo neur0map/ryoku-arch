@@ -11,7 +11,7 @@
 state_file = "auto"
 
 [hotkey]
-# Hotkey is configured by Niri/iNiR. Default is Super + Ctrl + X
+# Hotkey is configured by Niri/Ryoku. Default is Super + Ctrl + X
 enabled = false
 
 [audio]

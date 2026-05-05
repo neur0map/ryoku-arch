@@ -80,18 +80,18 @@ EOF
   rm -rf "$temp_dir"
 }
 
-assert_launcher_commands_use_inir_and_fuzzel() {
-  grep -q 'inir overview toggle' "$ROOT_DIR/bin/ryoku-launch-drun" \
-    || fail "ryoku-launch-drun should open the iNiR overview launcher"
+assert_launcher_commands_use_ryoku_shell_and_fuzzel() {
+  grep -q 'ryoku-shell overview toggle' "$ROOT_DIR/bin/ryoku-launch-drun" \
+    || fail "ryoku-launch-drun should open the Ryoku overview launcher"
   grep -q 'fuzzel --dmenu' "$ROOT_DIR/bin/ryoku-launch-drun" \
     || fail "ryoku-launch-drun --dmenu should use fuzzel dmenu mode"
-  grep -q 'inir clipboard toggle' "$ROOT_DIR/bin/ryoku-launch-clipboard" \
-    || fail "ryoku-launch-clipboard should open iNiR clipboard"
+  grep -q 'ryoku-shell clipboard toggle' "$ROOT_DIR/bin/ryoku-launch-clipboard" \
+    || fail "ryoku-launch-clipboard should open Ryoku clipboard"
   [[ ! -e $ROOT_DIR/bin/tofi ]] || fail "bin/tofi should not be installed by Ryoku"
   [[ ! -e $ROOT_DIR/bin/tofi-drun ]] || fail "bin/tofi-drun should not be installed by Ryoku"
 }
 
 assert_terminal_wrapper_prefers_configured_terminal_and_maps_flags
-assert_launcher_commands_use_inir_and_fuzzel
+assert_launcher_commands_use_ryoku_shell_and_fuzzel
 
 echo "PASS: terminal and launcher wrapper tests"

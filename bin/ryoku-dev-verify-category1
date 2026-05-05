@@ -96,7 +96,7 @@ case "$chunk" in
     run_rg 'OMARCHY_PATH|~/.local/share/omarchy' "${existing_paths[@]}"
     ;;
   niri)
-    collect_existing_paths config/niri config/fuzzel config/systemd/user/inir.service
+    collect_existing_paths config/niri config/fuzzel config/systemd/user/ryoku-shell.service
 
     if (( ${#existing_paths[@]} == 0 )); then
       echo "no target paths exist for chunk: $chunk" >&2

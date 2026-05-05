@@ -22,7 +22,7 @@ assert_cleanup_defers_without_success_outside_niri() {
   touch "$temp_dir/ryoku/default/alacritty/screensaver.toml"
   touch "$temp_dir/ryoku/default/ghostty/screensaver"
 
-  cat > "$bin_dir/inir" <<'EOF'
+  cat > "$bin_dir/ryoku-shell" <<'EOF'
 #!/bin/bash
 exit 0
 EOF
@@ -30,7 +30,7 @@ EOF
 #!/bin/bash
 exit 0
 EOF
-  chmod +x "$bin_dir/inir" "$bin_dir/niri"
+  chmod +x "$bin_dir/ryoku-shell" "$bin_dir/niri"
 
   HOME="$home_dir" \
     PATH="$bin_dir:$PATH" \
@@ -68,7 +68,7 @@ assert_ryoku_migrate_does_not_mark_deferred_cleanup() {
   cp "$ROOT_DIR/bin/ryoku-migrate" "$temp_dir/ryoku/bin/ryoku-migrate"
   cp "$ROOT_DIR/lib/runtime-env.sh" "$temp_dir/ryoku/lib/runtime-env.sh"
 
-  cat > "$bin_dir/inir" <<'EOF'
+  cat > "$bin_dir/ryoku-shell" <<'EOF'
 #!/bin/bash
 exit 0
 EOF
@@ -76,7 +76,7 @@ EOF
 #!/bin/bash
 exit 0
 EOF
-  chmod +x "$bin_dir/inir" "$bin_dir/niri" "$temp_dir/ryoku/bin/ryoku-migrate"
+  chmod +x "$bin_dir/ryoku-shell" "$bin_dir/niri" "$temp_dir/ryoku/bin/ryoku-migrate"
 
   HOME="$home_dir" \
     PATH="$bin_dir:$PATH" \
@@ -112,7 +112,7 @@ assert_cleanup_runs_in_niri() {
   printf 'screen\n' > "$temp_dir/ryoku/default/alacritty/screensaver.toml"
   printf 'ghost\n' > "$temp_dir/ryoku/default/ghostty/screensaver"
 
-  cat > "$bin_dir/inir" <<'EOF'
+  cat > "$bin_dir/ryoku-shell" <<'EOF'
 #!/bin/bash
 exit 0
 EOF
@@ -120,7 +120,7 @@ EOF
 #!/bin/bash
 exit 0
 EOF
-  chmod +x "$bin_dir/inir" "$bin_dir/niri"
+  chmod +x "$bin_dir/ryoku-shell" "$bin_dir/niri"
 
   HOME="$home_dir" \
     PATH="$bin_dir:$PATH" \

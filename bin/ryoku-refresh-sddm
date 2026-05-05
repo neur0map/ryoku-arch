@@ -4,12 +4,12 @@ set -euo pipefail
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-INIR_PATH="${RYOKU_INIR_PATH:-$HOME/.local/share/inir}"
-SDDM_SCRIPT="$INIR_PATH/scripts/sddm/install-pixel-sddm.sh"
+SHELL_PATH="${RYOKU_SHELL_PATH:-$HOME/.local/share/ryoku-shell}"
+SDDM_SCRIPT="$SHELL_PATH/scripts/sddm/install-pixel-sddm.sh"
 
 if [[ ! -x $SDDM_SCRIPT ]]; then
-  echo "ryoku-refresh-sddm: missing iNiR SDDM installer at $SDDM_SCRIPT" >&2
+  echo "ryoku-refresh-sddm: missing Ryoku shell SDDM installer at $SDDM_SCRIPT" >&2
   exit 1
 fi
 
-INIR_SDDM_AUTO_APPLY=yes REPO_ROOT="$INIR_PATH" exec "$SDDM_SCRIPT"
+RYOKU_SHELL_SDDM_AUTO_APPLY=yes REPO_ROOT="$SHELL_PATH" exec "$SDDM_SCRIPT"
