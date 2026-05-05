@@ -11,6 +11,29 @@ ContentPage {
     settingsPageIndex: 13
     settingsPageName: Translation.tr("About")
 
+    // Compact circle icon button used by every card in this page so the
+    // bento grid stays consistent across windowed and floating settings
+    // modes (same fixed 36x36 footprint regardless of card width).
+    component CircleIconButton: RippleButton {
+        property string icon: ""
+        property string tooltip: ""
+
+        implicitWidth: 36
+        implicitHeight: 36
+        buttonRadius: width / 2
+        colBackground: Appearance.colors.colLayer2
+
+        contentItem: MaterialSymbol {
+            anchors.centerIn: parent
+            text: icon
+            iconSize: Appearance.font.pixelSize.large
+            color: Appearance.colors.colOnSecondaryContainer
+            fill: 1
+        }
+
+        StyledToolTip { text: tooltip }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 16
@@ -19,7 +42,7 @@ ContentPage {
         // ── Top row: Ryoku hero (2/3) + System info (1/3) ──────────────────
         RowLayout {
             Layout.fillWidth: true
-            Layout.preferredHeight: 280
+            Layout.preferredHeight: 260
             spacing: 16
 
             // ── Ryoku hero card ─────────────────────────────────────────────
@@ -188,21 +211,19 @@ ContentPage {
                     Item { Layout.fillHeight: true }
 
                     // Action buttons
-                    Flow {
+                    Row {
                         Layout.fillWidth: true
                         spacing: 8
 
-                        RippleButtonWithIcon {
-                            implicitHeight: 28
-                            materialIcon: "auto_stories"
-                            mainText: Translation.tr("Documentation")
+                        CircleIconButton {
+                            icon: "auto_stories"
+                            tooltip: Translation.tr("Documentation")
                             onClicked: Qt.openUrlExternally("https://github.com/neur0map/ryoku-arch")
                         }
 
-                        RippleButtonWithIcon {
-                            implicitHeight: 28
-                            materialIcon: "bug_report"
-                            mainText: Translation.tr("Issues")
+                        CircleIconButton {
+                            icon: "bug_report"
+                            tooltip: Translation.tr("Issues")
                             onClicked: Qt.openUrlExternally("https://github.com/neur0map/ryoku-arch/issues")
                         }
                     }
@@ -283,23 +304,21 @@ ContentPage {
                     Item { Layout.fillHeight: true }
 
                     // Action shortcuts: distro Documentation / Help / Bug
-                    Flow {
+                    Row {
                         Layout.fillWidth: true
                         spacing: 8
 
-                        RippleButtonWithIcon {
-                            implicitHeight: 28
+                        CircleIconButton {
                             visible: SystemInfo.documentationUrl && SystemInfo.documentationUrl.length > 0
-                            materialIcon: "auto_stories"
-                            mainText: Translation.tr("Documentation")
+                            icon: "auto_stories"
+                            tooltip: Translation.tr("Documentation")
                             onClicked: Qt.openUrlExternally(SystemInfo.documentationUrl)
                         }
 
-                        RippleButtonWithIcon {
-                            implicitHeight: 28
+                        CircleIconButton {
                             visible: SystemInfo.bugReportUrl && SystemInfo.bugReportUrl.length > 0
-                            materialIcon: "bug_report"
-                            mainText: Translation.tr("Report a Bug")
+                            icon: "bug_report"
+                            tooltip: Translation.tr("Report a Bug")
                             onClicked: Qt.openUrlExternally(SystemInfo.bugReportUrl)
                         }
                     }
@@ -310,7 +329,7 @@ ContentPage {
         // ── Bottom row: iNiR + illogical-impulse credit cards ───────────────
         RowLayout {
             Layout.fillWidth: true
-            Layout.preferredHeight: 180
+            Layout.preferredHeight: 220
             spacing: 16
 
             // ── iNiR credit card ────────────────────────────────────────────
@@ -353,10 +372,9 @@ ContentPage {
 
                     Item { Layout.fillHeight: true }
 
-                    RippleButtonWithIcon {
-                        implicitHeight: 28
-                        materialIcon: "open_in_new"
-                        mainText: "iNiR"
+                    CircleIconButton {
+                        icon: "open_in_new"
+                        tooltip: "iNiR"
                         onClicked: Qt.openUrlExternally("https://github.com/snowarch/iNiR")
                     }
                 }
@@ -406,10 +424,9 @@ ContentPage {
 
                     Item { Layout.fillHeight: true }
 
-                    RippleButtonWithIcon {
-                        implicitHeight: 28
-                        materialIcon: "open_in_new"
-                        mainText: "illogical-impulse"
+                    CircleIconButton {
+                        icon: "open_in_new"
+                        tooltip: "illogical-impulse"
                         onClicked: Qt.openUrlExternally("https://github.com/end-4/dots-hyprland")
                     }
                 }
@@ -457,10 +474,9 @@ ContentPage {
 
                     Item { Layout.fillHeight: true }
 
-                    RippleButtonWithIcon {
-                        implicitHeight: 28
-                        materialIcon: "open_in_new"
-                        mainText: "Omarchy"
+                    CircleIconButton {
+                        icon: "open_in_new"
+                        tooltip: "Omarchy"
                         onClicked: Qt.openUrlExternally("https://github.com/basecamp/omarchy")
                     }
                 }
