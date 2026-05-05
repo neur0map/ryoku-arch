@@ -19,7 +19,7 @@ ContentPage {
         // ── Top row: Ryoku hero (2/3) + System info (1/3) ──────────────────
         RowLayout {
             Layout.fillWidth: true
-            Layout.preferredHeight: 240
+            Layout.preferredHeight: 320
             spacing: 16
 
             // ── Ryoku hero card ─────────────────────────────────────────────
