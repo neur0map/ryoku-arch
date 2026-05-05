@@ -1,0 +1,53 @@
+name: Question
+description: Ask for help with setup, configuration, or usage
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check the documentation first:
+        - [Installation](https://github.com/snowarch/inir/blob/main/docs/INSTALL.md)
+        - [Setup & Maintenance](https://github.com/snowarch/inir/blob/main/docs/SETUP.md)
+        - [Keybindings](https://github.com/snowarch/inir/blob/main/docs/KEYBINDS.md)
+        - [IPC Reference](https://github.com/snowarch/inir/blob/main/docs/IPC.md)
+        - [Limitations](https://github.com/snowarch/inir/blob/main/docs/LIMITATIONS.md)
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What do you need help with
+      placeholder: How do I configure the bar to show on multiple monitors
+    validations:
+      required: true
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: What you have tried
+      description: Steps you have already taken
+      placeholder: Checked config.json for monitor options, searched existing issues
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of cat ~/.config/quickshell/inir/VERSION
+      placeholder: 2.11.11
+    validations:
+      required: true
+
+  - type: input
+    id: compositor
+    attributes:
+      label: Compositor
+      description: Niri or Hyprland with version
+      placeholder: Niri 25.11
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Relevant config, screenshots, or logs

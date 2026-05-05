@@ -1,0 +1,59 @@
+pkgname=inir-core
+pkgver=1.0
+pkgrel=1
+pkgdesc='iNiR - core dependency bundle'
+arch=(any)
+license=(MIT)
+depends=(
+  # Niri compositor
+  niri
+  
+  # Wallpaper daemon
+  awww-bin
+  
+  # Basic utilities
+  bc
+  coreutils
+  cliphist
+  curl
+  wget
+  ripgrep
+  jq
+  python
+  xdg-user-dirs
+  xdg-utils
+  rsync
+  git
+  wl-clipboard
+  libnotify
+  pacman-contrib  # checkupdates for update notifications
+  wlsunset
+  
+  # XDG Portals for Niri
+  xdg-desktop-portal
+  xdg-desktop-portal-gtk
+  xdg-desktop-portal-gnome
+  
+  # Polkit agent (needed for auth dialogs — gnome agent works universally)
+  polkit
+  polkit-gnome
+  
+  # Network
+  networkmanager
+  gnome-keyring
+  
+  # File manager
+  nautilus
+  
+  # Terminal - kitty is default, configurable in Settings
+  kitty
+  
+  # Shell - fish is required for scripts
+  fish
+  
+  # TUI for setup script
+  gum
+  # X11 compatibility
+  xwayland-satellite
+  
+)

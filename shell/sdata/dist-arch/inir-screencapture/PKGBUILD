@@ -1,0 +1,16 @@
+pkgname=inir-screencapture
+pkgver=1.0
+pkgrel=1
+pkgdesc='iNiR - screenshot and recording dependency bundle'
+arch=(any)
+license=(MIT)
+depends=(
+  grim
+  slurp
+  swappy
+  tesseract
+  tesseract-data-eng
+  wf-recorder
+  imagemagick
+  ffmpeg
+)

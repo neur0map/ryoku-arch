@@ -1,0 +1,947 @@
+pragma ComponentBehavior: Bound
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import Qt5Compat.GraphicalEffects
+import Quickshell
+import qs.services
+import qs.modules.common
+import qs.modules.common.widgets
+import qs.modules.common.functions as CF
+import qs.modules.waffle.looks
+
+// Main Windows 11 style settings container
+Item {
+    id: root
+    
+    signal closeRequested()
+    
+    property var pages: []
+    property int currentPage: 0
+    property string searchText: ""
+    property var searchResults: []
+    property bool navExpanded: width > 760
+    
+    // Complete search index with all individual options + targetLabel for spotlight
+    property var searchIndex: [
+        // === Quick (0) ===
+        { pageIndex: 0, pageName: "Quick", section: "Wallpaper & Colors", label: "Dark mode", targetLabel: "Dark mode", keywords: ["quick", "dark", "light", "mode", "theme", "scheme"] },
+        { pageIndex: 0, pageName: "Quick", section: "Wallpaper & Colors", label: "Per-monitor wallpapers", targetLabel: "Per-monitor wallpapers", keywords: ["quick", "wallpaper", "monitor", "display", "multi-monitor", "per-monitor"] },
+        { pageIndex: 0, pageName: "Quick", section: "Wallpaper & Colors", label: "Colors only mode", targetLabel: "Colors only mode", keywords: ["quick", "wallpaper", "colors", "theme source", "preview", "palette"] },
+        { pageIndex: 0, pageName: "Quick", section: "Wallpaper & Colors", label: "Color scheme", targetLabel: "Color scheme", keywords: ["quick", "colors", "scheme", "palette", "material", "theme"] },
+        { pageIndex: 0, pageName: "Quick", section: "Wallpaper & Colors", label: "Color strength", targetLabel: "Color strength", keywords: ["quick", "wallpaper", "color", "strength", "vivid", "accent"] },
+        { pageIndex: 0, pageName: "Quick", section: "Wallpaper & Colors", label: "Transparency", targetLabel: "Transparency", keywords: ["quick", "transparency", "glass", "blur", "appearance"] },
+        { pageIndex: 0, pageName: "Quick", section: "Quick actions", label: "Show reload notifications", targetLabel: "Show reload notifications", keywords: ["quick", "reload", "notifications", "toast", "quickshell", "niri"] },
+
+        // === General (1) ===
+        // Audio
+        { pageIndex: 1, pageName: "General", section: "Audio", label: "Volume protection", targetLabel: "Volume protection", keywords: ["volume", "sound", "audio", "protection", "limit", "hearing", "damage", "loud"] },
+        { pageIndex: 1, pageName: "General", section: "Audio", label: "Maximum volume", targetLabel: "Maximum volume", keywords: ["volume", "max", "limit", "percent"] },
+        { pageIndex: 1, pageName: "General", section: "Audio", label: "Max increase per step", targetLabel: "Max increase per step", keywords: ["volume", "step", "increment"] },
+        // Battery
+        { pageIndex: 1, pageName: "General", section: "Battery", label: "Low battery warning", targetLabel: "Low battery warning", keywords: ["battery", "low", "warning", "power", "energy"] },
+        { pageIndex: 1, pageName: "General", section: "Battery", label: "Critical battery", targetLabel: "Critical battery", keywords: ["battery", "critical", "suspend", "shutdown"] },
+        { pageIndex: 1, pageName: "General", section: "Battery", label: "Full battery notification", targetLabel: "Full battery notification", keywords: ["battery", "full", "charged", "notification"] },
+        // Time & Language
+        { pageIndex: 1, pageName: "General", section: "Time & Language", label: "Show seconds", targetLabel: "Show seconds", keywords: ["time", "clock", "seconds", "format"] },
+        { pageIndex: 1, pageName: "General", section: "Time & Language", label: "Long date format", targetLabel: "Long date format", keywords: ["date", "format", "long", "weekday", "month", "clock", "taskbar"] },
+        { pageIndex: 1, pageName: "General", section: "Time & Language", label: "Short date format", targetLabel: "Short date format", keywords: ["date", "format", "short", "compact", "clock", "calendar"] },
+        { pageIndex: 1, pageName: "General", section: "Time & Language", label: "Language", targetLabel: "Language", keywords: ["language", "locale", "translation", "idioma", "español", "english"] },
+        // Keyboard indicators
+        { pageIndex: 1, pageName: "General", section: "Keyboard indicators", label: "Keyboard popups", targetLabel: "Keyboard popups", keywords: ["keyboard", "caps", "num", "layout", "language", "popup", "indicator"] },
+        { pageIndex: 1, pageName: "General", section: "Keyboard indicators", label: "Layout popup", targetLabel: "Layout popup", keywords: ["keyboard", "layout", "language", "popup", "indicator", "show", "hide"] },
+        { pageIndex: 1, pageName: "General", section: "Keyboard indicators", label: "Caps Lock popup", targetLabel: "Caps Lock popup", keywords: ["keyboard", "caps", "capslock", "lock", "popup", "indicator", "show", "hide"] },
+        { pageIndex: 1, pageName: "General", section: "Keyboard indicators", label: "Num Lock popup", targetLabel: "Num Lock popup", keywords: ["keyboard", "num", "numlock", "lock", "popup", "indicator", "show", "hide"] },
+        { pageIndex: 1, pageName: "General", section: "Keyboard indicators", label: "Keyboard panel indicators", targetLabel: "Keyboard panel indicators", keywords: ["keyboard", "caps", "num", "layout", "language", "bar", "taskbar", "indicator"] },
+        { pageIndex: 1, pageName: "General", section: "Keyboard indicators", label: "Layout indicator", targetLabel: "Layout indicator", keywords: ["keyboard", "layout", "language", "indicator", "bar", "taskbar", "show", "hide"] },
+        { pageIndex: 1, pageName: "General", section: "Keyboard indicators", label: "Caps Lock indicator", targetLabel: "Caps Lock indicator", keywords: ["keyboard", "caps", "capslock", "lock", "indicator", "bar", "taskbar", "show", "hide"] },
+        { pageIndex: 1, pageName: "General", section: "Keyboard indicators", label: "Num Lock indicator", targetLabel: "Num Lock indicator", keywords: ["keyboard", "num", "numlock", "lock", "indicator", "bar", "taskbar", "show", "hide"] },
+        // Window Management
+        { pageIndex: 1, pageName: "General", section: "Window Management", label: "Confirm before closing", targetLabel: "Confirm before closing", keywords: ["close", "confirm", "window", "dialog", "super+q"] },
+        // Sounds
+        { pageIndex: 1, pageName: "General", section: "Sounds", label: "Battery sounds", targetLabel: "Battery sounds", keywords: ["sound", "audio", "battery", "beep"] },
+        { pageIndex: 1, pageName: "General", section: "Sounds", label: "Notification sounds", targetLabel: "Notification sounds", keywords: ["sound", "audio", "notification", "alert"] },
+        // Idle & Sleep
+        { pageIndex: 1, pageName: "General", section: "Idle & Sleep", label: "Screen off timeout", targetLabel: "Screen off timeout", keywords: ["screen", "off", "timeout", "idle", "dpms", "monitor"] },
+        { pageIndex: 1, pageName: "General", section: "Idle & Sleep", label: "Lock timeout", targetLabel: "Lock timeout", keywords: ["lock", "timeout", "idle", "security"] },
+        { pageIndex: 1, pageName: "General", section: "Idle & Sleep", label: "Suspend timeout", targetLabel: "Suspend timeout", keywords: ["suspend", "sleep", "timeout", "idle", "hibernate"] },
+        { pageIndex: 1, pageName: "General", section: "Idle & Sleep", label: "Lock before sleep", targetLabel: "Lock before sleep", keywords: ["lock", "sleep", "suspend", "security"] },
+        // Game Mode
+        { pageIndex: 1, pageName: "General", section: "Game Mode", label: "Auto-detect fullscreen", targetLabel: "Auto-detect fullscreen", keywords: ["game", "gaming", "fullscreen", "auto", "detect"] },
+        { pageIndex: 1, pageName: "General", section: "Game Mode", label: "Disable animations", targetLabel: "Disable animations", keywords: ["game", "gaming", "animations", "performance"] },
+        { pageIndex: 1, pageName: "General", section: "Game Mode", label: "Disable effects", targetLabel: "Disable effects", keywords: ["game", "gaming", "effects", "blur", "shadows", "performance"] },
+        { pageIndex: 1, pageName: "General", section: "Game Mode", label: "Disable Niri animations", targetLabel: "Disable Niri animations", keywords: ["game", "gaming", "niri", "compositor", "animations"] },
+        { pageIndex: 1, pageName: "General", section: "Game Mode", label: "Disable Discover overlay", targetLabel: "Disable Discover overlay", keywords: ["game", "gaming", "discover", "overlay", "discord", "performance"] },
+        { pageIndex: 1, pageName: "General", section: "Game Mode", label: "Minimal mode", targetLabel: "Minimal mode", keywords: ["game", "gaming", "minimal", "lightweight", "performance", "shell"] },
+        { pageIndex: 1, pageName: "General", section: "Game Mode", label: "Suppress notifications", targetLabel: "Suppress notifications", keywords: ["game", "gaming", "notifications", "suppress", "hide", "popup", "silent"] },
+        { pageIndex: 1, pageName: "General", section: "Game Mode", label: "Hide reload toasts", targetLabel: "Hide reload toasts", keywords: ["game", "gaming", "reload", "toast", "notifications", "suppress"] },
+        
+        // === Taskbar (2) ===
+        { pageIndex: 2, pageName: "Taskbar", section: "Position & Layout", label: "Bottom position", targetLabel: "Bottom position", keywords: ["taskbar", "bar", "position", "bottom", "top"] },
+        { pageIndex: 2, pageName: "Taskbar", section: "Position & Layout", label: "Left-align apps", targetLabel: "Left-align apps", keywords: ["taskbar", "align", "left", "center", "apps"] },
+        { pageIndex: 2, pageName: "Taskbar", section: "Icons", label: "Tint app icons", targetLabel: "Tint app icons", keywords: ["taskbar", "icons", "tint", "monochrome", "accent", "color"] },
+        { pageIndex: 2, pageName: "Taskbar", section: "Icons", label: "Tint tray icons", targetLabel: "Tint tray icons", keywords: ["tray", "icons", "tint", "system", "monochrome"] },
+        { pageIndex: 2, pageName: "Taskbar", section: "Desktop Peek", label: "Enable hover peek", targetLabel: "Enable hover peek", keywords: ["desktop", "peek", "hover", "show", "corner"] },
+        { pageIndex: 2, pageName: "Taskbar", section: "Desktop Peek", label: "Hover delay", targetLabel: "Hover delay", keywords: ["desktop", "peek", "delay", "timeout"] },
+        { pageIndex: 2, pageName: "Taskbar", section: "Clock & Notifications", label: "Show seconds", targetLabel: "Show seconds", keywords: ["clock", "seconds", "time", "taskbar"] },
+        { pageIndex: 2, pageName: "Taskbar", section: "Clock & Notifications", label: "Show unread count", targetLabel: "Show unread count", keywords: ["notification", "badge", "count", "unread", "clock"] },
+        { pageIndex: 2, pageName: "Taskbar", section: "Clock & Notifications", label: "Activation watermark", targetLabel: "Activation watermark", keywords: ["taskbar", "activation", "watermark", "activate", "windows"] },
+        
+        // === Background (3) ===
+        { pageIndex: 3, pageName: "Background", section: "Wallpaper", label: "Use Material ii wallpaper", targetLabel: "Use Material ii wallpaper", keywords: ["wallpaper", "background", "material", "share", "image"] },
+        { pageIndex: 3, pageName: "Background", section: "Wallpaper", label: "Waffle wallpaper", targetLabel: "Waffle wallpaper", keywords: ["wallpaper", "background", "waffle", "change", "image"] },
+        { pageIndex: 3, pageName: "Background", section: "Wallpaper", label: "Per-monitor wallpapers", targetLabel: "Per-monitor wallpapers", keywords: ["wallpaper", "background", "monitor", "display", "multi-monitor", "per-monitor"] },
+        { pageIndex: 3, pageName: "Background", section: "Wallpaper", label: "Hide when fullscreen", targetLabel: "Hide when fullscreen", keywords: ["wallpaper", "background", "fullscreen", "hide"] },
+        { pageIndex: 3, pageName: "Background", section: "Wallpaper", label: "Wallpaper scaling", targetLabel: "Wallpaper scaling", keywords: ["wallpaper", "background", "scaling", "fill", "fit", "center"] },
+        { pageIndex: 3, pageName: "Background", section: "Wallpaper Effects", label: "Enable blur", targetLabel: "Enable blur", keywords: ["blur", "wallpaper", "background", "effect"] },
+        { pageIndex: 3, pageName: "Background", section: "Wallpaper Effects", label: "Blur radius", targetLabel: "Blur radius", keywords: ["blur", "radius", "intensity"] },
+        { pageIndex: 3, pageName: "Background", section: "Wallpaper Effects", label: "Dim overlay", targetLabel: "Dim overlay", keywords: ["dim", "dark", "darken", "overlay", "wallpaper"] },
+        { pageIndex: 3, pageName: "Background", section: "Wallpaper Effects", label: "Extra dim with windows", targetLabel: "Extra dim with windows", keywords: ["dim", "dynamic", "windows", "wallpaper"] },
+        { pageIndex: 3, pageName: "Background", section: "Wallpaper Transitions", label: "Enable wallpaper transitions", targetLabel: "Enable wallpaper transitions", keywords: ["wallpaper", "background", "transition", "animation"] },
+        { pageIndex: 3, pageName: "Background", section: "Wallpaper Transitions", label: "Transition style", targetLabel: "Transition style", keywords: ["wallpaper", "background", "transition", "style", "fade", "wipe", "wave"] },
+        { pageIndex: 3, pageName: "Background", section: "Wallpaper Transitions", label: "Transition direction", targetLabel: "Transition direction", keywords: ["wallpaper", "background", "transition", "direction", "left", "right", "top", "bottom"] },
+        { pageIndex: 3, pageName: "Background", section: "Wallpaper Transitions", label: "Transition duration", targetLabel: "Transition duration", keywords: ["wallpaper", "background", "transition", "duration", "speed"] },
+        { pageIndex: 3, pageName: "Background", section: "Desktop Clock", label: "Enable clock", targetLabel: "Enable clock", keywords: ["background", "desktop", "clock", "wallpaper", "widget"] },
+        { pageIndex: 3, pageName: "Background", section: "Desktop Clock", label: "Placement", targetLabel: "Placement", keywords: ["background", "desktop", "clock", "placement", "least busy", "most busy", "draggable"] },
+        { pageIndex: 3, pageName: "Background", section: "Desktop Clock", label: "Reset free position", targetLabel: "Reset free position", keywords: ["background", "desktop", "clock", "position", "reset", "center", "draggable"] },
+        { pageIndex: 3, pageName: "Background", section: "Desktop Clock", label: "Clock style", targetLabel: "Clock style", keywords: ["background", "desktop", "clock", "style", "hero", "balanced", "minimal"] },
+        { pageIndex: 3, pageName: "Background", section: "Desktop Clock", label: "Time format", targetLabel: "Time format", keywords: ["background", "desktop", "clock", "time", "format", "12-hour", "24-hour"] },
+        { pageIndex: 3, pageName: "Background", section: "Desktop Clock", label: "Show seconds", targetLabel: "Show seconds", keywords: ["background", "desktop", "clock", "seconds", "precision"] },
+        { pageIndex: 3, pageName: "Background", section: "Desktop Clock", label: "Show date", targetLabel: "Show date", keywords: ["background", "desktop", "clock", "date", "calendar"] },
+        { pageIndex: 3, pageName: "Background", section: "Desktop Clock", label: "Date style", targetLabel: "Date style", keywords: ["background", "desktop", "clock", "date", "weekday", "numeric", "minimal"] },
+        { pageIndex: 3, pageName: "Background", section: "Desktop Clock", label: "Color tone", targetLabel: "Color tone", keywords: ["background", "desktop", "clock", "color", "tone", "adaptive", "accent", "plain"] },
+        { pageIndex: 3, pageName: "Background", section: "Desktop Clock", label: "Animate time change", targetLabel: "Animate time change", keywords: ["background", "desktop", "clock", "animate", "time"] },
+        { pageIndex: 3, pageName: "Background", section: "Desktop Clock", label: "Clock dim", targetLabel: "Clock dim", keywords: ["background", "desktop", "clock", "dim", "opacity"] },
+        { pageIndex: 3, pageName: "Background", section: "Desktop Clock", label: "Time scale", targetLabel: "Time scale", keywords: ["background", "desktop", "clock", "time", "scale", "size"] },
+        { pageIndex: 3, pageName: "Background", section: "Desktop Clock", label: "Date scale", targetLabel: "Date scale", keywords: ["background", "desktop", "clock", "date", "scale", "size"] },
+        { pageIndex: 3, pageName: "Background", section: "Desktop Clock", label: "Show shadow", targetLabel: "Show shadow", keywords: ["background", "desktop", "clock", "shadow", "contrast"] },
+        { pageIndex: 3, pageName: "Background", section: "Desktop Clock", label: "Show lock status", targetLabel: "Show lock status", keywords: ["background", "desktop", "clock", "lock", "status", "locked"] },
+        { pageIndex: 3, pageName: "Background", section: "Desktop Clock", label: "Clock font", targetLabel: "Clock font", keywords: ["background", "desktop", "clock", "font", "segoe", "inter", "roboto"] },
+        { pageIndex: 3, pageName: "Background", section: "Backdrop (Overview)", label: "Enable backdrop", targetLabel: "Enable backdrop", keywords: ["backdrop", "overview", "background"] },
+        { pageIndex: 3, pageName: "Background", section: "Backdrop (Overview)", label: "Use separate wallpaper", targetLabel: "Use separate wallpaper", keywords: ["backdrop", "wallpaper", "separate", "different"] },
+        { pageIndex: 3, pageName: "Background", section: "Backdrop (Overview)", label: "Backdrop wallpaper", targetLabel: "Backdrop wallpaper", keywords: ["backdrop", "wallpaper", "change", "overview"] },
+        { pageIndex: 3, pageName: "Background", section: "Backdrop (Overview)", label: "Derive theme colors from backdrop", targetLabel: "Derive theme colors from backdrop", keywords: ["backdrop", "theme", "colors", "wallpaper", "material you"] },
+        { pageIndex: 3, pageName: "Background", section: "Backdrop (Overview)", label: "Hide main wallpaper", targetLabel: "Hide main wallpaper", keywords: ["backdrop", "wallpaper", "hide", "main"] },
+        { pageIndex: 3, pageName: "Background", section: "Backdrop (Overview)", label: "Backdrop blur", targetLabel: "Backdrop blur", keywords: ["backdrop", "blur", "radius"] },
+        { pageIndex: 3, pageName: "Background", section: "Backdrop (Overview)", label: "Backdrop dim", targetLabel: "Backdrop dim", keywords: ["backdrop", "dim", "dark"] },
+        { pageIndex: 3, pageName: "Background", section: "Backdrop (Overview)", label: "Backdrop saturation", targetLabel: "Backdrop saturation", keywords: ["backdrop", "saturation", "color", "vibrant"] },
+        { pageIndex: 3, pageName: "Background", section: "Backdrop (Overview)", label: "Backdrop contrast", targetLabel: "Backdrop contrast", keywords: ["backdrop", "contrast"] },
+        { pageIndex: 3, pageName: "Background", section: "Backdrop (Overview)", label: "Enable vignette", targetLabel: "Enable vignette", keywords: ["backdrop", "vignette", "edges", "gradient"] },
+        { pageIndex: 3, pageName: "Background", section: "Backdrop (Overview)", label: "Vignette intensity", targetLabel: "Vignette intensity", keywords: ["backdrop", "vignette", "intensity", "dark"] },
+        { pageIndex: 3, pageName: "Background", section: "Backdrop (Overview)", label: "Vignette radius", targetLabel: "Vignette radius", keywords: ["backdrop", "vignette", "radius", "edges"] },
+        
+        // === Themes (4) ===
+        { pageIndex: 4, pageName: "Themes", section: "Color Theme", label: "Color Theme", targetLabel: "Color Theme", keywords: ["theme", "color", "preset", "gruvbox", "catppuccin", "nord", "dracula", "monokai", "tokyo"] },
+        { pageIndex: 4, pageName: "Themes", section: "Dark Mode", label: "Appearance", targetLabel: "Appearance", keywords: ["dark", "light", "mode", "theme", "appearance"] },
+        { pageIndex: 4, pageName: "Themes", section: "Color Scheme", label: "Palette type", targetLabel: "Palette type", keywords: ["palette", "scheme", "material you", "material", "colors", "expressive", "fidelity"] },
+        { pageIndex: 4, pageName: "Themes", section: "Waffle Typography", label: "Font family", targetLabel: "Font family", keywords: ["font", "family", "typography", "segoe", "inter", "roboto", "noto"] },
+        { pageIndex: 4, pageName: "Themes", section: "Waffle Typography", label: "Font scale", targetLabel: "Font scale", keywords: ["font", "size", "scale", "typography", "bigger", "smaller"] },
+        
+        // === Gowall (5) ===
+        { pageIndex: 5, pageName: "Gowall", section: "Source Image", label: "Source image", targetLabel: "Source image", keywords: ["gowall", "wallpaper", "image", "source", "browse"] },
+        { pageIndex: 5, pageName: "Gowall", section: "Source Image", label: "Use current wallpaper", targetLabel: "Use current wallpaper", keywords: ["gowall", "wallpaper", "current"] },
+        { pageIndex: 5, pageName: "Gowall", section: "Operation", label: "Recolor", targetLabel: "Operation", keywords: ["gowall", "recolor", "convert", "palette", "theme"] },
+        { pageIndex: 5, pageName: "Gowall", section: "Operation", label: "Effects", targetLabel: "Operation", keywords: ["gowall", "effects", "grayscale", "flip", "mirror", "brightness"] },
+        { pageIndex: 5, pageName: "Gowall", section: "Operation", label: "Invert", targetLabel: "Operation", keywords: ["gowall", "invert", "colors", "negative"] },
+        { pageIndex: 5, pageName: "Gowall", section: "Operation", label: "Pixelate", targetLabel: "Operation", keywords: ["gowall", "pixelate", "pixel", "8bit"] },
+        { pageIndex: 5, pageName: "Gowall", section: "Operation", label: "Upscale", targetLabel: "Operation", keywords: ["gowall", "upscale", "ai", "esrgan", "quality"] },
+        { pageIndex: 5, pageName: "Gowall", section: "Color Scheme Source", label: "Built-in theme", targetLabel: "Color Scheme Source", keywords: ["gowall", "builtin", "theme", "catppuccin", "nord", "gruvbox"] },
+        { pageIndex: 5, pageName: "Gowall", section: "Color Scheme Source", label: "iNiR theme", targetLabel: "Color Scheme Source", keywords: ["gowall", "inir", "palette", "material you"] },
+        { pageIndex: 5, pageName: "Gowall", section: "Color Scheme Source", label: "Custom palette", targetLabel: "Color Scheme Source", keywords: ["gowall", "custom", "palette", "colors"] },
+        { pageIndex: 5, pageName: "Gowall", section: "Output", label: "Format", targetLabel: "Format", keywords: ["gowall", "output", "format", "png", "webp", "jpg"] },
+        { pageIndex: 5, pageName: "Gowall", section: "Extract Palette", label: "Extract colors", targetLabel: "Extract colors", keywords: ["gowall", "extract", "palette", "colors", "picker"] },
+        
+        // === Interface (6) ===
+        { pageIndex: 6, pageName: "Interface", section: "Notifications", label: "Normal timeout", targetLabel: "Normal timeout", keywords: ["notification", "timeout", "duration", "normal"] },
+        { pageIndex: 6, pageName: "Interface", section: "Notifications", label: "Low priority timeout", targetLabel: "Low priority timeout", keywords: ["notification", "timeout", "low", "priority"] },
+        { pageIndex: 6, pageName: "Interface", section: "Notifications", label: "Critical timeout", targetLabel: "Critical timeout", keywords: ["notification", "timeout", "critical", "urgent"] },
+        { pageIndex: 6, pageName: "Interface", section: "Notifications", label: "Ignore app timeout", targetLabel: "Ignore app timeout", keywords: ["notification", "timeout", "app", "ignore", "override"] },
+        { pageIndex: 6, pageName: "Interface", section: "Notifications", label: "Popup position", targetLabel: "Popup position", keywords: ["notification", "position", "popup", "corner", "top", "bottom", "left", "right"] },
+        { pageIndex: 6, pageName: "Interface", section: "Notifications", label: "Do Not Disturb", targetLabel: "Do Not Disturb", keywords: ["notification", "dnd", "silent", "mute", "disturb", "quiet"] },
+        { pageIndex: 6, pageName: "Interface", section: "On-Screen Display", label: "OSD timeout", targetLabel: "OSD timeout", keywords: ["osd", "volume", "brightness", "timeout", "duration"] },
+        { pageIndex: 6, pageName: "Interface", section: "Lock Screen", label: "Enable blur", targetLabel: "Enable blur", keywords: ["lock", "screen", "blur", "background"] },
+        { pageIndex: 6, pageName: "Interface", section: "Lock Screen", label: "Blur radius", targetLabel: "Blur radius", keywords: ["lock", "screen", "blur", "radius"] },
+        { pageIndex: 6, pageName: "Interface", section: "Lock Screen", label: "Center clock", targetLabel: "Center clock", keywords: ["lock", "screen", "clock", "center", "position"] },
+        { pageIndex: 6, pageName: "Interface", section: "Lock Screen", label: "Show 'Locked' text", targetLabel: "Show 'Locked' text", keywords: ["lock", "screen", "text", "locked"] },
+        { pageIndex: 6, pageName: "Interface", section: "Screen Corners", label: "Fake rounded corners", targetLabel: "Fake rounded corners", keywords: ["screen", "corners", "rounded", "rounding", "fake"] },
+        
+        // === Modules (7) ===
+        { pageIndex: 7, pageName: "Modules", section: "Panel Style", label: "Panel family", targetLabel: "Panel family", keywords: ["panel", "family", "style", "material", "waffle", "windows"] },
+        { pageIndex: 7, pageName: "Modules", section: "Material Modules in Waffle", label: "Left Sidebar", targetLabel: "Left Sidebar", keywords: ["sidebar", "left", "ai", "chat", "translator"] },
+        { pageIndex: 7, pageName: "Modules", section: "Material Modules in Waffle", label: "Right Sidebar", targetLabel: "Right Sidebar", keywords: ["sidebar", "right", "quick", "settings", "calendar"] },
+        { pageIndex: 7, pageName: "Modules", section: "Material Modules in Waffle", label: "Dock", targetLabel: "Dock", keywords: ["dock", "macos", "pinned", "apps"] },
+        { pageIndex: 7, pageName: "Modules", section: "Material Modules in Waffle", label: "Media Controls Overlay", targetLabel: "Media Controls Overlay", keywords: ["media", "controls", "overlay", "music", "player"] },
+        { pageIndex: 7, pageName: "Modules", section: "Material Modules in Waffle", label: "Screen Corners", targetLabel: "Screen Corners", keywords: ["screen", "corners", "hot", "rounded"] },
+        { pageIndex: 7, pageName: "Modules", section: "Waffle Modules", label: "Widgets Panel", targetLabel: "Widgets Panel", keywords: ["widgets", "panel", "weather", "system", "media"] },
+        { pageIndex: 7, pageName: "Modules", section: "Waffle Modules", label: "Desktop Backdrop", targetLabel: "Desktop Backdrop", keywords: ["backdrop", "desktop", "overview", "blur"] },
+        
+        // === Waffle Style (8) ===
+        { pageIndex: 8, pageName: "Waffle Style", section: "Theming", label: "Use Material colors", targetLabel: "Use Material colors", keywords: ["material", "colors", "theme", "grey", "accent"] },
+        { pageIndex: 8, pageName: "Waffle Style", section: "Alt+Tab Switcher", label: "Style", targetLabel: "Style", keywords: ["alt", "tab", "switcher", "style", "thumbnails", "cards", "compact", "list"] },
+        { pageIndex: 8, pageName: "Waffle Style", section: "Alt+Tab Switcher", label: "Quick switch", targetLabel: "Quick switch", keywords: ["alt", "tab", "quick", "switch", "fast"] },
+        { pageIndex: 8, pageName: "Waffle Style", section: "Alt+Tab Switcher", label: "Most recent first", targetLabel: "Most recent first", keywords: ["alt", "tab", "recent", "order", "mru"] },
+        { pageIndex: 8, pageName: "Waffle Style", section: "Alt+Tab Switcher", label: "Auto-hide", targetLabel: "Auto-hide", keywords: ["alt", "tab", "auto", "hide", "timeout"] },
+        { pageIndex: 8, pageName: "Waffle Style", section: "Alt+Tab Switcher", label: "Auto-hide delay", targetLabel: "Auto-hide delay", keywords: ["alt", "tab", "auto", "hide", "delay", "timeout"] },
+        { pageIndex: 8, pageName: "Waffle Style", section: "Behavior", label: "Allow multiple panels open", targetLabel: "Allow multiple panels open", keywords: ["panels", "multiple", "open", "start", "action"] },
+        { pageIndex: 8, pageName: "Waffle Style", section: "Behavior", label: "Smoother menu animations", targetLabel: "Smoother menu animations", keywords: ["menu", "animations", "smooth", "popup"] },
+        { pageIndex: 8, pageName: "Waffle Style", section: "Widgets Panel", label: "Show date & time", targetLabel: "Show date & time", keywords: ["widgets", "date", "time", "clock"] },
+        { pageIndex: 8, pageName: "Waffle Style", section: "Widgets Panel", label: "Show weather", targetLabel: "Show weather", keywords: ["widgets", "weather", "temperature", "forecast"] },
+        { pageIndex: 8, pageName: "Waffle Style", section: "Widgets Panel", label: "Show system info", targetLabel: "Show system info", keywords: ["widgets", "system", "info", "cpu", "ram", "memory"] },
+        { pageIndex: 8, pageName: "Waffle Style", section: "Widgets Panel", label: "Show media controls", targetLabel: "Show media controls", keywords: ["widgets", "media", "controls", "music", "player"] },
+        { pageIndex: 8, pageName: "Waffle Style", section: "Widgets Panel", label: "Show quick actions", targetLabel: "Show quick actions", keywords: ["widgets", "quick", "actions", "buttons"] },
+        { pageIndex: 8, pageName: "Waffle Style", section: "Calendar", label: "Force 2-char day names", targetLabel: "Force 2-char day names", keywords: ["calendar", "day", "names", "short", "2char"] },
+        
+        // === Shortcuts (9) ===
+        { pageIndex: 9, pageName: "Shortcuts", section: "", label: "Keyboard Shortcuts", targetLabel: "", keywords: ["shortcuts", "keybinds", "hotkeys", "keyboard", "niri", "super", "mod"] },
+        
+        // === About (10) ===
+        { pageIndex: 10, pageName: "About", section: "", label: "About ii", targetLabel: "", keywords: ["about", "version", "credits", "github", "info"] }
+    ]
+    
+    function highlightTerms(text: string, terms: list<string>): string {
+        if (!text || !terms || terms.length === 0) return text;
+        var result = text;
+        for (var i = 0; i < terms.length; i++) {
+            var term = terms[i];
+            var idx = result.toLowerCase().indexOf(term.toLowerCase());
+            if (idx >= 0) {
+                var original = result.substring(idx, idx + term.length);
+                result = result.substring(0, idx) + "<b>" + original + "</b>" + result.substring(idx + term.length);
+            }
+        }
+        return result;
+    }
+    
+    function recomputeSearchResults(): void {
+        var q = String(searchText || "").toLowerCase().trim();
+        if (!q.length) {
+            searchResults = [];
+            return;
+        }
+        
+        var terms = q.split(/\s+/).filter(t => t.length > 0);
+        var results = [];
+        
+        // Runtime gate checks — items inside conditionally-visible sections
+        var clockEnabled = Config.options?.waffles?.background?.widgets?.clock?.enable ?? false
+        var blurEnabled = Config.options?.waffles?.background?.effects?.enableBlur ?? false
+        var backdropEnabled = Config.options?.waffles?.background?.backdrop?.enable ?? true
+        var vignetteEnabled = Config.options?.waffles?.background?.backdrop?.vignetteEnabled ?? false
+        
+        for (var i = 0; i < searchIndex.length; i++) {
+            var entry = searchIndex[i];
+            
+            // Skip Desktop Clock sub-options when the clock is disabled.
+            if (entry.section === "Desktop Clock" && entry.label !== "Enable clock" && !clockEnabled) {
+                continue;
+            }
+            
+            // Skip "Blur radius" when blur is disabled (it's hidden by visible: in the card).
+            if (entry.section === "Wallpaper Effects" && entry.label === "Blur radius" && !blurEnabled) {
+                continue;
+            }
+            
+            // Skip Backdrop sub-options (anything except "Enable backdrop") when backdrop is disabled.
+            if (entry.section === "Backdrop (Overview)" && entry.label !== "Enable backdrop" && !backdropEnabled) {
+                continue;
+            }
+            
+            // Skip vignette sub-options when vignette is disabled.
+            if (entry.section === "Backdrop (Overview)" && (entry.label === "Vignette intensity" || entry.label === "Vignette radius") && !vignetteEnabled) {
+                continue;
+            }
+            
+            var label = (entry.label || "").toLowerCase();
+            var section = (entry.section || "").toLowerCase();
+            var page = (entry.pageName || "").toLowerCase();
+            var kw = (entry.keywords || []).join(" ").toLowerCase();
+            
+            var matchCount = 0;
+            var score = 0;
+            
+            for (var j = 0; j < terms.length; j++) {
+                var term = terms[j];
+                if (label.indexOf(term) >= 0 || section.indexOf(term) >= 0 || 
+                    page.indexOf(term) >= 0 || kw.indexOf(term) >= 0) {
+                    matchCount++;
+                    if (label.indexOf(term) === 0) score += 800;
+                    else if (label.indexOf(term) > 0) score += 400;
+                    if (kw.indexOf(term) >= 0) score += 300;
+                    if (section.indexOf(term) >= 0) score += 200;
+                }
+            }
+            
+            if (matchCount === terms.length) {
+                results.push({
+                    pageIndex: entry.pageIndex,
+                    pageName: entry.pageName,
+                    section: entry.section,
+                    label: entry.label,
+                    labelHighlighted: highlightTerms(entry.label, terms),
+                    targetLabel: entry.targetLabel || "",
+                    score: score
+                });
+            }
+        }
+        
+        // Also search in dynamic registry if available
+        if (typeof SettingsSearchRegistry !== "undefined") {
+            var widgetResults = SettingsSearchRegistry.buildResults(searchText);
+            results = results.concat(widgetResults);
+        }
+        
+        results.sort((a, b) => b.score - a.score);
+        
+        // Remove duplicates
+        var seen = {};
+        var unique = [];
+        for (var k = 0; k < results.length; k++) {
+            var key = (results[k].label || "") + "|" + (results[k].section || "");
+            if (!seen[key]) {
+                seen[key] = true;
+                unique.push(results[k]);
+            }
+        }
+        
+        searchResults = unique.slice(0, 30);
+    }
+    
+    function openSearchResult(entry: var): void {
+        if (entry && entry.pageIndex !== undefined && entry.pageIndex >= 0) {
+            currentPage = entry.pageIndex;
+            
+            // Focus option - try optionId first (dynamic registry), then targetLabel (static index)
+            if (typeof SettingsSearchRegistry !== "undefined") {
+                if (entry.optionId !== undefined) {
+                    // Dynamic registry entry - use optionId
+                    const optionId = entry.optionId;
+                    Qt.callLater(() => {
+                        SettingsSearchRegistry.focusOption(optionId);
+                    });
+                } else if (entry.targetLabel) {
+                    // Static index entry - find widget by label after page loads
+                    const targetLabel = entry.targetLabel;
+                    spotlightTimer.targetLabel = targetLabel;
+                    spotlightTimer.restart();
+                }
+            }
+        }
+        
+        searchText = "";
+        searchInput.text = "";
+    }
+    
+    // Timer to wait for page load before focusing target
+    Timer {
+        id: spotlightTimer
+        interval: 100
+        repeat: true
+        property string targetLabel: ""
+        property int retries: 0
+        property int maxRetries: 20  // 2 seconds max wait
+        
+        onTriggered: {
+            if (!targetLabel || typeof SettingsSearchRegistry === "undefined") {
+                stop();
+                return;
+            }
+            
+            // Find entry by label in registry
+            var entries = SettingsSearchRegistry.entries;
+            
+            for (var i = 0; i < entries.length; i++) {
+                if (entries[i].label === targetLabel && entries[i].pageIndex === root.currentPage) {
+                    SettingsSearchRegistry.focusOption(entries[i].id);
+                    retries = 0;
+                    stop();
+                    return;
+                }
+            }
+            
+            // Retry until found or max retries
+            retries++;
+            if (retries >= maxRetries) {
+                retries = 0;
+                stop();
+            }
+        }
+    }
+    
+    RowLayout {
+        anchors.fill: parent
+        spacing: 0
+        
+        // Navigation sidebar
+        Rectangle {
+            Layout.fillHeight: true
+            Layout.preferredWidth: root.navExpanded ? 240 : 56
+            color: Looks.colors.bg1Base
+            
+            Behavior on Layout.preferredWidth {
+                animation: NumberAnimation { duration: Looks.transition.enabled ? Looks.transition.duration.medium : 0; easing.type: Easing.BezierSpline; easing.bezierCurve: Looks.transition.easing.bezierCurve.standard }
+            }
+            
+            ColumnLayout {
+                anchors {
+                    fill: parent
+                    topMargin: 10
+                    bottomMargin: 10
+                    leftMargin: 12
+                    rightMargin: 12
+                }
+                spacing: 4
+                
+                // Header with app name (expanded)
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.bottomMargin: 6
+                    spacing: 10
+                    visible: root.navExpanded
+
+                    WUserAvatar {
+                        sourceSize: Qt.size(32, 32)
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 1
+
+                        WText {
+                            text: Translation.tr("Settings")
+                            font.pixelSize: Looks.font.pixelSize.larger
+                            font.weight: Looks.font.weight.stronger
+                            color: Looks.colors.fg
+                        }
+
+                        WText {
+                            text: SystemInfo.displayName || SystemInfo.username
+                            font.pixelSize: Looks.font.pixelSize.small
+                            color: Looks.colors.subfg
+                            elide: Text.ElideRight
+                        }
+                    }
+
+                    WBorderlessButton {
+                        implicitWidth: 28
+                        implicitHeight: 28
+                        onClicked: Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "lock", "activate"])
+
+                        contentItem: FluentIcon {
+                            anchors.centerIn: parent
+                            icon: "lock-closed"
+                            implicitSize: 14
+                            color: Looks.colors.subfg
+                        }
+                    }
+
+                    WBorderlessButton {
+                        implicitWidth: 28
+                        implicitHeight: 28
+                        onClicked: root.closeRequested()
+                        
+                        contentItem: FluentIcon {
+                            anchors.centerIn: parent
+                            icon: "dismiss"
+                            implicitSize: 14
+                            color: Looks.colors.subfg
+                        }
+                    }
+                }
+                
+                // Subtle separator under header
+                Rectangle {
+                    visible: root.navExpanded
+                    Layout.fillWidth: true
+                    Layout.bottomMargin: 6
+                    height: 1
+                    color: Looks.colors.bg2Border
+                    opacity: 0.15
+                }
+                
+                // Header icon (collapsed)
+                Item {
+                    visible: !root.navExpanded
+                    Layout.preferredWidth: 32
+                    Layout.preferredHeight: 32
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.bottomMargin: 6
+                    
+                    FluentIcon {
+                        anchors.centerIn: parent
+                        icon: "settings"
+                        implicitSize: 20
+                        color: Looks.colors.subfg
+                    }
+                }
+                
+                // Search bar (only when expanded)
+                Rectangle {
+                    id: searchBarContainer
+                    visible: root.navExpanded
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 34
+                    radius: Looks.radius.medium
+                    color: Looks.colors.inputBg
+                    border.width: searchInput.activeFocus ? 2 : 1
+                    border.color: searchInput.activeFocus ? Looks.colors.accent : Looks.colors.bg2Border
+                    
+                      Behavior on border.color {
+                          animation: ColorAnimation { duration: Looks.transition.enabled ? 70 : 0; easing.type: Easing.BezierSpline; easing.bezierCurve: Looks.transition.easing.bezierCurve.standard }
+                      }
+                    
+                    RowLayout {
+                        anchors {
+                            fill: parent
+                            leftMargin: 9
+                            rightMargin: 9
+                        }
+                        spacing: 7
+                        
+                        FluentIcon {
+                            icon: "search"
+                            implicitSize: 14
+                            color: Looks.colors.subfg
+                        }
+                        
+                        Item {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            
+                            TextInput {
+                                id: searchInput
+                                anchors.fill: parent
+                                verticalAlignment: Text.AlignVCenter
+                                color: Looks.colors.fg
+                                selectionColor: Looks.colors.accent
+                                selectedTextColor: Looks.colors.accentFg
+                                font.family: Looks.font.family.ui
+                                font.pixelSize: Looks.font.pixelSize.normal
+                                clip: true
+                                
+                                onTextChanged: {
+                                    root.searchText = text;
+                                    if (text.length > 0 && !pageStack.preloadRequested) {
+                                        pageStack.preloadRequested = true
+                                        preloadTimer.start()
+                                    }
+                                    root.recomputeSearchResults();
+                                }
+                                
+                                Keys.onPressed: event => {
+                                    if (event.key === Qt.Key_Down && root.searchResults.length > 0) {
+                                        searchResultsList.forceActiveFocus();
+                                        searchResultsList.currentIndex = 0;
+                                        event.accepted = true;
+                                    } else if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && root.searchResults.length > 0) {
+                                        root.openSearchResult(root.searchResults[0]);
+                                        event.accepted = true;
+                                    } else if (event.key === Qt.Key_Escape) {
+                                        root.openSearchResult({});
+                                        event.accepted = true;
+                                    }
+                                }
+                            }
+                            
+                            // Placeholder text (separate element to avoid overlap)
+                            WText {
+                                anchors.fill: parent
+                                verticalAlignment: Text.AlignVCenter
+                                text: Translation.tr("Find a setting")
+                                color: Looks.colors.subfg
+                                font.family: Looks.font.family.ui
+                                font.pixelSize: Looks.font.pixelSize.normal
+                                visible: !searchInput.text
+                                opacity: 0.6
+                            }
+                        }
+                        
+                        // Clear button
+                        Item {
+                            Layout.preferredWidth: 20
+                            Layout.preferredHeight: 20
+                            visible: searchInput.text.length > 0
+                            
+                            Rectangle {
+                                anchors.fill: parent
+                                radius: 10  // pill shape
+                                color: clearMouse.containsMouse ? Looks.colors.bg2Hover : "transparent"
+                                
+                                FluentIcon {
+                                    anchors.centerIn: parent
+                                    icon: "dismiss"
+                                    implicitSize: 12
+                                    color: Looks.colors.subfg
+                                }
+                                
+                                MouseArea {
+                                    id: clearMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        searchInput.text = "";
+                                        searchInput.forceActiveFocus();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Search results dropdown
+                Rectangle {
+                    id: searchResultsDropdown
+                    visible: root.searchText.length > 0 && root.searchResults.length > 0
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: Math.min((searchResultsList.contentHeight || 0) + 8, 300)
+                    radius: Looks.radius.large
+                    color: Looks.colors.bg2Base
+                    border.width: 1
+                    border.color: Looks.colors.bg2Border
+                    
+                    layer.enabled: Appearance.effectsEnabled
+                    layer.effect: DropShadow {
+                        color: Looks.colors.shadow
+                        radius: 6
+                        samples: 7
+                        verticalOffset: 2
+                    }
+                    
+                    ListView {
+                        id: searchResultsList
+                        anchors {
+                            fill: parent
+                            margins: 4
+                        }
+                        spacing: 2
+                        model: root.searchResults
+                        clip: true
+                        currentIndex: -1
+                        boundsBehavior: Flickable.StopAtBounds
+                        
+                        Keys.onPressed: event => {
+                            if (event.key === Qt.Key_Up) {
+                                if (currentIndex > 0) currentIndex--;
+                                else searchInput.forceActiveFocus();
+                                event.accepted = true;
+                            } else if (event.key === Qt.Key_Down) {
+                                if (currentIndex < count - 1) currentIndex++;
+                                event.accepted = true;
+                            } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                                if (currentIndex >= 0) root.openSearchResult(root.searchResults[currentIndex]);
+                                event.accepted = true;
+                            } else if (event.key === Qt.Key_Escape) {
+                                root.openSearchResult({});
+                                searchInput.forceActiveFocus();
+                                event.accepted = true;
+                            }
+                        }
+                        
+                        delegate: Rectangle {
+                            id: resultDelegate
+                            required property var modelData
+                            required property int index
+                            
+                            width: searchResultsList.width
+                            height: 44
+                            radius: Looks.radius.medium
+                            color: {
+                                if (ListView.isCurrentItem) return Looks.colors.accent;
+                                if (resultMouse.containsMouse) return Looks.colors.bg2Hover;
+                                return "transparent";
+                            }
+                            
+                              Behavior on color {
+                                  animation: ColorAnimation { duration: Looks.transition.enabled ? 70 : 0; easing.type: Easing.BezierSpline; easing.bezierCurve: Looks.transition.easing.bezierCurve.standard }
+                              }
+                            
+                            MouseArea {
+                                id: resultMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.openSearchResult(resultDelegate.modelData)
+                            }
+                            
+                            RowLayout {
+                                anchors {
+                                    fill: parent
+                                    leftMargin: 10
+                                    rightMargin: 10
+                                }
+                                spacing: 10
+                                
+                                // Page icon
+                                FluentIcon {
+                                    icon: {
+                                        var icons = ["home", "settings", "desktop", "image", "color", 
+                                                    "apps", "settings-cog-multiple", "desktop", "info"];
+                                        return icons[resultDelegate.modelData.pageIndex] || "settings";
+                                    }
+                                    implicitSize: 16
+                                    color: resultDelegate.ListView.isCurrentItem 
+                                        ? Looks.colors.accentFg 
+                                        : Looks.colors.accent
+                                }
+                                
+                                // Text content
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 0
+                                    
+                                    Text {
+                                        Layout.fillWidth: true
+                                        text: resultDelegate.modelData.labelHighlighted || resultDelegate.modelData.label || ""
+                                        textFormat: Text.StyledText
+                                        font.family: Looks.font.family.ui
+                                        font.pixelSize: Looks.font.pixelSize.normal
+                                        font.weight: Font.Medium
+                                        color: resultDelegate.ListView.isCurrentItem 
+                                            ? Looks.colors.accentFg 
+                                            : Looks.colors.fg
+                                        elide: Text.ElideRight
+                                    }
+                                    
+                                    WText {
+                                        Layout.fillWidth: true
+                                        text: resultDelegate.modelData.pageName + (resultDelegate.modelData.section ? " › " + resultDelegate.modelData.section : "")
+                                        font.pixelSize: Looks.font.pixelSize.small
+                                        color: resultDelegate.ListView.isCurrentItem 
+                                            ? Looks.colors.accentFg 
+                                            : Looks.colors.subfg
+                                        elide: Text.ElideRight
+                                        opacity: 0.8
+                                    }
+                                }
+                                
+                                // Arrow
+                                FluentIcon {
+                                    icon: "chevron-right"
+                                    implicitSize: 12
+                                    color: resultDelegate.ListView.isCurrentItem 
+                                        ? Looks.colors.accentFg 
+                                        : Looks.colors.subfg
+                                    opacity: resultMouse.containsMouse || resultDelegate.ListView.isCurrentItem ? 1 : 0
+                                    
+                                      Behavior on opacity {
+                                          animation: NumberAnimation { duration: Looks.transition.enabled ? Looks.transition.duration.normal : 0; easing.type: Easing.BezierSpline; easing.bezierCurve: Looks.transition.easing.bezierCurve.standard }
+                                      }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // No results indicator
+                Rectangle {
+                    visible: root.searchText.length > 0 && root.searchResults.length === 0
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 36
+                    radius: Looks.radius.medium
+                    color: Looks.colors.bg2Base
+                    
+                    RowLayout {
+                        anchors.centerIn: parent
+                        spacing: 8
+                        
+                        FluentIcon {
+                            icon: "search"
+                            implicitSize: 14
+                            color: Looks.colors.subfg
+                        }
+                        
+                        WText {
+                            text: Translation.tr("No results")
+                            font.pixelSize: Looks.font.pixelSize.small
+                            color: Looks.colors.subfg
+                        }
+                    }
+                }
+
+                Item { height: 4 }
+                
+                // Navigation items
+                Flickable {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    contentHeight: navColumn.implicitHeight
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBounds
+                    
+                    ColumnLayout {
+                        id: navColumn
+                        width: parent.width
+                        spacing: 2
+                        
+                        Repeater {
+                            model: root.pages
+                            
+                            WSettingsNavItem {
+                                required property int index
+                                required property var modelData
+                                
+                                Layout.fillWidth: true
+                                text: modelData.name
+                                navIcon: modelData.icon
+                                selected: root.currentPage === index
+                                expanded: root.navExpanded
+                                
+                                onClicked: root.currentPage = index
+                            }
+                        }
+                    }
+                }
+                
+                // Separator above collapse button
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.topMargin: 4
+                    height: 1
+                    color: Looks.colors.bg2Border
+                    opacity: 0.15
+                }
+                
+                // Expand/collapse button
+                WBorderlessButton {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 32
+                    
+                    contentItem: RowLayout {
+                        spacing: 10
+                        
+                        Item {
+                            implicitWidth: 20
+                            implicitHeight: 20
+                            Layout.leftMargin: root.navExpanded ? 12 : 0
+                            Layout.fillWidth: !root.navExpanded
+                            Layout.alignment: root.navExpanded ? Qt.AlignVCenter : Qt.AlignCenter
+                            
+                            FluentIcon {
+                                anchors.centerIn: parent
+                                icon: root.navExpanded ? "panel-left-contract" : "panel-left-expand"
+                                implicitSize: 16
+                                color: Looks.colors.subfg
+                            }
+                        }
+                        
+                        WText {
+                            visible: root.navExpanded
+                            Layout.fillWidth: true
+                            text: Translation.tr("Collapse")
+                            font.pixelSize: Looks.font.pixelSize.normal
+                            color: Looks.colors.subfg
+                        }
+                    }
+                    
+                    onClicked: root.navExpanded = !root.navExpanded
+                }
+            }
+        }
+        
+        // Separator — subtle divider
+        Rectangle {
+            Layout.fillHeight: true
+            width: 1
+            color: Looks.colors.bg2Border
+            opacity: 0.2
+        }
+        
+        // Content area
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            color: Looks.colors.bg0
+            
+            // Page stack
+            Item {
+                id: pageStack
+                anchors.fill: parent
+                
+                property var visitedPages: ({})
+                property bool allPagesLoaded: false
+                property bool preloadRequested: false
+                
+                Connections {
+                    target: root
+                    function onCurrentPageChanged() {
+                        pageStack.visitedPages[root.currentPage] = true
+                        pageStack.visitedPagesChanged()
+                    }
+                }
+
+                Component.onCompleted: {
+                    visitedPages[root.currentPage] = true
+                    visitedPagesChanged()
+                }
+
+                Timer {
+                    id: preloadTimer
+                    interval: 100
+                    repeat: true
+                    property int nextPage: 1
+
+                    onTriggered: {
+                        if (nextPage >= root.pages.length) {
+                            pageStack.allPagesLoaded = true
+                            stop()
+                            return
+                        }
+
+                        if (!pageStack.visitedPages[nextPage]) {
+                            pageStack.visitedPages[nextPage] = true
+                            pageStack.visitedPagesChanged()
+                        }
+                        nextPage++
+                    }
+                }
+                
+                 Repeater {
+                     id: pageRepeater
+                     model: root.pages.length
+                    
+                     Loader {
+                         id: pageLoader
+                         required property int index
+                         anchors.fill: parent
+                         active: Config.ready && (pageStack.visitedPages[index] === true)
+                        asynchronous: index !== root.currentPage
+                        source: root.pages[index].component
+                        visible: index === root.currentPage && status === Loader.Ready
+                        opacity: visible ? 1 : 0
+                        // Disabled pages must not intercept mouse events even at opacity 0
+                        enabled: visible
+
+                         Behavior on opacity {
+                             animation: NumberAnimation { duration: Looks.transition.enabled ? Looks.transition.duration.normal : 0; easing.type: Easing.OutCubic }
+                         }
+
+                         Connections {
+                             target: pageLoader.item
+                             ignoreUnknownSignals: true
+
+                             function onNavigateRequested(pageIndex) {
+                                 if (pageIndex < 0 || pageIndex >= root.pages.length)
+                                     return
+
+                                 root.currentPage = pageIndex
+                             }
+                         }
+                     }
+                 }
+             }
+         }
+     }
+    
+    // Keyboard shortcut for search
+    Shortcut {
+        sequences: [StandardKey.Find]
+        onActivated: {
+            if (!root.navExpanded) root.navExpanded = true;
+            if (!pageStack.preloadRequested) {
+                pageStack.preloadRequested = true
+                preloadTimer.start()
+            }
+            searchInput.forceActiveFocus();
+        }
+    }
+}

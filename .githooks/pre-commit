@@ -29,8 +29,13 @@ staged=$(git diff --cached --name-only --diff-filter=ACM || true)
 "$(git rev-parse --show-toplevel)/bin/ryoku-dev-scan-leaks" --staged
 
 # 2. em-dash scan
+# Files/trees that are vendored upstream content and exempt from the
+# em-dash policy.
+emdash_allowlist_pattern='^shell/'
+
 for f in $staged; do
   [[ -f $f ]] || continue
+  [[ $f =~ $emdash_allowlist_pattern ]] && continue
   if [[ $f =~ $text_pattern ]]; then
     if git show ":$f" | grep -q $'\xe2\x80\x94'; then
       echo "pre-commit hook: em-dash(es) found in staged $f:" >&2
@@ -41,8 +46,12 @@ for f in $staged; do
 done
 
 # 3. bash syntax check on shell scripts
+# (vendored upstream trees are exempt)
+bash_syntax_allowlist_pattern='^shell/'
+
 for f in $staged; do
   [[ -f $f ]] || continue
+  [[ $f =~ $bash_syntax_allowlist_pattern ]] && continue
   case "$f" in
     *.sh|*.bash|bin/*)
       firstline=$(git show ":$f" | head -n1)

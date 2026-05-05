@@ -1,0 +1,8 @@
+module qs.modules.mediaControls.presets
+
+CompactPlayer 1.0 CompactPlayer.qml
+FullPlayer 1.0 FullPlayer.qml
+MinimalPlayer 1.0 MinimalPlayer.qml
+AlbumArtPlayer 1.0 AlbumArtPlayer.qml
+VisualizerPlayer 1.0 VisualizerPlayer.qml
+ClassicPlayer 1.0 ClassicPlayer.qml

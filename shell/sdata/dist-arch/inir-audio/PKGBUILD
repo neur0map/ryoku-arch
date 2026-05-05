@@ -1,0 +1,31 @@
+pkgname=inir-audio
+pkgver=1.0
+pkgrel=1
+pkgdesc='iNiR - audio dependency bundle'
+arch=(any)
+license=(MIT)
+depends=(
+  # PipeWire audio stack
+  pipewire
+  pipewire-pulse
+  pipewire-alsa
+  wireplumber
+
+  # Media control
+  playerctl
+  libdbusmenu-gtk3
+  pavucontrol
+
+  # Audio visualizer
+  cava
+
+  # Audio effects
+  easyeffects
+
+  # Media playback
+  mpv
+  mpv-mpris
+  yt-dlp
+  socat
+)
+
