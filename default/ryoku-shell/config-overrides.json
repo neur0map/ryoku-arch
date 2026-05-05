@@ -97,28 +97,6 @@
     "showOnDesktop": false,
     "pinnedOnStartup": false
   },
-  "bar": {
-    "ryokuTopbarHugFrame": true,
-    "borderless": true,
-    "cornerStyle": 0,
-    "showBackground": true,
-    "modules": {
-      "activeWindow": true,
-      "battery": false,
-      "clock": false,
-      "leftSidebarButton": true,
-      "media": false,
-      "resources": false,
-      "rightSidebarButton": true,
-      "sysTray": false,
-      "utilButtons": false,
-      "weather": true,
-      "workspaces": true
-    },
-    "weather": {
-      "enable": true
-    }
-  },
   "enabledPanels": [
     "iiBar",
     "iiBackground",
