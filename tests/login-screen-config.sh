@@ -86,4 +86,14 @@ assert_png "shell/assets/sddm-providers/qylock/hero.png"
 # Per-theme qylock PNGs are validated by the manifest sync check
 # (Task 7), once the QML page declares the bundledThemes list.
 
+# -- LoginScreenConfig.qml ---------------------------------------------
+assert_file "shell/modules/settings/LoginScreenConfig.qml"
+assert_grep "ContentPage"        "shell/modules/settings/LoginScreenConfig.qml"
+assert_grep "property var providers" "shell/modules/settings/LoginScreenConfig.qml"
+# Both providers are declared
+assert_grep "providerId: \"ii-pixel\""  "shell/modules/settings/LoginScreenConfig.qml"
+assert_grep "providerId: \"qylock\""    "shell/modules/settings/LoginScreenConfig.qml"
+# Active-theme reader exists
+assert_grep "function readActiveTheme"  "shell/modules/settings/LoginScreenConfig.qml"
+
 echo "PASS: tests/login-screen-config.sh ($0)"
