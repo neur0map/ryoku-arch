@@ -30,7 +30,7 @@ binds {
     Mod+Shift+O { power-off-monitors; }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // Ryoku shell overlays & tools
+    // Ryoku overlays & tools
     // ═══════════════════════════════════════════════════════════════════════
 
     // Alt-Tab window switcher (Ryoku's animated switcher).

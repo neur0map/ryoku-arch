@@ -6,7 +6,7 @@
 
 **力と美のために** &middot; *For the sake of power and beauty.*
 
-An opinionated **Arch Linux environment** for security work, built around **Niri**, the Ryoku shell, and a cohesive visual system. For people who want a workstation that feels deliberate from boot to desktop.
+An opinionated **Arch Linux environment** for security work, built around **Niri**, the Ryoku, and a cohesive visual system. For people who want a workstation that feels deliberate from boot to desktop.
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-F25623?style=for-the-badge)](LICENSE)
 [![Built on Arch Linux](https://img.shields.io/badge/Arch_Linux-1793D1?style=for-the-badge&logo=archlinux&logoColor=white)](https://archlinux.org)
@@ -34,7 +34,7 @@ An opinionated **Arch Linux environment** for security work, built around **Niri
 Ryoku is a focused Arch workstation environment for people doing security work who also care about a coherent desktop. It owns its command surface, config paths, theme pipeline, and maintenance workflow, so the machine behaves like one system instead of a pile of unrelated tweaks.
 
 - **Security-workstation direction** - a curated tooling track is being assembled without the kitchen-sink sprawl of a full security archive.
-- **Niri + Ryoku shell desktop** - a scrolling-tiler Wayland session with shell overlays, launcher, lock, settings, media controls, and Ryoku defaults wired together.
+- **Niri + Ryoku desktop** - a scrolling-tiler Wayland session with shell overlays, launcher, lock, settings, media controls, and Ryoku defaults wired together.
 - **Deliberate visual language** - boot, lock, login, shell, and desktop surfaces are meant to read as one system.
 - **Hardware-aware install path** - detection helpers for ASUS ROG, Framework 16, Dell XPS OLED, Apple Silicon, hybrid GPU, and more.
 

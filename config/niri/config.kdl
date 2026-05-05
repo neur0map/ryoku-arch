@@ -11,7 +11,7 @@
 //   40  Environment variables (Qt, XDG, theming)
 //   50  Processes spawned at login
 //   60  Animations (spring physics tuning)
-//   70  Key bindings (Ryoku shell + window management)
+//   70  Key bindings (Ryoku + window management)
 //   80  Layer rules (backdrop surfaces for Ryoku panels)
 //   90  Your personal overrides (never touched by updates)
 //
