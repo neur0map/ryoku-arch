@@ -632,7 +632,7 @@ Singleton {
                     }
                 }
                 property bool bottom: false // Instead of top
-                property int cornerStyle: 0 // 0: Hug | 1: Float | 2: Plain rectangle
+                property int cornerStyle: 0 // 0: Hug | 1: Float | 2: Plain rectangle | 3: Card | 4: Three-Island
                 property int customRounding: -1 // -1: use global theme rounding | 0+: override bar rounding (px)
                 property bool floatStyleShadow: true // Show shadow behind bar when cornerStyle == 1 (Float)
                 property bool borderless: false // true for no grouping of items
@@ -665,6 +665,8 @@ Singleton {
                     property bool sysTray: true
                     property bool weather: true
                     property bool taskbar: false
+                    property bool kanjiClock: true   // Three-Island only: signature kanji clock pill
+                    property bool secPulse: true     // Three-Island only: VPN/IP/listening cluster
                 }
                 property JsonObject modulesPlacement: JsonObject {
                     property string resources: "start"
@@ -716,6 +718,15 @@ Singleton {
                     property bool showScreenCast: false
                     property string screenCastOutput: "HDMI-A-1"
                     property bool showNotepad: true
+                }
+                property JsonObject kanjiClock: JsonObject {
+                    property bool showDate: true
+                    property bool useKanjiDigits: true   // 一二三 vs 1 2 3
+                }
+                property JsonObject secPulse: JsonObject {
+                    property bool showVpn: true
+                    property bool showPublicIp: false    // opt-in: spawns curl every 5min
+                    property bool showListening: false   // opt-in: spawns ss every 30s
                 }
                 property JsonObject tray: JsonObject {
                     property bool monochromeIcons: true
