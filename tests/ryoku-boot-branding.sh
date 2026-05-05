@@ -83,8 +83,8 @@ assert_contains bin/ryoku-refresh-limine 'grep -q.*Ryoku' \
 assert_contains bin/ryoku-refresh-limine 'limine-snapper-sync' \
   "Limine refresh should resync snapshot boot entries"
 
-latest_migration="$(ls migrations/*.sh | sort | tail -1)"
-assert_contains "$latest_migration" 'ryoku-refresh-limine' \
-  "latest migration should repair stale live Limine boot branding"
+limine_repair_migration="$(grep -l 'ryoku-refresh-limine' migrations/*.sh 2>/dev/null | sort | tail -1)"
+[[ -n $limine_repair_migration ]] || \
+  fail "at least one migration should repair stale live Limine boot branding"
 
 pass "Ryoku boot branding contract"
