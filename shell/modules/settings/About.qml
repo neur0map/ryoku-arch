@@ -398,21 +398,10 @@ ContentPage {
 
                     Item { Layout.fillHeight: true }
 
-                    Flow {
-                        Layout.fillWidth: true
-                        spacing: 8
-
-                        RippleButtonWithIcon {
-                            materialIcon: "open_in_new"
-                            mainText: "illogical-impulse"
-                            onClicked: Qt.openUrlExternally("https://github.com/end-4/dots-hyprland")
-                        }
-
-                        RippleButtonWithIcon {
-                            materialIcon: "volunteer_activism"
-                            mainText: Translation.tr("Support end-4")
-                            onClicked: Qt.openUrlExternally("https://github.com/sponsors/end-4")
-                        }
+                    RippleButtonWithIcon {
+                        materialIcon: "open_in_new"
+                        mainText: "illogical-impulse"
+                        onClicked: Qt.openUrlExternally("https://github.com/end-4/dots-hyprland")
                     }
                 }
             }
