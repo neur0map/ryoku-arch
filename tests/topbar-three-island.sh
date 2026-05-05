@@ -48,7 +48,7 @@ assert_count() {
 
 # 1. New files exist under shell/modules/bar/threeIsland/
 assert_file "shell/modules/bar/threeIsland/RyokuThreeIslandContent.qml"
-assert_file "shell/modules/bar/threeIsland/RyokuIsland.qml"
+assert_file "shell/modules/bar/threeIsland/RyokuTopFrame.qml"
 assert_file "shell/modules/bar/threeIsland/RyokuLeftIsland.qml"
 assert_file "shell/modules/bar/threeIsland/RyokuCenterIsland.qml"
 assert_file "shell/modules/bar/threeIsland/RyokuRightIsland.qml"

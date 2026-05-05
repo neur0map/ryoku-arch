@@ -20,7 +20,6 @@ Item {
     readonly property string leftAction: Config.options?.bar?.leftScrollAction ?? "brightness"
     readonly property string rightAction: Config.options?.bar?.rightScrollAction ?? "volume"
 
-    // Right-click context menu plumbing (mirrors BarContent.qml)
     Item { id: barContextMenuAnchor; width: 1; height: 1 }
     function openBarContextMenu(clickX, clickY, mouseArea) {
         const mapped = mouseArea.mapToItem(root, clickX, clickY)
@@ -74,18 +73,44 @@ Item {
         else if (action === "volume") GlobalStates.osdVolumeOpen = false;
     }
 
-    // ----- Left island (hangs from TL: top + left flush, BR rounded) -----
-    RyokuIsland {
-        id: leftPill
-        hangFromTop: true
-        hugLeft: true
+    // Hidden content sizers - the frame reads their implicitWidth to set notch widths.
+    RyokuLeftIsland {
+        id: leftSizer
+        visible: false
+        parentWindow: root.QsWindow.window
+    }
+    RyokuCenterIsland {
+        id: centerSizer
+        visible: false
+    }
+    RyokuRightIsland {
+        id: rightSizer
+        visible: false
+    }
+
+    readonly property int leftNotchWidth: Math.max(140, leftSizer.implicitWidth + 16)
+    readonly property int centerNotchWidth: Math.max(120, centerSizer.implicitWidth + 16)
+    readonly property int rightNotchWidth: Math.max(140, rightSizer.implicitWidth + 16)
+
+    // Single Canvas frame: thin top strip + three drop-down notches.
+    RyokuTopFrame {
+        id: frame
+        anchors.fill: parent
+        leftWidth: root.leftNotchWidth
+        centerWidth: root.centerNotchWidth
+        rightWidth: root.rightNotchWidth
+        notchHeight: Appearance.sizes.barHeight
+    }
+
+    // Left notch content + scroll region.
+    Item {
+        id: leftNotch
         anchors.left: parent.left
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        width: leftIsland.implicitWidth
+        width: root.leftNotchWidth
 
         RyokuLeftIsland {
-            id: leftIsland
             anchors.fill: parent
             parentWindow: root.QsWindow.window
         }
@@ -104,17 +129,15 @@ Item {
         }
     }
 
-    // ----- Center island (hangs from top: top flush, BL+BR rounded) -----
-    RyokuIsland {
-        id: centerPill
-        hangFromTop: true
+    // Center notch content + scroll region.
+    Item {
+        id: centerNotch
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        width: centerIsland.implicitWidth
+        width: root.centerNotchWidth
 
         RyokuCenterIsland {
-            id: centerIsland
             anchors.fill: parent
         }
 
@@ -129,18 +152,15 @@ Item {
         }
     }
 
-    // ----- Right island (hangs from TR: top + right flush, BL rounded) -----
-    RyokuIsland {
-        id: rightPill
-        hangFromTop: true
-        hugRight: true
+    // Right notch content + scroll region.
+    Item {
+        id: rightNotch
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        width: rightIsland.implicitWidth
+        width: root.rightNotchWidth
 
         RyokuRightIsland {
-            id: rightIsland
             anchors.fill: parent
         }
 
