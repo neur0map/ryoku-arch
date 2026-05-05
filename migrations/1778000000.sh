@@ -50,9 +50,25 @@ rm -f "$RYOKU_ICON"
 
 # Phase 8: Clone fresh iNiR. Source is the Ryoku-maintained iNiR fork
 # once it exists; defaults to the snowarch reference repo until then.
-# Override with RYOKU_INIR_REPO=... to point at any other remote.
+# Mirrors install/config/inir.sh's source-resolution chain: an explicit
+# RYOKU_INIR_SOURCE override beats the vendored checkout candidates,
+# which beat a network clone from RYOKU_INIR_REPO. Lets the migration
+# succeed in offline/recovery contexts when a local checkout exists.
 INIR_REPO="${RYOKU_INIR_REPO:-https://github.com/snowarch/iNiR.git}"
-git clone "$INIR_REPO" "$INIR_PATH"
+INIR_SOURCE="${RYOKU_INIR_SOURCE:-}"
+if [[ -z $INIR_SOURCE ]]; then
+  for candidate in "$RYOKU_PATH/vendor/inir" "/root/inir" "/opt/ryoku/inir"; do
+    if [[ -d $candidate/.git ]]; then
+      INIR_SOURCE="$candidate"
+      break
+    fi
+  done
+fi
+if [[ -n $INIR_SOURCE && -d $INIR_SOURCE/.git ]]; then
+  cp -a "$INIR_SOURCE" "$INIR_PATH"
+else
+  git clone "$INIR_REPO" "$INIR_PATH"
+fi
 
 # Phase 9: Run iNiR's installer with non-interactive flags.
 "$INIR_PATH/setup" install -y --skip-deps --skip-sysupdate
