@@ -11,308 +11,288 @@ ContentPage {
     settingsPageIndex: 13
     settingsPageName: Translation.tr("About")
 
-    SettingsCardSection {
-        expanded: true
-        icon: "computer"
-        title: Translation.tr("System")
+    ColumnLayout {
+        anchors.fill: parent
+        anchors.margins: 16
+        spacing: 16
 
-        SettingsGroup {
-            RowLayout {
-                Layout.alignment: Qt.AlignHCenter
-                spacing: 20
-                Layout.topMargin: 10
-                Layout.bottomMargin: 10
+        // ── Top row: Ryoku hero (2/3) + System info (1/3) ──────────────────
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 240
+            spacing: 16
 
-                Item {
-                    width: 64
-                    height: 64
+            // ── Ryoku hero card ─────────────────────────────────────────────
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.preferredWidth: 2
 
-                    Image {
-                        id: distroIconImage
-
-                        anchors.fill: parent
-                        sourceSize.width: 64
-                        sourceSize.height: 64
-                        source: Quickshell.shellPath(`assets/icons/${SystemInfo.distroIcon}.svg`)
-                        fillMode: Image.PreserveAspectFit
-                        visible: false
-                    }
-
-                    MultiEffect {
-                        anchors.fill: distroIconImage
-                        source: distroIconImage
-                        colorization: 1
-                        colorizationColor: Appearance.m3colors.m3primary
-                        visible: distroIconImage.status === Image.Ready
-                    }
-
-                    MaterialSymbol {
-                        anchors.centerIn: parent
-                        visible: distroIconImage.status !== Image.Ready
-                        text: "computer"
-                        iconSize: 64
-                        color: Appearance.m3colors.m3primary
-                    }
-
-                }
+                color: Appearance.colors.colSurfaceContainerLow
+                radius: 20
+                border.width: 1
+                border.color: Appearance.m3colors.m3primary
 
                 ColumnLayout {
-                    Layout.alignment: Qt.AlignVCenter
+                    anchors.fill: parent
+                    anchors.margins: 24
+                    spacing: 12
+
+                    // Icon + title + version row
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 16
+
+                        // Round icon container
+                        Rectangle {
+                            width: 68
+                            height: 68
+                            radius: 34
+                            color: "transparent"
+                            border.width: 2
+                            border.color: Appearance.m3colors.m3primary
+
+                            Image {
+                                id: projectIcon
+
+                                anchors.centerIn: parent
+                                width: 60
+                                height: 60
+                                sourceSize.width: 60
+                                sourceSize.height: 60
+                                source: Quickshell.shellPath("assets/icons/ryoku-symbolic.svg")
+                                fillMode: Image.PreserveAspectFit
+                                layer.enabled: Appearance.effectsEnabled
+
+                                layer.effect: MultiEffect {
+                                    maskEnabled: true
+
+                                    maskSource: ShaderEffectSource {
+                                        sourceItem: Rectangle {
+                                            width: 60
+                                            height: 60
+                                            radius: 30
+                                        }
+                                    }
+                                }
+                            }
+
+                            MaterialSymbol {
+                                anchors.centerIn: parent
+                                visible: projectIcon.status !== Image.Ready
+                                text: "deployed_code"
+                                iconSize: 48
+                                color: Appearance.m3colors.m3primary
+                            }
+
+                            // Avatar interaction easter-egg
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: _avatarFx.restart()
+                            }
+
+                            Text {
+                                id: _avatarFxLabel
+                                text: "🫃🏻"
+                                font.pixelSize: Appearance.font.pixelSize.hugeass
+                                anchors.centerIn: parent
+                                visible: false
+                                z: 10
+
+                                SequentialAnimation {
+                                    id: _avatarFx
+                                    PropertyAction { target: _avatarFxLabel; property: "visible"; value: true }
+                                    PropertyAction { target: _avatarFxLabel; property: "scale"; value: 0 }
+                                    PropertyAction { target: _avatarFxLabel; property: "opacity"; value: 1 }
+                                    NumberAnimation { target: _avatarFxLabel; property: "scale"; to: 1.5; duration: 300; easing.type: Easing.OutBack }
+                                    NumberAnimation { target: _avatarFxLabel; property: "scale"; to: 1.0; duration: 200 }
+                                    PauseAnimation { duration: 800 }
+                                    ParallelAnimation {
+                                        NumberAnimation { target: _avatarFxLabel; property: "opacity"; to: 0; duration: 400 }
+                                        NumberAnimation { target: _avatarFxLabel; property: "scale"; to: 2.0; duration: 400 }
+                                    }
+                                    PropertyAction { target: _avatarFxLabel; property: "visible"; value: false }
+                                }
+                            }
+                        }
+
+                        // Name + version + branch
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            Layout.alignment: Qt.AlignVCenter
+                            spacing: 4
+
+                            StyledText {
+                                text: "Ryoku"
+                                font.pixelSize: Appearance.font.pixelSize.title
+                                color: Appearance.m3colors.m3primary
+                            }
+
+                            RowLayout {
+                                spacing: 6
+
+                                StyledText {
+                                    text: ShellUpdates.localVersion || "—"
+                                    font.pixelSize: Appearance.font.pixelSize.small
+                                    color: Appearance.colors.colSubtext
+                                }
+
+                                Rectangle {
+                                    visible: ShellUpdates.currentBranch.length > 0
+                                    implicitWidth: branchLabel.implicitWidth + 12
+                                    implicitHeight: branchLabel.implicitHeight + 4
+                                    radius: Appearance.rounding.small
+                                    color: ShellUpdates.isNonMainBranch
+                                        ? ColorUtils.transparentize(Appearance.m3colors.m3tertiary, 0.8)
+                                        : ColorUtils.transparentize(Appearance.colors.colSubtext, 0.85)
+
+                                    StyledText {
+                                        id: branchLabel
+                                        anchors.centerIn: parent
+                                        text: ShellUpdates.currentBranch
+                                        font {
+                                            pixelSize: Appearance.font.pixelSize.smallest
+                                            family: Appearance.font.family.monospace
+                                        }
+                                        color: ShellUpdates.isNonMainBranch
+                                            ? Appearance.m3colors.m3tertiary
+                                            : Appearance.colors.colSubtext
+                                    }
+                                }
+                            }
+
+                            StyledText {
+                                text: "[https://github.com/neur0map/ryoku-arch](https://github.com/neur0map/ryoku-arch)"
+                                font.pixelSize: Appearance.font.pixelSize.small
+                                color: Appearance.m3colors.m3primary
+                                textFormat: Text.MarkdownText
+                                onLinkActivated: (link) => Qt.openUrlExternally(link)
+
+                                PointingHandLinkHover {}
+                            }
+                        }
+                    }
+
+                    // Spacer
+                    Item { Layout.fillHeight: true }
+
+                    // Action buttons
+                    Flow {
+                        Layout.fillWidth: true
+                        spacing: 8
+
+                        RippleButtonWithIcon {
+                            materialIcon: "auto_stories"
+                            mainText: Translation.tr("Documentation")
+                            onClicked: Qt.openUrlExternally("https://github.com/neur0map/ryoku-arch")
+                        }
+
+                        RippleButtonWithIcon {
+                            materialIcon: "bug_report"
+                            mainText: Translation.tr("Issues")
+                            onClicked: Qt.openUrlExternally("https://github.com/neur0map/ryoku-arch/issues")
+                        }
+                    }
+                }
+            }
+
+            // ── System info card ────────────────────────────────────────────
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.preferredWidth: 1
+
+                color: Appearance.colors.colSurfaceContainerLow
+                radius: 20
+                border.width: 1
+                border.color: Appearance.colors.colOutline
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 20
+                    spacing: 12
+
+                    // Distro icon
+                    Item {
+                        width: 48
+                        height: 48
+
+                        Image {
+                            id: distroIconImage
+
+                            anchors.fill: parent
+                            sourceSize.width: 48
+                            sourceSize.height: 48
+                            source: Quickshell.shellPath(`assets/icons/${SystemInfo.distroIcon}.svg`)
+                            fillMode: Image.PreserveAspectFit
+                            visible: false
+                        }
+
+                        MultiEffect {
+                            anchors.fill: distroIconImage
+                            source: distroIconImage
+                            colorization: 1
+                            colorizationColor: Appearance.m3colors.m3primary
+                            visible: distroIconImage.status === Image.Ready
+                        }
+
+                        MaterialSymbol {
+                            anchors.centerIn: parent
+                            visible: distroIconImage.status !== Image.Ready
+                            text: "computer"
+                            iconSize: 48
+                            color: Appearance.m3colors.m3primary
+                        }
+                    }
 
                     StyledText {
                         text: SystemInfo.distroName || "Linux"
                         font.pixelSize: Appearance.font.pixelSize.title
+                        Layout.fillWidth: true
+                        wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                     }
 
                     StyledText {
                         visible: SystemInfo.homeUrl && SystemInfo.homeUrl.length > 0
                         font.pixelSize: Appearance.font.pixelSize.small
                         color: Appearance.m3colors.m3primary
-                        text: SystemInfo.homeUrl ? `[${SystemInfo.homeUrl}](${SystemInfo.homeUrl})` : ""
+                        text: SystemInfo.homeUrl
+                            ? `[${SystemInfo.homeUrl}](${SystemInfo.homeUrl})`
+                            : ""
                         textFormat: Text.MarkdownText
-                        onLinkActivated: (link) => {
-                            return Qt.openUrlExternally(link);
-                        }
+                        Layout.fillWidth: true
+                        wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                        onLinkActivated: (link) => Qt.openUrlExternally(link)
 
-                        PointingHandLinkHover {
-                        }
-
+                        PointingHandLinkHover {}
                     }
 
+                    Item { Layout.fillHeight: true }
                 }
-
             }
-
-            Flow {
-                Layout.fillWidth: true
-                spacing: 5
-
-                RippleButtonWithIcon {
-                    visible: SystemInfo.documentationUrl && SystemInfo.documentationUrl.length > 0
-                    materialIcon: "auto_stories"
-                    mainText: Translation.tr("Documentation")
-                    onClicked: Qt.openUrlExternally(SystemInfo.documentationUrl)
-                }
-
-                RippleButtonWithIcon {
-                    visible: SystemInfo.supportUrl && SystemInfo.supportUrl.length > 0
-                    materialIcon: "support"
-                    mainText: Translation.tr("Help & Support")
-                    onClicked: Qt.openUrlExternally(SystemInfo.supportUrl)
-                }
-
-                RippleButtonWithIcon {
-                    visible: SystemInfo.bugReportUrl && SystemInfo.bugReportUrl.length > 0
-                    materialIcon: "bug_report"
-                    mainText: Translation.tr("Report a Bug")
-                    onClicked: Qt.openUrlExternally(SystemInfo.bugReportUrl)
-                }
-
-            }
-
         }
 
-    }
+        // ── Bottom row: iNiR + illogical-impulse credit cards ───────────────
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 180
+            spacing: 16
 
-    SettingsCardSection {
-        expanded: false
-        icon: "deployed_code"
-        title: "Ryoku"
-
-        SettingsGroup {
-            RowLayout {
-                Layout.alignment: Qt.AlignHCenter
-                spacing: 20
-                Layout.topMargin: 10
-                Layout.bottomMargin: 10
-
-                // Round icon container
-                Rectangle {
-                    width: 68
-                    height: 68
-                    radius: 34
-                    color: "transparent"
-                    border.width: 2
-                    border.color: Appearance.m3colors.m3primary
-
-                    Image {
-                        id: projectIcon
-
-                        anchors.centerIn: parent
-                        width: 60
-                        height: 60
-                        sourceSize.width: 60
-                        sourceSize.height: 60
-                        source: Quickshell.shellPath("assets/icons/ryoku-symbolic.svg")
-                        fillMode: Image.PreserveAspectFit
-                        layer.enabled: Appearance.effectsEnabled
-
-                        layer.effect: MultiEffect {
-                            maskEnabled: true
-
-                            maskSource: ShaderEffectSource {
-
-                                sourceItem: Rectangle {
-                                    width: 60
-                                    height: 60
-                                    radius: 30
-                                }
-
-                            }
-
-                        }
-
-                    }
-
-                    MaterialSymbol {
-                        anchors.centerIn: parent
-                        visible: projectIcon.status !== Image.Ready
-                        text: "deployed_code"
-                        iconSize: 48
-                        color: Appearance.m3colors.m3primary
-                    }
-
-                    // Avatar interaction feedback
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: _avatarFx.restart()
-                    }
-
-                    Text {
-                        id: _avatarFxLabel
-                        text: "\ud83e\udec3\ud83c\udffb"
-                        font.pixelSize: Appearance.font.pixelSize.hugeass
-                        anchors.centerIn: parent
-                        visible: false
-                        z: 10
-
-                        SequentialAnimation {
-                            id: _avatarFx
-                            PropertyAction { target: _avatarFxLabel; property: "visible"; value: true }
-                            PropertyAction { target: _avatarFxLabel; property: "scale"; value: 0 }
-                            PropertyAction { target: _avatarFxLabel; property: "opacity"; value: 1 }
-                            NumberAnimation { target: _avatarFxLabel; property: "scale"; to: 1.5; duration: 300; easing.type: Easing.OutBack }
-                            NumberAnimation { target: _avatarFxLabel; property: "scale"; to: 1.0; duration: 200 }
-                            PauseAnimation { duration: 800 }
-                            ParallelAnimation {
-                                NumberAnimation { target: _avatarFxLabel; property: "opacity"; to: 0; duration: 400 }
-                                NumberAnimation { target: _avatarFxLabel; property: "scale"; to: 2.0; duration: 400 }
-                            }
-                            PropertyAction { target: _avatarFxLabel; property: "visible"; value: false }
-                        }
-                    }
-
-                }
-
-                ColumnLayout {
-                    Layout.alignment: Qt.AlignVCenter
-
-                    StyledText {
-                        text: "Ryoku"
-                        font.pixelSize: Appearance.font.pixelSize.title
-                    }
-
-                    RowLayout {
-                        spacing: 6
-
-                        StyledText {
-                            text: ShellUpdates.localVersion || "—"
-                            font.pixelSize: Appearance.font.pixelSize.small
-                            color: Appearance.colors.colSubtext
-                        }
-
-                        Rectangle {
-                            visible: ShellUpdates.currentBranch.length > 0
-                            implicitWidth: branchLabel.implicitWidth + 12
-                            implicitHeight: branchLabel.implicitHeight + 4
-                            radius: Appearance.rounding.small
-                            color: ShellUpdates.isNonMainBranch
-                                ? ColorUtils.transparentize(Appearance.m3colors.m3tertiary, 0.8)
-                                : ColorUtils.transparentize(Appearance.colors.colSubtext, 0.85)
-
-                            StyledText {
-                                id: branchLabel
-                                anchors.centerIn: parent
-                                text: ShellUpdates.currentBranch
-                                font {
-                                    pixelSize: Appearance.font.pixelSize.smallest
-                                    family: Appearance.font.family.monospace
-                                }
-                                color: ShellUpdates.isNonMainBranch
-                                    ? Appearance.m3colors.m3tertiary
-                                    : Appearance.colors.colSubtext
-                            }
-                        }
-                    }
-
-                    StyledText {
-                        text: "[https://github.com/neur0map/ryoku-arch](https://github.com/neur0map/ryoku-arch)"
-                        font.pixelSize: Appearance.font.pixelSize.small
-                        color: Appearance.m3colors.m3primary
-                        textFormat: Text.MarkdownText
-                        onLinkActivated: (link) => {
-                            return Qt.openUrlExternally(link);
-                        }
-
-                        PointingHandLinkHover {
-                        }
-
-                    }
-
-                }
-
-            }
-
-            Flow {
+            // ── iNiR credit card ────────────────────────────────────────────
+            Rectangle {
                 Layout.fillWidth: true
-                spacing: 5
+                Layout.fillHeight: true
 
-                RippleButtonWithIcon {
-                    materialIcon: "auto_stories"
-                    mainText: Translation.tr("Documentation")
-                    onClicked: Qt.openUrlExternally("https://github.com/neur0map/ryoku-arch")
-                }
-
-                RippleButtonWithIcon {
-                    materialIcon: "bug_report"
-                    mainText: Translation.tr("Issues")
-                    onClicked: Qt.openUrlExternally("https://github.com/neur0map/ryoku-arch/issues")
-                }
-
-            }
-
-        }
-
-    }
-
-    SettingsCardSection {
-        expanded: false
-        icon: "favorite"
-        title: Translation.tr("Based on")
-
-        SettingsGroup {
-            RowLayout {
-                Layout.alignment: Qt.AlignHCenter
-                spacing: 20
-                Layout.topMargin: 10
-                Layout.bottomMargin: 10
-
-                Item {
-                    width: 64
-                    height: 64
-
-                    MaterialSymbol {
-                        anchors.centerIn: parent
-                        text: "favorite"
-                        iconSize: 64
-                        color: Appearance.m3colors.m3primary
-                    }
-
-                }
+                color: Appearance.colors.colSurfaceContainerLow
+                radius: 20
+                border.width: 1
+                border.color: Appearance.colors.colOutline
 
                 ColumnLayout {
-                    Layout.alignment: Qt.AlignVCenter
+                    anchors.fill: parent
+                    anchors.margins: 20
+                    spacing: 8
 
                     StyledText {
                         text: "iNiR"
@@ -320,125 +300,95 @@ ContentPage {
                     }
 
                     StyledText {
-                        text: "[https://github.com/snowarch/inir](https://github.com/snowarch/inir)"
+                        text: Translation.tr("Upstream desktop shell")
+                        font.pixelSize: Appearance.font.pixelSize.small
+                        color: Appearance.colors.colSubtext
+                        Layout.fillWidth: true
+                        wrapMode: Text.WordWrap
+                    }
+
+                    StyledText {
+                        text: "[github.com/snowarch/iNiR](https://github.com/snowarch/iNiR)"
                         font.pixelSize: Appearance.font.pixelSize.small
                         color: Appearance.m3colors.m3primary
                         textFormat: Text.MarkdownText
-                        onLinkActivated: (link) => {
-                            return Qt.openUrlExternally(link);
-                        }
+                        onLinkActivated: (link) => Qt.openUrlExternally(link)
 
-                        PointingHandLinkHover {
-                        }
-
+                        PointingHandLinkHover {}
                     }
 
-                }
+                    Item { Layout.fillHeight: true }
 
+                    RippleButtonWithIcon {
+                        materialIcon: "open_in_new"
+                        mainText: "iNiR"
+                        onClicked: Qt.openUrlExternally("https://github.com/snowarch/iNiR")
+                    }
+                }
             }
 
-            Flow {
+            // ── illogical-impulse credit card ───────────────────────────────
+            Rectangle {
                 Layout.fillWidth: true
-                Layout.topMargin: 10
-                spacing: 5
+                Layout.fillHeight: true
 
-                RippleButtonWithIcon {
-                    materialIcon: "open_in_new"
-                    mainText: "iNiR"
-                    onClicked: Qt.openUrlExternally("https://github.com/snowarch/inir")
-                }
-
-            }
-
-        }
-
-        SettingsGroup {
-            RowLayout {
-                Layout.alignment: Qt.AlignHCenter
-                spacing: 20
-                Layout.topMargin: 10
-                Layout.bottomMargin: 10
-
-                Item {
-                    width: 64
-                    height: 64
-
-                    Image {
-                        id: end4Icon
-
-                        anchors.fill: parent
-                        sourceSize.width: 64
-                        sourceSize.height: 64
-                        source: Quickshell.shellPath("assets/icons/illogical-impulse.svg")
-                        fillMode: Image.PreserveAspectFit
-                        visible: status === Image.Ready
-                    }
-
-                    MaterialSymbol {
-                        anchors.centerIn: parent
-                        visible: end4Icon.status !== Image.Ready
-                        text: "favorite"
-                        iconSize: 64
-                        color: Appearance.m3colors.m3primary
-                    }
-
-                }
+                color: Appearance.colors.colSurfaceContainerLow
+                radius: 20
+                border.width: 1
+                border.color: Appearance.colors.colOutline
 
                 ColumnLayout {
-                    Layout.alignment: Qt.AlignVCenter
+                    anchors.fill: parent
+                    anchors.margins: 20
+                    spacing: 8
 
                     StyledText {
                         text: "illogical-impulse"
                         font.pixelSize: Appearance.font.pixelSize.title
+                        Layout.fillWidth: true
+                        wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                     }
 
                     StyledText {
-                        text: "[https://github.com/end-4/dots-hyprland](https://github.com/end-4/dots-hyprland)"
+                        text: Translation.tr("Original Hyprland configuration")
+                        font.pixelSize: Appearance.font.pixelSize.small
+                        color: Appearance.colors.colSubtext
+                        Layout.fillWidth: true
+                        wrapMode: Text.WordWrap
+                    }
+
+                    StyledText {
+                        text: "[github.com/end-4/dots-hyprland](https://github.com/end-4/dots-hyprland)"
                         font.pixelSize: Appearance.font.pixelSize.small
                         color: Appearance.m3colors.m3primary
                         textFormat: Text.MarkdownText
-                        onLinkActivated: (link) => {
-                            return Qt.openUrlExternally(link);
-                        }
+                        Layout.fillWidth: true
+                        wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                        onLinkActivated: (link) => Qt.openUrlExternally(link)
 
-                        PointingHandLinkHover {
-                        }
-
+                        PointingHandLinkHover {}
                     }
 
+                    Item { Layout.fillHeight: true }
+
+                    Flow {
+                        Layout.fillWidth: true
+                        spacing: 8
+
+                        RippleButtonWithIcon {
+                            materialIcon: "open_in_new"
+                            mainText: "illogical-impulse"
+                            onClicked: Qt.openUrlExternally("https://github.com/end-4/dots-hyprland")
+                        }
+
+                        RippleButtonWithIcon {
+                            materialIcon: "volunteer_activism"
+                            mainText: Translation.tr("Support end-4")
+                            onClicked: Qt.openUrlExternally("https://github.com/sponsors/end-4")
+                        }
+                    }
                 }
-
             }
-
-            StyledText {
-                Layout.fillWidth: true
-                text: Translation.tr("Ryoku is built on iNiR, which is itself a fork of end-4's illogical-impulse adapted for the Niri compositor.")
-                color: Appearance.colors.colSubtext
-                font.pixelSize: Appearance.font.pixelSize.small
-                wrapMode: Text.WordWrap
-            }
-
-            Flow {
-                Layout.fillWidth: true
-                Layout.topMargin: 10
-                spacing: 5
-
-                RippleButtonWithIcon {
-                    materialIcon: "open_in_new"
-                    mainText: "illogical-impulse"
-                    onClicked: Qt.openUrlExternally("https://github.com/end-4/dots-hyprland")
-                }
-
-                RippleButtonWithIcon {
-                    materialIcon: "volunteer_activism"
-                    mainText: Translation.tr("Support end-4")
-                    onClicked: Qt.openUrlExternally("https://github.com/sponsors/end-4")
-                }
-
-            }
-
         }
-
     }
-
 }
