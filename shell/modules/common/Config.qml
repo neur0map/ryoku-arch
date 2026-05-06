@@ -721,7 +721,7 @@ Singleton {
                 }
                 property JsonObject kanjiClock: JsonObject {
                     property bool showDate: true
-                    property bool useKanjiDigits: true   // 一二三 vs 1 2 3
+                    property bool useKanjiDigits: false  // opt-in 一二三 mode; off by default for readability
                 }
                 property JsonObject secPulse: JsonObject {
                     property bool showVpn: true

@@ -1,5 +1,6 @@
 import qs.modules.common
 import qs.modules.common.widgets
+import qs.modules.bar
 import qs.services
 import qs
 import QtQuick
@@ -8,7 +9,7 @@ import QtQuick.Layouts
 Item {
     id: root
 
-    readonly property bool showKanjiClock: (Config.options?.bar?.modules?.kanjiClock ?? true)
+    readonly property bool showWorkspaces: (Config.options?.bar?.modules?.workspaces ?? true)
         && (Config.options?.bar?.cornerStyle === 4)
     readonly property bool showSecPulse: (Config.options?.bar?.modules?.secPulse ?? true)
         && (Config.options?.bar?.cornerStyle === 4)
@@ -28,13 +29,25 @@ Item {
         anchors.rightMargin: 8
         spacing: 10
 
-        SecPulseIndicator {
-            visible: root.showSecPulse
+        Workspaces {
+            id: workspacesWidget
+            visible: root.showWorkspaces
             Layout.alignment: Qt.AlignVCenter
+            Layout.fillHeight: true
+
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.RightButton
+                onPressed: event => {
+                    if (event.button === Qt.RightButton) {
+                        GlobalStates.overviewOpen = !GlobalStates.overviewOpen;
+                    }
+                }
+            }
         }
 
         Rectangle {
-            visible: root.showSecPulse && root.showKanjiClock
+            visible: root.showWorkspaces && root.showSecPulse
             Layout.alignment: Qt.AlignVCenter
             implicitWidth: 1
             Layout.preferredHeight: parent.height * 0.5
@@ -42,8 +55,8 @@ Item {
             opacity: 0.2
         }
 
-        RyokuKanjiClock {
-            visible: root.showKanjiClock
+        SecPulseIndicator {
+            visible: root.showSecPulse
             Layout.alignment: Qt.AlignVCenter
         }
 

@@ -4,11 +4,17 @@ import qs.services
 import QtQuick
 import QtQuick.Layouts
 
+/**
+ * Center-island clock for the Three-Island topbar. Stacked time + date,
+ * accent-colored colon, optional kanji digits.
+ * (Filename retained for compatibility with the existing config schema
+ * `bar.kanjiClock.*`; the kanji-digit mode is now opt-in.)
+ */
 Item {
     id: root
 
     readonly property bool showDate: Config.options?.bar?.kanjiClock?.showDate ?? true
-    readonly property bool useKanjiDigits: Config.options?.bar?.kanjiClock?.useKanjiDigits ?? true
+    readonly property bool useKanjiDigits: Config.options?.bar?.kanjiClock?.useKanjiDigits ?? false
 
     readonly property var _digits: useKanjiDigits
         ? ["〇","一","二","三","四","五","六","七","八","九"]
@@ -24,29 +30,61 @@ Item {
         return out;
     }
 
-    implicitWidth: rowLayout.implicitWidth
+    readonly property color colTime: Appearance.angelEverywhere ? Appearance.angel.colText
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colText
+        : Appearance.colors.colOnLayer1
+    readonly property color colDate: Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
+        : Appearance.colors.colSubtext
+    readonly property color colAccent: Appearance.angelEverywhere ? Appearance.angel.colAccent
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colAccent
+        : Appearance.colors.colPrimary
+
+    readonly property string _time: root._toDigits(DateTime.time)
+    readonly property int _colonIdx: _time.indexOf(":")
+    readonly property string _hh: _colonIdx >= 0 ? _time.substring(0, _colonIdx) : _time
+    readonly property string _mm: _colonIdx >= 0 ? _time.substring(_colonIdx + 1) : ""
+
+    implicitWidth: column.implicitWidth + 12
     implicitHeight: Appearance.sizes.barHeight
 
-    RowLayout {
-        id: rowLayout
+    ColumnLayout {
+        id: column
         anchors.centerIn: parent
-        spacing: 6
+        spacing: 0
 
-        StyledText {
-            font.pixelSize: Appearance.font.pixelSize.large
-            color: Appearance.angelEverywhere ? Appearance.angel.colText
-                : Appearance.ryokuEverywhere ? Appearance.ryoku.colText
-                : Appearance.colors.colOnLayer1
-            text: root._toDigits(DateTime.time)
+        RowLayout {
+            Layout.alignment: Qt.AlignHCenter
+            spacing: 0
+
+            StyledText {
+                font.pixelSize: Appearance.font.pixelSize.huge
+                font.weight: Font.Medium
+                color: root.colTime
+                text: root._hh
+            }
+            StyledText {
+                font.pixelSize: Appearance.font.pixelSize.huge
+                font.weight: Font.Medium
+                color: root.colAccent
+                text: root._colonIdx >= 0 ? ":" : ""
+                visible: root._colonIdx >= 0
+            }
+            StyledText {
+                font.pixelSize: Appearance.font.pixelSize.huge
+                font.weight: Font.Medium
+                color: root.colTime
+                text: root._mm
+                visible: root._mm.length > 0
+            }
         }
 
         StyledText {
             visible: root.showDate
-            font.pixelSize: Appearance.font.pixelSize.small
-            color: Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
-                : Appearance.ryokuEverywhere ? Appearance.ryoku.colText
-                : Appearance.colors.colOnLayer1
-            text: root._toDigits(DateTime.shortDate)
+            Layout.alignment: Qt.AlignHCenter
+            font.pixelSize: Appearance.font.pixelSize.smaller
+            color: root.colDate
+            text: root._toDigits(DateTime.date)
         }
     }
 }
