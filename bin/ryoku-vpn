@@ -1,0 +1,193 @@
+#!/bin/bash
+# Interactive VPN management TUI for Ryoku.
+# Wraps NetworkManager (nmcli) for OpenVPN / WireGuard / IKEv2 / etc.
+# and tailscale for Tailscale. Renders with gum.
+#
+# Launch via: ryoku-vpn   (or wired to the SecPulse VPN click in Settings)
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+ACCENT="#F25623"
+OK_COLOR="#88A57D"
+WARN_COLOR="#F56E0F"
+ERR_COLOR="#ef4444"
+DIM_COLOR="244"
+
+require() {
+  command -v "$1" >/dev/null 2>&1 || {
+    gum style --foreground "$ERR_COLOR" "Missing dependency: $1"
+    exit 1
+  }
+}
+
+require gum
+require nmcli
+
+header() {
+  clear
+  gum style --border rounded --border-foreground "$ACCENT" --padding "0 2" --margin "0" \
+    --bold --foreground "$ACCENT" \
+    "力 Ryoku VPN"
+}
+
+# Detect the active VPN provider and display name.
+# Echos two tab-separated values: "<provider>\t<name>", or empty for both
+# when nothing is up.
+detect_active() {
+  local provider="" name=""
+  if wg show interfaces 2>/dev/null | grep -q .; then
+    provider="wireguard"
+    name=$(wg show interfaces | head -1)
+  elif command -v tailscale >/dev/null 2>&1 && \
+       tailscale status --peers=false 2>/dev/null | grep -qE '^[0-9]'; then
+    provider="tailscale"
+    name=$(tailscale status --peers=false 2>/dev/null | awk 'NR==1 {print $2}')
+  elif pgrep -x openvpn >/dev/null 2>&1; then
+    provider="openvpn"
+    name="(raw openvpn process)"
+  elif nmcli -t -f NAME,TYPE connection show --active 2>/dev/null | \
+       grep -qE ':vpn$|:wireguard$'; then
+    provider="networkmanager"
+    name=$(nmcli -t -f NAME,TYPE connection show --active | grep -E ':vpn$|:wireguard$' | head -1 | cut -d: -f1)
+  fi
+  printf '%s\t%s\n' "$provider" "$name"
+}
+
+show_status() {
+  local active provider name
+  active=$(detect_active)
+  provider=$(printf '%s' "$active" | cut -f1)
+  name=$(printf '%s' "$active" | cut -f2)
+
+  if [[ -n $provider ]]; then
+    gum style --foreground "$OK_COLOR" --bold "  ● Connected via ${provider}"
+    [[ -n $name ]] && gum style --foreground "$DIM_COLOR" "    ${name}"
+  else
+    gum style --foreground "$DIM_COLOR" "  ○ Not connected"
+  fi
+  echo
+}
+
+list_nm_vpns() {
+  nmcli -t -f NAME,TYPE connection show 2>/dev/null \
+    | awk -F: '$2 ~ /^(vpn|wireguard)$/ {print $1}'
+}
+
+active_nm_vpns() {
+  nmcli -t -f NAME,TYPE connection show --active 2>/dev/null \
+    | awk -F: '$2 ~ /^(vpn|wireguard)$/ {print $1}'
+}
+
+action_connect() {
+  local available choice
+  available=$(list_nm_vpns)
+  if [[ -z $available ]]; then
+    gum style --foreground "$WARN_COLOR" "No VPN connections configured."
+    gum style --foreground "$DIM_COLOR" "Add one in NetworkManager (option in main menu)."
+    gum input --placeholder "press enter to continue" >/dev/null
+    return
+  fi
+  choice=$(printf '%s\n' "$available" | gum choose --header "Connect to:" --header.foreground="$ACCENT") || return
+  [[ -z $choice ]] && return
+  if gum spin --title "Connecting to ${choice}..." --spinner dot --spinner.foreground="$ACCENT" -- \
+       nmcli connection up "$choice"; then
+    gum style --foreground "$OK_COLOR" "✓ ${choice} connected"
+  else
+    gum style --foreground "$ERR_COLOR" "✗ Failed to connect to ${choice}"
+  fi
+  sleep 1.2
+}
+
+action_disconnect() {
+  local active choice
+  active=$(active_nm_vpns)
+  if [[ -z $active ]]; then
+    gum style --foreground "$DIM_COLOR" "No NetworkManager VPN active."
+    sleep 1
+    return
+  fi
+  choice=$(printf '%s\n' "$active" | gum choose --header "Disconnect:" --header.foreground="$ACCENT") || return
+  [[ -z $choice ]] && return
+  if gum spin --title "Disconnecting ${choice}..." --spinner dot --spinner.foreground="$ACCENT" -- \
+       nmcli connection down "$choice"; then
+    gum style --foreground "$OK_COLOR" "✓ ${choice} disconnected"
+  else
+    gum style --foreground "$ERR_COLOR" "✗ Failed to disconnect ${choice}"
+  fi
+  sleep 1.2
+}
+
+action_tailscale() {
+  if ! command -v tailscale >/dev/null 2>&1; then
+    gum style --foreground "$WARN_COLOR" "Tailscale not installed."
+    sleep 1
+    return
+  fi
+  local up=0
+  tailscale status --peers=false 2>/dev/null | grep -qE '^[0-9]' && up=1
+
+  local options=()
+  if (( up )); then
+    options=("Disconnect" "Show status" "Open admin console" "Back")
+  else
+    options=("Connect" "Show status" "Open admin console" "Back")
+  fi
+  local choice
+  choice=$(printf '%s\n' "${options[@]}" | gum choose --header "Tailscale:" --header.foreground="$ACCENT") || return
+  case "$choice" in
+    Connect)
+      gum spin --title "Bringing tailscale up..." --spinner dot --spinner.foreground="$ACCENT" -- \
+        sudo tailscale up || gum style --foreground "$ERR_COLOR" "Failed (may need browser auth: run 'sudo tailscale up' in a terminal)"
+      sleep 1
+      ;;
+    Disconnect)
+      gum spin --title "Bringing tailscale down..." --spinner dot --spinner.foreground="$ACCENT" -- \
+        sudo tailscale down || true
+      sleep 1
+      ;;
+    "Show status")
+      tailscale status --peers=false 2>/dev/null || echo "(no status)"
+      gum input --placeholder "press enter to continue" >/dev/null
+      ;;
+    "Open admin console")
+      xdg-open https://login.tailscale.com/admin >/dev/null 2>&1 || true
+      ;;
+  esac
+}
+
+action_open_nm_editor() {
+  if command -v nm-connection-editor >/dev/null 2>&1; then
+    nm-connection-editor >/dev/null 2>&1 &
+    disown
+  else
+    gum style --foreground "$WARN_COLOR" "nm-connection-editor not installed."
+    sleep 1
+  fi
+}
+
+main_menu() {
+  while true; do
+    header
+    show_status
+    local choice
+    choice=$(gum choose --header "Action:" --header.foreground="$ACCENT" \
+      "Connect..." \
+      "Disconnect..." \
+      "Tailscale..." \
+      "Refresh status" \
+      "Open NetworkManager editor" \
+      "Quit") || break
+    case "$choice" in
+      "Connect...") action_connect ;;
+      "Disconnect...") action_disconnect ;;
+      "Tailscale...") action_tailscale ;;
+      "Refresh status") ;;
+      "Open NetworkManager editor") action_open_nm_editor ;;
+      Quit|"") break ;;
+    esac
+  done
+}
+
+main_menu
