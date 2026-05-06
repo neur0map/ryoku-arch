@@ -1,0 +1,48 @@
+#!/bin/bash
+# Remove an OpenVPN profile. Stops the unit first if it's active.
+# Usage: ryoku-openvpn-remove <name>
+
+set -uo pipefail
+
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/ryoku/openvpn"
+mkdir -p "$STATE_DIR"
+LAST_OP="$STATE_DIR/last-op.json"
+
+write_result() {
+  local op="$1" status="$2" name="${3:-}" error="${4:-}"
+  # Backslash-safe JSON escape: backslashes first, then quotes.
+  local s_op="${op//\\/\\\\}";         s_op="${s_op//\"/\\\"}"
+  local s_status="${status//\\/\\\\}"; s_status="${s_status//\"/\\\"}"
+  local s_name="${name//\\/\\\\}";     s_name="${s_name//\"/\\\"}"
+  local s_error="${error//\\/\\\\}";   s_error="${s_error//\"/\\\"}"
+  printf '{"op":"%s","status":"%s","name":"%s","error":"%s","at":"%s"}\n' \
+    "$s_op" "$s_status" "$s_name" "$s_error" "$(date -Iseconds)" >"$LAST_OP"
+}
+
+name="${1:-}"
+if [[ -z $name ]] || [[ "$name" =~ [^a-z0-9-] ]]; then
+  write_result remove error "$name" "invalid name"
+  exit 2
+fi
+
+conf="/etc/openvpn/client/$name.conf"
+if [[ ! -f $conf ]]; then
+  write_result remove error "$name" "no such profile"
+  exit 1
+fi
+
+# Stop if active (polkit rule allows this without password).
+if systemctl is-active --quiet "openvpn-client@$name.service"; then
+  systemctl stop "openvpn-client@$name.service" || true
+fi
+
+if ! pkexec rm -f "$conf"; then
+  rc=$?
+  case $rc in
+    126) write_result remove cancelled "$name" "authentication cancelled" ;;
+    *)   write_result remove error "$name" "pkexec rm failed (rc=$rc)" ;;
+  esac
+  exit "$rc"
+fi
+
+write_result remove ok "$name"

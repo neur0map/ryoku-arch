@@ -1,0 +1,52 @@
+#!/bin/bash
+# Rename an OpenVPN profile. Stops the unit first if active, then
+# starts it under the new name. Usage: ryoku-openvpn-rename <old> <new>
+
+set -uo pipefail
+
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/ryoku/openvpn"
+mkdir -p "$STATE_DIR"
+LAST_OP="$STATE_DIR/last-op.json"
+
+write_result() {
+  local op="$1" status="$2" name="${3:-}" error="${4:-}"
+  local s_op="${op//\\/\\\\}";         s_op="${s_op//\"/\\\"}"
+  local s_status="${status//\\/\\\\}"; s_status="${s_status//\"/\\\"}"
+  local s_name="${name//\\/\\\\}";     s_name="${s_name//\"/\\\"}"
+  local s_error="${error//\\/\\\\}";   s_error="${s_error//\"/\\\"}"
+  printf '{"op":"%s","status":"%s","name":"%s","error":"%s","at":"%s"}\n' \
+    "$s_op" "$s_status" "$s_name" "$s_error" "$(date -Iseconds)" >"$LAST_OP"
+}
+
+old="${1:-}" new="${2:-}"
+if [[ -z $old || -z $new ]] || [[ "$old$new" =~ [^a-z0-9-] ]]; then
+  write_result rename error "$new" "invalid name(s)"
+  exit 2
+fi
+
+src="/etc/openvpn/client/$old.conf"
+dst="/etc/openvpn/client/$new.conf"
+[[ -f $src ]] || { write_result rename error "$new" "no such profile: $old"; exit 1; }
+[[ -f $dst ]] && { write_result rename error "$new" "destination already exists: $new"; exit 1; }
+
+was_active=0
+if systemctl is-active --quiet "openvpn-client@$old.service"; then
+  was_active=1
+  systemctl stop "openvpn-client@$old.service" || true
+fi
+
+if ! pkexec mv -n "$src" "$dst"; then
+  rc=$?
+  (( was_active )) && systemctl start "openvpn-client@$old.service" || true
+  case $rc in
+    126) write_result rename cancelled "$new" "authentication cancelled" ;;
+    *)   write_result rename error "$new" "pkexec mv failed (rc=$rc)" ;;
+  esac
+  exit "$rc"
+fi
+
+if (( was_active )); then
+  systemctl start "openvpn-client@$new.service" || true
+fi
+
+write_result rename ok "$new"
