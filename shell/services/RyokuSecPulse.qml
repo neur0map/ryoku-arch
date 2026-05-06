@@ -7,16 +7,20 @@ import QtQuick
 import qs.modules.common
 
 /**
- * Ryoku security pulse: VPN, optional public IP, optional listening-socket count.
- * Used only by the Three-Island topbar (cornerStyle === 4). Polls are gated
- * on bar.secPulse.show* toggles; nothing runs at startup unless a feature is on.
+ * Ryoku security pulse: Tailscale status, optional public IP, optional
+ * listening-socket count. Used only by the Three-Island topbar
+ * (cornerStyle === 4). Polls are gated on bar.secPulse.show* toggles;
+ * nothing runs at startup unless a feature is on.
  */
 Singleton {
     id: root
 
     // Public state (read by SecPulseIndicator widget)
-    property bool vpnActive: false
-    property string vpnProvider: ""   // "wireguard" | "tailscale" | "openvpn" | "networkmanager" | ""
+    property bool tsConnected: false
+    property string tsHostname: ""
+    property string tsIp: ""
+    property string tsRelay: ""
+    property string tsExitNode: ""   // "" when no remote exit node is in use
     property string publicIp: ""
     property int listeningCount: 0
 
@@ -25,23 +29,43 @@ Singleton {
     readonly property bool _ipEnabled: Config.options?.bar?.secPulse?.showPublicIp ?? false
     readonly property bool _listeningEnabled: Config.options?.bar?.secPulse?.showListening ?? false
 
-    // VPN detection: checks wireguard, tailscale, openvpn, and any
-    // NetworkManager-managed VPN connection. First hit wins. The shell
-    // command exits 0 quickly even when nothing is running.
+    // Tailscale status: single `tailscale status --json` parse. Stays empty
+    // (tsConnected=false) when tailscale isn't installed or the daemon
+    // isn't running.
     Process {
-        id: vpnProc
-        command: ["sh", "-c",
-            "if wg show interfaces 2>/dev/null | grep -q .; then echo wireguard; " +
-            "elif command -v tailscale >/dev/null 2>&1 && tailscale status --peers=false 2>/dev/null | grep -qE '^[0-9]'; then echo tailscale; " +
-            "elif pgrep -x openvpn >/dev/null 2>&1; then echo openvpn; " +
-            "elif command -v nmcli >/dev/null 2>&1 && nmcli -t -f TYPE,STATE connection show --active 2>/dev/null | grep -q '^vpn:activated\\|^wireguard:activated'; then echo networkmanager; " +
-            "else echo ''; fi"
-        ]
+        id: tsProc
+        command: ["sh", "-c", "command -v tailscale >/dev/null 2>&1 && tailscale status --json 2>/dev/null || true"]
         stdout: StdioCollector {
             onStreamFinished: {
-                const provider = this.text.trim()
-                root.vpnProvider = provider
-                root.vpnActive = provider.length > 0
+                const raw = this.text.trim()
+                if (raw.length === 0) {
+                    root.tsConnected = false
+                    root.tsHostname = ""
+                    root.tsIp = ""
+                    root.tsRelay = ""
+                    root.tsExitNode = ""
+                    return
+                }
+                try {
+                    const data = JSON.parse(raw)
+                    const self = data?.Self ?? {}
+                    const running = data?.BackendState === "Running"
+                    root.tsConnected = running && (self.Online === true)
+                    root.tsHostname = self.HostName ?? ""
+                    root.tsIp = (self.TailscaleIPs && self.TailscaleIPs.length > 0) ? self.TailscaleIPs[0] : ""
+                    root.tsRelay = self.Relay ?? ""
+                    let exit = ""
+                    const peers = data?.Peer ?? {}
+                    for (const k in peers) {
+                        if (peers[k]?.ExitNode === true) {
+                            exit = peers[k]?.HostName ?? ""
+                            break
+                        }
+                    }
+                    root.tsExitNode = exit
+                } catch (e) {
+                    root.tsConnected = false
+                }
             }
         }
     }
@@ -50,7 +74,7 @@ Singleton {
         repeat: true
         triggeredOnStart: true
         interval: 30000
-        onTriggered: vpnProc.running = true
+        onTriggered: tsProc.running = true
     }
 
     // Public IP: opt-in, network-bound

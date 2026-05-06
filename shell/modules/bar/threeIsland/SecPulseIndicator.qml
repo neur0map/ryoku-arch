@@ -19,6 +19,9 @@ Item {
     readonly property color colSubtle: Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
         : Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
         : Appearance.colors.colSubtext
+    readonly property color colAccent: Appearance.angelEverywhere ? Appearance.angel.colAccent
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colAccent
+        : Appearance.colors.colPrimary
 
     implicitWidth: rowLayout.implicitWidth
     implicitHeight: Appearance.sizes.barHeight
@@ -28,37 +31,24 @@ Item {
         anchors.centerIn: parent
         spacing: 8
 
-        // VPN indicator: lock_open / lock based on wg interface presence.
-        // Click toggles the right sidebar (network management lives there).
+        // Tailscale indicator. Click runs bar.secPulse.vpnClickCommand
+        // (default: trayscale GUI). Hover surfaces hostname / IP / exit-node.
         Item {
+            id: vpnItem
             visible: root.showVpn
-            implicitWidth: vpnRow.implicitWidth
-            implicitHeight: vpnRow.implicitHeight
+            implicitWidth: vpnIcon.implicitWidth
+            implicitHeight: vpnIcon.implicitHeight
             Layout.alignment: Qt.AlignVCenter
 
-            RowLayout {
-                id: vpnRow
-                anchors.fill: parent
-                spacing: 2
-                MaterialSymbol {
-                    text: RyokuSecPulse.vpnActive ? "lock" : "lock_open"
-                    iconSize: Appearance.font.pixelSize.normal
-                    color: vpnMouse.containsMouse
-                        ? root.colText
-                        : (RyokuSecPulse.vpnActive ? root.colText : root.colSubtle)
-                }
-                StyledText {
-                    text: RyokuSecPulse.vpnActive ? "VPN" : "off"
-                    color: vpnMouse.containsMouse
-                        ? root.colText
-                        : (RyokuSecPulse.vpnActive ? root.colText : root.colSubtle)
-                    font.pixelSize: Appearance.font.pixelSize.small
-                }
-
-                StyledToolTip {
-                    visible: RyokuSecPulse.vpnActive && RyokuSecPulse.vpnProvider.length > 0
-                    text: RyokuSecPulse.vpnProvider.charAt(0).toUpperCase() + RyokuSecPulse.vpnProvider.slice(1)
-                }
+            MaterialSymbol {
+                id: vpnIcon
+                anchors.centerIn: parent
+                text: "vpn_lock"
+                iconSize: Appearance.font.pixelSize.normal
+                fill: RyokuSecPulse.tsConnected ? 1 : 0
+                color: RyokuSecPulse.tsConnected
+                    ? (vpnMouse.containsMouse ? root.colText : root.colAccent)
+                    : (vpnMouse.containsMouse ? root.colText : root.colSubtle)
             }
 
             MouseArea {
@@ -72,21 +62,20 @@ Item {
                     Quickshell.execDetached(["sh", "-c", cmd])
                 }
             }
-        }
 
-        // Public IP (opt-in)
-        RowLayout {
-            visible: root.showPublicIp && RyokuSecPulse.publicIp.length > 0
-            spacing: 2
-            MaterialSymbol {
-                text: "public"
-                iconSize: Appearance.font.pixelSize.normal
-                color: root.colSubtle
-            }
-            StyledText {
-                text: RyokuSecPulse.publicIp
-                color: root.colText
-                font.pixelSize: Appearance.font.pixelSize.small
+            StyledToolTip {
+                extraVisibleCondition: vpnMouse.containsMouse
+                text: {
+                    if (!RyokuSecPulse.tsConnected) return "Tailscale · off"
+                    let lines = ["Tailscale · " + (RyokuSecPulse.tsHostname || "?")]
+                    const ipLine = (RyokuSecPulse.tsIp || "")
+                        + (RyokuSecPulse.tsRelay ? "  ·  relay " + RyokuSecPulse.tsRelay : "")
+                    if (ipLine.trim().length > 0) lines.push(ipLine)
+                    lines.push("exit: " + (RyokuSecPulse.tsExitNode || "none"))
+                    if (root.showPublicIp && RyokuSecPulse.publicIp.length > 0)
+                        lines.push("public " + RyokuSecPulse.publicIp)
+                    return lines.join("\n")
+                }
             }
         }
 

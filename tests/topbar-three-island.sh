@@ -60,11 +60,10 @@ assert_file "shell/modules/bar/threeIsland/SecPulseIndicator.qml"
 assert_file "shell/services/RyokuSecPulse.qml"
 assert_contains "shell/services/qmldir" "singleton RyokuSecPulse 1.0 RyokuSecPulse.qml"
 
-# 2b. VPN TUI script ships and is executable.
-assert_executable "bin/ryoku-vpn"
+# 2b. Tailscale CLI is in the base package list (SecPulse polls it).
+# Trayscale GUI is in the AUR list (default click target).
 assert_contains "install/ryoku-base.packages" "tailscale"
-assert_contains "install/ryoku-base.packages" "openvpn"
-assert_contains "install/ryoku-base.packages" "networkmanager-openvpn"
+assert_contains "install/ryoku-aur.packages" "trayscale"
 
 # 3. Config.qml declares the new keys with documented defaults
 assert_contains "shell/modules/common/Config.qml" "property bool kanjiClock: true"
