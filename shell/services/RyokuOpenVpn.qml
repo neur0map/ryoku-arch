@@ -41,7 +41,7 @@ Singleton {
         id: statusProc
         command: ["sh", "-c",
             "set -e; " +
-            "active=$(systemctl --type=service --state=active --no-legend 'openvpn-client@*.service' 2>/dev/null); " +
+            "active=$(systemctl --type=service --state=active --no-legend 'openvpn-client@*.service' 2>/dev/null || true); " +
             "if [ -z \"$active\" ]; then echo '{\"profile\":\"\",\"ip\":\"\",\"since\":\"\",\"others\":0}'; exit 0; fi; " +
             "first=$(printf '%s\\n' \"$active\" | head -1 | awk '{print $1}'); " +
             "count=$(printf '%s\\n' \"$active\" | wc -l); " +
@@ -121,12 +121,14 @@ Singleton {
               + "/ryoku/openvpn/last-import.json"
         watchChanges: true
         onFileChanged: { reload(); root.rescan() }
+        onLoadFailed: (err) => { /* expected before first import */ }
     }
     FileView {
         path: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state"))
               + "/ryoku/openvpn/last-op.json"
         watchChanges: true
         onFileChanged: { reload(); root.rescan() }
+        onLoadFailed: (err) => { /* expected before first op */ }
     }
 
     // ── public API ────────────────────────────────────────────────
@@ -137,6 +139,7 @@ Singleton {
 
     function connect(name: string): void {
         if (!name) return
+        if (root.transitioning) return
         if (root.activeProfile && root.activeProfile !== name) {
             root._beginTransition(name)
             Quickshell.execDetached(["sh", "-c",
@@ -150,6 +153,7 @@ Singleton {
 
     function disconnect(): void {
         if (!root.activeProfile) return
+        if (root.transitioning) return
         root._beginTransition("")
         Quickshell.execDetached(["systemctl", "stop", "openvpn-client@" + root.activeProfile + ".service"])
     }
