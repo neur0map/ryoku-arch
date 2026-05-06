@@ -95,6 +95,7 @@ nautilus-python
 obsidian
 sushi
 xournalpp
+zenity
 
 # ── GUI apps — multimedia editing & screen capture ────────────────────
 ffmpeg

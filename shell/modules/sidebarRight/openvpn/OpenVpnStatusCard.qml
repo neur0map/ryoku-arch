@@ -83,10 +83,11 @@ Rectangle {
             font.pixelSize: Appearance.font.pixelSize.smaller
         }
         Item { Layout.preferredHeight: 4 }
-        Button {
-            Layout.fillWidth: true
+        DialogButton {
+            Layout.alignment: Qt.AlignHCenter
+            Layout.topMargin: 4
             enabled: !RyokuOpenVpn.transitioning && RyokuOpenVpn.activeProfile.length > 0
-            text: "Disconnect"
+            buttonText: "Disconnect"
             onClicked: RyokuOpenVpn.disconnect()
         }
     }

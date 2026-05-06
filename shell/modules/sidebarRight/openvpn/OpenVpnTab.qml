@@ -54,8 +54,8 @@ Item {
                 font.weight: Font.Bold
                 Layout.fillWidth: true
             }
-            Button {
-                text: "+"
+            DialogButton {
+                buttonText: "+"
                 onClicked: RyokuOpenVpn.importNew()
             }
         }
@@ -64,7 +64,8 @@ Item {
         Rectangle {
             visible: RyokuOpenVpn.openvpnInstalled
             Layout.fillWidth: true
-            Layout.fillHeight: true
+            Layout.fillHeight: RyokuOpenVpn.profiles.length > 0
+            Layout.preferredHeight: RyokuOpenVpn.profiles.length > 0 ? -1 : 180
             color: Appearance.colors.colLayer2
             radius: Appearance.rounding.normal
 
@@ -86,9 +87,10 @@ Item {
                     horizontalAlignment: Text.AlignHCenter
                     Layout.alignment: Qt.AlignHCenter
                 }
-                Button {
-                    text: "Import .ovpn"
+                DialogButton {
+                    buttonText: "Import .ovpn"
                     Layout.alignment: Qt.AlignHCenter
+                    Layout.topMargin: 4
                     onClicked: RyokuOpenVpn.importNew()
                 }
             }

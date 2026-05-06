@@ -43,10 +43,10 @@ Rectangle {
             Layout.fillWidth: true
             elide: Text.ElideRight
         }
-        Button {
+        DialogButton {
             visible: !root.profile.isActive
             enabled: !RyokuOpenVpn.transitioning
-            text: "Connect"
+            buttonText: "Connect"
             onClicked: RyokuOpenVpn.connect(root.profile.name)
         }
         RowLayout {

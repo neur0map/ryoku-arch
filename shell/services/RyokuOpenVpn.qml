@@ -41,7 +41,7 @@ Singleton {
         id: statusProc
         command: ["sh", "-c",
             "set -e; " +
-            "active=$(systemctl --type=service --state=active --no-legend 'openvpn-client@*.service' 2>/dev/null || true); " +
+            "active=$(systemctl list-units --type=service --state=active --no-legend 'openvpn-client@*.service' 2>/dev/null || true); " +
             "if [ -z \"$active\" ]; then echo '{\"profile\":\"\",\"ip\":\"\",\"since\":\"\",\"others\":0}'; exit 0; fi; " +
             "first=$(printf '%s\\n' \"$active\" | head -1 | awk '{print $1}'); " +
             "count=$(printf '%s\\n' \"$active\" | wc -l); " +
