@@ -177,6 +177,12 @@ ContentPage {
                 text: Translation.tr("Three-Island layout is top-edge only. Switch position to Top to enable it.")
             }
 
+            ConflictNote {
+                visible: root.isThreeIslandStyle
+                icon: "info"
+                text: Translation.tr("Three-Island uses its own rendering path; settings below that don't apply are disabled.")
+            }
+
             ConfigSpinBox {
                 icon: "rounded_corner"
                 text: Translation.tr("Custom bar rounding (px)")
@@ -184,6 +190,8 @@ ContentPage {
                 from: -1
                 to: 50
                 stepSize: 1
+                enabled: !root.isThreeIslandStyle
+                opacity: enabled ? 1 : 0.5
                 onValueChanged: {
                     Config.setNestedValue("bar.customRounding", value);
                 }
@@ -199,6 +207,8 @@ ContentPage {
 
                 ContentSubsection {
                     title: Translation.tr("Group style")
+                    enabled: !root.isThreeIslandStyle
+                    opacity: enabled ? 1 : 0.5
 
                     ConfigSelectionArray {
                         currentValue: Config.options?.bar?.borderless ?? false
@@ -241,6 +251,8 @@ ContentPage {
                 buttonIcon: "layers"
                 text: Translation.tr("Show background")
                 checked: Config.options?.bar?.showBackground ?? true
+                enabled: !root.isThreeIslandStyle
+                opacity: enabled ? 1 : 0.5
                 onCheckedChanged: Config.setNestedValue("bar.showBackground", checked)
                 StyledToolTip {
                     text: Translation.tr("Display a background behind the bar")
@@ -251,6 +263,8 @@ ContentPage {
                 buttonIcon: "touch_app"
                 text: Translation.tr("Show scroll hints")
                 checked: Config.options?.bar?.showScrollHints ?? true
+                enabled: !root.isThreeIslandStyle
+                opacity: enabled ? 1 : 0.5
                 onCheckedChanged: Config.setNestedValue("bar.showScrollHints", checked)
                 StyledToolTip {
                     text: Translation.tr("Show brightness/volume icons when hovering bar edges")
@@ -307,6 +321,8 @@ ContentPage {
                 buttonIcon: "vignette"
                 text: Translation.tr("Vignette effect")
                 checked: root.hasVignette
+                enabled: !root.isThreeIslandStyle
+                opacity: enabled ? 1 : 0.5
                 onCheckedChanged: {
                     Config.setNestedValue("bar.vignette.enabled", checked)
                 }
@@ -412,6 +428,8 @@ ContentPage {
                     buttonIcon: "shelf_auto_hide"
                     text: Translation.tr("System tray")
                     checked: Config.options?.bar?.modules?.sysTray ?? true
+                    enabled: !root.isThreeIslandStyle
+                    opacity: enabled ? 1 : 0.5
                     onCheckedChanged: Config.setNestedValue("bar.modules.sysTray", checked)
                 }
                 Item { Layout.fillWidth: true }
@@ -423,12 +441,16 @@ ContentPage {
                     buttonIcon: "memory"
                     text: Translation.tr("Resources")
                     checked: Config.options?.bar?.modules?.resources ?? true
+                    enabled: !root.isThreeIslandStyle
+                    opacity: enabled ? 1 : 0.5
                     onCheckedChanged: Config.setNestedValue("bar.modules.resources", checked)
                 }
                 SettingsSwitch {
                     buttonIcon: "music_note"
                     text: Translation.tr("Media")
                     checked: Config.options?.bar?.modules?.media ?? true
+                    enabled: !root.isThreeIslandStyle
+                    opacity: enabled ? 1 : 0.5
                     onCheckedChanged: Config.setNestedValue("bar.modules.media", checked)
                 }
             }
@@ -445,6 +467,8 @@ ContentPage {
                     buttonIcon: "schedule"
                     text: Translation.tr("Clock")
                     checked: Config.options?.bar?.modules?.clock ?? true
+                    enabled: !root.isThreeIslandStyle
+                    opacity: enabled ? 1 : 0.5
                     onCheckedChanged: Config.setNestedValue("bar.modules.clock", checked)
                 }
             }
@@ -455,12 +479,16 @@ ContentPage {
                     buttonIcon: "build"
                     text: Translation.tr("Utility buttons")
                     checked: Config.options?.bar?.modules?.utilButtons ?? true
+                    enabled: !root.isThreeIslandStyle
+                    opacity: enabled ? 1 : 0.5
                     onCheckedChanged: Config.setNestedValue("bar.modules.utilButtons", checked)
                 }
                 SettingsSwitch {
                     buttonIcon: "battery_full"
                     text: Translation.tr("Battery")
                     checked: Config.options?.bar?.modules?.battery ?? true
+                    enabled: !root.isThreeIslandStyle
+                    opacity: enabled ? 1 : 0.5
                     onCheckedChanged: Config.setNestedValue("bar.modules.battery", checked)
                 }
             }
@@ -472,7 +500,7 @@ ContentPage {
                     text: Translation.tr("Weather")
                     checked: Config.options?.bar?.modules?.weather ?? false
                     onCheckedChanged: Config.setNestedValue("bar.modules.weather", checked)
-                    enabled: Config.options?.bar?.weather?.enable ?? false
+                    enabled: (Config.options?.bar?.weather?.enable ?? false) && !root.isThreeIslandStyle
                     opacity: enabled ? 1 : 0.5
                 }
                 Item { Layout.fillWidth: true }
@@ -484,12 +512,16 @@ ContentPage {
                     buttonIcon: "schedule"
                     text: Translation.tr("Kanji clock")
                     checked: Config.options?.bar?.modules?.kanjiClock ?? true
+                    enabled: root.isThreeIslandStyle
+                    opacity: enabled ? 1 : 0.5
                     onCheckedChanged: Config.setNestedValue("bar.modules.kanjiClock", checked)
                 }
                 SettingsSwitch {
                     buttonIcon: "vpn_lock"
                     text: Translation.tr("Security pulse")
                     checked: Config.options?.bar?.modules?.secPulse ?? true
+                    enabled: root.isThreeIslandStyle
+                    opacity: enabled ? 1 : 0.5
                     onCheckedChanged: Config.setNestedValue("bar.modules.secPulse", checked)
                 }
             }
@@ -515,7 +547,7 @@ ContentPage {
     // RESOURCES
     // ═══════════════════════════════════════════════════════════════════
     SettingsCardSection {
-        visible: root.isIiActive && !(Config.options?.settingsUi?.easyMode ?? false)
+        visible: root.isIiActive && !root.isThreeIslandStyle && !(Config.options?.settingsUi?.easyMode ?? false)
         expanded: false
         icon: "browse_activity"
         title: Translation.tr("Resources")
@@ -674,7 +706,7 @@ ContentPage {
     // MEDIA
     // ═══════════════════════════════════════════════════════════════════
     SettingsCardSection {
-        visible: root.isIiActive
+        visible: root.isIiActive && !root.isThreeIslandStyle
         expanded: false
         icon: "music_note"
         title: Translation.tr("Media")
@@ -877,7 +909,7 @@ ContentPage {
     // SYSTEM TRAY
     // ═══════════════════════════════════════════════════════════════════
     SettingsCardSection {
-        visible: root.isIiActive
+        visible: root.isIiActive && !root.isThreeIslandStyle
         expanded: false
         icon: "shelf_auto_hide"
         title: Translation.tr("System Tray")
@@ -926,7 +958,7 @@ ContentPage {
     // UTILITY BUTTONS
     // ═══════════════════════════════════════════════════════════════════
     SettingsCardSection {
-        visible: root.isIiActive
+        visible: root.isIiActive && !root.isThreeIslandStyle
         expanded: false
         icon: "build"
         title: Translation.tr("Utility Buttons")
@@ -1065,7 +1097,7 @@ ContentPage {
     // NOTIFICATIONS
     // ═══════════════════════════════════════════════════════════════════
     SettingsCardSection {
-        visible: root.isIiActive
+        visible: root.isIiActive && !root.isThreeIslandStyle
         expanded: false
         icon: "notifications"
         title: Translation.tr("Notifications")
