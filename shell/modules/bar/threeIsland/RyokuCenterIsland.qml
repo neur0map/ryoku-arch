@@ -29,22 +29,38 @@ Item {
         anchors.centerIn: parent
         spacing: 8
 
-        ColumnLayout {
+        // Clock + date column with hover popup (date / uptime / todos).
+        MouseArea {
+            id: clockArea
             Layout.alignment: Qt.AlignVCenter
-            spacing: 0
+            implicitWidth: clockColumn.implicitWidth
+            implicitHeight: clockColumn.implicitHeight
+            hoverEnabled: true
+            acceptedButtons: Qt.NoButton
 
-            RyokuClock {
-                visible: root.showClock
-                Layout.alignment: Qt.AlignHCenter
+            ColumnLayout {
+                id: clockColumn
+                anchors.centerIn: parent
+                spacing: 0
+
+                RyokuClock {
+                    visible: root.showClock
+                    Layout.alignment: Qt.AlignHCenter
+                }
+
+                RyokuDateLabel {
+                    compact: true
+                    visible: root.showDate
+                    Layout.alignment: Qt.AlignHCenter
+                }
             }
 
-            RyokuDateLabel {
-                compact: true
-                visible: root.showDate
-                Layout.alignment: Qt.AlignHCenter
+            ClockWidgetTooltip {
+                hoverTarget: clockArea
             }
         }
 
+        // Weather icon with hover popup (full forecast) + click to refresh.
         MouseArea {
             id: weatherArea
             visible: root.showWeather
@@ -77,17 +93,6 @@ Item {
             WeatherPopup {
                 hoverTarget: weatherArea
             }
-        }
-    }
-
-    MouseArea {
-        id: hoverArea
-        anchors.fill: parent
-        hoverEnabled: true
-        acceptedButtons: Qt.NoButton
-
-        ClockWidgetTooltip {
-            hoverTarget: hoverArea
         }
     }
 }
