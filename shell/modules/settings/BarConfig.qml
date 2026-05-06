@@ -1205,6 +1205,32 @@ ContentPage {
                     text: Translation.tr("Spawns 'ss -lntH' every 30s when enabled")
                 }
             }
+
+            SettingsDivider {}
+
+            StyledText {
+                Layout.fillWidth: true
+                text: Translation.tr("VPN click command (run when the VPN icon is clicked)")
+                color: Appearance.colors.colSubtext
+                font.pixelSize: Appearance.font.pixelSize.smaller
+                wrapMode: Text.WordWrap
+            }
+
+            MaterialTextArea {
+                Layout.fillWidth: true
+                placeholderText: "nm-connection-editor"
+                text: Config.options?.bar?.secPulse?.vpnClickCommand ?? ""
+                wrapMode: TextEdit.NoWrap
+                onTextChanged: Config.setNestedValue("bar.secPulse.vpnClickCommand", text)
+            }
+
+            StyledText {
+                Layout.fillWidth: true
+                text: Translation.tr("Examples: 'nmcli connection up MyVPN', 'mullvad connect', 'sudo wg-quick up wg0' (needs polkit/NOPASSWD). Empty to disable click action.")
+                color: Appearance.colors.colSubtext
+                font.pixelSize: Appearance.font.pixelSize.smaller
+                wrapMode: Text.WordWrap
+            }
         }
     }
 }

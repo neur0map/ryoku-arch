@@ -2,6 +2,7 @@ import qs
 import qs.modules.common
 import qs.modules.common.widgets
 import qs.services
+import Quickshell
 import QtQuick
 import QtQuick.Layouts
 
@@ -60,7 +61,11 @@ Item {
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: GlobalStates.sidebarRightOpen = !GlobalStates.sidebarRightOpen
+                onClicked: {
+                    const cmd = (Config.options?.bar?.secPulse?.vpnClickCommand ?? "").trim()
+                    if (cmd.length === 0) return
+                    Quickshell.execDetached(["sh", "-c", cmd])
+                }
             }
         }
 
