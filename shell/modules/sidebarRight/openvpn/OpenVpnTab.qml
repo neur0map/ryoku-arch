@@ -35,7 +35,7 @@ Item {
                 StyledText { text: "OpenVPN not installed"; font.weight: Font.Bold; color: Appearance.colors.colOnLayer2 }
                 StyledText {
                     text: "Install with: pacman -S openvpn"
-                    color: Appearance.colors.colOnLayer2Subtitle
+                    color: Appearance.colors.colSubtext
                     font.pixelSize: Appearance.font.pixelSize.small
                 }
             }
@@ -83,7 +83,7 @@ Item {
                 }
                 StyledText {
                     text: "Import a .ovpn from THM, HTB, or your corp portal."
-                    color: Appearance.colors.colOnLayer2Subtitle
+                    color: Appearance.colors.colSubtext
                     font.pixelSize: Appearance.font.pixelSize.small
                     horizontalAlignment: Text.AlignHCenter
                     Layout.alignment: Qt.AlignHCenter
@@ -142,11 +142,12 @@ Item {
             StyledText {
                 text: "Lowercase letters, digits, dashes only."
                 font.pixelSize: Appearance.font.pixelSize.smaller
-                color: Appearance.colors.colOnLayer2Subtitle
+                color: Appearance.colors.colSubtext
             }
         }
         onAccepted: {
-            if (renameInput.text && renameInput.text !== renameDialog.oldName)
+            const re = /^[a-z0-9-]+$/
+            if (renameInput.text && re.test(renameInput.text) && renameInput.text !== renameDialog.oldName)
                 RyokuOpenVpn.rename(renameDialog.oldName, renameInput.text)
         }
     }

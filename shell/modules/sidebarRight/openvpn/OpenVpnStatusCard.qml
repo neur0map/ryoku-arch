@@ -61,13 +61,13 @@ Rectangle {
         StyledText {
             visible: !RyokuOpenVpn.transitioning && RyokuOpenVpn.activeProfile.length > 0
             text: RyokuOpenVpn.activeProfile + " · since " + (RyokuOpenVpn.activeSince.length > 0 ? RyokuOpenVpn.activeSince.substring(11, 16) : "?")
-            color: Appearance.colors.colOnLayer2Subtitle
+            color: Appearance.colors.colSubtext
             font.pixelSize: Appearance.font.pixelSize.small
         }
         StyledText {
             visible: !RyokuOpenVpn.transitioning && RyokuOpenVpn.activeIp.length > 0
             text: RyokuOpenVpn.activeIp + " · tun"
-            color: Appearance.colors.colOnLayer2Subtitle
+            color: Appearance.colors.colSubtext
             font.pixelSize: Appearance.font.pixelSize.small
         }
         StyledText {
@@ -79,7 +79,7 @@ Rectangle {
         StyledText {
             visible: RyokuOpenVpn.otherActiveCount > 0
             text: "(+" + RyokuOpenVpn.otherActiveCount + " other unit" + (RyokuOpenVpn.otherActiveCount === 1 ? "" : "s") + " active)"
-            color: Appearance.colors.colOnLayer2Subtitle
+            color: Appearance.colors.colSubtext
             font.pixelSize: Appearance.font.pixelSize.smaller
         }
         Item { Layout.preferredHeight: 4 }

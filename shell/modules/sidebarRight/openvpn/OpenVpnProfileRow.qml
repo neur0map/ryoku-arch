@@ -70,9 +70,19 @@ Rectangle {
         }
         MenuItem {
             text: "Edit config…"
-            onTriggered: Quickshell.execDetached(["sh", "-c",
-                "kitty --class=ryoku-vpn-edit --title='Edit " + root.profile.name + "' -e " +
-                "pkexec env EDITOR=\"${EDITOR:-nano}\" \"${EDITOR:-nano}\" /etc/openvpn/client/" + root.profile.name + ".conf"])
+            onTriggered: {
+                const ed = Quickshell.env("EDITOR") || "nano"
+                Quickshell.execDetached([
+                    "kitty",
+                    "--class=ryoku-vpn-edit",
+                    "--title=Edit " + root.profile.name,
+                    "-e",
+                    "pkexec",
+                    "env", "EDITOR=" + ed,
+                    ed,
+                    "/etc/openvpn/client/" + root.profile.name + ".conf"
+                ])
+            }
         }
         MenuItem {
             text: "Rename…"
