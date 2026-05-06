@@ -730,12 +730,14 @@ Singleton {
                     property bool showPublicIp: false    // opt-in: spawns curl every 5min
                     property bool showListening: false   // opt-in: spawns ss every 30s
                     // Shell command run when the user clicks the VPN indicator.
-                    // Default opens the NetworkManager connection editor; users
-                    // can swap this for a direct toggle command like:
+                    // Default opens the Ryoku VPN TUI in a floating kitty
+                    // window (gum + nmcli + tailscale wrapper). Users can
+                    // swap this for any other command:
+                    //   nm-connection-editor
                     //   nmcli connection up <name>
                     //   mullvad connect
                     //   sudo wg-quick up wg0   (needs polkit/NOPASSWD setup)
-                    property string vpnClickCommand: "nm-connection-editor"
+                    property string vpnClickCommand: "kitty --class=ryoku-vpn --title='Ryoku VPN' -e ryoku-vpn"
                 }
                 property JsonObject tray: JsonObject {
                     property bool monochromeIcons: true
