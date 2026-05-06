@@ -129,18 +129,15 @@ Item {
         notchHeight: Appearance.sizes.barHeight
     }
 
-    // Left notch content + scroll region.
+    // Left notch: scroll region BELOW content so inner MouseAreas (e.g. the
+    // logo button) catch their own hovers; wheel + click events without an
+    // inner handler propagate down to the FocusedScrollMouseArea.
     Item {
         id: leftNotch
         anchors.left: parent.left
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         width: root.leftNotchWidth
-
-        RyokuLeftIsland {
-            anchors.fill: parent
-            parentWindow: root.QsWindow.window
-        }
 
         FocusedScrollMouseArea {
             anchors.fill: parent
@@ -154,19 +151,21 @@ Item {
                     root.openBarContextMenu(event.x, event.y, this)
             }
         }
+
+        RyokuLeftIsland {
+            anchors.fill: parent
+            parentWindow: root.QsWindow.window
+        }
     }
 
-    // Center notch content + scroll region.
+    // Center notch: scroll region BELOW content so the clock+weather hover
+    // popups (ClockWidgetTooltip, WeatherPopup) can fire.
     Item {
         id: centerNotch
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         width: root.centerNotchWidth
-
-        RyokuCenterIsland {
-            anchors.fill: parent
-        }
 
         FocusedScrollMouseArea {
             anchors.fill: parent
@@ -177,19 +176,20 @@ Item {
                     root.openBarContextMenu(event.x, event.y, this)
             }
         }
+
+        RyokuCenterIsland {
+            anchors.fill: parent
+        }
     }
 
-    // Right notch content + scroll region.
+    // Right notch: scroll region BELOW content so Workspaces' overview
+    // right-click + the SecPulseIndicator VPN click can register.
     Item {
         id: rightNotch
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         width: root.rightNotchWidth
-
-        RyokuRightIsland {
-            anchors.fill: parent
-        }
 
         FocusedScrollMouseArea {
             anchors.fill: parent
@@ -202,6 +202,10 @@ Item {
                 else if (event.button === Qt.RightButton)
                     root.openBarContextMenu(event.x, event.y, this)
             }
+        }
+
+        RyokuRightIsland {
+            anchors.fill: parent
         }
     }
 }
