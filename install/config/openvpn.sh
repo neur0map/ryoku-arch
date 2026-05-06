@@ -12,7 +12,7 @@ sudo install -m 644 -o root -g root \
   "$RYOKU_PATH/default/polkit/49-ryoku-openvpn.rules" \
   /etc/polkit-1/rules.d/49-ryoku-openvpn.rules
 
-sudo install -d -m 700 -o root -g root /etc/openvpn/client
+sudo install -d -m 755 -o root -g root /etc/openvpn/client
 
 if ! id -nG "$USER" | tr ' ' '\n' | grep -qx systemd-journal; then
   sudo usermod -aG systemd-journal "$USER"
