@@ -60,6 +60,12 @@ Item {
             Layout.alignment: Qt.AlignVCenter
         }
 
+        // Ryoku update indicator — only takes layout space when an update is
+        // available or one is in progress (its `visible` is internally bound).
+        ShellUpdateIndicator {
+            Layout.alignment: Qt.AlignVCenter
+        }
+
         // Compact sidebar trigger: tap to toggle the right sidebar.
         // The existing right-sidebar indicator cluster (mic/volume/notifs/etc.)
         // is intentionally NOT replicated here in v1; the cluster lives in

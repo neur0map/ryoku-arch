@@ -213,13 +213,22 @@ Singleton {
         const repoDir = root.repoPath
         const useTerminal = Config.options?.shellUpdates?.openTerminalOnUpdate ?? true
 
-        // Bash one-liner: writes the initial 'updating' marker, runs setup, captures
-        // exit code. Terminal mode pipes through tee so both the user and the log
-        // file see everything; detached mode redirects to the log file only.
-        // Terminal always stays open with a summary so people can read what happened.
+        // Prefer the system-wide `ryoku-update` (pacman + AUR + migrations + shell)
+        // when available; fall back to shell-only `./setup update` for dev checkouts.
+        // Terminal mode pipes through tee; detached mode redirects to log file only.
+        const runner =
+            "if command -v ryoku-update >/dev/null 2>&1; then " +
+            "  ryoku-update -y; " +
+            "elif [[ -x ./setup ]]; then " +
+            "  ./setup -y update; " +
+            "elif [[ -x ./shell/setup ]]; then " +
+            "  (cd shell && ./setup -y update); " +
+            "else " +
+            "  echo 'No update entry point found (ryoku-update or ./setup)' >&2; exit 127; " +
+            "fi"
         const teeCmd = useTerminal
-            ? "./setup -y update 2>&1 | tee '" + logPath + "'; rc=${PIPESTATUS[0]}"
-            : "./setup -y -q update > '" + logPath + "' 2>&1; rc=$?"
+            ? runner + " 2>&1 | tee '" + logPath + "'; rc=${PIPESTATUS[0]}"
+            : runner + " > '" + logPath + "' 2>&1; rc=$?"
         const termTail =
             "echo; " +
             "if [ $rc -eq 0 ]; then " +
@@ -481,12 +490,25 @@ Singleton {
         }
     }
 
+    // Repo signature for ryoku-arch: .git + (iNiR shape OR ryoku-arch shape).
+    // Exposed as a bash function so all probes share one definition.
+    readonly property string _repoSignatureFn:
+        "ryoku_repo_match() { " +
+        "  local p=\"$1\"; " +
+        "  [[ -d \"$p/.git\" ]] || return 1; " +
+        "  [[ -f \"$p/setup\" && -f \"$p/shell.qml\" ]] && return 0; " +
+        "  [[ -f \"$p/install/ryoku-base.packages\" ]] && return 0; " +
+        "  [[ -f \"$p/shell/setup\" && -f \"$p/shell/shell.qml\" ]] && return 0; " +
+        "  return 1; " +
+        "}; "
+
     Process {
         id: preferConfigRepoProc
         running: false
         command: [
             "/usr/bin/bash", "-c",
-            "p='" + root.configDir + "'; [[ -d \"$p/.git\" && -f \"$p/setup\" && -f \"$p/shell.qml\" ]] && echo OK || echo ''"
+            root._repoSignatureFn +
+            "p='" + root.configDir + "'; ryoku_repo_match \"$p\" && echo OK || echo ''"
         ]
         stdout: StdioCollector {
             onStreamFinished: {
@@ -529,7 +551,8 @@ Singleton {
         running: false
         command: [
             "/usr/bin/bash", "-c",
-            "p='" + root.repoPath + "'; [[ -d \"$p/.git\" && -f \"$p/setup\" && -f \"$p/shell.qml\" ]] && echo OK || echo ''"
+            root._repoSignatureFn +
+            "p='" + root.repoPath + "'; ryoku_repo_match \"$p\" && echo OK || echo ''"
         ]
         stdout: StdioCollector {
             onStreamFinished: {
@@ -550,24 +573,31 @@ Singleton {
         }
     }
 
-    // Search for repository — check config dir (dev), then use `find` on common parent dirs
+    // Search for repository — check config dir, RYOKU_PATH, then candidate dirs
     Process {
         id: searchRepoProc
         running: false
         command: [
             "/usr/bin/bash", "-c",
-            // First check if config dir itself is a git repo (dev setup)
-            "if [[ -d \"" + root.configDir + "/.git\" ]]; then echo \"" + root.configDir + "\"; exit 0; fi; " +
-            // Search for a git repo containing setup + shell.qml (our repo signature)
-            // Check common locations first, then broader search
-            "for dir in ~/illogical-impulse ~/ryoku-arch ~/Ryoku " +
-            "~/.local/src/illogical-impulse ~/.local/src/ryoku-arch " +
-            "~/Projects/illogical-impulse ~/Projects/ryoku-arch " +
-            "~/Downloads/illogical-impulse ~/Downloads/ryoku-arch " +
-            "~/src/illogical-impulse ~/src/ryoku-arch; do " +
-            "if [[ -d \"$dir/.git\" && -f \"$dir/setup\" && -f \"$dir/shell.qml\" ]]; then echo \"$dir\"; exit 0; fi; done; " +
-            // Last resort: find in home (max depth 3, timeout 2s)
-            "timeout 2 find \"$HOME\" -maxdepth 3 -name setup \\( -path '*/ryoku-arch/setup' -o -path '*/illogical-impulse/setup' -o -path '*/ii/setup' \\) 2>/dev/null | while read -r f; do [[ -f \"$(dirname \"$f\")/shell.qml\" ]] && dirname \"$f\" && break; done; "
+            root._repoSignatureFn +
+            // 1. Active config checkout (dev: shell layer is itself a git repo)
+            "if ryoku_repo_match \"" + root.configDir + "\"; then echo \"" + root.configDir + "\"; exit 0; fi; " +
+            // 2. RYOKU_PATH env (set by lib/runtime-env.sh in ryoku-* tools)
+            "if [[ -n \"${RYOKU_PATH:-}\" ]] && ryoku_repo_match \"$RYOKU_PATH\"; then echo \"$RYOKU_PATH\"; exit 0; fi; " +
+            // 3. Canonical install + common dev/legacy locations
+            "for dir in " +
+            "  ~/.local/share/ryoku ~/.local/share/omarchy " +
+            "  ~/prowl/ryoku-arch ~/ryoku-arch ~/Ryoku ~/illogical-impulse " +
+            "  ~/.local/src/ryoku-arch ~/.local/src/illogical-impulse " +
+            "  ~/Projects/ryoku-arch ~/Projects/illogical-impulse " +
+            "  ~/Downloads/ryoku-arch ~/Downloads/illogical-impulse " +
+            "  ~/src/ryoku-arch ~/src/illogical-impulse; do " +
+            "  if ryoku_repo_match \"$dir\"; then echo \"$dir\"; exit 0; fi; " +
+            "done; " +
+            // 4. Last resort: shallow find under $HOME for either repo shape
+            "timeout 2 find \"$HOME\" -maxdepth 4 -type d -name .git 2>/dev/null | while read -r g; do " +
+            "  d=\"$(dirname \"$g\")\"; ryoku_repo_match \"$d\" && echo \"$d\" && break; " +
+            "done; "
         ]
         stdout: StdioCollector {
             onStreamFinished: {
@@ -742,7 +772,7 @@ Singleton {
         running: false
         command: [
             "/usr/bin/bash", "-c",
-            "cat '" + root.repoPath + "/VERSION' 2>/dev/null || cat '" + root.configDir + "/VERSION' 2>/dev/null || echo ''"
+            "cat '" + root.repoPath + "/VERSION' 2>/dev/null || cat '" + root.repoPath + "/version' 2>/dev/null || cat '" + root.repoPath + "/shell/VERSION' 2>/dev/null || cat '" + root.configDir + "/VERSION' 2>/dev/null || echo ''"
         ]
         stdout: StdioCollector {
             onStreamFinished: {
@@ -989,7 +1019,7 @@ Singleton {
         running: false
         command: [
             "/usr/bin/bash", "-c",
-            "cat '" + root.repoPath + "/VERSION' 2>/dev/null || cat '" + root.configDir + "/VERSION' 2>/dev/null || echo ''"
+            "cat '" + root.repoPath + "/VERSION' 2>/dev/null || cat '" + root.repoPath + "/version' 2>/dev/null || cat '" + root.repoPath + "/shell/VERSION' 2>/dev/null || cat '" + root.configDir + "/VERSION' 2>/dev/null || echo ''"
         ]
         stdout: StdioCollector {
             onStreamFinished: {
