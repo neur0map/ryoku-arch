@@ -8,7 +8,6 @@ import QtQuick.Layouts
 Item {
     id: root
     readonly property bool taskbarEnabled: Config.options?.bar?.modules?.taskbar ?? false
-    readonly property bool showDateLabel: Config.options?.bar?.modules?.dateLabel ?? true
     property var parentWindow: null
 
     implicitWidth: rowLayout.implicitWidth + 16
@@ -43,11 +42,6 @@ Item {
             sourceComponent: BarTaskbar {
                 parentWindow: root.parentWindow
             }
-        }
-
-        RyokuDateLabel {
-            visible: root.showDateLabel
-            Layout.alignment: Qt.AlignVCenter
         }
     }
 }
