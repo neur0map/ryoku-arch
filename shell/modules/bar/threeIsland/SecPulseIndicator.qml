@@ -79,6 +79,44 @@ Item {
             }
         }
 
+        // OpenVPN indicator (separate from tailscale: engagement tunnels
+        // come and go, tailscale stays).
+        Item {
+            id: ovpnItem
+            visible: (Config.options?.bar?.secPulse?.showOpenVpn ?? true)
+            implicitWidth: ovpnIcon.implicitWidth
+            implicitHeight: ovpnIcon.implicitHeight
+            Layout.alignment: Qt.AlignVCenter
+
+            MaterialSymbol {
+                id: ovpnIcon
+                anchors.centerIn: parent
+                text: "vpn_key"
+                iconSize: Appearance.font.pixelSize.normal
+                fill: RyokuOpenVpn.activeProfile.length > 0 ? 1 : 0
+                color: RyokuOpenVpn.activeProfile.length > 0
+                    ? (ovpnMouse.containsMouse ? root.colText : root.colAccent)
+                    : (ovpnMouse.containsMouse ? root.colText : root.colSubtle)
+            }
+            MouseArea {
+                id: ovpnMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: { GlobalStates.sidebarRightOpen = true }
+            }
+            StyledToolTip {
+                extraVisibleCondition: ovpnMouse.containsMouse
+                text: {
+                    if (RyokuOpenVpn.activeProfile.length === 0) return "OpenVPN · off"
+                    let lines = ["OpenVPN · " + RyokuOpenVpn.activeProfile]
+                    if (RyokuOpenVpn.activeIp) lines.push(RyokuOpenVpn.activeIp + " · tun")
+                    if (RyokuOpenVpn.activeSince) lines.push("since " + RyokuOpenVpn.activeSince.substring(11, 16))
+                    return lines.join("\n")
+                }
+            }
+        }
+
         // Listening socket count (opt-in)
         RowLayout {
             visible: root.showListening

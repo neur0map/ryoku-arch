@@ -726,7 +726,8 @@ Singleton {
                     property bool useKanjiDigits: false  // opt-in 一二三 mode; off by default for readability
                 }
                 property JsonObject secPulse: JsonObject {
-                    property bool showVpn: true
+                    property bool showVpn: true            // tailscale lock
+                    property bool showOpenVpn: true        // openvpn key, second indicator
                     property bool showPublicIp: false    // opt-in: spawns curl every 5min
                     property bool showListening: false   // opt-in: spawns ss every 30s
                     // Shell command run when the user clicks the VPN
@@ -1391,7 +1392,7 @@ Singleton {
 
                 // Right sidebar widget toggles
                 property JsonObject right: JsonObject {
-                    property list<string> enabledWidgets: ["calendar", "todo", "notepad", "calculator", "sysmon", "timer"]
+                    property list<string> enabledWidgets: ["calendar", "todo", "notepad", "calculator", "sysmon", "timer", "openvpn"]
                     // Controls section order for compact layout (drag to reorder)
                     property list<string> controlsSectionOrder: ["sliders", "toggles", "devices", "media", "quickActions"]
                 }
