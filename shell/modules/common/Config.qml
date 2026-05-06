@@ -665,8 +665,10 @@ Singleton {
                     property bool sysTray: true
                     property bool weather: true
                     property bool taskbar: false
-                    property bool kanjiClock: true   // Three-Island only: signature kanji clock pill
+                    property bool kanjiClock: true   // Three-Island only: center clock (filename historical)
                     property bool secPulse: true     // Three-Island only: VPN/IP/listening cluster
+                    property bool dateLabel: true    // Three-Island only: day-of-week + date in left island
+                    property bool weatherIcon: true  // Three-Island only: small weather icon next to clock
                 }
                 property JsonObject modulesPlacement: JsonObject {
                     property string resources: "start"
