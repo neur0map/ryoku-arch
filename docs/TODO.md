@@ -106,3 +106,20 @@ verification, and the next rebrand pass are intentionally separate sessions.
 - [ ] Add a short "what ships by default" section once the first baseline lands.
 - [ ] Document optional tool packs without turning Ryoku into a kitchen-sink
   distribution.
+
+## Shell Sidebar Roadmap
+
+- [ ] Wayback Machine sidebar tab. OSINT primitive: input a URL, pick a date
+  from a captures-aware calendar, jump to the archived page. Free,
+  unauthenticated APIs: `archive.org/wayback/available` for closest-match
+  lookups and `web.archive.org/cdx/search/cdx` for the full snapshot list
+  used to populate the date picker.
+  - [ ] URL ingest: paste-from-clipboard button for v1; consider a
+    `Mod+Shift+W` global hotkey that captures the clipboard and opens the
+    sidebar pre-filled. Skip browser extensions until v2 or later.
+  - [ ] Subdomain harvest action: feed `*.target.tld` to the CDX endpoint and
+    surface every archived host. Highest-leverage OSINT move a sidebar can
+    make.
+  - [ ] Stretch: historical robots.txt diff, two-date HTML diff, and a
+    `wayback:<url>` xdg-open URI handler so other tools can hand off targets
+    to this tab.
