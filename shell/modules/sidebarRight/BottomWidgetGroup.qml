@@ -9,6 +9,7 @@ import qs.modules.sidebarRight.notepad
 import qs.modules.sidebarRight.calculator
 import qs.modules.sidebarRight.sysmon
 import qs.modules.sidebarRight.events
+import qs.modules.sidebarRight.openvpn
 import QtQuick
 import QtQuick.Layouts
 // import Qt5Compat.GraphicalEffects // Might not be available, using standard Rectangle gradient instead
@@ -41,6 +42,7 @@ Rectangle {
         {"type": "calculator", "name": Translation.tr("Calc"), "icon": "calculate", "widget": calculatorWidget},
         {"type": "sysmon", "name": Translation.tr("System"), "icon": "monitor_heart", "widget": sysMonWidget},
         {"type": "timer", "name": Translation.tr("Timer"), "icon": "schedule", "widget": pomodoroWidget},
+        {"type": "openvpn", "name": Translation.tr("VPN"), "icon": "vpn_key", "widget": openVpnWidgetComponent},
     ]
 
     property int configVersion: 0
@@ -62,9 +64,18 @@ Rectangle {
         }
     }
 
+    // OpenVPN component
+    Component {
+        id: openVpnWidgetComponent
+        OpenVpnTab {
+            anchors.fill: parent
+            anchors.margins: 5
+        }
+    }
+
     readonly property var enabledWidgets: {
         root.configVersion // Force dependency
-        return Config.options?.sidebar?.right?.enabledWidgets ?? ["calendar", "todo", "notepad", "calculator", "sysmon", "timer"]
+        return Config.options?.sidebar?.right?.enabledWidgets ?? ["calendar", "todo", "notepad", "calculator", "sysmon", "timer", "openvpn"]
     }
 
     property var tabs: allTabs.filter(tab => enabledWidgets.includes(tab.type))
@@ -98,6 +109,18 @@ Rectangle {
         if (tabs[safeTab]) {
             currentTabType = tabs[safeTab].type
         }
+    }
+
+    // Drive RyokuOpenVpn.tabOpen from the live tab selection so the
+    // service's discovery poll only runs when the user is actually
+    // looking at the VPN tab. The Loader-based tab strip never unloads
+    // child components on switch, so OpenVpnTab.qml cannot use
+    // Component.onCompleted/onDestruction for this; the source of
+    // truth lives here.
+    Binding {
+        target: RyokuOpenVpn
+        property: "tabOpen"
+        value: root.currentTabType === "openvpn" && !root.collapsed
     }
 
     Behavior on implicitHeight {

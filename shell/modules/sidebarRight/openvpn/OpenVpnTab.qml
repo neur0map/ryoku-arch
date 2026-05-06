@@ -9,8 +9,6 @@ import QtQuick.Controls
 Item {
     id: root
     anchors.fill: parent
-    Component.onCompleted: RyokuOpenVpn.tabOpen = true
-    Component.onDestruction: RyokuOpenVpn.tabOpen = false
 
     // (Child OpenVpnProfileRow rows bubble up via signals;
     // see the Repeater delegate below for the wiring.)
