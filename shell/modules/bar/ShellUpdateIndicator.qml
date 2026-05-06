@@ -131,16 +131,23 @@ MouseArea {
         }
     }
 
-    // Hover popup — follows BatteryPopup / ResourcesPopup pattern
+    // Hover popup — follows BatteryPopup / ResourcesPopup pattern.
+    // The popup is wrapped in an Item with a fixed implicitWidth so the popup
+    // window stays narrow enough to fit when the indicator is near the right
+    // screen edge (otherwise the layer-shell window gets clamped while the
+    // inner column keeps its natural width and overflows visually).
     StyledPopup {
         id: updatePopup
         hoverTarget: root
 
-        ColumnLayout {
-            anchors.centerIn: parent
-            Layout.maximumWidth: 300
-            width: Math.min(implicitWidth, 300)
-            spacing: 6
+        Item {
+            implicitWidth: 260
+            implicitHeight: popupContentColumn.implicitHeight
+
+            ColumnLayout {
+                id: popupContentColumn
+                anchors.fill: parent
+                spacing: 6
 
             // Header row — icon + title
             Row {
@@ -363,6 +370,7 @@ MouseArea {
                 font.pixelSize: Appearance.font.pixelSize.smallest
                 color: Appearance.colors.colOnSurfaceVariant
                 opacity: 0.6
+            }
             }
         }
     }

@@ -70,10 +70,17 @@ LazyLoader {
         margins {
             left: {
                 if (!(Config.options?.bar?.vertical ?? false) && root.QsWindow && root.hoverTarget && root.hoverTarget.width > 0) {
-                    return root.QsWindow.mapFromItem(
+                    const desired = root.QsWindow.mapFromItem(
                         root.hoverTarget,
                         (root.hoverTarget.width - popupBackground.implicitWidth) / 2, 0
                     ).x;
+                    // Clamp so the popup stays fully on-screen when the
+                    // hover target is near a horizontal screen edge.
+                    const screenWidth = popupWindow.screen?.width ?? 1920;
+                    const popupWidth = popupBackground.implicitWidth + Appearance.sizes.elevationMargin * 2 + root.popupBackgroundMargin;
+                    const minLeft = 8;
+                    const maxLeft = screenWidth - popupWidth - 8;
+                    return Math.max(minLeft, Math.min(desired, maxLeft));
                 }
                 return Appearance.sizes.verticalBarWidth
             }
