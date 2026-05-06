@@ -377,6 +377,8 @@ assert_contains install/packaging/fonts.sh 'config/fonts' "font packaging should
 assert_contains bin/ryoku-update-perform 'packaging/base\.sh' "updates should reconcile the default pacman package manifest before running Ryoku"
 assert_contains bin/ryoku-update-perform 'packaging/aur-core\.sh' "updates should reconcile the default AUR package manifest before running Ryoku"
 assert_contains bin/ryoku-update-perform 'config/shell\.sh' "updates should install or refresh Ryoku shell before running migrations"
+assert_contains bin/ryoku-update-perform 'bash "\$RYOKU_INSTALL/packaging/base\.sh"' "updates should run base packaging through bash because install fragments are sourced, not executable"
+assert_contains bin/ryoku-update-perform 'bash "\$RYOKU_INSTALL/packaging/aur-core\.sh"' "updates should run AUR packaging through bash because install fragments are sourced, not executable"
 assert_order bin/ryoku-update-perform 'ryoku-update-aur-pkgs' 'packaging/aur-core\.sh' "updates should bootstrap/update AUR access before installing default AUR packages"
 assert_order bin/ryoku-update-perform 'packaging/aur-core\.sh' 'config/shell\.sh' "updates should install default AUR packages before running Ryoku shell setup"
 assert_order bin/ryoku-update-perform 'config/shell\.sh' 'ryoku-migrate' "updates should install or refresh Ryoku shell before migration cleanup"

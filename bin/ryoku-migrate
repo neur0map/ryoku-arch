@@ -5,13 +5,31 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 # Run all pending migrations to bring the system in line with the installed version.
 
 # Where we store an empty file for each migration that has already been performed.
-STATE_DIR="$RYOKU_STATE_PATH/migrations"
+STATE_ROOT="$RYOKU_STATE_PATH"
+STATE_DIR="$STATE_ROOT/migrations"
 LEGACY_STATE_DIR="$HOME/.local/state/omarchy/migrations"
 
-mkdir -p "$STATE_DIR"
+repair_self_linked_state_root() {
+  local target state_basename
+
+  if [[ ! -L $STATE_ROOT ]]; then
+    return
+  fi
+
+  target=$(readlink "$STATE_ROOT" || true)
+  state_basename=$(basename "$STATE_ROOT")
+
+  if [[ $target == $STATE_ROOT || $target == $state_basename ]]; then
+    rm -f "$STATE_ROOT"
+  fi
+}
+
+repair_self_linked_state_root
+
+mkdir -p "$STATE_DIR" || exit 1
 
 # Skipped migrations are tracked separately
-mkdir -p "$STATE_DIR/skipped"
+mkdir -p "$STATE_DIR/skipped" || exit 1
 
 # Bridge historical migration markers from the legacy omarchy state dir so
 # migrations already applied under the old namespace do not re-run under

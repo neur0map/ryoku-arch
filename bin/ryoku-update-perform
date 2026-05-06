@@ -9,9 +9,9 @@ ryoku-cmd-caffeine start >/dev/null 2>&1 || true
 ryoku-update-keyring
 ryoku-update-available-reset
 ryoku-update-system-pkgs
-"$RYOKU_INSTALL/packaging/base.sh"
+bash "$RYOKU_INSTALL/packaging/base.sh"
 ryoku-update-aur-pkgs
-"$RYOKU_INSTALL/packaging/aur-core.sh"
+bash "$RYOKU_INSTALL/packaging/aur-core.sh"
 "$RYOKU_INSTALL/config/shell.sh"
 ryoku-migrate
 ryoku-update-orphan-pkgs

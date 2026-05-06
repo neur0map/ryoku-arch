@@ -5,14 +5,13 @@ sudo ln -snf /usr/share/icons/Adwaita/symbolic/actions/go-next-symbolic.svg /usr
 # Setup user theme folder
 mkdir -p ~/.config/ryoku/themes
 
-# Use the shipped Ryoku theme so fresh installs and offline images start
-# from the same branded defaults.
-ryoku-theme-set "ryoku"
 rm -rf ~/.config/chromium/SingletonLock # otherwise archiso will own the chromium singleton
 
-# Set specific app links for current theme
-mkdir -p ~/.config/btop/themes
-ln -snf ~/.config/ryoku/current/theme/btop.theme ~/.config/btop/themes/current.theme
+# Set specific app links only when the user has opted into a Ryoku theme.
+if [[ -f $HOME/.config/ryoku/current/theme/btop.theme ]]; then
+  mkdir -p ~/.config/btop/themes
+  ln -snf ~/.config/ryoku/current/theme/btop.theme ~/.config/btop/themes/current.theme
+fi
 
 # Add managed policy directories for Chromium and Brave for theme changes
 sudo mkdir -p /etc/chromium/policies/managed

@@ -1,11 +1,13 @@
 #!/bin/bash
 
-# Returns true if any of the named packages are missing from the system (or false if they're all there).
+# Returns true if any of the named package dependencies are missing from the system.
 
-for pkg in "$@"; do
-  if ! pacman -Q "$pkg" &>/dev/null; then
-    exit 0
-  fi
-done
+if (( $# == 0 )); then
+  exit 1
+fi
 
-exit 1
+if pacman -T "$@" >/dev/null; then
+  exit 1
+fi
+
+exit 0

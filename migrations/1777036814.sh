@@ -1,4 +1,4 @@
-echo "Refresh /boot/limine.conf with Greek Noir palette + clean stale NVRAM entries"
+echo "Clean stale Omarchy NVRAM boot entries"
 
 MARKER="$HOME/.local/state/ryoku/independence-cutover.limine-palette.done"
 
@@ -10,12 +10,6 @@ if ! command -v limine &>/dev/null; then
   mkdir -p "$HOME/.local/state/ryoku"
   touch "$MARKER"
   exit 0
-fi
-
-if [[ -f /boot/limine.conf ]] && grep -q '^term_palette: 15161e' /boot/limine.conf; then
-  echo "  swapping limine terminal palette"
-  sudo cp -f "$RYOKU_PATH/default/limine/limine.conf" /boot/limine.conf
-  sudo limine-update
 fi
 
 # Drop NVRAM boot entries labelled "Omarchy" so the UEFI boot menu does

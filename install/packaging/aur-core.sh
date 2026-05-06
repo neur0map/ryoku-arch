@@ -22,12 +22,16 @@ mapfile -t aur_packages < <(
   grep -v '^#' "$RYOKU_INSTALL/ryoku-aur.packages" | grep -v '^$' | awk 'NF { print }'
 )
 
+if ryoku-cmd-present pacman; then
+  mapfile -t aur_packages < <(pacman -T "${aur_packages[@]}")
+fi
+
 if (( ${#aur_packages[@]} == 0 )); then
   echo "install/ryoku-aur.packages is empty; nothing to do."
   exit 0
 fi
 
-# Step 1: bulk pacman -S (offline mirror covers the list when present).
+# Step 1: bulk pacman -S (offline mirror covers the missing list when present).
 if sudo pacman -S --noconfirm --needed "${aur_packages[@]}" 2>/dev/null; then
   exit 0
 fi
@@ -37,7 +41,7 @@ echo "Bulk pacman install missed some AUR packages; retrying per-package with ya
 
 failed_pkgs=()
 for pkg in "${aur_packages[@]}"; do
-  if pacman -Q "$pkg" &>/dev/null; then
+  if pacman -T "$pkg" >/dev/null 2>&1; then
     continue
   fi
 

@@ -81,23 +81,12 @@ apply_service_cleanup() {
 }
 
 install_visible_assets() {
-  local background="$RYOKU_PATH/themes/ryoku/backgrounds/1-ryoku.png"
   local icon_dir="$HOME/.local/share/icons/hicolor/scalable/apps"
 
   install_asset "$RYOKU_PATH/logo-mark.svg" "$SHELL_PATH/assets/icons/ryoku.svg"
   install_asset "$RYOKU_PATH/logo-mark.svg" "$SHELL_PATH/assets/icons/desktop-symbolic.svg"
   install_asset "$RYOKU_PATH/logo-mark.svg" "$icon_dir/ryoku.svg"
   install_asset "$RYOKU_PATH/logo-mark.svg" "$icon_dir/ryoku-shell.svg"
-  install_asset "$background" "$SHELL_PATH/dots/sddm/pixel/assets/background.png"
-
-  if [[ -d /usr/share/sddm/themes/ii-pixel ]]; then
-    if [[ -w /usr/share/sddm/themes/ii-pixel ]]; then
-      install_asset "$background" "/usr/share/sddm/themes/ii-pixel/assets/background.png"
-    elif ryoku-cmd-present sudo && sudo -n true >/dev/null 2>&1; then
-      sudo install -d -m 0755 /usr/share/sddm/themes/ii-pixel/assets
-      sudo install -m 0644 "$background" /usr/share/sddm/themes/ii-pixel/assets/background.png
-    fi
-  fi
 }
 
 restore_shell_panels_original_frame_state_to_file() {
@@ -140,7 +129,7 @@ apply_installed_labels() {
 merge_config_overrides() {
   local config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/ryoku-shell"
   local config_file="$config_dir/config.json"
-  local temp_file temp_file_with_wallpaper wallpaper_path existing_wallpaper_path
+  local temp_file
 
   [[ -f $CONFIG_OVERRIDES_FILE ]] || return 0
 
@@ -158,30 +147,9 @@ merge_config_overrides() {
     fi
   fi
 
-  existing_wallpaper_path=$(jq -r '.background.wallpaperPath // empty' "$config_file" 2>/dev/null || true)
-
   temp_file=$(mktemp)
   jq -s '.[0] * .[1]' "$config_file" "$CONFIG_OVERRIDES_FILE" >"$temp_file"
-
-  temp_file_with_wallpaper=$(mktemp)
-  if [[ -n $existing_wallpaper_path ]]; then
-    cp "$temp_file" "$temp_file_with_wallpaper"
-  else
-    wallpaper_path="$RYOKU_CONFIG_PATH/current/background"
-    if [[ ! -e $wallpaper_path && -f $RYOKU_PATH/themes/ryoku/backgrounds/1-ryoku.png ]]; then
-      wallpaper_path="$RYOKU_PATH/themes/ryoku/backgrounds/1-ryoku.png"
-    fi
-
-    jq --arg path "$wallpaper_path" \
-      '.background.wallpaperPath = $path
-        | .background.thumbnailPath = ""
-        | .background.backdrop.wallpaperPath = $path
-        | .background.backdrop.thumbnailPath = ""' \
-      "$temp_file" >"$temp_file_with_wallpaper"
-  fi
-
-  mv "$temp_file_with_wallpaper" "$config_file"
-  rm -f "$temp_file"
+  mv "$temp_file" "$config_file"
 }
 
 merge_default_config_overrides() {
