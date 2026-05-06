@@ -1059,6 +1059,14 @@ Singleton {
             "target='" + root.configDir + "'; " +
             "repo='" + root.repoPath + "'; " +
             "[[ -f \"$manifest\" ]] || exit 0; " +
+            // Detect ryoku-arch layout — the manifest's paths are relative to
+            // the shell runtime, but the source files live under `shell/` in
+            // the ryoku-arch repo. Try with that prefix when looking up git
+            // content. Skip entries without a checksum AND no resolvable git
+            // path: piping an empty `git show` into sha256sum yields a stable
+            // non-empty hash, which would falsely flag every such file.
+            "git_prefix=''; " +
+            "if [[ -d \"$repo/.git\" && -f \"$repo/shell/setup\" ]]; then git_prefix='shell/'; fi; " +
             "while IFS=: read -r path checksum; do " +
             "  [[ \"$path\" =~ ^# ]] && continue; " +
             "  [[ -z \"$path\" ]] && continue; " +
@@ -1067,9 +1075,13 @@ Singleton {
             "    current=$(sha256sum \"$target/$path\" 2>/dev/null | cut -d' ' -f1); " +
             "    [[ \"$current\" != \"$checksum\" ]] && echo \"$path\"; " +
             "  elif [[ -d \"$repo/.git\" ]]; then " +
-            "    repo_hash=$(git -C \"$repo\" show HEAD:\"$path\" 2>/dev/null | sha256sum | cut -d' ' -f1); " +
+            "    resolved=''; " +
+            "    if git -C \"$repo\" cat-file -e \"HEAD:${git_prefix}${path}\" 2>/dev/null; then resolved=\"${git_prefix}${path}\"; " +
+            "    elif [[ -n \"$git_prefix\" ]] && git -C \"$repo\" cat-file -e \"HEAD:${path}\" 2>/dev/null; then resolved=\"${path}\"; fi; " +
+            "    [[ -z \"$resolved\" ]] && continue; " +
+            "    repo_hash=$(git -C \"$repo\" show \"HEAD:${resolved}\" 2>/dev/null | sha256sum | cut -d' ' -f1); " +
             "    local_hash=$(sha256sum \"$target/$path\" 2>/dev/null | cut -d' ' -f1); " +
-            "    [[ -n \"$repo_hash\" && \"$repo_hash\" != \"$local_hash\" ]] && echo \"$path\"; " +
+            "    [[ \"$repo_hash\" != \"$local_hash\" ]] && echo \"$path\"; " +
             "  fi; " +
             "done < \"$manifest\""
         ]
