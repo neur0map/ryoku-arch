@@ -55,11 +55,6 @@ window-rule {
 
 // ── Floating apps ───────────────────────────────────────────────────────────
 // Apps that work better as floating windows.
-window-rule {
-    match app-id="ryoku-vpn"
-    open-floating true
-    default-column-width { fixed 720; }
-}
 // window-rule {
 //     match app-id="pavucontrol"
 //     open-floating true

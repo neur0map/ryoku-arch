@@ -729,15 +729,14 @@ Singleton {
                     property bool showVpn: true
                     property bool showPublicIp: false    // opt-in: spawns curl every 5min
                     property bool showListening: false   // opt-in: spawns ss every 30s
-                    // Shell command run when the user clicks the VPN indicator.
-                    // Default opens the Ryoku VPN TUI in a floating kitty
-                    // window (gum + nmcli + tailscale wrapper). Users can
-                    // swap this for any other command:
+                    // Shell command run when the user clicks the VPN
+                    // indicator. Default launches Trayscale (the GTK GUI for
+                    // Tailscale, AUR `trayscale`). Users can swap this for
+                    // any other command, e.g.:
                     //   nm-connection-editor
-                    //   nmcli connection up <name>
-                    //   mullvad connect
-                    //   sudo wg-quick up wg0   (needs polkit/NOPASSWD setup)
-                    property string vpnClickCommand: "kitty --class=ryoku-vpn --title='Ryoku VPN' -e ryoku-vpn"
+                    //   kitty -e bash -c 'tailscale status; exec bash'
+                    //   xdg-open https://login.tailscale.com/admin
+                    property string vpnClickCommand: "trayscale"
                 }
                 property JsonObject tray: JsonObject {
                     property bool monochromeIcons: true

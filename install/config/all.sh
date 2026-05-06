@@ -14,6 +14,7 @@ run_logged $RYOKU_INSTALL/config/xcompose.sh
 run_logged $RYOKU_INSTALL/config/mise-work.sh
 run_logged $RYOKU_INSTALL/config/fix-powerprofilesctl-shebang.sh
 run_logged $RYOKU_INSTALL/config/docker.sh
+run_logged $RYOKU_INSTALL/config/tailscale.sh
 run_logged $RYOKU_INSTALL/config/mimetypes.sh
 run_logged $RYOKU_INSTALL/config/nautilus-python.sh
 run_logged $RYOKU_INSTALL/config/localdb.sh
