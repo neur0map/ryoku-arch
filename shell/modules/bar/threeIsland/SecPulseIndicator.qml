@@ -1,3 +1,4 @@
+import qs
 import qs.modules.common
 import qs.modules.common.widgets
 import qs.services
@@ -26,19 +27,40 @@ Item {
         anchors.centerIn: parent
         spacing: 8
 
-        // VPN indicator: lock_open / lock based on wg interface presence
-        RowLayout {
+        // VPN indicator: lock_open / lock based on wg interface presence.
+        // Click toggles the right sidebar (network management lives there).
+        Item {
             visible: root.showVpn
-            spacing: 2
-            MaterialSymbol {
-                text: RyokuSecPulse.vpnActive ? "lock" : "lock_open"
-                iconSize: Appearance.font.pixelSize.normal
-                color: RyokuSecPulse.vpnActive ? root.colText : root.colSubtle
+            implicitWidth: vpnRow.implicitWidth
+            implicitHeight: vpnRow.implicitHeight
+            Layout.alignment: Qt.AlignVCenter
+
+            RowLayout {
+                id: vpnRow
+                anchors.fill: parent
+                spacing: 2
+                MaterialSymbol {
+                    text: RyokuSecPulse.vpnActive ? "lock" : "lock_open"
+                    iconSize: Appearance.font.pixelSize.normal
+                    color: vpnMouse.containsMouse
+                        ? root.colText
+                        : (RyokuSecPulse.vpnActive ? root.colText : root.colSubtle)
+                }
+                StyledText {
+                    text: RyokuSecPulse.vpnActive ? "VPN" : "off"
+                    color: vpnMouse.containsMouse
+                        ? root.colText
+                        : (RyokuSecPulse.vpnActive ? root.colText : root.colSubtle)
+                    font.pixelSize: Appearance.font.pixelSize.small
+                }
             }
-            StyledText {
-                text: RyokuSecPulse.vpnActive ? "VPN" : "off"
-                color: RyokuSecPulse.vpnActive ? root.colText : root.colSubtle
-                font.pixelSize: Appearance.font.pixelSize.small
+
+            MouseArea {
+                id: vpnMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: GlobalStates.sidebarRightOpen = !GlobalStates.sidebarRightOpen
             }
         }
 
