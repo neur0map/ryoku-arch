@@ -7,7 +7,7 @@
 // Sections:
 //   0 = Controls  (sliders + quick toggles)
 //   1 = Notifications
-//   2+ = Widgets  (calendar / events / todo / notepad / calc / sysmon / timer)
+//   2+ = Widgets  (calendar / events / todo / notepad / calc / sysmon / timer / openvpn)
 //
 // Fully compatible with all global styles: material, aurora, ryoku, angel.
 
@@ -42,6 +42,7 @@ import qs.modules.sidebarRight.notepad
 import qs.modules.sidebarRight.calculator
 import qs.modules.sidebarRight.sysmon
 import qs.modules.sidebarRight.events
+import qs.modules.sidebarRight.openvpn
 
 Item {
     id: root
@@ -525,6 +526,41 @@ Item {
             }
         }
     }
+    Component {
+        id: openvpnComponent
+        Item {
+            anchors.fill: parent
+
+            StyledRectangularShadow {
+                target: openvpnSurface
+                visible: !bg.ryokuEverywhere && !bg.auroraEverywhere && !bg.angelEverywhere
+                blur: 0.35 * Appearance.sizes.elevationMargin
+            }
+
+            Rectangle {
+                id: openvpnSurface
+                anchors.fill: parent
+                anchors.margins: 8
+                radius: bg.angelEverywhere ? Appearance.angel.roundingNormal
+                    : bg.ryokuEverywhere ? Appearance.ryoku.roundingNormal
+                    : Appearance.rounding.normal
+                color: bg.angelEverywhere ? Appearance.angel.colGlassCard
+                    : bg.ryokuEverywhere ? Appearance.ryoku.colLayer1
+                    : bg.colDarkSurface
+                border.width: bg.angelEverywhere ? Appearance.angel.cardBorderWidth : 1
+                border.color: bg.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colCardBorder, 0.22)
+                    : bg.ryokuEverywhere ? Appearance.ryoku.colBorder
+                    : bg.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.78)
+                    : ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.72)
+                clip: true
+
+                OpenVpnTab {
+                    anchors.fill: parent
+                    anchors.margins: 6
+                }
+            }
+        }
+    }
 
     component ControlChipButton: Item {
         id: chip
@@ -646,7 +682,7 @@ Item {
 
     readonly property var widgetSections: {
         root.configVersion // Force dependency
-        const enabled = Config.options?.sidebar?.right?.enabledWidgets ?? ["calendar", "todo", "notepad", "calculator", "sysmon", "timer"]
+        const enabled = Config.options?.sidebar?.right?.enabledWidgets ?? ["calendar", "todo", "notepad", "calculator", "sysmon", "timer", "openvpn"]
         const all = [
             {id: "calendar",   icon: "calendar_month", label: Translation.tr("Calendar"),   component: calendarComponent},
             {id: "events",     icon: "event_upcoming", label: Translation.tr("Events"),     component: eventsComponent},
@@ -655,6 +691,7 @@ Item {
             {id: "calculator", icon: "calculate",     label: Translation.tr("Calc"),       component: calculatorComponent},
             {id: "sysmon",     icon: "monitor_heart", label: Translation.tr("System"),     component: sysmonComponent},
             {id: "timer",      icon: "schedule",      label: Translation.tr("Timer"),      component: timerComponent},
+            {id: "openvpn",    icon: "vpn_key",       label: Translation.tr("VPN"),        component: openvpnComponent},
         ]
         return all.filter(w => enabled.includes(w.id))
     }

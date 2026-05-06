@@ -928,7 +928,7 @@ ContentPage {
                 title: Translation.tr("Right Sidebar")
                 tooltip: Translation.tr("Toggle which widgets appear in the right sidebar")
 
-                readonly property var defaults: ["calendar", "todo", "notepad", "calculator", "sysmon", "timer"]
+                readonly property var defaults: ["calendar", "todo", "notepad", "calculator", "sysmon", "timer", "openvpn"]
 
                 function isEnabled(widgetId) {
                     return (Config.options?.sidebar?.right?.enabledWidgets ?? defaults).includes(widgetId)
@@ -1013,6 +1013,14 @@ ContentPage {
                     Component.onCompleted: checked = rightSidebarWidgets.isEnabled("timer")
                     onClicked: {
                         rightSidebarWidgets.setWidget("timer", checked)
+                    }
+                }
+                SettingsSwitch {
+                    buttonIcon: "vpn_key"
+                    text: Translation.tr("VPN")
+                    Component.onCompleted: checked = rightSidebarWidgets.isEnabled("openvpn")
+                    onClicked: {
+                        rightSidebarWidgets.setWidget("openvpn", checked)
                     }
                 }
             }
