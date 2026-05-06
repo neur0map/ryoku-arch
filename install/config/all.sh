@@ -35,6 +35,7 @@ run_logged $RYOKU_INSTALL/config/hardware/set-wireless-regdom.sh
 run_logged $RYOKU_INSTALL/config/hardware/fix-fkeys.sh
 run_logged $RYOKU_INSTALL/config/hardware/bluetooth.sh
 run_logged $RYOKU_INSTALL/config/hardware/printer.sh
+run_logged $RYOKU_INSTALL/config/hardware/fix-audio-mixer.sh
 run_logged $RYOKU_INSTALL/config/hardware/usb-autosuspend.sh
 run_logged $RYOKU_INSTALL/config/hardware/ignore-power-button.sh
 run_logged $RYOKU_INSTALL/config/hardware/nvidia.sh
@@ -49,7 +50,6 @@ run_logged $RYOKU_INSTALL/config/hardware/intel/fix-wifi7-eht.sh
 
 run_logged $RYOKU_INSTALL/config/hardware/dell/fix-xps-haptic-touchpad.sh
 
-run_logged $RYOKU_INSTALL/config/hardware/asus/fix-audio-mixer.sh
 run_logged $RYOKU_INSTALL/config/hardware/asus/fix-mic.sh
 
 run_logged $RYOKU_INSTALL/config/hardware/framework/fix-f13-amd-audio-input.sh
