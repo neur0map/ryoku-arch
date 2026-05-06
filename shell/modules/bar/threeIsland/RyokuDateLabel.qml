@@ -5,11 +5,17 @@ import QtQuick
 import QtQuick.Layouts
 
 /**
- * Day of week + date label for the left island. Day of week in accent color,
- * date in normal text. Stacked tightly with a thin separator dot.
+ * Day of week + date label. Day of week in uppercase accent color, date
+ * in normal text, separated by a center dot. Use compact: true for the
+ * cramped center-island stack (smaller font).
  */
 Item {
     id: root
+
+    property bool compact: false
+    readonly property int fontPx: compact
+        ? Appearance.font.pixelSize.smaller
+        : Appearance.font.pixelSize.normal
 
     readonly property color colAccent: Appearance.angelEverywhere ? Appearance.angel.colAccent
         : Appearance.ryokuEverywhere ? Appearance.ryoku.colAccent
@@ -18,14 +24,13 @@ Item {
         : Appearance.ryokuEverywhere ? Appearance.ryoku.colText
         : Appearance.colors.colOnLayer1
 
-    // DateTime.date is "dddd, dd/MM" by default; split on comma for two-tone display.
     readonly property string _full: DateTime.date
     readonly property int _commaIdx: _full.indexOf(",")
     readonly property string _day: _commaIdx >= 0 ? _full.substring(0, _commaIdx).trim() : _full
     readonly property string _date: _commaIdx >= 0 ? _full.substring(_commaIdx + 1).trim() : ""
 
     implicitWidth: row.implicitWidth
-    implicitHeight: Appearance.sizes.barHeight
+    implicitHeight: row.implicitHeight
 
     RowLayout {
         id: row
@@ -33,7 +38,7 @@ Item {
         spacing: 6
 
         StyledText {
-            font.pixelSize: Appearance.font.pixelSize.normal
+            font.pixelSize: root.fontPx
             font.weight: Font.Medium
             font.capitalization: Font.AllUppercase
             font.letterSpacing: 1.2
@@ -43,7 +48,7 @@ Item {
 
         StyledText {
             visible: root._date.length > 0
-            font.pixelSize: Appearance.font.pixelSize.normal
+            font.pixelSize: root.fontPx
             font.weight: Font.Medium
             color: root.colAccent
             text: "·"
@@ -51,7 +56,7 @@ Item {
 
         StyledText {
             visible: root._date.length > 0
-            font.pixelSize: Appearance.font.pixelSize.normal
+            font.pixelSize: root.fontPx
             font.weight: Font.Medium
             color: root.colText
             text: root._date
