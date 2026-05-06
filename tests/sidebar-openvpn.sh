@@ -1,0 +1,78 @@
+#!/bin/bash
+
+# Static asserts for the OpenVPN sidebar feature. Mirrors the style
+# of tests/topbar-three-island.sh.
+
+set -euo pipefail
+
+ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+
+fail() {
+  echo "FAIL: $1" >&2
+  exit 1
+}
+
+assert_file() {
+  local path="$1"
+  [[ -f $ROOT_DIR/$path ]] || fail "$path should exist"
+}
+
+assert_executable() {
+  local path="$1"
+  assert_file "$path"
+  [[ -x $ROOT_DIR/$path ]] || fail "$path should be executable"
+}
+
+assert_contains() {
+  local path="$1"
+  local needle="$2"
+  assert_file "$path"
+  grep -qF "$needle" "$ROOT_DIR/$path" || fail "$path should contain: $needle"
+}
+
+assert_matches() {
+  local path="$1"
+  local re="$2"
+  assert_file "$path"
+  grep -qE "$re" "$ROOT_DIR/$path" || fail "$path should match regex: $re"
+}
+
+# 1. Service singleton
+assert_file       "shell/services/RyokuOpenVpn.qml"
+assert_contains   "shell/services/qmldir" "singleton RyokuOpenVpn 1.0 RyokuOpenVpn.qml"
+
+# 2. Sidebar widgets
+assert_file       "shell/modules/sidebarRight/openvpn/OpenVpnTab.qml"
+assert_file       "shell/modules/sidebarRight/openvpn/OpenVpnStatusCard.qml"
+assert_file       "shell/modules/sidebarRight/openvpn/OpenVpnProfileRow.qml"
+assert_file       "shell/modules/sidebarRight/openvpn/OpenVpnLogTail.qml"
+
+# 3. Tab is wired into BottomWidgetGroup
+assert_contains   "shell/modules/sidebarRight/BottomWidgetGroup.qml" '"type": "openvpn"'
+assert_contains   "shell/modules/sidebarRight/BottomWidgetGroup.qml" "openVpnWidgetComponent"
+assert_contains   "shell/modules/sidebarRight/BottomWidgetGroup.qml" 'import qs.modules.sidebarRight.openvpn'
+# Authoritative tabOpen Binding (lifecycle fix from holistic UI review)
+assert_contains   "shell/modules/sidebarRight/BottomWidgetGroup.qml" 'property: "tabOpen"'
+
+# 4. Config defaults
+assert_contains   "shell/modules/common/Config.qml" "property bool showOpenVpn"
+assert_matches    "shell/modules/common/Config.qml" '"openvpn"'
+
+# 5. Bar second indicator
+assert_contains   "shell/modules/bar/threeIsland/SecPulseIndicator.qml" "ovpnItem"
+assert_contains   "shell/modules/bar/threeIsland/SecPulseIndicator.qml" "RyokuOpenVpn.activeProfile"
+
+# 6. Bash helpers
+assert_executable "bin/ryoku-openvpn-import"
+assert_executable "bin/ryoku-openvpn-remove"
+assert_executable "bin/ryoku-openvpn-rename"
+
+# 7. Polkit + installer
+assert_file       "default/polkit/49-ryoku-openvpn.rules"
+assert_executable "install/config/openvpn.sh"
+assert_contains   "install/config/all.sh" "openvpn.sh"
+
+# 8. openvpn package
+assert_contains   "install/ryoku-base.packages" "openvpn"
+
+printf 'PASS: tests/sidebar-openvpn.sh\n'
