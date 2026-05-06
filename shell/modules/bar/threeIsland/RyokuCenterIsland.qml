@@ -1,5 +1,6 @@
 import qs.modules.common
 import qs.modules.common.widgets
+import qs.modules.common.functions
 import qs.services
 import qs
 import QtQuick
@@ -9,13 +10,33 @@ Item {
     id: root
 
     readonly property bool showClock: Config.options?.bar?.modules?.kanjiClock ?? true
+    readonly property bool showWeather: (Config.options?.bar?.modules?.weatherIcon ?? true)
+        && (Config.options?.bar?.weather?.enable ?? false)
 
-    implicitWidth: clockHost.implicitWidth + 16
+    readonly property color colWeather: Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
+        : Appearance.colors.colSubtext
+
+    implicitWidth: row.implicitWidth + 16
     implicitHeight: Appearance.sizes.barHeight
 
-    RyokuKanjiClock {
-        id: clockHost
+    RowLayout {
+        id: row
         anchors.centerIn: parent
-        visible: root.showClock
+        spacing: 8
+
+        RyokuClock {
+            visible: root.showClock
+            Layout.alignment: Qt.AlignVCenter
+        }
+
+        MaterialSymbol {
+            visible: root.showWeather
+            Layout.alignment: Qt.AlignVCenter
+            fill: 0
+            text: Icons.getWeatherIcon(Weather.data?.wCode, Weather.isNightNow()) ?? "cloud"
+            iconSize: Appearance.font.pixelSize.large
+            color: root.colWeather
+        }
     }
 }

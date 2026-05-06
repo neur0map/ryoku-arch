@@ -52,7 +52,8 @@ assert_file "shell/modules/bar/threeIsland/RyokuTopFrame.qml"
 assert_file "shell/modules/bar/threeIsland/RyokuLeftIsland.qml"
 assert_file "shell/modules/bar/threeIsland/RyokuCenterIsland.qml"
 assert_file "shell/modules/bar/threeIsland/RyokuRightIsland.qml"
-assert_file "shell/modules/bar/threeIsland/RyokuKanjiClock.qml"
+assert_file "shell/modules/bar/threeIsland/RyokuClock.qml"
+assert_file "shell/modules/bar/threeIsland/RyokuDateLabel.qml"
 assert_file "shell/modules/bar/threeIsland/SecPulseIndicator.qml"
 
 # 2. Singleton service exists and is registered
@@ -62,6 +63,8 @@ assert_contains "shell/services/qmldir" "singleton RyokuSecPulse 1.0 RyokuSecPul
 # 3. Config.qml declares the new keys with documented defaults
 assert_contains "shell/modules/common/Config.qml" "property bool kanjiClock: true"
 assert_contains "shell/modules/common/Config.qml" "property bool secPulse: true"
+assert_contains "shell/modules/common/Config.qml" "property bool dateLabel: true"
+assert_contains "shell/modules/common/Config.qml" "property bool weatherIcon: true"
 assert_contains "shell/modules/common/Config.qml" "property JsonObject kanjiClock"
 assert_contains "shell/modules/common/Config.qml" "property JsonObject secPulse"
 assert_contains "shell/modules/common/Config.qml" "property bool showDate: true"

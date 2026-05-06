@@ -510,7 +510,7 @@ ContentPage {
                 uniform: true
                 SettingsSwitch {
                     buttonIcon: "schedule"
-                    text: Translation.tr("Kanji clock")
+                    text: Translation.tr("Clock")
                     checked: Config.options?.bar?.modules?.kanjiClock ?? true
                     enabled: root.isThreeIslandStyle
                     opacity: enabled ? 1 : 0.5
@@ -526,10 +526,38 @@ ContentPage {
                 }
             }
 
+            ConfigRow {
+                uniform: true
+                SettingsSwitch {
+                    buttonIcon: "calendar_today"
+                    text: Translation.tr("Date label (left island)")
+                    checked: Config.options?.bar?.modules?.dateLabel ?? true
+                    enabled: root.isThreeIslandStyle
+                    opacity: enabled ? 1 : 0.5
+                    onCheckedChanged: Config.setNestedValue("bar.modules.dateLabel", checked)
+                }
+                SettingsSwitch {
+                    buttonIcon: "wb_sunny"
+                    text: Translation.tr("Weather icon (next to clock)")
+                    checked: Config.options?.bar?.modules?.weatherIcon ?? true
+                    enabled: root.isThreeIslandStyle && (Config.options?.bar?.weather?.enable ?? false)
+                    opacity: enabled ? 1 : 0.5
+                    onCheckedChanged: Config.setNestedValue("bar.modules.weatherIcon", checked)
+                    StyledToolTip {
+                        text: Translation.tr("Requires weather to be enabled in Services -> Weather")
+                    }
+                }
+            }
+
             ConflictNote {
-                visible: ((Config.options?.bar?.modules?.kanjiClock ?? true) || (Config.options?.bar?.modules?.secPulse ?? true)) && !root.isThreeIslandStyle
+                visible: (
+                    (Config.options?.bar?.modules?.kanjiClock ?? true)
+                    || (Config.options?.bar?.modules?.secPulse ?? true)
+                    || (Config.options?.bar?.modules?.dateLabel ?? true)
+                    || (Config.options?.bar?.modules?.weatherIcon ?? true)
+                ) && !root.isThreeIslandStyle
                 icon: "info"
-                text: Translation.tr("Kanji clock and Security pulse are active only in Three-Island corner style.")
+                text: Translation.tr("Three-Island-only modules above are inert in other corner styles.")
             }
 
             SettingsDivider {}
@@ -1122,7 +1150,7 @@ ContentPage {
         visible: root.isIiActive && root.isThreeIslandStyle
         expanded: false
         icon: "schedule"
-        title: Translation.tr("Kanji Clock")
+        title: Translation.tr("Clock")
 
         SettingsGroup {
             SettingsSwitch {
