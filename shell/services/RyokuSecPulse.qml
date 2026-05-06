@@ -14,8 +14,9 @@ import qs.modules.common
 Singleton {
     id: root
 
-    // Public state (read by RyokuSecPulse.qml widget)
+    // Public state (read by SecPulseIndicator widget)
     property bool vpnActive: false
+    property string vpnProvider: ""   // "wireguard" | "tailscale" | "openvpn" | "networkmanager" | ""
     property string publicIp: ""
     property int listeningCount: 0
 
@@ -24,13 +25,23 @@ Singleton {
     readonly property bool _ipEnabled: Config.options?.bar?.secPulse?.showPublicIp ?? false
     readonly property bool _listeningEnabled: Config.options?.bar?.secPulse?.showListening ?? false
 
-    // VPN: cheap (wg show interfaces returns empty if no wg interfaces)
+    // VPN detection: checks wireguard, tailscale, openvpn, and any
+    // NetworkManager-managed VPN connection. First hit wins. The shell
+    // command exits 0 quickly even when nothing is running.
     Process {
         id: vpnProc
-        command: ["sh", "-c", "wg show interfaces 2>/dev/null"]
+        command: ["sh", "-c",
+            "if wg show interfaces 2>/dev/null | grep -q .; then echo wireguard; " +
+            "elif command -v tailscale >/dev/null 2>&1 && tailscale status --peers=false 2>/dev/null | grep -qE '^[0-9]'; then echo tailscale; " +
+            "elif pgrep -x openvpn >/dev/null 2>&1; then echo openvpn; " +
+            "elif command -v nmcli >/dev/null 2>&1 && nmcli -t -f TYPE,STATE connection show --active 2>/dev/null | grep -q '^vpn:activated\\|^wireguard:activated'; then echo networkmanager; " +
+            "else echo ''; fi"
+        ]
         stdout: StdioCollector {
             onStreamFinished: {
-                root.vpnActive = (this.text.trim().length > 0)
+                const provider = this.text.trim()
+                root.vpnProvider = provider
+                root.vpnActive = provider.length > 0
             }
         }
     }

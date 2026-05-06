@@ -54,6 +54,11 @@ Item {
                         : (RyokuSecPulse.vpnActive ? root.colText : root.colSubtle)
                     font.pixelSize: Appearance.font.pixelSize.small
                 }
+
+                StyledToolTip {
+                    visible: RyokuSecPulse.vpnActive && RyokuSecPulse.vpnProvider.length > 0
+                    text: RyokuSecPulse.vpnProvider.charAt(0).toUpperCase() + RyokuSecPulse.vpnProvider.slice(1)
+                }
             }
 
             MouseArea {

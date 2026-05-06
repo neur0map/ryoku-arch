@@ -222,7 +222,10 @@ polkit-gnome
 avahi
 inetutils
 iwd
+networkmanager-openvpn
 nss-mdns
+openvpn
+tailscale
 ufw
 wireless-regdb
 
