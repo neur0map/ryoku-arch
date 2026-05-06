@@ -40,7 +40,7 @@ Item {
         : Appearance.colors.colPrimary
 
     implicitWidth: row.implicitWidth + 12
-    implicitHeight: Appearance.sizes.barHeight
+    implicitHeight: row.implicitHeight
 
     RowLayout {
         id: row
