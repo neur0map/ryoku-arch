@@ -530,7 +530,7 @@ ContentPage {
                 uniform: true
                 SettingsSwitch {
                     buttonIcon: "calendar_today"
-                    text: Translation.tr("Date label (left island)")
+                    text: Translation.tr("Date under clock")
                     checked: Config.options?.bar?.modules?.dateLabel ?? true
                     enabled: root.isThreeIslandStyle
                     opacity: enabled ? 1 : 0.5

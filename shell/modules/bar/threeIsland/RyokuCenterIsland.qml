@@ -2,8 +2,10 @@ import qs.modules.common
 import qs.modules.common.widgets
 import qs.modules.common.functions
 import qs.modules.bar
+import qs.modules.bar.weather
 import qs.services
 import qs
+import Quickshell
 import QtQuick
 import QtQuick.Layouts
 
@@ -43,13 +45,38 @@ Item {
             }
         }
 
-        MaterialSymbol {
+        MouseArea {
+            id: weatherArea
             visible: root.showWeather
             Layout.alignment: Qt.AlignVCenter
-            fill: 0
-            text: Icons.getWeatherIcon(Weather.data?.wCode, Weather.isNightNow()) ?? "cloud"
-            iconSize: Appearance.font.pixelSize.large
-            color: root.colWeather
+            implicitWidth: weatherIcon.implicitWidth
+            implicitHeight: weatherIcon.implicitHeight
+            hoverEnabled: true
+            onPressed: {
+                Weather.getData()
+                Quickshell.execDetached(["/usr/bin/notify-send",
+                    Translation.tr("Weather"),
+                    Translation.tr("Refreshing (manually triggered)"),
+                    "-a", "Shell"
+                ])
+            }
+
+            MaterialSymbol {
+                id: weatherIcon
+                anchors.centerIn: parent
+                fill: 0
+                text: Icons.getWeatherIcon(Weather.data?.wCode, Weather.isNightNow()) ?? "cloud"
+                iconSize: Appearance.font.pixelSize.large
+                color: weatherArea.containsMouse
+                    ? (Appearance.angelEverywhere ? Appearance.angel.colText
+                        : Appearance.ryokuEverywhere ? Appearance.ryoku.colText
+                        : Appearance.colors.colOnLayer1)
+                    : root.colWeather
+            }
+
+            WeatherPopup {
+                hoverTarget: weatherArea
+            }
         }
     }
 
