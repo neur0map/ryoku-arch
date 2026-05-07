@@ -9,20 +9,21 @@ StyledPopup {
     
     ColumnLayout {
         id: columnLayout
-        anchors.centerIn: parent
-        spacing: 4
+        anchors.fill: parent
+        anchors.margins: 4
+        spacing: 8
 
         // Header
         Row {
             id: header
-            spacing: 5
+            spacing: 8
 
             MaterialSymbol {
                 anchors.verticalCenter: parent.verticalCenter
                 fill: 0
                 font.weight: Font.Medium
                 text: "battery_android_full"
-                iconSize: Appearance.font.pixelSize.large
+                iconSize: Appearance.font.pixelSize.normal
                 color: Appearance.colors.colOnSurfaceVariant
             }
 
@@ -39,8 +40,9 @@ StyledPopup {
 
         // This row is hidden when the battery is full.
         RowLayout {
-            spacing: 5
+            spacing: 8
             Layout.fillWidth: true
+            Layout.minimumWidth: 200
             property bool rowVisible: {
                 let timeValue = Battery.isCharging ? Battery.timeToFull : Battery.timeToEmpty;
                 let power = Battery.energyRate;
@@ -57,7 +59,7 @@ StyledPopup {
             MaterialSymbol {
                 text: "schedule"
                 color: Appearance.colors.colOnSurfaceVariant
-                iconSize: Appearance.font.pixelSize.large
+                iconSize: Appearance.font.pixelSize.normal
             }
             StyledText {
                 text: Battery.isCharging ? Translation.tr("Time to full:") : Translation.tr("Time to empty:")
@@ -85,8 +87,9 @@ StyledPopup {
         }
 
         RowLayout {
-            spacing: 5
+            spacing: 8
             Layout.fillWidth: true
+            Layout.minimumWidth: 200
 
             property bool rowVisible: !(Battery.chargeState != 4 && Battery.energyRate == 0)
             visible: rowVisible
@@ -100,7 +103,7 @@ StyledPopup {
             MaterialSymbol {
                 text: "bolt"
                 color: Appearance.colors.colOnSurfaceVariant
-                iconSize: Appearance.font.pixelSize.large
+                iconSize: Appearance.font.pixelSize.normal
             }
 
             StyledText {
