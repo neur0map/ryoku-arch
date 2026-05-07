@@ -2,7 +2,6 @@ import qs
 import qs.modules.common
 import QtQuick
 import QtQuick.Layouts
-import Quickshell.Io
 
 // Wide centered pill with tool buttons grouped by DIVIDER tokens. Mounted
 // when GlobalStates.toolsModeOpen is true. Press Esc or right-click to close.
@@ -88,10 +87,8 @@ Item {
 
     Component.onCompleted: root.forceActiveFocus()
 
-    IpcHandler {
-        target: "toolsMode"
-        function toggle(): void { GlobalStates.toolsModeOpen = !GlobalStates.toolsModeOpen }
-        function open(): void   { GlobalStates.toolsModeOpen = true }
-        function close(): void  { GlobalStates.toolsModeOpen = false }
-    }
+    // IpcHandler now lives in RyokuDynamicIsland.qml (the always-mounted
+    // orchestrator) so Mod+S can flip toolsModeOpen from any state. Keeping
+    // it here would have been a chicken-and-egg: the handler is only loaded
+    // when tools mode is open, so it could never open it.
 }
