@@ -57,42 +57,60 @@ Rectangle {
             Rectangle { Layout.preferredWidth: 8; Layout.preferredHeight: 8; radius: 4; color: root.colAccent }
             StyledText { text: "Active"; color: root.colAccent; font.pixelSize: Appearance.font.pixelSize.small; font.weight: Font.Bold }
         }
-        Button {
-            text: "⋮"
-            flat: true
-            onClicked: rowMenu.popup()
+        Item {
+            id: menuAnchor
+            Layout.preferredWidth: 28
+            Layout.preferredHeight: 28
+
+            readonly property bool _hovered: menuMouse.containsMouse || rowMenu.active
+
+            Rectangle {
+                anchors.fill: parent
+                radius: Appearance.rounding.small
+                color: menuMouse.containsPress ? Appearance.colors.colLayer2Active
+                       : menuAnchor._hovered ? Appearance.colors.colLayer2Hover
+                       : "transparent"
+                Behavior on color { ColorAnimation { duration: 120 } }
+            }
+
+            MaterialSymbol {
+                anchors.centerIn: parent
+                text: "more_vert"
+                iconSize: Appearance.font.pixelSize.normal
+                color: menuAnchor._hovered ? Appearance.colors.colOnLayer1 : Appearance.colors.colSubtext
+            }
+
+            MouseArea {
+                id: menuMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: rowMenu.active = true
+            }
         }
     }
 
-    Menu {
+    ContextMenu {
         id: rowMenu
-        MenuItem {
-            text: "View full log"
-            onTriggered: root.expandLogRequested(root.profile.name)
-        }
-        MenuItem {
-            text: "Edit config…"
-            onTriggered: {
-                const ed = Quickshell.env("EDITOR") || "nano"
-                Quickshell.execDetached([
-                    "kitty",
-                    "--class=ryoku-vpn-edit",
-                    "--title=Edit " + root.profile.name,
-                    "-e",
-                    "pkexec",
-                    "env", "EDITOR=" + ed,
-                    ed,
-                    "/etc/openvpn/client/" + root.profile.name + ".conf"
-                ])
-            }
-        }
-        MenuItem {
-            text: "Rename…"
-            onTriggered: root.renameRequested(root.profile.name)
-        }
-        MenuItem {
-            text: "Delete"
-            onTriggered: root.deleteRequested(root.profile.name)
-        }
+        anchorItem: menuAnchor
+        anchorHovered: menuAnchor !== null && (menuMouse.containsMouse || rowMenu.active)
+        popupAbove: false
+        model: [
+            { iconName: "description", monochromeIcon: true, text: "View full log",
+              action: () => root.expandLogRequested(root.profile.name) },
+            { iconName: "edit", monochromeIcon: true, text: "Edit config",
+              action: () => Quickshell.execDetached([
+                  "kitty", "--class=ryoku-vpn-edit",
+                  "--title=Edit " + root.profile.name, "-e",
+                  "pkexec", "env", "EDITOR=" + (Quickshell.env("EDITOR") || "nano"),
+                  (Quickshell.env("EDITOR") || "nano"),
+                  "/etc/openvpn/client/" + root.profile.name + ".conf"
+              ]) },
+            { type: "separator" },
+            { iconName: "drive_file_rename_outline", monochromeIcon: true, text: "Rename",
+              action: () => root.renameRequested(root.profile.name) },
+            { iconName: "delete", monochromeIcon: true, text: "Delete",
+              action: () => root.deleteRequested(root.profile.name) },
+        ]
     }
 }
