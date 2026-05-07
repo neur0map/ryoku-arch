@@ -260,6 +260,14 @@ Item {
                 font.pixelSize: Appearance.font.pixelSize.smaller
                 color: Appearance.colors.colSubtext
             }
+            StyledText {
+                visible: renameDialog.oldName === RyokuOpenVpn.activeProfile && RyokuOpenVpn.activeProfile.length > 0
+                text: "⚠ Renaming the active profile will briefly drop the connection."
+                font.pixelSize: Appearance.font.pixelSize.smaller
+                color: Appearance.m3colors.m3error ?? "#fb4934"
+                wrapMode: Text.Wrap
+                Layout.maximumWidth: 240
+            }
         }
         onAccepted: {
             const re = /^[a-z0-9-]+$/

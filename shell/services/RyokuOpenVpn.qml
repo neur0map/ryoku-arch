@@ -34,7 +34,12 @@ Singleton {
     property bool barIndicatorEnabled: Config.options?.bar?.secPulse?.showOpenVpn ?? true
     property bool tabOpen: false              // OpenVpnTab sets this in onCompleted/onDestruction
     readonly property bool _statusActive: barIndicatorEnabled || tabOpen
-    readonly property bool _discoveryActive: tabOpen
+    // Run discovery whenever we're polling at all (bar indicator on, or tab
+    // open). The cost is one `ls /etc/openvpn/client/*.conf` per 30s, which
+    // is negligible. This also makes discovery work in sidebar layouts that
+    // don't explicitly bind RyokuOpenVpn.tabOpen (e.g. CompactSidebarRightContent
+    // currently sets it via the Binding in 1b below, but defense in depth).
+    readonly property bool _discoveryActive: barIndicatorEnabled || tabOpen
 
     // ── status poll: 5s, gated on _statusActive ───────────────────
     Process {

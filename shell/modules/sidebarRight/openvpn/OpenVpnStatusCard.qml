@@ -133,12 +133,58 @@ Rectangle {
             font.pixelSize: Appearance.font.pixelSize.smaller
         }
         Item { Layout.preferredHeight: 4 }
-        DialogButton {
+        RowLayout {
             Layout.alignment: Qt.AlignHCenter
             Layout.topMargin: 4
-            enabled: !RyokuOpenVpn.transitioning && RyokuOpenVpn.activeProfile.length > 0
-            buttonText: "Disconnect"
-            onClicked: RyokuOpenVpn.disconnect()
+            spacing: 8
+
+            DialogButton {
+                enabled: !RyokuOpenVpn.transitioning && RyokuOpenVpn.activeProfile.length > 0
+                buttonText: "Disconnect"
+                onClicked: RyokuOpenVpn.disconnect()
+            }
+
+            // Open live journalctl in a kitty window for the active unit.
+            Rectangle {
+                id: logsBtn
+                visible: RyokuOpenVpn.activeProfile.length > 0
+                implicitWidth: 36
+                implicitHeight: 36
+                radius: Appearance.rounding.small
+                color: logsMouse.containsPress ? ColorUtils.transparentize(root.colAccent, 0.7)
+                       : logsMouse.containsMouse ? Appearance.colors.colLayer2Hover
+                       : "transparent"
+                border.width: 1
+                border.color: ColorUtils.transparentize(Appearance.colors.colLayer3Hover, 0.5)
+
+                Behavior on color { ColorAnimation { duration: 120 } }
+
+                MaterialSymbol {
+                    anchors.centerIn: parent
+                    text: "receipt_long"
+                    iconSize: Appearance.font.pixelSize.normal
+                    color: logsMouse.containsMouse ? Appearance.colors.colOnLayer1 : Appearance.colors.colSubtext
+                }
+
+                MouseArea {
+                    id: logsMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: Quickshell.execDetached([
+                        "kitty",
+                        "--class=ryoku-vpn-logs",
+                        "--title=OpenVPN logs: " + RyokuOpenVpn.activeProfile,
+                        "-e", "journalctl", "-fu",
+                        "openvpn-client@" + RyokuOpenVpn.activeProfile + ".service"
+                    ])
+                }
+
+                StyledToolTip {
+                    extraVisibleCondition: logsMouse.containsMouse
+                    text: "Open live logs"
+                }
+            }
         }
     }
 }
