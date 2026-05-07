@@ -6,6 +6,7 @@ import qs.modules.common
 import qs.modules.common.widgets
 import qs.modules.common.functions
 import qs.modules.bar
+import qs.modules.bar.threeIsland.dynamicIsland
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -79,7 +80,7 @@ Item {
         visible: false
         parentWindow: root.QsWindow.window
     }
-    RyokuCenterIsland {
+    RyokuDynamicIsland {
         id: centerSizer
         visible: false
     }
@@ -177,7 +178,7 @@ Item {
             }
         }
 
-        RyokuCenterIsland {
+        RyokuDynamicIsland {
             anchors.fill: parent
         }
     }
