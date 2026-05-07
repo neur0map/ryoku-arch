@@ -13,3 +13,6 @@
 # Editor / agent metadata
 /.claude/
 /.codex
+
+# Superpowers brainstorming session artifacts
+.superpowers/
