@@ -6,10 +6,10 @@ import QtQuick.Layouts
 
 StyledPopup {
     id: root
-    // Bump popup background past the natural content edge so the rounded
-    // corners don't crowd the icons and "Fully charged" text. Existing 10px
-    // popupBackground margin + 8px from this = 18px popup-edge-to-content.
-    popupBackgroundMargin: 16
+    // M3 rich-tooltip padding tokens: 16dp horizontal clears the rounded
+    // corner arc; 12dp vertical keeps it tooltip-tight not dialog-tall.
+    horizontalPadding: 16
+    verticalPadding: 12
 
     ColumnLayout {
         id: columnLayout
