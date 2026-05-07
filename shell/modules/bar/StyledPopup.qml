@@ -16,6 +16,13 @@ LazyLoader {
     default property Item contentItem
     property real popupBackgroundMargin: 0
 
+    // Material 3 padding tokens for the popup surface. Defaults match the
+    // legacy popupBackground.margin (10) so existing popups don't change.
+    // Per M3: rich tooltip / surface popups want 16dp padding so content
+    // clears the rounded corner's arc; plain tooltips can use 8 / 4.
+    property real horizontalPadding: 10
+    property real verticalPadding: 10
+
     signal requestClose()
 
     active: root.hoverActivates && hoverTarget && (hoverTarget.containsMouse ?? hoverTarget.buttonHovered ?? false)
@@ -130,8 +137,8 @@ LazyLoader {
                 topMargin: Appearance.sizes.elevationMargin + root.popupBackgroundMargin * (!popupWindow.anchors.top)
                 bottomMargin: Appearance.sizes.elevationMargin + root.popupBackgroundMargin * (!popupWindow.anchors.bottom)
             }
-            implicitWidth: root.contentItem.implicitWidth + margin * 2
-            implicitHeight: root.contentItem.implicitHeight + margin * 2
+            implicitWidth: root.contentItem.implicitWidth + root.horizontalPadding * 2
+            implicitHeight: root.contentItem.implicitHeight + root.verticalPadding * 2
             color: Appearance.angelEverywhere ? Appearance.angel.colGlassPopup
                 : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2 
                 : Appearance.m3colors.m3surfaceContainer
