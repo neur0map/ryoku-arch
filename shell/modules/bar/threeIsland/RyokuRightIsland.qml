@@ -103,6 +103,13 @@ Item {
             }
         }
 
+        // Battery indicator (same widget BarContent uses). Hidden when no
+        // battery present (desktop, plugged-in workstation, etc.).
+        BatteryIndicator {
+            visible: Battery.available
+            Layout.alignment: Qt.AlignVCenter
+        }
+
         // Compact sidebar trigger: tap to toggle the right sidebar.
         MaterialSymbol {
             visible: root.showSidebarButton
