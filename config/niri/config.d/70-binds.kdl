@@ -49,6 +49,9 @@ binds {
     // Lock screen.
     Mod+Alt+L allow-when-locked=true { spawn "ryoku-shell" "lock" "activate"; }
 
+    // Dynamic Island tools mode (full-bar quicktools pill).
+    Mod+S { spawn "ryoku-shell" "toolsMode" "toggle"; }
+
     // Region selector: screenshot / OCR / Google Lens search.
     Mod+Shift+S { spawn "ryoku-shell" "region" "screenshot"; }
     Mod+Shift+X { spawn "ryoku-shell" "region" "ocr"; }
