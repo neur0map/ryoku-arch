@@ -434,7 +434,6 @@ Working notes for each session go in `logs/YYYY-MM-DD-session-NN.md`. These file
 For observations that should persist beyond a session (architecture decisions, unexpected constraints, rejected approaches), add them to a committed doc:
 
 - `docs/vision.md` for large-scope intent.
-- `docs/rebrand-inventory.md` for rename-related decisions.
 - A future `docs/decisions/` folder can hold architecture decision records (ADRs) if the project grows enough to need them.
 
 Session logs can point at committed docs, but should not be the sole home for anything the next maintainer needs.
