@@ -10,7 +10,10 @@ StyledPopup {
     ColumnLayout {
         id: columnLayout
         anchors.fill: parent
-        anchors.margins: 4
+        anchors.leftMargin: 12
+        anchors.rightMargin: 12
+        anchors.topMargin: 4
+        anchors.bottomMargin: 4
         spacing: 8
 
         // Header
