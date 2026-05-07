@@ -16,6 +16,11 @@ StyledPopup {
         anchors.bottomMargin: 4
         spacing: 8
 
+        // Force a minimum popup width so "Fully charged" / "Time to empty: 5h 12m"
+        // never overflow the rounded edge. The Layout.minimumWidth on child rows
+        // does NOT propagate up to the popup's implicit sizing on its own.
+        implicitWidth: 220
+
         // Header
         Row {
             id: header
