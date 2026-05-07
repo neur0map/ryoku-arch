@@ -66,10 +66,44 @@ Item {
             Layout.alignment: Qt.AlignVCenter
         }
 
+        Item {
+            id: networkItem
+            implicitWidth: networkIcon.implicitWidth
+            implicitHeight: networkIcon.implicitHeight
+            Layout.alignment: Qt.AlignVCenter
+
+            MaterialSymbol {
+                id: networkIcon
+                anchors.centerIn: parent
+                text: Network.materialSymbol
+                iconSize: Appearance.font.pixelSize.larger
+                color: root.colText
+            }
+
+            MouseArea {
+                id: networkMouse
+                anchors.fill: parent
+                acceptedButtons: Qt.NoButton
+                hoverEnabled: true
+            }
+
+            StyledToolTip {
+                extraVisibleCondition: networkMouse.containsMouse
+                text: {
+                    if (Network.ethernet)
+                        return "Ethernet" + (Network.networkName.length > 0 ? " · " + Network.networkName : "")
+                    if (Network.wifi)
+                        return "Wi-Fi" + (Network.networkName.length > 0 ? " · " + Network.networkName : "")
+                            + (Number.isFinite(Network.networkStrength) ? " · " + Network.networkStrength + "%" : "")
+                    if (Network.wifiStatus === "connecting") return "Wi-Fi · connecting"
+                    if (Network.wifiStatus === "disabled") return "Wi-Fi · off"
+                    if (Network.wifiStatus === "limited") return "Wi-Fi · limited"
+                    return "Network · disconnected"
+                }
+            }
+        }
+
         // Compact sidebar trigger: tap to toggle the right sidebar.
-        // The existing right-sidebar indicator cluster (mic/volume/notifs/etc.)
-        // is intentionally NOT replicated here in v1; the cluster lives in
-        // BarContent.qml only. Users who want it can leave Three-Island off.
         MaterialSymbol {
             visible: root.showSidebarButton
             Layout.alignment: Qt.AlignVCenter
