@@ -2,12 +2,12 @@ import qs
 import qs.services
 import qs.modules.common
 import qs.modules.bar.threeIsland.dynamicIsland.pills
+import qs.modules.bar.threeIsland.dynamicIsland.tools
 import QtQuick
 
 // Computes activeState from service singletons + Config flags. Loads the
-// matching pill component. Phase 4: idle, recording, music, timer,
-// screenshot toast, and voice search are all wired. Phase 5 will add
-// the tools mode case.
+// matching pill component. Phase 5: idle, recording, music, timer,
+// screenshot toast, voice search, and tools mode are all wired.
 Item {
     id: root
     implicitWidth: pillLoader.item ? pillLoader.item.implicitWidth : 0
@@ -24,6 +24,7 @@ Item {
     readonly property string activeState: {
         const di = Config.options?.bar?.dynamicIsland;
         if (!di?.enabled) return "idle";
+        if (GlobalStates.toolsModeOpen) return "tools";
         if ((di?.states?.voiceSearch ?? true)     && VoiceSearch.running)            return "voiceSearch";
         if ((di?.states?.recording ?? true)       && RecorderStatus.isRecording)     return "recording";
         if ((di?.states?.timer ?? true)           && _anyTimerRunning())             return "timer";
@@ -48,6 +49,7 @@ Item {
 
     function _componentFor(state) {
         switch (state) {
+            case "tools":           return toolsComponent;
             case "voiceSearch":     return voiceSearchComponent;
             case "recording":       return recordingComponent;
             case "timer":           return timerComponent;
@@ -71,4 +73,5 @@ Item {
     Component { id: timerComponent;           TimerStatePill {} }
     Component { id: screenshotToastComponent; ScreenshotToastPill {} }
     Component { id: voiceSearchComponent;     VoiceSearchPill {} }
+    Component { id: toolsComponent;           RyokuToolsMode {} }
 }
