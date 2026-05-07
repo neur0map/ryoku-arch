@@ -114,6 +114,38 @@ bind "Super+Shift+A" { spawn "inir" "region" "search"; }
 
 ---
 
+### toolsMode
+
+Dynamic Island tools mode. Toggles a wide tools pill in the topbar center notch (Mod+S).
+
+| Function | Description |
+|----------|-------------|
+| `toggle` | Open/close tools mode |
+| `open` | Open tools mode |
+| `close` | Close tools mode |
+
+```kdl
+bind "Mod+S" { spawn "ryoku-shell" "toolsMode" "toggle"; }
+```
+
+---
+
+### screenshotEvents
+
+Screenshot completion events. Used by the Dynamic Island to flash a brief success toast.
+
+| Function | Description |
+|----------|-------------|
+| `captured` | Fire a captured event with text and file path arguments |
+
+```kdl
+# Triggered automatically by the region selector after a copy.
+# External scripts can fire it via:
+#   quickshell ipc call screenshotEvents captured "Saved" "/path/to/file.png"
+```
+
+---
+
 ### voiceSearch
 
 Voice search using Gemini API. Records from microphone, transcribes with Gemini, opens Google search.
