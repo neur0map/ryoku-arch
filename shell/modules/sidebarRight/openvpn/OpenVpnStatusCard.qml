@@ -2,6 +2,7 @@ import qs
 import qs.modules.common
 import qs.modules.common.widgets
 import qs.services
+import Quickshell
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
@@ -19,6 +20,14 @@ Rectangle {
         : Appearance.ryokuEverywhere ? Appearance.ryoku.colAccent
         : Appearance.colors.colPrimary
     readonly property color colError: Appearance.colors.colError ?? "#fb4934"
+
+    function _formatSince(raw) {
+        if (!raw || raw.length === 0) return "?"
+        // systemd ActiveEnterTimestamp format: "Wed 2026-05-06 13:14:38 EDT"
+        // Pull first HH:MM out of the string. Falls back to "?" if no match.
+        const m = raw.match(/(\d{2}:\d{2}):\d{2}/)
+        return m ? m[1] : "?"
+    }
 
     readonly property string headline: {
         if (RyokuOpenVpn.transitioning) {
@@ -59,15 +68,57 @@ Rectangle {
         }
         StyledText {
             visible: !RyokuOpenVpn.transitioning && RyokuOpenVpn.activeProfile.length > 0
-            text: RyokuOpenVpn.activeProfile + " · since " + (RyokuOpenVpn.activeSince.length > 0 ? RyokuOpenVpn.activeSince.substring(11, 16) : "?")
+            text: RyokuOpenVpn.activeProfile + " · since " + root._formatSince(RyokuOpenVpn.activeSince)
             color: Appearance.colors.colSubtext
             font.pixelSize: Appearance.font.pixelSize.small
         }
-        StyledText {
+        Item {
+            id: ipRow
             visible: !RyokuOpenVpn.transitioning && RyokuOpenVpn.activeIp.length > 0
-            text: RyokuOpenVpn.activeIp + " · tun"
-            color: Appearance.colors.colSubtext
-            font.pixelSize: Appearance.font.pixelSize.small
+            Layout.fillWidth: true
+            implicitHeight: ipText.implicitHeight
+            property bool justCopied: false
+
+            Timer {
+                id: copyResetTimer
+                interval: 1500
+                onTriggered: ipRow.justCopied = false
+            }
+
+            RowLayout {
+                anchors.fill: parent
+                spacing: 6
+                StyledText {
+                    id: ipText
+                    text: ipRow.justCopied
+                          ? "Copied!"
+                          : (RyokuOpenVpn.activeIp + " · tun")
+                    color: ipRow.justCopied
+                           ? root.colAccent
+                           : (ipMouse.containsMouse ? Appearance.colors.colOnLayer1 : Appearance.colors.colSubtext)
+                    font.pixelSize: Appearance.font.pixelSize.small
+                }
+                MaterialSymbol {
+                    visible: !ipRow.justCopied
+                    text: "content_copy"
+                    iconSize: Appearance.font.pixelSize.small
+                    color: ipMouse.containsMouse ? Appearance.colors.colOnLayer1 : Appearance.colors.colSubtext
+                    opacity: ipMouse.containsMouse ? 1 : 0.55
+                    Behavior on opacity { NumberAnimation { duration: 120 } }
+                }
+                Item { Layout.fillWidth: true }
+            }
+            MouseArea {
+                id: ipMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    Quickshell.clipboardText = RyokuOpenVpn.activeIp
+                    ipRow.justCopied = true
+                    copyResetTimer.restart()
+                }
+            }
         }
         StyledText {
             visible: !RyokuOpenVpn.transitioning && RyokuOpenVpn.activeProfile.length > 0 && RyokuOpenVpn.activeIp.length === 0

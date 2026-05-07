@@ -16,6 +16,8 @@ Rectangle {
     signal renameRequested(string name)
     signal deleteRequested(string name)
 
+    readonly property bool isActive: root.profile?.name === RyokuOpenVpn.activeProfile && RyokuOpenVpn.activeProfile.length > 0
+
     Layout.fillWidth: true
     Layout.preferredHeight: 40
     radius: Appearance.rounding.small
@@ -44,13 +46,13 @@ Rectangle {
             elide: Text.ElideRight
         }
         DialogButton {
-            visible: !root.profile.isActive
+            visible: !root.isActive
             enabled: !RyokuOpenVpn.transitioning
             buttonText: "Connect"
             onClicked: RyokuOpenVpn.connect(root.profile.name)
         }
         RowLayout {
-            visible: root.profile.isActive
+            visible: root.isActive
             spacing: 4
             Rectangle { Layout.preferredWidth: 8; Layout.preferredHeight: 8; radius: 4; color: root.colAccent }
             StyledText { text: "Active"; color: root.colAccent; font.pixelSize: Appearance.font.pixelSize.small; font.weight: Font.Bold }
