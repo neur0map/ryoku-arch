@@ -9,9 +9,12 @@ pass() { echo "OK: dynamic island IPC + schema"; }
 grep -q "dynamicIsland" shell/modules/common/Config.qml \
     || fail "bar.dynamicIsland missing from Config.qml"
 
-# IPC handler defined for tools mode
-grep -q 'target: "toolsMode"' shell/modules/bar/threeIsland/dynamicIsland/tools/RyokuToolsMode.qml \
-    || fail "toolsMode IpcHandler not declared"
+# IPC handler defined for tools mode (lives in services/ToolsModeService so
+# it registers once globally and stays alive even when tools mode is closed)
+grep -q 'target: "toolsMode"' shell/services/ToolsModeService.qml \
+    || fail "toolsMode IpcHandler not declared in ToolsModeService.qml"
+grep -q 'singleton ToolsModeService' shell/services/qmldir \
+    || fail "ToolsModeService singleton not registered in services/qmldir"
 
 # IPC handler defined for screenshot events
 grep -q 'target: "screenshotEvents"' shell/services/ScreenshotEvents.qml \
