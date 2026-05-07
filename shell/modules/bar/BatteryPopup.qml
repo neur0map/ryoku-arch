@@ -6,136 +6,141 @@ import QtQuick.Layouts
 
 StyledPopup {
     id: root
-    
-    ColumnLayout {
-        id: columnLayout
-        anchors.fill: parent
-        anchors.leftMargin: 12
-        anchors.rightMargin: 12
-        anchors.topMargin: 4
-        anchors.bottomMargin: 4
-        spacing: 8
 
-        // Force a minimum popup width so "Fully charged" / "Time to empty: 5h 12m"
-        // never overflow the rounded edge. The Layout.minimumWidth on child rows
-        // does NOT propagate up to the popup's implicit sizing on its own.
-        implicitWidth: 220
+    // Plain Item wrapper for the ColumnLayout. StyledPopup sizes itself from
+    // contentItem.implicitWidth. Qt Quick Layouts (ColumnLayout / RowLayout)
+    // compute their own implicit size from children and silently override any
+    // manual implicitWidth assignment, which is why pinning implicitWidth on
+    // the ColumnLayout did not actually grow the popup. A plain Item DOES
+    // honor a manual implicitWidth, and the ColumnLayout fills it via anchors.
+    Item {
+        id: contentWrap
+        implicitWidth: 240
+        implicitHeight: columnLayout.implicitHeight + 12
 
-        // Header
-        Row {
-            id: header
+        ColumnLayout {
+            id: columnLayout
+            anchors.fill: parent
+            anchors.leftMargin: 14
+            anchors.rightMargin: 14
+            anchors.topMargin: 6
+            anchors.bottomMargin: 6
             spacing: 8
 
-            MaterialSymbol {
-                anchors.verticalCenter: parent.verticalCenter
-                fill: 0
-                font.weight: Font.Medium
-                text: "battery_android_full"
-                iconSize: Appearance.font.pixelSize.normal
-                color: Appearance.colors.colOnSurfaceVariant
-            }
+            // Header
+            Row {
+                id: header
+                spacing: 8
 
-            StyledText {
-                anchors.verticalCenter: parent.verticalCenter
-                text: Translation.tr("Battery")
-                font {
-                    weight: Font.Medium
-                    pixelSize: Appearance.font.pixelSize.normal
+                MaterialSymbol {
+                    anchors.verticalCenter: parent.verticalCenter
+                    fill: 0
+                    font.weight: Font.Medium
+                    text: "battery_android_full"
+                    iconSize: Appearance.font.pixelSize.normal
+                    color: Appearance.colors.colOnSurfaceVariant
                 }
-                color: Appearance.colors.colOnSurfaceVariant
-            }
-        }
 
-        // This row is hidden when the battery is full.
-        RowLayout {
-            spacing: 8
-            Layout.fillWidth: true
-            Layout.minimumWidth: 200
-            property bool rowVisible: {
-                let timeValue = Battery.isCharging ? Battery.timeToFull : Battery.timeToEmpty;
-                let power = Battery.energyRate;
-                return !(Battery.chargeState == 4 || timeValue <= 0 || power <= 0.01);
-            }
-            visible: rowVisible
-            opacity: rowVisible ? 1 : 0
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: 500
+                StyledText {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: Translation.tr("Battery")
+                    font {
+                        weight: Font.Medium
+                        pixelSize: Appearance.font.pixelSize.normal
+                    }
+                    color: Appearance.colors.colOnSurfaceVariant
                 }
             }
 
-            MaterialSymbol {
-                text: "schedule"
-                color: Appearance.colors.colOnSurfaceVariant
-                iconSize: Appearance.font.pixelSize.normal
-            }
-            StyledText {
-                text: Battery.isCharging ? Translation.tr("Time to full:") : Translation.tr("Time to empty:")
-                color: Appearance.colors.colOnSurfaceVariant
-            }
-            StyledText {
+            // This row is hidden when the battery is full.
+            RowLayout {
+                spacing: 8
                 Layout.fillWidth: true
-                horizontalAlignment: Text.AlignRight
-                color: Appearance.colors.colOnSurfaceVariant
-                text: {
-                    function formatTime(seconds) {
-                        var h = Math.floor(seconds / 3600);
-                        var m = Math.floor((seconds % 3600) / 60);
-                        if (h > 0)
-                            return `${h}h, ${m}m`;
+                property bool rowVisible: {
+                    let timeValue = Battery.isCharging ? Battery.timeToFull : Battery.timeToEmpty;
+                    let power = Battery.energyRate;
+                    return !(Battery.chargeState == 4 || timeValue <= 0 || power <= 0.01);
+                }
+                visible: rowVisible
+                opacity: rowVisible ? 1 : 0
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: 500
+                    }
+                }
+
+                MaterialSymbol {
+                    text: "schedule"
+                    color: Appearance.colors.colOnSurfaceVariant
+                    iconSize: Appearance.font.pixelSize.normal
+                }
+                StyledText {
+                    text: Battery.isCharging ? Translation.tr("Time to full:") : Translation.tr("Time to empty:")
+                    color: Appearance.colors.colOnSurfaceVariant
+                }
+                StyledText {
+                    Layout.fillWidth: true
+                    horizontalAlignment: Text.AlignRight
+                    color: Appearance.colors.colOnSurfaceVariant
+                    text: {
+                        function formatTime(seconds) {
+                            var h = Math.floor(seconds / 3600);
+                            var m = Math.floor((seconds % 3600) / 60);
+                            if (h > 0)
+                                return `${h}h, ${m}m`;
+                            else
+                                return `${m}m`;
+                        }
+                        if (Battery.isCharging)
+                            return formatTime(Battery.timeToFull);
                         else
-                            return `${m}m`;
-                    }
-                    if (Battery.isCharging)
-                        return formatTime(Battery.timeToFull);
-                    else
-                        return formatTime(Battery.timeToEmpty);
-                }
-            }
-        }
-
-        RowLayout {
-            spacing: 8
-            Layout.fillWidth: true
-            Layout.minimumWidth: 200
-
-            property bool rowVisible: !(Battery.chargeState != 4 && Battery.energyRate == 0)
-            visible: rowVisible
-            opacity: rowVisible ? 1 : 0
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: 500
-                }
-            }
-
-            MaterialSymbol {
-                text: "bolt"
-                color: Appearance.colors.colOnSurfaceVariant
-                iconSize: Appearance.font.pixelSize.normal
-            }
-
-            StyledText {
-                text: {
-                    if (Battery.chargeState == 4) {
-                        return Translation.tr("Fully charged");
-                    } else if (Battery.chargeState == 1) {
-                        return Translation.tr("Charging:");
-                    } else {
-                        return Translation.tr("Discharging:");
+                            return formatTime(Battery.timeToEmpty);
                     }
                 }
-                color: Appearance.colors.colOnSurfaceVariant
             }
 
-            StyledText {
+            RowLayout {
+                spacing: 8
                 Layout.fillWidth: true
-                horizontalAlignment: Text.AlignRight
-                color: Appearance.colors.colOnSurfaceVariant
-                text: {
-                    if (Battery.chargeState == 4) {
-                        return "";
-                    } else {
-                        return `${Battery.energyRate.toFixed(2)}W`;
+
+                property bool rowVisible: !(Battery.chargeState != 4 && Battery.energyRate == 0)
+                visible: rowVisible
+                opacity: rowVisible ? 1 : 0
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: 500
+                    }
+                }
+
+                MaterialSymbol {
+                    text: "bolt"
+                    color: Appearance.colors.colOnSurfaceVariant
+                    iconSize: Appearance.font.pixelSize.normal
+                }
+
+                StyledText {
+                    text: {
+                        if (Battery.chargeState == 4) {
+                            return Translation.tr("Fully charged");
+                        } else if (Battery.chargeState == 1) {
+                            return Translation.tr("Charging:");
+                        } else {
+                            return Translation.tr("Discharging:");
+                        }
+                    }
+                    color: Appearance.colors.colOnSurfaceVariant
+                }
+
+                StyledText {
+                    Layout.fillWidth: true
+                    horizontalAlignment: Text.AlignRight
+                    color: Appearance.colors.colOnSurfaceVariant
+                    text: {
+                        if (Battery.chargeState == 4) {
+                            return "";
+                        } else {
+                            return `${Battery.energyRate.toFixed(2)}W`;
+                        }
                     }
                 }
             }
