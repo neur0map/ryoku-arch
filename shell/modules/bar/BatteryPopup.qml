@@ -15,16 +15,20 @@ StyledPopup {
     // honor a manual implicitWidth, and the ColumnLayout fills it via anchors.
     Item {
         id: contentWrap
+        // Center inside popupBackground; without this, the wrapper sits at
+        // (0,0) and StyledPopup's outer margin (10px) accumulates entirely
+        // at the bottom-right as dead space.
+        anchors.centerIn: parent
         implicitWidth: 240
-        implicitHeight: columnLayout.implicitHeight + 12
+        implicitHeight: columnLayout.implicitHeight + 8
 
         ColumnLayout {
             id: columnLayout
             anchors.fill: parent
             anchors.leftMargin: 14
             anchors.rightMargin: 14
-            anchors.topMargin: 6
-            anchors.bottomMargin: 6
+            anchors.topMargin: 4
+            anchors.bottomMargin: 4
             spacing: 8
 
             // Header
