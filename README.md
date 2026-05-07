@@ -6,7 +6,7 @@
 
 **力と美のために** &middot; *For the sake of power and beauty.*
 
-Ryoku is an opinionated Arch desktop built around Niri and Quickshell. A daily-driver cybersecurity workstation, not a VM.
+Ryoku is an opinionated Arch desktop built around Niri and Quickshell. A daily-driver Linux for cybersecurity learning and personal labs.
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-F25623?style=for-the-badge)](LICENSE)
 [![Built on Arch](https://img.shields.io/badge/Arch_Linux-1793D1?style=for-the-badge&logo=archlinux&logoColor=white)](https://archlinux.org)
@@ -29,11 +29,19 @@ Ryoku is an opinionated Arch desktop built around Niri and Quickshell. A daily-d
 
 ## About
 
-Most security distributions assume you'll run them in a VM and switch back to your real OS to get work done. Ryoku is the other approach: an Arch system you actually live in. Steam, Discord, your IDE, your bank's awful Java applet, the engagement VPN, your THM lab, all on the same machine.
+Most security distributions assume you'll run them in a VM and switch back to your real OS to get work done. Ryoku is for the other half of cybersecurity life: studying, lab work, CTFs, courseware, and tinkering on your own equipment, all on the same machine you actually live in. Steam, Discord, your IDE, your THM lab, the OpenVPN to your home router, on one Linux that doesn't fight you.
 
 The desktop is Niri, a scrollable-tiling Wayland compositor, with a Quickshell-based topbar, sidebars, lock screen, and settings panel. Workflow primitives that matter to security work are built into the shell instead of bolted on as separate tray icons: a sidebar tab for OpenVPN profile management, a SecPulse indicator that tracks Tailscale and OpenVPN at a glance, an in-shell polkit agent for clean privilege escalation. The boot, lock, login, and desktop surfaces share one visual language.
 
 Ryoku descends from omarchy and inherits its install-script architecture, theme pipeline, and command shape. The Arch base, the package selection, and the security-tooling track diverge.
+
+## Scope
+
+Ryoku is built for **learning and personal practice**: TryHackMe, Hack The Box, OffSec courseware, CTFs, your own home lab, your own router, and any system you own or have explicit written authorization to test.
+
+Ryoku is **not** a Kali or Parrot replacement for real engagement work. Professional pentesting and red-team operations need things a daily-driver OS deliberately doesn't give you: client-isolated environments, clean attribution, snapshot-and-revert disposability, separation between client A's data and client B's. Use a dedicated VM, or better, a dedicated engagement laptop, for that.
+
+You are responsible for how you use what ships here. Unauthorized scanning, exploitation, or interference with systems you do not own is illegal in most jurisdictions. Don't make this project's day harder than it needs to be.
 
 ## What ships
 

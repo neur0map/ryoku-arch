@@ -14,7 +14,15 @@ An opinionated Arch Linux environment that layers a security-workstation directi
 
 ## Who it is for
 
-People studying or working in cybersecurity who also care about how their machine looks and feels.
+People studying or working in cybersecurity who also care about how their machine looks and feels. Students working through TryHackMe / Hack The Box / OffSec material, hobbyists building home labs, professionals who want a personal Linux that doesn't make them dual-boot to enjoy it.
+
+## Intended use
+
+Ryoku is a **learning and personal-practice** environment. It targets workflows where you are the authorized owner of the systems involved: your own home lab, your own router, the boxes you spun up for a course, the labs the platform exposes for you (THM, HTB, etc.).
+
+It is deliberately **not** positioned as a Kali or Parrot replacement for real engagement work. Professional pentesting needs things Ryoku does not try to provide: client-isolated environments, clean attribution, snapshot-and-revert disposability, hard separation between client A's data and client B's, and a clear evidentiary boundary between the testing OS and the tester's personal OS. The right tool for that is still a dedicated VM or a dedicated engagement laptop.
+
+Pitching Ryoku as something it is not would damage trust with both audiences. We are explicit on the README that this is for learning and personal labs, and that responsibility for how the tools are used lies with the user.
 
 ## What distinguishes it
 
