@@ -698,6 +698,14 @@ Item {
 
     readonly property var sections: baseSections.concat(widgetSections)
 
+    // Drive RyokuOpenVpn.tabOpen from the live section selection so the
+    // service's discovery + per-tab gating know when the user is looking.
+    Binding {
+        target: RyokuOpenVpn
+        property: "tabOpen"
+        value: root.sections[root.activeSection]?.id === "openvpn"
+    }
+
     // ── Close dialogs when sidebar is hidden ─────────────────────
     Connections {
         target: GlobalStates
