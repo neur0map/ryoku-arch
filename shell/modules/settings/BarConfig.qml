@@ -1169,6 +1169,233 @@ ContentPage {
     }
 
     // ===================================================================
+    // DYNAMIC ISLAND (Three-Island only)
+    // ===================================================================
+    SettingsCardSection {
+        visible: root.isIiActive && root.isThreeIslandStyle
+        title: Translation.tr("Dynamic Island")
+        icon: "view_carousel"
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 8
+
+            StyledText {
+                Layout.fillWidth: true
+                text: Translation.tr("State-driven center pill that morphs to show recording, music, timer, screenshot toast, or voice search. Mod+S opens the Tools pill.")
+                color: Appearance.colors.colSubtext
+                font.pixelSize: Appearance.font.pixelSize.smaller
+                wrapMode: Text.WordWrap
+            }
+
+            SettingsSwitch {
+                buttonIcon: "view_carousel"
+                text: Translation.tr("Enable Dynamic Island")
+                checked: Config.options?.bar?.dynamicIsland?.enabled ?? true
+                onCheckedChanged: Config.setNestedValue("bar.dynamicIsland.enabled", checked)
+            }
+
+            SettingsDivider {}
+
+            StyledText {
+                Layout.fillWidth: true
+                text: Translation.tr("Visible states (toggle off to hide a state pill)")
+                color: Appearance.colors.colSubtext
+                font.pixelSize: Appearance.font.pixelSize.smaller
+            }
+
+            ConfigRow {
+                uniform: true
+                SettingsSwitch {
+                    buttonIcon: "mic"
+                    text: Translation.tr("Voice search")
+                    checked: Config.options?.bar?.dynamicIsland?.states?.voiceSearch ?? true
+                    onCheckedChanged: Config.setNestedValue("bar.dynamicIsland.states.voiceSearch", checked)
+                }
+                SettingsSwitch {
+                    buttonIcon: "fiber_manual_record"
+                    text: Translation.tr("Recording")
+                    checked: Config.options?.bar?.dynamicIsland?.states?.recording ?? true
+                    onCheckedChanged: Config.setNestedValue("bar.dynamicIsland.states.recording", checked)
+                }
+            }
+            ConfigRow {
+                uniform: true
+                SettingsSwitch {
+                    buttonIcon: "timer"
+                    text: Translation.tr("Timer")
+                    checked: Config.options?.bar?.dynamicIsland?.states?.timer ?? true
+                    onCheckedChanged: Config.setNestedValue("bar.dynamicIsland.states.timer", checked)
+                }
+                SettingsSwitch {
+                    buttonIcon: "check_circle"
+                    text: Translation.tr("Screenshot toast")
+                    checked: Config.options?.bar?.dynamicIsland?.states?.screenshotToast ?? true
+                    onCheckedChanged: Config.setNestedValue("bar.dynamicIsland.states.screenshotToast", checked)
+                }
+            }
+            ConfigRow {
+                uniform: true
+                SettingsSwitch {
+                    buttonIcon: "music_note"
+                    text: Translation.tr("Music")
+                    checked: Config.options?.bar?.dynamicIsland?.states?.music ?? true
+                    onCheckedChanged: Config.setNestedValue("bar.dynamicIsland.states.music", checked)
+                }
+                Item { Layout.fillWidth: true }
+            }
+
+            SettingsDivider {}
+
+            StyledText {
+                Layout.fillWidth: true
+                text: Translation.tr("Mod+S Tools pill: drag rows to reorder, toggle the switch to show/hide each tool. The DIVIDER row splits the pill into a most-used (left) group and a secondary (right) group.")
+                color: Appearance.colors.colSubtext
+                font.pixelSize: Appearance.font.pixelSize.smaller
+                wrapMode: Text.WordWrap
+            }
+
+            ListView {
+                id: toolsOrderList
+                Layout.fillWidth: true
+                Layout.preferredHeight: contentHeight
+                interactive: false
+                spacing: 4
+
+                model: Config.options?.bar?.dynamicIsland?.tools?.order ?? []
+
+                property int dragIndex: -1
+                property int dropTargetIndex: -1
+
+                function _labelFor(id) {
+                    if (id === "DIVIDER") return Translation.tr("DIVIDER (group split)");
+                    const labels = {
+                        screenshot: "Screenshot region", record: "Screen record",
+                        lens: "Google Lens", colorPicker: "Color picker",
+                        musicRecognize: "Recognize music", micToggle: "Mic toggle",
+                        osk: "On-screen keyboard", caffeine: "Keep awake",
+                        notepad: "Notepad", screenCast: "Screen cast",
+                        darkMode: "Dark mode", powerProfile: "Power profile"
+                    };
+                    return Translation.tr(labels[id] ?? id);
+                }
+
+                delegate: Rectangle {
+                    id: row
+                    required property string modelData
+                    required property int index
+                    width: ListView.view.width
+                    height: 40
+                    radius: 8
+                    color: ListView.view.dragIndex === index
+                        ? Appearance.colors.colLayer3Hover
+                        : (row.modelData === "DIVIDER" ? Qt.rgba(0.5, 0.5, 0.5, 0.06) : "transparent")
+                    border.width: row.modelData === "DIVIDER" ? 1 : 0
+                    border.color: Appearance.colors.colOutline
+
+                    Behavior on y {
+                        enabled: !dh.active && Appearance.animationsEnabled
+                        NumberAnimation { duration: 200; easing.type: Easing.OutQuad }
+                    }
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 10
+                        anchors.rightMargin: 10
+                        spacing: 8
+
+                        MaterialSymbol {
+                            text: "drag_indicator"
+                            iconSize: Appearance.font.pixelSize.larger
+                            color: Appearance.colors.colSubtext
+                        }
+                        StyledText {
+                            Layout.fillWidth: true
+                            text: toolsOrderList._labelFor(row.modelData)
+                            color: Appearance.colors.colOnLayer1
+                        }
+                        SettingsSwitch {
+                            visible: row.modelData !== "DIVIDER"
+                            text: ""
+                            checked: (Config.options?.bar?.dynamicIsland?.tools?.buttons?.[row.modelData]) ?? true
+                            onCheckedChanged: Config.setNestedValue("bar.dynamicIsland.tools.buttons." + row.modelData, checked)
+                        }
+                    }
+
+                    DragHandler {
+                        id: dh
+                        target: row
+                        yAxis.enabled: true
+                        xAxis.enabled: false
+                        onActiveChanged: {
+                            if (active) {
+                                toolsOrderList.dragIndex = row.index;
+                                toolsOrderList.dropTargetIndex = row.index;
+                            } else {
+                                if (toolsOrderList.dragIndex !== toolsOrderList.dropTargetIndex
+                                    && toolsOrderList.dropTargetIndex >= 0) {
+                                    const arr = (Config.options.bar.dynamicIsland.tools.order ?? []).slice();
+                                    const item = arr.splice(toolsOrderList.dragIndex, 1)[0];
+                                    arr.splice(toolsOrderList.dropTargetIndex, 0, item);
+                                    Config.setNestedValue("bar.dynamicIsland.tools.order", arr);
+                                }
+                                toolsOrderList.dragIndex = -1;
+                                toolsOrderList.dropTargetIndex = -1;
+                                row.y = row.index * (row.height + toolsOrderList.spacing);
+                            }
+                        }
+                    }
+
+                    onYChanged: {
+                        if (dh.active) {
+                            const newIdx = Math.max(0, Math.min(toolsOrderList.count - 1,
+                                Math.round((row.y + row.height / 2) / (row.height + toolsOrderList.spacing))));
+                            toolsOrderList.dropTargetIndex = newIdx;
+                        }
+                    }
+                }
+            }
+
+            SettingsDivider {}
+
+            StyledText {
+                Layout.fillWidth: true
+                text: Translation.tr("Tools mode behavior")
+                color: Appearance.colors.colSubtext
+                font.pixelSize: Appearance.font.pixelSize.smaller
+            }
+
+            ConfigRow {
+                uniform: true
+                SettingsSwitch {
+                    buttonIcon: "logout"
+                    text: Translation.tr("Auto-close after action")
+                    checked: Config.options?.bar?.dynamicIsland?.tools?.autoCloseAfterAction ?? true
+                    onCheckedChanged: Config.setNestedValue("bar.dynamicIsland.tools.autoCloseAfterAction", checked)
+                }
+                SettingsSwitch {
+                    buttonIcon: "keyboard_return"
+                    text: Translation.tr("Close on Esc")
+                    checked: Config.options?.bar?.dynamicIsland?.tools?.closeOnEsc ?? true
+                    onCheckedChanged: Config.setNestedValue("bar.dynamicIsland.tools.closeOnEsc", checked)
+                }
+            }
+
+            SettingsDivider {}
+
+            SettingsSwitch {
+                buttonIcon: "vertical_align_top"
+                text: Translation.tr("Music popup attached to island")
+                checked: Config.options?.bar?.dynamicIsland?.musicPopupContinuous ?? true
+                onCheckedChanged: Config.setNestedValue("bar.dynamicIsland.musicPopupContinuous", checked)
+                StyledToolTip {
+                    text: Translation.tr("When on, the BarMediaPopup visually emerges from the bar with no gap. When off, it floats with a small gap.")
+                }
+            }
+        }
+    }
+
+    // ===================================================================
     // SECURITY PULSE (Three-Island only)
     // ===================================================================
     SettingsCardSection {
