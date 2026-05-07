@@ -199,6 +199,10 @@ Singleton {
             property JsonObject screenCast: JsonObject {
                 property bool active: false
             }
+
+            // True after the one-shot migration that copies legacy
+            // bar.utilButtons.show* flags into bar.dynamicIsland.tools.buttons.
+            property bool dynamicIslandMigrated: false
         }
     }
 }

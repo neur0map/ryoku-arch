@@ -1748,4 +1748,45 @@ Singleton {
             }
         }
     }
+
+    // One-shot migration: copy legacy bar.utilButtons.show* flags into
+    // bar.dynamicIsland.tools.buttons.* so existing users get a tools row
+    // matching their current bar configuration. Runs once, after both
+    // Config and Persistent finish loading. Gated by
+    // Persistent.states.dynamicIslandMigrated.
+    Connections {
+        target: root
+        function onReadyChanged() {
+            if (root.ready) Qt.callLater(root._migrateDynamicIslandIfNeeded)
+        }
+    }
+    Connections {
+        target: Persistent
+        function onReadyChanged() {
+            if (Persistent.ready) Qt.callLater(root._migrateDynamicIslandIfNeeded)
+        }
+    }
+
+    function _migrateDynamicIslandIfNeeded() {
+        if (!root.ready || !Persistent.ready) return;
+        if (Persistent.states.dynamicIslandMigrated === true) return;
+
+        const ub = root.options?.bar?.utilButtons ?? {};
+        const map = {
+            screenshot:   ub.showScreenSnip ?? true,
+            record:       ub.showScreenRecord ?? true,
+            colorPicker:  ub.showColorPicker ?? false,
+            notepad:      ub.showNotepad ?? true,
+            osk:          ub.showKeyboardToggle ?? true,
+            micToggle:    ub.showMicToggle ?? false,
+            screenCast:   ub.showScreenCast ?? false,
+            darkMode:     ub.showDarkModeToggle ?? true,
+            powerProfile: ub.showPerformanceProfileToggle ?? false
+        };
+        for (const key in map) {
+            root.setNestedValue("bar.dynamicIsland.tools.buttons." + key, map[key]);
+        }
+        // lens, musicRecognize, caffeine are new and stay at their schema defaults (true).
+        Persistent.states.dynamicIslandMigrated = true;
+    }
 }
