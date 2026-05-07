@@ -33,6 +33,7 @@ ShellRoot {
     // Force singleton instantiation — startup-critical only
     property var _idleService: Idle
     property var _powerProfilePersistence: PowerProfilePersistence
+    property var _toolsModeService: ToolsModeService
 
     // Deferred singletons — initialized after first frame to reduce boot contention
     property var _gameModeService

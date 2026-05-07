@@ -4,7 +4,6 @@ import qs.modules.common
 import qs.modules.bar.threeIsland.dynamicIsland.pills
 import qs.modules.bar.threeIsland.dynamicIsland.tools
 import QtQuick
-import Quickshell.Io
 
 // Computes activeState from service singletons + Config flags. Loads the
 // matching pill component. Phase 5: idle, recording, music, timer,
@@ -76,13 +75,8 @@ Item {
     Component { id: voiceSearchComponent;     VoiceSearchPill {} }
     Component { id: toolsComponent;           RyokuToolsMode {} }
 
-    // IpcHandler must live on an always-mounted component (not inside the
-    // tools pill, which is only loaded WHEN tools mode is open). Owning the
-    // handler here means Mod+S can flip the flag from any state.
-    IpcHandler {
-        target: "toolsMode"
-        function toggle(): void { GlobalStates.toolsModeOpen = !GlobalStates.toolsModeOpen }
-        function open(): void   { GlobalStates.toolsModeOpen = true }
-        function close(): void  { GlobalStates.toolsModeOpen = false }
-    }
+    // toolsMode IpcHandler lives in services/ToolsModeService.qml so it
+    // registers exactly once across all bar instances and stays alive even
+    // before the tools pill is mounted. shell.qml force-instantiates that
+    // singleton at startup.
 }

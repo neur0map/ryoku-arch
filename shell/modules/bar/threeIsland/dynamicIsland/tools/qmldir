@@ -1,0 +1,4 @@
+module qs.modules.bar.threeIsland.dynamicIsland.tools
+singleton ToolRegistry 1.0 ToolRegistry.qml
+ToolButton 1.0 ToolButton.qml
+RyokuToolsMode 1.0 RyokuToolsMode.qml
