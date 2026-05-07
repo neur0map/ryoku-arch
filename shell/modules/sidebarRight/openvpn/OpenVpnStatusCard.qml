@@ -9,8 +9,7 @@ import QtQuick.Controls
 Rectangle {
     id: root
     Layout.fillWidth: true
-    Layout.preferredHeight: visible ? content.implicitHeight + 20 : 0
-    visible: RyokuOpenVpn.activeProfile.length > 0 || RyokuOpenVpn.transitioning
+    implicitHeight: content.implicitHeight + 18
     radius: Appearance.rounding.normal
     color: Appearance.colors.colLayer2
     border.color: Appearance.colors.colLayer3Hover
@@ -33,7 +32,7 @@ Rectangle {
     ColumnLayout {
         id: content
         anchors.fill: parent
-        anchors.margins: 10
+        anchors.margins: 12
         spacing: 6
 
         RowLayout {
