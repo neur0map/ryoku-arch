@@ -42,10 +42,15 @@ Item {
     implicitWidth: row.implicitWidth + 12
     implicitHeight: row.implicitHeight
 
+    // Per docs/ui-patterns.md: the visible gap around the colon is the
+    // colon's font advance width (each StyledText reserves the glyph's
+    // advance), NOT the layout spacing. RowLayout spacing 0 + small
+    // negative side-margins on the colon pulls the digits adjacent to it
+    // while keeping the accent-color three-element structure.
     RowLayout {
         id: row
         anchors.centerIn: parent
-        spacing: 2
+        spacing: 0
 
         StyledText {
             font.pixelSize: Appearance.font.pixelSize.huge
@@ -59,6 +64,8 @@ Item {
             color: root.colAccent
             text: ":"
             visible: root._colonIdx >= 0
+            Layout.leftMargin: -4
+            Layout.rightMargin: -4
         }
         StyledText {
             font.pixelSize: Appearance.font.pixelSize.huge
