@@ -60,4 +60,8 @@ assert_contains   "shell/modules/bar/SecPulseIndicator.qml" "GlobalStates.sideba
 assert_contains   "shell/modules/bar/SecPulseIndicator.qml" "vpn_key"
 assert_contains   "shell/modules/bar/SecPulseIndicator.qml" "vpn_key_off"
 
+# 4. BarContent instantiates SecPulseIndicator and gates it on the module key.
+assert_contains   "shell/modules/bar/BarContent.qml" "SecPulseIndicator {"
+assert_contains   "shell/modules/bar/BarContent.qml" "bar?.modules?.secPulse"
+
 echo "ok: bar-secpulse static asserts"

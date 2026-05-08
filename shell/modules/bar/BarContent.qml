@@ -676,6 +676,12 @@ Item { // Bar content region
                 invertSide: Config.options?.bar?.bottom ?? false
             }
 
+            SecPulseIndicator {
+                visible: Config.options?.bar?.modules?.secPulse ?? true
+                Layout.fillHeight: true
+                Layout.alignment: Qt.AlignVCenter
+            }
+
             // Timer indicator
             TimerIndicator {
                 Layout.alignment: Qt.AlignVCenter
