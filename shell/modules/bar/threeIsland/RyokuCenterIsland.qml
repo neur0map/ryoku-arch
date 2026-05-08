@@ -13,7 +13,6 @@ Item {
     id: root
 
     readonly property bool showClock: Config.options?.bar?.modules?.kanjiClock ?? true
-    readonly property bool showDate: Config.options?.bar?.modules?.dateLabel ?? true
     readonly property bool showWeather: (Config.options?.bar?.modules?.weatherIcon ?? true)
         && (Config.options?.bar?.weather?.enable ?? false)
 
@@ -22,84 +21,71 @@ Item {
         : Appearance.colors.colSubtext
 
     // The frame's centerNotchWidth adds another +16, so the visible padding
-    // around the centered stack ends up at ~24px each side.
-    implicitWidth: stack.implicitWidth + 32
+    // around the centered row ends up at ~24px each side.
+    implicitWidth: row.implicitWidth + 32
     implicitHeight: Appearance.sizes.barHeight
 
-    // Outer ColumnLayout — top row (clock + weather) and the date label are
-    // siblings, each independently horizontally centered. This keeps the date
-    // centered in the island regardless of the weather icon's width, instead
-    // of inheriting the clock column's left-skewed position.
-    ColumnLayout {
-        id: stack
+    // Single row: kanji clock + weather icon, comfortably spaced. Day-of-week
+    // and date previously sat below the clock; both moved to the clock's
+    // hover popup (ClockWidgetTooltip) to keep the idle island compact.
+    RowLayout {
+        id: row
         anchors.centerIn: parent
-        spacing: 0
+        spacing: 10
 
-        RowLayout {
-            id: topRow
-            Layout.alignment: Qt.AlignHCenter
-            spacing: 8
+        // Clock with hover popup (date / uptime / todos).
+        MouseArea {
+            id: clockArea
+            Layout.alignment: Qt.AlignVCenter
+            implicitWidth: clockMain.implicitWidth
+            implicitHeight: clockMain.implicitHeight
+            hoverEnabled: true
+            acceptedButtons: Qt.NoButton
 
-            // Clock with hover popup (date / uptime / todos).
-            MouseArea {
-                id: clockArea
-                Layout.alignment: Qt.AlignVCenter
-                implicitWidth: clockMain.implicitWidth
-                implicitHeight: clockMain.implicitHeight
-                hoverEnabled: true
-                acceptedButtons: Qt.NoButton
-
-                RyokuClock {
-                    id: clockMain
-                    visible: root.showClock
-                    anchors.centerIn: parent
-                }
-
-                ClockWidgetTooltip {
-                    hoverTarget: clockArea
-                }
+            RyokuClock {
+                id: clockMain
+                visible: root.showClock
+                anchors.centerIn: parent
             }
 
-            // Weather icon with hover popup (full forecast) + click to refresh.
-            MouseArea {
-                id: weatherArea
-                visible: root.showWeather
-                Layout.alignment: Qt.AlignVCenter
-                implicitWidth: weatherIcon.implicitWidth
-                implicitHeight: weatherIcon.implicitHeight
-                hoverEnabled: true
-                onPressed: {
-                    Weather.getData()
-                    Quickshell.execDetached(["/usr/bin/notify-send",
-                        Translation.tr("Weather"),
-                        Translation.tr("Refreshing (manually triggered)"),
-                        "-a", "Shell"
-                    ])
-                }
-
-                MaterialSymbol {
-                    id: weatherIcon
-                    anchors.centerIn: parent
-                    fill: 0
-                    text: Icons.getWeatherIcon(Weather.data?.wCode, Weather.isNightNow()) ?? "cloud"
-                    iconSize: Appearance.font.pixelSize.large
-                    color: weatherArea.containsMouse
-                        ? (Appearance.angelEverywhere ? Appearance.angel.colText
-                            : Appearance.ryokuEverywhere ? Appearance.ryoku.colText
-                            : Appearance.colors.colOnLayer1)
-                        : root.colWeather
-                }
-
-                WeatherPopup {
-                    hoverTarget: weatherArea
-                }
+            ClockWidgetTooltip {
+                hoverTarget: clockArea
             }
         }
 
-        RyokuDateLabel {
-            compact: true
-            visible: root.showDate
-            Layout.alignment: Qt.AlignHCenter
+        // Weather icon with hover popup (full forecast) + click to refresh.
+        MouseArea {
+            id: weatherArea
+            visible: root.showWeather
+            Layout.alignment: Qt.AlignVCenter
+            implicitWidth: weatherIcon.implicitWidth
+            implicitHeight: weatherIcon.implicitHeight
+            hoverEnabled: true
+            onPressed: {
+                Weather.getData()
+                Quickshell.execDetached(["/usr/bin/notify-send",
+                    Translation.tr("Weather"),
+                    Translation.tr("Refreshing (manually triggered)"),
+                    "-a", "Shell"
+                ])
+            }
+
+            MaterialSymbol {
+                id: weatherIcon
+                anchors.centerIn: parent
+                fill: 0
+                text: Icons.getWeatherIcon(Weather.data?.wCode, Weather.isNightNow()) ?? "cloud"
+                iconSize: Appearance.font.pixelSize.large
+                color: weatherArea.containsMouse
+                    ? (Appearance.angelEverywhere ? Appearance.angel.colText
+                        : Appearance.ryokuEverywhere ? Appearance.ryoku.colText
+                        : Appearance.colors.colOnLayer1)
+                    : root.colWeather
+            }
+
+            WeatherPopup {
+                hoverTarget: weatherArea
+            }
         }
     }
 }
