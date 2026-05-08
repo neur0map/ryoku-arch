@@ -1221,8 +1221,7 @@ Scope {
                             { displayName: Translation.tr("Hug"), icon: "line_curve", value: 0 },
                             { displayName: Translation.tr("Float"), icon: "crop_free", value: 1 },
                             { displayName: Translation.tr("Full"), icon: "rectangle", value: 2 },
-                            { displayName: Translation.tr("Card"), icon: "branding_watermark", value: 3 },
-                            { displayName: Translation.tr("Three-Island"), icon: "view_column_2", value: 4 }
+                            { displayName: Translation.tr("Card"), icon: "branding_watermark", value: 3 }
                         ]
                     }
                 }
