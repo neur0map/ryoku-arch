@@ -16,9 +16,6 @@ ContentPage {
     readonly property bool isHugStyle: Config.options?.bar?.cornerStyle === 0
     readonly property bool isFloatStyle: Config.options?.bar?.cornerStyle === 1
     readonly property bool isRectStyle: Config.options?.bar?.cornerStyle === 2
-    readonly property bool isThreeIslandStyle: Config.options?.bar?.cornerStyle === 4
-    readonly property bool threeIslandOnBottom: isThreeIslandStyle && (Config.options?.bar?.bottom ?? false)
-    readonly property bool threeIslandOnVertical: isThreeIslandStyle && (Config.options?.bar?.vertical ?? false)
     readonly property bool isGlobalCards: Config.options?.dock?.cardStyle && Config.options?.sidebar?.cardStyle && isCardStyle
     readonly property bool hasVignette: Config.options?.bar?.vignette?.enabled ?? false
     readonly property bool isAutoHide: Config.options?.bar?.autoHide?.enable ?? false
@@ -134,8 +131,7 @@ ContentPage {
                             { displayName: Translation.tr("Hug"), icon: "line_curve", value: 0 },
                             { displayName: Translation.tr("Float"), icon: "page_header", value: 1 },
                             { displayName: Translation.tr("Rect"), icon: "toolbar", value: 2 },
-                            { displayName: Translation.tr("Card"), icon: "branding_watermark", value: 3 },
-                            { displayName: Translation.tr("Three-Island"), icon: "view_column_2", value: 4 }
+                            { displayName: Translation.tr("Card"), icon: "branding_watermark", value: 3 }
                         ]
                     }
                 }
@@ -170,19 +166,6 @@ ContentPage {
                 text: Translation.tr("Card style here doesn't match dock/sidebar. Go to Themes → Global Style for consistency.")
             }
 
-            ConflictNote {
-                visible: root.threeIslandOnBottom || root.threeIslandOnVertical
-                warning: true
-                icon: "sync_problem"
-                text: Translation.tr("Three-Island layout is top-edge only. Switch position to Top to enable it.")
-            }
-
-            ConflictNote {
-                visible: root.isThreeIslandStyle
-                icon: "info"
-                text: Translation.tr("Three-Island uses its own rendering path; settings below that don't apply are disabled.")
-            }
-
             ConfigSpinBox {
                 icon: "rounded_corner"
                 text: Translation.tr("Custom bar rounding (px)")
@@ -190,8 +173,6 @@ ContentPage {
                 from: -1
                 to: 50
                 stepSize: 1
-                enabled: !root.isThreeIslandStyle
-                opacity: enabled ? 1 : 0.5
                 onValueChanged: {
                     Config.setNestedValue("bar.customRounding", value);
                 }
@@ -207,8 +188,6 @@ ContentPage {
 
                 ContentSubsection {
                     title: Translation.tr("Group style")
-                    enabled: !root.isThreeIslandStyle
-                    opacity: enabled ? 1 : 0.5
 
                     ConfigSelectionArray {
                         currentValue: Config.options?.bar?.borderless ?? false
@@ -251,8 +230,6 @@ ContentPage {
                 buttonIcon: "layers"
                 text: Translation.tr("Show background")
                 checked: Config.options?.bar?.showBackground ?? true
-                enabled: !root.isThreeIslandStyle
-                opacity: enabled ? 1 : 0.5
                 onCheckedChanged: Config.setNestedValue("bar.showBackground", checked)
                 StyledToolTip {
                     text: Translation.tr("Display a background behind the bar")
@@ -263,8 +240,6 @@ ContentPage {
                 buttonIcon: "touch_app"
                 text: Translation.tr("Show scroll hints")
                 checked: Config.options?.bar?.showScrollHints ?? true
-                enabled: !root.isThreeIslandStyle
-                opacity: enabled ? 1 : 0.5
                 onCheckedChanged: Config.setNestedValue("bar.showScrollHints", checked)
                 StyledToolTip {
                     text: Translation.tr("Show brightness/volume icons when hovering bar edges")
@@ -321,8 +296,6 @@ ContentPage {
                 buttonIcon: "vignette"
                 text: Translation.tr("Vignette effect")
                 checked: root.hasVignette
-                enabled: !root.isThreeIslandStyle
-                opacity: enabled ? 1 : 0.5
                 onCheckedChanged: {
                     Config.setNestedValue("bar.vignette.enabled", checked)
                 }
@@ -428,8 +401,6 @@ ContentPage {
                     buttonIcon: "shelf_auto_hide"
                     text: Translation.tr("System tray")
                     checked: Config.options?.bar?.modules?.sysTray ?? true
-                    enabled: !root.isThreeIslandStyle
-                    opacity: enabled ? 1 : 0.5
                     onCheckedChanged: Config.setNestedValue("bar.modules.sysTray", checked)
                 }
                 Item { Layout.fillWidth: true }
@@ -441,16 +412,12 @@ ContentPage {
                     buttonIcon: "memory"
                     text: Translation.tr("Resources")
                     checked: Config.options?.bar?.modules?.resources ?? true
-                    enabled: !root.isThreeIslandStyle
-                    opacity: enabled ? 1 : 0.5
                     onCheckedChanged: Config.setNestedValue("bar.modules.resources", checked)
                 }
                 SettingsSwitch {
                     buttonIcon: "music_note"
                     text: Translation.tr("Media")
                     checked: Config.options?.bar?.modules?.media ?? true
-                    enabled: !root.isThreeIslandStyle
-                    opacity: enabled ? 1 : 0.5
                     onCheckedChanged: Config.setNestedValue("bar.modules.media", checked)
                 }
             }
@@ -467,8 +434,6 @@ ContentPage {
                     buttonIcon: "schedule"
                     text: Translation.tr("Clock")
                     checked: Config.options?.bar?.modules?.clock ?? true
-                    enabled: !root.isThreeIslandStyle
-                    opacity: enabled ? 1 : 0.5
                     onCheckedChanged: Config.setNestedValue("bar.modules.clock", checked)
                 }
             }
@@ -479,16 +444,12 @@ ContentPage {
                     buttonIcon: "build"
                     text: Translation.tr("Utility buttons")
                     checked: Config.options?.bar?.modules?.utilButtons ?? true
-                    enabled: !root.isThreeIslandStyle
-                    opacity: enabled ? 1 : 0.5
                     onCheckedChanged: Config.setNestedValue("bar.modules.utilButtons", checked)
                 }
                 SettingsSwitch {
                     buttonIcon: "battery_full"
                     text: Translation.tr("Battery")
                     checked: Config.options?.bar?.modules?.battery ?? true
-                    enabled: !root.isThreeIslandStyle
-                    opacity: enabled ? 1 : 0.5
                     onCheckedChanged: Config.setNestedValue("bar.modules.battery", checked)
                 }
             }
@@ -500,64 +461,10 @@ ContentPage {
                     text: Translation.tr("Weather")
                     checked: Config.options?.bar?.modules?.weather ?? false
                     onCheckedChanged: Config.setNestedValue("bar.modules.weather", checked)
-                    enabled: (Config.options?.bar?.weather?.enable ?? false) && !root.isThreeIslandStyle
+                    enabled: Config.options?.bar?.weather?.enable ?? false
                     opacity: enabled ? 1 : 0.5
                 }
                 Item { Layout.fillWidth: true }
-            }
-
-            ConfigRow {
-                uniform: true
-                SettingsSwitch {
-                    buttonIcon: "schedule"
-                    text: Translation.tr("Clock")
-                    checked: Config.options?.bar?.modules?.kanjiClock ?? true
-                    enabled: root.isThreeIslandStyle
-                    opacity: enabled ? 1 : 0.5
-                    onCheckedChanged: Config.setNestedValue("bar.modules.kanjiClock", checked)
-                }
-                SettingsSwitch {
-                    buttonIcon: "vpn_lock"
-                    text: Translation.tr("Security pulse")
-                    checked: Config.options?.bar?.modules?.secPulse ?? true
-                    enabled: root.isThreeIslandStyle
-                    opacity: enabled ? 1 : 0.5
-                    onCheckedChanged: Config.setNestedValue("bar.modules.secPulse", checked)
-                }
-            }
-
-            ConfigRow {
-                uniform: true
-                SettingsSwitch {
-                    buttonIcon: "calendar_today"
-                    text: Translation.tr("Date under clock")
-                    checked: Config.options?.bar?.modules?.dateLabel ?? true
-                    enabled: root.isThreeIslandStyle
-                    opacity: enabled ? 1 : 0.5
-                    onCheckedChanged: Config.setNestedValue("bar.modules.dateLabel", checked)
-                }
-                SettingsSwitch {
-                    buttonIcon: "wb_sunny"
-                    text: Translation.tr("Weather icon (next to clock)")
-                    checked: Config.options?.bar?.modules?.weatherIcon ?? true
-                    enabled: root.isThreeIslandStyle && (Config.options?.bar?.weather?.enable ?? false)
-                    opacity: enabled ? 1 : 0.5
-                    onCheckedChanged: Config.setNestedValue("bar.modules.weatherIcon", checked)
-                    StyledToolTip {
-                        text: Translation.tr("Requires weather to be enabled in Services -> Weather")
-                    }
-                }
-            }
-
-            ConflictNote {
-                visible: (
-                    (Config.options?.bar?.modules?.kanjiClock ?? true)
-                    || (Config.options?.bar?.modules?.secPulse ?? true)
-                    || (Config.options?.bar?.modules?.dateLabel ?? true)
-                    || (Config.options?.bar?.modules?.weatherIcon ?? true)
-                ) && !root.isThreeIslandStyle
-                icon: "info"
-                text: Translation.tr("Three-Island-only modules above are inert in other corner styles.")
             }
 
             SettingsDivider {}
@@ -575,7 +482,7 @@ ContentPage {
     // RESOURCES
     // ═══════════════════════════════════════════════════════════════════
     SettingsCardSection {
-        visible: root.isIiActive && !root.isThreeIslandStyle && !(Config.options?.settingsUi?.easyMode ?? false)
+        visible: root.isIiActive && !(Config.options?.settingsUi?.easyMode ?? false)
         expanded: false
         icon: "browse_activity"
         title: Translation.tr("Resources")
@@ -734,7 +641,7 @@ ContentPage {
     // MEDIA
     // ═══════════════════════════════════════════════════════════════════
     SettingsCardSection {
-        visible: root.isIiActive && !root.isThreeIslandStyle
+        visible: root.isIiActive
         expanded: false
         icon: "music_note"
         title: Translation.tr("Media")
@@ -937,7 +844,7 @@ ContentPage {
     // SYSTEM TRAY
     // ═══════════════════════════════════════════════════════════════════
     SettingsCardSection {
-        visible: root.isIiActive && !root.isThreeIslandStyle
+        visible: root.isIiActive
         expanded: false
         icon: "shelf_auto_hide"
         title: Translation.tr("System Tray")
@@ -986,7 +893,7 @@ ContentPage {
     // UTILITY BUTTONS
     // ═══════════════════════════════════════════════════════════════════
     SettingsCardSection {
-        visible: root.isIiActive && !root.isThreeIslandStyle
+        visible: root.isIiActive
         expanded: false
         icon: "build"
         title: Translation.tr("Utility Buttons")
@@ -1125,7 +1032,7 @@ ContentPage {
     // NOTIFICATIONS
     // ═══════════════════════════════════════════════════════════════════
     SettingsCardSection {
-        visible: root.isIiActive && !root.isThreeIslandStyle
+        visible: root.isIiActive
         expanded: false
         icon: "notifications"
         title: Translation.tr("Notifications")
@@ -1143,321 +1050,4 @@ ContentPage {
         }
     }
 
-    // ===================================================================
-    // KANJI CLOCK (Three-Island only)
-    // ===================================================================
-    SettingsCardSection {
-        visible: root.isIiActive && root.isThreeIslandStyle
-        expanded: false
-        icon: "schedule"
-        title: Translation.tr("Clock")
-
-        SettingsGroup {
-            SettingsSwitch {
-                buttonIcon: "calendar_today"
-                text: Translation.tr("Show date")
-                checked: Config.options?.bar?.kanjiClock?.showDate ?? true
-                onCheckedChanged: Config.setNestedValue("bar.kanjiClock.showDate", checked)
-            }
-            SettingsSwitch {
-                buttonIcon: "translate"
-                text: Translation.tr("Use kanji digits (一二三)")
-                checked: Config.options?.bar?.kanjiClock?.useKanjiDigits ?? true
-                onCheckedChanged: Config.setNestedValue("bar.kanjiClock.useKanjiDigits", checked)
-            }
-        }
-    }
-
-    // ===================================================================
-    // DYNAMIC ISLAND (Three-Island only)
-    // ===================================================================
-    SettingsCardSection {
-        visible: root.isIiActive && root.isThreeIslandStyle
-        title: Translation.tr("Dynamic Island")
-        icon: "view_carousel"
-
-        ColumnLayout {
-            Layout.fillWidth: true
-            spacing: 8
-
-            StyledText {
-                Layout.fillWidth: true
-                text: Translation.tr("State-driven center pill that morphs to show recording, music, timer, screenshot toast, or voice search. Mod+S opens the Tools pill.")
-                color: Appearance.colors.colSubtext
-                font.pixelSize: Appearance.font.pixelSize.smaller
-                wrapMode: Text.WordWrap
-            }
-
-            SettingsSwitch {
-                buttonIcon: "view_carousel"
-                text: Translation.tr("Enable Dynamic Island")
-                checked: Config.options?.bar?.dynamicIsland?.enabled ?? true
-                onCheckedChanged: Config.setNestedValue("bar.dynamicIsland.enabled", checked)
-            }
-
-            SettingsDivider {}
-
-            StyledText {
-                Layout.fillWidth: true
-                text: Translation.tr("Visible states (toggle off to hide a state pill)")
-                color: Appearance.colors.colSubtext
-                font.pixelSize: Appearance.font.pixelSize.smaller
-            }
-
-            ConfigRow {
-                uniform: true
-                SettingsSwitch {
-                    buttonIcon: "mic"
-                    text: Translation.tr("Voice search")
-                    checked: Config.options?.bar?.dynamicIsland?.states?.voiceSearch ?? true
-                    onCheckedChanged: Config.setNestedValue("bar.dynamicIsland.states.voiceSearch", checked)
-                }
-                SettingsSwitch {
-                    buttonIcon: "fiber_manual_record"
-                    text: Translation.tr("Recording")
-                    checked: Config.options?.bar?.dynamicIsland?.states?.recording ?? true
-                    onCheckedChanged: Config.setNestedValue("bar.dynamicIsland.states.recording", checked)
-                }
-            }
-            ConfigRow {
-                uniform: true
-                SettingsSwitch {
-                    buttonIcon: "timer"
-                    text: Translation.tr("Timer")
-                    checked: Config.options?.bar?.dynamicIsland?.states?.timer ?? true
-                    onCheckedChanged: Config.setNestedValue("bar.dynamicIsland.states.timer", checked)
-                }
-                SettingsSwitch {
-                    buttonIcon: "check_circle"
-                    text: Translation.tr("Screenshot toast")
-                    checked: Config.options?.bar?.dynamicIsland?.states?.screenshotToast ?? true
-                    onCheckedChanged: Config.setNestedValue("bar.dynamicIsland.states.screenshotToast", checked)
-                }
-            }
-            ConfigRow {
-                uniform: true
-                SettingsSwitch {
-                    buttonIcon: "music_note"
-                    text: Translation.tr("Music")
-                    checked: Config.options?.bar?.dynamicIsland?.states?.music ?? true
-                    onCheckedChanged: Config.setNestedValue("bar.dynamicIsland.states.music", checked)
-                }
-                Item { Layout.fillWidth: true }
-            }
-
-            SettingsDivider {}
-
-            StyledText {
-                Layout.fillWidth: true
-                text: Translation.tr("Mod+S Tools pill: drag rows to reorder, toggle the switch to show/hide each tool. The DIVIDER row splits the pill into a most-used (left) group and a secondary (right) group.")
-                color: Appearance.colors.colSubtext
-                font.pixelSize: Appearance.font.pixelSize.smaller
-                wrapMode: Text.WordWrap
-            }
-
-            ListView {
-                id: toolsOrderList
-                Layout.fillWidth: true
-                Layout.preferredHeight: contentHeight
-                interactive: false
-                spacing: 4
-
-                model: Config.options?.bar?.dynamicIsland?.tools?.order ?? []
-
-                property int dragIndex: -1
-                property int dropTargetIndex: -1
-
-                function _labelFor(id) {
-                    if (id === "DIVIDER") return Translation.tr("DIVIDER (group split)");
-                    const labels = {
-                        screenshot: "Screenshot region", record: "Screen record",
-                        lens: "Google Lens", colorPicker: "Color picker",
-                        musicRecognize: "Recognize music", micToggle: "Mic toggle",
-                        osk: "On-screen keyboard", caffeine: "Keep awake",
-                        notepad: "Notepad", screenCast: "Screen cast",
-                        darkMode: "Dark mode", powerProfile: "Power profile"
-                    };
-                    return Translation.tr(labels[id] ?? id);
-                }
-
-                delegate: Rectangle {
-                    id: row
-                    required property string modelData
-                    required property int index
-                    width: ListView.view.width
-                    height: 40
-                    radius: 8
-                    color: ListView.view.dragIndex === index
-                        ? Appearance.colors.colLayer3Hover
-                        : (row.modelData === "DIVIDER" ? Qt.rgba(0.5, 0.5, 0.5, 0.06) : "transparent")
-                    border.width: row.modelData === "DIVIDER" ? 1 : 0
-                    border.color: Appearance.colors.colOutline
-
-                    Behavior on y {
-                        enabled: !dh.active && Appearance.animationsEnabled
-                        NumberAnimation { duration: 200; easing.type: Easing.OutQuad }
-                    }
-
-                    RowLayout {
-                        anchors.fill: parent
-                        anchors.leftMargin: 10
-                        anchors.rightMargin: 10
-                        spacing: 8
-
-                        MaterialSymbol {
-                            text: "drag_indicator"
-                            iconSize: Appearance.font.pixelSize.larger
-                            color: Appearance.colors.colSubtext
-                        }
-                        StyledText {
-                            Layout.fillWidth: true
-                            text: toolsOrderList._labelFor(row.modelData)
-                            color: Appearance.colors.colOnLayer1
-                        }
-                        SettingsSwitch {
-                            visible: row.modelData !== "DIVIDER"
-                            text: ""
-                            checked: (Config.options?.bar?.dynamicIsland?.tools?.buttons?.[row.modelData]) ?? true
-                            onCheckedChanged: Config.setNestedValue("bar.dynamicIsland.tools.buttons." + row.modelData, checked)
-                        }
-                    }
-
-                    DragHandler {
-                        id: dh
-                        target: row
-                        yAxis.enabled: true
-                        xAxis.enabled: false
-                        onActiveChanged: {
-                            if (active) {
-                                toolsOrderList.dragIndex = row.index;
-                                toolsOrderList.dropTargetIndex = row.index;
-                            } else {
-                                if (toolsOrderList.dragIndex !== toolsOrderList.dropTargetIndex
-                                    && toolsOrderList.dropTargetIndex >= 0) {
-                                    const arr = (Config.options.bar.dynamicIsland.tools.order ?? []).slice();
-                                    const item = arr.splice(toolsOrderList.dragIndex, 1)[0];
-                                    arr.splice(toolsOrderList.dropTargetIndex, 0, item);
-                                    Config.setNestedValue("bar.dynamicIsland.tools.order", arr);
-                                }
-                                toolsOrderList.dragIndex = -1;
-                                toolsOrderList.dropTargetIndex = -1;
-                                row.y = row.index * (row.height + toolsOrderList.spacing);
-                            }
-                        }
-                    }
-
-                    onYChanged: {
-                        if (dh.active) {
-                            const newIdx = Math.max(0, Math.min(toolsOrderList.count - 1,
-                                Math.round((row.y + row.height / 2) / (row.height + toolsOrderList.spacing))));
-                            toolsOrderList.dropTargetIndex = newIdx;
-                        }
-                    }
-                }
-            }
-
-            SettingsDivider {}
-
-            StyledText {
-                Layout.fillWidth: true
-                text: Translation.tr("Tools mode behavior")
-                color: Appearance.colors.colSubtext
-                font.pixelSize: Appearance.font.pixelSize.smaller
-            }
-
-            ConfigRow {
-                uniform: true
-                SettingsSwitch {
-                    buttonIcon: "logout"
-                    text: Translation.tr("Auto-close after action")
-                    checked: Config.options?.bar?.dynamicIsland?.tools?.autoCloseAfterAction ?? true
-                    onCheckedChanged: Config.setNestedValue("bar.dynamicIsland.tools.autoCloseAfterAction", checked)
-                }
-                SettingsSwitch {
-                    buttonIcon: "keyboard_return"
-                    text: Translation.tr("Close on Esc")
-                    checked: Config.options?.bar?.dynamicIsland?.tools?.closeOnEsc ?? true
-                    onCheckedChanged: Config.setNestedValue("bar.dynamicIsland.tools.closeOnEsc", checked)
-                }
-            }
-
-            SettingsDivider {}
-
-            SettingsSwitch {
-                buttonIcon: "vertical_align_top"
-                text: Translation.tr("Music popup attached to island")
-                checked: Config.options?.bar?.dynamicIsland?.musicPopupContinuous ?? true
-                onCheckedChanged: Config.setNestedValue("bar.dynamicIsland.musicPopupContinuous", checked)
-                StyledToolTip {
-                    text: Translation.tr("When on, the BarMediaPopup visually emerges from the bar with no gap. When off, it floats with a small gap.")
-                }
-            }
-        }
-    }
-
-    // ===================================================================
-    // SECURITY PULSE (Three-Island only)
-    // ===================================================================
-    SettingsCardSection {
-        visible: root.isIiActive && root.isThreeIslandStyle
-        expanded: false
-        icon: "vpn_lock"
-        title: Translation.tr("Security Pulse")
-
-        SettingsGroup {
-            SettingsSwitch {
-                buttonIcon: "lock"
-                text: Translation.tr("Show VPN status")
-                checked: Config.options?.bar?.secPulse?.showVpn ?? true
-                onCheckedChanged: Config.setNestedValue("bar.secPulse.showVpn", checked)
-                StyledToolTip {
-                    text: Translation.tr("Cheap: polls 'wg show interfaces' every 30s")
-                }
-            }
-            SettingsSwitch {
-                buttonIcon: "public"
-                text: Translation.tr("Show public IP")
-                checked: Config.options?.bar?.secPulse?.showPublicIp ?? false
-                onCheckedChanged: Config.setNestedValue("bar.secPulse.showPublicIp", checked)
-                StyledToolTip {
-                    text: Translation.tr("Hits ifconfig.me every 5 min when enabled")
-                }
-            }
-            SettingsSwitch {
-                buttonIcon: "hearing"
-                text: Translation.tr("Show listening socket count")
-                checked: Config.options?.bar?.secPulse?.showListening ?? false
-                onCheckedChanged: Config.setNestedValue("bar.secPulse.showListening", checked)
-                StyledToolTip {
-                    text: Translation.tr("Spawns 'ss -lntH' every 30s when enabled")
-                }
-            }
-
-            SettingsDivider {}
-
-            StyledText {
-                Layout.fillWidth: true
-                text: Translation.tr("VPN click command (run when the VPN icon is clicked)")
-                color: Appearance.colors.colSubtext
-                font.pixelSize: Appearance.font.pixelSize.smaller
-                wrapMode: Text.WordWrap
-            }
-
-            MaterialTextArea {
-                Layout.fillWidth: true
-                placeholderText: "nm-connection-editor"
-                text: Config.options?.bar?.secPulse?.vpnClickCommand ?? ""
-                wrapMode: TextEdit.NoWrap
-                onTextChanged: Config.setNestedValue("bar.secPulse.vpnClickCommand", text)
-            }
-
-            StyledText {
-                Layout.fillWidth: true
-                text: Translation.tr("Examples: 'nmcli connection up MyVPN', 'mullvad connect', 'sudo wg-quick up wg0' (needs polkit/NOPASSWD). Empty to disable click action.")
-                color: Appearance.colors.colSubtext
-                font.pixelSize: Appearance.font.pixelSize.smaller
-                wrapMode: Text.WordWrap
-            }
-        }
-    }
 }
