@@ -464,7 +464,7 @@ Singleton {
             property JsonObject apps: JsonObject {
                 property string bluetooth: "kcmshell6 kcm_bluetooth"
                 property string network: "kitty -1 fish -c nmtui"
-                property string networkEthernet: "kcmshell6 kcm_networkmanagement"
+                property string networkEthernet: "nm-connection-editor"
                 property string taskManager: "missioncenter"
                 property string terminal: "kitty" // This is only for shell actions
                 property string browser: "firefox" // Used by launcher-backed browser shortcuts
