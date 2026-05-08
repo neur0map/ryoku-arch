@@ -68,4 +68,12 @@ assert_contains   "shell/modules/bar/BarContent.qml" "bar?.modules?.secPulse"
 assert_contains   "shell/modules/settings/BarConfig.qml" "bar.modules.secPulse"
 assert_contains   "shell/modules/settings/BarConfig.qml" 'Translation.tr("SecPulse")'
 
+
+# 6. SecPulseIndicator now reads RyokuTailscale state and the tooltip
+#    surfaces both OpenVPN and Tailscale status lines.
+assert_contains   "shell/modules/bar/SecPulseIndicator.qml" "RyokuTailscale.connected"
+assert_contains   "shell/modules/bar/SecPulseIndicator.qml" "RyokuTailscale.transitioning"
+assert_contains   "shell/modules/bar/SecPulseIndicator.qml" "OpenVPN:"
+assert_contains   "shell/modules/bar/SecPulseIndicator.qml" "Tailscale:"
+
 echo "ok: bar-secpulse static asserts"
