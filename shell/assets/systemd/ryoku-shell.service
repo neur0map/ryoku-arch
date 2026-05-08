@@ -22,7 +22,13 @@ Type=simple
 Environment=QT_SCALE_FACTOR=1
 Environment=QT_LOGGING_RULES=quickshell.dbus.properties=false;qt.qml.settings.warning=false;qt.core.qsettings.warning=false;kf.xmlgui=false;kf.coreaddons=false;kf.config.core=false;kf.iconthemes=false
 
-ExecStart=/usr/bin/ryoku-shell run --session
+# Path is /usr/local/bin/ryoku-shell because install/preflight/ensure-shell-deployment.sh
+# creates a wrapper there. /usr/bin/ryoku-shell is NOT created by any install
+# step (the previous default value here caused service status 203/EXEC on
+# fresh installs and a grey-screen-after-login symptom). On dev systems the
+# shell setup script's sync_user_ryoku-shell.service_from_repo_if_present
+# rewrites this to ~/.local/bin/ryoku-shell on subsequent runs.
+ExecStart=/usr/local/bin/ryoku-shell run --session
 SuccessExitStatus=143
 
 # process mode: only SIGTERM the main PID so user-spawned apps (terminals,
@@ -50,7 +56,7 @@ Environment=QS_DISABLE_CRASH_HANDLER=1
 # Clean up stale Quickshell runtime entries (by-pid, by-id) left behind
 # after crashes.  KillMode=process only kills the main PID, so orphaned
 # QS child processes and their runtime artifacts accumulate over time.
-ExecStopPost=-/usr/bin/ryoku-shell cleanup-orphans
+ExecStopPost=-/usr/local/bin/ryoku-shell cleanup-orphans
 
 # Boost I/O priority so QML/Qt library loading wins over background services
 # during cold-boot I/O contention (portals, tray apps, etc.)
