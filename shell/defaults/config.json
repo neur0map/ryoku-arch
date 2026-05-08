@@ -390,6 +390,7 @@
       "media": true,
       "resources": true,
       "rightSidebarButton": true,
+      "secPulse": true,
       "sysTray": true,
       "taskbar": false,
       "utilButtons": true,
