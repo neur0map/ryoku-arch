@@ -64,44 +64,77 @@ Item {
         }
     }
 
-    // Cross-fade progress: 0 = full state pill, 1 = full tools row.
-    // Drives opacity of both layers AND the orchestrator's implicitWidth.
-    // OutBack overshoot gives the tools row a "drop in from above + settle"
-    // feel as it lands, paired with the slideOffset binding below.
-    property real _toolsProgress: GlobalStates.toolsModeOpen ? 1.0 : 0.0
-    Behavior on _toolsProgress {
+    // Two separately-paced progresses so the notch finishes growing BEFORE
+    // (or at the same time as) the icon content lands. Otherwise icons
+    // appear fully visible inside a still-growing notch.
+    //
+    //   _widthProgress  : drives notch width interpolation. Matches the
+    //                     parent's centerNotchWidth Behavior (320ms OutBack
+    //                     1.6) so the orchestrator's implicitWidth and the
+    //                     visible notch animate in sync.
+    //   _contentProgress: drives tools-row opacity + vertical slide.
+    //                     Delayed 120ms when opening so the notch has a head
+    //                     start, then bounces in over 200ms (OutBack 1.4).
+    //                     On close, snaps to 0 immediately so icons fade
+    //                     out FIRST, then the empty notch retracts.
+    property real _widthProgress: GlobalStates.toolsModeOpen ? 1.0 : 0.0
+    Behavior on _widthProgress {
         enabled: Appearance.animationsEnabled
-        NumberAnimation { duration: 180; easing.type: Easing.OutBack; easing.overshoot: 1.6 }
+        NumberAnimation { duration: 320; easing.type: Easing.OutBack; easing.overshoot: 1.6 }
+    }
+
+    property real _contentProgress: 0.0
+    Behavior on _contentProgress {
+        enabled: Appearance.animationsEnabled
+        NumberAnimation { duration: 200; easing.type: Easing.OutBack; easing.overshoot: 1.4 }
+    }
+    Timer {
+        id: _contentDelayTimer
+        interval: 120
+        onTriggered: root._contentProgress = 1.0
+    }
+    Connections {
+        target: GlobalStates
+        function onToolsModeOpenChanged() {
+            if (GlobalStates.toolsModeOpen) {
+                _contentDelayTimer.restart();
+            } else {
+                _contentDelayTimer.stop();
+                root._contentProgress = 0.0;
+            }
+        }
     }
 
     // Width interpolates from the state pill's natural width to the tools
-    // row's natural width, weighted by _toolsProgress. The bar's existing
+    // row's natural width, weighted by _widthProgress. The bar's
     // centerNotchWidth Behavior smooths this further with OutBack overshoot.
     readonly property real _stateWidth: pillLoader.item ? pillLoader.item.implicitWidth : 0
     readonly property real _toolsWidth: toolsLoader.item ? toolsLoader.item.implicitWidth : _stateWidth
-    implicitWidth: _stateWidth + (_toolsWidth - _stateWidth) * _toolsProgress
+    implicitWidth: _stateWidth + (_toolsWidth - _stateWidth) * _widthProgress
 
     // Layer A: regular state pills (idle, recording, music, ...).
+    // Fades out with the icon content (matches the close: icons go first,
+    // notch retracts after).
     Loader {
         id: pillLoader
         anchors.fill: parent
         active: root.islandEnabled
         sourceComponent: root._componentFor(root._debouncedState)
-        opacity: 1.0 - root._toolsProgress
+        opacity: 1.0 - root._contentProgress
         visible: opacity > 0.01
     }
 
-    // Layer B: tools row. Mounted only while needed (toolsModeOpen or still
-    // fading out). Slides down from above (-12px → 0) as it fades in, with
-    // the OutBack on _toolsProgress giving a soft bounce on landing.
+    // Layer B: tools row. Slides down from above (-14px → 0) and fades in
+    // ON the contentProgress curve, so it lands right as the notch finishes
+    // growing.
     Loader {
         id: toolsLoader
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
-        anchors.verticalCenterOffset: (1.0 - root._toolsProgress) * -14
-        active: GlobalStates.toolsModeOpen || root._toolsProgress > 0.01
+        anchors.verticalCenterOffset: (1.0 - root._contentProgress) * -14
+        active: GlobalStates.toolsModeOpen || root._contentProgress > 0.01 || root._widthProgress > 0.01
         sourceComponent: toolsComponent
-        opacity: Math.max(0, Math.min(1, root._toolsProgress))
+        opacity: Math.max(0, Math.min(1, root._contentProgress))
         visible: opacity > 0.01
     }
 
