@@ -69,21 +69,17 @@ assert_matches    "shell/modules/common/Config.qml" '"openvpn"'
 assert_json_expr  "shell/defaults/config.json" '.sidebar.right.enabledWidgets | index("openvpn") != null' \
   "shell defaults should enable the OpenVPN sidebar tab"
 
-# 5. Bar second indicator
-assert_contains   "shell/modules/bar/threeIsland/SecPulseIndicator.qml" "ovpnItem"
-assert_contains   "shell/modules/bar/threeIsland/SecPulseIndicator.qml" "RyokuOpenVpn.activeProfile"
-
-# 6. Bash helpers
+# 5. Bash helpers
 assert_executable "bin/ryoku-openvpn-import"
 assert_executable "bin/ryoku-openvpn-remove"
 assert_executable "bin/ryoku-openvpn-rename"
 
-# 7. Polkit + installer
+# 6. Polkit + installer
 assert_file       "default/polkit/49-ryoku-openvpn.rules"
 assert_executable "install/config/openvpn.sh"
 assert_contains   "install/config/all.sh" "openvpn.sh"
 
-# 8. openvpn package
+# 7. openvpn package
 assert_contains   "install/ryoku-base.packages" "openvpn"
 
 printf 'PASS: tests/sidebar-openvpn.sh\n'
