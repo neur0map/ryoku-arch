@@ -55,9 +55,10 @@ Singleton {
             kind: "action",
             // Recognition runs for several seconds in the background. Keep
             // the tools row open so the user can watch the active halo
-            // pulse while it listens, instead of the row closing on click.
+            // pulse while it listens. Clicking again while running cancels
+            // it (toggleRunning flips based on the current state).
             keepOpen: true,
-            action: () => SongRec.toggleRunning(true),
+            action: () => SongRec.toggleRunning(!SongRec.running),
             activeWhen: () => SongRec.running
         },
         micToggle: {
