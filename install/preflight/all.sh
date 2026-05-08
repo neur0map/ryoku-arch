@@ -1,6 +1,7 @@
 source $RYOKU_INSTALL/preflight/guard.sh
 source $RYOKU_INSTALL/preflight/begin.sh
 run_logged $RYOKU_INSTALL/preflight/show-env.sh
+run_logged $RYOKU_INSTALL/preflight/ensure-shell-deployment.sh
 run_logged $RYOKU_INSTALL/preflight/pacman.sh
 run_logged $RYOKU_INSTALL/preflight/yay-bootstrap.sh
 run_logged $RYOKU_INSTALL/preflight/migrations.sh
