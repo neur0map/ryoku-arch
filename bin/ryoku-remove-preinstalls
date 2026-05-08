@@ -1,27 +1,53 @@
 #!/bin/bash
 
-# Remove preinstalled Ryoku applications (web apps, TUIs, and selected packages).
-# This removes all web apps, TUIs, plus specific desktop applications.
+# Remove optional preinstalled Ryoku applications outside the compact keep set.
+# Keeps Docker, YouTube, GitHub, Discord, lazydocker, Obsidian, and OBS Studio.
 
-if gum confirm "Are you sure you want to remove all preinstalled web apps, TUI wrappers, and desktop applications?"; then
+webapps=(
+  "HEY"
+  "Basecamp"
+  "WhatsApp"
+  "Google Photos"
+  "Google Contacts"
+  "Google Messages"
+  "Google Maps"
+  "X"
+  "Figma"
+  "Zoom"
+  "Fizzy"
+)
+
+tuis=(
+  "Disk Usage"
+)
+
+packages=(
+  aether
+  typora
+  spotify
+  libreoffice-fresh
+  1password-beta
+  1password-cli
+  gradia
+  xournalpp
+  signal-desktop
+  pinta
+  kdenlive
+  trayscale
+  localsend
+  bluetui
+  impala
+  wiremix
+  plocate
+  usage
+  xmlstarlet
+)
+
+if gum confirm "Remove optional preinstalled apps and tools outside the compact keep set?"; then
   echo -e "Removing preinstalled Ryoku applications...\n"
 
-  ryoku-webapp-remove-all
-  ryoku-tui-remove-all
+  ryoku-webapp-remove "${webapps[@]}"
+  ryoku-tui-remove "${tuis[@]}"
 
-  ryoku-pkg-drop \
-    aether \
-    typora \
-    spotify \
-    libreoffice-fresh \
-    1password-beta \
-    1password-cli \
-    gradia \
-    xournalpp \
-    signal-desktop \
-    pinta \
-    obsidian \
-    obs-studio \
-    kdenlive \
-    lazydocker
+  ryoku-pkg-drop "${packages[@]}"
 fi

@@ -23,10 +23,24 @@ if [[ -n $font_name ]]; then
       pkill -SIGUSR2 ghostty
     fi
 
-    xmlstarlet ed -L \
-      -u '//match[@target="pattern"][test/string="monospace"]/edit[@name="family"]/string' \
-      -v "$font_name" \
-      ~/.config/fontconfig/fonts.conf
+    fontconfig_dir="$HOME/.config/fontconfig/conf.d"
+    font_xml=$(printf '%s' "$font_name" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')
+    mkdir -p "$fontconfig_dir"
+
+    cat >"$fontconfig_dir/50-ryoku-monospace.conf" <<EOF
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
+<fontconfig>
+  <match target="pattern">
+    <test name="family">
+      <string>monospace</string>
+    </test>
+    <edit name="family" mode="assign" binding="same">
+      <string>$font_xml</string>
+    </edit>
+  </match>
+</fontconfig>
+EOF
 
     ryoku-restart-shell >/dev/null 2>&1 || true
 

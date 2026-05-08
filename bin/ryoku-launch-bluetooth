@@ -2,8 +2,17 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Launch the Ryoku bluetooth controls TUI (provided by bluetui).
+# Launch Ryoku bluetooth controls. Prefer bluetui when installed, otherwise
+# use the default graphical Bluetooth manager.
 # Also attempts to unblock bluetooth service if rfkill had blocked it.
 
 rfkill unblock bluetooth
-exec ryoku-launch-or-focus-tui bluetui
+
+if ryoku-cmd-present bluetui; then
+  exec ryoku-launch-or-focus-tui bluetui
+elif ryoku-cmd-present blueman-manager; then
+  exec blueman-manager
+else
+  echo "No bluetooth manager found. Install bluetui or blueman."
+  exit 1
+fi

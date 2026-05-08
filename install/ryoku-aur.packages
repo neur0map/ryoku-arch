@@ -16,19 +16,6 @@
 #   install/ryoku-other.packages            Arch, conditional hardware
 #   iso/builder/ryoku-boot-overlay.packages AUR, conditional hardware + boot
 
-# ── GUI apps ──────────────────────────────────────────────────────────
-1password-beta
-1password-cli
-gradia
-pinta
-spotify
-trayscale
-typora
-
-# ── File sharing / sync ───────────────────────────────────────────────
-# Used by bin/ryoku-cmd-share and default/nautilus-python/extensions/localsend.py.
-localsend
-
 # ── Networking / system ───────────────────────────────────────────────
 limine-mkinitcpio-hook
 limine-snapper-sync
@@ -46,4 +33,9 @@ python-terminaltexteffects
 bibata-cursor-theme-bin
 ttf-ia-writer
 ttf-phosphor-icons
-yaru-icon-theme
+# yaru-icon-theme: AUR repo is currently empty (orphaned/deleted by
+# maintainer as of 2026-05-08, `git clone` produces an empty dir with
+# no PKGBUILD). Find a replacement icon theme or vendor the assets
+# directly before re-enabling. See migrations/1754047941.sh for the
+# install hook that also currently expects this package.
+# yaru-icon-theme

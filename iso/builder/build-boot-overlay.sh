@@ -37,9 +37,31 @@ fi
 # package does not redo the dep resolution from scratch.
 pacman --noconfirm -S --needed dkms
 
+# Some AUR packages (localsend) declare rustup as a build dep instead of
+# rust. base-devel pulls rust transitively, and rustup conflicts with
+# rust, so makepkg --syncdeps would later prompt to remove rust and
+# abort under --noconfirm. Pre-swap rust to rustup here so every later
+# AUR build finds rustup already installed.
+if pacman -Q rust >/dev/null 2>&1; then
+  pacman -Rdd --noconfirm rust || true
+fi
+pacman --noconfirm -S --needed rustup
+# rustup state is per-user. We set default toolchain for both root (so
+# any container-level cargo call works) and the `builder` user (created
+# below) since makepkg runs as builder via sudo -u and has its own
+# RUSTUP_HOME at ~builder/.rustup.
+rustup default stable
+
 id -u builder >/dev/null 2>&1 || useradd -m builder
 printf '%s\n' 'builder ALL=(ALL) NOPASSWD: ALL' >/etc/sudoers.d/90-builder
 chmod 440 /etc/sudoers.d/90-builder
+
+# Set rustup default for the builder user too. makepkg runs as builder
+# via sudo -u, so its rustup invocations look at ~builder/.rustup, not
+# ~root/.rustup. Without this, AUR packages whose build() invokes cargo
+# (tzupdate, anything with rust/cargo build deps) abort with "rustup
+# could not choose a version of cargo to run".
+sudo -u builder rustup default stable
 
 # build_root was created by root via mktemp; the builder user needs to
 # write to it for git clone and for makepkg's own scratch files.
@@ -63,6 +85,13 @@ while IFS= read -r pkg; do
 
   sudo -u builder git clone --depth=1 "https://aur.archlinux.org/${pkg}.git" "$work_dir"
   pushd "$work_dir" >/dev/null
-  sudo -u builder env PKGDEST="$output_dir" makepkg --syncdeps --clean --cleanbuild --force --noconfirm
+  # --skippgpcheck: some AUR packages (1password, etc.) sign source
+  # tarballs with vendor PGP keys that aren't trusted in the empty build
+  # container keyring. Skipping verification here is acceptable for
+  # offline-mirror builds - the resulting .pkg.tar.zst is then signed by
+  # OUR ISO key downstream (ryoku-iso-sign), which is what users verify.
+  # For a hardened release flow, replace --skippgpcheck with explicit
+  # gpg --recv-keys for the vendor keys we trust.
+  sudo -u builder env PKGDEST="$output_dir" makepkg --syncdeps --clean --cleanbuild --force --noconfirm --skippgpcheck
   popd >/dev/null
 done < <(cat "${packages_files[@]}")

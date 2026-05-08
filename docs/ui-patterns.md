@@ -118,31 +118,48 @@ When you add a new sidebar tab, bar widget, or sidebar dialog, do not start from
 
 The peer is the source of truth for spacing, color tokens, animation timing, and component composition.
 
-## The 4-tree sync
+## One-person shell workflow
 
-QML files live in four parallel locations. All four must stay byte-identical:
+Ryoku development has two jobs that must stay separate:
 
-| Tree | Path | Role |
-|---|---|---|
-| Dev | `~/prowl/ryoku-arch/shell/...` | Git source of truth, edit here first |
-| Live mirror | `~/.local/share/ryoku/shell/...` | Mirror of dev, what install scripts vendor from |
-| SHELL_PATH | `~/.local/share/ryoku-shell/...` | Deployed shell tree, copied by `install/config/shell.sh` |
-| Runtime | `~/.config/quickshell/ryoku-shell/...` | What Quickshell loads at runtime |
+1. **Development preview:** see local shell edits on the laptop quickly.
+2. **Installed update:** let Git pull committed changes into the installed tree.
 
-For a touched file:
+Do not copy dev files into `~/.local/share/ryoku` while previewing. That path is an installed Git checkout owned by `ryoku-update`. Manually copying future files there can make a later pull abort with "untracked working tree files would be overwritten by merge".
+
+| Tree | Path | Role | Write rule |
+|---|---|---|---|
+| Dev | `~/prowl/ryoku-arch/shell/...` | Git source of truth | Edit, test, commit, push here |
+| Installed repo | `~/.local/share/ryoku/shell/...` | User update checkout | Only `ryoku-update` or installer writes here |
+| SHELL_PATH | `~/.local/share/ryoku-shell/...` | Deployed shell tree from install/update | Generated from the installed repo |
+| Runtime | `~/.config/quickshell/ryoku-shell/...` | What Quickshell loads now | Local preview may overwrite this |
+
+For local UI work, copy from dev to runtime only, then restart the shell:
 
 ```bash
-DEV=$HOME/prowl/ryoku-arch
-LIVE=$HOME/.local/share/ryoku
-SHELLP=$HOME/.local/share/ryoku-shell
-RUNT=$HOME/.config/quickshell/ryoku-shell
-rel=shell/path/to/Whatever.qml
-cp "$DEV/$rel" "$LIVE/$rel"
-cp "$DEV/$rel" "$SHELLP/${rel#shell/}"
-cp "$DEV/$rel" "$RUNT/${rel#shell/}"
+DEV="${RYOKU_DEV_PATH:-$HOME/prowl/ryoku-arch}"
+RUNT="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell"
+rsync -a --delete "$DEV/shell/" "$RUNT/"
+systemctl --user restart ryoku-shell.service
 ```
 
-Verify parity with `diff -q` before restarting `ryoku-shell.service`. Editing the live mirror or runtime by hand and not back-syncing to dev is the most common cause of "I fixed it once and the bug came back".
+When the preview looks correct:
+
+1. Run the relevant tests and `fish shell/scripts/qml-check.fish`.
+2. Commit and push from the dev repo.
+3. Let `ryoku-update` pull the committed change into `~/.local/share/ryoku`.
+
+The installed repo should normally be clean:
+
+```bash
+git -C "$HOME/.local/share/ryoku" status -sb
+```
+
+If it shows untracked or modified files after manual preview work, stash them before updating instead of deleting them:
+
+```bash
+git -C "$HOME/.local/share/ryoku" stash push -u -m "pre-update-local-files"
+```
 
 ## When to stop and rethink
 

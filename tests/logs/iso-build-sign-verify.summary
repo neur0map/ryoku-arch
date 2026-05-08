@@ -1,0 +1,17 @@
+Run:       20260508-002238
+Log:       $REPO_ROOT/tests/logs/iso-build-sign-verify-20260508-002238.log
+ISO:       $REPO_ROOT/iso/release/ryoku-2026.05.08-x86_64-main.iso
+SHA256:    9dd78c3d6a87291aad69dcb11ad7998ab77323284527471462abfb2153e716a6
+Signature: $REPO_ROOT/iso/release/ryoku-2026.05.08-x86_64-main.iso.sig
+
+Stages:
+  OK   01 setup
+  OK   02 git-snapshot
+  OK   03 keygen
+  OK   04 build
+  OK   05 inspect
+  OK   06 sign
+  OK   07 verify
+  OK   08 cleanup-keys
+
+Overall RC: 0
