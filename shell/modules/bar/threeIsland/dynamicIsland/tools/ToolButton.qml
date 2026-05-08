@@ -47,6 +47,13 @@ Item {
                 GlobalStates.toolsModeOpen = false;
             }
         }
-        StyledToolTip { text: root.entry?.label ?? "" }
+    }
+
+    // PopupToolTip's parentHoverState defaults to true when the parent has
+    // no hovered/buttonHovered property. Bind extraVisibleCondition to the
+    // actual mouse-over state so tooltips are not permanently visible.
+    StyledToolTip {
+        text: root.entry?.label ?? ""
+        extraVisibleCondition: mouseArea.containsMouse
     }
 }

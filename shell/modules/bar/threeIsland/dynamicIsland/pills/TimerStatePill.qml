@@ -61,13 +61,19 @@ Item {
     }
 
     MouseArea {
+        id: mouseArea
         anchors.fill: parent
+        hoverEnabled: true
         acceptedButtons: Qt.LeftButton
         onClicked: {
             GlobalStates.sidebarRightOpen = true
             Persistent.states.sidebar.bottomGroup.collapsed = false
             Persistent.states.sidebar.bottomGroup.tab = 3
         }
-        StyledToolTip { text: Translation.tr("Timer running - click for controls") }
+    }
+
+    StyledToolTip {
+        text: Translation.tr("Timer running - click for controls")
+        extraVisibleCondition: mouseArea.containsMouse
     }
 }

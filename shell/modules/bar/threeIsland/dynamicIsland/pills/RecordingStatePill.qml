@@ -73,6 +73,7 @@ Item {
     }
 
     MouseArea {
+        id: mouseArea
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         hoverEnabled: true
@@ -83,7 +84,10 @@ Item {
                 GlobalStates.overlayOpen = true
             }
         }
+    }
 
-        StyledToolTip { text: Translation.tr("Recording - click to stop, right-click for options") }
+    StyledToolTip {
+        text: Translation.tr("Recording - click to stop, right-click for options")
+        extraVisibleCondition: mouseArea.containsMouse
     }
 }

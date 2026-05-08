@@ -57,6 +57,7 @@ Item {
     }
 
     MouseArea {
+        id: mouseArea
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         hoverEnabled: true
@@ -65,13 +66,14 @@ Item {
                 MprisController.togglePlaying()
             }
         }
+    }
 
-        StyledToolTip {
-            text: {
-                const t = MprisController.activeTrack;
-                if (!t) return "";
-                return (t.title || "") + (t.artist ? "\n" + t.artist : "") + (t.album ? "\n" + t.album : "");
-            }
+    StyledToolTip {
+        text: {
+            const t = MprisController.activeTrack;
+            if (!t) return "";
+            return (t.title || "") + (t.artist ? "\n" + t.artist : "") + (t.album ? "\n" + t.album : "");
         }
+        extraVisibleCondition: mouseArea.containsMouse
     }
 }

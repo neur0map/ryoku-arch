@@ -53,8 +53,14 @@ Item {
     }
 
     MouseArea {
+        id: mouseArea
         anchors.fill: parent
+        hoverEnabled: true
         onPressed: VoiceSearch.stop()
-        StyledToolTip { text: Translation.tr("Listening - click to cancel") }
+    }
+
+    StyledToolTip {
+        text: Translation.tr("Listening - click to cancel")
+        extraVisibleCondition: mouseArea.containsMouse
     }
 }

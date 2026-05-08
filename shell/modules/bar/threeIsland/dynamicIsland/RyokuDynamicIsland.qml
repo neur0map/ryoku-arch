@@ -66,10 +66,12 @@ Item {
 
     // Cross-fade progress: 0 = full state pill, 1 = full tools row.
     // Drives opacity of both layers AND the orchestrator's implicitWidth.
+    // OutBack overshoot gives the tools row a "drop in from above + settle"
+    // feel as it lands, paired with the slideOffset binding below.
     property real _toolsProgress: GlobalStates.toolsModeOpen ? 1.0 : 0.0
     Behavior on _toolsProgress {
         enabled: Appearance.animationsEnabled
-        NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+        NumberAnimation { duration: 180; easing.type: Easing.OutBack; easing.overshoot: 1.6 }
     }
 
     // Width interpolates from the state pill's natural width to the tools
@@ -90,15 +92,19 @@ Item {
     }
 
     // Layer B: tools row. Mounted only while needed (toolsModeOpen or still
-    // fading out), so it doesn't consume layout budget when idle.
+    // fading out). Slides down from above (-12px → 0) as it fades in, with
+    // the OutBack on _toolsProgress giving a soft bounce on landing.
     Loader {
         id: toolsLoader
-        anchors.centerIn: parent
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.verticalCenterOffset: (1.0 - root._toolsProgress) * -14
         active: GlobalStates.toolsModeOpen || root._toolsProgress > 0.01
         sourceComponent: toolsComponent
-        opacity: root._toolsProgress
+        opacity: Math.max(0, Math.min(1, root._toolsProgress))
         visible: opacity > 0.01
     }
+
 
     Component { id: idleComponent;            IdleStatePill {} }
     Component { id: recordingComponent;       RecordingStatePill {} }
