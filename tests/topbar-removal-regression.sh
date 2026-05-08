@@ -27,11 +27,13 @@ jq -e 'has("bar") and (.bar.dynamicIsland | has("states") | not) and (.bar.dynam
     || fail "shell/defaults/config.json must not contain bar.dynamicIsland.states or .statePrecedence"
 ok "dynamicIsland.states and .statePrecedence stripped"
 
-# 4. SecPulse config keys are gone from defaults.
-jq -e '(.bar.modules | has("secPulse") | not) and (.bar | has("secPulse") | not)' \
+# 4. Legacy bar.secPulse schema block stays gone from defaults. The
+#    bar.modules.secPulse boolean toggle is allowed (re-introduced as a
+#    focused OpenVPN-status module; see specs/2026-05-08-secpulse-ovpn-indicator-design.md).
+jq -e '(.bar | has("secPulse") | not)' \
     shell/defaults/config.json >/dev/null \
-    || fail "shell/defaults/config.json must not contain bar.modules.secPulse or bar.secPulse"
-ok "secPulse keys stripped from defaults"
+    || fail "shell/defaults/config.json must not contain the legacy bar.secPulse block"
+ok "legacy bar.secPulse block stripped from defaults"
 
 # 5. Welcome bar-style picker has no Three-Island option.
 grep -q 'Three-Island' shell/welcome.qml \
