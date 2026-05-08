@@ -1,8 +1,10 @@
 #!/bin/bash
 
 # Static asserts for the SecPulse bar module. Mirrors the style of
-# tests/sidebar-openvpn.sh. SecPulse is a focused OpenVPN-state
-# indicator; see docs/superpowers/specs/2026-05-08-secpulse-ovpn-indicator-design.md.
+# tests/sidebar-openvpn.sh. SecPulse is the combined OpenVPN + Tailscale
+# bar indicator. See:
+#   docs/superpowers/specs/2026-05-08-secpulse-ovpn-indicator-design.md
+#   docs/superpowers/specs/2026-05-08-tailscale-trayscale-integration-design.md
 
 set -euo pipefail
 
@@ -75,5 +77,6 @@ assert_contains   "shell/modules/bar/SecPulseIndicator.qml" "RyokuTailscale.conn
 assert_contains   "shell/modules/bar/SecPulseIndicator.qml" "RyokuTailscale.transitioning"
 assert_contains   "shell/modules/bar/SecPulseIndicator.qml" "OpenVPN:"
 assert_contains   "shell/modules/bar/SecPulseIndicator.qml" "Tailscale:"
+assert_contains   "shell/modules/bar/SecPulseIndicator.qml" 'root._ovpnLine() + "\n" + root._tsLine()'
 
 echo "ok: bar-secpulse static asserts"
