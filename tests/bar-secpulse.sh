@@ -46,4 +46,9 @@ assert_json_expr() {
 assert_json_expr  "shell/defaults/config.json" '.bar.modules.secPulse == true' \
   "shell defaults should set bar.modules.secPulse to true"
 
+# 2. The OVPN service's bar-indicator gate reads the live module key,
+#    not the deleted bar.secPulse.showOpenVpn schema.
+assert_contains   "shell/services/RyokuOpenVpn.qml" \
+  "Config.options?.bar?.modules?.secPulse ?? true"
+
 echo "ok: bar-secpulse static asserts"
