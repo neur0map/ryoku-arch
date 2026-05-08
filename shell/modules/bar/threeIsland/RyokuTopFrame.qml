@@ -1,5 +1,6 @@
 import QtQuick
 import qs.modules.common
+import qs.modules.common.functions
 
 /**
  * Single Canvas frame for the Three-Island topbar - a thin top strip across
