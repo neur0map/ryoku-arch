@@ -1,4 +1,5 @@
 import qs
+import qs.modules.bar
 import qs.modules.common
 import qs.modules.common.widgets
 import qs.services
@@ -12,6 +13,14 @@ Item {
     readonly property bool showVpn: Config.options?.bar?.secPulse?.showVpn ?? true
     readonly property bool showPublicIp: Config.options?.bar?.secPulse?.showPublicIp ?? false
     readonly property bool showListening: Config.options?.bar?.secPulse?.showListening ?? false
+    readonly property int maxListeningRows: 8
+    readonly property int listeningPopupWidth: 360
+    readonly property color colPopupText: Appearance.angelEverywhere ? Appearance.angel.colText
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colOnLayer3
+        : Appearance.colors.colOnLayer3
+    readonly property color colPopupSecondaryText: Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
+        : Appearance.colors.colOnLayer3
 
     readonly property color colText: Appearance.angelEverywhere ? Appearance.angel.colText
         : Appearance.ryokuEverywhere ? Appearance.ryoku.colText
@@ -118,18 +127,157 @@ Item {
         }
 
         // Listening socket count (opt-in)
-        RowLayout {
+        Item {
+            id: listeningItem
             visible: root.showListening
-            spacing: 2
-            MaterialSymbol {
-                text: "hearing"
-                iconSize: Appearance.font.pixelSize.normal
-                color: root.colSubtle
+            implicitWidth: listeningRow.implicitWidth
+            implicitHeight: listeningRow.implicitHeight
+            Layout.alignment: Qt.AlignVCenter
+
+            RowLayout {
+                id: listeningRow
+                anchors.centerIn: parent
+                spacing: 2
+
+                MaterialSymbol {
+                    text: "hearing"
+                    iconSize: Appearance.font.pixelSize.normal
+                    color: listeningMouse.containsMouse ? root.colText : root.colSubtle
+                }
+                StyledText {
+                    text: RyokuSecPulse.listeningCount
+                    color: root.colText
+                    font.pixelSize: Appearance.font.pixelSize.small
+                }
             }
-            StyledText {
-                text: RyokuSecPulse.listeningCount
-                color: root.colText
-                font.pixelSize: Appearance.font.pixelSize.small
+
+            MouseArea {
+                id: listeningMouse
+                anchors.fill: parent
+                acceptedButtons: Qt.NoButton
+                hoverEnabled: true
+            }
+
+            StyledPopup {
+                hoverTarget: listeningMouse
+                horizontalPadding: 28
+                verticalPadding: 22
+                colBackground: Appearance.angelEverywhere ? Appearance.angel.colGlassTooltip
+                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colTooltip
+                    : Appearance.colors.colLayer3
+                colBorder: Appearance.angelEverywhere ? Appearance.angel.colTooltipBorder
+                    : Appearance.ryokuEverywhere ? Appearance.ryoku.colTooltipBorder
+                    : Appearance.colors.colLayer3Hover
+
+                Item {
+                    id: listeningPopupContent
+                    anchors.centerIn: parent
+                    readonly property var ports: RyokuSecPulse.listeningPorts ?? []
+                    readonly property var visiblePorts: ports.slice(0, root.maxListeningRows)
+                    readonly property int hiddenRows: Math.max(0, ports.length - visiblePorts.length)
+
+                    implicitWidth: root.listeningPopupWidth
+                    implicitHeight: listeningPopupColumn.implicitHeight
+
+                    ColumnLayout {
+                        id: listeningPopupColumn
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 12
+
+                        RowLayout {
+                            spacing: 8
+                            Layout.fillWidth: true
+
+                            MaterialSymbol {
+                                Layout.alignment: Qt.AlignVCenter
+                                text: "hearing"
+                                iconSize: Appearance.font.pixelSize.normal
+                                color: root.colPopupText
+                            }
+                            StyledText {
+                                Layout.alignment: Qt.AlignVCenter
+                                Layout.fillWidth: true
+                                text: "TCP listeners"
+                                color: root.colPopupText
+                                font.weight: Font.Medium
+                                font.pixelSize: Appearance.font.pixelSize.small
+                            }
+                            StyledText {
+                                Layout.alignment: Qt.AlignVCenter
+                                text: RyokuSecPulse.listeningCount
+                                color: root.colPopupSecondaryText
+                                opacity: 0.78
+                                font.pixelSize: Appearance.font.pixelSize.smaller
+                            }
+                        }
+
+                        Rectangle {
+                            visible: listeningPopupContent.ports.length > 0
+                            Layout.fillWidth: true
+                            implicitHeight: 1
+                            color: root.colPopupSecondaryText
+                            opacity: 0.22
+                        }
+
+                        StyledText {
+                            visible: listeningPopupContent.ports.length === 0
+                            text: "No TCP listeners"
+                            color: root.colPopupSecondaryText
+                            opacity: 0.78
+                            font.pixelSize: Appearance.font.pixelSize.smaller
+                        }
+
+                        Repeater {
+                            model: listeningPopupContent.visiblePorts
+
+                            ColumnLayout {
+                                required property var modelData
+
+                                Layout.fillWidth: true
+                                spacing: 3
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 12
+
+                                    StyledText {
+                                        Layout.fillWidth: true
+                                        text: modelData.purpose
+                                        color: root.colPopupText
+                                        elide: Text.ElideRight
+                                        font.pixelSize: Appearance.font.pixelSize.smaller
+                                    }
+
+                                    StyledText {
+                                        text: modelData.port
+                                        color: root.colPopupSecondaryText
+                                        opacity: 0.76
+                                        font.pixelSize: Appearance.font.pixelSize.smallest
+                                    }
+                                }
+
+                                StyledText {
+                                    Layout.fillWidth: true
+                                    text: modelData.endpoint + " · " + modelData.processLabel
+                                    color: root.colPopupSecondaryText
+                                    opacity: 0.78
+                                    elide: Text.ElideMiddle
+                                    font.pixelSize: Appearance.font.pixelSize.smallest
+                                }
+                            }
+                        }
+
+                        StyledText {
+                            visible: listeningPopupContent.hiddenRows > 0
+                            text: "+" + listeningPopupContent.hiddenRows + " more"
+                            color: root.colPopupSecondaryText
+                            opacity: 0.78
+                            font.pixelSize: Appearance.font.pixelSize.smaller
+                        }
+                    }
+                }
             }
         }
     }

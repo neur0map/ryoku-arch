@@ -22,6 +22,12 @@ LazyLoader {
     // clears the rounded corner's arc; plain tooltips can use 8 / 4.
     property real horizontalPadding: 10
     property real verticalPadding: 10
+    property color colBackground: Appearance.angelEverywhere ? Appearance.angel.colGlassPopup
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
+        : Appearance.m3colors.m3surfaceContainer
+    property color colBorder: Appearance.angelEverywhere ? Appearance.angel.colBorder
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
+        : Appearance.colors.colLayer0Border
 
     signal requestClose()
 
@@ -139,17 +145,13 @@ LazyLoader {
             }
             implicitWidth: root.contentItem.implicitWidth + root.horizontalPadding * 2
             implicitHeight: root.contentItem.implicitHeight + root.verticalPadding * 2
-            color: Appearance.angelEverywhere ? Appearance.angel.colGlassPopup
-                : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2 
-                : Appearance.m3colors.m3surfaceContainer
+            color: root.colBackground
             radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal
                 : Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal : Appearance.rounding.small
             children: [root.contentItem]
 
             border.width: 1
-            border.color: Appearance.angelEverywhere ? Appearance.angel.colBorder
-                : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder 
-                : Appearance.colors.colLayer0Border
+            border.color: root.colBorder
         }
 
         

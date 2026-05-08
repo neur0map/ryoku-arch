@@ -28,6 +28,14 @@ assert_contains() {
   grep -qF "$needle" "$file" || fail "$path should contain: $needle"
 }
 
+assert_not_contains() {
+  local path="$1"
+  local needle="$2"
+  local file="$ROOT_DIR/$path"
+  [[ -f $file ]] || fail "$path should exist"
+  ! grep -qF "$needle" "$file" || fail "$path should not contain: $needle"
+}
+
 assert_contains_regex() {
   local path="$1"
   local pattern="$2"
@@ -103,6 +111,71 @@ assert_contains "shell/welcome.qml" "Three-Island"
 # 8. BarConfig.qml: Modules toggles for kanjiClock and secPulse
 assert_contains "shell/modules/settings/BarConfig.qml" "bar.modules.kanjiClock"
 assert_contains "shell/modules/settings/BarConfig.qml" "bar.modules.secPulse"
+
+# 8b. SecPulse listening hover explains the TCP listener count.
+assert_contains "shell/services/RyokuSecPulse.qml" "parseListeningSockets"
+assert_contains "shell/services/RyokuSecPulse.qml" "ss -lntpeH"
+assert_contains "shell/modules/bar/threeIsland/SecPulseIndicator.qml" "StyledPopup"
+assert_contains "shell/modules/bar/threeIsland/SecPulseIndicator.qml" "RyokuSecPulse.listeningPorts"
+assert_contains "shell/modules/bar/threeIsland/SecPulseIndicator.qml" "maxListeningRows"
+assert_contains "shell/modules/bar/threeIsland/SecPulseIndicator.qml" "listeningPopupWidth"
+assert_contains "shell/modules/bar/threeIsland/SecPulseIndicator.qml" "horizontalPadding: 28"
+assert_contains "shell/modules/bar/threeIsland/SecPulseIndicator.qml" "verticalPadding: 22"
+assert_contains "shell/modules/bar/threeIsland/SecPulseIndicator.qml" "anchors.centerIn: parent"
+assert_contains "shell/modules/bar/threeIsland/SecPulseIndicator.qml" "colPopupText"
+assert_contains "shell/modules/bar/threeIsland/SecPulseIndicator.qml" "colPopupSecondaryText"
+assert_contains "shell/modules/bar/threeIsland/SecPulseIndicator.qml" "colBackground:"
+assert_contains "shell/modules/bar/threeIsland/SecPulseIndicator.qml" "text: modelData.purpose"
+assert_contains "shell/modules/bar/threeIsland/SecPulseIndicator.qml" "text: modelData.endpoint + \" · \" + modelData.processLabel"
+assert_not_contains "shell/modules/bar/threeIsland/SecPulseIndicator.qml" "settings_ethernet"
+assert_contains "shell/modules/bar/StyledPopup.qml" "property color colBackground"
+assert_contains "shell/modules/bar/StyledPopup.qml" "color: root.colBackground"
+
+# 8c. The right notch frame follows the visible right island width. A hidden
+# duplicate sizer can drift from the anchored visible row and leave content
+# outside the island shape.
+assert_contains "shell/modules/bar/threeIsland/RyokuThreeIslandContent.qml" "readonly property int islandFramePadding: 16"
+assert_contains "shell/modules/bar/threeIsland/RyokuThreeIslandContent.qml" "readonly property int rightContentWidth: rightIsland.implicitWidth"
+assert_contains "shell/modules/bar/threeIsland/RyokuThreeIslandContent.qml" "property int rightNotchWidth: GlobalStates.toolsModeOpen ? 0 : Math.max(140, root.rightContentWidth + root.islandFramePadding)"
+assert_contains "shell/modules/bar/threeIsland/RyokuThreeIslandContent.qml" "id: rightIsland"
+assert_not_contains "shell/modules/bar/threeIsland/RyokuThreeIslandContent.qml" "rightSizer.implicitWidth + 16"
+
+# 8d. Right island uses compact spacing so transient status pills do not push
+# neighboring icons apart.
+assert_contains "shell/modules/bar/threeIsland/RyokuRightIsland.qml" "readonly property int compactSpacing: 6"
+assert_contains "shell/modules/bar/threeIsland/RyokuRightIsland.qml" "readonly property int horizontalPadding: 8"
+assert_contains "shell/modules/bar/threeIsland/RyokuRightIsland.qml" "implicitWidth: rowLayout.width + (root.horizontalPadding * 2)"
+assert_contains "shell/modules/bar/threeIsland/RyokuRightIsland.qml" "spacing: root.compactSpacing"
+assert_contains "shell/modules/bar/threeIsland/RyokuRightIsland.qml" "anchors.right: parent.right"
+assert_contains "shell/modules/bar/threeIsland/RyokuRightIsland.qml" "anchors.verticalCenter: parent.verticalCenter"
+assert_contains "shell/modules/bar/threeIsland/RyokuRightIsland.qml" "anchors.rightMargin: root.horizontalPadding"
+assert_contains "shell/modules/bar/threeIsland/RyokuRightIsland.qml" "height: parent.height"
+assert_contains "shell/modules/bar/threeIsland/RyokuRightIsland.qml" "width: implicitWidth"
+assert_contains "shell/modules/bar/threeIsland/RyokuRightIsland.qml" "compact: true"
+assert_contains "shell/modules/bar/ShellUpdateIndicator.qml" "property bool compact: false"
+assert_contains "shell/modules/bar/ShellUpdateIndicator.qml" "readonly property int horizontalPadding: root.compact ? 6 : 8"
+assert_contains "shell/modules/bar/ShellUpdateIndicator.qml" "readonly property int contentSpacing: root.compact ? 4 : 5"
+assert_contains "shell/modules/bar/ShellUpdateIndicator.qml" "width: contentRow.implicitWidth + (root.horizontalPadding * 2)"
+assert_contains "shell/modules/bar/ShellUpdateIndicator.qml" "spacing: root.contentSpacing"
+
+# 8e. Ryoku update hover follows StyledPopup rich-tooltip layout rules.
+assert_contains "shell/modules/bar/ShellUpdateIndicator.qml" "readonly property int updatePopupWidth: 380"
+assert_contains "shell/modules/bar/ShellUpdateIndicator.qml" "readonly property int popupRowSpacing: 8"
+assert_contains "shell/modules/bar/ShellUpdateIndicator.qml" "readonly property color popupTextColor"
+assert_contains "shell/modules/bar/ShellUpdateIndicator.qml" "readonly property color popupSubtextColor"
+assert_contains "shell/modules/bar/ShellUpdateIndicator.qml" "horizontalPadding: 16"
+assert_contains "shell/modules/bar/ShellUpdateIndicator.qml" "verticalPadding: 12"
+assert_contains "shell/modules/bar/ShellUpdateIndicator.qml" "id: updatePopupContent"
+assert_contains "shell/modules/bar/ShellUpdateIndicator.qml" "anchors.centerIn: parent"
+assert_contains "shell/modules/bar/ShellUpdateIndicator.qml" "implicitWidth: root.updatePopupWidth"
+assert_contains "shell/modules/bar/ShellUpdateIndicator.qml" "anchors.left: parent.left"
+assert_contains "shell/modules/bar/ShellUpdateIndicator.qml" "anchors.right: parent.right"
+assert_contains "shell/modules/bar/ShellUpdateIndicator.qml" "anchors.verticalCenter: parent.verticalCenter"
+assert_contains "shell/modules/bar/ShellUpdateIndicator.qml" "spacing: root.popupRowSpacing"
+assert_contains "shell/modules/bar/ShellUpdateIndicator.qml" "color: root.popupTextColor"
+assert_contains "shell/modules/bar/ShellUpdateIndicator.qml" "color: root.popupSubtextColor"
+assert_not_contains "shell/modules/bar/ShellUpdateIndicator.qml" "implicitWidth: 260"
+assert_not_contains "shell/modules/bar/ShellUpdateIndicator.qml" "color: Appearance.colors.colOnSurfaceVariant"
 
 # 9. RyokuSecPulse: gated subprocess starts (no unconditional process.start in onCompleted)
 sec_pulse="$ROOT_DIR/shell/services/RyokuSecPulse.qml"

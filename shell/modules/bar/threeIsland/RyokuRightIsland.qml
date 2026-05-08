@@ -18,16 +18,20 @@ Item {
     readonly property color colText: Appearance.angelEverywhere ? Appearance.angel.colText
         : Appearance.ryokuEverywhere ? Appearance.ryoku.colText
         : Appearance.colors.colOnLayer0
+    readonly property int compactSpacing: 6
+    readonly property int horizontalPadding: 8
 
-    implicitWidth: rowLayout.implicitWidth + 16
+    implicitWidth: rowLayout.width + (root.horizontalPadding * 2)
     implicitHeight: Appearance.sizes.barHeight
 
     RowLayout {
         id: rowLayout
-        anchors.fill: parent
-        anchors.leftMargin: 8
-        anchors.rightMargin: 8
-        spacing: 10
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.rightMargin: root.horizontalPadding
+        height: parent.height
+        width: implicitWidth
+        spacing: root.compactSpacing
 
         Workspaces {
             id: workspacesWidget
@@ -63,6 +67,7 @@ Item {
         // Ryoku update indicator — only takes layout space when an update is
         // available or one is in progress (its `visible` is internally bound).
         ShellUpdateIndicator {
+            compact: true
             Layout.alignment: Qt.AlignVCenter
         }
 

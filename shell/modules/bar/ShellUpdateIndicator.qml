@@ -13,6 +13,8 @@ import qs.modules.common.functions
 MouseArea {
     id: root
 
+    property bool compact: false
+
     visible: ShellUpdates.showUpdate || ShellUpdates.isUpdating
     implicitWidth: visible ? pill.width : 0
     implicitHeight: Appearance.sizes.barHeight
@@ -25,6 +27,17 @@ MouseArea {
         : Appearance.ryokuEverywhere ? (Appearance.ryoku?.colAccent ?? Appearance.m3colors.m3primary)
         : Appearance.auroraEverywhere ? (Appearance.aurora?.colAccent ?? Appearance.m3colors.m3primary)
         : Appearance.m3colors.m3primary
+    readonly property int horizontalPadding: root.compact ? 6 : 8
+    readonly property int contentSpacing: root.compact ? 4 : 5
+    readonly property int updatePopupWidth: 380
+    readonly property int popupRowSpacing: 8
+    readonly property int popupDetailSpacing: 6
+    readonly property color popupTextColor: Appearance.angelEverywhere ? Appearance.angel.colText
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colText
+        : Appearance.colors.colOnLayer2
+    readonly property color popupSubtextColor: Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
+        : Appearance.colors.colSubtext
 
     onClicked: (mouse) => {
         if (ShellUpdates.isUpdating) return;
@@ -40,7 +53,7 @@ MouseArea {
     Rectangle {
         id: pill
         anchors.centerIn: parent
-        width: contentRow.implicitWidth + 16
+        width: contentRow.implicitWidth + (root.horizontalPadding * 2)
         height: contentRow.implicitHeight + 8
         radius: Appearance.angelEverywhere ? Appearance.angel.roundingSmall : height / 2
         scale: (!ShellUpdates.isUpdating && root.pressed) ? 0.93 : ((!ShellUpdates.isUpdating && root.containsMouse) ? 1.03 : 1.0)
@@ -86,7 +99,7 @@ MouseArea {
     RowLayout {
         id: contentRow
         anchors.centerIn: pill
-        spacing: 5
+        spacing: root.contentSpacing
 
         MaterialSymbol {
             id: updateIcon
@@ -131,246 +144,274 @@ MouseArea {
         }
     }
 
-    // Hover popup — follows BatteryPopup / ResourcesPopup pattern.
-    // The popup is wrapped in an Item with a fixed implicitWidth so the popup
-    // window stays narrow enough to fit when the indicator is near the right
-    // screen edge (otherwise the layer-shell window gets clamped while the
-    // inner column keeps its natural width and overflows visually).
+    // Hover popup follows the StyledPopup rich-tooltip pattern in
+    // docs/ui-patterns.md: padding lives on StyledPopup and content is anchored
+    // inside the padded surface.
     StyledPopup {
         id: updatePopup
         hoverTarget: root
+        horizontalPadding: 16
+        verticalPadding: 12
+        colBackground: Appearance.angelEverywhere ? Appearance.angel.colGlassTooltip
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.colTooltip
+            : Appearance.colors.colLayer2
+        colBorder: Appearance.angelEverywhere ? Appearance.angel.colTooltipBorder
+            : Appearance.ryokuEverywhere ? Appearance.ryoku.colTooltipBorder
+            : Appearance.colors.colLayer2Hover
 
         Item {
-            implicitWidth: 260
+            id: updatePopupContent
+            anchors.centerIn: parent
+            implicitWidth: root.updatePopupWidth
             implicitHeight: popupContentColumn.implicitHeight
+            width: implicitWidth
+            height: implicitHeight
 
             ColumnLayout {
                 id: popupContentColumn
-                anchors.fill: parent
-                spacing: 6
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: root.popupRowSpacing
 
-            // Header row — icon + title
-            Row {
-                spacing: 5
+                RowLayout {
+                    spacing: 8
+                    Layout.fillWidth: true
 
-                MaterialSymbol {
-                    anchors.verticalCenter: parent.verticalCenter
-                    fill: 0
-                    font.weight: Font.Medium
-                    text: ShellUpdates.isUpdating ? "progress_activity" : "deployed_code_update"
-                    iconSize: Appearance.font.pixelSize.large
-                    color: Appearance.colors.colOnSurfaceVariant
-                    
-                    RotationAnimation on rotation {
-                        loops: Animation.Infinite
-                        running: ShellUpdates.isUpdating && updatePopup.active
-                        from: 0
-                        to: 360
-                        duration: 1200
+                    MaterialSymbol {
+                        Layout.alignment: Qt.AlignVCenter
+                        Layout.preferredWidth: 22
+                        fill: 0
+                        font.weight: Font.Medium
+                        text: ShellUpdates.isUpdating ? "progress_activity" : "deployed_code_update"
+                        iconSize: Appearance.font.pixelSize.large
+                        color: root.popupTextColor
+
+                        RotationAnimation on rotation {
+                            loops: Animation.Infinite
+                            running: ShellUpdates.isUpdating && updatePopup.active
+                            from: 0
+                            to: 360
+                            duration: 1200
+                        }
+                    }
+
+                    StyledText {
+                        Layout.alignment: Qt.AlignVCenter
+                        Layout.fillWidth: true
+                        text: ShellUpdates.isUpdating ? Translation.tr("Updating...") : Translation.tr("Ryoku Update")
+                        font {
+                            weight: Font.Medium
+                            pixelSize: Appearance.font.pixelSize.normal
+                        }
+                        color: root.popupTextColor
+                    }
+                }
+
+                RowLayout {
+                    visible: ShellUpdates.isUpdating
+                    spacing: root.popupDetailSpacing
+                    Layout.fillWidth: true
+
+                    MaterialSymbol {
+                        Layout.alignment: Qt.AlignVCenter
+                        Layout.preferredWidth: 22
+                        text: "info"
+                        iconSize: Appearance.font.pixelSize.large
+                        color: root.popupSubtextColor
+                    }
+                    StyledText {
+                        Layout.alignment: Qt.AlignVCenter
+                        Layout.fillWidth: true
+                        text: ShellUpdates.updateStepMessage.length > 0 ? Translation.tr(ShellUpdates.updateStepMessage) : Translation.tr("Processing...")
+                        color: root.popupTextColor
+                    }
+                    StyledText {
+                        Layout.alignment: Qt.AlignVCenter
+                        visible: ShellUpdates.updateStep > 0 && ShellUpdates.updateTotalSteps > 0
+                        text: Translation.tr("Step") + " " + ShellUpdates.updateStep + "/" + ShellUpdates.updateTotalSteps
+                        color: root.popupTextColor
+                        font.weight: Font.DemiBold
+                    }
+                }
+
+                RowLayout {
+                    visible: !ShellUpdates.isUpdating
+                    spacing: root.popupDetailSpacing
+                    Layout.fillWidth: true
+
+                    MaterialSymbol {
+                        Layout.alignment: Qt.AlignVCenter
+                        Layout.preferredWidth: 22
+                        text: "download"
+                        iconSize: Appearance.font.pixelSize.large
+                        color: root.popupSubtextColor
+                    }
+                    StyledText {
+                        Layout.alignment: Qt.AlignVCenter
+                        text: Translation.tr("Behind:")
+                        color: root.popupSubtextColor
+                    }
+                    StyledText {
+                        Layout.alignment: Qt.AlignVCenter
+                        Layout.fillWidth: true
+                        horizontalAlignment: Text.AlignRight
+                        text: ShellUpdates.commitsBehind > 0
+                            ? (ShellUpdates.commitsBehind + " " + Translation.tr("commit(s)"))
+                            : Translation.tr("Update available")
+                        color: ShellUpdates.commitsBehind > 10
+                            ? (Appearance.m3colors?.m3error ?? root.popupTextColor)
+                            : root.popupTextColor
+                        font.weight: Font.Medium
+                    }
+                }
+
+                RowLayout {
+                    visible: !ShellUpdates.isUpdating && ShellUpdates.localVersion.length > 0 && ShellUpdates.remoteVersion.length > 0 && ShellUpdates.remoteVersion !== ShellUpdates.localVersion
+                    spacing: root.popupDetailSpacing
+                    Layout.fillWidth: true
+
+                    MaterialSymbol {
+                        Layout.alignment: Qt.AlignVCenter
+                        Layout.preferredWidth: 22
+                        text: "tag"
+                        iconSize: Appearance.font.pixelSize.large
+                        color: root.popupSubtextColor
+                    }
+                    StyledText {
+                        Layout.alignment: Qt.AlignVCenter
+                        text: Translation.tr("Version:")
+                        color: root.popupSubtextColor
+                    }
+                    StyledText {
+                        Layout.alignment: Qt.AlignVCenter
+                        Layout.fillWidth: true
+                        horizontalAlignment: Text.AlignRight
+                        elide: Text.ElideMiddle
+                        text: "v" + ShellUpdates.localVersion + "  →  v" + ShellUpdates.remoteVersion
+                        font {
+                            family: Appearance.font.family.monospace
+                            weight: Font.Medium
+                        }
+                        color: root.popupTextColor
+                    }
+                }
+
+                RowLayout {
+                    visible: !ShellUpdates.isUpdating
+                    spacing: root.popupDetailSpacing
+                    Layout.fillWidth: true
+
+                    MaterialSymbol {
+                        Layout.alignment: Qt.AlignVCenter
+                        Layout.preferredWidth: 22
+                        text: "commit"
+                        iconSize: Appearance.font.pixelSize.large
+                        color: root.popupSubtextColor
+                    }
+                    StyledText {
+                        Layout.alignment: Qt.AlignVCenter
+                        text: Translation.tr("Commit:")
+                        color: root.popupSubtextColor
+                    }
+                    StyledText {
+                        Layout.alignment: Qt.AlignVCenter
+                        Layout.fillWidth: true
+                        horizontalAlignment: Text.AlignRight
+                        elide: Text.ElideMiddle
+                        text: (ShellUpdates.localCommit || "\u2014") +
+                            (ShellUpdates.remoteCommit.length > 0 ? ("  →  " + ShellUpdates.remoteCommit) : "")
+                        font {
+                            family: Appearance.font.family.monospace
+                            weight: Font.Medium
+                        }
+                        color: root.popupTextColor
+                    }
+                }
+
+                RowLayout {
+                    visible: !ShellUpdates.isUpdating && ShellUpdates.currentBranch.length > 0
+                    spacing: root.popupDetailSpacing
+                    Layout.fillWidth: true
+
+                    MaterialSymbol {
+                        Layout.alignment: Qt.AlignVCenter
+                        Layout.preferredWidth: 22
+                        text: "account_tree"
+                        iconSize: Appearance.font.pixelSize.large
+                        color: ShellUpdates.isNonMainBranch
+                            ? Appearance.m3colors.m3tertiary
+                            : root.popupSubtextColor
+                    }
+                    StyledText {
+                        Layout.alignment: Qt.AlignVCenter
+                        text: Translation.tr("Branch:")
+                        color: root.popupSubtextColor
+                    }
+                    StyledText {
+                        Layout.alignment: Qt.AlignVCenter
+                        Layout.fillWidth: true
+                        horizontalAlignment: Text.AlignRight
+                        text: ShellUpdates.currentBranch
+                        font.family: Appearance.font.family.monospace
+                        color: ShellUpdates.isNonMainBranch
+                            ? Appearance.m3colors.m3tertiary
+                            : root.popupTextColor
                     }
                 }
 
                 StyledText {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: ShellUpdates.isUpdating ? Translation.tr("Updating...") : Translation.tr("Ryoku Update")
-                    font {
-                        weight: Font.Medium
-                        pixelSize: Appearance.font.pixelSize.normal
-                    }
-                    color: Appearance.colors.colOnSurfaceVariant
-                }
-            }
-
-            // Update Progress details (Only visible when updating)
-            RowLayout {
-                visible: ShellUpdates.isUpdating
-                spacing: 5
-                Layout.fillWidth: true
-
-                MaterialSymbol {
-                    text: "info"
-                    iconSize: Appearance.font.pixelSize.large
-                    color: Appearance.colors.colOnSurfaceVariant
-                }
-                StyledText {
+                    visible: ShellUpdates.isNonMainBranch && !ShellUpdates.isUpdating
                     Layout.fillWidth: true
-                    text: ShellUpdates.updateStepMessage.length > 0 ? Translation.tr(ShellUpdates.updateStepMessage) : Translation.tr("Processing...")
-                    color: Appearance.colors.colOnSurfaceVariant
-                }
-                StyledText {
-                    visible: ShellUpdates.updateStep > 0 && ShellUpdates.updateTotalSteps > 0
-                    text: Translation.tr("Step") + " " + ShellUpdates.updateStep + "/" + ShellUpdates.updateTotalSteps
-                    color: Appearance.colors.colOnSurfaceVariant
-                    font.weight: Font.DemiBold
-                }
-            }
-
-            // Commits behind
-            RowLayout {
-                visible: !ShellUpdates.isUpdating
-                spacing: 5
-                Layout.fillWidth: true
-
-                MaterialSymbol {
-                    text: "download"
-                    iconSize: Appearance.font.pixelSize.large
-                    color: Appearance.colors.colOnSurfaceVariant
-                }
-                StyledText {
-                    text: Translation.tr("Behind:")
-                    color: Appearance.colors.colOnSurfaceVariant
-                }
-                StyledText {
-                    Layout.fillWidth: true
-                    horizontalAlignment: Text.AlignRight
-                    text: ShellUpdates.commitsBehind > 0
-                        ? (ShellUpdates.commitsBehind + " " + Translation.tr("commit(s)"))
-                        : Translation.tr("Update available")
-                    color: ShellUpdates.commitsBehind > 10
-                        ? (Appearance.m3colors?.m3error ?? Appearance.colors.colOnSurfaceVariant)
-                        : Appearance.colors.colOnSurfaceVariant
-                    font.weight: Font.Medium
-                }
-            }
-
-            // Version row
-            RowLayout {
-                visible: !ShellUpdates.isUpdating && ShellUpdates.localVersion.length > 0 && ShellUpdates.remoteVersion.length > 0 && ShellUpdates.remoteVersion !== ShellUpdates.localVersion
-                spacing: 5
-                Layout.fillWidth: true
-
-                MaterialSymbol {
-                    text: "tag"
-                    iconSize: Appearance.font.pixelSize.large
-                    color: Appearance.colors.colOnSurfaceVariant
-                }
-                StyledText {
-                    text: Translation.tr("Version:")
-                    color: Appearance.colors.colOnSurfaceVariant
-                }
-                StyledText {
-                    Layout.fillWidth: true
-                    horizontalAlignment: Text.AlignRight
-                    elide: Text.ElideMiddle
-                    text: "v" + ShellUpdates.localVersion + "  →  v" + ShellUpdates.remoteVersion
-                    font {
-                        family: Appearance.font.family.monospace
-                        weight: Font.Medium
-                    }
-                    color: Appearance.colors.colOnSurfaceVariant
-                }
-            }
-
-            // Commit comparison row
-            RowLayout {
-                visible: !ShellUpdates.isUpdating
-                spacing: 5
-                Layout.fillWidth: true
-
-                MaterialSymbol {
-                    text: "commit"
-                    iconSize: Appearance.font.pixelSize.large
-                    color: Appearance.colors.colOnSurfaceVariant
-                }
-                StyledText {
-                    text: Translation.tr("Commit:")
-                    color: Appearance.colors.colOnSurfaceVariant
-                }
-                StyledText {
-                    Layout.fillWidth: true
-                    horizontalAlignment: Text.AlignRight
-                    elide: Text.ElideMiddle
-                    text: (ShellUpdates.localCommit || "\u2014") +
-                        (ShellUpdates.remoteCommit.length > 0 ? ("  →  " + ShellUpdates.remoteCommit) : "")
-                    font {
-                        family: Appearance.font.family.monospace
-                        weight: Font.Medium
-                    }
-                    color: Appearance.colors.colOnSurfaceVariant
-                }
-            }
-
-            // Branch row
-            RowLayout {
-                visible: !ShellUpdates.isUpdating && ShellUpdates.currentBranch.length > 0
-                spacing: 5
-                Layout.fillWidth: true
-
-                MaterialSymbol {
-                    text: "account_tree"
-                    iconSize: Appearance.font.pixelSize.large
-                    color: ShellUpdates.isNonMainBranch
-                        ? Appearance.m3colors.m3tertiary
-                        : Appearance.colors.colOnSurfaceVariant
-                }
-                StyledText {
-                    text: Translation.tr("Branch:")
-                    color: Appearance.colors.colOnSurfaceVariant
-                }
-                StyledText {
-                    Layout.fillWidth: true
-                    horizontalAlignment: Text.AlignRight
-                    text: ShellUpdates.currentBranch
-                    font.family: Appearance.font.family.monospace
-                    color: ShellUpdates.isNonMainBranch
-                        ? Appearance.m3colors.m3tertiary
-                        : Appearance.colors.colOnSurfaceVariant
-                }
-            }
-
-            // Non-main branch hint
-            StyledText {
-                visible: ShellUpdates.isNonMainBranch && !ShellUpdates.isUpdating
-                Layout.fillWidth: true
-                text: Translation.tr("You are on a non-release branch. Updates track this branch.")
-                font.pixelSize: Appearance.font.pixelSize.smallest
-                color: Appearance.m3colors.m3tertiary
-                wrapMode: Text.WordWrap
-                opacity: 0.85
-            }
-
-            // Error display
-            RowLayout {
-                spacing: 5
-                visible: !ShellUpdates.isUpdating && ShellUpdates.lastError.length > 0
-                Layout.fillWidth: true
-                Layout.maximumWidth: 280
-
-                MaterialSymbol {
-                    text: "error"
-                    color: Appearance.m3colors?.m3error ?? Appearance.colors.colOnSurfaceVariant
-                    iconSize: Appearance.font.pixelSize.large
-                }
-                StyledText {
-                    Layout.fillWidth: true
-                    text: ShellUpdates.lastError
+                    text: Translation.tr("You are on a non-release branch. Updates track this branch.")
                     font.pixelSize: Appearance.font.pixelSize.smallest
-                    color: Appearance.m3colors?.m3error ?? Appearance.colors.colOnSurfaceVariant
+                    color: Appearance.m3colors.m3tertiary
                     wrapMode: Text.WordWrap
+                    opacity: 0.85
                 }
-            }
 
-            // Separator
-            Rectangle {
-                visible: !ShellUpdates.isUpdating
-                Layout.fillWidth: true
-                Layout.preferredHeight: 1
-                Layout.topMargin: 2
-                Layout.bottomMargin: 2
-                color: Appearance.angelEverywhere ? Appearance.angel.colBorderSubtle
-                    : Appearance.ryokuEverywhere ? (Appearance.ryoku?.colBorder ?? Appearance.colors.colLayer0Border)
-                    : Appearance.colors.colLayer0Border
-                opacity: 0.5
-            }
+                RowLayout {
+                    spacing: root.popupDetailSpacing
+                    visible: !ShellUpdates.isUpdating && ShellUpdates.lastError.length > 0
+                    Layout.fillWidth: true
 
-            // Hint
-            StyledText {
-                visible: !ShellUpdates.isUpdating
-                text: Translation.tr("Click for details · Right-click to dismiss")
-                font.pixelSize: Appearance.font.pixelSize.smallest
-                color: Appearance.colors.colOnSurfaceVariant
-                opacity: 0.6
-            }
+                    MaterialSymbol {
+                        Layout.alignment: Qt.AlignVCenter
+                        Layout.preferredWidth: 22
+                        text: "error"
+                        color: Appearance.m3colors?.m3error ?? root.popupTextColor
+                        iconSize: Appearance.font.pixelSize.large
+                    }
+                    StyledText {
+                        Layout.fillWidth: true
+                        text: ShellUpdates.lastError
+                        font.pixelSize: Appearance.font.pixelSize.smallest
+                        color: Appearance.m3colors?.m3error ?? root.popupTextColor
+                        wrapMode: Text.WordWrap
+                    }
+                }
+
+                Rectangle {
+                    visible: !ShellUpdates.isUpdating
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 1
+                    Layout.topMargin: 2
+                    Layout.bottomMargin: 2
+                    color: Appearance.angelEverywhere ? Appearance.angel.colBorderSubtle
+                        : Appearance.ryokuEverywhere ? (Appearance.ryoku?.colBorder ?? Appearance.colors.colLayer0Border)
+                        : Appearance.colors.colLayer0Border
+                    opacity: 0.5
+                }
+
+                StyledText {
+                    visible: !ShellUpdates.isUpdating
+                    Layout.fillWidth: true
+                    text: Translation.tr("Click for details · Right-click to dismiss")
+                    font.pixelSize: Appearance.font.pixelSize.smallest
+                    color: root.popupSubtextColor
+                    opacity: 0.72
+                    elide: Text.ElideRight
+                }
             }
         }
     }

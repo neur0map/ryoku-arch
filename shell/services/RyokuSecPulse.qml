@@ -5,6 +5,7 @@ import Quickshell
 import Quickshell.Io
 import QtQuick
 import qs.modules.common
+import "ryoku_sec_pulse.js" as SecPulseParser
 
 /**
  * Ryoku security pulse: Tailscale status, optional public IP, optional
@@ -23,6 +24,7 @@ Singleton {
     property string tsExitNode: ""   // "" when no remote exit node is in use
     property string publicIp: ""
     property int listeningCount: 0
+    property var listeningPorts: []
 
     // Config gates
     readonly property bool _vpnEnabled: Config.options?.bar?.secPulse?.showVpn ?? true
@@ -98,10 +100,17 @@ Singleton {
     // Listening sockets: opt-in
     Process {
         id: listeningProc
-        command: ["sh", "-c", "ss -lntH 2>/dev/null | wc -l"]
+        command: ["sh", "-c", "ss -lntpeH 2>/dev/null || true"]
         stdout: StdioCollector {
             onStreamFinished: {
-                root.listeningCount = parseInt(this.text.trim(), 10) || 0
+                try {
+                    const parsed = SecPulseParser.parseListeningSockets(this.text)
+                    root.listeningPorts = parsed.listeners
+                    root.listeningCount = parsed.count
+                } catch (e) {
+                    root.listeningPorts = []
+                    root.listeningCount = 0
+                }
             }
         }
     }
