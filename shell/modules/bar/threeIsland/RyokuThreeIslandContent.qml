@@ -92,9 +92,10 @@ Item {
     // Notch widths track content; Behavior gives a bouncy resize when the
     // active-window title (or any other content) changes width.
     property int leftNotchWidth:  GlobalStates.toolsModeOpen ? 0 : Math.max(140, leftSizer.implicitWidth + 16)
-    property int centerNotchWidth: GlobalStates.toolsModeOpen
-        ? Math.max(520, centerSizer.implicitWidth + 16)
-        : Math.max(120, centerSizer.implicitWidth + 16)
+    // centerSizer (a hidden RyokuDynamicIsland) interpolates its own
+    // implicitWidth between state-pill width and tools-row width so the
+    // notch grows in lockstep with the cross-fade. Just clamp to a minimum.
+    property int centerNotchWidth: Math.max(120, centerSizer.implicitWidth + 16)
     property int rightNotchWidth: GlobalStates.toolsModeOpen ? 0 : Math.max(140, rightSizer.implicitWidth + 16)
 
     Behavior on leftNotchWidth {

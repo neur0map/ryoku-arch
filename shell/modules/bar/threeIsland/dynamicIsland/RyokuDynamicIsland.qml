@@ -5,12 +5,20 @@ import qs.modules.bar.threeIsland.dynamicIsland.pills
 import qs.modules.bar.threeIsland.dynamicIsland.tools
 import QtQuick
 
-// Computes activeState from service singletons + Config flags. Loads the
-// matching pill component. Phase 5: idle, recording, music, timer,
-// screenshot toast, voice search, and tools mode are all wired.
+// Center-notch content. Two stacked layers live inside the SAME notch so
+// the user never sees one pill disappear before another appears, they just
+// feel the center MORPH between idle/recording/music/etc and the tools row.
+//
+//   Layer A (state pill loader): idle / recording / music / ...
+//   Layer B (tools row loader):  the Mod+S quicktools.
+//
+// _toolsProgress drives BOTH layers' opacity (cross-fade) AND the
+// orchestrator's implicitWidth (so the notch grows/shrinks in lockstep
+// with the fade rather than snapping to a fixed 520px). The notch shape
+// itself is drawn by RyokuTopFrame and uses the existing centerNotchWidth
+// OutBack Behavior in RyokuThreeIslandContent.
 Item {
     id: root
-    implicitWidth: pillLoader.item ? pillLoader.item.implicitWidth : 0
     implicitHeight: Appearance.sizes.barHeight
 
     readonly property bool islandEnabled: Config.options?.bar?.dynamicIsland?.enabled ?? true
@@ -21,10 +29,10 @@ Item {
             || TimerService.stopwatchRunning;
     }
 
+    // Non-tools active state. Tools is handled out-of-band by Layer B.
     readonly property string activeState: {
         const di = Config.options?.bar?.dynamicIsland;
         if (!di?.enabled) return "idle";
-        if (GlobalStates.toolsModeOpen) return "tools";
         if ((di?.states?.voiceSearch ?? true)     && VoiceSearch.running)            return "voiceSearch";
         if ((di?.states?.recording ?? true)       && RecorderStatus.isRecording)     return "recording";
         if ((di?.states?.timer ?? true)           && _anyTimerRunning())             return "timer";
@@ -33,36 +41,19 @@ Item {
         return "idle";
     }
 
-    // 250ms debounce so rapid state flapping (e.g. track transitions) does
-    // not cause visible thrashing. Only morph after the new state has been
-    // stable for the debounce interval.
-    //
-    // EXCEPTION: state transitions involving "tools" (Mod+S) bypass the
-    // debounce because they are user-driven and any delay feels laggy.
+    // 250ms debounce so rapid signal flapping (track transitions, etc.)
+    // does not cause visible thrashing. Tools mode bypasses this entirely.
     property string _debouncedState: "idle"
-
     Timer {
         id: debounceTimer
         interval: 250
         repeat: false
         onTriggered: root._debouncedState = root.activeState
     }
-
-    onActiveStateChanged: {
-        // Bypass debounce for deliberate user actions (tools mode in/out).
-        // The previous state cannot be stale here because activeState is
-        // recomputed reactively on every signal from the underlying singletons.
-        if (root.activeState === "tools" || root._debouncedState === "tools") {
-            debounceTimer.stop();
-            root._debouncedState = root.activeState;
-            return;
-        }
-        debounceTimer.restart();
-    }
+    onActiveStateChanged: debounceTimer.restart()
 
     function _componentFor(state) {
         switch (state) {
-            case "tools":           return toolsComponent;
             case "voiceSearch":     return voiceSearchComponent;
             case "recording":       return recordingComponent;
             case "timer":           return timerComponent;
@@ -73,11 +64,40 @@ Item {
         }
     }
 
+    // Cross-fade progress: 0 = full state pill, 1 = full tools row.
+    // Drives opacity of both layers AND the orchestrator's implicitWidth.
+    property real _toolsProgress: GlobalStates.toolsModeOpen ? 1.0 : 0.0
+    Behavior on _toolsProgress {
+        enabled: Appearance.animationsEnabled
+        NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+    }
+
+    // Width interpolates from the state pill's natural width to the tools
+    // row's natural width, weighted by _toolsProgress. The bar's existing
+    // centerNotchWidth Behavior smooths this further with OutBack overshoot.
+    readonly property real _stateWidth: pillLoader.item ? pillLoader.item.implicitWidth : 0
+    readonly property real _toolsWidth: toolsLoader.item ? toolsLoader.item.implicitWidth : _stateWidth
+    implicitWidth: _stateWidth + (_toolsWidth - _stateWidth) * _toolsProgress
+
+    // Layer A: regular state pills (idle, recording, music, ...).
     Loader {
         id: pillLoader
         anchors.fill: parent
         active: root.islandEnabled
         sourceComponent: root._componentFor(root._debouncedState)
+        opacity: 1.0 - root._toolsProgress
+        visible: opacity > 0.01
+    }
+
+    // Layer B: tools row. Mounted only while needed (toolsModeOpen or still
+    // fading out), so it doesn't consume layout budget when idle.
+    Loader {
+        id: toolsLoader
+        anchors.centerIn: parent
+        active: GlobalStates.toolsModeOpen || root._toolsProgress > 0.01
+        sourceComponent: toolsComponent
+        opacity: root._toolsProgress
+        visible: opacity > 0.01
     }
 
     Component { id: idleComponent;            IdleStatePill {} }
@@ -89,7 +109,6 @@ Item {
     Component { id: toolsComponent;           RyokuToolsMode {} }
 
     // toolsMode IpcHandler lives in services/ToolsModeService.qml so it
-    // registers exactly once across all bar instances and stays alive even
-    // before the tools pill is mounted. shell.qml force-instantiates that
-    // singleton at startup.
+    // registers once globally and stays alive even before the tools row
+    // mounts. shell.qml force-instantiates that singleton at startup.
 }
