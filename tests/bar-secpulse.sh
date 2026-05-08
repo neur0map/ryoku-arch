@@ -64,4 +64,8 @@ assert_contains   "shell/modules/bar/SecPulseIndicator.qml" "vpn_key_off"
 assert_contains   "shell/modules/bar/BarContent.qml" "SecPulseIndicator {"
 assert_contains   "shell/modules/bar/BarContent.qml" "bar?.modules?.secPulse"
 
+# 5. BarConfig exposes a SettingsSwitch bound to the new module key.
+assert_contains   "shell/modules/settings/BarConfig.qml" "bar.modules.secPulse"
+assert_contains   "shell/modules/settings/BarConfig.qml" 'Translation.tr("SecPulse")'
+
 echo "ok: bar-secpulse static asserts"

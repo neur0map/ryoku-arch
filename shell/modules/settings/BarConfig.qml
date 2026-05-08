@@ -403,7 +403,12 @@ ContentPage {
                     checked: Config.options?.bar?.modules?.sysTray ?? true
                     onCheckedChanged: Config.setNestedValue("bar.modules.sysTray", checked)
                 }
-                Item { Layout.fillWidth: true }
+                SettingsSwitch {
+                    buttonIcon: "vpn_key"
+                    text: Translation.tr("SecPulse")
+                    checked: Config.options?.bar?.modules?.secPulse ?? true
+                    onCheckedChanged: Config.setNestedValue("bar.modules.secPulse", checked)
+                }
             }
 
             ConfigRow {
