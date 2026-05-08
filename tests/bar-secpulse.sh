@@ -51,4 +51,13 @@ assert_json_expr  "shell/defaults/config.json" '.bar.modules.secPulse == true' \
 assert_contains   "shell/services/RyokuOpenVpn.qml" \
   "Config.options?.bar?.modules?.secPulse ?? true"
 
+
+# 3. The widget exists and binds to the existing RyokuOpenVpn surface.
+assert_file       "shell/modules/bar/SecPulseIndicator.qml"
+assert_contains   "shell/modules/bar/SecPulseIndicator.qml" "RyokuOpenVpn.activeProfile"
+assert_contains   "shell/modules/bar/SecPulseIndicator.qml" "RyokuOpenVpn.transitioning"
+assert_contains   "shell/modules/bar/SecPulseIndicator.qml" "GlobalStates.sidebarRightOpen = true"
+assert_contains   "shell/modules/bar/SecPulseIndicator.qml" "vpn_key"
+assert_contains   "shell/modules/bar/SecPulseIndicator.qml" "vpn_key_off"
+
 echo "ok: bar-secpulse static asserts"
