@@ -6,6 +6,24 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)/lib/runtime-en
 
 SHELL_PATH="${RYOKU_SHELL_PATH:-$HOME/.local/share/ryoku-shell}"
 SHELL_VENDOR="$RYOKU_PATH/shell"
+USER_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/ryoku-shell/config.json"
+
+restore_user_shell_config() {
+  local backup_config_file="$1"
+  local config_file="$2"
+  local temp_file
+
+  [[ -f $backup_config_file ]] || return 0
+  mkdir -p "$(dirname "$config_file")"
+
+  if [[ -f $config_file ]] && ryoku-cmd-present jq; then
+    temp_file=$(mktemp)
+    jq -s '.[0] * .[1]' "$config_file" "$backup_config_file" >"$temp_file"
+    mv "$temp_file" "$config_file"
+  else
+    cp "$backup_config_file" "$config_file"
+  fi
+}
 
 if [[ ! -d $SHELL_VENDOR ]]; then
   echo "install/config/shell.sh: missing vendored shell tree at $SHELL_VENDOR" >&2
@@ -23,10 +41,21 @@ if [[ ! -d $SHELL_PATH ]]; then
   cp -a "$SHELL_VENDOR/." "$SHELL_PATH/"
 fi
 
+backup_config_file=""
+if [[ -f $USER_CONFIG ]]; then
+  backup_config_file=$(mktemp)
+  cp "$USER_CONFIG" "$backup_config_file"
+fi
+
 (
   cd "$SHELL_PATH"
   ./setup install -y --skip-deps --skip-sysupdate
 )
+
+if [[ -n $backup_config_file ]]; then
+  restore_user_shell_config "$backup_config_file" "$USER_CONFIG"
+  rm -f "$backup_config_file"
+fi
 
 "$RYOKU_PATH/install/config/ryoku-shell-branding.sh"
 

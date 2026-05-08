@@ -30,6 +30,11 @@ grep -q '\[screenshotEvents\]=' shell/scripts/lib/ipc-registry.sh \
 grep -qE 'Mod\+S \{ spawn "ryoku-shell" "toolsMode"' config/niri/config.d/70-binds.kdl \
     || fail "Mod+S bind missing in niri config"
 
+jq -e '.bar.cornerStyle == 4' shell/defaults/config.json >/dev/null \
+    || fail "shell defaults should select the three-island bar"
+jq -e '.bar.dynamicIsland.enabled == true and .bar.dynamicIsland.tools.enabled == true and .bar.dynamicIsland.tools.keybind == "Mod+S"' shell/defaults/config.json >/dev/null \
+    || fail "shell defaults should enable Dynamic Island tools on Mod+S"
+
 # Orchestrator + key pills exist
 test -f shell/modules/bar/threeIsland/dynamicIsland/RyokuDynamicIsland.qml \
     || fail "RyokuDynamicIsland.qml missing"

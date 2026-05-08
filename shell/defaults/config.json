@@ -370,7 +370,7 @@
     },
     "borderless": true,
     "bottom": false,
-    "cornerStyle": 1,
+    "cornerStyle": 4,
     "customRounding": -1,
     "edgeModulesLayout": {
       "leftOrder": ["leftSidebarButton", "activeWindow"],
@@ -394,6 +394,10 @@
       "taskbar": false,
       "utilButtons": true,
       "weather": true,
+      "kanjiClock": true,
+      "secPulse": true,
+      "dateLabel": true,
+      "weatherIcon": true,
       "workspaces": true
     },
     "modulesLayout": {
@@ -430,6 +434,70 @@
       "gpuWarningThreshold": 90,
       "memoryWarningThreshold": 95,
       "swapWarningThreshold": 85
+    },
+    "dynamicIsland": {
+      "enabled": true,
+      "states": {
+        "voiceSearch": true,
+        "recording": true,
+        "timer": true,
+        "screenshotToast": true,
+        "music": true
+      },
+      "statePrecedence": [
+        "voiceSearch",
+        "recording",
+        "timer",
+        "screenshotToast",
+        "music"
+      ],
+      "tools": {
+        "enabled": true,
+        "keybind": "Mod+S",
+        "order": [
+          "screenshot",
+          "record",
+          "lens",
+          "colorPicker",
+          "musicRecognize",
+          "micToggle",
+          "osk",
+          "DIVIDER",
+          "caffeine",
+          "notepad",
+          "screenCast",
+          "darkMode",
+          "powerProfile"
+        ],
+        "buttons": {
+          "screenshot": true,
+          "record": true,
+          "lens": true,
+          "colorPicker": true,
+          "musicRecognize": true,
+          "micToggle": true,
+          "osk": true,
+          "caffeine": true,
+          "notepad": true,
+          "screenCast": false,
+          "darkMode": true,
+          "powerProfile": false
+        },
+        "autoCloseAfterAction": true,
+        "closeOnEsc": true
+      },
+      "musicPopupContinuous": true
+    },
+    "kanjiClock": {
+      "showDate": true,
+      "useKanjiDigits": false
+    },
+    "secPulse": {
+      "showVpn": true,
+      "showOpenVpn": true,
+      "showPublicIp": false,
+      "showListening": false,
+      "vpnClickCommand": "xdg-open https://login.tailscale.com/admin/machines"
     },
     "screenList": [],
     "showBackground": true,
@@ -812,7 +880,8 @@
         "notepad",
         "calculator",
         "sysmon",
-        "timer"
+        "timer",
+        "openvpn"
       ]
     },
     "translator": {
