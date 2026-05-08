@@ -36,8 +36,10 @@ Singleton {
     Process {
         id: cavaProc
         running: false
-        // Raw 8-bit output, capped at 30fps, 7 bars. cava reads its config from
-        // a file generated at startup.
+        // Raw ASCII output (semicolon-separated, range 0-100), capped at
+        // 30fps. channels=mono is required when bar count is odd; without
+        // it cava rejects the config with 'must have even number of bars
+        // with stereo output'. PulseAudio input on default device.
         command: ["/usr/bin/sh", "-c", `
             cfg=$(mktemp)
             cat > "$cfg" <<EOF
@@ -45,11 +47,16 @@ Singleton {
 bars = ${root.barCount}
 framerate = 30
 
+[input]
+method = pulse
+source = auto
+
 [output]
 method = raw
 raw_target = /dev/stdout
 data_format = ascii
 ascii_max_range = 100
+channels = mono
 EOF
             exec cava -p "$cfg"
         `]

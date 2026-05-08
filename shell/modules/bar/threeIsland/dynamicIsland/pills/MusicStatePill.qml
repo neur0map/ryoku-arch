@@ -59,11 +59,17 @@ Item {
     MouseArea {
         id: mouseArea
         anchors.fill: parent
-        acceptedButtons: Qt.LeftButton | Qt.RightButton
+        acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
         hoverEnabled: true
         onPressed: event => {
             if (event.button === Qt.LeftButton) {
+                // Open the existing floating media controls overlay. Same flag
+                // the legacy bar Media.qml uses for its non-bar popupMode.
+                GlobalStates.mediaControlsOpen = !GlobalStates.mediaControlsOpen
+            } else if (event.button === Qt.MiddleButton) {
                 MprisController.togglePlaying()
+            } else if (event.button === Qt.RightButton) {
+                MprisController.next()
             }
         }
     }
