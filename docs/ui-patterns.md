@@ -161,6 +161,51 @@ If it shows untracked or modified files after manual preview work, stash them be
 git -C "$HOME/.local/share/ryoku" stash push -u -m "pre-update-local-files"
 ```
 
+## Config ownership on updates
+
+Do not treat every file under `~/.config` as the same kind of state. Ryoku has product defaults, users have personal choices, and some files are a mix of both. Update code must respect that boundary.
+
+| Ownership | Examples | Update rule |
+|---|---|---|
+| Ryoku-owned | Shell QML files, services, systemd units, command launchers, polkit rules, required feature keybinds like `Mod+S` for Dynamic Island tools | Update automatically from the repo or repair with a migration |
+| User-owned | Theme choice, wallpaper, sidebar widget order, toolkit button toggles, sec-pulse visibility, app preferences, `.bashrc` | Never overwrite during update |
+| Hybrid | `~/.config/ryoku-shell/config.json`, Niri bind fragments, enabled sidebar widgets | Add missing Ryoku keys or entries, but preserve existing user values |
+| Generated | Caches, lock files, temporary update status, generated runtime artifacts | Safe to rebuild |
+
+The update failure mode to avoid:
+
+1. Back up a config.
+2. Reinstall or regenerate the shell.
+3. Forget to merge the backup back.
+4. Re-apply defaults as if user choices were missing.
+
+That turns Ryoku defaults into a destructive reset. The correct order is:
+
+1. Back up the active config.
+2. Run the installer or payload sync.
+3. Merge the active config back over freshly generated defaults.
+4. Apply Ryoku-owned defaults only for missing keys or required additive entries.
+5. Restart the affected service.
+
+When patching JSON, do not use jq `//` for booleans in user config. In jq, `false // true` becomes `true`, which silently flips intentional user-disabled settings back on. Use an explicit null check instead:
+
+```jq
+def put_default($path; $value):
+  if getpath($path) == null then setpath($path; $value) else . end;
+```
+
+For arrays that mix product entries with user order, append only the required missing item:
+
+```jq
+def append_once($value):
+  if index($value) then . else . + [$value] end;
+
+.sidebar.right.enabledWidgets =
+  ((.sidebar.right.enabledWidgets // []) | append_once("openvpn"))
+```
+
+If a Ryoku feature needs a live config change, ship a migration. Do not solve it by replacing the whole file. The migration should be idempotent, narrowly scoped, and preserve explicit user values.
+
 ## When to stop and rethink
 
 If three attempts to fix the same visual bug have not worked, the bug is not in the property you are tweaking. Patterns of "still bad", "still bad", "still bad" mean one of:
