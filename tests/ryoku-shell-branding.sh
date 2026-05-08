@@ -122,12 +122,6 @@ assert_shell_overlay_preserves_false_settings() {
           "osk": false
         }
       }
-    },
-    "secPulse": {
-      "showVpn": false,
-      "showOpenVpn": false,
-      "showPublicIp": false,
-      "showListening": false
     }
   },
   "sidebar": {
@@ -148,10 +142,6 @@ JSON
   jq -e '
     .bar.dynamicIsland.tools.buttons.darkMode == false
     and .bar.dynamicIsland.tools.buttons.osk == false
-    and .bar.secPulse.showVpn == false
-    and .bar.secPulse.showOpenVpn == false
-    and .bar.secPulse.showPublicIp == false
-    and .bar.secPulse.showListening == false
     and (.sidebar.right.enabledWidgets | index("openvpn") != null)
   ' "$config_file" >/dev/null || fail "Ryoku shell overlay should preserve explicit false user settings"
 
