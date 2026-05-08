@@ -632,7 +632,7 @@ Singleton {
                     }
                 }
                 property bool bottom: false // Instead of top
-                property int cornerStyle: 4 // 0: Hug | 1: Float | 2: Plain rectangle | 3: Card | 4: Three-Island (default; the rest of shell/modules/bar/threeIsland and dynamicIsland assumes this)
+                property int cornerStyle: 0 // 0: Hug | 1: Float | 2: Plain rectangle | 3: Card | 4: Three-Island (TODO: surface as configurator choice so users can pick three-island + dynamic-island bar at install time)
                 property int customRounding: -1 // -1: use global theme rounding | 0+: override bar rounding (px)
                 property bool floatStyleShadow: true // Show shadow behind bar when cornerStyle == 1 (Float)
                 property bool borderless: false // true for no grouping of items
