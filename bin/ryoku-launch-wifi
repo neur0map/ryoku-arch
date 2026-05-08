@@ -2,8 +2,16 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Launch the Ryoku wifi controls (provided by the Impala TUI).
+# Launch Ryoku wifi controls. Prefer impala when installed, otherwise use
+# NetworkManager's nmtui.
 # Attempts to unblock the wifi service first in case it should be been blocked.
 
 rfkill unblock wifi
-ryoku-launch-or-focus-tui impala
+
+if ryoku-cmd-present impala; then
+  ryoku-launch-or-focus-tui impala
+elif ryoku-cmd-present nmtui; then
+  ryoku-launch-or-focus-tui nmtui
+else
+  ryoku-launch-or-focus-tui ryoku-network-status
+fi

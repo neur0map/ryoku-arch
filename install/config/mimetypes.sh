@@ -37,8 +37,8 @@ xdg-mime default mpv.desktop video/x-ogm+ogg
 xdg-mime default mpv.desktop video/x-theora+ogg
 xdg-mime default mpv.desktop application/ogg
 
-# Use Hey for mailto: links
-xdg-mime default HEY.desktop x-scheme-handler/mailto
+# Use Chromium for mailto: links unless the user installs a dedicated mail app.
+xdg-mime default chromium.desktop x-scheme-handler/mailto
 
 # Open text files with Helix
 xdg-mime default helix.desktop text/plain

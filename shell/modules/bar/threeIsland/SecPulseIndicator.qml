@@ -40,8 +40,8 @@ Item {
         anchors.centerIn: parent
         spacing: 8
 
-        // Tailscale indicator. Click runs bar.secPulse.vpnClickCommand
-        // (default: trayscale GUI). Hover surfaces hostname / IP / exit-node.
+        // Tailscale indicator. Click runs bar.secPulse.vpnClickCommand.
+        // Hover surfaces hostname / IP / exit-node.
         Item {
             id: vpnItem
             visible: root.showVpn

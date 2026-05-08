@@ -2,6 +2,14 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Launch the Ryoku audio controls TUI (provided by wiremix).
+# Launch Ryoku audio controls. Prefer wiremix when installed, otherwise use
+# the default graphical PulseAudio/PipeWire mixer.
 
-ryoku-launch-or-focus-tui wiremix
+if ryoku-cmd-present wiremix; then
+  ryoku-launch-or-focus-tui wiremix
+elif ryoku-cmd-present pavucontrol; then
+  exec pavucontrol
+else
+  echo "No audio mixer found. Install wiremix or pavucontrol."
+  exit 1
+fi

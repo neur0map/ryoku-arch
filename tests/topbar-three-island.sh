@@ -69,9 +69,10 @@ assert_file "shell/services/RyokuSecPulse.qml"
 assert_contains "shell/services/qmldir" "singleton RyokuSecPulse 1.0 RyokuSecPulse.qml"
 
 # 2b. Tailscale CLI is in the base package list (SecPulse polls it).
-# Trayscale GUI is in the AUR list (default click target).
+# The default click target opens the web admin console, not the Trayscale GUI.
 assert_contains "install/ryoku-base.packages" "tailscale"
-assert_contains "install/ryoku-aur.packages" "trayscale"
+assert_not_contains "install/ryoku-aur.packages" "trayscale"
+assert_contains "shell/modules/common/Config.qml" "xdg-open https://login.tailscale.com/admin/machines"
 
 # 3. Config.qml declares the new keys with documented defaults
 assert_contains "shell/modules/common/Config.qml" "property bool kanjiClock: true"

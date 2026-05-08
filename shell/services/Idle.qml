@@ -11,15 +11,15 @@ Singleton {
     id: root
 
     property bool inhibit: false
+    property bool _idleInhibitorAllowed: false
     readonly property int screenOffTimeout: Config.options?.idle?.screenOffTimeout ?? 300
     readonly property int lockTimeout: Config.options?.idle?.lockTimeout ?? 600
     readonly property int suspendTimeout: Config.options?.idle?.suspendTimeout ?? 0
-    readonly property string launcherPath: Quickshell.shellPath("scripts/ryoku-shell")
 
-    onScreenOffTimeoutChanged: _restartSwayidle()
-    onLockTimeoutChanged: _restartSwayidle()
-    onSuspendTimeoutChanged: _restartSwayidle()
-    onInhibitChanged: _restartSwayidle()
+    onScreenOffTimeoutChanged: _syncIdleDaemon()
+    onLockTimeoutChanged: _syncIdleDaemon()
+    onSuspendTimeoutChanged: _syncIdleDaemon()
+    onInhibitChanged: _syncIdleDaemon()
 
     function toggleInhibit(active = null): void {
         if (active !== null) {
@@ -30,69 +30,56 @@ Singleton {
         Persistent.states.idle.inhibit = inhibit;
     }
 
-    function _restartSwayidle() {
-        _stopSwayidle()
-        if (!inhibit) _startSwayidleDelayed.start()
+    function _syncIdleDaemon() {
+        _idleInhibitorAllowed = false
+        _stopLegacySwayidle()
+        _stopStaleRyokuInhibitors()
+        _ensureHypridleDelayed.restart()
+        if (inhibit) _startIdleInhibitorDelayed.restart()
     }
 
-    function _stopSwayidle() {
+    function _stopLegacySwayidle() {
         Quickshell.execDetached(["/usr/bin/pkill", "-x", "swayidle"])
     }
 
-    function _startSwayidle() {
-        // RYOKU: swayidle replaced by hypridle (managed via systemd user unit
-        // hypridle.service). hypridle has `inhibit_sleep = 3` which blocks
-        // suspend until the lock surface is secure on the compositor.
-        // This is the race-protection swayidle lacks.
-        // See ~/.config/hypr/hypridle.conf.
-        return
+    function _stopStaleRyokuInhibitors() {
+        Quickshell.execDetached(["/usr/bin/pkill", "-f", "^/usr/bin/systemd-inhibit --what=idle --who=Ryoku .*Ryoku caffeine mode"])
+    }
 
-        if (inhibit) return
-
-        const cmd = ["/usr/bin/swayidle", "-w"]
-        const lockBeforeSleep = Config.options?.idle?.lockBeforeSleep !== false
-
-        if (screenOffTimeout > 0) {
-            cmd.push("timeout", screenOffTimeout.toString(), "/usr/bin/niri msg action power-off-monitors", "resume", "/usr/bin/niri msg action power-on-monitors")
-        }
-
-        // Determine effective lock timeout
-        // If suspend is configured and lockBeforeSleep is enabled, ensure lock happens before suspend
-        let effectiveLockTimeout = lockTimeout
-        if (suspendTimeout > 0 && lockBeforeSleep) {
-            // Lock should happen before suspend - use 5 seconds before suspend if lockTimeout is 0 or > suspendTimeout
-            const lockBeforeSuspendTime = Math.max(1, suspendTimeout - 5)
-            if (lockTimeout <= 0 || lockTimeout > lockBeforeSuspendTime) {
-                effectiveLockTimeout = lockBeforeSuspendTime
-            }
-        }
-
-        if (effectiveLockTimeout > 0) {
-            cmd.push("timeout", effectiveLockTimeout.toString(), `'${StringUtils.shellSingleQuoteEscape(root.launcherPath)}' lock activate`)
-        }
-
-        if (suspendTimeout > 0) {
-            cmd.push("timeout", suspendTimeout.toString(), "/usr/bin/systemctl suspend -i")
-        }
-
-        if (lockBeforeSleep) {
-            cmd.push("before-sleep", `'${StringUtils.shellSingleQuoteEscape(root.launcherPath)}' lock activate`)
-        }
-
-        console.log("[Idle] Starting swayidle")
-        Quickshell.execDetached(cmd)
+    function _ensureHypridle() {
+        console.log("[Idle] Ensuring hypridle is running")
+        Quickshell.execDetached(["/usr/bin/systemctl", "--user", "start", "hypridle.service"])
     }
 
     Timer {
-        id: _startSwayidleDelayed
+        id: _ensureHypridleDelayed
         interval: 200
-        onTriggered: root._startSwayidle()
+        onTriggered: root._ensureHypridle()
+    }
+
+    Timer {
+        id: _startIdleInhibitorDelayed
+        interval: 150
+        onTriggered: {
+            if (root.inhibit)
+                root._idleInhibitorAllowed = true
+        }
+    }
+
+    Process {
+        id: _idleInhibitor
+        running: root.inhibit && root._idleInhibitorAllowed
+        command: ["/usr/bin/systemd-inhibit", "--what=idle", "--who=Ryoku", "--why=Ryoku caffeine mode", "/usr/bin/sleep", "infinity"]
+        onExited: (exitCode, exitStatus) => {
+            if (root.inhibit && root._idleInhibitorAllowed)
+                console.warn("[Idle] systemd idle inhibitor exited unexpectedly:", exitCode, exitStatus)
+        }
     }
 
     Connections {
         target: Config
         function onReadyChanged() {
-            if (Config.ready) root._restartSwayidle()
+            if (Config.ready) root._syncIdleDaemon()
         }
     }
 
@@ -104,5 +91,9 @@ Singleton {
         }
     }
 
-    Component.onDestruction: _stopSwayidle()
+    Component.onDestruction: {
+        _idleInhibitorAllowed = false
+        _stopLegacySwayidle()
+        _stopStaleRyokuInhibitors()
+    }
 }

@@ -5,7 +5,7 @@ set -e
 # Note that these are packages installed to the Arch container used to build the ISO.
 pacman-key --init
 pacman --noconfirm -Sy archlinux-keyring
-pacman --noconfirm -Sy archiso git sudo base-devel jq grub uv
+pacman --noconfirm -Sy archiso git sudo base-devel jq grub uv cairo gobject-introspection glib2 pkgconf
 
 # We do not yet ship a custom [ryoku] pacman repo / keyring (omarchy
 # parity item, but signing infrastructure is out of scope right now).
