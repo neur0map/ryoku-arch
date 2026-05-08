@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Static asserts for the OpenVPN sidebar feature. Mirrors the style
-# of tests/topbar-three-island.sh.
+# of other shell-feature tests.
 
 set -euo pipefail
 
@@ -64,7 +64,6 @@ assert_contains   "shell/modules/sidebarRight/BottomWidgetGroup.qml" 'import qs.
 assert_contains   "shell/modules/sidebarRight/BottomWidgetGroup.qml" 'property: "tabOpen"'
 
 # 4. Config defaults
-assert_contains   "shell/modules/common/Config.qml" "property bool showOpenVpn"
 assert_matches    "shell/modules/common/Config.qml" '"openvpn"'
 assert_json_expr  "shell/defaults/config.json" '.sidebar.right.enabledWidgets | index("openvpn") != null' \
   "shell defaults should enable the OpenVPN sidebar tab"

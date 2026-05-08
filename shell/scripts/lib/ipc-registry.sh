@@ -2,7 +2,7 @@
 # Auto-generated from QML IpcHandler declarations + docs/IPC.md metadata.
 # Do not edit manually.
 # Regenerate: python3 scripts/lib/generate-ipc-registry.py
-# IPC.md hash: 151dd65d0f8493ed
+# IPC.md hash: a4340394b74b797d
 # Targets: 48
 
 declare -gA IPC_TARGET_DESC=(
@@ -35,7 +35,7 @@ declare -gA IPC_TARGET_DESC=(
   [panelFamily]="Switch between panel styles. ii supports two visual styles: Material ii (default) and Waffle (Windows 11-like)."
   [recordingOsd]=""
   [region]="Region selection tools. Screenshots, OCR, recording. Draw a box, get stuff done."
-  [screenshotEvents]="Screenshot completion events. Used by the Dynamic Island to flash a brief success toast."
+  [screenshotEvents]="Screenshot completion events. Used to flash a brief screenshot success toast."
   [search]="Waffle start menu / search."
   [session]="Power menu. Logout, suspend, reboot, shutdown. The \"I'm done for today\" buttons."
   [settings]="Open the settings window. GUI config so you don't have to edit JSON like it's 2005."
@@ -44,7 +44,7 @@ declare -gA IPC_TARGET_DESC=(
   [sidebarRight]="Right sidebar (quick toggles, notepad, settings)."
   [taskview]="Waffle task view (Win+Tab style)."
   [tiling]="Tiling layout overlay. Pick or cycle through tiling presets for the current workspace."
-  [toolsMode]="Dynamic Island tools mode. Toggles a wide tools pill in the topbar center notch (Mod+S)."
+  [toolsMode]="Toolkit mode. Toggles the wide tools pill in the topbar (Mod+S)."
   [voiceSearch]="Voice search using Gemini API. Records from microphone, transcribes with Gemini, opens Google search."
   [wactionCenter]="Waffle action center (quick settings)."
   [waffleAltSwitcher]="Waffle Alt+Tab window switcher. Separate from the ii \`altSwitcher\` — supports quick-switch (first tab switches instantly, second opens UI) and no-visual-UI mode."

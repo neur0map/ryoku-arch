@@ -1,4 +1,4 @@
-echo "Restore Ryoku shell UI defaults and Mod+S Dynamic Island tools keybind"
+echo "Restore Ryoku shell UI defaults and Mod+S toolkit keybind"
 
 set -euo pipefail
 
@@ -36,7 +36,7 @@ refresh_shell_runtime_payload() {
   [[ -d $SHELL_PATH ]] || return 0
   [[ -d $DEV_SHELL ]] || return 0
 
-  echo "Refreshing Ryoku three-island shell runtime payload"
+  echo "Refreshing Ryoku shell runtime payload"
   if [[ -f $PAYLOAD_MANIFEST ]]; then
     while IFS= read -r dir; do
       [[ -n $dir ]] || continue
@@ -78,7 +78,7 @@ if [[ -f $niri_binds ]]; then
     temp_file=$(mktemp)
     awk -v launcher="$ryoku_shell_launcher" '
       /Mod\+Shift\+S[[:space:]]*\{/ && ! inserted {
-        print "    // Dynamic Island tools mode (full-bar quicktools pill)."
+        print "    // Toolkit pill (Mod+S)."
         printf "    Mod+S { spawn \"%s\" \"toolsMode\" \"toggle\"; }\n\n", launcher
         inserted = 1
       }
@@ -86,7 +86,7 @@ if [[ -f $niri_binds ]]; then
       END {
         if (!inserted) {
           print ""
-          print "    // Dynamic Island tools mode (full-bar quicktools pill)."
+          print "    // Toolkit pill (Mod+S)."
           printf "    Mod+S { spawn \"%s\" \"toolsMode\" \"toggle\"; }\n", launcher
         }
       }

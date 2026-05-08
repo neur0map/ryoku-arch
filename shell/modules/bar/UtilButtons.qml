@@ -7,8 +7,8 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 
-// Legacy bar utility row. Renders the same buttons as the Dynamic Island
-// tools pill (Mod+S), driven from the shared ToolRegistry. Visibility is
+// Legacy bar utility row. Renders the same buttons as the toolkit
+// pill (Mod+S), driven from the shared ToolRegistry. Visibility is
 // gated by the existing `bar.utilButtons.show*` flags so user settings
 // keep working.
 Item {
