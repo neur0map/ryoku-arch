@@ -50,4 +50,14 @@ assert_matches    "install/ryoku-aur.packages" '^trayscale$'
 assert_contains   "shell/modules/sidebarRight/BottomWidgetGroup.qml" "target: RyokuTailscale"
 assert_contains   "shell/modules/sidebarRight/CompactSidebarRightContent.qml" "target: RyokuTailscale"
 
+
+# 3. Sidebar status card exists and binds to RyokuTailscale state, with
+#    an Open Trayscale action that calls openTrayscale().
+assert_file       "shell/modules/sidebarRight/openvpn/TailscaleStatusCard.qml"
+assert_contains   "shell/modules/sidebarRight/openvpn/TailscaleStatusCard.qml" "RyokuTailscale.connected"
+assert_contains   "shell/modules/sidebarRight/openvpn/TailscaleStatusCard.qml" "RyokuTailscale.hostname"
+assert_contains   "shell/modules/sidebarRight/openvpn/TailscaleStatusCard.qml" "RyokuTailscale.openTrayscale()"
+assert_contains   "shell/modules/sidebarRight/openvpn/TailscaleStatusCard.qml" '"lan"'
+assert_contains   "shell/modules/sidebarRight/openvpn/TailscaleStatusCard.qml" 'buttonText: "Open Trayscale"'
+
 echo "ok: sidebar-tailscale static asserts"
