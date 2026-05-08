@@ -25,7 +25,7 @@ Singleton {
     property bool installed: false       // tailscale binary present
     property bool connected: false       // BackendState=Running && Self.Online
     property bool transitioning: false   // BackendState in {Starting, NoState}
-    property string hostname: ""         // Self.HostName
+    property string hostname: ""         // first-device hostname
     property string tailIp: ""           // first IPv4 from Self.TailscaleIPs
     property string relay: ""            // Self.Relay (DERP region code)
     property string exitNode: ""         // first peer with ExitNode=true
@@ -64,14 +64,12 @@ Singleton {
                 }
                 try {
                     const data = JSON.parse(raw)
-                    const self = data?.Self ?? {}
                     const state = data?.BackendState ?? ""
-                    root.connected = (state === "Running") && (self.Online === true)
+                    root.connected = (state === "Running") && (data?.Self?.Online === true)
                     root.transitioning = (state === "Starting") || (state === "NoState")
-                    root.hostname = self.HostName ?? ""
-                    root.tailIp = (self.TailscaleIPs && self.TailscaleIPs.length > 0)
-                                  ? self.TailscaleIPs[0] : ""
-                    root.relay = self.Relay ?? ""
+                    root.hostname = data?.Self?.HostName ?? ""
+                    root.tailIp = data?.Self?.TailscaleIPs?.[0] ?? ""
+                    root.relay = data?.Self?.Relay ?? ""
                     let exit = ""
                     const peers = data?.Peer ?? {}
                     for (const k in peers) {
@@ -84,6 +82,10 @@ Singleton {
                 } catch (e) {
                     root.connected = false
                     root.transitioning = false
+                    root.hostname = ""
+                    root.tailIp = ""
+                    root.relay = ""
+                    root.exitNode = ""
                 }
             }
         }
