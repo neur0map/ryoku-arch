@@ -632,7 +632,7 @@ Singleton {
                     }
                 }
                 property bool bottom: false // Instead of top
-                property int cornerStyle: 0 // 0: Hug | 1: Float | 2: Plain rectangle | 3: Card | 4: Three-Island (TODO: surface as configurator choice so users can pick three-island + dynamic-island bar at install time)
+                property int cornerStyle: 0 // 0: Hug, 1: Float, 2: Plain rectangle, 3: Card
                 property int customRounding: -1 // -1: use global theme rounding | 0+: override bar rounding (px)
                 property bool floatStyleShadow: true // Show shadow behind bar when cornerStyle == 1 (Float)
                 property bool borderless: false // true for no grouping of items
@@ -665,10 +665,9 @@ Singleton {
                     property bool sysTray: true
                     property bool weather: true
                     property bool taskbar: false
-                    property bool kanjiClock: true   // Three-Island only: center clock (filename historical)
-                    property bool secPulse: true     // Three-Island only: VPN/IP/listening cluster
-                    property bool dateLabel: true    // Three-Island only: day-of-week + date in left island
-                    property bool weatherIcon: true  // Three-Island only: small weather icon next to clock
+                    property bool kanjiClock: true
+                    property bool dateLabel: true
+                    property bool weatherIcon: true
                 }
                 property JsonObject modulesPlacement: JsonObject {
                     property string resources: "start"
@@ -710,19 +709,6 @@ Singleton {
                 property list<string> screenList: [] // List of names, like "eDP-1", find out with 'hyprctl monitors' command
                 property JsonObject dynamicIsland: JsonObject {
                     property bool enabled: true
-
-                    property JsonObject states: JsonObject {
-                        property bool voiceSearch: true
-                        property bool recording: true
-                        property bool timer: true
-                        property bool screenshotToast: true
-                        property bool music: true
-                    }
-
-                    // Highest to lowest. Empty = built-in default.
-                    property list<string> statePrecedence: [
-                        "voiceSearch", "recording", "timer", "screenshotToast", "music"
-                    ]
 
                     property JsonObject tools: JsonObject {
                         property bool enabled: true
@@ -769,19 +755,6 @@ Singleton {
                 property JsonObject kanjiClock: JsonObject {
                     property bool showDate: true
                     property bool useKanjiDigits: false  // opt-in 一二三 mode; off by default for readability
-                }
-                property JsonObject secPulse: JsonObject {
-                    property bool showVpn: true            // tailscale lock
-                    property bool showOpenVpn: true        // openvpn key, second indicator
-                    property bool showPublicIp: false    // opt-in: spawns curl every 5min
-                    property bool showListening: false   // opt-in: spawns ss every 30s
-                    // Shell command run when the user clicks the VPN
-                    // indicator. Default opens the Tailscale admin console.
-                    // Users can swap this for any other command, e.g.:
-                    //   nm-connection-editor
-                    //   kitty -e bash -c 'tailscale status; exec bash'
-                    //   trayscale
-                    property string vpnClickCommand: "xdg-open https://login.tailscale.com/admin/machines"
                 }
                 property JsonObject tray: JsonObject {
                     property bool monochromeIcons: true
