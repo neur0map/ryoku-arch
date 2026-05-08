@@ -113,7 +113,7 @@ Item {
     RowLayout {
         id: row
         anchors.centerIn: parent
-        spacing: 6
+        spacing: 8
 
         Repeater {
             model: root.visibleOrder
@@ -124,10 +124,14 @@ Item {
                 sourceComponent: modelData === "DIVIDER" ? dividerComp : buttonComp
 
                 readonly property real stage: root._stageFor(index)
-                opacity: stage
-                // Subtle horizontal slide outward: items > center slide in
-                // from the right, items < center from the left. Distance
-                // is small (~6px) so it reads as polish, not as travel.
+                // Stagger via scale (0.55 to 1.0) instead of opacity so
+                // icons "spawn and grow" from the row center without any
+                // fade. Combined with the small outward slide below, the
+                // ensemble reads as a fan-out from the pill's heart.
+                scale: 0.55 + 0.45 * stage
+                transformOrigin: Item.Center
+                // Subtle horizontal slide outward: items > center slide
+                // in from the right, items < center from the left.
                 readonly property real _slidePx: {
                     const n = root.visibleOrder.length;
                     if (n <= 1) return 0;

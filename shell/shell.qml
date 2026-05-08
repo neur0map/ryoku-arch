@@ -12,6 +12,7 @@
 
 import qs.modules.common
 import qs.modules.altSwitcher
+import qs.modules.bar
 import qs.modules.closeConfirm
 import qs.modules.settings
 
@@ -342,6 +343,10 @@ ShellRoot {
         onExitComplete: root.applyPendingFamily()
         onEnterComplete: root.finishFamilyTransition()
     }
+
+    // Mod+S toolkit overlay (one floating pill per monitor; the bar
+    // hides itself while GlobalStates.toolsModeOpen is true).
+    ToolsModePanel {}
 
     IpcHandler {
         target: "panelFamily"
