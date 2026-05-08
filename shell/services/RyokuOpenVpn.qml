@@ -31,7 +31,7 @@ Singleton {
     property bool openvpnInstalled: true      // false iff `openvpn` binary is missing
 
     // ── activation gates (parents flip these) ─────────────────────
-    property bool barIndicatorEnabled: Config.options?.bar?.secPulse?.showOpenVpn ?? true
+    property bool barIndicatorEnabled: Config.options?.bar?.modules?.secPulse ?? true
     property bool tabOpen: false              // OpenVpnTab sets this in onCompleted/onDestruction
     readonly property bool _statusActive: barIndicatorEnabled || tabOpen
     // Run discovery whenever we're polling at all (bar indicator on, or tab
