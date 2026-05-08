@@ -110,7 +110,6 @@ When you add a new sidebar tab, bar widget, or sidebar dialog, do not start from
 | Sidebar bottom-tab widget | `shell/modules/sidebarRight/todo/TodoWidget.qml` |
 | Sidebar tab in compact layout | `shell/modules/sidebarRight/CompactSidebarRightContent.qml` (look at `widgetSections` array) |
 | Right-sidebar dialog (modal-ish) | `shell/modules/sidebarRight/wifiNetworks/WifiDialog.qml` |
-| Bar indicator | `shell/modules/bar/threeIsland/SecPulseIndicator.qml` |
 | Hover popup | `shell/modules/bar/BatteryPopup.qml` (uses `StyledPopup`) |
 | Singleton service that polls | `shell/services/RyokuSecPulse.qml` or `RyokuOpenVpn.qml` |
 | Settings page section | `shell/modules/settings/InterfaceConfig.qml` |
@@ -167,7 +166,7 @@ Do not treat every file under `~/.config` as the same kind of state. Ryoku has p
 
 | Ownership | Examples | Update rule |
 |---|---|---|
-| Ryoku-owned | Shell QML files, services, systemd units, command launchers, polkit rules, required feature keybinds like `Mod+S` for Dynamic Island tools | Update automatically from the repo or repair with a migration |
+| Ryoku-owned | Shell QML files, services, systemd units, command launchers, polkit rules, required feature keybinds like `Mod+S` for the toolkit | Update automatically from the repo or repair with a migration |
 | User-owned | Theme choice, wallpaper, sidebar widget order, toolkit button toggles, sec-pulse visibility, app preferences, `.bashrc` | Never overwrite during update |
 | Hybrid | `~/.config/ryoku-shell/config.json`, Niri bind fragments, enabled sidebar widgets | Add missing Ryoku keys or entries, but preserve existing user values |
 | Generated | Caches, lock files, temporary update status, generated runtime artifacts | Safe to rebuild |

@@ -116,7 +116,7 @@ bind "Super+Shift+A" { spawn "inir" "region" "search"; }
 
 ### toolsMode
 
-Dynamic Island tools mode. Toggles a wide tools pill in the topbar center notch (Mod+S).
+Toolkit mode. Toggles the wide tools pill in the topbar (Mod+S).
 
 | Function | Description |
 |----------|-------------|
@@ -132,7 +132,7 @@ bind "Mod+S" { spawn "ryoku-shell" "toolsMode" "toggle"; }
 
 ### screenshotEvents
 
-Screenshot completion events. Used by the Dynamic Island to flash a brief success toast.
+Screenshot completion events. Used to flash a brief screenshot success toast.
 
 | Function | Description |
 |----------|-------------|
