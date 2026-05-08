@@ -37,6 +37,15 @@ assert_matches() {
   grep -qE "$re" "$ROOT_DIR/$path" || fail "$path should match regex: $re"
 }
 
+assert_json_expr() {
+  local path="$1"
+  local jq_expr="$2"
+  local message="$3"
+
+  assert_file "$path"
+  jq -e "$jq_expr" "$ROOT_DIR/$path" >/dev/null || fail "$message"
+}
+
 # 1. Service singleton
 assert_file       "shell/services/RyokuOpenVpn.qml"
 assert_contains   "shell/services/qmldir" "singleton RyokuOpenVpn 1.0 RyokuOpenVpn.qml"
@@ -57,6 +66,8 @@ assert_contains   "shell/modules/sidebarRight/BottomWidgetGroup.qml" 'property: 
 # 4. Config defaults
 assert_contains   "shell/modules/common/Config.qml" "property bool showOpenVpn"
 assert_matches    "shell/modules/common/Config.qml" '"openvpn"'
+assert_json_expr  "shell/defaults/config.json" '.sidebar.right.enabledWidgets | index("openvpn") != null' \
+  "shell defaults should enable the OpenVPN sidebar tab"
 
 # 5. Bar second indicator
 assert_contains   "shell/modules/bar/threeIsland/SecPulseIndicator.qml" "ovpnItem"

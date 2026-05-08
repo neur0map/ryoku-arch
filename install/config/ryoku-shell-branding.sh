@@ -152,6 +152,137 @@ merge_config_overrides() {
   mv "$temp_file" "$config_file"
 }
 
+apply_ryoku_owned_shell_defaults_to_file() {
+  local file="$1"
+  local temp_file
+
+  [[ -f $file ]] || return 0
+
+  if ryoku-cmd-missing jq; then
+    return 0
+  fi
+
+  temp_file=$(mktemp)
+  jq '
+    def append_once($value):
+      if index($value) then . else . + [$value] end;
+    def widgets:
+      ["dashboard", "calendar", "events", "todo", "notepad", "calculator", "sysmon", "timer"];
+    .bar.cornerStyle = 4
+    | .bar.modules.kanjiClock = (.bar.modules.kanjiClock // true)
+    | .bar.modules.secPulse = (.bar.modules.secPulse // true)
+    | .bar.modules.dateLabel = (.bar.modules.dateLabel // true)
+    | .bar.modules.weatherIcon = (.bar.modules.weatherIcon // true)
+    | .bar.dynamicIsland.enabled = (.bar.dynamicIsland.enabled // true)
+    | .bar.dynamicIsland.states.voiceSearch = (.bar.dynamicIsland.states.voiceSearch // true)
+    | .bar.dynamicIsland.states.recording = (.bar.dynamicIsland.states.recording // true)
+    | .bar.dynamicIsland.states.timer = (.bar.dynamicIsland.states.timer // true)
+    | .bar.dynamicIsland.states.screenshotToast = (.bar.dynamicIsland.states.screenshotToast // true)
+    | .bar.dynamicIsland.states.music = (.bar.dynamicIsland.states.music // true)
+    | .bar.dynamicIsland.statePrecedence = (.bar.dynamicIsland.statePrecedence // ["voiceSearch", "recording", "timer", "screenshotToast", "music"])
+    | .bar.dynamicIsland.tools.enabled = (.bar.dynamicIsland.tools.enabled // true)
+    | .bar.dynamicIsland.tools.keybind = (.bar.dynamicIsland.tools.keybind // "Mod+S")
+    | .bar.dynamicIsland.tools.order = (.bar.dynamicIsland.tools.order // ["screenshot", "record", "lens", "colorPicker", "musicRecognize", "micToggle", "osk", "DIVIDER", "caffeine", "notepad", "screenCast", "darkMode", "powerProfile"])
+    | .bar.dynamicIsland.tools.buttons.screenshot = (.bar.dynamicIsland.tools.buttons.screenshot // true)
+    | .bar.dynamicIsland.tools.buttons.record = (.bar.dynamicIsland.tools.buttons.record // true)
+    | .bar.dynamicIsland.tools.buttons.lens = (.bar.dynamicIsland.tools.buttons.lens // true)
+    | .bar.dynamicIsland.tools.buttons.colorPicker = (.bar.dynamicIsland.tools.buttons.colorPicker // true)
+    | .bar.dynamicIsland.tools.buttons.musicRecognize = (.bar.dynamicIsland.tools.buttons.musicRecognize // true)
+    | .bar.dynamicIsland.tools.buttons.micToggle = (.bar.dynamicIsland.tools.buttons.micToggle // true)
+    | .bar.dynamicIsland.tools.buttons.osk = (.bar.dynamicIsland.tools.buttons.osk // true)
+    | .bar.dynamicIsland.tools.buttons.caffeine = (.bar.dynamicIsland.tools.buttons.caffeine // true)
+    | .bar.dynamicIsland.tools.buttons.notepad = (.bar.dynamicIsland.tools.buttons.notepad // true)
+    | .bar.dynamicIsland.tools.buttons.screenCast = (.bar.dynamicIsland.tools.buttons.screenCast // false)
+    | .bar.dynamicIsland.tools.buttons.darkMode = (.bar.dynamicIsland.tools.buttons.darkMode // true)
+    | .bar.dynamicIsland.tools.buttons.powerProfile = (.bar.dynamicIsland.tools.buttons.powerProfile // false)
+    | .bar.dynamicIsland.tools.autoCloseAfterAction = (.bar.dynamicIsland.tools.autoCloseAfterAction // true)
+    | .bar.dynamicIsland.tools.closeOnEsc = (.bar.dynamicIsland.tools.closeOnEsc // true)
+    | .bar.dynamicIsland.musicPopupContinuous = (.bar.dynamicIsland.musicPopupContinuous // true)
+    | .bar.kanjiClock.showDate = (.bar.kanjiClock.showDate // true)
+    | .bar.kanjiClock.useKanjiDigits = (.bar.kanjiClock.useKanjiDigits // false)
+    | .bar.secPulse.showVpn = (.bar.secPulse.showVpn // true)
+    | .bar.secPulse.showOpenVpn = (.bar.secPulse.showOpenVpn // true)
+    | .bar.secPulse.showPublicIp = (.bar.secPulse.showPublicIp // false)
+    | .bar.secPulse.showListening = (.bar.secPulse.showListening // false)
+    | .bar.secPulse.vpnClickCommand = (.bar.secPulse.vpnClickCommand // "xdg-open https://login.tailscale.com/admin/machines")
+    | .sidebar.right.enabledWidgets =
+      (((.sidebar.right.enabledWidgets // widgets) | if type == "array" then . else widgets end) | append_once("openvpn"))
+  ' "$file" >"$temp_file"
+  mv "$temp_file" "$file"
+}
+
+apply_ryoku_owned_runtime_config_to_file() {
+  local file="$1"
+  local temp_file
+
+  [[ -f $file ]] || return 0
+
+  if ryoku-cmd-missing jq; then
+    return 0
+  fi
+
+  temp_file=$(mktemp)
+  jq '
+    def append_once($value):
+      if index($value) then . else . + [$value] end;
+    def widgets:
+      ["dashboard", "calendar", "events", "todo", "notepad", "calculator", "sysmon", "timer"];
+    .bar.cornerStyle =
+      (if (.bar.dynamicIsland == null and (.bar.cornerStyle // 1) == 1) then 4 else (.bar.cornerStyle // 4) end)
+    | .bar.modules.kanjiClock = (.bar.modules.kanjiClock // true)
+    | .bar.modules.secPulse = (.bar.modules.secPulse // true)
+    | .bar.modules.dateLabel = (.bar.modules.dateLabel // true)
+    | .bar.modules.weatherIcon = (.bar.modules.weatherIcon // true)
+    | .bar.dynamicIsland.enabled = (.bar.dynamicIsland.enabled // true)
+    | .bar.dynamicIsland.states.voiceSearch = (.bar.dynamicIsland.states.voiceSearch // true)
+    | .bar.dynamicIsland.states.recording = (.bar.dynamicIsland.states.recording // true)
+    | .bar.dynamicIsland.states.timer = (.bar.dynamicIsland.states.timer // true)
+    | .bar.dynamicIsland.states.screenshotToast = (.bar.dynamicIsland.states.screenshotToast // true)
+    | .bar.dynamicIsland.states.music = (.bar.dynamicIsland.states.music // true)
+    | .bar.dynamicIsland.statePrecedence = (.bar.dynamicIsland.statePrecedence // ["voiceSearch", "recording", "timer", "screenshotToast", "music"])
+    | .bar.dynamicIsland.tools.enabled = (.bar.dynamicIsland.tools.enabled // true)
+    | .bar.dynamicIsland.tools.keybind = (.bar.dynamicIsland.tools.keybind // "Mod+S")
+    | .bar.dynamicIsland.tools.order = (.bar.dynamicIsland.tools.order // ["screenshot", "record", "lens", "colorPicker", "musicRecognize", "micToggle", "osk", "DIVIDER", "caffeine", "notepad", "screenCast", "darkMode", "powerProfile"])
+    | .bar.dynamicIsland.tools.buttons.screenshot = (.bar.dynamicIsland.tools.buttons.screenshot // true)
+    | .bar.dynamicIsland.tools.buttons.record = (.bar.dynamicIsland.tools.buttons.record // true)
+    | .bar.dynamicIsland.tools.buttons.lens = (.bar.dynamicIsland.tools.buttons.lens // true)
+    | .bar.dynamicIsland.tools.buttons.colorPicker = (.bar.dynamicIsland.tools.buttons.colorPicker // true)
+    | .bar.dynamicIsland.tools.buttons.musicRecognize = (.bar.dynamicIsland.tools.buttons.musicRecognize // true)
+    | .bar.dynamicIsland.tools.buttons.micToggle = (.bar.dynamicIsland.tools.buttons.micToggle // true)
+    | .bar.dynamicIsland.tools.buttons.osk = (.bar.dynamicIsland.tools.buttons.osk // true)
+    | .bar.dynamicIsland.tools.buttons.caffeine = (.bar.dynamicIsland.tools.buttons.caffeine // true)
+    | .bar.dynamicIsland.tools.buttons.notepad = (.bar.dynamicIsland.tools.buttons.notepad // true)
+    | .bar.dynamicIsland.tools.buttons.screenCast = (.bar.dynamicIsland.tools.buttons.screenCast // false)
+    | .bar.dynamicIsland.tools.buttons.darkMode = (.bar.dynamicIsland.tools.buttons.darkMode // true)
+    | .bar.dynamicIsland.tools.buttons.powerProfile = (.bar.dynamicIsland.tools.buttons.powerProfile // false)
+    | .bar.dynamicIsland.tools.autoCloseAfterAction = (.bar.dynamicIsland.tools.autoCloseAfterAction // true)
+    | .bar.dynamicIsland.tools.closeOnEsc = (.bar.dynamicIsland.tools.closeOnEsc // true)
+    | .bar.dynamicIsland.musicPopupContinuous = (.bar.dynamicIsland.musicPopupContinuous // true)
+    | .bar.kanjiClock.showDate = (.bar.kanjiClock.showDate // true)
+    | .bar.kanjiClock.useKanjiDigits = (.bar.kanjiClock.useKanjiDigits // false)
+    | .bar.secPulse.showVpn = (.bar.secPulse.showVpn // true)
+    | .bar.secPulse.showOpenVpn = (.bar.secPulse.showOpenVpn // true)
+    | .bar.secPulse.showPublicIp = (.bar.secPulse.showPublicIp // false)
+    | .bar.secPulse.showListening = (.bar.secPulse.showListening // false)
+    | .bar.secPulse.vpnClickCommand = (.bar.secPulse.vpnClickCommand // "xdg-open https://login.tailscale.com/admin/machines")
+    | .sidebar.right.enabledWidgets =
+      (((.sidebar.right.enabledWidgets // widgets) | if type == "array" then . else widgets end) | append_once("openvpn"))
+  ' "$file" >"$temp_file"
+  mv "$temp_file" "$file"
+}
+
+restore_ryoku_owned_shell_config() {
+  local config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/ryoku-shell"
+  local config_file="$config_dir/config.json"
+  local defaults_file
+
+  for defaults_file in "$SHELL_PATH/defaults/config.json" "$RUNTIME_SHELL_PATH/defaults/config.json"; do
+    apply_ryoku_owned_shell_defaults_to_file "$defaults_file"
+  done
+
+  apply_ryoku_owned_runtime_config_to_file "$config_file"
+}
+
 merge_default_config_overrides() {
   local defaults_file temp_file
 
@@ -180,6 +311,7 @@ main() {
   apply_installed_labels
   merge_default_config_overrides
   merge_config_overrides
+  restore_ryoku_owned_shell_config
 
   log "applied"
 }
