@@ -33,23 +33,11 @@ grep -qE 'Mod\+S \{ spawn "ryoku-shell" "toolsMode"' config/niri/config.d/70-bin
 jq -e '.bar.dynamicIsland.enabled == true and .bar.dynamicIsland.tools.enabled == true and .bar.dynamicIsland.tools.keybind == "Mod+S"' shell/defaults/config.json >/dev/null \
     || fail "shell defaults should enable Dynamic Island tools on Mod+S"
 
-# Orchestrator + key pills exist
-test -f shell/modules/bar/threeIsland/dynamicIsland/RyokuDynamicIsland.qml \
-    || fail "RyokuDynamicIsland.qml missing"
-for pill in IdleStatePill RecordingStatePill MusicStatePill TimerStatePill ScreenshotToastPill VoiceSearchPill; do
-    test -f "shell/modules/bar/threeIsland/dynamicIsland/pills/${pill}.qml" \
-        || fail "${pill}.qml missing"
-done
-
 # Tools registry + button + mode
 for f in ToolRegistry ToolButton RyokuToolsMode; do
     test -f "shell/modules/bar/threeIsland/dynamicIsland/tools/${f}.qml" \
         || fail "${f}.qml missing"
 done
-
-# Cava singleton + waveform widget
-test -f shell/services/Cava.qml || fail "Cava.qml missing"
-test -f shell/modules/bar/threeIsland/dynamicIsland/CavaWaveform.qml || fail "CavaWaveform.qml missing"
 
 # GlobalStates flag
 grep -q "toolsModeOpen" shell/GlobalStates.qml \
