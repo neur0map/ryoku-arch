@@ -395,7 +395,6 @@
       "utilButtons": true,
       "weather": true,
       "kanjiClock": true,
-      "secPulse": true,
       "dateLabel": true,
       "weatherIcon": true,
       "workspaces": true
@@ -477,13 +476,6 @@
     "kanjiClock": {
       "showDate": true,
       "useKanjiDigits": false
-    },
-    "secPulse": {
-      "showVpn": true,
-      "showOpenVpn": true,
-      "showPublicIp": false,
-      "showListening": false,
-      "vpnClickCommand": "xdg-open https://login.tailscale.com/admin/machines"
     },
     "screenList": [],
     "showBackground": true,
