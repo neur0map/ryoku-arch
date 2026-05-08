@@ -64,25 +64,17 @@ Item {
         }
     }
 
-    // Two separately-paced progresses so the notch finishes growing BEFORE
-    // (or at the same time as) the icon content lands. Otherwise icons
-    // appear fully visible inside a still-growing notch.
+    // Notch width is driven SOLELY by the parent's centerNotchWidth
+    // Behavior (320ms OutBack 1.6). The orchestrator just reports the new
+    // target implicitWidth instantly when toolsModeOpen flips; the parent
+    // animates from there. Animating implicitWidth here too caused
+    // compound easing — the visible notch took noticeably longer than
+    // 320ms to settle, so icons (timed against 320ms) landed early.
     //
-    //   _widthProgress  : drives notch width interpolation. Matches the
-    //                     parent's centerNotchWidth Behavior (320ms OutBack
-    //                     1.6) so the orchestrator's implicitWidth and the
-    //                     visible notch animate in sync.
-    //   _contentProgress: drives tools-row opacity + vertical slide.
-    //                     Delayed 120ms when opening so the notch has a head
-    //                     start, then bounces in over 200ms (OutBack 1.4).
-    //                     On close, snaps to 0 immediately so icons fade
-    //                     out FIRST, then the empty notch retracts.
-    property real _widthProgress: GlobalStates.toolsModeOpen ? 1.0 : 0.0
-    Behavior on _widthProgress {
-        enabled: Appearance.animationsEnabled
-        NumberAnimation { duration: 320; easing.type: Easing.OutBack; easing.overshoot: 1.6 }
-    }
-
+    // _contentProgress drives tools-row opacity + vertical slide. Delayed
+    // 280ms when opening (just before the notch's 320ms OutBack settles),
+    // then bounces in over 200ms (OutBack 1.4). On close, snaps to 0
+    // immediately so icons fade out FIRST, then the empty notch retracts.
     property real _contentProgress: 0.0
     Behavior on _contentProgress {
         enabled: Appearance.animationsEnabled
@@ -90,9 +82,11 @@ Item {
     }
     Timer {
         id: _contentDelayTimer
-        // Wait until the notch is far enough into its grow animation that
-        // the icons land in (not before) the rough final shape.
-        interval: 180
+        // Wait for the notch to be mostly settled. The parent's centerNotchWidth
+        // OutBack 1.6 Behavior overshoots around 240ms then settles by ~320ms.
+        // Starting at 280ms catches the tail end of the bounce — icons appear
+        // as the notch lands rather than while it's still expanding.
+        interval: 280
         onTriggered: root._contentProgress = 1.0
     }
     Connections {
@@ -107,12 +101,13 @@ Item {
         }
     }
 
-    // Width interpolates from the state pill's natural width to the tools
-    // row's natural width, weighted by _widthProgress. The bar's
-    // centerNotchWidth Behavior smooths this further with OutBack overshoot.
+    // implicitWidth jumps instantly between state-pill width and tools-row
+    // width when toolsModeOpen flips. The parent's centerNotchWidth
+    // Behavior owns the smooth animation so the visible notch settles in
+    // exactly 320ms.
     readonly property real _stateWidth: pillLoader.item ? pillLoader.item.implicitWidth : 0
     readonly property real _toolsWidth: toolsLoader.item ? toolsLoader.item.implicitWidth : _stateWidth
-    implicitWidth: _stateWidth + (_toolsWidth - _stateWidth) * _widthProgress
+    implicitWidth: GlobalStates.toolsModeOpen ? _toolsWidth : _stateWidth
 
     // Layer A: regular state pills (idle, recording, music, ...).
     // Fades out with the icon content (matches the close: icons go first,
@@ -135,7 +130,7 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
         anchors.verticalCenterOffset: (1.0 - root._contentProgress) * -14
-        active: GlobalStates.toolsModeOpen || root._contentProgress > 0.01 || root._widthProgress > 0.01
+        active: GlobalStates.toolsModeOpen || root._contentProgress > 0.01
         sourceComponent: toolsComponent
         visible: root._contentProgress > 0.01 || GlobalStates.toolsModeOpen
         onItemChanged: if (item) item.progress = Qt.binding(() => root._contentProgress)
