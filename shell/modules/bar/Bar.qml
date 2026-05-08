@@ -12,7 +12,6 @@ import qs.services
 import qs.modules.common
 import qs.modules.common.widgets
 import qs.modules.common.functions
-import qs.modules.bar.threeIsland
 
 Scope {
     id: bar
@@ -118,9 +117,6 @@ Scope {
                     Loader {
                         id: barContent
 
-                        readonly property bool useThreeIsland: (Config.options?.bar?.cornerStyle === 4)
-                            && !(Config.options?.bar?.bottom ?? false)
-                            && !(Config.options?.bar?.vertical ?? false)
                         readonly property var blendedColors: barContent.item?.blendedColors ?? null
                         readonly property string wallpaperUrl: barContent.item?.wallpaperUrl ?? ""
 
@@ -143,15 +139,11 @@ Scope {
                             animation: NumberAnimation { duration: Appearance.animation.elementMoveEnter.duration; easing.type: Appearance.animation.elementMoveEnter.type; easing.bezierCurve: Appearance.animation.elementMoveEnter.bezierCurve }
                         }
 
-                        sourceComponent: barContent.useThreeIsland ? threeIslandContentComponent : barContentComponent
+                        sourceComponent: barContentComponent
 
                         Component {
                             id: barContentComponent
                             BarContent {}
-                        }
-                        Component {
-                            id: threeIslandContentComponent
-                            RyokuThreeIslandContent {}
                         }
 
                         states: State {
@@ -184,7 +176,7 @@ Scope {
                             bottom: undefined
                         }
                         height: Appearance.rounding.screenRounding
-                        active: showBarBackground && ((Config.options?.bar?.cornerStyle ?? 0) === 0 || (Config.options?.bar?.cornerStyle ?? 0) === 4) // Hug or Three-Island
+                        active: showBarBackground && ((Config.options?.bar?.cornerStyle ?? 0) === 0) // Hug only
 
                         states: State {
                             name: "bottom"
