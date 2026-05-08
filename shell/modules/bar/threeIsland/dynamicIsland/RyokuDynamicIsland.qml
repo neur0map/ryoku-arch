@@ -90,7 +90,9 @@ Item {
     }
     Timer {
         id: _contentDelayTimer
-        interval: 120
+        // Wait until the notch is far enough into its grow animation that
+        // the icons land in (not before) the rough final shape.
+        interval: 180
         onTriggered: root._contentProgress = 1.0
     }
     Connections {
@@ -124,9 +126,10 @@ Item {
         visible: opacity > 0.01
     }
 
-    // Layer B: tools row. Slides down from above (-14px → 0) and fades in
-    // ON the contentProgress curve, so it lands right as the notch finishes
-    // growing.
+    // Layer B: tools row. Slides down 14px from above as a whole, but the
+    // INDIVIDUAL icons fan out from the row's center horizontally on top of
+    // that — RyokuToolsMode reads `progress` and staggers each icon's
+    // opacity by distance-from-center.
     Loader {
         id: toolsLoader
         anchors.horizontalCenter: parent.horizontalCenter
@@ -134,8 +137,8 @@ Item {
         anchors.verticalCenterOffset: (1.0 - root._contentProgress) * -14
         active: GlobalStates.toolsModeOpen || root._contentProgress > 0.01 || root._widthProgress > 0.01
         sourceComponent: toolsComponent
-        opacity: Math.max(0, Math.min(1, root._contentProgress))
-        visible: opacity > 0.01
+        visible: root._contentProgress > 0.01 || GlobalStates.toolsModeOpen
+        onItemChanged: if (item) item.progress = Qt.binding(() => root._contentProgress)
     }
 
 
