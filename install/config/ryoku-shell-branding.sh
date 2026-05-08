@@ -168,18 +168,11 @@ apply_ryoku_owned_shell_defaults_to_file() {
       if index($value) then . else . + [$value] end;
     def widgets:
       ["dashboard", "calendar", "events", "todo", "notepad", "calculator", "sysmon", "timer"];
-    .bar.cornerStyle = 4
+    .bar.cornerStyle = 0
     | .bar.modules.kanjiClock = (.bar.modules.kanjiClock // true)
-    | .bar.modules.secPulse = (.bar.modules.secPulse // true)
     | .bar.modules.dateLabel = (.bar.modules.dateLabel // true)
     | .bar.modules.weatherIcon = (.bar.modules.weatherIcon // true)
     | .bar.dynamicIsland.enabled = (.bar.dynamicIsland.enabled // true)
-    | .bar.dynamicIsland.states.voiceSearch = (.bar.dynamicIsland.states.voiceSearch // true)
-    | .bar.dynamicIsland.states.recording = (.bar.dynamicIsland.states.recording // true)
-    | .bar.dynamicIsland.states.timer = (.bar.dynamicIsland.states.timer // true)
-    | .bar.dynamicIsland.states.screenshotToast = (.bar.dynamicIsland.states.screenshotToast // true)
-    | .bar.dynamicIsland.states.music = (.bar.dynamicIsland.states.music // true)
-    | .bar.dynamicIsland.statePrecedence = (.bar.dynamicIsland.statePrecedence // ["voiceSearch", "recording", "timer", "screenshotToast", "music"])
     | .bar.dynamicIsland.tools.enabled = (.bar.dynamicIsland.tools.enabled // true)
     | .bar.dynamicIsland.tools.keybind = (.bar.dynamicIsland.tools.keybind // "Mod+S")
     | .bar.dynamicIsland.tools.order = (.bar.dynamicIsland.tools.order // ["screenshot", "record", "lens", "colorPicker", "musicRecognize", "micToggle", "osk", "DIVIDER", "caffeine", "notepad", "screenCast", "darkMode", "powerProfile"])
@@ -200,11 +193,6 @@ apply_ryoku_owned_shell_defaults_to_file() {
     | .bar.dynamicIsland.musicPopupContinuous = (.bar.dynamicIsland.musicPopupContinuous // true)
     | .bar.kanjiClock.showDate = (.bar.kanjiClock.showDate // true)
     | .bar.kanjiClock.useKanjiDigits = (.bar.kanjiClock.useKanjiDigits // false)
-    | .bar.secPulse.showVpn = (.bar.secPulse.showVpn // true)
-    | .bar.secPulse.showOpenVpn = (.bar.secPulse.showOpenVpn // true)
-    | .bar.secPulse.showPublicIp = (.bar.secPulse.showPublicIp // false)
-    | .bar.secPulse.showListening = (.bar.secPulse.showListening // false)
-    | .bar.secPulse.vpnClickCommand = (.bar.secPulse.vpnClickCommand // "xdg-open https://login.tailscale.com/admin/machines")
     | .sidebar.right.enabledWidgets =
       (((.sidebar.right.enabledWidgets // widgets) | if type == "array" then . else widgets end) | append_once("openvpn"))
   ' "$file" >"$temp_file"
@@ -229,19 +217,11 @@ apply_ryoku_owned_runtime_config_to_file() {
       if getpath($path) == null then setpath($path; $value) else . end;
     def widgets:
       ["dashboard", "calendar", "events", "todo", "notepad", "calculator", "sysmon", "timer"];
-    .bar.cornerStyle =
-      (if (.bar.dynamicIsland == null and (.bar.cornerStyle == null or .bar.cornerStyle == 1)) then 4 elif .bar.cornerStyle == null then 4 else .bar.cornerStyle end)
+    .bar.cornerStyle = (.bar.cornerStyle // 0)
     | put_default(["bar", "modules", "kanjiClock"]; true)
-    | put_default(["bar", "modules", "secPulse"]; true)
     | put_default(["bar", "modules", "dateLabel"]; true)
     | put_default(["bar", "modules", "weatherIcon"]; true)
     | put_default(["bar", "dynamicIsland", "enabled"]; true)
-    | put_default(["bar", "dynamicIsland", "states", "voiceSearch"]; true)
-    | put_default(["bar", "dynamicIsland", "states", "recording"]; true)
-    | put_default(["bar", "dynamicIsland", "states", "timer"]; true)
-    | put_default(["bar", "dynamicIsland", "states", "screenshotToast"]; true)
-    | put_default(["bar", "dynamicIsland", "states", "music"]; true)
-    | put_default(["bar", "dynamicIsland", "statePrecedence"]; ["voiceSearch", "recording", "timer", "screenshotToast", "music"])
     | put_default(["bar", "dynamicIsland", "tools", "enabled"]; true)
     | put_default(["bar", "dynamicIsland", "tools", "keybind"]; "Mod+S")
     | put_default(["bar", "dynamicIsland", "tools", "order"]; ["screenshot", "record", "lens", "colorPicker", "musicRecognize", "micToggle", "osk", "DIVIDER", "caffeine", "notepad", "screenCast", "darkMode", "powerProfile"])
@@ -262,11 +242,6 @@ apply_ryoku_owned_runtime_config_to_file() {
     | put_default(["bar", "dynamicIsland", "musicPopupContinuous"]; true)
     | put_default(["bar", "kanjiClock", "showDate"]; true)
     | put_default(["bar", "kanjiClock", "useKanjiDigits"]; false)
-    | put_default(["bar", "secPulse", "showVpn"]; true)
-    | put_default(["bar", "secPulse", "showOpenVpn"]; true)
-    | put_default(["bar", "secPulse", "showPublicIp"]; false)
-    | put_default(["bar", "secPulse", "showListening"]; false)
-    | put_default(["bar", "secPulse", "vpnClickCommand"]; "xdg-open https://login.tailscale.com/admin/machines")
     | .sidebar.right.enabledWidgets =
       (((.sidebar.right.enabledWidgets // widgets) | if type == "array" then . else widgets end) | append_once("openvpn"))
   ' "$file" >"$temp_file"
