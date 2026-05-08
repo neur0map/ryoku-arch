@@ -60,4 +60,10 @@ assert_contains   "shell/modules/sidebarRight/openvpn/TailscaleStatusCard.qml" "
 assert_contains   "shell/modules/sidebarRight/openvpn/TailscaleStatusCard.qml" '"lan"'
 assert_contains   "shell/modules/sidebarRight/openvpn/TailscaleStatusCard.qml" 'buttonText: "Open Trayscale"'
 
+# 4. OpenVpnTab instantiates TailscaleStatusCard and renders a Tailscale
+#    not-installed stub gated on RyokuTailscale.installed.
+assert_contains   "shell/modules/sidebarRight/openvpn/OpenVpnTab.qml" "TailscaleStatusCard {"
+assert_contains   "shell/modules/sidebarRight/openvpn/OpenVpnTab.qml" "RyokuTailscale.installed"
+assert_contains   "shell/modules/sidebarRight/openvpn/OpenVpnTab.qml" "Tailscale not installed"
+
 echo "ok: sidebar-tailscale static asserts"

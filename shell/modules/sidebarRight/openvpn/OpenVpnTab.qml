@@ -45,6 +45,44 @@ Item {
         anchors.margins: 14
         spacing: 12
 
+        // tailscale-not-installed stub
+        Rectangle {
+            visible: !RyokuTailscale.installed
+            Layout.fillWidth: true
+            Layout.preferredHeight: tsStubCol.implicitHeight + 24
+            color: Appearance.colors.colLayer2
+            radius: Appearance.rounding.normal
+            ColumnLayout {
+                id: tsStubCol
+                anchors.fill: parent
+                anchors.margins: 12
+                spacing: 4
+                RowLayout {
+                    spacing: 6
+                    MaterialSymbol {
+                        text: "warning_amber"
+                        iconSize: Appearance.font.pixelSize.normal
+                        color: Appearance.colors.colSubtext
+                    }
+                    StyledText {
+                        text: "Tailscale not installed"
+                        font.weight: Font.Bold
+                        color: Appearance.colors.colOnLayer2
+                    }
+                }
+                StyledText {
+                    text: "Install with: pacman -S tailscale"
+                    color: Appearance.colors.colSubtext
+                    font.pixelSize: Appearance.font.pixelSize.small
+                }
+            }
+        }
+
+        // Tailscale status card (only when installed).
+        TailscaleStatusCard {
+            visible: RyokuTailscale.installed
+        }
+
         // openvpn-not-installed stub
         Rectangle {
             visible: !RyokuOpenVpn.openvpnInstalled
