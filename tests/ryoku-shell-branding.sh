@@ -99,6 +99,65 @@ assert_shell_overlay() {
     "Ryoku shell overlay should not print upstream shell branding"
 }
 
+assert_shell_overlay_preserves_false_settings() {
+  local tmp_dir="$ROOT_DIR/tmp/ryoku-shell-branding-test"
+  local test_home="$tmp_dir/user"
+  local config_file="$test_home/.config/ryoku-shell/config.json"
+
+  rm -rf "$tmp_dir"
+  mkdir -p "$test_home/.config/ryoku-shell"
+  mkdir -p "$tmp_dir/shell/defaults"
+  mkdir -p "$tmp_dir/runtime/defaults"
+
+  cp "$ROOT_DIR/shell/defaults/config.json" "$tmp_dir/shell/defaults/config.json"
+  cp "$ROOT_DIR/shell/defaults/config.json" "$tmp_dir/runtime/defaults/config.json"
+  cat >"$config_file" <<'JSON'
+{
+  "bar": {
+    "cornerStyle": 4,
+    "dynamicIsland": {
+      "tools": {
+        "buttons": {
+          "darkMode": false,
+          "osk": false
+        }
+      }
+    },
+    "secPulse": {
+      "showVpn": false,
+      "showOpenVpn": false,
+      "showPublicIp": false,
+      "showListening": false
+    }
+  },
+  "sidebar": {
+    "right": {
+      "enabledWidgets": ["todo"]
+    }
+  }
+}
+JSON
+
+  HOME="$test_home" \
+    XDG_CONFIG_HOME="$test_home/.config" \
+    RYOKU_PATH="$ROOT_DIR" \
+    RYOKU_SHELL_PATH="$tmp_dir/shell" \
+    RYOKU_SHELL_RUNTIME_PATH="$tmp_dir/runtime" \
+    bash "$ROOT_DIR/install/config/ryoku-shell-branding.sh" >/dev/null
+
+  jq -e '
+    .bar.dynamicIsland.tools.buttons.darkMode == false
+    and .bar.dynamicIsland.tools.buttons.osk == false
+    and .bar.secPulse.showVpn == false
+    and .bar.secPulse.showOpenVpn == false
+    and .bar.secPulse.showPublicIp == false
+    and .bar.secPulse.showListening == false
+    and (.sidebar.right.enabledWidgets | index("openvpn") != null)
+  ' "$config_file" >/dev/null || fail "Ryoku shell overlay should preserve explicit false user settings"
+
+  rm -rf "$tmp_dir"
+}
+
 assert_install_wiring() {
   assert_not_contains "install/config/theme.sh" 'ryoku-theme-set' \
     "Fresh install theme setup should not force a Ryoku color theme"
@@ -130,6 +189,7 @@ assert_credit_kept() {
 
 assert_ryoku_theme
 assert_shell_overlay
+assert_shell_overlay_preserves_false_settings
 assert_install_wiring
 assert_runtime_labels
 assert_credit_kept
