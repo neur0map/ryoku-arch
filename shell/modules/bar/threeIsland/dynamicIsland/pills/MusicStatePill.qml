@@ -6,13 +6,14 @@ import qs.modules.bar.threeIsland.dynamicIsland
 import QtQuick
 import QtQuick.Layouts
 
-// Compact music indicator: subtle gradient pill + CAVA waveform. The full
-// title / artist / album live in the hover tooltip + the media controls
-// popup that opens on left-click. Keeps the idle bar from getting bloated
-// by a scrolling marquee.
+// Compact music indicator inspired by Brain_Shell's PlayerCard waveform:
+// 32 dense bars rooted to the bottom, each bar's height + opacity scaling
+// with its band amplitude. No title text in the pill, no leading icon.
+// Title / artist / album are in the hover tooltip and the floating media
+// controls popup (left-click).
 Item {
     id: root
-    implicitWidth: content.implicitWidth + 24
+    implicitWidth: waveform.implicitWidth + 24
     implicitHeight: Appearance.sizes.barHeight
 
     readonly property color colPrimary: Appearance.ryokuEverywhere
@@ -29,36 +30,22 @@ Item {
         radius: height / 2
         gradient: Gradient {
             orientation: Gradient.Horizontal
-            GradientStop { position: 0.0; color: Qt.rgba(root.colPrimary.r, root.colPrimary.g, root.colPrimary.b, 0.12) }
-            GradientStop { position: 1.0; color: Qt.rgba(root.colPrimary.r, root.colPrimary.g, root.colPrimary.b, 0.22) }
+            GradientStop { position: 0.0; color: Qt.rgba(root.colPrimary.r, root.colPrimary.g, root.colPrimary.b, 0.10) }
+            GradientStop { position: 1.0; color: Qt.rgba(root.colPrimary.r, root.colPrimary.g, root.colPrimary.b, 0.20) }
         }
     }
 
-    RowLayout {
-        id: content
+    CavaWaveform {
+        id: waveform
         anchors.centerIn: parent
-        spacing: 8
-
-        // Small note glyph that toggles between music_note (idle / paused
-        // glance) and pause (when actively playing). Same trick the legacy
-        // bar Media.qml uses to give the user a quick-glance state.
-        MaterialSymbol {
-            Layout.alignment: Qt.AlignVCenter
-            text: MprisController.isPlaying ? "graphic_eq" : "music_note"
-            iconSize: Appearance.font.pixelSize.normal
-            color: root.colPrimary
-            fill: 1
-        }
-
-        // CAVA waveform. Only renders bars while audio plays (Cava.bars stay
-        // at 0 when paused, so the bars sit at minBarHeight which still
-        // looks intentional, like a flatlined visualizer waiting to react).
-        CavaWaveform {
-            Layout.alignment: Qt.AlignVCenter
-            barColor: root.colPrimary
-            maxBarHeight: 18
-            minBarHeight: 2
-        }
+        barColor: root.colPrimary
+        barWidth: 2
+        spacing: 1
+        maxBarHeight: 18
+        minBarHeight: 2
+        // Flatline the bars when paused so the row stops jittering on
+        // background pulse noise.
+        active: MprisController.isPlaying
     }
 
     MouseArea {
