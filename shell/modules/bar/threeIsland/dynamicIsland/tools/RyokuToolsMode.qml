@@ -39,7 +39,56 @@ Item {
         return out;
     }
 
+    // Indices of non-DIVIDER entries in visibleOrder. Arrow keys cycle
+    // through this list; DIVIDER positions are skipped.
+    readonly property var navIndices: {
+        const out = [];
+        for (let i = 0; i < visibleOrder.length; i++) {
+            if (visibleOrder[i] !== "DIVIDER") out.push(i);
+        }
+        return out;
+    }
+
+    // Index in visibleOrder of the keyboard-focused button. -1 means no
+    // keyboard selection yet. The first arrow press selects the first
+    // button (or last, depending on direction).
+    property int focusedIndex: -1
+
+    function _moveFocus(direction) {
+        const navs = navIndices;
+        if (navs.length === 0) return;
+        if (focusedIndex < 0) {
+            focusedIndex = direction > 0 ? navs[0] : navs[navs.length - 1];
+            return;
+        }
+        const currentNavIdx = navs.indexOf(focusedIndex);
+        if (currentNavIdx < 0) {
+            focusedIndex = navs[0];
+            return;
+        }
+        const nextNavIdx = (currentNavIdx + direction + navs.length) % navs.length;
+        focusedIndex = navs[nextNavIdx];
+    }
+
+    function _activateFocused() {
+        if (focusedIndex < 0) return;
+        // Find the button delegate by walking the row's children.
+        for (let i = 0; i < row.children.length; i++) {
+            const ldr = row.children[i];
+            if (ldr && ldr.index === focusedIndex && ldr.item && ldr.item.activate) {
+                ldr.item.activate();
+                return;
+            }
+        }
+    }
+
     Component.onCompleted: root.forceActiveFocus()
+    onVisibleOrderChanged: focusedIndex = -1
+
+    Keys.onLeftPressed:  _moveFocus(-1)
+    Keys.onRightPressed: _moveFocus(+1)
+    Keys.onReturnPressed:    _activateFocused()
+    Keys.onEnterPressed:     _activateFocused()
 
     // Per-icon stage helper. Returns 0..1 for the given index based on
     // distance from the row's horizontal center. Items closer to center
@@ -106,6 +155,7 @@ Item {
                     ToolButton {
                         toolId: btnLoader.modelData
                         autoCloseAfterAction: root.autoCloseAfterAction
+                        keyboardFocused: root.focusedIndex === btnLoader.index
                         Layout.alignment: Qt.AlignVCenter
                     }
                 }

@@ -9,9 +9,19 @@ Item {
     id: root
     required property string toolId
     required property bool autoCloseAfterAction
+    // Set by RyokuToolsMode for the row item under arrow-key focus.
+    property bool keyboardFocused: false
 
     readonly property var entry: ToolRegistry.tools[root.toolId] ?? null
     readonly property bool isActive: entry?.activeWhen ? entry.activeWhen() : false
+
+    function activate() {
+        if (!root.entry) return;
+        root.entry.action();
+        if (root.entry.kind === "action" && root.autoCloseAfterAction) {
+            GlobalStates.toolsModeOpen = false;
+        }
+    }
 
     implicitWidth: 32
     implicitHeight: 32
@@ -19,9 +29,13 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: width / 2
-        color: mouseArea.containsMouse
-            ? Appearance.colors.colLayer3Hover
-            : (root.isActive ? Appearance.colors.colLayer3 : "transparent")
+        color: root.keyboardFocused
+            ? Appearance.colors.colLayer3Active
+            : (mouseArea.containsMouse
+                ? Appearance.colors.colLayer3Hover
+                : (root.isActive ? Appearance.colors.colLayer3 : "transparent"))
+        border.width: root.keyboardFocused ? 1 : 0
+        border.color: Appearance.colors.colOnLayer2
 
         Behavior on color { ColorAnimation { duration: 120 } }
     }
@@ -40,13 +54,7 @@ Item {
         id: mouseArea
         anchors.fill: parent
         hoverEnabled: true
-        onClicked: {
-            if (!root.entry) return;
-            root.entry.action();
-            if (root.entry.kind === "action" && root.autoCloseAfterAction) {
-                GlobalStates.toolsModeOpen = false;
-            }
-        }
+        onClicked: root.activate()
     }
 
     // PopupToolTip's parentHoverState defaults to true when the parent has
