@@ -55,7 +55,6 @@ singleton Privacy 1.0 Privacy.qml
 singleton RecorderStatus 1.0 RecorderStatus.qml
 singleton RedditService 1.0 RedditService.qml
 singleton ResourceUsage 1.0 ResourceUsage.qml
-singleton RyokuSecPulse 1.0 RyokuSecPulse.qml
 singleton RyokuOpenVpn 1.0 RyokuOpenVpn.qml
 singleton SessionWarnings 1.0 SessionWarnings.qml
 singleton ShellUpdates 1.0 ShellUpdates.qml
