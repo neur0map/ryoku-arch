@@ -370,7 +370,7 @@
     },
     "borderless": true,
     "bottom": false,
-    "cornerStyle": 4,
+    "cornerStyle": 0,
     "customRounding": -1,
     "edgeModulesLayout": {
       "leftOrder": ["leftSidebarButton", "activeWindow"],
@@ -437,20 +437,6 @@
     },
     "dynamicIsland": {
       "enabled": true,
-      "states": {
-        "voiceSearch": true,
-        "recording": true,
-        "timer": true,
-        "screenshotToast": true,
-        "music": true
-      },
-      "statePrecedence": [
-        "voiceSearch",
-        "recording",
-        "timer",
-        "screenshotToast",
-        "music"
-      ],
       "tools": {
         "enabled": true,
         "keybind": "Mod+S",
