@@ -21,7 +21,11 @@ Item {
     function activate() {
         if (!root.entry) return;
         root.entry.action();
-        if (root.entry.kind === "action" && root.autoCloseAfterAction) {
+        // Auto-close after action unless the entry opts out via keepOpen
+        // (e.g. musicRecognize, where the user wants to watch the listening
+        // halo pulse without the tools row vanishing).
+        const keepOpen = root.entry.keepOpen ?? false;
+        if (root.entry.kind === "action" && root.autoCloseAfterAction && !keepOpen) {
             GlobalStates.toolsModeOpen = false;
         }
     }

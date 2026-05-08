@@ -53,6 +53,10 @@ Singleton {
             icon: "graphic_eq",
             label: "Recognize music",
             kind: "action",
+            // Recognition runs for several seconds in the background. Keep
+            // the tools row open so the user can watch the active halo
+            // pulse while it listens, instead of the row closing on click.
+            keepOpen: true,
             action: () => SongRec.toggleRunning(true),
             activeWhen: () => SongRec.running
         },
