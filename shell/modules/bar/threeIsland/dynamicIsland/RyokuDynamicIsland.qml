@@ -36,6 +36,9 @@ Item {
     // 250ms debounce so rapid state flapping (e.g. track transitions) does
     // not cause visible thrashing. Only morph after the new state has been
     // stable for the debounce interval.
+    //
+    // EXCEPTION: state transitions involving "tools" (Mod+S) bypass the
+    // debounce because they are user-driven and any delay feels laggy.
     property string _debouncedState: "idle"
 
     Timer {
@@ -45,7 +48,17 @@ Item {
         onTriggered: root._debouncedState = root.activeState
     }
 
-    onActiveStateChanged: debounceTimer.restart()
+    onActiveStateChanged: {
+        // Bypass debounce for deliberate user actions (tools mode in/out).
+        // The previous state cannot be stale here because activeState is
+        // recomputed reactively on every signal from the underlying singletons.
+        if (root.activeState === "tools" || root._debouncedState === "tools") {
+            debounceTimer.stop();
+            root._debouncedState = root.activeState;
+            return;
+        }
+        debounceTimer.restart();
+    }
 
     function _componentFor(state) {
         switch (state) {

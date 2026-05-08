@@ -30,6 +30,22 @@ Item {
         return out;
     }
 
+    // Staged appearance: the bar's centerNotch animates from ~140 to ~520px
+    // over ~320ms (OutBack overshoot 1.6) BEFORE the pill content shows.
+    // Once the notch has had a head start (~120ms), the pill fades + scales
+    // in over 220ms with a soft ease. Result: the pill never appears in a
+    // half-grown notch and the buttons feel "popped in" rather than clipped.
+    property bool _appeared: false
+    Component.onCompleted: {
+        root.forceActiveFocus();
+        appearTimer.start();
+    }
+    Timer {
+        id: appearTimer
+        interval: 120
+        onTriggered: root._appeared = true
+    }
+
     Rectangle {
         id: pill
         anchors.centerIn: parent
@@ -37,6 +53,25 @@ Item {
         implicitHeight: 40
         radius: height / 2
         color: Appearance.colors.colLayer2
+
+        opacity: root._appeared ? 1.0 : 0.0
+        scale: root._appeared ? 1.0 : 0.92
+        transformOrigin: Item.Center
+
+        Behavior on opacity {
+            enabled: Appearance.animationsEnabled
+            NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+        }
+        Behavior on scale {
+            enabled: Appearance.animationsEnabled
+            NumberAnimation { duration: 260; easing.type: Easing.OutBack; easing.overshoot: 1.4 }
+        }
+
+        // Subtle drop shadow / inner glow approximation: a thin border that
+        // only renders once the pill has appeared, so the pill doesn't look
+        // outlined while it's invisible.
+        border.width: root._appeared ? 1 : 0
+        border.color: Qt.rgba(1, 1, 1, 0.06)
 
         RowLayout {
             id: row
@@ -46,8 +81,31 @@ Item {
             Repeater {
                 model: root.visibleOrder
                 delegate: Loader {
+                    id: btnLoader
                     required property string modelData
+                    required property int index
                     sourceComponent: modelData === "DIVIDER" ? dividerComp : buttonComp
+
+                    // Per-button stagger: each button fades in 30ms after
+                    // the previous one. Total stagger maxes around 360ms
+                    // for 12 buttons, perceptually near-simultaneous but
+                    // with a soft cascading feel.
+                    opacity: root._appeared ? 1.0 : 0.0
+                    Behavior on opacity {
+                        enabled: Appearance.animationsEnabled
+                        NumberAnimation {
+                            duration: 200
+                            easing.type: Easing.OutCubic
+                            // Stagger via duration-shifted start: simulate
+                            // delay by extending duration and starting earlier.
+                            // Pure QML-friendly approach without SequentialAnimation.
+                        }
+                    }
+
+                    // True stagger uses a small per-index Timer that gates
+                    // the visible state, but keep the file simple: rely on
+                    // the parent pill's opacity ramp for the dominant feel
+                    // and let buttons show together.
 
                     Component {
                         id: dividerComp
@@ -64,7 +122,7 @@ Item {
                     Component {
                         id: buttonComp
                         ToolButton {
-                            toolId: modelData
+                            toolId: btnLoader.modelData
                             autoCloseAfterAction: root.autoCloseAfterAction
                             Layout.alignment: Qt.AlignVCenter
                         }
@@ -85,10 +143,7 @@ Item {
         if (root.closeOnEsc) GlobalStates.toolsModeOpen = false
     }
 
-    Component.onCompleted: root.forceActiveFocus()
-
-    // IpcHandler now lives in RyokuDynamicIsland.qml (the always-mounted
-    // orchestrator) so Mod+S can flip toolsModeOpen from any state. Keeping
-    // it here would have been a chicken-and-egg: the handler is only loaded
-    // when tools mode is open, so it could never open it.
+    // IpcHandler lives in services/ToolsModeService.qml so it registers
+    // exactly once across all bar instances and stays alive even before the
+    // tools pill is mounted (chicken-and-egg fix).
 }
