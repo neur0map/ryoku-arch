@@ -29,7 +29,6 @@ jq
 less
 man-db
 mise
-plocate
 ripgrep
 socat
 starship
@@ -37,21 +36,16 @@ tldr
 tmux
 tree-sitter-cli
 unzip
-usage
 whois
 xdg-user-dirs
 xdg-utils
-xmlstarlet
 zoxide
 
 # ── TUI apps (terminal-rendered interactive) ──────────────────────────
-bluetui
 btop
 helix
-impala
 lazydocker
 lazygit
-wiremix
 
 # ── Terminal emulator + app launcher ──────────────────────────────────
 alacritty
@@ -81,27 +75,23 @@ docker-compose
 
 # ── GUI apps — browsers + communication ───────────────────────────────
 chromium
-signal-desktop
 
 # ── GUI apps — productivity, viewers, file manager ────────────────────
 evince
 gnome-calculator
 imv
 libqalculate
-libreoffice-fresh
 mpv
 nautilus
 nautilus-python
 obsidian
 sushi
-xournalpp
 zenity
 
 # ── GUI apps — multimedia editing & screen capture ────────────────────
 ffmpeg
 gpu-screen-recorder
 imagemagick
-kdenlive
 libnotify
 obs-studio
 x264
@@ -140,6 +130,7 @@ mesa
 mission-center
 mpv-mpris
 networkmanager
+nm-connection-editor
 niri
 pacman-contrib
 papirus-icon-theme
