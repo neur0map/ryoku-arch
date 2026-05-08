@@ -24,7 +24,17 @@ Singleton {
             icon: "videocam",
             label: "Screen record",
             kind: "action",
-            action: () => Quickshell.execDetached([Directories.recordScriptPath, "--fullscreen", "--sound"]),
+            // Open the existing Recorder overlay instead of starting a
+            // fullscreen capture immediately. The overlay presents region
+            // and fullscreen options plus open-folder / change-folder, and
+            // reflects RecorderStatus during a capture.
+            action: () => {
+                const open = Persistent.states.overlay.open ?? [];
+                if (!open.includes("recorder")) {
+                    Persistent.states.overlay.open = open.concat("recorder");
+                }
+                GlobalStates.overlayOpen = true;
+            },
             activeWhen: () => RecorderStatus.isRecording
         },
         lens: {
