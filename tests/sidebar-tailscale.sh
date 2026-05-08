@@ -45,4 +45,9 @@ assert_matches    "shell/services/RyokuTailscale.qml" 'property bool tabOpen'
 #     the openTrayscale() action launches.
 assert_matches    "install/ryoku-aur.packages" '^trayscale$'
 
+# 2. Both sidebar layouts drive RyokuTailscale.tabOpen in parallel with
+#    the existing RyokuOpenVpn.tabOpen Binding.
+assert_contains   "shell/modules/sidebarRight/BottomWidgetGroup.qml" "target: RyokuTailscale"
+assert_contains   "shell/modules/sidebarRight/CompactSidebarRightContent.qml" "target: RyokuTailscale"
+
 echo "ok: sidebar-tailscale static asserts"

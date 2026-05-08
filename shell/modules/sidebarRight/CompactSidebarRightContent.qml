@@ -706,6 +706,12 @@ Item {
         value: root.sections[root.activeSection]?.id === "openvpn"
     }
 
+    Binding {
+        target: RyokuTailscale
+        property: "tabOpen"
+        value: root.sections[root.activeSection]?.id === "openvpn"
+    }
+
     // ── Close dialogs when sidebar is hidden ─────────────────────
     Connections {
         target: GlobalStates

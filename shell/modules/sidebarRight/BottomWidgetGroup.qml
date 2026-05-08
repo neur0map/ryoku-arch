@@ -123,6 +123,12 @@ Rectangle {
         value: root.currentTabType === "openvpn" && !root.collapsed
     }
 
+    Binding {
+        target: RyokuTailscale
+        property: "tabOpen"
+        value: root.currentTabType === "openvpn" && !root.collapsed
+    }
+
     Behavior on implicitHeight {
         enabled: Appearance.animationsEnabled
         NumberAnimation {
