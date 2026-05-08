@@ -66,16 +66,11 @@ Item {
         }
     }
 
-    StyledToolTip {
-        text: {
-            const t = MprisController.activeTrack;
-            if (!t) return "";
-            const lines = [];
-            if (t.title)  lines.push(t.title);
-            if (t.artist) lines.push(t.artist);
-            if (t.album)  lines.push(t.album);
-            return lines.join("\n");
-        }
-        extraVisibleCondition: mouseArea.containsMouse
+    // Rich hover popup: album art + track metadata. Replaces the plain text
+    // tooltip we had before. Works for any MPRIS player including browser
+    // players (Firefox / Chrome with plasma-browser-integration provide an
+    // https thumbnail URL via trackArtUrl).
+    MusicHoverPopup {
+        hoverTarget: mouseArea
     }
 }
