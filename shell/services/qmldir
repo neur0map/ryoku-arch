@@ -1,6 +1,9 @@
 module qs.services
 singleton AwwwBackend 1.0 AwwwBackend.qml
 singleton Ai 1.0 Ai.qml
+singleton Cava 1.0 Cava.qml
+singleton ScreenshotEvents 1.0 ScreenshotEvents.qml
+singleton ToolsModeService 1.0 ToolsModeService.qml
 singleton AnimeService 1.0 AnimeService.qml
 singleton AppCatalog 1.0 AppCatalog.qml
 singleton AppLauncher 1.0 AppLauncher.qml

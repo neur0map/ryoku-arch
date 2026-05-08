@@ -24,6 +24,7 @@ means `Alt`.
 | `Mod+Space` | Toggle app launcher / shell overview. |
 | `Mod+V` | Toggle clipboard history. |
 | `Mod+Alt+L` | Lock the session. |
+| `Mod+S` | Toggle Dynamic Island tools mode (screenshot, record, lens, color picker, mic, OSK, caffeine, ...). |
 | `Mod+Shift+S` | Region screenshot. |
 | `Mod+Shift+X` | Region OCR. |
 | `Mod+Shift+A` | Region web search. |

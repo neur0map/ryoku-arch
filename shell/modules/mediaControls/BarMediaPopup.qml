@@ -21,7 +21,11 @@ Item {
     readonly property real widgetWidth: Appearance.sizes.mediaControlsWidth
     readonly property real widgetHeight: Appearance.sizes.mediaControlsHeight
     property real popupRounding: Appearance.rounding.normal
-    
+    // Continuous expansion: when true, the popup is rendered to visually
+    // emerge from the bar (one corner flat to merge with island).
+    property bool continuous: false
+    property bool barAtBottom: false
+
     // Cache to prevent flickering during track transitions
     property var _playerCache: []
     property bool _cacheValid: false

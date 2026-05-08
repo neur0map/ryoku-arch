@@ -111,14 +111,26 @@ Scope {
                 height: playerColumnLayout.implicitHeight
                 anchors.horizontalCenter: parent.horizontalCenter
 
-                // Use screen height for reliable off-screen position
+                // Anchor the panel near the bar so it visually attaches to
+                // the music pill rather than floating up from the dock.
+                //   bar at top    -> drop down from above the screen, land
+                //                    just below the bar (Dynamic Island feel).
+                //   bar at bottom -> slide up from below, land above the dock
+                //                    (legacy behavior, dock is still relevant).
+                readonly property bool barAtBottom: Config.options?.bar?.bottom ?? false
                 readonly property real screenH: mediaControlsRoot.screen?.height ?? 1080
-                readonly property real targetY: screenH - height - root.dockHeight - root.dockMargin - 5
+                readonly property real barHeight: Appearance.sizes.barHeight ?? 36
+                readonly property real topGap: Appearance.sizes.elevationMargin + 6
 
-                y: screenH + 50
+                readonly property real targetY: barAtBottom
+                    ? (screenH - height - root.dockHeight - root.dockMargin - 5)
+                    : (barHeight + topGap)
+
+                // Initial off-screen position depends on direction.
+                y: barAtBottom ? (screenH + 50) : (-height - 50)
                 opacity: 0
-                scale: 0.9
-                transformOrigin: Item.Bottom
+                scale: 0.92
+                transformOrigin: barAtBottom ? Item.Bottom : Item.Top
 
                 states: State {
                     name: "visible"

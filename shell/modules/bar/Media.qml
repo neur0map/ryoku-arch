@@ -175,7 +175,9 @@ Item {
                 id: mediaPopupContent
                 anchors.centerIn: parent
                 onCloseRequested: root.barMediaPopupVisible = false
-                
+                continuous: Config.options?.bar?.dynamicIsland?.musicPopupContinuous ?? true
+                barAtBottom: Config.options?.bar?.bottom ?? false
+
                 // Entry/exit animation
                 opacity: root.barMediaPopupVisible ? 1 : 0
                 scale: root.barMediaPopupVisible ? 1 : 0.9

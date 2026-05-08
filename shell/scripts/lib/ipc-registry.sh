@@ -2,8 +2,8 @@
 # Auto-generated from QML IpcHandler declarations + docs/IPC.md metadata.
 # Do not edit manually.
 # Regenerate: python3 scripts/lib/generate-ipc-registry.py
-# IPC.md hash: f3dd1f8bcde8479a
-# Targets: 45
+# IPC.md hash: 151dd65d0f8493ed
+# Targets: 48
 
 declare -gA IPC_TARGET_DESC=(
   [ai]="AI chat service. Multi-provider (Gemini, OpenAI, Mistral) with tool support."
@@ -33,7 +33,9 @@ declare -gA IPC_TARGET_DESC=(
   [overview]="Toggle the workspace overview panel. The one with all your windows looking tiny and organized."
   [packageSearch]="Package search service. Searches pacman repos and installed packages."
   [panelFamily]="Switch between panel styles. ii supports two visual styles: Material ii (default) and Waffle (Windows 11-like)."
+  [recordingOsd]=""
   [region]="Region selection tools. Screenshots, OCR, recording. Draw a box, get stuff done."
+  [screenshotEvents]="Screenshot completion events. Used by the Dynamic Island to flash a brief success toast."
   [search]="Waffle start menu / search."
   [session]="Power menu. Logout, suspend, reboot, shutdown. The \"I'm done for today\" buttons."
   [settings]="Open the settings window. GUI config so you don't have to edit JSON like it's 2005."
@@ -42,6 +44,7 @@ declare -gA IPC_TARGET_DESC=(
   [sidebarRight]="Right sidebar (quick toggles, notepad, settings)."
   [taskview]="Waffle task view (Win+Tab style)."
   [tiling]="Tiling layout overlay. Pick or cycle through tiling presets for the current workspace."
+  [toolsMode]="Dynamic Island tools mode. Toggles a wide tools pill in the topbar center notch (Mod+S)."
   [voiceSearch]="Voice search using Gemini API. Records from microphone, transcribes with Gemini, opens Google search."
   [wactionCenter]="Waffle action center (quick settings)."
   [waffleAltSwitcher]="Waffle Alt+Tab window switcher. Separate from the ii \`altSwitcher\` — supports quick-switch (first tab switches instantly, second opens UI) and no-visual-UI mode."
@@ -81,7 +84,9 @@ declare -gA IPC_TARGET_FAMILY=(
   [overview]="shared"
   [packageSearch]="shared"
   [panelFamily]="shared"
+  [recordingOsd]="shared"
   [region]="shared"
+  [screenshotEvents]="shared"
   [search]="waffle"
   [session]="shared"
   [settings]="shared"
@@ -90,6 +95,7 @@ declare -gA IPC_TARGET_FAMILY=(
   [sidebarRight]="shared"
   [taskview]="waffle"
   [tiling]="shared"
+  [toolsMode]="shared"
   [voiceSearch]="shared"
   [wactionCenter]="waffle"
   [waffleAltSwitcher]="waffle"
@@ -129,7 +135,9 @@ declare -gA IPC_TARGET_FUNCTIONS=(
   [overview]="toggle close open toggleReleaseInterrupt clipboardToggle actionOpen"
   [packageSearch]="search results"
   [panelFamily]="cycle set"
+  [recordingOsd]="toggle show hide"
   [region]="screenshot search googleLens ocr record recordWithSound"
+  [screenshotEvents]="captured"
   [search]="toggle close open"
   [session]="toggle close open"
   [settings]="open toggle"
@@ -138,6 +146,7 @@ declare -gA IPC_TARGET_FUNCTIONS=(
   [sidebarRight]="toggle close open"
   [taskview]="toggle close open"
   [tiling]="toggle open hide cycle showOsd promote"
+  [toolsMode]="toggle open close"
   [voiceSearch]="start stop toggle"
   [wactionCenter]="toggle"
   [waffleAltSwitcher]="open close toggle next previous"
@@ -233,12 +242,16 @@ declare -gA IPC_FUNCTION_DESC=(
   ["packageSearch:results"]="Print current search results"
   ["panelFamily:cycle"]="Cycle to next panel family (ii → waffle → ii)"
   ["panelFamily:set"]="Set specific family (\"ii\" or \"waffle\")"
+  ["recordingOsd:toggle"]=""
+  ["recordingOsd:show"]=""
+  ["recordingOsd:hide"]=""
   ["region:screenshot"]="Take a region screenshot"
   ["region:search"]="Image search (Google Lens)"
   ["region:googleLens"]="Start a region capture for Google Lens"
   ["region:ocr"]="OCR text recognition"
   ["region:record"]="Record region (no audio)"
   ["region:recordWithSound"]="Record region with audio"
+  ["screenshotEvents:captured"]="Fire a captured event with text and file path arguments"
   ["search:toggle"]="Open/close start menu"
   ["search:close"]="Close start menu"
   ["search:open"]="Open start menu"
@@ -270,6 +283,9 @@ declare -gA IPC_FUNCTION_DESC=(
   ["tiling:cycle"]="Cycle to next tiling preset (shows OSD)"
   ["tiling:showOsd"]="Flash the current tiling preset OSD"
   ["tiling:promote"]="Promote focused window to master position"
+  ["toolsMode:toggle"]="Open/close tools mode"
+  ["toolsMode:open"]="Open tools mode"
+  ["toolsMode:close"]="Close tools mode"
   ["voiceSearch:start"]="Start recording"
   ["voiceSearch:stop"]="Stop recording"
   ["voiceSearch:toggle"]="Toggle recording"
@@ -310,38 +326,43 @@ declare -gA IPC_FUNCTION_ARGS=(
   ["minimize:restore"]="<windowId>"
   ["packageSearch:search"]="<query>"
   ["panelFamily:set"]="<family>"
+  ["screenshotEvents:captured"]="<text> <path>"
   ["wallpaperSelector:toggleOnMonitor"]="<monitorName>"
 )
 
 declare -gA IPC_TARGET_EXAMPLE=(
-  [altSwitcher]='bind "Alt+Tab" { spawn "ryoku-shell" "altSwitcher" "next"; }
-bind "Alt+Shift+Tab" { spawn "ryoku-shell" "altSwitcher" "previous"; }'
-  [cheatsheet]='bind "Super+Slash" { spawn "ryoku-shell" "cheatsheet" "toggle"; }'
-  [clipboard]='bind "Super+V" { spawn "ryoku-shell" "clipboard" "toggle"; }'
-  [closeConfirm]='bind "Mod+Q" repeat=false { spawn "ryoku-shell" "close-window"; }'
-  [gamemode]='bind "Super+F12" { spawn "ryoku-shell" "gamemode" "toggle"; }'
-  [globalActions]='bind "Super+Slash" { spawn "ryoku-shell" "globalActions" "open"; }
-bind "Super+M" { spawn "ryoku-shell" "globalActions" "run" "toggle-mute"; }'
-  [keyboard]='bind "Mod+Alt+K" { spawn "ryoku-shell" "keyboard" "switchLayout"; }'
-  [lock]='bind "Super+Alt+L" allow-when-locked=true { spawn "ryoku-shell" "lock" "activate"; }'
-  [mpris]='bind "Ctrl+Mod+Space" { spawn "ryoku-shell" "mpris" "playPause"; }
-bind "Mod+Alt+N" { spawn "ryoku-shell" "mpris" "next"; }
-bind "Mod+Alt+P" { spawn "ryoku-shell" "mpris" "previous"; }'
-  [overlay]='bind "Super+G" { spawn "ryoku-shell" "overlay" "toggle"; }'
-  [overview]='bind "Mod+Space" { spawn "ryoku-shell" "overview" "toggle"; }'
-  [panelFamily]='bind "Mod+Shift+W" { spawn "ryoku-shell" "panelFamily" "cycle"; }'
-  [region]='bind "Super+Shift+S" { spawn "ryoku-shell" "region" "screenshot"; }
-bind "Super+Shift+X" { spawn "ryoku-shell" "region" "ocr"; }
-bind "Super+Shift+A" { spawn "ryoku-shell" "region" "search"; }'
-  [session]='bind "Super+Shift+E" { spawn "ryoku-shell" "session" "toggle"; }'
-  [settings]='bind "Super+Comma" { spawn "ryoku-shell" "settings"; }'
-  [voiceSearch]='bind "Super+Shift+V" { spawn "ryoku-shell" "voiceSearch" "toggle"; }'
-  [wallpaperSelector]='bind "Ctrl+Alt+T" { spawn "ryoku-shell" "wallpaperSelector" "toggle"; }'
-  [ytmusic]='bind "Mod+M+Space" { spawn "ryoku-shell" "ytmusic" "playPause"; }'
+  [altSwitcher]='bind "Alt+Tab" { spawn "inir" "altSwitcher" "next"; }
+bind "Alt+Shift+Tab" { spawn "inir" "altSwitcher" "previous"; }'
+  [cheatsheet]='bind "Super+Slash" { spawn "inir" "cheatsheet" "toggle"; }'
+  [clipboard]='bind "Super+V" { spawn "inir" "clipboard" "toggle"; }'
+  [closeConfirm]='bind "Mod+Q" repeat=false { spawn "inir" "close-window"; }'
+  [gamemode]='bind "Super+F12" { spawn "inir" "gamemode" "toggle"; }'
+  [globalActions]='bind "Super+Slash" { spawn "inir" "globalActions" "open"; }
+bind "Super+M" { spawn "inir" "globalActions" "run" "toggle-mute"; }'
+  [keyboard]='bind "Mod+Alt+K" { spawn "inir" "keyboard" "switchLayout"; }'
+  [lock]='bind "Super+Alt+L" allow-when-locked=true { spawn "inir" "lock" "activate"; }'
+  [mpris]='bind "Ctrl+Mod+Space" { spawn "inir" "mpris" "playPause"; }
+bind "Mod+Alt+N" { spawn "inir" "mpris" "next"; }
+bind "Mod+Alt+P" { spawn "inir" "mpris" "previous"; }'
+  [overlay]='bind "Super+G" { spawn "inir" "overlay" "toggle"; }'
+  [overview]='bind "Mod+Space" { spawn "inir" "overview" "toggle"; }'
+  [panelFamily]='bind "Mod+Shift+W" { spawn "inir" "panelFamily" "cycle"; }'
+  [region]='bind "Super+Shift+S" { spawn "inir" "region" "screenshot"; }
+bind "Super+Shift+X" { spawn "inir" "region" "ocr"; }
+bind "Super+Shift+A" { spawn "inir" "region" "search"; }'
+  [screenshotEvents]='# Triggered automatically by the region selector after a copy.
+# External scripts can fire it via:
+#   quickshell ipc call screenshotEvents captured "Saved" "/path/to/file.png"'
+  [session]='bind "Super+Shift+E" { spawn "inir" "session" "toggle"; }'
+  [settings]='bind "Super+Comma" { spawn "inir" "settings"; }'
+  [toolsMode]='bind "Mod+S" { spawn "ryoku-shell" "toolsMode" "toggle"; }'
+  [voiceSearch]='bind "Super+Shift+V" { spawn "inir" "voiceSearch" "toggle"; }'
+  [wallpaperSelector]='bind "Ctrl+Alt+T" { spawn "inir" "wallpaperSelector" "toggle"; }'
+  [ytmusic]='bind "Mod+M+Space" { spawn "inir" "ytmusic" "playPause"; }'
 )
 
-IPC_ALL_TARGETS=(ai altSwitcher appCatalog audio bar brightness cheatsheet clipboard cliphistService closeConfirm controlPanel coverflowSelector gamemode globalActions keyboard lock mediaControls minimize mpris notifications osd osdVolume osk overlay overview packageSearch panelFamily region search session settings shellUpdate sidebarLeft sidebarRight taskview tiling voiceSearch wactionCenter waffleAltSwitcher wallpaperSelector wbar wnotificationCenter wwidgets ytmusic zoom)
-IPC_SHARED_TARGETS=(ai altSwitcher appCatalog audio bar brightness cheatsheet clipboard cliphistService closeConfirm controlPanel coverflowSelector gamemode globalActions keyboard lock mediaControls minimize mpris notifications osdVolume osk overview packageSearch panelFamily region session settings shellUpdate sidebarLeft sidebarRight tiling voiceSearch wallpaperSelector ytmusic zoom)
+IPC_ALL_TARGETS=(ai altSwitcher appCatalog audio bar brightness cheatsheet clipboard cliphistService closeConfirm controlPanel coverflowSelector gamemode globalActions keyboard lock mediaControls minimize mpris notifications osd osdVolume osk overlay overview packageSearch panelFamily recordingOsd region screenshotEvents search session settings shellUpdate sidebarLeft sidebarRight taskview tiling toolsMode voiceSearch wactionCenter waffleAltSwitcher wallpaperSelector wbar wnotificationCenter wwidgets ytmusic zoom)
+IPC_SHARED_TARGETS=(ai altSwitcher appCatalog audio bar brightness cheatsheet clipboard cliphistService closeConfirm controlPanel coverflowSelector gamemode globalActions keyboard lock mediaControls minimize mpris notifications osdVolume osk overview packageSearch panelFamily recordingOsd region screenshotEvents session settings shellUpdate sidebarLeft sidebarRight tiling toolsMode voiceSearch wallpaperSelector ytmusic zoom)
 IPC_II_TARGETS=(overlay)
 IPC_WAFFLE_TARGETS=(osd search taskview wactionCenter waffleAltSwitcher wbar wnotificationCenter wwidgets)
 
@@ -357,9 +378,12 @@ declare -gA IPC_KEBAB_ALIASES=(
   [osd-volume]=osdVolume
   [package-search]=packageSearch
   [panel-family]=panelFamily
+  [recording-osd]=recordingOsd
+  [screenshot-events]=screenshotEvents
   [shell-update]=shellUpdate
   [sidebar-left]=sidebarLeft
   [sidebar-right]=sidebarRight
+  [tools-mode]=toolsMode
   [voice-search]=voiceSearch
   [waction-center]=wactionCenter
   [waffle-alt-switcher]=waffleAltSwitcher

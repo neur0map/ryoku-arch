@@ -708,6 +708,51 @@ Singleton {
                     property int gpuWarningThreshold: 90
                 }
                 property list<string> screenList: [] // List of names, like "eDP-1", find out with 'hyprctl monitors' command
+                property JsonObject dynamicIsland: JsonObject {
+                    property bool enabled: true
+
+                    property JsonObject states: JsonObject {
+                        property bool voiceSearch: true
+                        property bool recording: true
+                        property bool timer: true
+                        property bool screenshotToast: true
+                        property bool music: true
+                    }
+
+                    // Highest to lowest. Empty = built-in default.
+                    property list<string> statePrecedence: [
+                        "voiceSearch", "recording", "timer", "screenshotToast", "music"
+                    ]
+
+                    property JsonObject tools: JsonObject {
+                        property bool enabled: true
+                        property string keybind: "Mod+S"  // documentation only
+                        property list<string> order: [
+                            "screenshot", "record", "lens", "colorPicker", "musicRecognize",
+                            "micToggle", "osk",
+                            "DIVIDER",
+                            "caffeine", "notepad", "screenCast", "darkMode", "powerProfile"
+                        ]
+                        property JsonObject buttons: JsonObject {
+                            property bool screenshot: true
+                            property bool record: true
+                            property bool lens: true
+                            property bool colorPicker: true
+                            property bool musicRecognize: true
+                            property bool micToggle: true
+                            property bool osk: true
+                            property bool caffeine: true
+                            property bool notepad: true
+                            property bool screenCast: false
+                            property bool darkMode: true
+                            property bool powerProfile: false
+                        }
+                        property bool autoCloseAfterAction: true
+                        property bool closeOnEsc: true
+                    }
+
+                    property bool musicPopupContinuous: true
+                }
                 property JsonObject utilButtons: JsonObject {
                     property bool showScreenSnip: true
                     property bool showScreenRecord: true
@@ -1702,5 +1747,46 @@ Singleton {
                 }
             }
         }
+    }
+
+    // One-shot migration: copy legacy bar.utilButtons.show* flags into
+    // bar.dynamicIsland.tools.buttons.* so existing users get a tools row
+    // matching their current bar configuration. Runs once, after both
+    // Config and Persistent finish loading. Gated by
+    // Persistent.states.dynamicIslandMigrated.
+    Connections {
+        target: root
+        function onReadyChanged() {
+            if (root.ready) Qt.callLater(root._migrateDynamicIslandIfNeeded)
+        }
+    }
+    Connections {
+        target: Persistent
+        function onReadyChanged() {
+            if (Persistent.ready) Qt.callLater(root._migrateDynamicIslandIfNeeded)
+        }
+    }
+
+    function _migrateDynamicIslandIfNeeded() {
+        if (!root.ready || !Persistent.ready) return;
+        if (Persistent.states.dynamicIslandMigrated === true) return;
+
+        const ub = root.options?.bar?.utilButtons ?? {};
+        const map = {
+            screenshot:   ub.showScreenSnip ?? true,
+            record:       ub.showScreenRecord ?? true,
+            colorPicker:  ub.showColorPicker ?? false,
+            notepad:      ub.showNotepad ?? true,
+            osk:          ub.showKeyboardToggle ?? true,
+            micToggle:    ub.showMicToggle ?? false,
+            screenCast:   ub.showScreenCast ?? false,
+            darkMode:     ub.showDarkModeToggle ?? true,
+            powerProfile: ub.showPerformanceProfileToggle ?? false
+        };
+        for (const key in map) {
+            root.setNestedValue("bar.dynamicIsland.tools.buttons." + key, map[key]);
+        }
+        // lens, musicRecognize, caffeine are new and stay at their schema defaults (true).
+        Persistent.states.dynamicIslandMigrated = true;
     }
 }
