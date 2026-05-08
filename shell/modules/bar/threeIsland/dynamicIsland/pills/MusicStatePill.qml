@@ -6,11 +6,13 @@ import qs.modules.bar.threeIsland.dynamicIsland
 import QtQuick
 import QtQuick.Layouts
 
-// Blue pill with CAVA waveform + scrolling track title. Click toggles play/pause.
-// Right-click opens BarMediaPopup (handled by Media.qml separately).
+// Compact music indicator: subtle gradient pill + CAVA waveform. The full
+// title / artist / album live in the hover tooltip + the media controls
+// popup that opens on left-click. Keeps the idle bar from getting bloated
+// by a scrolling marquee.
 Item {
     id: root
-    implicitWidth: row.implicitWidth + 28
+    implicitWidth: content.implicitWidth + 24
     implicitHeight: Appearance.sizes.barHeight
 
     readonly property color colPrimary: Appearance.ryokuEverywhere
@@ -28,31 +30,34 @@ Item {
         gradient: Gradient {
             orientation: Gradient.Horizontal
             GradientStop { position: 0.0; color: Qt.rgba(root.colPrimary.r, root.colPrimary.g, root.colPrimary.b, 0.12) }
-            GradientStop { position: 1.0; color: Qt.rgba(root.colPrimary.r, root.colPrimary.g, root.colPrimary.b, 0.20) }
+            GradientStop { position: 1.0; color: Qt.rgba(root.colPrimary.r, root.colPrimary.g, root.colPrimary.b, 0.22) }
         }
     }
 
     RowLayout {
-        id: row
+        id: content
         anchors.centerIn: parent
-        spacing: 10
+        spacing: 8
 
+        // Small note glyph that toggles between music_note (idle / paused
+        // glance) and pause (when actively playing). Same trick the legacy
+        // bar Media.qml uses to give the user a quick-glance state.
+        MaterialSymbol {
+            Layout.alignment: Qt.AlignVCenter
+            text: MprisController.isPlaying ? "graphic_eq" : "music_note"
+            iconSize: Appearance.font.pixelSize.normal
+            color: root.colPrimary
+            fill: 1
+        }
+
+        // CAVA waveform. Only renders bars while audio plays (Cava.bars stay
+        // at 0 when paused, so the bars sit at minBarHeight which still
+        // looks intentional, like a flatlined visualizer waiting to react).
         CavaWaveform {
             Layout.alignment: Qt.AlignVCenter
             barColor: root.colPrimary
-        }
-
-        StyledText {
-            Layout.alignment: Qt.AlignVCenter
-            Layout.maximumWidth: 160
-            elide: Text.ElideRight
-            text: {
-                const t = MprisController.activeTrack?.title ?? ""
-                const a = MprisController.activeTrack?.artist ?? ""
-                return a.length > 0 ? (t + " - " + a) : t
-            }
-            font.pixelSize: Appearance.font.pixelSize.small
-            color: Appearance.colors.colOnLayer1
+            maxBarHeight: 18
+            minBarHeight: 2
         }
     }
 
@@ -63,8 +68,8 @@ Item {
         hoverEnabled: true
         onPressed: event => {
             if (event.button === Qt.LeftButton) {
-                // Open the existing floating media controls overlay. Same flag
-                // the legacy bar Media.qml uses for its non-bar popupMode.
+                // Open the existing floating media controls overlay. Same
+                // flag the legacy bar Media.qml uses for its non-bar mode.
                 GlobalStates.mediaControlsOpen = !GlobalStates.mediaControlsOpen
             } else if (event.button === Qt.MiddleButton) {
                 MprisController.togglePlaying()
@@ -78,7 +83,11 @@ Item {
         text: {
             const t = MprisController.activeTrack;
             if (!t) return "";
-            return (t.title || "") + (t.artist ? "\n" + t.artist : "") + (t.album ? "\n" + t.album : "");
+            const lines = [];
+            if (t.title)  lines.push(t.title);
+            if (t.artist) lines.push(t.artist);
+            if (t.album)  lines.push(t.album);
+            return lines.join("\n");
         }
         extraVisibleCondition: mouseArea.containsMouse
     }
