@@ -37,7 +37,7 @@ assert_file       "shell/services/RyokuTailscale.qml"
 assert_contains   "shell/services/qmldir" "singleton RyokuTailscale 1.0 RyokuTailscale.qml"
 assert_contains   "shell/services/RyokuTailscale.qml" "tailscale status --json"
 assert_contains   "shell/services/RyokuTailscale.qml" "BackendState"
-assert_contains   "shell/services/RyokuTailscale.qml" "Self.HostName"
+assert_contains   "shell/services/RyokuTailscale.qml" "Self?.HostName"
 assert_contains   "shell/services/RyokuTailscale.qml" "function openTrayscale"
 assert_matches    "shell/services/RyokuTailscale.qml" 'property bool tabOpen'
 
