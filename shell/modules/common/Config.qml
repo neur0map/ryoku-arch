@@ -776,13 +776,12 @@ Singleton {
                     property bool showPublicIp: false    // opt-in: spawns curl every 5min
                     property bool showListening: false   // opt-in: spawns ss every 30s
                     // Shell command run when the user clicks the VPN
-                    // indicator. Default launches Trayscale (the GTK GUI for
-                    // Tailscale, AUR `trayscale`). Users can swap this for
-                    // any other command, e.g.:
+                    // indicator. Default opens the Tailscale admin console.
+                    // Users can swap this for any other command, e.g.:
                     //   nm-connection-editor
                     //   kitty -e bash -c 'tailscale status; exec bash'
-                    //   xdg-open https://login.tailscale.com/admin
-                    property string vpnClickCommand: "trayscale"
+                    //   trayscale
+                    property string vpnClickCommand: "xdg-open https://login.tailscale.com/admin/machines"
                 }
                 property JsonObject tray: JsonObject {
                     property bool monochromeIcons: true
