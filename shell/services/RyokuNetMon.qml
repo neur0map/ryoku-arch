@@ -147,8 +147,8 @@ Singleton {
             if (name === "lo") type = "loopback"
             else if (isVpnTunnel) type = "vpn"
             else if ((nmByDev[name] && nmByDev[name].type === "802-11-wireless") || activeWifi && nmByDev[name] && nmByDev[name].name === activeWifi.ssid) type = "wifi"
-            else if (a.link_type === "ether") type = "ether"
             else if (nmByDev[name] && nmByDev[name].type === "bridge") type = "bridge"
+            else if (a.link_type === "ether") type = "ether"
 
             const connName = (nmByDev[name] && nmByDev[name].name) || ""
             const ssid     = (type === "wifi" && activeWifi) ? activeWifi.ssid : ""
@@ -212,7 +212,10 @@ Singleton {
         }
     }
     onTabOpenChanged: {
-        if (tabOpen && root.publicIp.length === 0 && !root.publicIpFetching) refreshPublicIp()
+        if (tabOpen) {
+            if (root.publicIp.length === 0 && !root.publicIpFetching) refreshPublicIp()
+            root._refreshVnstat()
+        }
     }
     function refreshPublicIp(): void {
         root.publicIpFetching = true
@@ -285,10 +288,11 @@ Singleton {
         if (!root._vnstatAvailable) return
         for (const iface of root.interfaces) {
             if (iface.state !== "UP" || iface.name === "lo") continue
-            const proc = Qt.createQmlObject(`
+            Qt.createQmlObject(`
                 import Quickshell.Io; Process {
                     command: ["sh", "-c", "vnstat --json -i ` + iface.name + ` 2>/dev/null"]
-                    stdout: StdioCollector { onStreamFinished: root._absorbVnstat("` + iface.name + `", text) }
+                    stdout: StdioCollector { onStreamFinished: root._absorbVnstat("` + iface.name + `", this.text) }
+                    onExited: destroy()
                     Component.onCompleted: running = true
                 }`, root)
         }
