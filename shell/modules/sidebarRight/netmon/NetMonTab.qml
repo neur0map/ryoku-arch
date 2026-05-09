@@ -1,6 +1,7 @@
 import qs.modules.common
 import qs.modules.common.widgets
 import qs.services
+import Quickshell
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
@@ -64,19 +65,42 @@ Item {
                         color: root.colAccent
                     }
                     ColumnLayout {
+                        id: publicIpCol
                         Layout.fillWidth: true
                         spacing: 0
+                        property bool justCopied: false
+                        Timer {
+                            id: publicIpCopyResetTimer
+                            interval: 1500
+                            onTriggered: publicIpCol.justCopied = false
+                        }
                         StyledText {
-                            text: RyokuNetMon.publicIpFetching
-                                  ? "Fetching public IP..."
-                                  : (RyokuNetMon.publicIp.length > 0
-                                     ? "Public IP: " + RyokuNetMon.publicIp
-                                     : (RyokuNetMon.publicIpError.length > 0
-                                        ? "Public IP: " + RyokuNetMon.publicIpError
-                                        : "Public IP: not yet fetched"))
-                            color: Appearance.colors.colOnLayer2
+                            id: publicIpText
+                            text: publicIpCol.justCopied
+                                  ? "Copied!"
+                                  : (RyokuNetMon.publicIpFetching
+                                     ? "Fetching public IP..."
+                                     : (RyokuNetMon.publicIp.length > 0
+                                        ? "Public IP: " + RyokuNetMon.publicIp
+                                        : (RyokuNetMon.publicIpError.length > 0
+                                           ? "Public IP: " + RyokuNetMon.publicIpError
+                                           : "Public IP: not yet fetched")))
+                            color: publicIpCol.justCopied
+                                   ? root.colAccent
+                                   : Appearance.colors.colOnLayer2
                             font.weight: Font.Bold
                             font.family: Appearance.font.family.monospace ?? "monospace"
+                            MouseArea {
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: RyokuNetMon.publicIp.length > 0 ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                enabled: RyokuNetMon.publicIp.length > 0 && !publicIpCol.justCopied
+                                onClicked: {
+                                    Quickshell.clipboardText = RyokuNetMon.publicIp
+                                    publicIpCol.justCopied = true
+                                    publicIpCopyResetTimer.restart()
+                                }
+                            }
                         }
                         StyledText {
                             visible: RyokuNetMon.defaultRouteIface.length > 0
@@ -242,13 +266,27 @@ Item {
                 Repeater {
                     model: RyokuNetMon.interfaces.filter(i => i.state === "UP" && i.name !== "lo")
                     delegate: Rectangle {
+                        id: card
                         required property var modelData
+                        property bool justCopiedV4: false
+                        property bool justCopiedV6: false
                         Layout.fillWidth: true
                         Layout.preferredHeight: cardCol.implicitHeight + 18
                         color: Appearance.colors.colLayer2
                         radius: Appearance.rounding.normal
                         border.width: modelData.isVpnTunnel ? 1 : 0
                         border.color: modelData.isVpnTunnel ? root.colAccent : "transparent"
+
+                        Timer {
+                            id: copyV4Reset
+                            interval: 1500
+                            onTriggered: card.justCopiedV4 = false
+                        }
+                        Timer {
+                            id: copyV6Reset
+                            interval: 1500
+                            onTriggered: card.justCopiedV6 = false
+                        }
 
                         ColumnLayout {
                             id: cardCol
@@ -294,18 +332,40 @@ Item {
                             }
                             StyledText {
                                 visible: modelData.ipv4.length > 0
-                                text: modelData.ipv4
-                                color: Appearance.colors.colOnLayer2
+                                text: card.justCopiedV4 ? "Copied!" : modelData.ipv4
+                                color: card.justCopiedV4 ? root.colAccent : Appearance.colors.colOnLayer2
                                 font.pixelSize: Appearance.font.pixelSize.small
                                 font.family: Appearance.font.family.monospace ?? "monospace"
+                                MouseArea {
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    enabled: !card.justCopiedV4
+                                    onClicked: {
+                                        Quickshell.clipboardText = modelData.ipv4
+                                        card.justCopiedV4 = true
+                                        copyV4Reset.restart()
+                                    }
+                                }
                             }
                             StyledText {
                                 visible: modelData.ipv6.length > 0
-                                text: modelData.ipv6
-                                color: Appearance.colors.colSubtext
+                                text: card.justCopiedV6 ? "Copied!" : modelData.ipv6
+                                color: card.justCopiedV6 ? root.colAccent : Appearance.colors.colSubtext
                                 font.pixelSize: Appearance.font.pixelSize.small
                                 font.family: Appearance.font.family.monospace ?? "monospace"
                                 elide: Text.ElideRight
+                                MouseArea {
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    enabled: !card.justCopiedV6
+                                    onClicked: {
+                                        Quickshell.clipboardText = modelData.ipv6
+                                        card.justCopiedV6 = true
+                                        copyV6Reset.restart()
+                                    }
+                                }
                                 Layout.fillWidth: true
                             }
                             StyledText {

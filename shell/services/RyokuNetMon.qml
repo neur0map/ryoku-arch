@@ -87,7 +87,7 @@ Singleton {
         for (const link of dnsLinks) {
             const name = link.name || link.ifname || ""
             if (!name) continue
-            const servers = (link.dnsServers || link.DNS || []).map(s => s.addressString || s.address || "").filter(s => s.length > 0)
+            const servers = (link.dnsServers || link.DNS || link.servers || []).map(s => s.addressString || "").filter(s => s.length > 0)
             if (servers.length > 0) dnsByDev[name] = servers
         }
         // Default DNS resolver: first server from the default-route link, else first global fallback.
