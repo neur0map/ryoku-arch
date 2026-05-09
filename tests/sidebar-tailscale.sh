@@ -91,4 +91,16 @@ operator_migration=$(grep -lE 'tailscale set --operator' "$ROOT_DIR"/migrations/
 [[ -n $operator_migration ]] || fail "a migration should set Tailscale operator user"
 echo "  found operator migration: $(basename "$operator_migration")"
 
+# 8. User-initiated transitions: clicking Connect/Disconnect immediately
+#    drives transitioning=true via _beginTransition, with directional
+#    transitionTarget so the UI can show "starting..." vs "stopping...".
+assert_contains   "shell/services/RyokuTailscale.qml" "function _beginTransition"
+assert_contains   "shell/services/RyokuTailscale.qml" "function _reconcileTransition"
+assert_contains   "shell/services/RyokuTailscale.qml" 'property string transitionTarget'
+assert_contains   "shell/services/RyokuTailscale.qml" '_beginTransition("up")'
+assert_contains   "shell/services/RyokuTailscale.qml" '_beginTransition("down")'
+assert_contains   "shell/modules/sidebarRight/openvpn/TailscaleStatusCard.qml" 'RyokuTailscale.transitioning ? "sync" : "lan"'
+assert_contains   "shell/modules/sidebarRight/openvpn/TailscaleStatusCard.qml" 'transitionTarget === "down"'
+assert_contains   "shell/modules/sidebarRight/openvpn/TailscaleStatusCard.qml" 'RotationAnimation on rotation'
+
 echo "ok: sidebar-tailscale static asserts"
