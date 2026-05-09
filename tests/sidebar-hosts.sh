@@ -72,5 +72,8 @@ assert_contains   "shell/services/RyokuHosts.qml" 'Quickshell.execDetached(["ryo
 assert_matches    "shell/services/RyokuHosts.qml" "ryoku-hosts.*managed"
 assert_contains   "shell/services/RyokuHosts.qml" "/etc/hosts"
 assert_matches    "shell/services/RyokuHosts.qml" 'property bool tabOpen'
+assert_contains   "shell/services/RyokuHosts.qml" "property bool busy"
+assert_contains   "shell/services/RyokuHosts.qml" "busyTimeout"
+assert_contains   "shell/services/RyokuHosts.qml" "JSON.parse"
 
 echo "ok: sidebar-hosts static asserts"

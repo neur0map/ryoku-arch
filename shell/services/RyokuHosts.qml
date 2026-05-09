@@ -46,7 +46,13 @@ Singleton {
     }
     Component.onCompleted: parseProc.running = true
 
-    // ── watch /etc/hosts: any external write triggers a re-parse ──
+    // ── watch /etc/hosts for external writes ─────────────────────
+    // Defensive only. The privileged write is `pkexec install $tmp /etc/hosts`,
+    // which unlink+creates the destination; inotify watchers on the old inode
+    // get dropped. The LOAD-BEARING re-parse runs from `_parseOpManifest`'s
+    // ok/ok-noop branches via `parseProc.running = true`. This FileView catches
+    // hand-edits in vim, package-manager touches, and any other external write
+    // that doesn't go through our helper.
     FileView {
         path: "/etc/hosts"
         watchChanges: true
