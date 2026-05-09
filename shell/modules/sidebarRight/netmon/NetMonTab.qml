@@ -135,6 +135,8 @@ Item {
                     }
                 }
 
+                LatencyStrip { colAccent: root.colAccent }
+
                 // DNS-leak banner.
                 Rectangle {
                     visible: RyokuNetMon.dnsLeak
@@ -428,6 +430,8 @@ Item {
                         }
                     }
                 }
+                ListenerSection { colAccent: root.colAccent }
+                ConnectionsSection { colAccent: root.colAccent }
             }
         }
     }
