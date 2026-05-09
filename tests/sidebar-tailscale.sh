@@ -76,8 +76,19 @@ assert_contains   "shell/modules/sidebarRight/openvpn/TailscaleStatusCard.qml" "
 assert_contains   "shell/modules/sidebarRight/openvpn/TailscaleStatusCard.qml" "RyokuTailscale.connect()"
 assert_contains   "shell/modules/sidebarRight/openvpn/TailscaleStatusCard.qml" "Quickshell.clipboardText = RyokuTailscale.tailIp"
 assert_contains   "shell/modules/sidebarRight/openvpn/TailscaleStatusCard.qml" '"content_copy"'
+assert_contains   "shell/modules/sidebarRight/openvpn/TailscaleStatusCard.qml" 'RyokuTailscale.connected ? "Disconnect" : "Connect"'
+assert_contains   "shell/modules/sidebarRight/openvpn/TailscaleStatusCard.qml" "!RyokuTailscale.transitioning"
+assert_contains   "shell/modules/sidebarRight/openvpn/TailscaleStatusCard.qml" '"Copied!"'
 
 # 6. Install script sets the Tailscale operator so non-sudo control works.
 assert_contains   "install/config/tailscale.sh" 'tailscale set --operator='
+
+# 7. Migration sets the Tailscale operator on existing user systems so
+#    the sidebar Connect/Disconnect button works without sudo.
+[[ -d $ROOT_DIR/migrations ]] || fail "migrations directory should exist"
+# Find any migration that mentions tailscale operator
+operator_migration=$(grep -lE 'tailscale set --operator' "$ROOT_DIR"/migrations/*.sh 2>/dev/null | head -1)
+[[ -n $operator_migration ]] || fail "a migration should set Tailscale operator user"
+echo "  found operator migration: $(basename "$operator_migration")"
 
 echo "ok: sidebar-tailscale static asserts"
