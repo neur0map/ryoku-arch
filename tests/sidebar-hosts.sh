@@ -111,4 +111,12 @@ assert_contains   "shell/modules/sidebarRight/CompactSidebarRightContent.qml" 'i
 assert_contains   "shell/modules/sidebarRight/CompactSidebarRightContent.qml" "target: RyokuHosts"
 assert_matches    "shell/modules/sidebarRight/CompactSidebarRightContent.qml" '"openvpn",[[:space:]]*"hosts"'
 
+# 6. Shell defaults include "hosts" in sidebar.right.enabledWidgets so
+#    the tab appears for fresh installs. Settings UI's duplicated defaults
+#    array also includes "hosts" so toggling any widget in Settings does
+#    not silently drop the tab from the user's enabledWidgets.
+assert_json_expr  "shell/defaults/config.json" '.sidebar.right.enabledWidgets | index("hosts") != null' \
+  "shell defaults should include 'hosts' in sidebar.right.enabledWidgets"
+assert_matches    "shell/modules/settings/InterfaceConfig.qml" '"openvpn",[[:space:]]*"hosts"'
+
 echo "ok: sidebar-hosts static asserts"
