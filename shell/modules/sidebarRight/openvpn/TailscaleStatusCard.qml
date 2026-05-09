@@ -137,9 +137,15 @@ Rectangle {
             spacing: 8
 
             DialogButton {
+                id: connectBtn
                 enabled: RyokuTailscale.installed && !RyokuTailscale.transitioning
                 buttonText: RyokuTailscale.connected ? "Disconnect" : "Connect"
                 onClicked: RyokuTailscale.connected ? RyokuTailscale.disconnect() : RyokuTailscale.connect()
+
+                StyledToolTip {
+                    extraVisibleCondition: connectBtn.buttonHovered && !RyokuTailscale.connected
+                    text: "First time? Click Open Trayscale to authenticate"
+                }
             }
 
             DialogButton {
