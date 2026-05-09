@@ -269,8 +269,6 @@ Singleton {
             }
         }
     }
-    Component.onCompleted: proxychainsProc.running = true
-
     // ── vnstat (opt-in): per-iface daily + monthly totals on tab open ─
     Process {
         id: vnstatProbe
@@ -282,7 +280,11 @@ Singleton {
         }
     }
     property bool _vnstatAvailable: false
-    Component.onCompleted: vnstatProbe.running = true
+
+    Component.onCompleted: {
+        proxychainsProc.running = true
+        vnstatProbe.running = true
+    }
 
     function _refreshVnstat(): void {
         if (!root._vnstatAvailable) return
