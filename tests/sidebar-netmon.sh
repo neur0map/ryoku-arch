@@ -72,4 +72,16 @@ assert_contains   "shell/services/RyokuNetMon.qml" "dnsLeak"
 assert_contains   "shell/services/RyokuNetMon.qml" "proxychain"
 assert_contains   "shell/services/RyokuNetMon.qml" "https://api.ipify.org"
 
+# 3. Sidebar tab widget exists, binds to RyokuNetMon, surfaces egress
+#    strip + DNS-leak banner + proxychain card + per-iface cards.
+assert_file       "shell/modules/sidebarRight/netmon/NetMonTab.qml"
+assert_contains   "shell/modules/sidebarRight/netmon/NetMonTab.qml" "RyokuNetMon.interfaces"
+assert_contains   "shell/modules/sidebarRight/netmon/NetMonTab.qml" "RyokuNetMon.publicIp"
+assert_contains   "shell/modules/sidebarRight/netmon/NetMonTab.qml" "RyokuNetMon.refreshPublicIp()"
+assert_contains   "shell/modules/sidebarRight/netmon/NetMonTab.qml" "RyokuNetMon.dnsLeak"
+assert_contains   "shell/modules/sidebarRight/netmon/NetMonTab.qml" "RyokuNetMon.proxychain"
+assert_contains   "shell/modules/sidebarRight/netmon/NetMonTab.qml" '"public"'
+assert_contains   "shell/modules/sidebarRight/netmon/NetMonTab.qml" '"warning"'
+assert_contains   "shell/modules/sidebarRight/netmon/NetMonTab.qml" "formatRate"
+
 echo "ok: sidebar-netmon static asserts"
