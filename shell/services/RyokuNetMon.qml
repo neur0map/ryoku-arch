@@ -434,7 +434,7 @@ Singleton {
         // Issue pings; each updates its entry on return.
         for (const t of targets) {
             Qt.createQmlObject(`
-                import Quickshell.Io; Process {
+                import QtQuick; import Quickshell.Io; Process {
                     command: ["sh", "-c", "ping -c 1 -W 1 -n ` + t.target + ` 2>/dev/null"]
                     stdout: StdioCollector { onStreamFinished: root._absorbPing("` + t.target + `", "` + t.label + `", this.text) }
                     onExited: destroy()
@@ -453,7 +453,7 @@ Singleton {
 
     function _probeVpnGateway(ifname: string): void {
         Qt.createQmlObject(`
-            import Quickshell.Io; Process {
+            import QtQuick; import Quickshell.Io; Process {
                 command: ["sh", "-c", "ip -j route show dev ` + ifname + ` 2>/dev/null"]
                 stdout: StdioCollector { onStreamFinished: root._absorbVpnGateway("` + ifname + `", this.text) }
                 onExited: destroy()

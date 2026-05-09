@@ -21,7 +21,8 @@ ColumnLayout {
     readonly property color colWarn: Appearance.m3colors.m3warning ?? "#fabd2f"
 
     function isExposed(addr) {
-        return addr === "0.0.0.0" || addr === "::"
+        // Wildcard binds: 0.0.0.0 (any IPv4), :: (any IPv6), * (some ss output formats).
+        return addr === "0.0.0.0" || addr === "::" || addr === "*"
     }
 
     RowLayout {
