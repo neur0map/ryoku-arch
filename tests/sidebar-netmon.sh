@@ -93,4 +93,14 @@ assert_contains   "shell/modules/sidebarRight/BottomWidgetGroup.qml" '"type": "n
 assert_contains   "shell/modules/sidebarRight/BottomWidgetGroup.qml" "target: RyokuNetMon"
 assert_matches    "shell/modules/sidebarRight/BottomWidgetGroup.qml" '"hosts",[[:space:]]*"netmon"'
 
+# 5. CompactSidebarRightContent imports the netmon module, wraps
+#    NetMonTab in a Component, declares the section in widgetSections,
+#    drives RyokuNetMon.tabOpen, and includes "netmon" in the
+#    enabledWidgets fallback default.
+assert_contains   "shell/modules/sidebarRight/CompactSidebarRightContent.qml" "import qs.modules.sidebarRight.netmon"
+assert_contains   "shell/modules/sidebarRight/CompactSidebarRightContent.qml" "id: netmonComponent"
+assert_contains   "shell/modules/sidebarRight/CompactSidebarRightContent.qml" 'id: "netmon"'
+assert_contains   "shell/modules/sidebarRight/CompactSidebarRightContent.qml" "target: RyokuNetMon"
+assert_matches    "shell/modules/sidebarRight/CompactSidebarRightContent.qml" '"hosts",[[:space:]]*"netmon"'
+
 echo "ok: sidebar-netmon static asserts"
