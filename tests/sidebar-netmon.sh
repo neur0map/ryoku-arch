@@ -84,4 +84,13 @@ assert_contains   "shell/modules/sidebarRight/netmon/NetMonTab.qml" '"public"'
 assert_contains   "shell/modules/sidebarRight/netmon/NetMonTab.qml" '"warning"'
 assert_contains   "shell/modules/sidebarRight/netmon/NetMonTab.qml" "formatRate"
 
+# 4. BottomWidgetGroup imports the netmon module, wraps NetMonTab in
+#    a Component, declares the tab in allTabs, drives RyokuNetMon.tabOpen,
+#    and includes "netmon" in the enabledWidgets fallback default.
+assert_contains   "shell/modules/sidebarRight/BottomWidgetGroup.qml" "import qs.modules.sidebarRight.netmon"
+assert_contains   "shell/modules/sidebarRight/BottomWidgetGroup.qml" "id: netmonWidgetComponent"
+assert_contains   "shell/modules/sidebarRight/BottomWidgetGroup.qml" '"type": "netmon"'
+assert_contains   "shell/modules/sidebarRight/BottomWidgetGroup.qml" "target: RyokuNetMon"
+assert_matches    "shell/modules/sidebarRight/BottomWidgetGroup.qml" '"hosts",[[:space:]]*"netmon"'
+
 echo "ok: sidebar-netmon static asserts"
