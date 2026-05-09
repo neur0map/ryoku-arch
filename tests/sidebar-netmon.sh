@@ -154,4 +154,9 @@ assert_contains   "shell/modules/sidebarRight/netmon/ConnectionsSection.qml" "Ry
 assert_contains   "shell/modules/sidebarRight/netmon/ConnectionsSection.qml" "Quickshell.clipboardText"
 assert_contains   "shell/modules/sidebarRight/netmon/ConnectionsSection.qml" "arrow_outward"
 
+# 14. LatencyStrip widget - threshold-colored ping pills.
+assert_file       "shell/modules/sidebarRight/netmon/LatencyStrip.qml"
+assert_contains   "shell/modules/sidebarRight/netmon/LatencyStrip.qml" "RyokuNetMon.latency"
+assert_contains   "shell/modules/sidebarRight/netmon/LatencyStrip.qml" "rttMs"
+
 echo "ok: sidebar-netmon static asserts"
