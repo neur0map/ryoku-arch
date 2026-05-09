@@ -140,4 +140,12 @@ assert_contains   "shell/services/RyokuNetMon.qml" "_absorbPing"
 assert_contains   "shell/services/RyokuNetMon.qml" "function killListener"
 assert_contains   "shell/services/RyokuNetMon.qml" "id: killProc"
 
+# 12. ListenerSection widget - port pill, kill button, color-coded address.
+assert_file       "shell/modules/sidebarRight/netmon/ListenerSection.qml"
+assert_contains   "shell/modules/sidebarRight/netmon/ListenerSection.qml" "RyokuNetMon.listeners"
+assert_contains   "shell/modules/sidebarRight/netmon/ListenerSection.qml" "RyokuNetMon.killListener"
+assert_contains   "shell/modules/sidebarRight/netmon/ListenerSection.qml" "Quickshell.execDetached"
+assert_contains   "shell/modules/sidebarRight/netmon/ListenerSection.qml" "xdg-open"
+assert_contains   "shell/modules/sidebarRight/netmon/ListenerSection.qml" "wifi_tethering"
+
 echo "ok: sidebar-netmon static asserts"
