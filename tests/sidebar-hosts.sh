@@ -85,5 +85,9 @@ assert_contains   "shell/modules/sidebarRight/hosts/HostsTab.qml" "RyokuHosts.ad
 assert_contains   "shell/modules/sidebarRight/hosts/HostsTab.qml" "RyokuHosts.remove("
 assert_contains   "shell/modules/sidebarRight/hosts/HostsTab.qml" '"dns"'
 assert_contains   "shell/modules/sidebarRight/hosts/HostsTab.qml" '"close"'
+assert_contains   "shell/modules/sidebarRight/hosts/HostsTab.qml" "RyokuHosts.clearError()"
+assert_contains   "shell/modules/sidebarRight/hosts/HostsTab.qml" "!RyokuHosts.busy"
+assert_contains   "shell/modules/sidebarRight/hosts/HostsTab.qml" "_isValidIp"
+assert_contains   "shell/modules/sidebarRight/hosts/HostsTab.qml" "_isValidDomain"
 
 echo "ok: sidebar-hosts static asserts"
