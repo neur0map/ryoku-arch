@@ -47,9 +47,16 @@ Rectangle {
             Layout.fillWidth: true
 
             MaterialSymbol {
-                text: "lan"
+                text: RyokuTailscale.transitioning ? "sync" : "lan"
                 iconSize: Appearance.font.pixelSize.larger
-                color: RyokuTailscale.connected ? root.colAccent : Appearance.colors.colSubtext
+                color: (RyokuTailscale.transitioning || RyokuTailscale.connected)
+                       ? root.colAccent
+                       : Appearance.colors.colSubtext
+                RotationAnimation on rotation {
+                    running: RyokuTailscale.transitioning
+                    from: 0; to: 360; duration: 1500
+                    loops: Animation.Infinite
+                }
             }
             StyledText {
                 text: "Tailscale"
@@ -58,13 +65,14 @@ Rectangle {
             }
             Item { Layout.fillWidth: true }
             StyledText {
-                text: RyokuTailscale.transitioning ? "starting..."
+                text: RyokuTailscale.transitioning
+                    ? (RyokuTailscale.transitionTarget === "down" ? "stopping..." : "starting...")
                     : RyokuTailscale.connected ? "connected"
                     : "off"
                 font.pixelSize: Appearance.font.pixelSize.small
-                color: RyokuTailscale.connected ? root.colAccent
-                    : RyokuTailscale.transitioning ? root.colAccent
-                    : Appearance.colors.colSubtext
+                color: (RyokuTailscale.connected || RyokuTailscale.transitioning)
+                       ? root.colAccent
+                       : Appearance.colors.colSubtext
             }
         }
 

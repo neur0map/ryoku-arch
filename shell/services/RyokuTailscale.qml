@@ -24,7 +24,8 @@ Singleton {
     // ── public state ──────────────────────────────────────────────
     property bool installed: false       // tailscale binary present
     property bool connected: false       // BackendState=Running && Self.Online
-    property bool transitioning: false   // BackendState in {Starting, NoState}
+    property bool transitioning: false   // user-initiated or parse-detected transition
+    property string transitionTarget: ""   // "up" or "down" while transitioning, "" otherwise
     property string hostname: ""         // first-device hostname
     property string tailIp: ""           // first IPv4 from Self.TailscaleIPs
     property string relay: ""            // Self.Relay (DERP region code)
@@ -55,18 +56,17 @@ Singleton {
                 const raw = this.text.trim()
                 if (raw.length === 0) {
                     root.connected = false
-                    root.transitioning = false
                     root.hostname = ""
                     root.tailIp = ""
                     root.relay = ""
                     root.exitNode = ""
+                    root._reconcileTransition()
                     return
                 }
                 try {
                     const data = JSON.parse(raw)
                     const state = data?.BackendState ?? ""
                     root.connected = (state === "Running") && (data?.Self?.Online === true)
-                    root.transitioning = (state === "Starting") || (state === "NoState")
                     root.hostname = data?.Self?.HostName ?? ""
                     root.tailIp = data?.Self?.TailscaleIPs?.[0] ?? ""
                     root.relay = data?.Self?.Relay ?? ""
@@ -79,13 +79,14 @@ Singleton {
                         }
                     }
                     root.exitNode = exit
+                    root._reconcileTransition()
                 } catch (e) {
                     root.connected = false
-                    root.transitioning = false
                     root.hostname = ""
                     root.tailIp = ""
                     root.relay = ""
                     root.exitNode = ""
+                    root._reconcileTransition()
                 }
             }
         }
@@ -104,10 +105,48 @@ Singleton {
     }
 
     function connect(): void {
+        if (root.transitioning) return
+        root._beginTransition("up")
         Quickshell.execDetached(["tailscale", "up"])
     }
 
     function disconnect(): void {
+        if (root.transitioning) return
+        root._beginTransition("down")
         Quickshell.execDetached(["tailscale", "down"])
+    }
+
+    function _beginTransition(target: string): void {
+        root.transitioning = true
+        root.transitionTarget = target
+        transitionTimeout.restart()
+        postActionPoll.restart()
+    }
+
+    function _reconcileTransition(): void {
+        if (!root.transitioning) return
+        const expectedConnected = (root.transitionTarget === "up")
+        if (root.connected === expectedConnected) {
+            root.transitioning = false
+            root.transitionTarget = ""
+            transitionTimeout.stop()
+        }
+    }
+
+    Timer {
+        id: transitionTimeout
+        interval: 15000
+        repeat: false
+        onTriggered: {
+            root.transitioning = false
+            root.transitionTarget = ""
+        }
+    }
+
+    Timer {
+        id: postActionPoll
+        interval: 1000
+        repeat: false
+        onTriggered: statusProc.running = true
     }
 }
