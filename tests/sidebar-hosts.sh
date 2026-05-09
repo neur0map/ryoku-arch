@@ -76,4 +76,14 @@ assert_contains   "shell/services/RyokuHosts.qml" "property bool busy"
 assert_contains   "shell/services/RyokuHosts.qml" "busyTimeout"
 assert_contains   "shell/services/RyokuHosts.qml" "JSON.parse"
 
+
+# 3. Sidebar tab widget exists, binds to RyokuHosts state, calls add()
+#    and remove(), and uses the canonical "dns" + "close" Material symbols.
+assert_file       "shell/modules/sidebarRight/hosts/HostsTab.qml"
+assert_contains   "shell/modules/sidebarRight/hosts/HostsTab.qml" "RyokuHosts.entries"
+assert_contains   "shell/modules/sidebarRight/hosts/HostsTab.qml" "RyokuHosts.add("
+assert_contains   "shell/modules/sidebarRight/hosts/HostsTab.qml" "RyokuHosts.remove("
+assert_contains   "shell/modules/sidebarRight/hosts/HostsTab.qml" '"dns"'
+assert_contains   "shell/modules/sidebarRight/hosts/HostsTab.qml" '"close"'
+
 echo "ok: sidebar-hosts static asserts"
