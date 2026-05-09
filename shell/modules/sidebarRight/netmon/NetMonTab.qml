@@ -21,6 +21,11 @@ Item {
         : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary
         : Appearance.colors.colPrimary
 
+    readonly property var activeIfaces:
+        (RyokuNetMon.interfaces || []).filter(i =>
+            (i.state === "UP" || (i.isVpnTunnel && i.ipv4.length > 0))
+            && i.name !== "lo")
+
     function formatRate(bytesPerSec) {
         if (!bytesPerSec || bytesPerSec < 1) return "0 B/s"
         if (bytesPerSec < 1024) return Math.round(bytesPerSec) + " B/s"
@@ -248,7 +253,7 @@ Item {
                 font.pixelSize: Appearance.font.pixelSize.normal
             }
             StyledText {
-                text: "(" + RyokuNetMon.interfaces.filter(i => i.state === "UP" && i.name !== "lo").length + ")"
+                text: "(" + root.activeIfaces.length + ")"
                 color: Appearance.colors.colSubtext
                 font.pixelSize: Appearance.font.pixelSize.smaller
             }
@@ -264,7 +269,7 @@ Item {
                 width: parent.width
                 spacing: 8
                 Repeater {
-                    model: RyokuNetMon.interfaces.filter(i => i.state === "UP" && i.name !== "lo")
+                    model: root.activeIfaces
                     delegate: Rectangle {
                         id: card
                         required property var modelData
