@@ -1,8 +1,6 @@
-import qs
 import qs.modules.common
 import qs.modules.common.widgets
 import qs.services
-import Quickshell
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
@@ -18,9 +16,8 @@ Item {
 
     readonly property color colAccent:
         Appearance.angelEverywhere ? Appearance.angel.colPrimary
-        : Appearance.ryokuEverywhere ? (Appearance.ryoku?.colAccent ?? Appearance.m3colors.m3primary)
-        : Appearance.auroraEverywhere ? (Appearance.aurora?.colAccent ?? Appearance.m3colors.m3primary)
-        : Appearance.m3colors.m3primary
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary
+        : Appearance.colors.colPrimary
 
     // Loose v4-or-v6 validation, same as the helper's regex.
     function _isValidIp(s) {
