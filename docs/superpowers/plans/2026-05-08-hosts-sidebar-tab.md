@@ -256,11 +256,14 @@ entries_after="$(new_entries)" || {
 # Compose the final file content: stripped file (without any old markers)
 # followed by the rebuilt managed block (only if there are entries left).
 {
-  strip_block
-  # Ensure exactly one blank line between the existing tail and the block,
-  # but only if the stripped content is non-empty and doesn't already end
-  # with a blank line. Cheapest correct approach: strip trailing blanks
-  # and append our own.
+  # Strip the existing managed block AND any trailing blank lines.
+  # awk pipeline: pass through non-block lines via strip_block, then a
+  # second awk drops trailing blanks by buffering until a non-blank line
+  # appears, emitting buffered blanks only when followed by content.
+  strip_block | awk '
+    /^[[:space:]]*$/ { buf = buf $0 "\n"; next }
+    { printf "%s%s\n", buf, $0; buf = "" }
+  '
   if [[ -n $entries_after ]]; then
     printf '\n%s\n' "$BEGIN_MARKER"
     printf '%s\n' "$ADVISORY"
