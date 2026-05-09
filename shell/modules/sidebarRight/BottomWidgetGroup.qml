@@ -11,6 +11,7 @@ import qs.modules.sidebarRight.sysmon
 import qs.modules.sidebarRight.events
 import qs.modules.sidebarRight.openvpn
 import qs.modules.sidebarRight.hosts
+import qs.modules.sidebarRight.netmon
 import QtQuick
 import QtQuick.Layouts
 // import Qt5Compat.GraphicalEffects // Might not be available, using standard Rectangle gradient instead
@@ -45,6 +46,7 @@ Rectangle {
         {"type": "timer", "name": Translation.tr("Timer"), "icon": "schedule", "widget": pomodoroWidget},
         {"type": "openvpn", "name": Translation.tr("VPN"), "icon": "vpn_key", "widget": openVpnWidgetComponent},
         {"type": "hosts", "name": Translation.tr("Hosts"), "icon": "dns", "widget": hostsWidgetComponent},
+        {"type": "netmon", "name": Translation.tr("Network"), "icon": "lan", "widget": netmonWidgetComponent},
     ]
 
     property int configVersion: 0
@@ -84,9 +86,18 @@ Rectangle {
         }
     }
 
+    // NetMon component
+    Component {
+        id: netmonWidgetComponent
+        NetMonTab {
+            anchors.fill: parent
+            anchors.margins: 5
+        }
+    }
+
     readonly property var enabledWidgets: {
         root.configVersion // Force dependency
-        return Config.options?.sidebar?.right?.enabledWidgets ?? ["calendar", "todo", "notepad", "calculator", "sysmon", "timer", "openvpn", "hosts"]
+        return Config.options?.sidebar?.right?.enabledWidgets ?? ["calendar", "todo", "notepad", "calculator", "sysmon", "timer", "openvpn", "hosts", "netmon"]
     }
 
     property var tabs: allTabs.filter(tab => enabledWidgets.includes(tab.type))
@@ -144,6 +155,12 @@ Rectangle {
         target: RyokuHosts
         property: "tabOpen"
         value: root.currentTabType === "hosts" && !root.collapsed
+    }
+
+    Binding {
+        target: RyokuNetMon
+        property: "tabOpen"
+        value: root.currentTabType === "netmon" && !root.collapsed
     }
 
     Behavior on implicitHeight {
