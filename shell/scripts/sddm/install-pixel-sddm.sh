@@ -102,12 +102,29 @@ should_apply_theme() {
         return 1
     fi
     if [[ $AUTO_APPLY_MODE == "preserve" ]]; then
-        if [[ -z $current_theme || $current_theme == "$THEME_NAME" ]]; then
-            return 0
+        # Apply ii-pixel only on truly-fresh installs: no Current= found
+        # anywhere under /etc/sddm.conf.d/ or /etc/sddm.conf. If any
+        # conf carries a non-empty theme name, preserve it. Qylock and
+        # any other user-chosen theme survive even if /etc/sddm.conf.d/
+        # theme.conf gets temporarily clobbered or corrupted, because
+        # get_current_sddm_theme reads from every conf.d file before
+        # falling through.
+        #
+        # If the current theme is already ii-pixel, skip the rewrite
+        # (idempotent). The theme files themselves are still synced by
+        # the steps above; only the SDDM Current= line is left alone.
+        if [[ -n $current_theme ]]; then
+            if [[ $current_theme != "$THEME_NAME" ]]; then
+                cleanup_legacy_current_dropins
+                log_info "Preserving current SDDM theme: ${current_theme}"
+            else
+                log_info "SDDM already on ${THEME_NAME}, skipping conf rewrite"
+            fi
+            return 1
         fi
-        cleanup_legacy_current_dropins
-        log_info "Preserving current SDDM theme: ${current_theme}"
-        return 1
+        # current_theme is empty: no Current= line in any conf. Truly
+        # fresh install. Apply ii-pixel as the bundled default.
+        return 0
     fi
 
     if [[ -z $current_theme || $current_theme == "$THEME_NAME" ]]; then
