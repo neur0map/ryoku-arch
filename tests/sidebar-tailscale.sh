@@ -66,4 +66,18 @@ assert_contains   "shell/modules/sidebarRight/openvpn/OpenVpnTab.qml" "Tailscale
 assert_contains   "shell/modules/sidebarRight/openvpn/OpenVpnTab.qml" "RyokuTailscale.installed"
 assert_contains   "shell/modules/sidebarRight/openvpn/OpenVpnTab.qml" "Tailscale not installed"
 
+# 5. Service exposes connect/disconnect actions; sidebar card wires them
+#    in the Connect/Disconnect button and exposes IP click-to-copy.
+assert_contains   "shell/services/RyokuTailscale.qml" "function connect"
+assert_contains   "shell/services/RyokuTailscale.qml" "function disconnect"
+assert_contains   "shell/services/RyokuTailscale.qml" 'execDetached(["tailscale", "up"])'
+assert_contains   "shell/services/RyokuTailscale.qml" 'execDetached(["tailscale", "down"])'
+assert_contains   "shell/modules/sidebarRight/openvpn/TailscaleStatusCard.qml" "RyokuTailscale.disconnect()"
+assert_contains   "shell/modules/sidebarRight/openvpn/TailscaleStatusCard.qml" "RyokuTailscale.connect()"
+assert_contains   "shell/modules/sidebarRight/openvpn/TailscaleStatusCard.qml" "Quickshell.clipboardText = RyokuTailscale.tailIp"
+assert_contains   "shell/modules/sidebarRight/openvpn/TailscaleStatusCard.qml" '"content_copy"'
+
+# 6. Install script sets the Tailscale operator so non-sudo control works.
+assert_contains   "install/config/tailscale.sh" 'tailscale set --operator='
+
 echo "ok: sidebar-tailscale static asserts"

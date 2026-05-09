@@ -75,11 +75,53 @@ Rectangle {
             color: Appearance.colors.colOnLayer2
             font.pixelSize: Appearance.font.pixelSize.small
         }
-        StyledText {
+        Item {
+            id: ipRow
             visible: RyokuTailscale.connected && RyokuTailscale.tailIp.length > 0
-            text: RyokuTailscale.tailIp + (RyokuTailscale.relay.length > 0 ? (", via " + RyokuTailscale.relay) : "")
-            color: Appearance.colors.colSubtext
-            font.pixelSize: Appearance.font.pixelSize.small
+            Layout.fillWidth: true
+            implicitHeight: ipText.implicitHeight
+            property bool justCopied: false
+
+            Timer {
+                id: copyResetTimer
+                interval: 1500
+                onTriggered: ipRow.justCopied = false
+            }
+
+            RowLayout {
+                anchors.fill: parent
+                spacing: 6
+                StyledText {
+                    id: ipText
+                    text: ipRow.justCopied
+                          ? "Copied!"
+                          : (RyokuTailscale.tailIp + (RyokuTailscale.relay.length > 0 ? (", via " + RyokuTailscale.relay) : ""))
+                    color: ipRow.justCopied
+                           ? root.colAccent
+                           : (ipMouse.containsMouse ? Appearance.colors.colOnLayer1 : Appearance.colors.colSubtext)
+                    font.pixelSize: Appearance.font.pixelSize.small
+                }
+                MaterialSymbol {
+                    visible: !ipRow.justCopied
+                    text: "content_copy"
+                    iconSize: Appearance.font.pixelSize.small
+                    color: ipMouse.containsMouse ? Appearance.colors.colOnLayer1 : Appearance.colors.colSubtext
+                    opacity: ipMouse.containsMouse ? 1 : 0.55
+                    Behavior on opacity { NumberAnimation { duration: 120 } }
+                }
+                Item { Layout.fillWidth: true }
+            }
+            MouseArea {
+                id: ipMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    Quickshell.clipboardText = RyokuTailscale.tailIp
+                    ipRow.justCopied = true
+                    copyResetTimer.restart()
+                }
+            }
         }
         StyledText {
             visible: RyokuTailscale.connected && RyokuTailscale.exitNode.length > 0
@@ -93,6 +135,12 @@ Rectangle {
             Layout.alignment: Qt.AlignHCenter
             Layout.topMargin: 4
             spacing: 8
+
+            DialogButton {
+                enabled: RyokuTailscale.installed && !RyokuTailscale.transitioning
+                buttonText: RyokuTailscale.connected ? "Disconnect" : "Connect"
+                onClicked: RyokuTailscale.connected ? RyokuTailscale.disconnect() : RyokuTailscale.connect()
+            }
 
             DialogButton {
                 enabled: RyokuTailscale.installed
