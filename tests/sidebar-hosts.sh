@@ -75,6 +75,8 @@ assert_matches    "shell/services/RyokuHosts.qml" 'property bool tabOpen'
 assert_contains   "shell/services/RyokuHosts.qml" "property bool busy"
 assert_contains   "shell/services/RyokuHosts.qml" "busyTimeout"
 assert_contains   "shell/services/RyokuHosts.qml" "JSON.parse"
+assert_contains   "shell/services/RyokuHosts.qml" "resumeReader"
+assert_contains   "shell/services/RyokuHosts.qml" "boot_epoch"
 
 
 # 3. Sidebar tab widget exists, binds to RyokuHosts state, calls add()

@@ -22,6 +22,10 @@ Singleton {
     property string lastError: ""     // populated on helper failure
     property bool tabOpen: false      // driven by parent sidebar layout (symmetry; not load-bearing)
 
+    readonly property string _manifestPath:
+        (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state"))
+        + "/ryoku/hosts/last-op.json"
+
     // ── parse /etc/hosts managed block ────────────────────────────
     Process {
         id: parseProc
@@ -44,7 +48,10 @@ Singleton {
             }
         }
     }
-    Component.onCompleted: parseProc.running = true
+    Component.onCompleted: {
+        parseProc.running = true
+        resumeReader.running = true
+    }
 
     // ── watch /etc/hosts for external writes ─────────────────────
     // Defensive only. The privileged write is `pkexec install $tmp /etc/hosts`,
@@ -61,14 +68,63 @@ Singleton {
     }
 
     // ── watch helper's status manifest for op completion ──────────
+    // The manifest can persist across shell restarts (e.g., a leftover
+    // error from a verification run in another session). DO NOT call
+    // _parseOpManifest from `onLoaded` — that path surfaces stale errors
+    // at startup. Live op completions during the current session fire
+    // `onFileChanged` and are honored normally; the startup path is
+    // handled below by `resumeReader` which checks the file's mtime
+    // against the current boot epoch and deletes anything stale.
     FileView {
         id: opManifest
-        path: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state"))
-              + "/ryoku/hosts/last-op.json"
+        path: root._manifestPath
         watchChanges: true
         onFileChanged: { reload(); root._parseOpManifest(text()) }
-        onLoaded: root._parseOpManifest(text())
         onLoadFailed: (err) => { /* expected before first op */ }
+    }
+
+    // Startup-only: ignore manifests written by previous shell sessions.
+    // If the file's mtime is before the current boot, the contents are
+    // not relevant to this session (could be a debugging artifact, a
+    // crash leftover, or a half-finished op from a prior boot). Delete
+    // it so the bar/sidebar shows fresh state on first paint.
+    Process {
+        id: resumeReader
+        running: false
+        command: ["/usr/bin/bash", "-c", `
+            status_file="$1"
+            if [ ! -f "$status_file" ]; then exit 0; fi
+            now=$(/usr/bin/date +%s)
+            if read -r uptime _ < /proc/uptime; then
+                uptime_s=$(/usr/bin/printf '%s\n' "$uptime" | /usr/bin/cut -d. -f1)
+            else
+                uptime_s=0
+            fi
+            boot_epoch=$((now - uptime_s))
+            mtime=$(/usr/bin/stat -c %Y "$status_file" 2>/dev/null || echo 0)
+            if [ "$mtime" -lt "$boot_epoch" ]; then
+                echo "stale"
+            else
+                /usr/bin/cat "$status_file"
+            fi
+        `, "_", root._manifestPath]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const out = (this.text || "").trim()
+                if (out === "stale") {
+                    clearManifestProc.running = true
+                    return
+                }
+                if (out.length === 0) return
+                root._parseOpManifest(out)
+            }
+        }
+    }
+
+    Process {
+        id: clearManifestProc
+        running: false
+        command: ["rm", "-f", root._manifestPath]
     }
 
     function _parseOpManifest(jsonText: string): void {
