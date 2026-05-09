@@ -103,4 +103,11 @@ assert_contains   "shell/modules/sidebarRight/CompactSidebarRightContent.qml" 'i
 assert_contains   "shell/modules/sidebarRight/CompactSidebarRightContent.qml" "target: RyokuNetMon"
 assert_matches    "shell/modules/sidebarRight/CompactSidebarRightContent.qml" '"hosts",[[:space:]]*"netmon"'
 
+# 6. Three defaults-array drift sites all include "netmon" so the tab
+#    appears for fresh installs and survives Settings UI toggles.
+assert_json_expr  "shell/defaults/config.json" '.sidebar.right.enabledWidgets | index("netmon") != null' \
+  "shell defaults should include 'netmon' in sidebar.right.enabledWidgets"
+assert_matches    "shell/modules/common/Config.qml" '"hosts",[[:space:]]*"netmon"'
+assert_matches    "shell/modules/settings/InterfaceConfig.qml" '"hosts",[[:space:]]*"netmon"'
+
 echo "ok: sidebar-netmon static asserts"
