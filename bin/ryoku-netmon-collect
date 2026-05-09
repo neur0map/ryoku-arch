@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# Collect kernel network state into a single JSON blob. Used by the
+# RyokuNetMon QML singleton's poll Process. Each upstream command's
+# output is a top-level key in the emitted blob:
+#
+#   { "addrs": <ip -j addr>, "routes": <ip -j route default>,
+#     "links": <ip -j -s link>, "nmcli": <active connections array>,
+#     "wifi":  <wifi scan array>,  "dns":   <resolvectl json> }
+#
+# Missing tools degrade gracefully: nmcli/resolvectl absent => empty
+# arrays/objects in the corresponding slots. The QML side hides the
+# DNS row and wifi-specific fields when their slots are empty.
+
+set -uo pipefail
+
+# Tiny awk JSON-encoder for nmcli's colon-separated `-t` output.
+# Escapes backslashes and double quotes; nmcli already escapes literal
+# colons in field values as `\:` which we leave as-is in the output.
+nmcli_json() {
+  awk -F: '
+    function jq_esc(s) {
+      gsub(/\\/, "\\\\", s)
+      gsub(/"/, "\\\"", s)
+      return s
+    }
+    BEGIN { sep = ""; printf "[" }
+    {
+      printf "%s{", sep
+      for (i = 1; i <= NF; i++) {
+        printf "\"f%d\":\"%s\"%s", i, jq_esc($i), (i == NF ? "" : ",")
+      }
+      printf "}"
+      sep = ","
+    }
+    END { printf "]\n" }
+  '
+}
+
+# Each command degrades to a JSON empty value if the tool is missing
+# or the call fails.
+ip_addrs="$(ip -j addr show 2>/dev/null || echo '[]')"
+ip_routes="$(ip -j route show default 2>/dev/null || echo '[]')"
+ip_links="$(ip -j -s link show 2>/dev/null || echo '[]')"
+
+if command -v nmcli >/dev/null 2>&1; then
+  nmcli_active="$(nmcli -t -f NAME,TYPE,DEVICE,STATE connection show --active 2>/dev/null | nmcli_json)"
+  wifi_scan="$(nmcli -t -f IN-USE,SSID,SIGNAL,SECURITY device wifi 2>/dev/null | nmcli_json)"
+else
+  nmcli_active='[]'
+  wifi_scan='[]'
+fi
+
+if command -v resolvectl >/dev/null 2>&1; then
+  dns_state="$(resolvectl --json=short status 2>/dev/null || echo '{}')"
+else
+  dns_state='{}'
+fi
+
+# Defense in depth: validate every JSON value before assembling.
+# Anything malformed gets replaced with an empty placeholder.
+for var in ip_addrs ip_routes ip_links nmcli_active wifi_scan dns_state; do
+  val="${!var}"
+  if ! printf '%s' "$val" | jq -e . >/dev/null 2>&1; then
+    case "$var" in
+      dns_state) printf -v "$var" '%s' '{}' ;;
+      *)         printf -v "$var" '%s' '[]' ;;
+    esac
+  fi
+done
+
+jq -n \
+  --argjson addrs  "$ip_addrs" \
+  --argjson routes "$ip_routes" \
+  --argjson links  "$ip_links" \
+  --argjson nmcli  "$nmcli_active" \
+  --argjson wifi   "$wifi_scan" \
+  --argjson dns    "$dns_state" \
+  '{addrs: $addrs, routes: $routes, links: $links, nmcli: $nmcli, wifi: $wifi, dns: $dns}'
