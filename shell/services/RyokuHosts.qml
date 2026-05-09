@@ -128,8 +128,15 @@ Singleton {
     }
 
     function _parseOpManifest(jsonText: string): void {
+        // Empty or whitespace-only input is the signature of a mid-write
+        // FileView fire (IN_MODIFY arriving between truncate and the actual
+        // write). Don't surface as an error: the next fire on IN_CLOSE_WRITE
+        // delivers the real content and is parsed correctly.
+        const trimmed = (jsonText || "").trim()
+        if (trimmed.length === 0) return
+
         try {
-            const d = JSON.parse(jsonText)
+            const d = JSON.parse(trimmed)
             const status = d.status || ""
             if (status === "ok" || status === "ok-noop") {
                 root.busy = false
@@ -146,9 +153,11 @@ Singleton {
                 busyTimeout.stop()
             }
         } catch (e) {
-            root.busy = false
-            root.lastError = "could not parse helper status"
-            busyTimeout.stop()
+            // Almost always a partial-content race: the manifest was opened
+            // O_WRONLY|O_TRUNC by the helper and FileView fired before the
+            // write completed. The next fire delivers the real content.
+            // Don't clobber `busy` (operation is still in progress) or
+            // surface a misleading error to the user.
         }
     }
 
