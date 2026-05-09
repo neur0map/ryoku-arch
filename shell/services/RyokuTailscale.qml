@@ -98,8 +98,16 @@ Singleton {
         onTriggered: statusProc.running = true
     }
 
-    // ── public action ─────────────────────────────────────────────
+    // ── public actions ────────────────────────────────────────────
     function openTrayscale(): void {
         Quickshell.execDetached(["trayscale"])
+    }
+
+    function connect(): void {
+        Quickshell.execDetached(["tailscale", "up"])
+    }
+
+    function disconnect(): void {
+        Quickshell.execDetached(["tailscale", "down"])
     }
 }
