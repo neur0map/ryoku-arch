@@ -10,6 +10,7 @@ import qs.modules.sidebarRight.calculator
 import qs.modules.sidebarRight.sysmon
 import qs.modules.sidebarRight.events
 import qs.modules.sidebarRight.openvpn
+import qs.modules.sidebarRight.hosts
 import QtQuick
 import QtQuick.Layouts
 // import Qt5Compat.GraphicalEffects // Might not be available, using standard Rectangle gradient instead
@@ -43,6 +44,7 @@ Rectangle {
         {"type": "sysmon", "name": Translation.tr("System"), "icon": "monitor_heart", "widget": sysMonWidget},
         {"type": "timer", "name": Translation.tr("Timer"), "icon": "schedule", "widget": pomodoroWidget},
         {"type": "openvpn", "name": Translation.tr("VPN"), "icon": "vpn_key", "widget": openVpnWidgetComponent},
+        {"type": "hosts", "name": Translation.tr("Hosts"), "icon": "dns", "widget": hostsWidgetComponent},
     ]
 
     property int configVersion: 0
@@ -73,9 +75,18 @@ Rectangle {
         }
     }
 
+    // Hosts component
+    Component {
+        id: hostsWidgetComponent
+        HostsTab {
+            anchors.fill: parent
+            anchors.margins: 5
+        }
+    }
+
     readonly property var enabledWidgets: {
         root.configVersion // Force dependency
-        return Config.options?.sidebar?.right?.enabledWidgets ?? ["calendar", "todo", "notepad", "calculator", "sysmon", "timer", "openvpn"]
+        return Config.options?.sidebar?.right?.enabledWidgets ?? ["calendar", "todo", "notepad", "calculator", "sysmon", "timer", "openvpn", "hosts"]
     }
 
     property var tabs: allTabs.filter(tab => enabledWidgets.includes(tab.type))
@@ -127,6 +138,12 @@ Rectangle {
         target: RyokuTailscale
         property: "tabOpen"
         value: root.currentTabType === "openvpn" && !root.collapsed
+    }
+
+    Binding {
+        target: RyokuHosts
+        property: "tabOpen"
+        value: root.currentTabType === "hosts" && !root.collapsed
     }
 
     Behavior on implicitHeight {

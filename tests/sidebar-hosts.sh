@@ -90,4 +90,14 @@ assert_contains   "shell/modules/sidebarRight/hosts/HostsTab.qml" "!RyokuHosts.b
 assert_contains   "shell/modules/sidebarRight/hosts/HostsTab.qml" "_isValidIp"
 assert_contains   "shell/modules/sidebarRight/hosts/HostsTab.qml" "_isValidDomain"
 
+
+# 4. BottomWidgetGroup imports the hosts module, wraps HostsTab in a
+#    Component, declares the tab in allTabs, drives RyokuHosts.tabOpen,
+#    and includes "hosts" in the enabledWidgets fallback default.
+assert_contains   "shell/modules/sidebarRight/BottomWidgetGroup.qml" "import qs.modules.sidebarRight.hosts"
+assert_contains   "shell/modules/sidebarRight/BottomWidgetGroup.qml" "id: hostsWidgetComponent"
+assert_contains   "shell/modules/sidebarRight/BottomWidgetGroup.qml" '"type": "hosts"'
+assert_contains   "shell/modules/sidebarRight/BottomWidgetGroup.qml" "target: RyokuHosts"
+assert_matches    "shell/modules/sidebarRight/BottomWidgetGroup.qml" '"openvpn",[[:space:]]*"hosts"'
+
 echo "ok: sidebar-hosts static asserts"
