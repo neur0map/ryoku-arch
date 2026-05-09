@@ -54,6 +54,10 @@ assert_contains   "bin/ryoku-hosts-edit" "pkexec install -m 644"
 assert_contains   "bin/ryoku-hosts-edit" '# >>> ryoku-hosts (managed) >>>'
 assert_contains   "bin/ryoku-hosts-edit" '# <<< ryoku-hosts (managed) <<<'
 assert_contains   "bin/ryoku-hosts-edit" '${XDG_STATE_HOME:-$HOME/.local/state}/ryoku/hosts'
-assert_matches    "bin/ryoku-hosts-edit" '^[[:space:]]*case "?\$1"? in'
+assert_matches    "bin/ryoku-hosts-edit" '^[[:space:]]*case [^)]+ in$'
+assert_contains   "bin/ryoku-hosts-edit" "ok-noop"
+assert_contains   "bin/ryoku-hosts-edit" "is_v4"
+assert_contains   "bin/ryoku-hosts-edit" "is_v6"
+assert_contains   "bin/ryoku-hosts-edit" "is_domain"
 
 echo "ok: sidebar-hosts static asserts"
