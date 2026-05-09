@@ -159,4 +159,9 @@ assert_file       "shell/modules/sidebarRight/netmon/LatencyStrip.qml"
 assert_contains   "shell/modules/sidebarRight/netmon/LatencyStrip.qml" "RyokuNetMon.latency"
 assert_contains   "shell/modules/sidebarRight/netmon/LatencyStrip.qml" "rttMs"
 
+# 15. NetMonTab mounts the three new components.
+assert_contains   "shell/modules/sidebarRight/netmon/NetMonTab.qml" "LatencyStrip"
+assert_contains   "shell/modules/sidebarRight/netmon/NetMonTab.qml" "ListenerSection"
+assert_contains   "shell/modules/sidebarRight/netmon/NetMonTab.qml" "ConnectionsSection"
+
 echo "ok: sidebar-netmon static asserts"
