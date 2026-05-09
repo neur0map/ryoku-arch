@@ -58,4 +58,18 @@ assert_contains   "bin/ryoku-netmon-collect" "resolvectl"
 assert_contains   "bin/ryoku-netmon-collect" "addrs"
 assert_contains   "bin/ryoku-netmon-collect" "wifi"
 
+# 2. Service singleton + qmldir registration. Service exposes the typed
+#    surface, polls via the helper, and runs DNS-leak detection.
+assert_file       "shell/services/RyokuNetMon.qml"
+assert_contains   "shell/services/qmldir" "singleton RyokuNetMon 1.0 RyokuNetMon.qml"
+assert_contains   "shell/services/RyokuNetMon.qml" "ryoku-netmon-collect"
+assert_matches    "shell/services/RyokuNetMon.qml" 'property var interfaces'
+assert_matches    "shell/services/RyokuNetMon.qml" 'property bool tabOpen'
+assert_contains   "shell/services/RyokuNetMon.qml" "GlobalStates.sidebarRightOpen && root.tabOpen"
+assert_contains   "shell/services/RyokuNetMon.qml" "function refreshPublicIp"
+assert_matches    "shell/services/RyokuNetMon.qml" '\^\(tun\|wg\|tailscale\)'
+assert_contains   "shell/services/RyokuNetMon.qml" "dnsLeak"
+assert_contains   "shell/services/RyokuNetMon.qml" "proxychain"
+assert_contains   "shell/services/RyokuNetMon.qml" "https://api.ipify.org"
+
 echo "ok: sidebar-netmon static asserts"
