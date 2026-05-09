@@ -860,7 +860,8 @@
         "calculator",
         "sysmon",
         "timer",
-        "openvpn"
+        "openvpn",
+        "hosts"
       ]
     },
     "translator": {
