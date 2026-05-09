@@ -57,6 +57,7 @@ singleton RedditService 1.0 RedditService.qml
 singleton ResourceUsage 1.0 ResourceUsage.qml
 singleton RyokuOpenVpn 1.0 RyokuOpenVpn.qml
 singleton RyokuTailscale 1.0 RyokuTailscale.qml
+singleton RyokuHosts 1.0 RyokuHosts.qml
 singleton SessionWarnings 1.0 SessionWarnings.qml
 singleton ShellUpdates 1.0 ShellUpdates.qml
 singleton SongRec 1.0 SongRec.qml

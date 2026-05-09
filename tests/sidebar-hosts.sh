@@ -60,4 +60,17 @@ assert_contains   "bin/ryoku-hosts-edit" "is_v4"
 assert_contains   "bin/ryoku-hosts-edit" "is_v6"
 assert_contains   "bin/ryoku-hosts-edit" "is_domain"
 
+
+# 2. Service singleton + qmldir registration. Service exposes add/remove
+#    action methods, parses the managed block, and watches both
+#    /etc/hosts and the helper's last-op.json status manifest.
+assert_file       "shell/services/RyokuHosts.qml"
+assert_contains   "shell/services/qmldir" "singleton RyokuHosts 1.0 RyokuHosts.qml"
+assert_contains   "shell/services/RyokuHosts.qml" "function add"
+assert_contains   "shell/services/RyokuHosts.qml" "function remove"
+assert_contains   "shell/services/RyokuHosts.qml" 'Quickshell.execDetached(["ryoku-hosts-edit"'
+assert_matches    "shell/services/RyokuHosts.qml" "ryoku-hosts.*managed"
+assert_contains   "shell/services/RyokuHosts.qml" "/etc/hosts"
+assert_matches    "shell/services/RyokuHosts.qml" 'property bool tabOpen'
+
 echo "ok: sidebar-hosts static asserts"
