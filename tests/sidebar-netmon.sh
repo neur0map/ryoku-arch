@@ -127,4 +127,13 @@ assert_matches    "shell/services/RyokuNetMon.qml" 'property var connections'
 assert_contains   "shell/services/RyokuNetMon.qml" "state established"
 assert_contains   "shell/services/RyokuNetMon.qml" "_parseConnections"
 
+# 10. Latency strip - per-target pings, VPN gateway cache, default-gateway tracking.
+assert_matches    "shell/services/RyokuNetMon.qml" 'property var latency'
+assert_matches    "shell/services/RyokuNetMon.qml" 'property var _vpnGatewayCache'
+assert_contains   "shell/services/RyokuNetMon.qml" "ping -c 1 -W 1"
+assert_contains   "shell/services/RyokuNetMon.qml" "ip -j route show dev"
+assert_contains   "shell/services/RyokuNetMon.qml" "_refreshLatency"
+assert_contains   "shell/services/RyokuNetMon.qml" "_probeVpnGateway"
+assert_contains   "shell/services/RyokuNetMon.qml" "_absorbPing"
+
 echo "ok: sidebar-netmon static asserts"

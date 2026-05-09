@@ -66,6 +66,7 @@ Singleton {
 
         // Default-route interface is the dev field of the first default route.
         root.defaultRouteIface = (routes.length > 0 && routes[0].dev) ? routes[0].dev : ""
+        root._defaultGateway = (routes.length > 0 && routes[0].gateway) ? routes[0].gateway : ""
 
         // Build a map: ifname -> nmcli connection metadata (f1=name, f2=type, f3=device, f4=state)
         const nmByDev = {}
@@ -176,6 +177,24 @@ Singleton {
             root._prevCounters[name] = { rx: rxBytes, tx: txBytes, ts: now }
         }
         root.interfaces = out
+
+        // Populate / prune VPN-gateway cache for the latency strip.
+        for (const iface of out) {
+            if (iface.isVpnTunnel && (iface.state === "UP" || iface.ipv4.length > 0)
+                && !root._vpnGatewayCache[iface.name]) {
+                root._probeVpnGateway(iface.name)
+            }
+        }
+        const currentIfaceNames = out.map(i => i.name)
+        const cache = Object.assign({}, root._vpnGatewayCache)
+        let cacheChanged = false
+        for (const k of Object.keys(cache)) {
+            if (!currentIfaceNames.includes(k)) {
+                delete cache[k]
+                cacheChanged = true
+            }
+        }
+        if (cacheChanged) root._vpnGatewayCache = cache
 
         // DNS leak: any VPN iface up AND default DNS resolver is not in any VPN iface's DNS list.
         let leak = false, reason = ""
@@ -362,6 +381,89 @@ Singleton {
             })
         }
         root.connections = out
+    }
+
+    // ── latency strip (gateway + VPN exit) ───────────────────────
+    property var latency: []
+    property var _vpnGatewayCache: ({})    // { ifname: gateway }
+    property string _defaultGateway: ""    // populated by _parsePoll
+
+    Timer {
+        id: latencyTimer
+        running: GlobalStates.sidebarRightOpen && root.tabOpen
+        interval: 5000
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: root._refreshLatency()
+    }
+
+    function _refreshLatency(): void {
+        const targets = []
+        const defaultDev = root.defaultRouteIface
+        const defaultIsVpn = /^(tun|wg|tailscale)/.test(defaultDev)
+        if (root._defaultGateway) {
+            targets.push({
+                target: root._defaultGateway,
+                label: defaultIsVpn ? "vpn" : "gw"
+            })
+        }
+        if (!defaultIsVpn) {
+            for (const i of root.interfaces) {
+                if (i.isVpnTunnel && (i.state === "UP" || i.ipv4.length > 0)) {
+                    const gw = root._vpnGatewayCache[i.name]
+                    if (gw) targets.push({ target: gw, label: "vpn" })
+                    break
+                }
+            }
+        }
+        // Prune stale entries (targets no longer in list).
+        const targetIps = targets.map(t => t.target)
+        root.latency = root.latency.filter(l => targetIps.includes(l.target))
+        // Issue pings; each updates its entry on return.
+        for (const t of targets) {
+            Qt.createQmlObject(`
+                import Quickshell.Io; Process {
+                    command: ["sh", "-c", "ping -c 1 -W 1 -n ` + t.target + ` 2>/dev/null"]
+                    stdout: StdioCollector { onStreamFinished: root._absorbPing("` + t.target + `", "` + t.label + `", this.text) }
+                    onExited: destroy()
+                    Component.onCompleted: running = true
+                }`, root)
+        }
+    }
+
+    function _absorbPing(ip: string, label: string, output: string): void {
+        const match = output.match(/time=([\d.]+)\s*ms/)
+        const ok = match !== null
+        const rttMs = ok ? parseFloat(match[1]) : 0
+        const result = { target: ip, label: label, rttMs: rttMs, ok: ok }
+        root.latency = root.latency.filter(l => l.target !== ip).concat([result])
+    }
+
+    function _probeVpnGateway(ifname: string): void {
+        Qt.createQmlObject(`
+            import Quickshell.Io; Process {
+                command: ["sh", "-c", "ip -j route show dev ` + ifname + ` 2>/dev/null"]
+                stdout: StdioCollector { onStreamFinished: root._absorbVpnGateway("` + ifname + `", this.text) }
+                onExited: destroy()
+                Component.onCompleted: running = true
+            }`, root)
+    }
+
+    function _absorbVpnGateway(ifname: string, jsonText: string): void {
+        try {
+            const arr = JSON.parse(jsonText || "[]")
+            if (!Array.isArray(arr)) return
+            for (const r of arr) {
+                if (r.gateway) {
+                    const cache = Object.assign({}, root._vpnGatewayCache)
+                    cache[ifname] = r.gateway
+                    root._vpnGatewayCache = cache
+                    return
+                }
+            }
+        } catch (e) {
+            // ignore - stays uncached, no VPN pill until next probe
+        }
     }
 
     // ── vnstat (opt-in): per-iface daily + monthly totals on tab open ─
