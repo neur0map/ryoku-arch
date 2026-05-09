@@ -1409,7 +1409,7 @@ Singleton {
 
                 // Right sidebar widget toggles
                 property JsonObject right: JsonObject {
-                    property list<string> enabledWidgets: ["calendar", "todo", "notepad", "calculator", "sysmon", "timer", "openvpn"]
+                    property list<string> enabledWidgets: ["calendar", "todo", "notepad", "calculator", "sysmon", "timer", "openvpn", "hosts"]
                     // Controls section order for compact layout (drag to reorder)
                     property list<string> controlsSectionOrder: ["sliders", "toggles", "devices", "media", "quickActions"]
                 }

@@ -118,5 +118,6 @@ assert_matches    "shell/modules/sidebarRight/CompactSidebarRightContent.qml" '"
 assert_json_expr  "shell/defaults/config.json" '.sidebar.right.enabledWidgets | index("hosts") != null' \
   "shell defaults should include 'hosts' in sidebar.right.enabledWidgets"
 assert_matches    "shell/modules/settings/InterfaceConfig.qml" '"openvpn",[[:space:]]*"hosts"'
+assert_matches    "shell/modules/common/Config.qml" '"openvpn",[[:space:]]*"hosts"'
 
 echo "ok: sidebar-hosts static asserts"
