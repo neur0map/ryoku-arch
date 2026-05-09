@@ -45,7 +45,22 @@ fi
 # (like AGENTS.md) stay out; fall back to cp -a if rsync is unavailable.
 mkdir -p "$(dirname "$SHELL_PATH")"
 if ryoku-cmd-present rsync; then
-  rsync -a --exclude='AGENTS.md' "$SHELL_VENDOR/." "$SHELL_PATH/"
+  # Drop dev-only artifacts (top-level docs, GitHub metadata, repo docs)
+  # so SHELL_PATH stays a focused runtime payload, not a checkout copy.
+  # Quickshell ignores these but they pollute the deployed tree.
+  rsync -a \
+    --exclude='AGENTS.md' \
+    --exclude='README.md' \
+    --exclude='CHANGELOG.md' \
+    --exclude='CODE_OF_CONDUCT.md' \
+    --exclude='CONTRIBUTING.md' \
+    --exclude='SECURITY.md' \
+    --exclude='ARCHITECTURE.md' \
+    --exclude='.gitignore' \
+    --exclude='.shellcheckrc' \
+    --exclude='.github' \
+    --exclude='docs' \
+    "$SHELL_VENDOR/." "$SHELL_PATH/"
 else
   cp -a "$SHELL_VENDOR/." "$SHELL_PATH/"
 fi
