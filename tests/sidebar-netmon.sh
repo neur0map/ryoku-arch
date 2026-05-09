@@ -122,4 +122,9 @@ assert_contains   "shell/services/RyokuNetMon.qml" "ss -tlnpH"
 assert_contains   "shell/services/RyokuNetMon.qml" "_parseListeners"
 assert_contains   "shell/services/RyokuNetMon.qml" "id: ssTimer"
 
+# 9. Established outbound connections - service property + parser.
+assert_matches    "shell/services/RyokuNetMon.qml" 'property var connections'
+assert_contains   "shell/services/RyokuNetMon.qml" "state established"
+assert_contains   "shell/services/RyokuNetMon.qml" "_parseConnections"
+
 echo "ok: sidebar-netmon static asserts"

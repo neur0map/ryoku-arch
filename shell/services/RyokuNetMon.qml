@@ -280,6 +280,17 @@ Singleton {
         }
     }
 
+    // ── connections (established TCP) ────────────────────────────
+    property var connections: []
+
+    Process {
+        id: ssConnectionsProc
+        command: ["ss", "-tnpH", "state", "established"]
+        stdout: StdioCollector {
+            onStreamFinished: { root._parseConnections(this.text || "") }
+        }
+    }
+
     Timer {
         id: ssTimer
         running: GlobalStates.sidebarRightOpen && root.tabOpen
@@ -288,6 +299,7 @@ Singleton {
         triggeredOnStart: true
         onTriggered: {
             ssListenersProc.running = true
+            ssConnectionsProc.running = true
         }
     }
 
@@ -318,6 +330,37 @@ Singleton {
             })
         }
         root.listeners = out
+    }
+
+    function _parseConnections(text: string): void {
+        const out = []
+        for (const line of text.split("\n")) {
+            const trimmed = line.trim()
+            if (trimmed.length === 0) continue
+            // ss -tnpH state established columns: STATE Recv-Q Send-Q Local Peer Process
+            const tokens = trimmed.split(/\s+/)
+            if (tokens.length < 5) continue
+            const local = tokens[3]
+            const peer = tokens[4]
+            const procToken = tokens[tokens.length - 1]
+            const procMatch = procToken.match(/users:\(\("([^"]+)",pid=(\d+),/)
+            if (!procMatch) continue
+            const peerColon = peer.lastIndexOf(":")
+            if (peerColon < 0) continue
+            let remoteAddress = peer.slice(0, peerColon)
+            const remotePort = parseInt(peer.slice(peerColon + 1), 10) || 0
+            if (remoteAddress.startsWith("[") && remoteAddress.endsWith("]")) remoteAddress = remoteAddress.slice(1, -1)
+            const localColon = local.lastIndexOf(":")
+            const localPort = localColon >= 0 ? (parseInt(local.slice(localColon + 1), 10) || 0) : 0
+            out.push({
+                localPort: localPort,
+                remoteAddress: remoteAddress,
+                remotePort: remotePort,
+                pid: parseInt(procMatch[2], 10) || 0,
+                process: procMatch[1]
+            })
+        }
+        root.connections = out
     }
 
     // ── vnstat (opt-in): per-iface daily + monthly totals on tab open ─
