@@ -269,6 +269,57 @@ Singleton {
             }
         }
     }
+    // ── listeners (own TCP LISTEN sockets) ───────────────────────
+    property var listeners: []
+
+    Process {
+        id: ssListenersProc
+        command: ["ss", "-tlnpH"]
+        stdout: StdioCollector {
+            onStreamFinished: { root._parseListeners(this.text || "") }
+        }
+    }
+
+    Timer {
+        id: ssTimer
+        running: GlobalStates.sidebarRightOpen && root.tabOpen
+        interval: 3000
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: {
+            ssListenersProc.running = true
+        }
+    }
+
+    function _parseListeners(text: string): void {
+        const out = []
+        for (const line of text.split("\n")) {
+            const trimmed = line.trim()
+            if (trimmed.length === 0) continue
+            // ss -tlnpH columns: STATE Recv-Q Send-Q Local Peer Process
+            const tokens = trimmed.split(/\s+/)
+            if (tokens.length < 5) continue
+            const local = tokens[3]
+            const procToken = tokens[tokens.length - 1]
+            const procMatch = procToken.match(/users:\(\("([^"]+)",pid=(\d+),/)
+            if (!procMatch) continue   // user-owned filter: drop rows without PID visibility
+            const colonIdx = local.lastIndexOf(":")
+            if (colonIdx < 0) continue
+            let address = local.slice(0, colonIdx)
+            const port = parseInt(local.slice(colonIdx + 1), 10) || 0
+            // Strip surrounding [] for ipv6 display
+            if (address.startsWith("[") && address.endsWith("]")) address = address.slice(1, -1)
+            out.push({
+                port: port,
+                address: address,
+                pid: parseInt(procMatch[2], 10) || 0,
+                process: procMatch[1],
+                family: address.includes(":") ? "tcp6" : "tcp"
+            })
+        }
+        root.listeners = out
+    }
+
     // ── vnstat (opt-in): per-iface daily + monthly totals on tab open ─
     Process {
         id: vnstatProbe

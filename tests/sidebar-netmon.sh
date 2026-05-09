@@ -116,4 +116,10 @@ operator_migration=$(grep -lE 'enabledWidgets.*netmon|index\("netmon"\)' "$ROOT_
 [[ -n $operator_migration ]] || fail "a migration should append netmon to enabledWidgets"
 echo "  found netmon migration: $(basename "$operator_migration")"
 
+# 8. Listener overview - service property + ss -tlnpH poll + parser.
+assert_matches    "shell/services/RyokuNetMon.qml" 'property var listeners'
+assert_contains   "shell/services/RyokuNetMon.qml" "ss -tlnpH"
+assert_contains   "shell/services/RyokuNetMon.qml" "_parseListeners"
+assert_contains   "shell/services/RyokuNetMon.qml" "id: ssTimer"
+
 echo "ok: sidebar-netmon static asserts"
