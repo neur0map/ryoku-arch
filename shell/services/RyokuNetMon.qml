@@ -322,6 +322,18 @@ Singleton {
         }
     }
 
+    // ── kill action (SIGTERM by PID) ─────────────────────────────
+    Process {
+        id: killProc
+        // command set per-call by killListener()
+    }
+
+    function killListener(pid: int): void {
+        // SIGTERM via /usr/bin/kill; next listener poll (within 3 s) will reflect.
+        killProc.command = ["kill", String(pid)]
+        killProc.running = true
+    }
+
     function _parseListeners(text: string): void {
         const out = []
         for (const line of text.split("\n")) {

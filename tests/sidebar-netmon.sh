@@ -136,4 +136,8 @@ assert_contains   "shell/services/RyokuNetMon.qml" "_refreshLatency"
 assert_contains   "shell/services/RyokuNetMon.qml" "_probeVpnGateway"
 assert_contains   "shell/services/RyokuNetMon.qml" "_absorbPing"
 
+# 11. Listener kill action (SIGTERM via kill).
+assert_contains   "shell/services/RyokuNetMon.qml" "function killListener"
+assert_contains   "shell/services/RyokuNetMon.qml" "id: killProc"
+
 echo "ok: sidebar-netmon static asserts"
