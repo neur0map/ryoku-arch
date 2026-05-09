@@ -1,0 +1,167 @@
+#!/bin/bash
+# Add or remove an IP DOMAIN entry inside the ryoku-hosts managed block
+# of /etc/hosts. Privileged write runs through `pkexec install` so the
+# existing WafflePolkit UI handles the auth prompt.
+#
+# Usage:
+#   ryoku-hosts-edit add IP DOMAIN
+#   ryoku-hosts-edit remove IP DOMAIN
+#
+# Status manifest (per-user state):
+#   ${XDG_STATE_HOME:-$HOME/.local/state}/ryoku/hosts/last-op.json
+#   {"op":"add|remove","ip":"...","domain":"...","status":"ok|ok-noop|error|cancelled","error":"...","at":"..."}
+
+set -uo pipefail
+
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/ryoku/hosts"
+mkdir -p "$STATE_DIR"
+LAST_OP="$STATE_DIR/last-op.json"
+
+HOSTS_FILE="/etc/hosts"
+BEGIN_MARKER='# >>> ryoku-hosts (managed) >>>'
+END_MARKER='# <<< ryoku-hosts (managed) <<<'
+ADVISORY='# Edit via Ryoku sidebar: do not modify these lines manually.'
+
+write_result() {
+  local op="$1" ip="$2" domain="$3" status="$4" error="${5:-}"
+  local ts
+  ts="$(date -Iseconds)"
+  local s_op="${op//\\/\\\\}";       s_op="${s_op//\"/\\\"}"
+  local s_ip="${ip//\\/\\\\}";       s_ip="${s_ip//\"/\\\"}"
+  local s_domain="${domain//\\/\\\\}"; s_domain="${s_domain//\"/\\\"}"
+  local s_status="${status//\\/\\\\}"; s_status="${s_status//\"/\\\"}"
+  local s_error="${error//\\/\\\\}"; s_error="${s_error//\"/\\\"}"
+  printf '{"op":"%s","ip":"%s","domain":"%s","status":"%s","error":"%s","at":"%s"}\n' \
+    "$s_op" "$s_ip" "$s_domain" "$s_status" "$s_error" "$ts" >"$LAST_OP"
+}
+
+is_v4() { [[ $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; }
+is_v6() { [[ $1 =~ ^[0-9a-fA-F:]+$ ]] && [[ $1 == *:*:* ]]; }
+is_ip()     { is_v4 "$1" || is_v6 "$1"; }
+is_domain() { [[ ${#1} -ge 1 && ${#1} -le 253 ]] && [[ $1 =~ ^[a-zA-Z0-9._-]+$ ]]; }
+
+if ! command -v pkexec >/dev/null 2>&1; then
+  write_result "${1:-?}" "" "" error "pkexec is not installed"
+  exit 1
+fi
+
+case "$1" in
+  add|remove) ;;
+  *)
+    write_result "${1:-?}" "${2:-}" "${3:-}" error "usage: ryoku-hosts-edit add|remove IP DOMAIN"
+    exit 2
+    ;;
+esac
+
+op="$1"
+ip="${2:-}"
+domain="${3:-}"
+
+if ! is_ip "$ip"; then
+  write_result "$op" "$ip" "$domain" error "invalid IP: $ip"
+  exit 2
+fi
+if ! is_domain "$domain"; then
+  write_result "$op" "$ip" "$domain" error "invalid domain: $domain"
+  exit 2
+fi
+
+if [[ ! -r $HOSTS_FILE ]]; then
+  write_result "$op" "$ip" "$domain" error "cannot read $HOSTS_FILE"
+  exit 1
+fi
+
+tmp="$(mktemp)"
+trap 'rm -f "$tmp"' EXIT
+
+# Render the new /etc/hosts to $tmp by editing the managed block in-place.
+# awk does the entire transformation in one pass: lines outside the block
+# pass through unchanged; lines inside the block are dropped (we rebuild
+# them); markers themselves are dropped (we re-emit at the end if needed).
+# Returns to stdout the file with the managed block STRIPPED.
+strip_block() {
+  awk -v B="$BEGIN_MARKER" -v E="$END_MARKER" '
+    BEGIN { in_block = 0 }
+    $0 == B { in_block = 1; next }
+    $0 == E { in_block = 0; next }
+    !in_block { print }
+  ' "$HOSTS_FILE"
+}
+
+# Extract the entries currently inside the managed block as IP\tDOMAIN
+# pairs, one per line. Skips advisory comments and blank lines.
+current_entries() {
+  awk -v B="$BEGIN_MARKER" -v E="$END_MARKER" '
+    BEGIN { in_block = 0 }
+    $0 == B { in_block = 1; next }
+    $0 == E { in_block = 0; next }
+    in_block && $0 !~ /^[[:space:]]*#/ && NF >= 2 { print $1 "\t" $2 }
+  ' "$HOSTS_FILE"
+}
+
+# Build the new entry list as a tab-separated stream on stdout.
+new_entries() {
+  local cur new_pair
+  cur="$(current_entries)"
+  new_pair="$ip"$'\t'"$domain"
+  case "$op" in
+    add)
+      # If the exact pair already exists, it's a no-op success.
+      if printf '%s\n' "$cur" | grep -qxF "$new_pair"; then
+        return 1   # signal "no change"
+      fi
+      printf '%s\n' "$cur"
+      printf '%s\n' "$new_pair"
+      ;;
+    remove)
+      # If the pair doesn't exist, it's a no-op success.
+      if ! printf '%s\n' "$cur" | grep -qxF "$new_pair"; then
+        return 1   # signal "no change"
+      fi
+      printf '%s\n' "$cur" | grep -vxF "$new_pair" || true
+      ;;
+  esac
+}
+
+entries_after="$(new_entries)" || {
+  # No-op success: emit ok-noop without invoking pkexec.
+  write_result "$op" "$ip" "$domain" ok-noop ""
+  exit 0
+}
+
+# Compose the final file content: stripped file (without any old markers)
+# followed by the rebuilt managed block (only if there are entries left).
+{
+  strip_block
+  # Ensure exactly one blank line between the existing tail and the block,
+  # but only if the stripped content is non-empty and doesn't already end
+  # with a blank line. Cheapest correct approach: strip trailing blanks
+  # and append our own.
+  if [[ -n $entries_after ]]; then
+    printf '\n%s\n' "$BEGIN_MARKER"
+    printf '%s\n' "$ADVISORY"
+    printf '%s\n' "$entries_after" | awk -F'\t' 'NF == 2 { printf "%s\t%s\n", $1, $2 }'
+    printf '%s\n' "$END_MARKER"
+  fi
+} >"$tmp"
+
+# Reject empty output as a safety check: if the stripped file plus the
+# rebuilt block came out empty, something is wrong, abort the install.
+if [[ ! -s $tmp ]]; then
+  write_result "$op" "$ip" "$domain" error "computed /etc/hosts is empty, refusing to install"
+  exit 1
+fi
+
+# Atomic privileged install. Mode 644, owner root:root, exactly matching
+# the conventional /etc/hosts perms.
+if ! pkexec install -m 644 -o root -g root "$tmp" "$HOSTS_FILE"; then
+  rc=$?
+  case $rc in
+    126) write_result "$op" "$ip" "$domain" cancelled "authentication cancelled" ;;
+    *)   write_result "$op" "$ip" "$domain" error "pkexec install failed (rc=$rc)" ;;
+  esac
+  exit "$rc"
+fi
+
+write_result "$op" "$ip" "$domain" ok ""
+exit 0
