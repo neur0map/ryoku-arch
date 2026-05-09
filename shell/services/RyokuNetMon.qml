@@ -181,7 +181,7 @@ Singleton {
         // Populate / prune VPN-gateway cache for the latency strip.
         for (const iface of out) {
             if (iface.isVpnTunnel && (iface.state === "UP" || iface.ipv4.length > 0)
-                && !root._vpnGatewayCache[iface.name]) {
+                && !(iface.name in root._vpnGatewayCache)) {
                 root._probeVpnGateway(iface.name)
             }
         }
@@ -450,20 +450,25 @@ Singleton {
     }
 
     function _absorbVpnGateway(ifname: string, jsonText: string): void {
+        // Always cache a result, even if empty, to avoid re-probing every poll tick.
+        // Empty string sentinel means "probed, no gateway" (e.g. Tailscale, point-to-point wg).
+        let foundGateway = ""
         try {
             const arr = JSON.parse(jsonText || "[]")
-            if (!Array.isArray(arr)) return
-            for (const r of arr) {
-                if (r.gateway) {
-                    const cache = Object.assign({}, root._vpnGatewayCache)
-                    cache[ifname] = r.gateway
-                    root._vpnGatewayCache = cache
-                    return
+            if (Array.isArray(arr)) {
+                for (const r of arr) {
+                    if (r.gateway) {
+                        foundGateway = r.gateway
+                        break
+                    }
                 }
             }
         } catch (e) {
-            // ignore - stays uncached, no VPN pill until next probe
+            // JSON parse failed - cache the empty sentinel and try again only when iface re-appears.
         }
+        const cache = Object.assign({}, root._vpnGatewayCache)
+        cache[ifname] = foundGateway
+        root._vpnGatewayCache = cache
     }
 
     // ── vnstat (opt-in): per-iface daily + monthly totals on tab open ─
