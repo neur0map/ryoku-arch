@@ -30,14 +30,23 @@ if [[ ! -d $SHELL_VENDOR ]]; then
   exit 1
 fi
 
-# If the target is a legacy snowarch git checkout, replace it with the vendor.
+# If the target is a legacy upstream git checkout, replace it with the vendor.
 if [[ -d $SHELL_PATH/.git ]]; then
   rm -rf "$SHELL_PATH"
 fi
 
-# Fresh deploy: copy the vendored tree into place.
-if [[ ! -d $SHELL_PATH ]]; then
-  mkdir -p "$(dirname "$SHELL_PATH")"
+# Sync the vendored tree into SHELL_PATH on every run so updates land.
+# Previous behavior gated this on first-install only ([[ ! -d $SHELL_PATH ]]),
+# so subsequent ryoku-updates never propagated new files (added or modified
+# in the vendor by `git pull`) into SHELL_PATH or the runtime config dir.
+# Result was a silent regression where users kept the prior shell payload
+# even after their git checkout had advanced. Sync unconditionally now.
+# rsync (preferred) supports --exclude so vendored-but-unwanted files
+# (like AGENTS.md) stay out; fall back to cp -a if rsync is unavailable.
+mkdir -p "$(dirname "$SHELL_PATH")"
+if ryoku-cmd-present rsync; then
+  rsync -a --exclude='AGENTS.md' "$SHELL_VENDOR/." "$SHELL_PATH/"
+else
   cp -a "$SHELL_VENDOR/." "$SHELL_PATH/"
 fi
 
