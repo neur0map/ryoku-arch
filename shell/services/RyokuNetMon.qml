@@ -337,11 +337,12 @@ Singleton {
         for (const line of text.split("\n")) {
             const trimmed = line.trim()
             if (trimmed.length === 0) continue
-            // ss -tnpH state established columns: STATE Recv-Q Send-Q Local Peer Process
+            // ss -tnpH state established columns: Recv-Q Send-Q Local Peer Process
+            // (State column is suppressed when ss is filtered to a single state.)
             const tokens = trimmed.split(/\s+/)
             if (tokens.length < 5) continue
-            const local = tokens[3]
-            const peer = tokens[4]
+            const local = tokens[2]
+            const peer = tokens[3]
             const procToken = tokens[tokens.length - 1]
             const procMatch = procToken.match(/users:\(\("([^"]+)",pid=(\d+),/)
             if (!procMatch) continue
