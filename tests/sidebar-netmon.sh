@@ -110,4 +110,10 @@ assert_json_expr  "shell/defaults/config.json" '.sidebar.right.enabledWidgets | 
 assert_matches    "shell/modules/common/Config.qml" '"hosts",[[:space:]]*"netmon"'
 assert_matches    "shell/modules/settings/InterfaceConfig.qml" '"hosts",[[:space:]]*"netmon"'
 
+# 7. Migration appends "netmon" to existing users' enabledWidgets so
+#    the tab is visible on next ryoku-update without manual config edits.
+operator_migration=$(grep -lE 'enabledWidgets.*netmon|index\("netmon"\)' "$ROOT_DIR"/migrations/*.sh 2>/dev/null | head -1)
+[[ -n $operator_migration ]] || fail "a migration should append netmon to enabledWidgets"
+echo "  found netmon migration: $(basename "$operator_migration")"
+
 echo "ok: sidebar-netmon static asserts"
