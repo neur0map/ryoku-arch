@@ -148,4 +148,10 @@ assert_contains   "shell/modules/sidebarRight/netmon/ListenerSection.qml" "Quick
 assert_contains   "shell/modules/sidebarRight/netmon/ListenerSection.qml" "xdg-open"
 assert_contains   "shell/modules/sidebarRight/netmon/ListenerSection.qml" "wifi_tethering"
 
+# 13. ConnectionsSection widget - established outbound + click-to-copy.
+assert_file       "shell/modules/sidebarRight/netmon/ConnectionsSection.qml"
+assert_contains   "shell/modules/sidebarRight/netmon/ConnectionsSection.qml" "RyokuNetMon.connections"
+assert_contains   "shell/modules/sidebarRight/netmon/ConnectionsSection.qml" "Quickshell.clipboardText"
+assert_contains   "shell/modules/sidebarRight/netmon/ConnectionsSection.qml" "arrow_outward"
+
 echo "ok: sidebar-netmon static asserts"
