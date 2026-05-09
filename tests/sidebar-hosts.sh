@@ -100,4 +100,15 @@ assert_contains   "shell/modules/sidebarRight/BottomWidgetGroup.qml" '"type": "h
 assert_contains   "shell/modules/sidebarRight/BottomWidgetGroup.qml" "target: RyokuHosts"
 assert_matches    "shell/modules/sidebarRight/BottomWidgetGroup.qml" '"openvpn",[[:space:]]*"hosts"'
 
+
+# 5. CompactSidebarRightContent imports the hosts module, wraps HostsTab
+#    in a Component, declares the section in widgetSections, drives
+#    RyokuHosts.tabOpen, and includes "hosts" in the enabledWidgets
+#    fallback default.
+assert_contains   "shell/modules/sidebarRight/CompactSidebarRightContent.qml" "import qs.modules.sidebarRight.hosts"
+assert_contains   "shell/modules/sidebarRight/CompactSidebarRightContent.qml" "id: hostsComponent"
+assert_contains   "shell/modules/sidebarRight/CompactSidebarRightContent.qml" 'id: "hosts"'
+assert_contains   "shell/modules/sidebarRight/CompactSidebarRightContent.qml" "target: RyokuHosts"
+assert_matches    "shell/modules/sidebarRight/CompactSidebarRightContent.qml" '"openvpn",[[:space:]]*"hosts"'
+
 echo "ok: sidebar-hosts static asserts"
