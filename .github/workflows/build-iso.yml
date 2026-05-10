@@ -93,6 +93,14 @@ jobs:
 
           gpg --verify "$iso.sig" "$iso"
 
+          # Export the public key alongside the ISO so testers can fetch it
+          # from the same R2 bucket. This is in addition to the repo-canonical
+          # copy at keys/ryoku-release-key.pub.asc; the R2 copy is a fallback
+          # for users who only have the ISO URL and not the GitHub repo.
+          pubkey="$(dirname "$iso")/ryoku-release-key.pub.asc"
+          gpg --armor --export > "$pubkey"
+          echo "::notice::Exported public key to $pubkey"
+
       - name: Generate SHA256 checksum
         run: |
           iso="${{ steps.iso.outputs.path }}"
@@ -133,9 +141,11 @@ jobs:
           dest="${R2_BUCKET:-ryoku/$CHANNEL}"
 
           iso="${{ steps.iso.outputs.path }}"
+          pubkey="$(dirname "$iso")/ryoku-release-key.pub.asc"
           rclone copy "$iso"        "Ryoku:$dest/" -P
           rclone copy "$iso.sig"    "Ryoku:$dest/" -P
           rclone copy "$iso.sha256" "Ryoku:$dest/" -P
+          rclone copy "$pubkey"     "Ryoku:$dest/" -P
 
           echo "::notice::Uploaded to R2 path Ryoku:$dest/"
 
@@ -147,4 +157,5 @@ jobs:
             iso/release/*.iso
             iso/release/*.sig
             iso/release/*.sha256
+            iso/release/*.asc
           retention-days: 14

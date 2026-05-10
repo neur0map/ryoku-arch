@@ -13,9 +13,11 @@ GitHub-hosted `ubuntu-latest` runner:
 2. Verify required secrets are present, fail with a clear message if not
 3. Free disk space on the runner (strip preinstalled toolchains we do not use)
 4. Build the ISO via `iso/bin/ryoku-iso-make --local-source --no-boot-offer`
-5. Sign the ISO with the GPG key from `GPG_PRIVATE_KEY` secret
+5. Sign the ISO with the GPG key from `GPG_PRIVATE_KEY` secret, then export
+   the public key as `ryoku-release-key.pub.asc` so testers can verify
 6. Generate `<iso>.sha256` containing the iso + sig hashes
-7. Upload all three (`<iso>`, `<iso>.sig`, `<iso>.sha256`) to Cloudflare R2 via rclone
+7. Upload all four (`<iso>`, `<iso>.sig`, `<iso>.sha256`,
+   `ryoku-release-key.pub.asc`) to Cloudflare R2 via rclone
 8. Attach the same files as a workflow-run artifact for 14 days as a fallback
 
 ## Triggers
@@ -72,8 +74,19 @@ gpg --armor --export 'releases@ryoku.dev' > ryoku-release-key.pub.asc
 Commit `ryoku-release-key.pub.asc` to the repo (or publish to a key
 server) so users have something to verify against. Standard locations:
 
-- `keys/ryoku-release-key.pub.asc` in the repo
+- `keys/ryoku-release-key.pub.asc` in the repo (canonical, bound to the
+  source tree under tag history)
+- The R2 bucket alongside each release ISO (uploaded automatically by
+  the workflow as a fallback for users who only have the ISO URL)
 - `https://ryoku.dev/release-key.asc` once the site is live
+
+For the in-repo copy, also document the key fingerprint in `README.md`
+so a substituted pubkey would be obvious. Get it with:
+
+```bash
+gpg --with-colons --import-options show-only --import ryoku-release-key.pub.asc \
+  | awk -F: '/^fpr/ { print $10; exit }'
+```
 
 ## Triggering a build
 
@@ -101,7 +114,8 @@ After a successful run, the bucket has:
 ryoku/stable/
 ├── ryoku-2026.04.28-x86_64.iso
 ├── ryoku-2026.04.28-x86_64.iso.sig
-└── ryoku-2026.04.28-x86_64.iso.sha256
+├── ryoku-2026.04.28-x86_64.iso.sha256
+└── ryoku-release-key.pub.asc
 ```
 
 Direct URLs (assuming `r2.dev` public access enabled):
@@ -110,6 +124,7 @@ Direct URLs (assuming `r2.dev` public access enabled):
 https://pub-<hash>.r2.dev/ryoku/stable/ryoku-<date>-x86_64.iso
 https://pub-<hash>.r2.dev/ryoku/stable/ryoku-<date>-x86_64.iso.sig
 https://pub-<hash>.r2.dev/ryoku/stable/ryoku-<date>-x86_64.iso.sha256
+https://pub-<hash>.r2.dev/ryoku/stable/ryoku-release-key.pub.asc
 ```
 
 Once `iso.ryoku.dev` is live, point a custom domain at the bucket and use that instead.
@@ -117,14 +132,22 @@ Once `iso.ryoku.dev` is live, point a custom domain at the bucket and use that i
 ## How users verify the ISO
 
 ```bash
-# Download the iso, sig, sha256, and the public key
+# Download the iso, sig, sha256, and the public key. The pubkey is now
+# published in two places (pick whichever is reachable):
+#   * R2 bucket alongside the ISO         (no GitHub access needed)
+#   * GitHub repo at keys/                (signed via tag history)
 curl -LO https://pub-<hash>.r2.dev/ryoku/stable/ryoku-2026.04.28-x86_64.iso
 curl -LO https://pub-<hash>.r2.dev/ryoku/stable/ryoku-2026.04.28-x86_64.iso.sig
 curl -LO https://pub-<hash>.r2.dev/ryoku/stable/ryoku-2026.04.28-x86_64.iso.sha256
-curl -LO https://raw.githubusercontent.com/neur0map/ryoku-arch/main/keys/ryoku-release-key.pub.asc
+curl -LO https://pub-<hash>.r2.dev/ryoku/stable/ryoku-release-key.pub.asc
+# OR, equivalently:
+# curl -LO https://raw.githubusercontent.com/neur0map/ryoku-arch/main/keys/ryoku-release-key.pub.asc
 
-# Import the public key
+# Import the public key, then check that its fingerprint matches the
+# one published in the project README before trusting it.
 gpg --import ryoku-release-key.pub.asc
+gpg --with-colons --import-options show-only --import ryoku-release-key.pub.asc \
+  | awk -F: '/^fpr/ { print $10; exit }'
 
 # Check the signature on the ISO
 gpg --verify ryoku-2026.04.28-x86_64.iso.sig ryoku-2026.04.28-x86_64.iso
