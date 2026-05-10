@@ -43,7 +43,7 @@ Configure under **Settings -> Secrets and variables -> Actions** in the repo.
 1. Cloudflare dashboard -> R2 -> Create bucket. Name it whatever (the workflow defaults to `ryoku/<channel>` as the upload path; if your bucket is also named `ryoku` you do not need to set `R2_BUCKET`).
 2. R2 -> Manage R2 API Tokens -> Create token. Permission: "Object Read & Write" on this bucket only. Copy the access key ID + secret access key when shown (they are not shown again).
 3. From the bucket detail page, copy the S3-compatible endpoint URL: `https://<account>.r2.cloudflarestorage.com`.
-4. Bucket settings -> Public Access -> enable the `r2.dev` subdomain so users can download. You will get a URL like `https://pub-<hash>.r2.dev`.
+4. Bucket settings -> Public Access -> enable the `r2.dev` subdomain (development only, rate-limited) OR connect a custom domain (recommended for production). Ryoku uses the custom domain `iso.ryoku.dev` connected via Cloudflare DNS.
 5. Add the three R2 values + the `GPG_PRIVATE_KEY` (and passphrase if any) to GitHub Secrets.
 
 ## Setting up the GPG signing key
@@ -118,16 +118,15 @@ ryoku/stable/
 └── ryoku-release-key.pub.asc
 ```
 
-Direct URLs (assuming `r2.dev` public access enabled):
+Public download URLs (served through Cloudflare CDN via the
+`iso.ryoku.dev` custom domain):
 
 ```
-https://pub-<hash>.r2.dev/ryoku/stable/ryoku-<date>-x86_64.iso
-https://pub-<hash>.r2.dev/ryoku/stable/ryoku-<date>-x86_64.iso.sig
-https://pub-<hash>.r2.dev/ryoku/stable/ryoku-<date>-x86_64.iso.sha256
-https://pub-<hash>.r2.dev/ryoku/stable/ryoku-release-key.pub.asc
+https://iso.ryoku.dev/stable/ryoku-<date>-x86_64-main.iso
+https://iso.ryoku.dev/stable/ryoku-<date>-x86_64-main.iso.sig
+https://iso.ryoku.dev/stable/ryoku-<date>-x86_64-main.iso.sha256
+https://iso.ryoku.dev/stable/ryoku-release-key.pub.asc
 ```
-
-Once `iso.ryoku.dev` is live, point a custom domain at the bucket and use that instead.
 
 ## How users verify the ISO
 
@@ -136,10 +135,11 @@ Once `iso.ryoku.dev` is live, point a custom domain at the bucket and use that i
 # published in two places (pick whichever is reachable):
 #   * R2 bucket alongside the ISO         (no GitHub access needed)
 #   * GitHub repo at keys/                (signed via tag history)
-curl -LO https://pub-<hash>.r2.dev/ryoku/stable/ryoku-2026.04.28-x86_64.iso
-curl -LO https://pub-<hash>.r2.dev/ryoku/stable/ryoku-2026.04.28-x86_64.iso.sig
-curl -LO https://pub-<hash>.r2.dev/ryoku/stable/ryoku-2026.04.28-x86_64.iso.sha256
-curl -LO https://pub-<hash>.r2.dev/ryoku/stable/ryoku-release-key.pub.asc
+iso=ryoku-2026.05.10-x86_64-main.iso
+curl -LO https://iso.ryoku.dev/stable/$iso
+curl -LO https://iso.ryoku.dev/stable/$iso.sig
+curl -LO https://iso.ryoku.dev/stable/$iso.sha256
+curl -LO https://iso.ryoku.dev/stable/ryoku-release-key.pub.asc
 # OR, equivalently:
 # curl -LO https://raw.githubusercontent.com/neur0map/ryoku-arch/main/keys/ryoku-release-key.pub.asc
 
@@ -150,12 +150,12 @@ gpg --with-colons --import-options show-only --import ryoku-release-key.pub.asc 
   | awk -F: '/^fpr/ { print $10; exit }'
 
 # Check the signature on the ISO
-gpg --verify ryoku-2026.04.28-x86_64.iso.sig ryoku-2026.04.28-x86_64.iso
+gpg --verify $iso.sig $iso
 # Expected output: "Good signature from Ryoku Releases <releases@ryoku.dev>"
 
 # Cross-check the sha256
-sha256sum -c ryoku-2026.04.28-x86_64.iso.sha256
-# Expected output: "ryoku-2026.04.28-x86_64.iso: OK"
+sha256sum -c $iso.sha256
+# Expected output: "ryoku-2026.05.10-x86_64-main.iso: OK"
 ```
 
 ## Failure modes worth knowing
