@@ -264,11 +264,13 @@ Item {
 
         // Cards.
         ScrollView {
+            id: scrollArea
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
+            contentWidth: availableWidth
             ColumnLayout {
-                width: parent.width
+                width: scrollArea.availableWidth
                 spacing: 8
                 Repeater {
                     model: root.activeIfaces
