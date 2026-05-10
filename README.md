@@ -52,17 +52,36 @@ You are responsible for how you use what ships here. Unauthorized scanning, expl
 
 ## Status
 
-Public preview. The first signed ISO release is still pending.
+Public preview. Signed alpha ISOs are downloadable; the first tagged stable release is the next milestone.
 
-The Niri source transition has landed. The next ISO build, boot verification on the working hardware matrix, and the curated security-tooling baseline are the gating items before a tagged release. The repo is open for review in the meantime; development happens on `main`.
+The Niri source transition has landed. Boot verification across the hardware matrix and the curated security-tooling baseline are the gating items before a tagged release. The repo is open for review in the meantime; development happens on `main`.
 
 | Question | Answer |
 |---|---|
-| Is the ISO downloadable? | Not yet. Build locally with `iso/builder/build-iso.sh` if you want to try. |
+| Is the ISO downloadable? | Yes, signed alpha builds at `https://iso.ryoku.dev/stable/`. See [Download and verify](#download-and-verify) below. |
 | NVIDIA, hybrid, AMD, Apple Silicon? | All targeted. Working hardware list and driver matrix in [`docs/iso-build-recipe.md`](docs/iso-build-recipe.md). |
 | Does it bundle every pentest tool? | No. A curated track is being assembled; opt-in metas planned. Out of the box you get the desktop, not the toolbox. |
 | Secure Boot? | Roadmap. Not automatic yet. |
 | Stability vs. rolling Arch? | Rolling. A `ryoku-stable` branch lagging behind known-good snapshots is on the roadmap. |
+
+## Download and verify
+
+Signed alpha builds are published at `https://iso.ryoku.dev/stable/`:
+
+| File | URL |
+|---|---|
+| ISO | `https://iso.ryoku.dev/stable/ryoku-<date>-x86_64-main.iso` |
+| Signature | `https://iso.ryoku.dev/stable/ryoku-<date>-x86_64-main.iso.sig` |
+| SHA256 | `https://iso.ryoku.dev/stable/ryoku-<date>-x86_64-main.iso.sha256` |
+| Public key | `https://iso.ryoku.dev/stable/ryoku-release-key.pub.asc` |
+
+Releases are signed with:
+
+- **Key:** `Ryoku Releases <releases@ryoku.dev>`
+- **Fingerprint:** `621F 579B D155 94C4 DE84  0B7D 5329 7813 C0BE E055`
+- **Public key in repo:** [`keys/ryoku-release-key.pub.asc`](keys/ryoku-release-key.pub.asc) (canonical, bound to git history)
+
+Always check that the imported key's fingerprint matches the one above before trusting it; if it does not, do not import. Full verification commands are in [`docs/release-pipeline.md`](docs/release-pipeline.md).
 
 ## Browse the repo
 
