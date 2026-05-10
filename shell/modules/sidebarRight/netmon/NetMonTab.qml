@@ -380,8 +380,6 @@ Item {
                             }
 
                             // Supporting line: rates + gateway/dns on one row.
-                            // Rate text uses a fixed slot so changing values don't shift the
-                            // gw/dns column rightward; gw/dns absorbs remaining width and elides.
                             RowLayout {
                                 Layout.fillWidth: true
                                 spacing: 12
@@ -390,19 +388,16 @@ Item {
                                     color: Appearance.colors.colSubtext
                                     font.pixelSize: Appearance.font.pixelSize.smaller
                                     font.family: Appearance.font.family.monospace ?? "monospace"
-                                    Layout.preferredWidth: 160
-                                    elide: Text.ElideRight
                                 }
+                                Item { Layout.fillWidth: true }
                                 StyledText {
                                     visible: card.gwLine.length > 0
                                     text: card.gwLine
                                     color: Appearance.colors.colSubtext
                                     font.pixelSize: Appearance.font.pixelSize.smaller
                                     font.family: Appearance.font.family.monospace ?? "monospace"
-                                    horizontalAlignment: Text.AlignRight
                                     elide: Text.ElideRight
-                                    Layout.fillWidth: true
-                                    Layout.alignment: Qt.AlignRight
+                                    Layout.maximumWidth: 200
                                 }
                             }
                         }
