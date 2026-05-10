@@ -276,9 +276,20 @@ Item {
                         id: card
                         required property var modelData
                         property bool justCopiedV4: false
-                        property bool justCopiedV6: false
+
+                        readonly property string firstDns: (modelData.dns && modelData.dns.length > 0) ? modelData.dns[0] : ""
+                        readonly property string gwLine: {
+                            if (modelData.gateway.length > 0 && firstDns.length > 0 && firstDns === modelData.gateway)
+                                return "gw/dns " + modelData.gateway
+                            if (modelData.gateway.length > 0 && firstDns.length > 0)
+                                return "gw " + modelData.gateway + "  dns " + firstDns
+                            if (modelData.gateway.length > 0) return "gw " + modelData.gateway
+                            if (firstDns.length > 0) return "dns " + firstDns
+                            return ""
+                        }
+
                         Layout.fillWidth: true
-                        Layout.preferredHeight: cardCol.implicitHeight + 18
+                        Layout.preferredHeight: cardCol.implicitHeight + 16
                         color: Appearance.colors.colLayer2
                         radius: Appearance.rounding.normal
                         border.width: modelData.isVpnTunnel ? 1 : 0
@@ -289,53 +300,44 @@ Item {
                             interval: 1500
                             onTriggered: card.justCopiedV4 = false
                         }
-                        Timer {
-                            id: copyV6Reset
-                            interval: 1500
-                            onTriggered: card.justCopiedV6 = false
-                        }
 
                         ColumnLayout {
                             id: cardCol
-                            anchors.fill: parent
-                            anchors.margins: 12
-                            spacing: 4
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 12
+                            spacing: 6
 
-                            // Header row: icon, name, wifi signal pill, VPN pill.
+                            // Header: icon, name, supporting (signal % or VPN pill).
                             RowLayout {
                                 Layout.fillWidth: true
                                 spacing: 8
                                 MaterialSymbol {
                                     text: root.typeIcon(modelData.type)
-                                    iconSize: Appearance.font.pixelSize.larger
+                                    iconSize: Appearance.font.pixelSize.normal
                                     color: modelData.isVpnTunnel ? root.colAccent : Appearance.colors.colSubtext
                                 }
                                 StyledText {
                                     text: modelData.connectionName.length > 0 ? modelData.connectionName : modelData.name
                                     color: Appearance.colors.colOnLayer2
                                     font.weight: Font.Bold
+                                    font.pixelSize: Appearance.font.pixelSize.small
                                     Layout.fillWidth: true
                                     elide: Text.ElideRight
                                 }
-                                Rectangle {
+                                StyledText {
                                     visible: modelData.type === "wifi" && modelData.signal > 0
-                                    implicitWidth: signalLabel.implicitWidth + 10
-                                    implicitHeight: signalLabel.implicitHeight + 4
-                                    radius: implicitHeight / 2
-                                    color: ColorUtils.transparentize(Appearance.colors.colSubtext, 0.85)
-                                    StyledText {
-                                        id: signalLabel
-                                        anchors.centerIn: parent
-                                        text: modelData.signal + "%"
-                                        color: Appearance.colors.colOnLayer2
-                                        font.pixelSize: Appearance.font.pixelSize.smaller
-                                        font.weight: Font.Bold
-                                    }
+                                    text: modelData.signal + "%"
+                                    color: Appearance.colors.colSubtext
+                                    font.pixelSize: Appearance.font.pixelSize.smaller
+                                    font.family: Appearance.font.family.monospace ?? "monospace"
                                 }
                                 Rectangle {
                                     visible: modelData.isVpnTunnel
-                                    implicitWidth: vpnLabel.implicitWidth + 12
-                                    implicitHeight: vpnLabel.implicitHeight + 4
+                                    implicitWidth: vpnLabel.implicitWidth + 10
+                                    implicitHeight: vpnLabel.implicitHeight + 2
                                     radius: implicitHeight / 2
                                     color: ColorUtils.transparentize(root.colAccent, 0.85)
                                     StyledText {
@@ -349,13 +351,15 @@ Item {
                                 }
                             }
 
-                            // IPv4 (clickable copy).
+                            // Primary line: IPv4 (clickable copy).
                             StyledText {
                                 visible: modelData.ipv4.length > 0
                                 text: card.justCopiedV4 ? "Copied!" : modelData.ipv4
                                 color: card.justCopiedV4 ? root.colAccent : Appearance.colors.colOnLayer2
                                 font.pixelSize: Appearance.font.pixelSize.small
                                 font.family: Appearance.font.family.monospace ?? "monospace"
+                                Layout.fillWidth: true
+                                elide: Text.ElideRight
                                 MouseArea {
                                     anchors.fill: parent
                                     hoverEnabled: true
@@ -367,86 +371,32 @@ Item {
                                         copyV4Reset.restart()
                                     }
                                 }
-                            }
-
-                            // IPv6 (clickable copy). Hide link-local (fe80::/10) since they're rarely useful.
-                            StyledText {
-                                visible: modelData.ipv6.length > 0 && !modelData.ipv6.toLowerCase().startsWith("fe80:")
-                                text: card.justCopiedV6 ? "Copied!" : modelData.ipv6
-                                color: card.justCopiedV6 ? root.colAccent : Appearance.colors.colSubtext
-                                font.pixelSize: Appearance.font.pixelSize.small
-                                font.family: Appearance.font.family.monospace ?? "monospace"
-                                elide: Text.ElideRight
-                                MouseArea {
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    enabled: !card.justCopiedV6
-                                    onClicked: {
-                                        Quickshell.clipboardText = modelData.ipv6
-                                        card.justCopiedV6 = true
-                                        copyV6Reset.restart()
-                                    }
+                                StyledToolTip {
+                                    extraVisibleCondition: parent.children[0].containsMouse
+                                    text: "Copy IP"
                                 }
-                                Layout.fillWidth: true
                             }
 
-                            // Rate row (down/up).
+                            // Supporting line: rates + gateway/dns on one row.
                             RowLayout {
-                                spacing: 8
-                                Layout.topMargin: 2
-                                MaterialSymbol {
-                                    text: "arrow_downward"
-                                    iconSize: Appearance.font.pixelSize.small
-                                    color: Appearance.colors.colSubtext
-                                }
-                                StyledText {
-                                    text: root.formatRate(modelData.rxRate)
-                                    color: Appearance.colors.colOnLayer2
-                                    font.pixelSize: Appearance.font.pixelSize.small
-                                    font.family: Appearance.font.family.monospace ?? "monospace"
-                                }
-                                MaterialSymbol {
-                                    text: "arrow_upward"
-                                    iconSize: Appearance.font.pixelSize.small
-                                    color: Appearance.colors.colSubtext
-                                }
-                                StyledText {
-                                    text: root.formatRate(modelData.txRate)
-                                    color: Appearance.colors.colOnLayer2
-                                    font.pixelSize: Appearance.font.pixelSize.small
-                                    font.family: Appearance.font.family.monospace ?? "monospace"
-                                }
-                            }
-
-                            // Gateway + DNS, combined when DNS matches gateway, separate otherwise.
-                            StyledText {
-                                readonly property string firstDns: (modelData.dns && modelData.dns.length > 0) ? modelData.dns[0] : ""
-                                readonly property string allDns: (modelData.dns || []).join(", ")
-                                readonly property bool sameAsGateway: firstDns.length > 0 && firstDns === modelData.gateway
-                                visible: modelData.gateway.length > 0 || firstDns.length > 0
-                                text: {
-                                    if (modelData.gateway.length > 0 && sameAsGateway && (modelData.dns || []).length === 1)
-                                        return "gw / dns " + modelData.gateway
-                                    if (modelData.gateway.length > 0 && firstDns.length === 0)
-                                        return "gw " + modelData.gateway
-                                    if (modelData.gateway.length === 0)
-                                        return "dns " + allDns
-                                    return "gw " + modelData.gateway + "    dns " + allDns
-                                }
-                                color: Appearance.colors.colSubtext
-                                font.pixelSize: Appearance.font.pixelSize.small
-                                font.family: Appearance.font.family.monospace ?? "monospace"
-                                wrapMode: Text.Wrap
                                 Layout.fillWidth: true
-                            }
-
-                            // Vnstat history (only when populated).
-                            StyledText {
-                                visible: modelData.vnstatToday && modelData.vnstatToday.length > 0
-                                text: "today " + modelData.vnstatToday + "   month " + modelData.vnstatMonth
-                                color: Appearance.colors.colSubtext
-                                font.pixelSize: Appearance.font.pixelSize.smaller
+                                spacing: 12
+                                StyledText {
+                                    text: "↓ " + root.formatRate(modelData.rxRate) + "    ↑ " + root.formatRate(modelData.txRate)
+                                    color: Appearance.colors.colSubtext
+                                    font.pixelSize: Appearance.font.pixelSize.smaller
+                                    font.family: Appearance.font.family.monospace ?? "monospace"
+                                }
+                                Item { Layout.fillWidth: true }
+                                StyledText {
+                                    visible: card.gwLine.length > 0
+                                    text: card.gwLine
+                                    color: Appearance.colors.colSubtext
+                                    font.pixelSize: Appearance.font.pixelSize.smaller
+                                    font.family: Appearance.font.family.monospace ?? "monospace"
+                                    elide: Text.ElideRight
+                                    Layout.maximumWidth: 200
+                                }
                             }
                         }
                     }
