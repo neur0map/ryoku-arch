@@ -53,7 +53,6 @@ Singleton {
                 root.defaultWallpaperPath = _candidates[idx]
             }
             if (root._pendingFirstRun) {
-                root.disableNextTime()
                 root.handleFirstRun()
                 root._pendingFirstRun = false
             }

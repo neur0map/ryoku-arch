@@ -58,6 +58,18 @@ assert_contains bin/ryoku-lock-qylock 'exec "\$QYLOCK_LOCK_SCRIPT" "\$theme"' \
   "qylock lock helper should hand off to qylock instead of launching hyprlock after qylock exits"
 assert_not_contains bin/ryoku-lock-qylock 'if ! "\$QYLOCK_LOCK_SCRIPT" "\$theme"' \
   "qylock lock helper should not treat qylock unlock/termination as a startup failure"
+assert_contains bin/ryoku-lock-qylock 'hydrate_graphical_env' \
+  "qylock lock helper should hydrate Wayland/Niri environment before launching Quickshell"
+assert_contains bin/ryoku-lock-qylock 'systemctl --user show-environment' \
+  "qylock lock helper should import graphical session variables from the user manager"
+assert_contains bin/ryoku-lock-qylock 'WAYLAND_DISPLAY' \
+  "qylock lock helper should guarantee WAYLAND_DISPLAY for non-terminal launches"
+assert_contains bin/ryoku-lock-qylock 'NIRI_SOCKET' \
+  "qylock lock helper should guarantee NIRI_SOCKET for Niri lock sessions"
+assert_contains bin/ryoku-lock-qylock 'patch_qylock_unlock_sequence' \
+  "qylock lock helper should patch qylock's delayed unlock sequence"
+assert_contains bin/ryoku-lock-qylock 'shellRoot\.sessionLocked = false' \
+  "qylock lock helper should release the Wayland session lock before logind unlock"
 
 assert_contains config/hypr/hypridle.conf 'lock_cmd[[:space:]]*=[[:space:]]*.*ryoku-lock-qylock' \
   "lid/idle lock should prefer qylock lockscreen"

@@ -35,7 +35,6 @@ keyboard_form() {
   keyboards=$'Azerbaijani|azerty
 Belarusian|by
 Belgian|be-latin1
-Bosnian|ba
 Bulgarian|bg-cp1251
 Croatian|croat
 Czech|cz
@@ -60,7 +59,6 @@ Irish|ie
 Italian|it
 Japanese|jp106
 Kazakh|kazakh
-Khmer (Cambodia)|khmer
 Kyrgyz|kyrgyz
 Lao|la-latin1
 Latvian|lv
@@ -84,10 +82,16 @@ Ukrainian|ua'
   choice=$(printf '%s\n' "$keyboards" | cut -d'|' -f1 | gum choose --height 10 --selected "English (US)" --header "Select keyboard layout") || abort
   keyboard=$(printf '%s\n' "$keyboards" | awk -F'|' -v c="$choice" '$1==c{print $2; exit}')
 
-  # Only attempt to load keyboard layout if we're on a real console
-  # loadkeys only works on Linux virtual consoles (tty), not in terminal emulators
+  loadkeys --parse "$keyboard" >/dev/null 2>&1 || abort "Selected keyboard layout '$keyboard' is unavailable"
+
+  # The next password becomes both the LUKS passphrase and the account
+  # password. Make sure the selected keymap is really active before reading
+  # it, otherwise boot-time disk unlock can use a different keymap and reject
+  # the same physical keys.
   if [[ $(tty 2>/dev/null) == "/dev/tty"* ]]; then
-    loadkeys "$keyboard" 2>/dev/null
+    loadkeys "$keyboard" >/dev/null 2>&1 || abort "Could not apply keyboard layout '$keyboard'"
+  elif [[ $keyboard != "us" ]]; then
+    abort "Keyboard layout '$keyboard' can only be applied from a Linux console. Switch to a tty or choose English (US)."
   fi
 }
 

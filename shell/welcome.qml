@@ -44,6 +44,8 @@ Scope {
         // Write config keys
         Config.setNestedValue("welcomeWizard.completed", !skipped)
         Config.setNestedValue("welcomeWizard.skipped", skipped)
+        const parentDir = root.firstRunFilePath.substring(0, root.firstRunFilePath.lastIndexOf('/'))
+        Quickshell.execDetached(["/bin/sh", "-c", `mkdir -p "${parentDir}" && echo "${root.firstRunFileContent}" > "${root.firstRunFilePath}"`])
         // Reverse the entry animation
         root._contentReady = false
         root._entryReady = false
@@ -55,7 +57,6 @@ Scope {
         interval: Appearance.animationsEnabled ? 400 : 0
         repeat: false
         onTriggered: {
-            // first_run.txt is already written by FirstRunExperience before launching us
             Quickshell.execDetached(["/usr/bin/notify-send", Translation.tr("Welcome to Ryoku"), Translation.tr("Press Super+/ for all keyboard shortcuts."), "-a", "Shell"])
             Qt.quit()
         }
