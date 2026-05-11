@@ -1,0 +1,70 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Ryoku",
+  "colors": {
+    "primary": "#F25623",
+    "light": "#F56E0F",
+    "dark": "#C0431B"
+  },
+  "favicon": "/logo.svg",
+  "logo": {
+    "light": "/logo-mark.svg",
+    "dark": "/logo-mark.svg"
+  },
+  "navigation": [
+    {
+      "tab": "Documentation",
+      "groups": [
+        {
+          "group": "Overview",
+          "pages": [
+            "docs/README",
+            "docs/vision",
+            "docs/omarchy-heritage"
+          ]
+        },
+        {
+          "group": "Build & Release",
+          "pages": [
+            "docs/iso-build-recipe",
+            "docs/release-pipeline",
+            "docs/maintenance"
+          ]
+        },
+        {
+          "group": "Reference",
+          "pages": [
+            "docs/keybindings",
+            "docs/ui-patterns",
+            "docs/customization-inventory",
+            "docs/branding"
+          ]
+        },
+        {
+          "group": "Development plans",
+          "pages": [
+            "docs/superpowers/plans/2026-05-08-hosts-sidebar-tab",
+            "docs/superpowers/plans/2026-05-08-network-monitor-tab",
+            "docs/superpowers/plans/2026-05-08-secpulse-ovpn-indicator",
+            "docs/superpowers/plans/2026-05-08-tailscale-trayscale-integration",
+            "docs/superpowers/plans/2026-05-08-three-island-removal",
+            "docs/superpowers/plans/2026-05-09-netmon-listeners-connections-latency"
+          ]
+        },
+        {
+          "group": "Design specs",
+          "pages": [
+            "docs/superpowers/specs/2026-05-08-hosts-sidebar-tab-design",
+            "docs/superpowers/specs/2026-05-08-network-monitor-tab-design",
+            "docs/superpowers/specs/2026-05-08-secpulse-ovpn-indicator-design",
+            "docs/superpowers/specs/2026-05-08-tailscale-trayscale-integration-design",
+            "docs/superpowers/specs/2026-05-08-three-island-removal-design",
+            "docs/superpowers/specs/2026-05-09-netmon-listeners-connections-latency-design",
+            "docs/superpowers/specs/2026-05-11-iso-tracking-id-design"
+          ]
+        }
+      ]
+    }
+  ]
+}
