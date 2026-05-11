@@ -107,10 +107,19 @@ Scope {
 
                     Item {
                         id: hoverMaskRegion
+                        // The hoverRegionWidth extension exists to expose a thin
+                        // reveal strip while autoHide hides the bar. When
+                        // autoHide is off the strip is unused and would leak
+                        // clicks into the empty zone just outside the visible
+                        // bar (most visibly under wide central widgets like
+                        // Workspaces), so collapse it in that case.
+                        readonly property int hoverWidth: (Config.options?.bar?.autoHide?.enable ?? false)
+                            ? (Config.options?.bar?.autoHide?.hoverRegionWidth ?? 2)
+                            : 0
                         anchors {
                             fill: barContent
-                            topMargin: -(Config.options?.bar?.autoHide?.hoverRegionWidth ?? 2)
-                            bottomMargin: -(Config.options?.bar?.autoHide?.hoverRegionWidth ?? 2)
+                            topMargin: -hoverMaskRegion.hoverWidth
+                            bottomMargin: -hoverMaskRegion.hoverWidth
                         }
                     }
 
