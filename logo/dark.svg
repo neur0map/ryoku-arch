@@ -1,15 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 64" width="220" height="64">
   <!-- Ryoku docs header wordmark, dark-mode variant.
-       Kanji 力 (ryoku) in brand orange + RYOKU lettering in light foreground.
-       Use this on dark Mintlify backgrounds. -->
-  <text x="20" y="32"
-        font-family="'Noto Sans CJK JP', sans-serif"
-        font-weight="900"
-        font-size="52"
-        fill="#F25623"
-        text-anchor="middle"
-        dominant-baseline="central">力</text>
-  <text x="56" y="32"
+       Kanji 力 (chikara / ryoku, "power") rendered as stroked paths so the
+       glyph reads identically across all font environments. -->
+  <g stroke="#F25623" stroke-width="10" stroke-linecap="round" stroke-linejoin="miter" fill="none">
+    <!-- Stroke 1: top horizontal continuing into right vertical with hook -->
+    <path d="M 7 15 L 52 15 L 52 43 Q 52 54 42 57" stroke-linecap="butt" />
+    <!-- Stroke 2: left-falling diagonal sweep -->
+    <path d="M 34 15 L 8 57" />
+  </g>
+  <text x="68" y="32"
         font-family="'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace"
         font-weight="700"
         font-size="26"
