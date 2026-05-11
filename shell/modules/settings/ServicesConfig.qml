@@ -11,6 +11,13 @@ ContentPage {
     settingsPageIndex: 7
     settingsPageName: Translation.tr("Services")
 
+    function checkShellUpdates(): void {
+        ShellUpdates.check()
+        if (!(Config.options?.settingsUi?.overlayMode ?? false)) {
+            Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "shellUpdate", "check"])
+        }
+    }
+
     SettingsCardSection {
         expanded: true
         icon: "bedtime"
@@ -530,7 +537,7 @@ ContentPage {
 
                             StyledText {
                                 visible: ShellUpdates.isNonMainBranch && !ShellUpdates.isChecking && !ShellUpdates.isUpdating
-                                text: Translation.tr("Non-release branch — updates track %1").arg(ShellUpdates.currentBranch)
+                                text: Translation.tr("Non-release branch - update checks use %1").arg(ShellUpdates.releaseBranch)
                                 font.pixelSize: Appearance.font.pixelSize.smallest
                                 color: Appearance.m3colors.m3tertiary
                                 wrapMode: Text.WordWrap
@@ -692,7 +699,7 @@ ContentPage {
                     colRipple: Appearance.colors.colLayer1Active
                     enabled: !ShellUpdates.isChecking && !ShellUpdates.isUpdating && !ShellUpdates.managedExternally
                     opacity: enabled ? 1.0 : 0.5
-                    onClicked: ShellUpdates.check()
+                    onClicked: checkShellUpdates()
 
                     contentItem: RowLayout {
                         anchors.centerIn: parent
