@@ -1,0 +1,122 @@
+#!/bin/bash
+set -euo pipefail
+
+usage() {
+  echo "Usage: ryoku-iso-manifest <path-to-tracked-iso>" >&2
+}
+
+json_escape() {
+  local value=${1-}
+  value=${value//\\/\\\\}
+  value=${value//\"/\\\"}
+  value=${value//$'\n'/\\n}
+  value=${value//$'\r'/\\r}
+  value=${value//$'\t'/\\t}
+  printf '%s' "$value"
+}
+
+json_string() {
+  printf '"%s"' "$(json_escape "${1-}")"
+}
+
+[[ $# -eq 1 ]] || {
+  usage
+  exit 1
+}
+
+iso=$1
+[[ -f $iso ]] || {
+  echo "ryoku-iso-manifest: ISO not found: $iso" >&2
+  exit 1
+}
+
+iso_dir=$(cd "$(dirname "$iso")" && pwd)
+iso_name=$(basename "$iso")
+sig_name="$iso_name.sig"
+sig="$iso_dir/$sig_name"
+[[ -f $sig ]] || {
+  echo "ryoku-iso-manifest: signature not found: $sig" >&2
+  exit 1
+}
+
+if [[ $iso_name =~ ^ryoku-([0-9]{4}\.[0-9]{2}\.[0-9]{2})-([A-Za-z0-9._-]+)-x86_64-([A-Za-z0-9._-]+)\.iso$ ]]; then
+  iso_date=${BASH_REMATCH[1]}
+  tracking_id=${BASH_REMATCH[2]}
+  installer_ref=${BASH_REMATCH[3]}
+else
+  echo "ryoku-iso-manifest: expected tracked ISO name like ryoku-YYYY.MM.DD-r12-deadbee-x86_64-main.iso: $iso_name" >&2
+  exit 1
+fi
+
+channel=${RYOKU_ISO_CHANNEL:-${CHANNEL:-stable}}
+commit=${RYOKU_ISO_COMMIT:-unknown}
+run_id=${RYOKU_ISO_RUN_ID:-}
+run_number=${RYOKU_ISO_RUN_NUMBER:-}
+run_url=${RYOKU_ISO_RUN_URL:-}
+generated_at=${RYOKU_ISO_GENERATED_AT:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}
+public_base=${RYOKU_ISO_PUBLIC_BASE:-https://iso.ryoku.dev/$channel}
+public_key_name=${RYOKU_ISO_PUBLIC_KEY_NAME:-ryoku-release-key.pub.asc}
+sha_name="$iso_name.sha256"
+manifest_name="$iso_name.json"
+script_name="$iso_name.js"
+
+(cd "$iso_dir" && sha256sum "$iso_name" "$sig_name" >"$sha_name")
+iso_sha=$(sha256sum "$iso" | awk '{print $1}')
+sig_sha=$(sha256sum "$sig" | awk '{print $1}')
+
+manifest="$iso_dir/$manifest_name"
+latest="$iso_dir/latest.json"
+manifest_js="$iso_dir/$script_name"
+latest_js="$iso_dir/latest.js"
+
+cat >"$manifest" <<JSON
+{
+  "schema": 1,
+  "project": "ryoku",
+  "channel": $(json_string "$channel"),
+  "tracking_id": $(json_string "$tracking_id"),
+  "date": $(json_string "$iso_date"),
+  "arch": "x86_64",
+  "installer_ref": $(json_string "$installer_ref"),
+  "commit": $(json_string "$commit"),
+  "run_id": $(json_string "$run_id"),
+  "run_number": $(json_string "$run_number"),
+  "run_url": $(json_string "$run_url"),
+  "generated_at": $(json_string "$generated_at"),
+  "url": $(json_string "$public_base/$iso_name"),
+  "files": {
+    "iso": $(json_string "$iso_name"),
+    "signature": $(json_string "$sig_name"),
+    "sha256": $(json_string "$sha_name"),
+    "manifest": $(json_string "$manifest_name"),
+    "script_manifest": $(json_string "$script_name"),
+    "public_key": $(json_string "$public_key_name")
+  },
+  "urls": {
+    "iso": $(json_string "$public_base/$iso_name"),
+    "signature": $(json_string "$public_base/$sig_name"),
+    "sha256": $(json_string "$public_base/$sha_name"),
+    "manifest": $(json_string "$public_base/$manifest_name"),
+    "script_manifest": $(json_string "$public_base/$script_name"),
+    "latest": $(json_string "$public_base/latest.json"),
+    "latest_script": $(json_string "$public_base/latest.js"),
+    "public_key": $(json_string "$public_base/$public_key_name")
+  },
+  "sha256": {
+    "iso": $(json_string "$iso_sha"),
+    "signature": $(json_string "$sig_sha")
+  }
+}
+JSON
+
+cp "$manifest" "$latest"
+{
+  printf 'window.RYOKU_ISO_RELEASE = '
+  cat "$manifest"
+  printf ';\n'
+} >"$manifest_js"
+cp "$manifest_js" "$latest_js"
+echo "Wrote $manifest"
+echo "Wrote $latest"
+echo "Wrote $manifest_js"
+echo "Wrote $latest_js"
