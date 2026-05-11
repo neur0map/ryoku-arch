@@ -503,6 +503,13 @@ switch() {
     if [[ "$color_flag" == "1" ]]; then
         if [[ -z $noswitch_flag ]]; then
             sync_lock_background_for_wallpaper "$imgpath"
+            # Static accent + explicit --image: still persist the new wallpaper
+            # so the visual wallpaper updates even when colors come from the
+            # accent rather than the image.
+            if [[ -n "$imgpath" && "$skip_config_write" != "1" ]]; then
+                set_wallpaper_path "$imgpath"
+                is_video "$imgpath" || set_thumbnail_path ""
+            fi
         fi
         generate_colors_material_args=(--color "$color")
     else
