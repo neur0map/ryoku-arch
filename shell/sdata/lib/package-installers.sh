@@ -841,28 +841,34 @@ end
 
 if status is-interactive
 
-    # No greeting
-    set fish_greeting
+  # No greeting
+  set -g fish_greeting
 
-    # Use starship if available
-    if command -v starship > /dev/null
-        starship init fish | source
-    end
+  # Load terminal colors from Ryoku theming
+  if test -f ~/.local/state/quickshell/user/generated/terminal/sequences.txt
+    cat ~/.local/state/quickshell/user/generated/terminal/sequences.txt
+  end
 
-    # Load terminal colors from ii theming
-    if test -f ~/.local/state/quickshell/user/generated/terminal/sequences.txt
-        cat ~/.local/state/quickshell/user/generated/terminal/sequences.txt
-    end
+  # Show the Ryoku startup logo once per terminal environment
+  if command -v fastfetch >/dev/null 2>&1; and test -z "$RYOKU_FASTFETCH_SHOWN"
+    set -gx RYOKU_FASTFETCH_SHOWN 1
+    fastfetch
+  end
 
-    # Aliases
-    if command -v eza > /dev/null
-        alias ls 'eza --icons'
-    end
-    alias clear "printf '\033[2J\033[3J\033[1;1H'"
-    alias q 'ryoku-shell run'
+  # Use starship if available
+  if command -v starship >/dev/null 2>&1
+    starship init fish | source
+  end
 
-    # Add local bin to PATH
-    fish_add_path ~/.local/bin
+  # Aliases
+  if command -v eza >/dev/null 2>&1
+    alias ls 'eza --icons'
+  end
+  alias clear "printf '\033[2J\033[3J\033[1;1H'"
+  alias q 'ryoku-shell run'
+
+  # Add local bin to PATH
+  fish_add_path ~/.local/bin
 
 end
 EOF

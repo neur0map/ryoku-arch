@@ -46,6 +46,7 @@ output=$(
   HOME="$home_dir" \
   RYOKU_PATH="$checkout" \
   RYOKU_STATE_PATH="$temp_dir/state" \
+  RYOKU_UPDATE_REMOTE_URL="$remote" \
   PATH="$bin_dir:$ROOT_DIR/bin:$PATH" \
   "$ROOT_DIR/bin/ryoku-update-git" 2>&1
 ) || fail "ryoku-update-git should recover when an untracked file conflicts with an upstream tracked file: $output"

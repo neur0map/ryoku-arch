@@ -15,6 +15,21 @@ WSettingsPage {
     pageTitle: Translation.tr("About")
     pageIcon: "info"
     pageDescription: Translation.tr("Project information and links")
+
+    function openShellUpdateDetails(): void {
+        if (Config.options?.settingsUi?.overlayMode ?? false) {
+            ShellUpdates.openOverlay()
+        } else {
+            Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "shellUpdate", "open"])
+        }
+    }
+
+    function checkShellUpdates(): void {
+        ShellUpdates.check()
+        if (!(Config.options?.settingsUi?.overlayMode ?? false)) {
+            Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "shellUpdate", "check"])
+        }
+    }
     
     // Hero card — project identity
     WSettingsCard {
@@ -111,6 +126,30 @@ WSettingsPage {
                     }
                 }
             }
+        }
+
+        WSettingsButton {
+            label: ShellUpdates.isChecking ? Translation.tr("Checking for updates") : Translation.tr("Check for updates")
+            description: Translation.tr("Fetch the latest Ryoku update status")
+            icon: "arrow-sync"
+            buttonIcon: "arrow-sync"
+            buttonText: ShellUpdates.isChecking ? Translation.tr("Checking...") : Translation.tr("Check")
+            enabled: !ShellUpdates.isChecking && !ShellUpdates.isUpdating && !ShellUpdates.managedExternally
+            opacity: enabled ? 1.0 : 0.5
+            onButtonClicked: checkShellUpdates()
+        }
+
+        WSettingsButton {
+            visible: ShellUpdates.hasUpdate
+            label: Translation.tr("Update available")
+            description: Translation.tr("Open the Ryoku update window")
+            icon: "arrow-clockwise"
+            buttonIcon: "open"
+            buttonText: Translation.tr("Open")
+            accent: true
+            enabled: !ShellUpdates.isUpdating
+            opacity: enabled ? 1.0 : 0.5
+            onButtonClicked: openShellUpdateDetails()
         }
     }
     

@@ -7,24 +7,54 @@ echo -e "\e[32mUpdate Ryoku\e[0m"
 
 ryoku-update-time
 
+update_remote="${RYOKU_UPDATE_REMOTE_URL:-https://github.com/neur0map/ryoku-arch.git}"
+
+ryoku_git() {
+  GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=/bin/true git -C "$RYOKU_PATH" "$@"
+}
+
 stash_ref=""
-if [[ -n $(git -C "$RYOKU_PATH" status --porcelain --untracked-files=normal) ]]; then
-  git -C "$RYOKU_PATH" stash push --include-untracked -m "ryoku-update autostash $(date -Iseconds)"
+if [[ -n $(ryoku_git status --porcelain --untracked-files=normal) ]]; then
+  ryoku_git stash push --include-untracked -m "ryoku-update autostash $(date -Iseconds)"
   stash_ref="stash@{0}"
 fi
 
-git -C "$RYOKU_PATH" pull
+if ryoku_git remote get-url origin >/dev/null 2>&1; then
+  ryoku_git remote set-url origin "$update_remote"
+else
+  ryoku_git remote add origin "$update_remote"
+fi
+
+current_branch="$(ryoku_git branch --show-current 2>/dev/null || true)"
+[[ -n $current_branch ]] || current_branch="main"
+
+ryoku_git fetch --prune origin
+
+remote_ref="origin/$current_branch"
+if ! ryoku_git show-ref --verify --quiet "refs/remotes/$remote_ref"; then
+  remote_ref="origin/main"
+fi
+
+if ! ryoku_git merge --ff-only "$remote_ref"; then
+  echo
+  echo -e "\e[31mRyoku update could not fast-forward to $remote_ref.\e[0m"
+  echo "This usually means the installed Ryoku checkout has local commits."
+  if [[ -n $stash_ref ]]; then
+    echo "Local file changes were saved in: $stash_ref"
+  fi
+  exit 1
+fi
 
 if [[ -n $stash_ref ]]; then
-  if git -C "$RYOKU_PATH" stash apply --index "$stash_ref"; then
-    git -C "$RYOKU_PATH" stash drop "$stash_ref" >/dev/null
+  if ryoku_git stash apply --index "$stash_ref"; then
+    ryoku_git stash drop "$stash_ref" >/dev/null
   else
     echo
     echo -e "\e[33mLocal changes were preserved in git stash because they conflict with the update.\e[0m"
     echo "Review them with: git -C \"$RYOKU_PATH\" stash show -p $stash_ref"
-    git -C "$RYOKU_PATH" reset --merge || true
+    ryoku_git reset --merge || true
   fi
 fi
 
-git -C "$RYOKU_PATH" --no-pager diff --check || git -C "$RYOKU_PATH" reset --merge
+ryoku_git --no-pager diff --check || ryoku_git reset --merge
 niri msg action load-config-file >/dev/null 2>&1 || true
