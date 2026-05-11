@@ -1,44 +1,46 @@
 ---
 title: Ryoku
-description: An Arch Linux security workstation fork of Omarchy with a Niri-based desktop, Quickshell UI, and a signed offline ISO.
+description: An opinionated Arch desktop for cybersecurity learning and personal labs. Niri compositor, Quickshell UI, signed offline ISO.
 ---
 
-Ryoku is an opinionated Arch Linux desktop targeted at security work: a Niri tiling compositor, a custom Quickshell UI, hardened defaults, and a signed offline ISO that boots and installs without network access. It started as a fork of [Omarchy](omarchy-heritage) and has diverged on the desktop, theming, and release pipeline.
+**力と美のために** — *for the sake of power and beauty.*
+
+Ryoku is a daily-driver Linux for the half of cybersecurity life that doesn't fit in a throwaway VM: studying, lab work, CTFs, courseware, and tinkering on your own equipment. Steam, Discord, your IDE, your TryHackMe lab, the OpenVPN to your home router — on one machine that you actually live in.
+
+The desktop is [Niri](https://github.com/YaLTeR/niri), a scrollable-tiling Wayland compositor, with a [Quickshell](https://quickshell.outfoxxed.me)-based topbar, sidebars, lock screen, and settings panel. Workflow primitives that matter to security work are built into the shell instead of bolted on as separate tray icons.
 
 ## Start here
 
 <CardGroup cols={2}>
-  <Card title="What Ryoku is" icon="compass" href="vision">
-    Goals, audience, and non-goals. Read this first if you're evaluating Ryoku.
+  <Card title="Install Ryoku" icon="download" href="docs/install">
+    Download the signed ISO, verify it, and install onto your hardware.
   </Card>
-  <Card title="Build the ISO" icon="disc" href="iso-build-recipe">
-    Working recipe for producing the offline ISO end to end.
+  <Card title="First boot" icon="power" href="docs/first-boot">
+    What you see after login and where to click first.
   </Card>
-  <Card title="Release pipeline" icon="rocket" href="release-pipeline">
-    How signed ISOs are built, published, and verified.
+  <Card title="Desktop tour" icon="compass" href="docs/tour">
+    Niri's scrollable workspace, the topbar islands, the side panels.
   </Card>
-  <Card title="Heritage from Omarchy" icon="git-branch" href="omarchy-heritage">
-    What survives from upstream Omarchy and what's been removed.
-  </Card>
-</CardGroup>
-
-## Reference
-
-<CardGroup cols={2}>
-  <Card title="Keybindings" icon="keyboard" href="keybindings">
-    Niri and shell keyboard reference, generated from the shipped config.
-  </Card>
-  <Card title="UI patterns" icon="layout-dashboard" href="ui-patterns">
-    Quickshell desktop conventions. Read before touching anything under `shell/`.
-  </Card>
-  <Card title="Customization inventory" icon="sliders" href="customization-inventory">
-    Where the user-facing customization surfaces live in the repo.
-  </Card>
-  <Card title="Branding" icon="palette" href="branding">
-    Greek Noir palette, logo files, and where the brand surfaces.
+  <Card title="Keybindings" icon="keyboard" href="docs/keybindings">
+    Every shipped binding. `Mod+Slash` opens this in-shell.
   </Card>
 </CardGroup>
 
-## Contributing
+## What ships
 
-The project is early. The [maintenance guide](maintenance) covers the branch topology and safety rules; [CONTRIBUTING](https://github.com/neur0map/ryoku-arch/blob/main/CONTRIBUTING.md) lists focused ways to help. Security-sensitive issues go through the private path in [SECURITY](https://github.com/neur0map/ryoku-arch/blob/main/SECURITY.md).
+- **Desktop**: Niri tiling session, Quickshell topbar / sidebars / lock / launcher / settings, SDDM with switchable themes.
+- **Security primitives**: in-shell OpenVPN profile manager, Tailscale + OpenVPN bar indicators (SecPulse), hardened defaults (UFW, encrypted home, no telemetry phoning home).
+- **Daily-driver fit**: Steam, Discord, dev toolchains (mise, Docker, common languages), media stack (mpv, browsers, image / video tools).
+- **Brand**: cohesive Greek-Noir palette, switchable Material 3 skins (`material`, `aurora`, `angel`, `ryoku-shell`, `cards`).
+
+## Scope
+
+Ryoku is built for **learning and personal practice**: TryHackMe, Hack The Box, OffSec courseware, CTFs, your own home lab, your own router, and any system you own or have explicit written authorization to test.
+
+Ryoku is **not** a Kali or Parrot replacement for real engagement work. Professional pentesting needs client-isolated environments, clean attribution, and snapshot-and-revert disposability that a daily-driver OS deliberately doesn't give you. Use a dedicated VM, or better a dedicated engagement laptop, for that.
+
+You are responsible for how you use what ships here. Unauthorized scanning, exploitation, or interference with systems you do not own is illegal in most jurisdictions.
+
+## Status
+
+Public preview. Signed alpha ISOs are downloadable at [`iso.ryoku.dev`](https://iso.ryoku.dev/stable/); the first tagged stable release is the next milestone. Development happens on `main` and is open for review.

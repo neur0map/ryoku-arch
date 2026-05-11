@@ -1,0 +1,78 @@
+---
+title: Updates
+description: How Ryoku updates itself, how the in-shell update overlay works, and how to roll back.
+---
+
+Ryoku is rolling. The shell, theme pipeline, and Niri config are pulled from the `main` branch of [`neur0map/ryoku-arch`](https://github.com/neur0map/ryoku-arch). The Arch package set is rolling too.
+
+## What gets updated
+
+- **Arch packages** — `pacman -Syu` + AUR via your chosen helper.
+- **Ryoku shell** — pulled from `~/.local/share/ryoku/shell`, synced into `~/.config/quickshell/ryoku-shell`.
+- **Migrations** — small one-shot scripts under `~/.local/share/ryoku/migrations/` that fix up config across upgrades (renaming keys, moving files, etc.).
+- **Doctor checks** — sanity checks for known broken states.
+
+## The shell update overlay
+
+A small update indicator appears in the bar when new commits land on `main`. Click it to open the update overlay.
+
+The overlay shows:
+
+- Your current commit + branch.
+- How many commits you're behind.
+- The full list of incoming commits with hashes and one-line subjects.
+- A note that a snapshot of `~/.local/share/ryoku` is taken before the update so you can roll back.
+
+Buttons:
+- **Update Now** — runs the full pipeline (pacman → AUR → migrations → shell sync). Streams progress in a terminal so you see what it does.
+- **Refresh** (circular arrow) — re-runs `git fetch origin` and reloads the incoming commit list without leaving the dialog. Use this if the overlay's been open a while.
+- **Dismiss** — hides the indicator until the next new commit. Doesn't update.
+
+## Updating from a terminal
+
+```bash
+ryoku-update           # full pipeline
+ryoku-update --shell   # shell-only sync, skip pacman/AUR
+ryoku-update --check   # show what would update, don't apply
+```
+
+`ryoku-update` reads the same status file the overlay does, so progress is visible in both places.
+
+## Rolling back
+
+The updater snapshots `~/.local/share/ryoku` before each run. List snapshots:
+
+```bash
+ryoku-update --list-snapshots
+```
+
+Restore a specific snapshot:
+
+```bash
+ryoku-update --restore <snapshot-id>
+```
+
+If the shell itself is broken after an update — bar won't draw, sidebar won't open — drop to a TTY (`Ctrl+Alt+F2`), restore the snapshot, log back in.
+
+## Update interval
+
+The background check runs every 6 hours by default. Override in **Settings → Updates** or in `~/.config/illogical-impulse/config.json`:
+
+```json
+{
+  "shellUpdates": {
+    "enabled": true,
+    "checkIntervalMinutes": 360
+  }
+}
+```
+
+Set `enabled: false` to disable the indicator entirely. Periodic checks won't run, but `ryoku-update` still works from the terminal.
+
+## If an update fails
+
+`ryoku-update` prints exactly which step failed and how to retry. The most common failures:
+
+- **Network**: the indicator will eventually show a persistent "fetch failed" notification after three consecutive failures. Check your VPN / firewall.
+- **AUR conflict**: a package failed to rebuild against a system library that upgraded. The doctor will surface this; the fix is usually to wait for the AUR maintainer to push a rebuild, or `yay -S --rebuild <pkg>` to force it locally.
+- **Migration error**: one of the migration scripts threw. Read `~/.local/state/quickshell/user/update.log` for the trace; file an issue with that log attached.

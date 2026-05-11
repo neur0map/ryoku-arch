@@ -1,0 +1,76 @@
+---
+title: Desktop tour
+description: How Niri's scrollable workspaces work, what each bar island does, and which sidebar is which.
+---
+
+Ryoku's desktop is Niri + Quickshell. Niri does compositing and window layout; Quickshell paints the topbar, sidebars, lock screen, launcher, and settings.
+
+## Niri's scrollable workspace
+
+Niri is a **scrollable tiling** compositor. Unlike traditional tilers that pack windows into a fixed grid, Niri lays windows out in an infinitely scrollable horizontal row inside each workspace.
+
+- New windows open to the right of the focused one.
+- `Mod+H` / `Mod+L` (or `Mod+Left` / `Mod+Right`) scroll the focus left/right through the column row.
+- `Mod+Shift+H` / `Mod+Shift+L` move the focused column itself.
+- `Mod+D` maximizes the focused column; `Mod+F` fullscreens.
+- `Mod+R` cycles preset column widths if you don't want to fiddle with `Mod+Minus` / `Mod+Equal`.
+
+Workspaces stack vertically. `Mod+K` / `Mod+J` jump between workspaces. `Mod+Tab` opens the overview — a zoomed-out grid of every workspace, scroll-pannable with the mouse.
+
+## The topbar
+
+Three "islands" sit at the top of the screen. Each island is a self-contained surface that absorbs its own clicks and ignores everything outside.
+
+### Left island
+- **Sidebar handle** — click to toggle the left sidebar.
+- **Active window** — title and app icon of the focused window.
+
+### Center island
+- **Workspaces** — one dot per workspace on the current monitor. Active workspace is the filled pill. Right-click toggles the Niri overview. Scroll wheel cycles workspaces.
+
+### Right island
+- **Resources** — CPU / memory / network at a glance. Hover for details.
+- **SecPulse** — combined VPN status pill (OpenVPN + Tailscale). Click opens the right sidebar.
+- **System tray** — third-party app trays (Discord, Steam, etc.).
+- **Clock** — date + time. Click opens the right sidebar.
+
+Every bar widget can be toggled, removed, or rearranged from **Settings → Bar**. The bar is meant to be earned, not inherited.
+
+## The sidebars
+
+### Right sidebar (`Mod+B` or top-right click)
+- **Quick toggles** — wifi, bluetooth, night light, do-not-disturb, hotspot.
+- **OpenVPN** — pick a profile and toggle the tunnel. See [security tools](security-tools).
+- **Tailscale** — connection state and exit-node picker.
+- **Calendar / Events** — month view + upcoming items.
+- **Notepad** — quick text scratchpad, persisted to `~/.local/state/quickshell/notepad.txt`.
+- **Todo** — checkboxes + categories.
+- **Pomodoro** — work / break timer.
+- **Sysmon** — live system monitor.
+- **Network monitor** — listening sockets, active connections, latency.
+- **Hosts** — `/etc/hosts` viewer / editor.
+- **Calculator**.
+
+### Left sidebar (top-left click)
+- **Notifications** — history + clear-all.
+- **Wallhaven** — search and apply wallpapers from wallhaven.cc.
+- **Anime** — booru-based image search.
+
+## Lock screen and login
+
+- `Mod+Alt+L` locks the session. The lock screen shows the time, the active media, and a password field. Unlock with your account password.
+- SDDM (the display manager) shipping with Ryoku has switchable themes; pick one from **Settings → Login screen**.
+
+## Where things live
+
+- Niri config: `~/.config/niri/config.kdl` (with drop-ins under `~/.config/niri/config.d/`).
+- Shell config: `~/.config/illogical-impulse/config.json` (Quickshell reads this; Settings writes to it).
+- Wallpapers: `~/Pictures/Wallpapers`.
+- Themes / palettes: generated under `~/.local/state/quickshell/user/generated/`.
+- Logs: `journalctl --user -u quickshell` for the shell, `journalctl --user -u niri` for the compositor.
+
+## Where to go next
+
+- [Keybindings](keybindings) — the full shipped reference.
+- [Customize](customize) — themes, wallpapers, bar items.
+- [Security tools](security-tools) — OpenVPN, Tailscale, SecPulse, polkit.

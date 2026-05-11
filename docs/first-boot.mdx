@@ -1,0 +1,57 @@
+---
+title: First boot
+description: What you see after installing Ryoku and logging in for the first time, and where to go next.
+---
+
+After install, the machine reboots into SDDM. Pick the **Ryoku** session (Niri) and log in.
+
+## What you see
+
+- **Top: the bar.** Three "islands" left to right — left island (sidebar handle, active window), center island (workspaces dots), right island (clock, system indicators, SecPulse).
+- **Background: the wallpaper.** A default Ryoku wallpaper ships; change it via `Ctrl+Alt+T` or Settings.
+- **No windows yet.** Niri is a tiling compositor; nothing is open until you open it. `Mod+T` for a terminal.
+
+`Mod` is `Super` (the Windows / Cmd key) on a normal install.
+
+## First five things to try
+
+<CardGroup cols={2}>
+  <Card title="Open a terminal" icon="terminal">
+    `Mod+T` or `Mod+Return`. The shipped terminal is `kitty`.
+  </Card>
+  <Card title="Open the cheatsheet" icon="keyboard">
+    `Mod+Slash`. Every shipped keybinding in-shell, no leaving the desktop to look anything up.
+  </Card>
+  <Card title="Open settings" icon="settings">
+    `Mod+Comma`. Themes, bar items, wallpapers, lock screen, login screen.
+  </Card>
+  <Card title="Open the launcher" icon="search">
+    `Mod+Space`. Type to filter apps, hit Enter to launch.
+  </Card>
+</CardGroup>
+
+## The sidebars
+
+- **Right sidebar** (`Mod+B` or top-right click): system controls, quick toggles, OpenVPN profile picker, calendar, notepad, todo, network monitor.
+- **Left sidebar** (top-left click): notification history, wallhaven wallpaper search, AI assistant tabs.
+
+Both can be closed by clicking outside them or by re-pressing their trigger.
+
+## Common next steps
+
+- **Change the wallpaper.** `Ctrl+Alt+T` opens the picker. Drops in `~/Pictures/Wallpapers`. Theme colors regenerate from the selected wallpaper unless you've set a static accent.
+- **Pick a panel family.** `Mod+Shift+W` cycles `ii` ↔ `waffle`. Each family has its own visual language.
+- **Pick a skin.** Settings → Appearance to switch between Material, Aurora, Angel, Ryoku-Shell, and Cards.
+- **Wire up your VPN.** Settings → Security → OpenVPN profiles. See [security tools](security-tools).
+- **Update the shell.** `ryoku-update` in a terminal, or click the update indicator when it appears in the bar.
+
+## If the bar isn't there
+
+Press `Mod+Slash`; if the cheatsheet doesn't open either, the shell isn't running. Drop to a TTY (`Ctrl+Alt+F2`), log in, and run `journalctl --user -u quickshell -n 50` to see why. The [troubleshooting guide](troubleshoot) covers common boot/login issues.
+
+## Where to go next
+
+- [Desktop tour](tour) — Niri's scrollable workspace model and the bar / sidebar surfaces in depth.
+- [Keybindings](keybindings) — every shipped binding.
+- [Security tools](security-tools) — OpenVPN sidebar, SecPulse, the in-shell polkit agent.
+- [Customize](customize) — themes, wallpapers, bar items, keybinds.

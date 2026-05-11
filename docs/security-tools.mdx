@@ -1,0 +1,46 @@
+---
+title: Security tools
+description: OpenVPN sidebar, SecPulse indicator, in-shell polkit agent. Workflow primitives built into Ryoku's shell.
+---
+
+<Note>
+This page is being expanded. The skeleton is here; deep dives for each tool land next.
+</Note>
+
+## Why these live in the shell
+
+Most security distros bolt VPN clients and privilege-escalation tools on as tray icons or terminal aliases. Ryoku builds them into the shell so the at-a-glance "am I tunneled?" / "is this prompt legit?" answers are always visible.
+
+## OpenVPN sidebar
+
+The right sidebar has an **OpenVPN** tab that lists every `.ovpn` profile under `~/.config/openvpn/`. Pick a profile, hit connect, watch the connection state update in real time. The connection is owned by the user's `openvpn@.service` unit, not a sudo session, so it survives sidebar/shell restarts.
+
+To get started: drop `.ovpn` files into `~/.config/openvpn/`, open the right sidebar (`Mod+B`), pick the OpenVPN tab.
+
+## SecPulse indicator
+
+The pill in the bar's right island that combines **OpenVPN** and **Tailscale** state into one glance-able icon. States:
+
+- Both off → neutral icon, no accent.
+- One transitioning → spinner.
+- One connected → accent-colored icon, tooltip names which one.
+- Both connected → both names in tooltip, two-line layout.
+- Both unreachable / not installed → muted icon (or hidden entirely if neither tool is present).
+
+Click opens the right sidebar to whichever tab you used most recently.
+
+## Tailscale
+
+Tailscale runs as a system service. The right sidebar's **Tailscale** tab surfaces connection state, exit-node picker, and quick-up / quick-down controls. The CLI (`tailscale`) is always available too.
+
+## In-shell polkit agent
+
+Ryoku ships a polkit agent that paints prompts inside the shell layer rather than a free-floating dialog. Privilege escalation prompts (mounting a USB, installing a package via the GUI, etc.) appear as a styled card matching the rest of the desktop. Cancel always returns control.
+
+## Hardened defaults
+
+- **UFW** is enabled out of the box, default-deny inbound.
+- **Encrypted home** is offered during install.
+- **No telemetry** is shipped — no usage pings, no error reporters, no analytics.
+
+See [`docs/iso-build-recipe.md`](iso-build-recipe) for the full package set.

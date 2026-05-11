@@ -20,28 +20,70 @@
   "navigation": {
     "tabs": [
       {
-        "tab": "Documentation",
+        "tab": "Use Ryoku",
         "groups": [
           {
-            "group": "Overview",
+            "group": "Welcome",
             "pages": [
-              "index",
-              "docs/vision",
-              "docs/omarchy-heritage"
+              "index"
             ]
           },
           {
-            "group": "Build & Release",
+            "group": "Get started",
             "pages": [
-              "docs/iso-build-recipe",
-              "docs/release-pipeline",
+              "docs/install",
+              "docs/first-boot",
+              "docs/tour"
+            ]
+          },
+          {
+            "group": "Daily use",
+            "pages": [
+              "docs/keybindings",
+              "docs/updates"
+            ]
+          },
+          {
+            "group": "Security tools",
+            "pages": [
+              "docs/security-tools"
+            ]
+          },
+          {
+            "group": "Customize",
+            "pages": [
+              "docs/customize"
+            ]
+          },
+          {
+            "group": "Help",
+            "pages": [
+              "docs/troubleshoot"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Contribute",
+        "groups": [
+          {
+            "group": "Project",
+            "pages": [
+              "docs/vision",
+              "docs/omarchy-heritage",
               "docs/maintenance"
             ]
           },
           {
-            "group": "Reference",
+            "group": "Build & release",
             "pages": [
-              "docs/keybindings",
+              "docs/iso-build-recipe",
+              "docs/release-pipeline"
+            ]
+          },
+          {
+            "group": "Internals",
+            "pages": [
               "docs/ui-patterns",
               "docs/customization-inventory",
               "docs/branding"
