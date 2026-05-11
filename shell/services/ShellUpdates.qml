@@ -91,6 +91,7 @@ Singleton {
     readonly property string lastNotifiedCommit: Config.options?.shellUpdates?.lastNotifiedCommit ?? ""
     readonly property bool showUpdate: hasUpdate && !isDismissed && !isUpdating
     readonly property bool isDismissed: dismissedCommit.length > 0 && remoteCommit === dismissedCommit
+    readonly property string updateRemoteUrl: Quickshell.env("RYOKU_UPDATE_REMOTE_URL") || "https://github.com/neur0map/ryoku-arch.git"
 
     // Repo path - try to get from version.json, fallback to config dir
     readonly property string configDir: FileUtils.trimFileProtocol(Quickshell.shellPath("."))
@@ -154,7 +155,7 @@ Singleton {
         if (!enabled || isChecking || isUpdating || managedExternally) return
         root.isChecking = true
         root.lastError = ""
-        fetchProc.running = true
+        normalizeRemoteProc.running = true
     }
 
     // Force a fresh check + reload the incoming commits list. Used by the
@@ -721,6 +722,10 @@ Singleton {
         "-c", "gc.auto=0",
         "-C", root.repoPath
     ]
+    readonly property var _gitEnv: ({
+        GIT_TERMINAL_PROMPT: "0",
+        GIT_ASKPASS: "/bin/true"
+    })
 
     // Step 1: Check if git is available
     Process {
@@ -816,10 +821,41 @@ Singleton {
         }
     }
 
+    // Normalize ISO-copied checkouts to the public update remote before any
+    // network fetch. This prevents fresh installs from inheriting a builder's
+    // private or stale origin and prompting for GitHub credentials.
+    Process {
+        id: normalizeRemoteProc
+        running: false
+        environment: root._gitEnv
+        command: [
+            "/usr/bin/bash", "-c",
+            "repo=\"$1\"; remote=\"$2\"; " +
+            "if git -c filter.lfs.process= -c filter.lfs.required=false -c filter.lfs.smudge= -c filter.lfs.clean= -c gc.auto=0 -C \"$repo\" remote get-url origin >/dev/null 2>&1; then " +
+            "  git -c filter.lfs.process= -c filter.lfs.required=false -c filter.lfs.smudge= -c filter.lfs.clean= -c gc.auto=0 -C \"$repo\" remote set-url origin \"$remote\"; " +
+            "else " +
+            "  git -c filter.lfs.process= -c filter.lfs.required=false -c filter.lfs.smudge= -c filter.lfs.clean= -c gc.auto=0 -C \"$repo\" remote add origin \"$remote\"; " +
+            "fi",
+            "_",
+            root.repoPath,
+            root.updateRemoteUrl
+        ]
+        onExited: (exitCode, exitStatus) => {
+            if (exitCode !== 0) {
+                root.isChecking = false
+                root.consecutiveFetchErrors++
+                print("[ShellUpdates] Remote normalization failed (attempt " + root.consecutiveFetchErrors + ")")
+                return
+            }
+            fetchProc.running = true
+        }
+    }
+
     // Step 2: Fetch from remote
     Process {
         id: fetchProc
         running: false
+        environment: root._gitEnv
         command: [...root._gitCmd, "fetch", "origin", "--quiet", "--no-tags"]
         onExited: (exitCode, exitStatus) => {
             if (exitCode !== 0) {

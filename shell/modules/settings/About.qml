@@ -18,21 +18,73 @@ ContentPage {
     component CircleIconButton: RippleButton {
         property string materialIcon: ""
         property string tooltip: ""
+        property color backgroundColor: Appearance.colors.colLayer2
+        property color iconColor: Appearance.colors.colOnSecondaryContainer
 
         implicitWidth: 36
         implicitHeight: 36
         buttonRadius: width / 2
-        colBackground: Appearance.colors.colLayer2
+        colBackground: backgroundColor
 
         contentItem: MaterialSymbol {
             anchors.centerIn: parent
             text: materialIcon
             iconSize: Appearance.font.pixelSize.large
-            color: Appearance.colors.colOnSecondaryContainer
+            color: iconColor
             fill: 1
         }
 
         StyledToolTip { text: tooltip }
+    }
+
+    component UpdateCheckButton: RippleButton {
+        implicitWidth: updateCheckRow.implicitWidth + 24
+        implicitHeight: 36
+        buttonRadius: height / 2
+        colBackground: Appearance.colors.colLayer2
+        colBackgroundHover: Appearance.colors.colLayer2Hover
+        colRipple: Appearance.colors.colLayer2Active
+        enabled: !ShellUpdates.isChecking && !ShellUpdates.isUpdating && !ShellUpdates.managedExternally
+        opacity: enabled ? 1.0 : 0.5
+
+        contentItem: RowLayout {
+            id: updateCheckRow
+            anchors.centerIn: parent
+            spacing: 6
+
+            MaterialSymbol {
+                text: ShellUpdates.isChecking ? "sync" : "refresh"
+                iconSize: Appearance.font.pixelSize.normal
+                color: Appearance.colors.colOnSecondaryContainer
+                fill: 1
+            }
+
+            StyledText {
+                text: ShellUpdates.isChecking ? Translation.tr("Checking") : Translation.tr("Check updates")
+                font.pixelSize: Appearance.font.pixelSize.smaller
+                color: Appearance.colors.colOnSecondaryContainer
+                elide: Text.ElideRight
+            }
+        }
+
+        StyledToolTip {
+            text: Translation.tr("Fetch the latest Ryoku update status")
+        }
+    }
+
+    function openShellUpdateDetails(): void {
+        if (Config.options?.settingsUi?.overlayMode ?? false) {
+            ShellUpdates.openOverlay()
+        } else {
+            Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "shellUpdate", "open"])
+        }
+    }
+
+    function checkShellUpdates(): void {
+        ShellUpdates.check()
+        if (!(Config.options?.settingsUi?.overlayMode ?? false)) {
+            Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "shellUpdate", "check"])
+        }
     }
 
     ColumnLayout {
@@ -226,6 +278,23 @@ ContentPage {
                             materialIcon: "bug_report"
                             tooltip: Translation.tr("Issues")
                             onClicked: Qt.openUrlExternally("https://github.com/neur0map/ryoku-arch/issues")
+                        }
+
+                        UpdateCheckButton {
+                            onClicked: checkShellUpdates()
+                        }
+
+                        CircleIconButton {
+                            visible: ShellUpdates.hasUpdate
+                            materialIcon: "upgrade"
+                            tooltip: Translation.tr("Update available")
+                            backgroundColor: ColorUtils.transparentize(Appearance.m3colors.m3primary, 0.86)
+                            iconColor: Appearance.m3colors.m3primary
+                            enabled: !ShellUpdates.isUpdating
+                            opacity: enabled ? 1.0 : 0.5
+                            onClicked: {
+                                openShellUpdateDetails()
+                            }
                         }
                     }
                 }
