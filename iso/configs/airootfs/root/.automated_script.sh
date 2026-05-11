@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 set -euo pipefail
 
 use_ryoku_helpers() {
@@ -115,9 +115,8 @@ install_base_system() {
 
   # arch-chroot bind-mounts the live ISO's /etc/resolv.conf into the
   # chroot, but in offline-install mode that file may be empty. Write
-  # a working resolv.conf so the chroot can resolve mirror hostnames
-  # when install.sh switches pacman to online repos and yay clones
-  # from AUR. Cloudflare + Google as resilient defaults.
+  # a working first-boot fallback; the install itself must stay on the
+  # bundled offline mirror and never require DNS.
   cat > /mnt/etc/resolv.conf <<RESOLV
 # written by ryoku-iso during install; install.sh / NetworkManager will
 # replace this on first boot with the system-managed config.
@@ -170,7 +169,6 @@ chroot_bash() {
   HOME=/home/$RYOKU_USER \
     arch-chroot -u $RYOKU_USER /mnt/ \
     env -i RYOKU_CHROOT_INSTALL=1 \
-    RYOKU_ONLINE_INSTALL=1 \
     RYOKU_USER_NAME="$(<user_full_name.txt)" \
     RYOKU_USER_EMAIL="$(<user_email_address.txt)" \
     RYOKU_MIRROR="$RYOKU_MIRROR" \
