@@ -34,6 +34,16 @@ cp -r /configs/* $build_cache_dir/
 # Persist RYOKU_MIRROR so it's available at install time
 echo "$RYOKU_MIRROR" > "$build_cache_dir/airootfs/root/ryoku_mirror"
 
+cat > "$build_cache_dir/airootfs/etc/ryoku-iso-release" <<EOF
+TRACKING_ID=${RYOKU_ISO_TRACKING_ID:-unknown}
+INSTALLER_REPO=${RYOKU_INSTALLER_REPO:-unknown}
+INSTALLER_REF=${RYOKU_INSTALLER_REF:-unknown}
+MIRROR=${RYOKU_MIRROR:-unknown}
+BUILD_SHA=${RYOKU_ISO_BUILD_SHA:-unknown}
+BUILD_URL=${RYOKU_ISO_BUILD_URL:-}
+SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-}
+EOF
+
 # Setup Ryoku itself
 if [[ -d /ryoku ]]; then
   /bin/bash /builder/sync-local-source.sh /ryoku "$build_cache_dir/airootfs/root/ryoku"

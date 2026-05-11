@@ -31,6 +31,26 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Prepare release metadata
+        run: |
+          short_sha="${GITHUB_SHA::7}"
+          tracking_id="r${GITHUB_RUN_NUMBER}-${short_sha}"
+          build_epoch="$(date -u +%s)"
+          build_date="$(date -u --date="@$build_epoch" +%Y.%m.%d)"
+          {
+            echo "SOURCE_DATE_EPOCH=$build_epoch"
+            echo "RYOKU_ISO_TRACKING_ID=$tracking_id"
+            echo "RYOKU_ISO_COMMIT=$GITHUB_SHA"
+            echo "RYOKU_ISO_RUN_ID=$GITHUB_RUN_ID"
+            echo "RYOKU_ISO_RUN_NUMBER=$GITHUB_RUN_NUMBER"
+            echo "RYOKU_ISO_RUN_URL=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo "RYOKU_ISO_CHANNEL=$CHANNEL"
+            echo "RYOKU_ISO_BUILD_DATE=$build_date"
+            echo "RYOKU_ISO_BUILD_SHA=$GITHUB_SHA"
+            echo "RYOKU_ISO_BUILD_URL=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          } >> "$GITHUB_ENV"
+          echo "::notice::Ryoku ISO tracking ID: $tracking_id"
+
       - name: Verify required secrets are present
         env:
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
@@ -107,6 +127,12 @@ jobs:
           (cd "$(dirname "$iso")" && sha256sum "$(basename "$iso")" "$(basename "$iso").sig" > "$(basename "$iso").sha256")
           cat "$iso.sha256"
 
+      - name: Generate release manifest
+        run: |
+          iso="${{ steps.iso.outputs.path }}"
+          RYOKU_ISO_PUBLIC_BASE="https://iso.ryoku.dev/${CHANNEL}" ./iso/bin/ryoku-iso-manifest "$iso"
+          cat "$iso.json"
+
       - name: Install rclone
         run: |
           curl -fsSL https://rclone.org/install.sh | sudo bash
@@ -142,9 +168,17 @@ jobs:
 
           iso="${{ steps.iso.outputs.path }}"
           pubkey="$(dirname "$iso")/ryoku-release-key.pub.asc"
+          manifest="$iso.json"
+          manifest_js="$iso.js"
+          latest="$(dirname "$iso")/latest.json"
+          latest_js="$(dirname "$iso")/latest.js"
           rclone copy "$iso"        "Ryoku:$dest/" -P
           rclone copy "$iso.sig"    "Ryoku:$dest/" -P
           rclone copy "$iso.sha256" "Ryoku:$dest/" -P
+          rclone copy "$manifest"   "Ryoku:$dest/" -P
+          rclone copy "$manifest_js" "Ryoku:$dest/" -P
+          rclone copy "$latest"     "Ryoku:$dest/" -P
+          rclone copy "$latest_js"  "Ryoku:$dest/" -P
           rclone copy "$pubkey"     "Ryoku:$dest/" -P
 
           echo "::notice::Uploaded to R2 path Ryoku:$dest/"
@@ -157,5 +191,7 @@ jobs:
             iso/release/*.iso
             iso/release/*.sig
             iso/release/*.sha256
+            iso/release/*.json
+            iso/release/*.js
             iso/release/*.asc
           retention-days: 14

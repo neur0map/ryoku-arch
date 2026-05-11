@@ -13,12 +13,17 @@ GitHub-hosted `ubuntu-latest` runner:
 2. Verify required secrets are present, fail with a clear message if not
 3. Free disk space on the runner (strip preinstalled toolchains we do not use)
 4. Build the ISO via `iso/bin/ryoku-iso-make --local-source --no-boot-offer`
-5. Sign the ISO with the GPG key from `GPG_PRIVATE_KEY` secret, then export
+5. Prepare a support tracking ID (`r<run-number>-<short-sha>`) and pass it
+   into the ISO build. The live image also gets `/etc/ryoku-iso-release`
+   with the same ID, commit, run URL, channel, and build timestamp.
+6. Sign the ISO with the GPG key from `GPG_PRIVATE_KEY` secret, then export
    the public key as `ryoku-release-key.pub.asc` so testers can verify
-6. Generate `<iso>.sha256` containing the iso + sig hashes
-7. Upload all four (`<iso>`, `<iso>.sig`, `<iso>.sha256`,
-   `ryoku-release-key.pub.asc`) to Cloudflare R2 via rclone
-8. Attach the same files as a workflow-run artifact for 14 days as a fallback
+7. Generate `<iso>.sha256` containing the iso + sig hashes
+8. Generate `<iso>.json`, `<iso>.js`, and channel-level `latest.json` /
+   `latest.js` release manifests
+9. Upload the ISO, signature, checksum, manifests, and public key to
+   Cloudflare R2 via rclone
+10. Attach the same files as a workflow-run artifact for 14 days as a fallback
 
 ## Triggers
 
@@ -112,21 +117,40 @@ After a successful run, the bucket has:
 
 ```
 ryoku/stable/
-├── ryoku-2026.04.28-x86_64.iso
-├── ryoku-2026.04.28-x86_64.iso.sig
-├── ryoku-2026.04.28-x86_64.iso.sha256
+├── latest.json
+├── latest.js
+├── ryoku-2026.05.11-r12-9019b9b-x86_64-main.iso
+├── ryoku-2026.05.11-r12-9019b9b-x86_64-main.iso.sig
+├── ryoku-2026.05.11-r12-9019b9b-x86_64-main.iso.sha256
+├── ryoku-2026.05.11-r12-9019b9b-x86_64-main.iso.json
+├── ryoku-2026.05.11-r12-9019b9b-x86_64-main.iso.js
 └── ryoku-release-key.pub.asc
 ```
+
+The tracking ID is the `r12-9019b9b` segment in the example above. Ask
+users for this value when triaging ISO or installer reports. In a booted
+live ISO it is also available at `/etc/ryoku-iso-release`.
 
 Public download URLs (served through Cloudflare CDN via the
 `iso.ryoku.dev` custom domain):
 
 ```
-https://iso.ryoku.dev/stable/ryoku-<date>-x86_64-main.iso
-https://iso.ryoku.dev/stable/ryoku-<date>-x86_64-main.iso.sig
-https://iso.ryoku.dev/stable/ryoku-<date>-x86_64-main.iso.sha256
+https://iso.ryoku.dev/stable/latest.json
+https://iso.ryoku.dev/stable/latest.js
+https://iso.ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso
+https://iso.ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso.sig
+https://iso.ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso.sha256
+https://iso.ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso.json
+https://iso.ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso.js
 https://iso.ryoku.dev/stable/ryoku-release-key.pub.asc
 ```
+
+`latest.json` is the website source of truth. `latest.js` exposes the same
+payload as `window.RYOKU_ISO_RELEASE` for static pages that cannot fetch JSON
+directly. The manifest contains the current tracking ID, commit, workflow run
+URL, filenames, public URLs, and SHA256 values for the ISO and detached
+signature. Do not make the website guess the ISO name from the latest workflow
+date.
 
 ## How users verify the ISO
 
@@ -135,10 +159,12 @@ https://iso.ryoku.dev/stable/ryoku-release-key.pub.asc
 # published in two places (pick whichever is reachable):
 #   * R2 bucket alongside the ISO         (no GitHub access needed)
 #   * GitHub repo at keys/                (signed via tag history)
-iso=ryoku-2026.05.10-x86_64-main.iso
+iso=ryoku-2026.05.11-r12-9019b9b-x86_64-main.iso
 curl -LO https://iso.ryoku.dev/stable/$iso
 curl -LO https://iso.ryoku.dev/stable/$iso.sig
 curl -LO https://iso.ryoku.dev/stable/$iso.sha256
+curl -LO https://iso.ryoku.dev/stable/$iso.json
+curl -LO https://iso.ryoku.dev/stable/$iso.js
 curl -LO https://iso.ryoku.dev/stable/ryoku-release-key.pub.asc
 # OR, equivalently:
 # curl -LO https://raw.githubusercontent.com/neur0map/ryoku-arch/main/keys/ryoku-release-key.pub.asc
@@ -155,7 +181,7 @@ gpg --verify $iso.sig $iso
 
 # Cross-check the sha256
 sha256sum -c $iso.sha256
-# Expected output: "ryoku-2026.05.10-x86_64-main.iso: OK"
+# Expected output: "ryoku-2026.05.11-r12-9019b9b-x86_64-main.iso: OK"
 ```
 
 ## Failure modes worth knowing
