@@ -230,7 +230,9 @@ get_root_disk() {
   while true; do
     parent=$(lsblk -no PKNAME "$device" 2>/dev/null | tail -n1)
     [[ -n $parent ]] || break
-    device="/dev/$parent"
+    parent="/dev/$parent"
+    [[ "$parent" == "$device" ]] && break
+    device="$parent"
   done
 
   if [[ $(lsblk -dno TYPE "$device" 2>/dev/null) == "disk" ]]; then
