@@ -238,8 +238,44 @@ get_root_disk() {
   fi
 }
 
+probe_storage_modules() {
+  local module
+
+  # Some physical PCs, especially Intel RST/VMD systems, do not expose the
+  # internal NVMe devices until the storage module is loaded in the live ISO.
+  for module in vmd nvme ahci sd_mod uas usb-storage virtio_blk virtio_scsi; do
+    modprobe "$module" 2>/dev/null || true
+  done
+
+  udevadm trigger --subsystem-match=block --action=add 2>/dev/null || true
+  udevadm settle 2>/dev/null || true
+}
+
+list_installable_disks() {
+  local exclude_disk="${1:-}"
+
+  lsblk -dpno NAME,TYPE,RO |
+    awk '$2=="disk" && $3=="0"{print $1}' |
+    grep -Ev '^/dev/(loop|ram|zram|sr|fd|nbd)' |
+    { if [[ -n "$exclude_disk" ]]; then grep -Fvx "$exclude_disk"; else cat; fi; } |
+    sort -u
+}
+
+no_disk_diagnostics() {
+  gum style "No installable disks detected."
+  echo
+  gum style "Ryoku can only install to disks the live kernel can see. Current block devices:"
+  echo
+  lsblk -o NAME,PATH,TYPE,SIZE,TRAN,RO,RM,FSTYPE,LABEL,MODEL,MOUNTPOINTS 2>/dev/null || true
+  echo
+  gum style "If your internal NVMe/SATA drive is missing, check BIOS storage mode. Intel RST/VMD/RAID may need to be disabled or switched to AHCI before installing."
+  echo
+}
+
 disk_form() {
   step "Let's select where to install Ryoku..."
+
+  probe_storage_modules
 
   # Don't offer the install media as an option (Arch ISO mounts it here)
   local boot_source
@@ -249,12 +285,16 @@ disk_form() {
 
   # List all installable disks, excluding the boot device if present
   local available_disks
-  available_disks=$(
-    lsblk -dpno NAME,TYPE |
-      awk '$2=="disk"{print $1}' |
-      grep -E '/dev/(sd|hd|vd|nvme|mmcblk|xv)' |
-      { if [[ -n "$exclude_disk" ]]; then grep -Fvx "$exclude_disk"; else cat; fi; }
-  )
+  available_disks=$(list_installable_disks "$exclude_disk")
+
+  if [[ -z $(printf "%s" "$available_disks" | tr -d '[:space:]') ]]; then
+    no_disk_diagnostics
+    if gum confirm --default=true "Retry disk scan?"; then
+      disk_form
+      return
+    fi
+    abort "No installable disk selected."
+  fi
 
   # Get available disks and format them with info
   local disk_options=""
