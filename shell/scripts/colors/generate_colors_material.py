@@ -381,6 +381,14 @@ if args.path is not None:
 elif args.color is not None:
     argb = hex_to_argb(args.color)
     hct = Hct.from_int(argb)
+    # Pure-white (tone=100) / pure-black (tone=0) accents make the LAB hue ring
+    # degenerate, which crashes TemperatureCache.complement in scheme-fidelity
+    # and scheme-content with ZeroDivisionError. Clamp tone just inside the
+    # extremes so the complement is well-defined; the visual difference is
+    # imperceptible.
+    if hct.tone >= 99.5 or hct.tone <= 0.5:
+        clamped_tone = max(1.0, min(99.0, hct.tone))
+        hct = Hct.from_hct(hct.hue, hct.chroma, clamped_tone)
 
 if args.scheme == "scheme-fruit-salad":
     from materialyoucolor.scheme.scheme_fruit_salad import SchemeFruitSalad as Scheme
