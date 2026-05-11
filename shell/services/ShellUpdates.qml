@@ -24,6 +24,7 @@ Singleton {
         function open(): void { root.openOverlay() }
         function close(): void { root.closeOverlay() }
         function check(): void { root.check() }
+        function refresh(): void { root.refresh() }
         function performUpdate(): void { root.performUpdate() }
         function dismiss(): void { root.dismiss() }
         function undismiss(): void { root.undismiss() }
@@ -154,6 +155,27 @@ Singleton {
         root.isChecking = true
         root.lastError = ""
         fetchProc.running = true
+    }
+
+    // Force a fresh check + reload the incoming commits list. Used by the
+    // overlay's manual refresh button so users don't have to wait for the
+    // periodic timer when they're staring at the dialog and want to see
+    // commits that landed after it opened.
+    property bool _refreshDetailsPending: false
+    function refresh(): void {
+        if (isUpdating || managedExternally) return
+        root._refreshDetailsPending = true
+        if (!isChecking) {
+            root.check()
+        }
+    }
+    onIsCheckingChanged: {
+        if (!isChecking && root._refreshDetailsPending) {
+            root._refreshDetailsPending = false
+            if (!isFetchingDetails) {
+                root.fetchDetails()
+            }
+        }
     }
 
     // Fetch detailed info for the overlay (commit log, changelog, local mods)

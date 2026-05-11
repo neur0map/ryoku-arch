@@ -1327,6 +1327,57 @@ Scope {
 
                     Item { Layout.fillWidth: true }
 
+                    // Refresh button - re-fetch from origin and reload the
+                    // incoming-commits list without waiting for the periodic
+                    // timer.
+                    RippleButton {
+                        id: refreshButton
+                        visible: !ShellUpdates.isUpdating
+                        enabled: !ShellUpdates.isChecking && !ShellUpdates.isFetchingDetails
+                        implicitWidth: 36
+                        implicitHeight: 36
+                        onClicked: ShellUpdates.refresh()
+
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: height / 2
+                            color: parent.pressed ? Appearance.colors.colLayer1Active
+                                 : parent.hovered ? Appearance.colors.colLayer1Hover
+                                 : "transparent"
+                            border.width: 1
+                            border.color: root.borderColor
+                            opacity: refreshButton.enabled ? 1.0 : 0.5
+
+                            Behavior on color {
+                                enabled: Appearance.animationsEnabled
+                                animation: ColorAnimation { duration: Appearance.animation.elementMoveFast.duration; easing.type: Appearance.animation.elementMoveFast.type; easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve }
+                            }
+                        }
+
+                        MaterialSymbol {
+                            anchors.centerIn: parent
+                            text: "refresh"
+                            iconSize: Appearance.font.pixelSize.normal
+                            color: Appearance.colors.colOnLayer1
+
+                            RotationAnimation on rotation {
+                                running: ShellUpdates.isChecking || ShellUpdates.isFetchingDetails
+                                loops: Animation.Infinite
+                                from: 0
+                                to: 360
+                                duration: 900
+                            }
+                        }
+
+                        StyledToolTip {
+                            text: ShellUpdates.isChecking
+                                ? Translation.tr("Checking…")
+                                : ShellUpdates.isFetchingDetails
+                                    ? Translation.tr("Loading commits…")
+                                    : Translation.tr("Refresh: fetch from origin and reload the list")
+                        }
+                    }
+
                     // Dismiss button (only when update)
                     RippleButton {
                         visible: root.hasUpdate
