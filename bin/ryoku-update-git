@@ -8,6 +8,7 @@ echo -e "\e[32mUpdate Ryoku\e[0m"
 ryoku-update-time
 
 update_remote="${RYOKU_UPDATE_REMOTE_URL:-https://github.com/neur0map/ryoku-arch.git}"
+release_branch="${RYOKU_UPDATE_BRANCH:-main}"
 
 ryoku_git() {
   GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=/bin/true git -C "$RYOKU_PATH" "$@"
@@ -25,15 +26,9 @@ else
   ryoku_git remote add origin "$update_remote"
 fi
 
-current_branch="$(ryoku_git branch --show-current 2>/dev/null || true)"
-[[ -n $current_branch ]] || current_branch="main"
+ryoku_git fetch --prune origin "+refs/heads/${release_branch}:refs/remotes/origin/${release_branch}"
 
-ryoku_git fetch --prune origin
-
-remote_ref="origin/$current_branch"
-if ! ryoku_git show-ref --verify --quiet "refs/remotes/$remote_ref"; then
-  remote_ref="origin/main"
-fi
+remote_ref="origin/$release_branch"
 
 if ! ryoku_git merge --ff-only "$remote_ref"; then
   echo

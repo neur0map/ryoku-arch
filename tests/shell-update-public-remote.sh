@@ -30,6 +30,12 @@ rg -q 'remote add origin' "$SHELL_UPDATES_QML" || \
 rg -q 'normalizeRemoteProc\.running = true' "$SHELL_UPDATES_QML" || \
   fail "Manual and automatic checks should normalize origin before fetching"
 
+rg -q '\+refs/heads/main:refs/remotes/origin/main' "$SHELL_UPDATES_QML" || \
+  fail "Shell update checks should explicitly fetch origin/main, even from feature-branch ISO builds"
+
+! rg -q 'origin/" \+ root\.currentBranch' "$SHELL_UPDATES_QML" || \
+  fail "Shell update checks should not track stale feature-branch remote refs"
+
 ! rg -q '\$\{git_cmd\[@\]\}' "$SHELL_UPDATES_QML" || \
   fail "Shell update checker should not embed Bash arrays in QML template strings"
 

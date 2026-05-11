@@ -91,6 +91,7 @@ Singleton {
     readonly property string lastNotifiedCommit: Config.options?.shellUpdates?.lastNotifiedCommit ?? ""
     readonly property bool showUpdate: hasUpdate && !isDismissed && !isUpdating
     readonly property bool isDismissed: dismissedCommit.length > 0 && remoteCommit === dismissedCommit
+    readonly property string releaseBranch: "main"
     readonly property string updateRemoteUrl: Quickshell.env("RYOKU_UPDATE_REMOTE_URL") || "https://github.com/neur0map/ryoku-arch.git"
 
     // Repo path - try to get from version.json, fallback to config dir
@@ -155,6 +156,7 @@ Singleton {
         if (!enabled || isChecking || isUpdating || managedExternally) return
         root.isChecking = true
         root.lastError = ""
+        root.latestMessage = ""
         normalizeRemoteProc.running = true
     }
 
@@ -856,11 +858,12 @@ Singleton {
         id: fetchProc
         running: false
         environment: root._gitEnv
-        command: [...root._gitCmd, "fetch", "origin", "--quiet", "--no-tags"]
+        command: [...root._gitCmd, "fetch", "origin", "--quiet", "--no-tags", "--prune", "+refs/heads/main:refs/remotes/origin/main"]
         onExited: (exitCode, exitStatus) => {
             if (exitCode !== 0) {
                 root.isChecking = false
                 root.consecutiveFetchErrors++
+                root.lastError = "Cannot fetch Ryoku updates from " + root.updateRemoteUrl
                 print("[ShellUpdates] Fetch failed (attempt " + root.consecutiveFetchErrors + ")")
 
                 // Notify after 3 consecutive failures (persistent problem)
@@ -925,11 +928,13 @@ Singleton {
         }
     }
 
-    // Step 5: Get remote commit
+    // Step 5: Get remote commit from the release branch.
+    // Fresh ISO/dev installs may still be on a temporary build branch; update
+    // checks must follow the shipped Ryoku release stream, not stale branch refs.
     Process {
         id: remoteCommitProc
         running: false
-        command: [...root._gitCmd, "rev-parse", "--short", "origin/" + root.currentBranch]
+        command: [...root._gitCmd, "rev-parse", "--short", "origin/" + root.releaseBranch]
         stdout: StdioCollector {
             onStreamFinished: {
                 root.remoteCommit = (text ?? "").trim()
@@ -937,32 +942,11 @@ Singleton {
         }
         onExited: (exitCode, exitStatus) => {
             if (exitCode !== 0) {
-                // Try origin/main as fallback (in case branch doesn't exist remotely)
-                remoteCommitFallbackProc.running = true
-                return
-            }
-            root._remoteBranch = root.currentBranch
-            countCommitsProc.running = true
-        }
-    }
-
-    // Step 5b: Fallback to origin/main
-    Process {
-        id: remoteCommitFallbackProc
-        running: false
-        command: [...root._gitCmd, "rev-parse", "--short", "origin/main"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                root.remoteCommit = (text ?? "").trim()
-            }
-        }
-        onExited: (exitCode, exitStatus) => {
-            if (exitCode !== 0) {
-                // Try origin/master as last resort
+                // Try origin/master as last resort for old forks
                 remoteCommitFallback2Proc.running = true
                 return
             }
-            root._remoteBranch = "main"
+            root._remoteBranch = root.releaseBranch
             countCommitsProc.running = true
         }
     }
