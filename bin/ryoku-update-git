@@ -14,6 +14,33 @@ ryoku_git() {
   GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=/bin/true git -C "$RYOKU_PATH" "$@"
 }
 
+backup_untracked_update_conflicts() {
+  local remote_ref="$1"
+  local backup_dir="$RYOKU_STATE_PATH/update-backups/$(date +%Y%m%d-%H%M%S)"
+  local backup_count=0
+  local path full_path backup_path
+
+  while IFS= read -r -d '' path; do
+    [[ -n $path ]] || continue
+    full_path="$RYOKU_PATH/$path"
+    [[ -e $full_path || -L $full_path ]] || continue
+
+    if ryoku_git ls-files --error-unmatch -- "$path" >/dev/null 2>&1; then
+      continue
+    fi
+
+    backup_path="$backup_dir/$path"
+    mkdir -p "$(dirname "$backup_path")"
+    mv -- "$full_path" "$backup_path"
+    ((backup_count += 1))
+  done < <(ryoku_git diff --name-only -z --diff-filter=ACMRT "HEAD..$remote_ref")
+
+  if (( backup_count > 0 )); then
+    echo -e "\e[33mMoved $backup_count local file(s) that would block the update to:\e[0m"
+    echo "$backup_dir"
+  fi
+}
+
 stash_ref=""
 if [[ -n $(ryoku_git status --porcelain --untracked-files=normal) ]]; then
   ryoku_git stash push --include-untracked -m "ryoku-update autostash $(date -Iseconds)"
@@ -29,6 +56,8 @@ fi
 ryoku_git fetch --prune origin "+refs/heads/${release_branch}:refs/remotes/origin/${release_branch}"
 
 remote_ref="origin/$release_branch"
+
+backup_untracked_update_conflicts "$remote_ref"
 
 if ! ryoku_git merge --ff-only "$remote_ref"; then
   echo
