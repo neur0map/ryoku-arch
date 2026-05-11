@@ -9,8 +9,13 @@
   },
   "favicon": "/logo.svg",
   "logo": {
-    "light": "/logo-mark.svg",
-    "dark": "/logo-mark.svg"
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "seo": {
+    "metatags": {
+      "canonical": "https://docs.ryoku.dev"
+    }
   },
   "navigation": {
     "tabs": [
@@ -20,7 +25,7 @@
           {
             "group": "Overview",
             "pages": [
-              "docs/README",
+              "index",
               "docs/vision",
               "docs/omarchy-heritage"
             ]

@@ -1,0 +1,44 @@
+---
+title: Ryoku
+description: An Arch Linux security workstation fork of Omarchy with a Niri-based desktop, Quickshell UI, and a signed offline ISO.
+---
+
+Ryoku is an opinionated Arch Linux desktop targeted at security work: a Niri tiling compositor, a custom Quickshell UI, hardened defaults, and a signed offline ISO that boots and installs without network access. It started as a fork of [Omarchy](omarchy-heritage) and has diverged on the desktop, theming, and release pipeline.
+
+## Start here
+
+<CardGroup cols={2}>
+  <Card title="What Ryoku is" icon="compass" href="vision">
+    Goals, audience, and non-goals. Read this first if you're evaluating Ryoku.
+  </Card>
+  <Card title="Build the ISO" icon="disc" href="iso-build-recipe">
+    Working recipe for producing the offline ISO end to end.
+  </Card>
+  <Card title="Release pipeline" icon="rocket" href="release-pipeline">
+    How signed ISOs are built, published, and verified.
+  </Card>
+  <Card title="Heritage from Omarchy" icon="git-branch" href="omarchy-heritage">
+    What survives from upstream Omarchy and what's been removed.
+  </Card>
+</CardGroup>
+
+## Reference
+
+<CardGroup cols={2}>
+  <Card title="Keybindings" icon="keyboard" href="keybindings">
+    Niri and shell keyboard reference, generated from the shipped config.
+  </Card>
+  <Card title="UI patterns" icon="layout-dashboard" href="ui-patterns">
+    Quickshell desktop conventions. Read before touching anything under `shell/`.
+  </Card>
+  <Card title="Customization inventory" icon="sliders" href="customization-inventory">
+    Where the user-facing customization surfaces live in the repo.
+  </Card>
+  <Card title="Branding" icon="palette" href="branding">
+    Greek Noir palette, logo files, and where the brand surfaces.
+  </Card>
+</CardGroup>
+
+## Contributing
+
+The project is early. The [maintenance guide](maintenance) covers the branch topology and safety rules; [CONTRIBUTING](https://github.com/neur0map/ryoku-arch/blob/main/CONTRIBUTING.md) lists focused ways to help. Security-sensitive issues go through the private path in [SECURITY](https://github.com/neur0map/ryoku-arch/blob/main/SECURITY.md).
