@@ -1,7 +1,7 @@
 #!/bin/bash
 # Workaround for the Qt 6.11.0 pure-virtual / SIGSEGV crash that fires when
 # niri sends wl_surface.preferred_buffer_scale to a Quickshell-built shell
-# (iNiR / Ryoku).  See README.md in this directory for the full diagnosis.
+# (Ryoku).  See README.md in this directory for the full diagnosis.
 #
 # What this script does:
 #   1. Copies /usr/lib/libQt6Core.so.6.11.0 into ~/.local/lib/qt6-fix/.

@@ -1,8 +1,8 @@
-Run:       20260508-002238
-Log:       $REPO_ROOT/tests/logs/iso-build-sign-verify-20260508-002238.log
-ISO:       $REPO_ROOT/iso/release/ryoku-2026.05.08-x86_64-main.iso
-SHA256:    9dd78c3d6a87291aad69dcb11ad7998ab77323284527471462abfb2153e716a6
-Signature: $REPO_ROOT/iso/release/ryoku-2026.05.08-x86_64-main.iso.sig
+Run:       20260508-103437
+Log:       tests/logs/iso-build-sign-verify-20260508-103437.log
+ISO:       iso/release/ryoku-2026.05.08-x86_64-main.iso
+SHA256:    55bdec252be7a1d583c93a9f638bc3a42450fa3fb0bf92eee59e50b283f0fc42
+Signature: iso/release/ryoku-2026.05.08-x86_64-main.iso.sig
 
 Stages:
   OK   01 setup

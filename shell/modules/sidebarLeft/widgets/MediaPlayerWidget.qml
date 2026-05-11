@@ -76,7 +76,7 @@ Item {
 
     property QtObject blendedColors: AdaptedMaterialScheme { color: root.artDominantColor }
     
-    // Inir uses fixed colors instead of adaptive
+    // Ryoku uses fixed colors instead of adaptive
     readonly property color jiraColText: Appearance.ryoku.colText
     readonly property color jiraColTextSecondary: Appearance.ryoku.colTextSecondary
     readonly property color jiraColPrimary: Appearance.ryoku.colPrimary

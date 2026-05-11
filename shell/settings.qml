@@ -528,7 +528,7 @@ ApplicationWindow {
             pageIndex: 4, pageName: pages[4].name,
             section: Translation.tr("Global Style"),
             label: Translation.tr("Global Style"),
-            description: Translation.tr("Material, Cards, Aurora glass effect, Inir TUI style"),
+            description: Translation.tr("Material, Cards, Aurora glass effect, Ryoku TUI style"),
             keywords: ["global", "style", "aurora", "ryoku-shell", "material", "cards", "glass", "tui", "transparency", "blur"]
         },
         {
@@ -541,7 +541,7 @@ ApplicationWindow {
         {
             pageIndex: 4, pageName: pages[4].name,
             section: Translation.tr("Global Style"),
-            label: Translation.tr("Inir"),
+            label: Translation.tr("Ryoku"),
             description: Translation.tr("TUI-inspired style with accent borders"),
             keywords: ["ryoku-shell", "tui", "terminal", "borders", "style", "minimal"]
         },

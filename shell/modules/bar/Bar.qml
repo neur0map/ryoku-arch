@@ -197,15 +197,15 @@ Scope {
                             implicitHeight: Appearance.rounding.screenRounding
                             
                             readonly property bool isAurora: Appearance.auroraEverywhere
-                            readonly property bool isInir: Appearance.ryokuEverywhere
+                            readonly property bool isRyoku: Appearance.ryokuEverywhere
                             readonly property bool isBottom: Config.options?.bar?.bottom ?? false
                             readonly property color solidColor: showBarBackground 
-                                ? (isInir ? Appearance.ryoku.colLayer0 
+                                ? (isRyoku ? Appearance.ryoku.colLayer0
                                     : isAurora ? Appearance.aurora.colPopupSurface
                                     : Appearance.colors.colLayer0) 
                                 : "transparent"
                             
-                            // Left corner - solid for Material/Inir, blur for Aurora
+                            // Left corner - solid for Material/Ryoku, blur for Aurora
                             RoundCorner {
                                 id: leftCorner
                                 visible: !hugDecorators.isAurora
@@ -228,7 +228,7 @@ Scope {
                                 }
                             }
                             
-                            // Right corner - solid for Material/Inir
+                            // Right corner - solid for Material/Ryoku
                             RoundCorner {
                                 id: rightCorner
                                 visible: !hugDecorators.isAurora

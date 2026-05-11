@@ -1,15 +1,15 @@
-# Meta-package: registers iNiR dependencies with pacman
-# Purpose: prevents "clean orphans" from removing iNiR's deps
+# Meta-package: registers Ryoku dependencies with pacman
+# Purpose: prevents "clean orphans" from removing Ryoku's deps
 # This package contains no files — it only declares dependencies.
 #
 # Built and installed automatically by ./setup install.
-# Safe to remove with: sudo pacman -R inir-deps
+# Safe to remove with: sudo pacman -R ryoku-deps
 
-pkgname=inir-deps
+pkgname=ryoku-deps
 pkgver=2.24.0
 pkgrel=1
-pkgdesc='iNiR desktop shell - dependency tracker (meta-package)'
-url='https://github.com/snowarch/inir'
+pkgdesc='Ryoku desktop shell - dependency tracker (meta-package)'
+url='https://github.com/neur0map/ryoku-arch'
 arch=(any)
 license=(MIT)
 

@@ -1,4 +1,4 @@
-echo "Restore iNiR shell appearance defaults"
+echo "Restore Ryoku shell appearance defaults"
 
 MARKER="$RYOKU_STATE_PATH/independence-cutover.inir-appearance-defaults.done"
 DEFAULT_CONFIG="$RYOKU_PATH/shell/defaults/config.json"
@@ -35,7 +35,7 @@ if ryoku-cmd-missing jq; then
 fi
 
 if [[ ! -f $DEFAULT_CONFIG ]]; then
-  echo "  default iNiR shell config missing: $DEFAULT_CONFIG"
+  echo "  default Ryoku shell config missing: $DEFAULT_CONFIG"
   mark_done
   exit 0
 fi
@@ -47,11 +47,11 @@ restore_appearance "$CONFIG_HOME/quickshell/ryoku-shell/defaults/config.json" ||
 
 # Only touch the user's active shell config when the Ryoku theme system had
 # claimed ownership. If the user never had a Ryoku theme marker, leave their
-# iNiR settings alone.
+# shell settings alone.
 if [[ -f $RYOKU_CONFIG_PATH/current/theme.name ]]; then
   restore_appearance "$CONFIG_HOME/ryoku-shell/config.json" || true
   rm -f "$RYOKU_CONFIG_PATH/current/theme.name"
-  echo "  restored iNiR appearance defaults and cleared active Ryoku theme marker"
+  echo "  restored Ryoku shell appearance defaults and cleared active Ryoku theme marker"
 else
   echo "  no active Ryoku theme marker; keeping user shell appearance"
 fi

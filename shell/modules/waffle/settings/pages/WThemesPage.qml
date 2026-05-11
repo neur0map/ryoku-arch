@@ -551,7 +551,7 @@ WSettingsPage {
         WSettingsDropdown {
             label: Translation.tr("Style")
             icon: "eyedropper"
-            description: Translation.tr("Choose between Material, Cards, Aurora, Inir, and Angel global styling")
+            description: Translation.tr("Choose between Material, Cards, Aurora, Ryoku, and Angel global styling")
             currentValue: globalStyleCard.currentStyle
             options: [
                 {
@@ -568,7 +568,7 @@ WSettingsPage {
                 },
                 {
                     value: "ryoku-shell",
-                    displayName: Translation.tr("Inir")
+                    displayName: Translation.tr("Ryoku")
                 },
                 {
                     value: "angel",

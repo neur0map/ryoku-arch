@@ -41,26 +41,26 @@ else
   git clone -b $RYOKU_INSTALLER_REF https://github.com/$RYOKU_INSTALLER_REPO.git "$build_cache_dir/airootfs/root/ryoku"
 fi
 
-# iNiR comes from the vendored shell/ tree in this Ryoku repo
-# (always mounted at /ryoku in the build container). /inir is a
-# legacy mount point retained for build hosts that still mount it.
-if [[ -d /ryoku/shell ]]; then
-  cp -a /ryoku/shell "$build_cache_dir/airootfs/root/inir"
-elif [[ -d /inir ]]; then
-  /bin/bash /builder/sync-local-source.sh /inir "$build_cache_dir/airootfs/root/inir"
+# Ryoku shell comes from the vendored shell/ tree in this Ryoku repo.
+# A separate /ryoku-shell mount is only for local-source shell development.
+if [[ -d /ryoku-shell ]]; then
+  rm -rf "$build_cache_dir/airootfs/root/ryoku/shell"
+  /bin/bash /builder/sync-local-source.sh /ryoku-shell "$build_cache_dir/airootfs/root/ryoku/shell"
+elif [[ -d /ryoku/shell ]]; then
+  true
 else
   echo "build-iso: no Ryoku shell/ tree available at /ryoku/shell" >&2
   exit 1
 fi
 
-inir_requirements="$build_cache_dir/airootfs/root/inir/sdata/uv/requirements.txt"
-inir_uv_cache="$build_cache_dir/airootfs/var/cache/ryoku/uv"
-if [[ -f $inir_requirements ]]; then
-  mkdir -p "$inir_uv_cache"
-  inir_uv_venv=$(mktemp -d)
-  UV_CACHE_DIR="$inir_uv_cache" uv venv --prompt ryoku-inir-cache "$inir_uv_venv"
-  VIRTUAL_ENV="$inir_uv_venv" UV_CACHE_DIR="$inir_uv_cache" uv pip install -r "$inir_requirements"
-  rm -rf "$inir_uv_venv"
+shell_requirements="$build_cache_dir/airootfs/root/ryoku/shell/sdata/uv/requirements.txt"
+shell_uv_cache="$build_cache_dir/airootfs/var/cache/ryoku/uv"
+if [[ -f $shell_requirements ]]; then
+  mkdir -p "$shell_uv_cache"
+  shell_uv_venv=$(mktemp -d)
+  UV_CACHE_DIR="$shell_uv_cache" uv venv --prompt ryoku-shell-cache "$shell_uv_venv"
+  VIRTUAL_ENV="$shell_uv_venv" UV_CACHE_DIR="$shell_uv_cache" uv pip install -r "$shell_requirements"
+  rm -rf "$shell_uv_venv"
 fi
 
 # Copy the Ryoku Plymouth theme to the ISO if the installer ships one.

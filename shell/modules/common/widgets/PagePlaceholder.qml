@@ -29,7 +29,7 @@ Item {
         anchors.centerIn: parent
         spacing: Appearance.ryokuEverywhere ? 8 : 5
 
-        // Inir: simple rectangle with centered icon
+        // Ryoku: simple rectangle with centered icon
         Item {
             visible: Appearance.ryokuEverywhere
             Layout.alignment: Qt.AlignHCenter

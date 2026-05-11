@@ -158,9 +158,6 @@ EOF
   # Copy the local ryoku repo to the user's home directory
   mkdir -p /mnt/home/$RYOKU_USER/.local/share/
   cp -r /root/ryoku /mnt/home/$RYOKU_USER/.local/share/
-  if [[ -d /root/inir ]]; then
-    cp -r /root/inir /mnt/home/$RYOKU_USER/.local/share/
-  fi
 
   chown -R 1000:1000 /mnt/home/$RYOKU_USER/.local/
 

@@ -548,6 +548,7 @@ if [[ -d "dots/.config/vesktop/themes" ]]; then
     "system24-palette.css"
     "ii-palette.css"
     "ii-system24.theme.css"
+    "inir-midnight.theme.css"
   )
   for old_theme in "${OLD_VESKTOP_THEMES[@]}"; do
     if [[ -f "${XDG_CONFIG_HOME}/vesktop/themes/${old_theme}" ]]; then

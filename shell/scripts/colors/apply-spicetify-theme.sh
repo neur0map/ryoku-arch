@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 #
 # apply-spicetify-theme.sh - Generate and apply Spicetify color scheme
 # from Ryoku Material colors using custom theme with live updates.
@@ -9,8 +9,8 @@
 # - If Spotify is running without watch mode: refresh once, then start watch mode
 #
 # Reads: palette.json first, then colors.json fallback
-# Writes: ~/.config/spicetify/Themes/Inir/color.ini
-#         ~/.config/spicetify/Themes/Inir/user.css  (bridge block only)
+# Writes: ~/.config/spicetify/Themes/Ryoku/color.ini
+#         ~/.config/spicetify/Themes/Ryoku/user.css  (bridge block only)
 
 set -euo pipefail
 
@@ -24,7 +24,7 @@ COLORS_JSON="$STATE_DIR/user/generated/colors.json"
 LOG_FILE="$STATE_DIR/user/generated/spicetify_theme.log"
 WATCH_LOCK="$STATE_DIR/user/generated/spicetify_watch.lock"
 
-THEME_NAME="Inir"
+THEME_NAME="Ryoku"
 SCHEME_NAME="matugen"
 SLEEK_CSS_URL="https://raw.githubusercontent.com/spicetify/spicetify-themes/master/Sleek/user.css"
 

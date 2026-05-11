@@ -1,6 +1,6 @@
 #!/bin/bash
-# Migrate from iNiR paths to Ryoku-shell paths. Uninstall iNiR via its
-# own setup uninstall -y (which knows every iNiR-managed path via
+# Migrate from legacy shell paths to Ryoku-shell paths. Uninstall the legacy
+# shell via its own setup uninstall -y (which knows every tracked path via
 # installed_listfile) and then install fresh from the vendored
 # shell/ tree. See spec at
 # docs/superpowers/specs/2026-05-05-inir-to-ryoku-rebrand-design.md.
@@ -35,14 +35,14 @@ restore_user_shell_config() {
 
 # Phase 1: Banner
 printf '\n'
-printf '\033[1;33mMigrating iNiR to Ryoku-shell.\033[0m\n'
+printf '\033[1;33mMigrating legacy shell to Ryoku-shell.\033[0m\n'
 printf 'Desktop chrome (bar, sidebars, lock UI) will be unavailable for ~1-3 min.\n'
 printf 'Existing windows persist (niri keeps running). Do NOT lock the screen.\n'
 printf '\n'
 
-# Phase 2: Pre-flight. Skip cleanly on systems with no iNiR installed.
+# Phase 2: Pre-flight. Skip cleanly on systems with no legacy shell installed.
 if [[ ! -x $INIR_PATH/setup ]]; then
-  echo "iNiR setup script missing at $INIR_PATH/setup; nothing to migrate."
+  echo "Legacy shell setup script missing at $INIR_PATH/setup; nothing to migrate."
   exit 0
 fi
 
@@ -54,16 +54,16 @@ mkdir -p "$backup_dir"
 if [[ -f $INIR_USER_CONFIG ]]; then
   backup_config_file="$backup_dir/config.json.$ts"
   cp "$INIR_USER_CONFIG" "$backup_config_file"
-  echo "Backed up iNiR user config to $backup_config_file"
+  echo "Backed up legacy shell user config to $backup_config_file"
 fi
 
-# Phase 4: Stop iNiR services so the unit files can be safely removed.
+# Phase 4: Stop legacy shell services so the unit files can be safely removed.
 systemctl --user stop inir.service inir-super-overview.service 2>/dev/null || true
 
-# Phase 5: Run iNiR's own uninstall to remove every iNiR-tracked file.
+# Phase 5: Run the legacy shell uninstall to remove every tracked file.
 "$INIR_PATH/setup" uninstall -y
 
-# Phase 6: Wipe the iNiR source tree (uninstall does not remove its own repo).
+# Phase 6: Wipe the legacy shell source tree (uninstall does not remove its own repo).
 rm -rf "$INIR_PATH"
 
 # Phase 7: Run the new shell install pipeline. Deploys to ryoku-shell paths.
@@ -95,5 +95,5 @@ systemctl --user start ryoku-shell.service
 echo
 echo "Migration to Ryoku-shell complete."
 if [[ -n $backup_config_file && -f $backup_config_file ]]; then
-  echo "Backup of prior iNiR config: $backup_config_file"
+  echo "Backup of prior legacy shell config: $backup_config_file"
 fi

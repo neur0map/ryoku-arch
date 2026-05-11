@@ -1,5 +1,5 @@
 pkgbase = quickshell-ryoku
-	pkgdesc = Flexible toolkit for making desktop shells with QtQuick (iNiR fix-extension-uaf patch applied)
+	pkgdesc = Flexible toolkit for making desktop shells with QtQuick (Ryoku fix-extension-uaf patch applied)
 	pkgver = 0.2.1
 	pkgrel = 1
 	url = https://git.outfoxxed.me/quickshell/quickshell

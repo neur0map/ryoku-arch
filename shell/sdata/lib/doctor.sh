@@ -885,7 +885,7 @@ check_quickshell_abi() {
     # Quickshell uses Qt private APIs — any Qt minor version bump (e.g. 6.10→6.11)
     # breaks ABI and requires rebuilding quickshell. This is the #1 cause of
     # "quickshell crashes on any UI interaction" after system updates.
-    # See: https://github.com/snowarch/Ryoku/issues/93
+    # See: https://github.com/neur0map/ryoku-arch/issues/93
 
     if ! command -v qs >/dev/null 2>&1; then
         # No qs binary — dependency check will catch this

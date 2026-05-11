@@ -81,7 +81,7 @@ THEME_TEMPLATE = """/**
  * @description Material Design Discord theme with Material You colors.
  * @author refact0r (system24 base), Ryoku (Material adaptation)
  * @version 2.2.0
- * @source https://github.com/end-4/Ryoku
+ * @source https://github.com/neur0map/ryoku-arch
  */
 
 /*
@@ -144,7 +144,7 @@ MIDNIGHT_THEME_TEMPLATE = """/**
  * @description Ryoku Midnight Discord theme with Material You colors.
  * @author Ryoku (Material palette injection)
  * @version 2.2.0
- * @source https://github.com/end-4/Ryoku
+ * @source https://github.com/neur0map/ryoku-arch
  */
 
 /*
@@ -401,9 +401,10 @@ def _write_palette(palette: Dict[str, str]) -> None:
     for out in midnight_outputs:
         with out.open("w", encoding="utf-8") as fh:
             fh.write(midnight_content)
-        legacy_out = out.parent / "ii-midnight.theme.css"
-        if legacy_out != out:
-            legacy_out.unlink(missing_ok=True)
+        for legacy_name in ("ii-midnight.theme.css", "inir-midnight.theme.css"):
+            legacy_out = out.parent / legacy_name
+            if legacy_out != out:
+                legacy_out.unlink(missing_ok=True)
         print(f"Generated: {out}")
 
 

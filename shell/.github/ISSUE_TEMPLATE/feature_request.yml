@@ -24,7 +24,7 @@ body:
     id: scope
     attributes:
       label: Scope
-      description: Which part of iNiR does this affect
+      description: Which part of Ryoku does this affect
       options:
         - Bar
         - Dock

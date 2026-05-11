@@ -1,7 +1,7 @@
-pkgname=inir-toolkit
+pkgname=ryoku-toolkit
 pkgver=1.0
 pkgrel=1
-pkgdesc='iNiR - input and desktop toolkit dependency bundle'
+pkgdesc='Ryoku - input and desktop toolkit dependency bundle'
 arch=(any)
 license=(MIT)
 depends=(

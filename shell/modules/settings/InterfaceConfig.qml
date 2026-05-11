@@ -676,7 +676,7 @@ ContentPage {
                     StyledToolTip {
                         text: (Appearance.globalStyle === "material" || Appearance.globalStyle === "ryoku-shell")
                             ? Translation.tr("Apply rounded card styling to sidebars")
-                            : Translation.tr("Only available with Material or Inir global style")
+                            : Translation.tr("Only available with Material or Ryoku global style")
                     }
                 }
 

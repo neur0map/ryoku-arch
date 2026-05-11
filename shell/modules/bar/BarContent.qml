@@ -221,7 +221,7 @@ Item { // Bar content region
                 return (cornerStyle === 1 || cornerStyle === 3) ? Appearance.angel.roundingNormal : 0
             }
             if (root.ryokuEverywhere) {
-                // Inir: use ryoku rounding for Float/Card, 0 for Hug/Rect
+                // Ryoku: use ryoku rounding for Float/Card, 0 for Hug/Rect
                 if (cornerStyle === 1 || cornerStyle === 3) {
                     return Appearance.ryoku.roundingNormal
                 }

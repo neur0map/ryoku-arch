@@ -1,4 +1,4 @@
-# shellcheck configuration for iNiR shell scripts
+# shellcheck configuration for Ryoku shell scripts
 # Used by CI (.github/workflows/ci.yml) and local development
 
 # SC1091: Not following sourced files — our scripts source from venvs,

@@ -72,7 +72,7 @@ QtObject {
         Appearance.colors.colPrimaryContainer, 0.7
     )
     
-    // Style tokens (Inir fixed colors)
+    // Style tokens (Ryoku fixed colors)
     readonly property color ryokuText: Appearance.ryoku.colText
     readonly property color ryokuTextSecondary: Appearance.ryoku.colTextSecondary
     readonly property color ryokuPrimary: Appearance.ryoku.colPrimary

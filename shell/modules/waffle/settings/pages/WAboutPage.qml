@@ -129,18 +129,10 @@ WSettingsPage {
 
         WSettingsButton {
             label: Translation.tr("Documentation")
-            description: "snowarch.github.io/Ryoku/docs"
+            description: "github.com/neur0map/ryoku-arch"
             icon: "library"
             buttonText: Translation.tr("Open")
-            onButtonClicked: Qt.openUrlExternally("https://snowarch.github.io/Ryoku/docs/")
-        }
-        
-        WSettingsButton {
-            label: Translation.tr("Original Project (end-4)")
-            description: "github.com/end-4/dots-hyprland"
-            icon: "open"
-            buttonText: Translation.tr("Open")
-            onButtonClicked: Qt.openUrlExternally("https://github.com/end-4/dots-hyprland")
+            onButtonClicked: Qt.openUrlExternally("https://github.com/neur0map/ryoku-arch/tree/main/docs")
         }
 
         WSettingsButton {

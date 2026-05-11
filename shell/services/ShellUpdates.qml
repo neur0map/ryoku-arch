@@ -232,6 +232,7 @@ Singleton {
         const termTail =
             "echo; " +
             "if [ $rc -eq 0 ]; then " +
+                "echo 'success' > '" + statusPath + "'; " +
                 "echo 'All good — Ryoku updated successfully. The shell will restart on its own.'; " +
                 "echo 'You can close this window whenever you want.'; " +
             "else " +
@@ -241,7 +242,11 @@ Singleton {
             "fi; " +
             "read -r _"
         const detachedTail =
-            "if [ $rc -ne 0 ]; then echo \"failed:$rc\" > '" + statusPath + "'; fi"
+            "if [ $rc -ne 0 ]; then " +
+            "  echo \"failed:$rc\" > '" + statusPath + "'; " +
+            "else " +
+            "  echo 'success' > '" + statusPath + "'; " +
+            "fi"
         const tail = useTerminal ? termTail : detachedTail
         const bashCmd = "echo 'updating' > '" + statusPath + "'; " +
             "cd '" + repoDir + "' && " + teeCmd + "; " + tail
@@ -490,7 +495,7 @@ Singleton {
         }
     }
 
-    // Repo signature for ryoku-arch: .git + (iNiR shape OR ryoku-arch shape).
+    // Repo signature for ryoku-arch: .git + (legacy shell shape OR ryoku-arch shape).
     // Exposed as a bash function so all probes share one definition.
     readonly property string _repoSignatureFn:
         "ryoku_repo_match() { " +

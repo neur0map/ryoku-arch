@@ -72,6 +72,9 @@ DOCKER_ARGS=(
 # installed copy might currently be exported in $RYOKU_PATH.
 if [[ -n "${LOCAL_SOURCE-}" ]]; then
   DOCKER_ARGS+=(-v "$REPO_ROOT:/ryoku:ro")
+  if [[ -n ${RYOKU_SHELL_SOURCE:-} && -d $RYOKU_SHELL_SOURCE ]]; then
+    DOCKER_ARGS+=(-v "$RYOKU_SHELL_SOURCE:/ryoku-shell:ro")
+  fi
 fi
 
 # Use local pacman cache if you already have one on host to speed up repeat runs

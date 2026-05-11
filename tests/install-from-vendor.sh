@@ -37,10 +37,10 @@ assert_no_match migrations/1778000000.sh 'git clone' \
   "migrations/1778000000.sh must not clone iNiR"
 
 # ISO builder must not pull from a remote
-assert_no_match iso/builder/build-iso.sh 'RYOKU_INIR_REPO' \
-  "iso/builder/build-iso.sh must not reference RYOKU_INIR_REPO"
-assert_no_match iso/bin/ryoku-iso-make 'RYOKU_INIR_REPO' \
-  "iso/bin/ryoku-iso-make must not reference RYOKU_INIR_REPO"
+assert_no_match iso/builder/build-iso.sh 'RYOKU_INIR_REPO|/root/inir|/inir' \
+  "iso/builder/build-iso.sh must not reference legacy shell repo names"
+assert_no_match iso/bin/ryoku-iso-make 'RYOKU_INIR_REPO|RYOKU_INIR_SOURCE|/inir' \
+  "iso/bin/ryoku-iso-make must not reference legacy shell repo names"
 
 # Vendored tree must exist with key entry points
 [[ -f shell/shell.qml ]] || fail "shell/shell.qml must exist"

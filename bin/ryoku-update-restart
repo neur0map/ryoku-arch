@@ -19,3 +19,16 @@ for file in "$RYOKU_STATE_PATH"/restart-*-required; do
     ryoku-restart-"$service"
   fi
 done
+
+# Mark the update finished for the bar's update-overlay watchdog and bounce
+# the user's quickshell so the freshly-deployed payload loads, the stale
+# localCommit clears on the next startup check, and the false "stuck"
+# banner cannot fire. Both steps are best-effort: tty-only sessions and
+# unmanaged shell instances skip silently.
+quickshell_state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/quickshell/user"
+if [[ -d $quickshell_state_dir ]]; then
+  printf 'success\n' >"$quickshell_state_dir/update-status" 2>/dev/null || true
+fi
+if systemctl --user is-active ryoku-shell.service >/dev/null 2>&1; then
+  systemctl --user restart ryoku-shell.service >/dev/null 2>&1 || true
+fi

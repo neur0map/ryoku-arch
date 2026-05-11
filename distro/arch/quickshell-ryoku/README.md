@@ -1,7 +1,7 @@
 # quickshell-ryoku
 
 Drop-in replacement for the official Arch `quickshell` package, carrying the
-iNiR project's `fix-extension-uaf.patch`.
+Ryoku project's `fix-extension-uaf.patch`.
 
 ## Why
 
@@ -13,10 +13,10 @@ loop. During that teardown, lazy singleton instantiation can call
 `PostReloadHook::componentComplete()`, which dereferences the already-freed
 registry through a dangling pointer in the extensions hash.
 
-iNiR documents this in `patches/quickshell/README.md` upstream:
+Ryoku documents this in `patches/quickshell/README.md` upstream:
 
 > Simpler shells rarely hit this because they have few singletons and no
-> uninstantiated components at reload time. iNiR's panel family system (ii vs
+> uninstantiated components at reload time. Ryoku's panel family system (ii vs
 > waffle) and 50+ IPC handlers make the race virtually guaranteed.
 
 Symptom in practice: rapid clicks on the bar's right side (or anything that
@@ -26,7 +26,7 @@ churns Loaders/Components) eventually trigger one of:
   → `SIGABRT` (heap reuse landed the freed slot on an abstract base vtable)
 - `SIGSEGV` in `IpcHandlerRegistry::registerHandler()` (heap stayed unmapped)
 
-iNiR's stock `inir.service` masks both with `LimitCORE=0` and
+Ryoku's stock `ryoku-shell.service` masks both with `LimitCORE=0` and
 `Environment=QS_DISABLE_CRASH_HANDLER=1` so the disk doesn't fill with 45–90 MB
 crash reports, but the shell still respawns through systemd's restart loop.
 
@@ -38,10 +38,10 @@ makepkg -si
 ```
 
 The package `provides=(quickshell=0.2.1)` and `conflicts=(quickshell)`, so
-pacman will swap it in. Restart the iNiR shell to pick up the new binary:
+pacman will swap it in. Restart the Ryoku shell to pick up the new binary:
 
 ```bash
-systemctl --user restart inir.service
+systemctl --user restart ryoku-shell.service
 ```
 
 ## Keeping it pinned

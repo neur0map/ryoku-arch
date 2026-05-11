@@ -329,8 +329,9 @@ def _set_in_block(block_content, key, value):
     If key exists, replace the line. If not, append it."""
     # Escape key for regex (handles hyphens)
     escaped = re.escape(key)
-    # Try to replace existing line
-    pattern = rf"(\n?\s*){escaped}\b[^\n]*"
+    # Try to replace existing line. The leading \b prevents substring
+    # matches like `active-color` matching inside `inactive-color`.
+    pattern = rf"(\n?\s*)\b{escaped}\b[^\n]*"
     if re.search(pattern, block_content):
         if value:
             return re.sub(pattern, rf"\g<1>{key} {value}", block_content, count=1)
@@ -752,11 +753,45 @@ def cmd_get_layout():
                     "urgent-color",
                     "color",
                 ]:
-                    m = re.search(rf'{re.escape(color_key)}\s+"([^"]*)"', block)
+                    m = re.search(rf'\b{re.escape(color_key)}\s+"([^"]*)"', block)
                     if m:
                         py_color_key = color_key.replace("-", "_")
                         if py_color_key in result[py_key]:
                             result[py_key][py_color_key] = m.group(1)
+
+                # Parse gradient properties. Niri supports `active-gradient`
+                # and `inactive-gradient` on border + focus-ring; when set
+                # they take visual precedence over `active-color`/`inactive-color`.
+                # Settings UI needs to know about them so the color picker
+                # doesn't claim the ring is #000000 when an orange gradient
+                # is actually rendering.
+                if py_key in ("border", "focus_ring"):
+                    for grad_key in ("active-gradient", "inactive-gradient"):
+                        gm = re.search(
+                            rf"^[ \t]*{re.escape(grad_key)}([^\n]*)$",
+                            block,
+                            re.MULTILINE,
+                        )
+                        if not gm:
+                            continue
+                        args_str = gm.group(1)
+                        grad_obj = {}
+                        for a_key, target in (
+                            ("from", "from_color"),
+                            ("to", "to_color"),
+                            ("relative-to", "relative_to"),
+                            ("in", "color_space"),
+                        ):
+                            am = re.search(
+                                rf'{re.escape(a_key)}=\s*"([^"]*)"', args_str
+                            )
+                            if am:
+                                grad_obj[target] = am.group(1)
+                        am = re.search(r"angle=\s*([\d.-]+)", args_str)
+                        if am:
+                            grad_obj["angle"] = float(am.group(1))
+                        if grad_obj:
+                            result[py_key][grad_key.replace("-", "_")] = grad_obj
 
                 if py_key == "shadow":
                     for setting in ["softness", "spread"]:
@@ -1564,8 +1599,34 @@ def _set_layout(config_dir, key, value):
         elif prop == "width":
             content = _set_value_in_subsection(content, subsection, "width", value)
         elif prop in ("active-color", "inactive-color", "urgent-color", "color"):
-            # Color properties for border, focus-ring, shadow
+            # Color properties for border, focus-ring, shadow.
+            # Setting a solid color drops any conflicting gradient on the
+            # same channel so the visible ring matches the picker value
+            # (otherwise niri renders the gradient and ignores the color).
+            if subsection in ("border", "focus-ring") and prop in (
+                "active-color",
+                "inactive-color",
+            ):
+                grad_prop = prop.replace("-color", "-gradient")
+                content = _remove_key_from_section(content, subsection, grad_prop)
             content = _set_value_in_subsection(content, subsection, prop, f'"{value}"')
+        elif prop in ("active-gradient", "inactive-gradient"):
+            # Gradient on border / focus-ring. Value is the KDL line
+            # content after the keyword, e.g.
+            #   from="#F25623" to="#F56E0F" angle=45 relative-to="workspace-view" in="oklch"
+            # An empty value removes the gradient.
+            if subsection not in ("border", "focus-ring"):
+                print(json.dumps({"error": f"Gradient not supported for {subsection}"}))
+                return 1
+            value_str = (value or "").strip()
+            if value_str == "":
+                content = _remove_key_from_section(content, subsection, prop)
+            else:
+                # Drop the conflicting solid color so the gradient renders.
+                solid_prop = prop.replace("-gradient", "-color")
+                content = _remove_key_from_section(content, subsection, solid_prop)
+                # Pass value_str without quoting — KDL needs the raw `key="val"` pairs.
+                content = _set_value_in_subsection(content, subsection, prop, value_str)
         elif subsection == "shadow" and prop in ("softness", "spread"):
             content = _set_value_in_subsection(content, subsection, prop, value)
         elif subsection == "shadow" and prop == "offset":
@@ -1895,8 +1956,10 @@ def _toggle_subsection_enabled(content, section, enable):
 
 
 def _remove_key_from_block_content(block_content, key):
+    # Leading \b prevents substring matches (e.g. `active-color` matching
+    # inside `inactive-color`).
     return re.sub(
-        rf"\n?\s*{re.escape(key)}\b[^\n]*",
+        rf"\n?\s*\b{re.escape(key)}\b[^\n]*",
         "",
         block_content,
         count=1,

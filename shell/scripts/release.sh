@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 set -euo pipefail
 
 usage() {
@@ -50,9 +50,9 @@ $notes
 
 ---
 
-Update: https://github.com/snowarch/Ryoku?tab=readme-ov-file#update
-Fresh install: https://github.com/snowarch/Ryoku?tab=readme-ov-file#install
-Full changelog: https://github.com/snowarch/Ryoku/blob/main/CHANGELOG.md
+Update: https://github.com/neur0map/ryoku-arch?tab=readme-ov-file#update
+Fresh install: https://github.com/neur0map/ryoku-arch?tab=readme-ov-file#install
+Full changelog: https://github.com/neur0map/ryoku-arch/blob/main/CHANGELOG.md
 EOF
 }
 

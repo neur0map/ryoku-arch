@@ -357,7 +357,7 @@ check_qs_abi() {
     # Quickshell uses Qt private APIs — any Qt minor version bump (e.g. 6.10→6.11)
     # breaks ABI and crashes the shell on any UI interaction.
     # This pre-check catches the issue before starting a crash loop.
-    # See: https://github.com/snowarch/iNiR/issues/93  (upstream; archived as inir)
+    # See: https://github.com/neur0map/ryoku-arch/issues/93
     local mismatch_detected=false
     local mismatch_msg=""
 

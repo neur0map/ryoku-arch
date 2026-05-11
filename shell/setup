@@ -1196,7 +1196,7 @@ run_extras() {
     case "$action" in
         "Install Ryoku-Walls")
             echo ""
-            extras_install_inir_walls
+            extras_install_ryoku_walls
             ;;
         "Install ii-pixel-sddm")
             echo ""
@@ -1208,7 +1208,7 @@ run_extras() {
             ;;
         "Install all")
             echo ""
-            extras_install_inir_walls
+            extras_install_ryoku_walls
             echo ""
             extras_install_sddm_theme "ask"
             echo ""
@@ -2229,6 +2229,7 @@ run_update() {
             "system24-palette.css"
             "ii-palette.css"
             "ii-system24.theme.css"
+            "inir-midnight.theme.css"
         )
         for old_theme in "${OLD_VESKTOP_THEMES[@]}"; do
             [[ -f "${XDG_CONFIG_HOME}/vesktop/themes/${old_theme}" ]] && rm -f "${XDG_CONFIG_HOME}/vesktop/themes/${old_theme}"

@@ -25,7 +25,7 @@ ContentPage {
     // Global style detection
     readonly property string currentGlobalStyle: Config.options?.appearance?.globalStyle ?? "material"
     readonly property bool isAurora: currentGlobalStyle === "aurora"
-    readonly property bool isInir: currentGlobalStyle === "ryoku-shell"
+    readonly property bool isRyoku: currentGlobalStyle === "ryoku-shell"
     readonly property bool isCards: currentGlobalStyle === "cards"
     readonly property bool isMaterial: currentGlobalStyle === "material"
     readonly property bool isAngel: currentGlobalStyle === "angel"

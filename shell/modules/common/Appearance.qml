@@ -332,7 +332,7 @@ Singleton {
     readonly property var _themeMeta: activeThemePreset.meta || {}
     
     // Font Strategy:
-    // 1. Inir style -> Always Monospace (TUI feel)
+    // 1. Ryoku style -> Always Monospace (TUI feel)
     // 2. Theme requests mono (Matrix, Vesper) -> Monospace
     // 3. Theme requests serif (Angel) -> Serif (if mapped)
     // 4. Default -> Config Main Font
@@ -556,7 +556,7 @@ Singleton {
     }
 
     ryoku: QtObject {
-        // Inir style - Elegant terminal UI aesthetic
+        // Ryoku style - Elegant terminal UI aesthetic
         
         // ═══════════════════════════════════════════════════════════════
         // LAYER SYSTEM

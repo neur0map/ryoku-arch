@@ -1,7 +1,7 @@
-pkgname=inir-fonts
+pkgname=ryoku-fonts
 pkgver=1.0
 pkgrel=1
-pkgdesc='iNiR - fonts and theming dependency bundle'
+pkgdesc='Ryoku - fonts and theming dependency bundle'
 arch=(any)
 license=(MIT)
 depends=(

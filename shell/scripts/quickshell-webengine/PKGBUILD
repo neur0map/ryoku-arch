@@ -1,5 +1,5 @@
-# Maintainer: iNiR <https://github.com/end-4/dots-hyprland>
-# Quickshell with QtWebEngine support for iNiR WebApp plugins.
+# Maintainer: Ryoku <https://github.com/neur0map/ryoku-arch>
+# Quickshell with QtWebEngine support for Ryoku WebApp plugins.
 # Based on the official CachyOS quickshell-git PKGBUILD with two changes:
 #   1. qArgC = 1 (Chromium requires argv[0])
 #   2. WebEngine init via pragma EnableQtWebEngineQuick
@@ -8,7 +8,7 @@
 pkgname=quickshell-webengine-git
 pkgver=0.2.1.r0
 pkgrel=1
-pkgdesc="Quickshell with QtWebEngine support for iNiR WebApp plugins"
+pkgdesc="Quickshell with QtWebEngine support for Ryoku WebApp plugins"
 arch=('x86_64')
 url="https://git.outfoxxed.me/quickshell/quickshell"
 license=('LGPL-3.0-only')
@@ -110,7 +110,7 @@ build() {
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         -DCMAKE_INSTALL_PREFIX=/usr \
         -DINSTALL_QMLDIR=/usr/lib/qt6/qml \
-        -DDISTRIBUTOR="iNiR PKGBUILD (quickshell-webengine-git)" \
+        -DDISTRIBUTOR="Ryoku PKGBUILD (quickshell-webengine-git)" \
         -DUSE_JEMALLOC=OFF \
         -DCRASH_REPORTER=OFF \
         -DCRASH_HANDLER=OFF

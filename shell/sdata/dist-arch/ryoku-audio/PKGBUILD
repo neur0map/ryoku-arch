@@ -1,7 +1,7 @@
-pkgname=inir-audio
+pkgname=ryoku-audio
 pkgver=1.0
 pkgrel=1
-pkgdesc='iNiR - audio dependency bundle'
+pkgdesc='Ryoku - audio dependency bundle'
 arch=(any)
 license=(MIT)
 depends=(

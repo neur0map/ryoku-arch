@@ -160,14 +160,14 @@ install_pkgbuild_deps() {
 }
 
 # Install from each PKGBUILD
-for pkgdir in ./sdata/dist-arch/inir-*/; do
+for pkgdir in ./sdata/dist-arch/ryoku-*/; do
   # Check group flags
   pkgname=$(basename "$pkgdir")
   case "$pkgname" in
-    inir-audio) $INSTALL_AUDIO || continue ;;
-    inir-toolkit) $INSTALL_TOOLKIT || continue ;;
-    inir-screencapture) $INSTALL_SCREENCAPTURE || continue ;;
-    inir-fonts) $INSTALL_FONTS || continue ;;
+    ryoku-audio) $INSTALL_AUDIO || continue ;;
+    ryoku-toolkit) $INSTALL_TOOLKIT || continue ;;
+    ryoku-screencapture) $INSTALL_SCREENCAPTURE || continue ;;
+    ryoku-fonts) $INSTALL_FONTS || continue ;;
   esac
   
   v install_pkgbuild_deps "$pkgdir"
@@ -452,7 +452,7 @@ v install-python-packages
 #####################################################################################
 tui_info "Registering dependencies with pacman..."
 
-_meta_dir="./sdata/dist-arch/inir-deps"
+_meta_dir="./sdata/dist-arch/ryoku-deps"
 if [[ -f "$_meta_dir/PKGBUILD" ]]; then
   # Update pkgver from VERSION file
   _ryoku_ver="$(cat ./VERSION 2>/dev/null || echo '2.24.0')"
@@ -468,12 +468,12 @@ if [[ -f "$_meta_dir/PKGBUILD" ]]; then
       local_pkg=(*.pkg.tar.zst)
       if [[ -f "${local_pkg[0]}" ]]; then
         if pkg_sudo pacman -U --noconfirm --needed "${local_pkg[0]}" 2>/dev/null; then
-          log_success "Meta-package inir-deps registered — orphan cleaner will skip Ryoku deps"
+          log_success "Meta-package ryoku-deps registered — orphan cleaner will skip Ryoku deps"
         else
           # Some deps might be AUR-only and not satisfy pacman's check.
           # Fall back to installing without dep verification.
           pkg_sudo pacman -Udd --noconfirm "${local_pkg[0]}" 2>/dev/null && \
-            log_success "Meta-package inir-deps registered (forced)" || \
+            log_success "Meta-package ryoku-deps registered (forced)" || \
             log_warning "Could not register meta-package — orphan protection unavailable"
         fi
         rm -f "${local_pkg[@]}" 2>/dev/null
@@ -487,11 +487,17 @@ else
 fi
 unset _meta_dir _ryoku_ver
 
+if pacman -Qi inir-deps &>/dev/null; then
+  log_info "Removing legacy dependency tracker package..."
+  pkg_sudo pacman -Rdd --noconfirm inir-deps 2>/dev/null \
+    || log_warning "Could not remove legacy dependency tracker package"
+fi
+
 #####################################################################################
 # Post-install: Check for Qt/Quickshell ABI mismatch
 # pacman -Syu may update Qt while quickshell-git/quickshell-bin (AUR) was built
 # against the old Qt. Quickshell uses Qt private APIs, so minor bumps break ABI.
-# See: https://github.com/snowarch/Ryoku/issues/93
+# See: https://github.com/neur0map/ryoku-arch/issues/93
 #####################################################################################
 if command -v qs >/dev/null 2>&1; then
   qs_abi_output="$(qs --version 2>&1 || true)"

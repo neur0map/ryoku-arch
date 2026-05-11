@@ -21,8 +21,17 @@
 #       shell.qml, so the launcher could not find its config-path helper.
 #   (4) Many .sh scripts under shell/scripts/ lost their +x bit during
 #       the install copy step.
+#   (5) install/config/shell.sh creates the niri.service.wants/ryoku-shell
+#       symlink that wires the shell into the graphical session, but it
+#       runs as the chroot install (uid 0, $HOME=/root) so it writes the
+#       link under /root/.config and never under /home/<user>/.config.
+#       Result: shell.qml deploys, the launcher works, but niri.service
+#       never pulls ryoku-shell.service in at session start: fresh boot
+#       reaches a logged-in compositor with zero shell process and zero
+#       journal entries (the symptom that masqueraded as "grey screen
+#       after SDDM login" on the 2026-05-07 smoke test).
 #
-# This script paves over all four. It is run from
+# This script paves over all five. It is run from
 # install/post-install/all.sh so it executes after every other install
 # stage (and reapplies any earlier-stage stomps). Future install
 # refactors should fix the upstream causes; until then this is the
@@ -41,10 +50,19 @@ if [[ ! -d $shell_src ]]; then
     exit 0
 fi
 
-# (4) Restore +x on all .sh under the shell tree. The install copy step
-# (cp/rsync without --preserve=mode in some paths) drops the bit.
+# (4) Restore +x on all .sh under the shell tree AND the install tree.
+# The install copy step (cp/rsync without --preserve=mode in some paths)
+# drops the bit, and bin/ryoku-update-perform invokes
+# install/config/shell.sh by direct exec (not `bash <path>`), so missing
+# +x on install/*.sh manifests as a "Permission denied" mid-update.
 find "$shell_src" -type f -name '*.sh' -exec chmod +x {} +
 chmod +x "$shell_src/scripts/ryoku-shell" 2>/dev/null || true
+if [[ -d $ryoku_path/install ]]; then
+    find "$ryoku_path/install" -type f -name '*.sh' -exec chmod +x {} +
+fi
+if [[ -d $ryoku_path/bin ]]; then
+    find "$ryoku_path/bin" -type f -exec chmod +x {} +
+fi
 
 # (1) User-bin launcher. The systemd unit ExecStart is
 # $HOME/.local/bin/ryoku-shell. Make sure it exists and points at the
@@ -91,5 +109,50 @@ else
     # Refresh in place so re-runs pick up shell tree updates.
     rsync -a --delete "$shell_src/" "$quickshell_dir/"
 fi
+
+# (5) User-service wants-links. Several install/ scripts call
+# `systemctl --user enable --now <unit>` directly:
+#
+#   install/config/ryoku-hypridle.sh:41        hypridle.service
+#   install/config/ryoku-resume-listener.sh:20 ryoku-resume-listener.service
+#   install/first-run/battery-monitor.sh:5     ryoku-battery-monitor.timer
+#   install/config/shell.sh:74                 ryoku-shell.service via niri.service.wants
+#
+# Those calls silently no-op in chroot context (no user dbus / systemd
+# user instance). Re-create each [Install] WantedBy=... wants-link
+# directly here from the user's $HOME so the wiring is correct on first
+# boot regardless of where the original install/ script ran. Idempotent:
+# ln -sfn replaces stale links.
+ensure_user_wants_link() {
+    local target_unit="$1"  # filename of the unit to enable
+    local wanted_by="$2"    # WantedBy target (e.g. graphical-session.target)
+    local source_path="$3"  # absolute path the symlink should point to
+    [[ -e $source_path ]] || return 0
+    local wants_dir="$xdg_config_home/systemd/user/${wanted_by}.wants"
+    mkdir -p "$wants_dir"
+    ln -sfn "$source_path" "$wants_dir/$target_unit"
+}
+
+# Compositor-conditional: ryoku-shell only when niri is the session.
+shell_unit="$xdg_config_home/systemd/user/ryoku-shell.service"
+ensure_user_wants_link ryoku-shell.service niri.service "$shell_unit"
+
+# graphical-session consumers.
+ensure_user_wants_link ryoku-resume-listener.service graphical-session.target \
+    "$xdg_config_home/systemd/user/ryoku-resume-listener.service"
+ensure_user_wants_link hypridle.service graphical-session.target \
+    /usr/lib/systemd/user/hypridle.service
+
+# timers.target consumer (only wired if the host has a battery; the
+# original first-run/battery-monitor.sh gated on ryoku-battery-present,
+# but the safety net is harmless for desktops since the timer simply
+# won't trigger anything battery-relevant).
+ensure_user_wants_link ryoku-battery-monitor.timer timers.target \
+    "$xdg_config_home/systemd/user/ryoku-battery-monitor.timer"
+
+# daemon-reload only works if a user systemd is reachable. In a chroot
+# install context it is not, silently ignore. On a real post-install
+# run as the user it will pick up the new links.
+systemctl --user daemon-reload >/dev/null 2>&1 || true
 
 echo "ensure-shell-deployment: ok"

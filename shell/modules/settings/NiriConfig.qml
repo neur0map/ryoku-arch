@@ -516,6 +516,24 @@ ContentPage {
         setConfig(section, key, enabled ? "on" : "off")
     }
 
+    // Write a focus-ring active-gradient by merging the partial value the
+    // caller wants to change (any of fromColor/toColor/angle) into the
+    // current parsed gradient, then emitting the full KDL line content.
+    // Pass null for fields the caller does NOT want to change.
+    function _writeFocusRingGradient(fromColor, toColor, angle) {
+        if (!layoutReady) return
+        const cur = layoutData?.focus_ring?.active_gradient ?? {}
+        const f = (fromColor !== null && fromColor !== undefined && fromColor !== "")
+                  ? fromColor : (cur.from_color ?? "#F25623")
+        const t = (toColor !== null && toColor !== undefined && toColor !== "")
+                  ? toColor : (cur.to_color ?? "#F56E0F")
+        const a = (angle !== null && angle !== undefined) ? angle : (cur.angle ?? 45)
+        const rel = cur.relative_to ?? "workspace-view"
+        const cs = cur.color_space ?? "oklch"
+        const grad = `from="${f}" to="${t}" angle=${a} relative-to="${rel}" in="${cs}"`
+        setConfig("layout", "focus-ring.active-gradient", grad)
+    }
+
     function setFocusFollowsMouse(enabled, percent) {
         if (percent === undefined)
             percent = -1
@@ -1828,9 +1846,33 @@ ContentPage {
                 }
             }
 
+            // Active color: solid OR gradient. Niri renders the gradient
+            // when present and ignores the solid color, so the UI exposes
+            // a mode toggle instead of letting both forms exist silently.
+            SettingsSwitch {
+                Layout.fillWidth: true
+                visible: root.layoutData?.focus_ring?.enabled ?? false
+                buttonIcon: "gradient"
+                text: Translation.tr("Active color uses gradient")
+                checked: !!root.layoutData?.focus_ring?.active_gradient
+                onCheckedChanged: {
+                    if (!root.layoutReady) return
+                    const hasGradient = !!root.layoutData?.focus_ring?.active_gradient
+                    if (checked === hasGradient) return
+                    if (checked) {
+                        const seed = root.layoutData?.focus_ring?.active_color ?? "#F25623"
+                        const grad = `from="${seed}" to="${seed}" angle=45 relative-to="workspace-view" in="oklch"`
+                        root.setConfig("layout", "focus-ring.active-gradient", grad)
+                    } else {
+                        const seed = root.layoutData?.focus_ring?.active_gradient?.from_color ?? "#808080"
+                        root.setConfig("layout", "focus-ring.active-color", seed)
+                    }
+                }
+            }
+
             ContentSubsection {
                 title: Translation.tr("Focus ring active color")
-                visible: root.layoutData?.focus_ring?.enabled ?? false
+                visible: (root.layoutData?.focus_ring?.enabled ?? false) && !root.layoutData?.focus_ring?.active_gradient
 
                 MaterialTextField {
                     Layout.fillWidth: true
@@ -1840,6 +1882,41 @@ ContentPage {
                         const val = text.trim()
                         if (val.length > 0)
                             root.setConfig("layout", "focus-ring.active-color", val)
+                    }
+                }
+            }
+
+            ContentSubsection {
+                title: Translation.tr("Focus ring active gradient")
+                visible: (root.layoutData?.focus_ring?.enabled ?? false) && !!root.layoutData?.focus_ring?.active_gradient
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+
+                    MaterialTextField {
+                        Layout.fillWidth: true
+                        placeholderText: Translation.tr("From #RRGGBB")
+                        text: root.layoutData?.focus_ring?.active_gradient?.from_color ?? "#F25623"
+                        onEditingFinished: root._writeFocusRingGradient(text.trim(), null, null)
+                    }
+                    MaterialTextField {
+                        Layout.fillWidth: true
+                        placeholderText: Translation.tr("To #RRGGBB")
+                        text: root.layoutData?.focus_ring?.active_gradient?.to_color ?? "#F56E0F"
+                        onEditingFinished: root._writeFocusRingGradient(null, text.trim(), null)
+                    }
+                }
+
+                ConfigSpinBox {
+                    text: Translation.tr("Angle (°)")
+                    value: Math.round(root.layoutData?.focus_ring?.active_gradient?.angle ?? 45)
+                    from: 0
+                    to: 360
+                    stepSize: 5
+                    onValueChanged: {
+                        if (!root.layoutReady) return
+                        root._writeFocusRingGradient(null, null, value)
                     }
                 }
             }

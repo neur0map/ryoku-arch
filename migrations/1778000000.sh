@@ -1,6 +1,6 @@
 #!/bin/bash
 # Wipe Ryoku-touched shell state and re-bootstrap a pristine upstream
-# install from github.com/snowarch/iNiR.git. See spec at
+# install from the vendored Ryoku shell. See spec at
 # docs/superpowers/specs/2026-05-04-pristine-inir-restore-design.md.
 
 set -euo pipefail

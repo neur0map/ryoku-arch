@@ -1,4 +1,4 @@
-// SponsorBlock userscript for iNiR WebEngine
+// SponsorBlock userscript for Ryoku WebEngine
 // Skips sponsored segments in YouTube Music videos using the SponsorBlock API.
 // Categories: sponsor, selfpromo, interaction, intro, outro, music_offtopic
 // Runs at document idle, polls video time and skips matching segments.
@@ -6,7 +6,7 @@
 (function() {
     'use strict';
 
-    const LOG_PREFIX = '[iNiR-SponsorBlock]';
+    const LOG_PREFIX = '[Ryoku-SponsorBlock]';
     const API_BASE = 'https://sponsor.ajay.app/api';
 
     // Categories to skip (user could customize later via config)
@@ -88,7 +88,7 @@
     // --- Show skip notification ---
     function showSkipNotification(category) {
         // Remove existing notification
-        const existing = document.getElementById('inir-sb-notification');
+        const existing = document.getElementById('ryoku-sb-notification');
         if (existing) existing.remove();
 
         const labels = {
@@ -101,7 +101,7 @@
         };
 
         const div = document.createElement('div');
-        div.id = 'inir-sb-notification';
+        div.id = 'ryoku-sb-notification';
         div.style.cssText = `
             position: fixed;
             bottom: 100px;

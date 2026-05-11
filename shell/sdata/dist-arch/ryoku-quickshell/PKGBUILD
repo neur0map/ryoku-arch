@@ -1,10 +1,10 @@
-# Quickshell and Qt6 dependencies for iNiR
+# Quickshell and Qt6 dependencies for Ryoku
 # Based on upstream packaging patterns from end-4
 
-pkgname=inir-quickshell
+pkgname=ryoku-quickshell
 pkgver=1.0
 pkgrel=1
-pkgdesc='iNiR - Quickshell and Qt6 dependency bundle'
+pkgdesc='Ryoku - Quickshell and Qt6 dependency bundle'
 arch=(any)
 license=(MIT)
 depends=(
@@ -41,7 +41,7 @@ depends=(
   kdialog
   syntax-highlighting
   
-  # Qt theming (kvantum is in inir-fonts, qt6ct configures Qt without Plasma)
+  # Qt theming (kvantum is in ryoku-fonts, qt6ct configures Qt without Plasma)
   qt6ct
   breeze-icons  # lightweight icon theme (no Plasma deps)
 )

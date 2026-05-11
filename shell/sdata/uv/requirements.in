@@ -1,4 +1,4 @@
-# Python dependencies for iNiR
+# Python dependencies for Ryoku
 # Edit this file, then run: uv pip compile requirements.in -o requirements.txt
 
 # Thumbnail generation (GnomeDesktop 4.0)

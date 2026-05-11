@@ -18,7 +18,7 @@ body:
       description: Numbered steps to trigger the issue
       placeholder: |
         1. Enable weather widget in settings
-        2. Restart shell with inir restart
+        2. Restart shell with ryoku-shell restart
         3. Bar crashes on startup
     validations:
       required: true
@@ -37,7 +37,7 @@ body:
     attributes:
       label: Logs
       description: |
-        Output from `inir logs` (last 50 lines or relevant errors).
+        Output from `ryoku-shell logs` (last 50 lines or relevant errors).
         If the shell crashed, also include crash output if available.
       render: shell
     validations:
@@ -47,7 +47,7 @@ body:
     id: version
     attributes:
       label: Version
-      description: "Output of: cat ~/.config/quickshell/inir/VERSION"
+      description: "Output of: cat ~/.config/quickshell/ryoku-shell/VERSION"
       placeholder: "2.17.4"
     validations:
       required: true

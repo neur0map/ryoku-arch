@@ -1,7 +1,7 @@
-pkgname=inir-screencapture
+pkgname=ryoku-screencapture
 pkgver=1.0
 pkgrel=1
-pkgdesc='iNiR - screenshot and recording dependency bundle'
+pkgdesc='Ryoku - screenshot and recording dependency bundle'
 arch=(any)
 license=(MIT)
 depends=(

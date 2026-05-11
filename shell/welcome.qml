@@ -978,7 +978,7 @@ Scope {
                         { displayName: "Cards", icon: "crop_square", value: "cards" },
                         { displayName: "Aurora", icon: "blur_on", value: "aurora" },
                         { displayName: "Angel", icon: "auto_awesome", value: "angel" },
-                        { displayName: "Inir", icon: "terminal", value: "inir" }
+                        { displayName: "Ryoku", icon: "terminal", value: "ryoku-shell" }
                     ]
                 }
             }
@@ -1659,7 +1659,7 @@ Scope {
                                 colBackgroundHover: Appearance.colors.colLayer1Hover
 
                                 onClicked: Quickshell.execDetached([
-                                    Quickshell.shellPath("scripts/inir"),
+                                    Quickshell.shellPath("scripts/ryoku-shell"),
                                     modelData.target,
                                     modelData.fn
                                 ])
@@ -1719,7 +1719,7 @@ Scope {
                 colBackground: ColorUtils.transparentize(Appearance.colors.colPrimaryContainer, 0.6)
                 colBackgroundHover: ColorUtils.transparentize(Appearance.colors.colPrimaryContainer, 0.4)
 
-                onClicked: Qt.openUrlExternally("https://github.com/snowarch/inir/wiki/Troubleshooting")
+                onClicked: Qt.openUrlExternally("https://github.com/neur0map/ryoku-arch/wiki/Troubleshooting")
 
                 Rectangle {
                     anchors.fill: parent
@@ -1781,7 +1781,7 @@ Scope {
                     buttonRadius: Appearance.rounding.small
                     colBackground: Appearance.colors.colLayer2
                     colBackgroundHover: Appearance.colors.colLayer2Hover
-                    onClicked: Quickshell.execDetached([Quickshell.shellPath("scripts/inir"), "settings"])
+                    onClicked: Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "settings"])
                     RowLayout {
                         anchors.centerIn: parent
                         spacing: 8
@@ -1795,7 +1795,7 @@ Scope {
                     buttonRadius: Appearance.rounding.small
                     colBackground: Appearance.colors.colLayer2
                     colBackgroundHover: Appearance.colors.colLayer2Hover
-                    onClicked: Qt.openUrlExternally("https://github.com/snowarch/inir/wiki")
+                    onClicked: Qt.openUrlExternally("https://github.com/neur0map/ryoku-arch/wiki")
                     RowLayout {
                         anchors.centerIn: parent
                         spacing: 8
@@ -1809,7 +1809,7 @@ Scope {
                     buttonRadius: Appearance.rounding.small
                     colBackground: Appearance.colors.colLayer2
                     colBackgroundHover: Appearance.colors.colLayer2Hover
-                    onClicked: Qt.openUrlExternally("https://github.com/snowarch/inir/issues")
+                    onClicked: Qt.openUrlExternally("https://github.com/neur0map/ryoku-arch/issues")
                     RowLayout {
                         anchors.centerIn: parent
                         spacing: 8
@@ -1823,7 +1823,7 @@ Scope {
                     buttonRadius: Appearance.rounding.small
                     colBackground: Appearance.colors.colLayer2
                     colBackgroundHover: Appearance.colors.colLayer2Hover
-                    onClicked: Qt.openUrlExternally("https://github.com/snowarch/inir")
+                    onClicked: Qt.openUrlExternally("https://github.com/neur0map/ryoku-arch")
                     RowLayout {
                         anchors.centerIn: parent
                         spacing: 8

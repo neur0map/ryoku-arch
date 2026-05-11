@@ -1,11 +1,11 @@
-// YouTube Music AdBlock userscript for iNiR WebEngine
+// YouTube Music AdBlock userscript for Ryoku WebEngine
 // Skips video ads, closes overlay ads, hides banner ads.
 // Runs at document idle (after page load).
 
 (function() {
     'use strict';
 
-    const LOG_PREFIX = '[iNiR-AdBlock]';
+    const LOG_PREFIX = '[Ryoku-AdBlock]';
 
     // --- CSS: hide ad containers ---
     const style = document.createElement('style');
@@ -110,11 +110,11 @@
         if (player.classList.contains('ad-showing')) {
             if (!video.muted) {
                 video.muted = true;
-                video.dataset.inirMuted = 'true';
+                video.dataset.ryokuMuted = 'true';
             }
-        } else if (video.dataset.inirMuted === 'true') {
+        } else if (video.dataset.ryokuMuted === 'true') {
             video.muted = false;
-            delete video.dataset.inirMuted;
+            delete video.dataset.ryokuMuted;
         }
     }
 
