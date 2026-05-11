@@ -7,6 +7,24 @@ echo -e "\e[32mUpdate Ryoku\e[0m"
 
 ryoku-update-time
 
-git -C $RYOKU_PATH pull --autostash
-git -C $RYOKU_PATH --no-pager diff --check || git -C $RYOKU_PATH reset --merge
+stash_ref=""
+if [[ -n $(git -C "$RYOKU_PATH" status --porcelain --untracked-files=normal) ]]; then
+  git -C "$RYOKU_PATH" stash push --include-untracked -m "ryoku-update autostash $(date -Iseconds)"
+  stash_ref="stash@{0}"
+fi
+
+git -C "$RYOKU_PATH" pull
+
+if [[ -n $stash_ref ]]; then
+  if git -C "$RYOKU_PATH" stash apply --index "$stash_ref"; then
+    git -C "$RYOKU_PATH" stash drop "$stash_ref" >/dev/null
+  else
+    echo
+    echo -e "\e[33mLocal changes were preserved in git stash because they conflict with the update.\e[0m"
+    echo "Review them with: git -C \"$RYOKU_PATH\" stash show -p $stash_ref"
+    git -C "$RYOKU_PATH" reset --merge || true
+  fi
+fi
+
+git -C "$RYOKU_PATH" --no-pager diff --check || git -C "$RYOKU_PATH" reset --merge
 niri msg action load-config-file >/dev/null 2>&1 || true
