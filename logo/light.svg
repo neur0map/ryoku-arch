@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 64" width="220" height="64">
+  <!-- Ryoku docs header wordmark, light-mode variant.
+       Kanji 力 (ryoku) in brand orange + RYOKU lettering in dark foreground.
+       Use this on light Mintlify backgrounds. -->
+  <text x="20" y="32"
+        font-family="'Noto Sans CJK JP', sans-serif"
+        font-weight="900"
+        font-size="52"
+        fill="#F25623"
+        text-anchor="middle"
+        dominant-baseline="central">力</text>
+  <text x="56" y="32"
+        font-family="'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace"
+        font-weight="700"
+        font-size="26"
+        letter-spacing="2"
+        fill="#171717"
+        dominant-baseline="central">RYOKU</text>
+</svg>
