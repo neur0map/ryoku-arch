@@ -1,0 +1,141 @@
+name: PR Shell Script Alert
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  shell-script-alert:
+    name: Shell script security alert
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout PR contents
+        uses: actions/checkout@v4
+
+      - name: Scan changed files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          changed_files="$(mktemp)"
+          flagged_files="$(mktemp)"
+
+          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files" \
+            --jq '.[].filename' >"$changed_files"
+
+          is_execution_sensitive_path() {
+            local path="$1"
+
+            [[ $path == "boot.sh" ]] && return 0
+            [[ $path == "install.sh" ]] && return 0
+            [[ $path == bin/* ]] && return 0
+            [[ $path == install/* ]] && return 0
+            [[ $path == migrations/* ]] && return 0
+            [[ $path == iso/bin/* ]] && return 0
+            [[ $path == iso/builder/* ]] && return 0
+            [[ $path == shell/scripts/* ]] && return 0
+            [[ $path == default/systemd/system-sleep/* ]] && return 0
+            [[ $path == .github/workflows/*.yml ]] && return 0
+            [[ $path == .github/workflows/*.yaml ]] && return 0
+
+            return 1
+          }
+
+          has_shell_shebang() {
+            local path="$1"
+            local first_line
+
+            [[ -f $path ]] || return 1
+            first_line="$(LC_ALL=C head -n 1 -- "$path" 2>/dev/null | tr -d '\r')"
+            [[ $first_line =~ ^#!.*(bash|dash|/sh|[[:space:]]sh)([[:space:]]|$) ]]
+          }
+
+          join_reasons() {
+            local joined=""
+            local reason
+
+            for reason in "$@"; do
+              if [[ -z $joined ]]; then
+                joined="$reason"
+              else
+                joined="$joined; $reason"
+              fi
+            done
+
+            printf '%s' "$joined"
+          }
+
+          escape_annotation() {
+            local value="$1"
+
+            value="${value//'%'/'%25'}"
+            value="${value//$'\r'/'%0D'}"
+            value="${value//$'\n'/'%0A'}"
+            printf '%s' "$value"
+          }
+
+          flagged_count=0
+          while IFS= read -r file || [[ -n $file ]]; do
+            [[ -z $file ]] && continue
+
+            reasons=()
+
+            [[ $file == *.sh ]] && reasons+=(".sh file")
+            is_execution_sensitive_path "$file" && reasons+=("execution-sensitive path")
+            has_shell_shebang "$file" && reasons+=("shell shebang")
+
+            if (( ${#reasons[@]} > 0 )); then
+              reason_text="$(join_reasons "${reasons[@]}")"
+              printf '%s\t%s\n' "$file" "$reason_text" >>"$flagged_files"
+              flagged_count=$(( flagged_count + 1 ))
+            fi
+          done <"$changed_files"
+
+          if (( flagged_count == 0 )); then
+            {
+              echo "## Shell Script Security Review"
+              echo
+              echo "No shell-script or execution-sensitive file changes were detected in this PR."
+            } >>"$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          while IFS=$'\t' read -r file reason_text; do
+            warning_message="$(escape_annotation "$file: $reason_text")"
+            echo "::warning title=Shell script security review recommended::$warning_message"
+          done <"$flagged_files"
+
+          {
+            echo "## Shell Script Security Review"
+            echo
+            echo "> Advisory only: this job does not block merging."
+            echo
+            echo "This PR changes files that can execute shell commands or alter CI/install-time behavior. Maintainers should review them before merge."
+            echo
+            echo "| File | Reason |"
+            echo "|---|---|"
+            while IFS=$'\t' read -r file reason_text; do
+              file="${file//|/\\|}"
+              reason_text="${reason_text//|/\\|}"
+              printf '| `%s` | %s |\n' "$file" "$reason_text"
+            done <"$flagged_files"
+            echo
+            echo "Review focus:"
+            echo "- privilege escalation, sudo/pkexec/systemctl use, and persistence hooks"
+            echo "- install-time execution, migrations, login/session startup, and systemd units"
+            echo "- network fetches, curl-pipe-shell patterns, package source changes, and remote code execution"
+            echo "- credential, token, key, SSH, GPG, and environment-variable handling"
+            echo "- obfuscation, encoded payloads, writable PATH assumptions, and unsafe temp-file handling"
+          } >>"$GITHUB_STEP_SUMMARY"

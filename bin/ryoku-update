@@ -1,7 +1,10 @@
 #!/bin/bash
 
 set -e
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+script_path="${BASH_SOURCE[0]}"
+script_path="$(readlink -f "$script_path" 2>/dev/null || printf '%s\n' "$script_path")"
+source "$(cd -- "$(dirname -- "$script_path")/.." && pwd)/lib/runtime-env.sh"
 
 if [[ -z ${RYOKU_UPDATE_INHIBITED:-} ]] && command -v systemd-inhibit >/dev/null 2>&1; then
   exec env RYOKU_UPDATE_INHIBITED=1 systemd-inhibit \
@@ -19,7 +22,12 @@ if [[ -z $RYOKU_UPDATE_LOGGED ]]; then
   exec env RYOKU_UPDATE_LOGGED=1 script -qefc "$script_command" "/tmp/ryoku-update.log"
 fi
 
-trap 'echo ""; echo -e "\033[0;31mSomething went wrong during the update!\n\nPlease review the output above carefully, correct the error, and retry the update.\n\nIf you need assistance, open an issue at https://github.com/neur0map/ryoku-arch/issues\033[0m"' ERR
+update_failed() {
+  echo ""
+  echo -e "\033[0;31mSomething went wrong during the update!\n\nPlease review the output above carefully, correct the error, and retry the update.\n\nRun: ryoku-doctor update\n\nIf you need assistance, open an issue at https://github.com/neur0map/ryoku-arch/issues\033[0m"
+}
+
+trap update_failed ERR
 
 if [[ -z ${RYOKU_UPDATE_POWER_CHECKED:-} ]]; then
   battery_level=""
