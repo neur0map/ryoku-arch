@@ -276,21 +276,25 @@ ContentPage {
 
                     PackageList {
                         title: Translation.tr("Official packages")
+                        icon: "inventory_2"
                         packages: profile.packages || []
                     }
 
                     PackageList {
                         title: Translation.tr("AUR packages")
+                        icon: "deployed_code"
                         packages: profile.aurPackages || []
                     }
 
                     PackageList {
                         title: Translation.tr("BlackArch packages")
+                        icon: "security"
                         packages: profile.blackarchPackages || []
                     }
 
                     PackageList {
                         title: Translation.tr("Hardware add-ons")
+                        icon: "memory"
                         packages: profile.hardwarePackages || []
                     }
                 }
@@ -373,18 +377,96 @@ ContentPage {
     component PackageList: ColumnLayout {
         id: listRoot
         property string title: ""
+        property string icon: "inventory_2"
         property var packages: []
+        property int previewLimit: 18
+        property bool expanded: false
+        readonly property int packageCount: root.arrayCount(packages)
+        readonly property int hiddenCount: Math.max(0, packageCount - previewLimit)
 
-        visible: root.arrayCount(packages) > 0
+        function visiblePackages() {
+            if (!packages) return []
+            if (expanded || hiddenCount === 0) return packages
+            return packages.slice(0, previewLimit)
+        }
+
+        visible: packageCount > 0
         Layout.fillWidth: true
-        spacing: 6
+        spacing: 8
 
-        StyledText {
+        RowLayout {
             Layout.fillWidth: true
-            text: listRoot.title + " (" + root.arrayCount(listRoot.packages) + ")"
-            color: Appearance.colors.colSubtext
-            font.pixelSize: 12
-            font.bold: true
+            spacing: 8
+
+            MaterialSymbol {
+                text: listRoot.icon
+                iconSize: 17
+                color: Appearance.colors.colSubtext
+            }
+
+            StyledText {
+                text: listRoot.title
+                color: Appearance.colors.colOnLayer1
+                font.pixelSize: 12
+                font.bold: true
+            }
+
+            Rectangle {
+                radius: 999
+                color: root.colorWithAlpha(Appearance.colors.colSubtext, 0.12)
+                implicitWidth: countText.implicitWidth + 12
+                implicitHeight: countText.implicitHeight + 4
+
+                StyledText {
+                    id: countText
+                    anchors.centerIn: parent
+                    text: listRoot.packageCount
+                    color: Appearance.colors.colSubtext
+                    font.pixelSize: 10
+                    font.bold: true
+                }
+            }
+
+            StyledText {
+                visible: !listRoot.expanded && listRoot.hiddenCount > 0
+                text: Translation.tr("%1 shown").arg(listRoot.previewLimit)
+                color: Appearance.colors.colSubtext
+                font.pixelSize: 11
+            }
+
+            Item { Layout.fillWidth: true }
+
+            RippleButton {
+                visible: listRoot.hiddenCount > 0
+                implicitWidth: expandRow.implicitWidth + 18
+                implicitHeight: 28
+                buttonRadius: Appearance.rounding.small
+                colBackground: Appearance.colors.colLayer2
+                colBackgroundHover: Appearance.colors.colLayer2Hover
+                colRipple: Appearance.colors.colLayer2Active
+                onClicked: listRoot.expanded = !listRoot.expanded
+
+                contentItem: RowLayout {
+                    id: expandRow
+                    anchors.centerIn: parent
+                    spacing: 4
+
+                    StyledText {
+                        text: listRoot.expanded
+                            ? Translation.tr("Show less")
+                            : Translation.tr("Show all")
+                        color: Appearance.colors.colOnLayer1
+                        font.pixelSize: 11
+                        font.bold: true
+                    }
+
+                    MaterialSymbol {
+                        text: listRoot.expanded ? "expand_less" : "expand_more"
+                        iconSize: 16
+                        color: Appearance.colors.colOnLayer1
+                    }
+                }
+            }
         }
 
         Flow {
@@ -392,26 +474,38 @@ ContentPage {
             spacing: 6
 
             Repeater {
-                model: listRoot.packages
+                model: listRoot.visiblePackages()
 
                 Rectangle {
                     radius: Appearance.rounding.small
                     color: Appearance.colors.colLayer2
                     border.width: 1
                     border.color: Appearance.colors.colLayer0Border
-                    implicitWidth: packageText.implicitWidth + 12
-                    implicitHeight: packageText.implicitHeight + 6
+                    width: Math.min(packageText.implicitWidth + 12, Math.max(120, listRoot.width - 24))
+                    height: packageText.implicitHeight + 6
 
                     StyledText {
                         id: packageText
-                        anchors.centerIn: parent
+                        anchors.fill: parent
+                        anchors.leftMargin: 6
+                        anchors.rightMargin: 6
+                        verticalAlignment: Text.AlignVCenter
                         text: modelData
                         color: Appearance.colors.colOnLayer1
+                        elide: Text.ElideRight
                         font.family: "JetBrainsMono Nerd Font Mono"
                         font.pixelSize: 11
                     }
                 }
             }
+        }
+
+        StyledText {
+            visible: !listRoot.expanded && listRoot.hiddenCount > 0
+            Layout.fillWidth: true
+            text: Translation.tr("%1 more hidden in this group.").arg(listRoot.hiddenCount)
+            color: Appearance.colors.colSubtext
+            font.pixelSize: 11
         }
     }
 }
