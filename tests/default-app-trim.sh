@@ -33,6 +33,14 @@ assert_package_present() {
   assert_contains "install/ryoku-base.packages" "$package"
 }
 
+assert_package_present_any() {
+  local package="$1"
+  if ! grep -qxF "$package" "$ROOT_DIR/install/ryoku-base.packages" &&
+     ! grep -qxF "$package" "$ROOT_DIR/install/ryoku-aur.packages"; then
+    fail "default package manifests should include: $package"
+  fi
+}
+
 assert_package_absent() {
   local package="$1"
   assert_not_contains "install/ryoku-base.packages" "$package"
@@ -80,25 +88,25 @@ kept_packages=(
   docker
   docker-buildx
   docker-compose
+  gradia
   lazydocker
+  localsend
   obsidian
   obs-studio
+  trayscale
 )
 
 removed_packages=(
   1password-beta
   1password-cli
   bluetui
-  gradia
   impala
   kdenlive
   libreoffice-fresh
-  localsend
   pinta
   plocate
   signal-desktop
   spotify
-  trayscale
   typora
   usage
   wiremix
@@ -107,8 +115,9 @@ removed_packages=(
 )
 
 for package in "${kept_packages[@]}"; do
-  assert_package_present "$package"
+  assert_package_present_any "$package"
   assert_not_contains "bin/ryoku-remove-preinstalls" "    $package \\"
+  assert_not_contains "bin/ryoku-remove-preinstalls" "  $package"
 done
 
 for package in "${removed_packages[@]}"; do
@@ -122,7 +131,7 @@ assert_not_contains "bin/ryoku-remove-preinstalls" "ryoku-tui-remove-all"
 assert_file_absent "applications/typora.desktop"
 assert_not_contains "install/config/mimetypes.sh" "HEY.desktop"
 assert_not_contains "bin/ryoku-font-set" "xmlstarlet"
-assert_not_contains "install/first-run/firewall.sh" "LocalSend"
-assert_not_contains "install/first-run/firewall.sh" "53317"
+assert_contains "install/first-run/firewall.sh" "LocalSend"
+assert_contains "install/first-run/firewall.sh" "53317"
 assert_contains "install/config/localdb.sh" "ryoku-cmd-missing updatedb"
 assert_contains "install/config/plocate-ac-only.sh" "ryoku-cmd-missing updatedb"

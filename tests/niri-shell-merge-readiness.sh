@@ -216,8 +216,11 @@ required_base_packages=(
 
 required_aur_packages=(
   darkly-bin
+  gradia
   limine-mkinitcpio-hook
   limine-snapper-sync
+  localsend
+  trayscale
 )
 
 for package in "${removed_packages[@]}"; do

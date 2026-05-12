@@ -19,12 +19,14 @@
 # ── Networking / system ───────────────────────────────────────────────
 limine-mkinitcpio-hook
 limine-snapper-sync
+localsend
 trayscale
 tzupdate
 ufw-docker
 
 # ── Eye-candy / utilities ─────────────────────────────────────────────
 darkly-bin
+gradia
 mpvpaper
 # python-terminaltexteffects ships the `tte` binary used by
 # bin/ryoku-launch-screensaver and install/post-install/finished.sh.
