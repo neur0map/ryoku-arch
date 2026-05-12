@@ -9,7 +9,7 @@ import qs.modules.common.widgets
 import qs.services
 
 ContentPage {
-    settingsPageIndex: 13
+    settingsPageIndex: 14
     settingsPageName: Translation.tr("About")
 
     // Compact circle icon button used by every card in this page so the

@@ -1,0 +1,42 @@
+#!/bin/bash
+
+set -euo pipefail
+
+RYOKU_PATH="${RYOKU_PATH:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)}"
+RYOKU_PROFILES_DIR="${RYOKU_PROFILES_DIR:-$RYOKU_PATH/install/profiles}"
+
+source "$RYOKU_PROFILES_DIR/lib.sh"
+
+json=0
+
+for arg in "$@"; do
+  case "$arg" in
+    --json)
+      json=1
+      ;;
+    -h|--help)
+      echo "Usage: ryoku-cmd-profile-list [--json]"
+      exit 0
+      ;;
+    *)
+      echo "Usage: ryoku-cmd-profile-list [--json]" >&2
+      exit 2
+      ;;
+  esac
+done
+
+if (( json == 1 )); then
+  first=1
+  printf '['
+  while IFS= read -r profile_id; do
+    (( first == 1 )) || printf ','
+    first=0
+    ryoku_profile_status_json "$profile_id"
+  done < <(ryoku_profile_ids)
+  printf ']\n'
+else
+  while IFS= read -r profile_id; do
+    ryoku_profile_load "$profile_id"
+    printf '%s\t%s\n' "$profile_id" "${PROFILE_NAME:-$profile_id}"
+  done < <(ryoku_profile_ids)
+fi

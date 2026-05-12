@@ -1,0 +1,49 @@
+#!/bin/bash
+
+set -euo pipefail
+
+RYOKU_PATH="${RYOKU_PATH:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)}"
+RYOKU_PROFILES_DIR="${RYOKU_PROFILES_DIR:-$RYOKU_PATH/install/profiles}"
+
+source "$RYOKU_PROFILES_DIR/lib.sh"
+
+json=0
+
+while (( $# > 0 )); do
+  case "$1" in
+    --json)
+      json=1
+      shift
+      ;;
+    -h|--help)
+      echo "Usage: ryoku-cmd-profile-status [--json] <profile>"
+      exit 0
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+
+if (( $# != 1 )); then
+  echo "Usage: ryoku-cmd-profile-status [--json] <profile>" >&2
+  exit 2
+fi
+
+profile_id="$1"
+ryoku_profile_load "$profile_id" || {
+  echo "Unknown profile: $profile_id" >&2
+  exit 2
+}
+
+if (( json == 1 )); then
+  ryoku_profile_status_json "$profile_id"
+  printf '\n'
+else
+  mapfile -t missing < <(ryoku_profile_pacman_missing $(ryoku_profile_packages "$profile_id"))
+  if (( ${#missing[@]} == 0 )); then
+    echo "installed"
+  else
+    echo "not-installed"
+  fi
+fi

@@ -194,7 +194,9 @@ Scope {
         // Login screen (page 13)
         { pageIndex: 13, pageName: overlayPages[13].name, section: Translation.tr("Login screen"), label: Translation.tr("SDDM theme"), description: Translation.tr("Greeter theme shown before login"), keywords: ["sddm", "login", "greeter", "theme", "qylock", "lockscreen"] },
         // About (page 14)
-        { pageIndex: 14, pageName: overlayPages[14].name, section: Translation.tr("About"), label: Translation.tr("About ii"), description: Translation.tr("Version info, credits and links"), keywords: ["about", "version", "credits", "github", "info", "qylock", "sddm"] }
+        { pageIndex: 14, pageName: overlayPages[14].name, section: Translation.tr("About"), label: Translation.tr("About ii"), description: Translation.tr("Version info, credits and links"), keywords: ["about", "version", "credits", "github", "info", "qylock", "sddm"] },
+        // Extras (page 15)
+        { pageIndex: 15, pageName: overlayPages[15].name, section: Translation.tr("Profiles"), label: Translation.tr("Installable profiles"), description: Translation.tr("Install optional Ryoku feature profiles"), keywords: ["extras", "profiles", "install", "gaming", "steam", "heroic", "lutris", "vulkan", "proton"] }
     ]
 
     function getWaffleSettingsPageIndex() {
@@ -1628,7 +1630,7 @@ Scope {
     property var navCategories: [
         { label: Translation.tr("Appearance"), pages: [0, 4, 3] },
         { label: Translation.tr("Layout"), pages: [2, 5, 6, 10] },
-        { label: Translation.tr("System"), pages: [1, 7, 8] },
+        { label: Translation.tr("System"), pages: [1, 7, 8, 15] },
         { label: Translation.tr("Reference"), pages: [9, 11, 12, 14] }
     ]
 
@@ -1753,6 +1755,14 @@ Scope {
             desc: Translation.tr("Version & credits"),
             essential: true,
             component: Quickshell.shellPath("modules/settings/About.qml")
+        },
+        {
+            name: Translation.tr("Extras"),
+            shortName: "",
+            icon: "extension",
+            desc: Translation.tr("Optional feature profiles"),
+            essential: false,
+            component: Quickshell.shellPath("modules/settings/ExtrasConfig.qml")
         }
     ]
 

@@ -114,6 +114,12 @@ ApplicationWindow {
             icon: "info",
             essential: true,
             component: "modules/settings/About.qml"
+        },
+        {
+            name: Translation.tr("Extras"),
+            icon: "extension",
+            essential: false,
+            component: "modules/settings/ExtrasConfig.qml"
         }
     ]
     property int currentPage: 0
@@ -1326,6 +1332,17 @@ ApplicationWindow {
             label: Translation.tr("About ii"),
             description: Translation.tr("Version info, credits and links"),
             keywords: ["about", "version", "credits", "github", "info", "qylock", "sddm"]
+        },
+
+        // =====================================================================
+        // Extras (page 15)
+        // =====================================================================
+        {
+            pageIndex: 15, pageName: pages[15].name,
+            section: Translation.tr("Profiles"),
+            label: Translation.tr("Installable profiles"),
+            description: Translation.tr("Install optional Ryoku feature profiles"),
+            keywords: ["extras", "profiles", "install", "gaming", "steam", "heroic", "lutris", "vulkan", "proton"]
         }
     ]
 

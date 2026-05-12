@@ -1,0 +1,6 @@
+PROFILE_NAME="Gaming"
+PROFILE_ICON="sports_esports"
+PROFILE_DESCRIPTION="Game launchers, Proton/Wine tooling, Vulkan utilities, MangoHud, GameMode, and Gamescope."
+PROFILE_TAGS="Steam|Heroic|Lutris|Bottles|Proton"
+PROFILE_REQUIRES_NETWORK=1
+PROFILE_REBOOT_RECOMMENDED=1
