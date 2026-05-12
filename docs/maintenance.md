@@ -70,10 +70,13 @@ When a user runs `ryoku-update` on their Ryoku Arch system:
 2. Takes a btrfs snapshot via `ryoku-snapshot create` for rollback insurance.
 3. Runs `ryoku-update-git`: `git -C ~/.local/share/ryoku pull --autostash`. This pulls new commits from `origin/main` (which is Ryoku Arch).
 4. Runs `ryoku-update-perform`, which in sequence runs:
-   - `ryoku-migrate`: scans `migrations/*.sh`, runs any new ones, marks them applied.
+   - `ryoku-update-keyring`: refreshes Arch signing keys.
    - `ryoku-update-system-pkgs`: pacman system upgrade.
-   - `ryoku-update-aur-pkgs`: AUR package upgrade.
-   - Keyring, firmware, orphan-package checks.
+   - `install/packaging/base.sh`: installs required repo packages.
+   - `ryoku-update-aur-pkgs` and `install/packaging/aur-core.sh`: AUR package upgrade and required AUR packages.
+   - `install/config/shell.sh`: syncs the Ryoku shell into the user's Quickshell config.
+   - `ryoku-migrate`: scans `migrations/*.sh`, runs any new ones, marks them applied.
+   - Orphan-package checks, post-update hooks, log analysis, and restart prompts.
 5. Restarts affected components (Niri config reload, shell restart, etc.) if needed.
 
 Because `git pull` pulls from whatever `origin` points at, and the live clone's `origin` was repointed to `neur0map/ryoku-arch` during the scaffolding pass, your pushes flow through automatically. No user action required to "opt in" to Ryoku changes beyond the initial migration.
@@ -84,7 +87,7 @@ Because `git pull` pulls from whatever `origin` points at, and the live clone's 
 |---|---|---|
 | New or modified command in `bin/` | Add or edit a file under `bin/`, commit, push | Immediately after `git pull`. The installer put `$RYOKU_PATH/bin` on `PATH`, so the new command is live instantly. |
 | New theme, asset, or default-config template | Add file under `themes/`, `default/`, or similar | File is present after pull. If it is a default config or template, the user's `~/.config/` is NOT auto-updated. They must opt in via `ryoku-refresh-config <path>`, or you ship a migration that does the copy with backup. |
-| System state change (package install, service enable, systemd unit, config modification) | Write a migration script at `migrations/<unix-timestamp>.sh` | Picked up automatically by `ryoku-migrate` during the next `ryoku-update`. Runs once per user by convention. |
+| System state change (package install, service enable, systemd unit, config modification) | Write a migration script at `migrations/<unix-timestamp>.sh` | Picked up automatically by `ryoku-migrate` during the next `ryoku-update`. Runs once per user by convention. If the change replaces a user-facing default app, preserve custom choices and prompt existing installs before switching. |
 
 ### What will NOT auto-propagate
 

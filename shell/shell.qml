@@ -170,21 +170,6 @@ ShellRoot {
             }
         }
 
-        const legacyPinnedApps = ["org.gnome.Nautilus", "firefox", "foot"];
-        const oldBrowserPinnedApps = [
-            legacyPinnedApps,
-            ["org.gnome.Nautilus", "firefox", "kitty"],
-            ["org.gnome.Nautilus", "chromium", "kitty"]
-        ];
-        const currentPinnedApps = Config.options?.dock?.pinnedApps ?? [];
-        const hasOldDefaultPinnedApps = oldBrowserPinnedApps.some(oldApps =>
-            currentPinnedApps.length === oldApps.length
-                && currentPinnedApps.every((panel, idx) => panel === oldApps[idx]));
-        if (hasOldDefaultPinnedApps) {
-            root._log("[Shell] Migrating dock.pinnedApps default browser to Helium");
-            Config.setNestedValue("dock.pinnedApps", ["org.gnome.Nautilus", "helium", "kitty"])
-        }
-
         if (changed)
             Config.setNestedValue("enabledPanels", panels)
     }
