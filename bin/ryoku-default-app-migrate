@@ -1,0 +1,417 @@
+#!/bin/bash
+
+set -euo pipefail
+
+config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
+deferred_exit=75
+kind="${1:-}"
+target_id="${2:-}"
+choice="${3:-${RYOKU_DEFAULT_APP_MIGRATION:-ask}}"
+target_label=""
+target_command=""
+target_desktop=""
+install_command=""
+fresh_install_text=""
+mime_types=()
+fallback_commands=()
+
+usage() {
+  echo "Usage: ryoku-default-app-migrate <kind> <target> [yes|no|ask]" >&2
+}
+
+load_spec() {
+  case "$kind:$target_id" in
+  browser:helium)
+    target_label="Helium"
+    target_command="helium"
+    target_desktop="helium.desktop"
+    install_command="ryoku-install-helium-browser"
+    fresh_install_text="Ryoku fresh installs now use Helium as the browser."
+    mime_types=(
+      x-scheme-handler/http
+      x-scheme-handler/https
+      x-scheme-handler/mailto
+      text/html
+      text/xml
+      application/xhtml+xml
+    )
+    fallback_commands=(chromium firefox)
+    ;;
+  *)
+    usage
+    echo "Unsupported default app migration: $kind $target_id" >&2
+    exit 2
+    ;;
+  esac
+}
+
+old_default_desktop() {
+  local desktop_file="$1"
+
+  case "$kind:$target_id:$desktop_file" in
+  browser:helium:firefox.desktop | browser:helium:chromium.desktop | browser:helium:org.mozilla.firefox.desktop | browser:helium:org.chromium.Chromium.desktop)
+    return 0
+    ;;
+  *)
+    return 1
+    ;;
+  esac
+}
+
+old_default_jq_filter() {
+  case "$kind:$target_id" in
+  browser:helium)
+    cat <<'EOF'
+def old_default:
+  . == "firefox"
+  or . == "chromium"
+  or . == "/usr/bin/firefox"
+  or . == "/usr/bin/chromium"
+  or . == "";
+EOF
+    ;;
+  esac
+}
+
+has_target_app() {
+  command -v "$target_command" >/dev/null 2>&1 || [[ -x $HOME/.local/bin/$target_command ]]
+}
+
+command_for_desktop() {
+  local desktop_file="$1"
+
+  case "$kind:$target_id:$desktop_file" in
+  browser:helium:*chromium*)
+    echo "chromium"
+    ;;
+  browser:helium:*firefox*)
+    echo "firefox"
+    ;;
+  *)
+    echo ""
+    ;;
+  esac
+}
+
+desktop_for_command() {
+  local command_name="$1"
+
+  case "$kind:$command_name" in
+  browser:/usr/bin/chromium | browser:chromium)
+    echo "chromium.desktop"
+    ;;
+  browser:/usr/bin/firefox | browser:firefox)
+    echo "firefox.desktop"
+    ;;
+  *)
+    if [[ $command_name == "$target_command" ]]; then
+      echo "$target_desktop"
+    else
+      echo "$command_name.desktop"
+    fi
+    ;;
+  esac
+}
+
+config_files() {
+  local file
+
+  for file in "$config_home/ryoku-shell/config.json" "$config_home/illogical-impulse/config.json"; do
+    [[ -f $file ]] && echo "$file"
+  done
+}
+
+config_app_command() {
+  local config_file="$1"
+
+  case $kind in
+  browser)
+    jq -r '.apps.browser? // ""' "$config_file" 2>/dev/null || true
+    ;;
+  esac
+}
+
+fallback_command() {
+  local xdg_desktop="$1"
+  local config_file
+  local command_name
+  local fallback
+
+  command_name="$(command_for_desktop "$xdg_desktop")"
+  if [[ -n $command_name ]]; then
+    echo "$command_name"
+    return 0
+  fi
+
+  while IFS= read -r config_file; do
+    command_name="$(config_app_command "$config_file")"
+    case "$kind:$target_id:$command_name" in
+    browser:helium:/usr/bin/chromium)
+      echo "chromium"
+      return 0
+      ;;
+    browser:helium:/usr/bin/firefox)
+      echo "firefox"
+      return 0
+      ;;
+    browser:helium:chromium | browser:helium:firefox)
+      echo "$command_name"
+      return 0
+      ;;
+    esac
+  done < <(config_files)
+
+  for fallback in "${fallback_commands[@]}"; do
+    if command -v "$fallback" >/dev/null 2>&1; then
+      echo "$fallback"
+      return 0
+    fi
+  done
+
+  echo "${fallback_commands[0]}"
+}
+
+set_default_desktop() {
+  local desktop_file="$1"
+  local mime
+
+  if [[ $kind == "browser" ]]; then
+    xdg-settings set default-web-browser "$desktop_file" 2>/dev/null || true
+  fi
+
+  for mime in "${mime_types[@]}"; do
+    xdg-mime default "$desktop_file" "$mime" 2>/dev/null || true
+  done
+}
+
+update_shell_config_to_target() {
+  local config_file="$1"
+  local tmp_file
+  local old_filter
+
+  [[ -f $config_file ]] || return 0
+  ryoku-cmd-present jq || return 0
+
+  old_filter="$(old_default_jq_filter)"
+  tmp_file="$(mktemp)"
+  if jq --arg target "$target_command" "$old_filter"'
+    if ((.apps.browser? // "") | old_default) or ((.apps.browser? // "") == $target) then
+      .apps.browser = $target
+    else
+      .
+    end
+    | if (.dock.pinnedApps? // []) == ["org.gnome.Nautilus", "firefox", "foot"]
+        or (.dock.pinnedApps? // []) == ["org.gnome.Nautilus", "firefox", "kitty"]
+        or (.dock.pinnedApps? // []) == ["org.gnome.Nautilus", "chromium", "kitty"]
+        or ((.dock.pinnedApps? // []) | index($target)) then
+        .dock.pinnedApps = ["org.gnome.Nautilus", $target, "kitty"]
+      else
+        .
+      end
+    | if (.sidebar.widgets.quickLaunch? | type) == "array" then
+        .sidebar.widgets.quickLaunch |= map(
+          if (.name == "Browser" and (((.cmd // "") | old_default) or (.cmd // "") == $target)) then
+            .cmd = $target
+          else
+            .
+          end
+        )
+      else
+        .
+      end
+  ' "$config_file" > "$tmp_file"; then
+    mv "$tmp_file" "$config_file"
+  else
+    rm -f "$tmp_file"
+    return 1
+  fi
+}
+
+restore_missing_target_config() {
+  local config_file="$1"
+  local replacement="$2"
+  local tmp_file
+
+  [[ -f $config_file ]] || return 0
+  ryoku-cmd-present jq || return 0
+
+  tmp_file="$(mktemp)"
+  if jq --arg target "$target_command" --arg replacement "$replacement" '
+    if (.apps.browser? // "") == $target then
+      .apps.browser = $replacement
+    else
+      .
+    end
+    | if ((.dock.pinnedApps? // []) | index($target)) then
+        .dock.pinnedApps |= map(if . == $target then $replacement else . end)
+      else
+        .
+      end
+    | if (.sidebar.widgets.quickLaunch? | type) == "array" then
+        .sidebar.widgets.quickLaunch |= map(
+          if (.name == "Browser" and (.cmd // "") == $target) then
+            .cmd = $replacement
+          else
+            .
+          end
+        )
+      else
+        .
+      end
+  ' "$config_file" > "$tmp_file"; then
+    mv "$tmp_file" "$config_file"
+  else
+    rm -f "$tmp_file"
+    return 1
+  fi
+}
+
+config_needs_offer() {
+  local config_file="$1"
+  local old_filter
+
+  old_filter="$(old_default_jq_filter)"
+  jq -e "$old_filter"'
+    ((.apps.browser? // "") | old_default)
+    or (.dock.pinnedApps? // []) == ["org.gnome.Nautilus", "firefox", "foot"]
+    or (.dock.pinnedApps? // []) == ["org.gnome.Nautilus", "firefox", "kitty"]
+    or (.dock.pinnedApps? // []) == ["org.gnome.Nautilus", "chromium", "kitty"]
+    or (
+      (.sidebar.widgets.quickLaunch? | type) == "array"
+      and any(.sidebar.widgets.quickLaunch[]; .name == "Browser" and ((.cmd // "") | old_default))
+    )
+  ' "$config_file" >/dev/null 2>&1
+}
+
+config_has_missing_target_reference() {
+  local config_file="$1"
+
+  jq -e --arg target "$target_command" '
+    (.apps.browser? // "") == $target
+    or ((.dock.pinnedApps? // []) | index($target))
+    or (
+      (.sidebar.widgets.quickLaunch? | type) == "array"
+      and any(.sidebar.widgets.quickLaunch[]; .name == "Browser" and (.cmd // "") == $target)
+    )
+  ' "$config_file" >/dev/null 2>&1
+}
+
+ask_to_install_target() {
+  case $choice in
+  yes | true | 1)
+    return 0
+    ;;
+  no | false | 0 | skip)
+    return 1
+    ;;
+  ask | "")
+    ;;
+  *)
+    echo "Unknown migration choice: $choice" >&2
+    echo "Use yes, no, or ask." >&2
+    return 1
+    ;;
+  esac
+
+  if [[ -t 0 && -t 1 ]] && ryoku-cmd-present gum; then
+    gum confirm "$fresh_install_text Install $target_label and switch this existing install?"
+    return $?
+  fi
+
+  echo "$fresh_install_text Existing installs are not changed without confirmation."
+  echo "Run one of these to choose:"
+  echo "  ryoku-default-app-migrate $kind $target_id yes"
+  echo "  ryoku-default-app-migrate $kind $target_id no"
+  return "$deferred_exit"
+}
+
+main() {
+  local xdg_desktop
+  local fallback
+  local fallback_desktop
+  local config_file
+  local needs_offer=false
+  local missing_target_reference=false
+  local ask_status=0
+
+  if [[ -z $kind || -z $target_id ]]; then
+    usage
+    return 2
+  fi
+
+  load_spec
+
+  if [[ $kind == "browser" ]]; then
+    xdg_desktop="$(xdg-settings get default-web-browser 2>/dev/null || true)"
+  else
+    xdg_desktop=""
+  fi
+
+  if old_default_desktop "$xdg_desktop"; then
+    needs_offer=true
+  fi
+
+  if [[ $xdg_desktop == "$target_desktop" ]] && ! has_target_app; then
+    missing_target_reference=true
+  fi
+
+  while IFS= read -r config_file; do
+    if config_needs_offer "$config_file"; then
+      needs_offer=true
+    fi
+
+    if ! has_target_app && config_has_missing_target_reference "$config_file"; then
+      missing_target_reference=true
+    fi
+  done < <(config_files)
+
+  if [[ $needs_offer == false && $missing_target_reference == false ]]; then
+    echo "Custom $kind settings detected; leaving settings unchanged."
+    return 0
+  fi
+
+  set +e
+  ask_to_install_target
+  ask_status=$?
+  set -e
+
+  if (( ask_status == deferred_exit )); then
+    if [[ $missing_target_reference == true ]]; then
+      fallback="$(fallback_command "$xdg_desktop")"
+      fallback_desktop="$(desktop_for_command "$fallback")"
+      while IFS= read -r config_file; do
+        restore_missing_target_config "$config_file" "$fallback"
+      done < <(config_files)
+      set_default_desktop "$fallback_desktop"
+      echo "$target_label is not installed yet; restored $kind references to $fallback."
+    fi
+    return "$deferred_exit"
+  fi
+
+  if (( ask_status != 0 )); then
+    fallback="$(fallback_command "$xdg_desktop")"
+    fallback_desktop="$(desktop_for_command "$fallback")"
+    while IFS= read -r config_file; do
+      restore_missing_target_config "$config_file" "$fallback"
+    done < <(config_files)
+    set_default_desktop "$fallback_desktop"
+    echo "Keeping existing $kind settings."
+    return 0
+  fi
+
+  if ! has_target_app; then
+    if ! "$install_command"; then
+      echo "$target_label could not be installed. The migration will be retried later." >&2
+      return "$deferred_exit"
+    fi
+  fi
+
+  set_default_desktop "$target_desktop"
+  while IFS= read -r config_file; do
+    update_shell_config_to_target "$config_file"
+  done < <(config_files)
+
+  echo "$target_label is installed and set as the Ryoku $kind."
+}
+
+main "$@"

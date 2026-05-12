@@ -94,13 +94,18 @@ run_helper() {
   RYOKU_TEST_XDG_SET="$temp_dir/xdg-set" \
   RYOKU_TEST_XDG_MIME="$temp_dir/xdg-mime" \
   RYOKU_TEST_INSTALL_CALLED="$temp_dir/install-called" \
-  "$@" bash bin/ryoku-browser-migrate-helium
+  bash bin/ryoku-default-app-migrate browser helium "$@"
 }
 
-assert_contains migrations/1778617021.sh 'ryoku-browser-migrate-helium' \
-  "Helium migration should delegate browser policy to the migration helper"
+assert_contains migrations/1778617021.sh 'ryoku-default-app-migrate browser helium' \
+  "Helium migration should delegate to the generic default-app migration helper"
 assert_contains migrations/1778620986.sh '1778617021\.sh' \
   "Helium repair migration should wait for the primary browser migration state"
+assert_contains migrations/1778620986.sh 'ryoku-default-app-migrate browser helium' \
+  "Helium repair migration should delegate to the generic default-app migration helper"
+
+[[ ! -e bin/ryoku-browser-migrate-helium ]] \
+  || fail "Default app migration command should not be hardcoded to Helium"
 
 assert_not_contains shell/shell.qml 'Migrating dock\.pinnedApps default browser to Helium' \
   "Shell startup should not point existing pinned apps at Helium before migration/install"
@@ -110,7 +115,7 @@ trap 'rm -rf "$temp_dir"' EXIT
 make_test_bin "$temp_dir/bin"
 
 write_config "$temp_dir/config/ryoku-shell/config.json" "firefox" "firefox" "/usr/bin/firefox"
-RYOKU_HELIUM_BROWSER_MIGRATION=yes run_helper "$temp_dir"
+run_helper "$temp_dir" yes
 
 [[ -f "$temp_dir/install-called" ]] \
   || fail "Opt-in migration should install Helium"
@@ -128,7 +133,7 @@ trap 'rm -rf "$temp_dir" "$temp_dir_optout"' EXIT
 make_test_bin "$temp_dir_optout/bin"
 
 write_config "$temp_dir_optout/config/ryoku-shell/config.json" "helium" "helium" "helium"
-RYOKU_HELIUM_BROWSER_MIGRATION=no run_helper "$temp_dir_optout"
+run_helper "$temp_dir_optout" no
 
 [[ ! -f "$temp_dir_optout/install-called" ]] \
   || fail "Opt-out migration should not install Helium"
