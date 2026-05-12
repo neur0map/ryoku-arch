@@ -837,7 +837,11 @@ Singleton {
             "  git -c filter.lfs.process= -c filter.lfs.required=false -c filter.lfs.smudge= -c filter.lfs.clean= -c gc.auto=0 -C \"$repo\" remote set-url origin \"$remote\"; " +
             "else " +
             "  git -c filter.lfs.process= -c filter.lfs.required=false -c filter.lfs.smudge= -c filter.lfs.clean= -c gc.auto=0 -C \"$repo\" remote add origin \"$remote\"; " +
-            "fi",
+            "fi; " +
+            "while IFS= read -r key; do " +
+            "  [ -n \"$key\" ] || continue; " +
+            "  git -c filter.lfs.process= -c filter.lfs.required=false -c filter.lfs.smudge= -c filter.lfs.clean= -c gc.auto=0 -C \"$repo\" config --unset-all \"$key\" || true; " +
+            "done < <(git -c filter.lfs.process= -c filter.lfs.required=false -c filter.lfs.smudge= -c filter.lfs.clean= -c gc.auto=0 -C \"$repo\" config --name-only --get-regexp 'extraheader' 2>/dev/null || true)",
             "_",
             root.repoPath,
             root.updateRemoteUrl

@@ -20,6 +20,7 @@ assert_sync_excludes_release_artifacts_and_git_metadata() {
   mkdir -p "$source_dir/install" "$source_dir/config" "$source_dir/iso/release" "$source_dir/.git/objects"
   git -C "$source_dir" init >/dev/null
   git -C "$source_dir" remote add origin "git@github.com:private/ryoku-arch.git"
+  git -C "$source_dir" config http.https://github.com/.extraheader "AUTHORIZATION: basic stale-token"
   printf '%s\n' "hello" > "$source_dir/install/example.sh"
   printf '%s\n' "config" > "$source_dir/config/example.conf"
   printf '%s\n' "big-image" > "$source_dir/iso/release/ryoku.iso"
@@ -51,6 +52,11 @@ assert_sync_excludes_release_artifacts_and_git_metadata() {
   [[ $(git -C "$target_dir" remote get-url origin) == "$public_remote" ]] || {
     rm -rf "$temp_dir"
     fail "sync-local-source should normalize copied git origin to the public update remote"
+  }
+
+  [[ -z $(git -C "$target_dir" config --get-regexp 'extraheader' 2>/dev/null || true) ]] || {
+    rm -rf "$temp_dir"
+    fail "sync-local-source should remove stale copied GitHub auth headers"
   }
 
   rm -rf "$temp_dir"

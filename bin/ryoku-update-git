@@ -14,6 +14,15 @@ ryoku_git() {
   GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=/bin/true git -C "$RYOKU_PATH" "$@"
 }
 
+clear_stale_auth_headers() {
+  local key
+
+  while IFS= read -r key; do
+    [[ -n $key ]] || continue
+    ryoku_git config --unset-all "$key" || true
+  done < <(ryoku_git config --name-only --get-regexp 'extraheader' 2>/dev/null || true)
+}
+
 backup_untracked_update_conflicts() {
   local remote_ref="$1"
   local backup_dir="$RYOKU_STATE_PATH/update-backups/$(date +%Y%m%d-%H%M%S)"
@@ -52,6 +61,7 @@ if ryoku_git remote get-url origin >/dev/null 2>&1; then
 else
   ryoku_git remote add origin "$update_remote"
 fi
+clear_stale_auth_headers
 
 ryoku_git fetch --prune origin "+refs/heads/${release_branch}:refs/remotes/origin/${release_branch}"
 
