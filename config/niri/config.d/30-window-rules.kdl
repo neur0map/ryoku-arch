@@ -24,6 +24,15 @@ window-rule {
 
 // ── Per-app fixes ───────────────────────────────────────────────────────────
 
+// Ryoku screensaver: match Omarchy's full-screen terminal screensaver behavior.
+window-rule {
+    match app-id="org.ryoku.screensaver"
+    open-fullscreen true
+    open-focused true
+    geometry-corner-radius 0
+    opacity 1.0
+}
+
 // WezTerm: work around initial configure bug (needs an empty default width).
 window-rule {
     match app-id=r#"^org\.wezfurlong\.wezterm$"#
