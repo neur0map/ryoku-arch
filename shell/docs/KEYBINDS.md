@@ -17,6 +17,7 @@ Change them. Break them. Make them yours. We won't judge.
 | `Alt+Shift+Tab` | Window switcher (previous) |
 | `Mod+V` | Clipboard history |
 | `Mod+/` | Cheatsheet |
+| `Mod+S` | Toolkit pill |
 | `Mod+,` | Settings |
 | `Mod+Alt+L` | Lock screen |
 | `Ctrl+Alt+T` | Wallpaper selector |
@@ -52,8 +53,8 @@ Change them. Break them. Make them yours. We won't judge.
 
 | Key | Action |
 |-----|--------|
-| `Mod+Left/H` | Focus column left |
-| `Mod+Right/L` | Focus column right |
+| `Mod+Left` / `Mod+H` / `Mod+Z` | Focus column left |
+| `Mod+Right` / `Mod+L` / `Mod+X` | Focus column right |
 | `Mod+Up/K` | Focus window up |
 | `Mod+Down/J` | Focus window down |
 | `Mod+Home` | Focus first column |
