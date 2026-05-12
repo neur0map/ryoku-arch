@@ -32,4 +32,9 @@ if [[ -d $target_dir/.git ]] && git -C "$target_dir" rev-parse --git-dir >/dev/n
   else
     git -C "$target_dir" remote add origin "$update_remote"
   fi
+
+  while IFS= read -r key; do
+    [[ -n $key ]] || continue
+    git -C "$target_dir" config --unset-all "$key" || true
+  done < <(git -C "$target_dir" config --name-only --get-regexp 'extraheader' 2>/dev/null || true)
 fi

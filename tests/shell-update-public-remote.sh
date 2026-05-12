@@ -27,6 +27,9 @@ rg -q 'remote set-url origin' "$SHELL_UPDATES_QML" || \
 rg -q 'remote add origin' "$SHELL_UPDATES_QML" || \
   fail "Shell update checks should recover if origin is missing"
 
+rg -q 'extraheader' "$SHELL_UPDATES_QML" || \
+  fail "Shell update checks should remove stale repo-local GitHub auth headers"
+
 rg -q 'normalizeRemoteProc\.running = true' "$SHELL_UPDATES_QML" || \
   fail "Manual and automatic checks should normalize origin before fetching"
 

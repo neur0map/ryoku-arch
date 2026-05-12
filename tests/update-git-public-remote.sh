@@ -40,6 +40,7 @@ git -C "$seed" commit -m "update readme" >/dev/null
 git -C "$seed" push origin HEAD:main >/dev/null 2>&1
 
 git -C "$checkout" remote set-url origin "$temp_dir/stale-or-private-origin.git"
+git -C "$checkout" config http.https://github.com/.extraheader "AUTHORIZATION: basic stale-token"
 
 output=$(
   HOME="$home_dir" \
@@ -52,6 +53,9 @@ output=$(
 
 [[ $(git -C "$checkout" remote get-url origin) == "$remote" ]] || \
   fail "origin should be normalized to the configured update remote"
+
+[[ -z $(git -C "$checkout" config --get-regexp 'extraheader' 2>/dev/null || true) ]] || \
+  fail "stale repo-local GitHub auth headers should be removed"
 
 [[ $(git -C "$checkout" rev-parse HEAD) == "$(git -C "$seed" rev-parse HEAD)" ]] || \
   fail "checkout should fast-forward to the configured update remote"
