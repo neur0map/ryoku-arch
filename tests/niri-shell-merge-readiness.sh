@@ -417,6 +417,7 @@ assert_contains iso/configs/airootfs/root/.automated_script.sh '/var/cache/ryoku
 assert_contains shell/settings.qml 'ExtrasConfig\.qml' "Settings should expose the Extras profiles page"
 assert_contains shell/modules/settings/SettingsOverlay.qml 'ExtrasConfig\.qml' "Settings overlay should expose the Extras profiles page"
 assert_contains shell/modules/settings/ExtrasConfig.qml 'ryoku-install-profile' "Extras should install profiles through the Ryoku profile command"
+assert_contains shell/modules/settings/ExtrasConfig.qml '^import qs$' "Extras should import root singletons before using GlobalStates"
 assert_file install/profiles/gaming/profile
 assert_file install/profiles/gaming/packages
 assert_file install/profiles/gaming/aur.packages

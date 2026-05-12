@@ -160,7 +160,7 @@ LSPCI
 
 chmod 755 "$tmp/bin/pacman" "$tmp/bin/sudo" "$tmp/bin/yay" "$tmp/bin/curl" "$tmp/bin/sha1sum" "$tmp/bin/lspci"
 
-for package in steam steam-devices gamescope mangohud lutris heroic-games-launcher-bin protonup-qt-bin bottles; do
+for package in steam steam-devices gamescope mangohud lutris heroic-games-launcher-bin protonup-qt-bin; do
   assert_not_default_package "$package"
 done
 
@@ -172,9 +172,9 @@ json="$(
 
 [[ $json == *'"id":"gaming"'* ]] || fail "profile list should expose the Gaming profile"
 [[ $json == *'"installed":false'* ]] || fail "Gaming should report not installed before package install"
-[[ $json == *'"packageCount":21'* ]] || fail "Gaming should report the full install package count"
+[[ $json == *'"packageCount":20'* ]] || fail "Gaming should report the full install package count"
 [[ $json == *'"packages":["steam","steam-devices","gamemode"'* ]] || fail "Gaming should expose official package details"
-[[ $json == *'"aurPackages":["heroic-games-launcher-bin","protonup-qt-bin","bottles"]'* ]] || fail "Gaming should expose AUR package details"
+[[ $json == *'"aurPackages":["heroic-games-launcher-bin","protonup-qt-bin"]'* ]] || fail "Gaming should expose AUR package details"
 [[ $json == *'"hardwarePackages":["lib32-vulkan-radeon","lib32-vulkan-intel","lib32-nvidia-utils","lib32-nvidia-580xx-utils"]'* ]] || fail "Gaming should expose hardware add-on package details"
 [[ $json == *'"id":"secpulse-basic"'* ]] || fail "profile list should expose SecPulse Basic"
 [[ $json == *'"id":"secpulse-advanced"'* ]] || fail "profile list should expose SecPulse Advanced"
@@ -194,7 +194,7 @@ grep -Fx steam "$tmp/pacman-requested" >/dev/null || fail "Gaming should install
 grep -Fx gamescope "$tmp/pacman-requested" >/dev/null || fail "Gaming should install Gamescope"
 grep -Fx heroic-games-launcher-bin "$tmp/aur-requested" >/dev/null || fail "Gaming should install Heroic"
 grep -Fx protonup-qt-bin "$tmp/aur-requested" >/dev/null || fail "Gaming should install ProtonUp-Qt"
-grep -Fx bottles "$tmp/aur-requested" >/dev/null || fail "Gaming should install Bottles"
+! grep -Fx bottles "$tmp/aur-requested" >/dev/null || fail "Gaming should not install source-built Bottles by default"
 
 RYOKU_TEST_INSTALLED="$tmp/installed" \
 RYOKU_TEST_PACMAN_REQUESTED="$tmp/pacman-requested" \
