@@ -149,10 +149,10 @@ cp_file(){
   # (e.g. when ~/.config/quickshell/ryoku-shell points into the repo).
   if [[ -e "$dst" ]]; then
     local src_real dst_real
-    src_real="$(realpath -se "$src" 2>/dev/null || echo "$src")"
-    dst_real="$(realpath -se "$dst" 2>/dev/null || echo "$dst")"
+    src_real="$(readlink -f "$src" 2>/dev/null || realpath -e "$src" 2>/dev/null || echo "$src")"
+    dst_real="$(readlink -f "$dst" 2>/dev/null || realpath -e "$dst" 2>/dev/null || echo "$dst")"
 
-    if [[ "$src_real" == "$dst_real" ]]; then
+    if [[ $src_real == $dst_real ]]; then
       echo -e "${STY_BLUE}[$0]: cp_file: '$src' and '$dst' are the same file, skipping copy.${STY_RST}"
     else
       x cp -f "$src" "$dst"
