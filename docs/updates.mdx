@@ -24,7 +24,7 @@ The overlay shows:
 - A note that a snapshot of `~/.local/share/ryoku` is taken before the update so you can roll back.
 
 Buttons:
-- **Update Now** — runs the full pipeline (pacman → AUR → migrations → shell sync). Streams progress in a terminal so you see what it does.
+- **Update Now** — runs the full pipeline (pacman → AUR → shell sync → migrations). Streams progress in a terminal so you see what it does.
 - **Refresh** (circular arrow) — re-runs `git fetch origin` and reloads the incoming commit list without leaving the dialog. Use this if the overlay's been open a while.
 - **Dismiss** — hides the indicator until the next new commit. Doesn't update.
 
