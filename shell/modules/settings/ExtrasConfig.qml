@@ -43,6 +43,10 @@ ContentPage {
         return Qt.rgba(color.r, color.g, color.b, alpha)
     }
 
+    function arrayCount(values) {
+        return values ? values.length : 0
+    }
+
     function refreshProfiles() {
         if (listProc.running) return
         listProc.output = ""
@@ -266,6 +270,26 @@ ContentPage {
                     }
                 }
 
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 10
+
+                    PackageList {
+                        title: Translation.tr("Official packages")
+                        packages: profile.packages || []
+                    }
+
+                    PackageList {
+                        title: Translation.tr("AUR packages")
+                        packages: profile.aurPackages || []
+                    }
+
+                    PackageList {
+                        title: Translation.tr("Hardware add-ons")
+                        packages: profile.hardwarePackages || []
+                    }
+                }
+
                 RowLayout {
                     visible: cardRoot.busy
                     Layout.fillWidth: true
@@ -308,7 +332,14 @@ ContentPage {
                     }
 
                     StyledText {
-                        visible: profile.missingCount > 0
+                        visible: profile.packageCount > 0
+                        text: Translation.tr("%1 packages").arg(profile.packageCount)
+                        color: Appearance.colors.colSubtext
+                        font.pixelSize: 12
+                    }
+
+                    StyledText {
+                        visible: profile.missingCount > 0 && profile.missingCount !== profile.packageCount
                         text: Translation.tr("%1 missing").arg(profile.missingCount)
                         color: Appearance.colors.colSubtext
                         font.pixelSize: 12
@@ -328,6 +359,51 @@ ContentPage {
                         materialIcon: profile.installed === true ? "settings_backup_restore" : "download"
                         mainText: profile.installed === true ? Translation.tr("Re-run") : Translation.tr("Install")
                         onClicked: cardRoot.installProfile()
+                    }
+                }
+            }
+        }
+    }
+
+    component PackageList: ColumnLayout {
+        id: listRoot
+        property string title: ""
+        property var packages: []
+
+        visible: root.arrayCount(packages) > 0
+        Layout.fillWidth: true
+        spacing: 6
+
+        StyledText {
+            Layout.fillWidth: true
+            text: listRoot.title + " (" + root.arrayCount(listRoot.packages) + ")"
+            color: Appearance.colors.colSubtext
+            font.pixelSize: 12
+            font.bold: true
+        }
+
+        Flow {
+            Layout.fillWidth: true
+            spacing: 6
+
+            Repeater {
+                model: listRoot.packages
+
+                Rectangle {
+                    radius: Appearance.rounding.small
+                    color: Appearance.colors.colLayer2
+                    border.width: 1
+                    border.color: Appearance.colors.colLayer0Border
+                    implicitWidth: packageText.implicitWidth + 12
+                    implicitHeight: packageText.implicitHeight + 6
+
+                    StyledText {
+                        id: packageText
+                        anchors.centerIn: parent
+                        text: modelData
+                        color: Appearance.colors.colOnLayer1
+                        font.family: "JetBrainsMono Nerd Font Mono"
+                        font.pixelSize: 11
                     }
                 }
             }
