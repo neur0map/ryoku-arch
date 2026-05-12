@@ -285,6 +285,11 @@ ContentPage {
                     }
 
                     PackageList {
+                        title: Translation.tr("BlackArch packages")
+                        packages: profile.blackarchPackages || []
+                    }
+
+                    PackageList {
                         title: Translation.tr("Hardware add-ons")
                         packages: profile.hardwarePackages || []
                     }

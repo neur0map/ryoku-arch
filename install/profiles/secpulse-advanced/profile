@@ -1,0 +1,7 @@
+PROFILE_NAME="SecPulse Advanced"
+PROFILE_ICON="encrypted"
+PROFILE_DESCRIPTION="SecPulse Basic plus Tor navigation, internal network tooling, wireless/MITM, and reverse engineering."
+PROFILE_TAGS="Basic+|Tor|AD|Wireless|Reversing"
+PROFILE_ORDER=30
+PROFILE_REQUIRES_NETWORK=1
+PROFILE_REBOOT_RECOMMENDED=0

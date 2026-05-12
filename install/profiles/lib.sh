@@ -5,8 +5,12 @@ ryoku_profile_ids() {
 
   for dir in "$RYOKU_PROFILES_DIR"/*; do
     [[ -d $dir && -f $dir/profile ]] || continue
-    basename "$dir"
-  done | sort
+    (
+      PROFILE_ORDER=50
+      source "$dir/profile"
+      printf '%03d\t%s\n' "$PROFILE_ORDER" "$(basename "$dir")"
+    )
+  done | sort -n -k1,1 -k2,2 | cut -f2
 }
 
 ryoku_profile_load() {
@@ -25,6 +29,7 @@ ryoku_profile_load() {
   PROFILE_ICON="extension"
   PROFILE_DESCRIPTION=""
   PROFILE_TAGS=""
+  PROFILE_ORDER=50
   PROFILE_REQUIRES_NETWORK=1
   PROFILE_REBOOT_RECOMMENDED=0
 
@@ -45,6 +50,7 @@ ryoku_profile_packages() {
 
   ryoku_profile_manifest "$profile_id" packages
   ryoku_profile_manifest "$profile_id" aur.packages
+  ryoku_profile_manifest "$profile_id" blackarch.packages
 }
 
 ryoku_profile_pacman_missing() {
@@ -179,6 +185,66 @@ ryoku_profile_install_aur() {
   fi
 }
 
+ryoku_profile_blackarch_available() {
+  pacman -Sl blackarch >/dev/null 2>&1
+}
+
+ryoku_profile_bootstrap_blackarch() {
+  local strap_dir
+  local strap_file
+  local strap_sha1="${RYOKU_BLACKARCH_STRAP_SHA1:-00688950aaf5e5804d2abebb8d3d3ea1d28525ed}"
+
+  ryoku_profile_blackarch_available && return 0
+
+  strap_dir="$(mktemp -d)"
+  strap_file="$strap_dir/strap.sh"
+
+  curl -fsSL https://blackarch.org/strap.sh -o "$strap_file" || {
+    rm -rf "$strap_dir"
+    return 1
+  }
+  printf '%s  %s\n' "$strap_sha1" "$strap_file" | sha1sum -c - >/dev/null || {
+    rm -rf "$strap_dir"
+    return 1
+  }
+  chmod 755 "$strap_file"
+
+  if (( EUID == 0 )); then
+    "$strap_file" || {
+      rm -rf "$strap_dir"
+      return 1
+    }
+    pacman -Sy --noconfirm || {
+      rm -rf "$strap_dir"
+      return 1
+    }
+  else
+    sudo "$strap_file" || {
+      rm -rf "$strap_dir"
+      return 1
+    }
+    sudo pacman -Sy --noconfirm || {
+      rm -rf "$strap_dir"
+      return 1
+    }
+  fi
+
+  rm -rf "$strap_dir"
+  ryoku_profile_blackarch_available
+}
+
+ryoku_profile_install_blackarch() {
+  local missing=()
+
+  (( $# > 0 )) || return 0
+
+  mapfile -t missing < <(ryoku_profile_pacman_missing "$@")
+  (( ${#missing[@]} > 0 )) || return 0
+
+  ryoku_profile_bootstrap_blackarch || return 1
+  ryoku_profile_install_pacman "${missing[@]}"
+}
+
 ryoku_profile_state_file_for_read() {
   local profile_id="$1"
   local user_state="${XDG_STATE_HOME:-$HOME/.local/state}/ryoku/profiles/$profile_id.state"
@@ -271,6 +337,7 @@ ryoku_profile_status_json() {
   local reboot_recommended=false
   local official_packages=()
   local aur_packages=()
+  local blackarch_packages=()
   local hardware_packages=()
   local missing=()
   local tags=()
@@ -280,10 +347,11 @@ ryoku_profile_status_json() {
 
   mapfile -t official_packages < <(ryoku_profile_manifest "$profile_id" packages)
   mapfile -t aur_packages < <(ryoku_profile_manifest "$profile_id" aur.packages)
+  mapfile -t blackarch_packages < <(ryoku_profile_manifest "$profile_id" blackarch.packages)
   mapfile -t hardware_packages < <(ryoku_profile_manifest "$profile_id" hardware.packages)
-  package_count=$(( ${#official_packages[@]} + ${#aur_packages[@]} ))
+  package_count=$(( ${#official_packages[@]} + ${#aur_packages[@]} + ${#blackarch_packages[@]} ))
 
-  mapfile -t missing < <(ryoku_profile_pacman_missing "${official_packages[@]}" "${aur_packages[@]}")
+  mapfile -t missing < <(ryoku_profile_pacman_missing "${official_packages[@]}" "${aur_packages[@]}" "${blackarch_packages[@]}")
 
   if (( ${#missing[@]} == 0 )); then
     state="installed"
@@ -309,6 +377,7 @@ ryoku_profile_status_json() {
   printf '"tags":'; ryoku_profile_json_array "${tags[@]}"; printf ','
   printf '"packages":'; ryoku_profile_json_array "${official_packages[@]}"; printf ','
   printf '"aurPackages":'; ryoku_profile_json_array "${aur_packages[@]}"; printf ','
+  printf '"blackarchPackages":'; ryoku_profile_json_array "${blackarch_packages[@]}"; printf ','
   printf '"hardwarePackages":'; ryoku_profile_json_array "${hardware_packages[@]}"; printf ','
   printf '"packageCount":%d,' "$package_count"
   printf '"state":'; ryoku_profile_json_string "$state"; printf ','
