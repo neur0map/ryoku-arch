@@ -347,6 +347,9 @@ done
 assert_executable bin/ryoku-restart-ui
 assert_executable bin/ryoku-restart-shell
 assert_executable bin/ryoku-session-recover
+assert_executable bin/ryoku-cmd-profile-list
+assert_executable bin/ryoku-cmd-profile-status
+assert_executable bin/ryoku-install-profile
 assert_executable bin/ryoku-shell-cleanup-orphans
 assert_executable bin/ryoku-refresh-limine
 assert_executable bin/ryoku-ipc
@@ -362,6 +365,10 @@ assert_executable default/systemd/system-sleep/ryoku-session-recover
 bash -n bin/ryoku-restart-ui
 bash -n bin/ryoku-restart-shell
 bash -n bin/ryoku-session-recover
+bash -n bin/ryoku-cmd-profile-list
+bash -n bin/ryoku-cmd-profile-status
+bash -n bin/ryoku-install-profile
+bash -n install/profiles/lib.sh
 bash -n bin/ryoku-shell-cleanup-orphans
 bash -n bin/ryoku-refresh-limine
 bash -n bin/ryoku-ipc
@@ -393,6 +400,12 @@ assert_contains iso/builder/build-iso.sh 'RYOKU_INSTALLER_REPO|github\.com/neur0
 assert_contains iso/builder/build-iso.sh 'sdata/uv/requirements\.txt|UV_CACHE_DIR' "ISO builder should prefetch Ryoku Python wheels for offline setup"
 assert_contains iso/builder/build-iso.sh 'root/ryoku/shell' "ISO builder should use the Ryoku shell tree in the live environment"
 assert_contains iso/configs/airootfs/root/.automated_script.sh '/var/cache/ryoku/uv' "ISO installer should bind the bundled uv cache into the installed system"
+assert_contains shell/settings.qml 'ExtrasConfig\.qml' "Settings should expose the Extras profiles page"
+assert_contains shell/modules/settings/SettingsOverlay.qml 'ExtrasConfig\.qml' "Settings overlay should expose the Extras profiles page"
+assert_contains shell/modules/settings/ExtrasConfig.qml 'ryoku-install-profile' "Extras should install profiles through the Ryoku profile command"
+assert_file install/profiles/gaming/profile
+assert_file install/profiles/gaming/packages
+assert_file install/profiles/gaming/aur.packages
 assert_not_contains iso/configs/airootfs/root/.automated_script.sh '/root/inir' "ISO installer should not copy legacy shell source paths"
 assert_contains bin/ryoku-restart-ui 'ryoku-restart-shell|ryoku-shell\.service' "ryoku-restart-ui should restart Ryoku shell"
 assert_not_contains bin/ryoku-restart-ui 'hyprctl reload|restart_always "mako"|swayosd-server|restart_if_running "waybar"|restart_if_running "hypridle"' "ryoku-restart-ui should not restart old Hyprland-era UI services"

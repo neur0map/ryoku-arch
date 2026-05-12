@@ -1,0 +1,66 @@
+#!/bin/bash
+
+set -uo pipefail
+
+RYOKU_PATH="${RYOKU_PATH:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)}"
+RYOKU_PROFILES_DIR="${RYOKU_PROFILES_DIR:-$RYOKU_PATH/install/profiles}"
+
+source "$RYOKU_PROFILES_DIR/lib.sh"
+
+usage() {
+  echo "Usage: ryoku-install-profile <profile>" >&2
+}
+
+run_profile_install() {
+  local profile_id="$1"
+  local setup_file
+  local official_packages=()
+  local aur_packages=()
+  local missing_after=()
+
+  ryoku_profile_load "$profile_id" || {
+    echo "Unknown profile: $profile_id" >&2
+    return 2
+  }
+
+  mapfile -t official_packages < <(ryoku_profile_manifest "$profile_id" packages)
+  mapfile -t aur_packages < <(ryoku_profile_manifest "$profile_id" aur.packages)
+
+  ryoku_profile_write_state "$profile_id" "installing" 0
+
+  ryoku_profile_install_pacman "${official_packages[@]}" || return 1
+  ryoku_profile_install_aur "${aur_packages[@]}" || return 1
+
+  setup_file="$RYOKU_PROFILE_DIR/setup.sh"
+  if [[ -f $setup_file ]]; then
+    source "$setup_file"
+    if declare -F ryoku_profile_setup >/dev/null 2>&1; then
+      ryoku_profile_setup || return 1
+    fi
+  fi
+
+  mapfile -t missing_after < <(ryoku_profile_pacman_missing $(ryoku_profile_packages "$profile_id"))
+  if (( ${#missing_after[@]} > 0 )); then
+    printf 'Error: profile packages did not install: %s\n' "${missing_after[*]}" >&2
+    return 1
+  fi
+
+  ryoku_profile_write_state "$profile_id" "installed" 0
+}
+
+if (( $# != 1 )); then
+  usage
+  exit 2
+fi
+
+profile_id="$1"
+
+run_profile_install "$profile_id"
+status=$?
+
+if (( status != 0 )); then
+  ryoku_profile_write_state "$profile_id" "failed" "$status" 2>/dev/null || true
+  exit "$status"
+fi
+
+exit 0
