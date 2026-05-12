@@ -97,7 +97,7 @@ fi
 
 XDG_CONFIG_HOME="$tmp_dir/xdg-config"
 XDG_STATE_HOME="$tmp_dir/xdg-state"
-runtime_target="$tmp_dir/runtime"
+runtime_target="$tmp_dir/.config/quickshell/ryoku-shell"
 mkdir -p \
   "$REPO_ROOT/sdata" \
   "$runtime_target/docs/javascripts" \

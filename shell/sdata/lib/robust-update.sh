@@ -113,7 +113,6 @@ get_orphan_files() {
         # preserved files.
         find "$target_dir" -type f \
             \( -name "*.qml" -o -name "*.js" -o -name "*.py" -o -name "*.sh" -o -name "*.fish" \) \
-            ! -path '*/.*' \
             -printf "%P\n" 2>/dev/null
 
         if [[ -f "$runtime_root_manifest" ]]; then
