@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Remove optional preinstalled Ryoku applications outside the compact keep set.
-# Keeps Docker, YouTube, GitHub, Discord, lazydocker, Obsidian, and OBS Studio.
-
 webapps=(
   "HEY"
   "Basecamp"
@@ -28,13 +25,10 @@ packages=(
   libreoffice-fresh
   1password-beta
   1password-cli
-  gradia
   xournalpp
   signal-desktop
   pinta
   kdenlive
-  trayscale
-  localsend
   bluetui
   impala
   wiremix

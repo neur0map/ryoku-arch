@@ -5,6 +5,11 @@ sudo ufw default allow outgoing
 # Allow Docker containers to use DNS on host
 sudo ufw allow in proto udp from 172.16.0.0/12 to 172.17.0.1 port 53 comment 'allow-docker-dns'
 
+for subnet in 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16; do
+  sudo ufw allow in proto tcp from "$subnet" to any port 53317 comment 'LocalSend LAN'
+  sudo ufw allow in proto udp from "$subnet" to any port 53317 comment 'LocalSend LAN'
+done
+
 # Turn on the firewall
 sudo ufw --force enable
 
