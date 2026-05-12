@@ -6,6 +6,7 @@ ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 SETUP="$ROOT_DIR/shell/setup"
 SHELL_UPDATES_QML="$ROOT_DIR/shell/services/ShellUpdates.qml"
 FUNCTIONS_SH="$ROOT_DIR/shell/sdata/lib/functions.sh"
+ROBUST_UPDATE_SH="$ROOT_DIR/shell/sdata/lib/robust-update.sh"
 
 fail() {
   echo "FAIL: $1" >&2
@@ -31,6 +32,7 @@ extract_cp_file_function() {
 [[ -f $SETUP ]] || fail "missing shell/setup"
 [[ -f $SHELL_UPDATES_QML ]] || fail "missing ShellUpdates.qml"
 [[ -f $FUNCTIONS_SH ]] || fail "missing functions.sh"
+[[ -f $ROBUST_UPDATE_SH ]] || fail "missing robust-update.sh"
 
 rg -q 'sync_launcher_from_repo' "$SETUP" || \
   fail "setup should install or refresh the ryoku-shell launcher"
@@ -92,5 +94,30 @@ fi
 
 [[ ! -s $tmp_dir/cp-file.err ]] || \
   fail "shared file copy helper should not emit cp same-file errors"
+
+XDG_CONFIG_HOME="$tmp_dir/xdg-config"
+XDG_STATE_HOME="$tmp_dir/xdg-state"
+runtime_target="$tmp_dir/runtime"
+mkdir -p \
+  "$REPO_ROOT/sdata" \
+  "$runtime_target/docs/javascripts" \
+  "$runtime_target/distro/arch/inir-shell-git"
+
+printf '%s\n' '# ryoku-manifest v2' 'shell.qml:' > "$runtime_target/.ryoku-manifest"
+touch \
+  "$runtime_target/shell.qml" \
+  "$runtime_target/docs/javascripts/mathjax.js" \
+  "$runtime_target/distro/arch/inir-shell-git/publish-aur.sh"
+
+log_info() { :; }
+source "$ROBUST_UPDATE_SH"
+
+cleanup_orphans "$runtime_target" "$runtime_target/.ryoku-manifest"
+
+[[ ! -e $runtime_target/docs/javascripts/mathjax.js ]] || \
+  fail "orphan cleanup should remove tracked files outside current payload directories"
+
+[[ ! -e $runtime_target/distro/arch/inir-shell-git/publish-aur.sh ]] || \
+  fail "orphan cleanup should remove stale full-repo runtime files"
 
 echo "PASS: shell update runtime manifest stays authoritative"
