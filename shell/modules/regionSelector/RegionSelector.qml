@@ -23,6 +23,7 @@ Scope {
 
     property var action: RegionSelection.SnipAction.Copy
     property var selectionMode: RegionSelection.SelectionMode.RectCorners
+    property bool googleLens: false
     
     Variants {
         model: Quickshell.screens
@@ -36,6 +37,7 @@ Scope {
                 onDismiss: root.dismiss()
                 action: root.action
                 selectionMode: root.selectionMode
+                googleLens: root.googleLens
             }
         }
     }
@@ -43,11 +45,13 @@ Scope {
     function screenshot() {
         root.action = RegionSelection.SnipAction.Copy
         root.selectionMode = RegionSelection.SelectionMode.RectCorners
+        root.googleLens = false
         GlobalStates.regionSelectorOpen = true
     }
 
     function search() {
         root.action = RegionSelection.SnipAction.Search
+        root.googleLens = false
         if (Config.options?.search?.imageSearch?.useCircleSelection ?? false) {
             root.selectionMode = RegionSelection.SelectionMode.Circle
         } else {
@@ -59,18 +63,21 @@ Scope {
     function ocr() {
         root.action = RegionSelection.SnipAction.CharRecognition
         root.selectionMode = RegionSelection.SelectionMode.RectCorners
+        root.googleLens = false
         GlobalStates.regionSelectorOpen = true
     }
 
     function record() {
         root.action = RegionSelection.SnipAction.Record
         root.selectionMode = RegionSelection.SelectionMode.RectCorners
+        root.googleLens = false
         GlobalStates.regionSelectorOpen = true
     }
 
     function recordWithSound() {
         root.action = RegionSelection.SnipAction.RecordWithSound
         root.selectionMode = RegionSelection.SelectionMode.RectCorners
+        root.googleLens = false
         GlobalStates.regionSelectorOpen = true
     }
 
@@ -84,7 +91,14 @@ Scope {
             root.search()
         }
         function googleLens(): void {
-            root.search()
+            root.action = RegionSelection.SnipAction.Search
+            root.googleLens = true
+            if (Config.options?.search?.imageSearch?.useCircleSelection ?? false) {
+                root.selectionMode = RegionSelection.SelectionMode.Circle
+            } else {
+                root.selectionMode = RegionSelection.SelectionMode.RectCorners
+            }
+            GlobalStates.regionSelectorOpen = true
         }
         function ocr(): void {
             root.ocr()

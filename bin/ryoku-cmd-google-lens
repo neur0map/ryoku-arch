@@ -87,4 +87,4 @@ if [[ -z $remote_url ]]; then
 fi
 
 encoded_url="$(jq -nr --arg url "$remote_url" '$url|@uri')"
-xdg-open "https://lens.google.com/uploadbyurl?url=$encoded_url" >/dev/null 2>&1
+xdg-open "https://www.google.com/searchbyimage?image_url=$encoded_url" >/dev/null 2>&1
