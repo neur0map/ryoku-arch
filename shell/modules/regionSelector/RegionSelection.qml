@@ -38,11 +38,16 @@ PanelWindow {
     property string fileUploadApiEndpoint: Config.options?.search?.imageSearch?.fileUploadApiEndpoint ?? "https://0x0.st"
     property string fileUploadApiFallback: Config.options?.search?.imageSearch?.fileUploadApiFallback ?? "https://litterbox.catbox.moe/resources/internals/api.php"
     property string fileUploadApiFallback2: Config.options?.search?.imageSearch?.fileUploadApiFallback2 ?? "https://catbox.moe/user/api.php"
+    property bool googleLens: false
+    readonly property string googleLensSearchEngineBaseUrl: "https://www.google.com/searchbyimage?image_url="
     readonly property string effectiveImageSearchEngineBaseUrl: {
         const configured = imageSearchEngineBaseUrl ?? ""
-        if (configured === ""
+        if (root.googleLens
                 || configured === "https://lens.google.com/uploadbyurl?url="
                 || configured === "https://www.google.com/searchbyimage?image_url=") {
+            return root.googleLensSearchEngineBaseUrl
+        }
+        if (configured === "") {
             return "https://yandex.com/images/search?rpt=imageview&url="
         }
         return configured
@@ -352,8 +357,8 @@ PanelWindow {
         const uploadAndGetUrl = (filePath) => {
             const escaped = StringUtils.shellSingleQuoteEscape(filePath)
             const primary = `/usr/bin/curl -sf --max-time 10 -F file=@'${escaped}' ${root.fileUploadApiEndpoint}`
-            const fallback1 = `/usr/bin/curl -s --max-time 15 -F reqtype=fileupload -F time=1h -F "fileToUpload=@'${escaped}'" ${root.fileUploadApiFallback}`
-            const fallback2 = `/usr/bin/curl -s --max-time 15 -F reqtype=fileupload -F "fileToUpload=@'${escaped}'" ${root.fileUploadApiFallback2}`
+            const fallback1 = `/usr/bin/curl -s --max-time 15 -F reqtype=fileupload -F time=1h -F fileToUpload=@'${escaped}' ${root.fileUploadApiFallback}`
+            const fallback2 = `/usr/bin/curl -s --max-time 15 -F reqtype=fileupload -F fileToUpload=@'${escaped}' ${root.fileUploadApiFallback2}`
             // Try primary, then fallback1, then fallback2 if all fail or return empty/non-URL response
             return `url=$(${primary} 2>/dev/null); if [[ -z "$url" || "$url" != http* ]]; then url=$(${fallback1}); fi; if [[ -z "$url" || "$url" != http* ]]; then url=$(${fallback2}); fi; echo "$url"`
         }

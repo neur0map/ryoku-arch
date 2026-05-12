@@ -41,7 +41,7 @@ Singleton {
             icon: "search",
             label: "Google Lens",
             kind: "action",
-            action: () => Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "region", "search"])
+            action: () => Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "region", "googleLens"])
         },
         colorPicker: {
             icon: "colorize",
