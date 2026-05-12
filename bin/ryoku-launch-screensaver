@@ -2,6 +2,11 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
+config_path_helper="$RYOKU_PATH/shell/scripts/lib/config-path.sh"
+if [[ -f $config_path_helper ]]; then
+  source "$config_path_helper"
+fi
+
 # Launch the Ryoku screensaver in the default terminal on the system with the correct font configuration.
 
 # Exit early if we don't have the tte show
@@ -17,8 +22,46 @@ if ryoku-toggle-enabled screensaver-off && [[ ${1:-} != "force" ]]; then
   exit 1
 fi
 
-terminal=$(xdg-terminal-exec --print-id)
 screensaver_command="$RYOKU_PATH/bin/ryoku-cmd-screensaver"
+
+configured_terminal_command() {
+  local config_file
+
+  if declare -F ryoku_shell_config_file >/dev/null; then
+    config_file="$(ryoku_shell_config_file)"
+  else
+    config_file="${XDG_CONFIG_HOME:-$HOME/.config}/ryoku-shell/config.json"
+  fi
+
+  [[ -f $config_file ]] || return 1
+  ryoku-cmd-present jq || return 1
+
+  jq -r '.apps.terminal // empty' "$config_file" 2>/dev/null
+}
+
+terminal_id_from_command() {
+  local configured_command="$1"
+  local terminal_bin
+
+  read -r terminal_bin _ <<< "$configured_command"
+
+  case "$(basename "$terminal_bin")" in
+  alacritty)
+    printf '%s\n' "Alacritty.desktop"
+  ;;
+  ghostty)
+    printf '%s\n' "com.mitchellh.ghostty.desktop"
+  ;;
+  kitty)
+    printf '%s\n' "kitty.desktop"
+  ;;
+  *)
+    return 1
+  ;;
+  esac
+}
+
+terminal="$(terminal_id_from_command "$(configured_terminal_command)" || xdg-terminal-exec --print-id)"
 
 build_command() {
   case $terminal in
