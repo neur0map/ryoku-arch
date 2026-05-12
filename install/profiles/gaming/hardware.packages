@@ -1,0 +1,4 @@
+lib32-vulkan-radeon
+lib32-vulkan-intel
+lib32-nvidia-utils
+lib32-nvidia-580xx-utils

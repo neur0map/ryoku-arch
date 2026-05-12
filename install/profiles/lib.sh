@@ -269,12 +269,21 @@ ryoku_profile_status_json() {
   local installed=false
   local requires_network=false
   local reboot_recommended=false
+  local official_packages=()
+  local aur_packages=()
+  local hardware_packages=()
   local missing=()
   local tags=()
+  local package_count
 
   ryoku_profile_load "$profile_id" || return 1
 
-  mapfile -t missing < <(ryoku_profile_pacman_missing $(ryoku_profile_packages "$profile_id"))
+  mapfile -t official_packages < <(ryoku_profile_manifest "$profile_id" packages)
+  mapfile -t aur_packages < <(ryoku_profile_manifest "$profile_id" aur.packages)
+  mapfile -t hardware_packages < <(ryoku_profile_manifest "$profile_id" hardware.packages)
+  package_count=$(( ${#official_packages[@]} + ${#aur_packages[@]} ))
+
+  mapfile -t missing < <(ryoku_profile_pacman_missing "${official_packages[@]}" "${aur_packages[@]}")
 
   if (( ${#missing[@]} == 0 )); then
     state="installed"
@@ -298,6 +307,10 @@ ryoku_profile_status_json() {
   printf '"icon":'; ryoku_profile_json_string "${PROFILE_ICON:-extension}"; printf ','
   printf '"description":'; ryoku_profile_json_string "${PROFILE_DESCRIPTION:-}"; printf ','
   printf '"tags":'; ryoku_profile_json_array "${tags[@]}"; printf ','
+  printf '"packages":'; ryoku_profile_json_array "${official_packages[@]}"; printf ','
+  printf '"aurPackages":'; ryoku_profile_json_array "${aur_packages[@]}"; printf ','
+  printf '"hardwarePackages":'; ryoku_profile_json_array "${hardware_packages[@]}"; printf ','
+  printf '"packageCount":%d,' "$package_count"
   printf '"state":'; ryoku_profile_json_string "$state"; printf ','
   printf '"installed":%s,' "$installed"
   printf '"requiresNetwork":%s,' "$requires_network"

@@ -119,6 +119,10 @@ json="$(
 
 [[ $json == *'"id":"gaming"'* ]] || fail "profile list should expose the Gaming profile"
 [[ $json == *'"installed":false'* ]] || fail "Gaming should report not installed before package install"
+[[ $json == *'"packageCount":21'* ]] || fail "Gaming should report the full install package count"
+[[ $json == *'"packages":["steam","steam-devices","gamemode"'* ]] || fail "Gaming should expose official package details"
+[[ $json == *'"aurPackages":["heroic-games-launcher-bin","protonup-qt-bin","bottles"]'* ]] || fail "Gaming should expose AUR package details"
+[[ $json == *'"hardwarePackages":["lib32-vulkan-radeon","lib32-vulkan-intel","lib32-nvidia-utils","lib32-nvidia-580xx-utils"]'* ]] || fail "Gaming should expose hardware add-on package details"
 
 RYOKU_TEST_INSTALLED="$tmp/installed" \
 RYOKU_TEST_PACMAN_REQUESTED="$tmp/pacman-requested" \
