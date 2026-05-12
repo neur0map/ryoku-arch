@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Ryoku setup - installer and maintenance entrypoint
 # Commands: install, update, status, migrate, doctor, rollback, my-changes, uninstall (or TUI if no args)
 
@@ -189,14 +189,24 @@ _check_privilege_prereqs() {
 }
 
 sync_launcher_from_repo() {
+    local launcher_src="${REPO_ROOT}/scripts/ryoku-shell"
     local launcher_target="${XDG_BIN_HOME}/ryoku-shell"
-    if [[ -f "${REPO_ROOT}/scripts/ryoku-shell" ]]; then
-        mkdir -p "$XDG_BIN_HOME"
-        cp -f "${REPO_ROOT}/scripts/ryoku-shell" "$launcher_target"
-        chmod +x "$launcher_target"
-        ensure_launcher_path_in_shells "$XDG_BIN_HOME"
-        printf '%s\n' "$launcher_target"
+    local launcher_src_real launcher_target_real
+
+    [[ -f $launcher_src ]] || return 1
+
+    mkdir -p "$XDG_BIN_HOME"
+
+    launcher_src_real="$(realpath -se "$launcher_src" 2>/dev/null || printf '%s' "$launcher_src")"
+    launcher_target_real="$(realpath -se "$launcher_target" 2>/dev/null || printf '%s' "$launcher_target")"
+
+    if [[ ! -e $launcher_target || $launcher_src_real != $launcher_target_real ]]; then
+        cp -f "$launcher_src" "$launcher_target"
     fi
+
+    chmod +x "$launcher_target"
+    ensure_launcher_path_in_shells "$XDG_BIN_HOME"
+    printf '%s\n' "$launcher_target"
 }
 
 sync_user_ryoku-shell.service_from_repo_if_present() {
@@ -2158,22 +2168,18 @@ run_update() {
         fi
     fi
 
-    # Generate manifest
-    generate_manifest "$II_SOURCE" "${II_TARGET}/.ryoku-shell-manifest"
+    # Generate the runtime manifest read by the shell update UI.
+    generate_manifest "$II_SOURCE" "${II_TARGET}/.ryoku-manifest"
 
     # Remove orphan files left from previous versions
-    cleanup_orphans "$II_TARGET" "${II_TARGET}/.ryoku-shell-manifest"
+    cleanup_orphans "$II_TARGET" "${II_TARGET}/.ryoku-manifest"
 
     # Fix permissions
     find "$II_TARGET/scripts" \( -name "*.sh" -o -name "*.fish" -o -name "*.py" \) -exec chmod +x {} \; 2>/dev/null || true
     [[ -f "${II_TARGET}/setup" ]] && chmod +x "${II_TARGET}/setup"
 
     local launcher_target="${XDG_BIN_HOME}/ryoku-shell"
-    if [[ -f "${REPO_ROOT}/scripts/ryoku-shell" ]]; then
-        mkdir -p "$XDG_BIN_HOME"
-        cp -f "${REPO_ROOT}/scripts/ryoku-shell" "$launcher_target"
-        chmod +x "$launcher_target"
-        ensure_launcher_path_in_shells "$XDG_BIN_HOME"
+    if sync_launcher_from_repo >/dev/null; then
         if ! command -v ryoku-shell &>/dev/null && [[ ":$PATH:" != *":${XDG_BIN_HOME}:"* ]]; then
             tui_warn "Launcher installed to ${launcher_target}, but ${XDG_BIN_HOME} is not in PATH for this shell"
         fi

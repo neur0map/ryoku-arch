@@ -1116,6 +1116,11 @@ Singleton {
             // content. Skip entries without a checksum AND no resolvable git
             // path: piping an empty `git show` into sha256sum yields a stable
             // non-empty hash, which would falsely flag every such file.
+            // V2 manifest entries with a blank checksum are intentionally
+            // untracked for local modification detection; only legacy manifests
+            // need the source-comparison fallback.
+            "manifest_v2='false'; " +
+            "head -1 \"$manifest\" | grep -qE '(ii|inir|ryoku)-manifest v2' && manifest_v2='true'; " +
             "git_prefix=''; " +
             "if [[ -d \"$repo/.git\" && -f \"$repo/shell/setup\" ]]; then git_prefix='shell/'; fi; " +
             "while IFS=: read -r path checksum; do " +
@@ -1125,7 +1130,7 @@ Singleton {
             "  if [[ -n \"$checksum\" ]]; then " +
             "    current=$(sha256sum \"$target/$path\" 2>/dev/null | cut -d' ' -f1); " +
             "    [[ \"$current\" != \"$checksum\" ]] && echo \"$path\"; " +
-            "  elif [[ -d \"$repo/.git\" ]]; then " +
+            "  elif [[ \"$manifest_v2\" != \"true\" && -d \"$repo/.git\" ]]; then " +
             "    resolved=''; " +
             "    if git -C \"$repo\" cat-file -e \"HEAD:${git_prefix}${path}\" 2>/dev/null; then resolved=\"${git_prefix}${path}\"; " +
             "    elif [[ -n \"$git_prefix\" ]] && git -C \"$repo\" cat-file -e \"HEAD:${path}\" 2>/dev/null; then resolved=\"${path}\"; fi; " +
