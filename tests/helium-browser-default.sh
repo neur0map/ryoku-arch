@@ -123,9 +123,9 @@ assert_contains shell/modules/settings/InterfaceConfig.qml 'cmd: "helium"' \
   "quick launch editor defaults should open Helium"
 assert_not_contains shell/shell.qml 'Migrating dock\.pinnedApps default browser to Helium' \
   "shell startup should not switch existing users to Helium before migration/install"
-assert_contains bin/ryoku-browser-migrate-helium 'dock\.pinnedApps = \["org\.gnome\.Nautilus", "helium", "kitty"\]' \
+assert_contains bin/ryoku-default-app-migrate 'dock\.pinnedApps = \["org\.gnome\.Nautilus", \$target, "kitty"\]' \
   "browser migration helper should move old defaults to Helium after opt-in"
-assert_contains migrations/1778617021.sh 'ryoku-browser-migrate-helium' \
+assert_contains migrations/1778617021.sh 'ryoku-default-app-migrate browser helium' \
   "browser migration should run through the opt-in helper"
 
 assert_contains shell/services/AppLauncher.qml 'defaultCommand: "helium"' \

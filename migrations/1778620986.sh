@@ -6,4 +6,4 @@ if [[ ! -f $STATE_DIR/1778617021.sh && ! -f $STATE_DIR/skipped/1778617021.sh ]];
   exit 0
 fi
 
-ryoku-browser-migrate-helium
+ryoku-default-app-migrate browser helium

@@ -33,6 +33,8 @@ Scripts under `bin/` are invoked by users or other scripts. Adding a new command
 
 A change that needs to reach both fresh installs and existing installs needs an entry in both `install/` and `migrations/`.
 
+Default app replacements should not silently rewrite existing user choices. Add the new default to the fresh install path, then use `ryoku-default-app-migrate <kind> <target> [yes|no|ask]` from a migration so existing users can accept or keep their current app.
+
 ## Repo topology
 
 ### Remotes

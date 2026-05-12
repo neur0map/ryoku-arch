@@ -1,3 +1,3 @@
 echo "Offer Helium browser migration"
 
-ryoku-browser-migrate-helium
+ryoku-default-app-migrate browser helium
