@@ -197,8 +197,8 @@ sync_launcher_from_repo() {
 
     mkdir -p "$XDG_BIN_HOME"
 
-    launcher_src_real="$(realpath -se "$launcher_src" 2>/dev/null || printf '%s' "$launcher_src")"
-    launcher_target_real="$(realpath -se "$launcher_target" 2>/dev/null || printf '%s' "$launcher_target")"
+    launcher_src_real="$(readlink -f "$launcher_src" 2>/dev/null || realpath -e "$launcher_src" 2>/dev/null || printf '%s' "$launcher_src")"
+    launcher_target_real="$(readlink -f "$launcher_target" 2>/dev/null || realpath -e "$launcher_target" 2>/dev/null || printf '%s' "$launcher_target")"
 
     if [[ ! -e $launcher_target || $launcher_src_real != $launcher_target_real ]]; then
         cp -f "$launcher_src" "$launcher_target"
