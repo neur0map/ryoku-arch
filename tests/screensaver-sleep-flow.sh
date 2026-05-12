@@ -38,6 +38,8 @@ assert_order() {
 
 assert_contains bin/ryoku-launch-screensaver 'ryoku-cmd-screensaver' \
   "screensaver launcher should run the TTE screensaver command"
+assert_contains bin/ryoku-launch-screensaver '\$RYOKU_PATH/bin/ryoku-cmd-screensaver' \
+  "screensaver launcher should pass an absolute command path to terminal children"
 assert_contains bin/ryoku-launch-screensaver '\$\{1:-\} != "force"' \
   "screensaver launcher should handle no-argument idle launches under set -u"
 assert_contains bin/ryoku-cmd-screensaver 'tte -i "\$RYOKU_CONFIG_PATH/branding/screensaver\.txt"' \

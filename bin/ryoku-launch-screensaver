@@ -18,6 +18,7 @@ if ryoku-toggle-enabled screensaver-off && [[ ${1:-} != "force" ]]; then
 fi
 
 terminal=$(xdg-terminal-exec --print-id)
+screensaver_command="$RYOKU_PATH/bin/ryoku-cmd-screensaver"
 
 build_command() {
   case $terminal in
@@ -26,7 +27,7 @@ build_command() {
       alacritty
       --class=org.ryoku.screensaver
       --config-file "$RYOKU_PATH/default/alacritty/screensaver.toml"
-      -e ryoku-cmd-screensaver
+      -e "$screensaver_command"
     )
   ;;
   *ghostty*)
@@ -35,7 +36,7 @@ build_command() {
       --class=org.ryoku.screensaver
       --config-file=$RYOKU_PATH/default/ghostty/screensaver
       --font-size=18
-      -e ryoku-cmd-screensaver
+      -e "$screensaver_command"
     )
   ;;
   *kitty*)
@@ -44,7 +45,7 @@ build_command() {
       --class=org.ryoku.screensaver
       --override font_size=18
       --override window_padding_width=0
-      -e ryoku-cmd-screensaver
+      -e "$screensaver_command"
     )
   ;;
   *)
