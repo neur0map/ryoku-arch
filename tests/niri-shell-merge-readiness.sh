@@ -84,6 +84,7 @@ aur_packages="install/ryoku-aur.packages"
 
 assert_file "$base_packages"
 assert_file "$aur_packages"
+assert_file "lib/pacman-conflicts.sh"
 
 removed_packages=(
   elephant
@@ -350,6 +351,7 @@ assert_executable bin/ryoku-session-recover
 assert_executable bin/ryoku-cmd-profile-list
 assert_executable bin/ryoku-cmd-profile-status
 assert_executable bin/ryoku-install-profile
+assert_executable bin/ryoku-doctor
 assert_executable bin/ryoku-update-system-pkgs
 assert_executable bin/ryoku-shell-cleanup-orphans
 assert_executable bin/ryoku-refresh-limine
@@ -369,16 +371,19 @@ bash -n bin/ryoku-session-recover
 bash -n bin/ryoku-cmd-profile-list
 bash -n bin/ryoku-cmd-profile-status
 bash -n bin/ryoku-install-profile
+bash -n bin/ryoku-doctor
 bash -n install/profiles/lib.sh
 bash -n bin/ryoku-update-system-pkgs
 bash -n bin/ryoku-shell-cleanup-orphans
 bash -n bin/ryoku-refresh-limine
+bash -n lib/pacman-conflicts.sh
 bash -n bin/ryoku-ipc
 bash -n bin/ryoku-lock-screen
 bash -n bin/ryoku-theme-set-shell
 bash -n bin/ryoku-system-logout
 bash -n bin/ryoku-sddm-autologin
 bash -n bin/ryoku-refresh-sddm
+bash -n migrations/1778560467.sh
 bash -n install/config/shell.sh
 bash -n install/config/session-recover.sh
 bash -n default/systemd/system-sleep/ryoku-session-recover
@@ -394,7 +399,13 @@ assert_contains bin/ryoku-update-perform 'bash "\$RYOKU_INSTALL/packaging/aur-co
 assert_order bin/ryoku-update-perform 'ryoku-update-aur-pkgs' 'packaging/aur-core\.sh' "updates should bootstrap/update AUR access before installing default AUR packages"
 assert_order bin/ryoku-update-perform 'packaging/aur-core\.sh' 'config/shell\.sh' "updates should install default AUR packages before running Ryoku shell setup"
 assert_order bin/ryoku-update-perform 'config/shell\.sh' 'ryoku-migrate' "updates should install or refresh Ryoku shell before migration cleanup"
-assert_contains bin/ryoku-update-system-pkgs 'move_unowned_node_module semver' "system package updates should clear the known unowned semver conflict before pacman -Syu"
+assert_contains bin/ryoku-update 'ryoku-doctor update' "update failures should tell users to run the doctor"
+assert_contains shell/services/ShellUpdates.qml 'ryoku-doctor update' "shell update failures should tell users to run the doctor"
+assert_contains migrations/1778560467.sh 'ryoku-update' "migration should expose ryoku-update in the user launcher path"
+assert_contains migrations/1778560467.sh 'ryoku-doctor' "migration should expose ryoku-doctor in the user launcher path"
+assert_contains bin/ryoku-update-system-pkgs 'ryoku_pacman_repair_conflicts_from_log' "system package updates should clear pacman file conflicts from the latest failed log before pacman -Syu"
+assert_contains lib/pacman-conflicts.sh 'exists.*filesystem' "pacman conflict repair should parse generic pacman file conflict lines"
+assert_not_contains bin/ryoku-update-system-pkgs 'semver|move_unowned_node_module' "system package conflict repair should not be hardcoded to semver"
 assert_contains install/config/shell.sh 'RYOKU_SHELL_PATH' "Ryoku shell installer should support custom install path injection"
 assert_contains install/config/shell.sh 'SHELL_VENDOR' "Ryoku shell installer should reference the vendored shell tree"
 assert_contains install/config/shell.sh 'niri\.service\.wants' "Ryoku installer should wire ryoku-shell.service into niri.service.wants for first login"

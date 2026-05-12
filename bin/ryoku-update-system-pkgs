@@ -1,24 +1,28 @@
 #!/bin/bash
 
 set -e
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-move_unowned_node_module() {
-  local package="$1"
-  local node_modules_dir="${RYOKU_SYSTEM_NODE_MODULES_DIR:-/usr/lib/node_modules}"
-  local path="$node_modules_dir/$package"
-  local backup_root="${RYOKU_PACMAN_CONFLICT_BACKUP_DIR:-/var/lib/ryoku/pacman-conflict-backups}"
-  local backup_path="$backup_root/${package}-$(date +%Y%m%d%H%M%S)"
+script_path="${BASH_SOURCE[0]}"
+script_path="$(readlink -f "$script_path" 2>/dev/null || printf '%s\n' "$script_path")"
+repo_root="$(cd -- "$(dirname -- "$script_path")/.." && pwd)"
+source "$repo_root/lib/runtime-env.sh"
+source "$repo_root/lib/pacman-conflicts.sh"
 
-  [[ -e $path ]] || return 0
-  pacman -Q "$package" >/dev/null 2>&1 && return 0
-  pacman -Qo "$path" >/dev/null 2>&1 && return 0
+repair_recent_pacman_conflicts() {
+  local log repair_status
 
-  echo "Moving unowned package-manager conflict: $path -> $backup_path"
-  sudo mkdir -p "$backup_root"
-  sudo mv "$path" "$backup_path"
+  log="$(ryoku_pacman_latest_update_log 2>/dev/null || true)"
+  [[ -n $log ]] || return 0
+
+  if ryoku_pacman_repair_conflicts_from_log "$log"; then
+    return 0
+  else
+    repair_status=$?
+    (( repair_status == 1 || repair_status == 2 )) && return 0
+    return "$repair_status"
+  fi
 }
 
 echo -e "\e[32m\nUpdate system packages\e[0m"
-move_unowned_node_module semver
+repair_recent_pacman_conflicts
 sudo pacman -Syu --noconfirm

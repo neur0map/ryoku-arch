@@ -1,0 +1,272 @@
+#!/bin/bash
+
+set -euo pipefail
+
+script_path="${BASH_SOURCE[0]}"
+script_path="$(readlink -f "$script_path" 2>/dev/null || printf '%s\n' "$script_path")"
+repo_root="$(cd -- "$(dirname -- "$script_path")/.." && pwd)"
+source "$repo_root/lib/runtime-env.sh"
+source "$repo_root/lib/pacman-conflicts.sh"
+
+usage() {
+  cat <<'USAGE'
+Usage: ryoku-doctor [update|-h]
+
+Commands:
+  ff      Fast-forward Ryoku to the latest release branch
+  update  Diagnose the latest failed Ryoku update and apply safe fixes
+
+With no command, ryoku-doctor runs the desktop shell doctor.
+USAGE
+}
+
+state_home() {
+  printf '%s\n' "${XDG_STATE_HOME:-$HOME/.local/state}"
+}
+
+update_status_file() {
+  printf '%s\n' "${RYOKU_UPDATE_STATUS:-$(state_home)/quickshell/user/update-status}"
+}
+
+print_update_status() {
+  local status_file status
+
+  status_file="$(update_status_file)"
+  [[ -r $status_file ]] || return 0
+
+  status="$(<"$status_file")"
+  [[ -n $status ]] || return 0
+
+  echo "Status: $status"
+}
+
+latest_update_log() {
+  ryoku_pacman_latest_update_log
+}
+
+doctor_git() {
+  GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=/bin/true git -C "$RYOKU_PATH" "$@"
+}
+
+doctor_release_branch() {
+  printf '%s\n' "${RYOKU_UPDATE_BRANCH:-main}"
+}
+
+doctor_remote_url() {
+  printf '%s\n' "${RYOKU_UPDATE_REMOTE_URL:-https://github.com/neur0map/ryoku-arch.git}"
+}
+
+doctor_remote_ref() {
+  printf 'origin/%s\n' "$(doctor_release_branch)"
+}
+
+doctor_prepare_remote() {
+  local remote_url
+
+  [[ -d $RYOKU_PATH/.git ]] || return 1
+
+  remote_url="$(doctor_remote_url)"
+  if doctor_git remote get-url origin >/dev/null 2>&1; then
+    doctor_git remote set-url origin "$remote_url"
+  else
+    doctor_git remote add origin "$remote_url"
+  fi
+}
+
+doctor_fetch_release() {
+  local release_branch
+
+  release_branch="$(doctor_release_branch)"
+  doctor_prepare_remote || return 1
+  doctor_git fetch --prune origin "+refs/heads/${release_branch}:refs/remotes/origin/${release_branch}" >/dev/null 2>&1
+}
+
+doctor_fast_forward_available() {
+  local remote_ref
+
+  doctor_fetch_release || return 1
+  remote_ref="$(doctor_remote_ref)"
+  doctor_git rev-parse --verify "$remote_ref" >/dev/null 2>&1 || return 1
+  doctor_git merge-base --is-ancestor HEAD "$remote_ref" || return 1
+  [[ $(doctor_git rev-parse HEAD) != "$(doctor_git rev-parse "$remote_ref")" ]]
+}
+
+doctor_confirm_fast_forward() {
+  local answer
+
+  if [[ ${RYOKU_DOCTOR_ASSUME_YES:-} == "1" ]]; then
+    echo "Fast-forward Ryoku now? [Y/n] y"
+    return 0
+  fi
+
+  if [[ ${RYOKU_DOCTOR_ASSUME_NO:-} == "1" ]]; then
+    echo "Fast-forward Ryoku now? [Y/n] n"
+    return 1
+  fi
+
+  printf 'Fast-forward Ryoku now? [Y/n] '
+  read -r answer || return 1
+  [[ -z $answer || $answer =~ ^[Yy]$ ]]
+}
+
+run_fast_forward_doctor() {
+  local updater="$RYOKU_PATH/bin/ryoku-update-git"
+  local remote_ref
+
+  if ! doctor_fast_forward_available; then
+    echo "Ryoku is already on the latest fast-forwardable release."
+    return 0
+  fi
+
+  remote_ref="$(doctor_remote_ref)"
+  echo "Fast-forwarding Ryoku to $remote_ref..."
+
+  if [[ -x $updater ]]; then
+    "$updater"
+  else
+    doctor_git merge --ff-only "$remote_ref"
+  fi
+}
+
+offer_fast_forward_update() {
+  local remote_ref local_commit remote_commit
+
+  doctor_fast_forward_available || return 1
+
+  remote_ref="$(doctor_remote_ref)"
+  local_commit="$(doctor_git rev-parse --short HEAD)"
+  remote_commit="$(doctor_git rev-parse --short "$remote_ref")"
+
+  echo "A newer Ryoku recovery update is available: $local_commit -> $remote_commit"
+  if doctor_confirm_fast_forward; then
+    run_fast_forward_doctor
+    echo
+    exec "$script_path" update
+  fi
+
+  echo "Skipped Ryoku fast-forward."
+  echo
+  return 1
+}
+
+report_log_warnings() {
+  local log="$1"
+  local warnings=0
+
+  if grep -q "Updating linux initcpios" "$log" \
+    && ! grep -q "Initcpio image generation successful" "$log"; then
+    echo "Warning: initramfs generation may have failed. Review the log before restart."
+    ((warnings++)) || true
+  fi
+
+  if grep -Eq 'unable to lock database|/var/lib/pacman/db\.lck' "$log"; then
+    echo "Warning: pacman database lock detected. Retry after package managers stop."
+    ((warnings++)) || true
+  fi
+
+  if grep -Eqi 'invalid or corrupted package|signature.*(unknown trust|invalid|marginal trust)|keyring.*(error|fail|missing)|required key missing|unknown trust' "$log"; then
+    echo "Warning: package signature or keyring issue detected. Try: ryoku-update-keyring"
+    ((warnings++)) || true
+  fi
+
+  return "$warnings"
+}
+
+run_update_doctor() {
+  local log repair_status
+  local fixes=0
+  local safe_to_retry=0
+  local unresolved=0
+  local warnings=0
+
+  echo "Ryoku Doctor: update"
+  echo
+  print_update_status
+  offer_fast_forward_update || true
+
+  if ! log="$(latest_update_log)"; then
+    echo "No readable Ryoku update log was found."
+    echo "Run: ryoku-doctor"
+    return 1
+  fi
+
+  echo "Log: $log"
+  echo
+
+  if ryoku_pacman_conflicts_from_log "$log" | read -r _; then
+    echo "Detected pacman file conflicts."
+    if ryoku_pacman_repair_conflicts_from_log "$log"; then
+      ((fixes++)) || true
+    else
+      repair_status=$?
+      if (( repair_status == 2 )); then
+        ((safe_to_retry++)) || true
+      else
+        ((unresolved++)) || true
+      fi
+    fi
+    echo
+  fi
+
+  if report_log_warnings "$log"; then
+    :
+  else
+    warnings=$?
+  fi
+
+  if (( fixes > 0 || safe_to_retry > 0 )); then
+    echo "Next:"
+    echo "  Run: ryoku-update -y"
+    return 0
+  fi
+
+  if (( unresolved > 0 || warnings > 0 )); then
+    echo
+    echo "No automatic safe fix was applied."
+    echo "Review the note above, then run: ryoku-update -y"
+    return 1
+  fi
+
+  echo "No known auto-fix matched this log."
+  echo "If the update still fails, open an issue with this log: $log"
+  return 1
+}
+
+run_shell_doctor() {
+  local setup
+  local candidates=(
+    "$RYOKU_PATH/shell/setup"
+    "$RYOKU_PATH/setup"
+    "${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell/setup"
+    "${XDG_CONFIG_HOME:-$HOME/.config}/ryoku-shell/setup"
+  )
+
+  for setup in "${candidates[@]}"; do
+    [[ -x $setup ]] || continue
+    exec "$setup" -y doctor
+  done
+
+  echo "Ryoku shell doctor is unavailable."
+  echo "Checked the installed repo and quickshell config paths."
+  return 1
+}
+
+case "${1:-}" in
+  "")
+    run_shell_doctor
+    ;;
+  ff)
+    run_fast_forward_doctor
+    ;;
+  update)
+    run_update_doctor
+    ;;
+  -h|help)
+    usage
+    ;;
+  *)
+    echo "Unknown command: $1" >&2
+    usage >&2
+    exit 1
+    ;;
+esac
