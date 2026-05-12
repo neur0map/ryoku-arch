@@ -107,6 +107,15 @@ get_orphan_files() {
         # Root QML files
         find "$target_dir" -maxdepth 1 -name "*.qml" -type f -printf "%f\n" 2>/dev/null
 
+        # Clean up stale full-repo runtime mistakes too. Local-addition
+        # detection scans these tracked file types globally, so orphan cleanup
+        # must use the same scope or every update keeps warning about the same
+        # preserved files.
+        find "$target_dir" -type f \
+            \( -name "*.qml" -o -name "*.js" -o -name "*.py" -o -name "*.sh" -o -name "*.fish" \) \
+            ! -path '*/.*' \
+            -printf "%P\n" 2>/dev/null
+
         if [[ -f "$runtime_root_manifest" ]]; then
             while IFS= read -r runtime_file; do
                 [[ -n "$runtime_file" ]] || continue
@@ -325,8 +334,7 @@ cleanup_orphans() {
         done
         
         # Clean up empty directories
-        find "$target_dir/modules" "$target_dir/services" "$target_dir/scripts" \
-            -type d -empty -delete 2>/dev/null || true
+        find "$target_dir" -mindepth 1 -type d -empty -delete 2>/dev/null || true
     fi
     
     return 0
