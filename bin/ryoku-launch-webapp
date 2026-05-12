@@ -2,14 +2,23 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Launch the passed in URL as a web app in the default browser (or chromium if the default doesn't support --app).
+# Launch the passed in URL as a web app in the default browser (or Helium if the default doesn't support --app).
 
-browser=$(xdg-settings get default-web-browser)
+browser=$(xdg-settings get default-web-browser 2>/dev/null || true)
 
 case $browser in
 google-chrome* | brave* | microsoft-edge* | opera* | vivaldi* | helium*) ;;
-*) browser="chromium.desktop" ;;
+*) browser="helium.desktop" ;;
 esac
 
 browser_exec=$(sed -n 's/^Exec=\([^ ]*\).*/\1/p' {~/.local,~/.nix-profile,/usr}/share/applications/$browser 2>/dev/null | head -1)
+if [[ -z $browser_exec ]]; then
+  browser_exec="$(command -v helium || command -v chromium || true)"
+fi
+
+if [[ -z $browser_exec ]]; then
+  echo "No Chromium-compatible browser found for web app launch." >&2
+  exit 1
+fi
+
 exec setsid "$browser_exec" --app="$1" "${@:2}"

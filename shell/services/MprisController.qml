@@ -231,7 +231,7 @@ Singleton {
 			return false;
 		}
 		// Additional heuristic: browser titles like "... on X: ..." or "... / X" (no url present)
-		const isBrowserPlayerName = name.includes("firefox") || name.includes("chrome") || name.includes("chromium") ||
+		const isBrowserPlayerName = name.includes("helium") || name.includes("firefox") || name.includes("chrome") || name.includes("chromium") ||
 			name.includes("brave") || name.includes("vivaldi") || name.includes("opera");
 		if (isBrowserPlayerName) {
 			if (lowerTitle.includes(" on x:") || lowerTitle.includes(" / x")) {
@@ -257,7 +257,8 @@ Singleton {
 		// Handle plasma-browser-integration (KDE Plasma)
 		// Accept browsers playing real media content (YouTube, streaming sites, long-form audio/video)
 		if (hasPlasmaIntegration) {
-			const isBrowser = name.startsWith('org.mpris.MediaPlayer2.firefox') ||
+			const isBrowser = name.startsWith('org.mpris.MediaPlayer2.helium') ||
+				name.startsWith('org.mpris.MediaPlayer2.firefox') ||
 				name.startsWith('org.mpris.MediaPlayer2.chromium') ||
 				name.startsWith('org.mpris.MediaPlayer2.chrome');
 			if (isBrowser) {
@@ -337,7 +338,7 @@ Singleton {
 		}
 		
 		// Filter browser players with very short content (likely embedded videos/GIFs)
-		const isBrowserPlayer = name.includes("firefox") || name.includes("chrome") || name.includes("chromium") || 
+		const isBrowserPlayer = name.includes("helium") || name.includes("firefox") || name.includes("chrome") || name.includes("chromium") ||
 		                        name.includes("brave") || name.includes("vivaldi") || name.includes("opera");
 		if (isBrowserPlayer && trackLength > 0 && trackLength < 15 && !trackUrl.includes("youtube.com") && !trackUrl.includes("youtu.be")) {
 			return false;
@@ -393,10 +394,11 @@ Singleton {
 		const name = (player.dbusName ?? "").toLowerCase();
 		const identity = (player.identity ?? "").toLowerCase();
 		const entry = (player.desktopEntry ?? "").toLowerCase();
-		const isBrowser = name.includes("plasma-browser-integration") || name.includes("firefox") ||
+		const isBrowser = name.includes("plasma-browser-integration") || name.includes("helium") || name.includes("firefox") ||
 			name.includes("chrome") || name.includes("chromium") || name.includes("brave") ||
 			name.includes("vivaldi") || name.includes("opera") || identity.includes("firefox") ||
-			identity.includes("zen") || entry.includes("zen") || entry.includes("firefox");
+			identity.includes("helium") || identity.includes("zen") || entry.includes("helium") ||
+			entry.includes("zen") || entry.includes("firefox");
 		const url = (player.metadata?.["xesam:url"] ?? "").toLowerCase();
 		const title = (player.trackTitle ?? "").toLowerCase();
 		return isBrowser && (url.includes("youtube.com") || url.includes("youtu.be") || title.includes("youtube"));
@@ -415,7 +417,7 @@ Singleton {
 			const appId = (win.app_id ?? "").toLowerCase();
 			const winTitle = root._normTitle(win.title);
 			let score = 0;
-			if (appId.includes("zen") || appId.includes("firefox") || appId.includes("brave") ||
+			if (appId.includes("helium") || appId.includes("zen") || appId.includes("firefox") || appId.includes("brave") ||
 				appId.includes("chrome") || appId.includes("chromium") || appId.includes("vivaldi") ||
 				appId.includes("opera") || appId.includes("librewolf") || appId.includes("floorp") ||
 				appId.includes("waterfox"))

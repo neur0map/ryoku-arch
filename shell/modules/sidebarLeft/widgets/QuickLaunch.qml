@@ -14,7 +14,7 @@ Item {
     readonly property var defaultShortcuts: [
         { icon: "folder", name: "Files", cmd: "/usr/bin/nautilus" },
         { icon: "terminal", name: "Terminal", cmd: "/usr/bin/kitty" },
-        { icon: "web", name: "Browser", cmd: "/usr/bin/firefox" },
+        { icon: "web", name: "Browser", cmd: "helium" },
         { icon: "code", name: "Code", cmd: "/usr/bin/code" }
     ]
 

@@ -32,6 +32,7 @@ Singleton {
         "chromium-browser": "chromium",
         "google-chrome-stable": "google-chrome",
         "brave-browser": "brave",
+        "helium": "helium",
         "Microsoft-edge": "microsoft-edge",
         "microsoft-edge-stable": "microsoft-edge",
         
@@ -154,6 +155,7 @@ Singleton {
         // Flatpak reverse domain
         { "regex": /^org\.mozilla\.firefox$/, "replace": "firefox" },
         { "regex": /^com\.google\.Chrome$/, "replace": "google-chrome" },
+        { "regex": /^helium$/, "replace": "helium" },
         { "regex": /^com\.microsoft\.Edge$/, "replace": "microsoft-edge" },
         { "regex": /^io\.github\.AquariusPower\..+/, "replace": "application-x-executable" },
         

@@ -467,7 +467,7 @@ Singleton {
                 property string networkEthernet: "nm-connection-editor"
                 property string taskManager: "missioncenter"
                 property string terminal: "kitty" // This is only for shell actions
-                property string browser: "firefox" // Used by launcher-backed browser shortcuts
+                property string browser: "helium" // Used by launcher-backed browser shortcuts
                 property string volumeMixer: "pavucontrol"
                 property string discord: "discord" // Shell command to launch Discord client
                 property string update: "kitty -e sudo pacman -Syu" // Command to run system updates
@@ -856,7 +856,7 @@ Singleton {
                 property bool enableBlurGlass: true
                 property bool separatePinnedFromRunning: true // Waffle-style: pinned-only apps on left, running on right
                 property list<string> pinnedApps: [ // IDs of pinned entries
-                    "org.gnome.Nautilus", "firefox", "kitty",]
+                    "org.gnome.Nautilus", "helium", "kitty",]
                 property list<string> ignoredAppRegexes: []
                 property list<string> screenList: [] // List of screen names to show dock on (e.g. ["DP-2"]). Empty = all screens
                 // Smart indicator settings
@@ -1340,7 +1340,7 @@ Singleton {
                         {
                             "icon": "web",
                             "name": "Browser",
-                            "cmd": "/usr/bin/firefox"
+                            "cmd": "helium"
                         },
                         {
                             "icon": "code",

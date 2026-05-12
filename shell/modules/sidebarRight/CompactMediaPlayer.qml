@@ -500,6 +500,7 @@ Item {
         if (!player) return "music_note"
         const name = (player.dbusName ?? "").toLowerCase()
         const identity = (player.identity ?? "").toLowerCase()
+        if (name.includes("helium") || identity.includes("helium")) return "open_in_browser"
         if (name.includes("firefox") || identity.includes("firefox")) return "open_in_browser"
         if (name.includes("chrom") || identity.includes("chrom")) return "open_in_browser"
         if (name.includes("brave") || identity.includes("brave")) return "open_in_browser"

@@ -192,7 +192,7 @@ Singleton {
     function _openUrlFocusBrowser(url) {
         // Try to focus existing browser window first
         if (typeof NiriService !== "undefined" && NiriService.windows) {
-            const browserPatterns = ["firefox", "chromium", "chrome", "brave", "zen", "librewolf", "vivaldi", "opera"]
+            const browserPatterns = ["helium", "firefox", "chromium", "chrome", "brave", "zen", "librewolf", "vivaldi", "opera"]
             const windows = NiriService.windows ?? []
             for (let i = 0; i < windows.length; i++) {
                 const win = windows[i]

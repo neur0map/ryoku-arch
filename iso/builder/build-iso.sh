@@ -73,6 +73,55 @@ if [[ -f $shell_requirements ]]; then
   rm -rf "$shell_uv_venv"
 fi
 
+# Stage non-pacman AppImage artifacts needed by the installer. These are
+# not valid pacman repo entries, so they live beside the offline mirror and
+# are bind-mounted into the target chroot by the ISO automation.
+offline_appimages_manifest="/builder/ryoku-offline-appimages.tsv"
+offline_appimages_dir="$build_cache_dir/airootfs/var/cache/ryoku/appimages"
+
+if [[ -f $offline_appimages_manifest ]]; then
+  mkdir -p "$offline_appimages_dir"
+
+  while IFS=$'\t' read -r app_name github_repo asset_regex; do
+    [[ -n $app_name && $app_name != \#* ]] || continue
+    [[ -n $github_repo && -n $asset_regex ]] || continue
+
+    app_cache_dir="$offline_appimages_dir/$app_name"
+    release_json="$app_cache_dir/release.json"
+    mkdir -p "$app_cache_dir"
+
+    curl -fsSL "https://api.github.com/repos/$github_repo/releases/latest" -o "$release_json"
+
+    asset_name="$(
+      jq -r --arg regex "$asset_regex" '
+        .assets[]?
+        | select(.name | test($regex))
+        | .name // empty
+      ' "$release_json" | head -n1
+    )"
+    download_url="$(
+      jq -r --arg regex "$asset_regex" '
+        .assets[]?
+        | select(.name | test($regex))
+        | .browser_download_url // empty
+      ' "$release_json" | head -n1
+    )"
+
+    if [[ -z $asset_name || -z $download_url ]]; then
+      echo "build-iso: no AppImage asset matched $asset_regex for $github_repo" >&2
+      exit 1
+    fi
+
+    if [[ ! -s "$app_cache_dir/$asset_name" ]]; then
+      curl -fL --retry 3 --connect-timeout 10 --max-time 600 \
+        -o "$app_cache_dir/$asset_name" "$download_url"
+    fi
+
+    chmod 0755 "$app_cache_dir/$asset_name"
+    ln -sfn "$asset_name" "$app_cache_dir/$app_name.AppImage"
+  done < "$offline_appimages_manifest"
+fi
+
 # Copy the Ryoku Plymouth theme to the ISO if the installer ships one.
 if [[ -d "$build_cache_dir/airootfs/root/ryoku/default/plymouth" ]]; then
   mkdir -p "$build_cache_dir/airootfs/usr/share/plymouth/themes/ryoku"

@@ -156,6 +156,7 @@ Singleton {
         case "firefox":
         case "firefox-esr":
         case "google-chrome":
+        case "helium":
         case "chromium":
         case "chromium-browser":
         case "brave-browser":
@@ -190,7 +191,7 @@ Singleton {
         if (lowerName.includes("steam") || lowerName.includes("lutris") || lowerName.includes("heroic") || lowerName.includes("proton"))
             return "games";
         // Browsers
-        if (lowerName.includes("firefox") || lowerName.includes("chrome") || lowerName.includes("chromium") || lowerName.includes("zen browser") || lowerName.includes("brave") || lowerName.includes("vivaldi") || lowerName.includes("librewolf"))
+        if (lowerName.includes("helium") || lowerName.includes("firefox") || lowerName.includes("chrome") || lowerName.includes("chromium") || lowerName.includes("zen browser") || lowerName.includes("brave") || lowerName.includes("vivaldi") || lowerName.includes("librewolf"))
             return "globe-search";
         // Music & media players
         if (lowerName.includes("spotify") || lowerName.includes("music") || lowerName.includes("rhythmbox") || lowerName.includes("lollypop") || lowerName.includes("amberol"))

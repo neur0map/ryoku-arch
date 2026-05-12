@@ -836,7 +836,7 @@ fi
 
 # Detect and set web browser
 WEB_BROWSER=""
-for browser in firefox.desktop chromium.desktop google-chrome.desktop brave-browser.desktop; do
+for browser in helium.desktop firefox.desktop chromium.desktop google-chrome.desktop brave-browser.desktop; do
     if [[ -f "/usr/share/applications/${browser}" ]] || [[ -f "${XDG_DATA_HOME:-$HOME/.local/share}/applications/${browser}" ]]; then
         WEB_BROWSER="$browser"
         break
