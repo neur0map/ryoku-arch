@@ -74,7 +74,7 @@ docker-buildx
 docker-compose
 
 # ── GUI apps — browsers + communication ───────────────────────────────
-chromium
+fuse2
 
 # ── GUI apps — productivity, viewers, file manager ────────────────────
 evince

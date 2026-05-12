@@ -134,6 +134,11 @@ RESOLV
     mount --bind /var/cache/ryoku/uv /mnt/var/cache/ryoku/uv
   fi
 
+  if [[ -d /var/cache/ryoku/appimages ]]; then
+    mkdir -p /mnt/var/cache/ryoku/appimages
+    mount --bind /var/cache/ryoku/appimages /mnt/var/cache/ryoku/appimages
+  fi
+
   # omarchy bundles Node.js + other extras under /opt/packages and binds
   # them into the chroot. We do not ship those extras, so only do the
   # bind-mount if the dir actually exists in the live env.

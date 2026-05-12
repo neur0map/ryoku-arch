@@ -117,6 +117,7 @@ required_base_packages=(
   fish
   fontconfig
   fprintd
+  fuse2
   frameworkintegration
   geoclue
   git

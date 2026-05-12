@@ -1,0 +1,3 @@
+# AppImages baked into the ISO for offline-first installs.
+# Format: name<TAB>github_repo<TAB>release_asset_regex
+helium	imputnet/helium-linux	^helium-.*-x86_64\.AppImage$

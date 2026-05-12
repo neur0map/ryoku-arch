@@ -5,10 +5,22 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 # Launch the default browser as determined by xdg-settings.
 # Automatically converts --private into the correct flag for the given browser.
 
-default_browser=$(xdg-settings get default-web-browser)
-browser_exec=$(sed -n 's/^Exec=\([^ ]*\).*/\1/p' {~/.local,~/.nix-profile,/usr}/share/applications/$default_browser 2>/dev/null | head -1)
+default_browser=$(xdg-settings get default-web-browser 2>/dev/null || true)
+if [[ -z $default_browser ]]; then
+  default_browser="helium.desktop"
+fi
 
-if $browser_exec --help | grep -q MOZ_LOG; then
+browser_exec=$(sed -n 's/^Exec=\([^ ]*\).*/\1/p' {~/.local,~/.nix-profile,/usr}/share/applications/$default_browser 2>/dev/null | head -1)
+if [[ -z $browser_exec ]]; then
+  browser_exec="$(command -v helium || command -v chromium || command -v firefox || true)"
+fi
+
+if [[ -z $browser_exec ]]; then
+  echo "No default browser found." >&2
+  exit 1
+fi
+
+if "$browser_exec" --help 2>&1 | grep -q MOZ_LOG; then
   private_flag="--private-window"
 elif [[ $browser_exec =~ edge ]]; then
   private_flag="--inprivate"

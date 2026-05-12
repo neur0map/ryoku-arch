@@ -1,0 +1,112 @@
+#!/bin/bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+release_api="${HELIUM_RELEASE_API:-https://api.github.com/repos/imputnet/helium-linux/releases/latest}"
+offline_appimage="${HELIUM_OFFLINE_APPIMAGE:-/var/cache/ryoku/appimages/helium/helium.AppImage}"
+data_home="${XDG_DATA_HOME:-$HOME/.local/share}"
+app_dir="$data_home/ryoku/apps/helium"
+desktop_dir="$data_home/applications"
+bin_dir="$HOME/.local/bin"
+appimage_path="$app_dir/helium.AppImage"
+desktop_file="$desktop_dir/helium.desktop"
+bin_path="$bin_dir/helium"
+source_appimage=""
+
+if [[ -s $offline_appimage ]]; then
+  echo "Installing Helium from offline cache..."
+  source_appimage="$offline_appimage"
+else
+  if ryoku-cmd-missing curl jq uname; then
+    echo "Helium installer requires curl, jq, and uname." >&2
+    exit 1
+  fi
+
+  arch="$(uname -m)"
+  case $arch in
+  x86_64 | amd64)
+    arch="x86_64"
+    ;;
+  aarch64 | arm64)
+    arch="arm64"
+    ;;
+  *)
+    echo "Unsupported Helium architecture: $arch" >&2
+    exit 1
+    ;;
+  esac
+
+  release_json="$(curl -fsSL "$release_api")"
+  version="$(jq -r '.tag_name // empty' <<<"$release_json")"
+
+  if [[ -z $version ]]; then
+    echo "Could not resolve the latest Helium Linux release." >&2
+    exit 1
+  fi
+
+  asset_name="helium-${version}-${arch}.AppImage"
+  download_url="$(
+    jq -r --arg name "$asset_name" '
+      .assets[]? | select(.name == $name) | .browser_download_url // empty
+    ' <<<"$release_json" | head -n1
+  )"
+
+  if [[ -z $download_url ]]; then
+    download_url="$(
+      jq -r --arg arch "$arch" '
+        .assets[]?
+        | select(.name | test("^helium-.*-" + $arch + "\\.AppImage$"))
+        | .browser_download_url // empty
+      ' <<<"$release_json" | head -n1
+    )"
+  fi
+
+  if [[ -z $download_url ]]; then
+    echo "Could not find a Helium AppImage for $arch in release $version." >&2
+    exit 1
+  fi
+
+  tmp_appimage="$(mktemp)"
+  trap 'rm -f "$tmp_appimage"' EXIT
+
+  echo "Downloading Helium $version for $arch..."
+  curl -fL --retry 3 --connect-timeout 10 --max-time 600 -o "$tmp_appimage" "$download_url"
+
+  if [[ ! -s $tmp_appimage ]]; then
+    echo "Downloaded Helium AppImage is empty." >&2
+    exit 1
+  fi
+
+  source_appimage="$tmp_appimage"
+fi
+
+mkdir -p "$app_dir" "$desktop_dir" "$bin_dir"
+install -m 0755 "$source_appimage" "$appimage_path"
+ln -sfn "$appimage_path" "$bin_path"
+
+cat >"$desktop_file" <<EOF
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Helium
+Comment=Private, fast, and honest web browser
+Exec=$bin_path %U
+Icon=helium
+Terminal=false
+Categories=Network;WebBrowser;
+MimeType=text/html;text/xml;application/xhtml+xml;x-scheme-handler/http;x-scheme-handler/https;x-scheme-handler/mailto;
+StartupNotify=true
+StartupWMClass=Helium
+EOF
+
+chmod 0644 "$desktop_file"
+update-desktop-database "$desktop_dir" >/dev/null 2>&1 || true
+
+xdg-settings set default-web-browser helium.desktop 2>/dev/null || true
+for mime in x-scheme-handler/http x-scheme-handler/https x-scheme-handler/mailto text/html text/xml application/xhtml+xml; do
+  xdg-mime default helium.desktop "$mime" 2>/dev/null || true
+done
+
+echo "Helium installed: $bin_path"

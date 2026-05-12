@@ -153,6 +153,7 @@ Rectangle {
                             
                             // Special cases for common players
                             if (identity.includes("spotify")) return Quickshell.iconPath("spotify", "");
+                            if (identity.includes("helium")) return Quickshell.iconPath("helium", "");
                             if (identity.includes("firefox")) return Quickshell.iconPath("firefox", "");
                             if (identity.includes("chrome")) return Quickshell.iconPath("google-chrome", "");
                             if (identity.includes("chromium")) return Quickshell.iconPath("chromium", "");

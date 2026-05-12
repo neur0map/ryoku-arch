@@ -194,7 +194,7 @@
   },
   "apps": {
     "bluetooth": "blueman-manager",
-    "browser": "firefox",
+    "browser": "helium",
     "discord": "discord",
     "manageUser": "kcmshell6 kcm_users",
     "network": "nm-connection-editor",
@@ -570,7 +570,7 @@
     "hoverToReveal": true,
     "ignoredAppRegexes": [],
     "monochromeIcons": true,
-    "pinnedApps": ["org.gnome.Nautilus", "firefox", "kitty"],
+    "pinnedApps": ["org.gnome.Nautilus", "helium", "kitty"],
     "pinnedOnStartup": true,
     "showBackground": true,
     "iconSize": 35,
@@ -998,7 +998,7 @@
         {
           "icon": "web",
           "name": "Browser",
-          "cmd": "/usr/bin/firefox"
+          "cmd": "helium"
         },
         {
           "icon": "code",

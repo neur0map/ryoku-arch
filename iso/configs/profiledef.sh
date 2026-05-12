@@ -22,5 +22,6 @@ file_permissions=(
   ["/usr/local/bin/choose-mirror"]="0:0:755"
   ["/root/configurator"]="0:0:755"
   ["/var/cache/ryoku/mirror/offline/"]="0:0:775"
+  ["/var/cache/ryoku/appimages/"]="0:0:775"
   ["/usr/local/bin/ryoku-upload-log"]="0:0:755"
 )

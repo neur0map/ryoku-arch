@@ -38,9 +38,10 @@ Singleton {
             id: "browser",
             label: Translation.tr("Browser"),
             description: Translation.tr("Used by browser shortcuts and app launch tiles."),
-            defaultCommand: "firefox",
-            placeholder: "firefox",
+            defaultCommand: "helium",
+            placeholder: "helium",
             presets: [
+                { id: "helium", label: "Helium", command: "helium" },
                 { id: "firefox", label: "Firefox", command: "firefox" },
                 { id: "zen", label: "Zen Browser", command: "zen-browser" },
                 { id: "librewolf", label: "LibreWolf", command: "librewolf" },
@@ -190,6 +191,7 @@ Singleton {
                 "firefox": "firefox.desktop",
                 "zen-browser": "zen.desktop",
                 "librewolf": "librewolf.desktop",
+                "helium": "helium.desktop",
                 "chromium": "chromium.desktop",
                 "google-chrome-stable": "google-chrome.desktop",
                 "brave-browser": "brave-browser.desktop"
