@@ -16,7 +16,7 @@ Singleton {
 
     Timer {
         id: _hibernateMonitorsOffTimer
-        interval: 450
+        interval: 6200
         repeat: false
         onTriggered: {
             if (CompositorService.isNiri) {
@@ -28,8 +28,15 @@ Singleton {
     }
 
     Timer {
+        id: _hibernateLockTimer
+        interval: 5400
+        repeat: false
+        onTriggered: root.lock()
+    }
+
+    Timer {
         id: _hibernateTimer
-        interval: 900
+        interval: 7000
         repeat: false
         onTriggered: {
             Quickshell.execDetached(["/usr/bin/systemctl", "hibernate", "-i"])
@@ -82,6 +89,17 @@ Singleton {
         Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "lock", "activate"]);
     }
 
+    function _launchScreensaver(force = false): void {
+        const command = force
+            ? `"$HOME/.local/share/ryoku/bin/ryoku-launch-screensaver" force >/dev/null 2>&1 || true`
+            : `"$HOME/.local/share/ryoku/bin/ryoku-launch-screensaver" >/dev/null 2>&1 || true`
+        Quickshell.execDetached([
+            "/usr/bin/bash",
+            "-lc",
+            command
+        ])
+    }
+
     function suspend() {
         if (Config.options?.idle?.lockBeforeSleep !== false) {
             lock()
@@ -112,7 +130,8 @@ Singleton {
             return
         }
 
-        lock();
+        _launchScreensaver(true)
+        _hibernateLockTimer.restart()
         _hibernateMonitorsOffTimer.restart()
         _hibernateTimer.restart()
     }

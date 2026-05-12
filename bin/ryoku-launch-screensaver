@@ -13,7 +13,7 @@ fi
 pgrep -f org.ryoku.screensaver && exit 0
 
 # Allow screensaver to be turned off but also force started
-if ryoku-toggle-enabled screensaver-off && [[ $1 != "force" ]]; then
+if ryoku-toggle-enabled screensaver-off && [[ ${1:-} != "force" ]]; then
   exit 1
 fi
 
