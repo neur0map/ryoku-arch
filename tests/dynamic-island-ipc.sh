@@ -29,6 +29,8 @@ grep -q '\[screenshotEvents\]=' shell/scripts/lib/ipc-registry.sh \
 # niri Mod+S bind exists
 grep -qE 'Mod\+S \{ spawn "ryoku-shell" "toolsMode"' config/niri/config.d/70-binds.kdl \
     || fail "Mod+S bind missing in niri config"
+grep -qE 'Mod\+S \{ spawn "ryoku-shell" "toolsMode"' shell/defaults/niri/config.d/70-binds.kdl \
+    || fail "Mod+S bind missing in shell runtime niri defaults"
 
 jq -e '.bar.dynamicIsland.enabled == true and .bar.dynamicIsland.tools.enabled == true and .bar.dynamicIsland.tools.keybind == "Mod+S"' shell/defaults/config.json >/dev/null \
     || fail "shell defaults should enable Dynamic Island tools on Mod+S"
