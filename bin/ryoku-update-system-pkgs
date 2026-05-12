@@ -3,5 +3,22 @@
 set -e
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
+move_unowned_node_module() {
+  local package="$1"
+  local node_modules_dir="${RYOKU_SYSTEM_NODE_MODULES_DIR:-/usr/lib/node_modules}"
+  local path="$node_modules_dir/$package"
+  local backup_root="${RYOKU_PACMAN_CONFLICT_BACKUP_DIR:-/var/lib/ryoku/pacman-conflict-backups}"
+  local backup_path="$backup_root/${package}-$(date +%Y%m%d%H%M%S)"
+
+  [[ -e $path ]] || return 0
+  pacman -Q "$package" >/dev/null 2>&1 && return 0
+  pacman -Qo "$path" >/dev/null 2>&1 && return 0
+
+  echo "Moving unowned package-manager conflict: $path -> $backup_path"
+  sudo mkdir -p "$backup_root"
+  sudo mv "$path" "$backup_path"
+}
+
 echo -e "\e[32m\nUpdate system packages\e[0m"
+move_unowned_node_module semver
 sudo pacman -Syu --noconfirm
