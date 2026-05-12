@@ -288,7 +288,7 @@ Scope {
 
                     StyledText {
                         Layout.alignment: Qt.AlignHCenter
-                        text: "Mod+X cycle • Click to apply • Esc close"
+                        text: "Left/Right cycle - Click to apply - Esc close"
                         font.pixelSize: Appearance.font.pixelSize.smallest
                         color: Appearance.colors.colSubtext
                     }

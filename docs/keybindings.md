@@ -67,8 +67,8 @@ means `Alt`.
 
 | Binding | Action |
 | --- | --- |
-| `Mod+Left`, `Mod+H` | Focus column left. |
-| `Mod+Right`, `Mod+L` | Focus column right. |
+| `Mod+Left`, `Mod+H`, `Mod+Z` | Focus column left. |
+| `Mod+Right`, `Mod+L`, `Mod+X` | Focus column right. |
 | `Mod+Up`, `Mod+K` | Focus window up. |
 | `Mod+Down`, `Mod+J` | Focus window down. |
 | `Mod+Home` | Focus first column. |
