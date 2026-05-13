@@ -2,25 +2,18 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-CHROMIUM_THEME=$RYOKU_CONFIG_PATH/current/theme/chromium.theme
+chromium_theme="$RYOKU_CONFIG_PATH/current/theme/chromium.theme"
+theme_rgb_color="28,32,39"
 
-if ryoku-cmd-present chromium || ryoku-cmd-present brave; then
-  if [[ -f $CHROMIUM_THEME ]]; then
-    THEME_RGB_COLOR=$(<$CHROMIUM_THEME)
-    THEME_HEX_COLOR=$(printf '#%02x%02x%02x' ${THEME_RGB_COLOR//,/ })
-  else
-    # Use a default, neutral grey if theme doesn't have a color
-    THEME_RGB_COLOR="28,32,39"
-    THEME_HEX_COLOR="#1c2027"
-  fi
+if [[ -f $chromium_theme ]]; then
+  theme_rgb_color="$(<$chromium_theme)"
+fi
 
-  if ryoku-cmd-present chromium; then
-    echo "{\"BrowserThemeColor\": \"$THEME_HEX_COLOR\", \"BrowserColorScheme\": \"device\"}" | tee "/etc/chromium/policies/managed/color.json" >/dev/null
-    pgrep -x chromium >/dev/null && chromium --refresh-platform-policy --no-startup-window &>/dev/null
-  fi
+theme_hex_color="$(printf '#%02x%02x%02x' ${theme_rgb_color//,/ })"
+theme_script="$RYOKU_PATH/shell/scripts/colors/apply-chrome-theme.sh"
 
-  if ryoku-cmd-present brave; then
-    echo "{\"BrowserThemeColor\": \"$THEME_HEX_COLOR\", \"BrowserColorScheme\": \"device\"}" | tee "/etc/brave/policies/managed/color.json" >/dev/null
-    pgrep -x brave >/dev/null && brave --refresh-platform-policy --no-startup-window &>/dev/null
-  fi
+if [[ -x $theme_script ]]; then
+  "$theme_script" "$theme_hex_color"
+elif [[ -f $theme_script ]]; then
+  bash "$theme_script" "$theme_hex_color"
 fi
