@@ -1,0 +1,40 @@
+#!/bin/bash
+
+set -euo pipefail
+
+RYOKU_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+SOURCE="config/niri/config.d/70-binds.kdl"
+TARGET="$RYOKU_PATH/docs/keybindings.md"
+
+usage() {
+  echo "Usage: $0 [--stdout]" >&2
+}
+
+stdout=0
+
+if (( $# > 1 )); then
+  usage
+  exit 2
+fi
+
+if (( $# == 1 )); then
+  if [[ $1 == "--stdout" ]]; then
+    stdout=1
+  else
+    usage
+    exit 2
+  fi
+fi
+
+if (( stdout )); then
+  cd "$RYOKU_PATH"
+  python3 shell/scripts/render_keybindings_docs.py "$SOURCE"
+else
+  tmp="$(mktemp)"
+  trap 'rm -f "$tmp"' EXIT
+
+  cd "$RYOKU_PATH"
+  python3 shell/scripts/render_keybindings_docs.py "$SOURCE" >"$tmp"
+  mv "$tmp" "$TARGET"
+  trap - EXIT
+fi

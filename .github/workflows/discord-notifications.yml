@@ -1,0 +1,258 @@
+name: Discord Notifications
+
+on:
+  issues:
+    types:
+      - opened
+  pull_request_target:
+    types:
+      - opened
+  workflow_dispatch:
+    inputs:
+      preview:
+        description: Notification preview to send
+        required: true
+        default: both
+        type: choice
+        options:
+          - both
+          - issue
+          - pull_request
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    name: Send Discord notification
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+    steps:
+      - name: Send notification
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -z $DISCORD_WEBHOOK_URL ]]; then
+            echo "::notice::DISCORD_WEBHOOK_URL secret is not configured; skipping Discord notification."
+            exit 0
+          fi
+
+          event_name="$GITHUB_EVENT_NAME"
+          repo="$GITHUB_REPOSITORY"
+          brand_mark_url="https://raw.githubusercontent.com/$repo/main/assets/brand/logo-mark.png"
+          brand_footer="Ryoku Arch : For the sake of power and beauty."
+
+          limit_text() {
+            local max="$1"
+            local value="$2"
+
+            jq -rn --arg value "$value" --argjson max "$max" '
+              $value
+              | gsub("\r"; "")
+              | if length > $max then .[0:($max - 3)] + "..." else . end
+            '
+          }
+
+          body_preview() {
+            jq -rn --arg body "$1" '
+              $body
+              | gsub("\r"; "")
+              | split("\n")
+              | .[0:8]
+              | join("\n")
+              | if length > 900 then .[0:900] + "..." else . end
+            '
+          }
+
+          send_discord() {
+            local content="$1"
+            local embed_title="$2"
+            local url="$3"
+            local description="$4"
+            local color="$5"
+            local author="$6"
+            local field_one_name="$7"
+            local field_one_value="$8"
+            local field_two_name="$9"
+            local field_two_value="${10}"
+            local focus_value="${11}"
+
+            jq -n \
+              --arg content "$(limit_text 1900 "$content")" \
+              --arg embed_title "$(limit_text 240 "$embed_title")" \
+              --arg url "$url" \
+              --arg description "$description" \
+              --arg repo "$repo" \
+              --arg author "$author" \
+              --arg field_one_name "$field_one_name" \
+              --arg field_one_value "$(limit_text 1000 "$field_one_value")" \
+              --arg field_two_name "$field_two_name" \
+              --arg field_two_value "$(limit_text 1000 "$field_two_value")" \
+              --arg focus_value "$focus_value" \
+              --arg brand_mark_url "$brand_mark_url" \
+              --arg brand_footer "$brand_footer" \
+              --argjson color "$color" \
+              '{
+              username: "Ryoku GitHub",
+              avatar_url: $brand_mark_url,
+              content: $content,
+              allowed_mentions: {
+                parse: []
+              },
+              embeds: [
+                ({
+                  title: $embed_title,
+                  url: $url,
+                  color: $color,
+                  thumbnail: {
+                    url: $brand_mark_url
+                  },
+                  fields: [
+                    {
+                      name: "Repository",
+                      value: $repo,
+                      inline: true
+                    },
+                    {
+                      name: "Opened by",
+                      value: $author,
+                      inline: true
+                    },
+                    {
+                      name: $field_one_name,
+                      value: $field_one_value,
+                      inline: false
+                    },
+                    {
+                      name: $field_two_name,
+                      value: $field_two_value,
+                      inline: false
+                    },
+                    {
+                      name: "Maintainer focus",
+                      value: $focus_value,
+                      inline: false
+                    }
+                  ],
+                  footer: {
+                    text: $brand_footer,
+                    icon_url: $brand_mark_url
+                  },
+                  timestamp: (now | todateiso8601)
+                } + (if $description == "" then {} else {description: $description} end))
+              ]
+            }' > /tmp/discord-payload.json
+
+            http_code="$(
+              curl -sS -o /tmp/discord-response.json -w "%{http_code}" \
+                -H "Content-Type: application/json" \
+                -X POST \
+                --data-binary @/tmp/discord-payload.json \
+                "$DISCORD_WEBHOOK_URL"
+            )"
+
+            if [[ $http_code != "200" && $http_code != "204" ]]; then
+              echo "Discord webhook returned HTTP $http_code" >&2
+              cat /tmp/discord-response.json >&2
+              exit 1
+            fi
+
+            echo "Discord notification sent."
+          }
+
+          send_issue_notification() {
+            local number="$1"
+            local title="$2"
+            local url="$3"
+            local author="$4"
+            local raw_body="$5"
+            local labels="$6"
+
+            send_discord \
+              "Ryoku issue intake: #$number opened by $author" \
+              "Issue intake #$number: $title" \
+              "$url" \
+              "$(body_preview "$raw_body")" \
+              "15881763" \
+              "$author" \
+              "Labels" \
+              "$labels" \
+              "Signal" \
+              "New user report or maintainer task waiting for triage." \
+              "Confirm scope, reproduce when needed, then label or assign."
+          }
+
+          send_pull_request_notification() {
+            local number="$1"
+            local title="$2"
+            local url="$3"
+            local author="$4"
+            local raw_body="$5"
+            local branch="$6"
+            local base="$7"
+
+            send_discord \
+              "Ryoku change review: #$number opened by $author" \
+              "Change review #$number: $title" \
+              "$url" \
+              "$(body_preview "$raw_body")" \
+              "8955261" \
+              "$author" \
+              "Branch" \
+              "$branch" \
+              "Base" \
+              "$base" \
+              "Inspect the diff, watch install and migration paths, then run focused checks."
+          }
+
+          if [[ $event_name == "issues" ]]; then
+            send_issue_notification \
+              "$(jq -r '.issue.number' "$GITHUB_EVENT_PATH")" \
+              "$(jq -r '.issue.title' "$GITHUB_EVENT_PATH")" \
+              "$(jq -r '.issue.html_url' "$GITHUB_EVENT_PATH")" \
+              "$(jq -r '.issue.user.login' "$GITHUB_EVENT_PATH")" \
+              "$(jq -r '.issue.body // ""' "$GITHUB_EVENT_PATH")" \
+              "$(jq -r '[.issue.labels[].name] | if length == 0 then "None" else join(", ") end' "$GITHUB_EVENT_PATH")"
+          elif [[ $event_name == "pull_request_target" ]]; then
+            head_repo="$(jq -r '.pull_request.head.repo.full_name' "$GITHUB_EVENT_PATH")"
+            head_ref="$(jq -r '.pull_request.head.ref' "$GITHUB_EVENT_PATH")"
+            base_ref="$(jq -r '.pull_request.base.ref' "$GITHUB_EVENT_PATH")"
+            send_pull_request_notification \
+              "$(jq -r '.pull_request.number' "$GITHUB_EVENT_PATH")" \
+              "$(jq -r '.pull_request.title' "$GITHUB_EVENT_PATH")" \
+              "$(jq -r '.pull_request.html_url' "$GITHUB_EVENT_PATH")" \
+              "$(jq -r '.pull_request.user.login' "$GITHUB_EVENT_PATH")" \
+              "$(jq -r '.pull_request.body // ""' "$GITHUB_EVENT_PATH")" \
+              "$head_repo:$head_ref" \
+              "$base_ref"
+          elif [[ $event_name == "workflow_dispatch" ]]; then
+            preview="$(jq -r '.inputs.preview // "both"' "$GITHUB_EVENT_PATH")"
+
+            if [[ $preview == "both" || $preview == "issue" ]]; then
+              send_issue_notification \
+                "9001" \
+                "Preview issue: shell startup needs attention" \
+                "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/issues" \
+                "$GITHUB_ACTOR" \
+                "A maintainer can use this preview to verify issue notifications in the shared Ryoku channel." \
+                "preview, triage"
+            fi
+
+            if [[ $preview == "both" || $preview == "pull_request" ]]; then
+              send_pull_request_notification \
+                "9002" \
+                "Preview PR: refine Discord notification styling" \
+                "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/pulls" \
+                "$GITHUB_ACTOR" \
+                "A maintainer can use this preview to verify pull request notifications in the shared Ryoku channel." \
+                "$GITHUB_REPOSITORY:preview/discord-notifications" \
+                "main"
+            fi
+          else
+            echo "::notice::Unsupported event $event_name; skipping Discord notification."
+            exit 0
+          fi

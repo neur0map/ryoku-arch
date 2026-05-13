@@ -1,0 +1,143 @@
+name: Inclusive Language
+
+on:
+  pull_request:
+    paths:
+      - '**/*.bash'
+      - '**/*.json'
+      - '**/*.md'
+      - '**/*.mdx'
+      - '**/*.sh'
+      - '**/*.toml'
+      - '**/*.tpl'
+      - '**/*.txt'
+      - '**/*.yaml'
+      - '**/*.yml'
+      - '.github/workflows/**'
+      - '.woke.yml'
+      - 'bin/**'
+      - 'config/**'
+      - 'default/**'
+      - 'docs/**'
+      - 'install/**'
+      - 'iso/bin/**'
+  push:
+    branches:
+      - main
+    paths:
+      - '**/*.bash'
+      - '**/*.json'
+      - '**/*.md'
+      - '**/*.mdx'
+      - '**/*.sh'
+      - '**/*.toml'
+      - '**/*.tpl'
+      - '**/*.txt'
+      - '**/*.yaml'
+      - '**/*.yml'
+      - '.github/workflows/**'
+      - '.woke.yml'
+      - 'bin/**'
+      - 'config/**'
+      - 'default/**'
+      - 'docs/**'
+      - 'install/**'
+      - 'iso/bin/**'
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: Files to lint
+        required: true
+        default: changed
+        type: choice
+        options:
+          - changed
+          - all
+
+permissions:
+  contents: read
+
+jobs:
+  woke:
+    name: Woke changed text files
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install woke
+        shell: bash
+        run: |
+          set -euo pipefail
+          go install github.com/get-woke/woke@v0.19.0
+          echo "$(go env GOPATH)/bin" >>"$GITHUB_PATH"
+
+      - name: Collect files
+        id: files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          files="$(mktemp)"
+          scope="${{ github.event.inputs.scope || 'changed' }}"
+
+          collect_from_git_stream() {
+            while IFS= read -r -d '' file; do
+              [[ -f $file ]] || continue
+
+              case "$file" in
+                assets/*|docs/media/*|keys/*|shell/*|config/fonts/*|default/plymouth/*|iso/configs/airootfs/etc/modprobe.d/*|iso/release/*|tmp/*)
+                  continue
+                  ;;
+                *.bash|*.conf|*.css|*.desktop|*.ini|*.json|*.kdl|*.md|*.mdx|*.rules|*.sample|*.service|*.sh|*.timer|*.toml|*.tpl|*.txt|*.xml|*.yaml|*.yml|AGENTS.md|CONTRIBUTING.md|CREDITS.md|README.md|SECURITY.md|bin/*|docs/*|iso/bin/*|.github/workflows/*|.woke.yml)
+                  mime_type="$(file -b --mime-type "$file")"
+                  if [[ $mime_type == text/* || $mime_type == application/json || $mime_type == application/xml || $mime_type == application/x-shellscript || $mime_type == inode/x-empty ]]; then
+                    printf '%s\0' "$file" >>"$files"
+                  fi
+                  ;;
+              esac
+            done
+          }
+
+          if [[ $scope == "all" ]]; then
+            git ls-files -z | collect_from_git_stream
+          elif [[ $GITHUB_EVENT_NAME == "pull_request" ]]; then
+            git diff --name-only --diff-filter=ACM -z \
+              "${{ github.event.pull_request.base.sha }}" \
+              "${{ github.event.pull_request.head.sha }}" \
+              | collect_from_git_stream
+          elif [[ $GITHUB_EVENT_NAME == "push" ]]; then
+            before="${{ github.event.before }}"
+
+            if [[ -z $before || $before == "0000000000000000000000000000000000000000" ]]; then
+              git ls-files -z | collect_from_git_stream
+            else
+              git diff --name-only --diff-filter=ACM -z \
+                "$before" \
+                "${{ github.sha }}" \
+                | collect_from_git_stream
+            fi
+          else
+            git diff --name-only --diff-filter=ACM -z HEAD~1 HEAD | collect_from_git_stream
+          fi
+
+          if [[ ! -s $files ]]; then
+            echo "has_files=false" >>"$GITHUB_OUTPUT"
+            echo "No text files to lint."
+            exit 0
+          fi
+
+          sort -zu "$files" > woke-files.txt
+          echo "has_files=true" >>"$GITHUB_OUTPUT"
+          echo "Files selected for woke:"
+          tr '\0' '\n' < woke-files.txt
+
+      - name: Run woke
+        if: steps.files.outputs.has_files == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          xargs -0 woke --config .woke.yml --exit-1-on-failure --output github-actions < woke-files.txt

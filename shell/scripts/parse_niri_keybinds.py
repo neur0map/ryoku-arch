@@ -91,6 +91,7 @@ def parse_keybinds_from_block(binds_content: str) -> list[dict]:
         comment = overlay_title if overlay_title else generate_comment(action)
         
         keybinds.append({
+            'combo': key_combo,
             'mods': mods,
             'key': key,
             'action': action,
@@ -174,18 +175,19 @@ ACTION_MAP = {
 IPC_MAP = {
     ('altSwitcher', 'next'): 'Next window',
     ('altSwitcher', 'previous'): 'Previous window',
-    ('overlay', 'toggle'): 'Ryoku Overlay',
-    ('overview', 'toggle'): 'Ryoku Overview',
-    ('clipboard', 'toggle'): 'Clipboard',
-    ('lock', 'activate'): 'Lock screen',
+    ('overlay', 'toggle'): 'Crosshair overlay',
+    ('overview', 'toggle'): 'App launcher / shell overview',
+    ('clipboard', 'toggle'): 'Clipboard history',
+    ('lock', 'activate'): 'Lock session',
+    ('toolsMode', 'toggle'): 'Toolkit pill',
     ('region', 'screenshot'): 'Screenshot region',
     ('region', 'ocr'): 'OCR region',
-    ('region', 'search'): 'Reverse image search',
+    ('region', 'search'): 'Region web search',
     ('wallpaperSelector', 'toggle'): 'Wallpaper selector',
     ('settings', 'open'): 'Settings',
     ('cheatsheet', 'toggle'): 'Cheatsheet',
     ('panelFamily', 'cycle'): 'Cycle panel style',
-    ('session', 'toggle'): 'Session dialog',
+    ('session', 'toggle'): 'Session / power dialog',
     ('browser', 'open'): 'Browser',
     ('audio', 'volumeUp'): 'Volume up',
     ('audio', 'volumeDown'): 'Volume down',
@@ -209,27 +211,28 @@ BROWSERS = ['firefox', 'zen-browser', 'chromium', 'brave', 'vivaldi']
 
 
 def parse_ryoku_action(action: str) -> tuple[str, str] | None:
-    ipc_match = re.search(r'spawn\s+"(?:[^"]*/)?inir"\s+"ipc"\s+"call"\s+"([\w-]+)"\s+"([\w-]+)"', action)
+    launcher = r'(?:inir|ryoku-shell)'
+    ipc_match = re.search(rf'spawn\s+"(?:[^"]*/)?{launcher}"\s+"ipc"\s+"call"\s+"([\w-]+)"\s+"([\w-]+)"', action)
     if ipc_match:
         return ipc_match.group(1), ipc_match.group(2)
 
-    settings_match = re.search(r'spawn\s+"(?:[^"]*/)?inir"\s+"settings"(?:\s|;|$)', action)
+    settings_match = re.search(rf'spawn\s+"(?:[^"]*/)?{launcher}"\s+"settings"(?:\s|;|$)', action)
     if settings_match:
         return 'settings', 'open'
 
-    terminal_match = re.search(r'spawn\s+"(?:[^"]*/)?inir"\s+"terminal"(?:\s|;|$)', action)
+    terminal_match = re.search(rf'spawn\s+"(?:[^"]*/)?{launcher}"\s+"terminal"(?:\s|;|$)', action)
     if terminal_match:
         return 'launcher', 'terminal'
 
-    close_window_match = re.search(r'spawn\s+"(?:[^"]*/)?inir"\s+"close-window"(?:\s|;|$)', action)
+    close_window_match = re.search(rf'spawn\s+"(?:[^"]*/)?{launcher}"\s+"close-window"(?:\s|;|$)', action)
     if close_window_match:
         return 'launcher', 'close-window'
 
-    browser_match = re.search(r'spawn\s+"(?:[^"]*/)?inir"\s+"browser"(?:\s|;|$)', action)
+    browser_match = re.search(rf'spawn\s+"(?:[^"]*/)?{launcher}"\s+"browser"(?:\s|;|$)', action)
     if browser_match:
         return 'browser', 'open'
 
-    direct_match = re.search(r'spawn\s+"(?:[^"]*/)?inir"\s+"([\w-]+)"\s+"([\w-]+)"', action)
+    direct_match = re.search(rf'spawn\s+"(?:[^"]*/)?{launcher}"\s+"([\w-]+)"\s+"([\w-]+)"', action)
     if direct_match:
         return direct_match.group(1), direct_match.group(2)
 
@@ -320,15 +323,17 @@ def categorize_keybind(kb: dict) -> str:
         return 'System'
     
     # Ryoku Shell
-    if any(x in comment for x in ['inir ', 'ryoku-shell ', 'clipboard', 'lock screen', 'wallpaper', 'settings', 'cheatsheet', 'panel style']):
+    if any(x in comment for x in ['inir ', 'ryoku-shell ', 'clipboard', 'lock session', 'wallpaper', 'settings', 'cheatsheet', 'panel style', 'toolkit']):
         return 'Ryoku Shell'
     ryoku_action = parse_ryoku_action(action)
     if ryoku_action:
         target, _func = ryoku_action
-        if target in ('overlay', 'overview', 'clipboard', 'lock', 'wallpaperSelector', 'settings', 'cheatsheet', 'panelFamily', 'session'):
+        if target in ('overlay', 'overview', 'clipboard', 'lock', 'toolsMode', 'wallpaperSelector', 'settings', 'cheatsheet', 'panelFamily', 'session'):
             return 'Ryoku Shell'
         if target == 'altSwitcher':
             return 'Window Switcher'
+        if target == 'region':
+            return 'Screenshots'
         if target in ('audio', 'mpris'):
             return 'Media'
         if target == 'brightness':
@@ -451,6 +456,7 @@ def parse_niri_config(config_path: Path) -> dict:
         if category not in keybinds_by_category:
             keybinds_by_category[category] = []
         keybinds_by_category[category].append({
+            'combo': kb['combo'],
             'mods': kb['mods'],
             'key': kb['key'],
             'comment': kb['comment']

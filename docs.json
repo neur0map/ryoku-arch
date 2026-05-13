@@ -7,10 +7,10 @@
     "light": "#F56E0F",
     "dark": "#C0431B"
   },
-  "favicon": "/logo.svg",
+  "favicon": "/assets/brand/logo.svg",
   "logo": {
-    "light": "/logo/light.png",
-    "dark": "/logo/dark.png"
+    "light": "/assets/brand/light.png",
+    "dark": "/assets/brand/dark.png"
   },
   "seo": {
     "metatags": {

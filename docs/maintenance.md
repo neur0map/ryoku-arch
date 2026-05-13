@@ -149,7 +149,7 @@ Tip: test the migration on your own live clone before pushing by pulling and run
 
 ### Testing the update loop
 
-Run a probe whenever you want to sanity-check that pushes flow to the live system:
+Run a probe whenever you want to verify that pushes flow to the live system:
 
 ```bash
 # Dev folder
@@ -316,6 +316,12 @@ Options, from least to most automated:
 7. **No em-dashes.** Use colons, commas, periods, or parens. This applies to anything committed: commits, docs, code comments, the README.
 8. **No personal machine paths.** Repo files should use portable paths like `$HOME`, `~`, `$RYOKU_PATH`, repo-relative paths, or runtime discovery. Do not commit hardcoded user home paths, runtime UID paths, per-run logs, or machine-id boot paths unless a historical recovery document explicitly needs them.
 
+## Repo layout
+
+Keep the repo root limited to project entrypoints and repo metadata. Brand images, SVGs, and text art live in `assets/brand/`. Maintainer task tracking lives in `docs/TODO.md` with the rest of the project docs.
+
+The two version files are intentionally left in place for now. The root `version` file is the Ryoku project version fallback used by the shell update UI when it is reading the whole Ryoku repo. `shell/VERSION` belongs to the bundled Quickshell layer and is read by the shell setup, packaging, and update code that expects an uppercase `VERSION` inside the shell tree. Do not merge or rename them until the shell version discovery path is unified.
+
 ## Git hooks
 
 Ryoku Arch ships a set of git hooks that enforce the safety rules above mechanically. They live in `.githooks/` at the repo root and get activated per-clone via `core.hooksPath`.
@@ -353,6 +359,50 @@ ls -la .githooks                       # all files executable
 ### Extending
 
 To add a new check, edit the relevant hook file in `.githooks/`, commit, push. Contributors pulling the change then re-run `bin/ryoku-dev-install-hooks` to pick up the new `chmod +x` if needed (no config change required; `core.hooksPath` stays the same).
+
+## CI checks
+
+`.github/workflows/shellcheck.yml` runs ShellCheck on shell files changed by a pull request or push to `main`. This keeps new shell changes linted without blocking the repo on historical ShellCheck debt. Maintainers can run the workflow manually with `scope = all` when doing a cleanup pass.
+
+`.github/workflows/codeql.yml` runs CodeQL on GitHub Actions workflows, JavaScript/TypeScript, Python, and Go. It runs on pull requests, pushes to `main`, a weekly schedule, and manual dispatch. Shell remains covered by ShellCheck, not CodeQL.
+
+`.github/workflows/qmllint.yml` runs Qt's official `qmllint` against changed QML files in the bundled Quickshell tree. It installs Ubuntu's `qt6-declarative-dev` package, resolves `/usr/lib/qt6/bin/qmllint`, and exposes `shell/` as the `qs` import root for local modules. `.qmllint.ini` intentionally suppresses missing-type/import noise from Quickshell-specific modules that are not available on the GitHub runner; this keeps the first pass useful for syntax and low-noise QML validation.
+
+`.github/workflows/inclusive-language.yml` runs `woke` on changed text files with GitHub Actions annotations. It pins `woke` so upstream rule updates do not create surprise failures, uses `.woke.yml` for repo-specific ignores, and avoids inherited shell sources, binary assets, media, signing keys, and technical modprobe directives. Maintainers can run the workflow manually with `scope = all` when doing a language cleanup pass.
+
+`.github/workflows/trivy.yml` runs Trivy against the repository filesystem for dependency vulnerabilities, exposed secrets, and configuration mistakes. It uploads a SARIF report for GitHub code scanning, blocks high/critical secret findings, and blocks critical vulnerability or misconfiguration findings. The Trivy action is pinned to a full commit SHA because security scanners are part of the CI attack surface.
+
+`.github/workflows/build-iso.yml` also runs Trivy after the ISO is built. It mounts the ISO's SquashFS live root, scans that root filesystem, uploads a `trivy-iso` SARIF report, and blocks signing, uploading, and Discord release announcements when critical CVEs or misconfigurations are found in the built image.
+
+False-positive rule: prefer narrowing the scanned file set before adding broad ignores. Technical terms required by upstream config formats, generated files, binary assets, package caches, media, and vendored/inherited documentation should be skipped explicitly instead of making the linter less strict everywhere.
+
+`.github/workflows/docs-sync.yml` keeps Mintlify-facing docs honest. It checks that `docs/keybindings.md` was regenerated from `config/niri/config.d/70-binds.kdl`, parses `docs.json`, then runs the Mintlify CLI validation and broken-link checks. `.mintignore` excludes vendored shell docs that are not part of the public docs site. If you edit keybindings, run:
+
+```bash
+bin/ryoku-dev-generate-keybindings-docs
+```
+
+The hosted docs are connected through the Mintlify GitHub App. GitHub deployments show `mintlify[bot]` deploying `main` to `https://docs.ryoku.dev`; that deployment happens after committed changes reach the connected branch. The repo-side job above catches stale generated docs before Mintlify deploys them.
+
+## Snyk
+
+Recommended setup is Snyk's GitHub integration, imported from the Snyk Web UI, rather than a token-based GitHub Actions workflow at first. Import `neur0map/ryoku-arch`, enable PR checks for open-source and code analysis if available on the account, and keep automatic fix or upgrade PRs conservative until the signal is useful.
+
+The repo currently has limited dependency manifests, mainly `shell/go.mod`, so Snyk should complement CodeQL, ShellCheck, and the shell-script alert instead of replacing them. If Snyk is later run from GitHub Actions, add a `SNYK_TOKEN` repository secret and document the severity threshold before making that workflow blocking.
+
+## Discord notifications
+
+Ryoku uses `.github/workflows/discord-notifications.yml` to post Discord messages when someone opens a new issue or pull request. Issue notifications use the brand orange accent, pull request notifications use the Greek Noir muted green-gray accent, and both use the Ryoku mark from `assets/brand/logo-mark.png`.
+
+Setup:
+
+1. Create or choose the Discord channel for Ryoku repository activity.
+2. In Discord, open the channel settings, then Integrations, then Webhooks, and create a webhook.
+3. In GitHub, open the Ryoku repository settings, then Secrets and variables, then Actions.
+4. Add a repository secret named `DISCORD_WEBHOOK_URL` with the webhook URL as the value.
+5. Run the `Discord Notifications` workflow manually with `preview = both` to verify the channel receives separate issue and pull request preview messages.
+
+Keep these notifications on-brand and public-channel safe: no emoji, no extra accent colors, no generated-content attribution, and no internal workflow-run links. The pull request trigger uses `pull_request_target` so forked pull requests can notify the channel. Keep that workflow limited to reading `$GITHUB_EVENT_PATH` and sending the webhook. Do not add checkout, build, install, or script execution steps to that workflow.
 
 ## Rollback
 

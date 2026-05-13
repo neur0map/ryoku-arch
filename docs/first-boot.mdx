@@ -7,7 +7,7 @@ After install, the machine reboots into SDDM. Pick the **Ryoku** session (Niri) 
 
 ## What you see
 
-- **Top: the bar.** Three "islands" left to right — left island (sidebar handle, active window), center island (workspaces dots), right island (clock, system indicators, SecPulse).
+- **Top: the bar.** Three "islands" left to right: left island (sidebar handle, active window), center island (workspaces dots), right island (clock, system indicators, SecPulse).
 - **Background: the wallpaper.** A default Ryoku wallpaper ships; change it via `Ctrl+Alt+T` or Settings.
 - **No windows yet.** Niri is a tiling compositor; nothing is open until you open it. `Mod+T` for a terminal.
 
@@ -42,16 +42,16 @@ Both can be closed by clicking outside them or by re-pressing their trigger.
 - **Change the wallpaper.** `Ctrl+Alt+T` opens the picker. Drops in `~/Pictures/Wallpapers`. Theme colors regenerate from the selected wallpaper unless you've set a static accent.
 - **Pick a panel family.** `Mod+Shift+W` cycles `ii` ↔ `waffle`. Each family has its own visual language.
 - **Pick a skin.** Settings → Appearance to switch between Material, Aurora, Angel, Ryoku-Shell, and Cards.
-- **Wire up your VPN.** Settings → Security → OpenVPN profiles. See [security tools](security-tools).
+- **Wire up your VPN.** Settings → Security → OpenVPN profiles. See [security tools](/docs/security-tools).
 - **Update the shell.** `ryoku-update` in a terminal, or click the update indicator when it appears in the bar.
 
 ## If the bar isn't there
 
-Press `Mod+Slash`; if the cheatsheet doesn't open either, the shell isn't running. Drop to a TTY (`Ctrl+Alt+F2`), log in, and run `journalctl --user -u quickshell -n 50` to see why. The [troubleshooting guide](troubleshoot) covers common boot/login issues.
+Press `Mod+Slash`; if the cheatsheet doesn't open either, the shell isn't running. Drop to a TTY (`Ctrl+Alt+F2`), log in, and run `journalctl --user -u quickshell -n 50` to see why. The [troubleshooting guide](/docs/troubleshoot) covers common boot/login issues.
 
 ## Where to go next
 
-- [Desktop tour](tour) — Niri's scrollable workspace model and the bar / sidebar surfaces in depth.
-- [Keybindings](keybindings) — every shipped binding.
-- [Security tools](security-tools) — OpenVPN sidebar, SecPulse, the in-shell polkit agent.
-- [Customize](customize) — themes, wallpapers, bar items, keybinds.
+- [Desktop tour](/docs/tour): Niri's scrollable workspace model and the bar / sidebar surfaces in depth.
+- [Keybindings](/docs/keybindings): every shipped binding.
+- [Security tools](/docs/security-tools): OpenVPN sidebar, SecPulse, the in-shell polkit agent.
+- [Customize](/docs/customize): themes, wallpapers, bar items, keybinds.

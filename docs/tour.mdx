@@ -15,46 +15,46 @@ Niri is a **scrollable tiling** compositor. Unlike traditional tilers that pack 
 - `Mod+D` maximizes the focused column; `Mod+F` fullscreens.
 - `Mod+R` cycles preset column widths if you don't want to fiddle with `Mod+Minus` / `Mod+Equal`.
 
-Workspaces stack vertically. `Mod+K` / `Mod+J` jump between workspaces. `Mod+Tab` opens the overview — a zoomed-out grid of every workspace, scroll-pannable with the mouse.
+Workspaces stack vertically. `Mod+K` / `Mod+J` jump between workspaces. `Mod+Tab` opens the overview: a zoomed-out grid of every workspace, scroll-pannable with the mouse.
 
 ## The topbar
 
 Three "islands" sit at the top of the screen. Each island is a self-contained surface that absorbs its own clicks and ignores everything outside.
 
 ### Left island
-- **Sidebar handle** — click to toggle the left sidebar.
-- **Active window** — title and app icon of the focused window.
+- **Sidebar handle:** click to toggle the left sidebar.
+- **Active window:** title and app icon of the focused window.
 
 ### Center island
-- **Workspaces** — one dot per workspace on the current monitor. Active workspace is the filled pill. Right-click toggles the Niri overview. Scroll wheel cycles workspaces.
+- **Workspaces:** one dot per workspace on the current monitor. Active workspace is the filled pill. Right-click toggles the Niri overview. Scroll wheel cycles workspaces.
 
 ### Right island
-- **Resources** — CPU / memory / network at a glance. Hover for details.
-- **SecPulse** — combined VPN status pill (OpenVPN + Tailscale). Click opens the right sidebar.
-- **System tray** — third-party app trays (Discord, Steam, etc.).
-- **Clock** — date + time. Click opens the right sidebar.
+- **Resources:** CPU / memory / network at a glance. Hover for details.
+- **SecPulse:** combined VPN status pill (OpenVPN + Tailscale). Click opens the right sidebar.
+- **System tray:** third-party app trays (Discord, Steam, etc.).
+- **Clock:** date + time. Click opens the right sidebar.
 
 Every bar widget can be toggled, removed, or rearranged from **Settings → Bar**. The bar is meant to be earned, not inherited.
 
 ## The sidebars
 
 ### Right sidebar (`Mod+B` or top-right click)
-- **Quick toggles** — wifi, bluetooth, night light, do-not-disturb, hotspot.
-- **OpenVPN** — pick a profile and toggle the tunnel. See [security tools](security-tools).
-- **Tailscale** — connection state and exit-node picker.
-- **Calendar / Events** — month view + upcoming items.
-- **Notepad** — quick text scratchpad, persisted to `~/.local/state/quickshell/notepad.txt`.
-- **Todo** — checkboxes + categories.
-- **Pomodoro** — work / break timer.
-- **Sysmon** — live system monitor.
-- **Network monitor** — listening sockets, active connections, latency.
-- **Hosts** — `/etc/hosts` viewer / editor.
+- **Quick toggles:** wifi, bluetooth, night light, do-not-disturb, hotspot.
+- **OpenVPN:** pick a profile and toggle the tunnel. See [security tools](/docs/security-tools).
+- **Tailscale:** connection state and exit-node picker.
+- **Calendar / Events:** month view + upcoming items.
+- **Notepad:** quick text scratchpad, persisted to `~/.local/state/quickshell/notepad.txt`.
+- **Todo:** checkboxes + categories.
+- **Pomodoro:** work / break timer.
+- **Sysmon:** live system monitor.
+- **Network monitor:** listening sockets, active connections, latency.
+- **Hosts:** `/etc/hosts` viewer / editor.
 - **Calculator**.
 
 ### Left sidebar (top-left click)
-- **Notifications** — history + clear-all.
-- **Wallhaven** — search and apply wallpapers from wallhaven.cc.
-- **Anime** — booru-based image search.
+- **Notifications:** history + clear-all.
+- **Wallhaven:** search and apply wallpapers from wallhaven.cc.
+- **Anime:** booru-based image search.
 
 ## Lock screen and login
 
@@ -71,6 +71,6 @@ Every bar widget can be toggled, removed, or rearranged from **Settings → Bar*
 
 ## Where to go next
 
-- [Keybindings](keybindings) — the full shipped reference.
-- [Customize](customize) — themes, wallpapers, bar items.
-- [Security tools](security-tools) — OpenVPN, Tailscale, SecPulse, polkit.
+- [Keybindings](/docs/keybindings): the full shipped reference.
+- [Customize](/docs/customize): themes, wallpapers, bar items.
+- [Security tools](/docs/security-tools): OpenVPN, Tailscale, SecPulse, polkit.

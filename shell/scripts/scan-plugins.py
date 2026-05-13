@@ -10,6 +10,8 @@ import os
 import shutil
 import sys
 
+MAX_USERSCRIPT_BYTES = 512 * 1024
+
 
 def resolve_shell_config_dir() -> str:
     xdg_config = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
@@ -23,6 +25,25 @@ def resolve_shell_config_dir() -> str:
     if os.path.isdir(new_dir):
         return new_dir
     return new_dir
+
+
+def safe_plugin_path(plugin_dir: str, relative_path: str) -> str | None:
+    """Return a path only when a manifest entry stays inside plugin_dir."""
+    if not isinstance(relative_path, str):
+        return None
+    if not relative_path or os.path.isabs(relative_path) or "\x00" in relative_path:
+        return None
+
+    root = os.path.realpath(plugin_dir)
+    candidate = os.path.realpath(os.path.join(root, relative_path))
+
+    try:
+        if os.path.commonpath([root, candidate]) != root:
+            return None
+    except ValueError:
+        return None
+
+    return candidate
 
 
 plugins_dir = os.path.join(resolve_shell_config_dir(), "plugins")
@@ -84,23 +105,35 @@ for entry in sorted(os.listdir(plugins_dir)):
             # Resolve iconPath to an absolute faviconPath
             icon_path = data.get("iconPath")
             if icon_path:
-                full_path = os.path.join(plugin_dir, icon_path)
-                if os.path.isfile(full_path):
+                full_path = safe_plugin_path(plugin_dir, icon_path)
+                if full_path and os.path.isfile(full_path):
                     data["faviconPath"] = full_path
+                else:
+                    data.pop("iconPath", None)
             # Resolve userscripts to absolute paths and read their source code
             scripts = data.get("userscripts", [])
+            if not isinstance(scripts, list):
+                scripts = []
+                data["userscripts"] = []
             if scripts:
+                safe_scripts = []
                 resolved = []
                 sources = []
                 for s in scripts:
-                    full = os.path.join(plugin_dir, s)
-                    if os.path.isfile(full):
+                    if not isinstance(s, str) or not s.endswith(".js"):
+                        continue
+                    full = safe_plugin_path(plugin_dir, s)
+                    if full and os.path.isfile(full):
+                        if os.path.getsize(full) > MAX_USERSCRIPT_BYTES:
+                            continue
+                        safe_scripts.append(s)
                         resolved.append(full)
                         try:
-                            with open(full, "r") as sf:
+                            with open(full, "r", encoding="utf-8", errors="replace") as sf:
                                 sources.append(sf.read())
                         except OSError:
                             sources.append("")
+                data["userscripts"] = safe_scripts
                 data["userscriptPaths"] = resolved
                 data["userscriptSources"] = sources
             plugins.append(data)

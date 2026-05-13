@@ -1,0 +1,79 @@
+name: Docs Sync
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/docs-sync.yml'
+      - '.mintignore'
+      - 'bin/ryoku-dev-generate-keybindings-docs'
+      - 'config/niri/config.d/70-binds.kdl'
+      - 'docs/**'
+      - 'docs.json'
+      - 'index.mdx'
+      - 'shell/scripts/parse_niri_keybinds.py'
+      - 'shell/scripts/render_keybindings_docs.py'
+      - 'shell/defaults/niri/config.d/70-binds.kdl'
+      - 'tests/niri-keybinds.sh'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/docs-sync.yml'
+      - '.mintignore'
+      - 'bin/ryoku-dev-generate-keybindings-docs'
+      - 'config/niri/config.d/70-binds.kdl'
+      - 'docs/**'
+      - 'docs.json'
+      - 'index.mdx'
+      - 'shell/scripts/parse_niri_keybinds.py'
+      - 'shell/scripts/render_keybindings_docs.py'
+      - 'shell/defaults/niri/config.d/70-binds.kdl'
+      - 'tests/niri-keybinds.sh'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    name: Validate docs sync
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check generated keybinding docs
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash tests/niri-keybinds.sh
+
+      - name: Validate docs.json
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m json.tool docs.json >/dev/null
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Mintlify CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install -g mint@latest
+
+      - name: Validate Mintlify build
+        shell: bash
+        run: |
+          set -euo pipefail
+          mint validate
+
+      - name: Check Mintlify links
+        shell: bash
+        run: |
+          set -euo pipefail
+          mint broken-links --check-redirects

@@ -40,7 +40,7 @@ gpg --verify ryoku-<date>-x86_64-main.iso.sig ryoku-<date>-x86_64-main.iso
 sha256sum -c ryoku-<date>-x86_64-main.iso.sha256
 ```
 
-Full step-by-step verification — including a clean keyring path and the explicit "what good output looks like" — is in the [release pipeline](release-pipeline) doc.
+Full step-by-step verification, including a clean keyring path and the explicit "what good output looks like", is in the [release pipeline](/docs/release-pipeline) doc.
 
 ## 3. Create install media
 
@@ -68,10 +68,10 @@ Boot the USB on the target machine. The ISO ships a guided install path:
 
 ## 6. First boot
 
-Continue to [First boot](first-boot) for what to expect after you log in and where to click first.
+Continue to [First boot](/docs/first-boot) for what to expect after you log in and where to click first.
 
 ## Hardware notes
 
-Ryoku targets NVIDIA, hybrid, AMD, and Apple Silicon. The working hardware list, driver matrix, and the harmless chroot warnings to ignore live in the [ISO build recipe](iso-build-recipe).
+Ryoku targets NVIDIA, hybrid, AMD, and Apple Silicon. The working hardware list, driver matrix, and the harmless chroot warnings to ignore live in the [ISO build recipe](/docs/iso-build-recipe).
 
 Secure Boot support is on the roadmap, not automatic yet.

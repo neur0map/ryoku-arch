@@ -2,83 +2,124 @@
 
 Source of truth: `config/niri/config.d/70-binds.kdl`.
 
-`Mod` means `Super` on a normal Ryoku install. In a nested Niri session, `Mod`
-means `Alt`.
+This page is generated. Edit the Niri bind source, then run `bin/ryoku-dev-generate-keybindings-docs`.
+
+`Mod` means `Super` on a normal Ryoku install. In a nested Niri session, `Mod` means `Alt`.
 
 ## Session And Compositor
 
 | Binding | Action |
 | --- | --- |
-| `Mod+Tab` | Toggle Niri overview. |
-| `Mod+Shift+E` | Quit Niri with confirmation. |
-| `Mod+Escape` | Toggle keyboard shortcut inhibition. Use this if a remote desktop or VM grabs shortcuts. |
-| `Mod+Shift+O` | Power off monitors. Any input wakes them. |
+| `Mod+Tab` | Niri Overview. |
+| `Mod+Shift+E` | Quit Niri. |
+| `Mod+Escape` | Toggle shortcuts inhibit. |
+| `Mod+Shift+O` | Power off monitors. |
 
 ## Shell Surfaces
 
 | Binding | Action |
 | --- | --- |
-| `Alt+Tab` | Next window in the shell switcher. |
-| `Alt+Shift+Tab` | Previous window in the shell switcher. |
-| `Super+G` | Toggle crosshair overlay. |
-| `Mod+Space` | Toggle app launcher / shell overview. |
-| `Mod+V` | Toggle clipboard history. |
-| `Mod+Alt+L` | Lock the session. |
-| `Mod+S` | Toggle the toolkit pill (screenshot, record, lens, color picker, mic, OSK, caffeine, ...). |
-| `Mod+Shift+S` | Region screenshot. |
-| `Mod+Shift+X` | Region OCR. |
+| `Super+G` | Crosshair overlay. |
+| `Mod+Space` | App launcher / shell overview. |
+| `Mod+V` | Clipboard history. |
+| `Mod+Alt+L` | Lock session. |
+| `Mod+S` | Toolkit pill. |
+| `Ctrl+Alt+T` | Wallpaper selector. |
+| `Mod+Comma` | Settings. |
+| `Mod+Slash` | Cheatsheet. |
+| `Mod+Shift+W` | Cycle panel style. |
+| `Mod+Shift+Q` | Session / power dialog. |
+
+## Window Switcher
+
+| Binding | Action |
+| --- | --- |
+| `Alt+Tab` | Next window. |
+| `Alt+Shift+Tab` | Previous window. |
+
+## Screenshots And Region Tools
+
+| Binding | Action |
+| --- | --- |
+| `Mod+Shift+S` | Screenshot region. |
+| `Mod+Shift+X` | OCR region. |
 | `Mod+Shift+A` | Region web search. |
-| `Ctrl+Alt+T` | Toggle wallpaper selector. |
-| `Mod+Comma` | Open settings. |
-| `Mod+Slash` | Toggle cheatsheet. |
-| `Mod+Shift+W` | Cycle panel family. |
-| `Mod+Shift+Q` | Toggle session / power dialog. |
+| `Print` | Screenshot. |
+| `Ctrl+Print` | Screenshot screen. |
+| `Alt+Print` | Screenshot window. |
 
 ## App Launchers
 
 | Binding | Action |
 | --- | --- |
-| `Mod+T` | Open terminal. |
-| `Mod+Return` | Open terminal. |
-| `Super+E` | Open file manager. |
-| `Super+W` | Open browser. |
+| `Mod+T` | Terminal. |
+| `Mod+Return` | Terminal. |
+| `Super+E` | File manager. |
+| `Super+W` | Browser. |
 
 ## Window Management
 
 | Binding | Action |
 | --- | --- |
-| `Mod+Q` | Close focused window. |
-| `Mod+D` | Maximize focused column. |
-| `Mod+F` | Fullscreen focused window. |
-| `Mod+A` | Toggle floating / tiling for focused window. |
-| `Mod+Shift+V` | Switch focus between floating and tiling layers. |
-| `Mod+R` | Cycle preset column width. |
-| `Mod+Shift+R` | Cycle preset window height inside a stacked column. |
-| `Mod+Ctrl+R` | Reset focused window height. |
-| `Mod+C` | Center focused column. |
-| `Mod+Minus` | Decrease focused column width by 10 percent. |
-| `Mod+Equal` | Increase focused column width by 10 percent. |
-| `Mod+Shift+Minus` | Decrease focused window height by 10 percent. |
-| `Mod+Shift+Equal` | Increase focused window height by 10 percent. |
-| `Mod+BracketLeft` | Consume or expel a window to the left. |
-| `Mod+BracketRight` | Consume or expel a window to the right. |
+| `Mod+Q` | Close window. |
+| `Mod+D` | Maximize column. |
+| `Mod+F` | Fullscreen. |
+| `Mod+A` | Toggle floating. |
+| `Mod+Shift+V` | Switch float/tile focus. |
+| `Mod+BracketLeft` | Consume/expel left. |
+| `Mod+BracketRight` | Consume/expel right. |
 
-## Focus And Movement
+## Column Layout
 
 | Binding | Action |
 | --- | --- |
-| `Mod+Left`, `Mod+H`, `Mod+Z` | Focus column left. |
-| `Mod+Right`, `Mod+L`, `Mod+X` | Focus column right. |
-| `Mod+Up`, `Mod+K` | Focus window up. |
-| `Mod+Down`, `Mod+J` | Focus window down. |
+| `Mod+R` | Cycle column width. |
+| `Mod+Shift+R` | Cycle window height. |
+| `Mod+Ctrl+R` | Reset window height. |
+| `Mod+C` | Center column. |
+
+## Resize
+
+| Binding | Action |
+| --- | --- |
+| `Mod+Minus` | Shrink column 10%. |
+| `Mod+Equal` | Grow column 10%. |
+| `Mod+Shift+Minus` | Shrink window 10%. |
+| `Mod+Shift+Equal` | Grow window 10%. |
+
+## Focus
+
+| Binding | Action |
+| --- | --- |
+| `Mod+Left` | Focus left. |
+| `Mod+Right` | Focus right. |
+| `Mod+Up` | Focus up. |
+| `Mod+Down` | Focus down. |
+| `Mod+Z` | Focus left. |
+| `Mod+X` | Focus right. |
+| `Mod+H` | Focus left. |
+| `Mod+J` | Focus down. |
+| `Mod+K` | Focus up. |
+| `Mod+L` | Focus right. |
 | `Mod+Home` | Focus first column. |
 | `Mod+End` | Focus last column. |
-| `Mod+Shift+Left`, `Mod+Shift+H` | Move focused column left. |
-| `Mod+Shift+Right`, `Mod+Shift+L` | Move focused column right. |
-| `Mod+Shift+Up`, `Mod+Shift+K` | Move focused window up. |
-| `Mod+Shift+Down`, `Mod+Shift+J` | Move focused window down. |
-| `Mod+Ctrl+Home` | Move focused column to first position. |
-| `Mod+Ctrl+End` | Move focused column to last position. |
+| `Mod+WheelScrollRight` | Focus right. |
+| `Mod+WheelScrollLeft` | Focus left. |
+
+## Move Windows
+
+| Binding | Action |
+| --- | --- |
+| `Mod+Shift+Left` | Move left. |
+| `Mod+Shift+Right` | Move right. |
+| `Mod+Shift+Up` | Move up. |
+| `Mod+Shift+Down` | Move down. |
+| `Mod+Shift+H` | Move left. |
+| `Mod+Shift+J` | Move down. |
+| `Mod+Shift+K` | Move up. |
+| `Mod+Shift+L` | Move right. |
+| `Mod+Ctrl+Home` | Move to first. |
+| `Mod+Ctrl+End` | Move to last. |
 
 ## Monitors
 
@@ -88,53 +129,65 @@ means `Alt`.
 | `Mod+Ctrl+Right` | Focus monitor right. |
 | `Mod+Ctrl+Up` | Focus monitor up. |
 | `Mod+Ctrl+Down` | Focus monitor down. |
-| `Mod+Ctrl+Shift+Left` | Move focused column to monitor left. |
-| `Mod+Ctrl+Shift+Right` | Move focused column to monitor right. |
-| `Mod+Ctrl+Shift+Up` | Move focused column to monitor up. |
-| `Mod+Ctrl+Shift+Down` | Move focused column to monitor down. |
+| `Mod+Ctrl+Shift+Left` | Move to monitor left. |
+| `Mod+Ctrl+Shift+Right` | Move to monitor right. |
+| `Mod+Ctrl+Shift+Up` | Move to monitor up. |
+| `Mod+Ctrl+Shift+Down` | Move to monitor down. |
 
 ## Workspaces
 
 | Binding | Action |
 | --- | --- |
-| `Mod+1` through `Mod+9` | Focus workspace by number. |
-| `Mod+Ctrl+1` through `Mod+Ctrl+9` | Move focused column to workspace by number. |
-| `Mod+Page_Down` | Focus workspace down. |
-| `Mod+Page_Up` | Focus workspace up. |
-| `Mod+Ctrl+Page_Down` | Move focused column to workspace down. |
-| `Mod+Ctrl+Page_Up` | Move focused column to workspace up. |
-| `Mod+WheelScrollDown` | Focus workspace down. |
-| `Mod+WheelScrollUp` | Focus workspace up. |
-| `Mod+Ctrl+WheelScrollDown` | Move focused column to workspace down. |
-| `Mod+Ctrl+WheelScrollUp` | Move focused column to workspace up. |
-| `Mod+WheelScrollRight` | Focus column right. |
-| `Mod+WheelScrollLeft` | Focus column left. |
+| `Mod+1` | Focus workspace 1. |
+| `Mod+2` | Focus workspace 2. |
+| `Mod+3` | Focus workspace 3. |
+| `Mod+4` | Focus workspace 4. |
+| `Mod+5` | Focus workspace 5. |
+| `Mod+6` | Focus workspace 6. |
+| `Mod+7` | Focus workspace 7. |
+| `Mod+8` | Focus workspace 8. |
+| `Mod+9` | Focus workspace 9. |
+| `Mod+Ctrl+1` | Move to workspace 1. |
+| `Mod+Ctrl+2` | Move to workspace 2. |
+| `Mod+Ctrl+3` | Move to workspace 3. |
+| `Mod+Ctrl+4` | Move to workspace 4. |
+| `Mod+Ctrl+5` | Move to workspace 5. |
+| `Mod+Ctrl+6` | Move to workspace 6. |
+| `Mod+Ctrl+7` | Move to workspace 7. |
+| `Mod+Ctrl+8` | Move to workspace 8. |
+| `Mod+Ctrl+9` | Move to workspace 9. |
+| `Mod+Page_Down` | Next workspace. |
+| `Mod+Page_Up` | Previous workspace. |
+| `Mod+Ctrl+Page_Down` | Move to next workspace. |
+| `Mod+Ctrl+Page_Up` | Move to prev workspace. |
+| `Mod+WheelScrollDown` | Next workspace. |
+| `Mod+WheelScrollUp` | Previous workspace. |
+| `Mod+Ctrl+WheelScrollDown` | Move to next workspace. |
+| `Mod+Ctrl+WheelScrollUp` | Move to prev workspace. |
 
-## Screenshots And Hardware Keys
-
-| Binding | Action |
-| --- | --- |
-| `Print` | Screenshot selection. |
-| `Ctrl+Print` | Screenshot screen. |
-| `Alt+Print` | Screenshot window. |
-| `XF86AudioRaiseVolume` | Raise volume with OSD feedback. |
-| `XF86AudioLowerVolume` | Lower volume with OSD feedback. |
-| `XF86AudioMute` | Toggle audio mute. |
-| `XF86AudioMicMute` | Toggle microphone mute. |
-| `XF86MonBrightnessUp` | Increase display brightness. |
-| `XF86MonBrightnessDown` | Decrease display brightness. |
-| `XF86AudioPlay`, `XF86AudioPause` | Play / pause current media player. |
-| `XF86AudioNext` | Next media track. |
-| `XF86AudioPrev` | Previous media track. |
-
-## Media Convenience Binds
+## Media
 
 | Binding | Action |
 | --- | --- |
-| `Ctrl+Mod+Space` | Play / pause current media player. |
-| `Mod+Alt+N` | Next media track. |
-| `Mod+Alt+P` | Previous media track. |
-| `Mod+Shift+M` | Toggle audio mute. |
-| `Mod+Shift+P` | Play / pause current media player. |
-| `Mod+Shift+N` | Next media track. |
-| `Mod+Shift+B` | Previous media track. |
+| `XF86AudioRaiseVolume` | Volume up. |
+| `XF86AudioLowerVolume` | Volume down. |
+| `XF86AudioMute` | Mute audio. |
+| `XF86AudioMicMute` | Mute microphone. |
+| `XF86AudioPlay` | Play/Pause. |
+| `XF86AudioPause` | Play/Pause. |
+| `XF86AudioNext` | Next track. |
+| `XF86AudioPrev` | Previous track. |
+| `Ctrl+Mod+Space` | Play/Pause. |
+| `Mod+Alt+N` | Next track. |
+| `Mod+Alt+P` | Previous track. |
+| `Mod+Shift+M` | Mute audio. |
+| `Mod+Shift+P` | Play/Pause. |
+| `Mod+Shift+N` | Next track. |
+| `Mod+Shift+B` | Previous track. |
+
+## Brightness
+
+| Binding | Action |
+| --- | --- |
+| `XF86MonBrightnessUp` | Brightness up. |
+| `XF86MonBrightnessDown` | Brightness down. |
