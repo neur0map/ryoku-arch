@@ -44,5 +44,9 @@ assert_contains migrations/1778630817.sh '/etc/brave/policies/managed/color\.jso
   "migration should remove the old Ryoku Brave color policy"
 assert_contains migrations/1778630817.sh '/etc/opt/chrome/policies/managed/ii-theme\.json' \
   "migration should remove the old Ryoku Chrome shell theme policy"
+assert_contains migrations/1778631354.sh 'Harden leftover browser policy directories' \
+  "follow-up migration should harden empty browser policy directories"
+assert_contains migrations/1778631354.sh 'chmod 0755' \
+  "leftover browser policy directories should not remain world-writable"
 
 echo "browser-managed-policy: ok"
