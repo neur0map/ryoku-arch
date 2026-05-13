@@ -42,6 +42,15 @@ vpl-gpu-rt
 # AMD video acceleration via mesa: libva-mesa-driver was retired
 # upstream and the libva backend is now part of mesa itself.
 
+# ── GPU compute runtimes (offered by ryoku-doctor apps) ───────────────
+# These are NOT installed by default because AMD ROCm pulls a large LLVM
+# stack. Keeping them in the offline mirror lets the doctor repair GPU
+# compute apps without requiring network during recovery.
+clinfo
+intel-compute-runtime
+opencl-nvidia
+rocm-opencl-runtime
+
 # ── Intel power + thermal daemons ─────────────────────────────────────
 # Selected by install/config/hardware/intel/{lpmd,thermald}.sh.
 # intel-lpmd is AUR-only (PackageBase intel-lpmd) and lives in

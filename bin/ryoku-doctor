@@ -10,9 +10,10 @@ source "$repo_root/lib/pacman-conflicts.sh"
 
 usage() {
   cat <<'USAGE'
-Usage: ryoku-doctor [update|-h]
+Usage: ryoku-doctor [apps|ff|update|-h]
 
 Commands:
+  apps    Diagnose app launch and GPU compute compatibility
   ff      Fast-forward Ryoku to the latest release branch
   update  Diagnose the latest failed Ryoku update and apply safe fixes
 
@@ -107,6 +108,163 @@ doctor_confirm_fast_forward() {
   printf 'Fast-forward Ryoku now? [Y/n] '
   read -r answer || return 1
   [[ -z $answer || $answer =~ ^[Yy]$ ]]
+}
+
+doctor_confirm_package_install() {
+  local answer
+
+  if [[ ${RYOKU_DOCTOR_ASSUME_YES:-} == "1" ]]; then
+    echo "Install missing app compatibility packages now? [Y/n] y"
+    return 0
+  fi
+
+  if [[ ${RYOKU_DOCTOR_ASSUME_NO:-} == "1" ]]; then
+    echo "Install missing app compatibility packages now? [Y/n] n"
+    return 1
+  fi
+
+  printf 'Install missing app compatibility packages now? [Y/n] '
+  read -r answer || return 1
+  [[ -z $answer || $answer =~ ^[Yy]$ ]]
+}
+
+doctor_missing_packages() {
+  (( $# > 0 )) || return 0
+
+  if command -v pacman >/dev/null 2>&1; then
+    pacman -T "$@" 2>/dev/null || true
+  else
+    printf '%s\n' "$@"
+  fi
+}
+
+doctor_unique_packages() {
+  local package
+  declare -A seen=()
+
+  for package in "$@"; do
+    [[ -n ${seen[$package]:-} ]] && continue
+    seen[$package]=1
+    printf '%s\n' "$package"
+  done
+}
+
+doctor_vendor_label() {
+  case "$1" in
+    amd) echo "AMD" ;;
+    intel) echo "Intel" ;;
+    nvidia) echo "NVIDIA" ;;
+    *) echo "$1" ;;
+  esac
+}
+
+doctor_join_labels() {
+  local item
+  local first=true
+
+  for item in "$@"; do
+    if $first; then
+      first=false
+    else
+      printf ', '
+    fi
+    printf '%s' "$item"
+  done
+  printf '\n'
+}
+
+doctor_detect_gpu_vendors() {
+  local pci_lines pci_lower
+
+  command -v lspci >/dev/null 2>&1 || return 0
+
+  pci_lines="$(lspci 2>/dev/null | grep -Ei 'VGA|3D|Display' || true)"
+  pci_lower="${pci_lines,,}"
+
+  [[ -n $pci_lower ]] || return 0
+
+  if [[ $pci_lower == *"nvidia"* ]]; then
+    printf '%s\n' nvidia
+  fi
+
+  if [[ $pci_lower == *"amd"* || $pci_lower == *"advanced micro devices"* ]]; then
+    printf '%s\n' amd
+  fi
+
+  if [[ $pci_lower == *"intel"* ]]; then
+    printf '%s\n' intel
+  fi
+}
+
+doctor_opencl_package_for_vendor() {
+  case "$1" in
+    amd) printf '%s\n' rocm-opencl-runtime ;;
+    intel) printf '%s\n' intel-compute-runtime ;;
+    nvidia) printf '%s\n' opencl-nvidia ;;
+  esac
+}
+
+doctor_opencl_ready() {
+  local info
+
+  command -v clinfo >/dev/null 2>&1 || return 1
+
+  info="$(clinfo 2>/dev/null || true)"
+  grep -Eiq 'Device Type[[:space:]]+GPU' <<<"$info"
+}
+
+doctor_update_qt_fallback_file() {
+  local file="$1"
+  local changed=1
+
+  [[ -f $file ]] || return 1
+
+  if grep -q 'QT_QPA_PLATFORM "wayland"' "$file"; then
+    sed -i 's/QT_QPA_PLATFORM "wayland"/QT_QPA_PLATFORM "wayland;xcb"/' "$file"
+    changed=0
+  fi
+
+  if grep -q '^QT_QPA_PLATFORM=wayland$' "$file"; then
+    sed -i 's/^QT_QPA_PLATFORM=wayland$/QT_QPA_PLATFORM=wayland;xcb/' "$file"
+    changed=0
+  fi
+
+  return "$changed"
+}
+
+doctor_fix_qt_app_platform() {
+  local config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
+  local fixed=0
+  local file
+  local files=(
+    "$config_home/niri/config.d/40-environment.kdl"
+    "$config_home/environment.d/ryoku.conf"
+  )
+
+  for file in "${files[@]}"; do
+    if doctor_update_qt_fallback_file "$file"; then
+      ((fixed++)) || true
+    fi
+  done
+
+  if [[ ${QT_QPA_PLATFORM:-} == "wayland" ]]; then
+    ((fixed++)) || true
+  fi
+
+  export QT_QPA_PLATFORM="wayland;xcb"
+  if command -v systemctl >/dev/null 2>&1; then
+    systemctl --user set-environment QT_QPA_PLATFORM="$QT_QPA_PLATFORM" >/dev/null 2>&1 || true
+    systemctl --user import-environment QT_QPA_PLATFORM >/dev/null 2>&1 || true
+  fi
+  if command -v dbus-update-activation-environment >/dev/null 2>&1; then
+    dbus-update-activation-environment QT_QPA_PLATFORM >/dev/null 2>&1 || true
+  fi
+
+  if (( fixed > 0 )); then
+    echo "Fixed Qt app platform fallback: wayland;xcb"
+  else
+    echo "Qt app platform fallback OK: wayland;xcb"
+  fi
 }
 
 run_fast_forward_doctor() {
@@ -232,6 +390,71 @@ run_update_doctor() {
   return 1
 }
 
+run_apps_doctor() {
+  local vendor package
+  local unresolved=0
+  local labels=()
+  local packages=()
+  local missing_packages=()
+  local vendors=()
+
+  echo "Ryoku Doctor: apps"
+  echo
+
+  doctor_fix_qt_app_platform
+
+  mapfile -t vendors < <(doctor_detect_gpu_vendors)
+
+  if (( ${#vendors[@]} == 0 )); then
+    echo "GPU compute check skipped: no AMD, Intel, or NVIDIA GPU was detected."
+    return 0
+  fi
+
+  for vendor in "${vendors[@]}"; do
+    labels+=("$(doctor_vendor_label "$vendor")")
+  done
+
+  echo "Detected GPUs: $(doctor_join_labels "${labels[@]}")"
+
+  if doctor_opencl_ready; then
+    echo "OpenCL GPU runtime OK."
+    return 0
+  fi
+
+  echo "OpenCL GPU runtime is missing."
+
+  for vendor in "${vendors[@]}"; do
+    package="$(doctor_opencl_package_for_vendor "$vendor")"
+    [[ -n $package ]] && packages+=("$package")
+  done
+  packages+=(clinfo)
+  mapfile -t packages < <(doctor_unique_packages "${packages[@]}")
+  mapfile -t missing_packages < <(doctor_missing_packages "${packages[@]}")
+
+  if (( ${#missing_packages[@]} == 0 )); then
+    echo "Packages are installed, but clinfo still cannot see a GPU OpenCL device."
+    echo "Restart the app, or reboot if the GPU driver was just installed."
+    return 1
+  fi
+
+  echo
+  echo "Next:"
+  echo "  Run: ryoku-pkg-add ${missing_packages[*]}"
+
+  if doctor_confirm_package_install; then
+    if ryoku-pkg-add "${missing_packages[@]}"; then
+      echo "Installed app compatibility packages."
+      return 0
+    fi
+    echo "Package installation failed."
+  else
+    echo "Skipped package installation."
+  fi
+
+  ((unresolved++)) || true
+  return "$unresolved"
+}
+
 run_shell_doctor() {
   local setup
   local candidates=(
@@ -254,6 +477,9 @@ run_shell_doctor() {
 case "${1:-}" in
   "")
     run_shell_doctor
+    ;;
+  apps)
+    run_apps_doctor
     ;;
   ff)
     run_fast_forward_doctor
