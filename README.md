@@ -19,7 +19,7 @@ Ryoku is an opinionated Arch desktop built around Niri and Quickshell. A daily-d
 
 <p>
   <a href="https://www.youtube.com/watch?v=u3rzJe3d49U">
-    <img src="docs/media/showcase-poster.jpg" alt="Ryoku showcase" width="960" />
+    <img src="https://img.youtube.com/vi/u3rzJe3d49U/maxresdefault.jpg" alt="Ryoku showcase video" width="960" />
   </a>
   <br/>
   <a href="https://www.youtube.com/watch?v=u3rzJe3d49U"><strong>Watch the showcase on YouTube</strong></a>

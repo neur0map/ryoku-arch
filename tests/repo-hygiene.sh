@@ -136,6 +136,10 @@ assert_asset_references_are_updated() {
     "Logo display command should read the grouped ASCII logo"
   assert_contains "install/post-install/finished.sh" 'assets/brand/logo\.txt' \
     "Post-install finished screen should read the grouped ASCII logo"
+  assert_no_path "docs/media/showcase.mp4"
+  assert_no_path "docs/media/showcase-poster.jpg"
+  assert_contains "README.md" 'img\.youtube\.com/vi/u3rzJe3d49U/maxresdefault\.jpg' \
+    "README should use the current YouTube showcase thumbnail"
   assert_contains "migrations/1755867743.sh" 'assets/brand/logo\.txt' \
     "Historical logo migration should read the grouped ASCII logo"
   assert_contains "migrations/1755904244.sh" 'assets/brand/icon\.txt' \
