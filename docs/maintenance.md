@@ -320,7 +320,7 @@ Options, from least to most automated:
 
 Keep the repo root limited to project entrypoints and repo metadata. Brand images, SVGs, and text art live in `assets/brand/`. Maintainer task tracking lives in `docs/TODO.md` with the rest of the project docs.
 
-The two version files are intentionally left in place for now. The root `version` file is the Ryoku project version fallback used by the shell update UI when it is reading the whole Ryoku repo. `shell/VERSION` belongs to the bundled Quickshell layer and is read by the shell setup, packaging, and update code that expects an uppercase `VERSION` inside the shell tree. Do not merge or rename them until the shell version discovery path is unified.
+Use `shell/VERSION` as the single tracked release version file. The bundled Quickshell setup, packaging, and update code expects an uppercase `VERSION` inside the shell tree, so Ryoku-level version consumers should read `shell/VERSION` instead of adding another root `VERSION` or `version` file.
 
 ## Git hooks
 
