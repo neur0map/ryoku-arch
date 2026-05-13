@@ -138,10 +138,16 @@ assert_asset_references_are_updated() {
     "Historical logo migration should read the grouped ASCII logo"
   assert_contains "migrations/1755904244.sh" 'assets/brand/icon\.txt' \
     "Historical icon migration should read the grouped text icon"
-  assert_contains "docs/maintenance.md" 'root `version`' \
-    "Maintenance docs should explain why the root version file remains"
+  assert_no_path "VERSION"
+  assert_no_path "version"
+  assert_contains "docs/maintenance.md" 'single tracked release version file' \
+    "Maintenance docs should explain the canonical version file"
   assert_contains "docs/maintenance.md" '`shell/VERSION`' \
-    "Maintenance docs should explain why shell/VERSION remains"
+    "Maintenance docs should point to shell/VERSION as canonical"
+  assert_contains "bin/ryoku-version" 'shell/VERSION' \
+    "Ryoku version command should read the canonical shell version"
+  assert_contains "shell/services/ShellUpdates.qml" ':shell/VERSION' \
+    "Shell update UI should read the remote canonical shell version"
 }
 
 assert_shellcheck_workflow

@@ -1,13 +1,19 @@
 #!/bin/bash
 
 # Prints Ryoku Arch version on a single line.
-# Public preview: version is derived from the git tip until tagged releases.
+# Public preview: version comes from the bundled shell version plus git tip.
 
 RYOKU_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 export RYOKU_PATH
 source "$RYOKU_PATH/lib/runtime-env.sh"
 
 version="preview"
+version_file="$RYOKU_PATH/shell/VERSION"
+
+if [[ -f $version_file ]]; then
+  version="$(head -1 "$version_file" | tr -d '[:space:]')"
+fi
+
 if [[ -d $RYOKU_PATH/.git ]]; then
   tip=$(git -C "$RYOKU_PATH" rev-parse --short HEAD 2>/dev/null)
   [[ -n $tip ]] && version="$version (g$tip)"
