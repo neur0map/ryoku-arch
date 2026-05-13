@@ -13,12 +13,5 @@ if [[ -f $HOME/.config/ryoku/current/theme/btop.theme ]]; then
   ln -snf ~/.config/ryoku/current/theme/btop.theme ~/.config/btop/themes/current.theme
 fi
 
-# Add managed policy directories for Chromium and Brave for theme changes
-sudo mkdir -p /etc/chromium/policies/managed
-sudo chmod a+rw /etc/chromium/policies/managed
-
-sudo mkdir -p /etc/brave/policies/managed
-sudo chmod a+rw /etc/brave/policies/managed
-
 # Default Chromium to follow system appearance ("device") instead of dark
 echo '{"browser":{"theme":{"color_scheme":0}}}' | sudo tee /usr/lib/chromium/initial_preferences >/dev/null
