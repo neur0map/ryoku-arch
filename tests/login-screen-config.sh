@@ -189,7 +189,8 @@ assert_grep "GlobalStates\\.settingsOverlayOpen = true" "shell/modules/settings/
 assert_grep_count 3 "root\\.restoreSettingsOverlayAfterPolkit\\(\\)" "shell/modules/settings/LoginScreenConfig.qml"
 
 # -- bundledThemes manifest sync ---------------------------------------
-QML_FILE="$ROOT_DIR/shell/modules/settings/LoginScreenConfig.qml"
+QML_PATH="shell/modules/settings/LoginScreenConfig.qml"
+QML_FILE="$ROOT_DIR/$QML_PATH"
 
 extract_bundled_themes() {
   # Args: provider id
@@ -218,6 +219,17 @@ for provider in ii-pixel qylock; do
     assert_image "$asset"
   done < <(extract_bundled_themes "$provider")
 done
+
+# Installed qylock themes are discovered from the live upstream clone,
+# so their previews must also be able to resolve from that clone instead
+# of only from Ryoku's bundled preview subset.
+assert_grep "function qylockAssetBaseNames" "$QML_PATH"
+assert_grep "\\.local/share/qylock/Assets" "$QML_PATH"
+assert_grep "pixel_skyscrapers" "$QML_PATH"
+assert_grep "star_rail" "$QML_PATH"
+assert_grep "the_last_of_us" "$QML_PATH"
+assert_grep "win7" "$QML_PATH"
+assert_grep "background/A Glow.jpg" "$QML_PATH"
 
 # -- Page registration -------------------------------------------------
 assert_grep "LoginScreenConfig\\.qml"            "shell/settings.qml"

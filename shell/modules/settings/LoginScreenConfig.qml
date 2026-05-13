@@ -693,6 +693,8 @@ ContentPage {
         property string presetSource: ""
         property bool isActive: false
         property bool clickable: true
+        property var previewCandidates: buildPreviewCandidates()
+        property int previewCandidateIndex: 0
         signal clicked()
 
         width: 200
@@ -706,12 +708,81 @@ ContentPage {
                       ? Appearance.colors.colPrimary
                       : provider.accentColor
 
-        function previewSource() {
-            if (presetSource) return presetSource
-            var live = Quickshell.env("HOME")
-                       + "/.local/share/qylock/themes/" + themeName + "/preview.png"
-            return "file://" + live
+        function uniqueStrings(values) {
+            const seen = new Set()
+            const result = []
+            for (let value of values) {
+                if (!value || value.length === 0 || seen.has(value))
+                    continue
+                seen.add(value)
+                result.push(value)
+            }
+            return result
         }
+
+        function fileUrl(path) {
+            return encodeURI("file://" + path)
+        }
+
+        function bundledPreviewSource() {
+            return Quickshell.shellPath(
+                tileRoot.provider.bundledAssetDir + "/"
+                + tileRoot.provider.themesAssetDir + "/"
+                + tileRoot.themeName
+                + (tileRoot.provider.themesAssetExt || ".png"))
+        }
+
+        function qylockAssetBaseNames(name) {
+            const original = name ?? ""
+            const lower = original.toLowerCase()
+            const snake = lower.replace(/-/g, "_")
+            const kebab = lower.replace(/_/g, "-")
+            const special = ({
+                "dog-samurai": ["dog_samurai"],
+                "genshin": ["genshin"],
+                "last-of-us": ["the_last_of_us"],
+                "nier-automata": ["nier_automata"],
+                "pixel-skyscrapers": ["pixel_skyscrapers"],
+                "star-rail": ["star_rail"],
+                "windows_7": ["win7"]
+            })
+            return uniqueStrings([original, lower, snake, kebab].concat(special[lower] ?? []))
+        }
+
+        function buildPreviewCandidates() {
+            const candidates = []
+            if (presetSource)
+                candidates.push(presetSource)
+
+            if (provider.kind === "external") {
+                const qylockRoot = Quickshell.env("HOME") + "/.local/share/qylock"
+                const qylockAssetsRoot = Quickshell.env("HOME") + "/.local/share/qylock/Assets"
+                candidates.push(fileUrl(qylockRoot + "/themes/" + themeName + "/preview.png"))
+
+                for (let base of qylockAssetBaseNames(themeName)) {
+                    for (let ext of ["gif", "png", "jpg", "jpeg", "webp"]) {
+                        candidates.push(fileUrl(qylockAssetsRoot + "/" + base + "." + ext))
+                    }
+                }
+
+                candidates.push(fileUrl(qylockRoot + "/themes/" + themeName + "/bg.png"))
+                candidates.push(fileUrl(qylockRoot + "/themes/" + themeName + "/background.png"))
+                candidates.push(fileUrl(qylockRoot + "/themes/" + themeName + "/background/A Glow.jpg"))
+            }
+
+            candidates.push(bundledPreviewSource())
+            candidates.push(Quickshell.shellPath("assets/sddm-providers/_placeholder.png"))
+            return uniqueStrings(candidates)
+        }
+
+        function previewSource() {
+            if (previewCandidates.length === 0)
+                return ""
+            return previewCandidates[Math.min(previewCandidateIndex, previewCandidates.length - 1)]
+        }
+
+        onThemeNameChanged: previewCandidateIndex = 0
+        onPresetSourceChanged: previewCandidateIndex = 0
 
         AnimatedImage {
             id: previewImage
@@ -725,16 +796,9 @@ ContentPage {
 
             onStatusChanged: {
                 if (status === Image.Error) {
-                    var bundled = Quickshell.shellPath(
-                        tileRoot.provider.bundledAssetDir + "/"
-                        + tileRoot.provider.themesAssetDir + "/"
-                        + tileRoot.themeName
-                        + (tileRoot.provider.themesAssetExt || ".png"))
-                    if (source.toString() !== bundled) {
-                        source = bundled
-                        return
+                    if (tileRoot.previewCandidateIndex + 1 < tileRoot.previewCandidates.length) {
+                        tileRoot.previewCandidateIndex += 1
                     }
-                    source = Quickshell.shellPath("assets/sddm-providers/_placeholder.png")
                 }
             }
         }
