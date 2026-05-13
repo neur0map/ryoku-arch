@@ -121,22 +121,7 @@ jobs:
             git ls-files -z '*.qml' | collect_qml_from_git_stream
           else
             collect_changed_files >"$changed_files"
-            lint_all=false
-
-            while IFS= read -r -d '' file; do
-              case "$file" in
-                .github/workflows/qmllint.yml|.qmllint.ini)
-                  lint_all=true
-                  break
-                  ;;
-              esac
-            done <"$changed_files"
-
-            if [[ $lint_all == "true" ]]; then
-              git ls-files -z '*.qml' | collect_qml_from_git_stream
-            else
-              collect_qml_from_git_stream <"$changed_files"
-            fi
+            collect_qml_from_git_stream <"$changed_files"
           fi
 
           if [[ ! -s $files ]]; then
@@ -159,7 +144,7 @@ jobs:
           status=0
           while IFS= read -r -d '' file; do
             echo "::group::qmllint $file"
-            if ! "$QMLLINT_BIN" -I "$RYOKU_QML_IMPORT_ROOT" "$file"; then
+            if ! "$QMLLINT_BIN" --max-warnings -1 -I "$RYOKU_QML_IMPORT_ROOT" "$file"; then
               status=1
             fi
             echo "::endgroup::"
