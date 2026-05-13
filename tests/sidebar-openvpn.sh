@@ -77,6 +77,9 @@ assert_executable "bin/ryoku-openvpn-rename"
 assert_file       "default/polkit/49-ryoku-openvpn.rules"
 assert_executable "install/config/openvpn.sh"
 assert_contains   "install/config/all.sh" "openvpn.sh"
+assert_contains   "install/config/openvpn.sh" 'chmod 0755 /etc/openvpn/client'
+assert_contains   "migrations/1778633301.sh" 'install/config/openvpn.sh'
+assert_contains   "migrations/1778633301.sh" 'Converge VPN service setup'
 
 # 7. openvpn package
 assert_contains   "install/ryoku-base.packages" "openvpn"

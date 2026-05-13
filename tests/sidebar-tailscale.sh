@@ -82,14 +82,19 @@ assert_contains   "shell/modules/sidebarRight/openvpn/TailscaleStatusCard.qml" '
 
 # 6. Install script sets the Tailscale operator so non-sudo control works.
 assert_contains   "install/config/tailscale.sh" 'tailscale set --operator='
+assert_contains   "install/config/tailscale.sh" 'enable --now tailscaled.service'
 
 # 7. Migration sets the Tailscale operator on existing user systems so
-#    the sidebar Connect/Disconnect button works without sudo.
+#    the sidebar Connect/Disconnect button works without sudo, and also
+#    starts tailscaled on machines that installed the package before the
+#    fresh-install config hook existed.
 [[ -d $ROOT_DIR/migrations ]] || fail "migrations directory should exist"
 # Find any migration that mentions tailscale operator
 operator_migration=$(grep -lE 'tailscale set --operator' "$ROOT_DIR"/migrations/*.sh 2>/dev/null | head -1)
 [[ -n $operator_migration ]] || fail "a migration should set Tailscale operator user"
 echo "  found operator migration: $(basename "$operator_migration")"
+assert_contains   "migrations/1778633301.sh" 'install/config/tailscale.sh'
+assert_contains   "migrations/1778633301.sh" 'Converge VPN service setup'
 
 # 8. User-initiated transitions: clicking Connect/Disconnect immediately
 #    drives transitioning=true via _beginTransition, with directional
