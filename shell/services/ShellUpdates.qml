@@ -263,7 +263,7 @@ Singleton {
             "else " +
                 "echo \"failed:$rc\" > '" + statusPath + "'; " +
                 "echo \"Something went wrong (exit $rc). Check the output above for details.\"; " +
-                "echo 'Run: ryoku-doctor update'; " +
+                "echo 'Run: ryoku-doctor'; " +
                 "echo 'You can close this window whenever you want.'; " +
             "fi; " +
             "read -r _"
@@ -405,7 +405,7 @@ Singleton {
 
                 if (status.startsWith("failed")) {
                     const code = status.split(":")[1] || "unknown"
-                    root.lastError = "Last update failed (exit " + code + "). Check " + Directories.updateLogPath + " for details. Run: ryoku-doctor update."
+                    root.lastError = "Last update failed (exit " + code + "). Check " + Directories.updateLogPath + " for details. Run: ryoku-doctor."
                     print("[ShellUpdates] Detected failed update from previous shell: exit " + code)
                     clearStatusFileProc.running = true
                     return
@@ -1232,14 +1232,14 @@ Singleton {
                     const parts = status.split(":")
                     const code = parts.length > 1 ? parts[1] : "unknown"
                     root.clearUpdateProgressUi()
-                    root.lastError = "Update failed (exit " + code + "). Check " + Directories.updateLogPath + " for details. Run: ryoku-doctor update."
+                    root.lastError = "Update failed (exit " + code + "). Check " + Directories.updateLogPath + " for details. Run: ryoku-doctor."
                     clearStatusFileProc.running = true
                     print("[ShellUpdates] Update FAILED with exit code " + code)
                 } else if (status.startsWith("progress:")) {
                     if (status === root._lastWatchdogStatus) {
                         // Same progress marker seen twice — update is stuck
                         root.clearUpdateProgressUi()
-                        root.lastError = "Update stuck at: " + status.split(":").slice(3).join(":") + ". Check " + Directories.updateLogPath + " for details. Run: ryoku-doctor update."
+                        root.lastError = "Update stuck at: " + status.split(":").slice(3).join(":") + ". Check " + Directories.updateLogPath + " for details. Run: ryoku-doctor."
                         clearStatusFileProc.running = true
                         print("[ShellUpdates] Update stuck — same progress seen twice: " + status)
                     } else {
@@ -1251,7 +1251,7 @@ Singleton {
                 } else if (status === "updating") {
                     // Still running after 120s — likely stuck
                     root.clearUpdateProgressUi()
-                    root.lastError = "Update appears stuck. Check " + Directories.updateLogPath + " for details. Run: ryoku-doctor update."
+                    root.lastError = "Update appears stuck. Check " + Directories.updateLogPath + " for details. Run: ryoku-doctor."
                     clearStatusFileProc.running = true
                     print("[ShellUpdates] Update appears stuck (still 'updating' after watchdog)")
                 } else if (status === "success") {
@@ -1262,7 +1262,7 @@ Singleton {
                 } else {
                     // Empty or unexpected — assume failed
                     root.clearUpdateProgressUi()
-                    root.lastError = "Update outcome unknown. Check " + Directories.updateLogPath + " for details. Run: ryoku-doctor update."
+                    root.lastError = "Update outcome unknown. Check " + Directories.updateLogPath + " for details. Run: ryoku-doctor."
                     clearStatusFileProc.running = true
                     print("[ShellUpdates] Update status unclear: '" + status + "'")
                 }

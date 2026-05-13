@@ -10,13 +10,10 @@ source "$repo_root/lib/pacman-conflicts.sh"
 
 usage() {
   cat <<'USAGE'
-Usage: ryoku-doctor [update|-h]
+Usage: ryoku-doctor [-h]
 
-Commands:
-  ff      Fast-forward Ryoku to the latest release branch
-  update  Diagnose the latest failed Ryoku update and apply safe fixes
-
-With no command, ryoku-doctor runs the desktop shell doctor.
+Diagnoses the latest failed Ryoku update when update state needs attention.
+Otherwise runs the desktop shell doctor.
 USAGE
 }
 
@@ -42,6 +39,23 @@ print_update_status() {
 
 latest_update_log() {
   ryoku_pacman_latest_update_log
+}
+
+doctor_update_needs_attention() {
+  local log status status_file
+
+  status_file="$(update_status_file)"
+  if [[ -r $status_file ]]; then
+    status="$(<"$status_file")"
+    if [[ $status == failed:* || $status == updating || $status == progress:* ]]; then
+      return 0
+    fi
+  fi
+
+  log="$(latest_update_log 2>/dev/null || true)"
+  [[ -n $log && -r $log ]] || return 1
+
+  grep -Eqi 'failed to commit transaction|Errors occurred, no packages were upgraded|unable to lock database|/var/lib/pacman/db\.lck|invalid or corrupted package|signature.*(unknown trust|invalid|marginal trust)|keyring.*(error|fail|missing)|required key missing|unknown trust' "$log"
 }
 
 doctor_git() {
@@ -141,7 +155,7 @@ offer_fast_forward_update() {
   if doctor_confirm_fast_forward; then
     run_fast_forward_doctor
     echo
-    exec "$script_path" update
+    exec "$script_path"
   fi
 
   echo "Skipped Ryoku fast-forward."
@@ -251,12 +265,17 @@ run_shell_doctor() {
   return 1
 }
 
+run_smart_doctor() {
+  if doctor_update_needs_attention; then
+    run_update_doctor
+  else
+    run_shell_doctor
+  fi
+}
+
 case "${1:-}" in
   "")
-    run_shell_doctor
-    ;;
-  ff)
-    run_fast_forward_doctor
+    run_smart_doctor
     ;;
   update)
     run_update_doctor
