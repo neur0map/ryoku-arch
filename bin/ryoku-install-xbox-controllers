@@ -9,7 +9,7 @@ ryoku-pkg-add linux-headers
 ryoku-pkg-aur-add xpadneo-dkms
 
 # Prevent xpad/xpadneo driver conflict
-echo blacklist xpad | sudo tee /etc/modprobe.d/blacklist-xpad.conf >/dev/null
+echo "blacklist xpad" | sudo tee /etc/modprobe.d/blacklist-xpad.conf >/dev/null # wokeignore:rule=blacklist
 echo hid_xpadneo | sudo tee /etc/modules-load.d/xpadneo.conf >/dev/null
 
 # Give user access to game controllers

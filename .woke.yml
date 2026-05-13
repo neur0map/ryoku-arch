@@ -1,0 +1,12 @@
+ignore_files:
+  - assets/**
+  - config/fonts/**
+  - default/plymouth/**
+  - docs/media/**
+  - iso/configs/airootfs/etc/modprobe.d/**
+  - iso/release/**
+  - keys/**
+  - shell/**
+  - tmp/**
+
+success_exit_message: No inclusive language findings.

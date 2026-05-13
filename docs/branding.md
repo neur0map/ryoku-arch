@@ -76,15 +76,17 @@ Window.SetBackgroundBottomColor(0.0902, 0.0902, 0.0902); # ≈ #171717
 
 ### Source files (canonical)
 
-All logo sources live at the **repo root** so they are visible from the README without subfolder navigation:
+All logo sources live under `assets/brand/` so the repo root stays focused on project metadata and entrypoint docs:
 
 | File | Purpose | Format | Notes |
 |---|---|---|---|
-| `logo.svg` | Square logo with rounded background | SVG | 512x512, `#171717` rounded-square background, `#F25623` kanji `力` centered. Use on light surfaces and in places that want the full mark with its own backdrop (favicon, app icon). |
-| `logo-mark.svg` | Transparent-background kanji mark | SVG | 512x512, transparent background, `#F25623` kanji `力` centered. Use in the README header, on dark theme cards, anywhere that already provides its own background. |
-| `logo.txt` | ASCII wordmark | UTF-8 box-drawing | The `RYOKU` wordmark used by `boot.sh`, the configurator, and `ryoku-cmd-first-run`. Reuse this verbatim; do not regenerate. |
-| `icon.png` | Rasterized square logo | PNG (512x512) | Same composition as `logo.svg`, exported. Used as a fallback where SVG is not supported. |
-| `logo-mark.png` | Rasterized transparent mark | PNG (512x512) | Same composition as `logo-mark.svg`, exported. Used in the README header. |
+| `assets/brand/logo.svg` | Square logo with rounded background | SVG | 512x512, `#171717` rounded-square background, `#F25623` kanji `力` centered. Use on light surfaces and in places that want the full mark with its own backdrop (favicon, app icon). |
+| `assets/brand/logo-mark.svg` | Transparent-background kanji mark | SVG | 512x512, transparent background, `#F25623` kanji `力` centered. Use in the README header, on dark theme cards, anywhere that already provides its own background. |
+| `assets/brand/logo.txt` | ASCII wordmark | UTF-8 box-drawing | The `RYOKU` wordmark used by `boot.sh`, the configurator, and `ryoku-cmd-first-run`. Reuse this verbatim; do not regenerate. |
+| `assets/brand/icon.png` | Rasterized square logo | PNG (512x512) | Same composition as `assets/brand/logo.svg`, exported. Used as a fallback where SVG is not supported. |
+| `assets/brand/logo-mark.png` | Rasterized transparent mark | PNG (512x512) | Same composition as `assets/brand/logo-mark.svg`, exported. Used in the README header and Discord notifications. |
+| `assets/brand/light.png` | Docs light-mode logo | PNG | Mintlify light-theme header logo. |
+| `assets/brand/dark.png` | Docs dark-mode logo | PNG | Mintlify dark-theme header logo. |
 
 The kanji `力` is rendered at weight 900 in **Noto Sans CJK JP** at the size that fills the canvas with comfortable margin. That font is part of `noto-fonts-cjk`, which Ryoku already pulls in via `install/ryoku-base.packages`, so the SVG renders consistently on any Ryoku install.
 
@@ -92,8 +94,8 @@ The kanji `力` is rendered at weight 900 in **Noto Sans CJK JP** at the size th
 
 | Path | Purpose |
 |---|---|
-| `~/.local/share/ryoku/logo-mark.png` | Repo asset, available for any Ryoku-aware app |
-| `~/.local/share/ryoku/logo.txt` | ASCII wordmark, used by `ryoku-cmd-first-run` and `install/post-install/finished.sh` |
+| `~/.local/share/ryoku/assets/brand/logo-mark.png` | Repo asset, available for any Ryoku-aware app |
+| `~/.local/share/ryoku/assets/brand/logo.txt` | ASCII wordmark, used by `ryoku-cmd-first-run` and `install/post-install/finished.sh` |
 | `/usr/share/sddm/themes/ii-pixel/` | Current SDDM greeter; Ryoku visual rebrand is pending |
 | `/usr/share/plymouth/themes/ryoku/logo.png` | Plymouth boot-splash branding |
 
@@ -117,35 +119,35 @@ The square SVG is intentionally minimal so you can hand-edit it. Replace the `te
 To rasterize after editing the SVG (Inkscape is the project's reference tool because it ships with most distros and renders Noto CJK correctly):
 
 ```bash
-inkscape -w 512 -h 512 logo.svg --export-filename=icon.png
-inkscape -w 512 -h 512 logo-mark.svg --export-filename=logo-mark.png
+inkscape -w 512 -h 512 assets/brand/logo.svg --export-filename=assets/brand/icon.png
+inkscape -w 512 -h 512 assets/brand/logo-mark.svg --export-filename=assets/brand/logo-mark.png
 ```
 
 Or with `rsvg-convert` (smaller dependency, no GUI):
 
 ```bash
-rsvg-convert -w 512 -h 512 logo.svg -o icon.png
-rsvg-convert -w 512 -h 512 logo-mark.svg -o logo-mark.png
+rsvg-convert -w 512 -h 512 assets/brand/logo.svg -o assets/brand/icon.png
+rsvg-convert -w 512 -h 512 assets/brand/logo-mark.svg -o assets/brand/logo-mark.png
 ```
 
 After regenerating, commit the source SVG + the PNG so README rendering on GitHub continues to work without server-side SVG quirks.
 
 ### How to regenerate the ASCII wordmark
 
-`logo.txt` was hand-built in box-drawing characters. If the wordmark needs to change (e.g. version branding), build it from a figlet-style font that uses Unicode box-drawing, then hand-tune for kerning. **Do not** auto-generate it as ANSI escape sequences; the file is meant to be raw UTF-8 so any terminal can render it.
+`assets/brand/logo.txt` was hand-built in box-drawing characters. If the wordmark needs to change (e.g. version branding), build it from a figlet-style font that uses Unicode box-drawing, then hand-tune for kerning. **Do not** auto-generate it as ANSI escape sequences; the file is meant to be raw UTF-8 so any terminal can render it.
 
 ```bash
-# Reference: the current characters used by logo.txt
+# Reference: the current characters used by assets/brand/logo.txt
 # ╔ ╗ ╚ ╝ ║ ═ ╠ ╣ ╦ ╩ ╬ █
 ```
 
-The kanji-block art used by `boot.sh` is also hand-drawn block-text (`█` and friends) and lives inline in that script as a heredoc. Edit there, not in `logo.txt`.
+The kanji-block art used by `boot.sh` is also hand-drawn block-text (`█` and friends) and lives inline in that script as a heredoc. Edit there, not in `assets/brand/logo.txt`.
 
 ## Application areas (where the brand shows up)
 
 | Surface | Source of brand | What renders |
 |---|---|---|
-| GitHub README | `logo-mark.png`, MIT badge color `F25623` | Kanji mark + status badges in brand orange |
+| GitHub README | `assets/brand/logo-mark.png`, MIT badge color `F25623` | Kanji mark + status badges in brand orange |
 | Install bootstrap (`boot.sh`) | Inline kanji block-art + `RYOKU` wordmark | Orange ANSI art, beige tagline |
 | Live ISO configurator | `bin/ryoku-cmd-first-run` ANSI palette setup | Brand-orange terminal accents during install |
 | Limine boot menu | `default/limine/limine.conf` | Orange branding text "Ryoku Bootloader", Greek Noir terminal palette |

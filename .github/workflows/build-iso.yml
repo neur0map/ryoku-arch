@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       channel:
-        description: 'Release channel'
+        description: 'Download path'
         required: true
         default: 'stable'
         type: choice
@@ -12,12 +12,22 @@ on:
           - stable
           - rc
           - edge
+      release_stage:
+        description: 'Public release stage'
+        required: true
+        default: 'alpha'
+        type: choice
+        options:
+          - alpha
+          - beta
+          - stable
   push:
     tags:
       - 'v*'
 
 permissions:
   contents: read
+  security-events: write
 
 jobs:
   build:
@@ -25,6 +35,7 @@ jobs:
     timeout-minutes: 120
     env:
       CHANNEL: ${{ github.event.inputs.channel || 'stable' }}
+      RELEASE_STAGE: ${{ github.event.inputs.release_stage || 'alpha' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -91,6 +102,86 @@ jobs:
           echo "path=$iso" >> "$GITHUB_OUTPUT"
           echo "name=$(basename "$iso")" >> "$GITHUB_OUTPUT"
 
+      - name: Mount ISO live root for Trivy
+        run: |
+          set -euo pipefail
+
+          iso="${{ steps.iso.outputs.path }}"
+          iso_mount="$RUNNER_TEMP/ryoku-iso-mount"
+          rootfs_mount="$RUNNER_TEMP/ryoku-iso-rootfs"
+          mkdir -p "$iso_mount" "$rootfs_mount"
+          {
+            echo "RYOKU_TRIVY_ISO_MOUNT=$iso_mount"
+            echo "RYOKU_TRIVY_ROOTFS=$rootfs_mount"
+          } >> "$GITHUB_ENV"
+
+          sudo mount -o loop,ro "$iso" "$iso_mount"
+
+          mapfile -t squashfs_candidates < <(
+            find "$iso_mount" -type f \( -name '*airootfs*.sfs' -o -name '*.sfs' \) | sort
+          )
+          if (( ${#squashfs_candidates[@]} == 0 )); then
+            echo "::error::No SquashFS root filesystem found inside $iso"
+            find "$iso_mount" -maxdepth 4 -type f | sort
+            exit 1
+          fi
+
+          squashfs="${squashfs_candidates[0]}"
+          sudo mount -o loop,ro "$squashfs" "$rootfs_mount"
+          echo "RYOKU_TRIVY_SQUASHFS=$squashfs" >> "$GITHUB_ENV"
+
+          echo "::notice::Mounted $squashfs for Trivy rootfs scan."
+
+      - name: Generate ISO Trivy SARIF report
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          scan-type: rootfs
+          scan-ref: ${{ env.RYOKU_TRIVY_ROOTFS }}
+          scanners: vuln,secret,misconfig
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-iso-results.sarif
+          limit-severities-for-sarif: true
+          skip-dirs: proc,sys,dev,run,tmp,var/cache/pacman/pkg,var/cache/ryoku/mirror/offline,var/cache/ryoku/uv,root/ryoku/.git,root/ryoku/assets,root/ryoku/docs/media,root/ryoku/tmp,root/ryoku/shell/docs,root/ryoku/shell/sdata,root/ryoku/shell/scripts/__pycache__
+          version: v0.70.0
+
+      - name: Upload ISO Trivy SARIF report
+        if: ${{ always() && hashFiles('trivy-iso-results.sarif') != '' }}
+        uses: github/codeql-action/upload-sarif@v4
+        continue-on-error: true
+        with:
+          sarif_file: trivy-iso-results.sarif
+          category: trivy-iso
+
+      - name: Block ISO critical CVEs and misconfigurations
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          scan-type: rootfs
+          scan-ref: ${{ env.RYOKU_TRIVY_ROOTFS }}
+          scanners: vuln,misconfig
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: 1
+          format: table
+          skip-dirs: proc,sys,dev,run,tmp,var/cache/pacman/pkg,var/cache/ryoku/mirror/offline,var/cache/ryoku/uv,root/ryoku/.git,root/ryoku/assets,root/ryoku/docs/media,root/ryoku/tmp,root/ryoku/shell/docs,root/ryoku/shell/sdata,root/ryoku/shell/scripts/__pycache__
+          skip-setup-trivy: true
+
+      - name: Unmount ISO live root
+        if: ${{ always() }}
+        run: |
+          set +e
+
+          if [[ -n ${RYOKU_TRIVY_ROOTFS:-} ]]; then
+            sudo umount "$RYOKU_TRIVY_ROOTFS" 2>/dev/null || true
+            sudo rm -rf "$RYOKU_TRIVY_ROOTFS"
+          fi
+
+          if [[ -n ${RYOKU_TRIVY_ISO_MOUNT:-} ]]; then
+            sudo umount "$RYOKU_TRIVY_ISO_MOUNT" 2>/dev/null || true
+            sudo rm -rf "$RYOKU_TRIVY_ISO_MOUNT"
+          fi
+
       - name: Sign ISO with GPG
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
@@ -132,6 +223,21 @@ jobs:
           iso="${{ steps.iso.outputs.path }}"
           RYOKU_ISO_PUBLIC_BASE="https://iso.ryoku.dev/${CHANNEL}" ./iso/bin/ryoku-iso-manifest "$iso"
           cat "$iso.json"
+
+      - name: Capture previous ISO release
+        id: previous_iso
+        run: |
+          latest_url="https://iso.ryoku.dev/${CHANNEL}/latest.json"
+          latest_json="$(mktemp)"
+
+          if curl -fsSL --retry 3 --retry-delay 2 "$latest_url" -o "$latest_json"; then
+            previous_commit="$(jq -r '.commit // ""' "$latest_json")"
+
+            echo "commit=$previous_commit" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::No previous ISO manifest found at $latest_url."
+            echo "commit=" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Install rclone
         run: |
@@ -195,3 +301,151 @@ jobs:
             iso/release/*.js
             iso/release/*.asc
           retention-days: 14
+
+      - name: Notify Discord of ISO release
+        if: ${{ success() }}
+        env:
+          DISCORD_ISO_WEBHOOK_URL: ${{ secrets.DISCORD_ISO_WEBHOOK_URL }}
+          PREVIOUS_ISO_COMMIT: ${{ steps.previous_iso.outputs.commit }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z $DISCORD_ISO_WEBHOOK_URL ]]; then
+            echo "::notice::DISCORD_ISO_WEBHOOK_URL secret is not configured; skipping Discord ISO notification."
+            exit 0
+          fi
+
+          manifest="${{ steps.iso.outputs.path }}.json"
+          iso_name="${{ steps.iso.outputs.name }}"
+          iso_sha="$(jq -r '.sha256.iso' "$manifest")"
+          build_date="$(jq -r '.date' "$manifest")"
+          tracking_id="$(jq -r '.tracking_id' "$manifest")"
+          build_commit="$(jq -r '.commit' "$manifest")"
+          short_sha="$(git rev-parse --short "$build_commit")"
+          commit_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/commit/$build_commit"
+          website_url="https://ryoku.dev"
+          brand_mark_url="https://raw.githubusercontent.com/$GITHUB_REPOSITORY/main/assets/brand/logo-mark.png"
+          brand_footer="Ryoku Arch : For the sake of power and beauty."
+
+          limit_text() {
+            local max="$1"
+            local value="$2"
+
+            jq -rn --arg value "$value" --argjson max "$max" '
+              $value
+              | gsub("\r"; "")
+              | if length > $max then .[0:($max - 3)] + "..." else . end
+            '
+          }
+
+          compare_url=""
+          change_summary=""
+          previous_commit="$PREVIOUS_ISO_COMMIT"
+
+          if [[ -n $previous_commit ]] && git cat-file -e "$previous_commit^{commit}" 2>/dev/null; then
+            if [[ $previous_commit == $build_commit ]]; then
+              change_summary="- Rebuild of $short_sha; no new commits since the previous ISO."
+              compare_url="$commit_url"
+            else
+              total_changes="$(git rev-list --count "$previous_commit..$build_commit")"
+              change_summary="$(git log --pretty=format:'- %s (%h)' -n 5 "$previous_commit..$build_commit")"
+              compare_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/compare/$previous_commit...$build_commit"
+
+              if (( total_changes > 5 )); then
+                change_summary="$change_summary"$'\n'"- + $(( total_changes - 5 )) more changes"
+              fi
+            fi
+          else
+            change_summary="$(git log --pretty=format:'- %s (%h)' -n 5 "$build_commit")"
+            compare_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/commits/main"
+          fi
+
+          if [[ -z $change_summary ]]; then
+            change_summary="- No commit summary available."
+          fi
+
+          download_value="[Open ryoku.dev]($website_url)"$'\n'"Download the ISO, signature, checksum, and public key from the website."
+          source_value="[$short_sha]($commit_url) from main"
+          release_value="$RELEASE_STAGE build $tracking_id, $build_date"
+          verify_value="SHA256: \`$iso_sha\`"
+          changes_value="$(limit_text 1000 "$change_summary"$'\n\n'"[Full changes]($compare_url)")"
+
+          jq -n \
+            --arg content "Ryoku Arch $RELEASE_STAGE ISO published: $iso_name" \
+            --arg title "Ryoku Arch $RELEASE_STAGE ISO published" \
+            --arg website_url "$website_url" \
+            --arg description "A signed Ryoku Arch $RELEASE_STAGE ISO from main is available on the Ryoku website." \
+            --arg download_value "$download_value" \
+            --arg release_value "$release_value" \
+            --arg source_value "$source_value" \
+            --arg changes_value "$changes_value" \
+            --arg verify_value "$verify_value" \
+            --arg brand_mark_url "$brand_mark_url" \
+            --arg brand_footer "$brand_footer" \
+            '{
+              username: "Ryoku Releases",
+              avatar_url: $brand_mark_url,
+              content: $content,
+              allowed_mentions: {
+                parse: []
+              },
+              embeds: [
+                {
+                  title: $title,
+                  url: $website_url,
+                  color: 15881763,
+                  description: $description,
+                  thumbnail: {
+                    url: $brand_mark_url
+                  },
+                  fields: [
+                    {
+                      name: "Download",
+                      value: $download_value,
+                      inline: false
+                    },
+                    {
+                      name: "Release",
+                      value: $release_value,
+                      inline: false
+                    },
+                    {
+                      name: "Source",
+                      value: $source_value,
+                      inline: false
+                    },
+                    {
+                      name: "Changes from previous ISO",
+                      value: $changes_value,
+                      inline: false
+                    },
+                    {
+                      name: "Verification",
+                      value: $verify_value,
+                      inline: false
+                    }
+                  ],
+                  footer: {
+                    text: $brand_footer,
+                    icon_url: $brand_mark_url
+                  },
+                  timestamp: (now | todateiso8601)
+                }
+              ]
+            }' > /tmp/discord-iso-payload.json
+
+          http_code="$(
+            curl -sS -o /tmp/discord-iso-response.json -w "%{http_code}" \
+              -H "Content-Type: application/json" \
+              -X POST \
+              --data-binary @/tmp/discord-iso-payload.json \
+              "$DISCORD_ISO_WEBHOOK_URL"
+          )"
+
+          if [[ $http_code != "200" && $http_code != "204" ]]; then
+            echo "Discord ISO webhook returned HTTP $http_code" >&2
+            cat /tmp/discord-iso-response.json >&2
+            exit 1
+          fi
+
+          echo "Discord ISO release notification sent."

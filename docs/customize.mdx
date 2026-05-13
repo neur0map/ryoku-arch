@@ -11,15 +11,15 @@ This page is being expanded. The skeleton is here; per-surface deep dives land n
 
 Most knobs are here:
 
-- **Appearance** — theme family (Material, Aurora, Angel, Ryoku-Shell, Cards), accent color, panel family (`ii` ↔ `waffle`), font scale, animations on/off.
-- **Background** — wallpaper picker, color generation source, video / GIF wallpapers, dynamic parallax, vignette.
-- **Bar** — toggle every widget, rearrange order, pick which monitor each instance lives on.
-- **Sidebar** — which tabs show up, default tab, gestures.
-- **Lock / Login** — SDDM theme, lock screen layout.
-- **Updates** — auto-check interval, terminal-on-update.
-- **Interactions** — scroll speed, dead-pixel workaround, hover thresholds.
+- **Appearance:** theme family (Material, Aurora, Angel, Ryoku-Shell, Cards), accent color, panel family (`ii` ↔ `waffle`), font scale, animations on/off.
+- **Background:** wallpaper picker, color generation source, video / GIF wallpapers, dynamic parallax, vignette.
+- **Bar:** toggle every widget, rearrange order, pick which monitor each instance lives on.
+- **Sidebar:** which tabs show up, default tab, gestures.
+- **Lock / Login:** SDDM theme, lock screen layout.
+- **Updates:** auto-check interval, terminal-on-update.
+- **Interactions:** scroll speed, dead-pixel workaround, hover thresholds.
 
-Every bar widget is meant to be toggleable, removable, and rearrangeable from Settings → Bar. If something can't be turned off there, that's a bug — file it.
+Every bar widget is meant to be toggleable, removable, and rearrangeable from Settings → Bar. If something can't be turned off there, that's a bug: file it.
 
 ## Wallpapers
 
@@ -34,11 +34,11 @@ Per-monitor wallpapers are configurable in Settings → Background → Multi-mon
 
 Ryoku ships five panel skins:
 
-- **Material** — Material 3 default.
-- **Aurora** — translucent, blurred, dim.
-- **Angel** — bright, glass-card, high-contrast.
-- **Ryoku-Shell** — Greek Noir, brand-aligned.
-- **Cards** — flat surfaces, minimal chrome.
+- **Material:** Material 3 default.
+- **Aurora:** translucent, blurred, dim.
+- **Angel:** bright, glass-card, high-contrast.
+- **Ryoku-Shell:** Greek Noir, brand-aligned.
+- **Cards:** flat surfaces, minimal chrome.
 
 Switch in Settings → Appearance. Each skin reads the same color tokens, so changing wallpaper changes them all at once.
 
@@ -48,14 +48,14 @@ The shipped binds live in `~/.config/niri/config.d/70-binds.kdl`. To override:
 
 - Drop a new file under `~/.config/niri/config.d/` named higher than `70-` (e.g., `90-my-binds.kdl`).
 - Niri reads `config.d/` files in lexical order; later files win.
-- See the [keybindings](keybindings) reference for what's bound today.
+- See the [keybindings](/docs/keybindings) reference for what's bound today.
 
 ## Advanced
 
 For anything that doesn't have a Settings switch:
 
-- **Niri layout** — `~/.config/niri/config.kdl`. Niri docs: https://github.com/YaLTeR/niri/wiki
-- **Shell config (raw JSON)** — `~/.config/illogical-impulse/config.json`. Settings writes here; you can hand-edit when you know what you want.
-- **Theme palette overrides** — `~/.config/matugen/templates/` and `~/.local/state/quickshell/user/generated/`. See [`docs/branding.md`](branding) for the brand-color anchors.
+- **Niri layout:** `~/.config/niri/config.kdl`. Niri docs: https://github.com/YaLTeR/niri/wiki
+- **Shell config (raw JSON):** `~/.config/illogical-impulse/config.json`. Settings writes here; you can hand-edit when you know what you want.
+- **Theme palette overrides:** `~/.config/matugen/templates/` and `~/.local/state/quickshell/user/generated/`. See [`docs/branding.md`](/docs/branding) for the brand-color anchors.
 
-The [customization inventory](customization-inventory) is the authoritative list of every text-based surface you can safely touch.
+The [customization inventory](/docs/customization-inventory) is the authoritative list of every text-based surface you can safely touch.

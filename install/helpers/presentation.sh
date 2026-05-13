@@ -21,7 +21,7 @@ else
   export TERM_HEIGHT=24
 fi
 
-export LOGO_PATH="$RYOKU_PATH/logo.txt"
+export LOGO_PATH="$RYOKU_PATH/assets/brand/logo.txt"
 export LOGO_WIDTH=$(awk '{ if (length > max) max = length } END { print max+0 }' "$LOGO_PATH" 2>/dev/null || echo 0)
 export LOGO_HEIGHT=$(wc -l <"$LOGO_PATH" 2>/dev/null || echo 0)
 

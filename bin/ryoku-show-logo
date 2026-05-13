@@ -7,6 +7,6 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 
 clear
 echo -e "\033[38;2;143;29;33m"
-cat "$RYOKU_PATH/logo.txt"
+cat "$RYOKU_PATH/assets/brand/logo.txt"
 echo -e "\033[0m"
 echo

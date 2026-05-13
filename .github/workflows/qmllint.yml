@@ -1,0 +1,168 @@
+name: QML Lint
+
+on:
+  pull_request:
+    paths:
+      - '**/*.qml'
+      - '**/qmldir'
+      - '.github/workflows/qmllint.yml'
+      - '.qmllint.ini'
+  push:
+    branches:
+      - main
+    paths:
+      - '**/*.qml'
+      - '**/qmldir'
+      - '.github/workflows/qmllint.yml'
+      - '.qmllint.ini'
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: Files to lint
+        required: true
+        default: changed
+        type: choice
+        options:
+          - changed
+          - all
+
+permissions:
+  contents: read
+
+jobs:
+  qmllint:
+    name: qmllint changed QML files
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Qt QML tooling
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          sudo apt-get update
+          sudo apt-get install -y qt6-declarative-dev
+
+          qmllint_bin="/usr/lib/qt6/bin/qmllint"
+          if [[ ! -x $qmllint_bin ]]; then
+            qmllint_bin="$(command -v qmllint || command -v qmllint6 || true)"
+          fi
+
+          if [[ -z $qmllint_bin ]]; then
+            echo "::error::qmllint was not found after installing qt6-declarative-dev."
+            exit 1
+          fi
+
+          echo "QMLLINT_BIN=$qmllint_bin" >> "$GITHUB_ENV"
+          "$qmllint_bin" --version || true
+
+      - name: Prepare local QML import root
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          import_root="$RUNNER_TEMP/ryoku-qml-imports"
+          rm -rf "$import_root"
+          mkdir -p "$import_root"
+          ln -s "$GITHUB_WORKSPACE/shell" "$import_root/qs"
+
+          echo "RYOKU_QML_IMPORT_ROOT=$import_root" >> "$GITHUB_ENV"
+
+      - name: Collect files
+        id: files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          files="$(mktemp)"
+          changed_files="$(mktemp)"
+          scope="${{ github.event.inputs.scope || 'changed' }}"
+
+          collect_qml_from_git_stream() {
+            while IFS= read -r -d '' file; do
+              [[ -f $file ]] || continue
+
+              case "$file" in
+                *.qml)
+                  printf '%s\0' "$file" >>"$files"
+                  ;;
+              esac
+            done
+          }
+
+          collect_changed_files() {
+            if [[ $GITHUB_EVENT_NAME == "pull_request" ]]; then
+              git diff --name-only --diff-filter=ACM -z \
+                "${{ github.event.pull_request.base.sha }}" \
+                "${{ github.event.pull_request.head.sha }}"
+            elif [[ $GITHUB_EVENT_NAME == "push" ]]; then
+              before="${{ github.event.before }}"
+
+              if [[ -z $before || $before == "0000000000000000000000000000000000000000" ]]; then
+                git ls-files -z
+              else
+                git diff --name-only --diff-filter=ACM -z \
+                  "$before" \
+                  "${{ github.sha }}"
+              fi
+            elif git rev-parse HEAD~1 >/dev/null 2>&1; then
+              git diff --name-only --diff-filter=ACM -z HEAD~1 HEAD
+            else
+              git ls-files -z
+            fi
+          }
+
+          if [[ $scope == "all" ]]; then
+            git ls-files -z '*.qml' | collect_qml_from_git_stream
+          else
+            collect_changed_files >"$changed_files"
+            lint_all=false
+
+            while IFS= read -r -d '' file; do
+              case "$file" in
+                .github/workflows/qmllint.yml|.qmllint.ini)
+                  lint_all=true
+                  break
+                  ;;
+              esac
+            done <"$changed_files"
+
+            if [[ $lint_all == "true" ]]; then
+              git ls-files -z '*.qml' | collect_qml_from_git_stream
+            else
+              collect_qml_from_git_stream <"$changed_files"
+            fi
+          fi
+
+          if [[ ! -s $files ]]; then
+            echo "has_files=false" >>"$GITHUB_OUTPUT"
+            echo "No QML files to lint."
+            exit 0
+          fi
+
+          sort -zu "$files" > qmllint-files.txt
+          echo "has_files=true" >>"$GITHUB_OUTPUT"
+          echo "Files selected for qmllint:"
+          tr '\0' '\n' < qmllint-files.txt
+
+      - name: Run qmllint
+        if: steps.files.outputs.has_files == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          status=0
+          while IFS= read -r -d '' file; do
+            echo "::group::qmllint $file"
+            if ! "$QMLLINT_BIN" -I "$RYOKU_QML_IMPORT_ROOT" "$file"; then
+              status=1
+            fi
+            echo "::endgroup::"
+          done < qmllint-files.txt
+
+          exit "$status"

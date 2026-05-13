@@ -13,6 +13,22 @@ assert_contains() {
   rg -q -- "$pattern" "$ROOT_DIR/$file" || fail "$message"
 }
 
+line_number() {
+  local file=$1 pattern=$2
+  rg -n -- "$pattern" "$ROOT_DIR/$file" 2>/dev/null | awk -F: 'NR == 1 { print $1 }' || true
+}
+
+assert_order() {
+  local file=$1 first=$2 second=$3 message=$4
+  local first_line second_line
+  first_line=$(line_number "$file" "$first")
+  second_line=$(line_number "$file" "$second")
+
+  [[ -n $first_line ]] || fail "missing expected workflow step: $first"
+  [[ -n $second_line ]] || fail "missing expected workflow step: $second"
+  (( first_line < second_line )) || fail "$message"
+}
+
 tmp_dir=$(mktemp -d)
 trap 'rm -rf "$tmp_dir"' EXIT
 
@@ -59,6 +75,27 @@ assert_contains '.github/workflows/build-iso.yml' 'latest\.json' \
   "workflow should upload latest.json to R2"
 assert_contains '.github/workflows/build-iso.yml' 'latest\.js' \
   "workflow should upload latest.js to R2 for the static website"
+assert_contains '.github/workflows/build-iso.yml' 'security-events: write' \
+  "workflow should be able to upload ISO Trivy SARIF to code scanning"
+assert_contains '.github/workflows/build-iso.yml' 'Mount ISO live root for Trivy' \
+  "workflow should mount the built ISO root filesystem before release"
+assert_contains '.github/workflows/build-iso.yml' 'scan-type: rootfs' \
+  "workflow should scan the built live root filesystem, not just source files"
+assert_contains '.github/workflows/build-iso.yml' 'trivy-iso-results\.sarif' \
+  "workflow should upload an ISO Trivy SARIF report"
+assert_contains '.github/workflows/build-iso.yml' 'version: v0\.70\.0' \
+  "workflow should pin the Trivy CLI version used for ISO scans"
+assert_contains '.github/workflows/build-iso.yml' 'Block ISO critical CVEs and misconfigurations' \
+  "workflow should block publishing when the built ISO has critical findings"
+assert_order '.github/workflows/build-iso.yml' 'Generate ISO Trivy SARIF report' \
+  'Block ISO critical CVEs and misconfigurations' \
+  "workflow should generate the ISO Trivy report before enforcing the gate"
+assert_order '.github/workflows/build-iso.yml' 'Block ISO critical CVEs and misconfigurations' \
+  'Sign ISO with GPG' \
+  "workflow should scan and gate the ISO before signing it"
+assert_order '.github/workflows/build-iso.yml' 'Block ISO critical CVEs and misconfigurations' \
+  'Upload to Cloudflare R2' \
+  "workflow should scan and gate the ISO before publishing it"
 assert_contains 'iso/bin/ryoku-iso-make' 'RYOKU_ISO_TRACKING_ID' \
   "ryoku-iso-make should include tracking IDs in output names"
 assert_contains 'iso/bin/ryoku-iso-make' 'SOURCE_DATE_EPOCH' \

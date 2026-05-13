@@ -91,7 +91,7 @@ assert_shell_overlay() {
     "Ryoku shell config overlay should set the branded hotspot name"
   assert_contains "default/ryoku-shell/branding-replacements.tsv" 'Ryoku SDDM login screen' \
     "Ryoku shell replacement map should include the SDDM branding"
-  assert_contains "install/config/ryoku-shell-branding.sh" 'logo-mark\.svg.*ryoku\.svg' \
+  assert_contains "install/config/ryoku-shell-branding.sh" 'assets/brand/logo-mark\.svg.*ryoku\.svg' \
     "Ryoku shell overlay should keep the Ryoku topbar/app logo"
   assert_not_contains "install/config/ryoku-shell-branding.sh" 'themes/ryoku/backgrounds|wallpaperPath = \$path' \
     "Ryoku shell overlay should not force Ryoku wallpaper/background colors"

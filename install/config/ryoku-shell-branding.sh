@@ -83,10 +83,10 @@ apply_service_cleanup() {
 install_visible_assets() {
   local icon_dir="$HOME/.local/share/icons/hicolor/scalable/apps"
 
-  install_asset "$RYOKU_PATH/logo-mark.svg" "$SHELL_PATH/assets/icons/ryoku.svg"
-  install_asset "$RYOKU_PATH/logo-mark.svg" "$SHELL_PATH/assets/icons/desktop-symbolic.svg"
-  install_asset "$RYOKU_PATH/logo-mark.svg" "$icon_dir/ryoku.svg"
-  install_asset "$RYOKU_PATH/logo-mark.svg" "$icon_dir/ryoku-shell.svg"
+  install_asset "$RYOKU_PATH/assets/brand/logo-mark.svg" "$SHELL_PATH/assets/icons/ryoku.svg"
+  install_asset "$RYOKU_PATH/assets/brand/logo-mark.svg" "$SHELL_PATH/assets/icons/desktop-symbolic.svg"
+  install_asset "$RYOKU_PATH/assets/brand/logo-mark.svg" "$icon_dir/ryoku.svg"
+  install_asset "$RYOKU_PATH/assets/brand/logo-mark.svg" "$icon_dir/ryoku-shell.svg"
 }
 
 restore_shell_panels_original_frame_state_to_file() {

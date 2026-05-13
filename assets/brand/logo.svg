@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <!-- Ryoku logo: the kanji 力 (chikara / ryoku, "power / strength") in the
        Greek Noir accent orange on the theme's background. Matches the
-       rendered icon.txt used by fastfetch. -->
+       rendered assets/brand/icon.txt used by fastfetch. -->
   <rect width="512" height="512" rx="48" ry="48" fill="#171717"/>
   <text x="256" y="360"
         font-family="Noto Sans CJK JP, sans-serif"

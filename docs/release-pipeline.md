@@ -10,24 +10,28 @@ credentials); CI uses GitHub Secrets instead.
 GitHub-hosted `ubuntu-latest` runner:
 
 1. Checkout (full history so `.git` ships into the ISO via `--local-source`)
-2. Verify required secrets are present, fail with a clear message if not
-3. Free disk space on the runner (strip preinstalled toolchains we do not use)
-4. Build the ISO via `iso/bin/ryoku-iso-make --local-source --no-boot-offer`
-5. Prepare a support tracking ID (`r<run-number>-<short-sha>`) and pass it
+2. Prepare a support tracking ID (`r<run-number>-<short-sha>`) and pass it
    into the ISO build. The live image also gets `/etc/ryoku-iso-release`
    with the same ID, commit, run URL, channel, and build timestamp.
-6. Sign the ISO with the GPG key from `GPG_PRIVATE_KEY` secret, then export
+3. Verify required secrets are present, fail with a clear message if not
+4. Free disk space on the runner (strip preinstalled toolchains we do not use)
+5. Build the ISO via `iso/bin/ryoku-iso-make --local-source --no-boot-offer`
+6. Mount the built ISO live root and run Trivy against it. The workflow uploads
+   an ISO SARIF report and blocks publishing on critical CVEs or
+   misconfigurations before anything is signed or uploaded.
+7. Sign the ISO with the GPG key from `GPG_PRIVATE_KEY` secret, then export
    the public key as `ryoku-release-key.pub.asc` so testers can verify
-7. Generate `<iso>.sha256` containing the iso + sig hashes
-8. Generate `<iso>.json`, `<iso>.js`, and channel-level `latest.json` /
+8. Generate `<iso>.sha256` containing the iso + sig hashes
+9. Generate `<iso>.json`, `<iso>.js`, and channel-level `latest.json` /
    `latest.js` release manifests
-9. Upload the ISO, signature, checksum, manifests, and public key to
+10. Upload the ISO, signature, checksum, manifests, and public key to
    Cloudflare R2 via rclone
-10. Attach the same files as a workflow-run artifact for 14 days as a fallback
+11. Attach the same files as a workflow-run artifact for 14 days as a fallback
+12. Send the public Discord ISO announcement after every prior step succeeds
 
 ## Triggers
 
-- `workflow_dispatch` (manual). Pick a release channel (`stable`, `rc`, `edge`). Default `stable`.
+- `workflow_dispatch` (manual). Pick a download path (`stable`, `rc`, `edge`) and public release stage (`alpha`, `beta`, `stable`). The current public alpha still publishes under the existing `stable` download path so old links keep working.
 - Pushing a `v*` tag (e.g. `v0.1.0`). Always builds the `stable` channel.
 
 ## GitHub Secrets the workflow needs
@@ -42,6 +46,7 @@ Configure under **Settings -> Secrets and variables -> Actions** in the repo.
 | `R2_BUCKET` | optional | Bucket + prefix to upload into. Defaults to `ryoku/<channel>`. Set to e.g. `ryoku-iso/stable` if you use a different bucket name. |
 | `GPG_PRIVATE_KEY` | yes | Armored private GPG signing key, full block including `-----BEGIN PGP PRIVATE KEY BLOCK-----` and `-----END PGP PRIVATE KEY BLOCK-----` |
 | `GPG_PASSPHRASE` | optional | Passphrase for the GPG key, omit if the key has no passphrase |
+| `DISCORD_ISO_WEBHOOK_URL` | optional | Discord webhook for public ISO release announcements. If unset, the ISO still builds and uploads, but no Discord message is sent. |
 
 ## Setting up Cloudflare R2
 
@@ -98,7 +103,9 @@ gpg --with-colons --import-options show-only --import ryoku-release-key.pub.asc 
 Manual:
 
 1. GitHub repo -> Actions -> Build ISO
-2. Run workflow -> select channel -> Run
+2. Run workflow -> select download path and public release stage -> Run
+
+For the current alpha, use download path `stable` and release stage `alpha`.
 
 Tag a release:
 
@@ -109,7 +116,15 @@ git push origin v0.1.0
 
 Either kicks off the workflow. ~30-60 min on cold cache (DKMS overlay
 compiles dominate). The workflow page shows live logs and the final
-artifact upload.
+artifact upload. Discord release announcements are sent only after the ISO
+build, live-root Trivy gate, signature, checksums, manifests, public key, and
+workflow artifact have all finished successfully.
+
+The release announcement sends users to `https://ryoku.dev` for the ISO,
+signature, checksum, and public key. It reads the previous `latest.json`
+before upload, compares that manifest's commit to the new build commit on
+`main`, and posts up to five commit subjects plus a full compare link. If no
+previous manifest exists, it falls back to the latest five commits on `main`.
 
 ## Where users download
 
@@ -188,6 +203,10 @@ sha256sum -c $iso.sha256
 
 - **Disk space exhausted on runner**. Visible as `mkarchiso` failing to write the squashfs. The `Free disk space` step strips ~25 GB of preinstalled toolchains; if a future bump pushes the build past that, switch to a self-hosted runner or use a `larger` GitHub-hosted runner.
 - **Build timeout**. Workflow `timeout-minutes: 120`. Cold builds rarely exceed 60 min; if Apple T2 or `linux-ptl` get added to the boot overlay later, this may need to grow.
+- **Trivy blocks publish**. The built live root has a critical CVE or
+  misconfiguration. Open the `trivy-iso` code-scanning result or the workflow
+  table output, update or remove the affected package/config, and rerun the ISO
+  build.
 - **GPG sign fails**. Usually a malformed `GPG_PRIVATE_KEY` (missing the BEGIN/END lines, or a stray newline broke the armored block). Re-export and re-paste.
 - **rclone upload fails**. Typically an `R2_ENDPOINT` mismatch (must be the account-scoped one, not the bucket URL).
 

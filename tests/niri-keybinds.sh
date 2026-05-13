@@ -50,11 +50,22 @@ done
 assert_not_contains shell/modules/tilingOverlay/TilingOverlay.qml 'Mod\+X cycle' \
   "tiling overlay should not claim Mod+X cycles layouts"
 
+generated_doc="$(mktemp)"
+trap 'rm -f "$generated_doc"' EXIT
+
+bin/ryoku-dev-generate-keybindings-docs --stdout >"$generated_doc"
+
+if ! cmp -s docs/keybindings.md "$generated_doc"; then
+  diff -u docs/keybindings.md "$generated_doc" >&2 || true
+  fail "docs/keybindings.md is stale. run bin/ryoku-dev-generate-keybindings-docs"
+fi
+
 python3 shell/scripts/parse_niri_keybinds.py config/niri/config.d/70-binds.kdl |
   jq -e '
-    any(.children[].children[].keybinds[]; (.mods == ["Super"] and .key == "Z" and .comment == "Focus left")) and
-    any(.children[].children[].keybinds[]; (.mods == ["Super"] and .key == "X" and .comment == "Focus right")) and
-    any(.children[].children[].keybinds[]; (.mods == ["Super"] and .key == "Slash"))
+    any(.children[].children[].keybinds[]; (.combo == "Mod+Z" and .comment == "Focus left")) and
+    any(.children[].children[].keybinds[]; (.combo == "Mod+X" and .comment == "Focus right")) and
+    any(.children[].children[].keybinds[]; (.combo == "Mod+Slash" and .comment == "Cheatsheet")) and
+    any(.children[].children[].keybinds[]; (.combo == "Mod+S" and .comment == "Toolkit pill"))
   ' >/dev/null || fail "cheatsheet parser should expose Mod+Z, Mod+X, and Mod+Slash"
 
 echo "OK: Niri keybind defaults"

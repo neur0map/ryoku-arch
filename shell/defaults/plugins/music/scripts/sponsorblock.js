@@ -8,6 +8,7 @@
 
     const LOG_PREFIX = '[Ryoku-SponsorBlock]';
     const API_BASE = 'https://sponsor.ajay.app/api';
+    const VIDEO_ID_PATTERN = /^[A-Za-z0-9_-]{11}$/;
 
     // Categories to skip (user could customize later via config)
     const SKIP_CATEGORIES = [
@@ -27,18 +28,52 @@
     let currentSegments = [];
     let skipNotificationTimeout = null;
 
+    function normalizeVideoId(value) {
+        if (typeof value !== 'string') return null;
+        const trimmed = value.trim();
+        return VIDEO_ID_PATTERN.test(trimmed) ? trimmed : null;
+    }
+
+    function safeSegmentCategory(category) {
+        if (typeof category !== 'string') return null;
+        return SKIP_CATEGORIES.includes(category) ? category : null;
+    }
+
+    function normalizeSegment(seg) {
+        if (!seg || !Array.isArray(seg.segment)) return null;
+
+        const start = Number(seg.segment[0]);
+        const end = Number(seg.segment[1]);
+        const category = safeSegmentCategory(seg.category);
+
+        if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return null;
+        if (!category) return null;
+
+        return {
+            start,
+            end,
+            category,
+            uuid: typeof seg.UUID === 'string' ? seg.UUID : ''
+        };
+    }
+
     // --- Extract video ID from URL or player ---
     function getVideoId() {
         // YouTube Music uses /watch?v=VIDEO_ID
         const params = new URLSearchParams(window.location.search);
         const v = params.get('v');
-        if (v) return v;
+        const normalized = normalizeVideoId(v);
+        if (normalized) return normalized;
 
         // Fallback: check for video element src
         const video = document.querySelector('video');
         if (video && video.src) {
-            const match = video.src.match(/[?&]v=([^&]+)/);
-            if (match) return match[1];
+            try {
+                const videoUrl = new URL(video.src);
+                return normalizeVideoId(videoUrl.searchParams.get('v'));
+            } catch (e) {
+                return null;
+            }
         }
 
         return null;
@@ -52,7 +87,7 @@
 
         try {
             const cats = encodeURIComponent(JSON.stringify(SKIP_CATEGORIES));
-            const url = `${API_BASE}/skipSegments?videoID=${videoId}&categories=${cats}`;
+            const url = `${API_BASE}/skipSegments?videoID=${encodeURIComponent(videoId)}&categories=${cats}`;
 
             const response = await fetch(url);
 
@@ -68,12 +103,7 @@
             }
 
             const data = await response.json();
-            const segments = data.map(seg => ({
-                start: seg.segment[0],
-                end: seg.segment[1],
-                category: seg.category,
-                uuid: seg.UUID
-            }));
+            const segments = data.map(normalizeSegment).filter(Boolean);
 
             segmentCache[videoId] = segments;
             console.log(LOG_PREFIX, `Found ${segments.length} segments for ${videoId}`);
@@ -100,6 +130,7 @@
             'music_offtopic': 'Non-Music'
         };
 
+        const safeCategory = safeSegmentCategory(category);
         const div = document.createElement('div');
         div.id = 'ryoku-sb-notification';
         div.style.cssText = `
@@ -117,7 +148,7 @@
             transition: opacity 0.3s;
             opacity: 1;
         `;
-        div.textContent = `⏭ Skipped: ${labels[category] || category}`;
+        div.textContent = `⏭ Skipped: ${safeCategory ? labels[safeCategory] : 'Segment'}`;
         document.body.appendChild(div);
 
         if (skipNotificationTimeout) clearTimeout(skipNotificationTimeout);

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# ryoku-dev-check-drift, maintainer-only sanity check.
+# ryoku-dev-check-drift, maintainer-only drift check.
 #
 # Verifies that the installer-time patches the dev repo claims to apply
 # are actually present on the live system.  Runs from the pre-commit

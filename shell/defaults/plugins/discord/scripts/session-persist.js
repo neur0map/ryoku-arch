@@ -16,7 +16,11 @@
 (function() {
     'use strict';
 
-    if (!location.hostname.includes('discord')) return;
+    function isDiscordHost(hostname) {
+        return hostname === 'discord.com' || hostname.endsWith('.discord.com');
+    }
+
+    if (!isDiscordHost(location.hostname)) return;
 
     var COOKIE_PREFIX = '__ryoku_';
     var LEGACY_COOKIE_PREFIX = '__inir_';
@@ -24,8 +28,9 @@
     var KEYS = ['token', 'tokens', 'user_id_cache', 'MultiAccountStore'];
 
     function setCookie(name, value) {
+        var secure = location.protocol === 'https:' ? ';Secure' : '';
         document.cookie = COOKIE_PREFIX + name + '=' + encodeURIComponent(value)
-            + ';path=/;max-age=' + MAX_AGE + ';SameSite=Lax';
+            + ';path=/;max-age=' + MAX_AGE + ';SameSite=Lax' + secure;
     }
 
     function getCookie(name) {

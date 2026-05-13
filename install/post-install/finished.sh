@@ -15,9 +15,9 @@ echo_in_style() {
 clear
 echo
 if command -v tte >/dev/null; then
-  tte -i ~/.local/share/ryoku/logo.txt --canvas-width 0 --anchor-text c --frame-rate 920 laseretch
+  tte -i ~/.local/share/ryoku/assets/brand/logo.txt --canvas-width 0 --anchor-text c --frame-rate 920 laseretch
 else
-  cat ~/.local/share/ryoku/logo.txt 2>/dev/null
+  cat ~/.local/share/ryoku/assets/brand/logo.txt 2>/dev/null
 fi
 echo
 
