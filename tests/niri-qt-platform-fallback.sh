@@ -35,6 +35,9 @@ assert_contains "shell/scripts/ryoku-shell" 'QT_QPA_PLATFORM=wayland;xcb'
 assert_not_contains "shell/scripts/ryoku-shell" 'QT_QPA_PLATFORM=wayland")'
 assert_contains "shell/sdata/lib/package-installers.sh" 'QT_QPA_PLATFORM=wayland;xcb'
 
+assert_contains "config/systemd/user/ryoku-shell.service.d/qt6-fractional-scale-workaround.conf" 'QT_WAYLAND_DISABLE_FRACTIONAL_SCALE=1'
+assert_contains "config/systemd/user/ryoku-shell.service.d/qt6-fractional-scale-workaround.conf" 'QT_SCALE_FACTOR_ROUNDING_POLICY=Round'
+
 assert_contains "migrations/1778634987.sh" 'QT_QPA_PLATFORM "wayland;xcb"'
 assert_contains "migrations/1778634987.sh" 'QT_QPA_PLATFORM=wayland;xcb'
 assert_contains "migrations/1778634987.sh" 'set-environment QT_QPA_PLATFORM="$QT_QPA_PLATFORM"'
