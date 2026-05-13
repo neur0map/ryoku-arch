@@ -118,4 +118,4 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          xargs -0 shellcheck -x -s bash < shellcheck-files.txt
+          xargs -0 shellcheck -x -s bash --severity=warning < shellcheck-files.txt

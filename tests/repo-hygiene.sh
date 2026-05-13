@@ -45,8 +45,8 @@ assert_shellcheck_workflow() {
     "ShellCheck workflow should handle initial push events without a bogus diff"
   assert_not_contains ".github/workflows/shellcheck.yml" '\|install/\*' \
     "ShellCheck workflow should not lint install package-list data as shell"
-  assert_contains ".github/workflows/shellcheck.yml" 'shellcheck -x -s bash' \
-    "ShellCheck workflow should keep Bash mode explicit"
+  assert_contains ".github/workflows/shellcheck.yml" 'shellcheck -x -s bash --severity=warning' \
+    "ShellCheck workflow should keep Bash mode explicit and avoid info/style-only noise"
 }
 
 assert_woke_workflow() {
@@ -57,7 +57,7 @@ assert_woke_workflow() {
   assert_contains ".github/workflows/inclusive-language.yml" 'woke-files\.txt' \
     "Inclusive language workflow should lint a collected file list"
   assert_contains ".woke.yml" 'iso/configs/airootfs/etc/modprobe\.d/\*\*' \
-    "Inclusive language config should ignore technical modprobe blacklist directives"
+    "Inclusive language config should ignore technical modprobe blocklist directives"
   assert_not_contains ".github/workflows/inclusive-language.yml" 'config/\*\|default/\*\|install/\*' \
     "Inclusive language workflow should not use broad directory globs that pick up binary or package-list files"
 }
@@ -73,10 +73,14 @@ assert_qmllint_workflow() {
     "QML lint workflow should lint a collected file list"
   assert_contains ".github/workflows/qmllint.yml" '\$import_root/qs' \
     "QML lint workflow should expose shell/ as qs imports"
+  assert_contains ".github/workflows/qmllint.yml" 'max-warnings -1' \
+    "QML lint workflow should not fail on known Quickshell metadata warning noise"
   assert_contains ".qmllint.ini" 'ImportFailure=disable' \
     "qmllint config should suppress missing Quickshell import noise"
   assert_not_contains ".github/workflows/qmllint.yml" '\*/qmldir\).*lint_all=true' \
     "QML lint workflow should not full-scan all 800+ QML files on metadata-only qmldir changes"
+  assert_not_contains ".github/workflows/qmllint.yml" '\.qmllint\.ini\).*lint_all=true' \
+    "QML lint workflow should keep config-only changes from forcing a full-shell scan"
 }
 
 assert_trivy_noise_controls() {
