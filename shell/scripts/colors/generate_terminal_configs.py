@@ -236,6 +236,28 @@ def fix_alacritty_import_order(config_path):
             hoisted_general_keys[key] = stripped_line
             hoisted_general_lines.append(stripped_line)
 
+    def _line_is_general_option(line):
+        return bool(re.match(general_option_pat, line.strip()))
+
+    def _has_general_option_in_general_section(config_lines):
+        in_general = False
+
+        for line in config_lines:
+            stripped = line.strip()
+
+            if stripped == "[general]":
+                in_general = True
+                continue
+
+            if stripped.startswith("["):
+                in_general = False
+                continue
+
+            if in_general and _line_is_general_option(line):
+                return True
+
+        return False
+
     has_hardcoded_colors = bool(
         re.search(r"^\[colors\.(primary|normal|bright)\]", content, re.MULTILINE)
     )
@@ -246,18 +268,9 @@ def fix_alacritty_import_order(config_path):
         l.strip() for l in lines[:10] if l.strip() and not l.strip().startswith("#")
     ]
 
-    misplaced_general = bool(
-        re.search(
-            r"^\s*(working_directory|live_config_reload|ipc_socket)\s*=",
-            content,
-            re.MULTILINE,
-        )
-    ) and not bool(
-        re.search(
-            r"^\s*\[general\](?:\n|\r\n)(?:[^\[]*\n|\r\n)*(?:\s*(working_directory|live_config_reload|ipc_socket)\s*=)",
-            content,
-            re.MULTILINE,
-        )
+    has_general_option = any(_line_is_general_option(line) for line in lines)
+    misplaced_general = has_general_option and not _has_general_option_in_general_section(
+        lines
     )
 
     # Correct state: [general] is first real line, import is second, no hardcoded colors,
