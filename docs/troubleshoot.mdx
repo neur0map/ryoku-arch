@@ -64,6 +64,16 @@ ryoku-doctor apps
 
 It repairs Ryoku's Qt launch fallback for apps that need XCB and offers the detected GPU's OpenCL runtime when GPU-compute apps cannot find a supported GPU. The GPU runtime is installed only when you confirm it.
 
+## Recording imports as black in an editor
+
+Ryoku screen recordings are normal MP4 files for playback and sharing. Some Linux editor builds need edit-friendly codecs instead. Create a compatible MOV copy:
+
+```bash
+ryoku-cmd-video-edit-ready ~/Videos/recording.mp4
+```
+
+The original file is left untouched. The converted file is written next to it under `EditReady/`.
+
 ## Filing a useful bug
 
 Open an issue at [`neur0map/ryoku-arch`](https://github.com/neur0map/ryoku-arch/issues) with:
