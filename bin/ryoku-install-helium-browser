@@ -7,10 +7,12 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 release_api="${HELIUM_RELEASE_API:-https://api.github.com/repos/imputnet/helium-linux/releases/latest}"
 offline_appimage="${HELIUM_OFFLINE_APPIMAGE:-/var/cache/ryoku/appimages/helium/helium.AppImage}"
 data_home="${XDG_DATA_HOME:-$HOME/.local/share}"
-app_dir="$data_home/ryoku/apps/helium"
+app_dir="$data_home/ryoku-apps/helium"
+legacy_app_dir="$data_home/ryoku/apps/helium"
 desktop_dir="$data_home/applications"
 bin_dir="$HOME/.local/bin"
 appimage_path="$app_dir/helium.AppImage"
+legacy_appimage_path="$legacy_app_dir/helium.AppImage"
 desktop_file="$desktop_dir/helium.desktop"
 bin_path="$bin_dir/helium"
 source_appimage=""
@@ -85,6 +87,11 @@ fi
 mkdir -p "$app_dir" "$desktop_dir" "$bin_dir"
 install -m 0755 "$source_appimage" "$appimage_path"
 ln -sfn "$appimage_path" "$bin_path"
+
+if [[ -e $legacy_appimage_path ]]; then
+  rm -f "$legacy_appimage_path"
+  rmdir "$legacy_app_dir" "$data_home/ryoku/apps" 2>/dev/null || true
+fi
 
 cat >"$desktop_file" <<EOF
 [Desktop Entry]

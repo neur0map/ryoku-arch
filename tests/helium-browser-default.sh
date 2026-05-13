@@ -87,6 +87,10 @@ assert_contains bin/ryoku-install-helium-browser 'https://api\.github\.com/repos
   "Helium installer should use official Linux release metadata"
 assert_contains bin/ryoku-install-helium-browser '/var/cache/ryoku/appimages/helium/helium\.AppImage' \
   "Helium installer should prefer the offline ISO AppImage cache"
+assert_contains bin/ryoku-install-helium-browser 'ryoku-apps/helium' \
+  "Helium installer should keep AppImages outside the Ryoku git checkout"
+assert_not_contains bin/ryoku-install-helium-browser 'app_dir="\\$data_home/ryoku/apps/helium"' \
+  "Helium installer should not create untracked apps/ files inside the Ryoku git checkout"
 assert_contains bin/ryoku-install-helium-browser 'helium-\$\{version\}-\$\{arch\}\.AppImage' \
   "Helium installer should resolve architecture-specific AppImages"
 assert_contains bin/ryoku-install-helium-browser 'helium\.desktop' \
@@ -127,6 +131,12 @@ assert_contains bin/ryoku-default-app-migrate 'dock\.pinnedApps = \["org\.gnome\
   "browser migration helper should move old defaults to Helium after opt-in"
 assert_contains migrations/1778617021.sh 'ryoku-default-app-migrate browser helium' \
   "browser migration should run through the opt-in helper"
+assert_contains migrations/1778631161.sh 'Move Helium AppImage outside Ryoku git checkout' \
+  "migration should repair Helium payloads installed inside the Ryoku git checkout"
+assert_contains migrations/1778631161.sh 'ryoku/apps/helium' \
+  "migration should detect the legacy in-checkout Helium AppImage path"
+assert_contains migrations/1778631161.sh 'ryoku-apps/helium' \
+  "migration should move Helium payloads to the external app data path"
 
 assert_contains shell/services/AppLauncher.qml 'defaultCommand: "helium"' \
   "browser launcher should default to Helium"
@@ -168,8 +178,10 @@ assert_contains "$tmp_dir/install.log" 'Installing Helium from offline cache' \
   "Helium installer should use offline cache without network"
 [[ -x "$test_home/.local/bin/helium" ]] \
   || fail "Helium installer should create an executable helium command"
-cmp -s "$tmp_dir/offline/helium.AppImage" "$test_home/.local/share/ryoku/apps/helium/helium.AppImage" \
+cmp -s "$tmp_dir/offline/helium.AppImage" "$test_home/.local/share/ryoku-apps/helium/helium.AppImage" \
   || fail "Helium installer should copy the offline AppImage"
+[[ ! -e "$test_home/.local/share/ryoku/apps/helium/helium.AppImage" ]] \
+  || fail "Helium installer should not install payloads into the Ryoku git checkout"
 assert_contains "$test_home/.local/share/applications/helium.desktop" 'Exec=.*/\.local/bin/helium %U' \
   "Helium desktop entry should launch the installed AppImage"
 
