@@ -14,8 +14,9 @@ environment {
     // and Dolphin/Nautilus "Open With" menus work correctly.
     XDG_MENU_PREFIX "plasma-"
 
-    // Force Qt apps to use Wayland natively (no XWayland fallback).
-    QT_QPA_PLATFORM "wayland"
+    // Prefer Qt Wayland, but fall back to XCB for bundled/proprietary Qt apps
+    // that only ship the xcb platform plugin.
+    QT_QPA_PLATFORM "wayland;xcb"
 
     // Let Electron apps (Chrome, VS Code, Discord) pick Wayland automatically.
     ELECTRON_OZONE_PLATFORM_HINT "auto"

@@ -1057,12 +1057,12 @@ ensure_systemd_graphical_env() {
         vars_to_import+=("ELECTRON_OZONE_PLATFORM_HINT=auto")
     fi
 
-    # QT_QPA_PLATFORM — tells Qt apps to use the Wayland backend.  Qt usually
-    # auto-detects this from WAYLAND_DISPLAY, but some apps (especially those using
-    # older Qt builds or custom platform plugin paths) need it explicit.  Portal
-    # services reading systemd env also benefit.
+    # QT_QPA_PLATFORM — tells Qt apps to prefer the Wayland backend. Qt usually
+    # auto-detects this from WAYLAND_DISPLAY, but some apps need it explicit.
+    # Keep xcb as a fallback for bundled/proprietary Qt apps that do not ship a
+    # Wayland platform plugin.
     if ! grep -q '^QT_QPA_PLATFORM=' <<< "$sys_env" 2>/dev/null; then
-        vars_to_import+=("QT_QPA_PLATFORM=wayland")
+        vars_to_import+=("QT_QPA_PLATFORM=wayland;xcb")
     fi
 
     # QT_STYLE_OVERRIDE — ensures Qt apps launched from portals or systemd-triggered

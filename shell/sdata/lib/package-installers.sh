@@ -673,7 +673,7 @@ setup-environment-config(){
 # Ryoku environment variables
 XCURSOR_THEME=${cursor_theme}
 XCURSOR_SIZE=24
-QT_QPA_PLATFORM=wayland
+QT_QPA_PLATFORM=wayland;xcb
 QT_QPA_PLATFORMTHEME=${qt_theme}
 QT_STYLE_OVERRIDE=Darkly
 GTK_THEME=adw-gtk3-dark
