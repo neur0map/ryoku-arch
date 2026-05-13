@@ -18,8 +18,12 @@ assert_contains() {
 }
 
 helper="$ROOT_DIR/bin/ryoku-cmd-video-edit-ready"
+migration="$ROOT_DIR/migrations/1778631383.sh"
 [[ -x $helper ]] || fail "ryoku-cmd-video-edit-ready should be executable"
 bash -n "$helper" || fail "ryoku-cmd-video-edit-ready should be valid bash"
+[[ -f $migration ]] || fail "migration should expose ryoku-cmd-video-edit-ready"
+assert_contains "$migration" 'ryoku-cmd-video-edit-ready' \
+  "migration should link the edit-ready helper into the user launcher path"
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
