@@ -54,16 +54,6 @@ If Niri starts fine from the TTY, SDDM is the problem. Check `sudo journalctl -u
 - Wallpaper video / GIF: turning off animated wallpaper is the single biggest GPU win.
 - Niri's overview: `Mod+Tab` is GPU-heavy on integrated graphics; disable per-monitor preview in `~/.config/niri/config.kdl` if it's choppy.
 
-## Apps do not open
-
-Run the app compatibility doctor:
-
-```bash
-ryoku-doctor apps
-```
-
-It repairs Ryoku's Qt launch fallback for apps that need XCB and offers the detected GPU's OpenCL runtime when GPU-compute apps cannot find a supported GPU. The GPU runtime is installed only when you confirm it.
-
 ## Filing a useful bug
 
 Open an issue at [`neur0map/ryoku-arch`](https://github.com/neur0map/ryoku-arch/issues) with:
