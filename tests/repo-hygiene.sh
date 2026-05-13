@@ -73,10 +73,12 @@ assert_qmllint_workflow() {
     "QML lint workflow should lint a collected file list"
   assert_contains ".github/workflows/qmllint.yml" '\$import_root/qs' \
     "QML lint workflow should expose shell/ as qs imports"
-  assert_contains ".github/workflows/qmllint.yml" 'max-warnings -1' \
-    "QML lint workflow should not fail on known Quickshell metadata warning noise"
+  assert_not_contains ".github/workflows/qmllint.yml" 'max-warnings' \
+    "QML lint workflow should stay compatible with Ubuntu's Qt 6.4 qmllint"
   assert_contains ".qmllint.ini" 'ImportFailure=disable' \
     "qmllint config should suppress missing Quickshell import noise"
+  assert_contains ".qmllint.ini" 'UnknownProperty=disable' \
+    "qmllint config should suppress old Qt missing-property noise"
   assert_not_contains ".github/workflows/qmllint.yml" '\*/qmldir\).*lint_all=true' \
     "QML lint workflow should not full-scan all 800+ QML files on metadata-only qmldir changes"
   assert_not_contains ".github/workflows/qmllint.yml" '\.qmllint\.ini\).*lint_all=true' \

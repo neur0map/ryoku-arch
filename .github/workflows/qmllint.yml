@@ -144,7 +144,7 @@ jobs:
           status=0
           while IFS= read -r -d '' file; do
             echo "::group::qmllint $file"
-            if ! "$QMLLINT_BIN" --max-warnings -1 -I "$RYOKU_QML_IMPORT_ROOT" "$file"; then
+            if ! "$QMLLINT_BIN" -I "$RYOKU_QML_IMPORT_ROOT" "$file"; then
               status=1
             fi
             echo "::endgroup::"
