@@ -24,7 +24,7 @@ fi
 
 update_failed() {
   echo ""
-  echo -e "\033[0;31mSomething went wrong during the update!\n\nPlease review the output above carefully, correct the error, and retry the update.\n\nRun: ryoku-doctor update\n\nIf you need assistance, open an issue at https://github.com/neur0map/ryoku-arch/issues\033[0m"
+  echo -e "\033[0;31mSomething went wrong during the update!\n\nPlease review the output above carefully, correct the error, and retry the update.\n\nRun: ryoku-doctor\n\nIf you need assistance, open an issue at https://github.com/neur0map/ryoku-arch/issues\033[0m"
 }
 
 trap update_failed ERR

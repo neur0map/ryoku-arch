@@ -55,7 +55,7 @@ CONFIRM
 
 chmod 755 "$tmp/fake-ryoku/bin/ryoku-update-confirm"
 
-"$tmp/bin/ryoku-doctor-link" -h | grep -Fq 'ryoku-doctor [update|-h]' \
+"$tmp/bin/ryoku-doctor-link" -h | grep -Fq 'ryoku-doctor [-h]' \
   || fail "ryoku-doctor should resolve its repo root when called through a symlink"
 
 git init -b main "$tmp/source" >/dev/null
@@ -80,12 +80,21 @@ git -C "$tmp/source" add recovery.txt
 git -C "$tmp/source" commit -m "future recovery fix" >/dev/null
 git -C "$tmp/source" push origin main >/dev/null 2>&1
 
-RYOKU_PATH="$tmp/checkout" \
-RYOKU_UPDATE_REMOTE_URL="$tmp/remote.git" \
-  "$ROOT_DIR/bin/ryoku-doctor" ff >/dev/null \
-  || fail "ryoku-doctor ff should fast-forward to the latest release branch"
+ff_output=$(
+  RYOKU_PATH="$tmp/checkout" \
+  RYOKU_UPDATE_REMOTE_URL="$tmp/remote.git" \
+  RYOKU_DOCTOR_ASSUME_YES=1 \
+  RYOKU_UPDATE_LOG="$tmp/update.log" \
+  RYOKU_PACMAN_CONFLICT_BACKUP_DIR="$tmp/backups-ff" \
+  XDG_STATE_HOME="$tmp/state" \
+  PATH="$tmp/bin:$PATH" \
+    "$ROOT_DIR/bin/ryoku-doctor" 2>&1
+) || fail "ryoku-doctor should fast-forward from the short command before update repair: $ff_output"
 git -C "$tmp/checkout" merge-base --is-ancestor origin/main HEAD \
-  || fail "ryoku-doctor ff should leave checkout at origin/main"
+  || fail "ryoku-doctor should leave checkout at origin/main after fast-forward"
+grep -Fq 'Fast-forward Ryoku now? [Y/n] y' <<<"$ff_output" \
+  || fail "doctor should ask before fast-forwarding from the short command"
+touch "$tmp/conflicts/usr/share/example/payload.sh"
 
 RYOKU_UPDATE_INHIBITED=1 \
 RYOKU_UPDATE_LOGGED=1 \
@@ -103,8 +112,8 @@ output=$(
   RYOKU_PACMAN_CONFLICT_BACKUP_DIR="$tmp/backups" \
   XDG_STATE_HOME="$tmp/state" \
   PATH="$tmp/bin:$PATH" \
-    "$ROOT_DIR/bin/ryoku-doctor" update 2>&1
-) || fail "ryoku-doctor update should repair generic pacman file conflicts: $output"
+    "$ROOT_DIR/bin/ryoku-doctor" 2>&1
+) || fail "ryoku-doctor should repair generic pacman file conflicts: $output"
 
 [[ ! -e $tmp/conflicts/usr/share/example/payload.sh ]] \
   || fail "doctor should move an unowned generic conflict file"
@@ -122,7 +131,7 @@ if grep -Fq 'package signature or keyring issue' <<<"$output"; then
   fail "doctor should not warn on normal archlinux-keyring update lines"
 fi
 
-echo "PASS: ryoku-doctor update repairs generic pacman conflict"
+echo "PASS: ryoku-doctor repairs generic pacman conflict"
 
 rm -rf "$tmp/conflicts" "$tmp/backups"
 mkdir -p "$tmp/conflicts/usr/lib/node_modules/semver/functions" "$tmp/backups"
@@ -159,8 +168,8 @@ output=$(
   RYOKU_PACMAN_CONFLICT_BACKUP_DIR="$tmp/backups" \
   XDG_STATE_HOME="$tmp/state" \
   PATH="$tmp/bin:$PATH" \
-    "$ROOT_DIR/bin/ryoku-doctor" update 2>&1
-) || fail "ryoku-doctor update should repair an unowned file inside pacman-owned semver: $output"
+    "$ROOT_DIR/bin/ryoku-doctor" 2>&1
+) || fail "ryoku-doctor should repair an unowned file inside pacman-owned semver: $output"
 
 [[ -d $tmp/conflicts/usr/lib/node_modules/semver ]] || fail "doctor should not move pacman-owned semver directory"
 [[ ! -e $tmp/conflicts/usr/lib/node_modules/semver/functions/truncate.js ]] \
@@ -170,7 +179,7 @@ find "$tmp/backups" -path '*/truncate.js' -print -quit | grep -q . \
 grep -Fq 'Run: ryoku-update -y' <<<"$output" \
   || fail "doctor should still tell users the short retry command"
 
-echo "PASS: ryoku-doctor update repairs owned semver file conflict"
+echo "PASS: ryoku-doctor repairs owned semver file conflict"
 
 rm -rf "$tmp/conflicts" "$tmp/backups"
 mkdir -p "$tmp/conflicts/usr/lib/node_modules/semver/functions" "$tmp/backups"
@@ -195,8 +204,8 @@ output=$(
   RYOKU_PACMAN_CONFLICT_BACKUP_DIR="$tmp/backups" \
   XDG_STATE_HOME="$tmp/state" \
   PATH="$tmp/bin:$PATH" \
-    "$ROOT_DIR/bin/ryoku-doctor" update 2>&1
-) || fail "ryoku-doctor update should allow retry when conflict paths are already pacman-owned: $output"
+    "$ROOT_DIR/bin/ryoku-doctor" 2>&1
+) || fail "ryoku-doctor should allow retry when conflict paths are already pacman-owned: $output"
 
 [[ -e $tmp/conflicts/usr/lib/node_modules/semver/functions/truncate.js ]] \
   || fail "doctor should not move pacman-owned conflict files"
@@ -205,4 +214,4 @@ grep -Fq 'Path is owned by pacman, leaving it in place' <<<"$output" \
 grep -Fq 'Run: ryoku-update -y' <<<"$output" \
   || fail "doctor should still tell users to retry when conflict files are already owned"
 
-echo "PASS: ryoku-doctor update handles already-owned semver"
+echo "PASS: ryoku-doctor handles already-owned semver"
