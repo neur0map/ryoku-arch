@@ -63,4 +63,10 @@ custom_output="$tmp/custom/edit.mov"
 PATH="$tmp/bin:$PATH" RYOKU_TEST_FFMPEG_ARGS="$args" "$helper" "$input" "$custom_output" >/dev/null
 [[ -f $custom_output ]] || fail "helper should accept a custom output path"
 
+mkdir -p "$tmp/local/bin"
+ln -s "$helper" "$tmp/local/bin/ryoku-cmd-video-edit-ready"
+PATH="$tmp/bin:$PATH" RYOKU_TEST_FFMPEG_ARGS="$args" \
+  "$tmp/local/bin/ryoku-cmd-video-edit-ready" --help >/dev/null \
+  || fail "helper should resolve its repo root when called through a symlink"
+
 echo "PASS: video edit-ready transcoder uses editor-compatible codecs"
