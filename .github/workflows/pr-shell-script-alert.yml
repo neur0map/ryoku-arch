@@ -35,20 +35,21 @@ jobs:
           gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files" \
             --jq '.[].filename' >"$changed_files"
 
-          is_execution_sensitive_path() {
+          is_security_sensitive_path() {
             local path="$1"
 
             [[ $path == "boot.sh" ]] && return 0
             [[ $path == "install.sh" ]] && return 0
+            [[ $path == .github/* ]] && return 0
+            [[ $path == .githooks/* ]] && return 0
             [[ $path == bin/* ]] && return 0
             [[ $path == install/* ]] && return 0
+            [[ $path == lib/* ]] && return 0
             [[ $path == migrations/* ]] && return 0
             [[ $path == iso/bin/* ]] && return 0
             [[ $path == iso/builder/* ]] && return 0
             [[ $path == shell/scripts/* ]] && return 0
             [[ $path == default/systemd/system-sleep/* ]] && return 0
-            [[ $path == .github/workflows/*.yml ]] && return 0
-            [[ $path == .github/workflows/*.yaml ]] && return 0
 
             return 1
           }
@@ -93,7 +94,7 @@ jobs:
             reasons=()
 
             [[ $file == *.sh ]] && reasons+=(".sh file")
-            is_execution_sensitive_path "$file" && reasons+=("execution-sensitive path")
+            is_security_sensitive_path "$file" && reasons+=("security-sensitive path")
             has_shell_shebang "$file" && reasons+=("shell shebang")
 
             if (( ${#reasons[@]} > 0 )); then
@@ -107,7 +108,7 @@ jobs:
             {
               echo "## Shell Script Security Review"
               echo
-              echo "No shell-script or execution-sensitive file changes were detected in this PR."
+              echo "No shell-script or security-sensitive file changes were detected in this PR."
             } >>"$GITHUB_STEP_SUMMARY"
             exit 0
           fi
@@ -122,7 +123,7 @@ jobs:
             echo
             echo "> Advisory only: this job does not block merging."
             echo
-            echo "This PR changes files that can execute shell commands or alter CI/install-time behavior. Maintainers should review them before merge."
+            echo "This PR changes files that can execute shell commands, alter CI/install-time behavior, or modify repository automation and hooks. Maintainers should review them before merge."
             echo
             echo "| File | Reason |"
             echo "|---|---|"
