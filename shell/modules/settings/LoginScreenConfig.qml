@@ -180,7 +180,7 @@ ContentPage {
             if (code === 0) {
                 root.refreshProviderState()
                 root.readActiveTheme()
-                root.toast(Translation.tr("Theme applied. Reboot or run 'systemctl restart sddm'."))
+                root.toast(Translation.tr("Theme applied. Lockscreen updates now; SDDM greeter updates next login."))
             } else if (code === 126 || code === 127) {
                 // user cancelled polkit dialog
             } else {
@@ -197,7 +197,7 @@ ContentPage {
             if (code === 0) {
                 root.refreshProviderState()
                 root.readActiveTheme()
-                root.toast(Translation.tr("qylock installed. Reboot or run 'systemctl restart sddm'."))
+                root.toast(Translation.tr("qylock updated. Lockscreen previews refreshed; SDDM greeter updates next login."))
             } else if (code === 126 || code === 127) {
                 root.toast(Translation.tr("Install did not start (exit %1).").arg(code))
             } else {
@@ -214,7 +214,7 @@ ContentPage {
             if (code === 0) {
                 root.refreshProviderState()
                 root.readActiveTheme()
-                root.toast(Translation.tr("qylock removed. ii-pixel is now active. Reboot or run 'systemctl restart sddm'."))
+                root.toast(Translation.tr("qylock removed. ii-pixel is active; SDDM greeter updates next login."))
             } else if (code === 126 || code === 127) {
                 // user cancelled polkit dialog
             } else {
@@ -314,7 +314,7 @@ ContentPage {
                 Item { Layout.fillWidth: true }
 
                 StyledText {
-                    text: Translation.tr("Greeter shown before login. Reboot or run 'systemctl restart sddm' to apply.")
+                    text: Translation.tr("Greeter shown before login. Theme changes are used the next time SDDM starts.")
                     color: Appearance.colors.colSubtext
                     font.pixelSize: 12
                     wrapMode: Text.WordWrap
@@ -746,7 +746,7 @@ ContentPage {
                 "star-rail": ["star_rail"],
                 "windows_7": ["win7"]
             })
-            return uniqueStrings([original, lower, snake, kebab].concat(special[lower] ?? []))
+            return uniqueStrings((special[lower] ?? []).concat([snake, lower, kebab, original]))
         }
 
         function buildPreviewCandidates() {
@@ -797,8 +797,19 @@ ContentPage {
             onStatusChanged: {
                 if (status === Image.Error) {
                     if (tileRoot.previewCandidateIndex + 1 < tileRoot.previewCandidates.length) {
-                        tileRoot.previewCandidateIndex += 1
+                        previewFallbackTimer.restart()
                     }
+                }
+            }
+        }
+
+        Timer {
+            id: previewFallbackTimer
+            interval: 0
+            repeat: false
+            onTriggered: {
+                if (tileRoot.previewCandidateIndex + 1 < tileRoot.previewCandidates.length) {
+                    tileRoot.previewCandidateIndex += 1
                 }
             }
         }

@@ -27,6 +27,12 @@ assert_grep() {
   grep -qE "$pattern" "$ROOT_DIR/$file" || fail "$file: missing pattern /$pattern/"
 }
 
+assert_grep_abs() {
+  local pattern="$1" file="$2"
+  [[ -f $file ]] || fail "missing file: $file"
+  grep -qE "$pattern" "$file" || fail "$file: missing pattern /$pattern/"
+}
+
 assert_no_grep() {
   local pattern="$1" file="$2"
   if grep -qE "$pattern" "$ROOT_DIR/$file"; then
@@ -69,6 +75,13 @@ assert_image() {
     || fail "$path: not a PNG or GIF"
 }
 
+assert_image_abs() {
+  local path="$1"
+  [[ -f $path ]] || fail "missing file: $path"
+  file -b "$path" | grep -qE "PNG image data|JPEG image data|GIF image data" \
+    || fail "$path: not an image"
+}
+
 # ---------------------------------------------------------------------
 # Assertions (filled in as tasks land code).
 # ---------------------------------------------------------------------
@@ -94,6 +107,25 @@ assert_grep "EUID" "bin/ryoku-set-sddm-theme"
 assert_grep "EUID"        "bin/ryoku-install-qylock"
 assert_grep "SUDO_USER"   "bin/ryoku-install-qylock"
 assert_grep "PKEXEC_UID"  "bin/ryoku-install-qylock"
+assert_file       "bin/ryoku-refresh-qylock-previews"
+assert_executable "bin/ryoku-refresh-qylock-previews"
+assert_grep "ryoku-refresh-qylock-previews" "bin/ryoku-install-qylock"
+assert_grep "refresh_qylock_clone" "bin/ryoku-install-qylock"
+assert_grep "pull --ff-only" "bin/ryoku-install-qylock"
+assert_grep "refreshing qylock clone after pull failed" "bin/ryoku-install-qylock"
+assert_grep "preview\\.png" "bin/ryoku-refresh-qylock-previews"
+assert_grep "bg\\.mp4" "bin/ryoku-refresh-qylock-previews"
+assert_grep "background/A Glow\\.jpg" "bin/ryoku-refresh-qylock-previews"
+assert_grep "ter1\\.png" "bin/ryoku-refresh-qylock-previews"
+assert_grep "ffmpeg" "bin/ryoku-refresh-qylock-previews"
+assert_grep "magick" "bin/ryoku-refresh-qylock-previews"
+qylock_preview_migration=$(grep -l "Refresh qylock previews and login-screen settings" "$ROOT_DIR"/migrations/*.sh 2>/dev/null | sort -n | tail -n1 || true)
+[[ -n $qylock_preview_migration ]] || fail "qylock preview refresh migration should exist"
+qylock_preview_migration=${qylock_preview_migration#"$ROOT_DIR/"}
+assert_grep "ryoku-refresh-qylock-previews" "$qylock_preview_migration"
+assert_grep "LoginScreenConfig\\.qml" "$qylock_preview_migration"
+assert_grep "read_active_sddm_theme" "bin/ryoku-install-qylock"
+assert_grep "/etc/sddm\\.conf\\.d/\\*\\.conf" "bin/ryoku-install-qylock"
 # Must use the _priv wrapper instead of bare sudo for the cp/tee path
 assert_grep "_priv"       "bin/ryoku-install-qylock"
 # Must pin RYOKU_PATH from the helper's own install location before
@@ -158,6 +190,7 @@ assert_grep "providerId: \"ii-pixel\""  "shell/modules/settings/LoginScreenConfi
 assert_grep "providerId: \"qylock\""    "shell/modules/settings/LoginScreenConfig.qml"
 # Active-theme reader exists
 assert_grep "function readActiveTheme"  "shell/modules/settings/LoginScreenConfig.qml"
+assert_no_grep "systemctl restart sddm" "shell/modules/settings/LoginScreenConfig.qml"
 # Elevated helpers must use absolute user-local paths because pkexec
 # sanitizes PATH to system directories.
 assert_grep "function helperPath" "shell/modules/settings/LoginScreenConfig.qml"
@@ -225,6 +258,8 @@ done
 # of only from Ryoku's bundled preview subset.
 assert_grep "function qylockAssetBaseNames" "$QML_PATH"
 assert_grep "\\.local/share/qylock/Assets" "$QML_PATH"
+assert_grep "previewFallbackTimer" "$QML_PATH"
+assert_grep "previewFallbackTimer\\.restart\\(\\)" "$QML_PATH"
 assert_grep "pixel_skyscrapers" "$QML_PATH"
 assert_grep "star_rail" "$QML_PATH"
 assert_grep "the_last_of_us" "$QML_PATH"
@@ -251,5 +286,42 @@ assert_grep 'keywords: \["about", "version", "credits", "github", "info", "qyloc
 
 # -- Credits attribution -----------------------------------------------
 assert_grep "shell/assets/sddm-providers/qylock/themes/" "CREDITS.md"
+
+tmp_dir="$(mktemp -d)"
+trap 'rm -rf "$tmp_dir"' EXIT
+
+mkdir -p "$tmp_dir/qylock/themes/women-umbrella" "$tmp_dir/qylock/Assets"
+cp "$ROOT_DIR/shell/assets/sddm-providers/_placeholder.png" "$tmp_dir/qylock/themes/women-umbrella/bg.png"
+: >"$tmp_dir/qylock/Assets/women-umbrella.gif"
+mkdir -p "$tmp_dir/qylock/themes/future-release/media"
+cp "$ROOT_DIR/shell/assets/sddm-providers/_placeholder.png" "$tmp_dir/qylock/themes/future-release/media/future-art.png"
+bash "$ROOT_DIR/bin/ryoku-refresh-qylock-previews" "$tmp_dir/qylock" >/dev/null
+assert_image_abs "$tmp_dir/qylock/themes/future-release/preview.png"
+assert_image_abs "$tmp_dir/qylock/themes/women-umbrella/preview.png"
+if command -v identify >/dev/null 2>&1 && command -v magick >/dev/null 2>&1; then
+  dimensions=$(identify -format '%wx%h' "$tmp_dir/qylock/themes/future-release/preview.png")
+  [[ $dimensions == "480x270" ]] || fail "future qylock preview should be 480x270, got $dimensions"
+fi
+cp "$ROOT_DIR/shell/assets/sddm-providers/_placeholder.png" "$tmp_dir/qylock/themes/future-release/preview.png"
+touch -d '@1000000000' "$tmp_dir/qylock/themes/future-release/preview.png"
+touch -d '@1000000100' "$tmp_dir/qylock/themes/future-release/media/future-art.png"
+bash "$ROOT_DIR/bin/ryoku-refresh-qylock-previews" "$tmp_dir/qylock" >/dev/null
+if [[ ! $tmp_dir/qylock/themes/future-release/preview.png -nt $tmp_dir/qylock/themes/future-release/media/future-art.png ]]; then
+  fail "future qylock preview should refresh when upstream theme assets change"
+fi
+
+live_home="$tmp_dir/live-user"
+mkdir -p \
+  "$live_home/.local/share/qylock/themes/field" \
+  "$live_home/.local/share/qylock/Assets" \
+  "$live_home/.config/quickshell/ryoku-shell/modules/settings" \
+  "$live_home/.local/share/ryoku-shell/modules/settings"
+cp "$ROOT_DIR/shell/assets/sddm-providers/_placeholder.png" "$live_home/.local/share/qylock/themes/field/bg.png"
+printf 'old login screen\n' >"$live_home/.config/quickshell/ryoku-shell/modules/settings/LoginScreenConfig.qml"
+printf 'old login screen\n' >"$live_home/.local/share/ryoku-shell/modules/settings/LoginScreenConfig.qml"
+HOME="$live_home" RYOKU_PATH="$ROOT_DIR" bash "$ROOT_DIR/$qylock_preview_migration" >/dev/null
+assert_image_abs "$live_home/.local/share/qylock/themes/field/preview.png"
+assert_grep_abs "previewFallbackTimer" "$live_home/.config/quickshell/ryoku-shell/modules/settings/LoginScreenConfig.qml"
+assert_grep_abs "previewFallbackTimer" "$live_home/.local/share/ryoku-shell/modules/settings/LoginScreenConfig.qml"
 
 echo "PASS: tests/login-screen-config.sh ($0)"
