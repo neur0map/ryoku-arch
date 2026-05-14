@@ -128,7 +128,7 @@
       "enableSpicetify": false,
       "enableAdwSteam": false,
       "enablePearDesktop": true,
-      "enableNeovim": false,
+      "enableNeovim": true,
       "colorStrength": 1.0,
       "useBackdropForColors": false,
       "colorsOnlyMode": false,

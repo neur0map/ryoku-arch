@@ -1,4 +1,5 @@
 run_logged $RYOKU_INSTALL/config/config.sh
+run_logged $RYOKU_INSTALL/config/neovim.sh
 run_logged $RYOKU_INSTALL/config/shell.sh
 run_logged $RYOKU_INSTALL/config/theme.sh
 run_logged $RYOKU_INSTALL/config/branding.sh

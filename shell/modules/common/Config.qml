@@ -316,7 +316,7 @@ Singleton {
                     property bool enableAdwSteam: false
                     property bool enablePearDesktop: true
                     property bool enableOpenCode: false
-                    property bool enableNeovim: false
+                    property bool enableNeovim: true
                     property real colorStrength: 1.0
                     property JsonObject vscodeEditors: JsonObject {
                         property bool code: true           // Official VSCode

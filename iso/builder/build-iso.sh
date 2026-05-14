@@ -5,7 +5,7 @@ set -e
 # Note that these are packages installed to the Arch container used to build the ISO.
 pacman-key --init
 pacman --noconfirm -Sy archlinux-keyring
-pacman --noconfirm -Sy archiso git sudo base-devel jq grub uv cairo gobject-introspection glib2 pkgconf
+pacman --noconfirm -Sy archiso git sudo base-devel jq grub uv neovim cairo gobject-introspection glib2 pkgconf
 
 # We do not yet ship a custom [ryoku] pacman repo / keyring (omarchy
 # parity item, but signing infrastructure is out of scope right now).
@@ -132,8 +132,32 @@ fi
 # Add our additional packages to packages.x86_64. Apple T2 (linux-t2)
 # is omarchy-only (DHH ships MacBooks); we use the standard linux
 # kernel that the releng base already pulls.
-arch_packages=(git gum jq openssl plymouth)
+arch_packages=(git gum jq neovim openssl plymouth)
 printf '%s\n' "${arch_packages[@]}" >>"$build_cache_dir/packages.x86_64"
+
+nvim_config_dir="$build_cache_dir/airootfs/root/ryoku/config/nvim"
+nvim_cache_dir="$build_cache_dir/airootfs/var/cache/ryoku/nvim"
+if [[ -f $nvim_config_dir/init.lua ]]; then
+  nvim_prefetch_home="$(mktemp -d)"
+  mkdir -p "$nvim_prefetch_home/config" "$nvim_prefetch_home/data" "$nvim_prefetch_home/state" "$nvim_prefetch_home/cache"
+  cp -a "$nvim_config_dir" "$nvim_prefetch_home/config/nvim"
+  cat >"$nvim_prefetch_home/config/nvim/lua/plugins/ryoku-offline-cache.lua" <<'EOF'
+return {
+  {
+    "yukazakiri/ryoku.nvim",
+    lazy = true,
+  },
+}
+EOF
+  XDG_CONFIG_HOME="$nvim_prefetch_home/config" \
+  XDG_DATA_HOME="$nvim_prefetch_home/data" \
+  XDG_STATE_HOME="$nvim_prefetch_home/state" \
+  XDG_CACHE_HOME="$nvim_prefetch_home/cache" \
+    nvim --headless "+Lazy! sync" +qa
+  mkdir -p "$nvim_cache_dir"
+  cp -a "$nvim_prefetch_home/data/nvim/." "$nvim_cache_dir/"
+  rm -rf "$nvim_prefetch_home"
+fi
 
 # Build the AUR overlay into the offline mirror BEFORE downloading the
 # official packages. Two manifests feed this step:

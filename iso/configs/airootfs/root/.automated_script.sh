@@ -134,6 +134,11 @@ RESOLV
     mount --bind /var/cache/ryoku/uv /mnt/var/cache/ryoku/uv
   fi
 
+  if [[ -d /var/cache/ryoku/nvim ]]; then
+    mkdir -p /mnt/var/cache/ryoku/nvim
+    mount --bind /var/cache/ryoku/nvim /mnt/var/cache/ryoku/nvim
+  fi
+
   if [[ -d /var/cache/ryoku/appimages ]]; then
     mkdir -p /mnt/var/cache/ryoku/appimages
     mount --bind /var/cache/ryoku/appimages /mnt/var/cache/ryoku/appimages

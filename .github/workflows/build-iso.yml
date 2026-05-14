@@ -143,7 +143,7 @@ jobs:
           format: sarif
           output: trivy-iso-results.sarif
           limit-severities-for-sarif: true
-          skip-dirs: proc,sys,dev,run,tmp,var/cache/pacman/pkg,var/cache/ryoku/mirror/offline,var/cache/ryoku/uv,root/ryoku/.git,root/ryoku/assets,root/ryoku/docs/media,root/ryoku/tmp,root/ryoku/shell/docs,root/ryoku/shell/sdata,root/ryoku/shell/scripts/__pycache__
+          skip-dirs: proc,sys,dev,run,tmp,var/cache/pacman/pkg,var/cache/ryoku/mirror/offline,var/cache/ryoku/uv,var/cache/ryoku/nvim,root/ryoku/.git,root/ryoku/assets,root/ryoku/docs/media,root/ryoku/tmp,root/ryoku/shell/docs,root/ryoku/shell/sdata,root/ryoku/shell/scripts/__pycache__
           version: v0.70.0
 
       - name: Upload ISO Trivy SARIF report
@@ -164,7 +164,7 @@ jobs:
           ignore-unfixed: true
           exit-code: 1
           format: table
-          skip-dirs: proc,sys,dev,run,tmp,var/cache/pacman/pkg,var/cache/ryoku/mirror/offline,var/cache/ryoku/uv,root/ryoku/.git,root/ryoku/assets,root/ryoku/docs/media,root/ryoku/tmp,root/ryoku/shell/docs,root/ryoku/shell/sdata,root/ryoku/shell/scripts/__pycache__
+          skip-dirs: proc,sys,dev,run,tmp,var/cache/pacman/pkg,var/cache/ryoku/mirror/offline,var/cache/ryoku/uv,var/cache/ryoku/nvim,root/ryoku/.git,root/ryoku/assets,root/ryoku/docs/media,root/ryoku/tmp,root/ryoku/shell/docs,root/ryoku/shell/sdata,root/ryoku/shell/scripts/__pycache__
           skip-setup-trivy: true
 
       - name: Unmount ISO live root
