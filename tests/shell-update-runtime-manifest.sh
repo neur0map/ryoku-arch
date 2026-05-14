@@ -58,6 +58,18 @@ rg -q "manifest_v2='false'" "$SHELL_UPDATES_QML" || \
 rg -q '\[\[ \\"\$manifest_v2\\" != \\"true\\" && -d \\"\$repo/\.git\\" \]\]' "$SHELL_UPDATES_QML" || \
   fail "v2 manifest entries without checksums should not be compared against moving repo HEAD"
 
+rg -q "matches_repo_source" "$SHELL_UPDATES_QML" || \
+  fail "shell local-mod detection should ignore stale manifest mismatches when runtime files match repo source"
+
+rg -q "repo_worktree_hash" "$SHELL_UPDATES_QML" || \
+  fail "shell local-mod detection should compare checksum mismatches against the repo working tree"
+
+rg -q 'repo_content_hash HEAD' "$SHELL_UPDATES_QML" || \
+  fail "shell local-mod detection should compare checksum mismatches against local repo HEAD"
+
+rg -q 'repo_content_hash \\"\$remote_ref\\"' "$SHELL_UPDATES_QML" || \
+  fail "shell local-mod detection should compare checksum mismatches against fetched remote source"
+
 tmp_dir=$(mktemp -d)
 trap 'rm -rf "$tmp_dir"' EXIT
 

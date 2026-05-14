@@ -119,11 +119,11 @@ assert_grep "background/A Glow\\.jpg" "bin/ryoku-refresh-qylock-previews"
 assert_grep "ter1\\.png" "bin/ryoku-refresh-qylock-previews"
 assert_grep "ffmpeg" "bin/ryoku-refresh-qylock-previews"
 assert_grep "magick" "bin/ryoku-refresh-qylock-previews"
-qylock_preview_migration=$(grep -l "Refresh qylock previews and login-screen settings" "$ROOT_DIR"/migrations/*.sh 2>/dev/null | sort -n | tail -n1 || true)
+qylock_preview_migration=$(grep -l "Refresh qylock previews" "$ROOT_DIR"/migrations/*.sh 2>/dev/null | sort -n | tail -n1 || true)
 [[ -n $qylock_preview_migration ]] || fail "qylock preview refresh migration should exist"
 qylock_preview_migration=${qylock_preview_migration#"$ROOT_DIR/"}
 assert_grep "ryoku-refresh-qylock-previews" "$qylock_preview_migration"
-assert_grep "LoginScreenConfig\\.qml" "$qylock_preview_migration"
+assert_no_grep "LoginScreenConfig\\.qml" "$qylock_preview_migration"
 assert_grep "read_active_sddm_theme" "bin/ryoku-install-qylock"
 assert_grep "/etc/sddm\\.conf\\.d/\\*\\.conf" "bin/ryoku-install-qylock"
 # Must use the _priv wrapper instead of bare sudo for the cp/tee path
@@ -313,15 +313,13 @@ fi
 live_home="$tmp_dir/live-user"
 mkdir -p \
   "$live_home/.local/share/qylock/themes/field" \
-  "$live_home/.local/share/qylock/Assets" \
-  "$live_home/.config/quickshell/ryoku-shell/modules/settings" \
-  "$live_home/.local/share/ryoku-shell/modules/settings"
+  "$live_home/.local/share/qylock/Assets"
 cp "$ROOT_DIR/shell/assets/sddm-providers/_placeholder.png" "$live_home/.local/share/qylock/themes/field/bg.png"
-printf 'old login screen\n' >"$live_home/.config/quickshell/ryoku-shell/modules/settings/LoginScreenConfig.qml"
-printf 'old login screen\n' >"$live_home/.local/share/ryoku-shell/modules/settings/LoginScreenConfig.qml"
 HOME="$live_home" RYOKU_PATH="$ROOT_DIR" bash "$ROOT_DIR/$qylock_preview_migration" >/dev/null
 assert_image_abs "$live_home/.local/share/qylock/themes/field/preview.png"
-assert_grep_abs "previewFallbackTimer" "$live_home/.config/quickshell/ryoku-shell/modules/settings/LoginScreenConfig.qml"
-assert_grep_abs "previewFallbackTimer" "$live_home/.local/share/ryoku-shell/modules/settings/LoginScreenConfig.qml"
+[[ ! -f $live_home/.config/quickshell/ryoku-shell/modules/settings/LoginScreenConfig.qml ]] \
+  || fail "qylock preview migration should not rewrite runtime shell QML after manifest generation"
+[[ ! -f $live_home/.local/share/ryoku-shell/modules/settings/LoginScreenConfig.qml ]] \
+  || fail "qylock preview migration should not rewrite installed shell QML after manifest generation"
 
 echo "PASS: tests/login-screen-config.sh ($0)"
