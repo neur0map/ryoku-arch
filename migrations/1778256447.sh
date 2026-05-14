@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Migrate users off the removed Three-Island bar style.
 #  bar.cornerStyle == 4 becomes 0 (Hug). Other values left alone.
 #  Strip orphaned bar.dynamicIsland.states and .statePrecedence keys.

@@ -49,6 +49,26 @@ assert_shellcheck_workflow() {
     "ShellCheck workflow should keep Bash mode explicit and avoid info/style-only noise"
 }
 
+assert_pr_sensitive_path_alert() {
+  assert_file ".github/workflows/pr-shell-script-alert.yml"
+  assert_contains ".github/workflows/pr-shell-script-alert.yml" 'is_security_sensitive_path' \
+    "PR alert workflow should keep a named security-sensitive path classifier"
+
+  for pattern in \
+    '\.github/\*' \
+    '\.githooks/\*' \
+    'bin/\*' \
+    'install/\*' \
+    'lib/\*' \
+    'migrations/\*'; do
+    assert_contains ".github/workflows/pr-shell-script-alert.yml" "$pattern" \
+      "PR alert workflow should flag changes matching $pattern"
+  done
+
+  assert_contains ".github/workflows/pr-shell-script-alert.yml" 'security-sensitive path' \
+    "PR alert workflow should explain why guarded path changes need review"
+}
+
 assert_woke_workflow() {
   assert_file ".woke.yml"
   assert_file ".github/workflows/inclusive-language.yml"
@@ -159,6 +179,7 @@ assert_asset_references_are_updated() {
 }
 
 assert_shellcheck_workflow
+assert_pr_sensitive_path_alert
 assert_woke_workflow
 assert_qmllint_workflow
 assert_trivy_noise_controls

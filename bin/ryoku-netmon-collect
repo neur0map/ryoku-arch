@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Collect kernel network state into a single JSON blob. Used by the
 # RyokuNetMon QML singleton's poll Process. Each upstream command's
 # output is a top-level key in the emitted blob:
