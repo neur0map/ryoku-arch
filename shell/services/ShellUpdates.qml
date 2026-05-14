@@ -238,12 +238,15 @@ Singleton {
         const repoDir = root.repoPath
         const useTerminal = Config.options?.shellUpdates?.openTerminalOnUpdate ?? true
 
-        // Prefer the system-wide `ryoku-update` (pacman + AUR + migrations + shell)
-        // when available; fall back to shell-only `./setup update` for dev checkouts.
+        // Prefer the core `ryoku-update` pipeline (pacman + AUR + migrations + shell)
+        // from PATH or the repo checkout; fall back to shell-only `./setup update`
+        // only for standalone shell dev trees.
         // Terminal mode pipes through tee; detached mode redirects to log file only.
         const runner =
             "if command -v ryoku-update >/dev/null 2>&1; then " +
-            "  ryoku-update -y; " +
+            "  RYOKU_UPDATE_LOG='/tmp/ryoku-update.log' ryoku-update -y; " +
+            "elif [[ -x ./bin/ryoku-update ]]; then " +
+            "  RYOKU_UPDATE_LOG='/tmp/ryoku-update.log' ./bin/ryoku-update -y; " +
             "elif [[ -x ./setup ]]; then " +
             "  ./setup -y update; " +
             "elif [[ -x ./shell/setup ]]; then " +

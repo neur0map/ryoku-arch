@@ -1352,7 +1352,47 @@ run_logs() {
 ###############################################################################
 # Install
 ###############################################################################
+run_install_core_update_child() {
+  local repo_version
+  local repo_commit
+
+  detect_distro
+
+  echo "Shell setup: conflict scan skipped during core update"
+
+  if [[ ${SKIP_ALLDEPS} != "true" ]]; then
+    echo "Shell setup: installing dependencies"
+    source ./sdata/subcmd-install/1.deps-router.sh
+  else
+    echo "Shell setup: dependencies skipped"
+  fi
+
+  if [[ ${SKIP_ALLSETUPS} != "true" ]]; then
+    echo "Shell setup: applying system configuration"
+    source ./sdata/subcmd-install/2.setups.sh
+  else
+    echo "Shell setup: system configuration skipped"
+  fi
+
+  if [[ ${SKIP_ALLFILES} != "true" ]]; then
+    echo "Shell setup: syncing config files"
+    source ./sdata/subcmd-install/3.files.sh
+  else
+    echo "Shell setup: config sync skipped"
+  fi
+
+  repo_version="$(get_repo_version)"
+  repo_commit="$(get_repo_commit)"
+  set_installed_version "$repo_version" "$repo_commit" "setup"
+  echo "Shell setup: version $repo_version recorded"
+}
+
 run_install() {
+    if [[ ${RYOKU_CORE_UPDATE_CHILD:-0} == "1" ]]; then
+        run_install_core_update_child
+        return
+    fi
+
     detect_distro
 
     # Greeting & system info
@@ -2499,6 +2539,11 @@ if [[ "$COMMAND" == "install" ]]; then
   # Source install-specific option parser if there are subcommand args
   if [[ ${#SUBCMD_ARGS[@]} -gt 0 ]]; then
     source ./sdata/subcmd-install/options.sh "${SUBCMD_ARGS[@]}"
+  fi
+  if [[ ${RYOKU_CORE_UPDATE_CHILD:-0} == "1" ]]; then
+    ask=false
+    quiet=true
+    IS_UPDATE=true
   fi
   _check_privilege_prereqs "install"
 fi

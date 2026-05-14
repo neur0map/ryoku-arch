@@ -6,6 +6,29 @@ script_path="${BASH_SOURCE[0]}"
 script_path="$(readlink -f "$script_path" 2>/dev/null || printf '%s\n' "$script_path")"
 source "$(cd -- "$(dirname -- "$script_path")/.." && pwd)/lib/runtime-env.sh"
 
+ryoku_update_default_log() {
+  local state_home=""
+  local log_dir=""
+
+  if [[ -n ${XDG_STATE_HOME:-} ]]; then
+    state_home="$XDG_STATE_HOME"
+  elif [[ -n ${HOME:-} ]]; then
+    state_home="$HOME/.local/state"
+  else
+    printf '%s\n' "/tmp/ryoku-update.log"
+    return
+  fi
+
+  log_dir="$state_home/quickshell/user"
+  if mkdir -p "$log_dir" 2>/dev/null; then
+    printf '%s\n' "$log_dir/update.log"
+  else
+    printf '%s\n' "/tmp/ryoku-update.log"
+  fi
+}
+
+export RYOKU_UPDATE_LOG="${RYOKU_UPDATE_LOG:-$(ryoku_update_default_log)}"
+
 if [[ -z ${RYOKU_UPDATE_INHIBITED:-} ]] && command -v systemd-inhibit >/dev/null 2>&1; then
   exec env RYOKU_UPDATE_INHIBITED=1 systemd-inhibit \
     --what=sleep:shutdown:idle:handle-lid-switch:handle-suspend-key:handle-hibernate-key \
@@ -19,7 +42,7 @@ fi
 # while still logging the full session for later analysis.
 if [[ -z $RYOKU_UPDATE_LOGGED ]]; then
   script_command=$(printf '%q ' "$0" "$@")
-  exec env RYOKU_UPDATE_LOGGED=1 script -qefc "$script_command" "/tmp/ryoku-update.log"
+  exec env RYOKU_UPDATE_LOGGED=1 RYOKU_UPDATE_LOG="$RYOKU_UPDATE_LOG" script -qefc "$script_command" "$RYOKU_UPDATE_LOG"
 fi
 
 update_failed() {

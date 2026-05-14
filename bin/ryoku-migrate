@@ -1,6 +1,8 @@
 #!/bin/bash
 
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$repo_root/lib/runtime-env.sh"
+source "$repo_root/lib/update-dashboard.sh"
 
 # Run all pending migrations to bring the system in line with the installed version.
 
@@ -51,7 +53,7 @@ for file in $RYOKU_PATH/migrations/*.sh; do
       exit_code=$?
       if (( exit_code == 75 )); then
         echo "Migration ${filename%.sh} deferred; it will be retried later."
-      elif gum confirm "Migration ${filename%.sh} failed. Skip and continue?"; then
+      elif ryoku_update_confirm "Migration ${filename%.sh} failed. Skip and continue?"; then
         touch "$STATE_DIR/skipped/$filename"
       else
         exit 1

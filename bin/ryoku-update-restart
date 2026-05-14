@@ -1,13 +1,15 @@
 #!/bin/bash
 
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$repo_root/lib/runtime-env.sh"
+source "$repo_root/lib/update-dashboard.sh"
 
 echo
 
 if [[ ! -d /usr/lib/modules/$(uname -r) ]]; then
-  gum confirm "Linux kernel has been updated. Reboot?" && ryoku-system-reboot
+  ryoku_update_confirm "Linux kernel has been updated. Reboot?" && ryoku-system-reboot
 elif [[ -f $RYOKU_STATE_PATH/reboot-required ]]; then
-  gum confirm "Updates require reboot. Ready?" && ryoku-system-reboot
+  ryoku_update_confirm "Updates require reboot. Ready?" && ryoku-system-reboot
 fi
 
 for file in "$RYOKU_STATE_PATH"/restart-*-required; do
@@ -31,4 +33,6 @@ if [[ -d $quickshell_state_dir ]]; then
 fi
 if systemctl --user is-active ryoku-shell.service >/dev/null 2>&1; then
   systemctl --user restart ryoku-shell.service >/dev/null 2>&1 || true
+elif systemctl --user is-enabled ryoku-shell.service >/dev/null 2>&1; then
+  systemctl --user start ryoku-shell.service >/dev/null 2>&1 || true
 fi

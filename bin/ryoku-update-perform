@@ -1,24 +1,70 @@
 #!/bin/bash
 
 set -e
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$repo_root/lib/runtime-env.sh"
+source "$repo_root/lib/update-dashboard.sh"
 
 ryoku-cmd-caffeine start >/dev/null 2>&1 || true
 
-# Perform all update steps
-ryoku-update-keyring
-ryoku-update-available-reset
-ryoku-update-system-pkgs
-bash "$RYOKU_INSTALL/packaging/base.sh"
-ryoku-update-aur-pkgs
-bash "$RYOKU_INSTALL/packaging/aur-core.sh"
-bash "$RYOKU_INSTALL/config/shell.sh"
-ryoku-migrate
-ryoku-update-orphan-pkgs
-ryoku-hook post-update
+update_arch_keys_stage() {
+  ryoku-update-keyring
+  ryoku-update-available-reset
+}
 
-ryoku-update-analyze-logs
+update_base_packages_stage() {
+  bash "$RYOKU_INSTALL/packaging/base.sh"
+}
 
-ryoku-update-restart
+update_aur_packages_stage() {
+  ryoku-update-aur-pkgs
+  bash "$RYOKU_INSTALL/packaging/aur-core.sh"
+}
 
-ryoku-cmd-caffeine stop >/dev/null 2>&1 || true
+update_shell_stage() {
+  bash "$RYOKU_INSTALL/config/shell.sh"
+}
+
+update_cleanup_stage() {
+  ryoku-update-orphan-pkgs
+  ryoku-hook post-update
+  ryoku-update-analyze-logs
+  ryoku-update-restart
+}
+
+finish_update_perform() {
+  local exit_code=$?
+
+  ryoku-cmd-caffeine stop >/dev/null 2>&1 || true
+
+  if (( exit_code == 0 )); then
+    ryoku_update_dashboard_finish "success"
+  else
+    ryoku_update_dashboard_finish "failed" "$exit_code"
+  fi
+
+  exit "$exit_code"
+}
+
+trap finish_update_perform EXIT
+
+update_stages=(
+  "Arch signing keys"
+  "System packages"
+  "Ryoku base packages"
+  "AUR packages"
+  "Ryoku shell"
+  "Migrations"
+  "Cleanup and restart"
+)
+update_total=${#update_stages[@]}
+
+ryoku_update_dashboard_start "$update_total" "${update_stages[@]}"
+
+ryoku_update_run_stage 1 "$update_total" "Arch signing keys" update_arch_keys_stage
+ryoku_update_run_stage 2 "$update_total" "System packages" ryoku-update-system-pkgs
+ryoku_update_run_stage 3 "$update_total" "Ryoku base packages" update_base_packages_stage
+ryoku_update_run_stage 4 "$update_total" "AUR packages" update_aur_packages_stage
+ryoku_update_run_stage 5 "$update_total" "Ryoku shell" update_shell_stage
+ryoku_update_run_stage 6 "$update_total" "Migrations" ryoku-migrate
+ryoku_update_run_stage 7 "$update_total" "Cleanup and restart" update_cleanup_stage

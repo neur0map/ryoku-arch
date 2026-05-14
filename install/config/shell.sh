@@ -73,7 +73,7 @@ fi
 
 (
   cd "$SHELL_PATH"
-  ./setup install -y --skip-deps --skip-sysupdate
+  RYOKU_CORE_UPDATE_CHILD=1 IS_UPDATE=true ./setup install -y -q --skip-deps --skip-setups --skip-sysupdate
 )
 
 if [[ -n $backup_config_file ]]; then
