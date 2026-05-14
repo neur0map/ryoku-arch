@@ -251,6 +251,26 @@ case "${SKIP_QUICKSHELL}" in
     ;;
 esac
 
+if [[ ${RYOKU_CORE_UPDATE_CHILD:-0} == "1" ]]; then
+  if [[ -n "${II_TARGET:-}" && -d "$II_TARGET" ]]; then
+    REPO_VERSION=""
+    REPO_COMMIT=""
+
+    if [[ -f "${REPO_ROOT}/VERSION" ]]; then
+      REPO_VERSION=$(cat "${REPO_ROOT}/VERSION" | tr -d '[:space:]')
+    fi
+
+    if command -v git &>/dev/null && [[ -d "${REPO_ROOT}/.git" ]]; then
+      REPO_COMMIT=$(git -C "${REPO_ROOT}" rev-parse --short HEAD 2>/dev/null || echo "")
+    fi
+
+    write_version_info_json "${II_TARGET}/version.json" "${REPO_VERSION:-0.0.0}" "${REPO_COMMIT:-unknown}" "setup-install"
+    log_success "Version tracking configured"
+  fi
+
+  return 0
+fi
+
 #####################################################################################
 # Install config files from dots/
 #####################################################################################
@@ -635,9 +655,22 @@ tui_info "Configuring environment variables..."
 # Primary: environment {} block in Niri config.kdl (already installed)
 # Secondary: shell profile files for terminals outside Niri session (SSH, TTY, etc.)
 
+niri_config_contains() {
+  local needle="$1"
+  local niri_dir="${XDG_CONFIG_HOME}/niri"
+
+  grep -q "$needle" "$niri_dir/config.kdl" 2>/dev/null && return 0
+
+  if [[ -d "$niri_dir/config.d" ]]; then
+    grep -q "$needle" "$niri_dir/config.d"/*.kdl 2>/dev/null && return 0
+  fi
+
+  return 1
+}
+
 # Verify Niri config has the variable
-if grep -q "RYOKU_SHELL_VENV" "${XDG_CONFIG_HOME}/niri/config.kdl" 2>/dev/null || \
-   grep -q "ILLOGICAL_IMPULSE_VIRTUAL_ENV" "${XDG_CONFIG_HOME}/niri/config.kdl" 2>/dev/null; then
+if niri_config_contains "RYOKU_SHELL_VENV" || \
+   niri_config_contains "ILLOGICAL_IMPULSE_VIRTUAL_ENV"; then
     log_success "Environment variable configured in Niri config"
 else
     log_warning "RYOKU_SHELL_VENV not found in Niri config"
