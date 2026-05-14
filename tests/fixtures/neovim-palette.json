@@ -1,0 +1,13 @@
+{
+  "primary": "#9bb3e6",
+  "secondary": "#8fc7bc",
+  "tertiary": "#c7a7e8",
+  "background": "#202426",
+  "on_background": "#eef6f6",
+  "surface": "#262c2f",
+  "surface_variant": "#3b4448",
+  "on_surface": "#eef6f6",
+  "on_surface_variant": "#b8c8ce",
+  "outline": "#78868c",
+  "error": "#ffb4ab"
+}
