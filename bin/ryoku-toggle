@@ -7,7 +7,7 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 ENABLED_NOTIFICATION=""
 DISABLED_NOTIFICATION=""
 
-while [[ $# -gt 1 ]]; do
+while (( $# > 1 )); do
   case $1 in
     --enabled-notification) ENABLED_NOTIFICATION="$2"; shift 2 ;;
     --disabled-notification) DISABLED_NOTIFICATION="$2"; shift 2 ;;

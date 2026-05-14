@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Re-assert /etc/openvpn/client perms so RyokuOpenVpn.qml's unprivileged
 # discovery can list imported profiles. The openvpn Arch package ships
 # the directory at 0750 openvpn:network, which makes the sidebar OpenVPN
