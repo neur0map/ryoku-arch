@@ -43,7 +43,7 @@ zoxide
 
 # ── TUI apps (terminal-rendered interactive) ──────────────────────────
 btop
-helix
+neovim
 lazydocker
 lazygit
 

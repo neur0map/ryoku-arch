@@ -95,6 +95,8 @@ assert_trivy_noise_controls() {
     "Trivy source scan should skip local ISO build artifacts"
   assert_contains ".github/workflows/build-iso.yml" 'var/cache/ryoku/mirror/offline' \
     "ISO Trivy scan should skip offline package cache noise"
+  assert_contains ".github/workflows/build-iso.yml" 'var/cache/ryoku/nvim' \
+    "ISO Trivy scan should skip offline Neovim plugin cache noise"
   assert_contains ".github/workflows/build-iso.yml" 'root/ryoku/\.git' \
     "ISO Trivy scan should skip bundled git history"
   assert_contains ".github/workflows/build-iso.yml" 'root/ryoku/shell/docs' \

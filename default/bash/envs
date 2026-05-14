@@ -1,5 +1,7 @@
 # Editor used by CLI
-export SUDO_EDITOR="$EDITOR"
+export EDITOR="${EDITOR:-nvim}"
+export VISUAL="${VISUAL:-$EDITOR}"
+export SUDO_EDITOR="${SUDO_EDITOR:-$VISUAL}"
 export BAT_THEME=ansi
 
 # Mirror the desktop session runtime contract so SSH shells behave the same way.

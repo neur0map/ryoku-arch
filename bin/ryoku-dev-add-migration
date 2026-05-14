@@ -3,14 +3,16 @@
 # Creates a new Ryoku migration named after the unix timestamp of the last commit.
 # Only intended for Ryoku developers.
 
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+SCRIPT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+RYOKU_PATH="$SCRIPT_ROOT"
+source "$SCRIPT_ROOT/lib/runtime-env.sh"
 
 cd "$RYOKU_PATH"
 migration_file="$RYOKU_PATH/migrations/$(git log -1 --format=%cd --date=unix).sh"
 touch "$migration_file"
 
 if [[ ${1:-} != "--no-edit" ]]; then
-  "${EDITOR:-helix}" "$migration_file"
+  "${EDITOR:-nvim}" "$migration_file"
 fi
 
 echo "$migration_file"

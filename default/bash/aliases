@@ -46,7 +46,7 @@ alias ....='cd ../../..'
 alias d='docker'
 alias r='rails'
 alias t='tmux attach || tmux new -s Work'
-e() { if [ "$#" -eq 0 ]; then command helix . ; else command helix "$@"; fi; }
+e() { if (( $# == 0 )); then command nvim . ; else command nvim "$@"; fi; }
 
 # Git
 alias g='git'

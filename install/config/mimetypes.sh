@@ -40,21 +40,21 @@ xdg-mime default mpv.desktop application/ogg
 # Use Helium for mailto: links unless the user installs a dedicated mail app.
 xdg-mime default helium.desktop x-scheme-handler/mailto
 
-# Open text files with Helix
-xdg-mime default helix.desktop text/plain
-xdg-mime default helix.desktop text/english
-xdg-mime default helix.desktop text/x-makefile
-xdg-mime default helix.desktop text/x-c++hdr
-xdg-mime default helix.desktop text/x-c++src
-xdg-mime default helix.desktop text/x-chdr
-xdg-mime default helix.desktop text/x-csrc
-xdg-mime default helix.desktop text/x-java
-xdg-mime default helix.desktop text/x-moc
-xdg-mime default helix.desktop text/x-pascal
-xdg-mime default helix.desktop text/x-tcl
-xdg-mime default helix.desktop text/x-tex
-xdg-mime default helix.desktop application/x-shellscript
-xdg-mime default helix.desktop text/x-c
-xdg-mime default helix.desktop text/x-c++
-xdg-mime default helix.desktop application/xml
-xdg-mime default helix.desktop text/xml
+# Open text files with Neovim
+xdg-mime default nvim.desktop text/plain
+xdg-mime default nvim.desktop text/english
+xdg-mime default nvim.desktop text/x-makefile
+xdg-mime default nvim.desktop text/x-c++hdr
+xdg-mime default nvim.desktop text/x-c++src
+xdg-mime default nvim.desktop text/x-chdr
+xdg-mime default nvim.desktop text/x-csrc
+xdg-mime default nvim.desktop text/x-java
+xdg-mime default nvim.desktop text/x-moc
+xdg-mime default nvim.desktop text/x-pascal
+xdg-mime default nvim.desktop text/x-tcl
+xdg-mime default nvim.desktop text/x-tex
+xdg-mime default nvim.desktop application/x-shellscript
+xdg-mime default nvim.desktop text/x-c
+xdg-mime default nvim.desktop text/x-c++
+xdg-mime default nvim.desktop application/xml
+xdg-mime default nvim.desktop text/xml
