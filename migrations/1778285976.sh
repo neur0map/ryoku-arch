@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Set Tailscale operator user so the sidebar Connect/Disconnect button can
 # control the daemon without sudo. Mirrors install/config/tailscale.sh
 # but runs on existing user systems via ryoku-migrate. Idempotent: writes

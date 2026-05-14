@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Add "hosts" to the user's right-sidebar enabledWidgets so the new
 # Hosts editor tab appears for users who already had a curated config
 # from before the tab existed. Idempotent. Per docs/ui-patterns.md:198-204:
