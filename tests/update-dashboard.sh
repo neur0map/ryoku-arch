@@ -159,6 +159,7 @@ full_setup_output=$(
 
 # The dashboard helper must keep child commands attached to the caller's stdin.
 # sudo, pacman, yay, and migration/reboot prompts rely on this behavior.
+# shellcheck source=../lib/update-dashboard.sh
 source "$HELPER"
 
 TERM=xterm RYOKU_UPDATE_LOG="$tmp/start.log" bash -lc '
@@ -259,7 +260,7 @@ ryoku_update_run_stage 3 3 "Finish" bash -c 'printf "done\n"'
 ryoku_update_dashboard_finish success
 '''
 
-master, slave = pty.openpty()
+controller_fd, child_fd = pty.openpty()
 env = os.environ.copy()
 env["TERM"] = "xterm"
 env["XDG_STATE_HOME"] = os.path.join(tmp, "state")
@@ -268,36 +269,36 @@ proc = subprocess.Popen(
   ["bash", "-lc", cmd],
   cwd=repo,
   env=env,
-  stdin=slave,
-  stdout=slave,
-  stderr=slave,
+  stdin=child_fd,
+  stdout=child_fd,
+  stderr=child_fd,
   close_fds=True,
 )
-os.close(slave)
+os.close(child_fd)
 
 output = bytearray()
 sent = False
 deadline = time.time() + 5
 
 while time.time() < deadline:
-  ready, _, _ = select.select([master], [], [], 0.1)
-  if master in ready:
+  ready, _, _ = select.select([controller_fd], [], [], 0.1)
+  if controller_fd in ready:
     try:
-      chunk = os.read(master, 4096)
+      chunk = os.read(controller_fd, 4096)
     except OSError:
       break
     if not chunk:
       break
     output.extend(chunk)
     if not sent and b"Prompt>" in output:
-      os.write(master, b"typed-through\n")
+      os.write(controller_fd, b"typed-through\n")
       sent = True
 
   if proc.poll() is not None:
     break
 
 try:
-  os.close(master)
+  os.close(controller_fd)
 except OSError:
   pass
 

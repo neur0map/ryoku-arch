@@ -21,9 +21,9 @@ repair_self_linked_state_root() {
   target=$(readlink "$STATE_ROOT" || true)
   state_basename=$(basename "$STATE_ROOT")
 
-  if [[ $target == $STATE_ROOT || $target == $state_basename ]]; then
-    rm -f "$STATE_ROOT"
-  fi
+  case "$target" in
+    "$STATE_ROOT"|"$state_basename") rm -f "$STATE_ROOT" ;;
+  esac
 }
 
 repair_self_linked_state_root
