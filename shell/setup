@@ -56,7 +56,7 @@ if [[ ! -d "$REPO_ROOT" || ! -f "$REPO_ROOT/shell.qml" ]]; then
     exit 1
 fi
 
-cd "$REPO_ROOT"
+cd "$REPO_ROOT" || exit 1
 
 # Handle Ctrl+C gracefully
 cleanup() {
@@ -200,8 +200,13 @@ sync_launcher_from_repo() {
     launcher_src_real="$(readlink -f "$launcher_src" 2>/dev/null || realpath -e "$launcher_src" 2>/dev/null || printf '%s' "$launcher_src")"
     launcher_target_real="$(readlink -f "$launcher_target" 2>/dev/null || realpath -e "$launcher_target" 2>/dev/null || printf '%s' "$launcher_target")"
 
-    if [[ ! -e $launcher_target || $launcher_src_real != $launcher_target_real ]]; then
+    if [[ ! -e $launcher_target ]]; then
         cp -f "$launcher_src" "$launcher_target"
+    else
+        case "$launcher_src_real" in
+            "$launcher_target_real") ;;
+            *) cp -f "$launcher_src" "$launcher_target" ;;
+        esac
     fi
 
     chmod +x "$launcher_target"
@@ -1560,7 +1565,8 @@ run_my_changes() {
     fi
 
     # List available preserved modifications
-    local mods_list=($(ls -1t "$USER_MODS_DIR" 2>/dev/null))
+    local mods_list=()
+    mapfile -t mods_list < <(ls -1t "$USER_MODS_DIR" 2>/dev/null || true)
 
     if [[ ${#mods_list[@]} -eq 0 ]]; then
         tui_info "No preserved modifications found."
@@ -2363,6 +2369,7 @@ run_update() {
 
     # Post-update: check for missing dependencies and offer to install them
     _step_phase_header 5 "Checking dependencies"
+    doctor_missing_deps=()
     check_dependencies
     if [[ ${#doctor_missing_deps[@]} -gt 0 ]]; then
         tui_warn "Missing packages detected: ${doctor_missing_deps[*]}"

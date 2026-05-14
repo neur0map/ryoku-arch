@@ -74,7 +74,7 @@ esac
 #####################################################################################
 function auto_backup_configs(){
   local backup=false
-  case $ask in
+  case ${ask:-true} in
     false) [[ ! -d "$BACKUP_DIR" ]] && backup=true ;;
     *)
       if tui_confirm "Backup existing configs to ${BACKUP_DIR}?" "yes"; then
@@ -165,10 +165,10 @@ case "${SKIP_QUICKSHELL}" in
       log_success "Launcher path configured for interactive shells"
     fi
 
-    local _service_refresh_status=1
-    local _service_dir="${XDG_CONFIG_HOME}/systemd/user"
-    local _service_asset="${REPO_ROOT}/assets/systemd/ryoku-shell.service"
-    local _service_target="${_service_dir}/ryoku-shell.service"
+    _service_refresh_status=1
+    _service_dir="${XDG_CONFIG_HOME}/systemd/user"
+    _service_asset="${REPO_ROOT}/assets/systemd/ryoku-shell.service"
+    _service_target="${_service_dir}/ryoku-shell.service"
 
     if [[ -f "$_service_asset" ]]; then
       mkdir -p "$_service_dir"
@@ -181,8 +181,8 @@ case "${SKIP_QUICKSHELL}" in
         fi
       else
         # Fresh install: create service from template, rewriting ExecStart path
-        local _tmp_svc="${XDG_CACHE_HOME:-$HOME/.cache}/ryoku-shell.service.$$"
-        local _launcher_escaped="${RYOKU_SHELL_LAUNCHER_PATH//&/\\&}"
+        _tmp_svc="${XDG_CACHE_HOME:-$HOME/.cache}/ryoku-shell.service.$$"
+        _launcher_escaped="${RYOKU_SHELL_LAUNCHER_PATH//&/\\&}"
         sed -e "s|^ExecStart=.*|ExecStart=${_launcher_escaped} run --session|" \
             -e "s|^ExecStopPost=-.*|ExecStopPost=-${_launcher_escaped} cleanup-orphans|" \
             "$_service_asset" > "$_tmp_svc"
@@ -198,7 +198,7 @@ case "${SKIP_QUICKSHELL}" in
       # Wire to compositor-specific wants so Ryoku only starts under the correct
       # compositor — NOT under KDE/GNOME/etc.  Never fall back to
       # graphical-session.target: that target is active in ANY desktop session.
-      local _comp_target=""
+      _comp_target=""
       if systemctl --user cat niri.service &>/dev/null; then
         _comp_target="niri.service"
       elif systemctl --user cat 'wayland-wm@Hyprland.service' &>/dev/null; then
@@ -206,7 +206,7 @@ case "${SKIP_QUICKSHELL}" in
       fi
 
       if [[ -n "$_comp_target" ]]; then
-        local _wants_dir="${XDG_CONFIG_HOME}/systemd/user/${_comp_target}.wants"
+        _wants_dir="${XDG_CONFIG_HOME}/systemd/user/${_comp_target}.wants"
         mkdir -p "$_wants_dir"
         ln -sf "${XDG_CONFIG_HOME}/systemd/user/ryoku-shell.service" "$_wants_dir/ryoku-shell.service"
         systemctl --user daemon-reload >/dev/null 2>&1 || true
@@ -408,7 +408,7 @@ if [[ -d "dots/.config/fish" ]]; then
   # Set Fish as default shell if requested
   if [[ "${RYOKU_SHELL_SET_DEFAULT_SHELL:-}" == "true" ]]; then
     if command -v chsh &>/dev/null; then
-      local fish_path
+      fish_path=""
       fish_path=$(command -v fish 2>/dev/null)
       if [[ -n "$fish_path" ]] && [[ -x "$fish_path" ]]; then
         if chsh -s "$fish_path" 2>/dev/null; then
@@ -792,7 +792,7 @@ set_mime_default_if_missing() {
     # (avoid cases where okular or other non-editors are set)
     if [[ "$mime_type" == text/* ]]; then
         case "$current_default" in
-            *kate*|*gedit*|*code*|*vim*|*nvim*|*emacs*|*nano*|*sublime*|*atom*|*notepad*|*helix*|*zed*)
+            *kate*|*gedit*|*code*|*vim*|*emacs*|*nano*|*sublime*|*atom*|*notepad*|*helix*|*zed*)
                 # Already set to a proper editor, don't change
                 return 1
                 ;;
