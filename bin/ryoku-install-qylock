@@ -79,12 +79,67 @@ ryoku-pkg-add \
   gst-plugins-bad \
   gst-plugins-ugly
 
-if [[ -d $QYLOCK_DIR/.git ]]; then
-  _user git -C "$QYLOCK_DIR" pull --ff-only >/dev/null
-else
+clone_qylock_repo() {
   _user rm -rf "$QYLOCK_DIR"
   _user git clone --depth=1 "$QYLOCK_REPO" "$QYLOCK_DIR" >/dev/null
-fi
+}
+
+refresh_qylock_clone() {
+  if [[ -d $QYLOCK_DIR/.git ]]; then
+    if _user git -C "$QYLOCK_DIR" pull --ff-only >/dev/null; then
+      return 0
+    fi
+    echo "  refreshing qylock clone after pull failed"
+  fi
+
+  clone_qylock_repo
+}
+
+refresh_qylock_clone
+
+refresh_qylock_previews() {
+  local preview_helper="$RYOKU_PATH/bin/ryoku-refresh-qylock-previews"
+
+  [[ -x $preview_helper ]] || return 0
+  _user "$preview_helper" "$QYLOCK_DIR" || true
+}
+
+read_active_sddm_theme() {
+  local current="" file value
+
+  shopt -s nullglob
+  for file in /etc/sddm.conf /etc/sddm.conf.d/*.conf; do
+    [[ -f $file ]] || continue
+    value=$(awk -F= '
+      /^[[:space:]]*Current[[:space:]]*=/ {
+        v = $2
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", v)
+        print v
+      }
+    ' "$file" | tail -n1)
+    [[ -n $value ]] && current="$value"
+  done
+
+  printf '%s\n' "$current"
+}
+
+install_system_theme() {
+  local selected_theme="$1"
+  local src="$QYLOCK_DIR/themes/$selected_theme"
+
+  if [[ ! -d $src ]]; then
+    echo "  theme '$selected_theme' not found under $QYLOCK_DIR/themes" >&2
+    echo "  available:" >&2
+    (cd "$QYLOCK_DIR/themes" && ls -1 | sed 's/^/    /') >&2
+    exit 1
+  fi
+
+  echo "  installing theme: $selected_theme"
+  _priv rm -rf "/usr/share/sddm/themes/$selected_theme"
+  _priv cp -r "$src" "/usr/share/sddm/themes/$selected_theme"
+}
+
+refresh_qylock_previews
 
 if [[ -z $theme ]]; then
   if (( EUID == 0 )); then
@@ -96,27 +151,26 @@ if [[ -z $theme ]]; then
 fi
 
 if [[ $mode == "--default" ]]; then
-  for candidate_dir in /usr/share/sddm/themes/*/; do
-    candidate=$(basename "$candidate_dir")
-    if [[ -d $QYLOCK_DIR/themes/$candidate ]]; then
-      echo "  qylock theme already installed: $candidate (keeping)"
-      ensure_current="$candidate"
-      break
-    fi
-  done
+  current_theme=$(read_active_sddm_theme)
+  if [[ -n $current_theme && -d $QYLOCK_DIR/themes/$current_theme ]]; then
+    echo "  qylock theme already active: $current_theme (keeping)"
+    ensure_current="$current_theme"
+    install_system_theme "$current_theme"
+  else
+    for candidate_dir in /usr/share/sddm/themes/*/; do
+      candidate=$(basename "$candidate_dir")
+      if [[ -d $QYLOCK_DIR/themes/$candidate ]]; then
+        echo "  qylock theme already installed: $candidate (keeping)"
+        ensure_current="$candidate"
+        install_system_theme "$candidate"
+        break
+      fi
+    done
+  fi
 fi
 
 if [[ -z ${ensure_current:-} ]]; then
-  src="$QYLOCK_DIR/themes/$theme"
-  if [[ ! -d $src ]]; then
-    echo "  theme '$theme' not found under $QYLOCK_DIR/themes" >&2
-    echo "  available:" >&2
-    (cd "$QYLOCK_DIR/themes" && ls -1 | sed 's/^/    /') >&2
-    exit 1
-  fi
-  echo "  installing theme: $theme"
-  _priv rm -rf "/usr/share/sddm/themes/$theme"
-  _priv cp -r "$src" "/usr/share/sddm/themes/$theme"
+  install_system_theme "$theme"
   ensure_current="$theme"
 fi
 

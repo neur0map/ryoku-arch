@@ -1,0 +1,188 @@
+#!/bin/bash
+set -euo pipefail
+
+QYLOCK_DIR="${1:-$HOME/.local/share/qylock}"
+THEMES_DIR="$QYLOCK_DIR/themes"
+ASSETS_DIR="$QYLOCK_DIR/Assets"
+
+if [[ ! -d $THEMES_DIR ]]; then
+  echo "ryoku-refresh-qylock-previews: qylock themes dir not found: $THEMES_DIR" >&2
+  exit 1
+fi
+
+valid_image() {
+  local path="$1" mime
+
+  [[ -s $path ]] || return 1
+  mime=$(file -b --mime-type "$path" 2>/dev/null || true)
+  [[ $mime == "image/png" || $mime == "image/jpeg" || $mime == "image/gif" || $mime == "image/webp" ]]
+}
+
+asset_base_names() {
+  local theme="$1"
+  local lower="${theme,,}"
+  local snake="${lower//-/_}"
+  local kebab="${lower//_/-}"
+  local -A seen=()
+  local values=()
+  local value
+
+  case "$lower" in
+    dog-samurai) values+=(dog_samurai) ;;
+    last-of-us) values+=(the_last_of_us) ;;
+    nier-automata) values+=(nier_automata) ;;
+    pixel-skyscrapers) values+=(pixel_skyscrapers) ;;
+    star-rail) values+=(star_rail) ;;
+    windows_7) values+=(win7) ;;
+  esac
+
+  values+=("$snake" "$lower" "$kebab" "$theme")
+  for value in "${values[@]}"; do
+    [[ -n $value && -z ${seen[$value]+x} ]] || continue
+    seen[$value]=1
+    printf '%s\n' "$value"
+  done
+}
+
+render_image_preview() {
+  local source="$1" target="$2" tmp
+
+  tmp="${target}.tmp.$$.png"
+
+  rm -f "$tmp"
+  if command -v magick >/dev/null 2>&1; then
+    if magick "$source[0]" -auto-orient -resize '480x270^' -gravity center -extent 480x270 "$tmp" >/dev/null 2>&1; then
+      mv "$tmp" "$target"
+      return 0
+    fi
+  fi
+
+  rm -f "$tmp"
+  if valid_image "$source"; then
+    cp -f "$source" "$target"
+    return 0
+  fi
+
+  return 1
+}
+
+render_video_preview() {
+  local source="$1" target="$2" tmp
+
+  tmp="${target}.tmp.$$.png"
+
+  command -v ffmpeg >/dev/null 2>&1 || return 1
+  [[ -s $source ]] || return 1
+
+  rm -f "$tmp"
+  if ffmpeg -hide_banner -loglevel error -y -ss 1 -i "$source" -frames:v 1 \
+    -vf "scale=480:270:force_original_aspect_ratio=increase,crop=480:270" \
+    "$tmp" >/dev/null 2>&1; then
+    mv "$tmp" "$target"
+    return 0
+  fi
+
+  rm -f "$tmp"
+  return 1
+}
+
+image_candidates() {
+  local theme="$1" theme_dir="$2" base ext
+  local paths=(
+    "$theme_dir/bg.png"
+    "$theme_dir/background.png"
+    "$theme_dir/background.jpg"
+    "$theme_dir/background.jpeg"
+    "$theme_dir/background/A Glow.jpg"
+    "$theme_dir/avatar.png"
+    "$theme_dir/ter1.png"
+    "$theme_dir/ter2.png"
+    "$theme_dir/ter3.png"
+    "$theme_dir/ter4.png"
+    "$theme_dir/ter5.png"
+    "$theme_dir/terraria_logo.png"
+  )
+
+  printf '%s\n' "${paths[@]}"
+  while IFS= read -r base; do
+    for ext in gif png jpg jpeg webp; do
+      printf '%s\n' "$ASSETS_DIR/$base.$ext"
+    done
+  done < <(asset_base_names "$theme")
+
+  find "$theme_dir" -maxdepth 3 -type f \
+    \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.gif' -o -iname '*.webp' \) \
+    ! -name 'preview.png' \
+    -print 2>/dev/null | sort
+}
+
+video_candidates() {
+  local theme_dir="$1"
+
+  printf '%s\n' \
+    "$theme_dir/bg.mp4" \
+    "$theme_dir/background.mp4"
+  find "$theme_dir" -maxdepth 3 -type f \
+    \( -iname '*.mp4' -o -iname '*.mov' -o -iname '*.mkv' -o -iname '*.webm' \) \
+    -print 2>/dev/null | sort
+}
+
+candidate_newer_than_preview() {
+  local preview="$1" source
+
+  while IFS= read -r source; do
+    [[ -f $source ]] || continue
+    if [[ $source -nt $preview ]]; then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+refresh_theme_preview() {
+  local theme_dir="$1"
+  local theme preview source
+
+  theme="$(basename "$theme_dir")"
+  preview="$theme_dir/preview.png"
+
+  if valid_image "$preview" && ! candidate_newer_than_preview "$preview" < <(
+    image_candidates "$theme" "$theme_dir"
+    video_candidates "$theme_dir"
+  ); then
+    return 0
+  fi
+
+  while IFS= read -r source; do
+    [[ -f $source ]] || continue
+    valid_image "$source" || continue
+    if render_image_preview "$source" "$preview"; then
+      echo "  preview ready: $theme"
+      return 0
+    fi
+  done < <(image_candidates "$theme" "$theme_dir")
+
+  while IFS= read -r source; do
+    [[ -f $source ]] || continue
+    if render_video_preview "$source" "$preview"; then
+      echo "  preview ready: $theme"
+      return 0
+    fi
+  done < <(video_candidates "$theme_dir")
+
+  echo "  preview unavailable: $theme" >&2
+  return 0
+}
+
+main() {
+  local theme_dir
+
+  shopt -s nullglob
+  for theme_dir in "$THEMES_DIR"/*; do
+    [[ -d $theme_dir ]] || continue
+    refresh_theme_preview "$theme_dir"
+  done
+}
+
+main "$@"
