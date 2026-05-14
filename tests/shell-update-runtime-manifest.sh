@@ -79,9 +79,9 @@ chmod +x "$tmp_dir/repo/scripts/ryoku-shell"
 ln -s "$tmp_dir/repo/scripts/ryoku-shell" "$tmp_dir/bin/ryoku-shell"
 
 REPO_ROOT="$tmp_dir/repo"
-XDG_BIN_HOME="$tmp_dir/bin"
-HOME="$tmp_dir/home"
-PATH="$tmp_dir/bin:$PATH"
+export XDG_BIN_HOME="$tmp_dir/bin"
+export HOME="$tmp_dir/home"
+export PATH="$tmp_dir/bin:$PATH"
 ensure_launcher_path_in_shells() { :; }
 
 eval "$(extract_sync_launcher_function)"
@@ -93,9 +93,9 @@ fi
 [[ ! -s $tmp_dir/launcher.err ]] || \
   fail "launcher sync should not emit cp same-file errors"
 
-STY_BLUE=""
-STY_RST=""
-INSTALLED_LISTFILE="$tmp_dir/installed-list"
+export STY_BLUE=""
+export STY_RST=""
+export INSTALLED_LISTFILE="$tmp_dir/installed-list"
 x() { "$@"; }
 
 eval "$(extract_cp_file_function)"
@@ -107,8 +107,8 @@ fi
 [[ ! -s $tmp_dir/cp-file.err ]] || \
   fail "shared file copy helper should not emit cp same-file errors"
 
-XDG_CONFIG_HOME="$tmp_dir/xdg-config"
-XDG_STATE_HOME="$tmp_dir/xdg-state"
+export XDG_CONFIG_HOME="$tmp_dir/xdg-config"
+export XDG_STATE_HOME="$tmp_dir/xdg-state"
 runtime_target="$tmp_dir/.config/quickshell/ryoku-shell"
 mkdir -p \
   "$REPO_ROOT/sdata" \
@@ -122,6 +122,7 @@ touch \
   "$runtime_target/distro/arch/inir-shell-git/publish-aur.sh"
 
 log_info() { :; }
+# shellcheck source=shell/sdata/lib/robust-update.sh
 source "$ROBUST_UPDATE_SH"
 
 cleanup_orphans "$runtime_target" "$runtime_target/.ryoku-manifest"
