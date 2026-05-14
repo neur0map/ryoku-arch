@@ -1128,19 +1128,45 @@ Singleton {
             "head -1 \"$manifest\" | grep -qE '(ii|inir|ryoku)-manifest v2' && manifest_v2='true'; " +
             "git_prefix=''; " +
             "if [[ -d \"$repo/.git\" && -f \"$repo/shell/setup\" ]]; then git_prefix='shell/'; fi; " +
+            "remote_ref='origin/" + root._remoteBranch + "'; " +
+            "repo_worktree_hash() { " +
+            "  local rel=\"$1\" candidate=''; " +
+            "  if [[ -f \"$repo/${git_prefix}${rel}\" ]]; then candidate=\"$repo/${git_prefix}${rel}\"; " +
+            "  elif [[ -n \"$git_prefix\" && -f \"$repo/${rel}\" ]]; then candidate=\"$repo/${rel}\"; " +
+            "  else return 1; fi; " +
+            "  sha256sum \"$candidate\" 2>/dev/null | cut -d' ' -f1; " +
+            "}; " +
+            "repo_content_hash() { " +
+            "  local ref=\"$1\" rel=\"$2\" resolved=''; " +
+            "  [[ -d \"$repo/.git\" ]] || return 1; " +
+            "  if git -C \"$repo\" cat-file -e \"$ref:${git_prefix}${rel}\" 2>/dev/null; then resolved=\"${git_prefix}${rel}\"; " +
+            "  elif [[ -n \"$git_prefix\" ]] && git -C \"$repo\" cat-file -e \"$ref:${rel}\" 2>/dev/null; then resolved=\"$rel\"; " +
+            "  else return 1; fi; " +
+            "  git -C \"$repo\" show \"$ref:${resolved}\" 2>/dev/null | sha256sum | cut -d' ' -f1; " +
+            "}; " +
+            "matches_repo_source() { " +
+            "  local rel=\"$1\" current=\"$2\" repo_hash=''; " +
+            "  repo_hash=$(repo_worktree_hash \"$rel\" 2>/dev/null || true); " +
+            "  [[ -n \"$repo_hash\" && \"$repo_hash\" == \"$current\" ]] && return 0; " +
+            "  repo_hash=$(repo_content_hash HEAD \"$rel\" 2>/dev/null || true); " +
+            "  [[ -n \"$repo_hash\" && \"$repo_hash\" == \"$current\" ]] && return 0; " +
+            "  [[ -n \"$remote_ref\" ]] || return 1; " +
+            "  repo_hash=$(repo_content_hash \"$remote_ref\" \"$rel\" 2>/dev/null || true); " +
+            "  [[ -n \"$repo_hash\" && \"$repo_hash\" == \"$current\" ]]; " +
+            "}; " +
             "while IFS=: read -r path checksum; do " +
             "  [[ \"$path\" =~ ^# ]] && continue; " +
             "  [[ -z \"$path\" ]] && continue; " +
             "  [[ -f \"$target/$path\" ]] || continue; " +
             "  if [[ -n \"$checksum\" ]]; then " +
             "    current=$(sha256sum \"$target/$path\" 2>/dev/null | cut -d' ' -f1); " +
-            "    [[ \"$current\" != \"$checksum\" ]] && echo \"$path\"; " +
+            "    if [[ \"$current\" != \"$checksum\" ]]; then " +
+            "      matches_repo_source \"$path\" \"$current\" && continue; " +
+            "      echo \"$path\"; " +
+            "    fi; " +
             "  elif [[ \"$manifest_v2\" != \"true\" && -d \"$repo/.git\" ]]; then " +
-            "    resolved=''; " +
-            "    if git -C \"$repo\" cat-file -e \"HEAD:${git_prefix}${path}\" 2>/dev/null; then resolved=\"${git_prefix}${path}\"; " +
-            "    elif [[ -n \"$git_prefix\" ]] && git -C \"$repo\" cat-file -e \"HEAD:${path}\" 2>/dev/null; then resolved=\"${path}\"; fi; " +
-            "    [[ -z \"$resolved\" ]] && continue; " +
-            "    repo_hash=$(git -C \"$repo\" show \"HEAD:${resolved}\" 2>/dev/null | sha256sum | cut -d' ' -f1); " +
+            "    repo_hash=$(repo_content_hash HEAD \"$path\" 2>/dev/null || true); " +
+            "    [[ -z \"$repo_hash\" ]] && continue; " +
             "    local_hash=$(sha256sum \"$target/$path\" 2>/dev/null | cut -d' ' -f1); " +
             "    [[ \"$repo_hash\" != \"$local_hash\" ]] && echo \"$path\"; " +
             "  fi; " +
