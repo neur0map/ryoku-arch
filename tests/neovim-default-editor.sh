@@ -95,6 +95,7 @@ assert_contains "config/nvim/lua/plugins/ryoku.lua" 'vim.cmd.colorscheme("habama
 assert_not_contains "config/nvim/lua/plugins/ryoku.lua" '"yukazakiri/ryoku.nvim"'
 assert_not_contains "config/nvim/lua/config/keymaps.lua" "ryoku.nvim"
 assert_contains "config/nvim/lua/plugins/ryoku-dashboard.lua" "RYOKU"
+assert_contains "config/nvim/lua/plugins/ryoku-dashboard.lua" "力と美のために · For the sake of power and beauty."
 assert_contains "config/nvim/lua/plugins/ryoku-dashboard.lua" '"folke/snacks.nvim"'
 
 assert_contains "shell/defaults/config.json" '"enableNeovim": true'
@@ -128,6 +129,11 @@ repair_migration=${repair_migration#"$ROOT_DIR/"}
 assert_contains "$repair_migration" "neovim_themegen.sh"
 assert_contains "$repair_migration" "yukazakiri/ryoku.nvim"
 assert_contains "$repair_migration" "ryoku-refresh-config nvim/lua/config/keymaps.lua"
+
+dashboard_migration=$(grep -l "Refresh Ryoku Neovim dashboard tagline" "$ROOT_DIR"/migrations/*.sh 2>/dev/null | sort -n | tail -n1 || true)
+[[ -n $dashboard_migration ]] || fail "Neovim dashboard tagline migration should exist"
+dashboard_migration=${dashboard_migration#"$ROOT_DIR/"}
+assert_contains "$dashboard_migration" "力と美のために · For the sake of power and beauty."
 
 tmp_dir=$(mktemp -d)
 trap 'rm -rf "$tmp_dir"' EXIT
@@ -167,6 +173,7 @@ empty_output=$(
 [[ -f $tmp_dir/home-empty/.config/nvim/.ryoku-lazyvim ]] || fail "migration should install Ryoku nvim marker"
 [[ -f $tmp_dir/home-empty/.config/nvim/init.lua ]] || fail "migration should install Ryoku nvim init"
 [[ -f $tmp_dir/home-empty/.config/nvim/lua/plugins/ryoku-dashboard.lua ]] || fail "migration should install Ryoku dashboard"
+assert_contains_abs "$tmp_dir/home-empty/.config/nvim/lua/plugins/ryoku-dashboard.lua" "力と美のために · For the sake of power and beauty."
 [[ -f $tmp_dir/home-empty/.local/share/nvim/lazy/lazy.nvim/README.md ]] \
   || fail "migration should seed offline Neovim plugin cache"
 grep -q '^export EDITOR=nvim$' "$tmp_dir/home-empty/.config/uwsm/default" || fail "migration should set EDITOR=nvim"
@@ -198,6 +205,7 @@ default_count=$(find "$tmp_dir/home-custom/.config" -maxdepth 1 -type d -name 'n
 staged_default=$(find "$tmp_dir/home-custom/.config" -maxdepth 1 -type d -name 'nvim.ryoku-lazyvim-defaults.*' -print -quit)
 [[ -f $staged_default/.ryoku-lazyvim ]] || fail "staged defaults should include Ryoku nvim marker"
 [[ -f $staged_default/lua/plugins/ryoku-dashboard.lua ]] || fail "staged defaults should include Ryoku dashboard"
+assert_contains_abs "$staged_default/lua/plugins/ryoku-dashboard.lua" "力と美のために · For the sake of power and beauty."
 [[ -f $tmp_dir/home-custom/.local/share/nvim/lazy/lazy.nvim/README.md ]] \
   || fail "migration should seed offline Neovim cache with custom configs"
 
@@ -248,6 +256,18 @@ assert_contains_abs "$tmp_dir/home-repair/.config/nvim/colors/ryoku-shell.lua" '
 assert_not_contains_abs "$tmp_dir/home-repair/.config/nvim/lua/config/keymaps.lua" "ryoku.nvim"
 [[ ! -e $tmp_dir/home-repair/.local/share/nvim/lazy/ryoku.nvim ]] \
   || fail "repair migration should remove bad ryoku.nvim lazy directory"
+
+mkdir -p "$tmp_dir/home-dashboard/.config/nvim/lua/plugins"
+printf 'Ryoku LazyVim defaults\n' >"$tmp_dir/home-dashboard/.config/nvim/.ryoku-lazyvim"
+sed '/力と美のために/d' "$ROOT_DIR/config/nvim/lua/plugins/ryoku-dashboard.lua" \
+  >"$tmp_dir/home-dashboard/.config/nvim/lua/plugins/ryoku-dashboard.lua"
+
+HOME="$tmp_dir/home-dashboard" \
+RYOKU_PATH="$ROOT_DIR" \
+PATH="$ROOT_DIR/bin:$PATH" \
+  bash "$ROOT_DIR/$dashboard_migration" >/dev/null
+assert_contains_abs "$tmp_dir/home-dashboard/.config/nvim/lua/plugins/ryoku-dashboard.lua" "RYOKU"
+assert_contains_abs "$tmp_dir/home-dashboard/.config/nvim/lua/plugins/ryoku-dashboard.lua" "力と美のために · For the sake of power and beauty."
 
 themegen_dir="$tmp_dir/themegen/nvim/lua/plugins"
 mkdir -p "$themegen_dir"

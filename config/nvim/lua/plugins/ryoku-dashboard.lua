@@ -17,6 +17,7 @@ return {
           ╚═╝  ╚═╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝ ╚═════╝
 
                          RYOKU
+               力と美のために · For the sake of power and beauty.
           ]],
           keys = {
             { icon = " ", key = "f", desc = "Find File", action = ":lua Snacks.dashboard.pick('files')" },
