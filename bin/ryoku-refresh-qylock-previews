@@ -51,7 +51,7 @@ render_image_preview() {
 
   rm -f "$tmp"
   if command -v magick >/dev/null 2>&1; then
-    if magick "$source[0]" -auto-orient -resize '480x270^' -gravity center -extent 480x270 "$tmp" >/dev/null 2>&1; then
+    if magick "${source}[0]" -auto-orient -resize '480x270^' -gravity center -extent 480x270 "$tmp" >/dev/null 2>&1; then
       mv "$tmp" "$target"
       return 0
     fi
