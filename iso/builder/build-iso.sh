@@ -141,14 +141,6 @@ if [[ -f $nvim_config_dir/init.lua ]]; then
   nvim_prefetch_home="$(mktemp -d)"
   mkdir -p "$nvim_prefetch_home/config" "$nvim_prefetch_home/data" "$nvim_prefetch_home/state" "$nvim_prefetch_home/cache"
   cp -a "$nvim_config_dir" "$nvim_prefetch_home/config/nvim"
-  cat >"$nvim_prefetch_home/config/nvim/lua/plugins/ryoku-offline-cache.lua" <<'EOF'
-return {
-  {
-    "yukazakiri/ryoku.nvim",
-    lazy = true,
-  },
-}
-EOF
   XDG_CONFIG_HOME="$nvim_prefetch_home/config" \
   XDG_DATA_HOME="$nvim_prefetch_home/data" \
   XDG_STATE_HOME="$nvim_prefetch_home/state" \

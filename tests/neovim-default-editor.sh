@@ -33,6 +33,20 @@ assert_not_contains() {
   ! grep -qF -- "$needle" "$ROOT_DIR/$file" || fail "$file should not contain: $needle"
 }
 
+assert_contains_abs() {
+  local file="$1"
+  local needle="$2"
+  [[ -f $file ]] || fail "$file should exist"
+  grep -qF -- "$needle" "$file" || fail "$file should contain: $needle"
+}
+
+assert_not_contains_abs() {
+  local file="$1"
+  local needle="$2"
+  [[ -f $file ]] || fail "$file should exist"
+  ! grep -qF -- "$needle" "$file" || fail "$file should not contain: $needle"
+}
+
 assert_package_present() {
   local package="$1"
   grep -qxF "$package" "$ROOT_DIR/install/ryoku-base.packages" \
@@ -72,11 +86,14 @@ assert_file "config/nvim/init.lua"
 assert_file "config/nvim/lua/config/lazy.lua"
 assert_contains "config/nvim/lua/config/lazy.lua" "folke/lazy.nvim.git"
 assert_contains "config/nvim/lua/config/lazy.lua" '"LazyVim/LazyVim"'
-assert_contains "shell/scripts/colors/neovim_themegen.sh" '"yukazakiri/ryoku.nvim"'
+assert_not_contains "shell/scripts/colors/neovim_themegen.sh" '"yukazakiri/ryoku.nvim"'
+assert_contains "shell/scripts/colors/neovim_themegen.sh" "colors/ryoku-shell.lua"
+assert_contains "shell/scripts/colors/modules/30-editors.sh" "NEOVIM_COLORS_FILE"
 assert_contains "config/nvim/lua/plugins/ryoku.lua" 'pcall(vim.cmd.colorscheme, "ryoku-shell")'
 assert_contains "config/nvim/lua/plugins/ryoku.lua" 'pcall(vim.cmd.colorscheme, "tokyonight-night")'
 assert_contains "config/nvim/lua/plugins/ryoku.lua" 'vim.cmd.colorscheme("habamax")'
 assert_not_contains "config/nvim/lua/plugins/ryoku.lua" '"yukazakiri/ryoku.nvim"'
+assert_not_contains "config/nvim/lua/config/keymaps.lua" "ryoku.nvim"
 assert_contains "config/nvim/lua/plugins/ryoku-dashboard.lua" "RYOKU"
 assert_contains "config/nvim/lua/plugins/ryoku-dashboard.lua" '"folke/snacks.nvim"'
 
@@ -87,23 +104,30 @@ assert_contains "iso/builder/build-iso.sh" "archiso git sudo base-devel jq grub 
 assert_contains "iso/builder/build-iso.sh" "arch_packages=(git gum jq neovim openssl plymouth)"
 assert_contains "iso/builder/build-iso.sh" "var/cache/ryoku/nvim"
 assert_contains "iso/builder/build-iso.sh" "Lazy! sync"
-assert_contains "iso/builder/build-iso.sh" '"yukazakiri/ryoku.nvim"'
+assert_not_contains "iso/builder/build-iso.sh" '"yukazakiri/ryoku.nvim"'
 assert_contains "iso/builder/build-iso.sh" "ryoku-base.packages"
 assert_contains "iso/builder/build-iso.sh" '--noconfirm -Syw "${official_packages[@]}"'
 assert_contains "iso/configs/airootfs/root/.automated_script.sh" "/var/cache/ryoku/nvim"
 assert_contains "iso/configs/profiledef.sh" '["/var/cache/ryoku/nvim/"]="0:0:775"'
 assert_contains "install/preflight/pacman.sh" "file:///var/cache/ryoku/mirror/offline/"
 
-latest_migration=$(find "$ROOT_DIR/migrations" -maxdepth 1 -type f -name '*.sh' -printf '%f\n' | sort -n | tail -n1)
-[[ -n $latest_migration ]] || fail "a migration should exist"
-assert_contains "migrations/$latest_migration" "Install Neovim and Ryoku LazyVim defaults"
-assert_contains "migrations/$latest_migration" "ryoku-pkg-add neovim"
-assert_contains "migrations/$latest_migration" "ryoku-refresh-config \"\$relative_path\""
-assert_contains "migrations/$latest_migration" "refresh_nvim_file nvim/init.lua"
-assert_contains "migrations/$latest_migration" "nvim.ryoku-lazyvim-defaults"
-assert_contains "migrations/$latest_migration" "seed_nvim_offline_cache"
-assert_not_contains "migrations/$latest_migration" "rm -rf \"$HOME/.config/nvim\""
-assert_not_contains "migrations/$latest_migration" "pacman -R"
+install_migration=$(grep -l "Install Neovim and Ryoku LazyVim defaults" "$ROOT_DIR"/migrations/*.sh | sort -n | tail -n1)
+[[ -n $install_migration ]] || fail "Neovim install migration should exist"
+install_migration=${install_migration#"$ROOT_DIR/"}
+assert_contains "$install_migration" "ryoku-pkg-add neovim"
+assert_contains "$install_migration" "ryoku-refresh-config \"\$relative_path\""
+assert_contains "$install_migration" "refresh_nvim_file nvim/init.lua"
+assert_contains "$install_migration" "nvim.ryoku-lazyvim-defaults"
+assert_contains "$install_migration" "seed_nvim_offline_cache"
+assert_not_contains "$install_migration" "rm -rf \"$HOME/.config/nvim\""
+assert_not_contains "$install_migration" "pacman -R"
+
+repair_migration=$(grep -l "Repair Ryoku Neovim local colorscheme" "$ROOT_DIR"/migrations/*.sh | sort -n | tail -n1)
+[[ -n $repair_migration ]] || fail "Neovim repair migration should exist"
+repair_migration=${repair_migration#"$ROOT_DIR/"}
+assert_contains "$repair_migration" "neovim_themegen.sh"
+assert_contains "$repair_migration" "yukazakiri/ryoku.nvim"
+assert_contains "$repair_migration" "ryoku-refresh-config nvim/lua/config/keymaps.lua"
 
 tmp_dir=$(mktemp -d)
 trap 'rm -rf "$tmp_dir"' EXIT
@@ -135,7 +159,7 @@ empty_output=$(
   RYOKU_PATH="$ROOT_DIR" \
   RYOKU_NVIM_OFFLINE_CACHE="$tmp_dir/offline-nvim" \
   PATH="$tmp_dir/bin:$ROOT_DIR/bin:$PATH" \
-    bash "$ROOT_DIR/migrations/$latest_migration"
+    bash "$ROOT_DIR/$install_migration"
 )
 [[ $empty_output == *"Neovim LazyVim defaults installed"* ]] \
   || fail "migration should report installed defaults"
@@ -162,7 +186,7 @@ custom_output=$(
   RYOKU_PATH="$ROOT_DIR" \
   RYOKU_NVIM_OFFLINE_CACHE="$tmp_dir/offline-nvim" \
   PATH="$tmp_dir/bin:$ROOT_DIR/bin:$PATH" \
-    bash "$ROOT_DIR/migrations/$latest_migration"
+    bash "$ROOT_DIR/$install_migration"
 )
 [[ $custom_output == *"existing ~/.config/nvim preserved"* ]] \
   || fail "migration should report preserved custom Neovim config"
@@ -187,3 +211,51 @@ HOME="$tmp_dir/home-install" \
   bash "$ROOT_DIR/install/config/neovim.sh"
 [[ -f $tmp_dir/home-install/.local/share/nvim/lazy/lazy.nvim/README.md ]] \
   || fail "fresh install config should seed offline Neovim plugin cache"
+
+mkdir -p \
+  "$tmp_dir/home-repair/.config/nvim/lua/plugins" \
+  "$tmp_dir/home-repair/.config/nvim/lua/config" \
+  "$tmp_dir/home-repair/.local/share/nvim/lazy/ryoku.nvim" \
+  "$tmp_dir/home-repair/.local/state/quickshell/user/generated"
+printf 'Ryoku LazyVim defaults\n' >"$tmp_dir/home-repair/.config/nvim/.ryoku-lazyvim"
+cat >"$tmp_dir/home-repair/.config/nvim/lua/plugins/neovim.lua" <<'BADNVIM'
+return {
+  {
+    "yukazakiri/ryoku.nvim",
+    priority = 1000,
+    opts = {},
+  },
+}
+BADNVIM
+cat >"$tmp_dir/home-repair/.config/nvim/lua/config/keymaps.lua" <<'BADKEYMAP'
+local map = vim.keymap.set
+map("n", "<leader>rr", "<cmd>Lazy reload ryoku.nvim<cr>", {
+  desc = "Reload Ryoku theme",
+})
+BADKEYMAP
+cp "$ROOT_DIR/tests/fixtures/neovim-palette.json" "$tmp_dir/home-repair/.local/state/quickshell/user/generated/palette.json"
+cp "$ROOT_DIR/tests/fixtures/neovim-terminal.json" "$tmp_dir/home-repair/.local/state/quickshell/user/generated/terminal.json"
+
+HOME="$tmp_dir/home-repair" \
+XDG_STATE_HOME="$tmp_dir/home-repair/.local/state" \
+TMPDIR="$tmp_dir" \
+RYOKU_PATH="$ROOT_DIR" \
+PATH="$ROOT_DIR/bin:$PATH" \
+  bash "$ROOT_DIR/$repair_migration" >/dev/null
+assert_not_contains_abs "$tmp_dir/home-repair/.config/nvim/lua/plugins/neovim.lua" "yukazakiri/ryoku.nvim"
+assert_contains_abs "$tmp_dir/home-repair/.config/nvim/lua/plugins/neovim.lua" 'colorscheme = "ryoku-shell"'
+assert_contains_abs "$tmp_dir/home-repair/.config/nvim/colors/ryoku-shell.lua" 'vim.g.terminal_color_0'
+assert_not_contains_abs "$tmp_dir/home-repair/.config/nvim/lua/config/keymaps.lua" "ryoku.nvim"
+[[ ! -e $tmp_dir/home-repair/.local/share/nvim/lazy/ryoku.nvim ]] \
+  || fail "repair migration should remove bad ryoku.nvim lazy directory"
+
+themegen_dir="$tmp_dir/themegen/nvim/lua/plugins"
+mkdir -p "$themegen_dir"
+bash "$ROOT_DIR/shell/scripts/colors/neovim_themegen.sh" \
+  "$ROOT_DIR/tests/fixtures/neovim-palette.json" \
+  "$ROOT_DIR/tests/fixtures/neovim-terminal.json" \
+  "$themegen_dir" >/dev/null
+assert_not_contains_abs "$themegen_dir/neovim.lua" "yukazakiri/ryoku.nvim"
+assert_contains_abs "$themegen_dir/neovim.lua" 'colorscheme = "ryoku-shell"'
+assert_contains_abs "$tmp_dir/themegen/nvim/colors/ryoku-shell.lua" 'vim.g.colors_name = "ryoku-shell"'
+assert_contains_abs "$tmp_dir/themegen/nvim/colors/ryoku-shell.lua" 'terminal_color_0'
