@@ -15,7 +15,7 @@ if (($# < 2)); then
 fi
 
 # Last positional arg is the output dir; everything before is a packages manifest.
-output_dir="${@: -1}"
+output_dir="${!#}"
 packages_files=("${@:1:$#-1}")
 
 build_root=$(mktemp -d)
