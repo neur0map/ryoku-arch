@@ -84,7 +84,7 @@ if [[ -z ${RYOKU_UPDATE_POWER_CHECKED:-} ]]; then
 fi
 
 if [[ $1 == "-y" ]] || ryoku-update-confirm; then
-  ryoku-snapshot create || (($? == 127))
   ryoku-update-git
+  ryoku-snapshot create || (($? == 127))
   ryoku-update-perform
 fi
