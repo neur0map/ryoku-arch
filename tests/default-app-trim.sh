@@ -90,7 +90,7 @@ kept_packages=(
   docker-compose
   gradia
   lazydocker
-  localsend
+  localsend-bin
   obsidian
   obs-studio
   trayscale

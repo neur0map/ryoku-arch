@@ -37,11 +37,10 @@ fi
 # package does not redo the dep resolution from scratch.
 pacman --noconfirm -S --needed dkms
 
-# Some AUR packages (localsend) declare rustup as a build dep instead of
-# rust. base-devel pulls rust transitively, and rustup conflicts with
-# rust, so makepkg --syncdeps would later prompt to remove rust and
-# abort under --noconfirm. Pre-swap rust to rustup here so every later
-# AUR build finds rustup already installed.
+# Some AUR packages declare rustup as a build dep. Keep this rustup
+# swap confined to the ISO build container: installed Ryoku systems ship
+# Arch rust, and default AUR packages should avoid rustup make-deps so
+# user updates do not hit rust/rustup package conflicts.
 if pacman -Q rust >/dev/null 2>&1; then
   pacman -Rdd --noconfirm rust || true
 fi
