@@ -663,6 +663,7 @@ Singleton {
                     property bool battery: true
                     property bool rightSidebarButton: true
                     property bool sysTray: true
+                    property bool secPulse: true
                     property bool weather: true
                     property bool taskbar: false
                     property bool kanjiClock: true
@@ -1409,7 +1410,7 @@ Singleton {
 
                 // Right sidebar widget toggles
                 property JsonObject right: JsonObject {
-                    property list<string> enabledWidgets: ["calendar", "todo", "notepad", "calculator", "sysmon", "timer", "openvpn", "hosts", "netmon"]
+                    property list<string> enabledWidgets: ["calendar", "events", "todo", "notepad", "calculator", "sysmon", "timer", "openvpn", "hosts", "netmon", "firewall"]
                     // Controls section order for compact layout (drag to reorder)
                     property list<string> controlsSectionOrder: ["sliders", "toggles", "devices", "media", "quickActions"]
                 }

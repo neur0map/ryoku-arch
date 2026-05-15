@@ -411,7 +411,7 @@ Singleton {
             category: "tools",
             keywords: ["notepad", "notes", "write", "text", "memo"],
             execute: () => {
-                const enabledWidgets = Config.options?.sidebar?.right?.enabledWidgets ?? ["calendar", "todo", "notepad", "calculator", "sysmon", "timer"]
+                const enabledWidgets = Config.options?.sidebar?.right?.enabledWidgets ?? ["calendar", "events", "todo", "notepad", "calculator", "sysmon", "timer", "openvpn", "hosts", "netmon", "firewall"]
                 const notepadIndex = Math.max(0, enabledWidgets.indexOf("notepad"))
                 GlobalStates.sidebarRightOpen = true
                 if (Persistent?.states?.sidebar?.bottomGroup) {

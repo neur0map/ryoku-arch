@@ -1,0 +1,378 @@
+#!/bin/bash
+# UFW-backed firewall helper for the Ryoku sidebar.
+#
+# Read-only status avoids `ufw status` because Arch's UFW requires root even
+# for reads. It parses UFW's world-readable config/rules files instead.
+# Mutations go through pkexec so Ryoku's in-shell polkit prompt owns auth.
+
+set -uo pipefail
+
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/ryoku/firewall"
+mkdir -p "$STATE_DIR"
+LAST_OP="$STATE_DIR/last-op.json"
+
+UFW_BIN="/usr/bin/ufw"
+SYSTEMCTL_BIN="/usr/bin/systemctl"
+UFW_CONF="/etc/ufw/ufw.conf"
+UFW_DEFAULTS="/etc/default/ufw"
+UFW_USER_RULES="/etc/ufw/user.rules"
+UFW_USER6_RULES="/etc/ufw/user6.rules"
+
+json_escape() {
+  local s="${1:-}"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  s="${s//$'\n'/\\n}"
+  s="${s//$'\r'/}"
+  printf '%s' "$s"
+}
+
+json_bool() {
+  if "$@" >/dev/null 2>&1; then
+    printf 'true'
+  else
+    printf 'false'
+  fi
+}
+
+write_result() {
+  local op="$1" status="$2" error="${3:-}"
+  local ts s_op s_status s_error
+  ts="$(date -Iseconds)"
+  s_op="$(json_escape "$op")"
+  s_status="$(json_escape "$status")"
+  s_error="$(json_escape "$error")"
+  printf '{"op":"%s","status":"%s","error":"%s","at":"%s"}\n' \
+    "$s_op" "$s_status" "$s_error" "$ts" >"$LAST_OP"
+}
+
+need_ufw() {
+  if [[ ! -x $UFW_BIN ]]; then
+    write_result "${1:-?}" error "ufw is not installed"
+    exit 1
+  fi
+}
+
+need_pkexec() {
+  if ! command -v pkexec >/dev/null 2>&1; then
+    write_result "${1:-?}" error "pkexec is not installed"
+    exit 1
+  fi
+}
+
+policy_from_file() {
+  local key="$1" raw=""
+  if [[ -r $UFW_DEFAULTS ]]; then
+    raw="$(grep -E "^${key}=" "$UFW_DEFAULTS" 2>/dev/null | tail -1 | cut -d= -f2-)"
+  fi
+  raw="${raw%\"}"
+  raw="${raw#\"}"
+  case "${raw,,}" in
+    accept) printf 'allow' ;;
+    drop) printf 'deny' ;;
+    reject) printf 'reject' ;;
+    *) printf 'unknown' ;;
+  esac
+}
+
+ufw_enabled() {
+  [[ -r $UFW_CONF ]] && grep -qE '^ENABLED=yes$' "$UFW_CONF"
+}
+
+ufw_service_active() {
+  "$SYSTEMCTL_BIN" is-active --quiet ufw
+}
+
+hex_to_ascii() {
+  local hex="$1" out=""
+  while (( ${#hex} >= 2 )); do
+    out+="\\x${hex:0:2}"
+    hex="${hex:2}"
+  done
+  printf '%b' "$out"
+}
+
+emit_rule_json() {
+  local number="$1" version="$2" action="$3" protocol="$4" port="$5"
+  local source="$6" destination="$7" direction="$8" comment="$9" raw="${10}"
+  local comma="${11}"
+
+  printf '%s{"number":%d,"ipVersion":"%s","action":"%s","protocol":"%s","port":"%s","source":"%s","destination":"%s","direction":"%s","comment":"%s","raw":"%s"}' \
+    "$comma" \
+    "$number" \
+    "$(json_escape "$version")" \
+    "$(json_escape "$action")" \
+    "$(json_escape "$protocol")" \
+    "$(json_escape "$port")" \
+    "$(json_escape "$source")" \
+    "$(json_escape "$destination")" \
+    "$(json_escape "$direction")" \
+    "$(json_escape "$comment")" \
+    "$(json_escape "$raw")"
+}
+
+emit_rules_from_file() {
+  local file="$1" version="$2"
+  local line rest action protocol port destination source direction comment part
+  [[ -r $file ]] || return 0
+
+  while IFS= read -r line; do
+    [[ $line == "### tuple ### "* ]] || continue
+    rest="${line#"### tuple ### "}"
+    read -r -a parts <<< "$rest"
+    (( ${#parts[@]} >= 7 )) || continue
+
+    action="${parts[0]}"
+    protocol="${parts[1]}"
+    port="${parts[2]}"
+    destination="${parts[3]}"
+    source="${parts[5]}"
+    direction="${parts[6]}"
+    comment=""
+
+    for part in "${parts[@]:7}"; do
+      if [[ $part == comment=* ]]; then
+        comment="$(hex_to_ascii "${part#comment=}")"
+      fi
+    done
+
+    emit_rule_json "$RULE_NUMBER" "$version" "$action" "$protocol" "$port" \
+      "$source" "$destination" "$direction" "$comment" "$rest" "$RULE_COMMA"
+    RULE_COMMA=","
+    (( RULE_NUMBER++ ))
+  done <"$file"
+}
+
+emit_status() {
+  local incoming outgoing routed logging
+  incoming="$(policy_from_file DEFAULT_INPUT_POLICY)"
+  outgoing="$(policy_from_file DEFAULT_OUTPUT_POLICY)"
+  routed="$(policy_from_file DEFAULT_FORWARD_POLICY)"
+  logging="unknown"
+  if [[ -r $UFW_CONF ]]; then
+    logging="$(grep -E '^LOGLEVEL=' "$UFW_CONF" 2>/dev/null | tail -1 | cut -d= -f2-)"
+  fi
+
+  printf '{'
+  printf '"backend":"ufw",'
+  printf '"commandAvailable":%s,' "$(json_bool test -x "$UFW_BIN")"
+  printf '"enabled":%s,' "$(json_bool ufw_enabled)"
+  printf '"serviceActive":%s,' "$(json_bool ufw_service_active)"
+  printf '"logging":"%s",' "$(json_escape "$logging")"
+  printf '"policies":{"incoming":"%s","outgoing":"%s","routed":"%s"},' \
+    "$(json_escape "$incoming")" "$(json_escape "$outgoing")" "$(json_escape "$routed")"
+  printf '"rules":['
+  RULE_NUMBER=1
+  RULE_COMMA=""
+  emit_rules_from_file "$UFW_USER_RULES" "v4"
+  emit_rules_from_file "$UFW_USER6_RULES" "v6"
+  printf ']}'
+  printf '\n'
+}
+
+valid_action() {
+  [[ $1 == "allow" || $1 == "deny" ]]
+}
+
+valid_direction() {
+  [[ $1 == "in" || $1 == "out" ]]
+}
+
+valid_protocol() {
+  [[ $1 == "tcp" || $1 == "udp" || $1 == "any" ]]
+}
+
+valid_port() {
+  local p="$1" left right
+  [[ $p =~ ^[0-9]{1,5}(:[0-9]{1,5})?$ ]] || return 1
+  left="${p%%:*}"
+  right="${p#*:}"
+  [[ $right == $p ]] && right="$left"
+  (( left >= 1 && left <= 65535 && right >= 1 && right <= 65535 && left <= right ))
+}
+
+valid_remote() {
+  local remote="$1"
+  [[ -z $remote || $remote == "any" ]] && return 0
+  [[ $remote =~ ^[0-9A-Fa-f:.]+(/[0-9]{1,3})?$ ]]
+}
+
+valid_rule_number() {
+  [[ $1 =~ ^[0-9]+$ ]] && (( $1 >= 1 && $1 <= 9999 ))
+}
+
+valid_policy_target() {
+  [[ $1 == "incoming" || $1 == "outgoing" || $1 == "routed" ]]
+}
+
+valid_policy_value() {
+  [[ $1 == "allow" || $1 == "deny" || $1 == "reject" ]]
+}
+
+run_ufw() {
+  local op="$1"
+  shift
+  need_ufw "$op"
+  need_pkexec "$op"
+
+  pkexec "$UFW_BIN" "$@"
+  local rc=$?
+  if (( rc == 0 )); then
+    write_result "$op" ok ""
+    exit 0
+  fi
+
+  case $rc in
+    126) write_result "$op" cancelled "authentication cancelled" ;;
+    *) write_result "$op" error "ufw failed (rc=$rc)" ;;
+  esac
+  exit "$rc"
+}
+
+run_restore_defaults() {
+  need_ufw restore-defaults
+  need_pkexec restore-defaults
+
+  local script
+  script='
+set -euo pipefail
+
+/usr/bin/ufw --force reset
+/usr/bin/ufw default deny incoming
+/usr/bin/ufw default allow outgoing
+/usr/bin/ufw default deny routed
+
+/usr/bin/ufw allow in proto udp from 172.16.0.0/12 to 172.17.0.1 port 53 comment "allow-docker-dns"
+
+for subnet in 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16; do
+  /usr/bin/ufw allow in proto tcp from "$subnet" to any port 53317 comment "LocalSend LAN"
+  /usr/bin/ufw allow in proto udp from "$subnet" to any port 53317 comment "LocalSend LAN"
+done
+
+/usr/bin/ufw --force enable
+/usr/bin/systemctl enable ufw >/dev/null 2>&1 || true
+if [[ -x /usr/bin/ufw-docker ]]; then
+  /usr/bin/ufw-docker install >/dev/null 2>&1 || true
+fi
+/usr/bin/ufw reload
+'
+
+  pkexec /usr/bin/bash -c "$script"
+  local rc=$?
+  if (( rc == 0 )); then
+    write_result restore-defaults ok ""
+    exit 0
+  fi
+
+  case $rc in
+    126) write_result restore-defaults cancelled "authentication cancelled" ;;
+    *) write_result restore-defaults error "restore defaults failed (rc=$rc)" ;;
+  esac
+  exit "$rc"
+}
+
+add_rule() {
+  local action="${1:-}" direction="${2:-}" protocol="${3:-}" port="${4:-}"
+  local remote="${5:-any}" comment="${6:-}"
+  local args=()
+
+  [[ -z $remote ]] && remote="any"
+
+  if ! valid_action "$action"; then
+    write_result add error "action must be allow or deny"
+    exit 2
+  fi
+  if ! valid_direction "$direction"; then
+    write_result add error "direction must be in or out"
+    exit 2
+  fi
+  if ! valid_protocol "$protocol"; then
+    write_result add error "protocol must be tcp, udp, or any"
+    exit 2
+  fi
+  if ! valid_port "$port"; then
+    write_result add error "port must be 1-65535 or a low:high range"
+    exit 2
+  fi
+  if ! valid_remote "$remote"; then
+    write_result add error "remote must be any, an IP, or CIDR"
+    exit 2
+  fi
+  if (( ${#comment} > 80 )); then
+    write_result add error "comment must be 80 characters or less"
+    exit 2
+  fi
+
+  args=("$action" "$direction")
+  if [[ $protocol != "any" ]]; then
+    args+=("proto" "$protocol")
+  fi
+
+  if [[ $direction == "in" ]]; then
+    args+=("from" "$remote" "to" "any" "port" "$port")
+  else
+    args+=("to" "$remote" "port" "$port")
+  fi
+
+  if [[ -n $comment ]]; then
+    args+=("comment" "$comment")
+  fi
+
+  run_ufw add "${args[@]}"
+}
+
+delete_rule() {
+  local number="${1:-}"
+  if ! valid_rule_number "$number"; then
+    write_result delete error "rule number must be between 1 and 9999"
+    exit 2
+  fi
+  run_ufw delete --force delete "$number"
+}
+
+set_default_policy() {
+  local policy="${1:-}" target="${2:-}"
+  if ! valid_policy_value "$policy"; then
+    write_result default error "policy must be allow, deny, or reject"
+    exit 2
+  fi
+  if ! valid_policy_target "$target"; then
+    write_result default error "target must be incoming, outgoing, or routed"
+    exit 2
+  fi
+  run_ufw default default "$policy" "$target"
+}
+
+case "${1:-status}" in
+  status)
+    emit_status
+    ;;
+  add)
+    shift
+    add_rule "$@"
+    ;;
+  delete)
+    shift
+    delete_rule "$@"
+    ;;
+  enable)
+    run_ufw enable --force enable
+    ;;
+  disable)
+    run_ufw disable disable
+    ;;
+  reload)
+    run_ufw reload reload
+    ;;
+  default)
+    shift
+    set_default_policy "$@"
+    ;;
+  restore-defaults)
+    run_restore_defaults
+    ;;
+  *)
+    write_result "${1:-?}" error "usage: ryoku-firewall status|add|delete|enable|disable|reload|default|restore-defaults"
+    exit 2
+    ;;
+esac
