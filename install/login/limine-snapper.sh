@@ -8,8 +8,8 @@ if ! sudo pacman -Q limine-snapper-sync limine-mkinitcpio-hook >/dev/null 2>&1; 
   exit 1
 fi
 
-if ! command -v limine-update >/dev/null 2>&1; then
-  echo "Error: limine-update missing; production ISO boot parity is impossible" >&2
+if ! command -v limine-mkinitcpio >/dev/null 2>&1; then
+  echo "Error: limine-mkinitcpio missing; production ISO boot parity is impossible" >&2
   exit 1
 fi
 
@@ -103,14 +103,20 @@ fi
 
 echo "mkinitcpio hooks re-enabled"
 
-# Force initramfs rebuild so the plymouth + sd-encrypt hooks written into
-# /etc/mkinitcpio.conf.d/ryoku_hooks.conf take effect, then have limine
-# rebuild /boot/limine.conf with the snapshot-aware Ryoku entries.
-sudo mkinitcpio -P
-sudo limine-update
+# Rebuild once now that package hooks are restored. hibernation.sh has already
+# written any resume drop-ins, so the generated UKI/menu include them.
+sudo limine-mkinitcpio
+
+if ! grep -q '^/+Ryoku' /boot/limine.conf; then
+  if ! command -v limine-update >/dev/null 2>&1; then
+    echo "Error: limine-update missing and Ryoku entries were not generated" >&2
+    exit 1
+  fi
+  sudo limine-update
+fi
 
 [[ -f /boot/EFI/Linux/ryoku_linux.efi ]] || {
-  echo "Error: missing /boot/EFI/Linux/ryoku_linux.efi after limine-update" >&2
+  echo "Error: missing /boot/EFI/Linux/ryoku_linux.efi after Limine rebuild" >&2
   exit 1
 }
 

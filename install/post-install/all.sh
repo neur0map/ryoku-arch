@@ -1,4 +1,3 @@
-run_logged $RYOKU_INSTALL/post-install/hibernation.sh
 run_logged $RYOKU_INSTALL/post-install/pacman.sh
 # Re-run the same shell-deployment safety net we did at preflight, so any
 # install stage that stomped paths (e.g. shell.sh's setup install) gets

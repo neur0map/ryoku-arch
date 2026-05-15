@@ -137,7 +137,7 @@ fi
 # Add our additional packages to packages.x86_64. Apple T2 (linux-t2)
 # is omarchy-only (DHH ships MacBooks); we use the standard linux
 # kernel that the releng base already pulls.
-arch_packages=(git gum jq neovim openssl plymouth)
+arch_packages=(git gum jq neovim openssl plymouth lvm2 cryptsetup parted)
 printf '%s\n' "${arch_packages[@]}" >>"$build_cache_dir/packages.x86_64"
 
 nvim_config_dir="$build_cache_dir/airootfs/root/ryoku/config/nvim"

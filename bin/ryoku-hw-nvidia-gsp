@@ -1,0 +1,8 @@
+#!/bin/bash
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+# Detect NVIDIA GPUs with GSP firmware support: GTX 16xx, RTX 20xx-50xx,
+# RTX Pro, Quadro RTX, and datacenter A/H/T/L series.
+
+lspci | grep -i 'nvidia' | grep -qE "GTX 16[0-9]{2}|RTX [2-5][0-9]{3}|RTX PRO [0-9]{4}|Quadro RTX|RTX A[0-9]{4}|A[1-9][0-9]{2}|H[1-9][0-9]{2}|T4|L[0-9]+"

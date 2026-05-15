@@ -5,12 +5,26 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 # Creates a swap file in the btrfs subvolume, adds the swap file to /etc/fstab,
 # adds a resume hook to mkinitcpio, and configures suspend-then-hibernate.
 
+FORCE=false
+NO_REBUILD=false
+
+for arg in "$@"; do
+  case $arg in
+    --force) FORCE=true ;;
+    --no-rebuild) NO_REBUILD=true ;;
+    *)
+      echo "Usage: ryoku-hibernation-setup [--force] [--no-rebuild]" >&2
+      exit 2
+      ;;
+  esac
+done
+
 if [[ ! -f /sys/power/image_size ]]; then
   echo -e "Hibernation is not supported on your system" >&2
   exit 0
 fi
 
-if ! command -v limine-mkinitcpio &>/dev/null; then
+if ! $NO_REBUILD && ! command -v limine-mkinitcpio &>/dev/null; then
   echo "Skipping hibernation setup (requires Limine bootloader)"
   exit 0
 fi
@@ -28,15 +42,14 @@ if [[ -f $MKINITCPIO_CONF ]] && grep -q "^HOOKS+=(resume)$" "$MKINITCPIO_CONF"; 
       echo "Fixing empty resume_offset ($RESUME_OFFSET)"
       sudo sed -i "s/resume_offset=\"$/resume_offset=$RESUME_OFFSET\"/" "$RESUME_DROP_IN"
       sudo sed -i "s/resume_offset=\"$/resume_offset=$RESUME_OFFSET\"/" /etc/default/limine
-      sudo limine-mkinitcpio
-      sudo limine-update
+      $NO_REBUILD || sudo limine-mkinitcpio
     fi
   fi
   echo "Hibernation is already set up"
   exit 0
 fi
 
-if [[ $1 != "--force" ]]; then
+if ! $FORCE; then
   MEM_TOTAL_HUMAN=$(free --human | awk '/Mem/ {print $2}')
   if ! gum confirm "Use $MEM_TOTAL_HUMAN on boot drive to make hibernation available?"; then
     exit 0
@@ -107,13 +120,14 @@ if grep -q "\[s2idle\]" /sys/power/mem_sleep 2>/dev/null; then
   fi
 fi
 
-# Regenerate initramfs and boot entry
-echo "Regenerating initramfs..."
-sudo limine-mkinitcpio
-sudo limine-update
+if ! $NO_REBUILD; then
+  # limine-mkinitcpio rebuilds initramfs/UKI and updates entries through
+  # limine-entry-tool. The bootloader binary itself does not change here.
+  echo "Regenerating initramfs..."
+  sudo limine-mkinitcpio
+  echo
+fi
 
-echo
-
-if [[ $1 != "--force" ]] && gum confirm "Reboot to enable hibernation?"; then
+if ! $FORCE && ! $NO_REBUILD && gum confirm "Reboot to enable hibernation?"; then
   ryoku-system-reboot
 fi
