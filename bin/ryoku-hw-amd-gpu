@@ -1,0 +1,7 @@
+#!/bin/bash
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+# Detect whether an AMD GPU is present via lspci vendor ID 1002.
+
+lspci -d 1002: >/dev/null 2>&1
