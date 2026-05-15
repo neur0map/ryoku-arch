@@ -4,7 +4,16 @@
 if ryoku-hw-intel-ptl; then
   echo "Detected Intel Panther Lake, installing PTL kernel..."
 
-  ryoku-pkg-add linux-ptl linux-ptl-headers
+  if [[ -n ${RYOKU_CHROOT_INSTALL:-} && -z ${RYOKU_ONLINE_INSTALL:-} ]]; then
+    echo "Ryoku ISO does not bundle linux-ptl yet; keeping stock linux for offline install."
+    exit 0
+  fi
+
+  if ! ryoku-pkg-add linux-ptl linux-ptl-headers; then
+    echo "linux-ptl packages are unavailable; keeping stock linux kernel."
+    exit 0
+  fi
+
   for pkg in linux linux-headers; do
     sudo pacman -Rdd --noconfirm "$pkg" 2>/dev/null || true
   done
