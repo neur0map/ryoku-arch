@@ -17,29 +17,15 @@ while [[ $# -gt 0 ]]; do
     ;;
   --local-source)
     LOCAL_SOURCE=1
-    RYOKU_MIRROR=edge
-    shift
-    ;;
-  --dev)
-    RYOKU_INSTALLER_REF=dev
-    RYOKU_MIRROR=edge
-    shift
-    ;;
-  --rc)
-    RYOKU_MIRROR=rc
-    RYOKU_INSTALLER_REF=rc
     shift
     ;;
   *)
     echo "Unknown option: $1"
-    echo "Usage: $0 [--no-cache] [--no-boot-offer] [--local-source] [--dev] [--rc]"
+    echo "Usage: $0 [--no-cache] [--no-boot-offer] [--local-source]"
     exit 1
     ;;
   esac
 done
-
-# Clear out old packages
-sudo rm -rf /var/cache/pacman/pkg/* 2>/dev/null || true
 
 # Prepare build repo
 BUILD_SCRIPT="builder/build-iso.sh"
@@ -50,8 +36,15 @@ mkdir -p "$BUILD_RELEASE_PATH"
 
 RYOKU_INSTALLER_REPO="${RYOKU_INSTALLER_REPO:-neur0map/ryoku-arch}"
 RYOKU_INSTALLER_REF="${RYOKU_INSTALLER_REF:-main}"
-RYOKU_MIRROR="${RYOKU_MIRROR:-stable}"
+RYOKU_CHANNEL="${RYOKU_CHANNEL:-${CHANNEL:-main}}"
+if [[ $RYOKU_CHANNEL != "main" ]]; then
+  echo "Invalid RYOKU_CHANNEL: $RYOKU_CHANNEL (expected main)" >&2
+  exit 1
+fi
 SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-$(date -u +%s)}"
+
+# Clear out old packages after input validation.
+sudo rm -rf /var/cache/pacman/pkg/* 2>/dev/null || true
 
 build_short_sha=$(git -C "$REPO_ROOT" rev-parse --short=7 HEAD 2>/dev/null || echo nogit)
 RYOKU_ISO_TRACKING_ID="${RYOKU_ISO_TRACKING_ID:-local-$(date -u +%Y%m%d%H%M)-$build_short_sha}"
@@ -70,7 +63,7 @@ DOCKER_ARGS=(
   --privileged
   -e "RYOKU_INSTALLER_REPO=$RYOKU_INSTALLER_REPO"
   -e "RYOKU_INSTALLER_REF=$RYOKU_INSTALLER_REF"
-  -e "RYOKU_MIRROR=$RYOKU_MIRROR"
+  -e "RYOKU_CHANNEL=$RYOKU_CHANNEL"
   -e "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH"
   -e "RYOKU_ISO_TRACKING_ID=$RYOKU_ISO_TRACKING_ID"
   -e "RYOKU_ISO_BUILD_SHA=$RYOKU_ISO_BUILD_SHA"
@@ -93,7 +86,7 @@ if [[ -n "${LOCAL_SOURCE-}" ]]; then
 fi
 
 # Use local pacman cache if you already have one on host to speed up repeat runs
-if [ -d "/var/cache/pacman/pkg" ]; then
+if [[ -d /var/cache/pacman/pkg ]]; then
   DOCKER_ARGS+=(-v "/var/cache/pacman/pkg:/var/cache/pacman/pkg")
 fi
 

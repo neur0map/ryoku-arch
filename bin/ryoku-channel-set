@@ -2,24 +2,17 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Set the Ryoku channel. The channel identity is recorded in the Ryoku state
-# file, which is the single source of truth. ryoku-refresh-pacman then lays
-# down the matching mirrorlist and pacman config snapshot.
-#
-# Stable: master branch, stable mirrorlist snapshot.
-# RC:     rc branch, rc mirrorlist snapshot.
-# Edge:   master branch, edge mirrorlist snapshot.
-# Dev:    dev branch, edge mirrorlist snapshot. Ryoku developers only.
+# Set the Ryoku channel. Ryoku ships one public channel: main.
 
 if (($# == 0)); then
-  echo "Usage: ryoku-channel-set [stable|rc|edge|dev]"
+  echo "Usage: ryoku-channel-set main"
   exit 1
 fi
 
 channel="$1"
 
 case "$channel" in
-stable | rc | edge | dev) ;;
+main) ;;
 *)
   echo "Unknown channel: $channel"
   exit 1
@@ -29,11 +22,7 @@ esac
 mkdir -p "$RYOKU_STATE_PATH"
 printf '%s\n' "$channel" >"$RYOKU_STATE_PATH/channel"
 
-case "$channel" in
-stable) ryoku-branch-set "master" && ryoku-refresh-pacman "stable" ;;
-rc) ryoku-branch-set "rc" && ryoku-refresh-pacman "rc" ;;
-edge) ryoku-branch-set "master" && ryoku-refresh-pacman "edge" ;;
-dev) ryoku-branch-set "dev" && ryoku-refresh-pacman "edge" ;;
-esac
+ryoku-branch-set "main"
+ryoku-refresh-pacman "main"
 
 ryoku-update -y

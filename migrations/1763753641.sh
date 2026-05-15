@@ -1,3 +1,3 @@
-echo "Include pacman mirror and OPR upstreams (edge vs stable) in About"
+echo "Include pacman mirror and OPR upstreams in About"
 
 ryoku-refresh-fastfetch

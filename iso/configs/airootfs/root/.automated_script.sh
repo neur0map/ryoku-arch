@@ -5,7 +5,11 @@ use_ryoku_helpers() {
   export RYOKU_PATH="/root/ryoku"
   export RYOKU_INSTALL="/root/ryoku/install"
   export RYOKU_INSTALL_LOG_FILE="/var/log/ryoku-install.log"
-  export RYOKU_MIRROR="$(cat /root/ryoku_mirror)"
+  if [[ -f /root/ryoku_channel ]]; then
+    export RYOKU_CHANNEL="$(</root/ryoku_channel)"
+  else
+    export RYOKU_CHANNEL="main"
+  fi
   source /root/ryoku/install/helpers/all.sh
 }
 
@@ -181,7 +185,7 @@ chroot_bash() {
     env -i RYOKU_CHROOT_INSTALL=1 \
     RYOKU_USER_NAME="$(<user_full_name.txt)" \
     RYOKU_USER_EMAIL="$(<user_email_address.txt)" \
-    RYOKU_MIRROR="$RYOKU_MIRROR" \
+    RYOKU_CHANNEL="$RYOKU_CHANNEL" \
     USER="$RYOKU_USER" \
     HOME="/home/$RYOKU_USER" \
     PATH=/usr/local/sbin:/usr/local/bin:/usr/bin \

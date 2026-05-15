@@ -3,11 +3,16 @@
 set -e
 
 if (($# == 0)); then
-  echo "Usage: ryoku-update-branch [master|dev]"
+  echo "Usage: ryoku-update-branch main"
   exit 1
 fi
 
 branch="$1"
+
+if [[ $branch != "main" ]]; then
+  echo "Error: Invalid branch '$branch'. Must be: main"
+  exit 1
+fi
 
 # Snapshot before switching branch
 ryoku-snapshot create || (( $? == 127 ))

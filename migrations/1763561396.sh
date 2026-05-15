@@ -1,3 +1,3 @@
-echo "Switch to stable Ryoku Package Repository builds"
+echo "Switch to Ryoku main package repository builds"
 
 ryoku-refresh-pacman

@@ -5,14 +5,14 @@ description: Download the signed ISO, verify it, and install it onto your hardwa
 
 ## 1. Download
 
-Signed alpha builds are published at [`iso.ryoku.dev/stable/`](https://iso.ryoku.dev/stable/):
+Signed alpha builds are published at [`iso.ryoku.dev/main/`](https://iso.ryoku.dev/main/):
 
 | File | URL |
 |---|---|
-| ISO | `https://iso.ryoku.dev/stable/ryoku-<date>-x86_64-main.iso` |
-| Signature | `https://iso.ryoku.dev/stable/ryoku-<date>-x86_64-main.iso.sig` |
-| SHA256 | `https://iso.ryoku.dev/stable/ryoku-<date>-x86_64-main.iso.sha256` |
-| Public key | `https://iso.ryoku.dev/stable/ryoku-release-key.pub.asc` |
+| ISO | `https://iso.ryoku.dev/main/ryoku-<date>-<tracking-id>-x86_64-main.iso` |
+| Signature | `https://iso.ryoku.dev/main/ryoku-<date>-<tracking-id>-x86_64-main.iso.sig` |
+| SHA256 | `https://iso.ryoku.dev/main/ryoku-<date>-<tracking-id>-x86_64-main.iso.sha256` |
+| Public key | `https://iso.ryoku.dev/main/ryoku-release-key.pub.asc` |
 
 ## 2. Verify the signature
 
@@ -24,20 +24,20 @@ Fingerprint: 621F 579B D155 94C4 DE84  0B7D 5329 7813 C0BE E055
 
 The canonical public key is also in the repo at [`keys/ryoku-release-key.pub.asc`](https://github.com/neur0map/ryoku-arch/blob/main/keys/ryoku-release-key.pub.asc), bound to git history.
 
-Quick verify (replace `<date>` with the file you downloaded):
+Quick verify (use the exact ISO filename you downloaded):
 
 ```bash
 # Import the release key
-curl -sSL https://iso.ryoku.dev/stable/ryoku-release-key.pub.asc | gpg --import
+curl -sSL https://iso.ryoku.dev/main/ryoku-release-key.pub.asc | gpg --import
 
 # Confirm fingerprint matches the one above
 gpg --fingerprint releases@ryoku.dev
 
 # Verify signature on the ISO
-gpg --verify ryoku-<date>-x86_64-main.iso.sig ryoku-<date>-x86_64-main.iso
+gpg --verify ryoku-<date>-<tracking-id>-x86_64-main.iso.sig ryoku-<date>-<tracking-id>-x86_64-main.iso
 
 # Spot-check the SHA256
-sha256sum -c ryoku-<date>-x86_64-main.iso.sha256
+sha256sum -c ryoku-<date>-<tracking-id>-x86_64-main.iso.sha256
 ```
 
 Full step-by-step verification, including a clean keyring path and the explicit "what good output looks like", is in the [release pipeline](/docs/release-pipeline) doc.
@@ -46,7 +46,7 @@ Full step-by-step verification, including a clean keyring path and the explicit 
 
 Pick any of:
 
-- **`dd` (Linux/macOS)**: `sudo dd if=ryoku-<date>-x86_64-main.iso of=/dev/sdX bs=4M status=progress conv=fsync`. Triple-check `/dev/sdX` matches your USB stick, not your system disk.
+- **`dd` (Linux/macOS)**: `sudo dd if=ryoku-<date>-<tracking-id>-x86_64-main.iso of=/dev/sdX bs=4M status=progress conv=fsync`. Triple-check `/dev/sdX` matches your USB stick, not your system disk.
 - **[balenaEtcher](https://www.balena.io/etcher)**: cross-platform GUI; pick the ISO, pick the drive, flash.
 - **[Ventoy](https://www.ventoy.net/)**: drop the ISO onto a Ventoy-formatted USB and boot. Lets you keep multiple ISOs on one stick.
 

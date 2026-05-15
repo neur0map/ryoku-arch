@@ -31,14 +31,19 @@ rm -rf "$build_cache_dir/airootfs/etc/xdg/reflector"
 # Bring in our configs
 cp -r /configs/* $build_cache_dir/
 
-# Persist RYOKU_MIRROR so it's available at install time
-echo "$RYOKU_MIRROR" > "$build_cache_dir/airootfs/root/ryoku_mirror"
+# Persist RYOKU_CHANNEL so it's available at install time.
+RYOKU_CHANNEL="${RYOKU_CHANNEL:-main}"
+if [[ $RYOKU_CHANNEL != "main" ]]; then
+  echo "build-iso: invalid RYOKU_CHANNEL: $RYOKU_CHANNEL" >&2
+  exit 1
+fi
+echo "$RYOKU_CHANNEL" > "$build_cache_dir/airootfs/root/ryoku_channel"
 
 cat > "$build_cache_dir/airootfs/etc/ryoku-iso-release" <<EOF
 TRACKING_ID=${RYOKU_ISO_TRACKING_ID:-unknown}
 INSTALLER_REPO=${RYOKU_INSTALLER_REPO:-unknown}
 INSTALLER_REF=${RYOKU_INSTALLER_REF:-unknown}
-MIRROR=${RYOKU_MIRROR:-unknown}
+CHANNEL=${RYOKU_CHANNEL:-main}
 BUILD_SHA=${RYOKU_ISO_BUILD_SHA:-unknown}
 BUILD_URL=${RYOKU_ISO_BUILD_URL:-}
 SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-}
@@ -217,7 +222,7 @@ done
 
 # Download all the packages to the offline mirror inside the ISO
 mkdir -p /tmp/offlinedb
-pacman --config /configs/pacman-online-${RYOKU_MIRROR}.conf \
+pacman --config "/configs/pacman-online-${RYOKU_CHANNEL}.conf" \
   --noconfirm -Syw "${official_packages[@]}" \
   --cachedir "$offline_mirror_dir/" --dbpath /tmp/offlinedb
 

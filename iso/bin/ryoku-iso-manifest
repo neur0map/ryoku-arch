@@ -48,7 +48,7 @@ else
   exit 1
 fi
 
-channel=${RYOKU_ISO_CHANNEL:-${CHANNEL:-stable}}
+channel=${RYOKU_ISO_CHANNEL:-${CHANNEL:-main}}
 commit=${RYOKU_ISO_COMMIT:-unknown}
 run_id=${RYOKU_ISO_RUN_ID:-}
 run_number=${RYOKU_ISO_RUN_NUMBER:-}

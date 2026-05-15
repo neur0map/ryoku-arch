@@ -53,9 +53,8 @@ printf '\033[38;2;242;86;35m%s%s\033[0m\n' "$kanji_art" "$wordmark"
 printf '\033[38;2;174;171;148m%s\033[0m\n\n' "$tagline"
 
 # Branch selection. Default to main (the repo's default branch). Users
-# can override with RYOKU_REF=<branch> when calling boot.sh. No mirror
-# variable: Ryoku does not operate named mirrors; the legacy
-# RYOKU_MIRROR block was dead code inherited from Omarchy.
+# can override with RYOKU_REF=<branch> when calling boot.sh. Package and
+# ISO publishing use the single main channel.
 RYOKU_REF="${RYOKU_REF:-main}"
 
 # Seed a minimal mirrorlist so the initial sync succeeds before the full
