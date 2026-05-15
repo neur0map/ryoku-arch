@@ -25,6 +25,8 @@ create)
 
   for config in "${CONFIGS[@]}"; do
     sudo snapper -c "$config" create -c number -d "$DESC"
+    sudo snapper -c "$config" cleanup number || \
+      echo -e "\e[33mWarning: could not prune old $config snapshots; run: sudo snapper -c $config cleanup number\e[0m" >&2
   done
   echo
   ;;

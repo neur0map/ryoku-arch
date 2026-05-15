@@ -82,6 +82,13 @@ sudo sed -i 's/^SPACE_LIMIT="0.5"/SPACE_LIMIT="0.3"/' /etc/snapper/configs/{root
 sudo sed -i 's/^FREE_LIMIT="0.2"/FREE_LIMIT="0.3"/' /etc/snapper/configs/{root,home}
 
 chrootable_systemctl_enable limine-snapper-sync.service
+chrootable_systemctl_enable snapper-cleanup.timer
+
+if [[ -n ${RYOKU_CHROOT_INSTALL:-} ]]; then
+  sudo systemctl disable snapper-timeline.timer >/dev/null 2>&1 || true
+else
+  sudo systemctl disable --now snapper-timeline.timer >/dev/null 2>&1 || true
+fi
 
 echo "Re-enabling mkinitcpio hooks..."
 
