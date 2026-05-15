@@ -6,6 +6,7 @@ import Quickshell
 import qs
 import qs.services
 import qs.modules.common
+import qs.modules.common.functions
 import qs.modules.waffle.looks
 
 WPanelPageColumn {
@@ -61,7 +62,7 @@ WPanelPageColumn {
 
     function activateFirst() {
         if (flatApps.length > 0) {
-            flatApps[0].execute()
+            LaunchUtils.launchDesktopEntry(flatApps[0])
             GlobalStates.searchOpen = false
         }
     }
@@ -227,7 +228,7 @@ WPanelPageColumn {
                                             implicitHeight: 76
 
                                             onClicked: {
-                                                appBtn.modelData.execute()
+                                                LaunchUtils.launchDesktopEntry(appBtn.modelData)
                                                 GlobalStates.searchOpen = false
                                             }
 

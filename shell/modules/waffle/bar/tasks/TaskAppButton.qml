@@ -135,13 +135,13 @@ AppButton {
         
         // Case 4: App not running -> launch it
         if (root.desktopEntry) {
-            root.desktopEntry.execute()
+            LaunchUtils.launchDesktopEntry(root.desktopEntry)
         }
     }
 
     middleClickAction: () => {
         if (root.desktopEntry) {
-            desktopEntry.execute()
+            LaunchUtils.launchDesktopEntry(desktopEntry)
         }
     }
 
@@ -237,7 +237,7 @@ AppButton {
                 monochromeIcon: false,
                 action: () => {
                     if (root.desktopEntry) {
-                        root.desktopEntry.execute()
+                        LaunchUtils.launchDesktopEntry(root.desktopEntry)
                     }
                 }
             },

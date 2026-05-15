@@ -220,14 +220,7 @@ Singleton {
                 comment: entry.comment ?? "",
                 runInTerminal: entry.runInTerminal ?? false,
                 genericName: entry.genericName ?? "",
-                execute: () => {
-                    if (!entry.runInTerminal) {
-                        entry.execute()
-                    } else {
-                        const terminal = Config.options?.apps?.terminal ?? "/usr/bin/kitty"
-                        Quickshell.execDetached(["/usr/bin/bash", "-c", `${terminal} -e '${entry.command?.join(" ") ?? ""}'`])
-                    }
-                }
+                execute: () => LaunchUtils.launchDesktopEntry(entry)
             }))
         }
         result = result.concat(appResults)
