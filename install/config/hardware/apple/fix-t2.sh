@@ -3,13 +3,21 @@
 if lspci -nn | grep -q "106b:180[12]"; then
   echo "Detected MacBook with T2 chip. Installing support items..."
 
-  ryoku-pkg-add \
+  if [[ -n ${RYOKU_CHROOT_INSTALL:-} && -z ${RYOKU_ONLINE_INSTALL:-} ]]; then
+    echo "Ryoku ISO does not bundle the custom T2 package set yet; keeping stock linux for offline install."
+    exit 0
+  fi
+
+  if ! ryoku-pkg-add \
     linux-t2 \
     linux-t2-headers \
     apple-t2-audio-config \
     apple-bcm-firmware \
     t2fanrd \
-    tiny-dfr
+    tiny-dfr; then
+    echo "T2 support packages are unavailable; keeping stock linux kernel."
+    exit 0
+  fi
 
   # Add user to video group (required for tiny-dfr to access /dev/dri devices)
   sudo usermod -aG video ${USER}

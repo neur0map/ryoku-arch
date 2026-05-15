@@ -364,12 +364,9 @@ boot_partition_size=$((2 * gib))
 main_partition_start=$((boot_partition_size + boot_partition_start))
 main_partition_size=$((disk_size_in_mib - main_partition_start - gpt_backup_reserve))
 
-# Detect T2 Mac and set appropriate kernel
-if lspci -nn 2>/dev/null | grep -q "106b:180[12]"; then
-  kernel_choice="linux-t2"
-else
-  kernel_choice="linux"
-fi
+# Ryoku does not currently ship Omarchy's custom kernel repository in the ISO,
+# so always use the bundled stock Arch kernel for offline installs.
+kernel_choice="linux"
 
 cat <<-_EOF_ >user_configuration.json
 {
