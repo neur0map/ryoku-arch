@@ -215,20 +215,16 @@ DockButton {
     }
 
     function launchFromDesktopEntry(): bool {
-        // Intentar siempre vía gtk-launch y, si falla, ejecutar appId directamente
-        var id = appToplevel.originalAppId ?? appToplevel.appId;
-        // Caso especial: YouTube Music
-        if (id === "com.github.th_ch.youtube_music") {
-            id = "youtube-music";
+        if (root.desktopEntry) {
+            return LaunchUtils.launchDesktopEntry(root.desktopEntry)
         }
-        // Caso especial: Spotify launcher
+
+        var id = appToplevel.originalAppId ?? appToplevel.appId;
         if (id === "spotify" || id === "spotify-launcher") {
             id = "spotify-launcher";
         }
         if (id && id !== "" && id !== "SEPARATOR") {
-            const cmd = "/usr/bin/gtk-launch \"" + id + "\" || \"" + id + "\" &";
-            Quickshell.execDetached(["/usr/bin/bash", "-lc", cmd]);
-            return true;
+            return LaunchUtils.launchByDesktopId(id);
         }
         return false;
     }

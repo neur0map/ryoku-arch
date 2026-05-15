@@ -91,7 +91,37 @@ assert_launcher_commands_use_ryoku_shell_and_fuzzel() {
   [[ ! -e $ROOT_DIR/bin/tofi-drun ]] || fail "bin/tofi-drun should not be installed by Ryoku"
 }
 
+assert_shell_app_launchers_use_terminal_aware_launch_utils() {
+  local launch_utils="$ROOT_DIR/shell/modules/common/functions/LaunchUtils.qml"
+  local bar_button="$ROOT_DIR/shell/modules/bar/BarTaskbarButton.qml"
+  local dock_button="$ROOT_DIR/shell/modules/dock/DockAppButton.qml"
+  local notifications="$ROOT_DIR/shell/services/Notifications.qml"
+
+  grep -q 'function launchDesktopEntry(entry)' "$launch_utils" \
+    || fail "LaunchUtils should expose terminal-aware desktop entry launching"
+  grep -q 'function launchByDesktopId(desktopId)' "$launch_utils" \
+    || fail "LaunchUtils should expose centralized desktop-id launching"
+  grep -q '/usr/bin/gtk-launch' "$launch_utils" \
+    || fail "LaunchUtils should launch desktop entries through gtk-launch"
+
+  grep -q 'LaunchUtils.launchDesktopEntry(root.desktopEntry)' "$bar_button" \
+    || fail "bar taskbar should use LaunchUtils for desktop entries"
+  grep -q 'LaunchUtils.launchByDesktopId(id)' "$bar_button" \
+    || fail "bar taskbar should use LaunchUtils for app-id fallback launches"
+  grep -q 'LaunchUtils.launchDesktopEntry(root.desktopEntry)' "$dock_button" \
+    || fail "dock should use LaunchUtils for desktop entries"
+  grep -q 'LaunchUtils.launchByDesktopId(id)' "$dock_button" \
+    || fail "dock should use LaunchUtils for app-id fallback launches"
+  grep -q 'LaunchUtils.launchByDesktopId(appIcon)' "$notifications" \
+    || fail "notification view actions should use centralized desktop-id launching"
+
+  if grep -Eq 'const cmd = "/usr/bin/gtk-launch' "$bar_button" "$dock_button" "$notifications"; then
+    fail "shell app launchers should not keep ad hoc gtk-launch shell snippets"
+  fi
+}
+
 assert_terminal_wrapper_prefers_configured_terminal_and_maps_flags
 assert_launcher_commands_use_ryoku_shell_and_fuzzel
+assert_shell_app_launchers_use_terminal_aware_launch_utils
 
 echo "PASS: terminal and launcher wrapper tests"
