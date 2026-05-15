@@ -187,7 +187,7 @@ valid_port() {
   [[ $p =~ ^[0-9]{1,5}(:[0-9]{1,5})?$ ]] || return 1
   left="${p%%:*}"
   right="${p#*:}"
-  [[ $right == $p ]] && right="$left"
+  [[ $p != *:* ]] && right="$left"
   (( left >= 1 && left <= 65535 && right >= 1 && right <= 65535 && left <= right ))
 }
 
