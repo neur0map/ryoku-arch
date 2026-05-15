@@ -502,8 +502,7 @@ Singleton {
         }
 
         if (appIcon && appIcon.length > 0) {
-            const cmd = "/usr/bin/gtk-launch \"" + appIcon + "\" || \"" + appIcon + "\"";
-            Quickshell.execDetached(["/usr/bin/bash", "-lc", cmd]);
+            LaunchUtils.launchByDesktopId(appIcon);
         }
     }
 

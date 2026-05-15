@@ -159,13 +159,14 @@ RippleButton {
     }
 
     function launchFromDesktopEntry(): bool {
+        if (root.desktopEntry) {
+            return LaunchUtils.launchDesktopEntry(root.desktopEntry)
+        }
+
         var id = appEntry?.originalAppId ?? appEntry?.appId ?? "";
-        if (id === "com.github.th_ch.youtube_music") id = "pear-desktop";
         if (id === "spotify" || id === "spotify-launcher") id = "spotify-launcher";
         if (id && id !== "" && id !== "SEPARATOR") {
-            const cmd = "/usr/bin/gtk-launch \"" + id + "\" || \"" + id + "\" &";
-            Quickshell.execDetached(["/usr/bin/bash", "-lc", cmd]);
-            return true;
+            return LaunchUtils.launchByDesktopId(id);
         }
         return false;
     }

@@ -7,6 +7,21 @@ import Quickshell
 Singleton {
     id: root
 
+    function shellQuote(value) {
+        const text = String(value ?? "")
+        return "'" + text.replace(/'/g, "'\\''") + "'"
+    }
+
+    function normalizeDesktopId(desktopId) {
+        let id = String(desktopId ?? "").trim().replace(/\.desktop$/i, "")
+        if (id === "spotify" || id === "spotify-launcher") return "spotify-launcher"
+        if (id === "com.github.th_ch.youtube_music") {
+            if (DesktopEntries.heuristicLookup("pear-desktop")) return "pear-desktop"
+            return "youtube-music"
+        }
+        return id
+    }
+
     // Launch a Quickshell DesktopEntry, correctly honoring Terminal=true.
     // Quickshell's DesktopEntry.execute() runs the binary without a PTY, so
     // entries like nvim/btop/htop/nvtop/wiremix fail silently when invoked
@@ -16,10 +31,9 @@ Singleton {
     function launchDesktopEntry(entry) {
         if (!entry) return false
         const rawId = String(entry.id ?? "").trim()
-        const id = rawId.replace(/\.desktop$/i, "")
+        const id = root.normalizeDesktopId(rawId)
         if (id.length > 0) {
-            Quickshell.execDetached(["/usr/bin/gtk-launch", id])
-            return true
+            return root.launchByDesktopId(id)
         }
         if (entry.runInTerminal) {
             const terminal = Config.options?.apps?.terminal ?? "/usr/bin/kitty"
@@ -32,12 +46,13 @@ Singleton {
     }
 
     // Launch by desktop id (without the .desktop suffix). Same gtk-launch
-    // path, no DesktopEntry object required. Useful for taskbar/dock click
-    // handlers where only an appId is in hand.
+    // path, no DesktopEntry object required. If the desktop id lookup fails,
+    // keep the old behavior of trying the id as a command.
     function launchByDesktopId(desktopId) {
-        const id = String(desktopId ?? "").trim().replace(/\.desktop$/i, "")
+        const id = root.normalizeDesktopId(desktopId)
         if (id.length === 0) return false
-        Quickshell.execDetached(["/usr/bin/gtk-launch", id])
+        const quotedId = root.shellQuote(id)
+        Quickshell.execDetached(["/usr/bin/bash", "-lc", `/usr/bin/gtk-launch ${quotedId} || ${quotedId}`])
         return true
     }
 }
