@@ -3,12 +3,12 @@ set -e
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Reinstall all default Ryoku packages from the stable channel and downgrade any packages that are too new.
+# Reinstall all default Ryoku packages from the main channel and downgrade any packages that are too new.
 
-# Set the package repository to the stable mirrors
-ryoku-refresh-pacman stable
+# Set the package repository to the main mirrors
+ryoku-refresh-pacman main
 
-# Downgrade any packages to the stable setup
+# Downgrade any packages to the main setup
 sudo pacman -Suu --noconfirm
 
 # Ensure all packages are installed

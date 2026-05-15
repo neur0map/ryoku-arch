@@ -2,19 +2,18 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Print the active Ryoku release channel. Defaults to "stable" on absence.
-# The state file is the single source of truth for channel identity after
-# the omarchy mirror URLs are gone.
+# Print the active Ryoku release channel. Defaults to "main" on absence.
+# Legacy channel names are collapsed to main.
 
 STATE_FILE="$RYOKU_STATE_PATH/channel"
 
 if [[ -r $STATE_FILE ]]; then
   channel=$(<"$STATE_FILE")
 else
-  channel="stable"
+  channel="main"
 fi
 
 case "$channel" in
-stable | rc | edge | dev) echo "$channel" ;;
-*) echo "stable" ;;
+main) echo "$channel" ;;
+*) echo "main" ;;
 esac

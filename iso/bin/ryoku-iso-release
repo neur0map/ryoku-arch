@@ -1,8 +1,7 @@
 #!/bin/bash
 
 MAKE_ARGS=()
-INSTALLER_REF=master
-RELEASE_SUFFIX=""
+INSTALLER_REF=main
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -10,20 +9,14 @@ while [[ $# -gt 0 ]]; do
     MAKE_ARGS+=("$1")
     shift
     ;;
-  --rc)
-    MAKE_ARGS+=("$1")
-    INSTALLER_REF=rc
-    RELEASE_SUFFIX="-rc"
-    shift
-    ;;
   -*)
     echo "Unknown option: $1"
-    echo "Usage: ryoku-iso-release [--no-make] [--rc] [version]"
+    echo "Usage: ryoku-iso-release [--no-make] [version]"
     exit 1
     ;;
   *)
     if [[ -n "${BUILD_VERSION-}" ]]; then
-      echo "Usage: ryoku-iso-release [--no-make] [--rc] [version]"
+      echo "Usage: ryoku-iso-release [--no-make] [version]"
       exit 1
     fi
     BUILD_VERSION="$1"
@@ -33,7 +26,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "${BUILD_VERSION-}" ]]; then
-  echo "Usage: ryoku-iso-release [--no-make] [--rc] [version]"
+  echo "Usage: ryoku-iso-release [--no-make] [version]"
   exit 1
 fi
 
@@ -50,7 +43,7 @@ fi
 
 # Sign and upload ISO
 latest_iso=$(\ls -t "$BUILD_RELEASE_PATH"/*x86_64-"$INSTALLER_REF".iso | head -n1)
-release_iso="$BUILD_RELEASE_PATH/ryoku-$BUILD_VERSION$RELEASE_SUFFIX.iso"
+release_iso="$BUILD_RELEASE_PATH/ryoku-$BUILD_VERSION.iso"
 cp "$latest_iso" "$release_iso"
 
 echo -e "\e[32mSigning $INSTALLER_REF ISO\e[0m"

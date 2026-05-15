@@ -441,7 +441,7 @@ ryoku-snapshot restore <snapshot-id>
 
 ## Mirrorlist refresh
 
-The Ryoku default mirrorlists in `default/pacman/mirrorlist-{stable,rc,edge}` are snapshots of Arch Linux mirror-status-filtered HTTPS mirrors. All three files are byte-identical today; the three filenames survive as channel scaffolding, not as distinct upstreams.
+The Ryoku default mirrorlist in `default/pacman/mirrorlist-main` is a snapshot of Arch Linux mirror-status-filtered HTTPS mirrors. Ryoku publishes one package and ISO channel: `main`.
 
 Regenerate when a visible mirror regression appears or at least quarterly. Two options:
 
@@ -463,10 +463,8 @@ for l in lines:
         kept.append(f"Server = {m.group(1)}\n"); active += 1
 with open("/tmp/ryoku-mirrorlist", "w") as f: f.write("".join(kept))
 '
-cp /tmp/ryoku-mirrorlist default/pacman/mirrorlist-stable
-cp /tmp/ryoku-mirrorlist default/pacman/mirrorlist-rc
-cp /tmp/ryoku-mirrorlist default/pacman/mirrorlist-edge
-git add default/pacman/mirrorlist-* && git commit -m "chore: refresh arch mirrorlist snapshot"
+cp /tmp/ryoku-mirrorlist default/pacman/mirrorlist-main
+git add default/pacman/mirrorlist-main && git commit -m "chore: refresh arch mirrorlist snapshot"
 ```
 
 **Option B (with reflector):**
@@ -474,10 +472,8 @@ git add default/pacman/mirrorlist-* && git commit -m "chore: refresh arch mirror
 ```bash
 sudo pacman -S --needed reflector
 sudo reflector --country 'United States' --age 12 --protocol https --sort rate --save /tmp/ryoku-mirrorlist
-cp /tmp/ryoku-mirrorlist default/pacman/mirrorlist-stable
-cp /tmp/ryoku-mirrorlist default/pacman/mirrorlist-rc
-cp /tmp/ryoku-mirrorlist default/pacman/mirrorlist-edge
-git add default/pacman/mirrorlist-* && git commit -m "chore: refresh arch mirrorlist snapshot"
+cp /tmp/ryoku-mirrorlist default/pacman/mirrorlist-main
+git add default/pacman/mirrorlist-main && git commit -m "chore: refresh arch mirrorlist snapshot"
 ```
 
 Adjust `--country` to your own location if you are generating for a non-US audience. Record the exact command and date in the commit message.

@@ -1,3 +1,3 @@
-echo "Pull packages from stable Arch mirror"
+echo "Pull packages from main Arch mirror"
 
 ryoku-refresh-pacman

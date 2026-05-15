@@ -3,15 +3,6 @@ name: Build ISO
 on:
   workflow_dispatch:
     inputs:
-      channel:
-        description: 'Download path'
-        required: true
-        default: 'stable'
-        type: choice
-        options:
-          - stable
-          - rc
-          - edge
       release_stage:
         description: 'Public release stage'
         required: true
@@ -34,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
-      CHANNEL: ${{ github.event.inputs.channel || 'stable' }}
+      CHANNEL: main
       RELEASE_STAGE: ${{ github.event.inputs.release_stage || 'alpha' }}
     steps:
       - name: Checkout

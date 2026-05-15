@@ -2,19 +2,19 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Overwrite the package configuration for /etc/pacman with the Ryoku default of using its dedicated mirrors and repositories, then update all packages.
-# This is used after switching between Ryoku release channels to ensure the right packages for the right channel are available.
+# Overwrite /etc/pacman with the Ryoku main pacman config and mirrorlist,
+# then update all packages.
+
+channel="${1:-$(ryoku-channel-current)}"
+
+if [[ $channel != "main" ]]; then
+  echo "Error: Invalid channel '$channel'. Must be: main"
+  exit 1
+fi
 
 # Take backup of existing files
 sudo cp -f /etc/pacman.conf /etc/pacman.conf.bak
 sudo cp -f /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.bak
-
-channel="${1:-$(ryoku-channel-current)}"
-
-if [[ $channel != "stable" && $channel != "rc" && $channel != "edge" ]]; then
-  echo "Error: Invalid channel '$channel'. Must be one of: stable, rc, edge"
-  exit 1
-fi
 
 echo "Setting channel to $channel"
 echo

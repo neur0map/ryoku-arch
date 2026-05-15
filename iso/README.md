@@ -36,4 +36,4 @@ Run `./bin/ryoku-iso-upload [release/ryoku.iso]`. This requires you've configure
 
 ## Full release of the ISO
 
-Run `./bin/ryoku-iso-release VERSION` to create, test, sign, and upload the ISO in one flow. Add `--rc` to release an RC build instead.
+Run `./bin/ryoku-iso-release VERSION` to create, test, sign, and upload the ISO in one flow.

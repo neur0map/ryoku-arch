@@ -31,7 +31,7 @@ Goal: match Omarchy's signing structure for stable readiness: signed ISO artifac
   - exported public key.
 - [x] Verify the detached ISO signature in CI before upload.
 - [ ] Keep `.sig` available beside every ISO URL, matching the Omarchy pattern of `ISO_URL.sig`.
-- [ ] Keep the latest stable, rc, and edge ISO paths predictable.
+- [ ] Keep the latest `main` ISO path predictable.
 
 ### Keyring Package
 
@@ -45,10 +45,8 @@ Goal: match Omarchy's signing structure for stable readiness: signed ISO artifac
 
 ### Ryoku Package Repository
 
-- [ ] Keep a Ryoku package repository for custom packages, following Omarchy's shape:
-  - stable channel.
-  - rc channel.
-  - edge channel.
+- [ ] Keep a Ryoku package repository for custom packages:
+  - one `main` channel.
   - `$arch` path component.
 - [ ] Sign Ryoku-built packages with the Ryoku release/package key.
 - [ ] Add a `[ryoku]` pacman repo block for installed systems.
