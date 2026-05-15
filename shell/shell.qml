@@ -5,9 +5,9 @@
 //@ pragma Env QT_LOGGING_RULES=quickshell.dbus.properties=false
 //@ pragma Env QT_QUICK_CONTROLS_STYLE=Basic
 //@ pragma Env QT_QUICK_FLICKABLE_WHEEL_DECELERATION=10000
-// QSG_RENDER_LOOP: threaded is Qt default on Linux; AMD GPUs get basic via
-// systemd drop-in (config/systemd/user/ryoku-shell.service.d/amd-render-loop.conf)
-// to prevent ghosting/flickering with RADV (QTBUG-113700).
+// QSG_RENDER_LOOP=threaded is the Qt default on Linux and is no longer forced
+// here. The render loop is managed externally for AMD hardware where needed.
+// See install/config/hardware/amd-render-loop.sh (QTBUG-113700).
 // Launcher keeps QT_SCALE_FACTOR=1; shell scaling lives in appearance.typography.sizeScale
 // DISABLED: webapps — requires quickshell-webengine rebuild
 //-@ pragma Env QTWEBENGINE_CHROMIUM_FLAGS=--disable-features=ThirdPartyCookieBlocking,StorageAccessAPI
