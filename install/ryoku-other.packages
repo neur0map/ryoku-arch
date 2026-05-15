@@ -37,6 +37,7 @@ linux-headers
 intel-media-driver
 libva-intel-driver
 libvpl
+sof-firmware
 vpl-gpu-rt
 
 # AMD video acceleration via mesa: libva-mesa-driver was retired

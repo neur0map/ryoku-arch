@@ -43,8 +43,13 @@ if gum confirm --padding "0 0 0 $((PADDING_LEFT + 32))" --show-help=false --defa
   clear
 
   if [[ -n ${RYOKU_CHROOT_INSTALL:-} ]]; then
-    touch /var/tmp/ryoku-install-completed
-    exit 0
+    # Signal the live ISO wrapper to reboot without writing into the target.
+    # Disable the installer traps first; otherwise the intentional non-zero
+    # status is treated as a failed install inside the chroot.
+    stop_log_output 2>/dev/null || true
+    show_cursor 2>/dev/null || true
+    trap - ERR INT TERM EXIT
+    exit 42
   else
     sudo reboot 2>/dev/null
   fi

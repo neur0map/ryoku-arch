@@ -43,6 +43,7 @@ Dutch|nl
 English (UK)|uk
 English (US)|us
 English (US, Dvorak)|dvorak
+English (US, Colemak)|colemak
 Estonian|et
 Finnish|fi
 French|fr
@@ -113,7 +114,7 @@ user_form() {
   done
 
   while true; do
-    password=$(gum input --placeholder "Used for user + root + encryption" --prompt.foreground="#845DF9" --password --prompt "Password> ") || abort
+    password=$(gum input --placeholder "Used for user + root, and disk encryption when enabled" --prompt.foreground="#845DF9" --password --prompt "Password> ") || abort
     password_confirmation=$(gum input --placeholder "Must match the password you just typed" --prompt.foreground="#845DF9" --password --prompt "Confirm> ") || abort
 
     if [[ -n "$password" && "$password" == "$password_confirmation" ]]; then
@@ -132,15 +133,15 @@ user_form() {
   email_address=$(gum input --placeholder "Used for git authentication (hit return to skip)" --prompt.foreground="#845DF9" --prompt "Email address> ")
 
   while true; do
-    hostname=$(gum input --placeholder "Alphanumeric without spaces (or return for 'ryoku')" --prompt.foreground="#845DF9" --prompt "Hostname> ")
+    hostname=$(gum input --placeholder "Letters, digits, and dashes (or return for 'ryoku')" --prompt.foreground="#845DF9" --prompt "Hostname> ")
 
-    if [[ "$hostname" =~ ^[A-Za-z_][A-Za-z0-9_-]*\$?$ ]]; then
+    if [[ $hostname =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$ ]]; then
       break
     elif [[ -z $hostname ]]; then
       hostname="ryoku"
       break
     else
-      notice "Hostname must be alphanumeric using dashes or underscores but no spaces" 1
+      notice "Hostname must be 1-63 letters, digits, or dashes, and cannot start or end with a dash" 1
     fi
   done
 
@@ -313,14 +314,65 @@ disk_form() {
 
 disk_form
 
+encryption_form() {
+  local choice
+
+  encrypt_installation=true
+
+  while true; do
+    step "Choose disk encryption..."
+
+    gum style --bold "Encrypt the disk (recommended)"
+    gum style "For laptops, portable systems, or shared machines."
+    gum style --foreground 8 "Pros: Protects data if the machine or drive is lost."
+    gum style --foreground 8 "Cons: Adds a boot unlock prompt; recovery takes more care."
+    echo
+    gum style --bold "Install without disk encryption"
+    gum style "For VMs, test machines, and guarded desktops."
+    gum style --foreground 8 "Pros: No boot unlock prompt. Simpler recovery and automation."
+    gum style --foreground 8 "Cons: Anyone with the disk can read the installed data."
+    echo
+
+    choice=$(printf '%s\n' \
+      "Encrypt the disk (recommended)" \
+      "Install without disk encryption" |
+      gum choose --height 4 --selected "Encrypt the disk (recommended)" --header "Disk encryption") || abort
+
+    case $choice in
+      "Encrypt the disk (recommended)")
+        encrypt_installation=true
+        return 0
+        ;;
+      "Install without disk encryption")
+        encrypt_installation=false
+        if gum confirm --affirmative "Install without encryption" --negative "Go back" \
+          "Install without encryption? Physical disk access can expose data."; then
+          return 0
+        fi
+        ;;
+      *)
+        abort
+        ;;
+    esac
+  done
+}
+
+encryption_form
+
 while true; do
   gum style "Everything will be overwritten. There is no recovery possible."
+  if [[ $encrypt_installation == "true" ]]; then
+    gum style --foreground 8 "Disk encryption: enabled"
+  else
+    gum style --foreground 8 "Disk encryption: disabled"
+  fi
 
   echo
   if gum confirm --affirmative "Yes, format disk" --negative "No, change it" "Confirm overwriting ${disk}"; then
     break
   else
     disk_form
+    encryption_form
   fi
 done
 
@@ -336,9 +388,15 @@ password_escaped=$(echo -n "$password" | jq -Rsa)
 password_hash_escaped=$(echo -n "$password_hash" | jq -Rsa)
 username_escaped=$(echo -n "$username" | jq -Rsa)
 
+if [[ $encrypt_installation == "true" ]]; then
+  credentials_encryption_line="    \"encryption_password\": $password_escaped,"
+else
+  credentials_encryption_line=""
+fi
+
 cat <<-_EOF_ >user_credentials.json
 {
-    "encryption_password": $password_escaped,
+$credentials_encryption_line
     "root_enc_password": $password_hash_escaped,
     "users": [
         {
@@ -350,6 +408,8 @@ cat <<-_EOF_ >user_credentials.json
     ]
 }
 _EOF_
+
+printf '%s\n' "$encrypt_installation" >user_encrypt_installation.txt
 
 # Setup partition layout
 disk_size=$(lsblk -bdno SIZE "$disk")
@@ -367,6 +427,22 @@ main_partition_size=$((disk_size_in_mib - main_partition_start - gpt_backup_rese
 # Ryoku does not currently ship Omarchy's custom kernel repository in the ISO,
 # so always use the bundled stock Arch kernel for offline installs.
 kernel_choice="linux"
+
+if [[ $encrypt_installation == "true" ]]; then
+  disk_encryption_config=$(cat <<-_EOF_
+,
+        "disk_encryption": {
+            "encryption_type": "luks",
+            "lvm_volumes": [],
+            "iter_time": 2000,
+            "partitions": [ "8c2c2b92-1070-455d-b76a-56263bab24aa" ],
+            "encryption_password": $password_escaped
+        }
+_EOF_
+)
+else
+  disk_encryption_config=""
+fi
 
 cat <<-_EOF_ >user_configuration.json
 {
@@ -437,14 +513,7 @@ cat <<-_EOF_ >user_configuration.json
                 ],
                 "wipe": true
             }
-        ],
-        "disk_encryption": {
-            "encryption_type": "luks",
-            "lvm_volumes": [],
-            "iter_time": 2000,
-            "partitions": [ "8c2c2b92-1070-455d-b76a-56263bab24aa" ],
-            "encryption_password": $password_escaped
-        }
+        ]$disk_encryption_config
     },
     "hostname": "$hostname",
     "kernels": [ "$kernel_choice" ],
@@ -471,7 +540,8 @@ cat <<-_EOF_ >user_configuration.json
     },
     "packages": [
         "base-devel",
-        "git"
+        "git",
+        "snapper"
     ],
     "profile_config": {
         "gfx_driver": null,
@@ -495,5 +565,8 @@ if [[ $1 == "dry" ]]; then
   echo -e "\nUser Email Address:"
   cat user_email_address.txt
 
-  rm user_configuration.json user_credentials.json user_full_name.txt user_email_address.txt
+  echo -e "\nDisk Encryption:"
+  cat user_encrypt_installation.txt
+
+  rm user_configuration.json user_credentials.json user_full_name.txt user_email_address.txt user_encrypt_installation.txt
 fi

@@ -50,11 +50,17 @@ run_logged $RYOKU_INSTALL/config/hardware/intel/lpmd.sh
 run_logged $RYOKU_INSTALL/config/hardware/intel/thermald.sh
 run_logged $RYOKU_INSTALL/config/hardware/intel/ipu7-camera.sh
 run_logged $RYOKU_INSTALL/config/hardware/intel/ptl-kernel.sh
+run_logged $RYOKU_INSTALL/config/hardware/intel/fred.sh
 run_logged $RYOKU_INSTALL/config/hardware/intel/fix-wifi7-eht.sh
+run_logged $RYOKU_INSTALL/config/hardware/intel/sof-firmware.sh
 
 run_logged $RYOKU_INSTALL/config/hardware/dell/fix-xps-haptic-touchpad.sh
 
+run_logged $RYOKU_INSTALL/config/hardware/asus/fix-asus-ptl-display-backlight.sh
+run_logged $RYOKU_INSTALL/config/hardware/asus/fix-asus-ptl-b9406-display.sh
+run_logged $RYOKU_INSTALL/config/hardware/asus/fix-asus-ptl-b9406-touchpad.sh
 run_logged $RYOKU_INSTALL/config/hardware/asus/fix-mic.sh
+run_logged $RYOKU_INSTALL/config/hardware/asus/fix-z13-touchpad.sh
 
 run_logged $RYOKU_INSTALL/config/hardware/framework/fix-f13-amd-audio-input.sh
 run_logged $RYOKU_INSTALL/config/hardware/framework/qmk-hid.sh
@@ -62,6 +68,8 @@ run_logged $RYOKU_INSTALL/config/hardware/framework/qmk-hid.sh
 run_logged $RYOKU_INSTALL/config/hardware/apple/fix-spi-keyboard.sh
 run_logged $RYOKU_INSTALL/config/hardware/apple/fix-suspend-nvme.sh
 run_logged $RYOKU_INSTALL/config/hardware/apple/fix-t2.sh
+
+run_logged $RYOKU_INSTALL/config/hardware/lenovo/fix-yoga-pro7-bass-speakers.sh
 
 run_logged $RYOKU_INSTALL/config/hardware/fix-bcm43xx.sh
 run_logged $RYOKU_INSTALL/config/hardware/fix-surface-keyboard.sh

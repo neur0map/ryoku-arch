@@ -1,0 +1,7 @@
+#!/bin/bash
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+# Detect ASUS ExpertBook B9406 series laptops on Intel Panther Lake.
+
+ryoku-hw-match "B9406" && ryoku-hw-intel-ptl

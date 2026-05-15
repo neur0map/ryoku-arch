@@ -36,13 +36,22 @@ install_arch() {
 }
 
 install_ryoku() {
+  local install_status=0
+
   chroot_bash -lc "sudo pacman -S --noconfirm --needed gum" >/dev/null
+
+  set +e
   chroot_bash -lc "source /home/$RYOKU_USER/.local/share/ryoku/install.sh || bash"
+  install_status=$?
+  set -e
 
   # Reboot if requested by installer
-  if [[ -f /mnt/var/tmp/ryoku-install-completed ]]; then
+  if (( install_status == 42 )) || [[ -f /mnt/var/tmp/ryoku-install-completed ]]; then
     reboot
+    return 0
   fi
+
+  (( install_status == 0 )) || return "$install_status"
 }
 
 # Set Ryoku color scheme for the terminal: dark background, accent
@@ -77,18 +86,71 @@ set_ryoku_colors() {
   fi
 }
 
+install_disk() {
+  jq -er 'first(.disk_config.device_modifications[]? | select(.wipe == true) | .device)' user_configuration.json
+}
+
+cleanup_install_disk() {
+  local disk="$1"
+
+  if [[ -z $disk || ! -b $disk ]]; then
+    echo "Could not determine install disk for cleanup" >&2
+    return 1
+  fi
+
+  echo "Cleaning existing holders on install disk: $disk"
+
+  # Ensure that no mounts exist from past install attempts.
+  findmnt -R /mnt >/dev/null && umount -R /mnt || true
+
+  # Turn off swap and unmount anything backed by the selected disk, including
+  # device-mapper children from previous installs. Active holders can prevent
+  # the kernel from re-reading the partition table after archinstall wipes it.
+  while IFS= read -r dev; do
+    [[ -b $dev ]] || continue
+
+    swapoff "$dev" 2>/dev/null || true
+
+    while IFS= read -r target; do
+      [[ -n $target ]] || continue
+      umount "$target" 2>/dev/null || true
+    done < <(findmnt -rn -S "$dev" -o TARGET 2>/dev/null || true)
+  done < <(lsblk -rnpo PATH "$disk")
+
+  # Deactivate any LVM volume groups whose physical volumes live on the
+  # selected disk, common when replacing Fedora/RHEL-family installs.
+  while IFS= read -r dev type; do
+    [[ $type == "disk" || $type == "part" || $type == "crypt" ]] || continue
+
+    while IFS= read -r vg; do
+      [[ -n $vg ]] || continue
+      vgchange -an "$vg" 2>/dev/null || true
+    done < <(pvs --noheadings -o vg_name "$dev" 2>/dev/null | awk '{$1=$1; print}' | sort -u)
+  done < <(lsblk -rnpo PATH,TYPE "$disk")
+
+  # Close any LUKS mappings stacked on the selected disk after filesystems and
+  # swap have been released.
+  while IFS= read -r dev type; do
+    [[ $type == "crypt" ]] || continue
+    cryptsetup close "$dev" 2>/dev/null || true
+  done < <(lsblk -rnpo PATH,TYPE "$disk")
+
+  blockdev --flushbufs "$disk" 2>/dev/null || true
+  partprobe "$disk" 2>/dev/null || true
+  udevadm settle || true
+}
+
 install_base_system() {
-  # Initialize and populate the keyring. omarchy also populates the
-  # `omarchy` keyring here; we skip it because we do not yet ship a
-  # signed [ryoku] custom repo.
+  # Initialize and populate the keyring. Ryoku currently relies on the
+  # standard Arch repositories in the ISO and does not ship a signed
+  # custom repo here.
   pacman-key --init
   pacman-key --populate archlinux
 
   # Sync the offline database so pacman can find packages
   pacman -Sy --noconfirm
 
-  # Ensure that no mounts exist from past install attempts
-  findmnt -R /mnt >/dev/null && umount -R /mnt
+  cleanup_install_disk "$(install_disk)"
 
   # Workarounds for archinstall 4.2 regressions under Python 3.14:
   # 1. sync_log_to_install_medium: `self.target / absolute_logfile` drops
@@ -148,9 +210,8 @@ RESOLV
     mount --bind /var/cache/ryoku/appimages /mnt/var/cache/ryoku/appimages
   fi
 
-  # omarchy bundles Node.js + other extras under /opt/packages and binds
-  # them into the chroot. We do not ship those extras, so only do the
-  # bind-mount if the dir actually exists in the live env.
+  # Optional bundled extras may live under /opt/packages in the live ISO.
+  # Bind-mount them into the chroot only when the directory exists.
   if [[ -d /opt/packages ]]; then
     mkdir -p /mnt/opt/packages
     mount --bind /opt/packages /mnt/opt/packages
