@@ -15,6 +15,40 @@ if ! command -v yay >/dev/null 2>&1; then
   fi
 fi
 
+skip_aur_update=0
+
+transition_localsend_to_bin() {
+  if ! pacman -Q localsend >/dev/null 2>&1 || pacman -Q localsend-bin >/dev/null 2>&1; then
+    return 0
+  fi
+
+  command -v yay >/dev/null 2>&1 || return 0
+  ryoku-pkg-aur-accessible || return 0
+
+  echo -e "\e[32m\nSwitch LocalSend to binary package\e[0m"
+  echo "The source AUR package pulls rustup as a build dependency, which conflicts with Arch rust."
+
+  if ! sudo pacman -Rdd --noconfirm localsend; then
+    echo -e "\e[31mCould not remove source LocalSend; skipping AUR updates to avoid rustup conflicts.\e[0m"
+    skip_aur_update=1
+    return 0
+  fi
+
+  if ! yay -S --noconfirm --needed localsend-bin; then
+    echo -e "\e[31mCould not install localsend-bin; skipping AUR updates for this run.\e[0m"
+    skip_aur_update=1
+    return 0
+  fi
+
+  echo
+}
+
+transition_localsend_to_bin
+
+if (( skip_aur_update == 1 )); then
+  exit 0
+fi
+
 # Update AUR packages only if at least one is actually installed.
 # `pacman -Qem` exits 0 even when its output is empty, so the previous
 # guard fired the "AUR unavailable" warning even on systems that had

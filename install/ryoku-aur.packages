@@ -19,7 +19,7 @@
 # ── Networking / system ───────────────────────────────────────────────
 limine-mkinitcpio-hook
 limine-snapper-sync
-localsend
+localsend-bin
 trayscale
 tzupdate
 ufw-docker

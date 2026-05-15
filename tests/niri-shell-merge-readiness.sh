@@ -221,7 +221,7 @@ required_aur_packages=(
   gradia
   limine-mkinitcpio-hook
   limine-snapper-sync
-  localsend
+  localsend-bin
   trayscale
 )
 
