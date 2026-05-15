@@ -862,7 +862,8 @@
         "timer",
         "openvpn",
         "hosts",
-        "netmon"
+        "netmon",
+        "firewall"
       ]
     },
     "translator": {

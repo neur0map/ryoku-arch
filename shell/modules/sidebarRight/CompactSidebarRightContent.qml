@@ -7,7 +7,7 @@
 // Sections:
 //   0 = Controls  (sliders + quick toggles)
 //   1 = Notifications
-//   2+ = Widgets  (calendar / events / todo / notepad / calc / sysmon / timer / openvpn)
+//   2+ = Widgets  (calendar / events / todo / notepad / calc / sysmon / timer / openvpn / firewall)
 //
 // Fully compatible with all global styles: material, aurora, ryoku, angel.
 
@@ -45,6 +45,7 @@ import qs.modules.sidebarRight.events
 import qs.modules.sidebarRight.openvpn
 import qs.modules.sidebarRight.hosts
 import qs.modules.sidebarRight.netmon
+import qs.modules.sidebarRight.firewall
 
 Item {
     id: root
@@ -633,6 +634,41 @@ Item {
             }
         }
     }
+    Component {
+        id: firewallComponent
+        Item {
+            anchors.fill: parent
+
+            StyledRectangularShadow {
+                target: firewallSurface
+                visible: !bg.ryokuEverywhere && !bg.auroraEverywhere && !bg.angelEverywhere
+                blur: 0.35 * Appearance.sizes.elevationMargin
+            }
+
+            Rectangle {
+                id: firewallSurface
+                anchors.fill: parent
+                anchors.margins: 8
+                radius: bg.angelEverywhere ? Appearance.angel.roundingNormal
+                    : bg.ryokuEverywhere ? Appearance.ryoku.roundingNormal
+                    : Appearance.rounding.normal
+                color: bg.angelEverywhere ? Appearance.angel.colGlassCard
+                    : bg.ryokuEverywhere ? Appearance.ryoku.colLayer1
+                    : bg.colDarkSurface
+                border.width: bg.angelEverywhere ? Appearance.angel.cardBorderWidth : 1
+                border.color: bg.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colCardBorder, 0.22)
+                    : bg.ryokuEverywhere ? Appearance.ryoku.colBorder
+                    : bg.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.78)
+                    : ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.72)
+                clip: true
+
+                FirewallTab {
+                    anchors.fill: parent
+                    anchors.margins: 6
+                }
+            }
+        }
+    }
 
     component ControlChipButton: Item {
         id: chip
@@ -754,7 +790,7 @@ Item {
 
     readonly property var widgetSections: {
         root.configVersion // Force dependency
-        const enabled = Config.options?.sidebar?.right?.enabledWidgets ?? ["calendar", "todo", "notepad", "calculator", "sysmon", "timer", "openvpn", "hosts", "netmon"]
+        const enabled = Config.options?.sidebar?.right?.enabledWidgets ?? ["calendar", "events", "todo", "notepad", "calculator", "sysmon", "timer", "openvpn", "hosts", "netmon", "firewall"]
         const all = [
             {id: "calendar",   icon: "calendar_month", label: Translation.tr("Calendar"),   component: calendarComponent},
             {id: "events",     icon: "event_upcoming", label: Translation.tr("Events"),     component: eventsComponent},
@@ -766,6 +802,7 @@ Item {
             {id: "openvpn",    icon: "vpn_key",       label: Translation.tr("VPN"),        component: openvpnComponent},
             {id: "hosts",      icon: "dns",           label: Translation.tr("Hosts"),      component: hostsComponent},
             {id: "netmon",     icon: "lan",           label: Translation.tr("Network"),    component: netmonComponent},
+            {id: "firewall",   icon: "shield",        label: Translation.tr("Firewall"),   component: firewallComponent},
         ]
         return all.filter(w => enabled.includes(w.id))
     }
@@ -796,6 +833,12 @@ Item {
         target: RyokuNetMon
         property: "tabOpen"
         value: root.sections[root.activeSection]?.id === "netmon"
+    }
+
+    Binding {
+        target: RyokuFirewall
+        property: "tabOpen"
+        value: root.sections[root.activeSection]?.id === "firewall"
     }
 
     // ── Close dialogs when sidebar is hidden ─────────────────────

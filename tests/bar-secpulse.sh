@@ -52,6 +52,8 @@ assert_json_expr  "shell/defaults/config.json" '.bar.modules.secPulse == true' \
 #    not the deleted bar.secPulse.showOpenVpn schema.
 assert_contains   "shell/services/RyokuOpenVpn.qml" \
   "Config.options?.bar?.modules?.secPulse ?? true"
+assert_contains   "shell/modules/common/Config.qml" \
+  "property bool secPulse: true"
 
 
 # 3. The widget exists and binds to the existing RyokuOpenVpn surface.

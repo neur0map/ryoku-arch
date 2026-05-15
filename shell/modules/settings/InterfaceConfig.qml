@@ -928,100 +928,95 @@ ContentPage {
                 title: Translation.tr("Right Sidebar")
                 tooltip: Translation.tr("Toggle which widgets appear in the right sidebar")
 
-                readonly property var defaults: ["calendar", "todo", "notepad", "calculator", "sysmon", "timer", "openvpn", "hosts", "netmon"]
+                readonly property var defaults: ["calendar", "events", "todo", "notepad", "calculator", "sysmon", "timer", "openvpn", "hosts", "netmon", "firewall"]
 
                 function isEnabled(widgetId) {
                     return (Config.options?.sidebar?.right?.enabledWidgets ?? defaults).includes(widgetId)
                 }
 
                 function setWidget(widgetId, active) {
-                    console.log(`[RightSidebar] setWidget(${widgetId}, ${active})`)
                     let current = [...(Config.options?.sidebar?.right?.enabledWidgets ?? defaults)]
-                    console.log(`[RightSidebar] Current widgets:`, JSON.stringify(current))
 
                     if (active && !current.includes(widgetId)) {
                         current.push(widgetId)
-                        console.log(`[RightSidebar] Adding ${widgetId}, new array:`, JSON.stringify(current))
                         Config.setNestedValue("sidebar.right.enabledWidgets", current)
                     } else if (!active && current.includes(widgetId)) {
                         current.splice(current.indexOf(widgetId), 1)
-                        console.log(`[RightSidebar] Removing ${widgetId}, new array:`, JSON.stringify(current))
                         Config.setNestedValue("sidebar.right.enabledWidgets", current)
-                    } else {
-                        console.log(`[RightSidebar] No change needed`)
                     }
                 }
 
                 SettingsSwitch {
                     buttonIcon: "calendar_month"
                     text: Translation.tr("Calendar")
-                    Component.onCompleted: checked = rightSidebarWidgets.isEnabled("calendar")
-                    onClicked: {
-                        // checked ya fue invertido por ConfigSwitch.onClicked
-                        rightSidebarWidgets.setWidget("calendar", checked)
-                    }
+                    checked: rightSidebarWidgets.isEnabled("calendar")
+                    onCheckedChanged: rightSidebarWidgets.setWidget("calendar", checked)
                 }
 
                 SettingsSwitch {
                     buttonIcon: "event_upcoming"
                     text: Translation.tr("Events")
-                    Component.onCompleted: checked = rightSidebarWidgets.isEnabled("events")
-                    onClicked: {
-                        rightSidebarWidgets.setWidget("events", checked)
-                    }
+                    checked: rightSidebarWidgets.isEnabled("events")
+                    onCheckedChanged: rightSidebarWidgets.setWidget("events", checked)
                 }
 
                 SettingsSwitch {
                     buttonIcon: "done_outline"
                     text: Translation.tr("To Do")
-                    Component.onCompleted: checked = rightSidebarWidgets.isEnabled("todo")
-                    onClicked: {
-                        rightSidebarWidgets.setWidget("todo", checked)
-                    }
+                    checked: rightSidebarWidgets.isEnabled("todo")
+                    onCheckedChanged: rightSidebarWidgets.setWidget("todo", checked)
                 }
 
                 SettingsSwitch {
                     buttonIcon: "edit_note"
                     text: Translation.tr("Notepad")
-                    Component.onCompleted: checked = rightSidebarWidgets.isEnabled("notepad")
-                    onClicked: {
-                        rightSidebarWidgets.setWidget("notepad", checked)
-                    }
+                    checked: rightSidebarWidgets.isEnabled("notepad")
+                    onCheckedChanged: rightSidebarWidgets.setWidget("notepad", checked)
                 }
 
                 SettingsSwitch {
                     buttonIcon: "calculate"
                     text: Translation.tr("Calculator")
-                    Component.onCompleted: checked = rightSidebarWidgets.isEnabled("calculator")
-                    onClicked: {
-                        rightSidebarWidgets.setWidget("calculator", checked)
-                    }
+                    checked: rightSidebarWidgets.isEnabled("calculator")
+                    onCheckedChanged: rightSidebarWidgets.setWidget("calculator", checked)
                 }
 
                 SettingsSwitch {
                     buttonIcon: "monitor_heart"
                     text: Translation.tr("System Monitor")
-                    Component.onCompleted: checked = rightSidebarWidgets.isEnabled("sysmon")
-                    onClicked: {
-                        rightSidebarWidgets.setWidget("sysmon", checked)
-                    }
+                    checked: rightSidebarWidgets.isEnabled("sysmon")
+                    onCheckedChanged: rightSidebarWidgets.setWidget("sysmon", checked)
                 }
 
                 SettingsSwitch {
                     buttonIcon: "schedule"
                     text: Translation.tr("Timer")
-                    Component.onCompleted: checked = rightSidebarWidgets.isEnabled("timer")
-                    onClicked: {
-                        rightSidebarWidgets.setWidget("timer", checked)
-                    }
+                    checked: rightSidebarWidgets.isEnabled("timer")
+                    onCheckedChanged: rightSidebarWidgets.setWidget("timer", checked)
                 }
                 SettingsSwitch {
                     buttonIcon: "vpn_key"
                     text: Translation.tr("VPN")
-                    Component.onCompleted: checked = rightSidebarWidgets.isEnabled("openvpn")
-                    onClicked: {
-                        rightSidebarWidgets.setWidget("openvpn", checked)
-                    }
+                    checked: rightSidebarWidgets.isEnabled("openvpn")
+                    onCheckedChanged: rightSidebarWidgets.setWidget("openvpn", checked)
+                }
+                SettingsSwitch {
+                    buttonIcon: "dns"
+                    text: Translation.tr("Hosts")
+                    checked: rightSidebarWidgets.isEnabled("hosts")
+                    onCheckedChanged: rightSidebarWidgets.setWidget("hosts", checked)
+                }
+                SettingsSwitch {
+                    buttonIcon: "lan"
+                    text: Translation.tr("Network")
+                    checked: rightSidebarWidgets.isEnabled("netmon")
+                    onCheckedChanged: rightSidebarWidgets.setWidget("netmon", checked)
+                }
+                SettingsSwitch {
+                    buttonIcon: "shield"
+                    text: Translation.tr("Firewall")
+                    checked: rightSidebarWidgets.isEnabled("firewall")
+                    onCheckedChanged: rightSidebarWidgets.setWidget("firewall", checked)
                 }
             }
             ContentSubsection {
