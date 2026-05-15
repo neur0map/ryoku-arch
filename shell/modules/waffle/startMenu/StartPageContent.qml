@@ -144,7 +144,7 @@ WPanelPageColumn {
         readonly property var de: DesktopEntries.heuristicLookup(appId)
         implicitWidth: 88
         implicitHeight: 76
-        onClicked: { if (de) de.execute(); GlobalStates.searchOpen = false }
+        onClicked: { if (de) LaunchUtils.launchDesktopEntry(de); GlobalStates.searchOpen = false }
         
         // Staggered entry animation
         opacity: 0
@@ -196,7 +196,7 @@ WPanelPageColumn {
         readonly property var de: DesktopEntries.heuristicLookup(appId)
         implicitWidth: 260
         implicitHeight: 44
-        onClicked: { if (de) de.execute(); GlobalStates.searchOpen = false }
+        onClicked: { if (de) LaunchUtils.launchDesktopEntry(de); GlobalStates.searchOpen = false }
         
         // Staggered entry animation (starts after pinned apps)
         opacity: 0
