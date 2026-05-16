@@ -113,6 +113,8 @@ assert_grep "ryoku-refresh-qylock-previews" "bin/ryoku-install-qylock"
 assert_grep "refresh_qylock_clone" "bin/ryoku-install-qylock"
 assert_grep "pull --ff-only" "bin/ryoku-install-qylock"
 assert_grep "refreshing qylock clone after pull failed" "bin/ryoku-install-qylock"
+assert_grep "valid_qylock_theme" "bin/ryoku-install-qylock"
+assert_grep "Main\\.qml" "bin/ryoku-install-qylock"
 assert_grep "preview\\.png" "bin/ryoku-refresh-qylock-previews"
 assert_grep "bg\\.mp4" "bin/ryoku-refresh-qylock-previews"
 assert_grep "background/A Glow\\.jpg" "bin/ryoku-refresh-qylock-previews"
@@ -125,7 +127,7 @@ qylock_preview_migration=${qylock_preview_migration#"$ROOT_DIR/"}
 assert_grep "ryoku-refresh-qylock-previews" "$qylock_preview_migration"
 assert_no_grep "LoginScreenConfig\\.qml" "$qylock_preview_migration"
 assert_grep "read_active_sddm_theme" "bin/ryoku-install-qylock"
-assert_grep "/etc/sddm\\.conf\\.d/\\*\\.conf" "bin/ryoku-install-qylock"
+assert_grep "RYOKU_SDDM_CONF_DIR:-/etc/sddm\\.conf\\.d" "bin/ryoku-install-qylock"
 # Must use the _priv wrapper instead of bare sudo for the cp/tee path
 assert_grep "_priv"       "bin/ryoku-install-qylock"
 # Must pin RYOKU_PATH from the helper's own install location before
@@ -258,6 +260,8 @@ done
 # of only from Ryoku's bundled preview subset.
 assert_grep "function qylockAssetBaseNames" "$QML_PATH"
 assert_grep "\\.local/share/qylock/Assets" "$QML_PATH"
+assert_no_grep "\"clockwork\"" "$QML_PATH"
+assert_grep "Main\\.qml" "$QML_PATH"
 assert_grep "previewFallbackTimer" "$QML_PATH"
 assert_grep "previewFallbackTimer\\.restart\\(\\)" "$QML_PATH"
 assert_grep "pixel_skyscrapers" "$QML_PATH"

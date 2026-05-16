@@ -53,7 +53,7 @@ ContentPage {
             themesAssetExt: ".gif",
             placeholderAsset: "../_placeholder.png",
             bundledThemes: [
-                "clockwork", "dog-samurai", "enfield", "forest", "Genshin",
+                "dog-samurai", "enfield", "forest", "Genshin",
                 "last-of-us", "minecraft", "nier-automata", "ninja_gaiden",
                 "osu", "pixel-coffee", "pixel-dusk-city", "pixel-hollowknight",
                 "pixel-munchlax", "pixel-night-city", "pixel-rainyroom",
@@ -123,7 +123,7 @@ ContentPage {
         command: ["/usr/bin/bash", "-c",
             "dir=\"$HOME/.local/share/qylock/themes\"; " +
             "[[ -d $dir ]] || exit 0; " +
-            "(cd \"$dir\" && for d in */; do echo \"${d%/}\"; done)"
+            "(cd \"$dir\" && for d in */; do [[ -f \"${d%/}/Main.qml\" ]] && echo \"${d%/}\"; done)"
         ]
         property var _accum: []
         stdout: SplitParser {
