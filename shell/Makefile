@@ -6,6 +6,7 @@ ICON_DIR = $(SHAREDIR)/icons/hicolor/scalable/apps
 SHELL_INSTALL_DIR = $(SHAREDIR)/quickshell/ryoku-shell
 DOC_DIR = $(SHAREDIR)/doc/ryoku-shell
 SYSTEMD_USER_DIR ?= $(PREFIX)/lib/systemd/user
+VERSION_FILE := $(firstword $(wildcard VERSION ../VERSION))
 
 .PHONY: all build test-local install install-bin install-shell install-systemd install-icon install-desktop install-docs uninstall uninstall-bin uninstall-shell uninstall-systemd uninstall-icon uninstall-desktop uninstall-docs
 
@@ -30,17 +31,20 @@ install-shell:
 		[ -n "$$file" ] || continue; \
 		if [ "$$file" = "setup" ]; then \
 			install -Dm755 "$$file" "$(SHELL_INSTALL_DIR)/$$file"; \
+		elif [ "$$file" = "VERSION" ] && [ ! -f "$$file" ]; then \
+			:; \
 		else \
 			install -Dm644 "$$file" "$(SHELL_INSTALL_DIR)/$$file"; \
 		fi; \
 	done < sdata/runtime-root-files.txt
+	@version_file="$(VERSION_FILE)"; [ -n "$$version_file" ] || { echo "VERSION not found" >&2; exit 1; }; install -Dm644 "$$version_file" "$(SHELL_INSTALL_DIR)/VERSION"
 	@while IFS= read -r dir; do \
 		[ -n "$$dir" ] || continue; \
 		mkdir -p "$(SHELL_INSTALL_DIR)/$$dir"; \
 		cp -a "$$dir"/. "$(SHELL_INSTALL_DIR)/$$dir/"; \
 	done < sdata/runtime-payload-dirs.txt
 	@find $(SHELL_INSTALL_DIR)/scripts -type f \( -name "*.sh" -o -name "*.fish" -o -name "*.py" \) -exec chmod +x {} +
-	@printf '{\n  "version": "%s",\n  "commit": "manual",\n  "installed_at": "%s",\n  "installedAt": "%s",\n  "source": "make-install",\n  "repo_path": "",\n  "repoPath": "",\n  "install_mode": "package-managed",\n  "installMode": "package-managed",\n  "update_strategy": "package-manager",\n  "updateStrategy": "package-manager",\n  "package_manager": "manual",\n  "packageManager": "manual",\n  "package_name": "source-install",\n  "packageName": "source-install",\n  "package_update_hint": "sudo make install",\n  "packageUpdateHint": "sudo make install"\n}\n' "$$(cat VERSION)" "$$(date -Iseconds)" "$$(date -Iseconds)" > $(SHELL_INSTALL_DIR)/version.json
+	@version_file="$(VERSION_FILE)"; [ -n "$$version_file" ] || { echo "VERSION not found" >&2; exit 1; }; printf '{\n  "version": "%s",\n  "commit": "manual",\n  "installed_at": "%s",\n  "installedAt": "%s",\n  "source": "make-install",\n  "repo_path": "",\n  "repoPath": "",\n  "install_mode": "package-managed",\n  "installMode": "package-managed",\n  "update_strategy": "package-manager",\n  "updateStrategy": "package-manager",\n  "package_manager": "manual",\n  "packageManager": "manual",\n  "package_name": "source-install",\n  "packageName": "source-install",\n  "package_update_hint": "sudo make install",\n  "packageUpdateHint": "sudo make install"\n}\n' "$$(cat "$$version_file")" "$$(date -Iseconds)" "$$(date -Iseconds)" > $(SHELL_INSTALL_DIR)/version.json
 
 install-systemd:
 	@mkdir -p $(SYSTEMD_USER_DIR)

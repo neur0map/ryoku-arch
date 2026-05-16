@@ -18,7 +18,7 @@ assert_file() {
 assert_no_path() {
   local path="$1"
 
-  [[ ! -e $ROOT_DIR/$path ]] || fail "$path should not live at the repo root"
+  [[ ! -e $ROOT_DIR/$path ]] || fail "$path should not exist"
 }
 
 assert_contains() {
@@ -170,16 +170,21 @@ assert_asset_references_are_updated() {
     "Historical logo migration should read the grouped ASCII logo"
   assert_contains "migrations/1755904244.sh" 'assets/brand/icon\.txt' \
     "Historical icon migration should read the grouped text icon"
-  assert_no_path "VERSION"
+  assert_file "VERSION"
+  assert_no_path "shell/VERSION"
   assert_no_path "version"
   assert_contains "docs/maintenance.md" 'single tracked release version file' \
     "Maintenance docs should explain the canonical version file"
-  assert_contains "docs/maintenance.md" '`shell/VERSION`' \
-    "Maintenance docs should point to shell/VERSION as canonical"
-  assert_contains "bin/ryoku-version" 'shell/VERSION' \
+  assert_contains "docs/maintenance.md" 'root `VERSION`' \
+    "Maintenance docs should point to root VERSION as canonical"
+  assert_contains "bin/ryoku-version" 'VERSION' \
     "Ryoku version command should read the canonical shell version"
-  assert_contains "shell/services/ShellUpdates.qml" ':shell/VERSION' \
+  assert_not_contains "bin/ryoku-version" 'shell/VERSION' \
+    "Ryoku version command should not read the legacy shell version file"
+  assert_contains "shell/services/ShellUpdates.qml" ':VERSION' \
     "Shell update UI should read the remote canonical shell version"
+  assert_not_contains "shell/services/ShellUpdates.qml" ':shell/VERSION|/shell/VERSION' \
+    "Shell update UI should not read the legacy shell version file"
 }
 
 assert_shellcheck_workflow
