@@ -334,7 +334,7 @@ check_remote_updates() {
     #   2 = error (offline/no git/no tracked remote branch)
     #   3 = local ahead of remote
     #   4 = diverged
-    if [[ ! -d "${REPO_ROOT}/.git" ]]; then
+    if ! repo_has_git; then
         return 2
     fi
 

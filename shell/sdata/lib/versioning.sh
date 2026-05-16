@@ -96,6 +96,17 @@ is_package_managed_version_file() {
 # Local Version Management
 #####################################################################################
 
+# Returns 0 if `git` is available AND $1 (or $REPO_ROOT) lives inside a git
+# repo. Walks up to find .git, so it works regardless of whether REPO_ROOT is
+# the toplevel or a subdirectory — ryoku's setup script lives in shell/ while
+# .git is at the parent, and a hardcoded `[[ -d "$REPO_ROOT/.git" ]]` test
+# silently misses the repo and disables every git-aware code path.
+repo_has_git() {
+    local root="${1:-$REPO_ROOT}"
+    command -v git >/dev/null 2>&1 || return 1
+    git -C "$root" rev-parse --git-dir >/dev/null 2>&1
+}
+
 # Get current repo version from VERSION file
 get_repo_version() {
     if [[ -f "$VERSION_FILE_REPO" ]]; then
@@ -107,7 +118,7 @@ get_repo_version() {
 
 # Get current git commit hash
 get_repo_commit() {
-    if command -v git &>/dev/null && [[ -d "${REPO_ROOT}/.git" ]]; then
+    if repo_has_git; then
         git -C "$REPO_ROOT" rev-parse --short HEAD 2>/dev/null || echo "unknown"
     else
         echo "unknown"
@@ -188,10 +199,10 @@ get_installed_commit() {
     if [[ "$(get_installed_install_mode)" == "repo-link" ]]; then
         local runtime_dir
         runtime_dir="$(get_runtime_shell_dir)"
-        if [[ -n "$runtime_dir" && -d "$runtime_dir/.git" ]]; then
+        if [[ -n "$runtime_dir" ]] && repo_has_git "$runtime_dir"; then
             git -C "$runtime_dir" rev-parse --short HEAD 2>/dev/null || echo "unknown"
             return
-        elif [[ -d "${REPO_ROOT}/.git" ]]; then
+        elif repo_has_git; then
             get_repo_commit
             return
         fi
@@ -591,7 +602,7 @@ get_remote_version() {
     fi
     
     # Fallback: check git remote
-    if command -v git &>/dev/null && [[ -d "${REPO_ROOT}/.git" ]]; then
+    if repo_has_git; then
         git -C "$REPO_ROOT" fetch --tags --quiet 2>/dev/null
         local latest_tag=$(git -C "$REPO_ROOT" describe --tags --abbrev=0 2>/dev/null | sed 's/^v//')
         if [[ -n "$latest_tag" ]]; then
@@ -606,7 +617,7 @@ get_remote_version() {
 
 # Get latest commit from remote
 get_remote_commit() {
-    if ! command -v git &>/dev/null || [[ ! -d "${REPO_ROOT}/.git" ]]; then
+    if ! repo_has_git; then
         echo "unknown"
         return 1
     fi

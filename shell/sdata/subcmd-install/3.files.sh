@@ -260,7 +260,7 @@ if [[ ${RYOKU_CORE_UPDATE_CHILD:-0} == "1" ]]; then
       REPO_VERSION=$(cat "${REPO_ROOT}/VERSION" | tr -d '[:space:]')
     fi
 
-    if command -v git &>/dev/null && [[ -d "${REPO_ROOT}/.git" ]]; then
+    if repo_has_git; then
       REPO_COMMIT=$(git -C "${REPO_ROOT}" rev-parse --short HEAD 2>/dev/null || echo "")
     fi
 
@@ -1075,7 +1075,7 @@ if [[ -n "${II_TARGET}" && -d "${II_TARGET}" ]]; then
   if [[ -f "${REPO_ROOT}/VERSION" ]]; then
     REPO_VERSION=$(cat "${REPO_ROOT}/VERSION" | tr -d '[:space:]')
   fi
-  if command -v git &>/dev/null && [[ -d "${REPO_ROOT}/.git" ]]; then
+  if repo_has_git; then
     REPO_COMMIT=$(git -C "${REPO_ROOT}" rev-parse --short HEAD 2>/dev/null || echo "")
   fi
   write_version_info_json "${II_TARGET}/version.json" "${REPO_VERSION:-0.0.0}" "${REPO_COMMIT:-unknown}" "setup-install"
