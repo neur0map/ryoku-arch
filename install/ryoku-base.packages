@@ -229,6 +229,7 @@ bluez-utils
 bolt
 
 # ── Storage / filesystems / disk management ───────────────────────────
+dosfstools
 exfatprogs
 gnome-disk-utility
 gvfs-mtp
