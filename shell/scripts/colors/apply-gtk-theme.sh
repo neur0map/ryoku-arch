@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 set -euo pipefail
 # Apply Qt/KDE/GTK theme colors from Ryoku's generated palette contract.
 # Generates:
@@ -195,8 +195,8 @@ generate_kdeglobals() {
         mono_name="${mono_name%"${mono_name##*[![:space:]]}"}"
     fi
     if [[ -z "$icon_theme" ]]; then
-        if [[ -d "$HOME/.local/share/icons/WhiteSur-dark" || -d "/usr/share/icons/WhiteSur-dark" ]]; then
-            icon_theme="WhiteSur-dark"
+        if [[ -d "$HOME/.local/share/icons/Papirus" || -d "/usr/share/icons/Papirus" ]]; then
+            icon_theme="Papirus"
         else
             icon_theme="Adwaita"
         fi
@@ -896,8 +896,8 @@ mkdir -p "$(dirname "$QT6CT_CONF")"
 touch "$QT6CT_CONF"
 CURRENT_ICON_THEME=$(grep '^icon_theme=' "$QT6CT_CONF" 2>/dev/null | cut -d= -f2 || true)
 if [[ -z "$CURRENT_ICON_THEME" ]]; then
-    if [[ -d "$HOME/.local/share/icons/WhiteSur-dark" || -d "/usr/share/icons/WhiteSur-dark" ]]; then
-        CURRENT_ICON_THEME="WhiteSur-dark"
+    if [[ -d "$HOME/.local/share/icons/Papirus" || -d "/usr/share/icons/Papirus" ]]; then
+        CURRENT_ICON_THEME="Papirus"
     else
         CURRENT_ICON_THEME="Adwaita"
     fi

@@ -182,7 +182,7 @@ function disable_super_daemon_if_present(){
 function setup_desktop_settings(){
   tui_info "Applying desktop settings..."
 
-  local preferred_icon_theme="WhiteSur-dark"
+  local preferred_icon_theme="Papirus"
   local icon_theme="$preferred_icon_theme"
   if [[ ! -d "$HOME/.local/share/icons/$preferred_icon_theme" ]] && [[ ! -d "/usr/share/icons/$preferred_icon_theme" ]]; then
     icon_theme="Adwaita"

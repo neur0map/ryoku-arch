@@ -1,0 +1,133 @@
+#!/bin/bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
+config_file="$config_home/ryoku-shell/config.json"
+requested_theme="${1:-}"
+
+theme_available() {
+  local theme="$1"
+  [[ -n $theme ]] || return 1
+  [[ -d $HOME/.local/share/icons/$theme || -d /usr/share/icons/$theme ]]
+}
+
+configured_theme() {
+  [[ -f $config_file ]] || return 0
+  ryoku-cmd-present jq || return 0
+  jq -r '.appearance.iconTheme? // empty' "$config_file" 2>/dev/null || true
+}
+
+choose_icon_theme() {
+  local requested="$1" candidate
+
+  if theme_available "$requested"; then
+    printf '%s\n' "$requested"
+    return 0
+  fi
+
+  for candidate in Papirus Adwaita breeze hicolor; do
+    if theme_available "$candidate"; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+
+  printf '%s\n' "hicolor"
+}
+
+update_shell_config() {
+  local theme="$1" tmp_file
+
+  [[ -f $config_file ]] || return 0
+  ryoku-cmd-present jq || return 0
+
+  tmp_file="$(mktemp)"
+  if jq --arg theme "$theme" '
+    .appearance = (.appearance // {})
+    | .appearance.iconTheme = $theme
+  ' "$config_file" >"$tmp_file"; then
+    mv "$tmp_file" "$config_file"
+  else
+    rm -f "$tmp_file"
+    return 1
+  fi
+}
+
+set_ini_key() {
+  local file="$1" key="$2" value="$3" tmp_file line wrote=0
+
+  mkdir -p "$(dirname "$file")"
+  if [[ ! -f $file ]]; then
+    printf '[Settings]\n' >"$file"
+  fi
+
+  tmp_file="$(mktemp)"
+  while IFS= read -r line; do
+    if [[ $line == $key=* ]]; then
+      printf '%s=%s\n' "$key" "$value"
+      wrote=1
+    else
+      printf '%s\n' "$line"
+    fi
+  done <"$file" >"$tmp_file"
+
+  if (( wrote == 0 )); then
+    printf '%s=%s\n' "$key" "$value" >>"$tmp_file"
+  fi
+
+  mv "$tmp_file" "$file"
+}
+
+sync_kdeglobals() {
+  local theme="$1"
+  ryoku-cmd-present python3 || return 0
+
+  THEME="$theme" python3 - <<'PY'
+import configparser
+import os
+
+path = os.path.expanduser("~/.config/kdeglobals")
+theme = os.environ["THEME"]
+
+config = configparser.ConfigParser()
+config.optionxform = str
+if os.path.exists(path):
+    config.read(path)
+
+if "Icons" not in config:
+    config["Icons"] = {}
+config["Icons"]["Theme"] = theme
+
+os.makedirs(os.path.dirname(path), exist_ok=True)
+with open(path, "w", encoding="utf-8") as file:
+    config.write(file, space_around_delimiters=False)
+PY
+}
+
+sync_qt6ct() {
+  local theme="$1" qt6ct_conf="$config_home/qt6ct/qt6ct.conf"
+
+  [[ -f $qt6ct_conf ]] || return 0
+  set_ini_key "$qt6ct_conf" "icon_theme" "$theme"
+}
+
+if [[ -z $requested_theme ]]; then
+  requested_theme="$(configured_theme)"
+fi
+
+resolved_theme="$(choose_icon_theme "$requested_theme")"
+
+if ryoku-cmd-present gsettings; then
+  gsettings set org.gnome.desktop.interface icon-theme "$resolved_theme" >/dev/null 2>&1 || true
+fi
+
+update_shell_config "$resolved_theme"
+set_ini_key "$config_home/gtk-3.0/settings.ini" "gtk-icon-theme-name" "$resolved_theme"
+set_ini_key "$config_home/gtk-4.0/settings.ini" "gtk-icon-theme-name" "$resolved_theme"
+sync_kdeglobals "$resolved_theme"
+sync_qt6ct "$resolved_theme"
+
+printf '%s\n' "$resolved_theme"

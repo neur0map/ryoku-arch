@@ -379,7 +379,7 @@ Singleton {
                         property int grad: 175
                     }
                 }
-                property string iconTheme: "WhiteSur-dark" // System icon theme (tray, GTK/Qt apps)
+                property string iconTheme: "Papirus" // System icon theme (tray, GTK/Qt apps)
                 property string dockIconTheme: "" // Dock icon theme (overrides system for dock only)
                 property real shellScale: 1.0 // Legacy compatibility key. Launcher keeps QT_SCALE_FACTOR=1; use appearance.typography.sizeScale.
             }
