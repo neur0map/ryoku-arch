@@ -1734,7 +1734,7 @@ restart_ryoku_shell_service_if_active() {
 }
 
 report_ryoku_shell_service_failure() {
-    local lines="${1:-20}"
+    local lines=20
 
     if ! command -v systemctl >/dev/null 2>&1; then
         return 1
@@ -2727,7 +2727,7 @@ case "$command_name" in
     cleanup-orphans)
         cleanup_orphans
         ;;
-    doctor|migrate|status|update|reinstall|rollback|my-changes|uninstall|config|info|backup|logs)
+    doctor|migrate|status|update|reinstall|rollback|my-changes|uninstall|config|info|backup)
         while [[ $# -gt 0 ]]; do
             case "$1" in
                 -c|--config)
