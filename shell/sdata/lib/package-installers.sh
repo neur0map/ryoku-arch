@@ -603,7 +603,7 @@ install-uv(){
 
 setup-gtk-config(){
   local cursor_theme="${1:-Bibata-Modern-Classic}"
-  local icon_theme="${2:-WhiteSur-dark}"
+  local icon_theme="${2:-Papirus}"
   local gtk_theme="${3:-adw-gtk3-dark}"
   local font="${4:-Geist}"
 
@@ -1072,9 +1072,9 @@ install-all-tools(){
 setup-all-configs(){
   tui_info "Setting up all configurations..."
 
-  setup-gtk-config
-  setup-kvantum-config
-  setup-environment-config
+  setup-gtk-config "Bibata-Modern-Classic" "Papirus" "adw-gtk3-dark" "Geist"
+  setup-kvantum-config "MaterialAdw"
+  setup-environment-config "Bibata-Modern-Classic"
   setup-kitty-config
   setup-foot-config
   setup-fish-config

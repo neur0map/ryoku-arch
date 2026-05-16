@@ -65,6 +65,8 @@ assert_session_defaults() {
     "Fish defaults should export EDITOR for Yazi"
   assert_contains "shell/sdata/lib/package-installers.sh" 'set -gx RYOKU_EDITOR nvim' \
     "Fallback Fish installer should export Ryoku's default editor"
+  assert_contains "shell/sdata/lib/package-installers.sh" 'setup-gtk-config "Bibata-Modern-Classic" "Papirus"' \
+    "Fallback installer should keep Papirus as the GTK icon default"
   assert_contains "migrations/1778723612.sh" 'set_env_line "\$HOME/.config/uwsm/default" RYOKU_EDITOR nvim' \
     "Neovim install migration should set RYOKU_EDITOR"
   assert_contains "migrations/1778947544.sh" 'set_env_line "\$HOME/.config/uwsm/default" RYOKU_EDITOR nvim' \
