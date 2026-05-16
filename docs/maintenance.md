@@ -320,7 +320,7 @@ Options, from least to most automated:
 
 Keep the repo root limited to project entrypoints and repo metadata. Brand images, SVGs, and text art live in `assets/brand/`. Maintainer task tracking lives in `docs/TODO.md` with the rest of the project docs.
 
-Use `shell/VERSION` as the single tracked release version file. The bundled Quickshell setup, packaging, and update code expects an uppercase `VERSION` inside the shell tree, so Ryoku-level version consumers should read `shell/VERSION` instead of adding another root `VERSION` or `version` file.
+Use root `VERSION` as the single tracked release version file. The shell installer copies that value into installed runtime payloads when a standalone shell tree needs its own `VERSION` file, but source changes should only update the root file.
 
 ## Git hooks
 

@@ -47,6 +47,10 @@ generate_manifest() {
             while IFS= read -r runtime_file; do
                 [[ -n "$runtime_file" ]] || continue
                 local file="${repo_root}/${runtime_file}"
+                if [[ $runtime_file == "VERSION" && ! -f $file && -f $repo_root/../VERSION ]]; then
+                    echo "${runtime_file}:"
+                    continue
+                fi
                 [[ -f "$file" ]] || continue
                 local ext="${file##*.}"
                 if [[ "$ext" =~ ^($checksum_extensions)$ ]]; then

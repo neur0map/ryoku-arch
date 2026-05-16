@@ -132,6 +132,10 @@ case "${SKIP_QUICKSHELL}" in
       done < "$runtime_root_manifest"
     fi
 
+    if [[ ! -f ${II_SOURCE}/VERSION && -f ${II_SOURCE}/../VERSION ]]; then
+      install_file "${II_SOURCE}/../VERSION" "${II_TARGET}/VERSION"
+    fi
+
     # Copy runtime payload directories
     runtime_dirs_manifest="${II_SOURCE}/sdata/runtime-payload-dirs.txt"
     if [[ -f "$runtime_dirs_manifest" ]]; then

@@ -804,14 +804,14 @@ Singleton {
     }
 
     // Step 1d: Read local VERSION on startup
-    // Try shell/VERSION for the full Ryoku repo, VERSION for shell-root installs,
+    // Try root VERSION for the full Ryoku repo or shell-root installs,
     // then legacy fallbacks.
     Process {
         id: localVersionStartupProc
         running: false
         command: [
             "/usr/bin/bash", "-c",
-            "cat '" + root.repoPath + "/shell/VERSION' 2>/dev/null || cat '" + root.repoPath + "/VERSION' 2>/dev/null || cat '" + root.repoPath + "/version' 2>/dev/null || cat '" + root.configDir + "/VERSION' 2>/dev/null || echo ''"
+            "cat '" + root.repoPath + "/VERSION' 2>/dev/null || cat '" + root.repoPath + "/version' 2>/dev/null || cat '" + root.configDir + "/VERSION' 2>/dev/null || echo ''"
         ]
         stdout: StdioCollector {
             onStreamFinished: {
@@ -1057,7 +1057,7 @@ Singleton {
         running: false
         command: [
             ...root._gitCmd, "show",
-            "origin/" + root._remoteBranch + ":shell/VERSION"
+            "origin/" + root._remoteBranch + ":VERSION"
         ]
         stdout: StdioCollector {
             onStreamFinished: {
@@ -1075,7 +1075,7 @@ Singleton {
         running: false
         command: [
             "/usr/bin/bash", "-c",
-            "cat '" + root.repoPath + "/shell/VERSION' 2>/dev/null || cat '" + root.repoPath + "/VERSION' 2>/dev/null || cat '" + root.repoPath + "/version' 2>/dev/null || cat '" + root.configDir + "/VERSION' 2>/dev/null || echo ''"
+            "cat '" + root.repoPath + "/VERSION' 2>/dev/null || cat '" + root.repoPath + "/version' 2>/dev/null || cat '" + root.configDir + "/VERSION' 2>/dev/null || echo ''"
         ]
         stdout: StdioCollector {
             onStreamFinished: {
