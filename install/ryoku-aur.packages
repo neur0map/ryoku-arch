@@ -24,6 +24,17 @@ trayscale
 tzupdate
 ufw-docker
 
+# Power / GPU management
+# supergfxctl is the canonical asus-linux.org workaround for hybrid-GPU
+# laptops that wedge after long s2idle (black screen + cursor on resume,
+# observed on Phoenix1 + RTX hybrids when BIOS exposes only s2idle). It
+# provides the Vfio to Integrated power cycle that detaches and reattaches the
+# NVIDIA dGPU around suspend so the resume path does not hang. Shipped
+# on every machine. The daemon's platform probe is the source of truth
+# for whether it actually does anything; on non-supported platforms
+# supergfxd refuses to operate, which is harmless.
+supergfxctl
+
 # ── Eye-candy / utilities ─────────────────────────────────────────────
 darkly-bin
 gradia
