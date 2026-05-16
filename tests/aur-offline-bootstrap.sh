@@ -104,10 +104,14 @@ assert_iso_aur_overlay_retries_clones() {
 
   grep -Eq 'aur_clone\(\)' "$script" || \
     fail "ISO AUR overlay builder should wrap AUR git clones"
-  grep -Eq 'for attempt in \{1\.\.3\}' "$script" || \
+  grep -Eq 'http\.version=HTTP/1\.1' "$script" || \
+    fail "ISO AUR overlay builder should force HTTP/1.1 for flaky AUR TLS clones"
+  grep -Eq 'for attempt in \{1\.\.5\}' "$script" || \
     fail "ISO AUR overlay builder should retry transient AUR clone failures"
   grep -Eq 'git clone of \$pkg from AUR failed' "$script" || \
     fail "ISO AUR overlay builder should explain retrying AUR clone failures"
+  grep -Eq 'failed after 5 attempts' "$script" || \
+    fail "ISO AUR overlay builder should use the widened retry limit in final errors"
 }
 
 main() {

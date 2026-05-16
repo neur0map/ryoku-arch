@@ -71,21 +71,23 @@ aur_clone() {
   local pkg="$1"
   local work_dir="$2"
   local attempt
+  local sleep_seconds
 
-  for attempt in {1..3}; do
-    if sudo -u builder git clone --depth=1 "https://aur.archlinux.org/${pkg}.git" "$work_dir"; then
+  for attempt in {1..5}; do
+    if sudo -u builder git -c http.version=HTTP/1.1 clone --depth=1 "https://aur.archlinux.org/${pkg}.git" "$work_dir"; then
       return 0
     fi
 
     rm -rf "$work_dir"
 
-    if (( attempt < 3 )); then
-      echo "git clone of $pkg from AUR failed (attempt $attempt/3), retrying in 5s..." >&2
-      sleep 5
+    if (( attempt < 5 )); then
+      sleep_seconds=$(( attempt * 10 ))
+      echo "git clone of $pkg from AUR failed (attempt $attempt/5), retrying in ${sleep_seconds}s..." >&2
+      sleep "$sleep_seconds"
     fi
   done
 
-  echo "git clone of $pkg from AUR failed after 3 attempts." >&2
+  echo "git clone of $pkg from AUR failed after 5 attempts." >&2
   return 1
 }
 
