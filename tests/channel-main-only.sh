@@ -74,7 +74,9 @@ for path in "${active_files[@]}"; do
 done
 
 assert_contains .github/workflows/build-iso.yml 'CHANNEL: main' \
-  "workflow should publish the main channel"
+  "workflow should build the installer from the main channel"
+assert_contains .github/workflows/build-iso.yml 'PUBLIC_CHANNEL: stable' \
+  "workflow should publish ISO artifacts under the stable public R2 prefix"
 assert_not_contains .github/workflows/build-iso.yml 'github\.event\.inputs\.channel' \
   "workflow should not expose a channel selector"
 assert_not_contains .github/workflows/build-iso.yml 'ryoku/(stable|rc|edge)|ryoku-iso/(stable|rc|edge)' \

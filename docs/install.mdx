@@ -5,14 +5,14 @@ description: Download the signed ISO, verify it, and install it onto your hardwa
 
 ## 1. Download
 
-Signed alpha builds are published at [`iso.ryoku.dev/main/`](https://iso.ryoku.dev/main/):
+Signed alpha builds are published at [`iso.ryoku.dev/stable/`](https://iso.ryoku.dev/stable/):
 
 | File | URL |
 |---|---|
-| ISO | `https://iso.ryoku.dev/main/ryoku-<date>-<tracking-id>-x86_64-main.iso` |
-| Signature | `https://iso.ryoku.dev/main/ryoku-<date>-<tracking-id>-x86_64-main.iso.sig` |
-| SHA256 | `https://iso.ryoku.dev/main/ryoku-<date>-<tracking-id>-x86_64-main.iso.sha256` |
-| Public key | `https://iso.ryoku.dev/main/ryoku-release-key.pub.asc` |
+| ISO | `https://iso.ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso` |
+| Signature | `https://iso.ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso.sig` |
+| SHA256 | `https://iso.ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso.sha256` |
+| Public key | `https://iso.ryoku.dev/stable/ryoku-release-key.pub.asc` |
 
 ## 2. Verify the signature
 
@@ -28,7 +28,7 @@ Quick verify (use the exact ISO filename you downloaded):
 
 ```bash
 # Import the release key
-curl -sSL https://iso.ryoku.dev/main/ryoku-release-key.pub.asc | gpg --import
+curl -sSL https://iso.ryoku.dev/stable/ryoku-release-key.pub.asc | gpg --import
 
 # Confirm fingerprint matches the one above
 gpg --fingerprint releases@ryoku.dev

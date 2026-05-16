@@ -37,13 +37,13 @@ sig="$iso.sig"
 printf 'fake iso bytes\n' >"$iso"
 printf 'fake signature bytes\n' >"$sig"
 
-RYOKU_ISO_CHANNEL=main \
+RYOKU_ISO_CHANNEL=stable \
 RYOKU_ISO_TRACKING_ID=r99-deadbee \
 RYOKU_ISO_COMMIT=deadbeefcafebabefeedface1234567890abcdef \
 RYOKU_ISO_RUN_ID=123456 \
 RYOKU_ISO_RUN_NUMBER=99 \
 RYOKU_ISO_RUN_URL=https://github.com/neur0map/ryoku-arch/actions/runs/123456 \
-RYOKU_ISO_PUBLIC_BASE=https://iso.ryoku.dev/main \
+RYOKU_ISO_PUBLIC_BASE=https://iso.ryoku.dev/stable \
   "$ROOT_DIR/iso/bin/ryoku-iso-manifest" "$iso"
 
 manifest="$iso.json"
@@ -62,8 +62,9 @@ sig_sha=$(sha256sum "$sig" | awk '{print $1}')
 
 rg -q '"tracking_id": "r99-deadbee"' "$manifest" || fail "manifest should include tracking_id"
 rg -q '"iso": "ryoku-2026.05.11-r99-deadbee-x86_64-main.iso"' "$manifest" || fail "manifest should include tracked ISO filename"
-rg -q '"url": "https://iso.ryoku.dev/main/ryoku-2026.05.11-r99-deadbee-x86_64-main.iso"' "$manifest" || fail "manifest should include public ISO URL"
-rg -q '"latest_script": "https://iso.ryoku.dev/main/latest.js"' "$manifest" || fail "manifest should include latest.js URL"
+rg -q '"channel": "stable"' "$manifest" || fail "manifest should include public release channel"
+rg -q '"url": "https://iso.ryoku.dev/stable/ryoku-2026.05.11-r99-deadbee-x86_64-main.iso"' "$manifest" || fail "manifest should include public ISO URL"
+rg -q '"latest_script": "https://iso.ryoku.dev/stable/latest.js"' "$manifest" || fail "manifest should include latest.js URL"
 rg -q "\"iso\": \"$iso_sha\"" "$manifest" || fail "manifest should include ISO sha256"
 rg -q "\"signature\": \"$sig_sha\"" "$manifest" || fail "manifest should include signature sha256"
 
@@ -75,6 +76,16 @@ assert_contains '.github/workflows/build-iso.yml' 'latest\.json' \
   "workflow should upload latest.json to R2"
 assert_contains '.github/workflows/build-iso.yml' 'latest\.js' \
   "workflow should upload latest.js to R2 for the static website"
+assert_contains '.github/workflows/build-iso.yml' 'PUBLIC_CHANNEL: stable' \
+  "workflow should publish public ISO metadata under the stable R2 prefix"
+assert_contains '.github/workflows/build-iso.yml' 'RYOKU_ISO_CHANNEL=\$PUBLIC_CHANNEL' \
+  "workflow should write stable as the public manifest channel"
+assert_contains '.github/workflows/build-iso.yml' 'RYOKU_ISO_PUBLIC_BASE="https://iso\.ryoku\.dev/\$\{PUBLIC_CHANNEL\}"' \
+  "workflow should generate public ISO URLs under the stable R2 prefix"
+assert_contains '.github/workflows/build-iso.yml' 'latest_url="https://iso\.ryoku\.dev/\$\{PUBLIC_CHANNEL\}/latest\.json"' \
+  "workflow should read previous release metadata from the stable R2 prefix"
+assert_contains '.github/workflows/build-iso.yml' 'dest="\$\{R2_BUCKET:-ryoku/\$PUBLIC_CHANNEL\}"' \
+  "workflow should upload ISO artifacts to the stable R2 prefix by default"
 assert_contains '.github/workflows/build-iso.yml' 'security-events: write' \
   "workflow should be able to upload ISO Trivy SARIF to code scanning"
 assert_contains '.github/workflows/build-iso.yml' 'Mount ISO live root for Trivy' \

@@ -13,7 +13,7 @@ Ryoku is an opinionated Arch desktop built around Niri and Quickshell. A daily-d
 [![Niri](https://img.shields.io/badge/Niri-58E1C2?style=for-the-badge&logoColor=white)](https://github.com/YaLTeR/niri)
 [![Status: public preview](https://img.shields.io/badge/status-public_preview-F25623?style=for-the-badge)](#status)
 [![Build ISO](https://github.com/neur0map/ryoku-arch/actions/workflows/build-iso.yml/badge.svg)](https://github.com/neur0map/ryoku-arch/actions/workflows/build-iso.yml)
-[![Latest ISO](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fiso.ryoku.dev%2Fmain%2Flatest.json&query=%24.tracking_id&label=latest%20ISO&color=F25623&style=for-the-badge)](https://ryoku.dev)
+[![Latest ISO](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fiso.ryoku.dev%2Fstable%2Flatest.json&query=%24.tracking_id&label=latest%20ISO&color=F25623&style=for-the-badge)](https://ryoku.dev)
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/8KjBmUEyKA)
 [![Reddit](https://img.shields.io/badge/Reddit-r%2FRyokuArch-FF4500?style=for-the-badge&logo=reddit&logoColor=white)](https://www.reddit.com/r/RyokuArch/)
 
@@ -62,22 +62,22 @@ The Niri source transition has landed. Boot verification across the hardware mat
 
 | Question | Answer |
 |---|---|
-| Is the ISO downloadable? | Yes, signed alpha builds at `https://iso.ryoku.dev/main/`. See [Download and verify](#download-and-verify) below. |
+| Is the ISO downloadable? | Yes, signed alpha builds at `https://iso.ryoku.dev/stable/`. See [Download and verify](#download-and-verify) below. |
 | NVIDIA, hybrid, AMD, Apple Silicon? | All targeted. Working hardware list and driver matrix in [`docs/iso-build-recipe.md`](docs/iso-build-recipe.md). |
 | Does it bundle every pentest tool? | No. A curated track is being assembled; opt-in metas planned. Out of the box you get the desktop, not the toolbox. |
 | Secure Boot? | Roadmap. Not automatic yet. |
-| Stability vs. rolling Arch? | Rolling. There is one public update and ISO path: `main`. |
+| Stability vs. rolling Arch? | Rolling. The installed update track is `main`; public ISO downloads are served from `stable`. |
 
 ## Download and verify
 
-Signed alpha builds are published at `https://iso.ryoku.dev/main/`:
+Signed alpha builds are published at `https://iso.ryoku.dev/stable/`:
 
 | File | URL |
 |---|---|
-| ISO | `https://iso.ryoku.dev/main/ryoku-<date>-<tracking-id>-x86_64-main.iso` |
-| Signature | `https://iso.ryoku.dev/main/ryoku-<date>-<tracking-id>-x86_64-main.iso.sig` |
-| SHA256 | `https://iso.ryoku.dev/main/ryoku-<date>-<tracking-id>-x86_64-main.iso.sha256` |
-| Public key | `https://iso.ryoku.dev/main/ryoku-release-key.pub.asc` |
+| ISO | `https://iso.ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso` |
+| Signature | `https://iso.ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso.sig` |
+| SHA256 | `https://iso.ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso.sha256` |
+| Public key | `https://iso.ryoku.dev/stable/ryoku-release-key.pub.asc` |
 
 Releases are signed with:
 
