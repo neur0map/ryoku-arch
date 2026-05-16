@@ -114,6 +114,10 @@ assert_iso_aur_overlay_retries_clones() {
     fail "ISO AUR overlay builder should discover AUR files through cgit tree"
   grep -Eq 'plain/\$file_path\?h=\$\{pkg\}' "$script" || \
     fail "ISO AUR overlay builder should fetch AUR files through cgit plain"
+  grep -Eq 'aur_fetch_plain_file "\$pkg" "\$work_dir" "PKGBUILD" "required"' "$script" || \
+    fail "ISO AUR overlay builder should fetch PKGBUILD before optional metadata"
+  grep -Eq '\.SRCINFO.*\.gitignore' "$script" || \
+    fail "ISO AUR overlay builder should tolerate optional AUR metadata fetch failures"
   grep -Eq 'git clone of \$pkg from AUR failed' "$script" || \
     fail "ISO AUR overlay builder should explain retrying AUR clone failures"
   grep -Eq 'failed after 5 attempts' "$script" || \
