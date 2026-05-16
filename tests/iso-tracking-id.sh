@@ -79,6 +79,14 @@ assert_contains '.github/workflows/build-iso.yml' 'security-events: write' \
   "workflow should be able to upload ISO Trivy SARIF to code scanning"
 assert_contains '.github/workflows/build-iso.yml' 'Mount ISO live root for Trivy' \
   "workflow should mount the built ISO root filesystem before release"
+assert_contains '.github/workflows/build-iso.yml' 'RYOKU_TRIVY_ROOTFS_MOUNT=\$rootfs_mount' \
+  "workflow should keep the read-only SquashFS mount separate from the Trivy scan tree"
+assert_contains '.github/workflows/build-iso.yml' 'RYOKU_TRIVY_ROOTFS=\$rootfs_scan' \
+  "workflow should point Trivy at a readable rootfs copy"
+assert_contains '.github/workflows/build-iso.yml' 'sudo rsync -aH --numeric-ids "\$rootfs_mount/" "\$rootfs_scan/"' \
+  "workflow should copy the mounted live root before scanning"
+assert_contains '.github/workflows/build-iso.yml' 'sudo chmod -R u\+rwX,go\+rX "\$rootfs_scan"' \
+  "workflow should make the Trivy scan copy readable to the non-root action process"
 assert_contains '.github/workflows/build-iso.yml' 'scan-type: rootfs' \
   "workflow should scan the built live root filesystem, not just source files"
 assert_contains '.github/workflows/build-iso.yml' 'trivy-iso-results\.sarif' \

@@ -99,11 +99,13 @@ jobs:
 
           iso="${{ steps.iso.outputs.path }}"
           iso_mount="$RUNNER_TEMP/ryoku-iso-mount"
-          rootfs_mount="$RUNNER_TEMP/ryoku-iso-rootfs"
-          mkdir -p "$iso_mount" "$rootfs_mount"
+          rootfs_mount="$RUNNER_TEMP/ryoku-iso-rootfs-mount"
+          rootfs_scan="$RUNNER_TEMP/ryoku-iso-rootfs"
+          mkdir -p "$iso_mount" "$rootfs_mount" "$rootfs_scan"
           {
             echo "RYOKU_TRIVY_ISO_MOUNT=$iso_mount"
-            echo "RYOKU_TRIVY_ROOTFS=$rootfs_mount"
+            echo "RYOKU_TRIVY_ROOTFS_MOUNT=$rootfs_mount"
+            echo "RYOKU_TRIVY_ROOTFS=$rootfs_scan"
           } >> "$GITHUB_ENV"
 
           sudo mount -o loop,ro "$iso" "$iso_mount"
@@ -120,8 +122,10 @@ jobs:
           squashfs="${squashfs_candidates[0]}"
           sudo mount -o loop,ro "$squashfs" "$rootfs_mount"
           echo "RYOKU_TRIVY_SQUASHFS=$squashfs" >> "$GITHUB_ENV"
+          sudo rsync -aH --numeric-ids "$rootfs_mount/" "$rootfs_scan/"
+          sudo chmod -R u+rwX,go+rX "$rootfs_scan"
 
-          echo "::notice::Mounted $squashfs for Trivy rootfs scan."
+          echo "::notice::Prepared readable Trivy rootfs scan copy from $squashfs."
 
       - name: Generate ISO Trivy SARIF report
         uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
@@ -163,8 +167,12 @@ jobs:
         run: |
           set +e
 
+          if [[ -n ${RYOKU_TRIVY_ROOTFS_MOUNT:-} ]]; then
+            sudo umount "$RYOKU_TRIVY_ROOTFS_MOUNT" 2>/dev/null || true
+            sudo rm -rf "$RYOKU_TRIVY_ROOTFS_MOUNT"
+          fi
+
           if [[ -n ${RYOKU_TRIVY_ROOTFS:-} ]]; then
-            sudo umount "$RYOKU_TRIVY_ROOTFS" 2>/dev/null || true
             sudo rm -rf "$RYOKU_TRIVY_ROOTFS"
           fi
 
