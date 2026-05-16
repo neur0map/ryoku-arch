@@ -7,9 +7,11 @@ active_sddm_theme() {
   local file
   local key
   local line
+  local sddm_conf_dir="${RYOKU_SDDM_CONF_DIR:-/etc/sddm.conf.d}"
+  local sddm_conf_file="${RYOKU_SDDM_CONF_FILE:-/etc/sddm.conf}"
   local value
 
-  for file in /etc/sddm.conf /etc/sddm.conf.d/*.conf; do
+  for file in "$sddm_conf_file" "$sddm_conf_dir"/*.conf; do
     [[ -f $file ]] || continue
 
     while IFS= read -r line; do
@@ -60,7 +62,7 @@ has_qylock_session() {
     (( uid >= 1000 )) || continue
 
     home="$(home_for_uid "$uid")" || continue
-    [[ -d $home/.local/share/qylock/themes/$theme ]] || continue
+    [[ -f $home/.local/share/qylock/themes/$theme/Main.qml ]] || continue
 
     found=1
   done < <(loginctl list-sessions --no-legend 2>/dev/null || true)

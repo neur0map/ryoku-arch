@@ -41,6 +41,7 @@ assert_not_contains() {
 
 assert_executable bin/ryoku-lock-qylock
 bash -n bin/ryoku-lock-qylock || fail "ryoku-lock-qylock has a syntax error"
+assert_executable tests/qylock-lock-helper-behavior.sh
 
 assert_contains bin/ryoku-lock-qylock '\.local/share/quickshell-lockscreen/lock\.sh' \
   "qylock lock helper should execute qylock's Quickshell lockscreen"
@@ -52,6 +53,8 @@ assert_contains bin/ryoku-lock-qylock '/etc/sddm\.conf' \
   "qylock lock helper should use the Settings-selected SDDM theme as the lockscreen selector"
 assert_contains bin/ryoku-lock-qylock 'QYLOCK_DIR.*/themes/.theme' \
   "qylock lock helper should use qylock only when the active theme belongs to qylock"
+assert_contains bin/ryoku-lock-qylock 'QYLOCK_DIR.*/themes/.theme/Main\.qml' \
+  "qylock lock helper should only use qylock themes that have a Main.qml entrypoint"
 assert_contains bin/ryoku-lock-qylock 'QYLOCK_LOCK_SCRIPT.*.theme' \
   "qylock lock helper should pass the selected theme to qylock instead of relying on a side config"
 assert_contains bin/ryoku-lock-qylock 'exec "\$QYLOCK_LOCK_SCRIPT" "\$theme"' \
@@ -99,6 +102,8 @@ assert_contains default/systemd/system-sleep/ryoku-qylock-prelock '/etc/sddm\.co
   "qylock pre-sleep hook should use the Settings-selected SDDM theme"
 assert_contains default/systemd/system-sleep/ryoku-qylock-prelock '\.local/share/qylock/themes' \
   "qylock pre-sleep hook should only delay sleep when the active theme belongs to qylock"
+assert_contains default/systemd/system-sleep/ryoku-qylock-prelock '\.local/share/qylock/themes/.theme/Main\.qml' \
+  "qylock pre-sleep hook should not delay suspend for invalid qylock parent directories"
 assert_contains default/systemd/system-sleep/ryoku-qylock-prelock 'loginctl list-sessions' \
   "qylock pre-sleep hook should inspect active sessions before delaying suspend"
 assert_not_contains default/systemd/system-sleep/ryoku-qylock-prelock 'loginctl lock-session' \
@@ -118,5 +123,8 @@ assert_contains install/config/session-recover.sh 'ryoku-qylock-prelock' \
 # leaves niri rendering its lock-surface-lost magenta backdrop with no input.
 assert_contains shell/scripts/ryoku-shell 'quickshell-lockscreen' \
   "cleanup_orphans must skip the qylock session-lock client by cmdline match"
+
+tests/qylock-lock-helper-behavior.sh >/dev/null \
+  || fail "qylock lock helper behavior regression"
 
 echo "PASS: tests/qylock-lockscreen.sh"

@@ -106,9 +106,11 @@ refresh_qylock_previews() {
 
 read_active_sddm_theme() {
   local current="" file value
+  local sddm_conf_dir="${RYOKU_SDDM_CONF_DIR:-/etc/sddm.conf.d}"
+  local sddm_conf_file="${RYOKU_SDDM_CONF_FILE:-/etc/sddm.conf}"
 
   shopt -s nullglob
-  for file in /etc/sddm.conf /etc/sddm.conf.d/*.conf; do
+  for file in "$sddm_conf_file" "$sddm_conf_dir"/*.conf; do
     [[ -f $file ]] || continue
     value=$(awk -F= '
       /^[[:space:]]*Current[[:space:]]*=/ {
@@ -123,14 +125,34 @@ read_active_sddm_theme() {
   printf '%s\n' "$current"
 }
 
+valid_qylock_theme() {
+  local selected_theme="$1"
+
+  [[ $selected_theme =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || return 1
+  [[ -f $QYLOCK_DIR/themes/$selected_theme/Main.qml ]]
+}
+
+list_valid_qylock_themes() {
+  local candidate_dir candidate
+
+  shopt -s nullglob
+  for candidate_dir in "$QYLOCK_DIR"/themes/*/; do
+    [[ -d $candidate_dir ]] || continue
+    candidate=$(basename "$candidate_dir")
+    valid_qylock_theme "$candidate" || continue
+    printf '%s\n' "$candidate"
+  done
+}
+
 install_system_theme() {
   local selected_theme="$1"
   local src="$QYLOCK_DIR/themes/$selected_theme"
 
-  if [[ ! -d $src ]]; then
-    echo "  theme '$selected_theme' not found under $QYLOCK_DIR/themes" >&2
+  if ! valid_qylock_theme "$selected_theme"; then
+    echo "  theme '$selected_theme' is not a usable qylock theme under $QYLOCK_DIR/themes" >&2
+    echo "  qylock themes must be top-level directories containing Main.qml" >&2
     echo "  available:" >&2
-    (cd "$QYLOCK_DIR/themes" && ls -1 | sed 's/^/    /') >&2
+    list_valid_qylock_themes | sed 's/^/    /' >&2
     exit 1
   fi
 
@@ -152,14 +174,14 @@ fi
 
 if [[ $mode == "--default" ]]; then
   current_theme=$(read_active_sddm_theme)
-  if [[ -n $current_theme && -d $QYLOCK_DIR/themes/$current_theme ]]; then
+  if [[ -n $current_theme ]] && valid_qylock_theme "$current_theme"; then
     echo "  qylock theme already active: $current_theme (keeping)"
     ensure_current="$current_theme"
     install_system_theme "$current_theme"
   else
     for candidate_dir in /usr/share/sddm/themes/*/; do
       candidate=$(basename "$candidate_dir")
-      if [[ -d $QYLOCK_DIR/themes/$candidate ]]; then
+      if valid_qylock_theme "$candidate"; then
         echo "  qylock theme already installed: $candidate (keeping)"
         ensure_current="$candidate"
         install_system_theme "$candidate"

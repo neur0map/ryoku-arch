@@ -74,9 +74,11 @@ fi
 
 read_active_sddm_theme() {
   local current="" file value
+  local sddm_conf_dir="${RYOKU_SDDM_CONF_DIR:-/etc/sddm.conf.d}"
+  local sddm_conf_file="${RYOKU_SDDM_CONF_FILE:-/etc/sddm.conf}"
 
   shopt -s nullglob
-  for file in /etc/sddm.conf /etc/sddm.conf.d/*.conf; do
+  for file in "$sddm_conf_file" "$sddm_conf_dir"/*.conf; do
     [[ -f $file ]] || continue
     value=$(awk -F= '
       /^[[:space:]]*Current[[:space:]]*=/ {
@@ -97,6 +99,10 @@ if [[ -z $theme || ! $theme =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
 fi
 
 if [[ ! -d $QYLOCK_DIR/themes/$theme ]]; then
+  fallback_hyprlock
+fi
+
+if [[ ! -f $QYLOCK_DIR/themes/$theme/Main.qml ]]; then
   fallback_hyprlock
 fi
 
