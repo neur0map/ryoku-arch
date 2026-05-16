@@ -67,6 +67,28 @@ sudo -u builder rustup default stable
 chown builder:builder "$build_root"
 chown builder:builder "$output_dir"
 
+aur_clone() {
+  local pkg="$1"
+  local work_dir="$2"
+  local attempt
+
+  for attempt in {1..3}; do
+    if sudo -u builder git clone --depth=1 "https://aur.archlinux.org/${pkg}.git" "$work_dir"; then
+      return 0
+    fi
+
+    rm -rf "$work_dir"
+
+    if (( attempt < 3 )); then
+      echo "git clone of $pkg from AUR failed (attempt $attempt/3), retrying in 5s..." >&2
+      sleep 5
+    fi
+  done
+
+  echo "git clone of $pkg from AUR failed after 3 attempts." >&2
+  return 1
+}
+
 # Concatenate all manifests; skip blank lines and comments so each
 # manifest can carry inline documentation without each comment being
 # treated as a package name to clone from AUR. Dedupe so a package
@@ -82,7 +104,7 @@ while IFS= read -r pkg; do
 
   work_dir="$build_root/$pkg"
 
-  sudo -u builder git clone --depth=1 "https://aur.archlinux.org/${pkg}.git" "$work_dir"
+  aur_clone "$pkg" "$work_dir"
   pushd "$work_dir" >/dev/null
   # --skippgpcheck: some AUR packages (1password, etc.) sign source
   # tarballs with vendor PGP keys that aren't trusted in the empty build
