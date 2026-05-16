@@ -30,7 +30,7 @@ sudo -u builder git -c http.version=HTTP/1.1 clone \
   https://github.com/charmbracelet/gum.git \
   "$src_dir"
 
-commit_sha="$(git -C "$src_dir" rev-parse HEAD)"
+commit_sha="$(sudo -u builder git -C "$src_dir" rev-parse HEAD)"
 
 cat > "$pkgbuild_dir/PKGBUILD" <<PKGBUILD
 pkgname=gum
@@ -66,8 +66,10 @@ PKGBUILD
 
 chown -R builder:builder "$pkgbuild_dir"
 
+pushd "$pkgbuild_dir" >/dev/null
 sudo -u builder env PKGDEST="$output_dir" makepkg \
   --clean \
   --cleanbuild \
   --force \
   --noconfirm
+popd >/dev/null
