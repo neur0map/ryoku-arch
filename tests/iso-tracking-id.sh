@@ -87,6 +87,16 @@ assert_contains '.github/workflows/build-iso.yml' 'sudo rsync -aH --numeric-ids 
   "workflow should copy the mounted live root before scanning"
 assert_contains '.github/workflows/build-iso.yml' 'sudo chmod -R u\+rwX,go\+rX "\$rootfs_scan"' \
   "workflow should make the Trivy scan copy readable to the non-root action process"
+assert_contains 'iso/builder/build-iso.sh' 'build-gum-package\.sh' \
+  "ISO builder should rebuild gum with the current Go toolchain before scanning"
+assert_contains 'iso/builder/build-iso.sh' 'rebuilt_official_packages=\(gum\)' \
+  "ISO builder should avoid downloading the stale official gum package"
+assert_contains 'iso/builder/build-gum-package.sh' 'CVE-2025-68121' \
+  "gum rebuild script should document the Trivy blocker it fixes"
+assert_contains 'iso/builder/build-gum-package.sh' 'http\.version=HTTP/1\.1' \
+  "gum rebuild script should use the hardened git transport"
+assert_contains 'iso/builder/build-gum-package.sh' 'go build' \
+  "gum rebuild script should compile gum from source"
 assert_contains '.github/workflows/build-iso.yml' 'scan-type: rootfs' \
   "workflow should scan the built live root filesystem, not just source files"
 assert_contains '.github/workflows/build-iso.yml' 'trivy-iso-results\.sarif' \

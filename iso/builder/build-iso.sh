@@ -5,7 +5,7 @@ set -e
 # Note that these are packages installed to the Arch container used to build the ISO.
 pacman-key --init
 pacman --noconfirm -Sy archlinux-keyring
-pacman --noconfirm -Sy archiso git sudo base-devel jq grub uv neovim cairo gobject-introspection glib2 pkgconf
+pacman --noconfirm -Sy archiso git sudo base-devel go jq grub uv neovim cairo gobject-introspection glib2 pkgconf
 
 # We do not yet ship a custom [ryoku] pacman repo / keyring (omarchy
 # parity item, but signing infrastructure is out of scope right now).
@@ -187,6 +187,8 @@ mapfile -t overlay_packages < <(
   "$aur_default_manifest" \
   "$offline_mirror_dir"
 
+/bin/bash /builder/build-gum-package.sh "$offline_mirror_dir"
+
 # Build list of all the packages needed for the offline mirror.
 # ryoku-base.packages is what every install pacstraps; ryoku-other.packages
 # is what conditional hardware scripts (vulkan.sh, nvidia.sh,
@@ -205,14 +207,21 @@ mapfile -t all_packages < <(
   } | awk 'NF { print }'
 )
 
-# Drop AUR-overlay packages from the official-mirror download list so
-# pacman doesn't try to fetch them from the Arch CDN (they live in AUR
-# and were just makepkg'd into the offline mirror above).
+# Drop AUR-overlay packages and locally rebuilt official packages from
+# the official-mirror download list so pacman doesn't overwrite packages
+# that were just makepkg'd into the offline mirror above.
+rebuilt_official_packages=(gum)
 official_packages=()
 for pkg in "${all_packages[@]}"; do
   skip=0
   for overlay_pkg in "${overlay_packages[@]}"; do
     if [[ $pkg == "$overlay_pkg" ]]; then
+      skip=1
+      break
+    fi
+  done
+  for rebuilt_pkg in "${rebuilt_official_packages[@]}"; do
+    if [[ $pkg == "$rebuilt_pkg" ]]; then
       skip=1
       break
     fi
