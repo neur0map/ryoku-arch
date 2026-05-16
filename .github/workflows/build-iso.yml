@@ -26,6 +26,7 @@ jobs:
     timeout-minutes: 120
     env:
       CHANNEL: main
+      PUBLIC_CHANNEL: stable
       RELEASE_STAGE: ${{ github.event.inputs.release_stage || 'alpha' }}
     steps:
       - name: Checkout
@@ -46,7 +47,7 @@ jobs:
             echo "RYOKU_ISO_RUN_ID=$GITHUB_RUN_ID"
             echo "RYOKU_ISO_RUN_NUMBER=$GITHUB_RUN_NUMBER"
             echo "RYOKU_ISO_RUN_URL=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-            echo "RYOKU_ISO_CHANNEL=$CHANNEL"
+            echo "RYOKU_ISO_CHANNEL=$PUBLIC_CHANNEL"
             echo "RYOKU_ISO_BUILD_DATE=$build_date"
             echo "RYOKU_ISO_BUILD_SHA=$GITHUB_SHA"
             echo "RYOKU_ISO_BUILD_URL=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
@@ -220,13 +221,13 @@ jobs:
       - name: Generate release manifest
         run: |
           iso="${{ steps.iso.outputs.path }}"
-          RYOKU_ISO_PUBLIC_BASE="https://iso.ryoku.dev/${CHANNEL}" ./iso/bin/ryoku-iso-manifest "$iso"
+          RYOKU_ISO_PUBLIC_BASE="https://iso.ryoku.dev/${PUBLIC_CHANNEL}" ./iso/bin/ryoku-iso-manifest "$iso"
           cat "$iso.json"
 
       - name: Capture previous ISO release
         id: previous_iso
         run: |
-          latest_url="https://iso.ryoku.dev/${CHANNEL}/latest.json"
+          latest_url="https://iso.ryoku.dev/${PUBLIC_CHANNEL}/latest.json"
           latest_json="$(mktemp)"
 
           if curl -fsSL --retry 3 --retry-delay 2 "$latest_url" -o "$latest_json"; then
@@ -266,10 +267,9 @@ jobs:
 
           # R2_BUCKET secret can be either a plain bucket name (e.g.
           # "ryoku-iso") or a path-style "bucket/prefix"
-          # (e.g. "ryoku-iso/${CHANNEL}"). If unset, default to
-          # "ryoku/${CHANNEL}" to match iso/bin/ryoku-iso-upload's
-          # historical layout.
-          dest="${R2_BUCKET:-ryoku/$CHANNEL}"
+          # (e.g. "ryoku-iso/${PUBLIC_CHANNEL}"). If unset, default to
+          # "ryoku/${PUBLIC_CHANNEL}" to match iso.ryoku.dev/stable.
+          dest="${R2_BUCKET:-ryoku/$PUBLIC_CHANNEL}"
 
           iso="${{ steps.iso.outputs.path }}"
           pubkey="$(dirname "$iso")/ryoku-release-key.pub.asc"
@@ -291,7 +291,7 @@ jobs:
       - name: Upload artifacts to workflow run
         uses: actions/upload-artifact@v4
         with:
-          name: ryoku-iso-${{ env.CHANNEL }}
+          name: ryoku-iso-${{ env.PUBLIC_CHANNEL }}
           path: |
             iso/release/*.iso
             iso/release/*.sig

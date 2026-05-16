@@ -12,7 +12,8 @@ GitHub-hosted `ubuntu-latest` runner:
 1. Checkout (full history so `.git` ships into the ISO via `--local-source`)
 2. Prepare a support tracking ID (`r<run-number>-<short-sha>`) and pass it
    into the ISO build. The live image also gets `/etc/ryoku-iso-release`
-   with the same ID, commit, run URL, `main` channel, and build timestamp.
+   with the same ID, commit, run URL, installer channel `main`, and build
+   timestamp.
 3. Verify required secrets are present, fail with a clear message if not
 4. Free disk space on the runner (strip preinstalled toolchains we do not use)
 5. Build the ISO via `iso/bin/ryoku-iso-make --local-source --no-boot-offer`
@@ -22,7 +23,7 @@ GitHub-hosted `ubuntu-latest` runner:
 7. Sign the ISO with the GPG key from `GPG_PRIVATE_KEY` secret, then export
    the public key as `ryoku-release-key.pub.asc` so testers can verify
 8. Generate `<iso>.sha256` containing the iso + sig hashes
-9. Generate `<iso>.json`, `<iso>.js`, and `main`-level `latest.json` /
+9. Generate `<iso>.json`, `<iso>.js`, and `stable`-level `latest.json` /
    `latest.js` release manifests
 10. Upload the ISO, signature, checksum, manifests, and public key to
    Cloudflare R2 via rclone
@@ -31,8 +32,8 @@ GitHub-hosted `ubuntu-latest` runner:
 
 ## Triggers
 
-- `workflow_dispatch` (manual). Pick the public release stage (`alpha`, `beta`, `stable`). All builds publish under the `main` download path.
-- Pushing a `v*` tag (e.g. `v0.1.0`). Builds and publishes the same `main` download path.
+- `workflow_dispatch` (manual). Pick the public release stage (`alpha`, `beta`, `stable`). All builds publish under the `stable` download path.
+- Pushing a `v*` tag (e.g. `v0.1.0`). Builds and publishes the same `stable` download path.
 
 ## GitHub Secrets the workflow needs
 
@@ -43,14 +44,14 @@ Configure under **Settings -> Secrets and variables -> Actions** in the repo.
 | `R2_ACCESS_KEY_ID` | yes | Cloudflare R2 API token, access key ID |
 | `R2_SECRET_ACCESS_KEY` | yes | Cloudflare R2 API token, secret access key |
 | `R2_ENDPOINT` | yes | Account-scoped R2 endpoint, e.g. `https://<account>.r2.cloudflarestorage.com` |
-| `R2_BUCKET` | optional | Bucket + prefix to upload into. Defaults to `ryoku/main`. Set to e.g. `ryoku-iso/main` if you use a different bucket name. |
+| `R2_BUCKET` | optional | Bucket + prefix to upload into. Defaults to `ryoku/stable`. Set to e.g. `ryoku-iso/stable` if you use a different bucket name. |
 | `GPG_PRIVATE_KEY` | yes | Armored private GPG signing key, full block including `-----BEGIN PGP PRIVATE KEY BLOCK-----` and `-----END PGP PRIVATE KEY BLOCK-----` |
 | `GPG_PASSPHRASE` | optional | Passphrase for the GPG key, omit if the key has no passphrase |
 | `DISCORD_ISO_WEBHOOK_URL` | optional | Discord webhook for public ISO release announcements. If unset, the ISO still builds and uploads, but no Discord message is sent. |
 
 ## Setting up Cloudflare R2
 
-1. Cloudflare dashboard -> R2 -> Create bucket. Name it whatever (the workflow defaults to `ryoku/main` as the upload path; if your bucket is also named `ryoku` you do not need to set `R2_BUCKET`).
+1. Cloudflare dashboard -> R2 -> Create bucket. Name it whatever (the workflow defaults to `ryoku/stable` as the upload path; if your bucket is also named `ryoku` you do not need to set `R2_BUCKET`).
 2. R2 -> Manage R2 API Tokens -> Create token. Permission: "Object Read & Write" on this bucket only. Copy the access key ID + secret access key when shown (they are not shown again).
 3. From the bucket detail page, copy the S3-compatible endpoint URL: `https://<account>.r2.cloudflarestorage.com`.
 4. Bucket settings -> Public Access -> enable the `r2.dev` subdomain (development only, rate-limited) OR connect a custom domain (recommended for production). Ryoku uses the custom domain `iso.ryoku.dev` connected via Cloudflare DNS.
@@ -131,7 +132,7 @@ previous manifest exists, it falls back to the latest five commits on `main`.
 After a successful run, the bucket has:
 
 ```
-ryoku/main/
+ryoku/stable/
 ├── latest.json
 ├── latest.js
 ├── ryoku-2026.05.11-r12-9019b9b-x86_64-main.iso
@@ -150,14 +151,14 @@ Public download URLs (served through Cloudflare CDN via the
 `iso.ryoku.dev` custom domain):
 
 ```
-https://iso.ryoku.dev/main/latest.json
-https://iso.ryoku.dev/main/latest.js
-https://iso.ryoku.dev/main/ryoku-<date>-<tracking-id>-x86_64-main.iso
-https://iso.ryoku.dev/main/ryoku-<date>-<tracking-id>-x86_64-main.iso.sig
-https://iso.ryoku.dev/main/ryoku-<date>-<tracking-id>-x86_64-main.iso.sha256
-https://iso.ryoku.dev/main/ryoku-<date>-<tracking-id>-x86_64-main.iso.json
-https://iso.ryoku.dev/main/ryoku-<date>-<tracking-id>-x86_64-main.iso.js
-https://iso.ryoku.dev/main/ryoku-release-key.pub.asc
+https://iso.ryoku.dev/stable/latest.json
+https://iso.ryoku.dev/stable/latest.js
+https://iso.ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso
+https://iso.ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso.sig
+https://iso.ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso.sha256
+https://iso.ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso.json
+https://iso.ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso.js
+https://iso.ryoku.dev/stable/ryoku-release-key.pub.asc
 ```
 
 `latest.json` is the website source of truth. `latest.js` exposes the same
@@ -175,12 +176,12 @@ date.
 #   * R2 bucket alongside the ISO         (no GitHub access needed)
 #   * GitHub repo at keys/                (signed via tag history)
 iso=ryoku-2026.05.11-r12-9019b9b-x86_64-main.iso
-curl -LO https://iso.ryoku.dev/main/$iso
-curl -LO https://iso.ryoku.dev/main/$iso.sig
-curl -LO https://iso.ryoku.dev/main/$iso.sha256
-curl -LO https://iso.ryoku.dev/main/$iso.json
-curl -LO https://iso.ryoku.dev/main/$iso.js
-curl -LO https://iso.ryoku.dev/main/ryoku-release-key.pub.asc
+curl -LO https://iso.ryoku.dev/stable/$iso
+curl -LO https://iso.ryoku.dev/stable/$iso.sig
+curl -LO https://iso.ryoku.dev/stable/$iso.sha256
+curl -LO https://iso.ryoku.dev/stable/$iso.json
+curl -LO https://iso.ryoku.dev/stable/$iso.js
+curl -LO https://iso.ryoku.dev/stable/ryoku-release-key.pub.asc
 # OR, equivalently:
 # curl -LO https://raw.githubusercontent.com/neur0map/ryoku-arch/main/keys/ryoku-release-key.pub.asc
 
