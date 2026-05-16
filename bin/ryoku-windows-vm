@@ -1,4 +1,7 @@
 #!/bin/bash
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
 COMPOSE_FILE="$HOME/.config/windows/docker-compose.yml"
 
 check_prerequisites() {
@@ -50,7 +53,7 @@ install_windows() {
 [Desktop Entry]
 Name=Windows
 Comment=Start Windows VM via Docker and connect with RDP
-Exec=ryoku-windows-vm launch
+Exec="$RYOKU_PATH/bin/ryoku-windows-vm" launch
 Icon=$HOME/.local/share/applications/icons/windows.png
 Terminal=false
 Type=Application

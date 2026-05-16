@@ -52,7 +52,9 @@ install-icon:
 	@gtk-update-icon-cache -q $(SHAREDIR)/icons/hicolor 2>/dev/null || true
 
 install-desktop:
-	@install -Dm644 assets/applications/ryoku-shell.desktop $(APPLICATIONS_DIR)/ryoku-shell.desktop
+	@mkdir -p $(APPLICATIONS_DIR)
+	@sed 's|^Exec=.*|Exec=$(BINDIR)/ryoku-shell settings|' assets/applications/ryoku-shell.desktop > $(APPLICATIONS_DIR)/ryoku-shell.desktop
+	@chmod 644 $(APPLICATIONS_DIR)/ryoku-shell.desktop
 	@update-desktop-database -q $(APPLICATIONS_DIR) 2>/dev/null || true
 
 install-docs:

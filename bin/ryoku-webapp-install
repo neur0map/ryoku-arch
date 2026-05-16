@@ -61,7 +61,14 @@ else
 fi
 
 # Use custom exec if provided, otherwise default behavior
-EXEC_COMMAND="${CUSTOM_EXEC:-ryoku-launch-webapp $APP_URL}"
+desktop_exec_quote() {
+  local value="$1"
+  value="${value//\\/\\\\}"
+  value="${value//\"/\\\"}"
+  printf '"%s"' "$value"
+}
+
+EXEC_COMMAND="${CUSTOM_EXEC:-$(desktop_exec_quote "$RYOKU_PATH/bin/ryoku-launch-webapp") $(desktop_exec_quote "$APP_URL")}"
 
 # Create application .desktop file
 DESKTOP_FILE="$HOME/.local/share/applications/$APP_NAME.desktop"
