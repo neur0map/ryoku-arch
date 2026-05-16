@@ -1,0 +1,213 @@
+#!/bin/bash
+
+set -euo pipefail
+
+ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+zero="0000000000000000000000000000000000000000"
+
+mode="origin-main"
+remote_name="origin"
+range_base=""
+range_head=""
+print_files=0
+explicit_files=()
+
+usage() {
+  cat <<USAGE
+Usage: ${0##*/} [options]
+
+Run the same ShellCheck policy used by GitHub Actions:
+  shellcheck -x -s bash --severity=warning
+
+Options:
+  --origin-main        Lint shell files changed from origin/main to HEAD (default)
+  --staged            Lint staged shell files
+  --all               Lint every tracked shell file
+  --range BASE HEAD   Lint shell files changed between two git refs
+  --push-stdin [REMOTE]
+                      Read git pre-push stdin and lint pushed shell changes
+  --files FILE...     Lint explicit file paths after applying CI shell-file filters
+  --print-files       Print selected files instead of running ShellCheck
+  -h, --help          Show this help
+USAGE
+}
+
+fail() {
+  echo "ryoku-dev-shellcheck-changed: $1" >&2
+  exit 1
+}
+
+while (( $# > 0 )); do
+  case "$1" in
+    --origin-main)
+      mode="origin-main"
+      shift
+      ;;
+    --staged)
+      mode="staged"
+      shift
+      ;;
+    --all)
+      mode="all"
+      shift
+      ;;
+    --range)
+      (( $# >= 3 )) || fail "--range requires BASE and HEAD"
+      mode="range"
+      range_base="$2"
+      range_head="$3"
+      shift 3
+      ;;
+    --push-stdin)
+      mode="push-stdin"
+      shift
+      if (( $# > 0 )) && [[ $1 != --* ]]; then
+        remote_name="$1"
+        shift
+      fi
+      ;;
+    --files)
+      mode="files"
+      shift
+      (( $# > 0 )) || fail "--files requires at least one path"
+      while (( $# > 0 )); do
+        explicit_files+=("$1")
+        shift
+      done
+      ;;
+    --print-files)
+      print_files=1
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      fail "unknown option: $1"
+      ;;
+  esac
+done
+
+cd "$ROOT_DIR"
+
+files="$(mktemp)"
+selected_files="$(mktemp)"
+trap 'rm -f "$files" "$selected_files"' EXIT
+
+is_shellcheck_target() {
+  local file="$1"
+
+  [[ -f $file ]] || return 1
+  [[ $file == shell/scripts/emoji/emoji-data.sh ]] && return 1
+
+  case "$file" in
+    *.sh|*.bash|bin/*|iso/bin/*|migrations/*)
+      return 0
+      ;;
+  esac
+
+  head -n 1 -- "$file" 2>/dev/null \
+    | grep -Eq '^#!.*(bash|dash|/sh|[[:space:]]sh)([[:space:]]|$)'
+}
+
+collect_from_path_stream() {
+  local file
+
+  while IFS= read -r -d '' file; do
+    if is_shellcheck_target "$file"; then
+      printf '%s\0' "$file" >>"$files"
+    fi
+  done
+}
+
+collect_from_diff() {
+  local base="$1"
+  local head="$2"
+
+  git diff --name-only --diff-filter=ACM -z "$base" "$head" \
+    | collect_from_path_stream
+}
+
+collect_from_origin_main() {
+  local base
+
+  if git rev-parse --verify --quiet origin/main >/dev/null; then
+    base="$(git merge-base origin/main HEAD 2>/dev/null || true)"
+    [[ -n $base ]] || base="origin/main"
+    collect_from_diff "$base" HEAD
+  else
+    git diff --name-only --diff-filter=ACM -z HEAD~1 HEAD \
+      | collect_from_path_stream
+  fi
+}
+
+collect_from_push_stdin() {
+  local local_ref local_sha _remote_ref remote_sha base
+
+  while read -r local_ref local_sha _remote_ref remote_sha; do
+    [[ -n ${local_ref:-} ]] || continue
+    [[ ${local_sha:-$zero} == "$zero" ]] && continue
+
+    if [[ ${remote_sha:-$zero} == "$zero" ]]; then
+      if git rev-parse --verify --quiet "$remote_name/main" >/dev/null; then
+        base="$(git merge-base "$remote_name/main" "$local_sha" 2>/dev/null || true)"
+        if [[ -n $base ]]; then
+          collect_from_diff "$base" "$local_sha"
+        else
+          git ls-files -z | collect_from_path_stream
+        fi
+      else
+        git ls-files -z | collect_from_path_stream
+      fi
+    else
+      collect_from_diff "$remote_sha" "$local_sha"
+    fi
+  done
+}
+
+case "$mode" in
+  origin-main)
+    collect_from_origin_main
+    ;;
+  staged)
+    git diff --cached --name-only --diff-filter=ACM -z | collect_from_path_stream
+    ;;
+  all)
+    git ls-files -z | collect_from_path_stream
+    ;;
+  range)
+    collect_from_diff "$range_base" "$range_head"
+    ;;
+  push-stdin)
+    collect_from_push_stdin
+    ;;
+  files)
+    printf '%s\0' "${explicit_files[@]}" | collect_from_path_stream
+    ;;
+  *)
+    fail "unsupported mode: $mode"
+    ;;
+esac
+
+sort -zu "$files" >"$selected_files"
+
+if [[ ! -s $selected_files ]]; then
+  echo "No shell files selected for ShellCheck."
+  exit 0
+fi
+
+if (( print_files )); then
+  tr '\0' '\n' <"$selected_files"
+  exit 0
+fi
+
+if ! command -v shellcheck >/dev/null 2>&1; then
+  fail "shellcheck is not installed; install it before pushing shell changes"
+fi
+
+echo "Files selected for ShellCheck:"
+tr '\0' '\n' <"$selected_files"
+echo ""
+
+xargs -0 shellcheck -x -s bash --severity=warning <"$selected_files"

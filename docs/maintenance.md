@@ -330,7 +330,7 @@ Ryoku Arch ships a set of git hooks that enforce the safety rules above mechanic
 
 - **commit-msg:** rejects a commit if its message contains authorship trailers, generated-content attribution phrases, or any em-dash (U+2014).
 - **pre-commit:** before the commit is recorded, scans staged text files for personal machine path leaks, scans staged text files (`.md`, `.txt`, `.sh`, config files, LICENSE, NOTICE, README, AGENTS.md) for em-dashes, and runs `bash -n` on staged shell scripts. Blocks the commit on any finding.
-- **pre-push:** refuses to push `upstream-dev` or `upstream-master` to `origin` (belt-and-suspenders on top of the `pushRemote=no_push` config), and blocks force-pushes to `main` that would rewrite published history.
+- **pre-push:** refuses to push `upstream-dev` or `upstream-master` to `origin` (belt-and-suspenders on top of the `pushRemote=no_push` config), blocks force-pushes to `main` that would rewrite published history, and runs the same changed-file ShellCheck policy used by GitHub Actions before shell changes leave the machine.
 
 ### Activation
 
@@ -363,6 +363,14 @@ To add a new check, edit the relevant hook file in `.githooks/`, commit, push. C
 ## CI checks
 
 `.github/workflows/shellcheck.yml` runs ShellCheck on shell files changed by a pull request or push to `main`. This keeps new shell changes linted without blocking the repo on historical ShellCheck debt. Maintainers can run the workflow manually with `scope = all` when doing a cleanup pass.
+
+Run the matching local check before pushing with:
+
+```bash
+bin/ryoku-dev-shellcheck-changed
+```
+
+The installed `pre-push` hook runs `bin/ryoku-dev-shellcheck-changed --push-stdin "$remote"` automatically so local pushes fail before GitHub Actions spends a run on the same ShellCheck finding.
 
 `.github/workflows/codeql.yml` runs CodeQL on GitHub Actions workflows, JavaScript/TypeScript, Python, and Go. It runs on pull requests, pushes to `main`, a weekly schedule, and manual dispatch. Shell remains covered by ShellCheck, not CodeQL.
 

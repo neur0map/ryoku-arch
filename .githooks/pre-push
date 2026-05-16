@@ -4,13 +4,17 @@
 # Safety net for pushes to origin.
 #   1. Blocks force-push to main (rewriting history that users pull from).
 #   2. Refuses pushes of upstream-tracking branches that carry pushRemote=no_push.
+#   3. Runs CI-equivalent ShellCheck on shell files included in the push.
 # Bypass with --no-verify or set RYOKU_ALLOW_FORCE_MAIN=1 to override intentionally.
 
-set -e
+set -euo pipefail
 
 remote="$1"
 
 zero='0000000000000000000000000000000000000000'
+repo_root="$(git rev-parse --show-toplevel)"
+push_updates="$(mktemp)"
+trap 'rm -f "$push_updates"' EXIT
 
 fail() {
   echo "" >&2
@@ -21,6 +25,8 @@ fail() {
 }
 
 while read -r local_ref local_sha remote_ref remote_sha; do
+  printf '%s %s %s %s\n' "$local_ref" "$local_sha" "$remote_ref" "$remote_sha" >>"$push_updates"
+
   # Skip deletions (local_sha is all zeros).
   [[ $local_sha == "$zero" ]] && continue
 
@@ -47,5 +53,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
       ;;
   esac
 done
+
+"$repo_root/bin/ryoku-dev-shellcheck-changed" --push-stdin "$remote" <"$push_updates"
 
 exit 0
