@@ -1,0 +1,7 @@
+// -----------------------------------------------------------------------------
+// 15 - Display outputs
+// -----------------------------------------------------------------------------
+//
+// Ryoku Settings writes the exact monitor mode selected by the user here.
+// This file starts empty because every machine has different displays.
+// Updates should not overwrite it after install.

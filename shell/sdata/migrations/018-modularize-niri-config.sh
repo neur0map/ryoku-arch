@@ -170,7 +170,7 @@ USER_EXTRA_TEMPLATE = """\
 //
 //   // Output config for your specific monitor
 //   output "DP-1" {
-//       mode "3440x1440@100.000"
+//       mode "WIDTHxHEIGHT@REFRESH"
 //       scale 1
 //       position x=0 y=0
 //   }

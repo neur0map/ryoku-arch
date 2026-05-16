@@ -94,14 +94,14 @@ cursor {
 //
 // /-output "eDP-1" {
 //     // off                           // Disable this output
-//     mode "1920x1080@60.000"          // WxH or WxH@Hz
+//     mode "WIDTHxHEIGHT@REFRESH"      // Use a mode listed by `niri msg outputs`
 //     scale 1                          // Integer or fractional (1.5 = 150%)
 //     transform "normal"               // normal|90|180|270|flipped|flipped-90…
 //     position x=0 y=0                 // Global coordinate space
 // }
 //
 // /-output "HDMI-A-1" {
-//     mode "2560x1440@144.000"
+//     mode "WIDTHxHEIGHT@REFRESH"
 //     scale 1
-//     position x=1920 y=0             // Place right of eDP-1
+//     position x=WIDTH y=0             // Place right of eDP-1
 // }
