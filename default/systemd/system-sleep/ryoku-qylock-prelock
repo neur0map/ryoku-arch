@@ -53,9 +53,9 @@ has_qylock_session() {
   local session
   local theme="$1"
   local uid
-  local user
+  local _user
 
-  while read -r session uid user rest; do
+  while read -r session uid _user rest; do
     [[ -n ${session:-} ]] || continue
     [[ -n ${uid:-} ]] || continue
     [[ $uid =~ ^[0-9]+$ ]] || continue

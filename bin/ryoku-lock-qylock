@@ -28,7 +28,8 @@ hydrate_graphical_env() {
   if [[ -z ${WAYLAND_DISPLAY:-} ]]; then
     for socket in "$runtime_dir"/wayland-*; do
       [[ -S $socket ]] || continue
-      export WAYLAND_DISPLAY="$(basename "$socket")"
+      WAYLAND_DISPLAY="$(basename "$socket")"
+      export WAYLAND_DISPLAY
       break
     done
   fi
