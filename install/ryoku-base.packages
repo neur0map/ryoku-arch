@@ -58,6 +58,7 @@ dotnet-runtime-9.0
 github-cli
 llvm
 luarocks
+nodejs
 python-gobject
 python-poetry-core
 ruby

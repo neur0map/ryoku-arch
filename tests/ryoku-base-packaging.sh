@@ -12,6 +12,9 @@ fail() {
 grep -qxF dosfstools "$ROOT_DIR/install/ryoku-base.packages" || \
   fail "Ryoku base packages should include dosfstools for FAT EFI boot recovery"
 
+grep -qxF nodejs "$ROOT_DIR/install/ryoku-base.packages" || \
+  fail "Ryoku base packages should include nodejs for shipped JavaScript tooling"
+
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 

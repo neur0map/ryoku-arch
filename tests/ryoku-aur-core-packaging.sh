@@ -9,6 +9,9 @@ fail() {
   exit 1
 }
 
+grep -qxF gpk-bin "$ROOT_DIR/install/ryoku-aur.packages" || \
+  fail "Ryoku AUR packages should include gpk-bin for GlazePKG"
+
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 
