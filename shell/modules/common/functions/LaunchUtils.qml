@@ -25,22 +25,24 @@ Singleton {
     // Launch a Quickshell DesktopEntry, correctly honoring Terminal=true.
     // Quickshell's DesktopEntry.execute() runs the binary without a PTY, so
     // entries like nvim/btop/htop/nvtop/wiremix fail silently when invoked
-    // that way. gtk-launch parses the .desktop file itself and spawns a
-    // terminal when Terminal=true; we fall back to a manual terminal wrap if
-    // the entry has no usable id (rare for system-installed apps).
+    // that way. For Terminal=true entries we run the parsed argv inside the
+    // user's configured terminal directly, because gtk-launch's own terminal
+    // detection only knows gnome-terminal/xterm/dtterm/nxterm + an optional
+    // xdg-terminal-exec helper that ryoku doesn't ship — verified to spawn
+    // nothing on a clean install. For everything else we prefer gtk-launch
+    // (handles Exec field codes, OnlyShowIn, etc.).
     function launchDesktopEntry(entry) {
         if (!entry) return false
-        const rawId = String(entry.id ?? "").trim()
-        const id = root.normalizeDesktopId(rawId)
-        if (id.length > 0) {
-            return root.launchByDesktopId(id)
-        }
         if (entry.runInTerminal) {
-            const terminal = Config.options?.apps?.terminal ?? "/usr/bin/kitty"
-            const cmd = (entry.command ?? []).join(" ")
-            Quickshell.execDetached(["/usr/bin/bash", "-c", `${terminal} -e '${cmd}'`])
-            return true
+            const terminal = Config.options?.apps?.terminal ?? "kitty"
+            const cmdArgv = entry.command ?? []
+            if (cmdArgv.length > 0) {
+                Quickshell.execDetached([terminal, "-e"].concat(cmdArgv))
+                return true
+            }
         }
+        const id = root.normalizeDesktopId(String(entry.id ?? "").trim())
+        if (id.length > 0) return root.launchByDesktopId(id)
         entry.execute()
         return true
     }
