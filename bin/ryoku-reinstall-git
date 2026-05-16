@@ -9,7 +9,7 @@ TARGET="$RYOKU_PATH"
 BACKUP="${RYOKU_PATH}-old"
 STAGING="${RYOKU_PATH}-new"
 
-git clone --depth=1 "https://github.com/neur0map/ryoku-arch.git" "$STAGING" >/dev/null
+git clone --depth=1 --branch main "https://github.com/neur0map/ryoku-arch.git" "$STAGING" >/dev/null
 rm -rf "$BACKUP"
 mv "$TARGET" "$BACKUP"
 mv "$STAGING" "$TARGET"

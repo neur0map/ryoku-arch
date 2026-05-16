@@ -5,14 +5,39 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 # Set the power profile to the requested level, falling back to balanced
 # if the requested profile isn't available on this machine.
 #
-# Usage: ryoku-powerprofiles-set <ac|battery>
+# Usage: ryoku-powerprofiles-set [autodetect|ac|battery]
+
+action="${1:-autodetect}"
+power_supply_dir="${RYOKU_POWER_SUPPLY_DIR:-/sys/class/power_supply}"
+
+detect_power_source() {
+  local online ps type
+
+  for ps in "$power_supply_dir"/*; do
+    [[ -r $ps/type && -r $ps/online ]] || continue
+    type=$(<"$ps/type")
+    [[ $type == "Mains" || $type == "USB" ]] || continue
+    online=$(<"$ps/online")
+    if [[ $online == "1" ]]; then
+      printf 'ac\n'
+      return 0
+    fi
+  done
+
+  printf 'battery\n'
+}
+
+if [[ -z $action || $action == "autodetect" ]]; then
+  action=$(detect_power_source)
+fi
 
 mapfile -t profiles < <(powerprofilesctl list | awk '/^\s*[* ]\s*[a-zA-Z0-9\-]+:$/ { gsub(/^[*[:space:]]+|:$/,""); print }')
+profiles_text=" ${profiles[*]} "
 
-case "$1" in
+case "$action" in
   ac)
     # Prefer performance, fall back to balanced
-    if [[ " ${profiles[*]} " == *" performance "* ]]; then
+    if [[ $profiles_text == *" performance "* ]]; then
       powerprofilesctl set performance
     else
       powerprofilesctl set balanced
