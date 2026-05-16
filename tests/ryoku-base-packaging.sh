@@ -9,6 +9,9 @@ fail() {
   exit 1
 }
 
+grep -qxF dosfstools "$ROOT_DIR/install/ryoku-base.packages" || \
+  fail "Ryoku base packages should include dosfstools for FAT EFI boot recovery"
+
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 
