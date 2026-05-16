@@ -338,6 +338,57 @@ check_repo_checkout_state() {
     fi
 }
 
+# Detects the "updater can't pull" bootstrap bug: REPO_ROOT (where setup
+# lives) is a subdirectory of the actual git toplevel, and the installed
+# setup predates the repo_has_git helper. Old setup hardcoded
+# [[ -d "${REPO_ROOT}/.git" ]] which fails silently, so ryoku-shell update
+# reports "Could not check for remote updates" on every run and never
+# actually pulls or redeploys. Auto-fix performs the one-time bootstrap.
+check_updater_bootstrap_health() {
+    local installed_strategy
+    installed_strategy="$(get_installed_update_strategy)"
+    if [[ "$installed_strategy" == "package-manager" ]]; then
+        doctor_pass "Updater bootstrap not applicable for package-managed installs"
+        return 0
+    fi
+
+    if ! repo_has_git; then
+        return 0
+    fi
+
+    local git_root
+    git_root="$(git -C "$REPO_ROOT" rev-parse --show-toplevel 2>/dev/null)"
+    if [[ -z "$git_root" ]]; then
+        return 0
+    fi
+
+    local versioning_file="$REPO_ROOT/sdata/lib/versioning.sh"
+    if [[ -f "$versioning_file" ]] && grep -q 'repo_has_git' "$versioning_file"; then
+        doctor_pass "Updater bootstrap up to date"
+        return 0
+    fi
+
+    doctor_fail "Updater bootstrap is broken on this install"
+    echo -e "    ${STY_FAINT}Installed setup predates the REPO_ROOT/.git fix.${STY_RST}"
+    echo -e "    ${STY_FAINT}ryoku-shell update silently skips pulls and redeploy.${STY_RST}"
+
+    if [[ "$git_root" == "$REPO_ROOT" ]]; then
+        return 1
+    fi
+
+    echo -e "    ${STY_FAINT}Attempting auto-repair via git -C $git_root pull --ff-only...${STY_RST}"
+    local pull_out
+    if pull_out="$(git -C "$git_root" pull --ff-only 2>&1)"; then
+        doctor_fix "Pulled updater fix; run 'ryoku-shell update' to deploy"
+        return 0
+    fi
+
+    echo -e "    ${STY_FAINT}Auto-pull failed: $(printf '%s' "$pull_out" | tail -1)${STY_RST}"
+    echo -e "    ${STY_FAINT}Fix manually:${STY_RST}"
+    echo -e "    ${STY_FAINT}  cd $git_root && git pull --ff-only && ryoku-shell update${STY_RST}"
+    return 1
+}
+
 check_launcher_health() {
     local installed_strategy
     installed_strategy="$(get_installed_update_strategy)"
@@ -1456,7 +1507,7 @@ check_niri_config() {
 ###############################################################################
 
 run_doctor_with_fixes() {
-    local total_steps=22
+    local total_steps=23
     local doctor_started_at=$SECONDS
     doctor_passed=0
     doctor_failed=0
@@ -1489,61 +1540,64 @@ run_doctor_with_fixes() {
     tui_step 3 $total_steps "Checking repo checkout"
     check_repo_checkout_state
 
-    tui_step 4 $total_steps "Checking critical files"
+    tui_step 4 $total_steps "Checking updater bootstrap"
+    check_updater_bootstrap_health
+
+    tui_step 5 $total_steps "Checking critical files"
     check_critical_files
-    
-    tui_step 5 $total_steps "Checking script permissions"
+
+    tui_step 6 $total_steps "Checking script permissions"
     check_script_permissions
 
-    tui_step 6 $total_steps "Checking launcher"
+    tui_step 7 $total_steps "Checking launcher"
     check_launcher_health
-    
-    tui_step 7 $total_steps "Checking user config"
+
+    tui_step 8 $total_steps "Checking user config"
     check_user_config
-    
-    tui_step 8 $total_steps "Checking state directories"
+
+    tui_step 9 $total_steps "Checking state directories"
     check_state_directories
-    
-    tui_step 9 $total_steps "Checking version tracking"
+
+    tui_step 10 $total_steps "Checking version tracking"
     check_version_tracking
-    
-    tui_step 10 $total_steps "Checking file manifest"
+
+    tui_step 11 $total_steps "Checking file manifest"
     check_manifest
 
-    tui_step 11 $total_steps "Checking user service"
+    tui_step 12 $total_steps "Checking user service"
     check_service_unit_health
-    
-    tui_step 12 $total_steps "Checking Niri compositor"
+
+    tui_step 13 $total_steps "Checking Niri compositor"
     check_niri_running
-    
-    tui_step 13 $total_steps "Checking Python packages"
+
+    tui_step 14 $total_steps "Checking Python packages"
     check_python_packages
-    
-    tui_step 14 $total_steps "Checking Quickshell/Qt ABI"
+
+    tui_step 15 $total_steps "Checking Quickshell/Qt ABI"
     check_quickshell_abi
-    
-    tui_step 15 $total_steps "Checking Quickshell"
+
+    tui_step 16 $total_steps "Checking Quickshell"
     check_quickshell_loads
-    
-    tui_step 16 $total_steps "Checking theme colors"
+
+    tui_step 17 $total_steps "Checking theme colors"
     check_matugen_colors
-    
-    tui_step 17 $total_steps "Checking Qt theming"
+
+    tui_step 18 $total_steps "Checking Qt theming"
     check_qt_theming
-    
-    tui_step 18 $total_steps "Checking conflicting services"
+
+    tui_step 19 $total_steps "Checking conflicting services"
     check_conflicting_services
-    
-    tui_step 19 $total_steps "Checking conflicting shells"
+
+    tui_step 20 $total_steps "Checking conflicting shells"
     check_conflicting_shells
-    
-    tui_step 20 $total_steps "Checking wallpaper health"
+
+    tui_step 21 $total_steps "Checking wallpaper health"
     check_wallpaper_health
-    
-    tui_step 21 $total_steps "Checking environment variables"
+
+    tui_step 22 $total_steps "Checking environment variables"
     check_environment_vars
-    
-    tui_step 22 $total_steps "Checking Niri config"
+
+    tui_step 23 $total_steps "Checking Niri config"
     check_niri_config
     
     echo ""
