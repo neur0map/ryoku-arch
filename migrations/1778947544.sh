@@ -25,6 +25,7 @@ if [[ -x $RYOKU_PATH/bin/ryoku-refresh-applications ]]; then
   "$RYOKU_PATH/bin/ryoku-refresh-applications" || true
 fi
 
+set_env_line "$HOME/.config/uwsm/default" RYOKU_EDITOR nvim
 set_env_line "$HOME/.config/uwsm/default" EDITOR nvim
 set_env_line "$HOME/.config/uwsm/default" VISUAL nvim
 set_env_line "$HOME/.config/uwsm/default" SUDO_EDITOR nvim

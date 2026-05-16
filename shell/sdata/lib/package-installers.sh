@@ -397,14 +397,14 @@ install-whitesur-icons(){
   if curl -fsSL -o "$temp_dir/whitesur.tar.gz" \
     "https://github.com/vinceliuice/WhiteSur-icon-theme/archive/refs/heads/master.tar.gz"; then
     tar -xzf "$temp_dir/whitesur.tar.gz" -C "$temp_dir"
-    cd "$temp_dir/WhiteSur-icon-theme-master"
+    cd "$temp_dir/WhiteSur-icon-theme-master" || return 1
     ./install.sh -d "$icon_dir" -t default >/dev/null 2>&1 || {
       # Fallback: manual copy
       cp -r src/WhiteSur "$icon_dir/WhiteSur" 2>/dev/null || true
       cp -r src/WhiteSur-dark "$icon_dir/WhiteSur-dark" 2>/dev/null || true
       cp -r src/WhiteSur-light "$icon_dir/WhiteSur-light" 2>/dev/null || true
     }
-    cd - >/dev/null
+    cd - >/dev/null || return 1
     log_success "WhiteSur icon theme installed"
   else
     log_warning "Could not download WhiteSur icon theme"
@@ -429,9 +429,9 @@ install-mactahoe-icons(){
   if curl -fsSL -o "$temp_dir/mactahoe.tar.gz" \
     "https://github.com/vinceliuice/MacTahoe-icon-theme/archive/refs/heads/master.tar.gz"; then
     tar -xzf "$temp_dir/mactahoe.tar.gz" -C "$temp_dir"
-    cd "$temp_dir/MacTahoe-icon-theme-master" 2>/dev/null || cd "$temp_dir/MacTahoe-icon-theme-main"
+    cd "$temp_dir/MacTahoe-icon-theme-master" 2>/dev/null || cd "$temp_dir/MacTahoe-icon-theme-main" || return 1
     ./install.sh -d "$icon_dir" >/dev/null 2>&1
-    cd - >/dev/null
+    cd - >/dev/null || return 1
     log_success "MacTahoe icon theme installed"
   else
     log_warning "Could not download MacTahoe icon theme"
@@ -843,6 +843,19 @@ if status is-interactive
 
   # No greeting
   set -g fish_greeting
+
+  if not set -q RYOKU_EDITOR
+    set -gx RYOKU_EDITOR nvim
+  end
+  if not set -q EDITOR
+    set -gx EDITOR $RYOKU_EDITOR
+  end
+  if not set -q VISUAL
+    set -gx VISUAL $EDITOR
+  end
+  if not set -q SUDO_EDITOR
+    set -gx SUDO_EDITOR $VISUAL
+  end
 
   # Load terminal colors from Ryoku theming
   if test -f ~/.local/state/quickshell/user/generated/terminal/sequences.txt

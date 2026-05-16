@@ -2,6 +2,19 @@ if status is-interactive
   # No greeting
   set -g fish_greeting
 
+  if not set -q RYOKU_EDITOR
+    set -gx RYOKU_EDITOR nvim
+  end
+  if not set -q EDITOR
+    set -gx EDITOR $RYOKU_EDITOR
+  end
+  if not set -q VISUAL
+    set -gx VISUAL $EDITOR
+  end
+  if not set -q SUDO_EDITOR
+    set -gx SUDO_EDITOR $VISUAL
+  end
+
   # Apply terminal color sequences (Material You from wallpaper)
   if test -f ~/.local/state/quickshell/user/generated/terminal/sequences.txt
     cat ~/.local/state/quickshell/user/generated/terminal/sequences.txt

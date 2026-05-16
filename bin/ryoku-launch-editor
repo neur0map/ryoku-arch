@@ -3,7 +3,14 @@
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
 # Launch Ryoku's default editor, with RYOKU_EDITOR available as an explicit override.
-# Starts suitable editors in a terminal window and otherwise as a regular application.
+# Starts suitable editors in a terminal window unless --in-place is passed by
+# an already-terminal-based caller such as Yazi.
+
+in_place=0
+if [[ ${1:-} == "--in-place" ]]; then
+  in_place=1
+  shift
+fi
 
 configured_editor() {
   local config_file="${XDG_CONFIG_HOME:-$HOME/.config}/ryoku-shell/config.json"
@@ -32,6 +39,9 @@ fi
 
 case "$(basename "$editor_bin")" in
 nvim | vim | nano | micro | hx | helix | fresh)
+  if (( in_place == 1 )); then
+    exec "${editor_parts[@]}" "$@"
+  fi
   exec ryoku-launch-tui "${editor_parts[@]}" "$@"
   ;;
 *)
