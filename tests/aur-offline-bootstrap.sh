@@ -3,6 +3,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+temp_dir_bootstrap=
+temp_dir_access=
 
 link_cmd() {
   local cmd="$1"
@@ -20,6 +22,16 @@ make_test_path() {
   for cmd in find grep head install mktemp rm sed sleep tar; do
     link_cmd "$cmd" "$bin_dir"
   done
+}
+
+fail() {
+  echo "FAIL: $*" >&2
+  return 1
+}
+
+cleanup() {
+  [[ -n $temp_dir_bootstrap ]] && rm -rf "$temp_dir_bootstrap"
+  [[ -n $temp_dir_access ]] && rm -rf "$temp_dir_access"
 }
 
 assert_offline_yay_bootstrap_is_best_effort() {
@@ -87,16 +99,25 @@ EOF
   fi
 }
 
-main() {
-  local temp_dir_bootstrap
-  local temp_dir_access
+assert_iso_aur_overlay_retries_clones() {
+  local script="$ROOT_DIR/iso/builder/build-boot-overlay.sh"
 
+  grep -Eq 'aur_clone\(\)' "$script" || \
+    fail "ISO AUR overlay builder should wrap AUR git clones"
+  grep -Eq 'for attempt in \{1\.\.3\}' "$script" || \
+    fail "ISO AUR overlay builder should retry transient AUR clone failures"
+  grep -Eq 'git clone of \$pkg from AUR failed' "$script" || \
+    fail "ISO AUR overlay builder should explain retrying AUR clone failures"
+}
+
+main() {
   temp_dir_bootstrap="$(mktemp -d)"
   temp_dir_access="$(mktemp -d)"
-  trap "rm -rf '$temp_dir_bootstrap' '$temp_dir_access'" EXIT
+  trap cleanup EXIT
 
   assert_offline_yay_bootstrap_is_best_effort "$temp_dir_bootstrap"
   assert_aur_access_requires_yay "$temp_dir_access"
+  assert_iso_aur_overlay_retries_clones
 }
 
 main "$@"
