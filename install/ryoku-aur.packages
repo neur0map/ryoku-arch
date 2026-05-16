@@ -26,6 +26,7 @@ ufw-docker
 
 # ── Eye-candy / utilities ─────────────────────────────────────────────
 darkly-bin
+gpk-bin
 gradia
 mpvpaper
 # python-terminaltexteffects ships the `tte` binary used by
