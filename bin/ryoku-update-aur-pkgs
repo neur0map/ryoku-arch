@@ -29,13 +29,13 @@ transition_localsend_to_bin() {
   echo "The source AUR package pulls rustup as a build dependency, which conflicts with Arch rust."
 
   if ! sudo pacman -Rdd --noconfirm localsend; then
-    echo -e "\e[31mCould not remove source LocalSend; skipping AUR updates to avoid rustup conflicts.\e[0m"
+    echo -e "\e[31mCould not remove source LocalSend; skipping AUR package upgrades to avoid rustup conflicts.\e[0m"
     skip_aur_update=1
     return 0
   fi
 
   if ! yay -S --noconfirm --needed localsend-bin; then
-    echo -e "\e[31mCould not install localsend-bin; skipping AUR updates for this run.\e[0m"
+    echo -e "\e[31mCould not install localsend-bin; skipping AUR package upgrades for this run.\e[0m"
     skip_aur_update=1
     return 0
   fi

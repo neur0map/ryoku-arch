@@ -56,9 +56,11 @@ base-devel
 clang
 dotnet-runtime-9.0
 github-cli
+go
 llvm
 luarocks
 nodejs
+npm
 python-gobject
 python-poetry-core
 ruby
