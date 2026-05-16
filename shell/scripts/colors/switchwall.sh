@@ -426,7 +426,7 @@ get_focused_monitor_name() {
 
     if is_gif "$media_path"; then
         if command -v magick >/dev/null 2>&1; then
-            magick "$media_path[0]" "$out_path" >/dev/null 2>&1
+            magick "${media_path}[0]" "$out_path" >/dev/null 2>&1
             return $?
         fi
         if command -v ffmpeg >/dev/null 2>&1; then
@@ -871,7 +871,7 @@ main() {
                     [[ "$skip_accent_write" != "1" ]] && set_accent_color ""
                     shift 2
                 else
-                    set_accent_color $(hyprpicker --no-fancy)
+                    set_accent_color "$(hyprpicker --no-fancy)"
                     shift
                 fi
                 ;;

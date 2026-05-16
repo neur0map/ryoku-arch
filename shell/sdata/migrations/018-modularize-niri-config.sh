@@ -1,6 +1,7 @@
 MIGRATION_ID="018-modularize-niri-config"
 MIGRATION_TITLE="Modularize Niri config"
 MIGRATION_DESCRIPTION="Splits a legacy monolithic Niri config.kdl into config.d fragments while preserving the current user configuration."
+# shellcheck disable=SC2088
 MIGRATION_TARGET_FILE="~/.config/niri/config.kdl"
 MIGRATION_REQUIRED=true
 
