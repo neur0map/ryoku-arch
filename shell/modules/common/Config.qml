@@ -468,6 +468,7 @@ Singleton {
                 property string taskManager: "missioncenter"
                 property string terminal: "kitty" // This is only for shell actions
                 property string browser: "helium" // Used by launcher-backed browser shortcuts
+                property string editor: "nvim" // Used by file-manager and terminal file-editor actions
                 property string volumeMixer: "pavucontrol"
                 property string discord: "discord" // Shell command to launch Discord client
                 property string update: "kitty -e sudo pacman -Syu" // Command to run system updates

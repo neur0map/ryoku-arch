@@ -1058,8 +1058,8 @@ ApplicationWindow {
             pageIndex: 7, pageName: pages[7].name,
             section: Translation.tr("Applications"),
             label: Translation.tr("Default applications"),
-            description: Translation.tr("Terminal, file manager, browser commands"),
-            keywords: ["apps", "applications", "terminal", "browser", "file", "manager", "discord", "default"]
+            description: Translation.tr("Terminal, editor, file manager, browser commands"),
+            keywords: ["apps", "applications", "terminal", "editor", "text", "neovim", "zed", "browser", "file", "manager", "discord", "default"]
         },
 
         // =====================================================================

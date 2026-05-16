@@ -4,33 +4,6 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 
 # Ensure all default .desktop, web apps, and TUIs are installed.
 
-install_editor_desktop_entry() {
-  local app_dir="$HOME/.local/share/applications"
-  local desktop_file="$app_dir/ryoku-editor.desktop"
-  local editor_exec
-
-  # xdg-mime validates the first Exec word with command -v and ignores quoted paths.
-  editor_exec="$RYOKU_PATH/bin/ryoku-launch-editor %F"
-
-  cat >"$desktop_file" <<EOF
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Neovim
-GenericName=Text Editor
-Comment=Edit text files with Ryoku's Neovim launcher
-TryExec=nvim
-Exec=$editor_exec
-Icon=nvim
-Terminal=false
-Categories=Utility;TextEditor;
-StartupNotify=false
-MimeType=text/english;text/plain;text/x-makefile;text/x-c++hdr;text/x-c++src;text/x-chdr;text/x-csrc;text/x-java;text/x-moc;text/x-pascal;text/x-tcl;text/x-tex;application/x-shellscript;text/x-c;text/x-c++;application/xml;text/xml;
-EOF
-
-  chmod +x "$desktop_file"
-}
-
 # Copy and sync icon files
 mkdir -p ~/.local/share/icons/hicolor/48x48/apps/
 cp "$RYOKU_PATH"/applications/icons/*.png ~/.local/share/icons/hicolor/48x48/apps/
@@ -40,7 +13,7 @@ gtk-update-icon-cache ~/.local/share/icons/hicolor &>/dev/null
 mkdir -p ~/.local/share/applications
 cp "$RYOKU_PATH"/applications/*.desktop ~/.local/share/applications/
 cp "$RYOKU_PATH"/applications/hidden/*.desktop ~/.local/share/applications/
-install_editor_desktop_entry
+ryoku-refresh-editor-desktop
 
 # Refresh the webapps and TUIs
 bash "$RYOKU_PATH"/install/packaging/icons.sh
