@@ -108,7 +108,7 @@ assert_contains "config/nvim/lua/plugins/ryoku-dashboard.lua" '"folke/snacks.nvi
 assert_contains "shell/defaults/config.json" '"enableNeovim": true'
 assert_contains "shell/modules/common/Config.qml" "property bool enableNeovim: true"
 
-assert_contains "iso/builder/build-iso.sh" "archiso git sudo base-devel jq grub uv neovim"
+assert_contains "iso/builder/build-iso.sh" "archiso git sudo base-devel go jq grub uv neovim"
 assert_contains "iso/builder/build-iso.sh" "arch_packages=(git gum jq neovim openssl plymouth lvm2 cryptsetup parted)"
 assert_contains "iso/builder/build-iso.sh" "var/cache/ryoku/nvim"
 assert_contains "iso/builder/build-iso.sh" "Lazy! sync"
