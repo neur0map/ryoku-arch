@@ -2,4 +2,8 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-(($(lspci | grep -cE 'VGA|3D|Display') >= 2))
+if ryoku-cmd-present supergfxctl; then
+  supergfxctl -s 2>/dev/null | grep -qw Hybrid
+else
+  (($(lspci | grep -cE 'VGA|3D|Display') >= 2))
+fi

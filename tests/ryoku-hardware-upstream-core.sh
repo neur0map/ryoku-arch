@@ -74,6 +74,57 @@ assert_contains install/config/hardware/nvidia.sh 'ryoku-hw-nvidia-gsp' \
   "NVIDIA setup should use the Ryoku GSP helper"
 assert_contains install/config/hardware/nvidia.sh 'ryoku-hw-nvidia-without-gsp' \
   "NVIDIA setup should use the Ryoku non-GSP helper"
+assert_contains bin/ryoku-hw-hybrid-gpu 'ryoku-cmd-present supergfxctl' \
+  "Hybrid GPU detection should prefer supergfxctl when available"
+assert_contains bin/ryoku-hw-hybrid-gpu 'supergfxctl -s' \
+  "Hybrid GPU detection should inspect the active supergfxd mode"
+
+tmp_dir=$(mktemp -d)
+mkdir -p "$tmp_dir/ryoku/bin" "$tmp_dir/bin"
+
+cat >"$tmp_dir/ryoku/bin/ryoku-cmd-present" <<'EOF'
+#!/bin/bash
+if [[ ${RYOKU_TEST_SUPERGFX_PRESENT:-0} == "1" && ${1:-} == "supergfxctl" ]]; then
+  exit 0
+fi
+exit 1
+EOF
+
+cat >"$tmp_dir/bin/supergfxctl" <<'EOF'
+#!/bin/bash
+printf '%s\n' "${RYOKU_TEST_SUPERGFX_MODE:-Integrated}"
+EOF
+
+cat >"$tmp_dir/bin/lspci" <<'EOF'
+#!/bin/bash
+cat <<'LSPCI'
+00:02.0 VGA compatible controller: Intel Corporation Device
+01:00.0 3D controller: NVIDIA Corporation Device
+LSPCI
+EOF
+
+chmod 755 "$tmp_dir/ryoku/bin/ryoku-cmd-present" "$tmp_dir/bin/supergfxctl" "$tmp_dir/bin/lspci"
+
+RYOKU_PATH="$tmp_dir/ryoku" \
+RYOKU_TEST_SUPERGFX_PRESENT=1 \
+RYOKU_TEST_SUPERGFX_MODE=Hybrid \
+PATH="$tmp_dir/bin:$PATH" \
+  "$ROOT_DIR/bin/ryoku-hw-hybrid-gpu" || \
+  fail "Hybrid GPU detection should return true when supergfxctl reports Hybrid"
+
+if RYOKU_PATH="$tmp_dir/ryoku" \
+    RYOKU_TEST_SUPERGFX_PRESENT=1 \
+    RYOKU_TEST_SUPERGFX_MODE=Integrated \
+    PATH="$tmp_dir/bin:$PATH" \
+      "$ROOT_DIR/bin/ryoku-hw-hybrid-gpu"; then
+  fail "Hybrid GPU detection should return false when supergfxctl reports Integrated"
+fi
+
+RYOKU_PATH="$tmp_dir/ryoku" \
+RYOKU_TEST_SUPERGFX_PRESENT=0 \
+PATH="$tmp_dir/bin:$PATH" \
+  "$ROOT_DIR/bin/ryoku-hw-hybrid-gpu" || \
+  fail "Hybrid GPU detection should fall back to PCI display device count"
 
 if grep -RIl 'omarchy' \
     bin/ryoku-hw-asus-expertbook-b9406 \
