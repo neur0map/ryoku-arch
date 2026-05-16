@@ -36,6 +36,7 @@ assert_contains_abs() {
 
 assert_executable "bin/ryoku-update-default-editor"
 assert_executable "bin/ryoku-refresh-editor-desktop"
+assert_executable "bin/ryoku-refresh-yazi-editor"
 assert_contains "shell/services/AppLauncher.qml" 'id: "editor"'
 assert_contains "shell/services/AppLauncher.qml" 'label: Translation.tr("Text editor")'
 assert_contains "shell/services/AppLauncher.qml" 'defaultCommand: "nvim"'
@@ -47,6 +48,8 @@ assert_contains "shell/settings.qml" "neovim"
 assert_contains "shell/modules/settings/SettingsOverlay.qml" "zed"
 assert_contains "bin/ryoku-update-default-editor" "dev.zed.Zed.desktop"
 assert_contains "bin/ryoku-update-default-editor" "xdg-mime default"
+assert_contains "config/yazi/yazi.toml" "ryoku-launch-editor --in-place %s"
+assert_contains "bin/ryoku-launch-editor" "--in-place"
 
 tmp_dir=$(mktemp -d)
 trap 'rm -rf "$tmp_dir"' EXIT

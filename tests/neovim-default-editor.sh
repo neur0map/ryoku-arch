@@ -75,6 +75,7 @@ assert_contains "install/config/mimetypes.sh" "xdg-mime default ryoku-editor.des
 assert_not_contains "install/config/mimetypes.sh" "xdg-mime default nvim.desktop text/plain"
 assert_not_contains "install/config/mimetypes.sh" "helix.desktop"
 assert_executable "bin/ryoku-refresh-editor-desktop"
+assert_executable "bin/ryoku-refresh-yazi-editor"
 assert_contains "bin/ryoku-refresh-applications" "ryoku-refresh-editor-desktop"
 assert_contains "bin/ryoku-refresh-editor-desktop" "ryoku-editor.desktop"
 assert_contains "bin/ryoku-refresh-editor-desktop" "ryoku-launch-editor"
@@ -86,8 +87,11 @@ assert_contains "shell/sdata/subcmd-install/3.files.sh" "*ryoku-editor*|*kate*"
 assert_executable "bin/xdg-terminal-exec"
 assert_executable "bin/ryoku-terminal-exec"
 assert_contains "bin/ryoku-launch-editor" 'editor="${RYOKU_EDITOR:-$(configured_editor)}"'
+assert_contains "bin/ryoku-launch-editor" "--in-place"
 assert_not_contains "bin/ryoku-launch-editor" 'ryoku-cmd-present "$EDITOR" || EDITOR=nvim'
 assert_not_contains "bin/ryoku-launch-editor" "EDITOR=helix"
+assert_file "config/yazi/yazi.toml"
+assert_contains "config/yazi/yazi.toml" "ryoku-launch-editor --in-place %s"
 assert_contains "bin/ryoku-dev-add-migration" 'RYOKU_PATH="$SCRIPT_ROOT"'
 assert_contains "bin/ryoku-dev-add-migration" '${EDITOR:-nvim}'
 assert_contains "default/bash/aliases" "command nvim ."
@@ -161,6 +165,7 @@ editor_repair_migration=$(grep -l "Repair Ryoku Neovim editor launcher" "$ROOT_D
 [[ -n $editor_repair_migration ]] || fail "Neovim editor repair migration should exist"
 editor_repair_migration=${editor_repair_migration#"$ROOT_DIR/"}
 assert_contains "$editor_repair_migration" 'chmod +x "$launcher"'
+assert_contains "$editor_repair_migration" 'set_env_line "$HOME/.config/uwsm/default" RYOKU_EDITOR nvim'
 assert_contains "$editor_repair_migration" 'set_env_line "$HOME/.config/uwsm/default" EDITOR nvim'
 assert_contains "$editor_repair_migration" "xdg-mime default ryoku-editor.desktop"
 

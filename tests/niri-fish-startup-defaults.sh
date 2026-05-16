@@ -41,6 +41,10 @@ assert_contains "shell/dots/.config/fish/config.fish" 'RYOKU_FASTFETCH_SHOWN' \
   "fish config should only show the startup logo once per terminal environment"
 assert_contains "shell/dots/.config/fish/config.fish" '^[[:space:]]*fastfetch[[:space:]]*$' \
   "fish config should show the Ryoku fastfetch logo on startup"
+assert_contains "shell/dots/.config/fish/config.fish" 'set -gx RYOKU_EDITOR nvim' \
+  "fish config should set Ryoku's default editor for terminal tools"
+assert_contains "shell/dots/.config/fish/config.fish" 'set -gx EDITOR \$RYOKU_EDITOR' \
+  "fish config should export EDITOR for Yazi and other terminal tools"
 
 assert_contains "shell/sdata/lib/package-installers.sh" 'set -g fish_greeting' \
   "fallback fish config should disable the default welcome greeting globally"
@@ -48,6 +52,10 @@ assert_contains "shell/sdata/lib/package-installers.sh" 'RYOKU_FASTFETCH_SHOWN' 
   "fallback fish config should only show the startup logo once per terminal environment"
 assert_contains "shell/sdata/lib/package-installers.sh" '^[[:space:]]*fastfetch[[:space:]]*$' \
   "fallback fish config should show the Ryoku fastfetch logo on startup"
+assert_contains "shell/sdata/lib/package-installers.sh" 'set -gx RYOKU_EDITOR nvim' \
+  "fallback fish config should set Ryoku's default editor for terminal tools"
+assert_contains "shell/sdata/lib/package-installers.sh" 'set -gx EDITOR \$RYOKU_EDITOR' \
+  "fallback fish config should export EDITOR for Yazi and other terminal tools"
 
 if command -v fish >/dev/null 2>&1; then
   fish -n "$ROOT_DIR/shell/dots/.config/fish/config.fish"

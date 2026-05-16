@@ -100,6 +100,7 @@ refresh_nvim_file nvim/lua/plugins/99-ryoku-user.lua
 seed_nvim_offline_cache
 ryoku-refresh-applications
 
+set_env_line "$HOME/.config/uwsm/default" RYOKU_EDITOR nvim
 set_env_line "$HOME/.config/uwsm/default" EDITOR nvim
 set_env_line "$HOME/.config/uwsm/default" VISUAL nvim
 set_env_line "$HOME/.config/uwsm/default" SUDO_EDITOR nvim

@@ -1,0 +1,50 @@
+#!/bin/bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
+target_file="$config_home/yazi/yazi.toml"
+default_file="$RYOKU_PATH/config/yazi/yazi.toml"
+editor_marker='ryoku-launch-editor --in-place'
+
+[[ -f $default_file ]] || exit 0
+
+mkdir -p "$(dirname "$target_file")"
+
+if [[ ! -f $target_file ]]; then
+  cp -f "$default_file" "$target_file"
+  exit 0
+fi
+
+if grep -q "$editor_marker" "$target_file"; then
+  exit 0
+fi
+
+if grep -Eq '^[[:space:]]*\[(opener|open)\][[:space:]]*$|^[[:space:]]*(edit|rules|prepend_rules)[[:space:]]*=' "$target_file"; then
+  echo "Existing Yazi opener config preserved at $target_file"
+  echo "Add ryoku-launch-editor --in-place to your Yazi edit opener if text editing still fails."
+  exit 0
+fi
+
+cat >>"$target_file" <<'EOF'
+
+[opener]
+edit = [
+  { run = 'ryoku-launch-editor --in-place %s', block = true, desc = 'Edit with Ryoku editor', for = 'unix' },
+]
+
+[open]
+prepend_rules = [
+  { mime = 'text/*', use = 'edit' },
+  { mime = 'application/json', use = 'edit' },
+  { mime = 'application/xml', use = 'edit' },
+  { url = '*.toml', use = 'edit' },
+  { url = '*.json', use = 'edit' },
+  { url = '*.kdl', use = 'edit' },
+  { url = '*.yml', use = 'edit' },
+  { url = '*.yaml', use = 'edit' },
+  { url = '*.conf', use = 'edit' },
+]
+EOF
