@@ -67,6 +67,53 @@ sudo -u builder rustup default stable
 chown builder:builder "$build_root"
 chown builder:builder "$output_dir"
 
+aur_fetch_plain_repo() {
+  local pkg="$1"
+  local work_dir="$2"
+  local tree_html="$work_dir/.aur-tree.html"
+  local file_path
+  local file_url
+  local file_paths=()
+
+  mkdir -p "$work_dir"
+
+  if ! curl -fsSL --connect-timeout 20 --retry 5 --retry-all-errors --retry-delay 5 \
+    "https://aur.archlinux.org/cgit/aur.git/tree/?h=${pkg}" \
+    -o "$tree_html"; then
+    echo "cgit tree fetch of $pkg from AUR failed." >&2
+    return 1
+  fi
+
+  mapfile -t file_paths < <(
+    grep -Eo '/cgit/aur\.git/plain/[^"?]+\?h=[^"]+' "$tree_html" |
+      sed -E 's#^/cgit/aur\.git/plain/([^?]+)\?h=.*#\1#' |
+      sort -u
+  )
+
+  if ((${#file_paths[@]} == 0)); then
+    echo "cgit tree for $pkg did not list any plain files." >&2
+    return 1
+  fi
+
+  for file_path in "${file_paths[@]}"; do
+    file_url="https://aur.archlinux.org/cgit/aur.git/plain/$file_path?h=${pkg}"
+    mkdir -p "$(dirname "$work_dir/$file_path")"
+    if ! curl -fsSL --connect-timeout 20 --retry 5 --retry-all-errors --retry-delay 5 \
+      "$file_url" \
+      -o "$work_dir/$file_path"; then
+      echo "cgit plain fetch of $pkg/$file_path from AUR failed." >&2
+      return 1
+    fi
+  done
+
+  rm -f "$tree_html"
+  [[ -f $work_dir/PKGBUILD ]] || {
+    echo "cgit fallback for $pkg did not produce a PKGBUILD." >&2
+    return 1
+  }
+  chown -R builder:builder "$work_dir"
+}
+
 aur_clone() {
   local pkg="$1"
   local work_dir="$2"
@@ -87,8 +134,8 @@ aur_clone() {
     fi
   done
 
-  echo "git clone of $pkg from AUR failed after 5 attempts." >&2
-  return 1
+  echo "git clone of $pkg from AUR failed after 5 attempts; trying cgit plain fallback." >&2
+  aur_fetch_plain_repo "$pkg" "$work_dir"
 }
 
 # Concatenate all manifests; skip blank lines and comments so each
