@@ -96,4 +96,33 @@ mapfile -t events <"$tmp/aur.log"
 [[ ${events[2]:-} == "yay:-Sua --noconfirm --cleanafter --ignore gcc14,gcc14-libs" ]] || \
   fail "updater should run AUR updates after the LocalSend transition"
 
+rm -f "$tmp/aur.log"
+cat >"$tmp/bin/sudo" <<'SUDO'
+#!/bin/bash
+printf 'sudo:%s\n' "$*" >>"$RYOKU_TEST_AUR_LOG"
+if [[ $* == "pacman -Rdd --noconfirm localsend" ]]; then
+  exit 1
+fi
+exit 2
+SUDO
+chmod +x "$tmp/bin/sudo"
+
+set +e
+failure_output=$(
+  HOME="$tmp/home" \
+  RYOKU_PATH="$ROOT_DIR" \
+  RYOKU_TEST_AUR_LOG="$tmp/aur.log" \
+  PATH="$tmp/bin:$ROOT_DIR/bin:$PATH" \
+    bash "$ROOT_DIR/bin/ryoku-update-aur-pkgs" 2>&1
+)
+failure_status=$?
+set -e
+
+(( failure_status == 0 )) || fail "LocalSend transition failure should not abort updater"
+[[ $failure_output == *"skipping AUR package upgrades"* ]] || \
+  fail "LocalSend transition failure should say only AUR package upgrades are skipped"
+if [[ -f $tmp/aur.log ]] && grep -F -- "-Sua --noconfirm" "$tmp/aur.log" >/dev/null; then
+  fail "LocalSend transition failure should skip yay AUR upgrades"
+fi
+
 echo "PASS: Ryoku AUR Rust conflict handling"

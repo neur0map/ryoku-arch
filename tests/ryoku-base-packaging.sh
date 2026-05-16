@@ -15,6 +15,12 @@ grep -qxF dosfstools "$ROOT_DIR/install/ryoku-base.packages" || \
 grep -qxF nodejs "$ROOT_DIR/install/ryoku-base.packages" || \
   fail "Ryoku base packages should include nodejs for shipped JavaScript tooling"
 
+grep -qxF npm "$ROOT_DIR/install/ryoku-base.packages" || \
+  fail "Ryoku base packages should include npm with shipped Node.js"
+
+grep -qxF go "$ROOT_DIR/install/ryoku-base.packages" || \
+  fail "Ryoku base packages should include go for shipped development tooling"
+
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 
