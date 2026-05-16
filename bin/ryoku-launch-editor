@@ -5,22 +5,36 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 # Launch Ryoku's default editor, with RYOKU_EDITOR available as an explicit override.
 # Starts suitable editors in a terminal window and otherwise as a regular application.
 
-editor="${RYOKU_EDITOR:-nvim}"
+configured_editor() {
+  local config_file="${XDG_CONFIG_HOME:-$HOME/.config}/ryoku-shell/config.json"
 
-if ryoku-cmd-missing "$editor"; then
+  [[ -f $config_file ]] || return 0
+  ryoku-cmd-present jq || return 0
+
+  jq -r '.apps.editor? // empty' "$config_file" 2>/dev/null || true
+}
+
+editor="${RYOKU_EDITOR:-$(configured_editor)}"
+editor="${editor:-nvim}"
+read -ra editor_parts <<< "$editor"
+editor_bin="${editor_parts[0]:-}"
+
+if [[ -z $editor_bin ]] || ryoku-cmd-missing "$editor_bin"; then
   editor="${EDITOR:-nvim}"
+  read -ra editor_parts <<< "$editor"
+  editor_bin="${editor_parts[0]:-}"
 fi
 
-if ryoku-cmd-missing "$editor"; then
+if [[ -z $editor_bin ]] || ryoku-cmd-missing "$editor_bin"; then
   echo "No supported editor found. Install neovim or set RYOKU_EDITOR." >&2
   exit 1
 fi
 
-case "$(basename "$editor")" in
+case "$(basename "$editor_bin")" in
 nvim | vim | nano | micro | hx | helix | fresh)
-  exec ryoku-launch-tui "$editor" "$@"
+  exec ryoku-launch-tui "${editor_parts[@]}" "$@"
   ;;
 *)
-  exec setsid "$editor" "$@"
+  exec setsid "${editor_parts[@]}" "$@"
   ;;
 esac

@@ -51,6 +51,21 @@ Singleton {
             ]
         },
         {
+            id: "editor",
+            label: Translation.tr("Text editor"),
+            description: Translation.tr("Used by file managers, yazi, terminal editor commands, and text MIME defaults."),
+            defaultCommand: "nvim",
+            placeholder: "nvim",
+            presets: [
+                { id: "nvim", label: "Neovim", command: "nvim" },
+                { id: "zed", label: "Zed", command: "zed" },
+                { id: "code", label: "Visual Studio Code", command: "code" },
+                { id: "codium", label: "VSCodium", command: "codium" },
+                { id: "kate", label: "Kate", command: "kate" },
+                { id: "gnome-text-editor", label: "GNOME Text Editor", command: "gnome-text-editor" }
+            ]
+        },
+        {
             id: "manageUser",
             label: Translation.tr("Manage my account"),
             description: Translation.tr("Used by the profile menu and start menu account shortcuts."),
@@ -200,11 +215,17 @@ Singleton {
             if (desktopFile) {
                 Quickshell.execDetached(["xdg-settings", "set", "default-web-browser", desktopFile])
             }
+        } else if (slotId === "editor") {
+            Quickshell.execDetached(["ryoku-update-default-editor", preset.command])
         }
     }
 
     function setCustomCommand(slotId: string, command: string): void {
-        Config.setNestedValue(`apps.${slotId}`, String(command ?? "").trim())
+        const normalizedCommand = String(command ?? "").trim()
+        Config.setNestedValue(`apps.${slotId}`, normalizedCommand)
+
+        if (slotId === "editor")
+            Quickshell.execDetached(["ryoku-update-default-editor", normalizedCommand.length > 0 ? normalizedCommand : root.defaultCommand(slotId)])
     }
 
     function launch(slotId: string): void {

@@ -1,0 +1,168 @@
+#!/bin/bash
+
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+editor_command="${*:-nvim}"
+config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
+data_home="${XDG_DATA_HOME:-$HOME/.local/share}"
+uwsm_env="$config_home/uwsm/default"
+mime_types=(
+  text/plain
+  text/english
+  text/x-makefile
+  text/x-c++hdr
+  text/x-c++src
+  text/x-chdr
+  text/x-csrc
+  text/x-java
+  text/x-moc
+  text/x-pascal
+  text/x-tcl
+  text/x-tex
+  application/x-shellscript
+  text/x-c
+  text/x-c++
+  application/xml
+  text/xml
+)
+
+first_word() {
+  local command_string="$1"
+  local command_name
+  read -r command_name _ <<< "$command_string"
+  printf '%s\n' "$command_name"
+}
+
+shell_quote() {
+  printf '%q' "$1"
+}
+
+set_env_line() {
+  local file="$1" key="$2" value="$3" quoted_value tmp_file line
+  quoted_value="$(shell_quote "$value")"
+  mkdir -p "$(dirname "$file")"
+  touch "$file"
+
+  if grep -q "^export $key=" "$file"; then
+    tmp_file="$(mktemp)"
+    while IFS= read -r line; do
+      if [[ $line == export\ $key=* ]]; then
+        printf 'export %s=%s\n' "$key" "$quoted_value"
+      else
+        printf '%s\n' "$line"
+      fi
+    done <"$file" >"$tmp_file"
+    mv "$tmp_file" "$file"
+  else
+    printf 'export %s=%s\n' "$key" "$quoted_value" >>"$file"
+  fi
+}
+
+desktop_exists() {
+  local desktop_file="$1"
+  [[ -f /usr/share/applications/$desktop_file || -f $data_home/applications/$desktop_file ]]
+}
+
+first_existing_desktop() {
+  local desktop_file
+  for desktop_file in "$@"; do
+    if desktop_exists "$desktop_file"; then
+      printf '%s\n' "$desktop_file"
+      return 0
+    fi
+  done
+  return 1
+}
+
+desktop_for_editor() {
+  local command_name="$1"
+
+  case $command_name in
+  nvim | vim | nano | micro | hx | helix | fresh)
+    printf '%s\n' "ryoku-editor.desktop"
+    ;;
+  zed)
+    first_existing_desktop dev.zed.Zed.desktop zed.desktop || printf '%s\n' "dev.zed.Zed.desktop"
+    ;;
+  code)
+    first_existing_desktop code.desktop com.visualstudio.code.desktop || printf '%s\n' "code.desktop"
+    ;;
+  codium)
+    first_existing_desktop codium.desktop com.vscodium.codium.desktop || printf '%s\n' "codium.desktop"
+    ;;
+  gnome-text-editor)
+    printf '%s\n' "org.gnome.TextEditor.desktop"
+    ;;
+  gedit)
+    printf '%s\n' "org.gnome.gedit.desktop"
+    ;;
+  kate)
+    printf '%s\n' "org.kde.kate.desktop"
+    ;;
+  emacs | emacsclient)
+    first_existing_desktop emacs.desktop emacsclient.desktop || printf '%s\n' "emacs.desktop"
+    ;;
+  *)
+    first_existing_desktop "$command_name.desktop" "org.$command_name.$command_name.desktop" || printf '%s\n' "ryoku-editor.desktop"
+    ;;
+  esac
+}
+
+update_shell_config() {
+  local config_file="$config_home/ryoku-shell/config.json"
+  local tmp_file
+
+  [[ -f $config_file ]] || return 0
+  ryoku-cmd-present jq || return 0
+
+  tmp_file="$(mktemp)"
+  if jq --arg editor "$editor_command" '
+    .apps = (.apps // {})
+    | .apps.editor = $editor
+  ' "$config_file" >"$tmp_file"; then
+    mv "$tmp_file" "$config_file"
+  else
+    rm -f "$tmp_file"
+    return 1
+  fi
+}
+
+set_text_mime_defaults() {
+  local desktop_file="$1" mime
+
+  ryoku-cmd-present xdg-mime || return 0
+
+  for mime in "${mime_types[@]}"; do
+    xdg-mime default "$desktop_file" "$mime" 2>/dev/null || true
+  done
+}
+
+editor_name="$(first_word "$editor_command")"
+if [[ -n $editor_name ]]; then
+  editor_name="$(basename "$editor_name")"
+fi
+if [[ -z $editor_name || $editor_name == "." ]]; then
+  editor_command="nvim"
+  editor_name="nvim"
+fi
+
+desktop_file="$(desktop_for_editor "$editor_name")"
+
+if [[ $desktop_file == "ryoku-editor.desktop" ]]; then
+  ryoku-refresh-editor-desktop
+fi
+
+update_shell_config
+set_env_line "$uwsm_env" RYOKU_EDITOR "$editor_command"
+set_env_line "$uwsm_env" EDITOR "$editor_command"
+set_env_line "$uwsm_env" VISUAL "$editor_command"
+set_env_line "$uwsm_env" SUDO_EDITOR "$editor_command"
+set_text_mime_defaults "$desktop_file"
+
+if ryoku-cmd-present update-desktop-database; then
+  update-desktop-database "$data_home/applications" >/dev/null 2>&1 || true
+fi
+
+printf 'Default text editor set to %s (%s)\n' "$editor_command" "$desktop_file"

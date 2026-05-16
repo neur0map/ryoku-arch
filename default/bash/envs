@@ -1,5 +1,6 @@
 # Editor used by CLI
-export EDITOR="${RYOKU_EDITOR:-nvim}"
+export RYOKU_EDITOR="${RYOKU_EDITOR:-nvim}"
+export EDITOR="$RYOKU_EDITOR"
 export VISUAL="${RYOKU_VISUAL:-$EDITOR}"
 export SUDO_EDITOR="${RYOKU_SUDO_EDITOR:-$VISUAL}"
 export BAT_THEME=ansi

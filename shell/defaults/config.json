@@ -196,6 +196,7 @@
     "bluetooth": "blueman-manager",
     "browser": "helium",
     "discord": "discord",
+    "editor": "nvim",
     "manageUser": "kcmshell6 kcm_users",
     "network": "nm-connection-editor",
     "networkEthernet": "nm-connection-editor",

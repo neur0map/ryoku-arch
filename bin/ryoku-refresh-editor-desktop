@@ -1,0 +1,27 @@
+#!/bin/bash
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+app_dir="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
+desktop_file="$app_dir/ryoku-editor.desktop"
+editor_exec="$RYOKU_PATH/bin/ryoku-launch-editor %F"
+
+mkdir -p "$app_dir"
+
+cat >"$desktop_file" <<EOF
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Neovim
+GenericName=Text Editor
+Comment=Edit text files with Ryoku's editor launcher
+TryExec=nvim
+Exec=$editor_exec
+Icon=nvim
+Terminal=false
+Categories=Utility;TextEditor;
+StartupNotify=false
+MimeType=text/english;text/plain;text/x-makefile;text/x-c++hdr;text/x-c++src;text/x-chdr;text/x-csrc;text/x-java;text/x-moc;text/x-pascal;text/x-tcl;text/x-tex;application/x-shellscript;text/x-c;text/x-c++;application/xml;text/xml;
+EOF
+
+chmod +x "$desktop_file"
