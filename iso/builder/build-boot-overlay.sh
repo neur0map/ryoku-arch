@@ -67,15 +67,40 @@ sudo -u builder rustup default stable
 chown builder:builder "$build_root"
 chown builder:builder "$output_dir"
 
+aur_fetch_plain_file() {
+  local pkg="$1"
+  local work_dir="$2"
+  local file_path="$3"
+  local required="${4:-required}"
+  local file_url="https://aur.archlinux.org/cgit/aur.git/plain/$file_path?h=${pkg}"
+
+  mkdir -p "$(dirname "$work_dir/$file_path")"
+  if curl -fsSL --connect-timeout 20 --retry 8 --retry-all-errors --retry-delay 5 \
+    "$file_url" \
+    -o "$work_dir/$file_path"; then
+    return 0
+  fi
+
+  if [[ $required == "optional" ]]; then
+    echo "optional cgit plain fetch of $pkg/$file_path from AUR failed; continuing." >&2
+    return 0
+  fi
+
+  echo "cgit plain fetch of $pkg/$file_path from AUR failed." >&2
+  return 1
+}
+
 aur_fetch_plain_repo() {
   local pkg="$1"
   local work_dir="$2"
   local tree_html="$work_dir/.aur-tree.html"
   local file_path
-  local file_url
+  local required
   local file_paths=()
 
   mkdir -p "$work_dir"
+
+  aur_fetch_plain_file "$pkg" "$work_dir" "PKGBUILD" "required"
 
   if ! curl -fsSL --connect-timeout 20 --retry 5 --retry-all-errors --retry-delay 5 \
     "https://aur.archlinux.org/cgit/aur.git/tree/?h=${pkg}" \
@@ -96,14 +121,10 @@ aur_fetch_plain_repo() {
   fi
 
   for file_path in "${file_paths[@]}"; do
-    file_url="https://aur.archlinux.org/cgit/aur.git/plain/$file_path?h=${pkg}"
-    mkdir -p "$(dirname "$work_dir/$file_path")"
-    if ! curl -fsSL --connect-timeout 20 --retry 5 --retry-all-errors --retry-delay 5 \
-      "$file_url" \
-      -o "$work_dir/$file_path"; then
-      echo "cgit plain fetch of $pkg/$file_path from AUR failed." >&2
-      return 1
-    fi
+    [[ $file_path == "PKGBUILD" ]] && continue
+    required=required
+    [[ $file_path == ".SRCINFO" || $file_path == ".gitignore" ]] && required=optional
+    aur_fetch_plain_file "$pkg" "$work_dir" "$file_path" "$required"
   done
 
   rm -f "$tree_html"
