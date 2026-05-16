@@ -288,8 +288,8 @@ run_verification() {
     fi
     
     # 4. Verify QS loads (only if no critical errors)
-    if [[ $errors -eq 0 ]]; then
-        if ! verify_qs_loads; then
+    if (( errors == 0 )); then
+        if ! verify_qs_loads "$VERIFICATION_TIMEOUT"; then
             log_error "Quickshell verification failed"
             ((errors++))
         else
