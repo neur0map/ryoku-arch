@@ -71,8 +71,15 @@ assert_contains "install/config/all.sh" "config/neovim.sh"
 assert_contains "install/config/neovim.sh" "RYOKU_NVIM_OFFLINE_CACHE"
 assert_contains "install/config/neovim.sh" "cp -an"
 
-assert_contains "install/config/mimetypes.sh" "xdg-mime default nvim.desktop text/plain"
+assert_contains "install/config/mimetypes.sh" "xdg-mime default ryoku-editor.desktop text/plain"
+assert_not_contains "install/config/mimetypes.sh" "xdg-mime default nvim.desktop text/plain"
 assert_not_contains "install/config/mimetypes.sh" "helix.desktop"
+assert_contains "bin/ryoku-refresh-applications" "ryoku-editor.desktop"
+assert_contains "bin/ryoku-refresh-applications" "ryoku-launch-editor"
+assert_contains "bin/ryoku-refresh-applications" "Terminal=false"
+assert_contains "bin/ryoku-refresh-applications" "MimeType=text/english;text/plain"
+assert_contains "shell/sdata/subcmd-install/3.files.sh" "for editor in ryoku-editor.desktop nvim.desktop"
+assert_contains "shell/sdata/subcmd-install/3.files.sh" "*ryoku-editor*|*kate*"
 
 assert_contains "bin/ryoku-launch-editor" "EDITOR=nvim"
 assert_not_contains "bin/ryoku-launch-editor" "EDITOR=helix"
@@ -102,7 +109,7 @@ assert_contains "shell/defaults/config.json" '"enableNeovim": true'
 assert_contains "shell/modules/common/Config.qml" "property bool enableNeovim: true"
 
 assert_contains "iso/builder/build-iso.sh" "archiso git sudo base-devel jq grub uv neovim"
-assert_contains "iso/builder/build-iso.sh" "arch_packages=(git gum jq neovim openssl plymouth)"
+assert_contains "iso/builder/build-iso.sh" "arch_packages=(git gum jq neovim openssl plymouth lvm2 cryptsetup parted)"
 assert_contains "iso/builder/build-iso.sh" "var/cache/ryoku/nvim"
 assert_contains "iso/builder/build-iso.sh" "Lazy! sync"
 assert_not_contains "iso/builder/build-iso.sh" '"yukazakiri/ryoku.nvim"'
@@ -116,6 +123,8 @@ install_migration=$(grep -l "Install Neovim and Ryoku LazyVim defaults" "$ROOT_D
 [[ -n $install_migration ]] || fail "Neovim install migration should exist"
 install_migration=${install_migration#"$ROOT_DIR/"}
 assert_contains "$install_migration" "ryoku-pkg-add neovim"
+assert_contains "$install_migration" "ryoku-refresh-applications"
+assert_contains "$install_migration" "ryoku-editor.desktop"
 assert_contains "$install_migration" "ryoku-refresh-config \"\$relative_path\""
 assert_contains "$install_migration" "refresh_nvim_file nvim/init.lua"
 assert_contains "$install_migration" "nvim.ryoku-lazyvim-defaults"
@@ -134,6 +143,12 @@ dashboard_migration=$(grep -l "Refresh Ryoku Neovim dashboard tagline" "$ROOT_DI
 [[ -n $dashboard_migration ]] || fail "Neovim dashboard tagline migration should exist"
 dashboard_migration=${dashboard_migration#"$ROOT_DIR/"}
 assert_contains "$dashboard_migration" "力と美のために · For the sake of power and beauty."
+
+editor_launcher_migration=$(grep -l "Route text files through Ryoku's Neovim launcher" "$ROOT_DIR"/migrations/*.sh 2>/dev/null | sort -n | tail -n1 || true)
+[[ -n $editor_launcher_migration ]] || fail "Neovim desktop launcher migration should exist"
+editor_launcher_migration=${editor_launcher_migration#"$ROOT_DIR/"}
+assert_contains "$editor_launcher_migration" "ryoku-refresh-applications"
+assert_contains "$editor_launcher_migration" "xdg-mime default ryoku-editor.desktop"
 
 tmp_dir=$(mktemp -d)
 trap 'rm -rf "$tmp_dir"' EXIT
@@ -176,6 +191,10 @@ empty_output=$(
 assert_contains_abs "$tmp_dir/home-empty/.config/nvim/lua/plugins/ryoku-dashboard.lua" "力と美のために · For the sake of power and beauty."
 [[ -f $tmp_dir/home-empty/.local/share/nvim/lazy/lazy.nvim/README.md ]] \
   || fail "migration should seed offline Neovim plugin cache"
+assert_contains_abs "$tmp_dir/home-empty/.local/share/applications/ryoku-editor.desktop" "Name=Neovim"
+assert_contains_abs "$tmp_dir/home-empty/.local/share/applications/ryoku-editor.desktop" "Exec=\"$ROOT_DIR/bin/ryoku-launch-editor\" %F"
+assert_contains_abs "$tmp_dir/home-empty/.local/share/applications/ryoku-editor.desktop" "Terminal=false"
+assert_contains_abs "$tmp_dir/home-empty/.local/share/applications/ryoku-editor.desktop" "MimeType=text/english;text/plain"
 grep -q '^export EDITOR=nvim$' "$tmp_dir/home-empty/.config/uwsm/default" || fail "migration should set EDITOR=nvim"
 grep -q '^export VISUAL=nvim$' "$tmp_dir/home-empty/.config/uwsm/default" || fail "migration should set VISUAL=nvim"
 grep -q '^export SUDO_EDITOR=nvim$' "$tmp_dir/home-empty/.config/uwsm/default" || fail "migration should set SUDO_EDITOR=nvim"
@@ -268,6 +287,16 @@ PATH="$ROOT_DIR/bin:$PATH" \
   bash "$ROOT_DIR/$dashboard_migration" >/dev/null
 assert_contains_abs "$tmp_dir/home-dashboard/.config/nvim/lua/plugins/ryoku-dashboard.lua" "RYOKU"
 assert_contains_abs "$tmp_dir/home-dashboard/.config/nvim/lua/plugins/ryoku-dashboard.lua" "力と美のために · For the sake of power and beauty."
+
+mkdir -p "$tmp_dir/home-editor/.local/share/applications"
+HOME="$tmp_dir/home-editor" \
+TMPDIR="$tmp_dir" \
+RYOKU_PATH="$ROOT_DIR" \
+PATH="$tmp_dir/bin:$ROOT_DIR/bin:$PATH" \
+  bash "$ROOT_DIR/$editor_launcher_migration" >/dev/null
+assert_contains_abs "$tmp_dir/home-editor/.local/share/applications/ryoku-editor.desktop" "Exec=\"$ROOT_DIR/bin/ryoku-launch-editor\" %F"
+grep -qxF "default ryoku-editor.desktop text/plain" "$tmp_dir/xdg-mime.log" \
+  || fail "editor launcher migration should set text/plain to ryoku-editor.desktop"
 
 themegen_dir="$tmp_dir/themegen/nvim/lua/plugins"
 mkdir -p "$themegen_dir"
