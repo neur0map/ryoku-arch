@@ -56,7 +56,7 @@ set_env_line() {
 set_mime_default() {
   local mime="$1"
   command -v xdg-mime >/dev/null 2>&1 || return 0
-  xdg-mime default nvim.desktop "$mime" 2>/dev/null || true
+  xdg-mime default ryoku-editor.desktop "$mime" 2>/dev/null || true
 }
 
 seed_nvim_offline_cache() {
@@ -95,6 +95,7 @@ refresh_nvim_file nvim/lua/plugins/ryoku.lua
 refresh_nvim_file nvim/lua/plugins/ryoku-dashboard.lua
 refresh_nvim_file nvim/lua/plugins/99-ryoku-user.lua
 seed_nvim_offline_cache
+ryoku-refresh-applications
 
 set_env_line "$HOME/.config/uwsm/default" EDITOR nvim
 set_env_line "$HOME/.config/uwsm/default" VISUAL nvim

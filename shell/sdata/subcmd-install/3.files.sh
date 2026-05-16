@@ -796,7 +796,7 @@ set_mime_default_if_missing() {
     # (avoid cases where okular or other non-editors are set)
     if [[ "$mime_type" == text/* ]]; then
         case "$current_default" in
-            *kate*|*gedit*|*code*|*vim*|*emacs*|*nano*|*sublime*|*atom*|*notepad*|*helix*|*zed*)
+            *ryoku-editor*|*kate*|*gedit*|*code*|*vim*|*emacs*|*nano*|*sublime*|*atom*|*notepad*|*helix*|*zed*)
                 # Already set to a proper editor, don't change
                 return 1
                 ;;
@@ -813,7 +813,7 @@ set_mime_default_if_missing() {
 
 # Detect available text editor (in order of preference)
 TEXT_EDITOR=""
-for editor in nvim.desktop org.gnome.TextEditor.desktop org.gnome.gedit.desktop org.kde.kate.desktop code.desktop vim.desktop; do
+for editor in ryoku-editor.desktop nvim.desktop org.gnome.TextEditor.desktop org.gnome.gedit.desktop org.kde.kate.desktop code.desktop vim.desktop; do
     if [[ -f "/usr/share/applications/${editor}" ]] || [[ -f "${XDG_DATA_HOME:-$HOME/.local/share}/applications/${editor}" ]]; then
         TEXT_EDITOR="$editor"
         break

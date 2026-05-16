@@ -40,21 +40,21 @@ xdg-mime default mpv.desktop application/ogg
 # Use Helium for mailto: links unless the user installs a dedicated mail app.
 xdg-mime default helium.desktop x-scheme-handler/mailto
 
-# Open text files with Neovim
-xdg-mime default nvim.desktop text/plain
-xdg-mime default nvim.desktop text/english
-xdg-mime default nvim.desktop text/x-makefile
-xdg-mime default nvim.desktop text/x-c++hdr
-xdg-mime default nvim.desktop text/x-c++src
-xdg-mime default nvim.desktop text/x-chdr
-xdg-mime default nvim.desktop text/x-csrc
-xdg-mime default nvim.desktop text/x-java
-xdg-mime default nvim.desktop text/x-moc
-xdg-mime default nvim.desktop text/x-pascal
-xdg-mime default nvim.desktop text/x-tcl
-xdg-mime default nvim.desktop text/x-tex
-xdg-mime default nvim.desktop application/x-shellscript
-xdg-mime default nvim.desktop text/x-c
-xdg-mime default nvim.desktop text/x-c++
-xdg-mime default nvim.desktop application/xml
-xdg-mime default nvim.desktop text/xml
+# Open text files with Neovim through Ryoku's terminal-aware launcher.
+xdg-mime default ryoku-editor.desktop text/plain
+xdg-mime default ryoku-editor.desktop text/english
+xdg-mime default ryoku-editor.desktop text/x-makefile
+xdg-mime default ryoku-editor.desktop text/x-c++hdr
+xdg-mime default ryoku-editor.desktop text/x-c++src
+xdg-mime default ryoku-editor.desktop text/x-chdr
+xdg-mime default ryoku-editor.desktop text/x-csrc
+xdg-mime default ryoku-editor.desktop text/x-java
+xdg-mime default ryoku-editor.desktop text/x-moc
+xdg-mime default ryoku-editor.desktop text/x-pascal
+xdg-mime default ryoku-editor.desktop text/x-tcl
+xdg-mime default ryoku-editor.desktop text/x-tex
+xdg-mime default ryoku-editor.desktop application/x-shellscript
+xdg-mime default ryoku-editor.desktop text/x-c
+xdg-mime default ryoku-editor.desktop text/x-c++
+xdg-mime default ryoku-editor.desktop application/xml
+xdg-mime default ryoku-editor.desktop text/xml
