@@ -33,12 +33,15 @@ copy_default_nvim_file() {
 refresh_nvim_file() {
   local relative_path="$1"
 
-  if [[ $NVIM_CONFIG_TARGET == $NVIM_CONFIG_DIR ]]; then
+  case $NVIM_CONFIG_TARGET in
+  "$NVIM_CONFIG_DIR")
     mkdir -p "$(dirname "$HOME/.config/$relative_path")"
     ryoku-refresh-config "$relative_path"
-  else
+    ;;
+  *)
     copy_default_nvim_file "$relative_path"
-  fi
+    ;;
+  esac
 }
 
 set_env_line() {
