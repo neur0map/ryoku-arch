@@ -11,7 +11,8 @@ ryoku-pkg-drop yay-bin-debug
 
 reinstall_package_opr yay-bin yay
 reinstall_package_opr obsidian-bin obsidian
-reinstall_package_opr localsend-bin localsend
+# LocalSend intentionally stays on localsend-bin. The source AUR package
+# pulls rustup as a build dependency, which conflicts with Ryoku's Arch rust.
 reinstall_package_opr omarchy-chromium-bin omarchy-chromium
 reinstall_package_opr python-terminaltexteffects
 reinstall_package_opr tzupdate

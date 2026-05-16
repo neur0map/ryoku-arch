@@ -17,6 +17,10 @@ grep -qxF localsend-bin "$ROOT_DIR/install/ryoku-aur.packages" || \
   fail "Ryoku should install LocalSend from localsend-bin to avoid rustup make-dep conflicts"
 ! grep -qxF localsend "$ROOT_DIR/install/ryoku-aur.packages" || \
   fail "Ryoku should not install source localsend by default because it pulls rustup during AUR updates"
+if rg -n '^[[:space:]]*(ryoku-pkg-drop localsend-bin($|[[:space:]#])|ryoku-pkg-add localsend($|[[:space:]#])|reinstall_package_opr localsend-bin localsend($|[[:space:]#]))' \
+  "$ROOT_DIR/migrations" >/dev/null; then
+  fail "migrations should not reintroduce source LocalSend or remove localsend-bin"
+fi
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT

@@ -1,8 +1,9 @@
 echo "Migrate to proper packages for localsend and asdcontrol"
 
-if ryoku-pkg-present localsend-bin; then
-  ryoku-pkg-drop localsend-bin
-  ryoku-pkg-add localsend
+installed_localsend="$(pacman -Qq localsend 2>/dev/null || true)"
+if [[ $installed_localsend == "localsend" ]]; then
+  ryoku-pkg-drop localsend
+  ryoku-pkg-add localsend-bin
 fi
 
 if ryoku-pkg-present asdcontrol-git; then
