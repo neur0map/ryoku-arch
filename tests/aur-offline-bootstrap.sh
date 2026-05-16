@@ -110,6 +110,10 @@ assert_iso_aur_overlay_retries_clones() {
     fail "ISO AUR overlay builder should retry transient AUR clone failures"
   grep -Eq 'aur_fetch_plain_repo\(\)' "$script" || \
     fail "ISO AUR overlay builder should fall back to cgit plain files"
+  grep -Eq 'aur_fetch_snapshot_repo\(\)' "$script" || \
+    fail "ISO AUR overlay builder should try AUR snapshot tarballs before cgit plain files"
+  grep -Eq 'snapshot/\$\{pkg\}\.tar\.gz' "$script" || \
+    fail "ISO AUR overlay builder should fetch package snapshots from AUR"
   grep -Eq 'tree/\?h=\$\{pkg\}' "$script" || \
     fail "ISO AUR overlay builder should discover AUR files through cgit tree"
   grep -Eq 'plain/\$file_path\?h=\$\{pkg\}' "$script" || \

@@ -90,6 +90,32 @@ aur_fetch_plain_file() {
   return 1
 }
 
+aur_fetch_snapshot_repo() {
+  local pkg="$1"
+  local work_dir="$2"
+  local snapshot="$build_root/${pkg}.tar.gz"
+  local snapshot_url="https://aur.archlinux.org/cgit/aur.git/snapshot/${pkg}.tar.gz"
+
+  rm -rf "$work_dir" "$snapshot"
+  if curl -fsSL --connect-timeout 20 --retry 12 --retry-all-errors --retry-delay 10 \
+    "$snapshot_url" \
+    -o "$snapshot"; then
+    tar -xzf "$snapshot" -C "$build_root"
+    rm -f "$snapshot"
+
+    [[ -f $work_dir/PKGBUILD ]] || {
+      echo "AUR snapshot for $pkg did not produce a PKGBUILD." >&2
+      return 1
+    }
+    chown -R builder:builder "$work_dir"
+    return 0
+  fi
+
+  rm -f "$snapshot"
+  echo "AUR snapshot fetch of $pkg failed." >&2
+  return 1
+}
+
 aur_fetch_plain_repo() {
   local pkg="$1"
   local work_dir="$2"
@@ -155,7 +181,11 @@ aur_clone() {
     fi
   done
 
-  echo "git clone of $pkg from AUR failed after 5 attempts; trying cgit plain fallback." >&2
+  echo "git clone of $pkg from AUR failed after 5 attempts; trying snapshot fallback." >&2
+  if aur_fetch_snapshot_repo "$pkg" "$work_dir"; then
+    return 0
+  fi
+  echo "AUR snapshot fallback for $pkg failed; trying cgit plain fallback." >&2
   aur_fetch_plain_repo "$pkg" "$work_dir"
 }
 
