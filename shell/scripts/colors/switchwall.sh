@@ -131,7 +131,7 @@ get_max_monitor_resolution() {
     local height=1080
     # Try Niri first
     if command -v niri >/dev/null 2>&1 && niri msg outputs >/dev/null 2>&1; then
-        # Parse niri msg outputs for resolution (e.g., "  Current mode: 1920x1080@60.000")
+        # Parse niri msg outputs for resolution (e.g., "  Current mode: WIDTHxHEIGHT@REFRESH")
         local res=$(niri msg outputs 2>/dev/null | grep -oP 'Current mode: \K\d+x\d+' | sort -t'x' -k1 -nr | head -1)
         if [[ -n "$res" ]]; then
             width=$(echo "$res" | cut -d'x' -f1)

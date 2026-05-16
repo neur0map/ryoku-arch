@@ -79,7 +79,9 @@ def resolve_niri_section_file(relative_path: str) -> Path:
     root_config = get_niri_config_path()
     modular_file = config_dir / relative_path
 
-    if modular_file.exists() and _root_includes(relative_path):
+    if _root_includes(relative_path):
+        return modular_file
+    if modular_file.exists() and not root_config.exists():
         return modular_file
     if root_config.exists():
         return root_config
@@ -251,9 +253,10 @@ def cmd_persist_output(args):
 
     existing = outputs_file.read_text() if outputs_file.exists() else ""
 
-    # Find existing output block for this name
-    pattern = rf'(output\s+"{re.escape(output_name)}"\s*\{{)(.*?)(\}})'
-    match = re.search(pattern, existing, re.DOTALL)
+    # Find an active output block for this name. Anchor to KDL line starts so
+    # commented examples such as `// output "DP-1"` are not edited as real config.
+    pattern = rf'(^[ \t]*output\s+"{re.escape(output_name)}"\s*\{{)(.*?)(^[ \t]*\}})'
+    match = re.search(pattern, existing, re.DOTALL | re.MULTILINE)
 
     if match:
         # Surgical edit within existing block
@@ -1307,7 +1310,7 @@ def cmd_set(args):
     elif section == "window-rules":
         return _set_window_rules(config_dir, key, value)
     elif section == "output":
-        # output HDMI-A-2.mode 1920x1080@74.973
+        # output HDMI-A-2.mode WIDTHxHEIGHT@REFRESH
         parts = key.split(".", 1)
         if len(parts) != 2:
             print(json.dumps({"error": "output key must be <name>.<prop>"}))
