@@ -95,8 +95,12 @@ assert_contains 'iso/builder/build-gum-package.sh' 'CVE-2025-68121' \
   "gum rebuild script should document the Trivy blocker it fixes"
 assert_contains 'iso/builder/build-gum-package.sh' 'http\.version=HTTP/1\.1' \
   "gum rebuild script should use the hardened git transport"
+assert_contains 'iso/builder/build-gum-package.sh' 'sudo -u builder git -C "\$src_dir" rev-parse HEAD' \
+  "gum rebuild script should read git metadata with matching repository ownership"
 assert_contains 'iso/builder/build-gum-package.sh' 'go build' \
   "gum rebuild script should compile gum from source"
+assert_contains 'iso/builder/build-gum-package.sh' 'pushd "\$pkgbuild_dir"' \
+  "gum rebuild script should run makepkg from the generated PKGBUILD directory"
 assert_contains '.github/workflows/build-iso.yml' 'scan-type: rootfs' \
   "workflow should scan the built live root filesystem, not just source files"
 assert_contains '.github/workflows/build-iso.yml' 'trivy-iso-results\.sarif' \
