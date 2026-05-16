@@ -81,13 +81,17 @@ assert_contains "bin/ryoku-refresh-applications" "MimeType=text/english;text/pla
 assert_contains "shell/sdata/subcmd-install/3.files.sh" "for editor in ryoku-editor.desktop nvim.desktop"
 assert_contains "shell/sdata/subcmd-install/3.files.sh" "*ryoku-editor*|*kate*"
 
-assert_contains "bin/ryoku-launch-editor" "EDITOR=nvim"
+assert_executable "bin/xdg-terminal-exec"
+assert_executable "bin/ryoku-terminal-exec"
+assert_contains "bin/ryoku-launch-editor" 'editor="${RYOKU_EDITOR:-nvim}"'
+assert_not_contains "bin/ryoku-launch-editor" 'ryoku-cmd-present "$EDITOR" || EDITOR=nvim'
 assert_not_contains "bin/ryoku-launch-editor" "EDITOR=helix"
 assert_contains "bin/ryoku-dev-add-migration" 'RYOKU_PATH="$SCRIPT_ROOT"'
 assert_contains "bin/ryoku-dev-add-migration" '${EDITOR:-nvim}'
 assert_contains "default/bash/aliases" "command nvim ."
-assert_contains "default/bash/envs" "export EDITOR="
-assert_contains "default/bash/envs" "export VISUAL="
+assert_contains "default/bash/envs" 'export EDITOR="${RYOKU_EDITOR:-nvim}"'
+assert_contains "default/bash/envs" 'export VISUAL="${RYOKU_VISUAL:-$EDITOR}"'
+assert_contains "default/bash/envs" 'export SUDO_EDITOR="${RYOKU_SUDO_EDITOR:-$VISUAL}"'
 
 assert_file "config/nvim/init.lua"
 assert_file "config/nvim/lua/config/lazy.lua"
@@ -150,6 +154,13 @@ editor_launcher_migration=${editor_launcher_migration#"$ROOT_DIR/"}
 assert_contains "$editor_launcher_migration" "ryoku-refresh-applications"
 assert_contains "$editor_launcher_migration" "xdg-mime default ryoku-editor.desktop"
 
+editor_repair_migration=$(grep -l "Repair Ryoku Neovim editor launcher" "$ROOT_DIR"/migrations/*.sh 2>/dev/null | sort -n | tail -n1 || true)
+[[ -n $editor_repair_migration ]] || fail "Neovim editor repair migration should exist"
+editor_repair_migration=${editor_repair_migration#"$ROOT_DIR/"}
+assert_contains "$editor_repair_migration" 'chmod +x "$launcher"'
+assert_contains "$editor_repair_migration" 'set_env_line "$HOME/.config/uwsm/default" EDITOR nvim'
+assert_contains "$editor_repair_migration" "xdg-mime default ryoku-editor.desktop"
+
 tmp_dir=$(mktemp -d)
 trap 'rm -rf "$tmp_dir"' EXIT
 
@@ -192,7 +203,7 @@ assert_contains_abs "$tmp_dir/home-empty/.config/nvim/lua/plugins/ryoku-dashboar
 [[ -f $tmp_dir/home-empty/.local/share/nvim/lazy/lazy.nvim/README.md ]] \
   || fail "migration should seed offline Neovim plugin cache"
 assert_contains_abs "$tmp_dir/home-empty/.local/share/applications/ryoku-editor.desktop" "Name=Neovim"
-assert_contains_abs "$tmp_dir/home-empty/.local/share/applications/ryoku-editor.desktop" "Exec=\"$ROOT_DIR/bin/ryoku-launch-editor\" %F"
+assert_contains_abs "$tmp_dir/home-empty/.local/share/applications/ryoku-editor.desktop" "Exec=$ROOT_DIR/bin/ryoku-launch-editor %F"
 assert_contains_abs "$tmp_dir/home-empty/.local/share/applications/ryoku-editor.desktop" "Terminal=false"
 assert_contains_abs "$tmp_dir/home-empty/.local/share/applications/ryoku-editor.desktop" "MimeType=text/english;text/plain"
 grep -q '^export EDITOR=nvim$' "$tmp_dir/home-empty/.config/uwsm/default" || fail "migration should set EDITOR=nvim"
@@ -294,9 +305,39 @@ TMPDIR="$tmp_dir" \
 RYOKU_PATH="$ROOT_DIR" \
 PATH="$tmp_dir/bin:$ROOT_DIR/bin:$PATH" \
   bash "$ROOT_DIR/$editor_launcher_migration" >/dev/null
-assert_contains_abs "$tmp_dir/home-editor/.local/share/applications/ryoku-editor.desktop" "Exec=\"$ROOT_DIR/bin/ryoku-launch-editor\" %F"
+assert_contains_abs "$tmp_dir/home-editor/.local/share/applications/ryoku-editor.desktop" "Exec=$ROOT_DIR/bin/ryoku-launch-editor %F"
 grep -qxF "default ryoku-editor.desktop text/plain" "$tmp_dir/xdg-mime.log" \
   || fail "editor launcher migration should set text/plain to ryoku-editor.desktop"
+
+cat >"$tmp_dir/bin/setsid" <<'SETSID'
+#!/bin/bash
+exec "$@"
+SETSID
+cat >"$tmp_dir/bin/xdg-terminal-exec" <<'XDGTERM'
+#!/bin/bash
+printf '%s\n' "$@" >"$TMPDIR/editor-launch.log"
+XDGTERM
+cat >"$tmp_dir/bin/nvim" <<'NVIM'
+#!/bin/bash
+exit 0
+NVIM
+cat >"$tmp_dir/bin/vi" <<'VI'
+#!/bin/bash
+exit 0
+VI
+chmod +x "$tmp_dir/bin/setsid" "$tmp_dir/bin/xdg-terminal-exec" "$tmp_dir/bin/nvim" "$tmp_dir/bin/vi"
+printf 'sample\n' >"$tmp_dir/sample.txt"
+TMPDIR="$tmp_dir" \
+RYOKU_PATH="$ROOT_DIR" \
+EDITOR=vi \
+PATH="$tmp_dir/bin:$ROOT_DIR/bin:$PATH" \
+  "$ROOT_DIR/bin/ryoku-launch-editor" "$tmp_dir/sample.txt"
+grep -qxF "nvim" "$tmp_dir/editor-launch.log" \
+  || fail "Ryoku editor launcher should prefer Neovim over inherited EDITOR=vi"
+! grep -qxF "vi" "$tmp_dir/editor-launch.log" \
+  || fail "Ryoku editor launcher should not pass inherited EDITOR=vi when Neovim is present"
+grep -qxF "$tmp_dir/sample.txt" "$tmp_dir/editor-launch.log" \
+  || fail "Ryoku editor launcher should pass the opened file to Neovim"
 
 themegen_dir="$tmp_dir/themegen/nvim/lua/plugins"
 mkdir -p "$themegen_dir"
