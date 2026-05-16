@@ -4,19 +4,13 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 
 # Ensure all default .desktop, web apps, and TUIs are installed.
 
-desktop_exec_quote() {
-  local value="$1"
-  value="${value//\\/\\\\}"
-  value="${value//\"/\\\"}"
-  printf '"%s"' "$value"
-}
-
 install_editor_desktop_entry() {
   local app_dir="$HOME/.local/share/applications"
   local desktop_file="$app_dir/ryoku-editor.desktop"
   local editor_exec
 
-  editor_exec="$(desktop_exec_quote "$RYOKU_PATH/bin/ryoku-launch-editor") %F"
+  # xdg-mime validates the first Exec word with command -v and ignores quoted paths.
+  editor_exec="$RYOKU_PATH/bin/ryoku-launch-editor %F"
 
   cat >"$desktop_file" <<EOF
 [Desktop Entry]
