@@ -108,6 +108,12 @@ assert_iso_aur_overlay_retries_clones() {
     fail "ISO AUR overlay builder should force HTTP/1.1 for flaky AUR TLS clones"
   grep -Eq 'for attempt in \{1\.\.5\}' "$script" || \
     fail "ISO AUR overlay builder should retry transient AUR clone failures"
+  grep -Eq 'aur_fetch_plain_repo\(\)' "$script" || \
+    fail "ISO AUR overlay builder should fall back to cgit plain files"
+  grep -Eq 'tree/\?h=\$\{pkg\}' "$script" || \
+    fail "ISO AUR overlay builder should discover AUR files through cgit tree"
+  grep -Eq 'plain/\$file_path\?h=\$\{pkg\}' "$script" || \
+    fail "ISO AUR overlay builder should fetch AUR files through cgit plain"
   grep -Eq 'git clone of \$pkg from AUR failed' "$script" || \
     fail "ISO AUR overlay builder should explain retrying AUR clone failures"
   grep -Eq 'failed after 5 attempts' "$script" || \
