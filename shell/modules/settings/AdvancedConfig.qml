@@ -183,6 +183,15 @@ ContentPage {
                 visible: cavaSwitch.checked
                 title: Translation.tr("Cava options")
 
+                ConfigSelectionArray {
+                    currentValue: Config.options?.appearance?.cava?.colorSource ?? "theme"
+                    onSelected: newValue => Config.setNestedValue("appearance.cava.colorSource", newValue)
+                    options: [
+                        { "value": "theme", "displayName": Translation.tr("Theme") },
+                        { "value": "vibrant", "displayName": Translation.tr("Vibrant") },
+                        { "value": "cover", "displayName": Translation.tr("Cover") }
+                    ]
+                }
                 ConfigSpinBox {
                     icon: "hearing"
                     text: Translation.tr("Sensitivity")
@@ -240,6 +249,60 @@ ContentPage {
                         text: Translation.tr("Fill opacity for wave visualizer (affects all consumers)")
                     }
                 }
+                ConfigSpinBox {
+                    icon: "gradient"
+                    text: Translation.tr("Gradient colors")
+                    value: Config.options?.appearance?.cava?.gradientCount ?? 8
+                    from: 2
+                    to: 8
+                    stepSize: 1
+                    onValueChanged: Config.setNestedValue("appearance.cava.gradientCount", value)
+                    StyledToolTip {
+                        text: Translation.tr("Number of colors in the cava gradient")
+                    }
+                }
+                ConfigSpinBox {
+                    icon: "width"
+                    text: Translation.tr("Bar width")
+                    value: Config.options?.appearance?.cava?.barWidth ?? 2
+                    from: 1
+                    to: 20
+                    stepSize: 1
+                    onValueChanged: Config.setNestedValue("appearance.cava.barWidth", value)
+                    StyledToolTip {
+                        text: Translation.tr("Width of each cava bar")
+                    }
+                }
+                ConfigSpinBox {
+                    icon: "format_line_spacing"
+                    text: Translation.tr("Bar spacing")
+                    value: Config.options?.appearance?.cava?.barSpacing ?? 1
+                    from: 0
+                    to: 20
+                    stepSize: 1
+                    onValueChanged: Config.setNestedValue("appearance.cava.barSpacing", value)
+                    StyledToolTip {
+                        text: Translation.tr("Spacing between cava bars")
+                    }
+                }
+                ContentSubsectionLabel {
+                    text: Translation.tr("Foreground override")
+                }
+                MaterialTextField {
+                    Layout.fillWidth: true
+                    placeholderText: "#aabbcc"
+                    text: Config.options?.appearance?.cava?.foreground ?? ""
+                    onEditingFinished: Config.setNestedValue("appearance.cava.foreground", text)
+                }
+                ContentSubsectionLabel {
+                    text: Translation.tr("Background override")
+                }
+                MaterialTextField {
+                    Layout.fillWidth: true
+                    placeholderText: "#101010"
+                    text: Config.options?.appearance?.cava?.background ?? ""
+                    onEditingFinished: Config.setNestedValue("appearance.cava.background", text)
+                }
 
                 RippleButton {
                     Layout.fillWidth: true
@@ -253,6 +316,12 @@ ContentPage {
                         Config.setNestedValue("appearance.cava.framerate", 60);
                         Config.setNestedValue("appearance.cava.stereo", true);
                         Config.setNestedValue("appearance.cava.waveOpacity", 30);
+                        Config.setNestedValue("appearance.cava.colorSource", "theme");
+                        Config.setNestedValue("appearance.cava.gradientCount", 8);
+                        Config.setNestedValue("appearance.cava.foreground", "");
+                        Config.setNestedValue("appearance.cava.background", "");
+                        Config.setNestedValue("appearance.cava.barWidth", 2);
+                        Config.setNestedValue("appearance.cava.barSpacing", 1);
                     }
                     contentItem: RowLayout {
                         anchors.centerIn: parent

@@ -609,6 +609,12 @@ Singleton {
                     property int framerate: 60 // 30-165
                     property bool stereo: true
                     property int waveOpacity: 30 // 5-100, fill alpha for WaveVisualizer
+                    property string colorSource: "theme" // theme, vibrant, cover
+                    property int gradientCount: 8 // 2-8
+                    property string foreground: "" // optional #rrggbb override
+                    property string background: "" // optional #rrggbb override
+                    property int barWidth: 2
+                    property int barSpacing: 1
                 }
                 property JsonObject palette: JsonObject {
                     property string type: "auto" // Allowed: auto, scheme-content, scheme-expressive, scheme-fidelity, scheme-fruit-salad, scheme-monochrome, scheme-neutral, scheme-rainbow, scheme-tonal-spot

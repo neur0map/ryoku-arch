@@ -99,7 +99,13 @@
       "bars": 0,
       "framerate": 60,
       "stereo": true,
-      "waveOpacity": 30
+      "waveOpacity": 30,
+      "colorSource": "theme",
+      "gradientCount": 8,
+      "foreground": "",
+      "background": "",
+      "barWidth": 2,
+      "barSpacing": 1
     },
     "palette": {
       "type": "auto",
