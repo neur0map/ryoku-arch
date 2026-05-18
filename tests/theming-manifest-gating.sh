@@ -44,10 +44,17 @@ set -euo pipefail
 printf 'disabled\n' >> "$THEMING_TEST_LOG"
 EOF
 
+cat > "$tmp_dir/scripts/colors/modules/30-any-enabled.sh" <<'EOF'
+#!/bin/bash
+set -euo pipefail
+printf 'any-enabled\n' >> "$THEMING_TEST_LOG"
+EOF
+
 chmod +x "$tmp_dir/scripts/colors/applycolor.sh" \
   "$tmp_dir/scripts/colors/lib/module-runtime.sh" \
   "$tmp_dir/scripts/colors/modules/10-enabled.sh" \
-  "$tmp_dir/scripts/colors/modules/20-disabled.sh"
+  "$tmp_dir/scripts/colors/modules/20-disabled.sh" \
+  "$tmp_dir/scripts/colors/modules/30-any-enabled.sh"
 
 cat > "$tmp_dir/scripts/colors/targets/enabled.json" <<'JSON'
 {
@@ -67,12 +74,26 @@ cat > "$tmp_dir/scripts/colors/targets/disabled.json" <<'JSON'
 }
 JSON
 
+cat > "$tmp_dir/scripts/colors/targets/any-enabled.json" <<'JSON'
+{
+  "id": "any-enabled",
+  "label": "Any Enabled",
+  "module": "30-any-enabled.sh",
+  "configKeys": [
+    "appearance.wallpaperTheming.enableAnyOne",
+    "appearance.wallpaperTheming.enableAnyTwo"
+  ]
+}
+JSON
+
 cat > "$test_home/.config/ryoku-shell/config.json" <<'JSON'
 {
   "appearance": {
     "wallpaperTheming": {
       "enableEnabled": true,
-      "enableDisabled": false
+      "enableDisabled": false,
+      "enableAnyOne": false,
+      "enableAnyTwo": true
     }
   }
 }
@@ -89,6 +110,7 @@ export RYOKU_THEME_MAX_JOBS=2
 
 [[ -f $THEMING_TEST_LOG ]] || fail "enabled module did not run"
 grep -Fxq "enabled" "$THEMING_TEST_LOG" || fail "enabled module missing from run log"
+grep -Fxq "any-enabled" "$THEMING_TEST_LOG" || fail "configKeys target should run when any key is enabled"
 ! grep -Fxq "disabled" "$THEMING_TEST_LOG" || fail "disabled manifest module should not run"
 
 cat > "$test_home/.config/ryoku-shell/config.json" <<'JSON'
@@ -96,7 +118,9 @@ cat > "$test_home/.config/ryoku-shell/config.json" <<'JSON'
   "appearance": {
     "wallpaperTheming": {
       "enableEnabled": false,
-      "enableDisabled": false
+      "enableDisabled": false,
+      "enableAnyOne": false,
+      "enableAnyTwo": false
     }
   }
 }
