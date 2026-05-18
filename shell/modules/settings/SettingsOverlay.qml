@@ -517,6 +517,24 @@ Scope {
         function onSettingsOverlayOpenChanged() {
             if (GlobalStates.settingsOverlayOpen) {
                 root._everOpened = true
+                // Honor a pre-set requested page when the overlay opens.
+                if (GlobalStates.settingsOverlayRequestedPage >= 0
+                    && GlobalStates.settingsOverlayRequestedPage < root.overlayPages.length) {
+                    root.overlayCurrentPage = GlobalStates.settingsOverlayRequestedPage
+                    GlobalStates.settingsOverlayRequestedPage = -1
+                }
+            }
+        }
+        function onSettingsOverlayRequestedPageChanged() {
+            // Also handle in-place navigation when the overlay is already
+            // open (e.g. the Applications-page install banner pointing at
+            // Extras). Reset to -1 so subsequent identical values still
+            // fire the change signal.
+            const target = GlobalStates.settingsOverlayRequestedPage
+            if (target < 0 || target >= root.overlayPages.length) return
+            if (GlobalStates.settingsOverlayOpen) {
+                root.overlayCurrentPage = target
+                GlobalStates.settingsOverlayRequestedPage = -1
             }
         }
     }
@@ -1637,7 +1655,7 @@ Scope {
     property var navCategories: [
         { label: Translation.tr("Appearance"), pages: [0, 4, 3] },
         { label: Translation.tr("Layout"), pages: [2, 5, 6, 10] },
-        { label: Translation.tr("System"), pages: [1, 7, 8, 15] },
+        { label: Translation.tr("System"), pages: [1, 7, 8, 15, 16] },
         { label: Translation.tr("Reference"), pages: [9, 11, 12, 14] }
     ]
 
@@ -1778,6 +1796,14 @@ Scope {
             desc: Translation.tr("Optional feature profiles"),
             essential: false,
             component: Quickshell.shellPath("modules/settings/ExtrasConfig.qml")
+        },
+        {
+            name: Translation.tr("Applications"),
+            shortName: "",
+            icon: "apps",
+            desc: Translation.tr("Music, terminal and default apps"),
+            essential: false,
+            component: Quickshell.shellPath("modules/settings/ApplicationsConfig.qml")
         }
     ]
 
