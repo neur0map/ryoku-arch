@@ -12,10 +12,10 @@ fail() {
 
 [[ -f $UPDATE ]] || fail "missing ryoku-update"
 
-grep -Eq -- '--what=sleep:shutdown:idle[[:space:]]*\\?$' "$UPDATE" || \
-  fail "ryoku-update should request only user-allowed sleep/shutdown/idle inhibitors"
+grep -Eq -- '--what=sleep:idle[[:space:]]*\\?$' "$UPDATE" || \
+  fail "ryoku-update should request only user-allowed sleep/idle inhibitors"
 
-! rg -q 'handle-lid-switch|handle-suspend-key|handle-hibernate-key' "$UPDATE" || \
-  fail "ryoku-update should not request privileged handle-* inhibitors"
+! rg -q 'shutdown|handle-lid-switch|handle-suspend-key|handle-hibernate-key' "$UPDATE" || \
+  fail "ryoku-update should not request privileged shutdown or handle-* inhibitors"
 
 echo "PASS: ryoku-update uses user-allowed inhibit scopes"
