@@ -1058,6 +1058,12 @@ Scope {
                 id: widgetCanvas
                 z: 20
                 enabled: !GlobalStates.screenLocked  // Disable all widget input during lock
+                // Live screen-coord offset of the canvas. Negative under parallax
+                // when widgetCanvas extends past the screen edges. Widgets read
+                // this to clamp their drag bounds to the visible screen instead
+                // of the (wider) canvas.
+                readonly property real canvasShiftX: widgetCanvas.x
+                readonly property real canvasShiftY: widgetCanvas.y
                 opacity: {
                     const dynOp = Math.max(0, Math.min(100, Number(Config.options?.background?.widgets?.dynamicOpacity) || 0));
                     if (dynOp <= 0 || !bgRoot.focusWindowsPresent) return 1;
@@ -1616,6 +1622,8 @@ Scope {
                         scaledScreenWidth: bgRoot.screen.width
                         scaledScreenHeight: bgRoot.screen.height
                         wallpaperScale: 1
+                        canvasShiftX: widgetCanvas.canvasShiftX
+                        canvasShiftY: widgetCanvas.canvasShiftY
                     }
                 }
 
@@ -1631,6 +1639,8 @@ Scope {
                         scaledScreenHeight: bgRoot.screen.height
                         wallpaperScale: 1
                         wallpaperSafetyTriggered: bgRoot.wallpaperSafetyTriggered
+                        canvasShiftX: widgetCanvas.canvasShiftX
+                        canvasShiftY: widgetCanvas.canvasShiftY
                     }
                 }
 
@@ -1645,6 +1655,8 @@ Scope {
                         scaledScreenWidth: bgRoot.screen.width
                         scaledScreenHeight: bgRoot.screen.height
                         wallpaperScale: 1
+                        canvasShiftX: widgetCanvas.canvasShiftX
+                        canvasShiftY: widgetCanvas.canvasShiftY
                     }
                 }
 
@@ -1659,6 +1671,8 @@ Scope {
                         scaledScreenWidth: bgRoot.screen.width
                         scaledScreenHeight: bgRoot.screen.height
                         wallpaperScale: 1
+                        canvasShiftX: widgetCanvas.canvasShiftX
+                        canvasShiftY: widgetCanvas.canvasShiftY
                     }
                 }
 
@@ -1673,6 +1687,8 @@ Scope {
                         scaledScreenWidth: bgRoot.screen.width
                         scaledScreenHeight: bgRoot.screen.height
                         wallpaperScale: 1
+                        canvasShiftX: widgetCanvas.canvasShiftX
+                        canvasShiftY: widgetCanvas.canvasShiftY
                     }
                 }
 
@@ -1687,6 +1703,8 @@ Scope {
                         scaledScreenWidth: bgRoot.screen.width
                         scaledScreenHeight: bgRoot.screen.height
                         wallpaperScale: 1
+                        canvasShiftX: widgetCanvas.canvasShiftX
+                        canvasShiftY: widgetCanvas.canvasShiftY
                     }
                 }
 
@@ -1716,6 +1734,8 @@ Scope {
                                 scaledScreenWidth: bgRoot.screen.width,
                                 scaledScreenHeight: bgRoot.screen.height,
                                 wallpaperScale: 1,
+                                canvasShiftX: widgetCanvas.canvasShiftX,
+                                canvasShiftY: widgetCanvas.canvasShiftY,
                             };
                             // Pass manifest data for auto-popover and resize
                             if (modelData.configKeys && Object.keys(modelData.configKeys).length > 0)
