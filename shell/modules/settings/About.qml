@@ -396,61 +396,13 @@ ContentPage {
             }
         }
 
-        // ── Bottom grid: upstream and integration credit cards ──────────────
+        // ── Bottom grid: integration credit cards ──────────────────────────
         GridLayout {
             Layout.fillWidth: true
             Layout.preferredHeight: 456
             columns: 2
             rowSpacing: 16
             columnSpacing: 16
-
-            // ── iNiR credit card ────────────────────────────────────────────
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-
-                color: Appearance.colors.colSurfaceContainerLow
-                radius: 20
-                border.width: 1
-                border.color: Appearance.colors.colOutline
-
-                ColumnLayout {
-                    anchors.fill: parent
-                    anchors.margins: 20
-                    spacing: 8
-
-                    StyledText {
-                        text: "iNiR"
-                        font.pixelSize: Appearance.font.pixelSize.title
-                    }
-
-                    StyledText {
-                        text: Translation.tr("Upstream desktop shell")
-                        font.pixelSize: Appearance.font.pixelSize.small
-                        color: Appearance.colors.colSubtext
-                        Layout.fillWidth: true
-                        wrapMode: Text.WordWrap
-                    }
-
-                    StyledText {
-                        text: "[github.com/snowarch/iNiR](https://github.com/snowarch/iNiR)"
-                        font.pixelSize: Appearance.font.pixelSize.small
-                        color: Appearance.m3colors.m3primary
-                        textFormat: Text.MarkdownText
-                        onLinkActivated: (link) => Qt.openUrlExternally(link)
-
-                        PointingHandLinkHover {}
-                    }
-
-                    Item { Layout.fillHeight: true }
-
-                    CircleIconButton {
-                        materialIcon: "open_in_new"
-                        tooltip: "iNiR"
-                        onClicked: Qt.openUrlExternally("https://github.com/snowarch/iNiR")
-                    }
-                }
-            }
 
             // ── illogical-impulse credit card ───────────────────────────────
             Rectangle {

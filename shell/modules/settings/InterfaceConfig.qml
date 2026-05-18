@@ -1176,6 +1176,31 @@ ContentPage {
             }
 
             ContentSubsection {
+                title: Translation.tr("Booru download paths")
+                visible: (Config.options?.policies?.weeb ?? 0) !== 0
+
+                ContentSubsectionLabel {
+                    text: Translation.tr("SFW download folder")
+                }
+                MaterialTextField {
+                    Layout.fillWidth: true
+                    placeholderText: Directories.wallpapersPath
+                    text: Config.options?.sidebar?.booru?.downloadPath?.sfw ?? ""
+                    onEditingFinished: Config.setNestedValue("sidebar.booru.downloadPath.sfw", text)
+                }
+
+                ContentSubsectionLabel {
+                    text: Translation.tr("NSFW download folder")
+                }
+                MaterialTextField {
+                    Layout.fillWidth: true
+                    placeholderText: Directories.wallpapersPath + "/pepper"
+                    text: Config.options?.sidebar?.booru?.downloadPath?.nsfw ?? ""
+                    onEditingFinished: Config.setNestedValue("sidebar.booru.downloadPath.nsfw", text)
+                }
+            }
+
+            ContentSubsection {
                 title: Translation.tr("Wallhaven")
                 visible: Config.options.sidebar?.wallhaven?.enable ?? true
 

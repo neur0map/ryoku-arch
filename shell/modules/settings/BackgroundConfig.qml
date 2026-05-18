@@ -1092,6 +1092,26 @@ ContentPage {
     }
 
     SettingsCardSection {
+        expanded: false
+        icon: "folder"
+        title: Translation.tr("Wallpapers folder")
+
+        SettingsGroup {
+            ContentSubsection {
+                title: Translation.tr("Custom wallpapers directory")
+                tooltip: Translation.tr("Leave empty for default ~/Pictures/Wallpapers")
+
+                MaterialTextField {
+                    Layout.fillWidth: true
+                    placeholderText: Directories.shortHomePath(Directories.wallpapersPath)
+                    text: Config.options?.wallpapers?.directory ?? ""
+                    onEditingFinished: Config.setNestedValue("wallpapers.directory", text)
+                }
+            }
+        }
+    }
+
+    SettingsCardSection {
         visible: root.isIiActive
         expanded: false
         icon: "transition_fade"

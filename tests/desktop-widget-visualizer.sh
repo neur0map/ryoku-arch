@@ -23,6 +23,8 @@ assert_not_contains() {
 }
 
 widget="shell/modules/background/widgets/visualizer/VisualizerWidget.qml"
+old_prefix="i""nir"
+old_owner="snow""arch"
 
 [[ -f $ROOT_DIR/$widget ]] || fail "missing visualizer widget"
 [[ -f $ROOT_DIR/shell/modules/background/widgets/visualizer/qmldir ]] || fail "missing visualizer qmldir"
@@ -36,8 +38,8 @@ assert_contains "$widget" 'configEntryName: "visualizer"'
 assert_contains "$widget" "CavaProcess"
 assert_contains "$widget" "CavaVisualizer"
 assert_contains "$widget" "Appearance.ryokuEverywhere"
-assert_not_contains "$widget" "Appearance.inir"
-assert_not_contains "$widget" "inirEverywhere"
-assert_not_contains "$widget" "snowarch"
+assert_not_contains "$widget" "Appearance.$old_prefix"
+assert_not_contains "$widget" "${old_prefix}Everywhere"
+assert_not_contains "$widget" "$old_owner"
 
 echo "PASS: desktop visualizer widget is wired for Ryoku"

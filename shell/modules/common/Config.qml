@@ -1115,6 +1115,7 @@ Singleton {
             }
 
             property JsonObject regionSelector: JsonObject {
+                property string screenshotNameFormat: "ss-%Y%m%d-%H%M%S"
                 property int borderSize: 4
                 property int numSize: 48
                 property JsonObject targetRegions: JsonObject {
@@ -1206,6 +1207,10 @@ Singleton {
                     property int limit: 20
                     property JsonObject zerochan: JsonObject {
                         property string username: "[unset]"
+                    }
+                    property JsonObject downloadPath: JsonObject {
+                        property string sfw: ""
+                        property string nsfw: ""
                     }
                 }
                 // Wallhaven-specific sidebar module options
@@ -1464,6 +1469,10 @@ Singleton {
                 property string coverflowView: "gallery" // "gallery" | "skew"
             }
 
+            property JsonObject wallpapers: JsonObject {
+                property string directory: ""
+            }
+
             property JsonObject screenRecord: JsonObject {
                 property JsonObject recordingOsd: JsonObject {
                     property bool autoHide: false
@@ -1487,6 +1496,7 @@ Singleton {
                 property int crf: 21
                 property string vaapiFilter: "scale_vaapi=format=nv12:out_range=full"
                 property bool enableFallback: true
+                property string recordingNameFormat: "recording_%Y-%m-%d_%H.%M.%S"
                 property JsonObject discordCompress: JsonObject {
                     property bool enabled: false
                     property real targetSizeMb: 10

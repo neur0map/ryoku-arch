@@ -51,6 +51,8 @@ source_config_path_helper() {
 }
 
 source_config_path_helper
+export RYOKU_SHELL_CONFIG_DIR="$(ryoku_shell_config_dir)"
+export RYOKU_SHELL_CONFIG_FILE="$(ryoku_shell_config_file)"
 
 _ipc_registry_loaded=false
 
