@@ -72,10 +72,124 @@ ryoku_profile_package_missing() {
   (( ${#missing[@]} > 0 ))
 }
 
+ryoku_profile_multilib_enabled() {
+  [[ -r /etc/pacman.conf ]] || return 1
+  awk '
+    /^[[:space:]]*\[multilib\][[:space:]]*$/ { in_multi = 1; next }
+    /^[[:space:]]*\[[^]]+\][[:space:]]*$/ { in_multi = 0 }
+    in_multi && /^[[:space:]]*Include[[:space:]]*=/ { found = 1; exit }
+    END { exit found ? 0 : 1 }
+  ' /etc/pacman.conf
+}
+
+ryoku_profile_enable_multilib() {
+  # Uncomment the [multilib] section (and the matching Include line) in
+  # /etc/pacman.conf, then refresh the package databases so lib32-* packages
+  # become resolvable. Idempotent. Returns 0 on success.
+  (( EUID == 0 )) || {
+    printf 'Error: ryoku_profile_enable_multilib must run as root.\n' >&2
+    return 1
+  }
+
+  ryoku_profile_multilib_enabled && { pacman -Sy --noconfirm >/dev/null 2>&1 || true; return 0; }
+
+  [[ -w /etc/pacman.conf ]] || {
+    printf 'Error: /etc/pacman.conf is not writable.\n' >&2
+    return 1
+  }
+
+  cp -a /etc/pacman.conf "/etc/pacman.conf.ryoku-bak.$(date +%Y%m%d-%H%M%S)" || return 1
+
+  # Find the line of #[multilib] and uncomment it plus the next Include line.
+  awk '
+    BEGIN { uncomment_next_include = 0 }
+    /^[[:space:]]*#[[:space:]]*\[multilib\][[:space:]]*$/ {
+      sub(/^[[:space:]]*#[[:space:]]*/, "")
+      uncomment_next_include = 1
+      print
+      next
+    }
+    uncomment_next_include && /^[[:space:]]*#[[:space:]]*Include[[:space:]]*=/ {
+      sub(/^[[:space:]]*#[[:space:]]*/, "")
+      uncomment_next_include = 0
+      print
+      next
+    }
+    /^[[:space:]]*\[[^]]+\][[:space:]]*$/ { uncomment_next_include = 0 }
+    { print }
+  ' /etc/pacman.conf > /etc/pacman.conf.ryoku-tmp || return 1
+  mv /etc/pacman.conf.ryoku-tmp /etc/pacman.conf || return 1
+
+  ryoku_profile_multilib_enabled || {
+    printf 'Error: [multilib] still appears disabled after edit.\n' >&2
+    return 1
+  }
+
+  pacman -Sy --noconfirm || return 1
+}
+
+ryoku_profile_ensure_multilib_for_packages() {
+  # Inspect the given package list; if any package is lib32-* (and a few
+  # known-multilib packages like steam, umu-launcher), make sure [multilib]
+  # is on. Under pkexec/SUDO_UID the user has already authenticated for
+  # this install, so we treat that as consent. On an interactive TTY we
+  # prompt y/N first.
+  local pkg
+  local needs_multilib=0
+
+  for pkg in "$@"; do
+    case "$pkg" in
+      lib32-*|steam|steam-devices|umu-launcher) needs_multilib=1; break ;;
+    esac
+  done
+
+  (( needs_multilib == 1 )) || return 0
+  ryoku_profile_multilib_enabled && return 0
+
+  if (( EUID != 0 )); then
+    printf 'Multilib is required but cannot be enabled without root.\n' >&2
+    return 1
+  fi
+
+  local consent=0
+  if [[ -n ${PKEXEC_UID:-} || -n ${SUDO_UID:-} ]]; then
+    # Came in through pkexec/sudo for this profile; the unlock dialog already
+    # served as the consent step.
+    consent=1
+    printf '[ryoku-profile] Enabling [multilib] in /etc/pacman.conf for lib32 packages.\n'
+  elif [[ -t 0 && -t 1 ]]; then
+    printf 'This profile needs the [multilib] repo for 32-bit libraries.\n'
+    printf 'Enable [multilib] in /etc/pacman.conf now? [y/N] '
+    local reply
+    read -r reply
+    case "$reply" in
+      [yY]|[yY][eE][sS]) consent=1 ;;
+    esac
+  else
+    printf 'Error: [multilib] needed but no consent path available (non-TTY, non-pkexec). Pass RYOKU_PROFILE_ENABLE_MULTILIB=1 to opt in.\n' >&2
+  fi
+
+  if (( consent == 0 )) && [[ ${RYOKU_PROFILE_ENABLE_MULTILIB:-0} == 1 ]]; then
+    consent=1
+  fi
+
+  (( consent == 1 )) || {
+    printf 'Error: [multilib] is required to install: %s\n' "$*" >&2
+    return 1
+  }
+
+  ryoku_profile_enable_multilib
+}
+
 ryoku_profile_install_pacman() {
   local missing
 
   (( $# > 0 )) || return 0
+
+  # Ensure [multilib] is on before asking pacman for lib32 packages,
+  # otherwise pacman -T reports them missing AND -S fails with "target
+  # not found" and the whole bundle aborts.
+  ryoku_profile_ensure_multilib_for_packages "$@" || return 1
 
   mapfile -t missing < <(ryoku_profile_pacman_missing "$@")
   (( ${#missing[@]} > 0 )) || return 0
@@ -141,21 +255,66 @@ ryoku_profile_allow_target_pacman() {
   trap ryoku_profile_cleanup_temp_sudoers EXIT
 }
 
+ryoku_profile_bootstrap_yay() {
+  # Bootstrap yay if it isn't on PATH. Returns 0 if yay is available
+  # afterwards. Mirrors the path used by install/preflight/yay-bootstrap.sh
+  # when present; otherwise falls back to a direct git/makepkg build under
+  # the target user.
+  command -v yay >/dev/null 2>&1 && return 0
+
+  local bootstrap_script="${RYOKU_PATH:-}/install/preflight/yay-bootstrap.sh"
+  if [[ -x $bootstrap_script ]]; then
+    "$bootstrap_script" || return 1
+  else
+    # Minimal inline bootstrap: clone, makepkg, install as target user.
+    local target_user target_home
+    target_user="$(ryoku_profile_target_user)"
+    target_home="$(ryoku_profile_target_home)"
+    [[ -n $target_user && $target_user != "root" ]] || return 1
+
+    ryoku_profile_install_pacman base-devel git || return 1
+    ryoku_profile_allow_target_pacman "$target_user"
+
+    local build_dir
+    build_dir="$(sudo -u "$target_user" mktemp -d)" || return 1
+    (
+      cd "$build_dir" || exit 1
+      sudo -u "$target_user" git clone --depth 1 https://aur.archlinux.org/yay-bin.git . >/dev/null 2>&1 || exit 1
+      sudo -u "$target_user" env HOME="$target_home" makepkg -si --noconfirm >/dev/null 2>&1 || exit 1
+    ) || { rm -rf "$build_dir"; return 1; }
+    rm -rf "$build_dir"
+  fi
+
+  command -v yay >/dev/null 2>&1
+}
+
 ryoku_profile_install_yay() {
   local target_user
   local target_home
+  local yay_bin
 
   (( $# > 0 )) || return 0
-  command -v yay >/dev/null 2>&1 || return 1
+
+  if ! command -v yay >/dev/null 2>&1; then
+    ryoku_profile_bootstrap_yay || {
+      printf 'Error: yay is required for AUR packages but is not installed and could not be bootstrapped.\n' >&2
+      return 1
+    }
+  fi
+
+  # Resolve absolute path once so sudo -u (which resets PATH to the
+  # target user's secure_path) can still find yay even when it lives
+  # at /usr/local/bin via the GitHub-fallback install path.
+  yay_bin="$(command -v yay)"
 
   if (( EUID == 0 )); then
     target_user="$(ryoku_profile_target_user)"
     target_home="$(ryoku_profile_target_home)"
     [[ -n $target_user && -n $target_home && $target_user != "root" ]] || return 1
     ryoku_profile_allow_target_pacman "$target_user"
-    sudo -u "$target_user" env HOME="$target_home" yay -S --noconfirm --needed "$@"
+    sudo -u "$target_user" env HOME="$target_home" PATH="/usr/local/bin:/usr/bin:/bin" "$yay_bin" -S --noconfirm --needed --answerclean All --answerdiff None "$@"
   else
-    yay -S --noconfirm --needed "$@"
+    "$yay_bin" -S --noconfirm --needed --answerclean All --answerdiff None "$@"
   fi
 }
 
