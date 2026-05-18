@@ -50,6 +50,7 @@ KeyboardKey 1.0 KeyboardKey.qml
 LightDarkPreferenceButton 1.0 LightDarkPreferenceButton.qml
 MaterialCookie 1.0 MaterialCookie.qml
 MaterialLoadingIndicator 1.0 MaterialLoadingIndicator.qml
+MediaArtwork 1.0 MediaArtwork.qml
 MediaArtworkResolver 1.0 MediaArtworkResolver.qml
 MaterialPlaceholderMessage 1.0 MaterialPlaceholderMessage.qml
 MaterialShape 1.0 MaterialShape.qml
