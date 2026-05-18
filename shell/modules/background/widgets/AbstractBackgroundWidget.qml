@@ -250,6 +250,24 @@ AbstractWidget {
         when: root._freeModeOverflowGuard && (root.y + root.height > root.scaledScreenHeight)
         restoreMode: Binding.RestoreNone
     }
+    // Mirror guards for the left/top edges: rescue widgets that have a saved
+    // negative position from a pre-fix drag, or that slip past the edge during
+    // an animation. Without these, a widget at x<0 or y<0 stays off-screen,
+    // invisible, and unreachable.
+    Binding {
+        target: root
+        property: "x"
+        value: 0
+        when: root._freeModeOverflowGuard && root.x < 0
+        restoreMode: Binding.RestoreNone
+    }
+    Binding {
+        target: root
+        property: "y"
+        value: 0
+        when: root._freeModeOverflowGuard && root.y < 0
+        restoreMode: Binding.RestoreNone
+    }
     Behavior on x {
         enabled: Appearance.animationsEnabled && root._autoPosition
         NumberAnimation { duration: Appearance.animation.elementMove.duration; easing.type: Appearance.animation.elementMove.type; easing.bezierCurve: Appearance.animation.elementMove.bezierCurve }
@@ -747,6 +765,10 @@ AbstractWidget {
             newX = root._snapToGrid(newX);
             newY = root._snapToGrid(newY);
         }
+        // Clamp inside screen bounds before persisting so a drop off the
+        // left/top edge doesn't strand the widget off-screen on next read.
+        newX = root._clampX(newX);
+        newY = root._clampY(newY);
         const finalX = root._snapToPixel(newX);
         const finalY = root._snapToPixel(newY);
         root.x = finalX;
