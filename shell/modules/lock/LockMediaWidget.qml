@@ -23,9 +23,8 @@ Item {
     required property MprisPlayer player
     readonly property bool hasPlayer: player && player.trackTitle
     readonly property string artUrl: player?.trackArtUrl ?? ""
-    property string artDownloadLocation: Directories.coverArt
-    readonly property bool downloaded: artworkResolver.ready
-    property string displayedArtFilePath: artworkResolver.displaySource
+    readonly property bool downloaded: MediaArtwork.ready
+    property string displayedArtFilePath: MediaArtwork.displaySource
 
     // Cava visualizer
     CavaProcess {
@@ -36,29 +35,13 @@ Item {
     property list<real> visualizerPoints: cavaProcess.points
 
     function checkAndDownloadArt() {
-        artworkResolver.refresh()
-    }
-
-    Connections {
-        target: root.player
-        function onTrackArtUrlChanged() {
-            root.checkAndDownloadArt()
-        }
+        MediaArtwork.refresh()
     }
 
     onVisibleChanged: {
         if (visible && hasPlayer) {
             checkAndDownloadArt()
         }
-    }
-
-    MediaArtworkResolver {
-        id: artworkResolver
-        sourceUrl: root.artUrl
-        title: root.player?.trackTitle ?? ""
-        artist: root.player?.trackArtist ?? ""
-        album: root.player?.trackAlbum ?? ""
-        cacheDirectory: root.artDownloadLocation
     }
 
     ColorQuantizer {
