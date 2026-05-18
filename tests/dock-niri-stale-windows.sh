@@ -25,4 +25,7 @@ assert_contains "shell/services/NiriService.qml" "function toplevelSourceKey(top
 assert_contains "shell/services/NiriService.qml" "\"_sourceKey\": toplevelSourceKey(toplevel)"
 assert_contains "shell/services/NiriService.qml" "if (!bestMatch || bestScore <= 0)"
 
+assert_contains "shell/modules/dock/DockAppButton.qml" "Appearance.m3colors.darkmode ? 0.18 : 0.35"
+assert_contains "shell/modules/dock/DockAppButton.qml" "spread: 0"
+
 echo "PASS: dock filters stale Niri toplevels"
