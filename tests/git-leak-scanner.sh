@@ -4,6 +4,11 @@ set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 SCANNER="$ROOT_DIR/bin/ryoku-dev-scan-leaks"
+temp_dir=""
+
+cleanup() {
+  [[ -n $temp_dir ]] && rm -rf "$temp_dir"
+}
 
 assert_rejects_file() {
   local temp_dir="$1"
@@ -38,11 +43,11 @@ assert_allows_file() {
 }
 
 main() {
-  local temp_dir upstream_shell
+  local upstream_shell
 
   temp_dir="$(mktemp -d)"
   upstream_shell='i''nir'
-  trap "rm -rf '$temp_dir'" EXIT
+  trap cleanup EXIT
 
   assert_rejects_file "$temp_dir" "hardcoded-home.kdl" \
     "Mod+Space { spawn \"/home/carlos/.local/bin/${upstream_shell}\" \"overview\" \"toggle\"; }"

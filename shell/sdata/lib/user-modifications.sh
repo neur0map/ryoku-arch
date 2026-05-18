@@ -364,7 +364,7 @@ handle_user_modifications() {
     echo ""
 
     # Non-interactive mode: auto-preserve
-    if ! $ask; then
+    if ! ${ask:-true}; then
         PRESERVED_MODS_DIR=$(preserve_user_modifications "$source_dir" "$mod_files_str" "$add_files_str")
         tui_success "Auto-preserved $total file(s) to: $PRESERVED_MODS_DIR"
         return 0
@@ -454,8 +454,11 @@ list_user_mods() {
     tui_title "Preserved User Modifications"
     echo ""
 
-    for dir in $(ls -1t "$USER_MODS_DIR" 2>/dev/null); do
-        local meta="${USER_MODS_DIR}/${dir}/metadata.json"
+    local dir entry meta
+    while IFS= read -r -d '' entry; do
+        dir="${entry#* }"
+        [[ -n "$dir" ]] || continue
+        meta="${USER_MODS_DIR}/${dir}/metadata.json"
         if [[ -f "$meta" ]]; then
             local mod_count add_count
             mod_count=$(grep -o '"modified_count": [0-9]*' "$meta" 2>/dev/null | grep -o '[0-9]*' || echo 0)
@@ -463,7 +466,7 @@ list_user_mods() {
 
             tui_key_value "$dir" "${mod_count:-0} modified, ${add_count:-0} added"
         fi
-    done
+    done < <(find "$USER_MODS_DIR" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %f\0' 2>/dev/null | sort -z -nr)
 
     echo ""
     tui_info "Location: $USER_MODS_DIR"

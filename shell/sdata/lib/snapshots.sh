@@ -79,32 +79,45 @@ EOF
 ###############################################################################
 list_snapshots() {
     [[ ! -d "$SNAPSHOTS_DIR" ]] && return
-    
-    for dir in $(ls -1t "$SNAPSHOTS_DIR" 2>/dev/null); do
-        local meta="${SNAPSHOTS_DIR}/${dir}/snapshot.json"
+
+    local dir entry meta
+    while IFS= read -r -d '' entry; do
+        dir="${entry#* }"
+        [[ -n "$dir" ]] || continue
+        meta="${SNAPSHOTS_DIR}/${dir}/snapshot.json"
         [[ -f "$meta" ]] && echo "$dir"
-    done
+    done < <(find "$SNAPSHOTS_DIR" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %f\0' 2>/dev/null | sort -z -nr)
+}
+
+snapshot_list_into() {
+    local -n target="$1"
+    mapfile -t target < <(list_snapshots)
 }
 
 show_snapshots() {
-    local snapshots=($(list_snapshots))
-    
+    local snapshots
+    snapshot_list_into snapshots
+
     if [[ ${#snapshots[@]} -eq 0 ]]; then
         echo -e "${STY_YELLOW}No snapshots found${STY_RST}"
         return 1
     fi
-    
+
     echo -e "${STY_CYAN}${STY_BOLD}Available Snapshots${STY_RST}"
     echo ""
-    
+
     local i=1
     for snap in "${snapshots[@]}"; do
         local meta="${SNAPSHOTS_DIR}/${snap}/snapshot.json"
         if [[ -f "$meta" ]] && command -v jq &>/dev/null; then
-            local date=$(jq -r '.created_at' "$meta" | cut -d'T' -f1,2 | tr 'T' ' ')
-            local commit=$(jq -r '.commit_before' "$meta")
-            local reason=$(jq -r '.reason' "$meta")
-            local desc=$(jq -r '.description' "$meta")
+            local date
+            local commit
+            local reason
+            local desc
+            date=$(jq -r '.created_at' "$meta" | cut -d'T' -f1,2 | tr 'T' ' ')
+            commit=$(jq -r '.commit_before' "$meta")
+            reason=$(jq -r '.reason' "$meta")
+            desc=$(jq -r '.description' "$meta")
             echo -e "  ${STY_BOLD}[$i]${STY_RST} ${date} (${commit}) - ${reason}"
             echo -e "      ${STY_FAINT}${desc}${STY_RST}"
         else
@@ -226,7 +239,8 @@ run_rollback() {
         return 1
     fi
 
-    local snapshots=($(list_snapshots))
+    local snapshots
+    snapshot_list_into snapshots
     
     if [[ ${#snapshots[@]} -eq 0 ]]; then
         tui_warn "No snapshots available"
@@ -307,13 +321,14 @@ run_rollback() {
 cleanup_old_snapshots() {
     [[ ! -d "$SNAPSHOTS_DIR" ]] && return
     
-    local snapshots=($(list_snapshots))
+    local snapshots
+    snapshot_list_into snapshots
     local count=${#snapshots[@]}
     
     if [[ $count -gt $MAX_SNAPSHOTS ]]; then
         local to_delete=$((count - MAX_SNAPSHOTS))
         for snap in "${snapshots[@]: -$to_delete}"; do
-            rm -rf "${SNAPSHOTS_DIR}/${snap}"
+            [[ -n "$snap" ]] && rm -rf "${SNAPSHOTS_DIR:?}/${snap}"
         done
     fi
 }

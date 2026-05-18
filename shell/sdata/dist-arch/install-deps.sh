@@ -50,7 +50,7 @@ if [[ -n "${ONLY_MISSING_DEPS:-}" ]]; then
   )
 
   _miss_installflags="--needed"
-  $ask || _miss_installflags="$_miss_installflags --noconfirm"
+  ${ask:-true} || _miss_installflags="$_miss_installflags --noconfirm"
 
   _miss_pkgs=()
   _miss_cmds=()
@@ -64,7 +64,7 @@ if [[ -n "${ONLY_MISSING_DEPS:-}" ]]; then
     case $SKIP_SYSUPDATE in
       true) sleep 0;;
       *) 
-        if $ask; then
+        if ${ask:-true}; then
           v pkg_sudo pacman -Syu
         else
           v pkg_sudo pacman -Syu --noconfirm
@@ -140,6 +140,7 @@ install_pkgbuild_deps() {
   
   # Source PKGBUILD to get depends array
   local depends=()
+  # shellcheck source=/dev/null
   source "$pkgbuild_file"
   
   if [[ ${#depends[@]} -eq 0 ]]; then
@@ -150,7 +151,7 @@ install_pkgbuild_deps() {
   log_info "Installing: ${depends[*]}"
   
   local installflags="--needed"
-  $ask || installflags="$installflags --noconfirm"
+  ${ask:-true} || installflags="$installflags --noconfirm"
   
   # Install via pacman first (for official repos)
   pkg_sudo pacman -S $installflags "${depends[@]}" 2>/dev/null || {
@@ -459,7 +460,7 @@ if [[ -f "$_meta_dir/PKGBUILD" ]]; then
   sed -i "s/^pkgver=.*/pkgver=${_ryoku_ver}/" "$_meta_dir/PKGBUILD"
 
   (
-    cd "$_meta_dir"
+    cd "$_meta_dir" || exit 1
     # -d: skip dependency checks during build (they're already installed)
     # -f: force rebuild if .pkg.tar.zst already exists
     # -C: clean build dir first

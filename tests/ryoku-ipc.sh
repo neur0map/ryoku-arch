@@ -75,7 +75,7 @@ assert_launcher_call() {
     || fail "$description should invoke ryoku-shell"
   mapfile -t launcher_args < "$tmpdir/state/launcher.args"
   actual="${launcher_args[*]}"
-  [[ $actual == $expected ]] \
+  [[ $actual == "$expected" ]] \
     || fail "$description should call: $expected"
 }
 
@@ -98,7 +98,7 @@ assert_helper_call() {
   [[ -f $args_file ]] || fail "$description should invoke $helper"
   mapfile -t helper_args < "$args_file"
   actual="${helper_args[*]}"
-  [[ $actual == $expected ]] \
+  [[ $actual == "$expected" ]] \
     || fail "$description should call $helper with: $expected"
 }
 

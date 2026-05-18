@@ -5,7 +5,7 @@
 MIGRATION_ID="017-dedupe-hardware-keybinds"
 MIGRATION_TITLE="Deduplicate hardware keybinds"
 MIGRATION_DESCRIPTION="Removes duplicate generated brightness/media shorthand blocks without touching custom hardware keybinds."
-MIGRATION_TARGET_FILE="~/.config/niri/config.kdl"
+MIGRATION_TARGET_FILE="$HOME/.config/niri/config.kdl"
 MIGRATION_REQUIRED=true
 
 migration_check() {

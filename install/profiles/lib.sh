@@ -7,6 +7,7 @@ ryoku_profile_ids() {
     [[ -d $dir && -f $dir/profile ]] || continue
     (
       PROFILE_ORDER=50
+      # shellcheck source=/dev/null
       source "$dir/profile"
       printf '%03d\t%s\n' "$PROFILE_ORDER" "$(basename "$dir")"
     )
@@ -19,7 +20,7 @@ ryoku_profile_load() {
 
   [[ $profile_id =~ ^[a-z0-9][a-z0-9_-]*$ ]] || return 1
 
-  RYOKU_PROFILE_ID="$profile_id"
+  export RYOKU_PROFILE_ID="$profile_id"
   RYOKU_PROFILE_DIR="$RYOKU_PROFILES_DIR/$profile_id"
   profile_file="$RYOKU_PROFILE_DIR/profile"
 
@@ -33,6 +34,7 @@ ryoku_profile_load() {
   PROFILE_REQUIRES_NETWORK=1
   PROFILE_REBOOT_RECOMMENDED=0
 
+  # shellcheck source=/dev/null
   source "$profile_file"
 }
 

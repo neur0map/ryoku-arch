@@ -9,7 +9,7 @@ MIGRATION_TITLE="Clean deprecated blur config keys"
 MIGRATION_DESCRIPTION="Removes blurStatic (replaced by windows-only blur) and renames
   videoBlurStrength → thumbnailBlurStrength in user config.
   Old values are preserved where applicable."
-MIGRATION_TARGET_FILE="~/.config/ryoku-shell/config.json"
+MIGRATION_TARGET_FILE="$HOME/.config/ryoku-shell/config.json"
 MIGRATION_REQUIRED=true
 
 _config_path() {
