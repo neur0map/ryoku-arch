@@ -25,7 +25,10 @@ assert_not_contains() {
   ! grep -qF -- "$needle" "$ROOT_DIR/$path" || fail "$path should not contain: $needle"
 }
 
-[[ -d $UPSTREAM_DIR/.git ]] || fail "missing upstream git repository: $UPSTREAM_DIR"
+upstream_available=0
+if [[ -n $UPSTREAM_DIR && -d $UPSTREAM_DIR/.git ]]; then
+  upstream_available=1
+fi
 
 python3 - "$ROOT_DIR" <<'PY'
 import importlib.util
@@ -59,7 +62,7 @@ for path in sorted((root / "shell/translations").glob("*.json")):
     sys.exit(1)
 PY
 
-node - "$ROOT_DIR" "$UPSTREAM_DIR" "$UPSTREAM_REF" <<'NODE'
+node - "$ROOT_DIR" "$UPSTREAM_DIR" "$UPSTREAM_REF" "$upstream_available" <<'NODE'
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
@@ -67,6 +70,7 @@ const { execFileSync } = require('child_process');
 const root = process.argv[2];
 const upstream = process.argv[3];
 const upstreamRef = process.argv[4];
+const upstreamAvailable = process.argv[5] === '1';
 const localDir = path.join(root, 'shell/translations');
 const oldBrand = 'i' + 'NiR';
 const oldTitle = 'I' + 'nir';
@@ -108,20 +112,24 @@ for (const key of upstreamFeatureKeys) {
   }
 }
 
-for (const file of fs.readdirSync(localDir).filter(f => f.endsWith('.json')).sort()) {
-  const local = JSON.parse(fs.readFileSync(path.join(localDir, file), 'utf8'));
-  const upstreamRaw = JSON.parse(execFileSync('git', ['-C', upstream, 'show', `${upstreamRef}:translations/${file}`], { encoding: 'utf8' }));
-  const upstreamNormalized = {};
+if (upstreamAvailable) {
+  for (const file of fs.readdirSync(localDir).filter(f => f.endsWith('.json')).sort()) {
+    const local = JSON.parse(fs.readFileSync(path.join(localDir, file), 'utf8'));
+    const upstreamRaw = JSON.parse(execFileSync('git', ['-C', upstream, 'show', `${upstreamRef}:translations/${file}`], { encoding: 'utf8' }));
+    const upstreamNormalized = {};
 
-  for (const [key, value] of Object.entries(upstreamRaw)) {
-    upstreamNormalized[normalizeString(key)] = typeof value === 'string' ? normalizeString(value) : value;
-  }
+    for (const [key, value] of Object.entries(upstreamRaw)) {
+      upstreamNormalized[normalizeString(key)] = typeof value === 'string' ? normalizeString(value) : value;
+    }
 
-  const shared = Object.keys(upstreamNormalized).filter(key => key in local);
-  if (shared.length < 3600) {
-    console.error(`${file}: expected broad upstream v2.25 overlap, got ${shared.length}`);
-    process.exit(1);
+    const shared = Object.keys(upstreamNormalized).filter(key => key in local);
+    if (shared.length < 3600) {
+      console.error(`${file}: expected broad upstream v2.25 overlap, got ${shared.length}`);
+      process.exit(1);
+    }
   }
+} else {
+  console.log('WARN: upstream checkout unavailable; skipped optional upstream overlap check.');
 }
 NODE
 
