@@ -26,6 +26,12 @@ rg -q 'shellUpdate.*check|shellUpdate", "check"' "$ABOUT_QML" || \
 rg -q 'ShellUpdates\.openOverlay\(\)' "$ABOUT_QML" || \
   fail "About update button should open the existing update overlay when possible"
 
+rg -q 'ShellUpdates\.localVersion' "$ABOUT_QML" || \
+  fail "About version badge should use the canonical local version"
+
+! rg -q '0\.1\.0-pre-alpha' "$ABOUT_QML" || \
+  fail "About version badge should not hardcode stale pre-alpha text"
+
 rg -q 'shellUpdate.*open|shellUpdate", "open"' "$ABOUT_QML" || \
   fail "About update button should use shellUpdate IPC when settings runs separately"
 

@@ -209,7 +209,7 @@ ContentPage {
                                 spacing: 6
 
                                 StyledText {
-                                    text: "0.1.0-pre-alpha"
+                                    text: ShellUpdates.localVersion.length > 0 ? "v" + ShellUpdates.localVersion : "v?"
                                     font.pixelSize: Appearance.font.pixelSize.small
                                     color: Appearance.colors.colSubtext
                                 }
