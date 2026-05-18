@@ -665,7 +665,13 @@
     "status": {
       "enable": true
     },
-    "useHyprlock": false
+    "useHyprlock": false,
+    "widgets": {
+      "weather": true,
+      "media": true,
+      "powerButtons": true,
+      "hintText": true
+    }
   },
   "media": {
     "filterDuplicatePlayers": true

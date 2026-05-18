@@ -953,6 +953,12 @@ Singleton {
                 property JsonObject status: JsonObject {
                     property bool enable: true
                 }
+                property JsonObject widgets: JsonObject {
+                    property bool weather: true
+                    property bool media: true
+                    property bool powerButtons: true
+                    property bool hintText: true
+                }
             }
 
             property JsonObject media: JsonObject {

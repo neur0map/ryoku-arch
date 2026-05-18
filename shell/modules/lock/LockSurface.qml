@@ -33,6 +33,10 @@ MouseArea {
     readonly property real blurRadius: Config.options?.lock?.blur?.radius ?? 64
     readonly property real blurZoom: Config.options?.lock?.blur?.extraZoom ?? 1.1
     readonly property bool enableAnimation: Config.options?.lock?.enableAnimation ?? false
+    readonly property bool showWeather: Config.options?.lock?.widgets?.weather ?? true
+    readonly property bool showMedia: Config.options?.lock?.widgets?.media ?? true
+    readonly property bool showPowerButtons: Config.options?.lock?.widgets?.powerButtons ?? true
+    readonly property bool showHintText: Config.options?.lock?.widgets?.hintText ?? true
 
     function safeLockNotificationImage(source): string {
         const value = String(source ?? "")
@@ -624,7 +628,8 @@ MouseArea {
         // Media player widget (below clock) - only show if music is actually playing or paused
         Loader {
             id: mediaWidgetLoader
-            active: MprisController.activePlayer !== null && 
+            active: root.showMedia &&
+                    MprisController.activePlayer !== null &&
                     MprisController.activePlayer.playbackState !== MprisPlaybackState.Stopped &&
                     (MprisController.activePlayer.trackTitle?.length > 0 ?? false)
             anchors {
@@ -947,7 +952,7 @@ MouseArea {
         
         // Bottom left: Weather widget
         Loader {
-            active: Weather.data?.temp && Weather.data.temp.length > 0
+            active: root.showWeather && Weather.data?.temp && Weather.data.temp.length > 0
             visible: active
             anchors {
                 left: parent.left
@@ -1049,6 +1054,7 @@ MouseArea {
         // Bottom hint text
         Text {
             id: hintText
+            visible: root.showHintText && opacity > 0
             anchors.bottom: parent.bottom
             anchors.bottomMargin: 40
             anchors.horizontalCenter: parent.horizontalCenter
@@ -1056,7 +1062,7 @@ MouseArea {
             font.pixelSize: Appearance.font.pixelSize.normal
             font.family: Appearance.font.family.main
             color: Appearance.colors.colOnSurfaceVariant
-            opacity: hintOpacity
+            opacity: root.showHintText ? hintOpacity : 0
             
             property real hintOpacity: 0.7
             
@@ -1468,6 +1474,7 @@ MouseArea {
         
         // Bottom right: Power options
         Row {
+            visible: root.showPowerButtons
             anchors.bottom: parent.bottom
             anchors.right: parent.right
             anchors.bottomMargin: 24
