@@ -70,6 +70,9 @@ Singleton {
                 root._savedClipFile = ""
                 root._savedClipMime = ""
             }
+            // Clipboard restored, so it is safe to unsuppress and refresh cliphist.
+            Cliphist.suppressRefresh = false
+            Cliphist.refresh()
         }
     }
 
@@ -303,11 +306,15 @@ Singleton {
         id: cliphistRestoreTimer
         interval: 1500
         onTriggered: {
-            Cliphist.suppressRefresh = false
-            Cliphist.refresh()
-            // Restore the real Wayland clipboard — the script's own restore may have
-            // been raced by async niri screenshot-window IPC side-effects.
-            root._restoreClipboard()
+            if (root._savedClipFile.length === 0) {
+                // Nothing to restore, just unsuppress and refresh.
+                Cliphist.suppressRefresh = false
+                Cliphist.refresh()
+            } else {
+                // Restore clipboard first; unsuppress+refresh happens in
+                // clipboardRestoreProcess.onExited after wl-copy finishes.
+                root._restoreClipboard()
+            }
         }
     }
 

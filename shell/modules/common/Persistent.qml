@@ -25,6 +25,14 @@ Singleton {
     property bool _writeInFlight: false
     property bool _pendingReload: false
 
+    function _completeWrite(): void {
+        root._writeInFlight = false;
+        if (root._pendingReload) {
+            root._pendingReload = false;
+            fileReloadTimer.restart();
+        }
+    }
+
     Timer {
         id: fileReloadTimer
         interval: 100
@@ -56,12 +64,10 @@ Singleton {
         watchChanges: true
         onFileChanged: fileReloadTimer.restart()
         onAdapterUpdated: fileWriteTimer.restart()
-        onSaved: {
-            root._writeInFlight = false;
-            if (root._pendingReload) {
-                root._pendingReload = false;
-                fileReloadTimer.restart();
-            }
+        onSaved: root._completeWrite()
+        onSaveFailed: error => {
+            console.warn("[Persistent] Save failed:", error);
+            root._completeWrite();
         }
         onLoaded: root.ready = true
         onLoadFailed: error => {

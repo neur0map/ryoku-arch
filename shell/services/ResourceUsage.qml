@@ -206,6 +206,7 @@ Singleton {
 
     function stop(): void {
         root._runningRequested = false;
+        root._primed = false;
         pollTimer.stop();
         autoStopTimer.stop();
     }

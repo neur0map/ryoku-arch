@@ -87,9 +87,9 @@ Singleton {
                 // next applyColors call bypasses the isAutoTheme gate.
                 root._forceApply = true
                 root._pendingExternalApply = true
-                // Trigger immediate re-read. onLoadedChanged will call applyColors
-                // with _forceApply=true, applying the variant colors to Appearance.
-                themeFileView.reload()
+                // Route through reloadDebounce so this does not race the
+                // onFileChanged that the script's own write is about to fire.
+                reloadDebounce.restart()
             }
             // Safety net: poll for file changes in case the immediate reload misses
             root.scheduleReload()
