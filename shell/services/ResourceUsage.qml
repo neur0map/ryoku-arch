@@ -179,9 +179,16 @@ Singleton {
         if (root._persistentConsumers === 0)
             autoStopTimer.restart();
         pollTimer.restart();
-        // Prime values now instead of waiting one updateInterval.
-        root._pollSensors();
+        // Prime values now instead of waiting one updateInterval, but only once.
+        // Multiple consumers calling ensureRunning() in their Component.onCompleted
+        // would race their reload() ops and drop in-flight reads (FileView warnings).
+        if (!root._primed) {
+            root._primed = true;
+            root._pollSensors();
+        }
     }
+
+    property bool _primed: false
 
     // Register a persistent consumer (always-visible panel like bar).
     // While any persistent consumer is registered, auto-stop is disabled.
