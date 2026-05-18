@@ -31,7 +31,7 @@ export RYOKU_UPDATE_LOG="${RYOKU_UPDATE_LOG:-$(ryoku_update_default_log)}"
 
 if [[ -z ${RYOKU_UPDATE_INHIBITED:-} ]] && command -v systemd-inhibit >/dev/null 2>&1; then
   exec env RYOKU_UPDATE_INHIBITED=1 systemd-inhibit \
-    --what=sleep:shutdown:idle:handle-lid-switch:handle-suspend-key:handle-hibernate-key \
+    --what=sleep:shutdown:idle \
     --who=ryoku-update \
     --why="Ryoku system update in progress" \
     --mode=block \
