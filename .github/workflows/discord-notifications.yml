@@ -18,6 +18,21 @@ on:
           - both
           - issue
           - pull_request
+          - release_changelog
+      release_title:
+        description: Release changelog title, used only with preview = release_changelog
+        required: false
+        default: Ryoku release changelog
+        type: string
+      release_body:
+        description: Full release changelog body, used only with preview = release_changelog
+        required: false
+        type: string
+      thank_you_message:
+        description: Public thank-you message, used only with preview = release_changelog
+        required: false
+        default: Thank you for being early Ryoku testers. Your update reports, rough-edge checks, and patience are what make these alpha releases safer for everyone.
+        type: string
 
 permissions:
   contents: read
@@ -209,6 +224,122 @@ jobs:
               "Inspect the diff, watch install and migration paths, then run focused checks."
           }
 
+          send_release_changelog_notification() {
+            local title="$1"
+            local raw_changelog="$2"
+            local thanks="$3"
+
+            [[ -n $title ]] || title="Ryoku release changelog"
+            [[ -n $raw_changelog ]] || raw_changelog="No changelog body was provided."
+            [[ -n $thanks ]] || thanks="Thank you for being early Ryoku testers."
+
+            local release_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases"
+            local chunk_file="/tmp/discord-changelog-chunks.json"
+
+            jq -Rn --arg text "$raw_changelog" '
+              def chunk_lines($max):
+                reduce (split("\n")[]) as $line ({chunks: [], current: ""};
+                  ($line + "\n") as $next
+                  | if ((.current | length) + ($next | length)) > $max and (.current | length) > 0 then
+                      {chunks: (.chunks + [.current]), current: $next}
+                    else
+                      .current += $next
+                    end
+                )
+                | .chunks + [.current]
+                | map(select(length > 0));
+
+              $text
+              | gsub("\r"; "")
+              | chunk_lines(3600)
+            ' > "$chunk_file"
+
+            local count
+            count="$(jq 'length' "$chunk_file")"
+
+            local index=0
+            while (( index < count )); do
+              local chunk
+              chunk="$(jq -r ".[$index]" "$chunk_file")"
+
+              local content=""
+              local embed_title="$title"
+              local footer_text="$brand_footer"
+
+              if (( index == 0 )); then
+                content="$thanks"
+              else
+                embed_title="$title continued $(( index + 1 ))/$count"
+              fi
+
+              if (( count > 1 )); then
+                footer_text="$brand_footer | Part $(( index + 1 )) of $count"
+              fi
+
+              jq -n \
+                --arg content "$(limit_text 1900 "$content")" \
+                --arg embed_title "$(limit_text 240 "$embed_title")" \
+                --arg url "$release_url" \
+                --arg description "$(limit_text 3900 "$chunk")" \
+                --arg repo "$repo" \
+                --arg brand_mark_url "$brand_mark_url" \
+                --arg footer_text "$footer_text" \
+                '{
+                  username: "Ryoku GitHub",
+                  avatar_url: $brand_mark_url,
+                  content: $content,
+                  allowed_mentions: {
+                    parse: []
+                  },
+                  embeds: [
+                    {
+                      title: $embed_title,
+                      url: $url,
+                      description: $description,
+                      color: 8955261,
+                      thumbnail: {
+                        url: $brand_mark_url
+                      },
+                      fields: [
+                        {
+                          name: "Repository",
+                          value: $repo,
+                          inline: true
+                        },
+                        {
+                          name: "Signal",
+                          value: "Alpha changelog for early testers.",
+                          inline: true
+                        }
+                      ],
+                      footer: {
+                        text: $footer_text,
+                        icon_url: $brand_mark_url
+                      },
+                      timestamp: (now | todateiso8601)
+                    }
+                  ]
+                }' > /tmp/discord-payload.json
+
+              http_code="$(
+                curl -sS -o /tmp/discord-response.json -w "%{http_code}" \
+                  -H "Content-Type: application/json" \
+                  -X POST \
+                  --data-binary @/tmp/discord-payload.json \
+                  "$DISCORD_WEBHOOK_URL"
+              )"
+
+              if [[ $http_code != "200" && $http_code != "204" ]]; then
+                echo "Discord webhook returned HTTP $http_code" >&2
+                cat /tmp/discord-response.json >&2
+                exit 1
+              fi
+
+              echo "Discord changelog notification part $(( index + 1 ))/$count sent."
+              index=$(( index + 1 ))
+            done
+          }
+
           if [[ $event_name == "issues" ]]; then
             send_issue_notification \
               "$(jq -r '.issue.number' "$GITHUB_EVENT_PATH")" \
@@ -251,6 +382,13 @@ jobs:
                 "A maintainer can use this preview to verify pull request notifications in the shared Ryoku channel." \
                 "$GITHUB_REPOSITORY:preview/discord-notifications" \
                 "main"
+            fi
+
+            if [[ $preview == "release_changelog" ]]; then
+              send_release_changelog_notification \
+                "$(jq -r '.inputs.release_title // "Ryoku release changelog"' "$GITHUB_EVENT_PATH")" \
+                "$(jq -r '.inputs.release_body // ""' "$GITHUB_EVENT_PATH")" \
+                "$(jq -r '.inputs.thank_you_message // "Thank you for being early Ryoku testers."' "$GITHUB_EVENT_PATH")"
             fi
           else
             echo "::notice::Unsupported event $event_name; skipping Discord notification."

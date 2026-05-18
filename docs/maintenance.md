@@ -410,6 +410,12 @@ Setup:
 4. Add a repository secret named `DISCORD_WEBHOOK_URL` with the webhook URL as the value.
 5. Run the `Discord Notifications` workflow manually with `preview = both` to verify the channel receives separate issue and pull request preview messages.
 
+For a public alpha changelog post, run the same workflow manually with
+`preview = release_changelog`, a release title, the full changelog body, and a
+short thank-you message. This uses the same `DISCORD_WEBHOOK_URL` as issue and
+pull request notifications, and splits long changelogs into multiple Discord
+messages when needed.
+
 Keep these notifications on-brand and public-channel safe: no emoji, no extra accent colors, no generated-content attribution, and no internal workflow-run links. The pull request trigger uses `pull_request_target` so forked pull requests can notify the channel. Keep that workflow limited to reading `$GITHUB_EVENT_PATH` and sending the webhook. Do not add checkout, build, install, or script execution steps to that workflow.
 
 ## Rollback
