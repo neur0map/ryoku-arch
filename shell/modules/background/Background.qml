@@ -1622,7 +1622,7 @@ Scope {
                 }
 
                 FadeLoader {
-                    shown: bgRoot._widgetEnabled("weather", true)
+                    shown: Boolean(Config.getNestedValue("background.widgets.weather.enable", true))
                     containmentMask: GlobalStates.widgetEditMode ? _hitMask : null
                     Item { id: _hitMask; x: -30; y: -260; width: (parent?.width ?? 0) + 60; height: (parent?.height ?? 0) + 300 }
                     sourceComponent: WeatherWidget {
@@ -1636,7 +1636,7 @@ Scope {
                 }
 
                 FadeLoader {
-                    shown: bgRoot._widgetEnabled("clock", true)
+                    shown: Boolean(Config.getNestedValue("background.widgets.clock.enable", true))
                     containmentMask: GlobalStates.widgetEditMode ? _hitMask2 : null
                     Item { id: _hitMask2; x: -30; y: -260; width: (parent?.width ?? 0) + 60; height: (parent?.height ?? 0) + 300 }
                     sourceComponent: ClockWidget {
@@ -1651,7 +1651,7 @@ Scope {
                 }
 
                 FadeLoader {
-                    shown: bgRoot._widgetEnabled("mediaControls", true)
+                    shown: Boolean(Config.getNestedValue("background.widgets.mediaControls.enable", true))
                     containmentMask: GlobalStates.widgetEditMode ? _hitMask3 : null
                     Item { id: _hitMask3; x: -30; y: -260; width: (parent?.width ?? 0) + 60; height: (parent?.height ?? 0) + 300 }
                     sourceComponent: MediaControlsWidget {
@@ -1665,7 +1665,7 @@ Scope {
                 }
 
                 FadeLoader {
-                    shown: bgRoot._widgetEnabled("visualizer", false)
+                    shown: Boolean(Config.getNestedValue("background.widgets.visualizer.enable", false))
                     containmentMask: GlobalStates.widgetEditMode ? _hitMask4 : null
                     Item { id: _hitMask4; x: -30; y: -260; width: (parent?.width ?? 0) + 60; height: (parent?.height ?? 0) + 300 }
                     sourceComponent: VisualizerWidget {
@@ -1679,7 +1679,7 @@ Scope {
                 }
 
                 FadeLoader {
-                    shown: bgRoot._widgetEnabled("systemMonitor", false)
+                    shown: Boolean(Config.getNestedValue("background.widgets.systemMonitor.enable", false))
                     containmentMask: GlobalStates.widgetEditMode ? _hitMask5 : null
                     Item { id: _hitMask5; x: -30; y: -260; width: (parent?.width ?? 0) + 60; height: (parent?.height ?? 0) + 300 }
                     sourceComponent: SystemMonitorWidget {
@@ -1693,7 +1693,7 @@ Scope {
                 }
 
                 FadeLoader {
-                    shown: bgRoot._widgetEnabled("battery", false) && Battery.available
+                    shown: Boolean(Config.getNestedValue("background.widgets.battery.enable", false)) && Battery.available
                     containmentMask: GlobalStates.widgetEditMode ? _hitMask6 : null
                     Item { id: _hitMask6; x: -30; y: -260; width: (parent?.width ?? 0) + 60; height: (parent?.height ?? 0) + 300 }
                     sourceComponent: BatteryWidget {
