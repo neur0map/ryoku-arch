@@ -23,7 +23,7 @@ For low-level debugging, `ryoku-shell ipc <target> <function>` still works.
 
 ## Available Targets
 
-Everything iNiR can do, exposed for your scripting pleasure.
+Everything Ryoku can do, exposed for scripting.
 
 ### overview
 
@@ -303,7 +303,8 @@ Command palette / action registry. Search and execute shell actions from scripts
 
 | Function | Description |
 |----------|-------------|
-| `run <id> [args]` | Execute action by ID (e.g. `toggle-mute`, `install-package vim`) |
+| `run <actionId>` | Execute action by ID (e.g. `run toggle-mute`) |
+| `runWithArgs <actionId> <args>` | Execute action by ID with extra arguments (e.g. `runWithArgs install-package vim`) |
 | `list [category]` | List all actions, optionally filtered by category |
 | `search <query>` | Fuzzy search actions by name/description/keywords |
 | `open` | Open the overview in action mode |
@@ -313,6 +314,7 @@ Categories: `system`, `appearance`, `tools`, `media`, `settings`, `custom`.
 ```kdl
 bind "Super+Slash" { spawn "ryoku-shell" "globalActions" "open"; }
 bind "Super+M" { spawn "ryoku-shell" "globalActions" "run" "toggle-mute"; }
+bind "Super+Shift+M" { spawn "ryoku-shell" "globalActions" "runWithArgs" "install-package" "vim"; }
 ```
 
 ---

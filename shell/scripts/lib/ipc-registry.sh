@@ -2,7 +2,7 @@
 # Auto-generated from QML IpcHandler declarations + docs/IPC.md metadata.
 # Do not edit manually.
 # Regenerate: python3 scripts/lib/generate-ipc-registry.py
-# IPC.md hash: b30811dda9f13699
+# IPC.md hash: 9eb77e87472a5e8a
 # Targets: 48
 
 declare -gA IPC_TARGET_DESC=(
@@ -121,7 +121,7 @@ declare -gA IPC_TARGET_FUNCTIONS=(
   [controlPanel]="toggle close open"
   [coverflowSelector]="toggle open close"
   [gamemode]="toggle activate deactivate status"
-  [globalActions]="run list search open"
+  [globalActions]="run runWithArgs list search open"
   [keyboard]="switchLayout switchLayoutPrevious getCurrentLayout getLayouts"
   [lock]="activate deactivate status focus"
   [mediaControls]="toggle close open"
@@ -200,7 +200,8 @@ declare -gA IPC_FUNCTION_DESC=(
   ["gamemode:activate"]="Force enable gamemode"
   ["gamemode:deactivate"]="Force disable gamemode"
   ["gamemode:status"]="Print current gamemode state (e.g. \`active (manual)\`, \`inactive (off)\`)"
-  ["globalActions:run"]="Execute action by ID (e.g. \`toggle-mute\`, \`install-package vim\`)"
+  ["globalActions:run"]="Execute action by ID (e.g. \`run toggle-mute\`)"
+  ["globalActions:runWithArgs"]="Execute action by ID with extra arguments (e.g. \`runWithArgs install-package vim\`)"
   ["globalActions:list"]="List all actions, optionally filtered by category"
   ["globalActions:search"]="Fuzzy search actions by name/description/keywords"
   ["globalActions:open"]="Open the overview in action mode"
@@ -321,7 +322,8 @@ declare -gA IPC_FUNCTION_ARGS=(
   ["ai:runGet"]="<inputText>"
   ["appCatalog:search"]="<query>"
   ["appCatalog:install"]="<id>"
-  ["globalActions:run"]="<actionId> <args>"
+  ["globalActions:run"]="<actionId>"
+  ["globalActions:runWithArgs"]="<actionId> <args>"
   ["globalActions:list"]="<category>"
   ["globalActions:search"]="<query>"
   ["minimize:restore"]="<windowId>"
@@ -339,7 +341,8 @@ bind "Alt+Shift+Tab" { spawn "ryoku-shell" "altSwitcher" "previous"; }'
   [closeConfirm]='bind "Mod+Q" repeat=false { spawn "ryoku-shell" "close-window"; }'
   [gamemode]='bind "Super+F12" { spawn "ryoku-shell" "gamemode" "toggle"; }'
   [globalActions]='bind "Super+Slash" { spawn "ryoku-shell" "globalActions" "open"; }
-bind "Super+M" { spawn "ryoku-shell" "globalActions" "run" "toggle-mute"; }'
+bind "Super+M" { spawn "ryoku-shell" "globalActions" "run" "toggle-mute"; }
+bind "Super+Shift+M" { spawn "ryoku-shell" "globalActions" "runWithArgs" "install-package" "vim"; }'
   [keyboard]='bind "Mod+Alt+K" { spawn "ryoku-shell" "keyboard" "switchLayout"; }'
   [lock]='bind "Super+Alt+L" allow-when-locked=true { spawn "ryoku-shell" "lock" "activate"; }'
   [mpris]='bind "Ctrl+Mod+Space" { spawn "ryoku-shell" "mpris" "playPause"; }

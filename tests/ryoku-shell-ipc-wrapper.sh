@@ -29,6 +29,12 @@ rg -q '\[recordingOsd\]="toggle show hide"' "$registry" \
   || fail "recordingOsd show/hide functions should remain registered"
 rg -q '\["recordingOsd:show"\]' "$registry" \
   || fail "recordingOsd:show registry entry missing"
+rg -q '\[globalActions\]="run runWithArgs list search open"' "$registry" \
+  || fail "globalActions should expose single-arg and args-aware run functions"
+rg -q '\["globalActions:run"\]="<actionId>"' "$registry" \
+  || fail "globalActions run should take one action ID"
+rg -q '\["globalActions:runWithArgs"\]="<actionId> <args>"' "$registry" \
+  || fail "globalActions runWithArgs should take action ID plus args"
 legacy_cmd="i""nir"
 ! rg -q "spawn \"$legacy_cmd\"" "$registry" \
   || fail "generated IPC help examples should use ryoku-shell"
