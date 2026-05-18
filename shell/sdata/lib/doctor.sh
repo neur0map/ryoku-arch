@@ -872,7 +872,7 @@ check_service_unit_health() {
             doctor_pass "User service not installed"
         else
             doctor_fail "User ryoku-shell.service missing"
-            echo -e "    ${STY_FAINT}Run: ryoku-shell.service install${STY_RST}"
+            echo -e "    ${STY_FAINT}Run: ryoku-shell service install${STY_RST}"
         fi
         return 0
     fi
@@ -889,7 +889,7 @@ check_service_unit_health() {
 
     if [[ -n "$kill_mode" && "$kill_mode" != "process" ]]; then
         doctor_fail "ryoku-shell.service KillMode is '${kill_mode}'"
-        echo -e "    ${STY_FAINT}Run: ryoku-shell.service install${STY_RST}"
+        echo -e "    ${STY_FAINT}Run: ryoku-shell service install${STY_RST}"
     else
         doctor_pass "User service file present"
     fi
@@ -918,13 +918,13 @@ check_service_unit_health() {
             doctor_fix "Enabled ryoku-shell.service for ${expected_target}"
         else
             doctor_fail "ryoku-shell.service not wired to ${expected_target}"
-            echo -e "    ${STY_FAINT}Run: ryoku-shell.service enable${STY_RST}"
+            echo -e "    ${STY_FAINT}Run: ryoku-shell service enable${STY_RST}"
         fi
     fi
 
     if [[ ${#stale_links[@]} -gt 0 ]]; then
         doctor_fail "Stale service links found: ${stale_links[*]}"
-        echo -e "    ${STY_FAINT}Run: ryoku-shell.service disable && ryoku-shell.service enable${STY_RST}"
+        echo -e "    ${STY_FAINT}Run: ryoku-shell service disable && ryoku-shell service enable${STY_RST}"
     fi
 
     if [[ -z "$expected_target" ]]; then

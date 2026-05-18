@@ -898,11 +898,11 @@ setup-bash-config(){
 
   mkdir -p ~/.config/ryoku-shell
 
-  # Create ii bash config
+  # Create Ryoku bash config
   cat > "$ryoku_config" << 'EOF'
-# ii shell integration - starship prompt and terminal colors
+# Ryoku shell integration - starship prompt and terminal colors
 
-# Load terminal colors from ii theming
+# Load terminal colors from Ryoku theming
 if [[ -f ~/.local/state/quickshell/user/generated/terminal/sequences.txt ]]; then
     cat ~/.local/state/quickshell/user/generated/terminal/sequences.txt
 fi
@@ -932,13 +932,13 @@ EOF
       sed -i 's|~/.config/ii/bashrc|~/.config/ryoku-shell/bashrc|g' "$bashrc"
       log_success "Updated Bash integration path in .bashrc"
     elif ! grep -q "source.*inir/bashrc" "$bashrc" && ! grep -q "\..*inir/bashrc" "$bashrc"; then
-      echo -e "\n# ii shell integration\n[[ -f ~/.config/ryoku-shell/bashrc ]] && source ~/.config/ryoku-shell/bashrc" >> "$bashrc"
+      echo -e "\n# Ryoku shell integration\n[[ -f ~/.config/ryoku-shell/bashrc ]] && source ~/.config/ryoku-shell/bashrc" >> "$bashrc"
       log_success "Added Bash integration to .bashrc"
     else
       log_info "Bash integration already in .bashrc"
     fi
   else
-    echo -e "# ii shell integration\n[[ -f ~/.config/ryoku-shell/bashrc ]] && source ~/.config/ryoku-shell/bashrc" > "$bashrc"
+    echo -e "# Ryoku shell integration\n[[ -f ~/.config/ryoku-shell/bashrc ]] && source ~/.config/ryoku-shell/bashrc" > "$bashrc"
     log_success "Created .bashrc with Bash integration"
   fi
 
@@ -953,11 +953,11 @@ setup-zsh-config(){
 
   mkdir -p ~/.config/ryoku-shell
 
-  # Create ii zsh config
+  # Create Ryoku zsh config
   cat > "$ryoku_config" << 'EOF'
-# ii shell integration - starship prompt and terminal colors
+# Ryoku shell integration - starship prompt and terminal colors
 
-# Load terminal colors from ii theming
+# Load terminal colors from Ryoku theming
 if [[ -f ~/.local/state/quickshell/user/generated/terminal/sequences.txt ]]; then
     cat ~/.local/state/quickshell/user/generated/terminal/sequences.txt
 fi
@@ -987,7 +987,7 @@ EOF
       sed -i 's|~/.config/ii/zshrc|~/.config/ryoku-shell/zshrc|g' "$zshrc"
       log_success "Updated Zsh integration path in .zshrc"
     elif ! grep -q "source.*inir/zshrc" "$zshrc" && ! grep -q "\..*inir/zshrc" "$zshrc"; then
-      echo -e "\n# ii shell integration\n[[ -f ~/.config/ryoku-shell/zshrc ]] && source ~/.config/ryoku-shell/zshrc" >> "$zshrc"
+      echo -e "\n# Ryoku shell integration\n[[ -f ~/.config/ryoku-shell/zshrc ]] && source ~/.config/ryoku-shell/zshrc" >> "$zshrc"
       log_success "Added Zsh integration to .zshrc"
     else
       log_info "Zsh integration already in .zshrc"
