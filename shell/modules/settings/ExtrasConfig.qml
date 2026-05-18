@@ -28,6 +28,28 @@ ContentPage {
         return ryokuPath + "/bin/" + name
     }
 
+    // Mirrors PackageSearch._safeTerminal(): the user's configured terminal
+    // app, validated against a strict identifier regex to avoid shell-injection
+    // via Config tampering. Falls back to kitty when unset or invalid.
+    function safeTerminal() {
+        const configured = (Config.options?.apps?.terminal ?? "").trim()
+        if (configured.length === 0)
+            return "kitty"
+        if (!/^[A-Za-z0-9._+-]+$/.test(configured))
+            return "kitty"
+        return configured
+    }
+
+    function launchInTerminal(helperName) {
+        const terminal = root.safeTerminal()
+        const helper = root.helperPath(helperName)
+        if (terminal === "wezterm") {
+            Quickshell.execDetached([terminal, "start", "--always-new-process", "--", helper])
+        } else {
+            Quickshell.execDetached([terminal, "-e", helper])
+        }
+    }
+
     function statusLabel(profile) {
         if (profile.installed === true) return Translation.tr("Installed")
         if (profile.state === "failed") return Translation.tr("Failed")
@@ -177,6 +199,84 @@ ContentPage {
                 StyledIndeterminateProgressBar {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 4
+                }
+            }
+        }
+    }
+
+    SettingsCardSection {
+        expanded: true
+        icon: "search"
+        title: Translation.tr("Browse packages")
+
+        SettingsGroup {
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 10
+
+                StyledText {
+                    Layout.fillWidth: true
+                    text: Translation.tr("Pick any package from the Arch repos or the AUR in a terminal fuzzy-finder. Press Enter to install, Esc to cancel.")
+                    color: Appearance.colors.colSubtext
+                    wrapMode: Text.WordWrap
+                    font.pixelSize: 13
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+
+                    RippleButton {
+                        Layout.fillWidth: true
+                        implicitHeight: 40
+                        buttonRadius: Appearance.rounding.small
+                        colBackground: Appearance.colors.colLayer1
+                        colBackgroundHover: Appearance.colors.colLayer1Hover
+                        colRipple: Appearance.colors.colLayer1Active
+                        contentItem: RowLayout {
+                            anchors.centerIn: parent
+                            spacing: 8
+                            MaterialSymbol {
+                                text: "inventory_2"
+                                iconSize: 18
+                                color: Appearance.colors.colOnLayer1
+                                Layout.alignment: Qt.AlignVCenter
+                            }
+                            StyledText {
+                                text: Translation.tr("Search Arch repos")
+                                font.pixelSize: 13
+                                Layout.alignment: Qt.AlignVCenter
+                            }
+                        }
+                        downAction: () => root.launchInTerminal("ryoku-pkg-install")
+                        StyledToolTip { text: Translation.tr("Opens a terminal with a fuzzy package picker (pacman -Slq | fzf).") }
+                    }
+
+                    RippleButton {
+                        Layout.fillWidth: true
+                        implicitHeight: 40
+                        buttonRadius: Appearance.rounding.small
+                        colBackground: Appearance.colors.colLayer1
+                        colBackgroundHover: Appearance.colors.colLayer1Hover
+                        colRipple: Appearance.colors.colLayer1Active
+                        contentItem: RowLayout {
+                            anchors.centerIn: parent
+                            spacing: 8
+                            MaterialSymbol {
+                                text: "deployed_code"
+                                iconSize: 18
+                                color: Appearance.colors.colOnLayer1
+                                Layout.alignment: Qt.AlignVCenter
+                            }
+                            StyledText {
+                                text: Translation.tr("Search AUR")
+                                font.pixelSize: 13
+                                Layout.alignment: Qt.AlignVCenter
+                            }
+                        }
+                        downAction: () => root.launchInTerminal("ryoku-pkg-aur-install")
+                        StyledToolTip { text: Translation.tr("Opens a terminal with a fuzzy AUR picker via yay. Bootstraps yay if missing.") }
+                    }
                 }
             }
         }
