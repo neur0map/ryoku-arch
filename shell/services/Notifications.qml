@@ -268,31 +268,27 @@ Singleton {
 
     function _timeoutForNotification(notification) {
         const ignoreApp = Config.options?.notifications?.ignoreAppTimeout ?? false;
+        const maxLifetime = Config.options?.notifications?.maxPopupLifetime ?? 30000;
 
-        // 1) La app define un timeout explícito (> 0): respetarlo solo si no ignoramos
+        // 1) App defines an explicit timeout (> 0): respect it unless ignoring
         if (!ignoreApp && notification.expireTimeout > 0) {
             return notification.expireTimeout;
         }
 
-        // 2) expireTimeout == 0 => "no expira" según spec freedesktop (solo si no ignoramos)
+        // 2) expireTimeout == 0 => "never expire" per freedesktop spec
         if (!ignoreApp && notification.expireTimeout === 0) {
-            return 0;
+            return maxLifetime;
         }
 
-        // 3) Usar defaults por urgencia
-        let urgencyStr = "normal";
-        if (notification.urgency && notification.urgency.toString) {
-            urgencyStr = notification.urgency.toString();
-        }
-
-        if (urgencyStr === "Low") {
+        // 3) Defaults by urgency
+        if (notification.urgency === NotificationUrgency.Low) {
             return Config.options?.notifications?.timeoutLow ?? 5000;
-        } else if (urgencyStr === "Critical") {
-            // Por defecto críticas quedan pegadas (0 = nunca auto-ocultar)
-            return Config.options?.notifications?.timeoutCritical ?? 0;
+        } else if (notification.urgency === NotificationUrgency.Critical) {
+            const critTimeout = Config.options?.notifications?.timeoutCritical ?? 0;
+            return (critTimeout === 0 && maxLifetime > 0) ? maxLifetime : critTimeout;
         }
 
-        // Normal / desconocida
+        // Normal / unknown
         return Config.options?.notifications?.timeoutNormal ?? 7000;
     }
 

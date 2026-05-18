@@ -679,6 +679,7 @@
   },
   "notifications": {
     "edgeMargin": 4,
+    "maxPopupLifetime": 30000,
     "position": "topRight",
     "timeout": 3000,
     "timeoutCritical": 0,
