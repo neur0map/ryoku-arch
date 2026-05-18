@@ -1,0 +1,9 @@
+{
+  "id": "rmpc",
+  "label": "rmpc",
+  "module": "95-rmpc.sh",
+  "category": "music",
+  "inputs": ["app-palette.json"],
+  "description": "Apply the current generated palette to the rmpc TUI music client.",
+  "configKey": "appearance.wallpaperTheming.enableRmpc"
+}
