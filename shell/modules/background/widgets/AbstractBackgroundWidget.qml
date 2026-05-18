@@ -19,6 +19,13 @@ AbstractWidget {
     required property int scaledScreenWidth
     required property int scaledScreenHeight
     required property real wallpaperScale
+
+    // Canvas-to-screen offset: the screen-coord x/y of widgetCanvas's left/top.
+    // Under parallax, widgetCanvas extends past the screen edges and has a
+    // negative x/y, so a widget at canvas-coord 0 is OFF the visible screen.
+    // Bounds and clamps must shift by this offset to stay on-screen.
+    property real canvasShiftX: 0
+    property real canvasShiftY: 0
     readonly property string _configPath: "background.widgets." + root.configEntryName
     property bool visibleWhenLocked: false
     property int widgetIndex: 0 // used to offset auto-placed widgets so they don't stack
@@ -166,14 +173,23 @@ AbstractWidget {
     property real _autoPlaceY: 0
     readonly property bool _isAutoPlacement: root.placementStrategy === "leastBusy" || root.placementStrategy === "mostBusy"
 
+    // Visible-area bounds in canvas coordinates. Without parallax,
+    // canvasShiftX/Y are 0 so these match the simple screen bounds.
+    readonly property real _visibleMinX: -root.canvasShiftX
+    readonly property real _visibleMaxX: root._visibleMinX + root.scaledScreenWidth - root.width
+    readonly property real _visibleMinY: -root.canvasShiftY
+    readonly property real _visibleMaxY: root._visibleMinY + root.scaledScreenHeight - root.height
+
     function _clampX(value: real): real {
-        const maxX = Math.max(0, root.scaledScreenWidth - root.width);
-        return root._snapToPixel(Math.max(0, Math.min(Number(value) || 0, maxX)));
+        const minX = root._visibleMinX;
+        const maxX = Math.max(minX, root._visibleMaxX);
+        return root._snapToPixel(Math.max(minX, Math.min(Number(value) || 0, maxX)));
     }
 
     function _clampY(value: real): real {
-        const maxY = Math.max(0, root.scaledScreenHeight - root.height);
-        return root._snapToPixel(Math.max(0, Math.min(Number(value) || 0, maxY)));
+        const minY = root._visibleMinY;
+        const maxY = Math.max(minY, root._visibleMaxY);
+        return root._snapToPixel(Math.max(minY, Math.min(Number(value) || 0, maxY)));
     }
 
     // Target position — zones read stored config, free clamps to screen
@@ -236,36 +252,44 @@ AbstractWidget {
         && Config.ready
         && root.width > 0 && root.height > 0
         && !(GlobalStates.widgetEditMode && (root.isDragging || root.containsPress || root._isResizing || root._releaseGuard))
+    // Overflow guards only fire when the widget fits inside the visible area
+    // (max >= min). Otherwise the underflow guard wins and the widget hugs
+    // the left/top edge — preventing a binding loop where the two guards
+    // fight each other when the widget is larger than the visible region.
     Binding {
         target: root
         property: "x"
-        value: Math.max(0, root.scaledScreenWidth - root.width)
-        when: root._freeModeOverflowGuard && (root.x + root.width > root.scaledScreenWidth)
+        value: root._visibleMaxX
+        when: root._freeModeOverflowGuard
+            && root._visibleMaxX >= root._visibleMinX
+            && root.x > root._visibleMaxX
         restoreMode: Binding.RestoreNone
     }
     Binding {
         target: root
         property: "y"
-        value: Math.max(0, root.scaledScreenHeight - root.height)
-        when: root._freeModeOverflowGuard && (root.y + root.height > root.scaledScreenHeight)
+        value: root._visibleMaxY
+        when: root._freeModeOverflowGuard
+            && root._visibleMaxY >= root._visibleMinY
+            && root.y > root._visibleMaxY
         restoreMode: Binding.RestoreNone
     }
     // Mirror guards for the left/top edges: rescue widgets that have a saved
-    // negative position from a pre-fix drag, or that slip past the edge during
-    // an animation. Without these, a widget at x<0 or y<0 stays off-screen,
-    // invisible, and unreachable.
+    // off-screen position from a pre-fix drag, or that slip past the edge
+    // during an animation. Without these, a widget at x<minX or y<minY stays
+    // off-screen, invisible, and unreachable.
     Binding {
         target: root
         property: "x"
-        value: 0
-        when: root._freeModeOverflowGuard && root.x < 0
+        value: root._visibleMinX
+        when: root._freeModeOverflowGuard && root.x < root._visibleMinX
         restoreMode: Binding.RestoreNone
     }
     Binding {
         target: root
         property: "y"
-        value: 0
-        when: root._freeModeOverflowGuard && root.y < 0
+        value: root._visibleMinY
+        when: root._freeModeOverflowGuard && root.y < root._visibleMinY
         restoreMode: Binding.RestoreNone
     }
     Behavior on x {
@@ -288,6 +312,12 @@ AbstractWidget {
     // In edit mode, allow dragging regardless of strategy (user can reposition freely)
     readonly property bool _isZonePlacement: root._snapZones.indexOf(root.placementStrategy) >= 0
     draggable: (placementStrategy === "free" || GlobalStates.widgetEditMode) && !GlobalStates.screenLocked && !root.locked
+    // Confine Qt's drag to the visible screen rectangle so a drag past any
+    // edge stops there instead of sailing into the (possibly wider) canvas.
+    dragMinimumX: root._visibleMinX
+    dragMaximumX: Math.max(root._visibleMinX, root._visibleMaxX)
+    dragMinimumY: root._visibleMinY
+    dragMaximumY: Math.max(root._visibleMinY, root._visibleMaxY)
     function syncFreePositionFromConfig(): void {
         if (!Config.ready) return;
         if (root.placementStrategy !== "free") return;
