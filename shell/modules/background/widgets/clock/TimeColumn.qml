@@ -8,10 +8,11 @@ import QtQuick
 Column {
     id: root
     property list<string> clockNumbers: DateTime.time.split(/[: ]/)
-    property bool isEnabled: Config.options.background.widgets.clock.cookie.timeIndicators
+    property bool isEnabled: Config.getNestedValue("background.widgets.clock.cookie.timeIndicators", false)
     property color color: Appearance.colors.colOnSecondaryContainer
 
-    property bool hourMarksEnabled: Config.options.background.widgets.clock.cookie.hourMarks
+    property bool hourMarksEnabled: Config.getNestedValue("background.widgets.clock.cookie.hourMarks", false)
+    readonly property string clockFontFamily: Config.getNestedValue("background.widgets.clock.fontFamily", "Space Grotesk")
     spacing: -16
 
     Repeater {
@@ -28,7 +29,7 @@ Column {
             anchors.horizontalCenter: root.horizontalCenter
             color: root.color
             font {
-                family: Config.options?.background?.widgets?.clock?.fontFamily ?? "Space Grotesk"
+                family: root.clockFontFamily
                 weight: Font.Bold
                 pixelSize: numberSize
             }

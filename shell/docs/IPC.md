@@ -607,6 +607,41 @@ bind "Mod+Alt+K" { spawn "ryoku-shell" "keyboard" "switchLayout"; }
 
 ---
 
+## ii-Specific Targets
+
+These targets only work when using the ii panel family.
+
+### background
+
+Desktop background widget edit mode.
+
+Family: ii
+
+| Function | Description |
+|----------|-------------|
+| `toggleEditMode` | Toggle desktop widget edit mode |
+
+```kdl
+bind "Super+W" { spawn "ryoku-shell" "background" "toggleEditMode"; }
+```
+
+---
+
+### customWidgets
+
+Custom widget management. Create, list, reload, and remove user-installed widgets from `~/.config/ryoku-shell/widgets/`.
+
+Family: ii
+
+| Function | Description |
+|----------|-------------|
+| `reload` | Re-scan widgets directory and reload all custom widgets |
+| `list` | List discovered custom widgets as JSON |
+| `create` | Create a custom widget scaffold |
+| `remove` | Remove a custom widget by ID |
+
+---
+
 ## Waffle-Specific Targets
 
 These targets only work when using the Waffle (Windows 11) panel style.
@@ -686,6 +721,18 @@ Waffle on-screen display indicator (volume, brightness).
 | Function | Description |
 |----------|-------------|
 | `trigger` | Show the OSD indicator |
+
+---
+
+### recordingOsd
+
+Recording on-screen status indicator.
+
+| Function | Description |
+|----------|-------------|
+| `toggle` | Show/hide recording indicator |
+| `show` | Show recording indicator |
+| `hide` | Hide recording indicator |
 
 ---
 

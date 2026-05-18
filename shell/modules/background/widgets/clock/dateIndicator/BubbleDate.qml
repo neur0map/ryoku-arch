@@ -10,6 +10,7 @@ Item {
     property bool isMonth: false
     property real targetSize: 0
     property alias text: bubbleText.text
+    readonly property string clockFontFamily: Config.getNestedValue("background.widgets.clock.fontFamily", "Space Grotesk")
 
     text: Qt.locale().toString(DateTime.clock.date, root.isMonth ? "MM" : "d")
 
@@ -29,7 +30,7 @@ Item {
         anchors.centerIn: parent
         color: root.isMonth ? Appearance.colors.colOnSecondaryContainer : Appearance.colors.colOnTertiaryContainer
         font {
-            family: Config.options?.background?.widgets?.clock?.fontFamily ?? "Space Grotesk"
+            family: root.clockFontFamily
             pixelSize: 30
             weight: Font.Black
         }

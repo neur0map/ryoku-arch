@@ -3,13 +3,14 @@
 # Do not edit manually.
 # Regenerate: python3 scripts/lib/generate-ipc-registry.py
 # IPC.md hash: 9eb77e87472a5e8a
-# Targets: 48
+# Targets: 50
 
 declare -gA IPC_TARGET_DESC=(
   [ai]="AI chat service. Multi-provider (Gemini, OpenAI, Mistral) with tool support."
   [altSwitcher]="Alt+Tab window switcher. Works across workspaces, unlike some other implementations we won't name."
   [appCatalog]="App catalog service. Browse, search, and install curated applications."
   [audio]="Volume and mute control."
+  [background]="Desktop background widget edit mode."
   [bar]="Top bar visibility."
   [brightness]="Display brightness control."
   [cheatsheet]="Keyboard shortcuts reference. For when you forget what you just configured five minutes ago."
@@ -18,6 +19,7 @@ declare -gA IPC_TARGET_DESC=(
   [closeConfirm]="Close window confirmation dialog. Shows a prompt before closing the focused window. Useful if you're the type who accidentally closes things and then regrets it."
   [controlPanel]="Quick settings panel. Toggles, sliders, and system controls without opening full settings."
   [coverflowSelector]="Wallpaper coverflow (3D card) picker."
+  [customWidgets]="Custom widget management. Create, list, reload, and remove user-installed widgets from \`~/.config/ryoku-shell/widgets/\`."
   [gamemode]="Performance mode for gaming. Auto-detects fullscreen apps and disables animations/effects. Can also be toggled manually for those stubborn games that don't go fullscreen properly."
   [globalActions]="Command palette / action registry. Search and execute shell actions from scripts or keybinds."
   [keyboard]="Keyboard layout switching (Niri only). Cycles through configured keyboard layouts and queries layout info."
@@ -33,7 +35,7 @@ declare -gA IPC_TARGET_DESC=(
   [overview]="Toggle the workspace overview panel. The one with all your windows looking tiny and organized."
   [packageSearch]="Package search service. Searches pacman repos and installed packages."
   [panelFamily]="Switch between panel styles. ii supports two visual styles: Material ii (default) and Waffle (Windows 11-like)."
-  [recordingOsd]=""
+  [recordingOsd]="Recording on-screen status indicator."
   [region]="Region selection tools. Screenshots, OCR, recording. Draw a box, get stuff done."
   [screenshotEvents]="Screenshot completion events. Used to flash a brief screenshot success toast."
   [search]="Waffle start menu / search."
@@ -61,6 +63,7 @@ declare -gA IPC_TARGET_FAMILY=(
   [altSwitcher]="shared"
   [appCatalog]="shared"
   [audio]="shared"
+  [background]="ii"
   [bar]="shared"
   [brightness]="shared"
   [cheatsheet]="shared"
@@ -69,6 +72,7 @@ declare -gA IPC_TARGET_FAMILY=(
   [closeConfirm]="shared"
   [controlPanel]="shared"
   [coverflowSelector]="shared"
+  [customWidgets]="ii"
   [gamemode]="shared"
   [globalActions]="shared"
   [keyboard]="shared"
@@ -112,6 +116,7 @@ declare -gA IPC_TARGET_FUNCTIONS=(
   [altSwitcher]="open close toggle next previous"
   [appCatalog]="refresh search install list"
   [audio]="volumeUp volumeDown mute micMute"
+  [background]="toggleEditMode"
   [bar]="toggle close open"
   [brightness]="increment decrement"
   [cheatsheet]="toggle close open"
@@ -120,6 +125,7 @@ declare -gA IPC_TARGET_FUNCTIONS=(
   [closeConfirm]="trigger close"
   [controlPanel]="toggle close open"
   [coverflowSelector]="toggle open close"
+  [customWidgets]="reload list create remove"
   [gamemode]="toggle activate deactivate status"
   [globalActions]="run runWithArgs list search open"
   [keyboard]="switchLayout switchLayoutPrevious getCurrentLayout getLayouts"
@@ -176,6 +182,7 @@ declare -gA IPC_FUNCTION_DESC=(
   ["audio:volumeDown"]="Decrease volume"
   ["audio:mute"]="Toggle speaker mute"
   ["audio:micMute"]="Toggle microphone mute"
+  ["background:toggleEditMode"]="Toggle desktop widget edit mode"
   ["bar:toggle"]="Show/hide bar"
   ["bar:close"]="Hide bar"
   ["bar:open"]="Show bar"
@@ -196,6 +203,10 @@ declare -gA IPC_FUNCTION_DESC=(
   ["coverflowSelector:toggle"]="Open/close coverflow selector"
   ["coverflowSelector:open"]="Open coverflow selector"
   ["coverflowSelector:close"]="Close coverflow selector"
+  ["customWidgets:reload"]="Re-scan widgets directory and reload all custom widgets"
+  ["customWidgets:list"]="List discovered custom widgets as JSON"
+  ["customWidgets:create"]="Create a custom widget scaffold"
+  ["customWidgets:remove"]="Remove a custom widget by ID"
   ["gamemode:toggle"]="Toggle gamemode on/off"
   ["gamemode:activate"]="Force enable gamemode"
   ["gamemode:deactivate"]="Force disable gamemode"
@@ -243,9 +254,9 @@ declare -gA IPC_FUNCTION_DESC=(
   ["packageSearch:results"]="Print current search results"
   ["panelFamily:cycle"]="Cycle to next panel family (ii → waffle → ii)"
   ["panelFamily:set"]="Set specific family (\"ii\" or \"waffle\")"
-  ["recordingOsd:toggle"]=""
-  ["recordingOsd:show"]=""
-  ["recordingOsd:hide"]=""
+  ["recordingOsd:toggle"]="Show/hide recording indicator"
+  ["recordingOsd:show"]="Show recording indicator"
+  ["recordingOsd:hide"]="Hide recording indicator"
   ["region:screenshot"]="Take a region screenshot"
   ["region:search"]="Image search (Google Lens)"
   ["region:googleLens"]="Start a region capture for Google Lens"
@@ -336,6 +347,7 @@ declare -gA IPC_FUNCTION_ARGS=(
 declare -gA IPC_TARGET_EXAMPLE=(
   [altSwitcher]='bind "Alt+Tab" { spawn "ryoku-shell" "altSwitcher" "next"; }
 bind "Alt+Shift+Tab" { spawn "ryoku-shell" "altSwitcher" "previous"; }'
+  [background]='bind "Super+W" { spawn "ryoku-shell" "background" "toggleEditMode"; }'
   [cheatsheet]='bind "Super+Slash" { spawn "ryoku-shell" "cheatsheet" "toggle"; }'
   [clipboard]='bind "Super+V" { spawn "ryoku-shell" "clipboard" "toggle"; }'
   [closeConfirm]='bind "Mod+Q" repeat=false { spawn "ryoku-shell" "close-window"; }'
@@ -365,9 +377,9 @@ bind "Super+Shift+A" { spawn "ryoku-shell" "region" "search"; }'
   [ytmusic]='bind "Mod+M+Space" { spawn "ryoku-shell" "ytmusic" "playPause"; }'
 )
 
-IPC_ALL_TARGETS=(ai altSwitcher appCatalog audio bar brightness cheatsheet clipboard cliphistService closeConfirm controlPanel coverflowSelector gamemode globalActions keyboard lock mediaControls minimize mpris notifications osd osdVolume osk overlay overview packageSearch panelFamily recordingOsd region screenshotEvents search session settings shellUpdate sidebarLeft sidebarRight taskview tiling toolsMode voiceSearch wactionCenter waffleAltSwitcher wallpaperSelector wbar wnotificationCenter wwidgets ytmusic zoom)
+IPC_ALL_TARGETS=(ai altSwitcher appCatalog audio background bar brightness cheatsheet clipboard cliphistService closeConfirm controlPanel coverflowSelector customWidgets gamemode globalActions keyboard lock mediaControls minimize mpris notifications osd osdVolume osk overlay overview packageSearch panelFamily recordingOsd region screenshotEvents search session settings shellUpdate sidebarLeft sidebarRight taskview tiling toolsMode voiceSearch wactionCenter waffleAltSwitcher wallpaperSelector wbar wnotificationCenter wwidgets ytmusic zoom)
 IPC_SHARED_TARGETS=(ai altSwitcher appCatalog audio bar brightness cheatsheet clipboard cliphistService closeConfirm controlPanel coverflowSelector gamemode globalActions keyboard lock mediaControls minimize mpris notifications osdVolume osk overview packageSearch panelFamily recordingOsd region screenshotEvents session settings shellUpdate sidebarLeft sidebarRight tiling toolsMode voiceSearch wallpaperSelector ytmusic zoom)
-IPC_II_TARGETS=(overlay)
+IPC_II_TARGETS=(background customWidgets overlay)
 IPC_WAFFLE_TARGETS=(osd search taskview wactionCenter waffleAltSwitcher wbar wnotificationCenter wwidgets)
 
 declare -gA IPC_KEBAB_ALIASES=(
@@ -377,6 +389,7 @@ declare -gA IPC_KEBAB_ALIASES=(
   [close-confirm]=closeConfirm
   [control-panel]=controlPanel
   [coverflow-selector]=coverflowSelector
+  [custom-widgets]=customWidgets
   [global-actions]=globalActions
   [media-controls]=mediaControls
   [osd-volume]=osdVolume
@@ -394,4 +407,3 @@ declare -gA IPC_KEBAB_ALIASES=(
   [wallpaper-selector]=wallpaperSelector
   [wnotification-center]=wnotificationCenter
 )
-

@@ -9,14 +9,25 @@ Singleton {
     property string filePath: Directories.shellConfigPath
     property alias options: configOptionsJsonAdapter
     property bool ready: false
+    property int revision: 0
     property bool isSettingsProcess: (Quickshell.env("RYOKU_SHELL_STANDALONE_WINDOW") ?? "") === "1"
     property int readWriteDelay: 50 // milliseconds
     property bool blockWrites: false
+    // Custom widget data is kept outside JsonAdapter to avoid nested property var crashes.
+    property var customWidgetData: ({})
+    property bool customWidgetDataSynced: false
 
     signal configChanged
 
+    function _bumpRevision(): void {
+        root.revision = (root.revision + 1) % 2147483647;
+    }
+
     function flushWrites(): void {
         fileWriteTimer.stop();
+        fileReloadTimer.stop();
+        root._prepareCustomInject();
+        root._writeInFlight = true;
         configFileView.writeAdapter();
     }
 
@@ -35,16 +46,6 @@ Singleton {
             console.warn("[Config] setNestedValue called with empty key");
             return;
         }
-        let obj = root.options;
-
-        // Traverse to parent object
-        for (let i = 0; i < keys.length - 1; ++i) {
-            if (!obj[keys[i]] || typeof obj[keys[i]] !== "object") {
-                obj[keys[i]] = {};
-            }
-            obj = obj[keys[i]];
-        }
-
         // Convert value to correct type using JSON.parse when safe
         let convertedValue = value;
         if (typeof value === "string") {
@@ -58,11 +59,51 @@ Singleton {
             }
         }
 
+        if (keys.length >= 3 && keys[0] === "background" && keys[1] === "widgets" && keys[2] === "custom") {
+            const subKeys = keys.slice(3);
+            if (subKeys.length === 0) {
+                root.customWidgetData = (typeof convertedValue === "object" && convertedValue !== null) ? convertedValue : {};
+                root._customSnapshotForInject = root._cloneObject(root.customWidgetData);
+                root._pendingCustomInject = root._hasObjectKeys(root._customSnapshotForInject);
+                return;
+            }
+
+            let data = {};
+            try {
+                data = JSON.parse(JSON.stringify(root.customWidgetData ?? {}));
+            } catch (e) {
+                data = {};
+            }
+            let customObj = data;
+            for (let i = 0; i < subKeys.length - 1; ++i) {
+                if (!customObj[subKeys[i]] || typeof customObj[subKeys[i]] !== "object")
+                    customObj[subKeys[i]] = {};
+                customObj = customObj[subKeys[i]];
+            }
+            customObj[subKeys[subKeys.length - 1]] = convertedValue;
+            root.customWidgetData = data;
+            root._customSnapshotForInject = root._cloneObject(data);
+            root._pendingCustomInject = root._hasObjectKeys(root._customSnapshotForInject);
+            return;
+        }
+
+        let obj = root.options;
+
+        // Traverse to parent object
+        for (let i = 0; i < keys.length - 1; ++i) {
+            if (!obj[keys[i]] || typeof obj[keys[i]] !== "object") {
+                obj[keys[i]] = {};
+            }
+            obj = obj[keys[i]];
+        }
+
         obj[keys[keys.length - 1]] = convertedValue;
     }
 
     function setNestedValue(nestedKey, value) {
         _applyNestedKey(nestedKey, value);
+        fileWriteTimer.restart();
+        root._bumpRevision();
         root.configChanged();
     }
 
@@ -75,8 +116,150 @@ Singleton {
         for (let i = 0; i < paths.length; ++i) {
             _applyNestedKey(paths[i], updates[paths[i]]);
         }
-        if (paths.length > 0)
+        if (paths.length > 0) {
+            fileWriteTimer.restart();
+            root._bumpRevision();
             root.configChanged();
+        }
+    }
+
+    function getNestedValue(nestedKey, fallback) {
+        let keys = [];
+        if (Array.isArray(nestedKey)) {
+            keys = nestedKey;
+        } else if (typeof nestedKey === "string") {
+            keys = nestedKey.split(".");
+        } else {
+            return fallback;
+        }
+
+        if (keys.length === 0)
+            return fallback;
+
+        root.revision;
+        let obj = root.options;
+        let startIndex = 0;
+        if (keys.length >= 3 && keys[0] === "background" && keys[1] === "widgets" && keys[2] === "custom") {
+            obj = root.customWidgetData;
+            startIndex = 3;
+        }
+
+        for (let i = startIndex; i < keys.length; ++i) {
+            if (obj === undefined || obj === null)
+                return fallback;
+            obj = obj[keys[i]];
+        }
+        return (obj === undefined || obj === null) ? fallback : obj;
+    }
+
+    function _syncVarProperties(): void {
+        let text = "";
+        try {
+            text = configFileView.text();
+        } catch (e) {}
+        if (!text || text.length === 0) {
+            try {
+                rawConfigReader.reload();
+                text = rawConfigReader.text();
+            } catch (e) {}
+        }
+        try {
+            const raw = JSON.parse(text);
+            root.customWidgetData = raw?.background?.widgets?.custom ?? {};
+            root.customWidgetDataSynced = true;
+        } catch (e) {
+            root.customWidgetDataSynced = false;
+        }
+    }
+
+    property bool _writeInFlight: false
+    property bool _pendingCustomInject: false
+    property bool _pendingReload: false
+    property var _customSnapshotForInject: ({})
+
+    function _finishPendingReload(): void {
+        if (root._pendingReload) {
+            root._pendingReload = false;
+            fileReloadTimer.restart();
+        }
+    }
+
+    function _completeWrite(): void {
+        root._writeInFlight = false;
+        root._finishPendingReload();
+    }
+
+    function _completeSavedWrite(): void {
+        root._writeInFlight = false;
+        if (root._pendingCustomInject) {
+            root._pendingCustomInject = false;
+            root._injectCustomDataSync();
+            return;
+        }
+        root._finishPendingReload();
+    }
+
+    function _failWrite(error): void {
+        console.warn("[Config] Save failed:", error);
+        root._pendingCustomInject = false;
+        root._customSnapshotForInject = ({});
+        root._completeWrite();
+    }
+
+    function _cloneObject(obj: var): var {
+        try {
+            return JSON.parse(JSON.stringify(obj ?? {}));
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function _hasObjectKeys(obj: var): bool {
+        return obj && typeof obj === "object" && Object.keys(obj).length > 0;
+    }
+
+    function _customDataForWrite(): var {
+        if (root._hasObjectKeys(root.customWidgetData))
+            return root._cloneObject(root.customWidgetData);
+        try {
+            const current = JSON.parse(configFileView.text());
+            const currentCustom = current?.background?.widgets?.custom ?? {};
+            if (root._hasObjectKeys(currentCustom))
+                return root._cloneObject(currentCustom);
+        } catch (e) {}
+        try {
+            rawConfigReader.reload();
+            const raw = JSON.parse(rawConfigReader.text());
+            const diskCustom = raw?.background?.widgets?.custom ?? {};
+            if (root._hasObjectKeys(diskCustom))
+                return root._cloneObject(diskCustom);
+        } catch (e) {}
+        return {};
+    }
+
+    function _prepareCustomInject(): void {
+        root._customSnapshotForInject = root._customDataForWrite();
+        root._pendingCustomInject = root._hasObjectKeys(root._customSnapshotForInject);
+        if (root._pendingCustomInject && !root._hasObjectKeys(root.customWidgetData))
+            root.customWidgetData = root._cloneObject(root._customSnapshotForInject);
+    }
+
+    function _injectCustomDataSync(): void {
+        const customData = root._hasObjectKeys(root._customSnapshotForInject)
+            ? root._customSnapshotForInject : root.customWidgetData;
+        if (!root._hasObjectKeys(customData)) return;
+        try {
+            const text = configFileView.text();
+            if (!text) return;
+            const obj = JSON.parse(text);
+            if (!obj.background) obj.background = {};
+            if (!obj.background.widgets) obj.background.widgets = {};
+            obj.background.widgets.custom = customData;
+            root.customWidgetData = root._cloneObject(customData);
+            root._customSnapshotForInject = ({});
+            root._writeInFlight = true;
+            configFileView.setText(JSON.stringify(obj, null, 4));
+        } catch (e) { root._writeInFlight = false; }
     }
 
     Timer {
@@ -84,7 +267,13 @@ Singleton {
         interval: root.readWriteDelay
         repeat: false
         onTriggered: {
+            if (root._writeInFlight) {
+                root._pendingReload = true;
+                return;
+            }
             configFileView.reload();
+            root._syncVarProperties();
+            root.configChanged();
         }
     }
 
@@ -93,8 +282,16 @@ Singleton {
         interval: root.readWriteDelay
         repeat: false
         onTriggered: {
+            root._prepareCustomInject();
+            root._writeInFlight = true;
+            fileReloadTimer.stop();
             configFileView.writeAdapter();
         }
+    }
+
+    FileView {
+        id: rawConfigReader
+        path: root.filePath
     }
 
     FileView {
@@ -104,13 +301,21 @@ Singleton {
         blockWrites: root.blockWrites
         onFileChanged: fileReloadTimer.restart()
         onAdapterUpdated: fileWriteTimer.restart()
-        onLoaded: root.ready = true
+        onSaved: root._completeSavedWrite()
+        onSaveFailed: error => root._failWrite(error)
+        onLoaded: {
+            root._syncVarProperties();
+            root._bumpRevision();
+            root.ready = true;
+        }
         onLoadFailed: error => {
             if (error == FileViewError.FileNotFound) {
                 console.log("[Config] File not found, creating new file.");
                 // Ensure parent directory exists
                 const parentDir = root.filePath.substring(0, root.filePath.lastIndexOf('/'));
                 Quickshell.execDetached(["/usr/bin/mkdir", "-p", parentDir]);
+                root.customWidgetData = {};
+                root.customWidgetDataSynced = true;
                 writeAdapter();
             }
             // Set ready even on failure so UI doesn't stay blank
@@ -477,8 +682,10 @@ Singleton {
 
             property JsonObject background: JsonObject {
                 property JsonObject widgets: JsonObject {
+                    property int dynamicOpacity: 0 // 0-100: reduce widget opacity when windows are on current workspace
                     property JsonObject clock: JsonObject {
                         property bool enable: true
+                        property bool locked: false
                         property string placementStrategy: "leastBusy" // "free", "leastBusy", "mostBusy"
                         property real x: 100
                         property real y: 100
@@ -492,6 +699,15 @@ Singleton {
                         property bool showShadow: true
                         property int timeScale: 100
                         property int dateScale: 100
+                        property int widgetScale: 100
+                        property int widgetOpacity: 100
+                        property bool showBackground: false
+                        property bool showBorder: false
+                        property real backgroundOpacity: 0
+                        property real borderWidth: 0
+                        property real borderOpacity: 0.08
+                        property real cornerRadius: -1
+                        property string colorMode: "auto"
                         property JsonObject cookie: JsonObject {
                             property bool aiStyling: false
                             property int sides: 14
@@ -505,9 +721,14 @@ Singleton {
                             property bool dateInClock: true
                             property bool constantlyRotate: false
                             property bool useSineCookie: false
+                            property int size: 230
+                            property string preset: "default"
                         }
                         property JsonObject digital: JsonObject {
                             property bool animateChange: true
+                            property int fontWeight: 600
+                            property int spacing: 6
+                            property string preset: "default"
                         }
                         property JsonObject quote: JsonObject {
                             property bool enable: false
@@ -516,25 +737,130 @@ Singleton {
                     }
                     property JsonObject weather: JsonObject {
                         property bool enable: false
+                        property bool locked: false
                         property string placementStrategy: "free" // "free", "leastBusy", "mostBusy"
                         property real x: 400
                         property real y: 100
+                        property int size: 200
+                        property int tempSize: 80
+                        property int iconSize: 80
+                        property bool showTemp: true
+                        property bool showIcon: true
+                        property bool showCondition: false
+                        property int padding: 20
+                        property int tempFontWeight: 500
+                        property real conditionOpacity: 0.7
+                        property string preset: "default"
+                        property string style: "pill"
+                        property string shape: "pill"
+                        property int widgetScale: 100
+                        property int widgetOpacity: 100
+                        property string colorMode: "auto"
+                        property int dim: 0
                     }
 
                     property JsonObject mediaControls: JsonObject {
                         property bool enable: false
+                        property bool locked: false
                         property string placementStrategy: "free" // "free", "leastBusy", "mostBusy"
                         property string playerPreset: "full" // "full", "compact", "minimal", "albumart", "visualizer", "classic"
                         property real x: 240
                         property real y: 240
+                        property int widgetScale: 100
+                        property int widgetOpacity: 100
+                        property string colorMode: "auto"
+                        property int dim: 0
                     }
                     property JsonObject visualizer: JsonObject {
                         property bool enable: false
-                        property string placementStrategy: "free" // "free", "leastBusy", "mostBusy"
+                        property bool locked: false
+                        property string placementStrategy: "free"
+                        property string vizType: "bars"
+                        property string preset: "default"
+                        property int waveOpacity: -1
+                        property int barCount: 48
+                        property int barSpacing: 2
+                        property int barRadius: 2
+                        property int barMinHeight: 1
+                        property int contentWidth: 304
+                        property int contentHeight: 104
                         property int dim: 0
+                        property int widgetScale: 100
+                        property int widgetOpacity: 100
+                        property bool showBackground: true
+                        property bool showBorder: true
+                        property real backgroundOpacity: 0.06
+                        property real borderWidth: 1
+                        property real borderOpacity: 0.08
+                        property real cornerRadius: -1
+                        property string colorMode: "auto"
                         property real x: 100
                         property real y: 100
                     }
+                    property JsonObject systemMonitor: JsonObject {
+                        property bool enable: false
+                        property bool locked: false
+                        property string placementStrategy: "free"
+                        property string displayMode: "bars"
+                        property int barCount: 32
+                        property int barSpacing: 2
+                        property real trackAlpha: 0.08
+                        property real fillOpacity: 0.7
+                        property real graphFillOpacity: 0.3
+                        property bool showCpu: true
+                        property bool showMemory: true
+                        property bool showGpu: true
+                        property bool showTemp: false
+                        property bool showDisk: false
+                        property bool showLabels: true
+                        property int contentWidth: 320
+                        property int contentHeight: 120
+                        property string preset: "default"
+                        property int dim: 0
+                        property int widgetScale: 100
+                        property int widgetOpacity: 100
+                        property bool showBackground: true
+                        property bool showBorder: true
+                        property real backgroundOpacity: 0.06
+                        property real borderWidth: 1
+                        property real borderOpacity: 0.08
+                        property real cornerRadius: -1
+                        property string colorMode: "auto"
+                        property real x: 50
+                        property real y: 400
+                    }
+                    property JsonObject battery: JsonObject {
+                        property bool enable: false
+                        property bool locked: false
+                        property string placementStrategy: "free"
+                        property string displayMode: "ring"
+                        property bool showTime: true
+                        property int ringSize: 72
+                        property int ringLineWidth: 6
+                        property int barCount: 20
+                        property int barSpacing: 2
+                        property int barRadius: 2
+                        property int pillHeight: 12
+                        property string preset: "default"
+                        property int dim: 0
+                        property int widgetScale: 100
+                        property int widgetOpacity: 100
+                        property bool showBackground: true
+                        property bool showBorder: true
+                        property real backgroundOpacity: 0.06
+                        property real borderWidth: 1
+                        property real borderOpacity: 0.08
+                        property real cornerRadius: -1
+                        property string colorMode: "auto"
+                        property real x: 50
+                        property real y: 50
+                    }
+                    property JsonObject editGrid: JsonObject {
+                        property int size: 32
+                        property bool snap: true
+                    }
+                    // Custom widget data lives in root.customWidgetData (not here)
+                    // to avoid JsonAdapter crashes on property var inside JsonObject.
                 }
                 property string wallpaperPath: ""
                 property string thumbnailPath: ""
