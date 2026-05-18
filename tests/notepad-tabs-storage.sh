@@ -69,6 +69,11 @@ assert_contains "$service" "root.activeTab = root._clampTabIndex(data.activeTab 
 assert_contains "$service" "legacyFileView.reload()"
 assert_contains "$service" "root.tabs = [{ title: \"Note 1\", text: content || \"\" }]"
 assert_contains "$service" "root._saveTabs()"
+assert_contains "$service" "property string _pendingSaveText: \"\""
+assert_contains "$service" "id: ensureTabsDirectoryProc"
+assert_contains "$service" "command: [\"/usr/bin/mkdir\", \"-p\", root.tabsFilePath.substring(0, root.tabsFilePath.lastIndexOf('/'))]"
+assert_contains "$service" "tabsFileView.setText(root._pendingSaveText)"
+assert_not_contains "$service" "Process.exec"
 
 assert_contains "$widget" "readonly property int tabCount: Notepad.tabs.length"
 assert_contains "$widget" "function saveCurrentText()"
