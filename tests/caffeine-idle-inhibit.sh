@@ -57,5 +57,7 @@ assert_contains "$caffeine_cmd" 'ryoku-caffeine-inhibit' \
   "caffeine helper status should track the same inhibitor it starts"
 assert_contains "$caffeine_cmd" 'legacy_inhibit_pattern=' \
   "caffeine helper should clean the old QML-owned inhibitor during migration"
+assert_contains "$caffeine_cmd" 'flock -x' \
+  "caffeine helper should serialize start/stop so shell startup cannot spawn duplicate inhibitors"
 
 echo "OK: caffeine idle inhibit contract"
