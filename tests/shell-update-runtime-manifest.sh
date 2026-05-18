@@ -61,6 +61,12 @@ rg -q '\[\[ \\"\$manifest_v2\\" != \\"true\\" && -d \\"\$repo/\.git\\" \]\]' "$S
 rg -q "matches_repo_source" "$SHELL_UPDATES_QML" || \
   fail "shell local-mod detection should ignore stale manifest mismatches when runtime files match repo source"
 
+rg -q 'scripts/ryoku-shell' "$SHELL_UPDATES_QML" || \
+  fail "shell updater repo detection should require Ryoku shell launcher shape"
+
+! rg -q 'omarchy|illogical-impulse|quickshell/ii' "$SHELL_UPDATES_QML" || \
+  fail "shell updater repo search should not fall back to old shell paths"
+
 rg -q "repo_worktree_hash" "$SHELL_UPDATES_QML" || \
   fail "shell local-mod detection should compare checksum mismatches against the repo working tree"
 
