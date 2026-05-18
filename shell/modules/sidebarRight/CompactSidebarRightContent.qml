@@ -112,10 +112,28 @@ Item {
         })
     }
 
+    function handleRequestedWidget(): void {
+        const w = GlobalStates.sidebarRightRequestedWidget
+        if (!w) return
+        const idx = root.sections.findIndex(s => s.id === w)
+        if (idx !== -1) root.activeSection = idx
+        GlobalStates.sidebarRightRequestedWidget = ""
+    }
+
+    Component.onCompleted: {
+        Notifications.ensureInitialized()
+        handleRequestedWidget()
+    }
+
+    Connections {
+        target: GlobalStates
+        function onSidebarRightRequestedWidgetChanged() {
+            root.handleRequestedWidget()
+        }
+    }
+
     // Notification count for badge
     readonly property int notificationCount: Notifications.list?.length ?? 0
-
-    Component.onCompleted: Notifications.ensureInitialized()
 
     property int configVersion: 0
     Connections {

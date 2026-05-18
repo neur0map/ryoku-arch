@@ -39,6 +39,8 @@ Singleton {
     property bool superDown: false
     property bool superReleaseMightTrigger: true
     property bool wallpaperSelectorOpen: false
+    // Navigate the right sidebar to a specific widget by type, for example "notepad".
+    property string sidebarRightRequestedWidget: ""
     // Dialog requests from other panels (e.g. left sidebar → right sidebar)
     property bool requestWifiDialog: false
     property bool requestBluetoothDialog: false

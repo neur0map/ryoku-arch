@@ -87,9 +87,8 @@ Singleton {
             label: "Notepad",
             kind: "action",
             action: () => {
+                GlobalStates.sidebarRightRequestedWidget = "notepad";
                 GlobalStates.sidebarRightOpen = true;
-                Persistent.states.sidebar.bottomGroup.collapsed = false;
-                Persistent.states.sidebar.bottomGroup.tab = 2;
             }
         },
         screenCast: {
