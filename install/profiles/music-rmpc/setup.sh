@@ -103,18 +103,21 @@ RMPC_EOF
     chown "$target_uid:$target_uid" "$rmpc_conf"
   fi
 
-  # ── Enable mpd as a user service ───────────────────────────────────
+  # ── Refresh systemd user units so mpd.service/socket are visible. ──
+  # Intentionally do NOT enable or start mpd here. The daemon stays off
+  # until the user explicitly toggles "Enable music daemon" under
+  # Settings, Services, Music Player, which invokes
+  # bin/ryoku-music-daemon-set on.
   if command -v systemctl >/dev/null 2>&1; then
     sudo -u "$target_user" systemctl --user daemon-reload >/dev/null 2>&1 || true
-    sudo -u "$target_user" systemctl --user enable --now mpd.socket >/dev/null 2>&1 || \
-      sudo -u "$target_user" systemctl --user enable --now mpd.service >/dev/null 2>&1 || true
   fi
 
-  # ── Trigger a matugen colour pass so the rmpc theme appears ───────
+  # ── Trigger a matugen colour pass so the rmpc theme appears. ───────
   if [[ -x "${RYOKU_PATH:-$target_home/.local/share/ryoku}/bin/ryoku-theme-set" ]]; then
     sudo -u "$target_user" env HOME="$target_home" \
       "${RYOKU_PATH:-$target_home/.local/share/ryoku}/bin/ryoku-theme-set" --reapply >/dev/null 2>&1 || true
   fi
 
-  printf '[music-rmpc] Done. Open Settings → Services → Music to pick your library folder, or run `rmpc` in a terminal.\n'
+  printf '[music-rmpc] Installed. The mpd daemon is OFF by default.\n'
+  printf '[music-rmpc] Open Settings, Services, Music Player to enable the daemon and pick your library folder.\n'
 }

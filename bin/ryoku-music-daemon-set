@@ -1,0 +1,55 @@
+#!/bin/bash
+# Enable or disable the user-mode MPD daemon used by the rmpc music
+# profile. Called from Settings, Services, Music Player when the user
+# flips the "Enable music daemon" toggle.
+#
+# Usage:
+#   ryoku-music-daemon-set on   # enable + start mpd.socket (preferred)
+#   ryoku-music-daemon-set off  # stop + disable mpd.socket and mpd.service
+#   ryoku-music-daemon-set status  # prints active|inactive
+
+set -uo pipefail
+
+mode="${1:-status}"
+
+unit_active() {
+  systemctl --user is-active "$1" >/dev/null 2>&1
+}
+
+case "$mode" in
+  on)
+    systemctl --user daemon-reload >/dev/null 2>&1 || true
+    # Prefer socket activation so mpd only starts when something connects.
+    # Fall back to mpd.service if the socket unit is missing from the
+    # installed package version.
+    if systemctl --user list-unit-files mpd.socket >/dev/null 2>&1 \
+       && systemctl --user enable --now mpd.socket >/dev/null 2>&1; then
+      printf 'on (mpd.socket)\n'
+      exit 0
+    fi
+    if systemctl --user enable --now mpd.service >/dev/null 2>&1; then
+      printf 'on (mpd.service)\n'
+      exit 0
+    fi
+    printf 'Error: could not enable mpd unit. Is the music-rmpc profile installed?\n' >&2
+    exit 1
+    ;;
+  off)
+    # Stop + disable both unit types so a previously-enabled flavor does
+    # not resurrect mpd on next login.
+    systemctl --user stop mpd.service mpd.socket >/dev/null 2>&1 || true
+    systemctl --user disable mpd.service mpd.socket >/dev/null 2>&1 || true
+    printf 'off\n'
+    ;;
+  status)
+    if unit_active mpd.service || unit_active mpd.socket; then
+      printf 'active\n'
+    else
+      printf 'inactive\n'
+    fi
+    ;;
+  *)
+    printf 'Usage: %s <on|off|status>\n' "$0" >&2
+    exit 2
+    ;;
+esac

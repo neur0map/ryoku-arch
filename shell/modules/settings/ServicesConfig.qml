@@ -58,6 +58,23 @@ ContentPage {
         musicDirProc.running = true
     }
 
+    Process {
+        id: musicDaemonProc
+        property string desiredMode: ""
+        onExited: code => {
+            if (code !== 0) {
+                console.warn("[ServicesConfig] ryoku-music-daemon-set", musicDaemonProc.desiredMode, "failed:", code)
+            }
+        }
+    }
+
+    function applyMusicDaemon(enable) {
+        Config.setNestedValue("apps.musicDaemonEnabled", enable)
+        musicDaemonProc.desiredMode = enable ? "on" : "off"
+        musicDaemonProc.command = [root.ryokuBinPath("ryoku-music-daemon-set"), musicDaemonProc.desiredMode]
+        musicDaemonProc.running = true
+    }
+
     FolderDialog {
         id: musicDirDialog
         title: Translation.tr("Choose music library folder")
@@ -711,6 +728,23 @@ ContentPage {
                     color: Appearance.colors.colSubtext
                     wrapMode: Text.WordWrap
                     font.pixelSize: 13
+                }
+
+                // Daemon enable toggle. Off by default; the install profile
+                // intentionally does not enable mpd so users who never opt in
+                // never see the daemon running.
+                ConfigSwitch {
+                    buttonIcon: "play_arrow"
+                    text: Translation.tr("Enable music daemon (MPD)")
+                    checked: Config.options?.apps?.musicDaemonEnabled ?? false
+                    onCheckedChanged: {
+                        if (checked !== (Config.options?.apps?.musicDaemonEnabled ?? false)) {
+                            root.applyMusicDaemon(checked)
+                        }
+                    }
+                    StyledToolTip {
+                        text: Translation.tr("Starts and enables mpd.socket under systemctl --user. Turning this off stops and disables the unit so no music daemon runs at login.")
+                    }
                 }
 
                 // Auto-theme toggle
