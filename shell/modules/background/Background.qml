@@ -1319,6 +1319,60 @@ Scope {
                         NumberAnimation { duration: Appearance.animation.elementMoveEnter.duration; easing.type: Appearance.animation.elementMoveEnter.type; easing.bezierCurve: Appearance.animation.elementMoveEnter.bezierCurve }
                     }
 
+                    // Click outside any widget/control to exit edit mode.
+                    // Right-button is left untouched so the desktop context
+                    // menu (z:15) still receives right-clicks.
+                    MouseArea {
+                        id: editExitClickCatcher
+                        anchors.fill: parent
+                        z: -1
+                        enabled: GlobalStates.widgetEditMode
+                        acceptedButtons: Qt.LeftButton
+                        propagateComposedEvents: false
+                        onClicked: {
+                            widgetManagerPanel.shown = false;
+                            GlobalStates.widgetEditMode = false;
+                        }
+                    }
+
+                    // Floating exit pill that mirrors the bottom bar's check
+                    // button, anchored to the top so it stays visible even if
+                    // the bottom bar gets covered by another panel.
+                    RippleButton {
+                        id: editTopExit
+                        z: 1
+                        anchors {
+                            horizontalCenter: parent.horizontalCenter
+                            top: parent.top
+                            topMargin: 24
+                        }
+                        width: editTopExitRow.implicitWidth + 24
+                        height: 40
+                        buttonRadius: Appearance.rounding.full
+                        colBackground: CF.ColorUtils.applyAlpha(Appearance.colors.colPrimary, 0.92)
+                        colBackgroundHover: Appearance.colors.colPrimary
+                        colRipple: CF.ColorUtils.applyAlpha(Appearance.colors.colPrimary, 0.40)
+                        downAction: () => { widgetManagerPanel.shown = false; GlobalStates.widgetEditMode = false }
+                        contentItem: Row {
+                            id: editTopExitRow
+                            anchors.centerIn: parent
+                            spacing: 6
+                            MaterialSymbol {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "check"
+                                iconSize: 18
+                                color: Appearance.colors.colOnPrimary
+                            }
+                            StyledText {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: Translation.tr("Done editing")
+                                font.pixelSize: Appearance.font.pixelSize.small
+                                color: Appearance.colors.colOnPrimary
+                            }
+                        }
+                        StyledToolTip { text: Translation.tr("Exit widget edit mode (or click anywhere outside a widget)") }
+                    }
+
                     // ── Floating Edit Controls Bar ────────────────────
                     Rectangle {
                         id: editControlsBar
