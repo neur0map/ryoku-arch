@@ -1,0 +1,72 @@
+#!/bin/bash
+# Update the user's mpd.conf music_directory and trigger a library rescan.
+# Usage: ryoku-mpd-set-music-dir /path/to/music
+#
+# Called by Settings -> Services -> Music. Runs as the user (no sudo
+# required; mpd.conf lives under $HOME).
+
+set -euo pipefail
+
+if (( $# != 1 )); then
+  printf 'Usage: %s <music-directory>\n' "$0" >&2
+  exit 2
+fi
+
+new_dir="$1"
+
+# Expand a leading literal ~ and resolve relative paths.
+# SC2088 fires because shellcheck thinks the tilde won't expand inside
+# quotes; that is intentional here -- we are matching the literal
+# character "~" so we can prepend $HOME ourselves.
+# shellcheck disable=SC2088
+case "$new_dir" in
+  '~'|'~/'*) new_dir="$HOME${new_dir#\~}" ;;
+esac
+new_dir="$(realpath -m -- "$new_dir")"
+
+mpd_conf="$HOME/.config/mpd/mpd.conf"
+
+if [[ ! -f $mpd_conf ]]; then
+  printf 'Error: %s not found. Install the music-rmpc profile first.\n' "$mpd_conf" >&2
+  exit 1
+fi
+
+if [[ ! -d $new_dir ]]; then
+  mkdir -p -- "$new_dir" || {
+    printf 'Error: could not create directory %s\n' "$new_dir" >&2
+    exit 1
+  }
+fi
+
+# Backup before editing.
+cp -a "$mpd_conf" "$mpd_conf.ryoku-bak.$(date +%Y%m%d-%H%M%S)"
+
+# Replace the music_directory line. Use a unique marker so we don't accidentally
+# match a commented variant or unrelated occurrences elsewhere in the file.
+escaped="${new_dir//\"/\\\"}"
+if grep -qE '^[[:space:]]*music_directory[[:space:]]+"' "$mpd_conf"; then
+  sed -i -E "s|^[[:space:]]*music_directory[[:space:]]+\"[^\"]*\"|music_directory     \"${escaped}\"|" "$mpd_conf"
+else
+  printf 'music_directory     "%s"\n' "$escaped" >> "$mpd_conf"
+fi
+
+printf '[ryoku-music] music_directory -> %s\n' "$new_dir"
+
+# Reload mpd so the new path takes effect. Prefer the systemd user unit;
+# fall back to a direct signal.
+if command -v systemctl >/dev/null 2>&1 \
+   && systemctl --user is-active mpd.service >/dev/null 2>&1; then
+  systemctl --user restart mpd.service
+elif command -v systemctl >/dev/null 2>&1 \
+     && systemctl --user is-active mpd.socket >/dev/null 2>&1; then
+  systemctl --user restart mpd.socket
+elif command -v mpc >/dev/null 2>&1; then
+  mpc update >/dev/null 2>&1 || true
+fi
+
+# Force a library rescan even if the service didn't restart.
+if command -v mpc >/dev/null 2>&1; then
+  mpc rescan >/dev/null 2>&1 || true
+fi
+
+printf '[ryoku-music] mpd reloaded; rescan started.\n'

@@ -1,0 +1,7 @@
+PROFILE_NAME="Music (rmpc + MPD)"
+PROFILE_ICON="library_music"
+PROFILE_DESCRIPTION="MPD daemon + the rmpc TUI client, with MPRIS so the in-shell media widget picks it up automatically. Library defaults to ~/Music, configurable from Settings → Services."
+PROFILE_TAGS="rmpc|MPD|MPRIS|TUI"
+PROFILE_ORDER=20
+PROFILE_REQUIRES_NETWORK=1
+PROFILE_REBOOT_RECOMMENDED=0
