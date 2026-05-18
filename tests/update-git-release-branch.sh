@@ -35,6 +35,11 @@ git -C "$seed" push origin HEAD:"$feature_branch" >/dev/null 2>&1
 
 git clone "$remote" "$checkout" >/dev/null 2>&1
 git -C "$checkout" checkout -b "$feature_branch" "origin/$feature_branch" >/dev/null 2>&1
+git -C "$checkout" config user.email test@example.invalid
+git -C "$checkout" config user.name "Ryoku Test"
+printf '%s\n' "local feature work" >"$checkout/feature.txt"
+git -C "$checkout" add feature.txt
+git -C "$checkout" commit -m "local feature work" >/dev/null
 
 printf '%s\n' "new release content" >"$seed/README.md"
 git -C "$seed" add README.md
@@ -52,6 +57,9 @@ output=$(
 
 [[ $(git -C "$checkout" rev-parse HEAD) == "$(git -C "$seed" rev-parse HEAD)" ]] || \
   fail "checkout should fast-forward to origin/main, not the stale feature branch"
+
+[[ $(git -C "$checkout" branch --show-current) == "main" ]] || \
+  fail "checkout should switch to the release branch before fast-forwarding"
 
 grep -qx 'new release content' "$checkout/README.md" || \
   fail "updated file should come from origin/main"
