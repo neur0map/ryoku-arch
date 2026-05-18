@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 set -euo pipefail
 
 XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
@@ -84,7 +84,7 @@ list_theming_target_manifests() {
 resolve_target_module_path() {
   local target_id="$1"
   local manifest_path="$TARGETS_DIR/${target_id}.json"
-  [[ -f "$manifest_path" ]] || return 1
+  [[ -f $manifest_path ]] || return 1
 
   local module_name=""
   if command -v jq >/dev/null 2>&1; then
@@ -93,16 +93,31 @@ resolve_target_module_path() {
     module_name=$(sed -n 's/.*"module"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$manifest_path" | head -1)
   fi
 
-  [[ -n "$module_name" ]] || return 1
+  [[ -n $module_name ]] || return 1
   local module_path="$MODULES_DIR/$module_name"
-  [[ -f "$module_path" ]] || return 1
+  [[ -f $module_path ]] || return 1
   printf '%s\n' "$module_path"
+}
+
+target_manifest_enabled() {
+  local manifest_path="$1"
+  [[ -f $manifest_path ]] || return 1
+  command -v jq >/dev/null 2>&1 || return 0
+
+  local config_key value
+  config_key=$(jq -r '.configKey // empty' "$manifest_path" 2>/dev/null || true)
+  [[ -n $config_key ]] || return 0
+  [[ -f $CONFIG_FILE ]] || return 0
+
+  value=$(jq -r --arg key "$config_key" 'getpath($key | split(".")) as $v | if $v == null then true else $v end' "$CONFIG_FILE" 2>/dev/null || printf 'true')
+  [[ $value != "false" ]]
 }
 
 list_declared_theming_modules() {
   local manifest
   while IFS= read -r manifest; do
-    [[ -n "$manifest" ]] || continue
+    [[ -n $manifest ]] || continue
+    target_manifest_enabled "$manifest" || continue
     local target_id
     target_id="$(basename "$manifest" .json)"
     resolve_target_module_path "$target_id" || true
