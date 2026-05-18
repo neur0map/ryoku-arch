@@ -15,8 +15,8 @@ import Quickshell.Io
  *
  * Provides a unified, categorized catalog of shell actions that can be:
  * - Searched via the overview launcher (action prefix)
- * - Invoked via IPC: `ryoku-shell globalActions run <actionId> [args]`
- * - Extended by users via scripts in ~/.config/illogical-impulse/actions/
+ * - Invoked via IPC: `ryoku-shell globalActions run <actionId>` or `ryoku-shell globalActions runWithArgs <actionId> <args>`
+ * - Extended by users via scripts in ~/.config/ryoku-shell/actions/
  *
  * Architecture:
  *   Built-in providers (system, appearance, tools, settings) are defined as
@@ -89,7 +89,13 @@ Singleton {
     IpcHandler {
         target: "globalActions"
 
-        function run(actionId: string, args: string): string {
+        function run(actionId: string): string {
+            if (root.runById(actionId, ""))
+                return "ok"
+            return "error: action not found: " + actionId
+        }
+
+        function runWithArgs(actionId: string, args: string): string {
             if (root.runById(actionId, args ?? ""))
                 return "ok"
             return "error: action not found: " + actionId
