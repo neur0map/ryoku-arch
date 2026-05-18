@@ -557,6 +557,7 @@ Singleton {
                     property bool enableOpenCode: false
                     property bool enableNeovim: true
                     property bool enableCava: false
+                    property bool enableRmpc: true
                     property real colorStrength: 1.0
                     property JsonObject vscodeEditors: JsonObject {
                         property bool code: true           // Official VSCode
@@ -726,6 +727,9 @@ Singleton {
                 property string discord: "discord" // Shell command to launch Discord client
                 property string update: "kitty -e sudo pacman -Syu" // Command to run system updates
                 property string manageUser: "kcmshell6 kcm_users" // User account management
+                property string music: "rmpc" // Music player command (AppLauncher "music" slot)
+                property string musicDir: "" // Empty = ~/Music. Written via ryoku-mpd-set-music-dir.
+                property bool musicDaemonEnabled: false // Whether mpd.socket is enabled+running via systemctl --user.
             }
 
             property JsonObject background: JsonObject {

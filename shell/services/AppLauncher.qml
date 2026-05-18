@@ -138,6 +138,20 @@ Singleton {
                 { id: "plasma-monitor", label: "KSysGuard", command: "plasma-systemmonitor" },
                 { id: "btop", label: "btop", command: "kitty -e btop" }
             ]
+        },
+        {
+            id: "music",
+            label: Translation.tr("Music player"),
+            description: Translation.tr("Used by media shortcuts. rmpc/ncmpcpp need the Music (rmpc + MPD) profile from Extras; streaming clients work out of the box once installed."),
+            defaultCommand: "rmpc",
+            placeholder: "rmpc",
+            presets: [
+                { id: "rmpc", label: "rmpc (TUI, MPD)", command: "rmpc" },
+                { id: "ncmpcpp", label: "ncmpcpp (TUI, MPD)", command: "ncmpcpp" },
+                { id: "strawberry", label: "Strawberry", command: "strawberry" },
+                { id: "audacious", label: "Audacious", command: "audacious" },
+                { id: "spotify", label: "Spotify", command: "spotify" }
+            ]
         }
     ]
 

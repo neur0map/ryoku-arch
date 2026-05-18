@@ -1655,7 +1655,7 @@ Scope {
     property var navCategories: [
         { label: Translation.tr("Appearance"), pages: [0, 4, 3] },
         { label: Translation.tr("Layout"), pages: [2, 5, 6, 10] },
-        { label: Translation.tr("System"), pages: [1, 7, 8, 15, 16] },
+        { label: Translation.tr("System"), pages: [1, 7, 8, 15] },
         { label: Translation.tr("Reference"), pages: [9, 11, 12, 14] }
     ]
 
@@ -1796,14 +1796,6 @@ Scope {
             desc: Translation.tr("Optional feature profiles"),
             essential: false,
             component: Quickshell.shellPath("modules/settings/ExtrasConfig.qml")
-        },
-        {
-            name: Translation.tr("Applications"),
-            shortName: "",
-            icon: "apps",
-            desc: Translation.tr("Music, terminal and default apps"),
-            essential: false,
-            component: Quickshell.shellPath("modules/settings/ApplicationsConfig.qml")
         }
     ]
 
