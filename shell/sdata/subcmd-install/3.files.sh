@@ -217,7 +217,7 @@ case "${SKIP_QUICKSHELL}" in
         log_success "User ryoku-shell.service enabled (wired to ${_comp_target})"
       else
         log_warning "No supported compositor detected (niri or Hyprland)"
-        log_warning "ryoku-shell.service not enabled — run 'ryoku-shell.service enable' from your compositor session"
+        log_warning "ryoku-shell.service not enabled — run 'ryoku-shell service enable' from your compositor session"
       fi
     fi
 
