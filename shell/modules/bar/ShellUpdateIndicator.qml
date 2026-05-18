@@ -225,6 +225,7 @@ MouseArea {
                         Layout.fillWidth: true
                         text: ShellUpdates.updateStepMessage.length > 0 ? Translation.tr(ShellUpdates.updateStepMessage) : Translation.tr("Processing...")
                         color: root.popupTextColor
+                        elide: Text.ElideRight
                     }
                     StyledText {
                         Layout.alignment: Qt.AlignVCenter
@@ -352,6 +353,7 @@ MouseArea {
                         Layout.alignment: Qt.AlignVCenter
                         Layout.fillWidth: true
                         horizontalAlignment: Text.AlignRight
+                        elide: Text.ElideMiddle
                         text: ShellUpdates.currentBranch
                         font.family: Appearance.font.family.monospace
                         color: ShellUpdates.isNonMainBranch

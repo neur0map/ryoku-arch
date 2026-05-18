@@ -52,20 +52,27 @@ WPanelPageColumn {
                 }
             }
 
-            // Pinned grid - 6 columns like Windows 11
-            Grid {
+            // Pinned apps reflow with the panel and stay centered.
+            Item {
                 Layout.fillWidth: true
-                columns: 6
-                rowSpacing: 4
-                columnSpacing: 4
-                
-                Repeater {
-                    model: root.pinnedApps.slice(0, 18)
-                    delegate: AppButton {
-                        required property string modelData
-                        required property int index
-                        appId: modelData
-                        animIndex: index
+                implicitHeight: pinnedFlow.implicitHeight
+
+                Flow {
+                    id: pinnedFlow
+                    readonly property int cellWidth: 88 + spacing
+                    readonly property int maxCols: Math.max(1, Math.min(6, Math.floor((parent.width + spacing) / cellWidth)))
+                    width: Math.min(parent.width, maxCols * cellWidth - spacing)
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: 4
+
+                    Repeater {
+                        model: root.pinnedApps.slice(0, 18)
+                        delegate: AppButton {
+                            required property string modelData
+                            required property int index
+                            appId: modelData
+                            animIndex: index
+                        }
                     }
                 }
             }
