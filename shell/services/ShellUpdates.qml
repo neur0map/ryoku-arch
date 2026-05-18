@@ -13,7 +13,7 @@ import Quickshell.Services.Notifications
  * Periodically checks the git repo for new commits and exposes
  * update state to UI widgets. Separate from system Updates service.
  *
- * NOTE: The config directory (~/.config/quickshell/ii) is NOT a git repo.
+ * NOTE: The runtime directory (~/.config/quickshell/ryoku-shell) is usually NOT a git repo.
  * Users clone the repo elsewhere, run ./setup install, which copies files.
  * The actual repo location is stored in version.json during installation.
  */
@@ -524,15 +524,16 @@ Singleton {
         }
     }
 
-    // Repo signature for ryoku-arch: .git + (legacy shell shape OR ryoku-arch shape).
+    // Repo signature for ryoku-arch: .git plus either the full Ryoku repo
+    // shape or the Ryoku shell-layer shape. Do not accept generic shell repos.
     // Exposed as a bash function so all probes share one definition.
     readonly property string _repoSignatureFn:
         "ryoku_repo_match() { " +
         "  local p=\"$1\"; " +
         "  [[ -d \"$p/.git\" ]] || return 1; " +
-        "  [[ -f \"$p/setup\" && -f \"$p/shell.qml\" ]] && return 0; " +
         "  [[ -f \"$p/install/ryoku-base.packages\" ]] && return 0; " +
-        "  [[ -f \"$p/shell/setup\" && -f \"$p/shell/shell.qml\" ]] && return 0; " +
+        "  [[ -f \"$p/setup\" && -f \"$p/shell.qml\" && -f \"$p/scripts/ryoku-shell\" ]] && return 0; " +
+        "  [[ -f \"$p/shell/setup\" && -f \"$p/shell/shell.qml\" && -f \"$p/shell/scripts/ryoku-shell\" ]] && return 0; " +
         "  return 1; " +
         "}; "
 
@@ -618,17 +619,17 @@ Singleton {
             "if ryoku_repo_match \"" + root.configDir + "\"; then echo \"" + root.configDir + "\"; exit 0; fi; " +
             // 2. RYOKU_PATH env (set by lib/runtime-env.sh in ryoku-* tools)
             "if [[ -n \"${RYOKU_PATH:-}\" ]] && ryoku_repo_match \"$RYOKU_PATH\"; then echo \"$RYOKU_PATH\"; exit 0; fi; " +
-            // 3. Canonical install + common dev/legacy locations
+            // 3. Canonical install + common Ryoku dev locations
             "for dir in " +
-            "  ~/.local/share/ryoku ~/.local/share/omarchy " +
-            "  ~/prowl/ryoku-arch ~/ryoku-arch ~/Ryoku ~/illogical-impulse " +
-            "  ~/.local/src/ryoku-arch ~/.local/src/illogical-impulse " +
-            "  ~/Projects/ryoku-arch ~/Projects/illogical-impulse " +
-            "  ~/Downloads/ryoku-arch ~/Downloads/illogical-impulse " +
-            "  ~/src/ryoku-arch ~/src/illogical-impulse; do " +
+            "  ~/.local/share/ryoku " +
+            "  ~/prowl/ryoku-arch ~/ryoku-arch ~/Ryoku " +
+            "  ~/.local/src/ryoku-arch " +
+            "  ~/Projects/ryoku-arch " +
+            "  ~/Downloads/ryoku-arch " +
+            "  ~/src/ryoku-arch; do " +
             "  if ryoku_repo_match \"$dir\"; then echo \"$dir\"; exit 0; fi; " +
             "done; " +
-            // 4. Last resort: shallow find under $HOME for either repo shape
+            // 4. Last resort: shallow find under $HOME for a Ryoku repo shape
             "timeout 2 find \"$HOME\" -maxdepth 4 -type d -name .git 2>/dev/null | while read -r g; do " +
             "  d=\"$(dirname \"$g\")\"; ryoku_repo_match \"$d\" && echo \"$d\" && break; " +
             "done; "
@@ -1125,7 +1126,8 @@ Singleton {
             // untracked for local modification detection; only legacy manifests
             // need the source-comparison fallback.
             "manifest_v2='false'; " +
-            "head -1 \"$manifest\" | grep -qE '(ii|inir|ryoku)-manifest v2' && manifest_v2='true'; " +
+            "legacy_manifest_prefix='i''nir'; " +
+            "head -1 \"$manifest\" | grep -qE \"(ii|${legacy_manifest_prefix}|ryoku)-manifest v2\" && manifest_v2='true'; " +
             "git_prefix=''; " +
             "if [[ -d \"$repo/.git\" && -f \"$repo/shell/setup\" ]]; then git_prefix='shell/'; fi; " +
             "remote_ref='origin/" + root._remoteBranch + "'; " +
