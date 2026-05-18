@@ -789,11 +789,100 @@ WSettingsPage {
         }
 
         WSettingsSwitch {
+            id: waffleCavaSwitch
+            label: Translation.tr("Cava")
+            icon: "music-note-2"
+            description: Translation.tr("Apply Material You gradient colors to cava audio visualizer config")
+            checked: Config.options?.appearance?.wallpaperTheming?.enableCava ?? false
+            onCheckedChanged: Config.setNestedValue("appearance.wallpaperTheming.enableCava", checked)
+        }
+
+        WSettingsSwitch {
             label: Translation.tr("Transparency")
             icon: "eye"
             description: Translation.tr("Enable transparent UI elements")
             checked: Config.options?.appearance?.transparency?.enable ?? false
             onCheckedChanged: Config.setNestedValue("appearance.transparency.enable", checked)
+        }
+    }
+
+    WSettingsCard {
+        visible: waffleCavaSwitch.checked
+        title: Translation.tr("Cava Options")
+        icon: "music-note-2"
+
+        WSettingsSlider {
+            label: Translation.tr("Sensitivity")
+            icon: "sound-high"
+            description: Translation.tr("Audio sensitivity (higher = more reactive)")
+            from: 10
+            to: 500
+            stepSize: 10
+            value: Config.options?.appearance?.cava?.sensitivity ?? 100
+            property bool _ready: false
+            Component.onCompleted: _ready = true
+            onMoved: {
+                if (!_ready)
+                    return;
+                Config.setNestedValue("appearance.cava.sensitivity", value);
+            }
+        }
+
+        WSettingsSpinBox {
+            label: Translation.tr("Bars")
+            icon: "chart-bar"
+            description: Translation.tr("Number of frequency data points (0 = auto)")
+            from: 0
+            to: 200
+            stepSize: 8
+            value: Config.options?.appearance?.cava?.bars ?? 0
+            onValueChanged: Config.setNestedValue("appearance.cava.bars", value)
+        }
+
+        WSettingsSpinBox {
+            label: Translation.tr("Framerate")
+            icon: "video"
+            description: Translation.tr("Target refresh rate")
+            from: 30
+            to: 165
+            stepSize: 5
+            value: Config.options?.appearance?.cava?.framerate ?? 60
+            onValueChanged: Config.setNestedValue("appearance.cava.framerate", value)
+        }
+
+        WSettingsSpinBox {
+            label: Translation.tr("Wave opacity")
+            icon: "opacity"
+            description: Translation.tr("Fill opacity for wave visualizers")
+            from: 5
+            to: 100
+            stepSize: 5
+            suffix: "%"
+            value: Config.options?.appearance?.cava?.waveOpacity ?? 30
+            onValueChanged: Config.setNestedValue("appearance.cava.waveOpacity", value)
+        }
+
+        WSettingsSwitch {
+            label: Translation.tr("Stereo")
+            icon: "headphones"
+            description: Translation.tr("Split visualizer into left/right channels")
+            checked: Config.options?.appearance?.cava?.stereo ?? true
+            onCheckedChanged: Config.setNestedValue("appearance.cava.stereo", checked)
+        }
+
+        WSettingsButton {
+            label: Translation.tr("Reset to defaults")
+            icon: "arrow-reset"
+            description: Translation.tr("Restore all cava settings to defaults")
+            buttonText: Translation.tr("Reset")
+            buttonIcon: "arrow-reset"
+            onButtonClicked: {
+                Config.setNestedValue("appearance.cava.sensitivity", 100);
+                Config.setNestedValue("appearance.cava.bars", 0);
+                Config.setNestedValue("appearance.cava.framerate", 60);
+                Config.setNestedValue("appearance.cava.waveOpacity", 30);
+                Config.setNestedValue("appearance.cava.stereo", true);
+            }
         }
     }
 

@@ -39,10 +39,28 @@ assert_contains "$widget" "CavaProcess"
 assert_contains "$widget" "CavaVisualizer"
 assert_contains "$widget" "Appearance.ryokuEverywhere"
 assert_contains "$widget" "fillOpacity:"
+assert_contains "$widget" 'readonly property string vizType: Config.getNestedValue("background.widgets.visualizer.vizType", "bars")'
+assert_contains "$widget" 'readonly property int waveOpacity: Config.getNestedValue("background.widgets.visualizer.waveOpacity", -1)'
+assert_contains "$widget" 'visible: root.vizType === "bars"'
+assert_contains "$widget" 'visible: root.vizType === "wave"'
+assert_contains "shell/defaults/config.json" '"waveOpacity": -1'
+assert_contains "shell/defaults/config.json" '"visualizerType": "wave"'
+assert_contains "shell/defaults/config.json" '"visualizerPosition": "bottom"'
+assert_contains "shell/modules/common/Config.qml" 'property string visualizerType: "wave"'
+assert_contains "shell/modules/common/Config.qml" 'property string visualizerPosition: "bottom"'
+assert_contains "shell/modules/settings/DesktopWidgetsConfig.qml" "background.widgets.mediaControls.visualizerType"
+assert_contains "shell/modules/settings/DesktopWidgetsConfig.qml" "background.widgets.mediaControls.visualizerPosition"
 assert_contains "shell/modules/common/widgets/WaveVisualizer.qml" "property real fillOpacity"
 assert_contains "shell/modules/common/widgets/WaveVisualizer.qml" "onFillOpacityChanged"
 assert_contains "shell/modules/common/widgets/WaveVisualizer.qml" "root.fillOpacity"
 assert_contains "shell/modules/common/widgets/WaveVisualizer.qml" "Appearance.ryokuEverywhere"
+for preset in AlbumArtPlayer ClassicPlayer CompactPlayer FullPlayer MinimalPlayer VisualizerPlayer; do
+  preset_path="shell/modules/mediaControls/presets/${preset}.qml"
+  assert_contains "$preset_path" "readonly property string vizType"
+  assert_contains "$preset_path" "readonly property string vizPosition"
+  assert_contains "$preset_path" "CavaVisualizer"
+  assert_contains "$preset_path" 'visible: root.vizType === "bars" && root.vizPosition !== "none"'
+done
 assert_not_contains "$widget" "Appearance.$old_prefix"
 assert_not_contains "$widget" "${old_prefix}Everywhere"
 assert_not_contains "$widget" "$old_owner"

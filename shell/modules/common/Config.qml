@@ -546,6 +546,7 @@ Singleton {
                     property bool enablePearDesktop: true
                     property bool enableOpenCode: false
                     property bool enableNeovim: true
+                    property bool enableCava: false
                     property real colorStrength: 1.0
                     property JsonObject vscodeEditors: JsonObject {
                         property bool code: true           // Official VSCode
@@ -591,6 +592,13 @@ Singleton {
                         property real harmony: 0.40     // 0.0 - 1.0 (how much to shift towards primary)
                         property real backgroundBrightness: 0.50  // 0.0 - 1.0 (0=darkest, 1=lightest)
                     }
+                }
+                property JsonObject cava: JsonObject {
+                    property int sensitivity: 100 // 1-500
+                    property int bars: 0 // 0 = auto
+                    property int framerate: 60 // 30-165
+                    property bool stereo: true
+                    property int waveOpacity: 30 // 5-100, fill alpha for WaveVisualizer
                 }
                 property JsonObject palette: JsonObject {
                     property string type: "auto" // Allowed: auto, scheme-content, scheme-expressive, scheme-fidelity, scheme-fruit-salad, scheme-monochrome, scheme-neutral, scheme-rainbow, scheme-tonal-spot
@@ -788,6 +796,8 @@ Singleton {
                         property bool locked: false
                         property string placementStrategy: "free" // "free", "leastBusy", "mostBusy"
                         property string playerPreset: "full" // "full", "compact", "minimal", "albumart", "visualizer", "classic"
+                        property string visualizerType: "wave" // "wave", "bars"
+                        property string visualizerPosition: "bottom" // "bottom", "top", "fill", "none"
                         property real x: 240
                         property real y: 240
                         property int widgetScale: 100

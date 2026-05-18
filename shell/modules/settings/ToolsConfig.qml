@@ -178,7 +178,7 @@ ContentPage {
         required property string description
         required property var options
         required property var currentValue
-        property bool enabled: true
+        property bool fieldEnabled: true
         signal selected(var newValue)
 
         Layout.fillWidth: true
@@ -202,7 +202,7 @@ ContentPage {
 
         StyledComboBox {
             Layout.fillWidth: true
-            enabled: field.enabled
+            enabled: field.fieldEnabled
             model: field.options
             textRole: "displayName"
             currentIndex: root.choiceIndex(field.options, field.currentValue)

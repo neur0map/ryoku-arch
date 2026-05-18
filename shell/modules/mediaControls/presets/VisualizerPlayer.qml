@@ -23,6 +23,8 @@ Item {
     property real radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal : Appearance.rounding.normal
     property real screenX: 0
     property real screenY: 0
+    readonly property string vizType: Config.getNestedValue("background.widgets.mediaControls.visualizerType", "wave")
+    readonly property string vizPosition: Config.getNestedValue("background.widgets.mediaControls.visualizerPosition", "bottom")
     
     PlayerBase {
         id: playerBase
@@ -52,10 +54,12 @@ Item {
             maskSource: Rectangle { width: card.width; height: card.height; radius: card.radius }
         }
         
-        // Large visualizer as background
+        // Wave visualizer
         WaveVisualizer {
-            anchors.fill: parent
-            anchors.margins: 8
+            visible: root.vizType === "wave" && root.vizPosition !== "none"
+            anchors { left: parent.left; right: parent.right; margins: root.vizPosition === "fill" ? 8 : 0 }
+            y: root.vizPosition === "top" ? 0 : (root.vizPosition === "fill" ? 8 : (parent.height - height))
+            height: root.vizPosition === "fill" ? (parent.height - 16) : parent.height * 0.4
             live: playerBase.effectiveIsPlaying
             points: root.visualizerPoints
             maxVisualizerValue: 1000
@@ -64,6 +68,24 @@ Item {
                 playerBase.artDominantColor,
                 0.2  // Less transparent so it's more visible
             )
+        }
+
+        CavaVisualizer {
+            visible: root.vizType === "bars" && root.vizPosition !== "none"
+            anchors { left: parent.left; right: parent.right; margins: root.vizPosition === "fill" ? 8 : 0 }
+            y: root.vizPosition === "top" ? 0 : (root.vizPosition === "fill" ? 8 : (parent.height - height))
+            height: root.vizPosition === "fill" ? (parent.height - 16) : parent.height * 0.4
+            live: playerBase.effectiveIsPlaying
+            points: root.visualizerPoints
+            maxVisualizerValue: 1000
+            smoothing: 2
+            barCount: 32
+            barSpacing: 2
+            barRadius: 2
+            barMinHeight: 1
+            colorLow: ColorUtils.transparentize(playerBase.artDominantColor, 0.3)
+            colorMed: ColorUtils.transparentize(playerBase.artDominantColor, 0.1)
+            colorHigh: playerBase.artDominantColor
         }
         
         // Gradient overlay for readability
