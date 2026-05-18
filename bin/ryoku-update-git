@@ -25,9 +25,11 @@ clear_stale_auth_headers() {
 
 backup_untracked_update_conflicts() {
   local remote_ref="$1"
-  local backup_dir="$RYOKU_STATE_PATH/update-backups/$(date +%Y%m%d-%H%M%S)"
+  local backup_dir=""
   local backup_count=0
   local path full_path backup_path
+
+  backup_dir="$RYOKU_STATE_PATH/update-backups/$(date +%Y%m%d-%H%M%S)"
 
   while IFS= read -r -d '' path; do
     [[ -n $path ]] || continue
@@ -50,6 +52,29 @@ backup_untracked_update_conflicts() {
   fi
 }
 
+ensure_release_branch_checked_out() {
+  local remote_ref="$1"
+  local current_branch=""
+  local local_branch_ref="refs/heads/$release_branch"
+
+  current_branch="$(ryoku_git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "HEAD")"
+  case "$current_branch" in
+    "$release_branch") return 0 ;;
+  esac
+
+  if [[ $current_branch == "HEAD" ]]; then
+    echo -e "\e[33mDetached Ryoku checkout; switching to $release_branch for release update.\e[0m"
+  else
+    echo -e "\e[33mSwitching Ryoku checkout from $current_branch to $release_branch for release update.\e[0m"
+  fi
+
+  if ryoku_git show-ref --verify --quiet "$local_branch_ref"; then
+    ryoku_git switch "$release_branch"
+  else
+    ryoku_git switch --track -c "$release_branch" "$remote_ref"
+  fi
+}
+
 stash_ref=""
 if [[ -n $(ryoku_git status --porcelain --untracked-files=normal) ]]; then
   ryoku_git stash push --include-untracked -m "ryoku-update autostash $(date -Iseconds)"
@@ -67,6 +92,7 @@ ryoku_git fetch --prune origin "+refs/heads/${release_branch}:refs/remotes/origi
 
 remote_ref="origin/$release_branch"
 
+ensure_release_branch_checked_out "$remote_ref"
 backup_untracked_update_conflicts "$remote_ref"
 
 if ! ryoku_git merge --ff-only "$remote_ref"; then
