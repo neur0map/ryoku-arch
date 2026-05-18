@@ -5,6 +5,7 @@ set -euo pipefail
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 SETUP="$ROOT_DIR/shell/setup"
 INSTALL_CONFIG_SHELL="$ROOT_DIR/install/config/shell.sh"
+INSTALL_FILES_SH="$ROOT_DIR/shell/sdata/subcmd-install/3.files.sh"
 SHELL_UPDATES_QML="$ROOT_DIR/shell/services/ShellUpdates.qml"
 FUNCTIONS_SH="$ROOT_DIR/shell/sdata/lib/functions.sh"
 ROBUST_UPDATE_SH="$ROOT_DIR/shell/sdata/lib/robust-update.sh"
@@ -40,6 +41,7 @@ extract_bootstrap_function() {
 
 [[ -f $SETUP ]] || fail "missing shell/setup"
 [[ -f $INSTALL_CONFIG_SHELL ]] || fail "missing install/config/shell.sh"
+[[ -f $INSTALL_FILES_SH ]] || fail "missing shell/sdata/subcmd-install/3.files.sh"
 [[ -f $SHELL_UPDATES_QML ]] || fail "missing ShellUpdates.qml"
 [[ -f $FUNCTIONS_SH ]] || fail "missing functions.sh"
 [[ -f $ROBUST_UPDATE_SH ]] || fail "missing robust-update.sh"
@@ -91,6 +93,12 @@ rg -q 'repo_content_hash HEAD' "$SHELL_UPDATES_QML" || \
 
 rg -q 'repo_content_hash \\"\$remote_ref\\"' "$SHELL_UPDATES_QML" || \
   fail "shell local-mod detection should compare checksum mismatches against fetched remote source"
+
+rg -q 'write_version_info_json "\$\{II_TARGET\}/version\.json" "\$\(get_repo_version\)" "\$\(get_repo_commit\)" "setup-install"' "$INSTALL_FILES_SH" || \
+  fail "runtime version.json should use shared metadata helpers"
+
+! rg -q 'cat "\$\{REPO_ROOT\}/VERSION"|git -C "\$\{REPO_ROOT\}" rev-parse --short HEAD' "$INSTALL_FILES_SH" || \
+  fail "runtime version.json should not bypass shared metadata helpers"
 
 tmp_dir=$(mktemp -d)
 trap 'rm -rf "$tmp_dir"' EXIT
