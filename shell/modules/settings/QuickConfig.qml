@@ -1683,7 +1683,7 @@ ContentPage {
                     buttonRadius: Appearance.rounding.small
                     materialIcon: "terminal"
                     mainText: Translation.tr("Open config")
-                    onClicked: Qt.openUrlExternally(`${Directories.config}/illogical-impulse/config.json`)
+                    onClicked: Qt.openUrlExternally(Directories.shellConfigPath)
                 }
 
                 RippleButtonWithIcon {

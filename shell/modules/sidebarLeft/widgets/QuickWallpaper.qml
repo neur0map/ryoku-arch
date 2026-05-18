@@ -21,7 +21,7 @@ Item {
     readonly property real itemWidth: 130
     readonly property real itemHeight: 78  // ~16:10 aspect
     readonly property bool showHeader: Config.options?.sidebar?.widgets?.quickWallpaper?.showHeader ?? true
-    readonly property string wallpapersPath: `${FileUtils.trimFileProtocol(Directories.pictures)}/Wallpapers`
+    readonly property string wallpapersPath: Directories.wallpapersPath
     
     property var wallpapersList: []
     

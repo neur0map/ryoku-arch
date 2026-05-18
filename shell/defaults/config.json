@@ -757,6 +757,7 @@
     "weeb": 0
   },
   "regionSelector": {
+    "screenshotNameFormat": "ss-%Y%m%d-%H%M%S",
     "circle": {
       "padding": 10,
       "strokeWidth": 6
@@ -818,6 +819,10 @@
       "allowNsfw": false,
       "defaultProvider": "yandere",
       "limit": 20,
+      "downloadPath": {
+        "sfw": "",
+        "nsfw": ""
+      },
       "zerochan": {
         "username": "[unset]"
       }
@@ -1052,6 +1057,9 @@
     "useSystemFileDialog": false,
     "animatePreview": false
   },
+  "wallpapers": {
+    "directory": ""
+  },
   "screenRecord": {
     "recordingOsd": {
       "autoHide": false
@@ -1075,6 +1083,7 @@
     "crf": 21,
     "vaapiFilter": "scale_vaapi=format=nv12:out_range=full",
     "enableFallback": true,
+    "recordingNameFormat": "recording_%Y-%m-%d_%H.%M.%S",
     "discordCompress": {
       "enabled": false,
       "targetSizeMb": 10,

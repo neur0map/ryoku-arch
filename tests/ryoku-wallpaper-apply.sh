@@ -93,7 +93,7 @@ assert_json_error "missing image" 1
 video="$tmpdir/video with spaces.mp4"
 : >"$video"
 run_apply --type video "$video"
-(( APPLY_STATUS == 0 )) || fail "video apply should succeed through iNiR wallpaper config"
+(( APPLY_STATUS == 0 )) || fail "video apply should succeed through Ryoku wallpaper config"
 printf '%s\n' "$APPLY_OUTPUT" | jq -e --arg path "$video" '.ok == true and .type == "video" and .path == $path' >/dev/null \
   || fail "video apply should emit JSON OK"
 [[ ! -f $tmpdir/pkill.args ]] \
@@ -115,5 +115,39 @@ line_count=$(wc -l < "$tmpdir/apply.args")
 (( line_count == 1 )) || fail "image path should be passed to ryoku-theme-bg-set as one argument"
 [[ $(<"$tmpdir/apply.args") == "$image" ]] \
   || fail "image path with spaces should be preserved for ryoku-theme-bg-set"
+
+direct_config="$tmpdir/direct-config"
+direct_xdg="$tmpdir/direct-xdg"
+direct_image="$tmpdir/direct image.jpg"
+: >"$direct_image"
+mkdir -p "$direct_config" "$direct_xdg/ryoku-shell" "$direct_xdg/illogical-impulse"
+printf '%s\n' '{"background":{}}' >"$direct_xdg/ryoku-shell/config.json"
+printf '%s\n' '{"background":{}}' >"$direct_xdg/illogical-impulse/config.json"
+
+RYOKU_PATH="$PWD" \
+RYOKU_CONFIG_PATH="$direct_config" \
+XDG_CONFIG_HOME="$direct_xdg" \
+PATH="$tmpdir/ryoku/bin:$PATH" \
+  bin/ryoku-theme-bg-set "$direct_image"
+
+jq -e '.background.wallpaperPath | endswith("/current/background")' \
+  "$direct_xdg/illogical-impulse/config.json" >/dev/null \
+  || fail "image setter should update a real legacy shell config when it is the active config"
+jq -e '.background.wallpaperPath == null' \
+  "$direct_xdg/ryoku-shell/config.json" >/dev/null \
+  || fail "image setter should not update a different inactive shell config"
+
+rm -rf "$direct_xdg/illogical-impulse"
+ln -s "$direct_xdg/ryoku-shell" "$direct_xdg/illogical-impulse"
+
+RYOKU_PATH="$PWD" \
+RYOKU_CONFIG_PATH="$direct_config" \
+XDG_CONFIG_HOME="$direct_xdg" \
+PATH="$tmpdir/ryoku/bin:$PATH" \
+  bin/ryoku-theme-bg-set "$direct_image"
+
+jq -e '.background.wallpaperPath | endswith("/current/background")' \
+  "$direct_xdg/ryoku-shell/config.json" >/dev/null \
+  || fail "image setter should update the Ryoku config when legacy path is a symlink"
 
 pass "ryoku wallpaper apply"

@@ -558,6 +558,15 @@ WSettingsPage {
             onTextEdited: newText => root.setRecordingConfig("screenRecord.savePath", newText)
         }
 
+        WSettingsTextField {
+            label: Translation.tr("Filename format")
+            icon: "rename"
+            description: Translation.tr("date(1) tokens without extension")
+            placeholderText: "recording_%Y-%m-%d_%H.%M.%S"
+            text: Config.options?.screenRecord?.recordingNameFormat ?? "recording_%Y-%m-%d_%H.%M.%S"
+            onTextEdited: newText => Config.setNestedValue("screenRecord.recordingNameFormat", newText)
+        }
+
         WSettingsSwitch {
             label: Translation.tr("Fallback if preferred encoder fails")
             icon: "arrow-sync"

@@ -37,7 +37,7 @@ Singleton {
     property string scriptPath: Quickshell.shellPath("scripts")
     property string scriptsPath: FileUtils.trimFileProtocol(scriptPath)
     property string stateUserPath: `${Directories.statePath}/user`
-    property string wallpapersPath: `${Directories.picturesPath}/Wallpapers`
+    property string wallpapersPath: Config.options?.wallpapers?.directory || `${Directories.picturesPath}/Wallpapers`
     property string screenshotsPath: `${Directories.picturesPath}/Screenshots`
     property string persistentStatesPath: `${Directories.statePath}/states.json`
     property string eventsPath: `${Directories.stateUserPath}/events.json`
@@ -56,10 +56,10 @@ Singleton {
     property string coverArt: `${Directories.cachePath}/media/coverart`
     property string tempImages: "/tmp/quickshell/media/images"
     property string booruPreviews: `${Directories.cachePath}/media/boorus`
-    property string booruDownloads: Directories.wallpapersPath
-    property string booruDownloadsNsfw: `${Directories.wallpapersPath}/🌶️`
+    property string booruDownloads: Config.options?.sidebar?.booru?.downloadPath?.sfw || Directories.wallpapersPath
+    property string booruDownloadsNsfw: Config.options?.sidebar?.booru?.downloadPath?.nsfw || `${Directories.wallpapersPath}/🌶️`
     property string latexOutput: `${Directories.cachePath}/media/latex`
-    property string shellConfig: `${Directories.configPath}/illogical-impulse`
+    property string shellConfig: Quickshell.env("RYOKU_SHELL_CONFIG_DIR") || `${Directories.configPath}/illogical-impulse`
     property string shellConfigName: "config.json"
     property string shellConfigPath: `${Directories.shellConfig}/${Directories.shellConfigName}`
     property string updateLogPath: `${Directories.stateUserPath}/update.log`

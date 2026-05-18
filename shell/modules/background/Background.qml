@@ -990,7 +990,7 @@ Variants {
                     { text: Translation.tr("Change wallpaper"), iconName: "image", monochromeIcon: true,
                         action: () => { GlobalActions.runLauncher(["wallpaperSelector", "toggle"]) } },
                     { text: Translation.tr("Screenshot"), iconName: "screenshot_monitor", monochromeIcon: true,
-                        action: () => { GlobalStates.regionSelectorOpen = true } },
+                        action: () => { GlobalActions.runLauncher(["region", "screenshot"]) } },
                     { type: "separator" },
                     { text: Translation.tr("Reload shell"), iconName: "refresh", monochromeIcon: true,
                         action: () => { Quickshell.execDetached(["/usr/bin/bash", Quickshell.shellPath("scripts/restart-shell.sh")]) } }

@@ -1,13 +1,9 @@
-#!/usr/bin/env bash
+#!/bin/bash
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib/config-path.sh
 source "$SCRIPT_DIR/../lib/config-path.sh"
-
-getdate() {
-    date '+%Y-%m-%d_%H.%M.%S'
-}
 
 is_truthy() {
     case "$1" in
@@ -63,6 +59,30 @@ config_value() {
     else
         printf '%s\n' "$value"
     fi
+}
+
+recording_output_base() {
+    local format="$1"
+    local generated
+
+    if [[ -z $format || $format == "null" ]]; then
+        format="recording_%Y-%m-%d_%H.%M.%S"
+    fi
+
+    if ! generated="$(date +"$format" 2>/dev/null)"; then
+        generated="recording_$(date '+%Y-%m-%d_%H.%M.%S')"
+    fi
+
+    generated="${generated//$'\n'/_}"
+    generated="${generated//$'\r'/_}"
+    generated="${generated//\//_}"
+    generated="${generated//\\/_}"
+
+    if [[ -z $generated || $generated == "." || $generated == ".." ]]; then
+        generated="recording_$(date '+%Y-%m-%d_%H.%M.%S')"
+    fi
+
+    printf '%s\n' "$generated"
 }
 
 resolve_hardware_device() {
@@ -435,6 +455,7 @@ DISCORD_COMPRESS_ONLY_IF_NEEDED="true"
 DISCORD_COMPRESS_AUDIO_BITRATE_KBPS="96"
 DISCORD_COMPRESS_PRESET="slow"
 DISCORD_COMPRESS_MAX_DIMENSION="1280"
+RECORDING_NAME_FORMAT="recording_%Y-%m-%d_%H.%M.%S"
 if [[ -f "$CONFIG_FILE" ]] && command -v jq >/dev/null 2>&1; then
     SAVE_PATH=$(config_value '.screenRecord.savePath // empty')
     QUALITY_PRESET=$(config_value '.screenRecord.qualityPreset // "balanced"' "balanced")
@@ -454,6 +475,7 @@ if [[ -f "$CONFIG_FILE" ]] && command -v jq >/dev/null 2>&1; then
     VAAPI_FILTER=$(config_value '.screenRecord.vaapiFilter // "scale_vaapi=format=nv12:out_range=full"' "scale_vaapi=format=nv12:out_range=full")
     ENABLE_FALLBACK=$(config_value 'if .screenRecord.enableFallback == null then "true" else .screenRecord.enableFallback end' "true")
     SHOW_NOTIFICATIONS=$(config_value 'if .screenRecord.showNotifications == null then "true" else .screenRecord.showNotifications end' "true")
+    RECORDING_NAME_FORMAT=$(config_value '.screenRecord.recordingNameFormat // "recording_%Y-%m-%d_%H.%M.%S"' "recording_%Y-%m-%d_%H.%M.%S")
     DISCORD_COMPRESS_ENABLED=$(config_value 'if .screenRecord.discordCompress.enabled == null then "false" else .screenRecord.discordCompress.enabled end' "false")
     DISCORD_COMPRESS_TARGET_MB=$(config_value '.screenRecord.discordCompress.targetSizeMb // 10' "10")
     DISCORD_COMPRESS_SAFETY_MARGIN_MB=$(config_value '.screenRecord.discordCompress.safetyMarginMb // 0.5' "0.5")
@@ -532,9 +554,9 @@ if pgrep wf-recorder > /dev/null; then
     if is_truthy "$SHOW_NOTIFICATIONS"; then notify-send "Recording Stopped" "Stopped" -a 'Recorder' & fi
     pkill wf-recorder &
 else
-    timestamp="$(getdate)"
-    output_file="./recording_${timestamp}.mp4"
-    output_name="recording_${timestamp}.mp4"
+    output_base="$(recording_output_base "$RECORDING_NAME_FORMAT")"
+    output_file="./${output_base}.mp4"
+    output_name="${output_base}.mp4"
     build_common_args
     build_audio_args
     build_safe_fallback_common_args

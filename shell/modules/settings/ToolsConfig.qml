@@ -365,6 +365,20 @@ ContentPage {
             }
 
             ContentSubsection {
+                title: Translation.tr("File naming")
+
+                ContentSubsectionLabel {
+                    text: Translation.tr("Recording filename format")
+                }
+                MaterialTextField {
+                    Layout.fillWidth: true
+                    placeholderText: "recording_%Y-%m-%d_%H.%M.%S"
+                    text: Config.options?.screenRecord?.recordingNameFormat ?? "recording_%Y-%m-%d_%H.%M.%S"
+                    onEditingFinished: Config.setNestedValue("screenRecord.recordingNameFormat", text)
+                }
+            }
+
+            ContentSubsection {
                 title: Translation.tr("Discord compression")
 
                 SettingsSwitch {
@@ -638,6 +652,20 @@ ContentPage {
                         { icon: "activity_zone", value: "rectangles", displayName: Translation.tr("Rectangular selection") },
                         { icon: "gesture", value: "circle", displayName: Translation.tr("Circle to Search") }
                     ]
+                }
+            }
+
+            ContentSubsection {
+                title: Translation.tr("File naming")
+
+                ContentSubsectionLabel {
+                    text: Translation.tr("Screenshot filename format")
+                }
+                MaterialTextField {
+                    Layout.fillWidth: true
+                    placeholderText: "ss-%Y%m%d-%H%M%S"
+                    text: Config.options?.regionSelector?.screenshotNameFormat ?? "ss-%Y%m%d-%H%M%S"
+                    onEditingFinished: Config.setNestedValue("regionSelector.screenshotNameFormat", text)
                 }
             }
 

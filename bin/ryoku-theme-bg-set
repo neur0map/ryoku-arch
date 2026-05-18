@@ -2,7 +2,21 @@
 
 set -euo pipefail
 
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# shellcheck source=/dev/null
+source "$repo_root/lib/runtime-env.sh"
+if [[ -f $RYOKU_PATH/shell/scripts/lib/config-path.sh ]]; then
+  # shellcheck source=/dev/null
+  source "$RYOKU_PATH/shell/scripts/lib/config-path.sh"
+elif [[ -f $repo_root/shell/scripts/lib/config-path.sh ]]; then
+  # shellcheck source=/dev/null
+  source "$repo_root/shell/scripts/lib/config-path.sh"
+else
+  ryoku_shell_config_file() {
+    printf '%s/config.json\n' "${XDG_CONFIG_HOME:-$HOME/.config}/ryoku-shell"
+  }
+fi
 
 # Sets the specified image as the current background
 
@@ -36,8 +50,7 @@ if ! ln -nsf "$BACKGROUND" "$CURRENT_BACKGROUND_LINK"; then
   exit 1
 fi
 
-config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/ryoku-shell"
-config_file="$config_dir/config.json"
+config_file="$(ryoku_shell_config_file)"
 
 if [[ -f $config_file ]]; then
   if ryoku-cmd-missing jq; then
