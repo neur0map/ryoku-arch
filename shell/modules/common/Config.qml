@@ -995,6 +995,8 @@ Singleton {
                 property int timeoutCritical: 0
                 // Always use user timeout settings instead of app-defined ones
                 property bool ignoreAppTimeout: false
+                // Max popup lifetime (ms). Caps persistent notifications. 0 = no cap.
+                property int maxPopupLifetime: 30000
                 // Posición del popup de notificaciones: topRight, bottomRight, topLeft, bottomLeft
                 property string position: "topRight"
                 // Margen respecto a los bordes de pantalla (px)
