@@ -11,7 +11,6 @@ Singleton {
     id: root
 
     property bool inhibit: false
-    property bool _idleInhibitorAllowed: false
     readonly property int screenOffTimeout: Config.options?.idle?.screenOffTimeout ?? 300
     readonly property int lockTimeout: Config.options?.idle?.lockTimeout ?? 600
     readonly property int suspendTimeout: Config.options?.idle?.suspendTimeout ?? 0
@@ -31,19 +30,17 @@ Singleton {
     }
 
     function _syncIdleDaemon() {
-        _idleInhibitorAllowed = false
         _stopLegacySwayidle()
-        _stopStaleRyokuInhibitors()
+        _syncCaffeineInhibitor()
         _ensureHypridleDelayed.restart()
-        if (inhibit) _startIdleInhibitorDelayed.restart()
     }
 
     function _stopLegacySwayidle() {
         Quickshell.execDetached(["/usr/bin/pkill", "-x", "swayidle"])
     }
 
-    function _stopStaleRyokuInhibitors() {
-        Quickshell.execDetached(["/usr/bin/pkill", "-f", "^/usr/bin/systemd-inhibit --what=idle --who=Ryoku .*Ryoku caffeine mode"])
+    function _syncCaffeineInhibitor() {
+        Quickshell.execDetached(["/usr/bin/env", "ryoku-cmd-caffeine", root.inhibit ? "start" : "stop"])
     }
 
     function _ensureHypridle() {
@@ -55,25 +52,6 @@ Singleton {
         id: _ensureHypridleDelayed
         interval: 200
         onTriggered: root._ensureHypridle()
-    }
-
-    Timer {
-        id: _startIdleInhibitorDelayed
-        interval: 150
-        onTriggered: {
-            if (root.inhibit)
-                root._idleInhibitorAllowed = true
-        }
-    }
-
-    Process {
-        id: _idleInhibitor
-        running: root.inhibit && root._idleInhibitorAllowed
-        command: ["/usr/bin/systemd-inhibit", "--what=idle", "--who=Ryoku", "--why=Ryoku caffeine mode", "/usr/bin/sleep", "infinity"]
-        onExited: (exitCode, exitStatus) => {
-            if (root.inhibit && root._idleInhibitorAllowed)
-                console.warn("[Idle] systemd idle inhibitor exited unexpectedly:", exitCode, exitStatus)
-        }
     }
 
     Connections {
@@ -92,8 +70,6 @@ Singleton {
     }
 
     Component.onDestruction: {
-        _idleInhibitorAllowed = false
         _stopLegacySwayidle()
-        _stopStaleRyokuInhibitors()
     }
 }

@@ -4,8 +4,9 @@ set -euo pipefail
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-state_dir="${XDG_RUNTIME_DIR:-/tmp}"
+lock_file="${XDG_RUNTIME_DIR:-/tmp}/ryoku-caffeine.lock"
 inhibit_pattern="[r]yoku-caffeine-inhibit"
+legacy_inhibit_pattern="^/usr/bin/systemd-inhibit --what=idle --who=Ryoku .*Ryoku caffeine mode"
 
 usage() {
   cat <<'EOF'
@@ -17,24 +18,44 @@ Usage:
 EOF
 }
 
-caffeine_active() {
+helper_inhibitor_active() {
   pgrep -f "$inhibit_pattern" >/dev/null
 }
 
+legacy_inhibitor_active() {
+  pgrep -f "$legacy_inhibit_pattern" >/dev/null
+}
+
+caffeine_active() {
+  helper_inhibitor_active || legacy_inhibitor_active
+}
+
+with_caffeine_lock() {
+  mkdir -p "$(dirname "$lock_file")"
+
+  (
+    flock -x 9
+    "$@"
+  ) 9>"$lock_file"
+}
+
 start_inhibitor() {
-  if caffeine_active; then
+  if helper_inhibitor_active; then
     return 0
   fi
 
+  pkill -f "$legacy_inhibit_pattern" >/dev/null 2>&1 || true
+
   setsid systemd-inhibit \
-    --what=idle:sleep \
+    --what=idle \
     --who=Ryoku \
-    --why="Ryoku Caffeine mode" \
+    --why="Ryoku caffeine mode" \
     bash -c 'exec -a ryoku-caffeine-inhibit sleep infinity' >/dev/null 2>&1 &
 }
 
 stop_inhibitor() {
   pkill -f "$inhibit_pattern" >/dev/null 2>&1 || true
+  pkill -f "$legacy_inhibit_pattern" >/dev/null 2>&1 || true
 }
 
 start_caffeine() {
@@ -58,22 +79,26 @@ stop_caffeine() {
   stop_inhibitor
 }
 
+toggle_caffeine() {
+  if caffeine_active; then
+    stop_caffeine
+  else
+    start_caffeine
+  fi
+}
+
 case "${1:-}" in
   status)
     caffeine_active
     ;;
   start)
-    start_caffeine
+    with_caffeine_lock start_caffeine
     ;;
   stop)
-    stop_caffeine
+    with_caffeine_lock stop_caffeine
     ;;
   toggle)
-    if caffeine_active; then
-      stop_caffeine
-    else
-      start_caffeine
-    fi
+    with_caffeine_lock toggle_caffeine
     ;;
   --help|-h|"")
     usage
