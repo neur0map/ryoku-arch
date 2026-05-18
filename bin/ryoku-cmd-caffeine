@@ -50,7 +50,7 @@ start_inhibitor() {
     --what=idle \
     --who=Ryoku \
     --why="Ryoku caffeine mode" \
-    bash -c 'exec -a ryoku-caffeine-inhibit sleep infinity' >/dev/null 2>&1 &
+    bash -c 'exec -a ryoku-caffeine-inhibit sleep infinity' 9>&- >/dev/null 2>&1 &
 }
 
 stop_inhibitor() {

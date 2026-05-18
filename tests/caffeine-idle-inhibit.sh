@@ -59,5 +59,7 @@ assert_contains "$caffeine_cmd" 'legacy_inhibit_pattern=' \
   "caffeine helper should clean the old QML-owned inhibitor during migration"
 assert_contains "$caffeine_cmd" 'flock -x' \
   "caffeine helper should serialize start/stop so shell startup cannot spawn duplicate inhibitors"
+assert_contains "$caffeine_cmd" '9>&-' \
+  "caffeine helper should not leak the serialization lock into the background inhibitor"
 
 echo "OK: caffeine idle inhibit contract"
