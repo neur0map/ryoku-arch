@@ -56,6 +56,25 @@ export RYOKU_SHELL_CONFIG_FILE="$(ryoku_shell_config_file)"
 
 _ipc_registry_loaded=false
 
+augment_sidebar_left_ipc_registry() {
+  if [[ -z ${IPC_TARGET_FUNCTIONS[sidebarLeft]+_} ]]; then
+    return
+  fi
+
+  case " ${IPC_TARGET_FUNCTIONS[sidebarLeft]} " in
+    *" detach "*) ;;
+    *) IPC_TARGET_FUNCTIONS[sidebarLeft]="${IPC_TARGET_FUNCTIONS[sidebarLeft]} detach" ;;
+  esac
+
+  case " ${IPC_TARGET_FUNCTIONS[sidebarLeft]} " in
+    *" attach "*) ;;
+    *) IPC_TARGET_FUNCTIONS[sidebarLeft]="${IPC_TARGET_FUNCTIONS[sidebarLeft]} attach" ;;
+  esac
+
+  IPC_FUNCTION_DESC["sidebarLeft:detach"]="Detach AI chat into a floating window"
+  IPC_FUNCTION_DESC["sidebarLeft:attach"]="Close the detached AI chat window"
+}
+
 source_ipc_registry() {
     if [[ "$_ipc_registry_loaded" == true ]]; then
         return
@@ -74,6 +93,7 @@ source_ipc_registry() {
         if [[ -f "$registry_path" ]]; then
             # shellcheck source=/dev/null
             source "$registry_path"
+            augment_sidebar_left_ipc_registry
             _ipc_registry_loaded=true
             return
         fi
@@ -106,6 +126,7 @@ EOF
         _usage_print_targets "  Shared:" "shared"
         _usage_print_targets "  ii panel family:" "ii"
         _usage_print_targets "  waffle panel family:" "waffle"
+        printf '\n  Example: ryoku-shell sidebarLeft detach\n'
         printf '\n  Run '\''ryoku-shell <target> --help'\'' for available functions.\n\n'
     else
         cat <<'EOF'
