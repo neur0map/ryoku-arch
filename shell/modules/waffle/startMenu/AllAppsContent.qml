@@ -210,68 +210,75 @@ WPanelPageColumn {
                                     }
                                 }
 
-                                // Grid of apps in this section
-                                Grid {
+                                // Apps in this section reflow with the panel and stay centered.
+                                Item {
                                     width: parent.width
-                                    columns: 6
-                                    rowSpacing: 4
-                                    columnSpacing: 4
+                                    height: appFlow.implicitHeight
 
-                                    Repeater {
-                                        model: sectionDelegate.modelData.apps
+                                    Flow {
+                                        id: appFlow
+                                        readonly property int cellWidth: 88 + spacing
+                                        readonly property int maxCols: Math.max(1, Math.floor((parent.width + spacing) / cellWidth))
+                                        width: Math.min(parent.width, maxCols * cellWidth - spacing)
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        spacing: 4
 
-                                        delegate: WBorderlessButton {
-                                            id: appBtn
-                                            required property var modelData
-                                            required property int index
-                                            implicitWidth: 88
-                                            implicitHeight: 76
+                                        Repeater {
+                                            model: sectionDelegate.modelData.apps
 
-                                            onClicked: {
-                                                LaunchUtils.launchDesktopEntry(appBtn.modelData)
-                                                GlobalStates.searchOpen = false
-                                            }
+                                            delegate: WBorderlessButton {
+                                                id: appBtn
+                                                required property var modelData
+                                                required property int index
+                                                implicitWidth: 88
+                                                implicitHeight: 76
 
-                                            // Staggered entry animation per section
-                                            opacity: 0
-                                            scale: 0.85
-                                            Component.onCompleted: {
-                                                if (Looks.transition.enabled) {
-                                                    btnEntryAnim.start()
-                                                } else {
-                                                    opacity = 1
-                                                    scale = 1
+                                                onClicked: {
+                                                    LaunchUtils.launchDesktopEntry(appBtn.modelData)
+                                                    GlobalStates.searchOpen = false
                                                 }
-                                            }
-                                            SequentialAnimation {
-                                                id: btnEntryAnim
-                                                PauseAnimation { duration: Looks.transition.staggerDelay(appBtn.index, 25) }
-                                                ParallelAnimation {
-                                                    NumberAnimation { target: appBtn; property: "opacity"; to: 1; duration: Looks.transition.enabled ? Looks.transition.duration.normal : 0; easing.type: Easing.OutQuad }
-                                                    NumberAnimation { target: appBtn; property: "scale"; to: 1; duration: Looks.transition.enabled ? Looks.transition.duration.medium : 0; easing.type: Easing.OutBack; easing.overshoot: 0.2 }
-                                                }
-                                            }
 
-                                            contentItem: ColumnLayout {
-                                                anchors.centerIn: parent
-                                                spacing: 4
-                                                Image {
-                                                    Layout.alignment: Qt.AlignHCenter
-                                                    source: Quickshell.iconPath(appBtn.modelData.icon || appBtn.modelData.name, "application-x-executable")
-                                                    sourceSize: Qt.size(32, 32)
+                                                // Staggered entry animation per section
+                                                opacity: 0
+                                                scale: 0.85
+                                                Component.onCompleted: {
+                                                    if (Looks.transition.enabled) {
+                                                        btnEntryAnim.start()
+                                                    } else {
+                                                        opacity = 1
+                                                        scale = 1
+                                                    }
                                                 }
-                                                WText {
-                                                    Layout.alignment: Qt.AlignHCenter
-                                                    Layout.preferredWidth: 80
-                                                    text: appBtn.modelData.name || ""
-                                                    font.pixelSize: Looks.font.pixelSize.small
-                                                    horizontalAlignment: Text.AlignHCenter
-                                                    elide: Text.ElideRight
-                                                    maximumLineCount: 2
-                                                    wrapMode: Text.Wrap
+                                                SequentialAnimation {
+                                                    id: btnEntryAnim
+                                                    PauseAnimation { duration: Looks.transition.staggerDelay(appBtn.index, 25) }
+                                                    ParallelAnimation {
+                                                        NumberAnimation { target: appBtn; property: "opacity"; to: 1; duration: Looks.transition.enabled ? Looks.transition.duration.normal : 0; easing.type: Easing.OutQuad }
+                                                        NumberAnimation { target: appBtn; property: "scale"; to: 1; duration: Looks.transition.enabled ? Looks.transition.duration.medium : 0; easing.type: Easing.OutBack; easing.overshoot: 0.2 }
+                                                    }
                                                 }
+
+                                                contentItem: ColumnLayout {
+                                                    anchors.centerIn: parent
+                                                    spacing: 4
+                                                    Image {
+                                                        Layout.alignment: Qt.AlignHCenter
+                                                        source: Quickshell.iconPath(appBtn.modelData.icon || appBtn.modelData.name, "application-x-executable")
+                                                        sourceSize: Qt.size(32, 32)
+                                                    }
+                                                    WText {
+                                                        Layout.alignment: Qt.AlignHCenter
+                                                        Layout.preferredWidth: 80
+                                                        text: appBtn.modelData.name || ""
+                                                        font.pixelSize: Looks.font.pixelSize.small
+                                                        horizontalAlignment: Text.AlignHCenter
+                                                        elide: Text.ElideRight
+                                                        maximumLineCount: 2
+                                                        wrapMode: Text.Wrap
+                                                    }
+                                                }
+                                                WToolTip { text: appBtn.modelData.name || "" }
                                             }
-                                            WToolTip { text: appBtn.modelData.name || "" }
                                         }
                                     }
                                 }
