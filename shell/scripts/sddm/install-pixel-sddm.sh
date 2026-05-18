@@ -90,6 +90,42 @@ cleanup_legacy_current_dropins() {
   done
 }
 
+neutralize_conflicting_input_method() {
+  local conf conf_name
+
+  shopt -s nullglob
+  for conf in /etc/sddm.conf.d/*.conf; do
+    [[ -f $conf ]] || continue
+    [[ $conf == $SDDM_CONF ]] && continue
+    if grep -qiE '^[[:space:]]*InputMethod[[:space:]]*=[[:space:]]*qtvirtualkeyboard[[:space:]]*$' "$conf" 2>/dev/null; then
+      conf_name="$(basename "$conf")"
+      log_warn "Removing conflicting SDDM InputMethod from ${conf_name}"
+      elevate sed -i '/^[[:space:]]*InputMethod[[:space:]]*=[[:space:]]*qtvirtualkeyboard[[:space:]]*$/Id' "$conf"
+    fi
+  done
+  shopt -u nullglob
+
+  if [[ -f /etc/sddm.conf ]] \
+    && grep -qiE '^[[:space:]]*InputMethod[[:space:]]*=[[:space:]]*qtvirtualkeyboard[[:space:]]*$' /etc/sddm.conf 2>/dev/null; then
+    log_warn "Removing conflicting SDDM InputMethod from /etc/sddm.conf"
+    elevate sed -i '/^[[:space:]]*InputMethod[[:space:]]*=[[:space:]]*qtvirtualkeyboard[[:space:]]*$/Id' /etc/sddm.conf
+  fi
+}
+
+write_pixel_sddm_conf() {
+  elevate mkdir -p /etc/sddm.conf.d
+  # Use X11 as display server - Wayland (kwin_wayland) crashes in some environments (VMs, etc.).
+  # Keep Qt's built-in virtual keyboard disabled because the pixel theme ships its own.
+  elevate tee "${SDDM_CONF}" > /dev/null << SDDM_EOF
+[General]
+DisplayServer=x11
+InputMethod=
+
+[Theme]
+Current=${THEME_NAME}
+SDDM_EOF
+}
+
 should_apply_theme() {
     local current_theme
     current_theme="$(get_current_sddm_theme)"
@@ -220,6 +256,7 @@ import sys; sys.stdout.buffer.write(make_png())
 fi
 
 # Configure SDDM to use this theme (intelligent: optional if user has another theme)
+pixel_theme_active=false
 if should_apply_theme; then
     log_info "Configuring SDDM to use ${THEME_NAME}..."
     cleanup_legacy_current_dropins
@@ -231,18 +268,24 @@ if should_apply_theme; then
         elevate sed -i '/^[[:space:]]*Current[[:space:]]*=/d' /etc/sddm.conf
     fi
     
-    elevate mkdir -p /etc/sddm.conf.d
-    # Use X11 as display server - Wayland (kwin_wayland) crashes in some environments (VMs, etc.)
-    elevate tee "${SDDM_CONF}" > /dev/null << SDDM_EOF
-[General]
-DisplayServer=x11
-
-[Theme]
-Current=${THEME_NAME}
-SDDM_EOF
+    write_pixel_sddm_conf
     log_ok "SDDM configured (${SDDM_CONF}) with X11 display server"
+    pixel_theme_active=true
 else
-    log_info "Installed ${THEME_NAME}, but did not change SDDM Current theme"
+    current_theme="$(get_current_sddm_theme)"
+    if [[ $current_theme == $THEME_NAME ]]; then
+        log_info "Updating SDDM settings for ${THEME_NAME}..."
+        cleanup_legacy_current_dropins
+        write_pixel_sddm_conf
+        log_ok "SDDM settings updated (${SDDM_CONF})"
+        pixel_theme_active=true
+    else
+        log_info "Installed ${THEME_NAME}, but did not change SDDM Current theme"
+    fi
+fi
+
+if [[ $pixel_theme_active == "true" ]]; then
+    neutralize_conflicting_input_method
 fi
 
 # Run initial color sync now that files are in place
