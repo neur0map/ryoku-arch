@@ -102,10 +102,16 @@ Scope {
         { pageIndex: 3, pageName: overlayPages[3].name, section: Translation.tr("Effects"), label: Translation.tr("Dynamic dim"), description: Translation.tr("Extra dim when windows are present on workspace"), keywords: ["dynamic", "dim", "windows", "workspace", "darken"] },
         { pageIndex: 3, pageName: overlayPages[3].name, section: Translation.tr("Backdrop"), label: Translation.tr("Backdrop"), description: Translation.tr("Panel backdrop wallpaper and effects"), keywords: ["backdrop", "panel", "wallpaper", "blur", "vignette", "saturation"] },
         { pageIndex: 3, pageName: overlayPages[3].name, section: Translation.tr("Backdrop"), label: Translation.tr("Backdrop vignette"), description: Translation.tr("Vignette darkening effect on backdrop"), keywords: ["backdrop", "vignette", "darken", "edges", "effect"] },
-        { pageIndex: 3, pageName: overlayPages[3].name, section: Translation.tr("Widget: Clock"), label: Translation.tr("Background clock"), description: Translation.tr("Clock widget on the desktop background"), keywords: ["clock", "widget", "cookie", "digital", "background", "desktop"] },
-        { pageIndex: 3, pageName: overlayPages[3].name, section: Translation.tr("Widget: Clock"), label: Translation.tr("Clock style"), description: Translation.tr("Cookie (analog) or digital clock"), keywords: ["clock", "style", "cookie", "digital", "analog", "hands"] },
-        { pageIndex: 3, pageName: overlayPages[3].name, section: Translation.tr("Widget: Weather"), label: Translation.tr("Background weather widget"), description: Translation.tr("Weather display on the desktop background"), keywords: ["weather", "widget", "background", "temperature"] },
-        { pageIndex: 3, pageName: overlayPages[3].name, section: Translation.tr("Widget: Media"), label: Translation.tr("Background media widget"), description: Translation.tr("Media player controls on the desktop background"), keywords: ["media", "widget", "background", "player", "music", "album"] },
+        // Desktop Widgets (page 14)
+        { pageIndex: 14, pageName: overlayPages[14].name, section: Translation.tr("Edit Mode"), label: Translation.tr("Widget edit mode"), description: Translation.tr("Grid overlay and snap-to-grid for widget placement"), keywords: ["widget", "edit", "grid", "snap", "placement", "drag"] },
+        { pageIndex: 14, pageName: overlayPages[14].name, section: Translation.tr("Clock"), label: Translation.tr("Desktop clock"), description: Translation.tr("Clock widget on the desktop background"), keywords: ["clock", "widget", "cookie", "digital", "background", "desktop"] },
+        { pageIndex: 14, pageName: overlayPages[14].name, section: Translation.tr("Clock"), label: Translation.tr("Clock style"), description: Translation.tr("Cookie (analog) or digital clock"), keywords: ["clock", "style", "cookie", "digital", "analog", "hands"] },
+        { pageIndex: 14, pageName: overlayPages[14].name, section: Translation.tr("Weather"), label: Translation.tr("Desktop weather widget"), description: Translation.tr("Weather display on the desktop background"), keywords: ["weather", "widget", "background", "temperature"] },
+        { pageIndex: 14, pageName: overlayPages[14].name, section: Translation.tr("Media Controls"), label: Translation.tr("Desktop media widget"), description: Translation.tr("Media player controls on the desktop background"), keywords: ["media", "widget", "background", "player", "music", "album"] },
+        { pageIndex: 14, pageName: overlayPages[14].name, section: Translation.tr("Visualizer"), label: Translation.tr("Audio visualizer"), description: Translation.tr("Audio visualizer bars on the desktop"), keywords: ["visualizer", "audio", "bars", "music", "equalizer", "spectrum"] },
+        { pageIndex: 14, pageName: overlayPages[14].name, section: Translation.tr("System Monitor"), label: Translation.tr("System monitor widget"), description: Translation.tr("CPU, RAM, GPU usage on the desktop"), keywords: ["system", "monitor", "cpu", "ram", "gpu", "usage", "performance"] },
+        { pageIndex: 14, pageName: overlayPages[14].name, section: Translation.tr("Battery"), label: Translation.tr("Desktop battery widget"), description: Translation.tr("Battery status on the desktop background"), keywords: ["battery", "widget", "background", "charge", "power"] },
+        { pageIndex: 14, pageName: overlayPages[14].name, section: Translation.tr("Custom Widgets"), label: Translation.tr("Custom widgets"), description: Translation.tr("Create, install, and manage custom QML widgets"), keywords: ["custom", "widget", "create", "qml", "install", "user", "plugin"] },
         // Themes (page 4)
         { pageIndex: 4, pageName: overlayPages[4].name, section: Translation.tr("Global Style"), label: Translation.tr("Global Style"), description: Translation.tr("Material, Cards, Aurora glass effect, Ryoku TUI style"), keywords: ["global", "style", "aurora", "ryoku-shell", "material", "cards", "glass", "tui", "transparency", "blur"] },
         { pageIndex: 4, pageName: overlayPages[4].name, section: Translation.tr("Global Style"), label: Translation.tr("Aurora"), description: Translation.tr("Glass effect with wallpaper blur behind panels"), keywords: ["aurora", "glass", "blur", "transparency", "style", "translucent"] },
@@ -193,10 +199,11 @@ Scope {
         { pageIndex: 12, pageName: overlayPages[12].name, section: Translation.tr("Niri config status"), label: Translation.tr("Managed overrides status"), description: Translation.tr("Actionable managed overrides and extra files in Niri config"), keywords: ["niri", "status", "managed", "override", "extra", "config.d", "kdl"] },
         // Login screen (page 13)
         { pageIndex: 13, pageName: overlayPages[13].name, section: Translation.tr("Login screen"), label: Translation.tr("SDDM theme"), description: Translation.tr("Greeter theme shown before login"), keywords: ["sddm", "login", "greeter", "theme", "qylock", "lockscreen"] },
-        // About (page 14)
-        { pageIndex: 14, pageName: overlayPages[14].name, section: Translation.tr("About"), label: Translation.tr("About ii"), description: Translation.tr("Version info, credits and links"), keywords: ["about", "version", "credits", "github", "info", "qylock", "sddm"] },
-        // Extras (page 15)
-        { pageIndex: 15, pageName: overlayPages[15].name, section: Translation.tr("Profiles"), label: Translation.tr("Installable profiles"), description: Translation.tr("Install optional Ryoku feature profiles"), keywords: ["extras", "profiles", "install", "gaming", "steam", "heroic", "lutris", "vulkan", "proton"] }
+        // Widgets (page 14)
+        // About (page 15)
+        { pageIndex: 15, pageName: overlayPages[15].name, section: Translation.tr("About"), label: Translation.tr("About Ryoku"), description: Translation.tr("Version info, credits and links"), keywords: ["about", "version", "credits", "github", "info", "qylock", "sddm"] },
+        // Extras (page 16)
+        { pageIndex: 16, pageName: overlayPages[16].name, section: Translation.tr("Profiles"), label: Translation.tr("Installable profiles"), description: Translation.tr("Install optional Ryoku feature profiles"), keywords: ["extras", "profiles", "install", "gaming", "steam", "heroic", "lutris", "vulkan", "proton"] }
     ]
 
     function getWaffleSettingsPageIndex() {
@@ -1747,6 +1754,14 @@ Scope {
             desc: Translation.tr("SDDM greeter theme"),
             essential: false,
             component: Quickshell.shellPath("modules/settings/LoginScreenConfig.qml")
+        },
+        {
+            name: Translation.tr("Widgets"),
+            shortName: "",
+            icon: "widgets",
+            desc: Translation.tr("Clock, weather, media, custom"),
+            essential: false,
+            component: Quickshell.shellPath("modules/settings/DesktopWidgetsConfig.qml")
         },
         {
             name: Translation.tr("About"),

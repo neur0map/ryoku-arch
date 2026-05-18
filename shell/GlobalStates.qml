@@ -31,6 +31,7 @@ Singleton {
     property bool altSwitcherOpen: false
     property bool clipboardOpen: false
     property bool settingsOverlayOpen: false
+    property int settingsOverlayRequestedPage: -1 // Set before opening to navigate to a specific page
     property bool regionSelectorOpen: false
     property bool screenLocked: false
     property bool screenLockContainsCharacters: false
@@ -39,6 +40,7 @@ Singleton {
     property bool superDown: false
     property bool superReleaseMightTrigger: true
     property bool wallpaperSelectorOpen: false
+    property bool widgetEditMode: false
     // Navigate the right sidebar to a specific widget by type, for example "notepad".
     property string sidebarRightRequestedWidget: ""
     // Dialog requests from other panels (e.g. left sidebar → right sidebar)
