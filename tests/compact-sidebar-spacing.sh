@@ -40,7 +40,7 @@ for prop in \
   "compactActionBgHeight" \
   "compactSectionSpacing" \
   "compactGridSpacing"; do
-  assert_contains "$compact" "readonly property" 
+  assert_contains "$compact" "readonly property"
   assert_contains "$compact" "$prop"
 done
 
