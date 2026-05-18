@@ -4,6 +4,7 @@ set -euo pipefail
 
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 SETUP="$ROOT_DIR/shell/setup"
+INSTALL_CONFIG_SHELL="$ROOT_DIR/install/config/shell.sh"
 SHELL_UPDATES_QML="$ROOT_DIR/shell/services/ShellUpdates.qml"
 FUNCTIONS_SH="$ROOT_DIR/shell/sdata/lib/functions.sh"
 ROBUST_UPDATE_SH="$ROOT_DIR/shell/sdata/lib/robust-update.sh"
@@ -30,9 +31,22 @@ extract_cp_file_function() {
 }
 
 [[ -f $SETUP ]] || fail "missing shell/setup"
+[[ -f $INSTALL_CONFIG_SHELL ]] || fail "missing install/config/shell.sh"
 [[ -f $SHELL_UPDATES_QML ]] || fail "missing ShellUpdates.qml"
 [[ -f $FUNCTIONS_SH ]] || fail "missing functions.sh"
 [[ -f $ROBUST_UPDATE_SH ]] || fail "missing robust-update.sh"
+
+vendor_sync_block=$(awk '
+  /rsync -a/ { capture = 1 }
+  capture { print }
+  capture && /\$SHELL_VENDOR\/\./ { exit }
+' "$INSTALL_CONFIG_SHELL")
+
+[[ $vendor_sync_block == *"--delete"* ]] || \
+  fail "install/config/shell.sh should delete stale files from ~/.local/share/ryoku-shell during vendor sync"
+
+[[ $vendor_sync_block == *"--delete-excluded"* ]] || \
+  fail "install/config/shell.sh should remove stale dev-only files from ~/.local/share/ryoku-shell during vendor sync"
 
 rg -q 'sync_launcher_from_repo' "$SETUP" || \
   fail "setup should install or refresh the ryoku-shell launcher"
