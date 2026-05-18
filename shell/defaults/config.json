@@ -895,6 +895,11 @@
       "scale": 0.5
     },
     "openingZoomAnimation": false,
+    "recorder": {
+      "autoHideOnFullscreen": true,
+      "suppressToasts": true,
+      "disableNiriAnims": false
+    },
     "scrimAnimationDurationMs": 60,
     "scrimDim": 100
   },
