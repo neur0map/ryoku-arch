@@ -254,13 +254,13 @@ check_critical_files() {
         return 0
     fi
     local critical=("shell.qml" "GlobalStates.qml" "modules/common/Config.qml" "services/NiriService.qml")
-    local missing=0
+    local critical_missing=0
     
     for file in "${critical[@]}"; do
-        [[ ! -f "$target/$file" ]] && { doctor_fail "Missing: $file"; ((missing++)) || true; }
+        [[ ! -f "$target/$file" ]] && { doctor_fail "Missing: $file"; ((critical_missing++)) || true; }
     done
     
-    [[ $missing -eq 0 ]] && doctor_pass "Critical files present"
+    ((critical_missing == 0)) && doctor_pass "Critical files present"
 }
 
 check_script_permissions() {
@@ -485,7 +485,11 @@ check_state_directories() {
         [[ ! -d "$dir" ]] && { mkdir -p "$dir"; ((created++)) || true; }
     done
     
-    [[ $created -gt 0 ]] && doctor_fix "Created $created directory(ies)" || doctor_pass "State directories exist"
+    if ((created > 0)); then
+        doctor_fix "Created $created directory(ies)"
+    else
+        doctor_pass "State directories exist"
+    fi
 }
 
 check_python_packages() {
@@ -533,18 +537,18 @@ check_python_packages() {
     if command -v uv &>/dev/null; then
         local installed
         installed=$(VIRTUAL_ENV="$venv" uv pip list 2>/dev/null | tail -n +3 | awk '{print $1}' | tr '[:upper:]' '[:lower:]')
-        local missing=0
+        local python_missing=0
         
         while IFS= read -r line || [[ -n "$line" ]]; do
             [[ "$line" =~ ^#.*$ || -z "$line" ]] && continue
             local pkg="${line%%[<>=]*}"
             pkg=$(echo "$pkg" | tr '[:upper:]' '[:lower:]' | tr '_' '-')
-            echo "$installed" | grep -q "^${pkg}$" || ((missing++)) || true
+            echo "$installed" | grep -q "^${pkg}$" || ((python_missing++)) || true
         done < "$req"
         
-        if [[ $missing -gt 0 ]]; then
+        if ((python_missing > 0)); then
             VIRTUAL_ENV="$venv" uv pip install -r "$req" 2>/dev/null
-            doctor_fix "Installed $missing Python package(s)"
+            doctor_fix "Installed $python_missing Python package(s)"
         else
             doctor_pass "Python packages OK"
         fi
@@ -1240,7 +1244,11 @@ check_matugen_colors() {
 
         if [[ -f "$darkly_script" ]]; then
             bash "$darkly_script" 2>/dev/null
-            [[ -f "$darkly_file" ]] && doctor_fix "Regenerated Darkly Qt colors" || doctor_fail "Darkly Qt colors generation failed"
+            if [[ -f "$darkly_file" ]]; then
+                doctor_fix "Regenerated Darkly Qt colors"
+            else
+                doctor_fail "Darkly Qt colors generation failed"
+            fi
         else
             doctor_fail "Darkly Qt colors missing"
         fi

@@ -9,9 +9,11 @@ fail() {
 
 script=shell/scripts/ryoku-shell
 registry=shell/scripts/lib/ipc-registry.sh
+fish_completion=shell/scripts/completions/ryoku-shell.fish
 
 [[ -f $script ]] || fail "ryoku-shell launcher missing"
 [[ -f $registry ]] || fail "IPC registry missing"
+[[ -f $fish_completion ]] || fail "fish completion missing"
 
 bash -n "$script" || fail "ryoku-shell launcher has a syntax error"
 
@@ -35,6 +37,10 @@ rg -q '\["globalActions:run"\]="<actionId>"' "$registry" \
   || fail "globalActions run should take one action ID"
 rg -q '\["globalActions:runWithArgs"\]="<actionId> <args>"' "$registry" \
   || fail "globalActions runWithArgs should take action ID plus args"
+rg -q "globalActions global-actions.*run runWithArgs list search open" "$fish_completion" \
+  || fail "fish completion should include globalActions runWithArgs"
+rg -q "shellUpdate shell-update.*diagnose refresh" "$fish_completion" \
+  || fail "fish completion should include shellUpdate refresh"
 legacy_cmd="i""nir"
 ! rg -q "spawn \"$legacy_cmd\"" "$registry" \
   || fail "generated IPC help examples should use ryoku-shell"

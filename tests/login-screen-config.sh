@@ -146,7 +146,9 @@ assert_executable "bin/ryoku-refresh-sddm"
 # ii-pixel back over a selected qylock theme.
 assert_grep "RYOKU_SHELL_SDDM_AUTO_APPLY=\"\\$\\{RYOKU_SHELL_SDDM_AUTO_APPLY:-preserve\\}\"" "bin/ryoku-refresh-sddm"
 assert_no_grep "RYOKU_SHELL_SDDM_AUTO_APPLY=yes" "bin/ryoku-refresh-sddm"
+# shellcheck disable=SC2016
 assert_grep '\$RYOKU_PATH/shell' "bin/ryoku-refresh-sddm"
+# shellcheck disable=SC2016
 assert_no_grep 'SHELL_PATH="\$\{RYOKU_SHELL_PATH:-\$HOME/\.local/share/ryoku-shell\}"' "bin/ryoku-refresh-sddm"
 assert_grep "^#!/bin/bash$" "shell/scripts/sddm/install-pixel-sddm.sh"
 assert_grep "AUTO_APPLY_MODE=.*preserve" "shell/scripts/sddm/install-pixel-sddm.sh"

@@ -737,10 +737,12 @@ delete-prev-word=Control+BackSpace
 EOF
   else
     # Existing config - ensure include line is present for theming
-    if ! grep -q "include=.*inir-colors\.ini" ~/.config/foot/foot.ini; then
+    if ! grep -q "include=.*ryoku-shell-colors\.ini" ~/.config/foot/foot.ini; then
       log_info "Adding ryoku-shell-colors.ini include to existing foot.ini..."
       sed -i '1i include=~/.config/foot/ryoku-shell-colors.ini' ~/.config/foot/foot.ini
     fi
+    # Remove stale shell color includes from older installs.
+    sed -i '/^include=.*i'"nir-colors"'\.ini$/d' ~/.config/foot/foot.ini
     # Remove stale colors.ini include if present (legacy matugen terminal template)
     sed -i '/^include=.*\/colors\.ini$/d' ~/.config/foot/foot.ini
   fi
@@ -928,10 +930,16 @@ EOF
 
   # Add source line to .bashrc if not present
   if [[ -f "$bashrc" ]]; then
-    if grep -q "source.*ii/bashrc" "$bashrc" || grep -q "\..*ii/bashrc" "$bashrc"; then
-      sed -i 's|~/.config/ii/bashrc|~/.config/ryoku-shell/bashrc|g' "$bashrc"
+    local legacy_shell_config_dir=".config/i""nir"
+    if grep -q "source.*ii/bashrc" "$bashrc" || grep -q "\..*ii/bashrc" "$bashrc" \
+      || grep -q "source.*${legacy_shell_config_dir}/bashrc" "$bashrc" \
+      || grep -q "\..*${legacy_shell_config_dir}/bashrc" "$bashrc"; then
+      sed -i \
+        -e 's|~/.config/ii/bashrc|~/.config/ryoku-shell/bashrc|g' \
+        -e "s|~/${legacy_shell_config_dir}/bashrc|~/.config/ryoku-shell/bashrc|g" \
+        "$bashrc"
       log_success "Updated Bash integration path in .bashrc"
-    elif ! grep -q "source.*inir/bashrc" "$bashrc" && ! grep -q "\..*inir/bashrc" "$bashrc"; then
+    elif ! grep -q "source.*ryoku-shell/bashrc" "$bashrc" && ! grep -q "\..*ryoku-shell/bashrc" "$bashrc"; then
       echo -e "\n# Ryoku shell integration\n[[ -f ~/.config/ryoku-shell/bashrc ]] && source ~/.config/ryoku-shell/bashrc" >> "$bashrc"
       log_success "Added Bash integration to .bashrc"
     else
@@ -983,10 +991,16 @@ EOF
 
   # Add source line to .zshrc if not present
   if [[ -f "$zshrc" ]]; then
-    if grep -q "source.*ii/zshrc" "$zshrc" || grep -q "\..*ii/zshrc" "$zshrc"; then
-      sed -i 's|~/.config/ii/zshrc|~/.config/ryoku-shell/zshrc|g' "$zshrc"
+    local legacy_shell_config_dir=".config/i""nir"
+    if grep -q "source.*ii/zshrc" "$zshrc" || grep -q "\..*ii/zshrc" "$zshrc" \
+      || grep -q "source.*${legacy_shell_config_dir}/zshrc" "$zshrc" \
+      || grep -q "\..*${legacy_shell_config_dir}/zshrc" "$zshrc"; then
+      sed -i \
+        -e 's|~/.config/ii/zshrc|~/.config/ryoku-shell/zshrc|g' \
+        -e "s|~/${legacy_shell_config_dir}/zshrc|~/.config/ryoku-shell/zshrc|g" \
+        "$zshrc"
       log_success "Updated Zsh integration path in .zshrc"
-    elif ! grep -q "source.*inir/zshrc" "$zshrc" && ! grep -q "\..*inir/zshrc" "$zshrc"; then
+    elif ! grep -q "source.*ryoku-shell/zshrc" "$zshrc" && ! grep -q "\..*ryoku-shell/zshrc" "$zshrc"; then
       echo -e "\n# Ryoku shell integration\n[[ -f ~/.config/ryoku-shell/zshrc ]] && source ~/.config/ryoku-shell/zshrc" >> "$zshrc"
       log_success "Added Zsh integration to .zshrc"
     else

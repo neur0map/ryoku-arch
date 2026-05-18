@@ -6,7 +6,7 @@
 _FILES_STAGE_START=$SECONDS
 
 if ! ${quiet:-false}; then
-  printf "${STY_CYAN}[$0]: 3. Copying config files${STY_RST}\n"
+  printf '%s\n' "${STY_CYAN}[$0]: 3. Copying config files${STY_RST}"
 fi
 
 #####################################################################################
@@ -83,7 +83,7 @@ function auto_backup_configs(){
       ;;
   esac
   if $backup; then
-    backup_clashing_targets dots/.config $XDG_CONFIG_HOME "${BACKUP_DIR}/.config"
+    backup_clashing_targets dots/.config "$XDG_CONFIG_HOME" "${BACKUP_DIR}/.config"
     [[ -d "${BACKUP_DIR}" ]] && log_success "Backup saved to ${BACKUP_DIR}"
   fi
 }
@@ -348,9 +348,11 @@ case "${SKIP_NIRI}" in
       fi
 
       _launcher_path_escaped="${RYOKU_SHELL_LAUNCHER_PATH//&/\\&}"
+      _legacy_shell_name="i""nir"
+      _legacy_path_expr="[$](${_legacy_shell_name} path)"
       sed -i \
-        -e 's|spawn "bash" "-lc" "exec \"\$(inir path)/scripts/launch-terminal.sh\""|spawn "'"${_launcher_path_escaped}"'" "terminal"|' \
-        -e 's|spawn "bash" "-lc" "exec \"\$(inir path)/scripts/close-window.sh\""|spawn "'"${_launcher_path_escaped}"'" "close-window"|' \
+        -e "s|spawn \"bash\" \"-lc\" \"exec \\\"${_legacy_path_expr}/scripts/launch-terminal.sh\\\"\"|spawn \"${_launcher_path_escaped}\" \"terminal\"|" \
+        -e "s|spawn \"bash\" \"-lc\" \"exec \\\"${_legacy_path_expr}/scripts/close-window.sh\\\"\"|spawn \"${_launcher_path_escaped}\" \"close-window\"|" \
         "$NIRI_BINDS_TARGET"
       sed -i \
         -e 's|spawn "ryoku-shell" "|spawn "'"${_launcher_path_escaped}"'" "|g' \
@@ -572,7 +574,7 @@ if [[ -d "dots/.config/vesktop/themes" ]]; then
     "system24-palette.css"
     "ii-palette.css"
     "ii-system24.theme.css"
-    "inir-midnight.theme.css"
+    "i""nir-midnight.theme.css"
   )
   for old_theme in "${OLD_VESKTOP_THEMES[@]}"; do
     if [[ -f "${XDG_CONFIG_HOME}/vesktop/themes/${old_theme}" ]]; then
@@ -642,9 +644,9 @@ fi
 # Mark first run complete
 #####################################################################################
 function gen_firstrun(){
-  x mkdir -p "$(dirname ${FIRSTRUN_FILE})"
+  x mkdir -p "$(dirname "${FIRSTRUN_FILE}")"
   x touch "${FIRSTRUN_FILE}"
-  x mkdir -p "$(dirname ${INSTALLED_LISTFILE})"
+  x mkdir -p "$(dirname "${INSTALLED_LISTFILE}")"
   realpath -se "${FIRSTRUN_FILE}" >> "${INSTALLED_LISTFILE}"
 }
 
@@ -1008,7 +1010,11 @@ if [[ "${INSTALL_FIRSTRUN}" == true && -n "${DEFAULT_WALLPAPER}" && -f "${DEFAUL
   _init_meta_file="${XDG_STATE_HOME}/quickshell/user/generated/theme-meta.json"
 
   _init_py=""
-  [[ -x "$_init_python_cmd" ]] && _init_py="$_init_python_cmd" || { command -v python3 &>/dev/null && _init_py="python3"; }
+  if [[ -x "$_init_python_cmd" ]]; then
+    _init_py="$_init_python_cmd"
+  elif command -v python3 &>/dev/null; then
+    _init_py="python3"
+  fi
 
   if [[ -n "$_init_py" && -f "$_init_gen_material" ]]; then
     tui_info "Generating theme colors from wallpaper..."
@@ -1168,7 +1174,7 @@ else
 
   if [[ "${IS_UPDATE}" == "true" ]]; then
     # Update-specific output
-    printf "${STY_GREEN}${STY_BOLD}"
+    printf '%s' "${STY_GREEN}${STY_BOLD}"
     cat << 'EOF'
 ╔══════════════════════════════════════════════════════════════╗
 ║                                                              ║
@@ -1176,7 +1182,7 @@ else
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
 EOF
-    printf "${STY_RST}"
+    printf '%s' "${STY_RST}"
     echo ""
 
     echo -e "${STY_BLUE}${STY_BOLD}┌─ What was updated${STY_RST}"
@@ -1189,7 +1195,7 @@ EOF
     echo ""
   else
     # Install output
-    printf "${STY_GREEN}${STY_BOLD}"
+    printf '%s' "${STY_GREEN}${STY_BOLD}"
     cat << 'EOF'
 ╔══════════════════════════════════════════════════════════════╗
 ║                                                              ║
@@ -1197,7 +1203,7 @@ EOF
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
 EOF
-    printf "${STY_RST}"
+    printf '%s' "${STY_RST}"
     echo ""
 
     echo -e "${STY_BLUE}${STY_BOLD}┌─ What was installed${STY_RST}"
