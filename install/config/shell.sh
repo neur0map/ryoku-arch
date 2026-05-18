@@ -48,7 +48,7 @@ if ryoku-cmd-present rsync; then
   # Drop dev-only artifacts (top-level docs, GitHub metadata, repo docs)
   # so SHELL_PATH stays a focused runtime payload, not a checkout copy.
   # Quickshell ignores these but they pollute the deployed tree.
-  rsync -a \
+  rsync -a --delete --delete-excluded \
     --exclude='AGENTS.md' \
     --exclude='README.md' \
     --exclude='CHANGELOG.md' \
