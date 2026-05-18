@@ -4,8 +4,8 @@ set -euo pipefail
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-state_dir="${XDG_RUNTIME_DIR:-/tmp}"
 inhibit_pattern="[r]yoku-caffeine-inhibit"
+legacy_inhibit_pattern="^/usr/bin/systemd-inhibit --what=idle --who=Ryoku .*Ryoku caffeine mode"
 
 usage() {
   cat <<'EOF'
@@ -17,24 +17,35 @@ Usage:
 EOF
 }
 
-caffeine_active() {
+helper_inhibitor_active() {
   pgrep -f "$inhibit_pattern" >/dev/null
 }
 
+legacy_inhibitor_active() {
+  pgrep -f "$legacy_inhibit_pattern" >/dev/null
+}
+
+caffeine_active() {
+  helper_inhibitor_active || legacy_inhibitor_active
+}
+
 start_inhibitor() {
-  if caffeine_active; then
+  if helper_inhibitor_active; then
     return 0
   fi
 
+  pkill -f "$legacy_inhibit_pattern" >/dev/null 2>&1 || true
+
   setsid systemd-inhibit \
-    --what=idle:sleep \
+    --what=idle \
     --who=Ryoku \
-    --why="Ryoku Caffeine mode" \
+    --why="Ryoku caffeine mode" \
     bash -c 'exec -a ryoku-caffeine-inhibit sleep infinity' >/dev/null 2>&1 &
 }
 
 stop_inhibitor() {
   pkill -f "$inhibit_pattern" >/dev/null 2>&1 || true
+  pkill -f "$legacy_inhibit_pattern" >/dev/null 2>&1 || true
 }
 
 start_caffeine() {
