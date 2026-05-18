@@ -181,6 +181,14 @@ WSettingsPage {
             buttonText: Translation.tr("Open")
             onButtonClicked: Qt.openUrlExternally("https://github.com/Darkkal44/qylock")
         }
+
+        WSettingsButton {
+            label: "iNiR"
+            description: "github.com/snowarch/inir"
+            icon: "open"
+            buttonText: Translation.tr("Open")
+            onButtonClicked: Qt.openUrlExternally("https://github.com/snowarch/inir")
+        }
         
         WSettingsButton {
             label: Translation.tr("Quickshell Documentation")
@@ -206,6 +214,15 @@ WSettingsPage {
             WText {
                 Layout.fillWidth: true
                 text: Translation.tr("Based on illogical-impulse by end-4, adapted for the Niri compositor.")
+                wrapMode: Text.WordWrap
+                font.pixelSize: Looks.font.pixelSize.normal
+                color: Looks.colors.subfg
+                lineHeight: 1.3
+            }
+
+            WText {
+                Layout.fillWidth: true
+                text: Translation.tr("Ryoku's shell UI builds on iNiR by SnowArch.")
                 wrapMode: Text.WordWrap
                 font.pixelSize: Looks.font.pixelSize.normal
                 color: Looks.colors.subfg
