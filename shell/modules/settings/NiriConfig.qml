@@ -579,6 +579,7 @@ ContentPage {
 
     Component.onCompleted: {
         refreshAll()
+        _probeRmpc()
     }
 
     onCurrentOutputChanged: armPositionEditor()
@@ -3252,7 +3253,6 @@ ContentPage {
         onExited: code => { root._rmpcInstalled = (code === 0) }
     }
     function _probeRmpc() { if (!_rmpcProbe.running) _rmpcProbe.running = true }
-    Component.onCompleted: _probeRmpc()
     onVisibleChanged: if (visible) _probeRmpc()
 
     Process {
