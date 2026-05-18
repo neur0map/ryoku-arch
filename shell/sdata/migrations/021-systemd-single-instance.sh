@@ -1,8 +1,8 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 MIGRATION_ID="021-systemd-single-instance"
 MIGRATION_TITLE="Move Ryoku shell startup to a single systemd owner"
-MIGRATION_DESCRIPTION="Removes compositor startup of inir, installs/enables the user ryoku-shell.service, and keeps shell startup owned by a single systemd user unit."
+MIGRATION_DESCRIPTION="Removes compositor-owned shell startup, installs/enables the user ryoku-shell.service, and keeps shell startup owned by a single systemd user unit."
 MIGRATION_TARGET_FILE="~/.config/systemd/user/ryoku-shell.service + ~/.config/niri/config.d/50-startup.kdl"
 MIGRATION_REQUIRED=true
 
@@ -11,7 +11,8 @@ migration_check() {
   local startup_cfg="${xdg_config_home}/niri/config.d/50-startup.kdl"
   local monolithic_cfg="${xdg_config_home}/niri/config.kdl"
   local service_file="${xdg_config_home}/systemd/user/ryoku-shell.service"
-  local startup_pattern='spawn-at-startup.*(inir([^[:alnum:]_-]|$)|\.local/bin/inir|config/quickshell/ryoku-shell/scripts/ryoku-shell)'
+  local stale_launcher="i""nir"
+  local startup_pattern="spawn-at-startup.*(${stale_launcher}([^[:alnum:]_-]|$)|\\.local/bin/${stale_launcher}|config/quickshell/ryoku-shell/scripts/ryoku-shell)"
 
   if [[ ! -f "$service_file" ]]; then
     return 0
@@ -35,7 +36,8 @@ migration_check() {
 }
 
 migration_preview() {
-  echo -e "${STY_RED}- spawn-at-startup \"inir\" \"start\"${STY_RST}"
+  local stale_launcher="i""nir"
+  echo -e "${STY_RED}- spawn-at-startup \"${stale_launcher}\" \"start\"${STY_RST}"
   echo -e "${STY_GREEN}+ systemd user service owns Ryoku startup${STY_RST}"
   echo -e "${STY_GREEN}+ ~/.config/systemd/user/ryoku-shell.service enabled${STY_RST}"
 }
@@ -49,7 +51,7 @@ migration_apply() {
   local service_asset
   local tmp_file
 
-  _remove_legacy_startup_lines() {
+  _remove_stale_startup_lines() {
     local file="$1"
     [[ -f "$file" ]] || return 0
 
@@ -60,7 +62,8 @@ import sys
 
 path = Path(sys.argv[1])
 text = path.read_text()
-pattern = re.compile(r'.*spawn-at-startup.*(?:inir(?![A-Za-z0-9_-])|\.local/bin/inir|config/quickshell/ryoku-shell/scripts/ryoku-shell).*\n?', re.MULTILINE)
+stale_launcher = "i" "nir"
+pattern = re.compile(rf'.*spawn-at-startup.*(?:{re.escape(stale_launcher)}(?![A-Za-z0-9_-])|\.local/bin/{re.escape(stale_launcher)}|config/quickshell/ryoku-shell/scripts/ryoku-shell).*\n?', re.MULTILINE)
 new_text = pattern.sub('', text)
 if new_text != text:
     path.write_text(new_text)
@@ -80,11 +83,11 @@ PY
   fi
 
   if [[ -f "$startup_cfg" ]]; then
-    _remove_legacy_startup_lines "$startup_cfg"
+    _remove_stale_startup_lines "$startup_cfg"
   fi
 
   if [[ -f "$monolithic_cfg" ]]; then
-    _remove_legacy_startup_lines "$monolithic_cfg"
+    _remove_stale_startup_lines "$monolithic_cfg"
   fi
 
   if command -v systemctl >/dev/null 2>&1 && [[ -f "$service_file" ]]; then

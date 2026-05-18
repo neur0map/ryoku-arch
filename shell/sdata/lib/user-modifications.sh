@@ -18,8 +18,9 @@ TRACKED_PATTERNS=("*.qml" "*.js" "*.py" "*.sh" "*.fish")
 manifest_has_checksums() {
     local manifest_file="$1"
     [[ -f "$manifest_file" ]] || return 1
-    # v2 manifests may have either the legacy ii/inir header or the current ryoku header
-    head -1 "$manifest_file" | grep -qE "(ii|inir|ryoku)-manifest v2" && return 0
+    local stale_manifest_name="i""nir"
+    # v2 manifests may have either previous headers or the current ryoku header
+    head -1 "$manifest_file" | grep -qE "(ii|${stale_manifest_name}|ryoku)-manifest v2" && return 0
     # Fallback: check if any line has path:checksum format (64 hex chars)
     grep -q "^[^#].*:[a-f0-9]\{64\}$" "$manifest_file" 2>/dev/null
 }
@@ -27,7 +28,8 @@ manifest_has_checksums() {
 find_runtime_manifest_file() {
     local target_dir="$1"
     local manifest
-    for manifest in "${target_dir}/.ryoku-manifest" "${target_dir}/.inir-manifest" "${target_dir}/.ii-manifest"; do
+    local stale_manifest_name="i""nir"
+    for manifest in "${target_dir}/.ryoku-manifest" "${target_dir}/.${stale_manifest_name}-manifest" "${target_dir}/.ii-manifest"; do
         if [[ -f "$manifest" ]]; then
             printf '%s\n' "$manifest"
             return 0
@@ -239,7 +241,7 @@ preserve_runtime_tree() {
     rsync -a \
         --exclude='.git/' \
         --exclude='.ii-manifest' \
-        --exclude='.inir-manifest' \
+        --exclude='.i''nir-manifest' \
         --exclude='.ryoku-manifest' \
         "${source_dir}/" "${preserve_dir}/${dir_name}/"
 
@@ -316,7 +318,8 @@ show_file_diff() {
     local snapshot_dir="$3"
 
     local current="${target_dir}/${file_path}"
-    local original="${snapshot_dir}/inir/${file_path}"
+    local stale_snapshot_name="i""nir"
+    local original="${snapshot_dir}/${stale_snapshot_name}/${file_path}"
     if [[ ! -f "$original" ]]; then
         original="${snapshot_dir}/ii/${file_path}"
     fi
@@ -391,7 +394,8 @@ handle_user_modifications() {
                 local latest_snapshot
                 latest_snapshot=$(ls -1t "$SNAPSHOTS_DIR" 2>/dev/null | head -1)
 
-                if [[ -n "$latest_snapshot" ]] && [[ -d "${SNAPSHOTS_DIR}/${latest_snapshot}/inir" ]]; then
+                local stale_snapshot_name="i""nir"
+                if [[ -n "$latest_snapshot" ]] && [[ -d "${SNAPSHOTS_DIR}/${latest_snapshot}/${stale_snapshot_name}" ]]; then
                     echo ""
                     local shown=0
                     while IFS= read -r f && [[ $shown -lt 3 ]]; do

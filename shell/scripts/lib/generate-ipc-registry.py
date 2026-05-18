@@ -487,7 +487,6 @@ def generate_bash(targets: list[IpcTarget], aliases: dict[str, str]) -> str:
     for kebab, camel in sorted(aliases.items()):
         lines.append(f"  [{kebab}]={camel}")
     lines.append(")")
-    lines.append("")
 
     return "\n".join(lines) + "\n"
 

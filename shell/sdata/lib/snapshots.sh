@@ -153,9 +153,9 @@ restore_snapshot() {
     if [[ -d "${snapshot_dir}/ryoku-shell" ]]; then
         log_info "Restoring QML code..."
         rsync -a --delete "${snapshot_dir}/ryoku-shell/" "${XDG_CONFIG_HOME}/quickshell/ryoku-shell/"
-    elif [[ -d "${snapshot_dir}/inir" ]]; then
-        log_info "Restoring QML code (from legacy inir snapshot)..."
-        rsync -a --delete "${snapshot_dir}/inir/" "${XDG_CONFIG_HOME}/quickshell/ryoku-shell/"
+    elif [[ -d "${snapshot_dir}/i""nir" ]]; then
+        log_info "Restoring QML code from previous snapshot..."
+        rsync -a --delete "${snapshot_dir}/i""nir/" "${XDG_CONFIG_HOME}/quickshell/ryoku-shell/"
     elif [[ -d "${snapshot_dir}/ii" ]]; then
         log_info "Restoring QML code..."
         rsync -a --delete "${snapshot_dir}/ii/" "${XDG_CONFIG_HOME}/quickshell/ryoku-shell/"

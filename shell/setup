@@ -825,7 +825,7 @@ show_info() {
     local runtime_dir
     runtime_dir="$(get_runtime_shell_dir)"
     local config_dir
-    config_dir="$(resolve_inir_config_dir)"
+    config_dir="$(resolve_ryoku_shell_config_dir)"
     local config_file="${config_dir}/config.json"
     local state_dir="${XDG_STATE_HOME}/quickshell/user/generated"
     local remote_state="$(setup_remote_state_summary)"
@@ -956,7 +956,7 @@ run_config() {
     echo ""
 
     local config_dir
-    config_dir="$(resolve_inir_config_dir)"
+    config_dir="$(resolve_ryoku_shell_config_dir)"
     local config_file="${config_dir}/config.json"
 
     if [[ ! -f "$config_file" ]]; then
@@ -1917,7 +1917,7 @@ run_update() {
     # Short-circuit to the simulated walkthrough — no git pull, no rsync,
     # no migrations, no shell restart. Useful for previewing the new TUI
     # visuals or exercising the resume-from-status-file logic.
-    if [[ "${INIR_SIMULATE_UPDATE:-}" == "1" ]]; then
+    if [[ "${RYOKU_SIMULATE_UPDATE:-}" == "1" ]]; then
         run_update_simulated
         return $?
     fi
@@ -2285,7 +2285,7 @@ run_update() {
             "system24-palette.css"
             "ii-palette.css"
             "ii-system24.theme.css"
-            "inir-midnight.theme.css"
+            "i""nir-midnight.theme.css"
         )
         for old_theme in "${OLD_VESKTOP_THEMES[@]}"; do
             [[ -f "${XDG_CONFIG_HOME}/vesktop/themes/${old_theme}" ]] && rm -f "${XDG_CONFIG_HOME}/vesktop/themes/${old_theme}"
@@ -2333,18 +2333,32 @@ run_update() {
     if [[ -f "$niri_config" && -x "${XDG_BIN_HOME}/ryoku-shell" ]]; then
         local launcher_target_escaped="${XDG_BIN_HOME}/ryoku-shell"
         launcher_target_escaped="${launcher_target_escaped//&/\\&}"
+        local stale_terminal_spawn='spawn "bash" "-lc" "exec \"$(i''nir path)/scripts/launch-terminal.sh\""'
+        local stale_close_spawn='spawn "bash" "-lc" "exec \"$(i''nir path)/scripts/close-window.sh\""'
+        local terminal_spawn_replacement="spawn \"${XDG_BIN_HOME}/ryoku-shell\" \"terminal\""
+        local close_spawn_replacement="spawn \"${XDG_BIN_HOME}/ryoku-shell\" \"close-window\""
         if [[ -f "$niri_binds_cfg" ]]; then
-            sed -i \
-                -e 's|spawn "bash" "-lc" "exec \"\$(inir path)/scripts/launch-terminal.sh\""|spawn "'"${launcher_target_escaped}"'" "terminal"|' \
-                -e 's|spawn "bash" "-lc" "exec \"\$(inir path)/scripts/close-window.sh\""|spawn "'"${launcher_target_escaped}"'" "close-window"|' \
-                -e 's|spawn "ryoku-shell" "|spawn "'"${launcher_target_escaped}"'" "|g' \
-                "$niri_binds_cfg"
+            STALE_TERMINAL_SPAWN="$stale_terminal_spawn" \
+            STALE_CLOSE_SPAWN="$stale_close_spawn" \
+            TERMINAL_SPAWN_REPLACEMENT="$terminal_spawn_replacement" \
+            CLOSE_SPAWN_REPLACEMENT="$close_spawn_replacement" \
+            LAUNCHER_TARGET_ESCAPED="$launcher_target_escaped" \
+            perl -0pi -e '
+              s/\Q$ENV{STALE_TERMINAL_SPAWN}\E/$ENV{TERMINAL_SPAWN_REPLACEMENT}/g;
+              s/\Q$ENV{STALE_CLOSE_SPAWN}\E/$ENV{CLOSE_SPAWN_REPLACEMENT}/g;
+              s/spawn "ryoku-shell" "/spawn "$ENV{LAUNCHER_TARGET_ESCAPED}" "/g;
+            ' "$niri_binds_cfg"
         else
-            sed -i \
-                -e 's|spawn "bash" "-lc" "exec \"\$(inir path)/scripts/launch-terminal.sh\""|spawn "'"${launcher_target_escaped}"'" "terminal"|' \
-                -e 's|spawn "bash" "-lc" "exec \"\$(inir path)/scripts/close-window.sh\""|spawn "'"${launcher_target_escaped}"'" "close-window"|' \
-                -e 's|spawn "ryoku-shell" "|spawn "'"${launcher_target_escaped}"'" "|g' \
-                "$niri_config"
+            STALE_TERMINAL_SPAWN="$stale_terminal_spawn" \
+            STALE_CLOSE_SPAWN="$stale_close_spawn" \
+            TERMINAL_SPAWN_REPLACEMENT="$terminal_spawn_replacement" \
+            CLOSE_SPAWN_REPLACEMENT="$close_spawn_replacement" \
+            LAUNCHER_TARGET_ESCAPED="$launcher_target_escaped" \
+            perl -0pi -e '
+              s/\Q$ENV{STALE_TERMINAL_SPAWN}\E/$ENV{TERMINAL_SPAWN_REPLACEMENT}/g;
+              s/\Q$ENV{STALE_CLOSE_SPAWN}\E/$ENV{CLOSE_SPAWN_REPLACEMENT}/g;
+              s/spawn "ryoku-shell" "/spawn "$ENV{LAUNCHER_TARGET_ESCAPED}" "/g;
+            ' "$niri_config"
         fi
     fi
 
@@ -2539,7 +2553,7 @@ while [[ $# -gt 0 ]]; do
         -y|--yes) ask=false; shift ;;
         -q|--quiet) quiet=true; shift ;;
         --local) export _II_POST_PULL=local; shift ;;
-        --set-default-shell) export INIR_SET_DEFAULT_SHELL=true; shift ;;
+        --set-default-shell) export RYOKU_SET_DEFAULT_SHELL=true; shift ;;
         -h|--help) show_help; exit 0 ;;
         *) echo "Unknown: $1"; show_help; exit 1 ;;
     esac
@@ -2580,7 +2594,7 @@ case "$COMMAND" in
                 -y|--yes) ask=false ;;
                 -q|--quiet) quiet=true ;;
                 --local) export _II_POST_PULL=local ;;
-                --simulate|--dry-run) export INIR_SIMULATE_UPDATE=1 ;;
+                --simulate|--dry-run) export RYOKU_SIMULATE_UPDATE=1 ;;
             esac
         done
         run_update

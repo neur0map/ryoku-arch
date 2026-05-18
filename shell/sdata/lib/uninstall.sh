@@ -27,11 +27,11 @@ declare -A RYOKU_SHELL_ONLY_PATHS=(
     ["${XDG_CONFIG_HOME}/systemd/user/ryoku-shell-super-overview.service"]="Ryoku daemon service"
     ["${XDG_CONFIG_HOME}/vesktop/themes/system24.theme.css"]="Ryoku Vesktop theme"
     ["${XDG_CONFIG_HOME}/vesktop/themes/ryoku-midnight.theme.css"]="Ryoku Vesktop midnight theme"
-    ["${XDG_CONFIG_HOME}/vesktop/themes/inir-midnight.theme.css"]="Legacy Ryoku Vesktop midnight theme"
+    ["${XDG_CONFIG_HOME}/vesktop/themes/i""nir-midnight.theme.css"]="Stale Ryoku Vesktop midnight theme"
     ["${XDG_CONFIG_HOME}/vesktop/themes/ii-colors.css"]="Ryoku Vesktop colors"
     ["${XDG_CONFIG_HOME}/Vesktop/themes/system24.theme.css"]="Ryoku Vesktop theme (alt)"
     ["${XDG_CONFIG_HOME}/Vesktop/themes/ryoku-midnight.theme.css"]="Ryoku Vesktop midnight theme (alt)"
-    ["${XDG_CONFIG_HOME}/Vesktop/themes/inir-midnight.theme.css"]="Legacy Ryoku Vesktop midnight theme (alt)"
+    ["${XDG_CONFIG_HOME}/Vesktop/themes/i""nir-midnight.theme.css"]="Stale Ryoku Vesktop midnight theme (alt)"
     ["${XDG_CONFIG_HOME}/Vesktop/themes/ii-colors.css"]="Ryoku Vesktop colors (alt)"
     ["${XDG_DATA_HOME}/applications/ryoku-shell.desktop"]="Ryoku desktop entry"
     ["${XDG_DATA_HOME}/icons/hicolor/scalable/apps/ryoku-shell.svg"]="Ryoku launcher icon"
@@ -122,7 +122,8 @@ has_other_niri_usage() {
 # Check if niri config has Ryoku-specific content or is user-customized
 niri_config_is_ryoku_shell_default() {
     local config="${XDG_CONFIG_HOME}/niri/config.kdl"
-    [[ -f "$config" ]] && grep -qE 'spawn-at-startup "([^"]*/)?inir" "start"|spawn-at-startup "qs" "-c" "ryoku-shell"|quickshell:iiBackdrop' "$config" 2>/dev/null
+    local stale_launcher="i""nir"
+    [[ -f "$config" ]] && grep -qE "spawn-at-startup \"([^\"]*/)?${stale_launcher}\" \"start\"|spawn-at-startup \"qs\" \"-c\" \"ryoku-shell\"|quickshell:iiBackdrop" "$config" 2>/dev/null
 }
 
 # Check if niri config has user customizations beyond Ryoku defaults

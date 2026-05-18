@@ -19,7 +19,7 @@ script="bin/ryoku-restart-ui"
 bash -n "$script" || fail "$script has a syntax error"
 
 grep -q 'ryoku-restart-shell' "$script" \
-  || fail "hard refresh should restart the iNiR shell through ryoku-restart-shell"
+  || fail "hard refresh should restart the shell through ryoku-restart-shell"
 grep -q 'restart_clipboard_watchers' "$script" \
   || fail "hard refresh should repair duplicate clipboard watchers"
 grep -Fq '(^|/)wl-paste --type text --watch cliphist store$' "$script" \

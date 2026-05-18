@@ -386,19 +386,29 @@ Singleton {
             property JsonObject appearance: JsonObject {
                 property string theme: "auto" // Theme preset ID: "auto" for wallpaper-based, or preset name like "gruvbox-dark", "catppuccin-mocha", "custom", etc.
                 property string globalStyle: "material" // "material" | "cards" | "aurora" | "ryoku-shell" | "angel"
+                property JsonObject aurora: JsonObject {
+                    property JsonObject transparency: JsonObject {
+                        property real overlay: 0.30
+                        property real subSurface: 0.42
+                        property real popup: 0.32
+                        property real tooltip: 0.28
+                        property real layer: 0.32
+                    }
+                    property string customPreset: ""
+                }
                 property string angelSubStyle: "frost" // "frost" | "neon" | "void"
                 property JsonObject angel: JsonObject {
                     property JsonObject blur: JsonObject {
-                        property real intensity: 0.25
-                        property real saturation: 0.15
-                        property real overlayOpacity: 0.35
+                        property real intensity: 0.35
+                        property real saturation: 0.20
+                        property real overlayOpacity: 0.45
                         property real noiseOpacity: 0.15
                         property real vignetteStrength: 0.4
                     }
                     property JsonObject transparency: JsonObject {
-                        property real panel: 0.35
-                        property real card: 0.50
-                        property real popup: 0.35
+                        property real panel: 0.28
+                        property real card: 0.40
+                        property real popup: 0.28
                         property real tooltip: 0.25
                     }
                     property JsonObject escalonado: JsonObject {
@@ -542,7 +552,7 @@ Singleton {
                     property bool enableVSCode: true
                     property bool enableChrome: true
                     property bool enableSpicetify: false
-                    property bool enableAdwSteam: false
+                    property bool enableSteam: false
                     property bool enablePearDesktop: true
                     property bool enableOpenCode: false
                     property bool enableNeovim: true

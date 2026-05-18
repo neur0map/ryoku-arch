@@ -7,7 +7,7 @@ GREEK_NOIR_MIGRATION="$ROOT_DIR/migrations/1777005959.sh"
 LIMINE_PALETTE_MIGRATION="$ROOT_DIR/migrations/1777036814.sh"
 PLYMOUTH_BG_MIGRATION="$ROOT_DIR/migrations/1777039397.sh"
 BRANDING_THEME_MIGRATION="$ROOT_DIR/migrations/1777765132.sh"
-INIR_APPEARANCE_MIGRATION="$ROOT_DIR/migrations/1778043391.sh"
+RYOKU_APPEARANCE_MIGRATION="$ROOT_DIR/migrations/1778043391.sh"
 
 fail() {
   echo "FAIL: $1" >&2
@@ -135,7 +135,7 @@ assert_greek_noir_boot_color_migrations_are_retired() {
   fi
 }
 
-assert_inir_appearance_restore_clears_ryoku_theme_marker() {
+assert_shell_appearance_restore_clears_ryoku_theme_marker() {
   local temp_dir home_dir ryoku_dir user_config runtime_defaults share_defaults marker
 
   temp_dir=$(mktemp -d)
@@ -144,7 +144,7 @@ assert_inir_appearance_restore_clears_ryoku_theme_marker() {
   user_config="$home_dir/.config/ryoku-shell/config.json"
   runtime_defaults="$home_dir/.config/quickshell/ryoku-shell/defaults/config.json"
   share_defaults="$home_dir/.local/share/ryoku-shell/defaults/config.json"
-  marker="$home_dir/.local/state/ryoku/independence-cutover.inir-appearance-defaults.done"
+  marker="$home_dir/.local/state/ryoku/independence-cutover.i""nir-appearance-defaults.done"
 
   mkdir -p \
     "$home_dir/.config/ryoku/current" \
@@ -194,17 +194,17 @@ JSON
     RYOKU_STATE_PATH="$home_dir/.local/state/ryoku" \
     RYOKU_CONFIG_PATH="$home_dir/.config/ryoku" \
     PATH="$ROOT_DIR/bin:$PATH" \
-    /bin/bash "$INIR_APPEARANCE_MIGRATION" >/dev/null
+    /bin/bash "$RYOKU_APPEARANCE_MIGRATION" >/dev/null
 
-  [[ -f $marker ]] || fail "iNiR appearance restore migration should mark its cutover marker"
+  [[ -f $marker ]] || fail "shell appearance restore migration should mark its cutover marker"
   [[ ! -f $home_dir/.config/ryoku/current/theme.name ]] \
-    || fail "iNiR appearance restore migration should clear active Ryoku theme marker"
+    || fail "shell appearance restore migration should clear active Ryoku theme marker"
 
   for file in "$user_config" "$runtime_defaults" "$share_defaults"; do
     jq -e '.appearance.theme == null' "$file" >/dev/null \
-      || fail "$file should restore the iNiR default theme"
+      || fail "$file should restore the upstream default theme"
     jq -e '.appearance.palette.type == "auto" and .appearance.palette.accentColor == ""' "$file" >/dev/null \
-      || fail "$file should restore iNiR auto palette defaults"
+      || fail "$file should restore auto palette defaults"
     jq -e '.appearance.customTheme == null' "$file" >/dev/null \
       || fail "$file should remove Ryoku custom color material values"
     jq -e '.hotspot.ssid == "Ryoku Hotspot"' "$file" >/dev/null \
@@ -218,6 +218,6 @@ assert_greek_noir_migration_is_retired
 assert_branding_migration_preserves_existing_theme
 assert_branding_migration_does_not_set_default_theme
 assert_greek_noir_boot_color_migrations_are_retired
-assert_inir_appearance_restore_clears_ryoku_theme_marker
+assert_shell_appearance_restore_clears_ryoku_theme_marker
 
 echo "PASS: Ryoku theme migration preferences"

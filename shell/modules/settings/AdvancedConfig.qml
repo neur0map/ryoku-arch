@@ -83,14 +83,14 @@ ContentPage {
             }
             SettingsSwitch {
                 buttonIcon: "sports_esports"
-                text: Translation.tr("Steam (Adwaita for Steam)")
-                checked: Config.options?.appearance?.wallpaperTheming?.enableAdwSteam ?? false
+                text: Translation.tr("Steam (Millennium)")
+                checked: Config.options?.appearance?.wallpaperTheming?.enableSteam ?? false
                 onCheckedChanged: {
-                    Config.setNestedValue("appearance.wallpaperTheming.enableAdwSteam", checked);
+                    Config.setNestedValue("appearance.wallpaperTheming.enableSteam", checked);
                     colorRegenTimer.restart();
                 }
                 StyledToolTip {
-                    text: Translation.tr("Apply Material You colors to Steam via Adwaita for Steam (requires AdwSteamGtk)")
+                    text: Translation.tr("Apply Material You colors to Steam via Millennium Material-Theme")
                 }
             }
             SettingsSwitch {

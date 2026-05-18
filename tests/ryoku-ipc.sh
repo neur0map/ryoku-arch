@@ -28,7 +28,7 @@ printf '%s\n' "test" > "$tmpdir/config/current/theme.name"
 cat >"$tmpdir/path/ryoku-shell" <<'EOF'
 #!/bin/bash
 mkdir -p "$RYOKU_STATE_PATH"
-printf '%s\n' "$@" >"$RYOKU_STATE_PATH/inir.args"
+printf '%s\n' "$@" >"$RYOKU_STATE_PATH/launcher.args"
 exit 0
 EOF
 chmod +x "$tmpdir/path/ryoku-shell"
@@ -57,13 +57,13 @@ assert_has_route() {
     || fail "help should document $route"
 }
 
-assert_inir_call() {
+assert_launcher_call() {
   local description="$1"
   local expected="$2"
   shift 2
   local actual
 
-  rm -f "$tmpdir/state/inir.args"
+  rm -f "$tmpdir/state/launcher.args"
   RYOKU_PATH="$PWD" \
   RYOKU_CONFIG_PATH="$tmpdir/config" \
   RYOKU_STATE_PATH="$tmpdir/state" \
@@ -71,10 +71,10 @@ assert_inir_call() {
     "$ipc" "$@" >/dev/null \
     || fail "$description should be accepted by the parser"
 
-  [[ -f $tmpdir/state/inir.args ]] \
-    || fail "$description should invoke inir"
-  mapfile -t inir_args < "$tmpdir/state/inir.args"
-  actual="${inir_args[*]}"
+  [[ -f $tmpdir/state/launcher.args ]] \
+    || fail "$description should invoke ryoku-shell"
+  mapfile -t launcher_args < "$tmpdir/state/launcher.args"
+  actual="${launcher_args[*]}"
   [[ $actual == $expected ]] \
     || fail "$description should call: $expected"
 }
@@ -123,17 +123,17 @@ assert_has_route "wallpaper cache rebuild"
 assert_has_route "wallpaper apply --type image PATH"
 assert_has_route "wallpaper wallhaven search"
 
-assert_inir_call "overview toggle" "overview toggle" overview toggle
-assert_inir_call "clipboard toggle" "clipboard toggle" clipboard toggle
-assert_inir_call "settings open" "settings" settings open
-assert_inir_call "settings toggle" "settings toggle" settings toggle
-assert_inir_call "lock activate" "lock activate" lock activate
-assert_inir_call "session toggle" "session toggle" session toggle
-assert_inir_call "launcher toggle" "overview toggle" launcher toggle
-assert_inir_call "region screenshot" "region screenshot" region screenshot
-assert_inir_call "region ocr" "region ocr" region ocr
-assert_inir_call "region record" "region record" region record
-assert_inir_call "region record with sound" "region recordWithSound" region record-with-sound
+assert_launcher_call "overview toggle" "overview toggle" overview toggle
+assert_launcher_call "clipboard toggle" "clipboard toggle" clipboard toggle
+assert_launcher_call "settings open" "settings" settings open
+assert_launcher_call "settings toggle" "settings toggle" settings toggle
+assert_launcher_call "lock activate" "lock activate" lock activate
+assert_launcher_call "session toggle" "session toggle" session toggle
+assert_launcher_call "launcher toggle" "overview toggle" launcher toggle
+assert_launcher_call "region screenshot" "region screenshot" region screenshot
+assert_launcher_call "region ocr" "region ocr" region ocr
+assert_launcher_call "region record" "region record" region record
+assert_launcher_call "region record with sound" "region recordWithSound" region record-with-sound
 
 assert_helper_call "theme apply" "ryoku-theme-set" "everforest" theme apply everforest
 assert_helper_call "font apply" "ryoku-font-set" "JetBrains Mono" font apply "JetBrains Mono"
@@ -156,4 +156,4 @@ if grep -Eq 'qs -c ryoku|popups toggle|settings-menu|toolbox|hyprctl' "$ipc"; th
   fail "ryoku-ipc should not contain old Ryoku Quickshell or Hyprland IPC wiring"
 fi
 
-pass "ryoku-ipc Niri/iNiR contract"
+pass "ryoku-ipc Niri/Ryoku contract"

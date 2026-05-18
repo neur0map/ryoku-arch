@@ -7,13 +7,13 @@ assets/systemd/ryoku-shell.service	# Ryoku shell is a session consumer, not a pr
 assets/systemd/ryoku-shell.service	# No [Install] section	# No [Install] section
 assets/systemd/ryoku-shell.service	# Ryoku shell only starts under the correct compositor	# Ryoku shell only starts under the correct compositor
 dots/sddm/pixel/metadata.desktop	Name=ii-pixel	Name=Ryoku Pixel
-dots/sddm/pixel/metadata.desktop	iNiR SDDM login screen	Ryoku SDDM login screen
-dots/sddm/pixel/metadata.desktop	iNiR project	Ryoku project
-dots/sddm/pixel/metadata.desktop	https://github.com/snowarch/iNiR	https://github.com/neur0map/ryoku-arch
+dots/sddm/pixel/metadata.desktop	{{UPSTREAM_DISPLAY_NAME}} SDDM login screen	Ryoku SDDM login screen
+dots/sddm/pixel/metadata.desktop	{{UPSTREAM_DISPLAY_NAME}} project	Ryoku project
+dots/sddm/pixel/metadata.desktop	{{UPSTREAM_REPO_URL}}	https://github.com/neur0map/ryoku-arch
 dots/sddm/pixel/theme.conf	Name=ii-pixel	Name=Ryoku Pixel
-dots/sddm/pixel/theme.conf	iNiR SDDM login screen	Ryoku SDDM login screen
-dots/sddm/pixel/theme.conf	iNiR project	Ryoku project
-dots/sddm/pixel/theme.conf	https://github.com/snowarch/iNiR	https://github.com/neur0map/ryoku-arch
-dots/sddm/pixel/theme.conf	# iNiR Material You colors	# Ryoku Material You colors
-dots/sddm/pixel/Main.qml	// iNiR SDDM pixel theme	// Ryoku SDDM pixel theme
-dots/sddm/pixel/VirtualKeyboard.qml	// iNiR SDDM pixel theme	// Ryoku SDDM pixel theme
+dots/sddm/pixel/theme.conf	{{UPSTREAM_DISPLAY_NAME}} SDDM login screen	Ryoku SDDM login screen
+dots/sddm/pixel/theme.conf	{{UPSTREAM_DISPLAY_NAME}} project	Ryoku project
+dots/sddm/pixel/theme.conf	{{UPSTREAM_REPO_URL}}	https://github.com/neur0map/ryoku-arch
+dots/sddm/pixel/theme.conf	# {{UPSTREAM_DISPLAY_NAME}} Material You colors	# Ryoku Material You colors
+dots/sddm/pixel/Main.qml	// {{UPSTREAM_DISPLAY_NAME}} SDDM pixel theme	// Ryoku SDDM pixel theme
+dots/sddm/pixel/VirtualKeyboard.qml	// {{UPSTREAM_DISPLAY_NAME}} SDDM pixel theme	// Ryoku SDDM pixel theme

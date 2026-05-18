@@ -51,7 +51,7 @@ assert_contains "$clipboard_panel" "required property bool isMatch"
 assert_contains "$clipboard_panel" "isSearchMatch: isMatch"
 assert_contains "$clipboard_panel" "root.copyEntry(rawEntry)"
 assert_not_contains "$clipboard_panel" "Cliphist.copy(rawEntry)"
-assert_not_contains "$clipboard_panel" "Appearance.inirEverywhere"
+assert_not_contains "$clipboard_panel" "Appearance.i""nirEverywhere"
 
 assert_contains "$clipboard_item" "property bool isSearchMatch: true"
 assert_contains "$clipboard_item" "opacity: root.isSearchMatch ? 1.0 : 0.35"

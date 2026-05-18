@@ -2,7 +2,7 @@
 # Auto-generated from QML IpcHandler declarations + docs/IPC.md metadata.
 # Do not edit manually.
 # Regenerate: python3 scripts/lib/generate-ipc-registry.py
-# IPC.md hash: 9eb77e87472a5e8a
+# IPC.md hash: fdc23d89172632f3
 # Targets: 50
 
 declare -gA IPC_TARGET_DESC=(
@@ -10,7 +10,7 @@ declare -gA IPC_TARGET_DESC=(
   [altSwitcher]="Alt+Tab window switcher. Works across workspaces, unlike some other implementations we won't name."
   [appCatalog]="App catalog service. Browse, search, and install curated applications."
   [audio]="Volume and mute control."
-  [background]="Desktop background widget edit mode."
+  [background]="Desktop background widget edit mode. Family: ii"
   [bar]="Top bar visibility."
   [brightness]="Display brightness control."
   [cheatsheet]="Keyboard shortcuts reference. For when you forget what you just configured five minutes ago."
@@ -19,7 +19,7 @@ declare -gA IPC_TARGET_DESC=(
   [closeConfirm]="Close window confirmation dialog. Shows a prompt before closing the focused window. Useful if you're the type who accidentally closes things and then regrets it."
   [controlPanel]="Quick settings panel. Toggles, sliders, and system controls without opening full settings."
   [coverflowSelector]="Wallpaper coverflow (3D card) picker."
-  [customWidgets]="Custom widget management. Create, list, reload, and remove user-installed widgets from \`~/.config/ryoku-shell/widgets/\`."
+  [customWidgets]="Custom widget management. Create, list, reload, and remove user-installed widgets from \`~/.config/ryoku-shell/widgets/\`. Family: ii"
   [gamemode]="Performance mode for gaming. Auto-detects fullscreen apps and disables animations/effects. Can also be toggled manually for those stubborn games that don't go fullscreen properly."
   [globalActions]="Command palette / action registry. Search and execute shell actions from scripts or keybinds."
   [keyboard]="Keyboard layout switching (Niri only). Cycles through configured keyboard layouts and queries layout info."
@@ -63,7 +63,7 @@ declare -gA IPC_TARGET_FAMILY=(
   [altSwitcher]="shared"
   [appCatalog]="shared"
   [audio]="shared"
-  [background]="ii"
+  [background]="shared"
   [bar]="shared"
   [brightness]="shared"
   [cheatsheet]="shared"
@@ -72,7 +72,7 @@ declare -gA IPC_TARGET_FAMILY=(
   [closeConfirm]="shared"
   [controlPanel]="shared"
   [coverflowSelector]="shared"
-  [customWidgets]="ii"
+  [customWidgets]="shared"
   [gamemode]="shared"
   [globalActions]="shared"
   [keyboard]="shared"
@@ -88,7 +88,7 @@ declare -gA IPC_TARGET_FAMILY=(
   [overview]="shared"
   [packageSearch]="shared"
   [panelFamily]="shared"
-  [recordingOsd]="shared"
+  [recordingOsd]="waffle"
   [region]="shared"
   [screenshotEvents]="shared"
   [search]="waffle"
@@ -148,7 +148,7 @@ declare -gA IPC_TARGET_FUNCTIONS=(
   [session]="toggle close open"
   [settings]="open toggle"
   [shellUpdate]="toggle open close check refresh performUpdate dismiss undismiss diagnose"
-  [sidebarLeft]="toggle close open"
+  [sidebarLeft]="toggle close open detach attach"
   [sidebarRight]="toggle close open"
   [taskview]="toggle close open"
   [tiling]="toggle open hide cycle showOsd promote"
@@ -284,6 +284,8 @@ declare -gA IPC_FUNCTION_DESC=(
   ["sidebarLeft:toggle"]="Open/close left sidebar"
   ["sidebarLeft:close"]="Hide left sidebar"
   ["sidebarLeft:open"]="Show left sidebar"
+  ["sidebarLeft:detach"]=""
+  ["sidebarLeft:attach"]=""
   ["sidebarRight:toggle"]="Open/close right sidebar"
   ["sidebarRight:close"]="Hide right sidebar"
   ["sidebarRight:open"]="Show right sidebar"
@@ -333,6 +335,8 @@ declare -gA IPC_FUNCTION_ARGS=(
   ["ai:runGet"]="<inputText>"
   ["appCatalog:search"]="<query>"
   ["appCatalog:install"]="<id>"
+  ["customWidgets:create"]="<name>"
+  ["customWidgets:remove"]="<widgetId>"
   ["globalActions:run"]="<actionId>"
   ["globalActions:runWithArgs"]="<actionId> <args>"
   ["globalActions:list"]="<category>"
@@ -378,9 +382,9 @@ bind "Super+Shift+A" { spawn "ryoku-shell" "region" "search"; }'
 )
 
 IPC_ALL_TARGETS=(ai altSwitcher appCatalog audio background bar brightness cheatsheet clipboard cliphistService closeConfirm controlPanel coverflowSelector customWidgets gamemode globalActions keyboard lock mediaControls minimize mpris notifications osd osdVolume osk overlay overview packageSearch panelFamily recordingOsd region screenshotEvents search session settings shellUpdate sidebarLeft sidebarRight taskview tiling toolsMode voiceSearch wactionCenter waffleAltSwitcher wallpaperSelector wbar wnotificationCenter wwidgets ytmusic zoom)
-IPC_SHARED_TARGETS=(ai altSwitcher appCatalog audio bar brightness cheatsheet clipboard cliphistService closeConfirm controlPanel coverflowSelector gamemode globalActions keyboard lock mediaControls minimize mpris notifications osdVolume osk overview packageSearch panelFamily recordingOsd region screenshotEvents session settings shellUpdate sidebarLeft sidebarRight tiling toolsMode voiceSearch wallpaperSelector ytmusic zoom)
-IPC_II_TARGETS=(background customWidgets overlay)
-IPC_WAFFLE_TARGETS=(osd search taskview wactionCenter waffleAltSwitcher wbar wnotificationCenter wwidgets)
+IPC_SHARED_TARGETS=(ai altSwitcher appCatalog audio background bar brightness cheatsheet clipboard cliphistService closeConfirm controlPanel coverflowSelector customWidgets gamemode globalActions keyboard lock mediaControls minimize mpris notifications osdVolume osk overview packageSearch panelFamily region screenshotEvents session settings shellUpdate sidebarLeft sidebarRight tiling toolsMode voiceSearch wallpaperSelector ytmusic zoom)
+IPC_II_TARGETS=(overlay)
+IPC_WAFFLE_TARGETS=(osd recordingOsd search taskview wactionCenter waffleAltSwitcher wbar wnotificationCenter wwidgets)
 
 declare -gA IPC_KEBAB_ALIASES=(
   [alt-switcher]=altSwitcher

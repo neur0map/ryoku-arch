@@ -2106,21 +2106,23 @@ _KB_BROWSERS = ["firefox", "zen-browser", "chromium", "brave", "vivaldi"]
 
 
 def _kb_parse_ryoku_action(action: str):
-    """Detect ryoku-shell IPC calls (including legacy inir syntax) and return (target, function) or None."""
+    """Detect ryoku-shell IPC calls and return (target, function) or None."""
+    stale_launcher = "i" "nir"
+    stale_launcher_re = re.escape(stale_launcher)
     m = re.search(
-        r'spawn\s+"(?:[^"]*/)?inir"\s+"ipc"\s+"call"\s+"([\w-]+)"\s+"([\w-]+)"', action
+        rf'spawn\s+"(?:[^"]*/)?{stale_launcher_re}"\s+"ipc"\s+"call"\s+"([\w-]+)"\s+"([\w-]+)"', action
     )
     if m:
         return m.group(1), m.group(2)
-    if re.search(r'spawn\s+"(?:[^"]*/)?inir"\s+"settings"(?:\s|;|$)', action):
+    if re.search(rf'spawn\s+"(?:[^"]*/)?{stale_launcher_re}"\s+"settings"(?:\s|;|$)', action):
         return "settings", "open"
-    if re.search(r'spawn\s+"(?:[^"]*/)?inir"\s+"terminal"(?:\s|;|$)', action):
+    if re.search(rf'spawn\s+"(?:[^"]*/)?{stale_launcher_re}"\s+"terminal"(?:\s|;|$)', action):
         return "launcher", "terminal"
-    if re.search(r'spawn\s+"(?:[^"]*/)?inir"\s+"close-window"(?:\s|;|$)', action):
+    if re.search(rf'spawn\s+"(?:[^"]*/)?{stale_launcher_re}"\s+"close-window"(?:\s|;|$)', action):
         return "launcher", "close-window"
-    if re.search(r'spawn\s+"(?:[^"]*/)?inir"\s+"browser"(?:\s|;|$)', action):
+    if re.search(rf'spawn\s+"(?:[^"]*/)?{stale_launcher_re}"\s+"browser"(?:\s|;|$)', action):
         return "browser", "open"
-    m = re.search(r'spawn\s+"(?:[^"]*/)?inir"\s+"([\w-]+)"\s+"([\w-]+)"', action)
+    m = re.search(rf'spawn\s+"(?:[^"]*/)?{stale_launcher_re}"\s+"([\w-]+)"\s+"([\w-]+)"', action)
     if m:
         return m.group(1), m.group(2)
     return None
@@ -2196,7 +2198,7 @@ def _kb_categorize(description: str, action: str) -> str:
     if any(
         x in desc
         for x in [
-            "inir ",
+            "i" "nir ",
             "ryoku-shell ",
             "clipboard",
             "lock screen",

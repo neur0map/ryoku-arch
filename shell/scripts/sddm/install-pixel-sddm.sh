@@ -10,8 +10,8 @@ THEME_SRC="${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}/dot
 THEME_DIR="/usr/share/sddm/themes/${THEME_NAME}"
 SYNC_SCRIPT="${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}/scripts/sddm/sync-pixel-sddm.py"
 SDDM_CONF="/etc/sddm.conf.d/theme.conf"
-LEGACY_SDDM_CONFS=(
-  "/etc/sddm.conf.d/inir-theme.conf"
+STALE_SDDM_CONFS=(
+  "/etc/sddm.conf.d/i""nir-theme.conf"
   "/etc/sddm.conf.d/ryoku-shell-theme.conf"
 )
 AUTO_APPLY_MODE="${RYOKU_SHELL_SDDM_AUTO_APPLY:-preserve}" # preserve|ask|yes|no
@@ -80,9 +80,9 @@ get_current_sddm_theme() {
   echo "$current"
 }
 
-cleanup_legacy_current_dropins() {
+cleanup_stale_current_dropins() {
   local conf
-  for conf in "${LEGACY_SDDM_CONFS[@]}"; do
+  for conf in "${STALE_SDDM_CONFS[@]}"; do
     if [[ -f $conf ]]; then
       log_info "Removing stale SDDM theme drop-in: ${conf}"
       elevate rm -f "$conf"
@@ -151,7 +151,7 @@ should_apply_theme() {
         # the steps above; only the SDDM Current= line is left alone.
         if [[ -n $current_theme ]]; then
             if [[ $current_theme != "$THEME_NAME" ]]; then
-                cleanup_legacy_current_dropins
+                cleanup_stale_current_dropins
                 log_info "Preserving current SDDM theme: ${current_theme}"
             else
                 log_info "SDDM already on ${THEME_NAME}, skipping conf rewrite"
@@ -259,7 +259,7 @@ fi
 pixel_theme_active=false
 if should_apply_theme; then
     log_info "Configuring SDDM to use ${THEME_NAME}..."
-    cleanup_legacy_current_dropins
+    cleanup_stale_current_dropins
     
     # Remove any existing Current= line from /etc/sddm.conf to avoid conflicts
     # The drop-in /etc/sddm.conf.d/ only works if the main file doesn't override it
@@ -275,7 +275,7 @@ else
     current_theme="$(get_current_sddm_theme)"
     if [[ $current_theme == "$THEME_NAME" ]]; then
         log_info "Updating SDDM settings for ${THEME_NAME}..."
-        cleanup_legacy_current_dropins
+        cleanup_stale_current_dropins
         write_pixel_sddm_conf
         log_ok "SDDM settings updated (${SDDM_CONF})"
         pixel_theme_active=true
@@ -310,7 +310,7 @@ log_ok "Sync script installed to ${SYNC_DST}"
 MATUGEN_CONFIG="${XDG_CONFIG_HOME:-${HOME}/.config}/matugen/config.toml"
 if [[ -f "$MATUGEN_CONFIG" ]]; then
     if grep -qE "post_hook\s*=\s*'.*sudo.*sync-pixel-sddm\.py" "$MATUGEN_CONFIG" 2>/dev/null; then
-        log_warn "Detected legacy sudo SDDM theming hook in user config"
+        log_warn "Detected stale sudo SDDM theming hook in user config"
         log_warn "Please remove old ii-pixel-sddm hook block from: $MATUGEN_CONFIG"
     fi
 fi

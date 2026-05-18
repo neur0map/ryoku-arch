@@ -73,6 +73,7 @@ Singleton {
     property string calendarSyncCachePath: `${Directories.stateUserPath}/calendar-sync-cache.json`
     property string generatedMaterialThemePath: `${Directories.stateUserPath}/generated/colors.json`
     property string generatedPalettePath: `${Directories.stateUserPath}/generated/palette.json`
+    property string generatedAppPalettePath: `${Directories.stateUserPath}/generated/app-palette.json`
     property string generatedTerminalPalettePath: `${Directories.stateUserPath}/generated/terminal.json`
     property string generatedThemeMetaPath: `${Directories.stateUserPath}/generated/theme-meta.json`
     property string generatedChromiumThemePath: `${Directories.stateUserPath}/generated/chromium.theme`

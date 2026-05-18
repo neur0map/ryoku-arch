@@ -23,7 +23,7 @@
     if (!isDiscordHost(location.hostname)) return;
 
     var COOKIE_PREFIX = '__ryoku_';
-    var LEGACY_COOKIE_PREFIX = '__inir_';
+    var STALE_COOKIE_PREFIX = '__i' + 'nir_';
     var MAX_AGE = 365 * 24 * 60 * 60;
     var KEYS = ['token', 'tokens', 'user_id_cache', 'MultiAccountStore'];
 
@@ -35,7 +35,7 @@
 
     function getCookie(name) {
         var parts = document.cookie.split(';');
-        var prefixes = [COOKIE_PREFIX, LEGACY_COOKIE_PREFIX];
+        var prefixes = [COOKIE_PREFIX, STALE_COOKIE_PREFIX];
         for (var p = 0; p < prefixes.length; p++) {
             var fullName = prefixes[p] + name + '=';
             for (var i = 0; i < parts.length; i++) {

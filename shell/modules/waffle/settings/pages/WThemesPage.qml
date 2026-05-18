@@ -735,9 +735,9 @@ WSettingsPage {
         WSettingsSwitch {
             label: Translation.tr("Steam theming")
             icon: "gamepad"
-            description: Translation.tr("Apply Material You colors to Steam via Adwaita for Steam (requires AdwSteamGtk)")
-            checked: Config.options?.appearance?.wallpaperTheming?.enableAdwSteam ?? false
-            onCheckedChanged: Config.setNestedValue("appearance.wallpaperTheming.enableAdwSteam", checked)
+            description: Translation.tr("Apply Material You colors to Steam via Millennium Material-Theme")
+            checked: Config.options?.appearance?.wallpaperTheming?.enableSteam ?? false
+            onCheckedChanged: Config.setNestedValue("appearance.wallpaperTheming.enableSteam", checked)
         }
 
         WSettingsSwitch {

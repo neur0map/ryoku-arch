@@ -1381,6 +1381,21 @@ ContentPage {
     }
 
     SettingsCardSection {
+        visible: Appearance.auroraEverywhere && !Appearance.angelEverywhere
+        expanded: false
+        icon: "blur_on"
+        title: Translation.tr("Aurora Style Editor")
+
+        SettingsGroup {
+            Loader {
+                Layout.fillWidth: true
+                active: Appearance.auroraEverywhere && !Appearance.angelEverywhere
+                source: "AuroraStyleEditor.qml"
+            }
+        }
+    }
+
+    SettingsCardSection {
         visible: Appearance.angelEverywhere
         expanded: false
         icon: "raven"

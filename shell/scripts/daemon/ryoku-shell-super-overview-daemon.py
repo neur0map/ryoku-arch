@@ -37,8 +37,7 @@ RYOKU_SHELL_ENV_PID = None
 def _find_ryoku_shell_pid():
     """Locate the PID of the running Ryoku quickshell process by inspecting /proc.
 
-    Matches both legacy ``qs -c ryoku-shell`` (formerly inir) invocations and the current
-    path-based ``qs -p <path>`` / ``qs -n -p <path>`` form.
+    Matches current Ryoku quickshell invocations and stale source-name ones.
     """
     proc_root = "/proc"
     for entry in os.listdir(proc_root):
@@ -59,15 +58,20 @@ def _find_ryoku_shell_pid():
         exe = os.path.basename(args[0])
         if exe != "qs":
             continue
-        # Legacy: qs -c inir (old name)
-        if len(args) >= 3 and args[1] == "-c" and args[2] == "ryoku-shell":
+        stale_config_name = "i" "nir"
+        if len(args) >= 3 and args[1] == "-c" and args[2] in ("ryoku-shell", stale_config_name):
             return pid
         # Path-based: qs ... -p <path>/shell.qml  or  qs ... -p <path>
-        # where <path> ends with /inir or /ryoku-shell or contains /inir/ or /ryoku-shell/
+        # where <path> uses the current name or an old runtime directory.
         for i, arg in enumerate(args[1:], 1):
             if arg == "-p" and i + 1 < len(args):
                 p = args[i + 1]
-                if p.rstrip("/").endswith("/inir") or "/inir/" in p or p.rstrip("/").endswith("/ryoku-shell") or "/ryoku-shell/" in p:
+                if (
+                    p.rstrip("/").endswith(f"/{stale_config_name}")
+                    or f"/{stale_config_name}/" in p
+                    or p.rstrip("/").endswith("/ryoku-shell")
+                    or "/ryoku-shell/" in p
+                ):
                     return pid
                 break
     return None

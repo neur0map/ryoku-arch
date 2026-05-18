@@ -43,7 +43,8 @@ case "$scheme_variant_str" in
         ;;
 esac
 
-source "$(eval echo ${INIR_VENV:-$ILLOGICAL_IMPULSE_VIRTUAL_ENV})/bin/activate"
+venv_path="${RYOKU_SHELL_VENV:-$HOME/.local/state/quickshell/.venv}"
+source "$(eval echo "$venv_path")/bin/activate"
 # Kill any previous daemon instance to prevent process accumulation.
 # kde-material-you-colors runs a persistent main loop by default;
 # without --stop, each wallpaper switch leaves an orphan (~43MB RAM each).

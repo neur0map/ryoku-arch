@@ -1,7 +1,7 @@
 #!/bin/bash
 # Wipe Ryoku-touched shell state and re-bootstrap a pristine upstream
 # install from the vendored Ryoku shell. See spec at
-# docs/superpowers/specs/2026-05-04-pristine-inir-restore-design.md.
+# local restore design notes.
 
 set -euo pipefail
 trap 'echo "Migration failed. Re-run with: bin/ryoku-migrate" >&2' ERR

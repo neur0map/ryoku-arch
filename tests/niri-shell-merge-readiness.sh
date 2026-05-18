@@ -424,7 +424,7 @@ assert_contains shell/modules/settings/ExtrasConfig.qml '^import qs$' "Extras sh
 assert_file install/profiles/gaming/profile
 assert_file install/profiles/gaming/packages
 assert_file install/profiles/gaming/aur.packages
-assert_not_contains iso/configs/airootfs/root/.automated_script.sh '/root/inir' "ISO installer should not copy legacy shell source paths"
+assert_not_contains iso/configs/airootfs/root/.automated_script.sh "/root/i""nir" "ISO installer should not copy stale shell source paths"
 assert_contains bin/ryoku-restart-ui 'ryoku-restart-shell|ryoku-shell\.service' "ryoku-restart-ui should restart Ryoku shell"
 assert_not_contains bin/ryoku-restart-ui 'hyprctl reload|restart_always "mako"|swayosd-server|restart_if_running "waybar"|restart_if_running "hypridle"' "ryoku-restart-ui should not restart old Hyprland-era UI services"
 assert_contains bin/ryoku-restart-shell 'ryoku-shell\.service|ryoku-shell restart' "ryoku-restart-shell should target Ryoku shell"

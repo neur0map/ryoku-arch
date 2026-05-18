@@ -6,6 +6,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+STALE_SDDM_CONF_REGEX="/etc/sddm\\.conf\\.d/i\"\"nir-theme\\.conf"
 
 fail() {
   echo "FAIL: $1" >&2
@@ -93,10 +94,10 @@ assert_executable "bin/ryoku-set-sddm-theme"
 assert_grep "/usr/share/sddm/themes/" "bin/ryoku-set-sddm-theme"
 # Must write to /etc/sddm.conf.d/theme.conf
 assert_grep "/etc/sddm\\.conf\\.d/theme\\.conf" "bin/ryoku-set-sddm-theme"
-# Must remove stale legacy Ryoku/iNiR Current= drop-ins before writing the
+# Must remove stale Current= drop-ins before writing the
 # selected theme. Some SDDM versions effectively keep the first Current=,
 # so leaving these files behind can pin ii-pixel over qylock.
-assert_grep "/etc/sddm\\.conf\\.d/inir-theme\\.conf" "bin/ryoku-set-sddm-theme"
+assert_grep "$STALE_SDDM_CONF_REGEX" "bin/ryoku-set-sddm-theme"
 assert_grep "/etc/sddm\\.conf\\.d/ryoku-shell-theme\\.conf" "bin/ryoku-set-sddm-theme"
 # Must NOT call sudo: pkexec already runs it as root
 assert_no_grep "^[[:space:]]*sudo " "bin/ryoku-set-sddm-theme"
@@ -136,7 +137,7 @@ assert_grep "_priv"       "bin/ryoku-install-qylock"
 assert_grep "script_root="       "bin/ryoku-install-qylock"
 assert_grep "export RYOKU_PATH=" "bin/ryoku-install-qylock"
 # Must clean stale ii-pixel theme drop-ins before activating qylock.
-assert_grep "/etc/sddm\\.conf\\.d/inir-theme\\.conf" "bin/ryoku-install-qylock"
+assert_grep "$STALE_SDDM_CONF_REGEX" "bin/ryoku-install-qylock"
 assert_grep "/etc/sddm\\.conf\\.d/ryoku-shell-theme\\.conf" "bin/ryoku-install-qylock"
 
 # -- SDDM refresh must preserve qylock ---------------------------------
@@ -155,7 +156,7 @@ assert_grep "AUTO_APPLY_MODE=.*preserve" "shell/scripts/sddm/install-pixel-sddm.
 assert_grep "for f in /etc/sddm\\.conf\\.d/\\*\\.conf" "shell/scripts/sddm/install-pixel-sddm.sh"
 assert_grep "Preserving current SDDM theme" "shell/scripts/sddm/install-pixel-sddm.sh"
 assert_grep "SDDM_CONF=\"/etc/sddm\\.conf\\.d/theme\\.conf\"" "shell/scripts/sddm/install-pixel-sddm.sh"
-assert_grep "LEGACY_SDDM_CONFS" "shell/scripts/sddm/install-pixel-sddm.sh"
+assert_grep "STALE_SDDM_CONFS" "shell/scripts/sddm/install-pixel-sddm.sh"
 assert_grep "neutralize_conflicting_input_method" "shell/scripts/sddm/install-pixel-sddm.sh"
 assert_grep "InputMethod=" "shell/scripts/sddm/install-pixel-sddm.sh"
 assert_grep "InputMethod.*qtvirtualkeyboard" "shell/scripts/sddm/install-pixel-sddm.sh"
@@ -179,8 +180,8 @@ assert_grep "maya"            "bin/ryoku-uninstall-qylock"
 assert_grep "/usr/share/sddm/themes/" "bin/ryoku-uninstall-qylock"
 assert_grep "\\.local/share/qylock"   "bin/ryoku-uninstall-qylock"
 # Uninstall must also leave one authoritative Current= rather than
-# re-exposing stale legacy drop-ins.
-assert_grep "/etc/sddm\\.conf\\.d/inir-theme\\.conf" "bin/ryoku-uninstall-qylock"
+# re-exposing stale drop-ins.
+assert_grep "$STALE_SDDM_CONF_REGEX" "bin/ryoku-uninstall-qylock"
 assert_grep "/etc/sddm\\.conf\\.d/ryoku-shell-theme\\.conf" "bin/ryoku-uninstall-qylock"
 
 # -- Asset bundles -----------------------------------------------------

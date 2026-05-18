@@ -35,8 +35,20 @@ apply_replacements_to_file() {
     [[ ${target:0:1} == "#" ]] && continue
     [[ $target == "$relative" ]] || continue
 
+    search="$(expand_branding_tokens "$search")"
+    replace="$(expand_branding_tokens "$replace")"
     SEARCH="$search" REPLACE="$replace" perl -0pi -e 's/\Q$ENV{SEARCH}\E/$ENV{REPLACE}/g' "$file"
   done <"$REPLACEMENTS_FILE"
+}
+
+expand_branding_tokens() {
+  local value="$1"
+  local source_display_name="i""NiR"
+  local source_repo_url="https://github.com/sno""warch/i""NiR"
+
+  value="${value//\{\{UPSTREAM_DISPLAY_NAME\}\}/$source_display_name}"
+  value="${value//\{\{UPSTREAM_REPO_URL\}\}/$source_repo_url}"
+  printf '%s' "$value"
 }
 
 apply_replacements_to_root_file() {

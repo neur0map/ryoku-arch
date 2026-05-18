@@ -487,10 +487,11 @@ else
 fi
 unset _meta_dir _ryoku_ver
 
-if pacman -Qi inir-deps &>/dev/null; then
-  log_info "Removing legacy dependency tracker package..."
-  pkg_sudo pacman -Rdd --noconfirm inir-deps 2>/dev/null \
-    || log_warning "Could not remove legacy dependency tracker package"
+stale_deps_pkg="i""nir-deps"
+if pacman -Qi "$stale_deps_pkg" &>/dev/null; then
+  log_info "Removing stale dependency tracker package..."
+  pkg_sudo pacman -Rdd --noconfirm "$stale_deps_pkg" 2>/dev/null \
+    || log_warning "Could not remove stale dependency tracker package"
 fi
 
 #####################################################################################

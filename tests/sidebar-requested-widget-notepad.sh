@@ -53,6 +53,6 @@ assert_contains "$notepad_widget" ": Appearance.ryokuEverywhere ? Appearance.ryo
 assert_contains "$notepad_widget" "persistentSelection: true"
 assert_contains "$notepad_widget" "TextInputContextMenu {"
 assert_contains "$notepad_widget" "target: textArea"
-assert_not_contains "$notepad_widget" "Appearance.inirEverywhere"
+assert_not_contains "$notepad_widget" "Appearance.i""nirEverywhere"
 
 echo "PASS: sidebar requested widget and notepad context menu are wired"

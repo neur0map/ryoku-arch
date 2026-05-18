@@ -306,29 +306,31 @@ ContentPage {
             }
 
             // ── Options strip ──
-            SettingsSwitch {
-                buttonIcon: "ev_shadow"
-                text: Translation.tr("Transparency")
-                checked: Config.options?.appearance?.transparency?.enable ?? false
-                onCheckedChanged: {
-                    Config.setNestedValue("appearance.transparency.enable", checked)
+            ConfigRow {
+                SettingsSwitch {
+                    buttonIcon: "ev_shadow"
+                    text: Translation.tr("Transparency")
+                    checked: Config.options?.appearance?.transparency?.enable ?? false
+                    onCheckedChanged: {
+                        Config.setNestedValue("appearance.transparency.enable", checked)
+                    }
+                    StyledToolTip {
+                        text: Translation.tr("Might look ass. Unsupported.")
+                    }
                 }
-                StyledToolTip {
-                    text: Translation.tr("Might look ass. Unsupported.")
-                }
-            }
 
-            SettingsSwitch {
-                buttonIcon: "palette"
-                text: Translation.tr("Colors only mode")
-                checked: Config.options?.appearance?.wallpaperTheming?.colorsOnlyMode ?? false
-                onCheckedChanged: {
-                    Config.setNestedValue("appearance.wallpaperTheming.colorsOnlyMode", checked)
-                    if (!checked)
-                        Config.setNestedValue("appearance.wallpaperTheming.previewSourcePath", "")
-                }
-                StyledToolTip {
-                    text: Translation.tr("Use any thumbnail as the theme source while keeping the current wallpaper")
+                SettingsSwitch {
+                    buttonIcon: "palette"
+                    text: Translation.tr("Colors only")
+                    checked: Config.options?.appearance?.wallpaperTheming?.colorsOnlyMode ?? false
+                    onCheckedChanged: {
+                        Config.setNestedValue("appearance.wallpaperTheming.colorsOnlyMode", checked)
+                        if (!checked)
+                            Config.setNestedValue("appearance.wallpaperTheming.previewSourcePath", "")
+                    }
+                    StyledToolTip {
+                        text: Translation.tr("Use any thumbnail as the theme source while keeping the current wallpaper")
+                    }
                 }
             }
 
