@@ -60,11 +60,11 @@ Item {
 
     property QtObject blendedColors: AdaptedMaterialScheme { color: root.artDominantColor }
     
-    readonly property color jiraColText: Appearance.ryoku.colText
-    readonly property color jiraColTextSecondary: Appearance.ryoku.colTextSecondary
-    readonly property color jiraColPrimary: Appearance.ryoku.colPrimary
-    readonly property color jiraColLayer1: Appearance.ryoku.colLayer1
-    readonly property color jiraColLayer2: Appearance.ryoku.colLayer2
+    readonly property color ryokuText: Appearance.ryoku.colText
+    readonly property color ryokuTextSecondary: Appearance.ryoku.colTextSecondary
+    readonly property color ryokuPrimary: Appearance.ryoku.colPrimary
+    readonly property color ryokuLayer1: Appearance.ryoku.colLayer1
+    readonly property color ryokuLayer2: Appearance.ryoku.colLayer2
     readonly property int cardHeight: root.compactMode ? 128 : 160
     readonly property int coverArtSize: root.compactMode ? 104 : 136
     readonly property int outerMargin: root.compactMode ? 10 : 12
@@ -141,7 +141,7 @@ Item {
             smoothing: 2
             color: ColorUtils.transparentize(
                 Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                : root.ryokuEverywhere ? root.jiraColPrimary : (root.blendedColors?.colPrimary ?? Appearance.colors.colPrimary), 
+                : root.ryokuEverywhere ? root.ryokuPrimary : (root.blendedColors?.colPrimary ?? Appearance.colors.colPrimary),
                 0.6
             )
         }
@@ -187,7 +187,7 @@ Item {
                 Rectangle {
                     anchors.fill: parent
                     color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
-                        : root.ryokuEverywhere ? root.jiraColLayer2 : (root.blendedColors?.colLayer1 ?? Appearance.colors.colLayer1)
+                        : root.ryokuEverywhere ? root.ryokuLayer2 : (root.blendedColors?.colLayer1 ?? Appearance.colors.colLayer1)
                     visible: !root.downloaded
                     
                     MaterialSymbol {
@@ -195,7 +195,7 @@ Item {
                         text: "music_note"
                         iconSize: root.compactMode ? 36 : 48
                         color: Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
-                            : root.ryokuEverywhere ? root.jiraColTextSecondary : (root.blendedColors?.colSubtext ?? Appearance.colors.colSubtext)
+                            : root.ryokuEverywhere ? root.ryokuTextSecondary : (root.blendedColors?.colSubtext ?? Appearance.colors.colSubtext)
                     }
                 }
             }
@@ -210,7 +210,7 @@ Item {
                     font.pixelSize: root.compactMode ? Appearance.font.pixelSize.smaller : Appearance.font.pixelSize.normal
                     font.weight: Font.Medium
                     color: Appearance.angelEverywhere ? Appearance.angel.colText
-                        : root.ryokuEverywhere ? root.jiraColText : (root.blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
+                        : root.ryokuEverywhere ? root.ryokuText : (root.blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
                     elide: Text.ElideRight
                 }
 
@@ -219,7 +219,7 @@ Item {
                     text: root.effectiveArtist || ""
                     font.pixelSize: root.compactMode ? Appearance.font.pixelSize.smallest : Appearance.font.pixelSize.smaller
                     color: Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
-                        : root.ryokuEverywhere ? root.jiraColTextSecondary : (root.blendedColors?.colSubtext ?? Appearance.colors.colSubtext)
+                        : root.ryokuEverywhere ? root.ryokuTextSecondary : (root.blendedColors?.colSubtext ?? Appearance.colors.colSubtext)
                     elide: Text.ElideRight
                     visible: text !== ""
                     opacity: 0.7
@@ -240,11 +240,11 @@ Item {
                             wavy: root.player?.isPlaying ?? false
                             animateWave: root.player?.isPlaying ?? false
                             highlightColor: Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                                : root.ryokuEverywhere ? root.jiraColPrimary : (root.blendedColors?.colPrimary ?? Appearance.colors.colPrimary)
+                                : root.ryokuEverywhere ? root.ryokuPrimary : (root.blendedColors?.colPrimary ?? Appearance.colors.colPrimary)
                             trackColor: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
                                 : root.ryokuEverywhere ? Appearance.ryoku.colLayer2 : (root.blendedColors?.colSecondaryContainer ?? Appearance.colors.colSecondaryContainer)
                             handleColor: Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                                : root.ryokuEverywhere ? root.jiraColPrimary : (root.blendedColors?.colPrimary ?? Appearance.colors.colPrimary)
+                                : root.ryokuEverywhere ? root.ryokuPrimary : (root.blendedColors?.colPrimary ?? Appearance.colors.colPrimary)
                             value: root.player?.length > 0 ? root.player.position / root.player.length : 0
                             onMoved: root.player.position = value * root.player.length
                             scrollable: true
@@ -258,7 +258,7 @@ Item {
                             wavy: root.player?.isPlaying ?? false
                             animateWave: root.player?.isPlaying ?? false
                             highlightColor: Appearance.angelEverywhere ? Appearance.angel.colPrimary
-                                : root.ryokuEverywhere ? root.jiraColPrimary : (root.blendedColors?.colPrimary ?? Appearance.colors.colPrimary)
+                                : root.ryokuEverywhere ? root.ryokuPrimary : (root.blendedColors?.colPrimary ?? Appearance.colors.colPrimary)
                             trackColor: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
                                 : root.ryokuEverywhere ? Appearance.ryoku.colLayer2 : (root.blendedColors?.colSecondaryContainer ?? Appearance.colors.colSecondaryContainer)
                             value: root.player?.length > 0 ? root.player.position / root.player.length : 0
@@ -276,7 +276,7 @@ Item {
                         font.pixelSize: Appearance.font.pixelSize.smallest
                         font.family: Appearance.font.family.numbers
                         color: Appearance.angelEverywhere ? Appearance.angel.colText
-                            : root.ryokuEverywhere ? root.jiraColText : (root.blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
+                            : root.ryokuEverywhere ? root.ryokuText : (root.blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
                     }
 
                     Item { Layout.fillWidth: true }
@@ -302,7 +302,7 @@ Item {
                                 iconSize: root.controlIconSize
                                 fill: 1
                                 color: Appearance.angelEverywhere ? Appearance.angel.colText
-                                    : root.ryokuEverywhere ? root.jiraColText : (root.blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
+                                    : root.ryokuEverywhere ? root.ryokuText : (root.blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
                             }
                         }
 
@@ -341,7 +341,7 @@ Item {
                                 color: Appearance.angelEverywhere
                                     ? Appearance.angel.colPrimary
                                     : root.ryokuEverywhere
-                                    ? root.jiraColPrimary
+                                    ? root.ryokuPrimary
                                     : root.auroraEverywhere
                                         ? (root.blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
                                         : Appearance.colors.colOnLayer1
@@ -371,7 +371,7 @@ Item {
                                 iconSize: root.controlIconSize
                                 fill: 1
                                 color: Appearance.angelEverywhere ? Appearance.angel.colText
-                                    : root.ryokuEverywhere ? root.jiraColText : (root.blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
+                                    : root.ryokuEverywhere ? root.ryokuText : (root.blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
                             }
                         }
 
@@ -385,7 +385,7 @@ Item {
                         font.pixelSize: Appearance.font.pixelSize.smallest
                         font.family: Appearance.font.family.numbers
                         color: Appearance.angelEverywhere ? Appearance.angel.colText
-                            : root.ryokuEverywhere ? root.jiraColText : (root.blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
+                            : root.ryokuEverywhere ? root.ryokuText : (root.blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
                     }
                 }
             }
