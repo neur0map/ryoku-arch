@@ -50,5 +50,7 @@ assert_contains "shell/modules/onScreenDisplay/OnScreenDisplay.qml" \
   "if (!(Config.options?.osd?.mediaEnabled ?? true)) return;"
 assert_contains "shell/modules/onScreenDisplay/OnScreenDisplay.qml" \
   "function onOsdMediaOpenChanged()"
+assert_contains "shell/services/MprisController.qml" \
+  "if (Config.options?.osd?.mediaEnabled ?? true)"
 
 echo "ok: osd media toggle static asserts"
