@@ -62,61 +62,11 @@ Item {
     readonly property bool effectiveCanSeek: isYtMusic ? YtMusic.canSeek : (player?.canSeek ?? false)
 
     // ── Cover art download ──
-    property string artDownloadLocation: Directories.coverArt
-    readonly property bool downloaded: artworkResolver.ready
-    property string displayedArtFilePath: artworkResolver.displaySource
+    readonly property bool downloaded: MediaArtwork.ready
+    property string displayedArtFilePath: MediaArtwork.displaySource
 
     function checkAndDownloadArt(): void {
-        artworkResolver.refresh()
-    }
-
-    Connections {
-        target: root.player
-
-        function onTrackArtUrlChanged(): void {
-            if (!root.isYtMusic)
-                Qt.callLater(root.checkAndDownloadArt)
-        }
-
-        function onTrackTitleChanged(): void {
-            Qt.callLater(root.checkAndDownloadArt)
-        }
-
-        function onTrackArtistChanged(): void {
-            Qt.callLater(root.checkAndDownloadArt)
-        }
-
-        function onTrackAlbumChanged(): void {
-            Qt.callLater(root.checkAndDownloadArt)
-        }
-    }
-
-    Connections {
-        target: YtMusic
-
-        function onCurrentThumbnailChanged(): void {
-            if (root.isYtMusic)
-                Qt.callLater(root.checkAndDownloadArt)
-        }
-
-        function onCurrentTitleChanged(): void {
-            if (root.isYtMusic)
-                Qt.callLater(root.checkAndDownloadArt)
-        }
-
-        function onCurrentArtistChanged(): void {
-            if (root.isYtMusic)
-                Qt.callLater(root.checkAndDownloadArt)
-        }
-    }
-
-    MediaArtworkResolver {
-        id: artworkResolver
-        sourceUrl: root.effectiveArtUrl
-        title: root.effectiveTitle
-        artist: root.effectiveArtist
-        album: root.player?.trackAlbum ?? ""
-        cacheDirectory: root.artDownloadLocation
+        MediaArtwork.refresh()
     }
 
     // ── Adaptive colors from album art ──

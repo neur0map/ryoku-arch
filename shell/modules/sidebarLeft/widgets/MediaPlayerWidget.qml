@@ -30,9 +30,8 @@ Item {
     readonly property bool effectiveIsPlaying: isYtMusicPlayer ? YtMusic.isPlaying : (player?.isPlaying ?? false)
     readonly property bool effectiveCanSeek: isYtMusicPlayer ? YtMusic.canSeek : (player?.canSeek ?? false)
     
-    property string artDownloadLocation: Directories.coverArt
-    readonly property bool downloaded: artworkResolver.ready
-    property string displayedArtFilePath: artworkResolver.displaySource
+    readonly property bool downloaded: MediaArtwork.ready
+    property string displayedArtFilePath: MediaArtwork.displaySource
 
     // Cava visualizer - using shared CavaProcess component
     CavaProcess {
@@ -43,7 +42,7 @@ Item {
     property list<real> visualizerPoints: cavaProcess.points
 
     function checkAndDownloadArt() {
-        artworkResolver.refresh()
+        MediaArtwork.refresh()
     }
     
     // Re-check cover art when becoming visible
@@ -51,15 +50,6 @@ Item {
         if (visible && hasPlayer) {
             checkAndDownloadArt()
         }
-    }
-
-    MediaArtworkResolver {
-        id: artworkResolver
-        sourceUrl: root.effectiveArtUrl
-        title: root.effectiveTitle
-        artist: root.effectiveArtist
-        album: root.player?.trackAlbum ?? ""
-        cacheDirectory: root.artDownloadLocation
     }
 
     ColorQuantizer {
