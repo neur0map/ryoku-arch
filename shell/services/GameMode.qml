@@ -98,18 +98,21 @@ Singleton {
     function toggle() {
         _manualActive = !_manualActive
         _saveState()
+        _runManualSideEffects()
         root._log("[GameMode] Toggled manually:", _manualActive)
     }
 
     function activate() {
         _manualActive = true
         _saveState()
+        _runManualSideEffects()
         root._log("[GameMode] Activated manually")
     }
 
     function deactivate() {
         _manualActive = false
         _saveState()
+        _runManualSideEffects()
         root._log("[GameMode] Deactivated manually")
     }
 
@@ -143,7 +146,11 @@ Singleton {
         const output = NiriService.outputs[ws.output]
         if (!output?.logical) return false
 
-        const tolerance = 2
+        // 16px tolerance (was 2): browsers under HiDPI/fractional scaling
+        // report per-frame layout deltas of a few pixels during video
+        // playback, which made the 2px threshold flap and treat a normal
+        // YouTube tab as fullscreen → autoFullscreen toggle storm.
+        const tolerance = 16
         return Math.abs(winSize[0] - output.logical.width) <= tolerance
             && Math.abs(winSize[1] - output.logical.height) <= tolerance
     }
@@ -200,14 +207,38 @@ Singleton {
             return
         }
         
-        // Auto-detect: activate when focused window is fullscreen,
-        // deactivate immediately when it's not. Same behavior as manual
-        // mode but triggered by fullscreen detection.
-        if (isFullscreen !== _autoActive) {
-            _autoActive = isFullscreen
+        // Auto-detect with hysteresis: require N consecutive matching
+        // checks before flipping _autoActive. Without this a single noisy
+        // detection (e.g. a one-frame layout glitch from a video frame)
+        // flips _autoActive, which cascades into a niri config reload and
+        // a visible flicker. The debounce timer is restarted on every
+        // windowsChanged, so consecutive checks come at least 300ms apart
+        // — N=2 gives ~600ms of required stability before a flip.
+        const candidate = isFullscreen
+        if (candidate === _autoActive) {
+            // Matches current state — drop any pending flip.
+            _autoFlipStableCount = 0
+            return
+        }
+        if (candidate !== _autoFlipCandidate) {
+            _autoFlipCandidate = candidate
+            _autoFlipStableCount = 1
+            return
+        }
+        _autoFlipStableCount++
+        if (_autoFlipStableCount >= _autoFlipRequiredStable) {
+            _autoActive = candidate
+            _autoFlipStableCount = 0
             root._log("[GameMode] Auto-detect:", _autoActive ? "fullscreen detected" : "no fullscreen")
         }
     }
+
+    // Hysteresis state for _doCheckFullscreen — see comment in that
+    // function. _autoFlipCandidate holds the pending candidate value and
+    // _autoFlipStableCount tracks how many consecutive checks have agreed.
+    property bool _autoFlipCandidate: false
+    property int _autoFlipStableCount: 0
+    readonly property int _autoFlipRequiredStable: 2
 
     // State persistence - read
     FileView {
@@ -366,15 +397,25 @@ Singleton {
         }
     }
 
-    // React to active changes for Niri animations
+    // Log every active flip for debugging, but defer side-effects to
+    // _runManualSideEffects() below.
     onActiveChanged: {
         root._log("[GameMode] Active:", active, "(manual:", _manualActive, "auto:", _autoActive, ")")
+    }
+
+    // Side-effects gated to manual toggles only. Auto-detect must not
+    // rewrite niri/config.d/60-animations.kdl + `niri msg action
+    // reload-config` — a compositor reload mid-video is the dominant
+    // source of YouTube-playback flicker. Stopping/starting
+    // discover-overlay on every auto flip is similarly disruptive.
+    // Animations/effects/blur still react to `active` via the QML
+    // bindings in Appearance.qml, so auto-detect retains the in-shell
+    // perf optimizations — it just stops poking the compositor.
+    function _runManualSideEffects(): void {
         if (CompositorService.isNiri && controlNiriAnimations) {
             root.suppressNiriToast = true
             niriAnimDebounce.restart()
         }
-
-        // External processes control
         if (root.disableDiscoverOverlay) {
             discoverOverlayDebounce.restart()
         }
