@@ -33,6 +33,18 @@ Item {
     // Word count helper
     readonly property int wordCount: textArea.text.trim().length > 0
         ? textArea.text.trim().split(/\s+/).length : 0
+    readonly property int tabCount: Notepad.tabs.length
+    property int editingTab: -1
+
+    function saveCurrentText() {
+        saveTimer.stop()
+        Notepad.setTextValue(textArea.text)
+    }
+
+    function commitTabRename(index, title) {
+        root.editingTab = -1
+        Notepad.renameTab(index, title)
+    }
 
     // When this widget gets focus (from BottomWidgetGroup.focusActiveItem),
     // move focus to the internal text area on the next event loop tick.
@@ -84,6 +96,172 @@ Item {
                             : Appearance.ryokuEverywhere ? Appearance.ryoku.colText
                             : Appearance.m3colors.m3onSecondaryContainer
                     }
+                }
+            }
+        }
+
+        // Tab bar
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 4
+
+            Flickable {
+                Layout.fillWidth: true
+                implicitHeight: 28
+                contentWidth: tabRow.implicitWidth
+                contentHeight: 28
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                interactive: contentWidth > width
+
+                Row {
+                    id: tabRow
+                    height: parent.height
+                    spacing: 4
+
+                    Repeater {
+                        model: Notepad.tabs
+
+                        delegate: Rectangle {
+                            id: tabPill
+                            required property var modelData
+                            required property int index
+                            readonly property bool active: index === Notepad.activeTab
+                            readonly property bool editing: root.editingTab === index
+                            readonly property int titleWidth: editing ? 90 : Math.max(36, Math.min(tabLabel.implicitWidth, 90))
+
+                            width: titleWidth + (root.tabCount > 1 ? 30 : 18)
+                            height: 26
+                            radius: 13
+                            color: active
+                                ? root.colPrimary
+                                : (tabMA.containsMouse
+                                    ? (Appearance.angelEverywhere ? Appearance.angel.colGlassCardHover
+                                        : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1Hover
+                                        : Appearance.colors.colLayer1Hover)
+                                    : "transparent")
+
+                            Behavior on color {
+                                enabled: Appearance.animationsEnabled
+                                ColorAnimation { duration: Appearance.animation.elementMoveFast.duration }
+                            }
+
+                            MouseArea {
+                                id: tabMA
+                                anchors.fill: parent
+                                enabled: !tabPill.editing
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    root.saveCurrentText()
+                                    Notepad.activateTab(tabPill.index)
+                                }
+                                onDoubleClicked: {
+                                    root.editingTab = tabPill.index
+                                }
+                            }
+
+                            Row {
+                                anchors.centerIn: parent
+                                spacing: 4
+                                z: 1
+
+                                Item {
+                                    width: tabPill.titleWidth
+                                    height: 20
+                                    anchors.verticalCenter: parent.verticalCenter
+
+                                    StyledText {
+                                        id: tabLabel
+                                        anchors.fill: parent
+                                        visible: !tabPill.editing
+                                        text: tabPill.modelData.title || `Note ${tabPill.index + 1}`
+                                        font.pixelSize: Appearance.font.pixelSize.smaller
+                                        font.weight: tabPill.active ? Font.Medium : Font.Normal
+                                        color: tabPill.active
+                                            ? (Appearance.angelEverywhere ? Appearance.angel.colOnPrimary
+                                                : Appearance.ryokuEverywhere ? Appearance.ryoku.colOnPrimary
+                                                : Appearance.colors.colOnPrimary)
+                                            : root.colTextSecondary
+                                        elide: Text.ElideRight
+                                        maximumLineCount: 1
+                                        verticalAlignment: Text.AlignVCenter
+                                    }
+
+                                    TextInput {
+                                        id: tabTitleEditor
+                                        anchors.fill: parent
+                                        visible: tabPill.editing
+                                        text: tabPill.modelData.title || `Note ${tabPill.index + 1}`
+                                        selectByMouse: true
+                                        clip: true
+                                        color: tabPill.active
+                                            ? (Appearance.angelEverywhere ? Appearance.angel.colOnPrimary
+                                                : Appearance.ryokuEverywhere ? Appearance.ryoku.colOnPrimary
+                                                : Appearance.colors.colOnPrimary)
+                                            : root.colText
+                                        selectedTextColor: Appearance.angelEverywhere ? Appearance.angel.colOnPrimary
+                                            : Appearance.ryokuEverywhere ? Appearance.ryoku.colOnPrimary
+                                            : Appearance.colors.colOnPrimary
+                                        selectionColor: Appearance.angelEverywhere ? Appearance.angel.colPrimary
+                                            : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary
+                                            : Appearance.colors.colSecondaryContainer
+                                        font.pixelSize: Appearance.font.pixelSize.smaller
+                                        font.weight: Font.Medium
+                                        verticalAlignment: TextInput.AlignVCenter
+                                        onVisibleChanged: {
+                                            if (visible) {
+                                                text = tabPill.modelData.title || `Note ${tabPill.index + 1}`
+                                                Qt.callLater(() => {
+                                                    forceActiveFocus()
+                                                    selectAll()
+                                                })
+                                            }
+                                        }
+                                        onAccepted: root.commitTabRename(tabPill.index, text)
+                                        onActiveFocusChanged: {
+                                            if (!activeFocus && visible) {
+                                                root.commitTabRename(tabPill.index, text)
+                                            }
+                                        }
+                                    }
+                                }
+
+                                MaterialSymbol {
+                                    id: closeBtn
+                                    visible: root.tabCount > 1
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: "close"
+                                    iconSize: 12
+                                    color: tabPill.active
+                                        ? (Appearance.angelEverywhere ? Appearance.angel.colOnPrimary
+                                            : Appearance.ryokuEverywhere ? Appearance.ryoku.colOnPrimary
+                                            : Appearance.colors.colOnPrimary)
+                                        : root.colTextSecondary
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        anchors.margins: -4
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: (mouse) => {
+                                            root.saveCurrentText()
+                                            Notepad.deleteTab(tabPill.index)
+                                            mouse.accepted = true
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            NotepadToolButton {
+                icon: "add"
+                tooltipText: Translation.tr("New tab")
+                onClicked: {
+                    root.saveCurrentText()
+                    Notepad.createTab()
                 }
             }
         }
