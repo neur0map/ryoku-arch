@@ -39,7 +39,7 @@ Singleton {
 
     function reapplyTheme() {
         _log("[MaterialThemeLoader] reapplyTheme called, filePath:", root.filePath)
-        themeFileView.reload()
+        reloadDebounce.restart()
     }
 
     function colorToHex(c: color): string {
@@ -232,15 +232,29 @@ Singleton {
         }
     }
 
-    FileView { 
+    // Debounce file-change notifications: theme pipeline writes the JSON
+    // multiple times during boot (regenerateAutoTheme + applyCurrentTheme +
+    // external scripts). Each onFileChanged calling reload() races the
+    // previous reload op and drops it ("got operation finished from dropped
+    // operation" warning). The timer batches rapid changes into one reload.
+    Timer {
+        id: reloadDebounce
+        interval: 50
+        repeat: false
+        onTriggered: {
+            themeFileView.reload()
+            delayedFileRead.start()
+            delayedExternalApply.restart()
+        }
+    }
+
+    FileView {
         id: themeFileView
         path: Qt.resolvedUrl(root.filePath)
         watchChanges: true
         onFileChanged: {
             root._log("[MaterialThemeLoader] onFileChanged fired")
-            this.reload()
-            delayedFileRead.start()
-            delayedExternalApply.restart()
+            reloadDebounce.restart()
         }
         onLoadedChanged: {
             root._log("[MaterialThemeLoader] onLoadedChanged fired, loaded:", themeFileView.loaded)

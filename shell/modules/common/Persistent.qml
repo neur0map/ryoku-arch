@@ -20,11 +20,20 @@ Singleton {
         root.states.hyprlandInstanceSignature = Quickshell.env("HYPRLAND_INSTANCE_SIGNATURE") || ""
     }
 
+    // writeAdapter() is async; suppress reloads triggered by our own write
+    // so reload() doesn't drop the in-flight write operation.
+    property bool _writeInFlight: false
+    property bool _pendingReload: false
+
     Timer {
         id: fileReloadTimer
         interval: 100
         repeat: false
         onTriggered: {
+            if (root._writeInFlight) {
+                root._pendingReload = true;
+                return;
+            }
             persistentStatesFileView.reload()
         }
     }
@@ -34,6 +43,8 @@ Singleton {
         interval: 100
         repeat: false
         onTriggered: {
+            root._writeInFlight = true;
+            fileReloadTimer.stop();
             persistentStatesFileView.writeAdapter()
         }
     }
@@ -45,6 +56,13 @@ Singleton {
         watchChanges: true
         onFileChanged: fileReloadTimer.restart()
         onAdapterUpdated: fileWriteTimer.restart()
+        onSaved: {
+            root._writeInFlight = false;
+            if (root._pendingReload) {
+                root._pendingReload = false;
+                fileReloadTimer.restart();
+            }
+        }
         onLoaded: root.ready = true
         onLoadFailed: error => {
             console.log("Failed to load persistent states file:", error);
