@@ -410,7 +410,7 @@ def generate_bash(targets: list[IpcTarget], aliases: dict[str, str]) -> str:
     if IPC_MD.exists():
         md_hash = hashlib.sha256(IPC_MD.read_bytes()).hexdigest()[:16]
 
-    lines.append("#!/usr/bin/env bash")
+    lines.append("#!/bin/bash")
     lines.append(
         "# Auto-generated from QML IpcHandler declarations + docs/IPC.md metadata."
     )

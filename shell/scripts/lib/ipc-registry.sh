@@ -1,8 +1,8 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Auto-generated from QML IpcHandler declarations + docs/IPC.md metadata.
 # Do not edit manually.
 # Regenerate: python3 scripts/lib/generate-ipc-registry.py
-# IPC.md hash: a4340394b74b797d
+# IPC.md hash: b30811dda9f13699
 # Targets: 48
 
 declare -gA IPC_TARGET_DESC=(
@@ -141,7 +141,7 @@ declare -gA IPC_TARGET_FUNCTIONS=(
   [search]="toggle close open"
   [session]="toggle close open"
   [settings]="open toggle"
-  [shellUpdate]="toggle open close check performUpdate dismiss undismiss diagnose"
+  [shellUpdate]="toggle open close check refresh performUpdate dismiss undismiss diagnose"
   [sidebarLeft]="toggle close open"
   [sidebarRight]="toggle close open"
   [taskview]="toggle close open"
@@ -264,6 +264,7 @@ declare -gA IPC_FUNCTION_DESC=(
   ["shellUpdate:open"]="Open update overlay"
   ["shellUpdate:close"]="Close update overlay"
   ["shellUpdate:check"]="Check for updates now"
+  ["shellUpdate:refresh"]=""
   ["shellUpdate:performUpdate"]="Run the update"
   ["shellUpdate:dismiss"]="Dismiss update notification"
   ["shellUpdate:undismiss"]="Un-dismiss update notification"
@@ -331,34 +332,34 @@ declare -gA IPC_FUNCTION_ARGS=(
 )
 
 declare -gA IPC_TARGET_EXAMPLE=(
-  [altSwitcher]='bind "Alt+Tab" { spawn "inir" "altSwitcher" "next"; }
-bind "Alt+Shift+Tab" { spawn "inir" "altSwitcher" "previous"; }'
-  [cheatsheet]='bind "Super+Slash" { spawn "inir" "cheatsheet" "toggle"; }'
-  [clipboard]='bind "Super+V" { spawn "inir" "clipboard" "toggle"; }'
-  [closeConfirm]='bind "Mod+Q" repeat=false { spawn "inir" "close-window"; }'
-  [gamemode]='bind "Super+F12" { spawn "inir" "gamemode" "toggle"; }'
-  [globalActions]='bind "Super+Slash" { spawn "inir" "globalActions" "open"; }
-bind "Super+M" { spawn "inir" "globalActions" "run" "toggle-mute"; }'
-  [keyboard]='bind "Mod+Alt+K" { spawn "inir" "keyboard" "switchLayout"; }'
-  [lock]='bind "Super+Alt+L" allow-when-locked=true { spawn "inir" "lock" "activate"; }'
-  [mpris]='bind "Ctrl+Mod+Space" { spawn "inir" "mpris" "playPause"; }
-bind "Mod+Alt+N" { spawn "inir" "mpris" "next"; }
-bind "Mod+Alt+P" { spawn "inir" "mpris" "previous"; }'
-  [overlay]='bind "Super+G" { spawn "inir" "overlay" "toggle"; }'
-  [overview]='bind "Mod+Space" { spawn "inir" "overview" "toggle"; }'
-  [panelFamily]='bind "Mod+Shift+W" { spawn "inir" "panelFamily" "cycle"; }'
-  [region]='bind "Super+Shift+S" { spawn "inir" "region" "screenshot"; }
-bind "Super+Shift+X" { spawn "inir" "region" "ocr"; }
-bind "Super+Shift+A" { spawn "inir" "region" "search"; }'
+  [altSwitcher]='bind "Alt+Tab" { spawn "ryoku-shell" "altSwitcher" "next"; }
+bind "Alt+Shift+Tab" { spawn "ryoku-shell" "altSwitcher" "previous"; }'
+  [cheatsheet]='bind "Super+Slash" { spawn "ryoku-shell" "cheatsheet" "toggle"; }'
+  [clipboard]='bind "Super+V" { spawn "ryoku-shell" "clipboard" "toggle"; }'
+  [closeConfirm]='bind "Mod+Q" repeat=false { spawn "ryoku-shell" "close-window"; }'
+  [gamemode]='bind "Super+F12" { spawn "ryoku-shell" "gamemode" "toggle"; }'
+  [globalActions]='bind "Super+Slash" { spawn "ryoku-shell" "globalActions" "open"; }
+bind "Super+M" { spawn "ryoku-shell" "globalActions" "run" "toggle-mute"; }'
+  [keyboard]='bind "Mod+Alt+K" { spawn "ryoku-shell" "keyboard" "switchLayout"; }'
+  [lock]='bind "Super+Alt+L" allow-when-locked=true { spawn "ryoku-shell" "lock" "activate"; }'
+  [mpris]='bind "Ctrl+Mod+Space" { spawn "ryoku-shell" "mpris" "playPause"; }
+bind "Mod+Alt+N" { spawn "ryoku-shell" "mpris" "next"; }
+bind "Mod+Alt+P" { spawn "ryoku-shell" "mpris" "previous"; }'
+  [overlay]='bind "Super+G" { spawn "ryoku-shell" "overlay" "toggle"; }'
+  [overview]='bind "Mod+Space" { spawn "ryoku-shell" "overview" "toggle"; }'
+  [panelFamily]='bind "Mod+Shift+W" { spawn "ryoku-shell" "panelFamily" "cycle"; }'
+  [region]='bind "Super+Shift+S" { spawn "ryoku-shell" "region" "screenshot"; }
+bind "Super+Shift+X" { spawn "ryoku-shell" "region" "ocr"; }
+bind "Super+Shift+A" { spawn "ryoku-shell" "region" "search"; }'
   [screenshotEvents]='# Triggered automatically by the region selector after a copy.
 # External scripts can fire it via:
 #   quickshell ipc call screenshotEvents captured "Saved" "/path/to/file.png"'
-  [session]='bind "Super+Shift+E" { spawn "inir" "session" "toggle"; }'
-  [settings]='bind "Super+Comma" { spawn "inir" "settings"; }'
+  [session]='bind "Super+Shift+E" { spawn "ryoku-shell" "session" "toggle"; }'
+  [settings]='bind "Super+Comma" { spawn "ryoku-shell" "settings"; }'
   [toolsMode]='bind "Mod+S" { spawn "ryoku-shell" "toolsMode" "toggle"; }'
-  [voiceSearch]='bind "Super+Shift+V" { spawn "inir" "voiceSearch" "toggle"; }'
-  [wallpaperSelector]='bind "Ctrl+Alt+T" { spawn "inir" "wallpaperSelector" "toggle"; }'
-  [ytmusic]='bind "Mod+M+Space" { spawn "inir" "ytmusic" "playPause"; }'
+  [voiceSearch]='bind "Super+Shift+V" { spawn "ryoku-shell" "voiceSearch" "toggle"; }'
+  [wallpaperSelector]='bind "Ctrl+Alt+T" { spawn "ryoku-shell" "wallpaperSelector" "toggle"; }'
+  [ytmusic]='bind "Mod+M+Space" { spawn "ryoku-shell" "ytmusic" "playPause"; }'
 )
 
 IPC_ALL_TARGETS=(ai altSwitcher appCatalog audio bar brightness cheatsheet clipboard cliphistService closeConfirm controlPanel coverflowSelector gamemode globalActions keyboard lock mediaControls minimize mpris notifications osd osdVolume osk overlay overview packageSearch panelFamily recordingOsd region screenshotEvents search session settings shellUpdate sidebarLeft sidebarRight taskview tiling toolsMode voiceSearch wactionCenter waffleAltSwitcher wallpaperSelector wbar wnotificationCenter wwidgets ytmusic zoom)
