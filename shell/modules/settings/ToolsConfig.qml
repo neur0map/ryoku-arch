@@ -309,6 +309,13 @@ ContentPage {
             }
 
             SettingsSwitch {
+                buttonIcon: "mouse"
+                text: Translation.tr("Auto-hide recording OSD")
+                checked: Config.options?.screenRecord?.recordingOsd?.autoHide ?? false
+                onCheckedChanged: Config.setNestedValue("screenRecord.recordingOsd.autoHide", checked)
+            }
+
+            SettingsSwitch {
                 buttonIcon: "notifications"
                 text: Translation.tr("Recording notifications")
                 checked: Config.options?.screenRecord?.showNotifications ?? true
