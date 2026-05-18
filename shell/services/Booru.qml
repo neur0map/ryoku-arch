@@ -110,7 +110,7 @@ Singleton {
                         "height": item.height,
                         "aspect_ratio": item.width / item.height,
                         "tags": item.tags.join(" "),
-                        "rating": "safe", // Zerochan doesn't have nsfw
+                        "rating": "s", // Zerochan doesn't have nsfw
                         "is_nsfw": false,
                         "md5": item.md5,
                         "preview_url": item.thumbnail,
@@ -195,32 +195,31 @@ Singleton {
         "waifu.im": {
             "name": "waifu.im",
             "url": "https://waifu.im",
-            "api": "https://api.waifu.im/search",
+            "api": "https://api.waifu.im/images/",
             "description": Translation.tr("Waifus only | Excellent quality, limited quantity"),
             "mapFunc": (response) => {
-                response = response.images
+                response = response.items
                 return response.map(item => {
                     return {
-                        "id": item.image_id,
+                        "id": item.id,
                         "width": item.width,
                         "height": item.height,
                         "aspect_ratio": item.width / item.height,
                         "tags": item.tags.map(tag => {return tag.name}).join(" "),
-                        "rating": item.is_nsfw ? "e" : "s",
-                        "is_nsfw": item.is_nsfw,
-                        "md5": item.md5,
-                        "preview_url": item.sample_url ?? item.url, // preview_url just says access denied (maybe i fucked up and sent too many requests idk)
+                        "rating": item.isNsfw ? "e" : "s",
+                        "is_nsfw": item.isNsfw,
+                        "md5": Qt.md5(item.perceptualHash),
+                        "preview_url": item.url,
                         "sample_url": item.url,
                         "file_url": item.url,
                         "file_ext": item.extension,
-                        "source": getWorkingImageSource(item.source) ?? item.url,
+                        "source": item.source ? getWorkingImageSource(item.source) : item.url,
                     }
                 })
             },
             "tagSearchTemplate": "https://api.waifu.im/tags",
             "tagMapFunc": (response) => {
-                return [...response.versatile.map(item => {return {"name": item}}), 
-                    ...response.nsfw.map(item => {return {"name": item}})]
+                return response.items.map(tag => ({ "name": tag.slug }))
             }
         },
         "t.alcy.cc": {
@@ -230,16 +229,24 @@ Singleton {
             "description": Translation.tr("Large images | God tier quality, no NSFW."),
             "fixedTags": [
                 {
-                    "name": "ycy",
+                    "name": "pc",
                     "count": "General"
                 },
                 {
-                    "name": "moez",
+                    "name": "moe",
                     "count": "Moe"
                 },
                 {
-                    "name": "ysz",
+                    "name": "ys",
                     "count": "Genshin Impact"
+                },
+                {
+                    "name": "tx",
+                    "count": "General"
+                },
+                {
+                    "name": "lai",
+                    "count": "Menhera-chan"
                 },
                 {
                     "name": "fj",
@@ -254,27 +261,26 @@ Singleton {
                     "count": "Shiggy"
                 },
             ],
-            "manualParseFunc": (responseText) => {
-                // Alcy just returns image links, each on a new line
-                const lines = responseText.trim().split('\n');
-                return lines.map(line => {
+            "mapFunc": (response) => {
+                let items = response.data
+                if (!Array.isArray(items)) items = [items]
+                return items.map(item => {
                     return {
-                        "id": Qt.md5(line),
-                        // Alcy doesn't provide dimensions and images are often of god resolution
-                        "width": 1000,
-                        "height": 1000,
-                        "aspect_ratio": 1,
+                        "id": item.id,
+                        "width": 1920,
+                        "height": 1080,
+                        "aspect_ratio": 1920 / 1080,
                         "tags": "[no tags]",
                         "rating": "s",
                         "is_nsfw": false,
-                        "md5": Qt.md5(line),
-                        "preview_url": line,
-                        "sample_url": line,
-                        "file_url": line,
-                        "file_ext": line.split('.').pop(),
-                        "source": "",
+                        "md5": Qt.md5(item.link),
+                        "preview_url": item.link,
+                        "sample_url": item.link,
+                        "file_url": item.link,
+                        "file_ext": item.link.split('.').pop(),
+                        "source": item.link,
                     }
-                });
+                })
             },
         }
     }
@@ -333,17 +339,16 @@ Singleton {
             params.push("p=" + page)
         }
         else if (currentProvider === "waifu.im") {
-            var tagsArray = tagString.split(" ");
-            tagsArray.forEach(tag => {
-                params.push("included_tags=" + encodeURIComponent(tag));
+            tags.filter(tag => tag.length > 0).forEach(tag => {
+                params.push("IncludedTags=" + encodeURIComponent(tag));
             });
-            params.push("limit=" + Math.min(limit, 30)) // Only admin can do > 30
-            params.push("is_nsfw=" + (nsfw ? "null" : "false")) // null is random
+            params.push("PageSize=" + limit)
+            if (nsfw) { params.push("IsNsfw=True") }
         }
         else if (currentProvider === "t.alcy.cc") {
-            url += tagString
-            params.push("json")
-            params.push("quantity=" + limit)
+            url += "json"
+            let tag = tags[0] || "pc"
+            params.push(tag + "=" + limit)
         }
         else {
             params.push("tags=" + encodeURIComponent(tagString))
@@ -475,4 +480,3 @@ Singleton {
         } 
     }
 }
-

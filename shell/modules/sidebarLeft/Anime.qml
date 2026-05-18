@@ -83,6 +83,16 @@ Item {
                 Persistent.states.booru.allowNsfw = true;
             }
         },
+        {
+            name: "toggle-tags",
+            description: Translation.tr("Toggle image tag tooltips on hover"),
+            execute: () => {
+                Persistent.states.booru.showTagsOnHover = !Persistent.states.booru.showTagsOnHover;
+                Booru.addSystemMessage(Persistent.states.booru.showTagsOnHover
+                    ? Translation.tr("Image tag tooltips enabled")
+                    : Translation.tr("Image tag tooltips disabled"));
+            }
+        },
     ]
 
     function handleInput(inputText) {
