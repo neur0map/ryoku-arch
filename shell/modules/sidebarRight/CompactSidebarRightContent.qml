@@ -69,6 +69,19 @@ Item {
     property var eventsDialogEditEvent: null
     property bool reloadButtonEnabled: true
     property bool settingsButtonEnabled: true
+    readonly property bool compactTightHeight: height > 0 && height < 760
+    readonly property bool compactNarrowWidth: width > 0 && width < 420
+    readonly property int compactPanelPadding: Math.max(6, Math.min(sidebarPadding, Math.round(Math.min(width || sidebarWidth, height || screenHeight) * 0.018)))
+    readonly property int compactContentPadding: Math.max(6, Math.min(10, compactPanelPadding))
+    readonly property int compactRailWidth: Math.max(50, Math.min(58, Math.round((width || sidebarWidth) * 0.13)))
+    readonly property int compactRailMargin: Math.max(6, Math.min(9, Math.round(compactRailWidth * 0.15)))
+    readonly property int compactNavItemHeight: compactTightHeight ? 40 : 46
+    readonly property int compactNavBgHeight: compactTightHeight ? 34 : 38
+    readonly property int compactNavSpacing: compactTightHeight ? 2 : 4
+    readonly property int compactActionItemHeight: compactTightHeight ? 36 : 40
+    readonly property int compactActionBgHeight: compactTightHeight ? 30 : 34
+    readonly property int compactSectionSpacing: compactTightHeight ? Appearance.sizes.spacingSmall : Appearance.sizes.spacingMedium
+    readonly property int compactGridSpacing: compactNarrowWidth ? 4 : 5
     
     // Controls section order from config
     readonly property var defaultSectionOrder: ["sliders", "toggles", "devices", "media", "quickActions"]
@@ -1031,11 +1044,8 @@ Item {
             Rectangle {
                 id: leftRail
                 Layout.fillHeight: true
-                Layout.preferredWidth: 56
-                color: bg.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colGlassCard, 0.82)
-                    : bg.ryokuEverywhere ? ColorUtils.transparentize(Appearance.ryoku.colLayer1, 0.40)
-                    : bg.auroraEverywhere ? ColorUtils.transparentize((bg.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base), 0.60)
-                    : ColorUtils.transparentize(Appearance.colors.colLayer1, 0.72)
+                Layout.preferredWidth: root.compactRailWidth
+                color: "transparent"
 
                 // Thin separator on right edge
                 Rectangle {
@@ -1043,7 +1053,8 @@ Item {
                         top: parent.top; bottom: parent.bottom; right: parent.right
                         topMargin: bg.radius; bottomMargin: bg.radius
                     }
-                    width: 1
+                    width: 0
+                    visible: false
                     color: bg.angelEverywhere  ? ColorUtils.transparentize(Appearance.angel.colCardBorder,  0.62)
                          : bg.ryokuEverywhere   ? ColorUtils.transparentize(Appearance.ryoku.colBorder, 0.45)
                          : bg.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.78)
@@ -1054,13 +1065,13 @@ Item {
                 Rectangle {
                     id: navIndicator
                     // Layout constants — must match ColumnLayout margins and nav item dimensions
-                    readonly property int colTop: 12
-                    readonly property int colLeft: 4
-                    readonly property int colRight: 5
-                    readonly property int navBgLeft: 7
-                    readonly property int navItemH: 46
-                    readonly property int navBgH: 38
-                    readonly property int navSpacing: 4
+                    readonly property int colTop: root.compactContentPadding
+                    readonly property int colLeft: root.compactRailMargin
+                    readonly property int colRight: root.compactRailMargin
+                    readonly property int navBgLeft: 0
+                    readonly property int navItemH: root.compactNavItemHeight
+                    readonly property int navBgH: root.compactNavBgHeight
+                    readonly property int navSpacing: root.compactNavSpacing
                     readonly property int clampedIdx: Math.max(0, Math.min(root.activeSection, root.sections.length - 1))
 
                     x: colLeft + navBgLeft
@@ -1074,7 +1085,7 @@ Item {
                          : bg.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colPrimary, 0.60)
                          : bg.auroraEverywhere ? bg.colDarkSurfaceHover
                          : ColorUtils.transparentize(Appearance.colors.colSecondaryContainer, 0.20)
-                    border.width: 1
+                    border.width: 0
                     border.color: bg.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colCardBorder, 0.38)
                         : bg.ryokuEverywhere ? ColorUtils.transparentize(Appearance.ryoku.colBorder, 0.36)
                         : bg.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.72)
@@ -1102,7 +1113,7 @@ Item {
                     color: bg.ryokuEverywhere  ? Appearance.ryoku.colPrimary
                          : bg.angelEverywhere ? Appearance.angel.colPrimary
                          : Appearance.colors.colPrimary
-                    visible: navIndicator.visible
+                    visible: false
 
                     Behavior on y {
                         enabled: Appearance.animationsEnabled
@@ -1127,10 +1138,10 @@ Item {
                 ColumnLayout {
                     anchors {
                         fill: parent
-                        topMargin: 12; bottomMargin: 12
-                        leftMargin: 4; rightMargin: 5
+                        topMargin: root.compactContentPadding; bottomMargin: root.compactContentPadding
+                        leftMargin: root.compactRailMargin; rightMargin: root.compactRailMargin
                     }
-                    spacing: 4
+                    spacing: root.compactNavSpacing
 
                     // ── Section navigation buttons ──────────────
                     Repeater {
@@ -1141,7 +1152,7 @@ Item {
                             required property var modelData
 
                             Layout.fillWidth: true
-                            implicitHeight: 46
+                            implicitHeight: root.compactNavItemHeight
 
                             readonly property bool isActive: root.activeSection === navItem.index
                             readonly property bool isNotifications: navItem.modelData.id === "notifications"
@@ -1152,9 +1163,8 @@ Item {
                                 anchors {
                                     left: parent.left; right: parent.right
                                     verticalCenter: parent.verticalCenter
-                                    leftMargin: 7
                                 }
-                                height: 38
+                                height: root.compactNavBgHeight
                                 radius: bg.angelEverywhere ? Appearance.angel.roundingSmall
                                       : bg.ryokuEverywhere  ? Appearance.ryoku.roundingSmall
                                       : Appearance.rounding.small
@@ -1170,7 +1180,7 @@ Item {
                                              : Appearance.colors.colLayer1Hover
                                     return "transparent"
                                 }
-                                border.width: (navMA.containsMouse || navItem.isActive) ? 1 : 0
+                                border.width: 0
                                 border.color: bg.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colCardBorder, 0.42)
                                     : bg.ryokuEverywhere ? ColorUtils.transparentize(Appearance.ryoku.colBorder, 0.34)
                                     : bg.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.74)
@@ -1260,6 +1270,7 @@ Item {
                         Layout.leftMargin: 10
                         Layout.rightMargin: 4
                         height: 1
+                        visible: false
                         color: bg.angelEverywhere  ? ColorUtils.transparentize(Appearance.angel.colCardBorder, 0.68)
                              : bg.ryokuEverywhere   ? ColorUtils.transparentize(Appearance.ryoku.colBorder, 0.5)
                              : bg.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.80)
@@ -1281,16 +1292,15 @@ Item {
                             required property int index
                             required property var modelData
                             Layout.fillWidth: true
-                            implicitHeight: 40
+                            implicitHeight: root.compactActionItemHeight
 
                             Rectangle {
                                 id: sysActBg
                                 anchors {
                                     left: parent.left; right: parent.right
                                     verticalCenter: parent.verticalCenter
-                                    leftMargin: 7
                                 }
-                                height: 34
+                                height: root.compactActionBgHeight
                                 radius: bg.angelEverywhere ? Appearance.angel.roundingSmall
                                       : bg.ryokuEverywhere  ? Appearance.ryoku.roundingSmall
                                       : Appearance.rounding.small
@@ -1305,7 +1315,7 @@ Item {
                                              : Appearance.colors.colLayer1Hover
                                     return "transparent"
                                 }
-                                border.width: sysMA.containsMouse ? 1 : 0
+                                border.width: 0
                                 border.color: bg.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colCardBorder, 0.46)
                                     : bg.ryokuEverywhere ? ColorUtils.transparentize(Appearance.ryoku.colBorder, 0.36)
                                     : bg.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.75)
@@ -1339,14 +1349,13 @@ Item {
                     // ── Layout toggle ────────────────────────────
                     Item {
                         Layout.fillWidth: true
-                        implicitHeight: 40
+                        implicitHeight: root.compactActionItemHeight
                         Rectangle {
                             anchors {
                                 left: parent.left; right: parent.right
                                 verticalCenter: parent.verticalCenter
-                                leftMargin: 7
                             }
-                            height: 34
+                            height: root.compactActionBgHeight
                             radius: bg.angelEverywhere ? Appearance.angel.roundingSmall
                                   : bg.ryokuEverywhere  ? Appearance.ryoku.roundingSmall
                                   : Appearance.rounding.small
@@ -1361,7 +1370,7 @@ Item {
                                          : Appearance.colors.colLayer1Hover
                                 return "transparent"
                             }
-                            border.width: layoutMA.containsMouse ? 1 : 0
+                            border.width: 0
                             border.color: bg.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colCardBorder, 0.46)
                                 : bg.ryokuEverywhere ? ColorUtils.transparentize(Appearance.ryoku.colBorder, 0.36)
                                 : bg.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colOutlineVariant, 0.75)
@@ -1466,14 +1475,20 @@ Item {
     Component {
         id: controlsSectionComponent
         Item {
+            id: controlsRoot
+            readonly property int controlsAreaPadding: Math.max(root.compactGridSpacing, Math.min(root.compactContentPadding, Math.round(Math.min(width || root.width, height || root.height) * 0.018)))
+            readonly property int controlsGap: Math.max(root.compactNavSpacing, Math.min(root.compactSectionSpacing, Math.round((height || root.height) * (root.compactTightHeight ? 0.006 : 0.009))))
+            readonly property int controlsInnerPadding: Math.max(3, Math.round(controlsAreaPadding / 2))
+            readonly property int controlsInlineGap: Math.max(root.compactGridSpacing, Math.round(controlsGap * 0.8))
+
             // Scrollable content for Controls section
             Flickable {
                 id: controlsFlickable
                 anchors.fill: parent
-                anchors.topMargin: 8
-                anchors.bottomMargin: 8
-                anchors.leftMargin: 8
-                anchors.rightMargin: 10
+                anchors.topMargin: controlsRoot.controlsAreaPadding
+                anchors.bottomMargin: controlsRoot.controlsAreaPadding
+                anchors.leftMargin: controlsRoot.controlsAreaPadding
+                anchors.rightMargin: controlsRoot.controlsAreaPadding
                 contentWidth: controlsColumn.width
                 contentHeight: controlsColumn.implicitHeight
                 clip: true
@@ -1487,8 +1502,8 @@ Item {
 
                 ColumnLayout {
                     id: controlsColumn
-                    width: controlsFlickable.width - ((controlsVScroll.visible ? controlsVScroll.width : 0) + 6)
-                    spacing: Appearance.sizes.spacingMedium
+                    width: controlsFlickable.width - (controlsVScroll.visible ? controlsVScroll.width + controlsRoot.controlsInlineGap : 0)
+                    spacing: controlsRoot.controlsGap
 
                     // Section header
                     SectionHeader {
@@ -1519,14 +1534,14 @@ Item {
                             required property int index
                             
                             Layout.fillWidth: true
-                            Layout.topMargin: sectionDelegate.index > 0 ? Appearance.sizes.spacingSmall : 0
-                            spacing: Appearance.sizes.spacingSmall
+                            Layout.topMargin: sectionDelegate.index > 0 ? controlsRoot.controlsInlineGap : 0
+                            spacing: controlsRoot.controlsInlineGap
                             
                             // Move buttons (visible in edit mode)
                             RowLayout {
                                 Layout.fillWidth: true
                                 visible: root.layoutEditMode
-                                spacing: 4
+                                spacing: controlsRoot.controlsInlineGap
                                 
                                 StyledText {
                                     Layout.fillWidth: true
@@ -1581,7 +1596,12 @@ Item {
                                 Layout.fillWidth: true
                                 active: sectionDelegate.modelData === "sliders"
                                 visible: active && (Config.options?.sidebar?.quickSliders?.enable && (Config.options?.sidebar?.quickSliders?.showMic || Config.options?.sidebar?.quickSliders?.showVolume || Config.options?.sidebar?.quickSliders?.showBrightness))
-                                sourceComponent: QuickSliders {}
+                                sourceComponent: QuickSliders {
+                                    verticalPadding: controlsRoot.controlsInnerPadding
+                                    horizontalPadding: controlsRoot.controlsAreaPadding
+                                    sliderSpacing: controlsRoot.controlsGap
+                                    compactSurface: true
+                                }
                             }
                             
                             Loader {
@@ -1589,7 +1609,7 @@ Item {
                                 active: sectionDelegate.modelData === "toggles"
                                 visible: active
                                 sourceComponent: ColumnLayout {
-                                    spacing: Appearance.sizes.spacingSmall
+                                    spacing: controlsRoot.controlsInlineGap
                                     
                                     // ControlsCard
                                     Item {
@@ -1599,18 +1619,17 @@ Item {
                                         Rectangle {
                                             id: ccSurface
                                             anchors.fill: parent
-                                            implicitHeight: ccCard.implicitHeight + 10
+                                            implicitHeight: ccCard.implicitHeight + controlsRoot.controlsAreaPadding
                                             radius: bg.angelEverywhere ? Appearance.angel.roundingNormal : bg.ryokuEverywhere ? Appearance.ryoku.roundingNormal : Appearance.rounding.normal
                                             color: bg.angelEverywhere ? Appearance.angel.colGlassCard
                                                 : bg.ryokuEverywhere ? Appearance.ryoku.colLayer1
                                                 : "transparent"
-                                            border.width: bg.angelEverywhere ? Appearance.angel.cardBorderWidth
-                                                : bg.ryokuEverywhere ? 1 : 0
+                                            border.width: 0
                                             border.color: bg.angelEverywhere ? ColorUtils.transparentize(Appearance.angel.colCardBorder, 0.22)
                                                 : bg.ryokuEverywhere ? Appearance.ryoku.colBorder
                                                 : "transparent"
-                                            ControlsCard { id: ccCard; anchors.fill: parent; anchors.margins: 4 }
-                                            AngelPartialBorder { targetRadius: ccSurface.radius }
+                                            ControlsCard { id: ccCard; anchors.fill: parent; anchors.margins: controlsRoot.controlsInnerPadding }
+                                            AngelPartialBorder { targetRadius: ccSurface.radius; visible: false }
                                         }
                                     }
                                     
@@ -1618,9 +1637,13 @@ Item {
                                     Loader {
                                         id: compactClassicQuickPanelLoader
                                         Layout.fillWidth: true
-                                        Layout.leftMargin: 2; Layout.rightMargin: 8
+                                        Layout.leftMargin: 0; Layout.rightMargin: 0
                                         active: (Config.options?.sidebar?.quickToggles?.style ?? "classic") === "classic"
-                                        sourceComponent: ClassicQuickPanel { compactMode: true }
+                                        sourceComponent: ClassicQuickPanel {
+                                            compactMode: true
+                                            compactItemSlotWidth: Math.max(44, Math.min(50, Math.round(controlsFlickable.width / 7)))
+                                            compactSpacing: controlsRoot.controlsInlineGap
+                                        }
                                         Connections {
                                             target: compactClassicQuickPanelLoader.item
                                             ignoreUnknownSignals: true
@@ -1635,7 +1658,7 @@ Item {
                                     Loader {
                                         id: compactAndroidQuickPanelLoader
                                         Layout.fillWidth: true
-                                        Layout.leftMargin: 2; Layout.rightMargin: 2
+                                        Layout.leftMargin: 0; Layout.rightMargin: 0
                                         active: (Config.options?.sidebar?.quickToggles?.style ?? "classic") === "android"
                                         sourceComponent: AndroidQuickPanel { editMode: root.editMode }
                                         Connections {
@@ -1657,14 +1680,14 @@ Item {
                                 active: sectionDelegate.modelData === "devices"
                                 visible: active
                                 sourceComponent: ColumnLayout {
-                                    spacing: Appearance.sizes.spacingSmall
-                                    SectionDivider { text: Translation.tr("Devices"); visible: !root.layoutEditMode }
+                                    spacing: controlsRoot.controlsInlineGap
+                                    SectionDivider { text: Translation.tr("Devices"); visible: false }
 
                                     GridLayout {
                                         Layout.fillWidth: true
                                         columns: 2
-                                        columnSpacing: 5
-                                        rowSpacing: 5
+                                        columnSpacing: controlsRoot.controlsInlineGap
+                                        rowSpacing: controlsRoot.controlsInlineGap
 
                                         ControlChipButton { Layout.fillWidth: true; chipIcon: "media_output"; chipLabel: Translation.tr("Output"); value: Audio.sink?.description ?? ""; onClicked: root.showAudioOutputDialog = true }
                                         ControlChipButton { Layout.fillWidth: true; chipIcon: "mic_external_on"; chipLabel: Translation.tr("Input"); value: Audio.source?.description ?? ""; onClicked: root.showAudioInputDialog = true }
@@ -1679,8 +1702,8 @@ Item {
                                 active: sectionDelegate.modelData === "media"
                                 visible: active
                                 sourceComponent: ColumnLayout {
-                                    spacing: Appearance.sizes.spacingSmall
-                                    SectionDivider { text: Translation.tr("Media"); visible: !root.layoutEditMode }
+                                    spacing: controlsRoot.controlsInlineGap
+                                    SectionDivider { text: Translation.tr("Media"); visible: false }
 
                                     CompactMediaPlayer {
                                         Layout.fillWidth: true
@@ -1707,9 +1730,9 @@ Item {
             ColumnLayout {
                 anchors {
                     fill: parent
-                    margins: 8
+                    margins: root.compactContentPadding
                 }
-                spacing: 8
+                spacing: root.compactContentPadding
 
                 // Section header with notification count + actions
                 SectionHeader {
