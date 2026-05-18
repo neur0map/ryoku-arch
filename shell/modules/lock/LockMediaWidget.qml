@@ -59,11 +59,11 @@ Item {
     property QtObject blendedColors: AdaptedMaterialScheme { color: root.artDominantColor }
 
     // Ryoku uses fixed colors instead of adaptive
-    readonly property color jiraColText: Appearance.ryoku.colText
-    readonly property color jiraColTextSecondary: Appearance.ryoku.colTextSecondary
-    readonly property color jiraColPrimary: Appearance.ryoku.colPrimary
-    readonly property color jiraColLayer1: Appearance.ryoku.colLayer1
-    readonly property color jiraColLayer2: Appearance.ryoku.colLayer2
+    readonly property color ryokuText: Appearance.ryoku.colText
+    readonly property color ryokuTextSecondary: Appearance.ryoku.colTextSecondary
+    readonly property color ryokuPrimary: Appearance.ryoku.colPrimary
+    readonly property color ryokuLayer1: Appearance.ryoku.colLayer1
+    readonly property color ryokuLayer2: Appearance.ryoku.colLayer2
 
     StyledRectangularShadow { target: card; visible: Appearance.angelEverywhere || (!Appearance.ryokuEverywhere && !Appearance.auroraEverywhere) }
 
@@ -131,7 +131,7 @@ Item {
             maxVisualizerValue: 1000
             smoothing: 2
             color: ColorUtils.transparentize(
-                Appearance.ryokuEverywhere ? root.jiraColPrimary : (blendedColors?.colPrimary ?? Appearance.colors.colPrimary),
+                Appearance.ryokuEverywhere ? root.ryokuPrimary : (blendedColors?.colPrimary ?? Appearance.colors.colPrimary),
                 0.6
             )
         }
@@ -221,14 +221,14 @@ Item {
 
                 Rectangle {
                     anchors.fill: parent
-                    color: Appearance.ryokuEverywhere ? root.jiraColLayer2 : (blendedColors?.colLayer1 ?? Appearance.colors.colLayer1)
+                    color: Appearance.ryokuEverywhere ? root.ryokuLayer2 : (blendedColors?.colLayer1 ?? Appearance.colors.colLayer1)
                     visible: !root.downloaded
 
                     MaterialSymbol {
                         anchors.centerIn: parent
                         text: "music_note"
                         iconSize: 32
-                        color: Appearance.ryokuEverywhere ? root.jiraColTextSecondary : (blendedColors?.colSubtext ?? Appearance.colors.colSubtext)
+                        color: Appearance.ryokuEverywhere ? root.ryokuTextSecondary : (blendedColors?.colSubtext ?? Appearance.colors.colSubtext)
                     }
                 }
             }
@@ -245,7 +245,7 @@ Item {
                     text: StringUtils.cleanMusicTitle(root.player?.trackTitle) || "—"
                     font.pixelSize: Appearance.font.pixelSize.normal
                     font.weight: Font.Medium
-                    color: Appearance.ryokuEverywhere ? root.jiraColText : (blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
+                    color: Appearance.ryokuEverywhere ? root.ryokuText : (blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
                     elide: Text.ElideRight
                     animateChange: true
                     animationDistanceX: 6
@@ -256,7 +256,7 @@ Item {
                     Layout.fillWidth: true
                     text: root.player?.trackArtist || ""
                     font.pixelSize: Appearance.font.pixelSize.smaller
-                    color: Appearance.ryokuEverywhere ? root.jiraColTextSecondary : (blendedColors?.colSubtext ?? Appearance.colors.colSubtext)
+                    color: Appearance.ryokuEverywhere ? root.ryokuTextSecondary : (blendedColors?.colSubtext ?? Appearance.colors.colSubtext)
                     elide: Text.ElideRight
                     visible: text !== ""
                 }
@@ -275,9 +275,9 @@ Item {
                             configuration: StyledSlider.Configuration.Wavy
                             wavy: root.player?.isPlaying ?? false
                             animateWave: root.player?.isPlaying ?? false
-                            highlightColor: Appearance.ryokuEverywhere ? root.jiraColPrimary : (blendedColors?.colPrimary ?? Appearance.colors.colPrimary)
+                            highlightColor: Appearance.ryokuEverywhere ? root.ryokuPrimary : (blendedColors?.colPrimary ?? Appearance.colors.colPrimary)
                             trackColor: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2 : (blendedColors?.colSecondaryContainer ?? Appearance.colors.colSecondaryContainer)
-                            handleColor: Appearance.ryokuEverywhere ? root.jiraColPrimary : (blendedColors?.colPrimary ?? Appearance.colors.colPrimary)
+                            handleColor: Appearance.ryokuEverywhere ? root.ryokuPrimary : (blendedColors?.colPrimary ?? Appearance.colors.colPrimary)
                             value: root.player?.length > 0 ? root.player.position / root.player.length : 0
                             onMoved: root.player.position = value * root.player.length
                             scrollable: true
@@ -290,7 +290,7 @@ Item {
                         sourceComponent: StyledProgressBar {
                             wavy: root.player?.isPlaying ?? false
                             animateWave: root.player?.isPlaying ?? false
-                            highlightColor: Appearance.ryokuEverywhere ? root.jiraColPrimary : (blendedColors?.colPrimary ?? Appearance.colors.colPrimary)
+                            highlightColor: Appearance.ryokuEverywhere ? root.ryokuPrimary : (blendedColors?.colPrimary ?? Appearance.colors.colPrimary)
                             trackColor: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2 : (blendedColors?.colSecondaryContainer ?? Appearance.colors.colSecondaryContainer)
                             value: root.player?.length > 0 ? root.player.position / root.player.length : 0
                         }
@@ -306,7 +306,7 @@ Item {
                         text: StringUtils.friendlyTimeForSeconds(root.player?.position ?? 0)
                         font.pixelSize: Appearance.font.pixelSize.smallest
                         font.family: Appearance.font.family.numbers
-                        color: Appearance.ryokuEverywhere ? root.jiraColText : (blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
+                        color: Appearance.ryokuEverywhere ? root.ryokuText : (blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
                     }
 
                     Item { Layout.fillWidth: true }
@@ -328,7 +328,7 @@ Item {
                                 text: "skip_previous"
                                 iconSize: 22
                                 fill: 1
-                                color: Appearance.ryokuEverywhere ? root.jiraColText : (blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
+                                color: Appearance.ryokuEverywhere ? root.ryokuText : (blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
                             }
                         }
                     }
@@ -375,7 +375,7 @@ Item {
                                 iconSize: 24
                                 fill: 1
                                 color: Appearance.ryokuEverywhere
-                                    ? root.jiraColPrimary
+                                    ? root.ryokuPrimary
                                     : Appearance.auroraEverywhere
                                         ? (blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
                                         : (root.player?.isPlaying
@@ -406,7 +406,7 @@ Item {
                                 text: "skip_next"
                                 iconSize: 22
                                 fill: 1
-                                color: Appearance.ryokuEverywhere ? root.jiraColText : (blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
+                                color: Appearance.ryokuEverywhere ? root.ryokuText : (blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
                             }
                         }
                     }
@@ -417,7 +417,7 @@ Item {
                         text: StringUtils.friendlyTimeForSeconds(root.player?.length ?? 0)
                         font.pixelSize: Appearance.font.pixelSize.smallest
                         font.family: Appearance.font.family.numbers
-                        color: Appearance.ryokuEverywhere ? root.jiraColText : (blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
+                        color: Appearance.ryokuEverywhere ? root.ryokuText : (blendedColors?.colOnLayer0 ?? Appearance.colors.colOnLayer0)
                     }
                 }
             }
