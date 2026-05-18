@@ -24,6 +24,7 @@ assert_contains "shell/services/ResourceUsage.qml" "cpu_priority=0"
 assert_contains "shell/services/ResourceUsage.qml" "coretemp|k10temp|zenpower|cpu_thermal|fam15h_power|via_cputemp) priority_level=3"
 assert_contains "shell/services/ResourceUsage.qml" "acpitz|pch_*) priority_level=1"
 assert_contains "shell/services/ResourceUsage.qml" "if (( priority_level > cpu_priority )); then"
+# shellcheck disable=SC2016
 assert_contains "shell/services/ResourceUsage.qml" 'if [[ -z "$cpu_path" || -z "$gpu_path" ]]; then'
 
 echo "PASS: lock battery status and resource sensor priority"

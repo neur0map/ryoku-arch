@@ -129,6 +129,7 @@ touch \
 
 log_info() { :; }
 # shellcheck source=shell/sdata/lib/robust-update.sh
+# shellcheck disable=SC1091
 source "$ROBUST_UPDATE_SH"
 
 cleanup_orphans "$runtime_target" "$runtime_target/.ryoku-manifest"

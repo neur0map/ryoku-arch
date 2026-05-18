@@ -96,7 +96,7 @@ neutralize_conflicting_input_method() {
   shopt -s nullglob
   for conf in /etc/sddm.conf.d/*.conf; do
     [[ -f $conf ]] || continue
-    [[ $conf == $SDDM_CONF ]] && continue
+    [[ $conf == "$SDDM_CONF" ]] && continue
     if grep -qiE '^[[:space:]]*InputMethod[[:space:]]*=[[:space:]]*qtvirtualkeyboard[[:space:]]*$' "$conf" 2>/dev/null; then
       conf_name="$(basename "$conf")"
       log_warn "Removing conflicting SDDM InputMethod from ${conf_name}"
@@ -273,7 +273,7 @@ if should_apply_theme; then
     pixel_theme_active=true
 else
     current_theme="$(get_current_sddm_theme)"
-    if [[ $current_theme == $THEME_NAME ]]; then
+    if [[ $current_theme == "$THEME_NAME" ]]; then
         log_info "Updating SDDM settings for ${THEME_NAME}..."
         cleanup_legacy_current_dropins
         write_pixel_sddm_conf
