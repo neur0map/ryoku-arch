@@ -103,16 +103,16 @@ assert_json_value '.appearance.cava.bars' "0"
 assert_json_value '.appearance.cava.framerate' "60"
 assert_json_value '.appearance.cava.stereo' "true"
 assert_json_value '.appearance.cava.waveOpacity' "30"
+assert_json_value '.appearance.cava.colorSource' "theme"
+assert_json_value '.appearance.cava.gradientCount' "8"
+assert_json_value '.appearance.cava.foreground' ""
+assert_json_value '.appearance.cava.background' ""
+assert_json_value '.appearance.cava.barWidth' "2"
+assert_json_value '.appearance.cava.barSpacing' "1"
 assert_json_value '.background.widgets.mediaControls.visualizerType' "wave"
 assert_json_value '.background.widgets.mediaControls.visualizerPosition' "bottom"
 assert_json_value '.background.widgets.visualizer.vizType' "bars"
 assert_json_value '.background.widgets.visualizer.waveOpacity' "-1"
-
-for removed_key in colorSource gradientCount foreground background barWidth barSpacing; do
-  assert_json_value ".appearance.cava | has(\"$removed_key\")" "false"
-  assert_not_contains "shell/modules/settings/AdvancedConfig.qml" "appearance.cava.$removed_key"
-  ! grep -qF "$removed_key" <<< "$qml_cava_schema" || fail "Config.qml cava schema should not contain $removed_key"
-done
 
 assert_contains "shell/modules/common/Config.qml" "property bool enableCava: false"
 assert_contains "shell/modules/common/Config.qml" "property JsonObject cava: JsonObject"
@@ -121,6 +121,13 @@ assert_contains "shell/modules/common/Config.qml" "property int bars: 0"
 assert_contains "shell/modules/common/Config.qml" "property int framerate: 60"
 assert_contains "shell/modules/common/Config.qml" "property bool stereo: true"
 assert_contains "shell/modules/common/Config.qml" "property int waveOpacity: 30"
+assert_contains "shell/modules/common/Config.qml" "property string colorSource: \"theme\""
+assert_contains "shell/modules/common/Config.qml" "property int gradientCount: 8"
+assert_contains "shell/modules/common/Config.qml" "property string foreground: \"\""
+assert_contains "shell/modules/common/Config.qml" "property string background: \"\""
+assert_contains "shell/modules/common/Config.qml" "property int barWidth: 2"
+assert_contains "shell/modules/common/Config.qml" "property int barSpacing: 1"
+grep -qF 'property string colorSource: "theme"' <<< "$qml_cava_schema" || fail "Config.qml cava schema should contain colorSource"
 assert_contains "shell/modules/common/Config.qml" "property string visualizerType: \"wave\""
 assert_contains "shell/modules/common/Config.qml" "property string visualizerPosition: \"bottom\""
 assert_contains "shell/modules/common/Config.qml" "property string vizType: \"bars\""
@@ -146,6 +153,12 @@ assert_contains "shell/modules/settings/AdvancedConfig.qml" "appearance.cava.bar
 assert_contains "shell/modules/settings/AdvancedConfig.qml" "appearance.cava.framerate"
 assert_contains "shell/modules/settings/AdvancedConfig.qml" "appearance.cava.stereo"
 assert_contains "shell/modules/settings/AdvancedConfig.qml" "appearance.cava.waveOpacity"
+assert_contains "shell/modules/settings/AdvancedConfig.qml" "appearance.cava.colorSource"
+assert_contains "shell/modules/settings/AdvancedConfig.qml" "appearance.cava.gradientCount"
+assert_contains "shell/modules/settings/AdvancedConfig.qml" "appearance.cava.foreground"
+assert_contains "shell/modules/settings/AdvancedConfig.qml" "appearance.cava.background"
+assert_contains "shell/modules/settings/AdvancedConfig.qml" "appearance.cava.barWidth"
+assert_contains "shell/modules/settings/AdvancedConfig.qml" "appearance.cava.barSpacing"
 assert_contains "shell/modules/settings/AdvancedConfig.qml" "Config.setNestedValue(\"appearance.cava.waveOpacity\", 30)"
 
 assert_contains "shell/modules/settings/DesktopWidgetsConfig.qml" "background.widgets.mediaControls.visualizerType"
@@ -165,6 +178,12 @@ assert_contains "shell/modules/waffle/settings/pages/WThemesPage.qml" "appearanc
 assert_contains "shell/modules/waffle/settings/pages/WThemesPage.qml" "appearance.cava.framerate"
 assert_contains "shell/modules/waffle/settings/pages/WThemesPage.qml" "appearance.cava.waveOpacity"
 assert_contains "shell/modules/waffle/settings/pages/WThemesPage.qml" "appearance.cava.stereo"
+assert_contains "shell/modules/waffle/settings/pages/WThemesPage.qml" "appearance.cava.colorSource"
+assert_contains "shell/modules/waffle/settings/pages/WThemesPage.qml" "appearance.cava.gradientCount"
+assert_contains "shell/modules/waffle/settings/pages/WThemesPage.qml" "appearance.cava.foreground"
+assert_contains "shell/modules/waffle/settings/pages/WThemesPage.qml" "appearance.cava.background"
+assert_contains "shell/modules/waffle/settings/pages/WThemesPage.qml" "appearance.cava.barWidth"
+assert_contains "shell/modules/waffle/settings/pages/WThemesPage.qml" "appearance.cava.barSpacing"
 assert_contains "shell/modules/waffle/settings/pages/WThemesPage.qml" "Config.setNestedValue(\"appearance.cava.waveOpacity\", 30)"
 
 assert_contains "shell/modules/common/widgets/ConfigSelectionArray.qml" "var prev = root.children[index - 1]"
@@ -210,6 +229,12 @@ assert_contains "shell/scripts/colors/modules/90-cava.sh" "MARKER_END=\"# END ry
 assert_contains "shell/scripts/colors/modules/90-cava.sh" "CAVA_COLOR_BACKUP="
 assert_contains "shell/scripts/colors/modules/90-cava.sh" "print \$0 > backup"
 assert_contains "shell/scripts/colors/modules/90-cava.sh" "Restored original cava color section"
+assert_contains "shell/scripts/colors/modules/90-cava.sh" "COVER_COLORS_FILE="
+assert_contains "shell/scripts/colors/modules/90-cava.sh" "cover_color()"
+assert_contains "shell/scripts/colors/modules/90-cava.sh" "saturate_hex()"
+assert_contains "shell/scripts/colors/modules/90-cava.sh" "build_gradient_vibrant()"
+assert_contains "shell/scripts/colors/modules/90-cava.sh" "build_gradient_cover()"
+assert_contains "shell/scripts/colors/modules/90-cava.sh" "cava_cfg colorSource"
 assert_contains "shell/scripts/colors/modules/90-cava.sh" "LEGACY_MARKER_BEGIN=\"# BEGIN i\"\"nir-generated-colors\""
 assert_contains "shell/scripts/colors/modules/90-cava.sh" "replace_marked_block \"\$color_block\" \"\$LEGACY_MARKER_BEGIN\" \"\$LEGACY_MARKER_END\""
 assert_contains "shell/scripts/colors/modules/90-cava.sh" "strip_marked_block \"\$LEGACY_MARKER_BEGIN\" \"\$LEGACY_MARKER_END\""
@@ -223,6 +248,12 @@ cat > "$test_home/.config/ryoku-shell/config.json" <<'JSON'
   "appearance": {
     "wallpaperTheming": {
       "enableCava": true
+    },
+    "cava": {
+      "colorSource": "theme",
+      "gradientCount": 8,
+      "barWidth": 2,
+      "barSpacing": 1
     }
   }
 }
@@ -254,6 +285,52 @@ assert_generated_contains "$cava_config" "[color]"
 assert_generated_contains "$cava_config" "background = '#101010'"
 assert_generated_contains "$cava_config" "gradient_color_1 = '#112233'"
 assert_generated_contains "$cava_config" "# END ryoku-generated-colors"
+
+cat > "$test_home/.config/ryoku-shell/config.json" <<'JSON'
+{
+  "appearance": {
+    "wallpaperTheming": {
+      "enableCava": true
+    },
+    "cava": {
+      "colorSource": "cover",
+      "gradientCount": 3,
+      "barWidth": 4,
+      "barSpacing": 2
+    }
+  }
+}
+JSON
+cat > "$tmp_dir/state/quickshell/user/generated/cover-colors.json" <<'JSON'
+["#aa0000", "#00aa00", "#0000aa"]
+JSON
+
+HOME="$test_home" \
+XDG_CONFIG_HOME="$test_home/.config" \
+XDG_STATE_HOME="$tmp_dir/state" \
+PATH="$tmp_dir/fake-bin:$PATH" \
+  bash "$ROOT_DIR/shell/scripts/colors/modules/90-cava.sh"
+
+assert_generated_contains "$cava_config" "bar_width = 4"
+assert_generated_contains "$cava_config" "bar_spacing = 2"
+assert_generated_contains "$cava_config" "gradient_color_1 = '#aa0000'"
+assert_generated_contains "$cava_config" "gradient_color_3 = '#0000aa'"
+
+cat > "$test_home/.config/ryoku-shell/config.json" <<'JSON'
+{
+  "appearance": {
+    "wallpaperTheming": {
+      "enableCava": true
+    },
+    "cava": {
+      "colorSource": "theme",
+      "gradientCount": 8,
+      "barWidth": 2,
+      "barSpacing": 1
+    }
+  }
+}
+JSON
 
 cat > "$cava_config" <<'EOF'
 [general]

@@ -811,6 +811,19 @@ WSettingsPage {
         title: Translation.tr("Cava Options")
         icon: "music-note-2"
 
+        WSettingsDropdown {
+            label: Translation.tr("Color source")
+            icon: "palette"
+            description: Translation.tr("Use theme colors, boosted palette colors, or extracted cover colors")
+            currentValue: Config.options?.appearance?.cava?.colorSource ?? "theme"
+            options: [
+                { value: "theme", displayName: Translation.tr("Theme") },
+                { value: "vibrant", displayName: Translation.tr("Vibrant") },
+                { value: "cover", displayName: Translation.tr("Cover") }
+            ]
+            onSelected: newValue => Config.setNestedValue("appearance.cava.colorSource", newValue)
+        }
+
         WSettingsSlider {
             label: Translation.tr("Sensitivity")
             icon: "sound-high"
@@ -870,6 +883,57 @@ WSettingsPage {
             onCheckedChanged: Config.setNestedValue("appearance.cava.stereo", checked)
         }
 
+        WSettingsSpinBox {
+            label: Translation.tr("Gradient colors")
+            icon: "gradient"
+            description: Translation.tr("Number of colors in the cava gradient")
+            from: 2
+            to: 8
+            stepSize: 1
+            value: Config.options?.appearance?.cava?.gradientCount ?? 8
+            onValueChanged: Config.setNestedValue("appearance.cava.gradientCount", value)
+        }
+
+        WSettingsSpinBox {
+            label: Translation.tr("Bar width")
+            icon: "width"
+            description: Translation.tr("Width of each cava bar")
+            from: 1
+            to: 20
+            stepSize: 1
+            value: Config.options?.appearance?.cava?.barWidth ?? 2
+            onValueChanged: Config.setNestedValue("appearance.cava.barWidth", value)
+        }
+
+        WSettingsSpinBox {
+            label: Translation.tr("Bar spacing")
+            icon: "format_line_spacing"
+            description: Translation.tr("Spacing between cava bars")
+            from: 0
+            to: 20
+            stepSize: 1
+            value: Config.options?.appearance?.cava?.barSpacing ?? 1
+            onValueChanged: Config.setNestedValue("appearance.cava.barSpacing", value)
+        }
+
+        WSettingsTextField {
+            label: Translation.tr("Foreground")
+            icon: "format_color_text"
+            description: Translation.tr("Optional fixed foreground color")
+            placeholderText: "#aabbcc"
+            text: Config.options?.appearance?.cava?.foreground ?? ""
+            onTextEdited: newText => Config.setNestedValue("appearance.cava.foreground", newText)
+        }
+
+        WSettingsTextField {
+            label: Translation.tr("Background")
+            icon: "format_color_fill"
+            description: Translation.tr("Optional fixed background color")
+            placeholderText: "#101010"
+            text: Config.options?.appearance?.cava?.background ?? ""
+            onTextEdited: newText => Config.setNestedValue("appearance.cava.background", newText)
+        }
+
         WSettingsButton {
             label: Translation.tr("Reset to defaults")
             icon: "arrow-reset"
@@ -882,6 +946,12 @@ WSettingsPage {
                 Config.setNestedValue("appearance.cava.framerate", 60);
                 Config.setNestedValue("appearance.cava.waveOpacity", 30);
                 Config.setNestedValue("appearance.cava.stereo", true);
+                Config.setNestedValue("appearance.cava.colorSource", "theme");
+                Config.setNestedValue("appearance.cava.gradientCount", 8);
+                Config.setNestedValue("appearance.cava.foreground", "");
+                Config.setNestedValue("appearance.cava.background", "");
+                Config.setNestedValue("appearance.cava.barWidth", 2);
+                Config.setNestedValue("appearance.cava.barSpacing", 1);
             }
         }
     }
