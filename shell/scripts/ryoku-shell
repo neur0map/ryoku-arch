@@ -1333,7 +1333,7 @@ open_settings() {
         exit 1
     fi
 
-    exec "$qs_bin" -p "$dir" ipc call settings open
+    exec "$qs_bin" -p "$dir" ipc call -- settings open
 }
 
 open_detached_qml_window() {
@@ -2191,9 +2191,9 @@ run_ipc_target_command() {
     # IPC handlers for most panels register ~500ms after shell start (deferred panel
     # loading at boot). If the first call fails while the shell is still initializing,
     # retry once after a brief wait before giving up.
-    if ! "$qs_bin" -p "$config_dir" ipc call "$target" "$@" 2>/dev/null; then
+    if ! "$qs_bin" -p "$config_dir" ipc call -- "$target" "$@" 2>/dev/null; then
         has_instances "$config_dir" && sleep 0.5
-        exec "$qs_bin" -p "$config_dir" ipc call "$target" "$@"
+        exec "$qs_bin" -p "$config_dir" ipc call -- "$target" "$@"
     fi
 }
 
@@ -2554,9 +2554,9 @@ case "$command_name" in
             echo "Timed out waiting for Ryoku shell to start" >&2
             exit 1
         fi
-        if ! "$qs_bin" -p "$config_dir" ipc call "$@" 2>/dev/null; then
+        if ! "$qs_bin" -p "$config_dir" ipc call -- "$@" 2>/dev/null; then
             has_instances "$config_dir" && sleep 0.5
-            exec "$qs_bin" -p "$config_dir" ipc call "$@"
+            exec "$qs_bin" -p "$config_dir" ipc call -- "$@"
         fi
         ;;
     settings|open)

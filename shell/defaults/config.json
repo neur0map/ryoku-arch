@@ -1037,6 +1037,9 @@
     "animatePreview": false
   },
   "screenRecord": {
+    "recordingOsd": {
+      "autoHide": false
+    },
     "showOsd": false,
     "showNotifications": true,
     "savePath": "",
