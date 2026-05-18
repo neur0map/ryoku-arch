@@ -34,7 +34,17 @@ VERSION_FILE_RUNTIME_USER="${RUNTIME_DIR_USER}/version.json"
 VERSION_FILE_RUNTIME_SYSTEM_LOCAL="${RUNTIME_DIR_SYSTEM_LOCAL}/version.json"
 VERSION_FILE_RUNTIME_SYSTEM="${RUNTIME_DIR_SYSTEM}/version.json"
 VERSION_FILE_REPO="${REPO_ROOT}/VERSION"
+if [[ ! -f $VERSION_FILE_REPO && -n ${RYOKU_PATH:-} && -f ${RYOKU_PATH}/VERSION ]]; then
+  VERSION_FILE_REPO="${RYOKU_PATH}/VERSION"
+elif [[ ! -f $VERSION_FILE_REPO && -f ${REPO_ROOT}/../VERSION ]]; then
+  VERSION_FILE_REPO="${REPO_ROOT}/../VERSION"
+fi
 CHANGELOG_FILE="${REPO_ROOT}/CHANGELOG.md"
+if [[ ! -f $CHANGELOG_FILE && -n ${RYOKU_PATH:-} && -f ${RYOKU_PATH}/CHANGELOG.md ]]; then
+  CHANGELOG_FILE="${RYOKU_PATH}/CHANGELOG.md"
+elif [[ ! -f $CHANGELOG_FILE && -f ${REPO_ROOT}/../CHANGELOG.md ]]; then
+  CHANGELOG_FILE="${REPO_ROOT}/../CHANGELOG.md"
+fi
 GITHUB_REPO="neur0map/ryoku-arch"
 GITHUB_API="https://api.github.com/repos/${GITHUB_REPO}"
 
@@ -107,6 +117,20 @@ repo_has_git() {
     git -C "$root" rev-parse --git-dir >/dev/null 2>&1
 }
 
+get_repo_metadata_root() {
+  local candidate
+
+  for candidate in "${RYOKU_PATH:-}" "$REPO_ROOT" "${REPO_ROOT}/.."; do
+    [[ -n $candidate ]] || continue
+    if repo_has_git "$candidate"; then
+      git -C "$candidate" rev-parse --show-toplevel 2>/dev/null || printf '%s' "$candidate"
+      return
+    fi
+  done
+
+  printf '%s' "$REPO_ROOT"
+}
+
 # Get current repo version from VERSION file
 get_repo_version() {
     if [[ -f "$VERSION_FILE_REPO" ]]; then
@@ -118,11 +142,14 @@ get_repo_version() {
 
 # Get current git commit hash
 get_repo_commit() {
-    if repo_has_git; then
-        git -C "$REPO_ROOT" rev-parse --short HEAD 2>/dev/null || echo "unknown"
-    else
-        echo "unknown"
-    fi
+  local metadata_root
+  metadata_root="$(get_repo_metadata_root)"
+
+  if repo_has_git "$metadata_root"; then
+    git -C "$metadata_root" rev-parse --short HEAD 2>/dev/null || echo "unknown"
+  else
+    echo "unknown"
+  fi
 }
 
 # Get installed version info as JSON
@@ -421,7 +448,7 @@ get_install_mode() {
         return
     fi
 
-    if [[ -d "${REPO_ROOT:-}/.git" && -f "${REPO_ROOT:-}/setup" && -f "${REPO_ROOT:-}/shell.qml" ]]; then
+    if [[ -n ${REPO_ROOT:-} && -f ${REPO_ROOT:-}/setup && -f ${REPO_ROOT:-}/shell.qml ]] && repo_has_git "$(get_repo_metadata_root)"; then
         echo "repo-copy"
         return
     fi
@@ -449,7 +476,7 @@ get_version_repo_path() {
     fi
 
     case "$(get_update_strategy)" in
-        repo-setup) printf '%s' "${REPO_ROOT:-}" ;;
+        repo-setup) get_repo_metadata_root ;;
         *) printf '%s' "" ;;
     esac
 }
