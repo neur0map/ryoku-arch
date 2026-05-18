@@ -50,6 +50,12 @@ reject_rg 'Number\(keyDelegate\.currentVal' shell/modules/background/widgets/Man
 require_rg 'systemMonitor' shell/modules/background/Background.qml
 require_rg 'battery' shell/modules/background/Background.qml
 require_rg 'CustomWidgets\.widgets' shell/modules/background/Background.qml
+require_rg 'scaleFactor: root\.scaleFactor' shell/modules/background/widgets/clock/ClockWidget.qml
+require_rg 'property real scaleFactor: 1\.0' shell/modules/background/widgets/clock/CookieClock.qml
+require_rg 'background\.widgets\.clock\.cookie\.size' shell/modules/background/widgets/clock/CookieClock.qml
+require_rg 'Appearance\.ryokuEverywhere' shell/modules/background/widgets/clock/CookieClock.qml
+reject_rg 'cookieSides' shell/modules/background/widgets/clock/CookieClock.qml
+reject_rg 'cookieDateStyle' shell/modules/background/widgets/clock/CookieClock.qml
 
 require_rg 'ResizeHandle' shell/modules/background/widgets/AbstractBackgroundWidget.qml
 require_rg '_snapZones' shell/modules/background/widgets/AbstractBackgroundWidget.qml
