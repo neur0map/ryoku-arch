@@ -10,7 +10,7 @@ declare -gA IPC_TARGET_DESC=(
   [altSwitcher]="Alt+Tab window switcher. Works across workspaces, unlike some other implementations we won't name."
   [appCatalog]="App catalog service. Browse, search, and install curated applications."
   [audio]="Volume and mute control."
-  [background]="Desktop background widget edit mode. Family: ii"
+  [background]="Desktop background widget edit mode."
   [bar]="Top bar visibility."
   [brightness]="Display brightness control."
   [cheatsheet]="Keyboard shortcuts reference. For when you forget what you just configured five minutes ago."
@@ -19,7 +19,7 @@ declare -gA IPC_TARGET_DESC=(
   [closeConfirm]="Close window confirmation dialog. Shows a prompt before closing the focused window. Useful if you're the type who accidentally closes things and then regrets it."
   [controlPanel]="Quick settings panel. Toggles, sliders, and system controls without opening full settings."
   [coverflowSelector]="Wallpaper coverflow (3D card) picker."
-  [customWidgets]="Custom widget management. Create, list, reload, and remove user-installed widgets from \`~/.config/ryoku-shell/widgets/\`. Family: ii"
+  [customWidgets]="Custom widget management. Create, list, reload, and remove user-installed widgets from \`~/.config/ryoku-shell/widgets/\`."
   [gamemode]="Performance mode for gaming. Auto-detects fullscreen apps and disables animations/effects. Can also be toggled manually for those stubborn games that don't go fullscreen properly."
   [globalActions]="Command palette / action registry. Search and execute shell actions from scripts or keybinds."
   [keyboard]="Keyboard layout switching (Niri only). Cycles through configured keyboard layouts and queries layout info."
@@ -63,7 +63,7 @@ declare -gA IPC_TARGET_FAMILY=(
   [altSwitcher]="shared"
   [appCatalog]="shared"
   [audio]="shared"
-  [background]="shared"
+  [background]="ii"
   [bar]="shared"
   [brightness]="shared"
   [cheatsheet]="shared"
@@ -72,7 +72,7 @@ declare -gA IPC_TARGET_FAMILY=(
   [closeConfirm]="shared"
   [controlPanel]="shared"
   [coverflowSelector]="shared"
-  [customWidgets]="shared"
+  [customWidgets]="ii"
   [gamemode]="shared"
   [globalActions]="shared"
   [keyboard]="shared"
@@ -382,8 +382,8 @@ bind "Super+Shift+A" { spawn "ryoku-shell" "region" "search"; }'
 )
 
 IPC_ALL_TARGETS=(ai altSwitcher appCatalog audio background bar brightness cheatsheet clipboard cliphistService closeConfirm controlPanel coverflowSelector customWidgets gamemode globalActions keyboard lock mediaControls minimize mpris notifications osd osdVolume osk overlay overview packageSearch panelFamily recordingOsd region screenshotEvents search session settings shellUpdate sidebarLeft sidebarRight taskview tiling toolsMode voiceSearch wactionCenter waffleAltSwitcher wallpaperSelector wbar wnotificationCenter wwidgets ytmusic zoom)
-IPC_SHARED_TARGETS=(ai altSwitcher appCatalog audio background bar brightness cheatsheet clipboard cliphistService closeConfirm controlPanel coverflowSelector customWidgets gamemode globalActions keyboard lock mediaControls minimize mpris notifications osdVolume osk overview packageSearch panelFamily region screenshotEvents session settings shellUpdate sidebarLeft sidebarRight tiling toolsMode voiceSearch wallpaperSelector ytmusic zoom)
-IPC_II_TARGETS=(overlay)
+IPC_SHARED_TARGETS=(ai altSwitcher appCatalog audio bar brightness cheatsheet clipboard cliphistService closeConfirm controlPanel coverflowSelector gamemode globalActions keyboard lock mediaControls minimize mpris notifications osdVolume osk overview packageSearch panelFamily region screenshotEvents session settings shellUpdate sidebarLeft sidebarRight tiling toolsMode voiceSearch wallpaperSelector ytmusic zoom)
+IPC_II_TARGETS=(background customWidgets overlay)
 IPC_WAFFLE_TARGETS=(osd recordingOsd search taskview wactionCenter waffleAltSwitcher wbar wnotificationCenter wwidgets)
 
 declare -gA IPC_KEBAB_ALIASES=(

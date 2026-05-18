@@ -23,7 +23,8 @@ assert_contains "$search_widget" "height: searchWidgetContent.height"
 ! grep -qF "height: searchWidgetContent.width" "$search_widget" \
   || fail "overview mask should not use width as height"
 
-assert_contains "$update_indicator" "readonly property int updatePopupWidth: 380"
+assert_contains "$update_indicator" "readonly property int updatePopupWidth: 280"
+assert_contains "$update_indicator" "readonly property real maxW: 280"
 assert_contains "$update_indicator" "ShellUpdates.updateStepMessage"
 assert_contains "$update_indicator" "elide: Text.ElideRight"
 assert_contains "$update_indicator" "text: ShellUpdates.currentBranch"

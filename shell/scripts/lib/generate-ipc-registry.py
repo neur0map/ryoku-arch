@@ -27,6 +27,7 @@ IPC_MD = REPO_ROOT / "docs" / "IPC.md"
 OUTPUT = REPO_ROOT / "scripts" / "lib" / "ipc-registry.sh"
 
 # Targets under this IPC.md heading are waffle-only.
+II_SECTION_HEADING = "## ii-Specific Targets"
 WAFFLE_SECTION_HEADING = "## Waffle-Specific Targets"
 
 # Known waffle-only QML paths (for family detection from QML when IPC.md has no entry).
@@ -172,6 +173,7 @@ class IpcMdEntry:
     description: str = ""
     functions: dict[str, str] = field(default_factory=dict)  # name -> desc
     keybind_example: str = ""
+    is_ii: bool = False
     is_waffle: bool = False
 
 
@@ -189,6 +191,7 @@ def parse_ipc_md() -> dict[str, IpcMdEntry]:
     entries: dict[str, IpcMdEntry] = {}
 
     current: IpcMdEntry | None = None
+    in_ii_section = False
     in_waffle_section = False
     in_table = False
     in_code_fence = False
@@ -200,8 +203,13 @@ def parse_ipc_md() -> dict[str, IpcMdEntry]:
     for line in lines:
         stripped = line.strip()
 
-        # Track waffle section
+        # Track family sections.
+        if stripped == II_SECTION_HEADING:
+            in_ii_section = True
+            in_waffle_section = False
+            continue
         if stripped == WAFFLE_SECTION_HEADING:
+            in_ii_section = False
             in_waffle_section = True
             continue
 
@@ -235,7 +243,11 @@ def parse_ipc_md() -> dict[str, IpcMdEntry]:
                 current.description = " ".join(desc_lines).strip()
 
             target_name = m.group(1)
-            current = IpcMdEntry(name=target_name, is_waffle=in_waffle_section)
+            current = IpcMdEntry(
+                name=target_name,
+                is_ii=in_ii_section,
+                is_waffle=in_waffle_section,
+            )
             entries[target_name] = current
             in_table = False
             collecting_desc = True
@@ -279,6 +291,8 @@ def parse_ipc_md() -> dict[str, IpcMdEntry]:
 
         # Collect description lines (between ### and first table/fence)
         if collecting_desc and stripped and not stripped.startswith("---"):
+            if stripped.startswith("Family:"):
+                continue
             desc_lines.append(stripped)
 
     # Save last entry's description
@@ -325,6 +339,8 @@ def merge(
             # Family from IPC.md section
             if md.is_waffle:
                 target.family = "waffle"
+            elif md.is_ii:
+                target.family = "ii"
             elif name in KNOWN_DUPLICATES:
                 target.family = "shared"
             else:
