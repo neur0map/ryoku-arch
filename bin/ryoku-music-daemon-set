@@ -22,23 +22,32 @@ case "$mode" in
     # Prefer socket activation so mpd only starts when something connects.
     # Fall back to mpd.service if the socket unit is missing from the
     # installed package version.
+    mpd_started=0
     if systemctl --user list-unit-files mpd.socket >/dev/null 2>&1 \
        && systemctl --user enable --now mpd.socket >/dev/null 2>&1; then
-      printf 'on (mpd.socket)\n'
-      exit 0
+      mpd_started=1
+    elif systemctl --user enable --now mpd.service >/dev/null 2>&1; then
+      mpd_started=1
     fi
-    if systemctl --user enable --now mpd.service >/dev/null 2>&1; then
-      printf 'on (mpd.service)\n'
-      exit 0
+    if (( mpd_started == 0 )); then
+      printf 'Error: could not enable mpd unit. Is the music-rmpc profile installed?\n' >&2
+      exit 1
     fi
-    printf 'Error: could not enable mpd unit. Is the music-rmpc profile installed?\n' >&2
-    exit 1
+    # Also start mpd-mpris so the in-shell media widget, bar, and
+    # sidebar surface MPD tracks. mpd itself does not expose MPRIS;
+    # mpd-mpris (AUR) is the bridge.
+    if systemctl --user list-unit-files mpd-mpris.service >/dev/null 2>&1; then
+      systemctl --user enable --now mpd-mpris.service >/dev/null 2>&1 || true
+      printf 'on (mpd + mpd-mpris)\n'
+    else
+      printf 'on (mpd only -- install mpd-mpris for MPRIS surfacing)\n'
+    fi
     ;;
   off)
     # Stop + disable both unit types so a previously-enabled flavor does
-    # not resurrect mpd on next login.
-    systemctl --user stop mpd.service mpd.socket >/dev/null 2>&1 || true
-    systemctl --user disable mpd.service mpd.socket >/dev/null 2>&1 || true
+    # not resurrect mpd on next login. Same for the MPRIS bridge.
+    systemctl --user stop mpd.service mpd.socket mpd-mpris.service >/dev/null 2>&1 || true
+    systemctl --user disable mpd.service mpd.socket mpd-mpris.service >/dev/null 2>&1 || true
     printf 'off\n'
     ;;
   status)

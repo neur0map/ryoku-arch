@@ -103,11 +103,12 @@ RMPC_EOF
     chown "$target_uid:$target_uid" "$rmpc_conf"
   fi
 
-  # ── Refresh systemd user units so mpd.service/socket are visible. ──
-  # Intentionally do NOT enable or start mpd here. The daemon stays off
-  # until the user explicitly toggles "Enable music daemon" under
-  # Settings, Services, Music Player, which invokes
-  # bin/ryoku-music-daemon-set on.
+  # ── Refresh systemd user units so mpd.service/socket and mpd-mpris ──
+  # become visible. Intentionally do NOT enable or start anything here.
+  # The daemon (and the MPRIS bridge that surfaces MPD in the in-shell
+  # media widget / bar / sidebar) stays off until the user explicitly
+  # toggles "Enable music daemon" under Settings, Compositor, Music
+  # Player, which invokes bin/ryoku-music-daemon-set on.
   if command -v systemctl >/dev/null 2>&1; then
     sudo -u "$target_user" systemctl --user daemon-reload >/dev/null 2>&1 || true
   fi
