@@ -20,6 +20,7 @@ Singleton {
     property int activeTab: 0
     property var tabs: [{ title: "Note 1", text: "" }]
     readonly property string text: (tabs[activeTab]?.text) ?? ""
+    property string _pendingSaveText: ""
 
     function setTextValue(newText) {
         if (tabs.length === 0) {
@@ -82,8 +83,10 @@ Singleton {
     }
 
     function _saveTabs() {
-        root._ensureTabsDirectory()
-        tabsFileView.setText(JSON.stringify({ activeTab: activeTab, tabs: tabs }))
+        root._pendingSaveText = JSON.stringify({ activeTab: activeTab, tabs: tabs })
+        if (!ensureTabsDirectoryProc.running) {
+            ensureTabsDirectoryProc.running = true
+        }
     }
 
     function refresh() {
@@ -132,13 +135,21 @@ Singleton {
         activeTab = 0
     }
 
-    function _ensureTabsDirectory() {
-        const parentDir = root.tabsFilePath.substring(0, root.tabsFilePath.lastIndexOf('/'))
-        Process.exec(["/usr/bin/mkdir", "-p", parentDir])
-    }
-
     Component.onCompleted: {
         refresh()
+    }
+
+    Process {
+        id: ensureTabsDirectoryProc
+        running: false
+        command: ["/usr/bin/mkdir", "-p", root.tabsFilePath.substring(0, root.tabsFilePath.lastIndexOf('/'))]
+        onExited: (code, status) => {
+            if (code === 0) {
+                tabsFileView.setText(root._pendingSaveText)
+            } else {
+                console.log("[Notepad] Error creating tabs directory:", code, status)
+            }
+        }
     }
 
     FileView {
