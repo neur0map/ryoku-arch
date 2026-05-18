@@ -970,7 +970,7 @@ MouseArea {
                     const currentMinutes = now.getMinutes()
                     const currentTime = currentHour * 60 + currentMinutes
                     
-                    function parseTime(timeStr: string): int {
+                    function parseTime(timeStr) {
                         if (!timeStr) return -1
                         const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i)
                         if (!match) return -1
