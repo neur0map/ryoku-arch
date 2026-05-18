@@ -45,6 +45,13 @@ not keep stale shell files or miss new ones.
 - **Release-branch updates**: `ryoku-update-git` now switches an installed
   checkout back to the release branch before fast-forwarding. A live mirror that
   was left on `sync/inir-v2.25-live-first` no longer blocks `main` updates.
+- **Updater inhibitors on stricter systems**: `ryoku-update` no longer requests
+  sleep, shutdown, or lid/key inhibitors that can trigger polkit prompts or
+  access-denied failures before the update starts. It keeps the user-session
+  idle inhibitor only.
+- **Caffeine lock handoff**: the caffeine helper no longer leaks its `flock`
+  descriptor into the background inhibitor. Repeated starts now return quickly,
+  and the update runner no longer hangs when it enables caffeine for the update.
 - **Stale runtime files**: shell runtime sync now uses delete-aware rsync and
   manifest cleanup so removed upstream files disappear from the user machine
   instead of lingering beside the new payload.
