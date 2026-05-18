@@ -4,9 +4,11 @@
 # from Ryoku Material colors using custom theme with live updates.
 #
 # Design:
-# - If Spotify is not running: only regenerate theme files (never start/open Spotify)
-# - If Spotify is running and watch mode is active: just update files, watch reloads live
-# - If Spotify is running without watch mode: refresh once, then start watch mode
+# - Always regenerate theme files from the current matugen palette.
+# - If watch mode is active, file writes already trigger a live reload.
+# - Otherwise call spicetify apply so the patched bundle is not stale.
+# - If Spotify is open without watch, refresh it and start watch mode.
+# - This script never starts or opens Spotify itself.
 #
 # Reads: palette.json first, then colors.json fallback
 # Writes: ~/.config/spicetify/Themes/Ryoku/color.ini
@@ -410,25 +412,30 @@ main() {
   is_watch_active && watch_running=true
 
   if $watch_running; then
+    # Watch mode is monitoring the theme files; the writes above already
+    # triggered a live reload, nothing else to do.
     log "Watch mode active - colors updated (live reload)"
     exit 0
   fi
 
-  if ! $spotify_running; then
-    # Important UX rule: color generation must never open Spotify by itself.
-    # Keep this path write-only (color.ini + user.css bridge already updated)
-    # and return without apply/watch operations.
-    log "Spotify not running - updated theme files only (no auto-open)"
-    exit 0
-  else
-    log "Spotify running without watch - starting watch mode (no restart)"
-    # If watch wasn't running, the file changes we just wrote won't be picked up.
-    # We must explicitly refresh the running instance, then start watch for future changes.
-    spicetify refresh -s >> "$LOG_FILE" 2>&1 || true
-    start_watch_mode || {
-      log "Watch start failed, colors will apply on next Spotify launch"
-    }
+  # No watch is running, so spicetify cannot propagate the file changes by
+  # itself. Apply patches files on disk and does not open Spotify.
+  if ! apply_spicetify_theme; then
+    log "spicetify apply failed; theme files written but bundle is stale"
+    exit 1
   fi
+
+  if ! $spotify_running; then
+    # Bundle is patched; Spotify will use the new colors on next launch.
+    log "Spotify not running - theme applied to bundle for next launch"
+    exit 0
+  fi
+
+  log "Spotify running without watch - refreshing and starting watch mode"
+  spicetify refresh -s >> "$LOG_FILE" 2>&1 || true
+  start_watch_mode || {
+    log "Watch start failed; future color changes will need spicetify apply"
+  }
 
   exit 0
 }

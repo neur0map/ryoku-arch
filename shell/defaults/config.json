@@ -979,6 +979,7 @@
       "enableMedia": true,
       "enableSettings": true,
       "enablePackages": true,
+      "enableSetup": true,
       "enableCustom": true
     }
   },

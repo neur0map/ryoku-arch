@@ -1,0 +1,22 @@
+#!/bin/bash
+# shell/scripts/setup/example.sh
+#
+# @meta name: Setup Example
+# @meta description: Describe what this one-shot setup recipe configures
+# @meta icon: construction
+# @meta keywords: example setup install
+
+set -Eeuo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+. "$SCRIPT_DIR/_lib.sh"
+
+setup_init "example" "Setup Example"
+
+TOTAL=1
+setup_progress 1 "$TOTAL" "Running example step"
+echo "Replace this file with real setup work."
+
+setup_done "Example setup complete."
+setup_finish_pause
