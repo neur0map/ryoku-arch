@@ -60,7 +60,7 @@ audio_output {
 # MPRIS bridge: lets the in-shell media widget surface MPD tracks.
 audio_output {
     type        "alsa"
-    name        "ALSA dummy"
+    name        "ALSA placeholder"
     device      "null"
     mixer_type  "none"
     enabled     "no"
