@@ -29,7 +29,7 @@ MouseArea {
         : Appearance.m3colors.m3primary
     readonly property int horizontalPadding: root.compact ? 6 : 8
     readonly property int contentSpacing: root.compact ? 4 : 5
-    readonly property int updatePopupWidth: 380
+    readonly property int updatePopupWidth: 280
     readonly property int popupRowSpacing: 8
     readonly property int popupDetailSpacing: 6
     readonly property color popupTextColor: Appearance.angelEverywhere ? Appearance.angel.colText
@@ -161,8 +161,9 @@ MouseArea {
 
         Item {
             id: updatePopupContent
+            readonly property real maxW: 280
             anchors.centerIn: parent
-            implicitWidth: root.updatePopupWidth
+            implicitWidth: Math.min(root.updatePopupWidth, maxW)
             implicitHeight: popupContentColumn.implicitHeight
             width: implicitWidth
             height: implicitHeight

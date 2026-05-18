@@ -8,6 +8,11 @@ import qs.modules.common.widgets
 
 ContentPage {
     id: root
+
+    function _log(...args): void {
+        if (Quickshell.env("QS_DEBUG") === "1") console.log(...args);
+    }
+
     settingsPageIndex: 5
     settingsPageName: Translation.tr("Panels")
 
