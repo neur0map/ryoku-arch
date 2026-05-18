@@ -1,7 +1,7 @@
 MIGRATION_ID="016-launcher-structure-compat"
 MIGRATION_TITLE="Launcher compatibility for the current Ryoku structure"
 MIGRATION_DESCRIPTION="Updates old Niri launcher bindings from qs/ii-era commands and hardcoded runtime script paths to the current ryoku-shell launcher structure."
-MIGRATION_TARGET_FILE="~/.config/niri/config.kdl"
+MIGRATION_TARGET_FILE="$HOME/.config/niri/config.kdl"
 MIGRATION_REQUIRED=true
 
 migration_check() {

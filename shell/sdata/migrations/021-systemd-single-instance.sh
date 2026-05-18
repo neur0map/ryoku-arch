@@ -3,7 +3,7 @@
 MIGRATION_ID="021-systemd-single-instance"
 MIGRATION_TITLE="Move Ryoku shell startup to a single systemd owner"
 MIGRATION_DESCRIPTION="Removes compositor-owned shell startup, installs/enables the user ryoku-shell.service, and keeps shell startup owned by a single systemd user unit."
-MIGRATION_TARGET_FILE="~/.config/systemd/user/ryoku-shell.service + ~/.config/niri/config.d/50-startup.kdl"
+MIGRATION_TARGET_FILE="$HOME/.config/systemd/user/ryoku-shell.service + $HOME/.config/niri/config.d/50-startup.kdl"
 MIGRATION_REQUIRED=true
 
 migration_check() {
