@@ -22,6 +22,8 @@ Item {
     property real radius: Appearance.angelEverywhere ? Appearance.angel.roundingNormal : Appearance.rounding.normal
     property real screenX: 0
     property real screenY: 0
+    readonly property string vizType: Config.getNestedValue("background.widgets.mediaControls.visualizerType", "wave")
+    readonly property string vizPosition: Config.getNestedValue("background.widgets.mediaControls.visualizerPosition", "bottom")
     
     PlayerBase {
         id: playerBase
@@ -55,17 +57,34 @@ Item {
             maskSource: Rectangle { width: card.width; height: card.height; radius: card.radius }
         }
         
-        // Visualizer at bottom
+        // Visualizer overlay
         WaveVisualizer {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            height: 35
+            visible: root.vizType === "wave" && root.vizPosition !== "none"
+            anchors { left: parent.left; right: parent.right }
+            y: root.vizPosition === "top" ? 0 : (parent.height - height)
+            height: root.vizPosition === "fill" ? parent.height : 35
             live: playerBase.effectiveIsPlaying
             points: root.visualizerPoints
             maxVisualizerValue: 1000
             smoothing: 2
             color: ColorUtils.transparentize(playerBase.artDominantColor, 0.4)
+        }
+        CavaVisualizer {
+            visible: root.vizType === "bars" && root.vizPosition !== "none"
+            anchors { left: parent.left; right: parent.right }
+            y: root.vizPosition === "top" ? 0 : (parent.height - height)
+            height: root.vizPosition === "fill" ? parent.height : 35
+            live: playerBase.effectiveIsPlaying
+            points: root.visualizerPoints
+            maxVisualizerValue: 1000
+            smoothing: 2
+            barCount: 32
+            barSpacing: 2
+            barRadius: 2
+            barMinHeight: 1
+            colorLow: ColorUtils.transparentize(playerBase.artDominantColor, 0.3)
+            colorMed: ColorUtils.transparentize(playerBase.artDominantColor, 0.1)
+            colorHigh: playerBase.artDominantColor
         }
         
         RowLayout {

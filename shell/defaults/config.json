@@ -84,6 +84,13 @@
       "dayStart": "06:00",
       "nightStart": "18:00"
     },
+    "cava": {
+      "sensitivity": 100,
+      "bars": 0,
+      "framerate": 60,
+      "stereo": true,
+      "waveOpacity": 30
+    },
     "palette": {
       "type": "auto",
       "accentColor": ""
@@ -171,6 +178,7 @@
       "enablePearDesktop": true,
       "enableOpenCode": false,
       "enableNeovim": true,
+      "enableCava": false,
       "colorStrength": 1.0,
       "useBackdropForColors": false,
       "colorsOnlyMode": false,
@@ -421,6 +429,8 @@
         "enable": false,
         "placementStrategy": "free",
         "playerPreset": "full",
+        "visualizerType": "wave",
+        "visualizerPosition": "bottom",
         "widgetScale": 100,
         "widgetOpacity": 100,
         "colorMode": "auto",
@@ -432,6 +442,7 @@
         "enable": false,
         "placementStrategy": "free",
         "vizType": "bars",
+        "waveOpacity": -1,
         "barCount": 48,
         "barSpacing": 2,
         "dim": 0,

@@ -1208,6 +1208,40 @@ ContentPage {
                 }
             }
 
+            ContentSubsection {
+                title: Translation.tr("Visualizer")
+
+                WidgetSettingRow {
+                    label: Translation.tr("Type")
+                    icon: "graphic_eq"
+                    trailing: false
+                    ConfigSelectionArray {
+                        currentValue: Config.getNestedValue("background.widgets.mediaControls.visualizerType", "wave")
+                        onSelected: newValue => Config.setNestedValue("background.widgets.mediaControls.visualizerType", newValue)
+                        options: [
+                            { displayName: Translation.tr("Wave"), icon: "waves", value: "wave" },
+                            { displayName: Translation.tr("Bars"), icon: "equalizer", value: "bars" },
+                        ]
+                    }
+                }
+
+                WidgetSettingRow {
+                    label: Translation.tr("Position")
+                    icon: "swap_vert"
+                    trailing: false
+                    ConfigSelectionArray {
+                        currentValue: Config.getNestedValue("background.widgets.mediaControls.visualizerPosition", "bottom")
+                        onSelected: newValue => Config.setNestedValue("background.widgets.mediaControls.visualizerPosition", newValue)
+                        options: [
+                            { displayName: Translation.tr("Bottom"), icon: "vertical_align_bottom", value: "bottom" },
+                            { displayName: Translation.tr("Top"), icon: "vertical_align_top", value: "top" },
+                            { displayName: Translation.tr("Fill"), icon: "fullscreen", value: "fill" },
+                            { displayName: Translation.tr("Off"), icon: "visibility_off", value: "none" },
+                        ]
+                    }
+                }
+            }
+
             WidgetAppearanceControls {
                 configPath: "background.widgets.mediaControls"
                 configEntry: Config.getNestedValue("background.widgets.mediaControls", ({}))
@@ -1220,6 +1254,8 @@ ContentPage {
                 onClicked: {
                     Config.setNestedValue("background.widgets.mediaControls.placementStrategy", "leastBusy");
                     Config.setNestedValue("background.widgets.mediaControls.playerPreset", "full");
+                    Config.setNestedValue("background.widgets.mediaControls.visualizerType", "wave");
+                    Config.setNestedValue("background.widgets.mediaControls.visualizerPosition", "bottom");
                     Config.setNestedValue("background.widgets.mediaControls.widgetScale", 100);
                     Config.setNestedValue("background.widgets.mediaControls.widgetOpacity", 100);
                     Config.setNestedValue("background.widgets.mediaControls.colorMode", "auto");
@@ -1382,6 +1418,8 @@ ContentPage {
                 onClicked: {
                     Config.setNestedValue("background.widgets.visualizer.preset", "default");
                     Config.setNestedValue("background.widgets.visualizer.placementStrategy", "free");
+                    Config.setNestedValue("background.widgets.visualizer.vizType", "bars");
+                    Config.setNestedValue("background.widgets.visualizer.waveOpacity", -1);
                     Config.setNestedValue("background.widgets.visualizer.barCount", 48);
                     Config.setNestedValue("background.widgets.visualizer.barSpacing", 2);
                     Config.setNestedValue("background.widgets.visualizer.barRadius", 2);

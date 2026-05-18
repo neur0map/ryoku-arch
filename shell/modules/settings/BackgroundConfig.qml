@@ -2817,6 +2817,68 @@ ContentPage {
                     ]
                 }
             }
+
+            ContentSubsectionLabel {
+                text: Translation.tr("Visualizer")
+            }
+
+            ConfigRow {
+                Layout.fillWidth: true
+
+                ConfigSelectionArray {
+                    Layout.fillWidth: true
+                    currentValue: Config.options?.background?.widgets?.mediaControls?.visualizerType ?? "wave"
+                    onSelected: newValue => {
+                        Config.setNestedValue("background.widgets.mediaControls.visualizerType", newValue);
+                    }
+                    options: [
+                        {
+                            displayName: Translation.tr("Wave"),
+                            icon: "waves",
+                            value: "wave"
+                        },
+                        {
+                            displayName: Translation.tr("Bars"),
+                            icon: "equalizer",
+                            value: "bars"
+                        }
+                    ]
+                }
+            }
+
+            ConfigRow {
+                Layout.fillWidth: true
+
+                ConfigSelectionArray {
+                    Layout.fillWidth: true
+                    currentValue: Config.options?.background?.widgets?.mediaControls?.visualizerPosition ?? "bottom"
+                    onSelected: newValue => {
+                        Config.setNestedValue("background.widgets.mediaControls.visualizerPosition", newValue);
+                    }
+                    options: [
+                        {
+                            displayName: Translation.tr("Bottom"),
+                            icon: "vertical_align_bottom",
+                            value: "bottom"
+                        },
+                        {
+                            displayName: Translation.tr("Top"),
+                            icon: "vertical_align_top",
+                            value: "top"
+                        },
+                        {
+                            displayName: Translation.tr("Fill"),
+                            icon: "fullscreen",
+                            value: "fill"
+                        },
+                        {
+                            displayName: Translation.tr("Off"),
+                            icon: "visibility_off",
+                            value: "none"
+                        }
+                    ]
+                }
+            }
         }
     }
 
