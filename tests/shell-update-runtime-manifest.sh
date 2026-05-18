@@ -196,6 +196,9 @@ printf '%s\n' '# ryoku-manifest v2' 'shell.qml:' > "$runtime_target/.ryoku-manif
 touch \
   "$runtime_target/shell.qml" \
   "$runtime_target/docs/javascripts/mathjax.js" \
+  "$runtime_target/distro/arch/stale-runtime-git/.SRCINFO" \
+  "$runtime_target/distro/arch/stale-runtime-git/PKGBUILD" \
+  "$runtime_target/distro/arch/stale-runtime-git/stale-runtime-git.install" \
   "$runtime_target/distro/arch/stale-runtime-git/publish-aur.sh"
 
 log_info() { :; }
@@ -210,5 +213,14 @@ cleanup_orphans "$runtime_target" "$runtime_target/.ryoku-manifest"
 
 [[ ! -e $runtime_target/distro/arch/stale-runtime-git/publish-aur.sh ]] || \
   fail "orphan cleanup should remove stale full-repo runtime files"
+
+[[ ! -e $runtime_target/distro/arch/stale-runtime-git/PKGBUILD ]] || \
+  fail "orphan cleanup should remove stale package build files"
+
+[[ ! -e $runtime_target/distro/arch/stale-runtime-git/.SRCINFO ]] || \
+  fail "orphan cleanup should remove stale package metadata files"
+
+[[ ! -e $runtime_target/distro/arch/stale-runtime-git/stale-runtime-git.install ]] || \
+  fail "orphan cleanup should remove stale package install hook files"
 
 echo "PASS: shell update runtime manifest stays authoritative"
