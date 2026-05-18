@@ -528,6 +528,13 @@ Singleton {
                         property real x: 240
                         property real y: 240
                     }
+                    property JsonObject visualizer: JsonObject {
+                        property bool enable: false
+                        property string placementStrategy: "free" // "free", "leastBusy", "mostBusy"
+                        property int dim: 0
+                        property real x: 100
+                        property real y: 100
+                    }
                 }
                 property string wallpaperPath: ""
                 property string thumbnailPath: ""

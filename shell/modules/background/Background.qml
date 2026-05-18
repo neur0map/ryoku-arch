@@ -19,6 +19,7 @@ import qs.modules.background.widgets
 import qs.modules.background.widgets.clock
 import qs.modules.background.widgets.mediaControls
 import qs.modules.background.widgets.weather
+import qs.modules.background.widgets.visualizer
 import "root:modules/common/functions/parallax.js" as ParallaxMath
 
 Variants {
@@ -1061,6 +1062,17 @@ Variants {
                 FadeLoader {
                     shown: bgRoot.backgroundWidgetsOptions.mediaControls?.enable ?? true
                     sourceComponent: MediaControlsWidget {
+                        screenWidth: bgRoot.screen.width
+                        screenHeight: bgRoot.screen.height
+                        scaledScreenWidth: bgRoot.screen.width
+                        scaledScreenHeight: bgRoot.screen.height
+                        wallpaperScale: 1
+                    }
+                }
+
+                FadeLoader {
+                    shown: bgRoot.backgroundWidgetsOptions.visualizer?.enable ?? false
+                    sourceComponent: VisualizerWidget {
                         screenWidth: bgRoot.screen.width
                         screenHeight: bgRoot.screen.height
                         scaledScreenWidth: bgRoot.screen.width

@@ -2801,6 +2801,61 @@ ContentPage {
     }
 
     SettingsCardSection {
+        visible: root.isIiActive
+        expanded: false
+        icon: "equalizer"
+        title: Translation.tr("Widget: Visualizer")
+
+        SettingsGroup {
+            ConfigRow {
+                Layout.fillWidth: true
+
+                SettingsSwitch {
+                    Layout.fillWidth: false
+                    buttonIcon: "check"
+                    text: Translation.tr("Enable")
+                    checked: Config.options?.background?.widgets?.visualizer?.enable ?? false
+                    onCheckedChanged: {
+                        Config.setNestedValue("background.widgets.visualizer.enable", checked);
+                    }
+                    StyledToolTip {
+                        text: Translation.tr("Show the audio visualizer widget on the desktop")
+                    }
+                }
+
+                Item {
+                    Layout.fillWidth: true
+                }
+
+                ConfigSelectionArray {
+                    Layout.fillWidth: false
+                    currentValue: Config.options?.background?.widgets?.visualizer?.placementStrategy ?? "free"
+                    onSelected: newValue => {
+                        Config.setNestedValue("background.widgets.visualizer.placementStrategy", newValue);
+                    }
+                    options: [
+                        {
+                            displayName: Translation.tr("Draggable"),
+                            icon: "drag_pan",
+                            value: "free"
+                        },
+                        {
+                            displayName: Translation.tr("Least busy"),
+                            icon: "category",
+                            value: "leastBusy"
+                        },
+                        {
+                            displayName: Translation.tr("Most busy"),
+                            icon: "shapes",
+                            value: "mostBusy"
+                        }
+                    ]
+                }
+            }
+        }
+    }
+
+    SettingsCardSection {
         expanded: false
         icon: "notifications"
         title: Translation.tr("Notifications")
