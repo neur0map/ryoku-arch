@@ -30,6 +30,14 @@ extract_cp_file_function() {
   ' "$FUNCTIONS_SH"
 }
 
+extract_bootstrap_function() {
+  awk '
+    /^resolve_bootstrap_repo_root\(\) \{/ { capture = 1 }
+    capture { print }
+    capture && /^}/ { exit }
+  ' "$SETUP"
+}
+
 [[ -f $SETUP ]] || fail "missing shell/setup"
 [[ -f $INSTALL_CONFIG_SHELL ]] || fail "missing install/config/shell.sh"
 [[ -f $SHELL_UPDATES_QML ]] || fail "missing ShellUpdates.qml"
@@ -124,10 +132,51 @@ fi
 export XDG_CONFIG_HOME="$tmp_dir/xdg-config"
 export XDG_STATE_HOME="$tmp_dir/xdg-state"
 runtime_target="$tmp_dir/.config/quickshell/ryoku-shell"
+metadata_repo="$tmp_dir/metadata-repo"
+vendored_shell="$tmp_dir/ryoku-shell"
 mkdir -p \
   "$REPO_ROOT/sdata" \
+  "$metadata_repo/shell" \
+  "$vendored_shell" \
   "$runtime_target/docs/javascripts" \
   "$runtime_target/distro/arch/inir-shell-git"
+
+printf '9.9.9\n' > "$metadata_repo/VERSION"
+touch "$metadata_repo/shell/setup" "$metadata_repo/shell/shell.qml"
+touch "$vendored_shell/setup" "$vendored_shell/shell.qml"
+git -C "$metadata_repo" init -q
+git -C "$metadata_repo" config user.email "tests@example.invalid"
+git -C "$metadata_repo" config user.name "Ryoku Tests"
+git -C "$metadata_repo" add VERSION shell/setup shell/shell.qml
+git -C "$metadata_repo" commit -qm "seed metadata repo"
+
+eval "$(extract_bootstrap_function)"
+
+# shellcheck disable=SC2053 # AGENTS.md keeps variables unquoted in [[ ]].
+[[ $(resolve_bootstrap_repo_root "$vendored_shell") == $vendored_shell ]] || \
+  fail "setup bootstrap should allow detached vendored shell payloads"
+
+REPO_ROOT="$vendored_shell"
+RYOKU_PATH="$metadata_repo"
+export RYOKU_PATH
+# shellcheck source=shell/sdata/lib/versioning.sh
+source "$ROOT_DIR/shell/sdata/lib/versioning.sh"
+
+[[ $(get_repo_version) == "9.9.9" ]] || \
+  fail "setup should record the Ryoku repo version when running from detached shell payload"
+
+[[ $(get_repo_commit) != "unknown" ]] || \
+  fail "setup should record the Ryoku repo commit when running from detached shell payload"
+
+[[ $(get_install_mode) == "repo-copy" ]] || \
+  fail "detached shell payloads sourced from RYOKU_PATH should be treated as repo-copy installs"
+
+[[ $(get_update_strategy) == "repo-setup" ]] || \
+  fail "detached shell payloads sourced from RYOKU_PATH should keep repo-setup updates"
+
+# shellcheck disable=SC2053 # AGENTS.md keeps variables unquoted in [[ ]].
+[[ $(get_version_repo_path) == $metadata_repo ]] || \
+  fail "version metadata should point ShellUpdates at the Ryoku repo root"
 
 printf '%s\n' '# ryoku-manifest v2' 'shell.qml:' > "$runtime_target/.ryoku-manifest"
 touch \
