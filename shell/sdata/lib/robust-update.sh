@@ -106,6 +106,26 @@ get_orphan_files() {
     # Get current files in target (excluding hidden, backups, and non-tracked dirs)
     local current_files
     current_files=$(mktemp)
+    local allowed_top_levels
+    allowed_top_levels=$(mktemp)
+
+    {
+      find "$REPO_ROOT" -maxdepth 1 -name "*.qml" -type f -printf "%f\n" 2>/dev/null
+
+      if [[ -f "$runtime_root_manifest" ]]; then
+        while IFS= read -r runtime_file; do
+          [[ -n "$runtime_file" ]] || continue
+          printf '%s\n' "$runtime_file"
+        done < "$runtime_root_manifest"
+      fi
+
+      if [[ -f "$runtime_dirs_manifest" ]]; then
+        while IFS= read -r dir; do
+          [[ -n "$dir" ]] || continue
+          printf '%s\n' "$dir"
+        done < "$runtime_dirs_manifest"
+      fi
+    } | sort -u > "$allowed_top_levels"
 
     {
         # Root QML files
@@ -118,6 +138,18 @@ get_orphan_files() {
         find "$target_dir" -type f \
             \( -name "*.qml" -o -name "*.js" -o -name "*.py" -o -name "*.sh" -o -name "*.fish" \) \
             -printf "%P\n" 2>/dev/null
+
+        # Older updater paths accidentally copied full repository directories
+        # into the Quickshell runtime tree. Retired directories can contain
+        # non-code files such as PKGBUILD, .SRCINFO, or package install hooks,
+        # so extension-only scans leave stale runtime payload behind.
+        find "$target_dir" -type f -printf "%P\n" 2>/dev/null | while IFS= read -r rel_path; do
+          [[ -n "$rel_path" ]] || continue
+          [[ "$rel_path" == */* ]] || continue
+          local top_level="${rel_path%%/*}"
+          grep -qxF "$top_level" "$allowed_top_levels" && continue
+          echo "$rel_path"
+        done
 
         if [[ -f "$runtime_root_manifest" ]]; then
             while IFS= read -r runtime_file; do
@@ -145,7 +177,7 @@ get_orphan_files() {
     # Find files in current but not in manifest
     comm -23 "$current_files" "$manifest_paths"
 
-    rm -f "$current_files" "$manifest_paths"
+    rm -f "$current_files" "$manifest_paths" "$allowed_top_levels"
 }
 
 #####################################################################################
