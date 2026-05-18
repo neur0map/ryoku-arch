@@ -154,6 +154,8 @@ assert_grep "for f in /etc/sddm\\.conf\\.d/\\*\\.conf" "shell/scripts/sddm/insta
 assert_grep "Preserving current SDDM theme" "shell/scripts/sddm/install-pixel-sddm.sh"
 assert_grep "SDDM_CONF=\"/etc/sddm\\.conf\\.d/theme\\.conf\"" "shell/scripts/sddm/install-pixel-sddm.sh"
 assert_grep "LEGACY_SDDM_CONFS" "shell/scripts/sddm/install-pixel-sddm.sh"
+assert_grep "Qt\\.inputMethod\\.hide\\(\\)" "shell/dots/sddm/pixel/Main.qml"
+assert_grep "Qt\\.ImhNoAutoUppercase" "shell/dots/sddm/pixel/Main.qml"
 
 # -- ryoku-uninstall-qylock --------------------------------------------
 assert_file       "bin/ryoku-uninstall-qylock"
