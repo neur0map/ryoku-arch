@@ -5,7 +5,7 @@
 set -euo pipefail
 
 readonly FIX_LIB="$HOME/.local/lib/qt6-fix/libQt6Core.so.6.11.0"
-readonly DROPIN="$HOME/.config/systemd/user/inir.service.d/qt6-qiooperation-patch.conf"
+readonly DROPIN="$HOME/.config/systemd/user/ryoku-shell.service.d/qt6-qiooperation-patch.conf"
 readonly NOP5_HEX="0f1f440000"
 readonly OFFSETS=(0x32bf7a 0x32bfaa)
 
@@ -31,7 +31,7 @@ done
 # Confirm running shell loaded our copy
 pid=$(pgrep -f "/usr/bin/qs " | head -1 || true)
 if [[ -z $pid ]]; then
-    fail "no running qs process; start inir.service first"
+    fail "no running qs process; start ryoku-shell.service first"
 fi
 
 mapped=$(awk '/libQt6Core/ {print $NF; exit}' /proc/"$pid"/maps 2>/dev/null || true)

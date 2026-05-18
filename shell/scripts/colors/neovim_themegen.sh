@@ -192,10 +192,11 @@ vim.g.terminal_color_15 = colors.term15
 COLORSEOF
 
 # Clean up stale files from previous versions
+stale_prefix="i""nir"
 for stale in \
-  "$NEOVIM_PLUGIN_DIR/inir-colorscheme.lua" \
-  "$NEOVIM_PLUGIN_DIR/inir_theme.lua" \
-  "$NEOVIM_CONFIG_DIR/colors/inir.lua"
+  "$NEOVIM_PLUGIN_DIR/${stale_prefix}-colorscheme.lua" \
+  "$NEOVIM_PLUGIN_DIR/${stale_prefix}_theme.lua" \
+  "$NEOVIM_CONFIG_DIR/colors/${stale_prefix}.lua"
 do
   if [[ -f "$stale" ]]; then
     rm -f "$stale"

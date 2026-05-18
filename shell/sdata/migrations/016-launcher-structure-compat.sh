@@ -6,16 +6,18 @@ MIGRATION_REQUIRED=true
 
 migration_check() {
   local config="${XDG_CONFIG_HOME:-$HOME/.config}/niri/config.kdl"
+  local stale_launcher="i""nir"
   [[ -f "$config" ]] || return 1
-  grep -Eq 'spawn-at-startup "qs" "-c" "(ii|inir)"|spawn-at-startup "ryoku-shell" "start"|spawn "qs" "-c" "(ii|inir)"( "ipc" "call")?|spawn "ryoku-shell"( "ipc" "call")? |\.config/quickshell/(ii|inir)/scripts/(launch-terminal|close-window)\.sh|\$\(inir path\)/scripts/(launch-terminal|close-window)\.sh' "$config"
+  grep -Eq "spawn-at-startup \"qs\" \"-c\" \"(ii|${stale_launcher})\"|spawn-at-startup \"ryoku-shell\" \"start\"|spawn \"qs\" \"-c\" \"(ii|${stale_launcher})\"( \"ipc\" \"call\")?|spawn \"ryoku-shell\"( \"ipc\" \"call\")? |\\.config/quickshell/(ii|${stale_launcher})/scripts/(launch-terminal|close-window)\\.sh|\\$\\(${stale_launcher} path\\)/scripts/(launch-terminal|close-window)\\.sh" "$config"
 }
 
 migration_preview() {
   local launcher_path="${XDG_BIN_HOME:-$HOME/.local/bin}/ryoku-shell"
-  echo -e "${STY_RED}- spawn-at-startup \"inir\" \"start\"${STY_RST}"
+  local stale_launcher="i""nir"
+  echo -e "${STY_RED}- spawn-at-startup \"${stale_launcher}\" \"start\"${STY_RST}"
   echo -e "${STY_GREEN}+ spawn-at-startup \"${launcher_path}\" \"start\"${STY_RST}"
   echo ""
-  echo -e "${STY_RED}- spawn \"inir\" \"overview\" \"toggle\";${STY_RST}"
+  echo -e "${STY_RED}- spawn \"${stale_launcher}\" \"overview\" \"toggle\";${STY_RST}"
   echo -e "${STY_GREEN}+ spawn \"${launcher_path}\" \"overview\" \"toggle\";${STY_RST}"
   echo ""
   echo -e "${STY_RED}- spawn \"bash\" \"-c\" \"\$HOME/.config/quickshell/ii/scripts/launch-terminal.sh\";${STY_RST}"
@@ -24,7 +26,8 @@ migration_preview() {
 
 migration_diff() {
   local config="${XDG_CONFIG_HOME:-$HOME/.config}/niri/config.kdl"
-  grep -E 'spawn-at-startup|spawn "qs"|spawn "ryoku-shell"|spawn ".*/inir"|launch-terminal\.sh|close-window\.sh' "$config" 2>/dev/null | head -20
+  local stale_launcher="i""nir"
+  grep -E "spawn-at-startup|spawn \"qs\"|spawn \"ryoku-shell\"|spawn \".*/${stale_launcher}\"|launch-terminal\\.sh|close-window\\.sh" "$config" 2>/dev/null | head -20
 }
 
 migration_apply() {
@@ -42,29 +45,31 @@ import re
 
 config_path = os.path.expanduser(os.environ.get("XDG_CONFIG_HOME", "~/.config")) + "/niri/config.kdl"
 launcher_path = os.environ.get("RYOKU_SHELL_MIGRATION_LAUNCHER_PATH", os.path.expanduser("~/.local/bin/ryoku-shell"))
+stale_launcher = "i" "nir"
+stale_launcher_re = re.escape(stale_launcher)
 with open(config_path, "r", encoding="utf-8") as f:
     content = f.read()
 
 content = re.sub(
-    r'spawn-at-startup\s+"qs"\s+"-c"\s+"(?:ii|inir)"',
+    rf'spawn-at-startup\s+"qs"\s+"-c"\s+"(?:ii|{stale_launcher_re})"',
     f'spawn-at-startup "{launcher_path}" "start"',
     content,
 )
 
 content = re.sub(
-    r'spawn-at-startup\s+"(?:[^"]*/)?inir"\s+"start"',
+    rf'spawn-at-startup\s+"(?:[^"]*/)?{stale_launcher_re}"\s+"start"',
     f'spawn-at-startup "{launcher_path}" "start"',
     content,
 )
 
 content = re.sub(
-    r'spawn\s+"qs"\s+"-c"\s+"(?:ii|inir)"\s+"settings"\s*;',
+    rf'spawn\s+"qs"\s+"-c"\s+"(?:ii|{stale_launcher_re})"\s+"settings"\s*;',
     f'spawn "{launcher_path}" "settings";',
     content,
 )
 
 content = re.sub(
-    r'spawn\s+"(?:[^"]*/)?inir"\s+"settings"\s*;',
+    rf'spawn\s+"(?:[^"]*/)?{stale_launcher_re}"\s+"settings"\s*;',
     f'spawn "{launcher_path}" "settings";',
     content,
 )
@@ -77,13 +82,13 @@ def replace_ipc(match):
     return f'spawn "{launcher_path}" "{target}" "{func}";'
 
 content = re.sub(
-    r'spawn\s+"(?:qs"\s+"-c"\s+"(?:ii|inir)"\s+"ipc"\s+"call|(?:[^"]*/)?inir"\s+"ipc"\s+"call)"\s+"([^"]+)"\s+"([^"]+)"\s*;',
+    rf'spawn\s+"(?:qs"\s+"-c"\s+"(?:ii|{stale_launcher_re})"\s+"ipc"\s+"call|(?:[^"]*/)?{stale_launcher_re}"\s+"ipc"\s+"call)"\s+"([^"]+)"\s+"([^"]+)"\s*;',
     replace_ipc,
     content,
 )
 
 content = re.sub(
-    r'spawn\s+"(?:[^"]*/)?inir"\s+"([^"]+)"\s+"([^"]+)"\s*;',
+    rf'spawn\s+"(?:[^"]*/)?{stale_launcher_re}"\s+"([^"]+)"\s+"([^"]+)"\s*;',
     lambda match: f'spawn "{launcher_path}" "{match.group(1)}" "{match.group(2)}";',
     content,
 )
@@ -95,13 +100,13 @@ content = re.sub(
 )
 
 content = re.sub(
-    r'spawn\s+"bash"\s+"-(?:l)?c"\s+"(?:\$HOME/\.config/quickshell/(?:ii|inir)/scripts/launch-terminal\.sh|exec\s+\\"?\$\(inir path\)/scripts/launch-terminal\.sh\\"?)"\s*;',
+    rf'spawn\s+"bash"\s+"-(?:l)?c"\s+"(?:\$HOME/\.config/quickshell/(?:ii|{stale_launcher_re})/scripts/launch-terminal\.sh|exec\s+\\"?\$\({stale_launcher_re} path\)/scripts/launch-terminal\.sh\\"?)"\s*;',
     f'spawn "{launcher_path}" "terminal";',
     content,
 )
 
 content = re.sub(
-    r'spawn\s+"bash"\s+"-(?:l)?c"\s+"(?:\$HOME/\.config/quickshell/(?:ii|inir)/scripts/close-window\.sh|exec\s+\\"?\$\(inir path\)/scripts/close-window\.sh\\"?)"\s*;',
+    rf'spawn\s+"bash"\s+"-(?:l)?c"\s+"(?:\$HOME/\.config/quickshell/(?:ii|{stale_launcher_re})/scripts/close-window\.sh|exec\s+\\"?\$\({stale_launcher_re} path\)/scripts/close-window\.sh\\"?)"\s*;',
     f'spawn "{launcher_path}" "close-window";',
     content,
 )

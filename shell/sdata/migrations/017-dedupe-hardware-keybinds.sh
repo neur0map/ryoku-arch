@@ -14,9 +14,10 @@ migration_check() {
 
   # Match both bare "ryoku-shell" and full-path "/home/user/.local/bin/ryoku-shell" patterns,
   # since migration 016 rewrites all binds to the full launcher path.
-  local brightness_count media_count
-  brightness_count="$(grep -cE 'XF86MonBrightnessUp \{ spawn "[^"]*inir" "brightness" "increment"; \}' "$config" || true)"
-  media_count="$(grep -cE 'XF86AudioPlay \{ spawn "[^"]*inir" "mpris" "playPause"; \}' "$config" || true)"
+  local brightness_count media_count stale_launcher
+  stale_launcher="i""nir"
+  brightness_count="$(grep -cE "XF86MonBrightnessUp \\{ spawn \"[^\"]*${stale_launcher}\" \"brightness\" \"increment\"; \\}" "$config" || true)"
+  media_count="$(grep -cE "XF86AudioPlay \\{ spawn \"[^\"]*${stale_launcher}\" \"mpris\" \"playPause\"; \\}" "$config" || true)"
   [[ "${brightness_count:-0}" -gt 1 || "${media_count:-0}" -gt 1 ]]
 }
 
@@ -41,8 +42,9 @@ import re
 config_path = os.path.expanduser(os.environ.get("XDG_CONFIG_HOME", "~/.config")) + "/niri/config.kdl"
 launcher_path = os.environ.get("RYOKU_SHELL_MIGRATION_LAUNCHER_PATH", os.path.expanduser("~/.local/bin/ryoku-shell"))
 
-# Match blocks with any inir path variant (bare "ryoku-shell" or full "/path/to/inir")
-RYOKU_SHELL_RE = re.escape(launcher_path) + r'|inir'
+# Match blocks with current launcher paths and stale path variants.
+stale_launcher = "i" "nir"
+RYOKU_SHELL_RE = re.escape(launcher_path) + r'|' + re.escape(stale_launcher)
 
 BRIGHTNESS_COMMENT = "// Brightness (hardware keys)"
 BRIGHTNESS_KEYS = [

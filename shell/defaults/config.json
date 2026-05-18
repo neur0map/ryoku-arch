@@ -64,6 +64,16 @@
   },
   "appearance": {
     "globalStyle": "material",
+    "aurora": {
+      "transparency": {
+        "overlay": 0.30,
+        "subSurface": 0.42,
+        "popup": 0.32,
+        "tooltip": 0.28,
+        "layer": 0.32
+      },
+      "customPreset": ""
+    },
     "angelSubStyle": "frost",
     "extraBackgroundTint": true,
     "softenColors": true,
@@ -97,16 +107,16 @@
     },
     "angel": {
       "blur": {
-        "intensity": 0.5,
-        "saturation": 0.15,
-        "overlayOpacity": 0.35,
+        "intensity": 0.35,
+        "saturation": 0.2,
+        "overlayOpacity": 0.45,
         "noiseOpacity": 0.2,
         "vignetteStrength": 0.15
       },
       "transparency": {
-        "panel": 0.35,
-        "card": 0.5,
-        "popup": 0.35,
+        "panel": 0.28,
+        "card": 0.4,
+        "popup": 0.28,
         "tooltip": 0.25
       },
       "escalonado": {
@@ -174,7 +184,7 @@
       "enableVSCode": true,
       "enableChrome": true,
       "enableSpicetify": false,
-      "enableAdwSteam": false,
+      "enableSteam": false,
       "enablePearDesktop": true,
       "enableOpenCode": false,
       "enableNeovim": true,

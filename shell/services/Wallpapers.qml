@@ -17,7 +17,7 @@ Singleton {
 
     signal wallpaperBlurTransitionRequested(var targetMonitors, int durationMs)
 
-    readonly property bool _debugWallpaperUrls: (Quickshell.env("INIR_DEBUG_WALLPAPER_URLS") ?? "") === "1"
+    readonly property bool _debugWallpaperUrls: (Quickshell.env("RYOKU_DEBUG_WALLPAPER_URLS") ?? "") === "1"
 
     // Suppression flag: prevents ThemeService from firing a duplicate
     // switchwall.sh run while a direct apply() is already in progress.
@@ -496,7 +496,7 @@ Singleton {
             root.changed()
             return
         default:
-            root.select(normalizedPath, darkMode, monitorName)
+            root.apply(normalizedPath, darkMode, monitorName)
             return
         }
     }
@@ -827,7 +827,7 @@ Singleton {
             if (thumbgenProc.running) return
             thumbgenProc.directory = root._pendingThumbnailDir
             thumbgenProc._size = root._pendingThumbnailSize
-            thumbgenProc.command = [thumbgenScriptPath, "--size", root._pendingThumbnailSize, "--machine_progress", "-d", root._pendingThumbnailDir]
+            thumbgenProc.command = [thumbgenScriptPath, "--size", root._pendingThumbnailSize, "--workers", "4", "--machine_progress", "-d", root._pendingThumbnailDir]
             root.thumbnailGenerationProgress = 0
             thumbgenProc.running = true
         }
@@ -838,8 +838,7 @@ Singleton {
         property string directory
         property string _size: ""
         environment: ({
-            "INIR_VENV": Quickshell.env("INIR_VENV") || Quickshell.env("HOME") + "/.local/state/quickshell/.venv",
-            "ILLOGICAL_IMPULSE_VIRTUAL_ENV": Quickshell.env("INIR_VENV") || Quickshell.env("HOME") + "/.local/state/quickshell/.venv"
+            "RYOKU_SHELL_VENV": Quickshell.env("RYOKU_SHELL_VENV") || Quickshell.env("HOME") + "/.local/state/quickshell/.venv"
         })
         stdout: SplitParser {
             onRead: data => {

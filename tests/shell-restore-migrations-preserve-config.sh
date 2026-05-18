@@ -23,9 +23,9 @@ assert_contains "migrations/1778000000.sh" "ryoku-shell-branding\\.sh" \
   "pristine shell restore migration should re-apply Ryoku shell branding after config restore"
 
 assert_contains "migrations/1778100000.sh" "restore_user_shell_config" \
-  "iNiR-to-Ryoku migration should merge the backed-up user config"
+  "source-to-Ryoku migration should merge the backed-up user config"
 assert_contains "migrations/1778100000.sh" "ryoku-shell-branding\\.sh" \
-  "iNiR-to-Ryoku migration should re-apply Ryoku shell branding after config restore"
+  "source-to-Ryoku migration should re-apply Ryoku shell branding after config restore"
 
 assert_contains "install/config/shell.sh" "restore_user_shell_config" \
   "shell updater should merge the active user config around shell setup install"

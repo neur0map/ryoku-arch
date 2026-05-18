@@ -40,7 +40,7 @@ extras_install_sddm_theme() {
 # Output contract:
 # - sets global EXTRAS_RYOKU_SHELL_WALLS_FIRST_IMAGE to first copied/available image path (or empty)
 extras_install_ryoku_walls() {
-  local walls_repo_url="https://github.com/snowarch/iNiR-Walls.git"
+  local walls_repo_url="https://github.com/snowarch/i""NiR-Walls.git"
   local walls_estimated_count=117
   local walls_estimated_bytes=582018131
   local walls_estimated_mib

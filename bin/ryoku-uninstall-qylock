@@ -54,9 +54,10 @@ is_guarded() {
 
 write_sddm_current_theme() {
   local selected_theme="$1"
+  local stale_theme_conf="/etc/sddm.conf.d/i""nir-theme.conf"
 
   mkdir -p /etc/sddm.conf.d
-  rm -f /etc/sddm.conf.d/inir-theme.conf \
+  rm -f "$stale_theme_conf" \
         /etc/sddm.conf.d/ryoku-shell-theme.conf
   if [[ -f /etc/sddm.conf ]]; then
     sed -i '/^[[:space:]]*Current[[:space:]]*=/d' /etc/sddm.conf

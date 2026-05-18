@@ -44,18 +44,20 @@ fi
 
 if [[ -d $runtime_root/distro/arch ]]; then
   step "pkgbuild syntax"
-  bash -n \
-    "$runtime_root/distro/arch/inir-shell/PKGBUILD" \
-    "$runtime_root/distro/arch/inir-shell-git/PKGBUILD" \
-    "$runtime_root/distro/arch/inir-meta/PKGBUILD"
+  shopt -s nullglob
+  pkgbuilds=("$runtime_root"/distro/arch/*/PKGBUILD)
+  shopt -u nullglob
+  if (( ${#pkgbuilds[@]} > 0 )); then
+    bash -n "${pkgbuilds[@]}"
+  fi
 
   if [[ -f $runtime_root/VERSION ]]; then
     step "version consistency"
     version="$(cat "$runtime_root/VERSION")"
-    for pkg in inir-shell inir-meta; do
-      pkg_ver="$(grep -m1 '^pkgver=' "$runtime_root/distro/arch/$pkg/PKGBUILD" | cut -d= -f2)"
+    for pkgbuild in "${pkgbuilds[@]}"; do
+      pkg_ver="$(grep -m1 '^pkgver=' "$pkgbuild" | cut -d= -f2)"
       if [[ "$pkg_ver" != "$version" ]]; then
-        printf 'FAIL: %s pkgver=%s != VERSION=%s\n' "$pkg" "$pkg_ver" "$version" >&2
+        printf 'FAIL: %s pkgver=%s != VERSION=%s\n' "$pkgbuild" "$pkg_ver" "$version" >&2
         exit 1
       fi
     done

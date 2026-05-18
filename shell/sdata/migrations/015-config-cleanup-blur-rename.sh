@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Migration: Clean orphan config keys and rename videoBlurStrength
 #
 # Removes deprecated blurStatic keys (blur now only activates with windows)
@@ -14,7 +14,7 @@ MIGRATION_REQUIRED=true
 
 _config_path() {
   local xdg_config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
-  local config_new="${xdg_config_home}/inir/config.json"
+  local config_new="${xdg_config_home}/ryoku-shell/config.json"
   local config_legacy="${xdg_config_home}/illogical-impulse/config.json"
 
   if [[ -f "$config_legacy" ]]; then

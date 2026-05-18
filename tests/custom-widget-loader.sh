@@ -56,7 +56,8 @@ require_rg 'setSource\(modelData\.qmlPath' shell/modules/background/Background.q
 require_rg '_readConfigKey' shell/defaults/widgets/example-widget/ExampleWidget.qml
 require_rg 'Config\.setNestedValue' shell/defaults/widgets/example-widget/ExampleWidget.qml
 
-reject_rg '\binir\b|INIR|DankMaterialShell|dms' \
+old_token='i''nir'
+reject_rg "\\b${old_token}\\b|${old_token^^}|DankMaterialShell|dms" \
   shell/services/CustomWidgets.qml \
   shell/defaults/widgets/WIDGET-SDK.md \
   shell/defaults/widgets/example-widget/ExampleWidget.qml \

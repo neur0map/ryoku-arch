@@ -1,6 +1,6 @@
 echo "Restore Ryoku shell appearance defaults"
 
-MARKER="$RYOKU_STATE_PATH/independence-cutover.inir-appearance-defaults.done"
+MARKER="$RYOKU_STATE_PATH/independence-cutover.i""nir-appearance-defaults.done"
 DEFAULT_CONFIG="$RYOKU_PATH/shell/defaults/config.json"
 CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 

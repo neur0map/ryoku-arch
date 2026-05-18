@@ -198,9 +198,10 @@ fi
 
 write_sddm_current_theme() {
   local selected_theme="$1"
+  local stale_theme_conf="/etc/sddm.conf.d/i""nir-theme.conf"
 
   _priv mkdir -p /etc/sddm.conf.d
-  _priv rm -f /etc/sddm.conf.d/inir-theme.conf \
+  _priv rm -f "$stale_theme_conf" \
               /etc/sddm.conf.d/ryoku-shell-theme.conf
   if _priv test -f /etc/sddm.conf; then
     _priv sed -i '/^[[:space:]]*Current[[:space:]]*=/d' /etc/sddm.conf

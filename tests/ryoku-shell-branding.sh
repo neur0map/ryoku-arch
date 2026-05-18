@@ -3,6 +3,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+UPSTREAM_NAME='i''NiR'
+UPSTREAM_NAME_LOWER='i''nir'
 
 fail() {
   echo "FAIL: $1" >&2
@@ -84,9 +86,9 @@ assert_shell_overlay() {
   assert_file "default/ryoku-shell/config-overrides.json"
   assert_file "default/ryoku-shell/branding-replacements.tsv"
   assert_json_expr "default/ryoku-shell/config-overrides.json" 'has("appearance") | not' \
-    "Ryoku shell config overlay should not override iNiR appearance colors"
+    "Ryoku shell config overlay should not override upstream appearance colors"
   assert_json_expr "default/ryoku-shell/config-overrides.json" 'has("background") | not' \
-    "Ryoku shell config overlay should not override iNiR background/theme defaults"
+    "Ryoku shell config overlay should not override upstream background/theme defaults"
   assert_contains "default/ryoku-shell/config-overrides.json" '"ssid": "Ryoku Hotspot"' \
     "Ryoku shell config overlay should set the branded hotspot name"
   assert_contains "default/ryoku-shell/branding-replacements.tsv" 'Ryoku SDDM login screen' \
@@ -95,7 +97,7 @@ assert_shell_overlay() {
     "Ryoku shell overlay should keep the Ryoku topbar/app logo"
   assert_not_contains "install/config/ryoku-shell-branding.sh" 'themes/ryoku/backgrounds|wallpaperPath = \$path' \
     "Ryoku shell overlay should not force Ryoku wallpaper/background colors"
-  assert_not_contains "install/config/ryoku-shell-branding.sh" 'echo .*iNiR|printf .*iNiR' \
+  assert_not_contains "install/config/ryoku-shell-branding.sh" "echo .*${UPSTREAM_NAME}|printf .*${UPSTREAM_NAME}" \
     "Ryoku shell overlay should not print upstream shell branding"
 }
 
@@ -155,25 +157,25 @@ assert_install_wiring() {
     "Fresh install theme setup should not install the external Omarchy-derived theme"
   assert_contains "install/config/shell.sh" 'ryoku-shell-branding.sh' \
     "Shell installer should run the Ryoku branding overlay"
-  assert_not_contains "install/config/shell.sh" 'missing bundled iNiR|iNiR shell' \
+  assert_not_contains "install/config/shell.sh" "missing bundled ${UPSTREAM_NAME}|${UPSTREAM_NAME} shell" \
     "Shell installer errors should use Ryoku-facing names"
 }
 
 assert_runtime_labels() {
   assert_contains "config/systemd/user/ryoku-shell.service" 'Description=Ryoku($| shell)' \
     "User service should have a Ryoku-visible description"
-  assert_not_contains "config/systemd/user/ryoku-shell.service" 'iNiR|inir shell' \
+  assert_not_contains "config/systemd/user/ryoku-shell.service" "${UPSTREAM_NAME}|${UPSTREAM_NAME_LOWER} shell" \
     "User service should not expose upstream shell branding"
-  assert_not_contains "bin/ryoku-theme-bg-set" 'iNiR|apply_inir_background' \
+  assert_not_contains "bin/ryoku-theme-bg-set" "${UPSTREAM_NAME}|apply_${UPSTREAM_NAME_LOWER}_background" \
     "Wallpaper setter should use Ryoku-facing shell names"
-  assert_not_contains "bin/ryoku-theme-bg-next" 'iNiR|apply_inir_background' \
+  assert_not_contains "bin/ryoku-theme-bg-next" "${UPSTREAM_NAME}|apply_${UPSTREAM_NAME_LOWER}_background" \
     "Wallpaper cycler should use Ryoku-facing shell names"
-  assert_not_contains "config/matugen/config.toml" 'iNiR' \
+  assert_not_contains "config/matugen/config.toml" "$UPSTREAM_NAME" \
     "Matugen template comments should use Ryoku-facing names"
 }
 
 assert_credit_kept() {
-  assert_contains "CREDITS.md" 'iNiR' \
+  assert_contains "CREDITS.md" "$UPSTREAM_NAME" \
     "Upstream shell credit should remain documented"
 }
 

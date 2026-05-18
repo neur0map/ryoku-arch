@@ -38,13 +38,14 @@ assert_allows_file() {
 }
 
 main() {
-  local temp_dir
+  local temp_dir upstream_shell
 
   temp_dir="$(mktemp -d)"
+  upstream_shell='i''nir'
   trap "rm -rf '$temp_dir'" EXIT
 
   assert_rejects_file "$temp_dir" "hardcoded-home.kdl" \
-    'Mod+Space { spawn "/home/carlos/.local/bin/inir" "overview" "toggle"; }'
+    "Mod+Space { spawn \"/home/carlos/.local/bin/${upstream_shell}\" \"overview\" \"toggle\"; }"
   assert_rejects_file "$temp_dir" "mac-home.conf" \
     'source = /Users/carlos/.config/ryoku/private.conf'
   assert_rejects_file "$temp_dir" "windows-home.txt" \
@@ -55,7 +56,7 @@ main() {
     '/boot/EFI/Linux/a639ef7cc2654160ad26279f5e849b21_linux.efi'
 
   assert_allows_file "$temp_dir" "portable-paths.sh" \
-    'exec "$HOME/.local/bin/inir" "$RYOKU_PATH/install/config/inir.sh" ~/.config/niri/config.kdl'
+    "exec \"\$HOME/.local/bin/${upstream_shell}\" \"\$RYOKU_PATH/install/config/${upstream_shell}.sh\" ~/.config/niri/config.kdl"
 
   grep -Eq 'ryoku-dev-scan-leaks"?[[:space:]]+--staged' "$ROOT_DIR/.githooks/pre-commit" || {
     echo "FAIL: pre-commit should call ryoku-dev-scan-leaks --staged" >&2

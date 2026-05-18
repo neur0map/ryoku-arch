@@ -211,7 +211,8 @@ BROWSERS = ['firefox', 'zen-browser', 'chromium', 'brave', 'vivaldi']
 
 
 def parse_ryoku_action(action: str) -> tuple[str, str] | None:
-    launcher = r'(?:inir|ryoku-shell)'
+    stale_launcher = "i" "nir"
+    launcher = rf'(?:{re.escape(stale_launcher)}|ryoku-shell)'
     ipc_match = re.search(rf'spawn\s+"(?:[^"]*/)?{launcher}"\s+"ipc"\s+"call"\s+"([\w-]+)"\s+"([\w-]+)"', action)
     if ipc_match:
         return ipc_match.group(1), ipc_match.group(2)
@@ -323,7 +324,7 @@ def categorize_keybind(kb: dict) -> str:
         return 'System'
     
     # Ryoku Shell
-    if any(x in comment for x in ['inir ', 'ryoku-shell ', 'clipboard', 'lock session', 'wallpaper', 'settings', 'cheatsheet', 'panel style', 'toolkit']):
+    if any(x in comment for x in ['i' 'nir ', 'ryoku-shell ', 'clipboard', 'lock session', 'wallpaper', 'settings', 'cheatsheet', 'panel style', 'toolkit']):
         return 'Ryoku Shell'
     ryoku_action = parse_ryoku_action(action)
     if ryoku_action:

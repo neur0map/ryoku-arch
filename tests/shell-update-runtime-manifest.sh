@@ -119,13 +119,13 @@ runtime_target="$tmp_dir/.config/quickshell/ryoku-shell"
 mkdir -p \
   "$REPO_ROOT/sdata" \
   "$runtime_target/docs/javascripts" \
-  "$runtime_target/distro/arch/inir-shell-git"
+  "$runtime_target/distro/arch/stale-runtime-git"
 
 printf '%s\n' '# ryoku-manifest v2' 'shell.qml:' > "$runtime_target/.ryoku-manifest"
 touch \
   "$runtime_target/shell.qml" \
   "$runtime_target/docs/javascripts/mathjax.js" \
-  "$runtime_target/distro/arch/inir-shell-git/publish-aur.sh"
+  "$runtime_target/distro/arch/stale-runtime-git/publish-aur.sh"
 
 log_info() { :; }
 # shellcheck source=shell/sdata/lib/robust-update.sh
@@ -137,7 +137,7 @@ cleanup_orphans "$runtime_target" "$runtime_target/.ryoku-manifest"
 [[ ! -e $runtime_target/docs/javascripts/mathjax.js ]] || \
   fail "orphan cleanup should remove tracked files outside current payload directories"
 
-[[ ! -e $runtime_target/distro/arch/inir-shell-git/publish-aur.sh ]] || \
+[[ ! -e $runtime_target/distro/arch/stale-runtime-git/publish-aur.sh ]] || \
   fail "orphan cleanup should remove stale full-repo runtime files"
 
 echo "PASS: shell update runtime manifest stays authoritative"

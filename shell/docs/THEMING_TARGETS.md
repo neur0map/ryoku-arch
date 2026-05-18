@@ -147,7 +147,7 @@ The scaffold refuses to overwrite existing files.
 - `chrome`
 - `spicetify`
 - `sddm`
-- `steam` — Adwaita-for-Steam Material You CSS
+- `steam` — Millennium Material-Theme Matugen CSS
 
 Current declared input model:
 

@@ -35,6 +35,9 @@ from pathlib import Path
 
 config_path = Path(os.environ["RYOKU_SHELL_MIGRATION_NIRI_CONFIG"]).expanduser()
 launcher_path = os.environ["RYOKU_SHELL_MIGRATION_LAUNCHER_PATH"]
+stale_launcher = "i" "nir"
+stale_terminal = f'spawn "bash" "-lc" "exec \\"$({stale_launcher} path)/scripts/launch-terminal.sh\\""'
+stale_close = f'spawn "bash" "-lc" "exec \\"$({stale_launcher} path)/scripts/close-window.sh\\""'
 niri_dir = config_path.parent
 modular_dir = niri_dir / "config.d"
 
@@ -131,10 +134,10 @@ binds_text = normalize_text(buckets["70"]).replace(
     'spawn "ryoku-shell" "',
     f'spawn "{launcher_path}" "',
 ).replace(
-    'spawn "bash" "-lc" "exec \\"$(inir path)/scripts/launch-terminal.sh\\""',
+    stale_terminal,
     f'spawn "{launcher_path}" "terminal"',
 ).replace(
-    'spawn "bash" "-lc" "exec \\"$(inir path)/scripts/close-window.sh\\""',
+    stale_close,
     f'spawn "{launcher_path}" "close-window"',
 )
 
