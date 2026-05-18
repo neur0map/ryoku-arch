@@ -14,14 +14,13 @@ systemd_user_dir="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 launcher_root="$(cd -- "$script_dir/.." 2>/dev/null && pwd || printf '%s' "$script_dir")"
 ryoku_path_default="$HOME/.local/share/ryoku"
-ryoku_legacy_path="$HOME/.local/share/omarchy"
 
 if [[ -n ${RYOKU_PATH:-} ]]; then
   export RYOKU_PATH
 elif [[ -e $ryoku_path_default ]]; then
   export RYOKU_PATH="$ryoku_path_default"
 else
-  export RYOKU_PATH="$ryoku_legacy_path"
+  export RYOKU_PATH="$launcher_root"
 fi
 
 case ":$PATH:" in
@@ -1257,6 +1256,7 @@ kill_shell() {
     done
     # Fallback: if qs kill didn't clean up, send SIGTERM to remaining qs processes.
     local remaining escaped_dir
+    # shellcheck disable=SC2016
     escaped_dir="$(printf '%s' "$dir" | sed 's/[.[\*^$()+|/]/\\&/g')"
     remaining="$(pgrep -f "${qs_bin}.*-p.*${escaped_dir}" 2>/dev/null || true)"
     if [[ -n "$remaining" ]]; then

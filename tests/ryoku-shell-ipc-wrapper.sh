@@ -26,6 +26,8 @@ rg -q 'ipc call -- "\$target" "\$@"' "$script" \
   || fail "target IPC wrapper should pass -- before target/function"
 rg -q 'ipc call -- "\$@"' "$script" \
   || fail "generic IPC wrapper should pass -- before target/function"
+! rg -q '\\.local/share/omarchy|ryoku_legacy_path' "$script" \
+  || fail "ryoku-shell launcher should not fall back to old shell checkouts"
 
 rg -q '\[recordingOsd\]="toggle show hide"' "$registry" \
   || fail "recordingOsd show/hide functions should remain registered"
@@ -44,5 +46,14 @@ rg -q "shellUpdate shell-update.*diagnose refresh" "$fish_completion" \
 legacy_cmd="i""nir"
 ! rg -q "spawn \"$legacy_cmd\"" "$registry" \
   || fail "generated IPC help examples should use ryoku-shell"
+
+for qml_path in \
+  shell/modules/waffle/widgets/WidgetsContent.qml \
+  shell/modules/controlPanel/WallpaperSection.qml \
+  shell/services/GlobalActions.qml; do
+  [[ -f $qml_path ]] || fail "missing runtime command surface: $qml_path"
+  ! rg -q "scripts/$legacy_cmd|spawn \"$legacy_cmd\"|\\b$legacy_cmd\\b .*ipc" "$qml_path" \
+    || fail "$qml_path should not call old shell commands"
+done
 
 echo "PASS: ryoku-shell IPC wrapper handles reserved function names"
