@@ -215,18 +215,18 @@ Scope {
                 id: cardBg
                 anchors.fill: parent
 
-                radius: Appearance.inirEverywhere ? Appearance.inir.roundingLarge
+                radius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingLarge
                       : Appearance.rounding.large
 
                 // Base color — colLayer1Base is the raw m3surfaceContainerLow without
                 // contentTransparency mixing, so the wizard stays solid even when the user
                 // has transparency enabled in Material/Cards styles.
-                color: Appearance.inirEverywhere ? Appearance.inir.colLayer1
+                color: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer1
                      : Appearance.auroraEverywhere ? "transparent"
                      : Appearance.colors.colLayer1Base
 
-                border.width: Appearance.inirEverywhere ? 1 : (Appearance.auroraEverywhere ? 0 : 1)
-                border.color: Appearance.inirEverywhere ? Appearance.inir.colBorder
+                border.width: Appearance.ryokuEverywhere ? 1 : (Appearance.auroraEverywhere ? 0 : 1)
+                border.color: Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
                             : Appearance.colors.colLayer0Border
 
                 Behavior on color { ColorAnimation { duration: Appearance.animation.elementMoveFast.duration } }
@@ -422,7 +422,7 @@ Scope {
                     Layout.leftMargin: 20
                     Layout.rightMargin: 20
                     height: 1
-                    color: Appearance.inirEverywhere ? Appearance.inir.colBorderSubtle
+                    color: Appearance.ryokuEverywhere ? Appearance.ryoku.colBorderSubtle
                          : Appearance.colors.colOutlineVariant
                 }
 
@@ -680,12 +680,12 @@ Scope {
             Layout.maximumWidth: 540
             implicitWidth: 520
             implicitHeight: previewCol.implicitHeight + 24
-            radius: Appearance.inirEverywhere ? Appearance.inir.roundingNormal : Appearance.rounding.normal
-            color: Appearance.inirEverywhere ? Appearance.inir.colLayer2
+            radius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal : Appearance.rounding.normal
+            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
                  : Appearance.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colLayer2, 0.5)
                  : Appearance.colors.colLayer2
-            border.width: Appearance.inirEverywhere ? 1 : 0
-            border.color: Appearance.inir.colBorderSubtle
+            border.width: Appearance.ryokuEverywhere ? 1 : 0
+            border.color: Appearance.ryoku.colBorderSubtle
 
             ColumnLayout {
                 id: previewCol
@@ -771,16 +771,16 @@ Scope {
                     readonly property bool selected: (Config.options?.settingsUi?.easyMode ?? false) === true
                     implicitWidth: 240
                     implicitHeight: easyCardCol.implicitHeight + 24
-                    radius: Appearance.inirEverywhere ? Appearance.inir.roundingNormal : Appearance.rounding.normal
+                    radius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal : Appearance.rounding.normal
                     color: selected
                         ? Appearance.colors.colPrimaryContainer
-                        : (Appearance.inirEverywhere ? Appearance.inir.colLayer2
+                        : (Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
                           : Appearance.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colLayer2, 0.5)
                           : Appearance.colors.colLayer2)
                     border.width: selected ? 2 : 1
                     border.color: selected
                         ? Appearance.colors.colPrimary
-                        : (Appearance.inirEverywhere ? Appearance.inir.colBorderSubtle
+                        : (Appearance.ryokuEverywhere ? Appearance.ryoku.colBorderSubtle
                           : Appearance.colors.colLayer0Border)
 
                     Behavior on color {
@@ -845,16 +845,16 @@ Scope {
                     readonly property bool selected: (Config.options?.settingsUi?.easyMode ?? false) === false
                     implicitWidth: 240
                     implicitHeight: advancedCardCol.implicitHeight + 24
-                    radius: Appearance.inirEverywhere ? Appearance.inir.roundingNormal : Appearance.rounding.normal
+                    radius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal : Appearance.rounding.normal
                     color: selected
                         ? Appearance.colors.colPrimaryContainer
-                        : (Appearance.inirEverywhere ? Appearance.inir.colLayer2
+                        : (Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
                           : Appearance.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colLayer2, 0.5)
                           : Appearance.colors.colLayer2)
                     border.width: selected ? 2 : 1
                     border.color: selected
                         ? Appearance.colors.colPrimary
-                        : (Appearance.inirEverywhere ? Appearance.inir.colBorderSubtle
+                        : (Appearance.ryokuEverywhere ? Appearance.ryoku.colBorderSubtle
                           : Appearance.colors.colLayer0Border)
 
                     Behavior on color {
@@ -1516,12 +1516,12 @@ Scope {
                     Layout.preferredWidth: 340
                     Layout.alignment: Qt.AlignTop
                     implicitHeight: shortcutsCardCol.implicitHeight + 24
-                    radius: Appearance.inirEverywhere ? Appearance.inir.roundingNormal : Appearance.rounding.normal
-                    color: Appearance.inirEverywhere ? Appearance.inir.colLayer2
+                    radius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal : Appearance.rounding.normal
+                    color: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
                          : Appearance.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colLayer2, 0.5)
                          : Appearance.colors.colLayer2
-                    border.width: Appearance.inirEverywhere ? 1 : 0
-                    border.color: Appearance.inir.colBorderSubtle
+                    border.width: Appearance.ryokuEverywhere ? 1 : 0
+                    border.color: Appearance.ryoku.colBorderSubtle
 
                     ColumnLayout {
                         id: shortcutsCardCol
@@ -1587,12 +1587,12 @@ Scope {
                     Layout.preferredWidth: 340
                     Layout.alignment: Qt.AlignTop
                     implicitHeight: tryItCardCol.implicitHeight + 24
-                    radius: Appearance.inirEverywhere ? Appearance.inir.roundingNormal : Appearance.rounding.normal
-                    color: Appearance.inirEverywhere ? Appearance.inir.colLayer2
+                    radius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal : Appearance.rounding.normal
+                    color: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
                          : Appearance.auroraEverywhere ? ColorUtils.transparentize(Appearance.colors.colLayer2, 0.5)
                          : Appearance.colors.colLayer2
-                    border.width: Appearance.inirEverywhere ? 1 : 0
-                    border.color: Appearance.inir.colBorderSubtle
+                    border.width: Appearance.ryokuEverywhere ? 1 : 0
+                    border.color: Appearance.ryoku.colBorderSubtle
 
                     ColumnLayout {
                         id: tryItCardCol
@@ -1715,7 +1715,7 @@ Scope {
                 Layout.preferredWidth: 694
                 Layout.maximumWidth: 700
                 Layout.preferredHeight: helpCalloutRow.implicitHeight + 18
-                buttonRadius: Appearance.inirEverywhere ? Appearance.inir.roundingNormal : Appearance.rounding.normal
+                buttonRadius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingNormal : Appearance.rounding.normal
                 colBackground: ColorUtils.transparentize(Appearance.colors.colPrimaryContainer, 0.6)
                 colBackgroundHover: ColorUtils.transparentize(Appearance.colors.colPrimaryContainer, 0.4)
 
