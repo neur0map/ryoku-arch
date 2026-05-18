@@ -36,28 +36,26 @@ WBarAttachedPanelContent {
     }
 
     contentItem: WPane {
+        anchors.centerIn: parent
+        borderColor: Looks.colors.ambientShadow
         screenX: root.panelScreenX + root.visualMargin
         screenY: root.panelScreenY + root.visualMargin
         screenWidth: root._screenW
         screenHeight: root._screenH
         contentItem: Item {
-            implicitWidth: 300
-            implicitHeight: 90
-
-            Rectangle {
-                anchors.fill: parent
-                color: Looks.colors.bgPanelFooter
-            }
+            implicitWidth: contentRow.implicitWidth + 20
+            implicitHeight: contentRow.implicitHeight + 20
 
             RowLayout {
+                id: contentRow
                 anchors.fill: parent
                 anchors.margins: 10
                 spacing: 12
 
-                // Album art (larger, like ModernFlyouts)
+                // Album art
                 Rectangle {
-                    Layout.preferredWidth: 70
-                    Layout.preferredHeight: 70
+                    Layout.fillHeight: true
+                    implicitWidth: height
                     radius: Looks.radius.medium
                     color: Looks.colors.bg1Base
 
@@ -85,7 +83,7 @@ WBarAttachedPanelContent {
                     Rectangle {
                         anchors.fill: parent
                         radius: Looks.radius.medium
-                        color: ColorUtils.transparentize(Looks.colors.bg0, 0.3)
+                        color: ColorUtils.transparentize(Looks.colors.bg0Opaque, 0.3)
                         visible: root.action !== ""
 
                         FluentIcon {
@@ -106,26 +104,25 @@ WBarAttachedPanelContent {
                     }
                 }
 
-                // Info column
+                // Info + controls
                 ColumnLayout {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     spacing: 4
 
-                    // Title
                     WText {
                         Layout.fillWidth: true
-                        text: StringUtils.cleanMusicTitle(root.player?.trackTitle) ?? Translation.tr("No media")
+                        text: StringUtils.cleanMusicTitle(root.effectiveTitle) || Translation.tr("No media")
                         font.pixelSize: Looks.font.pixelSize.normal
                         font.weight: Font.DemiBold
+                        color: Looks.colors.fg
                         elide: Text.ElideRight
                         maximumLineCount: 1
                     }
 
-                    // Artist
                     WText {
                         Layout.fillWidth: true
-                        text: root.player?.trackArtist ?? ""
+                        text: root.effectiveArtist
                         font.pixelSize: Looks.font.pixelSize.small
                         color: Looks.colors.subfg
                         elide: Text.ElideRight
