@@ -16,7 +16,7 @@ Singleton {
     property bool ready: false
     readonly property string currentTheme: Config.options?.appearance?.theme ?? "auto"
     readonly property bool isAutoTheme: currentTheme === "auto"
-    readonly property bool isStandaloneSettingsWindow: (Quickshell.env("INIR_STANDALONE_WINDOW") ?? "") === "1"
+    readonly property bool isStandaloneSettingsWindow: (Quickshell.env("RYOKU_SHELL_STANDALONE_WINDOW") ?? "") === "1"
     readonly property bool defaultApplyExternal: !isStandaloneSettingsWindow
     readonly property bool vesktopEnabled: (Config.options?.appearance?.wallpaperTheming?.enableVesktop ?? true) !== false
     readonly property var wallpaperThemingCfg: Config.options?.appearance?.wallpaperTheming ?? null

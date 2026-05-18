@@ -99,18 +99,33 @@ resolve_target_module_path() {
   printf '%s\n' "$module_path"
 }
 
+target_manifest_key_enabled() {
+  local config_key="$1"
+  [[ -n $config_key ]] || return 0
+  [[ -f $CONFIG_FILE ]] || return 0
+
+  local value
+  value=$(jq -r --arg key "$config_key" 'getpath($key | split(".")) as $v | if $v == null then true else $v end' "$CONFIG_FILE" 2>/dev/null || printf 'true')
+  [[ $value != "false" ]]
+}
+
 target_manifest_enabled() {
   local manifest_path="$1"
   [[ -f $manifest_path ]] || return 1
   command -v jq >/dev/null 2>&1 || return 0
 
-  local config_key value
-  config_key=$(jq -r '.configKey // empty' "$manifest_path" 2>/dev/null || true)
-  [[ -n $config_key ]] || return 0
-  [[ -f $CONFIG_FILE ]] || return 0
+  local config_key
+  local -a config_keys=()
+  mapfile -t config_keys < <(jq -r '.configKeys[]? // empty' "$manifest_path" 2>/dev/null || true)
+  if (( ${#config_keys[@]} > 0 )); then
+    for config_key in "${config_keys[@]}"; do
+      target_manifest_key_enabled "$config_key" && return 0
+    done
+    return 1
+  fi
 
-  value=$(jq -r --arg key "$config_key" 'getpath($key | split(".")) as $v | if $v == null then true else $v end' "$CONFIG_FILE" 2>/dev/null || printf 'true')
-  [[ $value != "false" ]]
+  config_key=$(jq -r '.configKey // empty' "$manifest_path" 2>/dev/null || true)
+  target_manifest_key_enabled "$config_key"
 }
 
 list_declared_theming_modules() {
