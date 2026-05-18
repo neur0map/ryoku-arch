@@ -15,26 +15,45 @@ import qs.modules.background.widgets.clock.minuteMarks
 Item {
     id: root
 
-    readonly property string clockStyle: Config.getNestedValue("background.widgets.clock.style", "digital")
+    readonly property string clockStyle: Config.getNestedValue("background.widgets.clock.style", "cookie")
     readonly property bool aiStyling: Config.getNestedValue("background.widgets.clock.cookie.aiStyling", false)
     readonly property bool constantlyRotate: Config.getNestedValue("background.widgets.clock.cookie.constantlyRotate", false)
-    readonly property int cookieSides: Config.getNestedValue("background.widgets.clock.cookie.sides", 15)
-    readonly property string cookieDateStyle: Config.getNestedValue("background.widgets.clock.cookie.dateStyle", "bubble")
-    readonly property string hourHandStyle: Config.getNestedValue("background.widgets.clock.cookie.hourHandStyle", "hollow")
-    readonly property string minuteHandStyle: Config.getNestedValue("background.widgets.clock.cookie.minuteHandStyle", "hide")
-    readonly property string secondHandStyle: Config.getNestedValue("background.widgets.clock.cookie.secondHandStyle", "hide")
+    readonly property int sides: Config.getNestedValue("background.widgets.clock.cookie.sides", 14)
     readonly property bool hourMarks: Config.getNestedValue("background.widgets.clock.cookie.hourMarks", false)
-    readonly property bool timeIndicators: Config.getNestedValue("background.widgets.clock.cookie.timeIndicators", false)
+    readonly property bool timeIndicators: Config.getNestedValue("background.widgets.clock.cookie.timeIndicators", true)
+    readonly property string minuteHandStyle: Config.getNestedValue("background.widgets.clock.cookie.minuteHandStyle", "medium")
+    readonly property string hourHandStyle: Config.getNestedValue("background.widgets.clock.cookie.hourHandStyle", "fill")
+    readonly property string secondHandStyle: Config.getNestedValue("background.widgets.clock.cookie.secondHandStyle", "dot")
+    readonly property string dateStyle: Config.getNestedValue("background.widgets.clock.cookie.dateStyle", "bubble")
 
-    property real implicitSize: 230
+    property real scaleFactor: 1.0
+    property real implicitSize: Math.round((Config.getNestedValue("background.widgets.clock.cookie.size", 230)) * scaleFactor)
+
+    // Style-dispatched colors, overridable from the parent widget.
+    readonly property color _primaryColor: Appearance.angelEverywhere ? Appearance.angel.colPrimary
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimary
+        : Appearance.auroraEverywhere ? Appearance.m3colors.m3primary
+        : Appearance.colors.colPrimary
+    readonly property color _secondaryColor: Appearance.angelEverywhere ? Appearance.angel.colSecondary
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colSecondary
+        : Appearance.auroraEverywhere ? Appearance.m3colors.m3secondary
+        : Appearance.colors.colSecondary
+    readonly property color _tertiaryColor: Appearance.angelEverywhere ? Appearance.angel.colTertiary
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colTertiary
+        : Appearance.auroraEverywhere ? Appearance.m3colors.m3tertiary
+        : Appearance.colors.colTertiary
+    readonly property color _primaryContainerColor: Appearance.angelEverywhere ? Appearance.angel.colPrimaryContainer
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimaryContainer
+        : Appearance.auroraEverywhere ? Appearance.m3colors.m3primaryContainer
+        : Appearance.colors.colPrimaryContainer
 
     property color colShadow: Appearance.colors.colShadow
-    property color colBackground: Appearance.colors.colPrimaryContainer
-    property color colOnBackground: ColorUtils.mix(Appearance.colors.colSecondary, Appearance.colors.colPrimaryContainer, 0.15)
-    property color colBackgroundInfo: ColorUtils.mix(Appearance.colors.colPrimary, Appearance.colors.colPrimaryContainer, 0.55)
-    property color colHourHand: Appearance.colors.colPrimary
-    property color colMinuteHand: Appearance.colors.colTertiary
-    property color colSecondHand: Appearance.colors.colPrimary
+    property color colBackground: root._primaryContainerColor
+    property color colOnBackground: ColorUtils.mix(root._secondaryColor, root._primaryContainerColor, 0.15)
+    property color colBackgroundInfo: ColorUtils.mix(root._primaryColor, root._primaryContainerColor, 0.55)
+    property color colHourHand: root._primaryColor
+    property color colMinuteHand: root._tertiaryColor
+    property color colSecondHand: root._primaryColor
 
     readonly property list<string> clockNumbers: DateTime.time.split(/[: ]/)
     readonly property int clockHour: parseInt(clockNumbers[0]) % 12
@@ -118,7 +137,7 @@ Item {
         active: useSineCookie
         sourceComponent: SineCookie {
             implicitSize: root.implicitSize
-            sides: root.cookieSides
+            sides: root.sides
             color: root.colBackground
         }
     }
@@ -129,7 +148,7 @@ Item {
         active: !useSineCookie
         sourceComponent: MaterialCookie {
             implicitSize: root.implicitSize
-            sides: root.cookieSides
+            sides: root.sides
             color: root.colBackground
         }
     }
@@ -196,7 +215,7 @@ Item {
     // Second hand
     FadeLoader {
         id: secondHandLoader
-        z: (root.secondHandStyle === "line") ? 2 : 3
+        z: root.secondHandStyle === "line" ? 2 : 3
         shown: Config.options.time.secondPrecision && root.secondHandStyle !== "hide"
         anchors.fill: parent
         sourceComponent: SecondHand {
@@ -223,11 +242,11 @@ Item {
     // Date
     FadeLoader {
         anchors.fill: parent
-        shown: root.cookieDateStyle !== "hide"
+        shown: root.dateStyle !== "hide"
 
         sourceComponent: DateIndicator {
             color: root.colBackgroundInfo
-            style: root.cookieDateStyle
+            style: root.dateStyle
         }
     }
 }
