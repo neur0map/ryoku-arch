@@ -99,9 +99,7 @@ const upstreamFeatureKeys = [
   'Suppress notifications',
   'Disable Niri animations',
   'Booru download paths',
-  '10 MB fits Discord Free',
-  'Music Player (rmpc)',
-  'Open Extras → Music'
+  '10 MB fits Discord Free'
 ];
 
 const enUS = JSON.parse(fs.readFileSync(path.join(localDir, 'en_US.json'), 'utf8'));
