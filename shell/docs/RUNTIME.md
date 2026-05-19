@@ -171,4 +171,4 @@ qs -vv -c inir
 QS_DEBUG=1 qs -c inir
 ```
 
-Check `inir logs` for recent journal output, or `inir doctor` for automated diagnostics.
+Check `inir logs` for recent journal output, or `ryoku-doctor` for automated diagnostics.

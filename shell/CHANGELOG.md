@@ -438,7 +438,7 @@ Shoutout to [@yukazakiri](https://github.com/yukazakiri) for basically adopting 
 - **AUR-ready Arch packaging**: Complete PKGBUILD ecosystem (`inir-shell-git`, `inir-shell`, `inir-meta`) with 51 dependencies and 37 optional dependencies, `.SRCINFO` generation, and AUR publish workflow. Installs runtime to `/usr/share/quickshell/inir/` with package-managed metadata.
 - **Compositor/Niri settings page**: New settings page with scrollable tiling presets, gaps, window rules, decoration, and animation controls.
 - **Target-driven palette generation**: Theming pipeline supports target-driven Material You palette extraction for more precise color matching.
-- **Font verification in doctor**: `setup doctor` now checks for critical fonts (Material Symbols, Roboto Flex, JetBrains Mono NF, Oxanium) and offers automatic installation.
+- **Font verification in doctor**: `ryoku-doctor` now checks for critical fonts (Material Symbols, Roboto Flex, JetBrains Mono NF, Oxanium) and offers automatic installation.
 - **Centralized app command execution**: App launcher routes all launch commands through a unified execution path with compositor-aware dispatching.
 - **Expanded Niri controls in settings**: Tools surface split with additional Niri-specific compositor controls.
 - **Qt/Quickshell ABI mismatch detection**: Three-layer detection (startup check, restart guard, doctor probe) prevents crashes from Qt↔Quickshell version incompatibility.

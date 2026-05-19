@@ -114,7 +114,7 @@ Quick start:
   ryoku-shell restart           Restart the shell
   ryoku-shell logs              View runtime logs
   ryoku-shell status            Shell status info
-  ryoku-shell doctor            Health checks
+  ryoku-doctor                  Health checks
 
 EOF
 
@@ -142,7 +142,7 @@ Runtime:
   start, stop, run, restart, kill, terminal, browser, close-window, colorpicker
 
 Maintenance (delegates to setup):
-  install, reinstall, update, doctor, status, migrate, rollback, my-changes, uninstall
+  install, reinstall, update, status, migrate, rollback, my-changes, uninstall
   config, info, backup, logs, setup
 
 Other:
@@ -307,7 +307,7 @@ repair_usage() {
 Usage: ryoku-shell repair [-c PATH]
 
 What it does:
-  1. runs setup doctor inline
+  1. runs Ryoku diagnostics inline
   2. restarts the shell if a graphical session is available
   3. prints recent logs plus filtered errors
 
@@ -353,7 +353,7 @@ Most people only need:
   ryoku-shell settings
   ryoku-shell update
   ryoku-shell status
-  ryoku-shell doctor
+  ryoku-doctor
   ryoku-shell overview toggle
   ryoku-shell terminal
   ryoku-shell browser
@@ -495,7 +495,7 @@ check_qs_abi() {
     else
         echo "Fix: rebuild quickshell from source against the current Qt version" >&2
     fi
-    echo "Or run: ryoku-shell doctor  (to auto-detect and fix)" >&2
+    echo "Or run: ryoku-doctor  (to auto-detect and fix)" >&2
     echo "" >&2
     exit 1
 }
@@ -2750,7 +2750,15 @@ case "$command_name" in
     cleanup-orphans)
         cleanup_orphans
         ;;
-    doctor|migrate|status|update|reinstall|rollback|my-changes|uninstall|config|info|backup)
+    doctor)
+        if command -v ryoku-doctor >/dev/null 2>&1; then
+            exec ryoku-doctor "$@"
+        fi
+        printf 'The shell doctor alias is deprecated. Run: ryoku-doctor\n' >&2
+        setup_dir="$(resolve_setup_dir)"
+        run_setup_command "$setup_dir" "$command_name" "$@"
+        ;;
+    migrate|status|update|reinstall|rollback|my-changes|uninstall|config|info|backup)
         while [[ $# -gt 0 ]]; do
             case "$1" in
                 -c|--config)

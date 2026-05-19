@@ -18,7 +18,7 @@ This avoids conflicts with system packages and makes updates more reliable.
 
 Packages are installed automatically by:
 - `./setup install` (full installation)
-- `./setup doctor` (fixes missing packages)
+- `ryoku-doctor` (fixes missing packages)
 
 Manual installation:
 ```bash

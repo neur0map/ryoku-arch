@@ -246,7 +246,7 @@ case "${SKIP_QUICKSHELL}" in
       if ! verify_qs_loads 8; then
         log_error "Verification failed!"
         echo ""
-        log_warning "Update may have issues — run './setup doctor' or './setup restore' to rollback"
+        log_warning "Update may have issues — run 'ryoku-doctor' or './setup restore' to rollback"
         echo ""
       else
         log_success "Verification passed"
@@ -1131,7 +1131,7 @@ if ! ${quiet:-false}; then
 
   echo ""
   if [[ $_VERIFY_ERRORS -gt 0 ]]; then
-    tui_warn "$_VERIFY_ERRORS critical file(s) missing — run './setup doctor' to diagnose"
+    tui_warn "$_VERIFY_ERRORS critical file(s) missing — run 'ryoku-doctor' to diagnose"
   else
     tui_success "All critical QML files verified"
   fi

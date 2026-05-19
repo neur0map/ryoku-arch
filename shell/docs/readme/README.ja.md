@@ -65,7 +65,7 @@ Wayland → GPU
 
 手に負えなくなった個人プロジェクトです。毎日使ってる、Discord の人たちも大勢使ってる。でも時々壊れる、コードは荒いところもある、やりながら学んでる。
 
-何か動かなかったら `inir doctor` で大体直る。それでダメなら Discord が活発。洗練されたソフトを期待しないで、これは一人の rice で、たまたま他の人も気に入っただけ。
+何か動かなかったら `ryoku-doctor` で大体直る。それでダメなら Discord が活発。洗練されたソフトを期待しないで、これは一人の rice で、たまたま他の人も気に入っただけ。
 
 ### なぜ存在する？
 
@@ -201,7 +201,7 @@ cd inir
 inir run                        # シェルを起動
 inir settings                   # 設定 GUI を開く
 inir logs                       # ランタイムログを確認
-inir doctor                     # 自動診断と修復
+ryoku-doctor                     # 自動診断と修復
 inir update                     # pull + マイグレーション + 再起動
 ```
 
@@ -257,7 +257,7 @@ inir update                     # pull + マイグレーション + 再起動
 inir logs                       # 最近のランタイムログを確認
 inir restart                    # アクティブなランタイムを再起動
 inir repair                     # doctor + 再起動 + フィルタ済みログチェック
-./setup doctor                  # 一般的な問題の自動診断と修復
+ryoku-doctor                  # 一般的な問題の自動診断と修復
 ./setup rollback                # 最後のアップデートを取り消し
 ```
 

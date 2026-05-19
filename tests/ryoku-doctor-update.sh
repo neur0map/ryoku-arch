@@ -11,6 +11,8 @@ fail() {
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
+current_user="$(id -un)"
+current_host="$(hostname 2>/dev/null || true)"
 
 mkdir -p "$tmp/bin" "$tmp/fake-ryoku/bin" "$tmp/conflicts/usr/share/example" "$tmp/backups" "$tmp/state/quickshell/user"
 touch "$tmp/conflicts/usr/share/example/payload.sh"
@@ -19,6 +21,7 @@ cat >"$tmp/update.log" <<LOG
 warning: archlinux-keyring-20260420-1 is up to date -- skipping
 error: failed to commit transaction (conflicting files)
 example-tool: $tmp/conflicts/usr/share/example/payload.sh exists in filesystem
+debug-context: $HOME $current_user $current_host
 Errors occurred, no packages were upgraded.
 LOG
 
@@ -105,6 +108,7 @@ PATH="$tmp/bin:$PATH" \
   || fail "ryoku-update should resolve its repo root when called through a symlink"
 
 output=$(
+  TMPDIR="$tmp" \
   RYOKU_PATH="$tmp/checkout-offer" \
   RYOKU_UPDATE_REMOTE_URL="$tmp/remote.git" \
   RYOKU_DOCTOR_ASSUME_NO=1 \
@@ -127,6 +131,22 @@ grep -Fq 'Fast-forward Ryoku now? [Y/n] n' <<<"$output" \
   || fail "doctor should allow users to skip the fast-forward"
 grep -Fq 'Run: ryoku-update -y' <<<"$output" \
   || fail "doctor should tell users the short retry command"
+grep -Fq 'Doctor report:' <<<"$output" \
+  || fail "doctor should print a shareable update report path"
+report_path="$(sed -n 's/.*Doctor report: //p' <<<"$output" | tail -1)"
+[[ -f $report_path ]] || fail "doctor update report should exist"
+[[ $report_path == "$tmp"/ryoku-doctor-report.*/report.txt ]] \
+  || fail "doctor update report should be written under TMPDIR with a ryoku-doctor-report prefix"
+grep -Fq 'Detected pacman file conflicts.' "$report_path" \
+  || fail "doctor update report should include detected issues"
+grep -Fq 'payload.sh exists in filesystem' "$report_path" \
+  || fail "doctor update report should include a sanitized log excerpt"
+grep -Fq "$HOME" "$report_path" \
+  && fail "doctor update report should anonymize the home path"
+grep -Fq "$current_user" "$report_path" \
+  && fail "doctor update report should anonymize the username"
+[[ -n $current_host ]] && grep -Fq "$current_host" "$report_path" \
+  && fail "doctor update report should anonymize the hostname"
 if grep -Fq 'package signature or keyring issue' <<<"$output"; then
   fail "doctor should not warn on normal archlinux-keyring update lines"
 fi

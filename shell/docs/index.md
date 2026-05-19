@@ -55,7 +55,7 @@ inir run            # start the shell
 inir restart        # restart running instance
 inir settings       # open settings UI
 inir logs           # view runtime logs
-inir doctor         # health checks and auto-fix
+ryoku-doctor         # health checks and auto-fix
 inir update         # pull + migrate + restart
 ```
 

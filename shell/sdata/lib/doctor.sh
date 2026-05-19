@@ -8,6 +8,8 @@ doctor_passed=0
 doctor_failed=0
 doctor_fixed=0
 doctor_missing_deps=()
+doctor_report_dir=""
+doctor_report_file=""
 
 # Ensure XDG paths are always defined (doctor can be sourced outside setup bootstrap)
 XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
@@ -23,12 +25,126 @@ doctor_pass() {
 
 doctor_fail() {
     tui_error "$1"
+    doctor_report_issue "FAIL" "$1"
     ((doctor_failed++)) || true
 }
 
 doctor_fix() {
     tui_warn "Fixed: $1"
+    doctor_report_issue "FIX" "$1"
     ((doctor_fixed++)) || true
+}
+
+doctor_anonymize_report_line() {
+    local line="$*"
+    local home_path="${HOME:-}"
+    local user_name=""
+    local host_name=""
+
+    user_name="$(id -un 2>/dev/null || true)"
+    host_name="$(hostname 2>/dev/null || true)"
+
+    if [[ -n $home_path ]]; then
+        line="${line//$home_path/~}"
+    fi
+
+    line="$(printf '%s\n' "$line" | sed -E 's#/home/[^/[:space:]]+#~#g; s#/run/user/[0-9]+#/run/user/<uid>#g')"
+
+    if [[ -n $user_name ]]; then
+        line="${line//$user_name/<user>}"
+    fi
+
+    if [[ -n $host_name ]]; then
+        line="${line//$host_name/<host>}"
+    fi
+
+    printf '%s\n' "$line"
+}
+
+doctor_report_line() {
+    [[ -n $doctor_report_file ]] || return 0
+    doctor_anonymize_report_line "$*" >> "$doctor_report_file"
+}
+
+doctor_report_issue() {
+    local status="$1"
+    shift
+
+    [[ -n $doctor_report_file ]] || return 0
+    doctor_report_line "- ${status} $*"
+}
+
+doctor_report_value() {
+    local label="$1"
+    local value="${2:-unknown}"
+
+    doctor_report_line "${label}: ${value:-unknown}"
+}
+
+doctor_report_init() {
+    local report_base="${TMPDIR:-/tmp}"
+    local runtime_dir=""
+    local service_state="unknown"
+
+    doctor_report_dir="$(mktemp -d "${report_base}/ryoku-doctor-report.XXXXXXXX" 2>/dev/null || true)"
+    if [[ -z $doctor_report_dir ]]; then
+        return 0
+    fi
+
+    doctor_report_file="${doctor_report_dir}/report.txt"
+    : > "$doctor_report_file" || {
+        doctor_report_dir=""
+        doctor_report_file=""
+        return 0
+    }
+    chmod 600 "$doctor_report_file" 2>/dev/null || true
+
+    runtime_dir="$(doctor_runtime_dir 2>/dev/null || get_runtime_shell_dir 2>/dev/null || true)"
+    if command -v systemctl >/dev/null 2>&1; then
+        service_state="$(systemctl --user is-active ryoku-shell.service 2>/dev/null || true)"
+        [[ -n $service_state ]] || service_state="unknown"
+    fi
+
+    doctor_report_line "Ryoku Doctor Report"
+    doctor_report_line "Generated: $(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || date 2>/dev/null || printf 'unknown')"
+    doctor_report_line "Privacy: home path, username, hostname, and runtime UID are anonymized."
+    doctor_report_line ""
+    doctor_report_line "Context"
+    doctor_report_value "Repo" "${REPO_ROOT:-unknown}"
+    doctor_report_value "Runtime" "${runtime_dir:-unknown}"
+    if declare -F get_installed_version >/dev/null 2>&1; then
+        doctor_report_value "Installed Version" "$(get_installed_version 2>/dev/null || printf 'unknown')"
+    fi
+    if declare -F get_installed_commit >/dev/null 2>&1; then
+        doctor_report_value "Installed Commit" "$(get_installed_commit 2>/dev/null || printf 'unknown')"
+    fi
+    if declare -F get_installed_install_mode >/dev/null 2>&1; then
+        doctor_report_value "Install Mode" "$(get_installed_install_mode 2>/dev/null || printf 'unknown')"
+    fi
+    if declare -F get_installed_update_strategy >/dev/null 2>&1; then
+        doctor_report_value "Update Strategy" "$(get_installed_update_strategy 2>/dev/null || printf 'unknown')"
+    fi
+    doctor_report_value "Service" "$service_state"
+    doctor_report_line ""
+    doctor_report_line "Issues"
+}
+
+doctor_report_finish() {
+    [[ -n $doctor_report_file && -f $doctor_report_file ]] || return 0
+
+    if ! grep -q '^- ' "$doctor_report_file" 2>/dev/null; then
+        doctor_report_line "- NONE No failing checks or automatic fixes were recorded."
+    fi
+
+    doctor_report_line ""
+    doctor_report_value "Summary Passed" "$doctor_passed"
+    doctor_report_value "Summary Fixed" "$doctor_fixed"
+    doctor_report_value "Summary Failed" "$doctor_failed"
+}
+
+doctor_report_print_path() {
+    [[ -n $doctor_report_file ]] || return 0
+    tui_info "Doctor report: $doctor_report_file"
 }
 
 doctor_detect_compositor_service() {
@@ -1130,7 +1246,7 @@ check_quickshell_loads() {
         # Check for ABI mismatch in crash output
         if echo "$output" | grep -qiE "built against Qt|Qt.*mismatch|incompatible Qt"; then
             doctor_fail "Quickshell crashed due to Qt ABI mismatch"
-            echo -e "  ${STY_YELLOW}Run: ryoku-shell doctor  (to auto-rebuild quickshell)${STY_RST}"
+            echo -e "  ${STY_YELLOW}Run: ryoku-doctor  (to auto-rebuild quickshell)${STY_RST}"
             return 1
         fi
         
@@ -1216,7 +1332,7 @@ check_matugen_colors() {
             fi
         else
             doctor_fail "Theme colors not generated"
-            echo -e "    ${STY_FAINT}Set a wallpaper via settings, then run: ./setup doctor${STY_RST}"
+            echo -e "    ${STY_FAINT}Set a wallpaper via settings, then run: ryoku-doctor${STY_RST}"
             return 1
         fi
     else
@@ -1514,15 +1630,58 @@ check_niri_config() {
 # Main
 ###############################################################################
 
+# Run a doctor check as an animated step. Output is buffered while the spinner
+# runs. Single-result steps show the result inline; multi-result steps expand
+# details below.
+_doctor_run_step() {
+    local step="$1" total="$2" desc="$3"
+    shift 3
+
+    local tmpfile pre_failed pre_fixed new_fails new_fixes lines msg
+    tmpfile="$(mktemp)"
+    pre_failed=$doctor_failed
+    pre_fixed=$doctor_fixed
+
+    tui_step_start "$step" "$total" "$desc"
+    "$@" > "$tmpfile" 2>&1
+
+    new_fails=$((doctor_failed - pre_failed))
+    new_fixes=$((doctor_fixed - pre_fixed))
+
+    lines=0
+    [[ -s $tmpfile ]] && lines="$(grep -c '.' "$tmpfile" 2>/dev/null || true)"
+
+    msg=""
+    if (( lines == 1 )); then
+        msg="$(sed 's/\x1b\[[0-9;]*m//g; s/^[[:space:]]*//; s/^[✓✗⚠→] //' "$tmpfile")"
+    fi
+
+    if (( new_fails > 0 )); then
+        tui_step_fail "${msg:-$desc}"
+    elif (( new_fixes > 0 )); then
+        tui_step_warn "${msg:-Fixed: $desc}"
+    else
+        tui_step_done "${msg:-$desc}"
+    fi
+
+    if (( lines > 1 )); then
+        sed 's/^/  /' "$tmpfile"
+    fi
+    rm -f "$tmpfile"
+}
+
 run_doctor_with_fixes() {
     local total_steps=23
     local doctor_started_at=$SECONDS
     doctor_passed=0
     doctor_failed=0
     doctor_fixed=0
+    doctor_report_dir=""
+    doctor_report_file=""
+
+    doctor_report_init
     
-    tui_step 1 $total_steps "Checking dependencies"
-    check_dependencies
+    _doctor_run_step 1 $total_steps "Checking dependencies" check_dependencies
 
     if [[ ${#doctor_missing_deps[@]} -gt 0 ]]; then
         detect_distro
@@ -1532,7 +1691,10 @@ run_doctor_with_fixes() {
                     SKIP_SYSUPDATE=true
                     ONLY_MISSING_DEPS="${doctor_missing_deps[*]}"
                     source ./sdata/subcmd-install/1.deps-router.sh
-                    check_dependencies
+                    doctor_passed=0
+                    doctor_failed=0
+                    doctor_fixed=0
+                    _doctor_run_step 1 $total_steps "Re-checking dependencies" check_dependencies
                 fi
                 ;;
             *)
@@ -1542,71 +1704,51 @@ run_doctor_with_fixes() {
         esac
     fi
     
-    tui_step 2 $total_steps "Checking fonts"
-    check_fonts
+    _doctor_run_step 2 $total_steps "Checking fonts" check_fonts
     
-    tui_step 3 $total_steps "Checking repo checkout"
-    check_repo_checkout_state
+    _doctor_run_step 3 $total_steps "Checking repo checkout" check_repo_checkout_state
 
-    tui_step 4 $total_steps "Checking updater bootstrap"
-    check_updater_bootstrap_health
+    _doctor_run_step 4 $total_steps "Checking updater bootstrap" check_updater_bootstrap_health
 
-    tui_step 5 $total_steps "Checking critical files"
-    check_critical_files
+    _doctor_run_step 5 $total_steps "Checking critical files" check_critical_files
 
-    tui_step 6 $total_steps "Checking script permissions"
-    check_script_permissions
+    _doctor_run_step 6 $total_steps "Checking script permissions" check_script_permissions
 
-    tui_step 7 $total_steps "Checking launcher"
-    check_launcher_health
+    _doctor_run_step 7 $total_steps "Checking launcher" check_launcher_health
 
-    tui_step 8 $total_steps "Checking user config"
-    check_user_config
+    _doctor_run_step 8 $total_steps "Checking user config" check_user_config
 
-    tui_step 9 $total_steps "Checking state directories"
-    check_state_directories
+    _doctor_run_step 9 $total_steps "Checking state directories" check_state_directories
 
-    tui_step 10 $total_steps "Checking version tracking"
-    check_version_tracking
+    _doctor_run_step 10 $total_steps "Checking version tracking" check_version_tracking
 
-    tui_step 11 $total_steps "Checking file manifest"
-    check_manifest
+    _doctor_run_step 11 $total_steps "Checking file manifest" check_manifest
 
-    tui_step 12 $total_steps "Checking user service"
-    check_service_unit_health
+    _doctor_run_step 12 $total_steps "Checking user service" check_service_unit_health
 
-    tui_step 13 $total_steps "Checking Niri compositor"
-    check_niri_running
+    _doctor_run_step 13 $total_steps "Checking Niri compositor" check_niri_running
 
-    tui_step 14 $total_steps "Checking Python packages"
-    check_python_packages
+    _doctor_run_step 14 $total_steps "Checking Python packages" check_python_packages
 
-    tui_step 15 $total_steps "Checking Quickshell/Qt ABI"
-    check_quickshell_abi
+    _doctor_run_step 15 $total_steps "Checking Quickshell/Qt ABI" check_quickshell_abi
 
-    tui_step 16 $total_steps "Checking Quickshell"
-    check_quickshell_loads
+    _doctor_run_step 16 $total_steps "Checking Quickshell" check_quickshell_loads
 
-    tui_step 17 $total_steps "Checking theme colors"
-    check_matugen_colors
+    _doctor_run_step 17 $total_steps "Checking theme colors" check_matugen_colors
 
-    tui_step 18 $total_steps "Checking Qt theming"
-    check_qt_theming
+    _doctor_run_step 18 $total_steps "Checking Qt theming" check_qt_theming
 
-    tui_step 19 $total_steps "Checking conflicting services"
-    check_conflicting_services
+    _doctor_run_step 19 $total_steps "Checking conflicting services" check_conflicting_services
 
-    tui_step 20 $total_steps "Checking conflicting shells"
-    check_conflicting_shells
+    _doctor_run_step 20 $total_steps "Checking conflicting shells" check_conflicting_shells
 
-    tui_step 21 $total_steps "Checking wallpaper health"
-    check_wallpaper_health
+    _doctor_run_step 21 $total_steps "Checking wallpaper health" check_wallpaper_health
 
-    tui_step 22 $total_steps "Checking environment variables"
-    check_environment_vars
+    _doctor_run_step 22 $total_steps "Checking environment variables" check_environment_vars
 
-    tui_step 23 $total_steps "Checking Niri config"
-    check_niri_config
+    _doctor_run_step 23 $total_steps "Checking Niri config" check_niri_config
+
+    doctor_report_finish
     
     echo ""
     tui_divider
@@ -1626,6 +1768,7 @@ run_doctor_with_fixes() {
         tui_error "Some issues need manual attention."
         tui_info "Start with: ./setup status"
         tui_info "Then read logs: ryoku-shell logs"
+        doctor_report_print_path
         return 1
     elif [[ $doctor_fixed -gt 0 ]]; then
         tui_success "All issues fixed automatically."
@@ -1633,6 +1776,8 @@ run_doctor_with_fixes() {
     else
         tui_success "Everything looks good!"
     fi
+
+    doctor_report_print_path
 }
 
 # Legacy function name for compatibility

@@ -36,7 +36,7 @@ Use them like this:
   - `./setup install`
 - maintenance via launcher wrapper:
   - `inir update`
-  - `inir doctor`
+  - `ryoku-doctor`
   - `inir status`
 - runtime operation:
   - `inir run`
@@ -108,10 +108,11 @@ If `setup` detects that the active iNiR installation is externally managed, `ini
 ## Doctor
 
 ```bash
-inir doctor
+ryoku-doctor
 ```
 
-`inir doctor` is a wrapper around `./setup doctor`.
+`ryoku-doctor` is the public diagnostics entry point. It runs update recovery
+when an update needs attention, otherwise it delegates to the shell doctor.
 
 Diagnoses and **automatically fixes** common issues:
 
@@ -220,7 +221,7 @@ Useful when you want to see what you've changed or restore defaults after custom
 | `inir update`        | Wrapper around `./setup update`                             |
 | `./setup status`     | Show install mode, update strategy, and health              |
 | `./setup migrate`    | Review and apply config migrations                          |
-| `./setup doctor`     | Diagnose and auto-fix                                       |
+| `ryoku-doctor`       | Diagnose and auto-fix                                       |
 | `./setup rollback`   | Restore previous snapshot                                   |
 | `./setup my-changes` | View and restore user modifications                         |
 | `./setup uninstall`  | Remove iNiR from system                                     |
@@ -232,7 +233,7 @@ Useful when you want to see what you've changed or restore defaults after custom
 | `inir settings`      | Open settings via IPC                                       |
 | `inir terminal`      | Launch the configured terminal from `apps.terminal`         |
 | `inir browser`       | Launch the configured browser from `apps.browser`           |
-| `inir doctor`        | Wrapper around `./setup doctor`                             |
+| `ryoku-doctor`      | Diagnose update or shell issues                             |
 | `inir logs`          | Show recent runtime logs                                    |
 | `inir repair`        | Doctor + restart + filtered log check                       |
 | `inir status`        | Wrapper around `./setup status`                             |

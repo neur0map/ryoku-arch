@@ -434,7 +434,7 @@ show_help() {
     echo ""
     tui_hero_card "Ryoku setup" \
         "Install, sync, repair, inspect, and unfuck the shell without guessing which entrypoint owns what." \
-        "Use ryoku-shell for daily runtime control. Use ./setup when you want the maintenance brain."
+        "Use ryoku-shell for daily runtime control. Use ryoku-doctor when you need diagnostics."
 
     tui_key_value "Usage:" "./setup [command] [options]"
     show_setup_context_card "Setup Overview"
@@ -449,7 +449,6 @@ show_help() {
     tui_list_item "(none)      Interactive menu"
     tui_list_item "install     Full installation (deps + config + files)"
     tui_list_item "update      Check remote, pull, sync, restart shell"
-    tui_list_item "doctor      Diagnose and fix common breakage"
     tui_list_item "status      Show install mode, update strategy, and health"
     tui_list_item "logs        View recent runtime logs"
     tui_list_item "info        System and shell details dashboard"
@@ -482,7 +481,7 @@ show_help() {
     tui_section_start "Good defaults"
     tui_list_item "./setup install      Install Ryoku once"
     tui_list_item "./setup update       Pull, sync, and restart"
-    tui_list_item "./setup doctor       Diagnose weird runtime breakage"
+    tui_list_item "ryoku-doctor         Diagnose weird runtime breakage"
     tui_list_item "./setup status       See what is installed and what is drifting"
     tui_list_item "ryoku-shell run             Start the shell"
     tui_list_item "ryoku-shell logs            Read what the shell is complaining about"
@@ -612,7 +611,7 @@ tui_menu() {
         Config) run_config ;;
         Info) show_info; read -rp "Press Enter to continue..." ;;
         Migrate) run_migrate ;;
-        Doctor) run_doctor ;;
+        Doctor) run_doctor_entrypoint ;;
         Backup) run_backup ;;
         Rollback) run_rollback ;;
         "My Changes") run_my_changes ;;
@@ -668,7 +667,7 @@ show_status() {
 
     tui_hero_card "Status" \
         "What is installed, what is running, and whether this checkout still matches reality." \
-        "If any of this looks cursed, run ./setup doctor before you start randomly editing files."
+        "If any of this looks cursed, run ryoku-doctor before you start randomly editing files."
 
     tui_table_header "Property" "Value" 14 36
     tui_table_row "Version" "$installed_ver" 14 36
@@ -2413,7 +2412,7 @@ run_update() {
             tui_success "Dependencies installed"
         else
             # No way to elevate — just inform
-            tui_info "Run './setup doctor' to install missing packages"
+            tui_info "Run 'ryoku-doctor' to install missing packages"
         fi
     else
         tui_success "All required commands available"
@@ -2538,6 +2537,28 @@ run_doctor() {
     run_doctor_with_fixes
 }
 
+run_doctor_entrypoint() {
+    if [[ ${RYOKU_DOCTOR_INTERNAL:-0} == "1" ]]; then
+        run_doctor
+        return
+    fi
+
+    local doctor_cmd=""
+    doctor_cmd="$(command -v ryoku-doctor 2>/dev/null || true)"
+    if [[ -z "$doctor_cmd" ]]; then
+        local repo_doctor
+        repo_doctor="$(cd -- "${REPO_ROOT}/.." 2>/dev/null && pwd)/bin/ryoku-doctor"
+        [[ -x "$repo_doctor" ]] && doctor_cmd="$repo_doctor"
+    fi
+
+    if [[ -n "$doctor_cmd" ]]; then
+        exec "$doctor_cmd" "$@"
+    fi
+
+    tui_warn "ryoku-doctor is not on PATH; running the internal doctor fallback."
+    run_doctor
+}
+
 ###############################################################################
 # Parse args
 ###############################################################################
@@ -2600,7 +2621,7 @@ case "$COMMAND" in
         run_update
         ;;
     migrate) run_migrate ;;
-    doctor) run_doctor ;;
+    doctor) run_doctor_entrypoint "${SUBCMD_ARGS[@]}" ;;
     rollback) run_rollback ;;
     my-changes) run_my_changes ;;
     uninstall) run_uninstall ;;
