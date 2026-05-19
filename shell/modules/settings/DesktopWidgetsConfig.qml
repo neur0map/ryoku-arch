@@ -2184,13 +2184,13 @@ ContentPage {
                             StyledSpinBox {
                                 visible: modelData.spec.type === "int"
                                 from: modelData.spec.min ?? 0; to: modelData.spec.max ?? 999; stepSize: modelData.spec.step ?? 1
-                                value: CustomWidgets.getConfigValue(modelData.widgetId, modelData.key, modelData.spec.default ?? 0)
+                                value: Math.round(Number(CustomWidgets.getConfigValue(modelData.widgetId, modelData.key, modelData.spec.default ?? 0)) || 0)
                                 onValueModified: CustomWidgets.setConfigValue(modelData.widgetId, modelData.key, value)
                             }
                             StyledSlider {
                                 visible: modelData.spec.type === "real"
                                 from: modelData.spec.min ?? 0; to: modelData.spec.max ?? 100; stepSize: modelData.spec.step ?? 1
-                                value: CustomWidgets.getConfigValue(modelData.widgetId, modelData.key, modelData.spec.default ?? 0)
+                                value: Number(CustomWidgets.getConfigValue(modelData.widgetId, modelData.key, modelData.spec.default ?? 0)) || 0
                                 onMoved: CustomWidgets.setConfigValue(modelData.widgetId, modelData.key, Math.round(value * 100) / 100)
                             }
                             ConfigSelectionArray {

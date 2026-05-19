@@ -176,26 +176,12 @@ ShellRoot {
             Config.setNestedValue("enabledPanels", panels)
     }
 
-    // IPC for settings - overlay mode or separate window based on config
-    // Note: waffle family ALWAYS uses its own window (waffleSettings.qml), never the Material overlay
+    // IPC for the official Ryoku settings surface.
     IpcHandler {
         target: "settings"
         function open(): void {
-            const isWaffle = Config.options?.panelFamily === "waffle"
-                && Config.options?.waffles?.settings?.useMaterialStyle !== true
-
-            if (isWaffle) {
-                // Waffle always opens its own Win11-style settings window
-                Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"),
-                    "waffle-settings-window"])
-            } else if (Config.options?.settingsUi?.overlayMode ?? false) {
-                // ii overlay mode — toggle inline panel
-                GlobalStates.settingsOverlayOpen = !GlobalStates.settingsOverlayOpen
-            } else {
-                // ii window mode (default) — launch separate process
-                Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"),
-                    "settings-window"])
-            }
+            Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"),
+                "settings"])
         }
         function toggle(): void {
             open()
