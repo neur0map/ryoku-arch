@@ -66,9 +66,28 @@ if is_arch_like; then
   setup_progress 1 "$TOTAL" "Installing Spotify and Spicetify CLI"
   install_arch -- spotify spicetify-cli
 
-  setup_progress 2 "$TOTAL" "Granting Spicetify write access to /opt/spotify"
-  sudo chmod a+wr /opt/spotify
-  sudo chmod a+wr /opt/spotify/Apps -R
+  find_spotify_dir() {
+    local dir
+
+    for dir in /opt/spotify "$HOME/.local/share/spotify-launcher/install/usr/share/spotify"; do
+      [[ -d $dir/Apps ]] && printf '%s\n' "$dir" && return 0
+    done
+
+    return 1
+  }
+
+  setup_progress 2 "$TOTAL" "Configuring Spicetify paths"
+  spotify_dir="$(find_spotify_dir || true)"
+  if [[ -z $spotify_dir ]]; then
+    setup_fail "Could not find the Spotify install directory."
+    setup_finish_pause
+    exit 1
+  fi
+
+  echo "Spotify install directory: $spotify_dir"
+  spicetify config spotify_path "$spotify_dir" >/dev/null 2>&1 || true
+  sudo chmod a+wr "$spotify_dir"
+  sudo chmod a+wr "$spotify_dir/Apps" -R
 
   setup_progress 3 "$TOTAL" "Applying Spicetify backup"
   prefs="$(find_spotify_prefs)"
@@ -77,7 +96,27 @@ if is_arch_like; then
     spicetify config prefs_path "$prefs" >/dev/null 2>&1 || true
   fi
 
-  if ! spicetify backup apply; then
+  spicetify_apply_with_recovery() {
+    local config_path=""
+    local config_dir=""
+
+    spicetify backup apply && return 0
+    spicetify restore backup apply && return 0
+
+    config_path="$(spicetify -c 2>/dev/null || true)"
+    if [[ -n $config_path ]]; then
+      config_dir="$(dirname "$config_path")"
+      if [[ -d $config_dir ]]; then
+        echo "Clearing stale backup state..."
+        rm -rf "$config_dir/Backup" 2>/dev/null || true
+        sed -i '/^\[Backup\]/,/^\[/{/^\[Backup\]/!{/^\[/!d}}' "$config_dir/config-xpui.ini" 2>/dev/null || true
+      fi
+    fi
+
+    spicetify backup apply
+  }
+
+  if ! spicetify_apply_with_recovery; then
     echo
     echo "backup apply failed, likely because Spotify has not generated prefs yet."
     echo "Launching Spotify so it can create prefs..."
@@ -96,7 +135,7 @@ if is_arch_like; then
 
     echo "Found prefs at $prefs"
     spicetify config prefs_path "$prefs" >/dev/null 2>&1 || true
-    spicetify backup apply
+    spicetify_apply_with_recovery
   fi
 
   setup_progress 4 "$TOTAL" "Installing Spicetify Marketplace"

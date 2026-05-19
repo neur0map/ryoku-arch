@@ -222,9 +222,6 @@ DockButton {
         }
 
         var id = appToplevel.originalAppId ?? appToplevel.appId;
-        if (id === "spotify" || id === "spotify-launcher") {
-            id = "spotify-launcher";
-        }
         if (id && id !== "" && id !== "SEPARATOR") {
             return LaunchUtils.launchByDesktopId(id);
         }

@@ -164,7 +164,6 @@ RippleButton {
         }
 
         var id = appEntry?.originalAppId ?? appEntry?.appId ?? "";
-        if (id === "spotify" || id === "spotify-launcher") id = "spotify-launcher";
         if (id && id !== "" && id !== "SEPARATOR") {
             return LaunchUtils.launchByDesktopId(id);
         }

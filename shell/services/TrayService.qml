@@ -1,6 +1,7 @@
 pragma Singleton
 
 import qs.modules.common
+import qs.modules.common.functions
 import qs.services
 import QtQuick
 import Quickshell
@@ -21,7 +22,7 @@ Singleton {
     // matches: array of substrings to match in tray id/title OR window app_id/title
     // focusOnly: true = only focus, don't minimize (for apps that crash when minimized)
     readonly property var problematicApps: [
-        { matches: ["spotify"], launch: "spotify-launcher" },
+        { matches: ["spotify"], launch: "spotify" },
         { matches: ["discord canary", "canary"], launch: "discord-canary", focusOnly: true, fixedIcon: "discord-canary" },
         { matches: ["discord ptb", "ptb"], launch: "discord-ptb", focusOnly: true, fixedIcon: "discord-ptb" },
         { matches: ["discord", "com.discordapp.discord"], launch: "discord", focusOnly: true, fixedIcon: "discord" },
@@ -95,7 +96,7 @@ Singleton {
         }
         
         // No window found - launch app (use login shell for proper PATH including ~/.local/bin)
-        Quickshell.execDetached(["/usr/bin/bash", "-lc", appInfo.launch]);
+        LaunchUtils.launchByDesktopId(appInfo.launch);
         return true;
     }
     
@@ -143,7 +144,7 @@ Singleton {
             
             // For harmless apps (like Spotify usually), try launching to restore
             root._log(`[TrayService] Window not found for ${id}, executing launch: ${appInfo.launch}`);
-            Quickshell.execDetached(["/usr/bin/bash", "-lc", appInfo.launch]);
+            LaunchUtils.launchByDesktopId(appInfo.launch);
             return true;
         }
         
