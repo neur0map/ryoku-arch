@@ -65,7 +65,7 @@ Wayland → GPU
 
 É um projeto pessoal que saiu do controle. Uso todo dia, muita gente no Discord também. Mas às vezes quebra, código tá bagunçado em partes, vou aprendendo enquanto faço.
 
-Se algo não funcionar, `inir doctor` arruma a maioria. Discord tá ativo se isso não resolver. Não espera software polido, isso é o rice de uma pessoa que outros curtiram.
+Se algo não funcionar, `ryoku-doctor` arruma a maioria. Discord tá ativo se isso não resolver. Não espera software polido, isso é o rice de uma pessoa que outros curtiram.
 
 ### Por que existe?
 
@@ -201,7 +201,7 @@ O instalador cuida de dependências, configuração do sistema, tematização �
 inir run                        # iniciar o shell
 inir settings                   # abrir configurações GUI
 inir logs                       # verificar logs de runtime
-inir doctor                     # auto-diagnosticar e corrigir
+ryoku-doctor                     # auto-diagnosticar e corrigir
 inir update                     # pull + migrações + reiniciar
 ```
 
@@ -257,7 +257,7 @@ Lista completa: [KEYBINDS.md](../KEYBINDS.md)
 inir logs                       # verifique os logs — a resposta geralmente está lá
 inir restart                    # reiniciar o shell
 inir repair                     # doctor + reinício + verificação de logs filtrada
-./setup doctor                  # auto-diagnosticar e corrigir problemas comuns
+ryoku-doctor                  # auto-diagnosticar e corrigir problemas comuns
 ./setup rollback                # desfazer a última atualização
 ```
 

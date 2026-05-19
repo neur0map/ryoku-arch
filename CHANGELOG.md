@@ -19,6 +19,9 @@ not keep stale shell files or miss new ones.
   in the shell services and settings.
 - **Setup recipes**: a recipe framework under `shell/scripts/setup/`, starting
   with Spotify, so optional app setup can become repeatable instead of manual.
+- **Doctor reports**: `ryoku-doctor` now writes an anonymized report under
+  `/tmp` with failing checks, automatic fixes, update context, and sanitized
+  log excerpts that users can share when asking for help.
 - **More focused regression tests**: coverage for widgets, clipboard display
   navigation, notification timeouts, recorder behavior, setup recipes, package
   integrations, and upstream/Ryoku naming boundaries.
@@ -39,6 +42,8 @@ not keep stale shell files or miss new ones.
   for the new upstream behavior while keeping Ryoku naming.
 - **Translations**: refreshed shell translations from the upstream sync while
   keeping tests around mirror-only update environments.
+- **Doctor entry point**: user-facing diagnostics now point to `ryoku-doctor`
+  only; older shell/setup diagnostic paths are compatibility/internal routes.
 
 ### Fixed
 

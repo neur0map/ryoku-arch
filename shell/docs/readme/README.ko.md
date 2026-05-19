@@ -65,7 +65,7 @@ Wayland → GPU
 
 손을 벗어난 개인 프로젝트예요. 매일 쓰고 있고, Discord의 많은 사람들도 그래요. 근데 가끔 망가지고, 코드가 지저분한 곳도 있고, 하면서 배우는 중이에요.
 
-뭔가 안 되면 `inir doctor`가 대부분 고쳐요. 그래도 안 되면 Discord가 활발해요. 완성된 소프트웨어를 기대하지 마세요, 이건 다른 사람들이 좋아하게 된 한 사람의 rice입니다.
+뭔가 안 되면 `ryoku-doctor`가 대부분 고쳐요. 그래도 안 되면 Discord가 활발해요. 완성된 소프트웨어를 기대하지 마세요, 이건 다른 사람들이 좋아하게 된 한 사람의 rice입니다.
 
 ### 왜 존재하나요?
 
@@ -201,7 +201,7 @@ cd inir
 inir run                        # 셸 시작
 inir settings                   # 설정 GUI 열기
 inir logs                       # 런타임 로그 확인
-inir doctor                     # 자동 진단 및 수정
+ryoku-doctor                     # 자동 진단 및 수정
 inir update                     # pull + 마이그레이션 + 재시작
 ```
 
@@ -257,7 +257,7 @@ inir update                     # pull + 마이그레이션 + 재시작
 inir logs                       # 최근 런타임 로그 확인
 inir restart                    # 활성 런타임 재시작
 inir repair                     # doctor + 재시작 + 필터링된 로그 확인
-./setup doctor                  # 일반적인 문제 자동 진단 및 수정
+ryoku-doctor                  # 일반적인 문제 자동 진단 및 수정
 ./setup rollback                # 마지막 업데이트 취소
 ```
 

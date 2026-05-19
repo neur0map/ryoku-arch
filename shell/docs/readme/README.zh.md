@@ -65,7 +65,7 @@ Wayland → GPU
 
 这是一个失控的个人项目。我每天都在用，Discord 里很多人也是。但有时候会出问题，代码有些地方很乱，边做边学。
 
-如果出了问题，`inir doctor` 能修大部分。Discord 很活跃，那个不行就问那边。别指望精雕细琢的软件——这是一个人的 rice，碰巧其他人也喜欢。
+如果出了问题，`ryoku-doctor` 能修大部分。Discord 很活跃，那个不行就问那边。别指望精雕细琢的软件——这是一个人的 rice，碰巧其他人也喜欢。
 
 ### 为什么存在？
 
@@ -201,7 +201,7 @@ cd inir
 inir run                        # 启动 Shell
 inir settings                   # 打开设置 GUI
 inir logs                       # 查看运行日志
-inir doctor                     # 自动诊断和修复
+ryoku-doctor                     # 自动诊断和修复
 inir update                     # 拉取 + 迁移 + 重启
 ```
 
@@ -257,7 +257,7 @@ inir update                     # 拉取 + 迁移 + 重启
 inir logs                       # 查看最近的运行日志
 inir restart                    # 重启活动运行时
 inir repair                     # doctor + 重启 + 过滤日志检查
-./setup doctor                  # 自动诊断和修复常见问题
+ryoku-doctor                  # 自动诊断和修复常见问题
 ./setup rollback                # 撤销上次更新
 ```
 

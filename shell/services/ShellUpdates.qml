@@ -113,7 +113,7 @@ Singleton {
         : "Repository not found. The update system cannot locate the Ryoku git repository."
     readonly property string unavailableHint: managedExternally
         ? "Runtime diagnostics are still available, but in-shell self-update is disabled for this installation mode."
-        : "Run './setup doctor' in your terminal to diagnose the issue, or use the diagnose command below."
+        : "Run 'ryoku-doctor' in your terminal to diagnose the issue, or use the diagnose command below."
 
     // Handler: notify when availability changes to false (after initial check)
     onAvailableChanged: {
@@ -880,7 +880,7 @@ Singleton {
                 if (root.consecutiveFetchErrors >= 3 && !root.fetchErrorNotificationShown) {
                     root.fetchErrorNotificationShown = true
                     const title = "Ryoku Update Check Failed"
-                    const body = "Cannot reach remote repository. Check your internet connection or run './setup doctor'."
+                    const body = "Cannot reach remote repository. Check your internet connection or run 'ryoku-doctor'."
                     Notifications.notify({
                         summary: title,
                         body: body,

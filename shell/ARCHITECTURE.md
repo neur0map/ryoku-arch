@@ -183,7 +183,7 @@ cd inir
 ./setup                  # Interactive TUI installer
 ./setup install -y       # Fully automated
 ./setup update           # Pull + sync + migrate + restart
-./setup doctor           # Diagnose + auto-fix
+ryoku-doctor           # Diagnose + auto-fix
 ./setup rollback         # Restore previous snapshot
 ```
 
@@ -216,7 +216,7 @@ inir run                    # Launch the shell
 inir restart                # Graceful restart
 inir logs | tail -50        # Check for errors
 inir status                 # Runtime health check
-inir doctor                 # Auto-diagnose + fix
+ryoku-doctor                 # Auto-diagnose + fix
 inir settings               # Open settings GUI
 
 # IPC calls
