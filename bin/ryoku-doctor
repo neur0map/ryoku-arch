@@ -399,7 +399,8 @@ run_shell_doctor() {
 
   for setup in "${candidates[@]}"; do
     [[ -x $setup ]] || continue
-    RYOKU_DOCTOR_INTERNAL=1 exec "$setup" -y doctor
+    export RYOKU_DOCTOR_INTERNAL=1
+    exec "$setup" -y doctor
   done
 
   echo "Ryoku shell doctor is unavailable."
