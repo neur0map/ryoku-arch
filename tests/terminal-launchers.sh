@@ -96,6 +96,7 @@ assert_shell_app_launchers_use_terminal_aware_launch_utils() {
   local bar_button="$ROOT_DIR/shell/modules/bar/BarTaskbarButton.qml"
   local dock_button="$ROOT_DIR/shell/modules/dock/DockAppButton.qml"
   local notifications="$ROOT_DIR/shell/services/Notifications.qml"
+  local tray_service="$ROOT_DIR/shell/services/TrayService.qml"
 
   grep -q 'function launchDesktopEntry(entry)' "$launch_utils" \
     || fail "LaunchUtils should expose terminal-aware desktop entry launching"
@@ -108,12 +109,23 @@ assert_shell_app_launchers_use_terminal_aware_launch_utils() {
   fi
   grep -q 'DesktopEntries.byId(id)' "$launch_utils" \
     || fail "LaunchUtils should resolve desktop ids through Quickshell before falling back to gtk-launch"
+  grep -q 'function desktopIdCandidates(desktopId)' "$launch_utils" \
+    || fail "LaunchUtils should try equivalent desktop ids for app launch aliases"
+  grep -q '"spotify", "spotify-launcher"' "$launch_utils" \
+    || fail "LaunchUtils should try spotify before spotify-launcher for Spotify app ids"
+  grep -q '"spotify-launcher", "spotify"' "$launch_utils" \
+    || fail "LaunchUtils should still support spotify-launcher installations"
+  if grep -q 'return "spotify-launcher"' "$launch_utils"; then
+    fail "LaunchUtils should not force every Spotify launch through spotify-launcher"
+  fi
   grep -q 'RYOKU_PATH/bin' "$ROOT_DIR/shell/scripts/ryoku-shell" \
     || fail "ryoku-shell should add the Ryoku bin directory to the Quickshell launch environment"
   grep -q 'RYOKU_PATH/bin/ryoku-launch-webapp' "$ROOT_DIR/bin/ryoku-webapp-install" \
     || fail "webapp desktop entries should use an absolute Ryoku webapp launcher path"
+  # shellcheck disable=SC2016
   grep -q 'Exec="$RYOKU_PATH/bin/ryoku-windows-vm" launch' "$ROOT_DIR/bin/ryoku-windows-vm" \
     || fail "Windows VM desktop entry should use an absolute Ryoku launcher path"
+  # shellcheck disable=SC2016
   grep -q 'Exec=$(BINDIR)/ryoku-shell settings' "$ROOT_DIR/shell/Makefile" \
     || fail "manual shell installs should rewrite the Ryoku Settings desktop entry to an absolute launcher path"
   rg -q '(RYOKU_PATH|ryoku_path_escaped)/bin/ryoku-launch-webapp' "$ROOT_DIR/migrations" \
@@ -131,6 +143,16 @@ assert_shell_app_launchers_use_terminal_aware_launch_utils() {
     || fail "dock should use LaunchUtils for app-id fallback launches"
   grep -q 'LaunchUtils.launchByDesktopId(appIcon)' "$notifications" \
     || fail "notification view actions should use centralized desktop-id launching"
+  grep -q 'LaunchUtils.launchByDesktopId(appInfo.launch)' "$tray_service" \
+    || fail "tray fallback launches should use centralized desktop-id launching"
+  grep -q '{ matches: \["spotify"\], launch: "spotify" }' "$tray_service" \
+    || fail "Spotify tray fallback should prefer the spotify desktop id installed by the setup recipe"
+  if grep -q 'launch: "spotify-launcher"' "$tray_service"; then
+    fail "tray fallback should not force Spotify through spotify-launcher"
+  fi
+  if grep -Eq 'id = "spotify-launcher"|id === "spotify-launcher".*id = "spotify-launcher"' "$bar_button" "$dock_button"; then
+    fail "bar and dock should not override Spotify app ids before LaunchUtils can resolve installed desktop entries"
+  fi
 
   if grep -Eq 'const cmd = "/usr/bin/gtk-launch' "$bar_button" "$dock_button" "$notifications"; then
     fail "shell app launchers should not keep ad hoc gtk-launch shell snippets"

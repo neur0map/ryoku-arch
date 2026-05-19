@@ -14,7 +14,6 @@ Singleton {
 
     function normalizeDesktopId(desktopId) {
         let id = String(desktopId ?? "").trim().replace(/\.desktop$/i, "")
-        if (id === "spotify" || id === "spotify-launcher") return "spotify-launcher"
         if (id === "com.github.th_ch.youtube_music") {
             if (DesktopEntries.heuristicLookup("pear-desktop")) return "pear-desktop"
             return "youtube-music"
@@ -22,12 +21,27 @@ Singleton {
         return id
     }
 
-    function lookupDesktopEntry(desktopId) {
+    function desktopIdCandidates(desktopId) {
         const id = root.normalizeDesktopId(desktopId)
+        if (id === "spotify") return ["spotify", "spotify-launcher"]
+        if (id === "spotify-launcher") return ["spotify-launcher", "spotify"]
+        return [id]
+    }
+
+    function lookupSingleDesktopEntry(id) {
         if (id.length === 0) return null
         return DesktopEntries.byId(id)
             ?? DesktopEntries.byId(id + ".desktop")
             ?? DesktopEntries.heuristicLookup(id)
+    }
+
+    function lookupDesktopEntry(desktopId) {
+        const candidates = root.desktopIdCandidates(desktopId)
+        for (const id of candidates) {
+            const entry = root.lookupSingleDesktopEntry(id)
+            if (entry) return entry
+        }
+        return null
     }
 
     // Launch a Quickshell DesktopEntry, correctly honoring Terminal=true.
@@ -59,12 +73,15 @@ Singleton {
     // entries, then fall back to gtk-launch/raw command for app ids that are
     // not present in the DesktopEntries registry.
     function launchByDesktopId(desktopId) {
-        const id = root.normalizeDesktopId(desktopId)
-        if (id.length === 0) return false
-        const entry = root.lookupDesktopEntry(id)
+        const candidates = root.desktopIdCandidates(desktopId).filter(id => id.length > 0)
+        if (candidates.length === 0) return false
+        const entry = root.lookupDesktopEntry(desktopId)
         if (entry) return root.launchDesktopEntry(entry)
-        const quotedId = root.shellQuote(id)
-        Quickshell.execDetached(["/usr/bin/bash", "-lc", `/usr/bin/gtk-launch ${quotedId} || ${quotedId}`])
+        const commands = candidates.map(id => {
+            const quotedId = root.shellQuote(id)
+            return `/usr/bin/gtk-launch ${quotedId} || ${quotedId}`
+        })
+        Quickshell.execDetached(["/usr/bin/bash", "-lc", commands.join(" || ")])
         return true
     }
 }

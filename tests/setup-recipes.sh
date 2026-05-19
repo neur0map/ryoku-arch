@@ -80,6 +80,17 @@ assert_not_contains "shell/scripts/setup/spotify.sh" "$upstream_brand|$upstream_
   "spotify setup recipe should not ship upstream product names"
 assert_contains "shell/scripts/setup/spotify.sh" 'enableSpicetify' \
   "spotify setup recipe should honor the Spicetify theme toggle"
+assert_contains "shell/scripts/setup/spotify.sh" 'spotify_dir' \
+  "spotify setup recipe should detect the Spotify install directory"
+assert_contains "shell/scripts/setup/spotify.sh" 'spotify-launcher/install/usr/share/spotify' \
+  "spotify setup recipe should recover from spotify-launcher based installs"
+# shellcheck disable=SC2016
+assert_contains "shell/scripts/setup/spotify.sh" 'spicetify config spotify_path "\$spotify_dir"' \
+  "spotify setup recipe should set Spicetify spotify_path to the detected directory"
+assert_contains "shell/scripts/setup/spotify.sh" 'spicetify restore backup apply' \
+  "spotify setup recipe should recover stale Spicetify backups before retrying"
+assert_contains "shell/scripts/setup/spotify.sh" 'Clearing stale backup state' \
+  "spotify setup recipe should clear deadlocked Spicetify backup state"
 
 assert_contains "shell/scripts/colors/apply-spicetify-theme.sh" 'apply_spicetify_theme' \
   "Spicetify theme script should call apply when watch mode is inactive"
