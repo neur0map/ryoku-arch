@@ -41,10 +41,10 @@ QtObject {
     readonly property bool _active: (Config.options?.sidebar?.wallhaven?.enable ?? true) && (GlobalStates?.sidebarLeftOpen ?? false)
 
     property Timer wallhavenClock: Timer {
+        // nowMs is updated on demand in handlers that need it.
         interval: 500
-        repeat: true
-        running: root._active
-        onTriggered: root.nowMs = Date.now()
+        repeat: false
+        running: false
     }
 
     Component.onCompleted: {
@@ -65,6 +65,7 @@ QtObject {
         repeat: true
         running: root._active || (root.pendingSearch !== null)
         onTriggered: {
+            root.nowMs = Date.now()
             if (!root.pendingSearch)
                 return
             if (root.isRateLimited)
@@ -612,6 +613,7 @@ QtObject {
     }
 
     function _processPendingSearch(): void {
+        root.nowMs = Date.now()
         if (root.pendingSearch && !root.isRateLimited) {
             const next = root.pendingSearch
             root.pendingSearch = null

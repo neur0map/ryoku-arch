@@ -7,6 +7,8 @@ COLOR_MODULE_ID="cava"
 PALETTE_FILE="$STATE_DIR/user/generated/palette.json"
 COVER_COLORS_FILE="$STATE_DIR/user/generated/cover-colors.json"
 COVER_COLOR_SCRIPT="$SCRIPT_DIR/../cava/extract_cover_colors.py"
+CAVA_ACTIVE_COVER_FILE="$STATE_DIR/user/generated/cava-active-cover.path"
+CAVA_RESOLVE_SCRIPT="$SCRIPT_DIR/../cava/resolve_audio_source.py"
 CAVA_CONFIG_DIR="$XDG_CONFIG_HOME/cava"
 CAVA_CONFIG="$CAVA_CONFIG_DIR/config"
 CAVA_COLOR_BACKUP="$STATE_DIR/user/generated/cava-color-section.bak"
@@ -80,6 +82,49 @@ maybe_extract_cover_colors() {
   fi
 }
 
+find_cover_art_path() {
+  local path=""
+  local cover_cache="${XDG_CACHE_HOME:-$HOME/.cache}/media/coverart"
+
+  if [[ -f $CAVA_ACTIVE_COVER_FILE ]]; then
+    path="$(tr -d '\n' < "$CAVA_ACTIVE_COVER_FILE")"
+    if [[ -n $path && -f $path ]]; then
+      printf '%s\n' "$path"
+      return 0
+    fi
+  fi
+
+  if [[ -d $cover_cache ]]; then
+    path="$(find "$cover_cache" -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \) -printf '%T@ %p\n' 2>/dev/null \
+      | sort -rn | head -1 | cut -d' ' -f2- || true)"
+    if [[ -n $path && -f $path ]]; then
+      printf '%s\n' "$path"
+      return 0
+    fi
+  fi
+
+  return 1
+}
+
+refresh_cover_colors() {
+  local count="$1"
+  local art_path
+  local python_bin
+
+  art_path="$(find_cover_art_path || true)"
+  [[ -n $art_path ]] || { log_module "No cover art path for extraction"; return 1; }
+  [[ -f $COVER_COLOR_SCRIPT ]] || { log_module "extract_cover_colors.py missing"; return 1; }
+
+  python_bin="$(venv_python)"
+  if "$python_bin" "$COVER_COLOR_SCRIPT" "$art_path" "$count" "$COVER_COLORS_FILE" >/dev/null 2>&1; then
+    log_module "Extracted cover colors from $(basename "$art_path")"
+    return 0
+  fi
+
+  log_module "Cover color extraction failed for $(basename "$art_path")"
+  return 1
+}
+
 build_gradient_theme() {
   local count="$1"
   local -a colors=()
@@ -128,7 +173,7 @@ build_gradient_cover() {
   local c
   local i
 
-  maybe_extract_cover_colors "$count"
+  refresh_cover_colors "$count" || true
 
   if [[ ! -f $COVER_COLORS_FILE ]]; then
     log_module "No cover colors file, falling back to theme colors"
@@ -150,6 +195,30 @@ build_gradient_cover() {
   printf '%s\n' "${colors[@]}"
 }
 
+resolve_cava_input_source() {
+  local method
+  local source=""
+  local default_sink
+
+  if pactl info 2>/dev/null | grep -qi "PipeWire"; then
+    method="pipewire"
+  else
+    method="pulse"
+  fi
+
+  if [[ -f $CAVA_RESOLVE_SCRIPT ]]; then
+    source="$(python3 "$CAVA_RESOLVE_SCRIPT" 2>/dev/null || true)"
+  fi
+
+  if [[ -z $source ]]; then
+    default_sink="$(pactl get-default-sink 2>/dev/null || true)"
+    source="${default_sink:+${default_sink}.monitor}"
+    source="${source:-auto}"
+  fi
+
+  printf '%s\n' "$method" "$source"
+}
+
 generate_color_section() {
   local -a gradient=()
   local color_source
@@ -163,6 +232,9 @@ generate_color_section() {
   local bar_spacing
   local stereo
   local channels="stereo"
+  local input_method
+  local input_source
+  local -a input_cfg=()
   local c
   local bg
   local i
@@ -216,6 +288,10 @@ generate_color_section() {
 
   [[ $stereo == "false" ]] && channels="mono"
 
+  mapfile -t input_cfg < <(resolve_cava_input_source)
+  input_method="${input_cfg[0]:-pipewire}"
+  input_source="${input_cfg[1]:-auto}"
+
   printf '%s\n' "$MARKER_BEGIN"
   printf '[general]\n'
   printf 'framerate = %d\n' "$framerate"
@@ -223,6 +299,10 @@ generate_color_section() {
   (( bars > 0 )) && printf 'bars = %d\n' "$bars"
   printf 'bar_width = %d\n' "$bar_width"
   printf 'bar_spacing = %d\n' "$bar_spacing"
+  printf '\n'
+  printf '[input]\n'
+  printf 'method = %s\n' "$input_method"
+  printf 'source = %s\n' "$input_source"
   printf '\n'
   printf '[output]\n'
   printf 'channels = %s\n' "$channels"

@@ -173,6 +173,7 @@ Singleton {
     }
 
     property bool _writeInFlight: false
+    property bool _pendingWrite: false
     property bool _pendingCustomInject: false
     property bool _pendingReload: false
     property var _customSnapshotForInject: ({})
@@ -193,8 +194,12 @@ Singleton {
         root._writeInFlight = false;
         if (root._pendingCustomInject) {
             root._pendingCustomInject = false;
-            root._injectCustomDataSync();
+            customInjectTimer.restart();
             return;
+        }
+        if (root._pendingWrite) {
+            root._pendingWrite = false;
+            fileWriteTimer.restart();
         }
         root._finishPendingReload();
     }
@@ -282,11 +287,23 @@ Singleton {
         interval: root.readWriteDelay
         repeat: false
         onTriggered: {
+            if (root._writeInFlight) {
+                root._pendingWrite = true;
+                return;
+            }
             root._prepareCustomInject();
+            root._pendingWrite = false;
             root._writeInFlight = true;
             fileReloadTimer.stop();
             configFileView.writeAdapter();
         }
+    }
+
+    Timer {
+        id: customInjectTimer
+        interval: 1
+        repeat: false
+        onTriggered: root._injectCustomDataSync()
     }
 
     FileView {

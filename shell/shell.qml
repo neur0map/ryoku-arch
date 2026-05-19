@@ -42,6 +42,7 @@ ShellRoot {
     property var _weatherService
     property var _voiceSearchService
     property var _fontSyncService
+    property var _cavaThemeService
 
     Component.onCompleted: {
         Quickshell.watchFiles = !disableHotReload;
@@ -80,6 +81,7 @@ ShellRoot {
             root._weatherService = Weather;
             root._voiceSearchService = VoiceSearch;
             root._fontSyncService = FontSyncService;
+            root._cavaThemeService = CavaTheme;
             Hyprsunset.load();
             GlobalStates.deferredPanelsReady = true;
         }

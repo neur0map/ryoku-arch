@@ -5,12 +5,12 @@
 #
 # Design:
 # - Always regenerate theme files from the current matugen palette.
-# - If watch mode is active, file writes already trigger a live reload.
-# - Otherwise call spicetify apply so the patched bundle is not stale.
-# - If Spotify is open without watch, refresh it and start watch mode.
+# - Sync user.css into the live xpui install when it is already patched.
+# - If Spotify is running with a DevTools port, reload the page in place.
+# - Fall back to no-launch Spicetify apply only when Spotify is already running.
 # - This script never starts or opens Spotify itself.
 #
-# Reads: palette.json first, then colors.json fallback
+# Reads: app-palette.json first, then palette.json/colors.json fallback
 # Writes: ~/.config/spicetify/Themes/Ryoku/color.ini
 #         ~/.config/spicetify/Themes/Ryoku/user.css  (bridge block only)
 
@@ -22,9 +22,9 @@ XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 STATE_DIR="$XDG_STATE_HOME/quickshell"
 PALETTE_JSON="$STATE_DIR/user/generated/palette.json"
+APP_PALETTE_JSON="$STATE_DIR/user/generated/app-palette.json"
 COLORS_JSON="$STATE_DIR/user/generated/colors.json"
 LOG_FILE="$STATE_DIR/user/generated/spicetify_theme.log"
-WATCH_LOCK="$STATE_DIR/user/generated/spicetify_watch.lock"
 
 THEME_NAME="Ryoku"
 SCHEME_NAME="matugen"
@@ -69,45 +69,114 @@ hex_to_rgb() {
 get_spicetify_config_path() {
   local config_path="${SPICETIFY_CONFIG_PATH:-$XDG_CONFIG_HOME/spicetify/config-xpui.ini}"
   local cmd_config
-  if cmd_config=$(spicetify -c 2>/dev/null) && [[ -n "$cmd_config" ]]; then
+  if cmd_config=$(spicetify -c 2>/dev/null) && [[ -n $cmd_config ]]; then
     config_path="$cmd_config"
   fi
   echo "$config_path"
+}
+
+get_spotify_xpui_dir() {
+  python3 - "$1" <<'PY'
+import configparser, pathlib, sys
+
+config_path = pathlib.Path(sys.argv[1])
+config = configparser.RawConfigParser()
+config.read(config_path)
+spotify_root = config.get("Setting", "spotify_path", fallback="").strip()
+
+candidates = []
+if spotify_root:
+    root = pathlib.Path(spotify_root).expanduser()
+    candidates.extend([root / "Apps" / "xpui", root / "xpui"])
+
+for path in candidates:
+    if (path / "index.html").is_file():
+        print(path)
+        break
+PY
+}
+
+is_live_install_patched() {
+  local xpui_dir="$1"
+  local index_html="$xpui_dir/index.html"
+
+  [[ -f $index_html ]] || return 1
+  grep -q "helper/spicetifyWrapper.js" "$index_html" && grep -q "class='userCSS' href='user.css'" "$index_html"
+}
+
+get_debugger_port() {
+  pgrep -af 'spotify.*remote-debugging-port=' 2>/dev/null | sed -n 's/.*--remote-debugging-port=\([0-9]\+\).*/\1/p' | head -n1 || true
+}
+
+reload_running_spotify() {
+  local port="$1"
+  python3 - "$port" <<'PY'
+import base64
+import json
+import os
+import socket
+import struct
+import sys
+import urllib.parse
+import urllib.request
+
+port = int(sys.argv[1])
+
+with urllib.request.urlopen(f"http://127.0.0.1:{port}/json/list", timeout=2) as response:
+    targets = json.load(response)
+
+page = next((target for target in targets if target.get("type") == "page" and "spotify.com" in target.get("url", "")), None)
+if page is None:
+    raise SystemExit(1)
+
+ws_url = urllib.parse.urlparse(page["webSocketDebuggerUrl"])
+sock = socket.create_connection((ws_url.hostname, ws_url.port), timeout=2)
+
+key = base64.b64encode(os.urandom(16)).decode()
+request = (
+    f"GET {ws_url.path} HTTP/1.1\r\n"
+    f"Host: {ws_url.hostname}:{ws_url.port}\r\n"
+    "Upgrade: websocket\r\n"
+    "Connection: Upgrade\r\n"
+    f"Sec-WebSocket-Key: {key}\r\n"
+    "Sec-WebSocket-Version: 13\r\n"
+    "\r\n"
+)
+sock.sendall(request.encode())
+response = sock.recv(4096)
+if b" 101 " not in response:
+    raise SystemExit(1)
+
+payload = json.dumps({"id": 1, "method": "Page.reload", "params": {"ignoreCache": True}}).encode()
+mask = os.urandom(4)
+header = bytearray([0x81])
+length = len(payload)
+if length < 126:
+    header.append(0x80 | length)
+elif length < 65536:
+    header.extend((0x80 | 126, *struct.pack("!H", length)))
+else:
+    header.extend((0x80 | 127, *struct.pack("!Q", length)))
+
+masked = bytes(byte ^ mask[index % 4] for index, byte in enumerate(payload))
+sock.sendall(bytes(header) + mask + masked)
+sock.close()
+PY
 }
 
 is_process_running() {
   pgrep -x "$1" >/dev/null 2>&1
 }
 
-is_watch_active() {
-  # First check if the process is genuinely running
-  if pgrep -f "spicetify watch" >/dev/null 2>&1; then
-    return 0
-  fi
-  # Process is not running — clean up any stale lock file
-  if [[ -f "$WATCH_LOCK" ]]; then
-    log "Stale watch lock detected (watch not running) — removing lock"
-    release_watch_lock
-  fi
-  return 1
-}
-
-acquire_watch_lock() {
-  echo $$ > "$WATCH_LOCK"
-}
-
-release_watch_lock() {
-  rm -f "$WATCH_LOCK" 2>/dev/null || true
-}
-
 # ─── Color extraction ───────────────────────────────────────────────────────────
 
 read_colors() {
-  local color_source="$PALETTE_JSON"
-  [[ -f "$color_source" ]] || color_source="$COLORS_JSON"
+  local color_source="$APP_PALETTE_JSON"
+  [[ -f $color_source ]] || color_source="$PALETTE_JSON"
+  [[ -f $color_source ]] || color_source="$COLORS_JSON"
 
-  if [[ ! -f "$color_source" ]]; then
-    log "palette/colors JSON not found at $PALETTE_JSON or $COLORS_JSON"
+  if [[ ! -f $color_source ]]; then
+    log "palette/colors JSON not found at $APP_PALETTE_JSON, $PALETTE_JSON, or $COLORS_JSON"
     return 1
   fi
 
@@ -116,23 +185,23 @@ read_colors() {
     return 1
   fi
 
-  COLORS[primary]=$(jq -r '.primary // "#8caaee"' "$color_source")
-  COLORS[on_primary]=$(jq -r '.on_primary // "#1e3a5f"' "$color_source")
-  COLORS[on_primary_container]=$(jq -r '.on_primary_container // "#dce0e8"' "$color_source")
-  COLORS[on_surface]=$(jq -r '.on_surface // "#dce0e8"' "$color_source")
-  COLORS[on_surface_variant]=$(jq -r '.on_surface_variant // "#a6adc8"' "$color_source")
-  COLORS[surface]=$(jq -r '.surface // "#1e1e2e"' "$color_source")
-  COLORS[surface_variant]=$(jq -r '.surface_variant // "#45475a"' "$color_source")
-  COLORS[surface_container_low]=$(jq -r '.surface_container_low // "#181825"' "$color_source")
-  COLORS[surface_container]=$(jq -r '.surface_container // "#313244"' "$color_source")
-  COLORS[surface_container_high]=$(jq -r '.surface_container_high // "#45475a"' "$color_source")
-  COLORS[surface_container_highest]=$(jq -r '.surface_container_highest // "#494d64"' "$color_source")
-  COLORS[primary_container]=$(jq -r '.primary_container // "#313244"' "$color_source")
+  COLORS[primary]=$(jq -r '.app_accent // .primary // "#8caaee"' "$color_source")
+  COLORS[on_primary]=$(jq -r '.app_on_accent // .on_primary // "#1e3a5f"' "$color_source")
+  COLORS[on_primary_container]=$(jq -r '.app_on_selection // .on_primary_container // "#dce0e8"' "$color_source")
+  COLORS[on_surface]=$(jq -r '.app_foreground // .on_surface // "#dce0e8"' "$color_source")
+  COLORS[on_surface_variant]=$(jq -r '.app_subtext // .on_surface_variant // "#a6adc8"' "$color_source")
+  COLORS[surface]=$(jq -r '.app_background // .surface // "#1e1e2e"' "$color_source")
+  COLORS[surface_variant]=$(jq -r '.app_surface_elevated // .surface_variant // "#45475a"' "$color_source")
+  COLORS[surface_container_low]=$(jq -r '.app_sidebar_bg // .app_surface // .surface_container_low // "#181825"' "$color_source")
+  COLORS[surface_container]=$(jq -r '.app_surface // .surface_container // "#313244"' "$color_source")
+  COLORS[surface_container_high]=$(jq -r '.app_card_bg // .app_surface_elevated // .surface_container_high // "#45475a"' "$color_source")
+  COLORS[surface_container_highest]=$(jq -r '.app_surface_popup // .app_thumbnail_bg // .surface_container_highest // "#494d64"' "$color_source")
+  COLORS[primary_container]=$(jq -r '.app_selection // .primary_container // "#313244"' "$color_source")
   COLORS[secondary]=$(jq -r '.secondary // "#89b4fa"' "$color_source")
-  COLORS[secondary_container]=$(jq -r '.secondary_container // "#3d4c6b"' "$color_source")
+  COLORS[secondary_container]=$(jq -r '.app_selection_hover // .secondary_container // "#3d4c6b"' "$color_source")
   COLORS[tertiary]=$(jq -r '.tertiary // "#94e2d5"' "$color_source")
-  COLORS[outline]=$(jq -r '.outline // "#585b70"' "$color_source")
-  COLORS[outline_variant]=$(jq -r '.outline_variant // "#45475a"' "$color_source")
+  COLORS[outline]=$(jq -r '.app_border // .outline // "#585b70"' "$color_source")
+  COLORS[outline_variant]=$(jq -r '.app_border_subtle // .outline_variant // "#45475a"' "$color_source")
   COLORS[error]=$(jq -r '.error // "#f38ba8"' "$color_source")
   COLORS[shadow]=$(jq -r '.shadow // "#000000"' "$color_source")
 }
@@ -191,6 +260,22 @@ regenerate_user_css_bridge() {
   local bridge_block
   bridge_block="/* === Ryoku CSS variable bridge - auto-generated, do not edit === */
 :root {
+  --spice-text:                #$(strip_hash "${COLORS[on_surface]}");
+  --spice-subtext:             #$(strip_hash "${COLORS[on_surface_variant]}");
+  --spice-main:                #$(strip_hash "${COLORS[surface]}");
+  --spice-sidebar:             #$(strip_hash "${COLORS[surface_container_low]}");
+  --spice-player:              #$(strip_hash "${COLORS[surface_container]}");
+  --spice-card:                #$(strip_hash "${COLORS[surface_container_high]}");
+  --spice-shadow:              #$(strip_hash "${COLORS[shadow]}");
+  --spice-selected-row:        #$(strip_hash "${COLORS[on_surface_variant]}");
+  --spice-button:              #$(strip_hash "${COLORS[primary]}");
+  --spice-button-active:       #$(strip_hash "${COLORS[secondary_container]}");
+  --spice-button-disabled:     #$(strip_hash "${COLORS[outline_variant]}");
+  --spice-tab-active:          #$(strip_hash "${COLORS[surface_container_highest]}");
+  --spice-notification:        #$(strip_hash "${COLORS[tertiary]}");
+  --spice-notification-error:  #$(strip_hash "${COLORS[error]}");
+  --spice-misc:                #$(strip_hash "${COLORS[outline]}");
+
   /* Aliases for variables used by Sleek CSS but not in color.ini */
   --spice-main-secondary:      #$(strip_hash "$main_secondary");
   --spice-main-elevated:       #$(strip_hash "$main_elevated");
@@ -207,13 +292,22 @@ regenerate_user_css_bridge() {
   --spice-border:              #$(strip_hash "$spice_border");
 
   /* RGB variants used for rgba() calls */
+  --spice-rgb-text:            $(hex_to_rgb "${COLORS[on_surface]}");
+  --spice-rgb-subtext:         $(hex_to_rgb "${COLORS[on_surface_variant]}");
   --spice-rgb-main:            $(hex_to_rgb "${COLORS[surface]}");
-  --spice-rgb-main-secondary:  $(hex_to_rgb "$main_secondary");
   --spice-rgb-sidebar:         $(hex_to_rgb "${COLORS[surface_container_low]}");
+  --spice-rgb-player:          $(hex_to_rgb "${COLORS[surface_container]}");
+  --spice-rgb-card:            $(hex_to_rgb "${COLORS[surface_container_high]}");
+  --spice-rgb-shadow:          $(hex_to_rgb "${COLORS[shadow]}");
   --spice-rgb-selected-row:    $(hex_to_rgb "${COLORS[on_surface_variant]}");
   --spice-rgb-button:          $(hex_to_rgb "${COLORS[primary]}");
-  --spice-rgb-shadow:          $(hex_to_rgb "${COLORS[shadow]}");
+  --spice-rgb-button-active:   $(hex_to_rgb "${COLORS[secondary_container]}");
+  --spice-rgb-button-disabled: $(hex_to_rgb "${COLORS[outline_variant]}");
+  --spice-rgb-tab-active:      $(hex_to_rgb "${COLORS[surface_container_highest]}");
+  --spice-rgb-notification:    $(hex_to_rgb "${COLORS[tertiary]}");
+  --spice-rgb-notification-error: $(hex_to_rgb "${COLORS[error]}");
   --spice-rgb-misc:            $(hex_to_rgb "${COLORS[outline]}");
+  --spice-rgb-main-secondary:  $(hex_to_rgb "$main_secondary");
 }
 /* === end Ryoku CSS variable bridge === */"
 
@@ -322,6 +416,26 @@ download_sleek_css() {
 
 # ─── Spicetify operations ──────────────────────────────────────────────────────
 
+CDP_PORT=8976
+
+ensure_spotify_desktop_override() {
+  local user_apps="$HOME/.local/share/applications"
+  local override="$user_apps/spotify.desktop"
+  local system_desktop="/usr/share/applications/spotify.desktop"
+
+  if [[ -f $override ]] && grep -q "remote-debugging-port=$CDP_PORT" "$override" 2>/dev/null; then
+    return 0
+  fi
+
+  [[ -f $system_desktop ]] || return 0
+  mkdir -p "$user_apps" 2>/dev/null || return 0
+
+  sed "s|^Exec=spotify|Exec=spotify --remote-debugging-port=$CDP_PORT|" \
+    "$system_desktop" > "$override"
+  sed -i 's|^TryExec=.*|TryExec=spotify|' "$override"
+  log "Created Spotify desktop override with CDP port $CDP_PORT"
+}
+
 configure_spicetify() {
   local theme_dir="$1"
   local color_file="$theme_dir/color.ini"
@@ -334,10 +448,7 @@ configure_spicetify() {
 
   download_sleek_css "$user_css"
   patch_existing_user_css "$user_css"
-  # Write user.css bridge FIRST so that when color.ini lands (last) and
-  # triggers spicetify watch's file-change debounce, user.css is already
-  # fully updated. Reversed order caused watch to reload Spotify from
-  # color.ini before user.css was written — leaving bridge vars stale.
+  # Write user.css bridge first so the live xpui sync copies a complete file.
   regenerate_user_css_bridge "$user_css"
   regenerate_playback_controls_fix "$user_css"
   generate_color_ini "$color_file" || return 1
@@ -348,7 +459,7 @@ configure_spicetify() {
 
 apply_spicetify_theme() {
   local apply_out
-  if apply_out=$(spicetify apply 2>&1); then
+  if apply_out=$(spicetify -n apply 2>&1); then
     printf "%s\n" "$apply_out" >> "$LOG_FILE" 2>&1
     return 0
   fi
@@ -356,9 +467,9 @@ apply_spicetify_theme() {
   printf "%s\n" "$apply_out" >> "$LOG_FILE" 2>&1
 
   if printf "%s" "$apply_out" | grep -Eqi "backup|cannot find backup"; then
-    log "Running spicetify backup apply..."
+    log "Running spicetify -n backup apply..."
     local backup_out
-    if backup_out=$(spicetify backup apply 2>&1); then
+    if backup_out=$(spicetify -n backup apply 2>&1); then
       printf "%s\n" "$backup_out" >> "$LOG_FILE" 2>&1
       return 0
     fi
@@ -369,21 +480,13 @@ apply_spicetify_theme() {
   return 1
 }
 
-start_watch_mode() {
-  log "Starting spicetify watch mode..."
-  nohup spicetify watch -s >> "$LOG_FILE" 2>&1 &
-  local watch_pid=$!
-  sleep 0.5
+sync_live_user_css() {
+  local user_css="$1"
+  local xpui_dir="$2"
+  local live_user_css="$xpui_dir/user.css"
 
-  if kill -0 "$watch_pid" 2>/dev/null; then
-    acquire_watch_lock
-    log "Watch mode started (PID: $watch_pid)"
-    return 0
-  else
-    log "Failed to start watch mode"
-    release_watch_lock
-    return 1
-  fi
+  [[ -d $xpui_dir ]] || return 1
+  cp "$user_css" "$live_user_css"
 }
 
 # ─── Main logic ────────────────────────────────────────────────────────────────
@@ -399,43 +502,58 @@ main() {
   local spicetify_root
   spicetify_root="$(dirname "$spicetify_config")"
   local theme_dir="$spicetify_root/Themes/$THEME_NAME"
+  local xpui_dir
+  xpui_dir="$(get_spotify_xpui_dir "$spicetify_config")"
 
   configure_spicetify "$theme_dir" || {
     log "Failed to configure spicetify"
     exit 1
   }
 
+  ensure_spotify_desktop_override
+
   local spotify_running=false
-  local watch_running=false
-
   is_process_running "spotify" && spotify_running=true
-  is_watch_active && watch_running=true
 
-  if $watch_running; then
-    # Watch mode is monitoring the theme files; the writes above already
-    # triggered a live reload, nothing else to do.
-    log "Watch mode active - colors updated (live reload)"
-    exit 0
-  fi
-
-  # No watch is running, so spicetify cannot propagate the file changes by
-  # itself. Apply patches files on disk and does not open Spotify.
-  if ! apply_spicetify_theme; then
-    log "spicetify apply failed; theme files written but bundle is stale"
-    exit 1
+  if [[ -n $xpui_dir ]] && is_live_install_patched "$xpui_dir"; then
+    if sync_live_user_css "$theme_dir/user.css" "$xpui_dir"; then
+      log "Synced live Spotify user.css"
+      if $spotify_running; then
+        local debugger_port
+        debugger_port="$(get_debugger_port)"
+        if [[ -n $debugger_port ]] && reload_running_spotify "$debugger_port"; then
+          log "Spotify live theme reloaded without restart"
+          exit 0
+        fi
+        log "Live user.css synced; debugger reload unavailable"
+        exit 0
+      fi
+      log "Spotify not running - live user.css synced for next launch"
+      exit 0
+    fi
   fi
 
   if ! $spotify_running; then
-    # Bundle is patched; Spotify will use the new colors on next launch.
-    log "Spotify not running - theme applied to bundle for next launch"
+    log "Spotify not running - theme files written for next launch (skipping apply)"
     exit 0
   fi
 
-  log "Spotify running without watch - refreshing and starting watch mode"
-  spicetify refresh -s >> "$LOG_FILE" 2>&1 || true
-  start_watch_mode || {
-    log "Watch start failed; future color changes will need spicetify apply"
-  }
+  if ! apply_spicetify_theme; then
+    log "spicetify -n apply failed; theme files written but install was not patched"
+    exit 1
+  fi
+
+  if [[ -n $xpui_dir ]] && is_live_install_patched "$xpui_dir"; then
+    sync_live_user_css "$theme_dir/user.css" "$xpui_dir" || true
+    local debugger_port
+    debugger_port="$(get_debugger_port)"
+    if [[ -n $debugger_port ]] && reload_running_spotify "$debugger_port"; then
+      log "Spotify live theme reloaded after no-restart apply"
+      exit 0
+    fi
+  fi
+
+  log "Spotify running - disk theme updated without restart"
 
   exit 0
 }

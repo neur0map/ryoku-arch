@@ -71,6 +71,7 @@ if [[ -n "${ONLY_MISSING_DEPS:-}" ]]; then
     [wl-copy]="wl-clipboard"
     [wl-paste]="wl-clipboard"
     [fuzzel]="fuzzel"
+    [missioncenter]="io.missioncenter.MissionCenter"
   )
 
   _deb_miss_cmds=()
