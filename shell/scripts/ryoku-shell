@@ -832,8 +832,18 @@ apply_qt_runtime_env() {
         # they need the full PATH to locate binaries outside /usr/bin.
         local _qs_sys_path
         _qs_sys_path="$(grep '^PATH=' <<< "$_qs_sys_env" | head -1 | cut -d= -f2- || true)"
-        if [[ -n "$_qs_sys_path" && "$_qs_sys_path" != "$PATH" ]]; then
+        if [[ -n $_qs_sys_path ]]; then
             local _qs_merged="$_qs_sys_path"
+            local _qs_path_entry
+            local -a _qs_existing_path=()
+            IFS=: read -ra _qs_existing_path <<< "$PATH"
+            for _qs_path_entry in "${_qs_existing_path[@]}"; do
+                [[ -n $_qs_path_entry ]] || continue
+                case ":${_qs_merged}:" in
+                    *":${_qs_path_entry}:"*) ;;
+                    *) _qs_merged="${_qs_merged}:${_qs_path_entry}" ;;
+                esac
+            done
             for _qs_p in /usr/local/bin /usr/bin; do
                 case ":${_qs_merged}:" in
                     *":${_qs_p}:"*) ;;
