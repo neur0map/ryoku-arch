@@ -46,7 +46,7 @@ if [[ -n "${ONLY_MISSING_DEPS:-}" ]]; then
   tui_info "Installing missing dependencies only..."
 
   installflags=""
-  $ask || installflags="-y"
+  ${ask:-true} || installflags="-y"
 
   # Map command IDs (from doctor) to Debian/Ubuntu package names.
   declare -A cmd_to_pkg=(
@@ -149,7 +149,7 @@ esac
 # Repository context & package availability
 #####################################################################################
 installflags=""
-$ask || installflags="-y"
+${ask:-true} || installflags="-y"
 
 declare -a APT_COMPONENTS=()
 declare -a MISSING_REPO_PKGS=()
@@ -195,7 +195,7 @@ read_apt_components() {
   done
 
   if [[ ${#components[@]} -gt 0 ]]; then
-    APT_COMPONENTS=($(printf "%s\n" "${components[@]}" | awk 'NF{print $1}' | sort -u))
+    mapfile -t APT_COMPONENTS < <(printf "%s\n" "${components[@]}" | awk 'NF{print $1}' | sort -u)
   else
     APT_COMPONENTS=()
   fi
@@ -283,6 +283,7 @@ apt_pkg_available() {
 
 filter_available_packages() {
   local pkg_array_name="$1"
+  # shellcheck disable=SC2178
   local -n pkgs="$pkg_array_name"
   local -a available=()
   local pkg
@@ -511,6 +512,7 @@ sudo apt --fix-broken install -y 2>/dev/null || true
 install_packages() {
   local pkg_array_name="$1"
   local description="$2"
+  # shellcheck disable=SC2178
   local -n pkgs="$pkg_array_name"
 
   filter_available_packages "$pkg_array_name"
@@ -778,14 +780,14 @@ if ${INSTALL_SCREENCAPTURE:-true}; then
     
     SWAPPY_BUILD_DIR="/tmp/swappy-build-$$"
     if git clone https://github.com/jtheoof/swappy.git "$SWAPPY_BUILD_DIR" 2>/dev/null; then
-      cd "$SWAPPY_BUILD_DIR"
+      cd "$SWAPPY_BUILD_DIR" || return 1
       if meson setup build && ninja -C build; then
         sudo ninja -C build install
         log_success "swappy installed"
       else
         log_warning "swappy build failed, skipping"
       fi
-      cd "${REPO_ROOT}"
+      cd "${REPO_ROOT}" || return 1
       rm -rf "$SWAPPY_BUILD_DIR"
     fi
   fi
@@ -903,7 +905,7 @@ if ! command -v niri &>/dev/null; then
     log_info "Cloning Niri..."
     if git clone https://github.com/YaLTeR/niri.git "$NIRI_BUILD_DIR"; then
       log_info "Building Niri (this may take a while)..."
-      cd "$NIRI_BUILD_DIR"
+      cd "$NIRI_BUILD_DIR" || return 1
       if cargo build --release; then
         log_info "Installing Niri..."
         sudo cp target/release/niri /usr/local/bin/
@@ -913,7 +915,7 @@ if ! command -v niri &>/dev/null; then
       else
         log_error "Niri build failed!"
       fi
-      cd "${REPO_ROOT}"
+      cd "${REPO_ROOT}" || return 1
       rm -rf "$NIRI_BUILD_DIR"
     else
       log_error "Failed to clone Niri repository"
@@ -951,14 +953,14 @@ if ! command -v xwayland-satellite &>/dev/null; then
   # xwayland-satellite is not on crates.io, must compile from source
   XWSAT_BUILD_DIR="/tmp/xwayland-satellite-build-$$"
   if git clone https://github.com/Supreeeme/xwayland-satellite.git "$XWSAT_BUILD_DIR"; then
-    cd "$XWSAT_BUILD_DIR"
+    cd "$XWSAT_BUILD_DIR" || return 1
     if cargo build --release; then
       sudo cp target/release/xwayland-satellite /usr/local/bin/
       log_success "xwayland-satellite installed"
     else
       log_warning "xwayland-satellite build failed"
     fi
-    cd "${REPO_ROOT}"
+    cd "${REPO_ROOT}" || return 1
     rm -rf "$XWSAT_BUILD_DIR"
   fi
   fi
@@ -975,14 +977,14 @@ if ! command -v awww &>/dev/null; then
 
   AWWW_BUILD_DIR="/tmp/awww-build-$$"
   if git clone https://codeberg.org/LGFae/awww.git "$AWWW_BUILD_DIR"; then
-    cd "$AWWW_BUILD_DIR"
+    cd "$AWWW_BUILD_DIR" || return 1
     if cargo build --release; then
       sudo cp target/release/awww target/release/awww-daemon /usr/local/bin/
       log_success "awww installed"
     else
       log_warning "awww build failed"
     fi
-    cd "${REPO_ROOT}"
+    cd "${REPO_ROOT}" || return 1
     rm -rf "$AWWW_BUILD_DIR"
   else
     log_warning "Failed to clone awww repository"
@@ -1034,14 +1036,14 @@ if ! command -v hyprpicker &>/dev/null; then
     HYPRUTILS_BUILD_DIR="/tmp/hyprutils-build-$$"
     
     if git clone --depth 1 https://github.com/hyprwm/hyprutils.git "$HYPRUTILS_BUILD_DIR" 2>/dev/null; then
-      cd "$HYPRUTILS_BUILD_DIR"
+      cd "$HYPRUTILS_BUILD_DIR" || return 1
       if cmake -B build && cmake --build build && sudo cmake --install build; then
         log_success "hyprutils installed"
         HYPRUTILS_INSTALLED=true
       else
         log_warning "hyprutils build failed"
       fi
-      cd "${REPO_ROOT}"
+      cd "${REPO_ROOT}" || return 1
       rm -rf "$HYPRUTILS_BUILD_DIR"
     fi
   fi
@@ -1051,14 +1053,14 @@ if ! command -v hyprpicker &>/dev/null; then
     HYPRPICKER_BUILD_DIR="/tmp/hyprpicker-build-$$"
     
     if git clone --depth 1 https://github.com/hyprwm/hyprpicker.git "$HYPRPICKER_BUILD_DIR" 2>/dev/null; then
-      cd "$HYPRPICKER_BUILD_DIR"
+      cd "$HYPRPICKER_BUILD_DIR" || return 1
       if cmake -B build && cmake --build build; then
         sudo cp build/hyprpicker /usr/local/bin/
         log_success "hyprpicker installed"
       else
         log_warning "hyprpicker build failed"
       fi
-      cd "${REPO_ROOT}"
+      cd "${REPO_ROOT}" || return 1
       rm -rf "$HYPRPICKER_BUILD_DIR"
     fi
   else
@@ -1150,18 +1152,18 @@ if ! command -v qs &>/dev/null; then
   log_info "Cloning Quickshell..."
   if git clone --recursive https://github.com/quickshell-mirror/quickshell.git "$QUICKSHELL_BUILD_DIR"; then
     log_info "Building Quickshell (this may take a while)..."
-    cd "$QUICKSHELL_BUILD_DIR"
+    cd "$QUICKSHELL_BUILD_DIR" || return 1
     if cmake -B build -G Ninja \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr/local \
       -DSERVICE_PIPEWIRE=ON \
-      -DSERVICE_PAM=ON && cmake --build build -j$(nproc); then
+      -DSERVICE_PAM=ON && cmake --build build -j"$(nproc)"; then
       sudo cmake --install build
       log_success "Quickshell installed!"
     else
       log_error "Quickshell build failed!"
     fi
-    cd "${REPO_ROOT}"
+    cd "${REPO_ROOT}" || return 1
     rm -rf "$QUICKSHELL_BUILD_DIR"
   else
     log_error "Failed to clone Quickshell repository"
@@ -1189,14 +1191,14 @@ if ! command -v cava &>/dev/null; then
   
   CAVA_BUILD_DIR="/tmp/cava-build-$$"
   if git clone https://github.com/karlstav/cava.git "$CAVA_BUILD_DIR"; then
-    cd "$CAVA_BUILD_DIR"
-    if ./autogen.sh && ./configure && make -j$(nproc); then
+    cd "$CAVA_BUILD_DIR" || return 1
+    if ./autogen.sh && ./configure && make -j"$(nproc)"; then
       sudo make install
       log_success "cava installed"
     else
       log_warning "cava build failed, skipping"
     fi
-    cd "${REPO_ROOT}"
+    cd "${REPO_ROOT}" || return 1
     rm -rf "$CAVA_BUILD_DIR"
   fi
 fi
@@ -1270,13 +1272,13 @@ if [[ ! -d "$ICON_DIR/WhiteSur-dark" ]]; then
   if curl -fsSL -o "$TEMP_DIR/whitesur.tar.gz" \
     "https://github.com/vinceliuice/WhiteSur-icon-theme/archive/refs/heads/master.tar.gz"; then
     tar -xzf "$TEMP_DIR/whitesur.tar.gz" -C "$TEMP_DIR"
-    cd "$TEMP_DIR/WhiteSur-icon-theme-master"
+    cd "$TEMP_DIR/WhiteSur-icon-theme-master" || return 1
     ./install.sh -d "$ICON_DIR" -t default >/dev/null 2>&1 || {
       cp -r src/WhiteSur "$ICON_DIR/WhiteSur" 2>/dev/null || true
       cp -r src/WhiteSur-dark "$ICON_DIR/WhiteSur-dark" 2>/dev/null || true
       cp -r src/WhiteSur-light "$ICON_DIR/WhiteSur-light" 2>/dev/null || true
     }
-    cd - >/dev/null
+    cd - >/dev/null || return 1
     log_success "WhiteSur icon theme installed"
   fi
   
@@ -1293,11 +1295,11 @@ if [[ ! -d "$ICON_DIR/MacTahoe" ]]; then
   if curl -fsSL -o "$TEMP_DIR/mactahoe.tar.gz" \
     "https://github.com/vinceliuice/MacTahoe-icon-theme/archive/refs/heads/main.tar.gz"; then
     tar -xzf "$TEMP_DIR/mactahoe.tar.gz" -C "$TEMP_DIR"
-    cd "$TEMP_DIR/MacTahoe-icon-theme-main"
+    cd "$TEMP_DIR/MacTahoe-icon-theme-main" || return 1
     ./install.sh -d "$ICON_DIR" >/dev/null 2>&1 || {
       cp -r src/MacTahoe "$ICON_DIR/MacTahoe" 2>/dev/null || true
     }
-    cd - >/dev/null
+    cd - >/dev/null || return 1
     log_success "MacTahoe icon theme installed"
   fi
   
@@ -1398,7 +1400,8 @@ echo ""
 
 if [[ ${#MISSING_REPO_PKGS[@]} -gt 0 ]]; then
   log_warning "Packages missing from current repositories:"
-  printf '  - %s\n' $(printf "%s\n" "${MISSING_REPO_PKGS[@]}" | awk 'NF{print $1}' | sort -u)
+  mapfile -t unique_missing_repo_pkgs < <(printf "%s\n" "${MISSING_REPO_PKGS[@]}" | awk 'NF{print $1}' | sort -u)
+  printf '  - %s\n' "${unique_missing_repo_pkgs[@]}"
   echo ""
 fi
 log_info "Installed from GitHub releases (no compilation):"
