@@ -13,7 +13,9 @@ Rectangle {
     
     property color fallbackColor: Appearance.colors.colLayer1
     property color ryokuColor: Appearance.ryoku.colLayer1
+    property color overlayColor: Appearance.colors.colLayer0Base
     property real auroraTransparency: Appearance.aurora.popupTransparentize
+    property real wallpaperOpacity: 1.0
     
     // Screen-relative position for blur alignment (set by parent)
     property real screenX: 0
@@ -64,6 +66,7 @@ Rectangle {
         // native resolution is wasted.  Screen dimensions are more than enough.
         sourceSize.width: root.screenWidth
         sourceSize.height: root.screenHeight
+        opacity: root.wallpaperOpacity
 
         layer.enabled: Appearance.effectsEnabled && root.auroraEverywhere && !root.ryokuEverywhere
         layer.effect: MultiEffect {
@@ -85,7 +88,7 @@ Rectangle {
         visible: root.auroraEverywhere && !root.ryokuEverywhere
         color: root.angelEverywhere
             ? ColorUtils.transparentize(Appearance.colors.colLayer0Base, Appearance.angel.overlayOpacity)
-            : ColorUtils.transparentize(Appearance.colors.colLayer0Base, root.auroraTransparency)
+            : ColorUtils.transparentize(root.overlayColor, root.auroraTransparency)
     }
 
     // Inset glow — light-from-above on top edge, angel only

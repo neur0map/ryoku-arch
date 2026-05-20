@@ -51,10 +51,11 @@ if [[ -n "${ONLY_MISSING_DEPS:-}" ]]; then
     [wl-copy]="wl-clipboard"
     [wl-paste]="wl-clipboard"
     [fuzzel]="fuzzel"
+    [missioncenter]="io.missioncenter.MissionCenter"
   )
 
   _fed_installflags=""
-  $ask || _fed_installflags="-y --skip-unavailable"
+  ${ask:-true} || _fed_installflags="-y --skip-unavailable"
 
   _fed_miss_cmds=()
   _fed_miss_pkgs=()
@@ -314,7 +315,7 @@ FEDORA_FONT_PKGS=(
 )
 
 installflags=""
-$ask || installflags="-y --skip-unavailable"
+${ask:-true} || installflags="-y --skip-unavailable"
 
 # Install core packages
 log_info "Installing core packages (Quickshell + Niri)..."
@@ -566,14 +567,14 @@ if [[ ! -d "$ICON_DIR/WhiteSur-dark" ]]; then
   if curl -fsSL -o "$TEMP_DIR/whitesur.tar.gz" \
     "https://github.com/vinceliuice/WhiteSur-icon-theme/archive/refs/heads/master.tar.gz"; then
     tar -xzf "$TEMP_DIR/whitesur.tar.gz" -C "$TEMP_DIR"
-    cd "$TEMP_DIR/WhiteSur-icon-theme-master"
+    cd "$TEMP_DIR/WhiteSur-icon-theme-master" || return 1
     ./install.sh -d "$ICON_DIR" -t default >/dev/null 2>&1 || {
       # Fallback: manual copy of canonical theme dirs
       cp -r src/WhiteSur "$ICON_DIR/WhiteSur" 2>/dev/null || true
       cp -r src/WhiteSur-dark "$ICON_DIR/WhiteSur-dark" 2>/dev/null || true
       cp -r src/WhiteSur-light "$ICON_DIR/WhiteSur-light" 2>/dev/null || true
     }
-    cd - >/dev/null
+    cd - >/dev/null || return 1
     log_success "WhiteSur icon theme installed"
   else
     log_warning "Could not download WhiteSur icon theme"
@@ -592,9 +593,9 @@ if [[ ! -d "$ICON_DIR/MacTahoe" ]]; then
   if curl -fsSL -o "$TEMP_DIR/mactahoe.tar.gz" \
     "https://github.com/vinceliuice/MacTahoe-icon-theme/archive/refs/heads/master.tar.gz"; then
     tar -xzf "$TEMP_DIR/mactahoe.tar.gz" -C "$TEMP_DIR"
-    cd "$TEMP_DIR/MacTahoe-icon-theme-master" 2>/dev/null || cd "$TEMP_DIR/MacTahoe-icon-theme-main"
+    cd "$TEMP_DIR/MacTahoe-icon-theme-master" 2>/dev/null || cd "$TEMP_DIR/MacTahoe-icon-theme-main" || return 1
     ./install.sh -d "$ICON_DIR" >/dev/null 2>&1
-    cd - >/dev/null
+    cd - >/dev/null || return 1
     log_success "MacTahoe icon theme installed"
   else
     log_warning "Could not download MacTahoe icon theme"

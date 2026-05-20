@@ -231,7 +231,7 @@ Singleton {
 			return false;
 		}
 		// Additional heuristic: browser titles like "... on X: ..." or "... / X" (no url present)
-		const isBrowserPlayerName = name.includes("helium") || name.includes("firefox") || name.includes("chrome") || name.includes("chromium") ||
+		const isBrowserPlayerName = name.includes("helium") || name.includes("zen") || name.includes("firefox") || name.includes("chrome") || name.includes("chromium") ||
 			name.includes("brave") || name.includes("vivaldi") || name.includes("opera");
 		if (isBrowserPlayerName) {
 			if (lowerTitle.includes(" on x:") || lowerTitle.includes(" / x")) {
@@ -338,7 +338,7 @@ Singleton {
 		}
 		
 		// Filter browser players with very short content (likely embedded videos/GIFs)
-		const isBrowserPlayer = name.includes("helium") || name.includes("firefox") || name.includes("chrome") || name.includes("chromium") ||
+		const isBrowserPlayer = name.includes("helium") || name.includes("zen") || name.includes("firefox") || name.includes("chrome") || name.includes("chromium") ||
 		                        name.includes("brave") || name.includes("vivaldi") || name.includes("opera");
 		if (isBrowserPlayer && trackLength > 0 && trackLength < 15 && !trackUrl.includes("youtube.com") && !trackUrl.includes("youtu.be")) {
 			return false;
@@ -394,7 +394,7 @@ Singleton {
 		const name = (player.dbusName ?? "").toLowerCase();
 		const identity = (player.identity ?? "").toLowerCase();
 		const entry = (player.desktopEntry ?? "").toLowerCase();
-		const isBrowser = name.includes("plasma-browser-integration") || name.includes("helium") || name.includes("firefox") ||
+		const isBrowser = name.includes("plasma-browser-integration") || name.includes("helium") || name.includes("zen") || name.includes("firefox") ||
 			name.includes("chrome") || name.includes("chromium") || name.includes("brave") ||
 			name.includes("vivaldi") || name.includes("opera") || identity.includes("firefox") ||
 			identity.includes("helium") || identity.includes("zen") || entry.includes("helium") ||

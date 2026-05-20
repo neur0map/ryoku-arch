@@ -109,7 +109,7 @@ Usage: ryoku-shell <command> [options]
 
 Quick start:
   ryoku-shell run               Start the shell
-  ryoku-shell settings          Open settings
+  ryoku-shell settings          Open Ryoku settings
   ryoku-shell welcome           Re-open the welcome wizard (first-run tour)
   ryoku-shell restart           Restart the shell
   ryoku-shell logs              View runtime logs
@@ -150,7 +150,7 @@ Other:
   theme <list-targets|inspect|doctor|apply|scaffold> [args...]
   completions <bash|zsh|fish>
   service <install|uninstall|enable|disable|start|stop|restart|status|logs>
-  repair, path, test-local, settings-window, waffle-settings-window
+  repair, path, test-local, settings-window, ryoku-settings-window, legacy-settings-window, waffle-settings-window
 EOF
 }
 
@@ -350,7 +350,7 @@ usage_short() {
 Most people only need:
   ./setup install
   ryoku-shell run
-  ryoku-shell settings
+  ryoku-shell settings [--centered|--window]
   ryoku-shell update
   ryoku-shell status
   ryoku-doctor
@@ -832,8 +832,18 @@ apply_qt_runtime_env() {
         # they need the full PATH to locate binaries outside /usr/bin.
         local _qs_sys_path
         _qs_sys_path="$(grep '^PATH=' <<< "$_qs_sys_env" | head -1 | cut -d= -f2- || true)"
-        if [[ -n "$_qs_sys_path" && "$_qs_sys_path" != "$PATH" ]]; then
+        if [[ -n $_qs_sys_path ]]; then
             local _qs_merged="$_qs_sys_path"
+            local _qs_path_entry
+            local -a _qs_existing_path=()
+            IFS=: read -ra _qs_existing_path <<< "$PATH"
+            for _qs_path_entry in "${_qs_existing_path[@]}"; do
+                [[ -n $_qs_path_entry ]] || continue
+                case ":${_qs_merged}:" in
+                    *":${_qs_path_entry}:"*) ;;
+                    *) _qs_merged="${_qs_merged}:${_qs_path_entry}" ;;
+                esac
+            done
             for _qs_p in /usr/local/bin /usr/bin; do
                 case ":${_qs_merged}:" in
                     *":${_qs_p}:"*) ;;
@@ -1357,6 +1367,56 @@ open_settings() {
     fi
 
     exec "$qs_bin" -p "$dir" ipc call -- settings open
+}
+
+settings_launch_mode() {
+    local mode="centered"
+    local config_file="${XDG_CONFIG_HOME:-$HOME/.config}/ryoku-shell/config.json"
+
+    if command -v jq >/dev/null 2>&1 && [[ -f $config_file ]]; then
+        mode="$(jq -r '.settingsUi.launchMode // empty' "$config_file" 2>/dev/null || true)"
+    fi
+
+    if [[ $mode != "centered" && $mode != "window" ]]; then
+        mode="centered"
+    fi
+
+    printf '%s' "$mode"
+}
+
+open_settings_surface() {
+    local settings_mode=""
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -c|--config)
+                parse_config_flag "$@"
+                shift 2
+                ;;
+            --centered)
+                settings_mode="centered"
+                shift
+                ;;
+            --window)
+                settings_mode="window"
+                shift
+                ;;
+            -h|--help)
+                usage
+                exit 0
+                ;;
+            *)
+                echo "Unknown option: $1" >&2
+                exit 1
+                ;;
+        esac
+    done
+    resolve_config_dir
+    if [[ -z $settings_mode ]]; then
+        settings_mode="$(settings_launch_mode)"
+    fi
+    export RYOKU_SETTINGS_MODE="$settings_mode"
+    open_detached_qml_window "$config_dir" "ryokuSettings.qml"
 }
 
 open_detached_qml_window() {
@@ -2584,26 +2644,13 @@ case "$command_name" in
         ;;
     settings|open)
         require_qs
-        while [[ $# -gt 0 ]]; do
-            case "$1" in
-                -c|--config)
-                    parse_config_flag "$@"
-                    shift 2
-                    ;;
-                -h|--help)
-                    usage
-                    exit 0
-                    ;;
-                *)
-                    echo "Unknown option: $1" >&2
-                    exit 1
-                    ;;
-            esac
-        done
-        resolve_config_dir
-        open_settings "$config_dir"
+        open_settings_surface "$@"
         ;;
-    settings-window)
+    settings-window|ryoku-settings-window)
+        require_qs
+        open_settings_surface "$@"
+        ;;
+    legacy-settings-window)
         require_qs
         while [[ $# -gt 0 ]]; do
             case "$1" in

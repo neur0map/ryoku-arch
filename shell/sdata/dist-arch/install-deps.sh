@@ -47,6 +47,7 @@ if [[ -n "${ONLY_MISSING_DEPS:-}" ]]; then
     [syntax-highlighting]="syntax-highlighting"
     [kirigami]="kirigami"
     [kdialog]="kdialog"
+    [missioncenter]="mission-center"
   )
 
   _miss_installflags="--needed"

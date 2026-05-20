@@ -42,6 +42,7 @@ ShellRoot {
     property var _weatherService
     property var _voiceSearchService
     property var _fontSyncService
+    property var _cavaThemeService
 
     Component.onCompleted: {
         Quickshell.watchFiles = !disableHotReload;
@@ -80,6 +81,7 @@ ShellRoot {
             root._weatherService = Weather;
             root._voiceSearchService = VoiceSearch;
             root._fontSyncService = FontSyncService;
+            root._cavaThemeService = CavaTheme;
             Hyprsunset.load();
             GlobalStates.deferredPanelsReady = true;
         }
@@ -174,29 +176,24 @@ ShellRoot {
             Config.setNestedValue("enabledPanels", panels)
     }
 
-    // IPC for settings - overlay mode or separate window based on config
-    // Note: waffle family ALWAYS uses its own window (waffleSettings.qml), never the Material overlay
+    // IPC for the official Ryoku settings surface.
     IpcHandler {
         target: "settings"
         function open(): void {
-            const isWaffle = Config.options?.panelFamily === "waffle"
-                && Config.options?.waffles?.settings?.useMaterialStyle !== true
-
-            if (isWaffle) {
-                // Waffle always opens its own Win11-style settings window
-                Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"),
-                    "waffle-settings-window"])
-            } else if (Config.options?.settingsUi?.overlayMode ?? false) {
-                // ii overlay mode — toggle inline panel
-                GlobalStates.settingsOverlayOpen = !GlobalStates.settingsOverlayOpen
-            } else {
-                // ii window mode (default) — launch separate process
-                Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"),
-                    "settings-window"])
-            }
+            Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"),
+                "settings"])
         }
         function toggle(): void {
             open()
+        }
+        // Re-apply the active theme in the main-shell process. The settings
+        // window (a separate process) calls this after a Config write so the
+        // main shell's Appearance.m3colors gets pulled from the just-written
+        // customTheme / theme config. We pass applyExternal=true so this is
+        // also the single place that runs scripts/colors/applycolor.sh: the
+        // settings window does NOT run that pipeline, to avoid a double-run.
+        function applyTheme(): void {
+            ThemeService.applyCurrentTheme(true)
         }
     }
 

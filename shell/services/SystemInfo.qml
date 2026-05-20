@@ -93,13 +93,6 @@ Singleton {
         }
     }
 
-    Timer {
-        interval: 15000
-        running: true
-        repeat: true
-        onTriggered: refreshIdentity()
-    }
-
     Process {
         id: getUsername
         command: ["/usr/bin/id", "-un"]

@@ -384,8 +384,10 @@ Singleton {
             execute: () => {
                 if (RecorderStatus.isRecording) {
                     Quickshell.execDetached(["/usr/bin/pkill", "-SIGINT", "wf-recorder"])
+                    RecorderStatus.scheduleQuickCheck()
                 } else {
                     Quickshell.execDetached(["/usr/bin/bash", Directories.recordScriptPath])
+                    RecorderStatus.scheduleQuickCheck()
                 }
             }
         },

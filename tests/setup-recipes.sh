@@ -93,8 +93,8 @@ assert_contains "shell/scripts/setup/spotify.sh" 'Clearing stale backup state' \
   "spotify setup recipe should clear deadlocked Spicetify backup state"
 
 assert_contains "shell/scripts/colors/apply-spicetify-theme.sh" 'apply_spicetify_theme' \
-  "Spicetify theme script should call apply when watch mode is inactive"
-assert_contains "shell/scripts/colors/apply-spicetify-theme.sh" 'Spotify not running - theme applied to bundle for next launch' \
-  "Spicetify theme script should patch the bundle even when Spotify is closed"
+  "Spicetify theme script should keep a no-launch apply fallback"
+assert_contains "shell/scripts/colors/apply-spicetify-theme.sh" 'Spotify not running - theme files written for next launch \(skipping apply\)' \
+  "Spicetify theme script should not run apply when Spotify is closed"
 
 echo "PASS: setup recipes framework"

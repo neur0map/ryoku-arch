@@ -368,9 +368,23 @@ Singleton {
                 name=$(cat "$hwmon/name" 2>/dev/null)
 
                 temp=""
-                for f in "$hwmon/temp1_input" "$hwmon"/temp*_input; do
-                    [[ -f "$f" ]] && temp="$f" && break
-                done
+                # For k10temp/zenpower, prefer Tdie over Tctl. Tctl can include
+                # an artificial fan-curve offset on some Ryzen systems.
+                if [[ "$name" == "k10temp" || "$name" == "zenpower" ]]; then
+                    for f in "$hwmon"/temp*_label; do
+                        [[ -f "$f" ]] || continue
+                        label=$(cat "$f" 2>/dev/null)
+                        if [[ "$label" == "Tdie" ]]; then
+                            temp=$(printf '%s\n' "$f" | sed 's/_label/_input/')
+                            break
+                        fi
+                    done
+                fi
+                if [[ -z "$temp" ]]; then
+                    for f in "$hwmon/temp1_input" "$hwmon"/temp*_input; do
+                        [[ -f "$f" ]] && temp="$f" && break
+                    done
+                fi
                 [[ -n "$temp" ]] || continue
 
                 priority_level=0
@@ -387,7 +401,19 @@ Singleton {
 
                 case "$name" in
                     amdgpu|radeon|nvidia|nouveau|i915|xe|panfrost|lima|v3d|vc4)
-                        [[ -z "$gpu_path" ]] && gpu_path="$temp"
+                        if [[ -z "$gpu_path" ]]; then
+                            gpu_edge=""
+                            for lf in "$hwmon"/temp*_label; do
+                                [[ -f "$lf" ]] || continue
+                                gl=$(cat "$lf" 2>/dev/null)
+                                [[ "$gl" == "edge" ]] && gpu_edge="$lf" && break
+                            done
+                            if [[ -n "$gpu_edge" ]]; then
+                                gpu_path=$(printf '%s\n' "$gpu_edge" | sed 's/_label/_input/')
+                            else
+                                gpu_path="$temp"
+                            fi
+                        fi
                         ;;
                 esac
             done

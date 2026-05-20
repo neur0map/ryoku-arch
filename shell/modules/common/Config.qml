@@ -173,6 +173,7 @@ Singleton {
     }
 
     property bool _writeInFlight: false
+    property bool _pendingWrite: false
     property bool _pendingCustomInject: false
     property bool _pendingReload: false
     property var _customSnapshotForInject: ({})
@@ -193,8 +194,12 @@ Singleton {
         root._writeInFlight = false;
         if (root._pendingCustomInject) {
             root._pendingCustomInject = false;
-            root._injectCustomDataSync();
+            customInjectTimer.restart();
             return;
+        }
+        if (root._pendingWrite) {
+            root._pendingWrite = false;
+            fileWriteTimer.restart();
         }
         root._finishPendingReload();
     }
@@ -273,6 +278,7 @@ Singleton {
             }
             configFileView.reload();
             root._syncVarProperties();
+            root._bumpRevision();
             root.configChanged();
         }
     }
@@ -282,11 +288,23 @@ Singleton {
         interval: root.readWriteDelay
         repeat: false
         onTriggered: {
+            if (root._writeInFlight) {
+                root._pendingWrite = true;
+                return;
+            }
             root._prepareCustomInject();
+            root._pendingWrite = false;
             root._writeInFlight = true;
             fileReloadTimer.stop();
             configFileView.writeAdapter();
         }
+    }
+
+    Timer {
+        id: customInjectTimer
+        interval: 1
+        repeat: false
+        onTriggered: root._injectCustomDataSync()
     }
 
     FileView {
@@ -385,6 +403,7 @@ Singleton {
 
             property JsonObject appearance: JsonObject {
                 property string theme: "auto" // Theme preset ID: "auto" for wallpaper-based, or preset name like "gruvbox-dark", "catppuccin-mocha", "custom", etc.
+                property string themeMode: "dark" // "light" | "dark" | "auto" | "schedule"
                 property string globalStyle: "material" // "material" | "cards" | "aurora" | "ryoku-shell" | "angel"
                 property JsonObject aurora: JsonObject {
                     property JsonObject transparency: JsonObject {
@@ -1902,6 +1921,10 @@ Singleton {
             property JsonObject settingsUi: JsonObject {
                 property bool overlayMode: false // true = layer shell overlay (live preview), false = separate window (default)
                 property bool easyMode: false    // true = curated essentials only; nav and sub-sections filter to a friendlier subset
+                property string launchMode: "centered" // centered = floating settings panel, window = normal compositor placement
+                property JsonObject focusRing: JsonObject {
+                    property bool followTheme: false // keep Niri focus ring colors in sync with the active Ryoku palette
+                }
                 property JsonObject overlayAppearance: JsonObject {
                     property int scrimDim: 35           // % dim of the backdrop scrim behind the settings panel (0-100)
                     property real backgroundOpacity: 1.0 // opacity of the settings panel background itself (0.2-1.0)

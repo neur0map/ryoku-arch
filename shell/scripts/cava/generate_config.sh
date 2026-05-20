@@ -2,13 +2,16 @@
 set -euo pipefail
 
 # Generate cava config for internal widget usage.
-# Usage: generate_config.sh <output_file> [framerate] [sensitivity] [bars] [stereo]
+# Usage: generate_config.sh <output_file> [framerate] [sensitivity] [bars] [stereo] [desktop_entry]
 
 OUTPUT_FILE="${1:-/tmp/cava_config.txt}"
 FRAMERATE="${2:-60}"
 SENSITIVITY="${3:-100}"
 BARS="${4:-50}"
 STEREO="${5:-false}"
+DESKTOP_ENTRY="${6:-}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+RESOLVER="$SCRIPT_DIR/resolve_audio_source.py"
 
 get_audio_method() {
   if command -v pactl >/dev/null 2>&1 && pactl info 2>/dev/null | grep -qi "PipeWire"; then
@@ -29,7 +32,11 @@ get_default_monitor() {
 }
 
 METHOD="$(get_audio_method)"
-MONITOR="$(get_default_monitor)"
+MONITOR=""
+if [[ -f $RESOLVER ]]; then
+  MONITOR="$(python3 "$RESOLVER" --desktop-entry "$DESKTOP_ENTRY" 2>/dev/null || true)"
+fi
+[[ -n $MONITOR ]] || MONITOR="$(get_default_monitor)"
 CHANNELS="mono"
 [[ $STEREO == "true" ]] && CHANNELS="stereo"
 

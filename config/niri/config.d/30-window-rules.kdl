@@ -54,6 +54,21 @@ window-rule {
     default-floating-position x=10 y=10 relative-to="bottom-right"
 }
 
+// Ryoku settings: centered floating panel instead of another tiled app column.
+window-rule {
+    match app-id="org.quickshell" title="^Ryoku Settings$"
+    open-floating true
+    open-focused true
+    draw-border-with-background false
+    opacity 1.0
+    focus-ring {
+        off
+    }
+    border {
+        off
+    }
+}
+
 // ── Privacy: block password managers from screen capture ────────────────────
 // Uncomment the block below to hide these apps during screencasts.
 // /-window-rule {

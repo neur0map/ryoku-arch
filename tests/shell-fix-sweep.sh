@@ -73,8 +73,10 @@ assert_not_contains "shell/scripts/colors/switchwall.sh" "ILLOGICAL" \
 
 assert_contains "shell/modules/common/widgets/ThumbnailImage.qml" "Wallpapers.ensureThumbnailForPath" \
   "wallpaper thumbnails should be queued through Wallpapers service"
-assert_not_contains "shell/modules/common/widgets/ThumbnailImage.qml" "Process \\{" \
-  "thumbnail items should not spawn one process per image"
+assert_contains "shell/modules/common/widgets/ThumbnailImage.qml" "resolvedThumbnailSource" \
+  "thumbnail items should avoid loading missing cache files"
+assert_contains "shell/modules/common/widgets/ThumbnailImage.qml" "Wallpapers.forgetThumbnail" \
+  "thumbnail items should invalidate stale cache entries"
 assert_contains "shell/services/Wallpapers.qml" "RYOKU_DEBUG_WALLPAPER_URLS" \
   "wallpaper URL debug logging should use a Ryoku env var"
 assert_contains "shell/services/Wallpapers.qml" "--workers\", \"4\"" \

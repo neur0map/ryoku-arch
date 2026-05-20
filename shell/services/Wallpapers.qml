@@ -241,11 +241,33 @@ Singleton {
     property int _wallpaperCacheIndex: 0
     readonly property bool thumbnailGenerationRunning: thumbgenProc.running
     property real thumbnailGenerationProgress: 0
+    property var _knownThumbnailOutputs: ({})
 
     signal changed()
     signal folderChanged()
     signal thumbnailGenerated(directory: string)
     signal thumbnailGeneratedFile(filePath: string)
+
+    function hasKnownThumbnail(outputPath: string): bool {
+        const normalizedPath = FileUtils.trimFileProtocol(String(outputPath ?? ""))
+        return normalizedPath.length > 0 && !!root._knownThumbnailOutputs[normalizedPath]
+    }
+
+    function rememberThumbnail(outputPath: string): void {
+        const normalizedPath = FileUtils.trimFileProtocol(String(outputPath ?? ""))
+        if (!normalizedPath || root._knownThumbnailOutputs[normalizedPath]) return
+        const nextKnown = Object.assign({}, root._knownThumbnailOutputs)
+        nextKnown[normalizedPath] = true
+        root._knownThumbnailOutputs = nextKnown
+    }
+
+    function forgetThumbnail(outputPath: string): void {
+        const normalizedPath = FileUtils.trimFileProtocol(String(outputPath ?? ""))
+        if (!normalizedPath || !root._knownThumbnailOutputs[normalizedPath]) return
+        const nextKnown = Object.assign({}, root._knownThumbnailOutputs)
+        delete nextKnown[normalizedPath]
+        root._knownThumbnailOutputs = nextKnown
+    }
 
     function load() {}
     function refresh() {} // Compatibility - FolderListModel auto-refreshes
@@ -810,6 +832,7 @@ Singleton {
 
         _singleThumbProc._key = item.key
         _singleThumbProc._filePath = item.filePath
+        _singleThumbProc._outputPath = item.outputPath
         _singleThumbProc.command = ["bash", "-c", commandBody]
         _singleThumbProc.running = true
     }
@@ -867,7 +890,10 @@ Singleton {
         id: _singleThumbProc
         property string _key: ""
         property string _filePath: ""
+        property string _outputPath: ""
         onExited: (exitCode, exitStatus) => {
+            if (exitCode === 0 || exitCode === 1)
+                root.rememberThumbnail(_singleThumbProc._outputPath)
             if (exitCode === 1)
                 root.thumbnailGeneratedFile(_singleThumbProc._filePath)
             root._finishSingleThumb(_singleThumbProc._key)

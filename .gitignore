@@ -16,6 +16,7 @@
 
 # Superpowers brainstorming session artifacts
 .superpowers/
-
+.specs
+docs/superpowers/
 # Per-run ISO build logs
 tests/logs/

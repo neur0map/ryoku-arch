@@ -508,14 +508,13 @@ Singleton {
     aurora: QtObject {
         // Aurora glass effect with configurable transparency.
         readonly property real _lightFactor: root._auroraLightMode ? 0.75 : 1.0
-        readonly property var _cfg: { Config.revision; return Config.options?.appearance?.aurora?.transparency ?? null }
-        
+
         // Transparency levels (higher = more transparent)
-        readonly property real overlayTransparentize: (_cfg?.overlay ?? 0.30) * _lightFactor
-        readonly property real subSurfaceTransparentize: (_cfg?.subSurface ?? 0.42) * _lightFactor
-        readonly property real popupTransparentize: (_cfg?.popup ?? 0.32) * _lightFactor
-        readonly property real tooltipTransparentize: (_cfg?.tooltip ?? 0.28) * _lightFactor
-        readonly property real layerTransparentize: (_cfg?.layer ?? 0.32) * _lightFactor
+        readonly property real overlayTransparentize: { Config.revision; return (Config.options?.appearance?.aurora?.transparency?.overlay ?? 0.30) * _lightFactor }
+        readonly property real subSurfaceTransparentize: { Config.revision; return (Config.options?.appearance?.aurora?.transparency?.subSurface ?? 0.42) * _lightFactor }
+        readonly property real popupTransparentize: { Config.revision; return (Config.options?.appearance?.aurora?.transparency?.popup ?? 0.32) * _lightFactor }
+        readonly property real tooltipTransparentize: { Config.revision; return (Config.options?.appearance?.aurora?.transparency?.tooltip ?? 0.28) * _lightFactor }
+        readonly property real layerTransparentize: { Config.revision; return (Config.options?.appearance?.aurora?.transparency?.layer ?? 0.32) * _lightFactor }
         
         // === Main Panel Overlay (Layer 0) ===
         readonly property color colOverlay: ColorUtils.transparentize(root.colors.colLayer0Base, overlayTransparentize)
@@ -695,18 +694,18 @@ Singleton {
         // Do NOT use intermediate var references — QML can't detect nested var changes.
 
         // ─── BLUR SYSTEM ───
-        readonly property real blurIntensity: Config.options?.appearance?.angel?.blur?.intensity ?? 0.35
-        readonly property real blurSaturation: Config.options?.appearance?.angel?.blur?.saturation ?? 0.20
-        readonly property real overlayOpacity: Config.options?.appearance?.angel?.blur?.overlayOpacity ?? 0.45
-        readonly property real noiseOpacity: Config.options?.appearance?.angel?.blur?.noiseOpacity ?? 0.15
-        readonly property real vignetteStrength: Config.options?.appearance?.angel?.blur?.vignetteStrength ?? 0.4
+        readonly property real blurIntensity: { Config.revision; return Config.options?.appearance?.angel?.blur?.intensity ?? 0.35 }
+        readonly property real blurSaturation: { Config.revision; return Config.options?.appearance?.angel?.blur?.saturation ?? 0.20 }
+        readonly property real overlayOpacity: { Config.revision; return Config.options?.appearance?.angel?.blur?.overlayOpacity ?? 0.45 }
+        readonly property real noiseOpacity: { Config.revision; return Config.options?.appearance?.angel?.blur?.noiseOpacity ?? 0.15 }
+        readonly property real vignetteStrength: { Config.revision; return Config.options?.appearance?.angel?.blur?.vignetteStrength ?? 0.4 }
 
         // ─── GLASS TRANSPARENCY (higher = more see-through) ───
         readonly property real _lightFactor: root._auroraLightMode ? 0.75 : 1.0
-        readonly property real panelTransparentize: (Config.options?.appearance?.angel?.transparency?.panel ?? 0.28) * _lightFactor
-        readonly property real cardTransparentize: (Config.options?.appearance?.angel?.transparency?.card ?? 0.40) * _lightFactor
-        readonly property real popupTransparentize: (Config.options?.appearance?.angel?.transparency?.popup ?? 0.28) * _lightFactor
-        readonly property real tooltipTransparentize: (Config.options?.appearance?.angel?.transparency?.tooltip ?? 0.25) * _lightFactor
+        readonly property real panelTransparentize: { Config.revision; return (Config.options?.appearance?.angel?.transparency?.panel ?? 0.28) * _lightFactor }
+        readonly property real cardTransparentize: { Config.revision; return (Config.options?.appearance?.angel?.transparency?.card ?? 0.40) * _lightFactor }
+        readonly property real popupTransparentize: { Config.revision; return (Config.options?.appearance?.angel?.transparency?.popup ?? 0.28) * _lightFactor }
+        readonly property real tooltipTransparentize: { Config.revision; return (Config.options?.appearance?.angel?.transparency?.tooltip ?? 0.25) * _lightFactor }
 
         // ─── LAYER SYSTEM (glass variants derived from m3colors) ───
         readonly property color colGlassPanel: ColorUtils.transparentize(
@@ -733,16 +732,16 @@ Singleton {
             ColorUtils.mix(root.colors.colLayer2Base, root.colors.colOnLayer2, 0.92), cardTransparentize * 0.9)
 
         // ─── COLOR STRENGTH (multiplier for accent tint intensity) ───
-        readonly property real colorStrength: Math.max(0.01, Config.options?.appearance?.angel?.colorStrength ?? 1.0)
+        readonly property real colorStrength: { Config.revision; return Math.max(0.01, Config.options?.appearance?.angel?.colorStrength ?? 1.0) }
 
         // ─── ESCALONADO SYSTEM (StyledRectangularShadow — 52+ usages, simple offset) ───
-        readonly property int escalonadoOffsetX: Config.options?.appearance?.angel?.escalonado?.offsetX ?? 2
-        readonly property int escalonadoOffsetY: Config.options?.appearance?.angel?.escalonado?.offsetY ?? 2
-        readonly property int escalonadoHoverOffsetX: Config.options?.appearance?.angel?.escalonado?.hoverOffsetX ?? 7
-        readonly property int escalonadoHoverOffsetY: Config.options?.appearance?.angel?.escalonado?.hoverOffsetY ?? 7
-        readonly property real escalonadoOpacity: Config.options?.appearance?.angel?.escalonado?.opacity ?? 0.40
-        readonly property real escalonadoBorderOpacity: Config.options?.appearance?.angel?.escalonado?.borderOpacity ?? 0.60
-        readonly property real escalonadoHoverOpacity: Config.options?.appearance?.angel?.escalonado?.hoverOpacity ?? 0.60
+        readonly property int escalonadoOffsetX: { Config.revision; return Config.options?.appearance?.angel?.escalonado?.offsetX ?? 2 }
+        readonly property int escalonadoOffsetY: { Config.revision; return Config.options?.appearance?.angel?.escalonado?.offsetY ?? 2 }
+        readonly property int escalonadoHoverOffsetX: { Config.revision; return Config.options?.appearance?.angel?.escalonado?.hoverOffsetX ?? 7 }
+        readonly property int escalonadoHoverOffsetY: { Config.revision; return Config.options?.appearance?.angel?.escalonado?.hoverOffsetY ?? 7 }
+        readonly property real escalonadoOpacity: { Config.revision; return Config.options?.appearance?.angel?.escalonado?.opacity ?? 0.40 }
+        readonly property real escalonadoBorderOpacity: { Config.revision; return Config.options?.appearance?.angel?.escalonado?.borderOpacity ?? 0.60 }
+        readonly property real escalonadoHoverOpacity: { Config.revision; return Config.options?.appearance?.angel?.escalonado?.hoverOpacity ?? 0.60 }
         readonly property color colEscalonado: ColorUtils.transparentize(
             root.m3colors.m3primary, Math.min(1, escalonadoOpacity / colorStrength))
         readonly property color colEscalonadoBorder: ColorUtils.transparentize(
@@ -751,16 +750,16 @@ Singleton {
             root.m3colors.m3primary, Math.min(1, escalonadoHoverOpacity / colorStrength))
 
         // ─── ESCALONADO SHADOW (EscalonadoShadow — glass-backed, settings cards) ───
-        readonly property int shadowOffsetX: Config.options?.appearance?.angel?.escalonadoShadow?.offsetX ?? 4
-        readonly property int shadowOffsetY: Config.options?.appearance?.angel?.escalonadoShadow?.offsetY ?? 4
-        readonly property int shadowHoverOffsetX: Config.options?.appearance?.angel?.escalonadoShadow?.hoverOffsetX ?? 10
-        readonly property int shadowHoverOffsetY: Config.options?.appearance?.angel?.escalonadoShadow?.hoverOffsetY ?? 10
-        readonly property real shadowOpacity: Config.options?.appearance?.angel?.escalonadoShadow?.opacity ?? 0.30
-        readonly property real shadowBorderOpacity: Config.options?.appearance?.angel?.escalonadoShadow?.borderOpacity ?? 0.50
-        readonly property real shadowHoverOpacity: Config.options?.appearance?.angel?.escalonadoShadow?.hoverOpacity ?? 0.50
-        readonly property bool shadowGlass: Config.options?.appearance?.angel?.escalonadoShadow?.glass ?? true
-        readonly property real shadowGlassBlur: Config.options?.appearance?.angel?.escalonadoShadow?.glassBlur ?? 0.15
-        readonly property real shadowGlassOverlay: Config.options?.appearance?.angel?.escalonadoShadow?.glassOverlay ?? 0.50
+        readonly property int shadowOffsetX: { Config.revision; return Config.options?.appearance?.angel?.escalonadoShadow?.offsetX ?? 4 }
+        readonly property int shadowOffsetY: { Config.revision; return Config.options?.appearance?.angel?.escalonadoShadow?.offsetY ?? 4 }
+        readonly property int shadowHoverOffsetX: { Config.revision; return Config.options?.appearance?.angel?.escalonadoShadow?.hoverOffsetX ?? 10 }
+        readonly property int shadowHoverOffsetY: { Config.revision; return Config.options?.appearance?.angel?.escalonadoShadow?.hoverOffsetY ?? 10 }
+        readonly property real shadowOpacity: { Config.revision; return Config.options?.appearance?.angel?.escalonadoShadow?.opacity ?? 0.30 }
+        readonly property real shadowBorderOpacity: { Config.revision; return Config.options?.appearance?.angel?.escalonadoShadow?.borderOpacity ?? 0.50 }
+        readonly property real shadowHoverOpacity: { Config.revision; return Config.options?.appearance?.angel?.escalonadoShadow?.hoverOpacity ?? 0.50 }
+        readonly property bool shadowGlass: { Config.revision; return Config.options?.appearance?.angel?.escalonadoShadow?.glass ?? true }
+        readonly property real shadowGlassBlur: { Config.revision; return Config.options?.appearance?.angel?.escalonadoShadow?.glassBlur ?? 0.15 }
+        readonly property real shadowGlassOverlay: { Config.revision; return Config.options?.appearance?.angel?.escalonadoShadow?.glassOverlay ?? 0.50 }
         readonly property color colShadow: ColorUtils.transparentize(
             root.m3colors.m3primary, Math.min(1, shadowOpacity / colorStrength))
         readonly property color colShadowBorder: ColorUtils.transparentize(
@@ -769,14 +768,14 @@ Singleton {
             root.m3colors.m3primary, Math.min(1, shadowHoverOpacity / colorStrength))
 
         // ─── PARTIAL BORDER SYSTEM ───
-        readonly property real borderWidth: Config.options?.appearance?.angel?.border?.width ?? 1.5
-        readonly property int accentBarHeight: Config.options?.appearance?.angel?.border?.accentBarHeight ?? 0
-        readonly property int accentBarWidth: Config.options?.appearance?.angel?.border?.accentBarWidth ?? 0
-        readonly property real borderCoverage: Config.options?.appearance?.angel?.border?.coverage ?? 0.0
+        readonly property real borderWidth: { Config.revision; return Config.options?.appearance?.angel?.border?.width ?? 1.5 }
+        readonly property int accentBarHeight: { Config.revision; return Config.options?.appearance?.angel?.border?.accentBarHeight ?? 0 }
+        readonly property int accentBarWidth: { Config.revision; return Config.options?.appearance?.angel?.border?.accentBarWidth ?? 0 }
+        readonly property real borderCoverage: { Config.revision; return Config.options?.appearance?.angel?.border?.coverage ?? 0.0 }
         readonly property color colAccentBar: root.m3colors.m3primary
-        readonly property real borderOpacity: Config.options?.appearance?.angel?.border?.opacity ?? 0.0
-        readonly property real borderHoverOpacity: Config.options?.appearance?.angel?.border?.hoverOpacity ?? 0.0
-        readonly property real borderActiveOpacity: Config.options?.appearance?.angel?.border?.activeOpacity ?? 0.0
+        readonly property real borderOpacity: { Config.revision; return Config.options?.appearance?.angel?.border?.opacity ?? 0.0 }
+        readonly property real borderHoverOpacity: { Config.revision; return Config.options?.appearance?.angel?.border?.hoverOpacity ?? 0.0 }
+        readonly property real borderActiveOpacity: { Config.revision; return Config.options?.appearance?.angel?.border?.activeOpacity ?? 0.0 }
         readonly property color colBorder: ColorUtils.transparentize(
             root.m3colors.m3primary, Math.min(1, (0.99 - borderOpacity) / colorStrength))
         readonly property color colBorderHover: ColorUtils.transparentize(
@@ -787,24 +786,24 @@ Singleton {
             root.m3colors.m3outlineVariant, 0.82)
 
         // ─── SURFACE BORDERS (panel/card inner borders) ───
-        readonly property int panelBorderWidth: Config.options?.appearance?.angel?.surface?.panelBorderWidth ?? 0
-        readonly property int cardBorderWidth: Config.options?.appearance?.angel?.surface?.cardBorderWidth ?? 1
-        readonly property real panelBorderOpacity: Config.options?.appearance?.angel?.surface?.panelBorderOpacity ?? 0.0
-        readonly property real cardBorderOpacity: Config.options?.appearance?.angel?.surface?.cardBorderOpacity ?? 0.30
+        readonly property int panelBorderWidth: { Config.revision; return Config.options?.appearance?.angel?.surface?.panelBorderWidth ?? 0 }
+        readonly property int cardBorderWidth: { Config.revision; return Config.options?.appearance?.angel?.surface?.cardBorderWidth ?? 1 }
+        readonly property real panelBorderOpacity: { Config.revision; return Config.options?.appearance?.angel?.surface?.panelBorderOpacity ?? 0.0 }
+        readonly property real cardBorderOpacity: { Config.revision; return Config.options?.appearance?.angel?.surface?.cardBorderOpacity ?? 0.30 }
         readonly property color colPanelBorder: ColorUtils.transparentize(
             root.m3colors.m3primary, Math.min(1, (0.99 - panelBorderOpacity) / colorStrength))
         readonly property color colCardBorder: ColorUtils.transparentize(
             root.m3colors.m3primary, Math.min(1, (0.99 - cardBorderOpacity) / colorStrength))
 
         // Inset glow — light-from-above effect on top edge
-        readonly property real insetGlowOpacity: Config.options?.appearance?.angel?.border?.insetGlowOpacity ?? 0.0
+        readonly property real insetGlowOpacity: { Config.revision; return Config.options?.appearance?.angel?.border?.insetGlowOpacity ?? 0.0 }
         readonly property color colInsetGlow: ColorUtils.transparentize(
             root.m3colors.m3primary, Math.min(1, (1.0 - insetGlowOpacity) / colorStrength))
-        readonly property int insetGlowHeight: Config.options?.appearance?.angel?.border?.insetGlowHeight ?? 0
+        readonly property int insetGlowHeight: { Config.revision; return Config.options?.appearance?.angel?.border?.insetGlowHeight ?? 0 }
 
         // ─── GLOW SYSTEM ───
-        readonly property real glowOpacity: Config.options?.appearance?.angel?.glow?.opacity ?? 0.80
-        readonly property real glowStrongOpacity: Config.options?.appearance?.angel?.glow?.strongOpacity ?? 0.65
+        readonly property real glowOpacity: { Config.revision; return Config.options?.appearance?.angel?.glow?.opacity ?? 0.80 }
+        readonly property real glowStrongOpacity: { Config.revision; return Config.options?.appearance?.angel?.glow?.strongOpacity ?? 0.65 }
         readonly property color colGlow: ColorUtils.transparentize(
             root.m3colors.m3primary, Math.min(1, glowOpacity / colorStrength))
         readonly property color colGlowStrong: ColorUtils.transparentize(
@@ -827,9 +826,9 @@ Singleton {
         readonly property color colTertiary: root.m3colors.m3tertiary
 
         // ─── ROUNDING ───
-        readonly property int roundingSmall: Config.options?.appearance?.angel?.rounding?.small ?? 10
-        readonly property int roundingNormal: Config.options?.appearance?.angel?.rounding?.normal ?? 15
-        readonly property int roundingLarge: Config.options?.appearance?.angel?.rounding?.large ?? 25
+        readonly property int roundingSmall: { Config.revision; return Config.options?.appearance?.angel?.rounding?.small ?? 10 }
+        readonly property int roundingNormal: { Config.revision; return Config.options?.appearance?.angel?.rounding?.normal ?? 15 }
+        readonly property int roundingLarge: { Config.revision; return Config.options?.appearance?.angel?.rounding?.large ?? 25 }
     }
 
      sizes: QtObject {

@@ -50,6 +50,33 @@ ContentPage {
         }
     }
 
+    function launchCommandInTerminal(command) {
+        const terminal = root.safeTerminal()
+        if (terminal === "wezterm") {
+            Quickshell.execDetached([terminal, "start", "--always-new-process", "--", "bash", "-lc", command])
+        } else {
+            Quickshell.execDetached([terminal, "-e", "bash", "-lc", command])
+        }
+    }
+
+    function launchGpk() {
+        launchCommandInTerminal("gpk")
+    }
+
+    function launchGpkPrompt(action) {
+        const actionLabels = ({
+            install: "Package to install",
+            remove: "Package to uninstall",
+            upgrade: "Package to update",
+        })
+        const prompt = actionLabels[action] ?? "Package"
+        launchCommandInTerminal("printf 'GPK package manager - " + action + "\\n'; read -rp '" + prompt + ": ' pkg; if [[ -n $pkg ]]; then gpk " + action + " \"$pkg\"; fi; printf '\\nPress Enter to close...'; read -r _")
+    }
+
+    function launchGpkOutdated() {
+        launchCommandInTerminal("gpk outdated; printf '\\nPress Enter to close...'; read -r _")
+    }
+
     function statusLabel(profile) {
         if (profile.installed === true) return Translation.tr("Installed")
         if (profile.state === "failed") return Translation.tr("Failed")
@@ -206,8 +233,8 @@ ContentPage {
 
     SettingsCardSection {
         expanded: true
-        icon: "search"
-        title: Translation.tr("Browse packages")
+        icon: "deployed_code"
+        title: Translation.tr("Package manager")
 
         SettingsGroup {
             ColumnLayout {
@@ -216,14 +243,57 @@ ContentPage {
 
                 StyledText {
                     Layout.fillWidth: true
-                    text: Translation.tr("Pick any package from the Arch repos or the AUR in a terminal fuzzy-finder. Press Enter to install, Esc to cancel.")
+                    text: Translation.tr("GPK is Ryoku's package manager for install, uninstall, update, search, and outdated checks across supported managers. The Arch and AUR pickers remain available for focused Ryoku package workflows.")
                     color: Appearance.colors.colSubtext
                     wrapMode: Text.WordWrap
                     font.pixelSize: 13
                 }
 
+                GridLayout {
+                    Layout.fillWidth: true
+                    columns: width > 560 ? 3 : 2
+                    rowSpacing: 8
+                    columnSpacing: 8
+
+                    RippleButtonWithIcon {
+                        Layout.fillWidth: true
+                        materialIcon: "terminal"
+                        mainText: Translation.tr("Open GPK")
+                        onClicked: root.launchGpk()
+                    }
+
+                    RippleButtonWithIcon {
+                        Layout.fillWidth: true
+                        materialIcon: "download"
+                        mainText: Translation.tr("Install package")
+                        onClicked: root.launchGpkPrompt("install")
+                    }
+
+                    RippleButtonWithIcon {
+                        Layout.fillWidth: true
+                        materialIcon: "delete"
+                        mainText: Translation.tr("Uninstall package")
+                        onClicked: root.launchGpkPrompt("remove")
+                    }
+
+                    RippleButtonWithIcon {
+                        Layout.fillWidth: true
+                        materialIcon: "upgrade"
+                        mainText: Translation.tr("Update package")
+                        onClicked: root.launchGpkPrompt("upgrade")
+                    }
+
+                    RippleButtonWithIcon {
+                        Layout.fillWidth: true
+                        materialIcon: "manage_search"
+                        mainText: Translation.tr("Outdated")
+                        onClicked: root.launchGpkOutdated()
+                    }
+                }
+
                 RowLayout {
                     Layout.fillWidth: true
+                    Layout.topMargin: 2
                     spacing: 8
 
                     RippleButton {
