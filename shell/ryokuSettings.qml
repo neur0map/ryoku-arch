@@ -2632,6 +2632,17 @@ ApplicationWindow {
       return Math.min(180, ((row.options ? row.options.length : 0) * 32) + 12);
     }
 
+    function syncToSelectedValue() {
+      const nextIndex = indexForValue(selectedValue);
+      combo.currentIndex = nextIndex;
+      comboList.currentIndex = nextIndex;
+    }
+
+    function chooseIndex(index) {
+      row.selected(row.valueForIndex(index));
+      Qt.callLater(row.syncToSelectedValue);
+    }
+
     function openDropdown() {
       app.closeActiveDropdown(row);
       combo.forceActiveFocus();
@@ -2658,8 +2669,9 @@ ApplicationWindow {
         openDropdown();
     }
 
-    onSelectedValueChanged: combo.currentIndex = indexForValue(selectedValue)
-    onOptionsChanged: combo.currentIndex = indexForValue(selectedValue)
+    onSelectedValueChanged: syncToSelectedValue()
+    onOptionsChanged: syncToSelectedValue()
+    Component.onCompleted: syncToSelectedValue()
 
     Layout.fillWidth: true
     spacing: 14
@@ -2677,11 +2689,11 @@ ApplicationWindow {
       Layout.alignment: Qt.AlignTop
       model: row.options
       textRole: "label"
-      currentIndex: row.indexForValue(row.selectedValue)
+      currentIndex: 0
       font.family: Appearance.font.family.main
       font.pixelSize: Appearance.font.pixelSize.small
       displayText: row.labelForIndex(currentIndex)
-      onActivated: row.selected(row.valueForIndex(currentIndex))
+      onActivated: row.chooseIndex(currentIndex)
 
       Keys.onUpPressed: event => {
         if (!row.expanded) {
@@ -2711,8 +2723,7 @@ ApplicationWindow {
           event.accepted = true;
           return;
         }
-        combo.currentIndex = comboList.currentIndex;
-        row.selected(row.valueForIndex(comboList.currentIndex));
+        row.chooseIndex(comboList.currentIndex);
         row.closeDropdown();
         event.accepted = true;
       }
@@ -2837,8 +2848,7 @@ ApplicationWindow {
                   comboList.currentIndex = comboDelegate.index;
               }
               onClicked: {
-                combo.currentIndex = comboDelegate.index;
-                row.selected(row.valueForIndex(comboDelegate.index));
+                row.chooseIndex(comboDelegate.index);
                 row.closeDropdown();
               }
             }
@@ -6277,7 +6287,7 @@ ApplicationWindow {
                 ]
                 onSelected: value => {
                   Config.setNestedValue("shellUpdates.channel", value);
-                  ShellUpdates.refresh();
+                  app.checkShellUpdates();
                 }
               }
               SettingsSpinBox { label: "Check interval"; description: "Minutes between Ryoku shell update checks."; from: 30; to: 1440; stepSize: 30; value: Config.options?.shellUpdates?.checkIntervalMinutes ?? 360; onMoved: value => Config.setNestedValue("shellUpdates.checkIntervalMinutes", value) }
@@ -6720,7 +6730,7 @@ ApplicationWindow {
             ]
             onSelected: value => {
               Config.setNestedValue("shellUpdates.channel", value);
-              ShellUpdates.refresh();
+              app.checkShellUpdates();
             }
           }
 

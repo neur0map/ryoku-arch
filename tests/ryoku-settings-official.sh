@@ -317,6 +317,34 @@ grep -q 'ShellUpdates.requiresChannelSwitch && ShellUpdates.selfUpdateSupported'
 grep -q 'Switch channel' "$settings_qml" \
   || fail "about page should show a switch-channel action for pending channel changes"
 
+grep -q 'function syncToSelectedValue' "$settings_qml" \
+  || fail "settings combo should be able to resync visual state to its bound selected value"
+
+grep -q 'function chooseIndex' "$settings_qml" \
+  || fail "settings combo should route user selections through one audited chooser"
+
+grep -q 'row.chooseIndex(comboDelegate.index)' "$settings_qml" \
+  || fail "settings combo mouse selection should not leave a stale visual value"
+
+grep -q 'row.chooseIndex(comboList.currentIndex)' "$settings_qml" \
+  || fail "settings combo keyboard selection should not leave a stale visual value"
+
+grep -q 'Qt.callLater(row.syncToSelectedValue)' "$settings_qml" \
+  || fail "settings combo should roll back to the real selected value if the write did not apply"
+
+awk '
+  /SettingsCombo \{/ { inCombo=1; sawSelectedChannel=0; sawSet=0; sawCheck=0 }
+  inCombo && /label: "Selected channel"/ { sawSelectedChannel=1 }
+  inCombo && /Config\.setNestedValue\("shellUpdates\.channel", value\)/ { sawSet=1 }
+  inCombo && /app\.checkShellUpdates\(\)/ { sawCheck=1 }
+  inCombo && /^\s*\}/ {
+    if (sawSelectedChannel && sawSet && sawCheck) found=1
+    inCombo=0
+  }
+  END { exit found ? 0 : 1 }
+' "$settings_qml" \
+  || fail "about page channel selector should notify the main shell update service after changing channel"
+
 grep -q 'unstable-dev' "$settings_qml" \
   || fail "about page should let users select the unstable-dev update channel"
 
