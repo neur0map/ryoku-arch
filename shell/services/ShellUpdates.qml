@@ -25,7 +25,7 @@ Singleton {
         function close(): void { root.closeOverlay() }
         function check(): void { root.check() }
         function refresh(): void { root.refresh() }
-        function performUpdate(): void { root.performUpdate() }
+        function performUpdate(): void { root.performUpdate(false) }
         function dismiss(): void { root.dismiss() }
         function undismiss(): void { root.undismiss() }
         function diagnose(): string { return root.getDiagnostics() }
@@ -38,7 +38,7 @@ Singleton {
     property string latestMessage: ""
     property string localCommit: ""
     property string remoteCommit: ""
-    property string currentBranch: "main"  // Current git branch
+    property string currentBranch: ""  // Current git branch
     property string _remoteBranch: "main"  // Resolved remote branch (may differ from currentBranch if not pushed)
     readonly property bool isNonMainBranch: currentBranch.length > 0 && currentBranch !== "main" && currentBranch !== "master"
     property bool isChecking: false
@@ -83,15 +83,25 @@ Singleton {
     property string installedDate: ""     // Install/update date from manifest
     property string recentLocalLog: ""    // Recent local commit history
     property int _openOverlayDelayMs: 0
+    property bool _fetchAfterCurrentBranch: false
 
     // Derived
     readonly property bool enabled: Config.options?.shellUpdates?.enabled ?? true
     readonly property int checkIntervalMs: (Config.options?.shellUpdates?.checkIntervalMinutes ?? 360) * 60 * 1000
     readonly property string dismissedCommit: Config.options?.shellUpdates?.dismissedCommit ?? ""
     readonly property string lastNotifiedCommit: Config.options?.shellUpdates?.lastNotifiedCommit ?? ""
-    readonly property bool showUpdate: hasUpdate && !isDismissed && !isUpdating
+    readonly property string explicitConfiguredChannel: {
+        const channel = Config.options?.shellUpdates?.channel ?? ""
+        return channel === "unstable-dev" || channel === "main" ? channel : ""
+    }
+    readonly property string currentBranchChannel: currentBranch === "unstable-dev" ? "unstable-dev" : currentBranch === "main" ? "main" : ""
+    readonly property string configuredChannel: explicitConfiguredChannel.length > 0 ? explicitConfiguredChannel : currentBranchChannel.length > 0 ? currentBranchChannel : "main"
+    readonly property string configuredChannelLabel: configuredChannel === "unstable-dev" ? "Unstable dev" : "Stable"
+    readonly property string releaseBranch: configuredChannel
+    readonly property bool requiresChannelSwitch: available && currentBranch.length > 0 && currentBranch !== releaseBranch
+    readonly property bool canApplyUpdate: hasUpdate || requiresChannelSwitch
+    readonly property bool showUpdate: ((hasUpdate && !isDismissed) || requiresChannelSwitch) && !isUpdating
     readonly property bool isDismissed: dismissedCommit.length > 0 && remoteCommit === dismissedCommit
-    readonly property string releaseBranch: "main"
     readonly property string updateRemoteUrl: Quickshell.env("RYOKU_UPDATE_REMOTE_URL") || "https://github.com/neur0map/ryoku-arch.git"
 
     // Repo path - try to get from version.json, fallback to config dir
@@ -157,6 +167,7 @@ Singleton {
         root.isChecking = true
         root.lastError = ""
         root.latestMessage = ""
+        root._fetchAfterCurrentBranch = true
         normalizeRemoteProc.running = true
     }
 
@@ -222,8 +233,13 @@ Singleton {
         root.overlayOpen = false
     }
 
-    function performUpdate(): void {
-        if (isUpdating || !hasUpdate || !available || managedExternally) return
+    function performUpdate(confirmChannelSwitch) {
+        if (isUpdating || !canApplyUpdate || !available || managedExternally) return
+        const confirmedChannelSwitch = confirmChannelSwitch === true
+        if (requiresChannelSwitch && !confirmedChannelSwitch) {
+            root.lastError = "Confirm channel switch before applying the update."
+            return
+        }
         root.isUpdating = true
         root.lastError = ""
         root.updateStep = 0
@@ -237,12 +253,23 @@ Singleton {
         const statusPath = Directories.updateStatusPath
         const repoDir = root.repoPath
         const useTerminal = Config.options?.shellUpdates?.openTerminalOnUpdate ?? true
+        const updateBranch = root.releaseBranch
+        const cancelTrap =
+            "mark_update_cancelled() { " +
+            "  rc=$?; " +
+            "  current_status=$(cat '" + statusPath + "' 2>/dev/null || true); " +
+            "  if [ $rc -ne 0 ] && [ \"$current_status\" = 'updating' ]; then " +
+            "    echo \"failed:$rc\" > '" + statusPath + "'; " +
+            "  fi; " +
+            "}; " +
+            "trap mark_update_cancelled EXIT INT TERM HUP; "
 
         // Prefer the core `ryoku-update` pipeline (pacman + AUR + migrations + shell)
         // from PATH or the repo checkout; fall back to shell-only `./setup update`
         // only for standalone shell dev trees.
         // Terminal mode pipes through tee; detached mode redirects to log file only.
         const runner =
+            "export RYOKU_UPDATE_BRANCH='" + updateBranch + "'; " +
             "if command -v ryoku-update >/dev/null 2>&1; then " +
             "  RYOKU_UPDATE_LOG='/tmp/ryoku-update.log' ryoku-update -y; " +
             "elif [[ -x ./bin/ryoku-update ]]; then " +
@@ -277,7 +304,7 @@ Singleton {
             "  echo 'success' > '" + statusPath + "'; " +
             "fi"
         const tail = useTerminal ? termTail : detachedTail
-        const bashCmd = "echo 'updating' > '" + statusPath + "'; " +
+        const bashCmd = "echo 'updating' > '" + statusPath + "'; " + cancelTrap +
             "cd '" + repoDir + "' && " + teeCmd + "; " + tail
 
         if (useTerminal) {
@@ -327,10 +354,14 @@ Singleton {
             lastError: root.lastError,
             consecutiveFetchErrors: root.consecutiveFetchErrors,
             hasUpdate: root.hasUpdate,
+            canApplyUpdate: root.canApplyUpdate,
+            requiresChannelSwitch: root.requiresChannelSwitch,
             commitsBehind: root.commitsBehind,
             localCommit: root.localCommit,
             remoteCommit: root.remoteCommit,
             currentBranch: root.currentBranch,
+            configuredChannel: root.configuredChannel,
+            releaseBranch: root.releaseBranch,
             localVersion: root.localVersion,
             remoteVersion: root.remoteVersion,
             overlayOpen: root.overlayOpen,
@@ -859,7 +890,7 @@ Singleton {
                 print("[ShellUpdates] Remote normalization failed (attempt " + root.consecutiveFetchErrors + ")")
                 return
             }
-            fetchProc.running = true
+            currentBranchProc.running = true
         }
     }
 
@@ -868,7 +899,7 @@ Singleton {
         id: fetchProc
         running: false
         environment: root._gitEnv
-        command: [...root._gitCmd, "fetch", "origin", "--quiet", "--no-tags", "--prune", "+refs/heads/main:refs/remotes/origin/main"]
+        command: [...root._gitCmd, "fetch", "origin", "--quiet", "--no-tags", "--prune", "+refs/heads/" + root.releaseBranch + ":refs/remotes/origin/" + root.releaseBranch]
         onExited: (exitCode, exitStatus) => {
             if (exitCode !== 0) {
                 root.isChecking = false
@@ -895,7 +926,7 @@ Singleton {
             // Success - reset error counters
             root.consecutiveFetchErrors = 0
             root.fetchErrorNotificationShown = false
-            currentBranchProc.running = true
+            localCommitProc.running = true
         }
     }
 
@@ -913,6 +944,12 @@ Singleton {
         onExited: (exitCode, exitStatus) => {
             if (exitCode !== 0) {
                 root.isChecking = false
+                root._fetchAfterCurrentBranch = false
+                return
+            }
+            if (root._fetchAfterCurrentBranch) {
+                root._fetchAfterCurrentBranch = false
+                fetchProc.running = true
                 return
             }
             localCommitProc.running = true
@@ -995,14 +1032,14 @@ Singleton {
         onExited: (exitCode, exitStatus) => {
             if (exitCode !== 0) {
                 // Fallback: compare commits directly
-                root.hasUpdate = root.localCommit !== root.remoteCommit && root.remoteCommit.length > 0
+                root.hasUpdate = !root.requiresChannelSwitch && root.localCommit !== root.remoteCommit && root.remoteCommit.length > 0
                 root.commitsBehind = root.hasUpdate ? 1 : 0
                 root.isChecking = false
                 root.initialUpdateCheckDone = true
                 return
             }
             root.hasUpdate = root.commitsBehind > 0
-            print("[ShellUpdates] Commits behind: " + root.commitsBehind + ", hasUpdate: " + root.hasUpdate)
+            print("[ShellUpdates] Commits behind: " + root.commitsBehind + ", hasUpdate: " + root.hasUpdate + ", requiresChannelSwitch: " + root.requiresChannelSwitch)
             if (root.hasUpdate) {
                 latestMessageProc.running = true
             } else {
@@ -1230,8 +1267,14 @@ Singleton {
                     root.updateStep = 0
                     root.updateStepMessage = ""
                 } else if (status.startsWith("failed")) {
-                    // Update failed — stop polling, let watchdog handle error display
-                    updateProgressPoller.running = false
+                    const parts = status.split(":")
+                    const code = parts.length > 1 ? parts[1] : "unknown"
+                    root.clearUpdateProgressUi()
+                    root.lastError = "Update cancelled or failed (exit " + code + "). Check " + Directories.updateLogPath + " for details. Run: ryoku-doctor."
+                    clearStatusFileProc.running = true
+                } else if (status === "success") {
+                    root.clearUpdateProgressUi()
+                    clearStatusFileProc.running = true
                 }
             }
         }

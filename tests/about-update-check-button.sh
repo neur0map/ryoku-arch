@@ -29,14 +29,23 @@ rg -q 'ShellUpdates\.openOverlay\(\)' "$ABOUT_QML" || \
 rg -q 'ShellUpdates\.localVersion' "$ABOUT_QML" || \
   fail "About version badge should use the canonical local version"
 
+rg -q 'shellUpdates\.channel' "$ABOUT_QML" || \
+  fail "About page should expose the shell update channel selector"
+
+rg -q 'unstable-dev' "$ABOUT_QML" || \
+  fail "About page should let users select the unstable-dev channel"
+
+rg -q 'ShellUpdates\.configuredChannel' "$ABOUT_QML" || \
+  fail "About page should show the configured update channel"
+
 ! rg -q '0\.1\.0-pre-alpha' "$ABOUT_QML" || \
   fail "About version badge should not hardcode stale pre-alpha text"
 
 rg -q 'shellUpdate.*open|shellUpdate", "open"' "$ABOUT_QML" || \
   fail "About update button should use shellUpdate IPC when settings runs separately"
 
-rg -q 'visible: ShellUpdates\.hasUpdate' "$ABOUT_QML" || \
-  fail "About update-available button should only appear after an update is detected"
+rg -q 'visible: ShellUpdates\.canApplyUpdate' "$ABOUT_QML" || \
+  fail "About update-available button should appear when an update or channel switch can be applied"
 
 ! rg -q 'Check updates.*Update available|Update available.*Check updates' "$ABOUT_QML" || \
   fail "About manual check button should not turn into an update-available button"

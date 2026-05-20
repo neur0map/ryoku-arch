@@ -8,7 +8,53 @@ echo -e "\e[32mUpdate Ryoku\e[0m"
 ryoku-update-time
 
 update_remote="${RYOKU_UPDATE_REMOTE_URL:-https://github.com/neur0map/ryoku-arch.git}"
-release_branch="${RYOKU_UPDATE_BRANCH:-main}"
+
+ryoku_shell_config_file() {
+  local config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
+
+  if [[ -n ${RYOKU_SHELL_CONFIG_DIR:-} ]]; then
+    printf '%s\n' "$RYOKU_SHELL_CONFIG_DIR/config.json"
+    return
+  fi
+
+  if [[ -f $config_home/ryoku-shell/config.json ]]; then
+    printf '%s\n' "$config_home/ryoku-shell/config.json"
+    return
+  fi
+
+  printf '%s\n' "$config_home/illogical-impulse/config.json"
+}
+
+configured_release_branch() {
+  local config_file=""
+  local configured=""
+
+  if [[ -n ${RYOKU_UPDATE_BRANCH:-} ]]; then
+    configured="$RYOKU_UPDATE_BRANCH"
+  else
+    config_file="$(ryoku_shell_config_file)"
+    if [[ -f $config_file ]] && command -v jq >/dev/null 2>&1; then
+      configured="$(jq -r '.shellUpdates.channel // empty' "$config_file" 2>/dev/null || true)"
+    fi
+  fi
+
+  case "$configured" in
+    "" | main)
+      printf '%s\n' "main"
+      ;;
+    unstable-dev)
+      printf '%s\n' "unstable-dev"
+      ;;
+    *)
+      echo -e "\e[33mIgnoring invalid Ryoku update channel '$configured'; using main.\e[0m" >&2
+      printf '%s\n' "main"
+      ;;
+  esac
+}
+
+release_branch="$(configured_release_branch)"
+
+echo "Update channel: $release_branch"
 
 ryoku_git() {
   GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=/bin/true git -C "$RYOKU_PATH" "$@"

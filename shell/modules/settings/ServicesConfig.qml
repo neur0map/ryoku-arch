@@ -961,13 +961,13 @@ ContentPage {
                 visible: Config.options?.shellUpdates?.enabled ?? true
 
                 color: {
-                    if (ShellUpdates.hasUpdate) return ColorUtils.transparentize(Appearance.m3colors.m3primary, 0.92)
+                    if (ShellUpdates.canApplyUpdate) return ColorUtils.transparentize(Appearance.m3colors.m3primary, 0.92)
                     if (ShellUpdates.lastError.length > 0) return ColorUtils.transparentize(Appearance.m3colors.m3error, 0.92)
                     return Appearance.colors.colSurfaceContainerLow
                 }
                 border.width: 1
                 border.color: {
-                    if (ShellUpdates.hasUpdate) return ColorUtils.transparentize(Appearance.m3colors.m3primary, 0.7)
+                    if (ShellUpdates.canApplyUpdate) return ColorUtils.transparentize(Appearance.m3colors.m3primary, 0.7)
                     if (ShellUpdates.lastError.length > 0) return ColorUtils.transparentize(Appearance.m3colors.m3error, 0.7)
                     return Appearance.colors.colLayer0Border
                 }
@@ -993,7 +993,7 @@ ContentPage {
                             height: 40
                             radius: Appearance.rounding.small
                             color: {
-                                if (ShellUpdates.hasUpdate) return ColorUtils.transparentize(Appearance.m3colors.m3primary, 0.8)
+                                if (ShellUpdates.canApplyUpdate) return ColorUtils.transparentize(Appearance.m3colors.m3primary, 0.8)
                                 if (ShellUpdates.isChecking || ShellUpdates.isUpdating) return ColorUtils.transparentize(Appearance.colors.colSubtext, 0.85)
                                 if (ShellUpdates.lastError.length > 0) return ColorUtils.transparentize(Appearance.m3colors.m3error, 0.8)
                                 return ColorUtils.transparentize(Appearance.m3colors.m3tertiary, 0.85)
@@ -1004,14 +1004,14 @@ ContentPage {
                                 text: {
                                     if (ShellUpdates.isUpdating) return "hourglass_top"
                                     if (ShellUpdates.isChecking) return "sync"
-                                    if (ShellUpdates.hasUpdate) return "upgrade"
+                                    if (ShellUpdates.canApplyUpdate) return "upgrade"
                                     if (ShellUpdates.lastError.length > 0) return "error"
                                     if (ShellUpdates.available) return "check_circle"
                                     return "cloud_off"
                                 }
                                 iconSize: Appearance.font.pixelSize.huge
                                 color: {
-                                    if (ShellUpdates.hasUpdate) return Appearance.m3colors.m3primary
+                                    if (ShellUpdates.canApplyUpdate) return Appearance.m3colors.m3primary
                                     if (ShellUpdates.lastError.length > 0) return Appearance.m3colors.m3error
                                     if (ShellUpdates.available) return Appearance.m3colors.m3tertiary
                                     return Appearance.colors.colSubtext
@@ -1032,6 +1032,7 @@ ContentPage {
                                         return Translation.tr("Updating…")
                                     }
                                     if (ShellUpdates.isChecking) return Translation.tr("Checking for updates…")
+                                    if (ShellUpdates.requiresChannelSwitch) return Translation.tr("Channel switch ready")
                                     if (ShellUpdates.hasUpdate) return Translation.tr("Update available")
                                     if (ShellUpdates.managedExternally) return "Managed externally"
                                     if (ShellUpdates.lastError.length > 0) return Translation.tr("Error")
@@ -1043,15 +1044,17 @@ ContentPage {
                                     weight: Font.DemiBold
                                 }
                                 color: {
-                                    if (ShellUpdates.hasUpdate) return Appearance.m3colors.m3primary
+                                    if (ShellUpdates.canApplyUpdate) return Appearance.m3colors.m3primary
                                     if (ShellUpdates.lastError.length > 0) return Appearance.m3colors.m3error
                                     return Appearance.colors.colOnSurface
                                 }
                             }
 
                             StyledText {
-                                visible: ShellUpdates.hasUpdate
-                                text: Translation.tr("%1 commit(s) behind on %2").arg(ShellUpdates.commitsBehind).arg(ShellUpdates.currentBranch || "main")
+                                visible: ShellUpdates.canApplyUpdate
+                                text: ShellUpdates.requiresChannelSwitch
+                                    ? Translation.tr("Switch from %1 to %2").arg(ShellUpdates.currentBranch).arg(ShellUpdates.configuredChannel)
+                                    : Translation.tr("%1 commit(s) behind on %2").arg(ShellUpdates.commitsBehind).arg(ShellUpdates.configuredChannel || "main")
                                 font.pixelSize: Appearance.font.pixelSize.smaller
                                 color: Appearance.colors.colSubtext
                             }
@@ -1287,14 +1290,14 @@ ContentPage {
                 RippleButton {
                     Layout.fillWidth: true
                     implicitHeight: 36
-                    visible: ShellUpdates.hasUpdate && ShellUpdates.selfUpdateSupported
+                    visible: ShellUpdates.canApplyUpdate && ShellUpdates.selfUpdateSupported
                     buttonRadius: Appearance.rounding.small
                     colBackground: Appearance.m3colors.m3primary
                     colBackgroundHover: Appearance.colors.colPrimaryHover
                     colRipple: Appearance.colors.colPrimaryActive
                     enabled: !ShellUpdates.isUpdating
                     opacity: enabled ? 1.0 : 0.5
-                    onClicked: ShellUpdates.performUpdate()
+                    onClicked: ShellUpdates.requiresChannelSwitch ? ShellUpdates.openOverlay() : ShellUpdates.performUpdate(false)
 
                     contentItem: RowLayout {
                         anchors.centerIn: parent
@@ -1309,7 +1312,9 @@ ContentPage {
                                 ? (ShellUpdates.updateStepMessage.length > 0
                                     ? Translation.tr(ShellUpdates.updateStepMessage) + "…"
                                     : Translation.tr("Updating…"))
-                                : Translation.tr("Update Now")
+                                : ShellUpdates.requiresChannelSwitch
+                                    ? Translation.tr("Switch Channel")
+                                    : Translation.tr("Update Now")
                             font {
                                 pixelSize: Appearance.font.pixelSize.smaller
                                 weight: Font.DemiBold

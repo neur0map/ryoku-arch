@@ -44,6 +44,7 @@ git -C "$checkout" config http.https://github.com/.extraheader "AUTHORIZATION: b
 
 output=$(
   HOME="$home_dir" \
+  RYOKU_SHELL_CONFIG_DIR="$home_dir/.config/ryoku-shell" \
   RYOKU_PATH="$checkout" \
   RYOKU_STATE_PATH="$temp_dir/state" \
   RYOKU_UPDATE_REMOTE_URL="$remote" \

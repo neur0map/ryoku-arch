@@ -95,7 +95,7 @@ ContentPage {
         // ── Top row: Ryoku hero (2/3) + System info (1/3) ──────────────────
         RowLayout {
             Layout.fillWidth: true
-            Layout.preferredHeight: 260
+            Layout.preferredHeight: 320
             spacing: 16
 
             // ── Ryoku hero card ─────────────────────────────────────────────
@@ -260,6 +260,52 @@ ContentPage {
                         wrapMode: Text.WordWrap
                     }
 
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+
+                        StyledText {
+                            text: Translation.tr("Update channel")
+                            font {
+                                pixelSize: Appearance.font.pixelSize.smaller
+                                weight: Font.Medium
+                            }
+                            color: Appearance.colors.colOnSurface
+                        }
+
+                        ConfigSelectionArray {
+                            currentValue: ShellUpdates.configuredChannel
+                            options: [
+                                {
+                                    displayName: Translation.tr("Stable (main)"),
+                                    icon: "verified",
+                                    value: "main"
+                                },
+                                {
+                                    displayName: Translation.tr("Unstable dev"),
+                                    icon: "science",
+                                    value: "unstable-dev"
+                                }
+                            ]
+                            onSelected: (newValue) => {
+                                Config.setNestedValue("shellUpdates.channel", newValue)
+                                ShellUpdates.refresh()
+                            }
+                        }
+
+                        StyledText {
+                            Layout.fillWidth: true
+                            text: ShellUpdates.requiresChannelSwitch
+                                ? Translation.tr("Next update switches from %1 to %2").arg(ShellUpdates.currentBranch).arg(ShellUpdates.configuredChannel)
+                                : Translation.tr("Following %1").arg(ShellUpdates.configuredChannel)
+                            font.pixelSize: Appearance.font.pixelSize.smallest
+                            color: ShellUpdates.requiresChannelSwitch
+                                ? Appearance.m3colors.m3tertiary
+                                : Appearance.colors.colSubtext
+                            wrapMode: Text.WordWrap
+                        }
+                    }
+
                     // Spacer
                     Item { Layout.fillHeight: true }
 
@@ -285,9 +331,11 @@ ContentPage {
                         }
 
                         CircleIconButton {
-                            visible: ShellUpdates.hasUpdate
+                            visible: ShellUpdates.canApplyUpdate
                             materialIcon: "upgrade"
-                            tooltip: Translation.tr("Update available")
+                            tooltip: ShellUpdates.requiresChannelSwitch
+                                ? Translation.tr("Switch update channel")
+                                : Translation.tr("Update available")
                             backgroundColor: ColorUtils.transparentize(Appearance.m3colors.m3primary, 0.86)
                             iconColor: Appearance.m3colors.m3primary
                             enabled: !ShellUpdates.isUpdating

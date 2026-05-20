@@ -6267,19 +6267,32 @@ ApplicationWindow {
               description: "Shell git update checks and detail overlay controls."
 
               SettingsSwitch { label: "Enable shell update checker"; description: "Show shell update notifications in the bar."; checked: Config.options?.shellUpdates?.enabled ?? true; onToggled: checked => Config.setNestedValue("shellUpdates.enabled", checked) }
+              SettingsCombo {
+                label: "Update channel"
+                description: ShellUpdates.requiresChannelSwitch ? "Next update switches to " + ShellUpdates.configuredChannel : "Receive Ryoku shell updates from " + ShellUpdates.configuredChannel
+                selectedValue: ShellUpdates.configuredChannel
+                options: [
+                  { label: "Stable (main)", value: "main" },
+                  { label: "Unstable dev", value: "unstable-dev" }
+                ]
+                onSelected: value => {
+                  Config.setNestedValue("shellUpdates.channel", value);
+                  ShellUpdates.refresh();
+                }
+              }
               SettingsSpinBox { label: "Check interval"; description: "Minutes between Ryoku shell update checks."; from: 30; to: 1440; stepSize: 30; value: Config.options?.shellUpdates?.checkIntervalMinutes ?? 360; onMoved: value => Config.setNestedValue("shellUpdates.checkIntervalMinutes", value) }
               SettingsSwitch { label: "Open terminal during update"; description: "Show full setup output when applying shell updates."; checked: Config.options?.shellUpdates?.openTerminalOnUpdate ?? true; onToggled: checked => Config.setNestedValue("shellUpdates.openTerminalOnUpdate", checked) }
               SettingsLabel {
-                label: ShellUpdates.hasUpdate ? "Update available" : ShellUpdates.lastError.length > 0 ? "Update check error" : ShellUpdates.available ? "Up to date" : "Shell updater unavailable"
-                description: ShellUpdates.hasUpdate ? ShellUpdates.commitsBehind + " commit(s) behind on " + (ShellUpdates.currentBranch || "main") : (ShellUpdates.lastError || ShellUpdates.unavailableHint || "Branch: " + (ShellUpdates.currentBranch || "unknown"))
-                iconName: ShellUpdates.hasUpdate ? "upgrade" : ShellUpdates.lastError.length > 0 ? "error" : "check_circle"
+                label: ShellUpdates.requiresChannelSwitch ? "Channel switch ready" : ShellUpdates.hasUpdate ? "Update available" : ShellUpdates.lastError.length > 0 ? "Update check error" : ShellUpdates.available ? "Up to date" : "Shell updater unavailable"
+                description: ShellUpdates.requiresChannelSwitch ? "Current branch " + ShellUpdates.currentBranch + ", update channel " + ShellUpdates.configuredChannel : ShellUpdates.hasUpdate ? ShellUpdates.commitsBehind + " commit(s) behind on " + (ShellUpdates.configuredChannel || "main") : (ShellUpdates.lastError || ShellUpdates.unavailableHint || "Branch: " + (ShellUpdates.currentBranch || "unknown"))
+                iconName: ShellUpdates.canApplyUpdate ? "upgrade" : ShellUpdates.lastError.length > 0 ? "error" : "check_circle"
               }
               RowLayout {
                 width: parent ? parent.width : implicitWidth
                 spacing: 8
                 SettingsButton { text: ShellUpdates.isChecking ? "Checking" : "Check now"; iconName: "refresh"; onClicked: app.checkShellUpdates() }
                 SettingsButton { text: "Open details"; iconName: "open_in_new"; onClicked: app.openShellUpdateDetails() }
-                SettingsButton { visible: ShellUpdates.hasUpdate && ShellUpdates.selfUpdateSupported; text: ShellUpdates.isUpdating ? "Updating" : "Update now"; iconName: "upgrade"; onClicked: ShellUpdates.performUpdate() }
+                SettingsButton { visible: ShellUpdates.canApplyUpdate && ShellUpdates.selfUpdateSupported; text: ShellUpdates.isUpdating ? "Updating" : ShellUpdates.requiresChannelSwitch ? "Switch channel" : "Update now"; iconName: "upgrade"; onClicked: ShellUpdates.requiresChannelSwitch ? app.openShellUpdateDetails() : ShellUpdates.performUpdate(false) }
               }
             }
           }
@@ -6689,6 +6702,20 @@ ApplicationWindow {
             iconName: "code"
           }
 
+          SettingsCombo {
+            label: "Update channel"
+            description: ShellUpdates.requiresChannelSwitch ? "Next update switches to " + ShellUpdates.configuredChannel : "Receive Ryoku updates from " + ShellUpdates.configuredChannel
+            selectedValue: ShellUpdates.configuredChannel
+            options: [
+              { label: "Stable (main)", value: "main" },
+              { label: "Unstable dev", value: "unstable-dev" }
+            ]
+            onSelected: value => {
+              Config.setNestedValue("shellUpdates.channel", value);
+              ShellUpdates.refresh();
+            }
+          }
+
           GridLayout {
             Layout.fillWidth: true
             columns: width > 520 ? 3 : 2
@@ -6714,8 +6741,8 @@ ApplicationWindow {
             }
 
             SettingsButton {
-              visible: ShellUpdates.hasUpdate
-              text: "Update details"
+              visible: ShellUpdates.canApplyUpdate
+              text: ShellUpdates.requiresChannelSwitch ? "Switch details" : "Update details"
               iconName: "upgrade"
               onClicked: app.openShellUpdateDetails()
             }

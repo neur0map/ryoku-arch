@@ -302,6 +302,12 @@ grep -q 'ShellUpdates.localVersion' "$settings_qml" \
 grep -q 'Check updates' "$settings_qml" \
   || fail "about page should keep the old update check action"
 
+grep -q 'shellUpdates.channel' "$settings_qml" \
+  || fail "about page should expose the update channel selector"
+
+grep -q 'unstable-dev' "$settings_qml" \
+  || fail "about page should let users select the unstable-dev update channel"
+
 grep -q 'iNiR' "$settings_qml" \
   || fail "about page should keep the old integration credits"
 

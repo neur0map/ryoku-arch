@@ -251,14 +251,18 @@ MouseArea {
                     }
                     StyledText {
                         Layout.alignment: Qt.AlignVCenter
-                        text: Translation.tr("Behind:")
+                        text: ShellUpdates.requiresChannelSwitch
+                            ? Translation.tr("Channel:")
+                            : Translation.tr("Behind:")
                         color: root.popupSubtextColor
                     }
                     StyledText {
                         Layout.alignment: Qt.AlignVCenter
                         Layout.fillWidth: true
                         horizontalAlignment: Text.AlignRight
-                        text: ShellUpdates.commitsBehind > 0
+                        text: ShellUpdates.requiresChannelSwitch
+                            ? (ShellUpdates.currentBranch + " -> " + ShellUpdates.configuredChannel)
+                            : ShellUpdates.commitsBehind > 0
                             ? (ShellUpdates.commitsBehind + " " + Translation.tr("commit(s)"))
                             : Translation.tr("Update available")
                         color: ShellUpdates.commitsBehind > 10
@@ -366,7 +370,9 @@ MouseArea {
                 StyledText {
                     visible: ShellUpdates.isNonMainBranch && !ShellUpdates.isUpdating
                     Layout.fillWidth: true
-                    text: Translation.tr("You are on a non-release branch. Updates track this branch.")
+                    text: ShellUpdates.requiresChannelSwitch
+                        ? Translation.tr("The selected update channel is %1. Applying the update switches branches.").arg(ShellUpdates.configuredChannel)
+                        : Translation.tr("You are on a non-release branch. Updates track this branch.")
                     font.pixelSize: Appearance.font.pixelSize.smallest
                     color: Appearance.m3colors.m3tertiary
                     wrapMode: Text.WordWrap
