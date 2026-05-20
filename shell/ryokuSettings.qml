@@ -805,6 +805,45 @@ ApplicationWindow {
     Config.setNestedValue("appearance.angel.profiles", JSON.stringify(profiles));
   }
 
+  function applyCustomThemePreset(presetKey) {
+    const presetMap = {
+      "angel-dark":         ThemePresets.angelColors,
+      "angel-light":        ThemePresets.angelLightColors,
+      "gruvbox-material":   ThemePresets.gruvboxMaterialColors,
+      "catppuccin-mocha":   ThemePresets.catppuccinMochaColors,
+      "catppuccin-latte":   ThemePresets.catppuccinLatteColors,
+      "nord":               ThemePresets.nordColors,
+      "material-black":     ThemePresets.materialBlackColors,
+      "kanagawa":           ThemePresets.kanagawaColors,
+      "kanagawa-dragon":    ThemePresets.kanagawaDragonColors,
+      "samurai":            ThemePresets.samuraiColors,
+      "tokyo-night":        ThemePresets.tokyoNightColors,
+      "sakura":             ThemePresets.sakuraColors,
+      "zen-garden":         ThemePresets.zenGardenColors
+    };
+    const colors = presetMap[presetKey];
+    if (!colors) return;
+    const updates = {};
+    for (const key in colors) {
+      updates["appearance.customTheme." + key] = colors[key];
+    }
+    Config.setNestedValues(updates);
+    customThemeApplyTimer.restart();
+  }
+
+  function setCustomThemeColor(key, value) {
+    Config.setNestedValue("appearance.customTheme." + key, value);
+    customThemeApplyTimer.restart();
+  }
+
+  function setCustomThemeDarkMode(isDark) {
+    Config.setNestedValues({
+      "appearance.themeMode": isDark ? "dark" : "light",
+      "appearance.customTheme.darkmode": isDark
+    });
+    customThemeApplyTimer.restart();
+  }
+
   function normalizeTransform(value) {
     const raw = String(value ?? "normal").toLowerCase();
     if (raw === "normal")
@@ -1385,6 +1424,28 @@ ApplicationWindow {
         app.loadInput();
         app.loadCursorThemes();
       }
+    }
+  }
+
+  Timer {
+    id: customThemeApplyTimer
+    interval: 350
+    repeat: false
+    onTriggered: {
+      // 1) Local apply in the settings-window process (instant settings-UI
+      //    feedback). applyExternal=false so we do NOT run applycolor.sh
+      //    twice -- the main shell does that.
+      ThemeService.applyCurrentTheme(false);
+      // 2) IPC into the main-shell process so its Appearance.m3colors
+      //    singleton gets re-applied from the just-written customTheme,
+      //    and applycolor.sh runs once to push GTK / terminals / Neovim /
+      //    Vesktop / etc. config files.
+      Quickshell.execDetached([
+        Quickshell.shellPath("scripts/ryoku-shell"),
+        "ipc",
+        "settings",
+        "applyTheme"
+      ]);
     }
   }
 
@@ -2690,6 +2751,21 @@ ApplicationWindow {
         text: row.expanded ? "expand_less" : "expand_more"
         iconSize: 18
         color: app.subtextColor
+      }
+
+      MouseArea {
+        id: comboOutsideCatcher
+        parent: app.contentItem
+        anchors.fill: parent
+        z: 999
+        visible: row.expanded
+        propagateComposedEvents: true
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
+        onPressed: mouse => {
+          row.closeDropdown();
+          mouse.accepted = false;
+        }
+        onWheel: wheel => { row.closeDropdown(); wheel.accepted = false; }
       }
 
       Rectangle {
@@ -4410,6 +4486,16 @@ ApplicationWindow {
                 selectedValue: app.currentStyle()
                 onSelected: value => app.applyGlobalStyle(value)
               }
+
+              SettingsModeSegment {
+                options: [
+                  { label: "Wallpaper", value: "auto", icon: "wallpaper" },
+                  { label: "Preset", value: "catppuccin-mocha", icon: "style" },
+                  { label: "Custom", value: "custom", icon: "edit" }
+                ]
+                selectedValue: Config.options?.appearance?.theme ?? "auto"
+                onSelected: value => Config.setNestedValue("appearance.theme", value)
+              }
             }
 
             SettingsSettingCard {
@@ -4693,6 +4779,116 @@ ApplicationWindow {
               SettingsSpinBox { label: "Rounding small"; description: "Corner radius for small surfaces."; from: 0; to: 30; stepSize: 1; value: Math.round(Config.options?.appearance?.angel?.rounding?.small ?? 0); onMoved: value => Config.setNestedValue("appearance.angel.rounding.small", value) }
               SettingsSpinBox { label: "Rounding normal"; description: "Corner radius for cards."; from: 0; to: 30; stepSize: 1; value: Math.round(Config.options?.appearance?.angel?.rounding?.normal ?? 0); onMoved: value => Config.setNestedValue("appearance.angel.rounding.normal", value) }
               SettingsSpinBox { label: "Rounding large"; description: "Corner radius for panels."; from: 0; to: 30; stepSize: 1; value: Math.round(Config.options?.appearance?.angel?.rounding?.large ?? 0); onMoved: value => Config.setNestedValue("appearance.angel.rounding.large", value) }
+            }
+
+            SettingsSettingCard {
+              iconName: "edit"
+              title: "Custom theme"
+              description: "Hand-tuned color palette. Active when the Wallpaper colors source is set to Custom."
+              visible: (Config.options?.appearance?.theme ?? "auto") === "custom"
+
+              SettingsModeSegment {
+                options: [
+                  { label: "Light", value: "light", icon: "light_mode" },
+                  { label: "Dark", value: "dark", icon: "dark_mode" }
+                ]
+                selectedValue: (Config.options?.appearance?.customTheme?.darkmode ?? true) ? "dark" : "light"
+                onSelected: value => app.setCustomThemeDarkMode(value === "dark")
+              }
+
+              SettingsCombo {
+                label: "Preset"
+                description: "Apply a curated palette as the starting point. You can fine-tune the individual colors below."
+                options: [
+                  { label: "Angel (Dark)", value: "angel-dark" },
+                  { label: "Angel (Light)", value: "angel-light" },
+                  { label: "Gruvbox Material", value: "gruvbox-material" },
+                  { label: "Catppuccin Mocha", value: "catppuccin-mocha" },
+                  { label: "Catppuccin Latte", value: "catppuccin-latte" },
+                  { label: "Nord", value: "nord" },
+                  { label: "Material Black", value: "material-black" },
+                  { label: "Kanagawa", value: "kanagawa" },
+                  { label: "Kanagawa Dragon", value: "kanagawa-dragon" },
+                  { label: "Samurai", value: "samurai" },
+                  { label: "Tokyo Night", value: "tokyo-night" },
+                  { label: "Sakura", value: "sakura" },
+                  { label: "Zen Garden", value: "zen-garden" }
+                ]
+                selectedValue: ""
+                onSelected: value => app.applyCustomThemePreset(value)
+              }
+            }
+
+            SettingsSettingCard {
+              iconName: "palette"
+              title: "Accent"
+              description: "Primary brand color and matching text + container colors."
+              visible: (Config.options?.appearance?.theme ?? "auto") === "custom"
+
+              SettingsColorField { label: "Primary"; description: "Main accent color."; value: Config.options?.appearance?.customTheme?.m3primary ?? ""; placeholder: "#7c4dff"; onEdited: v => app.setCustomThemeColor("m3primary", v) }
+              SettingsColorField { label: "On primary"; description: "Text rendered on top of primary."; value: Config.options?.appearance?.customTheme?.m3onPrimary ?? ""; placeholder: "#ffffff"; onEdited: v => app.setCustomThemeColor("m3onPrimary", v) }
+              SettingsColorField { label: "Primary container"; description: "Subtle accent surface."; value: Config.options?.appearance?.customTheme?.m3primaryContainer ?? ""; placeholder: "#5e35b1"; onEdited: v => app.setCustomThemeColor("m3primaryContainer", v) }
+              SettingsColorField { label: "On primary container"; description: "Text on subtle accent surface."; value: Config.options?.appearance?.customTheme?.m3onPrimaryContainer ?? ""; placeholder: "#eadeff"; onEdited: v => app.setCustomThemeColor("m3onPrimaryContainer", v) }
+            }
+
+            SettingsSettingCard {
+              iconName: "filter_2"
+              title: "Secondary"
+              description: "Supporting color pair for secondary actions."
+              visible: (Config.options?.appearance?.theme ?? "auto") === "custom"
+
+              SettingsColorField { label: "Secondary"; value: Config.options?.appearance?.customTheme?.m3secondary ?? ""; placeholder: "#5b6b8c"; onEdited: v => app.setCustomThemeColor("m3secondary", v) }
+              SettingsColorField { label: "On secondary"; value: Config.options?.appearance?.customTheme?.m3onSecondary ?? ""; placeholder: "#ffffff"; onEdited: v => app.setCustomThemeColor("m3onSecondary", v) }
+              SettingsColorField { label: "Secondary container"; value: Config.options?.appearance?.customTheme?.m3secondaryContainer ?? ""; placeholder: "#3f4d6e"; onEdited: v => app.setCustomThemeColor("m3secondaryContainer", v) }
+              SettingsColorField { label: "On secondary container"; value: Config.options?.appearance?.customTheme?.m3onSecondaryContainer ?? ""; placeholder: "#dee4f0"; onEdited: v => app.setCustomThemeColor("m3onSecondaryContainer", v) }
+            }
+
+            SettingsSettingCard {
+              iconName: "filter_3"
+              title: "Tertiary"
+              description: "Third accent for chips, highlights, and special UI."
+              visible: (Config.options?.appearance?.theme ?? "auto") === "custom"
+
+              SettingsColorField { label: "Tertiary"; value: Config.options?.appearance?.customTheme?.m3tertiary ?? ""; placeholder: "#8c5b6b"; onEdited: v => app.setCustomThemeColor("m3tertiary", v) }
+              SettingsColorField { label: "On tertiary"; value: Config.options?.appearance?.customTheme?.m3onTertiary ?? ""; placeholder: "#ffffff"; onEdited: v => app.setCustomThemeColor("m3onTertiary", v) }
+              SettingsColorField { label: "Tertiary container"; value: Config.options?.appearance?.customTheme?.m3tertiaryContainer ?? ""; placeholder: "#6e3f4d"; onEdited: v => app.setCustomThemeColor("m3tertiaryContainer", v) }
+              SettingsColorField { label: "On tertiary container"; value: Config.options?.appearance?.customTheme?.m3onTertiaryContainer ?? ""; placeholder: "#f0dee4"; onEdited: v => app.setCustomThemeColor("m3onTertiaryContainer", v) }
+            }
+
+            SettingsSettingCard {
+              iconName: "layers"
+              title: "Backgrounds"
+              description: "Main background and surface colors plus their foregrounds."
+              visible: (Config.options?.appearance?.theme ?? "auto") === "custom"
+
+              SettingsColorField { label: "Background"; value: Config.options?.appearance?.customTheme?.m3background ?? ""; placeholder: "#1a1a1a"; onEdited: v => app.setCustomThemeColor("m3background", v) }
+              SettingsColorField { label: "Surface"; value: Config.options?.appearance?.customTheme?.m3surface ?? ""; placeholder: "#1a1a1a"; onEdited: v => app.setCustomThemeColor("m3surface", v) }
+              SettingsColorField { label: "On surface"; value: Config.options?.appearance?.customTheme?.m3onSurface ?? ""; placeholder: "#e6e1e5"; onEdited: v => app.setCustomThemeColor("m3onSurface", v) }
+              SettingsColorField { label: "On background"; value: Config.options?.appearance?.customTheme?.m3onBackground ?? ""; placeholder: "#e6e1e5"; onEdited: v => app.setCustomThemeColor("m3onBackground", v) }
+            }
+
+            SettingsSettingCard {
+              iconName: "border_style"
+              title: "Borders and shadows"
+              description: "Outlines and shadow scrim used by panels and overlays."
+              visible: (Config.options?.appearance?.theme ?? "auto") === "custom"
+
+              SettingsColorField { label: "Outline"; value: Config.options?.appearance?.customTheme?.m3outline ?? ""; placeholder: "#938f99"; onEdited: v => app.setCustomThemeColor("m3outline", v) }
+              SettingsColorField { label: "Outline variant"; value: Config.options?.appearance?.customTheme?.m3outlineVariant ?? ""; placeholder: "#49454f"; onEdited: v => app.setCustomThemeColor("m3outlineVariant", v) }
+              SettingsColorField { label: "Shadow"; value: Config.options?.appearance?.customTheme?.m3shadow ?? ""; placeholder: "#000000"; onEdited: v => app.setCustomThemeColor("m3shadow", v) }
+              SettingsColorField { label: "Scrim"; value: Config.options?.appearance?.customTheme?.m3scrim ?? ""; placeholder: "#000000"; onEdited: v => app.setCustomThemeColor("m3scrim", v) }
+            }
+
+            SettingsSettingCard {
+              iconName: "info"
+              title: "Status"
+              description: "Error and success state colors."
+              visible: (Config.options?.appearance?.theme ?? "auto") === "custom"
+
+              SettingsColorField { label: "Error"; value: Config.options?.appearance?.customTheme?.m3error ?? ""; placeholder: "#f2b8b5"; onEdited: v => app.setCustomThemeColor("m3error", v) }
+              SettingsColorField { label: "On error"; value: Config.options?.appearance?.customTheme?.m3onError ?? ""; placeholder: "#601410"; onEdited: v => app.setCustomThemeColor("m3onError", v) }
+              SettingsColorField { label: "Success"; value: Config.options?.appearance?.customTheme?.m3success ?? ""; placeholder: "#7ac582"; onEdited: v => app.setCustomThemeColor("m3success", v) }
+              SettingsColorField { label: "On success"; value: Config.options?.appearance?.customTheme?.m3onSuccess ?? ""; placeholder: "#00390a"; onEdited: v => app.setCustomThemeColor("m3onSuccess", v) }
             }
           }
         }

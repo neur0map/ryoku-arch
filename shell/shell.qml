@@ -186,6 +186,15 @@ ShellRoot {
         function toggle(): void {
             open()
         }
+        // Re-apply the active theme in the main-shell process. The settings
+        // window (a separate process) calls this after a Config write so the
+        // main shell's Appearance.m3colors gets pulled from the just-written
+        // customTheme / theme config. We pass applyExternal=true so this is
+        // also the single place that runs scripts/colors/applycolor.sh: the
+        // settings window does NOT run that pipeline, to avoid a double-run.
+        function applyTheme(): void {
+            ThemeService.applyCurrentTheme(true)
+        }
     }
 
     // Settings overlay panel (loaded only when overlay mode is enabled)

@@ -278,6 +278,7 @@ Singleton {
             }
             configFileView.reload();
             root._syncVarProperties();
+            root._bumpRevision();
             root.configChanged();
         }
     }
