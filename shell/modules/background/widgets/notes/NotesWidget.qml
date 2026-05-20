@@ -133,6 +133,7 @@ AbstractBackgroundWidget {
         TextEdit {
             id: textEdit
             width: editorFlick.width
+            height: Math.max(editorFlick.height, contentHeight)
             text: root.noteText
             wrapMode: TextEdit.Wrap
             color: root.colText

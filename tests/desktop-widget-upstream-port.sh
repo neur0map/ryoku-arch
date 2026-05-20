@@ -86,6 +86,7 @@ require_json_key shell/defaults/config.json '.background.widgets.notes.useBlur =
 require_json_key shell/defaults/config.json '.background.widgets.calendarUpcoming.useBlur == false'
 
 require_rg 'TextEdit \{' shell/modules/background/widgets/notes/NotesWidget.qml
+require_rg 'height: Math\.max\(editorFlick\.height, contentHeight\)' shell/modules/background/widgets/notes/NotesWidget.qml
 require_rg 'onTextChanged: _saveDebounce\.restart\(\)' shell/modules/background/widgets/notes/NotesWidget.qml
 require_rg 'placementStrategy: "leastBusy"' shell/modules/background/widgets/notes/NotesWidget.qml
 require_rg 'placementStrategy: "leastBusy"' shell/modules/background/widgets/calendar/CalendarUpcomingWidget.qml
