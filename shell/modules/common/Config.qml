@@ -2070,6 +2070,7 @@ Singleton {
             }
             property JsonObject shellUpdates: JsonObject {
                 property bool enabled: true
+                property string channel: ""
                 property int checkIntervalMinutes: 360
                 property string dismissedCommit: ""
                 property string lastNotifiedCommit: ""

@@ -29,7 +29,7 @@ rg -q 'ShellUpdates\.openOverlay\(\)' "$ABOUT_QML" || \
 rg -q 'ShellUpdates\.localVersion' "$ABOUT_QML" || \
   fail "About version badge should use the canonical local version"
 
-rg -q 'shellUpdates\.channel' "$ABOUT_QML" || \
+rg -q 'setShellUpdateChannel' "$ABOUT_QML" || \
   fail "About page should expose the shell update channel selector"
 
 rg -q 'unstable-dev' "$ABOUT_QML" || \
@@ -47,13 +47,25 @@ rg -q 'Selected channel' "$ABOUT_QML" || \
 rg -q 'ShellUpdates\.requiresChannelSwitch && ShellUpdates\.selfUpdateSupported' "$ABOUT_QML" || \
   fail "About page should expose an explicit channel-switch action when the selected channel differs"
 
+rg -q 'ShellUpdates\.channelKnown' "$ABOUT_QML" || \
+  fail "About page should hide channel controls until the real channel is known"
+
+rg -q 'Detecting channel' "$ABOUT_QML" || \
+  fail "About page should show a pending channel state instead of a false stable default"
+
 rg -q 'Translation\.tr\("Switch channel"\)' "$ABOUT_QML" || \
   fail "About page should show a switch-channel button for pending channel changes"
 
 rg -q 'onClicked: openShellUpdateDetails\(\)' "$ABOUT_QML" || \
   fail "About channel-switch action should open the existing confirmation details"
 
-rg -Uq 'Config\.setNestedValue\("shellUpdates\.channel", newValue\)\n\s*checkShellUpdates\(\)' "$ABOUT_QML" \
+rg -q 'ShellUpdates\.setChannel\(channel\)' "$ABOUT_QML" \
+  || fail "About channel selector should update the local shell update service"
+
+rg -q '"shellUpdate", "setChannel", channel' "$ABOUT_QML" \
+  || fail "About channel selector should notify the main shell process when settings is standalone"
+
+rg -q 'setShellUpdateChannel\(newValue\)' "$ABOUT_QML" \
   || fail "About channel selector should notify the shell update service after changing channel"
 
 ! rg -q '0\.1\.0-pre-alpha' "$ABOUT_QML" || \

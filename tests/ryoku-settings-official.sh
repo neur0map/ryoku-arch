@@ -28,9 +28,11 @@ grep -q 'ryoku-settings-window' "$launcher" \
 grep -q 'legacy-settings-window' "$launcher" \
   || fail "ryoku-shell should keep a legacy settings entrypoint for reference"
 
+# shellcheck disable=SC2016
 grep -q 'open_detached_qml_window "$config_dir" "ryokuSettings.qml"' "$launcher" \
   || fail "ryoku-settings-window should launch ryokuSettings.qml"
 
+# shellcheck disable=SC2016
 grep -q 'open_detached_qml_window "$config_dir" "settings.qml"' "$launcher" \
   || fail "legacy-settings-window should launch the old settings.qml reference"
 
@@ -302,8 +304,14 @@ grep -q 'ShellUpdates.localVersion' "$settings_qml" \
 grep -q 'Check updates' "$settings_qml" \
   || fail "about page should keep the old update check action"
 
-grep -q 'shellUpdates.channel' "$settings_qml" \
+grep -q 'function setShellUpdateChannel' "$settings_qml" \
   || fail "about page should expose the update channel selector"
+
+grep -q 'ShellUpdates.setChannel(channel)' "$settings_qml" \
+  || fail "channel selector should update the local shell update service"
+
+grep -q '"shellUpdate", "setChannel", channel' "$settings_qml" \
+  || fail "channel selector should notify the running shell process"
 
 grep -q 'Current branch' "$settings_qml" \
   || fail "about page should show the current checked-out branch separately from the selected channel"
@@ -313,6 +321,12 @@ grep -q 'Selected channel' "$settings_qml" \
 
 grep -q 'ShellUpdates.requiresChannelSwitch && ShellUpdates.selfUpdateSupported' "$settings_qml" \
   || fail "about page should expose an explicit channel-switch action"
+
+grep -q 'ShellUpdates.channelKnown' "$settings_qml" \
+  || fail "about page should not show stable/main before the update channel is known"
+
+grep -q 'Detecting channel' "$settings_qml" \
+  || fail "about page should show a pending channel state while branch/config is loading"
 
 grep -q 'Switch channel' "$settings_qml" \
   || fail "about page should show a switch-channel action for pending channel changes"
@@ -333,17 +347,16 @@ grep -q 'Qt.callLater(row.syncToSelectedValue)' "$settings_qml" \
   || fail "settings combo should roll back to the real selected value if the write did not apply"
 
 awk '
-  /SettingsCombo \{/ { inCombo=1; sawSelectedChannel=0; sawSet=0; sawCheck=0 }
+  /SettingsCombo \{/ { inCombo=1; sawSelectedChannel=0; sawSetChannel=0 }
   inCombo && /label: "Selected channel"/ { sawSelectedChannel=1 }
-  inCombo && /Config\.setNestedValue\("shellUpdates\.channel", value\)/ { sawSet=1 }
-  inCombo && /app\.checkShellUpdates\(\)/ { sawCheck=1 }
+  inCombo && /app\.setShellUpdateChannel\(value\)/ { sawSetChannel=1 }
   inCombo && /^\s*\}/ {
-    if (sawSelectedChannel && sawSet && sawCheck) found=1
+    if (sawSelectedChannel && sawSetChannel) found=1
     inCombo=0
   }
   END { exit found ? 0 : 1 }
 ' "$settings_qml" \
-  || fail "about page channel selector should notify the main shell update service after changing channel"
+  || fail "about page channel selector should notify the shell update service after changing channel"
 
 grep -q 'unstable-dev' "$settings_qml" \
   || fail "about page should let users select the unstable-dev update channel"

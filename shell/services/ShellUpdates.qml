@@ -25,6 +25,7 @@ Singleton {
         function close(): void { root.closeOverlay() }
         function check(): void { root.check() }
         function refresh(): void { root.refresh() }
+        function setChannel(channel: string): void { root.setChannel(channel) }
         function performUpdate(): void { root.performUpdate(false) }
         function dismiss(): void { root.dismiss() }
         function undismiss(): void { root.undismiss() }
@@ -84,6 +85,7 @@ Singleton {
     property string recentLocalLog: ""    // Recent local commit history
     property int _openOverlayDelayMs: 0
     property bool _fetchAfterCurrentBranch: false
+    property string _selectedChannelOverride: ""
 
     // Derived
     readonly property bool enabled: Config.options?.shellUpdates?.enabled ?? true
@@ -91,14 +93,15 @@ Singleton {
     readonly property string dismissedCommit: Config.options?.shellUpdates?.dismissedCommit ?? ""
     readonly property string lastNotifiedCommit: Config.options?.shellUpdates?.lastNotifiedCommit ?? ""
     readonly property string explicitConfiguredChannel: {
-        const channel = Config.options?.shellUpdates?.channel ?? ""
+        const channel = root._selectedChannelOverride.length > 0 ? root._selectedChannelOverride : (Config.options?.shellUpdates?.channel ?? "")
         return channel === "unstable-dev" || channel === "main" ? channel : ""
     }
     readonly property string currentBranchChannel: currentBranch === "unstable-dev" ? "unstable-dev" : currentBranch === "main" ? "main" : ""
-    readonly property string configuredChannel: explicitConfiguredChannel.length > 0 ? explicitConfiguredChannel : currentBranchChannel.length > 0 ? currentBranchChannel : "main"
-    readonly property string configuredChannelLabel: configuredChannel === "unstable-dev" ? "Unstable dev" : "Stable"
-    readonly property string releaseBranch: configuredChannel
-    readonly property bool requiresChannelSwitch: available && currentBranch.length > 0 && currentBranch !== releaseBranch
+    readonly property string configuredChannel: explicitConfiguredChannel.length > 0 ? explicitConfiguredChannel : currentBranchChannel
+    readonly property bool channelKnown: configuredChannel.length > 0
+    readonly property string configuredChannelLabel: configuredChannel === "unstable-dev" ? "Unstable dev" : configuredChannel === "main" ? "Stable" : "Detecting channel"
+    readonly property string releaseBranch: channelKnown ? configuredChannel : "main"
+    readonly property bool requiresChannelSwitch: available && channelKnown && currentBranch.length > 0 && currentBranch !== releaseBranch
     readonly property bool canApplyUpdate: hasUpdate || requiresChannelSwitch
     readonly property bool showUpdate: ((hasUpdate && !isDismissed) || requiresChannelSwitch) && !isUpdating
     readonly property bool isDismissed: dismissedCommit.length > 0 && remoteCommit === dismissedCommit
@@ -164,11 +167,38 @@ Singleton {
 
     function check(): void {
         if (!enabled || isChecking || isUpdating || managedExternally) return
+        if (!repoPathLoaded) {
+            if (!loadRepoPathProc.running && !preferConfigRepoProc.running && !validateRepoPathProc.running && !searchRepoProc.running) {
+                print("[ShellUpdates] Loading repo path before update check...")
+                loadRepoPathProc.running = true
+            }
+            return
+        }
+        if (!initialAvailabilityChecked) {
+            if (!availabilityProc.running) {
+                availabilityProc.running = true
+            }
+            return
+        }
+        if (!available) return
         root.isChecking = true
         root.lastError = ""
         root.latestMessage = ""
         root._fetchAfterCurrentBranch = true
         normalizeRemoteProc.running = true
+    }
+
+    function setChannel(channel): void {
+        if (channel !== "main" && channel !== "unstable-dev") {
+            root.lastError = "Invalid update channel: " + channel
+            return
+        }
+        root._selectedChannelOverride = channel
+        Config.setNestedValue("shellUpdates.channel", channel)
+        if (Config.flushWrites) {
+            Config.flushWrites()
+        }
+        root.check()
     }
 
     // Force a fresh check + reload the incoming commits list. Used by the
@@ -373,7 +403,7 @@ Singleton {
     // Initial check after startup delay
     Timer {
         id: startupDelay
-        interval: 5000  // 5s after shell starts (quick first check)
+        interval: 0  // no delay; the channel UI must not show a false default
         repeat: false
         running: root.enabled && Config.ready
         onTriggered: {

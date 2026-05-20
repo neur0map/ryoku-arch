@@ -89,6 +89,13 @@ ContentPage {
         }
     }
 
+    function setShellUpdateChannel(channel: string): void {
+        ShellUpdates.setChannel(channel)
+        if (!(Config.options?.settingsUi?.overlayMode ?? false)) {
+            Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "shellUpdate", "setChannel", channel])
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 16
@@ -276,6 +283,7 @@ ContentPage {
                         }
 
                         ConfigSelectionArray {
+                            visible: ShellUpdates.channelKnown
                             currentValue: ShellUpdates.configuredChannel
                             options: [
                                 {
@@ -290,8 +298,7 @@ ContentPage {
                                 }
                             ]
                             onSelected: (newValue) => {
-                                Config.setNestedValue("shellUpdates.channel", newValue)
-                                checkShellUpdates()
+                                setShellUpdateChannel(newValue)
                             }
                         }
 
@@ -306,6 +313,16 @@ ContentPage {
                         }
 
                         StyledText {
+                            visible: !ShellUpdates.channelKnown
+                            Layout.fillWidth: true
+                            text: Translation.tr("Detecting channel")
+                            font.pixelSize: Appearance.font.pixelSize.smallest
+                            color: Appearance.colors.colSubtext
+                            wrapMode: Text.WordWrap
+                        }
+
+                        StyledText {
+                            visible: ShellUpdates.channelKnown
                             Layout.fillWidth: true
                             text: ShellUpdates.requiresChannelSwitch
                                 ? Translation.tr("Selected channel: %1. Confirmation required before switching.").arg(ShellUpdates.configuredChannel)
