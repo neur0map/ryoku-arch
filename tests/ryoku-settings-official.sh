@@ -305,6 +305,18 @@ grep -q 'Check updates' "$settings_qml" \
 grep -q 'shellUpdates.channel' "$settings_qml" \
   || fail "about page should expose the update channel selector"
 
+grep -q 'Current branch' "$settings_qml" \
+  || fail "about page should show the current checked-out branch separately from the selected channel"
+
+grep -q 'Selected channel' "$settings_qml" \
+  || fail "about page should label the selected update channel as a target"
+
+grep -q 'ShellUpdates.requiresChannelSwitch && ShellUpdates.selfUpdateSupported' "$settings_qml" \
+  || fail "about page should expose an explicit channel-switch action"
+
+grep -q 'Switch channel' "$settings_qml" \
+  || fail "about page should show a switch-channel action for pending channel changes"
+
 grep -q 'unstable-dev' "$settings_qml" \
   || fail "about page should let users select the unstable-dev update channel"
 

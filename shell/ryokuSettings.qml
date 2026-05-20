@@ -6680,6 +6680,8 @@ ApplicationWindow {
   Component {
     id: aboutPage
     SettingsPage {
+      Component.onCompleted: ShellUpdates.refresh()
+
       SettingsPageBody {
         SettingsSection {
         title: "About Ryoku"
@@ -6697,14 +6699,20 @@ ApplicationWindow {
           }
 
           SettingsLabel {
+            label: "Current branch"
+            description: ShellUpdates.currentBranch.length > 0 ? ShellUpdates.currentBranch : "Checking branch information"
+            iconName: ShellUpdates.isNonMainBranch ? "warning" : "account_tree"
+          }
+
+          SettingsLabel {
             label: "Repository"
             description: "github.com/neur0map/ryoku-arch"
             iconName: "code"
           }
 
           SettingsCombo {
-            label: "Update channel"
-            description: ShellUpdates.requiresChannelSwitch ? "Next update switches to " + ShellUpdates.configuredChannel : "Receive Ryoku updates from " + ShellUpdates.configuredChannel
+            label: "Selected channel"
+            description: ShellUpdates.requiresChannelSwitch ? "Selected channel " + ShellUpdates.configuredChannel + " differs from current branch " + ShellUpdates.currentBranch : "Receive Ryoku updates from " + ShellUpdates.configuredChannel
             selectedValue: ShellUpdates.configuredChannel
             options: [
               { label: "Stable (main)", value: "main" },
@@ -6714,6 +6722,12 @@ ApplicationWindow {
               Config.setNestedValue("shellUpdates.channel", value);
               ShellUpdates.refresh();
             }
+          }
+
+          SettingsLabel {
+            label: "Selected channel"
+            description: ShellUpdates.requiresChannelSwitch ? "Switch confirmation is required before moving from " + ShellUpdates.currentBranch + " to " + ShellUpdates.configuredChannel : "Already following " + ShellUpdates.configuredChannel
+            iconName: ShellUpdates.requiresChannelSwitch ? "account_tree" : "verified"
           }
 
           GridLayout {
@@ -6741,8 +6755,15 @@ ApplicationWindow {
             }
 
             SettingsButton {
-              visible: ShellUpdates.canApplyUpdate
-              text: ShellUpdates.requiresChannelSwitch ? "Switch details" : "Update details"
+              visible: ShellUpdates.requiresChannelSwitch && ShellUpdates.selfUpdateSupported
+              text: "Switch channel"
+              iconName: "account_tree"
+              onClicked: app.openShellUpdateDetails()
+            }
+
+            SettingsButton {
+              visible: ShellUpdates.hasUpdate && !ShellUpdates.requiresChannelSwitch
+              text: "Update details"
               iconName: "upgrade"
               onClicked: app.openShellUpdateDetails()
             }

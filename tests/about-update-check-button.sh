@@ -38,6 +38,21 @@ rg -q 'unstable-dev' "$ABOUT_QML" || \
 rg -q 'ShellUpdates\.configuredChannel' "$ABOUT_QML" || \
   fail "About page should show the configured update channel"
 
+rg -q 'Current branch' "$ABOUT_QML" || \
+  fail "About page should show the current checked-out branch separately from the selected channel"
+
+rg -q 'Selected channel' "$ABOUT_QML" || \
+  fail "About page should label the selected update channel as a target, not the active branch"
+
+rg -q 'ShellUpdates\.requiresChannelSwitch && ShellUpdates\.selfUpdateSupported' "$ABOUT_QML" || \
+  fail "About page should expose an explicit channel-switch action when the selected channel differs"
+
+rg -q 'Translation\.tr\("Switch channel"\)' "$ABOUT_QML" || \
+  fail "About page should show a switch-channel button for pending channel changes"
+
+rg -q 'onClicked: openShellUpdateDetails\(\)' "$ABOUT_QML" || \
+  fail "About channel-switch action should open the existing confirmation details"
+
 ! rg -q '0\.1\.0-pre-alpha' "$ABOUT_QML" || \
   fail "About version badge should not hardcode stale pre-alpha text"
 
