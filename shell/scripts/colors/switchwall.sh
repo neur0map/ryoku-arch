@@ -482,7 +482,10 @@ switch() {
             fi
         fi
 
-        check_and_prompt_upscale "$imgpath" &
+        if [[ -z $noswitch_flag ]]; then
+            check_and_prompt_upscale "$imgpath" >/dev/null 2>&1 &
+            disown || true
+        fi
         kill_existing_mpvpaper
 
         if is_video "$imgpath"; then

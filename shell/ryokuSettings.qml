@@ -2257,13 +2257,16 @@ ApplicationWindow {
     implicitHeight: activeStackItem ? activeStackItem.implicitHeight : 0
   }
 
-  component SettingsSubTabs: RowLayout {
+  component SettingsSubTabs: Flow {
     id: tabs
     property string pageKey: ""
     property var options: []
+    readonly property int selectedIndex: app.subTabForPage(tabs.pageKey, 0)
 
     Layout.fillWidth: true
+    Layout.preferredHeight: childrenRect.height
     spacing: 7
+    clip: false
 
     Repeater {
       model: tabs.options
@@ -2271,10 +2274,10 @@ ApplicationWindow {
       delegate: Rectangle {
         required property int index
         required property var modelData
-        readonly property bool selected: app.subTabForPage(tabs.pageKey, 0) === index
+        readonly property bool selected: tabs.selectedIndex === index
 
-        Layout.preferredHeight: 34
-        Layout.preferredWidth: Math.max(92, label.implicitWidth + 28)
+        width: Math.max(92, label.implicitWidth + 28)
+        height: 34
         radius: 9
         color: selected ? app.quietSelectedColor : tabMouse.containsMouse ? app.hoverColor : app.windowColor
         border.width: selected ? 0 : 1
@@ -4971,7 +4974,7 @@ ApplicationWindow {
         SettingsPageBody {
           SettingsSection {
             title: "Desktop widgets"
-            description: "Enable the main visual widgets. Placement, style, presets, and custom widget details are in Widget Controls."
+            description: "Enable desktop widgets. Placement, style, presets, and custom widget details are in Widget Controls."
 
             SettingsSettingCard {
               iconName: "widgets"
@@ -4985,7 +4988,9 @@ ApplicationWindow {
                   { label: "Media", description: "Desktop media widget.", path: "background.widgets.mediaControls.enable", fallback: false },
                   { label: "Visualizer", description: "Audio visualizer widget.", path: "background.widgets.visualizer.enable", fallback: false },
                   { label: "System monitor", description: "Desktop system stats.", path: "background.widgets.systemMonitor.enable", fallback: false },
-                  { label: "Battery", description: "Desktop battery widget.", path: "background.widgets.battery.enable", fallback: false }
+                  { label: "Battery", description: "Desktop battery widget.", path: "background.widgets.battery.enable", fallback: false },
+                  { label: "Notes", description: "Desktop notes widget.", path: "background.widgets.notes.enable", fallback: false },
+                  { label: "Upcoming Events", description: "Calendar events on the desktop.", path: "background.widgets.calendarUpcoming.enable", fallback: false }
                 ]
               }
             }

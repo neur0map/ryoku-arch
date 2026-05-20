@@ -52,6 +52,12 @@ grep -q -- '--centered' "$launcher" \
 grep -q 'Ryoku Settings' "$settings_qml" \
   || fail "official settings should identify itself as Ryoku Settings"
 
+grep -q 'RYOKU_SETTINGS_PAGE' "$settings_qml" \
+  || fail "official settings should support direct page routing"
+
+grep -q 'RYOKU_SETTINGS_SUBTAB' "$settings_qml" \
+  || fail "official settings should support direct subtab routing"
+
 forbidden_re='noc''talia|pro''totype|temporary sett''ings|temp sett''ings|Settings La''b|settings la''b|RYOKU_SETTINGS_LA''B|noc''taliaSettings'
 for active_file in "$settings_qml" "$launcher" "$shell_entry" "$window_rules" "$default_window_rules"; do
   if grep -Eiq "$forbidden_re" "$active_file"; then
@@ -127,6 +133,20 @@ grep -q 'component SettingsNavItem' "$settings_qml" \
 grep -q 'component SettingsSubTabs' "$settings_qml" \
   || fail "settings_qml should split dense pages into Ryoku subtabs"
 
+grep -q 'component SettingsSubTabs: Flow' "$settings_qml" \
+  || fail "settings subtabs should wrap instead of clipping or scrolling labels"
+
+grep -q 'Layout.preferredHeight: childrenRect.height' "$settings_qml" \
+  || fail "settings subtabs should grow vertically when options wrap"
+
+if grep -q 'implicitHeight: childrenRect.height' "$settings_qml"; then
+  fail "SettingsSubTabs should not assign Flow.implicitHeight because it is read-only"
+fi
+
+if grep -q 'contentWidth: tabsRow.implicitWidth' "$settings_qml"; then
+  fail "settings subtabs should not rely on a clipped horizontal scroller"
+fi
+
 grep -q 'component SettingsSettingCard' "$settings_qml" \
   || fail "settings_qml should use curated setting cards instead of dumping switch lists"
 
@@ -174,6 +194,12 @@ grep -q 'Light | Dark | Auto | Schedule' "$settings_qml" \
 
 grep -q 'Quick Rice' "$settings_qml" \
   || fail "General should expose a Quick Rice section for common appearance tuning"
+
+grep -q 'background.widgets.notes.enable' "$settings_qml" \
+  || fail "official desktop widget gallery should expose Notes"
+
+grep -q 'background.widgets.calendarUpcoming.enable' "$settings_qml" \
+  || fail "official desktop widget gallery should expose Upcoming Events"
 
 grep -q 'Use wallpaper colors' "$settings_qml" \
   || fail "Quick Rice should expose a user-friendly wallpaper color toggle"

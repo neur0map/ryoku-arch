@@ -16,7 +16,7 @@ source "$RYOKU_PATH/lib/runtime-env.sh"
 # Safe to run via pkexec: when EUID=0, the helper drops privileges to
 # $SUDO_USER for git operations so the clone at ~/.local/share/qylock
 # stays user-owned. Privileged operations (cp into /usr/share/sddm/...
-# and writing /etc/sddm.conf.d/theme.conf) use the _priv wrapper, which
+# and writing /etc/sddm.conf.d/99-ryoku-shell-theme.conf) use the _priv wrapper, which
 # is empty when already root and "sudo" otherwise.
 
 if (( EUID == 0 )); then
@@ -198,15 +198,13 @@ fi
 
 write_sddm_current_theme() {
   local selected_theme="$1"
+  local theme_conf="/etc/sddm.conf.d/99-ryoku-shell-theme.conf"
   local stale_theme_conf="/etc/sddm.conf.d/i""nir-theme.conf"
 
   _priv mkdir -p /etc/sddm.conf.d
   _priv rm -f "$stale_theme_conf" \
               /etc/sddm.conf.d/ryoku-shell-theme.conf
-  if _priv test -f /etc/sddm.conf; then
-    _priv sed -i '/^[[:space:]]*Current[[:space:]]*=/d' /etc/sddm.conf
-  fi
-  _priv tee /etc/sddm.conf.d/theme.conf >/dev/null <<EOF
+  _priv tee "$theme_conf" >/dev/null <<EOF
 [Theme]
 Current=$selected_theme
 EOF

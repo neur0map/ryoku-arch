@@ -191,12 +191,19 @@ AbstractBackgroundWidget {
     }
 
     // Card background (mainly for digital mode)
-    Rectangle {
+    WidgetSurface {
         anchors.fill: parent
         anchors.margins: -Math.round(8 * root.scaleFactor)
-        radius: root.cornerRadiusOverride >= 0 ? root.cornerRadiusOverride : root.cardRadius
-        color: root.backgroundOpacity > 0 ? ColorUtils.applyAlpha(root.colText, root.backgroundOpacity) : "transparent"
-        border { width: root.borderWidth; color: ColorUtils.applyAlpha(root.colText, root.borderOpacity) }
+        surfaceRadius: root.cornerRadiusOverride >= 0 ? root.cornerRadiusOverride : root.cardRadius
+        surfaceOpacity: root.backgroundOpacity
+        surfaceBorderWidth: root.borderWidth
+        surfaceBorderOpacity: root.borderOpacity
+        surfaceColor: root.colText
+        surfaceUseBlur: root.useBlur
+        screenX: root.x + Math.round(8 * root.scaleFactor)
+        screenY: root.y + Math.round(8 * root.scaleFactor)
+        screenWidth: root.scaledScreenWidth
+        screenHeight: root.scaledScreenHeight
         visible: (root.backgroundOpacity > 0 || root.borderWidth > 0) && root.clockStyle === "digital"
     }
 

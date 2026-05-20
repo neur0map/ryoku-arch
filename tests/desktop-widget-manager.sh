@@ -62,6 +62,14 @@ require_rg '_snapZones' shell/modules/background/widgets/AbstractBackgroundWidge
 require_rg 'Config\.setNestedValues' shell/modules/background/widgets/AbstractBackgroundWidget.qml
 require_rg '_freeModeOverflowGuard' shell/modules/background/widgets/AbstractBackgroundWidget.qml
 require_rg 'settingsOverlayRequestedPage = 14' shell/modules/background/widgets/AbstractBackgroundWidget.qml
+for gear_file in \
+  shell/modules/background/Background.qml \
+  shell/modules/background/widgets/WidgetManagerPanel.qml \
+  shell/modules/background/widgets/AbstractBackgroundWidget.qml; do
+  require_rg 'RYOKU_SETTINGS_PAGE=wallpaper' "$gear_file"
+  require_rg 'RYOKU_SETTINGS_SUBTAB=4' "$gear_file"
+  reject_rg 'QS_SETTINGS_PAGE=14' "$gear_file"
+done
 require_rg '--color-only' shell/scripts/images/least_busy_region.py
 require_rg '--position-x' shell/scripts/images/least_busy_region.py
 require_rg '--position-y' shell/scripts/images/least_busy_region.py

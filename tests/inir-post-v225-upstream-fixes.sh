@@ -88,6 +88,18 @@ assert_contains "shell/modules/common/Config.qml" 'id: customInjectTimer' \
   "Config should defer custom widget injection out of onSaved"
 assert_contains "shell/modules/common/Config.qml" 'if \(root\._writeInFlight\) \{' \
   "Config write timer should guard in-flight writes"
+assert_contains "shell/modules/common/Config.qml" 'property var _jsonMirror' \
+  "Config should keep an in-memory JSON mirror for reliable writes"
+assert_contains "shell/modules/common/Config.qml" 'function _applyToMirror' \
+  "Config mutations should update the write mirror synchronously"
+assert_contains "shell/modules/common/Config.qml" 'function _writeMirrorToDisk' \
+  "Config should have a direct mirror write fallback"
+assert_contains "shell/modules/common/Config.qml" 'id: writeFlightGuard' \
+  "Config should recover when writeAdapter does not emit onSaved"
+assert_contains "shell/modules/common/Config.qml" 'root\._jsonMirror = JSON\.parse\(configFileView\.text\(\)\)' \
+  "Config should initialize the write mirror from disk on load"
+assert_contains "shell/modules/common/Config.qml" 'writeFlightGuard\.stop\(\)' \
+  "Config should stop the write watchdog when onSaved fires"
 
 # Timer coordination must respect reduceAnimations through calcEffectiveDuration.
 assert_contains "shell/modules/common/widgets/NotificationGroup.qml" 'Appearance\.calcEffectiveDuration\(Appearance\.animation\.elementMoveFast\.duration \+ 50\)' \
@@ -167,7 +179,67 @@ assert_contains "shell/scripts/colors/apply-spicetify-theme.sh" 'spicetify -n ap
   "Spicetify fallback apply should use no-launch mode"
 assert_not_contains "shell/scripts/colors/apply-spicetify-theme.sh" 'spicetify watch' \
   "Spicetify theming should not rely on watch mode"
-assert_contains "shell/scripts/colors/apply-spicetify-theme.sh" 'Spotify not running - theme files written for next launch \(skipping apply\)' \
-  "Spicetify should skip apply when Spotify is not running"
+assert_not_contains "shell/scripts/colors/apply-spicetify-theme.sh" 'skipping apply' \
+  "Spicetify should still apply to the bundle when Spotify is closed"
+assert_contains "shell/scripts/colors/apply-spicetify-theme.sh" 'Killed Spotify spawned as side effect of spicetify apply' \
+  "Spicetify should kill any Spotify instance spawned as a no-launch side effect"
+assert_contains "shell/scripts/colors/apply-spicetify-theme.sh" 'Spotify not running - theme applied to bundle for next launch' \
+  "Spicetify should report that the closed-client bundle was patched"
+
+# Post-launch Quickshell/runtime fixes should keep startup and service behavior deterministic.
+assert_contains "shell/shell.qml" 'pragma ShellId ryoku-shell' \
+  "shell should pin a stable ShellId for Quickshell state/cache paths"
+assert_contains "shell/shell.qml" 'pragma DefaultEnv QT_LOGGING_RULES=quickshell\.dbus\.properties=false' \
+  "shell logging suppression should be overridable through DefaultEnv"
+assert_contains "shell/scripts/ryoku-shell" 'check_qs_abi[[:space:]]+# fail early on Qt patch bumps before qs starts' \
+  "session boot should run the Qt/Quickshell ABI check before launching qs"
+assert_contains "shell/scripts/ryoku-shell" 'service logs --full' \
+  "service help should advertise full Quickshell log output"
+assert_contains "shell/scripts/ryoku-shell" 'qs_bin.*-p.*config_dir.*log' \
+  "service logs --full should read the Quickshell binary log"
+
+# Startup warning suppression for expected missing files/cache and early theme bindings.
+assert_contains "shell/services/CalendarSync.qml" 'if \(!root\.enabled\) \{' \
+  "CalendarSync should not touch cache files when external sync is disabled"
+assert_contains "shell/services/CalendarSync.qml" 'printErrors: false' \
+  "CalendarSync cache FileView should suppress expected missing-cache warnings"
+assert_contains "shell/services/Translation.qml" 'printErrors: false' \
+  "TranslationReader should suppress expected missing generated-locale warnings"
+assert_contains "shell/modules/sidebarRight/sysmon/SysMonWidget.qml" 'Appearance\.colors\?\.colError' \
+  "SysMonWidget warning colors should be null-safe during early startup"
+assert_contains "shell/modules/sidebarRight/sysmon/SysMonWidget.qml" 'Appearance\.colors\?\.colWarning' \
+  "SysMonWidget warning colors should be null-safe during early startup"
+assert_contains "shell/modules/sidebarRight/sysmon/SysMonWidget.qml" 'Appearance\.colors\?\.colPrimary' \
+  "SysMonWidget primary progress colors should be null-safe during early startup"
+
+# Awww probing should not warn while the probe is in flight and should tolerate non-login PATHs.
+assert_contains "shell/services/AwwwBackend.qml" '!warnedMissing && !probing' \
+  "Awww backend should not warn until the binary probe has finished"
+assert_contains "shell/services/AwwwBackend.qml" '/usr/bin/awww /usr/local/bin/awww' \
+  "Awww probe should check well-known executable paths before PATH lookup"
+assert_contains "shell/services/AwwwBackend.qml" '/usr/bin/awww-daemon /usr/local/bin/awww-daemon' \
+  "Awww probe should check well-known daemon paths before PATH lookup"
+
+# Launcher and UI binding fixes.
+assert_contains "shell/services/AppLauncher.qml" 'DesktopEntries\.heuristicLookup\(command\)' \
+  "AppLauncher should fall back to desktop entries for Flatpak-style app commands"
+assert_contains "shell/services/AppLauncher.qml" 'entry\.execute\(\)' \
+  "AppLauncher desktop-entry fallback should execute the resolved entry"
+assert_contains "shell/modules/common/widgets/RippleButton.qml" 'typeof root\.startRipple === "function"' \
+  "RippleButton should guard startRipple during teardown races"
+assert_contains "shell/modules/common/widgets/NotificationItem.qml" 'contentColumn\.implicitHeight \+ root\.padding \* 2' \
+  "NotificationItem expanded height should disambiguate root padding"
+assert_contains "shell/modules/common/widgets/NotificationItem.qml" 'anchors\.left: parent\.left' \
+  "NotificationItem content column should be anchored without fill-induced binding loops"
+assert_contains "shell/modules/common/widgets/NotificationItem.qml" 'anchors\.right: parent\.right' \
+  "NotificationItem content column should be anchored without fill-induced binding loops"
+assert_contains "shell/modules/common/widgets/WallpaperCrossfader.qml" 'mipmap: false' \
+  "WallpaperCrossfader should disable mipmap to avoid transition pixelation"
+assert_not_contains "shell/modules/common/widgets/WallpaperCrossfader.qml" 'mipmap: true' \
+  "WallpaperCrossfader should not enable mipmap"
+assert_contains "shell/modules/mediaControls/BarMediaPopup.qml" 'readonly property bool _shouldShow' \
+  "BarMediaPopup placeholder visibility should avoid direct binding-loop churn"
+assert_contains "shell/modules/sidebarLeft/widgets/GlanceHeader.qml" 'Config\.options\?\.time\?\.dateFormat' \
+  "GlanceHeader should honor the configured sidebar date format"
 
 echo "OK: upstream post-v2.25 fixes"

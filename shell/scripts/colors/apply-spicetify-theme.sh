@@ -533,14 +533,21 @@ main() {
     fi
   fi
 
-  if ! $spotify_running; then
-    log "Spotify not running - theme files written for next launch (skipping apply)"
-    exit 0
-  fi
-
   if ! apply_spicetify_theme; then
     log "spicetify -n apply failed; theme files written but install was not patched"
     exit 1
+  fi
+
+  # Some spicetify versions launch Spotify as a side effect despite -n.
+  # Kill it if it wasn't running before we called apply.
+  if ! $spotify_running && is_process_running "spotify"; then
+    pkill -x spotify 2>/dev/null || true
+    log "Killed Spotify spawned as side effect of spicetify apply"
+  fi
+
+  if ! $spotify_running; then
+    log "Spotify not running - theme applied to bundle for next launch"
+    exit 0
   fi
 
   if [[ -n $xpui_dir ]] && is_live_install_patched "$xpui_dir"; then

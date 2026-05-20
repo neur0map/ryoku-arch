@@ -54,15 +54,18 @@ AbstractWidget {
         return Math.max(0, Math.min(1, Number.isFinite(v) ? v / 100 : 1.0));
     }
     readonly property bool showBackground: root._readConfigKey("showBackground") ?? true
+    readonly property bool useBlur: root._readConfigKey("useBlur") ?? false
     readonly property bool showBorder: root._readConfigKey("showBorder") ?? true
     // Granular card controls — override booleans when present
     readonly property real backgroundOpacity: {
         const v = root._readConfigKey("backgroundOpacity");
-        return (v !== undefined && v !== null) ? Math.max(0, Math.min(1, Number(v))) : (showBackground ? 0.06 : 0);
+        const opacity = (v !== undefined && v !== null) ? Math.max(0, Math.min(1, Number(v))) : 0.06;
+        return showBackground ? opacity : 0;
     }
     readonly property real borderWidth: {
         const v = root._readConfigKey("borderWidth");
-        return (v !== undefined && v !== null) ? Math.max(0, Math.min(8, Number(v))) : (showBorder ? 1 : 0);
+        const width = (v !== undefined && v !== null) ? Math.max(0, Math.min(8, Number(v))) : 1;
+        return showBorder ? width : 0;
     }
     readonly property real borderOpacity: {
         const v = root._readConfigKey("borderOpacity");
@@ -506,7 +509,7 @@ AbstractWidget {
                         GlobalStates.settingsOverlayRequestedPage = 14
                         GlobalStates.settingsOverlayOpen = true
                     } else {
-                        Quickshell.execDetached(["/usr/bin/env", "QS_SETTINGS_PAGE=14", Quickshell.shellPath("scripts/ryoku-shell"), "settings-window"])
+                        Quickshell.execDetached(["/usr/bin/env", "RYOKU_SETTINGS_PAGE=wallpaper", "RYOKU_SETTINGS_SUBTAB=4", Quickshell.shellPath("scripts/ryoku-shell"), "settings-window"])
                     }
                 }
                 contentItem: MaterialSymbol {

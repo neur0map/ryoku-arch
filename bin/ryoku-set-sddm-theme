@@ -1,5 +1,5 @@
 #!/bin/bash
-# Apply an SDDM greeter theme by writing /etc/sddm.conf.d/theme.conf.
+# Apply an SDDM greeter theme by writing /etc/sddm.conf.d/99-ryoku-shell-theme.conf.
 # Designed to be invoked via pkexec, so refuses to run unprivileged.
 #
 # Usage:
@@ -38,15 +38,13 @@ fi
 
 write_sddm_current_theme() {
   local selected_theme="$1"
+  local theme_conf="/etc/sddm.conf.d/99-ryoku-shell-theme.conf"
   local stale_theme_conf="/etc/sddm.conf.d/i""nir-theme.conf"
 
   mkdir -p /etc/sddm.conf.d
   rm -f "$stale_theme_conf" \
         /etc/sddm.conf.d/ryoku-shell-theme.conf
-  if [[ -f /etc/sddm.conf ]]; then
-    sed -i '/^[[:space:]]*Current[[:space:]]*=/d' /etc/sddm.conf
-  fi
-  tee /etc/sddm.conf.d/theme.conf >/dev/null <<EOF
+  tee "$theme_conf" >/dev/null <<EOF
 [Theme]
 Current=$selected_theme
 EOF

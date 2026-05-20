@@ -24,6 +24,17 @@ Singleton {
     readonly property string transitionDirection: Config.options?.background?.transition?.direction ?? "right"
     readonly property string fillMode: Config.options?.background?.fillMode ?? "fill"
     readonly property bool animationEnabled: Config.options?.background?.enableAnimation ?? true
+    readonly property var backgroundOptions: Config.options?.background ?? {}
+    readonly property var parallaxOptions: backgroundOptions?.parallax ?? {}
+    readonly property var panOptions: backgroundOptions?.pan ?? {}
+    readonly property var effectsOptions: backgroundOptions?.effects ?? {}
+    readonly property bool parallaxEnabled: parallaxOptions?.enable
+        ?? ((parallaxOptions?.enableWorkspace ?? false) || (parallaxOptions?.enableSidebar ?? false))
+    readonly property bool dynamicParallaxRequested: parallaxEnabled
+        && ((parallaxOptions?.enableWorkspace ?? false) || (parallaxOptions?.enableSidebar ?? false))
+    readonly property bool hasPan: (Number(panOptions?.x ?? 0) !== 0)
+        || (Number(panOptions?.y ?? 0) !== 0)
+        || (Number(panOptions?.zoom ?? 1) !== 1)
     readonly property string panelFamily: Config.options?.panelFamily ?? "ii"
     readonly property bool waffleUsesMainWallpaper: Config.options?.waffles?.background?.useMainWallpaper ?? true
     readonly property string waffleWallpaperPath: Config.options?.waffles?.background?.wallpaperPath ?? ""
@@ -181,7 +192,9 @@ Singleton {
                 : ""
             const rawPath = waffleOwnPath || ((monitorData && monitorData.path) ? monitorData.path : globalWallpaperPath)
             const cleanPath = FileUtils.trimFileProtocol(String(rawPath ?? ""))
-            if (!supportsMainWallpaper(cleanPath))
+            if (hasPan)
+                continue
+            if (!supportsVisibleMainWallpaper(cleanPath, fillMode, dynamicParallaxRequested, effectsOptions?.enableAnimatedBlur ?? false))
                 continue
             result[monitorName] = cleanPath
         }
@@ -223,7 +236,7 @@ Singleton {
 
         if (!available) {
             _probe()
-            if (!warnedMissing) {
+            if (!warnedMissing && !probing) {
                 console.warn("[AwwwBackend] awww backend selected but binaries are unavailable")
                 warnedMissing = true
             }
@@ -298,7 +311,9 @@ Singleton {
 
     Process {
         id: probeProc
-        command: ["/usr/bin/bash", "-lc", "if command -v awww >/dev/null 2>&1; then echo client; fi; if command -v awww-daemon >/dev/null 2>&1; then echo daemon; fi"]
+        // Check well-known paths first, then fall back to command -v for non-standard installs.
+        // Explicit paths avoid login-shell PATH issues that cause false negatives.
+        command: ["/usr/bin/bash", "-c", "for p in /usr/bin/awww /usr/local/bin/awww; do [[ -x \"$p\" ]] && { echo client; break; }; done; command -v awww >/dev/null 2>&1 && echo client; for p in /usr/bin/awww-daemon /usr/local/bin/awww-daemon; do [[ -x \"$p\" ]] && { echo daemon; break; }; done; command -v awww-daemon >/dev/null 2>&1 && echo daemon"]
         stdout: StdioCollector {
             id: probeStdout
         }
@@ -395,6 +410,9 @@ Singleton {
     onSimpleStepChanged: syncDebounce.restart()
     onSpatialStepChanged: syncDebounce.restart()
     onFillModeChanged: syncDebounce.restart()
+    onDynamicParallaxRequestedChanged: syncDebounce.restart()
+    onHasPanChanged: syncDebounce.restart()
+    onEffectsOptionsChanged: syncDebounce.restart()
     onAnimationEnabledChanged: syncDebounce.restart()
 
     Connections {

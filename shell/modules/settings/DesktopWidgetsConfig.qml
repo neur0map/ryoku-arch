@@ -300,6 +300,7 @@ ContentPage {
         required property var configEntry
         property bool hasDim: true
         property bool hasCardControls: false
+        property bool hasBlurControl: hasCardControls
         property int dimDefault: 0
 
         Layout.fillWidth: true
@@ -370,9 +371,35 @@ ContentPage {
             visible: wac.hasCardControls
             title: Translation.tr("Card surface")
 
-            SliderRow {
-                icon: "gradient"
+            WidgetSettingRow {
                 label: Translation.tr("Background")
+                icon: "format_color_fill"
+                trailing: false
+                WidgetToggleChip {
+                    configPath: wac.configPath + ".showBackground"
+                    defaultValue: wac.configEntry?.showBackground ?? true
+                    buttonIcon: "format_color_fill"
+                    buttonText: Translation.tr("Enable")
+                }
+            }
+
+            WidgetSettingRow {
+                visible: wac.hasBlurControl && (Appearance.auroraEverywhere || Appearance.angelEverywhere) && Appearance.effectsEnabled
+                label: Translation.tr("Blur background")
+                icon: "blur_on"
+                trailing: false
+                WidgetToggleChip {
+                    configPath: wac.configPath + ".useBlur"
+                    defaultValue: false
+                    buttonIcon: "blur_on"
+                    buttonText: Translation.tr("Enable")
+                }
+            }
+
+            SliderRow {
+                visible: Config.getNestedValue(wac.configPath + ".showBackground", wac.configEntry?.showBackground ?? true)
+                icon: "gradient"
+                label: Translation.tr("Opacity")
                 configPath: wac.configPath + ".backgroundOpacity"
                 sliderFrom: 0; sliderTo: 100; sliderStep: 1
                 sliderValue: Config.getNestedValue(wac.configPath + ".backgroundOpacity", wac.configEntry?.backgroundOpacity ?? 0.06)
@@ -382,6 +409,19 @@ ContentPage {
             WidgetSettingRow {
                 label: Translation.tr("Border")
                 icon: "border_style"
+                trailing: false
+                WidgetToggleChip {
+                    configPath: wac.configPath + ".showBorder"
+                    defaultValue: wac.configEntry?.showBorder ?? true
+                    buttonIcon: "border_style"
+                    buttonText: Translation.tr("Enable")
+                }
+            }
+
+            WidgetSettingRow {
+                visible: Config.getNestedValue(wac.configPath + ".showBorder", wac.configEntry?.showBorder ?? true)
+                label: Translation.tr("Border width")
+                icon: "line_weight"
                 StyledSpinBox {
                     from: 0; to: 8; stepSize: 1
                     value: Config.getNestedValue(wac.configPath + ".borderWidth", wac.configEntry?.borderWidth ?? 1)
@@ -391,6 +431,7 @@ ContentPage {
             }
 
             SliderRow {
+                visible: Config.getNestedValue(wac.configPath + ".showBorder", wac.configEntry?.showBorder ?? true)
                 icon: "tonality"
                 label: Translation.tr("Border opacity")
                 configPath: wac.configPath + ".borderOpacity"
@@ -936,6 +977,7 @@ ContentPage {
                     Config.setNestedValue("background.widgets.clock.widgetScale", 100);
                     Config.setNestedValue("background.widgets.clock.widgetOpacity", 100);
                     Config.setNestedValue("background.widgets.clock.showBackground", false);
+                    Config.setNestedValue("background.widgets.clock.useBlur", false);
                     Config.setNestedValue("background.widgets.clock.showBorder", false);
                     Config.setNestedValue("background.widgets.clock.backgroundOpacity", 0);
                     Config.setNestedValue("background.widgets.clock.borderWidth", 0);
@@ -1136,6 +1178,7 @@ ContentPage {
                 configPath: "background.widgets.weather"
                 configEntry: Config.getNestedValue("background.widgets.weather", ({}))
                 hasCardControls: Config.getNestedValue("background.widgets.weather.style", "pill") === "card"
+                hasBlurControl: false
             }
 
             RippleButton {
@@ -1237,7 +1280,7 @@ ContentPage {
             WidgetAppearanceControls {
                 configPath: "background.widgets.mediaControls"
                 configEntry: Config.getNestedValue("background.widgets.mediaControls", ({}))
-                hasCardControls: true
+                hasCardControls: false
             }
 
             RippleButton {
@@ -1406,6 +1449,7 @@ ContentPage {
                     Config.setNestedValue("background.widgets.visualizer.widgetScale", 100);
                     Config.setNestedValue("background.widgets.visualizer.widgetOpacity", 100);
                     Config.setNestedValue("background.widgets.visualizer.showBackground", true);
+                    Config.setNestedValue("background.widgets.visualizer.useBlur", false);
                     Config.setNestedValue("background.widgets.visualizer.showBorder", true);
                     Config.setNestedValue("background.widgets.visualizer.backgroundOpacity", 0.06);
                     Config.setNestedValue("background.widgets.visualizer.borderWidth", 1);
@@ -1601,6 +1645,7 @@ ContentPage {
                     Config.setNestedValue("background.widgets.systemMonitor.widgetScale", 100);
                     Config.setNestedValue("background.widgets.systemMonitor.widgetOpacity", 100);
                     Config.setNestedValue("background.widgets.systemMonitor.showBackground", true);
+                    Config.setNestedValue("background.widgets.systemMonitor.useBlur", false);
                     Config.setNestedValue("background.widgets.systemMonitor.showBorder", true);
                     Config.setNestedValue("background.widgets.systemMonitor.backgroundOpacity", 0.06);
                     Config.setNestedValue("background.widgets.systemMonitor.borderWidth", 1);
@@ -1779,6 +1824,7 @@ ContentPage {
                     Config.setNestedValue("background.widgets.battery.widgetScale", 100);
                     Config.setNestedValue("background.widgets.battery.widgetOpacity", 100);
                     Config.setNestedValue("background.widgets.battery.showBackground", true);
+                    Config.setNestedValue("background.widgets.battery.useBlur", false);
                     Config.setNestedValue("background.widgets.battery.showBorder", true);
                     Config.setNestedValue("background.widgets.battery.backgroundOpacity", 0.06);
                     Config.setNestedValue("background.widgets.battery.borderWidth", 1);
@@ -1788,6 +1834,241 @@ ContentPage {
                     Config.setNestedValue("background.widgets.battery.locked", false);
                     Config.setNestedValue("background.widgets.battery.x", 50);
                     Config.setNestedValue("background.widgets.battery.y", 50);
+                }
+            }
+        }
+    }
+
+    // ── Notes ─────────────────────────────────────────────────
+    SettingsCardSection {
+        visible: root.isIiActive
+        expanded: false
+        icon: "sticky_note_2"
+        title: Translation.tr("Notes")
+
+        SettingsGroup {
+            WidgetStateControls {
+                configPath: "background.widgets.notes"
+                configEntry: Config.getNestedValue("background.widgets.notes", ({}))
+                defaultStrategy: "leastBusy"
+            }
+
+            ContentSubsection {
+                title: Translation.tr("Text")
+
+                MaterialTextArea {
+                    Layout.fillWidth: true
+                    placeholderText: Translation.tr("Write a note...")
+                    text: Config.getNestedValue("background.widgets.notes.text", "")
+                    wrapMode: TextEdit.Wrap
+                    onTextChanged: {
+                        if (text !== Config.getNestedValue("background.widgets.notes.text", ""))
+                            Config.setNestedValue("background.widgets.notes.text", text)
+                    }
+                }
+
+                WidgetSettingRow {
+                    label: Translation.tr("Font")
+                    icon: "font_download"
+                    trailing: false
+                    ConfigSelectionArray {
+                        currentValue: Config.getNestedValue("background.widgets.notes.fontFamily", "sans")
+                        onSelected: newValue => Config.setNestedValue("background.widgets.notes.fontFamily", newValue)
+                        options: [
+                            { displayName: Translation.tr("Sans"), icon: "font_download", value: "sans" },
+                            { displayName: Translation.tr("Mono"), icon: "terminal", value: "mono" },
+                        ]
+                    }
+                }
+
+                WidgetSettingRow {
+                    label: Translation.tr("Align")
+                    icon: "format_align_left"
+                    trailing: false
+                    ConfigSelectionArray {
+                        currentValue: Config.getNestedValue("background.widgets.notes.textAlign", "left")
+                        onSelected: newValue => Config.setNestedValue("background.widgets.notes.textAlign", newValue)
+                        options: [
+                            { displayName: Translation.tr("Left"), icon: "format_align_left", value: "left" },
+                            { displayName: Translation.tr("Center"), icon: "format_align_center", value: "center" },
+                            { displayName: Translation.tr("Right"), icon: "format_align_right", value: "right" },
+                        ]
+                    }
+                }
+
+                WidgetSettingRow {
+                    label: Translation.tr("Font size")
+                    icon: "format_size"
+                    StyledSpinBox {
+                        from: 8; to: 48; stepSize: 1
+                        value: Config.getNestedValue("background.widgets.notes.fontSize", 14)
+                        onValueModified: Config.setNestedValue("background.widgets.notes.fontSize", value)
+                    }
+                }
+            }
+
+            ContentSubsection {
+                title: Translation.tr("Dimensions")
+
+                WidgetSettingRow {
+                    label: Translation.tr("Width")
+                    StyledSpinBox {
+                        from: 120; to: 800; stepSize: 20
+                        value: Config.getNestedValue("background.widgets.notes.contentWidth", 240)
+                        onValueModified: Config.setNestedValue("background.widgets.notes.contentWidth", value)
+                    }
+                }
+                WidgetSettingRow {
+                    label: Translation.tr("Height")
+                    StyledSpinBox {
+                        from: 80; to: 600; stepSize: 20
+                        value: Config.getNestedValue("background.widgets.notes.contentHeight", 160)
+                        onValueModified: Config.setNestedValue("background.widgets.notes.contentHeight", value)
+                    }
+                }
+            }
+
+            WidgetAppearanceControls {
+                configPath: "background.widgets.notes"
+                configEntry: Config.getNestedValue("background.widgets.notes", ({}))
+                hasCardControls: true
+            }
+
+            RippleButton {
+                Layout.fillWidth: true
+                text: Translation.tr("Reset to defaults")
+                onClicked: {
+                    Config.setNestedValue("background.widgets.notes.placementStrategy", "leastBusy");
+                    Config.setNestedValue("background.widgets.notes.text", "");
+                    Config.setNestedValue("background.widgets.notes.fontSize", 14);
+                    Config.setNestedValue("background.widgets.notes.fontFamily", "sans");
+                    Config.setNestedValue("background.widgets.notes.textAlign", "left");
+                    Config.setNestedValue("background.widgets.notes.contentWidth", 240);
+                    Config.setNestedValue("background.widgets.notes.contentHeight", 160);
+                    Config.setNestedValue("background.widgets.notes.dim", 0);
+                    Config.setNestedValue("background.widgets.notes.widgetScale", 100);
+                    Config.setNestedValue("background.widgets.notes.widgetOpacity", 100);
+                    Config.setNestedValue("background.widgets.notes.showBackground", true);
+                    Config.setNestedValue("background.widgets.notes.useBlur", false);
+                    Config.setNestedValue("background.widgets.notes.showBorder", true);
+                    Config.setNestedValue("background.widgets.notes.backgroundOpacity", 0.10);
+                    Config.setNestedValue("background.widgets.notes.borderWidth", 1);
+                    Config.setNestedValue("background.widgets.notes.borderOpacity", 0.12);
+                    Config.setNestedValue("background.widgets.notes.cornerRadius", -1);
+                    Config.setNestedValue("background.widgets.notes.colorMode", "auto");
+                    Config.setNestedValue("background.widgets.notes.locked", false);
+                    Config.setNestedValue("background.widgets.notes.x", 80);
+                    Config.setNestedValue("background.widgets.notes.y", 80);
+                }
+            }
+        }
+    }
+
+    // ── Upcoming Events ───────────────────────────────────────
+    SettingsCardSection {
+        visible: root.isIiActive
+        expanded: false
+        icon: "event"
+        title: Translation.tr("Upcoming Events")
+
+        SettingsGroup {
+            WidgetStateControls {
+                configPath: "background.widgets.calendarUpcoming"
+                configEntry: Config.getNestedValue("background.widgets.calendarUpcoming", ({}))
+                defaultStrategy: "leastBusy"
+            }
+
+            ContentSubsection {
+                title: Translation.tr("Display")
+
+                WidgetSettingRow {
+                    label: Translation.tr("Items")
+                    icon: "format_list_numbered"
+                    StyledSpinBox {
+                        from: 1; to: 12; stepSize: 1
+                        value: Config.getNestedValue("background.widgets.calendarUpcoming.maxEvents", 5)
+                        onValueModified: Config.setNestedValue("background.widgets.calendarUpcoming.maxEvents", value)
+                    }
+                }
+
+                WidgetSettingRow {
+                    label: Translation.tr("Fields")
+                    icon: "event_note"
+                    trailing: false
+                    WidgetToggleChip {
+                        configPath: "background.widgets.calendarUpcoming.showDate"
+                        defaultValue: true
+                        buttonIcon: "today"
+                        buttonText: Translation.tr("Date")
+                    }
+                    WidgetToggleChip {
+                        configPath: "background.widgets.calendarUpcoming.showTime"
+                        defaultValue: true
+                        buttonIcon: "schedule"
+                        buttonText: Translation.tr("Time")
+                    }
+                    WidgetToggleChip {
+                        configPath: "background.widgets.calendarUpcoming.showLocation"
+                        defaultValue: false
+                        buttonIcon: "place"
+                        buttonText: Translation.tr("Location")
+                    }
+                }
+            }
+
+            ContentSubsection {
+                title: Translation.tr("Dimensions")
+
+                WidgetSettingRow {
+                    label: Translation.tr("Width")
+                    StyledSpinBox {
+                        from: 200; to: 600; stepSize: 20
+                        value: Config.getNestedValue("background.widgets.calendarUpcoming.contentWidth", 280)
+                        onValueModified: Config.setNestedValue("background.widgets.calendarUpcoming.contentWidth", value)
+                    }
+                }
+                WidgetSettingRow {
+                    label: Translation.tr("Height")
+                    StyledSpinBox {
+                        from: 100; to: 800; stepSize: 20
+                        value: Config.getNestedValue("background.widgets.calendarUpcoming.contentHeight", 220)
+                        onValueModified: Config.setNestedValue("background.widgets.calendarUpcoming.contentHeight", value)
+                    }
+                }
+            }
+
+            WidgetAppearanceControls {
+                configPath: "background.widgets.calendarUpcoming"
+                configEntry: Config.getNestedValue("background.widgets.calendarUpcoming", ({}))
+                hasCardControls: true
+            }
+
+            RippleButton {
+                Layout.fillWidth: true
+                text: Translation.tr("Reset to defaults")
+                onClicked: {
+                    Config.setNestedValue("background.widgets.calendarUpcoming.placementStrategy", "leastBusy");
+                    Config.setNestedValue("background.widgets.calendarUpcoming.maxEvents", 5);
+                    Config.setNestedValue("background.widgets.calendarUpcoming.showDate", true);
+                    Config.setNestedValue("background.widgets.calendarUpcoming.showTime", true);
+                    Config.setNestedValue("background.widgets.calendarUpcoming.showLocation", false);
+                    Config.setNestedValue("background.widgets.calendarUpcoming.groupByDay", true);
+                    Config.setNestedValue("background.widgets.calendarUpcoming.contentWidth", 280);
+                    Config.setNestedValue("background.widgets.calendarUpcoming.contentHeight", 220);
+                    Config.setNestedValue("background.widgets.calendarUpcoming.dim", 0);
+                    Config.setNestedValue("background.widgets.calendarUpcoming.widgetScale", 100);
+                    Config.setNestedValue("background.widgets.calendarUpcoming.widgetOpacity", 100);
+                    Config.setNestedValue("background.widgets.calendarUpcoming.showBackground", true);
+                    Config.setNestedValue("background.widgets.calendarUpcoming.useBlur", false);
+                    Config.setNestedValue("background.widgets.calendarUpcoming.showBorder", true);
+                    Config.setNestedValue("background.widgets.calendarUpcoming.backgroundOpacity", 0.10);
+                    Config.setNestedValue("background.widgets.calendarUpcoming.borderWidth", 1);
+                    Config.setNestedValue("background.widgets.calendarUpcoming.borderOpacity", 0.12);
+                    Config.setNestedValue("background.widgets.calendarUpcoming.cornerRadius", -1);
+                    Config.setNestedValue("background.widgets.calendarUpcoming.colorMode", "auto");
+                    Config.setNestedValue("background.widgets.calendarUpcoming.locked", false);
+                    Config.setNestedValue("background.widgets.calendarUpcoming.x", 80);
+                    Config.setNestedValue("background.widgets.calendarUpcoming.y", 80);
                 }
             }
         }
