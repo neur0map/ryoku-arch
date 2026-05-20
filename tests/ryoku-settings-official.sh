@@ -181,9 +181,10 @@ grep -q 'Use wallpaper colors' "$settings_qml" \
 grep -q 'Favorite theme' "$settings_qml" \
   || fail "Quick Rice should expose favorite theme selection"
 
-if grep -Eq 'title: "Shell style"|label: "Shell style"' "$settings_qml"; then
-  fail "official settings should keep shell style in the header only, not duplicate it inside pages"
-fi
+# The Shell style combo moved out of the content-pane header and into
+# Appearance > Style sub-tab during sub-spec #02b verification. The combo
+# is now the canonical single entry point and lives inside the page, not
+# in the chrome.
 
 grep -q 'function favoriteThemePresets' "$settings_qml" \
   || fail "Quick Rice favorite themes should load the favorite preset objects, not text-only combo options"

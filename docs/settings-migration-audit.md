@@ -63,7 +63,7 @@ Compatibility launcher: `ryoku-shell legacy-settings-window`.
 | `LoginScreenConfig.qml` | 866 | provider cards + 21 themes | ❌ Missing |
 | `About.qml` | 612 | ~15 | ✅ Ported |
 | `ExtrasConfig.qml` | 682 | dynamic profiles | 🧱 Embedded |
-| `AngelStyleEditor.qml` | 1037 | ~40 sliders + profiles | ❌ Missing |
+| `AngelStyleEditor.qml` | 1037 | ~40 sliders + profiles | ✅ Ported |
 | `AuroraStyleEditor.qml` | 374 | 9 sliders + presets | ✅ Ported |
 | `CustomThemeEditor.qml` | 2183 | ~50 color pickers + flows | ❌ Missing |
 | `GowallWallpaperEditor.qml` | 836 | 5 ops + palette editor | ❌ Missing |
@@ -287,7 +287,7 @@ Compatibility launcher: `ryoku-shell legacy-settings-window`.
 | "Apply to open terminals" button (runs scripts/colors/applycolor.sh) | - | ❌ Missing | |
 | Global Style combo (Material/Cards/Aurora/Ryoku/Angel + cascading side-effects) | Appearance > Colors + General > Quick Rice | 🟡 Partial | New sets globalStyle but does not perform the cascading side-effects (dock.cardStyle, sidebar.cardStyle, bar.cornerStyle, transparency.enable) per legacy mapping |
 | Aurora Style Editor (loader) | Appearance > Themes > "Aurora glass" card | ✅ Ported | sub-spec #02a: native card gated on `Appearance.auroraEverywhere && !Appearance.angelEverywhere`. 4 preset buttons (Default/Frosted/Clear/Subtle), Save/Load/Reset row (persists snapshot to `appearance.aurora.customPreset` as JSON), 5 `SettingsValueSlider`s for the 5 transparency channels (overlay/subSurface/popup/tooltip/layer). Helpers `applyAuroraPreset` / `saveAuroraCustom` / `loadAuroraCustom` live next to `applyThemePreset` in the `app` block. |
-| Angel Style Editor (loader) | - | ❌ Missing | **AngelStyleEditor.qml not reachable from new UI** |
+| Angel Style Editor (loader) | Appearance > Style: 5 cards | ✅ Ported | sub-spec #02b: 5 native cards (Angel presets, Angel blur and tint, Angel escalonado, Angel borders, Angel glow and rounding), all gated on `Appearance.angelEverywhere`. ~40 leaf bindings restored. Includes the named-profile manager (write/read/delete keyed on `appearance.angel.profiles` JSON map). Reuses inline `SettingsSettingCard` / `SettingsButton` / `SettingsValueSlider` / `SettingsSpinBox` / `SettingsSwitch` / `SettingsTextField` components. Also: fixed cross-process Config reactivity by adding `Config.revision` dependency to every leaf reactive property in `Appearance.qml`'s `angel` and `aurora` blocks. |
 | Custom Theme Editor (loader) | - | ❌ Missing | **CustomThemeEditor.qml not reachable from new UI** |
 | Gowall Wallpaper Editor (lazy loader) | - | ❌ Missing | **GowallWallpaperEditor.qml not reachable from new UI** |
 | Typography: font preset quick buttons | - | ❌ Missing | `StylePresets.applyPreset()` button row gone |

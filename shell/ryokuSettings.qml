@@ -686,6 +686,125 @@ ApplicationWindow {
     }
   }
 
+  function applyAngelPreset(name) {
+    const presets = {
+      default: {
+        blur: { intensity: 0.35, saturation: 0.20, overlayOpacity: 0.45, noiseOpacity: 0.20, vignetteStrength: 0.15 },
+        transparency: { panel: 0.28, card: 0.40, popup: 0.28, tooltip: 0.25 },
+        escalonado: { offsetX: 1, offsetY: 1, hoverOffsetX: 7, hoverOffsetY: 7, opacity: 0.50, borderOpacity: 0.17, hoverOpacity: 0.0 },
+        escalonadoShadow: { offsetX: 3, offsetY: 2, hoverOffsetX: 7, hoverOffsetY: 7, opacity: 1.0, borderOpacity: 1.0, hoverOpacity: 0.60, glass: true, glassBlur: 0.70, glassOverlay: 0.50 },
+        border: { width: 0.8, accentBarHeight: 10, accentBarWidth: 10, coverage: 0.60, opacity: 0.52, hoverOpacity: 0.50, activeOpacity: 0.50, insetGlowHeight: 1, insetGlowOpacity: 0.20 },
+        surface: { panelBorderWidth: 1, cardBorderWidth: 1, panelBorderOpacity: 0.90, cardBorderOpacity: 0.0 },
+        glow: { opacity: 0.0, strongOpacity: 0.0 },
+        rounding: { small: 0, normal: 0, large: 0 },
+        colorStrength: 0.6
+      },
+      ethereal: {
+        blur: { intensity: 0.65, saturation: 0.25, overlayOpacity: 0.45, noiseOpacity: 0.10, vignetteStrength: 0.25 },
+        transparency: { panel: 0.75, card: 0.85, popup: 0.70, tooltip: 0.40 },
+        escalonado: { offsetX: 2, offsetY: 2, hoverOffsetX: 6, hoverOffsetY: 6, opacity: 0.30, borderOpacity: 0.25, hoverOpacity: 0.15 },
+        escalonadoShadow: { offsetX: 4, offsetY: 3, hoverOffsetX: 8, hoverOffsetY: 8, opacity: 0.60, borderOpacity: 0.50, hoverOpacity: 0.40, glass: true, glassBlur: 0.55, glassOverlay: 0.40 },
+        border: { width: 0.5, accentBarHeight: 4, accentBarWidth: 4, coverage: 0.40, opacity: 0.30, hoverOpacity: 0.45, activeOpacity: 0.55, insetGlowHeight: 2, insetGlowOpacity: 0.30 },
+        surface: { panelBorderWidth: 1, cardBorderWidth: 1, panelBorderOpacity: 0.40, cardBorderOpacity: 0.15 },
+        glow: { opacity: 0.50, strongOpacity: 0.35 },
+        rounding: { small: 8, normal: 12, large: 20 },
+        colorStrength: 0.9
+      },
+      monolith: {
+        blur: { intensity: 0.20, saturation: 0.05, overlayOpacity: 0.20, noiseOpacity: 0.05, vignetteStrength: 0.0 },
+        transparency: { panel: 0.20, card: 0.30, popup: 0.20, tooltip: 0.15 },
+        escalonado: { offsetX: 2, offsetY: 2, hoverOffsetX: 5, hoverOffsetY: 5, opacity: 0.80, borderOpacity: 0.60, hoverOpacity: 0.30 },
+        escalonadoShadow: { offsetX: 3, offsetY: 3, hoverOffsetX: 6, hoverOffsetY: 6, opacity: 1.0, borderOpacity: 1.0, hoverOpacity: 0.80, glass: false, glassBlur: 0.10, glassOverlay: 0.80 },
+        border: { width: 1.0, accentBarHeight: 2, accentBarWidth: 2, coverage: 0.80, opacity: 0.70, hoverOpacity: 0.80, activeOpacity: 0.90, insetGlowHeight: 0, insetGlowOpacity: 0.0 },
+        surface: { panelBorderWidth: 1, cardBorderWidth: 1, panelBorderOpacity: 1.0, cardBorderOpacity: 0.30 },
+        glow: { opacity: 0.0, strongOpacity: 0.0 },
+        rounding: { small: 0, normal: 0, large: 0 },
+        colorStrength: 0.3
+      },
+      crystalline: {
+        blur: { intensity: 0.80, saturation: 0.30, overlayOpacity: 0.50, noiseOpacity: 0.15, vignetteStrength: 0.20 },
+        transparency: { panel: 0.60, card: 0.70, popup: 0.55, tooltip: 0.30 },
+        escalonado: { offsetX: 1, offsetY: 1, hoverOffsetX: 4, hoverOffsetY: 4, opacity: 0.40, borderOpacity: 0.30, hoverOpacity: 0.10 },
+        escalonadoShadow: { offsetX: 2, offsetY: 2, hoverOffsetX: 5, hoverOffsetY: 5, opacity: 0.70, borderOpacity: 0.80, hoverOpacity: 0.50, glass: true, glassBlur: 0.85, glassOverlay: 0.30 },
+        border: { width: 0.6, accentBarHeight: 6, accentBarWidth: 6, coverage: 0.50, opacity: 0.40, hoverOpacity: 0.55, activeOpacity: 0.65, insetGlowHeight: 1, insetGlowOpacity: 0.25 },
+        surface: { panelBorderWidth: 1, cardBorderWidth: 1, panelBorderOpacity: 0.60, cardBorderOpacity: 0.20 },
+        glow: { opacity: 0.40, strongOpacity: 0.25 },
+        rounding: { small: 4, normal: 6, large: 10 },
+        colorStrength: 1.2
+      }
+    };
+    const preset = presets[name];
+    if (!preset) return;
+    for (const section of ["blur", "transparency", "escalonado", "escalonadoShadow", "border", "surface", "glow", "rounding"]) {
+      const data = preset[section];
+      if (data) for (const key of Object.keys(data)) {
+        Config.setNestedValue("appearance.angel." + section + "." + key, data[key]);
+      }
+    }
+    Config.setNestedValue("appearance.angel.colorStrength", preset.colorStrength);
+  }
+
+  function _angelSnapshot() {
+    const current = Config.options?.appearance?.angel ?? {};
+    const clean = {};
+    for (const key of ["blur", "transparency", "escalonado", "escalonadoShadow", "border", "surface", "glow", "rounding"]) {
+      if (current[key] !== undefined) clean[key] = JSON.parse(JSON.stringify(current[key]));
+    }
+    if (current.colorStrength !== undefined) clean.colorStrength = current.colorStrength;
+    return clean;
+  }
+
+  function _applyAngelSnapshot(snap) {
+    if (!snap) return;
+    for (const section of ["blur", "transparency", "escalonado", "escalonadoShadow", "border", "surface", "glow", "rounding"]) {
+      const data = snap[section];
+      if (data) for (const key of Object.keys(data)) {
+        Config.setNestedValue("appearance.angel." + section + "." + key, data[key]);
+      }
+    }
+    if (snap.colorStrength !== undefined) Config.setNestedValue("appearance.angel.colorStrength", snap.colorStrength);
+  }
+
+  function saveAngelCustom() {
+    Config.setNestedValue("appearance.angel.customPreset", JSON.stringify(app._angelSnapshot()));
+  }
+
+  function loadAngelCustom() {
+    const raw = Config.options?.appearance?.angel?.customPreset ?? "";
+    if (raw === "") return;
+    try { app._applyAngelSnapshot(JSON.parse(raw)); }
+    catch (e) { console.warn("[Angel] Failed to load custom preset:", e); }
+  }
+
+  function angelProfiles() {
+    const raw = Config.options?.appearance?.angel?.profiles ?? "";
+    if (raw === "") return {};
+    try { return JSON.parse(raw); }
+    catch (e) { return {}; }
+  }
+
+  function angelProfileNames(revision) {
+    return Object.keys(app.angelProfiles());
+  }
+
+  function saveAngelProfile(name) {
+    if (!name || name.length === 0) return;
+    const profiles = app.angelProfiles();
+    profiles[name] = app._angelSnapshot();
+    Config.setNestedValue("appearance.angel.profiles", JSON.stringify(profiles));
+  }
+
+  function loadAngelProfile(name) {
+    const profiles = app.angelProfiles();
+    if (profiles[name]) app._applyAngelSnapshot(profiles[name]);
+  }
+
+  function deleteAngelProfile(name) {
+    const profiles = app.angelProfiles();
+    delete profiles[name];
+    Config.setNestedValue("appearance.angel.profiles", JSON.stringify(profiles));
+  }
+
   function normalizeTransform(value) {
     const raw = String(value ?? "normal").toLowerCase();
     if (raw === "normal")
@@ -1663,14 +1782,6 @@ ApplicationWindow {
                 font.pixelSize: Appearance.font.pixelSize.small
                 elide: Text.ElideRight
               }
-            }
-
-            SettingsCombo {
-              Layout.preferredWidth: 194
-              labelVisible: false
-              options: app.globalStyleOptions
-              selectedValue: app.currentStyle()
-              onSelected: value => app.applyGlobalStyle(value)
             }
 
             SettingsIconButton {
@@ -4058,7 +4169,7 @@ ApplicationWindow {
   Component {
     id: appearancePage
     SettingsPage {
-      SettingsSubTabs { pageKey: "appearance"; options: ["Colors", "Themes", "Templates", "Motion"] }
+      SettingsSubTabs { pageKey: "appearance"; options: ["Colors", "Themes", "Templates", "Motion", "Style"] }
 
       SettingsPageBody {
         SettingsStackLayout {
@@ -4189,94 +4300,6 @@ ApplicationWindow {
               }
             }
 
-            SettingsSettingCard {
-              iconName: "blur_on"
-              title: "Aurora glass"
-              description: "Transparency for panels, cards, popups, tooltips, and surface layers. Active while the Aurora style is on."
-              visible: Appearance.auroraEverywhere && !Appearance.angelEverywhere
-
-              RowLayout {
-                Layout.fillWidth: true
-                spacing: 8
-                SettingsButton { text: "Default"; iconName: "blur_on"; onClicked: app.applyAuroraPreset("default") }
-                SettingsButton { text: "Frosted"; iconName: "ac_unit"; onClicked: app.applyAuroraPreset("frosted") }
-                SettingsButton { text: "Clear"; iconName: "visibility"; onClicked: app.applyAuroraPreset("clear") }
-                SettingsButton { text: "Subtle"; iconName: "blur_off"; onClicked: app.applyAuroraPreset("subtle") }
-              }
-
-              RowLayout {
-                Layout.fillWidth: true
-                spacing: 8
-                SettingsButton { text: "Save"; iconName: "save"; onClicked: app.saveAuroraCustom() }
-                SettingsButton { text: "Load"; iconName: "restore"; enabled: (Config.options?.appearance?.aurora?.customPreset ?? "") !== ""; onClicked: app.loadAuroraCustom() }
-                SettingsButton { text: "Reset"; iconName: "restart_alt"; onClicked: app.applyAuroraPreset("default") }
-              }
-
-              SettingsValueSlider {
-                label: "Panels"
-                description: "Transparency of bar and sidebar surfaces."
-                value: Config.options?.appearance?.aurora?.transparency?.overlay ?? 0.30
-                from: 0
-                to: 1
-                stepSize: 0.01
-                displayScale: 100
-                displayDecimals: 0
-                suffix: "%"
-                onMoved: value => Config.setNestedValue("appearance.aurora.transparency.overlay", Math.round(value * 100) / 100)
-              }
-
-              SettingsValueSlider {
-                label: "Cards"
-                description: "Transparency of card surfaces."
-                value: Config.options?.appearance?.aurora?.transparency?.subSurface ?? 0.42
-                from: 0
-                to: 1
-                stepSize: 0.01
-                displayScale: 100
-                displayDecimals: 0
-                suffix: "%"
-                onMoved: value => Config.setNestedValue("appearance.aurora.transparency.subSurface", Math.round(value * 100) / 100)
-              }
-
-              SettingsValueSlider {
-                label: "Popups"
-                description: "Transparency of popup menus and dropdowns."
-                value: Config.options?.appearance?.aurora?.transparency?.popup ?? 0.32
-                from: 0
-                to: 1
-                stepSize: 0.01
-                displayScale: 100
-                displayDecimals: 0
-                suffix: "%"
-                onMoved: value => Config.setNestedValue("appearance.aurora.transparency.popup", Math.round(value * 100) / 100)
-              }
-
-              SettingsValueSlider {
-                label: "Tooltips"
-                description: "Transparency of hover tooltips."
-                value: Config.options?.appearance?.aurora?.transparency?.tooltip ?? 0.28
-                from: 0
-                to: 1
-                stepSize: 0.01
-                displayScale: 100
-                displayDecimals: 0
-                suffix: "%"
-                onMoved: value => Config.setNestedValue("appearance.aurora.transparency.tooltip", Math.round(value * 100) / 100)
-              }
-
-              SettingsValueSlider {
-                label: "Surface layers"
-                description: "Transparency of stacked surface layers (cards on cards)."
-                value: Config.options?.appearance?.aurora?.transparency?.layer ?? 0.32
-                from: 0
-                to: 1
-                stepSize: 0.01
-                displayScale: 100
-                displayDecimals: 0
-                suffix: "%"
-                onMoved: value => Config.setNestedValue("appearance.aurora.transparency.layer", Math.round(value * 100) / 100)
-              }
-            }
           }
         }
 
@@ -4366,6 +4389,310 @@ ApplicationWindow {
                 checked: Config.options?.animations?.reduceMotion ?? false
                 onToggled: checked => Config.setNestedValue("animations.reduceMotion", checked)
               }
+            }
+          }
+        }
+
+        SettingsSubPage {
+          SettingsSection {
+            title: "Style"
+            description: "Pick the shell style, then tune its style-specific editor below."
+
+            SettingsSettingCard {
+              iconName: "palette"
+              title: "Shell style"
+              description: "Switch between Material, Cards, Aurora, Ryoku, and Angel. The matching editor card appears below once selected."
+
+              SettingsCombo {
+                label: "Style"
+                description: "Active shell style. Some style-specific cards are gated on this value."
+                options: app.globalStyleOptions
+                selectedValue: app.currentStyle()
+                onSelected: value => app.applyGlobalStyle(value)
+              }
+            }
+
+            SettingsSettingCard {
+              iconName: "blur_on"
+              title: "Aurora glass"
+              description: "Transparency for panels, cards, popups, tooltips, and surface layers. Active while the Aurora style is on."
+              visible: Appearance.auroraEverywhere && !Appearance.angelEverywhere
+
+              Flow {
+                width: parent.width
+                spacing: 8
+                SettingsButton { text: "Default"; iconName: "blur_on"; onClicked: app.applyAuroraPreset("default") }
+                SettingsButton { text: "Frosted"; iconName: "ac_unit"; onClicked: app.applyAuroraPreset("frosted") }
+                SettingsButton { text: "Clear"; iconName: "visibility"; onClicked: app.applyAuroraPreset("clear") }
+                SettingsButton { text: "Subtle"; iconName: "blur_off"; onClicked: app.applyAuroraPreset("subtle") }
+              }
+
+              Flow {
+                width: parent.width
+                spacing: 8
+                SettingsButton { text: "Save"; iconName: "save"; onClicked: app.saveAuroraCustom() }
+                SettingsButton { text: "Load"; iconName: "restore"; enabled: (Config.options?.appearance?.aurora?.customPreset ?? "") !== ""; onClicked: app.loadAuroraCustom() }
+                SettingsButton { text: "Reset"; iconName: "restart_alt"; onClicked: app.applyAuroraPreset("default") }
+              }
+
+              SettingsValueSlider {
+                label: "Panels"
+                description: "Transparency of bar and sidebar surfaces."
+                value: Config.options?.appearance?.aurora?.transparency?.overlay ?? 0.30
+                from: 0
+                to: 1
+                stepSize: 0.01
+                displayScale: 100
+                displayDecimals: 0
+                suffix: "%"
+                onMoved: value => Config.setNestedValue("appearance.aurora.transparency.overlay", Math.round(value * 100) / 100)
+              }
+
+              SettingsValueSlider {
+                label: "Cards"
+                description: "Transparency of card surfaces."
+                value: Config.options?.appearance?.aurora?.transparency?.subSurface ?? 0.42
+                from: 0
+                to: 1
+                stepSize: 0.01
+                displayScale: 100
+                displayDecimals: 0
+                suffix: "%"
+                onMoved: value => Config.setNestedValue("appearance.aurora.transparency.subSurface", Math.round(value * 100) / 100)
+              }
+
+              SettingsValueSlider {
+                label: "Popups"
+                description: "Transparency of popup menus and dropdowns."
+                value: Config.options?.appearance?.aurora?.transparency?.popup ?? 0.32
+                from: 0
+                to: 1
+                stepSize: 0.01
+                displayScale: 100
+                displayDecimals: 0
+                suffix: "%"
+                onMoved: value => Config.setNestedValue("appearance.aurora.transparency.popup", Math.round(value * 100) / 100)
+              }
+
+              SettingsValueSlider {
+                label: "Tooltips"
+                description: "Transparency of hover tooltips."
+                value: Config.options?.appearance?.aurora?.transparency?.tooltip ?? 0.28
+                from: 0
+                to: 1
+                stepSize: 0.01
+                displayScale: 100
+                displayDecimals: 0
+                suffix: "%"
+                onMoved: value => Config.setNestedValue("appearance.aurora.transparency.tooltip", Math.round(value * 100) / 100)
+              }
+
+              SettingsValueSlider {
+                label: "Surface layers"
+                description: "Transparency of stacked surface layers (cards on cards)."
+                value: Config.options?.appearance?.aurora?.transparency?.layer ?? 0.32
+                from: 0
+                to: 1
+                stepSize: 0.01
+                displayScale: 100
+                displayDecimals: 0
+                suffix: "%"
+                onMoved: value => Config.setNestedValue("appearance.aurora.transparency.layer", Math.round(value * 100) / 100)
+              }
+            }
+
+            SettingsSettingCard {
+              iconName: "auto_awesome"
+              title: "Angel presets"
+              description: "Apply a ready-made Angel look, or save the current tuning as a named profile."
+              visible: Appearance.angelEverywhere
+
+              Flow {
+                width: parent.width
+                spacing: 8
+                SettingsButton { text: "Default"; iconName: "auto_awesome"; onClicked: app.applyAngelPreset("default") }
+                SettingsButton { text: "Ethereal"; iconName: "cloud"; onClicked: app.applyAngelPreset("ethereal") }
+                SettingsButton { text: "Monolith"; iconName: "square"; onClicked: app.applyAngelPreset("monolith") }
+                SettingsButton { text: "Crystalline"; iconName: "diamond"; onClicked: app.applyAngelPreset("crystalline") }
+              }
+
+              Flow {
+                width: parent.width
+                spacing: 8
+                SettingsButton { text: "Save"; iconName: "save"; onClicked: app.saveAngelCustom() }
+                SettingsButton { text: "Load"; iconName: "restore"; enabled: (Config.options?.appearance?.angel?.customPreset ?? "") !== ""; onClicked: app.loadAngelCustom() }
+                SettingsButton { text: "Reset"; iconName: "restart_alt"; onClicked: app.applyAngelPreset("default") }
+              }
+
+              SettingsTextField {
+                id: angelProfileNameField
+                label: "Named profile"
+                description: "Save the current Angel tuning under a name to recall it later."
+                value: ""
+                placeholder: "profile name"
+                onEdited: value => angelProfileNameField.value = value
+              }
+
+              SettingsButton {
+                text: "Save profile"
+                iconName: "bookmark_add"
+                enabled: angelProfileNameField.value.length > 0
+                onClicked: { app.saveAngelProfile(angelProfileNameField.value); angelProfileNameField.value = ""; }
+              }
+
+              Repeater {
+                model: app.angelProfileNames(Config.revision)
+                delegate: RowLayout {
+                  required property string modelData
+                  Layout.fillWidth: true
+                  spacing: 8
+                  Text {
+                    Layout.fillWidth: true
+                    text: modelData
+                    color: app.textColor
+                    font.family: Appearance.font.family.main
+                    font.pixelSize: Appearance.font.pixelSize.small
+                    elide: Text.ElideRight
+                  }
+                  SettingsButton { text: "Load"; iconName: "restore"; onClicked: app.loadAngelProfile(modelData) }
+                  SettingsButton { text: "Delete"; iconName: "delete"; onClicked: app.deleteAngelProfile(modelData) }
+                }
+              }
+            }
+
+            SettingsSettingCard {
+              iconName: "blur_on"
+              title: "Angel blur and tint"
+              description: "Glass intensity, color saturation, and the four transparency channels."
+              visible: Appearance.angelEverywhere
+
+              SettingsValueSlider {
+                label: "Color strength"
+                description: "How saturated the Angel tint is. 0 is neutral, 2 is maximum."
+                value: Config.options?.appearance?.angel?.colorStrength ?? 0.6
+                from: 0
+                to: 2
+                stepSize: 0.05
+                displayScale: 100
+                displayDecimals: 0
+                suffix: "%"
+                onMoved: value => Config.setNestedValue("appearance.angel.colorStrength", Math.round(value * 100) / 100)
+              }
+
+              SettingsValueSlider {
+                label: "Blur intensity"
+                description: "Background blur strength."
+                value: Config.options?.appearance?.angel?.blur?.intensity ?? 0.35
+                from: 0; to: 1; stepSize: 0.01
+                displayScale: 100; displayDecimals: 0; suffix: "%"
+                onMoved: value => Config.setNestedValue("appearance.angel.blur.intensity", Math.round(value * 100) / 100)
+              }
+
+              SettingsValueSlider {
+                label: "Blur saturation"
+                description: "Color punch behind the glass."
+                value: Config.options?.appearance?.angel?.blur?.saturation ?? 0.20
+                from: 0; to: 1; stepSize: 0.01
+                displayScale: 100; displayDecimals: 0; suffix: "%"
+                onMoved: value => Config.setNestedValue("appearance.angel.blur.saturation", Math.round(value * 100) / 100)
+              }
+
+              SettingsValueSlider {
+                label: "Overlay opacity"
+                description: "Tint overlay on top of the blur."
+                value: Config.options?.appearance?.angel?.blur?.overlayOpacity ?? 0.45
+                from: 0; to: 1; stepSize: 0.01
+                displayScale: 100; displayDecimals: 0; suffix: "%"
+                onMoved: value => Config.setNestedValue("appearance.angel.blur.overlayOpacity", Math.round(value * 100) / 100)
+              }
+
+              SettingsValueSlider {
+                label: "Noise opacity"
+                description: "Film-grain texture above the overlay."
+                value: Config.options?.appearance?.angel?.blur?.noiseOpacity ?? 0.20
+                from: 0; to: 1; stepSize: 0.01
+                displayScale: 100; displayDecimals: 0; suffix: "%"
+                onMoved: value => Config.setNestedValue("appearance.angel.blur.noiseOpacity", Math.round(value * 100) / 100)
+              }
+
+              SettingsValueSlider {
+                label: "Vignette strength"
+                description: "Edge darkening to focus the eye."
+                value: Config.options?.appearance?.angel?.blur?.vignetteStrength ?? 0.15
+                from: 0; to: 1; stepSize: 0.01
+                displayScale: 100; displayDecimals: 0; suffix: "%"
+                onMoved: value => Config.setNestedValue("appearance.angel.blur.vignetteStrength", Math.round(value * 100) / 100)
+              }
+
+              SettingsValueSlider { label: "Panels"; description: "Bar and sidebar transparency."; value: Config.options?.appearance?.angel?.transparency?.panel ?? 0.28; from: 0; to: 1; stepSize: 0.01; displayScale: 100; displayDecimals: 0; suffix: "%"; onMoved: value => Config.setNestedValue("appearance.angel.transparency.panel", Math.round(value * 100) / 100) }
+              SettingsValueSlider { label: "Cards"; description: "Card surface transparency."; value: Config.options?.appearance?.angel?.transparency?.card ?? 0.40; from: 0; to: 1; stepSize: 0.01; displayScale: 100; displayDecimals: 0; suffix: "%"; onMoved: value => Config.setNestedValue("appearance.angel.transparency.card", Math.round(value * 100) / 100) }
+              SettingsValueSlider { label: "Popups"; description: "Popup menu transparency."; value: Config.options?.appearance?.angel?.transparency?.popup ?? 0.28; from: 0; to: 1; stepSize: 0.01; displayScale: 100; displayDecimals: 0; suffix: "%"; onMoved: value => Config.setNestedValue("appearance.angel.transparency.popup", Math.round(value * 100) / 100) }
+              SettingsValueSlider { label: "Tooltips"; description: "Tooltip transparency."; value: Config.options?.appearance?.angel?.transparency?.tooltip ?? 0.25; from: 0; to: 1; stepSize: 0.01; displayScale: 100; displayDecimals: 0; suffix: "%"; onMoved: value => Config.setNestedValue("appearance.angel.transparency.tooltip", Math.round(value * 100) / 100) }
+            }
+
+            SettingsSettingCard {
+              iconName: "layers"
+              title: "Angel escalonado"
+              description: "Staircase card offsets, hover lift, and shadow glass."
+              visible: Appearance.angelEverywhere
+
+              SettingsSpinBox { label: "Offset X"; description: "Resting card X offset."; from: 0; to: 20; stepSize: 1; value: Math.round(Config.options?.appearance?.angel?.escalonado?.offsetX ?? 1); onMoved: value => Config.setNestedValue("appearance.angel.escalonado.offsetX", value) }
+              SettingsSpinBox { label: "Offset Y"; description: "Resting card Y offset."; from: 0; to: 20; stepSize: 1; value: Math.round(Config.options?.appearance?.angel?.escalonado?.offsetY ?? 1); onMoved: value => Config.setNestedValue("appearance.angel.escalonado.offsetY", value) }
+              SettingsSpinBox { label: "Hover offset X"; description: "X offset when hovered."; from: 0; to: 30; stepSize: 1; value: Math.round(Config.options?.appearance?.angel?.escalonado?.hoverOffsetX ?? 7); onMoved: value => Config.setNestedValue("appearance.angel.escalonado.hoverOffsetX", value) }
+              SettingsSpinBox { label: "Hover offset Y"; description: "Y offset when hovered."; from: 0; to: 30; stepSize: 1; value: Math.round(Config.options?.appearance?.angel?.escalonado?.hoverOffsetY ?? 7); onMoved: value => Config.setNestedValue("appearance.angel.escalonado.hoverOffsetY", value) }
+              SettingsValueSlider { label: "Fill opacity"; description: "Resting card fill."; value: Config.options?.appearance?.angel?.escalonado?.opacity ?? 0.50; from: 0; to: 1; stepSize: 0.01; displayScale: 100; displayDecimals: 0; suffix: "%"; onMoved: value => Config.setNestedValue("appearance.angel.escalonado.opacity", Math.round(value * 100) / 100) }
+              SettingsValueSlider { label: "Border opacity"; description: "Card border opacity."; value: Config.options?.appearance?.angel?.escalonado?.borderOpacity ?? 0.17; from: 0; to: 1; stepSize: 0.01; displayScale: 100; displayDecimals: 0; suffix: "%"; onMoved: value => Config.setNestedValue("appearance.angel.escalonado.borderOpacity", Math.round(value * 100) / 100) }
+              SettingsValueSlider { label: "Hover opacity"; description: "Fill when hovered."; value: Config.options?.appearance?.angel?.escalonado?.hoverOpacity ?? 0.0; from: 0; to: 1; stepSize: 0.01; displayScale: 100; displayDecimals: 0; suffix: "%"; onMoved: value => Config.setNestedValue("appearance.angel.escalonado.hoverOpacity", Math.round(value * 100) / 100) }
+
+              SettingsSpinBox { label: "Shadow X"; description: "Drop-shadow X offset."; from: 0; to: 20; stepSize: 1; value: Math.round(Config.options?.appearance?.angel?.escalonadoShadow?.offsetX ?? 3); onMoved: value => Config.setNestedValue("appearance.angel.escalonadoShadow.offsetX", value) }
+              SettingsSpinBox { label: "Shadow Y"; description: "Drop-shadow Y offset."; from: 0; to: 20; stepSize: 1; value: Math.round(Config.options?.appearance?.angel?.escalonadoShadow?.offsetY ?? 2); onMoved: value => Config.setNestedValue("appearance.angel.escalonadoShadow.offsetY", value) }
+              SettingsSpinBox { label: "Shadow hover X"; description: "Shadow X on hover."; from: 0; to: 30; stepSize: 1; value: Math.round(Config.options?.appearance?.angel?.escalonadoShadow?.hoverOffsetX ?? 7); onMoved: value => Config.setNestedValue("appearance.angel.escalonadoShadow.hoverOffsetX", value) }
+              SettingsSpinBox { label: "Shadow hover Y"; description: "Shadow Y on hover."; from: 0; to: 30; stepSize: 1; value: Math.round(Config.options?.appearance?.angel?.escalonadoShadow?.hoverOffsetY ?? 7); onMoved: value => Config.setNestedValue("appearance.angel.escalonadoShadow.hoverOffsetY", value) }
+              SettingsValueSlider { label: "Shadow opacity"; description: "Drop-shadow strength."; value: Config.options?.appearance?.angel?.escalonadoShadow?.opacity ?? 1.0; from: 0; to: 1; stepSize: 0.01; displayScale: 100; displayDecimals: 0; suffix: "%"; onMoved: value => Config.setNestedValue("appearance.angel.escalonadoShadow.opacity", Math.round(value * 100) / 100) }
+              SettingsValueSlider { label: "Shadow border opacity"; description: "Shadow border strength."; value: Config.options?.appearance?.angel?.escalonadoShadow?.borderOpacity ?? 1.0; from: 0; to: 1; stepSize: 0.01; displayScale: 100; displayDecimals: 0; suffix: "%"; onMoved: value => Config.setNestedValue("appearance.angel.escalonadoShadow.borderOpacity", Math.round(value * 100) / 100) }
+              SettingsValueSlider { label: "Shadow hover opacity"; description: "Shadow strength on hover."; value: Config.options?.appearance?.angel?.escalonadoShadow?.hoverOpacity ?? 0.60; from: 0; to: 1; stepSize: 0.01; displayScale: 100; displayDecimals: 0; suffix: "%"; onMoved: value => Config.setNestedValue("appearance.angel.escalonadoShadow.hoverOpacity", Math.round(value * 100) / 100) }
+
+              SettingsSwitch { label: "Glass on shadow"; description: "Render the drop-shadow with the Angel glass material."; checked: Config.options?.appearance?.angel?.escalonadoShadow?.glass ?? true; onToggled: checked => Config.setNestedValue("appearance.angel.escalonadoShadow.glass", checked) }
+              SettingsValueSlider { label: "Shadow blur"; description: "Glass blur amount on the shadow."; value: Config.options?.appearance?.angel?.escalonadoShadow?.glassBlur ?? 0.70; from: 0; to: 1; stepSize: 0.01; displayScale: 100; displayDecimals: 0; suffix: "%"; onMoved: value => Config.setNestedValue("appearance.angel.escalonadoShadow.glassBlur", Math.round(value * 100) / 100) }
+              SettingsValueSlider { label: "Shadow overlay"; description: "Tint overlay on the glass shadow."; value: Config.options?.appearance?.angel?.escalonadoShadow?.glassOverlay ?? 0.50; from: 0; to: 1; stepSize: 0.01; displayScale: 100; displayDecimals: 0; suffix: "%"; onMoved: value => Config.setNestedValue("appearance.angel.escalonadoShadow.glassOverlay", Math.round(value * 100) / 100) }
+            }
+
+            SettingsSettingCard {
+              iconName: "border_style"
+              title: "Angel borders"
+              description: "Card and panel border width, opacity, accent bars, and inset glow."
+              visible: Appearance.angelEverywhere
+
+              SettingsValueSlider { label: "Border width"; description: "Stroke width for card borders."; value: Config.options?.appearance?.angel?.border?.width ?? 0.8; from: 0; to: 5; stepSize: 0.1; displayScale: 10; displayDecimals: 0; suffix: ""; onMoved: value => Config.setNestedValue("appearance.angel.border.width", Math.round(value * 10) / 10) }
+              SettingsValueSlider { label: "Border coverage"; description: "How much of the perimeter is drawn."; value: Config.options?.appearance?.angel?.border?.coverage ?? 0.60; from: 0; to: 1; stepSize: 0.01; displayScale: 100; displayDecimals: 0; suffix: "%"; onMoved: value => Config.setNestedValue("appearance.angel.border.coverage", Math.round(value * 100) / 100) }
+              SettingsValueSlider { label: "Border opacity"; description: "Resting border strength."; value: Config.options?.appearance?.angel?.border?.opacity ?? 0.52; from: 0; to: 1; stepSize: 0.01; displayScale: 100; displayDecimals: 0; suffix: "%"; onMoved: value => Config.setNestedValue("appearance.angel.border.opacity", Math.round(value * 100) / 100) }
+              SettingsValueSlider { label: "Hover border opacity"; description: "Border strength on hover."; value: Config.options?.appearance?.angel?.border?.hoverOpacity ?? 0.50; from: 0; to: 1; stepSize: 0.01; displayScale: 100; displayDecimals: 0; suffix: "%"; onMoved: value => Config.setNestedValue("appearance.angel.border.hoverOpacity", Math.round(value * 100) / 100) }
+              SettingsValueSlider { label: "Active border opacity"; description: "Border strength on the active card."; value: Config.options?.appearance?.angel?.border?.activeOpacity ?? 0.50; from: 0; to: 1; stepSize: 0.01; displayScale: 100; displayDecimals: 0; suffix: "%"; onMoved: value => Config.setNestedValue("appearance.angel.border.activeOpacity", Math.round(value * 100) / 100) }
+
+              SettingsSpinBox { label: "Accent bar height"; description: "Top accent bar in pixels."; from: 0; to: 30; stepSize: 1; value: Math.round(Config.options?.appearance?.angel?.border?.accentBarHeight ?? 10); onMoved: value => Config.setNestedValue("appearance.angel.border.accentBarHeight", value) }
+              SettingsSpinBox { label: "Accent bar width"; description: "Left accent bar in pixels."; from: 0; to: 30; stepSize: 1; value: Math.round(Config.options?.appearance?.angel?.border?.accentBarWidth ?? 10); onMoved: value => Config.setNestedValue("appearance.angel.border.accentBarWidth", value) }
+
+              SettingsSpinBox { label: "Inset glow height"; description: "Glow lip thickness in pixels."; from: 0; to: 10; stepSize: 1; value: Math.round(Config.options?.appearance?.angel?.border?.insetGlowHeight ?? 1); onMoved: value => Config.setNestedValue("appearance.angel.border.insetGlowHeight", value) }
+              SettingsValueSlider { label: "Inset glow opacity"; description: "Brightness of the inset glow."; value: Config.options?.appearance?.angel?.border?.insetGlowOpacity ?? 0.20; from: 0; to: 1; stepSize: 0.01; displayScale: 100; displayDecimals: 0; suffix: "%"; onMoved: value => Config.setNestedValue("appearance.angel.border.insetGlowOpacity", Math.round(value * 100) / 100) }
+
+              SettingsSpinBox { label: "Panel border width"; description: "Pixel width for panel surfaces."; from: 0; to: 5; stepSize: 1; value: Math.round(Config.options?.appearance?.angel?.surface?.panelBorderWidth ?? 1); onMoved: value => Config.setNestedValue("appearance.angel.surface.panelBorderWidth", value) }
+              SettingsValueSlider { label: "Panel border opacity"; description: "Panel border strength."; value: Config.options?.appearance?.angel?.surface?.panelBorderOpacity ?? 0.90; from: 0; to: 1; stepSize: 0.01; displayScale: 100; displayDecimals: 0; suffix: "%"; onMoved: value => Config.setNestedValue("appearance.angel.surface.panelBorderOpacity", Math.round(value * 100) / 100) }
+              SettingsSpinBox { label: "Card border width"; description: "Pixel width for card surfaces."; from: 0; to: 5; stepSize: 1; value: Math.round(Config.options?.appearance?.angel?.surface?.cardBorderWidth ?? 1); onMoved: value => Config.setNestedValue("appearance.angel.surface.cardBorderWidth", value) }
+              SettingsValueSlider { label: "Card border opacity"; description: "Card border strength."; value: Config.options?.appearance?.angel?.surface?.cardBorderOpacity ?? 0.0; from: 0; to: 1; stepSize: 0.01; displayScale: 100; displayDecimals: 0; suffix: "%"; onMoved: value => Config.setNestedValue("appearance.angel.surface.cardBorderOpacity", Math.round(value * 100) / 100) }
+            }
+
+            SettingsSettingCard {
+              iconName: "auto_fix_high"
+              title: "Angel glow and rounding"
+              description: "Outer glow strength and corner radii."
+              visible: Appearance.angelEverywhere
+
+              SettingsValueSlider { label: "Glow opacity"; description: "Soft outer glow."; value: Config.options?.appearance?.angel?.glow?.opacity ?? 0.0; from: 0; to: 1; stepSize: 0.01; displayScale: 100; displayDecimals: 0; suffix: "%"; onMoved: value => Config.setNestedValue("appearance.angel.glow.opacity", Math.round(value * 100) / 100) }
+              SettingsValueSlider { label: "Strong glow opacity"; description: "Glow on the active card."; value: Config.options?.appearance?.angel?.glow?.strongOpacity ?? 0.0; from: 0; to: 1; stepSize: 0.01; displayScale: 100; displayDecimals: 0; suffix: "%"; onMoved: value => Config.setNestedValue("appearance.angel.glow.strongOpacity", Math.round(value * 100) / 100) }
+
+              SettingsSpinBox { label: "Rounding small"; description: "Corner radius for small surfaces."; from: 0; to: 30; stepSize: 1; value: Math.round(Config.options?.appearance?.angel?.rounding?.small ?? 0); onMoved: value => Config.setNestedValue("appearance.angel.rounding.small", value) }
+              SettingsSpinBox { label: "Rounding normal"; description: "Corner radius for cards."; from: 0; to: 30; stepSize: 1; value: Math.round(Config.options?.appearance?.angel?.rounding?.normal ?? 0); onMoved: value => Config.setNestedValue("appearance.angel.rounding.normal", value) }
+              SettingsSpinBox { label: "Rounding large"; description: "Corner radius for panels."; from: 0; to: 30; stepSize: 1; value: Math.round(Config.options?.appearance?.angel?.rounding?.large ?? 0); onMoved: value => Config.setNestedValue("appearance.angel.rounding.large", value) }
             }
           }
         }
