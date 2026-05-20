@@ -82,6 +82,8 @@ Scope {
             return Boolean(bgRoot._widgetConfigValue(widgetKey, "enable", fallback));
         }
 
+        readonly property bool _needsKeyboardFocus: bgRoot._widgetEnabled("notes", false)
+
         // Zone occupancy: map zone name → array of widget names
         readonly property var _builtinWidgets: [
             { key: "weather",        defaultOn: true,  icon: "cloud" },
@@ -424,6 +426,9 @@ Scope {
         // Keep background behind the lock surface. Moving this to Overlay can capture input.
         WlrLayershell.layer: WlrLayer.Bottom
         WlrLayershell.namespace: "quickshell:background"
+        WlrLayershell.keyboardFocus: bgRoot._needsKeyboardFocus
+            ? WlrKeyboardFocus.OnDemand
+            : WlrKeyboardFocus.None
         anchors { top: true; bottom: true; left: true; right: true }
         color: {
             if (!bgRoot.wallpaperSafetyTriggered || bgRoot.wallpaperIsVideo) return "transparent";

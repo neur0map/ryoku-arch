@@ -65,6 +65,9 @@ require_rg 'key: "notes"' shell/modules/background/Background.qml
 require_rg 'key: "calendarUpcoming"' shell/modules/background/Background.qml
 require_rg 'sourceComponent: NotesWidget' shell/modules/background/Background.qml
 require_rg 'sourceComponent: CalendarUpcomingWidget' shell/modules/background/Background.qml
+require_rg 'readonly property bool _needsKeyboardFocus: bgRoot\._widgetEnabled\("notes", false\)' shell/modules/background/Background.qml
+require_rg 'WlrLayershell\.keyboardFocus: bgRoot\._needsKeyboardFocus' shell/modules/background/Background.qml
+require_rg 'WlrKeyboardFocus\.OnDemand' shell/modules/background/Background.qml
 
 require_rg 'WidgetCard \{ widgetKey: "notes"' shell/modules/background/widgets/WidgetManagerPanel.qml
 require_rg 'WidgetCard \{ widgetKey: "calendarUpcoming"' shell/modules/background/widgets/WidgetManagerPanel.qml
