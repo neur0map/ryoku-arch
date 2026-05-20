@@ -64,7 +64,7 @@ Compatibility launcher: `ryoku-shell legacy-settings-window`.
 | `About.qml` | 612 | ~15 | ✅ Ported |
 | `ExtrasConfig.qml` | 682 | dynamic profiles | 🧱 Embedded |
 | `AngelStyleEditor.qml` | 1037 | ~40 sliders + profiles | ❌ Missing |
-| `AuroraStyleEditor.qml` | 374 | 9 sliders + presets | ❌ Missing |
+| `AuroraStyleEditor.qml` | 374 | 9 sliders + presets | ✅ Ported |
 | `CustomThemeEditor.qml` | 2183 | ~50 color pickers + flows | ❌ Missing |
 | `GowallWallpaperEditor.qml` | 836 | 5 ops + palette editor | ❌ Missing |
 
@@ -86,7 +86,7 @@ Compatibility launcher: `ryoku-shell legacy-settings-window`.
 - Inactive window opacity (via `scripts/niri-config.py`)
 - Focus ring enable / width / follow-theme
 - Cursor theme / size
-- GPK quick actions: Open GPK, Install, Uninstall, Update, Outdated
+- GPK quick action: Open GPK (the TUI handles install / uninstall / update / outdated itself, so those buttons were dropped during sub-spec #02a verification)
 
 ### General > Window / Fonts / Language
 - Settings window open mode (Centered / Normal)
@@ -286,7 +286,7 @@ Compatibility launcher: `ryoku-shell legacy-settings-window`.
 | Terminal color adjustments (4 sliders) | Appearance > Templates | ✅ Ported | |
 | "Apply to open terminals" button (runs scripts/colors/applycolor.sh) | - | ❌ Missing | |
 | Global Style combo (Material/Cards/Aurora/Ryoku/Angel + cascading side-effects) | Appearance > Colors + General > Quick Rice | 🟡 Partial | New sets globalStyle but does not perform the cascading side-effects (dock.cardStyle, sidebar.cardStyle, bar.cornerStyle, transparency.enable) per legacy mapping |
-| Aurora Style Editor (loader) | - | ❌ Missing | **AuroraStyleEditor.qml not reachable from new UI** |
+| Aurora Style Editor (loader) | Appearance > Themes > "Aurora glass" card | ✅ Ported | sub-spec #02a: native card gated on `Appearance.auroraEverywhere && !Appearance.angelEverywhere`. 4 preset buttons (Default/Frosted/Clear/Subtle), Save/Load/Reset row (persists snapshot to `appearance.aurora.customPreset` as JSON), 5 `SettingsValueSlider`s for the 5 transparency channels (overlay/subSurface/popup/tooltip/layer). Helpers `applyAuroraPreset` / `saveAuroraCustom` / `loadAuroraCustom` live next to `applyThemePreset` in the `app` block. |
 | Angel Style Editor (loader) | - | ❌ Missing | **AngelStyleEditor.qml not reachable from new UI** |
 | Custom Theme Editor (loader) | - | ❌ Missing | **CustomThemeEditor.qml not reachable from new UI** |
 | Gowall Wallpaper Editor (lazy loader) | - | ❌ Missing | **GowallWallpaperEditor.qml not reachable from new UI** |

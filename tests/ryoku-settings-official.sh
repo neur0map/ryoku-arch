@@ -572,8 +572,9 @@ if grep -q 'background.wallpaper.enableAnimation' "$settings_qml"; then
   fail "wallpaper animation should use the existing background.enableAnimation key"
 fi
 
-grep -q 'settingsUi.launchMode' "$settings_qml" \
-  || fail "settings_qml should expose a persisted centered/window launch mode"
+# The General > Window sub-tab (and its settingsUi.launchMode combo) was removed
+# from ryokuSettings.qml; centered is the only supported mode for the new UI.
+# The Config schema still exposes launchMode for ryoku-shell to read.
 
 grep -q 'property string launchMode: "centered"' "$config_schema" \
   || fail "config schema should default settings launch mode to centered"

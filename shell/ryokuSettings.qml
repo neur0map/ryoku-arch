@@ -643,6 +643,49 @@ ApplicationWindow {
       Config.setNestedValue("appearance.themeMode", "dark");
   }
 
+  function applyAuroraPreset(name) {
+    const presets = {
+      default: { overlay: 0.30, subSurface: 0.42, popup: 0.32, tooltip: 0.28, layer: 0.32 },
+      frosted: { overlay: 0.25, subSurface: 0.35, popup: 0.30, tooltip: 0.25, layer: 0.28 },
+      clear:   { overlay: 0.60, subSurface: 0.72, popup: 0.58, tooltip: 0.45, layer: 0.60 },
+      subtle:  { overlay: 0.18, subSurface: 0.28, popup: 0.22, tooltip: 0.18, layer: 0.20 }
+    };
+    const preset = presets[name];
+    if (!preset) return;
+    Config.setNestedValue("appearance.aurora.transparency.overlay", preset.overlay);
+    Config.setNestedValue("appearance.aurora.transparency.subSurface", preset.subSurface);
+    Config.setNestedValue("appearance.aurora.transparency.popup", preset.popup);
+    Config.setNestedValue("appearance.aurora.transparency.tooltip", preset.tooltip);
+    Config.setNestedValue("appearance.aurora.transparency.layer", preset.layer);
+  }
+
+  function saveAuroraCustom() {
+    const t = Config.options?.appearance?.aurora?.transparency ?? {};
+    const snapshot = {
+      overlay: t.overlay ?? 0.30,
+      subSurface: t.subSurface ?? 0.42,
+      popup: t.popup ?? 0.32,
+      tooltip: t.tooltip ?? 0.28,
+      layer: t.layer ?? 0.32
+    };
+    Config.setNestedValue("appearance.aurora.customPreset", JSON.stringify(snapshot));
+  }
+
+  function loadAuroraCustom() {
+    const raw = Config.options?.appearance?.aurora?.customPreset ?? "";
+    if (raw === "") return;
+    try {
+      const snap = JSON.parse(raw);
+      if (snap?.overlay !== undefined) Config.setNestedValue("appearance.aurora.transparency.overlay", snap.overlay);
+      if (snap?.subSurface !== undefined) Config.setNestedValue("appearance.aurora.transparency.subSurface", snap.subSurface);
+      if (snap?.popup !== undefined) Config.setNestedValue("appearance.aurora.transparency.popup", snap.popup);
+      if (snap?.tooltip !== undefined) Config.setNestedValue("appearance.aurora.transparency.tooltip", snap.tooltip);
+      if (snap?.layer !== undefined) Config.setNestedValue("appearance.aurora.transparency.layer", snap.layer);
+    } catch (e) {
+      console.warn("[Aurora] Failed to load custom preset:", e);
+    }
+  }
+
   function normalizeTransform(value) {
     const raw = String(value ?? "normal").toLowerCase();
     if (raw === "normal")
@@ -3677,7 +3720,7 @@ ApplicationWindow {
   Component {
     id: generalPage
     SettingsPage {
-      SettingsSubTabs { pageKey: "general"; options: ["Quick Rice", "Window", "Fonts", "Language"] }
+      SettingsSubTabs { pageKey: "general"; options: ["Quick Rice", "Waffle", "Fonts", "Language"] }
 
       SettingsPageBody {
         SettingsStackLayout {
@@ -3869,10 +3912,6 @@ ApplicationWindow {
                 spacing: 8
 
                 SettingsButton { text: "Open GPK"; iconName: "terminal"; onClicked: app.launchPackageManager() }
-                SettingsButton { text: "Install package"; iconName: "download"; onClicked: app.launchGpkPrompt("install") }
-                SettingsButton { text: "Uninstall package"; iconName: "delete"; onClicked: app.launchGpkPrompt("remove") }
-                SettingsButton { text: "Update package"; iconName: "upgrade"; onClicked: app.launchGpkPrompt("upgrade") }
-                SettingsButton { text: "Outdated"; iconName: "manage_search"; onClicked: app.launchGpkOutdated() }
               }
             }
           }
@@ -3880,23 +3919,34 @@ ApplicationWindow {
 
         SettingsSubPage {
           SettingsSection {
-            title: "Settings window"
-            description: "Choose how Mod+Comma opens this settings surface."
+            title: "Waffle"
+            description: "Windows-style panel family. Toggle Waffle on in Panels and Modules first."
 
             SettingsSettingCard {
-              iconName: "web_asset"
-              title: "Launch behavior"
-              description: "Centered is the default Ryoku panel experience; normal window lets the compositor place it."
+              iconName: "grid_on"
+              title: "Waffle launcher"
+              description: "Real Waffle panels and options from the active shell config."
 
-              SettingsCombo {
-                label: "Open mode"
-                description: "Centered panel or normal window."
+              SettingsToggleGrid {
                 options: [
-                  { label: "Centered panel", value: "centered" },
-                  { label: "Normal window", value: "window" }
+                  { label: "Start menu", description: "Waffle launcher surface.", listPath: "enabledPanels", id: "wStartMenu" },
+                  { label: "Action center", description: "Waffle quick settings.", listPath: "enabledPanels", id: "wActionCenter" },
+                  { label: "Notifications", description: "Waffle notification center.", listPath: "enabledPanels", id: "wNotificationCenter" },
+                  { label: "Widgets", description: "Waffle desktop widgets.", listPath: "enabledPanels", id: "wWidgets" },
+                  { label: "Task view", description: "Waffle task/workspace view.", listPath: "enabledPanels", id: "wTaskView" },
+                  { label: "Waffle bar", description: "Waffle bar surface.", listPath: "enabledPanels", id: "wBar" }
                 ]
-                selectedValue: Config.options?.settingsUi?.launchMode ?? "centered"
-                onSelected: value => Config.setNestedValue("settingsUi.launchMode", value)
+              }
+
+              SettingsToggleGrid {
+                options: [
+                  { label: "Material style", description: "Use Material controls in Waffle settings.", path: "waffles.settings.useMaterialStyle", fallback: false },
+                  { label: "Smoother menu animations", description: "Enable Waffle animation tweak.", path: "waffles.tweaks.smootherMenuAnimations", fallback: true },
+                  { label: "Switch handle fix", description: "Keep Waffle switch handle aligned.", path: "waffles.tweaks.switchHandlePositionFix", fallback: true },
+                  { label: "Alt switcher animation", description: "Animate Waffle alt switcher.", path: "waffles.altSwitcher.enableAnimation", fallback: true },
+                  { label: "Most recent first", description: "Sort Waffle alt switcher by recent windows.", path: "waffles.altSwitcher.useMostRecentFirst", fallback: true },
+                  { label: "Close on focus", description: "Close Waffle switcher after selecting a window.", path: "waffles.altSwitcher.closeOnFocus", fallback: true }
+                ]
               }
             }
           }
@@ -4087,14 +4137,14 @@ ApplicationWindow {
 
               GridLayout {
                 Layout.fillWidth: true
-                columns: width > 560 ? 2 : 1
-                rowSpacing: 8
-                columnSpacing: 8
+                columns: width > 800 ? 3 : width > 480 ? 2 : 1
+                rowSpacing: 6
+                columnSpacing: 6
 
                 Repeater {
                   model: app.filteredThemePresets(Config.revision)
 
-                  delegate: SettingsThemePresetCard {
+                  delegate: SettingsFavoriteThemeCard {
                     required property var modelData
                     preset: modelData
                     onClicked: app.applyThemePreset(modelData.id)
@@ -4136,6 +4186,95 @@ ApplicationWindow {
                 options: app.themePresetOptions()
                 selectedValue: Config.options?.appearance?.themeSchedule?.nightTheme ?? "auto"
                 onSelected: value => Config.setNestedValue("appearance.themeSchedule.nightTheme", value)
+              }
+            }
+
+            SettingsSettingCard {
+              iconName: "blur_on"
+              title: "Aurora glass"
+              description: "Transparency for panels, cards, popups, tooltips, and surface layers. Active while the Aurora style is on."
+              visible: Appearance.auroraEverywhere && !Appearance.angelEverywhere
+
+              RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+                SettingsButton { text: "Default"; iconName: "blur_on"; onClicked: app.applyAuroraPreset("default") }
+                SettingsButton { text: "Frosted"; iconName: "ac_unit"; onClicked: app.applyAuroraPreset("frosted") }
+                SettingsButton { text: "Clear"; iconName: "visibility"; onClicked: app.applyAuroraPreset("clear") }
+                SettingsButton { text: "Subtle"; iconName: "blur_off"; onClicked: app.applyAuroraPreset("subtle") }
+              }
+
+              RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+                SettingsButton { text: "Save"; iconName: "save"; onClicked: app.saveAuroraCustom() }
+                SettingsButton { text: "Load"; iconName: "restore"; enabled: (Config.options?.appearance?.aurora?.customPreset ?? "") !== ""; onClicked: app.loadAuroraCustom() }
+                SettingsButton { text: "Reset"; iconName: "restart_alt"; onClicked: app.applyAuroraPreset("default") }
+              }
+
+              SettingsValueSlider {
+                label: "Panels"
+                description: "Transparency of bar and sidebar surfaces."
+                value: Config.options?.appearance?.aurora?.transparency?.overlay ?? 0.30
+                from: 0
+                to: 1
+                stepSize: 0.01
+                displayScale: 100
+                displayDecimals: 0
+                suffix: "%"
+                onMoved: value => Config.setNestedValue("appearance.aurora.transparency.overlay", Math.round(value * 100) / 100)
+              }
+
+              SettingsValueSlider {
+                label: "Cards"
+                description: "Transparency of card surfaces."
+                value: Config.options?.appearance?.aurora?.transparency?.subSurface ?? 0.42
+                from: 0
+                to: 1
+                stepSize: 0.01
+                displayScale: 100
+                displayDecimals: 0
+                suffix: "%"
+                onMoved: value => Config.setNestedValue("appearance.aurora.transparency.subSurface", Math.round(value * 100) / 100)
+              }
+
+              SettingsValueSlider {
+                label: "Popups"
+                description: "Transparency of popup menus and dropdowns."
+                value: Config.options?.appearance?.aurora?.transparency?.popup ?? 0.32
+                from: 0
+                to: 1
+                stepSize: 0.01
+                displayScale: 100
+                displayDecimals: 0
+                suffix: "%"
+                onMoved: value => Config.setNestedValue("appearance.aurora.transparency.popup", Math.round(value * 100) / 100)
+              }
+
+              SettingsValueSlider {
+                label: "Tooltips"
+                description: "Transparency of hover tooltips."
+                value: Config.options?.appearance?.aurora?.transparency?.tooltip ?? 0.28
+                from: 0
+                to: 1
+                stepSize: 0.01
+                displayScale: 100
+                displayDecimals: 0
+                suffix: "%"
+                onMoved: value => Config.setNestedValue("appearance.aurora.transparency.tooltip", Math.round(value * 100) / 100)
+              }
+
+              SettingsValueSlider {
+                label: "Surface layers"
+                description: "Transparency of stacked surface layers (cards on cards)."
+                value: Config.options?.appearance?.aurora?.transparency?.layer ?? 0.32
+                from: 0
+                to: 1
+                stepSize: 0.01
+                displayScale: 100
+                displayDecimals: 0
+                suffix: "%"
+                onMoved: value => Config.setNestedValue("appearance.aurora.transparency.layer", Math.round(value * 100) / 100)
               }
             }
           }
@@ -4463,7 +4602,7 @@ ApplicationWindow {
   Component {
     id: panelsPage
     SettingsPage {
-      SettingsSubTabs { pageKey: "panels"; options: ["Panels", "Waffle", "Compositor"] }
+      SettingsSubTabs { pageKey: "panels"; options: ["Panels", "Compositor"] }
 
       SettingsPageBody {
         SettingsStackLayout {
@@ -4499,41 +4638,6 @@ ApplicationWindow {
                   { label: "Screen corners", description: "Corner overlays.", listPath: "enabledPanels", id: "iiScreenCorners" },
                   { label: "Session screen", description: "Power menu.", listPath: "enabledPanels", id: "iiSessionScreen" },
                   { label: "Clipboard", description: "Clipboard UI.", listPath: "enabledPanels", id: "iiClipboard" }
-                ]
-              }
-            }
-          }
-        }
-
-        SettingsSubPage {
-          SettingsSection {
-            title: "Waffle Style"
-            description: "Waffle controls stay in a dedicated subtab rather than a top-level page."
-
-            SettingsSettingCard {
-              iconName: "grid_on"
-              title: "Waffle launcher"
-              description: "Real Waffle panels and options from the active shell config."
-
-              SettingsToggleGrid {
-                options: [
-                  { label: "Start menu", description: "Waffle launcher surface.", listPath: "enabledPanels", id: "wStartMenu" },
-                  { label: "Action center", description: "Waffle quick settings.", listPath: "enabledPanels", id: "wActionCenter" },
-                  { label: "Notifications", description: "Waffle notification center.", listPath: "enabledPanels", id: "wNotificationCenter" },
-                  { label: "Widgets", description: "Waffle desktop widgets.", listPath: "enabledPanels", id: "wWidgets" },
-                  { label: "Task view", description: "Waffle task/workspace view.", listPath: "enabledPanels", id: "wTaskView" },
-                  { label: "Waffle bar", description: "Waffle bar surface.", listPath: "enabledPanels", id: "wBar" }
-                ]
-              }
-
-              SettingsToggleGrid {
-                options: [
-                  { label: "Material style", description: "Use Material controls in Waffle settings.", path: "waffles.settings.useMaterialStyle", fallback: false },
-                  { label: "Smoother menu animations", description: "Enable Waffle animation tweak.", path: "waffles.tweaks.smootherMenuAnimations", fallback: true },
-                  { label: "Switch handle fix", description: "Keep Waffle switch handle aligned.", path: "waffles.tweaks.switchHandlePositionFix", fallback: true },
-                  { label: "Alt switcher animation", description: "Animate Waffle alt switcher.", path: "waffles.altSwitcher.enableAnimation", fallback: true },
-                  { label: "Most recent first", description: "Sort Waffle alt switcher by recent windows.", path: "waffles.altSwitcher.useMostRecentFirst", fallback: true },
-                  { label: "Close on focus", description: "Close Waffle switcher after selecting a window.", path: "waffles.altSwitcher.closeOnFocus", fallback: true }
                 ]
               }
             }
