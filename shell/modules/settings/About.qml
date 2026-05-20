@@ -12,6 +12,8 @@ ContentPage {
     settingsPageIndex: 14
     settingsPageName: Translation.tr("About")
 
+    Component.onCompleted: ShellUpdates.refresh()
+
     // Compact circle icon button used by every card in this page so the
     // bento grid stays consistent across windowed and floating settings
     // modes (same fixed 36x36 footprint regardless of card width).
@@ -265,7 +267,7 @@ ContentPage {
                         spacing: 6
 
                         StyledText {
-                            text: Translation.tr("Update channel")
+                            text: Translation.tr("Selected channel")
                             font {
                                 pixelSize: Appearance.font.pixelSize.smaller
                                 weight: Font.Medium
@@ -295,14 +297,63 @@ ContentPage {
 
                         StyledText {
                             Layout.fillWidth: true
+                            text: Translation.tr("Current branch: %1").arg(ShellUpdates.currentBranch.length > 0 ? ShellUpdates.currentBranch : Translation.tr("checking"))
+                            font.pixelSize: Appearance.font.pixelSize.smallest
+                            color: ShellUpdates.isNonMainBranch
+                                ? Appearance.m3colors.m3tertiary
+                                : Appearance.colors.colSubtext
+                            wrapMode: Text.WordWrap
+                        }
+
+                        StyledText {
+                            Layout.fillWidth: true
                             text: ShellUpdates.requiresChannelSwitch
-                                ? Translation.tr("Next update switches from %1 to %2").arg(ShellUpdates.currentBranch).arg(ShellUpdates.configuredChannel)
-                                : Translation.tr("Following %1").arg(ShellUpdates.configuredChannel)
+                                ? Translation.tr("Selected channel: %1. Confirmation required before switching.").arg(ShellUpdates.configuredChannel)
+                                : Translation.tr("Selected channel: %1").arg(ShellUpdates.configuredChannel)
                             font.pixelSize: Appearance.font.pixelSize.smallest
                             color: ShellUpdates.requiresChannelSwitch
                                 ? Appearance.m3colors.m3tertiary
                                 : Appearance.colors.colSubtext
                             wrapMode: Text.WordWrap
+                        }
+
+                        RippleButton {
+                            visible: ShellUpdates.requiresChannelSwitch && ShellUpdates.selfUpdateSupported
+                            implicitWidth: channelSwitchRow.implicitWidth + 24
+                            implicitHeight: 32
+                            buttonRadius: height / 2
+                            colBackground: ColorUtils.transparentize(Appearance.m3colors.m3primary, 0.86)
+                            colBackgroundHover: ColorUtils.transparentize(Appearance.m3colors.m3primary, 0.78)
+                            colRipple: ColorUtils.transparentize(Appearance.m3colors.m3primary, 0.7)
+                            enabled: !ShellUpdates.isUpdating
+                            opacity: enabled ? 1.0 : 0.5
+                            onClicked: openShellUpdateDetails()
+
+                            contentItem: RowLayout {
+                                id: channelSwitchRow
+                                anchors.centerIn: parent
+                                spacing: 6
+
+                                MaterialSymbol {
+                                    text: "account_tree"
+                                    iconSize: Appearance.font.pixelSize.small
+                                    color: Appearance.m3colors.m3primary
+                                    fill: 1
+                                }
+
+                                StyledText {
+                                    text: Translation.tr("Switch channel")
+                                    font {
+                                        pixelSize: Appearance.font.pixelSize.smallest
+                                        weight: Font.DemiBold
+                                    }
+                                    color: Appearance.m3colors.m3primary
+                                }
+                            }
+
+                            StyledToolTip {
+                                text: Translation.tr("Open the confirmation dialog before launching the update terminal")
+                            }
                         }
                     }
 
