@@ -93,7 +93,14 @@ require_json_key shell/defaults/config.json '.background.widgets.calendarUpcomin
 
 require_rg 'TextEdit \{' shell/modules/background/widgets/notes/NotesWidget.qml
 require_rg 'height: Math\.max\(editorFlick\.height, contentHeight\)' shell/modules/background/widgets/notes/NotesWidget.qml
-require_rg 'onTextChanged: _saveDebounce\.restart\(\)' shell/modules/background/widgets/notes/NotesWidget.qml
+require_rg 'property bool _editorReady: false' shell/modules/background/widgets/notes/NotesWidget.qml
+require_rg 'property bool _syncingEditorText: false' shell/modules/background/widgets/notes/NotesWidget.qml
+require_rg 'if \(!root\._editorReady\)' shell/modules/background/widgets/notes/NotesWidget.qml
+require_rg 'if \(!root\._syncingEditorText\)' shell/modules/background/widgets/notes/NotesWidget.qml
+require_rg 'function _syncEditorTextFromConfig\(\)' shell/modules/background/widgets/notes/NotesWidget.qml
+require_rg 'onNoteTextChanged: root\._syncEditorTextFromConfig\(\)' shell/modules/background/widgets/notes/NotesWidget.qml
+require_rg 'root\._editorReady = true' shell/modules/background/widgets/notes/NotesWidget.qml
+reject_rg 'text: root\.noteText' shell/modules/background/widgets/notes/NotesWidget.qml
 require_rg 'placementStrategy: "leastBusy"' shell/modules/background/widgets/notes/NotesWidget.qml
 require_rg 'placementStrategy: "leastBusy"' shell/modules/background/widgets/calendar/CalendarUpcomingWidget.qml
 require_rg 'property string placementStrategy: "leastBusy"' shell/modules/common/Config.qml

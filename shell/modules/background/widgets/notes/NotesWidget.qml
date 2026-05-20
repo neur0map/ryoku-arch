@@ -53,11 +53,26 @@ AbstractBackgroundWidget {
     readonly property string fontFamily: Config.getNestedValue("background.widgets.notes.fontFamily", "sans")
     readonly property string textAlign: Config.getNestedValue("background.widgets.notes.textAlign", "left")
     readonly property real cardRadius: Appearance.rounding.normal
+    property bool _editorReady: false
+    property bool _syncingEditorText: false
 
     property real dimFactor: {
         const v = Number(Config.getNestedValue("background.widgets.notes.dim", 0));
         return Math.max(0, Math.min(1, Number.isFinite(v) ? v / 100 : 0));
     }
+
+    function _syncEditorTextFromConfig() {
+        if (!root._editorReady)
+            return;
+        if (!textEdit || textEdit.activeFocus || textEdit.text === root.noteText)
+            return;
+
+        root._syncingEditorText = true;
+        textEdit.text = root.noteText;
+        root._syncingEditorText = false;
+    }
+
+    onNoteTextChanged: root._syncEditorTextFromConfig()
 
     editPopoverContent: Component {
         Column {
@@ -134,7 +149,7 @@ AbstractBackgroundWidget {
             id: textEdit
             width: editorFlick.width
             height: Math.max(editorFlick.height, contentHeight)
-            text: root.noteText
+            text: ""
             wrapMode: TextEdit.Wrap
             color: root.colText
             selectByMouse: true
@@ -162,7 +177,15 @@ AbstractBackgroundWidget {
                 onPressed: mouse => mouse.accepted = true
             }
 
-            onTextChanged: _saveDebounce.restart()
+            onTextChanged: {
+                if (!root._syncingEditorText)
+                    _saveDebounce.restart()
+            }
+
+            Component.onCompleted: {
+                root._editorReady = true
+                root._syncEditorTextFromConfig()
+            }
 
             Timer {
                 id: _saveDebounce
