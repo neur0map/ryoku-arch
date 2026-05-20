@@ -30,6 +30,25 @@ ApplicationWindow {
   onClosing: Qt.quit()
 
   property int currentPage: 0
+  property bool easyMode: Config.options?.settingsUi?.easyMode ?? false
+  readonly property var visibleTabsModel: {
+    const out = [];
+    for (let i = 0; i < tabsModel.length; i++) {
+      const tab = tabsModel[i];
+      if (!app.easyMode || tab.essential === true) {
+        out.push(Object.assign({}, tab, { realIndex: i }));
+      }
+    }
+    return out;
+  }
+
+  function setEasyMode(enabled) {
+    Config.setNestedValue("settingsUi.easyMode", enabled === true);
+    app.easyMode = enabled === true;
+    if (enabled && !(app.tabsModel[app.currentPage]?.essential)) {
+      app.currentPage = 0;
+    }
+  }
   property string searchText: ""
   property string themeSearchText: ""
   property string themeFilter: "all"
@@ -229,21 +248,21 @@ ApplicationWindow {
   ]
 
   readonly property var tabsModel: [
-    { key: "general", name: "General", icon: "tune", desc: "Quick rice, window, fonts", source: generalPage },
-    { key: "appearance", name: "Appearance", icon: "palette", desc: "Color Scheme, themes, style", source: appearancePage },
-    { key: "wallpaper", name: "Wallpaper & Desktop", icon: "wallpaper", desc: "Wallpaper, widgets, effects", source: wallpaperPage },
-    { key: "barDock", name: "Bar & Dock", icon: "border_top", desc: "Bar, dock, tray, modules", source: barDockPage },
-    { key: "panels", name: "Panels & Modules", icon: "dashboard", desc: "Panels, Waffle, compositor", source: panelsPage },
-    { key: "control", name: "Control Center", icon: "instant_mix", desc: "Sidebar, quick cards", source: controlCenterPage },
-    { key: "launcher", name: "Launcher", icon: "search", desc: "Search, actions, shortcuts", source: launcherPage },
-    { key: "notifications", name: "Notifications", icon: "notifications", desc: "Popups, OSD, sounds", source: notificationsPage },
-    { key: "audioDisplay", name: "Audio & Display", icon: "monitor", desc: "Audio, screens, resources", source: audioDisplayPage },
-    { key: "lockPower", name: "Lock & Power", icon: "lock", desc: "Lock screen, session menu", source: lockPowerPage },
-    { key: "services", name: "Services", icon: "settings", desc: "AI, idle, networking, updates", source: servicesPage },
-    { key: "tools", name: "Tools & Capture", icon: "construction", desc: "Recording, region, apps", source: toolsPage },
-    { key: "advanced", name: "Advanced", icon: "manufacturing", desc: "Expert settings inspector", source: advancedPage },
-    { key: "extras", name: "Extras", icon: "extension", desc: "Optional feature profiles", source: extrasPage },
-    { key: "about", name: "About", icon: "info", desc: "Version and config paths", source: aboutPage }
+    { key: "general", name: "General", icon: "tune", desc: "Quick rice, window, fonts", essential: true, source: generalPage },
+    { key: "appearance", name: "Appearance", icon: "palette", desc: "Color Scheme, themes, style", essential: true, source: appearancePage },
+    { key: "wallpaper", name: "Wallpaper & Desktop", icon: "wallpaper", desc: "Wallpaper, widgets, effects", essential: false, source: wallpaperPage },
+    { key: "barDock", name: "Bar & Dock", icon: "border_top", desc: "Bar, dock, tray, modules", essential: true, source: barDockPage },
+    { key: "panels", name: "Panels & Modules", icon: "dashboard", desc: "Panels, Waffle, compositor", essential: true, source: panelsPage },
+    { key: "control", name: "Control Center", icon: "instant_mix", desc: "Sidebar, quick cards", essential: true, source: controlCenterPage },
+    { key: "launcher", name: "Launcher", icon: "search", desc: "Search, actions, shortcuts", essential: true, source: launcherPage },
+    { key: "notifications", name: "Notifications", icon: "notifications", desc: "Popups, OSD, sounds", essential: true, source: notificationsPage },
+    { key: "audioDisplay", name: "Audio & Display", icon: "monitor", desc: "Audio, screens, resources", essential: true, source: audioDisplayPage },
+    { key: "lockPower", name: "Lock & Power", icon: "lock", desc: "Lock screen, session menu", essential: true, source: lockPowerPage },
+    { key: "services", name: "Services", icon: "settings", desc: "AI, idle, networking, updates", essential: false, source: servicesPage },
+    { key: "tools", name: "Tools & Capture", icon: "construction", desc: "Recording, region, apps", essential: false, source: toolsPage },
+    { key: "advanced", name: "Advanced", icon: "manufacturing", desc: "Expert settings inspector", essential: false, source: advancedPage },
+    { key: "extras", name: "Extras", icon: "extension", desc: "Optional feature profiles", essential: true, source: extrasPage },
+    { key: "about", name: "About", icon: "info", desc: "Version and config paths", essential: true, source: aboutPage }
   ]
 
   readonly property var settingsSearchIndex: [
@@ -1157,6 +1176,13 @@ ApplicationWindow {
     }
   }
 
+  Shortcut {
+    sequences: [StandardKey.Find]
+    onActivated: {
+      searchField.focusInput();
+    }
+  }
+
   Component.onCompleted: {
     Quickshell.watchFiles = false;
     Config.readWriteDelay = 0;
@@ -1178,6 +1204,7 @@ ApplicationWindow {
         ThemeService.applyCurrentTheme();
     }
     function onConfigChanged() {
+      app.easyMode = Config.options?.settingsUi?.easyMode ?? false;
       if (Config.options?.settingsUi?.focusRing?.followTheme ?? false)
         app.syncThemeFocusRing();
     }
@@ -1510,10 +1537,16 @@ ApplicationWindow {
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
-            model: app.tabsModel
+            model: app.visibleTabsModel
             spacing: 4
             boundsBehavior: Flickable.StopAtBounds
-            currentIndex: app.currentPage
+            currentIndex: {
+              for (let i = 0; i < app.visibleTabsModel.length; i++) {
+                if (app.visibleTabsModel[i].realIndex === app.currentPage)
+                  return i;
+              }
+              return 0;
+            }
 
             delegate: SettingsNavItem {
               required property int index
@@ -1522,12 +1555,15 @@ ApplicationWindow {
               tabName: modelData.name
               tabDescription: modelData.desc
               tabIcon: modelData.icon
-              selected: index === app.currentPage
+              selected: modelData.realIndex === app.currentPage
               onClicked: {
-                app.currentPage = index;
+                app.currentPage = modelData.realIndex;
                 app.searchText = "";
               }
             }
+          }
+
+          SettingsConfigFileButton {
           }
         }
       }
@@ -1592,6 +1628,24 @@ ApplicationWindow {
               options: app.globalStyleOptions
               selectedValue: app.currentStyle()
               onSelected: value => app.applyGlobalStyle(value)
+            }
+
+            SettingsIconButton {
+              iconName: app.easyMode ? "school" : "tune"
+              tooltipText: app.easyMode
+                ? "Easy mode - click to show all settings"
+                : "Advanced mode - click to switch to Easy mode (essentials only)"
+              onClicked: app.setEasyMode(!app.easyMode)
+            }
+
+            SettingsIconButton {
+              iconName: "lock"
+              tooltipText: "Lock screen"
+              onClicked: Quickshell.execDetached([
+                Quickshell.shellPath("scripts/ryoku-shell"),
+                "lock",
+                "activate"
+              ])
             }
 
             SettingsIconButton {
@@ -1674,10 +1728,74 @@ ApplicationWindow {
     }
   }
 
+  component SettingsConfigFileButton: Rectangle {
+    id: configFileBtn
+    property bool justCopied: false
+    signal triggered
+
+    Layout.fillWidth: true
+    Layout.preferredHeight: 36
+    radius: 10
+    color: configFileMouse.containsMouse ? app.hoverColor : "transparent"
+    border.width: configFileMouse.containsMouse ? 0 : 1
+    border.color: app.borderColor
+
+    Behavior on color {
+      ColorAnimation { duration: app.fastDuration; easing.type: Easing.InOutQuad }
+    }
+
+    RowLayout {
+      anchors.fill: parent
+      anchors.leftMargin: 10
+      anchors.rightMargin: 10
+      spacing: 8
+
+      MaterialSymbol {
+        text: configFileBtn.justCopied ? "check" : "edit"
+        iconSize: 17
+        color: configFileBtn.justCopied ? app.primaryColor : app.subtextColor
+      }
+
+      Text {
+        Layout.fillWidth: true
+        text: configFileBtn.justCopied ? "Path copied" : "Config file"
+        color: app.textColor
+        font.family: Appearance.font.family.main
+        font.pixelSize: Appearance.font.pixelSize.small
+        elide: Text.ElideRight
+      }
+    }
+
+    MouseArea {
+      id: configFileMouse
+      anchors.fill: parent
+      hoverEnabled: true
+      cursorShape: Qt.PointingHandCursor
+      acceptedButtons: Qt.LeftButton | Qt.RightButton
+      onClicked: mouse => {
+        if (mouse.button === Qt.RightButton) {
+          Quickshell.clipboardText = String(Directories.shellConfigPath).replace(/^file:\/\//, "");
+          configFileBtn.justCopied = true;
+          configFileRevertTimer.restart();
+        } else {
+          app.openFileInTerminal(String(Directories.shellConfigPath).replace(/^file:\/\//, ""));
+        }
+      }
+    }
+
+    Timer {
+      id: configFileRevertTimer
+      interval: 1500
+      onTriggered: configFileBtn.justCopied = false;
+    }
+  }
+
   component SettingsSearchField: Rectangle {
     id: field
     property string text: ""
     signal edited(string value)
+
+    function focusInput() { searchInput.forceActiveFocus(); }
 
     Layout.preferredHeight: 38
     radius: 10
@@ -1713,7 +1831,7 @@ ApplicationWindow {
         Text {
           anchors.fill: parent
           verticalAlignment: Text.AlignVCenter
-          text: "Search settings"
+          text: "Search settings  (Ctrl+F)"
           color: app.subtextColor
           visible: searchInput.text.length === 0 && !searchInput.activeFocus
           font: searchInput.font

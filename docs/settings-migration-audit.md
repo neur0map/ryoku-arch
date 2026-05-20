@@ -181,13 +181,13 @@ Compatibility launcher: `ryoku-shell legacy-settings-window`.
 | Legacy feature | New surface | Status | Notes |
 |---|---|---|---|
 | User avatar in titlebar (multi-source fallback) | - | ❌ Missing | No avatar in new UI |
-| Easy/Advanced mode toggle (school ↔ tune) | - | ❌ Missing | `cfg:settingsUi.easyMode` not honored by new sidebar; 8 non-essential pages can't be hidden |
-| Lock button in titlebar (`ryoku-shell lock activate`) | - | ❌ Missing | Quick lock action removed |
-| Search field with Ctrl+F shortcut, animated icon, results badge | Sidebar search | 🟡 Partial | New has search; missing the animated morph (Cookie7Sided↔SoftBurst), badge count, breadcrumb in results, 177-entry pre-built index, scoring heuristics, spotlight-with-retry |
-| Global page-cycle shortcuts (Ctrl+PgUp/PgDn, Ctrl+Tab) | - | ❌ Missing | No keyboard page navigation |
+| Easy/Advanced mode toggle (school ↔ tune) | ryokuSettings.qml content-pane header | ✅ Ported | sub-spec #01: `cfg:settingsUi.easyMode` toggle on the inline `SettingsIconButton`. `tabsModel` now carries an `essential:` flag; `visibleTabsModel` filters down to 11 essentials when easy mode is on (general, appearance, barDock, panels, control, launcher, notifications, audioDisplay, lockPower, extras, about). Auto-bounces to page 0 when enabling if currently on a non-essential page. |
+| Lock button in titlebar (`ryoku-shell lock activate`) | ryokuSettings.qml content-pane header | ✅ Ported | sub-spec #01: inline `SettingsIconButton` left of close button; runs `Quickshell.execDetached([shellPath("scripts/ryoku-shell"), "lock", "activate"])`. |
+| Search field with Ctrl+F shortcut, animated icon, results badge | Sidebar search | 🟡 Partial | sub-spec #01 added the `Shortcut { sequences: [StandardKey.Find] }` handler (focuses via a new `focusInput()` function on the `SettingsSearchField` component) and the `(Ctrl+F)` placeholder hint. Still missing the animated morph (Cookie7Sided / SoftBurst), badge count, breadcrumb in results, 177-entry pre-built index, scoring heuristics, and spotlight-with-retry. Those land in a future search-polish sub-spec. |
+| Global page-cycle shortcuts (Ctrl+PgUp/PgDn, Ctrl+Tab) | - | ❌ Missing | Intentionally dropped during sub-spec #01 verification: sidebar click-nav is sufficient for the new UI. |
 | Page preload on first search | - | ❌ Missing | All pages are Loader-based but no async preload |
-| FAB "Config file" (open / right-click copy path, 1500ms revert) | About copy-path rows | 🟡 Partial | Copy rows exist but no single-FAB affordance; no right-click "copy path" gesture |
-| Overlay mode toggle at nav rail bottom | - | ❌ Missing | `cfg:settingsUi.overlayMode` no longer toggleable from new UI |
+| FAB "Config file" (open / right-click copy path, 1500ms revert) | ryokuSettings.qml sidebar bottom | ✅ Ported | sub-spec #01: new inline `SettingsConfigFileButton` component. Left-click opens `Directories.shellConfigPath` in the configured `apps.editor` via `openFileInTerminal` (default `nvim` in the configured terminal). Better than legacy, which used `Qt.openUrlExternally` and fell through to a browser for `.json`. Right-click copies the path with a 1500ms check-icon revert. |
+| Overlay mode toggle at nav rail bottom | - | ❌ Missing | Intentionally dropped during sub-spec #01 verification: cross-process timing for `SettingsOverlay` activation was unreliable, and centered/windowed is the only supported settings surface for the new UI. `cfg:settingsUi.overlayMode` should stay `false`. |
 | Startup deep-link via `QS_SETTINGS_PAGE` / `QS_SETTINGS_SECTION` | `applyInitialTabFromEnv()` | ✅ Ported | New has equivalent env-based entry |
 | Spotlight section highlight (15-retry timer, scroll-into-view) | - | ❌ Missing | Search results don't scroll to a specific control |
 | Window title "illogical-impulse Settings" / "Ryoku Settings" | "Ryoku Settings" | ✅ Ported | |
