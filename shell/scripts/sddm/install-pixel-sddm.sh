@@ -9,7 +9,7 @@ THEME_NAME="ii-pixel"
 THEME_SRC="${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}/dots/sddm/pixel"
 THEME_DIR="/usr/share/sddm/themes/${THEME_NAME}"
 SYNC_SCRIPT="${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}/scripts/sddm/sync-pixel-sddm.py"
-SDDM_CONF="/etc/sddm.conf.d/theme.conf"
+SDDM_CONF="/etc/sddm.conf.d/99-ryoku-shell-theme.conf"
 STALE_SDDM_CONFS=(
   "/etc/sddm.conf.d/i""nir-theme.conf"
   "/etc/sddm.conf.d/ryoku-shell-theme.conf"
@@ -48,6 +48,19 @@ elevate() {
 get_current_sddm_theme() {
   local current="" value="" f
 
+  if [[ -f /etc/sddm.conf ]]; then
+    value=$(awk -F= '
+      /^[[:space:]]*Current[[:space:]]*=/ {
+        gsub(/[[:space:]]/, "", $2)
+        current = $2
+      }
+      END { print current }
+    ' /etc/sddm.conf 2>/dev/null || true)
+    if [[ -n $value ]]; then
+      current="$value"
+    fi
+  fi
+
   shopt -s nullglob
   for f in /etc/sddm.conf.d/*.conf; do
     value=$(awk -F= '
@@ -63,20 +76,6 @@ get_current_sddm_theme() {
   done
   shopt -u nullglob
 
-  # Main sddm.conf can override drop-ins on some SDDM builds.
-  if [[ -f /etc/sddm.conf ]]; then
-    value=$(awk -F= '
-      /^[[:space:]]*Current[[:space:]]*=/ {
-        gsub(/[[:space:]]/, "", $2)
-        current = $2
-      }
-      END { print current }
-    ' /etc/sddm.conf 2>/dev/null || true)
-    if [[ -n $value ]]; then
-      current="$value"
-    fi
-  fi
-
   echo "$current"
 }
 
@@ -90,32 +89,10 @@ cleanup_stale_current_dropins() {
   done
 }
 
-neutralize_conflicting_input_method() {
-  local conf conf_name
-
-  shopt -s nullglob
-  for conf in /etc/sddm.conf.d/*.conf; do
-    [[ -f $conf ]] || continue
-    [[ $conf == "$SDDM_CONF" ]] && continue
-    if grep -qiE '^[[:space:]]*InputMethod[[:space:]]*=[[:space:]]*qtvirtualkeyboard[[:space:]]*$' "$conf" 2>/dev/null; then
-      conf_name="$(basename "$conf")"
-      log_warn "Removing conflicting SDDM InputMethod from ${conf_name}"
-      elevate sed -i '/^[[:space:]]*InputMethod[[:space:]]*=[[:space:]]*qtvirtualkeyboard[[:space:]]*$/Id' "$conf"
-    fi
-  done
-  shopt -u nullglob
-
-  if [[ -f /etc/sddm.conf ]] \
-    && grep -qiE '^[[:space:]]*InputMethod[[:space:]]*=[[:space:]]*qtvirtualkeyboard[[:space:]]*$' /etc/sddm.conf 2>/dev/null; then
-    log_warn "Removing conflicting SDDM InputMethod from /etc/sddm.conf"
-    elevate sed -i '/^[[:space:]]*InputMethod[[:space:]]*=[[:space:]]*qtvirtualkeyboard[[:space:]]*$/Id' /etc/sddm.conf
-  fi
-}
-
 write_pixel_sddm_conf() {
   elevate mkdir -p /etc/sddm.conf.d
-  # Use X11 as display server - Wayland (kwin_wayland) crashes in some environments (VMs, etc.).
-  # Keep Qt's built-in virtual keyboard disabled because the pixel theme ships its own.
+  # Use a high-priority drop-in so Ryoku settings win by SDDM merge order
+  # without mutating foreign KDE/user drop-ins.
   elevate tee "${SDDM_CONF}" > /dev/null << SDDM_EOF
 [General]
 DisplayServer=x11
@@ -256,21 +233,12 @@ import sys; sys.stdout.buffer.write(make_png())
 fi
 
 # Configure SDDM to use this theme (intelligent: optional if user has another theme)
-pixel_theme_active=false
 if should_apply_theme; then
     log_info "Configuring SDDM to use ${THEME_NAME}..."
     cleanup_stale_current_dropins
-    
-    # Remove any existing Current= line from /etc/sddm.conf to avoid conflicts
-    # The drop-in /etc/sddm.conf.d/ only works if the main file doesn't override it
-    if [[ -f /etc/sddm.conf ]] && grep -qE '^[[:space:]]*Current[[:space:]]*=' /etc/sddm.conf 2>/dev/null; then
-        log_info "Removing conflicting theme setting from /etc/sddm.conf..."
-        elevate sed -i '/^[[:space:]]*Current[[:space:]]*=/d' /etc/sddm.conf
-    fi
-    
+
     write_pixel_sddm_conf
     log_ok "SDDM configured (${SDDM_CONF}) with X11 display server"
-    pixel_theme_active=true
 else
     current_theme="$(get_current_sddm_theme)"
     if [[ $current_theme == "$THEME_NAME" ]]; then
@@ -278,14 +246,9 @@ else
         cleanup_stale_current_dropins
         write_pixel_sddm_conf
         log_ok "SDDM settings updated (${SDDM_CONF})"
-        pixel_theme_active=true
     else
         log_info "Installed ${THEME_NAME}, but did not change SDDM Current theme"
     fi
-fi
-
-if [[ $pixel_theme_active == "true" ]]; then
-    neutralize_conflicting_input_method
 fi
 
 # Run initial color sync now that files are in place

@@ -643,7 +643,8 @@ uninstall_show_manual_steps() {
     echo -e "  ${STY_YELLOW}•${STY_RST} SDDM theme: /usr/share/sddm/themes/ii-pixel"
     echo -e "    ${STY_FAINT}Used by: SDDM login screen${STY_RST}"
     echo ""
-    echo -e "  ${STY_YELLOW}•${STY_RST} SDDM theme drop-in: /etc/sddm.conf.d/ryoku-shell-theme.conf"
+    echo -e "  ${STY_YELLOW}•${STY_RST} SDDM theme drop-in: /etc/sddm.conf.d/99-ryoku-shell-theme.conf"
+    echo -e "  ${STY_YELLOW}•${STY_RST} Legacy SDDM theme drop-in: /etc/sddm.conf.d/ryoku-shell-theme.conf"
     echo -e "    ${STY_FAINT}Used by: sets Current=ii-pixel${STY_RST}"
     echo ""
 
@@ -664,7 +665,7 @@ uninstall_show_manual_steps() {
         echo -e "  sudo rm -rf /usr/share/sddm/themes/ii-pixel"
         echo ""
         echo -e "  ${STY_CYAN}# Remove SDDM theme config drop-in${STY_RST}"
-        echo -e "  sudo rm -f /etc/sddm.conf.d/ryoku-shell-theme.conf"
+        echo -e "  sudo rm -f /etc/sddm.conf.d/99-ryoku-shell-theme.conf /etc/sddm.conf.d/ryoku-shell-theme.conf"
         echo ""
     fi
 }

@@ -28,7 +28,8 @@ Singleton {
         fileReloadTimer.stop();
         root._prepareCustomInject();
         root._writeInFlight = true;
-        configFileView.writeAdapter();
+        root._writeMirrorToDisk();
+        root._writeInFlight = false;
     }
 
     function _applyNestedKey(nestedKey, value) {
@@ -102,6 +103,7 @@ Singleton {
 
     function setNestedValue(nestedKey, value) {
         _applyNestedKey(nestedKey, value);
+        _applyToMirror(nestedKey, value);
         fileWriteTimer.restart();
         root._bumpRevision();
         root.configChanged();
@@ -115,12 +117,26 @@ Singleton {
         const paths = Object.keys(updates);
         for (let i = 0; i < paths.length; ++i) {
             _applyNestedKey(paths[i], updates[paths[i]]);
+            _applyToMirror(paths[i], updates[paths[i]]);
         }
         if (paths.length > 0) {
             fileWriteTimer.restart();
             root._bumpRevision();
             root.configChanged();
         }
+    }
+
+    function _applyToMirror(nestedKey, value): void {
+        let keys = Array.isArray(nestedKey) ? nestedKey : String(nestedKey).split(".");
+        if (keys.length === 0) return;
+        if (keys.length >= 3 && keys[0] === "background" && keys[1] === "widgets" && keys[2] === "custom") return;
+        let obj = root._jsonMirror;
+        for (let i = 0; i < keys.length - 1; i++) {
+            if (!obj[keys[i]] || typeof obj[keys[i]] !== "object")
+                obj[keys[i]] = {};
+            obj = obj[keys[i]];
+        }
+        obj[keys[keys.length - 1]] = value;
     }
 
     function getNestedValue(nestedKey, fallback) {
@@ -177,6 +193,7 @@ Singleton {
     property bool _pendingCustomInject: false
     property bool _pendingReload: false
     property var _customSnapshotForInject: ({})
+    property var _jsonMirror: ({})
 
     function _finishPendingReload(): void {
         if (root._pendingReload) {
@@ -205,6 +222,7 @@ Singleton {
     }
 
     function _failWrite(error): void {
+        writeFlightGuard.stop();
         console.warn("[Config] Save failed:", error);
         root._pendingCustomInject = false;
         root._customSnapshotForInject = ({});
@@ -249,21 +267,33 @@ Singleton {
             root.customWidgetData = root._cloneObject(root._customSnapshotForInject);
     }
 
+    function _writeMirrorToDisk(): void {
+        try {
+            let obj = root._jsonMirror;
+            if (!obj || Object.keys(obj).length === 0) return;
+            if (root._hasObjectKeys(root.customWidgetData)) {
+                if (!obj.background) obj.background = {};
+                if (!obj.background.widgets) obj.background.widgets = {};
+                obj.background.widgets.custom = root.customWidgetData;
+            }
+            configFileView.setText(JSON.stringify(obj, null, 4));
+        } catch (e) {
+            console.warn("[Config] mirror write failed:", e.message);
+        }
+    }
+
     function _injectCustomDataSync(): void {
         const customData = root._hasObjectKeys(root._customSnapshotForInject)
             ? root._customSnapshotForInject : root.customWidgetData;
         if (!root._hasObjectKeys(customData)) return;
         try {
-            const text = configFileView.text();
-            if (!text) return;
-            const obj = JSON.parse(text);
-            if (!obj.background) obj.background = {};
-            if (!obj.background.widgets) obj.background.widgets = {};
-            obj.background.widgets.custom = customData;
+            if (!root._jsonMirror.background) root._jsonMirror.background = {};
+            if (!root._jsonMirror.background.widgets) root._jsonMirror.background.widgets = {};
+            root._jsonMirror.background.widgets.custom = customData;
             root.customWidgetData = root._cloneObject(customData);
             root._customSnapshotForInject = ({});
             root._writeInFlight = true;
-            configFileView.setText(JSON.stringify(obj, null, 4));
+            configFileView.setText(JSON.stringify(root._jsonMirror, null, 4));
         } catch (e) { root._writeInFlight = false; }
     }
 
@@ -272,13 +302,12 @@ Singleton {
         interval: root.readWriteDelay
         repeat: false
         onTriggered: {
-            if (root._writeInFlight) {
+            if (root._writeInFlight || customInjectTimer.running) {
                 root._pendingReload = true;
                 return;
             }
             configFileView.reload();
             root._syncVarProperties();
-            root._bumpRevision();
             root.configChanged();
         }
     }
@@ -288,6 +317,10 @@ Singleton {
         interval: root.readWriteDelay
         repeat: false
         onTriggered: {
+            if (!root.ready) {
+                root._pendingWrite = true;
+                return;
+            }
             if (root._writeInFlight) {
                 root._pendingWrite = true;
                 return;
@@ -297,6 +330,19 @@ Singleton {
             root._writeInFlight = true;
             fileReloadTimer.stop();
             configFileView.writeAdapter();
+            writeFlightGuard.restart();
+        }
+    }
+
+    Timer {
+        id: writeFlightGuard
+        interval: 2000
+        repeat: false
+        onTriggered: {
+            if (root._writeInFlight) {
+                root._writeInFlight = false;
+                root._writeMirrorToDisk();
+            }
         }
     }
 
@@ -318,10 +364,31 @@ Singleton {
         watchChanges: true
         blockWrites: root.blockWrites
         onFileChanged: fileReloadTimer.restart()
-        onAdapterUpdated: fileWriteTimer.restart()
-        onSaved: root._completeSavedWrite()
+        onSaved: {
+            writeFlightGuard.stop();
+            root._writeInFlight = false;
+            if (root._pendingCustomInject) {
+                root._pendingCustomInject = false;
+                customInjectTimer.restart();
+                return;
+            }
+            if (root._pendingWrite) {
+                root._pendingWrite = false;
+                fileWriteTimer.restart();
+                return;
+            }
+            if (root._pendingReload) {
+                root._pendingReload = false;
+                fileReloadTimer.restart();
+            }
+        }
         onSaveFailed: error => root._failWrite(error)
         onLoaded: {
+            try {
+                root._jsonMirror = JSON.parse(configFileView.text());
+            } catch (e) {
+                root._jsonMirror = {};
+            }
             root._syncVarProperties();
             root._bumpRevision();
             root.ready = true;

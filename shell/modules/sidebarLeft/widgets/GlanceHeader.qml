@@ -208,10 +208,9 @@ Item {
             spacing: 8
 
             StyledText {
-                // For ryoku: show weekday and month only (no day number since calendar shows it)
-                text: Appearance.ryokuEverywhere
-                    ? root.locale.toString(DateTime.clock.date, "dddd, MMMM yyyy")
-                    : root.locale.toString(DateTime.clock.date, "dddd, d MMMM")
+                readonly property string _configFormat: Config.options?.time?.dateFormat ?? ""
+                readonly property string _defaultFormat: Appearance.ryokuEverywhere ? "dddd, MMMM yyyy" : "dddd, d MMMM"
+                text: root.locale.toString(DateTime.clock.date, _configFormat.length > 0 ? _configFormat : _defaultFormat)
                 font.pixelSize: Appearance.font.pixelSize.normal
                 color: Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary : Appearance.colors.colSubtext
             }

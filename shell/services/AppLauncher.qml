@@ -247,6 +247,14 @@ Singleton {
         if (command.length === 0)
             return
 
+        if (!command.includes(" ") && !command.includes("/")) {
+            const entry = DesktopEntries.heuristicLookup(command)
+            if (entry) {
+                entry.execute()
+                return
+            }
+        }
+
         ShellExec.execCmd(command)
     }
 
