@@ -10,6 +10,22 @@ doctor_fixed=0
 doctor_missing_deps=()
 doctor_report_dir=""
 doctor_report_file=""
+doctor_tui_active=0
+doctor_tui_rows=0
+doctor_tui_cols=80
+doctor_tui_top_lines=0
+doctor_tui_logo_lines=0
+doctor_tui_step_top=0
+doctor_tui_started=0
+doctor_tui_current_step=0
+doctor_tui_total_steps=0
+doctor_tui_current_message=""
+doctor_tui_result="running"
+doctor_tui_cleanup_installed=0
+
+declare -ga doctor_tui_labels=()
+declare -ga doctor_tui_status=()
+declare -ga doctor_tui_messages=()
 
 # Ensure XDG paths are always defined (doctor can be sourced outside setup bootstrap)
 XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
@@ -145,6 +161,236 @@ doctor_report_finish() {
 doctor_report_print_path() {
     [[ -n $doctor_report_file ]] || return 0
     tui_info "Doctor report: $doctor_report_file"
+}
+
+doctor_tui_tput_number() {
+  local cap="$1" fallback="$2" value
+
+  value="$(tput "$cap" 2>/dev/null || true)"
+  if [[ $value =~ ^[0-9]+$ ]]; then
+    printf '%s\n' "$value"
+  else
+    printf '%s\n' "$fallback"
+  fi
+}
+
+doctor_tui_color() {
+  local code="$1" text="$2"
+
+  if [[ -n ${NO_COLOR:-} ]]; then
+    printf '%s' "$text"
+  else
+    printf '\033[%sm%s\033[0m' "$code" "$text"
+  fi
+}
+
+doctor_tui_repeat() {
+  local char="$1" count="$2" output="" i
+
+  for ((i = 0; i < count; i++)); do
+    output+="$char"
+  done
+
+  printf '%s' "$output"
+}
+
+doctor_tui_brand_logo() {
+  local logo_file="${REPO_ROOT:-$PWD}/../assets/brand/logo.txt"
+  local custom_logo="${RYOKU_DOCTOR_BRAND_LOGO_FILE:-}"
+
+  if [[ -n $custom_logo && -r $custom_logo ]]; then
+    cat "$custom_logo"
+  elif [[ -r $logo_file ]]; then
+    cat "$logo_file"
+  else
+    printf '%s\n' "RYOKU"
+  fi
+}
+
+doctor_tui_logo_height() {
+  if (( doctor_tui_cols >= 58 )); then
+    doctor_tui_brand_logo | wc -l | tr -d '[:space:]'
+  else
+    printf '%s\n' 1
+  fi
+}
+
+doctor_tui_stage_symbol() {
+  local status="$1"
+
+  case "$status" in
+    done) printf '✓' ;;
+    running) printf '●' ;;
+    failed) printf '✗' ;;
+    fixed) printf '⚠' ;;
+    *) printf '○' ;;
+  esac
+}
+
+doctor_tui_stage_color() {
+  local status="$1"
+
+  case "$status" in
+    done) printf '32' ;;
+    running) printf '35;1' ;;
+    failed) printf '31;1' ;;
+    fixed) printf '33;1' ;;
+    *) printf '90' ;;
+  esac
+}
+
+doctor_tui_line() {
+  local row="$1" text="${2:-}"
+
+  printf '\033[%d;1H\033[2K' "$row"
+  printf '%s' "$text"
+}
+
+doctor_tui_should_start() {
+  local forced=false
+
+  case "${RYOKU_DOCTOR_TUI:-auto}" in
+    0|false|off|no)
+      return 1
+      ;;
+    1|true|on|yes)
+      forced=true
+      ;;
+  esac
+
+  [[ -t 1 ]] || return 1
+  [[ ${TERM:-} == "dumb" && $forced != true ]] && return 1
+  [[ ${CI:-} == "true" ]] && return 1
+
+  local rows
+  rows="$(doctor_tui_tput_number lines 24)"
+  $forced || (( rows >= 18 ))
+}
+
+doctor_tui_draw_brand() {
+  (( doctor_tui_active == 1 )) || return 0
+
+  local row=1 line
+
+  if (( doctor_tui_logo_lines > 1 )); then
+    while IFS= read -r line; do
+      doctor_tui_line "$row" "$(doctor_tui_color "35;1" "$line")"
+      ((row++))
+      (( row > doctor_tui_logo_lines )) && break
+    done < <(doctor_tui_brand_logo)
+  else
+    doctor_tui_line 1 "$(doctor_tui_color "35;1" "RYOKU")"
+  fi
+}
+
+doctor_tui_draw() {
+  (( doctor_tui_active == 1 )) || return 0
+
+  local elapsed label status message symbol color line i
+
+  elapsed=$((SECONDS - doctor_tui_started))
+
+  printf '\0337'
+  doctor_tui_draw_brand
+  doctor_tui_line "$((doctor_tui_logo_lines + 1))" "$(doctor_tui_color "35;1" "Ryoku Doctor")  $(doctor_tui_color "90" "${elapsed}s elapsed")"
+  doctor_tui_line "$((doctor_tui_logo_lines + 2))" "$(doctor_tui_color "90" "Checks dependencies, runtime payload, launcher, services, theming, and desktop state.")"
+  doctor_tui_line "$((doctor_tui_logo_lines + 3))" "$(doctor_tui_color "90" "$(doctor_tui_repeat "─" "$doctor_tui_cols")")"
+
+  for ((i = 1; i <= doctor_tui_total_steps; i++)); do
+    label="${doctor_tui_labels[$i]:-Check $i}"
+    status="${doctor_tui_status[$i]:-pending}"
+    message="${doctor_tui_messages[$i]:-}"
+    symbol="$(doctor_tui_stage_symbol "$status")"
+    color="$(doctor_tui_stage_color "$status")"
+    if [[ -n $message && $message != "$label" ]]; then
+      line="$(doctor_tui_color "$color" "$symbol") $(doctor_tui_color "90" "[$i/$doctor_tui_total_steps]") $label $(doctor_tui_color "90" "- $message")"
+    else
+      line="$(doctor_tui_color "$color" "$symbol") $(doctor_tui_color "90" "[$i/$doctor_tui_total_steps]") $label"
+    fi
+    doctor_tui_line "$((doctor_tui_step_top + i - 1))" "$line"
+  done
+
+  doctor_tui_line "$((doctor_tui_top_lines - 2))" "$(doctor_tui_color "90" "$(doctor_tui_repeat "─" "$doctor_tui_cols")")"
+  doctor_tui_line "$((doctor_tui_top_lines - 1))" "$(doctor_tui_color "90" "Passed") $(doctor_tui_color "32;1" "$doctor_passed")  $(doctor_tui_color "90" "Fixed") $(doctor_tui_color "33;1" "$doctor_fixed")  $(doctor_tui_color "90" "Failed") $(doctor_tui_color "31;1" "$doctor_failed")"
+
+  case "$doctor_tui_result" in
+    success)
+      doctor_tui_line "$doctor_tui_top_lines" "$(doctor_tui_color "32;1" "Doctor complete. Everything looks good.")"
+      ;;
+    fixed)
+      doctor_tui_line "$doctor_tui_top_lines" "$(doctor_tui_color "33;1" "Doctor complete. Automatic fixes were applied.")"
+      ;;
+    failed)
+      doctor_tui_line "$doctor_tui_top_lines" "$(doctor_tui_color "31;1" "Doctor complete. Manual attention needed.")"
+      ;;
+    *)
+      doctor_tui_line "$doctor_tui_top_lines" "$(doctor_tui_color "90" "${doctor_tui_current_message:-Running checks...}")"
+      ;;
+  esac
+  printf '\0338'
+}
+
+doctor_tui_finish() {
+  (( doctor_tui_active == 1 )) || return 0
+
+  doctor_tui_draw
+  printf '\033[%d;1H\033[?25h' "$((doctor_tui_top_lines + 2))"
+  doctor_tui_active=0
+}
+
+doctor_tui_cleanup() {
+  doctor_tui_finish 2>/dev/null || true
+}
+
+doctor_tui_start() {
+  local total="$1" i
+  shift
+
+  doctor_tui_total_steps="$total"
+  doctor_tui_started=$SECONDS
+  doctor_tui_result="running"
+  doctor_tui_current_message="Starting doctor..."
+  doctor_tui_labels=()
+  doctor_tui_status=()
+  doctor_tui_messages=()
+
+  for ((i = 1; i <= total; i++)); do
+    doctor_tui_labels[$i]="${1:-Check $i}"
+    doctor_tui_status[$i]="pending"
+    doctor_tui_messages[$i]=""
+    shift || true
+  done
+
+  doctor_tui_active=0
+  if ! doctor_tui_should_start; then
+    return 0
+  fi
+
+  doctor_tui_rows="$(doctor_tui_tput_number lines 24)"
+  doctor_tui_cols="$(doctor_tui_tput_number cols 80)"
+  doctor_tui_logo_lines="$(doctor_tui_logo_height)"
+  doctor_tui_step_top=$((doctor_tui_logo_lines + 4))
+  doctor_tui_top_lines=$((doctor_tui_step_top + total + 2))
+
+  if (( doctor_tui_rows - doctor_tui_top_lines < 2 )); then
+    return 0
+  fi
+
+  doctor_tui_active=1
+  printf '\033[?25l\033[2J\033[H'
+  doctor_tui_draw
+}
+
+doctor_tui_mark_step() {
+  local step="$1" status="$2" message="${3:-}"
+
+  (( doctor_tui_active == 1 )) || return 0
+
+  doctor_tui_status[$step]="$status"
+  doctor_tui_messages[$step]="$message"
+  doctor_tui_current_step="$step"
+  doctor_tui_current_message="$message"
+  doctor_tui_draw
 }
 
 doctor_detect_compositor_service() {
@@ -1626,6 +1872,136 @@ check_niri_config() {
     fi
 }
 
+doctor_core_repo_root() {
+  local candidates=()
+  local candidate
+
+  candidates+=("${RYOKU_PATH:-}")
+  if [[ -n ${REPO_ROOT:-} ]]; then
+    candidates+=("$REPO_ROOT")
+    candidates+=("${REPO_ROOT}/..")
+  fi
+  candidates+=("$PWD")
+  candidates+=("$PWD/..")
+
+  for candidate in "${candidates[@]}"; do
+    [[ -n $candidate ]] || continue
+    candidate="$(cd -- "$candidate" 2>/dev/null && pwd || true)"
+    [[ -n $candidate ]] || continue
+    if [[ -f $candidate/keys/ryoku-release-key.pub.asc && -d $candidate/iso ]]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+doctor_iso_expected_fingerprint() {
+  printf '%s\n' "621F579BD15594C4DE840B7D53297813C0BEE055"
+}
+
+doctor_iso_key_fingerprint() {
+  local key_file="$1"
+
+  gpg --with-colons --import-options show-only --import "$key_file" 2>/dev/null \
+    | awk -F: '/^fpr:/ { print $10; exit }'
+}
+
+doctor_latest_local_iso() {
+  local core_root="$1"
+
+  find "$core_root/iso/release" -maxdepth 1 -type f -name "*.iso" -printf '%T@ %p\n' 2>/dev/null \
+    | sort -nr \
+    | awk 'NR == 1 { sub(/^[^ ]+ /, ""); print }'
+}
+
+check_iso_signature() {
+  local core_root key_file expected_fingerprint actual_fingerprint
+  local iso sig gpg_home verify_output valid_fingerprint
+
+  core_root="$(doctor_core_repo_root || true)"
+  if [[ -z $core_root ]]; then
+    doctor_fail "ISO release key not found in repo"
+    return 0
+  fi
+
+  key_file="$core_root/keys/ryoku-release-key.pub.asc"
+  if [[ ! -r $key_file ]]; then
+    doctor_fail "ISO release public key missing"
+    return 0
+  fi
+
+  if ! command -v gpg >/dev/null 2>&1; then
+    doctor_fail "gpg missing (cannot verify ISO signature)"
+    return 0
+  fi
+
+  expected_fingerprint="$(doctor_iso_expected_fingerprint)"
+  actual_fingerprint="$(doctor_iso_key_fingerprint "$key_file")"
+  if [[ -z $actual_fingerprint ]]; then
+    doctor_fail "ISO release public key fingerprint unreadable"
+    return 0
+  fi
+
+  if [[ $actual_fingerprint != "$expected_fingerprint" ]]; then
+    doctor_fail "ISO release key fingerprint mismatch"
+    echo -e "    ${STY_FAINT}Expected: $expected_fingerprint${STY_RST}"
+    echo -e "    ${STY_FAINT}Actual:   $actual_fingerprint${STY_RST}"
+    return 0
+  fi
+
+  iso="$(doctor_latest_local_iso "$core_root")"
+  if [[ -z $iso ]]; then
+    doctor_pass "ISO release key fingerprint OK (no local ISO artifact)"
+    return 0
+  fi
+
+  sig="${iso}.sig"
+  if [[ ! -r $sig ]]; then
+    doctor_fail "ISO signature missing: $(basename "$sig")"
+    return 0
+  fi
+
+  gpg_home="$(mktemp -d "${TMPDIR:-/tmp}/ryoku-doctor-gpg.XXXXXXXX" 2>/dev/null || true)"
+  if [[ -z $gpg_home ]]; then
+    doctor_fail "Could not create temporary GPG keyring"
+    return 0
+  fi
+  chmod 700 "$gpg_home" 2>/dev/null || true
+
+  if ! GNUPGHOME="$gpg_home" gpg --batch --import "$key_file" >/dev/null 2>&1; then
+    rm -rf "$gpg_home"
+    doctor_fail "Could not import ISO release public key"
+    return 0
+  fi
+
+  verify_output="$(GNUPGHOME="$gpg_home" gpg --batch --status-fd 1 --verify "$sig" "$iso" 2>&1 || true)"
+  rm -rf "$gpg_home"
+
+  valid_fingerprint="$(awk '/^\[GNUPG:\] VALIDSIG / { print $3; exit }' <<<"$verify_output")"
+  if [[ $valid_fingerprint != "$expected_fingerprint" ]]; then
+    doctor_fail "ISO signature is not from the trusted Ryoku release key"
+    [[ -n $valid_fingerprint ]] && echo -e "    ${STY_FAINT}Signer: $valid_fingerprint${STY_RST}"
+    return 0
+  fi
+
+  if ! grep -q '^\[GNUPG:\] GOODSIG ' <<<"$verify_output"; then
+    doctor_fail "ISO signature verification failed"
+    return 0
+  fi
+
+  if [[ -r ${iso}.sha256 ]]; then
+    if (cd -- "$(dirname -- "$iso")" && sha256sum -c "$(basename -- "$iso").sha256" >/dev/null 2>&1); then
+      doctor_pass "ISO signature and SHA256 OK"
+    else
+      doctor_fail "ISO SHA256 verification failed"
+    fi
+  else
+    doctor_pass "ISO signature OK"
+  fi
+}
+
 ###############################################################################
 # Main
 ###############################################################################
@@ -1642,7 +2018,12 @@ _doctor_run_step() {
     pre_failed=$doctor_failed
     pre_fixed=$doctor_fixed
 
-    tui_step_start "$step" "$total" "$desc"
+    if (( doctor_tui_active == 1 )); then
+        doctor_tui_mark_step "$step" "running" "$desc"
+    else
+        tui_step_start "$step" "$total" "$desc"
+    fi
+
     "$@" > "$tmpfile" 2>&1
 
     new_fails=$((doctor_failed - pre_failed))
@@ -1652,27 +2033,65 @@ _doctor_run_step() {
     [[ -s $tmpfile ]] && lines="$(grep -c '.' "$tmpfile" 2>/dev/null || true)"
 
     msg=""
-    if (( lines == 1 )); then
-        msg="$(sed 's/\x1b\[[0-9;]*m//g; s/^[[:space:]]*//; s/^[✓✗⚠→] //' "$tmpfile")"
+    if (( lines > 0 )); then
+        msg="$(sed 's/\x1b\[[0-9;]*m//g; s/^[[:space:]]*//; s/^[✓✗⚠→] //' "$tmpfile" | awk 'NF { line=$0 } END { print line }')"
     fi
 
     if (( new_fails > 0 )); then
-        tui_step_fail "${msg:-$desc}"
+        if (( doctor_tui_active == 1 )); then
+            doctor_tui_mark_step "$step" "failed" "${msg:-$desc}"
+        else
+            tui_step_fail "${msg:-$desc}"
+        fi
     elif (( new_fixes > 0 )); then
-        tui_step_warn "${msg:-Fixed: $desc}"
+        if (( doctor_tui_active == 1 )); then
+            doctor_tui_mark_step "$step" "fixed" "${msg:-Fixed: $desc}"
+        else
+            tui_step_warn "${msg:-Fixed: $desc}"
+        fi
     else
-        tui_step_done "${msg:-$desc}"
+        if (( doctor_tui_active == 1 )); then
+            doctor_tui_mark_step "$step" "done" "${msg:-$desc}"
+        else
+            tui_step_done "${msg:-$desc}"
+        fi
     fi
 
-    if (( lines > 1 )); then
+    if (( doctor_tui_active != 1 && lines > 1 )); then
         sed 's/^/  /' "$tmpfile"
     fi
     rm -f "$tmpfile"
 }
 
 run_doctor_with_fixes() {
-    local total_steps=23
+    local total_steps=24
     local doctor_started_at=$SECONDS
+    local doctor_step_labels=(
+        "Checking dependencies"
+        "Checking fonts"
+        "Checking repo checkout"
+        "Checking updater bootstrap"
+        "Checking critical files"
+        "Checking script permissions"
+        "Checking launcher"
+        "Checking user config"
+        "Checking state directories"
+        "Checking version tracking"
+        "Checking file manifest"
+        "Checking user service"
+        "Checking Niri compositor"
+        "Checking Python packages"
+        "Checking Quickshell/Qt ABI"
+        "Checking Quickshell"
+        "Checking theme colors"
+        "Checking Qt theming"
+        "Checking conflicting services"
+        "Checking conflicting shells"
+        "Checking wallpaper health"
+        "Checking environment variables"
+        "Checking Niri config"
+        "Checking ISO signature"
+    )
     doctor_passed=0
     doctor_failed=0
     doctor_fixed=0
@@ -1680,6 +2099,7 @@ run_doctor_with_fixes() {
     doctor_report_file=""
 
     doctor_report_init
+    doctor_tui_start "$total_steps" "${doctor_step_labels[@]}"
     
     _doctor_run_step 1 $total_steps "Checking dependencies" check_dependencies
 
@@ -1748,7 +2168,17 @@ run_doctor_with_fixes() {
 
     _doctor_run_step 23 $total_steps "Checking Niri config" check_niri_config
 
+    _doctor_run_step 24 $total_steps "Checking ISO signature" check_iso_signature
+
     doctor_report_finish
+    if (( doctor_failed > 0 )); then
+        doctor_tui_result="failed"
+    elif (( doctor_fixed > 0 )); then
+        doctor_tui_result="fixed"
+    else
+        doctor_tui_result="success"
+    fi
+    doctor_tui_finish
     
     echo ""
     tui_divider

@@ -39,6 +39,7 @@ tui_confirm() { return 1; }
 source "$ROOT_DIR/shell/sdata/lib/doctor.sh"
 
 ask=false
+REPO_ROOT="$ROOT_DIR/shell"
 current_user="$(id -un)"
 current_host="$(hostname 2>/dev/null || true)"
 
@@ -65,6 +66,7 @@ check_conflicting_shells() { doctor_pass "no conflicting shells"; }
 check_wallpaper_health() { doctor_pass "wallpapers healthy"; }
 check_environment_vars() { doctor_pass "environment variables OK"; }
 check_niri_config() { doctor_pass "niri config valid"; }
+check_iso_signature() { doctor_pass "iso release key fingerprint OK"; }
 
 set +e
 output=$(TMPDIR="$tmp" run_doctor_with_fixes 2>&1)
@@ -73,10 +75,12 @@ set -e
 
 (( status != 0 )) || fail "doctor should return nonzero when a mocked issue is present"
 
-grep -Fq 'START: 1 23 Checking dependencies' <<<"$output" \
+grep -Fq 'START: 1 24 Checking dependencies' <<<"$output" \
   || fail "doctor should use the buffered step runner"
 grep -Fq 'Checking updater bootstrap' <<<"$output" \
   || fail "doctor should keep the Ryoku updater-bootstrap check"
+grep -Fq 'Checking ISO signature' <<<"$output" \
+  || fail "doctor should verify the ISO release signature chain"
 grep -Fq 'Doctor report:' <<<"$output" \
   || fail "doctor should print the generated report path"
 
