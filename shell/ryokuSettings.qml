@@ -278,6 +278,7 @@ ApplicationWindow {
     { label: "Bar modules", desc: "Bar visible widgets", page: "Bar & Dock", subTab: 1 },
     { label: "Dock", desc: "Dock placement, previews, icons", page: "Bar & Dock", subTab: 2 },
     { label: "Panels", desc: "Loaded shell panels and Waffle", page: "Panels & Modules", subTab: 0 },
+    { label: "Sidebars", desc: "Left tabs, right widgets, panel loading", page: "Panels & Modules", subTab: 0 },
     { label: "Control Center", desc: "Quick settings sections", page: "Control Center", subTab: 0 },
     { label: "Launcher", desc: "Search and global actions", page: "Launcher", subTab: 0 },
     { label: "Notifications", desc: "DND, timeout, position", page: "Notifications", subTab: 0 },
@@ -1252,6 +1253,37 @@ ApplicationWindow {
     if (!enabled && idx >= 0)
       values.splice(idx, 1);
     Config.setNestedValue(path, values);
+  }
+
+  readonly property var rightSidebarWidgetDefaults: ["calendar", "events", "todo", "notepad", "calculator", "sysmon", "timer", "openvpn", "hosts", "netmon", "firewall"]
+
+  function rightSidebarWidgetList() {
+    const configured = Config.getNestedValue("sidebar.right.enabledWidgets", null);
+    if (Array.isArray(configured))
+      return [...configured];
+    if (configured && typeof configured.length === "number" && typeof configured !== "string") {
+      const out = [];
+      for (let i = 0; i < configured.length; i++)
+        out.push(configured[i]);
+      return out;
+    }
+    return [...rightSidebarWidgetDefaults];
+  }
+
+  function isRightSidebarWidgetEnabled(widgetId) {
+    return rightSidebarWidgetList().indexOf(widgetId) >= 0;
+  }
+
+  function setRightSidebarWidgetEnabled(widgetId, enabled) {
+    let widgets = rightSidebarWidgetList();
+    const idx = widgets.indexOf(widgetId);
+
+    if (enabled && idx < 0)
+      widgets.push(widgetId);
+    if (!enabled && idx >= 0)
+      widgets.splice(idx, 1);
+
+    Config.setNestedValue("sidebar.right.enabledWidgets", widgets);
   }
 
   function formatNumber(value, decimals) {
@@ -5182,10 +5214,107 @@ ApplicationWindow {
                   { label: "Dock", description: "Desktop dock.", listPath: "enabledPanels", id: "iiDock" },
                   { label: "Notifications", description: "Popup notifications.", listPath: "enabledPanels", id: "iiNotificationPopup" },
                   { label: "Overview", description: "Workspace overview.", listPath: "enabledPanels", id: "iiOverview" },
+                  { label: "Left sidebar", description: "AI, translator, wallpaper, tools, and widget tabs.", listPath: "enabledPanels", id: "iiSidebarLeft" },
+                  { label: "Right sidebar", description: "Quick controls, calendar, notes, system tools, and monitoring widgets.", listPath: "enabledPanels", id: "iiSidebarRight" },
                   { label: "Screen corners", description: "Corner overlays.", listPath: "enabledPanels", id: "iiScreenCorners" },
                   { label: "Session screen", description: "Power menu.", listPath: "enabledPanels", id: "iiSessionScreen" },
                   { label: "Clipboard", description: "Clipboard UI.", listPath: "enabledPanels", id: "iiClipboard" }
                 ]
+              }
+            }
+
+            SettingsSettingCard {
+              iconName: "view_sidebar"
+              title: "Sidebars"
+              description: "Controls from the legacy sidebar panel, without requiring raw config edits."
+
+              SettingsToggleGrid {
+                options: [
+                  { label: "Card style", description: "Use card surfaces.", path: "sidebar.cardStyle", fallback: false },
+                  { label: "Keep right loaded", description: "Reduce open delay.", path: "sidebar.keepRightSidebarLoaded", fallback: true },
+                  { label: "Instant open", description: "Skip slide animation.", path: "sidebar.instantOpen", fallback: false },
+                  { label: "Open download folder", description: "After wallpaper downloads.", path: "sidebar.openFolderOnDownload", fallback: false }
+                ]
+              }
+              SettingsCombo {
+                visible: !(Config.options?.sidebar?.instantOpen ?? false)
+                label: "Animation"
+                description: "Motion style for sidebar open and close."
+                options: [
+                  { label: "Slide", value: "slide" },
+                  { label: "Fade", value: "fade" },
+                  { label: "Pop", value: "pop" },
+                  { label: "Reveal", value: "reveal" },
+                  { label: "Swing", value: "swing" },
+                  { label: "Drop", value: "drop" },
+                  { label: "Elastic", value: "elastic" }
+                ]
+                selectedValue: Config.options?.sidebar?.animationType ?? "slide"
+                onSelected: value => Config.setNestedValue("sidebar.animationType", value)
+              }
+            }
+
+            SettingsSettingCard {
+              iconName: "left_panel_open"
+              title: "Left sidebar tabs"
+              description: "Choose which tabs appear in the left side panel."
+
+              SettingsToggleGrid {
+                options: [
+                  { label: "Widgets", description: "Dashboard widgets.", path: "sidebar.widgets.enable", fallback: true },
+                  { label: "Translator", description: "Translation tab.", path: "sidebar.translator.enable", fallback: false },
+                  { label: "Wallhaven", description: "Wallpaper search.", path: "sidebar.wallhaven.enable", fallback: true },
+                  { label: "Anime Schedule", description: "Airing schedule.", path: "sidebar.animeSchedule.enable", fallback: false },
+                  { label: "Reddit", description: "Subreddit feed.", path: "sidebar.reddit.enable", fallback: false },
+                  { label: "Tools", description: "Debug tools.", path: "sidebar.tools.enable", fallback: false },
+                  { label: "Software", description: "Curated apps.", path: "sidebar.software.enable", fallback: false },
+                  { label: "YT Music", description: "Music search.", path: "sidebar.ytmusic.enable", fallback: false }
+                ]
+              }
+              SettingsSwitch {
+                label: "AI Chat"
+                description: "Chat and assistant providers."
+                readonly property int currentAiPolicy: Config.options?.policies?.ai ?? 0
+                checked: currentAiPolicy !== 0
+                onToggled: checked => {
+                  const newValue = checked ? (currentAiPolicy === 2 ? 2 : 1) : 0;
+                  Config.setNestedValue("policies.ai", newValue);
+                }
+              }
+              SettingsSwitch {
+                label: "Anime"
+                description: "Anime artwork and related browsing."
+                readonly property int currentWeebPolicy: Config.options?.policies?.weeb ?? 0
+                checked: currentWeebPolicy !== 0
+                onToggled: checked => {
+                  const newValue = checked ? (currentWeebPolicy === 2 ? 2 : 1) : 0;
+                  Config.setNestedValue("policies.weeb", newValue);
+                }
+              }
+            }
+
+            SettingsSettingCard {
+              iconName: "right_panel_open"
+              title: "Right sidebar widgets"
+              description: "Choose which widgets appear in the right side panel."
+
+              GridLayout {
+                Layout.fillWidth: true
+                columns: width > 620 ? 3 : 2
+                rowSpacing: 8
+                columnSpacing: 8
+
+                SettingsTemplateRow { label: "Calendar"; description: "Calendar view."; showCheck: true; checked: app.isRightSidebarWidgetEnabled("calendar"); onClicked: app.setRightSidebarWidgetEnabled("calendar", !checked) }
+                SettingsTemplateRow { label: "Events"; description: "Upcoming events."; showCheck: true; checked: app.isRightSidebarWidgetEnabled("events"); onClicked: app.setRightSidebarWidgetEnabled("events", !checked) }
+                SettingsTemplateRow { label: "To Do"; description: "Task list."; showCheck: true; checked: app.isRightSidebarWidgetEnabled("todo"); onClicked: app.setRightSidebarWidgetEnabled("todo", !checked) }
+                SettingsTemplateRow { label: "Notepad"; description: "Quick notes."; showCheck: true; checked: app.isRightSidebarWidgetEnabled("notepad"); onClicked: app.setRightSidebarWidgetEnabled("notepad", !checked) }
+                SettingsTemplateRow { label: "Calculator"; description: "Inline calculator."; showCheck: true; checked: app.isRightSidebarWidgetEnabled("calculator"); onClicked: app.setRightSidebarWidgetEnabled("calculator", !checked) }
+                SettingsTemplateRow { label: "System Monitor"; description: "System status."; showCheck: true; checked: app.isRightSidebarWidgetEnabled("sysmon"); onClicked: app.setRightSidebarWidgetEnabled("sysmon", !checked) }
+                SettingsTemplateRow { label: "Timer"; description: "Timer and stopwatch."; showCheck: true; checked: app.isRightSidebarWidgetEnabled("timer"); onClicked: app.setRightSidebarWidgetEnabled("timer", !checked) }
+                SettingsTemplateRow { label: "VPN"; description: "OpenVPN controls."; showCheck: true; checked: app.isRightSidebarWidgetEnabled("openvpn"); onClicked: app.setRightSidebarWidgetEnabled("openvpn", !checked) }
+                SettingsTemplateRow { label: "Hosts"; description: "Hosts tools."; showCheck: true; checked: app.isRightSidebarWidgetEnabled("hosts"); onClicked: app.setRightSidebarWidgetEnabled("hosts", !checked) }
+                SettingsTemplateRow { label: "Network"; description: "Network monitor."; showCheck: true; checked: app.isRightSidebarWidgetEnabled("netmon"); onClicked: app.setRightSidebarWidgetEnabled("netmon", !checked) }
+                SettingsTemplateRow { label: "Firewall"; description: "Firewall rules."; showCheck: true; checked: app.isRightSidebarWidgetEnabled("firewall"); onClicked: app.setRightSidebarWidgetEnabled("firewall", !checked) }
               }
             }
           }

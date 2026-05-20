@@ -167,8 +167,9 @@ Item {
         
         // === Modules (7) ===
         { pageIndex: 7, pageName: "Modules", section: "Panel Style", label: "Panel family", targetLabel: "Panel family", keywords: ["panel", "family", "style", "material", "waffle", "windows"] },
-        { pageIndex: 7, pageName: "Modules", section: "Material Modules in Waffle", label: "Left Sidebar", targetLabel: "Left Sidebar", keywords: ["sidebar", "left", "ai", "chat", "translator"] },
-        { pageIndex: 7, pageName: "Modules", section: "Material Modules in Waffle", label: "Right Sidebar", targetLabel: "Right Sidebar", keywords: ["sidebar", "right", "quick", "settings", "calendar"] },
+        { pageIndex: 7, pageName: "Modules", section: "Sidebars", label: "Left Sidebar", targetLabel: "Left Sidebar", keywords: ["sidebar", "left", "side", "panel", "ai", "chat", "translator", "tabs"] },
+        { pageIndex: 7, pageName: "Modules", section: "Sidebars", label: "Right Sidebar", targetLabel: "Right Sidebar", keywords: ["sidebar", "right", "side", "panel", "widgets", "quick", "settings", "calendar"] },
+        { pageIndex: 7, pageName: "Modules", section: "Sidebars", label: "Sidebar animation", targetLabel: "Sidebar animation", keywords: ["sidebar", "animation", "instant", "slide", "fade", "open"] },
         { pageIndex: 7, pageName: "Modules", section: "Material Modules in Waffle", label: "Dock", targetLabel: "Dock", keywords: ["dock", "macos", "pinned", "apps"] },
         { pageIndex: 7, pageName: "Modules", section: "Material Modules in Waffle", label: "Media Controls Overlay", targetLabel: "Media Controls Overlay", keywords: ["media", "controls", "overlay", "music", "player"] },
         { pageIndex: 7, pageName: "Modules", section: "Material Modules in Waffle", label: "Screen Corners", targetLabel: "Screen Corners", keywords: ["screen", "corners", "hot", "rounded"] },
