@@ -38,7 +38,7 @@ Item {
     // ── Internal state ─────────────────────────────────────────────────
     property bool _transitioning: false
     readonly property bool _canTransition: enableTransitions && Appearance.animationsEnabled && _normalizedTransitionType(transitionType) !== "none"
-    readonly property string _effectiveType: _canTransition ? _normalizedTransitionType(transitionType) : "none"
+    readonly property string _effectiveType: _canTransition ? _resolvedTransitionType() : "none"
     readonly property real _zoomEnterFrom: 1.12
     readonly property real _zoomExitTo: 0.9
     readonly property real _wipeIncomingParallax: 0.08
@@ -50,6 +50,10 @@ Item {
     readonly property real _blurFadeIncomingScale: 1.035
     readonly property real _blurFadeOutgoingScale: 0.96
     readonly property real _blurFadeMax: 0.82
+    readonly property var _randomTransitionTypes: ["crossfade", "fadeThrough", "blurFade", "zoom", "slide", "push", "wipe"]
+    readonly property var _randomTransitionDirections: ["left", "right", "top", "bottom"]
+    property string _activeRandomTransitionType: ""
+    property string _activeRandomTransitionDirection: ""
     readonly property list<real> transitionProgressCurve: _progressCurveFor(_effectiveType)
     property real _transitionWidthSnapshot: 0
     property real _transitionHeightSnapshot: 0
@@ -123,6 +127,7 @@ Item {
         root._transitionWidthSnapshot = 0
         root._transitionHeightSnapshot = 0
         root._transitionSourceSizeSnapshot = Qt.size(0, 0)
+        root._clearRandomTransitionEffect()
         transitionFinished()
     }
 
@@ -145,17 +150,46 @@ Item {
         case "center":
         case "outer":
         case "any":
-        case "random":
             return "zoom"
+        case "random":
+            return "random"
         default:
             return String(rawType ?? "crossfade")
         }
     }
 
+    function _resolvedTransitionType(): string {
+        const normalized = _normalizedTransitionType(transitionType)
+        if (normalized !== "random")
+            return normalized
+        return root._activeRandomTransitionType.length > 0
+            ? root._activeRandomTransitionType
+            : "crossfade"
+    }
+
     function _resolvedTransitionDirection(): string {
         if (["left", "right", "top", "bottom"].includes(transitionType))
             return transitionType
+        if (_normalizedTransitionType(transitionType) === "random" && root._activeRandomTransitionDirection.length > 0)
+            return root._activeRandomTransitionDirection
         return transitionDirection
+    }
+
+    function _clearRandomTransitionEffect(): void {
+        root._activeRandomTransitionType = ""
+        root._activeRandomTransitionDirection = ""
+    }
+
+    function _chooseRandomTransitionEffect(): void {
+        if (_normalizedTransitionType(transitionType) !== "random") {
+            root._clearRandomTransitionEffect()
+            return
+        }
+
+        const typeIndex = Math.floor(Math.random() * root._randomTransitionTypes.length)
+        const directionIndex = Math.floor(Math.random() * root._randomTransitionDirections.length)
+        root._activeRandomTransitionType = root._randomTransitionTypes[typeIndex]
+        root._activeRandomTransitionDirection = root._randomTransitionDirections[directionIndex]
     }
 
     function _lerp(from: real, to: real, progress: real): real {
@@ -248,6 +282,7 @@ Item {
             root._transitionWidthSnapshot = 0
             root._transitionHeightSnapshot = 0
             root._transitionSourceSizeSnapshot = Qt.size(0, 0)
+            root._clearRandomTransitionEffect()
         }
 
         function switchTo(newSource: string): void {
@@ -344,6 +379,7 @@ Item {
             if (pendingSource === "" || pendingSource === displayedSource)
                 return
 
+            root._chooseRandomTransitionEffect()
             root._transitioning = true
             root._transitionWidthSnapshot = Math.max(1, root.width)
             root._transitionHeightSnapshot = Math.max(1, root.height)
@@ -372,6 +408,7 @@ Item {
             internal.pendingSource = ""
         internal.transitionFromIndex = -1
         internal.transitionToIndex = -1
+        root._clearRandomTransitionEffect()
 
         // Release the old wallpaper texture from the inactive slot.
         // Without this, every wallpaper ever displayed stays in Qt's

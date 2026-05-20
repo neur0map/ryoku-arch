@@ -24,6 +24,17 @@ Singleton {
     readonly property string transitionDirection: Config.options?.background?.transition?.direction ?? "right"
     readonly property string fillMode: Config.options?.background?.fillMode ?? "fill"
     readonly property bool animationEnabled: Config.options?.background?.enableAnimation ?? true
+    readonly property var backgroundOptions: Config.options?.background ?? {}
+    readonly property var parallaxOptions: backgroundOptions?.parallax ?? {}
+    readonly property var panOptions: backgroundOptions?.pan ?? {}
+    readonly property var effectsOptions: backgroundOptions?.effects ?? {}
+    readonly property bool parallaxEnabled: parallaxOptions?.enable
+        ?? ((parallaxOptions?.enableWorkspace ?? false) || (parallaxOptions?.enableSidebar ?? false))
+    readonly property bool dynamicParallaxRequested: parallaxEnabled
+        && ((parallaxOptions?.enableWorkspace ?? false) || (parallaxOptions?.enableSidebar ?? false))
+    readonly property bool hasPan: (Number(panOptions?.x ?? 0) !== 0)
+        || (Number(panOptions?.y ?? 0) !== 0)
+        || (Number(panOptions?.zoom ?? 1) !== 1)
     readonly property string panelFamily: Config.options?.panelFamily ?? "ii"
     readonly property bool waffleUsesMainWallpaper: Config.options?.waffles?.background?.useMainWallpaper ?? true
     readonly property string waffleWallpaperPath: Config.options?.waffles?.background?.wallpaperPath ?? ""
@@ -181,7 +192,9 @@ Singleton {
                 : ""
             const rawPath = waffleOwnPath || ((monitorData && monitorData.path) ? monitorData.path : globalWallpaperPath)
             const cleanPath = FileUtils.trimFileProtocol(String(rawPath ?? ""))
-            if (!supportsMainWallpaper(cleanPath))
+            if (hasPan)
+                continue
+            if (!supportsVisibleMainWallpaper(cleanPath, fillMode, dynamicParallaxRequested, effectsOptions?.enableAnimatedBlur ?? false))
                 continue
             result[monitorName] = cleanPath
         }
@@ -397,6 +410,9 @@ Singleton {
     onSimpleStepChanged: syncDebounce.restart()
     onSpatialStepChanged: syncDebounce.restart()
     onFillModeChanged: syncDebounce.restart()
+    onDynamicParallaxRequestedChanged: syncDebounce.restart()
+    onHasPanChanged: syncDebounce.restart()
+    onEffectsOptionsChanged: syncDebounce.restart()
     onAnimationEnabledChanged: syncDebounce.restart()
 
     Connections {

@@ -45,6 +45,10 @@ Scope {
     readonly property bool multiMonitorActive: Config.options?.background?.multiMonitor?.enable ?? false
     property string _lockedTarget: ""
     property string _capturedMonitor: ""
+    property string _pendingWallpaperPath: ""
+    property bool _pendingWallpaperDarkMode: Appearance.m3colors.darkmode
+    property string _pendingWallpaperTarget: "main"
+    property string _pendingWallpaperMonitor: ""
     readonly property string selectedMonitor: {
         if (!multiMonitorActive) return ""
         if (_lockedTarget && _lockedTarget.length > 0) return _lockedTarget
@@ -95,13 +99,43 @@ Scope {
         if (!filePath || filePath.length === 0) return
 
         const normalizedPath = FileUtils.trimFileProtocol(String(filePath))
-        Wallpapers.applySelectionTarget(normalizedPath, root.currentSelectionTarget, useDarkMode, root.selectedMonitor)
+        root._pendingWallpaperPath = normalizedPath
+        root._pendingWallpaperDarkMode = useDarkMode
+        root._pendingWallpaperTarget = root.currentSelectionTarget
+        root._pendingWallpaperMonitor = root.selectedMonitor
+        GlobalStates.coverflowSelectorOpen = false
+        applyAfterCloseTimer.restart()
+    }
+
+    function _clearPendingSelection() {
+        root._pendingWallpaperPath = ""
+        root._pendingWallpaperDarkMode = Appearance.m3colors.darkmode
+        root._pendingWallpaperTarget = "main"
+        root._pendingWallpaperMonitor = ""
+    }
+
+    function _applyPendingSelection() {
+        if (!root._pendingWallpaperPath || root._pendingWallpaperPath.length === 0) return
+
+        Wallpapers.applySelectionTarget(
+            root._pendingWallpaperPath,
+            root._pendingWallpaperTarget,
+            root._pendingWallpaperDarkMode,
+            root._pendingWallpaperMonitor
+        )
 
         Config.setNestedValue("wallpaperSelector.selectionTarget", "main")
         Config.setNestedValue("wallpaperSelector.targetMonitor", "")
         GlobalStates.wallpaperSelectionTarget = "main"
         GlobalStates.wallpaperSelectorTargetMonitor = ""
-        GlobalStates.coverflowSelectorOpen = false
+        root._clearPendingSelection()
+    }
+
+    Timer {
+        id: applyAfterCloseTimer
+        interval: Appearance.calcEffectiveDuration(450)
+        repeat: false
+        onTriggered: root._applyPendingSelection()
     }
 
     // ─── Switch to grid mode ───
