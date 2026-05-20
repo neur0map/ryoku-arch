@@ -960,15 +960,19 @@ Scope {
                 }
             }
 
-            // Desktop right-click context menu
+            // Blank desktop clicks release focus from text-entry widgets; right-click still opens the menu.
             MouseArea {
+                id: desktopClickArea
                 anchors.fill: parent
                 z: 15  // Below WidgetCanvas (z: 20) so widgets can receive input
-                acceptedButtons: Qt.RightButton
+                acceptedButtons: Qt.LeftButton | Qt.RightButton
                 onClicked: function(mouse) {
-                    desktopMenuAnchor.x = mouse.x
-                    desktopMenuAnchor.y = mouse.y
-                    desktopContextMenu.active = true
+                    desktopClickArea.forceActiveFocus()
+                    if (mouse.button === Qt.RightButton) {
+                        desktopMenuAnchor.x = mouse.x
+                        desktopMenuAnchor.y = mouse.y
+                        desktopContextMenu.active = true
+                    }
                 }
             }
 

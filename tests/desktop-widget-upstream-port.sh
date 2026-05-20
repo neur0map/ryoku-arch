@@ -68,6 +68,9 @@ require_rg 'sourceComponent: CalendarUpcomingWidget' shell/modules/background/Ba
 require_rg 'readonly property bool _needsKeyboardFocus: bgRoot\._widgetEnabled\("notes", false\)' shell/modules/background/Background.qml
 require_rg 'WlrLayershell\.keyboardFocus: bgRoot\._needsKeyboardFocus' shell/modules/background/Background.qml
 require_rg 'WlrKeyboardFocus\.OnDemand' shell/modules/background/Background.qml
+require_rg 'id: desktopClickArea' shell/modules/background/Background.qml
+require_rg 'acceptedButtons: Qt\.LeftButton \| Qt\.RightButton' shell/modules/background/Background.qml
+require_rg 'desktopClickArea\.forceActiveFocus\(\)' shell/modules/background/Background.qml
 
 require_rg 'WidgetCard \{ widgetKey: "notes"' shell/modules/background/widgets/WidgetManagerPanel.qml
 require_rg 'WidgetCard \{ widgetKey: "calendarUpcoming"' shell/modules/background/widgets/WidgetManagerPanel.qml
