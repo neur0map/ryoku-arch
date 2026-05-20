@@ -133,14 +133,19 @@ grep -q 'component SettingsNavItem' "$settings_qml" \
 grep -q 'component SettingsSubTabs' "$settings_qml" \
   || fail "settings_qml should split dense pages into Ryoku subtabs"
 
-grep -q 'component SettingsSubTabs: Item' "$settings_qml" \
-  || fail "settings subtabs should own their width instead of overflowing the content pane"
+grep -q 'component SettingsSubTabs: Flow' "$settings_qml" \
+  || fail "settings subtabs should wrap instead of clipping or scrolling labels"
 
-grep -q 'function ensureIndexVisible' "$settings_qml" \
-  || fail "settings subtabs should scroll the selected tab into view"
+grep -q 'Layout.preferredHeight: childrenRect.height' "$settings_qml" \
+  || fail "settings subtabs should grow vertically when options wrap"
 
-grep -q 'contentWidth: tabsRow.implicitWidth' "$settings_qml" \
-  || fail "settings subtabs should expose horizontal scroll width"
+if grep -q 'implicitHeight: childrenRect.height' "$settings_qml"; then
+  fail "SettingsSubTabs should not assign Flow.implicitHeight because it is read-only"
+fi
+
+if grep -q 'contentWidth: tabsRow.implicitWidth' "$settings_qml"; then
+  fail "settings subtabs should not rely on a clipped horizontal scroller"
+fi
 
 grep -q 'component SettingsSettingCard' "$settings_qml" \
   || fail "settings_qml should use curated setting cards instead of dumping switch lists"

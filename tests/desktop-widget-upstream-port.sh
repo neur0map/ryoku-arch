@@ -47,6 +47,8 @@ require_rg 'Wallpapers\.effectiveWallpaperUrl' shell/modules/background/widgets/
 require_rg 'surfaceUseBlur: root\.useBlur' shell/modules/background/widgets/notes/NotesWidget.qml
 require_rg 'surfaceUseBlur: root\.useBlur' shell/modules/background/widgets/calendar/CalendarUpcomingWidget.qml
 require_rg 'readonly property bool useBlur: root\._readConfigKey\("useBlur"\) \?\? false' shell/modules/background/widgets/AbstractBackgroundWidget.qml
+require_rg 'enabled: root\.draggable' shell/modules/common/widgets/widgetCanvas/AbstractWidget.qml
+require_rg 'draggable: GlobalStates\.widgetEditMode && !GlobalStates\.screenLocked && !root\.locked' shell/modules/background/widgets/notes/NotesWidget.qml
 
 for widget_file in \
   shell/modules/background/widgets/clock/ClockWidget.qml \

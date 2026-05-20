@@ -35,6 +35,9 @@ Item {
     MouseArea {
         id: _dragArea
         anchors.fill: parent
+        // Keep this passive when the widget is not draggable so interactive
+        // children like TextEdit can receive clicks and keyboard focus.
+        enabled: root.draggable
         drag.target: root.draggable ? root : undefined
         drag.minimumX: root.dragMinimumX
         drag.maximumX: root.dragMaximumX >= 0 ? root.dragMaximumX : Number.MAX_VALUE
