@@ -1104,6 +1104,11 @@ ApplicationWindow {
     Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "shellUpdate", "open"]);
   }
 
+  function setShellUpdateChannel(channel) {
+    ShellUpdates.setChannel(channel);
+    Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "shellUpdate", "setChannel", channel]);
+  }
+
   function humanizeConfigSegment(segment) {
     if (!segment)
       return "";
@@ -2580,6 +2585,7 @@ ApplicationWindow {
     property bool labelVisible: true
     property var options: []
     property var selectedValue: ""
+    property string placeholderText: ""
     property bool expanded: false
     property int dropdownX: 0
     property int dropdownY: 0
@@ -2621,6 +2627,8 @@ ApplicationWindow {
     }
 
     function indexForValue(value) {
+      if (row.placeholderText.length > 0 && (value === null || value === undefined || String(value).length === 0))
+        return -1;
       for (let i = 0; i < options.length; i++) {
         if (valueForIndex(i) === value || String(valueForIndex(i)) === String(value))
           return i;
@@ -2646,8 +2654,9 @@ ApplicationWindow {
     function openDropdown() {
       app.closeActiveDropdown(row);
       combo.forceActiveFocus();
-      comboList.currentIndex = combo.currentIndex;
-      comboList.positionViewAtIndex(combo.currentIndex, ListView.Contain);
+      const current = Math.max(0, combo.currentIndex);
+      comboList.currentIndex = current;
+      comboList.positionViewAtIndex(current, ListView.Contain);
       const down = combo.mapToItem(app.contentItem, 0, combo.height + 6);
       const up = combo.mapToItem(app.contentItem, 0, -dropdownHeight() - 6);
       openUpward = down.y + dropdownHeight() > app.height - 14;
@@ -2692,7 +2701,7 @@ ApplicationWindow {
       currentIndex: 0
       font.family: Appearance.font.family.main
       font.pixelSize: Appearance.font.pixelSize.small
-      displayText: row.labelForIndex(currentIndex)
+      displayText: currentIndex >= 0 ? row.labelForIndex(currentIndex) : row.placeholderText
       onActivated: row.chooseIndex(currentIndex)
 
       Keys.onUpPressed: event => {
@@ -6279,15 +6288,15 @@ ApplicationWindow {
               SettingsSwitch { label: "Enable shell update checker"; description: "Show shell update notifications in the bar."; checked: Config.options?.shellUpdates?.enabled ?? true; onToggled: checked => Config.setNestedValue("shellUpdates.enabled", checked) }
               SettingsCombo {
                 label: "Update channel"
-                description: ShellUpdates.requiresChannelSwitch ? "Next update switches to " + ShellUpdates.configuredChannel : "Receive Ryoku shell updates from " + ShellUpdates.configuredChannel
-                selectedValue: ShellUpdates.configuredChannel
+                description: !ShellUpdates.channelKnown ? "Detecting channel" : ShellUpdates.requiresChannelSwitch ? "Next update switches to " + ShellUpdates.configuredChannel : "Receive Ryoku shell updates from " + ShellUpdates.configuredChannel
+                selectedValue: ShellUpdates.channelKnown ? ShellUpdates.configuredChannel : ""
+                placeholderText: "Detecting channel"
                 options: [
                   { label: "Stable (main)", value: "main" },
                   { label: "Unstable dev", value: "unstable-dev" }
                 ]
                 onSelected: value => {
-                  Config.setNestedValue("shellUpdates.channel", value);
-                  app.checkShellUpdates();
+                  app.setShellUpdateChannel(value);
                 }
               }
               SettingsSpinBox { label: "Check interval"; description: "Minutes between Ryoku shell update checks."; from: 30; to: 1440; stepSize: 30; value: Config.options?.shellUpdates?.checkIntervalMinutes ?? 360; onMoved: value => Config.setNestedValue("shellUpdates.checkIntervalMinutes", value) }
@@ -6722,21 +6731,21 @@ ApplicationWindow {
 
           SettingsCombo {
             label: "Selected channel"
-            description: ShellUpdates.requiresChannelSwitch ? "Selected channel " + ShellUpdates.configuredChannel + " differs from current branch " + ShellUpdates.currentBranch : "Receive Ryoku updates from " + ShellUpdates.configuredChannel
-            selectedValue: ShellUpdates.configuredChannel
+            description: !ShellUpdates.channelKnown ? "Detecting channel" : ShellUpdates.requiresChannelSwitch ? "Selected channel " + ShellUpdates.configuredChannel + " differs from current branch " + ShellUpdates.currentBranch : "Receive Ryoku updates from " + ShellUpdates.configuredChannel
+            selectedValue: ShellUpdates.channelKnown ? ShellUpdates.configuredChannel : ""
+            placeholderText: "Detecting channel"
             options: [
               { label: "Stable (main)", value: "main" },
               { label: "Unstable dev", value: "unstable-dev" }
             ]
             onSelected: value => {
-              Config.setNestedValue("shellUpdates.channel", value);
-              app.checkShellUpdates();
+              app.setShellUpdateChannel(value);
             }
           }
 
           SettingsLabel {
             label: "Selected channel"
-            description: ShellUpdates.requiresChannelSwitch ? "Switch confirmation is required before moving from " + ShellUpdates.currentBranch + " to " + ShellUpdates.configuredChannel : "Already following " + ShellUpdates.configuredChannel
+            description: !ShellUpdates.channelKnown ? "Detecting channel" : ShellUpdates.requiresChannelSwitch ? "Switch confirmation is required before moving from " + ShellUpdates.currentBranch + " to " + ShellUpdates.configuredChannel : "Already following " + ShellUpdates.configuredChannel
             iconName: ShellUpdates.requiresChannelSwitch ? "account_tree" : "verified"
           }
 

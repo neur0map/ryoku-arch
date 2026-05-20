@@ -141,7 +141,7 @@ complete -c ryoku-shell -n '__fish_seen_subcommand_from region' -a 'screenshot s
 complete -c ryoku-shell -n '__fish_seen_subcommand_from search' -a 'toggle close open'
 complete -c ryoku-shell -n '__fish_seen_subcommand_from session' -a 'toggle close open'
 complete -c ryoku-shell -n '__fish_seen_subcommand_from settings' -a 'open toggle'
-complete -c ryoku-shell -n '__fish_seen_subcommand_from shellUpdate shell-update' -a 'toggle open close check performUpdate dismiss undismiss diagnose refresh'
+complete -c ryoku-shell -n '__fish_seen_subcommand_from shellUpdate shell-update' -a 'toggle open close check refresh setChannel performUpdate dismiss undismiss diagnose'
 complete -c ryoku-shell -n '__fish_seen_subcommand_from sidebarLeft sidebar-left' -a 'toggle close open'
 complete -c ryoku-shell -n '__fish_seen_subcommand_from sidebarRight sidebar-right' -a 'toggle close open'
 complete -c ryoku-shell -n '__fish_seen_subcommand_from taskview' -a 'toggle close open'

@@ -41,8 +41,10 @@ rg -q '\["globalActions:runWithArgs"\]="<actionId> <args>"' "$registry" \
   || fail "globalActions runWithArgs should take action ID plus args"
 rg -q "globalActions global-actions.*run runWithArgs list search open" "$fish_completion" \
   || fail "fish completion should include globalActions runWithArgs"
-rg -q "shellUpdate shell-update.*diagnose refresh" "$fish_completion" \
-  || fail "fish completion should include shellUpdate refresh"
+rg -q '\[shellUpdate\]="[^"]*setChannel' "$registry" \
+  || fail "shellUpdate should expose setChannel for channel selector IPC"
+rg -q "shellUpdate shell-update.*setChannel" "$fish_completion" \
+  || fail "fish completion should include shellUpdate setChannel"
 legacy_cmd="i""nir"
 ! rg -q "spawn \"$legacy_cmd\"" "$registry" \
   || fail "generated IPC help examples should use ryoku-shell"
