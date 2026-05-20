@@ -539,7 +539,7 @@
       "notes": {
         "enable": false,
         "locked": false,
-        "placementStrategy": "free",
+        "placementStrategy": "leastBusy",
         "text": "",
         "fontSize": 14,
         "fontFamily": "sans",
@@ -563,7 +563,7 @@
       "calendarUpcoming": {
         "enable": false,
         "locked": false,
-        "placementStrategy": "free",
+        "placementStrategy": "leastBusy",
         "maxEvents": 5,
         "showDate": true,
         "showTime": true,

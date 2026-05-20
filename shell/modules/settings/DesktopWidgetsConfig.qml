@@ -1850,7 +1850,7 @@ ContentPage {
             WidgetStateControls {
                 configPath: "background.widgets.notes"
                 configEntry: Config.getNestedValue("background.widgets.notes", ({}))
-                defaultStrategy: "free"
+                defaultStrategy: "leastBusy"
             }
 
             ContentSubsection {
@@ -1938,7 +1938,7 @@ ContentPage {
                 Layout.fillWidth: true
                 text: Translation.tr("Reset to defaults")
                 onClicked: {
-                    Config.setNestedValue("background.widgets.notes.placementStrategy", "free");
+                    Config.setNestedValue("background.widgets.notes.placementStrategy", "leastBusy");
                     Config.setNestedValue("background.widgets.notes.text", "");
                     Config.setNestedValue("background.widgets.notes.fontSize", 14);
                     Config.setNestedValue("background.widgets.notes.fontFamily", "sans");
@@ -1975,7 +1975,7 @@ ContentPage {
             WidgetStateControls {
                 configPath: "background.widgets.calendarUpcoming"
                 configEntry: Config.getNestedValue("background.widgets.calendarUpcoming", ({}))
-                defaultStrategy: "free"
+                defaultStrategy: "leastBusy"
             }
 
             ContentSubsection {
@@ -2047,7 +2047,7 @@ ContentPage {
                 Layout.fillWidth: true
                 text: Translation.tr("Reset to defaults")
                 onClicked: {
-                    Config.setNestedValue("background.widgets.calendarUpcoming.placementStrategy", "free");
+                    Config.setNestedValue("background.widgets.calendarUpcoming.placementStrategy", "leastBusy");
                     Config.setNestedValue("background.widgets.calendarUpcoming.maxEvents", 5);
                     Config.setNestedValue("background.widgets.calendarUpcoming.showDate", true);
                     Config.setNestedValue("background.widgets.calendarUpcoming.showTime", true);

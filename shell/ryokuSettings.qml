@@ -2257,45 +2257,103 @@ ApplicationWindow {
     implicitHeight: activeStackItem ? activeStackItem.implicitHeight : 0
   }
 
-  component SettingsSubTabs: RowLayout {
+  component SettingsSubTabs: Item {
     id: tabs
     property string pageKey: ""
     property var options: []
+    readonly property int selectedIndex: app.subTabForPage(tabs.pageKey, 0)
 
     Layout.fillWidth: true
-    spacing: 7
+    Layout.preferredHeight: 34
+    implicitHeight: 34
+    clip: true
 
-    Repeater {
-      model: tabs.options
+    function ensureIndexVisible(index) {
+      const item = tabRepeater.itemAt(index);
+      if (!item || tabsFlick.width <= 0)
+        return;
+      const maxX = Math.max(0, tabsFlick.contentWidth - tabsFlick.width);
+      const left = item.x;
+      const right = item.x + item.width;
+      let nextX = tabsFlick.contentX;
+      if (right > tabsFlick.contentX + tabsFlick.width)
+        nextX = right - tabsFlick.width;
+      if (left < tabsFlick.contentX)
+        nextX = left;
+      tabsFlick.contentX = Math.max(0, Math.min(maxX, nextX));
+    }
 
-      delegate: Rectangle {
-        required property int index
-        required property var modelData
-        readonly property bool selected: app.subTabForPage(tabs.pageKey, 0) === index
+    onSelectedIndexChanged: Qt.callLater(() => ensureIndexVisible(selectedIndex))
+    onWidthChanged: Qt.callLater(() => ensureIndexVisible(selectedIndex))
+    Component.onCompleted: Qt.callLater(() => ensureIndexVisible(selectedIndex))
 
-        Layout.preferredHeight: 34
-        Layout.preferredWidth: Math.max(92, label.implicitWidth + 28)
-        radius: 9
-        color: selected ? app.quietSelectedColor : tabMouse.containsMouse ? app.hoverColor : app.windowColor
-        border.width: selected ? 0 : 1
-        border.color: app.borderColor
+    Flickable {
+      id: tabsFlick
+      anchors.fill: parent
+      clip: true
+      boundsBehavior: Flickable.StopAtBounds
+      contentWidth: tabsRow.implicitWidth
+      contentHeight: height
+      interactive: contentWidth > width
 
-        Text {
-          id: label
-          anchors.centerIn: parent
-          text: modelData
-          color: parent.selected ? app.quietSelectedTextColor : app.textColor
-          font.family: Appearance.font.family.main
-          font.pixelSize: Appearance.font.pixelSize.small
-          font.weight: Font.DemiBold
+      WheelHandler {
+        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+        onWheel: wheel => {
+          const rawDelta = wheel.angleDelta.x !== 0 ? wheel.angleDelta.x : wheel.pixelDelta.x;
+          const fallbackDelta = wheel.angleDelta.y !== 0 ? wheel.angleDelta.y : wheel.pixelDelta.y;
+          const delta = rawDelta !== 0 ? rawDelta : fallbackDelta;
+          const maxX = Math.max(0, tabsFlick.contentWidth - tabsFlick.width);
+          if (maxX <= 0) {
+            wheel.accepted = false;
+            return;
+          }
+          tabsFlick.contentX = Math.max(0, Math.min(maxX, tabsFlick.contentX - delta));
+          wheel.accepted = true;
         }
+      }
 
-        MouseArea {
-          id: tabMouse
-          anchors.fill: parent
-          hoverEnabled: true
-          cursorShape: Qt.PointingHandCursor
-          onClicked: app.setSubTabForPage(tabs.pageKey, index)
+      Row {
+        id: tabsRow
+        height: parent.height
+        spacing: 7
+
+        Repeater {
+          id: tabRepeater
+          model: tabs.options
+
+          delegate: Rectangle {
+            required property int index
+            required property var modelData
+            readonly property bool selected: tabs.selectedIndex === index
+
+            width: Math.max(92, label.implicitWidth + 28)
+            height: tabsFlick.height
+            radius: 9
+            color: selected ? app.quietSelectedColor : tabMouse.containsMouse ? app.hoverColor : app.windowColor
+            border.width: selected ? 0 : 1
+            border.color: app.borderColor
+
+            Text {
+              id: label
+              anchors.centerIn: parent
+              text: modelData
+              color: parent.selected ? app.quietSelectedTextColor : app.textColor
+              font.family: Appearance.font.family.main
+              font.pixelSize: Appearance.font.pixelSize.small
+              font.weight: Font.DemiBold
+            }
+
+            MouseArea {
+              id: tabMouse
+              anchors.fill: parent
+              hoverEnabled: true
+              cursorShape: Qt.PointingHandCursor
+              onClicked: {
+                app.setSubTabForPage(tabs.pageKey, index);
+                tabs.ensureIndexVisible(index);
+              }
+            }
+          }
         }
       }
     }

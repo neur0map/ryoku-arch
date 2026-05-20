@@ -16,7 +16,7 @@ AbstractBackgroundWidget {
 
     configEntryName: "calendarUpcoming"
     defaultConfig: ({
-        placementStrategy: "free",
+        placementStrategy: "leastBusy",
         contentWidth: 280,
         contentHeight: 220,
         maxEvents: 5,

@@ -78,11 +78,18 @@ require_rg 'property int maxEvents: 5' shell/modules/common/Config.qml
 
 require_json_key shell/defaults/config.json '.background.widgets.notes'
 require_json_key shell/defaults/config.json '.background.widgets.calendarUpcoming'
+require_json_key shell/defaults/config.json '.background.widgets.notes.placementStrategy == "leastBusy"'
+require_json_key shell/defaults/config.json '.background.widgets.calendarUpcoming.placementStrategy == "leastBusy"'
 require_json_key shell/defaults/config.json '.background.widgets.notes.useBlur == false'
 require_json_key shell/defaults/config.json '.background.widgets.calendarUpcoming.useBlur == false'
 
 require_rg 'TextEdit \{' shell/modules/background/widgets/notes/NotesWidget.qml
 require_rg 'onTextChanged: _saveDebounce\.restart\(\)' shell/modules/background/widgets/notes/NotesWidget.qml
+require_rg 'placementStrategy: "leastBusy"' shell/modules/background/widgets/notes/NotesWidget.qml
+require_rg 'placementStrategy: "leastBusy"' shell/modules/background/widgets/calendar/CalendarUpcomingWidget.qml
+require_rg 'property string placementStrategy: "leastBusy"' shell/modules/common/Config.qml
+least_busy_state_count=$(rg -c 'defaultStrategy: "leastBusy"' shell/modules/settings/DesktopWidgetsConfig.qml)
+(( least_busy_state_count >= 5 )) || fail "expected new widgets to default to leastBusy placement"
 require_rg 'Events\.getUpcomingEvents\(30\)' shell/modules/background/widgets/calendar/CalendarUpcomingWidget.qml
 require_rg 'CalendarSync\.getEventsForDate\(d\)' shell/modules/background/widgets/calendar/CalendarUpcomingWidget.qml
 

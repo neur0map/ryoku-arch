@@ -16,7 +16,7 @@ AbstractBackgroundWidget {
 
     configEntryName: "notes"
     defaultConfig: ({
-        placementStrategy: "free",
+        placementStrategy: "leastBusy",
         contentWidth: 240,
         contentHeight: 160,
         text: "",

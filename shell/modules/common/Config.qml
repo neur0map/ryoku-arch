@@ -1002,7 +1002,7 @@ Singleton {
                     property JsonObject notes: JsonObject {
                         property bool enable: false
                         property bool locked: false
-                        property string placementStrategy: "free"
+                        property string placementStrategy: "leastBusy"
                         property string text: ""
                         property int fontSize: 14
                         property string fontFamily: "sans"
@@ -1026,7 +1026,7 @@ Singleton {
                     property JsonObject calendarUpcoming: JsonObject {
                         property bool enable: false
                         property bool locked: false
-                        property string placementStrategy: "free"
+                        property string placementStrategy: "leastBusy"
                         property int maxEvents: 5
                         property bool showDate: true
                         property bool showTime: true
