@@ -125,9 +125,7 @@ ContentPage {
         required property string configPath
         required property var configEntry
         required property string defaultStrategy
-        Layout.fillWidth: false
-        Layout.preferredWidth: Math.min(500, Math.max(420, root.width * 0.5))
-        Layout.minimumWidth: Math.min(420, root.width * 0.5)
+        Layout.fillWidth: true
 
         readonly property string currentStrategy: Config.getNestedValue(wps.configPath + ".placementStrategy", configEntry?.placementStrategy ?? defaultStrategy)
 
@@ -140,6 +138,8 @@ ContentPage {
         id: wsr
         property string label: ""
         property string icon: ""
+        // Kept for source compatibility with older callers. Controls now sit
+        // next to the label and any extra row space falls after the controls.
         property bool trailing: true
         default property alias controlData: controlRow.data
 
@@ -147,8 +147,9 @@ ContentPage {
         spacing: 12
 
         RowLayout {
-            Layout.preferredWidth: 180
-            Layout.maximumWidth: 220
+            Layout.preferredWidth: 160
+            Layout.minimumWidth: 140
+            Layout.maximumWidth: 200
             Layout.alignment: Qt.AlignVCenter
             spacing: 8
 
@@ -173,11 +174,6 @@ ContentPage {
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignVCenter
             spacing: 8
-
-            Item {
-                visible: wsr.trailing
-                Layout.fillWidth: wsr.trailing
-            }
         }
     }
 
@@ -201,6 +197,47 @@ ContentPage {
         leftmost: true; rightmost: true
         toggled: wsc.active
         onClicked: if (wsc.toggleAction) wsc.toggleAction(!wsc.active)
+    }
+
+    component WidgetStateControls: ColumnLayout {
+        id: wsc
+        required property string configPath
+        required property var configEntry
+        required property string defaultStrategy
+        property string label: Translation.tr("State")
+        property string icon: "check"
+        property bool defaultEnabled: false
+
+        Layout.fillWidth: true
+        spacing: 4
+
+        WidgetSettingRow {
+            label: wsc.label
+            icon: wsc.icon
+            trailing: false
+
+            WidgetToggleChip {
+                configPath: wsc.configPath + ".enable"
+                defaultValue: wsc.defaultEnabled
+                buttonIcon: "check"
+                buttonText: Translation.tr("Enable")
+            }
+        }
+
+        ContentSubsection {
+            title: Translation.tr("Placement")
+
+            WidgetPlacementSelector {
+                configPath: wsc.configPath
+                configEntry: wsc.configEntry
+                defaultStrategy: wsc.defaultStrategy
+            }
+
+            WidgetZonePicker {
+                configPath: wsc.configPath
+                configEntry: wsc.configEntry
+            }
+        }
     }
 
     // ── Reusable slider row with icon + inline value ────────
@@ -439,26 +476,11 @@ ContentPage {
 
         SettingsGroup {
             // Enable + placement
-            WidgetSettingRow {
-                label: Translation.tr("State")
-                icon: "check"
-                trailing: false
-                WidgetToggleChip {
-                    configPath: "background.widgets.clock.enable"
-                    defaultValue: true
-                    buttonIcon: "check"
-                    buttonText: Translation.tr("Enable")
-                }
-                WidgetPlacementSelector {
-                    configPath: "background.widgets.clock"
-                    configEntry: Config.getNestedValue("background.widgets.clock", ({}))
-                    defaultStrategy: "leastBusy"
-                }
-            }
-
-            WidgetZonePicker {
+            WidgetStateControls {
                 configPath: "background.widgets.clock"
                 configEntry: Config.getNestedValue("background.widgets.clock", ({}))
+                defaultStrategy: "leastBusy"
+                defaultEnabled: true
             }
 
             // Style selector
@@ -936,26 +958,11 @@ ContentPage {
         title: Translation.tr("Weather")
 
         SettingsGroup {
-            WidgetSettingRow {
-                label: Translation.tr("State")
-                icon: "check"
-                trailing: false
-                WidgetToggleChip {
-                    configPath: "background.widgets.weather.enable"
-                    defaultValue: true
-                    buttonIcon: "check"
-                    buttonText: Translation.tr("Enable")
-                }
-                WidgetPlacementSelector {
-                    configPath: "background.widgets.weather"
-                    configEntry: Config.getNestedValue("background.widgets.weather", ({}))
-                    defaultStrategy: "leastBusy"
-                }
-            }
-
-            WidgetZonePicker {
+            WidgetStateControls {
                 configPath: "background.widgets.weather"
                 configEntry: Config.getNestedValue("background.widgets.weather", ({}))
+                defaultStrategy: "leastBusy"
+                defaultEnabled: true
             }
 
             ContentSubsection {
@@ -1168,26 +1175,11 @@ ContentPage {
         title: Translation.tr("Media Controls")
 
         SettingsGroup {
-            WidgetSettingRow {
-                label: Translation.tr("State")
-                icon: "check"
-                trailing: false
-                WidgetToggleChip {
-                    configPath: "background.widgets.mediaControls.enable"
-                    defaultValue: true
-                    buttonIcon: "check"
-                    buttonText: Translation.tr("Enable")
-                }
-                WidgetPlacementSelector {
-                    configPath: "background.widgets.mediaControls"
-                    configEntry: Config.getNestedValue("background.widgets.mediaControls", ({}))
-                    defaultStrategy: "leastBusy"
-                }
-            }
-
-            WidgetZonePicker {
+            WidgetStateControls {
                 configPath: "background.widgets.mediaControls"
                 configEntry: Config.getNestedValue("background.widgets.mediaControls", ({}))
+                defaultStrategy: "leastBusy"
+                defaultEnabled: true
             }
 
             ContentSubsection {
@@ -1276,26 +1268,10 @@ ContentPage {
         title: Translation.tr("Visualizer")
 
         SettingsGroup {
-            WidgetSettingRow {
-                label: Translation.tr("State")
-                icon: "check"
-                trailing: false
-                WidgetToggleChip {
-                    configPath: "background.widgets.visualizer.enable"
-                    buttonIcon: "check"
-                    buttonText: Translation.tr("Enable")
-                    StyledToolTip { text: Translation.tr("Audio visualizer widget on the desktop") }
-                }
-                WidgetPlacementSelector {
-                    configPath: "background.widgets.visualizer"
-                    configEntry: Config.getNestedValue("background.widgets.visualizer", ({}))
-                    defaultStrategy: "free"
-                }
-            }
-
-            WidgetZonePicker {
+            WidgetStateControls {
                 configPath: "background.widgets.visualizer"
                 configEntry: Config.getNestedValue("background.widgets.visualizer", ({}))
+                defaultStrategy: "free"
             }
 
             ContentSubsection {
@@ -1452,26 +1428,10 @@ ContentPage {
         title: Translation.tr("System Monitor")
 
         SettingsGroup {
-            WidgetSettingRow {
-                label: Translation.tr("State")
-                icon: "check"
-                trailing: false
-                WidgetToggleChip {
-                    configPath: "background.widgets.systemMonitor.enable"
-                    buttonIcon: "check"
-                    buttonText: Translation.tr("Enable")
-                    StyledToolTip { text: Translation.tr("Show CPU, RAM, and GPU usage on the desktop") }
-                }
-                WidgetPlacementSelector {
-                    configPath: "background.widgets.systemMonitor"
-                    configEntry: Config.getNestedValue("background.widgets.systemMonitor", ({}))
-                    defaultStrategy: "free"
-                }
-            }
-
-            WidgetZonePicker {
+            WidgetStateControls {
                 configPath: "background.widgets.systemMonitor"
                 configEntry: Config.getNestedValue("background.widgets.systemMonitor", ({}))
+                defaultStrategy: "free"
             }
 
             ContentSubsection {
@@ -1672,26 +1632,10 @@ ContentPage {
                 wrapMode: Text.WordWrap
             }
 
-            WidgetSettingRow {
-                label: Translation.tr("State")
-                icon: "check"
-                trailing: false
-                WidgetToggleChip {
-                    configPath: "background.widgets.battery.enable"
-                    buttonIcon: "check"
-                    buttonText: Translation.tr("Enable")
-                    StyledToolTip { text: Translation.tr("Show battery status on the desktop (only visible on laptops)") }
-                }
-                WidgetPlacementSelector {
-                    configPath: "background.widgets.battery"
-                    configEntry: Config.getNestedValue("background.widgets.battery", ({}))
-                    defaultStrategy: "free"
-                }
-            }
-
-            WidgetZonePicker {
+            WidgetStateControls {
                 configPath: "background.widgets.battery"
                 configEntry: Config.getNestedValue("background.widgets.battery", ({}))
+                defaultStrategy: "free"
             }
 
             ContentSubsection {
@@ -2008,25 +1952,12 @@ ContentPage {
                 required property int index
 
                 // Header: enable + name + actions
-                WidgetSettingRow {
+                WidgetStateControls {
                     label: cwDelegate.modelData.name
                     icon: cwDelegate.modelData.icon || "widgets"
-                    trailing: false
-                    WidgetToggleChip {
-                        configPath: "background.widgets.custom." + cwDelegate.modelData.id + ".enable"
-                        buttonIcon: "check"
-                        buttonText: Translation.tr("Enable")
-                    }
-                    WidgetPlacementSelector {
-                        configPath: "background.widgets.custom." + cwDelegate.modelData.id
-                        configEntry: Config.getNestedValue("background.widgets.custom." + cwDelegate.modelData.id, ({}))
-                        defaultStrategy: "free"
-                    }
-                }
-
-                WidgetZonePicker {
                     configPath: "background.widgets.custom." + cwDelegate.modelData.id
                     configEntry: Config.getNestedValue("background.widgets.custom." + cwDelegate.modelData.id, ({}))
+                    defaultStrategy: "free"
                 }
 
                 ContentSubsection {
