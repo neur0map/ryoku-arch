@@ -35,6 +35,52 @@ GitHub-hosted `ubuntu-latest` runner:
 - `workflow_dispatch` (manual). Pick the public release stage (`alpha`, `beta`, `stable`). All builds publish under the `stable` download path.
 - Pushing a `v*` tag (e.g. `v0.1.0`). Builds and publishes the same `stable` download path.
 
+## Version channels
+
+Ryoku uses one tracked release version in the root `VERSION` file and derives
+channel-specific display versions from it:
+
+- `main` is the stable update channel. It receives tagged releases only.
+- `unstable-dev` is the rolling preview channel. Every push can be consumed by
+  users who selected the unstable channel in Settings.
+- `PATCH` is for stable hotfixes, such as updater, boot, login, security, or
+  data-loss fixes.
+- `MINOR` is for feature batches after they have soaked in `unstable-dev`.
+- `MAJOR` is reserved for breaking release eras or migration-heavy changes.
+
+Unstable builds do not consume stable patch numbers. They display the next
+tracked release target plus dev metadata:
+
+```text
+v0.2.0-alpha.0.dev.17+gb6c391a
+```
+
+Stable releases display the tracked version directly:
+
+```text
+v0.2.0-alpha.0
+```
+
+The helper scripts are:
+
+- `bin/ryoku-release-version`: computes the channel display version.
+- `bin/ryoku-release-bump`: computes the next `patch`, `minor`, or `major`
+  tracked release version.
+
+## Automated channel workflows
+
+`.github/workflows/release-channel-versions.yml` validates the channel version
+policy on pull requests and pushes to `main` or `unstable-dev`. On every
+`unstable-dev` push, it moves the `unstable-dev-latest` tag to the pushed
+commit. That tag is a marker for the newest rolling dev build, not a stable
+release tag.
+
+`.github/workflows/stable-release.yml` is the stable release button. Run it
+from `main`, choose `patch`, `minor`, or `major`, choose the public stage
+(`alpha`, `beta`, or `stable`), and leave `dispatch_iso` enabled when the ISO
+should publish. The workflow updates `VERSION`, commits the release bump, tags
+`v<version>`, pushes the tag, then dispatches `build-iso.yml` for that tag.
+
 ## GitHub Secrets the workflow needs
 
 Configure under **Settings -> Secrets and variables -> Actions** in the repo.

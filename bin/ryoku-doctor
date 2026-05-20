@@ -188,7 +188,31 @@ doctor_git() {
 }
 
 doctor_release_branch() {
-  printf '%s\n' "${RYOKU_UPDATE_BRANCH:-main}"
+  local config_file=""
+  local config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
+  local configured=""
+
+  if [[ -n ${RYOKU_UPDATE_BRANCH:-} ]]; then
+    configured="$RYOKU_UPDATE_BRANCH"
+  else
+    if [[ -n ${RYOKU_SHELL_CONFIG_DIR:-} ]]; then
+      config_file="$RYOKU_SHELL_CONFIG_DIR/config.json"
+    elif [[ -f $config_home/ryoku-shell/config.json ]]; then
+      config_file="$config_home/ryoku-shell/config.json"
+    else
+      config_file="$config_home/illogical-impulse/config.json"
+    fi
+
+    if [[ -f $config_file ]] && command -v jq >/dev/null 2>&1; then
+      configured="$(jq -r '.shellUpdates.channel // empty' "$config_file" 2>/dev/null || true)"
+    fi
+  fi
+
+  case "$configured" in
+    "" | main) printf '%s\n' "main" ;;
+    unstable-dev) printf '%s\n' "unstable-dev" ;;
+    *) printf '%s\n' "main" ;;
+  esac
 }
 
 doctor_remote_url() {

@@ -3,36 +3,69 @@
 set -e
 
 if (($# == 0)); then
-  echo "Usage: ryoku-update-branch main"
+  echo "Usage: ryoku-update-branch main|unstable-dev"
   exit 1
 fi
 
 branch="$1"
 
-if [[ $branch != "main" ]]; then
-  echo "Error: Invalid branch '$branch'. Must be: main"
-  exit 1
-fi
+case "$branch" in
+  main | unstable-dev) ;;
+  *)
+    echo "Error: Invalid branch '$branch'. Must be: main or unstable-dev"
+    exit 1
+    ;;
+esac
+
+write_shell_update_channel() {
+  local config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
+  local config_file=""
+  local tmp_file=""
+
+  if [[ -n ${RYOKU_SHELL_CONFIG_DIR:-} ]]; then
+    config_file="$RYOKU_SHELL_CONFIG_DIR/config.json"
+  elif [[ -f $config_home/ryoku-shell/config.json ]]; then
+    config_file="$config_home/ryoku-shell/config.json"
+  else
+    config_file="$config_home/ryoku-shell/config.json"
+  fi
+
+  mkdir -p "$(dirname "$config_file")"
+
+  if command -v python3 >/dev/null 2>&1; then
+    tmp_file="$(mktemp)"
+    python3 - "$config_file" "$branch" >"$tmp_file" <<'PY'
+import json
+import sys
+
+path, channel = sys.argv[1], sys.argv[2]
+try:
+    with open(path, "r", encoding="utf-8") as handle:
+        data = json.load(handle)
+except Exception:
+    data = {}
+
+shell_updates = data.get("shellUpdates")
+if not isinstance(shell_updates, dict):
+    shell_updates = {}
+data["shellUpdates"] = shell_updates
+shell_updates["channel"] = channel
+
+json.dump(data, sys.stdout, indent=2)
+sys.stdout.write("\n")
+PY
+    mv -- "$tmp_file" "$config_file"
+  elif [[ ! -f $config_file ]]; then
+    printf '{"shellUpdates":{"channel":"%s"}}\n' "$branch" >"$config_file"
+  fi
+}
+
+write_shell_update_channel
 
 # Snapshot before switching branch
 ryoku-snapshot create || (( $? == 127 ))
 
-if ! git -C "$RYOKU_PATH" diff --quiet || ! git -C "$RYOKU_PATH" diff --cached --quiet; then
-  stashed=true
-  git -C "$RYOKU_PATH" stash push -u -m "Autostash before switching to $branch"
-else
-  stashed=false
-fi
-
-# Switch branches
-git -C "$RYOKU_PATH" switch "$branch"
-
-# Reapply stash if we made one
-if [[ $stashed == "true" ]]; then
-  if ! git -C "$RYOKU_PATH" stash pop; then
-    echo "⚠️ Conflicts when applying stash - stash kept"
-  fi
-fi
+RYOKU_UPDATE_BRANCH="$branch" ryoku-update-git
 
 # Update the system from the new branch
 ryoku-update-perform

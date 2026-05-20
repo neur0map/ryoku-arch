@@ -1,0 +1,123 @@
+name: Stable Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: Release number to bump
+        required: true
+        default: minor
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      release_stage:
+        description: Public release stage
+        required: true
+        default: alpha
+        type: choice
+        options:
+          - alpha
+          - beta
+          - stable
+      dispatch_iso:
+        description: Dispatch the stable ISO build after tagging
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: stable-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Bump VERSION and tag stable release
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Configure git identity
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+
+      - name: Compute release version
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          version="$(./bin/ryoku-release-bump "${{ inputs.bump_type }}" "${{ inputs.release_stage }}")"
+          tag="v$version"
+
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+            echo "::error::Release tag $tag already exists."
+            exit 1
+          fi
+
+          printf '%s\n' "$version" > VERSION
+
+          {
+            echo "version=$version"
+            echo "tag=$tag"
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### Stable release"
+            echo
+            echo "- Version: \`$version\`"
+            echo "- Tag: \`$tag\`"
+            echo "- Stage: \`${{ inputs.release_stage }}\`"
+            echo "- Bump: \`${{ inputs.bump_type }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit and tag release
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+
+          if git diff --quiet -- VERSION; then
+            echo "::error::VERSION did not change."
+            exit 1
+          fi
+
+          git add VERSION
+          git commit -m "release: $RELEASE_TAG"
+          git tag -a "$RELEASE_TAG" -m "Ryoku $RELEASE_TAG"
+          git push origin HEAD:main
+          git push origin "refs/tags/$RELEASE_TAG"
+
+      - name: Dispatch ISO build
+        if: ${{ inputs.dispatch_iso }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+
+          gh workflow run build-iso.yml --ref "$RELEASE_TAG" -f release_stage="${{ inputs.release_stage }}"
+
+          {
+            echo "### ISO dispatch"
+            echo
+            echo "- Workflow: \`build-iso.yml\`"
+            echo "- Ref: \`$RELEASE_TAG\`"
+            echo "- Stage: \`${{ inputs.release_stage }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

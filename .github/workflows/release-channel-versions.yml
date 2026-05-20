@@ -1,0 +1,103 @@
+name: Release Channel Versions
+
+on:
+  pull_request:
+    branches: [main, unstable-dev]
+    paths:
+      - VERSION
+      - bin/ryoku-release-bump
+      - bin/ryoku-release-version
+      - .github/workflows/release-channel-versions.yml
+      - .github/workflows/stable-release.yml
+  push:
+    branches: [main, unstable-dev]
+    paths:
+      - VERSION
+      - bin/ryoku-release-bump
+      - bin/ryoku-release-version
+      - .github/workflows/release-channel-versions.yml
+      - .github/workflows/stable-release.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate channel versions
+    runs-on: ubuntu-latest
+    outputs:
+      stable_version: ${{ steps.versions.outputs.stable_version }}
+      unstable_version: ${{ steps.versions.outputs.unstable_version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute channel versions
+        id: versions
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          stable_version="$(./bin/ryoku-release-version --channel main)"
+          unstable_version="$(./bin/ryoku-release-version --channel unstable-dev --build-number "$GITHUB_RUN_NUMBER" --sha "$GITHUB_SHA")"
+          next_patch="$(./bin/ryoku-release-bump patch alpha)"
+          next_minor="$(./bin/ryoku-release-bump minor alpha)"
+
+          [[ $stable_version =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-.+][0-9A-Za-z.+-]+)?$ ]]
+          [[ $unstable_version =~ ^v[0-9]+\.[0-9]+\.[0-9]+.*\.dev\.[0-9]+\+g[0-9A-Za-z]+$ ]]
+          [[ $next_patch =~ ^[0-9]+\.[0-9]+\.[0-9]+-alpha\.0$ ]]
+          [[ $next_minor =~ ^[0-9]+\.[0-9]+\.0-alpha\.0$ ]]
+
+          {
+            echo "stable_version=$stable_version"
+            echo "unstable_version=$unstable_version"
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### Ryoku channel versions"
+            echo
+            echo "- Stable target: \`$stable_version\`"
+            echo "- Unstable preview: \`$unstable_version\`"
+            echo "- Next alpha patch: \`$next_patch\`"
+            echo "- Next alpha minor: \`$next_minor\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  mark-unstable:
+    name: Move unstable latest tag
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/unstable-dev'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Move unstable-dev-latest
+        shell: bash
+        env:
+          UNSTABLE_VERSION: ${{ needs.validate.outputs.unstable_version }}
+        run: |
+          set -euo pipefail
+
+          tag="unstable-dev-latest"
+          short_sha="${GITHUB_SHA::7}"
+
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git fetch --tags origin
+          git tag -f -a "$tag" -m "Ryoku $UNSTABLE_VERSION from $short_sha" "$GITHUB_SHA"
+          git push --force origin "refs/tags/$tag"
+
+          {
+            echo "### Unstable channel marker"
+            echo
+            echo "- Tag: \`$tag\`"
+            echo "- Version: \`$UNSTABLE_VERSION\`"
+            echo "- Commit: \`$short_sha\`"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1418,6 +1418,7 @@
   },
   "shellUpdates": {
     "enabled": true,
+    "channel": "main",
     "checkIntervalMinutes": 360,
     "dismissedCommit": "",
     "lastNotifiedCommit": "",

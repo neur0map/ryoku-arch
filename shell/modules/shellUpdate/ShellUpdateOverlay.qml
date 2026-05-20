@@ -17,7 +17,9 @@ Scope {
 
     readonly property bool isOpen: ShellUpdates.overlayOpen
     readonly property bool hasUpdate: ShellUpdates.hasUpdate
+    readonly property bool canApplyUpdate: ShellUpdates.canApplyUpdate
     readonly property bool hasLocalMods: ShellUpdates.localModifications.length > 0
+    property bool confirmingChannelSwitch: false
     property bool modsExpanded: false
     property bool suppressOutsideClose: false
 
@@ -107,6 +109,7 @@ Scope {
     }
 
     onIsOpenChanged: {
+        confirmingChannelSwitch = false
         if (!isOpen) {
             modsExpanded = false
             suppressOutsideClose = false
@@ -316,7 +319,7 @@ Scope {
 
                         MaterialSymbol {
                             anchors.centerIn: parent
-                            text: root.hasUpdate ? "upgrade" : "check_circle"
+                            text: ShellUpdates.requiresChannelSwitch ? "account_tree" : root.hasUpdate ? "upgrade" : "check_circle"
                             iconSize: Appearance.font.pixelSize.huge
                             color: root.accentColor
                         }
@@ -328,9 +331,11 @@ Scope {
                         Layout.alignment: Qt.AlignVCenter
 
                         StyledText {
-                            text: root.hasUpdate
-                                ? Translation.tr("Shell Update Available")
-                                : Translation.tr("Shell Status")
+                            text: ShellUpdates.requiresChannelSwitch
+                                ? Translation.tr("Switch Shell Channel")
+                                : root.hasUpdate
+                                    ? Translation.tr("Shell Update Available")
+                                    : Translation.tr("Shell Status")
                             font {
                                 pixelSize: Appearance.font.pixelSize.larger
                                 weight: Font.DemiBold
@@ -763,21 +768,23 @@ Scope {
                                         implicitWidth: statusText.implicitWidth + 20
                                         implicitHeight: statusText.implicitHeight + 10
                                         radius: root.pillRadius
-                                        color: root.hasUpdate
+                                        color: root.canApplyUpdate
                                             ? ColorUtils.transparentize(Appearance.m3colors.m3primary, 0.85)
                                             : ColorUtils.transparentize(Appearance.m3colors.m3tertiary, 0.85)
 
                                         StyledText {
                                             id: statusText
                                             anchors.centerIn: parent
-                                            text: root.hasUpdate
-                                                ? Translation.tr("Update available")
-                                                : Translation.tr("Up to date")
+                                            text: ShellUpdates.requiresChannelSwitch
+                                                ? Translation.tr("Channel switch ready")
+                                                : root.hasUpdate
+                                                    ? Translation.tr("Update available")
+                                                    : Translation.tr("Up to date")
                                             font {
                                                 pixelSize: Appearance.font.pixelSize.smallest
                                                 weight: Font.DemiBold
                                             }
-                                            color: root.hasUpdate
+                                            color: root.canApplyUpdate
                                                 ? Appearance.m3colors.m3primary
                                                 : Appearance.m3colors.m3tertiary
                                         }
@@ -1291,7 +1298,7 @@ Scope {
 
                     // Snapshot info (only when update available)
                     RowLayout {
-                        visible: root.hasUpdate
+                        visible: root.canApplyUpdate
                         spacing: 6
                         MaterialSymbol {
                             text: "inventory_2"
@@ -1309,7 +1316,7 @@ Scope {
 
                     // Up to date message (when no update)
                     RowLayout {
-                        visible: !root.hasUpdate
+                        visible: !root.canApplyUpdate
                         spacing: 6
                         MaterialSymbol {
                             text: "check_circle"
@@ -1414,11 +1421,17 @@ Scope {
 
                     // Update button (only when update)
                     RippleButton {
-                        visible: root.hasUpdate && ShellUpdates.selfUpdateSupported
+                        visible: root.canApplyUpdate && ShellUpdates.selfUpdateSupported
                         enabled: !ShellUpdates.isUpdating
                         implicitWidth: updateBtnContent.implicitWidth + 32
-                        implicitHeight: 36
-                        onClicked: ShellUpdates.performUpdate()
+                        implicitHeight: ShellUpdates.requiresChannelSwitch ? 30 : 36
+                        onClicked: {
+                            if (ShellUpdates.requiresChannelSwitch && !root.confirmingChannelSwitch) {
+                                root.confirmingChannelSwitch = true
+                            } else {
+                                ShellUpdates.performUpdate(true)
+                            }
+                        }
 
                         Rectangle {
                             anchors.fill: parent
@@ -1471,7 +1484,11 @@ Scope {
                                     ? (ShellUpdates.updateStepMessage.length > 0
                                         ? Translation.tr(ShellUpdates.updateStepMessage) + "..."
                                         : Translation.tr("Updating..."))
-                                    : Translation.tr("Update Now")
+                                    : ShellUpdates.requiresChannelSwitch && root.confirmingChannelSwitch
+                                        ? Translation.tr("Confirm")
+                                        : ShellUpdates.requiresChannelSwitch
+                                        ? Translation.tr("Switch")
+                                        : Translation.tr("Update Now")
                                 font {
                                     pixelSize: Appearance.font.pixelSize.small
                                     weight: Font.DemiBold
@@ -1483,7 +1500,7 @@ Scope {
 
                     // Close button (when no update)
                     RippleButton {
-                        visible: !root.hasUpdate || !ShellUpdates.selfUpdateSupported
+                        visible: !root.canApplyUpdate || !ShellUpdates.selfUpdateSupported
                         implicitWidth: closeLabel.implicitWidth + 28
                         implicitHeight: 36
                         onClicked: ShellUpdates.closeOverlay()

@@ -33,8 +33,17 @@ rg -q 'extraheader' "$SHELL_UPDATES_QML" || \
 rg -q 'normalizeRemoteProc\.running = true' "$SHELL_UPDATES_QML" || \
   fail "Manual and automatic checks should normalize origin before fetching"
 
-rg -q '\+refs/heads/main:refs/remotes/origin/main' "$SHELL_UPDATES_QML" || \
-  fail "Shell update checks should explicitly fetch origin/main, even from feature-branch ISO builds"
+rg -q 'readonly property string configuredChannel' "$SHELL_UPDATES_QML" || \
+  fail "Shell update checks should expose the configured channel"
+
+rg -q 'Config\.options\?\.shellUpdates\?\.channel' "$SHELL_UPDATES_QML" || \
+  fail "Shell update checks should read shellUpdates.channel from config"
+
+rg -q 'RYOKU_UPDATE_BRANCH' "$SHELL_UPDATES_QML" || \
+  fail "Shell update apply should pass the configured branch to ryoku-update"
+
+rg -q '\+refs/heads/" \+ root\.releaseBranch \+ ":refs/remotes/origin/" \+ root\.releaseBranch' "$SHELL_UPDATES_QML" || \
+  fail "Shell update checks should explicitly fetch the configured release branch"
 
 ! rg -q 'origin/" \+ root\.currentBranch' "$SHELL_UPDATES_QML" || \
   fail "Shell update checks should not track stale feature-branch remote refs"
