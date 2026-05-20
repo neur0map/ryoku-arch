@@ -216,6 +216,8 @@ Item {
             WidgetCard { widgetKey: "visualizer"; widgetIcon: "graphic_eq"; widgetLabel: Translation.tr("Visualizer"); defaultEnabled: false }
             WidgetCard { widgetKey: "systemMonitor"; widgetIcon: "monitor_heart"; widgetLabel: Translation.tr("System Monitor"); defaultEnabled: false }
             WidgetCard { widgetKey: "battery"; widgetIcon: "battery_full"; widgetLabel: Translation.tr("Battery"); defaultEnabled: false }
+            WidgetCard { widgetKey: "notes"; widgetIcon: "sticky_note_2"; widgetLabel: Translation.tr("Notes"); defaultEnabled: false }
+            WidgetCard { widgetKey: "calendarUpcoming"; widgetIcon: "event"; widgetLabel: Translation.tr("Upcoming Events"); defaultEnabled: false }
 
             // ── Custom widgets section ──
             Item { width: 1; height: 8 }
@@ -315,6 +317,9 @@ Item {
         readonly property string _cfgPrefix: isCustom ? ("background.widgets.custom." + widgetKey) : ("background.widgets." + widgetKey)
         readonly property bool _enabled: Boolean(Config.getNestedValue(card._cfgPrefix + ".enable", card.defaultEnabled))
         readonly property bool _locked: Boolean(Config.getNestedValue(card._cfgPrefix + ".locked", false))
+        readonly property bool _supportsAppearance: !isCustom && [
+            "clock", "visualizer", "systemMonitor", "battery", "notes", "calendarUpcoming"
+        ].indexOf(widgetKey) !== -1
         readonly property bool _expanded: card._enabled && _expandToggle
         property bool _expandToggle: false
 
@@ -538,6 +543,94 @@ Item {
                             value: Config.getNestedValue(card._cfgPrefix + ".dim", 0)
                             tooltipContent: Math.round(value) + "%"
                             onMoved: Config.setNestedValue(card._cfgPrefix + ".dim", Math.round(value))
+                        }
+                    }
+
+                    Rectangle {
+                        visible: card._supportsAppearance
+                        width: parent.width
+                        height: 1
+                        color: ColorUtils.applyAlpha(Appearance.colors.colOnLayer1, 0.06)
+                    }
+
+                    RowLayout {
+                        visible: card._supportsAppearance
+                        width: parent.width
+                        spacing: 8
+                        MaterialSymbol { text: "format_color_fill"; iconSize: 16; color: ColorUtils.applyAlpha(Appearance.colors.colOnLayer1, 0.5) }
+                        StyledText {
+                            Layout.fillWidth: true
+                            text: Translation.tr("Background")
+                            color: ColorUtils.applyAlpha(Appearance.colors.colOnLayer1, 0.7)
+                            font.pixelSize: Appearance.font.pixelSize.smaller
+                        }
+                        StyledSwitch {
+                            checked: Config.getNestedValue(card._cfgPrefix + ".showBackground", true)
+                            onCheckedChanged: {
+                                if (checked !== Config.getNestedValue(card._cfgPrefix + ".showBackground", true))
+                                    Config.setNestedValue(card._cfgPrefix + ".showBackground", checked)
+                            }
+                        }
+                    }
+
+                    RowLayout {
+                        width: parent.width
+                        spacing: 8
+                        visible: card._supportsAppearance && (Appearance.auroraEverywhere || Appearance.angelEverywhere) && Appearance.effectsEnabled
+                        MaterialSymbol { text: "blur_on"; iconSize: 16; color: ColorUtils.applyAlpha(Appearance.colors.colOnLayer1, 0.5) }
+                        StyledText {
+                            Layout.fillWidth: true
+                            text: Translation.tr("Blur background")
+                            color: ColorUtils.applyAlpha(Appearance.colors.colOnLayer1, 0.7)
+                            font.pixelSize: Appearance.font.pixelSize.smaller
+                        }
+                        StyledSwitch {
+                            checked: Config.getNestedValue(card._cfgPrefix + ".useBlur", false)
+                            onCheckedChanged: {
+                                if (checked !== Config.getNestedValue(card._cfgPrefix + ".useBlur", false))
+                                    Config.setNestedValue(card._cfgPrefix + ".useBlur", checked)
+                            }
+                        }
+                    }
+
+                    RowLayout {
+                        width: parent.width
+                        spacing: 8
+                        visible: card._supportsAppearance && Config.getNestedValue(card._cfgPrefix + ".showBackground", true)
+                        MaterialSymbol { text: "opacity"; iconSize: 16; color: ColorUtils.applyAlpha(Appearance.colors.colOnLayer1, 0.5) }
+                        StyledText {
+                            text: Translation.tr("BG opacity")
+                            color: ColorUtils.applyAlpha(Appearance.colors.colOnLayer1, 0.7)
+                            font.pixelSize: Appearance.font.pixelSize.smaller
+                        }
+                        StyledSlider {
+                            Layout.fillWidth: true
+                            from: 0; to: 100; stepSize: 1
+                            configuration: StyledSlider.Configuration.XS
+                            stopIndicatorValues: []
+                            value: Math.round(Config.getNestedValue(card._cfgPrefix + ".backgroundOpacity", 0.06) * 100)
+                            tooltipContent: Math.round(value) + "%"
+                            onMoved: Config.setNestedValue(card._cfgPrefix + ".backgroundOpacity", Math.round(value) / 100)
+                        }
+                    }
+
+                    RowLayout {
+                        visible: card._supportsAppearance
+                        width: parent.width
+                        spacing: 8
+                        MaterialSymbol { text: "border_style"; iconSize: 16; color: ColorUtils.applyAlpha(Appearance.colors.colOnLayer1, 0.5) }
+                        StyledText {
+                            Layout.fillWidth: true
+                            text: Translation.tr("Border")
+                            color: ColorUtils.applyAlpha(Appearance.colors.colOnLayer1, 0.7)
+                            font.pixelSize: Appearance.font.pixelSize.smaller
+                        }
+                        StyledSwitch {
+                            checked: Config.getNestedValue(card._cfgPrefix + ".showBorder", true)
+                            onCheckedChanged: {
+                                if (checked !== Config.getNestedValue(card._cfgPrefix + ".showBorder", true))
+                                    Config.setNestedValue(card._cfgPrefix + ".showBorder", checked)
+                            }
                         }
                     }
                 }

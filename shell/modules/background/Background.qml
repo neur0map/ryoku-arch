@@ -22,6 +22,8 @@ import qs.modules.background.widgets.weather
 import qs.modules.background.widgets.visualizer
 import qs.modules.background.widgets.systemMonitor
 import qs.modules.background.widgets.battery
+import qs.modules.background.widgets.notes
+import qs.modules.background.widgets.calendar
 import "root:modules/common/functions/parallax.js" as ParallaxMath
 
 Scope {
@@ -87,7 +89,9 @@ Scope {
             { key: "mediaControls",  defaultOn: true,  icon: "album" },
             { key: "visualizer",     defaultOn: false, icon: "graphic_eq" },
             { key: "systemMonitor",  defaultOn: false, icon: "monitor_heart" },
-            { key: "battery",        defaultOn: false, icon: "battery_full" }
+            { key: "battery",        defaultOn: false, icon: "battery_full" },
+            { key: "notes",          defaultOn: false, icon: "sticky_note_2" },
+            { key: "calendarUpcoming", defaultOn: false, icon: "event" }
         ]
         // Revision counter to force re-evaluation
         property int _zoneRevision: 0
@@ -1467,7 +1471,9 @@ Scope {
                                     { key: "mediaControls", icon: "album", label: "Media", defaultOn: true },
                                     { key: "visualizer", icon: "graphic_eq", label: "Visualizer", defaultOn: false },
                                     { key: "systemMonitor", icon: "monitor_heart", label: "System Monitor", defaultOn: false },
-                                    { key: "battery", icon: "battery_full", label: "Battery", defaultOn: false }
+                                    { key: "battery", icon: "battery_full", label: "Battery", defaultOn: false },
+                                    { key: "notes", icon: "sticky_note_2", label: "Notes", defaultOn: false },
+                                    { key: "calendarUpcoming", icon: "event", label: "Upcoming Events", defaultOn: false }
                                 ]
                                 RippleButton {
                                     id: quickWidgetButton
@@ -1698,6 +1704,38 @@ Scope {
                     Item { id: _hitMask6; x: -30; y: -260; width: (parent?.width ?? 0) + 60; height: (parent?.height ?? 0) + 300 }
                     sourceComponent: BatteryWidget {
                         widgetIndex: 5
+                        screenWidth: bgRoot.screen.width
+                        screenHeight: bgRoot.screen.height
+                        scaledScreenWidth: bgRoot.screen.width
+                        scaledScreenHeight: bgRoot.screen.height
+                        wallpaperScale: 1
+                        canvasShiftX: widgetCanvas.canvasShiftX
+                        canvasShiftY: widgetCanvas.canvasShiftY
+                    }
+                }
+
+                FadeLoader {
+                    shown: Boolean(Config.getNestedValue("background.widgets.notes.enable", false))
+                    containmentMask: GlobalStates.widgetEditMode ? _hitMask8 : null
+                    Item { id: _hitMask8; x: -30; y: -260; width: (parent?.width ?? 0) + 60; height: (parent?.height ?? 0) + 300 }
+                    sourceComponent: NotesWidget {
+                        widgetIndex: 6
+                        screenWidth: bgRoot.screen.width
+                        screenHeight: bgRoot.screen.height
+                        scaledScreenWidth: bgRoot.screen.width
+                        scaledScreenHeight: bgRoot.screen.height
+                        wallpaperScale: 1
+                        canvasShiftX: widgetCanvas.canvasShiftX
+                        canvasShiftY: widgetCanvas.canvasShiftY
+                    }
+                }
+
+                FadeLoader {
+                    shown: Boolean(Config.getNestedValue("background.widgets.calendarUpcoming.enable", false))
+                    containmentMask: GlobalStates.widgetEditMode ? _hitMask9 : null
+                    Item { id: _hitMask9; x: -30; y: -260; width: (parent?.width ?? 0) + 60; height: (parent?.height ?? 0) + 300 }
+                    sourceComponent: CalendarUpcomingWidget {
+                        widgetIndex: 7
                         screenWidth: bgRoot.screen.width
                         screenHeight: bgRoot.screen.height
                         scaledScreenWidth: bgRoot.screen.width
