@@ -53,6 +53,9 @@ rg -q 'Translation\.tr\("Switch channel"\)' "$ABOUT_QML" || \
 rg -q 'onClicked: openShellUpdateDetails\(\)' "$ABOUT_QML" || \
   fail "About channel-switch action should open the existing confirmation details"
 
+rg -Uq 'Config\.setNestedValue\("shellUpdates\.channel", newValue\)\n\s*checkShellUpdates\(\)' "$ABOUT_QML" \
+  || fail "About channel selector should notify the shell update service after changing channel"
+
 ! rg -q '0\.1\.0-pre-alpha' "$ABOUT_QML" || \
   fail "About version badge should not hardcode stale pre-alpha text"
 

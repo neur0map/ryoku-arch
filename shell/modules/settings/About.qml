@@ -291,7 +291,7 @@ ContentPage {
                             ]
                             onSelected: (newValue) => {
                                 Config.setNestedValue("shellUpdates.channel", newValue)
-                                ShellUpdates.refresh()
+                                checkShellUpdates()
                             }
                         }
 
