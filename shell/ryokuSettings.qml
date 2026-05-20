@@ -4971,7 +4971,7 @@ ApplicationWindow {
         SettingsPageBody {
           SettingsSection {
             title: "Desktop widgets"
-            description: "Enable the main visual widgets. Placement, style, presets, and custom widget details are in Widget Controls."
+            description: "Enable desktop widgets. Placement, style, presets, and custom widget details are in Widget Controls."
 
             SettingsSettingCard {
               iconName: "widgets"
@@ -4985,7 +4985,9 @@ ApplicationWindow {
                   { label: "Media", description: "Desktop media widget.", path: "background.widgets.mediaControls.enable", fallback: false },
                   { label: "Visualizer", description: "Audio visualizer widget.", path: "background.widgets.visualizer.enable", fallback: false },
                   { label: "System monitor", description: "Desktop system stats.", path: "background.widgets.systemMonitor.enable", fallback: false },
-                  { label: "Battery", description: "Desktop battery widget.", path: "background.widgets.battery.enable", fallback: false }
+                  { label: "Battery", description: "Desktop battery widget.", path: "background.widgets.battery.enable", fallback: false },
+                  { label: "Notes", description: "Desktop notes widget.", path: "background.widgets.notes.enable", fallback: false },
+                  { label: "Upcoming Events", description: "Calendar events on the desktop.", path: "background.widgets.calendarUpcoming.enable", fallback: false }
                 ]
               }
             }

@@ -52,6 +52,12 @@ grep -q -- '--centered' "$launcher" \
 grep -q 'Ryoku Settings' "$settings_qml" \
   || fail "official settings should identify itself as Ryoku Settings"
 
+grep -q 'RYOKU_SETTINGS_PAGE' "$settings_qml" \
+  || fail "official settings should support direct page routing"
+
+grep -q 'RYOKU_SETTINGS_SUBTAB' "$settings_qml" \
+  || fail "official settings should support direct subtab routing"
+
 forbidden_re='noc''talia|pro''totype|temporary sett''ings|temp sett''ings|Settings La''b|settings la''b|RYOKU_SETTINGS_LA''B|noc''taliaSettings'
 for active_file in "$settings_qml" "$launcher" "$shell_entry" "$window_rules" "$default_window_rules"; do
   if grep -Eiq "$forbidden_re" "$active_file"; then
@@ -174,6 +180,12 @@ grep -q 'Light | Dark | Auto | Schedule' "$settings_qml" \
 
 grep -q 'Quick Rice' "$settings_qml" \
   || fail "General should expose a Quick Rice section for common appearance tuning"
+
+grep -q 'background.widgets.notes.enable' "$settings_qml" \
+  || fail "official desktop widget gallery should expose Notes"
+
+grep -q 'background.widgets.calendarUpcoming.enable' "$settings_qml" \
+  || fail "official desktop widget gallery should expose Upcoming Events"
 
 grep -q 'Use wallpaper colors' "$settings_qml" \
   || fail "Quick Rice should expose a user-friendly wallpaper color toggle"

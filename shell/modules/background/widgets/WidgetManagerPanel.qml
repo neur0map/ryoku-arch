@@ -112,7 +112,7 @@ Item {
                         GlobalStates.settingsOverlayRequestedPage = 14
                         GlobalStates.settingsOverlayOpen = true
                     } else {
-                        Quickshell.execDetached(["/usr/bin/env", "QS_SETTINGS_PAGE=14", Quickshell.shellPath("scripts/ryoku-shell"), "settings-window"])
+                        Quickshell.execDetached(["/usr/bin/env", "RYOKU_SETTINGS_PAGE=wallpaper", "RYOKU_SETTINGS_SUBTAB=4", Quickshell.shellPath("scripts/ryoku-shell"), "settings-window"])
                     }
                 }
                 contentItem: MaterialSymbol { anchors.centerIn: parent; text: "settings"; iconSize: 18; color: Appearance.colors.colOnLayer1 }
