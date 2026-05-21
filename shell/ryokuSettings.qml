@@ -4020,7 +4020,7 @@ ApplicationWindow {
             SettingsSettingCard {
               iconName: "opacity"
               title: "Glass and windows"
-              description: "Aurora-style glass, shell surface opacity, and unfocused window dimming."
+              description: "Shell surface glass and unfocused window dimming."
 
               SettingsSwitch {
                 label: "Enable shell transparency"
@@ -4066,21 +4066,8 @@ ApplicationWindow {
               }
 
               SettingsValueSlider {
-                label: "Global blur transparency"
-                description: "Controls the translucent blurred layer behind opened windows."
-                from: 0.65
-                to: 1.0
-                stepSize: 0.01
-                displayScale: 100
-                displayDecimals: 0
-                suffix: "%"
-                value: app.windowRulesData?.global_opacity ?? 0.70
-                onMoved: value => app.niriSetConfig("window-rules", "global-opacity", app.formatReal(value, 0.70))
-              }
-
-              SettingsValueSlider {
                 label: "Inactive window opacity"
-                description: "Unfocused windows dim to this value on top of the global blur setting."
+                description: "Unfocused windows dim to this value while focused windows stay opaque."
                 from: 0.45
                 to: 1.0
                 stepSize: 0.05
@@ -4093,7 +4080,7 @@ ApplicationWindow {
 
               SettingsLabel {
                 label: "Active window opacity"
-                description: "The global blur transparency slider controls opened windows; this settings panel is pinned opaque so controls stay readable."
+                description: "Focused app windows stay fully opaque; shell transparency controls bar, panel, and popup glass."
                 iconName: "info"
               }
 

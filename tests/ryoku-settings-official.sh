@@ -240,17 +240,14 @@ grep -q 'appearance.transparency.contentTransparency' "$settings_qml" \
 grep -q 'Inactive window opacity' "$settings_qml" \
   || fail "Quick Rice should expose inactive window opacity"
 
-grep -q 'Global blur transparency' "$settings_qml" \
-  || fail "Quick Rice should expose global blur transparency"
-
-grep -q 'window-rules", "global-opacity' "$settings_qml" \
-  || fail "global blur transparency should write through the Niri window-rules helper"
+! grep -q 'window-rules", "global-opacity' "$settings_qml" \
+  || fail "Quick Rice must not dim every app window through global Niri opacity"
 
 grep -q 'window-rules", "inactive-opacity' "$settings_qml" \
   || fail "inactive window opacity should write through the existing Niri window-rules helper"
 
-grep -q '"global_opacity": 0.70' shell/scripts/niri-config.py \
-  || fail "Niri window-rule helper should default global opacity to 70 percent"
+! grep -q '"global_opacity"' shell/scripts/niri-config.py \
+  || fail "Niri window-rule helper should not expose global app-window opacity"
 
 for layout_file in "$layout_config" "$default_layout_config"; do
   grep -q '^blur {$' "$layout_file" \
@@ -262,22 +259,52 @@ for layout_file in "$layout_config" "$default_layout_config"; do
 done
 
 for rules_file in "$window_rules" "$default_window_rules"; do
-  grep -q 'Global window glass' "$rules_file" \
-    || fail "$rules_file should document the global window glass rule"
-  grep -q 'opacity 0.70' "$rules_file" \
-    || fail "$rules_file should default global window opacity to 70 percent"
+  grep -q 'Global background blur' "$rules_file" \
+    || fail "$rules_file should document the global background blur rule"
   grep -q 'background-effect' "$rules_file" \
     || fail "$rules_file should enable background blur effects for windows"
   grep -q 'blur true' "$rules_file" \
     || fail "$rules_file should turn on window background blur"
+  if ! python3 - "$rules_file" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+text = Path(sys.argv[1]).read_text(encoding="utf-8")
+pattern = re.compile(r"(?:^|\n)\s*window-rule\s*\{")
+
+for match in pattern.finditer(text):
+    inner_start = match.end()
+    depth = 1
+    i = inner_start
+    while i < len(text) and depth > 0:
+        if text[i] == "{":
+            depth += 1
+        elif text[i] == "}":
+            depth -= 1
+        i += 1
+    if depth != 0:
+        continue
+    block = text[inner_start : i - 1]
+    if re.search(r"^\s*match\b", block, flags=re.MULTILINE):
+        continue
+    if re.search(r"^\s*background-effect\s*\{", block, flags=re.MULTILINE) and re.search(
+        r"^\s*opacity\s+", block, flags=re.MULTILINE
+    ):
+        sys.exit(1)
+PY
+  then
+    fail "$rules_file should not apply opacity to every app window"
+  fi
 done
 
-glass_migration="$(grep -l 'Enable global Niri window glass at 70 percent' migrations/*.sh 2>/dev/null | sort -n | tail -n1 || true)"
+glass_migration="$(grep -l 'Enable Niri background blur and inactive opacity defaults' migrations/*.sh 2>/dev/null | sort -n | tail -n1 || true)"
 [[ -n $glass_migration ]] \
-  || fail "a migration should apply global window glass to existing users"
+  || fail "a migration should apply background blur defaults to existing users"
 
-grep -q 'opacity", "0.70"' "$glass_migration" \
-  || fail "global window glass migration should set opacity to 70 percent"
+repair_migration="$(grep -l 'Remove global Niri app-window opacity from glass defaults' migrations/*.sh 2>/dev/null | sort -n | tail -n1 || true)"
+[[ -n $repair_migration ]] \
+  || fail "a migration should remove unsafe global app-window opacity from existing users"
 
 grep -q 'function setThemeMode' "$settings_qml" \
   || fail "settings_qml should persist theme mode user intent"

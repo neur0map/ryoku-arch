@@ -1000,48 +1000,12 @@ def _window_rule_has_match(block):
     return bool(re.search(r"^\s*match\b", block, re.MULTILINE))
 
 
-def _find_global_glass_window_rule(content):
-    for outer_start, inner_start, inner_end, outer_end, block in _iter_window_rule_blocks(
-        content
-    ):
-        if _window_rule_has_match(block):
-            continue
-        if re.search(r"^\s*opacity\s+[\d.]+", block, re.MULTILINE) or re.search(
-            r"^\s*background-effect\s*\{", block, re.MULTILINE
-        ):
-            return outer_start, inner_start, inner_end, outer_end, block
-    return None
-
-
-def _insert_global_glass_window_rule(content, value):
-    block = (
-        "\n\n"
-        "// Global window glass controlled by Quick Rice.\n"
-        "window-rule {\n"
-        f"    opacity {value}\n"
-        "\n"
-        "    background-effect {\n"
-        "        blur true\n"
-        "        xray false\n"
-        "        noise 0.03\n"
-        "        saturation 1.0\n"
-        "    }\n"
-        "}\n"
-    )
-
-    for _, _, _, outer_end, _ in _iter_window_rule_blocks(content):
-        return content[:outer_end] + block + content[outer_end:]
-
-    return content.rstrip() + block
-
-
 def cmd_get_window_rules():
     rules_file = resolve_niri_section_file("config.d/30-window-rules.kdl")
 
     result = {
         "corner_radius": 16,
         "clip_to_geometry": True,
-        "global_opacity": 0.70,
         "inactive_opacity": 0.70,
     }
 
@@ -1059,9 +1023,6 @@ def cmd_get_window_rules():
                 result["inactive_opacity"] = float(m.group(1))
         else:
             if not _window_rule_has_match(block):
-                m = re.search(r"^\s*opacity\s+([\d.]+)", block, re.MULTILINE)
-                if m:
-                    result["global_opacity"] = float(m.group(1))
                 # General rule — corner radius / clip
                 m = re.search(r"geometry-corner-radius\s+(\d+)", block)
                 if m:
@@ -1844,26 +1805,6 @@ def _set_window_rules(config_dir, key, value):
                 content.rstrip()
                 + f"\n\nwindow-rule {{\n    match is-active=false\n    opacity {value}\n}}\n"
             )
-
-    elif key == "global-opacity":
-        glass_rule = _find_global_glass_window_rule(content)
-        if glass_rule:
-            _, inner_start, inner_end, _, block = glass_rule
-            if re.search(r"^\s*opacity\s+[\d.]+", block, re.MULTILINE):
-                block = re.sub(
-                    r"(^\s*opacity\s+)[\d.]+",
-                    rf"\g<1>{value}",
-                    block,
-                    count=1,
-                    flags=re.MULTILINE,
-                )
-            else:
-                block = "\n    opacity {value}\n".format(value=value) + block.lstrip(
-                    "\n"
-                )
-            content = content[:inner_start] + block + content[inner_end:]
-        else:
-            content = _insert_global_glass_window_rule(content, value)
 
     elif key == "clip-to-geometry":
         if re.search(r"clip-to-geometry\s+(true|false)", content):

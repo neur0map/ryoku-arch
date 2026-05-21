@@ -1,4 +1,4 @@
-echo "Enable global Niri window glass at 70 percent"
+echo "Enable Niri background blur and inactive opacity defaults"
 
 niri_dir="${XDG_CONFIG_HOME:-$HOME/.config}/niri"
 layout_file="$niri_dir/config.d/20-layout-and-overview.kdl"
@@ -145,6 +145,10 @@ def set_line(block, key, value, indent="    "):
     return f"\n{indent}{key} {value}\n" + block.lstrip("\n")
 
 
+def remove_line(block, key):
+    return re.sub(rf"^\s*{re.escape(key)}\s+[^\n]+\n?", "", block, flags=re.MULTILINE)
+
+
 def ensure_background_effect(block):
     effect = find_named_block(block, "background-effect")
     if effect:
@@ -182,16 +186,14 @@ for outer_start, inner_start, inner_end, outer_end, block in iter_window_rules(t
 
 if glass_rule:
     inner_start, inner_end, block = glass_rule
-    block = set_line(block, "opacity", "0.70")
+    block = remove_line(block, "opacity")
     block = ensure_background_effect(block)
     text = text[:inner_start] + block + text[inner_end:]
 else:
     block = (
         "\n\n"
-        "// Global window glass: keep opened windows translucent over the wallpaper.\n"
+        "// Global background blur for windows that expose transparent content.\n"
         "window-rule {\n"
-        "    opacity 0.70\n"
-        "\n"
         "    background-effect {\n"
         "        blur true\n"
         "        xray false\n"
