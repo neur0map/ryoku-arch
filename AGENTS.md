@@ -65,3 +65,58 @@ if ryoku-cmd-missing fprintd-list || ! fprintd-list "$USER" 2>/dev/null | grep -
   sed -i 's/fingerprint:enabled = .*/fingerprint:enabled = false/' ~/.config/hypr/hyprlock.conf
 fi
 ```
+
+
+# Ryoku Settings and System Architecture
+
+When working on Ryoku settings, treat settings as a control surface, not as the owner of behavior or visual truth.
+
+Required flow:
+
+```text
+Settings UI -> Config.setNestedValue() or a narrow IPC/command adapter -> shared service/tokens -> shell-wide consumers
+```
+
+Rules:
+
+- Do not implement global visuals as local properties on the settings window.
+- Add user-facing config keys in both `shell/modules/common/Config.qml` and `shell/defaults/config.json`.
+- Put visual interpretation in `shell/modules/common/Appearance.qml` for Material ii or `shell/modules/waffle/looks/Looks.qml` for Waffle.
+- Make bar, panels, sidebars, overview, launchers, popups, and settings consume the same tokens.
+- Settings pages under `shell/modules/settings/`, `shell/ryokuSettings.qml`, `shell/settings.qml`, and `shell/waffleSettings.qml` should mutate config and explain options. They should not become one-off style engines.
+- For system behavior, prefer a named `ryoku-*` command with a small QML service or IPC adapter. Do not put package, sudo, systemd, network, hardware, or migration logic directly in a settings component.
+- Verify a settings change by toggling it and checking at least one non-settings shell surface or system command result.
+
+The migrated core is part of the product. Before adding shell UI for a feature, check whether an existing `ryoku-*` command already owns it. Common core domains include packages, updates, snapshots, rollback, migrations, Niri config, keybinds, themes, wallpaper, fonts, cursor, hardware toggles, power profiles, services, firewall, hosts, VPN, DNS, webapps, and app installs.
+
+# Ryoku Development Environment
+
+Use `unstable-dev` for new work. Keep `main` untouched unless explicitly asked to release or merge.
+
+Development tree:
+
+```bash
+cd "$HOME/prowl/ryoku-arch"
+git checkout unstable-dev
+git status --short
+```
+
+Runtime preview for shell-only edits:
+
+```bash
+DEV="${RYOKU_DEV_PATH:-$HOME/prowl/ryoku-arch}"
+RUNT="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell"
+rsync -a --delete "$DEV/shell/" "$RUNT/"
+systemctl --user restart ryoku-shell.service
+```
+
+Installed repo:
+
+```bash
+git -C "$HOME/.local/share/ryoku" status -sb
+```
+
+Do not manually copy experiments into `$HOME/.local/share/ryoku`. That checkout is the installed update tree. If it drifts, updates and channel switching break.
+
+Before committing settings or IPC work, run the narrow checks that match the touched area. Prefer existing tests under `tests/` and shell checks for changed scripts. If a local hook fails on unrelated existing warnings, report that clearly instead of hiding it.
+

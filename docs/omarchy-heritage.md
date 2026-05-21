@@ -49,6 +49,40 @@ or external identifier references:
 | `config/niri/` | Current compositor config source. |
 | `docs/keybindings.md` | Current user-facing keyboard reference. |
 
+
+## Active Ryoku Core Capabilities
+
+The migrated core is not just legacy baggage. It is the system control layer that the shell should call instead of reimplementing system behavior in QML.
+
+Current core domains, based on the `ryoku-*` command namespace:
+
+- **Install and update lifecycle:** `ryoku-update-*`, `ryoku-reinstall-*`, `ryoku-channel-*`, `ryoku-branch-set`, release/version helpers, snapshots, rollback, migrations, and doctor checks.
+- **Package and app management:** `ryoku-pkg-*`, app installers, profile installers, webapp install/remove, Chromium/Helium helpers, Steam, Tailscale, NordVPN, Dropbox, Docker DBs, developer environment installers.
+- **Compositor and desktop repair:** Niri config refresh, keybinding docs, shell restart/recovery, default app migration, terminal launchers, systemd service repair, session recovery, update log analysis.
+- **Theming and appearance outside QML:** wallpaper list/cache/apply/search, theme install/remove/set/refresh, font list/set/install, cursor list/set/install, keyboard theme setters, GTK/KDE/terminal/editor/app template refreshers, SDDM and lockscreen preview refreshers.
+- **Hardware and power:** hardware detectors, hybrid GPU toggle, touchpad and haptic touchpad, battery status and charge limit helpers, brightness commands, power profiles, suspend and hibernation setup/removal, idle/nightlight/notification toggles.
+- **Network and security:** Wi-Fi/bluetooth launchers and restarts, firewall, hosts editing, OpenVPN import/remove/rename, Tailscale install, DNS setup, FIDO2/fingerprint setup, sudo reset/passwordless toggle.
+- **Media and productivity utilities:** audio effects, volume and microphone commands, screen recording, OCR, Google Lens, color picker, QR scan, voice typing, music daemon/profile helpers, TUI and launcher helpers.
+
+Design implication: if a settings page controls one of these domains, the shell should be a client of the core. The usual pattern is:
+
+```text
+Settings control -> QML service/IPC adapter -> ryoku-* command -> state/config file -> shell observes result
+```
+
+Only keep the behavior fully inside QML when it is genuinely shell-local, such as panel visibility, an overlay mode, layout density, or a visual token.
+
+## Shell vs Core Responsibility Split
+
+Use this split when deciding where new work belongs:
+
+- **Shell owns:** visible panels, overlays, OSDs, visual tokens, animation, layout, user interaction, previews, and live display of status.
+- **Core owns:** packages, services, filesystem config, migrations, rollback, hardware toggles, network/system commands, compositor config, and anything requiring elevated permissions.
+- **Shared contract:** stable config paths, state files under `$RYOKU_STATE_PATH`, command JSON or JSONL output when a setting needs structured data, and narrow IPC targets for shell actions.
+
+If a feature needs both, build the core command first, then bind the shell UI to it. This prevents the shell from becoming a pile of privileged one-off scripts and keeps terminal users able to perform the same actions without the settings app.
+
+
 ## How To Review A New Reference
 
 When a new `omarchy`, old-compositor, or old-shell reference appears, classify

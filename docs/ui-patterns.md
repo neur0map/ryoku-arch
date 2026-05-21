@@ -205,6 +205,100 @@ def append_once($value):
 
 If a Ryoku feature needs a live config change, ship a migration. Do not solve it by replacing the whole file. The migration should be idempotent, narrowly scoped, and preserve explicit user values.
 
+
+## Settings architecture: config first, visuals global
+
+Settings are not allowed to be their own product. They are a control surface for the real desktop.
+
+Required data flow:
+
+```text
+Settings control -> Config.setNestedValue(path, value) -> shared service/tokens recompute -> every shell surface re-renders
+```
+
+Forbidden data flow:
+
+```text
+Settings control -> local property on settings window -> settings looks changed but the shell does not
+```
+
+Use this rule before adding any setting:
+
+1. Define the key in `shell/modules/common/Config.qml`.
+2. Add the default in `shell/defaults/config.json`.
+3. Put interpretation logic in the owning singleton/service, not the settings page.
+4. Make shell consumers read the singleton/service token.
+5. Make settings write the config key and render from the same token the shell uses.
+6. Verify at least two non-settings surfaces changed after toggling the setting.
+
+For visual settings, the owner is usually `Appearance.qml` for Material ii surfaces and `Looks.qml` for Waffle surfaces. A setting such as transparency, radius, border, color, blur, surface density, or panel family must not be implemented only inside `ryokuSettings.qml`, `settings.qml`, or `modules/settings/*`.
+
+### Visual token ownership
+
+Ryoku has several layers that look similar but have different jobs:
+
+- `Config.qml`: schema, persistence, defaults, and writes via `Config.setNestedValue()`.
+- `Appearance.qml`: Material ii visual truth. Colors, transparency, radii, style modes, and derived tokens live here.
+- `modules/waffle/looks/Looks.qml`: Waffle visual truth.
+- Settings pages: controls and explanations only. They mutate config and preview the real tokens.
+- Shell modules: bar, sidebars, overview, dock, launcher, popups, and settings must consume tokens from the shared owner.
+
+If a page needs a preview, bind the preview to `Appearance` or `Looks`. Do not duplicate the formula in the page. If the formula feels too settings-specific, that is a sign the real style service is missing a token.
+
+### System-wide setting acceptance checklist
+
+A settings change is not done until all of these are true:
+
+- The config key exists in both `Config.qml` and `defaults/config.json`.
+- The changed value survives a shell restart.
+- The relevant singleton or command observes the value.
+- At least one non-settings surface changes when the value changes.
+- The settings UI itself is not the only consumer.
+- IPC or a `ryoku-*` command exists if the setting controls system state outside QML.
+- A test or script covers the config path, default, and command if practical.
+
+### IPC and command boundary
+
+Use QML IPC for shell UI state and shell-owned overlays. Use `ryoku-*` commands for system state. The shell should not grow into a second operating system control plane.
+
+Good shell IPC targets:
+
+- open, close, or toggle shell overlays
+- trigger shell animations or OSDs
+- update shell config through `Config.setNestedValue()`
+- ask shell services for live UI state
+
+Good `ryoku-*` command targets:
+
+- packages, updates, snapshots, rollback, and migrations
+- Niri config, keybinds, compositor reloads, and display config
+- theme, wallpaper, fonts, cursor, icon refresh, and per-app theming
+- hardware toggles, power profiles, suspend, hibernation, battery limits
+- network, bluetooth, firewall, hosts, VPN, Tailscale, and DNS
+- app install/remove, webapps, profiles, services, and system repair
+
+Settings pages should prefer a thin adapter:
+
+```text
+QML control -> shell IPC or service -> ryoku-* command -> state file/config -> shell service reloads/observes result
+```
+
+Do not call `sudo`, `pacman`, `systemctl`, `nmcli`, or large shell pipelines directly from a random settings component. Put that behavior in a named `ryoku-*` command, expose a narrow IPC wrapper if needed, and display command status in the UI.
+
+### Working tree and preview discipline
+
+For unstable feature work, edit only the dev checkout on `unstable-dev`. Preview by syncing `shell/` into the Quickshell runtime. Do not hand-edit the installed repo or user config to make a design work.
+
+```bash
+DEV="${RYOKU_DEV_PATH:-$HOME/prowl/ryoku-arch}"
+RUNT="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell"
+rsync -a --delete "$DEV/shell/" "$RUNT/"
+systemctl --user restart ryoku-shell.service
+```
+
+If a preview needs changed defaults or commands outside `shell/`, commit those to `unstable-dev` and deploy through the normal installer/update path. Otherwise you will create the exact drift where settings, keybinds, service files, and runtime shell disagree.
+
+
 ## When to stop and rethink
 
 If three attempts to fix the same visual bug have not worked, the bug is not in the property you are tweaking. Patterns of "still bad", "still bad", "still bad" mean one of:
