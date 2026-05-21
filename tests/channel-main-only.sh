@@ -51,8 +51,6 @@ active_files=(
   bin/ryoku-channel-set
   bin/ryoku-channel-current
   bin/ryoku-refresh-pacman
-  bin/ryoku-branch-set
-  bin/ryoku-update-branch
   bin/ryoku-reinstall-pkgs
   iso/bin/ryoku-iso-make
   iso/bin/ryoku-iso-release
@@ -73,6 +71,17 @@ for path in "${active_files[@]}"; do
   assert_not_contains "$path" '--(rc|dev)([^A-Za-z0-9_-]|$)' "$path should not expose legacy release channel flags"
 done
 
+for path in \
+  bin/ryoku-channel-set \
+  bin/ryoku-channel-current \
+  bin/ryoku-branch-set \
+  bin/ryoku-update-branch; do
+  assert_contains "$path" 'main' "$path should reference the main channel"
+  assert_contains "$path" 'unstable-dev' "$path should expose the unstable-dev update channel"
+  assert_not_contains "$path" 'pacman-(stable|rc|edge)|mirrorlist-(stable|rc|edge)|pacman-online-(stable|rc|edge)' \
+    "$path should not reference legacy pacman channel files"
+done
+
 assert_contains .github/workflows/build-iso.yml 'CHANNEL: main' \
   "workflow should build the installer from the main channel"
 assert_contains .github/workflows/build-iso.yml 'PUBLIC_CHANNEL: stable' \
@@ -81,7 +90,7 @@ assert_not_contains .github/workflows/build-iso.yml 'github\.event\.inputs\.chan
   "workflow should not expose a channel selector"
 assert_not_contains .github/workflows/build-iso.yml 'ryoku/(stable|rc|edge)|ryoku-iso/(stable|rc|edge)' \
   "workflow should not upload to legacy channel paths"
-assert_contains migrations/1778859665.sh 'printf .%s\\n. "main" > "\$STATE_FILE"' \
-  "migration should rewrite legacy channel state to main"
+assert_contains migrations/1778859665.sh 'main | unstable-dev' \
+  "migration should preserve supported update channels"
 
 echo "PASS: tests/channel-main-only.sh"
