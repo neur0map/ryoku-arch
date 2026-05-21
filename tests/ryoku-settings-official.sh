@@ -228,8 +228,11 @@ grep -q 'Automatic transparency' "$settings_qml" \
 grep -q '"appearance.transparency.automatic": false' "$settings_qml" \
   || fail "manual transparency sliders should disable automatic transparency so movement has visible effect"
 
-grep -q 'Shell surface transparency' "$settings_qml" \
-  || fail "Quick Rice should expose background transparency"
+grep -q 'Global blur transparency' "$settings_qml" \
+  || fail "Quick Rice should expose global blur transparency"
+
+grep -q 'appearance.transparency.backgroundTransparency' "$settings_qml" \
+  || fail "global blur transparency should write shell surface transparency"
 
 grep -q 'Active window opacity' "$settings_qml" \
   || fail "Quick Rice should explain that Niri only exposes inactive window opacity globally"
@@ -305,6 +308,22 @@ glass_migration="$(grep -l 'Enable Niri background blur and inactive opacity def
 repair_migration="$(grep -l 'Remove global Niri app-window opacity from glass defaults' migrations/*.sh 2>/dev/null | sort -n | tail -n1 || true)"
 [[ -n $repair_migration ]] \
   || fail "a migration should remove unsafe global app-window opacity from existing users"
+
+shell_glass_migration="$(grep -l 'Set shell glass transparency default to 70 percent' migrations/*.sh 2>/dev/null | sort -n | tail -n1 || true)"
+[[ -n $shell_glass_migration ]] \
+  || fail "a migration should apply the official shell glass default to existing users"
+
+jq -e '.appearance.transparency.enable == true and .appearance.transparency.automatic == false and .appearance.transparency.backgroundTransparency == 0.70' shell/defaults/config.json >/dev/null \
+  || fail "default shell config should enable global blur transparency at 70 percent"
+
+grep -q 'property bool enable: true' shell/modules/common/Config.qml \
+  || fail "Config schema should default shell transparency on"
+
+grep -q 'property bool automatic: false' shell/modules/common/Config.qml \
+  || fail "Config schema should default manual shell transparency"
+
+grep -q 'property real backgroundTransparency: 0.70' shell/modules/common/Config.qml \
+  || fail "Config schema should default global blur transparency to 70 percent"
 
 grep -q 'function setThemeMode' "$settings_qml" \
   || fail "settings_qml should persist theme mode user intent"

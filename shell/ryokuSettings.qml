@@ -4040,15 +4040,15 @@ ApplicationWindow {
               }
 
               SettingsValueSlider {
-                label: "Shell surface transparency"
-                description: "How much panel background glass shows through."
+                label: "Global blur transparency"
+                description: "How much shell frame, bar, and panel glass shows through."
                 from: 0
                 to: 0.75
                 stepSize: 0.01
                 displayScale: 100
                 displayDecimals: 0
                 suffix: "%"
-                value: Config.options?.appearance?.transparency?.backgroundTransparency ?? 0.11
+                value: Config.options?.appearance?.transparency?.backgroundTransparency ?? 0.70
                 onMoved: value => app.setManualShellTransparency("appearance.transparency.backgroundTransparency", value)
               }
 
