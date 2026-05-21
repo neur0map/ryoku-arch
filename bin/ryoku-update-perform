@@ -1,7 +1,9 @@
 #!/bin/bash
 
 set -e
-repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+script_path="${BASH_SOURCE[0]}"
+script_path="$(readlink -f "$script_path" 2>/dev/null || printf '%s\n' "$script_path")"
+repo_root="$(cd -- "$(dirname -- "$script_path")/.." && pwd)"
 source "$repo_root/lib/runtime-env.sh"
 source "$repo_root/lib/update-dashboard.sh"
 

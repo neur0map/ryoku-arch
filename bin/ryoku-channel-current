@@ -2,8 +2,8 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Print the active Ryoku release channel. Defaults to "main" on absence.
-# Legacy channel names are collapsed to main.
+# Print the active Ryoku update channel. Defaults to "main" on absence.
+# Unknown legacy channel names are collapsed to main.
 
 STATE_FILE="$RYOKU_STATE_PATH/channel"
 
@@ -14,6 +14,6 @@ else
 fi
 
 case "$channel" in
-main) echo "$channel" ;;
+main | unstable-dev) echo "$channel" ;;
 *) echo "main" ;;
 esac

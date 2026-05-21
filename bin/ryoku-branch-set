@@ -5,15 +5,18 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 # Set the branch for Ryoku's git repository.
 
 if (($# == 0)); then
-  echo "Usage: ryoku-branch-set main"
+  echo "Usage: ryoku-branch-set main|unstable-dev"
   exit 1
 else
   branch="$1"
 fi
 
-if [[ $branch != "main" ]]; then
-  echo "Error: Invalid branch '$branch'. Must be: main"
+case "$branch" in
+main | unstable-dev) ;;
+*)
+  echo "Error: Invalid branch '$branch'. Must be: main or unstable-dev"
   exit 1
-fi
+  ;;
+esac
 
 git -C "$RYOKU_PATH" switch "$branch"
