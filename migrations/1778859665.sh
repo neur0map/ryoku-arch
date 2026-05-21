@@ -1,4 +1,4 @@
-echo "Collapse Ryoku channel state to main"
+echo "Normalize Ryoku channel state"
 
 STATE_FILE="$HOME/.local/state/ryoku/channel"
 
@@ -8,10 +8,13 @@ else
   current=""
 fi
 
-if [[ $current != "main" ]]; then
+case "$current" in
+main | unstable-dev)
+  echo "  channel already $current"
+  ;;
+*)
   mkdir -p "$(dirname "$STATE_FILE")"
   printf '%s\n' "main" > "$STATE_FILE"
   echo "  channel: main"
-else
-  echo "  channel already main"
-fi
+  ;;
+esac

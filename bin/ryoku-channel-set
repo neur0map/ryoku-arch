@@ -1,28 +1,25 @@
 #!/bin/bash
 
+set -e
+
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Set the Ryoku channel. Ryoku ships one public channel: main.
+# Set the Ryoku update channel. Pacman packages still use the main mirror.
 
 if (($# == 0)); then
-  echo "Usage: ryoku-channel-set main"
+  echo "Usage: ryoku-channel-set main|unstable-dev"
   exit 1
 fi
 
 channel="$1"
 
 case "$channel" in
-main) ;;
+main | unstable-dev) ;;
 *)
   echo "Unknown channel: $channel"
   exit 1
   ;;
 esac
 
-mkdir -p "$RYOKU_STATE_PATH"
-printf '%s\n' "$channel" >"$RYOKU_STATE_PATH/channel"
-
-ryoku-branch-set "main"
 ryoku-refresh-pacman "main"
-
-ryoku-update -y
+ryoku-update-branch "$channel"
