@@ -4066,21 +4066,34 @@ ApplicationWindow {
               }
 
               SettingsValueSlider {
+                label: "Global blur transparency"
+                description: "Controls the translucent blurred layer behind opened windows."
+                from: 0.65
+                to: 1.0
+                stepSize: 0.01
+                displayScale: 100
+                displayDecimals: 0
+                suffix: "%"
+                value: app.windowRulesData?.global_opacity ?? 0.70
+                onMoved: value => app.niriSetConfig("window-rules", "global-opacity", app.formatReal(value, 0.70))
+              }
+
+              SettingsValueSlider {
                 label: "Inactive window opacity"
-                description: "Focused windows stay fully opaque; unfocused windows dim to this value."
+                description: "Unfocused windows dim to this value on top of the global blur setting."
                 from: 0.45
                 to: 1.0
                 stepSize: 0.05
                 displayScale: 100
                 displayDecimals: 0
                 suffix: "%"
-                value: app.windowRulesData?.inactive_opacity ?? 0.9
-                onMoved: value => app.niriSetConfig("window-rules", "inactive-opacity", app.formatReal(value, 0.9))
+                value: app.windowRulesData?.inactive_opacity ?? 0.70
+                onMoved: value => app.niriSetConfig("window-rules", "inactive-opacity", app.formatReal(value, 0.70))
               }
 
               SettingsLabel {
                 label: "Active window opacity"
-                description: "Niri keeps the focused window fully opaque. The slider above changes unfocused windows; this settings panel is pinned opaque so controls stay readable."
+                description: "The global blur transparency slider controls opened windows; this settings panel is pinned opaque so controls stay readable."
                 iconName: "info"
               }
 

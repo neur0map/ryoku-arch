@@ -16,10 +16,22 @@ window-rule {
     clip-to-geometry true
 }
 
+// Global window glass: keep opened windows translucent over the wallpaper.
+window-rule {
+    opacity 0.70
+
+    background-effect {
+        blur true
+        xray false
+        noise 0.03
+        saturation 1.0
+    }
+}
+
 // Dim unfocused windows slightly for visual hierarchy.
 window-rule {
     match is-active=false
-    opacity 0.9
+    opacity 0.70
 }
 
 // ── Per-app fixes ───────────────────────────────────────────────────────────

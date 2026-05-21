@@ -12,6 +12,8 @@ settings_qml="shell/ryokuSettings.qml"
 shell_entry="shell/shell.qml"
 config_schema="shell/modules/common/Config.qml"
 extras_config="shell/modules/settings/ExtrasConfig.qml"
+layout_config="config/niri/config.d/20-layout-and-overview.kdl"
+default_layout_config="shell/defaults/niri/config.d/20-layout-and-overview.kdl"
 window_rules="config/niri/config.d/30-window-rules.kdl"
 default_window_rules="shell/defaults/niri/config.d/30-window-rules.kdl"
 
@@ -61,7 +63,7 @@ grep -q 'RYOKU_SETTINGS_SUBTAB' "$settings_qml" \
   || fail "official settings should support direct subtab routing"
 
 forbidden_re='noc''talia|pro''totype|temporary sett''ings|temp sett''ings|Settings La''b|settings la''b|RYOKU_SETTINGS_LA''B|noc''taliaSettings'
-for active_file in "$settings_qml" "$launcher" "$shell_entry" "$window_rules" "$default_window_rules"; do
+for active_file in "$settings_qml" "$launcher" "$shell_entry" "$layout_config" "$default_layout_config" "$window_rules" "$default_window_rules"; do
   if grep -Eiq "$forbidden_re" "$active_file"; then
     fail "$active_file should not contain old external or experimental naming"
   fi
@@ -238,8 +240,44 @@ grep -q 'appearance.transparency.contentTransparency' "$settings_qml" \
 grep -q 'Inactive window opacity' "$settings_qml" \
   || fail "Quick Rice should expose inactive window opacity"
 
+grep -q 'Global blur transparency' "$settings_qml" \
+  || fail "Quick Rice should expose global blur transparency"
+
+grep -q 'window-rules", "global-opacity' "$settings_qml" \
+  || fail "global blur transparency should write through the Niri window-rules helper"
+
 grep -q 'window-rules", "inactive-opacity' "$settings_qml" \
   || fail "inactive window opacity should write through the existing Niri window-rules helper"
+
+grep -q '"global_opacity": 0.70' shell/scripts/niri-config.py \
+  || fail "Niri window-rule helper should default global opacity to 70 percent"
+
+for layout_file in "$layout_config" "$default_layout_config"; do
+  grep -q '^blur {$' "$layout_file" \
+    || fail "$layout_file should enable global Niri blur defaults"
+  grep -q 'passes 2' "$layout_file" \
+    || fail "$layout_file should set the global blur pass count"
+  grep -q 'noise 0.03' "$layout_file" \
+    || fail "$layout_file should set the global blur noise"
+done
+
+for rules_file in "$window_rules" "$default_window_rules"; do
+  grep -q 'Global window glass' "$rules_file" \
+    || fail "$rules_file should document the global window glass rule"
+  grep -q 'opacity 0.70' "$rules_file" \
+    || fail "$rules_file should default global window opacity to 70 percent"
+  grep -q 'background-effect' "$rules_file" \
+    || fail "$rules_file should enable background blur effects for windows"
+  grep -q 'blur true' "$rules_file" \
+    || fail "$rules_file should turn on window background blur"
+done
+
+glass_migration="$(grep -l 'Enable global Niri window glass at 70 percent' migrations/*.sh 2>/dev/null | sort -n | tail -n1 || true)"
+[[ -n $glass_migration ]] \
+  || fail "a migration should apply global window glass to existing users"
+
+grep -q 'opacity", "0.70"' "$glass_migration" \
+  || fail "global window glass migration should set opacity to 70 percent"
 
 grep -q 'function setThemeMode' "$settings_qml" \
   || fail "settings_qml should persist theme mode user intent"
