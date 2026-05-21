@@ -979,13 +979,34 @@ def cmd_get_animations():
 # ─── Window Rules ─────────────────────────────────────────────────────
 
 
+def _iter_window_rule_blocks(content):
+    pattern = re.compile(r"(?:^|\n)\s*window-rule\s*\{")
+    for match in pattern.finditer(content):
+        inner_start = match.end()
+        depth = 1
+        i = inner_start
+        while i < len(content) and depth > 0:
+            if content[i] == "{":
+                depth += 1
+            elif content[i] == "}":
+                depth -= 1
+            i += 1
+
+        if depth == 0:
+            yield match.start(), inner_start, i - 1, i, content[inner_start : i - 1]
+
+
+def _window_rule_has_match(block):
+    return bool(re.search(r"^\s*match\b", block, re.MULTILINE))
+
+
 def cmd_get_window_rules():
     rules_file = resolve_niri_section_file("config.d/30-window-rules.kdl")
 
     result = {
         "corner_radius": 16,
         "clip_to_geometry": True,
-        "inactive_opacity": 0.9,
+        "inactive_opacity": 0.70,
     }
 
     if not rules_file.exists():
@@ -994,37 +1015,21 @@ def cmd_get_window_rules():
 
     content = rules_file.read_text()
 
-    # Find all window-rule blocks
-    pos = 0
-    while True:
-        match = re.search(r"window-rule\s*\{", content[pos:])
-        if not match:
-            break
-        block_start = pos + match.end()
-        depth = 1
-        i = block_start
-        while i < len(content) and depth > 0:
-            if content[i] == "{":
-                depth += 1
-            elif content[i] == "}":
-                depth -= 1
-            i += 1
-        block = content[block_start : i - 1] if depth == 0 else ""
-        pos = i
-
+    for _, _, _, _, block in _iter_window_rule_blocks(content):
         # Check if this is the inactive-opacity rule (has match is-active=false)
         if re.search(r"match\s+is-active\s*=\s*false", block):
             m = re.search(r"opacity\s+([\d.]+)", block)
             if m:
                 result["inactive_opacity"] = float(m.group(1))
         else:
-            # General rule — corner radius / clip
-            m = re.search(r"geometry-corner-radius\s+(\d+)", block)
-            if m:
-                result["corner_radius"] = int(m.group(1))
-            m = re.search(r"clip-to-geometry\s+(true|false)", block)
-            if m:
-                result["clip_to_geometry"] = m.group(1) == "true"
+            if not _window_rule_has_match(block):
+                # General rule — corner radius / clip
+                m = re.search(r"geometry-corner-radius\s+(\d+)", block)
+                if m:
+                    result["corner_radius"] = int(m.group(1))
+                m = re.search(r"clip-to-geometry\s+(true|false)", block)
+                if m:
+                    result["clip_to_geometry"] = m.group(1) == "true"
 
     print(json.dumps(result))
     return 0

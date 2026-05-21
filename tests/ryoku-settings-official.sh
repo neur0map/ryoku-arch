@@ -12,6 +12,8 @@ settings_qml="shell/ryokuSettings.qml"
 shell_entry="shell/shell.qml"
 config_schema="shell/modules/common/Config.qml"
 extras_config="shell/modules/settings/ExtrasConfig.qml"
+layout_config="config/niri/config.d/20-layout-and-overview.kdl"
+default_layout_config="shell/defaults/niri/config.d/20-layout-and-overview.kdl"
 window_rules="config/niri/config.d/30-window-rules.kdl"
 default_window_rules="shell/defaults/niri/config.d/30-window-rules.kdl"
 
@@ -61,7 +63,7 @@ grep -q 'RYOKU_SETTINGS_SUBTAB' "$settings_qml" \
   || fail "official settings should support direct subtab routing"
 
 forbidden_re='noc''talia|pro''totype|temporary sett''ings|temp sett''ings|Settings La''b|settings la''b|RYOKU_SETTINGS_LA''B|noc''taliaSettings'
-for active_file in "$settings_qml" "$launcher" "$shell_entry" "$window_rules" "$default_window_rules"; do
+for active_file in "$settings_qml" "$launcher" "$shell_entry" "$layout_config" "$default_layout_config" "$window_rules" "$default_window_rules"; do
   if grep -Eiq "$forbidden_re" "$active_file"; then
     fail "$active_file should not contain old external or experimental naming"
   fi
@@ -226,8 +228,11 @@ grep -q 'Automatic transparency' "$settings_qml" \
 grep -q '"appearance.transparency.automatic": false' "$settings_qml" \
   || fail "manual transparency sliders should disable automatic transparency so movement has visible effect"
 
-grep -q 'Shell surface transparency' "$settings_qml" \
-  || fail "Quick Rice should expose background transparency"
+grep -q 'Global blur transparency' "$settings_qml" \
+  || fail "Quick Rice should expose global blur transparency"
+
+grep -q 'appearance.transparency.backgroundTransparency' "$settings_qml" \
+  || fail "global blur transparency should write shell surface transparency"
 
 grep -q 'Active window opacity' "$settings_qml" \
   || fail "Quick Rice should explain that Niri only exposes inactive window opacity globally"
@@ -238,8 +243,87 @@ grep -q 'appearance.transparency.contentTransparency' "$settings_qml" \
 grep -q 'Inactive window opacity' "$settings_qml" \
   || fail "Quick Rice should expose inactive window opacity"
 
+! grep -q 'window-rules", "global-opacity' "$settings_qml" \
+  || fail "Quick Rice must not dim every app window through global Niri opacity"
+
 grep -q 'window-rules", "inactive-opacity' "$settings_qml" \
   || fail "inactive window opacity should write through the existing Niri window-rules helper"
+
+! grep -q '"global_opacity"' shell/scripts/niri-config.py \
+  || fail "Niri window-rule helper should not expose global app-window opacity"
+
+for layout_file in "$layout_config" "$default_layout_config"; do
+  grep -q '^blur {$' "$layout_file" \
+    || fail "$layout_file should enable global Niri blur defaults"
+  grep -q 'passes 2' "$layout_file" \
+    || fail "$layout_file should set the global blur pass count"
+  grep -q 'noise 0.03' "$layout_file" \
+    || fail "$layout_file should set the global blur noise"
+done
+
+for rules_file in "$window_rules" "$default_window_rules"; do
+  grep -q 'Global background blur' "$rules_file" \
+    || fail "$rules_file should document the global background blur rule"
+  grep -q 'background-effect' "$rules_file" \
+    || fail "$rules_file should enable background blur effects for windows"
+  grep -q 'blur true' "$rules_file" \
+    || fail "$rules_file should turn on window background blur"
+  if ! python3 - "$rules_file" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+text = Path(sys.argv[1]).read_text(encoding="utf-8")
+pattern = re.compile(r"(?:^|\n)\s*window-rule\s*\{")
+
+for match in pattern.finditer(text):
+    inner_start = match.end()
+    depth = 1
+    i = inner_start
+    while i < len(text) and depth > 0:
+        if text[i] == "{":
+            depth += 1
+        elif text[i] == "}":
+            depth -= 1
+        i += 1
+    if depth != 0:
+        continue
+    block = text[inner_start : i - 1]
+    if re.search(r"^\s*match\b", block, flags=re.MULTILINE):
+        continue
+    if re.search(r"^\s*background-effect\s*\{", block, flags=re.MULTILINE) and re.search(
+        r"^\s*opacity\s+", block, flags=re.MULTILINE
+    ):
+        sys.exit(1)
+PY
+  then
+    fail "$rules_file should not apply opacity to every app window"
+  fi
+done
+
+glass_migration="$(grep -l 'Enable Niri background blur and inactive opacity defaults' migrations/*.sh 2>/dev/null | sort -n | tail -n1 || true)"
+[[ -n $glass_migration ]] \
+  || fail "a migration should apply background blur defaults to existing users"
+
+repair_migration="$(grep -l 'Remove global Niri app-window opacity from glass defaults' migrations/*.sh 2>/dev/null | sort -n | tail -n1 || true)"
+[[ -n $repair_migration ]] \
+  || fail "a migration should remove unsafe global app-window opacity from existing users"
+
+shell_glass_migration="$(grep -l 'Set shell glass transparency default to 70 percent' migrations/*.sh 2>/dev/null | sort -n | tail -n1 || true)"
+[[ -n $shell_glass_migration ]] \
+  || fail "a migration should apply the official shell glass default to existing users"
+
+jq -e '.appearance.transparency.enable == true and .appearance.transparency.automatic == false and .appearance.transparency.backgroundTransparency == 0.70' shell/defaults/config.json >/dev/null \
+  || fail "default shell config should enable global blur transparency at 70 percent"
+
+grep -q 'property bool enable: true' shell/modules/common/Config.qml \
+  || fail "Config schema should default shell transparency on"
+
+grep -q 'property bool automatic: false' shell/modules/common/Config.qml \
+  || fail "Config schema should default manual shell transparency"
+
+grep -q 'property real backgroundTransparency: 0.70' shell/modules/common/Config.qml \
+  || fail "Config schema should default global blur transparency to 70 percent"
 
 grep -q 'function setThemeMode' "$settings_qml" \
   || fail "settings_qml should persist theme mode user intent"

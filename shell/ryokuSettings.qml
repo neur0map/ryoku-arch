@@ -4020,7 +4020,7 @@ ApplicationWindow {
             SettingsSettingCard {
               iconName: "opacity"
               title: "Glass and windows"
-              description: "Aurora-style glass, shell surface opacity, and unfocused window dimming."
+              description: "Shell surface glass and unfocused window dimming."
 
               SettingsSwitch {
                 label: "Enable shell transparency"
@@ -4040,15 +4040,15 @@ ApplicationWindow {
               }
 
               SettingsValueSlider {
-                label: "Shell surface transparency"
-                description: "How much panel background glass shows through."
+                label: "Global blur transparency"
+                description: "How much shell frame, bar, and panel glass shows through."
                 from: 0
                 to: 0.75
                 stepSize: 0.01
                 displayScale: 100
                 displayDecimals: 0
                 suffix: "%"
-                value: Config.options?.appearance?.transparency?.backgroundTransparency ?? 0.11
+                value: Config.options?.appearance?.transparency?.backgroundTransparency ?? 0.70
                 onMoved: value => app.setManualShellTransparency("appearance.transparency.backgroundTransparency", value)
               }
 
@@ -4067,20 +4067,20 @@ ApplicationWindow {
 
               SettingsValueSlider {
                 label: "Inactive window opacity"
-                description: "Focused windows stay fully opaque; unfocused windows dim to this value."
+                description: "Unfocused windows dim to this value while focused windows stay opaque."
                 from: 0.45
                 to: 1.0
                 stepSize: 0.05
                 displayScale: 100
                 displayDecimals: 0
                 suffix: "%"
-                value: app.windowRulesData?.inactive_opacity ?? 0.9
-                onMoved: value => app.niriSetConfig("window-rules", "inactive-opacity", app.formatReal(value, 0.9))
+                value: app.windowRulesData?.inactive_opacity ?? 0.70
+                onMoved: value => app.niriSetConfig("window-rules", "inactive-opacity", app.formatReal(value, 0.70))
               }
 
               SettingsLabel {
                 label: "Active window opacity"
-                description: "Niri keeps the focused window fully opaque. The slider above changes unfocused windows; this settings panel is pinned opaque so controls stay readable."
+                description: "Focused app windows stay fully opaque; shell transparency controls bar, panel, and popup glass."
                 iconName: "info"
               }
 

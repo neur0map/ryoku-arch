@@ -176,10 +176,10 @@
       "customPreset": ""
     },
     "transparency": {
-      "automatic": true,
-      "backgroundTransparency": 0.11,
+      "automatic": false,
+      "backgroundTransparency": 0.70,
       "contentTransparency": 0.57,
-      "enable": false
+      "enable": true
     },
     "wallpaperTheming": {
       "enableAppsAndShell": true,
