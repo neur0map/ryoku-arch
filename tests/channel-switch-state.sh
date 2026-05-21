@@ -41,7 +41,7 @@ printf '%s\n' '{"shellUpdates":{"channel":"main"}}' >"$config_dir/ryoku-shell/co
 write_stub "$bin_dir/ryoku-refresh-pacman" 'exit 1'
 write_stub "$bin_dir/ryoku-update-branch" 'printf "%s\n" "unexpected update branch" >&2; exit 1'
 
-if RYOKU_PATH="$fake_ryoku" RYOKU_STATE_PATH="$state_dir" RYOKU_SHELL_CONFIG_DIR= XDG_CONFIG_HOME="$config_dir" \
+if RYOKU_PATH="$fake_ryoku" RYOKU_STATE_PATH="$state_dir" RYOKU_SHELL_CONFIG_DIR="" XDG_CONFIG_HOME="$config_dir" \
   "$ROOT_DIR/bin/ryoku-channel-set" unstable-dev >/dev/null 2>&1; then
   fail "channel set should fail when pacman refresh is cancelled"
 fi
@@ -53,7 +53,7 @@ write_stub "$bin_dir/ryoku-update-git" 'exit 0'
 write_stub "$bin_dir/ryoku-update-perform" 'exit 1'
 write_stub "$bin_dir/git" 'exit 0'
 
-if RYOKU_PATH="$fake_ryoku" RYOKU_STATE_PATH="$state_dir" RYOKU_SHELL_CONFIG_DIR= XDG_CONFIG_HOME="$config_dir" \
+if RYOKU_PATH="$fake_ryoku" RYOKU_STATE_PATH="$state_dir" RYOKU_SHELL_CONFIG_DIR="" XDG_CONFIG_HOME="$config_dir" \
   "$ROOT_DIR/bin/ryoku-update-branch" unstable-dev >/dev/null 2>&1; then
   fail "update branch should fail when update perform fails"
 fi
@@ -64,7 +64,7 @@ rg -q '"channel":"main"' "$config_dir/ryoku-shell/config.json" || \
 
 write_stub "$bin_dir/ryoku-update-perform" 'exit 0'
 
-RYOKU_PATH="$fake_ryoku" RYOKU_STATE_PATH="$state_dir" RYOKU_SHELL_CONFIG_DIR= XDG_CONFIG_HOME="$config_dir" \
+RYOKU_PATH="$fake_ryoku" RYOKU_STATE_PATH="$state_dir" RYOKU_SHELL_CONFIG_DIR="" XDG_CONFIG_HOME="$config_dir" \
   "$ROOT_DIR/bin/ryoku-update-branch" unstable-dev >/dev/null
 
 assert_channel "$state_dir/channel" "unstable-dev"
