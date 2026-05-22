@@ -47,6 +47,8 @@ assert_contains "$NIRI_CONFIG" 'pendingPreviewKind === "display-draft"' \
 
 assert_contains "$DISPLAY_CONFIGURATOR" 'component MonitorRect:' \
   "The display configurator should render draggable monitor rectangles"
+assert_contains "$DISPLAY_CONFIGURATOR" 'import qs\.services' \
+  "The display configurator should import services before using Translation"
 assert_contains "$DISPLAY_CONFIGURATOR" 'component OutputCard:' \
   "The display configurator should render per-output setting cards"
 assert_contains "$DISPLAY_CONFIGURATOR" 'stageDisplayChange\(.*"position"' \
