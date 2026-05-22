@@ -42,11 +42,22 @@ Singleton {
         }
         return false;
     }
+
+    function activateAncestorsFromSettingsSearch(control) {
+        var p = control;
+        while (p) {
+            if (typeof p.activateFromSettingsSearch === "function") {
+                p.activateFromSettingsSearch();
+            }
+            p = p.parent;
+        }
+    }
     
     // Colapsa todas las secciones excepto la que contiene el control
     // Retorna la sección que fue expandida (o null)
     function expandSectionForControl(control) {
         if (!control) return null;
+        activateAncestorsFromSettingsSearch(control);
         
         var targetSection = null;
         

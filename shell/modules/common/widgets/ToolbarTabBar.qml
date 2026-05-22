@@ -13,6 +13,8 @@ Item {
     required property var tabButtonList
     property real maxWidth: -1
     property int compactThreshold: 4
+    property bool wheelNavigationEnabled: true
+    property int initialIndex: 0
     readonly property bool compactMode: (root.tabButtonList?.length ?? 0) >= root.compactThreshold
 
     function ensureCurrentVisible() {
@@ -147,11 +149,15 @@ Item {
 
     onCurrentIndexChanged: Qt.callLater(root.ensureCurrentVisible)
     onWidthChanged: Qt.callLater(root.ensureCurrentVisible)
-    Component.onCompleted: Qt.callLater(root.ensureCurrentVisible)
+    Component.onCompleted: Qt.callLater(() => {
+        root.setCurrentIndex(root.initialIndex);
+        root.ensureCurrentVisible();
+    })
 
     MouseArea {
         anchors.fill: parent
         z: 2
+        enabled: root.wheelNavigationEnabled
         acceptedButtons: Qt.NoButton
         cursorShape: Qt.PointingHandCursor
         onWheel: (event) => {

@@ -11,8 +11,18 @@ import qs.modules.common.widgets
 import qs.modules.common.functions
 
 ContentPage {
+    id: quickPage
+
     settingsPageIndex: 0
     settingsPageName: Translation.tr("Quick")
+
+    property int currentQuickTab: 0
+    readonly property var quickTabs: [
+        { "icon": "format_paint", "name": Translation.tr("Wallpaper & Colors") },
+        { "icon": "screenshot_monitor", "name": Translation.tr("Bar & screen") },
+        { "icon": "sports_esports", "name": Translation.tr("Game Mode") },
+        { "icon": "bolt", "name": Translation.tr("Quick Actions") }
+    ]
 
     Component.onCompleted: {
         Wallpapers.load()
@@ -30,12 +40,181 @@ ContentPage {
         }
     }
 
+    component QuickTabPanel: Rectangle {
+        id: panelRoot
+
+        required property int quickTabIndex
+        property string title: ""
+        property string icon: ""
+        property string description: ""
+        property int settingsSearchOptionId: -1
+        default property alias contentData: panelContent.data
+
+        Layout.fillWidth: true
+        visible: quickPage.currentQuickTab === quickTabIndex
+        implicitHeight: panelColumn.implicitHeight + SettingsMaterialPreset.cardPadding * 2
+        radius: SettingsMaterialPreset.cardRadius
+        color: SettingsMaterialPreset.cardColor
+        border.width: 1
+        border.color: SettingsMaterialPreset.cardBorderColor
+        clip: true
+
+        function _findSettingsContext() {
+            var page = null;
+            var p = panelRoot.parent;
+            while (p) {
+                if (!page && p.hasOwnProperty("settingsPageIndex")) {
+                    page = p;
+                    break;
+                }
+                p = p.parent;
+            }
+            return { page: page };
+        }
+
+        function activateFromSettingsSearch() {
+            quickPage.currentQuickTab = quickTabIndex;
+        }
+
+        function focusFromSettingsSearch() {
+            activateFromSettingsSearch();
+            forceActiveFocus();
+        }
+
+        Component.onCompleted: {
+            if (!panelRoot.title || typeof SettingsSearchRegistry === "undefined")
+                return;
+
+            var ctx = _findSettingsContext();
+            var page = ctx.page;
+
+            settingsSearchOptionId = SettingsSearchRegistry.registerOption({
+                control: panelRoot,
+                pageIndex: page && page.settingsPageIndex !== undefined ? page.settingsPageIndex : -1,
+                pageName: page && page.settingsPageName ? page.settingsPageName : "",
+                section: panelRoot.title,
+                label: panelRoot.title,
+                description: panelRoot.description,
+                keywords: []
+            });
+        }
+
+        Component.onDestruction: {
+            if (typeof SettingsSearchRegistry !== "undefined") {
+                SettingsSearchRegistry.unregisterControl(panelRoot);
+            }
+        }
+
+        Rectangle {
+            anchors {
+                left: parent.left
+                right: parent.right
+                top: parent.top
+            }
+            height: Math.min(96, parent.height)
+            topLeftRadius: panelRoot.radius
+            topRightRadius: panelRoot.radius
+            bottomLeftRadius: 0
+            bottomRightRadius: 0
+            gradient: Gradient {
+                GradientStop {
+                    position: 0
+                    color: ColorUtils.transparentize(SettingsMaterialPreset.accentColor, 0.82)
+                }
+                GradientStop {
+                    position: 1
+                    color: "transparent"
+                }
+            }
+        }
+
+        ColumnLayout {
+            id: panelColumn
+            anchors {
+                left: parent.left
+                right: parent.right
+                top: parent.top
+                margins: SettingsMaterialPreset.cardPadding
+            }
+            spacing: SettingsMaterialPreset.groupSpacing
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 12
+
+                Rectangle {
+                    Layout.preferredWidth: 44
+                    Layout.preferredHeight: 44
+                    radius: SettingsMaterialPreset.headerRadius
+                    color: ColorUtils.transparentize(SettingsMaterialPreset.accentColor, 0.84)
+                    border.width: 1
+                    border.color: ColorUtils.transparentize(SettingsMaterialPreset.accentColor, 0.55)
+
+                    MaterialSymbol {
+                        anchors.centerIn: parent
+                        text: panelRoot.icon
+                        iconSize: Appearance.font.pixelSize.hugeass
+                        color: SettingsMaterialPreset.iconExpandedColor
+                    }
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 2
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        text: panelRoot.title
+                        font.pixelSize: Appearance.font.pixelSize.larger
+                        font.weight: Font.Medium
+                        color: SettingsMaterialPreset.titleExpandedColor
+                        elide: Text.ElideRight
+                    }
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        visible: panelRoot.description.length > 0
+                        text: panelRoot.description
+                        font.pixelSize: Appearance.font.pixelSize.smaller
+                        color: SettingsMaterialPreset.titleCollapsedColor
+                        wrapMode: Text.WordWrap
+                    }
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 1
+                color: SettingsMaterialPreset.cardBorderColor
+                opacity: 0.65
+            }
+
+            ColumnLayout {
+                id: panelContent
+                Layout.fillWidth: true
+                spacing: 8
+            }
+        }
+    }
+
+    ToolbarTabBar {
+        id: quickTabBar
+        Layout.fillWidth: true
+        maxWidth: parent?.width ?? -1
+        compactThreshold: 99
+        wheelNavigationEnabled: false
+        initialIndex: quickPage.currentQuickTab
+        currentIndex: quickPage.currentQuickTab
+        tabButtonList: quickPage.quickTabs
+        onCurrentIndexChanged: quickPage.currentQuickTab = currentIndex
+    }
+
     // Wallpaper selection
-    SettingsCardSection {
-        expanded: true
+    QuickTabPanel {
+        quickTabIndex: 0
         icon: "format_paint"
         title: Translation.tr("Wallpaper & Colors")
-        Layout.fillWidth: true
+        description: Translation.tr("Preview wallpaper, color extraction, monitor targeting, and transparency options.")
 
         SettingsGroup {
             // ── Hero wallpaper preview ──
@@ -1439,10 +1618,11 @@ ContentPage {
         }
     }
 
-    SettingsCardSection {
-        expanded: false
+    QuickTabPanel {
+        quickTabIndex: 1
         icon: "screenshot_monitor"
         title: Translation.tr("Bar & screen")
+        description: Translation.tr("Switch bar placement, corner treatment, and wallpaper backdrop behavior.")
 
         SettingsGroup {
             ConfigRow {
@@ -1569,10 +1749,11 @@ ContentPage {
     }
 
     // Game Mode
-    SettingsCardSection {
-        expanded: false
+    QuickTabPanel {
+        quickTabIndex: 2
         icon: "sports_esports"
         title: Translation.tr("Game Mode")
+        description: Translation.tr("Reduce visual overhead automatically while games and fullscreen apps are active.")
 
         SettingsGroup {
             SettingsSwitch {
@@ -1662,10 +1843,11 @@ ContentPage {
     }
 
     // Quick Actions
-    SettingsCardSection {
-        expanded: false
+    QuickTabPanel {
+        quickTabIndex: 3
         icon: "bolt"
         title: Translation.tr("Quick Actions")
+        description: Translation.tr("Fast shell commands and confirmation preferences.")
 
         SettingsGroup {
             RowLayout {
