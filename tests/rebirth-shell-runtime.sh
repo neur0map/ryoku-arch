@@ -40,19 +40,27 @@ rm -f /tmp/rebirth-hardcoded-paths.$$
 
 rg -q 'RYOKU_REBIRTH_SHELL_DIR' "$ROOT_DIR/bin/ryoku-rebirth-shell" || \
   fail "wrapper should export the rebirth shell runtime directory"
-rg -q 'qs.*-p.*RYOKU_REBIRTH_SHELL_DIR' "$ROOT_DIR/bin/ryoku-rebirth-shell" || \
-  fail "wrapper should launch Quickshell from the rebirth runtime directory"
-rg -q 'exec-once = ryoku-rebirth-shell' "$ROOT_DIR/config/hypr/hyprland.conf" || \
-  fail "Hyprland config should start the rebirth shell"
+grep -Fq 'qs_config_name="ryoku-rebirth-shell"' "$ROOT_DIR/bin/ryoku-rebirth-shell" || \
+  fail "wrapper should select the rebirth Quickshell config name for child IPC calls"
+grep -Fq "qs_args=(-c \"\$QS_CONFIG_NAME\")" "$ROOT_DIR/bin/ryoku-rebirth-shell" || \
+  fail "wrapper should launch the named rebirth Quickshell config"
+grep -Fq "exec \"\$qs_bin\" \"\${qs_args[@]}\" ipc \"\$@\"" "$ROOT_DIR/bin/ryoku-rebirth-shell" || \
+  fail "wrapper should route IPC to the selected rebirth shell"
+rg -q "exec-once = sh -lc '\\\$HOME/.local/bin/ryoku-rebirth-shell'" "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should start the rebirth shell without relying on PATH"
+rg -q 'env = QS_CONFIG_NAME,ryoku-rebirth-shell' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should route keybind IPC to the rebirth shell"
 rg -q 'exec-once = hypridle -c ~/.config/hypr/hypridle-rebirth.conf' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should use the rebirth hypridle config"
 rg -q 'source = ~/.config/hypr/colors.conf' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should source a local color fallback"
 rg -q 'bind = SUPER, Return, exec' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should keep a terminal bind"
-rg -q 'bind = SUPER, R, exec, qs ipc call launcherWindow toggle' "$ROOT_DIR/config/hypr/hyprland.conf" || \
-  fail "Hyprland config should keep the upstream launcher IPC bind"
-rg -q 'bind = SUPER SHIFT, R, exec, ryoku-rebirth-shell restart' "$ROOT_DIR/config/hypr/hyprland.conf" || \
-  fail "Hyprland config should support shell restart"
+rg -q "[$]menu = sh -lc '\\\$HOME/.local/bin/ryoku-rebirth-shell ipc call launcherWindow toggle'" "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should route launcher IPC through the rebirth wrapper"
+rg -q 'bind = SUPER, R, exec, [$]menu' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should keep the upstream launcher bind"
+rg -q "bind = SUPER SHIFT, R, exec, sh -lc '\\\$HOME/.local/bin/ryoku-rebirth-shell restart'" "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should support shell restart without relying on PATH"
 
 echo "PASS: rebirth shell runtime is self-contained and Hyprland-first"

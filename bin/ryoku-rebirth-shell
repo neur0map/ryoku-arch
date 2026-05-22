@@ -2,8 +2,11 @@
 
 set -euo pipefail
 
-runtime_dir="${RYOKU_REBIRTH_SHELL_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-rebirth-shell}"
+default_runtime_dir="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-rebirth-shell"
+runtime_dir="${RYOKU_REBIRTH_SHELL_DIR:-$default_runtime_dir}"
 qs_bin="${RYOKU_QS_BIN:-qs}"
+qs_config_name="ryoku-rebirth-shell"
+qs_args=()
 
 usage() {
   cat <<'EOF'
@@ -20,24 +23,45 @@ require_runtime() {
   }
 }
 
+select_qs_config() {
+  case "$runtime_dir" in
+    "$default_runtime_dir")
+      export QS_CONFIG_NAME="$qs_config_name"
+      unset QS_CONFIG_PATH
+      qs_args=(-c "$QS_CONFIG_NAME")
+      ;;
+    *)
+      export QS_CONFIG_PATH="$RYOKU_REBIRTH_SHELL_DIR"
+      unset QS_CONFIG_NAME
+      qs_args=(-p "$QS_CONFIG_PATH")
+      ;;
+  esac
+}
+
 export RYOKU_REBIRTH_SHELL_DIR="$runtime_dir"
+select_qs_config
 
 command="${1:-run}"
+(($# == 0)) || shift
 case "$command" in
   run)
     require_runtime
-    exec "$qs_bin" -p "$RYOKU_REBIRTH_SHELL_DIR"
+    exec "$qs_bin" "${qs_args[@]}"
     ;;
   restart)
     require_runtime
-    "$qs_bin" kill -p "$RYOKU_REBIRTH_SHELL_DIR" --any-display >/dev/null 2>&1 || true
-    exec "$qs_bin" -p "$RYOKU_REBIRTH_SHELL_DIR"
+    "$qs_bin" kill "${qs_args[@]}" --any-display >/dev/null 2>&1 || true
+    exec "$qs_bin" "${qs_args[@]}"
     ;;
   stop)
-    "$qs_bin" kill -p "$RYOKU_REBIRTH_SHELL_DIR" --any-display
+    "$qs_bin" kill "${qs_args[@]}" --any-display
     ;;
   status)
     "$qs_bin" list --all
+    ;;
+  ipc)
+    require_runtime
+    exec "$qs_bin" "${qs_args[@]}" ipc "$@"
     ;;
   path)
     printf '%s\n' "$RYOKU_REBIRTH_SHELL_DIR"
