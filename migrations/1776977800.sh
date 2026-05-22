@@ -3,7 +3,21 @@ echo "Swap pacman mirrorlist to upstream Arch"
 source "$HOME/.local/share/ryoku/lib/runtime-env.sh" 2>/dev/null || source "$HOME/.local/share/omarchy/lib/runtime-env.sh"
 
 channel="$(ryoku-channel-current)"
-src="$RYOKU_PATH/default/pacman/mirrorlist-$channel"
+pacman_channel="main"
+case "$channel" in
+main)
+  pacman_channel="main"
+  ;;
+unstable-dev)
+  pacman_channel="main"
+  ;;
+*)
+  echo "  unsupported channel '$channel'; using main pacman mirrorlist"
+  pacman_channel="main"
+  ;;
+esac
+
+src="$RYOKU_PATH/default/pacman/mirrorlist-$pacman_channel"
 dst="/etc/pacman.d/mirrorlist"
 bak="$dst.ryoku.bak"
 tmp="$dst.ryoku.tmp"

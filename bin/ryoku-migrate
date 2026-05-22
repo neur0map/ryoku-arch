@@ -12,6 +12,7 @@ source "$repo_root/lib/update-dashboard.sh"
 STATE_ROOT="$RYOKU_STATE_PATH"
 STATE_DIR="$STATE_ROOT/migrations"
 LEGACY_STATE_DIR="$HOME/.local/state/omarchy/migrations"
+HISTORICAL_MIGRATION_CUTOFF=1776912972
 
 repair_self_linked_state_root() {
   local target state_basename
@@ -42,14 +43,52 @@ if [[ -d $LEGACY_STATE_DIR ]]; then
   cp -an "$LEGACY_STATE_DIR/." "$STATE_DIR/" 2>/dev/null || true
 fi
 
+legacy_migration_markers_exist() {
+  local marker
+
+  [[ -d $LEGACY_STATE_DIR ]] || return 1
+
+  for marker in "$LEGACY_STATE_DIR"/*.sh; do
+    [[ -f $marker ]] && return 0
+  done
+
+  return 1
+}
+
+seed_historical_migration_markers() {
+  local file filename prefix seeded
+
+  legacy_migration_markers_exist && return 0
+  seeded=0
+
+  for file in "$RYOKU_PATH"/migrations/*.sh; do
+    [[ -f $file ]] || continue
+
+    filename=$(basename "$file")
+    prefix="${filename%%[^0-9]*}"
+    [[ -n $prefix ]] || continue
+    (( prefix < HISTORICAL_MIGRATION_CUTOFF )) || continue
+    [[ -f $STATE_DIR/$filename || -f $STATE_DIR/skipped/$filename ]] && continue
+
+    touch "$STATE_DIR/$filename"
+    ((seeded++))
+  done
+
+  if (( seeded > 0 )); then
+    echo "Seeded $seeded historical migration marker(s)"
+  fi
+}
+
+seed_historical_migration_markers
+
 # Run any pending migrations
-for file in $RYOKU_PATH/migrations/*.sh; do
+for file in "$RYOKU_PATH"/migrations/*.sh; do
   filename=$(basename "$file")
 
   if [[ ! -f $STATE_DIR/$filename && ! -f $STATE_DIR/skipped/$filename ]]; then
     echo -e "\e[32m\nRunning migration (${filename%.sh})\e[0m"
 
-    if bash $file; then
+    if bash "$file"; then
       touch "$STATE_DIR/$filename"
     else
       exit_code=$?
