@@ -69,6 +69,14 @@ assert_contains "$DISPLAY_CONFIGURATOR" 'Rotation' \
   "The display configurator should preserve transform controls"
 assert_contains "$DISPLAY_CONFIGURATOR" 'VRR' \
   "The display configurator should preserve VRR controls"
+assert_contains "$DISPLAY_CONFIGURATOR" 'component DisplayToggle:' \
+  "The display configurator should use a display-local toggle that cannot collapse labels"
+assert_contains "$DISPLAY_CONFIGURATOR" 'Layout\.minimumWidth: 140' \
+  "Display toggles should reserve enough width for visible labels"
+assert_contains "$DISPLAY_CONFIGURATOR" 'text: displayToggle\.text' \
+  "Display toggles should render their text label"
+assert_contains "$DISPLAY_CONFIGURATOR" 'ColorUtils\.ensureReadable\(.*SettingsMaterialPreset\.groupColor' \
+  "Display toggle labels should stay readable on the display card surface"
 
 assert_not_contains "$DISPLAY_CONFIGURATOR" 'DMSService|WlrOutputService|Dank' \
   "Ryoku should not depend on the DMS runtime services for this port"

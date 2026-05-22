@@ -497,8 +497,9 @@ ColumnLayout {
                     }
                 }
 
-                SettingsSwitch {
+                DisplayToggle {
                     Layout.fillWidth: true
+                    Layout.minimumWidth: 140
                     visible: outputCard.outputData?.vrr_supported ?? false
                     enabled: !outputCard.pageRoot.displayControlsLocked
                     buttonIcon: "display_settings"
@@ -533,6 +534,65 @@ ColumnLayout {
             color: SettingsMaterialPreset.titleCollapsedColor
             font.pixelSize: Appearance.font.pixelSize.smaller
             font.weight: Font.Medium
+        }
+    }
+
+    component DisplayToggle: RippleButton {
+        id: displayToggle
+
+        property string buttonIcon: ""
+        property color labelColor: ColorUtils.ensureReadable(SettingsMaterialPreset.titleExpandedColor, SettingsMaterialPreset.groupColor, 4.5)
+
+        signal toggledByUser(bool checked)
+
+        Layout.fillWidth: true
+        Layout.minimumWidth: 140
+        implicitHeight: 42
+        buttonRadius: Appearance.rounding.small
+        colBackground: SettingsMaterialPreset.groupColor
+        colBackgroundHover: SettingsMaterialPreset.headerHoverColor
+        colRipple: SettingsMaterialPreset.headerHoverColor
+
+        onClicked: {
+            const nextChecked = !checked;
+            toggledByUser(nextChecked);
+            checked = nextChecked;
+        }
+
+        contentItem: RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: 10
+            anchors.rightMargin: 8
+            spacing: 8
+
+            MaterialSymbol {
+                Layout.alignment: Qt.AlignVCenter
+                text: displayToggle.buttonIcon
+                iconSize: Appearance.font.pixelSize.larger
+                color: displayToggle.labelColor
+                opacity: displayToggle.enabled ? 1 : 0.45
+                visible: displayToggle.buttonIcon.length > 0
+            }
+
+            StyledText {
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignVCenter
+                text: displayToggle.text
+                color: displayToggle.labelColor
+                opacity: displayToggle.enabled ? 1 : 0.45
+                font.pixelSize: Appearance.font.pixelSize.small
+                font.weight: Font.Medium
+                elide: Text.ElideRight
+            }
+
+            StyledSwitch {
+                Layout.alignment: Qt.AlignVCenter
+                Layout.fillWidth: false
+                down: displayToggle.down
+                scale: 0.6
+                checked: displayToggle.checked
+                onClicked: displayToggle.clicked()
+            }
         }
     }
 }
