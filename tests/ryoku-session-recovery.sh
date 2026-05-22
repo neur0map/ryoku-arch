@@ -52,8 +52,10 @@ bash -n bin/ryoku-shell-cleanup-orphans || fail "ryoku-shell-cleanup-orphans has
 bash -n default/systemd/system-sleep/ryoku-session-recover \
   || fail "system sleep recovery hook has a syntax error"
 
+assert_contains bin/ryoku-session-recover 'hyprctl dispatch dpms on' \
+  "session recovery should force Hyprland monitors back on after resume"
 assert_contains bin/ryoku-session-recover 'niri msg action power-on-monitors' \
-  "session recovery should force Niri monitors back on after resume"
+  "session recovery should keep Niri monitor recovery as an explicit fallback"
 assert_contains bin/ryoku-session-recover 'niri\.\*\.sock' \
   "session recovery should discover the Niri socket when NIRI_SOCKET is absent"
 assert_contains bin/ryoku-session-recover 'ryoku-shell-cleanup-orphans --quiet' \
@@ -64,8 +66,8 @@ assert_contains bin/ryoku-session-recover 'systemctl --user import-environment' 
   "session recovery should refresh the user systemd environment"
 assert_contains bin/ryoku-session-recover 'dbus-update-activation-environment --systemd --all' \
   "session recovery should refresh dbus activation environment"
-assert_not_contains bin/ryoku-session-recover 'hyprctl|hypridle|waybar|mako|swayosd' \
-  "session recovery should not target old Hyprland-era services"
+assert_not_contains bin/ryoku-session-recover 'hypridle|waybar|mako|swayosd' \
+  "session recovery should not target stale shell-side services"
 
 assert_contains bin/ryoku-shell-cleanup-orphans 'ryoku-shell cleanup-orphans' \
   "shell cleanup should keep upstream Quickshell runtime cleanup"
