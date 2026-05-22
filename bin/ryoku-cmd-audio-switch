@@ -3,6 +3,7 @@
 set -euo pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/runtime-env.sh
 source "$script_dir/../lib/runtime-env.sh"
 
 # Switch between audio outputs while preserving the mute status. By default mapped to Super + Mute.

@@ -119,4 +119,3 @@ git -C "$HOME/.local/share/ryoku" status -sb
 Do not manually copy experiments into `$HOME/.local/share/ryoku`. That checkout is the installed update tree. If it drifts, updates and channel switching break.
 
 Before committing settings or IPC work, run the narrow checks that match the touched area. Prefer existing tests under `tests/` and shell checks for changed scripts. If a local hook fails on unrelated existing warnings, report that clearly instead of hiding it.
-

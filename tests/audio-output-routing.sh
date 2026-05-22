@@ -35,6 +35,7 @@ assert_contains "$GENERAL_QML" 'Quickshell\.shellPath\("scripts/" \+ name\)' \
   "Settings audio card should run synced shell helpers from the active shell runtime"
 assert_contains "$GENERAL_QML" 'Translation\.tr\("Use mini-jack"\)' \
   "Settings audio card should label the mini-jack action clearly"
+# shellcheck disable=SC2016
 assert_contains "$AUDIO_SWITCH" 'ryoku-cmd-audio-default" "\$next_sink_name"' \
   "Audio output cycling should use the robust default-sink setter"
 assert_contains "$AUDIO_DEFAULT_SHELL" 'pw-metadata -n default 0 default.audio.sink' \

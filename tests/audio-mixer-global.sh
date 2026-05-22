@@ -34,8 +34,10 @@ assert_contains "$SCRIPT" 'alsa-soft-mixer\.conf' \
   "Global audio mixer fix should install WirePlumber ALSA soft-mixer config"
 assert_contains "$SOFT_MIXER_CONFIG" 'api\.alsa\.soft-mixer = true' \
   "Global audio mixer fix should install WirePlumber ALSA soft-mixer config"
+# shellcheck disable=SC2016
 assert_contains "$SCRIPT" 'set "\$ctl" 100% unmute' \
   "Global audio mixer fix should initialize hardware outputs at 100%"
+# shellcheck disable=SC2016
 assert_not_contains "$SCRIPT" 'set "\$ctl" 80% unmute|set Master 80% unmute' \
   "Global audio mixer fix should not leave hardware outputs attenuated"
 assert_contains "$MIGRATION" 'install/config/hardware/fix-audio-mixer\.sh' \
