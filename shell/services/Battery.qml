@@ -40,6 +40,8 @@ Singleton {
     property string _chargeLimitSysfsPath: ""
     property int _currentChargeLimit: -1
     property bool _chargeLimitActive: false
+    property bool _chargeLimitStateKnown: false
+    property bool _chargeLimitStartupSyncPending: false
     readonly property bool chargeLimitSupported: _chargeLimitBackend.length > 0 && _chargeLimitSysfsPath.length > 0
     readonly property bool chargeLimitAdjustable: _chargeLimitBackend === "threshold"
         || _chargeLimitBackend === "smapi"
@@ -92,6 +94,7 @@ Singleton {
                     const parts = result.split("|")
                     root._chargeLimitBackend = parts[0] ?? ""
                     root._chargeLimitSysfsPath = parts[1] ?? ""
+                    root._chargeLimitStateKnown = false
                     console.log("[Battery] Charge limit backend: " + root._chargeLimitBackend + " (" + root._chargeLimitSysfsPath + ")")
                     root._readChargeLimit()
                     if (root.chargeLimitEnabled) {
@@ -107,7 +110,7 @@ Singleton {
         id: chargeLimitApplyDelay
         interval: 2000
         repeat: false
-        onTriggered: root._applyChargeLimit()
+        onTriggered: root._syncStartupChargeLimit()
     }
 
     function _readChargeLimit(): void {
@@ -131,6 +134,7 @@ Singleton {
             _currentChargeLimit = rawValue
             break
         }
+        _chargeLimitStateKnown = true
     }
 
     function _normalizedChargeLimitThreshold(): int {
@@ -143,7 +147,65 @@ Singleton {
         return chargeLimitThreshold
     }
 
-    function _buildChargeLimitWriteCommand(enable: bool) {
+    function _desiredChargeLimitValue(enable: bool): int {
+        switch (_chargeLimitBackend) {
+        case "ideapad":
+        case "samsung":
+            return enable ? 1 : 0
+        case "lg-legacy":
+            return enable ? 80 : 100
+        case "huawei":
+        case "threshold":
+        case "smapi":
+        case "sony":
+            return enable ? _normalizedChargeLimitThreshold() : 100
+        default:
+            return -1
+        }
+    }
+
+    function _chargeLimitMatches(enable: bool): bool {
+        if (!_chargeLimitStateKnown) return false
+
+        switch (_chargeLimitBackend) {
+        case "ideapad":
+        case "samsung":
+            return _chargeLimitActive === enable
+        default:
+            return _currentChargeLimit === _desiredChargeLimitValue(enable)
+        }
+    }
+
+    function _syncStartupChargeLimit(): void {
+        _chargeLimitStartupSyncPending = true
+        _setChargeLimitEnabled(true, false)
+    }
+
+    function _setChargeLimitEnabled(enable: bool, forceIfUnknown: bool): void {
+        if (!chargeLimitSupported) {
+            _chargeLimitStartupSyncPending = false
+            return
+        }
+
+        if (!_chargeLimitStateKnown && !forceIfUnknown) {
+            _readChargeLimit()
+            return
+        }
+
+        _chargeLimitStartupSyncPending = false
+        if (_chargeLimitMatches(enable)) {
+            console.log("[Battery] Charge limit already " + (enable ? "applied" : "removed"))
+            return
+        }
+
+        if (enable) {
+            _applyChargeLimit()
+        } else {
+            _resetChargeLimit()
+        }
+    }
+
+    function _buildChargeLimitWriteCommand(enable: bool): var {
         switch (_chargeLimitBackend) {
         case "ideapad":
         case "samsung":
@@ -197,6 +259,9 @@ Singleton {
 
                 if (!isNaN(val)) {
                     root._updateChargeLimitState(val)
+                    if (root._chargeLimitStartupSyncPending) {
+                        root._setChargeLimitEnabled(root.chargeLimitEnabled, false)
+                    }
                 }
             }
         }
@@ -254,15 +319,15 @@ Singleton {
     onChargeLimitEnabledChanged: {
         if (!chargeLimitSupported) return
         if (chargeLimitEnabled) {
-            _applyChargeLimit()
+            _setChargeLimitEnabled(true, true)
         } else {
-            _resetChargeLimit()
+            _setChargeLimitEnabled(false, true)
         }
     }
 
     onChargeLimitThresholdChanged: {
         if (!chargeLimitSupported || !chargeLimitEnabled || !chargeLimitAdjustable) return
-        _applyChargeLimit()
+        _setChargeLimitEnabled(true, true)
     }
 
     // ─── Battery warnings ───
