@@ -458,6 +458,9 @@ ContentPage {
         expanded: true
         icon: "grid_on"
         title: Translation.tr("Edit Mode")
+        sectionTabGroup: Translation.tr("Setup")
+        sectionTabGroupIcon: "grid_on"
+        sectionTabGroupOrder: 0
 
         SettingsGroup {
             WidgetSettingRow {
@@ -512,6 +515,9 @@ ContentPage {
         expanded: false
         icon: "schedule"
         title: Translation.tr("Clock")
+        sectionTabGroup: Translation.tr("Info Widgets")
+        sectionTabGroupIcon: "schedule"
+        sectionTabGroupOrder: 1
 
         readonly property string _clockStyle: Config.getNestedValue("background.widgets.clock.style", "cookie")
 
@@ -998,6 +1004,9 @@ ContentPage {
         expanded: false
         icon: "cloud"
         title: Translation.tr("Weather")
+        sectionTabGroup: Translation.tr("Info Widgets")
+        sectionTabGroupIcon: "schedule"
+        sectionTabGroupOrder: 1
 
         SettingsGroup {
             WidgetStateControls {
@@ -1216,6 +1225,9 @@ ContentPage {
         expanded: false
         icon: "album"
         title: Translation.tr("Media Controls")
+        sectionTabGroup: Translation.tr("Media")
+        sectionTabGroupIcon: "album"
+        sectionTabGroupOrder: 2
 
         SettingsGroup {
             WidgetStateControls {
@@ -1309,6 +1321,9 @@ ContentPage {
         expanded: false
         icon: "equalizer"
         title: Translation.tr("Visualizer")
+        sectionTabGroup: Translation.tr("Media")
+        sectionTabGroupIcon: "album"
+        sectionTabGroupOrder: 2
 
         SettingsGroup {
             WidgetStateControls {
@@ -1470,6 +1485,9 @@ ContentPage {
         expanded: false
         icon: "monitor_heart"
         title: Translation.tr("System Monitor")
+        sectionTabGroup: Translation.tr("Info Widgets")
+        sectionTabGroupIcon: "schedule"
+        sectionTabGroupOrder: 1
 
         SettingsGroup {
             WidgetStateControls {
@@ -1666,6 +1684,9 @@ ContentPage {
         expanded: false
         icon: "battery_full"
         title: Translation.tr("Battery")
+        sectionTabGroup: Translation.tr("Info Widgets")
+        sectionTabGroupIcon: "schedule"
+        sectionTabGroupOrder: 1
 
         SettingsGroup {
             StyledText {
@@ -1845,6 +1866,9 @@ ContentPage {
         expanded: false
         icon: "sticky_note_2"
         title: Translation.tr("Notes")
+        sectionTabGroup: Translation.tr("Productivity")
+        sectionTabGroupIcon: "sticky_note_2"
+        sectionTabGroupOrder: 3
 
         SettingsGroup {
             WidgetStateControls {
@@ -1970,6 +1994,9 @@ ContentPage {
         expanded: false
         icon: "event"
         title: Translation.tr("Upcoming Events")
+        sectionTabGroup: Translation.tr("Productivity")
+        sectionTabGroupIcon: "sticky_note_2"
+        sectionTabGroupOrder: 3
 
         SettingsGroup {
             WidgetStateControls {
@@ -2080,6 +2107,9 @@ ContentPage {
         expanded: false
         icon: "widgets"
         title: Translation.tr("Custom Widgets")
+        sectionTabGroup: Translation.tr("Custom")
+        sectionTabGroupIcon: "widgets"
+        sectionTabGroupOrder: 4
 
         SettingsGroup {
             // Description
@@ -2120,7 +2150,7 @@ ContentPage {
 
                 // Open folder
                 RippleButton {
-                    width: 36; height: 36
+                    implicitWidth: 36; implicitHeight: 36
                     buttonRadius: Appearance.rounding.full
                     colBackground: "transparent"
                     colBackgroundHover: ColorUtils.applyAlpha(Appearance.colors.colOnLayer1, 0.08)
@@ -2132,7 +2162,7 @@ ContentPage {
 
                 // Reload
                 RippleButton {
-                    width: 36; height: 36
+                    implicitWidth: 36; implicitHeight: 36
                     buttonRadius: Appearance.rounding.full
                     colBackground: "transparent"
                     colBackgroundHover: ColorUtils.applyAlpha(Appearance.colors.colOnLayer1, 0.08)
@@ -2155,7 +2185,7 @@ ContentPage {
                     MaterialTextField {
                         id: _newWidgetNameField
                         Layout.fillWidth: true
-                        height: 40
+                        implicitHeight: 40
                         placeholderText: Translation.tr("widget-name (lowercase, dashes)")
                         font.pixelSize: Appearance.font.pixelSize.small
                         validator: RegularExpressionValidator { regularExpression: /[a-z0-9][a-z0-9\-]*/ }
@@ -2337,7 +2367,7 @@ ContentPage {
 
                     // Edit (open folder)
                     RippleButton {
-                        width: 28; height: 28
+                        implicitWidth: 28; implicitHeight: 28
                         buttonRadius: Appearance.rounding.full
                         colBackground: "transparent"
                         colBackgroundHover: ColorUtils.applyAlpha(Appearance.colors.colOnLayer1, 0.08)
@@ -2349,7 +2379,7 @@ ContentPage {
 
                     // Delete
                     RippleButton {
-                        width: 28; height: 28
+                        implicitWidth: 28; implicitHeight: 28
                         buttonRadius: Appearance.rounding.full
                         colBackground: "transparent"
                         colBackgroundHover: ColorUtils.applyAlpha(Appearance.colors.colError, 0.08)

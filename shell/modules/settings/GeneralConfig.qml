@@ -27,6 +27,9 @@ ContentPage {
         expanded: true
         icon: "volume_up"
         title: Translation.tr("Audio")
+        sectionTabGroup: Translation.tr("Audio & Display")
+        sectionTabGroupIcon: "devices"
+        sectionTabGroupOrder: 0
 
         SettingsGroup {
             ColumnLayout {
@@ -123,6 +126,9 @@ ContentPage {
         expanded: false
         icon: "devices"
         title: Translation.tr("Displays")
+        sectionTabGroup: Translation.tr("Audio & Display")
+        sectionTabGroupIcon: "devices"
+        sectionTabGroupOrder: 0
 
         SettingsGroup {
             // Connected monitors info
@@ -307,6 +313,9 @@ ContentPage {
         expanded: false
         icon: "battery_android_full"
         title: Translation.tr("Battery")
+        sectionTabGroup: Translation.tr("Power & Security")
+        sectionTabGroupIcon: "battery_android_full"
+        sectionTabGroupOrder: 1
 
         SettingsGroup {
             ConfigRow {
@@ -450,6 +459,9 @@ ContentPage {
         expanded: false
         icon: "language"
         title: Translation.tr("Language")
+        sectionTabGroup: Translation.tr("Language & Time")
+        sectionTabGroupIcon: "language"
+        sectionTabGroupOrder: 2
 
         SettingsGroup {
             ContentSubsection {
@@ -512,6 +524,9 @@ ContentPage {
         expanded: false
         icon: "rule"
         title: Translation.tr("Policies")
+        sectionTabGroup: Translation.tr("Policies")
+        sectionTabGroupIcon: "rule"
+        sectionTabGroupOrder: 4
 
         SettingsGroup {
             ConfigRow {
@@ -556,6 +571,9 @@ ContentPage {
         expanded: false
         icon: "notification_sound"
         title: Translation.tr("Sounds")
+        sectionTabGroup: Translation.tr("Language & Time")
+        sectionTabGroupIcon: "language"
+        sectionTabGroupOrder: 2
         SettingsGroup {
             ConfigRow {
                 uniform: true
@@ -611,6 +629,9 @@ ContentPage {
         expanded: false
         icon: "nest_clock_farsight_analog"
         title: Translation.tr("Time")
+        sectionTabGroup: Translation.tr("Language & Time")
+        sectionTabGroupIcon: "language"
+        sectionTabGroupOrder: 2
 
         SettingsGroup {
             SettingsSwitch {
@@ -688,6 +709,9 @@ ContentPage {
         expanded: false
         icon: "keyboard"
         title: Translation.tr("Keyboard")
+        sectionTabGroup: Translation.tr("Input & Windows")
+        sectionTabGroupIcon: "keyboard"
+        sectionTabGroupOrder: 3
 
         SettingsGroup {
             SettingsSwitch {
@@ -777,6 +801,9 @@ ContentPage {
         expanded: false
         icon: "select_window"
         title: Translation.tr("Window Management")
+        sectionTabGroup: Translation.tr("Input & Windows")
+        sectionTabGroupIcon: "keyboard"
+        sectionTabGroupOrder: 3
 
         SettingsGroup {
             SettingsSwitch {
@@ -798,6 +825,9 @@ ContentPage {
         expanded: false
         icon: "work_alert"
         title: Translation.tr("Work safety")
+        sectionTabGroup: Translation.tr("Policies")
+        sectionTabGroupIcon: "rule"
+        sectionTabGroupOrder: 4
 
         SettingsGroup {
             SettingsSwitch {
@@ -832,6 +862,9 @@ ContentPage {
         expanded: false
         icon: "lock"
         title: Translation.tr("Lock screen")
+        sectionTabGroup: Translation.tr("Power & Security")
+        sectionTabGroupIcon: "battery_android_full"
+        sectionTabGroupOrder: 1
 
         SettingsGroup {
             SettingsSwitch {

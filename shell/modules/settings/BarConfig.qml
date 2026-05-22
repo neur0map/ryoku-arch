@@ -71,6 +71,8 @@ ContentPage {
         expanded: true
         icon: "info"
         title: Translation.tr("Not Active")
+        sectionTabsIncludeInTabBar: false
+        collapsible: false
 
         SettingsGroup {
             StyledText {
@@ -91,6 +93,9 @@ ContentPage {
         expanded: true
         icon: "dashboard"
         title: Translation.tr("Appearance & Layout")
+        sectionTabGroup: Translation.tr("Layout")
+        sectionTabGroupIcon: "dashboard"
+        sectionTabGroupOrder: 0
 
         SettingsGroup {
             ConfigRow {
@@ -346,6 +351,9 @@ ContentPage {
         expanded: true
         icon: "widgets"
         title: Translation.tr("Modules")
+        sectionTabGroup: Translation.tr("Modules")
+        sectionTabGroupIcon: "widgets"
+        sectionTabGroupOrder: 1
 
         SettingsGroup {
             StyledText {
@@ -491,6 +499,9 @@ ContentPage {
         expanded: false
         icon: "browse_activity"
         title: Translation.tr("Resources")
+        sectionTabGroup: Translation.tr("Media & Resources")
+        sectionTabGroupIcon: "browse_activity"
+        sectionTabGroupOrder: 2
 
         SettingsGroup {
             StyledText {
@@ -650,6 +661,9 @@ ContentPage {
         expanded: false
         icon: "music_note"
         title: Translation.tr("Media")
+        sectionTabGroup: Translation.tr("Media & Resources")
+        sectionTabGroupIcon: "browse_activity"
+        sectionTabGroupOrder: 2
 
         SettingsGroup {
             ContentSubsection {
@@ -684,6 +698,9 @@ ContentPage {
         expanded: false
         icon: "workspaces"
         title: Translation.tr("Workspaces")
+        sectionTabGroup: Translation.tr("Modules")
+        sectionTabGroupIcon: "widgets"
+        sectionTabGroupOrder: 1
 
         SettingsGroup {
             ContentSubsection {
@@ -853,6 +870,9 @@ ContentPage {
         expanded: false
         icon: "shelf_auto_hide"
         title: Translation.tr("System Tray")
+        sectionTabGroup: Translation.tr("Tray")
+        sectionTabGroupIcon: "shelf_auto_hide"
+        sectionTabGroupOrder: 3
 
         SettingsGroup {
             SettingsSwitch {
@@ -902,6 +922,9 @@ ContentPage {
         expanded: false
         icon: "build"
         title: Translation.tr("Utility Buttons")
+        sectionTabGroup: Translation.tr("Modules")
+        sectionTabGroupIcon: "widgets"
+        sectionTabGroupOrder: 1
 
         SettingsGroup {
             StyledText {
@@ -1041,6 +1064,9 @@ ContentPage {
         expanded: false
         icon: "notifications"
         title: Translation.tr("Notifications")
+        sectionTabGroup: Translation.tr("Notifications")
+        sectionTabGroupIcon: "notifications"
+        sectionTabGroupOrder: 4
 
         SettingsGroup {
             SettingsSwitch {

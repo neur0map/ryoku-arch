@@ -19,6 +19,10 @@ Item {
     property bool sectionTabsManaged: false
     property bool sectionTabsSelected: true
     property var sectionTabsPage: null
+    property bool sectionTabsIncludeInTabBar: true
+    property string sectionTabGroup: ""
+    property string sectionTabGroupIcon: ""
+    property int sectionTabGroupOrder: -1
     readonly property bool sectionTabsRenderActive: !root.sectionTabsManaged || root.sectionTabsSelected
 
     Layout.fillWidth: true
@@ -57,7 +61,7 @@ Item {
         var page = ctx.page;
         root.sectionTabsPage = page;
 
-        if (root.title && page && page.sectionTabsEnabled && page.isDirectSectionTabChild && page.isDirectSectionTabChild(root)) {
+        if (root.title && root.sectionTabsIncludeInTabBar && page && page.sectionTabsEnabled && page.isDirectSectionTabChild && page.isDirectSectionTabChild(root)) {
             root.sectionTabsManaged = true;
             root.sectionTabsSelected = false;
             root.collapsible = false;
@@ -108,6 +112,21 @@ Item {
     }
 
     onIconChanged: {
+        if (root.sectionTabsManaged && root.sectionTabsPage && root.sectionTabsPage.refreshSectionTabs)
+            root.sectionTabsPage.refreshSectionTabs();
+    }
+
+    onSectionTabGroupChanged: {
+        if (root.sectionTabsManaged && root.sectionTabsPage && root.sectionTabsPage.refreshSectionTabs)
+            root.sectionTabsPage.refreshSectionTabs();
+    }
+
+    onSectionTabGroupIconChanged: {
+        if (root.sectionTabsManaged && root.sectionTabsPage && root.sectionTabsPage.refreshSectionTabs)
+            root.sectionTabsPage.refreshSectionTabs();
+    }
+
+    onSectionTabGroupOrderChanged: {
         if (root.sectionTabsManaged && root.sectionTabsPage && root.sectionTabsPage.refreshSectionTabs)
             root.sectionTabsPage.refreshSectionTabs();
     }

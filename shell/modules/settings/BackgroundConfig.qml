@@ -45,6 +45,8 @@ ContentPage {
         expanded: true
         icon: "info"
         title: Translation.tr("Waffle Mode")
+        sectionTabsIncludeInTabBar: false
+        collapsible: false
 
         SettingsGroup {
             StyledText {
@@ -62,6 +64,9 @@ ContentPage {
         expanded: false
         icon: "sync_alt"
         title: Translation.tr("Parallax")
+        sectionTabGroup: Translation.tr("Motion & Effects")
+        sectionTabGroupIcon: "auto_awesome_motion"
+        sectionTabGroupOrder: 1
 
         SettingsGroup {
             SettingsSwitch {
@@ -213,6 +218,9 @@ ContentPage {
         expanded: false
         icon: "devices"
         title: Translation.tr("Multi-monitor")
+        sectionTabGroup: Translation.tr("Wallpaper")
+        sectionTabGroupIcon: "wallpaper"
+        sectionTabGroupOrder: 0
 
         SettingsGroup {
             SettingsSwitch {
@@ -763,8 +771,8 @@ ContentPage {
                                     // View mode pill
                                     Rectangle {
                                         visible: bgMultiMonPanel.showBackdropView
-                                        width: bgViewModePill.implicitWidth + 10
-                                        height: 20
+                                        implicitWidth: bgViewModePill.implicitWidth + 10
+                                        implicitHeight: 20
                                         radius: 10
                                         color: Appearance.colors.colSecondaryContainer
                                         Row {
@@ -794,8 +802,8 @@ ContentPage {
                                     // Media type badge
                                     Rectangle {
                                         visible: !bgMultiMonPanel.showBackdropView && (bgMonPreviewCard.isVideo || bgMonPreviewCard.isGif)
-                                        width: bgPreviewBadgeRow.implicitWidth + 10
-                                        height: 20
+                                        implicitWidth: bgPreviewBadgeRow.implicitWidth + 10
+                                        implicitHeight: 20
                                         radius: 10
                                         color: Qt.rgba(1, 1, 1, 0.15)
                                         Row {
@@ -1038,6 +1046,9 @@ ContentPage {
         expanded: false
         icon: "wallpaper"
         title: Translation.tr("Wallpaper backend (awww)")
+        sectionTabGroup: Translation.tr("Wallpaper")
+        sectionTabGroupIcon: "wallpaper"
+        sectionTabGroupOrder: 0
 
         SettingsGroup {
             StyledText {
@@ -1095,6 +1106,9 @@ ContentPage {
         expanded: false
         icon: "folder"
         title: Translation.tr("Wallpapers folder")
+        sectionTabGroup: Translation.tr("Wallpaper")
+        sectionTabGroupIcon: "wallpaper"
+        sectionTabGroupOrder: 0
 
         SettingsGroup {
             ContentSubsection {
@@ -1116,6 +1130,9 @@ ContentPage {
         expanded: false
         icon: "transition_fade"
         title: Translation.tr("Wallpaper transitions")
+        sectionTabGroup: Translation.tr("Wallpaper")
+        sectionTabGroupIcon: "wallpaper"
+        sectionTabGroupOrder: 0
 
         SettingsGroup {
             SettingsSwitch {
@@ -1258,6 +1275,9 @@ ContentPage {
         expanded: false
         icon: "aspect_ratio"
         title: Translation.tr("Wallpaper scaling")
+        sectionTabGroup: Translation.tr("Wallpaper")
+        sectionTabGroupIcon: "wallpaper"
+        sectionTabGroupOrder: 0
 
         SettingsGroup {
             ContentSubsection {
@@ -1598,6 +1618,9 @@ ContentPage {
         expanded: true
         icon: "wallpaper"
         title: Translation.tr("Wallpaper effects")
+        sectionTabGroup: Translation.tr("Motion & Effects")
+        sectionTabGroupIcon: "auto_awesome_motion"
+        sectionTabGroupOrder: 1
 
         SettingsGroup {
             SettingsSwitch {
@@ -2084,6 +2107,9 @@ ContentPage {
         expanded: false
         icon: "schedule"
         title: Translation.tr("Widget: Clock")
+        sectionTabGroup: Translation.tr("Widgets")
+        sectionTabGroupIcon: "widgets"
+        sectionTabGroupOrder: 2
 
         SettingsGroup {
             ConfigRow {
@@ -2674,6 +2700,9 @@ ContentPage {
         expanded: false
         icon: "cloud"
         title: Translation.tr("Widget: Weather")
+        sectionTabGroup: Translation.tr("Widgets")
+        sectionTabGroupIcon: "widgets"
+        sectionTabGroupOrder: 2
 
         SettingsGroup {
             StyledText {
@@ -2737,6 +2766,9 @@ ContentPage {
         expanded: false
         icon: "album"
         title: Translation.tr("Widget: Media Controls")
+        sectionTabGroup: Translation.tr("Widgets")
+        sectionTabGroupIcon: "widgets"
+        sectionTabGroupOrder: 2
 
         SettingsGroup {
             ConfigRow {
@@ -2887,6 +2919,9 @@ ContentPage {
         expanded: false
         icon: "equalizer"
         title: Translation.tr("Widget: Visualizer")
+        sectionTabGroup: Translation.tr("Widgets")
+        sectionTabGroupIcon: "widgets"
+        sectionTabGroupOrder: 2
 
         SettingsGroup {
             ConfigRow {
@@ -2941,6 +2976,9 @@ ContentPage {
         expanded: false
         icon: "notifications"
         title: Translation.tr("Notifications")
+        sectionTabGroup: Translation.tr("Notifications")
+        sectionTabGroupIcon: "notifications"
+        sectionTabGroupOrder: 3
 
         SettingsGroup {
             SettingsSwitch {

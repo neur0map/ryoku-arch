@@ -93,15 +93,22 @@ ContentPage {
 
         // ── Top row: Ryoku hero (2/3) + System info (1/3) ──────────────────
         RowLayout {
+            id: aboutTopRow
             Layout.fillWidth: true
-            Layout.preferredHeight: 320
+            Layout.preferredHeight: Math.max(
+                360,
+                ryokuHeroColumn.implicitHeight + 40,
+                systemInfoColumn.implicitHeight + 40
+            )
             spacing: 16
 
             // ── Ryoku hero card ─────────────────────────────────────────────
             Rectangle {
+                id: ryokuHeroCard
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.preferredWidth: 2
+                implicitHeight: ryokuHeroColumn.implicitHeight + 40
 
                 color: Appearance.colors.colSurfaceContainerLow
                 radius: 20
@@ -109,6 +116,7 @@ ContentPage {
                 border.color: Appearance.m3colors.m3primary
 
                 ColumnLayout {
+                    id: ryokuHeroColumn
                     anchors.fill: parent
                     anchors.margins: 20
                     spacing: 12
@@ -120,8 +128,8 @@ ContentPage {
 
                         // Round icon container
                         Rectangle {
-                            width: 68
-                            height: 68
+                            implicitWidth: 68
+                            implicitHeight: 68
                             radius: 34
                             color: "transparent"
                             border.width: 2
@@ -408,9 +416,11 @@ ContentPage {
 
             // ── System info card ────────────────────────────────────────────
             Rectangle {
+                id: systemInfoCard
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.preferredWidth: 1
+                implicitHeight: systemInfoColumn.implicitHeight + 40
 
                 color: Appearance.colors.colSurfaceContainerLow
                 radius: 20
@@ -418,14 +428,15 @@ ContentPage {
                 border.color: Appearance.colors.colOutline
 
                 ColumnLayout {
+                    id: systemInfoColumn
                     anchors.fill: parent
                     anchors.margins: 20
                     spacing: 12
 
                     // Distro icon
                     Item {
-                        width: 48
-                        height: 48
+                        implicitWidth: 48
+                        implicitHeight: 48
 
                         Image {
                             id: distroIconImage

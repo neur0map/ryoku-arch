@@ -10,16 +10,23 @@ StyledFlickable {
     property int settingsPageIndex: -1
     property string settingsPageName: ""
     property bool sectionTabsEnabled: true
+    property bool sectionTabsSticky: true
     property int currentSectionTab: 0
     property int sectionTabsCompactThreshold: 5
     property var sectionTabSections: []
     property var sectionTabVisibleSections: []
+    property var sectionTabVisibleGroups: []
     property var sectionTabButtons: []
+    readonly property bool sectionTabsVisible: root.sectionTabButtons.length > 1
+    readonly property real sectionTabsReservedHeight: root.sectionTabsVisible && root.sectionTabsSticky
+        ? sectionTabBarShell.implicitHeight + SettingsMaterialPreset.pageSpacing
+        : 0
+    readonly property real _contentTopMargin: 20 + root.sectionTabsReservedHeight
 
     default property alias contentData: contentColumn.data
 
     clip: true
-    contentHeight: contentColumn.implicitHeight + root.bottomContentPadding
+    contentHeight: root._contentTopMargin + contentColumn.implicitHeight + root.bottomContentPadding
     implicitWidth: contentColumn.implicitWidth
 
     // Responsive horizontal margins: more breathing room on wider containers
@@ -42,6 +49,26 @@ StyledFlickable {
                 return i;
         }
         return 9999;
+    }
+
+    function sectionTabGroupKey(section) {
+        var group = String(section?.sectionTabGroup || "");
+        if (group.length > 0)
+            return group;
+        return String(section?.title || "");
+    }
+
+    function sectionTabGroupIcon(section) {
+        var icon = String(section?.sectionTabGroupIcon || "");
+        if (icon.length > 0)
+            return icon;
+        return String(section?.icon || "");
+    }
+
+    function sectionTabGroupOrder(section) {
+        if (section && section.sectionTabGroupOrder >= 0)
+            return section.sectionTabGroupOrder;
+        return root.sectionTabChildOrder(section);
     }
 
     function registerSectionTab(section) {
@@ -79,32 +106,40 @@ StyledFlickable {
             return;
 
         refreshSectionTabs();
-        var index = root.sectionTabVisibleSections.indexOf(section);
-        if (index < 0)
+        var groupKey = root.sectionTabGroupKey(section);
+        if (!groupKey.length)
             return;
 
-        root.currentSectionTab = index;
+        for (var i = 0; i < root.sectionTabVisibleGroups.length; i++) {
+            if (root.sectionTabVisibleGroups[i].key !== groupKey)
+                continue;
+            root.currentSectionTab = i;
+            break;
+        }
         applySectionTabSelection();
     }
 
     function applySectionTabSelection() {
-        var visibleSections = root.sectionTabVisibleSections;
-        var selectedSection = visibleSections.length > 0 ? visibleSections[Math.max(0, Math.min(root.currentSectionTab, visibleSections.length - 1))] : null;
+        var visibleGroups = root.sectionTabVisibleGroups;
+        var selectedGroup = visibleGroups.length > 0 ? visibleGroups[Math.max(0, Math.min(root.currentSectionTab, visibleGroups.length - 1))] : null;
 
         for (var i = 0; i < root.sectionTabSections.length; i++) {
             var section = root.sectionTabSections[i];
             if (!section)
                 continue;
 
-            section.sectionTabsSelected = !selectedSection || section === selectedSection;
+            section.sectionTabsSelected = !selectedGroup || root.sectionTabGroupKey(section) === selectedGroup.key;
         }
     }
 
     function refreshSectionTabs() {
-        var previousSelectedSection = root.sectionTabVisibleSections.length > 0
-            ? root.sectionTabVisibleSections[Math.max(0, Math.min(root.currentSectionTab, root.sectionTabVisibleSections.length - 1))]
+        var previousSelectedGroup = root.sectionTabVisibleGroups.length > 0
+            ? root.sectionTabVisibleGroups[Math.max(0, Math.min(root.currentSectionTab, root.sectionTabVisibleGroups.length - 1))]
             : null;
+        var previousSelectedGroupKey = previousSelectedGroup ? previousSelectedGroup.key : "";
         var visibleSections = [];
+        var visibleGroups = [];
+        var visibleGroupsByKey = ({});
         var buttons = [];
 
         for (var i = 0; i < root.sectionTabSections.length; i++) {
@@ -113,21 +148,59 @@ StyledFlickable {
                 continue;
 
             visibleSections.push(section);
+            var key = root.sectionTabGroupKey(section);
+            if (!key.length)
+                continue;
+
+            var group = visibleGroupsByKey[key];
+            if (!group) {
+                group = {
+                    key: key,
+                    name: key,
+                    icon: root.sectionTabGroupIcon(section),
+                    order: root.sectionTabGroupOrder(section),
+                    sections: []
+                };
+                visibleGroupsByKey[key] = group;
+                visibleGroups.push(group);
+            }
+
+            group.sections.push(section);
+            group.order = Math.min(group.order, root.sectionTabGroupOrder(section));
+            if (!group.icon.length)
+                group.icon = root.sectionTabGroupIcon(section);
+        }
+
+        visibleGroups.sort(function(a, b) {
+            return a.order - b.order;
+        });
+        for (var j = 0; j < visibleGroups.length; j++) {
             buttons.push({
-                name: section.title || "",
-                icon: section.icon || ""
+                name: visibleGroups[j].name,
+                icon: visibleGroups[j].icon
             });
         }
 
         root.sectionTabVisibleSections = visibleSections;
+        root.sectionTabVisibleGroups = visibleGroups;
         root.sectionTabButtons = buttons;
 
-        if (root.currentSectionTab < 0 && visibleSections.length > 0)
+        if (root.currentSectionTab < 0 && visibleGroups.length > 0)
             root.currentSectionTab = 0;
-        else if (previousSelectedSection && visibleSections.indexOf(previousSelectedSection) >= 0)
-            root.currentSectionTab = visibleSections.indexOf(previousSelectedSection);
-        else if (root.currentSectionTab >= visibleSections.length)
-            root.currentSectionTab = Math.max(0, visibleSections.length - 1);
+        else if (previousSelectedGroupKey.length > 0) {
+            var preservedGroupIndex = -1;
+            for (var k = 0; k < visibleGroups.length; k++) {
+                if (visibleGroups[k].key === previousSelectedGroupKey) {
+                    preservedGroupIndex = k;
+                    break;
+                }
+            }
+            if (preservedGroupIndex >= 0)
+                root.currentSectionTab = preservedGroupIndex;
+            else if (root.currentSectionTab >= visibleGroups.length)
+                root.currentSectionTab = Math.max(0, visibleGroups.length - 1);
+        } else if (root.currentSectionTab >= visibleGroups.length)
+            root.currentSectionTab = Math.max(0, visibleGroups.length - 1);
 
         applySectionTabSelection();
         Qt.callLater(() => {
@@ -147,18 +220,49 @@ StyledFlickable {
             top: parent.top
             left: parent.left
             right: parent.right
-            topMargin: 20
+            topMargin: root._contentTopMargin
             bottomMargin: 20
             leftMargin: root._horizontalMargin
             rightMargin: root._horizontalMargin
         }
         spacing: SettingsMaterialPreset.pageSpacing
+    }
+
+    Item {
+        id: sectionTabBarShell
+        visible: root.sectionTabsVisible
+        x: root._horizontalMargin
+        y: root.sectionTabsSticky ? root.contentY + 20 : 0
+        z: 10
+        width: Math.max(0, root.width - root._horizontalMargin * 2)
+        implicitHeight: sectionTabBar.implicitHeight
+
+        Rectangle {
+            visible: root.sectionTabsSticky
+            anchors {
+                fill: parent
+                leftMargin: -8
+                rightMargin: -8
+                topMargin: -6
+                bottomMargin: -6
+            }
+            radius: Appearance.rounding.full
+            color: Appearance.angelEverywhere ? Appearance.angel.colGlassCard
+                 : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer0
+                 : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurface
+                 : Appearance.colors.colLayer0
+            opacity: 0.92
+            border.width: Appearance.angelEverywhere ? Appearance.angel.cardBorderWidth
+                        : Appearance.ryokuEverywhere ? 1 : 0
+            border.color: Appearance.angelEverywhere ? Appearance.angel.colCardBorder
+                        : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
+                        : "transparent"
+        }
 
         ToolbarTabBar {
             id: sectionTabBar
-            visible: root.sectionTabButtons.length > 1
-            Layout.alignment: Qt.AlignHCenter
-            Layout.maximumWidth: parent.width
+            anchors.centerIn: parent
+            width: parent.width
             maxWidth: parent.width
             tabButtonList: root.sectionTabButtons
             compactThreshold: root.sectionTabsCompactThreshold

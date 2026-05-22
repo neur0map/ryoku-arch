@@ -69,4 +69,16 @@ rg -q 'visible: ShellUpdates\.canApplyUpdate' "$ABOUT_QML" || \
 ! rg -q 'Check updates.*Update available|Update available.*Check updates' "$ABOUT_QML" || \
   fail "About manual check button should not turn into an update-available button"
 
+! rg -q 'Layout\.preferredHeight: 320' "$ABOUT_QML" || \
+  fail "About top row should not use a fixed height that clips the channel selector"
+
+rg -q 'id: aboutTopRow' "$ABOUT_QML" || \
+  fail "About top row should expose an id for content-driven sizing"
+
+rg -q 'ryokuHeroColumn\.implicitHeight \+ 40' "$ABOUT_QML" || \
+  fail "About Ryoku hero card height should account for its full contents"
+
+rg -q 'systemInfoColumn\.implicitHeight \+ 40' "$ABOUT_QML" || \
+  fail "About system info card height should account for its full contents"
+
 echo "PASS: About page exposes shell update check"

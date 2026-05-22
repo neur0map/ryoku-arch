@@ -7,6 +7,8 @@ import qs.services
 import qs.modules.common
 import qs.modules.common.widgets
 
+// qmllint disable signal-handler-parameters
+
 ContentPage {
     id: root
     settingsPageIndex: 6
@@ -286,6 +288,9 @@ ContentPage {
         expanded: false
         icon: "screen_record"
         title: Translation.tr("Screen recording")
+        sectionTabGroup: Translation.tr("Capture")
+        sectionTabGroupIcon: "screen_record"
+        sectionTabGroupOrder: 0
 
         readonly property bool isCustomPreset: (Config.options?.screenRecord?.qualityPreset ?? "balanced") === "custom"
 
@@ -598,6 +603,9 @@ ContentPage {
         expanded: false
         icon: "screenshot_frame_2"
         title: Translation.tr("Region selector (screen snipping/Google Lens)")
+        sectionTabGroup: Translation.tr("Capture")
+        sectionTabGroupIcon: "screen_record"
+        sectionTabGroupOrder: 0
 
         SettingsGroup {
             ContentSubsection {
@@ -758,6 +766,9 @@ ContentPage {
         expanded: false
         icon: "point_scan"
         title: Translation.tr("Crosshair overlay")
+        sectionTabGroup: Translation.tr("Overlays")
+        sectionTabGroupIcon: "layers"
+        sectionTabGroupOrder: 1
 
         SettingsGroup {
             MaterialTextArea {
@@ -800,6 +811,9 @@ ContentPage {
         expanded: false
         icon: "forum"
         title: Translation.tr("Overlay: Discord")
+        sectionTabGroup: Translation.tr("Overlays")
+        sectionTabGroupIcon: "layers"
+        sectionTabGroupOrder: 1
 
         SettingsGroup {
             MaterialTextArea {
@@ -818,6 +832,9 @@ ContentPage {
         expanded: false
         icon: "layers"
         title: Translation.tr("Overlay widgets")
+        sectionTabGroup: Translation.tr("Overlays")
+        sectionTabGroupIcon: "layers"
+        sectionTabGroupOrder: 1
 
         SettingsGroup {
             ContentSubsection {
@@ -919,6 +936,9 @@ ContentPage {
         expanded: false
         icon: "voting_chip"
         title: Translation.tr("On-screen display")
+        sectionTabGroup: Translation.tr("OSD")
+        sectionTabGroupIcon: "voting_chip"
+        sectionTabGroupOrder: 2
 
         SettingsGroup {
             ConfigSwitch {

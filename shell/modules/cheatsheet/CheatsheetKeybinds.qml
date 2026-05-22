@@ -48,6 +48,7 @@ StyledFlickable {
         const icons = {
             "System": "settings_power",
             "ii Shell": "dashboard",
+            "Custom Keys": "edit_note",
             "Window Switcher": "swap_horiz",
             "Region Tools": "screenshot_region",
             "Applications": "apps",

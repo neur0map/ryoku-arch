@@ -8,6 +8,8 @@ import qs.services
 import qs.modules.common
 import qs.modules.common.widgets
 
+// qmllint disable signal-handler-parameters
+
 ContentPage {
     id: root
     settingsPageIndex: 15
@@ -61,20 +63,6 @@ ContentPage {
 
     function launchGpk() {
         launchCommandInTerminal("gpk")
-    }
-
-    function launchGpkPrompt(action) {
-        const actionLabels = ({
-            install: "Package to install",
-            remove: "Package to uninstall",
-            upgrade: "Package to update",
-        })
-        const prompt = actionLabels[action] ?? "Package"
-        launchCommandInTerminal("printf 'GPK package manager - " + action + "\\n'; read -rp '" + prompt + ": ' pkg; if [[ -n $pkg ]]; then gpk " + action + " \"$pkg\"; fi; printf '\\nPress Enter to close...'; read -r _")
-    }
-
-    function launchGpkOutdated() {
-        launchCommandInTerminal("gpk outdated; printf '\\nPress Enter to close...'; read -r _")
     }
 
     function statusLabel(profile) {
@@ -243,57 +231,38 @@ ContentPage {
 
                 StyledText {
                     Layout.fillWidth: true
-                    text: Translation.tr("GPK is Ryoku's package manager for install, uninstall, update, search, and outdated checks across supported managers. The Arch and AUR pickers remain available for focused Ryoku package workflows.")
+                    text: Translation.tr("Open GPK for the full package workflow: install, uninstall, update, search, and outdated checks. The focused Arch and AUR pickers remain available below.")
                     color: Appearance.colors.colSubtext
                     wrapMode: Text.WordWrap
                     font.pixelSize: 13
                 }
 
-                GridLayout {
+                RippleButtonWithIcon {
                     Layout.fillWidth: true
-                    columns: width > 560 ? 3 : 2
-                    rowSpacing: 8
-                    columnSpacing: 8
+                    Layout.topMargin: 2
+                    implicitHeight: 48
+                    materialIcon: "terminal"
+                    mainText: Translation.tr("Open GPK")
+                    onClicked: root.launchGpk()
 
-                    RippleButtonWithIcon {
-                        Layout.fillWidth: true
-                        materialIcon: "terminal"
-                        mainText: Translation.tr("Open GPK")
-                        onClicked: root.launchGpk()
+                    StyledToolTip {
+                        text: Translation.tr("Open the GPK terminal interface.")
                     }
+                }
 
-                    RippleButtonWithIcon {
-                        Layout.fillWidth: true
-                        materialIcon: "download"
-                        mainText: Translation.tr("Install package")
-                        onClicked: root.launchGpkPrompt("install")
-                    }
-
-                    RippleButtonWithIcon {
-                        Layout.fillWidth: true
-                        materialIcon: "delete"
-                        mainText: Translation.tr("Uninstall package")
-                        onClicked: root.launchGpkPrompt("remove")
-                    }
-
-                    RippleButtonWithIcon {
-                        Layout.fillWidth: true
-                        materialIcon: "upgrade"
-                        mainText: Translation.tr("Update package")
-                        onClicked: root.launchGpkPrompt("upgrade")
-                    }
-
-                    RippleButtonWithIcon {
-                        Layout.fillWidth: true
-                        materialIcon: "manage_search"
-                        mainText: Translation.tr("Outdated")
-                        onClicked: root.launchGpkOutdated()
+                StyledText {
+                    Layout.fillWidth: true
+                    Layout.topMargin: 4
+                    text: Translation.tr("Focused pickers")
+                    color: Appearance.colors.colSubtext
+                    font {
+                        pixelSize: Appearance.font.pixelSize.smaller
+                        weight: Font.Medium
                     }
                 }
 
                 RowLayout {
                     Layout.fillWidth: true
-                    Layout.topMargin: 2
                     spacing: 8
 
                     RippleButton {

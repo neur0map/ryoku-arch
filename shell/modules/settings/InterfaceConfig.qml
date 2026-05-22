@@ -23,6 +23,9 @@ ContentPage {
         expanded: false
         icon: "keyboard_tab"
         title: Translation.tr("Alt-Tab switcher (Material ii)")
+        sectionTabGroup: Translation.tr("Switcher")
+        sectionTabGroupIcon: "keyboard_tab"
+        sectionTabGroupOrder: 0
 
         SettingsGroup {
             SettingsSwitch {
@@ -204,6 +207,9 @@ ContentPage {
         expanded: false
         icon: "call_to_action"
         title: Translation.tr("Dock")
+        sectionTabGroup: Translation.tr("Dock")
+        sectionTabGroupIcon: "call_to_action"
+        sectionTabGroupOrder: 1
 
         SettingsGroup {
             SettingsSwitch {
@@ -498,6 +504,9 @@ ContentPage {
         expanded: false
         icon: "notifications"
         title: Translation.tr("Notifications")
+        sectionTabGroup: Translation.tr("Control")
+        sectionTabGroupIcon: "tune"
+        sectionTabGroupOrder: 2
 
         SettingsGroup {
             ConfigSpinBox {
@@ -577,6 +586,9 @@ ContentPage {
         expanded: false
         icon: "tune"
         title: Translation.tr("Control panel")
+        sectionTabGroup: Translation.tr("Control")
+        sectionTabGroupIcon: "tune"
+        sectionTabGroupOrder: 2
 
         SettingsGroup {
             SettingsSwitch {
@@ -666,6 +678,9 @@ ContentPage {
         expanded: false
         icon: "side_navigation"
         title: Translation.tr("Sidebars")
+        sectionTabGroup: Translation.tr("Sidebars")
+        sectionTabGroupIcon: "side_navigation"
+        sectionTabGroupOrder: 3
 
         SettingsGroup {
             ContentSubsection {
@@ -1478,6 +1493,9 @@ ContentPage {
         expanded: false
         icon: "widgets"
         title: Translation.tr("Widgets")
+        sectionTabGroup: Translation.tr("Sidebars")
+        sectionTabGroupIcon: "side_navigation"
+        sectionTabGroupOrder: 3
 
         SettingsGroup {
             ContentSubsection {
@@ -1826,7 +1844,7 @@ ContentPage {
 
                     MaterialTextField {
                         id: coinInput
-                        width: parent.width
+                        Layout.fillWidth: true
                         placeholderText: Translation.tr("Type to search coins...")
                         text: ""
                         font.pixelSize: Appearance.font.pixelSize.small
@@ -1849,50 +1867,50 @@ ContentPage {
                         }
                         Keys.onDownPressed: coinList.incrementCurrentIndex()
                         Keys.onUpPressed: coinList.decrementCurrentIndex()
-                    }
 
-                    Popup {
-                        id: coinPopup
-                        y: coinInput.height + 4
-                        width: coinInput.width
-                        height: Math.min(200, coinList.contentHeight + 16)
-                        padding: 8
-                        visible: coinInput.text.length > 0 && cryptoSection.filteredCoins().length > 0
+                        Popup {
+                            id: coinPopup
+                            y: coinInput.height + 4
+                            implicitWidth: coinInput.width
+                            implicitHeight: Math.min(200, coinList.contentHeight + 16)
+                            padding: 8
+                            visible: coinInput.text.length > 0 && cryptoSection.filteredCoins().length > 0
 
-                        background: Rectangle {
-                            color: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
-                                 : Appearance.colors.colLayer2Base
-                            radius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.small
-                            border.width: 1
-                            border.color: Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
-                                        : Appearance.colors.colLayer0Border
-                        }
+                            background: Rectangle {
+                                color: Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2
+                                     : Appearance.colors.colLayer2Base
+                                radius: Appearance.ryokuEverywhere ? Appearance.ryoku.roundingSmall : Appearance.rounding.small
+                                border.width: 1
+                                border.color: Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
+                                            : Appearance.colors.colLayer0Border
+                            }
 
-                        ListView {
-                            id: coinList
-                            anchors.fill: parent
-                            model: cryptoSection.filteredCoins()
-                            clip: true
-                            currentIndex: 0
+                            ListView {
+                                id: coinList
+                                anchors.fill: parent
+                                model: cryptoSection.filteredCoins()
+                                clip: true
+                                currentIndex: 0
 
-                            delegate: RippleButton {
-                                id: coinDelegate
-                                required property string modelData
-                                required property int index
-                                width: coinList.width
-                                implicitHeight: 32
-                                buttonRadius: Appearance.rounding.small
-                                colBackground: coinList.currentIndex === index ? Appearance.colors.colLayer1Hover : "transparent"
-                                colBackgroundHover: Appearance.colors.colLayer1Hover
-                                onClicked: cryptoSection.addCoin(modelData)
+                                delegate: RippleButton {
+                                    id: coinDelegate
+                                    required property string modelData
+                                    required property int index
+                                    width: coinList.width
+                                    implicitHeight: 32
+                                    buttonRadius: Appearance.rounding.small
+                                    colBackground: coinList.currentIndex === index ? Appearance.colors.colLayer1Hover : "transparent"
+                                    colBackgroundHover: Appearance.colors.colLayer1Hover
+                                    onClicked: cryptoSection.addCoin(modelData)
 
-                                contentItem: StyledText {
-                                    text: coinDelegate.modelData
-                                    font.pixelSize: Appearance.font.pixelSize.small
-                                    font.family: Appearance.font.family.monospace
-                                    color: Appearance.colors.colOnLayer1
-                                    leftPadding: 8
-                                    verticalAlignment: Text.AlignVCenter
+                                    contentItem: StyledText {
+                                        text: coinDelegate.modelData
+                                        font.pixelSize: Appearance.font.pixelSize.small
+                                        font.family: Appearance.font.family.monospace
+                                        color: Appearance.colors.colOnLayer1
+                                        leftPadding: 8
+                                        verticalAlignment: Text.AlignVCenter
+                                    }
                                 }
                             }
                         }
@@ -2085,6 +2103,9 @@ ContentPage {
         expanded: false
         icon: "overview_key"
         title: Translation.tr("Overview")
+        sectionTabGroup: Translation.tr("Overview")
+        sectionTabGroupIcon: "overview_key"
+        sectionTabGroupOrder: 4
 
         SettingsGroup {
             SettingsSwitch {

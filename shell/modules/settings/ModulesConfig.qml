@@ -74,6 +74,9 @@ ContentPage {
         expanded: true
         icon: "extension"
         title: Translation.tr("Shell Modules")
+        sectionTabGroup: Translation.tr("Shell")
+        sectionTabGroupIcon: "extension"
+        sectionTabGroupOrder: 0
 
         SettingsGroup {
             StyledText {
@@ -120,6 +123,9 @@ ContentPage {
         expanded: true
         icon: "style"
         title: Translation.tr("Panel Style")
+        sectionTabGroup: Translation.tr("Shell")
+        sectionTabGroupIcon: "extension"
+        sectionTabGroupOrder: 0
 
         SettingsGroup {
             RowLayout {
@@ -197,6 +203,9 @@ ContentPage {
         expanded: true
         icon: "terminal"
         title: Translation.tr("Default Terminal")
+        sectionTabGroup: Translation.tr("Shell")
+        sectionTabGroupIcon: "extension"
+        sectionTabGroupOrder: 0
 
         SettingsGroup {
             StyledText {
@@ -419,6 +428,9 @@ ContentPage {
         expanded: true
         icon: "dashboard"
         title: Translation.tr("Core")
+        sectionTabGroup: Translation.tr("Material ii")
+        sectionTabGroupIcon: "dashboard"
+        sectionTabGroupOrder: 1
 
         SettingsGroup {
             SettingsSwitch {
@@ -484,6 +496,9 @@ ContentPage {
         expanded: false
         icon: "notifications"
         title: Translation.tr("Feedback")
+        sectionTabGroup: Translation.tr("Material ii")
+        sectionTabGroupIcon: "dashboard"
+        sectionTabGroupOrder: 1
 
         SettingsGroup {
             SettingsSwitch {
@@ -517,6 +532,9 @@ ContentPage {
         expanded: false
         icon: "build"
         title: Translation.tr("Utilities")
+        sectionTabGroup: Translation.tr("Material ii")
+        sectionTabGroupIcon: "dashboard"
+        sectionTabGroupOrder: 1
 
         SettingsGroup {
             SettingsSwitch {
@@ -598,6 +616,9 @@ ContentPage {
         expanded: false
         icon: "more_horiz"
         title: Translation.tr("Optional")
+        sectionTabGroup: Translation.tr("Material ii")
+        sectionTabGroupIcon: "dashboard"
+        sectionTabGroupOrder: 1
 
         SettingsGroup {
             SettingsSwitch {
@@ -632,6 +653,9 @@ ContentPage {
         expanded: true
         icon: "window"
         title: Translation.tr("Waffle Core")
+        sectionTabGroup: Translation.tr("Waffle")
+        sectionTabGroupIcon: "window"
+        sectionTabGroupOrder: 2
 
         SettingsGroup {
             SettingsSwitch {
@@ -705,6 +729,9 @@ ContentPage {
         expanded: false
         icon: "share"
         title: Translation.tr("Shared Modules")
+        sectionTabGroup: Translation.tr("Shared")
+        sectionTabGroupIcon: "share"
+        sectionTabGroupOrder: 3
 
         SettingsGroup {
             StyledText {
@@ -825,6 +852,9 @@ ContentPage {
         expanded: false
         icon: "aspect_ratio"
         title: Translation.tr("Display scaling")
+        sectionTabGroup: Translation.tr("Settings")
+        sectionTabGroupIcon: "settings"
+        sectionTabGroupOrder: 4
 
         SettingsGroup {
             ConfigRow {
@@ -872,6 +902,9 @@ ContentPage {
         expanded: false
         icon: "wallpaper_slideshow"
         title: Translation.tr("Wallpaper selector")
+        sectionTabGroup: Translation.tr("Settings")
+        sectionTabGroupIcon: "settings"
+        sectionTabGroupOrder: 4
 
         SettingsGroup {
             ContentSubsection {
@@ -919,6 +952,9 @@ ContentPage {
         expanded: false
         icon: "web_asset"
         title: Translation.tr("Settings UI")
+        sectionTabGroup: Translation.tr("Settings")
+        sectionTabGroupIcon: "settings"
+        sectionTabGroupOrder: 4
 
         SettingsGroup {
             StyledText {

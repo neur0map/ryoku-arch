@@ -10,6 +10,8 @@ import re
 import sys
 from pathlib import Path
 
+CUSTOM_KEYBINDS_MARKER = "Ryoku custom keybinds"
+
 
 def get_niri_config_path():
     """Get the path to niri config, checking XDG and fallback."""
@@ -21,10 +23,16 @@ def parse_keybinds_from_block(binds_content: str) -> list[dict]:
     """Parse keybinds handling both single-line and multi-line formats."""
     keybinds = []
     lines = binds_content.split('\n')
+    custom_section = False
     i = 0
     
     while i < len(lines):
         line = lines[i].strip()
+
+        if CUSTOM_KEYBINDS_MARKER in line:
+            custom_section = True
+            i += 1
+            continue
         
         # Skip empty lines and comments
         if not line or line.startswith('//'):
@@ -95,7 +103,8 @@ def parse_keybinds_from_block(binds_content: str) -> list[dict]:
             'mods': mods,
             'key': key,
             'action': action,
-            'comment': comment
+            'comment': comment,
+            'custom': custom_section
         })
         
         i += 1
@@ -453,7 +462,7 @@ def parse_niri_config(config_path: Path) -> dict:
     keybinds_by_category = {}
     
     for kb in keybinds:
-        category = categorize_keybind(kb)
+        category = 'Custom Keys' if kb.get('custom') else categorize_keybind(kb)
         if category not in keybinds_by_category:
             keybinds_by_category[category] = []
         keybinds_by_category[category].append({
@@ -464,7 +473,7 @@ def parse_niri_config(config_path: Path) -> dict:
         })
     
     category_order = [
-        'System', 'Ryoku Shell', 'Window Switcher', 'Screenshots',
+        'System', 'Ryoku Shell', 'Custom Keys', 'Window Switcher', 'Screenshots',
         'Applications', 'Window Management', 'Layout', 'Resize',
         'Focus', 'Move Windows', 'Monitors', 'Workspaces',
         'Media', 'Brightness', 'Other'

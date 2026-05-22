@@ -19,6 +19,9 @@ ContentPage {
         expanded: true
         icon: "bedtime"
         title: Translation.tr("Idle & Sleep")
+        sectionTabGroup: Translation.tr("Power")
+        sectionTabGroupIcon: "bedtime"
+        sectionTabGroupOrder: 0
 
         SettingsGroup {
             ConfigSpinBox {
@@ -88,6 +91,9 @@ ContentPage {
         expanded: false
         icon: "neurology"
         title: Translation.tr("AI")
+        sectionTabGroup: Translation.tr("AI & Data")
+        sectionTabGroupIcon: "neurology"
+        sectionTabGroupOrder: 1
 
         SettingsGroup {
             MaterialTextArea {
@@ -220,8 +226,8 @@ ContentPage {
                             }
 
                             Rectangle {
-                                width: fmtLabel.implicitWidth + 12
-                                height: 22
+                                implicitWidth: fmtLabel.implicitWidth + 12
+                                implicitHeight: 22
                                 radius: Appearance.rounding.full
                                 color: ColorUtils.transparentize(Appearance.m3colors.m3tertiary, 0.88)
 
@@ -640,6 +646,9 @@ ContentPage {
         expanded: false
         icon: "music_cast"
         title: Translation.tr("Music Recognition")
+        sectionTabGroup: Translation.tr("AI & Data")
+        sectionTabGroupIcon: "neurology"
+        sectionTabGroupOrder: 1
 
         SettingsGroup {
             ConfigSpinBox {
@@ -677,6 +686,9 @@ ContentPage {
         expanded: false
         icon: "cell_tower"
         title: Translation.tr("Networking")
+        sectionTabGroup: Translation.tr("Network")
+        sectionTabGroupIcon: "cell_tower"
+        sectionTabGroupOrder: 2
 
         SettingsGroup {
             MaterialTextArea {
@@ -695,6 +707,9 @@ ContentPage {
         expanded: false
         icon: "wifi_tethering"
         title: Translation.tr("Hotspot")
+        sectionTabGroup: Translation.tr("Network")
+        sectionTabGroupIcon: "cell_tower"
+        sectionTabGroupOrder: 2
 
         SettingsGroup {
             MaterialTextArea {
@@ -734,6 +749,9 @@ ContentPage {
         expanded: false
         icon: "memory"
         title: Translation.tr("Resources")
+        sectionTabGroup: Translation.tr("Power")
+        sectionTabGroupIcon: "bedtime"
+        sectionTabGroupOrder: 0
 
         SettingsGroup {
             ConfigSpinBox {
@@ -757,6 +775,9 @@ ContentPage {
         expanded: false
         icon: "search"
         title: Translation.tr("Search")
+        sectionTabGroup: Translation.tr("Search & Apps")
+        sectionTabGroupIcon: "search"
+        sectionTabGroupOrder: 3
 
         SettingsGroup {
             SettingsSwitch {
@@ -853,6 +874,9 @@ ContentPage {
         expanded: false
         icon: "system_update"
         title: Translation.tr("Updates")
+        sectionTabGroup: Translation.tr("Updates")
+        sectionTabGroupIcon: "system_update"
+        sectionTabGroupOrder: 4
 
         SettingsGroup {
             ConfigSpinBox {
@@ -908,6 +932,9 @@ ContentPage {
         expanded: false
         icon: "deployed_code_update"
         title: Translation.tr("Ryoku Shell Updates")
+        sectionTabGroup: Translation.tr("Updates")
+        sectionTabGroupIcon: "system_update"
+        sectionTabGroupOrder: 4
 
         SettingsGroup {
             StyledText {
@@ -986,8 +1013,8 @@ ContentPage {
                         Layout.fillWidth: true
 
                         Rectangle {
-                            width: 40
-                            height: 40
+                            implicitWidth: 40
+                            implicitHeight: 40
                             radius: Appearance.rounding.small
                             color: {
                                 if (ShellUpdates.canApplyUpdate) return ColorUtils.transparentize(Appearance.m3colors.m3primary, 0.8)
@@ -1364,6 +1391,9 @@ ContentPage {
         expanded: false
         icon: "cloud"
         title: Translation.tr("Weather")
+        sectionTabGroup: Translation.tr("AI & Data")
+        sectionTabGroupIcon: "neurology"
+        sectionTabGroupOrder: 1
 
         SettingsGroup {
             StyledText {
@@ -1536,6 +1566,9 @@ ContentPage {
     SettingsCardSection {
         icon: "calendar_month"
         title: Translation.tr("Calendar Sync")
+        sectionTabGroup: Translation.tr("AI & Data")
+        sectionTabGroupIcon: "neurology"
+        sectionTabGroupOrder: 1
 
         SettingsGroup {
             SettingsSwitch {

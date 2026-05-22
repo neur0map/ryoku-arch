@@ -10,6 +10,8 @@ import qs.modules.common
 import qs.modules.common.functions
 import qs.modules.common.widgets
 
+// qmllint disable signal-handler-parameters
+
 ContentPage {
     id: root
     settingsPageIndex: 12
@@ -1009,7 +1011,7 @@ ContentPage {
                 // Countdown bar
                 Rectangle {
                     Layout.fillWidth: true
-                    height: 4
+                    implicitHeight: 4
                     radius: 2
                     color: Appearance.colors.colLayer1
 
@@ -1222,6 +1224,7 @@ ContentPage {
         expanded: false
         icon: "rule_settings"
         title: Translation.tr("Niri config status")
+        sectionTabsIncludeInTabBar: false
 
         SettingsGroup {
             Item {
@@ -1431,6 +1434,9 @@ ContentPage {
     SettingsCardSection {
         icon: "monitor"
         title: Translation.tr("Displays")
+        sectionTabGroup: Translation.tr("Displays")
+        sectionTabGroupIcon: "monitor"
+        sectionTabGroupOrder: 0
 
         SettingsGroup {
             StyledText {
@@ -1644,6 +1650,9 @@ ContentPage {
         expanded: false
         icon: "grid_view"
         title: Translation.tr("Layout")
+        sectionTabGroup: Translation.tr("Windows & Layout")
+        sectionTabGroupIcon: "grid_view"
+        sectionTabGroupOrder: 1
 
         SettingsGroup {
             ContentSubsection {
@@ -2140,6 +2149,9 @@ ContentPage {
         expanded: false
         icon: "rounded_corner"
         title: Translation.tr("Window Rules")
+        sectionTabGroup: Translation.tr("Windows & Layout")
+        sectionTabGroupIcon: "grid_view"
+        sectionTabGroupOrder: 1
 
         SettingsGroup {
             ContentSubsection {
@@ -2232,6 +2244,9 @@ ContentPage {
         expanded: false
         icon: "keyboard"
         title: Translation.tr("Keyboard")
+        sectionTabGroup: Translation.tr("Input")
+        sectionTabGroupIcon: "keyboard"
+        sectionTabGroupOrder: 2
 
         SettingsGroup {
             // --- Keyboard layout ---
@@ -2387,6 +2402,9 @@ ContentPage {
         expanded: false
         icon: "touch_app"
         title: Translation.tr("Touchpad")
+        sectionTabGroup: Translation.tr("Input")
+        sectionTabGroupIcon: "keyboard"
+        sectionTabGroupOrder: 2
 
         SettingsGroup {
             SettingsSwitch {
@@ -2582,6 +2600,9 @@ ContentPage {
         expanded: false
         icon: "mouse"
         title: Translation.tr("Mouse")
+        sectionTabGroup: Translation.tr("Input")
+        sectionTabGroupIcon: "keyboard"
+        sectionTabGroupOrder: 2
 
         SettingsGroup {
             SettingsSwitch {
@@ -2698,6 +2719,9 @@ ContentPage {
         expanded: false
         icon: "joystick"
         title: Translation.tr("Trackpoint")
+        sectionTabGroup: Translation.tr("Input")
+        sectionTabGroupIcon: "keyboard"
+        sectionTabGroupOrder: 2
 
         SettingsGroup {
             SettingsSwitch {
@@ -2812,6 +2836,9 @@ ContentPage {
         expanded: false
         icon: "point_scan"
         title: Translation.tr("Cursor")
+        sectionTabGroup: Translation.tr("Input")
+        sectionTabGroupIcon: "keyboard"
+        sectionTabGroupOrder: 2
 
         SettingsGroup {
             ContentSubsection {
@@ -2880,6 +2907,9 @@ ContentPage {
         expanded: false
         icon: "settings_input_composite"
         title: Translation.tr("General Input")
+        sectionTabGroup: Translation.tr("Input")
+        sectionTabGroupIcon: "keyboard"
+        sectionTabGroupOrder: 2
 
         SettingsGroup {
             SettingsSwitch {
@@ -2974,6 +3004,9 @@ ContentPage {
         expanded: false
         icon: "animation"
         title: Translation.tr("Animations")
+        sectionTabGroup: Translation.tr("Animations")
+        sectionTabGroupIcon: "animation"
+        sectionTabGroupOrder: 3
 
         SettingsGroup {
             SettingsSwitch {
@@ -3141,6 +3174,9 @@ ContentPage {
         expanded: false
         icon: "apps"
         title: Translation.tr("Applications")
+        sectionTabGroup: Translation.tr("Apps & Status")
+        sectionTabGroupIcon: "apps"
+        sectionTabGroupOrder: 4
 
         SettingsGroup {
             StyledText {

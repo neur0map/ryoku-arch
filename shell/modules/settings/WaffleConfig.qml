@@ -23,6 +23,8 @@ ContentPage {
         expanded: true
         icon: "info"
         title: Translation.tr("Not Active")
+        sectionTabsIncludeInTabBar: false
+        collapsible: false
 
         SettingsGroup {
             StyledText {
@@ -42,6 +44,9 @@ ContentPage {
         expanded: true
         icon: "wallpaper"
         title: Translation.tr("Wallpaper")
+        sectionTabGroup: Translation.tr("Wallpaper")
+        sectionTabGroupIcon: "wallpaper"
+        sectionTabGroupOrder: 0
 
         SettingsGroup {
             SettingsSwitch {
@@ -105,6 +110,9 @@ ContentPage {
         expanded: false
         icon: "auto_awesome"
         title: Translation.tr("Wallpaper Effects")
+        sectionTabGroup: Translation.tr("Wallpaper")
+        sectionTabGroupIcon: "wallpaper"
+        sectionTabGroupOrder: 0
 
         SettingsGroup {
             SettingsSwitch {
@@ -147,6 +155,9 @@ ContentPage {
         expanded: false
         icon: "layers"
         title: Translation.tr("Backdrop (Niri Overview)")
+        sectionTabGroup: Translation.tr("Wallpaper")
+        sectionTabGroupIcon: "wallpaper"
+        sectionTabGroupOrder: 0
 
         SettingsGroup {
             StyledText {
@@ -273,6 +284,9 @@ ContentPage {
         expanded: false
         icon: "toolbar"
         title: Translation.tr("Taskbar")
+        sectionTabGroup: Translation.tr("Taskbar")
+        sectionTabGroupIcon: "toolbar"
+        sectionTabGroupOrder: 1
 
         SettingsGroup {
             SettingsSwitch {
@@ -311,6 +325,9 @@ ContentPage {
         expanded: false
         icon: "palette"
         title: Translation.tr("Theming")
+        sectionTabGroup: Translation.tr("Taskbar")
+        sectionTabGroupIcon: "toolbar"
+        sectionTabGroupOrder: 1
 
         property string currentFontFamily: Config.options?.waffles?.theming?.font?.family ?? "Noto Sans"
         property string defaultFont: "Noto Sans"
@@ -390,6 +407,9 @@ ContentPage {
         expanded: false
         icon: "widgets"
         title: Translation.tr("Behavior")
+        sectionTabGroup: Translation.tr("Taskbar")
+        sectionTabGroupIcon: "toolbar"
+        sectionTabGroupOrder: 1
 
         SettingsGroup {
             SettingsSwitch {
@@ -405,6 +425,9 @@ ContentPage {
         expanded: false
         icon: "swap_horiz"
         title: Translation.tr("Family Transition")
+        sectionTabGroup: Translation.tr("Taskbar")
+        sectionTabGroupIcon: "toolbar"
+        sectionTabGroupOrder: 1
 
         SettingsGroup {
             StyledText {
@@ -430,6 +453,9 @@ ContentPage {
         expanded: false
         icon: "grid_view"
         title: Translation.tr("Start Menu")
+        sectionTabGroup: Translation.tr("Start & Panels")
+        sectionTabGroupIcon: "grid_view"
+        sectionTabGroupOrder: 2
 
         SettingsGroup {
             ConfigSelectionArray {
@@ -460,6 +486,9 @@ ContentPage {
         expanded: false
         icon: "tune"
         title: Translation.tr("Tweaks")
+        sectionTabGroup: Translation.tr("Taskbar")
+        sectionTabGroupIcon: "toolbar"
+        sectionTabGroupOrder: 1
 
         SettingsGroup {
             SettingsSwitch {
@@ -483,6 +512,9 @@ ContentPage {
         expanded: false
         icon: "calendar_month"
         title: Translation.tr("Calendar")
+        sectionTabGroup: Translation.tr("Start & Panels")
+        sectionTabGroupIcon: "grid_view"
+        sectionTabGroupOrder: 2
 
         SettingsGroup {
             SettingsSwitch {
@@ -499,6 +531,9 @@ ContentPage {
         expanded: false
         icon: "swap_horiz"
         title: Translation.tr("Alt+Tab Switcher")
+        sectionTabGroup: Translation.tr("Switcher")
+        sectionTabGroupIcon: "swap_horiz"
+        sectionTabGroupOrder: 3
 
         SettingsGroup {
             SettingsSwitch {
@@ -625,6 +660,9 @@ ContentPage {
         expanded: false
         icon: "widgets"
         title: Translation.tr("Widgets Panel")
+        sectionTabGroup: Translation.tr("Start & Panels")
+        sectionTabGroupIcon: "grid_view"
+        sectionTabGroupOrder: 2
 
         SettingsGroup {
             SettingsSwitch {

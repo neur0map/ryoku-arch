@@ -7,6 +7,8 @@ import qs.services
 import qs.modules.common
 import qs.modules.common.widgets
 
+// qmllint disable signal-handler-parameters
+
 ContentPage {
     id: root
     settingsPageIndex: 4
@@ -22,6 +24,9 @@ ContentPage {
         expanded: true
         icon: "palette"
         title: Translation.tr("Color Themes")
+        sectionTabGroup: Translation.tr("Colors")
+        sectionTabGroupIcon: "palette"
+        sectionTabGroupOrder: 0
 
         SettingsGroup {
             id: themesGroup
@@ -162,8 +167,8 @@ ContentPage {
 
                 // Soften colors toggle
                 Rectangle {
-                    width: 32
-                    height: 32
+                    implicitWidth: 32
+                    implicitHeight: 32
                     radius: 16
                     color: Config.options?.appearance?.softenColors ? Appearance.m3colors.m3primary : Appearance.colors.colLayer1
 
@@ -536,6 +541,9 @@ ContentPage {
         expanded: true
         icon: "tune"
         title: Translation.tr("Scheme Variant")
+        sectionTabGroup: Translation.tr("Colors")
+        sectionTabGroupIcon: "palette"
+        sectionTabGroupOrder: 0
 
         SettingsGroup {
             StyledText {
@@ -580,6 +588,9 @@ ContentPage {
         expanded: false
         icon: "schedule"
         title: Translation.tr("Theme Scheduling")
+        sectionTabGroup: Translation.tr("Colors")
+        sectionTabGroupIcon: "palette"
+        sectionTabGroupOrder: 0
 
         SettingsGroup {
             ConfigSwitch {
@@ -815,6 +826,9 @@ ContentPage {
         expanded: false
         icon: "terminal"
         title: Translation.tr("Terminal Colors")
+        sectionTabGroup: Translation.tr("Colors")
+        sectionTabGroupIcon: "palette"
+        sectionTabGroupOrder: 0
 
         // Track which terminals are installed (detected by auto-detect)
         property var installedTerminals: ({})
@@ -1276,6 +1290,9 @@ ContentPage {
         expanded: true
         icon: "style"
         title: Translation.tr("Global Style")
+        sectionTabGroup: Translation.tr("Styles")
+        sectionTabGroupIcon: "style"
+        sectionTabGroupOrder: 1
 
         SettingsGroup {
             id: globalStyleGroup
@@ -1385,6 +1402,9 @@ ContentPage {
         expanded: false
         icon: "blur_on"
         title: Translation.tr("Aurora Style Editor")
+        sectionTabGroup: Translation.tr("Editors")
+        sectionTabGroupIcon: "edit"
+        sectionTabGroupOrder: 2
 
         SettingsGroup {
             Loader {
@@ -1400,6 +1420,9 @@ ContentPage {
         expanded: false
         icon: "raven"
         title: Translation.tr("Angel Style Editor")
+        sectionTabGroup: Translation.tr("Editors")
+        sectionTabGroupIcon: "edit"
+        sectionTabGroupOrder: 2
 
         SettingsGroup {
             Loader {
@@ -1415,6 +1438,9 @@ ContentPage {
         expanded: true
         icon: "edit"
         title: Translation.tr("Custom Theme Editor")
+        sectionTabGroup: Translation.tr("Editors")
+        sectionTabGroupIcon: "edit"
+        sectionTabGroupOrder: 2
 
         SettingsGroup {
             Loader {
@@ -1431,6 +1457,9 @@ ContentPage {
         expanded: false
         icon: "wallpaper"
         title: Translation.tr("Gowall Wallpaper Editor")
+        sectionTabGroup: Translation.tr("Editors")
+        sectionTabGroupIcon: "edit"
+        sectionTabGroupOrder: 2
 
         SettingsGroup {
             Loader {
@@ -1445,6 +1474,9 @@ ContentPage {
         expanded: false
         icon: "text_format"
         title: Translation.tr("Typography")
+        sectionTabGroup: Translation.tr("Fonts & Icons")
+        sectionTabGroupIcon: "text_format"
+        sectionTabGroupOrder: 3
 
         SettingsGroup {
             // Quick Presets first
@@ -1677,6 +1709,9 @@ ContentPage {
         expanded: false
         icon: "folder"
         title: Translation.tr("Icon Theme")
+        sectionTabGroup: Translation.tr("Fonts & Icons")
+        sectionTabGroupIcon: "text_format"
+        sectionTabGroupOrder: 3
 
         SettingsGroup {
             StyledText {
@@ -1712,6 +1747,9 @@ ContentPage {
         expanded: false
         icon: "info"
         title: Translation.tr("About Themes")
+        sectionTabGroup: Translation.tr("About")
+        sectionTabGroupIcon: "info"
+        sectionTabGroupOrder: 4
 
         SettingsGroup {
             StyledText {

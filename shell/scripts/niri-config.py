@@ -45,6 +45,8 @@ DEFAULT_NIRI_FILES = [
     "config.d/90-user-extra.kdl",
 ]
 
+CUSTOM_KEYBINDS_MARKER = "Ryoku custom keybinds"
+
 
 def get_niri_config_dir():
     """Resolve the Niri config directory."""
@@ -2396,10 +2398,16 @@ def cmd_get_binds():
 
     all_binds = []
     block_lines = block_content.split("\n")
+    custom_section = False
     i = 0
     while i < len(block_lines):
         raw_line = block_lines[i]
         stripped = raw_line.strip()
+
+        if CUSTOM_KEYBINDS_MARKER in stripped:
+            custom_section = True
+            i += 1
+            continue
 
         # Determine whether this is a commented-out bind
         commented = False
@@ -2453,7 +2461,7 @@ def cmd_get_binds():
             action = " ".join(ln.rstrip(";") for ln in action_lines)
 
         description = _kb_generate_comment(action)
-        category = _kb_categorize(description, action)
+        category = "Custom Keys" if custom_section else _kb_categorize(description, action)
 
         all_binds.append(
             {
@@ -2465,6 +2473,7 @@ def cmd_get_binds():
                 "description": description,
                 "line_number": line_number,
                 "commented": commented,
+                "custom": custom_section,
             }
         )
         i += 1
@@ -2472,6 +2481,7 @@ def cmd_get_binds():
     _KB_CATEGORY_ORDER = [
         "System",
         "Ryoku Shell",
+        "Custom Keys",
         "Window Switcher",
         "Screenshots",
         "Applications",
@@ -2582,8 +2592,11 @@ def cmd_set_bind(args):
         insert_at = len(block_lines)
         while insert_at > 0 and not block_lines[insert_at - 1].strip():
             insert_at -= 1
+        insert_lines = [new_entry, ""]
+        if not any(CUSTOM_KEYBINDS_MARKER in line for line in block_lines):
+            insert_lines = [f"    // {CUSTOM_KEYBINDS_MARKER}", *insert_lines]
         new_block_lines = (
-            block_lines[:insert_at] + [new_entry, ""] + block_lines[insert_at:]
+            block_lines[:insert_at] + insert_lines + block_lines[insert_at:]
         )
 
     new_block_content = "\n".join(new_block_lines)
