@@ -69,6 +69,9 @@ Singleton {
                 break;
             }
         }
+
+        if (!targetSection)
+            return null;
         
         // Ahora colapsar todas excepto la target y expandir la target
         for (var j = 0; j < collapsibleSections.length; j++) {

@@ -16,9 +16,17 @@ Item {
 
     property bool enableSettingsSearch: true
     property int settingsSearchOptionId: -1
+    property bool sectionTabsManaged: false
+    property bool sectionTabsSelected: true
+    property var sectionTabsPage: null
+    readonly property bool sectionTabsRenderActive: !root.sectionTabsManaged || root.sectionTabsSelected
 
     Layout.fillWidth: true
-    implicitHeight: card.implicitHeight
+    Layout.preferredHeight: root.implicitHeight
+    Layout.maximumHeight: root.implicitHeight
+    implicitHeight: root.sectionTabsManaged && !root.sectionTabsSelected ? 0 : card.implicitHeight
+    enabled: !root.sectionTabsManaged || root.sectionTabsSelected
+    clip: root.sectionTabsManaged && !root.sectionTabsSelected
 
     function _findSettingsContext() {
         var page = null;
@@ -33,23 +41,38 @@ Item {
         return { page: page };
     }
 
-    function focusFromSettingsSearch() {
+    function activateFromSettingsSearch() {
+        if (root.sectionTabsManaged && root.sectionTabsPage && root.sectionTabsPage.activateSectionTab)
+            root.sectionTabsPage.activateSectionTab(root);
         root.expanded = true;
+    }
+
+    function focusFromSettingsSearch() {
+        root.activateFromSettingsSearch();
         root.forceActiveFocus();
     }
 
     Component.onCompleted: {
+        var ctx = _findSettingsContext();
+        var page = ctx.page;
+        root.sectionTabsPage = page;
+
+        if (root.title && page && page.sectionTabsEnabled && page.isDirectSectionTabChild && page.isDirectSectionTabChild(root)) {
+            root.sectionTabsManaged = true;
+            root.sectionTabsSelected = false;
+            root.collapsible = false;
+            root.expanded = true;
+            root.sectionTabsPage.registerSectionTab(root);
+        }
+
         if (!enableSettingsSearch || !root.title)
             return;
         if (typeof SettingsSearchRegistry === "undefined")
             return;
 
-        if (SettingsSearchRegistry.registerCollapsibleSection) {
+        if (!root.sectionTabsManaged && SettingsSearchRegistry.registerCollapsibleSection) {
             SettingsSearchRegistry.registerCollapsibleSection(root);
         }
-
-        var ctx = _findSettingsContext();
-        var page = ctx.page;
 
         settingsSearchOptionId = SettingsSearchRegistry.registerOption({
             control: root,
@@ -63,6 +86,9 @@ Item {
     }
 
     Component.onDestruction: {
+        if (root.sectionTabsManaged && root.sectionTabsPage && root.sectionTabsPage.unregisterSectionTab) {
+            root.sectionTabsPage.unregisterSectionTab(root);
+        }
         if (typeof SettingsSearchRegistry !== "undefined") {
             if (SettingsSearchRegistry.unregisterCollapsibleSection) {
                 SettingsSearchRegistry.unregisterCollapsibleSection(root);
@@ -71,11 +97,26 @@ Item {
         }
     }
 
+    onVisibleChanged: {
+        if (root.sectionTabsManaged && root.sectionTabsPage && root.sectionTabsPage.refreshSectionTabs)
+            root.sectionTabsPage.refreshSectionTabs();
+    }
+
+    onTitleChanged: {
+        if (root.sectionTabsManaged && root.sectionTabsPage && root.sectionTabsPage.refreshSectionTabs)
+            root.sectionTabsPage.refreshSectionTabs();
+    }
+
+    onIconChanged: {
+        if (root.sectionTabsManaged && root.sectionTabsPage && root.sectionTabsPage.refreshSectionTabs)
+            root.sectionTabsPage.refreshSectionTabs();
+    }
+
     // Shadow — lightweight offset for material/aurora, escalonado for angel
     // Material/aurora: simple offset rectangle instead of GPU-blurred RectangularShadow
     // for much better performance (especially with many cards visible at once).
     Rectangle {
-        visible: !Appearance.angelEverywhere && Appearance.effectsEnabled
+        visible: root.sectionTabsRenderActive && !Appearance.angelEverywhere && Appearance.effectsEnabled
         x: card.x + 0.5
         y: card.y + 1.5
         width: card.width
@@ -85,7 +126,7 @@ Item {
         z: -1
     }
     Loader {
-        active: Appearance.angelEverywhere
+        active: root.sectionTabsRenderActive && Appearance.angelEverywhere
         sourceComponent: EscalonadoShadow {
             target: card
             hovered: root.expanded
@@ -95,7 +136,7 @@ Item {
     // Subtle left accent bar when expanded
     Rectangle {
         id: accentBar
-        visible: !Appearance.angelEverywhere
+        visible: root.sectionTabsRenderActive && !Appearance.angelEverywhere
         anchors {
             left: card.left
             top: card.top
@@ -118,6 +159,7 @@ Item {
     Rectangle {
         id: card
 
+        opacity: root.sectionTabsRenderActive ? 1 : 0
         anchors.fill: parent
         implicitHeight: cardColumn.implicitHeight + SettingsMaterialPreset.cardPadding * 2
         radius: SettingsMaterialPreset.cardRadius
@@ -148,7 +190,7 @@ Item {
                 Layout.fillWidth: true
                 implicitHeight: headerRow.implicitHeight + SettingsMaterialPreset.headerPaddingY * 2
                 radius: SettingsMaterialPreset.headerRadius
-                color: headerMouseArea.containsMouse && root.collapsible
+                color: headerMouseArea.containsMouse && root.collapsible && !root.sectionTabsManaged
                     ? SettingsMaterialPreset.headerHoverColor
                     : "transparent"
 
@@ -199,7 +241,7 @@ Item {
                     }
 
                     MaterialSymbol {
-                        visible: root.collapsible
+                        visible: root.collapsible && !root.sectionTabsManaged
                         text: root.expanded ? "expand_less" : "expand_more"
                         iconSize: Appearance.font.pixelSize.large
                         color: Appearance.angelEverywhere
@@ -214,10 +256,10 @@ Item {
                 MouseArea {
                     id: headerMouseArea
                     anchors.fill: parent
-                    hoverEnabled: root.collapsible
-                    cursorShape: root.collapsible ? Qt.PointingHandCursor : Qt.ArrowCursor
+                    hoverEnabled: root.collapsible && !root.sectionTabsManaged
+                    cursorShape: root.collapsible && !root.sectionTabsManaged ? Qt.PointingHandCursor : Qt.ArrowCursor
                     onClicked: {
-                        if (root.collapsible) {
+                        if (root.collapsible && !root.sectionTabsManaged) {
                             root.expanded = !root.expanded;
                         }
                     }
@@ -227,7 +269,7 @@ Item {
             Item {
                 id: contentContainer
                 Layout.fillWidth: true
-                implicitHeight: root.expanded ? sectionContent.implicitHeight : 0
+                implicitHeight: root.sectionTabsManaged ? sectionContent.implicitHeight : (root.expanded ? sectionContent.implicitHeight : 0)
                 clip: true
 
                 Behavior on implicitHeight {
@@ -238,7 +280,7 @@ Item {
                     id: sectionContent
                     width: parent.width
                     spacing: 8
-                    opacity: root.expanded ? 1 : 0
+                    opacity: root.sectionTabsManaged || root.expanded ? 1 : 0
 
                     Behavior on opacity {
                         animation: NumberAnimation { duration: Appearance.animation.elementMoveFast.duration; easing.type: Appearance.animation.elementMoveFast.type; easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve }

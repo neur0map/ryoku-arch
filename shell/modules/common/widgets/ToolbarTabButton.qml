@@ -60,4 +60,9 @@ RippleButton {
             }
         }
     }
+
+    StyledToolTip {
+        visible: !root.showLabel && root.text.length > 0
+        text: root.text
+    }
 }
