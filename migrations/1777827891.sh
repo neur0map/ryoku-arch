@@ -1,3 +1,3 @@
-echo "Initialize ASUS Realtek hardware volume at full level"
+echo "Initialize analog hardware mixer volume at full level"
 
-source "$RYOKU_PATH/install/config/hardware/asus/fix-audio-mixer.sh"
+source "$RYOKU_PATH/install/config/hardware/fix-audio-mixer.sh"

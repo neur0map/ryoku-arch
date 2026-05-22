@@ -8,8 +8,14 @@ import qs.modules.common.functions
 import qs.modules.common.widgets
 
 ContentPage {
+    id: root
+
     settingsPageIndex: 1
     settingsPageName: Translation.tr("System")
+
+    function shellCommand(name) {
+        return Quickshell.shellPath("scripts/" + name)
+    }
 
     Process {
         id: translationProc
@@ -23,6 +29,48 @@ ContentPage {
         title: Translation.tr("Audio")
 
         SettingsGroup {
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 8
+
+                StyledText {
+                    Layout.fillWidth: true
+                    text: Translation.tr("Current output: %1").arg(Audio.friendlyDeviceName(Audio.defaultSink))
+                    color: Appearance.colors.colSubtext
+                    font.pixelSize: Appearance.font.pixelSize.smaller
+                    elide: Text.ElideRight
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+
+                    RippleButtonWithIcon {
+                        Layout.fillWidth: true
+                        materialIcon: "media_output"
+                        mainText: Translation.tr("Output devices")
+                        onClicked: AppLauncher.launch("volumeMixer")
+
+                        StyledToolTip {
+                            text: Translation.tr("Open the volume mixer and device selector")
+                        }
+                    }
+
+                    RippleButtonWithIcon {
+                        Layout.fillWidth: true
+                        materialIcon: "headphones"
+                        mainText: Translation.tr("Use mini-jack")
+                        onClicked: Quickshell.execDetached([root.shellCommand("ryoku-cmd-audio-jack")])
+
+                        StyledToolTip {
+                            text: Translation.tr("Force the analog headphone jack route and make it the default output")
+                        }
+                    }
+                }
+            }
+
+            SettingsDivider {}
+
             SettingsSwitch {
                 buttonIcon: "hearing"
                 text: Translation.tr("Earbang protection")
