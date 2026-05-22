@@ -6,7 +6,7 @@ ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 SHELL_UPDATES_QML="$ROOT_DIR/shell/services/ShellUpdates.qml"
 OVERLAY_QML="$ROOT_DIR/shell/modules/shellUpdate/ShellUpdateOverlay.qml"
 SERVICES_QML="$ROOT_DIR/shell/modules/settings/ServicesConfig.qml"
-SETTINGS_QML="$ROOT_DIR/shell/ryokuSettings.qml"
+ABOUT_QML="$ROOT_DIR/shell/modules/settings/About.qml"
 
 fail() {
   echo "FAIL: $1" >&2
@@ -16,7 +16,7 @@ fail() {
 [[ -f $SHELL_UPDATES_QML ]] || fail "missing ShellUpdates.qml"
 [[ -f $OVERLAY_QML ]] || fail "missing ShellUpdateOverlay.qml"
 [[ -f $SERVICES_QML ]] || fail "missing ServicesConfig.qml"
-[[ -f $SETTINGS_QML ]] || fail "missing ryokuSettings.qml"
+[[ -f $ABOUT_QML ]] || fail "missing About.qml"
 
 rg -q 'function performUpdate\(confirmChannelSwitch\)' "$SHELL_UPDATES_QML" || \
   fail "ShellUpdates.performUpdate should require an explicit channel-switch confirmation argument"
@@ -45,7 +45,13 @@ rg -q 'Translation\.tr\("Confirm"\)' "$OVERLAY_QML" || \
 rg -q 'ShellUpdates\.requiresChannelSwitch \? ShellUpdates\.openOverlay\(\) : ShellUpdates\.performUpdate\(false\)' "$SERVICES_QML" || \
   fail "Services page should open details instead of directly launching an unconfirmed channel switch"
 
-rg -q 'ShellUpdates\.requiresChannelSwitch \? app\.openShellUpdateDetails\(\) : ShellUpdates\.performUpdate\(false\)' "$SETTINGS_QML" || \
-  fail "Standalone settings should open details instead of directly launching an unconfirmed channel switch"
+rg -q 'function openShellUpdateDetails' "$ABOUT_QML" || \
+  fail "About page should keep a shared helper for opening update details"
+
+rg -q 'onClicked: checkShellUpdates\(\)' "$ABOUT_QML" || \
+  fail "About page check button should use the shared update check helper"
+
+rg -q 'openShellUpdateDetails\(\)' "$ABOUT_QML" || \
+  fail "About page should open details instead of directly launching an unconfirmed channel switch"
 
 echo "PASS: shell update channel switch requires confirmation"

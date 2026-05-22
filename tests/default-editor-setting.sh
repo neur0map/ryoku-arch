@@ -44,7 +44,6 @@ assert_contains "shell/services/AppLauncher.qml" '{ id: "zed", label: "Zed", com
 assert_contains "shell/services/AppLauncher.qml" 'Quickshell.execDetached(["ryoku-update-default-editor", preset.command])'
 assert_contains "shell/modules/common/Config.qml" 'property string editor: "nvim"'
 assert_contains "shell/defaults/config.json" '"editor": "nvim"'
-assert_contains "shell/settings.qml" "neovim"
 assert_contains "shell/modules/settings/SettingsOverlay.qml" "zed"
 assert_contains "bin/ryoku-update-default-editor" "dev.zed.Zed.desktop"
 assert_contains "bin/ryoku-update-default-editor" "xdg-mime default"
@@ -124,6 +123,7 @@ TMPDIR="$tmp_dir" \
 HOME="$tmp_dir/home" \
 XDG_CONFIG_HOME="$tmp_dir/config" \
 RYOKU_PATH="$ROOT_DIR" \
+RYOKU_EDITOR='' \
 EDITOR=vi \
 PATH="$tmp_dir/bin:$ROOT_DIR/bin:$PATH" \
   "$ROOT_DIR/bin/ryoku-launch-editor" "$tmp_dir/sample.txt"

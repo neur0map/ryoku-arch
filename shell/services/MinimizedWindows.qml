@@ -56,8 +56,8 @@ Singleton {
         
         if (!targetWindow || !windowId) return;
         
-        // Don't minimize the main quickshell shell (but allow settings window)
-        // Skip this check for now - allow all windows to be minimized
+        // Skip the historical shell-window guard for now; allow all windows
+        // to be minimized.
         
         // Already minimized?
         if (isMinimized(windowId)) return;

@@ -75,25 +75,15 @@ ContentPage {
     }
 
     function openShellUpdateDetails(): void {
-        if (Config.options?.settingsUi?.overlayMode ?? false) {
-            ShellUpdates.openOverlay()
-        } else {
-            Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "shellUpdate", "open"])
-        }
+        ShellUpdates.openOverlay()
     }
 
     function checkShellUpdates(): void {
         ShellUpdates.check()
-        if (!(Config.options?.settingsUi?.overlayMode ?? false)) {
-            Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "shellUpdate", "check"])
-        }
     }
 
     function setShellUpdateChannel(channel: string): void {
         ShellUpdates.setChannel(channel)
-        if (!(Config.options?.settingsUi?.overlayMode ?? false)) {
-            Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "shellUpdate", "setChannel", channel])
-        }
     }
 
     ColumnLayout {

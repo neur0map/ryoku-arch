@@ -464,12 +464,9 @@ If you change it, you are effectively changing file locations and side effects a
 
 ## 8. Settings are editor surfaces over shared state
 
-The settings experience is split into two entrypoints:
+The settings experience is the resident shell overlay at `modules/settings/SettingsOverlay.qml`.
 
-- `settings.qml` for the main settings UI
-- `waffleSettings.qml` for waffle-native settings when waffle uses its own windowed style
-
-These settings files do not define all logic themselves. They assemble page components that read and write through shared services and config.
+The settings overlay does not define all logic itself. It assembles page components that read and write through shared services and config.
 
 That means settings pages are not isolated preference screens. They are operational surfaces that mutate the same state the shell is using live.
 
@@ -689,8 +686,7 @@ Use this section as a routing index.
 
 ### Settings and onboarding
 
-- `settings.qml`
-- `waffleSettings.qml`
+- `modules/settings/SettingsOverlay.qml`
 - `welcome.qml`
 
 ### User-facing docs

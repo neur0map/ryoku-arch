@@ -9,7 +9,7 @@ _ryoku_shell_completions() {
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
     # Top-level CLI commands
-    local cli_commands="install start stop run restart kill logs terminal browser close-window ipc settings settings-window waffle-settings-window repair path test-local setup service doctor migrate status update rollback my-changes uninstall config info backup version theme help completions"
+    local cli_commands="install start stop run restart kill logs terminal browser close-window ipc settings repair path test-local setup service doctor migrate status update rollback my-changes uninstall config info backup version theme help completions"
 
     # Source IPC registry for target/function completion
     local script_dir ryoku_shell_bin
@@ -35,7 +35,8 @@ _ryoku_shell_completions() {
     local ipc_targets=""
     local ipc_aliases=""
     if [[ -n "$registry" ]]; then
-        # Source the full registry — declare -gA ensures arrays are global
+        # Source the full registry; declare -gA ensures arrays are global.
+        # shellcheck disable=SC1090
         source "$registry" 2>/dev/null
         ipc_targets="${IPC_ALL_TARGETS[*]}"
         if [[ ${#IPC_KEBAB_ALIASES[@]} -gt 0 ]]; then
@@ -46,21 +47,21 @@ _ryoku_shell_completions() {
     case "$COMP_CWORD" in
         1)
             # First argument: CLI commands + IPC targets + kebab aliases
-            COMPREPLY=( $(compgen -W "$cli_commands $ipc_targets $ipc_aliases" -- "$cur") )
+            mapfile -t COMPREPLY < <(compgen -W "$cli_commands $ipc_targets $ipc_aliases" -- "$cur")
             ;;
         2)
             case "$prev" in
                 service)
-                    COMPREPLY=( $(compgen -W "install uninstall enable disable start stop restart status logs" -- "$cur") )
+                    mapfile -t COMPREPLY < <(compgen -W "install uninstall enable disable start stop restart status logs" -- "$cur")
                     ;;
                 theme)
-                    COMPREPLY=( $(compgen -W "list-targets inspect doctor scaffold apply" -- "$cur") )
+                    mapfile -t COMPREPLY < <(compgen -W "list-targets inspect doctor scaffold apply" -- "$cur")
                     ;;
                 completions)
-                    COMPREPLY=( $(compgen -W "bash zsh fish" -- "$cur") )
+                    mapfile -t COMPREPLY < <(compgen -W "bash zsh fish" -- "$cur")
                     ;;
                 ipc)
-                    COMPREPLY=( $(compgen -W "$ipc_targets $ipc_aliases" -- "$cur") )
+                    mapfile -t COMPREPLY < <(compgen -W "$ipc_targets $ipc_aliases" -- "$cur")
                     ;;
                 *)
                     # Check if prev is an IPC target — complete with its functions
@@ -69,7 +70,7 @@ _ryoku_shell_completions() {
                         normalized="${IPC_KEBAB_ALIASES[$prev]}"
                     fi
                     if [[ -n "${IPC_TARGET_FUNCTIONS[$normalized]+_}" ]]; then
-                        COMPREPLY=( $(compgen -W "${IPC_TARGET_FUNCTIONS[$normalized]}" -- "$cur") )
+                        mapfile -t COMPREPLY < <(compgen -W "${IPC_TARGET_FUNCTIONS[$normalized]}" -- "$cur")
                     fi
                     ;;
             esac
@@ -82,7 +83,7 @@ _ryoku_shell_completions() {
                     target="${IPC_KEBAB_ALIASES[$target]}"
                 fi
                 if [[ -n "${IPC_TARGET_FUNCTIONS[$target]+_}" ]]; then
-                    COMPREPLY=( $(compgen -W "${IPC_TARGET_FUNCTIONS[$target]}" -- "$cur") )
+                    mapfile -t COMPREPLY < <(compgen -W "${IPC_TARGET_FUNCTIONS[$target]}" -- "$cur")
                 fi
             fi
             ;;

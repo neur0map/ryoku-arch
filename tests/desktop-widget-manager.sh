@@ -66,8 +66,10 @@ for gear_file in \
   shell/modules/background/Background.qml \
   shell/modules/background/widgets/WidgetManagerPanel.qml \
   shell/modules/background/widgets/AbstractBackgroundWidget.qml; do
-  require_rg 'RYOKU_SETTINGS_PAGE=wallpaper' "$gear_file"
-  require_rg 'RYOKU_SETTINGS_SUBTAB=4' "$gear_file"
+  require_rg 'settingsOverlayRequestedPage = 14' "$gear_file"
+  require_rg 'settingsOverlayOpen = true' "$gear_file"
+  reject_rg 'RYOKU_SETTINGS_PAGE=wallpaper' "$gear_file"
+  reject_rg 'RYOKU_SETTINGS_SUBTAB=4' "$gear_file"
   reject_rg 'QS_SETTINGS_PAGE=14' "$gear_file"
 done
 require_rg '--color-only' shell/scripts/images/least_busy_region.py

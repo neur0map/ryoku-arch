@@ -114,10 +114,9 @@ The full schema is `modules/common/Config.qml`. The full defaults are `defaults/
 
 Users interact with config exclusively through Settings:
 
-- **Material ii**: `Super+,` opens an overlay settings panel (lives in `modules/settings/`)
-- **Waffle**: `Super+,` opens a standalone settings window (lives in `modules/waffle/settings/`)
+- `Super+,` opens the resident overlay settings panel (lives in `modules/settings/`).
 
-Both families have their own settings implementations but write to the same config.json. When a config key affects both families, both settings UIs need updating.
+Settings writes to the same config.json that both panel families consume. When a config key affects both families, update the shared settings page and both runtime consumers.
 
 ## Migrations
 

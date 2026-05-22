@@ -86,7 +86,6 @@ write_scope=(
   shell/modules/settings/BackgroundConfig.qml
   shell/modules/settings/DesktopWidgetsConfig.qml
   shell/modules/settings/ToolsConfig.qml
-  shell/modules/waffle/settings/pages/WThemesPage.qml
   shell/scripts/cava/extract_cover_colors.py
   shell/scripts/cava/generate_config.sh
   shell/scripts/colors/modules/90-cava.sh
@@ -170,22 +169,6 @@ assert_contains "shell/modules/settings/BackgroundConfig.qml" "background.widget
 assert_contains "shell/modules/settings/BackgroundConfig.qml" "{"
 assert_contains "shell/modules/settings/BackgroundConfig.qml" "displayName: Translation.tr(\"Bars\")"
 assert_contains "shell/modules/settings/BackgroundConfig.qml" "displayName: Translation.tr(\"Off\")"
-assert_contains "shell/modules/waffle/settings/pages/WThemesPage.qml" "id: waffleCavaSwitch"
-assert_contains "shell/modules/waffle/settings/pages/WThemesPage.qml" "appearance.wallpaperTheming.enableCava"
-assert_contains "shell/modules/waffle/settings/pages/WThemesPage.qml" "title: Translation.tr(\"Cava Options\")"
-assert_contains "shell/modules/waffle/settings/pages/WThemesPage.qml" "appearance.cava.sensitivity"
-assert_contains "shell/modules/waffle/settings/pages/WThemesPage.qml" "appearance.cava.bars"
-assert_contains "shell/modules/waffle/settings/pages/WThemesPage.qml" "appearance.cava.framerate"
-assert_contains "shell/modules/waffle/settings/pages/WThemesPage.qml" "appearance.cava.waveOpacity"
-assert_contains "shell/modules/waffle/settings/pages/WThemesPage.qml" "appearance.cava.stereo"
-assert_contains "shell/modules/waffle/settings/pages/WThemesPage.qml" "appearance.cava.colorSource"
-assert_contains "shell/modules/waffle/settings/pages/WThemesPage.qml" "appearance.cava.gradientCount"
-assert_contains "shell/modules/waffle/settings/pages/WThemesPage.qml" "appearance.cava.foreground"
-assert_contains "shell/modules/waffle/settings/pages/WThemesPage.qml" "appearance.cava.background"
-assert_contains "shell/modules/waffle/settings/pages/WThemesPage.qml" "appearance.cava.barWidth"
-assert_contains "shell/modules/waffle/settings/pages/WThemesPage.qml" "appearance.cava.barSpacing"
-assert_contains "shell/modules/waffle/settings/pages/WThemesPage.qml" "Config.setNestedValue(\"appearance.cava.waveOpacity\", 30)"
-
 assert_contains "shell/modules/common/widgets/ConfigSelectionArray.qml" "var prev = root.children[index - 1]"
 assert_contains "shell/modules/common/widgets/ConfigSelectionArray.qml" "var thisIsOnNewLine = !!prev && prev.y !== paletteButton.y"
 assert_contains "shell/modules/settings/ToolsConfig.qml" "property bool fieldEnabled: true"

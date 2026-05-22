@@ -14,8 +14,7 @@ import qs.modules.common.functions as CF
 /**
  * Settings UI as a layer shell overlay panel.
  * Allows users to see live changes to the shell (sidebars, bar, etc.)
- * without opening a separate window. Loaded by the main shell when
- * Config.options?.settingsUi?.overlayMode is true.
+ * without opening a separate window.
  */
 Scope {
     id: root
@@ -26,7 +25,7 @@ Scope {
     // Keep alive after first open for instant re-open
     property bool _everOpened: false
 
-    // ── Search system (full, same as settings.qml) ──
+    // ── Search system ──
     property string overlaySearchText: ""
     property var overlaySearchResults: []
 
@@ -39,7 +38,7 @@ Scope {
         onTriggered: root.recomputeOverlaySearchResults()
     }
 
-    // Full search index matching settings.qml
+    // Full search index for resident settings.
     property var overlaySearchIndex: [
         // Quick (page 0)
         { pageIndex: 0, pageName: overlayPages[0].name, section: Translation.tr("Wallpaper & Colors"), label: Translation.tr("Wallpaper & Colors"), description: Translation.tr("Wallpaper, palette and transparency settings"), keywords: ["wallpaper", "colors", "palette", "theme", "background"] },
@@ -1047,7 +1046,6 @@ Scope {
                             Flickable {
                                 anchors.fill: parent
                                 anchors.margins: 2
-                                anchors.bottomMargin: overlayWindowToggle.height + 6
                                 contentHeight: navCol.implicitHeight
                                 clip: true
                                 boundsBehavior: Flickable.StopAtBounds
@@ -1173,64 +1171,6 @@ Scope {
                                             }
                                         }
                                     }
-                                }
-                            }
-
-                            // Window mode toggle at bottom of nav
-                            RippleButton {
-                                id: overlayWindowToggle
-                                anchors.bottom: parent.bottom
-                                anchors.left: parent.left
-                                anchors.right: parent.right
-                                anchors.margins: 2
-                                height: 36
-                                buttonRadius: Appearance.rounding.small
-                                colBackground: "transparent"
-                                colBackgroundHover: Appearance.angelEverywhere
-                                    ? Appearance.angel.colGlassCard
-                                    : Appearance.ryokuEverywhere
-                                        ? Appearance.ryoku.colLayer1Hover
-                                        : Appearance.auroraEverywhere
-                                            ? Appearance.aurora.colSubSurface
-                                            : CF.ColorUtils.transparentize(Appearance.colors.colLayer1Hover, 0.5)
-
-                                onClicked: {
-                                    // Launch the window FIRST — once overlayMode flips,
-                                    // the LazyLoader in shell.qml unloads this whole
-                                    // component (timers and all), so a deferred restart
-                                    // never gets to fire.  The spawned process survives
-                                    // independently of our QML scope.
-                                    Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "settings-window"])
-                                    Config.setNestedValue("settingsUi.overlayMode", false)
-                                    GlobalStates.settingsOverlayOpen = false
-                                }
-
-                                contentItem: RowLayout {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: 10
-                                    anchors.rightMargin: 8
-                                    spacing: 10
-
-                                    MaterialSymbol {
-                                        text: "open_in_new"
-                                        iconSize: 18
-                                        color: Appearance.colors.colOnSurfaceVariant
-                                    }
-
-                                    StyledText {
-                                        Layout.fillWidth: true
-                                        text: Translation.tr("Window")
-                                        font {
-                                            family: Appearance.font.family.main
-                                            pixelSize: Appearance.font.pixelSize.small
-                                        }
-                                        color: Appearance.colors.colOnSurfaceVariant
-                                        elide: Text.ElideRight
-                                    }
-                                }
-
-                                StyledToolTip {
-                                    text: Translation.tr("Switch to window mode")
                                 }
                             }
                         }
@@ -1648,7 +1588,7 @@ Scope {
         }
     }
 
-    // ── Page definitions (same as settings.qml) ──
+    // ── Page definitions ──
     property int overlayCurrentPage: 0
 
     // Navigation categories for grouping pages in the rail

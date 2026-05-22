@@ -16,7 +16,7 @@ is_allowed_path() {
     *.md|docs/*|shell/docs/*|logs/*|plans/*)
       return 0
       ;;
-    shell/modules/settings/About.qml|shell/modules/waffle/settings/pages/WAboutPage.qml)
+    shell/modules/settings/About.qml)
       return 0
       ;;
   esac

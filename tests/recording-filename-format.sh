@@ -25,7 +25,6 @@ assert_contains shell/modules/common/Config.qml 'property string recordingNameFo
 assert_contains "$record_script" "recording_output_base()"
 assert_contains "$record_script" ".screenRecord.recordingNameFormat"
 assert_contains shell/modules/settings/ToolsConfig.qml 'Config.setNestedValue("screenRecord.recordingNameFormat", text)'
-assert_contains shell/modules/waffle/settings/pages/WInterfacePage.qml 'Config.setNestedValue("screenRecord.recordingNameFormat", newText)'
 
 tmpdir=$(mktemp -d)
 trap 'rm -rf "$tmpdir"' EXIT

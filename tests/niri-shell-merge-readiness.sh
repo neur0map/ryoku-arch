@@ -421,7 +421,6 @@ assert_contains iso/builder/build-iso.sh 'RYOKU_INSTALLER_REPO|github\.com/neur0
 assert_contains iso/builder/build-iso.sh 'sdata/uv/requirements\.txt|UV_CACHE_DIR' "ISO builder should prefetch Ryoku Python wheels for offline setup"
 assert_contains iso/builder/build-iso.sh 'root/ryoku/shell' "ISO builder should use the Ryoku shell tree in the live environment"
 assert_contains iso/configs/airootfs/root/.automated_script.sh '/var/cache/ryoku/uv' "ISO installer should bind the bundled uv cache into the installed system"
-assert_contains shell/settings.qml 'ExtrasConfig\.qml' "Settings should expose the Extras profiles page"
 assert_contains shell/modules/settings/SettingsOverlay.qml 'ExtrasConfig\.qml' "Settings overlay should expose the Extras profiles page"
 assert_contains shell/modules/settings/ExtrasConfig.qml 'ryoku-install-profile' "Extras should install profiles through the Ryoku profile command"
 assert_contains shell/modules/settings/ExtrasConfig.qml '^import qs$' "Extras should import root singletons before using GlobalStates"

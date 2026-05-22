@@ -505,12 +505,8 @@ AbstractWidget {
                 colBackgroundHover: ColorUtils.applyAlpha(Appearance.colors.colOnLayer2, 0.08)
                 colRipple: ColorUtils.applyAlpha(Appearance.colors.colOnLayer2, 0.12)
                 downAction: () => {
-                    if (Config.options?.settingsUi?.overlayMode !== false) {
-                        GlobalStates.settingsOverlayRequestedPage = 14
-                        GlobalStates.settingsOverlayOpen = true
-                    } else {
-                        Quickshell.execDetached(["/usr/bin/env", "RYOKU_SETTINGS_PAGE=wallpaper", "RYOKU_SETTINGS_SUBTAB=4", Quickshell.shellPath("scripts/ryoku-shell"), "settings-window"])
-                    }
+                    GlobalStates.settingsOverlayRequestedPage = 14
+                    GlobalStates.settingsOverlayOpen = true
                 }
                 contentItem: MaterialSymbol {
                     anchors.centerIn: parent

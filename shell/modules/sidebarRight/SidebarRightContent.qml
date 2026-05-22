@@ -27,7 +27,6 @@ Item {
     id: root
     property int sidebarWidth: Appearance.sizes.sidebarWidth
     property int sidebarPadding: 10
-    property string settingsQmlPath: Quickshell.shellPath("settings.qml")
     property int screenWidth: 1920
     property int screenHeight: 1080
     property var panelScreen: null
@@ -514,28 +513,11 @@ Item {
                     console.log("[SidebarRight] Settings button clicked");
                     root.settingsButtonEnabled = false;
                     settingsButtonCooldown.restart();
-                    
-                    if (CompositorService.isNiri) {
-                        const wins = NiriService.windows || []
-                        console.log("[SidebarRight] Checking for existing settings window among", wins.length, "windows");
-                        for (let i = 0; i < wins.length; i++) {
-                            const w = wins[i]
-                            if (w.title === "illogical-impulse Settings" && w.app_id === "org.quickshell") {
-                                console.log("[SidebarRight] Found existing settings window, focusing it");
-                                GlobalStates.sidebarRightOpen = false;
-                                Qt.callLater(() => {
-                                    NiriService.focusWindow(w.id)
-                                })
-                                return
-                            }
-                        }
-                        console.log("[SidebarRight] No existing settings window found");
-                    }
-                    
-                    console.log("[SidebarRight] Opening new settings window via IPC");
+
+                    console.log("[SidebarRight] Opening resident settings overlay");
                     GlobalStates.sidebarRightOpen = false;
                     Qt.callLater(() => {
-                        Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "settings"]);
+                        GlobalStates.settingsOverlayOpen = true;
                     })
                 }
                 StyledToolTip {

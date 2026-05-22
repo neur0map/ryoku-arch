@@ -236,11 +236,11 @@ By default, confirmation is disabled (closes immediately). Enable it in settings
 
 ### settings
 
-Open the settings window. GUI config so you don't have to edit JSON like it's 2005.
+Open the resident settings overlay. GUI config so you don't have to edit JSON like it's 2005.
 
 | Function | Description |
 |----------|-------------|
-| `open` | Open settings window |
+| `open` | Open settings overlay |
 | `toggle` | Toggle settings (overlay mode toggles, window mode opens) |
 
 ```kdl

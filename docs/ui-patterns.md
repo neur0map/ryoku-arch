@@ -231,7 +231,7 @@ Use this rule before adding any setting:
 5. Make settings write the config key and render from the same token the shell uses.
 6. Verify at least two non-settings surfaces changed after toggling the setting.
 
-For visual settings, the owner is usually `Appearance.qml` for Material ii surfaces and `Looks.qml` for Waffle surfaces. A setting such as transparency, radius, border, color, blur, surface density, or panel family must not be implemented only inside `ryokuSettings.qml`, `settings.qml`, or `modules/settings/*`.
+For visual settings, the owner is usually `Appearance.qml` for Material ii surfaces and `Looks.qml` for Waffle surfaces. A setting such as transparency, radius, border, color, blur, surface density, or panel family must not be implemented only inside `modules/settings/*`.
 
 ### Visual token ownership
 

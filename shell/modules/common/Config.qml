@@ -2039,9 +2039,7 @@ Singleton {
             }
 
             property JsonObject settingsUi: JsonObject {
-                property bool overlayMode: true  // true = resident layer-shell overlay (default), false = explicit detached recovery window
                 property bool easyMode: false    // true = curated essentials only; nav and sub-sections filter to a friendlier subset
-                property string launchMode: "centered" // centered = floating settings panel, window = normal compositor placement
                 property JsonObject focusRing: JsonObject {
                     property bool followTheme: false // keep Niri focus ring colors in sync with the active Ryoku palette
                 }

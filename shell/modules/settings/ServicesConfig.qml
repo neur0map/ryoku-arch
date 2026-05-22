@@ -13,9 +13,6 @@ ContentPage {
 
     function checkShellUpdates(): void {
         ShellUpdates.check()
-        if (!(Config.options?.settingsUi?.overlayMode ?? false)) {
-            Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "shellUpdate", "check"])
-        }
     }
 
     SettingsCardSection {
@@ -1260,15 +1257,7 @@ ContentPage {
                     colBackgroundHover: Appearance.colors.colLayer1Hover
                     colRipple: Appearance.colors.colLayer1Active
                     onClicked: {
-                        if (Config.options?.settingsUi?.overlayMode ?? false) {
-                            // Overlay mode: settings runs inside the main shell process — direct call works
-                            ShellUpdates.openOverlay()
-                        } else {
-                            // Separate window mode (default): settings.qml is a separate qs process.
-                            // Singletons are isolated per-process, so we must use IPC to reach
-                            // the main shell's ShellUpdates.openOverlay() instead.
-                            Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "shellUpdate", "open"])
-                        }
+                        ShellUpdates.openOverlay()
                     }
 
                     contentItem: RowLayout {

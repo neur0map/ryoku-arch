@@ -53,7 +53,6 @@ ShellIiPanels.qml             # Material Design family (24 panels)
 ShellWafflePanels.qml         # Windows 11 family (24 panels)
 GlobalStates.qml              # Runtime UI state (panel open/closed booleans)
 FamilyTransitionOverlay.qml   # Animated family switch
-settings.qml                  # Settings GUI (separate Quickshell config)
 welcome.qml                   # First-run wizard
 killDialog.qml                # Process kill confirmation
 

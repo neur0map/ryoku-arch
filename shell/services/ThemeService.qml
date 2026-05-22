@@ -230,8 +230,8 @@ Singleton {
             // doesn't get treated as a delta-from-empty.  The forced regen on
             // shell startup is still done explicitly by shell.qml via
             // ThemeService.applyCurrentTheme() — no need to do it here too.
-            // Standalone settings windows must NEVER run a phantom regen on
-            // open: they're observers, not orchestrators.
+            // Settings writes are handled through explicit shell paths, not
+            // a startup delta from an empty signature.
             root._lastLiveRegenSignature = root.liveRegenSignature
             root._lastPanelFamily = root.panelFamily
         }
