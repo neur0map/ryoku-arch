@@ -1013,19 +1013,48 @@ detect_compositor_service() {
     # NEVER falls back to graphical-session.target — that would cause ryoku-shell
     # to start under KDE/GNOME/etc.
 
-    # 1. niri.service — ships static with niri, always available when niri is installed
-    if systemctl --user cat niri.service &>/dev/null; then
+    if [[ ${RYOKU_COMPOSITOR:-} == "hyprland" ]]; then
+        printf 'wayland-wm@Hyprland.service\n'
+        return 0
+    fi
+
+    if [[ ${RYOKU_COMPOSITOR:-} == "niri" ]]; then
         printf 'niri.service\n'
         return 0
     fi
 
-    # 2. Hyprland via UWSM — creates wayland-wm@Hyprland.service
+    if [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} || ${XDG_CURRENT_DESKTOP:-} == *"Hyprland"* ]]; then
+        printf 'wayland-wm@Hyprland.service\n'
+        return 0
+    fi
+
+    if [[ -n ${NIRI_SOCKET:-} ]]; then
+        printf 'niri.service\n'
+        return 0
+    fi
+
+    if pgrep -x Hyprland >/dev/null 2>&1; then
+        printf 'wayland-wm@Hyprland.service\n'
+        return 0
+    fi
+
+    if pgrep -x niri >/dev/null 2>&1; then
+        printf 'niri.service\n'
+        return 0
+    fi
+
+    # Hyprland via UWSM — creates wayland-wm@Hyprland.service
     if systemctl --user cat 'wayland-wm@Hyprland.service' &>/dev/null; then
         printf 'wayland-wm@Hyprland.service\n'
         return 0
     fi
 
-    # 3. No supported compositor found
+    if systemctl --user cat niri.service &>/dev/null; then
+        printf 'niri.service\n'
+        return 0
+    fi
+
+    # No supported compositor found
     return 1
 }
 

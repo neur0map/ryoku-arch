@@ -19,8 +19,16 @@ sudo sed -i '/-password.*pam_gnome_keyring\.so/d' /etc/pam.d/sddm
   exit 1
 }
 
-[[ -f /usr/share/wayland-sessions/niri.desktop ]] || {
-  echo "Error: niri session file is missing; graphical login would land incorrectly" >&2
+hyprland_session_found=false
+for session in hyprland.desktop Hyprland.desktop hyprland-uwsm.desktop; do
+  if [[ -f /usr/share/wayland-sessions/$session ]]; then
+    hyprland_session_found=true
+    break
+  fi
+done
+
+[[ $hyprland_session_found == true ]] || {
+  echo "Error: Hyprland session file is missing; graphical login would land incorrectly" >&2
   exit 1
 }
 

@@ -275,13 +275,24 @@ ensure_user_ryoku-shell.service_enabled() {
         return 1
     fi
 
-    # Detect the compositor service — never fall back to graphical-session.target
-    # because that target is active in KDE/GNOME/etc.
     local target=""
-    if systemctl --user cat niri.service &>/dev/null; then
+
+    if [[ ${RYOKU_COMPOSITOR:-} == "hyprland" ]]; then
+        target="wayland-wm@Hyprland.service"
+    elif [[ ${RYOKU_COMPOSITOR:-} == "niri" ]]; then
+        target="niri.service"
+    elif [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} || ${XDG_CURRENT_DESKTOP:-} == *"Hyprland"* ]]; then
+        target="wayland-wm@Hyprland.service"
+    elif [[ -n ${NIRI_SOCKET:-} ]]; then
+        target="niri.service"
+    elif pgrep -x Hyprland &>/dev/null; then
+        target="wayland-wm@Hyprland.service"
+    elif pgrep -x niri &>/dev/null; then
         target="niri.service"
     elif systemctl --user cat 'wayland-wm@Hyprland.service' &>/dev/null; then
         target="wayland-wm@Hyprland.service"
+    elif systemctl --user cat niri.service &>/dev/null; then
+        target="niri.service"
     fi
 
     if [[ -z "$target" ]]; then

@@ -100,7 +100,7 @@ libnotify
 obs-studio
 x264
 
-# ── Niri compositor + Ryoku desktop stack ─────────────────────────────
+# ── Hyprland compositor + Ryoku desktop stack ─────────────────────────
 adwaita-icon-theme
 awww
 bc
@@ -117,6 +117,7 @@ git
 glib2
 hicolor-icon-theme
 hypridle
+hyprland
 hyprlock
 hyprpicker
 jemalloc
@@ -135,7 +136,6 @@ mission-center
 mpv-mpris
 networkmanager
 nm-connection-editor
-niri
 pacman-contrib
 papirus-icon-theme
 pavucontrol
@@ -175,7 +175,7 @@ wget
 wlsunset
 wtype
 xdg-desktop-portal
-xdg-desktop-portal-gnome
+xdg-desktop-portal-hyprland
 xdg-desktop-portal-gtk
 xwayland-satellite
 ydotool

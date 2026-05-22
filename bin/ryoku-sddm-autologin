@@ -1,10 +1,11 @@
 #!/bin/bash
 set -e
 
+# shellcheck disable=SC1091
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
 # Manage SDDM autologin for the current user. Autologin, when enabled,
-# skips the SDDM greeter on boot and lands straight in Niri.
+# skips the SDDM greeter on boot and lands straight in Hyprland.
 # Without autologin, SDDM shows the login screen (and any qylock theme
 # configured via ryoku-install-qylock).
 #
@@ -17,8 +18,23 @@ CONF="/etc/sddm.conf.d/autologin.conf"
 
 cmd="${1:-status}"
 
+default_session() {
+  local session
+
+  for session in hyprland.desktop Hyprland.desktop hyprland-uwsm.desktop; do
+    if [[ -f /usr/share/wayland-sessions/$session ]]; then
+      printf '%s\n' "$session"
+      return
+    fi
+  done
+
+  printf '%s\n' "hyprland.desktop"
+}
+
 write_conf() {
   local user="${1:-$USER}"
+  local session
+  session="$(default_session)"
   sudo mkdir -p "$(dirname "$CONF")"
   # Preserve any existing non-Autologin blocks (e.g. [Theme] Current=...)
   local rest=""
@@ -33,7 +49,7 @@ write_conf() {
   {
     echo "[Autologin]"
     echo "User=$user"
-    echo "Session=niri.desktop"
+    echo "Session=$session"
     if [[ -n $rest ]]; then
       echo ""
       printf '%s\n' "$rest"
