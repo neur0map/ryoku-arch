@@ -1,0 +1,53 @@
+#!/bin/bash
+
+set -euo pipefail
+
+runtime_dir="${RYOKU_REBIRTH_SHELL_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-rebirth-shell}"
+qs_bin="${RYOKU_QS_BIN:-qs}"
+
+usage() {
+  cat <<'EOF'
+Usage: ryoku-rebirth-shell [run|restart|stop|status|path]
+
+Runs the rebirth Quickshell runtime copied from the rebirth branch.
+EOF
+}
+
+require_runtime() {
+  [[ -f $runtime_dir/shell.qml ]] || {
+    echo "ryoku-rebirth-shell: missing runtime at $runtime_dir" >&2
+    exit 1
+  }
+}
+
+export RYOKU_REBIRTH_SHELL_DIR="$runtime_dir"
+
+command="${1:-run}"
+case "$command" in
+  run)
+    require_runtime
+    exec "$qs_bin" -p "$RYOKU_REBIRTH_SHELL_DIR"
+    ;;
+  restart)
+    require_runtime
+    "$qs_bin" kill -p "$RYOKU_REBIRTH_SHELL_DIR" --any-display >/dev/null 2>&1 || true
+    exec "$qs_bin" -p "$RYOKU_REBIRTH_SHELL_DIR"
+    ;;
+  stop)
+    "$qs_bin" kill -p "$RYOKU_REBIRTH_SHELL_DIR" --any-display
+    ;;
+  status)
+    "$qs_bin" list --all
+    ;;
+  path)
+    printf '%s\n' "$RYOKU_REBIRTH_SHELL_DIR"
+    ;;
+  -h|--help|help)
+    usage
+    ;;
+  *)
+    echo "ryoku-rebirth-shell: unknown command: $command" >&2
+    usage >&2
+    exit 1
+    ;;
+esac

@@ -1,9 +1,10 @@
 #!/bin/bash
 
-# Recover Ryoku/Niri session UI after suspend, lid resume, or DRM wake delays.
+# Recover Ryoku session UI after suspend, lid resume, or DRM wake delays.
 
 set -euo pipefail
 
+# shellcheck disable=SC1091
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
 QUIET=false
@@ -14,7 +15,7 @@ usage() {
 Usage:
   ryoku-session-recover [--quiet] [--resume]
 
-Refreshes the compositor-facing session state, powers Niri outputs back on,
+Refreshes the compositor-facing session state, powers compositor outputs back on,
 cleans stale Ryoku helpers, and restarts Ryoku UI components.
 USAGE
 }
@@ -70,7 +71,7 @@ find_niri_socket() {
 refresh_activation_environment() {
   if command_present systemctl; then
     systemctl --user import-environment \
-      DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE NIRI_SOCKET XCURSOR_THEME XCURSOR_SIZE \
+      DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE HYPRLAND_INSTANCE_SIGNATURE NIRI_SOCKET XCURSOR_THEME XCURSOR_SIZE \
       >/dev/null 2>&1 || true
   fi
 
@@ -102,6 +103,19 @@ power_on_niri_monitors() {
   fi
 }
 
+hyprland_active() {
+  [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] && return 0
+  [[ ${XDG_CURRENT_DESKTOP:-} == *"Hyprland"* ]] && return 0
+  command_present pgrep && pgrep -x Hyprland >/dev/null 2>&1
+}
+
+power_on_hyprland_monitors() {
+  command_present hyprctl || return 1
+
+  log "power on Hyprland monitors"
+  hyprctl dispatch dpms on >/dev/null 2>&1 || true
+}
+
 cleanup_shell_helpers() {
   if command_present ryoku-shell-cleanup-orphans; then
     ryoku-shell-cleanup-orphans --quiet
@@ -119,8 +133,12 @@ if [[ $RESUME == "true" ]]; then
 fi
 
 log "Ryoku session recovery"
-prime_niri_socket_environment
 refresh_activation_environment
-power_on_niri_monitors
+if hyprland_active; then
+  power_on_hyprland_monitors || true
+else
+  prime_niri_socket_environment
+  power_on_niri_monitors
+fi
 cleanup_shell_helpers
 restart_session_ui
