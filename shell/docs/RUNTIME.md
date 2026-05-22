@@ -72,7 +72,7 @@ inir service status    # check current state
 
 `scripts/inir` is a 2400+ line bash script that wraps Quickshell. It's not the same as running `qs -c inir` directly:
 
-| | `inir run` | `qs -c inir` |
+| | `ryoku-shell run` | direct Quickshell |
 |---|---|---|
 | Environment setup | Sets QT_SCALE_FACTOR, suppresses warnings, bridges niri env | Raw environment |
 | Output | Backgrounded, logs to journal | Foreground, direct stdout |
@@ -80,7 +80,7 @@ inir service status    # check current state
 | ABI check | Validates Quickshell/Qt compatibility | None |
 | Orphan cleanup | ExecStopPost cleans stale runtime | None |
 
-For development and debugging, `qs -c inir` (direct mode) is usually better because you get stdout immediately. For daily use, the systemd service handles everything.
+For development and debugging, direct Quickshell is usually better because you get stdout immediately. For daily use, the systemd service handles everything.
 
 ## Environment variables
 
@@ -136,8 +136,8 @@ Panels are split into immediate (load at first frame) and deferred (load after `
 The systemd service has:
 
 - `Restart=on-failure` with `StartLimitBurst=3` and `StartLimitIntervalSec=30`
-- If iNiR crashes, systemd restarts it (up to 3 times in 30 seconds)
-- `ExecStopPost` runs `inir cleanup-orphans` to clear stale Quickshell runtime entries
+- If Ryoku shell crashes, systemd restarts it (up to 3 times in 30 seconds)
+- `ExecStopPost` runs `ryoku-shell-cleanup-orphans --quiet` to clear stale Quickshell runtime entries and Ryoku-owned helper processes
 - Exit code 143 (SIGTERM) is treated as success, not failure
 
 ## Deferred initialization

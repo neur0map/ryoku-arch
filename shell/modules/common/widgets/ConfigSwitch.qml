@@ -1,5 +1,6 @@
 import qs.modules.common.widgets
 import qs.modules.common
+import qs.modules.common.functions
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
@@ -9,6 +10,8 @@ RippleButton {
     property string buttonIcon
     property alias iconSize: iconWidget.iconSize
     property bool autoToggle: true
+    property color labelColor: Appearance.angelEverywhere ? Appearance.angel.colText
+        : Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnSecondaryContainer
     // Integración con buscador global de Settings
     property bool enableSettingsSearch: true
     property int settingsSearchOptionId: -1
@@ -100,8 +103,7 @@ RippleButton {
             Layout.fillWidth: true
             text: root.text
             font: root.font
-            color: Appearance.angelEverywhere ? Appearance.angel.colText
-                : Appearance.ryokuEverywhere ? Appearance.ryoku.colText : Appearance.colors.colOnSecondaryContainer
+            color: root.labelColor
             opacity: root.enabled ? 1 : 0.4
         }
         StyledSwitch {

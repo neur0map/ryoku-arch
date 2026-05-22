@@ -8,3 +8,11 @@ and contributors. The original project is available at:
 The MIT License and original copyright notice are preserved in the
 LICENSE file in this repository. Ryoku Arch additions are also released
 under the MIT License.
+
+Portions of the Ryoku display configuration UI are adapted from
+DankMaterialShell, created by Avenge Media LLC and contributors:
+
+  https://github.com/AvengeMedia/DankMaterialShell
+
+DankMaterialShell is released under the MIT License. Copyright (c) 2025
+Avenge Media LLC.

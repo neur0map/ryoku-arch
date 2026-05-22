@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-qs_bin="/usr/bin/qs"
+qs_bin="${RYOKU_QS_BIN:-/usr/bin/qs}"
 user_config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell"
 system_config_dir="${RYOKU_SHELL_SYSTEM_RUNTIME_DIR:-/usr/local/share/quickshell/ryoku-shell}"
 fallback_system_config_dir="${RYOKU_SHELL_FALLBACK_SYSTEM_RUNTIME_DIR:-/usr/share/quickshell/ryoku-shell}"
@@ -422,7 +422,7 @@ check_qs_abi() {
         qt_mtime="$(stat -c %Y "$(readlink -f "$qt_lib_path" 2>/dev/null || echo "$qt_lib_path")" 2>/dev/null || echo 0)"
         abi_cache_key="${qs_mtime}:${qt_mtime}"
 
-        if [[ -f "$abi_cache_file" ]] && [[ "$(<"$abi_cache_file")" == "$abi_cache_key" ]]; then
+        if [[ -f $abi_cache_file ]] && [[ $(<"$abi_cache_file") == "v2:$abi_cache_key" ]]; then
             # Cached pass — same binaries as last successful check
             return 0
         fi
@@ -437,18 +437,19 @@ check_qs_abi() {
             runtime_qt="$(pkg-config --modversion Qt6Core 2>/dev/null || true)"
         fi
         if [[ -n "$buildtime_qt" && -n "$runtime_qt" ]]; then
-            local build_minor="${buildtime_qt%.*}"
-            local runtime_minor="${runtime_qt%.*}"
-            if [[ "$build_minor" != "$runtime_minor" ]]; then
-                mismatch_detected=true
-                mismatch_msg="Quickshell built against Qt $buildtime_qt but system has Qt $runtime_qt"
-            fi
+            case "$buildtime_qt" in
+                "$runtime_qt") ;;
+                *)
+                    mismatch_detected=true
+                    mismatch_msg="Quickshell built against Qt $buildtime_qt but system has Qt $runtime_qt"
+                    ;;
+            esac
         fi
 
         # Cache successful result so next start skips the expensive strings scan
         if ! $mismatch_detected; then
             mkdir -p "$abi_cache_dir" 2>/dev/null || true
-            printf '%s' "$abi_cache_key" > "$abi_cache_file" 2>/dev/null || true
+            printf 'v2:%s' "$abi_cache_key" > "$abi_cache_file" 2>/dev/null || true
         fi
     fi
 
@@ -1511,6 +1512,32 @@ resolve_launcher_path() {
     fi
 }
 
+resolve_cleanup_helper_path() {
+    local setup_dir="${1:-}"
+    local setup_parent=""
+    local candidate
+    local candidates=()
+
+    if [[ -n $setup_dir ]]; then
+        setup_parent="$(cd -- "$setup_dir/.." 2>/dev/null && pwd || true)"
+        if [[ -n $setup_parent ]]; then
+            candidates+=("$setup_parent/bin/ryoku-shell-cleanup-orphans")
+        fi
+    fi
+
+    candidates+=(
+        "$RYOKU_PATH/bin/ryoku-shell-cleanup-orphans"
+        "$HOME/.local/share/ryoku/bin/ryoku-shell-cleanup-orphans"
+    )
+
+    for candidate in "${candidates[@]}"; do
+        if [[ -x $candidate ]]; then
+            printf '%s' "$candidate"
+            return
+        fi
+    done
+}
+
 show_logs() {
     resolve_config_dir
     if [[ "${1:-}" == "--full" ]]; then
@@ -1838,24 +1865,35 @@ install_user_service() {
     local setup_dir
     local asset_path
     local launcher_path
+    local cleanup_helper_path
     local tmp_file
 
     require_command systemctl
     setup_dir="$(resolve_setup_dir)"
     asset_path="$setup_dir/assets/systemd/ryoku-shell.service"
     launcher_path="$(resolve_launcher_path)"
+    cleanup_helper_path="$(resolve_cleanup_helper_path "$setup_dir")"
 
     if [[ ! -f "$asset_path" ]]; then
         echo "service asset not found in $setup_dir" >&2
         exit 1
     fi
 
+    if [[ -z $cleanup_helper_path ]]; then
+        cleanup_helper_path="$launcher_path"
+    fi
+
     mkdir -p "$systemd_user_dir"
     mkdir -p "${XDG_CACHE_HOME:-$HOME/.cache}"
     tmp_file="${XDG_CACHE_HOME:-$HOME/.cache}/ryoku-shell.service.$$"
     local escaped_launcher="${launcher_path//&/\\&}"
+    local escaped_cleanup_helper="${cleanup_helper_path//&/\\&}"
+    local cleanup_command="${escaped_cleanup_helper} --quiet"
+    if [[ $cleanup_helper_path == "$launcher_path" ]]; then
+        cleanup_command="${escaped_cleanup_helper} cleanup-orphans"
+    fi
     sed -e "s|^ExecStart=.*|ExecStart=${escaped_launcher} run --session|" \
-        -e "s|^ExecStopPost=-.*|ExecStopPost=-${escaped_launcher} cleanup-orphans|" \
+        -e "s|^ExecStopPost=-.*|ExecStopPost=-${cleanup_command}|" \
         "$asset_path" > "$tmp_file"
     cp -f "$tmp_file" "$systemd_user_dir/ryoku-shell.service"
     rm -f "$tmp_file"

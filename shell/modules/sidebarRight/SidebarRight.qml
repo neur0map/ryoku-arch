@@ -144,7 +144,8 @@ Scope {
 
         Loader {
             id: sidebarContentLoader
-            active: GlobalStates.sidebarRightOpen || (Config?.options?.sidebar?.keepRightSidebarLoaded ?? true)
+            active: GlobalStates.sidebarRightOpen
+                || ((Config?.options?.sidebar?.keepRightSidebarLoaded ?? true) && !CompositorService.isNiri)
             anchors {
                 top: parent.top
                 right: parent.right

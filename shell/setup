@@ -154,7 +154,7 @@ _check_privilege_prereqs() {
   if command -v sudo &>/dev/null && sudo -n true 2>/dev/null; then
     can_escalate=true
     method="sudo"
-  elif command -v pkexec &>/dev/null && ( [[ -n "${DBUS_SESSION_BUS_ADDRESS}" ]] || [[ -n "${DISPLAY}" ]] || [[ -n "${WAYLAND_DISPLAY}" ]] ); then
+  elif command -v pkexec &>/dev/null && { [[ -n ${DBUS_SESSION_BUS_ADDRESS:-} ]] || [[ -n ${DISPLAY:-} ]] || [[ -n ${WAYLAND_DISPLAY:-} ]]; }; then
     can_escalate=true
     method="pkexec"
   elif command -v su &>/dev/null && [[ -z "${DISPLAY}" ]] && [[ -z "${WAYLAND_DISPLAY}" ]]; then
@@ -214,11 +214,24 @@ sync_launcher_from_repo() {
     printf '%s\n' "$launcher_target"
 }
 
+ryoku_cleanup_helper_path() {
+    local repo_parent
+    repo_parent="$(cd -- "$REPO_ROOT/.." 2>/dev/null && pwd || true)"
+
+    if [[ -n $repo_parent && -x "$repo_parent/bin/ryoku-shell-cleanup-orphans" ]]; then
+        printf '%s' "$repo_parent/bin/ryoku-shell-cleanup-orphans"
+        return
+    fi
+
+    printf '%s' "$HOME/.local/share/ryoku/bin/ryoku-shell-cleanup-orphans"
+}
+
 sync_user_ryoku-shell.service_from_repo_if_present() {
     local service_asset="${REPO_ROOT}/assets/systemd/ryoku-shell.service"
     local service_target_dir="${XDG_CONFIG_HOME}/systemd/user"
     local service_target="${service_target_dir}/ryoku-shell.service"
     local launcher_target="${XDG_BIN_HOME}/ryoku-shell"
+    local cleanup_target
     local tmp_file
     local changed=false
 
@@ -228,9 +241,10 @@ sync_user_ryoku-shell.service_from_repo_if_present() {
     mkdir -p "$service_target_dir"
     mkdir -p "${XDG_CACHE_HOME:-$HOME/.cache}"
     tmp_file="${XDG_CACHE_HOME:-$HOME/.cache}/ryoku-shell.service.$$"
+    cleanup_target="$(ryoku_cleanup_helper_path)"
 
     sed -e "s|^ExecStart=.*|ExecStart=${launcher_target//&/\\&} run --session|" \
-        -e "s|^ExecStopPost=-.*|ExecStopPost=-${launcher_target//&/\\&} cleanup-orphans|" \
+        -e "s|^ExecStopPost=-.*|ExecStopPost=-${cleanup_target//&/\\&} --quiet|" \
         "$service_asset" > "$tmp_file"
 
     if ! cmp -s "$tmp_file" "$service_target"; then
@@ -1580,7 +1594,10 @@ run_my_changes() {
         if [[ -f "$meta" ]]; then
             local mod_count=$(grep -o '"modified_count": [0-9]*' "$meta" 2>/dev/null | grep -o '[0-9]*' || echo 0)
             local add_count=$(grep -o '"additions_count": [0-9]*' "$meta" 2>/dev/null | grep -o '[0-9]*' || echo 0)
-            local date_formatted=$(echo "$mod_dir" | sed 's/\([0-9]\{4\}\)\([0-9]\{2\}\)\([0-9]\{2\}\)-\([0-9]\{2\}\)\([0-9]\{2\}\)\([0-9]\{2\}\)/\1-\2-\3 \4:\5/')
+            local date_formatted="$mod_dir"
+            if [[ $mod_dir =~ ^([0-9]{4})([0-9]{2})([0-9]{2})-([0-9]{2})([0-9]{2})([0-9]{2})$ ]]; then
+                date_formatted="${BASH_REMATCH[1]}-${BASH_REMATCH[2]}-${BASH_REMATCH[3]} ${BASH_REMATCH[4]}:${BASH_REMATCH[5]}"
+            fi
             options+=("$date_formatted (${mod_count} modified, ${add_count} added)")
         else
             options+=("$mod_dir")
@@ -1619,7 +1636,7 @@ run_my_changes() {
             [[ "$file" == *"metadata.json" ]] && continue
             [[ "$file" == *"_additions"* ]] && continue
             files_found=true
-            local rel_path="${file#$selected_path/}"
+            local rel_path="${file#"$selected_path"/}"
             echo "    [modified] $rel_path"
         done < <(find "$selected_path" -type f 2>/dev/null)
 
@@ -1627,7 +1644,7 @@ run_my_changes() {
         if [[ -d "$selected_path/_additions" ]]; then
             while IFS= read -r file; do
                 files_found=true
-                local rel_path="${file#$selected_path/_additions/}"
+                local rel_path="${file#"$selected_path"/_additions/}"
                 echo "    [added]    $rel_path"
             done < <(find "$selected_path/_additions" -type f 2>/dev/null)
         fi
@@ -1695,7 +1712,7 @@ restore_all_user_mods() {
         [[ "$file" == *"metadata.json" ]] && continue
         [[ "$file" == *"_additions"* ]] && continue
 
-        local rel_path="${file#$backup_path/}"
+        local rel_path="${file#"$backup_path"/}"
         local dest="${target}/${rel_path}"
 
         mkdir -p "$(dirname "$dest")"
@@ -1707,7 +1724,7 @@ restore_all_user_mods() {
     # Restore additions
     if [[ -d "$backup_path/_additions" ]]; then
         while IFS= read -r file; do
-            local rel_path="${file#$backup_path/_additions/}"
+            local rel_path="${file#"$backup_path"/_additions/}"
             local dest="${target}/${rel_path}"
 
             mkdir -p "$(dirname "$dest")"
@@ -1733,14 +1750,14 @@ restore_single_user_mod() {
     while IFS= read -r file; do
         [[ "$file" == *"metadata.json" ]] && continue
         [[ "$file" == *"_additions"* ]] && continue
-        local rel_path="${file#$backup_path/}"
+        local rel_path="${file#"$backup_path"/}"
         files+=("$rel_path")
     done < <(find "$backup_path" -type f 2>/dev/null)
 
     # Add files from _additions
     if [[ -d "$backup_path/_additions" ]]; then
         while IFS= read -r file; do
-            local rel_path="${file#$backup_path/_additions/}"
+            local rel_path="${file#"$backup_path"/_additions/}"
             files+=("[added] $rel_path")
         done < <(find "$backup_path/_additions" -type f 2>/dev/null)
     fi
@@ -2332,7 +2349,9 @@ run_update() {
     if [[ -f "$niri_config" && -x "${XDG_BIN_HOME}/ryoku-shell" ]]; then
         local launcher_target_escaped="${XDG_BIN_HOME}/ryoku-shell"
         launcher_target_escaped="${launcher_target_escaped//&/\\&}"
+        # shellcheck disable=SC2016
         local stale_terminal_spawn='spawn "bash" "-lc" "exec \"$(i''nir path)/scripts/launch-terminal.sh\""'
+        # shellcheck disable=SC2016
         local stale_close_spawn='spawn "bash" "-lc" "exec \"$(i''nir path)/scripts/close-window.sh\""'
         local terminal_spawn_replacement="spawn \"${XDG_BIN_HOME}/ryoku-shell\" \"terminal\""
         local close_spawn_replacement="spawn \"${XDG_BIN_HOME}/ryoku-shell\" \"close-window\""

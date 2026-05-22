@@ -46,6 +46,7 @@ DEFAULT_NIRI_FILES = [
 ]
 
 CUSTOM_KEYBINDS_MARKER = "Ryoku custom keybinds"
+OUTPUT_CHANGE_KEYS = {"mode", "scale", "transform", "vrr", "position"}
 
 
 def get_niri_config_dir():
@@ -191,34 +192,64 @@ def cmd_apply_output(args):
             results.append({"key": key, "error": "missing value"})
             continue
 
-        if key == "mode":
-            out, rc = run_niri("output", output_name, "mode", value)
-        elif key == "scale":
-            out, rc = run_niri("output", output_name, "scale", value)
-        elif key == "transform":
-            out, rc = run_niri("output", output_name, "transform", value)
-        elif key == "vrr":
-            out, rc = run_niri("output", output_name, "vrr", value)
-        elif key == "position":
-            parts = value.split(",")
-            if len(parts) == 2:
-                out, rc = run_niri(
-                    "output", output_name, "position", "set", parts[0], parts[1]
-                )
-            else:
-                out, rc = run_niri("output", output_name, "position", "auto")
-        elif key == "dpms":
-            out, rc = run_niri("output", output_name, value)
-        else:
+        if key not in OUTPUT_CHANGE_KEYS and key != "dpms":
             results.append({"key": key, "error": "unknown key"})
             continue
 
+        out, rc = _apply_output_change(output_name, key, value)
         results.append({"key": key, "value": value, "success": rc == 0, "output": out})
 
     print(json.dumps({"results": results}))
     # Return non-zero if any individual apply step failed
     any_failed = any(not r.get("success", True) for r in results)
     return 1 if any_failed else 0
+
+
+def cmd_apply_outputs(args):
+    """Apply temporary changes for several outputs in sequence."""
+    batch, error = _parse_output_change_batch(args)
+    if error:
+        print(json.dumps({"success": False, "error": error}))
+        return 1
+
+    results = []
+    for item in batch:
+        output_name = item["name"]
+        changes = item["changes"]
+        for key, value in changes.items():
+            out, rc = _apply_output_change(output_name, key, value)
+            results.append(
+                {
+                    "name": output_name,
+                    "key": key,
+                    "value": value,
+                    "success": rc == 0,
+                    "output": out,
+                }
+            )
+
+    success = all(result.get("success") for result in results)
+    print(json.dumps({"success": success, "results": results}))
+    return 0 if success else 1
+
+
+def _apply_output_change(output_name, key, value):
+    if key == "mode":
+        return run_niri("output", output_name, "mode", value)
+    if key == "scale":
+        return run_niri("output", output_name, "scale", value)
+    if key == "transform":
+        return run_niri("output", output_name, "transform", value)
+    if key == "vrr":
+        return run_niri("output", output_name, "vrr", value)
+    if key == "position":
+        parts = value.split(",")
+        if len(parts) == 2:
+            return run_niri("output", output_name, "position", "set", parts[0], parts[1])
+        return run_niri("output", output_name, "position", "auto")
+    if key == "dpms":
+        return run_niri("output", output_name, value)
+    return "unknown key", 1
 
 
 def cmd_persist_output(args):
@@ -242,19 +273,78 @@ def cmd_persist_output(args):
         print(json.dumps({"error": "No output changes provided."}))
         return 1
 
-    allowed_keys = {"mode", "scale", "transform", "vrr", "position"}
-    unknown_keys = sorted([key for key in changes.keys() if key not in allowed_keys])
-    if unknown_keys:
-        print(
-            json.dumps({"error": f"Unknown output key(s): {', '.join(unknown_keys)}"})
-        )
+    error = _validate_output_changes(changes)
+    if error:
+        print(json.dumps({"error": error}))
         return 1
 
     outputs_file = resolve_niri_section_file("config.d/15-outputs.kdl")
     outputs_file.parent.mkdir(parents=True, exist_ok=True)
 
     existing = outputs_file.read_text() if outputs_file.exists() else ""
+    result = _apply_output_changes_to_content(existing, output_name, changes)
 
+    return _write_validated(outputs_file, result)
+
+
+def cmd_persist_outputs(args):
+    """Write several output configs to KDL config.d/15-outputs.kdl in one pass."""
+    batch, error = _parse_output_change_batch(args)
+    if error:
+        print(json.dumps({"success": False, "error": error}))
+        return 1
+
+    outputs_file = resolve_niri_section_file("config.d/15-outputs.kdl")
+    outputs_file.parent.mkdir(parents=True, exist_ok=True)
+
+    result = outputs_file.read_text() if outputs_file.exists() else ""
+    for item in batch:
+        result = _apply_output_changes_to_content(
+            result, item["name"], item["changes"]
+        )
+
+    return _write_validated(outputs_file, result, {"outputs": len(batch)})
+
+
+def _parse_output_change_batch(args):
+    if len(args) != 1:
+        return None, "Usage: <command> '[{\"name\":\"DP-1\",\"changes\":{\"scale\":\"1\"}}]'"
+
+    try:
+        raw_batch = json.loads(args[0])
+    except json.JSONDecodeError as e:
+        return None, f"Invalid output changes JSON: {e}"
+
+    if not isinstance(raw_batch, list) or len(raw_batch) == 0:
+        return None, "Output changes must be a non-empty JSON array"
+
+    batch = []
+    for index, entry in enumerate(raw_batch):
+        if not isinstance(entry, dict):
+            return None, f"Output entry {index + 1} must be an object"
+        output_name = str(entry.get("name", "")).strip()
+        if not output_name:
+            return None, f"Output entry {index + 1} is missing name"
+        changes = entry.get("changes")
+        if not isinstance(changes, dict) or len(changes) == 0:
+            return None, f"Output entry {index + 1} needs a non-empty changes object"
+        normalized = {str(key): str(value) for key, value in changes.items()}
+        error = _validate_output_changes(normalized)
+        if error:
+            return None, error
+        batch.append({"name": output_name, "changes": normalized})
+
+    return batch, None
+
+
+def _validate_output_changes(changes):
+    unknown_keys = sorted([key for key in changes.keys() if key not in OUTPUT_CHANGE_KEYS])
+    if unknown_keys:
+        return f"Unknown output key(s): {', '.join(unknown_keys)}"
+    return None
+
+
+def _apply_output_changes_to_content(existing, output_name, changes):
     # Find an active output block for this name. Anchor to KDL line starts so
     # commented examples such as `// output "DP-1"` are not edited as real config.
     pattern = rf'(^[ \t]*output\s+"{re.escape(output_name)}"\s*\{{)(.*?)(^[ \t]*\}})'
@@ -326,7 +416,7 @@ def cmd_persist_output(args):
         else:
             result = new_block + "\n"
 
-    return _write_validated(outputs_file, result)
+    return result
 
 
 def _set_in_block(block_content, key, value):
@@ -1834,7 +1924,7 @@ def _set_window_rules(config_dir, key, value):
 # ─── Surgical helpers ─────────────────────────────────────────────────
 
 
-def _write_validated(filepath, content):
+def _write_validated(filepath, content, extra=None):
     """Write content to file, then validate. If invalid, restore original and report error."""
     backup = filepath.read_text() if filepath.exists() else None
     filepath.write_text(content)
@@ -1848,7 +1938,10 @@ def _write_validated(filepath, content):
         print(json.dumps({"success": False, "error": f"Validation failed: {err}"}))
         return 1
 
-    print(json.dumps({"success": True, "file": str(filepath)}))
+    payload = {"success": True, "file": str(filepath)}
+    if extra:
+        payload.update(extra)
+    print(json.dumps(payload))
     return 0
 
 
@@ -2697,7 +2790,7 @@ def main():
         print(
             json.dumps(
                 {
-                    "error": "No command. Use: outputs, apply-output, persist-output, get-input, get-layout, get-animations, get-window-rules, list-cursor-themes, validate, detect-customizations, set, get-binds, set-bind, remove-bind"
+                    "error": "No command. Use: outputs, apply-output, apply-outputs, persist-output, persist-outputs, get-input, get-layout, get-animations, get-window-rules, list-cursor-themes, validate, detect-customizations, set, get-binds, set-bind, remove-bind"
                 }
             )
         )
@@ -2709,7 +2802,9 @@ def main():
     commands = {
         "outputs": lambda: cmd_outputs(),
         "apply-output": lambda: cmd_apply_output(args),
+        "apply-outputs": lambda: cmd_apply_outputs(args),
         "persist-output": lambda: cmd_persist_output(args),
+        "persist-outputs": lambda: cmd_persist_outputs(args),
         "get-input": lambda: cmd_get_input(),
         "get-layout": lambda: cmd_get_layout(),
         "get-animations": lambda: cmd_get_animations(),

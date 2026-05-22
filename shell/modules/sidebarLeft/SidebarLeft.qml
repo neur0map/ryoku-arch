@@ -37,8 +37,19 @@ Scope {
     PanelWindow {
         id: sidebarRoot
 
+        // Match the right sidebar's niri/Qt workaround: keep the layer-shell
+        // surface mapped and close it by shrinking the input mask. Toggling
+        // visibility while the right sidebar is resident can trigger a Qt
+        // layer-shell surface crash during startup.
+        visible: true
+
+        Item { id: _emptyMask; width: 0; height: 0 }
+        Item { id: _fullMask; anchors.fill: parent }
+        mask: Region {
+            item: GlobalStates.sidebarLeftOpen ? _fullMask : _emptyMask
+        }
+
         Component.onCompleted: {
-            visible = GlobalStates.sidebarLeftOpen
             root._sidebarShown = GlobalStates.sidebarLeftOpen
         }
 
@@ -47,14 +58,12 @@ Scope {
             function onSidebarLeftOpenChanged() {
                 if (GlobalStates.sidebarLeftOpen) {
                     _closeTimer.stop()
-                    sidebarRoot.visible = true
                     // Let the surface map for one frame before sliding in
                     Qt.callLater(() => { root._sidebarShown = true })
                 } else if (root.instantOpen || !Appearance.animationsEnabled) {
                     root._sidebarShown = false
                     GlobalStates.sidebarLeftExpanded = false
                     _closeTimer.stop()
-                    sidebarRoot.visible = false
                 } else {
                     root._sidebarShown = false
                     GlobalStates.sidebarLeftExpanded = false
@@ -66,7 +75,7 @@ Scope {
         Timer {
             id: _closeTimer
             interval: 300
-            onTriggered: sidebarRoot.visible = false
+            // Surface stays mapped; the closed state is handled by mask.
         }
 
         function hide() {
@@ -89,7 +98,7 @@ Scope {
         CompositorFocusGrab {
             id: grab
             windows: [ sidebarRoot ]
-            active: CompositorService.isHyprland && sidebarRoot.visible
+            active: CompositorService.isHyprland && GlobalStates.sidebarLeftOpen
             onCleared: () => {
                 if (!active) sidebarRoot.hide()
             }

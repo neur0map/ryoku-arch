@@ -53,10 +53,10 @@ TimeoutStopSec=15
 LimitCORE=0
 Environment=QS_DISABLE_CRASH_HANDLER=1
 
-# Clean up stale Quickshell runtime entries (by-pid, by-id) left behind
-# after crashes.  KillMode=process only kills the main PID, so orphaned
-# QS child processes and their runtime artifacts accumulate over time.
-ExecStopPost=-/usr/local/bin/ryoku-shell cleanup-orphans
+# Clean up stale Quickshell runtime entries and Ryoku-owned helper processes
+# left behind after crashes. KillMode=process only kills the main PID, so
+# helper subscribers and runtime artifacts can accumulate over time.
+ExecStopPost=-%h/.local/share/ryoku/bin/ryoku-shell-cleanup-orphans --quiet
 
 # Boost I/O priority so QML/Qt library loading wins over background services
 # during cold-boot I/O contention (portals, tray apps, etc.)

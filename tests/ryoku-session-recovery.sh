@@ -99,11 +99,28 @@ assert_not_contains default/systemd/system-sleep/ryoku-session-recover 'prowl/' 
 
 assert_contains install/config/all.sh 'config/session-recover\.sh' \
   "fresh installs should install the Ryoku session recovery hook"
-assert_contains install/config/session-recover.sh 'default/systemd/system-sleep/ryoku-session-recover' \
+assert_contains install/config/session-recover.sh 'for hook in ryoku-session-recover ryoku-qylock-prelock' \
+  "session recovery installer should install the recovery and prelock hooks"
+# shellcheck disable=SC2016
+assert_contains install/config/session-recover.sh '\$RYOKU_PATH/default/systemd/system-sleep/\$hook' \
   "session recovery installer should install the system sleep hook"
 if (( $(grep -c 'ryoku-shell-branding\.sh' install/config/shell.sh) < 2 )); then
   fail "Shell setup should re-apply Ryoku branding after service enable rewrites the unit"
 fi
 assert_contains config/systemd/user/ryoku-shell.service 'ryoku-shell-cleanup-orphans --quiet' \
   "Ryoku shell service should use Ryoku cleanup for stale shell helpers"
+assert_contains shell/assets/systemd/ryoku-shell.service 'ryoku-shell-cleanup-orphans --quiet' \
+  "Ryoku shell service template should use Ryoku cleanup for stale shell helpers"
+assert_contains shell/setup 'ryoku-shell-cleanup-orphans' \
+  "setup service refresh should preserve Ryoku helper cleanup"
+assert_contains shell/sdata/subcmd-install/3.files.sh 'ryoku_cleanup_helper_path' \
+  "fresh shell install should preserve Ryoku helper cleanup"
+assert_contains shell/scripts/ryoku-shell 'ryoku-shell-cleanup-orphans' \
+  "launcher service refresh should preserve Ryoku helper cleanup"
+assert_not_contains shell/setup 'ExecStopPost=-.*ryoku-shell cleanup-orphans' \
+  "setup service refresh should not downgrade to Quickshell-only cleanup"
+assert_not_contains shell/sdata/subcmd-install/3.files.sh 'ExecStopPost=-.*ryoku-shell cleanup-orphans' \
+  "fresh shell install should not downgrade to Quickshell-only cleanup"
+assert_not_contains shell/scripts/ryoku-shell 'ExecStopPost=-.*ryoku-shell cleanup-orphans' \
+  "launcher service refresh should not downgrade to Quickshell-only cleanup"
 pass "Ryoku session recovery contract"

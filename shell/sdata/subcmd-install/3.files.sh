@@ -187,8 +187,10 @@ case "${SKIP_QUICKSHELL}" in
         # Fresh install: create service from template, rewriting ExecStart path
         _tmp_svc="${XDG_CACHE_HOME:-$HOME/.cache}/ryoku-shell.service.$$"
         _launcher_escaped="${RYOKU_SHELL_LAUNCHER_PATH//&/\\&}"
+        _cleanup_helper="$(ryoku_cleanup_helper_path)"
+        _cleanup_helper_escaped="${_cleanup_helper//&/\\&}"
         sed -e "s|^ExecStart=.*|ExecStart=${_launcher_escaped} run --session|" \
-            -e "s|^ExecStopPost=-.*|ExecStopPost=-${_launcher_escaped} cleanup-orphans|" \
+            -e "s|^ExecStopPost=-.*|ExecStopPost=-${_cleanup_helper_escaped} --quiet|" \
             "$_service_asset" > "$_tmp_svc"
         cp -f "$_tmp_svc" "$_service_target"
         rm -f "$_tmp_svc"

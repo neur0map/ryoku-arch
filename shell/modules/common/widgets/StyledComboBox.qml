@@ -34,12 +34,14 @@ ComboBox {
         : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Active
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive
         : Appearance.colors.colLayer2Active
-    readonly property color _textColor: Appearance.angelEverywhere ? Appearance.angel.colText
+    readonly property color _baseTextColor: Appearance.angelEverywhere ? Appearance.angel.colText
         : Appearance.ryokuEverywhere ? Appearance.ryoku.colText
         : Appearance.colors.colOnLayer2
-    readonly property color _subtextColor: Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
+    readonly property color _baseSubtextColor: Appearance.angelEverywhere ? Appearance.angel.colTextSecondary
         : Appearance.ryokuEverywhere ? Appearance.ryoku.colTextSecondary
         : Appearance.colors.colSubtext
+    readonly property color _textColor: ColorUtils.ensureReadable(root._baseTextColor, root._bgColor, 4.5)
+    readonly property color _subtextColor: ColorUtils.ensureReadable(root._baseSubtextColor, root._bgColor, 3.0)
     readonly property color _borderColor: Appearance.angelEverywhere ? Appearance.angel.colBorder
         : Appearance.ryokuEverywhere ? Appearance.ryoku.colBorder
         : "transparent"
@@ -54,6 +56,19 @@ ComboBox {
         : Appearance.ryokuEverywhere ? Appearance.ryoku.colPrimaryContainer
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive
         : Appearance.colors.colPrimaryContainer
+    readonly property var _selectedModelItem: root.currentIndex >= 0 && Array.isArray(root.model) ? root.model[root.currentIndex] : null
+    readonly property string _selectedText: {
+        const modelItem = root._selectedModelItem;
+        if (typeof modelItem === "object" && modelItem !== null) {
+            const roleValue = root.textRole.length > 0 ? modelItem[root.textRole] : undefined;
+            const fallbackValue = modelItem.displayName ?? modelItem.name ?? modelItem.label ?? modelItem.value;
+            const selectedValue = roleValue ?? fallbackValue;
+            return selectedValue !== undefined && selectedValue !== null ? String(selectedValue) : "";
+        }
+        if (modelItem !== undefined && modelItem !== null)
+            return String(modelItem);
+        return root.displayText ?? "";
+    }
 
     background: Rectangle {
         implicitHeight: root.baseHeight
@@ -79,7 +94,7 @@ ComboBox {
         StyledText {
             Layout.fillWidth: true
             Layout.leftMargin: 12
-            text: root.displayText
+            text: root._selectedText
             color: root._textColor
             font.pixelSize: Appearance.font.pixelSize.small
             elide: Text.ElideRight

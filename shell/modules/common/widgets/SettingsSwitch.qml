@@ -1,5 +1,6 @@
 import qs.modules.common
 import qs.modules.common.widgets
+import qs.modules.common.functions
 
 ConfigSwitch {
     colBackground: SettingsMaterialPreset.groupColor
@@ -11,4 +12,5 @@ ConfigSwitch {
         : Appearance.ryokuEverywhere ? Appearance.ryoku.colLayer2Active
         : Appearance.auroraEverywhere ? Appearance.aurora.colSubSurfaceActive
         : Appearance.colors.colLayer2Active
+    labelColor: ColorUtils.ensureReadable(SettingsMaterialPreset.titleExpandedColor, colBackground, 4.5)
 }

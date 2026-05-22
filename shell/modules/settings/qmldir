@@ -4,3 +4,4 @@ ThemePresetCard 1.0 ThemePresetCard.qml
 ColorPickerRow 1.0 ColorPickerRow.qml
 WaffleConfig 1.0 WaffleConfig.qml
 SettingsOverlay 1.0 SettingsOverlay.qml
+NiriDisplayConfigurator 1.0 NiriDisplayConfigurator.qml

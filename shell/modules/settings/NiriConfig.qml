@@ -158,8 +158,16 @@ ContentPage {
     property string persistOutputValue: ""
     property string persistRollbackKey: ""
     property string persistRollbackValue: ""
+    property var displayPendingChanges: ({})
+    property var displayOriginalValues: ({})
+    property string pendingDisplayDraftJson: ""
+    property string pendingDisplayRollbackJson: ""
+    property string displayBatchPurpose: ""
+    property string displayBatchCommand: ""
     property var setRequestQueue: []
-    readonly property bool displayControlsLocked: confirmationPending || applyOutputProcess.running || persistOutputProcess.running
+    readonly property int displayPendingChangeCount: countDisplayPendingChanges()
+    readonly property var effectiveOutputList: outputList.map(output => effectiveOutputFor(output))
+    readonly property bool displayControlsLocked: confirmationPending || applyOutputProcess.running || persistOutputProcess.running || displayBatchProcess.running
 
     readonly property string scriptPath: Quickshell.shellPath("scripts/niri-config.py")
     readonly property var keyboardLayoutOptions: [
@@ -326,7 +334,14 @@ ContentPage {
         pendingChangeValue = ""
         pendingPreviewKind = ""
         pendingActionLabel = ""
+        pendingDisplayDraftJson = ""
+        pendingDisplayRollbackJson = ""
         confirmCountdown = 10
+    }
+
+    function clearDisplayDraft() {
+        displayPendingChanges = ({})
+        displayOriginalValues = ({})
     }
 
     function clearApplyOutputState() {
@@ -365,6 +380,183 @@ ContentPage {
             return resolution.length > 0 && rateString.length > 0 ? `${resolution}@${rateString}` : ""
         }
         return ""
+    }
+
+    function countDisplayPendingChanges() {
+        let count = 0
+        for (const outputName in displayPendingChanges)
+            count += Object.keys(displayPendingChanges[outputName] ?? {}).length
+        return count
+    }
+
+    function outputByName(name, sourceList) {
+        const list = sourceList ?? outputList
+        for (let i = 0; i < list.length; ++i) {
+            if ((list[i]?.name ?? "") === name)
+                return list[i]
+        }
+        return null
+    }
+
+    function displayNameForOutput(output) {
+        if (!output)
+            return ""
+        const makeModel = `${output.make ?? ""} ${output.model ?? ""}`.trim()
+        return makeModel.length > 0 ? `${output.name} - ${makeModel}` : output.name
+    }
+
+    function modeValueForOutput(output) {
+        const resolution = output?.current_resolution ?? ""
+        const rate = output?.current_rate ?? 0
+        const rateString = output?.current_rate_string ?? (rate > 0 ? Number(rate).toFixed(3) : "")
+        return resolution.length > 0 && rateString.length > 0 ? `${resolution}@${rateString}` : ""
+    }
+
+    function resolutionOptionsForOutput(output) {
+        if (!output?.resolutions)
+            return []
+        return output.resolutions.map(r => ({
+            displayName: `${r.width}x${r.height}` + (r.preferred ? " ★" : ""),
+            value: `${r.width}x${r.height}`,
+            width: r.width,
+            height: r.height,
+            rates: r.rates
+        }))
+    }
+
+    function refreshOptionsForOutput(output, resolution) {
+        if (!resolution || !output?.resolutions)
+            return []
+        const match = output.resolutions.find(r => `${r.width}x${r.height}` === resolution)
+        if (!match?.rates)
+            return []
+        return match.rates.map(r => ({
+            displayName: `${r.rate_string ?? Number(r.rate).toFixed(3)} Hz` + (r.preferred ? " ★" : ""),
+            value: r.rate,
+            rateString: r.rate_string ?? Number(r.rate).toFixed(3)
+        })).sort((a, b) => b.value - a.value)
+    }
+
+    function optionIndex(options, value) {
+        for (let i = 0; i < options.length; ++i) {
+            if (String(options[i].value) === String(value))
+                return i
+        }
+        return -1
+    }
+
+    function transformLabel(value) {
+        const normalized = String(value ?? "normal").toLowerCase()
+        for (const option of transformOptions) {
+            if (String(option.value).toLowerCase() === normalized)
+                return option.displayName
+        }
+        return Translation.tr("Normal")
+    }
+
+    function effectiveOutputFor(output) {
+        const copy = JSON.parse(JSON.stringify(output ?? {}))
+        const changes = displayPendingChanges[copy.name] ?? {}
+
+        if (changes.mode !== undefined) {
+            const match = String(changes.mode).match(/^([^@]+)@(.+)$/)
+            if (match) {
+                copy.current_resolution = match[1]
+                copy.current_rate_string = match[2]
+                copy.current_rate = Number(match[2])
+            }
+        }
+        if (changes.scale !== undefined)
+            copy.scale = Number(changes.scale)
+        if (changes.transform !== undefined)
+            copy.transform = String(changes.transform)
+        if (changes.position !== undefined) {
+            const parts = String(changes.position).split(",")
+            if (parts.length === 2)
+                copy.position = { x: Number(parts[0]), y: Number(parts[1]) }
+        }
+        if (changes.vrr !== undefined)
+            copy.vrr_enabled = String(changes.vrr) !== "off"
+
+        return copy
+    }
+
+    function stageDisplayChange(outputName, key, value) {
+        const output = outputByName(outputName, outputList)
+        if (!output || displayControlsLocked)
+            return
+
+        const valueString = String(value)
+        const nextChanges = JSON.parse(JSON.stringify(displayPendingChanges))
+        const nextOriginals = JSON.parse(JSON.stringify(displayOriginalValues))
+        if (!nextOriginals[outputName])
+            nextOriginals[outputName] = {}
+        if (!(key in nextOriginals[outputName]))
+            nextOriginals[outputName][key] = outputValueForKey(output, key)
+
+        if (!nextChanges[outputName])
+            nextChanges[outputName] = {}
+
+        if (valueString === String(nextOriginals[outputName][key])) {
+            delete nextChanges[outputName][key]
+            if (Object.keys(nextChanges[outputName]).length === 0)
+                delete nextChanges[outputName]
+            if (Object.keys(nextOriginals[outputName]).length === 0)
+                delete nextOriginals[outputName]
+        } else {
+            nextChanges[outputName][key] = valueString
+        }
+
+        displayPendingChanges = nextChanges
+        displayOriginalValues = nextOriginals
+    }
+
+    function displayBatchJsonFromChanges(changesByOutput) {
+        const batch = []
+        for (const outputName in changesByOutput) {
+            const changes = changesByOutput[outputName] ?? {}
+            if (Object.keys(changes).length === 0)
+                continue
+            batch.push({ name: outputName, changes: changes })
+        }
+        return JSON.stringify(batch)
+    }
+
+    function displayRollbackChanges() {
+        const rollback = ({})
+        for (const outputName in displayPendingChanges) {
+            const pending = displayPendingChanges[outputName] ?? {}
+            const originals = displayOriginalValues[outputName] ?? {}
+            for (const key in pending) {
+                if (!(key in originals))
+                    continue
+                if (!rollback[outputName])
+                    rollback[outputName] = {}
+                rollback[outputName][key] = originals[key]
+            }
+        }
+        return rollback
+    }
+
+    function startDisplayBatch(commandName, payload, purpose, rollbackPayload) {
+        displayBatchPurpose = purpose
+        displayBatchCommand = commandName
+        pendingDisplayRollbackJson = rollbackPayload ?? ""
+        displayBatchProcess.command = ["python3", scriptPath, commandName, payload]
+        displayBatchProcess.running = true
+    }
+
+    function applyDisplayDraft() {
+        if (displayControlsLocked || displayPendingChangeCount <= 0)
+            return
+
+        pendingDisplayDraftJson = displayBatchJsonFromChanges(displayPendingChanges)
+        pendingDisplayRollbackJson = displayBatchJsonFromChanges(displayRollbackChanges())
+        pendingPreviewKind = "display-draft"
+        pendingChangeValue = Translation.tr("%1 monitor changes").arg(displayPendingChangeCount)
+        pendingActionLabel = Translation.tr("Previewing display layout")
+        confirmCountdown = 10
+        startDisplayBatch("apply-outputs", pendingDisplayDraftJson, "display-draft-preview", pendingDisplayRollbackJson)
     }
 
     function previewRollbackRequest() {
@@ -458,6 +650,15 @@ ContentPage {
     }
 
     function confirmDisplayChange() {
+        if (pendingPreviewKind === "display-draft") {
+            if (!confirmationPending || displayBatchProcess.running || pendingDisplayDraftJson.length === 0)
+                return
+            confirmationPending = false
+            pendingActionLabel = Translation.tr("Saving display layout")
+            startDisplayBatch("persist-outputs", pendingDisplayDraftJson, "display-draft-confirm", pendingDisplayRollbackJson)
+            return
+        }
+
         if (!confirmationPending || applyOutputProcess.running || persistOutputProcess.running || !pendingOutputName.length)
             return
 
@@ -469,6 +670,21 @@ ContentPage {
     }
 
     function revertDisplayChange() {
+        if (pendingPreviewKind === "display-draft") {
+            if (displayBatchProcess.running)
+                return
+            confirmationPending = false
+            if (pendingDisplayRollbackJson.length === 0) {
+                clearDisplayDraft()
+                clearPreviewState()
+                lastActionInfo = Translation.tr("Display preview reverted.")
+                return
+            }
+            pendingActionLabel = Translation.tr("Reverting display layout")
+            startDisplayBatch("apply-outputs", pendingDisplayRollbackJson, "display-draft-revert", "")
+            return
+        }
+
         if (!pendingOutputName.length || applyOutputProcess.running || persistOutputProcess.running)
             return
 
@@ -593,10 +809,8 @@ ContentPage {
     onSelectedOutputIndexChanged: Qt.callLater(resyncDisplayCombos)
 
     function resyncDisplayCombos() {
-        resolutionCombo.currentIndex = choiceIndex(resolutionCombo.model, currentResolution)
-        refreshRateCombo.currentIndex = choiceIndex(refreshRateCombo.model, currentRate)
-        scaleCombo.currentIndex = choiceIndex(scaleCombo.model, currentScale)
-        rotationCombo.currentIndex = choiceIndex(rotationCombo.model, currentTransform.toLowerCase())
+        if (selectedOutputIndex >= outputList.length)
+            selectedOutputIndex = Math.max(0, outputList.length - 1)
     }
 
     // =====================
@@ -891,6 +1105,83 @@ ContentPage {
     }
 
     Process {
+        id: displayBatchProcess
+        stdout: StdioCollector { id: displayBatchCollector }
+        stderr: StdioCollector { id: displayBatchErrorCollector }
+        onExited: (exitCode) => {
+            const purpose = root.displayBatchPurpose
+            const stdout = (displayBatchCollector.text || "").trim()
+            const stderr = (displayBatchErrorCollector.text || "").trim()
+            let jsonFailed = false
+            let failDetail = ""
+
+            try {
+                const parsed = JSON.parse(stdout)
+                if (parsed?.success === false)
+                    jsonFailed = true
+                if (parsed?.results) {
+                    const failed = parsed.results.filter(r => r.success === false)
+                    if (failed.length > 0) {
+                        jsonFailed = true
+                        failDetail = failed.map(r => `${r.name ?? ""} ${r.key ?? ""}: ${r.output || "failed"}`).join("; ")
+                    }
+                }
+                if (!failDetail && parsed?.error)
+                    failDetail = parsed.error
+            } catch (_) {
+                // Non-JSON output is handled by the process exit code.
+            }
+
+            const failed = exitCode !== 0 || jsonFailed
+            const text = failDetail || stderr || stdout
+            let startedFollowup = false
+
+            if (!failed) {
+                root.lastActionError = ""
+                if (purpose === "display-draft-preview") {
+                    root.confirmationPending = true
+                    root._deferredOutputRefresh.restart()
+                } else if (purpose === "display-draft-confirm") {
+                    root.clearDisplayDraft()
+                    root.clearPreviewState()
+                    root.saveAndRefresh(Translation.tr("Display settings saved."))
+                    root.loadOutputs()
+                } else if (purpose === "display-draft-revert") {
+                    root.clearDisplayDraft()
+                    root.clearPreviewState()
+                    root.lastActionInfo = Translation.tr("Display preview reverted.")
+                    root._deferredOutputRefresh.restart()
+                } else if (purpose === "display-draft-revert-after-failure") {
+                    root.clearDisplayDraft()
+                    root.clearPreviewState()
+                    root.lastActionInfo = Translation.tr("Display preview reverted after save failure.")
+                    root._deferredOutputRefresh.restart()
+                }
+            } else {
+                if (purpose === "display-draft-preview" && root.pendingDisplayRollbackJson.length > 0) {
+                    root.lastActionError = text.length > 0 ? text : Translation.tr("Failed to preview display settings.")
+                    root.pendingActionLabel = Translation.tr("Reverting display layout")
+                    root.startDisplayBatch("apply-outputs", root.pendingDisplayRollbackJson, "display-draft-revert-after-failure", "")
+                    startedFollowup = true
+                } else if (purpose === "display-draft-confirm" && root.pendingDisplayRollbackJson.length > 0) {
+                    root.lastActionError = text.length > 0 ? text : Translation.tr("Failed to save display settings.")
+                    root.pendingActionLabel = Translation.tr("Reverting display layout")
+                    root.startDisplayBatch("apply-outputs", root.pendingDisplayRollbackJson, "display-draft-revert-after-failure", "")
+                    startedFollowup = true
+                } else {
+                    root.clearPreviewState()
+                    root.lastActionError = text.length > 0 ? text : Translation.tr("Failed to apply display settings.")
+                }
+            }
+
+            if (!startedFollowup) {
+                root.displayBatchPurpose = ""
+                root.displayBatchCommand = ""
+            }
+        }
+    }
+
+    Process {
         id: setProcess
         stdout: StdioCollector { id: setCollector }
         stderr: StdioCollector { id: setErrorCollector }
@@ -993,6 +1284,8 @@ ContentPage {
                         }
                         StyledText {
                             text: {
+                                if (root.pendingPreviewKind === "display-draft")
+                                    return Translation.tr("Previewing %1").arg(root.pendingChangeValue)
                                 if (root.pendingPreviewKind === "mode")
                                     return Translation.tr("Previewing %1").arg(root.pendingChangeValue)
                                 if (root.pendingPreviewKind === "scale")
@@ -1439,206 +1732,9 @@ ContentPage {
         sectionTabGroupOrder: 0
 
         SettingsGroup {
-            StyledText {
+            NiriDisplayConfigurator {
                 Layout.fillWidth: true
-                text: Translation.tr("Monitor changes are applied as a live preview first. If the new mode is incompatible, settings revert automatically after 15 seconds.")
-                font.pixelSize: Appearance.font.pixelSize.small
-                color: Appearance.colors.colSubtext
-                wrapMode: Text.WordWrap
-            }
-
-            ContentSubsection {
-                title: Translation.tr("Monitor")
-                visible: root.outputList.length > 1
-
-                StyledComboBox {
-                    Layout.fillWidth: true
-                    enabled: !root.displayControlsLocked
-                    model: root.outputList.map(o => ({
-                        displayName: `${o.name} — ${o.make} ${o.model}`,
-                        value: o.name
-                    }))
-                    textRole: "displayName"
-                    currentIndex: root.choiceIndex(model, root.currentOutputName)
-                    onActivated: {
-                        const idx = root.outputList.findIndex(o => o.name === model[currentIndex].value)
-                        if (idx >= 0)
-                            root.selectedOutputIndex = idx
-                    }
-                }
-            }
-
-            Item {
-                Layout.fillWidth: true
-                implicitHeight: monitorInfoRow.implicitHeight + 8
-                visible: root.currentOutput !== null
-
-                RowLayout {
-                    id: monitorInfoRow
-                    anchors {
-                        left: parent.left; right: parent.right
-                        verticalCenter: parent.verticalCenter
-                        leftMargin: 8; rightMargin: 8
-                    }
-                    spacing: 10
-
-                    MaterialSymbol {
-                        text: "monitor"
-                        iconSize: Appearance.font.pixelSize.hugeass
-                        color: Appearance.colors.colPrimary
-                    }
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 0
-
-                        StyledText {
-                            text: root.currentOutputName
-                            font.pixelSize: Appearance.font.pixelSize.normal
-                            font.weight: Font.Medium
-                            color: Appearance.colors.colOnLayer1
-                        }
-                        StyledText {
-                            text: {
-                                const o = root.currentOutput
-                                if (!o) return ""
-                                const make = o.make ?? ""
-                                const model = o.model ?? ""
-                                const phys = o.physical_size ?? [0, 0]
-                                let info = `${make} ${model}`.trim()
-                                if (phys[0] > 0 && phys[1] > 0) {
-                                    const diag = Math.sqrt(phys[0]*phys[0] + phys[1]*phys[1]) / 25.4
-                                    info += ` — ${diag.toFixed(1)}"`
-                                }
-                                return info
-                            }
-                            font.pixelSize: Appearance.font.pixelSize.smaller
-                            color: Appearance.colors.colSubtext
-                        }
-                    }
-                }
-            }
-
-            SettingsDivider { visible: root.currentOutput !== null }
-
-            ContentSubsection {
-                title: Translation.tr("Resolution")
-                visible: root.resolutionOptions.length > 0
-
-                StyledComboBox {
-                    id: resolutionCombo
-                    Layout.fillWidth: true
-                    enabled: !root.displayControlsLocked
-                    model: root.resolutionOptions
-                    textRole: "displayName"
-                    onActivated: {
-                        const selectedValue = model[currentIndex].value
-                        const match = root.currentOutput?.resolutions?.find(r => `${r.width}x${r.height}` === selectedValue)
-                        if (match?.rates?.length > 0) {
-                            const best = match.rates.reduce((a, b) => a.rate > b.rate ? a : b)
-                            root.safeApplyOutput("mode", "mode", `${selectedValue}@${best.rate_string ?? Number(best.rate).toFixed(3)}`)
-                        }
-                    }
-                }
-            }
-
-            ContentSubsection {
-                title: Translation.tr("Refresh rate")
-                visible: root.refreshOptions.length > 1
-
-                StyledComboBox {
-                    id: refreshRateCombo
-                    Layout.fillWidth: true
-                    enabled: !root.displayControlsLocked
-                    model: root.refreshOptions
-                    textRole: "displayName"
-                    onActivated: root.safeApplyOutput("mode", "mode", `${root.currentResolution}@${model[currentIndex].rateString}`)
-                }
-            }
-
-            ContentSubsection {
-                title: Translation.tr("Output position")
-                tooltip: Translation.tr("Logical coordinates in Niri global space. Useful for stacked or side-by-side monitor layouts.")
-                visible: root.currentOutput !== null
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 8
-
-                    ConfigSpinBox {
-                        id: positionXSpin
-                        Layout.fillWidth: true
-                        enabled: !root.displayControlsLocked
-                        text: "X"
-                        value: root.currentOutput?.position?.x ?? 0
-                        from: -10000
-                        to: 10000
-                        stepSize: 10
-                        onValueChanged: {
-                            if (!root.outputReady || !root.positionEditorReady) return
-                            root.applyAndPersistOutput("position", `${value},${positionYSpin.value}`)
-                        }
-                    }
-
-                    ConfigSpinBox {
-                        id: positionYSpin
-                        Layout.fillWidth: true
-                        enabled: !root.displayControlsLocked
-                        text: "Y"
-                        value: root.currentOutput?.position?.y ?? 0
-                        from: -10000
-                        to: 10000
-                        stepSize: 10
-                        onValueChanged: {
-                            if (!root.outputReady || !root.positionEditorReady) return
-                            root.applyAndPersistOutput("position", `${positionXSpin.value},${value}`)
-                        }
-                    }
-                }
-            }
-
-            ContentSubsection {
-                title: Translation.tr("Scale")
-
-                StyledComboBox {
-                    id: scaleCombo
-                    Layout.fillWidth: true
-                    enabled: !root.displayControlsLocked
-                    model: root.scaleOptions
-                    textRole: "displayName"
-                    onActivated: root.safeApplyOutput("scale", "scale", String(model[currentIndex].value))
-                }
-            }
-
-            ContentSubsection {
-                title: Translation.tr("Rotation")
-
-                StyledComboBox {
-                    id: rotationCombo
-                    Layout.fillWidth: true
-                    enabled: !root.displayControlsLocked
-                    model: root.transformOptions
-                    textRole: "displayName"
-                    onActivated: root.safeApplyOutput("transform", "transform", model[currentIndex].value)
-                }
-            }
-
-            ContentSubsection {
-                title: Translation.tr("Variable refresh rate (VRR)")
-                tooltip: Translation.tr("Adaptive sync / FreeSync / G-Sync. Reduces tearing in games and video.")
-                visible: root.vrrSupported
-
-                SettingsSwitch {
-                    Layout.fillWidth: true
-                    enabled: !root.displayControlsLocked
-                    buttonIcon: "display_settings"
-                    text: Translation.tr("Enable VRR")
-                    checked: root.vrrEnabled
-                    onCheckedChanged: {
-                        if (!root.outputReady) return
-                        root.applyAndPersistOutput("vrr", checked ? "on" : "off")
-                    }
-                }
+                pageRoot: root
             }
         }
     }

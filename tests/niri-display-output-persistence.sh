@@ -121,6 +121,83 @@ dp1_count=$(grep -c '^[[:space:]]*output "DP-1"' "$runtime_config/niri/config.d/
 (( dp1_count == 1 )) || fail "persist-output should not duplicate active output blocks"
 
 XDG_CONFIG_HOME="$runtime_config" \
+  python3 "$ROOT_DIR/shell/scripts/niri-config.py" persist-outputs \
+    '[{"name":"DP-1","changes":{"mode":"2560x1440@240.000","scale":"1.25","position":"0,0","transform":"90","vrr":"on-demand"}},{"name":"HDMI-A-1","changes":{"mode":"1920x1080@60.000","scale":"1","position":"2560,0","vrr":"off"}}]' \
+  >"$tmp_dir/persist-batch.json"
+
+python3 - "$tmp_dir/persist-batch.json" "$runtime_config/niri/config.d/15-outputs.kdl" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+data = json.loads(Path(sys.argv[1]).read_text())
+expected_file = Path(sys.argv[2])
+
+if data.get("success") is not True:
+    raise SystemExit("persist-outputs should report success")
+if Path(data.get("file", "")) != expected_file:
+    raise SystemExit("persist-outputs should write config.d/15-outputs.kdl")
+if data.get("outputs") != 2:
+    raise SystemExit("persist-outputs should report the number of updated outputs")
+PY
+
+assert_contains "$runtime_config/niri/config.d/15-outputs.kdl" 'output "HDMI-A-1"' \
+  "persist-outputs should create additional output blocks"
+assert_contains "$runtime_config/niri/config.d/15-outputs.kdl" 'scale 1\.25' \
+  "persist-outputs should persist scale changes"
+assert_contains "$runtime_config/niri/config.d/15-outputs.kdl" 'position x=2560 y=0' \
+  "persist-outputs should persist monitor positions"
+assert_contains "$runtime_config/niri/config.d/15-outputs.kdl" 'transform "90"' \
+  "persist-outputs should persist monitor transforms"
+assert_contains "$runtime_config/niri/config.d/15-outputs.kdl" 'variable-refresh-rate on-demand=true' \
+  "persist-outputs should persist Niri VRR on-demand"
+dp1_count=$(grep -c '^[[:space:]]*output "DP-1"' "$runtime_config/niri/config.d/15-outputs.kdl" || true)
+hdmi_count=$(grep -c '^[[:space:]]*output "HDMI-A-1"' "$runtime_config/niri/config.d/15-outputs.kdl" || true)
+(( dp1_count == 1 )) || fail "persist-outputs should not duplicate existing DP-1 blocks"
+(( hdmi_count == 1 )) || fail "persist-outputs should not duplicate new HDMI-A-1 blocks"
+
+fake_bin="$tmp_dir/bin"
+mkdir -p "$fake_bin"
+cat >"$fake_bin/niri" <<'SH'
+#!/bin/bash
+printf '%s\n' "$*" >> "$NIRI_CALL_LOG"
+
+if [[ $1 == "msg" && ${2:-} == "output" ]]; then
+  exit 0
+fi
+
+echo "unexpected niri call: $*" >&2
+exit 1
+SH
+chmod +x "$fake_bin/niri"
+
+NIRI_CALL_LOG="$tmp_dir/niri-calls.log" PATH="$fake_bin:$PATH" \
+  python3 "$ROOT_DIR/shell/scripts/niri-config.py" apply-outputs \
+    '[{"name":"DP-1","changes":{"position":"0,0","scale":"1.25"}},{"name":"HDMI-A-1","changes":{"mode":"1920x1080@60.000","vrr":"on"}}]' \
+  >"$tmp_dir/apply-batch.json"
+
+python3 - "$tmp_dir/apply-batch.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+data = json.loads(Path(sys.argv[1]).read_text())
+if data.get("success") is not True:
+    raise SystemExit("apply-outputs should report success")
+if len(data.get("results", [])) != 4:
+    raise SystemExit("apply-outputs should report every per-output change")
+PY
+
+assert_contains "$tmp_dir/niri-calls.log" '^msg output DP-1 position set 0 0$' \
+  "apply-outputs should apply DP-1 position through niri msg"
+assert_contains "$tmp_dir/niri-calls.log" '^msg output DP-1 scale 1\.25$' \
+  "apply-outputs should apply DP-1 scale through niri msg"
+assert_contains "$tmp_dir/niri-calls.log" '^msg output HDMI-A-1 mode 1920x1080@60\.000$' \
+  "apply-outputs should apply HDMI-A-1 mode through niri msg"
+assert_contains "$tmp_dir/niri-calls.log" '^msg output HDMI-A-1 vrr on$' \
+  "apply-outputs should apply HDMI-A-1 VRR through niri msg"
+
+XDG_CONFIG_HOME="$runtime_config" \
   python3 "$ROOT_DIR/shell/scripts/niri-config.py" detect-customizations \
   >"$tmp_dir/customizations.json"
 

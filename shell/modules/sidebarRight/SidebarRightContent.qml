@@ -133,7 +133,7 @@ Item {
 
         clip: true
 
-        layer.enabled: !gameModeMinimal
+        layer.enabled: GlobalStates.sidebarRightOpen && !gameModeMinimal
         layer.effect: GE.OpacityMask {
             maskSource: Rectangle {
                 width: sidebarRightBackground.width
