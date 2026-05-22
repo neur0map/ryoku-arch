@@ -21,7 +21,13 @@ Scope {
     readonly property bool hasLocalMods: ShellUpdates.localModifications.length > 0
     property bool confirmingChannelSwitch: false
     property bool modsExpanded: false
+    property bool changelogExpanded: false
     property bool suppressOutsideClose: false
+    readonly property string updateChangelog: extractNewChangelog(
+        ShellUpdates.remoteChangelog,
+        ShellUpdates.localVersion,
+        ShellUpdates.remoteVersion
+    )
 
     // Style-aware tokens (no hardcoded hex fallbacks)
     readonly property color accentColor: Appearance.angelEverywhere ? Appearance.angel.colPrimary
@@ -112,9 +118,11 @@ Scope {
         confirmingChannelSwitch = false
         if (!isOpen) {
             modsExpanded = false
+            changelogExpanded = false
             suppressOutsideClose = false
             return
         }
+        changelogExpanded = false
         suppressOutsideClose = true
         outsideCloseGuard.restart()
     }
@@ -957,32 +965,59 @@ Scope {
                                 }
                             }
 
-                            // ── Changelog Section (only when update available) ──
+                            // ── Changelog Section (collapsed until requested) ──
                             ColumnLayout {
-                                visible: root.hasUpdate && changelogText.text.length > 0
+                                visible: root.hasUpdate && root.updateChangelog.length > 0
                                 Layout.fillWidth: true
                                 Layout.leftMargin: 24
                                 Layout.rightMargin: 24
                                 spacing: 8
 
-                                RowLayout {
-                                    spacing: 8
-                                    MaterialSymbol {
-                                        text: "description"
-                                        iconSize: Appearance.font.pixelSize.normal
-                                        color: root.accentColor
-                                    }
-                                    StyledText {
-                                        text: Translation.tr("What's New")
-                                        font {
-                                            pixelSize: Appearance.font.pixelSize.normal
-                                            weight: Font.DemiBold
+                                MouseArea {
+                                    Layout.fillWidth: true
+                                    implicitHeight: changelogHeaderRow.implicitHeight + 8
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.changelogExpanded = !root.changelogExpanded
+
+                                    RowLayout {
+                                        id: changelogHeaderRow
+                                        anchors {
+                                            left: parent.left
+                                            right: parent.right
+                                            verticalCenter: parent.verticalCenter
                                         }
-                                        color: root.textColor
+                                        spacing: 8
+
+                                        MaterialSymbol {
+                                            text: "description"
+                                            iconSize: Appearance.font.pixelSize.normal
+                                            color: root.accentColor
+                                        }
+                                        StyledText {
+                                            text: Translation.tr("What's New")
+                                            font {
+                                                pixelSize: Appearance.font.pixelSize.normal
+                                                weight: Font.DemiBold
+                                            }
+                                            color: root.textColor
+                                        }
+                                        StyledText {
+                                            Layout.fillWidth: true
+                                            text: root.changelogExpanded ? Translation.tr("Hide changelog") : Translation.tr("Show changelog")
+                                            font.pixelSize: Appearance.font.pixelSize.smallest
+                                            color: root.subtextColor
+                                            horizontalAlignment: Text.AlignRight
+                                        }
+                                        MaterialSymbol {
+                                            text: root.changelogExpanded ? "expand_less" : "expand_more"
+                                            iconSize: Appearance.font.pixelSize.normal
+                                            color: root.subtextColor
+                                        }
                                     }
                                 }
 
                                 Rectangle {
+                                    visible: root.changelogExpanded
                                     Layout.fillWidth: true
                                     implicitHeight: changelogText.implicitHeight + 24
                                     radius: root.sectionRadius
@@ -996,11 +1031,7 @@ Scope {
                                             fill: parent
                                             margins: 12
                                         }
-                                        text: root.extractNewChangelog(
-                                            ShellUpdates.remoteChangelog,
-                                            ShellUpdates.localVersion,
-                                            ShellUpdates.remoteVersion
-                                        )
+                                        text: root.updateChangelog
                                         font {
                                             pixelSize: Appearance.font.pixelSize.small
                                             family: Appearance.font.family.monospace
