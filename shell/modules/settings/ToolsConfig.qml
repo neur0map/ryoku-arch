@@ -7,8 +7,6 @@ import qs.services
 import qs.modules.common
 import qs.modules.common.widgets
 
-// qmllint disable signal-handler-parameters
-
 ContentPage {
     id: root
     settingsPageIndex: 6
