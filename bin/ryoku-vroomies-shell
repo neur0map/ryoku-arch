@@ -1,0 +1,97 @@
+#!/bin/bash
+
+set -euo pipefail
+
+default_runtime_dir="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-vroomies-shell"
+runtime_dir="${RYOKU_VROOMIES_SHELL_DIR:-$default_runtime_dir}"
+qs_bin="${RYOKU_QS_BIN:-qs}"
+qs_config_name="ryoku-vroomies-shell"
+qs_args=()
+
+usage() {
+  cat <<'EOF'
+Usage: ryoku-vroomies-shell [run|daemon|restart|stop|status|path|ipc|launcher]
+
+Runs the Vroomies-based Quickshell runtime for the rebirth Hyprland session.
+EOF
+}
+
+require_runtime() {
+  [[ -f $runtime_dir/shell.qml ]] || {
+    echo "ryoku-vroomies-shell: missing runtime at $runtime_dir" >&2
+    exit 1
+  }
+}
+
+require_runtime_file() {
+  local path="$1"
+
+  [[ -f $runtime_dir/$path ]] || {
+    echo "ryoku-vroomies-shell: missing runtime file at $runtime_dir/$path" >&2
+    exit 1
+  }
+}
+
+select_qs_config() {
+  case "$runtime_dir" in
+    "$default_runtime_dir")
+      export QS_CONFIG_NAME="$qs_config_name"
+      unset QS_CONFIG_PATH
+      qs_args=(-c "$QS_CONFIG_NAME")
+      ;;
+    *)
+      export QS_CONFIG_PATH="$RYOKU_VROOMIES_SHELL_DIR"
+      unset QS_CONFIG_NAME
+      qs_args=(-p "$QS_CONFIG_PATH")
+      ;;
+  esac
+}
+
+export RYOKU_VROOMIES_SHELL_DIR="$runtime_dir"
+export RYOKU_VROOMIES_WRAPPER="${RYOKU_VROOMIES_WRAPPER:-$HOME/.local/bin/ryoku-vroomies-shell}"
+select_qs_config
+
+command="${1:-run}"
+(($# == 0)) || shift
+case "$command" in
+  run)
+    require_runtime
+    exec "$qs_bin" "${qs_args[@]}"
+    ;;
+  daemon)
+    require_runtime
+    exec "$qs_bin" -d "${qs_args[@]}"
+    ;;
+  restart)
+    require_runtime
+    "$qs_bin" kill "${qs_args[@]}" --any-display >/dev/null 2>&1 || true
+    exec "$qs_bin" -d "${qs_args[@]}"
+    ;;
+  stop)
+    "$qs_bin" kill "${qs_args[@]}" --any-display
+    ;;
+  status)
+    "$qs_bin" list --all
+    ;;
+  ipc)
+    require_runtime
+    exec "$qs_bin" "${qs_args[@]}" ipc "$@"
+    ;;
+  launcher)
+    require_runtime_file "components/Launcher/Sway.qml"
+    export QS_CONFIG_PATH="$runtime_dir/components/Launcher/Sway.qml"
+    unset QS_CONFIG_NAME
+    exec "$qs_bin" -p "$QS_CONFIG_PATH"
+    ;;
+  path)
+    printf '%s\n' "$RYOKU_VROOMIES_SHELL_DIR"
+    ;;
+  -h|--help|help)
+    usage
+    ;;
+  *)
+    echo "ryoku-vroomies-shell: unknown command: $command" >&2
+    usage >&2
+    exit 1
+    ;;
+esac
