@@ -155,6 +155,7 @@ The kanji-block art used by `boot.sh` is also hand-drawn block-text (`█` and f
 | SDDM greeter | Current shell-provided theme | Upstream login theme until the Ryoku rebrand pass |
 | Niri session | `themes/<theme>/` per active theme | Greek Noir is the brand-accurate one; other themes are user-selectable but not "the brand" |
 | First-boot welcome notification | `install/first-run/welcome.sh` | Branded notification copy |
+| Fastfetch terminal greeting | `assets/brand/logo-mark.png` via `config/fastfetch/config.jsonc`; dispatched by `bin/ryoku-fastfetch` | Kanji `力` via kitty graphics on kitty/ghostty/wezterm; libchafa-rendered ANSI fallback on every other terminal. Branch line uses `ryoku-version-branch`. |
 
 ## What "on-brand" means
 

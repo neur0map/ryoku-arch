@@ -21,9 +21,9 @@ if status is-interactive
   end
 
   # Show the Ryoku startup logo once per terminal environment
-  if command -v fastfetch >/dev/null 2>&1; and test -z "$RYOKU_FASTFETCH_SHOWN"
+  if command -v ryoku-fastfetch >/dev/null 2>&1; and test -z "$RYOKU_FASTFETCH_SHOWN"
     set -gx RYOKU_FASTFETCH_SHOWN 1
-    fastfetch
+    ryoku-fastfetch
   end
 
   # Use starship prompt

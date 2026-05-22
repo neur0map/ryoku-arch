@@ -1,156 +1,32 @@
 {
   "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
   "logo": {
-    "type": "file",
-    "source": "~/.config/ryoku/branding/about.txt",
-    "color": { "1": "#8F1D21" },
-    "padding": {
-      "top": 2,
-      "right": 6,
-      "left": 2
-    }
+    "type": "kitty-direct",
+    "source": "~/.local/share/ryoku/assets/brand/logo-mark.png",
+    "width": 16,
+    "height": 8,
+    "padding": { "top": 4, "right": 4, "left": 2 }
   },
   "modules": [
     "break",
-    {
-      "type": "custom",
-      "format": "\u001b[90m┌──────────────────────Hardware──────────────────────┐"
-    },
-    {
-      "type": "host",
-      "key": " PC",
-      "keyColor": "green"
-    },
-    {
-      "type": "cpu",
-      "key": "│ ├",
-      "showPeCoreCount": true,
-      "keyColor": "green"
-    },
-    {
-      "type": "gpu",
-      "key": "│ ├",
-      "detectionMethod": "pci",
-      "keyColor": "green"
-    },
-    {
-      "type": "display",
-      "key": "│ ├󱄄",
-      "keyColor": "green"
-    },
-    {
-      "type": "disk",
-      "key": "│ ├󰋊",
-      "keyColor": "green"
-    },
-    {
-      "type": "memory",
-      "key": "│ ├",
-      "keyColor": "green"
-    },
-    {
-      "type": "swap",
-      "key": "└ └󰓡 ",
-      "keyColor": "green"
-    },
-    {
-      "type": "custom",
-      "format": "\u001b[90m└────────────────────────────────────────────────────┘"
-    },
+    { "type": "host",     "key": " 󰌢  PC      ", "keyColor": "red" },
+    { "type": "cpu",      "key": " 󰻟  CPU     ", "keyColor": "red" },
+    { "type": "gpu",      "key": " 󰢮  GPU     ", "keyColor": "red", "detectionMethod": "pci" },
+    { "type": "memory",   "key": " 󰍛  Memory  ", "keyColor": "red" },
+    { "type": "disk",     "key": " 󰋊  Disk    ", "keyColor": "red" },
     "break",
-    {
-      "type": "custom",
-      "format": "\u001b[90m┌──────────────────────Software──────────────────────┐"
-    },
-    {
-      "type": "command",
-      "key": "\ue900 OS",
-      "keyColor": "blue",
-      "text": "version=$(ryoku-version); echo \"Ryoku $version\""
-    },
-    {
-      "type": "command",
-      "key": "│ ├󰘬",
-      "keyColor": "blue",
-      "text": "branch=$(ryoku-version-branch); echo \"$branch\""
-    },
-    {
-      "type": "command",
-      "key": "│ ├󰔫",
-      "keyColor": "blue",
-      "text": "channel=$(ryoku-version-channel); echo \"$channel\""
-    },
-    {
-      "type": "kernel",
-      "key": "│ ├",
-      "keyColor": "blue"
-    },
-    {
-      "type": "wm",
-      "key": "│ ├",
-      "keyColor": "blue"
-    },
-    {
-      "type": "de",
-      "key": " DE",
-      "keyColor": "blue"
-    },
-    {
-      "type": "terminal",
-      "key": "│ ├",
-      "keyColor": "blue"
-    },
-    {
-      "type": "packages",
-      "key": "│ ├󰏖",
-      "keyColor": "blue"
-    },
-    {
-      "type": "wmtheme",
-      "key": "│ ├󰉼",
-      "keyColor": "blue"
-    },
-    {
-      "type": "command",
-      "key": "│ ├󰸌",
-      "keyColor": "blue",
-      "text": "theme=$(ryoku-theme-current); echo -e \"$theme \\e[38m●\\e[37m●\\e[36m●\\e[35m●\\e[34m●\\e[33m●\\e[32m●\\e[31m●\""
-    },
-    {
-      "type": "terminalfont",
-      "key": "└ └",
-      "keyColor": "blue"
-    },
-    {
-      "type": "custom",
-      "format": "\u001b[90m└────────────────────────────────────────────────────┘"
-    },
+    { "type": "command",  "key": " 󰣇  OS      ", "keyColor": "red",
+      "text": "version=$(ryoku-version 2>/dev/null || echo dev); echo \"Ryoku $version\"" },
+    { "type": "command",  "key": " 󰘬  Branch  ", "keyColor": "red",
+      "text": "ryoku-version-branch 2>/dev/null || echo unknown" },
+    { "type": "kernel",   "key": " 󰌽  Kernel  ", "keyColor": "red" },
+    { "type": "wm",       "key": " 󰧨  WM      ", "keyColor": "red" },
+    { "type": "terminal", "key": " 󰆍  Term    ", "keyColor": "red" },
+    { "type": "packages", "key": " 󰏖  Pkgs    ", "keyColor": "red" },
     "break",
-    {
-      "type": "custom",
-      "format": "\u001b[90m┌────────────────Age / Uptime / Update───────────────┐"
-    },
-    {
-      "type": "command",
-      "key": "󱦟 OS Age",
-      "keyColor": "magenta",
-      "text": "echo $(( ($(date +%s) - $(stat -c %W /)) / 86400 )) days"
-    },
-    {
-      "type": "uptime",
-      "key": "󱫐 Uptime",
-      "keyColor": "magenta"
-    },
-    {
-      "type": "command",
-      "key": " Update",
-      "keyColor": "magenta",
-      "text": "updated=$(ryoku-version-pkgs); echo \"$updated\""
-    },
-    {
-      "type": "custom",
-      "format": "\u001b[90m└────────────────────────────────────────────────────┘"
-    },
+    { "type": "uptime",   "key": " 󱫐  Uptime  ", "keyColor": "red" },
+    { "type": "command",  "key": " 󱦟  Age     ", "keyColor": "red",
+      "text": "echo $(( ($(date +%s) - $(stat -c %W /)) / 86400 )) days" },
     "break"
   ]
 }

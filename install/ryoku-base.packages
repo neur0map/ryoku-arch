@@ -15,6 +15,7 @@
 # ── Shell, CLI tooling, fuzzy finders ─────────────────────────────────
 bash-completion
 bat
+chafa
 curl
 dust
 expac
