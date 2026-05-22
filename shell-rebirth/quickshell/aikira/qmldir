@@ -1,4 +1,0 @@
-module qs.aikira
-singleton Api 1.0 Api.qml
-singleton AppState 1.0 AppState.qml
-Aikira 1.0 Aikira.qml

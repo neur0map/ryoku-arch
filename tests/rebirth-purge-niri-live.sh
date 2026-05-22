@@ -23,15 +23,13 @@ mkdir -p \
   "$home/.config/niri" \
   "$home/.config/systemd/user/niri.service.wants" \
   "$home/.config/hypr" \
-  "$home/.config/quickshell/ryoku-rebirth-shell" \
   "$home/.local/state" \
   "$bin_dir" \
   "$state"
 
 printf 'niri config\n' > "$home/.config/niri/config.kdl"
 printf 'service link\n' > "$home/.config/systemd/user/niri.service.wants/ryoku-shell.service"
-printf 'exec-once = ryoku-rebirth-shell\n' > "$home/.config/hypr/hyprland.conf"
-printf 'shell\n' > "$home/.config/quickshell/ryoku-rebirth-shell/shell.qml"
+printf 'exec-once = hypridle -c ~/.config/hypr/hypridle-rebirth.conf\n' > "$home/.config/hypr/hyprland.conf"
 
 cat > "$bin_dir/ryoku-pkg-present" <<'SH'
 #!/bin/bash
@@ -103,5 +101,12 @@ snapshot_dir=$(sed -n 's/^Snapshot: //p' "$tmp_dir/purge.out" | tail -1)
   fail "purge should remove Niri service wiring"
 grep -Fq 'niri xdg-desktop-portal-gnome' "$state/pkg-remove.args" || \
   fail "purge should remove only Niri-specific packages"
+
+printf 'exec-once = ryoku-rebirth-shell\n' > "$home/.config/hypr/hyprland.conf"
+set +e
+"$PURGE" --confirm-niri-free --force >"$tmp_dir/shell-wired.out" 2>"$tmp_dir/shell-wired.err"
+status=$?
+set -e
+(( status == 77 )) || fail "purge should refuse when an experimental shell is still wired"
 
 echo "PASS: rebirth Niri purge is guarded by live Hyprland proof"

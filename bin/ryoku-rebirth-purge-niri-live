@@ -52,7 +52,6 @@ done
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 xdg_config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
 systemd_user_dir="$xdg_config_home/systemd/user"
-rebirth_shell_dir="$xdg_config_home/quickshell/ryoku-rebirth-shell"
 
 command_present() {
   command -v "$1" >/dev/null 2>&1
@@ -81,21 +80,21 @@ hyprland_active() {
   command_present hyprctl && hyprctl monitors -j >/dev/null 2>&1
 }
 
-require_rebirth_runtime() {
-  [[ -f $rebirth_shell_dir/shell.qml ]] || {
-    echo "ryoku-rebirth-purge-niri-live: missing $rebirth_shell_dir/shell.qml" >&2
-    exit 77
-  }
-
+require_rebirth_hyprland() {
   [[ -f $xdg_config_home/hypr/hyprland.conf ]] || {
     echo "ryoku-rebirth-purge-niri-live: missing $xdg_config_home/hypr/hyprland.conf" >&2
     exit 77
   }
 
-  grep -q 'ryoku-rebirth-shell' "$xdg_config_home/hypr/hyprland.conf" || {
-    echo "ryoku-rebirth-purge-niri-live: Hyprland config does not start ryoku-rebirth-shell" >&2
+  grep -q 'hypridle-rebirth.conf' "$xdg_config_home/hypr/hyprland.conf" || {
+    echo "ryoku-rebirth-purge-niri-live: Hyprland config does not look like rebirth Hyprland" >&2
     exit 77
   }
+
+  if grep -q 'ryoku-rebirth-shell\|ryoku-vroomies-shell' "$xdg_config_home/hypr/hyprland.conf"; then
+    echo "ryoku-rebirth-purge-niri-live: Hyprland config still starts an experimental shell" >&2
+    exit 77
+  fi
 }
 
 packages_to_remove=()
@@ -110,7 +109,7 @@ if ! hyprland_active; then
   exit 77
 fi
 
-require_rebirth_runtime
+require_rebirth_hyprland
 
 if ((${#packages_to_remove[@]} > 0)) && [[ $allow_auth_prompt == false ]] && ! can_install_without_prompt; then
   cat >&2 <<'EOF'
