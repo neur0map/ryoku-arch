@@ -55,6 +55,45 @@ legacy_migration_markers_exist() {
   return 1
 }
 
+migration_state_has_ryoku_epoch_markers() {
+  local marker filename prefix state_subdir
+
+  for state_subdir in "$STATE_DIR" "$STATE_DIR/skipped"; do
+    [[ -d $state_subdir ]] || continue
+
+    for marker in "$state_subdir"/*.sh; do
+      [[ -f $marker ]] || continue
+
+      filename=$(basename "$marker")
+      prefix="${filename%%[^0-9]*}"
+      [[ -n $prefix ]] || continue
+      (( prefix >= HISTORICAL_MIGRATION_CUTOFF )) && return 0
+    done
+  done
+
+  return 1
+}
+
+seed_current_migration_baseline() {
+  local file filename seeded
+
+  seeded=0
+
+  for file in "$RYOKU_PATH"/migrations/*.sh; do
+    [[ -f $file ]] || continue
+
+    filename=$(basename "$file")
+    [[ -f $STATE_DIR/$filename || -f $STATE_DIR/skipped/$filename ]] && continue
+
+    touch "$STATE_DIR/$filename"
+    ((seeded++))
+  done
+
+  if (( seeded > 0 )); then
+    echo "Seeded $seeded current migration baseline marker(s)"
+  fi
+}
+
 seed_historical_migration_markers() {
   local file filename prefix seeded
 
@@ -79,7 +118,11 @@ seed_historical_migration_markers() {
   fi
 }
 
-seed_historical_migration_markers
+if ! legacy_migration_markers_exist && ! migration_state_has_ryoku_epoch_markers; then
+  seed_current_migration_baseline
+else
+  seed_historical_migration_markers
+fi
 
 # Run any pending migrations
 for file in "$RYOKU_PATH"/migrations/*.sh; do

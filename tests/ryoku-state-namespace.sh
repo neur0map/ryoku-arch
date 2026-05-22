@@ -52,6 +52,7 @@ assert_migrate_repairs_self_linked_state_root() {
 
   cp "$ROOT_DIR/bin/ryoku-migrate" "$ryoku_dir/bin/ryoku-migrate"
   cp "$ROOT_DIR/lib/runtime-env.sh" "$ryoku_dir/lib/runtime-env.sh"
+  cp "$ROOT_DIR/lib/update-dashboard.sh" "$ryoku_dir/lib/update-dashboard.sh"
 
   cat > "$ryoku_dir/migrations/9999999999.sh" <<'MIGRATION'
 echo "No-op migration"

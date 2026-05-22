@@ -16,9 +16,10 @@ home_dir="$temp_dir/home"
 ryoku_dir="$temp_dir/ryoku"
 state_dir="$home_dir/.local/state/ryoku"
 old_ran="$temp_dir/old-ran"
-new_ran="$temp_dir/new-ran"
+cutover_ran="$temp_dir/cutover-ran"
 
-mkdir -p "$home_dir" "$ryoku_dir/migrations"
+mkdir -p "$home_dir" "$ryoku_dir/migrations" "$state_dir/migrations"
+touch "$state_dir/migrations/1751134560.sh"
 
 cat >"$ryoku_dir/migrations/1752643269.sh" <<MIGRATION
 #!/bin/bash
@@ -26,9 +27,9 @@ echo old >"$old_ran"
 exit 33
 MIGRATION
 
-cat >"$ryoku_dir/migrations/1776912972.sh" <<MIGRATION
+cat >"$ryoku_dir/migrations/1776979278.sh" <<MIGRATION
 #!/bin/bash
-echo new >"$new_ran"
+echo cutover >"$cutover_ran"
 MIGRATION
 
 HOME="$home_dir" \
@@ -40,9 +41,9 @@ HOME="$home_dir" \
   || fail "historical Omarchy-era migrations should not execute when no legacy state exists"
 [[ -f $state_dir/migrations/1752643269.sh ]] \
   || fail "historical migration should be marked as baseline"
-[[ -e $new_ran ]] \
-  || fail "Ryoku-era migrations should still run"
-[[ -f $state_dir/migrations/1776912972.sh ]] \
-  || fail "Ryoku-era migration should be recorded after running"
+[[ ! -e $cutover_ran ]] \
+  || fail "cutover migrations should not replay when Ryoku migration history is missing"
+[[ -f $state_dir/migrations/1776979278.sh ]] \
+  || fail "cutover migration should be marked as part of the current baseline"
 
-echo "PASS: ryoku-migrate seeds historical baseline migrations"
+echo "PASS: ryoku-migrate baselines missing migration history"
