@@ -284,9 +284,9 @@ assert_grep "background/A Glow.jpg" "$QML_PATH"
 
 # -- Page registration -------------------------------------------------
 assert_grep "LoginScreenConfig\\.qml"            "shell/settings.qml"
-assert_grep "LoginScreenConfig\\.qml"            "shell/modules/settings/SettingsOverlay.qml"
+assert_grep "LoginScreenConfig\\.qml"            "shell/settings.qml"
 # Search index has at least one entry referencing the new keyword
-assert_grep "qylock"                             "shell/modules/settings/SettingsOverlay.qml"
+assert_grep "qylock"                             "shell/settings.qml"
 
 # -- Settings About qylock attribution --------------------------------
 assert_grep "Darkkal44/qylock" "shell/modules/settings/About.qml"
@@ -297,7 +297,7 @@ assert_grep "columns: 2" "shell/modules/settings/About.qml"
 assert_order "GridLayout \\{" "qylock credit card" "shell/modules/settings/About.qml"
 assert_grep "pageIndex: 14, pageName: pages\\[14\\]\\.name" "shell/settings.qml"
 assert_grep 'keywords: \["about", "version", "credits", "github", "info", "qylock", "sddm"\]' "shell/settings.qml"
-assert_grep 'keywords: \["about", "version", "credits", "github", "info", "qylock", "sddm"\]' "shell/modules/settings/SettingsOverlay.qml"
+assert_grep 'keywords: \["about", "version", "credits", "github", "info", "qylock", "sddm"\]' "shell/settings.qml"
 assert_grep 'keywords: \["about", "version", "credits", "github", "info", "qylock", "sddm"\]' "shell/modules/waffle/settings/WSettingsContent.qml"
 
 # -- Credits attribution -----------------------------------------------

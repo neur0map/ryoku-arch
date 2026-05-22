@@ -78,7 +78,7 @@ require_rg 'IPC_II_TARGETS=\(background customWidgets overlay\)' shell/scripts/l
 reject_rg 'IPC_WAFFLE_TARGETS=\(background customWidgets' shell/scripts/lib/ipc-registry.sh
 require_rg 'Family: ii' shell/docs/IPC.md
 
-require_rg 'DesktopWidgetsConfig\.qml' shell/modules/settings/SettingsOverlay.qml
+require_rg 'DesktopWidgetsConfig\.qml' shell/settings.qml
 require_rg '\[background\]="toggleEditMode"' shell/scripts/lib/ipc-registry.sh
 require_rg 'toggleEditMode' shell/scripts/lib/ipc-registry.sh
 

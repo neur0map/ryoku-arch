@@ -829,7 +829,7 @@
     "showWallpaperSchemeChips": false
   },
   "settingsUi": {
-    "overlayMode": true,
+    "overlayMode": false,
     "easyMode": false,
     "overlayAppearance": {
       "scrimDim": 35,

@@ -923,7 +923,7 @@ ContentPage {
         SettingsGroup {
             StyledText {
                 Layout.fillWidth: true
-                text: Translation.tr("Choose how the Settings window opens. Overlay mode renders settings as a layer on top of the shell, so you can see changes to the bar, sidebars, and background in real time.")
+                text: Translation.tr("Settings opens in the kept iNiR-derived application window. The attempted Ryoku overlay remake was removed.")
                 color: Appearance.colors.colOnSurfaceVariant
                 font.pixelSize: Appearance.font.pixelSize.small
                 wrapMode: Text.WordWrap
@@ -940,8 +940,9 @@ ContentPage {
             }
 
             SettingsSwitch {
+                visible: false
                 buttonIcon: "layers"
-                text: Translation.tr("Overlay mode (live preview)")
+                text: Translation.tr("Overlay mode (removed)")
                 checked: Config.options?.settingsUi?.overlayMode ?? false
                 onCheckedChanged: Config.setNestedValue("settingsUi.overlayMode", checked)
                 StyledToolTip {
@@ -951,7 +952,7 @@ ContentPage {
 
             ContentSubsection {
                 title: Translation.tr("Overlay appearance")
-                visible: Config.options?.settingsUi?.overlayMode ?? false
+                visible: false
 
                 ConfigSpinBox {
                     icon: "water"
@@ -1007,7 +1008,7 @@ ContentPage {
                     spacing: 8
 
                     MaterialSymbol {
-                        text: (Config.options?.settingsUi?.overlayMode ?? false) ? "layers" : "open_in_new"
+                        text: "open_in_new"
                         iconSize: Appearance.font.pixelSize.huge
                         color: Appearance.m3colors.m3primary
                     }
@@ -1017,9 +1018,7 @@ ContentPage {
                         spacing: 2
 
                         StyledText {
-                            text: (Config.options?.settingsUi?.overlayMode ?? false)
-                                ? Translation.tr("Overlay mode")
-                                : Translation.tr("Window mode")
+                            text: Translation.tr("Window mode")
                             font {
                                 pixelSize: Appearance.font.pixelSize.small
                                 weight: Font.Medium
@@ -1028,9 +1027,7 @@ ContentPage {
                         }
                         StyledText {
                             Layout.fillWidth: true
-                            text: (Config.options?.settingsUi?.overlayMode ?? false)
-                                ? Translation.tr("Settings will open as a floating panel over the shell. Press Esc or click outside to close.")
-                                : Translation.tr("Settings will open as a separate application window (current behavior).")
+                            text: Translation.tr("Settings opens in the kept iNiR-derived application window.")
                             font.pixelSize: Appearance.font.pixelSize.smallest
                             color: Appearance.colors.colSubtext
                             wrapMode: Text.WordWrap

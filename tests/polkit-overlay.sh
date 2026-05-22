@@ -32,17 +32,17 @@ assert_contains "shell/modules/polkit/Polkit.qml" \
   "WlrLayershell\\.keyboardFocus: WlrKeyboardFocus\\.Exclusive" \
   "Ryoku polkit prompt must request exclusive keyboard focus"
 
-assert_contains "shell/modules/settings/SettingsOverlay.qml" \
+assert_contains "shell/settings.qml" \
   "property bool polkitActive: PolkitService\\.active" \
-  "Settings overlay must track active Ryoku polkit prompts"
+  "Settings app must track active Ryoku polkit prompts"
 
-assert_contains "shell/modules/settings/SettingsOverlay.qml" \
+assert_contains "shell/settings.qml" \
   "visible: root\\.settingsOpen && !root\\.polkitActive" \
-  "Settings overlay must yield visibility while polkit is active"
+  "Settings app must yield visibility while polkit is active"
 
-assert_contains "shell/modules/settings/SettingsOverlay.qml" \
+assert_contains "shell/settings.qml" \
   "grab\\.active = root\\.settingsOpen && !root\\.polkitActive" \
-  "Settings overlay focus grab must yield while polkit is active"
+  "Settings app focus grab must yield while polkit is active"
 
 assert_not_contains "config/niri/config.d/50-startup.kdl" \
   "spawn-at-startup \"/usr/lib/($polkit_agents)" \

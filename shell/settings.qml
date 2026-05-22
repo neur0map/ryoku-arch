@@ -2150,9 +2150,10 @@ ApplicationWindow {
                     }
                 }
 
-                // Overlay mode toggle at bottom of nav rail
+                // Deleted Ryoku overlay remake; keep this iNiR-derived Settings app.
                 RippleButton {
                     id: overlayToggleBtn
+                    visible: false
                     anchors.bottom: parent.bottom
                     anchors.left: parent.left
                     anchors.right: parent.right
@@ -2163,8 +2164,8 @@ ApplicationWindow {
                     colBackgroundHover: Appearance.colors.colLayer1Hover
 
                     onClicked: {
-                        Config.setNestedValue("settingsUi.overlayMode", true)
-                        settingsRestartTimer.restart()
+                        // Overlay remake removed; this app remains canonical.
+                        return
                     }
 
                     contentItem: RowLayout {
