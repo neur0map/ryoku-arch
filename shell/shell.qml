@@ -177,21 +177,30 @@ ShellRoot {
             Config.setNestedValue("enabledPanels", panels)
     }
 
-    // IPC for settings: keep the iNiR-derived settings.qml app as the canonical surface.
+    // IPC for the official Ryoku settings surface.
     IpcHandler {
         target: "settings"
         function open(): void {
-            Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"), "settings-window"])
+            GlobalStates.settingsOverlayOpen = true
         }
         function toggle(): void {
-            open()
+            GlobalStates.settingsOverlayOpen = !GlobalStates.settingsOverlayOpen
         }
         // Re-apply the active theme in the main-shell process. The settings
-        // window calls this after a Config write so the main shell's Appearance
-        // state gets pulled from the just-written config.
+        // window (a separate process) calls this after a Config write so the
+        // main shell's Appearance.m3colors gets pulled from the just-written
+        // customTheme / theme config. We pass applyExternal=true so this is
+        // also the single place that runs scripts/colors/applycolor.sh: the
+        // settings window does NOT run that pipeline, to avoid a double-run.
         function applyTheme(): void {
             ThemeService.applyCurrentTheme(true)
         }
+    }
+
+    // Settings overlay panel is resident so Mod+Comma feels like shell UI, not app launch.
+    LazyLoader {
+        active: Config.ready
+        component: SettingsOverlay {}
     }
 
     // === Panel Loaders ===

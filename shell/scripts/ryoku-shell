@@ -1359,9 +1359,44 @@ restart_shell() {
 }
 
 open_settings() {
-    # Keep the iNiR-derived settings app as the user-facing settings surface.
-    # The attempted Ryoku remake (ryokuSettings.qml / SettingsOverlay.qml) was removed.
-    open_settings_surface "$@"
+    local settings_function="open"
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -c|--config)
+                parse_config_flag "$@"
+                shift 2
+                ;;
+            --centered|--window)
+                # Explicit detached-window requests keep the legacy settings surface.
+                open_settings_surface "$@"
+                return
+                ;;
+            open|toggle)
+                settings_function="$1"
+                shift
+                ;;
+            -h|--help)
+                echo "Usage: ryoku-shell settings [-c PATH] [open|toggle] [--centered|--window]" >&2
+                exit 0
+                ;;
+            *)
+                echo "Unknown option: $1" >&2
+                exit 1
+                ;;
+        esac
+    done
+
+    resolve_config_dir
+    if ! ensure_running_instance "$config_dir"; then
+        echo "Timed out waiting for Ryoku shell to start" >&2
+        exit 1
+    fi
+
+    if ! "$qs_bin" -p "$config_dir" ipc call -- settings "$settings_function" 2>/dev/null; then
+        has_instances "$config_dir" && sleep 0.5
+        exec "$qs_bin" -p "$config_dir" ipc call -- settings "$settings_function"
+    fi
 }
 
 settings_launch_mode() {
@@ -1411,7 +1446,7 @@ open_settings_surface() {
         settings_mode="$(settings_launch_mode)"
     fi
     export RYOKU_SETTINGS_MODE="$settings_mode"
-    open_detached_qml_window "$config_dir" "settings.qml"
+    open_detached_qml_window "$config_dir" "ryokuSettings.qml"
 }
 
 open_detached_qml_window() {

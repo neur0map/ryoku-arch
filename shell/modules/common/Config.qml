@@ -2039,7 +2039,7 @@ Singleton {
             }
 
             property JsonObject settingsUi: JsonObject {
-                property bool overlayMode: false // deleted overlay remake; keep iNiR-derived settings window
+                property bool overlayMode: true  // true = resident layer-shell overlay (default), false = explicit detached recovery window
                 property bool easyMode: false    // true = curated essentials only; nav and sub-sections filter to a friendlier subset
                 property string launchMode: "centered" // centered = floating settings panel, window = normal compositor placement
                 property JsonObject focusRing: JsonObject {

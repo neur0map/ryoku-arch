@@ -76,7 +76,7 @@ assert_no_match "shell/settings.qml" "${UPSTREAM_NAME}|${UPSTREAM_NAME_TITLE}|sn
   "settings window should label Ryoku"
 assert_no_match "shell/modules/settings/ThemesConfig.qml" "${UPSTREAM_NAME}|${UPSTREAM_NAME_TITLE}" \
   "theme settings should expose Ryoku style naming"
-assert_no_match "shell/settings.qml" "${UPSTREAM_NAME}|${UPSTREAM_NAME_TITLE}" \
+assert_no_match "shell/modules/settings/SettingsOverlay.qml" "${UPSTREAM_NAME}|${UPSTREAM_NAME_TITLE}" \
   "settings search should expose Ryoku style naming"
 assert_no_match "shell/modules/waffle/settings/pages/WThemesPage.qml" "${UPSTREAM_NAME}|${UPSTREAM_NAME_TITLE}" \
   "waffle theme settings should expose Ryoku style naming"

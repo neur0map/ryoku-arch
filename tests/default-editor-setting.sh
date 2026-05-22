@@ -45,7 +45,7 @@ assert_contains "shell/services/AppLauncher.qml" 'Quickshell.execDetached(["ryok
 assert_contains "shell/modules/common/Config.qml" 'property string editor: "nvim"'
 assert_contains "shell/defaults/config.json" '"editor": "nvim"'
 assert_contains "shell/settings.qml" "neovim"
-assert_contains "shell/settings.qml" "zed"
+assert_contains "shell/modules/settings/SettingsOverlay.qml" "zed"
 assert_contains "bin/ryoku-update-default-editor" "dev.zed.Zed.desktop"
 assert_contains "bin/ryoku-update-default-editor" "xdg-mime default"
 assert_contains "config/yazi/yazi.toml" "ryoku-launch-editor --in-place %s"
