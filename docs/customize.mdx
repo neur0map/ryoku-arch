@@ -7,7 +7,7 @@ description: Themes, wallpapers, bar items, keybinds. Most customization is reac
 This page is being expanded. The skeleton is here; per-surface deep dives land next.
 </Note>
 
-## Settings (`Mod+Comma`)
+## Settings (`Mod+S`)
 
 Most knobs are here:
 
@@ -23,7 +23,7 @@ Every bar widget is meant to be toggleable, removable, and rearrangeable from Se
 
 ## Wallpapers
 
-- `Ctrl+Alt+T` opens the wallpaper picker.
+- Use Settings to open the wallpaper picker.
 - Drop files into `~/Pictures/Wallpapers`. The picker auto-discovers new ones.
 - The left sidebar's **Wallhaven** tab searches and applies wallpapers from wallhaven.cc directly.
 - Theme colors regenerate from the selected wallpaper unless you've set a static accent in Settings → Appearance.
@@ -44,17 +44,17 @@ Switch in Settings → Appearance. Each skin reads the same color tokens, so cha
 
 ## Keybinds
 
-The shipped binds live in `~/.config/niri/config.d/70-binds.kdl`. To override:
+The shipped binds live in `~/.config/hypr/hyprland.conf`, with user additions sourced from `~/.config/hypr/ryoku-user-binds.conf`. To override:
 
-- Drop a new file under `~/.config/niri/config.d/` named higher than `70-` (e.g., `90-my-binds.kdl`).
-- Niri reads `config.d/` files in lexical order; later files win.
-- See the [keybindings](/docs/keybindings) reference for what's bound today.
+- Add user binds through `ryoku-keybinds add ...` or edit `~/.config/hypr/ryoku-user-binds.conf`.
+- Hyprland loads that file from the main config, so user entries stay separate from shipped defaults.
+- Use `Super+/` for the live keybind legend. See the [keybindings](/docs/keybindings) reference for the documented baseline.
 
 ## Advanced
 
 For anything that doesn't have a Settings switch:
 
-- **Niri layout:** `~/.config/niri/config.kdl`. Niri docs: https://github.com/YaLTeR/niri/wiki
+- **Hyprland layout:** `~/.config/hypr/hyprland.conf`. Hyprland docs: https://wiki.hypr.land/
 - **Shell config (raw JSON):** `~/.config/illogical-impulse/config.json`. Settings writes here; you can hand-edit when you know what you want.
 - **Theme palette overrides:** `~/.config/matugen/templates/` and `~/.local/state/quickshell/user/generated/`. See [`docs/branding.md`](/docs/branding) for the brand-color anchors.
 

@@ -36,6 +36,8 @@ assert_contains 'ipc_call drawers toggle dashboard' \
   "dashboard command should route through the drawers IPC target"
 assert_contains 'ipc_call controlCenter toggle' \
   "settings command should toggle the control center"
+assert_contains 'ipc_call keybinds toggle' \
+  "keybinds command should toggle the keybind legend"
 assert_contains 'ipc_call lock lock' \
   "lock command should route through the lock IPC target"
 assert_contains 'ipc_call picker openFreeze' \
@@ -75,6 +77,7 @@ run_launcher() {
 run_launcher settings
 run_launcher launcher
 run_launcher session
+run_launcher keybinds
 run_launcher screenshot
 run_launcher ipc controlCenter close
 
@@ -83,6 +86,7 @@ expected="$tmp_dir/expected"
   printf '<-p><%s><ipc><call><controlCenter><toggle>\n' "$runtime_dir"
   printf '<-p><%s><ipc><call><drawers><toggle><launcher>\n' "$runtime_dir"
   printf '<-p><%s><ipc><call><drawers><toggle><session>\n' "$runtime_dir"
+  printf '<-p><%s><ipc><call><keybinds><toggle>\n' "$runtime_dir"
   printf '<-p><%s><ipc><call><picker><openFreeze>\n' "$runtime_dir"
   printf '<-p><%s><ipc><call><controlCenter><close>\n' "$runtime_dir"
 } >"$expected"

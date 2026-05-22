@@ -1,0 +1,328 @@
+#!/bin/bash
+
+set -euo pipefail
+
+hypr_config="${RYOKU_HYPR_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland.conf}"
+user_binds="${RYOKU_HYPR_USER_BINDS:-${XDG_CONFIG_HOME:-$HOME/.config}/hypr/ryoku-user-binds.conf}"
+
+usage() {
+  cat >&2 <<'EOF'
+Usage:
+  ryoku-keybinds list
+  ryoku-keybinds add --mods MODS --key KEY --dispatcher DISPATCHER --arg ARG [--description TEXT]
+  ryoku-keybinds ensure
+EOF
+}
+
+command_present() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+json_quote() {
+  jq -Rn --arg value "$1" '$value'
+}
+
+normalise_key() {
+  local key="$1"
+
+  case "${key,,}" in
+    slash|/)
+      printf '/\n'
+      ;;
+    return)
+      printf 'Enter\n'
+      ;;
+    escape)
+      printf 'Esc\n'
+      ;;
+    space)
+      printf 'Space\n'
+      ;;
+    *)
+      printf '%s\n' "$key"
+      ;;
+  esac
+}
+
+ensure_user_include() {
+  mkdir -p "$(dirname -- "$user_binds")"
+  [[ -f $user_binds ]] || : >"$user_binds"
+
+  mkdir -p "$(dirname -- "$hypr_config")"
+  [[ -f $hypr_config ]] || : >"$hypr_config"
+
+  if ! grep -Eq '^[[:space:]]*source[[:space:]]*=[[:space:]]*~/.config/hypr/ryoku-user-binds\.conf[[:space:]]*$' "$hypr_config"; then
+    printf '\nsource = ~/.config/hypr/ryoku-user-binds.conf\n' >>"$hypr_config"
+  fi
+
+  if ! grep -Eq '^[[:space:]]*[$]keybinds[[:space:]]*=' "$hypr_config"; then
+    printf '%s\n' "\$keybinds = sh -lc '\$HOME/.local/bin/ryoku-shell keybinds'" >>"$hypr_config"
+  fi
+
+  if ! grep -Eq '^[[:space:]]*bind[[:space:]]*=[[:space:]]*SUPER,[[:space:]]*slash,[[:space:]]*exec,[[:space:]]*[$]keybinds[[:space:]]*$' "$hypr_config"; then
+    printf '%s\n' "bind = SUPER, slash, exec, \$keybinds" >>"$hypr_config"
+  fi
+}
+
+description_for() {
+  local dispatcher="$1"
+  local arg="$2"
+  local key="$3"
+
+  case "$dispatcher:$arg" in
+    *"ryoku-shell launcher"*)
+      printf 'Launcher\n'
+      ;;
+    *"ryoku-shell settings"*)
+      printf 'Settings\n'
+      ;;
+    *"ryoku-shell session"*)
+      printf 'Session\n'
+      ;;
+    *"ryoku-shell keybinds"*)
+      printf 'Keybinds\n'
+      ;;
+    exec:*)
+      printf '%s\n' "$arg"
+      ;;
+    killactive:*)
+      printf 'Close window\n'
+      ;;
+    fullscreen:*)
+      printf 'Fullscreen\n'
+      ;;
+    togglefloating:*)
+      printf 'Toggle floating\n'
+      ;;
+    workspace:*)
+      printf 'Workspace %s\n' "$arg"
+      ;;
+    movetoworkspace:*)
+      printf 'Move to workspace %s\n' "$arg"
+      ;;
+    movefocus:*)
+      printf 'Focus %s\n' "$arg"
+      ;;
+    movewindow:*)
+      printf 'Move window %s\n' "$arg"
+      ;;
+    *)
+      printf '%s %s\n' "$dispatcher" "$key"
+      ;;
+  esac
+}
+
+list_live() {
+  command_present hyprctl || return 1
+  command_present jq || return 1
+
+  hyprctl binds -j 2>/dev/null | jq '
+    def hasbit($value; $bit): ((($value / $bit) | floor) % 2) == 1;
+    def mods($value):
+      [
+        if hasbit($value; 64) then "Super" else empty end,
+        if hasbit($value; 4) then "Ctrl" else empty end,
+        if hasbit($value; 8) then "Alt" else empty end,
+        if hasbit($value; 1) then "Shift" else empty end
+      ];
+    def keyname($key):
+      if ($key | ascii_downcase) == "slash" then "/"
+      elif ($key | ascii_downcase) == "return" then "Enter"
+      elif ($key | ascii_downcase) == "escape" then "Esc"
+      else $key
+      end;
+    def combo($mods; $key):
+      if ($mods | length) == 0 then keyname($key)
+      else (($mods + [keyname($key)]) | join("+"))
+      end;
+    def desc($dispatcher; $arg):
+      if ($arg | contains("ryoku-shell launcher")) then "Launcher"
+      elif ($arg | contains("ryoku-shell settings")) then "Settings"
+      elif ($arg | contains("ryoku-shell session")) then "Session"
+      elif ($arg | contains("ryoku-shell keybinds")) then "Keybinds"
+      elif $dispatcher == "killactive" then "Close window"
+      elif $dispatcher == "fullscreen" then "Fullscreen"
+      elif $dispatcher == "togglefloating" then "Toggle floating"
+      elif $dispatcher == "workspace" then "Workspace \($arg)"
+      elif $dispatcher == "movetoworkspace" then "Move to workspace \($arg)"
+      elif $dispatcher == "movefocus" then "Focus \($arg)"
+      elif $dispatcher == "movewindow" then "Move window \($arg)"
+      elif $dispatcher == "exec" then $arg
+      else "\($dispatcher) \($arg)"
+      end;
+    map(select(.key != null and .key != "")
+      | {
+          combo: combo(mods(.modmask // 0); .key),
+          mods: (mods(.modmask // 0) | join(" ")),
+          key: keyname(.key),
+          dispatcher: (.dispatcher // ""),
+          arg: (.arg // ""),
+          description: desc((.dispatcher // ""); (.arg // "")),
+          source: "live"
+        })
+    | unique_by(.combo, .dispatcher, .arg)
+    | sort_by(.combo)'
+}
+
+expand_path() {
+  local path="$1"
+
+  path="${path/#\~/$HOME}"
+  printf '%s\n' "$path"
+}
+
+collect_config_files() {
+  local file="$1"
+  local line include
+
+  [[ -f $file ]] || return 0
+  printf '%s\n' "$file"
+
+  while IFS= read -r line; do
+    if [[ $line =~ ^[[:space:]]*source[[:space:]]*=[[:space:]]*(.+)[[:space:]]*$ ]]; then
+      include="${BASH_REMATCH[1]}"
+      include="$(expand_path "$include")"
+      [[ -f $include ]] && printf '%s\n' "$include"
+    fi
+  done <"$file"
+}
+
+list_from_config() {
+  local files=()
+  local file line description mods key dispatcher arg combo norm_key entry_desc
+  local first=true
+
+  mapfile -t files < <(collect_config_files "$hypr_config")
+
+  printf '['
+  for file in "${files[@]}"; do
+    description=""
+    # shellcheck disable=SC2094
+    while IFS= read -r line; do
+      if [[ $line =~ ^[[:space:]]*#[[:space:]]*Ryoku[[:space:]]+Keybind:[[:space:]]*(.+)[[:space:]]*$ ]]; then
+        description="${BASH_REMATCH[1]}"
+        continue
+      fi
+
+      if [[ $line =~ ^[[:space:]]*bind[a-z]*[[:space:]]*=[[:space:]]*([^,]*),[[:space:]]*([^,]*),[[:space:]]*([^,]*),?[[:space:]]*(.*)$ ]]; then
+        mods="${BASH_REMATCH[1]}"
+        key="${BASH_REMATCH[2]}"
+        dispatcher="${BASH_REMATCH[3]}"
+        arg="${BASH_REMATCH[4]}"
+        norm_key="$(normalise_key "$key")"
+        combo="$(tr '[:upper:]' '[:lower:]' <<<"$mods" | sed -E 's/(^| )super($| )/Super /g; s/(^| )ctrl($| )/Ctrl /g; s/(^| )control($| )/Ctrl /g; s/(^| )alt($| )/Alt /g; s/(^| )shift($| )/Shift /g; s/[[:space:]]+/+/g; s/[+]$//')"
+        [[ -n $combo ]] && combo="$combo+$norm_key" || combo="$norm_key"
+        entry_desc="${description:-$(description_for "$dispatcher" "$arg" "$key")}"
+
+        $first || printf ','
+        first=false
+        jq -n \
+          --arg combo "$combo" \
+          --arg mods "$mods" \
+          --arg key "$norm_key" \
+          --arg dispatcher "$dispatcher" \
+          --arg arg "$arg" \
+          --arg description "$entry_desc" \
+          --arg source "$file" \
+          '{combo:$combo,mods:$mods,key:$key,dispatcher:$dispatcher,arg:$arg,description:$description,source:$source}'
+        description=""
+      fi
+    done <"$file"
+  done
+  printf ']\n'
+}
+
+list_keybinds() {
+  if list_live; then
+    return 0
+  fi
+
+  command_present jq || {
+    echo "ryoku-keybinds: jq is required without live hyprctl output" >&2
+    return 1
+  }
+  list_from_config
+}
+
+add_keybind() {
+  local mods=""
+  local key=""
+  local dispatcher=""
+  local arg=""
+  local description=""
+
+  while (($# > 0)); do
+    case "$1" in
+      --mods)
+        shift
+        mods="${1:-}"
+        ;;
+      --key)
+        shift
+        key="${1:-}"
+        ;;
+      --dispatcher)
+        shift
+        dispatcher="${1:-}"
+        ;;
+      --arg)
+        shift
+        arg="${1:-}"
+        ;;
+      --description)
+        shift
+        description="${1:-}"
+        ;;
+      *)
+        echo "ryoku-keybinds: unknown add argument: $1" >&2
+        return 2
+        ;;
+    esac
+    shift
+  done
+
+  [[ -n $key && -n $dispatcher ]] || {
+    echo "ryoku-keybinds: --key and --dispatcher are required" >&2
+    return 2
+  }
+
+  ensure_user_include
+
+  {
+    printf '\n'
+    [[ -n $description ]] && printf '# Ryoku Keybind: %s\n' "$description"
+    printf 'bind = %s, %s, %s, %s\n' "$mods" "$key" "$dispatcher" "$arg"
+  } >>"$user_binds"
+
+  if command_present hyprctl; then
+    hyprctl reload >/dev/null 2>&1 || true
+  fi
+
+  printf 'ok\n'
+}
+
+main() {
+  local command="${1:-list}"
+  (($# == 0)) || shift
+
+  case "$command" in
+    list)
+      list_keybinds
+      ;;
+    add)
+      add_keybind "$@"
+      ;;
+    ensure)
+      ensure_user_include
+      ;;
+    -h|--help|help)
+      usage
+      ;;
+    *)
+      usage
+      return 2
+      ;;
+  esac
+}
+
+main "$@"

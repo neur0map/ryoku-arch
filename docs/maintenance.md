@@ -79,7 +79,7 @@ When a user runs `ryoku-update` on their Ryoku Arch system:
    - `install/config/shell.sh`: syncs the Ryoku shell into the user's Quickshell config.
    - `ryoku-migrate`: scans `migrations/*.sh`, runs any new ones, marks them applied.
    - Orphan-package checks, post-update hooks, log analysis, and restart prompts.
-5. Restarts affected components (Niri config reload, shell restart, etc.) if needed.
+5. Restarts affected components (Hyprland reload, shell restart, etc.) if needed.
 
 Because `git pull` pulls from whatever `origin` points at, and the live clone's `origin` was repointed to `neur0map/ryoku-arch` during the scaffolding pass, your pushes flow through automatically. No user action required to "opt in" to Ryoku changes beyond the initial migration.
 
@@ -93,7 +93,7 @@ Because `git pull` pulls from whatever `origin` points at, and the live clone's 
 
 ### What will NOT auto-propagate
 
-- **Config files the user has customized.** If they edited `~/.config/niri/config.kdl` or a file under `~/.config/niri/config.d/` and you ship a new default, they keep their version. Use a migration to offer a merge or document a refresh command.
+- **Config files the user has customized.** If they edited `~/.config/hypr/hyprland.conf` or related files under `~/.config/hypr/` and you ship a new default, they keep their version. Use a migration to offer a merge or document a refresh command.
 - **Changes outside `~/.local/share/ryoku/`.** System services, `/etc/` configs, boot config, kernel params. Touch via a migration script that uses sudo.
 - **User-installed binaries outside the clone.** Not affected by updates.
 
@@ -384,7 +384,7 @@ The installed `pre-push` hook runs `bin/ryoku-dev-shellcheck-changed --push-stdi
 
 False-positive rule: prefer narrowing the scanned file set before adding broad ignores. Technical terms required by upstream config formats, generated files, binary assets, package caches, media, and vendored/inherited documentation should be skipped explicitly instead of making the linter less strict everywhere.
 
-`.github/workflows/docs-sync.yml` keeps Mintlify-facing docs honest. It checks that `docs/keybindings.md` was regenerated from `config/niri/config.d/70-binds.kdl`, parses `docs.json`, then runs the Mintlify CLI validation and broken-link checks. `.mintignore` excludes vendored shell docs that are not part of the public docs site. If you edit keybindings, run:
+`.github/workflows/docs-sync.yml` keeps Mintlify-facing docs honest. It checks that `docs/keybindings.md` stays aligned with the Hyprland bind config and the live `Super+/` keybind legend, parses `docs.json`, then runs the Mintlify CLI validation and broken-link checks. `.mintignore` excludes vendored shell docs that are not part of the public docs site. If you edit keybindings, run:
 
 ```bash
 bin/ryoku-dev-generate-keybindings-docs

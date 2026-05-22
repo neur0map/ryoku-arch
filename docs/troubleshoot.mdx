@@ -11,8 +11,8 @@ This page is being expanded. Add common issues as they get reported.
 
 | What | Where |
 |---|---|
-| Quickshell (the bar / sidebars / lock) | `journalctl --user -u quickshell` |
-| Niri (the compositor) | `journalctl --user -u niri` |
+| Ryoku shell (the bar / sidebars / lock) | `journalctl --user -u ryoku-shell` |
+| Hyprland (the compositor) | `journalctl --user -u hyprland`, `hyprctl monitors` |
 | SDDM (the login screen) | `sudo journalctl -u sddm` |
 | Updater | `~/.local/state/quickshell/user/update.log` |
 | OpenVPN connections | `journalctl --user -u openvpn@<profile>` |
@@ -20,10 +20,11 @@ This page is being expanded. Add common issues as they get reported.
 
 ## The bar / sidebar isn't drawing
 
-If `Mod+Slash` doesn't open the cheatsheet, Quickshell isn't running.
+If `Super+/` doesn't open the keybind legend, the Ryoku shell or the Hyprland bind path is not running.
 
 ```bash
-journalctl --user -u quickshell -n 50
+journalctl --user -u ryoku-shell -n 50
+hyprctl binds
 ```
 
 The most common causes:
@@ -34,13 +35,13 @@ The most common causes:
 
 ## Login screen is broken / can't log in
 
-Drop to a TTY (`Ctrl+Alt+F2`), log in, and start a Niri session manually:
+Drop to a TTY (`Ctrl+Alt+F2`), log in, and start a Hyprland session manually:
 
 ```bash
-niri-session
+Hyprland
 ```
 
-If Niri starts fine from the TTY, SDDM is the problem. Check `sudo journalctl -u sddm` and consider switching SDDM theme (`Settings → Login screen` if you can reach a desktop; otherwise edit `/etc/sddm.conf.d/`).
+If Hyprland starts fine from the TTY, SDDM is the problem. Check `sudo journalctl -u sddm` and consider switching SDDM theme (`Settings → Login screen` if you can reach a desktop; otherwise edit `/etc/sddm.conf.d/`).
 
 ## Network is offline
 
@@ -52,7 +53,7 @@ If Niri starts fine from the TTY, SDDM is the problem. Check `sudo journalctl -u
 
 - Animations: `Settings → Appearance → Animations` toggle.
 - Wallpaper video / GIF: turning off animated wallpaper is the single biggest GPU win.
-- Niri's overview: `Mod+Tab` is GPU-heavy on integrated graphics; disable per-monitor preview in `~/.config/niri/config.kdl` if it's choppy.
+- Hyprland animations and blur can be tuned in `~/.config/hypr/hyprland.conf` if integrated graphics feel choppy.
 
 ## Filing a useful bug
 
@@ -62,6 +63,6 @@ Open an issue at [`neur0map/ryoku-arch`](https://github.com/neur0map/ryoku-arch/
 2. **What happened** — what you saw, including screenshots when relevant.
 3. **What you expected**.
 4. **Output of `ryoku-update --check`** — pinpoints which commit you're on.
-5. **Relevant log slice** — last 50 lines of `journalctl --user -u quickshell` is usually enough.
+5. **Relevant log slice** — last 50 lines of `journalctl --user -u ryoku-shell` is usually enough for shell issues.
 
 Security-sensitive issues go through [SECURITY.md](https://github.com/neur0map/ryoku-arch/blob/main/SECURITY.md), not the public tracker.

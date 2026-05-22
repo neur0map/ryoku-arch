@@ -31,7 +31,7 @@ section made it across".
 - `shell/modules/settings/CheatsheetConfig.qml`
 - `shell/modules/settings/ModulesConfig.qml`
 - `shell/modules/settings/WaffleConfig.qml`
-- `shell/modules/settings/NiriConfig.qml`
+- `shell/modules/settings/NiriConfig.qml` (legacy Niri/iNiR migration reference)
 - `shell/modules/settings/LoginScreenConfig.qml`
 - `shell/modules/settings/About.qml`
 - `shell/modules/settings/ExtrasConfig.qml`
@@ -59,7 +59,7 @@ Compatibility launcher: `ryoku-shell legacy-settings-window`.
 | `CheatsheetConfig.qml` | 777 | dynamic keybind editor | ❌ Missing |
 | `ModulesConfig.qml` | 1043 | ~55 | 🟡 Partial |
 | `WaffleConfig.qml` | 666 | ~50 | 🟡 Partial |
-| `NiriConfig.qml` | 3231 | ~120 | 🟡 Partial |
+| Legacy `NiriConfig.qml` | 3231 | ~120 | 🟡 Partial |
 | `LoginScreenConfig.qml` | 866 | provider cards + 21 themes | ❌ Missing |
 | `About.qml` | 612 | ~15 | ✅ Ported |
 | `ExtrasConfig.qml` | 682 | dynamic profiles | 🧱 Embedded |
@@ -83,7 +83,7 @@ Compatibility launcher: `ryoku-shell legacy-settings-window`.
 ### General > Quick Rice
 - Favorite theme swatch cards, wallpaper-colors toggle, palette variant combo
 - Automatic transparency toggle + shell surface / content transparency sliders
-- Inactive window opacity (via `scripts/niri-config.py`)
+- Inactive window opacity (legacy Niri path used `scripts/niri-config.py`; current Hyprland path should use the Hyprland/Ryoku-shell service layer)
 - Focus ring enable / width / follow-theme
 - Cursor theme / size
 - GPK quick action: Open GPK (the TUI handles install / uninstall / update / outdated itself, so those buttons were dropped during sub-spec #02a verification)
@@ -124,14 +124,14 @@ Compatibility launcher: `ryoku-shell legacy-settings-window`.
 - Sidebar left width + cardStyle + keepLoaded
 - Search: sloppy / nonAppResultDelay / engineBaseUrl
 - 5 global action toggles
-- Shortcut buttons: Open overlay, Edit Niri keybinds
+- Shortcut buttons: Open overlay, Edit keybinds
 - Notifications: DND, position, normal/critical timeouts
 - OSD: media enabled + timeout
 - Sounds: notifications.enable + critical.enable
 
 ### Audio & Display
 - Earbang protection trio
-- Primary monitor combo + dynamic Niri output controls (resolution, refresh,
+- Primary monitor combo + legacy Niri output controls (resolution, refresh,
   scale, transform), VRR toggle, refresh button
 - 4 overview/screen-corners toggles
 - Full focus-ring native section (enable, width, follow-theme, active gradient
@@ -169,8 +169,8 @@ Compatibility launcher: `ryoku-shell legacy-settings-window`.
 ### About
 - Version label, repository link, docs/issues/check-updates/update-details
 - System info: distro, migrated legacy groups, copy-path rows for runtime config /
-  shell runtime / niri config / dotfiles
-- Credit cards: iNiR, illogical-impulse, Omarchy, qylock
+  shell runtime / legacy Niri config / dotfiles
+- Credit cards: iNiR (legacy upstream), illogical-impulse, Omarchy, qylock
 
 ---
 
@@ -208,7 +208,7 @@ Compatibility launcher: `ryoku-shell legacy-settings-window`.
 | Bar style Hug/Float/Rect/Card | Bar & Dock > Bar | ✅ Ported | |
 | Screen round corner No/Yes/When-not-fullscreen | - | ❌ Missing | `cfg:appearance.fakeScreenRounding` not in new UI |
 | Wallpaper mode Normal/Backdrop only | - | ❌ Missing | Only available through embedded BackgroundConfig |
-| Game Mode block (7 switches) | Advanced > Automation | 🟡 Partial | New has 6 of 7; **missing `disableNiriAnimations` and `disableDiscoverOverlay`** |
+| Game Mode block (7 switches) | Advanced > Automation | 🟡 Partial | New has 6 of 7; **missing legacy `disableNiriAnimations` and `disableDiscoverOverlay`** |
 | Quick Actions: Reload Shell / Open Config / Shortcuts | About copy rows + Launcher>Shortcuts | 🟡 Partial | No "Reload Shell" button in new UI |
 | Show reload toasts | Advanced > Automation | ✅ Ported | |
 | Hide reload toasts in Game Mode | - | ❌ Missing | `cfg:gameMode.disableReloadToasts` not exposed |
@@ -372,7 +372,7 @@ Compatibility launcher: `ryoku-shell legacy-settings-window`.
 
 | Status | Notes |
 |---|---|
-| ❌ Missing | New UI's Launcher > Shortcuts only has "Open overlay" and "Edit Niri keybinds" buttons (opens `70-binds.kdl` in terminal). **The full inline keybind editor is gone:** loaded/default status, per-category dynamic categories (Repeater over NiriKeybinds.enrichedCategories with auto-icon mapping), per-keybind edit form with key combo / action / options + conflict detection, per-keybind delete confirmation, add-keybind form, legacy Hyprland read-only fallback, save/remove/error feedback bar with auto-hide. Users can still edit shortcuts but only by hand-editing the KDL file. |
+| ❌ Missing | New UI's Launcher > Shortcuts only has "Open overlay" and "Edit keybinds" buttons. The current user-facing path is the Hyprland config plus the live `Super+/` legend; the old Niri `70-binds.kdl` editor belongs to legacy migration context. **The full inline keybind editor is gone:** loaded/default status, per-category dynamic categories, per-keybind edit form with key combo / action / options + conflict detection, per-keybind delete confirmation, add-keybind form, save/remove/error feedback bar with auto-hide. |
 
 ### Legacy: `ModulesConfig.qml`
 
@@ -397,7 +397,7 @@ Compatibility launcher: `ryoku-shell legacy-settings-window`.
 |---|---|---|---|
 | Wallpaper: useMainWallpaper / Pick main / Pick Waffle / hideWhenFullscreen / enableAnimation | - | ❌ Missing | `cfg:waffles.background.*` editors gone (waffles.background.{useMainWallpaper, wallpaperPath, hideWhenFullscreen, enableAnimation}) |
 | Wallpaper effects: blur + dim + dynamicDim | - | ❌ Missing | `cfg:waffles.background.effects.*` gone |
-| Backdrop (Niri overview): 10 controls (enable, enableAnimation, hideWallpaper, useMainWallpaper, Pick button, blurRadius, dim, saturation, contrast, vignette + intensity) | - | ❌ Missing | All `cfg:waffles.background.backdrop.*` gone |
+| Backdrop (legacy Niri overview): 10 controls (enable, enableAnimation, hideWallpaper, useMainWallpaper, Pick button, blurRadius, dim, saturation, contrast, vignette + intensity) | - | ❌ Missing | All `cfg:waffles.background.backdrop.*` gone |
 | Taskbar: bottom / leftAlignApps / monochromeIcons / tintTrayIcons | - | ❌ Missing | All `cfg:waffles.bar.*` gone |
 | Theming: useMaterialColors + font family combo (5 fixed + custom) + font.scale + reset | Panels & Modules > Waffle (useMaterialStyle only) | 🟡 Partial | |
 | Behavior: allowMultiplePanels | - | ❌ Missing | |
@@ -408,11 +408,11 @@ Compatibility launcher: `ryoku-shell legacy-settings-window`.
 | Alt+Tab: 13 controls (preset + 12 sub) | Panels & Modules > Waffle (3 toggles) | 🟡 Partial | Missing: preset combo, quickSwitch, autoHide, autoHideDelay, thumbnailWidth/Height, scrimOpacity, showOverviewWhileSwitching |
 | Widgets Panel: 5 toggles (showDateTime/Weather/System/Media/QuickActions) | - | ❌ Missing | |
 
-### Legacy: `NiriConfig.qml`
+### Legacy Niri/iNiR migration context: `NiriConfig.qml`
 
 | Legacy section | New surface | Status | Notes |
 |---|---|---|---|
-| Niri config status (custom config detection, overrides count, open folder/file, actionable file repeater with reasons) | - | ❌ Missing | The validation UI that warned about user overrides is gone |
+| Legacy Niri config status (custom config detection, overrides count, open folder/file, actionable file repeater with reasons) | - | ❌ Missing | Historical migration reference; current Hyprland status should be exposed through Hyprland/Ryoku-shell services |
 | Displays: Resolution / Refresh / Scale / Rotation | Audio & Display > Display | ✅ Ported | |
 | Displays: **Output position X/Y** (-10000..10000) | - | ❌ Missing | Cannot drag/place monitors in space from new UI |
 | Displays: VRR | Audio & Display > Display | ✅ Ported | |
@@ -428,8 +428,8 @@ Compatibility launcher: `ryoku-shell legacy-settings-window`.
 | Focus ring: width / colors / gradient | Audio & Display > Display | ✅ Ported | |
 | Window shadow: enabled / softness / spread / offsetX/Y / color | - | ❌ Missing | `cfg:` shadow controls gone |
 | Struts: Left/Right/Top/Bottom 0–512 | - | ❌ Missing | |
-| Overview zoom 30–100% | - | ❌ Missing | `niri layout.overview.zoom` gone |
-| Window rules: corner radius slider | - | ❌ Missing | `niri window-rules.corner-radius` gone |
+| Overview zoom 30–100% | - | ❌ Missing | Legacy `niri layout.overview.zoom` gone |
+| Window rules: corner radius slider | - | ❌ Missing | Legacy `niri window-rules.corner-radius` gone |
 | Window rules: inactive opacity slider | General > Quick Rice | ✅ Ported | |
 | Window rules: clip windows to rounded geometry | - | ❌ Missing | |
 | Keyboard: full layout list (12 presets + Custom) | Audio & Display > Input (raw text) | 🟡 Partial | New only has free-form text field; presets gone |
@@ -437,7 +437,7 @@ Compatibility launcher: `ryoku-shell legacy-settings-window`.
 | Keyboard: track-layout Global/Per window | - | ❌ Missing | |
 | Keyboard: variant TextField (e.g. colemak_dh) | - | ❌ Missing | |
 | Keyboard: XKB options | Audio & Display > Input | ✅ Ported | |
-| Keyboard: mod-key + mod-key-nested combos | - | ❌ Missing | `niri input.mod-key` and `mod-key-nested` not exposed |
+| Keyboard: mod-key + mod-key-nested combos | - | ❌ Missing | Legacy `niri input.mod-key` and `mod-key-nested` not exposed |
 | Keyboard: repeat-delay / repeat-rate | Audio & Display > Input | ✅ Ported | |
 | Touchpad: 8 base switches | Audio & Display > Input (5 of 8) | 🟡 Partial | Missing: dwtp, left-handed, drag-lock |
 | Touchpad: scroll-method (Two-finger/Edge/On button down/Disable) | - | ❌ Missing | |
@@ -446,7 +446,7 @@ Compatibility launcher: `ryoku-shell legacy-settings-window`.
 | Touchpad: click-method (Button areas/Clickfinger) | - | ❌ Missing | |
 | Touchpad: speed slider -100..100 | Audio & Display > Input (via accel-speed) | 🟡 Partial | |
 | Mouse: scroll-method + scroll-button-lock | - | ❌ Missing | |
-| **Trackpoint: entire section** | - | ❌ Missing | `niri input.trackpoint.*` 6 controls gone (natural-scroll, left-handed, middle-emulation, accel-profile, scroll-method, scroll-button-lock, accel-speed) |
+| **Trackpoint: entire section** | - | ❌ Missing | Legacy `niri input.trackpoint.*` 6 controls gone (natural-scroll, left-handed, middle-emulation, accel-profile, scroll-method, scroll-button-lock, accel-speed) |
 | Cursor: hide-cursor-when-typing | Audio & Display > Input | ✅ Ported | |
 | General input: power-key / workspace-back-forth / warp-pointer / focus-follows-mouse | Audio & Display > Input | ✅ Ported | |
 | Animations: enabled + global slowdown 50–500% | Appearance > Motion (scale slider) | 🟡 Partial | Slowdown semantic differs |
@@ -494,9 +494,9 @@ Ordered roughly by user-visible impact:
 3. **Login screen provider experience** (LoginScreenConfig) - qylock theme cards, install/update/uninstall flow, active-theme indicator, progress bar.
 
 ### P1 - Frequently-used controls that vanished
-4. **Niri display safety** - preview confirm + revert timer + output X/Y position + custom config validation status.
-5. **Niri animation per-type tuning** - 11 animation types with damping/stiffness sliders all gone.
-6. **Niri layout details** - gaps, border, shadow, struts, overview zoom, window-rules corner radius and clip-to-geometry.
+4. **Hyprland display safety** - preview confirm + revert timer + output X/Y position + custom config validation status.
+5. **Legacy Niri animation per-type tuning** - 11 animation types with damping/stiffness sliders were part of the old migration surface.
+6. **Hyprland layout details** - gaps, border, shadow, struts, overview behavior, and window-rule rounding.
 7. **Lock screen full block** - only 6 of ~25 GeneralConfig lock controls ported (no notifications, clock position, status indicators, varying shapes, animated GIF wallpapers, dim amount, blur radius, extra zoom, widget toggles).
 8. **Battery block** - low/critical/full thresholds, automatic suspend %, charge limit all gone.
 9. **Sidebars** - left sidebar module visibility, right sidebar widget visibility (11 widgets), Reddit/Wallhaven/YT Music/Anime Schedule/Booru/Crypto editors, Quick launch shortcuts editor, Glance Header, Status Rings, Controls Card - entire InterfaceConfig sidebars region is unreachable.
@@ -525,10 +525,11 @@ Ordered roughly by user-visible impact:
   reskinned.
 - Friendly pages stay task-focused; raw paths belong in **Advanced > Inspector**.
 - Settings that write external files must keep using the existing service/helper
-  APIs (`scripts/niri-config.py`, `KeyringStorage`, `pkexec ryoku-*`) rather than
+  APIs (Hyprland/Ryoku-shell services, `KeyringStorage`, `pkexec ryoku-*`) rather than
   inline `Process` writes.
-- When porting a Niri-backed setting, keep the same backend (`niri-config.py`)
-  used by the legacy module to avoid divergence.
+- When porting a legacy Niri-backed setting, first decide whether it still maps
+  to current Hyprland behavior. If it does, use the Hyprland/Ryoku-shell backend
+  rather than reviving `niri-config.py`.
 - For multi-step flows (install/uninstall, preview/confirm/revert,
   fetch-and-validate) preserve **both** the progress feedback and the
   cancel/revert affordance - don't ship a one-shot button where the legacy had

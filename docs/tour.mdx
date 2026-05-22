@@ -1,21 +1,21 @@
 ---
 title: Desktop tour
-description: How Niri's scrollable workspaces work, what each bar island does, and which sidebar is which.
+description: How the Hyprland + Ryoku shell desktop is arranged, what each bar island does, and which sidebar is which.
 ---
 
-Ryoku's desktop is Niri + Quickshell. Niri does compositing and window layout; Quickshell paints the topbar, sidebars, lock screen, launcher, and settings.
+Ryoku's desktop is Hyprland + the Ryoku shell. Hyprland handles compositing, input, and window layout; the Ryoku shell paints the topbar, sidebars, lock screen, launcher, keybind legend, and settings.
 
-## Niri's scrollable workspace
+## Hyprland workspaces
 
-Niri is a **scrollable tiling** compositor. Unlike traditional tilers that pack windows into a fixed grid, Niri lays windows out in an infinitely scrollable horizontal row inside each workspace.
+Hyprland is the current compositor. Ryoku ships Hyprland defaults for workspace navigation, window actions, shell shortcuts, and the live `Super+/` keybind legend.
 
-- New windows open to the right of the focused one.
-- `Mod+H` / `Mod+L` (or `Mod+Left` / `Mod+Right`) scroll the focus left/right through the column row.
-- `Mod+Shift+H` / `Mod+Shift+L` move the focused column itself.
-- `Mod+D` maximizes the focused column; `Mod+F` fullscreens.
-- `Mod+R` cycles preset column widths if you don't want to fiddle with `Mod+Minus` / `Mod+Equal`.
+- `Super+1` through `Super+0` jump to workspaces 1-10.
+- `Super+Shift+1` through `Super+Shift+0` move the focused window to that workspace.
+- `Super+H/J/K/L` or arrow keys move focus.
+- `Super+Shift+H/J/K/L` or shifted arrow keys move the focused window.
+- `Super+F` fullscreens; `Super+A` toggles floating.
 
-Workspaces stack vertically. `Mod+K` / `Mod+J` jump between workspaces. `Mod+Tab` opens the overview: a zoomed-out grid of every workspace, scroll-pannable with the mouse.
+Use `Super+/` for the live keybind legend. It is the user-facing source for current Hyprland and Ryoku-shell shortcuts.
 
 ## The topbar
 
@@ -26,7 +26,7 @@ Three "islands" sit at the top of the screen. Each island is a self-contained su
 - **Active window:** title and app icon of the focused window.
 
 ### Center island
-- **Workspaces:** one dot per workspace on the current monitor. Active workspace is the filled pill. Right-click toggles the Niri overview. Scroll wheel cycles workspaces.
+- **Workspaces:** one dot per workspace on the current monitor. Active workspace is the filled pill. Scroll wheel cycles workspaces.
 
 ### Right island
 - **Resources:** CPU / memory / network at a glance. Hover for details.
@@ -63,11 +63,11 @@ Every bar widget can be toggled, removed, or rearranged from **Settings → Bar*
 
 ## Where things live
 
-- Niri config: `~/.config/niri/config.kdl` (with drop-ins under `~/.config/niri/config.d/`).
-- Shell config: `~/.config/illogical-impulse/config.json` (Quickshell reads this; Settings writes to it).
+- Hyprland config: `~/.config/hypr/hyprland.conf`.
+- Shell config: `~/.config/ryoku-shell/config.json` (the Ryoku shell reads this; Settings writes to it).
 - Wallpapers: `~/Pictures/Wallpapers`.
 - Themes / palettes: generated under `~/.local/state/quickshell/user/generated/`.
-- Logs: `journalctl --user -u quickshell` for the shell, `journalctl --user -u niri` for the compositor.
+- Logs: `journalctl --user -u ryoku-shell` for the shell; use `hyprctl monitors` and the Hyprland user-session logs for compositor state.
 
 ## Where to go next
 

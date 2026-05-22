@@ -1,6 +1,6 @@
 # UI Patterns and Footguns
 
-Rules for working on the Quickshell desktop in `shell/`. Written from real bugs that ate hours. The goal is to keep contributors from chasing symptoms or reinventing existing primitives.
+Rules for working on the Ryoku shell desktop in `shell/`. Written from real bugs that ate hours. The goal is to keep contributors from chasing symptoms or reinventing existing primitives.
 
 ## The cardinal rule
 
@@ -168,7 +168,7 @@ Do not treat every file under `~/.config` as the same kind of state. Ryoku has p
 |---|---|---|
 | Ryoku-owned | Shell QML files, services, systemd units, command launchers, polkit rules, required feature keybinds like `Mod+S` for the toolkit | Update automatically from the repo or repair with a migration |
 | User-owned | Theme choice, wallpaper, sidebar widget order, toolkit button toggles, app preferences, `.bashrc` | Never overwrite during update |
-| Hybrid | `~/.config/ryoku-shell/config.json`, Niri bind fragments, enabled sidebar widgets | Add missing Ryoku keys or entries, but preserve existing user values |
+| Hybrid | `~/.config/ryoku-shell/config.json`, Hyprland config/user bind fragments, enabled sidebar widgets | Add missing Ryoku keys or entries, but preserve existing user values |
 | Generated | Caches, lock files, temporary update status, generated runtime artifacts | Safe to rebuild |
 
 The update failure mode to avoid:
@@ -271,7 +271,7 @@ Good shell IPC targets:
 Good `ryoku-*` command targets:
 
 - packages, updates, snapshots, rollback, and migrations
-- Niri config, keybinds, compositor reloads, and display config
+- Hyprland config, keybinds, compositor reloads, and display config
 - theme, wallpaper, fonts, cursor, icon refresh, and per-app theming
 - hardware toggles, power profiles, suspend, hibernation, battery limits
 - network, bluetooth, firewall, hosts, VPN, Tailscale, and DNS
@@ -287,7 +287,7 @@ Do not call `sudo`, `pacman`, `systemctl`, `nmcli`, or large shell pipelines dir
 
 ### Working tree and preview discipline
 
-For unstable feature work, edit only the dev checkout on `unstable-dev`. Preview by syncing `shell/` into the Quickshell runtime. Do not hand-edit the installed repo or user config to make a design work.
+For Hyprland rebirth feature work, edit only the dev checkout on `rebirth`. Preview by syncing `shell/` into the Quickshell runtime. Do not hand-edit the installed repo or user config to make a design work.
 
 ```bash
 DEV="${RYOKU_DEV_PATH:-$HOME/prowl/ryoku-arch}"
@@ -296,7 +296,7 @@ rsync -a --delete "$DEV/shell/" "$RUNT/"
 systemctl --user restart ryoku-shell.service
 ```
 
-If a preview needs changed defaults or commands outside `shell/`, commit those to `unstable-dev` and deploy through the normal installer/update path. Otherwise you will create the exact drift where settings, keybinds, service files, and runtime shell disagree.
+If a preview needs changed defaults or commands outside `shell/`, commit those to `rebirth` and deploy through the normal installer/update path. Otherwise you will create the exact drift where settings, keybinds, service files, and runtime shell disagree.
 
 
 ## When to stop and rethink

@@ -87,17 +87,17 @@ Rules:
 - For system behavior, prefer a named `ryoku-*` command with a small QML service or IPC adapter. Do not put package, sudo, systemd, network, hardware, or migration logic directly in a settings component.
 - Verify a settings change by toggling it and checking at least one non-settings shell surface or system command result.
 
-The migrated core is part of the product. Before adding shell UI for a feature, check whether an existing `ryoku-*` command already owns it. Common core domains include packages, updates, snapshots, rollback, migrations, Niri config, keybinds, themes, wallpaper, fonts, cursor, hardware toggles, power profiles, services, firewall, hosts, VPN, DNS, webapps, and app installs.
+The migrated core is part of the product. Before adding shell UI for a feature, check whether an existing `ryoku-*` command already owns it. Common core domains include packages, updates, snapshots, rollback, migrations, Hyprland config, keybinds, themes, wallpaper, fonts, cursor, hardware toggles, power profiles, services, firewall, hosts, VPN, DNS, webapps, and app installs.
 
 # Ryoku Development Environment
 
-Use `unstable-dev` for new work. Keep `main` untouched unless explicitly asked to release or merge.
+Use `rebirth` for Hyprland rebirth work. Keep `main` untouched unless explicitly asked to release or merge.
 
 Development tree:
 
 ```bash
 cd "$HOME/prowl/ryoku-arch"
-git checkout unstable-dev
+git checkout rebirth
 git status --short
 ```
 

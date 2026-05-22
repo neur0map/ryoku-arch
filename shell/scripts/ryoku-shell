@@ -37,6 +37,7 @@ IPC:
   dashboard                   Toggle dashboard
   utilities                   Toggle utilities
   settings                    Open settings
+  keybinds                    Toggle keybind legend
   ipc <target> <fn> [args]    Raw Quickshell IPC call
 EOF
 }
@@ -128,11 +129,14 @@ case "$command" in
   dashboard)
     ipc_call drawers toggle dashboard
     ;;
-  utilities|cheatsheet)
+  utilities)
     ipc_call drawers toggle utilities
     ;;
   settings|control-center|controlCenter|globalActions)
     ipc_call controlCenter toggle
+    ;;
+  keybinds|cheatsheet)
+    ipc_call keybinds toggle
     ;;
   lock)
     ipc_call lock lock
