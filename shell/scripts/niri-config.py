@@ -2113,21 +2113,21 @@ _KB_BROWSERS = ["firefox", "zen-browser", "chromium", "brave", "vivaldi"]
 def _kb_parse_ryoku_action(action: str):
     """Detect ryoku-shell IPC calls and return (target, function) or None."""
     stale_launcher = "i" "nir"
-    stale_launcher_re = re.escape(stale_launcher)
+    launcher = rf'(?:{re.escape(stale_launcher)}|ryoku-shell)'
     m = re.search(
-        rf'spawn\s+"(?:[^"]*/)?{stale_launcher_re}"\s+"ipc"\s+"call"\s+"([\w-]+)"\s+"([\w-]+)"', action
+        rf'spawn\s+"(?:[^"]*/)?{launcher}"\s+"ipc"\s+"call"\s+"([\w-]+)"\s+"([\w-]+)"', action
     )
     if m:
         return m.group(1), m.group(2)
-    if re.search(rf'spawn\s+"(?:[^"]*/)?{stale_launcher_re}"\s+"settings"(?:\s|;|$)', action):
+    if re.search(rf'spawn\s+"(?:[^"]*/)?{launcher}"\s+"settings"(?:\s|;|$)', action):
         return "settings", "open"
-    if re.search(rf'spawn\s+"(?:[^"]*/)?{stale_launcher_re}"\s+"terminal"(?:\s|;|$)', action):
+    if re.search(rf'spawn\s+"(?:[^"]*/)?{launcher}"\s+"terminal"(?:\s|;|$)', action):
         return "launcher", "terminal"
-    if re.search(rf'spawn\s+"(?:[^"]*/)?{stale_launcher_re}"\s+"close-window"(?:\s|;|$)', action):
+    if re.search(rf'spawn\s+"(?:[^"]*/)?{launcher}"\s+"close-window"(?:\s|;|$)', action):
         return "launcher", "close-window"
-    if re.search(rf'spawn\s+"(?:[^"]*/)?{stale_launcher_re}"\s+"browser"(?:\s|;|$)', action):
+    if re.search(rf'spawn\s+"(?:[^"]*/)?{launcher}"\s+"browser"(?:\s|;|$)', action):
         return "browser", "open"
-    m = re.search(rf'spawn\s+"(?:[^"]*/)?{stale_launcher_re}"\s+"([\w-]+)"\s+"([\w-]+)"', action)
+    m = re.search(rf'spawn\s+"(?:[^"]*/)?{launcher}"\s+"([\w-]+)"\s+"([\w-]+)"', action)
     if m:
         return m.group(1), m.group(2)
     return None

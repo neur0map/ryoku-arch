@@ -20,7 +20,7 @@ bash -n "$script" || fail "ryoku-shell launcher has a syntax error"
 [[ $(head -n 1 "$registry") == "#!/bin/bash" ]] \
   || fail "generated IPC registry should use the repo bash shebang convention"
 
-rg -q 'ipc call -- settings open' "$script" \
+rg -q 'ipc call -- settings "\$settings_function"' "$script" \
   || fail "settings IPC call should pass -- before target/function"
 rg -q 'ipc call -- "\$target" "\$@"' "$script" \
   || fail "target IPC wrapper should pass -- before target/function"

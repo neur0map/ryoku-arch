@@ -330,6 +330,8 @@ ApplicationWindow {
       { label: "Theme color sets", desc: "ThemePresets swatches and favorites", page: "Appearance", subTab: 1 },
       { label: "Template targets", desc: "Terminal, apps, shell, browser color templates", page: "Appearance", subTab: 2 },
       { label: "Login screen", desc: "SDDM greeter provider and qylock theme path", page: "Advanced", subTab: 3 },
+      { label: "Gowall", desc: "Wallpaper recolor, effects, invert, pixelate, and upscale workflow", page: "Wallpaper & Desktop", subTab: 5 },
+      { label: "Niri Expert", desc: "Full Niri display, layout, input, keybind, animation, and safety controls", page: "Audio & Display", subTab: 4 },
       { label: "Services", desc: "Idle, caffeine, AI, music recognition, networking, hotspot", page: "Services", subTab: 0 },
       { label: "AI settings", desc: "AI providers, system prompt, API formats, and keys", page: "Services", subTab: 0 },
       { label: "Extras", desc: "Package profiles and optional software", page: "Extras", subTab: 0 },
@@ -1377,11 +1379,11 @@ ApplicationWindow {
       upgrade: "Package to update"
     });
     const prompt = actionLabels[action] ?? "Package";
-    launchTerminalCommand("printf 'GPK package manager - " + action + "\\n'; read -rp '" + prompt + ": ' pkg; if [[ -n $pkg ]]; then gpk " + action + " \"$pkg\"; fi; printf '\\nPress Enter to close...'; read -r _");
+    launchTerminalCommand("printf 'GPK package manager - " + action + "\n'; read -rp '" + prompt + ": ' pkg; if [[ -n $pkg ]]; then gpk " + action + " \"$pkg\"; fi; printf '\nPress Enter to close...'; read -r _");
   }
 
   function launchGpkOutdated() {
-    launchTerminalCommand("gpk outdated; printf '\\nPress Enter to close...'; read -r _");
+    launchTerminalCommand("gpk outdated; printf '\nPress Enter to close...'; read -r _");
   }
 
   function openFileInTerminal(path) {
@@ -2258,8 +2260,12 @@ ApplicationWindow {
     id: embedded
     property string sourcePath: ""
 
+    readonly property int embeddedPreferredHeight: Math.max(760, embeddedLoader.item?.implicitHeight ?? embeddedLoader.item?.height ?? 0)
+
     Layout.fillWidth: true
     Layout.fillHeight: true
+    Layout.preferredHeight: embeddedPreferredHeight
+    implicitHeight: embeddedPreferredHeight
     clip: true
 
     Loader {
@@ -4954,7 +4960,7 @@ ApplicationWindow {
   Component {
     id: wallpaperPage
     SettingsPage {
-      SettingsSubTabs { pageKey: "wallpaper"; options: ["Wallpaper", "Effects", "Widgets", "Background Controls", "Widget Controls"] }
+      SettingsSubTabs { pageKey: "wallpaper"; options: ["Wallpaper", "Effects", "Widgets", "Background Controls", "Widget Controls", "Gowall"] }
 
       StackLayout {
         Layout.fillWidth: true
@@ -5054,6 +5060,10 @@ ApplicationWindow {
 
         SettingsEmbeddedSettingsPage {
           sourcePath: Quickshell.shellPath("modules/settings/DesktopWidgetsConfig.qml")
+        }
+
+        SettingsEmbeddedSettingsPage {
+          sourcePath: Quickshell.shellPath("modules/settings/GowallWallpaperEditor.qml")
         }
       }
     }
@@ -5466,6 +5476,10 @@ ApplicationWindow {
                 SettingsButton { text: "Edit Niri keybinds"; iconName: "edit"; onClicked: app.openFileInTerminal(Quickshell.env("HOME") + "/.config/niri/config.d/70-binds.kdl") }
               }
             }
+
+            SettingsEmbeddedSettingsPage {
+              sourcePath: Quickshell.shellPath("modules/settings/CheatsheetConfig.qml")
+            }
           }
         }
       }
@@ -5550,7 +5564,7 @@ ApplicationWindow {
   Component {
     id: audioDisplayPage
     SettingsPage {
-      SettingsSubTabs { pageKey: "audioDisplay"; options: ["Audio", "Display", "Input", "Monitor"] }
+      SettingsSubTabs { pageKey: "audioDisplay"; options: ["Audio", "Display", "Input", "Monitor", "Niri Expert"] }
 
       SettingsPageBody {
         SettingsStackLayout {
@@ -5982,6 +5996,10 @@ ApplicationWindow {
               }
             }
           }
+        }
+
+        SettingsEmbeddedSettingsPage {
+          sourcePath: Quickshell.shellPath("modules/settings/NiriConfig.qml")
         }
       }
       }
@@ -6808,6 +6826,10 @@ ApplicationWindow {
 
               SettingsLabel { label: "Built-in provider"; description: Quickshell.shellPath("assets/sddm-providers/ii-pixel"); iconName: "folder" }
               SettingsLabel { label: "qylock provider"; description: Quickshell.env("HOME") + "/.local/share/qylock"; iconName: "folder" }
+            }
+
+            SettingsEmbeddedSettingsPage {
+              sourcePath: Quickshell.shellPath("modules/settings/LoginScreenConfig.qml")
             }
           }
         }

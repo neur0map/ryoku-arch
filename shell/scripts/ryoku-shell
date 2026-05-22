@@ -1359,19 +1359,49 @@ restart_shell() {
 }
 
 open_settings() {
-    local dir="$1"
+    local settings_function="open"
 
-    if ! ensure_running_instance "$dir"; then
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -c|--config)
+                parse_config_flag "$@"
+                shift 2
+                ;;
+            --centered|--window)
+                # Explicit detached-window requests keep the legacy settings surface.
+                open_settings_surface "$@"
+                return
+                ;;
+            open|toggle)
+                settings_function="$1"
+                shift
+                ;;
+            -h|--help)
+                echo "Usage: ryoku-shell settings [-c PATH] [open|toggle] [--centered|--window]" >&2
+                exit 0
+                ;;
+            *)
+                echo "Unknown option: $1" >&2
+                exit 1
+                ;;
+        esac
+    done
+
+    resolve_config_dir
+    if ! ensure_running_instance "$config_dir"; then
         echo "Timed out waiting for Ryoku shell to start" >&2
         exit 1
     fi
 
-    exec "$qs_bin" -p "$dir" ipc call -- settings open
+    if ! "$qs_bin" -p "$config_dir" ipc call -- settings "$settings_function" 2>/dev/null; then
+        has_instances "$config_dir" && sleep 0.5
+        exec "$qs_bin" -p "$config_dir" ipc call -- settings "$settings_function"
+    fi
 }
 
 settings_launch_mode() {
     local mode="centered"
-    local config_file="${XDG_CONFIG_HOME:-$HOME/.config}/ryoku-shell/config.json"
+    local config_file="${RYOKU_SHELL_CONFIG_FILE:-$(ryoku_shell_config_file)}"
 
     if command -v jq >/dev/null 2>&1 && [[ -f $config_file ]]; then
         mode="$(jq -r '.settingsUi.launchMode // empty' "$config_file" 2>/dev/null || true)"
@@ -2650,7 +2680,7 @@ case "$command_name" in
         ;;
     settings|open)
         require_qs
-        open_settings_surface "$@"
+        open_settings "$@"
         ;;
     settings-window|ryoku-settings-window)
         require_qs

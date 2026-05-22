@@ -38,8 +38,11 @@ grep -q 'open_detached_qml_window "$config_dir" "ryokuSettings.qml"' "$launcher"
 grep -q 'open_detached_qml_window "$config_dir" "settings.qml"' "$launcher" \
   || fail "legacy-settings-window should launch the old settings.qml reference"
 
-awk '/settings\|open\)/,/settings-window\|ryoku-settings-window\)/ { if ($0 ~ /open_settings_surface/) found=1 } END { exit found ? 0 : 1 }' "$launcher" \
-  || fail "primary ryoku-shell settings command should launch official settings for Mod+Comma"
+awk '/settings\|open\)/,/settings-window\|ryoku-settings-window\)/ { if ($0 ~ /open_settings/) found=1; if ($0 ~ /open_settings_surface/) bad=1 } END { exit (found && !bad) ? 0 : 1 }' "$launcher" \
+  || fail "primary ryoku-shell settings command should route to resident shell IPC for Mod+Comma"
+
+grep -q 'property bool overlayMode: true' "$config_schema" \
+  || fail "settings overlay mode should default to resident in-shell settings"
 
 grep -q '"settings"' "$shell_entry" \
   || fail "the live settings IPC path should open through the primary settings command"

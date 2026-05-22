@@ -181,11 +181,10 @@ ShellRoot {
     IpcHandler {
         target: "settings"
         function open(): void {
-            Quickshell.execDetached([Quickshell.shellPath("scripts/ryoku-shell"),
-                "settings"])
+            GlobalStates.settingsOverlayOpen = true
         }
         function toggle(): void {
-            open()
+            GlobalStates.settingsOverlayOpen = !GlobalStates.settingsOverlayOpen
         }
         // Re-apply the active theme in the main-shell process. The settings
         // window (a separate process) calls this after a Config write so the
@@ -198,9 +197,9 @@ ShellRoot {
         }
     }
 
-    // Settings overlay panel (loaded only when overlay mode is enabled)
+    // Settings overlay panel is resident so Mod+Comma feels like shell UI, not app launch.
     LazyLoader {
-        active: Config.ready && (Config.options?.settingsUi?.overlayMode ?? false)
+        active: Config.ready
         component: SettingsOverlay {}
     }
 
