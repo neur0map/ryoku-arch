@@ -1,3 +1,12 @@
+set(RYOKU_SERVICES_LIBRARIES
+    PkgConfig::Pipewire
+    PkgConfig::Aubio
+)
+
+if(Cava_FOUND)
+    list(APPEND RYOKU_SERVICES_LIBRARIES PkgConfig::Cava)
+endif()
+
 qml_module(ryoku-services
     URI Ryoku.Services
     SOURCES
@@ -8,7 +17,9 @@ qml_module(ryoku-services
         audioprovider.hpp audioprovider.cpp
         cavaprovider.hpp cavaprovider.cpp
     LIBRARIES
-        PkgConfig::Pipewire
-        PkgConfig::Aubio
-        PkgConfig::Cava
+        ${RYOKU_SERVICES_LIBRARIES}
 )
+
+if(Cava_FOUND)
+    target_compile_definitions(ryoku-services PRIVATE RYOKU_HAS_CAVA=1)
+endif()

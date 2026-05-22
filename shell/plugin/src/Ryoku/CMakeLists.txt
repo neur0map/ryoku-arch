@@ -5,7 +5,7 @@ pkg_check_modules(Pipewire IMPORTED_TARGET libpipewire-0.3 REQUIRED)
 pkg_check_modules(Aubio IMPORTED_TARGET aubio REQUIRED)
 pkg_check_modules(Cava IMPORTED_TARGET libcava QUIET)
 if(NOT Cava_FOUND)
-    pkg_check_modules(Cava IMPORTED_TARGET cava REQUIRED)
+    pkg_check_modules(Cava IMPORTED_TARGET cava QUIET)
 endif()
 
 set(QT_QML_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/qml")

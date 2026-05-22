@@ -8,6 +8,7 @@ lib_dir="${RYOKU_SHELL_LIB_DIR:-$HOME/.local/lib/ryoku-shell}"
 qml_dir="${RYOKU_SHELL_QML_DIR:-$HOME/.local/lib/qt6/qml}"
 xkb_rules="${RYOKU_SHELL_XKB_RULES_PATH:-/usr/share/X11/xkb/rules/base.lst}"
 systemd_user_dir="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
+systemd_dropin_dir="$systemd_user_dir/ryoku-shell.service.d"
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 shell_root="$(cd -- "$script_dir/.." && pwd)"
 
@@ -16,7 +17,7 @@ export RYOKU_SHELL_XKB_RULES_PATH="$xkb_rules"
 export QML_IMPORT_PATH="$qml_dir${QML_IMPORT_PATH:+:$QML_IMPORT_PATH}"
 export QML2_IMPORT_PATH="$qml_dir${QML2_IMPORT_PATH:+:$QML2_IMPORT_PATH}"
 export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-wayland;xcb}"
-export QS_CONFIG_NAME="${QS_CONFIG_NAME:-ryoku-shell}"
+unset QS_CONFIG_NAME QS_CONFIG_PATH QS_MANIFEST
 
 usage() {
   cat <<'EOF'
@@ -76,6 +77,8 @@ install_service() {
 
   mkdir -p "$systemd_user_dir"
   install -m 0644 "$source_service" "$target_service"
+  rm -f "$systemd_dropin_dir/ryoku-dev-qs.conf"
+  rmdir "$systemd_dropin_dir" >/dev/null 2>&1 || true
   systemctl --user daemon-reload >/dev/null 2>&1 || true
 }
 
@@ -108,7 +111,7 @@ case "$command" in
     exec "$0" run "$@"
     ;;
   status)
-    "$qs_bin" list --all
+    "$qs_bin" list -a
     ;;
   logs)
     "$qs_bin" log -p "$runtime_dir" "$@"

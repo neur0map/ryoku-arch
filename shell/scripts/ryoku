@@ -1,0 +1,246 @@
+#!/bin/bash
+
+set -euo pipefail
+
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-shell"
+wallpaper_dir="$state_dir/wallpaper"
+scheme_file="$state_dir/scheme.json"
+ryoku_path="${RYOKU_PATH:-$HOME/.local/share/ryoku}"
+
+usage() {
+  cat >&2 <<'EOF'
+Usage:
+  ryoku scheme list
+  ryoku scheme get -nfv
+  ryoku scheme set [-n NAME] [-f FLAVOUR] [-v VARIANT] [-m MODE] [--notify]
+  ryoku wallpaper -p PATH [--no-smart]
+  ryoku wallpaper -f PATH [--no-smart]
+
+Compatibility bridge for the rebirth shell. Ryoku system commands keep the
+ryoku-* prefix.
+EOF
+}
+
+command_present() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+read_state() {
+  local key="$1"
+  local default="$2"
+  local path="$state_dir/scheme.$key"
+
+  if [[ -f $path ]]; then
+    tr -d '\n' < "$path"
+  else
+    printf '%s\n' "$default"
+  fi
+}
+
+write_state() {
+  local key="$1"
+  local value="$2"
+
+  mkdir -p "$state_dir"
+  printf '%s\n' "$value" >"$state_dir/scheme.$key"
+}
+
+colour_payload() {
+  cat <<'JSON'
+{"primary_paletteKeyColor":"F25623","secondary_paletteKeyColor":"88A57D","tertiary_paletteKeyColor":"F56E0F","neutral_paletteKeyColor":"757d75","neutral_variant_paletteKeyColor":"8A8A8A","background":"171717","onBackground":"CCD0CF","surface":"171717","surfaceDim":"171717","surfaceBright":"333333","surfaceContainerLowest":"101010","surfaceContainerLow":"1d1d1d","surfaceContainer":"222222","surfaceContainerHigh":"2a2a2a","surfaceContainerHighest":"333333","onSurface":"CCD0CF","surfaceVariant":"333333","onSurfaceVariant":"bcbfbc","inverseSurface":"CCD0CF","inverseOnSurface":"171717","outline":"8A8A8A","outlineVariant":"4D4D4D","shadow":"000000","scrim":"000000","surfaceTint":"F25623","primary":"F25623","onPrimary":"171717","primaryContainer":"6f2b16","onPrimaryContainer":"ffd8cb","inversePrimary":"aeab94","secondary":"88A57D","onSecondary":"171717","secondaryContainer":"35472f","onSecondaryContainer":"d7f0cc","tertiary":"F56E0F","onTertiary":"171717","tertiaryContainer":"693000","onTertiaryContainer":"ffdcc3","error":"ffb4ab","onError":"690005","errorContainer":"93000a","onErrorContainer":"ffdad6","success":"B5CCBA","onSuccess":"213528","successContainer":"374B3E","onSuccessContainer":"D1E9D6","primaryFixed":"ffd8cb","primaryFixedDim":"ffb59e","onPrimaryFixed":"390c00","onPrimaryFixedVariant":"6f2b16","secondaryFixed":"d7f0cc","secondaryFixedDim":"bbd4b1","onSecondaryFixed":"0f1f0d","onSecondaryFixedVariant":"35472f","tertiaryFixed":"ffdcc3","tertiaryFixedDim":"f56e0f","onTertiaryFixed":"2f1500","onTertiaryFixedVariant":"693000"}
+JSON
+}
+
+scheme_json() {
+  local name="${1:-$(read_state name ryoku)}"
+  local flavour="${2:-$(read_state flavour default)}"
+  local variant="${3:-$(read_state variant tonalspot)}"
+  local mode="${4:-$(read_state mode dark)}"
+
+  printf '{"name":"%s","flavour":"%s","mode":"%s","variant":"%s","colours":%s}\n' \
+    "$name" "$flavour" "$mode" "$variant" "$(colour_payload)"
+}
+
+ensure_scheme_file() {
+  if [[ ! -f $scheme_file ]]; then
+    mkdir -p "$state_dir"
+    scheme_json >"$scheme_file"
+  fi
+}
+
+scheme_list() {
+  printf '{"ryoku":{"default":%s}}\n' "$(colour_payload)"
+}
+
+scheme_get() {
+  local flags="${1:-}"
+
+  ensure_scheme_file
+
+  if [[ $flags == "-nfv" ]]; then
+    read_state name ryoku
+    read_state flavour default
+    read_state variant tonalspot
+    return 0
+  fi
+
+  cat "$scheme_file"
+}
+
+scheme_set() {
+  local name
+  local flavour
+  local variant
+  local mode
+
+  name="$(read_state name ryoku)"
+  flavour="$(read_state flavour default)"
+  variant="$(read_state variant tonalspot)"
+  mode="$(read_state mode dark)"
+
+  while (($# > 0)); do
+    case "$1" in
+      -n)
+        shift
+        name="${1:-$name}"
+        ;;
+      -f)
+        shift
+        flavour="${1:-$flavour}"
+        ;;
+      -v)
+        shift
+        variant="${1:-$variant}"
+        ;;
+      -m)
+        shift
+        mode="${1:-$mode}"
+        ;;
+      --notify)
+        ;;
+      *)
+        echo "ryoku: unknown scheme set argument: $1" >&2
+        return 2
+        ;;
+    esac
+    shift
+  done
+
+  write_state name "$name"
+  write_state flavour "$flavour"
+  write_state variant "$variant"
+  write_state mode "$mode"
+  scheme_json "$name" "$flavour" "$variant" "$mode" >"$scheme_file"
+}
+
+scheme_command() {
+  local subcommand="${1:-}"
+  (($# == 0)) || shift
+
+  case "$subcommand" in
+    list)
+      scheme_list
+      ;;
+    get)
+      scheme_get "$@"
+      ;;
+    set)
+      scheme_set "$@"
+      ;;
+    *)
+      usage
+      return 2
+      ;;
+  esac
+}
+
+wallpaper_type() {
+  local path="$1"
+
+  case "${path,,}" in
+    *.mp4|*.mkv|*.mov|*.webm)
+      printf 'video\n'
+      ;;
+    *)
+      printf 'image\n'
+      ;;
+  esac
+}
+
+wallpaper_command() {
+  local preview=false
+  local apply=false
+  local path=""
+
+  while (($# > 0)); do
+    case "$1" in
+      -p)
+        preview=true
+        shift
+        path="${1:-}"
+        ;;
+      -f)
+        apply=true
+        shift
+        path="${1:-}"
+        ;;
+      --no-smart)
+        ;;
+      *)
+        echo "ryoku: unknown wallpaper argument: $1" >&2
+        return 2
+        ;;
+    esac
+    shift
+  done
+
+  if [[ $preview == true ]]; then
+    scheme_json
+    return 0
+  fi
+
+  if [[ $apply == true ]]; then
+    [[ -n $path ]] || {
+      echo "ryoku: wallpaper path is required" >&2
+      return 2
+    }
+
+    mkdir -p "$wallpaper_dir"
+    printf '%s\n' "$path" >"$wallpaper_dir/path.txt"
+
+    if [[ -x $ryoku_path/bin/ryoku-wallpaper-apply ]]; then
+      "$ryoku_path/bin/ryoku-wallpaper-apply" --type "$(wallpaper_type "$path")" "$path" >/dev/null || true
+    elif command_present ryoku-wallpaper-apply; then
+      ryoku-wallpaper-apply --type "$(wallpaper_type "$path")" "$path" >/dev/null || true
+    fi
+
+    printf '%s\n' "$path"
+    return 0
+  fi
+
+  usage
+  return 2
+}
+
+main() {
+  local command="${1:-}"
+  (($# == 0)) || shift
+
+  case "$command" in
+    scheme)
+      scheme_command "$@"
+      ;;
+    wallpaper)
+      wallpaper_command "$@"
+      ;;
+    -h|--help|help)
+      usage
+      ;;
+    *)
+      usage
+      return 2
+      ;;
+  esac
+}
+
+main "$@"

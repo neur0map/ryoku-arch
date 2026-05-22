@@ -47,6 +47,7 @@ install_runtime_files() {
   fi
 
   install -m 0755 "$script_dir/scripts/ryoku-shell" "$bin_dir/ryoku-shell"
+  [[ -f $script_dir/scripts/ryoku ]] && install -m 0755 "$script_dir/scripts/ryoku" "$bin_dir/ryoku"
   [[ -f $script_dir/assets/logo.svg ]] && install -m 0644 "$script_dir/assets/logo.svg" "$icon_dir/ryoku-shell.svg"
   [[ -f $script_dir/assets/applications/ryoku-shell.desktop ]] && \
     install -m 0644 "$script_dir/assets/applications/ryoku-shell.desktop" "$applications_dir/ryoku-shell.desktop"

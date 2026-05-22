@@ -2,7 +2,11 @@
 
 #include "audiocollector.hpp"
 #include "audioprovider.hpp"
+
+#ifdef RYOKU_HAS_CAVA
 #include <cava/cavacore.h>
+#endif
+
 #include <cstddef>
 #include <qloggingcategory.h>
 
@@ -11,6 +15,7 @@ Q_LOGGING_CATEGORY(lcCavaProcessor, "ryoku.services.cava.processor", QtInfoMsg)
 
 namespace ryoku::services {
 
+#ifdef RYOKU_HAS_CAVA
 CavaProcessor::CavaProcessor(QObject* parent)
     : AudioProcessor(parent)
     , m_plan(nullptr)
@@ -95,15 +100,18 @@ void CavaProcessor::initCava() {
     m_plan = cava_init(m_bars, ac::SAMPLE_RATE, 1, 1, 0.85, 50, 10000);
     m_out = new double[static_cast<size_t>(m_bars)];
 }
+#endif
 
 CavaProvider::CavaProvider(QObject* parent)
     : AudioProvider(parent)
     , m_bars(0)
     , m_values(m_bars, 0.0) {
+#ifdef RYOKU_HAS_CAVA
     m_processor = new CavaProcessor();
     init();
 
     connect(static_cast<CavaProcessor*>(m_processor), &CavaProcessor::valuesChanged, this, &CavaProvider::updateValues);
+#endif
 }
 
 int CavaProvider::bars() const {
@@ -125,8 +133,10 @@ void CavaProvider::setBars(int bars) {
     emit barsChanged();
     emit valuesChanged();
 
+#ifdef RYOKU_HAS_CAVA
     QMetaObject::invokeMethod(
         static_cast<CavaProcessor*>(m_processor), &CavaProcessor::setBars, Qt::QueuedConnection, bars);
+#endif
 }
 
 QVector<double> CavaProvider::values() const {

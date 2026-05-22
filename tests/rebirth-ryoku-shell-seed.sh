@@ -45,6 +45,7 @@ assert_file shell/LICENSE
 assert_file shell/plugin/src/Ryoku/CMakeLists.txt
 assert_file shell/modules/Shortcuts.qml
 assert_executable shell/scripts/ryoku-shell
+assert_executable shell/scripts/ryoku
 assert_executable shell/setup
 
 assert_contains shell/CMakeLists.txt 'project\(ryoku-shell' \
@@ -59,12 +60,43 @@ assert_contains shell/scripts/ryoku-shell 'RYOKU_COMPOSITOR.*hyprland|HYPRLAND_I
   "launcher should support explicit Hyprland service handling"
 assert_contains shell/setup 'RYOKU_COMPOSITOR.*hyprland|HYPRLAND_INSTANCE_SIGNATURE' \
   "setup should support explicit Hyprland service handling"
+assert_contains shell/setup "scripts/ryoku\" \"\\\$bin_dir/ryoku" \
+  "setup should install the imported shell compatibility bridge"
+assert_contains shell/assets/systemd/ryoku-shell.service 'Environment=PATH=.*\.local/bin' \
+  "service should expose user-installed Ryoku bridge commands"
+assert_contains shell/scripts/ryoku 'ryoku-wallpaper-apply' \
+  "compatibility bridge should delegate wallpaper application to Ryoku commands"
 assert_contains install/ryoku-base.packages '^aubio$' \
   "base packages should include native shell audio analysis dependency"
 assert_contains install/ryoku-base.packages '^ttf-cascadia-code-nerd$' \
   "base packages should include the shell mono Nerd Font"
 assert_contains install/ryoku-aur.packages '^app2unit$' \
   "AUR packages should include the shell app2unit runtime helper"
+
+command -v jq >/dev/null 2>&1 || fail "jq is required for the shell bridge test"
+tmp_dir=$(mktemp -d)
+trap 'rm -rf "$tmp_dir"' EXIT
+
+HOME="$tmp_dir/home" XDG_STATE_HOME="$tmp_dir/state" \
+  "$ROOT_DIR/shell/scripts/ryoku" scheme list | jq -e '.ryoku.default.primary == "F25623"' >/dev/null || \
+  fail "compatibility bridge should expose a shell-readable scheme list"
+
+current_scheme=$(
+  HOME="$tmp_dir/home" XDG_STATE_HOME="$tmp_dir/state" \
+    "$ROOT_DIR/shell/scripts/ryoku" scheme get -nfv
+)
+[[ $current_scheme == $'ryoku\ndefault\ntonalspot' ]] || \
+  fail "compatibility bridge should expose current scheme fields"
+
+HOME="$tmp_dir/home" XDG_STATE_HOME="$tmp_dir/state" \
+  "$ROOT_DIR/shell/scripts/ryoku" scheme set -v expressive
+HOME="$tmp_dir/home" XDG_STATE_HOME="$tmp_dir/state" \
+  "$ROOT_DIR/shell/scripts/ryoku" scheme get | jq -e '.variant == "expressive"' >/dev/null || \
+  fail "compatibility bridge should persist shell variant changes"
+
+HOME="$tmp_dir/home" XDG_STATE_HOME="$tmp_dir/state" \
+  "$ROOT_DIR/shell/scripts/ryoku" wallpaper -p "$tmp_dir/wall.png" | jq -e '.colours.primary == "F25623"' >/dev/null || \
+  fail "compatibility bridge should expose preview wallpaper colours"
 
 upstream_pattern='cae''lestia|Cae''lestia|CAELE''STIA|cae''lestia-dots|sora''mane'
 if rg -n "$upstream_pattern" "$ROOT_DIR/shell" \

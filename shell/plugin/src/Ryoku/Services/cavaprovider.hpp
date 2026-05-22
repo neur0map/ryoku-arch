@@ -1,11 +1,16 @@
 #pragma once
 
 #include "audioprovider.hpp"
+
+#ifdef RYOKU_HAS_CAVA
 #include <cava/cavacore.h>
+#endif
+
 #include <qqmlintegration.h>
 
 namespace ryoku::services {
 
+#ifdef RYOKU_HAS_CAVA
 class CavaProcessor : public AudioProcessor {
     Q_OBJECT
 
@@ -33,6 +38,7 @@ private:
     void initCava();
     void cleanup();
 };
+#endif
 
 class CavaProvider : public AudioProvider {
     Q_OBJECT
