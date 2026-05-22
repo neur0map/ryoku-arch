@@ -162,6 +162,7 @@ rsync
 swaylock
 swappy
 syntax-highlighting
+ttf-cascadia-code-nerd
 ttf-dejavu
 ttf-liberation
 ttf-material-symbols-variable
@@ -198,6 +199,7 @@ sddm
 
 # ── Audio system + visualizer ─────────────────────────────────────────
 alsa-utils
+aubio
 cava
 easyeffects
 gst-plugins-bad

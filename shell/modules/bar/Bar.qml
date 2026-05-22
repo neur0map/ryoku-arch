@@ -1,406 +1,213 @@
 pragma ComponentBehavior: Bound
 
+import "popouts" as BarPopouts
+import "components"
+import "components/workspaces"
 import QtQuick
-import QtQuick.Effects
-import Qt5Compat.GraphicalEffects as GE
+import QtQuick.Layouts
 import Quickshell
-import Quickshell.Io
-import Quickshell.Wayland
-import Quickshell.Hyprland
-import qs
+import Ryoku.Config
+import qs.components
 import qs.services
-import qs.modules.common
-import qs.modules.common.widgets
-import qs.modules.common.functions
 
-Scope {
-    id: bar
-    property bool showBarBackground: Config.options?.bar?.showBackground ?? true
-    // Note: Vignette effect moved to Backdrop.qml (backdrop wallpaper layer)
+ColumnLayout {
+    id: root
 
-    Variants {
-        // For each monitor
-        model: {
-            const screens = Quickshell.screens;
-            const list = Config.options?.bar?.screenList ?? [];
-            if (!list || list.length === 0)
-                return screens;
-            const matchedScreens = screens.filter(screen => {
-                const screenName = screen?.name ?? "";
-                return screenName.length > 0 && list.includes(screenName);
-            });
-            // Fallback safety: stale monitor names (e.g. output re-enumeration after VRR changes)
-            // should never hide the bar on every screen.
-            return matchedScreens.length > 0 ? matchedScreens : screens;
+    required property ShellScreen screen
+    required property DrawerVisibilities visibilities
+    required property BarPopouts.Wrapper popouts
+    required property bool fullscreen
+    readonly property int vPadding: Tokens.padding.large
+
+    function closeTray(): void {
+        if (!Config.bar.tray.compact)
+            return;
+
+        for (let i = 0; i < repeater.count; i++) {
+            const loader = repeater.itemAt(i) as WrappedLoader;
+            if (loader?.enabled && loader.id === "tray") {
+                (loader.item as Tray).expanded = false;
+            }
         }
-        LazyLoader {
-            id: barLoader
-            active: GlobalStates.barOpen && !GlobalStates.screenLocked && !GlobalStates.widgetEditMode
-            required property ShellScreen modelData
-            component: PanelWindow { // Bar window
-                id: barRoot
-                screen: barLoader.modelData
-                visible: !GameMode.shouldHidePanels && !GlobalStates.widgetEditMode
+    }
 
-                property var brightnessMonitor: Brightness.getMonitorForScreen(barLoader.modelData)
-                property real useShortenedForm: (Appearance.sizes.barHellaShortenScreenWidthThreshold >= screen.width) ? 2 : (Appearance.sizes.barShortenScreenWidthThreshold >= screen.width) ? 1 : 0
-                readonly property int centerSideModuleWidth: (useShortenedForm == 2) ? Appearance.sizes.barCenterSideModuleWidthHellaShortened : (useShortenedForm == 1) ? Appearance.sizes.barCenterSideModuleWidthShortened : Appearance.sizes.barCenterSideModuleWidth
+    function checkPopout(y: real): void {
+        const ch = childAt(width / 2, y) as WrappedLoader;
 
-                Timer {
-                    id: showBarTimer
-                    interval: (Config?.options.bar.autoHide.showWhenPressingSuper.delay ?? 100)
-                    repeat: false
-                    onTriggered: {
-                        barRoot.superShow = true
+        if (ch?.id !== "tray")
+            closeTray();
+
+        if (!ch) {
+            popouts.hasCurrent = false;
+            return;
+        }
+
+        const id = ch.id;
+        const top = ch.y;
+
+        if (id === "statusIcons" && Config.bar.popouts.statusIcons) {
+            const items = (ch.item as StatusIcons).items;
+            const icon = items.childAt(items.width / 2, mapToItem(items, 0, y).y);
+            if (icon) {
+                popouts.currentName = icon.name;
+                popouts.currentCenter = Qt.binding(() => icon.mapToItem(root, 0, icon.implicitHeight / 2).y);
+                popouts.hasCurrent = true;
+            }
+        } else if (id === "tray" && Config.bar.popouts.tray) {
+            const tray = ch.item as Tray;
+            if (!Config.bar.tray.compact || (tray.expanded && !tray.expandIcon.contains(mapToItem(tray.expandIcon, tray.implicitWidth / 2, y)))) {
+                const index = Math.floor(((y - top - tray.padding * 2 + tray.spacing) / tray.layout.implicitHeight) * tray.items.count);
+                const trayItem = tray.items.itemAt(index);
+                if (trayItem) {
+                    popouts.currentName = `traymenu${index}`;
+                    popouts.currentCenter = Qt.binding(() => trayItem.mapToItem(root, 0, trayItem.implicitHeight / 2).y);
+                    popouts.hasCurrent = true;
+                } else {
+                    popouts.hasCurrent = false;
+                }
+            } else {
+                popouts.hasCurrent = false;
+                tray.expanded = true;
+            }
+        } else if (id === "activeWindow" && Config.bar.popouts.activeWindow && Config.bar.activeWindow.showOnHover) {
+            popouts.currentName = id.toLowerCase();
+            popouts.currentCenter = (ch.item as Item).mapToItem(root, 0, (ch.item as Item).implicitHeight / 2).y ?? 0;
+            popouts.hasCurrent = true;
+        }
+    }
+
+    function handleWheel(y: real, angleDelta: point): void {
+        const ch = childAt(width / 2, y) as WrappedLoader;
+        if (ch?.id === "workspaces" && Config.bar.scrollActions.workspaces) {
+            // Workspace scroll
+            const mon = (GlobalConfig.bar.workspaces.perMonitorWorkspaces ? Hypr.monitorFor(screen) : Hypr.focusedMonitor);
+            const specialWs = mon?.lastIpcObject.specialWorkspace.name;
+            if (specialWs?.length > 0)
+                Hypr.dispatch(`togglespecialworkspace ${specialWs.slice(8)}`);
+            else if (angleDelta.y < 0 || (GlobalConfig.bar.workspaces.perMonitorWorkspaces ? mon.activeWorkspace?.id : Hypr.activeWsId) > 1)
+                Hypr.dispatch(`workspace r${angleDelta.y > 0 ? "-" : "+"}1`);
+        } else if (y < screen.height / 2 && Config.bar.scrollActions.volume) {
+            // Volume scroll on top half
+            if (angleDelta.y > 0)
+                Audio.incrementVolume();
+            else if (angleDelta.y < 0)
+                Audio.decrementVolume();
+        } else if (Config.bar.scrollActions.brightness) {
+            // Brightness scroll on bottom half
+            const monitor = Brightness.getMonitorForScreen(screen);
+            if (angleDelta.y > 0)
+                monitor.setBrightness(monitor.brightness + GlobalConfig.services.brightnessIncrement);
+            else if (angleDelta.y < 0)
+                monitor.setBrightness(monitor.brightness - GlobalConfig.services.brightnessIncrement);
+        }
+    }
+
+    spacing: Tokens.spacing.normal
+
+    Repeater {
+        id: repeater
+
+        model: Config.bar.entries
+
+        DelegateChooser {
+            role: "id"
+
+            DelegateChoice {
+                roleValue: "spacer"
+                delegate: WrappedLoader {
+                    Layout.fillHeight: enabled
+                }
+            }
+            DelegateChoice {
+                roleValue: "logo"
+                delegate: WrappedLoader {
+                    sourceComponent: OsIcon {}
+                }
+            }
+            DelegateChoice {
+                roleValue: "workspaces"
+                delegate: WrappedLoader {
+                    sourceComponent: Workspaces {
+                        screen: root.screen
+                        fullscreen: root.fullscreen
                     }
                 }
-                Connections {
-                    target: GlobalStates
-                    function onSuperDownChanged() {
-                        if (!Config?.options.bar.autoHide.showWhenPressingSuper.enable) return;
-                        if (GlobalStates.superDown) showBarTimer.restart();
-                        else {
-                            showBarTimer.stop();
-                            barRoot.superShow = false;
-                        }
+            }
+            DelegateChoice {
+                roleValue: "activeWindow"
+                delegate: WrappedLoader {
+                    Layout.fillWidth: true
+                    visible: !root.fullscreen
+                    sourceComponent: ActiveWindow {
+                        bar: root
+                        monitor: Brightness.getMonitorForScreen(root.screen)
                     }
                 }
-                property bool superShow: false
-                property bool mustShow: hoverRegion.containsMouse || superShow
-                exclusionMode: ExclusionMode.Ignore
-                exclusiveZone: GameMode.shouldHidePanels ? 0 :
-                    (GlobalStates.coverflowSelectorOpen || (Config?.options.bar.autoHide.enable && (!mustShow || !Config?.options.bar.autoHide.pushWindows))) ? 0 :
-                    Appearance.sizes.baseBarHeight + ((((Config.options?.bar?.cornerStyle ?? 0) === 1) || ((Config.options?.bar?.cornerStyle ?? 0) === 3)) ? (Appearance.sizes.hyprlandGapsOut * 2) : 0)
-                WlrLayershell.namespace: "quickshell:bar"
-                implicitHeight: Appearance.sizes.barHeight + Appearance.rounding.screenRounding
-                // Explicit zero-size item prevents ambiguous null input region during
-                // surface map/unmap transitions. Region { item: null } can be interpreted
-                // as "full surface accepts input" by the compositor, causing an invisible
-                // input-blocking area at the top of the screen.
-                Item { id: emptyMask; width: 0; height: 0 }
-                mask: Region {
-                    item: GameMode.shouldHidePanels ? emptyMask : hoverMaskRegion
+            }
+            DelegateChoice {
+                roleValue: "tray"
+                delegate: WrappedLoader {
+                    visible: !root.fullscreen
+                    sourceComponent: Tray {}
                 }
-                color: "transparent"
-
-                anchors {
-                    top: !(Config.options?.bar?.bottom ?? false)
-                    bottom: (Config.options?.bar?.bottom ?? false)
-                    left: true
-                    right: true
+            }
+            DelegateChoice {
+                roleValue: "clock"
+                delegate: WrappedLoader {
+                    visible: !root.fullscreen
+                    sourceComponent: Clock {}
                 }
-
-                margins {
-                    right: ((Config.options?.interactions?.deadPixelWorkaround?.enable ?? false) && barRoot.anchors.right) * -1
-                    bottom: ((Config.options?.interactions?.deadPixelWorkaround?.enable ?? false) && barRoot.anchors.bottom) * -1
+            }
+            DelegateChoice {
+                roleValue: "statusIcons"
+                delegate: WrappedLoader {
+                    visible: !root.fullscreen
+                    sourceComponent: StatusIcons {}
                 }
-
-                MouseArea  {
-                    id: hoverRegion
-                    hoverEnabled: true
-                    property alias barContent: barContent
-                    anchors {
-                        fill: parent
-                        rightMargin: ((Config.options?.interactions?.deadPixelWorkaround?.enable ?? false) && barRoot.anchors.right) * 1
-                        bottomMargin: ((Config.options?.interactions?.deadPixelWorkaround?.enable ?? false) && barRoot.anchors.bottom) * 1
-                    }
-
-                    Item {
-                        id: hoverMaskRegion
-                        // The hoverRegionWidth extension exists to expose a thin
-                        // reveal strip while autoHide hides the bar. When
-                        // autoHide is off the strip is unused and would leak
-                        // clicks into the empty zone just outside the visible
-                        // bar (most visibly under wide central widgets like
-                        // Workspaces), so collapse it in that case.
-                        readonly property int hoverWidth: (Config.options?.bar?.autoHide?.enable ?? false)
-                            ? (Config.options?.bar?.autoHide?.hoverRegionWidth ?? 2)
-                            : 0
-                        anchors {
-                            fill: barContent
-                            topMargin: -hoverMaskRegion.hoverWidth
-                            bottomMargin: -hoverMaskRegion.hoverWidth
-                        }
-                    }
-
-                    Loader {
-                        id: barContent
-
-                        readonly property var blendedColors: barContent.item?.blendedColors ?? null
-                        readonly property string wallpaperUrl: barContent.item?.wallpaperUrl ?? ""
-
-                        height: Appearance.sizes.barHeight
-                        anchors {
-                            right: parent.right
-                            left: parent.left
-                            top: parent.top
-                            bottom: undefined
-                            topMargin: ((Config?.options.bar.autoHide.enable && !mustShow) || GlobalStates.coverflowSelectorOpen || GlobalStates.toolsModeOpen || !GlobalStates.shellEntryReady) ? -Appearance.sizes.barHeight : 0
-                            bottomMargin: ((Config.options?.interactions?.deadPixelWorkaround?.enable ?? false) && barRoot.anchors.bottom) * -1
-                            rightMargin: ((Config.options?.interactions?.deadPixelWorkaround?.enable ?? false) && barRoot.anchors.right) * -1
-                        }
-                        Behavior on anchors.topMargin {
-                            enabled: Appearance.animationsEnabled
-                            animation: NumberAnimation { duration: Appearance.animation.elementMoveEnter.duration; easing.type: Appearance.animation.elementMoveEnter.type; easing.bezierCurve: Appearance.animation.elementMoveEnter.bezierCurve }
-                        }
-                        Behavior on anchors.bottomMargin {
-                            enabled: Appearance.animationsEnabled
-                            animation: NumberAnimation { duration: Appearance.animation.elementMoveEnter.duration; easing.type: Appearance.animation.elementMoveEnter.type; easing.bezierCurve: Appearance.animation.elementMoveEnter.bezierCurve }
-                        }
-
-                        sourceComponent: barContentComponent
-
-                        Component {
-                            id: barContentComponent
-                            BarContent {}
-                        }
-
-                        states: State {
-                            name: "bottom"
-                            when: (Config.options?.bar?.bottom ?? false)
-                            AnchorChanges {
-                                target: barContent
-                                anchors {
-                                    right: parent.right
-                                    left: parent.left
-                                    top: undefined
-                                    bottom: parent.bottom
-                                }
-                            }
-                            PropertyChanges {
-                                target: barContent
-                                anchors.topMargin: 0
-                                anchors.bottomMargin: ((Config?.options.bar.autoHide.enable && !mustShow) || GlobalStates.coverflowSelectorOpen || GlobalStates.toolsModeOpen || !GlobalStates.shellEntryReady) ? -Appearance.sizes.barHeight : 0
-                            }
-                        }
-                    }
-
-                    // Round decorators
-                    Loader {
-                        id: roundDecorators
-                        anchors {
-                            left: parent.left
-                            right: parent.right
-                            top: barContent.bottom
-                            bottom: undefined
-                        }
-                        height: Appearance.rounding.screenRounding
-                        active: showBarBackground && ((Config.options?.bar?.cornerStyle ?? 0) === 0) // Hug only
-
-                        states: State {
-                            name: "bottom"
-                            when: (Config.options?.bar?.bottom ?? false)
-                            AnchorChanges {
-                                target: roundDecorators
-                                anchors {
-                                    right: parent.right
-                                    left: parent.left
-                                    top: undefined
-                                    bottom: barContent.top
-                                }
-                            }
-                        }
-
-                        sourceComponent: Item {
-                            id: hugDecorators
-                            implicitHeight: Appearance.rounding.screenRounding
-                            
-                            readonly property bool isAurora: Appearance.auroraEverywhere
-                            readonly property bool isRyoku: Appearance.ryokuEverywhere
-                            readonly property bool isBottom: Config.options?.bar?.bottom ?? false
-                            readonly property color solidColor: showBarBackground 
-                                ? (isRyoku ? Appearance.ryoku.colLayer0
-                                    : isAurora ? Appearance.aurora.colPopupSurface
-                                    : Appearance.colors.colLayer0) 
-                                : "transparent"
-                            
-                            // Left corner - solid for Material/Ryoku, blur for Aurora
-                            RoundCorner {
-                                id: leftCorner
-                                visible: !hugDecorators.isAurora
-                                anchors {
-                                    top: parent.top
-                                    bottom: parent.bottom
-                                    left: parent.left
-                                }
-
-                                implicitSize: Appearance.rounding.screenRounding
-                                color: hugDecorators.solidColor
-
-                                corner: RoundCorner.CornerEnum.TopLeft
-                                states: State {
-                                    name: "bottom"
-                                    when: hugDecorators.isBottom
-                                    PropertyChanges {
-                                        leftCorner.corner: RoundCorner.CornerEnum.BottomLeft
-                                    }
-                                }
-                            }
-                            
-                            // Right corner - solid for Material/Ryoku
-                            RoundCorner {
-                                id: rightCorner
-                                visible: !hugDecorators.isAurora
-                                anchors {
-                                    right: parent.right
-                                    top: !hugDecorators.isBottom ? parent.top : undefined
-                                    bottom: hugDecorators.isBottom ? parent.bottom : undefined
-                                }
-                                implicitSize: Appearance.rounding.screenRounding
-                                color: hugDecorators.solidColor
-
-                                corner: RoundCorner.CornerEnum.TopRight
-                                states: State {
-                                    name: "bottom"
-                                    when: hugDecorators.isBottom
-                                    PropertyChanges {
-                                        rightCorner.corner: RoundCorner.CornerEnum.BottomRight
-                                    }
-                                }
-                            }
-                            
-                            // Aurora blur corners
-                            Loader {
-                                active: hugDecorators.isAurora
-                                anchors.fill: parent
-                                sourceComponent: Item {
-                                    id: auroraCorners
-                                    
-                                    component AuroraBlurCorner: Item {
-                                        id: blurCorner
-                                        property int corner: RoundCorner.CornerEnum.TopLeft
-                                        property real cornerSize: Appearance.rounding.screenRounding
-                                        
-                                        readonly property bool isLeft: corner === RoundCorner.CornerEnum.TopLeft || corner === RoundCorner.CornerEnum.BottomLeft
-                                        readonly property bool isTop: corner === RoundCorner.CornerEnum.TopLeft || corner === RoundCorner.CornerEnum.TopRight
-                                        
-                                        width: cornerSize
-                                        height: cornerSize
-                                        clip: true
-                                        
-                                        // Solid background matching BarContent
-                                        Rectangle {
-                                            anchors.fill: parent
-                                            color: ColorUtils.applyAlpha((barContent.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0), 1)
-                                        }
-
-                                        // Blur background
-                                        Image {
-                                            id: blurImg
-                                            // Position relative to screen
-                                            x: blurCorner.isLeft ? 0 : -(barRoot.screen?.width ?? 1920) + blurCorner.cornerSize
-                                            y: hugDecorators.isBottom 
-                                                ? (-(barRoot.screen?.height ?? 1080) + Appearance.sizes.barHeight)
-                                                : (-Appearance.sizes.barHeight)
-                                            width: barRoot.screen?.width ?? 1920
-                                            height: barRoot.screen?.height ?? 1080
-                                            source: barContent.wallpaperUrl
-                                            fillMode: Image.PreserveAspectCrop
-                                            cache: true
-                                            sourceSize.width: barRoot.screen?.width ?? 1920
-                                            sourceSize.height: barRoot.screen?.height ?? 1080
-                                            asynchronous: true
-                                            
-                                            layer.enabled: Appearance.effectsEnabled && Appearance.auroraEverywhere
-                                            layer.effect: MultiEffect {
-                                                source: blurImg
-                                                anchors.fill: source
-                                                saturation: Appearance.angelEverywhere
-                                                    ? Appearance.angel.blurSaturation
-                                                    : (Appearance.effectsEnabled ? 0.2 : 0)
-                                                blurEnabled: Appearance.effectsEnabled
-                                                blurMax: 100
-                                                blur: Appearance.effectsEnabled ? 1 : 0
-                                            }
-                                            
-                                            Rectangle {
-                                                anchors.fill: parent
-                                                color: Appearance.angelEverywhere
-                                                    ? ColorUtils.transparentize((barContent.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base), Appearance.angel.overlayOpacity)
-                                                    : ColorUtils.transparentize((barContent.blendedColors?.colLayer0 ?? Appearance.colors.colLayer0Base), Appearance.aurora.overlayTransparentize)
-                                            }
-                                        }
-                                        
-                                        // Mask to corner shape
-                                        layer.enabled: Appearance.auroraEverywhere
-                                        layer.effect: GE.OpacityMask {
-                                            maskSource: RoundCorner {
-                                                width: blurCorner.width
-                                                height: blurCorner.height
-                                                implicitSize: blurCorner.cornerSize
-                                                corner: blurCorner.corner
-                                                color: "white"
-                                            }
-                                        }
-                                    }
-                                    
-                                    AuroraBlurCorner {
-                                        anchors.left: parent.left
-                                        anchors.top: !hugDecorators.isBottom ? parent.top : undefined
-                                        anchors.bottom: hugDecorators.isBottom ? parent.bottom : undefined
-                                        corner: hugDecorators.isBottom ? RoundCorner.CornerEnum.BottomLeft : RoundCorner.CornerEnum.TopLeft
-                                    }
-                                    
-                                    AuroraBlurCorner {
-                                        anchors.right: parent.right
-                                        anchors.top: !hugDecorators.isBottom ? parent.top : undefined
-                                        anchors.bottom: hugDecorators.isBottom ? parent.bottom : undefined
-                                        corner: hugDecorators.isBottom ? RoundCorner.CornerEnum.BottomRight : RoundCorner.CornerEnum.TopRight
-                                    }
-                                }
-                            }
-                        }
+            }
+            DelegateChoice {
+                roleValue: "power"
+                delegate: WrappedLoader {
+                    sourceComponent: Power {
+                        visibilities: root.visibilities
                     }
                 }
             }
         }
     }
 
-    IpcHandler {
-        target: "bar"
+    component WrappedLoader: Loader {
+        required enabled
+        required property string id
+        required property int index
 
-        function toggle(): void {
-            GlobalStates.barOpen = !GlobalStates.barOpen
-        }
-
-        function close(): void {
-            GlobalStates.barOpen = false
-        }
-
-        function open(): void {
-            GlobalStates.barOpen = true
-        }
-    }
-
-    Loader {
-        active: CompositorService.isHyprland
-        sourceComponent: Item {
-            GlobalShortcut {
-                name: "barToggle"
-                description: "Toggles bar on press"
-
-                onPressed: {
-                    GlobalStates.barOpen = !GlobalStates.barOpen;
-                }
+        function findFirstEnabled(): Item {
+            const count = repeater.count;
+            for (let i = 0; i < count; i++) {
+                const item = repeater.itemAt(i);
+                if (item?.enabled)
+                    return item;
             }
-
-            GlobalShortcut {
-                name: "barOpen"
-                description: "Opens bar on press"
-
-                onPressed: {
-                    GlobalStates.barOpen = true;
-                }
-            }
-
-            GlobalShortcut {
-                name: "barClose"
-                description: "Closes bar on press"
-
-                onPressed: {
-                    GlobalStates.barOpen = false;
-                }
-            }
+            return null;
         }
+
+        function findLastEnabled(): Item {
+            for (let i = repeater.count - 1; i >= 0; i--) {
+                const item = repeater.itemAt(i);
+                if (item?.enabled)
+                    return item;
+            }
+            return null;
+        }
+
+        asynchronous: true
+        Layout.alignment: Qt.AlignHCenter
+
+        // Cursed ahh thing to add padding to first and last enabled components
+        Layout.topMargin: findFirstEnabled() === this ? root.vPadding : 0
+        Layout.bottomMargin: findLastEnabled() === this ? root.vPadding : 0
+
+        visible: enabled
+        active: enabled
     }
 }

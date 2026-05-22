@@ -6,19 +6,26 @@ dry_run=false
 allow_auth_prompt=false
 
 packages=(
+  aubio
   hyprland
-  xdg-desktop-portal-hyprland
-  xdg-desktop-portal
-  xdg-desktop-portal-gtk
   qt5-wayland
   qt6-wayland
+  ttf-cascadia-code-nerd
+  xdg-desktop-portal
+  xdg-desktop-portal-gtk
+  xdg-desktop-portal-hyprland
+)
+
+aur_packages=(
+  app2unit
 )
 
 usage() {
   cat <<'EOF'
 Usage: ryoku-rebirth-prepare-live [--dry-run] [--allow-auth-prompt]
 
-Installs the minimal package set needed to enter the rebirth Hyprland session.
+Installs the minimal package set needed to enter the rebirth Hyprland session
+and build the Ryoku shell seed.
 It never removes Niri or user applications.
 EOF
 }
@@ -82,6 +89,7 @@ print_sessions() {
 }
 
 missing=()
+missing_aur=()
 for package in "${packages[@]}"; do
   if package_present "$package"; then
     printf 'present: %s\n' "$package"
@@ -91,13 +99,22 @@ for package in "${packages[@]}"; do
   fi
 done
 
+for package in "${aur_packages[@]}"; do
+  if package_present "$package"; then
+    printf 'present: %s\n' "$package"
+  else
+    printf 'missing: %s\n' "$package"
+    missing_aur+=("$package")
+  fi
+done
+
 print_sessions
 
 if [[ $dry_run == true ]]; then
   exit 0
 fi
 
-if ((${#missing[@]} == 0)); then
+if ((${#missing[@]} == 0 && ${#missing_aur[@]} == 0)); then
   printf 'Rebirth Hyprland packages are already present.\n'
   exit 0
 fi
@@ -112,9 +129,23 @@ EOF
 fi
 
 if command_present ryoku-pkg-add; then
-  ryoku-pkg-add "${missing[@]}"
+  ryoku-pkg-add "${missing[@]}" "${missing_aur[@]}"
 else
-  sudo pacman -S --needed --noconfirm "${missing[@]}"
+  if ((${#missing[@]} > 0)); then
+    sudo pacman -S --needed --noconfirm "${missing[@]}"
+  fi
+
+  if ((${#missing_aur[@]} > 0)); then
+    if command_present yay; then
+      yay -S --needed --noconfirm "${missing_aur[@]}"
+    else
+      cat >&2 <<'EOF'
+ryoku-rebirth-prepare-live: app2unit is required for the Ryoku shell seed.
+Install yay or restore ryoku-pkg-add, then re-run this command.
+EOF
+      exit 77
+    fi
+  fi
 fi
 
 print_sessions

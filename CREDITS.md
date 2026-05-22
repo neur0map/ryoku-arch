@@ -5,10 +5,10 @@ contributions are below.
 
 ## iNiR
 
-Ryoku's current Niri session UI is built around iNiR by SnowArch.
-iNiR provides the Quickshell-based overlays, lock UI, launcher, settings,
-clipboard, wallpaper tools, OSD feedback, and session surfaces that Ryoku
-installs for the Niri transition.
+Ryoku's earlier Niri transition UI was built around iNiR by SnowArch.
+iNiR provided Quickshell-based overlays, lock UI, launcher, settings,
+clipboard, wallpaper tools, OSD feedback, and session surfaces during that
+transition.
 
 - Upstream: https://github.com/snowarch/iNiR
 - Integration: `install/config/inir.sh`, `config/systemd/user/inir.service`,
@@ -23,6 +23,15 @@ headers.
 
 - Upstream: https://github.com/basecamp/omarchy
 - Notice: see NOTICE
+
+## Caelestia Shell
+
+Ryoku's rebirth Hyprland shell starts from Caelestia Shell's GPL-3.0 codebase.
+The imported shell is modified, renamed to Ryoku product surfaces, and will be
+adapted around Ryoku IPC, commands, packaging, and visual direction over time.
+
+- Upstream: https://github.com/caelestia-dots/shell
+- License: GPL-3.0-only
 
 ## qylock
 

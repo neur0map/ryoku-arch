@@ -36,6 +36,7 @@ ufw-docker
 supergfxctl
 
 # ── Eye-candy / utilities ─────────────────────────────────────────────
+app2unit
 darkly-bin
 gpk-bin
 gradia

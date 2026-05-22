@@ -49,7 +49,7 @@ export RYOKU_TEST_STATE="$tmp_dir/state"
 
 dry_output=$("$PREP" --dry-run)
 
-for package in hyprland xdg-desktop-portal-hyprland xdg-desktop-portal xdg-desktop-portal-gtk qt5-wayland qt6-wayland; do
+for package in aubio hyprland qt5-wayland qt6-wayland ttf-cascadia-code-nerd xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-hyprland app2unit; do
   grep -Eq "(present|missing): $package" <<<"$dry_output" || \
     fail "dry-run output should list $package"
 done
@@ -68,7 +68,7 @@ export RYOKU_TEST_SUDO_STATUS=0
 "$PREP" >"$tmp_dir/auth.out"
 
 [[ -f $tmp_dir/state/pkg-add.args ]] || fail "prepare command should call ryoku-pkg-add when auth is available"
-grep -Fq "hyprland xdg-desktop-portal-hyprland qt5-wayland" "$tmp_dir/state/pkg-add.args" || \
+grep -Fq "aubio hyprland qt5-wayland ttf-cascadia-code-nerd xdg-desktop-portal-hyprland app2unit" "$tmp_dir/state/pkg-add.args" || \
   fail "prepare command should install only missing packages"
 ! grep -Fq "niri" "$tmp_dir/state/pkg-add.args" || \
   fail "prepare command should never remove or install Niri"

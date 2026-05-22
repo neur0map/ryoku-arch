@@ -1,13 +1,21 @@
 Ryoku Arch
 
-This project is derived from Omarchy, created by David Heinemeier Hansson
-and contributors. The original project is available at:
+Ryoku Arch is distributed under the GNU General Public License version 3.
+
+The project began as an Omarchy-derived Arch environment, created by David
+Heinemeier Hansson and contributors. The original project is available at:
 
   https://github.com/basecamp/omarchy
 
-The MIT License and original copyright notice are preserved in the
-LICENSE file in this repository. Ryoku Arch additions are also released
-under the MIT License.
+The MIT License and original copyright notice for the Omarchy-derived base are
+preserved in LICENSES/MIT-Omarchy-Ryoku-core.txt.
+
+The current Ryoku shell seed is adapted from the Caelestia shell project:
+
+  https://github.com/caelestia-dots/shell
+
+That shell is released under the GNU General Public License version 3. Ryoku's
+copy is modified, product-renamed, and distributed under the same license.
 
 Portions of the Ryoku display configuration UI are adapted from
 DankMaterialShell, created by Avenge Media LLC and contributors:

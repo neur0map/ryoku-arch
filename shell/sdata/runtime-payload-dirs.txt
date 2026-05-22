@@ -1,8 +1,0 @@
-modules
-services
-scripts
-assets
-translations
-defaults
-dots
-sdata

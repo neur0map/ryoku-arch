@@ -1,6 +1,0 @@
-module qs.modules.barFrameLab
-
-BarFrameLabShell 1.0 BarFrameLabShell.qml
-BarFrameLabBar 1.0 BarFrameLabBar.qml
-BarFrameLabWorkspaces 1.0 BarFrameLabWorkspaces.qml
-BarFrameLabStatusIcons 1.0 BarFrameLabStatusIcons.qml

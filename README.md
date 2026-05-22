@@ -6,11 +6,11 @@
 
 **力と美のために** &middot; *For the sake of power and beauty.*
 
-Ryoku is an opinionated Arch desktop built around Niri and Quickshell. A daily-driver Linux for cybersecurity learning and personal labs.
+Ryoku is an opinionated Arch desktop built around Hyprland and Quickshell. A daily-driver Linux for cybersecurity learning and personal labs.
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-F25623?style=for-the-badge)](LICENSE)
+[![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-F25623?style=for-the-badge)](LICENSE)
 [![Built on Arch](https://img.shields.io/badge/Arch_Linux-1793D1?style=for-the-badge&logo=archlinux&logoColor=white)](https://archlinux.org)
-[![Niri](https://img.shields.io/badge/Niri-58E1C2?style=for-the-badge&logoColor=white)](https://github.com/YaLTeR/niri)
+[![Hyprland](https://img.shields.io/badge/Hyprland-58E1C2?style=for-the-badge&logoColor=white)](https://hypr.land)
 [![Status: public preview](https://img.shields.io/badge/status-public_preview-F25623?style=for-the-badge)](#status)
 [![Build ISO](https://github.com/neur0map/ryoku-arch/actions/workflows/build-iso.yml/badge.svg)](https://github.com/neur0map/ryoku-arch/actions/workflows/build-iso.yml)
 [![Latest ISO](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fiso.ryoku.dev%2Fstable%2Flatest.json&query=%24.tracking_id&label=latest%20ISO&color=F25623&style=for-the-badge)](https://ryoku.dev)
@@ -35,7 +35,7 @@ Ryoku is an opinionated Arch desktop built around Niri and Quickshell. A daily-d
 
 Most security distributions assume you'll run them in a VM and switch back to your real OS to get work done. Ryoku is for the other half of cybersecurity life: studying, lab work, CTFs, courseware, and tinkering on your own equipment, all on the same machine you actually live in. Steam, Discord, your IDE, your THM lab, the OpenVPN to your home router, on one Linux that doesn't fight you.
 
-The desktop is Niri, a scrollable-tiling Wayland compositor, with a Quickshell-based topbar, sidebars, lock screen, and settings panel. Workflow primitives that matter to security work are built into the shell instead of bolted on as separate tray icons: a sidebar tab for OpenVPN profile management, a SecPulse indicator that tracks Tailscale and OpenVPN at a glance, an in-shell polkit agent for clean privilege escalation. The boot, lock, login, and desktop surfaces share one visual language.
+The desktop is Hyprland, with a Quickshell-based bar, drawers, launcher, session surfaces, and settings path. Workflow primitives that matter to security work are built into the shell instead of bolted on as separate tray icons: OpenVPN profile management, Tailscale and OpenVPN status, and clean privilege escalation hooks are first-class desktop surfaces. The boot, lock, login, and desktop surfaces are being rebuilt around one Ryoku visual language.
 
 Ryoku descends from omarchy and inherits its install-script architecture, theme pipeline, and command shape. The Arch base, the package selection, and the security-tooling track diverge.
 
@@ -49,16 +49,16 @@ You are responsible for how you use what ships here. Unauthorized scanning, expl
 
 ## What ships
 
-- **Desktop**: Niri scrollable-tiling Wayland session, Quickshell topbar / sidebars / lock / launcher / settings, SDDM with switchable themes.
+- **Desktop**: Hyprland Wayland session, Quickshell bar / drawers / launcher / settings, SDDM with switchable themes.
 - **Security primitives**: in-shell OpenVPN profile manager, Tailscale + OpenVPN bar indicators, hardened defaults (UFW, encrypted home, no telemetry phoning home).
 - **Daily-driver fit**: Steam, Discord, dev toolchains (mise, Docker, common languages), media stack (mpv, browsers, image / video tools).
-- **Brand**: cohesive Greek-Noir palette, custom topbar layouts, Material 3 system with switchable skins (`material`, `aurora`, `angel`, `ryoku-shell`, `cards`).
+- **Brand**: cohesive Greek-Noir palette, custom shell layouts, and a Ryoku-owned visual system rebuilt from a minimal Hyprland base.
 
 ## Status
 
 Public preview. Signed alpha ISOs are downloadable; the first tagged stable release is the next milestone.
 
-The Niri source transition has landed. Boot verification across the hardware matrix and the curated security-tooling baseline are the gating items before a tagged release. The repo is open for review in the meantime; development happens on `main`.
+The Hyprland rebirth transition is active. Boot verification across the hardware matrix, shell IPC parity, and the curated security-tooling baseline are the gating items before a tagged release. The repo is open for review in the meantime; development happens on `main`.
 
 | Question | Answer |
 |---|---|
@@ -90,7 +90,7 @@ Always check that the imported key's fingerprint matches the one above before tr
 ## Browse the repo
 
 - `bin/` shipped `ryoku-*` commands (one purpose per script).
-- `config/` Niri / kitty / waybar / app configs as installed.
+- `config/` Hyprland / kitty / waybar / app configs as installed.
 - `default/` theme assets, polkit rules, systemd drop-ins.
 - `install/` install pipeline (`config/all.sh`, `packaging/aur-core.sh`, hardware detection).
 - `shell/` the Quickshell desktop sources.
@@ -98,7 +98,7 @@ Always check that the imported key's fingerprint matches the one above before tr
 ## Documentation
 
 - [**Vision**](docs/vision.md) what Ryoku is, who it is for, what it is not.
-- [**Keybindings**](docs/keybindings.md) shipped Niri and shell reference.
+- [**Keybindings**](docs/keybindings.md) shipped Hyprland and shell reference.
 - [**Maintenance**](docs/maintenance.md) release process and workflow.
 - [**Customization**](docs/customization-inventory.md) safe text-based customization surfaces.
 - [**Branding**](docs/branding.md) visual and verbal identity.
@@ -109,7 +109,6 @@ Always check that the imported key's fingerprint matches the one above before tr
 
 ## Acknowledgements
 
-- [**iNiR**](https://github.com/snowarch/iNiR), the upstream Quickshell shell layer Ryoku ships on top of Niri.
 - [**Omarchy**](https://github.com/basecamp/omarchy) by DHH, the install architecture, command shape, and theme pipeline.
 - [**qylock**](https://github.com/Darkkal44/qylock) by Darkkal44, optional SDDM theme bundle.
 
@@ -117,4 +116,5 @@ Full attribution: [`CREDITS.md`](CREDITS.md), [`NOTICE`](NOTICE).
 
 ## License
 
-[MIT](LICENSE).
+[GPL-3.0](LICENSE). MIT notices for inherited permissive components are
+preserved under [LICENSES](LICENSES/).
