@@ -54,13 +54,43 @@ rg -q 'exec-once = hypridle -c ~/.config/hypr/hypridle-rebirth.conf' "$ROOT_DIR/
   fail "Hyprland config should use the rebirth hypridle config"
 rg -q 'source = ~/.config/hypr/colors.conf' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should source a local color fallback"
+rg -q 'monitor = eDP-1, preferred, 0x0, 1.25' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should use a smaller explicit laptop scale"
 rg -q 'bind = SUPER, Return, exec' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should keep a terminal bind"
+rg -q 'bind = SUPER, T, exec, [$]terminal' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should keep the Niri terminal bind"
 rg -q "[$]menu = sh -lc '\\\$HOME/.local/bin/ryoku-rebirth-shell ipc call launcherWindow toggle'" "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should route launcher IPC through the rebirth wrapper"
 rg -q 'bind = SUPER, R, exec, [$]menu' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should keep the upstream launcher bind"
+rg -q 'bind = SUPER, Space, exec, [$]menu' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should keep the Niri launcher bind"
+rg -q "[$]clipboard = sh -lc '\\\$HOME/.local/bin/ryoku-rebirth-shell ipc call clipboardManager changeVisible'" "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should keep the Niri clipboard bind"
+rg -q 'bind = SUPER, V, exec, [$]clipboard' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should bind clipboard through the rebirth wrapper"
+rg -q "[$]systemPanel = sh -lc '\\\$HOME/.local/bin/ryoku-rebirth-shell ipc call systemPanel toggle'" "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should map the Niri toolkit bind to the rebirth system panel"
+rg -q 'bind = SUPER, S, exec, [$]systemPanel' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should bind the toolkit key through the rebirth wrapper"
+rg -q "bind = SUPER, P, exec, sh -lc '\\\$HOME/.local/bin/ryoku-rebirth-shell ipc call powerMenu toggle'" "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should route the power menu through the rebirth wrapper"
+rg -q 'bind = SUPER, Q, killactive,' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should keep the Niri close-window bind"
+rg -q 'bind = ALT, F4, killactive,' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should support the common close-window bind"
+rg -q 'bind = SUPER, A, togglefloating,' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should keep the Niri floating toggle bind"
 rg -q "bind = SUPER SHIFT, R, exec, sh -lc '\\\$HOME/.local/bin/ryoku-rebirth-shell restart'" "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should support shell restart without relying on PATH"
+rg -q 'bind = SUPER SHIFT, S, exec, [$]regionScreenshot' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should keep the Niri region screenshot bind"
+rg -q 'bind = SUPER, H, movefocus, l' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should keep HJKL focus navigation"
+rg -q 'bind = SUPER SHIFT, H, movewindow, l' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should keep HJKL move navigation"
+rg -q 'bind = SUPER CTRL, 1, movetoworkspace, 1' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should keep Niri-style workspace move binds"
 
 echo "PASS: rebirth shell runtime is self-contained and Hyprland-first"
