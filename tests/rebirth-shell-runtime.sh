@@ -92,5 +92,9 @@ rg -q 'bind = SUPER SHIFT, H, movewindow, l' "$ROOT_DIR/config/hypr/hyprland.con
   fail "Hyprland config should keep HJKL move navigation"
 rg -q 'bind = SUPER CTRL, 1, movetoworkspace, 1' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should keep Niri-style workspace move binds"
+rg -q 'WlrLayershell\.keyboardFocus: launcherWindow\.isOpen \? WlrKeyboardFocus\.Exclusive : WlrKeyboardFocus\.None' "$ROOT_DIR/shell-rebirth/quickshell/shell.qml" || \
+  fail "launcher should request layer keyboard focus while open"
+rg -q 'Qt\.callLater\(function\(\) \{ searchField\.forceActiveFocus\(\) \}\)' "$ROOT_DIR/shell-rebirth/quickshell/modules/launcher/LauncherWindow.qml" || \
+  fail "launcher should focus the search field after the layer accepts keyboard focus"
 
 echo "PASS: rebirth shell runtime is self-contained and Hyprland-first"

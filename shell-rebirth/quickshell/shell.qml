@@ -63,6 +63,7 @@ ShellRoot {
         }
         color: "transparent"
         focusable: true
+        WlrLayershell.keyboardFocus: launcherWindow.isOpen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
         Loader {
             id: mediaPanelLoader

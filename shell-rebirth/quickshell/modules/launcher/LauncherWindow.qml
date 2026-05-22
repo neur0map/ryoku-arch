@@ -39,6 +39,7 @@ Item {
 
         openAnim.restart()
         searchField.forceActiveFocus()
+        Qt.callLater(function() { searchField.forceActiveFocus() })
     }
 
     function close() {
