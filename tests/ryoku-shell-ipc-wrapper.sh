@@ -1,61 +1,95 @@
 #!/bin/bash
+
 set -euo pipefail
-cd "$(dirname "$0")/.."
+
+ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+SCRIPT="$ROOT_DIR/shell/scripts/ryoku-shell"
 
 fail() {
   echo "FAIL: $1" >&2
   exit 1
 }
 
-script=shell/scripts/ryoku-shell
-registry=shell/scripts/lib/ipc-registry.sh
-fish_completion=shell/scripts/completions/ryoku-shell.fish
+assert_contains() {
+  local pattern="$1"
+  local message="$2"
 
-[[ -f $script ]] || fail "ryoku-shell launcher missing"
-[[ -f $registry ]] || fail "IPC registry missing"
-[[ -f $fish_completion ]] || fail "fish completion missing"
+  grep -Eq "$pattern" "$SCRIPT" || fail "$message"
+}
 
-bash -n "$script" || fail "ryoku-shell launcher has a syntax error"
+assert_literal() {
+  local text="$1"
+  local message="$2"
 
-[[ $(head -n 1 "$registry") == "#!/bin/bash" ]] \
-  || fail "generated IPC registry should use the repo bash shebang convention"
+  grep -Fq "$text" "$SCRIPT" || fail "$message"
+}
 
-rg -q 'ipc call -- settings "\$settings_function"' "$script" \
-  || fail "settings IPC call should pass -- before target/function"
-rg -q 'ipc call -- "\$target" "\$@"' "$script" \
-  || fail "target IPC wrapper should pass -- before target/function"
-rg -q 'ipc call -- "\$@"' "$script" \
-  || fail "generic IPC wrapper should pass -- before target/function"
-! rg -q '\\.local/share/omarchy|ryoku_legacy_path' "$script" \
-  || fail "ryoku-shell launcher should not fall back to old shell checkouts"
+[[ -f $SCRIPT ]] || fail "ryoku-shell launcher missing"
+[[ -x $SCRIPT ]] || fail "ryoku-shell launcher should be executable"
+bash -n "$SCRIPT" || fail "ryoku-shell launcher has a syntax error"
 
-rg -q '\[recordingOsd\]="toggle show hide"' "$registry" \
-  || fail "recordingOsd show/hide functions should remain registered"
-rg -q '\["recordingOsd:show"\]' "$registry" \
-  || fail "recordingOsd:show registry entry missing"
-rg -q '\[globalActions\]="run runWithArgs list search open"' "$registry" \
-  || fail "globalActions should expose single-arg and args-aware run functions"
-rg -q '\["globalActions:run"\]="<actionId>"' "$registry" \
-  || fail "globalActions run should take one action ID"
-rg -q '\["globalActions:runWithArgs"\]="<actionId> <args>"' "$registry" \
-  || fail "globalActions runWithArgs should take action ID plus args"
-rg -q "globalActions global-actions.*run runWithArgs list search open" "$fish_completion" \
-  || fail "fish completion should include globalActions runWithArgs"
-rg -q '\[shellUpdate\]="[^"]*setChannel' "$registry" \
-  || fail "shellUpdate should expose setChannel for channel selector IPC"
-rg -q "shellUpdate shell-update.*setChannel" "$fish_completion" \
-  || fail "fish completion should include shellUpdate setChannel"
-legacy_cmd="i""nir"
-! rg -q "spawn \"$legacy_cmd\"" "$registry" \
-  || fail "generated IPC help examples should use ryoku-shell"
+assert_contains 'ipc_call drawers toggle launcher' \
+  "launcher command should route through the drawers IPC target"
+assert_contains 'ipc_call drawers toggle session' \
+  "session command should route through the drawers IPC target"
+assert_contains 'ipc_call drawers toggle dashboard' \
+  "dashboard command should route through the drawers IPC target"
+assert_contains 'ipc_call controlCenter toggle' \
+  "settings command should toggle the control center"
+assert_contains 'ipc_call lock lock' \
+  "lock command should route through the lock IPC target"
+assert_contains 'ipc_call picker openFreeze' \
+  "screenshot command should route through the picker IPC target"
+# shellcheck disable=SC2016
+assert_literal '"$qs_bin" -p "$runtime_dir" ipc call "$@"' \
+  "generic IPC wrapper should call qs against the rebirth runtime path"
 
-for qml_path in \
-  shell/modules/waffle/widgets/WidgetsContent.qml \
-  shell/modules/controlPanel/WallpaperSection.qml \
-  shell/services/GlobalActions.qml; do
-  [[ -f $qml_path ]] || fail "missing runtime command surface: $qml_path"
-  ! rg -q "scripts/$legacy_cmd|spawn \"$legacy_cmd\"|\\b$legacy_cmd\\b .*ipc" "$qml_path" \
-    || fail "$qml_path should not call old shell commands"
-done
+! rg -q '\\.local/share/omarchy|ryoku_legacy_path|shell/scripts/lib/ipc-registry' "$SCRIPT" || \
+  fail "ryoku-shell launcher should not fall back to old shell checkouts or generated registries"
 
-echo "PASS: ryoku-shell IPC wrapper handles reserved function names"
+tmp_dir=$(mktemp -d)
+trap 'rm -rf "$tmp_dir"' EXIT
+
+runtime_dir="$tmp_dir/runtime"
+mkdir -p "$runtime_dir" "$tmp_dir/home"
+touch "$runtime_dir/shell.qml"
+
+cat >"$tmp_dir/qs" <<'SH'
+#!/bin/bash
+{
+  printf '<%s>' "$@"
+  printf '\n'
+} >>"$RYOKU_TEST_CAPTURE"
+SH
+chmod +x "$tmp_dir/qs"
+
+run_launcher() {
+  RYOKU_TEST_CAPTURE="$tmp_dir/capture" \
+  HOME="$tmp_dir/home" \
+  PATH="/usr/bin" \
+  RYOKU_QS_BIN="$tmp_dir/qs" \
+  RYOKU_SHELL_RUNTIME_DIR="$runtime_dir" \
+    "$SCRIPT" "$@"
+}
+
+run_launcher settings
+run_launcher launcher
+run_launcher session
+run_launcher screenshot
+run_launcher ipc controlCenter close
+
+expected="$tmp_dir/expected"
+{
+  printf '<-p><%s><ipc><call><controlCenter><toggle>\n' "$runtime_dir"
+  printf '<-p><%s><ipc><call><drawers><toggle><launcher>\n' "$runtime_dir"
+  printf '<-p><%s><ipc><call><drawers><toggle><session>\n' "$runtime_dir"
+  printf '<-p><%s><ipc><call><picker><openFreeze>\n' "$runtime_dir"
+  printf '<-p><%s><ipc><call><controlCenter><close>\n' "$runtime_dir"
+} >"$expected"
+
+cmp -s "$expected" "$tmp_dir/capture" || {
+  diff -u "$expected" "$tmp_dir/capture" >&2 || true
+  fail "ryoku-shell IPC command mapping changed unexpectedly"
+}
+
+echo "PASS: ryoku-shell IPC wrapper targets the rebirth shell"

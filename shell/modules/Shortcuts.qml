@@ -17,7 +17,7 @@ Scope {
         // qmllint enable unresolved-type
         name: "controlCenter"
         description: "Open control center"
-        onPressed: WindowFactory.create()
+        onPressed: WindowFactory.toggle()
     }
 
     // qmllint disable unresolved-type
@@ -130,7 +130,15 @@ Scope {
 
     IpcHandler {
         function open(): void {
-            WindowFactory.create();
+            WindowFactory.open();
+        }
+
+        function close(): void {
+            WindowFactory.close();
+        }
+
+        function toggle(): void {
+            WindowFactory.toggle();
         }
 
         target: "controlCenter"

@@ -61,7 +61,8 @@ Item {
 
                     onClicked: {
                         root.session.root.close();
-                        WindowFactory.create(null, {
+                        WindowFactory.close();
+                        WindowFactory.open(null, {
                             active: root.session.active,
                             navExpanded: root.session.navExpanded
                         });

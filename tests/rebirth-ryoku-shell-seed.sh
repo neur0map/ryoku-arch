@@ -58,10 +58,18 @@ assert_contains shell/components/misc/CustomShortcut.qml 'appid: "ryoku"' \
   "global shortcuts should use Ryoku app id"
 assert_contains shell/scripts/ryoku-shell 'RYOKU_COMPOSITOR.*hyprland|HYPRLAND_INSTANCE_SIGNATURE' \
   "launcher should support explicit Hyprland service handling"
+assert_contains shell/scripts/ryoku-shell 'ipc_call controlCenter toggle' \
+  "settings command should toggle the control center instead of spawning duplicates"
 assert_contains shell/setup 'RYOKU_COMPOSITOR.*hyprland|HYPRLAND_INSTANCE_SIGNATURE' \
   "setup should support explicit Hyprland service handling"
 assert_contains shell/setup "scripts/ryoku\" \"\\\$bin_dir/ryoku" \
   "setup should install the imported shell compatibility bridge"
+assert_contains shell/modules/controlcenter/WindowFactory.qml 'function close' \
+  "control center window factory should expose a close path"
+assert_contains shell/modules/controlcenter/WindowFactory.qml 'function toggle' \
+  "control center window factory should expose a toggle path"
+assert_contains shell/modules/Shortcuts.qml 'WindowFactory.toggle' \
+  "control center shortcuts should toggle the existing window"
 assert_contains shell/assets/systemd/ryoku-shell.service 'Environment=PATH=.*\.local/bin' \
   "service should expose user-installed Ryoku bridge commands"
 assert_contains shell/scripts/ryoku 'ryoku-wallpaper-apply' \
@@ -97,6 +105,23 @@ HOME="$tmp_dir/home" XDG_STATE_HOME="$tmp_dir/state" \
 HOME="$tmp_dir/home" XDG_STATE_HOME="$tmp_dir/state" \
   "$ROOT_DIR/shell/scripts/ryoku" wallpaper -p "$tmp_dir/wall.png" | jq -e '.colours.primary == "F25623"' >/dev/null || \
   fail "compatibility bridge should expose preview wallpaper colours"
+
+HOME="$tmp_dir/install-home" \
+XDG_BIN_HOME="$tmp_dir/bin" \
+XDG_CONFIG_HOME="$tmp_dir/config" \
+XDG_DATA_HOME="$tmp_dir/data" \
+XDG_STATE_HOME="$tmp_dir/state-install" \
+RYOKU_SHELL_RUNTIME_DIR="$tmp_dir/runtime" \
+RYOKU_SHELL_LIB_DIR="$tmp_dir/lib" \
+RYOKU_SHELL_QML_DIR="$tmp_dir/qml" \
+  "$ROOT_DIR/shell/setup" install --skip-build >/dev/null
+
+[[ -s $tmp_dir/install-home/.face ]] || \
+  fail "setup should install a default face image for first-run shell startup"
+[[ -f $tmp_dir/state-install/ryoku-shell/scheme.json ]] || \
+  fail "setup should initialize shell scheme state"
+[[ -f $tmp_dir/state-install/ryoku-shell/wallpaper/path.txt ]] || \
+  fail "setup should initialize shell wallpaper state"
 
 upstream_pattern='cae''lestia|Cae''lestia|CAELE''STIA|cae''lestia-dots|sora''mane'
 if rg -n "$upstream_pattern" "$ROOT_DIR/shell" \

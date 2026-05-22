@@ -8,6 +8,8 @@ config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/ryoku-shell"
 bin_dir="${XDG_BIN_HOME:-$HOME/.local/bin}"
 applications_dir="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
 icon_dir="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor/scalable/apps"
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-shell"
+wallpaper_state_dir="$state_dir/wallpaper"
 lib_dir="${RYOKU_SHELL_LIB_DIR:-$HOME/.local/lib/ryoku-shell}"
 qml_dir="${RYOKU_SHELL_QML_DIR:-$HOME/.local/lib/qt6/qml}"
 build_dir="${RYOKU_SHELL_BUILD_DIR:-$script_dir/build}"
@@ -53,6 +55,20 @@ install_runtime_files() {
     install -m 0644 "$script_dir/assets/applications/ryoku-shell.desktop" "$applications_dir/ryoku-shell.desktop"
 }
 
+install_first_run_state() {
+  mkdir -p "$HOME" "$state_dir" "$wallpaper_state_dir"
+
+  if [[ ! -s $HOME/.face && -f $script_dir/assets/logo.svg ]]; then
+    install -m 0644 "$script_dir/assets/logo.svg" "$HOME/.face"
+  fi
+
+  [[ -f $wallpaper_state_dir/path.txt ]] || : >"$wallpaper_state_dir/path.txt"
+
+  if [[ ! -f $state_dir/scheme.json && -x $bin_dir/ryoku ]]; then
+    "$bin_dir/ryoku" scheme get >/dev/null
+  fi
+}
+
 install_service() {
   "$bin_dir/ryoku-shell" service install
 
@@ -85,6 +101,7 @@ build_native_modules() {
 
 install_shell() {
   install_runtime_files
+  install_first_run_state
   build_native_modules
   install_service
   printf 'Ryoku shell runtime: %s\n' "$runtime_dir"

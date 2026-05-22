@@ -8,8 +8,37 @@ import qs.services
 Singleton {
     id: root
 
-    function create(parent: Item, props: var): void {
-        controlCenter.createObject(parent ?? dummy, props);
+    property var currentWindow: null
+
+    function open(parent: var, props: var): void {
+        if (currentWindow) {
+            currentWindow.visible = true;
+            if (currentWindow.requestActivate)
+                currentWindow.requestActivate();
+            return;
+        }
+
+        currentWindow = controlCenter.createObject(parent ?? dummy, props ?? {});
+    }
+
+    function close(): void {
+        if (!currentWindow)
+            return;
+
+        const win = currentWindow;
+        currentWindow = null;
+        win.destroy();
+    }
+
+    function toggle(parent: var, props: var): void {
+        if (currentWindow)
+            close();
+        else
+            open(parent, props);
+    }
+
+    function create(parent: var, props: var): void {
+        open(parent, props);
     }
 
     QtObject {
@@ -30,6 +59,11 @@ Singleton {
             onVisibleChanged: {
                 if (!visible)
                     destroy();
+            }
+
+            Component.onDestruction: {
+                if (root.currentWindow === win)
+                    root.currentWindow = null;
             }
 
             implicitWidth: cc.implicitWidth

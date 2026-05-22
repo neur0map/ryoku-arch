@@ -132,7 +132,7 @@ case "$command" in
     ipc_call drawers toggle utilities
     ;;
   settings|control-center|controlCenter|globalActions)
-    ipc_call controlCenter open
+    ipc_call controlCenter toggle
     ;;
   lock)
     ipc_call lock lock
