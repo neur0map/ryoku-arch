@@ -40,6 +40,23 @@ for pkg in "${LOCAL_PKGS[@]}"; do
     continue
   fi
 
+  # pacman -U --noconfirm aborts on a conflict (e.g. cava-ryoku declares
+  # conflicts=(cava), but stock cava is already installed from
+  # install/packaging/base.sh - the offline mirror must satisfy
+  # `cava` for the base step, so it landed). Pre-remove any
+  # conflicting installed package via -Rdd (no dep check; the new
+  # package supplies the same provides= entry).
+  conflicts_line="$(awk -F= '/^conflicts=/{
+      gsub(/[()'\''"]/, "", $2); print $2
+  }' "$pkgdir/PKGBUILD")"
+  for c in $conflicts_line; do
+    [[ -n "$c" ]] || continue
+    if pacman -Qq "$c" >/dev/null 2>&1; then
+      echo "distro-arch: removing conflicting installed $c before installing $pkg"
+      sudo pacman -Rdd --noconfirm "$c" || true
+    fi
+  done
+
   echo "distro-arch: building $pkg ${pkgver}-${pkgrel} from $pkgdir"
   (cd "$pkgdir" && makepkg --syncdeps --install --noconfirm --needed --clean) || {
     echo "distro-arch: failed to build/install $pkg; continuing" >&2
