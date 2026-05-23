@@ -17,7 +17,7 @@ Singleton {
             map[m.connector] = m;
         return map;
     }
-    readonly property list<Monitor> monitors: variants.instances // qmllint disable incompatible-type
+    readonly property list<Monitor> monitors: variants.instances
     property bool appleDisplayPresent: false
 
     function getMonitorForScreen(screen: ShellScreen): var {

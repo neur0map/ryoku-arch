@@ -339,9 +339,9 @@ Singleton {
         id: statusProc
 
         command: root.getStatusCommand()
-        // qmllint disable incompatible-type
+
         environment: ({
-                // qmllint enable incompatible-type
+
                 LANG: "C.UTF-8",
                 LC_ALL: "C.UTF-8"
             })
@@ -386,7 +386,7 @@ Singleton {
     Process {
         id: connectProc
 
-        onExited: exitCode => { // qmllint disable signal-handler-parameters
+        onExited: exitCode => {
             if (exitCode !== 0) {
                 return;
             }
@@ -449,7 +449,7 @@ Singleton {
     Process {
         id: disconnectProc
 
-        onExited: statusCheckTimer.start() // qmllint disable signal-handler-parameters
+        onExited: statusCheckTimer.start()
         stderr: StdioCollector {
             onStreamFinished: {
                 const error = text.trim();
@@ -463,7 +463,7 @@ Singleton {
     Process {
         id: warpRegisterProc
 
-        onExited: exitCode => { // qmllint disable signal-handler-parameters
+        onExited: exitCode => {
             if (exitCode === 0) {
                 statusCheckTimer.start();
             }

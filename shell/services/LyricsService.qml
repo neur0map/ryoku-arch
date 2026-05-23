@@ -391,7 +391,7 @@ Singleton {
             }
         }
 
-        onExited: (exitCode, exitStatus) => { // qmllint disable signal-handler-parameters
+        onExited: (exitCode, exitStatus) => {
             if (requestId === root.currentRequestId && !foundFile && root.preferredBackend === "Auto") {
                 if (lyricsModel.count === 0) {
                     fallbackTimer.restart();

@@ -46,7 +46,7 @@ Singleton {
 
         running: true
         command: ["pidof", "gpu-screen-recorder"]
-        onExited: code => { // qmllint disable signal-handler-parameters
+        onExited: code => {
             props.running = code === 0;
 
             if (code === 0) {
@@ -77,6 +77,6 @@ Singleton {
             props.elapsed++;
         }
 
-        target: Time // qmllint disable incompatible-type
+        target: Time
     }
 }

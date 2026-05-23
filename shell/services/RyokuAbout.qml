@@ -99,7 +99,7 @@ Singleton {
             id: statusErr
         }
 
-        onExited: code => { // qmllint disable signal-handler-parameters
+        onExited: code => {
             const report = root.parseJson(statusOut.text);
             root.loadingStatus = false;
             if (report.ok) {
@@ -122,7 +122,7 @@ Singleton {
             id: checkErr
         }
 
-        onExited: code => { // qmllint disable signal-handler-parameters
+        onExited: code => {
             const report = root.parseJson(checkOut.text);
             root.checkingUpdates = false;
             if (!report.ok && checkErr.text && !report.error)
@@ -144,7 +144,7 @@ Singleton {
             id: doctorErr
         }
 
-        onExited: code => { // qmllint disable signal-handler-parameters
+        onExited: code => {
             const report = root.parseJson(doctorOut.text);
             root.runningDoctor = false;
             if (!report.ok && doctorErr.text && !report.output)
@@ -165,7 +165,7 @@ Singleton {
             id: updateErr
         }
 
-        onExited: code => { // qmllint disable signal-handler-parameters
+        onExited: code => {
             const report = root.parseJson(updateOut.text);
             root.startingUpdate = false;
             if (!report.ok && updateErr.text && !report.error)
@@ -185,7 +185,7 @@ Singleton {
             id: switchErr
         }
 
-        onExited: code => { // qmllint disable signal-handler-parameters
+        onExited: code => {
             const report = root.parseJson(switchOut.text);
             root.switchingChannel = false;
             if (!report.ok && switchErr.text && !report.error)

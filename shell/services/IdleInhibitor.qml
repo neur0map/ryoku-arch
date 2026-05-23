@@ -55,7 +55,7 @@ Singleton {
         id: statusProc
 
         command: ["ryoku-cmd-caffeine", "status"]
-        onExited: code => { // qmllint disable signal-handler-parameters
+        onExited: code => {
             root.setEnabledFromHelper(code === 0);
         }
     }
@@ -64,7 +64,7 @@ Singleton {
         id: startProc
 
         command: ["ryoku-cmd-caffeine", "start"]
-        onExited: code => { // qmllint disable signal-handler-parameters
+        onExited: code => {
             root.setEnabledFromHelper(code === 0);
         }
     }
