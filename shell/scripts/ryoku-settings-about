@@ -219,6 +219,42 @@ def incoming_commits(remote_ref):
         })
     return commits
 
+def update_state(ahead, behind, can_fast_forward, branch):
+    if behind > 0 and can_fast_forward:
+        return {
+            "updateState": "ready",
+            "updateStateLabel": "Ready to update",
+            "updateStateDetail": f"{behind} incoming commit(s) can be fast-forwarded into {branch}.",
+            "blockReason": "",
+        }
+
+    if behind > 0:
+        if ahead > 0:
+            reason = f"This checkout has {ahead} local commit(s) and {behind} incoming commit(s), so it cannot fast-forward to origin/{branch}."
+        else:
+            reason = f"This checkout cannot fast-forward to origin/{branch}. Run doctor or review the branch before updating."
+        return {
+            "updateState": "blocked",
+            "updateStateLabel": "Update blocked",
+            "updateStateDetail": reason,
+            "blockReason": reason,
+        }
+
+    if ahead > 0:
+        return {
+            "updateState": "ahead",
+            "updateStateLabel": "Local commits ahead",
+            "updateStateDetail": f"This checkout has {ahead} local commit(s) that are not on origin/{branch}.",
+            "blockReason": "",
+        }
+
+    return {
+        "updateState": "current",
+        "updateStateLabel": "Up to date",
+        "updateStateDetail": f"{branch} is current.",
+        "blockReason": "",
+    }
+
 def check_updates():
     info = base_info()
     branch = info["updateBranch"]
@@ -233,6 +269,10 @@ def check_updates():
             "updateAvailable": False,
             "canFastForward": False,
             "canStartUpdate": False,
+            "updateState": "error",
+            "updateStateLabel": "Unable to check",
+            "updateStateDetail": f"Unable to determine a safe update branch from checkout {info['currentBranch']}",
+            "blockReason": f"Unable to determine a safe update branch from checkout {info['currentBranch']}",
         })
         return info
 
@@ -247,6 +287,10 @@ def check_updates():
             "updateAvailable": False,
             "canFastForward": False,
             "canStartUpdate": False,
+            "updateState": "error",
+            "updateStateLabel": "Unable to fetch",
+            "updateStateDetail": err or f"Unable to fetch {branch}",
+            "blockReason": err or f"Unable to fetch {branch}",
         })
         return info
 
@@ -262,6 +306,7 @@ def check_updates():
 
     _, remote_head, _ = run_git("rev-parse", "--short", remote_ref)
     ancestor_code, _, _ = run_git("merge-base", "--is-ancestor", "HEAD", remote_ref)
+    can_fast_forward = ancestor_code == 0 and behind > 0
     commits = incoming_commits(remote_ref)
 
     info.update({
@@ -271,10 +316,11 @@ def check_updates():
         "aheadCount": ahead,
         "behindCount": behind,
         "updateAvailable": behind > 0,
-        "canFastForward": ancestor_code == 0 and behind > 0,
-        "canStartUpdate": behind > 0 and ancestor_code == 0,
+        "canFastForward": can_fast_forward,
+        "canStartUpdate": can_fast_forward,
         "incoming": commits,
     })
+    info.update(update_state(ahead, behind, can_fast_forward, branch))
     return info
 
 if not (repo_path / ".git").exists():
@@ -333,6 +379,7 @@ PY
 
 switch_channel() {
   local channel="${1:-}"
+  local channel_q channel_set channel_set_q command path_q
 
   case "$channel" in
     main | unstable-dev) ;;
@@ -347,7 +394,18 @@ switch_channel() {
     return 1
   fi
 
-  ryoku-launch-floating-terminal-with-presentation "ryoku-channel-set $channel" >/dev/null 2>&1 &
+  channel_set="$RYOKU_PATH/bin/ryoku-channel-set"
+  if [[ ! -x $channel_set ]]; then
+    json_error "ryoku-channel-set was not found in $RYOKU_PATH/bin"
+    return 1
+  fi
+
+  path_q="$(shell_quote "$RYOKU_PATH")"
+  channel_set_q="$(shell_quote "$channel_set")"
+  channel_q="$(shell_quote "$channel")"
+  command="RYOKU_PATH=$path_q $channel_set_q $channel_q"
+
+  ryoku-launch-floating-terminal-with-presentation "$command" >/dev/null 2>&1 &
   python3 - "$channel" <<'PY'
 import json
 import sys
@@ -399,7 +457,8 @@ update_current_branch() {
 
 start_update() {
   local branch="${1:-}"
-  local current_branch command helper_q path_q branch_q remote_q update_bin update_q
+  local current_branch command counts helper_q path_q branch_q remote_ref remote_q update_bin update_q
+  local behind=0
 
   valid_branch_name "$branch" || {
     json_error "Invalid update branch: $branch"
@@ -419,10 +478,35 @@ start_update() {
 
   path_q="$(shell_quote "$RYOKU_PATH")"
   branch_q="$(shell_quote "$branch")"
+  remote_ref="origin/$branch"
+
+  if ! git -C "$RYOKU_PATH" fetch --prune "$remote_url" "+refs/heads/$branch:refs/remotes/origin/$branch" >/dev/null 2>&1; then
+    json_error "Unable to fetch $branch before starting the update"
+    return 1
+  fi
+
+  counts="$(git -C "$RYOKU_PATH" rev-list --left-right --count "HEAD...$remote_ref" 2>/dev/null || true)"
+  if [[ -n $counts ]]; then
+    read -r _ behind <<<"$counts"
+  fi
+
+  if (( behind == 0 )); then
+    json_error "No updates are available for $branch"
+    return 1
+  fi
+
+  if ! git -C "$RYOKU_PATH" merge-base --is-ancestor HEAD "$remote_ref"; then
+    json_error "Cannot start update for $branch because this checkout cannot fast-forward to $remote_ref"
+    return 1
+  fi
 
   case "$branch" in
     main | unstable-dev)
       update_bin="$RYOKU_PATH/bin/ryoku-update"
+      if [[ ! -x $update_bin ]]; then
+        json_error "ryoku-update was not found in $RYOKU_PATH/bin"
+        return 1
+      fi
       update_q="$(shell_quote "$update_bin")"
       command="RYOKU_PATH=$path_q RYOKU_UPDATE_BRANCH=$branch_q $update_q"
       ;;

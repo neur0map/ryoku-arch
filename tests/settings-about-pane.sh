@@ -46,6 +46,9 @@ assert_contains "shell/modules/controlcenter/about/AboutPane.qml" 'Package mirro
 assert_contains "shell/modules/controlcenter/about/AboutPane.qml" 'RyokuAbout.switchChannel(root.pendingChannel)'
 assert_contains "shell/modules/controlcenter/about/AboutPane.qml" 'disabled: !root.modalReport.canStartUpdate'
 assert_contains "shell/modules/controlcenter/about/AboutPane.qml" 'Update blocked'
+assert_contains "shell/modules/controlcenter/about/AboutPane.qml" 'Update state'
+assert_contains "shell/modules/controlcenter/about/AboutPane.qml" 'updateStateLabel'
+assert_contains "shell/modules/controlcenter/about/AboutPane.qml" 'blockReason'
 assert_contains "shell/modules/controlcenter/about/AboutPane.qml" 'readonly property real doctorOutputInset'
 assert_contains "shell/modules/controlcenter/about/AboutPane.qml" 'x: root.doctorOutputInset'
 assert_contains "shell/scripts/ryoku-settings-about" 'update-current-run'
@@ -141,6 +144,8 @@ assert_json_expr "$status_json" '.ok == true and .updateAvailable == true and .c
   "check-updates should expose an available fast-forward update"
 assert_json_expr "$status_json" '.incoming[0].subject == "describe incoming update"' \
   "check-updates should include incoming commit descriptions"
+assert_json_expr "$status_json" '.updateState == "ready" and .updateStateLabel == "Ready to update"' \
+  "check-updates should classify fast-forward updates as ready"
 
 launcher_log="$tmp_dir/launcher.log"
 mkdir -p "$tmp_dir/bin"
@@ -150,9 +155,17 @@ printf '%s\n' "\$*" >>"$launcher_log"
 SH
 chmod 755 "$tmp_dir/bin/ryoku-launch-floating-terminal-with-presentation"
 
+mkdir -p "$repo/bin"
+cat >"$repo/bin/ryoku-update" <<'SH'
+#!/bin/bash
+exit 0
+SH
+chmod 755 "$repo/bin/ryoku-update"
+
 PATH="$tmp_dir/bin:$PATH" \
 RYOKU_PATH="$repo" \
 RYOKU_STATE_PATH="$tmp_dir/state" \
+RYOKU_UPDATE_REMOTE_URL="$remote_repo" \
 XDG_CONFIG_HOME="$tmp_dir/config" \
   "$helper" start-update unstable-dev >"$status_json"
 
@@ -160,6 +173,35 @@ assert_json_expr "$status_json" '.ok == true and .branch == "unstable-dev"' \
   "start-update should launch only for the current checkout branch"
 grep -Fq 'RYOKU_UPDATE_BRANCH=unstable-dev' "$launcher_log" || \
   fail "start-update should pass the selected update branch to ryoku-update"
+
+printf '%s\n' "local divergent work" >"$repo/LOCAL"
+git -C "$repo" add LOCAL
+git -C "$repo" commit -m "local divergent work" >/dev/null
+
+RYOKU_PATH="$repo" \
+RYOKU_STATE_PATH="$tmp_dir/state" \
+RYOKU_UPDATE_REMOTE_URL="$remote_repo" \
+XDG_CONFIG_HOME="$tmp_dir/config" \
+  "$helper" check-updates >"$status_json"
+
+assert_json_expr "$status_json" '.ok == true and .updateAvailable == true and .canStartUpdate == false and .updateState == "blocked"' \
+  "check-updates should block divergent checkouts"
+assert_json_expr "$status_json" '.blockReason | contains("cannot fast-forward")' \
+  "blocked update checks should explain the fast-forward problem"
+
+set +e
+PATH="$tmp_dir/bin:$PATH" \
+RYOKU_PATH="$repo" \
+RYOKU_STATE_PATH="$tmp_dir/state" \
+RYOKU_UPDATE_REMOTE_URL="$remote_repo" \
+XDG_CONFIG_HOME="$tmp_dir/config" \
+  "$helper" start-update unstable-dev >"$status_json"
+diverged_start_status=$?
+set -e
+
+(( diverged_start_status != 0 )) || fail "start-update should refuse divergent checkouts"
+assert_json_expr "$status_json" '.ok == false and (.error | contains("cannot fast-forward"))' \
+  "start-update should explain why a divergent checkout is blocked"
 
 set +e
 PATH="$tmp_dir/bin:$PATH" \
@@ -198,7 +240,6 @@ doctor_assume_no="$(<"$doctor_env_log")"
 assert_json_expr "$status_json" '.ok == true and (.output | contains("Ryoku Doctor: global"))' \
   "settings doctor should expose global doctor output"
 
-mkdir -p "$repo/bin"
 cat >"$repo/bin/ryoku-doctor" <<'SH'
 #!/bin/bash
 printf '%s\n' "Ryoku Doctor: checkout"
@@ -214,6 +255,12 @@ XDG_CONFIG_HOME="$tmp_dir/config" \
 assert_json_expr "$status_json" '.ok == true and (.output | contains("Ryoku Doctor: checkout"))' \
   "settings doctor should prefer the active Ryoku checkout doctor over a stale PATH doctor"
 
+cat >"$repo/bin/ryoku-channel-set" <<'SH'
+#!/bin/bash
+exit 0
+SH
+chmod 755 "$repo/bin/ryoku-channel-set"
+
 PATH="$tmp_dir/bin:$PATH" \
 RYOKU_PATH="$repo" \
 RYOKU_STATE_PATH="$tmp_dir/state" \
@@ -222,7 +269,10 @@ XDG_CONFIG_HOME="$tmp_dir/config" \
 
 assert_json_expr "$status_json" '.ok == true and .channel == "main"' \
   "switch-channel should report the selected official channel"
-tail -n 1 "$launcher_log" | grep -Fxq 'ryoku-channel-set main' || \
-  fail "switch-channel should launch the selected channel command only"
+switch_command="$(tail -n 1 "$launcher_log")"
+grep -Fq "RYOKU_PATH=$repo" <<<"$switch_command" || \
+  fail "switch-channel should pin the active checkout path"
+grep -Fq "$repo/bin/ryoku-channel-set main" <<<"$switch_command" || \
+  fail "switch-channel should launch the active checkout channel command only"
 
 echo "PASS: settings about pane"

@@ -96,6 +96,36 @@ Item {
         return qsTr("Refresh status before running updates.");
     }
 
+    function updateStateIcon(report: var): string {
+        if (report.updateState === "blocked")
+            return "block";
+        if (report.updateState === "ready")
+            return "download";
+        if (report.updateState === "ahead")
+            return "publish";
+        return "check_circle";
+    }
+
+    function updateStateTitle(report: var): string {
+        if (report.updateStateLabel)
+            return report.updateStateLabel;
+        return report.updateAvailable === true ? qsTr("Update available") : qsTr("No updates available");
+    }
+
+    function updateStateDetail(report: var): string {
+        if (report.updateStateDetail)
+            return report.updateStateDetail;
+        if (report.updateAvailable === true)
+            return qsTr("%1 incoming commits on %2. Current %3 -> remote %4.").arg(report.behindCount || 0).arg(report.updateBranch || report.currentBranch || qsTr("this branch")).arg(report.head || "?").arg(report.remoteHead || "?");
+        return qsTr("%1 is current at %2.").arg(report.updateBranch || report.currentBranch || qsTr("This branch")).arg(report.head || "?");
+    }
+
+    function updateStateValue(report: var): string {
+        if (report.updateStateLabel)
+            return report.updateStateLabel;
+        return report.canFastForward ? qsTr("Fast-forward ready") : qsTr("No update");
+    }
+
     function syncPendingChannel(): void {
         if (modalMode === "channel" && modalOpen)
             return;
@@ -578,11 +608,18 @@ Item {
 
                 StatusLine {
                     visible: root.modalReport.ok === true
-                    icon: root.modalReport.updateAvailable === true ? "download" : "check_circle"
-                    title: root.modalReport.updateAvailable === true ? qsTr("Update available") : qsTr("No updates available")
-                    detail: root.modalReport.updateAvailable === true
-                        ? qsTr("%1 incoming commits on %2. Current %3 -> remote %4.").arg(root.modalReport.behindCount || 0).arg(root.modalReport.updateBranch || root.modalReport.currentBranch || qsTr("this branch")).arg(root.modalReport.head || "?").arg(root.modalReport.remoteHead || "?")
-                        : qsTr("%1 is current at %2.").arg(root.modalReport.updateBranch || root.modalReport.currentBranch || qsTr("This branch")).arg(root.modalReport.head || "?")
+                    icon: root.updateStateIcon(root.modalReport)
+                    title: root.updateStateTitle(root.modalReport)
+                    detail: root.updateStateDetail(root.modalReport)
+                    error: root.modalReport.updateState === "blocked"
+                }
+
+                StatusLine {
+                    visible: root.modalReport.ok === true && root.modalReport.updateState === "blocked"
+                    icon: "warning"
+                    title: qsTr("Update blocked")
+                    detail: root.modalReport.blockReason || qsTr("This checkout cannot fast-forward to the selected branch.")
+                    error: true
                 }
 
                 GridLayout {
@@ -624,8 +661,8 @@ Item {
 
                     InfoTile {
                         Layout.fillWidth: true
-                        label: qsTr("Fast-forward")
-                        value: root.modalReport.canFastForward ? qsTr("Available") : qsTr("Not needed")
+                        label: qsTr("Update state")
+                        value: root.updateStateValue(root.modalReport)
                     }
                 }
 
@@ -647,7 +684,7 @@ Item {
 
                     StyledText {
                         Layout.fillWidth: true
-                        text: root.modalReport.canStartUpdate ? qsTr("Opens the updater in a terminal for this checkout branch.") : qsTr("This checkout cannot fast-forward to the remote branch. Run doctor or review the branch before updating.")
+                        text: root.modalReport.canStartUpdate ? qsTr("Opens the updater in a terminal for this checkout branch.") : root.modalReport.blockReason || qsTr("This checkout cannot fast-forward to the remote branch. Run doctor or review the branch before updating.")
                         color: Colours.palette.m3onSurfaceVariant
                         wrapMode: Text.WordWrap
                     }
