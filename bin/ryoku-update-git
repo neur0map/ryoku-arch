@@ -165,6 +165,9 @@ fi
 
 ryoku_git --no-pager diff --check || ryoku_git reset --merge
 
-if command -v hyprctl >/dev/null 2>&1; then
+if command -v hyprctl >/dev/null 2>&1 \
+  && { [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] || hyprctl version >/dev/null 2>&1; }; then
   hyprctl reload >/dev/null 2>&1 || true
+elif command -v niri >/dev/null 2>&1; then
+  niri msg action load-config-file >/dev/null 2>&1 || true
 fi
