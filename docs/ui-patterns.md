@@ -29,7 +29,7 @@ For shell-only preview:
 ```bash
 DEV="${RYOKU_DEV_PATH:-$HOME/prowl/ryoku-arch}"
 RUNTIME="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell"
-rsync -a --delete "$DEV/shell/" "$RUNTIME/"
+RYOKU_DEV_PATH="$DEV" "$DEV/shell/setup" install -y -q --skip-deps --skip-setups --skip-sysupdate --skip-build
 systemctl --user restart ryoku-shell.service
 ```
 

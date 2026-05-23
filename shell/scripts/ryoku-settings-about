@@ -297,9 +297,10 @@ PY
 doctor_json() {
   local output_file status doctor_cmd
 
-  doctor_cmd="$(command -v ryoku-doctor || true)"
-  if [[ -z $doctor_cmd && -x $RYOKU_PATH/bin/ryoku-doctor ]]; then
+  if [[ -x $RYOKU_PATH/bin/ryoku-doctor ]]; then
     doctor_cmd="$RYOKU_PATH/bin/ryoku-doctor"
+  else
+    doctor_cmd="$(command -v ryoku-doctor || true)"
   fi
 
   if [[ -z $doctor_cmd ]]; then

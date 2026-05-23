@@ -49,6 +49,44 @@ git -C "$seed" push origin HEAD:unstable-dev >/dev/null 2>&1
 git clone "$remote" "$checkout" >/dev/null 2>&1
 git -C "$checkout" checkout main >/dev/null 2>&1
 
+printf '%s\n' "unstable-dev" >"$state_dir/channel"
+rm -rf "$home_dir/.config/ryoku-shell"
+
+output=$(
+  HOME="$home_dir" \
+  RYOKU_SHELL_CONFIG_DIR="$home_dir/.config/ryoku-shell" \
+  RYOKU_PATH="$checkout" \
+  RYOKU_STATE_PATH="$state_dir" \
+  RYOKU_UPDATE_REMOTE_URL="$remote" \
+  PATH="$bin_dir:$ROOT_DIR/bin:$PATH" \
+  "$ROOT_DIR/bin/ryoku-update-git" 2>&1
+) || fail "ryoku-update-git should follow the persisted unstable-dev channel state: $output"
+
+[[ $(git -C "$checkout" branch --show-current) == "unstable-dev" ]] || \
+  fail "checkout should switch to unstable-dev when state channel selects it"
+
+grep -qx 'dev-only feature' "$checkout/dev-widget.txt" || \
+  fail "state channel update should bring files from origin/unstable-dev"
+
+printf '%s\n' "main" >"$state_dir/channel"
+
+output=$(
+  HOME="$home_dir" \
+  RYOKU_SHELL_CONFIG_DIR="$home_dir/.config/ryoku-shell" \
+  RYOKU_PATH="$checkout" \
+  RYOKU_STATE_PATH="$state_dir" \
+  RYOKU_UPDATE_REMOTE_URL="$remote" \
+  PATH="$bin_dir:$ROOT_DIR/bin:$PATH" \
+  "$ROOT_DIR/bin/ryoku-update-git" 2>&1
+) || fail "ryoku-update-git should switch back to main from persisted channel state: $output"
+
+[[ $(git -C "$checkout" branch --show-current) == "main" ]] || \
+  fail "checkout should switch back to main when state channel selects it"
+
+[[ ! -e $checkout/dev-widget.txt ]] || \
+  fail "state channel main update should remove dev-only tracked files"
+
+rm -f "$state_dir/channel"
 write_channel_config unstable-dev
 
 output=$(

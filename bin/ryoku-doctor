@@ -193,20 +193,33 @@ doctor_release_branch() {
   local config_file=""
   local config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
   local configured=""
+  local state_file="$RYOKU_STATE_PATH/channel"
+  local state_channel=""
 
   if [[ -n ${RYOKU_UPDATE_BRANCH:-} ]]; then
     configured="$RYOKU_UPDATE_BRANCH"
   else
-    if [[ -n ${RYOKU_SHELL_CONFIG_DIR:-} ]]; then
-      config_file="$RYOKU_SHELL_CONFIG_DIR/config.json"
-    elif [[ -f $config_home/ryoku-shell/config.json ]]; then
-      config_file="$config_home/ryoku-shell/config.json"
-    else
-      config_file="$config_home/illogical-impulse/config.json"
+    if [[ -r $state_file ]]; then
+      state_channel="$(<"$state_file")"
+      case "$state_channel" in
+        main | unstable-dev)
+          configured="$state_channel"
+          ;;
+      esac
     fi
 
-    if [[ -f $config_file ]] && command -v jq >/dev/null 2>&1; then
-      configured="$(jq -r '.shellUpdates.channel // empty' "$config_file" 2>/dev/null || true)"
+    if [[ -z $configured ]]; then
+      if [[ -n ${RYOKU_SHELL_CONFIG_DIR:-} ]]; then
+        config_file="$RYOKU_SHELL_CONFIG_DIR/config.json"
+      elif [[ -f $config_home/ryoku-shell/config.json ]]; then
+        config_file="$config_home/ryoku-shell/config.json"
+      else
+        config_file="$config_home/illogical-impulse/config.json"
+      fi
+
+      if [[ -f $config_file ]] && command -v jq >/dev/null 2>&1; then
+        configured="$(jq -r '.shellUpdates.channel // empty' "$config_file" 2>/dev/null || true)"
+      fi
     fi
   fi
 

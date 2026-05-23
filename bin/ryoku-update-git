@@ -29,13 +29,26 @@ ryoku_shell_config_file() {
 configured_release_branch() {
   local config_file=""
   local configured=""
+  local state_file="$RYOKU_STATE_PATH/channel"
+  local state_channel=""
 
   if [[ -n ${RYOKU_UPDATE_BRANCH:-} ]]; then
     configured="$RYOKU_UPDATE_BRANCH"
   else
-    config_file="$(ryoku_shell_config_file)"
-    if [[ -f $config_file ]] && command -v jq >/dev/null 2>&1; then
-      configured="$(jq -r '.shellUpdates.channel // empty' "$config_file" 2>/dev/null || true)"
+    if [[ -r $state_file ]]; then
+      state_channel="$(<"$state_file")"
+      case "$state_channel" in
+        main | unstable-dev)
+          configured="$state_channel"
+          ;;
+      esac
+    fi
+
+    if [[ -z $configured ]]; then
+      config_file="$(ryoku_shell_config_file)"
+      if [[ -f $config_file ]] && command -v jq >/dev/null 2>&1; then
+        configured="$(jq -r '.shellUpdates.channel // empty' "$config_file" 2>/dev/null || true)"
+      fi
     fi
   fi
 

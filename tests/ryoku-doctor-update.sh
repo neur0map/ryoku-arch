@@ -12,10 +12,11 @@ fail() {
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 export XDG_CONFIG_HOME="$tmp/config"
+export RYOKU_STATE_PATH="$tmp/state/ryoku"
 current_user="$(id -un)"
 current_host="$(hostname 2>/dev/null || true)"
 
-mkdir -p "$XDG_CONFIG_HOME" "$tmp/bin" "$tmp/fake-ryoku/bin" "$tmp/conflicts/usr/share/example" "$tmp/backups" "$tmp/state/quickshell/user"
+mkdir -p "$XDG_CONFIG_HOME" "$tmp/bin" "$tmp/fake-ryoku/bin" "$tmp/conflicts/usr/share/example" "$tmp/backups" "$tmp/state/quickshell/user" "$RYOKU_STATE_PATH"
 touch "$tmp/conflicts/usr/share/example/payload.sh"
 
 cat >"$tmp/update.log" <<LOG

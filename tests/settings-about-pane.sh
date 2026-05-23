@@ -198,6 +198,22 @@ doctor_assume_no="$(<"$doctor_env_log")"
 assert_json_expr "$status_json" '.ok == true and (.output | contains("Ryoku Doctor: global"))' \
   "settings doctor should expose global doctor output"
 
+mkdir -p "$repo/bin"
+cat >"$repo/bin/ryoku-doctor" <<'SH'
+#!/bin/bash
+printf '%s\n' "Ryoku Doctor: checkout"
+SH
+chmod 755 "$repo/bin/ryoku-doctor"
+
+PATH="$tmp_dir/bin:$PATH" \
+RYOKU_PATH="$repo" \
+RYOKU_STATE_PATH="$tmp_dir/state" \
+XDG_CONFIG_HOME="$tmp_dir/config" \
+  "$helper" doctor >"$status_json"
+
+assert_json_expr "$status_json" '.ok == true and (.output | contains("Ryoku Doctor: checkout"))' \
+  "settings doctor should prefer the active Ryoku checkout doctor over a stale PATH doctor"
+
 PATH="$tmp_dir/bin:$PATH" \
 RYOKU_PATH="$repo" \
 RYOKU_STATE_PATH="$tmp_dir/state" \
