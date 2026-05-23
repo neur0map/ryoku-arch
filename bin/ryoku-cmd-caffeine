@@ -2,7 +2,19 @@
 
 set -euo pipefail
 
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+script_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+runtime_env="$script_root/lib/runtime-env.sh"
+fallback_runtime_env="${RYOKU_PATH:-$HOME/.local/share/ryoku}/lib/runtime-env.sh"
+
+if [[ -f $runtime_env ]]; then
+  # shellcheck disable=SC1090,SC1091
+  source "$runtime_env"
+elif [[ -f $fallback_runtime_env ]]; then
+  # shellcheck disable=SC1090,SC1091
+  source "$fallback_runtime_env"
+else
+  export RYOKU_STATE_PATH="${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}"
+fi
 
 lock_file="${RYOKU_CAFFEINE_LOCK_FILE:-${XDG_RUNTIME_DIR:-/tmp}/ryoku-caffeine.lock}"
 state_file="${RYOKU_CAFFEINE_STATE_FILE:-${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}/caffeine.enabled}"
