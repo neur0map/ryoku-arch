@@ -8,7 +8,7 @@ import qs.services
 Scope {
     id: root
 
-    readonly property bool enabled: !GlobalConfig.general.idle.inhibitWhenAudio || !Players.list.some(p => p.isPlaying)
+    readonly property bool enabled: !IdleInhibitor.enabled && (!GlobalConfig.general.idle.inhibitWhenAudio || !Players.list.some(p => p.isPlaying))
 
     function handleIdleAction(action: var): void {
         if (!action)

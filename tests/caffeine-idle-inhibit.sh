@@ -27,10 +27,12 @@ assert_not_contains() {
 }
 
 idle_service="shell/services/IdleInhibitor.qml"
+idle_monitors="shell/modules/IdleMonitors.qml"
 caffeine_cmd="bin/ryoku-cmd-caffeine"
 shell_root="shell/shell.qml"
 
 [[ -f $idle_service ]] || fail "$idle_service missing"
+[[ -f $idle_monitors ]] || fail "$idle_monitors missing"
 [[ -f $caffeine_cmd ]] || fail "$caffeine_cmd missing"
 [[ -f $shell_root ]] || fail "$shell_root missing"
 
@@ -59,6 +61,10 @@ assert_not_contains "$idle_service" '_idleInhibitorAllowed|id: _idleInhibitor|ru
   "caffeine should not be tied to the Quickshell process lifetime"
 assert_not_contains "$idle_service" 'Component\.onDestruction:[^}]*ryoku-cmd-caffeine[^}]*stop' \
   "shell shutdown should not turn off a persisted caffeine request"
+assert_contains "$idle_monitors" '!IdleInhibitor\.enabled' \
+  "Ryoku idle monitors should pause while stay-awake mode is enabled"
+assert_contains "$idle_monitors" 'IdleInhibitor\.enabled' \
+  "Ryoku idle monitors should include stay-awake state in their enabled guard"
 
 assert_contains "$caffeine_cmd" 'state_file=' \
   "caffeine helper should persist the user's requested stay-awake state"
