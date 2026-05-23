@@ -11,7 +11,7 @@ fail() {
   exit 1
 }
 
-migration=$(grep -l "Add HyprMod Super comma launcher" "$ROOT_DIR"/migrations/*.sh 2>/dev/null | sort -n | tail -n1 || true)
+migration=$(grep -l "Add HyprMod Super Shift comma launcher" "$ROOT_DIR"/migrations/*.sh 2>/dev/null | sort -n | tail -n1 || true)
 [[ -n $migration ]] || fail "missing HyprMod keybind migration"
 
 tmp_dir=$(mktemp -d)
@@ -35,15 +35,15 @@ HOME="$home_dir" RYOKU_PATH="$ROOT_DIR" bash "$migration" >/dev/null
 
 grep -Fxq '$hyprlandSettings = ryoku-launch-hyprmod' "$hypr_conf" || \
   fail "migration should add the Ryoku HyprMod launcher command"
-grep -Fxq 'bind = SUPER, comma, exec, $hyprlandSettings' "$hypr_conf" || \
-  fail "migration should add Super+comma HyprMod bind"
+grep -Fxq 'bind = SUPER SHIFT, comma, exec, $hyprlandSettings' "$hypr_conf" || \
+  fail "migration should add Super+Shift+comma HyprMod bind"
 
 HOME="$home_dir" RYOKU_PATH="$ROOT_DIR" bash "$migration" >/dev/null
 
 launcher_count=$(grep -Fxc '$hyprlandSettings = ryoku-launch-hyprmod' "$hypr_conf")
-bind_count=$(grep -Fxc 'bind = SUPER, comma, exec, $hyprlandSettings' "$hypr_conf")
+bind_count=$(grep -Fxc 'bind = SUPER SHIFT, comma, exec, $hyprlandSettings' "$hypr_conf")
 (( launcher_count == 1 )) || fail "migration should not duplicate the HyprMod launcher command"
-(( bind_count == 1 )) || fail "migration should not duplicate the Super+comma bind"
+(( bind_count == 1 )) || fail "migration should not duplicate the Super+Shift+comma bind"
 
 custom_home="$tmp_dir/custom-home"
 custom_hypr="$custom_home/.config/hypr"
@@ -60,7 +60,7 @@ HOME="$custom_home" RYOKU_PATH="$ROOT_DIR" bash "$migration" >/dev/null
 
 grep -Fxq 'bind = SUPER, comma, exec, custom-tool' "$custom_conf" || \
   fail "migration should preserve an existing custom Super+comma bind"
-! grep -Fxq 'bind = SUPER, comma, exec, $hyprlandSettings' "$custom_conf" || \
-  fail "migration should not add a duplicate Super+comma bind over a custom one"
+grep -Fxq 'bind = SUPER SHIFT, comma, exec, $hyprlandSettings' "$custom_conf" || \
+  fail "migration should add Super+Shift+comma HyprMod bind next to a custom Super+comma bind"
 
 echo "PASS: rebirth HyprMod keybind migration repairs existing configs"

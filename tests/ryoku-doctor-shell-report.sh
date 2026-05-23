@@ -63,7 +63,7 @@ ln -s "$runtime/scripts/ryoku-shell" "$home/.local/bin/ryoku-shell"
 printf '%s\n' '{"shellUpdates":{"channel":"unstable-dev"}}' >"$home/.config/ryoku-shell/config.json"
 cat >"$home/.config/hypr/hyprland.conf" <<'HYPR'
 exec-once = sh -lc '$HOME/.local/bin/ryoku-shell run --session'
-bind = SUPER, S, exec, $systemPanel
+bind = SUPER, comma, exec, $systemPanel
 HYPR
 
 cat >"$bin_dir/systemctl" <<'SH'
@@ -139,7 +139,7 @@ fi
 exit 0
 SH
 
-for cmd in jq rsync git wl-copy wl-paste cliphist fuzzel grim slurp swappy wpctl nmcli notify-send journalctl pgrep; do
+for cmd in jq rsync git wl-copy wl-paste cliphist fuzzel grim slurp gradia wpctl nmcli notify-send journalctl pgrep; do
   cat >"$bin_dir/$cmd" <<'SH'
 #!/bin/bash
 exit 0

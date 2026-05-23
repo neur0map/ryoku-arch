@@ -173,7 +173,7 @@ run_check() {
 
 check_dependencies() {
   local required=(qs hyprctl jq systemctl)
-  local optional=(rsync git wl-copy wl-paste cliphist fuzzel grim slurp swappy wpctl nmcli notify-send)
+  local optional=(rsync git wl-copy wl-paste cliphist fuzzel grim slurp gradia wpctl nmcli notify-send)
   local missing=()
   local optional_missing=()
   local cmd

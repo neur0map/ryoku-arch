@@ -160,7 +160,6 @@ qt6ct
 quickshell
 rsync
 swaylock
-swappy
 syntax-highlighting
 ttf-cascadia-code-nerd
 ttf-dejavu
@@ -185,7 +184,6 @@ yt-dlp
 # ── Screenshot / clipboard / region picker ────────────────────────────
 cliphist
 grim
-satty
 slurp
 tesseract
 tesseract-data-eng

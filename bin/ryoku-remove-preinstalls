@@ -29,10 +29,12 @@ packages=(
   signal-desktop
   pinta
   kdenlive
+  satty
   bluetui
   impala
   wiremix
   plocate
+  swappy
   usage
   xmlstarlet
 )

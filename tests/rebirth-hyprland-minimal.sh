@@ -76,10 +76,10 @@ rg -q 'bind = SUPER, Space, exec, [$]menu' "$ROOT_DIR/config/hypr/hyprland.conf"
   fail "Hyprland config should keep the launcher bind"
 rg -q 'bind = SUPER, V, exec, [$]clipboard' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should keep the clipboard bind"
-rg -q 'bind = SUPER, S, exec, [$]systemPanel' "$ROOT_DIR/config/hypr/hyprland.conf" || \
-  fail "Hyprland config should keep the system bind"
-rg -q 'bind = SUPER, comma, exec, [$]hyprlandSettings' "$ROOT_DIR/config/hypr/hyprland.conf" || \
-  fail "Hyprland config should bind Super+comma to HyprMod"
+rg -q 'bind = SUPER, comma, exec, [$]systemPanel' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should move system bind to Super+comma"
+rg -q 'bind = SUPER SHIFT, comma, exec, [$]hyprlandSettings' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should bind Super+Shift+comma to HyprMod"
 rg -q 'bind = SUPER, P, exec, [$]powerMenu' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should keep the power bind"
 rg -q 'bind = SUPER, B, exec, [$]heliumBrowser' "$ROOT_DIR/config/hypr/hyprland.conf" || \

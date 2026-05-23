@@ -19,17 +19,17 @@ Source of truth: Hyprland loads shipped binds from `config/hypr/hyprland.conf`.
 | `Mod+Space` | App launcher / shell overview. |
 | `Mod+R` | App launcher / shell overview. |
 | `Mod+V` | Clipboard history. |
-| `Mod+S` | Settings. |
-| `Mod+,` | Hyprland settings (HyprMod). |
+| `Mod+,` | Settings. |
+| `Mod+Shift+,` | Hyprland settings (HyprMod). |
 | `Mod+P` | Session / power dialog. |
 
 ## Screenshots And Region Tools
 
 | Binding | Action |
 | --- | --- |
-| `Print` | Screenshot. |
-| `Shift+Print` | Screenshot region. |
-| `Mod+Shift+S` | Screenshot region. |
+| `Print` | Full screenshot in Gradia, copied to clipboard. |
+| `Shift+Print` | Ryoku area picker, copy to clipboard, open in Gradia. |
+| `Mod+S` | Ryoku area picker, copy to clipboard, open in Gradia. |
 
 ## App Launchers
 

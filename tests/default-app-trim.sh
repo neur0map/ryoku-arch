@@ -105,11 +105,13 @@ removed_packages=(
   libreoffice-fresh
   pinta
   plocate
+  satty
   signal-desktop
   spotify
   typora
   usage
   wiremix
+  swappy
   xournalpp
   xmlstarlet
 )
