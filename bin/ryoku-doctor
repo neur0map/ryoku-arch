@@ -10,7 +10,7 @@ source "$repo_root/lib/pacman-conflicts.sh"
 
 usage() {
   cat <<'USAGE'
-Usage: ryoku-doctor [-h]
+Usage: ryoku-doctor [shell|update|-h]
 
 Diagnoses the latest failed Ryoku update when update state needs attention.
 Otherwise runs the desktop shell doctor.
@@ -414,16 +414,17 @@ run_update_doctor() {
 
 run_shell_doctor() {
   local setup
+  local runtime_dir="${RYOKU_SHELL_RUNTIME_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell}"
   local candidates=(
+    "$runtime_dir/setup"
     "$RYOKU_PATH/shell/setup"
     "$RYOKU_PATH/setup"
-    "${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell/setup"
     "${XDG_CONFIG_HOME:-$HOME/.config}/ryoku-shell/setup"
   )
 
   for setup in "${candidates[@]}"; do
     [[ -x $setup ]] || continue
-    RYOKU_DOCTOR_INTERNAL=1 "$setup" -y doctor
+    RYOKU_DOCTOR_INTERNAL=1 "$setup" doctor -y
     return $?
   done
 
@@ -446,6 +447,9 @@ case "${1:-}" in
     ;;
   update)
     run_update_doctor
+    ;;
+  shell)
+    run_shell_doctor
     ;;
   -h|help)
     usage
