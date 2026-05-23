@@ -112,6 +112,41 @@ backup_untracked_update_conflicts() {
   fi
 }
 
+fetch_release_ref() {
+  local branch="$1"
+
+  ryoku_git fetch --prune origin "+refs/heads/${branch}:refs/remotes/origin/${branch}"
+}
+
+fetch_optional_official_refs() {
+  local branch
+
+  for branch in main unstable-dev; do
+    [[ $branch == "$release_branch" ]] && continue
+    fetch_release_ref "$branch" >/dev/null 2>&1 || true
+  done
+}
+
+official_remote_contains_head() {
+  local head ref reflog_head
+
+  head="$(ryoku_git rev-parse HEAD 2>/dev/null || true)"
+  [[ -n $head ]] || return 1
+
+  for ref in origin/main origin/unstable-dev; do
+    ryoku_git rev-parse --verify --quiet "$ref" >/dev/null || continue
+    if ryoku_git merge-base --is-ancestor HEAD "$ref"; then
+      return 0
+    fi
+
+    while IFS= read -r reflog_head; do
+      [[ $reflog_head == "$head" ]] && return 0
+    done < <(ryoku_git reflog show --format=%H "$ref" 2>/dev/null || true)
+  done
+
+  return 1
+}
+
 ensure_release_branch_checked_out() {
   local remote_ref="$1"
   local current_branch=""
@@ -135,6 +170,19 @@ ensure_release_branch_checked_out() {
   fi
 }
 
+realign_release_branch_if_safe() {
+  local remote_ref="$1"
+
+  if ryoku_git merge-base --is-ancestor HEAD "$remote_ref"; then
+    return 0
+  fi
+
+  if official_remote_contains_head; then
+    echo -e "\e[33mRealigning stale Ryoku $release_branch branch to $remote_ref.\e[0m"
+    ryoku_git switch -C "$release_branch" "$remote_ref"
+  fi
+}
+
 stash_ref=""
 if [[ -n $(ryoku_git status --porcelain --untracked-files=normal) ]]; then
   ryoku_git stash push --include-untracked -m "ryoku-update autostash $(date -Iseconds)"
@@ -148,11 +196,13 @@ else
 fi
 clear_stale_auth_headers
 
-ryoku_git fetch --prune origin "+refs/heads/${release_branch}:refs/remotes/origin/${release_branch}"
+fetch_release_ref "$release_branch"
+fetch_optional_official_refs
 
 remote_ref="origin/$release_branch"
 
 ensure_release_branch_checked_out "$remote_ref"
+realign_release_branch_if_safe "$remote_ref"
 backup_untracked_update_conflicts "$remote_ref"
 
 if ! ryoku_git merge --ff-only "$remote_ref"; then

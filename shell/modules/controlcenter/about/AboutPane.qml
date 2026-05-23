@@ -125,6 +125,8 @@ Item {
     function updateStateValue(report: var): string {
         if (report.updateStateLabel)
             return report.updateStateLabel;
+        if (report.canRealignOfficialBranch === true)
+            return qsTr("Realign ready");
         return report.canFastForward ? qsTr("Fast-forward ready") : qsTr("No update");
     }
 

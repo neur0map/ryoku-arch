@@ -219,6 +219,33 @@ def fetch_channel(channel):
     refspec = f"+refs/heads/{channel}:refs/remotes/origin/{channel}"
     return run_git("fetch", "--prune", remote_url, refspec)
 
+def fetch_peer_channels(branch):
+    for channel in sorted(channels):
+        if channel == branch:
+            continue
+        fetch_channel(channel)
+
+def remote_ref_exists(ref):
+    code, _, _ = run_git("rev-parse", "--verify", ref)
+    return code == 0
+
+def official_remote_contains_head():
+    code, head, _ = run_git("rev-parse", "HEAD")
+    if code != 0 or not head:
+        return False
+
+    for channel in sorted(channels):
+        ref = f"origin/{channel}"
+        if not remote_ref_exists(ref):
+            continue
+        code, _, _ = run_git("merge-base", "--is-ancestor", "HEAD", ref)
+        if code == 0:
+            return True
+        code, out, _ = run_git("reflog", "show", "--format=%H", ref)
+        if code == 0 and head in out.splitlines():
+            return True
+    return False
+
 def incoming_commits(remote_ref):
     code, out, _ = run_git("log", "--max-count=20", "--pretty=format:%h%x1f%s%x1f%an%x1f%cr", f"HEAD..{remote_ref}")
     if code != 0 or not out:
@@ -237,12 +264,20 @@ def incoming_commits(remote_ref):
         })
     return commits
 
-def update_state(ahead, behind, can_fast_forward, branch):
+def update_state(ahead, behind, can_fast_forward, can_realign, branch):
     if behind > 0 and can_fast_forward:
         return {
             "updateState": "ready",
             "updateStateLabel": "Ready to update",
             "updateStateDetail": f"{behind} incoming commit(s) can be fast-forwarded into {branch}.",
+            "blockReason": "",
+        }
+
+    if behind > 0 and can_realign:
+        return {
+            "updateState": "ready",
+            "updateStateLabel": "Ready to update",
+            "updateStateDetail": f"{branch} can realign to origin/{branch}; the local branch only contains known Ryoku release history.",
             "blockReason": "",
         }
 
@@ -312,6 +347,9 @@ def check_updates():
         })
         return info
 
+    if branch in channels:
+        fetch_peer_channels(branch)
+
     remote_ref = f"origin/{branch}"
     code, counts, err = run_git("rev-list", "--left-right", "--count", f"HEAD...{remote_ref}")
     ahead = 0
@@ -325,6 +363,7 @@ def check_updates():
     _, remote_head, _ = run_git("rev-parse", "--short", remote_ref)
     ancestor_code, _, _ = run_git("merge-base", "--is-ancestor", "HEAD", remote_ref)
     can_fast_forward = ancestor_code == 0 and behind > 0
+    can_realign = branch in channels and behind > 0 and not can_fast_forward and official_remote_contains_head()
     commits = incoming_commits(remote_ref)
 
     info.update({
@@ -335,10 +374,11 @@ def check_updates():
         "behindCount": behind,
         "updateAvailable": behind > 0,
         "canFastForward": can_fast_forward,
-        "canStartUpdate": can_fast_forward,
+        "canRealignOfficialBranch": can_realign,
+        "canStartUpdate": can_fast_forward or can_realign,
         "incoming": commits,
     })
-    info.update(update_state(ahead, behind, can_fast_forward, branch))
+    info.update(update_state(ahead, behind, can_fast_forward, can_realign, branch))
     return info
 
 if not (repo_path / ".git").exists():
@@ -450,6 +490,52 @@ shell_quote() {
   printf '%q' "$1"
 }
 
+fetch_settings_channel_ref() {
+  local channel="$1"
+
+  git -C "$RYOKU_PATH" fetch --prune "$remote_url" "+refs/heads/$channel:refs/remotes/origin/$channel" >/dev/null 2>&1
+}
+
+fetch_settings_peer_channel_refs() {
+  local channel
+
+  for channel in main unstable-dev; do
+    [[ $channel == "$1" ]] && continue
+    fetch_settings_channel_ref "$channel" || true
+  done
+}
+
+settings_official_remote_contains_head() {
+  local head ref reflog_head
+
+  head="$(git -C "$RYOKU_PATH" rev-parse HEAD 2>/dev/null || true)"
+  [[ -n $head ]] || return 1
+
+  for ref in origin/main origin/unstable-dev; do
+    git -C "$RYOKU_PATH" rev-parse --verify --quiet "$ref" >/dev/null || continue
+    if git -C "$RYOKU_PATH" merge-base --is-ancestor HEAD "$ref"; then
+      return 0
+    fi
+
+    while IFS= read -r reflog_head; do
+      [[ $reflog_head == "$head" ]] && return 0
+    done < <(git -C "$RYOKU_PATH" reflog show --format=%H "$ref" 2>/dev/null || true)
+  done
+
+  return 1
+}
+
+settings_can_realign_official_branch() {
+  local branch="$1"
+
+  case "$branch" in
+    main | unstable-dev) ;;
+    *) return 1 ;;
+  esac
+
+  settings_official_remote_contains_head
+}
+
 update_current_branch() {
   local branch="${1:-}"
   local current_branch=""
@@ -504,6 +590,7 @@ start_update() {
     json_error "Unable to fetch $branch before starting the update"
     return 1
   fi
+  fetch_settings_peer_channel_refs "$branch"
 
   counts="$(git -C "$RYOKU_PATH" rev-list --left-right --count "HEAD...$remote_ref" 2>/dev/null || true)"
   if [[ -n $counts ]]; then
@@ -516,8 +603,10 @@ start_update() {
   fi
 
   if ! git -C "$RYOKU_PATH" merge-base --is-ancestor HEAD "$remote_ref"; then
-    json_error "Cannot start update for $branch because this checkout cannot fast-forward to $remote_ref"
-    return 1
+    if ! settings_can_realign_official_branch "$branch"; then
+      json_error "Cannot start update for $branch because this checkout cannot fast-forward to $remote_ref"
+      return 1
+    fi
   fi
 
   case "$branch" in
