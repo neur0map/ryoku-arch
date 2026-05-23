@@ -34,6 +34,8 @@ rg -q 'source = ~/.config/hypr/colors.conf' "$ROOT_DIR/config/hypr/hyprland.conf
   fail "Hyprland config should not ship the removed Super+/ keybind menu"
 rg -q 'monitor = eDP-1, preferred, 0x0, 1.25' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should use a smaller explicit laptop scale"
+rg -q "[$]fileManager = nautilus" "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should launch the shipped Files app"
 rg -q "[$]menu = sh -lc '\\\$HOME/.local/bin/ryoku-shell launcher'" "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should route launcher through Ryoku shell"
 rg -q "[$]clipboard = sh -lc 'cliphist list \\| fuzzel --dmenu" "$ROOT_DIR/config/hypr/hyprland.conf" || \
@@ -44,6 +46,14 @@ rg -q "[$]hyprlandSettings = ryoku-launch-hyprmod" "$ROOT_DIR/config/hypr/hyprla
   fail "Hyprland config should launch HyprMod through Ryoku geometry wrapper"
 rg -q "[$]powerMenu = sh -lc '\\\$HOME/.local/bin/ryoku-shell session'" "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should route power bind through Ryoku shell"
+rg -q "[$]heliumBrowser = sh -lc '\\\$HOME/.local/bin/helium'" "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should launch Helium through an absolute user-bin path"
+rg -q "[$]yaziFileManager = ryoku-launch-tui yazi" "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should launch Yazi through the Ryoku TUI helper"
+rg -q "[$]neovimEditor = ryoku-launch-tui nvim" "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should launch Neovim through the Ryoku TUI helper"
+rg -q "[$]obsidianNotes = obsidian" "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should define Obsidian as the notes app"
 rg -q "exec-once = sh -lc '\\\$HOME/.local/bin/ryoku-shell run --session'" "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should start Ryoku shell"
 rg -q 'exec-once = hypridle -c ~/.config/hypr/hypridle-rebirth.conf' "$ROOT_DIR/config/hypr/hyprland.conf" || \
@@ -72,6 +82,16 @@ rg -q 'bind = SUPER, comma, exec, [$]hyprlandSettings' "$ROOT_DIR/config/hypr/hy
   fail "Hyprland config should bind Super+comma to HyprMod"
 rg -q 'bind = SUPER, P, exec, [$]powerMenu' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should keep the power bind"
+rg -q 'bind = SUPER, B, exec, [$]heliumBrowser' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should bind Super+B to Helium"
+rg -q 'bind = SUPER, E, exec, [$]fileManager' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should bind Super+E to the files app"
+rg -q 'bind = SUPER ALT, E, exec, [$]yaziFileManager' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should bind Super+Alt+E to Yazi"
+rg -q 'bind = SUPER, N, exec, [$]neovimEditor' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should bind Super+N to Neovim"
+rg -q 'bind = SUPER, O, exec, [$]obsidianNotes' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should bind Super+O to Obsidian"
 rg -q 'bind = SUPER, Q, killactive,' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should keep the close-window bind"
 rg -q 'bind = ALT, F4, killactive,' "$ROOT_DIR/config/hypr/hyprland.conf" || \

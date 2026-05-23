@@ -37,7 +37,11 @@ Source of truth: Hyprland loads shipped binds from `config/hypr/hyprland.conf`.
 | --- | --- |
 | `Mod+T` | Terminal. |
 | `Mod+Return` | Terminal. |
-| `Mod+E` | File manager. |
+| `Mod+E` | Files app. |
+| `Mod+Alt+E` | Yazi. |
+| `Mod+B` | Helium browser. |
+| `Mod+N` | Neovim. |
+| `Mod+O` | Obsidian. |
 
 ## Window Management
 
