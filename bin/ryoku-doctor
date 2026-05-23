@@ -470,9 +470,7 @@ offer_fast_forward_update() {
   if doctor_confirm_fast_forward; then
     run_fast_forward_doctor
     echo
-    if [[ -n $script_path && -f $script_path ]]; then
-      exec "$script_path"
-    fi
+    echo "Ryoku recovery update applied."
     return 0
   fi
 
@@ -580,7 +578,15 @@ run_update_doctor() {
   echo "Ryoku Doctor: update"
   echo
   print_update_status
-  offer_fast_forward_update || true
+  if offer_fast_forward_update; then
+    ((fixes++)) || true
+    doctor_report_issue "FIX Fast-forwarded Ryoku recovery update."
+    echo "Next:"
+    echo "  Run: ryoku-update -y"
+    doctor_report_finish "" "$fixes" "$safe_to_retry" "$unresolved" "$warnings"
+    doctor_report_print_path
+    return 0
+  fi
 
   if ! log="$(latest_update_log)"; then
     echo "No readable Ryoku update log was found."

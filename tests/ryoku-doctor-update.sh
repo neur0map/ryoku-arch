@@ -79,6 +79,7 @@ git -C "$tmp/source" commit -m "base" >/dev/null
 git clone --bare "$tmp/source" "$tmp/remote.git" >/dev/null 2>&1
 git clone "$tmp/remote.git" "$tmp/checkout" >/dev/null 2>&1
 git clone "$tmp/remote.git" "$tmp/checkout-offer" >/dev/null 2>&1
+git clone "$tmp/remote.git" "$tmp/checkout-temp-doctor" >/dev/null 2>&1
 git -C "$tmp/source" remote add origin "$tmp/remote.git"
 echo "future recovery fix" >"$tmp/source/recovery.txt"
 git -C "$tmp/source" add recovery.txt
@@ -100,6 +101,25 @@ git -C "$tmp/checkout" merge-base --is-ancestor origin/main HEAD \
   || fail "ryoku-doctor should leave checkout at origin/main after fast-forward"
 grep -Fq 'Fast-forward Ryoku now? [Y/n] y' <<<"$ff_output" \
   || fail "doctor should ask before fast-forwarding from the short command"
+touch "$tmp/conflicts/usr/share/example/payload.sh"
+
+downloaded_doctor="$tmp/downloaded-ryoku-doctor"
+cp "$ROOT_DIR/bin/ryoku-doctor" "$downloaded_doctor"
+chmod 600 "$downloaded_doctor"
+ff_output=$(
+  RYOKU_PATH="$tmp/checkout-temp-doctor" \
+  RYOKU_UPDATE_REMOTE_URL="$tmp/remote.git" \
+  RYOKU_DOCTOR_ASSUME_YES=1 \
+  RYOKU_UPDATE_LOG="$tmp/update.log" \
+  RYOKU_PACMAN_CONFLICT_BACKUP_DIR="$tmp/backups-temp-doctor" \
+  XDG_STATE_HOME="$tmp/state" \
+  PATH="$tmp/bin:$PATH" \
+    bash "$downloaded_doctor" 2>&1
+) || fail "downloaded temp ryoku-doctor should re-enter through bash after fast-forward: $ff_output"
+git -C "$tmp/checkout-temp-doctor" merge-base --is-ancestor origin/main HEAD \
+  || fail "downloaded temp ryoku-doctor should leave checkout at origin/main after fast-forward"
+grep -Fq 'Permission denied' <<<"$ff_output" \
+  && fail "downloaded temp ryoku-doctor should not exec the non-executable temp file"
 touch "$tmp/conflicts/usr/share/example/payload.sh"
 
 git clone "$tmp/remote.git" "$tmp/checkout-migration" >/dev/null 2>&1
