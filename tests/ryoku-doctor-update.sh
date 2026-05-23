@@ -127,6 +127,34 @@ grep -Fq 'Migration 1752725616 is already recorded' <<<"$output" \
 grep -Fq 'Run: ryoku-update -y' <<<"$output" \
   || fail "doctor should tell users to retry after a resolved migration failure"
 
+git clone "$tmp/remote.git" "$tmp/checkout-auth" >/dev/null 2>&1
+cat >"$tmp/auth-update.log" <<'LOG'
+Script started on 2026-05-23 13:57:13-04:00 [COMMAND="ryoku-update -y" <not executed on terminal>]
+Update Ryoku
+Updating time...
+[sudo] password for user:
+LOG
+
+set +e
+output=$(
+  TMPDIR="$tmp" \
+  RYOKU_PATH="$tmp/checkout-auth" \
+  RYOKU_UPDATE_REMOTE_URL="$tmp/remote.git" \
+  RYOKU_DOCTOR_ASSUME_NO=1 \
+  RYOKU_UPDATE_LOG="$tmp/auth-update.log" \
+  XDG_STATE_HOME="$tmp/state" \
+  PATH="$tmp/bin:$PATH" \
+    "$ROOT_DIR/bin/ryoku-doctor" update 2>&1
+)
+auth_status=$?
+set -e
+
+(( auth_status != 0 )) || fail "ryoku-doctor should keep auth-stalled updates marked for attention"
+grep -Fq 'Update stopped while waiting for sudo authentication.' <<<"$output" \
+  || fail "doctor should explain sudo authentication stalls"
+grep -Fq 'Run: sudo -v' <<<"$output" \
+  || fail "doctor should tell users how to refresh sudo before retrying"
+
 RYOKU_UPDATE_INHIBITED=1 \
 RYOKU_UPDATE_LOGGED=1 \
 RYOKU_UPDATE_POWER_CHECKED=1 \

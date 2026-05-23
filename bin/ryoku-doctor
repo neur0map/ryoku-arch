@@ -385,6 +385,18 @@ report_resolved_migration_failures() {
   return 2
 }
 
+report_sudo_auth_stall() {
+  local log="$1"
+
+  grep -Eq '\[sudo\] password for |sudo: a password is required|sudo: a terminal is required' "$log" || return 1
+
+  echo "Update stopped while waiting for sudo authentication."
+  echo "Run: sudo -v"
+  echo "Then retry: ryoku-update -y"
+  doctor_report_issue "FAIL Update stopped while waiting for sudo authentication."
+  return 0
+}
+
 run_update_doctor() {
   local log repair_status migration_status
   local fixes=0
@@ -447,6 +459,11 @@ run_update_doctor() {
       ((unresolved++)) || true
       echo
     fi
+  fi
+
+  if report_sudo_auth_stall "$log"; then
+    ((unresolved++)) || true
+    echo
   fi
 
   if (( fixes > 0 || safe_to_retry > 0 )); then
