@@ -21,5 +21,8 @@ main | unstable-dev) ;;
   ;;
 esac
 
-ryoku-refresh-pacman "main"
+echo "Setting Ryoku update channel to $channel"
+echo
+
+ryoku-refresh-pacman "$channel"
 ryoku-update-branch "$channel"

@@ -33,6 +33,8 @@ command_present() {
 
 install_runtime_files() {
   local source_root
+  local source_path_file="$script_dir/.ryoku-source-path"
+  local target_path_file="$runtime_dir/.ryoku-source-path"
 
   mkdir -p "$runtime_dir" "$config_dir" "$bin_dir" "$applications_dir" "$icon_dir"
 
@@ -59,10 +61,24 @@ install_runtime_files() {
     rm -rf "$runtime_dir/build"
   fi
 
-  if ! source_root="$(git -C "$script_dir" rev-parse --show-toplevel 2>/dev/null)"; then
+  if source_root="$(git -C "$script_dir" rev-parse --show-toplevel 2>/dev/null)"; then
+    :
+  elif [[ -r $source_path_file ]] \
+    && read -r source_root <"$source_path_file" \
+    && [[ -d $source_root/.git ]]; then
+    :
+  elif [[ -r $target_path_file ]] \
+    && read -r source_root <"$target_path_file" \
+    && [[ -d $source_root/.git ]]; then
+    :
+  elif [[ -n ${RYOKU_DEV_PATH:-} && -d $RYOKU_DEV_PATH/.git ]]; then
+    source_root="$RYOKU_DEV_PATH"
+  elif [[ -n ${RYOKU_PATH:-} && -d $RYOKU_PATH/.git ]]; then
+    source_root="$RYOKU_PATH"
+  else
     source_root="$(cd -- "$script_dir/.." && pwd)"
   fi
-  printf '%s\n' "$source_root" >"$runtime_dir/.ryoku-source-path"
+  printf '%s\n' "$source_root" >"$target_path_file"
 
   install -m 0755 "$script_dir/scripts/ryoku-shell" "$bin_dir/ryoku-shell"
   [[ -f $script_dir/scripts/ryoku ]] && install -m 0755 "$script_dir/scripts/ryoku" "$bin_dir/ryoku"

@@ -49,6 +49,7 @@ Item {
     property string modalTitle: ""
     property string modalSubtitle: ""
     property var modalReport: ({})
+    property string pendingChannel: "main"
 
     function channelLabel(channel: string): string {
         if (channel === "main")
@@ -64,6 +65,43 @@ Item {
         return qsTr("%1 checkout, %2 channel").arg(branch).arg(channelLabel(channel));
     }
 
+    function currentChannel(): string {
+        return RyokuAbout.info.configuredChannel || "main";
+    }
+
+    function packageChannelLabel(channel: string): string {
+        if (channel === "main")
+            return qsTr("Main package mirror");
+        return channel || qsTr("Unknown");
+    }
+
+    function checkoutStateTitle(): string {
+        if (RyokuAbout.info.checkoutMode === "official")
+            return qsTr("Checkout matches channel");
+        if (RyokuAbout.info.checkoutMode === "mismatch")
+            return qsTr("Checkout and channel differ");
+        if (RyokuAbout.info.checkoutMode === "custom")
+            return qsTr("Custom checkout branch");
+        return qsTr("Checkout state unknown");
+    }
+
+    function checkoutStateDetail(): string {
+        if (RyokuAbout.info.checkoutMode === "official")
+            return qsTr("Updates are checked against the current checkout branch.");
+        if (RyokuAbout.info.checkoutMode === "mismatch")
+            return qsTr("Update checks stay on %1 until you explicitly switch channels.").arg(RyokuAbout.info.currentBranch || qsTr("this branch"));
+        if (RyokuAbout.info.checkoutMode === "custom")
+            return qsTr("This branch can be checked for updates, but only main and unstable-dev are offered as install channels.");
+        return qsTr("Refresh status before running updates.");
+    }
+
+    function syncPendingChannel(): void {
+        if (modalMode === "channel" && modalOpen)
+            return;
+
+        pendingChannel = currentChannel();
+    }
+
     function showUpdates(report: var): void {
         modalMode = "updates";
         modalReport = report;
@@ -76,7 +114,7 @@ Item {
         modalMode = "doctor";
         modalReport = report;
         modalTitle = qsTr("Ryoku doctor");
-        modalSubtitle = report.ok ? qsTr("No shell issues detected") : qsTr("Doctor found something to review");
+        modalSubtitle = report.ok ? qsTr("Global doctor completed") : qsTr("Doctor found something to review");
         modalOpen = true;
     }
 
@@ -88,9 +126,30 @@ Item {
         modalOpen = true;
     }
 
+    function showChannelSwitch(channel: string): void {
+        pendingChannel = channel || currentChannel();
+        modalMode = "channel";
+        modalReport = {
+            ok: true,
+            channel: pendingChannel,
+            currentBranch: RyokuAbout.info.currentBranch || "",
+            configuredChannel: currentChannel(),
+            updateBranch: pendingChannel,
+            packageChannel: RyokuAbout.info.packageChannel || "main",
+            dirty: RyokuAbout.info.dirty === true,
+            checkoutMode: RyokuAbout.info.checkoutMode || "unknown"
+        };
+        modalTitle = qsTr("Switch update channel");
+        modalSubtitle = qsTr("%1 -> %2").arg(channelLabel(currentChannel())).arg(channelLabel(pendingChannel));
+        modalOpen = true;
+    }
+
     anchors.fill: parent
 
-    Component.onCompleted: RyokuAbout.refreshStatus()
+    Component.onCompleted: {
+        root.syncPendingChannel();
+        RyokuAbout.refreshStatus();
+    }
 
     Connections {
         function onUpdateCheckFinished(report: var): void {
@@ -107,6 +166,10 @@ Item {
 
         function onChannelSwitchFinished(report: var): void {
             root.showMessage(qsTr("Branch switch"), report.ok ? report.message : report.error, report);
+        }
+
+        function onInfoChanged(): void {
+            root.syncPendingChannel();
         }
 
         target: RyokuAbout
@@ -207,9 +270,16 @@ Item {
                         }
                     }
 
+                    StatusLine {
+                        icon: RyokuAbout.info.checkoutMode === "official" ? "check_circle" : RyokuAbout.info.checkoutMode === "mismatch" ? "sync_problem" : "account_tree"
+                        title: root.checkoutStateTitle()
+                        detail: root.checkoutStateDetail()
+                        error: RyokuAbout.info.checkoutMode === "mismatch"
+                    }
+
                     GridLayout {
                         Layout.fillWidth: true
-                        columns: aboutFlickable.width > 980 ? 4 : 2
+                        columns: aboutFlickable.width > 1100 ? 3 : 2
                         columnSpacing: Tokens.spacing.normal
                         rowSpacing: Tokens.spacing.normal
 
@@ -233,6 +303,18 @@ Item {
 
                         InfoTile {
                             Layout.fillWidth: true
+                            label: qsTr("Update branch")
+                            value: RyokuAbout.info.updateBranch || RyokuAbout.info.currentBranch || qsTr("Detecting")
+                        }
+
+                        InfoTile {
+                            Layout.fillWidth: true
+                            label: qsTr("Package mirror")
+                            value: packageChannelLabel(RyokuAbout.info.packageChannel || "main")
+                        }
+
+                        InfoTile {
+                            Layout.fillWidth: true
                             label: qsTr("Repository")
                             value: RyokuAbout.info.dirty ? qsTr("Local changes present") : qsTr("Clean checkout")
                         }
@@ -242,24 +324,25 @@ Item {
                         Layout.fillWidth: true
                         spacing: Tokens.spacing.small
 
-                        IconTextButton {
+                        ActionButton {
+                            Layout.fillWidth: aboutFlickable.width < 760
                             icon: RyokuAbout.checkingUpdates ? "progress_activity" : "system_update"
                             text: RyokuAbout.checkingUpdates ? qsTr("Checking") : qsTr("Check updates")
-                            type: IconTextButton.Filled
+                            filled: true
                             onClicked: RyokuAbout.checkUpdates()
                         }
 
-                        IconTextButton {
+                        ActionButton {
+                            Layout.fillWidth: aboutFlickable.width < 760
                             icon: RyokuAbout.runningDoctor ? "progress_activity" : "health_and_safety"
                             text: RyokuAbout.runningDoctor ? qsTr("Running") : qsTr("Run doctor")
-                            type: IconTextButton.Tonal
                             onClicked: RyokuAbout.runDoctor()
                         }
 
-                        IconTextButton {
+                        ActionButton {
+                            Layout.fillWidth: aboutFlickable.width < 760
                             icon: "refresh"
                             text: qsTr("Refresh")
-                            type: IconTextButton.Tonal
                             onClicked: RyokuAbout.refreshStatus()
                         }
                     }
@@ -271,14 +354,14 @@ Item {
                     contentSpacing: Tokens.spacing.normal
 
                     StyledText {
-                        text: qsTr("Branch channel")
+                        text: qsTr("Update channels")
                         font.pointSize: Tokens.font.size.normal
                         font.weight: 650
                     }
 
                     StyledText {
                         Layout.fillWidth: true
-                        text: qsTr("Ryoku exposes two update channels. Switching opens the updater in a terminal so authentication and package output stay visible.")
+                        text: qsTr("Choose the channel first, then start the switch from an explicit confirmation step. Authentication, package output, and snapshots stay visible in a terminal.")
                         color: Colours.palette.m3onSurfaceVariant
                         wrapMode: Text.WordWrap
                     }
@@ -293,7 +376,7 @@ Item {
                             Layout.fillWidth: true
                             channel: "main"
                             title: qsTr("Main stable")
-                            description: qsTr("Stable release channel for normal systems")
+                            description: qsTr("Release channel for normal daily systems")
                             icon: "verified"
                         }
 
@@ -303,6 +386,35 @@ Item {
                             title: qsTr("Unstable dev")
                             description: qsTr("Development channel for testing upcoming Ryoku changes")
                             icon: "science"
+                        }
+                    }
+
+                    StatusLine {
+                        icon: root.pendingChannel === root.currentChannel() ? "check_circle" : "rule_settings"
+                        title: root.pendingChannel === root.currentChannel() ? qsTr("Selected channel is active") : qsTr("Ready to switch channel")
+                        detail: root.pendingChannel === root.currentChannel()
+                            ? qsTr("%1 is already selected.").arg(channelLabel(root.pendingChannel))
+                            : qsTr("The switch will open a terminal and move the checkout to %1. Package mirrors remain on %2.").arg(root.pendingChannel).arg(packageChannelLabel(RyokuAbout.info.packageChannel || "main"))
+                        error: false
+                    }
+
+                    RowLayout {
+                        visible: root.pendingChannel !== root.currentChannel()
+                        Layout.fillWidth: true
+                        spacing: Tokens.spacing.small
+
+                        ActionButton {
+                            icon: "alt_route"
+                            text: qsTr("Switch channel")
+                            filled: true
+                            onClicked: root.showChannelSwitch(root.pendingChannel)
+                        }
+
+                        StyledText {
+                            Layout.fillWidth: true
+                            text: RyokuAbout.info.dirty ? qsTr("Local changes are present; the terminal updater will show exactly what is preserved or blocked.") : qsTr("No branch change starts until the terminal action is confirmed.")
+                            color: Colours.palette.m3onSurfaceVariant
+                            wrapMode: Text.WordWrap
                         }
                     }
                 }
@@ -361,17 +473,15 @@ Item {
             id: modal
 
             anchors.centerIn: parent
-            implicitWidth: Math.min(760, modalLayer.width - Tokens.padding.large * 4)
-            implicitHeight: Math.min(modalContent.implicitHeight + Tokens.padding.large * 2, modalLayer.height - Tokens.padding.large * 4)
+            width: Math.max(360, Math.min(820, modalLayer.width - Tokens.padding.large * 4))
+            height: Math.max(260, Math.min(root.modalMode === "message" ? modalContent.implicitHeight + Tokens.padding.large * 2 : 660, modalLayer.height - Tokens.padding.large * 4))
             radius: Tokens.rounding.large
             color: Colours.tPalette.m3surface
 
             ColumnLayout {
                 id: modalContent
 
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
+                anchors.fill: parent
                 anchors.margins: Tokens.padding.large
                 spacing: Tokens.spacing.normal
 
@@ -388,7 +498,7 @@ Item {
 
                         MaterialIcon {
                             anchors.centerIn: parent
-                            text: root.modalMode === "doctor" ? "health_and_safety" : root.modalMode === "updates" ? "system_update" : "info"
+                            text: root.modalMode === "doctor" ? "health_and_safety" : root.modalMode === "updates" ? "system_update" : root.modalMode === "channel" ? "alt_route" : "info"
                             color: Colours.palette.m3onSecondaryContainer
                             fill: 1
                         }
@@ -425,8 +535,9 @@ Item {
                     id: modalBodyLoader
 
                     Layout.fillWidth: true
-                    Layout.preferredHeight: root.modalMode === "doctor" ? Math.min(420, modalLayer.height - 260) : implicitHeight
-                    sourceComponent: root.modalMode === "updates" ? updatesComponent : root.modalMode === "doctor" ? doctorComponent : messageComponent
+                    Layout.fillHeight: root.modalMode !== "message"
+                    Layout.preferredHeight: root.modalMode === "message" ? implicitHeight : 1
+                    sourceComponent: root.modalMode === "updates" ? updatesComponent : root.modalMode === "doctor" ? doctorComponent : root.modalMode === "channel" ? channelComponent : messageComponent
                 }
             }
         }
@@ -435,133 +546,222 @@ Item {
     Component {
         id: updatesComponent
 
+        StyledFlickable {
+            id: updatesFlickable
+
+            width: modalBodyLoader.width
+            height: modalBodyLoader.height
+            clip: true
+            contentHeight: updatesLayout.implicitHeight
+            flickableDirection: Flickable.VerticalFlick
+
+            StyledScrollBar.vertical: StyledScrollBar {
+                flickable: updatesFlickable
+            }
+
+            ColumnLayout {
+                id: updatesLayout
+
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                spacing: Tokens.spacing.normal
+
+                StatusLine {
+                    visible: root.modalReport.ok === false
+                    icon: "error"
+                    title: qsTr("Unable to check updates")
+                    detail: root.modalReport.error || qsTr("Unknown error")
+                    error: true
+                }
+
+                StatusLine {
+                    visible: root.modalReport.ok === true
+                    icon: root.modalReport.updateAvailable === true ? "download" : "check_circle"
+                    title: root.modalReport.updateAvailable === true ? qsTr("Update available") : qsTr("No updates available")
+                    detail: root.modalReport.updateAvailable === true
+                        ? qsTr("%1 incoming commits on %2. Current %3 -> remote %4.").arg(root.modalReport.behindCount || 0).arg(root.modalReport.updateBranch || root.modalReport.currentBranch || qsTr("this branch")).arg(root.modalReport.head || "?").arg(root.modalReport.remoteHead || "?")
+                        : qsTr("%1 is current at %2.").arg(root.modalReport.updateBranch || root.modalReport.currentBranch || qsTr("This branch")).arg(root.modalReport.head || "?")
+                }
+
+                GridLayout {
+                    visible: root.modalReport.ok === true
+                    Layout.fillWidth: true
+                    columns: modalBodyLoader.width > 620 ? 2 : 1
+                    columnSpacing: Tokens.spacing.normal
+                    rowSpacing: Tokens.spacing.normal
+
+                    InfoTile {
+                        Layout.fillWidth: true
+                        label: qsTr("Checkout")
+                        value: root.modalReport.currentBranch || qsTr("Unknown")
+                    }
+
+                    InfoTile {
+                        Layout.fillWidth: true
+                        label: qsTr("Channel")
+                        value: channelLabel(root.modalReport.configuredChannel || "main")
+                    }
+
+                    InfoTile {
+                        Layout.fillWidth: true
+                        label: qsTr("Update branch")
+                        value: root.modalReport.updateBranch || root.modalReport.currentBranch || qsTr("Unknown")
+                    }
+
+                    InfoTile {
+                        Layout.fillWidth: true
+                        label: qsTr("Package mirror")
+                        value: packageChannelLabel(root.modalReport.packageChannel || "main")
+                    }
+
+                    InfoTile {
+                        Layout.fillWidth: true
+                        label: qsTr("Remote")
+                        value: root.modalReport.remoteBranch || qsTr("Unknown")
+                    }
+
+                    InfoTile {
+                        Layout.fillWidth: true
+                        label: qsTr("Fast-forward")
+                        value: root.modalReport.canFastForward ? qsTr("Available") : qsTr("Not needed")
+                    }
+                }
+
+                RowLayout {
+                    visible: root.modalReport.ok === true && root.modalReport.updateAvailable === true
+                    Layout.fillWidth: true
+                    spacing: Tokens.spacing.small
+
+                    ActionButton {
+                        icon: RyokuAbout.startingUpdate ? "progress_activity" : "download"
+                        text: RyokuAbout.startingUpdate ? qsTr("Starting") : root.modalReport.canStartUpdate ? qsTr("Update now") : qsTr("Update blocked")
+                        filled: true
+                        disabled: !root.modalReport.canStartUpdate
+                        onClicked: {
+                            if (root.modalReport.canStartUpdate)
+                                RyokuAbout.startUpdate(root.modalReport.updateBranch || root.modalReport.currentBranch || "");
+                        }
+                    }
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        text: root.modalReport.canStartUpdate ? qsTr("Opens the updater in a terminal for this checkout branch.") : qsTr("This checkout cannot fast-forward to the remote branch. Run doctor or review the branch before updating.")
+                        color: Colours.palette.m3onSurfaceVariant
+                        wrapMode: Text.WordWrap
+                    }
+                }
+
+                StyledText {
+                    visible: root.modalReport.ok === true && (root.modalReport.incoming || []).length > 0
+                    text: qsTr("Commit descriptions")
+                    font.weight: 600
+                }
+
+                StyledText {
+                    visible: root.modalReport.ok === true && (root.modalReport.incoming || []).length > 0
+                    Layout.fillWidth: true
+                    text: qsTr("These are the commits the updater will pull into this checkout.")
+                    color: Colours.palette.m3onSurfaceVariant
+                    wrapMode: Text.WordWrap
+                }
+
+                ColumnLayout {
+                    visible: root.modalReport.ok === true && (root.modalReport.incoming || []).length > 0
+                    Layout.fillWidth: true
+                    spacing: Tokens.spacing.small
+
+                    Repeater {
+                        model: (root.modalReport.incoming || []).length
+
+                        CommitRow {
+                            required property int index
+
+                            Layout.fillWidth: true
+                            commit: root.modalReport.incoming[index] || ({})
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Component {
+        id: channelComponent
+
         ColumnLayout {
             width: modalBodyLoader.width
+            height: modalBodyLoader.height
             spacing: Tokens.spacing.normal
 
             StatusLine {
-                visible: root.modalReport.ok === false
-                icon: "error"
-                title: qsTr("Unable to check updates")
-                detail: root.modalReport.error || qsTr("Unknown error")
-                error: true
-            }
-
-            StatusLine {
-                visible: root.modalReport.ok === true
-                icon: root.modalReport.updateAvailable === true ? "download" : "check_circle"
-                title: root.modalReport.updateAvailable === true ? qsTr("%1 incoming commits").arg(root.modalReport.behindCount || 0) : qsTr("Ryoku is current")
-                detail: root.modalReport.ok === true ? qsTr("%1 -> %2").arg(root.modalReport.head || "?").arg(root.modalReport.remoteHead || "?") : ""
+                icon: "alt_route"
+                title: qsTr("Terminal switch required")
+                detail: qsTr("Ryoku will switch the checkout to %1, keep package mirrors on %2, and run the update workflow with visible output.").arg(channelLabel(root.pendingChannel)).arg(packageChannelLabel(root.modalReport.packageChannel || "main"))
+                error: false
             }
 
             GridLayout {
-                visible: root.modalReport.ok === true
                 Layout.fillWidth: true
-                columns: 2
+                columns: modalBodyLoader.width > 620 ? 2 : 1
                 columnSpacing: Tokens.spacing.normal
                 rowSpacing: Tokens.spacing.normal
 
                 InfoTile {
                     Layout.fillWidth: true
-                    label: qsTr("Checkout")
+                    label: qsTr("Current checkout")
                     value: root.modalReport.currentBranch || qsTr("Unknown")
                 }
 
                 InfoTile {
                     Layout.fillWidth: true
-                    label: qsTr("Channel")
+                    label: qsTr("Current channel")
                     value: channelLabel(root.modalReport.configuredChannel || "main")
                 }
 
                 InfoTile {
                     Layout.fillWidth: true
-                    label: qsTr("Update branch")
-                    value: root.modalReport.updateBranch || root.modalReport.currentBranch || qsTr("Unknown")
+                    label: qsTr("Target channel")
+                    value: channelLabel(root.pendingChannel)
                 }
 
                 InfoTile {
                     Layout.fillWidth: true
-                    label: qsTr("Remote")
-                    value: root.modalReport.remoteBranch || qsTr("Unknown")
+                    label: qsTr("Package mirror")
+                    value: packageChannelLabel(root.modalReport.packageChannel || "main")
                 }
+            }
 
-                InfoTile {
-                    Layout.fillWidth: true
-                    label: qsTr("Fast-forward")
-                    value: root.modalReport.canFastForward ? qsTr("Available") : qsTr("Not needed")
-                }
+            StatusLine {
+                visible: root.modalReport.dirty === true
+                icon: "warning"
+                title: qsTr("Local changes detected")
+                detail: qsTr("The terminal updater will preserve or stop on local changes before committing the new channel state.")
+                error: true
+            }
+
+            Item {
+                Layout.fillHeight: true
             }
 
             RowLayout {
-                visible: root.modalReport.ok === true && root.modalReport.updateAvailable === true
                 Layout.fillWidth: true
                 spacing: Tokens.spacing.small
 
-                IconTextButton {
-                    icon: RyokuAbout.startingUpdate ? "progress_activity" : "download"
-                    text: RyokuAbout.startingUpdate ? qsTr("Starting") : qsTr("Update Ryoku")
-                    type: IconTextButton.Filled
-                    onClicked: RyokuAbout.startUpdate(root.modalReport.updateBranch || root.modalReport.currentBranch || "")
-                }
-
                 StyledText {
                     Layout.fillWidth: true
-                    text: root.modalReport.canFastForward ? qsTr("Opens the updater in a terminal for this checkout branch.") : qsTr("The updater will open in a terminal and stop if the branch cannot fast-forward.")
+                    text: qsTr("No branch switch starts from selecting a card. This button only opens the terminal workflow.")
                     color: Colours.palette.m3onSurfaceVariant
                     wrapMode: Text.WordWrap
                 }
-            }
 
-            StyledText {
-                visible: root.modalReport.ok === true && (root.modalReport.incoming || []).length > 0
-                text: qsTr("Incoming commits")
-                font.weight: 600
-            }
-
-            StyledRect {
-                visible: root.modalReport.ok === true && (root.modalReport.incoming || []).length > 0
-                Layout.fillWidth: true
-                Layout.preferredHeight: Math.min(260, incomingColumn.implicitHeight + Tokens.padding.normal * 2)
-                radius: Tokens.rounding.normal
-                color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
-
-                ClippingRectangle {
-                    anchors.fill: parent
-                    anchors.margins: Tokens.padding.normal
-                    radius: parent.radius
-                    color: "transparent"
-
-                    StyledFlickable {
-                        id: incomingFlickable
-
-                        anchors.fill: parent
-                        clip: true
-                        contentHeight: incomingColumn.implicitHeight
-                        flickableDirection: Flickable.VerticalFlick
-
-                        StyledScrollBar.vertical: StyledScrollBar {
-                            flickable: incomingFlickable
-                        }
-
-                        ColumnLayout {
-                            id: incomingColumn
-
-                            anchors.left: parent.left
-                            anchors.right: parent.right
-                            anchors.top: parent.top
-                            spacing: Tokens.spacing.small
-
-                            Repeater {
-                                model: (root.modalReport.incoming || []).length
-
-                                CommitRow {
-                                    required property int index
-
-                                    Layout.fillWidth: true
-                                    commit: root.modalReport.incoming[index] || ({})
-                                }
-                            }
-                        }
+                ActionButton {
+                    icon: RyokuAbout.switchingChannel ? "progress_activity" : "terminal"
+                    text: RyokuAbout.switchingChannel ? qsTr("Starting") : qsTr("Open terminal")
+                    filled: true
+                    onClicked: {
+                        RyokuAbout.switchChannel(root.pendingChannel);
+                        root.modalOpen = false;
                     }
                 }
             }
@@ -579,7 +779,7 @@ Item {
             StatusLine {
                 icon: root.modalReport.ok === true ? "check_circle" : "warning"
                 title: root.modalReport.ok === true ? qsTr("Doctor passed") : qsTr("Doctor needs review")
-                detail: qsTr("Exit code %1").arg(root.modalReport.exitCode ?? 1)
+                detail: qsTr("Global ryoku-doctor exit code %1").arg(root.modalReport.exitCode ?? 1)
                 error: root.modalReport.ok !== true
             }
 
@@ -612,7 +812,8 @@ Item {
                         StyledText {
                             id: doctorOutput
 
-                            width: doctorOutputFlickable.width
+                            x: 2
+                            width: doctorOutputFlickable.width - x
                             text: root.modalReport.output || root.modalReport.error || qsTr("No doctor output")
                             color: Colours.palette.m3onSurfaceVariant
                             font.family: "monospace"
@@ -634,6 +835,22 @@ Item {
             detail: root.modalSubtitle || root.modalReport.error || ""
             error: root.modalReport.ok !== true
         }
+    }
+
+    component ActionButton: IconTextButton {
+        property bool filled: false
+        property bool disabled: false
+
+        opacity: disabled ? 0.55 : 1
+        type: filled ? IconTextButton.Filled : IconTextButton.Tonal
+        inactiveColour: filled ? Colours.palette.m3primary : Colours.palette.m3secondaryContainer
+        inactiveOnColour: filled ? Colours.palette.m3onPrimary : Colours.palette.m3onSecondaryContainer
+        activeColour: inactiveColour
+        activeOnColour: inactiveOnColour
+        horizontalPadding: Tokens.padding.normal
+        verticalPadding: Tokens.padding.small
+        stateLayer.disabled: disabled
+        label.wrapMode: Text.NoWrap
     }
 
     component InfoTile: StyledRect {
@@ -681,15 +898,18 @@ Item {
         property string description: ""
         property string icon: ""
 
-        readonly property bool active: RyokuAbout.info.configuredChannel === channel || (!RyokuAbout.info.configuredChannel && channel === "main")
+        readonly property bool current: root.currentChannel() === channel
+        readonly property bool selected: root.pendingChannel === channel
 
         implicitHeight: channelContent.implicitHeight + Tokens.padding.normal * 2
         radius: Tokens.rounding.normal
-        color: active ? Colours.palette.m3secondaryContainer : Colours.layer(Colours.palette.m3surfaceContainer, 2)
+        color: selected ? Colours.palette.m3secondaryContainer : Colours.tPalette.m3surfaceContainerHigh
+        border.width: selected ? 0 : 1
+        border.color: Qt.alpha(Colours.palette.m3outline, 0.35)
 
         StateLayer {
-            onClicked: RyokuAbout.switchChannel(channelButton.channel)
-            color: channelButton.active ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurface
+            onClicked: root.pendingChannel = channelButton.channel
+            color: channelButton.selected ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurface
             radius: channelButton.radius
         }
 
@@ -705,8 +925,8 @@ Item {
             MaterialIcon {
                 Layout.alignment: Qt.AlignVCenter
                 text: channelButton.icon
-                color: channelButton.active ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurfaceVariant
-                fill: channelButton.active ? 1 : 0
+                color: channelButton.selected ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurfaceVariant
+                fill: channelButton.selected ? 1 : 0
             }
 
             ColumnLayout {
@@ -717,7 +937,17 @@ Item {
                 StyledText {
                     Layout.fillWidth: true
                     text: channelButton.title
-                    color: channelButton.active ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurface
+                    color: channelButton.selected ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurface
+                    font.weight: 600
+                    elide: Text.ElideRight
+                }
+
+                StyledText {
+                    Layout.fillWidth: true
+                    visible: channelButton.current
+                    text: qsTr("Current channel")
+                    color: channelButton.selected ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3primary
+                    font.pointSize: Tokens.font.size.small
                     font.weight: 600
                     elide: Text.ElideRight
                 }
@@ -725,7 +955,7 @@ Item {
                 StyledText {
                     Layout.fillWidth: true
                     text: channelButton.description
-                    color: channelButton.active ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurfaceVariant
+                    color: channelButton.selected ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurfaceVariant
                     font.pointSize: Tokens.font.size.small
                     wrapMode: Text.WordWrap
                 }
@@ -733,8 +963,8 @@ Item {
 
             MaterialIcon {
                 Layout.alignment: Qt.AlignVCenter
-                visible: channelButton.active
-                text: "check_circle"
+                visible: channelButton.selected
+                text: channelButton.current ? "check_circle" : "radio_button_checked"
                 color: Colours.palette.m3onSecondaryContainer
                 fill: 1
             }

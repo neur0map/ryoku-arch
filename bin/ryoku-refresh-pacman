@@ -25,7 +25,8 @@ esac
 sudo cp -f /etc/pacman.conf /etc/pacman.conf.bak
 sudo cp -f /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.bak
 
-echo "Setting channel to $channel"
+echo "Refreshing Ryoku package mirror for update channel: $channel"
+echo "Package mirror channel: $pacman_channel"
 echo
 
 sudo cp -f "$RYOKU_PATH/default/pacman/pacman-$pacman_channel.conf" /etc/pacman.conf

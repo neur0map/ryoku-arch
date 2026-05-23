@@ -20,6 +20,9 @@ main | unstable-dev) ;;
   ;;
 esac
 
+echo "Setting Ryoku update channel to $branch"
+echo
+
 write_shell_update_channel() {
   local config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
   local config_file=""

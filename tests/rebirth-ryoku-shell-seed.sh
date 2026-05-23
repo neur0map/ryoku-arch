@@ -122,6 +122,21 @@ RYOKU_SHELL_QML_DIR="$tmp_dir/qml" \
   fail "setup should initialize shell scheme state"
 [[ -f $tmp_dir/state-install/ryoku-shell/wallpaper/path.txt ]] || \
   fail "setup should initialize shell wallpaper state"
+[[ $(<"$tmp_dir/runtime/.ryoku-source-path") == "$ROOT_DIR" ]] || \
+  fail "setup should stamp the source repo path into the runtime"
+
+HOME="$tmp_dir/runtime-home" \
+XDG_BIN_HOME="$tmp_dir/runtime-bin" \
+XDG_CONFIG_HOME="$tmp_dir/runtime-config" \
+XDG_DATA_HOME="$tmp_dir/runtime-data" \
+XDG_STATE_HOME="$tmp_dir/runtime-state" \
+RYOKU_SHELL_RUNTIME_DIR="$tmp_dir/runtime-from-runtime" \
+RYOKU_SHELL_LIB_DIR="$tmp_dir/runtime-lib" \
+RYOKU_SHELL_QML_DIR="$tmp_dir/runtime-qml" \
+  "$tmp_dir/runtime/setup" install --skip-build >/dev/null
+
+[[ $(<"$tmp_dir/runtime-from-runtime/.ryoku-source-path") == "$ROOT_DIR" ]] || \
+  fail "runtime setup should preserve the original source repo path"
 
 upstream_pattern='cae''lestia|Cae''lestia|CAELE''STIA|cae''lestia-dots|sora''mane'
 # Exclude LICENSE (legal text) and the About settings pane's credits

@@ -7,10 +7,16 @@ script_dir="$(cd -- "$(dirname -- "$script_path")" && pwd)"
 shell_root="$(cd -- "$script_dir/.." && pwd)"
 source_path_file="$shell_root/.ryoku-source-path"
 default_ryoku_path="$HOME/.local/share/ryoku"
+checkout_ryoku_path=""
 
 if [[ -r $source_path_file ]]; then
   read -r ryoku_path <"$source_path_file" || ryoku_path="$default_ryoku_path"
   [[ -n $ryoku_path ]] || ryoku_path="$default_ryoku_path"
+elif [[ -n ${RYOKU_PATH:-} ]] && git -C "$RYOKU_PATH" rev-parse --show-toplevel >/dev/null 2>&1; then
+  ryoku_path="$RYOKU_PATH"
+elif checkout_ryoku_path="$(git -C "$shell_root" rev-parse --show-toplevel 2>/dev/null)" \
+  && [[ -f $checkout_ryoku_path/lib/runtime-env.sh ]]; then
+  ryoku_path="$checkout_ryoku_path"
 elif [[ -n ${RYOKU_PATH:-} ]]; then
   ryoku_path="$RYOKU_PATH"
 else
@@ -35,7 +41,7 @@ Usage: ryoku-settings-about <status|check-updates|doctor|switch-channel|open-url
 Commands:
   status                 Print Ryoku version, checkout branch, and channel JSON
   check-updates          Fetch the checkout branch and print incoming commits JSON
-  doctor                 Run ryoku-doctor shell and print captured output JSON
+  doctor                 Run global ryoku-doctor and print captured output JSON
   start-update BRANCH    Launch a terminal update for the checked update branch
   switch-channel BRANCH  Launch the branch switcher for main or unstable-dev
   open-url URL           Open an https URL in the user's browser
@@ -158,6 +164,16 @@ def base_info():
     branch = current_branch()
     channel = configured_channel(branch)
     update = update_branch(branch, channel)
+    official_checkout = branch in channels
+    channel_matches_checkout = official_checkout and branch == channel
+    if channel_matches_checkout:
+        checkout_mode = "official"
+    elif official_checkout:
+        checkout_mode = "mismatch"
+    elif valid_branch_name(branch):
+        checkout_mode = "custom"
+    else:
+        checkout_mode = "unknown"
     return {
         "ok": True,
         "version": version(),
@@ -167,6 +183,11 @@ def base_info():
         "configuredChannelLabel": labels.get(channel, channel),
         "updateBranch": update,
         "updateBranchLabel": labels.get(update, update),
+        "packageChannel": "main",
+        "packageChannelLabel": "Main package mirror",
+        "officialCheckout": official_checkout,
+        "channelMatchesCheckout": channel_matches_checkout,
+        "checkoutMode": checkout_mode,
         "channels": [
             {"id": "main", "label": labels["main"], "description": "Main stable release channel"},
             {"id": "unstable-dev", "label": labels["unstable-dev"], "description": "Development channel with newer Ryoku changes"},
@@ -288,7 +309,7 @@ doctor_json() {
 
   output_file="$(mktemp)"
   set +e
-  "$doctor_cmd" shell >"$output_file" 2>&1
+  RYOKU_DOCTOR_ASSUME_NO=1 "$doctor_cmd" >"$output_file" 2>&1
   status=$?
   set -e
 
@@ -302,6 +323,7 @@ output = Path(sys.argv[2]).read_text(encoding="utf-8", errors="replace")
 print(json.dumps({
     "ok": status == 0,
     "exitCode": status,
+    "scope": "global",
     "output": output.strip(),
 }))
 PY

@@ -96,6 +96,12 @@ assert_contains "bin/ryoku-refresh-pacman" 'unstable-dev' \
   "pacman refresh should accept unstable-dev as an update channel"
 assert_contains "bin/ryoku-refresh-pacman" 'pacman_channel="main"' \
   "pacman refresh should map unstable-dev to the single main pacman config"
+assert_contains "bin/ryoku-channel-set" 'ryoku-refresh-pacman "[$]channel"' \
+  "channel switch should pass the selected update channel to pacman refresh"
+assert_not_contains "bin/ryoku-channel-set" 'ryoku-refresh-pacman "main"' \
+  "channel switch should not display the package mirror channel as the selected update channel"
+assert_contains "bin/ryoku-update-branch" 'Setting Ryoku update channel to [$]branch' \
+  "branch switch should announce the selected update channel"
 assert_contains "migrations/1776977800.sh" 'pacman_channel="main"' \
   "mirrorlist migration should map unstable-dev to the single main mirrorlist"
 

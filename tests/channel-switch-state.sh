@@ -38,7 +38,9 @@ mkdir -p "$bin_dir" "$state_dir" "$config_dir/ryoku-shell"
 printf '%s\n' "main" >"$state_dir/channel"
 printf '%s\n' '{"shellUpdates":{"channel":"main"}}' >"$config_dir/ryoku-shell/config.json"
 
-write_stub "$bin_dir/ryoku-refresh-pacman" 'exit 1'
+refresh_args_file="$temp_dir/refresh-args"
+
+write_stub "$bin_dir/ryoku-refresh-pacman" 'printf "%s\n" "$*" >"'"$refresh_args_file"'"; exit 1'
 write_stub "$bin_dir/ryoku-update-branch" 'printf "%s\n" "unexpected update branch" >&2; exit 1'
 
 if RYOKU_PATH="$fake_ryoku" RYOKU_STATE_PATH="$state_dir" RYOKU_SHELL_CONFIG_DIR="" XDG_CONFIG_HOME="$config_dir" \
@@ -46,6 +48,8 @@ if RYOKU_PATH="$fake_ryoku" RYOKU_STATE_PATH="$state_dir" RYOKU_SHELL_CONFIG_DIR
   fail "channel set should fail when pacman refresh is cancelled"
 fi
 
+[[ $(<"$refresh_args_file") == "unstable-dev" ]] || \
+  fail "channel set should pass selected update channel to pacman refresh"
 assert_channel "$state_dir/channel" "main"
 
 write_stub "$bin_dir/ryoku-snapshot" 'exit 0'
