@@ -421,7 +421,6 @@ run_shell_doctor() {
     "$runtime_dir/setup"
     "$RYOKU_PATH/shell/setup"
     "$RYOKU_PATH/setup"
-    "${XDG_CONFIG_HOME:-$HOME/.config}/ryoku-shell/setup"
   )
 
   for setup in "${candidates[@]}"; do

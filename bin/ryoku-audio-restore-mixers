@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# Unmute and fully open the hardware mixer controls that Realtek / generic
+# HD-Audio codecs ship muted-and-zero by default. The persistent symptom
+# is "100% volume in the panel, barely audible (or silent) speakers" -
+# WirePlumber routes audio to the card's "Master" (100%) but the final
+# Speaker/Headphone/Bass Speaker switches stay muted at the ALSA layer.
+#
+# Idempotent: safe to run repeatedly. Silently skips controls that don't
+# exist on a given card.
+#
+# Called at install time by install/config/hardware/fix-audio-mixer.sh
+# (for first-boot) AND by ryoku-audio-restore-mixers.service on every
+# login (self-healing for the case where suspend/profile-switch/codec
+# power transitions reset the mixer state back to silent defaults).
+
+set -euo pipefail
+
+if ! command -v amixer >/dev/null 2>&1; then
+  echo "ryoku-audio-restore-mixers: amixer not found (install alsa-utils)" >&2
+  exit 1
+fi
+
+if ! command -v aplay >/dev/null 2>&1; then
+  echo "ryoku-audio-restore-mixers: aplay not found (install alsa-utils)" >&2
+  exit 1
+fi
+
+controls=(Master Speaker Headphone "Bass Speaker" PCM)
+
+while read -r card; do
+  for ctl in "${controls[@]}"; do
+    amixer -c "$card" sget "$ctl" >/dev/null 2>&1 || continue
+    amixer -c "$card" set "$ctl" 100% unmute >/dev/null 2>&1 || true
+  done
+done < <(aplay -l 2>/dev/null | sed -n 's/^card \([0-9]\+\):.*/\1/p' | sort -u)

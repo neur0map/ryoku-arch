@@ -42,6 +42,7 @@ mkdir -p \
   "$home/.config/ryoku-shell" \
   "$home/.local/bin" \
   "$home/.local/state" \
+  "$home/.local/lib/qt6/qml/Ryoku/Services" \
   "$runtime/assets/systemd" \
   "$runtime/modules" \
   "$runtime/scripts" \
@@ -54,7 +55,8 @@ touch \
   "$runtime/modules/Shortcuts.qml" \
   "$runtime/services/Hypr.qml" \
   "$runtime/assets/systemd/ryoku-shell.service" \
-  "$runtime/scripts/ryoku-shell"
+  "$runtime/scripts/ryoku-shell" \
+  "$home/.local/lib/qt6/qml/Ryoku/Services/libryoku-services.so"
 chmod 755 "$runtime/scripts/ryoku-shell"
 ln -s "$runtime/scripts/ryoku-shell" "$home/.local/bin/ryoku-shell"
 
@@ -77,6 +79,28 @@ if [[ ${1:-} == "--user" && ${2:-} == "cat" && ${3:-} == "ryoku-shell.service" ]
 fi
 if [[ ${1:-} == "--user" && ${2:-} == "show-environment" ]]; then
   printf '%s\n' "XDG_CURRENT_DESKTOP=Hyprland"
+  exit 0
+fi
+# Stubs for the audio-restore-mixers check (added with the rebirth doctor pass).
+if [[ ${1:-} == "--user" && ${2:-} == "list-unit-files" && ${3:-} == "ryoku-audio-restore-mixers.service" ]]; then
+  printf '%s\n' "ryoku-audio-restore-mixers.service enabled enabled"
+  exit 0
+fi
+if [[ ${1:-} == "--user" && ${2:-} == "is-enabled" && ${3:-} == "ryoku-audio-restore-mixers.service" ]]; then
+  printf '%s\n' "enabled"
+  exit 0
+fi
+exit 0
+SH
+
+# Fake ldd that reports the Ryoku Services plugin links libcava - exercises
+# the rebirth doctor's native-plugin check without needing a real .so on disk.
+cat >"$bin_dir/ldd" <<'SH'
+#!/bin/bash
+if [[ ${1:-} == *Ryoku/Services/libryoku-services.so ]]; then
+  printf '\tlibcava.so.0 => /usr/lib/libcava.so.0 (0x00007f0000000000)\n'
+  printf '\tlibQt6Core.so.6 => /usr/lib/libQt6Core.so.6 (0x00007f0000000000)\n'
+  printf '\tlibc.so.6 => /usr/lib/libc.so.6 (0x00007f0000000000)\n'
   exit 0
 fi
 exit 0

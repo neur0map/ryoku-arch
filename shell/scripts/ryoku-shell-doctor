@@ -311,6 +311,60 @@ check_quickshell_instance() {
   fi
 }
 
+check_native_plugin() {
+  local qml_dir="${RYOKU_SHELL_QML_DIR:-$HOME/.local/lib/qt6/qml}"
+  local services_so="$qml_dir/Ryoku/Services/libryoku-services.so"
+  local linked=""
+
+  if [[ ! -f $services_so ]]; then
+    doctor_fail "Ryoku Services plugin missing: $services_so (rerun 'shell/setup install')"
+    return 0
+  fi
+
+  if ! command -v ldd >/dev/null 2>&1; then
+    doctor_pass "Ryoku Services plugin present (ldd unavailable; skipping linkage check)"
+    return 0
+  fi
+
+  linked="$(ldd "$services_so" 2>/dev/null || true)"
+  if grep -q "not found" <<<"$linked"; then
+    doctor_fail "Ryoku Services plugin has unresolved libraries:$(printf '\n  %s' "$(grep 'not found' <<<"$linked")")"
+    return 0
+  fi
+
+  # The cava-ryoku package must be installed AND the plugin must be linked
+  # against libcava. If the plugin was built before libcava was available
+  # (e.g. via a stock `cava` install), the dashboard music visualiser is
+  # silently invisible at runtime — this is exactly the regression class
+  # that surfaced the cava-ryoku PKGBUILD work in the first place.
+  if ! grep -q 'libcava\.so' <<<"$linked"; then
+    doctor_fail "Ryoku Services plugin not linked against libcava (install distro/arch/cava-ryoku and rerun 'shell/setup install')"
+    return 0
+  fi
+
+  doctor_pass "Ryoku Services plugin loadable and linked against libcava"
+}
+
+check_audio_restore_service() {
+  local unit="ryoku-audio-restore-mixers.service"
+  local state=""
+
+  if ! systemctl --user list-unit-files "$unit" >/dev/null 2>&1; then
+    doctor_fail "$unit not installed (run install/config/ryoku-audio-restore-mixers.sh)"
+    return 0
+  fi
+
+  state="$(systemctl --user is-enabled "$unit" 2>/dev/null || true)"
+  case "$state" in
+    enabled | static | enabled-runtime)
+      doctor_pass "$unit is enabled (heals silent-speakers state on each login)"
+      ;;
+    *)
+      doctor_fail "$unit is not enabled (state: ${state:-unknown}) — run install/config/ryoku-audio-restore-mixers.sh"
+      ;;
+  esac
+}
+
 check_stale_compositor_wiring() {
   local niri_wants="$systemd_user_dir/niri.service.wants/ryoku-shell.service"
   local compositor
@@ -340,6 +394,8 @@ run_shell_doctor() {
   run_check "Hyprland config" check_hyprland_config
   run_check "ryoku-shell service" check_service
   run_check "Quickshell instance" check_quickshell_instance
+  run_check "native plugin" check_native_plugin
+  run_check "audio mixer self-heal" check_audio_restore_service
   run_check "stale compositor wiring" check_stale_compositor_wiring
   echo
 

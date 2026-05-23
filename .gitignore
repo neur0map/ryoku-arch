@@ -20,3 +20,13 @@
 docs/superpowers/
 # Per-run ISO build logs
 tests/logs/
+
+# makepkg working directories + build outputs under distro/arch/*/.
+# We commit PKGBUILDs only; everything makepkg generates (src/, pkg/,
+# downloaded tarballs, built .pkg.tar.* artifacts) stays local.
+distro/arch/*/src/
+distro/arch/*/pkg/
+distro/arch/*/*.pkg.tar.*
+distro/arch/*/*.tar.gz
+distro/arch/*/*.tar.xz
+distro/arch/*/*.tar.zst

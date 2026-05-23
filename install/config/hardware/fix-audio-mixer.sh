@@ -13,13 +13,11 @@ cp "$RYOKU_PATH/default/wireplumber/wireplumber.conf.d/alsa-soft-mixer.conf" ~/.
 rm -rf ~/.local/state/wireplumber/default-routes
 
 # Initialize hardware mixer controls before WirePlumber routes through the soft mixer.
-controls=(Master Speaker Headphone "Bass Speaker" PCM)
-while read -r card; do
-  for ctl in "${controls[@]}"; do
-    amixer -c "$card" sget "$ctl" >/dev/null 2>&1 || continue
-    amixer -c "$card" set "$ctl" 100% unmute >/dev/null 2>&1
-  done
-done < <(aplay -l 2>/dev/null | sed -n 's/^card \([0-9]\+\):.*/\1/p' | sort -u)
+# ryoku-audio-restore-mixers is the single source of truth for the unmute loop;
+# the matching systemd-user service (installed by config/ryoku-audio-restore-mixers.sh)
+# re-runs the same logic on every login so the silent-speakers state self-heals if
+# suspend / profile switching / codec power transitions reset the mixer.
+"$RYOKU_PATH/bin/ryoku-audio-restore-mixers" || true
 
 # Override WirePlumber's 40% default sink volume.
 if command -v wpctl >/dev/null 2>&1 && pgrep -x wireplumber >/dev/null 2>&1; then
