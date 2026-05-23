@@ -18,31 +18,25 @@ there are no machine-specific absolute paths here.
 
 | Repo Path | Runtime / Install Target | What It Controls |
 | --- | --- | --- |
-| `config/niri/config.kdl` | `~/.config/niri/config.kdl` | Top-level Niri config that includes the split config fragments. |
-| `config/niri/config.d/10-input-and-cursor.kdl` | `~/.config/niri/config.d/10-input-and-cursor.kdl` | Keyboard layout, touchpad, mouse, tablet, and cursor defaults. |
-| `config/niri/config.d/20-layout-and-overview.kdl` | `~/.config/niri/config.d/20-layout-and-overview.kdl` | Niri layout, gaps, focus behavior, overview, and preset widths/heights. |
-| `config/niri/config.d/30-window-rules.kdl` | `~/.config/niri/config.d/30-window-rules.kdl` | App/window matching, floating rules, opacity, and screenshot behavior. |
-| `config/niri/config.d/40-environment.kdl` | `~/.config/niri/config.d/40-environment.kdl` | Session environment for Wayland, portals, Qt, GPU hints, and shell state. |
-| `config/niri/config.d/50-startup.kdl` | `~/.config/niri/config.d/50-startup.kdl` | Niri startup commands. The shell itself is managed by a user systemd service. |
-| `config/niri/config.d/60-animations.kdl` | `~/.config/niri/config.d/60-animations.kdl` | Niri animation timing and transition behavior. |
-| `config/niri/config.d/70-binds.kdl` | `~/.config/niri/config.d/70-binds.kdl` | Source of truth for shipped Niri and shell keybindings. |
-| `config/niri/config.d/80-layer-rules.kdl` | `~/.config/niri/config.d/80-layer-rules.kdl` | Layer-shell rules for overlays, background layers, and panels. |
-| `config/niri/config.d/90-user-extra.kdl` | `~/.config/niri/config.d/90-user-extra.kdl` | Safe user override slot for local Niri additions. |
+| `config/hypr/hyprland.conf` | `~/.config/hypr/hyprland.conf` | Current Hyprland session config, shell launch wiring, window behavior, and shipped binds. |
+| `config/hypr/colors.conf` | `~/.config/hypr/colors.conf` | Hyprland color defaults generated from the active theme. |
+| `config/hypr/hypridle.conf` | `~/.config/hypr/hypridle.conf` | Current idle behavior. |
+| `config/hypr/hypridle-rebirth.conf` | `~/.config/hypr/hypridle-rebirth.conf` | Rebirth Hyprland idle behavior used by the active shell path. |
+| `config/hypr/hyprlock.conf` | `~/.config/hypr/hyprlock.conf` | Hyprlock fallback lock screen config. |
 | `config/fuzzel/fuzzel.ini` | `~/.config/fuzzel/fuzzel.ini` | Fuzzel launcher defaults retained as a lightweight fallback. |
 | `config/fuzzel/fuzzel_theme.ini` | `~/.config/fuzzel/fuzzel_theme.ini` | Fuzzel color/theme include. |
-| `config/xdg-desktop-portal/niri-portals.conf` | `~/.config/xdg-desktop-portal/niri-portals.conf` | Portal backend preference for the Niri session. |
 
 ## Terminals, Shell, And CLI
 
 | Repo Path | Runtime / Install Target | What It Controls |
 | --- | --- | --- |
 | `config/alacritty/alacritty.toml` | `~/.config/alacritty/alacritty.toml` | Base Alacritty behavior, fonts, padding, and themed color include. |
-| `config/alacritty/colors.toml` | `~/.config/alacritty/colors.toml` | Current Alacritty color payload copied from the live Niri setup. |
+| `config/alacritty/colors.toml` | `~/.config/alacritty/colors.toml` | Current Alacritty color payload copied from the live Ryoku theme setup. |
 | `config/foot/foot.ini` | `~/.config/foot/foot.ini` | Foot terminal defaults. |
 | `config/ghostty/config` | `~/.config/ghostty/config` | Ghostty defaults, keybinds, padding, font, and themed color include. |
 | `config/kitty/kitty.conf` | `~/.config/kitty/kitty.conf` | Kitty behavior, font, padding, and themed color include. |
 | `config/starship.toml` | `~/.config/starship.toml` | Prompt layout, symbols, and Git status styling. |
-| `config/starship/ii-palette.toml` | `~/.config/starship/ii-palette.toml` | Current prompt palette copied from the live Niri setup. |
+| `config/starship/ii-palette.toml` | `~/.config/starship/ii-palette.toml` | Current prompt palette copied from the live Ryoku theme setup. |
 | `config/tmux/tmux.conf` | `~/.config/tmux/tmux.conf` | Tmux keybinds and session behavior. |
 | `config/git/config` | `~/.config/git/config` | Default Git aliases and CLI behavior. |
 | `config/xdg-terminals.list` | `~/.config/xdg-terminals.list` | Preferred terminal candidates for `xdg-terminal-exec`. |
@@ -61,7 +55,7 @@ there are no machine-specific absolute paths here.
 | `config/gtk-4.0/settings.ini` | `~/.config/gtk-4.0/settings.ini` | GTK4 theme, icon, cursor, and font settings. |
 | `config/gtk-4.0/gtk.css` | `~/.config/gtk-4.0/gtk.css` | GTK4 color and widget CSS. |
 | `config/btop/btop.conf` | `~/.config/btop/btop.conf` | btop layout, meters, and behavior defaults. |
-| `config/btop/themes/ii-auto.theme` | `~/.config/btop/themes/ii-auto.theme` | Current btop palette copied from the live Niri setup. |
+| `config/btop/themes/ii-auto.theme` | `~/.config/btop/themes/ii-auto.theme` | Current btop palette copied from the live Ryoku theme setup. |
 | `config/fastfetch/config.jsonc` | `~/.config/fastfetch/config.jsonc` | Fastfetch output modules and formatting. |
 | `config/lazygit/config.yml` | `~/.config/lazygit/config.yml` | Lazygit defaults. |
 | `config/imv/config` | `~/.config/imv/config` | Image viewer keybinds for print, delete, and rotate actions. |
@@ -130,9 +124,9 @@ there are no machine-specific absolute paths here.
 
 ## Legacy And Compatibility Notes
 
-The current Niri path does not use the old Hyprland, Waybar, Mako, SwayOSD,
-Tofi, Walker, Elephant, Brain Shell, or Noctalia runtime configs. If those
-names appear in this repository, they should be one of:
+The current Hyprland + Ryoku-shell path does not use old compositor, shell,
+Waybar, Mako, SwayOSD, Tofi, Walker, Elephant, or prototype runtime configs.
+If those names appear in this repository, they should be one of:
 
 - Historical migrations that converge older installs.
 - Cleanup-only paths that remove old files from user systems.

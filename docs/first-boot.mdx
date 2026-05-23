@@ -3,13 +3,13 @@ title: First boot
 description: What you see after installing Ryoku and logging in for the first time, and where to go next.
 ---
 
-After install, the machine reboots into SDDM. Pick the **Ryoku** session (Niri) and log in.
+After install, the machine reboots into SDDM. Pick the **Ryoku** session (Hyprland) and log in.
 
 ## What you see
 
 - **Top: the bar.** Three "islands" left to right: left island (sidebar handle, active window), center island (workspaces dots), right island (clock, system indicators, SecPulse).
-- **Background: the wallpaper.** A default Ryoku wallpaper ships; change it via `Ctrl+Alt+T` or Settings.
-- **No windows yet.** Niri is a tiling compositor; nothing is open until you open it. `Mod+T` for a terminal.
+- **Background: the wallpaper.** A default Ryoku wallpaper ships; change it from Settings.
+- **No windows yet.** Hyprland is a tiling compositor; nothing is open until you open it. `Mod+T` for a terminal.
 
 `Mod` is `Super` (the Windows / Cmd key) on a normal install.
 
@@ -20,10 +20,10 @@ After install, the machine reboots into SDDM. Pick the **Ryoku** session (Niri) 
     `Mod+T` or `Mod+Return`. The shipped terminal is `kitty`.
   </Card>
   <Card title="Open the cheatsheet" icon="keyboard">
-    `Mod+Slash`. Every shipped keybinding in-shell, no leaving the desktop to look anything up.
+    `Super+/`. The live legend shows the keybindings Hyprland and the Ryoku shell expose.
   </Card>
   <Card title="Open settings" icon="settings">
-    `Mod+Comma`. Themes, bar items, wallpapers, lock screen, login screen.
+    `Mod+S`. Themes, bar items, wallpapers, lock screen, login screen.
   </Card>
   <Card title="Open the launcher" icon="search">
     `Mod+Space`. Type to filter apps, hit Enter to launch.
@@ -39,7 +39,7 @@ Both can be closed by clicking outside them or by re-pressing their trigger.
 
 ## Common next steps
 
-- **Change the wallpaper.** `Ctrl+Alt+T` opens the picker. Drops in `~/Pictures/Wallpapers`. Theme colors regenerate from the selected wallpaper unless you've set a static accent.
+- **Change the wallpaper.** Use Settings to open the picker. Drops in `~/Pictures/Wallpapers`. Theme colors regenerate from the selected wallpaper unless you've set a static accent.
 - **Pick a panel family.** `Mod+Shift+W` cycles `ii` ↔ `waffle`. Each family has its own visual language.
 - **Pick a skin.** Settings → Appearance to switch between Material, Aurora, Angel, Ryoku-Shell, and Cards.
 - **Wire up your VPN.** Settings → Security → OpenVPN profiles. See [security tools](/docs/security-tools).
@@ -47,11 +47,11 @@ Both can be closed by clicking outside them or by re-pressing their trigger.
 
 ## If the bar isn't there
 
-Press `Mod+Slash`; if the cheatsheet doesn't open either, the shell isn't running. Drop to a TTY (`Ctrl+Alt+F2`), log in, and run `journalctl --user -u quickshell -n 50` to see why. The [troubleshooting guide](/docs/troubleshoot) covers common boot/login issues.
+Press `Super+/`; if the keybind legend doesn't open either, the shell or Hyprland bind path isn't running. Drop to a TTY (`Ctrl+Alt+F2`), log in, and run `journalctl --user -u ryoku-shell -n 50` to see why. The [troubleshooting guide](/docs/troubleshoot) covers common boot/login issues.
 
 ## Where to go next
 
-- [Desktop tour](/docs/tour): Niri's scrollable workspace model and the bar / sidebar surfaces in depth.
+- [Desktop tour](/docs/tour): the Hyprland workspace model and the bar / sidebar surfaces in depth.
 - [Keybindings](/docs/keybindings): every shipped binding.
 - [Security tools](/docs/security-tools): OpenVPN sidebar, SecPulse, the in-shell polkit agent.
 - [Customize](/docs/customize): themes, wallpapers, bar items, keybinds.

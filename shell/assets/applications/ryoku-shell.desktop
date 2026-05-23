@@ -5,4 +5,4 @@ Comment=Open Ryoku settings
 Exec=ryoku-shell settings
 Icon=ryoku-shell
 Terminal=false
-Categories=Settings;DesktopSettings;Utility;
+Categories=Settings;System;

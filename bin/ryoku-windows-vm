@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# shellcheck disable=SC1091
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
 COMPOSE_FILE="$HOME/.config/windows/docker-compose.yml"
@@ -78,7 +79,7 @@ EOF
     fi
   done
 
-  SELECTED_RAM=$(echo $RAM_OPTIONS | tr ' ' '\n' | gum choose --selected="4G" --header="How much RAM would you like to allocate to Windows VM?")
+  SELECTED_RAM=$(echo "$RAM_OPTIONS" | tr ' ' '\n' | gum choose --selected="4G" --header="How much RAM would you like to allocate to Windows VM?")
 
   # Check if user cancelled
   if [[ -z $SELECTED_RAM ]]; then
@@ -123,7 +124,7 @@ EOF
     DEFAULT_DISK="32G"
   fi
 
-  SELECTED_DISK=$(echo $DISK_OPTIONS | tr ' ' '\n' | gum choose --selected="$DEFAULT_DISK" --header="How much disk space would you like to give Windows VM? (64GB+ recommended)")
+  SELECTED_DISK=$(echo "$DISK_OPTIONS" | tr ' ' '\n' | gum choose --selected="$DEFAULT_DISK" --header="How much disk space would you like to give Windows VM? (64GB+ recommended)")
 
   # Check if user cancelled
   if [[ -z $SELECTED_DISK ]]; then
@@ -132,7 +133,7 @@ EOF
   fi
 
   # Extract just the number for prerequisite check
-  DISK_SIZE_NUM=$(echo "$SELECTED_DISK" | sed 's/G//')
+  DISK_SIZE_NUM="${SELECTED_DISK//G/}"
 
   # Re-check prerequisites with selected disk size
   check_prerequisites "$DISK_SIZE_NUM"
@@ -173,7 +174,7 @@ EOF
     exit 1
   fi
 
-  mkdir -p $HOME/Windows
+  mkdir -p "$HOME/Windows"
 
   # Create docker-compose.yml in user config directory
   cat << EOF | tee "$COMPOSE_FILE" > /dev/null
@@ -332,8 +333,8 @@ To stop: ryoku-windows-vm stop"
     "" \
     "$LIFECYCLE"
 
-  # Detect display scale from Niri when available.
-  SCALE_PERCENT=$(niri msg -j focused-output 2>/dev/null | jq -r '(.scale // 1) * 100 | floor' 2>/dev/null || echo 100)
+  # Detect display scale from Hyprland when available.
+  SCALE_PERCENT=$(hyprctl monitors -j 2>/dev/null | jq -r 'map(select(.focused))[0].scale // 1 | . * 100 | floor' 2>/dev/null || echo 100)
 
   RDP_SCALE=""
   if (( SCALE_PERCENT >= 170 )); then

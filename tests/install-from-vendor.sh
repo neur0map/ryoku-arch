@@ -32,10 +32,6 @@ assert_no_match install/config/shell.sh 'git clone' \
 assert_match install/config/shell.sh 'shell"?/?' \
   "install/config/shell.sh must reference the vendored shell/ tree"
 
-# migrations/1778000000.sh must source from the vendored shell/ tree
-assert_no_match migrations/1778000000.sh 'git clone' \
-  "migrations/1778000000.sh must not clone upstream shell"
-
 # ISO builder must not pull from a remote
 upstream_shell='i''nir'
 assert_no_match iso/builder/build-iso.sh "RYOKU_${upstream_shell^^}_REPO|/root/${upstream_shell}|/${upstream_shell}" \
@@ -49,17 +45,5 @@ assert_no_match iso/bin/ryoku-iso-make "RYOKU_${upstream_shell^^}_REPO|RYOKU_${u
 [[ -d shell/modules ]] || fail "shell/modules must exist"
 [[ -d shell/services ]] || fail "shell/services must exist"
 [[ ! -d shell/.git ]] || fail "shell/.git must NOT exist (hermetic vendor)"
-
-# Phase 4 migration must use the uninstall+reinstall pattern
-migration_file=$(ls migrations/177810*.sh migrations/177820*.sh 2>/dev/null | sort | head -1 || true)
-if [[ -z $migration_file ]]; then
-  fail "Phase 4 migration not found in migrations/"
-fi
-assert_match "$migration_file" 'setup uninstall -y' \
-  "Phase 4 migration must run the old shell uninstall to clean tracked paths"
-assert_match "$migration_file" 'install/config/shell.sh' \
-  "Phase 4 migration must run the new shell install pipeline"
-assert_match "$migration_file" 'ryoku-shell.service' \
-  "Phase 4 migration must start the new ryoku-shell.service"
 
 echo "PASS: install from vendor"

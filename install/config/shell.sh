@@ -2,6 +2,7 @@
 
 set -euo pipefail
 
+# shellcheck disable=SC1091
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)/lib/runtime-env.sh"
 
 SHELL_PATH="${RYOKU_SHELL_PATH:-$HOME/.local/share/ryoku-shell}"
@@ -81,21 +82,11 @@ if [[ -n $backup_config_file ]]; then
   rm -f "$backup_config_file"
 fi
 
-"$RYOKU_PATH/install/config/ryoku-shell-branding.sh"
-
 ryoku_shell_launcher="$HOME/.local/bin/ryoku-shell"
 if [[ -x $ryoku_shell_launcher ]]; then
-  "$ryoku_shell_launcher" service enable niri >/dev/null 2>&1 || true
+  "$ryoku_shell_launcher" service enable >/dev/null 2>&1 || true
 elif ryoku-cmd-present ryoku-shell; then
-  ryoku-shell service enable niri >/dev/null 2>&1 || true
-fi
-
-ryoku_shell_service="$HOME/.config/systemd/user/ryoku-shell.service"
-ryoku_shell_wants_dir="$HOME/.config/systemd/user/niri.service.wants"
-if [[ -f $ryoku_shell_service ]]; then
-  mkdir -p "$ryoku_shell_wants_dir"
-  ln -sf "$ryoku_shell_service" "$ryoku_shell_wants_dir/ryoku-shell.service"
-  systemctl --user daemon-reload >/dev/null 2>&1 || true
+  ryoku-shell service enable >/dev/null 2>&1 || true
 fi
 
 "$RYOKU_PATH/install/config/ryoku-shell-branding.sh"

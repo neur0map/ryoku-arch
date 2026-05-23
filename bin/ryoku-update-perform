@@ -4,7 +4,9 @@ set -e
 script_path="${BASH_SOURCE[0]}"
 script_path="$(readlink -f "$script_path" 2>/dev/null || printf '%s\n' "$script_path")"
 repo_root="$(cd -- "$(dirname -- "$script_path")/.." && pwd)"
+# shellcheck disable=SC1091
 source "$repo_root/lib/runtime-env.sh"
+# shellcheck disable=SC1091
 source "$repo_root/lib/update-dashboard.sh"
 
 ryoku-cmd-caffeine start >/dev/null 2>&1 || true

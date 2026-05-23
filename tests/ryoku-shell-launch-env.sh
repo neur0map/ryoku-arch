@@ -10,52 +10,60 @@ fail() {
   exit 1
 }
 
-extract_function() {
-  local name="$1"
-
-  awk -v name="$name" '
-    $0 == name "() {" { capture = 1 }
-    capture { print }
-    capture && /^}/ { exit }
-  ' "$LAUNCHER"
-}
-
 [[ -f $LAUNCHER ]] || fail "missing shell launcher"
+bash -n "$LAUNCHER" || fail "ryoku-shell launcher has a syntax error"
 
 tmp_dir=$(mktemp -d)
 trap 'rm -rf "$tmp_dir"' EXIT
 
-mkdir -p "$tmp_dir/path" "$tmp_dir/ryoku/bin"
+runtime_dir="$tmp_dir/runtime"
+mkdir -p "$runtime_dir" "$tmp_dir/home"
+touch "$runtime_dir/shell.qml"
 
-cat > "$tmp_dir/path/systemctl" <<'SH'
+cat >"$tmp_dir/qs" <<'SH'
 #!/bin/bash
-if [[ $* == "--user show-environment" ]]; then
-  printf '%s\n' \
-    "PATH=/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl" \
-    "XDG_SESSION_TYPE=wayland"
-fi
+{
+  printf 'args='
+  printf '<%s>' "$@"
+  printf '\n'
+  printf 'RYOKU_SHELL_LIB_DIR=%s\n' "${RYOKU_SHELL_LIB_DIR:-}"
+  printf 'QML_IMPORT_PATH=%s\n' "${QML_IMPORT_PATH:-}"
+  printf 'QML2_IMPORT_PATH=%s\n' "${QML2_IMPORT_PATH:-}"
+  printf 'QT_QPA_PLATFORM=%s\n' "${QT_QPA_PLATFORM:-}"
+  printf 'QS_CONFIG_NAME_SET=%s\n' "${QS_CONFIG_NAME+yes}"
+  printf 'QS_CONFIG_PATH_SET=%s\n' "${QS_CONFIG_PATH+yes}"
+  printf 'QS_MANIFEST_SET=%s\n' "${QS_MANIFEST+yes}"
+} >"$RYOKU_TEST_CAPTURE"
 SH
-chmod +x "$tmp_dir/path/systemctl"
+chmod +x "$tmp_dir/qs"
 
-apply_gpu_policy() { :; }
+RYOKU_TEST_CAPTURE="$tmp_dir/capture" \
+HOME="$tmp_dir/home" \
+PATH="/usr/bin" \
+RYOKU_QS_BIN="$tmp_dir/qs" \
+RYOKU_SHELL_RUNTIME_DIR="$runtime_dir" \
+RYOKU_SHELL_LIB_DIR="$tmp_dir/lib" \
+RYOKU_SHELL_QML_DIR="$tmp_dir/qml" \
+QML_IMPORT_PATH="/existing/qml" \
+QML2_IMPORT_PATH="/existing/qml2" \
+QT_QPA_PLATFORM="" \
+  "$LAUNCHER" run --session --debug
 
-eval "$(extract_function _get_systemd_user_env)"
-eval "$(extract_function apply_qt_runtime_env)"
+grep -Fxq "args=<-p><$runtime_dir><--debug>" "$tmp_dir/capture" || \
+  fail "launcher should start qs against the explicit runtime path"
+grep -Fxq "RYOKU_SHELL_LIB_DIR=$tmp_dir/lib" "$tmp_dir/capture" || \
+  fail "launcher should export the shell library path"
+grep -Fxq "QML_IMPORT_PATH=$tmp_dir/qml:/existing/qml" "$tmp_dir/capture" || \
+  fail "launcher should prepend the shell QML import path"
+grep -Fxq "QML2_IMPORT_PATH=$tmp_dir/qml:/existing/qml2" "$tmp_dir/capture" || \
+  fail "launcher should prepend the legacy QML import path"
+grep -Fxq "QT_QPA_PLATFORM=wayland;xcb" "$tmp_dir/capture" || \
+  fail "launcher should default to Wayland with xcb fallback"
+grep -Fxq "QS_CONFIG_NAME_SET=" "$tmp_dir/capture" || \
+  fail "launcher should clear inherited qs config names"
+grep -Fxq "QS_CONFIG_PATH_SET=" "$tmp_dir/capture" || \
+  fail "launcher should clear inherited qs config paths"
+grep -Fxq "QS_MANIFEST_SET=" "$tmp_dir/capture" || \
+  fail "launcher should clear inherited qs manifests"
 
-export HOME="$tmp_dir/home"
-export RYOKU_PATH="$tmp_dir/ryoku"
-export WAYLAND_DISPLAY="wayland-test"
-export NIRI_SOCKET="$tmp_dir/niri.sock"
-export PATH="$tmp_dir/path:$RYOKU_PATH/bin:/usr/local/sbin:/usr/local/bin:/usr/bin"
-
-_cached_systemd_env=""
-_cached_systemd_env_fetched=false
-
-apply_qt_runtime_env
-
-case ":$PATH:" in
-  *":$RYOKU_PATH/bin:"*) ;;
-  *) fail "session boot PATH merge should preserve RYOKU_PATH/bin for QML helper commands" ;;
-esac
-
-echo "PASS: ryoku-shell launch environment preserves helper PATH"
+echo "PASS: ryoku-shell launch environment is scoped to the rebirth runtime"

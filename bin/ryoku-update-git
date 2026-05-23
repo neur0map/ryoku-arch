@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -e
+# shellcheck disable=SC1091
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
 echo -e "\e[32mUpdate Ryoku\e[0m"
@@ -163,4 +164,7 @@ if [[ -n $stash_ref ]]; then
 fi
 
 ryoku_git --no-pager diff --check || ryoku_git reset --merge
-niri msg action load-config-file >/dev/null 2>&1 || true
+
+if command -v hyprctl >/dev/null 2>&1; then
+  hyprctl reload >/dev/null 2>&1 || true
+fi

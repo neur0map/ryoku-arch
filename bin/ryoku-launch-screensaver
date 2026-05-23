@@ -1,9 +1,11 @@
 #!/bin/bash
 
+# shellcheck disable=SC1091
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
 config_path_helper="$RYOKU_PATH/shell/scripts/lib/config-path.sh"
 if [[ -f $config_path_helper ]]; then
+  # shellcheck disable=SC1090
   source "$config_path_helper"
 fi
 
@@ -77,7 +79,7 @@ build_command() {
     command=(
       ghostty
       --class=org.ryoku.screensaver
-      --config-file=$RYOKU_PATH/default/ghostty/screensaver
+      --config-file="$RYOKU_PATH/default/ghostty/screensaver"
       --font-size=18
       -e "$screensaver_command"
     )
@@ -99,31 +101,8 @@ build_command() {
 }
 
 spawn_screensaver() {
-  if ryoku-cmd-present niri; then
-    niri msg action spawn -- "${command[@]}" >/dev/null 2>&1 && return 0
-  fi
-
   setsid "${command[@]}" >/dev/null 2>&1 &
 }
 
 build_command
-
-focused=""
-if ryoku-cmd-present niri; then
-  focused="$(niri msg -j focused-output 2>/dev/null | jq -r '.name // empty' 2>/dev/null || true)"
-fi
-
-mapfile -t monitors < <(niri msg -j outputs 2>/dev/null | jq -r 'if type == "array" then .[].name else keys[] end' 2>/dev/null || true)
-
-if (( ${#monitors[@]} == 0 )); then
-  spawn_screensaver
-else
-  for monitor in "${monitors[@]}"; do
-    niri msg action focus-monitor "$monitor" >/dev/null 2>&1 || true
-    spawn_screensaver
-  done
-
-  if [[ -n $focused ]]; then
-    niri msg action focus-monitor "$focused" >/dev/null 2>&1 || true
-  fi
-fi
+spawn_screensaver

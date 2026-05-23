@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# shellcheck disable=SC1091
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
 # Launch a command identified by the passed in window-pattern.
@@ -12,8 +13,4 @@ fi
 WINDOW_PATTERN="$1"
 LAUNCH_COMMAND="${2:-$WINDOW_PATTERN}"
 
-if ryoku-cmd-present niri; then
-  niri msg action spawn-sh -- "$LAUNCH_COMMAND" >/dev/null 2>&1
-else
-  setsid bash -lc "$LAUNCH_COMMAND" >/dev/null 2>&1 &
-fi
+setsid bash -lc "$LAUNCH_COMMAND" >/dev/null 2>&1 &

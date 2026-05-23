@@ -40,7 +40,7 @@ echo "$THEME_NAME" >"$RYOKU_CONFIG_PATH/current/theme.name"
 # Change background with theme
 ryoku-theme-bg-next
 
-# Keep the Niri shell and compatibility-generated app color files aligned with
+# Keep the Ryoku shell and compatibility-generated app color files aligned with
 # the selected Ryoku theme instead of wallpaper-generated colors.
 ryoku-theme-set-shell
 

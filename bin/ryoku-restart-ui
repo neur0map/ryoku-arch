@@ -4,6 +4,7 @@
 
 set -euo pipefail
 
+# shellcheck disable=SC1091
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
 QUIET=false
@@ -65,7 +66,7 @@ try_restart_user_service() {
 
 refresh_activation_environment() {
   if command_present systemctl; then
-    systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XCURSOR_THEME XCURSOR_SIZE >/dev/null 2>&1 || true
+    systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XCURSOR_THEME XCURSOR_SIZE HYPRCURSOR_THEME HYPRCURSOR_SIZE >/dev/null 2>&1 || true
   fi
 
   if command_present dbus-update-activation-environment; then
@@ -88,7 +89,6 @@ restart_clipboard_watchers() {
 
 restart_portals() {
   try_restart_user_service xdg-desktop-portal.service
-  try_restart_user_service xdg-desktop-portal-gnome.service
   try_restart_user_service xdg-desktop-portal-gtk.service
 }
 

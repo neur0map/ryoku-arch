@@ -12,6 +12,9 @@ fail() {
 grep -qxF gpk-bin "$ROOT_DIR/install/ryoku-aur.packages" || \
   fail "Ryoku AUR packages should include gpk-bin for GlazePKG"
 
+grep -qxF hyprmod "$ROOT_DIR/install/ryoku-aur.packages" || \
+  fail "Ryoku AUR packages should include hyprmod for the shipped Hyprland settings app"
+
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 

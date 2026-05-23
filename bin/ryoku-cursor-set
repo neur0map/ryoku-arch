@@ -2,6 +2,7 @@
 
 set -e
 
+# shellcheck disable=SC1091
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
 cursor_theme="${1:-}"
@@ -23,14 +24,56 @@ mkdir -p "$RYOKU_STATE_PATH/toggles"
   printf 'XCURSOR_SIZE=%s\n' "$cursor_size"
 } >"$RYOKU_STATE_PATH/toggles/cursor.conf"
 
+write_default_cursor_theme() {
+  local index_file="$1"
+
+  mkdir -p "$(dirname -- "$index_file")"
+  cat >"$index_file" <<EOF
+[Icon Theme]
+Inherits=$cursor_theme
+EOF
+}
+
+write_default_cursor_theme "${XDG_DATA_HOME:-$HOME/.local/share}/icons/default/index.theme"
+write_default_cursor_theme "$HOME/.icons/default/index.theme"
+
+export XCURSOR_THEME="$cursor_theme"
+export XCURSOR_SIZE="$cursor_size"
+export HYPRCURSOR_THEME="$cursor_theme"
+export HYPRCURSOR_SIZE="$cursor_size"
+
 if ryoku-cmd-present gsettings; then
   gsettings set org.gnome.desktop.interface cursor-theme "$cursor_theme" || true
   gsettings set org.gnome.desktop.interface cursor-size "$cursor_size" || true
 fi
 
-niriconf="$HOME/.config/niri/config.d/10-input-and-cursor.kdl"
-if [[ -f $niriconf ]]; then
-  sed -i "s|^[[:space:]]*xcursor-theme \".*\"|    xcursor-theme \"$cursor_theme\"|" "$niriconf"
-  sed -i "s|^[[:space:]]*xcursor-size .*|    xcursor-size $cursor_size|" "$niriconf"
-  niri msg action load-config-file >/dev/null 2>&1 || true
+if ryoku-cmd-present hyprctl; then
+  hyprctl setcursor "$cursor_theme" "$cursor_size" || true
+fi
+
+set_hypr_env() {
+  local key="$1"
+  local value="$2"
+  local hypr_conf="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland.conf"
+
+  [[ -f $hypr_conf ]] || return 0
+
+  if grep -Eq "^[[:space:]]*env[[:space:]]*=[[:space:]]*$key," "$hypr_conf"; then
+    sed -i "s|^[[:space:]]*env[[:space:]]*=[[:space:]]*$key,.*|env = $key,$value|" "$hypr_conf"
+  else
+    printf 'env = %s,%s\n' "$key" "$value" >>"$hypr_conf"
+  fi
+}
+
+set_hypr_env XCURSOR_THEME "$cursor_theme"
+set_hypr_env XCURSOR_SIZE "$cursor_size"
+set_hypr_env HYPRCURSOR_THEME "$cursor_theme"
+set_hypr_env HYPRCURSOR_SIZE "$cursor_size"
+
+if ryoku-cmd-present systemctl; then
+  systemctl --user import-environment XCURSOR_THEME XCURSOR_SIZE HYPRCURSOR_THEME HYPRCURSOR_SIZE >/dev/null 2>&1 || true
+fi
+
+if ryoku-cmd-present dbus-update-activation-environment; then
+  dbus-update-activation-environment --systemd XCURSOR_THEME XCURSOR_SIZE HYPRCURSOR_THEME HYPRCURSOR_SIZE >/dev/null 2>&1 || true
 fi

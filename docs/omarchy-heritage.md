@@ -12,27 +12,29 @@ or compatibility references.
 | --- | --- |
 | `LICENSE` and `NOTICE` attribution | Required attribution for the original Omarchy project and its MIT license. |
 | Git history, upstream remotes, and `upstream-baseline` | Needed to audit ancestry and cherry-pick useful upstream fixes without merging upstream wholesale. |
-| Historical migrations under `migrations/` | Existing installs may have old state from earlier Hyprland, Waybar, Mako, SwayOSD, Tofi, Walker, Elephant, and Omarchy-era phases. Those migrations must stay readable and idempotent. |
+| Historical migrations under `migrations/` | Existing installs may have old state from earlier compositor, shell, Waybar, Mako, SwayOSD, Tofi, Walker, Elephant, and Omarchy-era phases. Those migrations must stay readable and idempotent. |
 | Cleanup-only filesystem paths | Some install and migration scripts still remove old Omarchy files, services, boot assets, and state directories. These references delete legacy state; they do not create new Omarchy state. |
 | Compatibility environment fallbacks | A small number of legacy `OMARCHY_*` variables are accepted as fallbacks where old installs or old shells may still provide them. Ryoku-owned `RYOKU_*` variables are canonical. |
 | Webapp cleanup matchers | Some cleanup commands recognize old `omarchy-*` desktop-file launchers so user-created webapps can be removed safely. |
 | External theme and package identifiers | Some third-party theme IDs, package names, and URLs include `omarchy` because changing them would point to a different external object or break migration cleanup. |
+| ASCII terminal screensaver | The terminal/TTE screensaver was adopted as a Ryoku feature and is kept under Ryoku commands, config, and window classes. |
 | Historical plan/spec documents | Files under `docs/superpowers/` describe previous work sessions. They are records, not current runtime instructions. |
 
 ## What No Longer Ships As The Active Desktop
 
-The current source track is Niri with the Ryoku shell. The old Hyprland default
-session and its supporting runtime pieces are not the active desktop contract.
+The current source track is Hyprland with the Ryoku shell. Earlier compositor
+and shell transition work remains only as legacy migration context unless a
+file explicitly marks it as active.
 
 The following names should only appear as historical, cleanup, compatibility,
 or external identifier references:
 
-- Hyprland session defaults and window rules.
+- Retired compositor session defaults and window rules.
 - Waybar status bar config.
 - Mako notification defaults.
 - SwayOSD styling.
 - Tofi, Walker, and Elephant launcher configs.
-- Brain Shell and Noctalia prototype runtime trees.
+- Retired prototype runtime trees.
 - Omarchy package repo, keyring, mirror URLs, and old branded boot assets.
 
 ## Current User-Facing Surfaces
@@ -46,7 +48,7 @@ or external identifier references:
 | `~/.config/ryoku` | User Ryoku config and hook namespace. |
 | `~/.local/share/ryoku` | Installed Ryoku source tree. |
 | `~/.local/state/ryoku` | Runtime state and migration markers. |
-| `config/niri/` | Current compositor config source. |
+| `config/hypr/` | Current Hyprland compositor config source. |
 | `docs/keybindings.md` | Current user-facing keyboard reference. |
 
 
@@ -58,7 +60,7 @@ Current core domains, based on the `ryoku-*` command namespace:
 
 - **Install and update lifecycle:** `ryoku-update-*`, `ryoku-reinstall-*`, `ryoku-channel-*`, `ryoku-branch-set`, release/version helpers, snapshots, rollback, migrations, and doctor checks.
 - **Package and app management:** `ryoku-pkg-*`, app installers, profile installers, webapp install/remove, Chromium/Helium helpers, Steam, Tailscale, NordVPN, Dropbox, Docker DBs, developer environment installers.
-- **Compositor and desktop repair:** Niri config refresh, keybinding docs, shell restart/recovery, default app migration, terminal launchers, systemd service repair, session recovery, update log analysis.
+- **Compositor and desktop repair:** Hyprland config refresh, keybinding docs, shell restart/recovery, default app migration, terminal launchers, systemd service repair, session recovery, update log analysis.
 - **Theming and appearance outside QML:** wallpaper list/cache/apply/search, theme install/remove/set/refresh, font list/set/install, cursor list/set/install, keyboard theme setters, GTK/KDE/terminal/editor/app template refreshers, SDDM and lockscreen preview refreshers.
 - **Hardware and power:** hardware detectors, hybrid GPU toggle, touchpad and haptic touchpad, battery status and charge limit helpers, brightness commands, power profiles, suspend and hibernation setup/removal, idle/nightlight/notification toggles.
 - **Network and security:** Wi-Fi/bluetooth launchers and restarts, firewall, hosts editing, OpenVPN import/remove/rename, Tailscale install, DNS setup, FIDO2/fingerprint setup, sudo reset/passwordless toggle.
@@ -94,8 +96,8 @@ it before changing it:
    repository, or URL that exists under that name.
 3. **Cleanup:** keep it if it only removes or migrates old installed state.
 4. **Historical doc:** keep it if the file is a dated plan/spec record.
-5. **Active runtime:** rename or remove it. Active runtime should use Ryoku and
-   Niri surfaces.
+5. **Active runtime:** rename or remove it. Active runtime should use Ryoku,
+   Hyprland, and Ryoku-shell surfaces.
 
 The public docs should describe active Ryoku behavior first. Historical names
 belong here, in `docs/rebrand-inventory.md`, or in dated plans.

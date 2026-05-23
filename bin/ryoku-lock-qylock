@@ -8,7 +8,7 @@ QYLOCK_DIR="$HOME/.local/share/qylock"
 
 hydrate_graphical_env() {
   local runtime_dir="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
-  local line key value socket
+  local line key value
 
   if command -v systemctl >/dev/null 2>&1; then
     while IFS= read -r line; do
@@ -16,7 +16,7 @@ hydrate_graphical_env() {
       key="${line%%=*}"
       value="${line#*=}"
       case "$key" in
-        WAYLAND_DISPLAY|DISPLAY|NIRI_SOCKET|XDG_CURRENT_DESKTOP|XDG_SESSION_TYPE|XDG_SESSION_DESKTOP|DESKTOP_SESSION|XCURSOR_THEME|XCURSOR_SIZE)
+        WAYLAND_DISPLAY|DISPLAY|HYPRLAND_INSTANCE_SIGNATURE|XDG_CURRENT_DESKTOP|XDG_SESSION_TYPE|XDG_SESSION_DESKTOP|DESKTOP_SESSION|XCURSOR_THEME|XCURSOR_SIZE|HYPRCURSOR_THEME|HYPRCURSOR_SIZE)
           if [[ -z ${!key-} ]]; then
             export "$key=$value"
           fi
@@ -34,31 +34,23 @@ hydrate_graphical_env() {
     done
   fi
 
-  if [[ -z ${NIRI_SOCKET:-} ]]; then
-    for socket in "$runtime_dir"/niri.wayland-*.sock "$runtime_dir"/niri/socket; do
-      [[ -S $socket ]] || continue
-      export NIRI_SOCKET="$socket"
-      break
-    done
-  fi
-
   if [[ -z ${XDG_SESSION_TYPE:-} ]]; then
     export XDG_SESSION_TYPE=wayland
   fi
-  if [[ -z ${XDG_CURRENT_DESKTOP:-} && -n ${NIRI_SOCKET:-} ]]; then
-    export XDG_CURRENT_DESKTOP=niri
+  if [[ -z ${XDG_CURRENT_DESKTOP:-} && -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]]; then
+    export XDG_CURRENT_DESKTOP=Hyprland
   fi
-  if [[ -z ${XDG_SESSION_DESKTOP:-} && ${XDG_CURRENT_DESKTOP:-} == "niri" ]]; then
-    export XDG_SESSION_DESKTOP=niri
+  if [[ -z ${XDG_SESSION_DESKTOP:-} && ${XDG_CURRENT_DESKTOP:-} == "Hyprland" ]]; then
+    export XDG_SESSION_DESKTOP=Hyprland
   fi
 }
 
 patch_qylock_unlock_sequence() {
   [[ -f $QYLOCK_LOCK_QML && -w $QYLOCK_LOCK_QML ]] || return 0
-  grep -q 'Ryoku: release niri session lock before logind unlock' "$QYLOCK_LOCK_QML" && return 0
+  grep -q 'Ryoku: release session lock before logind unlock' "$QYLOCK_LOCK_QML" && return 0
   grep -q 'Quickshell.execDetached(\["loginctl", "unlock-session"\]);' "$QYLOCK_LOCK_QML" || return 0
 
-  perl -0pi -e 's|Quickshell\.execDetached\(\["loginctl", "unlock-session"\]\);\n\n            // Dynamic exit delay|// Ryoku: release niri session lock before logind unlock.\n            // qylock can otherwise leave a black locked surface after PAM success.\n            shellRoot.sessionLocked = false;\n            Quickshell.execDetached(["loginctl", "unlock-session"]);\n            Qt.callLater(Qt.quit);\n            return;\n\n            // Dynamic exit delay|' "$QYLOCK_LOCK_QML" 2>/dev/null || true
+  perl -0pi -e 's|Quickshell\.execDetached\(\["loginctl", "unlock-session"\]\);\n\n            // Dynamic exit delay|// Ryoku: release session lock before logind unlock.\n            // qylock can otherwise leave a black locked surface after PAM success.\n            shellRoot.sessionLocked = false;\n            Quickshell.execDetached(["loginctl", "unlock-session"]);\n            Qt.callLater(Qt.quit);\n            return;\n\n            // Dynamic exit delay|' "$QYLOCK_LOCK_QML" 2>/dev/null || true
 }
 
 fallback_hyprlock() {

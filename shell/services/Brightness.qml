@@ -1,275 +1,237 @@
 pragma Singleton
 pragma ComponentBehavior: Bound
 
-// From https://github.com/caelestia-dots/shell with modifications.
-// License: GPLv3
-
-import qs.modules.common
-import qs.modules.common.functions
-import qs.services
+import QtQuick
 import Quickshell
 import Quickshell.Io
-import Quickshell.Hyprland
-import QtQuick
+import Ryoku.Config
+import qs.components.misc
 
-/**
- * For managing brightness of monitors. Supports both brightnessctl and ddcutil.
- */
 Singleton {
     id: root
-    signal brightnessChanged()
 
-    property var ddcMonitors: []
-    readonly property list<BrightnessMonitor> monitors: Quickshell.screens.map(screen => monitorComp.createObject(root, {
-        screen
-    }))
+    property list<var> ddcMonitors: []
+    readonly property var ddcMonitorMap: {
+        const map = {};
+        for (const m of ddcMonitors)
+            map[m.connector] = m;
+        return map;
+    }
+    readonly property list<Monitor> monitors: variants.instances // qmllint disable incompatible-type
+    property bool appleDisplayPresent: false
 
     function getMonitorForScreen(screen: ShellScreen): var {
-        return monitors.find(m => m.screen === screen);
+        return monitors.find(m => m.modelData === screen); // qmllint disable missing-property
+    }
+
+    function getMonitor(query: string): var {
+        if (query === "active") {
+            return monitors.find(m => Hypr.monitorFor(m.modelData)?.focused); // qmllint disable missing-property
+        }
+
+        if (query.startsWith("model:")) {
+            const model = query.slice(6);
+            return monitors.find(m => m.modelData.model === model); // qmllint disable missing-property
+        }
+
+        if (query.startsWith("serial:")) {
+            const serial = query.slice(7);
+            return monitors.find(m => m.modelData.serialNumber === serial); // qmllint disable missing-property
+        }
+
+        if (query.startsWith("id:")) {
+            const id = parseInt(query.slice(3), 10);
+            return monitors.find(m => Hypr.monitorFor(m.modelData)?.id === id); // qmllint disable missing-property
+        }
+
+        return monitors.find(m => m.modelData.name === query); // qmllint disable missing-property
     }
 
     function increaseBrightness(): void {
-        const focusedName = CompositorService.isNiri ? NiriService.currentOutput : Hyprland.focusedMonitor?.name;
-        if (!focusedName) return;
-        const monitor = monitors.find(m => focusedName === m.screen.name);
+        const monitor = getMonitor("active");
         if (monitor)
-            monitor.setBrightness(monitor.brightness + 0.05);
+            monitor.setBrightness(monitor.brightness + GlobalConfig.services.brightnessIncrement);
     }
 
     function decreaseBrightness(): void {
-        const focusedName = CompositorService.isNiri ? NiriService.currentOutput : Hyprland.focusedMonitor?.name;
-        if (!focusedName) return;
-        const monitor = monitors.find(m => focusedName === m.screen.name);
+        const monitor = getMonitor("active");
         if (monitor)
-            monitor.setBrightness(monitor.brightness - 0.05);
+            monitor.setBrightness(monitor.brightness - GlobalConfig.services.brightnessIncrement);
     }
-
-    reloadableId: "brightness"
 
     onMonitorsChanged: {
         ddcMonitors = [];
         ddcProc.running = true;
     }
 
+    Variants {
+        id: variants
+
+        model: Quickshell.screens // Don't respect excluded screens cause ipc
+
+        Monitor {}
+    }
+
+    Process {
+        running: true
+        command: ["sh", "-c", "asdbctl get"] // To avoid warnings if asdbctl is not installed
+        stdout: StdioCollector {
+            onStreamFinished: root.appleDisplayPresent = text.trim().length > 0
+        }
+    }
+
     Process {
         id: ddcProc
 
         command: ["ddcutil", "detect", "--brief"]
-        stdout: SplitParser {
-            splitMarker: "\n\n"
-            onRead: data => {
-                if (data.startsWith("Display ")) {
-                    const lines = data.split("\n").map(l => l.trim());
-                    root.ddcMonitors.push({
-                        model: lines.find(l => l.startsWith("Monitor:")).split(":")[2],
-                        busNum: lines.find(l => l.startsWith("I2C bus:")).split("/dev/i2c-")[1]
-                    });
-                }
-            }
+        stdout: StdioCollector {
+            onStreamFinished: root.ddcMonitors = text.trim().split("\n\n").filter(d => d.startsWith("Display ")).map(d => ({
+                        busNum: d.match(/I2C bus:[ ]*\/dev\/i2c-([0-9]+)/)[1],
+                        connector: d.match(/DRM connector:\s+(.*)/)[1].replace(/^card\d+-/, "") // strip "card1-"
+                    }))
         }
-        onExited: root.ddcMonitorsChanged()
     }
 
-    Process {
-        id: setProc
+    // qmllint disable unresolved-type
+    CustomShortcut {
+        // qmllint enable unresolved-type
+        name: "brightnessUp"
+        description: "Increase brightness"
+        onPressed: root.increaseBrightness()
     }
 
-    component BrightnessMonitor: QtObject {
+    // qmllint disable unresolved-type
+    CustomShortcut {
+        // qmllint enable unresolved-type
+        name: "brightnessDown"
+        description: "Decrease brightness"
+        onPressed: root.decreaseBrightness()
+    }
+
+    IpcHandler {
+        function get(): real {
+            return getFor("active");
+        }
+
+        // Allows searching by active/model/serial/id/name
+        function getFor(query: string): real {
+            return root.getMonitor(query)?.brightness ?? -1;
+        }
+
+        function set(value: string): string {
+            return setFor("active", value);
+        }
+
+        // Handles brightness value like brightnessctl: 0.1, +0.1, 0.1-, 10%, +10%, 10%-
+        function setFor(query: string, value: string): string {
+            const monitor = root.getMonitor(query);
+            if (!monitor)
+                return "Invalid monitor: " + query;
+
+            let targetBrightness;
+            if (value.endsWith("%-")) {
+                const percent = parseFloat(value.slice(0, -2));
+                targetBrightness = monitor.brightness - (percent / 100);
+            } else if (value.startsWith("+") && value.endsWith("%")) {
+                const percent = parseFloat(value.slice(1, -1));
+                targetBrightness = monitor.brightness + (percent / 100);
+            } else if (value.endsWith("%")) {
+                const percent = parseFloat(value.slice(0, -1));
+                targetBrightness = percent / 100;
+            } else if (value.startsWith("+")) {
+                const increment = parseFloat(value.slice(1));
+                targetBrightness = monitor.brightness + increment;
+            } else if (value.endsWith("-")) {
+                const decrement = parseFloat(value.slice(0, -1));
+                targetBrightness = monitor.brightness - decrement;
+            } else if (value.includes("%") || value.includes("-") || value.includes("+")) {
+                return `Invalid brightness format: ${value}\nExpected: 0.1, +0.1, 0.1-, 10%, +10%, 10%-`;
+            } else {
+                targetBrightness = parseFloat(value);
+            }
+
+            if (isNaN(targetBrightness))
+                return `Failed to parse value: ${value}\nExpected: 0.1, +0.1, 0.1-, 10%, +10%, 10%-`;
+
+            monitor.setBrightness(targetBrightness);
+
+            return `Set monitor ${monitor.modelData.name} brightness to ${+monitor.brightness.toFixed(2)}`;
+        }
+
+        target: "brightness"
+    }
+
+    component Monitor: QtObject {
         id: monitor
 
-        required property ShellScreen screen
-        readonly property bool isDdc: {
-            const match = root.ddcMonitors.find(m => screen.model?.includes(m.model) && !root.monitors.slice(0, root.monitors.indexOf(this)).some(mon => mon.busNum === m.busNum));
-            return !!match;
-        }
-        readonly property string busNum: {
-            const match = root.ddcMonitors.find(m => screen.model?.includes(m.model) && !root.monitors.slice(0, root.monitors.indexOf(this)).some(mon => mon.busNum === m.busNum));
-            return match?.busNum ?? "";
-        }
-        property int rawMaxBrightness: 100
+        required property ShellScreen modelData
+        readonly property var ddcInfo: root.ddcMonitorMap[modelData.name] ?? null
+        readonly property bool isDdc: ddcInfo !== null
+        readonly property string busNum: ddcInfo?.busNum ?? ""
+        readonly property bool isAppleDisplay: root.appleDisplayPresent && modelData.model.startsWith("StudioDisplay")
         property real brightness
-        property real brightnessMultiplier: 1.0
-        property real multipliedBrightness: Math.max(0, Math.min(1, brightness * ((Config.options?.light?.antiFlashbang?.enable ?? false) ? brightnessMultiplier : 1)))
-        property bool ready: false
-        property bool animateChanges: !monitor.isDdc
-
-        onBrightnessChanged: {
-            if (!monitor.ready) return;
-            root.brightnessChanged();
-        }
-
-        Behavior on multipliedBrightness {
-            enabled: monitor.animateChanges
-            NumberAnimation {
-                duration: 200
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: Appearance.animationCurves.expressiveEffects
-            }
-        }
-        onMultipliedBrightnessChanged: {
-            if (monitor.animateChanges) syncBrightness();
-            else setTimer.restart();
-        }
-
-        function initialize() {
-            monitor.ready = false;
-            initProc.command = isDdc ? ["ddcutil", "-b", busNum, "getvcp", "10", "--brief"] : ["sh", "-c", `echo "a b c $(brightnessctl g) $(brightnessctl m)"`];
-            initProc.running = true;
-        }
+        property real queuedBrightness: NaN
 
         readonly property Process initProc: Process {
-            stdout: SplitParser {
-                onRead: data => {
-                    const [, , , current, max] = data.split(" ");
-                    monitor.rawMaxBrightness = parseInt(max);
-                    monitor.brightness = parseInt(current) / monitor.rawMaxBrightness;
-                    monitor.ready = true;
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    if (monitor.isAppleDisplay) {
+                        const val = parseInt(text.trim());
+                        monitor.brightness = val / 101;
+                    } else {
+                        const [, , , cur, max] = text.split(" ");
+                        monitor.brightness = parseInt(cur) / parseInt(max);
+                    }
                 }
             }
         }
 
-        // We need a delay for DDC monitors because they can be quite slow and might act weird with rapid changes
-        property var setTimer: Timer {
-            id: setTimer
-            interval: monitor.isDdc ? 300 : 0
+        readonly property Timer timer: Timer {
+            interval: 500
             onTriggered: {
-                syncBrightness();
+                if (!isNaN(monitor.queuedBrightness)) {
+                    monitor.setBrightness(monitor.queuedBrightness);
+                    monitor.queuedBrightness = NaN;
+                }
             }
-        }
-
-        function syncBrightness() {
-            const brightnessValue = Math.max(monitor.multipliedBrightness, 0)
-            const rawValueRounded = Math.max(Math.floor(brightnessValue * monitor.rawMaxBrightness), 1);
-            setProc.command = isDdc ? ["ddcutil", "-b", busNum, "setvcp", "10", rawValueRounded] : ["brightnessctl", "--class", "backlight", "s", rawValueRounded, "--quiet"];
-            setProc.startDetached();
         }
 
         function setBrightness(value: real): void {
             value = Math.max(0, Math.min(1, value));
-            monitor.brightness = value;
-        }
+            const rounded = Math.round(value * 100);
+            if (Math.round(brightness * 100) === rounded)
+                return;
 
-        function setBrightnessMultiplier(value: real): void {
-            monitor.brightnessMultiplier = value;
-        }
-
-        Component.onCompleted: {
-            initialize();
-        }
-
-        onBusNumChanged: {
-            initialize();
-        }
-    }
-
-    Component {
-        id: monitorComp
-
-        BrightnessMonitor {}
-    }
-
-    // Anti-flashbang
-    property int workspaceAnimationDelay: 500
-    property int contentSwitchDelay: 30
-    property string screenshotDir: "/tmp/quickshell/brightness/antiflashbang"
-    function brightnessMultiplierForLightness(x: real): real {
-        // I hand picked some values and fitted an exponential curve for this
-        // 6.600135 + 216.360356 * e^(-0.0811129189x)
-        // Division by 100 is to normalize to [0, 1]
-        return (6.600135 + 216.360356 * Math.pow(Math.E, -0.0811129189 * x)) / 100.0;
-    }
-    Variants {
-        model: Quickshell.screens
-        Scope {
-            id: screenScope
-            required property var modelData
-            property string screenName: modelData.name
-            property string screenshotPath: `${root.screenshotDir}/screenshot-${screenName}.png`
-            Connections {
-                enabled: (Config.options?.light?.antiFlashbang?.enable ?? false) && Appearance.m3colors.darkmode && CompositorService.isHyprland
-                target: CompositorService.isHyprland ? Hyprland : null
-                function onRawEvent(event) {
-                    if (["activewindowv2", "windowtitlev2"].includes(event.name)) {
-                        screenshotTimer.interval = root.contentSwitchDelay;
-                        screenshotTimer.restart();
-                    } else if (["workspacev2"].includes(event.name)) {
-                        screenshotTimer.interval = root.workspaceAnimationDelay;
-                        screenshotTimer.restart();
-                    }
-                }
+            if (isDdc && timer.running) {
+                queuedBrightness = value;
+                return;
             }
 
-            // Niri support for anti-flashbang
-            Connections {
-                enabled: (Config.options?.light?.antiFlashbang?.enable ?? false) && Appearance.m3colors.darkmode && CompositorService.isNiri
-                target: CompositorService.isNiri ? NiriService : null
-                function onActiveWindowChanged() {
-                    screenshotTimer.interval = root.contentSwitchDelay;
-                    screenshotTimer.restart();
-                }
-                function onFocusedWorkspaceIdChanged() {
-                    screenshotTimer.interval = root.workspaceAnimationDelay;
-                    screenshotTimer.restart();
-                }
-            }
+            brightness = value;
 
-            Timer {
-                id: screenshotTimer
-                interval: 700 // This is what I have for a Hyprland ws anim
-                onTriggered: {
-                    screenshotProc.running = false;
-                    screenshotProc.running = true;
-                }
-            }
+            if (isAppleDisplay)
+                Quickshell.execDetached(["asdbctl", "set", rounded]);
+            else if (isDdc)
+                Quickshell.execDetached(["ddcutil", "-b", busNum, "setvcp", "10", rounded]);
+            else
+                Quickshell.execDetached(["brightnessctl", "s", `${rounded}%`]);
 
-            Process {
-                id: screenshotProc
-                command: ["/usr/bin/bash", "-c", 
-                    `/usr/bin/mkdir -p '${StringUtils.shellSingleQuoteEscape(root.screenshotDir)}'`
-                    + ` && /usr/bin/grim -o '${StringUtils.shellSingleQuoteEscape(screenScope.screenName)}' -`
-                    + ` | /usr/bin/magick png:- -colorspace Gray -format "%[fx:mean*100]" info:`
-                ]
-                stdout: StdioCollector {
-                    id: lightnessCollector
-                    onStreamFinished: {
-                        // No cleanup needed - we pipe directly to magick without saving file
-                        const lightness = lightnessCollector.text
-                        const newMultiplier = root.brightnessMultiplierForLightness(parseFloat(lightness))
-                        Brightness.getMonitorForScreen(screenScope.modelData).setBrightnessMultiplier(newMultiplier)
-                    }
-                }
-            }
-        }
-    }
-
-    // External trigger points
-
-    IpcHandler {
-        target: "brightness"
-
-        function increment(): void {
-            root.increaseBrightness();
+            if (isDdc)
+                timer.restart();
         }
 
-        function decrement(): void {
-            root.decreaseBrightness();
-        }
-    }
+        function initBrightness(): void {
+            if (isAppleDisplay)
+                initProc.command = ["asdbctl", "get"];
+            else if (isDdc)
+                initProc.command = ["ddcutil", "-b", busNum, "getvcp", "10", "--brief"];
+            else
+                initProc.command = ["sh", "-c", "echo a b c $(brightnessctl g) $(brightnessctl m)"];
 
-    Loader {
-        active: CompositorService.isHyprland
-        sourceComponent: Item {
-            GlobalShortcut {
-                name: "brightnessIncrease"
-                description: "Increase brightness"
-                onPressed: root.increaseBrightness()
-            }
-
-            GlobalShortcut {
-                name: "brightnessDecrease"
-                description: "Decrease brightness"
-                onPressed: root.decreaseBrightness()
-            }
+            initProc.running = true;
         }
+
+        onBusNumChanged: initBrightness()
+        Component.onCompleted: initBrightness()
     }
 }

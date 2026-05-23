@@ -57,18 +57,22 @@ assert_contains bin/ryoku-lock-qylock 'QYLOCK_DIR.*/themes/.theme/Main\.qml' \
   "qylock lock helper should only use qylock themes that have a Main.qml entrypoint"
 assert_contains bin/ryoku-lock-qylock 'QYLOCK_LOCK_SCRIPT.*.theme' \
   "qylock lock helper should pass the selected theme to qylock instead of relying on a side config"
+# shellcheck disable=SC2016
 assert_contains bin/ryoku-lock-qylock 'exec "\$QYLOCK_LOCK_SCRIPT" "\$theme"' \
   "qylock lock helper should hand off to qylock instead of launching hyprlock after qylock exits"
+# shellcheck disable=SC2016
 assert_not_contains bin/ryoku-lock-qylock 'if ! "\$QYLOCK_LOCK_SCRIPT" "\$theme"' \
   "qylock lock helper should not treat qylock unlock/termination as a startup failure"
 assert_contains bin/ryoku-lock-qylock 'hydrate_graphical_env' \
-  "qylock lock helper should hydrate Wayland/Niri environment before launching Quickshell"
+  "qylock lock helper should hydrate the Wayland environment before launching Quickshell"
 assert_contains bin/ryoku-lock-qylock 'systemctl --user show-environment' \
   "qylock lock helper should import graphical session variables from the user manager"
 assert_contains bin/ryoku-lock-qylock 'WAYLAND_DISPLAY' \
   "qylock lock helper should guarantee WAYLAND_DISPLAY for non-terminal launches"
-assert_contains bin/ryoku-lock-qylock 'NIRI_SOCKET' \
-  "qylock lock helper should guarantee NIRI_SOCKET for Niri lock sessions"
+assert_contains bin/ryoku-lock-qylock 'HYPRLAND_INSTANCE_SIGNATURE' \
+  "qylock lock helper should preserve the Hyprland session environment"
+assert_not_contains bin/ryoku-lock-qylock 'NIRI_SOCKET|niri\.wayland|XDG_CURRENT_DESKTOP=niri' \
+  "qylock lock helper should not hydrate retired Niri session variables"
 assert_contains bin/ryoku-lock-qylock 'patch_qylock_unlock_sequence' \
   "qylock lock helper should patch qylock's delayed unlock sequence"
 assert_contains bin/ryoku-lock-qylock 'shellRoot\.sessionLocked = false' \
@@ -76,6 +80,7 @@ assert_contains bin/ryoku-lock-qylock 'shellRoot\.sessionLocked = false' \
 
 assert_contains config/hypr/hypridle.conf 'lock_cmd[[:space:]]*=[[:space:]]*.*ryoku-lock-qylock' \
   "lid/idle lock should prefer qylock lockscreen"
+# shellcheck disable=SC2016
 assert_contains config/hypr/hypridle.conf '\$HOME/\.local/share/ryoku/bin/ryoku-lock-qylock' \
   "lid/idle lock should call the Ryoku helper by absolute HOME-based path because hypridle may start before PATH is imported"
 assert_not_contains config/hypr/hypridle.conf 'lock_cmd[[:space:]]*=[[:space:]]*ryoku-lock-qylock' \
@@ -83,8 +88,8 @@ assert_not_contains config/hypr/hypridle.conf 'lock_cmd[[:space:]]*=[[:space:]]*
 assert_not_contains config/hypr/hypridle.conf 'lock_cmd[[:space:]]*=[[:space:]]*pidof hyprlock \|\| hyprlock' \
   "lid/idle lock should not go straight to hyprlock"
 
-assert_contains config/niri/config.d/70-binds.kdl 'Mod\+Alt\+L.*ryoku-shell.*lock.*activate' \
-  "manual Mod+Alt+L lock should remain Ryoku Quickshell"
+assert_contains config/hypr/hyprland.conf 'bind = SUPER ALT, L, exec, loginctl lock-session' \
+  "manual Super+Alt+L lock should go through the Hyprland session"
 
 assert_contains bin/ryoku-install-qylock 'quickshell-lockscreen' \
   "qylock install should deploy the Quickshell lockscreen files"
@@ -116,13 +121,8 @@ assert_not_contains default/systemd/system-sleep/ryoku-qylock-prelock '/home/[a-
 assert_contains install/config/session-recover.sh 'ryoku-qylock-prelock' \
   "session sleep hooks installer should install the qylock pre-sleep guard"
 
-# ryoku-shell cleanup-orphans must NOT kill the qylock session-lock client.
-# Its parent is hypridle's lock.sh wrapper (not ryoku-shell.service), so the
-# generic ppid==MainPID guard in cleanup_orphans() does not protect it.
-# Killing it during a resume cycle while niri's session-lock is still active
-# leaves niri rendering its lock-surface-lost magenta backdrop with no input.
-assert_contains shell/scripts/ryoku-shell 'quickshell-lockscreen' \
-  "cleanup_orphans must skip the qylock session-lock client by cmdline match"
+assert_not_contains bin/ryoku-shell-cleanup-orphans 'quickshell-lockscreen' \
+  "shell cleanup should not target the qylock session-lock client"
 
 tests/qylock-lock-helper-behavior.sh >/dev/null \
   || fail "qylock lock helper behavior regression"

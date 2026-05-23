@@ -33,5 +33,5 @@ keybind = super+control+shift+alt+arrow_right=resize_split:right,100
 # Slowdown mouse scrolling
 mouse-scroll-multiplier = 0.95
 
-# Keep the Wayland backend responsive under Niri.
+# Keep the Wayland backend responsive under Hyprland.
 async-backend = epoll

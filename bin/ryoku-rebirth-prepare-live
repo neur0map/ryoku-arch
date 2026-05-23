@@ -1,0 +1,151 @@
+#!/bin/bash
+
+set -euo pipefail
+
+dry_run=false
+allow_auth_prompt=false
+
+packages=(
+  aubio
+  hyprland
+  qt5-wayland
+  qt6-wayland
+  ttf-cascadia-code-nerd
+  xdg-desktop-portal
+  xdg-desktop-portal-gtk
+  xdg-desktop-portal-hyprland
+)
+
+aur_packages=(
+  app2unit
+)
+
+usage() {
+  cat <<'EOF'
+Usage: ryoku-rebirth-prepare-live [--dry-run] [--allow-auth-prompt]
+
+Installs the minimal package set needed to enter the rebirth Hyprland session
+and build the Ryoku shell seed.
+It never removes Niri or user applications.
+EOF
+}
+
+while (($# > 0)); do
+  case "$1" in
+    --dry-run)
+      dry_run=true
+      ;;
+    --allow-auth-prompt)
+      allow_auth_prompt=true
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "ryoku-rebirth-prepare-live: unknown argument: $1" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+  shift
+done
+
+command_present() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+package_present() {
+  local package="$1"
+
+  if command_present ryoku-pkg-present; then
+    ryoku-pkg-present "$package" >/dev/null 2>&1
+    return
+  fi
+
+  pacman -Q "$package" >/dev/null 2>&1
+}
+
+can_install_without_prompt() {
+  ((EUID == 0)) && return 0
+  command_present sudo && sudo -n true >/dev/null 2>&1
+}
+
+print_sessions() {
+  local session_dir="/usr/share/wayland-sessions"
+  local found=false
+  local session
+
+  printf 'Detected Hyprland sessions:\n'
+  for session in "$session_dir"/*hypr*.desktop "$session_dir"/*Hypr*.desktop; do
+    [[ -f $session ]] || continue
+    found=true
+    printf '  %s\n' "$session"
+  done
+
+  if [[ $found == false ]]; then
+    printf '  none\n'
+  fi
+}
+
+missing=()
+missing_aur=()
+for package in "${packages[@]}"; do
+  if package_present "$package"; then
+    printf 'present: %s\n' "$package"
+  else
+    printf 'missing: %s\n' "$package"
+    missing+=("$package")
+  fi
+done
+
+for package in "${aur_packages[@]}"; do
+  if package_present "$package"; then
+    printf 'present: %s\n' "$package"
+  else
+    printf 'missing: %s\n' "$package"
+    missing_aur+=("$package")
+  fi
+done
+
+print_sessions
+
+if [[ $dry_run == true ]]; then
+  exit 0
+fi
+
+if ((${#missing[@]} == 0 && ${#missing_aur[@]} == 0)); then
+  printf 'Rebirth Hyprland packages are already present.\n'
+  exit 0
+fi
+
+if [[ $allow_auth_prompt == false ]] && ! can_install_without_prompt; then
+  cat >&2 <<'EOF'
+ryoku-rebirth-prepare-live: root authorization is required and no cached sudo session is available.
+Re-run while present with:
+  ryoku-rebirth-prepare-live --allow-auth-prompt
+EOF
+  exit 77
+fi
+
+if command_present ryoku-pkg-add; then
+  ryoku-pkg-add "${missing[@]}" "${missing_aur[@]}"
+else
+  if ((${#missing[@]} > 0)); then
+    sudo pacman -S --needed --noconfirm "${missing[@]}"
+  fi
+
+  if ((${#missing_aur[@]} > 0)); then
+    if command_present yay; then
+      yay -S --needed --noconfirm "${missing_aur[@]}"
+    else
+      cat >&2 <<'EOF'
+ryoku-rebirth-prepare-live: app2unit is required for the Ryoku shell seed.
+Install yay or restore ryoku-pkg-add, then re-run this command.
+EOF
+      exit 77
+    fi
+  fi
+fi
+
+print_sessions

@@ -11,10 +11,11 @@ fail() {
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
+export XDG_CONFIG_HOME="$tmp/config"
 current_user="$(id -un)"
 current_host="$(hostname 2>/dev/null || true)"
 
-mkdir -p "$tmp/bin" "$tmp/fake-ryoku/bin" "$tmp/conflicts/usr/share/example" "$tmp/backups" "$tmp/state/quickshell/user"
+mkdir -p "$XDG_CONFIG_HOME" "$tmp/bin" "$tmp/fake-ryoku/bin" "$tmp/conflicts/usr/share/example" "$tmp/backups" "$tmp/state/quickshell/user"
 touch "$tmp/conflicts/usr/share/example/payload.sh"
 
 cat >"$tmp/update.log" <<LOG
@@ -58,7 +59,7 @@ CONFIRM
 
 chmod 755 "$tmp/fake-ryoku/bin/ryoku-update-confirm"
 
-"$tmp/bin/ryoku-doctor-link" -h | grep -Fq 'ryoku-doctor [-h]' \
+"$tmp/bin/ryoku-doctor-link" -h | grep -Fq 'ryoku-doctor [shell|update|-h]' \
   || fail "ryoku-doctor should resolve its repo root when called through a symlink"
 
 git init -b main "$tmp/source" >/dev/null

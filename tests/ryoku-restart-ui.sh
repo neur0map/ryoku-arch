@@ -26,12 +26,14 @@ grep -Fq '(^|/)wl-paste --type text --watch cliphist store$' "$script" \
   || fail "hard refresh should remove text clipboard watchers launched from an absolute wl-paste path"
 grep -Fq '(^|/)wl-paste --type image --watch cliphist store$' "$script" \
   || fail "hard refresh should remove image clipboard watchers launched from an absolute wl-paste path"
-grep -q 'xdg-desktop-portal-gnome.service' "$script" \
-  || fail "hard refresh should try-restart the GNOME portal used by Niri"
+! grep -q 'xdg-desktop-portal-gnome.service' "$script" \
+  || fail "hard refresh should not restart the retired GNOME portal"
 grep -q 'xdg-desktop-portal-gtk.service' "$script" \
   || fail "hard refresh should try-restart the GTK portal"
 grep -q 'systemctl --user try-restart' "$script" \
   || fail "hard refresh should use try-restart for user services"
+grep -q 'HYPRCURSOR_THEME HYPRCURSOR_SIZE' "$script" \
+  || fail "hard refresh should preserve the full Ryoku cursor environment"
 
 if grep -Eq 'hyprctl reload|xdg-desktop-portal-hyprland|restart_always "mako"|swayosd-server|restart_if_running "waybar"|restart_if_running "hypridle"' "$script"; then
   fail "hard refresh should not manage old Hyprland-era UI daemons"

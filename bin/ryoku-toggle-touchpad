@@ -13,13 +13,13 @@ fi
 
 enable() {
   rm -f "$STATE_CONF"
-  notify-send -u low "Touchpad toggle is managed in Niri settings" >/dev/null 2>&1 || true
+  notify-send -u low "Touchpad toggle is managed in Hyprland settings" >/dev/null 2>&1 || true
 }
 
 disable() {
   mkdir -p "$(dirname "$STATE_CONF")"
   : >"$STATE_CONF"
-  notify-send -u low "Touchpad toggle is managed in Niri settings" >/dev/null 2>&1 || true
+  notify-send -u low "Touchpad toggle is managed in Hyprland settings" >/dev/null 2>&1 || true
 }
 
 case "${1:-toggle}" in
