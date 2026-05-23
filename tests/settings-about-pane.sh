@@ -46,6 +46,8 @@ assert_contains "shell/modules/controlcenter/about/AboutPane.qml" 'Package mirro
 assert_contains "shell/modules/controlcenter/about/AboutPane.qml" 'RyokuAbout.switchChannel(root.pendingChannel)'
 assert_contains "shell/modules/controlcenter/about/AboutPane.qml" 'disabled: !root.modalReport.canStartUpdate'
 assert_contains "shell/modules/controlcenter/about/AboutPane.qml" 'Update blocked'
+assert_contains "shell/modules/controlcenter/about/AboutPane.qml" 'readonly property real doctorOutputInset'
+assert_contains "shell/modules/controlcenter/about/AboutPane.qml" 'x: root.doctorOutputInset'
 assert_contains "shell/scripts/ryoku-settings-about" 'update-current-run'
 assert_contains "shell/setup" '.ryoku-source-path'
 

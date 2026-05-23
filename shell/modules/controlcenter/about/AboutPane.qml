@@ -50,6 +50,7 @@ Item {
     property string modalSubtitle: ""
     property var modalReport: ({})
     property string pendingChannel: "main"
+    readonly property real doctorOutputInset: Tokens.padding.small
 
     function channelLabel(channel: string): string {
         if (channel === "main")
@@ -812,8 +813,8 @@ Item {
                         StyledText {
                             id: doctorOutput
 
-                            x: 2
-                            width: doctorOutputFlickable.width - x
+                            x: root.doctorOutputInset
+                            width: doctorOutputFlickable.width - root.doctorOutputInset * 2
                             text: root.modalReport.output || root.modalReport.error || qsTr("No doctor output")
                             color: Colours.palette.m3onSurfaceVariant
                             font.family: "monospace"
