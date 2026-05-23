@@ -4,7 +4,8 @@ set -euo pipefail
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-lock_file="${XDG_RUNTIME_DIR:-/tmp}/ryoku-caffeine.lock"
+lock_file="${RYOKU_CAFFEINE_LOCK_FILE:-${XDG_RUNTIME_DIR:-/tmp}/ryoku-caffeine.lock}"
+state_file="${RYOKU_CAFFEINE_STATE_FILE:-${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}/caffeine.enabled}"
 inhibit_pattern="[r]yoku-caffeine-inhibit"
 legacy_inhibit_pattern="^/usr/bin/systemd-inhibit --what=idle --who=Ryoku .*Ryoku caffeine mode"
 
@@ -14,6 +15,7 @@ Usage:
   ryoku-cmd-caffeine status
   ryoku-cmd-caffeine start
   ryoku-cmd-caffeine stop
+  ryoku-cmd-caffeine restore
   ryoku-cmd-caffeine toggle
 EOF
 }
@@ -28,6 +30,19 @@ legacy_inhibitor_active() {
 
 caffeine_active() {
   helper_inhibitor_active || legacy_inhibitor_active
+}
+
+caffeine_requested() {
+  [[ -f $state_file ]] && grep -Fxq "enabled" "$state_file"
+}
+
+persist_caffeine_state() {
+  mkdir -p "$(dirname "$state_file")"
+  printf '%s\n' "enabled" >"$state_file"
+}
+
+clear_caffeine_state() {
+  rm -f "$state_file"
 }
 
 with_caffeine_lock() {
@@ -59,6 +74,8 @@ stop_inhibitor() {
 }
 
 start_caffeine() {
+  persist_caffeine_state
+
   if caffeine_active; then
     return 0
   fi
@@ -76,11 +93,20 @@ start_caffeine() {
 }
 
 stop_caffeine() {
+  clear_caffeine_state
   stop_inhibitor
 }
 
+restore_caffeine() {
+  if ! caffeine_requested; then
+    return 0
+  fi
+
+  start_caffeine
+}
+
 toggle_caffeine() {
-  if caffeine_active; then
+  if caffeine_requested || caffeine_active; then
     stop_caffeine
   else
     start_caffeine
@@ -96,6 +122,9 @@ case "${1:-}" in
     ;;
   stop)
     with_caffeine_lock stop_caffeine
+    ;;
+  restore)
+    with_caffeine_lock restore_caffeine
     ;;
   toggle)
     with_caffeine_lock toggle_caffeine

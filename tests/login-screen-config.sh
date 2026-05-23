@@ -130,6 +130,7 @@ assert_grep "ryoku-refresh-qylock-previews" "$qylock_preview_migration"
 assert_no_grep "LoginScreenConfig\\.qml" "$qylock_preview_migration"
 assert_grep "read_active_sddm_theme" "bin/ryoku-install-qylock"
 assert_grep "RYOKU_SDDM_CONF_DIR:-/etc/sddm\\.conf\\.d" "bin/ryoku-install-qylock"
+assert_grep "\\.config/qylock/theme" "bin/ryoku-install-qylock"
 # Must use the _priv wrapper instead of bare sudo for the cp/tee path
 assert_grep "_priv"       "bin/ryoku-install-qylock"
 # Must pin RYOKU_PATH from the helper's own install location before

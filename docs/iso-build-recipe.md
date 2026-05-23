@@ -49,7 +49,7 @@ Port 2222 on the host is hostfwd'd to the VM's port 22, so `ssh -p 2222 root@loc
 
 1. SYSLINUX (BIOS) / GRUB (UEFI) loads kernel + initramfs from the live ISO.
 2. archiso live env boots, mounts squashfs root.
-3. `/root/.automated_script.sh` runs on tty1:
+3. `/root/.automated_script.sh` runs the gum configurator on tty1:
    1. `use_ryoku_helpers` exports `RYOKU_PATH` / `RYOKU_INSTALL`.
    2. `run_configurator` collects user info into `user_configuration.json` + `user_credentials.json`.
    3. `install_arch` calls `archinstall --silent` against the configurator JSON, mounts `/var/cache/ryoku/mirror/offline` into `/mnt`, copies `/root/ryoku` into `/mnt/home/<user>/.local/share/`, writes static `/mnt/etc/resolv.conf` (1.1.1.1 + 8.8.8.8).
@@ -57,8 +57,9 @@ Port 2222 on the host is hostfwd'd to the VM's port 22, so `ssh -p 2222 root@loc
 4. The chroot `install.sh` runs `preflight/all.sh` then `packaging/all.sh` then `config/all.sh` then `login/all.sh` then `post-install/all.sh`.
    - In offline mode (`RYOKU_ONLINE_INSTALL` unset, the default in the live ISO env), `preflight/pacman.sh` and `preflight/yay-bootstrap.sh` exit early. `packaging/aur-core.sh` no longer exits early: it pacman-installs every AUR PackageBase listed in `install/ryoku-aur.packages` from the `[offline]` mirror (build-iso.sh bakes those packages into the mirror via `iso/builder/build-boot-overlay.sh`).
    - `packaging/base.sh` installs everything in `install/ryoku-base.packages` from the offline mirror's `[offline]` repo. The mirror also contains everything listed in `install/ryoku-other.packages` (Vulkan/NVIDIA/Intel video drivers, kernel headers, broadcom-wl, thermald, linux-firmware-marvell, etc.) so the hardware-detection scripts in `install/config/hardware/*.sh` can pacman-install matching drivers without network. The AUR halves of those splits live in `install/ryoku-aur.packages` (default install) and `iso/builder/ryoku-boot-overlay.packages` (boot-critical + conditional hardware AUR drivers like asusctl, qmk-hid, nvidia-580xx).
+   - `login/hibernation.sh` prepares resume configuration before the single Limine rebuild.
    - `login/limine-snapper.sh` hard-fails if `limine`, `limine-snapper-sync`, `limine-mkinitcpio-hook`, or `limine-update` is missing; runs `mkinitcpio -P` + `limine-update`; asserts `/boot/EFI/Linux/ryoku_linux.efi` and a `^/+Ryoku` entry in `/boot/limine.conf`.
-   - `login/sddm.sh` refuses to enable SDDM unless the shell-provided greeter theme + a Hyprland session file exist.
+   - `login/sddm.sh` installs qylock's clockwork theme and refuses to enable SDDM unless qylock + a Hyprland session file exist.
    - `post-install/pacman.sh` swaps `/etc/pacman.conf` to the upstream-only config, dropping the temporary `[offline]` entry from the user's installed system.
    - `post-install/finished.sh` writes `/mnt/var/tmp/ryoku-install-completed` and triggers a reboot.
 
@@ -119,7 +120,7 @@ Watch for:
 - Build container exits 0. Look for `[mkarchiso] INFO: Done!` near the end of the build log, then `Writing to 'stdio:/out/...iso' completed successfully`.
 - VM reaches the configurator UI without a kernel panic.
 - Configurator + archinstall + chroot install reach `installation completed` without aborting at a `Failed script:` line.
-- Reboot lands at the shell-provided SDDM greeter.
+- Reboot lands at the qylock SDDM greeter.
 - Logging in reaches the Hyprland session with the Ryoku shell.
 
 If any of the above breaks, the failure menu in the live ISO offers `View full log`. Screenshot the `Failed script:` line + the error block above it; that points at the regressing script.

@@ -15,6 +15,28 @@ grep -qxF gpk-bin "$ROOT_DIR/install/ryoku-aur.packages" || \
 grep -qxF hyprmod "$ROOT_DIR/install/ryoku-aur.packages" || \
   fail "Ryoku AUR packages should include hyprmod for the shipped Hyprland settings app"
 
+line_number() {
+  local needle="$1"
+  local file="$2"
+
+  awk -v needle="$needle" '$0 == needle { print NR; found=1; exit } END { if (!found) exit 1 }' "$file"
+}
+
+hyprmod_line=$(line_number hyprmod "$ROOT_DIR/install/ryoku-aur.packages") || \
+  fail "Ryoku AUR packages should include hyprmod"
+
+for hyprmod_dep in \
+  python-hyprland-config \
+  python-hyprland-monitors \
+  python-hyprland-schema \
+  python-hyprland-socket \
+  python-hyprland-state; do
+  dep_line=$(line_number "$hyprmod_dep" "$ROOT_DIR/install/ryoku-aur.packages") || \
+    fail "Ryoku AUR packages should include HyprMod dependency: $hyprmod_dep"
+  (( dep_line < hyprmod_line )) || \
+    fail "HyprMod dependency $hyprmod_dep should be built before hyprmod"
+done
+
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 

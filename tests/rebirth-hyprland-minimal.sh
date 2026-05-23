@@ -52,6 +52,14 @@ rg -q 'env = XCURSOR_THEME,Bibata-Modern-Classic' "$ROOT_DIR/config/hypr/hyprlan
   fail "Hyprland config should set the Ryoku Xcursor theme for Xwayland apps"
 rg -q 'env = HYPRCURSOR_THEME,Bibata-Modern-Classic' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should set the Ryoku Hyprcursor theme"
+rg -q 'bezier = smoothOpen,0\.12,0,0\.20,1' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should ship a gentler opening animation curve"
+rg -q 'animation = windowsIn, 1, 5, smoothOpen, popin 85%' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should smooth out opening windows"
+rg -q 'animation = fadeIn, 1, 5, smoothOpen' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should smooth out opening fades"
+rg -q 'set_smooth_opening_animations' "$ROOT_DIR/migrations/1779504291.sh" || \
+  fail "Migration should converge existing Hyprland configs to the shipped smooth opening animation"
 rg -q 'bind = SUPER SHIFT, R, exec, hyprctl reload' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland reload bind should not restart a shell"
 rg -q 'bind = SUPER, Space, exec, [$]menu' "$ROOT_DIR/config/hypr/hyprland.conf" || \

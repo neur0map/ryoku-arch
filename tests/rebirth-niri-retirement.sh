@@ -112,7 +112,6 @@ for helper in \
   bin/ryoku-cursor-set \
   bin/ryoku-launch-or-focus \
   bin/ryoku-launch-screensaver \
-  bin/ryoku-lock-qylock \
   bin/ryoku-session-recover \
   bin/ryoku-system-reboot \
   bin/ryoku-system-shutdown \

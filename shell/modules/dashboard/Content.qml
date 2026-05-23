@@ -67,9 +67,6 @@ Item {
     readonly property real nonAnimWidth: view.implicitWidth + viewWrapper.anchors.margins * 2
     readonly property real nonAnimHeight: tabs.implicitHeight + tabs.anchors.topMargin + view.implicitHeight + viewWrapper.anchors.margins * 2
 
-    implicitWidth: nonAnimWidth
-    implicitHeight: nonAnimHeight
-
     function clampCurrentTab(): void {
         const count = dashboardTabCount;
         const maxIndex = Math.max(0, count - 1);
@@ -78,6 +75,9 @@ Item {
         if (current !== clamped)
             dashState.currentTab = clamped;
     }
+
+    implicitWidth: nonAnimWidth
+    implicitHeight: nonAnimHeight
 
     onDashboardTabCountChanged: clampCurrentTab()
     Component.onCompleted: clampCurrentTab()

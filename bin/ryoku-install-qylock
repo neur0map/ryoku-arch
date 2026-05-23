@@ -10,7 +10,7 @@ source "$RYOKU_PATH/lib/runtime-env.sh"
 # Usage:
 #   ryoku-install-qylock                  interactive picker (qylock's sddm.sh)
 #   ryoku-install-qylock --theme <name>   non-interactive; installs <name>
-#   ryoku-install-qylock --default        non-interactive; installs dog-samurai
+#   ryoku-install-qylock --default        non-interactive; installs clockwork
 #                                         if no qylock theme is installed yet
 #
 # Safe to run via pkexec: when EUID=0, the helper drops privileges to
@@ -46,7 +46,7 @@ fi
 QYLOCK_DIR="$TARGET_HOME/.local/share/qylock"
 QYLOCK_LOCK_DIR="$TARGET_HOME/.local/share/quickshell-lockscreen"
 QYLOCK_REPO="https://github.com/Darkkal44/qylock.git"
-DEFAULT_THEME="dog-samurai"
+DEFAULT_THEME="clockwork/orbital"
 
 mode="${1:-interactive}"
 
@@ -125,43 +125,80 @@ read_active_sddm_theme() {
   printf '%s\n' "$current"
 }
 
-valid_qylock_theme() {
+normalize_qylock_theme() {
   local selected_theme="$1"
 
-  [[ $selected_theme =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || return 1
+  case "$selected_theme" in
+    clockwork)
+      printf '%s\n' "$DEFAULT_THEME"
+      ;;
+    orbital|tape)
+      printf 'clockwork/%s\n' "$selected_theme"
+      ;;
+    *)
+      printf '%s\n' "$selected_theme"
+      ;;
+  esac
+}
+
+theme_install_name() {
+  local selected_theme="$1"
+
+  basename "$selected_theme"
+}
+
+valid_qylock_theme() {
+  local selected_theme
+
+  selected_theme=$(normalize_qylock_theme "$1")
+  [[ $selected_theme =~ ^[A-Za-z0-9][A-Za-z0-9._-]*(/[A-Za-z0-9][A-Za-z0-9._-]*)?$ ]] || return 1
   [[ -f $QYLOCK_DIR/themes/$selected_theme/Main.qml ]]
 }
 
 list_valid_qylock_themes() {
-  local candidate_dir candidate
+  local candidate candidate_dir nested nested_dir
 
   shopt -s nullglob
   for candidate_dir in "$QYLOCK_DIR"/themes/*/; do
     [[ -d $candidate_dir ]] || continue
     candidate=$(basename "$candidate_dir")
-    valid_qylock_theme "$candidate" || continue
-    printf '%s\n' "$candidate"
+    if [[ -f $candidate_dir/Main.qml ]] && valid_qylock_theme "$candidate"; then
+      printf '%s\n' "$candidate"
+      continue
+    fi
+
+    for nested_dir in "$candidate_dir"*/; do
+      [[ -d $nested_dir ]] || continue
+      nested="$candidate/$(basename "$nested_dir")"
+      valid_qylock_theme "$nested" || continue
+      printf '%s\n' "$nested"
+    done
   done
 }
 
 install_system_theme() {
   local selected_theme="$1"
+  local system_theme
   local src="$QYLOCK_DIR/themes/$selected_theme"
 
   if ! valid_qylock_theme "$selected_theme"; then
     echo "  theme '$selected_theme' is not a usable qylock theme under $QYLOCK_DIR/themes" >&2
-    echo "  qylock themes must be top-level directories containing Main.qml" >&2
+    echo "  qylock themes must be directories containing Main.qml" >&2
     echo "  available:" >&2
     list_valid_qylock_themes | sed 's/^/    /' >&2
     exit 1
   fi
 
+  system_theme=$(theme_install_name "$selected_theme")
+
   echo "  installing theme: $selected_theme"
-  _priv rm -rf "/usr/share/sddm/themes/$selected_theme"
-  _priv cp -r "$src" "/usr/share/sddm/themes/$selected_theme"
+  _priv rm -rf "/usr/share/sddm/themes/$system_theme"
+  _priv cp -r "$src" "/usr/share/sddm/themes/$system_theme"
 }
 
 refresh_qylock_previews
+
+theme=$(normalize_qylock_theme "$theme")
 
 if [[ -z $theme ]]; then
   if (( EUID == 0 )); then
@@ -175,16 +212,16 @@ fi
 if [[ $mode == "--default" ]]; then
   current_theme=$(read_active_sddm_theme)
   if [[ -n $current_theme ]] && valid_qylock_theme "$current_theme"; then
-    echo "  qylock theme already active: $current_theme (keeping)"
-    ensure_current="$current_theme"
-    install_system_theme "$current_theme"
+    ensure_current=$(normalize_qylock_theme "$current_theme")
+    echo "  qylock theme already active: $ensure_current (keeping)"
+    install_system_theme "$ensure_current"
   else
     for candidate_dir in /usr/share/sddm/themes/*/; do
       candidate=$(basename "$candidate_dir")
       if valid_qylock_theme "$candidate"; then
-        echo "  qylock theme already installed: $candidate (keeping)"
-        ensure_current="$candidate"
-        install_system_theme "$candidate"
+        ensure_current=$(normalize_qylock_theme "$candidate")
+        echo "  qylock theme already installed: $ensure_current (keeping)"
+        install_system_theme "$ensure_current"
         break
       fi
     done
@@ -225,9 +262,17 @@ install_quickshell_lockscreen() {
   _user chmod +x "$QYLOCK_LOCK_DIR/lock.sh"
 }
 
+write_quickshell_lockscreen_theme() {
+  local selected_theme="$1"
+
+  _user mkdir -p "$TARGET_HOME/.config/qylock"
+  printf '%s\n' "$selected_theme" | _user tee "$TARGET_HOME/.config/qylock/theme" >/dev/null
+}
+
 _priv mkdir -p /etc/sddm.conf.d
-write_sddm_current_theme "$ensure_current"
+write_sddm_current_theme "$(theme_install_name "$ensure_current")"
 install_quickshell_lockscreen
+write_quickshell_lockscreen_theme "$ensure_current"
 
 echo "  qylock theme active: $ensure_current"
 echo "  qylock lockscreen active: $ensure_current"

@@ -36,6 +36,7 @@ assert_not_contains() {
 assert_file install/ryoku-base.packages
 assert_file install/login/sddm.sh
 assert_file bin/ryoku-sddm-autologin
+assert_file bin/ryoku-install-qylock
 assert_file install/config/shell.sh
 assert_file shell/scripts/ryoku-shell
 assert_file shell/setup
@@ -53,6 +54,8 @@ assert_contains install/login/sddm.sh 'hyprland\.desktop|Hyprland\.desktop|hyprl
   "SDDM setup should verify a Hyprland session file"
 assert_not_contains install/login/sddm.sh 'niri\.desktop|niri session' \
   "SDDM setup should not require Niri"
+assert_contains install/login/sddm.sh 'ryoku-install-qylock --theme clockwork' \
+  "fresh installs should download and activate qylock's clockwork theme"
 
 assert_contains bin/ryoku-sddm-autologin 'hyprland\.desktop|Hyprland\.desktop|hyprland-uwsm\.desktop' \
   "SDDM autologin should choose a Hyprland session"

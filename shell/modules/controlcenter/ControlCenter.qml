@@ -5,7 +5,6 @@ import QtQuick.Layouts
 import Quickshell
 import Ryoku.Config
 import qs.components
-import qs.components.controls
 import qs.services
 
 Item {
@@ -27,8 +26,8 @@ Item {
 
     signal close
 
-    implicitWidth: implicitHeight * Tokens.sizes.controlCenter.ratio
-    implicitHeight: screen.height * Tokens.sizes.controlCenter.heightMult
+    implicitWidth: Math.min(screen.width * 0.8, implicitHeight * Tokens.sizes.controlCenter.ratio)
+    implicitHeight: Math.min(screen.height * 0.78, 1180)
 
     GridLayout {
         anchors.fill: parent
@@ -60,25 +59,10 @@ Item {
             implicitWidth: navRail.implicitWidth
             color: Colours.tPalette.m3surfaceContainer
 
-            CustomMouseArea {
-                function onWheel(event: WheelEvent): void {
-                    // Prevent tab switching during initial opening animation to avoid blank pages
-                    if (!panes.initialOpeningComplete) {
-                        return;
-                    }
-
-                    if (event.angleDelta.y < 0)
-                        root.session.activeIndex = Math.min(root.session.activeIndex + 1, root.session.panes.length - 1);
-                    else if (event.angleDelta.y > 0)
-                        root.session.activeIndex = Math.max(root.session.activeIndex - 1, 0);
-                }
-
-                anchors.fill: parent
-            }
-
             NavRail {
                 id: navRail
 
+                anchors.fill: parent
                 screen: root.screen
                 session: root.session
                 initialOpeningComplete: root.initialOpeningComplete

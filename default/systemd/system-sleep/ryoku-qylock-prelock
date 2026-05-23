@@ -46,12 +46,30 @@ home_for_uid() {
   printf '%s\n' "$home"
 }
 
+qylock_theme_source_path() {
+  local home="$1"
+  local theme="$2"
+
+  case "$theme" in
+    clockwork)
+      printf '%s\n' "$home/.local/share/qylock/themes/clockwork/orbital"
+      ;;
+    orbital|tape)
+      printf '%s\n' "$home/.local/share/qylock/themes/clockwork/$theme"
+      ;;
+    *)
+      printf '%s\n' "$home/.local/share/qylock/themes/$theme"
+      ;;
+  esac
+}
+
 has_qylock_session() {
   local home
   local found=0
   local rest
   local session
   local theme="$1"
+  local theme_path
   local uid
   local _user
 
@@ -62,7 +80,8 @@ has_qylock_session() {
     (( uid >= 1000 )) || continue
 
     home="$(home_for_uid "$uid")" || continue
-    [[ -f $home/.local/share/qylock/themes/$theme/Main.qml ]] || continue
+    theme_path=$(qylock_theme_source_path "$home" "$theme")
+    [[ -f $theme_path/Main.qml ]] || continue
 
     found=1
   done < <(loginctl list-sessions --no-legend 2>/dev/null || true)

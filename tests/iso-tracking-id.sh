@@ -102,6 +102,12 @@ assert_contains 'iso/builder/build-iso.sh' 'build-gum-package\.sh' \
   "ISO builder should rebuild gum with the current Go toolchain before scanning"
 assert_contains 'iso/builder/build-iso.sh' 'rebuilt_official_packages=\(gum\)' \
   "ISO builder should avoid downloading the stale official gum package"
+assert_contains 'iso/builder/build-iso.sh' 'download_official_packages\(\)' \
+  "ISO builder should wrap official package mirror downloads"
+assert_contains 'iso/builder/build-iso.sh' 'official package mirror download failed \(attempt \$attempt/\$max_attempts\)' \
+  "ISO builder should retry transient official mirror download failures"
+assert_contains 'iso/builder/build-iso.sh' 'rm -f /tmp/offlinedb/db\.lck "\$offline_mirror_dir/db\.lck"' \
+  "ISO builder should clear stale pacman locks before retrying official mirror downloads"
 assert_contains 'iso/builder/build-gum-package.sh' 'CVE-2025-68121' \
   "gum rebuild script should document the Trivy blocker it fixes"
 assert_contains 'iso/builder/build-gum-package.sh' 'http\.version=HTTP/1\.1' \

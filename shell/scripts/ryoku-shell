@@ -54,6 +54,24 @@ ipc_call() {
   "$qs_bin" -p "$runtime_dir" ipc call "$@"
 }
 
+lock_qylock_direct() {
+  local lock_script="$HOME/.local/share/quickshell-lockscreen/lock.sh"
+
+  if [[ -x $lock_script ]]; then
+    env -u QS_CONFIG_NAME -u QS_CONFIG_PATH -u QS_MANIFEST "$lock_script"
+  else
+    loginctl lock-session
+  fi
+}
+
+lock_screen() {
+  if [[ -f $runtime_dir/shell.qml ]] && "$qs_bin" -p "$runtime_dir" ipc call lock lock >/dev/null 2>&1; then
+    return
+  fi
+
+  lock_qylock_direct
+}
+
 install_service() {
   local source_service=""
   local candidate
@@ -143,7 +161,7 @@ case "$command" in
     ipc_call controlCenter toggle
     ;;
   lock)
-    ipc_call lock lock
+    lock_screen
     ;;
   picker)
     ipc_call picker open

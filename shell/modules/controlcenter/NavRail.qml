@@ -15,44 +15,80 @@ Item {
     required property Session session
     required property bool initialOpeningComplete
 
-    implicitWidth: layout.implicitWidth + Tokens.padding.larger * 4
+    readonly property var activeEntry: PaneRegistry.getByLabel(session.active)
+
+    function selectGroup(group: string): void {
+        if (!root.initialOpeningComplete)
+            return;
+
+        const panes = PaneRegistry.getByGroup(group);
+        if (panes.length > 0)
+            root.session.active = panes[0].label;
+    }
+
+    implicitWidth: 216
     implicitHeight: layout.implicitHeight + Tokens.padding.large * 2
 
     ColumnLayout {
         id: layout
 
-        anchors.left: parent.left
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.leftMargin: Tokens.padding.larger * 2
+        anchors.fill: parent
+        anchors.margins: Tokens.padding.large
         spacing: Tokens.spacing.normal
 
-        states: State {
-            name: "expanded"
-            when: root.session.navExpanded
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.bottomMargin: Tokens.spacing.normal
+            spacing: Tokens.spacing.normal
 
-            PropertyChanges {
-                layout.spacing: root.Tokens.spacing.small
+            StyledRect {
+                Layout.alignment: Qt.AlignVCenter
+                implicitWidth: 40
+                implicitHeight: 40
+                radius: Tokens.rounding.full
+                color: Colours.palette.m3primaryContainer
+
+                MaterialIcon {
+                    anchors.centerIn: parent
+                    text: "tune"
+                    color: Colours.palette.m3onPrimaryContainer
+                    font.pointSize: Tokens.font.size.large
+                    fill: 1
+                }
             }
-        }
 
-        transitions: Transition {
-            Anim {
-                properties: "spacing"
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 0
+
+                StyledText {
+                    Layout.fillWidth: true
+                    text: qsTr("Settings")
+                    font.pointSize: Tokens.font.size.larger
+                    font.weight: 600
+                    elide: Text.ElideRight
+                }
+
+                StyledText {
+                    Layout.fillWidth: true
+                    text: qsTr("Ryoku")
+                    color: Colours.palette.m3onSurfaceVariant
+                    font.pointSize: Tokens.font.size.small
+                    elide: Text.ElideRight
+                }
             }
         }
 
         Loader {
-            Layout.topMargin: Tokens.spacing.large
+            Layout.fillWidth: true
+            Layout.bottomMargin: Tokens.spacing.small
             asynchronous: true
             active: !root.session.floating
             visible: active
 
             sourceComponent: StyledRect {
-                readonly property int nonAnimWidth: normalWinIcon.implicitWidth + (root.session.navExpanded ? normalWinLabel.anchors.leftMargin + normalWinLabel.implicitWidth : 0) + normalWinIcon.anchors.leftMargin * 2
-
-                implicitWidth: nonAnimWidth
-                implicitHeight: root.session.navExpanded ? normalWinIcon.implicitHeight + Tokens.padding.normal * 2 : nonAnimWidth
-
+                Layout.fillWidth: true
+                implicitHeight: 42
                 color: Colours.palette.m3primaryContainer
                 radius: Tokens.rounding.small
 
@@ -76,7 +112,7 @@ Item {
 
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
-                    anchors.leftMargin: Tokens.padding.large
+                    anchors.leftMargin: Tokens.padding.normal
 
                     text: "select_window"
                     color: Colours.palette.m3onPrimaryContainer
@@ -93,138 +129,111 @@ Item {
 
                     text: qsTr("Float window")
                     color: Colours.palette.m3onPrimaryContainer
-                    opacity: root.session.navExpanded ? 1 : 0
-
-                    Behavior on opacity {
-                        Anim {
-                            type: Anim.StandardSmall
-                        }
-                    }
+                    font.weight: 500
                 }
-
-                Behavior on implicitWidth {
-                    Anim {
-                        type: Anim.DefaultSpatial
-                    }
-                }
-
-                Behavior on implicitHeight {
-                    Anim {
-                        type: Anim.DefaultSpatial
-                    }
-                }
-            }
-        }
-
-        Repeater {
-            model: PaneRegistry.count
-
-            NavItem {
-                required property int index
-
-                Layout.topMargin: index === 0 ? Tokens.spacing.large * 2 : 0
-                icon: PaneRegistry.getByIndex(index).icon
-                label: PaneRegistry.getByIndex(index).label
-            }
-        }
-    }
-
-    component NavItem: Item {
-        id: item
-
-        required property string icon
-        required property string label
-        readonly property bool active: root.session.active === label
-
-        implicitWidth: background.implicitWidth
-        implicitHeight: background.implicitHeight + smallLabel.implicitHeight + smallLabel.anchors.topMargin
-
-        states: State {
-            name: "expanded"
-            when: root.session.navExpanded
-
-            PropertyChanges {
-                expandedLabel.opacity: 1
-                smallLabel.opacity: 0
-                background.implicitWidth: icon.implicitWidth + icon.anchors.leftMargin * 2 + expandedLabel.anchors.leftMargin + expandedLabel.implicitWidth
-                background.implicitHeight: icon.implicitHeight + root.Tokens.padding.normal * 2
-                item.implicitHeight: background.implicitHeight
-            }
-        }
-
-        transitions: Transition {
-            Anim {
-                property: "opacity"
-                type: Anim.StandardSmall
-            }
-
-            Anim {
-                properties: "implicitWidth,implicitHeight"
-                type: Anim.DefaultSpatial
             }
         }
 
         StyledRect {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            radius: Tokens.rounding.normal
+            color: Colours.transparency.enabled ? Colours.layer(Colours.palette.m3surfaceContainer, 1) : Colours.tPalette.m3surfaceContainerLow
+
+            ColumnLayout {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: Tokens.padding.normal
+                spacing: Tokens.spacing.normal
+
+                CategoryItem {
+                    Layout.fillWidth: true
+                    group: "system"
+                    icon: PaneRegistry.groupIcon("system")
+                    label: PaneRegistry.groupLabel("system")
+                }
+
+                CategoryItem {
+                    Layout.fillWidth: true
+                    group: "interface"
+                    icon: PaneRegistry.groupIcon("interface")
+                    label: PaneRegistry.groupLabel("interface")
+                }
+
+                CategoryItem {
+                    Layout.fillWidth: true
+                    group: "workflow"
+                    icon: PaneRegistry.groupIcon("workflow")
+                    label: PaneRegistry.groupLabel("workflow")
+                }
+
+                CategoryItem {
+                    Layout.fillWidth: true
+                    group: "about"
+                    icon: PaneRegistry.groupIcon("about")
+                    label: PaneRegistry.groupLabel("about")
+                }
+            }
+        }
+    }
+
+    component CategoryItem: Item {
+        id: item
+
+        required property string group
+        required property string icon
+        required property string label
+
+        readonly property bool active: root.activeEntry !== null && root.activeEntry.group === group
+
+        implicitHeight: 56
+
+        StyledRect {
             id: background
 
-            radius: Tokens.rounding.full
-            color: Qt.alpha(Colours.palette.m3secondaryContainer, item.active ? 1 : 0)
-
-            implicitWidth: icon.implicitWidth + icon.anchors.leftMargin * 2
-            implicitHeight: icon.implicitHeight + Tokens.padding.small
+            anchors.fill: parent
+            radius: Tokens.rounding.small
+            color: item.active ? Colours.palette.m3secondaryContainer : Qt.alpha(Colours.tPalette.m3surfaceContainer, 0)
 
             StateLayer {
                 onClicked: {
-                    // Prevent tab switching during initial opening animation to avoid blank pages
-                    if (!root.initialOpeningComplete) {
-                        return;
-                    }
-                    root.session.active = item.label;
+                    root.selectGroup(item.group);
                 }
 
                 color: item.active ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurface
+                radius: background.radius
             }
 
-            MaterialIcon {
-                id: icon
+            RowLayout {
+                id: content
 
                 anchors.left: parent.left
+                anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-                anchors.leftMargin: Tokens.padding.large
+                anchors.margins: Tokens.padding.normal
+                spacing: Tokens.spacing.normal
 
-                text: item.icon
-                color: item.active ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurface
-                font.pointSize: Tokens.font.size.large
-                fill: item.active ? 1 : 0
+                MaterialIcon {
+                    Layout.alignment: Qt.AlignVCenter
+                    text: item.icon
+                    color: item.active ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurface
+                    font.pointSize: Tokens.font.size.large
+                    fill: item.active ? 1 : 0
 
-                Behavior on fill {
-                    Anim {}
+                    Behavior on fill {
+                        Anim {}
+                    }
                 }
-            }
 
-            StyledText {
-                id: expandedLabel
-
-                anchors.left: icon.right
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.leftMargin: Tokens.spacing.normal
-
-                opacity: 0
-                text: item.label
-                color: item.active ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurface
-                font.capitalization: Font.Capitalize
-            }
-
-            StyledText {
-                id: smallLabel
-
-                anchors.horizontalCenter: icon.horizontalCenter
-                anchors.top: icon.bottom
-                anchors.topMargin: Tokens.spacing.small / 2
-
-                text: item.label
-                font.pointSize: Tokens.font.size.small
-                font.capitalization: Font.Capitalize
+                StyledText {
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignVCenter
+                    text: item.label
+                    color: item.active ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurface
+                    font.weight: item.active ? 650 : 500
+                    elide: Text.ElideRight
+                }
             }
         }
     }

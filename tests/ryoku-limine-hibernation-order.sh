@@ -60,6 +60,8 @@ assert_contains install/login/hibernation.sh 'ryoku-hibernation-setup --force --
   "install-time hibernation should skip its own rebuild and let Limine setup rebuild once"
 assert_order install/login/all.sh 'login/hibernation\.sh' 'login/limine-snapper\.sh' \
   "hibernation setup should run before limine-snapper"
+assert_order install/login/all.sh 'login/limine-snapper\.sh' 'login/sddm\.sh' \
+  "Limine branding should complete before SDDM/qylock setup can fail"
 assert_not_contains install/post-install/all.sh 'post-install/hibernation\.sh' \
   "post-install should not rebuild hibernation after limine setup"
 

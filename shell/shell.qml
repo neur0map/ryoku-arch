@@ -8,23 +8,20 @@ import "modules"
 import "modules/drawers"
 import "modules/background"
 import "modules/areapicker"
-import "modules/lock"
 import Quickshell
+import qs.services
 
 ShellRoot {
     settings.watchFiles: true
+    readonly property bool idleInhibitorLoaded: IdleInhibitor.enabled
 
     Background {}
     Drawers {}
     AreaPicker {}
-    Lock {
-        id: lock
-    }
 
     ConfigToasts {}
     Shortcuts {}
     BatteryMonitor {}
-    IdleMonitors {
-        lock: lock
-    }
+    LockBridge {}
+    IdleMonitors {}
 }

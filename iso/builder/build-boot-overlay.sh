@@ -67,6 +67,41 @@ sudo -u builder rustup default stable
 chown builder:builder "$build_root"
 chown builder:builder "$output_dir"
 
+aur_build_repo_name="ryoku-aur-build"
+aur_build_repo_db="$output_dir/${aur_build_repo_name}.db.tar.gz"
+aur_build_repo_configured=0
+
+aur_configure_build_repo() {
+  if (( aur_build_repo_configured )); then
+    return 0
+  fi
+
+  cat >>/etc/pacman.conf <<EOF
+
+[$aur_build_repo_name]
+SigLevel = Optional TrustAll
+Server = file://$output_dir
+EOF
+
+  aur_build_repo_configured=1
+}
+
+aur_publish_build_outputs() {
+  local package_file
+  local package_files=()
+
+  while IFS= read -r package_file; do
+    [[ -f $package_file ]] || continue
+    package_files+=("$package_file")
+  done < <(sudo -u builder env PKGDEST="$output_dir" makepkg --packagelist)
+
+  (( ${#package_files[@]} > 0 )) || return 0
+
+  repo-add "$aur_build_repo_db" "${package_files[@]}"
+  aur_configure_build_repo
+  pacman --noconfirm -Sy
+}
+
 aur_fetch_plain_file() {
   local pkg="$1"
   local work_dir="$2"
@@ -214,5 +249,6 @@ while IFS= read -r pkg; do
   # For a hardened release flow, replace --skippgpcheck with explicit
   # gpg --recv-keys for the vendor keys we trust.
   sudo -u builder env PKGDEST="$output_dir" makepkg --syncdeps --clean --cleanbuild --force --noconfirm --skippgpcheck
+  aur_publish_build_outputs
   popd >/dev/null
 done < <(cat "${packages_files[@]}")

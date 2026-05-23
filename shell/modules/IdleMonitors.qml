@@ -1,16 +1,13 @@
 pragma ComponentBehavior: Bound
 
-import "lock"
 import Quickshell
 import Quickshell.Wayland
 import Ryoku.Config
-import Ryoku.Internal
 import qs.services
 
 Scope {
     id: root
 
-    required property Lock lock
     readonly property bool enabled: !GlobalConfig.general.idle.inhibitWhenAudio || !Players.list.some(p => p.isPlaying)
 
     function handleIdleAction(action: var): void {
@@ -18,22 +15,13 @@ Scope {
             return;
 
         if (action === "lock")
-            lock.lock.locked = true;
+            Quickshell.execDetached(["loginctl", "lock-session"]);
         else if (action === "unlock")
-            lock.lock.locked = false;
+            Quickshell.execDetached(["loginctl", "unlock-session"]);
         else if (typeof action === "string")
             Hypr.dispatch(action);
         else
             Quickshell.execDetached(action);
-    }
-
-    LogindManager {
-        onAboutToSleep: {
-            if (GlobalConfig.general.idle.lockBeforeSleep)
-                root.lock.lock.locked = true;
-        }
-        onLockRequested: root.lock.lock.locked = true
-        onUnlockRequested: root.lock.lock.unlock()
     }
 
     Variants {

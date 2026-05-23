@@ -126,6 +126,12 @@ assert_iso_aur_overlay_retries_clones() {
     fail "ISO AUR overlay builder should explain retrying AUR clone failures"
   grep -Eq 'failed after 5 attempts' "$script" || \
     fail "ISO AUR overlay builder should use the widened retry limit in final errors"
+  grep -Eq 'aur_publish_build_outputs\(\)' "$script" || \
+    fail "ISO AUR overlay builder should publish built packages for later AUR dependency resolution"
+  grep -Eq 'repo-add "\$aur_build_repo_db"' "$script" || \
+    fail "ISO AUR overlay builder should maintain a temporary pacman repo for built AUR packages"
+  grep -Eq 'Server = file://\$output_dir' "$script" || \
+    fail "ISO AUR overlay builder should expose freshly-built packages through pacman syncdeps"
 }
 
 main() {

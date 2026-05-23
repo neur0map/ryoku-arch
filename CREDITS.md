@@ -28,6 +28,20 @@ GPL-3.0 license. The hero composite at
 `shell/assets/sddm-providers/qylock/hero.png` is an original Ryoku composition
 assembled from those screenshots.
 
+## Caelestia Shell
+
+Ryoku's current Quickshell shell started from the Caelestia shell codebase and
+is being adapted into Ryoku-owned user-facing surfaces, commands, and defaults.
+
+- Upstream: https://github.com/caelestia-dots/shell
+- License: GPL-3.0-only
+
+## HyprMod
+
+Ryoku includes Hyprland GUI configuration integration informed by HyprMod.
+
+- Upstream: https://github.com/BlueManCZ/hyprmod
+
 ## Bundled Shell Components
 
 Ryoku's current shell contains GPL-3.0 components that have been adapted into

@@ -76,21 +76,35 @@ else
 fi
 
 # Step 2: remove qylock-sourced themes from /usr/share/sddm/themes.
+remove_qylock_system_theme() {
+  local name
+  local src_dir="$1"
+  local target
+
+  [[ -d $src_dir ]] || return 0
+  [[ -f $src_dir/Main.qml ]] || return 0
+
+  name=$(basename "$src_dir")
+  if is_guarded "$name"; then
+    echo "  skipping guarded theme: $name"
+    return 0
+  fi
+
+  target="$SDDM_THEMES_DIR/$name"
+  if [[ -d $target ]]; then
+    rm -rf "$target"
+    echo "  removed: $target"
+    removed=$((removed + 1))
+  fi
+}
+
 removed=0
 if [[ -d $QYLOCK_DIR/themes ]]; then
   for src_dir in "$QYLOCK_DIR"/themes/*/; do
-    [[ -d $src_dir ]] || continue
-    name=$(basename "$src_dir")
-    if is_guarded "$name"; then
-      echo "  skipping guarded theme: $name"
-      continue
-    fi
-    target="$SDDM_THEMES_DIR/$name"
-    if [[ -d $target ]]; then
-      rm -rf "$target"
-      echo "  removed: $target"
-      removed=$((removed + 1))
-    fi
+    remove_qylock_system_theme "$src_dir"
+    for nested_dir in "$src_dir"*/; do
+      remove_qylock_system_theme "$nested_dir"
+    done
   done
 fi
 

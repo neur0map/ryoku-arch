@@ -40,8 +40,16 @@ app2unit
 darkly-bin
 gpk-bin
 gradia
-hyprmod
 mpvpaper
+# HyprMod depends on these AUR-only Python bindings. Keep them before
+# hyprmod so the ISO overlay builder can resolve makepkg --syncdeps from
+# the temporary build repo instead of reaching the network during first boot.
+python-hyprland-config
+python-hyprland-monitors
+python-hyprland-schema
+python-hyprland-socket
+python-hyprland-state
+hyprmod
 # python-terminaltexteffects ships the `tte` binary used by
 # bin/ryoku-launch-screensaver and install/post-install/finished.sh.
 python-terminaltexteffects

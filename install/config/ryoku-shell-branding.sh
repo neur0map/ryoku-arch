@@ -8,6 +8,7 @@ SHELL_PATH="${RYOKU_SHELL_PATH:-$HOME/.local/share/ryoku-shell}"
 RUNTIME_SHELL_PATH="${RYOKU_SHELL_RUNTIME_PATH:-${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell}"
 REPLACEMENTS_FILE="$RYOKU_PATH/default/ryoku-shell/branding-replacements.tsv"
 CONFIG_OVERRIDES_FILE="$RYOKU_PATH/default/ryoku-shell/config-overrides.json"
+NATIVE_CONFIG_DEFAULTS_FILE="$RYOKU_PATH/default/ryoku-shell/shell.json"
 
 log() {
   printf 'Ryoku branding: %s\n' "$1"
@@ -289,6 +290,40 @@ merge_default_config_overrides() {
   done
 }
 
+merge_native_config_defaults() {
+  local config_dir="${RYOKU_CONFIG_PATH:-${XDG_CONFIG_HOME:-$HOME/.config}/ryoku}"
+  local config_file="$config_dir/shell.json"
+  local temp_file
+
+  [[ -f $NATIVE_CONFIG_DEFAULTS_FILE ]] || return 0
+
+  if ryoku-cmd-missing jq; then
+    log "jq missing, skipped native shell config defaults"
+    return 0
+  fi
+
+  mkdir -p "$config_dir"
+  [[ -f $config_file ]] || printf '{}\n' >"$config_file"
+
+  temp_file=$(mktemp)
+  jq -s '
+    def merge_defaults($base; $defaults):
+      reduce ($defaults | keys_unsorted[]) as $key ($base;
+        if has($key) then
+          if (.[$key] | type) == "object" and ($defaults[$key] | type) == "object" then
+            .[$key] = merge_defaults(.[$key]; $defaults[$key])
+          else
+            .
+          end
+        else
+          .[$key] = $defaults[$key]
+        end
+      );
+    merge_defaults(.[0]; .[1])
+  ' "$config_file" "$NATIVE_CONFIG_DEFAULTS_FILE" >"$temp_file"
+  mv "$temp_file" "$config_file"
+}
+
 main() {
   if [[ ! -d $SHELL_PATH ]]; then
     log "checkout not found, branding will apply after shell install"
@@ -300,6 +335,7 @@ main() {
   apply_installed_labels
   merge_default_config_overrides
   merge_config_overrides
+  merge_native_config_defaults
   restore_ryoku_owned_shell_config
 
   log "applied"

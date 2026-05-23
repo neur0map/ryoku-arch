@@ -229,11 +229,34 @@ for pkg in "${all_packages[@]}"; do
   (( skip == 0 )) && official_packages+=("$pkg")
 done
 
+download_official_packages() {
+  local attempt
+  local max_attempts=4
+  local sleep_seconds
+
+  for (( attempt = 1; attempt <= max_attempts; attempt++ )); do
+    if pacman --config "/configs/pacman-online-${RYOKU_CHANNEL}.conf" \
+      --noconfirm -Syw "${official_packages[@]}" \
+      --cachedir "$offline_mirror_dir/" --dbpath /tmp/offlinedb; then
+      return 0
+    fi
+
+    rm -f /tmp/offlinedb/db.lck "$offline_mirror_dir/db.lck"
+
+    if (( attempt == max_attempts )); then
+      echo "official package mirror download failed after $max_attempts attempts" >&2
+      return 1
+    fi
+
+    sleep_seconds=$(( attempt * 20 ))
+    echo "official package mirror download failed (attempt $attempt/$max_attempts); retrying in ${sleep_seconds}s..." >&2
+    sleep "$sleep_seconds"
+  done
+}
+
 # Download all the packages to the offline mirror inside the ISO
 mkdir -p /tmp/offlinedb
-pacman --config "/configs/pacman-online-${RYOKU_CHANNEL}.conf" \
-  --noconfirm -Syw "${official_packages[@]}" \
-  --cachedir "$offline_mirror_dir/" --dbpath /tmp/offlinedb
+download_official_packages
 
 # Drop any prior db so repo-add always reflects this build's actual
 # package files. With --new (skip-if-present), an overlay package

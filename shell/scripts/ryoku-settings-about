@@ -1,0 +1,337 @@
+#!/bin/bash
+
+set -euo pipefail
+
+ryoku_path="${RYOKU_PATH:-$HOME/.local/share/ryoku}"
+
+if [[ -f $ryoku_path/lib/runtime-env.sh ]]; then
+  # shellcheck disable=SC1091
+  source "$ryoku_path/lib/runtime-env.sh"
+else
+  export RYOKU_PATH="$ryoku_path"
+  export RYOKU_STATE_PATH="${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}"
+fi
+
+remote_url="${RYOKU_UPDATE_REMOTE_URL:-https://github.com/neur0map/ryoku-arch.git}"
+
+usage() {
+  cat <<'EOF'
+Usage: ryoku-settings-about <status|check-updates|doctor|switch-channel|open-url> [args]
+
+Commands:
+  status                 Print Ryoku version, checkout branch, and channel JSON
+  check-updates          Fetch the active channel and print incoming commits JSON
+  doctor                 Run ryoku-doctor shell and print captured output JSON
+  switch-channel BRANCH  Launch the branch switcher for main or unstable-dev
+  open-url URL           Open an https URL in the user's browser
+EOF
+}
+
+json_error() {
+  local message="$1"
+
+  python3 - "$message" <<'PY'
+import json
+import sys
+
+print(json.dumps({"ok": False, "error": sys.argv[1]}))
+PY
+}
+
+about_json() {
+  local mode="$1"
+
+  python3 - "$mode" "$RYOKU_PATH" "$RYOKU_STATE_PATH" "${XDG_CONFIG_HOME:-$HOME/.config}" "$remote_url" <<'PY'
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+mode, repo, state_dir, config_home, remote_url = sys.argv[1:6]
+repo_path = Path(repo).expanduser()
+channels = {"main", "unstable-dev"}
+labels = {
+    "main": "Stable (main)",
+    "unstable-dev": "Unstable (unstable-dev)",
+}
+
+def run_git(*args):
+    env = os.environ.copy()
+    env["GIT_TERMINAL_PROMPT"] = "0"
+    env["GIT_ASKPASS"] = "/bin/true"
+    result = subprocess.run(
+        ["git", "-C", str(repo_path), *args],
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env=env,
+        check=False,
+    )
+    return result.returncode, result.stdout.strip(), result.stderr.strip()
+
+def read_json(path):
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            value = json.load(handle)
+        return value if isinstance(value, dict) else {}
+    except Exception:
+        return {}
+
+def current_branch():
+    code, out, _ = run_git("rev-parse", "--abbrev-ref", "HEAD")
+    if code != 0 or not out:
+        return "unknown"
+    return "detached" if out == "HEAD" else out
+
+def short_head():
+    code, out, _ = run_git("rev-parse", "--short", "HEAD")
+    return out if code == 0 and out else "unknown"
+
+def version():
+    version_file = repo_path / "VERSION"
+    base = "preview"
+    try:
+        text = version_file.read_text(encoding="utf-8").strip().splitlines()
+        if text and text[0].strip():
+            base = text[0].strip()
+    except Exception:
+        pass
+
+    head = short_head()
+    return f"{base} (g{head})" if head != "unknown" else base
+
+def configured_channel(branch):
+    env_channel = os.environ.get("RYOKU_UPDATE_BRANCH", "")
+    if env_channel in channels:
+        return env_channel
+
+    state_file = Path(state_dir).expanduser() / "channel"
+    try:
+        state_channel = state_file.read_text(encoding="utf-8").strip()
+        if state_channel in channels:
+            return state_channel
+    except Exception:
+        pass
+
+    legacy_config = Path(config_home).expanduser() / "ryoku-shell" / "config.json"
+    data = read_json(legacy_config)
+    shell_updates = data.get("shellUpdates", {})
+    if isinstance(shell_updates, dict) and shell_updates.get("channel") in channels:
+        return shell_updates["channel"]
+
+    if branch in channels:
+        return branch
+    return "main"
+
+def dirty_status():
+    code, out, _ = run_git("status", "--porcelain", "--untracked-files=normal")
+    return code == 0 and bool(out)
+
+def base_info():
+    branch = current_branch()
+    channel = configured_channel(branch)
+    return {
+        "ok": True,
+        "version": version(),
+        "head": short_head(),
+        "currentBranch": branch,
+        "configuredChannel": channel,
+        "configuredChannelLabel": labels.get(channel, channel),
+        "channels": [
+            {"id": "main", "label": labels["main"], "description": "Main stable release channel"},
+            {"id": "unstable-dev", "label": labels["unstable-dev"], "description": "Development channel with newer Ryoku changes"},
+        ],
+        "dirty": dirty_status(),
+        "path": str(repo_path),
+        "remote": remote_url,
+    }
+
+def fetch_channel(channel):
+    refspec = f"+refs/heads/{channel}:refs/remotes/origin/{channel}"
+    return run_git("fetch", "--prune", remote_url, refspec)
+
+def incoming_commits(remote_ref):
+    code, out, _ = run_git("log", "--max-count=20", "--pretty=format:%h%x1f%s%x1f%an%x1f%cr", f"HEAD..{remote_ref}")
+    if code != 0 or not out:
+        return []
+
+    commits = []
+    for line in out.splitlines():
+        parts = line.split("\x1f")
+        if len(parts) < 4:
+            continue
+        commits.append({
+            "hash": parts[0],
+            "subject": parts[1],
+            "author": parts[2],
+            "relativeTime": parts[3],
+        })
+    return commits
+
+def check_updates():
+    info = base_info()
+    channel = info["configuredChannel"]
+
+    code, _, err = fetch_channel(channel)
+    if code != 0:
+        info.update({
+            "ok": False,
+            "error": err or f"Unable to fetch {channel}",
+            "incoming": [],
+            "aheadCount": 0,
+            "behindCount": 0,
+        })
+        return info
+
+    remote_ref = f"origin/{channel}"
+    code, counts, err = run_git("rev-list", "--left-right", "--count", f"HEAD...{remote_ref}")
+    ahead = 0
+    behind = 0
+    if code == 0 and counts:
+        values = counts.split()
+        if len(values) >= 2:
+            ahead = int(values[0])
+            behind = int(values[1])
+
+    _, remote_head, _ = run_git("rev-parse", "--short", remote_ref)
+    ancestor_code, _, _ = run_git("merge-base", "--is-ancestor", "HEAD", remote_ref)
+    commits = incoming_commits(remote_ref)
+
+    info.update({
+        "ok": True,
+        "remoteBranch": remote_ref,
+        "remoteHead": remote_head or "unknown",
+        "aheadCount": ahead,
+        "behindCount": behind,
+        "updateAvailable": behind > 0,
+        "canFastForward": ancestor_code == 0 and behind > 0,
+        "incoming": commits,
+    })
+    return info
+
+if not (repo_path / ".git").exists():
+    print(json.dumps({
+        "ok": False,
+        "error": f"Ryoku checkout is not a git repository: {repo_path}",
+        "path": str(repo_path),
+    }))
+    sys.exit(0)
+
+if mode == "status":
+    print(json.dumps(base_info()))
+elif mode == "check-updates":
+    print(json.dumps(check_updates()))
+else:
+    print(json.dumps({"ok": False, "error": f"Unknown mode: {mode}"}))
+PY
+}
+
+doctor_json() {
+  local output_file status doctor_cmd
+
+  doctor_cmd="$(command -v ryoku-doctor || true)"
+  if [[ -z $doctor_cmd && -x $RYOKU_PATH/bin/ryoku-doctor ]]; then
+    doctor_cmd="$RYOKU_PATH/bin/ryoku-doctor"
+  fi
+
+  if [[ -z $doctor_cmd ]]; then
+    json_error "ryoku-doctor was not found"
+    return 0
+  fi
+
+  output_file="$(mktemp)"
+  set +e
+  "$doctor_cmd" shell >"$output_file" 2>&1
+  status=$?
+  set -e
+
+  python3 - "$status" "$output_file" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+status = int(sys.argv[1])
+output = Path(sys.argv[2]).read_text(encoding="utf-8", errors="replace")
+print(json.dumps({
+    "ok": status == 0,
+    "exitCode": status,
+    "output": output.strip(),
+}))
+PY
+  rm -f "$output_file"
+}
+
+switch_channel() {
+  local channel="${1:-}"
+
+  case "$channel" in
+    main | unstable-dev) ;;
+    *)
+      json_error "Invalid channel: $channel"
+      return 1
+      ;;
+  esac
+
+  if ! command -v ryoku-launch-floating-terminal-with-presentation >/dev/null 2>&1; then
+    json_error "ryoku-launch-floating-terminal-with-presentation was not found"
+    return 1
+  fi
+
+  ryoku-launch-floating-terminal-with-presentation "ryoku-channel-set $channel" >/dev/null 2>&1 &
+  python3 - "$channel" <<'PY'
+import json
+import sys
+
+print(json.dumps({
+    "ok": True,
+    "channel": sys.argv[1],
+    "message": f"Started branch switch to {sys.argv[1]} in a terminal.",
+}))
+PY
+}
+
+open_url() {
+  local url="${1:-}"
+
+  case "$url" in
+    https://*) ;;
+    *)
+      json_error "Only https URLs can be opened from settings"
+      return 1
+      ;;
+  esac
+
+  if command -v xdg-open >/dev/null 2>&1; then
+    setsid xdg-open "$url" >/dev/null 2>&1 &
+  fi
+}
+
+command="${1:-status}"
+(($# == 0)) || shift
+
+case "$command" in
+  status)
+    about_json "status"
+    ;;
+  check-updates)
+    about_json "check-updates"
+    ;;
+  doctor)
+    doctor_json
+    ;;
+  switch-channel)
+    switch_channel "$@"
+    ;;
+  open-url)
+    open_url "$@"
+    ;;
+  -h | --help | help)
+    usage
+    ;;
+  *)
+    echo "ryoku-settings-about: unknown command: $command" >&2
+    usage >&2
+    exit 2
+    ;;
+esac
