@@ -15,7 +15,7 @@ Item {
 
     scale: 0.5
     opacity: 0
-    z: PathView.z ?? 0 // qmllint disable missing-property
+    z: PathView.z ?? 0
 
     Component.onCompleted: {
         scale = Qt.binding(() => PathView.isCurrentItem ? 1 : PathView.onPath ? 0.8 : 0);

@@ -8,7 +8,7 @@ Item {
     id: root
 
     // Easier (and more efficient) to ignore it than to check type and cast
-    readonly property int status: loader.item?.status ?? Image.Null // qmllint disable missing-property
+    readonly property int status: loader.item?.status ?? Image.Null
     readonly property real actualSize: Math.min(width, height)
     property real implicitSize
     property url source

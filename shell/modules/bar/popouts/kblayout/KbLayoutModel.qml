@@ -138,7 +138,7 @@ Item {
         stdout: StdioCollector {
             onStreamFinished: model._buildXmlMap(text)
         }
-        onRunningChanged: if (!running && (typeof _xkbXmlBase.exitCode !== "undefined") && _xkbXmlBase.exitCode !== 0) // qmllint disable missing-property
+        onRunningChanged: if (!running && (typeof _xkbXmlBase.exitCode !== "undefined") && _xkbXmlBase.exitCode !== 0)
             _xkbXmlEvdev.running = true
     }
 

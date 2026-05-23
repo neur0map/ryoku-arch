@@ -40,7 +40,7 @@ Singleton {
     PersistentProperties {
         id: props
 
-        property bool enabled: Hypr.options["animations:enabled"] === 0 // qmllint disable missing-property
+        property bool enabled: Hypr.options["animations:enabled"] === 0
 
         reloadableId: "gameMode"
     }

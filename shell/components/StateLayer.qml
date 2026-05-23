@@ -96,7 +96,7 @@ MouseArea {
         opacity: root.stateOpacity
         color: Colours.palette.m3onSurface
         // Pick up radius from parent if it has one (parent can be anything with a radius property)
-        radius: root.parent?.radius ?? 0 // qmllint disable missing-property
+        radius: root.parent?.radius ?? 0
     }
 
     Shape {
