@@ -11,7 +11,7 @@ Item {
 
     Image {
         anchors.fill: parent
-        source: Qt.resolvedUrl("../assets/logo.svg")
+        source: Qt.resolvedUrl("../assets/logo.png")
         fillMode: Image.PreserveAspectFit
         mipmap: true
         smooth: true

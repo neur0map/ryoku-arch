@@ -8,8 +8,11 @@ import qs.utils
 Item {
     id: root
 
-    implicitWidth: Math.round(Tokens.font.size.large * 1.2)
-    implicitHeight: Math.round(Tokens.font.size.large * 1.2)
+    readonly property int logoSize: Math.round(Tokens.font.size.large * 1.6)
+    readonly property int iconSize: Math.round(Tokens.font.size.large * 1.2)
+
+    implicitWidth: logoSize
+    implicitHeight: logoSize
 
     MouseArea {
         anchors.fill: parent
@@ -30,8 +33,8 @@ Item {
         id: ryokuLogo
 
         Logo {
-            implicitWidth: Math.round(Tokens.font.size.large * 1.6)
-            implicitHeight: Math.round(Tokens.font.size.large * 1.6)
+            implicitWidth: root.logoSize
+            implicitHeight: root.logoSize
         }
     }
 
@@ -40,7 +43,7 @@ Item {
 
         ColouredIcon {
             source: SysInfo.osLogo
-            implicitSize: Math.round(Tokens.font.size.large * 1.2)
+            implicitSize: root.iconSize
             colour: Colours.palette.m3tertiary
         }
     }

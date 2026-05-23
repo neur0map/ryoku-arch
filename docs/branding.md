@@ -81,14 +81,14 @@ All logo sources live under `assets/brand/` so the repo root stays focused on pr
 | File | Purpose | Format | Notes |
 |---|---|---|---|
 | `assets/brand/logo.svg` | Square logo with rounded background | SVG | 512x512, `#171717` rounded-square background, `#F25623` kanji `力` centered. Use on light surfaces and in places that want the full mark with its own backdrop (favicon, app icon). |
-| `assets/brand/logo-mark.svg` | Transparent-background kanji mark | SVG | 512x512, transparent background, `#F25623` kanji `力` centered. Use in the README header, on dark theme cards, anywhere that already provides its own background. |
+| `assets/brand/logo-mark.svg` | Transparent-background kanji mark | SVG | 512x512 output with a padded viewBox, transparent background, `#F25623` kanji `力` centered. Use in the README header, shell bar, on dark theme cards, anywhere that already provides its own background. |
 | `assets/brand/logo.txt` | ASCII wordmark | UTF-8 box-drawing | The `RYOKU` wordmark used by `boot.sh`, the configurator, and `ryoku-cmd-first-run`. Reuse this verbatim; do not regenerate. |
 | `assets/brand/icon.png` | Rasterized square logo | PNG (512x512) | Same composition as `assets/brand/logo.svg`, exported. Used as a fallback where SVG is not supported. |
 | `assets/brand/logo-mark.png` | Rasterized transparent mark | PNG (512x512) | Same composition as `assets/brand/logo-mark.svg`, exported. Used in the README header and Discord notifications. |
 | `assets/brand/light.png` | Docs light-mode logo | PNG | Mintlify light-theme header logo. |
 | `assets/brand/dark.png` | Docs dark-mode logo | PNG | Mintlify dark-theme header logo. |
 
-The kanji `力` is rendered at weight 900 in **Noto Sans CJK JP** at the size that fills the canvas with comfortable margin. That font is part of `noto-fonts-cjk`, which Ryoku already pulls in via `install/ryoku-base.packages`, so the SVG renders consistently on any Ryoku install.
+The kanji `力` is rendered at weight 900 in **Noto Sans CJK JP** at the size that fills the canvas with comfortable margin. The transparent mark keeps extra viewBox padding so font renderer differences do not cut off the glyph in compact surfaces like the shell bar. That font is part of `noto-fonts-cjk`, which Ryoku already pulls in via `install/ryoku-base.packages`, so the SVG renders consistently on any Ryoku install.
 
 ### Asset locations on the installed system
 
@@ -153,10 +153,10 @@ The kanji-block art used by `boot.sh` is also hand-drawn block-text (`█` and f
 | Limine boot menu | `default/limine/limine.conf` | Orange branding text "Ryoku Bootloader", Greek Noir terminal palette |
 | Plymouth decrypt | `default/plymouth/ryoku.script` + `default/plymouth/*.png` | Dark window, branded progress bar + lock icon |
 | SDDM greeter | Current shell-provided theme | Upstream login theme until the Ryoku rebrand pass |
-| Hyprland session + Ryoku shell bar | `shell/components/Logo.qml` + `shell/assets/logo.svg` | The default logo module renders the Ryoku kanji mark. User themes may change colors, but the default bar mark stays Ryoku. |
+| Hyprland session + Ryoku shell bar | `shell/components/Logo.qml` + `shell/assets/logo.png` | The default logo module renders the raster Ryoku kanji mark so compact bar paint is not clipped by SVG text rendering. User themes may change colors, but the default bar mark stays Ryoku. |
 | Hyprland session + Ryoku shell theme | `themes/<theme>/` per active theme | Greek Noir is the brand-accurate one; other themes are user-selectable but not "the brand" |
 | First-boot welcome notification | `install/first-run/welcome.sh` | Branded notification copy |
-| Kitty startup greeting | `config/fish/config.fish`, `config/kitty/kitty.conf`, `assets/brand/logo-mark.png`, `config/fastfetch/config.jsonc`, and `bin/ryoku-fastfetch` | Kitty starts fish by default, fish runs `ryoku-fastfetch` once per Kitty window/split, and fastfetch renders the kanji mark with Kitty graphics. |
+| Terminal startup greeting | `config/fish/config.fish`, `config/kitty/kitty.conf`, `assets/brand/logo-mark.png`, `config/fastfetch/config.jsonc`, and `bin/ryoku-fastfetch` | Kitty starts fish by default, fish runs `ryoku-fastfetch` whenever an interactive terminal opens, and fastfetch renders the kanji mark with Kitty graphics. |
 
 ## What "on-brand" means
 

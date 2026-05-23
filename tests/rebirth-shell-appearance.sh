@@ -35,8 +35,17 @@ assert_contains shell/utils/SysInfo.qml 'GlobalConfig\.general\.logo \|\| "ryoku
   "shell should default to the Ryoku logo when no custom logo is configured"
 assert_contains shell/plugin/src/Ryoku/Config/generalconfig.hpp 'CONFIG_GLOBAL_PROPERTY\(QString, logo, u"ryoku"_s\)' \
   "native config defaults should expose Ryoku as the default shell logo"
-assert_contains shell/components/Logo.qml 'assets/logo\.svg' \
-  "default shell logo component should render the Ryoku kanji asset"
+[[ -f $ROOT_DIR/shell/assets/logo.png ]] || fail "shell should ship a raster Ryoku logo asset for compact bar rendering"
+assert_contains shell/components/Logo.qml 'assets/logo\.png' \
+  "default shell logo component should render the raster Ryoku kanji asset"
+assert_contains shell/assets/logo.svg 'viewBox="-72 -72 656 656"' \
+  "Ryoku shell logo asset should include enough viewBox padding to avoid clipping"
+assert_contains assets/brand/logo-mark.svg 'viewBox="-72 -72 656 656"' \
+  "canonical transparent Ryoku mark should include enough viewBox padding to avoid clipping"
+assert_contains shell/modules/bar/components/OsIcon.qml 'implicitWidth: logoSize' \
+  "bar logo container should allocate the full Ryoku logo width"
+assert_contains shell/modules/bar/components/OsIcon.qml 'implicitHeight: logoSize' \
+  "bar logo container should allocate the full Ryoku logo height"
 assert_contains shell/modules/bar/Bar.qml 'roleValue: "logo"' \
   "bar defaults should include the logo module"
 assert_contains shell/modules/bar/components/workspaces/Workspace.qml 'resolveWorkspaceLabel' \
