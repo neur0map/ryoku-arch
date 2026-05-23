@@ -44,9 +44,9 @@
             ]
           },
           {
-            "group": "Security tools",
+            "group": "Plugins",
             "pages": [
-              "docs/security-tools"
+              "docs/plugins"
             ]
           },
           {

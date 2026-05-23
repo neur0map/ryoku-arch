@@ -134,7 +134,7 @@ If those names appear in this repository, they should be one of:
 - Historical plan/spec docs under `docs/superpowers/`.
 
 Active public documentation for those leftovers lives in
-`docs/omarchy-heritage.md` and `docs/rebrand-inventory.md`.
+`docs/omarchy-heritage.md`.
 
 ## ISO / Release Notes
 

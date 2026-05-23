@@ -20,7 +20,7 @@ This page is being expanded. Add common issues as they get reported.
 
 ## The bar / sidebar isn't drawing
 
-If `Super+/` doesn't open the keybind legend, the Ryoku shell or the Hyprland bind path is not running.
+If core shell surfaces are missing, a shell or Hyprland restart path may have failed.
 
 ```bash
 journalctl --user -u ryoku-shell -n 50
@@ -30,7 +30,7 @@ hyprctl binds
 The most common causes:
 
 - **Recent `ryoku-update` broke the shell**: snapshot rollback restores the last working state. `ryoku-update --list-snapshots` then `ryoku-update --restore <id>`.
-- **Custom config error**: `~/.config/illogical-impulse/config.json` got malformed (often after hand-editing). The shell will fall back to defaults if you `mv` it aside.
+- **Custom config error**: `~/.config/ryoku-shell/config.json` got malformed (often after hand-editing). The shell will fall back to defaults if you move it aside.
 - **Quickshell binary mismatch**: a system update bumped Qt/Quickshell out of sync with the shell sources. Re-running `ryoku-update` usually fixes it.
 
 ## Login screen is broken / can't log in

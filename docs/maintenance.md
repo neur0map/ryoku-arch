@@ -131,7 +131,7 @@ This creates `migrations/<unix-timestamp>.sh`.
    - Be idempotent: running the migration twice should be harmless.
 
 ```bash
-echo "Install nmap for Ryoku cybersec baseline"
+echo "Install nmap for Ryoku baseline tooling"
 ryoku-pkg-add nmap
 ```
 
@@ -318,7 +318,7 @@ Options, from least to most automated:
 
 ## Repo layout
 
-Keep the repo root limited to project entrypoints and repo metadata. Brand images, SVGs, and text art live in `assets/brand/`. Maintainer task tracking lives in `docs/TODO.md` with the rest of the project docs.
+Keep the repo root limited to project entrypoints and repo metadata. Brand images, SVGs, and text art live in `assets/brand/`. Use issue tracking and release tasks from the project maintainers' workflow and the `docs` pages that own those surfaces.
 
 Use root `VERSION` as the single tracked release version file. The shell installer copies that value into installed runtime payloads when a standalone shell tree needs its own `VERSION` file, but source changes should only update the root file.
 

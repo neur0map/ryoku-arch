@@ -6,7 +6,9 @@
 
 **力と美のために** &middot; *For the sake of power and beauty.*
 
-Ryoku is an opinionated Arch desktop built around Hyprland and Quickshell. A daily-driver Linux for cybersecurity learning and personal labs.
+Ryoku is a premium Arch workstation for powerful desktops and laptops. It is
+pre-riced, plugin-minded, and built for people who want their Linux machine to
+feel fast, sharp, and deliberate from first boot.
 
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-F25623?style=for-the-badge)](LICENSE)
 [![Built on Arch](https://img.shields.io/badge/Arch_Linux-1793D1?style=for-the-badge&logo=archlinux&logoColor=white)](https://archlinux.org)
@@ -33,40 +35,78 @@ Ryoku is an opinionated Arch desktop built around Hyprland and Quickshell. A dai
 
 ## About
 
-Most security distributions assume you'll run them in a VM and switch back to your real OS to get work done. Ryoku is for the other half of cybersecurity life: studying, lab work, CTFs, courseware, and tinkering on your own equipment, all on the same machine you actually live in. Steam, Discord, your IDE, your THM lab, the OpenVPN to your home router, on one Linux that doesn't fight you.
+Ryoku is not trying to be the lightest Arch setup in the room. It takes the
+other lane: a polished workstation that assumes the machine has room to breathe.
+The target is a strong desktop or laptop, not a budget box that needs every
+megabyte saved.
 
-The desktop is Hyprland, with a Quickshell-based bar, drawers, launcher, session surfaces, and settings path. Workflow primitives that matter to security work are built into the shell instead of bolted on as separate tray icons: OpenVPN profile management, Tailscale and OpenVPN status, and clean privilege escalation hooks are first-class desktop surfaces. The boot, lock, login, and desktop surfaces are being rebuilt around one Ryoku visual language.
+The current desktop is Hyprland with a Quickshell shell layer. The install and
+core command shape still descend from Omarchy, and the shell is being shaped
+from Celestia while Ryoku grows its own plugin-first shell. That is intentional
+for now: take the useful base, make the product coherent, then replace borrowed
+parts as Ryoku-owned surfaces mature.
 
-Ryoku descends from omarchy and inherits its install-script architecture, theme pipeline, and command shape. The Arch base, the package selection, and the security-tooling track diverge.
+The goal is simple: power and beauty in the same system. Fast windowing, a
+strict command surface, good defaults, strong visual identity, and plugins that
+add real workstation behavior instead of turning the desktop into a pile of
+loose tray apps.
 
-## Scope
+## Position
 
-Ryoku is built for **learning and personal practice**: TryHackMe, Hack The Box, OffSec courseware, CTFs, your own home lab, your own router, and any system you own or have explicit written authorization to test.
+Omarchy is a lean, opinionated Arch install that can fit modest laptops well.
+Ryoku is the opposite side of that family tree: heavier, more visual, more
+integrated, and aimed at capable hardware.
 
-Ryoku is **not** a Kali or Parrot replacement for real engagement work. Professional pentesting and red-team operations need things a daily-driver OS deliberately doesn't give you: client-isolated environments, clean attribution, snapshot-and-revert disposability, separation between client A's data and client B's. Use a dedicated VM, or better, a dedicated engagement laptop, for that.
+Ryoku is:
 
-You are responsible for how you use what ships here. Unauthorized scanning, exploitation, or interference with systems you do not own is illegal in most jurisdictions. Don't make this project's day harder than it needs to be.
+- **Premium Arch, not a separate distro.** It is an Arch environment with its
+  own defaults, install flow, shell, commands, and branding.
+- **Pre-riced by default.** The first boot should already feel intentional.
+- **Plugin-minded.** VPN, capture, media, developer, hardware, and future
+  security workflows should become clean Ryoku plugins and shell surfaces.
+- **Built for powerful desktops and laptops.** The baseline is 16GB RAM or
+  better; 32GB+ is the comfortable target for VMs, gaming, creative tools, and
+  heavy multitasking.
+
+Ryoku is not:
+
+- A budget-PC profile.
+- A minimal window-manager starter kit.
+- A Kali, Parrot, or BlackArch replacement.
+- A promise that every borrowed Omarchy or Celestia piece is final.
 
 ## What ships
 
-- **Desktop**: Hyprland Wayland session, Quickshell bar / drawers / launcher / settings, SDDM with switchable themes.
-- **Security primitives**: in-shell OpenVPN profile manager, Tailscale + OpenVPN bar indicators, hardened defaults (UFW, encrypted home, no telemetry phoning home).
-- **Daily-driver fit**: Steam, Discord, dev toolchains (mise, Docker, common languages), media stack (mpv, browsers, image / video tools).
-- **Brand**: cohesive Greek-Noir palette, custom shell layouts, and a Ryoku-owned visual system rebuilt from a minimal Hyprland base.
+- **Desktop:** Hyprland Wayland session, Quickshell/Celestia-derived shell
+  surfaces, launcher, sidebars, dashboard, session controls, and SDDM theming.
+- **Ryoku core:** `ryoku-*` commands for updates, migrations, packages,
+  snapshots, hardware helpers, themes, wallpaper, keybinds, and app launchers.
+- **Plugin lanes:** shell and command hooks for VPN, Tailscale, screenshots,
+  media, developer tools, hardware controls, and future workflow modules.
+- **Workstation defaults:** Kitty, Helium/Chromium, Nautilus, Yazi, Neovim,
+  Obsidian, Docker tooling, media tools, gaming-ready packages, and AUR-backed
+  extras.
+- **Brand:** Greek Noir, the Ryoku `力` mark, and the slogan:
+  **力と美のために** - *For the sake of power and beauty.*
 
 ## Status
 
-Public preview. Signed alpha ISOs are downloadable; the first tagged stable release is the next milestone.
+Public preview. Signed alpha ISOs are downloadable; the first tagged stable
+release is still ahead.
 
-The Hyprland rebirth transition is active. Boot verification across the hardware matrix, shell IPC parity, and the curated security-tooling baseline are the gating items before a tagged release. The repo is open for review in the meantime; development happens on `main`.
+The active workstation track is Hyprland. Development happens on
+`unstable-dev`, then stabilizes into `main` for release users. The shell is in
+transition: Ryoku is using Omarchy install/core ancestry and Celestia shell
+ideas while the Ryoku-owned plugin shell takes shape.
 
 | Question | Answer |
 |---|---|
-| Is the ISO downloadable? | Yes, signed alpha builds at `https://iso.ryoku.dev/stable/`. See [Download and verify](#download-and-verify) below. |
-| NVIDIA, hybrid, AMD, Apple Silicon? | All targeted. Working hardware list and driver matrix in [`docs/iso-build-recipe.md`](docs/iso-build-recipe.md). |
-| Does it bundle every pentest tool? | No. A curated track is being assembled; opt-in metas planned. Out of the box you get the desktop, not the toolbox. |
+| Minimum RAM | **16GB+ required.** Use **32GB+** if you expect VMs, gaming, browser-heavy work, or creative tools. This is not a low-resource target. |
+| Target hardware | Modern desktops and stronger laptops. NVIDIA, hybrid, AMD, and Intel graphics are target classes. |
+| Is the ISO downloadable? | Yes, signed alpha builds at `https://iso.ryoku.dev/stable/`. See [Download and verify](#download-and-verify). |
+| Does it bundle every security tool? | No. Security workflows are a plugin lane, not the product identity. Use dedicated engagement environments for client work. |
 | Secure Boot? | Roadmap. Not automatic yet. |
-| Stability vs. rolling Arch? | Rolling. The installed update track is `main`; public ISO downloads are served from `stable`. |
+| Stability vs. rolling Arch? | Rolling Arch base. `unstable-dev` is the fast track; `main` is the release channel. |
 
 ## Download and verify
 
@@ -83,34 +123,42 @@ Releases are signed with:
 
 - **Key:** `Ryoku Releases <releases@ryoku.dev>`
 - **Fingerprint:** `621F 579B D155 94C4 DE84  0B7D 5329 7813 C0BE E055`
-- **Public key in repo:** [`keys/ryoku-release-key.pub.asc`](keys/ryoku-release-key.pub.asc) (canonical, bound to git history)
+- **Public key in repo:** [`keys/ryoku-release-key.pub.asc`](keys/ryoku-release-key.pub.asc)
 
-Always check that the imported key's fingerprint matches the one above before trusting it; if it does not, do not import. Full verification commands are in [`docs/release-pipeline.md`](docs/release-pipeline.md).
+Always check that the imported key's fingerprint matches the one above before
+trusting it. Full verification commands are in
+[`docs/release-pipeline.md`](docs/release-pipeline.md).
 
 ## Browse the repo
 
-- `bin/` shipped `ryoku-*` commands (one purpose per script).
-- `config/` Hyprland / kitty / waybar / app configs as installed.
-- `default/` theme assets, polkit rules, systemd drop-ins.
-- `install/` install pipeline (`config/all.sh`, `packaging/aur-core.sh`, hardware detection).
-- `shell/` the Quickshell desktop sources.
+- `bin/` shipped `ryoku-*` commands, one purpose per script.
+- `config/` Hyprland, terminal, app, and user config seeds.
+- `default/` system defaults, templates, boot assets, and service drop-ins.
+- `install/` installer, package manifests, hardware setup, and first-run flow.
+- `shell/` the current Quickshell/Celestia-derived shell sources.
+- `themes/` Ryoku and user-selectable theme payloads.
 
 ## Documentation
 
-- [**Vision**](docs/vision.md) what Ryoku is, who it is for, what it is not.
+- [**Vision**](docs/vision.md) product direction, audience, non-goals.
 - [**Keybindings**](docs/keybindings.md) shipped Hyprland and shell reference.
+- [**Plugins**](docs/plugins.mdx) current and planned workflow plugins.
 - [**Maintenance**](docs/maintenance.md) release process and workflow.
 - [**Customization**](docs/customization-inventory.md) safe text-based customization surfaces.
 - [**Branding**](docs/branding.md) visual and verbal identity.
-- [**ISO build recipe**](docs/iso-build-recipe.md) end-to-end build and the working hardware matrix.
-- [**Omarchy heritage**](docs/omarchy-heritage.md) what remains from upstream and why.
+- [**ISO build recipe**](docs/iso-build-recipe.md) build recipe and hardware notes.
+- [**Heritage**](docs/omarchy-heritage.md) Omarchy and Celestia inheritance.
 - [**Contributing**](CONTRIBUTING.md) focused ways to help.
 - [**Security policy**](SECURITY.md) private reporting for security-sensitive issues.
 
 ## Acknowledgements
 
-- [**Omarchy**](https://github.com/basecamp/omarchy) by DHH, the install architecture, command shape, and theme pipeline.
-- [**qylock**](https://github.com/Darkkal44/qylock) by Darkkal44, optional SDDM theme bundle.
+- [**Omarchy**](https://github.com/basecamp/omarchy) by DHH, for the install
+  architecture, command shape, and early Arch desktop foundation.
+- [**Celestia Shell**](https://github.com/caelestia-dots/shell), for the shell
+  ideas Ryoku is currently adapting while its own shell direction matures.
+- [**qylock**](https://github.com/Darkkal44/qylock) by Darkkal44, optional SDDM
+  theme bundle.
 
 Full attribution: [`CREDITS.md`](CREDITS.md), [`NOTICE`](NOTICE).
 

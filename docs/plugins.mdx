@@ -1,0 +1,69 @@
+---
+title: Plugins
+description: Optional and built-in workflow modules that extend Ryoku beyond the base desktop.
+---
+
+Ryoku uses a plugin-first direction for workstation workflows. A plugin is any
+feature family that has a clear module surface and its own ownership path, not
+just a script behind an always-visible tray icon.
+
+## What Ryoku calls a plugin today
+
+A Ryoku plugin can be one of three things:
+
+- a shell surface with a clear owner and lifecycle;
+- a `ryoku-*` command family for install/update/service behavior;
+- a pair of config/state values written to `~/.config/ryoku` or
+  `~/.config/ryoku-shell`.
+
+At the moment, plugins are delivered through Ryoku's built-in shell and
+command layer. There is no separate plugin marketplace yet.
+
+## Current plugin lanes
+
+- **Network and identity**
+  - OpenVPN profile import, profile connect/disconnect, and tunnel state.
+  - Tailscale enable and state surfaces.
+  - SecPulse status aggregation in the bar.
+  - VPN/identity surfaces in the right sidebar and lock-adjacent indicators.
+- **Capture**
+  - Gradia-based full and region capture.
+  - Clipboard handoff and quick open.
+  - Optional preview/callouts from capture surfaces.
+- **Security workflow**
+  - Hardening switches that live with shell modules and command helpers.
+  - In-shell polkit prompts for privilege actions.
+  - Not a full security distribution identity; support features for a powered
+    workstation.
+- **Developer and media**
+  - Terminal, files, editor launchers, wallpaper tools, clipboard history,
+    notepad/todo.
+  - Git and media helper flows where they are part of daily work.
+- **Hardware and power**
+  - Battery and charge monitoring surfaces.
+  - Notification controls, profile toggles, quick system toggles.
+
+## How plugin settings are wired
+
+Settings do not own side effects by themselves. They describe desired state and
+pass it into a typed shell surface or `ryoku-*` command flow.
+
+- Shell setting pages mutate typed config in `~/.config/ryoku-shell/config.json`.
+- Shared behavior sits in core commands and services.
+- Shell modules consume that state through services/IPC, then update their
+  appearance and controls.
+
+The result is a single behavior path across bar, sidebars, dashboard, launcher,
+lock-adjacent surfaces, and control center.
+
+## Not in a plugin lane (yet)
+
+- Legacy desktop-era utilities that still exist but are not central to this release.
+- Historical artifacts from earlier prototypes that are now migration-only.
+
+## Planned direction
+
+Ryoku ships useful plugin lanes now and continues to reshape them into a Ryoku
+owned plugin contract. The direction is to preserve polish and avoid the
+"random tray utility" failure mode while building a cleaner path for future
+modules.

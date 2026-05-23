@@ -1,43 +1,49 @@
-# Omarchy Heritage
+# Foundation And Heritage
 
-Ryoku began as an Omarchy-derived Arch environment, then moved its active
-runtime, commands, config paths, install flow, and branding onto Ryoku-owned
-surfaces. This document explains what remains so users and contributors can
-tell the difference between active Ryoku behavior and intentional historical
-or compatibility references.
+Ryoku is a premium Arch workstation environment. Its runtime and command
+surface are Ryoku-owned, while selected ideas were adapted from Omarchy and
+Celestia for speed and ergonomics.
+
+## Where Ryoku Comes From
+
+Ryoku uses three clear sources:
+
+- **Omarchy** for install architecture, command patterning, and migration-minded
+  maintenance.
+- **Celestia Shell-inspired structure** for shell-level interaction patterns, then
+  adapted into Ryoku-owned layout and plugin surfaces.
+- **Ryoku core direction** for naming, branding, defaults, and command ownership.
+
+That means you should read docs as:
+
+- Current runtime behavior = Ryoku-owned.
+- Historical names = historical, compatibility, or external identifiers.
 
 ## What Still Remains
 
 | Surface | Why It Remains |
 | --- | --- |
-| `LICENSE` and `NOTICE` attribution | Required attribution for the original Omarchy project and its MIT license. |
-| Git history, upstream remotes, and `upstream-baseline` | Needed to audit ancestry and cherry-pick useful upstream fixes without merging upstream wholesale. |
-| Historical migrations under `migrations/` | Existing installs may have old state from earlier compositor, shell, Waybar, Mako, SwayOSD, Tofi, Walker, Elephant, and Omarchy-era phases. Those migrations must stay readable and idempotent. |
-| Cleanup-only filesystem paths | Some install and migration scripts still remove old Omarchy files, services, boot assets, and state directories. These references delete legacy state; they do not create new Omarchy state. |
-| Compatibility environment fallbacks | A small number of legacy `OMARCHY_*` variables are accepted as fallbacks where old installs or old shells may still provide them. Ryoku-owned `RYOKU_*` variables are canonical. |
-| Webapp cleanup matchers | Some cleanup commands recognize old `omarchy-*` desktop-file launchers so user-created webapps can be removed safely. |
-| External theme and package identifiers | Some third-party theme IDs, package names, and URLs include `omarchy` because changing them would point to a different external object or break migration cleanup. |
-| ASCII terminal screensaver | The terminal/TTE screensaver was adopted as a Ryoku feature and is kept under Ryoku commands, config, and window classes. |
-| Historical plan/spec documents | Files under `docs/superpowers/` describe previous work sessions. They are records, not current runtime instructions. |
+| `LICENSE` and `NOTICE` attribution | Required attribution for inherited components and their open-source licenses. |
+| `upstream` remotes and `upstream-baseline` history | Needed for selective cherry-picks and auditability. |
+| Historical migrations under `migrations/` | Older installs can still contain legacy state from previous compositor or shell generations. Migrations must stay readable and idempotent. |
+| Cleanup-only filesystem paths | Some install and migration scripts still remove old state from deprecated runtimes. These commands are cleanup only and do not represent active defaults. |
+| Compatibility environment fallbacks | A small set of `OMARCHY_*` variables remains as compatibility bridge behavior for legacy scripts and older system states. |
+| External theme/package identifiers | Some third-party IDs include `omarchy` or legacy names because those references point to external objects that still exist. |
+| Historical plan/spec documents | `docs/superpowers/` is historical context, not live runtime documentation. |
 
-## What No Longer Ships As The Active Desktop
+## What Does Not Ship As Active Runtime
 
-The current source track is Hyprland with the Ryoku shell. Earlier compositor
-and shell transition work remains only as legacy migration context unless a
-file explicitly marks it as active.
+These names only belong in historical context unless another section explicitly
+re-activates them:
 
-The following names should only appear as historical, cleanup, compatibility,
-or external identifier references:
+- Waybar configuration.
+- Mako defaults.
+- SwayOSD defaults.
+- Tofi, Walker, and Elephant launchers.
+- Prototype runtime trees used during transition.
+- Omarchy package repo/keyring/mirror URLs and old boot branding assets.
 
-- Retired compositor session defaults and window rules.
-- Waybar status bar config.
-- Mako notification defaults.
-- SwayOSD styling.
-- Tofi, Walker, and Elephant launcher configs.
-- Retired prototype runtime trees.
-- Omarchy package repo, keyring, mirror URLs, and old branded boot assets.
-
-## Current User-Facing Surfaces
+## Current Ryoku User-Facing Surfaces
 
 | Ryoku Surface | Current Meaning |
 | --- | --- |
@@ -46,58 +52,43 @@ or external identifier references:
 | `$RYOKU_CONFIG_PATH` | Canonical Ryoku config path. |
 | `$RYOKU_STATE_PATH` | Canonical Ryoku state path. |
 | `~/.config/ryoku` | User Ryoku config and hook namespace. |
+| `~/.config/ryoku-shell/config.json` | Shell configuration and feature toggles. |
 | `~/.local/share/ryoku` | Installed Ryoku source tree. |
 | `~/.local/state/ryoku` | Runtime state and migration markers. |
 | `config/hypr/` | Current Hyprland compositor config source. |
 | `docs/keybindings.md` | Current user-facing keyboard reference. |
 
+## Active Core Domains (for shell integrations)
 
-## Active Ryoku Core Capabilities
+The key rule is simple: settings should drive config and commands, not own
+system behavior directly.
 
-The migrated core is not just legacy baggage. It is the system control layer that the shell should call instead of reimplementing system behavior in QML.
+- **Install and update lifecycle:** `ryoku-update-*`, `ryoku-reinstall-*`, `ryoku-channel-*`, release/version helpers, snapshots, rollback, migrations, and doctor checks.
+- **Package and app management:** package helpers, profile installers, webapp install/remove, Chromium/Helium, Steam, Tailscale, NordVPN, Docker, and developer environment installers.
+- **Compositor and desktop repair:** Hyprland config refresh, keybinding docs, shell restart/recovery, default app migration, terminal launchers, systemd repair.
+- **Theming and appearance outside QML:** wallpaper cache/list/apply/search, theme tooling, font and cursor management, GTK/KDE/template refreshers.
+- **Hardware and power:** hardware detection, hybrid GPU handling, touchpad behavior, battery/charge helpers, brightness, power profiles, suspend/hibernation, idle and notification toggles.
+- **Network and productivity:** Wi-Fi/bluetooth launchers, firewall and host tooling, OpenVPN import/rename, Tailscale, DNS setup, sudo helpers, polkit flows, security workflows as plugin lanes.
+- **Media and utilities:** volume and microphone controls, screen capture helpers, OCR, Google Lens, color picker, QR scan, voice typing.
 
-Current core domains, based on the `ryoku-*` command namespace:
-
-- **Install and update lifecycle:** `ryoku-update-*`, `ryoku-reinstall-*`, `ryoku-channel-*`, `ryoku-branch-set`, release/version helpers, snapshots, rollback, migrations, and doctor checks.
-- **Package and app management:** `ryoku-pkg-*`, app installers, profile installers, webapp install/remove, Chromium/Helium helpers, Steam, Tailscale, NordVPN, Dropbox, Docker DBs, developer environment installers.
-- **Compositor and desktop repair:** Hyprland config refresh, keybinding docs, shell restart/recovery, default app migration, terminal launchers, systemd service repair, session recovery, update log analysis.
-- **Theming and appearance outside QML:** wallpaper list/cache/apply/search, theme install/remove/set/refresh, font list/set/install, cursor list/set/install, keyboard theme setters, GTK/KDE/terminal/editor/app template refreshers, SDDM and lockscreen preview refreshers.
-- **Hardware and power:** hardware detectors, hybrid GPU toggle, touchpad and haptic touchpad, battery status and charge limit helpers, brightness commands, power profiles, suspend and hibernation setup/removal, idle/nightlight/notification toggles.
-- **Network and security:** Wi-Fi/bluetooth launchers and restarts, firewall, hosts editing, OpenVPN import/remove/rename, Tailscale install, DNS setup, FIDO2/fingerprint setup, sudo reset/passwordless toggle.
-- **Media and productivity utilities:** audio effects, volume and microphone commands, screen recording, OCR, Google Lens, color picker, QR scan, voice typing, music daemon/profile helpers, TUI and launcher helpers.
-
-Design implication: if a settings page controls one of these domains, the shell should be a client of the core. The usual pattern is:
+Use this contract for new shell work:
 
 ```text
-Settings control -> QML service/IPC adapter -> ryoku-* command -> state/config file -> shell observes result
+Settings control -> Ryoku service/IPC adapter -> ryoku-* command -> state/config -> shell consumers
 ```
 
-Only keep the behavior fully inside QML when it is genuinely shell-local, such as panel visibility, an overlay mode, layout density, or a visual token.
-
-## Shell vs Core Responsibility Split
-
-Use this split when deciding where new work belongs:
-
-- **Shell owns:** visible panels, overlays, OSDs, visual tokens, animation, layout, user interaction, previews, and live display of status.
-- **Core owns:** packages, services, filesystem config, migrations, rollback, hardware toggles, network/system commands, compositor config, and anything requiring elevated permissions.
-- **Shared contract:** stable config paths, state files under `$RYOKU_STATE_PATH`, command JSON or JSONL output when a setting needs structured data, and narrow IPC targets for shell actions.
-
-If a feature needs both, build the core command first, then bind the shell UI to it. This prevents the shell from becoming a pile of privileged one-off scripts and keeps terminal users able to perform the same actions without the settings app.
-
+Only keep behavior inside QML for UI-local concerns (layout, rendering, overlays,
+interaction, and in-shell previews).
 
 ## How To Review A New Reference
 
-When a new `omarchy`, old-compositor, or old-shell reference appears, classify
-it before changing it:
+Classify each historical name before changing it:
 
-1. **Attribution:** keep it if it preserves copyright, license, or upstream
-   credit.
-2. **External identifier:** keep it if the string is a package, extension,
-   repository, or URL that exists under that name.
-3. **Cleanup:** keep it if it only removes or migrates old installed state.
-4. **Historical doc:** keep it if the file is a dated plan/spec record.
-5. **Active runtime:** rename or remove it. Active runtime should use Ryoku,
-   Hyprland, and Ryoku-shell surfaces.
+1. **Attribution:** keep it if it preserves required notices and upstream credit.
+2. **External identifier:** keep package/repo IDs that must stay aligned with
+   published upstream objects.
+3. **Cleanup:** keep references that only remove legacy state.
+4. **Historical doc:** keep dated planning/spec material for institutional memory.
+5. **Active runtime:** anything that affects current behavior belongs in Ryoku-owned surfaces and should not leak historical naming.
 
-The public docs should describe active Ryoku behavior first. Historical names
-belong here, in `docs/rebrand-inventory.md`, or in dated plans.
+For active docs and migration work, `docs/omarchy-heritage.md` should be the first stop.

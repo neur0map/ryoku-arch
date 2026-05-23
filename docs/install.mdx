@@ -54,7 +54,9 @@ USB stick should be **at least 8 GB**.
 
 ## 4. Try in a VM first (optional but encouraged)
 
-Ryoku is alpha. Before committing to bare metal, boot the ISO in a VM (QEMU/KVM, VirtualBox, VMware) with at least 4 GB RAM and 30 GB disk to walk through the installer end to end.
+Ryoku is a premium workstation target. Before committing to bare metal, boot the ISO in a VM (QEMU/KVM, VirtualBox, VMware) with at least 16 GB RAM and 60 GB disk to walk through the installer end-to-end.
+
+The VM requirement is a minimum for testing. For full first-class experience on real hardware, target 32GB+ RAM and 80GB+ free disk.
 
 ## 5. Boot the installer
 
@@ -72,6 +74,6 @@ Continue to [First boot](/docs/first-boot) for what to expect after you log in a
 
 ## Hardware notes
 
-Ryoku targets NVIDIA, hybrid, AMD, and Apple Silicon. The working hardware list, driver matrix, and the harmless chroot warnings to ignore live in the [ISO build recipe](/docs/iso-build-recipe).
+Ryoku targets modern desktop and laptop hardware: NVIDIA, AMD, Intel hybrid setups, and strong single-GPU systems. The working hardware list, driver notes, and the harmless chroot warnings to ignore live in the [ISO build recipe](/docs/iso-build-recipe).
 
 Secure Boot support is on the roadmap, not automatic yet.

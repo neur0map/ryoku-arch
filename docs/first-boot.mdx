@@ -19,14 +19,14 @@ After install, the machine reboots into SDDM. Pick the **Ryoku** session (Hyprla
   <Card title="Open a terminal" icon="terminal">
     `Mod+T` or `Mod+Return`. The shipped terminal is `kitty`.
   </Card>
-  <Card title="Open the cheatsheet" icon="keyboard">
-    `Super+/`. The live legend shows the keybindings Hyprland and the Ryoku shell expose.
-  </Card>
   <Card title="Open settings" icon="settings">
-    `Mod+S`. Themes, bar items, wallpapers, lock screen, login screen.
+    `Mod+,`. Themes, bar items, wallpapers, lock screen, login screen.
   </Card>
   <Card title="Open the launcher" icon="search">
     `Mod+Space`. Type to filter apps, hit Enter to launch.
+  </Card>
+  <Card title="Open keybinding reference" icon="keyboard">
+    Open [Keybindings](/docs/keybindings) from the settings page when you want a full list.
   </Card>
 </CardGroup>
 
@@ -42,16 +42,27 @@ Both can be closed by clicking outside them or by re-pressing their trigger.
 - **Change the wallpaper.** Use Settings to open the picker. Drops in `~/Pictures/Wallpapers`. Theme colors regenerate from the selected wallpaper unless you've set a static accent.
 - **Pick a panel family.** `Mod+Shift+W` cycles `ii` ↔ `waffle`. Each family has its own visual language.
 - **Pick a skin.** Settings → Appearance to switch between Material, Aurora, Angel, Ryoku-Shell, and Cards.
-- **Wire up your VPN.** Settings → Security → OpenVPN profiles. See [security tools](/docs/security-tools).
+- **Wire up your VPN.** Settings → Plugins → OpenVPN profiles. See [Plugins](/docs/plugins).
 - **Update the shell.** `ryoku-update` in a terminal, or click the update indicator when it appears in the bar.
+
+<Callout type="info">
+This build includes an optional plugin lane for security workflows, but it is one of many Ryoku modules.
+</Callout>
 
 ## If the bar isn't there
 
-Press `Super+/`; if the keybind legend doesn't open either, the shell or Hyprland bind path isn't running. Drop to a TTY (`Ctrl+Alt+F2`), log in, and run `journalctl --user -u ryoku-shell -n 50` to see why. The [troubleshooting guide](/docs/troubleshoot) covers common boot/login issues.
+If sidebars, launcher, or settings fail to draw, drop to a TTY (`Ctrl+Alt+F2`), log in, and run:
+
+```bash
+journalctl --user -u ryoku-shell -n 80
+hyprctl binds
+```
+
+The [troubleshooting guide](/docs/troubleshoot) covers common boot/login issues.
 
 ## Where to go next
 
 - [Desktop tour](/docs/tour): the Hyprland workspace model and the bar / sidebar surfaces in depth.
 - [Keybindings](/docs/keybindings): every shipped binding.
-- [Security tools](/docs/security-tools): OpenVPN sidebar, SecPulse, the in-shell polkit agent.
+- [Plugins](/docs/plugins): OpenVPN, Tailscale, capture workflow, and other Ryoku plugin lanes.
 - [Customize](/docs/customize): themes, wallpapers, bar items, keybinds.

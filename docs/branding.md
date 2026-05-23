@@ -12,6 +12,12 @@ Use "Ryoku" in prose. Use the "Ryoku Arch" full name on first mention in user-fa
 
 **Do not call it a distro.** Ryoku is an opinionated Arch Linux environment / configuration on top of Arch Linux, not its own distribution. Stick to "Ryoku Arch", "the Ryoku environment", "the Ryoku setup".
 
+For documentation, use this lens:
+
+- Ryoku is a premium workstation environment with a clear design and workflow default.
+- Security tools are one lane among many, not the entire identity.
+- The expected tone is polished, direct, and usable for daily machine work.
+
 ## Website
 
 `https://ryoku.dev` is reserved for the public site. Suggested layout once the site is up:

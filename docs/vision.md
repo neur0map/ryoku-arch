@@ -2,46 +2,84 @@
 
 ## Name
 
-Ryoku (力) means "power" or "strength" in Japanese. Ryoku Arch combines that word with its Arch Linux base to signal the project's two anchors: strength in the form of security-focused tooling, and a considered aesthetic.
+Ryoku (力) means "power" or "strength" in Japanese. Ryoku Arch uses that name
+plainly: the project is about power, and about making that power beautiful.
 
 ## Tagline
 
 力と美のために: For the sake of power and beauty.
 
+Keep this line. It is the heart of the project.
+
 ## What it is
 
-An opinionated Arch Linux environment that layers a security-workstation direction on top of a ricing-focused desktop. Ryoku owns its command surface, config paths, documentation, and maintenance workflow.
+Ryoku is a premium Arch workstation environment for powerful desktops and
+laptops. It ships a pre-riced Hyprland desktop, a Ryoku command layer, an
+installer, a theme system, and a shell direction built around plugins and
+first-class workflow surfaces.
+
+Ryoku is not trying to be the smallest possible Arch setup. It assumes capable
+hardware and uses that headroom for polish, visual detail, integration, and
+workstation behavior.
 
 ## Who it is for
 
-People studying or working in cybersecurity who also care about how their machine looks and feels. Students working through TryHackMe / Hack The Box / OffSec material, hobbyists building home labs, professionals who want a personal Linux that doesn't make them dual-boot to enjoy it.
+Ryoku is for users who want Arch to feel finished on strong hardware:
+
+- desktop and laptop users who care about speed and visual identity;
+- developers who want terminals, browsers, files, notes, containers, and media
+  tools ready without building the whole desktop from scratch;
+- power users who like a riced desktop but want the rice to be maintained as a
+  product, not a private dotfiles pile;
+- users who want advanced workflows exposed as plugins instead of random tray
+  icons and one-off scripts.
 
 ## Intended use
 
-Ryoku is a **learning and personal-practice** environment. It targets workflows where you are the authorized owner of the systems involved: your own home lab, your own router, the boxes you spun up for a course, the labs the platform exposes for you (THM, HTB, etc.).
+The main use case is a personal workstation. Gaming, development, browsing,
+media, notes, terminals, VMs, hardware controls, shell modules, and workflow
+plugins should all fit into one coherent system.
 
-It is deliberately **not** positioned as a Kali or Parrot replacement for real engagement work. Professional pentesting needs things Ryoku does not try to provide: client-isolated environments, clean attribution, snapshot-and-revert disposability, hard separation between client A's data and client B's, and a clear evidentiary boundary between the testing OS and the tester's personal OS. The right tool for that is still a dedicated VM or a dedicated engagement laptop.
+Security tooling still matters, but it is no longer the product identity.
+OpenVPN, Tailscale, hardening defaults, and future security workflows belong in
+the plugin lane. They should be easy to enable and visible when active, without
+turning Ryoku into a Kali or Parrot replacement.
 
-Pitching Ryoku as something it is not would damage trust with both audiences. We are explicit on the README that this is for learning and personal labs, and that responsibility for how the tools are used lies with the user.
+For professional security engagements, use a dedicated engagement environment
+with client separation, snapshots, and clean attribution. Ryoku can support
+security-adjacent personal work, but it is not built to be the legal or
+operational boundary for client work.
 
 ## What distinguishes it
 
-- A curated security-tooling track, opinionated about which tools belong in the default install and which should stay optional.
-- A Hyprland + Ryoku shell desktop stack with Ryoku-specific defaults and branding.
-- A visual system that treats boot, login, lock, shell, and desktop surfaces as one product.
+- A premium, visual Arch workstation target: 16GB minimum, 32GB+ preferred for
+  the kind of machine Ryoku wants to live on.
+- A pre-riced Hyprland desktop where the default look is a product choice, not
+  a placeholder.
+- A plugin-first shell direction: controls for VPN, screenshots, hardware,
+  updates, media, developer tools, and future workflows should become Ryoku
+  plugins with matching shell surfaces.
+- A strict Ryoku command and config surface: `ryoku-*` commands,
+  `~/.config/ryoku`, `~/.config/ryoku-shell`, and `~/.local/share/ryoku`.
+- A visual system that treats boot, login, lock, shell, terminal, and app
+  defaults as one thing.
 
 ## What it is not
 
-- A general-purpose desktop distribution.
-- A fork of BlackArch. Ryoku Arch layers security tooling into its own desktop opinion rather than starting from a security-first distribution and bolting ricing on afterward.
-- A re-skinned Omarchy. Upstream history matters, but Ryoku now treats `ryoku-*`, `~/.config/ryoku`, and `~/.local/share/ryoku` as the canonical surfaces.
+- A budget-PC profile.
+- A minimal Arch starter kit.
+- A general-purpose distro with a Ryoku wallpaper.
+- A Kali, Parrot, or BlackArch replacement.
+- A final re-skin of Omarchy or Celestia Shell. Both are important sources, but
+  Ryoku's job is to turn the useful pieces into a Ryoku-owned workstation.
 
 ## Roadmap
 
 Near-term priorities:
 
-1. Ship the signed ISO pipeline and public download path.
-2. Finish the first public visual showcase: screenshots, short video, and README media.
-3. Lock the security-tooling baseline and separate optional personal/dev extras from default install.
-4. Verify the Hyprland ISO build and first boot path end to end.
+1. Keep the Hyprland workstation stable enough for daily use on real hardware.
+2. Shape the current Celestia-derived shell into a Ryoku-owned plugin shell.
+3. Keep the ISO signed, downloadable, and verifiable.
+4. Move security, developer, media, hardware, and capture workflows into clean
+   plugin lanes.
 5. Expand real-hardware install coverage before calling the ISO stable.

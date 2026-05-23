@@ -3,19 +3,21 @@ title: Desktop tour
 description: How the Hyprland + Ryoku shell desktop is arranged, what each bar island does, and which sidebar is which.
 ---
 
-Ryoku's desktop is Hyprland + the Ryoku shell. Hyprland handles compositing, input, and window layout; the Ryoku shell paints the topbar, sidebars, lock screen, launcher, keybind legend, and settings.
+Ryoku's desktop is Hyprland + the Ryoku shell. Hyprland handles compositing,
+input, and window layout; the Ryoku shell paints the topbar, sidebars, lock
+screen, launcher, and settings surfaces.
 
 ## Hyprland workspaces
 
-Hyprland is the current compositor. Ryoku ships Hyprland defaults for workspace navigation, window actions, shell shortcuts, and the live `Super+/` keybind legend.
+Ryoku ships Hyprland defaults for workspace navigation, window actions, and shell shortcuts.
 
-- `Super+1` through `Super+0` jump to workspaces 1-10.
-- `Super+Shift+1` through `Super+Shift+0` move the focused window to that workspace.
-- `Super+H/J/K/L` or arrow keys move focus.
-- `Super+Shift+H/J/K/L` or shifted arrow keys move the focused window.
-- `Super+F` fullscreens; `Super+A` toggles floating.
+- `Mod+1` through `Mod+0` jump to workspaces 1-10.
+- `Mod+Shift+1` through `Mod+Shift+0` move the focused window to that workspace.
+- `Mod+H/J/K/L` or arrow keys move focus.
+- `Mod+Shift+H/J/K/L` or shifted arrow keys move the focused window.
+- `Mod+F` fullscreens; `Mod+A` toggles floating.
 
-Use `Super+/` for the live keybind legend. It is the user-facing source for current Hyprland and Ryoku-shell shortcuts.
+Use [Keybindings](/docs/keybindings) for the full shipped list.
 
 ## The topbar
 
@@ -40,7 +42,7 @@ Every bar widget can be toggled, removed, or rearranged from **Settings → Bar*
 
 ### Right sidebar (top-right click)
 - **Quick toggles:** wifi, bluetooth, night light, do-not-disturb, hotspot.
-- **OpenVPN:** pick a profile and toggle the tunnel. See [security tools](/docs/security-tools).
+- **OpenVPN:** pick a profile and toggle the tunnel. See [plugins](/docs/plugins).
 - **Tailscale:** connection state and exit-node picker.
 - **Calendar / Events:** month view + upcoming items.
 - **Notepad:** quick text scratchpad, persisted to `~/.local/state/quickshell/notepad.txt`.
@@ -73,4 +75,4 @@ Every bar widget can be toggled, removed, or rearranged from **Settings → Bar*
 
 - [Keybindings](/docs/keybindings): the full shipped reference.
 - [Customize](/docs/customize): themes, wallpapers, bar items.
-- [Security tools](/docs/security-tools): OpenVPN, Tailscale, SecPulse, polkit.
+- [Plugins](/docs/plugins): VPN, capture, hardware, and developer tool lanes.

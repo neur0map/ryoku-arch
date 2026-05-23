@@ -1,13 +1,13 @@
 ---
 title: Ryoku
-description: An opinionated Arch desktop for cybersecurity learning and personal labs. Hyprland compositor, Quickshell UI, signed offline ISO.
+description: A premium Arch workstation for powerful desktops and laptops. Hyprland compositor, Quickshell UI, signed ISO path.
 ---
 
 **力と美のために** — *for the sake of power and beauty.*
 
-Ryoku is a daily-driver Linux for the half of cybersecurity life that doesn't fit in a throwaway VM: studying, lab work, CTFs, courseware, and tinkering on your own equipment. Steam, Discord, your IDE, your TryHackMe lab, the OpenVPN to your home router — on one machine that you actually live in.
+Ryoku is a premium Arch workstation for capable desktops and laptops. It is pre-riced, plugin-minded, and tuned for people who want a fast, polished daily machine from first boot.
 
-The desktop is [Hyprland](https://hypr.land/), with a [Quickshell](https://quickshell.outfoxxed.me)-based topbar, sidebars, lock screen, launcher, and control center. Workflow primitives that matter to security work are built into the shell instead of bolted on as separate tray icons.
+The desktop is [Hyprland](https://hypr.land/), with a [Quickshell](https://quickshell.outfoxxed.me)-based topbar, sidebars, lock screen, launcher, and control center. Workflow modules (VPN, capture, updates, hardware, media, and developer tools) are integrated as shell-facing lanes instead of random tray-only scripts.
 
 <iframe
   className="w-full aspect-video rounded-xl"
@@ -31,25 +31,25 @@ The desktop is [Hyprland](https://hypr.land/), with a [Quickshell](https://quick
     Hyprland workspaces, the topbar, launcher, side panels, and control center.
   </Card>
   <Card title="Keybindings" icon="keyboard" href="docs/keybindings">
-    Every shipped binding. `Mod+Slash` opens this in-shell.
+    Every shipped binding and what to do with them.
   </Card>
 </CardGroup>
 
 ## What ships
 
-- **Desktop**: Hyprland session, Quickshell topbar / sidebars / lock / launcher / control center, SDDM with switchable themes.
-- **Security primitives**: in-shell OpenVPN profile manager, Tailscale + OpenVPN bar indicators (SecPulse), hardened defaults (UFW, encrypted home, no telemetry phoning home).
-- **Daily-driver fit**: Steam, Discord, dev toolchains (mise, Docker, common languages), media stack (mpv, browsers, image / video tools).
+- **Desktop**: Hyprland session, Quickshell topbar / sidebars / lock / launcher / control center, switchable themes, shell-first workflows.
+- **Plugin lanes**: OpenVPN, Tailscale, capture workflows, hardware controls, and developer integrations.
+- **Daily-driver fit**: Development, content work, gaming, media, notes, terminals, and container workflows on strong hardware.
 - **Brand**: cohesive Greek-Noir palette, switchable Material 3 skins (`material`, `aurora`, `angel`, `ryoku-shell`, `cards`).
 
 ## Scope
 
-Ryoku is built for **learning and personal practice**: TryHackMe, Hack The Box, OffSec courseware, CTFs, your own home lab, your own router, and any system you own or have explicit written authorization to test.
+Ryoku is built for people who want an expressive Arch workstation instead of spending a day re-wiring everything by hand.
 
-Ryoku is **not** a Kali or Parrot replacement for real engagement work. Professional pentesting needs client-isolated environments, clean attribution, and snapshot-and-revert disposability that a daily-driver OS deliberately doesn't give you. Use a dedicated VM, or better a dedicated engagement laptop, for that.
-
-You are responsible for how you use what ships here. Unauthorized scanning, exploitation, or interference with systems you do not own is illegal in most jurisdictions.
+Ryoku is not trying to be a lightweight starter kit. It is intentionally tuned for powerful machines where the visual layer and workflow surface are part of the product.
 
 ## Status
 
-Public preview. Signed alpha ISOs are downloadable at [`iso.ryoku.dev`](https://iso.ryoku.dev/main/); the first tagged stable release is the next milestone. Development happens on `main` and is open for review.
+Public preview. Signed alpha ISOs are downloadable at [`iso.ryoku.dev`](https://iso.ryoku.dev/stable/); the first tagged stable release is the next milestone.
+
+The preview track is `unstable-dev`; stable releases are prepared on `main`. The shell is in a transition from Omarchy inheritance and Celestia-inspired structure toward a Ryoku-owned plugin shell layer, while keeping installer, command, and runtime behavior coherent.
