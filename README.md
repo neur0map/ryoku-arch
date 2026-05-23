@@ -22,11 +22,7 @@ feel fast, sharp, and deliberate from first boot.
 <kbd>[Vision](docs/vision.md)</kbd> &middot; <kbd>[Docs](docs/)</kbd> &middot; <kbd>[Customize](docs/customization-inventory.md)</kbd> &middot; <kbd>[Keybindings](docs/keybindings.md)</kbd> &middot; <kbd>[Discord](https://discord.gg/8KjBmUEyKA)</kbd> &middot; <kbd>[Subreddit](https://www.reddit.com/r/RyokuArch/)</kbd>
 
 <p>
-  <a href="https://www.youtube.com/watch?v=u3rzJe3d49U">
-    <img src="https://img.youtube.com/vi/u3rzJe3d49U/maxresdefault.jpg" alt="Ryoku showcase video" width="960" />
-  </a>
-  <br/>
-  <a href="https://www.youtube.com/watch?v=u3rzJe3d49U"><strong>Watch the showcase on YouTube</strong></a>
+  <img src="showcase.png" alt="Ryoku showcase" width="960" />
 </p>
 
 </div>
