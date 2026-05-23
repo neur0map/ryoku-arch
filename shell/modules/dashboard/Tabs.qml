@@ -17,6 +17,7 @@ Item {
     required property var tabs
 
     readonly property alias count: bar.count
+    readonly property int clampedCurrentIndex: Math.max(0, Math.min(dashState.currentTab, Math.max(0, count - 1)))
 
     implicitHeight: bar.implicitHeight + indicator.implicitHeight + indicator.anchors.topMargin + separator.implicitHeight
 
@@ -27,10 +28,13 @@ Item {
         anchors.right: parent.right
         anchors.top: parent.top
 
-        currentIndex: root.dashState.currentTab
+        currentIndex: root.clampedCurrentIndex
         background: null
 
-        onCurrentIndexChanged: root.dashState.currentTab = currentIndex
+        onCurrentIndexChanged: {
+            if (count > 0 && currentIndex >= 0 && root.dashState.currentTab !== currentIndex)
+                root.dashState.currentTab = currentIndex;
+        }
 
         Repeater {
             model: ScriptModel {
@@ -104,7 +108,7 @@ Item {
         id: tab
 
         required property string iconName
-        readonly property bool current: TabBar.tabBar.currentItem === this
+        readonly property bool current: TabBar.tabBar && TabBar.tabBar.currentItem === this
 
         background: null
 

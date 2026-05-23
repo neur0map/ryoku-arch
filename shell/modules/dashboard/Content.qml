@@ -7,6 +7,7 @@ import Quickshell.Widgets
 import Ryoku.Config
 import qs.components
 import qs.components.filedialog
+import qs.services
 
 Item {
     id: root
@@ -51,14 +52,35 @@ Item {
                 enabled: Config.dashboard.showWeather
             }
         ];
-        return allTabs.filter(tab => tab.enabled);
+        const enabledTabs = allTabs.filter(tab => tab.enabled);
+        return enabledTabs.length > 0 ? enabledTabs : [
+            {
+                component: emptyComponent,
+                iconName: "dashboard",
+                text: qsTr("Dashboard"),
+                enabled: true
+            }
+        ];
     }
+    readonly property int dashboardTabCount: dashboardTabs.length
 
     readonly property real nonAnimWidth: view.implicitWidth + viewWrapper.anchors.margins * 2
     readonly property real nonAnimHeight: tabs.implicitHeight + tabs.anchors.topMargin + view.implicitHeight + viewWrapper.anchors.margins * 2
 
     implicitWidth: nonAnimWidth
     implicitHeight: nonAnimHeight
+
+    function clampCurrentTab(): void {
+        const count = dashboardTabCount;
+        const maxIndex = Math.max(0, count - 1);
+        const current = dashState.currentTab;
+        const clamped = Math.max(0, Math.min(current, maxIndex));
+        if (current !== clamped)
+            dashState.currentTab = clamped;
+    }
+
+    onDashboardTabCountChanged: clampCurrentTab()
+    Component.onCompleted: clampCurrentTab()
 
     Tabs {
         id: tabs
@@ -189,6 +211,21 @@ Item {
                 id: weatherComponent
 
                 WeatherTab {}
+            }
+
+            Component {
+                id: emptyComponent
+
+                Item {
+                    implicitWidth: 480
+                    implicitHeight: 180
+
+                    StyledText {
+                        anchors.centerIn: parent
+                        text: qsTr("Enable a dashboard tab in settings")
+                        color: Colours.palette.m3onSurfaceVariant
+                    }
+                }
             }
 
             Behavior on contentX {
