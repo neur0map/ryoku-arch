@@ -40,8 +40,8 @@ rg -q "[$]clipboard = sh -lc 'cliphist list \\| fuzzel --dmenu" "$ROOT_DIR/confi
   fail "Hyprland config should keep clipboard history fallback"
 rg -q "[$]systemPanel = sh -lc '\\\$HOME/.local/bin/ryoku-shell settings'" "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should route system bind through Ryoku shell"
-rg -q "[$]hyprlandSettings = hyprmod" "$ROOT_DIR/config/hypr/hyprland.conf" || \
-  fail "Hyprland config should launch the packaged HyprMod app directly"
+rg -q "[$]hyprlandSettings = ryoku-launch-hyprmod" "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should launch HyprMod through Ryoku geometry wrapper"
 rg -q "[$]powerMenu = sh -lc '\\\$HOME/.local/bin/ryoku-shell session'" "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should route power bind through Ryoku shell"
 rg -q "exec-once = sh -lc '\\\$HOME/.local/bin/ryoku-shell run --session'" "$ROOT_DIR/config/hypr/hyprland.conf" || \

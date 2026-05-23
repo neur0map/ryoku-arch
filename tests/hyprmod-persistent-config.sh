@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# shellcheck disable=SC2016
+
 set -euo pipefail
 
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
@@ -21,18 +23,38 @@ assert_contains() {
   fail "Ryoku should ship HyprMod's managed config target"
 [[ -f $ROOT_DIR/shell/modules/controlcenter/WindowTitle.qml ]] || \
   fail "missing control center title component"
+[[ -x $ROOT_DIR/bin/ryoku-launch-hyprmod ]] || \
+  fail "Ryoku should ship a HyprMod launcher that matches settings geometry"
+assert_contains "$ROOT_DIR/bin/ryoku-launch-hyprmod" \
+  'resizewindowpixel exact' \
+  "HyprMod launcher should resize the app after it maps"
+assert_contains "$ROOT_DIR/bin/ryoku-launch-hyprmod" \
+  'width \* 0\.8' \
+  "HyprMod launcher should match Ryoku settings width ratio"
+assert_contains "$ROOT_DIR/bin/ryoku-launch-hyprmod" \
+  'height \* 0\.78' \
+  "HyprMod launcher should match Ryoku settings height ratio"
 assert_contains "$ROOT_DIR/config/hypr/hyprland.conf" \
   '^source = ~/\.config/hypr/hyprland-gui\.conf$' \
   "Ryoku Hyprland config should source HyprMod's managed config"
+assert_contains "$ROOT_DIR/config/hypr/hyprland.conf" \
+  '^\$hyprlandSettings = ryoku-launch-hyprmod$' \
+  "Ryoku Hyprland config should launch HyprMod through Ryoku geometry wrapper"
 assert_contains "$ROOT_DIR/shell/modules/controlcenter/WindowTitle.qml" \
   'text: qsTr\("Advanced settings"\)' \
   "official settings should expose HyprMod as advanced settings"
 assert_contains "$ROOT_DIR/shell/modules/controlcenter/WindowTitle.qml" \
-  'Quickshell\.execDetached\(\["hyprmod"\]\)' \
-  "advanced settings button should launch HyprMod"
+  'Quickshell\.execDetached\(\["ryoku-launch-hyprmod"\]\)' \
+  "advanced settings button should launch HyprMod through Ryoku geometry wrapper"
 assert_contains "$ROOT_DIR/shell/modules/controlcenter/WindowTitle.qml" \
-  'QsWindow\.window\.destroy\(\)' \
-  "advanced settings button should close the official settings window"
+  'id: closeAfterHyprmodLaunch' \
+  "advanced settings should keep a handoff timer for HyprMod launch"
+assert_contains "$ROOT_DIR/shell/modules/controlcenter/WindowTitle.qml" \
+  'interval: 2200' \
+  "advanced settings should wait briefly before closing official settings"
+assert_contains "$ROOT_DIR/shell/modules/controlcenter/WindowTitle.qml" \
+  'closeAfterHyprmodLaunch\.restart\(\)' \
+  "advanced settings button should close official settings after the handoff delay"
 assert_contains "$ROOT_DIR/config/hypr/hyprland.conf" \
   '^windowrule = match:class \^\(io\.github\.bluemancz\.hyprmod\)\$, float true$' \
   "HyprMod should open as a floating advanced settings window"
@@ -41,6 +63,9 @@ assert_contains "$ROOT_DIR/config/hypr/hyprland.conf" \
   "HyprMod should open centered like Ryoku settings"
 if grep -Fq 'text: qsTr("Ryoku Settings")' "$ROOT_DIR/shell/modules/controlcenter/WindowTitle.qml"; then
   fail "floating settings title should not duplicate the Ryoku Settings label"
+fi
+if grep -Fq 'windowrule = match:class ^(io.github.bluemancz.hyprmod)$, size' "$ROOT_DIR/config/hypr/hyprland.conf"; then
+  fail "HyprMod sizing should be handled by the Ryoku launcher, not a stale window rule"
 fi
 
 migration="$ROOT_DIR/migrations/1779515727.sh"
@@ -56,7 +81,9 @@ hyprmod_conf="$hypr_dir/hyprland-gui.conf"
 mkdir -p "$hypr_dir"
 
 cat >"$hypr_conf" <<'HYPR'
+$hyprlandSettings = hyprmod
 source = ~/.config/hypr/colors.conf
+windowrule = match:class ^(io.github.bluemancz.hyprmod)$, size 80% 78%
 
 general {
   gaps_in = 5
@@ -73,6 +100,12 @@ env -u XDG_CONFIG_HOME HOME="$home_dir" RYOKU_PATH="$ROOT_DIR" bash "$migration"
 
 source_count=$(grep -Fxc 'source = ~/.config/hypr/hyprland-gui.conf' "$hypr_conf")
 (( source_count == 1 )) || fail "migration should add the HyprMod source exactly once"
+grep -Fxq '$hyprlandSettings = ryoku-launch-hyprmod' "$hypr_conf" || \
+  fail "migration should converge the HyprMod launcher command to Ryoku wrapper"
+! grep -Fxq '$hyprlandSettings = hyprmod' "$hypr_conf" || \
+  fail "migration should remove the old direct HyprMod launcher command"
+! grep -Fq 'windowrule = match:class ^(io.github.bluemancz.hyprmod)$, size' "$hypr_conf" || \
+  fail "migration should remove stale HyprMod size window rules"
 float_count=$(grep -Fxc 'windowrule = match:class ^(io.github.bluemancz.hyprmod)$, float true' "$hypr_conf")
 center_count=$(grep -Fxc 'windowrule = match:class ^(io.github.bluemancz.hyprmod)$, center true' "$hypr_conf")
 (( float_count == 1 )) || fail "migration should add the HyprMod floating rule exactly once"

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# shellcheck disable=SC2016
+
 set -euo pipefail
 
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
@@ -31,14 +33,14 @@ HYPR
 
 HOME="$home_dir" RYOKU_PATH="$ROOT_DIR" bash "$migration" >/dev/null
 
-grep -Fxq '$hyprlandSettings = hyprmod' "$hypr_conf" || \
-  fail "migration should add the direct HyprMod launcher command"
+grep -Fxq '$hyprlandSettings = ryoku-launch-hyprmod' "$hypr_conf" || \
+  fail "migration should add the Ryoku HyprMod launcher command"
 grep -Fxq 'bind = SUPER, comma, exec, $hyprlandSettings' "$hypr_conf" || \
   fail "migration should add Super+comma HyprMod bind"
 
 HOME="$home_dir" RYOKU_PATH="$ROOT_DIR" bash "$migration" >/dev/null
 
-launcher_count=$(grep -Fxc '$hyprlandSettings = hyprmod' "$hypr_conf")
+launcher_count=$(grep -Fxc '$hyprlandSettings = ryoku-launch-hyprmod' "$hypr_conf")
 bind_count=$(grep -Fxc 'bind = SUPER, comma, exec, $hyprlandSettings' "$hypr_conf")
 (( launcher_count == 1 )) || fail "migration should not duplicate the HyprMod launcher command"
 (( bind_count == 1 )) || fail "migration should not duplicate the Super+comma bind"

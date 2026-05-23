@@ -2,7 +2,7 @@ echo "Add HyprMod Super comma launcher"
 
 hypr_conf="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland.conf"
 # shellcheck disable=SC2016
-launcher_line='$hyprlandSettings = hyprmod'
+launcher_line='$hyprlandSettings = ryoku-launch-hyprmod'
 # shellcheck disable=SC2016
 bind_line='bind = SUPER, comma, exec, $hyprlandSettings'
 

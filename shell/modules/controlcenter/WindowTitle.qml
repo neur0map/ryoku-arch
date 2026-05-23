@@ -28,10 +28,22 @@ StyledRect {
             type: IconTextButton.Tonal
             horizontalPadding: Tokens.padding.normal
             verticalPadding: Tokens.padding.smaller
+            enabled: !closeAfterHyprmodLaunch.running
 
             onClicked: {
-                Quickshell.execDetached(["hyprmod"]);
-                QsWindow.window.destroy();
+                Quickshell.execDetached(["ryoku-launch-hyprmod"]);
+                closeAfterHyprmodLaunch.restart();
+            }
+
+            Timer {
+                id: closeAfterHyprmodLaunch
+
+                interval: 2200
+                repeat: false
+
+                onTriggered: {
+                    QsWindow.window.destroy();
+                }
             }
         }
 

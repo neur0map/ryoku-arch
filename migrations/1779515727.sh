@@ -4,8 +4,13 @@ hypr_dir="${XDG_CONFIG_HOME:-$HOME/.config}/hypr"
 hypr_conf="$hypr_dir/hyprland.conf"
 hyprmod_conf="$hypr_dir/hyprland-gui.conf"
 hyprmod_source_line="source = ~/.config/hypr/hyprland-gui.conf"
+# shellcheck disable=SC2016
+hyprmod_old_launcher_line='$hyprlandSettings = hyprmod'
+# shellcheck disable=SC2016
+hyprmod_launcher_line='$hyprlandSettings = ryoku-launch-hyprmod'
 hyprmod_float_rule="windowrule = match:class ^(io.github.bluemancz.hyprmod)$, float true"
 hyprmod_center_rule="windowrule = match:class ^(io.github.bluemancz.hyprmod)$, center true"
+hyprmod_stale_size_rule="windowrule = match:class ^(io.github.bluemancz.hyprmod)$, size 80% 78%"
 
 has_hyprmod_source() {
   local conf="$1"
@@ -38,6 +43,18 @@ if [[ -f $hypr_conf ]] && ! has_hyprmod_source "$hypr_conf"; then
 fi
 
 if [[ -f $hypr_conf ]]; then
+  if grep -Fxq "$hyprmod_old_launcher_line" "$hypr_conf"; then
+    sed -i "s|^[$]hyprlandSettings = hyprmod$|$hyprmod_launcher_line|" "$hypr_conf"
+  elif ! grep -Eq '^[$]hyprlandSettings = ' "$hypr_conf"; then
+    printf '%s\n' "$hyprmod_launcher_line" >>"$hypr_conf"
+  fi
+
+  if grep -Fxq "$hyprmod_stale_size_rule" "$hypr_conf"; then
+    tmp_conf=$(mktemp)
+    grep -Fxv "$hyprmod_stale_size_rule" "$hypr_conf" >"$tmp_conf" || true
+    mv "$tmp_conf" "$hypr_conf"
+  fi
+
   grep -Fxq "$hyprmod_float_rule" "$hypr_conf" || printf '%s\n' "$hyprmod_float_rule" >>"$hypr_conf"
   grep -Fxq "$hyprmod_center_rule" "$hypr_conf" || printf '%s\n' "$hyprmod_center_rule" >>"$hypr_conf"
 fi
