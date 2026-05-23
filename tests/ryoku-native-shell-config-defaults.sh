@@ -56,7 +56,7 @@ assert_json_expr "$config_file" \
   "Native shell defaults should preserve explicit local user settings"
 
 assert_json_expr "$config_file" \
-  '.appearance.font.family.sans == "DejaVu Sans" and .background.visualiser.enabled == true and .services.showLyrics == true' \
+  '.appearance.font.family.sans == "Rubik" and .background.visualiser.enabled == true and .services.showLyrics == true and .launcher.showOnHover == true' \
   "Native shell defaults should add missing Ryoku-owned settings"
 
 echo "PASS: ryoku native shell config defaults"

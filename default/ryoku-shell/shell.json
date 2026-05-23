@@ -8,14 +8,14 @@
     "font": {
       "family": {
         "mono": "CaskaydiaCove Nerd Font",
-        "sans": "DejaVu Sans"
+        "sans": "Rubik"
       },
       "size": {
         "scale": 0.9626105640854472
       }
     },
     "padding": {
-      "scale": 0.95369140625
+      "scale": 0.9016648782410651
     },
     "rounding": {
       "scale": 1.2355768050098235
@@ -24,9 +24,9 @@
       "scale": 0.5837541372936725
     },
     "transparency": {
-      "base": 0.9951004941239315,
+      "base": 1,
       "enabled": true,
-      "layers": 0.38429821047008544
+      "layers": 0.1733940972222222
     }
   },
   "background": {
@@ -48,6 +48,9 @@
     },
     "wallpaperEnabled": true
   },
+  "launcher": {
+    "showOnHover": true
+  },
   "bar": {
     "status": {
       "showAudio": true,
@@ -60,8 +63,8 @@
     }
   },
   "border": {
-    "rounding": 38,
-    "thickness": 9
+    "rounding": 11,
+    "thickness": 13
   },
   "dashboard": {
     "showMedia": true,

@@ -27,5 +27,24 @@ install_default_configs() {
   done < <(find "$RYOKU_PATH/config" -type f -print0)
 }
 
+seed_default_wallpapers() {
+  local source_dir target_dir source_file rel target
+
+  source_dir="$RYOKU_PATH/wallpapers"
+  target_dir="${XDG_PICTURES_DIR:-$HOME/Pictures}/Wallpapers"
+
+  [[ -d $source_dir ]] || return 0
+
+  mkdir -p "$target_dir"
+
+  while IFS= read -r -d '' source_file; do
+    rel="${source_file#$source_dir/}"
+    target="$target_dir/$rel"
+    mkdir -p "$(dirname "$target")"
+    [[ -e $target ]] || cp -a "$source_file" "$target"
+  done < <(find "$source_dir" -type f -print0)
+}
+
 install_default_configs
+seed_default_wallpapers
 copy_default_file_if_missing "$RYOKU_PATH/default/bashrc" "$HOME/.bashrc"

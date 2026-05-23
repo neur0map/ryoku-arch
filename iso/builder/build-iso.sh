@@ -134,6 +134,13 @@ if [[ -d "$build_cache_dir/airootfs/root/ryoku/default/plymouth" ]]; then
         "$build_cache_dir/airootfs/usr/share/plymouth/themes/ryoku/"
 fi
 
+# Seed image assets used by the wallpaper selector and lockscreen defaults.
+if [[ -d "$build_cache_dir/airootfs/root/ryoku/wallpapers" ]]; then
+  mkdir -p "$build_cache_dir/airootfs/usr/share/ryoku/wallpapers"
+  cp -a "$build_cache_dir/airootfs/root/ryoku/wallpapers/." \
+    "$build_cache_dir/airootfs/usr/share/ryoku/wallpapers/"
+fi
+
 # Add our additional packages to packages.x86_64. Apple T2 (linux-t2)
 # is omarchy-only (DHH ships MacBooks); we use the standard linux
 # kernel that the releng base already pulls.
