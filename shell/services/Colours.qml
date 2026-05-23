@@ -57,8 +57,22 @@ Singleton {
     }
 
     function load(data: string, isPreview: bool): void {
+        const trimmed = data.trim();
+        if (!trimmed)
+            return;
+
+        let scheme = null;
+        try {
+            scheme = JSON.parse(trimmed);
+        } catch (e) {
+            console.warn("Scheme parse failed: " + e);
+            return;
+        }
+
+        if (!scheme || !scheme.colours)
+            return;
+
         const colours = isPreview ? preview : current;
-        const scheme = JSON.parse(data);
 
         if (!isPreview) {
             root.scheme = scheme.name;

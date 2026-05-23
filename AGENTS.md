@@ -74,24 +74,34 @@ When working on Ryoku settings, treat settings as a control surface, not as the 
 Required flow:
 
 ```text
-Settings UI -> Config.setNestedValue() or a narrow IPC/command adapter -> shared service/tokens -> shell-wide consumers
+Settings UI -> GlobalConfig property or narrow IPC/command adapter -> shared tokens/services -> shell-wide consumers
 ```
 
 Rules:
 
-- Do not implement global visuals as local properties on the settings window.
-- Add user-facing config keys in both `shell/modules/common/Config.qml` and `shell/defaults/config.json`.
-- Put visual interpretation in `shell/modules/common/Appearance.qml` for Material ii or `shell/modules/waffle/looks/Looks.qml` for Waffle.
-- Make bar, panels, sidebars, overview, launchers, popups, and settings consume the same tokens.
-- Settings pages under `shell/modules/settings/`, `shell/ryokuSettings.qml`, `shell/settings.qml`, and `shell/waffleSettings.qml` should mutate config and explain options. They should not become one-off style engines.
-- For system behavior, prefer a named `ryoku-*` command with a small QML service or IPC adapter. Do not put package, sudo, systemd, network, hardware, or migration logic directly in a settings component.
+- Do not implement global visuals as local properties on a settings or control-center page.
+- Add user-facing config keys in the typed config layer under `shell/plugin/src/Ryoku/Config/`.
+- Persist settings through `GlobalConfig.saveConfig()` after changing `GlobalConfig` properties.
+- Put shared visual interpretation in the config/tokens layer and consume it through `import Ryoku.Config`.
+- Make the bar, popouts, sidebars, dashboard, launcher, lock-adjacent surfaces, and control center consume the same tokens and services.
+- Settings and control-center pages under `shell/modules/controlcenter/`, `shell/modules/dashboard/`, `shell/modules/sidebar/`, and related shell modules should mutate config and expose choices. They should not become one-off style engines.
+- For system behavior, prefer a named `ryoku-*` command with a small QML service or IPC adapter. Do not put package, sudo, systemd, network, hardware, or migration logic directly in a QML component.
 - Verify a settings change by toggling it and checking at least one non-settings shell surface or system command result.
 
 The migrated core is part of the product. Before adding shell UI for a feature, check whether an existing `ryoku-*` command already owns it. Common core domains include packages, updates, snapshots, rollback, migrations, Hyprland config, keybinds, themes, wallpaper, fonts, cursor, hardware toggles, power profiles, services, firewall, hosts, VPN, DNS, webapps, and app installs.
 
-# Ryoku Development Environment
+# Ryoku Workstation Environment
 
-Use `rebirth` for Hyprland rebirth work. Keep `main` untouched unless explicitly asked to release or merge.
+Use `rebirth` for Hyprland workstation work. Keep `main` untouched unless explicitly asked to release or merge.
+
+Primary paths on this workstation:
+
+```bash
+DEV="$HOME/prowl/ryoku-arch"
+INSTALL="$HOME/.local/share/ryoku"
+SHELL_PATH="$HOME/.local/share/ryoku-shell"
+RUNTIME="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell"
+```
 
 Development tree:
 
@@ -105,17 +115,20 @@ Runtime preview for shell-only edits:
 
 ```bash
 DEV="${RYOKU_DEV_PATH:-$HOME/prowl/ryoku-arch}"
-RUNT="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell"
-rsync -a --delete "$DEV/shell/" "$RUNT/"
+RUNTIME="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell"
+rsync -a --delete "$DEV/shell/" "$RUNTIME/"
 systemctl --user restart ryoku-shell.service
 ```
 
-Installed repo:
+Installed repo and live shell state:
 
 ```bash
 git -C "$HOME/.local/share/ryoku" status -sb
+env -u QS_CONFIG_NAME -u QS_CONFIG_PATH -u QS_MANIFEST qs list --all
+systemctl --user status ryoku-shell.service --no-pager
+ryoku-doctor shell
 ```
 
-Do not manually copy experiments into `$HOME/.local/share/ryoku`. That checkout is the installed update tree. If it drifts, updates and channel switching break.
+Do not manually copy experiments into `$HOME/.local/share/ryoku`. That checkout is the installed update tree. If the user explicitly asks for live mirror parity, patch only the scoped files there, check `git -C "$HOME/.local/share/ryoku" status -sb`, and verify the same behavior in the development tree and installed tree.
 
-Before committing settings or IPC work, run the narrow checks that match the touched area. Prefer existing tests under `tests/` and shell checks for changed scripts. If a local hook fails on unrelated existing warnings, report that clearly instead of hiding it.
+Before committing settings, shell, IPC, or documentation work, run the narrow checks that match the touched area. Prefer existing tests under `tests/` and shell checks for changed scripts. If a local hook fails on unrelated existing warnings, report that clearly instead of hiding it.

@@ -30,7 +30,7 @@ The palette is named **Greek Noir** in the codebase. It is the Ryoku-branded ref
 
 | Role | Hex | Notes |
 |---|---|---|
-| **Accent / brand orange** | `#F25623` | Primary brand color. Used for the kanji mark, `RYOKU` wordmark, Limine branding, MIT-license badge, status badges, terminal accent. |
+| **Accent / brand orange** | `#F25623` | Primary brand color. Used for the kanji mark, `RYOKU` wordmark, Limine branding, GPL-license badge, status badges, terminal accent. |
 | Bright orange | `#F56E0F` | Secondary accent, brighter version of the brand. Used in `term_palette_bright` slot 5 and as the bright variant in some themes. |
 | Background dark | `#171717` | Default dark surface. SVG logo background, terminal background, Plymouth window background, Limine `term_background`. |
 | Foreground / subdued | `#aeab94` | Muted beige used for body text in dark contexts and the tagline. |
@@ -147,15 +147,16 @@ The kanji-block art used by `boot.sh` is also hand-drawn block-text (`█` and f
 
 | Surface | Source of brand | What renders |
 |---|---|---|
-| GitHub README | `assets/brand/logo-mark.png`, MIT badge color `F25623` | Kanji mark + status badges in brand orange |
+| GitHub README | `assets/brand/logo-mark.png`, GPL badge color `F25623` | Kanji mark + status badges in brand orange |
 | Install bootstrap (`boot.sh`) | Inline kanji block-art + `RYOKU` wordmark | Orange ANSI art, beige tagline |
 | Live ISO configurator | `bin/ryoku-cmd-first-run` ANSI palette setup | Brand-orange terminal accents during install |
 | Limine boot menu | `default/limine/limine.conf` | Orange branding text "Ryoku Bootloader", Greek Noir terminal palette |
 | Plymouth decrypt | `default/plymouth/ryoku.script` + `default/plymouth/*.png` | Dark window, branded progress bar + lock icon |
 | SDDM greeter | Current shell-provided theme | Upstream login theme until the Ryoku rebrand pass |
-| Hyprland session + Ryoku shell | `themes/<theme>/` per active theme | Greek Noir is the brand-accurate one; other themes are user-selectable but not "the brand" |
+| Hyprland session + Ryoku shell bar | `shell/components/Logo.qml` + `shell/assets/logo.svg` | The default logo module renders the Ryoku kanji mark. User themes may change colors, but the default bar mark stays Ryoku. |
+| Hyprland session + Ryoku shell theme | `themes/<theme>/` per active theme | Greek Noir is the brand-accurate one; other themes are user-selectable but not "the brand" |
 | First-boot welcome notification | `install/first-run/welcome.sh` | Branded notification copy |
-| Fastfetch terminal greeting | `assets/brand/logo-mark.png` via `config/fastfetch/config.jsonc`; dispatched by `bin/ryoku-fastfetch` | Kanji `力` via kitty graphics on kitty/ghostty/wezterm; libchafa-rendered ANSI fallback on every other terminal. Branch line uses `ryoku-version-branch`. |
+| Kitty startup greeting | `config/fish/config.fish`, `config/kitty/kitty.conf`, `assets/brand/logo-mark.png`, `config/fastfetch/config.jsonc`, and `bin/ryoku-fastfetch` | Kitty starts fish by default, fish runs `ryoku-fastfetch` once per Kitty window/split, and fastfetch renders the kanji mark with Kitty graphics. |
 
 ## What "on-brand" means
 

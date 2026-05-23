@@ -12,28 +12,29 @@ or compatibility references.
 | --- | --- |
 | `LICENSE` and `NOTICE` attribution | Required attribution for the original Omarchy project and its MIT license. |
 | Git history, upstream remotes, and `upstream-baseline` | Needed to audit ancestry and cherry-pick useful upstream fixes without merging upstream wholesale. |
-| Historical migrations under `migrations/` | Existing installs may have old state from earlier Omarchy Hyprland, Niri/iNiR, Waybar, Mako, SwayOSD, Tofi, Walker, Elephant, and Omarchy-era phases. Those migrations must stay readable and idempotent. |
+| Historical migrations under `migrations/` | Existing installs may have old state from earlier compositor, shell, Waybar, Mako, SwayOSD, Tofi, Walker, Elephant, and Omarchy-era phases. Those migrations must stay readable and idempotent. |
 | Cleanup-only filesystem paths | Some install and migration scripts still remove old Omarchy files, services, boot assets, and state directories. These references delete legacy state; they do not create new Omarchy state. |
 | Compatibility environment fallbacks | A small number of legacy `OMARCHY_*` variables are accepted as fallbacks where old installs or old shells may still provide them. Ryoku-owned `RYOKU_*` variables are canonical. |
 | Webapp cleanup matchers | Some cleanup commands recognize old `omarchy-*` desktop-file launchers so user-created webapps can be removed safely. |
 | External theme and package identifiers | Some third-party theme IDs, package names, and URLs include `omarchy` because changing them would point to a different external object or break migration cleanup. |
+| ASCII terminal screensaver | The terminal/TTE screensaver was adopted as a Ryoku feature and is kept under Ryoku commands, config, and window classes. |
 | Historical plan/spec documents | Files under `docs/superpowers/` describe previous work sessions. They are records, not current runtime instructions. |
 
 ## What No Longer Ships As The Active Desktop
 
-The current source track is Hyprland with the Ryoku shell. Earlier Niri/iNiR
-work remains only as legacy migration context unless a file explicitly marks it
-as active.
+The current source track is Hyprland with the Ryoku shell. Earlier compositor
+and shell transition work remains only as legacy migration context unless a
+file explicitly marks it as active.
 
 The following names should only appear as historical, cleanup, compatibility,
 or external identifier references:
 
-- Niri/iNiR session defaults and window rules.
+- Retired compositor session defaults and window rules.
 - Waybar status bar config.
 - Mako notification defaults.
 - SwayOSD styling.
 - Tofi, Walker, and Elephant launcher configs.
-- Brain Shell and Noctalia prototype runtime trees.
+- Retired prototype runtime trees.
 - Omarchy package repo, keyring, mirror URLs, and old branded boot assets.
 
 ## Current User-Facing Surfaces

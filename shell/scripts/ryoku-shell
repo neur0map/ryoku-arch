@@ -37,7 +37,6 @@ IPC:
   dashboard                   Toggle dashboard
   utilities                   Toggle utilities
   settings                    Open settings
-  keybinds                    Toggle keybind legend
   ipc <target> <fn> [args]    Raw Quickshell IPC call
 EOF
 }
@@ -78,6 +77,14 @@ install_service() {
 
   mkdir -p "$systemd_user_dir"
   install -m 0644 "$source_service" "$target_service"
+  if ! grep -Fq "ryoku-shell-cleanup-orphans" "$target_service"; then
+    legacy_cleanup="ryoku-shell cleanup-orphans"
+    if grep -Fq "$legacy_cleanup" "$target_service"; then
+      sed -i "\\|$legacy_cleanup|c\\ExecStopPost=-%h/.local/share/ryoku/bin/ryoku-shell-cleanup-orphans --quiet" "$target_service"
+    else
+      printf '\nExecStopPost=-%%h/.local/share/ryoku/bin/ryoku-shell-cleanup-orphans --quiet\n' >>"$target_service"
+    fi
+  fi
   rm -f "$systemd_dropin_dir/ryoku-dev-qs.conf"
   rmdir "$systemd_dropin_dir" >/dev/null 2>&1 || true
   systemctl --user daemon-reload >/dev/null 2>&1 || true
@@ -134,9 +141,6 @@ case "$command" in
     ;;
   settings|control-center|controlCenter|globalActions)
     ipc_call controlCenter toggle
-    ;;
-  keybinds|cheatsheet)
-    ipc_call keybinds toggle
     ;;
   lock)
     ipc_call lock lock

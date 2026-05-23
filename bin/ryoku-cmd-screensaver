@@ -2,11 +2,12 @@
 
 # Run the Ryoku screensaver using random effects from TTE.
 
+# shellcheck disable=SC1091
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
 screensaver_in_focus() {
-  niri msg -j focused-window 2>/dev/null |
-    jq -e '.app_id == "org.ryoku.screensaver"' >/dev/null 2>&1 ||
+  hyprctl activewindow -j 2>/dev/null |
+    jq -e '(.class // .initialClass // "") == "org.ryoku.screensaver"' >/dev/null 2>&1 ||
     return 0
 }
 
@@ -30,7 +31,7 @@ while true; do
     --no-eol --no-restore-cursor &
 
   while pgrep -t "${tty#/dev/}" -x tte >/dev/null; do
-    if read -n1 -t 1 || ! screensaver_in_focus; then
+    if read -r -n1 -t 1 || ! screensaver_in_focus; then
       exit_screensaver
     fi
   done

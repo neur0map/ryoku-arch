@@ -6,8 +6,8 @@
 > next time the install regresses.
 >
 > Rebirth note, 2026-05-22: the active source track targets Hyprland with the
-> Ryoku shell. Older Niri/iNiR notes in this repository are historical migration
-> context, not the current ISO target.
+> Ryoku shell. Older compositor and shell transition notes in this repository
+> are historical migration context, not the current ISO target.
 
 ## What is verified
 

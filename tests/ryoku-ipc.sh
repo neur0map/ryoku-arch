@@ -156,4 +156,4 @@ if grep -Eq 'qs -c ryoku|popups toggle|settings-menu|toolbox|hyprctl' "$ipc"; th
   fail "ryoku-ipc should not contain old Ryoku Quickshell or Hyprland IPC wiring"
 fi
 
-pass "ryoku-ipc Niri/Ryoku contract"
+pass "ryoku-ipc Hyprland/Ryoku contract"

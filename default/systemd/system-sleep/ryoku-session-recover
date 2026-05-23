@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# After resume, ask active Ryoku user sessions to recover Niri/Ryoku UI state.
+# After resume, ask active Ryoku user sessions to recover Hyprland/Ryoku UI state.
 
 set -euo pipefail
 

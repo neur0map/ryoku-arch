@@ -30,6 +30,8 @@ rm -f /tmp/rebirth-shell-free.$$
 
 rg -q 'source = ~/.config/hypr/colors.conf' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should source a local color fallback"
+! rg -q 'ryoku-user-binds|[$]keybinds|Ryoku Keybinds|SUPER,[[:space:]]*slash' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should not ship the removed Super+/ keybind menu"
 rg -q 'monitor = eDP-1, preferred, 0x0, 1.25' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should use a smaller explicit laptop scale"
 rg -q "[$]menu = sh -lc '\\\$HOME/.local/bin/ryoku-shell launcher'" "$ROOT_DIR/config/hypr/hyprland.conf" || \
@@ -38,12 +40,18 @@ rg -q "[$]clipboard = sh -lc 'cliphist list \\| fuzzel --dmenu" "$ROOT_DIR/confi
   fail "Hyprland config should keep clipboard history fallback"
 rg -q "[$]systemPanel = sh -lc '\\\$HOME/.local/bin/ryoku-shell settings'" "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should route system bind through Ryoku shell"
+rg -q "[$]hyprlandSettings = hyprmod" "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should launch the packaged HyprMod app directly"
 rg -q "[$]powerMenu = sh -lc '\\\$HOME/.local/bin/ryoku-shell session'" "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should route power bind through Ryoku shell"
 rg -q "exec-once = sh -lc '\\\$HOME/.local/bin/ryoku-shell run --session'" "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should start Ryoku shell"
 rg -q 'exec-once = hypridle -c ~/.config/hypr/hypridle-rebirth.conf' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should use the rebirth hypridle config"
+rg -q 'env = XCURSOR_THEME,Bibata-Modern-Classic' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should set the Ryoku Xcursor theme for Xwayland apps"
+rg -q 'env = HYPRCURSOR_THEME,Bibata-Modern-Classic' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should set the Ryoku Hyprcursor theme"
 rg -q 'bind = SUPER SHIFT, R, exec, hyprctl reload' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland reload bind should not restart a shell"
 rg -q 'bind = SUPER, Space, exec, [$]menu' "$ROOT_DIR/config/hypr/hyprland.conf" || \
@@ -52,6 +60,8 @@ rg -q 'bind = SUPER, V, exec, [$]clipboard' "$ROOT_DIR/config/hypr/hyprland.conf
   fail "Hyprland config should keep the clipboard bind"
 rg -q 'bind = SUPER, S, exec, [$]systemPanel' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should keep the system bind"
+rg -q 'bind = SUPER, comma, exec, [$]hyprlandSettings' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should bind Super+comma to HyprMod"
 rg -q 'bind = SUPER, P, exec, [$]powerMenu' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should keep the power bind"
 rg -q 'bind = SUPER, Q, killactive,' "$ROOT_DIR/config/hypr/hyprland.conf" || \
@@ -60,11 +70,15 @@ rg -q 'bind = ALT, F4, killactive,' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should support the common close-window bind"
 rg -q 'bind = SUPER, A, togglefloating,' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should keep the floating toggle bind"
+rg -q 'bindmd = SUPER, mouse:272, Move window, movewindow' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should allow Super+left-drag to move windows"
+rg -q 'bindmd = SUPER, mouse:273, Resize window, resizewindow' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should allow Super+right-drag to resize windows"
 rg -q 'bind = SUPER, H, movefocus, l' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should keep HJKL focus navigation"
 rg -q 'bind = SUPER SHIFT, H, movewindow, l' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should keep HJKL move navigation"
 rg -q 'bind = SUPER CTRL, 1, movetoworkspace, 1' "$ROOT_DIR/config/hypr/hyprland.conf" || \
-  fail "Hyprland config should keep Niri-style workspace move binds"
+  fail "Hyprland config should keep direct workspace move binds"
 
 echo "PASS: rebirth Hyprland uses the Ryoku shell seed and keeps core binds"

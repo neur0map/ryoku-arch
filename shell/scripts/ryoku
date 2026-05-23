@@ -32,6 +32,7 @@ read_state() {
 
   if [[ -f $path ]]; then
     tr -d '\n' < "$path"
+    printf '\n'
   else
     printf '%s\n' "$default"
   fi
@@ -45,20 +46,265 @@ write_state() {
   printf '%s\n' "$value" >"$state_dir/scheme.$key"
 }
 
+normalise_mode() {
+  case "${1,,}" in
+    light)
+      printf 'light\n'
+      ;;
+    *)
+      printf 'dark\n'
+      ;;
+  esac
+}
+
+normalise_variant() {
+  case "${1,,}" in
+    vibrant|tonalspot|expressive|fidelity|content|fruitsalad|rainbow|neutral|monochrome)
+      printf '%s\n' "${1,,}"
+      ;;
+    *)
+      printf 'tonalspot\n'
+      ;;
+  esac
+}
+
+select_palette_seed() {
+  local flavour="${1,,}"
+  local variant="${2,,}"
+  local temp
+
+  primary_dark="F25623"
+  primary_light="A93A12"
+  secondary_dark="88A57D"
+  secondary_light="52634A"
+  tertiary_dark="F56E0F"
+  tertiary_light="8B4A00"
+  neutral="757D75"
+  neutral_variant="8A8A8A"
+  primary_container_dark="6F2B16"
+  primary_container_light="FFDAD0"
+  secondary_container_dark="35472F"
+  secondary_container_light="D7F0CC"
+  tertiary_container_dark="693000"
+  tertiary_container_light="FFDCC3"
+
+  case "$flavour" in
+    forest)
+      primary_dark="8FCA7D"
+      primary_light="426D37"
+      secondary_dark="B7C9AA"
+      secondary_light="52634A"
+      tertiary_dark="8ED1C2"
+      tertiary_light="2D665B"
+      neutral="747D71"
+      neutral_variant="889082"
+      primary_container_dark="2C5128"
+      primary_container_light="C8F1B9"
+      secondary_container_dark="3B4A35"
+      secondary_container_light="D8E8CF"
+      tertiary_container_dark="124E44"
+      tertiary_container_light="B5EDE0"
+      ;;
+    ocean)
+      primary_dark="76C7FF"
+      primary_light="00658A"
+      secondary_dark="AFCBE0"
+      secondary_light="4F616F"
+      tertiary_dark="C7BFFF"
+      tertiary_light="605892"
+      neutral="737A7F"
+      neutral_variant="858D94"
+      primary_container_dark="004D6A"
+      primary_container_light="C4E7FF"
+      secondary_container_dark="374955"
+      secondary_container_light="D2E5F4"
+      tertiary_container_dark="484178"
+      tertiary_container_light="E5DEFF"
+      ;;
+    amethyst)
+      primary_dark="CDBDFF"
+      primary_light="6750A4"
+      secondary_dark="CBC2DB"
+      secondary_light="615B70"
+      tertiary_dark="EFB8C8"
+      tertiary_light="7D5260"
+      neutral="7A757F"
+      neutral_variant="938F99"
+      primary_container_dark="4F378B"
+      primary_container_light="EADDFF"
+      secondary_container_dark="494354"
+      secondary_container_light="E8DEF8"
+      tertiary_container_dark="633B48"
+      tertiary_container_light="FFD8E4"
+      ;;
+    rose)
+      primary_dark="FFB1C8"
+      primary_light="9B4058"
+      secondary_dark="E4BDC7"
+      secondary_light="6E5860"
+      tertiary_dark="F1BD94"
+      tertiary_light="7F5533"
+      neutral="80747A"
+      neutral_variant="998D93"
+      primary_container_dark="7C293F"
+      primary_container_light="FFD9E2"
+      secondary_container_dark="554149"
+      secondary_container_light="FDD9E4"
+      tertiary_container_dark="633F1F"
+      tertiary_container_light="FFDDC2"
+      ;;
+    graphite)
+      primary_dark="C2C8C4"
+      primary_light="5D6260"
+      secondary_dark="BBC8C0"
+      secondary_light="56615A"
+      tertiary_dark="C5C2D0"
+      tertiary_light="5E5B6B"
+      neutral="787C79"
+      neutral_variant="909591"
+      primary_container_dark="454A47"
+      primary_container_light="DDE4DF"
+      secondary_container_dark="3F4943"
+      secondary_container_light="D7E4DC"
+      tertiary_container_dark="464452"
+      tertiary_container_light="E3DFF0"
+      ;;
+  esac
+
+  case "$variant" in
+    vibrant)
+      case "$flavour" in
+        forest)
+          primary_dark="92E86B"
+          primary_light="2B7B1E"
+          ;;
+        ocean)
+          primary_dark="40D7FF"
+          primary_light="006E95"
+          ;;
+        amethyst)
+          primary_dark="D9B8FF"
+          primary_light="7246BC"
+          ;;
+        rose)
+          primary_dark="FF8FBD"
+          primary_light="A83255"
+          ;;
+        graphite)
+          primary_dark="F2F5F2"
+          primary_light="515654"
+          ;;
+        *)
+          primary_dark="FF6A2A"
+          primary_light="B23A00"
+          ;;
+      esac
+      ;;
+    expressive)
+      temp="$primary_dark"
+      primary_dark="$tertiary_dark"
+      tertiary_dark="$secondary_dark"
+      secondary_dark="$temp"
+      temp="$primary_light"
+      primary_light="$tertiary_light"
+      tertiary_light="$secondary_light"
+      secondary_light="$temp"
+      ;;
+    fruitsalad)
+      temp="$primary_dark"
+      primary_dark="$secondary_dark"
+      secondary_dark="$tertiary_dark"
+      tertiary_dark="$temp"
+      temp="$primary_light"
+      primary_light="$secondary_light"
+      secondary_light="$tertiary_light"
+      tertiary_light="$temp"
+      ;;
+    rainbow)
+      primary_dark="FF8A80"
+      primary_light="B3261E"
+      secondary_dark="64D8CB"
+      secondary_light="006A60"
+      tertiary_dark="FFD54F"
+      tertiary_light="6F5D00"
+      primary_container_dark="6F1D17"
+      primary_container_light="FFDAD6"
+      secondary_container_dark="005047"
+      secondary_container_light="9FF2E5"
+      tertiary_container_dark="544600"
+      tertiary_container_light="FFE16B"
+      ;;
+    neutral)
+      primary_dark="C9D0CA"
+      primary_light="5D665F"
+      secondary_dark="BFC9C0"
+      secondary_light="586158"
+      tertiary_dark="C9C8B8"
+      tertiary_light="60614E"
+      neutral="787C78"
+      neutral_variant="8D928D"
+      ;;
+    monochrome)
+      primary_dark="E2E5E3"
+      primary_light="5D6260"
+      secondary_dark="C4C8C5"
+      secondary_light="5E625F"
+      tertiary_dark="BFC3C0"
+      tertiary_light="565B58"
+      neutral="777B79"
+      neutral_variant="909492"
+      primary_container_dark="454A47"
+      primary_container_light="E0E4E1"
+      secondary_container_dark="444846"
+      secondary_container_light="E1E5E2"
+      tertiary_container_dark="3F4642"
+      tertiary_container_light="DCE5DF"
+      ;;
+  esac
+}
+
 colour_payload() {
-  cat <<'JSON'
-{"primary_paletteKeyColor":"F25623","secondary_paletteKeyColor":"88A57D","tertiary_paletteKeyColor":"F56E0F","neutral_paletteKeyColor":"757d75","neutral_variant_paletteKeyColor":"8A8A8A","background":"171717","onBackground":"CCD0CF","surface":"171717","surfaceDim":"171717","surfaceBright":"333333","surfaceContainerLowest":"101010","surfaceContainerLow":"1d1d1d","surfaceContainer":"222222","surfaceContainerHigh":"2a2a2a","surfaceContainerHighest":"333333","onSurface":"CCD0CF","surfaceVariant":"333333","onSurfaceVariant":"bcbfbc","inverseSurface":"CCD0CF","inverseOnSurface":"171717","outline":"8A8A8A","outlineVariant":"4D4D4D","shadow":"000000","scrim":"000000","surfaceTint":"F25623","primary":"F25623","onPrimary":"171717","primaryContainer":"6f2b16","onPrimaryContainer":"ffd8cb","inversePrimary":"aeab94","secondary":"88A57D","onSecondary":"171717","secondaryContainer":"35472f","onSecondaryContainer":"d7f0cc","tertiary":"F56E0F","onTertiary":"171717","tertiaryContainer":"693000","onTertiaryContainer":"ffdcc3","error":"ffb4ab","onError":"690005","errorContainer":"93000a","onErrorContainer":"ffdad6","success":"B5CCBA","onSuccess":"213528","successContainer":"374B3E","onSuccessContainer":"D1E9D6","primaryFixed":"ffd8cb","primaryFixedDim":"ffb59e","onPrimaryFixed":"390c00","onPrimaryFixedVariant":"6f2b16","secondaryFixed":"d7f0cc","secondaryFixedDim":"bbd4b1","onSecondaryFixed":"0f1f0d","onSecondaryFixedVariant":"35472f","tertiaryFixed":"ffdcc3","tertiaryFixedDim":"f56e0f","onTertiaryFixed":"2f1500","onTertiaryFixedVariant":"693000"}
+  local name="${1:-ryoku}"
+  local flavour="${2:-default}"
+  local variant
+  local mode
+  local primary
+  local secondary
+  local tertiary
+
+  variant="$(normalise_variant "${3:-tonalspot}")"
+  mode="$(normalise_mode "${4:-dark}")"
+  select_palette_seed "$flavour" "$variant"
+
+  if [[ $mode == "light" ]]; then
+    primary="$primary_light"
+    secondary="$secondary_light"
+    tertiary="$tertiary_light"
+    cat <<JSON
+{"primary_paletteKeyColor":"$primary_light","secondary_paletteKeyColor":"$secondary_light","tertiary_paletteKeyColor":"$tertiary_light","neutral_paletteKeyColor":"$neutral","neutral_variant_paletteKeyColor":"$neutral_variant","background":"FCF8F6","onBackground":"1F1B18","surface":"FCF8F6","surfaceDim":"DED8D3","surfaceBright":"FCF8F6","surfaceContainerLowest":"FFFFFF","surfaceContainerLow":"F7F2EE","surfaceContainer":"F1ECE8","surfaceContainerHigh":"EBE6E2","surfaceContainerHighest":"E5E0DC","onSurface":"1F1B18","surfaceVariant":"E8DCD5","onSurfaceVariant":"51443E","inverseSurface":"342F2C","inverseOnSurface":"F7EFEA","outline":"83746D","outlineVariant":"D5C3BA","shadow":"000000","scrim":"000000","surfaceTint":"$primary","primary":"$primary","onPrimary":"FFFFFF","primaryContainer":"$primary_container_light","onPrimaryContainer":"271000","inversePrimary":"$primary_dark","secondary":"$secondary","onSecondary":"FFFFFF","secondaryContainer":"$secondary_container_light","onSecondaryContainer":"111F0F","tertiary":"$tertiary","onTertiary":"FFFFFF","tertiaryContainer":"$tertiary_container_light","onTertiaryContainer":"2F1500","error":"BA1A1A","onError":"FFFFFF","errorContainer":"FFDAD6","onErrorContainer":"410002","success":"3F6B49","onSuccess":"FFFFFF","successContainer":"D1E9D6","onSuccessContainer":"00210C","primaryFixed":"$primary_container_light","primaryFixedDim":"$primary_dark","onPrimaryFixed":"271000","onPrimaryFixedVariant":"$primary_container_dark","secondaryFixed":"$secondary_container_light","secondaryFixedDim":"$secondary_dark","onSecondaryFixed":"111F0F","onSecondaryFixedVariant":"$secondary_container_dark","tertiaryFixed":"$tertiary_container_light","tertiaryFixedDim":"$tertiary_dark","onTertiaryFixed":"2F1500","onTertiaryFixedVariant":"$tertiary_container_dark"}
+JSON
+    return 0
+  fi
+
+  primary="$primary_dark"
+  secondary="$secondary_dark"
+  tertiary="$tertiary_dark"
+  cat <<JSON
+{"primary_paletteKeyColor":"$primary_dark","secondary_paletteKeyColor":"$secondary_dark","tertiary_paletteKeyColor":"$tertiary_dark","neutral_paletteKeyColor":"$neutral","neutral_variant_paletteKeyColor":"$neutral_variant","background":"171717","onBackground":"CCD0CF","surface":"171717","surfaceDim":"171717","surfaceBright":"333333","surfaceContainerLowest":"101010","surfaceContainerLow":"1D1D1D","surfaceContainer":"222222","surfaceContainerHigh":"2A2A2A","surfaceContainerHighest":"333333","onSurface":"CCD0CF","surfaceVariant":"333333","onSurfaceVariant":"BCBFBC","inverseSurface":"CCD0CF","inverseOnSurface":"171717","outline":"8A8A8A","outlineVariant":"4D4D4D","shadow":"000000","scrim":"000000","surfaceTint":"$primary","primary":"$primary","onPrimary":"171717","primaryContainer":"$primary_container_dark","onPrimaryContainer":"$primary_container_light","inversePrimary":"$primary_light","secondary":"$secondary","onSecondary":"171717","secondaryContainer":"$secondary_container_dark","onSecondaryContainer":"$secondary_container_light","tertiary":"$tertiary","onTertiary":"171717","tertiaryContainer":"$tertiary_container_dark","onTertiaryContainer":"$tertiary_container_light","error":"FFB4AB","onError":"690005","errorContainer":"93000A","onErrorContainer":"FFDAD6","success":"B5CCBA","onSuccess":"213528","successContainer":"374B3E","onSuccessContainer":"D1E9D6","primaryFixed":"$primary_container_light","primaryFixedDim":"$primary_dark","onPrimaryFixed":"271000","onPrimaryFixedVariant":"$primary_container_dark","secondaryFixed":"$secondary_container_light","secondaryFixedDim":"$secondary_dark","onSecondaryFixed":"111F0F","onSecondaryFixedVariant":"$secondary_container_dark","tertiaryFixed":"$tertiary_container_light","tertiaryFixedDim":"$tertiary_dark","onTertiaryFixed":"2F1500","onTertiaryFixedVariant":"$tertiary_container_dark"}
 JSON
 }
 
 scheme_json() {
   local name="${1:-$(read_state name ryoku)}"
   local flavour="${2:-$(read_state flavour default)}"
-  local variant="${3:-$(read_state variant tonalspot)}"
-  local mode="${4:-$(read_state mode dark)}"
+  local variant
+  local mode
+
+  variant="$(normalise_variant "${3:-$(read_state variant tonalspot)}")"
+  mode="$(normalise_mode "${4:-$(read_state mode dark)}")"
 
   printf '{"name":"%s","flavour":"%s","mode":"%s","variant":"%s","colours":%s}\n' \
-    "$name" "$flavour" "$mode" "$variant" "$(colour_payload)"
+    "$name" "$flavour" "$mode" "$variant" "$(colour_payload "$name" "$flavour" "$variant" "$mode")"
 }
 
 ensure_scheme_file() {
@@ -69,7 +315,19 @@ ensure_scheme_file() {
 }
 
 scheme_list() {
-  printf '{"ryoku":{"default":%s}}\n' "$(colour_payload)"
+  local variant
+  local mode
+
+  variant="$(normalise_variant "$(read_state variant tonalspot)")"
+  mode="$(normalise_mode "$(read_state mode dark)")"
+
+  printf '{"ryoku":{"default":%s,"forest":%s,"ocean":%s,"amethyst":%s,"rose":%s,"graphite":%s}}\n' \
+    "$(colour_payload ryoku default "$variant" "$mode")" \
+    "$(colour_payload ryoku forest "$variant" "$mode")" \
+    "$(colour_payload ryoku ocean "$variant" "$mode")" \
+    "$(colour_payload ryoku amethyst "$variant" "$mode")" \
+    "$(colour_payload ryoku rose "$variant" "$mode")" \
+    "$(colour_payload ryoku graphite "$variant" "$mode")"
 }
 
 scheme_get() {

@@ -1,19 +1,15 @@
 if lspci | grep -qi 'nvidia'; then
-  set_niri_environment() {
+  set_hyprland_env() {
     local key="$1"
     local value="$2"
-    local file="$HOME/.config/niri/config.d/40-environment.kdl"
+    local file="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland.conf"
 
-    if grep -Eq "^[[:space:]]*$key[[:space:]]+\"" "$file"; then
-      sed -i "s|^[[:space:]]*$key[[:space:]].*|    $key \"$value\"|" "$file"
-    elif grep -q '^[[:space:]]*environment[[:space:]]*{' "$file"; then
-      sed -i "/^[[:space:]]*environment[[:space:]]*{/a\\    $key \"$value\"" "$file"
+    [[ -f $file ]] || return 0
+
+    if grep -Eq "^[[:space:]]*env[[:space:]]*=[[:space:]]*$key," "$file"; then
+      sed -i "s|^[[:space:]]*env[[:space:]]*=[[:space:]]*$key,.*|env = $key,$value|" "$file"
     else
-      {
-        printf '\nenvironment {\n'
-        printf '    %s "%s"\n' "$key" "$value"
-        printf '}\n'
-      } >>"$file"
+      printf 'env = %s,%s\n' "$key" "$value" >>"$file"
     fi
   }
 
@@ -45,17 +41,15 @@ EOF
 MODULES+=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)
 EOF
 
-  # Add NVIDIA environment variables based on GPU architecture
-  mkdir -p "$HOME/.config/niri/config.d"
-  touch "$HOME/.config/niri/config.d/40-environment.kdl"
+  # Add NVIDIA environment variables based on GPU architecture.
   if [[ $GPU_ARCH = "turing_plus" ]]; then
     # Turing+ (RTX 20xx, GTX 16xx, and newer) with GSP firmware support
-    set_niri_environment NVD_BACKEND direct
-    set_niri_environment LIBVA_DRIVER_NAME nvidia
-    set_niri_environment __GLX_VENDOR_LIBRARY_NAME nvidia
+    set_hyprland_env NVD_BACKEND direct
+    set_hyprland_env LIBVA_DRIVER_NAME nvidia
+    set_hyprland_env __GLX_VENDOR_LIBRARY_NAME nvidia
   elif [[ $GPU_ARCH = "maxwell_pascal_volta" ]]; then
     # Maxwell/Pascal/Volta (GTX 9xx/10xx, GT 10xx, Quadro P/M/GV, MX series, Titan X/Xp/V) lack GSP firmware
-    set_niri_environment NVD_BACKEND egl
-    set_niri_environment __GLX_VENDOR_LIBRARY_NAME nvidia
+    set_hyprland_env NVD_BACKEND egl
+    set_hyprland_env __GLX_VENDOR_LIBRARY_NAME nvidia
   fi
 fi

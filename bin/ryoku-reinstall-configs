@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
 
+# shellcheck disable=SC1091
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
 # Overwrite all user configs with the Ryoku defaults.
@@ -11,7 +12,16 @@ if (( EUID == 0 )); then
 fi
 
 echo "Resetting all Ryoku configs"
-cp -R "$RYOKU_PATH/config/"* ~/.config/
+if command -v rsync >/dev/null 2>&1; then
+  rsync -a --delete \
+    --exclude='niri' \
+    --exclude='xdg-desktop-portal/niri-portals.conf' \
+    "$RYOKU_PATH/config/" ~/.config/
+else
+  find "$RYOKU_PATH/config" -mindepth 1 -maxdepth 1 \
+    ! -name niri -exec cp -R {} ~/.config/ \;
+  rm -f ~/.config/xdg-desktop-portal/niri-portals.conf
+fi
 cp "$RYOKU_PATH/default/bashrc" ~/.bashrc
 echo '[[ -f ~/.bashrc ]] && . ~/.bashrc' | tee ~/.bash_profile >/dev/null
 

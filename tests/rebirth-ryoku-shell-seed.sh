@@ -103,8 +103,8 @@ HOME="$tmp_dir/home" XDG_STATE_HOME="$tmp_dir/state" \
   fail "compatibility bridge should persist shell variant changes"
 
 HOME="$tmp_dir/home" XDG_STATE_HOME="$tmp_dir/state" \
-  "$ROOT_DIR/shell/scripts/ryoku" wallpaper -p "$tmp_dir/wall.png" | jq -e '.colours.primary == "F25623"' >/dev/null || \
-  fail "compatibility bridge should expose preview wallpaper colours"
+  "$ROOT_DIR/shell/scripts/ryoku" wallpaper -p "$tmp_dir/wall.png" | jq -e '.variant == "expressive" and .colours.primary == "F56E0F" and .colours.surface == "171717"' >/dev/null || \
+  fail "compatibility bridge should expose preview wallpaper colours from the current mode and variant"
 
 HOME="$tmp_dir/install-home" \
 XDG_BIN_HOME="$tmp_dir/bin" \

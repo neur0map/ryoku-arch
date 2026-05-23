@@ -1,0 +1,367 @@
+#!/bin/bash
+
+set -euo pipefail
+
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+shell_root="$(cd -- "$script_dir/.." && pwd)"
+runtime_dir="${RYOKU_SHELL_RUNTIME_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell}"
+config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/ryoku-shell"
+systemd_user_dir="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
+qs_bin="${RYOKU_QS_BIN:-qs}"
+
+doctor_passed=0
+doctor_failed=0
+doctor_fixed=0
+doctor_warnings=0
+doctor_report_dir=""
+doctor_report_file=""
+
+usage() {
+  cat <<'EOF'
+Usage: ryoku-shell-doctor [-h]
+
+Diagnoses the current Hyprland Ryoku shell runtime.
+EOF
+}
+
+doctor_anonymize_report_line() {
+  local line="$*"
+  local home_path="${HOME:-}"
+  local user_name=""
+  local host_name=""
+
+  user_name="$(id -un 2>/dev/null || true)"
+  host_name="$(hostname 2>/dev/null || true)"
+
+  if [[ -n $home_path ]]; then
+    line="${line//$home_path/~}"
+  fi
+
+  line="$(printf '%s\n' "$line" | sed -E 's#/home/[^/[:space:]]+#~#g; s#/run/user/[0-9]+#/run/user/<uid>#g')"
+
+  if [[ -n $user_name ]]; then
+    line="${line//$user_name/<user>}"
+  fi
+
+  if [[ -n $host_name ]]; then
+    line="${line//$host_name/<host>}"
+  fi
+
+  printf '%s\n' "$line"
+}
+
+doctor_report_line() {
+  [[ -n $doctor_report_file ]] || return 0
+  doctor_anonymize_report_line "$*" >>"$doctor_report_file"
+}
+
+doctor_report_value() {
+  local label="$1"
+  local value="${2:-unknown}"
+
+  doctor_report_line "${label}: ${value:-unknown}"
+}
+
+doctor_report_issue() {
+  local status="$1"
+  shift
+
+  doctor_report_line "- ${status} $*"
+}
+
+detect_compositor() {
+  if [[ ${XDG_CURRENT_DESKTOP:-} == *"Hyprland"* || -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]]; then
+    printf '%s\n' "Hyprland"
+    return 0
+  fi
+
+  if command -v hyprctl >/dev/null 2>&1 && hyprctl version >/dev/null 2>&1; then
+    printf '%s\n' "Hyprland"
+    return 0
+  fi
+
+  printf '%s\n' "unknown"
+  return 1
+}
+
+service_state() {
+  if command -v systemctl >/dev/null 2>&1; then
+    systemctl --user is-active ryoku-shell.service 2>/dev/null || printf '%s\n' "unknown"
+  else
+    printf '%s\n' "unknown"
+  fi
+}
+
+doctor_report_init() {
+  local report_base="${TMPDIR:-/tmp}"
+
+  doctor_report_dir="$(mktemp -d "${report_base}/ryoku-doctor-report.XXXXXXXX" 2>/dev/null || true)"
+  if [[ -z $doctor_report_dir ]]; then
+    return 0
+  fi
+
+  doctor_report_file="$doctor_report_dir/report.txt"
+  : >"$doctor_report_file" || {
+    doctor_report_dir=""
+    doctor_report_file=""
+    return 0
+  }
+  chmod 600 "$doctor_report_file" 2>/dev/null || true
+
+  doctor_report_line "Ryoku Doctor Report"
+  doctor_report_line "Generated: $(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || date 2>/dev/null || printf 'unknown')"
+  doctor_report_line "Privacy: home path, username, hostname, and runtime UID are anonymized."
+  doctor_report_line ""
+  doctor_report_line "Context"
+  doctor_report_value "Source" "$shell_root"
+  doctor_report_value "Runtime" "$runtime_dir"
+  doctor_report_value "Compositor" "$(detect_compositor 2>/dev/null || printf 'unknown')"
+  doctor_report_value "Service" "$(service_state)"
+  doctor_report_line ""
+  doctor_report_line "Issues"
+}
+
+doctor_report_finish() {
+  [[ -n $doctor_report_file && -f $doctor_report_file ]] || return 0
+
+  if ! grep -q '^- ' "$doctor_report_file" 2>/dev/null; then
+    doctor_report_issue "NONE" "No failing checks or automatic fixes were recorded."
+  fi
+
+  doctor_report_line ""
+  doctor_report_value "Summary Passed" "$doctor_passed"
+  doctor_report_value "Summary Fixed" "$doctor_fixed"
+  doctor_report_value "Summary Warnings" "$doctor_warnings"
+  doctor_report_value "Summary Failed" "$doctor_failed"
+}
+
+doctor_report_print_path() {
+  [[ -n $doctor_report_file ]] || return 0
+  echo "Doctor report: $doctor_report_file"
+}
+
+doctor_pass() {
+  echo "OK: $*"
+  ((doctor_passed++)) || true
+}
+
+doctor_warn() {
+  echo "WARN: $*"
+  doctor_report_issue "WARN" "$*"
+  ((doctor_warnings++)) || true
+}
+
+doctor_fix() {
+  echo "FIX: $*"
+  doctor_report_issue "FIX" "$*"
+  ((doctor_fixed++)) || true
+}
+
+doctor_fail() {
+  echo "FAIL: $*"
+  doctor_report_issue "FAIL" "$*"
+  ((doctor_failed++)) || true
+}
+
+run_check() {
+  local label="$1"
+  shift
+
+  echo "Checking $label"
+  "$@" || true
+}
+
+check_dependencies() {
+  local required=(qs hyprctl jq systemctl)
+  local optional=(rsync git wl-copy wl-paste cliphist fuzzel grim slurp swappy wpctl nmcli notify-send)
+  local missing=()
+  local optional_missing=()
+  local cmd
+
+  for cmd in "${required[@]}"; do
+    command -v "$cmd" >/dev/null 2>&1 || missing+=("$cmd")
+  done
+
+  for cmd in "${optional[@]}"; do
+    command -v "$cmd" >/dev/null 2>&1 || optional_missing+=("$cmd")
+  done
+
+  if ((${#missing[@]} > 0)); then
+    doctor_fail "Missing required shell commands: ${missing[*]}"
+    return 0
+  fi
+
+  if ((${#optional_missing[@]} > 0)); then
+    doctor_warn "Optional shell helpers missing: ${optional_missing[*]}"
+  else
+    doctor_pass "Required and optional shell commands available"
+  fi
+}
+
+check_hyprland_compositor() {
+  local compositor
+
+  compositor="$(detect_compositor || true)"
+  if [[ $compositor == "Hyprland" ]]; then
+    doctor_pass "Hyprland compositor reachable"
+  else
+    doctor_fail "Hyprland compositor is not reachable"
+  fi
+
+  if command -v hyprctl >/dev/null 2>&1 && hyprctl configerrors 2>&1 | grep -q .; then
+    doctor_fail "Hyprland reports config errors"
+  fi
+}
+
+check_runtime_payload() {
+  local critical=(
+    shell.qml
+    modules/Shortcuts.qml
+    services/Hypr.qml
+    scripts/ryoku-shell
+    assets/systemd/ryoku-shell.service
+  )
+  local missing=()
+  local file
+
+  for file in "${critical[@]}"; do
+    [[ -f $runtime_dir/$file ]] || missing+=("$file")
+  done
+
+  if ((${#missing[@]} > 0)); then
+    doctor_fail "Runtime payload missing: ${missing[*]}"
+  else
+    doctor_pass "Runtime payload present"
+  fi
+}
+
+check_launcher() {
+  local launcher=""
+
+  launcher="$(command -v ryoku-shell 2>/dev/null || true)"
+  if [[ -z $launcher && -x $HOME/.local/bin/ryoku-shell ]]; then
+    launcher="$HOME/.local/bin/ryoku-shell"
+  fi
+
+  if [[ -n $launcher && -x $launcher ]]; then
+    doctor_pass "ryoku-shell launcher available"
+  else
+    doctor_fail "ryoku-shell launcher missing"
+  fi
+}
+
+check_user_config() {
+  local config="$config_dir/config.json"
+
+  if [[ ! -f $config ]]; then
+    doctor_pass "User config absent; defaults will be used"
+    return 0
+  fi
+
+  if jq empty "$config" >/dev/null 2>&1; then
+    doctor_pass "User config JSON valid"
+  else
+    doctor_fail "User config JSON invalid: $config"
+  fi
+}
+
+check_hyprland_config() {
+  local hypr_conf="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland.conf"
+
+  if [[ ! -f $hypr_conf ]]; then
+    doctor_fail "Hyprland config missing: $hypr_conf"
+    return 0
+  fi
+
+  if grep -Fq "ryoku-shell run --session" "$hypr_conf"; then
+    doctor_pass "Hyprland starts Ryoku shell"
+  else
+    doctor_fail "Hyprland config does not start Ryoku shell"
+  fi
+}
+
+check_service() {
+  local state
+
+  if ! command -v systemctl >/dev/null 2>&1; then
+    doctor_warn "systemctl unavailable; service check skipped"
+    return 0
+  fi
+
+  state="$(systemctl --user is-active ryoku-shell.service 2>/dev/null || true)"
+  if [[ $state == "active" ]]; then
+    doctor_pass "ryoku-shell.service active"
+  else
+    doctor_fail "ryoku-shell.service is ${state:-inactive}"
+  fi
+}
+
+check_quickshell_instance() {
+  local output
+
+  if ! output="$(env -u QS_CONFIG_NAME -u QS_CONFIG_PATH -u QS_MANIFEST "$qs_bin" list --all 2>&1)"; then
+    doctor_fail "Unable to list Quickshell instances: $output"
+    return 0
+  fi
+
+  if grep -Fq "$runtime_dir/shell.qml" <<<"$output"; then
+    doctor_pass "Quickshell is running the Ryoku shell runtime"
+  else
+    doctor_fail "No running Quickshell instance for $runtime_dir/shell.qml"
+  fi
+}
+
+check_stale_compositor_wiring() {
+  local niri_wants="$systemd_user_dir/niri.service.wants/ryoku-shell.service"
+  local compositor
+
+  if [[ -e $niri_wants || -L $niri_wants ]]; then
+    compositor="$(detect_compositor || true)"
+    if [[ $compositor == "Hyprland" ]] && rm -f "$niri_wants"; then
+      doctor_fix "Removed stale Niri service wiring: $niri_wants"
+    else
+      doctor_fail "Stale Niri service wiring remains: $niri_wants"
+    fi
+  else
+    doctor_pass "No stale compositor service wiring"
+  fi
+}
+
+run_shell_doctor() {
+  doctor_report_init
+
+  echo "Ryoku Doctor: shell"
+  echo
+  run_check "dependencies" check_dependencies
+  run_check "Hyprland compositor" check_hyprland_compositor
+  run_check "Ryoku shell runtime" check_runtime_payload
+  run_check "ryoku-shell launcher" check_launcher
+  run_check "user config" check_user_config
+  run_check "Hyprland config" check_hyprland_config
+  run_check "ryoku-shell service" check_service
+  run_check "Quickshell instance" check_quickshell_instance
+  run_check "stale compositor wiring" check_stale_compositor_wiring
+  echo
+
+  doctor_report_finish
+  doctor_report_print_path
+
+  echo
+  echo "Summary: passed=$doctor_passed fixed=$doctor_fixed warnings=$doctor_warnings failed=$doctor_failed"
+
+  ((doctor_failed == 0))
+}
+
+case "${1:-}" in
+  ""|-y|-q|--skip-deps|--skip-setups|--skip-sysupdate)
+    run_shell_doctor
+    ;;
+  -h|--help|help)
+    usage
+    ;;
+  *)
+    echo "ryoku-shell-doctor: unknown option: $1" >&2
+    usage >&2
+    exit 2
+    ;;
+esac

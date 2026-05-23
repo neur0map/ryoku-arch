@@ -1,13 +1,13 @@
 ---
 title: Ryoku
-description: An opinionated Arch desktop for cybersecurity learning and personal labs. Niri compositor, Quickshell UI, signed offline ISO.
+description: An opinionated Arch desktop for cybersecurity learning and personal labs. Hyprland compositor, Quickshell UI, signed offline ISO.
 ---
 
 **力と美のために** — *for the sake of power and beauty.*
 
 Ryoku is a daily-driver Linux for the half of cybersecurity life that doesn't fit in a throwaway VM: studying, lab work, CTFs, courseware, and tinkering on your own equipment. Steam, Discord, your IDE, your TryHackMe lab, the OpenVPN to your home router — on one machine that you actually live in.
 
-The desktop is [Niri](https://github.com/YaLTeR/niri), a scrollable-tiling Wayland compositor, with a [Quickshell](https://quickshell.outfoxxed.me)-based topbar, sidebars, lock screen, and settings panel. Workflow primitives that matter to security work are built into the shell instead of bolted on as separate tray icons.
+The desktop is [Hyprland](https://hypr.land/), with a [Quickshell](https://quickshell.outfoxxed.me)-based topbar, sidebars, lock screen, launcher, and control center. Workflow primitives that matter to security work are built into the shell instead of bolted on as separate tray icons.
 
 <iframe
   className="w-full aspect-video rounded-xl"
@@ -28,7 +28,7 @@ The desktop is [Niri](https://github.com/YaLTeR/niri), a scrollable-tiling Wayla
     What you see after login and where to click first.
   </Card>
   <Card title="Desktop tour" icon="compass" href="docs/tour">
-    Niri's scrollable workspace, the topbar islands, the side panels.
+    Hyprland workspaces, the topbar, launcher, side panels, and control center.
   </Card>
   <Card title="Keybindings" icon="keyboard" href="docs/keybindings">
     Every shipped binding. `Mod+Slash` opens this in-shell.
@@ -37,7 +37,7 @@ The desktop is [Niri](https://github.com/YaLTeR/niri), a scrollable-tiling Wayla
 
 ## What ships
 
-- **Desktop**: Niri tiling session, Quickshell topbar / sidebars / lock / launcher / settings, SDDM with switchable themes.
+- **Desktop**: Hyprland session, Quickshell topbar / sidebars / lock / launcher / control center, SDDM with switchable themes.
 - **Security primitives**: in-shell OpenVPN profile manager, Tailscale + OpenVPN bar indicators (SecPulse), hardened defaults (UFW, encrypted home, no telemetry phoning home).
 - **Daily-driver fit**: Steam, Discord, dev toolchains (mise, Docker, common languages), media stack (mpv, browsers, image / video tools).
 - **Brand**: cohesive Greek-Noir palette, switchable Material 3 skins (`material`, `aurora`, `angel`, `ryoku-shell`, `cards`).

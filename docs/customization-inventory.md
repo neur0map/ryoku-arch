@@ -124,8 +124,8 @@ there are no machine-specific absolute paths here.
 
 ## Legacy And Compatibility Notes
 
-The current Hyprland + Ryoku-shell path does not use old Niri/iNiR, Waybar,
-Mako, SwayOSD, Tofi, Walker, Elephant, Brain Shell, or Noctalia runtime configs.
+The current Hyprland + Ryoku-shell path does not use old compositor, shell,
+Waybar, Mako, SwayOSD, Tofi, Walker, Elephant, or prototype runtime configs.
 If those names appear in this repository, they should be one of:
 
 - Historical migrations that converge older installs.

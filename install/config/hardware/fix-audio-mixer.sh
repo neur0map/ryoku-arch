@@ -9,12 +9,13 @@
 #     attenuated until the user manually drags it up.
 
 mkdir -p ~/.config/wireplumber/wireplumber.conf.d/
-cp $RYOKU_PATH/default/wireplumber/wireplumber.conf.d/alsa-soft-mixer.conf ~/.config/wireplumber/wireplumber.conf.d/
+cp "$RYOKU_PATH/default/wireplumber/wireplumber.conf.d/alsa-soft-mixer.conf" ~/.config/wireplumber/wireplumber.conf.d/
 rm -rf ~/.local/state/wireplumber/default-routes
 
 # Initialize hardware mixer controls before WirePlumber routes through the soft mixer.
+controls=(Master Speaker Headphone "Bass Speaker" PCM)
 while read -r card; do
-  for ctl in Master Speaker Headphone PCM; do
+  for ctl in "${controls[@]}"; do
     amixer -c "$card" sget "$ctl" >/dev/null 2>&1 || continue
     amixer -c "$card" set "$ctl" 100% unmute >/dev/null 2>&1
   done

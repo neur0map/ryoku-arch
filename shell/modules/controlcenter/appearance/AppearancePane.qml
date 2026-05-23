@@ -23,10 +23,12 @@ Item {
 
     required property Session session
 
+    readonly property var availableFontFamilies: Qt.fontFamilies()
+
     property real animDurationsScale: GlobalConfig.appearance.anim.durations.scale ?? 1
-    property string fontFamilyMaterial: Config.appearance.font.family.material ?? "Material Symbols Rounded"
-    property string fontFamilyMono: Config.appearance.font.family.mono ?? "CaskaydiaCove NF"
-    property string fontFamilySans: Config.appearance.font.family.sans ?? "Rubik"
+    property string fontFamilyMaterial: resolveFont(Config.appearance.font.family.material, ["Material Symbols Rounded", "Material Symbols Outlined"])
+    property string fontFamilyMono: resolveFont(Config.appearance.font.family.mono, ["CaskaydiaCove Nerd Font", "CaskaydiaCove NF", "JetBrainsMono Nerd Font Mono", "JetBrainsMono Nerd Font"])
+    property string fontFamilySans: resolveFont(Config.appearance.font.family.sans, ["Rubik", "Adwaita Sans", "Noto Sans", "DejaVu Sans"])
     property real fontSizeScale: Config.appearance.font.size.scale ?? 1
     property real paddingScale: Config.appearance.padding.scale ?? 1
     property real roundingScale: Config.appearance.rounding.scale ?? 1
@@ -53,6 +55,18 @@ Item {
     property bool visualiserAutoHide: Config.background.visualiser.autoHide ?? true
     property real visualiserRounding: Config.background.visualiser.rounding ?? 1
     property real visualiserSpacing: Config.background.visualiser.spacing ?? 1
+
+    function resolveFont(value: var, fallbacks: var): string {
+        if (value && availableFontFamilies.includes(value))
+            return value;
+
+        for (const fallback of fallbacks) {
+            if (availableFontFamilies.includes(fallback))
+                return fallback;
+        }
+
+        return value || fallbacks[0];
+    }
 
     function saveConfig() {
         GlobalConfig.appearance.anim.durations.scale = root.animDurationsScale;
@@ -93,7 +107,17 @@ Item {
         GlobalConfig.border.thickness = root.borderThickness;
     }
 
+    function repairFontConfig(): void {
+        if (Config.appearance.font.family.material !== root.fontFamilyMaterial)
+            GlobalConfig.appearance.font.family.material = root.fontFamilyMaterial;
+        if (Config.appearance.font.family.mono !== root.fontFamilyMono)
+            GlobalConfig.appearance.font.family.mono = root.fontFamilyMono;
+        if (Config.appearance.font.family.sans !== root.fontFamilySans)
+            GlobalConfig.appearance.font.family.sans = root.fontFamilySans;
+    }
+
     anchors.fill: parent
+    Component.onCompleted: repairFontConfig()
 
     Component {
         id: appearanceRightContentComponent
@@ -124,12 +148,15 @@ Item {
 
                     asynchronous: true
                     active: {
+                        if (!root.session)
+                            return false;
+
                         const isActive = root.session.activeIndex === 3;
                         const isAdjacent = Math.abs(root.session.activeIndex - 3) === 1;
                         const splitLayout = root.children[0];
                         const loader = splitLayout && splitLayout.rightLoader ? splitLayout.rightLoader : null;
                         const shouldActivate = loader && loader.item !== null && (isActive || isAdjacent);
-                        return shouldActivate;
+                        return !!shouldActivate;
                     }
 
                     onStatusChanged: {

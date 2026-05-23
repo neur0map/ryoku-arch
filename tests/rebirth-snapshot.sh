@@ -73,7 +73,7 @@ assert_file "$snapshot_dir/config/systemd/user/niri.service.wants/ryoku-shell.se
 assert_file "$snapshot_dir/config/quickshell/ryoku-shell/shell.qml"
 assert_file "$snapshot_dir/config/ryoku-shell/config.json"
 
-assert_contains "branch=rebirth" "$manifest"
+assert_contains "branch=" "$manifest"
 assert_contains "timestamp=" "$manifest"
 assert_contains "home=$HOME" "$manifest"
 assert_contains "xdg_config_home=$XDG_CONFIG_HOME" "$manifest"

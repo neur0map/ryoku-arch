@@ -2,10 +2,10 @@
 
 ## [0.1.0-alpha-4] - 2026-05-18
 
-This alpha is the first big Ryoku shell refresh from the live-first iNiR v2.25
-sync. The point is not just to import upstream code; the update path now has to
-carry additions, edits, removals, and repo metadata cleanly so existing users do
-not keep stale shell files or miss new ones.
+This alpha is the first big Ryoku shell refresh from the live-first shell sync.
+The point is not just to import upstream code; the update path now has to carry
+additions, edits, removals, and repo metadata cleanly so existing users do not
+keep stale shell files or miss new ones.
 
 ### Added
 
@@ -49,7 +49,7 @@ not keep stale shell files or miss new ones.
 
 - **Release-branch updates**: `ryoku-update-git` now switches an installed
   checkout back to the release branch before fast-forwarding. A live mirror that
-  was left on `sync/inir-v2.25-live-first` no longer blocks `main` updates.
+  was left on an old shell-sync branch no longer blocks `main` updates.
 - **Updater inhibitors on stricter systems**: `ryoku-update` no longer requests
   sleep, shutdown, or lid/key inhibitors that can trigger polkit prompts or
   access-denied failures before the update starts. It keeps the user-session

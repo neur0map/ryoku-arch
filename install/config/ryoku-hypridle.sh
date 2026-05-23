@@ -10,7 +10,7 @@
 # normal hyprlock fallback.
 #
 # See config/hypr/hypridle.conf header for the full architecture rationale
-# and the niri-protocol caveats around inhibit_sleep.
+# and compositor-specific caveats around inhibit_sleep.
 
 set -euo pipefail
 

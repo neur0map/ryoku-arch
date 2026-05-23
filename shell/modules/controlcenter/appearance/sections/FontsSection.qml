@@ -14,6 +14,53 @@ CollapsibleSection {
     id: root
 
     required property var rootPane
+    readonly property var availableFontFamilies: Qt.fontFamilies().filter(f => f && f.trim()).sort((a, b) => a.localeCompare(b))
+
+    function fontModel(current: string, preferred: var): var {
+        const seen = new Set();
+        const result = [];
+        const add = font => {
+            if (!font || seen.has(font))
+                return;
+
+            seen.add(font);
+            result.push(font);
+        };
+
+        for (const font of preferred) {
+            if (availableFontFamilies.includes(font))
+                add(font);
+        }
+
+        add(current);
+        for (const font of availableFontFamilies)
+            add(font);
+
+        return result;
+    }
+
+    function materialFontModel(current: string): var {
+        const seen = new Set();
+        const result = [];
+        const add = font => {
+            if (!font || seen.has(font))
+                return;
+
+            seen.add(font);
+            result.push(font);
+        };
+
+        for (const font of ["Material Symbols Rounded", "Material Symbols Outlined"]) {
+            if (availableFontFamilies.includes(font))
+                add(font);
+        }
+
+        add(current);
+        for (const font of availableFontFamilies.filter(f => f.startsWith("Material Symbols")))
+            add(font);
+
+        return result;
+    }
 
     title: qsTr("Fonts")
     showBackground: true
@@ -35,11 +82,9 @@ CollapsibleSection {
             sourceComponent: StyledListView {
                 id: sansFontList
 
-                property alias contentHeight: sansFontList.contentHeight
-
                 clip: true
                 spacing: Tokens.spacing.small / 2
-                model: Qt.fontFamilies()
+                model: root.fontModel(rootPane.fontFamilySans, ["Rubik", "Adwaita Sans", "Noto Sans", "DejaVu Sans"])
 
                 StyledScrollBar.vertical: StyledScrollBar {
                     flickable: sansFontList
@@ -116,11 +161,9 @@ CollapsibleSection {
             sourceComponent: StyledListView {
                 id: monoFontList
 
-                property alias contentHeight: monoFontList.contentHeight
-
                 clip: true
                 spacing: Tokens.spacing.small / 2
-                model: Qt.fontFamilies()
+                model: root.fontModel(rootPane.fontFamilyMono, ["CaskaydiaCove Nerd Font", "CaskaydiaCove NF", "JetBrainsMono Nerd Font Mono", "JetBrainsMono Nerd Font"])
 
                 StyledScrollBar.vertical: StyledScrollBar {
                     flickable: monoFontList
@@ -199,11 +242,9 @@ CollapsibleSection {
             sourceComponent: StyledListView {
                 id: materialFontList
 
-                property alias contentHeight: materialFontList.contentHeight
-
                 clip: true
                 spacing: Tokens.spacing.small / 2
-                model: Qt.fontFamilies().filter(f => f.startsWith("Material Symbols"))
+                model: root.materialFontModel(rootPane.fontFamilyMaterial)
 
                 StyledScrollBar.vertical: StyledScrollBar {
                     flickable: materialFontList

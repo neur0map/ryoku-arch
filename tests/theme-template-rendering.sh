@@ -99,7 +99,7 @@ assert_old_shell_templates_removed() {
     default/themed/waybar.css.tpl
   do
     [[ ! -e $ROOT_DIR/$removed_template ]] \
-      || fail "$removed_template should not remain after Niri/Ryoku migration"
+      || fail "$removed_template should not remain after the shell migration"
   done
 }
 

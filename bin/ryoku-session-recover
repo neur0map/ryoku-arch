@@ -50,56 +50,15 @@ command_present() {
   ryoku-cmd-present "$1"
 }
 
-find_niri_socket() {
-  local runtime_dir socket
-
-  if [[ -n ${NIRI_SOCKET:-} && -S ${NIRI_SOCKET:-} ]]; then
-    printf '%s\n' "$NIRI_SOCKET"
-    return 0
-  fi
-
-  runtime_dir="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
-  for socket in "$runtime_dir"/niri.*.sock; do
-    [[ -S $socket ]] || continue
-    printf '%s\n' "$socket"
-    return 0
-  done
-
-  return 1
-}
-
 refresh_activation_environment() {
   if command_present systemctl; then
     systemctl --user import-environment \
-      DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE HYPRLAND_INSTANCE_SIGNATURE NIRI_SOCKET XCURSOR_THEME XCURSOR_SIZE \
+      DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE HYPRLAND_INSTANCE_SIGNATURE XCURSOR_THEME XCURSOR_SIZE HYPRCURSOR_THEME HYPRCURSOR_SIZE \
       >/dev/null 2>&1 || true
   fi
 
   if command_present dbus-update-activation-environment; then
     dbus-update-activation-environment --systemd --all >/dev/null 2>&1 || true
-  fi
-}
-
-prime_niri_socket_environment() {
-  local socket
-
-  socket="$(find_niri_socket || true)"
-  [[ -n $socket ]] || return 0
-  export NIRI_SOCKET="$socket"
-}
-
-power_on_niri_monitors() {
-  local socket
-
-  command_present niri || return 0
-
-  socket="$(find_niri_socket || true)"
-  if [[ -n $socket ]]; then
-    log "power on Niri monitors"
-    NIRI_SOCKET="$socket" niri msg action power-on-monitors >/dev/null 2>&1 || true
-  else
-    log "power on Niri monitors"
-    niri msg action power-on-monitors >/dev/null 2>&1 || true
   fi
 }
 
@@ -136,9 +95,6 @@ log "Ryoku session recovery"
 refresh_activation_environment
 if hyprland_active; then
   power_on_hyprland_monitors || true
-else
-  prime_niri_socket_environment
-  power_on_niri_monitors
 fi
 cleanup_shell_helpers
 restart_session_ui

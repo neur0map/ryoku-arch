@@ -9,97 +9,208 @@ fail() {
   exit 1
 }
 
-tmp=$(mktemp -d)
+assert_contains() {
+  local text="$1"
+  local pattern="$2"
+  local message="$3"
+
+  grep -Eq "$pattern" <<<"$text" || fail "$message"
+}
+
+assert_not_contains() {
+  local text="$1"
+  local pattern="$2"
+  local message="$3"
+
+  if grep -Eq "$pattern" <<<"$text"; then
+    fail "$message"
+  fi
+}
+
+tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
-export HOME="$tmp/home"
-export XDG_CONFIG_HOME="$HOME/.config"
-export XDG_STATE_HOME="$HOME/.local/state"
-export XDG_CACHE_HOME="$HOME/.cache"
-export XDG_DATA_HOME="$HOME/.local/share"
-export XDG_BIN_HOME="$HOME/.local/bin"
-
-mkdir -p "$XDG_CONFIG_HOME" "$XDG_STATE_HOME" "$XDG_CACHE_HOME" "$XDG_DATA_HOME" "$XDG_BIN_HOME"
-
-tui_success() { echo "OK: $*"; }
-tui_error() { echo "ERR: $*"; }
-tui_warn() { echo "WARN: $*"; }
-tui_info() { echo "INFO: $*"; }
-tui_step() { echo "STEP: $*"; }
-tui_step_start() { echo "START: $*"; }
-tui_step_done() { echo "DONE: $*"; }
-tui_step_fail() { echo "STEPFAIL: $*"; }
-tui_step_warn() { echo "STEPWARN: $*"; }
-tui_divider() { echo "---"; }
-tui_title() { echo "$*"; }
-tui_badge_row() { echo "BADGES: $*"; }
-tui_elapsed() { echo "0s"; }
-tui_confirm() { return 1; }
-
-source "$ROOT_DIR/shell/sdata/lib/doctor.sh"
-
-ask=false
-REPO_ROOT="$ROOT_DIR/shell"
+home="$tmp/home"
+runtime="$tmp/runtime"
+bin_dir="$tmp/bin"
+report_tmp="$tmp/reports"
 current_user="$(id -un)"
 current_host="$(hostname 2>/dev/null || true)"
 
-check_dependencies() { doctor_pass "dependency pass for $HOME $current_user $current_host"; }
-check_fonts() { doctor_pass "fonts are fine"; }
-check_repo_checkout_state() { doctor_fail "repo issue at $HOME/source for $current_user on $current_host"; }
-check_updater_bootstrap_health() { doctor_fix "refreshed $HOME/.local/bin/ryoku-shell"; }
-check_critical_files() { doctor_pass "critical files present"; }
-check_script_permissions() { doctor_pass "script permissions OK"; }
-check_launcher_health() { doctor_pass "launcher current"; }
-check_user_config() { doctor_pass "user config valid"; }
-check_state_directories() { doctor_pass "state directories exist"; }
-check_version_tracking() { doctor_pass "version tracking OK"; }
-check_manifest() { doctor_pass "file manifest OK"; }
-check_service_unit_health() { doctor_pass "user service file present"; }
-check_niri_running() { doctor_pass "niri running"; }
-check_python_packages() { doctor_pass "python packages OK"; }
-check_quickshell_abi() { doctor_pass "quickshell ABI OK"; }
-check_quickshell_loads() { doctor_pass "quickshell running"; }
-check_matugen_colors() { doctor_pass "theme colors generated"; }
-check_qt_theming() { doctor_pass "qt theming OK"; }
-check_conflicting_services() { doctor_pass "no conflicting services"; }
-check_conflicting_shells() { doctor_pass "no conflicting shells"; }
-check_wallpaper_health() { doctor_pass "wallpapers healthy"; }
-check_environment_vars() { doctor_pass "environment variables OK"; }
-check_niri_config() { doctor_pass "niri config valid"; }
-check_iso_signature() { doctor_pass "iso release key fingerprint OK"; }
+mkdir -p \
+  "$home/.config/hypr" \
+  "$home/.config/ryoku-shell" \
+  "$home/.local/bin" \
+  "$home/.local/state" \
+  "$runtime/assets/systemd" \
+  "$runtime/modules" \
+  "$runtime/scripts" \
+  "$runtime/services" \
+  "$bin_dir" \
+  "$report_tmp"
 
-set +e
-output=$(TMPDIR="$tmp" run_doctor_with_fixes 2>&1)
-status=$?
-set -e
+touch \
+  "$runtime/shell.qml" \
+  "$runtime/modules/Shortcuts.qml" \
+  "$runtime/services/Hypr.qml" \
+  "$runtime/assets/systemd/ryoku-shell.service" \
+  "$runtime/scripts/ryoku-shell"
+chmod 755 "$runtime/scripts/ryoku-shell"
+ln -s "$runtime/scripts/ryoku-shell" "$home/.local/bin/ryoku-shell"
 
-(( status != 0 )) || fail "doctor should return nonzero when a mocked issue is present"
+printf '%s\n' '{"shellUpdates":{"channel":"unstable-dev"}}' >"$home/.config/ryoku-shell/config.json"
+cat >"$home/.config/hypr/hyprland.conf" <<'HYPR'
+exec-once = sh -lc '$HOME/.local/bin/ryoku-shell run --session'
+bind = SUPER, S, exec, $systemPanel
+HYPR
 
-grep -Fq 'START: 1 24 Checking dependencies' <<<"$output" \
-  || fail "doctor should use the buffered step runner"
-grep -Fq 'Checking updater bootstrap' <<<"$output" \
-  || fail "doctor should keep the Ryoku updater-bootstrap check"
-grep -Fq 'Checking ISO signature' <<<"$output" \
-  || fail "doctor should verify the ISO release signature chain"
-grep -Fq 'Doctor report:' <<<"$output" \
-  || fail "doctor should print the generated report path"
+cat >"$bin_dir/systemctl" <<'SH'
+#!/bin/bash
+if [[ ${1:-} == "--user" && ${2:-} == "is-active" && ${3:-} == "ryoku-shell.service" ]]; then
+  printf '%s\n' "active"
+  exit 0
+fi
+if [[ ${1:-} == "--user" && ${2:-} == "cat" && ${3:-} == "ryoku-shell.service" ]]; then
+  printf '%s\n' "[Service]"
+  printf '%s\n' "ExecStart=%h/.local/bin/ryoku-shell run --session"
+  exit 0
+fi
+if [[ ${1:-} == "--user" && ${2:-} == "show-environment" ]]; then
+  printf '%s\n' "XDG_CURRENT_DESKTOP=Hyprland"
+  exit 0
+fi
+exit 0
+SH
 
-report_path="$(sed -n 's/.*Doctor report: //p' <<<"$output" | tail -1)"
-[[ -f $report_path ]] || fail "doctor report should exist at the printed path"
-[[ $report_path == "$tmp"/ryoku-doctor-report.*/report.txt ]] \
+cat >"$bin_dir/hyprctl" <<'SH'
+#!/bin/bash
+case "${1:-}" in
+  version)
+    printf '%s\n' "Hyprland 0.55.2"
+    ;;
+  configerrors)
+    ;;
+  *)
+    ;;
+esac
+SH
+
+cat >"$bin_dir/qs" <<'SH'
+#!/bin/bash
+if [[ -n ${QS_CONFIG_NAME:-} || -n ${QS_CONFIG_PATH:-} || -n ${QS_MANIFEST:-} ]]; then
+  echo "stale quickshell config environment leaked into qs" >&2
+  exit 9
+fi
+
+if [[ ${1:-} == "list" ]]; then
+  cat <<EOF
+Instance test:
+  Process ID: 123
+  Config path: $RYOKU_TEST_RUNTIME/shell.qml
+  Display connection: wayland/wayland-test
+EOF
+  exit 0
+fi
+
+exit 0
+SH
+
+for cmd in jq rsync git wl-copy wl-paste cliphist fuzzel grim slurp swappy wpctl nmcli notify-send journalctl pgrep; do
+  cat >"$bin_dir/$cmd" <<'SH'
+#!/bin/bash
+exit 0
+SH
+done
+chmod 755 "$bin_dir/"*
+
+run_shell_doctor() {
+  HOME="$home" \
+  XDG_CONFIG_HOME="$home/.config" \
+  XDG_STATE_HOME="$home/.local/state" \
+  RYOKU_PATH="$ROOT_DIR" \
+  RYOKU_SHELL_RUNTIME_DIR="$runtime" \
+  RYOKU_TEST_RUNTIME="$runtime" \
+  QS_CONFIG_NAME="ryoku-rebirth-shell" \
+  TMPDIR="$report_tmp" \
+  PATH="$bin_dir:$home/.local/bin:/usr/bin:/bin" \
+    "$ROOT_DIR/bin/ryoku-doctor" shell 2>&1
+}
+
+output="$(run_shell_doctor)" || fail "ryoku-doctor shell should pass on a healthy Hyprland runtime: $output"
+
+assert_contains "$output" 'Ryoku Doctor: shell' \
+  "doctor should expose the shell diagnostics mode"
+assert_contains "$output" 'Checking Hyprland compositor' \
+  "doctor should check the current Hyprland compositor path"
+assert_contains "$output" 'Checking Ryoku shell runtime' \
+  "doctor should check the Ryoku shell runtime payload"
+assert_not_contains "$output" 'Checking Niri|iNiR|inir' \
+  "doctor should not advertise stale Niri/iNiR shell checks"
+assert_contains "$output" 'Doctor report:' \
+  "doctor should print a shareable report path"
+
+report_path="$(sed -n 's/.*Doctor report: //p' <<<"$output" | tail -n1)"
+[[ -f $report_path ]] || fail "doctor report should exist"
+[[ $report_path == "$report_tmp"/ryoku-doctor-report.*/report.txt ]] \
   || fail "doctor report should be written under TMPDIR with a ryoku-doctor-report prefix"
-
-grep -Fq 'FAIL repo issue' "$report_path" \
-  || fail "doctor report should include failures"
-grep -Fq 'FIX refreshed' "$report_path" \
-  || fail "doctor report should include automatic fixes"
-grep -Fq 'fonts are fine' "$report_path" \
-  && fail "doctor report should not include passing checks"
-grep -Fq "$HOME" "$report_path" \
+grep -Fq 'Compositor: Hyprland' "$report_path" \
+  || fail "doctor report should record the Hyprland compositor"
+grep -Fq "$home" "$report_path" \
   && fail "doctor report should anonymize the home path"
-[[ -n $current_user ]] && grep -Fq "$current_user" "$report_path" \
+grep -Fq "$current_user" "$report_path" \
   && fail "doctor report should anonymize the username"
 [[ -n $current_host ]] && grep -Fq "$current_host" "$report_path" \
   && fail "doctor report should anonymize the hostname"
 
-echo "PASS: ryoku shell doctor writes an anonymous issue report"
+mkdir -p "$home/.config/systemd/user/niri.service.wants"
+ln -s "$home/.config/systemd/user/ryoku-shell.service" \
+  "$home/.config/systemd/user/niri.service.wants/ryoku-shell.service"
+
+set +e
+stale_output="$(run_shell_doctor)"
+stale_status=$?
+set -e
+
+(( stale_status == 0 )) || fail "doctor should repair stale Niri service wiring on Hyprland: $stale_output"
+assert_contains "$stale_output" 'Removed stale Niri service wiring' \
+  "doctor should call out stale Niri service wiring repair after the Hyprland switch"
+[[ ! -e $home/.config/systemd/user/niri.service.wants/ryoku-shell.service ]] \
+  || fail "doctor should remove the stale Niri service symlink"
+
+runtime_pick="$tmp/runtime-pick"
+old_repo="$tmp/old-repo"
+mkdir -p "$runtime_pick" "$old_repo/shell"
+
+cat >"$runtime_pick/setup" <<'SH'
+#!/bin/bash
+printf '%s\n' "$*" >"$RYOKU_TEST_RUNTIME_ARGS"
+echo "runtime doctor selected"
+SH
+chmod 755 "$runtime_pick/setup"
+
+cat >"$old_repo/shell/setup" <<'SH'
+#!/bin/bash
+echo "stale installed setup selected" >&2
+exit 66
+SH
+chmod 755 "$old_repo/shell/setup"
+
+runtime_args="$tmp/runtime-args"
+runtime_pick_output=$(
+  HOME="$home" \
+  XDG_CONFIG_HOME="$home/.config" \
+  XDG_STATE_HOME="$home/.local/state" \
+  RYOKU_PATH="$old_repo" \
+  RYOKU_SHELL_RUNTIME_DIR="$runtime_pick" \
+  RYOKU_TEST_RUNTIME_ARGS="$runtime_args" \
+  TMPDIR="$report_tmp" \
+  PATH="$bin_dir:$home/.local/bin:/usr/bin:/bin" \
+    "$ROOT_DIR/bin/ryoku-doctor" shell 2>&1
+) || fail "ryoku-doctor shell should prefer active runtime setup over stale installed setup: $runtime_pick_output"
+
+grep -Fq "runtime doctor selected" <<<"$runtime_pick_output" \
+  || fail "ryoku-doctor shell should run the active runtime setup"
+[[ $(<"$runtime_args") == "doctor -y" ]] \
+  || fail "ryoku-doctor shell should call setup with command before compatibility flags"
+
+echo "PASS: ryoku doctor shell mode checks the Hyprland Ryoku shell path"

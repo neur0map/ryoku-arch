@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Ensure the Ryoku shell tree, launcher, and bin/* helpers are reachable
 # from PATH, executable, and deployed to ~/.config/quickshell/ryoku-shell/.
 #
@@ -21,15 +23,9 @@
 #       shell.qml, so the launcher could not find its config-path helper.
 #   (4) Many .sh scripts under shell/scripts/ lost their +x bit during
 #       the install copy step.
-#   (5) install/config/shell.sh creates the niri.service.wants/ryoku-shell
-#       symlink that wires the shell into the graphical session, but it
-#       runs as the chroot install (uid 0, $HOME=/root) so it writes the
-#       link under /root/.config and never under /home/<user>/.config.
-#       Result: shell.qml deploys, the launcher works, but niri.service
-#       never pulls ryoku-shell.service in at session start: fresh boot
-#       reaches a logged-in compositor with zero shell process and zero
-#       journal entries (the symptom that masqueraded as "grey screen
-#       after SDDM login" on the 2026-05-07 smoke test).
+#   (5) the compositor starts the Ryoku shell from the user's Hyprland config,
+#       so a fresh boot must have the launcher, service file, and runtime tree
+#       in user-owned paths before the graphical session starts.
 #
 # This script paves over all five. It is run from
 # install/post-install/all.sh so it executes after every other install
@@ -116,7 +112,6 @@ fi
 #   install/config/ryoku-hypridle.sh:41        hypridle.service
 #   install/config/ryoku-resume-listener.sh:20 ryoku-resume-listener.service
 #   install/first-run/battery-monitor.sh:5     ryoku-battery-monitor.timer
-#   install/config/shell.sh:74                 ryoku-shell.service via niri.service.wants
 #
 # Those calls silently no-op in chroot context (no user dbus / systemd
 # user instance). Re-create each [Install] WantedBy=... wants-link
@@ -132,10 +127,6 @@ ensure_user_wants_link() {
     mkdir -p "$wants_dir"
     ln -sfn "$source_path" "$wants_dir/$target_unit"
 }
-
-# Compositor-conditional: ryoku-shell only when niri is the session.
-shell_unit="$xdg_config_home/systemd/user/ryoku-shell.service"
-ensure_user_wants_link ryoku-shell.service niri.service "$shell_unit"
 
 # graphical-session consumers.
 ensure_user_wants_link ryoku-resume-listener.service graphical-session.target \

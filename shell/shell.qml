@@ -8,7 +8,6 @@ import "modules"
 import "modules/drawers"
 import "modules/background"
 import "modules/areapicker"
-import "modules/keybinds"
 import "modules/lock"
 import Quickshell
 
@@ -18,7 +17,6 @@ ShellRoot {
     Background {}
     Drawers {}
     AreaPicker {}
-    KeybindsWindow {}
     Lock {
         id: lock
     }

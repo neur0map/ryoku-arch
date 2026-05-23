@@ -61,7 +61,7 @@ main() {
     '/boot/EFI/Linux/a639ef7cc2654160ad26279f5e849b21_linux.efi'
 
   assert_allows_file "$temp_dir" "portable-paths.sh" \
-    "exec \"\$HOME/.local/bin/${upstream_shell}\" \"\$RYOKU_PATH/install/config/${upstream_shell}.sh\" ~/.config/niri/config.kdl"
+    "exec \"\$HOME/.local/bin/${upstream_shell}\" \"\$RYOKU_PATH/install/config/${upstream_shell}.sh\" ~/.config/hypr/hyprland.conf"
 
   grep -Eq 'ryoku-dev-scan-leaks"?[[:space:]]+--staged' "$ROOT_DIR/.githooks/pre-commit" || {
     echo "FAIL: pre-commit should call ryoku-dev-scan-leaks --staged" >&2

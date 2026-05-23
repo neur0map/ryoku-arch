@@ -1,8 +1,6 @@
 # Ryoku Keybindings
 
-Source of truth: Hyprland loads shipped binds from `config/hypr/hyprland.conf` and user additions from `~/.config/hypr/ryoku-user-binds.conf`.
-
-The source users see is the live `Super+/` keybind legend from the Ryoku shell. Keep this page aligned with the Hyprland config and the live legend.
+Source of truth: Hyprland loads shipped binds from `config/hypr/hyprland.conf`.
 
 `Mod` means `Super` on a normal Ryoku install.
 
@@ -22,7 +20,7 @@ The source users see is the live `Super+/` keybind legend from the Ryoku shell. 
 | `Mod+R` | App launcher / shell overview. |
 | `Mod+V` | Clipboard history. |
 | `Mod+S` | Settings. |
-| `Super+/` | Keybind legend. |
+| `Mod+,` | Hyprland settings (HyprMod). |
 | `Mod+P` | Session / power dialog. |
 
 ## Screenshots And Region Tools

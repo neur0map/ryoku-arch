@@ -82,8 +82,6 @@ if [[ -n $backup_config_file ]]; then
   rm -f "$backup_config_file"
 fi
 
-"$RYOKU_PATH/install/config/ryoku-shell-branding.sh"
-
 ryoku_shell_launcher="$HOME/.local/bin/ryoku-shell"
 if [[ -x $ryoku_shell_launcher ]]; then
   "$ryoku_shell_launcher" service enable >/dev/null 2>&1 || true

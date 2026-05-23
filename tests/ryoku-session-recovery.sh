@@ -54,16 +54,16 @@ bash -n default/systemd/system-sleep/ryoku-session-recover \
 
 assert_contains bin/ryoku-session-recover 'hyprctl dispatch dpms on' \
   "session recovery should force Hyprland monitors back on after resume"
-assert_contains bin/ryoku-session-recover 'niri msg action power-on-monitors' \
-  "session recovery should keep Niri monitor recovery as an explicit fallback"
-assert_contains bin/ryoku-session-recover 'niri\.\*\.sock' \
-  "session recovery should discover the Niri socket when NIRI_SOCKET is absent"
+assert_not_contains bin/ryoku-session-recover 'niri msg|NIRI_SOCKET|niri\.\*\.sock' \
+  "session recovery should not carry retired Niri recovery paths"
 assert_contains bin/ryoku-session-recover 'ryoku-shell-cleanup-orphans --quiet' \
   "session recovery should clean stale shell helpers"
 assert_contains bin/ryoku-session-recover 'ryoku-restart-ui --quiet' \
   "session recovery should hard-refresh the Ryoku UI"
 assert_contains bin/ryoku-session-recover 'systemctl --user import-environment' \
   "session recovery should refresh the user systemd environment"
+assert_contains bin/ryoku-session-recover 'HYPRCURSOR_THEME HYPRCURSOR_SIZE' \
+  "session recovery should preserve the full Ryoku cursor environment"
 assert_contains bin/ryoku-session-recover 'dbus-update-activation-environment --systemd --all' \
   "session recovery should refresh dbus activation environment"
 assert_not_contains bin/ryoku-session-recover 'hypridle|waybar|mako|swayosd' \
@@ -115,14 +115,16 @@ assert_contains shell/assets/systemd/ryoku-shell.service 'ryoku-shell-cleanup-or
   "Ryoku shell service template should use Ryoku cleanup for stale shell helpers"
 assert_contains shell/setup 'ryoku-shell-cleanup-orphans' \
   "setup service refresh should preserve Ryoku helper cleanup"
-assert_contains shell/sdata/subcmd-install/3.files.sh 'ryoku_cleanup_helper_path' \
-  "fresh shell install should preserve Ryoku helper cleanup"
 assert_contains shell/scripts/ryoku-shell 'ryoku-shell-cleanup-orphans' \
   "launcher service refresh should preserve Ryoku helper cleanup"
 assert_not_contains shell/setup 'ExecStopPost=-.*ryoku-shell cleanup-orphans' \
   "setup service refresh should not downgrade to Quickshell-only cleanup"
-assert_not_contains shell/sdata/subcmd-install/3.files.sh 'ExecStopPost=-.*ryoku-shell cleanup-orphans' \
-  "fresh shell install should not downgrade to Quickshell-only cleanup"
 assert_not_contains shell/scripts/ryoku-shell 'ExecStopPost=-.*ryoku-shell cleanup-orphans' \
   "launcher service refresh should not downgrade to Quickshell-only cleanup"
+if [[ -f shell/sdata/subcmd-install/3.files.sh ]]; then
+  assert_contains shell/sdata/subcmd-install/3.files.sh 'ryoku_cleanup_helper_path' \
+    "fresh shell install should preserve Ryoku helper cleanup"
+  assert_not_contains shell/sdata/subcmd-install/3.files.sh 'ExecStopPost=-.*ryoku-shell cleanup-orphans' \
+    "fresh shell install should not downgrade to Quickshell-only cleanup"
+fi
 pass "Ryoku session recovery contract"

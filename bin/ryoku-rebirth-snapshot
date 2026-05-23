@@ -55,10 +55,13 @@ fi
 
 paths=(
   "niri/config.kdl"
+  "illogical-impulse/config.json"
   "hypr/hypridle.conf"
   "hypr/hyprlock.conf"
   "systemd/user/ryoku-shell.service"
   "systemd/user/niri.service.wants/ryoku-shell.service"
+  "quickshell/ii/shell.qml"
+  "quickshell/ryoku/shell.qml"
   "quickshell/ryoku-shell/shell.qml"
   "ryoku-shell/config.json"
 )

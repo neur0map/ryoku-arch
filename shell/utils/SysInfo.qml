@@ -36,11 +36,12 @@ Singleton {
             root.osIdLike = fd("ID_LIKE").split(" ");
 
             const logo = Quickshell.iconPath(fd("LOGO"), true);
-            if (GlobalConfig.general.logo === "ryoku") {
+            const configuredLogo = GlobalConfig.general.logo || "ryoku";
+            if (configuredLogo === "ryoku") {
                 root.osLogo = Qt.resolvedUrl(`${Quickshell.shellDir}/assets/logo.svg`);
                 root.isDefaultLogo = true;
-            } else if (GlobalConfig.general.logo) {
-                root.osLogo = Quickshell.iconPath(GlobalConfig.general.logo, true) || "file://" + Paths.absolutePath(GlobalConfig.general.logo);
+            } else if (configuredLogo) {
+                root.osLogo = Quickshell.iconPath(configuredLogo, true) || "file://" + Paths.absolutePath(configuredLogo);
                 root.isDefaultLogo = false;
             } else if (logo) {
                 root.osLogo = logo;

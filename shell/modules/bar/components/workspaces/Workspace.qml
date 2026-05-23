@@ -24,6 +24,15 @@ ColumnLayout {
     readonly property bool isOccupied: occupied[ws] ?? false
     readonly property bool hasWindows: isOccupied && Config.bar.workspaces.showWindows
 
+    function resolveWorkspaceLabel(value: var, fallback: string): string {
+        let label = value?.toString() ?? "";
+
+        if (label === "  " || label === "󰮯")
+            label = "";
+
+        return label || fallback;
+    }
+
     Layout.alignment: Qt.AlignHCenter
     Layout.preferredHeight: size
 
@@ -45,12 +54,13 @@ ColumnLayout {
             } else if (Config.bar.workspaces.capitalisation.toLowerCase() === "lower") {
                 displayName = displayName.toLowerCase();
             }
-            const label = Config.bar.workspaces.label || displayName;
-            const occupiedLabel = Config.bar.workspaces.occupiedLabel || label;
-            const activeLabel = Config.bar.workspaces.activeLabel || (root.isOccupied ? occupiedLabel : label);
+            const label = root.resolveWorkspaceLabel(Config.bar.workspaces.label, displayName);
+            const occupiedLabel = root.resolveWorkspaceLabel(Config.bar.workspaces.occupiedLabel, label);
+            const activeLabel = root.resolveWorkspaceLabel(Config.bar.workspaces.activeLabel, root.isOccupied ? occupiedLabel : label);
             return root.activeWsId === root.ws ? activeLabel : root.isOccupied ? occupiedLabel : label;
         }
-        color: Config.bar.workspaces.occupiedBg || root.isOccupied || root.activeWsId === root.ws ? Colours.palette.m3onSurface : Colours.layer(Colours.palette.m3outlineVariant, 2)
+        color: Config.bar.workspaces.occupiedBg || root.isOccupied || root.activeWsId === root.ws ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
+        opacity: Config.bar.workspaces.occupiedBg || root.isOccupied || root.activeWsId === root.ws ? 1 : 0.82
         verticalAlignment: Qt.AlignVCenter
     }
 

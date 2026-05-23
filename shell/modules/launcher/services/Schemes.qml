@@ -43,7 +43,18 @@ Searcher {
         command: ["ryoku", "scheme", "list"]
         stdout: StdioCollector {
             onStreamFinished: {
-                const schemeData = JSON.parse(text);
+                const trimmed = text.trim();
+                if (!trimmed)
+                    return;
+
+                let schemeData = {};
+                try {
+                    schemeData = JSON.parse(trimmed);
+                } catch (e) {
+                    console.warn(`Scheme list parse failed: ${e}`);
+                    return;
+                }
+
                 const list = Object.entries(schemeData).map(([name, f]) => Object.entries(f).map(([flavour, colours]) => ({
                                 name,
                                 flavour,
@@ -76,9 +87,9 @@ Searcher {
 
     component Scheme: QtObject {
         required property var modelData
-        readonly property string name: modelData.name
-        readonly property string flavour: modelData.flavour
-        readonly property var colours: modelData.colours
+        readonly property string name: modelData?.name ?? ""
+        readonly property string flavour: modelData?.flavour ?? ""
+        readonly property var colours: modelData?.colours ?? ({})
 
         function onClicked(list: AppList): void {
             list.visibilities.launcher = false;

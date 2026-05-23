@@ -17,7 +17,7 @@ skip_build=false
 
 usage() {
   cat <<'EOF'
-Usage: ./setup [install|reinstall|status] [options]
+Usage: ./setup [install|reinstall|status|doctor] [options]
 
 Options accepted for Ryoku installer compatibility:
   -y, -q, --skip-deps, --skip-setups, --skip-sysupdate
@@ -50,7 +50,7 @@ install_runtime_files() {
 
   install -m 0755 "$script_dir/scripts/ryoku-shell" "$bin_dir/ryoku-shell"
   [[ -f $script_dir/scripts/ryoku ]] && install -m 0755 "$script_dir/scripts/ryoku" "$bin_dir/ryoku"
-  [[ -f $script_dir/scripts/ryoku-keybinds ]] && install -m 0755 "$script_dir/scripts/ryoku-keybinds" "$bin_dir/ryoku-keybinds"
+  rm -f "$bin_dir/ryoku-keybinds"
   [[ -f $script_dir/assets/logo.svg ]] && install -m 0644 "$script_dir/assets/logo.svg" "$icon_dir/ryoku-shell.svg"
   [[ -f $script_dir/assets/applications/ryoku-shell.desktop ]] && \
     install -m 0644 "$script_dir/assets/applications/ryoku-shell.desktop" "$applications_dir/ryoku-shell.desktop"
@@ -69,13 +69,20 @@ install_first_run_state() {
     "$bin_dir/ryoku" scheme get >/dev/null
   fi
 
-  if [[ -x $bin_dir/ryoku-keybinds ]]; then
-    "$bin_dir/ryoku-keybinds" ensure >/dev/null || true
-  fi
 }
 
 install_service() {
   "$bin_dir/ryoku-shell" service install
+
+  service_file="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/ryoku-shell.service"
+  if [[ -f $service_file ]] && ! grep -Fq "ryoku-shell-cleanup-orphans" "$service_file"; then
+    legacy_cleanup="ryoku-shell cleanup-orphans"
+    if grep -Fq "$legacy_cleanup" "$service_file"; then
+      sed -i "\\|$legacy_cleanup|c\\ExecStopPost=-%h/.local/share/ryoku/bin/ryoku-shell-cleanup-orphans --quiet" "$service_file"
+    else
+      printf '\nExecStopPost=-%%h/.local/share/ryoku/bin/ryoku-shell-cleanup-orphans --quiet\n' >>"$service_file"
+    fi
+  fi
 
   if [[ ${RYOKU_COMPOSITOR:-} == "hyprland" || -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]]; then
     "$bin_dir/ryoku-shell" service enable
@@ -119,6 +126,10 @@ status_shell() {
   [[ -f $runtime_dir/shell.qml ]] && printf 'Runtime shell.qml: present\n' || printf 'Runtime shell.qml: missing\n'
 }
 
+doctor_shell() {
+  "$script_dir/scripts/ryoku-shell-doctor" "$@"
+}
+
 command="${1:-install}"
 (($# == 0)) || shift
 
@@ -148,6 +159,9 @@ case "$command" in
     ;;
   status)
     status_shell
+    ;;
+  doctor)
+    doctor_shell "$@"
     ;;
   -h|--help|help)
     usage

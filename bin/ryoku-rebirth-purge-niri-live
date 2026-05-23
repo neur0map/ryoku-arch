@@ -16,7 +16,8 @@ usage() {
 Usage: ryoku-rebirth-purge-niri-live --confirm-niri-free [--allow-auth-prompt] [--force]
 
 Removes live Niri session wiring only after the rebirth Hyprland session is
-active. It snapshots first and keeps user apps/tools intact.
+active. It snapshots first and keeps user apps/tools intact. Package removal is
+skipped when root authorization is unavailable.
 EOF
 }
 
@@ -51,6 +52,7 @@ done
 
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 xdg_config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
+xdg_data_home="${XDG_DATA_HOME:-$HOME/.local/share}"
 systemd_user_dir="$xdg_config_home/systemd/user"
 
 command_present() {
@@ -111,15 +113,6 @@ fi
 
 require_rebirth_hyprland
 
-if ((${#packages_to_remove[@]} > 0)) && [[ $allow_auth_prompt == false ]] && ! can_install_without_prompt; then
-  cat >&2 <<'EOF'
-ryoku-rebirth-purge-niri-live: root authorization is required and no cached sudo session is available.
-Re-run while present with:
-  ryoku-rebirth-purge-niri-live --confirm-niri-free --allow-auth-prompt
-EOF
-  exit 77
-fi
-
 snapshot_output="$("$repo_root/bin/ryoku-rebirth-snapshot")"
 snapshot_dir="$(sed -n 's/^Snapshot: //p' <<<"$snapshot_output" | tail -1)"
 [[ -d $snapshot_dir ]] || {
@@ -127,11 +120,70 @@ snapshot_dir="$(sed -n 's/^Snapshot: //p' <<<"$snapshot_output" | tail -1)"
   exit 1
 }
 
-if [[ -e $xdg_config_home/niri || -L $xdg_config_home/niri ]]; then
-  mkdir -p "$snapshot_dir/removed/config"
-  mv "$xdg_config_home/niri" "$snapshot_dir/removed/config/niri"
-  printf 'moved=config/niri -> %s/removed/config/niri\n' "$snapshot_dir" >> "$snapshot_dir/manifest.txt"
-fi
+move_to_snapshot() {
+  local source="$1"
+  local relative_dest="$2"
+  local target="$snapshot_dir/removed/$relative_dest"
+
+  [[ -e $source || -L $source ]] || return 0
+  mkdir -p "$(dirname "$target")"
+  mv "$source" "$target"
+  printf 'moved=%s -> %s\n' "$relative_dest" "$target" >> "$snapshot_dir/manifest.txt"
+}
+
+move_config_to_snapshot() {
+  local relative="$1"
+
+  move_to_snapshot "$xdg_config_home/$relative" "config/$relative"
+}
+
+move_config_glob_to_snapshot() {
+  local pattern="$1"
+  local source
+
+  for source in "$xdg_config_home"/$pattern; do
+    [[ -e $source || -L $source ]] || continue
+    move_to_snapshot "$source" "config/${source#"$xdg_config_home"/}"
+  done
+}
+
+move_data_to_snapshot() {
+  local relative="$1"
+
+  move_to_snapshot "$xdg_data_home/$relative" "local-share/$relative"
+}
+
+move_config_to_snapshot "niri"
+move_config_glob_to_snapshot "niri.before-*"
+move_config_glob_to_snapshot "alacritty/*.inir-only-*"
+move_config_to_snapshot "xdg-desktop-portal/niri-portals.conf"
+move_config_to_snapshot "fish/auto-Niri.fish"
+move_config_to_snapshot "fish/auto-Niri.fish.old"
+move_config_to_snapshot "fish/conf.d/inir-env.fish"
+move_config_to_snapshot "fish/conf.d/inir-path.fish"
+move_config_to_snapshot "illogical-impulse"
+move_config_to_snapshot "quickshell/ii"
+
+move_config_glob_to_snapshot "quickshell/ryoku-shell/scripts/__pycache__/*niri*"
+move_config_glob_to_snapshot "quickshell/ryoku-shell/scripts/__pycache__/*inir*"
+
+move_data_to_snapshot "inir"
+move_data_to_snapshot "ryoku-shell/defaults/niri"
+move_data_to_snapshot "ryoku-shell/dots/.config/niri"
+move_data_to_snapshot "ryoku-shell/dots/.config/fish/auto-Niri.fish"
+move_data_to_snapshot "ryoku-shell/dots/.config/fish/auto-Niri.fish.old"
+move_data_to_snapshot "ryoku-shell/dots/.config/fish/conf.d/inir-env.fish"
+move_data_to_snapshot "ryoku-shell/dots/.config/fish/conf.d/inir-path.fish"
+move_data_to_snapshot "ryoku-shell/dots/.config/xdg-desktop-portal/niri-portals.conf"
+move_data_to_snapshot "ryoku-shell/modules/overview/OverviewNiriWidget.qml"
+move_data_to_snapshot "ryoku-shell/modules/settings/NiriConfig.qml"
+move_data_to_snapshot "ryoku-shell/modules/settings/NiriDisplayConfigurator.qml"
+move_data_to_snapshot "ryoku-shell/scripts/niri-config.py"
+move_data_to_snapshot "ryoku-shell/scripts/parse_niri_keybinds.py"
+move_data_to_snapshot "ryoku-shell/sdata/migrations/018-modularize-niri-config.sh"
+move_data_to_snapshot "ryoku-shell/services/NiriKeybinds.qml"
+move_data_to_snapshot "ryoku-shell/services/NiriService.qml"
+move_data_to_snapshot "ryoku-shell/assets/wallpapers/qs-niri.jpg"
 
 rm -f "$systemd_user_dir/niri.service.wants/ryoku-shell.service"
 rmdir "$systemd_user_dir/niri.service.wants" 2>/dev/null || true
@@ -140,13 +192,15 @@ if command_present systemctl; then
   systemctl --user daemon-reload >/dev/null 2>&1 || true
 fi
 
-if ((${#packages_to_remove[@]} > 0)); then
+if ((${#packages_to_remove[@]} > 0)) && { [[ $allow_auth_prompt == true ]] || can_install_without_prompt; }; then
   printf 'Removing packages: %s\n' "${packages_to_remove[*]}"
   if command_present ryoku-pkg-remove; then
     ryoku-pkg-remove "${packages_to_remove[@]}"
   else
     sudo pacman -Rns --noconfirm "${packages_to_remove[@]}"
   fi
+elif ((${#packages_to_remove[@]} > 0)); then
+  printf 'Skipped package removal, root authorization is not available: %s\n' "${packages_to_remove[*]}"
 else
   printf 'No Niri packages found to remove.\n'
 fi
