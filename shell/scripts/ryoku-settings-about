@@ -8,21 +8,36 @@ shell_root="$(cd -- "$script_dir/.." && pwd)"
 source_path_file="$shell_root/.ryoku-source-path"
 default_ryoku_path="$HOME/.local/share/ryoku"
 checkout_ryoku_path=""
+source_ryoku_path=""
+
+is_git_repo() {
+  local path="${1:-}"
+
+  [[ -n $path ]] && git -C "$path" rev-parse --show-toplevel >/dev/null 2>&1
+}
 
 if [[ -r $source_path_file ]]; then
-  read -r ryoku_path <"$source_path_file" || ryoku_path="$default_ryoku_path"
-  [[ -n $ryoku_path ]] || ryoku_path="$default_ryoku_path"
-elif [[ -n ${RYOKU_PATH:-} ]] && git -C "$RYOKU_PATH" rev-parse --show-toplevel >/dev/null 2>&1; then
-  ryoku_path="$RYOKU_PATH"
+  read -r source_ryoku_path <"$source_path_file" || source_ryoku_path="$default_ryoku_path"
+  [[ -n $source_ryoku_path ]] || source_ryoku_path="$default_ryoku_path"
+elif [[ -n ${RYOKU_PATH:-} ]] && is_git_repo "$RYOKU_PATH"; then
+  source_ryoku_path="$RYOKU_PATH"
 elif checkout_ryoku_path="$(git -C "$shell_root" rev-parse --show-toplevel 2>/dev/null)" \
   && [[ -f $checkout_ryoku_path/lib/runtime-env.sh ]]; then
-  ryoku_path="$checkout_ryoku_path"
+  source_ryoku_path="$checkout_ryoku_path"
 elif [[ -n ${RYOKU_PATH:-} ]]; then
-  ryoku_path="$RYOKU_PATH"
+  source_ryoku_path="$RYOKU_PATH"
 else
+  source_ryoku_path="$default_ryoku_path"
+fi
+
+ryoku_path="$source_ryoku_path"
+if [[ -n ${RYOKU_SETTINGS_UPDATE_PATH:-} ]]; then
+  ryoku_path="$RYOKU_SETTINGS_UPDATE_PATH"
+elif [[ -r $source_path_file ]] && is_git_repo "$default_ryoku_path"; then
   ryoku_path="$default_ryoku_path"
 fi
 
+export RYOKU_SOURCE_PATH="$source_ryoku_path"
 export RYOKU_PATH="$ryoku_path"
 
 if [[ -f $ryoku_path/lib/runtime-env.sh ]]; then
@@ -62,15 +77,16 @@ PY
 about_json() {
   local mode="$1"
 
-  python3 - "$mode" "$RYOKU_PATH" "$RYOKU_STATE_PATH" "${XDG_CONFIG_HOME:-$HOME/.config}" "$remote_url" <<'PY'
+  python3 - "$mode" "$RYOKU_PATH" "$RYOKU_SOURCE_PATH" "$RYOKU_STATE_PATH" "${XDG_CONFIG_HOME:-$HOME/.config}" "$remote_url" <<'PY'
 import json
 import os
 import subprocess
 import sys
 from pathlib import Path
 
-mode, repo, state_dir, config_home, remote_url = sys.argv[1:6]
+mode, repo, source_repo, state_dir, config_home, remote_url = sys.argv[1:7]
 repo_path = Path(repo).expanduser()
+source_path = Path(source_repo).expanduser()
 channels = {"main", "unstable-dev"}
 labels = {
     "main": "Stable (main)",
@@ -194,6 +210,8 @@ def base_info():
         ],
         "dirty": dirty_status(),
         "path": str(repo_path),
+        "sourcePath": str(source_path),
+        "updatePath": str(repo_path),
         "remote": remote_url,
     }
 
@@ -328,6 +346,8 @@ if not (repo_path / ".git").exists():
         "ok": False,
         "error": f"Ryoku checkout is not a git repository: {repo_path}",
         "path": str(repo_path),
+        "sourcePath": str(source_path),
+        "updatePath": str(repo_path),
     }))
     sys.exit(0)
 

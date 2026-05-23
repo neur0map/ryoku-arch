@@ -70,6 +70,55 @@ XDG_CONFIG_HOME="$tmp_dir/direct-config" \
 assert_json_expr "$direct_status_json" ".ok == true and .path == \"$ROOT_DIR\"" \
   "repo helper should prefer its own checkout over a stale RYOKU_PATH"
 
+runtime_home="$tmp_dir/runtime-home"
+runtime_shell="$tmp_dir/runtime-shell"
+runtime_source="$tmp_dir/runtime-source"
+runtime_remote="$tmp_dir/runtime-remote.git"
+runtime_remote_work="$tmp_dir/runtime-remote-work"
+runtime_installed="$runtime_home/.local/share/ryoku"
+
+mkdir -p "$runtime_shell/scripts" "$runtime_home/.local/share"
+cp "$helper" "$runtime_shell/scripts/ryoku-settings-about"
+chmod 755 "$runtime_shell/scripts/ryoku-settings-about"
+
+git init "$runtime_source" >/dev/null
+git -C "$runtime_source" config user.email test@example.invalid
+git -C "$runtime_source" config user.name "Ryoku Test"
+printf '0.2.0-source\n' >"$runtime_source/VERSION"
+git -C "$runtime_source" add VERSION
+git -C "$runtime_source" commit -m "source current" >/dev/null
+git -C "$runtime_source" switch -q -c unstable-dev
+
+git init --bare "$runtime_remote" >/dev/null
+git -C "$runtime_source" remote add origin "$runtime_remote"
+git -C "$runtime_source" push -u origin unstable-dev >/dev/null 2>&1
+git clone "$runtime_remote" "$runtime_installed" >/dev/null 2>&1
+git -C "$runtime_installed" switch -q unstable-dev
+git clone "$runtime_remote" "$runtime_remote_work" >/dev/null 2>&1
+git -C "$runtime_remote_work" switch -q unstable-dev
+git -C "$runtime_remote_work" config user.email test@example.invalid
+git -C "$runtime_remote_work" config user.name "Ryoku Test"
+printf '%s\n' "installed update" >"$runtime_remote_work/CHANGELOG"
+git -C "$runtime_remote_work" add CHANGELOG
+git -C "$runtime_remote_work" commit -m "runtime installed update" >/dev/null
+git -C "$runtime_remote_work" push origin unstable-dev >/dev/null 2>&1
+
+printf '%s\n' "$runtime_source" >"$runtime_shell/.ryoku-source-path"
+
+runtime_status_json="$tmp_dir/runtime-status.json"
+HOME="$runtime_home" \
+RYOKU_STATE_PATH="$tmp_dir/runtime-state" \
+RYOKU_UPDATE_REMOTE_URL="$runtime_remote" \
+XDG_CONFIG_HOME="$tmp_dir/runtime-config" \
+  "$runtime_shell/scripts/ryoku-settings-about" check-updates >"$runtime_status_json"
+
+assert_json_expr "$runtime_status_json" ".ok == true and .path == \"$runtime_installed\"" \
+  "runtime helper should check updates against the installed checkout, not the live source path"
+assert_json_expr "$runtime_status_json" '.updateAvailable == true and .behindCount == 1 and .incoming[0].subject == "runtime installed update"' \
+  "runtime helper should report updates that are pending for the installed checkout"
+assert_json_expr "$runtime_status_json" ".sourcePath == \"$runtime_source\" and .updatePath == \"$runtime_installed\"" \
+  "runtime helper should expose both live source path and installed update path"
+
 repo="$tmp_dir/repo"
 git init "$repo" >/dev/null
 git -C "$repo" config user.email test@example.invalid

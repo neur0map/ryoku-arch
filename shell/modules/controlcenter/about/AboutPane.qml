@@ -107,9 +107,11 @@ Item {
     }
 
     function updateStateTitle(report: var): string {
+        if (report.updateAvailable === true)
+            return qsTr("Update available");
         if (report.updateStateLabel)
             return report.updateStateLabel;
-        return report.updateAvailable === true ? qsTr("Update available") : qsTr("No updates available");
+        return qsTr("No updates available");
     }
 
     function updateStateDetail(report: var): string {
