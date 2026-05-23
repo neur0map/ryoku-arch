@@ -13,6 +13,7 @@ Singleton {
 
     property bool loadingStatus: false
     property bool checkingUpdates: false
+    property bool startingUpdate: false
     property bool runningDoctor: false
     property bool switchingChannel: false
     property var info: ({})
@@ -21,6 +22,7 @@ Singleton {
     property string lastError: ""
 
     signal updateCheckFinished(var report)
+    signal updateStartFinished(var report)
     signal doctorFinished(var report)
     signal channelSwitchFinished(var report)
 
@@ -64,6 +66,14 @@ Singleton {
 
         runningDoctor = true;
         doctorProc.exec([helper, "doctor"]);
+    }
+
+    function startUpdate(branch: string): void {
+        if (startingUpdate)
+            return;
+
+        startingUpdate = true;
+        updateProc.exec([helper, "start-update", branch]);
     }
 
     function switchChannel(channel: string): void {
@@ -141,6 +151,26 @@ Singleton {
                 report.output = doctorErr.text.trim();
             root.lastDoctorReport = report;
             root.doctorFinished(report);
+        }
+    }
+
+    Process {
+        id: updateProc
+
+        stdout: StdioCollector {
+            id: updateOut
+        }
+
+        stderr: StdioCollector {
+            id: updateErr
+        }
+
+        onExited: code => { // qmllint disable signal-handler-parameters
+            const report = root.parseJson(updateOut.text);
+            root.startingUpdate = false;
+            if (!report.ok && updateErr.text && !report.error)
+                report.error = updateErr.text.trim();
+            root.updateStartFinished(report);
         }
     }
 

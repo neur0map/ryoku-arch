@@ -2,13 +2,27 @@
 
 set -euo pipefail
 
-ryoku_path="${RYOKU_PATH:-$HOME/.local/share/ryoku}"
+script_path="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || printf '%s\n' "${BASH_SOURCE[0]}")"
+script_dir="$(cd -- "$(dirname -- "$script_path")" && pwd)"
+shell_root="$(cd -- "$script_dir/.." && pwd)"
+source_path_file="$shell_root/.ryoku-source-path"
+default_ryoku_path="$HOME/.local/share/ryoku"
+
+if [[ -r $source_path_file ]]; then
+  read -r ryoku_path <"$source_path_file" || ryoku_path="$default_ryoku_path"
+  [[ -n $ryoku_path ]] || ryoku_path="$default_ryoku_path"
+elif [[ -n ${RYOKU_PATH:-} ]]; then
+  ryoku_path="$RYOKU_PATH"
+else
+  ryoku_path="$default_ryoku_path"
+fi
+
+export RYOKU_PATH="$ryoku_path"
 
 if [[ -f $ryoku_path/lib/runtime-env.sh ]]; then
   # shellcheck disable=SC1091
   source "$ryoku_path/lib/runtime-env.sh"
 else
-  export RYOKU_PATH="$ryoku_path"
   export RYOKU_STATE_PATH="${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}"
 fi
 
@@ -20,8 +34,9 @@ Usage: ryoku-settings-about <status|check-updates|doctor|switch-channel|open-url
 
 Commands:
   status                 Print Ryoku version, checkout branch, and channel JSON
-  check-updates          Fetch the active channel and print incoming commits JSON
+  check-updates          Fetch the checkout branch and print incoming commits JSON
   doctor                 Run ryoku-doctor shell and print captured output JSON
+  start-update BRANCH    Launch a terminal update for the checked update branch
   switch-channel BRANCH  Launch the branch switcher for main or unstable-dev
   open-url URL           Open an https URL in the user's browser
 EOF
@@ -84,6 +99,12 @@ def current_branch():
         return "unknown"
     return "detached" if out == "HEAD" else out
 
+def valid_branch_name(branch):
+    if branch in {"", "unknown", "detached"}:
+        return False
+    code, _, _ = run_git("check-ref-format", "--branch", branch)
+    return code == 0
+
 def short_head():
     code, out, _ = run_git("rev-parse", "--short", "HEAD")
     return out if code == 0 and out else "unknown"
@@ -124,6 +145,11 @@ def configured_channel(branch):
         return branch
     return "main"
 
+def update_branch(branch, channel):
+    if valid_branch_name(branch):
+        return branch
+    return channel
+
 def dirty_status():
     code, out, _ = run_git("status", "--porcelain", "--untracked-files=normal")
     return code == 0 and bool(out)
@@ -131,6 +157,7 @@ def dirty_status():
 def base_info():
     branch = current_branch()
     channel = configured_channel(branch)
+    update = update_branch(branch, channel)
     return {
         "ok": True,
         "version": version(),
@@ -138,6 +165,8 @@ def base_info():
         "currentBranch": branch,
         "configuredChannel": channel,
         "configuredChannelLabel": labels.get(channel, channel),
+        "updateBranch": update,
+        "updateBranchLabel": labels.get(update, update),
         "channels": [
             {"id": "main", "label": labels["main"], "description": "Main stable release channel"},
             {"id": "unstable-dev", "label": labels["unstable-dev"], "description": "Development channel with newer Ryoku changes"},
@@ -171,20 +200,36 @@ def incoming_commits(remote_ref):
 
 def check_updates():
     info = base_info()
-    channel = info["configuredChannel"]
+    branch = info["updateBranch"]
 
-    code, _, err = fetch_channel(channel)
-    if code != 0:
+    if not valid_branch_name(branch):
         info.update({
             "ok": False,
-            "error": err or f"Unable to fetch {channel}",
+            "error": f"Unable to determine a safe update branch from checkout {info['currentBranch']}",
             "incoming": [],
             "aheadCount": 0,
             "behindCount": 0,
+            "updateAvailable": False,
+            "canFastForward": False,
+            "canStartUpdate": False,
         })
         return info
 
-    remote_ref = f"origin/{channel}"
+    code, _, err = fetch_channel(branch)
+    if code != 0:
+        info.update({
+            "ok": False,
+            "error": err or f"Unable to fetch {branch}",
+            "incoming": [],
+            "aheadCount": 0,
+            "behindCount": 0,
+            "updateAvailable": False,
+            "canFastForward": False,
+            "canStartUpdate": False,
+        })
+        return info
+
+    remote_ref = f"origin/{branch}"
     code, counts, err = run_git("rev-list", "--left-right", "--count", f"HEAD...{remote_ref}")
     ahead = 0
     behind = 0
@@ -206,6 +251,7 @@ def check_updates():
         "behindCount": behind,
         "updateAvailable": behind > 0,
         "canFastForward": ancestor_code == 0 and behind > 0,
+        "canStartUpdate": behind > 0 and ancestor_code == 0,
         "incoming": commits,
     })
     return info
@@ -291,6 +337,92 @@ print(json.dumps({
 PY
 }
 
+valid_branch_name() {
+  git check-ref-format --branch "$1" >/dev/null 2>&1
+}
+
+current_checkout_branch() {
+  git -C "$RYOKU_PATH" rev-parse --abbrev-ref HEAD 2>/dev/null || printf '%s\n' "unknown"
+}
+
+shell_quote() {
+  printf '%q' "$1"
+}
+
+update_current_branch() {
+  local branch="${1:-}"
+  local current_branch=""
+  local remote_ref=""
+
+  valid_branch_name "$branch" || {
+    echo "ryoku-settings-about: invalid update branch: $branch" >&2
+    return 1
+  }
+
+  current_branch="$(current_checkout_branch)"
+  [[ $current_branch == "$branch" ]] || {
+    echo "ryoku-settings-about: refusing to update $branch while checkout is $current_branch" >&2
+    return 1
+  }
+
+  remote_ref="origin/$branch"
+  git -C "$RYOKU_PATH" fetch --prune "$remote_url" "+refs/heads/$branch:refs/remotes/origin/$branch"
+  git -C "$RYOKU_PATH" merge --ff-only "$remote_ref"
+
+  if [[ -x $RYOKU_PATH/shell/setup ]]; then
+    "$RYOKU_PATH/shell/setup" install -y -q --skip-deps --skip-setups --skip-sysupdate
+  fi
+}
+
+start_update() {
+  local branch="${1:-}"
+  local current_branch command helper_q path_q branch_q remote_q update_bin update_q
+
+  valid_branch_name "$branch" || {
+    json_error "Invalid update branch: $branch"
+    return 1
+  }
+
+  current_branch="$(current_checkout_branch)"
+  [[ $current_branch == "$branch" ]] || {
+    json_error "Refusing to update $branch while checkout is $current_branch"
+    return 1
+  }
+
+  if ! command -v ryoku-launch-floating-terminal-with-presentation >/dev/null 2>&1; then
+    json_error "ryoku-launch-floating-terminal-with-presentation was not found"
+    return 1
+  fi
+
+  path_q="$(shell_quote "$RYOKU_PATH")"
+  branch_q="$(shell_quote "$branch")"
+
+  case "$branch" in
+    main | unstable-dev)
+      update_bin="$RYOKU_PATH/bin/ryoku-update"
+      update_q="$(shell_quote "$update_bin")"
+      command="RYOKU_PATH=$path_q RYOKU_UPDATE_BRANCH=$branch_q $update_q"
+      ;;
+    *)
+      helper_q="$(shell_quote "$script_path")"
+      remote_q="$(shell_quote "$remote_url")"
+      command="RYOKU_PATH=$path_q RYOKU_UPDATE_REMOTE_URL=$remote_q $helper_q update-current-run $branch_q"
+      ;;
+  esac
+
+  ryoku-launch-floating-terminal-with-presentation "$command" >/dev/null 2>&1 &
+  python3 - "$branch" <<'PY'
+import json
+import sys
+
+print(json.dumps({
+    "ok": True,
+    "branch": sys.argv[1],
+    "message": f"Started Ryoku update for {sys.argv[1]} in a terminal.",
+}))
+PY
+}
+
 open_url() {
   local url="${1:-}"
 
@@ -319,6 +451,12 @@ case "$command" in
     ;;
   doctor)
     doctor_json
+    ;;
+  start-update)
+    start_update "$@"
+    ;;
+  update-current-run)
+    update_current_branch "$@"
     ;;
   switch-channel)
     switch_channel "$@"

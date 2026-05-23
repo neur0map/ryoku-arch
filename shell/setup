@@ -32,7 +32,18 @@ command_present() {
 }
 
 install_runtime_files() {
+  local source_root
+
   mkdir -p "$runtime_dir" "$config_dir" "$bin_dir" "$applications_dir" "$icon_dir"
+
+  # Purge stale build artifacts at the destination before sync. The rsync
+  # excludes below skip transferring build/, CMakeCache.txt, etc. from the
+  # source - but without --delete-excluded they also skip *deleting* those
+  # paths if they already exist at the destination. That left fresh installs
+  # carrying the dev box's CMakeCache.txt and binaries pinned to absolute
+  # paths under /home/<dev-user>/..., which then made the rebuild fail with
+  # "source does not match" and the native plugin never landed.
+  rm -rf "$runtime_dir/build" "$runtime_dir/CMakeFiles" "$runtime_dir/CMakeCache.txt"
 
   if command_present rsync; then
     rsync -a --delete \
@@ -47,6 +58,11 @@ install_runtime_files() {
     cp -a "$script_dir/." "$runtime_dir/"
     rm -rf "$runtime_dir/build"
   fi
+
+  if ! source_root="$(git -C "$script_dir" rev-parse --show-toplevel 2>/dev/null)"; then
+    source_root="$(cd -- "$script_dir/.." && pwd)"
+  fi
+  printf '%s\n' "$source_root" >"$runtime_dir/.ryoku-source-path"
 
   install -m 0755 "$script_dir/scripts/ryoku-shell" "$bin_dir/ryoku-shell"
   [[ -f $script_dir/scripts/ryoku ]] && install -m 0755 "$script_dir/scripts/ryoku" "$bin_dir/ryoku"

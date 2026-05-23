@@ -4,7 +4,6 @@
 # land on the qylock clockwork greeter after the LUKS unlock, not drop
 # to a tty and not bypass the greeter via autologin.
 
-ryoku-refresh-sddm
 ryoku-install-qylock --theme clockwork
 
 # Explicitly disable autologin so the qylock SDDM theme is shown on
@@ -16,11 +15,6 @@ ryoku-sddm-autologin disable >/dev/null
 # for auto-unlock).
 sudo sed -i '/-auth.*pam_gnome_keyring\.so/d' /etc/pam.d/sddm
 sudo sed -i '/-password.*pam_gnome_keyring\.so/d' /etc/pam.d/sddm
-
-[[ -f /usr/share/sddm/themes/ii-pixel/metadata.desktop ]] || {
-  echo "Error: bundled ii-pixel theme is missing from /usr/share/sddm/themes" >&2
-  exit 1
-}
 
 [[ -f /usr/share/sddm/themes/orbital/metadata.desktop ]] || {
   echo "Error: qylock clockwork theme is missing from /usr/share/sddm/themes" >&2

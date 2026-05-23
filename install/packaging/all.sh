@@ -1,5 +1,6 @@
 run_logged $RYOKU_INSTALL/packaging/base.sh
 run_logged $RYOKU_INSTALL/packaging/aur-core.sh
+run_logged $RYOKU_INSTALL/packaging/distro-arch.sh
 run_logged $RYOKU_INSTALL/packaging/fonts.sh
 run_logged $RYOKU_INSTALL/packaging/neovim.sh
 run_logged $RYOKU_INSTALL/packaging/icons.sh

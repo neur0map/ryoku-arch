@@ -1,4 +1,4 @@
-# Ryoku base packages — installed via install/packaging/base.sh.
+# Ryoku base packages - installed via install/packaging/base.sh.
 # Source-of-truth for the official-Arch slice of the offline ISO mirror.
 #
 # Sectioned by category so you can scan the list and add/remove one line
@@ -77,10 +77,10 @@ docker
 docker-buildx
 docker-compose
 
-# ── GUI apps — browsers + communication ───────────────────────────────
+# ── GUI apps - browsers + communication ───────────────────────────────
 fuse2
 
-# ── GUI apps — productivity, viewers, file manager ────────────────────
+# ── GUI apps - productivity, viewers, file manager ────────────────────
 evince
 gnome-calculator
 imv
@@ -92,7 +92,7 @@ obsidian
 sushi
 zenity
 
-# ── GUI apps — multimedia editing & screen capture ────────────────────
+# ── GUI apps - multimedia editing & screen capture ────────────────────
 ffmpeg
 gpu-screen-recorder
 imagemagick
@@ -193,11 +193,27 @@ tesseract-data-spa
 wl-clipboard
 zbar
 
+# ── Shell native plugin build toolchain ───────────────────────────────
+# Required at runtime by shell/setup so the Ryoku QML plugin
+# (libryoku-services.so + libryoku.so + libryoku-config.so) can be
+# rebuilt on every install/update. Without these the QML import
+# `Ryoku.Config` is missing and shell.qml fails to load with
+# "Type Background unavailable".
+cmake
+ninja
+
 # ── Display manager + boot splash ─────────────────────────────────────
 plymouth
 sddm
 
 # ── Audio system + visualizer ─────────────────────────────────────────
+# `cava` here pulls the stock Arch package for the offline mirror. The
+# install/packaging/distro-arch.sh step later replaces it with
+# distro/arch/cava-ryoku, which provides=cava+libcava so the rebirth
+# shell's plugin can link libcava (otherwise the dashboard music
+# visualiser stays invisible). Order matters: keep cava in this list so
+# the offline mirror contains a satisfying stock cava during base
+# packaging, then distro-arch.sh swaps it out.
 alsa-utils
 aubio
 cava

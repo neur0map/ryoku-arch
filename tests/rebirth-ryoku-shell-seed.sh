@@ -124,8 +124,13 @@ RYOKU_SHELL_QML_DIR="$tmp_dir/qml" \
   fail "setup should initialize shell wallpaper state"
 
 upstream_pattern='cae''lestia|Cae''lestia|CAELE''STIA|cae''lestia-dots|sora''mane'
+# Exclude LICENSE (legal text) and the About settings pane's credits
+# section (intentional attribution to the upstream shell heritage, same
+# rationale as the repo-root CREDITS.md exemption in rebirth-docs-ready).
 if rg -n "$upstream_pattern" "$ROOT_DIR/shell" \
-    --glob '!LICENSE' >/tmp/ryoku-shell-seed-names.$$; then
+    --glob '!LICENSE' \
+    --glob '!AboutPane.qml' \
+    --glob '!RyokuAbout.qml' >/tmp/ryoku-shell-seed-names.$$; then
   cat /tmp/ryoku-shell-seed-names.$$
   rm -f /tmp/ryoku-shell-seed-names.$$
   fail "shell runtime should not expose upstream product naming outside license/credits"

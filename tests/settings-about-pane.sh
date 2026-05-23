@@ -35,6 +35,10 @@ assert_contains "shell/modules/controlcenter/about/AboutPane.qml" 'https://githu
 assert_contains "shell/modules/controlcenter/about/AboutPane.qml" 'https://github.com/caelestia-dots/shell'
 assert_contains "shell/modules/controlcenter/about/AboutPane.qml" 'https://github.com/BlueManCZ/hyprmod'
 assert_contains "shell/modules/controlcenter/about/AboutPane.qml" 'https://github.com/Darkkal44/qylock'
+assert_contains "shell/modules/controlcenter/about/AboutPane.qml" 'RyokuAbout.startUpdate'
+assert_contains "shell/modules/controlcenter/about/AboutPane.qml" 'Update Ryoku'
+assert_contains "shell/scripts/ryoku-settings-about" 'update-current-run'
+assert_contains "shell/setup" '.ryoku-source-path'
 
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
@@ -46,6 +50,7 @@ git -C "$repo" config user.name "Ryoku Test"
 printf '0.1.0-test\n' >"$repo/VERSION"
 git -C "$repo" add VERSION
 git -C "$repo" commit -m "initial" >/dev/null
+git -C "$repo" switch -q -c rebirth
 
 status_json="$tmp_dir/status.json"
 RYOKU_PATH="$repo" \
@@ -55,7 +60,11 @@ XDG_CONFIG_HOME="$tmp_dir/config" \
 
 assert_json_expr "$status_json" '.ok == true and (.version | startswith("0.1.0-test"))' \
   "status output should include Ryoku version"
+assert_json_expr "$status_json" '.currentBranch == "rebirth" and .updateBranch == "rebirth"' \
+  "status output should report the checkout branch as the update branch"
 assert_json_expr "$status_json" '.configuredChannel == "main"' \
   "status output should default to main channel"
+assert_json_expr "$status_json" '([.channels[].id] | index("main") and index("unstable-dev") and (index("rebirth") | not))' \
+  "channel options should remain limited to main and unstable-dev"
 
 echo "PASS: settings about pane"

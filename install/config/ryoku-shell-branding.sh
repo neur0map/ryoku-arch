@@ -126,17 +126,6 @@ apply_installed_labels() {
   apply_replacements_to_file "assets/systemd/ryoku-shell.service" \
     "$installed_service"
   apply_service_cleanup "$installed_service"
-
-  if [[ -d /usr/share/sddm/themes/ii-pixel ]]; then
-    apply_replacements_to_root_file "dots/sddm/pixel/metadata.desktop" \
-      "/usr/share/sddm/themes/ii-pixel/metadata.desktop"
-    apply_replacements_to_root_file "dots/sddm/pixel/theme.conf" \
-      "/usr/share/sddm/themes/ii-pixel/theme.conf"
-    apply_replacements_to_root_file "dots/sddm/pixel/Main.qml" \
-      "/usr/share/sddm/themes/ii-pixel/Main.qml"
-    apply_replacements_to_root_file "dots/sddm/pixel/VirtualKeyboard.qml" \
-      "/usr/share/sddm/themes/ii-pixel/VirtualKeyboard.qml"
-  fi
 }
 
 merge_config_overrides() {

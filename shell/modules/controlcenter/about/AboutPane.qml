@@ -101,6 +101,10 @@ Item {
             root.showDoctor(report);
         }
 
+        function onUpdateStartFinished(report: var): void {
+            root.showMessage(qsTr("Ryoku update"), report.ok ? report.message : report.error, report);
+        }
+
         function onChannelSwitchFinished(report: var): void {
             root.showMessage(qsTr("Branch switch"), report.ok ? report.message : report.error, report);
         }
@@ -471,6 +475,12 @@ Item {
 
                 InfoTile {
                     Layout.fillWidth: true
+                    label: qsTr("Update branch")
+                    value: root.modalReport.updateBranch || root.modalReport.currentBranch || qsTr("Unknown")
+                }
+
+                InfoTile {
+                    Layout.fillWidth: true
                     label: qsTr("Remote")
                     value: root.modalReport.remoteBranch || qsTr("Unknown")
                 }
@@ -479,6 +489,26 @@ Item {
                     Layout.fillWidth: true
                     label: qsTr("Fast-forward")
                     value: root.modalReport.canFastForward ? qsTr("Available") : qsTr("Not needed")
+                }
+            }
+
+            RowLayout {
+                visible: root.modalReport.ok === true && root.modalReport.updateAvailable === true
+                Layout.fillWidth: true
+                spacing: Tokens.spacing.small
+
+                IconTextButton {
+                    icon: RyokuAbout.startingUpdate ? "progress_activity" : "download"
+                    text: RyokuAbout.startingUpdate ? qsTr("Starting") : qsTr("Update Ryoku")
+                    type: IconTextButton.Filled
+                    onClicked: RyokuAbout.startUpdate(root.modalReport.updateBranch || root.modalReport.currentBranch || "")
+                }
+
+                StyledText {
+                    Layout.fillWidth: true
+                    text: root.modalReport.canFastForward ? qsTr("Opens the updater in a terminal for this checkout branch.") : qsTr("The updater will open in a terminal and stop if the branch cannot fast-forward.")
+                    color: Colours.palette.m3onSurfaceVariant
+                    wrapMode: Text.WordWrap
                 }
             }
 
