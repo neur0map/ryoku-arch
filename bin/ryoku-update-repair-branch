@@ -1,0 +1,114 @@
+#!/bin/bash
+
+set -euo pipefail
+
+script_path="${BASH_SOURCE[0]}"
+script_path="$(readlink -f "$script_path" 2>/dev/null || printf '%s\n' "$script_path")"
+# shellcheck disable=SC1091
+source "$(cd -- "$(dirname -- "$script_path")/.." && pwd)/lib/runtime-env.sh"
+
+usage() {
+  cat <<'USAGE'
+Usage: ryoku-update-repair-branch main|unstable-dev
+
+Safely realign an installed Ryoku checkout that is stuck on old official
+branch history after the update branch moved.
+USAGE
+}
+
+branch="${1:-}"
+remote_url="${RYOKU_UPDATE_REMOTE_URL:-https://github.com/neur0map/ryoku-arch.git}"
+
+case "$branch" in
+  main | unstable-dev) ;;
+  -h | --help | help)
+    usage
+    exit 0
+    ;;
+  *)
+    usage >&2
+    exit 2
+    ;;
+esac
+
+ryoku_git() {
+  GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=/bin/true git -C "$RYOKU_PATH" "$@"
+}
+
+fetch_branch() {
+  local ref_branch="$1"
+
+  ryoku_git fetch --prune origin "+refs/heads/${ref_branch}:refs/remotes/origin/${ref_branch}"
+}
+
+prepare_origin() {
+  if ryoku_git remote get-url origin >/dev/null 2>&1; then
+    ryoku_git remote set-url origin "$remote_url"
+  else
+    ryoku_git remote add origin "$remote_url"
+  fi
+}
+
+official_remote_contains_head() {
+  local head ref reflog_head
+
+  head="$(ryoku_git rev-parse HEAD 2>/dev/null || true)"
+  [[ -n $head ]] || return 1
+
+  for ref in origin/main origin/unstable-dev; do
+    ryoku_git rev-parse --verify --quiet "$ref" >/dev/null || continue
+
+    if ryoku_git merge-base --is-ancestor HEAD "$ref"; then
+      return 0
+    fi
+
+    while IFS= read -r reflog_head; do
+      [[ $reflog_head == "$head" ]] && return 0
+    done < <(ryoku_git reflog show --format=%H "$ref" 2>/dev/null || true)
+  done
+
+  return 1
+}
+
+[[ -d $RYOKU_PATH/.git ]] || {
+  echo "Ryoku checkout is not a git repository: $RYOKU_PATH" >&2
+  exit 1
+}
+
+prepare_origin
+fetch_branch "$branch"
+fetch_branch main >/dev/null 2>&1 || true
+fetch_branch unstable-dev >/dev/null 2>&1 || true
+
+remote_ref="origin/$branch"
+ryoku_git rev-parse --verify "$remote_ref" >/dev/null || {
+  echo "Unable to fetch $remote_ref from $remote_url" >&2
+  exit 1
+}
+
+if [[ $(ryoku_git rev-parse HEAD) == "$(ryoku_git rev-parse "$remote_ref")" ]]; then
+  echo "Ryoku $branch is already aligned to $remote_ref."
+  exit 0
+fi
+
+if ! official_remote_contains_head; then
+  echo "Refusing to realign $RYOKU_PATH." >&2
+  echo "Current HEAD does not look like old official Ryoku history." >&2
+  echo "Run: git -C \"$RYOKU_PATH\" log --oneline --decorate -8" >&2
+  exit 1
+fi
+
+stash_ref=""
+if [[ -n $(ryoku_git status --porcelain --untracked-files=normal) ]]; then
+  ryoku_git stash push --include-untracked -m "ryoku-update branch repair $(date -Iseconds)"
+  stash_ref="stash@{0}"
+fi
+
+ryoku_git switch -C "$branch" "$remote_ref"
+
+echo "Realigned Ryoku $branch to $remote_ref."
+if [[ -n $stash_ref ]]; then
+  echo "Local checkout file changes were preserved in git stash: $stash_ref"
+fi
+echo "Next:"
+echo "  Run: ryoku-update -y"

@@ -155,6 +155,53 @@ grep -Fq 'Update stopped while waiting for sudo authentication.' <<<"$output" \
 grep -Fq 'Run: sudo -v' <<<"$output" \
   || fail "doctor should tell users how to refresh sudo before retrying"
 
+checkout_ff_only="$tmp/checkout-ff-only"
+git clone "$tmp/remote.git" "$checkout_ff_only" >/dev/null 2>&1
+git -C "$checkout_ff_only" config user.email test@example.invalid
+git -C "$checkout_ff_only" config user.name "Ryoku Test"
+printf '%s\n' "local divergent commit" >"$checkout_ff_only/local.txt"
+git -C "$checkout_ff_only" add local.txt
+git -C "$checkout_ff_only" commit -m "local divergent commit" >/dev/null
+cat >"$tmp/ff-only-update.log" <<'LOG'
+Update Ryoku
+Updating time...
+Update channel: unstable-dev
+hint: Diverging branches can't be fast-forwarded, you need to either:
+hint:
+hint:   git merge --no-ff
+hint:
+hint: or:
+hint:
+hint:   git rebase
+fatal: Not possible to fast-forward, aborting.
+
+Ryoku update could not fast-forward to origin/unstable-dev.
+This usually means the installed Ryoku checkout has local commits.
+LOG
+
+set +e
+output=$(
+  TMPDIR="$tmp" \
+  RYOKU_PATH="$checkout_ff_only" \
+  RYOKU_UPDATE_BRANCH=unstable-dev \
+  RYOKU_UPDATE_REMOTE_URL="$tmp/remote.git" \
+  RYOKU_DOCTOR_ASSUME_NO=1 \
+  RYOKU_UPDATE_LOG="$tmp/ff-only-update.log" \
+  XDG_STATE_HOME="$tmp/state" \
+  PATH="$tmp/bin:$PATH" \
+    "$ROOT_DIR/bin/ryoku-doctor" update 2>&1
+)
+ff_only_status=$?
+set -e
+
+(( ff_only_status != 0 )) || fail "ryoku-doctor should keep non-fast-forward updates marked for attention"
+grep -Fq 'Ryoku could not fast-forward its installed checkout.' <<<"$output" \
+  || fail "doctor should identify non-fast-forward update failures"
+grep -Fq 'Run: ryoku-update-repair-branch unstable-dev' <<<"$output" \
+  || fail "doctor should point users at the guarded branch repair command"
+grep -Fq 'Then retry: ryoku-update -y' <<<"$output" \
+  || fail "doctor should tell users to retry update after branch repair"
+
 RYOKU_UPDATE_INHIBITED=1 \
 RYOKU_UPDATE_LOGGED=1 \
 RYOKU_UPDATE_POWER_CHECKED=1 \

@@ -397,6 +397,20 @@ report_sudo_auth_stall() {
   return 0
 }
 
+report_git_fast_forward_stall() {
+  local log="$1"
+  local branch
+
+  grep -Eq 'Not possible to fast-forward|could not fast-forward to origin/' "$log" || return 1
+
+  branch="$(doctor_release_branch)"
+  echo "Ryoku could not fast-forward its installed checkout."
+  echo "Run: ryoku-update-repair-branch $branch"
+  echo "Then retry: ryoku-update -y"
+  doctor_report_issue "FAIL Installed checkout could not fast-forward to origin/$branch."
+  return 0
+}
+
 run_update_doctor() {
   local log repair_status migration_status
   local fixes=0
@@ -462,6 +476,11 @@ run_update_doctor() {
   fi
 
   if report_sudo_auth_stall "$log"; then
+    ((unresolved++)) || true
+    echo
+  fi
+
+  if report_git_fast_forward_stall "$log"; then
     ((unresolved++)) || true
     echo
   fi
