@@ -3,7 +3,7 @@ title: Updates
 description: How Ryoku updates itself, how the in-shell update overlay works, and how to roll back.
 ---
 
-Ryoku is rolling. The shell, theme pipeline, and Hyprland config are pulled from the `main` branch of [`neur0map/ryoku-arch`](https://github.com/neur0map/ryoku-arch). The Arch package set is rolling too.
+Ryoku is rolling. The shell, theme pipeline, and Hyprland config are pulled from the selected Ryoku channel in [`neur0map/ryoku-arch`](https://github.com/neur0map/ryoku-arch): `main` for Stable or `unstable-dev` for Unstable. The Arch package set is rolling too.
 
 ## What gets updated
 
@@ -14,7 +14,7 @@ Ryoku is rolling. The shell, theme pipeline, and Hyprland config are pulled from
 
 ## The shell update overlay
 
-A small update indicator appears in the bar when new commits land on `main`. Click it to open the update overlay.
+A small update indicator appears in the bar when new commits land on the selected channel. Click it to open the update overlay.
 
 The overlay shows:
 
@@ -32,6 +32,7 @@ Buttons:
 
 ```bash
 ryoku-update           # full pipeline
+ryoku-update -y        # full pipeline without interactive prompts
 ryoku-update --shell   # shell-only sync, skip pacman/AUR
 ryoku-update --check   # show what would update, don't apply
 ```
@@ -76,3 +77,22 @@ Set `enabled: false` to disable the indicator entirely. Periodic checks won't ru
 - **Network**: the indicator will eventually show a persistent "fetch failed" notification after three consecutive failures. Check your VPN / firewall.
 - **AUR conflict**: a package failed to rebuild against a system library that upgraded. The doctor will surface this; the fix is usually to wait for the AUR maintainer to push a rebuild, or `yay -S --rebuild <pkg>` to force it locally.
 - **Migration error**: one of the migration scripts threw. Read `~/.local/state/quickshell/user/update.log` for the trace; file an issue with that log attached.
+- **Branch cannot fast-forward**: run `ryoku-doctor update`. The doctor can realign old official Ryoku branch history to the selected channel and will refuse arbitrary local commits.
+
+## Recovering a stuck checkout
+
+If `ryoku-update` says `fatal: Not possible to fast-forward, aborting.`, run:
+
+```bash
+ryoku-doctor update
+ryoku-update -y
+```
+
+For machines that are already too stuck to receive the fixed local doctor, run the latest doctor directly from the public repository:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/unstable-dev/bin/ryoku-doctor | bash -s -- update
+ryoku-update -y
+```
+
+This does not require a GitHub account. The downloaded doctor reads the installed Ryoku channel, repairs only old official Ryoku branch history, preserves dirty checkout files in a git stash, and leaves arbitrary local commits untouched.

@@ -2,13 +2,79 @@
 
 set -euo pipefail
 
-script_path="${BASH_SOURCE[0]}"
-script_path="$(readlink -f "$script_path" 2>/dev/null || printf '%s\n' "$script_path")"
-repo_root="$(cd -- "$(dirname -- "$script_path")/.." && pwd)"
-# shellcheck disable=SC1091
-source "$repo_root/lib/runtime-env.sh"
-# shellcheck disable=SC1091
-source "$repo_root/lib/pacman-conflicts.sh"
+script_path="${BASH_SOURCE[0]:-}"
+repo_root=""
+if [[ -n $script_path ]]; then
+  script_path="$(readlink -f "$script_path" 2>/dev/null || printf '%s\n' "$script_path")"
+  repo_root="$(cd -- "$(dirname -- "$script_path")/.." && pwd)"
+fi
+
+if [[ -n $repo_root && -f $repo_root/lib/runtime-env.sh ]]; then
+  # shellcheck disable=SC1091
+  source "$repo_root/lib/runtime-env.sh"
+else
+  export RYOKU_PATH_DEFAULT="$HOME/.local/share/ryoku"
+  export RYOKU_LEGACY_PATH="$HOME/.local/share/omarchy"
+  export RYOKU_STATE_PATH="${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}"
+  export RYOKU_CONFIG_PATH="${RYOKU_CONFIG_PATH:-$HOME/.config/ryoku}"
+
+  if [[ -n ${RYOKU_PATH:-} ]]; then
+    export RYOKU_PATH
+  elif [[ -e $RYOKU_PATH_DEFAULT ]]; then
+    export RYOKU_PATH="$RYOKU_PATH_DEFAULT"
+  else
+    export RYOKU_PATH="$RYOKU_LEGACY_PATH"
+  fi
+
+  export RYOKU_INSTALL="$RYOKU_PATH/install"
+  case ":$PATH:" in
+    *":$RYOKU_PATH/bin:"*) ;;
+    *) export PATH="$RYOKU_PATH/bin:$PATH" ;;
+  esac
+fi
+
+if [[ -n $repo_root && -f $repo_root/lib/pacman-conflicts.sh ]]; then
+  # shellcheck disable=SC1091
+  source "$repo_root/lib/pacman-conflicts.sh"
+else
+  ryoku_pacman_latest_update_log() {
+    local env_log="${RYOKU_UPDATE_LOG:-}"
+    local state_home="${XDG_STATE_HOME:-$HOME/.local/state}"
+    local candidate newest=""
+    local mtime newest_mtime=0
+    local candidates=(
+      "$state_home/quickshell/user/update.log"
+      "$state_home/ryoku/update.log"
+      "/tmp/ryoku-update.log"
+      "/tmp/omarchy-update.log"
+    )
+
+    if [[ -n $env_log && -r $env_log ]]; then
+      printf '%s\n' "$env_log"
+      return 0
+    fi
+
+    for candidate in "${candidates[@]}"; do
+      [[ -r $candidate ]] || continue
+      mtime="$(stat -c %Y "$candidate" 2>/dev/null || printf '0')"
+      if [[ -z $newest ]] || (( mtime > newest_mtime )); then
+        newest="$candidate"
+        newest_mtime="$mtime"
+      fi
+    done
+
+    [[ -n $newest ]] || return 1
+    printf '%s\n' "$newest"
+  }
+
+  ryoku_pacman_conflicts_from_log() {
+    return 1
+  }
+
+  ryoku_pacman_repair_conflicts_from_log() {
+    return 1
+  }
+fi
 
 usage() {
   cat <<'USAGE'
@@ -182,7 +248,7 @@ doctor_update_needs_attention() {
   log="$(latest_update_log 2>/dev/null || true)"
   [[ -n $log && -r $log ]] || return 1
 
-  grep -Eqi 'failed to commit transaction|Errors occurred, no packages were upgraded|unable to lock database|/var/lib/pacman/db\.lck|invalid or corrupted package|signature.*(unknown trust|invalid|marginal trust)|keyring.*(error|fail|missing)|required key missing|unknown trust' "$log"
+  grep -Eqi 'failed to commit transaction|Errors occurred, no packages were upgraded|unable to lock database|/var/lib/pacman/db\.lck|invalid or corrupted package|signature.*(unknown trust|invalid|marginal trust)|keyring.*(error|fail|missing)|required key missing|unknown trust|Migration [0-9]+ failed|Not possible to fast-forward|could not fast-forward to origin/|\[sudo\] password for |sudo: a password is required|sudo: a terminal is required' "$log"
 }
 
 doctor_git() {
@@ -259,6 +325,91 @@ doctor_fetch_release() {
   doctor_git fetch --prune origin "+refs/heads/${release_branch}:refs/remotes/origin/${release_branch}" >/dev/null 2>&1
 }
 
+doctor_fetch_branch() {
+  local branch="$1"
+
+  doctor_prepare_remote || return 1
+  doctor_git fetch --prune origin "+refs/heads/${branch}:refs/remotes/origin/${branch}" >/dev/null 2>&1
+}
+
+doctor_fetch_official_refs() {
+  local release_branch
+
+  release_branch="$(doctor_release_branch)"
+  doctor_fetch_branch "$release_branch" || return 1
+  doctor_fetch_branch main || true
+  doctor_fetch_branch unstable-dev || true
+}
+
+doctor_official_remote_contains_head() {
+  local head ref reflog_head
+
+  head="$(doctor_git rev-parse HEAD 2>/dev/null || true)"
+  [[ -n $head ]] || return 1
+
+  for ref in origin/main origin/unstable-dev; do
+    doctor_git rev-parse --verify --quiet "$ref" >/dev/null || continue
+
+    if doctor_git merge-base --is-ancestor HEAD "$ref"; then
+      return 0
+    fi
+
+    while IFS= read -r reflog_head; do
+      [[ $reflog_head == "$head" ]] && return 0
+    done < <(doctor_git reflog show --format=%H "$ref" 2>/dev/null || true)
+  done
+
+  return 1
+}
+
+doctor_repair_stale_official_branch() {
+  local branch remote_ref stash_ref=""
+
+  [[ -d $RYOKU_PATH/.git ]] || {
+    echo "Ryoku checkout is not a git repository: $RYOKU_PATH"
+    return 2
+  }
+
+  branch="$(doctor_release_branch)"
+  remote_ref="origin/$branch"
+
+  doctor_fetch_official_refs || {
+    echo "Unable to fetch Ryoku $branch from $(doctor_remote_url)."
+    return 2
+  }
+
+  doctor_git rev-parse --verify "$remote_ref" >/dev/null || {
+    echo "Unable to verify $remote_ref."
+    return 2
+  }
+
+  if [[ $(doctor_git rev-parse HEAD) == "$(doctor_git rev-parse "$remote_ref")" ]]; then
+    echo "Ryoku $branch is already aligned to $remote_ref."
+    return 0
+  fi
+
+  if ! doctor_official_remote_contains_head; then
+    echo "Current HEAD does not look like old official Ryoku history."
+    echo "Leaving the installed checkout untouched."
+    echo "Run: git -C \"$RYOKU_PATH\" log --oneline --decorate -8"
+    return 2
+  fi
+
+  if [[ -n $(doctor_git status --porcelain --untracked-files=normal) ]]; then
+    doctor_git stash push --include-untracked -m "ryoku-doctor branch repair $(date -Iseconds)"
+    stash_ref="stash@{0}"
+  fi
+
+  doctor_git switch -C "$branch" "$remote_ref"
+
+  echo "Repaired Ryoku checkout branch: $branch -> $remote_ref"
+  if [[ -n $stash_ref ]]; then
+    echo "Local checkout file changes were preserved in git stash: $stash_ref"
+  fi
+  doctor_report_issue "FIX Realigned installed checkout branch $branch to $remote_ref."
+  return 0
+}
+
 doctor_fast_forward_available() {
   local remote_ref
 
@@ -319,7 +470,10 @@ offer_fast_forward_update() {
   if doctor_confirm_fast_forward; then
     run_fast_forward_doctor
     echo
-    exec "$script_path"
+    if [[ -n $script_path && -f $script_path ]]; then
+      exec "$script_path"
+    fi
+    return 0
   fi
 
   echo "Skipped Ryoku fast-forward."
@@ -405,14 +559,17 @@ report_git_fast_forward_stall() {
 
   branch="$(doctor_release_branch)"
   echo "Ryoku could not fast-forward its installed checkout."
-  echo "Run: ryoku-update-repair-branch $branch"
-  echo "Then retry: ryoku-update -y"
+  if doctor_repair_stale_official_branch; then
+    echo "Run: ryoku-update -y"
+    return 0
+  fi
+
   doctor_report_issue "FAIL Installed checkout could not fast-forward to origin/$branch."
-  return 0
+  return 2
 }
 
 run_update_doctor() {
-  local log repair_status migration_status
+  local log repair_status migration_status ff_status
   local fixes=0
   local safe_to_retry=0
   local unresolved=0
@@ -481,8 +638,14 @@ run_update_doctor() {
   fi
 
   if report_git_fast_forward_stall "$log"; then
-    ((unresolved++)) || true
+    ((fixes++)) || true
     echo
+  else
+    ff_status=$?
+    if (( ff_status == 2 )); then
+      ((unresolved++)) || true
+      echo
+    fi
   fi
 
   if (( fixes > 0 || safe_to_retry > 0 )); then

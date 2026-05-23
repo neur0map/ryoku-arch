@@ -84,6 +84,7 @@ echo "future recovery fix" >"$tmp/source/recovery.txt"
 git -C "$tmp/source" add recovery.txt
 git -C "$tmp/source" commit -m "future recovery fix" >/dev/null
 git -C "$tmp/source" push origin main >/dev/null 2>&1
+git -C "$tmp/source" push origin main:unstable-dev >/dev/null 2>&1
 
 ff_output=$(
   RYOKU_PATH="$tmp/checkout" \
@@ -194,13 +195,13 @@ output=$(
 ff_only_status=$?
 set -e
 
-(( ff_only_status != 0 )) || fail "ryoku-doctor should keep non-fast-forward updates marked for attention"
+(( ff_only_status != 0 )) || fail "ryoku-doctor should keep unsafe non-fast-forward updates marked for attention"
 grep -Fq 'Ryoku could not fast-forward its installed checkout.' <<<"$output" \
   || fail "doctor should identify non-fast-forward update failures"
-grep -Fq 'Run: ryoku-update-repair-branch unstable-dev' <<<"$output" \
-  || fail "doctor should point users at the guarded branch repair command"
-grep -Fq 'Then retry: ryoku-update -y' <<<"$output" \
-  || fail "doctor should tell users to retry update after branch repair"
+grep -Fq 'Current HEAD does not look like old official Ryoku history.' <<<"$output" \
+  || fail "doctor should refuse to move arbitrary local commits"
+grep -Fq 'No automatic safe fix was applied.' <<<"$output" \
+  || fail "doctor should not claim unsafe local commits were repaired"
 
 RYOKU_UPDATE_INHIBITED=1 \
 RYOKU_UPDATE_LOGGED=1 \
