@@ -19,7 +19,8 @@ fi
 lock_file="${RYOKU_CAFFEINE_LOCK_FILE:-${XDG_RUNTIME_DIR:-/tmp}/ryoku-caffeine.lock}"
 state_file="${RYOKU_CAFFEINE_STATE_FILE:-${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}/caffeine.enabled}"
 inhibit_pattern="[r]yoku-caffeine-inhibit"
-legacy_inhibit_pattern="^/usr/bin/systemd-inhibit --what=idle --who=Ryoku .*Ryoku caffeine mode"
+desired_inhibit_pattern="(^|/)systemd-inhibit --what=idle:sleep --who=Ryoku .*Ryoku caffeine mode"
+legacy_inhibit_pattern="(^|/)systemd-inhibit --what=idle --who=Ryoku .*Ryoku caffeine mode"
 
 usage() {
   cat <<'EOF'
@@ -36,12 +37,16 @@ helper_inhibitor_active() {
   pgrep -f "$inhibit_pattern" >/dev/null
 }
 
+desired_inhibitor_active() {
+  pgrep -f "$desired_inhibit_pattern" >/dev/null
+}
+
 legacy_inhibitor_active() {
   pgrep -f "$legacy_inhibit_pattern" >/dev/null
 }
 
 caffeine_active() {
-  helper_inhibitor_active || legacy_inhibitor_active
+  desired_inhibitor_active || helper_inhibitor_active || legacy_inhibitor_active
 }
 
 caffeine_requested() {
@@ -67,14 +72,15 @@ with_caffeine_lock() {
 }
 
 start_inhibitor() {
-  if helper_inhibitor_active; then
+  if desired_inhibitor_active; then
     return 0
   fi
 
+  pkill -f "$inhibit_pattern" >/dev/null 2>&1 || true
   pkill -f "$legacy_inhibit_pattern" >/dev/null 2>&1 || true
 
   setsid systemd-inhibit \
-    --what=idle \
+    --what=idle:sleep \
     --who=Ryoku \
     --why="Ryoku caffeine mode" \
     bash -c 'exec -a ryoku-caffeine-inhibit sleep infinity' 9>&- >/dev/null 2>&1 &
@@ -88,14 +94,14 @@ stop_inhibitor() {
 start_caffeine() {
   persist_caffeine_state
 
-  if caffeine_active; then
+  if desired_inhibitor_active; then
     return 0
   fi
 
   start_inhibitor
 
   for _ in {1..20}; do
-    if caffeine_active; then
+    if desired_inhibitor_active; then
       return 0
     fi
     sleep 0.05

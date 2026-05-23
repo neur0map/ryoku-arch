@@ -72,10 +72,8 @@ assert_contains "$caffeine_cmd" 'RYOKU_CAFFEINE_STATE_FILE' \
   "caffeine helper should expose an overrideable state file for tests"
 assert_contains "$caffeine_cmd" 'restore_caffeine' \
   "caffeine helper should restore a persisted stay-awake request"
-assert_contains "$caffeine_cmd" '--what=idle' \
-  "caffeine helper should inhibit system idle"
-assert_not_contains "$caffeine_cmd" '--what=idle:sleep' \
-  "caffeine helper should not block explicit sleep requests"
+assert_contains "$caffeine_cmd" '--what=idle:sleep' \
+  "caffeine helper should inhibit both idle locks and sleep requests"
 assert_contains "$caffeine_cmd" 'ryoku-caffeine-inhibit' \
   "caffeine helper status should track the same inhibitor it starts"
 assert_contains "$caffeine_cmd" 'legacy_inhibit_pattern=' \
