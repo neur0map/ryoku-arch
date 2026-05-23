@@ -53,12 +53,16 @@ assert_contains "$idle_service" '"ryoku-cmd-caffeine", "status"' \
   "the UI should reconcile with the actual caffeine helper state"
 assert_not_contains "$idle_service" 'systemd-inhibit' \
   "the UI should not own the long-lived inhibitor process"
-assert_not_contains "$idle_service" 'import Quickshell\.Wayland' \
-  "stay awake should not depend on a shell-owned Wayland idle inhibitor"
-assert_not_contains "$idle_service" '^[[:space:]]*IdleInhibitor[[:space:]]*\{' \
-  "stay awake should not be tied to a shell-owned Wayland idle inhibitor object"
-assert_not_contains "$idle_service" '_idleInhibitorAllowed|id: _idleInhibitor|running: root\.inhibit' \
-  "caffeine should not be tied to the Quickshell process lifetime"
+assert_contains "$idle_service" 'import Quickshell\.Wayland' \
+  "stay awake should expose Caelestia-style Wayland idle inhibition through IPC"
+assert_contains "$idle_service" '^[[:space:]]*IdleInhibitor[[:space:]]*\{' \
+  "stay awake IPC should drive a compositor-visible Wayland idle inhibitor"
+assert_contains "$idle_service" 'enabled:[[:space:]]*props\.enabled' \
+  "Wayland idle inhibitor should follow the same persisted IPC state"
+assert_contains "$idle_service" 'window:[[:space:]]*PanelWindow' \
+  "Wayland idle inhibitor should attach to a hidden shell window"
+assert_contains "$idle_service" 'mask:[[:space:]]*Region[[:space:]]*\{\}' \
+  "Wayland idle inhibitor window should not reserve input"
 assert_not_contains "$idle_service" 'Component\.onDestruction:[^}]*ryoku-cmd-caffeine[^}]*stop' \
   "shell shutdown should not turn off a persisted caffeine request"
 assert_contains "$idle_monitors" '!IdleInhibitor\.enabled' \
