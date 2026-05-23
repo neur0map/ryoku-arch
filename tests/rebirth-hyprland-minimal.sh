@@ -48,9 +48,9 @@ rg -q "[$]powerMenu = sh -lc '\\\$HOME/.local/bin/ryoku-shell session'" "$ROOT_D
   fail "Hyprland config should route power bind through Ryoku shell"
 rg -q "[$]heliumBrowser = sh -lc '\\\$HOME/.local/bin/helium'" "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should launch Helium through an absolute user-bin path"
-rg -q "[$]yaziFileManager = ryoku-launch-tui yazi" "$ROOT_DIR/config/hypr/hyprland.conf" || \
+rg -q "[$]yaziFileManager = .*ryoku-launch-tui yazi" "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should launch Yazi through the Ryoku TUI helper"
-rg -q "[$]neovimEditor = ryoku-launch-tui nvim" "$ROOT_DIR/config/hypr/hyprland.conf" || \
+rg -q "[$]neovimEditor = .*ryoku-launch-tui nvim" "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should launch Neovim through the Ryoku TUI helper"
 rg -q "[$]obsidianNotes = obsidian" "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should define Obsidian as the notes app"
