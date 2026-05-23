@@ -1,7 +1,9 @@
 import QtQuick
+import QtQuick.Layouts
 import Quickshell
 import Ryoku.Config
 import qs.components
+import qs.components.controls
 import qs.services
 
 StyledRect {
@@ -10,42 +12,63 @@ StyledRect {
     required property ShellScreen screen
     required property Session session
 
-    implicitHeight: text.implicitHeight + Tokens.padding.normal
+    implicitHeight: 58
     color: Colours.tPalette.m3surfaceContainer
 
-    StyledText {
-        id: text
+    RowLayout {
+        anchors.fill: parent
+        anchors.leftMargin: Tokens.padding.large
+        anchors.rightMargin: Tokens.padding.normal
+        spacing: Tokens.spacing.normal
 
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: parent.bottom
+        IconTextButton {
+            Layout.alignment: Qt.AlignVCenter
+            icon: "tune"
+            text: qsTr("Advanced settings")
+            type: IconTextButton.Tonal
+            horizontalPadding: Tokens.padding.normal
+            verticalPadding: Tokens.padding.smaller
 
-        text: qsTr("Ryoku Settings - %1").arg(root.session.active)
-        font.capitalization: Font.Capitalize
-        font.pointSize: Tokens.font.size.larger
-        font.weight: 500
-    }
-
-    Item {
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.margins: Tokens.padding.normal
-
-        implicitWidth: implicitHeight
-        implicitHeight: closeIcon.implicitHeight + Tokens.padding.small
-
-        StateLayer {
             onClicked: {
+                Quickshell.execDetached(["hyprmod"]);
                 QsWindow.window.destroy();
             }
-
-            radius: Tokens.rounding.full
         }
 
-        MaterialIcon {
-            id: closeIcon
+        ColumnLayout {
+            Layout.fillWidth: true
+            Layout.alignment: Qt.AlignVCenter
+            spacing: 0
 
-            anchors.centerIn: parent
-            text: "close"
+            StyledText {
+                Layout.fillWidth: true
+                text: root.session.active
+                color: Colours.palette.m3onSurfaceVariant
+                font.capitalization: Font.Capitalize
+                font.pointSize: Tokens.font.size.normal
+                elide: Text.ElideRight
+            }
+        }
+
+        Item {
+            Layout.alignment: Qt.AlignVCenter
+            implicitWidth: implicitHeight
+            implicitHeight: closeIcon.implicitHeight + Tokens.padding.small * 2
+
+            StateLayer {
+                onClicked: {
+                    QsWindow.window.destroy();
+                }
+
+                radius: Tokens.rounding.full
+            }
+
+            MaterialIcon {
+                id: closeIcon
+
+                anchors.centerIn: parent
+                text: "close"
+            }
         }
     }
 }
