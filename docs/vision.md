@@ -40,15 +40,15 @@ The main use case is a personal workstation. Gaming, development, browsing,
 media, notes, terminals, VMs, hardware controls, shell modules, and workflow
 plugins should all fit into one coherent system.
 
-Security tooling still matters, but it is no longer the product identity.
-OpenVPN, Tailscale, hardening defaults, and future security workflows belong in
-the plugin lane. They should be easy to enable and visible when active, without
-turning Ryoku into a Kali or Parrot replacement.
+Security-minded features still matter, but they are a plugin lane among others.
+OpenVPN, Tailscale, hardening defaults, and enterprise tooling are optional
+workflow bundles that should be easy to enable when relevant, without turning
+Ryoku into a narrow security-focused profile.
 
-For professional security engagements, use a dedicated engagement environment
-with client separation, snapshots, and clean attribution. Ryoku can support
-security-adjacent personal work, but it is not built to be the legal or
-operational boundary for client work.
+For professional security-sensitive work, use a dedicated engagement
+environment with client separation, snapshots, and clear operating boundaries.
+Ryoku supports security-aware workflows as optional bundles, but it is a
+workstation system first.
 
 ## What distinguishes it
 
@@ -69,7 +69,7 @@ operational boundary for client work.
 - A budget-PC profile.
 - A minimal Arch starter kit.
 - A general-purpose distro with a Ryoku wallpaper.
-- A Kali, Parrot, or BlackArch replacement.
+- A specialist engagement-focused stack.
 - A final re-skin of Omarchy or Celestia Shell. Both are important sources, but
   Ryoku's job is to turn the useful pieces into a Ryoku-owned workstation.
 
@@ -80,6 +80,6 @@ Near-term priorities:
 1. Keep the Hyprland workstation stable enough for daily use on real hardware.
 2. Shape the current Celestia-derived shell into a Ryoku-owned plugin shell.
 3. Keep the ISO signed, downloadable, and verifiable.
-4. Move security, developer, media, hardware, and capture workflows into clean
+4. Move security-adjacent, developer, media, hardware, and capture workflows into clean
    plugin lanes.
 5. Expand real-hardware install coverage before calling the ISO stable.

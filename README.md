@@ -15,7 +15,7 @@ feel fast, sharp, and deliberate from first boot.
 [![Hyprland](https://img.shields.io/badge/Hyprland-58E1C2?style=for-the-badge&logoColor=white)](https://hypr.land)
 [![Status: public preview](https://img.shields.io/badge/status-public_preview-F25623?style=for-the-badge)](#status)
 [![Build ISO](https://github.com/neur0map/ryoku-arch/actions/workflows/build-iso.yml/badge.svg)](https://github.com/neur0map/ryoku-arch/actions/workflows/build-iso.yml)
-[![Latest ISO](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fiso.ryoku.dev%2Fstable%2Flatest.json&query=%24.tracking_id&label=latest%20ISO&color=F25623&style=for-the-badge)](https://ryoku.dev)
+[![Latest ISO](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fryoku.dev%2Fstable%2Flatest.json&query=%24.tracking_id&label=latest%20ISO&color=F25623&style=for-the-badge)](https://ryoku.dev)
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/8KjBmUEyKA)
 [![Reddit](https://img.shields.io/badge/Reddit-r%2FRyokuArch-FF4500?style=for-the-badge&logo=reddit&logoColor=white)](https://www.reddit.com/r/RyokuArch/)
 
@@ -58,8 +58,8 @@ Ryoku is:
 - **Premium Arch, not a separate distro.** It is an Arch environment with its
   own defaults, install flow, shell, commands, and branding.
 - **Pre-riced by default.** The first boot should already feel intentional.
-- **Plugin-minded.** VPN, capture, media, developer, hardware, and future
-  security workflows should become clean Ryoku plugins and shell surfaces.
+- **Plugin-minded.** VPN, capture, media, developer, hardware, and security
+  operations can become clean Ryoku plugins and shell surfaces.
 - **Built for powerful desktops and laptops.** The baseline is 16GB RAM or
   better; 32GB+ is the comfortable target for VMs, gaming, creative tools, and
   heavy multitasking.
@@ -68,7 +68,7 @@ Ryoku is not:
 
 - A budget-PC profile.
 - A minimal window-manager starter kit.
-- A Kali, Parrot, or BlackArch replacement.
+- A narrow, niche-focused workflow profile.
 - A promise that every borrowed Omarchy or Celestia piece is final.
 
 ## What ships
@@ -99,21 +99,21 @@ ideas while the Ryoku-owned plugin shell takes shape.
 |---|---|
 | Minimum RAM | **16GB+ required.** Use **32GB+** if you expect VMs, gaming, browser-heavy work, or creative tools. This is not a low-resource target. |
 | Target hardware | Modern desktops and stronger laptops. NVIDIA, hybrid, AMD, and Intel graphics are target classes. |
-| Is the ISO downloadable? | Yes, signed alpha builds at `https://iso.ryoku.dev/stable/`. See [Download and verify](#download-and-verify). |
-| Does it bundle every security tool? | No. Security workflows are a plugin lane, not the product identity. Use dedicated engagement environments for client work. |
+| Is the ISO downloadable? | Yes, signed alpha builds at `https://ryoku.dev/stable/`. See [Download and verify](#download-and-verify). |
+| Is every bundled plugin lane installed by default? | No. Ryoku ships core productivity lanes and extras as optional add-ons. |
 | Secure Boot? | Roadmap. Not automatic yet. |
 | Stability vs. rolling Arch? | Rolling Arch base. `unstable-dev` is the fast track; `main` is the release channel. |
 
 ## Download and verify
 
-Signed alpha builds are published at `https://iso.ryoku.dev/stable/`:
+Signed alpha builds are published at `https://ryoku.dev/stable/`:
 
 | File | URL |
 |---|---|
-| ISO | `https://iso.ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso` |
-| Signature | `https://iso.ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso.sig` |
-| SHA256 | `https://iso.ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso.sha256` |
-| Public key | `https://iso.ryoku.dev/stable/ryoku-release-key.pub.asc` |
+| ISO | `https://ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso` |
+| Signature | `https://ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso.sig` |
+| SHA256 | `https://ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso.sha256` |
+| Public key | `https://ryoku.dev/stable/ryoku-release-key.pub.asc` |
 
 Releases are signed with:
 

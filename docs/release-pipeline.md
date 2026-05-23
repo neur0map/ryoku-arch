@@ -100,7 +100,7 @@ Configure under **Settings -> Secrets and variables -> Actions** in the repo.
 1. Cloudflare dashboard -> R2 -> Create bucket. Name it whatever (the workflow defaults to `ryoku/stable` as the upload path; if your bucket is also named `ryoku` you do not need to set `R2_BUCKET`).
 2. R2 -> Manage R2 API Tokens -> Create token. Permission: "Object Read & Write" on this bucket only. Copy the access key ID + secret access key when shown (they are not shown again).
 3. From the bucket detail page, copy the S3-compatible endpoint URL: `https://<account>.r2.cloudflarestorage.com`.
-4. Bucket settings -> Public Access -> enable the `r2.dev` subdomain (development only, rate-limited) OR connect a custom domain (recommended for production). Ryoku uses the custom domain `iso.ryoku.dev` connected via Cloudflare DNS.
+4. Bucket settings -> Public Access -> enable the `r2.dev` subdomain (development only, rate-limited) OR connect a custom domain (recommended for production). Ryoku uses the custom domain `ryoku.dev` connected via Cloudflare DNS.
 5. Add the three R2 values + the `GPG_PRIVATE_KEY` (and passphrase if any) to GitHub Secrets.
 
 ## Setting up the GPG signing key
@@ -194,17 +194,17 @@ users for this value when triaging ISO or installer reports. In a booted
 live ISO it is also available at `/etc/ryoku-iso-release`.
 
 Public download URLs (served through Cloudflare CDN via the
-`iso.ryoku.dev` custom domain):
+`ryoku.dev` custom domain):
 
 ```
-https://iso.ryoku.dev/stable/latest.json
-https://iso.ryoku.dev/stable/latest.js
-https://iso.ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso
-https://iso.ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso.sig
-https://iso.ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso.sha256
-https://iso.ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso.json
-https://iso.ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso.js
-https://iso.ryoku.dev/stable/ryoku-release-key.pub.asc
+https://ryoku.dev/stable/latest.json
+https://ryoku.dev/stable/latest.js
+https://ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso
+https://ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso.sig
+https://ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso.sha256
+https://ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso.json
+https://ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso.js
+https://ryoku.dev/stable/ryoku-release-key.pub.asc
 ```
 
 `latest.json` is the website source of truth. `latest.js` exposes the same
@@ -222,12 +222,12 @@ date.
 #   * R2 bucket alongside the ISO         (no GitHub access needed)
 #   * GitHub repo at keys/                (signed via tag history)
 iso=ryoku-2026.05.11-r12-9019b9b-x86_64-main.iso
-curl -LO https://iso.ryoku.dev/stable/$iso
-curl -LO https://iso.ryoku.dev/stable/$iso.sig
-curl -LO https://iso.ryoku.dev/stable/$iso.sha256
-curl -LO https://iso.ryoku.dev/stable/$iso.json
-curl -LO https://iso.ryoku.dev/stable/$iso.js
-curl -LO https://iso.ryoku.dev/stable/ryoku-release-key.pub.asc
+curl -LO https://ryoku.dev/stable/$iso
+curl -LO https://ryoku.dev/stable/$iso.sig
+curl -LO https://ryoku.dev/stable/$iso.sha256
+curl -LO https://ryoku.dev/stable/$iso.json
+curl -LO https://ryoku.dev/stable/$iso.js
+curl -LO https://ryoku.dev/stable/ryoku-release-key.pub.asc
 # OR, equivalently:
 # curl -LO https://raw.githubusercontent.com/neur0map/ryoku-arch/main/keys/ryoku-release-key.pub.asc
 

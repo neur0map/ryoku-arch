@@ -15,7 +15,7 @@ Use "Ryoku" in prose. Use the "Ryoku Arch" full name on first mention in user-fa
 For documentation, use this lens:
 
 - Ryoku is a premium workstation environment with a clear design and workflow default.
-- Security tools are one lane among many, not the entire identity.
+- Workload bundles are one lane among many, not the entire identity.
 - The expected tone is polished, direct, and usable for daily machine work.
 
 ## Website
@@ -25,7 +25,7 @@ For documentation, use this lens:
 | Subdomain | Purpose |
 |---|---|
 | `ryoku.dev` | Marketing / landing page, install instructions |
-| `iso.ryoku.dev` | Custom domain in front of the Cloudflare R2 bucket that hosts the ISO |
+| `ryoku.dev` | Public domain for ISO download endpoints and website documentation |
 | `docs.ryoku.dev` | (optional) hosted version of `docs/` if it grows past README-readable |
 
 Until the site is published, use the GitHub repo URL (`https://github.com/neur0map/ryoku-arch`) as the canonical pointer.

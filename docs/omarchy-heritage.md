@@ -68,7 +68,7 @@ system behavior directly.
 - **Compositor and desktop repair:** Hyprland config refresh, keybinding docs, shell restart/recovery, default app migration, terminal launchers, systemd repair.
 - **Theming and appearance outside QML:** wallpaper cache/list/apply/search, theme tooling, font and cursor management, GTK/KDE/template refreshers.
 - **Hardware and power:** hardware detection, hybrid GPU handling, touchpad behavior, battery/charge helpers, brightness, power profiles, suspend/hibernation, idle and notification toggles.
-- **Network and productivity:** Wi-Fi/bluetooth launchers, firewall and host tooling, OpenVPN import/rename, Tailscale, DNS setup, sudo helpers, polkit flows, security workflows as plugin lanes.
+- **Network and productivity:** Wi-Fi/bluetooth launchers, firewall and host tooling, OpenVPN import/rename, Tailscale, DNS setup, sudo helpers, polkit flows, security-sensitive workload bundles as plugin lanes.
 - **Media and utilities:** volume and microphone controls, screen capture helpers, OCR, Google Lens, color picker, QR scan, voice typing.
 
 Use this contract for new shell work:
