@@ -5,14 +5,9 @@ description: Download the signed ISO, verify it, and install it onto your hardwa
 
 ## 1. Download
 
-Signed alpha builds are published at [`ryoku.dev/stable/`](https://ryoku.dev/stable/):
-
-| File | URL |
-|---|---|
-| ISO | `https://ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso` |
-| Signature | `https://ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso.sig` |
-| SHA256 | `https://ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso.sha256` |
-| Public key | `https://ryoku.dev/stable/ryoku-release-key.pub.asc` |
+Signed alpha builds are published on the website at [`ryoku.dev`](https://ryoku.dev/).
+Go to the site and use the Downloads section to get the ISO, signature, and
+checksums for your exact stable or preview track.
 
 ## 2. Verify the signature
 
@@ -28,7 +23,7 @@ Quick verify (use the exact ISO filename you downloaded):
 
 ```bash
 # Import the release key
-curl -sSL https://ryoku.dev/stable/ryoku-release-key.pub.asc | gpg --import
+curl -sSL https://raw.githubusercontent.com/neur0map/ryoku-arch/main/keys/ryoku-release-key.pub.asc | gpg --import
 
 # Confirm fingerprint matches the one above
 gpg --fingerprint releases@ryoku.dev

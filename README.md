@@ -99,21 +99,15 @@ ideas while the Ryoku-owned plugin shell takes shape.
 |---|---|
 | Minimum RAM | **16GB+ required.** Use **32GB+** if you expect VMs, gaming, browser-heavy work, or creative tools. This is not a low-resource target. |
 | Target hardware | Modern desktops and stronger laptops. NVIDIA, hybrid, AMD, and Intel graphics are target classes. |
-| Is the ISO downloadable? | Yes, signed alpha builds at `https://ryoku.dev/stable/`. See [Download and verify](#download-and-verify). |
+| Is the ISO downloadable? | Yes, from the [Ryoku website](https://ryoku.dev). See [Download and verify](#download-and-verify). |
 | Is every bundled plugin lane installed by default? | No. Ryoku ships core productivity lanes and extras as optional add-ons. |
 | Secure Boot? | Roadmap. Not automatic yet. |
 | Stability vs. rolling Arch? | Rolling Arch base. `unstable-dev` is the fast track; `main` is the release channel. |
 
 ## Download and verify
 
-Signed alpha builds are published at `https://ryoku.dev/stable/`:
-
-| File | URL |
-|---|---|
-| ISO | `https://ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso` |
-| Signature | `https://ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso.sig` |
-| SHA256 | `https://ryoku.dev/stable/ryoku-<date>-<tracking-id>-x86_64-main.iso.sha256` |
-| Public key | `https://ryoku.dev/stable/ryoku-release-key.pub.asc` |
+Signed alpha builds are published on the website at `https://ryoku.dev`. Use the
+Download page to get the latest ISO, signature, and checksums.
 
 Releases are signed with:
 
