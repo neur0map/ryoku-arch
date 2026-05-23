@@ -350,8 +350,43 @@ report_log_warnings() {
   return "$warnings"
 }
 
+report_resolved_migration_failures() {
+  local log="$1"
+  local migration state_dir marker_name
+  local resolved=0
+  local unresolved=0
+  local migrations=()
+
+  state_dir="$RYOKU_STATE_PATH/migrations"
+
+  mapfile -t migrations < <(
+    sed -nE \
+      -e 's/.*Migration ([0-9]+) failed.*/\1/p' \
+      "$log" | sort -u
+  )
+
+  ((${#migrations[@]} > 0)) || return 1
+
+  for migration in "${migrations[@]}"; do
+    marker_name="${migration}.sh"
+
+    if [[ -f $state_dir/$marker_name || -f $state_dir/skipped/$marker_name ]]; then
+      echo "Migration $migration is already recorded; retry the update to continue."
+      doctor_report_issue "SAFE Migration $migration is already recorded after the failed update."
+      ((resolved++)) || true
+    else
+      echo "Migration $migration is still pending. Retry after fixing this migration."
+      doctor_report_issue "FAIL Migration $migration is still pending after the failed update."
+      ((unresolved++)) || true
+    fi
+  done
+
+  ((unresolved == 0 && resolved > 0)) && return 0
+  return 2
+}
+
 run_update_doctor() {
-  local log repair_status
+  local log repair_status migration_status
   local fixes=0
   local safe_to_retry=0
   local unresolved=0
@@ -401,6 +436,17 @@ run_update_doctor() {
   else
     warnings=$?
     doctor_report_issue "WARN Package/update warnings detected."
+  fi
+
+  if report_resolved_migration_failures "$log"; then
+    ((safe_to_retry++)) || true
+    echo
+  else
+    migration_status=$?
+    if (( migration_status == 2 )); then
+      ((unresolved++)) || true
+      echo
+    fi
   fi
 
   if (( fixes > 0 || safe_to_retry > 0 )); then

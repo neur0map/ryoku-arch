@@ -101,6 +101,32 @@ grep -Fq 'Fast-forward Ryoku now? [Y/n] y' <<<"$ff_output" \
   || fail "doctor should ask before fast-forwarding from the short command"
 touch "$tmp/conflicts/usr/share/example/payload.sh"
 
+git clone "$tmp/remote.git" "$tmp/checkout-migration" >/dev/null 2>&1
+mkdir -p "$RYOKU_STATE_PATH/migrations"
+touch "$RYOKU_STATE_PATH/migrations/1752725616.sh"
+cat >"$tmp/migration-update.log" <<'LOG'
+Running migration (1752725616)
+Make light themes possible
+ln: failed to create symbolic link '$HOME/.config/ryoku/themes/': No such file or directory
+Migration 1752725616 failed. Skip and continue? [y/N]
+LOG
+
+output=$(
+  TMPDIR="$tmp" \
+  RYOKU_PATH="$tmp/checkout-migration" \
+  RYOKU_UPDATE_REMOTE_URL="$tmp/remote.git" \
+  RYOKU_DOCTOR_ASSUME_NO=1 \
+  RYOKU_UPDATE_LOG="$tmp/migration-update.log" \
+  XDG_STATE_HOME="$tmp/state" \
+  PATH="$tmp/bin:$PATH" \
+    "$ROOT_DIR/bin/ryoku-doctor" update 2>&1
+) || fail "ryoku-doctor should treat already-recorded migration failures as safe to retry: $output"
+
+grep -Fq 'Migration 1752725616 is already recorded' <<<"$output" \
+  || fail "doctor should explain that the failed migration is now recorded"
+grep -Fq 'Run: ryoku-update -y' <<<"$output" \
+  || fail "doctor should tell users to retry after a resolved migration failure"
+
 RYOKU_UPDATE_INHIBITED=1 \
 RYOKU_UPDATE_LOGGED=1 \
 RYOKU_UPDATE_POWER_CHECKED=1 \

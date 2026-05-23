@@ -11,6 +11,21 @@ if [[ -f ~/.local/share/applications/blueberry.desktop ]]; then
   ryoku-refresh-waybar
 fi
 
-if [[ ! -L $HOME/.config/ryoku/themes/rose-pine ]]; then
-  ln -snf ~/.local/share/omarchy/themes/rose-pine ~/.config/ryoku/themes/
+config_theme_dir="$HOME/.config/ryoku/themes"
+ryoku_theme_dir="${RYOKU_PATH:-$HOME/.local/share/ryoku}/themes/rose-pine"
+legacy_theme_dir="$HOME/.local/share/omarchy/themes/rose-pine"
+user_theme_link="$config_theme_dir/rose-pine"
+
+mkdir -p "$config_theme_dir"
+
+if [[ -e $user_theme_link && ! -L $user_theme_link ]]; then
+  echo "  preserving existing rose-pine theme"
+elif [[ ! -L $user_theme_link ]]; then
+  if [[ -d $ryoku_theme_dir ]]; then
+    ln -snf "$ryoku_theme_dir" "$user_theme_link"
+  elif [[ -d $legacy_theme_dir ]]; then
+    ln -snf "$legacy_theme_dir" "$user_theme_link"
+  else
+    echo "  rose-pine theme not found; skipping compatibility symlink"
+  fi
 fi
