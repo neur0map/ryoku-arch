@@ -105,6 +105,7 @@ else
     # Refresh in place so re-runs pick up shell tree updates.
     rsync -a --delete "$shell_src/" "$quickshell_dir/"
 fi
+printf '%s\n' "$ryoku_path" >"$quickshell_dir/.ryoku-source-path"
 
 # (5) User-service wants-links. Several install/ scripts call
 # `systemctl --user enable --now <unit>` directly:
