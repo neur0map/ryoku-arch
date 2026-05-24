@@ -124,8 +124,8 @@ ColumnLayout {
 
       StyledRect {
         Layout.fillWidth: false
-        Layout.preferredWidth: Math.min(330, consolePanel.width * 0.4)
-        Layout.minimumWidth: 260
+        Layout.preferredWidth: Math.min(250, consolePanel.width * 0.42)
+        Layout.minimumWidth: 200
         Layout.fillHeight: true
         radius: Tokens.rounding.small
         color: Colours.palette.m3surfaceContainerHigh
@@ -433,6 +433,7 @@ ColumnLayout {
           id: detailLabel
 
           Layout.fillWidth: true
+          visible: tile.width > 150
           text: tile.detail
           color: Colours.palette.m3onSurfaceVariant
           font.pointSize: Tokens.font.size.smaller

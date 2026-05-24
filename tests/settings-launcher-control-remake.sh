@@ -46,8 +46,22 @@ assert_contains "$settings" "component LauncherMetric: StyledRect" \
   "launcher settings should expose compact read-only metrics"
 assert_contains "$settings" "component FuzzyLane: StyledRect" \
   "launcher settings should expose fuzzy search lanes"
+assert_contains "$pane" "component LauncherAppRail: ColumnLayout" \
+  "launcher should expose a compact app rail instead of a padded generic left pane"
+assert_contains "$pane" "component AppDetailsWorkbench: StyledRect" \
+  "launcher app details should use a compact workbench"
 assert_contains "$pane" "component AppFlagChip: StyledRect" \
   "launcher app details should expose compact app flag chips"
+assert_contains "$pane" "leftWidthRatio: 0.34" \
+  "launcher should not reserve half of the compact settings window for the app list"
+assert_contains "$pane" "leftMinimumWidth: 300" \
+  "launcher app list should fit the compact window"
+assert_contains "$settings" "Layout.minimumWidth: 200" \
+  "launcher settings preview should leave enough room for readable toggle tiles"
+assert_contains "$settings" "visible: tile.width > 150" \
+  "launcher toggle detail text should collapse before it clips"
+assert_not_contains "$pane" "implicitSize: Tokens.font.size.extraLarge * 3 * 2" \
+  "launcher app details should not keep the oversized centered app icon"
 
 assert_contains "$settings" "GlobalConfig.launcher.enabled = checked" \
   "launcher settings should preserve enabled backend writes"

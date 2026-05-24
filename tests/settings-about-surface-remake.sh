@@ -30,6 +30,12 @@ assert_not_contains "$pane" "SectionContainer" \
   "about pane should not keep generic section containers"
 assert_contains "$pane" "component AboutPanel: StyledRect" \
   "about pane should expose a Ryoku-specific panel shell"
+assert_contains "$pane" "component AboutCommandDeck: StyledRect" \
+  "about pane should group short actions in a compact command deck"
+assert_contains "$pane" "columns: aboutFlickable.width > 620 ? 4 : 2" \
+  "about actions should not become long two-column bars in the compact window"
+assert_contains "$pane" "anchors.margins: Tokens.padding.normal" \
+  "about panel spacing should be compact"
 assert_contains "$pane" "RyokuAbout.checkUpdates()" \
   "about pane should preserve update check backend"
 assert_contains "$pane" "RyokuAbout.runDoctor()" \

@@ -261,12 +261,12 @@ Item {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: parent.top
-                spacing: Tokens.spacing.large
+                spacing: Tokens.spacing.normal
 
                 AboutPanel {
                     Layout.fillWidth: true
                     alignTop: true
-                    contentSpacing: Tokens.spacing.large
+                    contentSpacing: Tokens.spacing.normal
 
                     RowLayout {
                         Layout.fillWidth: true
@@ -359,40 +359,8 @@ Item {
                         }
                     }
 
-                    GridLayout {
+                    AboutCommandDeck {
                         Layout.fillWidth: true
-                        columns: aboutFlickable.width > 900 ? 4 : aboutFlickable.width > 560 ? 2 : 1
-                        columnSpacing: Tokens.spacing.small
-                        rowSpacing: Tokens.spacing.small
-
-                        ActionButton {
-                            Layout.fillWidth: true
-                            icon: RyokuAbout.checkingUpdates ? "progress_activity" : "system_update"
-                            text: RyokuAbout.checkingUpdates ? qsTr("Checking") : qsTr("Check updates")
-                            filled: true
-                            onClicked: RyokuAbout.checkUpdates()
-                        }
-
-                        ActionButton {
-                            Layout.fillWidth: true
-                            icon: RyokuAbout.runningDoctor ? "progress_activity" : "health_and_safety"
-                            text: RyokuAbout.runningDoctor ? qsTr("Running") : qsTr("Run doctor")
-                            onClicked: RyokuAbout.runDoctor()
-                        }
-
-                        ActionButton {
-                            Layout.fillWidth: true
-                            icon: RyokuAbout.startingMedevac ? "progress_activity" : "emergency_home"
-                            text: RyokuAbout.startingMedevac ? qsTr("Launching") : qsTr("Stuck?")
-                            onClicked: RyokuAbout.startMedevac(root.currentChannel())
-                        }
-
-                        ActionButton {
-                            Layout.fillWidth: true
-                            icon: "refresh"
-                            text: qsTr("Refresh")
-                            onClicked: RyokuAbout.refreshStatus()
-                        }
                     }
 
                     StatusLine {
@@ -906,7 +874,7 @@ Item {
         property real contentSpacing: Tokens.spacing.normal
         default property alias content: aboutPanelBody.data
 
-        implicitHeight: aboutPanelBody.implicitHeight + Tokens.padding.large * 2
+        implicitHeight: aboutPanelBody.implicitHeight + Tokens.padding.normal * 2
         radius: Tokens.rounding.normal
         color: Colours.palette.m3surfaceContainer
         clip: true
@@ -917,8 +885,56 @@ Item {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
-            anchors.margins: Tokens.padding.large
+            anchors.margins: Tokens.padding.normal
             spacing: aboutPanel.contentSpacing
+        }
+    }
+
+    component AboutCommandDeck: StyledRect {
+        implicitHeight: commandGrid.implicitHeight + Tokens.padding.small * 2
+        radius: Tokens.rounding.small
+        color: Colours.palette.m3surfaceContainerHigh
+        clip: true
+
+        GridLayout {
+            id: commandGrid
+
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.margins: Tokens.padding.small
+            columns: aboutFlickable.width > 620 ? 4 : 2
+            columnSpacing: Tokens.spacing.small
+            rowSpacing: Tokens.spacing.small
+
+            ActionButton {
+                Layout.fillWidth: true
+                icon: RyokuAbout.checkingUpdates ? "progress_activity" : "system_update"
+                text: RyokuAbout.checkingUpdates ? qsTr("Checking") : qsTr("Check updates")
+                filled: true
+                onClicked: RyokuAbout.checkUpdates()
+            }
+
+            ActionButton {
+                Layout.fillWidth: true
+                icon: RyokuAbout.runningDoctor ? "progress_activity" : "health_and_safety"
+                text: RyokuAbout.runningDoctor ? qsTr("Running") : qsTr("Run doctor")
+                onClicked: RyokuAbout.runDoctor()
+            }
+
+            ActionButton {
+                Layout.fillWidth: true
+                icon: RyokuAbout.startingMedevac ? "progress_activity" : "emergency_home"
+                text: RyokuAbout.startingMedevac ? qsTr("Launching") : qsTr("Stuck?")
+                onClicked: RyokuAbout.startMedevac(root.currentChannel())
+            }
+
+            ActionButton {
+                Layout.fillWidth: true
+                icon: "refresh"
+                text: qsTr("Refresh")
+                onClicked: RyokuAbout.refreshStatus()
+            }
         }
     }
 

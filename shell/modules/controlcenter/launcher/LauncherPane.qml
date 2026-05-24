@@ -142,9 +142,11 @@ Item {
 
     SplitPaneLayout {
         anchors.fill: parent
+        leftWidthRatio: 0.34
+        leftMinimumWidth: 300
 
         leftContent: Component {
-            ColumnLayout {
+            LauncherAppRail {
                 id: leftLauncherLayout
 
                 anchors.fill: parent
@@ -185,21 +187,8 @@ Item {
                     }
                 }
 
-                StyledText {
-                    Layout.topMargin: Tokens.spacing.large
-                    text: qsTr("Applications (%1)").arg(root.searchText ? root.filteredApps.length : allAppsDb.apps.length)
-                    font.pointSize: Tokens.font.size.normal
-                    font.weight: 500
-                }
-
-                StyledText {
-                    text: qsTr("All applications available in the launcher")
-                    color: Colours.palette.m3outline
-                }
-
                 StyledRect {
                     Layout.fillWidth: true
-                    Layout.topMargin: Tokens.spacing.normal
                     Layout.bottomMargin: Tokens.spacing.small
 
                     color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
@@ -508,155 +497,134 @@ Item {
         }
     }
 
+    component LauncherAppRail: ColumnLayout {
+    }
+
     Component {
         id: appDetails
 
-        ColumnLayout {
-            id: appDetailsLayout
-
-            readonly property var displayedApp: parent && parent.displayedApp !== undefined ? parent.displayedApp : null
-
+        AppDetailsWorkbench {
             anchors.fill: parent
-            spacing: Tokens.spacing.normal
+            displayedApp: parent && parent.displayedApp !== undefined ? parent.displayedApp : null
+        }
+    }
 
-            SettingsHeader {
-                Layout.leftMargin: Tokens.padding.large * 2
-                Layout.rightMargin: Tokens.padding.large * 2
-                Layout.topMargin: Tokens.padding.large * 2
-                visible: displayedApp === null
-                icon: "apps"
-                title: qsTr("Launcher Applications")
-            }
+    component AppDetailsWorkbench: StyledRect {
+        id: appDetailsLayout
 
-            Item {
-                Layout.alignment: Qt.AlignHCenter
-                Layout.leftMargin: Tokens.padding.large * 2
-                Layout.rightMargin: Tokens.padding.large * 2
-                Layout.topMargin: Tokens.padding.large * 2
-                visible: displayedApp !== null
-                implicitWidth: Math.max(appIconImage.implicitWidth, appTitleText.implicitWidth)
-                implicitHeight: appIconImage.implicitHeight + Tokens.spacing.normal + appTitleText.implicitHeight
+        property var displayedApp: null
+
+        radius: Tokens.rounding.small
+        color: Colours.palette.m3surfaceContainer
+        clip: true
+
+        ColumnLayout {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.margins: Tokens.padding.normal
+            spacing: Tokens.spacing.small
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Tokens.spacing.small
+
+                IconImage {
+                    asynchronous: true
+                    Layout.alignment: Qt.AlignVCenter
+                    implicitSize: 52
+                    source: {
+                        const app = appDetailsLayout.displayedApp;
+                        if (!app)
+                            return "image-missing";
+                        const entry = app.entry;
+                        if (entry && entry.icon) {
+                            return Quickshell.iconPath(entry.icon, "image-missing");
+                        }
+                        return "image-missing";
+                    }
+                }
 
                 ColumnLayout {
-                    anchors.centerIn: parent
-                    spacing: Tokens.spacing.normal
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignVCenter
+                    spacing: 0
 
-                    IconImage {
-                        id: appIconImage
-
-                        asynchronous: true
-                        Layout.alignment: Qt.AlignHCenter
-                        implicitSize: Tokens.font.size.extraLarge * 3 * 2
-                        source: {
-                            const app = appDetailsLayout.displayedApp;
-                            if (!app)
-                                return "image-missing";
-                            const entry = app.entry;
-                            if (entry && entry.icon) {
-                                return Quickshell.iconPath(entry.icon, "image-missing");
-                            }
-                            return "image-missing";
-                        }
+                    StyledText {
+                        Layout.fillWidth: true
+                        text: appDetailsLayout.displayedApp ? (appDetailsLayout.displayedApp.name || appDetailsLayout.displayedApp.entry?.name || qsTr("Application Details")) : qsTr("Application Details")
+                        font.pointSize: Tokens.font.size.large
+                        font.weight: 700
+                        elide: Text.ElideRight
                     }
 
                     StyledText {
-                        id: appTitleText
-
-                        Layout.alignment: Qt.AlignHCenter
-                        text: displayedApp ? (displayedApp.name || displayedApp.entry?.name || qsTr("Application Details")) : ""
-                        font.pointSize: Tokens.font.size.large
-                        font.bold: true
+                        Layout.fillWidth: true
+                        text: appDetailsLayout.displayedApp ? (appDetailsLayout.displayedApp.id || appDetailsLayout.displayedApp.entry?.id || qsTr("Launcher entry")) : qsTr("Launcher entry")
+                        color: Colours.palette.m3onSurfaceVariant
+                        font.pointSize: Tokens.font.size.small
+                        elide: Text.ElideRight
                     }
                 }
             }
 
-            Item {
+            Flow {
                 Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.topMargin: Tokens.spacing.large
-                Layout.leftMargin: Tokens.padding.large * 2
-                Layout.rightMargin: Tokens.padding.large * 2
+                visible: appDetailsLayout.displayedApp !== null
+                spacing: Tokens.spacing.small
 
-                StyledFlickable {
-                    id: detailsFlickable
+                AppFlagChip {
+                    icon: "favorite"
+                    title: qsTr("Favourite")
+                    detail: qsTr("Pin in launcher")
+                    checked: root.favouriteChecked
+                    enabled: appDetailsLayout.displayedApp !== null && !root.hideFromLauncherChecked && (GlobalConfig.launcher.favouriteApps.indexOf(appDetailsLayout.displayedApp.id || appDetailsLayout.displayedApp.entry?.id) !== -1 || !root.favouriteChecked)
 
-                    anchors.fill: parent
-                    flickableDirection: Flickable.VerticalFlick
-                    contentHeight: debugLayout.height
-
-                    StyledScrollBar.vertical: StyledScrollBar {
-                        flickable: parent
+                    onToggled: checked => {
+                        root.favouriteChecked = checked;
+                        const app = appDetailsLayout.displayedApp;
+                        if (app) {
+                            const appId = app.id || app.entry?.id;
+                            const favouriteApps = GlobalConfig.launcher.favouriteApps ? [...GlobalConfig.launcher.favouriteApps] : [];
+                            if (checked) {
+                                if (!favouriteApps.includes(appId)) {
+                                    favouriteApps.push(appId);
+                                }
+                            } else {
+                                const index = favouriteApps.indexOf(appId);
+                                if (index !== -1) {
+                                    favouriteApps.splice(index, 1);
+                                }
+                            }
+                            GlobalConfig.launcher.favouriteApps = favouriteApps;
+                        }
                     }
+                }
 
-                    ColumnLayout {
-                        id: debugLayout
+                AppFlagChip {
+                    icon: "visibility_off"
+                    title: qsTr("Hidden")
+                    detail: qsTr("Remove from search")
+                    checked: root.hideFromLauncherChecked
+                    enabled: appDetailsLayout.displayedApp !== null && !root.favouriteChecked && (GlobalConfig.launcher.hiddenApps.indexOf(appDetailsLayout.displayedApp.id || appDetailsLayout.displayedApp.entry?.id) !== -1 || !root.hideFromLauncherChecked)
 
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.top: parent.top
-                        spacing: Tokens.spacing.normal
-
-                        Flow {
-                            Layout.fillWidth: true
-                            Layout.topMargin: Tokens.spacing.normal
-                            visible: appDetailsLayout.displayedApp !== null
-                            spacing: Tokens.spacing.small
-
-                            AppFlagChip {
-                                icon: "favorite"
-                                title: qsTr("Favourite")
-                                detail: qsTr("Pin in launcher")
-                                checked: root.favouriteChecked
-                                enabled: appDetailsLayout.displayedApp !== null && !root.hideFromLauncherChecked && (GlobalConfig.launcher.favouriteApps.indexOf(appDetailsLayout.displayedApp.id || appDetailsLayout.displayedApp.entry?.id) !== -1 || !root.favouriteChecked)
-
-                                onToggled: checked => {
-                                    root.favouriteChecked = checked;
-                                    const app = appDetailsLayout.displayedApp;
-                                    if (app) {
-                                        const appId = app.id || app.entry?.id;
-                                        const favouriteApps = GlobalConfig.launcher.favouriteApps ? [...GlobalConfig.launcher.favouriteApps] : [];
-                                        if (checked) {
-                                            if (!favouriteApps.includes(appId)) {
-                                                favouriteApps.push(appId);
-                                            }
-                                        } else {
-                                            const index = favouriteApps.indexOf(appId);
-                                            if (index !== -1) {
-                                                favouriteApps.splice(index, 1);
-                                            }
-                                        }
-                                        GlobalConfig.launcher.favouriteApps = favouriteApps;
-                                    }
+                    onToggled: checked => {
+                        root.hideFromLauncherChecked = checked;
+                        const app = appDetailsLayout.displayedApp;
+                        if (app) {
+                            const appId = app.id || app.entry?.id;
+                            const hiddenApps = GlobalConfig.launcher.hiddenApps ? [...GlobalConfig.launcher.hiddenApps] : [];
+                            if (checked) {
+                                if (!hiddenApps.includes(appId)) {
+                                    hiddenApps.push(appId);
+                                }
+                            } else {
+                                const index = hiddenApps.indexOf(appId);
+                                if (index !== -1) {
+                                    hiddenApps.splice(index, 1);
                                 }
                             }
-
-                            AppFlagChip {
-                                icon: "visibility_off"
-                                title: qsTr("Hidden")
-                                detail: qsTr("Remove from search")
-                                checked: root.hideFromLauncherChecked
-                                enabled: appDetailsLayout.displayedApp !== null && !root.favouriteChecked && (GlobalConfig.launcher.hiddenApps.indexOf(appDetailsLayout.displayedApp.id || appDetailsLayout.displayedApp.entry?.id) !== -1 || !root.hideFromLauncherChecked)
-
-                                onToggled: checked => {
-                                    root.hideFromLauncherChecked = checked;
-                                    const app = appDetailsLayout.displayedApp;
-                                    if (app) {
-                                        const appId = app.id || app.entry?.id;
-                                        const hiddenApps = GlobalConfig.launcher.hiddenApps ? [...GlobalConfig.launcher.hiddenApps] : [];
-                                        if (checked) {
-                                            if (!hiddenApps.includes(appId)) {
-                                                hiddenApps.push(appId);
-                                            }
-                                        } else {
-                                            const index = hiddenApps.indexOf(appId);
-                                            if (index !== -1) {
-                                                hiddenApps.splice(index, 1);
-                                            }
-                                        }
-                                        GlobalConfig.launcher.hiddenApps = hiddenApps;
-                                    }
-                                }
-                            }
+                            GlobalConfig.launcher.hiddenApps = hiddenApps;
                         }
                     }
                 }

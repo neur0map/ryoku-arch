@@ -167,141 +167,41 @@ Item {
           }
         }
 
-        NotificationConsole {
+        NotificationWorkbench {
           Layout.fillWidth: true
         }
+      }
+    }
+  }
 
-        GridLayout {
-          Layout.fillWidth: true
-          columns: root.width > 820 ? 2 : 1
-          columnSpacing: Tokens.spacing.small
-          rowSpacing: Tokens.spacing.small
+  component NotificationWorkbench: StyledRect {
+    id: notificationWorkbench
 
-          ToastStackPreview {
-            Layout.fillWidth: true
-          }
+    implicitHeight: 304
+    radius: Tokens.rounding.small
+    color: Colours.palette.m3surfaceContainer
+    clip: true
 
-          ConsolePanel {
-            Layout.fillWidth: true
-            title: qsTr("Toast signals")
-            detail: qsTr("Event stream")
+    GridLayout {
+      anchors.fill: parent
+      anchors.margins: Tokens.padding.normal
+      columns: root.width > 700 ? 3 : 1
+      columnSpacing: Tokens.spacing.small
+      rowSpacing: Tokens.spacing.small
 
-            Flow {
-              Layout.fillWidth: true
-              spacing: Tokens.spacing.smaller
+      NotificationConsole {
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+      }
 
-              SignalChip {
-                icon: "battery_charging_full"
-                title: qsTr("Charging")
-                checked: root.chargingChanged
+      ToastStackPreview {
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+      }
 
-                onToggled: checked => {
-                  root.chargingChanged = checked;
-                  root.saveConfig();
-                }
-              }
-
-              SignalChip {
-                icon: "sports_esports"
-                title: qsTr("Game mode")
-                checked: root.gameModeChanged
-
-                onToggled: checked => {
-                  root.gameModeChanged = checked;
-                  root.saveConfig();
-                }
-              }
-
-              SignalChip {
-                icon: "do_not_disturb_on"
-                title: qsTr("DND")
-                checked: root.dndChanged
-
-                onToggled: checked => {
-                  root.dndChanged = checked;
-                  root.saveConfig();
-                }
-              }
-
-              SignalChip {
-                icon: "speaker"
-                title: qsTr("Output")
-                checked: root.audioOutputChanged
-
-                onToggled: checked => {
-                  root.audioOutputChanged = checked;
-                  root.saveConfig();
-                }
-              }
-
-              SignalChip {
-                icon: "mic"
-                title: qsTr("Input")
-                checked: root.audioInputChanged
-
-                onToggled: checked => {
-                  root.audioInputChanged = checked;
-                  root.saveConfig();
-                }
-              }
-
-              SignalChip {
-                icon: "keyboard_capslock"
-                title: qsTr("Caps")
-                checked: root.capsLockChanged
-
-                onToggled: checked => {
-                  root.capsLockChanged = checked;
-                  root.saveConfig();
-                }
-              }
-
-              SignalChip {
-                icon: "looks_one"
-                title: qsTr("Num")
-                checked: root.numLockChanged
-
-                onToggled: checked => {
-                  root.numLockChanged = checked;
-                  root.saveConfig();
-                }
-              }
-
-              SignalChip {
-                icon: "keyboard"
-                title: qsTr("Layout")
-                checked: root.kbLayoutChanged
-
-                onToggled: checked => {
-                  root.kbLayoutChanged = checked;
-                  root.saveConfig();
-                }
-              }
-
-              SignalChip {
-                icon: "vpn_lock"
-                title: qsTr("VPN")
-                checked: root.vpnChanged
-
-                onToggled: checked => {
-                  root.vpnChanged = checked;
-                  root.saveConfig();
-                }
-              }
-
-              SignalChip {
-                icon: "music_note"
-                title: qsTr("Playing")
-                checked: root.nowPlaying
-
-                onToggled: checked => {
-                  root.nowPlaying = checked;
-                  root.saveConfig();
-                }
-              }
-            }
-          }
-        }
+      SignalPanel {
+        Layout.fillWidth: true
+        Layout.fillHeight: true
       }
     }
   }
@@ -309,215 +209,186 @@ Item {
   component NotificationConsole: StyledRect {
     id: notificationConsole
 
-    implicitHeight: 224
+    implicitHeight: 236
     radius: Tokens.rounding.small
-    color: Colours.palette.m3surfaceContainer
+    color: Colours.palette.m3surfaceContainerHigh
     clip: true
 
-    RowLayout {
+    ColumnLayout {
       anchors.fill: parent
       anchors.margins: Tokens.padding.normal
       spacing: Tokens.spacing.small
 
+      RowLayout {
+        Layout.fillWidth: true
+        spacing: Tokens.spacing.small
+
+        MaterialIcon {
+          Layout.alignment: Qt.AlignVCenter
+          text: "notifications"
+          color: Colours.palette.m3primary
+          font.pointSize: Tokens.font.size.large
+          fill: 1
+        }
+
+        ColumnLayout {
+          Layout.fillWidth: true
+          Layout.alignment: Qt.AlignVCenter
+          spacing: 0
+
+          StyledText {
+            Layout.fillWidth: true
+            text: qsTr("Popup card")
+            font.weight: 700
+            elide: Text.ElideRight
+          }
+
+          StyledText {
+            Layout.fillWidth: true
+            text: root.timeoutLabel(root.notificationsDefaultExpireTimeout)
+            color: Colours.palette.m3onSurfaceVariant
+            font.pointSize: Tokens.font.size.small
+            elide: Text.ElideRight
+          }
+        }
+      }
+
       StyledRect {
-        Layout.fillWidth: false
-        Layout.preferredWidth: Math.min(330, notificationConsole.width * 0.38)
-        Layout.minimumWidth: 260
+        Layout.fillWidth: true
         Layout.fillHeight: true
         radius: Tokens.rounding.small
-        color: Colours.palette.m3surfaceContainerHigh
-        clip: true
+        color: Colours.palette.m3surfaceContainerHighest
 
         ColumnLayout {
           anchors.fill: parent
-          anchors.margins: Tokens.padding.normal
-          spacing: Tokens.spacing.small
+          anchors.margins: Tokens.padding.small
+          spacing: Tokens.spacing.smaller
+
+          StyledText {
+            Layout.fillWidth: true
+            text: qsTr("Ryoku Shell")
+            font.weight: 700
+            elide: Text.ElideRight
+          }
+
+          StyledText {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            text: root.notificationsOpenExpanded ? qsTr("Expanded notification body") : qsTr("Compact notification body")
+            color: Colours.palette.m3onSurfaceVariant
+            font.pointSize: Tokens.font.size.small
+            wrapMode: Text.WordWrap
+            maximumLineCount: root.notificationsOpenExpanded ? 3 : 2
+            elide: Text.ElideRight
+          }
 
           RowLayout {
             Layout.fillWidth: true
-            spacing: Tokens.spacing.small
+            spacing: Tokens.spacing.smaller
 
-            MaterialIcon {
-              Layout.alignment: Qt.AlignVCenter
-              text: "notifications"
-              color: Colours.palette.m3primary
-              font.pointSize: Tokens.font.size.large
-              fill: 1
-            }
+            Repeater {
+              model: Math.min(root.notificationsGroupPreviewNum, 6)
 
-            ColumnLayout {
-              Layout.fillWidth: true
-              Layout.alignment: Qt.AlignVCenter
-              spacing: 0
+              StyledRect {
+                required property int index
 
-              StyledText {
                 Layout.fillWidth: true
-                text: qsTr("Popup card")
-                font.weight: 700
-                elide: Text.ElideRight
-              }
-
-              StyledText {
-                Layout.fillWidth: true
-                text: root.timeoutLabel(root.notificationsDefaultExpireTimeout)
-                color: Colours.palette.m3onSurfaceVariant
-                font.pointSize: Tokens.font.size.small
-                elide: Text.ElideRight
-              }
-            }
-
-            ModeBadge {
-              icon: root.notificationsExpire ? "timer" : "keep"
-              title: root.notificationsExpire ? qsTr("Expires") : qsTr("Held")
-              active: root.notificationsExpire
-            }
-          }
-
-          StyledRect {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            radius: Tokens.rounding.small
-            color: Colours.palette.m3surfaceContainerHighest
-
-            ColumnLayout {
-              anchors.fill: parent
-              anchors.margins: Tokens.padding.small
-              spacing: Tokens.spacing.smaller
-
-              StyledText {
-                Layout.fillWidth: true
-                text: qsTr("Ryoku Shell")
-                font.weight: 700
-                elide: Text.ElideRight
-              }
-
-              StyledText {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                text: root.notificationsOpenExpanded ? qsTr("Expanded notification body") : qsTr("Compact notification body")
-                color: Colours.palette.m3onSurfaceVariant
-                font.pointSize: Tokens.font.size.small
-                wrapMode: Text.WordWrap
-                maximumLineCount: root.notificationsOpenExpanded ? 3 : 2
-                elide: Text.ElideRight
-              }
-
-              RowLayout {
-                Layout.fillWidth: true
-                spacing: Tokens.spacing.smaller
-
-                Repeater {
-                  model: Math.min(root.notificationsGroupPreviewNum, 6)
-
-                  StyledRect {
-                    required property int index
-
-                    Layout.fillWidth: true
-                    implicitHeight: 6
-                    radius: 3
-                    color: index === 0 ? Colours.palette.m3primary : Colours.palette.m3secondaryContainer
-                  }
-                }
+                implicitHeight: 6
+                radius: 3
+                color: index === 0 ? Colours.palette.m3primary : Colours.palette.m3secondaryContainer
               }
             }
           }
         }
       }
 
-      ColumnLayout {
+      RowLayout {
         Layout.fillWidth: true
-        Layout.fillHeight: true
-        spacing: Tokens.spacing.small
+        spacing: Tokens.spacing.smaller
 
-        ConsolePanel {
+        SignalChip {
           Layout.fillWidth: true
-          title: qsTr("Fullscreen")
-          detail: root.notificationsFullscreen
+          icon: "timer"
+          title: qsTr("Auto expire")
+          checked: root.notificationsExpire
 
-          RowLayout {
-            Layout.fillWidth: true
-            spacing: Tokens.spacing.smaller
-
-            FullscreenOption {
-              Layout.fillWidth: true
-              icon: "notifications_off"
-              title: qsTr("Off")
-              active: root.notificationsFullscreen === "off"
-
-              onSelected: root.setNotificationsFullscreen("off")
-            }
-
-            FullscreenOption {
-              Layout.fillWidth: true
-              icon: "notifications"
-              title: qsTr("On")
-              active: root.notificationsFullscreen === "on"
-
-              onSelected: root.setNotificationsFullscreen("on")
-            }
+          onToggled: checked => {
+            root.notificationsExpire = checked;
+            root.saveConfig();
           }
         }
+
+        SignalChip {
+          Layout.fillWidth: true
+          icon: "unfold_more"
+          title: qsTr("Expanded")
+          checked: root.notificationsOpenExpanded
+
+          onToggled: checked => {
+            root.notificationsOpenExpanded = checked;
+            root.saveConfig();
+          }
+        }
+      }
+
+      GridLayout {
+        Layout.fillWidth: true
+        columns: 2
+        columnSpacing: Tokens.spacing.smaller
+        rowSpacing: Tokens.spacing.smaller
+
+        StepperTile {
+          Layout.fillWidth: true
+          icon: "pace"
+          title: qsTr("Timeout")
+          value: root.notificationsDefaultExpireTimeout
+          from: 1000
+          to: 60000
+          step: 500
+          valueText: root.timeoutLabel(root.notificationsDefaultExpireTimeout)
+
+          onValueModified: value => root.setNotificationTimeout(value)
+        }
+
+        StepperTile {
+          Layout.fillWidth: true
+          icon: "view_carousel"
+          title: qsTr("Preview")
+          value: root.notificationsGroupPreviewNum
+          from: 1
+          to: 10
+          step: 1
+          valueText: root.notificationsGroupPreviewNum.toString()
+
+          onValueModified: value => root.setGroupPreviewCount(value)
+        }
+      }
+
+      ConsolePanel {
+        Layout.fillWidth: true
+        title: qsTr("Fullscreen")
+        detail: root.notificationsFullscreen
 
         RowLayout {
           Layout.fillWidth: true
-          Layout.fillHeight: true
-          spacing: Tokens.spacing.small
+          spacing: Tokens.spacing.smaller
 
-          SignalChip {
+          FullscreenOption {
             Layout.fillWidth: true
-            icon: "timer"
-            title: qsTr("Auto expire")
-            checked: root.notificationsExpire
+            icon: "notifications_off"
+            title: qsTr("Off")
+            active: root.notificationsFullscreen === "off"
 
-            onToggled: checked => {
-              root.notificationsExpire = checked;
-              root.saveConfig();
-            }
+            onSelected: root.setNotificationsFullscreen("off")
           }
 
-          SignalChip {
+          FullscreenOption {
             Layout.fillWidth: true
-            icon: "unfold_more"
-            title: qsTr("Expanded")
-            checked: root.notificationsOpenExpanded
+            icon: "notifications"
+            title: qsTr("On")
+            active: root.notificationsFullscreen === "on"
 
-            onToggled: checked => {
-              root.notificationsOpenExpanded = checked;
-              root.saveConfig();
-            }
-          }
-        }
-
-        GridLayout {
-          Layout.fillWidth: true
-          columns: 2
-          columnSpacing: Tokens.spacing.small
-          rowSpacing: Tokens.spacing.small
-
-          StepperTile {
-            Layout.fillWidth: true
-            icon: "pace"
-            title: qsTr("Timeout")
-            value: root.notificationsDefaultExpireTimeout
-            from: 1000
-            to: 60000
-            step: 500
-            valueText: root.timeoutLabel(root.notificationsDefaultExpireTimeout)
-
-            onValueModified: value => root.setNotificationTimeout(value)
-          }
-
-          StepperTile {
-            Layout.fillWidth: true
-            icon: "view_carousel"
-            title: qsTr("Preview")
-            value: root.notificationsGroupPreviewNum
-            from: 1
-            to: 10
-            step: 1
-            valueText: root.notificationsGroupPreviewNum.toString()
-
-            onValueModified: value => root.setGroupPreviewCount(value)
+            onSelected: root.setNotificationsFullscreen("on")
           }
         }
       }
@@ -529,7 +400,7 @@ Item {
 
     Layout.alignment: Qt.AlignTop
 
-    implicitHeight: 262
+    implicitHeight: 236
     radius: Tokens.rounding.small
     color: Colours.palette.m3surfaceContainer
     clip: true
@@ -642,7 +513,7 @@ Item {
           FullscreenOption {
             Layout.fillWidth: true
             icon: "priority_high"
-            title: qsTr("Important")
+            title: qsTr("Key")
             active: root.toastsFullscreen === "important"
 
             onSelected: root.setToastsFullscreen("important")
@@ -662,7 +533,7 @@ Item {
       StepperTile {
         Layout.fillWidth: true
         icon: "filter_4"
-        title: qsTr("Visible toasts")
+        title: qsTr("Toasts")
         value: root.maxToasts
         from: 1
         to: 10
@@ -670,6 +541,126 @@ Item {
         valueText: root.maxToasts.toString()
 
         onValueModified: value => root.setMaxToasts(value)
+      }
+    }
+  }
+
+  component SignalPanel: ConsolePanel {
+    title: qsTr("Toast signals")
+    detail: qsTr("Event stream")
+
+    Flow {
+      Layout.fillWidth: true
+      spacing: Tokens.spacing.smaller
+
+      SignalChip {
+        icon: "battery_charging_full"
+        title: qsTr("Charging")
+        checked: root.chargingChanged
+
+        onToggled: checked => {
+          root.chargingChanged = checked;
+          root.saveConfig();
+        }
+      }
+
+      SignalChip {
+        icon: "sports_esports"
+        title: qsTr("Game mode")
+        checked: root.gameModeChanged
+
+        onToggled: checked => {
+          root.gameModeChanged = checked;
+          root.saveConfig();
+        }
+      }
+
+      SignalChip {
+        icon: "do_not_disturb_on"
+        title: qsTr("DND")
+        checked: root.dndChanged
+
+        onToggled: checked => {
+          root.dndChanged = checked;
+          root.saveConfig();
+        }
+      }
+
+      SignalChip {
+        icon: "speaker"
+        title: qsTr("Output")
+        checked: root.audioOutputChanged
+
+        onToggled: checked => {
+          root.audioOutputChanged = checked;
+          root.saveConfig();
+        }
+      }
+
+      SignalChip {
+        icon: "mic"
+        title: qsTr("Input")
+        checked: root.audioInputChanged
+
+        onToggled: checked => {
+          root.audioInputChanged = checked;
+          root.saveConfig();
+        }
+      }
+
+      SignalChip {
+        icon: "keyboard_capslock"
+        title: qsTr("Caps")
+        checked: root.capsLockChanged
+
+        onToggled: checked => {
+          root.capsLockChanged = checked;
+          root.saveConfig();
+        }
+      }
+
+      SignalChip {
+        icon: "looks_one"
+        title: qsTr("Num")
+        checked: root.numLockChanged
+
+        onToggled: checked => {
+          root.numLockChanged = checked;
+          root.saveConfig();
+        }
+      }
+
+      SignalChip {
+        icon: "keyboard"
+        title: qsTr("Layout")
+        checked: root.kbLayoutChanged
+
+        onToggled: checked => {
+          root.kbLayoutChanged = checked;
+          root.saveConfig();
+        }
+      }
+
+      SignalChip {
+        icon: "vpn_lock"
+        title: qsTr("VPN")
+        checked: root.vpnChanged
+
+        onToggled: checked => {
+          root.vpnChanged = checked;
+          root.saveConfig();
+        }
+      }
+
+      SignalChip {
+        icon: "music_note"
+        title: qsTr("Playing")
+        checked: root.nowPlaying
+
+        onToggled: checked => {
+          root.nowPlaying = checked;
+          root.saveConfig();
+        }
       }
     }
   }

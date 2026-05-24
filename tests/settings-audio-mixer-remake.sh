@@ -37,8 +37,10 @@ assert_not_contains "$pane" "StyledInputField" \
 
 assert_contains "$pane" "component MixerDeck: StyledRect" \
   "audio should expose a compact mixer deck"
-assert_contains "$pane" "component DeviceRail: StyledRect" \
-  "audio should expose a device rail"
+assert_contains "$pane" "component AudioWorkbench: StyledRect" \
+  "audio should expose a single compact audio workbench"
+assert_contains "$pane" "component DeviceMatrix: StyledRect" \
+  "audio should expose a compact multi-column device matrix"
 assert_contains "$pane" "component DeviceToken: StyledRect" \
   "audio should expose compact device tokens"
 assert_contains "$pane" "component VolumeStrip: StyledRect" \
@@ -47,6 +49,12 @@ assert_contains "$pane" "component StreamStrip: StyledRect" \
   "audio should expose application stream strips"
 assert_contains "$pane" "component MuteButton: StyledRect" \
   "audio should expose icon mute controls"
+assert_contains "$pane" "columns: root.width > 620 ? 2 : 1" \
+  "audio should switch to side-by-side workbench columns in the compact window"
+assert_contains "$pane" "columns: deviceGrid.width > 360 ? 2 : 1" \
+  "audio device choices should not stay as long single-column rows"
+assert_not_contains "$pane" "implicitHeight: 54" \
+  "audio tokens should not keep tall rows for one device name"
 
 assert_contains "$pane" "Audio.setAudioSink(modelData)" \
   "audio should preserve output device selection backend"

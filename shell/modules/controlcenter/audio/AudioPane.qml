@@ -98,43 +98,40 @@ Item {
           }
         }
 
-        GridLayout {
+        AudioWorkbench {
           Layout.fillWidth: true
-          columns: root.width > 840 ? 2 : 1
-          columnSpacing: Tokens.spacing.normal
-          rowSpacing: Tokens.spacing.normal
-
-          ColumnLayout {
-            Layout.fillWidth: true
-            Layout.alignment: Qt.AlignTop
-            spacing: Tokens.spacing.normal
-
-            DeviceRail {
-              Layout.fillWidth: true
-              icon: "speaker"
-              title: qsTr("Outputs")
-              detail: qsTr("%1 devices").arg(Audio.sinks.length)
-              devices: Audio.sinks
-              activeDevice: Audio.sink
-              inputDevices: false
-            }
-
-            DeviceRail {
-              Layout.fillWidth: true
-              icon: "mic"
-              title: qsTr("Inputs")
-              detail: qsTr("%1 devices").arg(Audio.sources.length)
-              devices: Audio.sources
-              activeDevice: Audio.source
-              inputDevices: true
-            }
-          }
-
-          MixerDeck {
-            Layout.fillWidth: true
-            Layout.alignment: Qt.AlignTop
-          }
         }
+      }
+    }
+  }
+
+  component AudioWorkbench: StyledRect {
+    id: audioWorkbench
+
+    implicitHeight: workbenchLayout.implicitHeight + Tokens.padding.normal * 2
+    radius: Tokens.rounding.small
+    color: Colours.palette.m3surfaceContainer
+    clip: true
+
+    GridLayout {
+      id: workbenchLayout
+
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.top: parent.top
+      anchors.margins: Tokens.padding.normal
+      columns: root.width > 620 ? 2 : 1
+      columnSpacing: Tokens.spacing.small
+      rowSpacing: Tokens.spacing.small
+
+      DeviceMatrix {
+        Layout.fillWidth: true
+        Layout.alignment: Qt.AlignTop
+      }
+
+      MixerDeck {
+        Layout.fillWidth: true
+        Layout.alignment: Qt.AlignTop
       }
     }
   }
@@ -259,23 +256,16 @@ Item {
     }
   }
 
-  component DeviceRail: StyledRect {
-    id: deviceRail
+  component DeviceMatrix: StyledRect {
+    id: deviceMatrix
 
-    property string icon
-    property string title
-    property string detail
-    property var devices: []
-    property var activeDevice
-    property bool inputDevices
-
-    implicitHeight: deviceRailLayout.implicitHeight + Tokens.padding.normal * 2
+    implicitHeight: deviceMatrixLayout.implicitHeight + Tokens.padding.normal * 2
     radius: Tokens.rounding.small
-    color: Colours.palette.m3surfaceContainer
+    color: Colours.palette.m3surfaceContainerHigh
     clip: true
 
     ColumnLayout {
-      id: deviceRailLayout
+      id: deviceMatrixLayout
 
       anchors.left: parent.left
       anchors.right: parent.right
@@ -288,7 +278,7 @@ Item {
         spacing: Tokens.spacing.small
 
         MaterialIcon {
-          text: deviceRail.icon
+          text: "hub"
           color: Colours.palette.m3primary
           fill: 1
         }
@@ -299,14 +289,14 @@ Item {
 
           StyledText {
             Layout.fillWidth: true
-            text: deviceRail.title
+            text: qsTr("Devices")
             font.weight: 700
             elide: Text.ElideRight
           }
 
           StyledText {
             Layout.fillWidth: true
-            text: deviceRail.detail
+            text: qsTr("%1 outputs, %2 inputs").arg(Audio.sinks.length).arg(Audio.sources.length)
             color: Colours.palette.m3onSurfaceVariant
             font.pointSize: Tokens.font.size.small
             elide: Text.ElideRight
@@ -314,22 +304,36 @@ Item {
         }
       }
 
-      Repeater {
-        model: deviceRail.devices
+      StyledText {
+        Layout.fillWidth: true
+        text: qsTr("Outputs")
+        color: Colours.palette.m3onSurfaceVariant
+        font.pointSize: Tokens.font.size.small
+        font.weight: 700
+        elide: Text.ElideRight
+      }
 
-        delegate: DeviceToken {
-          required property var modelData
+      GridLayout {
+        id: deviceGrid
 
-          Layout.fillWidth: true
-          icon: deviceRail.inputDevices ? "mic" : "speaker"
-          title: root.deviceName(modelData)
-          detail: deviceRail.activeDevice?.id === modelData.id ? qsTr("Active") : qsTr("Available")
-          selected: deviceRail.activeDevice?.id === modelData.id
+        Layout.fillWidth: true
+        columns: deviceGrid.width > 360 ? 2 : 1
+        columnSpacing: Tokens.spacing.smaller
+        rowSpacing: Tokens.spacing.smaller
 
-          onClicked: {
-            if (deviceRail.inputDevices) {
-              Audio.setAudioSource(modelData);
-            } else {
+        Repeater {
+          model: Audio.sinks
+
+          delegate: DeviceToken {
+            required property var modelData
+
+            Layout.fillWidth: true
+            icon: "speaker"
+            title: root.deviceName(modelData)
+            detail: Audio.sink?.id === modelData.id ? qsTr("Active") : qsTr("Available")
+            selected: Audio.sink?.id === modelData.id
+
+            onClicked: {
               Audio.setAudioSink(modelData);
             }
           }
@@ -338,8 +342,55 @@ Item {
 
       StyledText {
         Layout.fillWidth: true
-        visible: deviceRail.devices.length === 0
-        text: qsTr("No devices detected")
+        visible: Audio.sinks.length === 0
+        text: qsTr("No output devices detected")
+        color: Colours.palette.m3onSurfaceVariant
+        font.pointSize: Tokens.font.size.small
+        horizontalAlignment: Text.AlignHCenter
+        elide: Text.ElideRight
+      }
+
+      StyledText {
+        Layout.fillWidth: true
+        Layout.topMargin: Tokens.spacing.smaller
+        text: qsTr("Inputs")
+        color: Colours.palette.m3onSurfaceVariant
+        font.pointSize: Tokens.font.size.small
+        font.weight: 700
+        elide: Text.ElideRight
+      }
+
+      GridLayout {
+        id: inputDeviceGrid
+
+        Layout.fillWidth: true
+        columns: inputDeviceGrid.width > 360 ? 2 : 1
+        columnSpacing: Tokens.spacing.smaller
+        rowSpacing: Tokens.spacing.smaller
+
+        Repeater {
+          model: Audio.sources
+
+          delegate: DeviceToken {
+            required property var modelData
+
+            Layout.fillWidth: true
+            icon: "mic"
+            title: root.deviceName(modelData)
+            detail: Audio.source?.id === modelData.id ? qsTr("Active") : qsTr("Available")
+            selected: Audio.source?.id === modelData.id
+
+            onClicked: {
+              Audio.setAudioSource(modelData);
+            }
+          }
+        }
+      }
+
+      StyledText {
+        Layout.fillWidth: true
+        visible: Audio.sources.length === 0
+        text: qsTr("No input devices detected")
         color: Colours.palette.m3onSurfaceVariant
         font.pointSize: Tokens.font.size.small
         horizontalAlignment: Text.AlignHCenter
@@ -357,7 +408,7 @@ Item {
     property bool selected
     signal clicked()
 
-    implicitHeight: 54
+    implicitHeight: 42
     radius: Tokens.rounding.small
     color: selected ? Colours.palette.m3primaryContainer : Colours.palette.m3surfaceContainerHigh
     clip: true
@@ -623,7 +674,7 @@ Item {
   }
 
   component EmptyStreamNotice: StyledRect {
-    implicitHeight: 54
+    implicitHeight: 42
     radius: Tokens.rounding.small
     color: Colours.palette.m3surfaceContainerHigh
 

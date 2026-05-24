@@ -39,6 +39,8 @@ assert_not_contains "$pane" "MenuItem" \
 
 assert_contains "$pane" "component NotificationConsole: StyledRect" \
   "notifications should expose a compact notification console"
+assert_contains "$pane" "component NotificationWorkbench: StyledRect" \
+  "notifications should expose one compact workbench instead of stacked bands"
 assert_contains "$pane" "component ToastStackPreview: StyledRect" \
   "notifications should expose a toast stack preview"
 assert_contains "$pane" "component FullscreenOption: StyledRect" \
@@ -47,6 +49,16 @@ assert_contains "$pane" "component SignalChip: StyledRect" \
   "notifications should expose compact toast signal chips"
 assert_contains "$pane" "component StepperTile: StyledRect" \
   "notifications should expose compact numeric steppers"
+assert_contains "$pane" "columns: root.width > 700 ? 3 : 1" \
+  "notifications should use a three-zone workbench in the compact window"
+assert_contains "$pane" "implicitHeight: 304" \
+  "notifications workbench should fit the first viewport"
+assert_contains "$pane" "title: qsTr(\"Key\")" \
+  "toast fullscreen selector should use short labels that fit compact columns"
+assert_contains "$pane" "title: qsTr(\"Toasts\")" \
+  "toast count stepper should use a short compact label"
+assert_not_contains "$pane" "implicitHeight: 262" \
+  "toast preview should not keep the tall stacked-card height"
 
 assert_contains "$pane" "GlobalConfig.notifs.expire = root.notificationsExpire" \
   "notifications should preserve expire backend writes"
