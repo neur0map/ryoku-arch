@@ -121,8 +121,8 @@ repair_command_bridges() {
 
 repair_system_command_bridges() {
   local command_path
-  local system_bin="/usr/local/bin"
-  local system_lib="/usr/local/lib"
+  local system_bin="${RYOKU_SYSTEM_BIN_DIR:-/usr/local/bin}"
+  local system_lib="${RYOKU_SYSTEM_LIB_DIR:-/usr/local/lib}"
 
   command -v sudo >/dev/null 2>&1 || return 0
   sudo -n true >/dev/null 2>&1 || return 0

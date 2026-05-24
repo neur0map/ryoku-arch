@@ -123,3 +123,52 @@ grep -Fq 'fresh-update:-y' "$default_log" || \
   fail "unconfigured bootstrap should still exec the refreshed installed updater"
 
 echo "PASS: ryoku-update-bootstrap defaults to rebirth recovery channel"
+
+system_home="$tmp/system-home"
+system_install="$system_home/.local/share/ryoku"
+system_state="$system_home/.local/state/ryoku"
+system_log="$tmp/system-bootstrap.log"
+system_bin="$tmp/system-bin"
+system_lib="$tmp/system-lib"
+sudo_bin="$tmp/sudo-bin"
+
+mkdir -p "$system_home/.local/bin" "$system_state" "$system_bin" "$system_lib" "$sudo_bin"
+cat > "$sudo_bin/sudo" <<'SH'
+#!/bin/bash
+if [[ ${1:-} == "-n" ]]; then
+  shift
+fi
+
+if [[ ${1:-} == "true" && $# == 1 ]]; then
+  exit 0
+fi
+
+exec "$@"
+SH
+chmod 755 "$sudo_bin/sudo"
+
+output=$(
+  HOME="$system_home" \
+  RYOKU_PATH="$system_install" \
+  RYOKU_STATE_PATH="$system_state" \
+  RYOKU_UPDATE_REMOTE_URL="$remote" \
+  RYOKU_UPDATE_BRANCH=unstable-dev \
+  RYOKU_TEST_LOG="$system_log" \
+  RYOKU_SYSTEM_BIN_DIR="$system_bin" \
+  RYOKU_SYSTEM_LIB_DIR="$system_lib" \
+  PATH="$sudo_bin:/usr/bin:/bin" \
+    "$ROOT_DIR/bin/ryoku-update-bootstrap" 2>&1
+) || fail "bootstrap should repair system Ryoku shims when sudo is already authorized: $output"
+
+grep -Fq "System shims: repaired: $system_bin" <<< "$output" || \
+  fail "bootstrap should report repaired system command shims"
+[[ -L $system_bin/ryoku-doctor ]] || \
+  fail "bootstrap should create the system doctor shim when sudo is authorized"
+[[ $(readlink "$system_bin/ryoku-doctor") == "$system_install/bin/ryoku-doctor" ]] || \
+  fail "system doctor shim should point at the installed checkout"
+[[ -L $system_lib/runtime-env.sh ]] || \
+  fail "bootstrap should create the system runtime-env bridge when sudo is authorized"
+[[ $(readlink "$system_lib/runtime-env.sh") == "$system_install/lib/runtime-env.sh" ]] || \
+  fail "system runtime-env bridge should point at the installed checkout"
+
+echo "PASS: ryoku-update-bootstrap repairs system command shims"
