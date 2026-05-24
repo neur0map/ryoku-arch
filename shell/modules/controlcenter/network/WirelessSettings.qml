@@ -1,73 +1,73 @@
 pragma ComponentBehavior: Bound
 
-import ".."
-import "../components"
+import "."
 import QtQuick
 import QtQuick.Layouts
 import Ryoku.Config
 import qs.components
-import qs.components.controls
-import qs.components.effects
 import qs.services
 
 ColumnLayout {
-    id: root
+  id: root
 
-    required property Session session
+  required property Session session
 
-    spacing: Tokens.spacing.normal
+  spacing: Tokens.spacing.normal
 
-    SettingsHeader {
-        icon: "wifi"
-        title: qsTr("Network settings")
+  NetworkPanel {
+    Layout.fillWidth: true
+    icon: Nmcli.wifiEnabled ? "wifi" : "wifi_off"
+    title: qsTr("Wireless")
+    subtitle: Nmcli.wifiEnabled ? qsTr("%1 nearby networks").arg(Nmcli.networks.length) : qsTr("Adapter disabled")
+
+    NetworkSwitch {
+      Layout.fillWidth: true
+      icon: Nmcli.wifiEnabled ? "wifi" : "wifi_off"
+      title: qsTr("WiFi radio")
+      subtitle: Nmcli.wifiEnabled ? qsTr("Enabled") : qsTr("Disabled")
+      checked: Nmcli.wifiEnabled
+
+      onToggled: checked => {
+        Nmcli.enableWifi(checked);
+      }
+    }
+  }
+
+  NetworkPanel {
+    Layout.fillWidth: true
+    icon: "wifi_tethering"
+    title: qsTr("Active WiFi")
+    subtitle: Nmcli.active ? qsTr("Connected") : qsTr("Not connected")
+
+    NetworkFact {
+      Layout.fillWidth: true
+      icon: "ssid_chart"
+      label: qsTr("Network")
+      value: Nmcli.active ? Nmcli.active.ssid : qsTr("Not connected")
+      active: Nmcli.active !== null
     }
 
-    SectionHeader {
-        Layout.topMargin: Tokens.spacing.large
-        title: qsTr("WiFi status")
-        description: qsTr("General WiFi settings")
+    NetworkFact {
+      Layout.fillWidth: true
+      icon: "signal_wifi_4_bar"
+      label: qsTr("Signal")
+      value: Nmcli.active ? qsTr("%1%").arg(Nmcli.active.strength) : qsTr("N/A")
+      active: Nmcli.active !== null && Nmcli.active.strength > 50
     }
 
-    SectionContainer {
-        ToggleRow {
-            label: qsTr("WiFi enabled")
-            checked: Nmcli.wifiEnabled
-            toggle.onToggled: {
-                Nmcli.enableWifi(checked);
-            }
-        }
+    NetworkFact {
+      Layout.fillWidth: true
+      icon: Nmcli.active && Nmcli.active.isSecure ? "lock" : "lock_open"
+      label: qsTr("Security")
+      value: Nmcli.active ? (Nmcli.active.isSecure ? qsTr("Secured") : qsTr("Open")) : qsTr("N/A")
+      active: Nmcli.active !== null && Nmcli.active.isSecure
     }
 
-    SectionHeader {
-        Layout.topMargin: Tokens.spacing.large
-        title: qsTr("Network information")
-        description: qsTr("Current network connection")
+    NetworkFact {
+      Layout.fillWidth: true
+      icon: "settings_input_antenna"
+      label: qsTr("Frequency")
+      value: Nmcli.active ? qsTr("%1 MHz").arg(Nmcli.active.frequency) : qsTr("N/A")
     }
-
-    SectionContainer {
-        contentSpacing: Tokens.spacing.small / 2
-
-        PropertyRow {
-            label: qsTr("Connected network")
-            value: Nmcli.active ? Nmcli.active.ssid : qsTr("Not connected")
-        }
-
-        PropertyRow {
-            showTopMargin: true
-            label: qsTr("Signal strength")
-            value: Nmcli.active ? qsTr("%1%").arg(Nmcli.active.strength) : qsTr("N/A")
-        }
-
-        PropertyRow {
-            showTopMargin: true
-            label: qsTr("Security")
-            value: Nmcli.active ? (Nmcli.active.isSecure ? qsTr("Secured") : qsTr("Open")) : qsTr("N/A")
-        }
-
-        PropertyRow {
-            showTopMargin: true
-            label: qsTr("Frequency")
-            value: Nmcli.active ? qsTr("%1 MHz").arg(Nmcli.active.frequency) : qsTr("N/A")
-        }
-    }
+  }
 }

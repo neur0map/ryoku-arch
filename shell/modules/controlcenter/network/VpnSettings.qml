@@ -1,257 +1,252 @@
 pragma ComponentBehavior: Bound
 
-import ".."
-import "../components"
+import "."
 import QtQuick
-import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import Ryoku.Config
 import qs.components
-import qs.components.containers
 import qs.components.controls
-import qs.components.effects
 import qs.services
 
 ColumnLayout {
-    id: root
+  id: root
 
-    required property Session session
+  required property Session session
 
-    spacing: Tokens.spacing.normal
+  function providerRows() {
+    return GlobalConfig.utilities.vpn.provider.map((provider, index) => {
+      const isObject = typeof provider === "object";
+      const name = isObject ? (provider.name || "custom") : String(provider);
+      const displayName = isObject ? (provider.displayName || name) : name;
+      const iface = isObject ? (provider.interface || "") : "";
 
-    SettingsHeader {
-        icon: "vpn_key"
-        title: qsTr("VPN Settings")
+      return {
+        index: index,
+        name: name,
+        displayName: displayName,
+        interface: iface,
+        provider: provider,
+        isActive: index === 0
+      };
+    });
+  }
+
+  function cloneProvider(provider) {
+    if (typeof provider !== "object")
+      return provider;
+
+    const reconstructed = {
+      name: provider.name,
+      displayName: provider.displayName,
+      interface: provider.interface,
+      enabled: provider.enabled
+    };
+    if (provider.connectCmd && provider.connectCmd.length > 0)
+      reconstructed.connectCmd = provider.connectCmd;
+    if (provider.disconnectCmd && provider.disconnectCmd.length > 0)
+      reconstructed.disconnectCmd = provider.disconnectCmd;
+
+    return reconstructed;
+  }
+
+  function clonedProviders() {
+    const providers = [];
+    for (let i = 0; i < GlobalConfig.utilities.vpn.provider.length; i++) {
+      providers.push(root.cloneProvider(GlobalConfig.utilities.vpn.provider[i]));
+    }
+    return providers;
+  }
+
+  function addProvider(name, displayName, iface) {
+    const providers = [...GlobalConfig.utilities.vpn.provider];
+    providers.push({
+      name: name,
+      displayName: displayName,
+      interface: iface
+    });
+    GlobalConfig.utilities.vpn.provider = providers;
+  }
+
+  spacing: Tokens.spacing.normal
+
+  NetworkPanel {
+    Layout.fillWidth: true
+    icon: GlobalConfig.utilities.vpn.enabled ? "vpn_key" : "vpn_key_off"
+    title: qsTr("VPN service")
+    subtitle: GlobalConfig.utilities.vpn.enabled ? qsTr("Visible in network controls") : qsTr("Provider controls hidden")
+
+    NetworkSwitch {
+      Layout.fillWidth: true
+      icon: GlobalConfig.utilities.vpn.enabled ? "vpn_key" : "vpn_key_off"
+      title: qsTr("VPN")
+      subtitle: GlobalConfig.utilities.vpn.enabled ? qsTr("Enabled") : qsTr("Disabled")
+      checked: GlobalConfig.utilities.vpn.enabled
+
+      onToggled: checked => {
+        GlobalConfig.utilities.vpn.enabled = checked;
+      }
+    }
+  }
+
+  NetworkPanel {
+    Layout.fillWidth: true
+    icon: "dns"
+    title: qsTr("Providers")
+    subtitle: qsTr("%1 configured").arg(GlobalConfig.utilities.vpn.provider.length)
+
+    ListView {
+      Layout.fillWidth: true
+      Layout.preferredHeight: Math.max(contentHeight, GlobalConfig.utilities.vpn.provider.length === 0 ? 50 : 0)
+      interactive: false
+      spacing: Tokens.spacing.smaller
+      model: ScriptModel {
+        values: root.providerRows()
+      }
+
+      delegate: ProviderCard {
+        width: ListView.view ? ListView.view.width : 0
+      }
     }
 
-    SectionHeader {
-        Layout.topMargin: Tokens.spacing.large
-        title: qsTr("General")
-        description: qsTr("VPN configuration")
+    StyledText {
+      Layout.fillWidth: true
+      visible: GlobalConfig.utilities.vpn.provider.length === 0
+      text: qsTr("No VPN providers configured")
+      color: Colours.palette.m3onSurfaceVariant
+      horizontalAlignment: Text.AlignHCenter
+      font.pointSize: Tokens.font.size.small
+      elide: Text.ElideRight
     }
+  }
 
-    SectionContainer {
-        ToggleRow {
-            label: qsTr("VPN enabled")
-            checked: GlobalConfig.utilities.vpn.enabled
-            toggle.onToggled: {
-                GlobalConfig.utilities.vpn.enabled = checked;
-            }
+  NetworkPanel {
+    Layout.fillWidth: true
+    icon: "add_link"
+    title: qsTr("Quick add")
+    subtitle: qsTr("Common VPN interfaces")
+
+    GridLayout {
+      Layout.fillWidth: true
+      columns: width > 620 ? 3 : 1
+      columnSpacing: Tokens.spacing.small
+      rowSpacing: Tokens.spacing.small
+
+      NetworkAction {
+        Layout.fillWidth: true
+        icon: "add"
+        title: qsTr("NetBird")
+        subtitle: "wt0"
+
+        onClicked: {
+          root.addProvider("netbird", "NetBird", "wt0");
         }
-    }
+      }
 
-    SectionHeader {
-        Layout.topMargin: Tokens.spacing.large
-        title: qsTr("Providers")
-        description: qsTr("Manage VPN providers")
-    }
+      NetworkAction {
+        Layout.fillWidth: true
+        icon: "add"
+        title: qsTr("Tailscale")
+        subtitle: "tailscale0"
 
-    SectionContainer {
-        contentSpacing: Tokens.spacing.normal
-
-        ListView {
-            Layout.fillWidth: true
-            Layout.preferredHeight: contentHeight
-
-            interactive: false
-            spacing: Tokens.spacing.smaller
-
-            model: ScriptModel {
-                values: GlobalConfig.utilities.vpn.provider.map((provider, index) => {
-                    const isObject = typeof provider === "object";
-                    const name = isObject ? (provider.name || "custom") : String(provider);
-                    const displayName = isObject ? (provider.displayName || name) : name;
-                    const iface = isObject ? (provider.interface || "") : "";
-
-                    return {
-                        index: index,
-                        name: name,
-                        displayName: displayName,
-                        interface: iface,
-                        provider: provider,
-                        isActive: index === 0
-                    };
-                })
-            }
-
-            delegate: Component {
-                StyledRect {
-                    required property var modelData
-                    required property int index
-
-                    width: ListView.view ? ListView.view.width : undefined
-                    implicitHeight: 60
-                    color: Colours.tPalette.m3surfaceContainerHigh
-                    radius: Tokens.rounding.normal
-
-                    RowLayout {
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.margins: Tokens.padding.normal
-                        spacing: Tokens.spacing.normal
-
-                        MaterialIcon {
-                            text: modelData.isActive ? "vpn_key" : "vpn_key_off"
-                            font.pointSize: Tokens.font.size.large
-                            color: modelData.isActive ? Colours.palette.m3primary : Colours.palette.m3outline
-                        }
-
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 0
-
-                            StyledText {
-                                text: modelData.displayName
-                                font.weight: modelData.isActive ? 500 : 400
-                            }
-
-                            StyledText {
-                                text: qsTr("%1 • %2").arg(modelData.name).arg(modelData.interface || qsTr("No interface"))
-                                font.pointSize: Tokens.font.size.small
-                                color: Colours.palette.m3outline
-                            }
-                        }
-
-                        IconButton {
-                            icon: modelData.isActive ? "arrow_downward" : "arrow_upward"
-                            visible: !modelData.isActive || GlobalConfig.utilities.vpn.provider.length > 1
-                            onClicked: {
-                                const providers = [];
-                                for (let i = 0; i < GlobalConfig.utilities.vpn.provider.length; i++) {
-                                    const p = GlobalConfig.utilities.vpn.provider[i];
-                                    const reconstructed = {
-                                        name: p.name,
-                                        displayName: p.displayName,
-                                        interface: p.interface,
-                                        enabled: p.enabled
-                                    };
-                                    if (p.connectCmd && p.connectCmd.length > 0) {
-                                        reconstructed.connectCmd = p.connectCmd;
-                                    }
-                                    if (p.disconnectCmd && p.disconnectCmd.length > 0) {
-                                        reconstructed.disconnectCmd = p.disconnectCmd;
-                                    }
-                                    providers.push(reconstructed);
-                                }
-
-                                if (modelData.isActive && index < providers.length - 1) {
-                                    // Move down
-                                    const temp = providers[index];
-                                    providers[index] = providers[index + 1];
-                                    providers[index + 1] = temp;
-                                } else if (!modelData.isActive) {
-                                    // Make active (move to top)
-                                    const provider = providers.splice(index, 1)[0];
-                                    providers.unshift(provider);
-                                }
-
-                                GlobalConfig.utilities.vpn.provider = providers;
-                            }
-                        }
-
-                        IconButton {
-                            icon: "delete"
-                            onClicked: {
-                                const providers = [];
-                                for (let i = 0; i < GlobalConfig.utilities.vpn.provider.length; i++) {
-                                    if (i !== index) {
-                                        const p = GlobalConfig.utilities.vpn.provider[i];
-                                        const reconstructed = {
-                                            name: p.name,
-                                            displayName: p.displayName,
-                                            interface: p.interface,
-                                            enabled: p.enabled
-                                        };
-                                        if (p.connectCmd && p.connectCmd.length > 0) {
-                                            reconstructed.connectCmd = p.connectCmd;
-                                        }
-                                        if (p.disconnectCmd && p.disconnectCmd.length > 0) {
-                                            reconstructed.disconnectCmd = p.disconnectCmd;
-                                        }
-                                        providers.push(reconstructed);
-                                    }
-                                }
-                                GlobalConfig.utilities.vpn.provider = providers;
-                            }
-                        }
-                    }
-                }
-            }
+        onClicked: {
+          root.addProvider("tailscale", "Tailscale", "tailscale0");
         }
+      }
 
-        TextButton {
-            Layout.fillWidth: true
-            Layout.topMargin: Tokens.spacing.normal
-            text: qsTr("+ Add Provider")
-            inactiveColour: Colours.palette.m3primaryContainer
-            inactiveOnColour: Colours.palette.m3onPrimaryContainer
+      NetworkAction {
+        Layout.fillWidth: true
+        icon: "add"
+        title: qsTr("Cloudflare")
+        subtitle: "CloudflareWARP"
 
-            onClicked: {
-                addProviderDialog.open();
-            }
+        onClicked: {
+          root.addProvider("warp", "Cloudflare WARP", "CloudflareWARP");
         }
+      }
     }
+  }
 
-    SectionHeader {
-        Layout.topMargin: Tokens.spacing.large
-        title: qsTr("Quick Add")
-        description: qsTr("Add common VPN providers")
-    }
+  component ProviderCard: StyledRect {
+    id: providerCard
 
-    SectionContainer {
-        contentSpacing: Tokens.spacing.smaller
+    required property var modelData
+    required property int index
 
-        TextButton {
-            Layout.fillWidth: true
-            text: qsTr("+ Add NetBird")
-            inactiveColour: Colours.tPalette.m3surfaceContainerHigh
-            inactiveOnColour: Colours.palette.m3onSurface
+    implicitHeight: 58
+    radius: Tokens.rounding.small
+    color: modelData.isActive ? Colours.palette.m3primaryContainer : Colours.palette.m3surfaceContainerHigh
+    clip: true
 
-            onClicked: {
-                const providers = [...GlobalConfig.utilities.vpn.provider];
-                providers.push({
-                    name: "netbird",
-                    displayName: "NetBird",
-                    interface: "wt0"
-                });
-                GlobalConfig.utilities.vpn.provider = providers;
-            }
+    RowLayout {
+      anchors.fill: parent
+      anchors.leftMargin: Tokens.padding.normal
+      anchors.rightMargin: Tokens.padding.small
+      spacing: Tokens.spacing.small
+
+      MaterialIcon {
+        Layout.alignment: Qt.AlignVCenter
+        text: modelData.isActive ? "vpn_key" : "vpn_key_off"
+        color: modelData.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
+        fill: modelData.isActive ? 1 : 0
+      }
+
+      ColumnLayout {
+        Layout.fillWidth: true
+        Layout.alignment: Qt.AlignVCenter
+        spacing: 0
+
+        StyledText {
+          Layout.fillWidth: true
+          text: modelData.displayName
+          color: modelData.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
+          font.weight: modelData.isActive ? 700 : 600
+          elide: Text.ElideRight
         }
 
-        TextButton {
-            Layout.fillWidth: true
-            text: qsTr("+ Add Tailscale")
-            inactiveColour: Colours.tPalette.m3surfaceContainerHigh
-            inactiveOnColour: Colours.palette.m3onSurface
-
-            onClicked: {
-                const providers = [...GlobalConfig.utilities.vpn.provider];
-                providers.push({
-                    name: "tailscale",
-                    displayName: "Tailscale",
-                    interface: "tailscale0"
-                });
-                GlobalConfig.utilities.vpn.provider = providers;
-            }
+        StyledText {
+          Layout.fillWidth: true
+          text: qsTr("%1 / %2").arg(modelData.name).arg(modelData.interface || qsTr("No interface"))
+          color: modelData.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
+          opacity: modelData.isActive ? 0.78 : 1
+          font.pointSize: Tokens.font.size.small
+          elide: Text.ElideRight
         }
+      }
 
-        TextButton {
-            Layout.fillWidth: true
-            text: qsTr("+ Add Cloudflare WARP")
-            inactiveColour: Colours.tPalette.m3surfaceContainerHigh
-            inactiveOnColour: Colours.palette.m3onSurface
+      IconButton {
+        Layout.alignment: Qt.AlignVCenter
+        icon: modelData.isActive ? "arrow_downward" : "arrow_upward"
+        visible: !modelData.isActive || GlobalConfig.utilities.vpn.provider.length > 1
 
-            onClicked: {
-                const providers = [...GlobalConfig.utilities.vpn.provider];
-                providers.push({
-                    name: "warp",
-                    displayName: "Cloudflare WARP",
-                    interface: "CloudflareWARP"
-                });
-                GlobalConfig.utilities.vpn.provider = providers;
-            }
+        onClicked: {
+          const providers = root.clonedProviders();
+          if (modelData.isActive && index < providers.length - 1) {
+            const temp = providers[index];
+            providers[index] = providers[index + 1];
+            providers[index + 1] = temp;
+          } else if (!modelData.isActive) {
+            const provider = providers.splice(index, 1)[0];
+            providers.unshift(provider);
+          }
+
+          GlobalConfig.utilities.vpn.provider = providers;
         }
+      }
+
+      IconButton {
+        Layout.alignment: Qt.AlignVCenter
+        icon: "delete"
+
+        onClicked: {
+          const providers = [];
+          for (let i = 0; i < GlobalConfig.utilities.vpn.provider.length; i++) {
+            if (i !== index)
+              providers.push(root.cloneProvider(GlobalConfig.utilities.vpn.provider[i]));
+          }
+          GlobalConfig.utilities.vpn.provider = providers;
+        }
+      }
     }
+  }
 }
