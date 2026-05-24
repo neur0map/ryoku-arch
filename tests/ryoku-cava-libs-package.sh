@@ -31,6 +31,12 @@ distro_arch="$ROOT_DIR/install/packaging/distro-arch.sh"
 update_perform="$ROOT_DIR/bin/ryoku-update-perform"
 [[ -f $update_perform ]] || fail "missing bin/ryoku-update-perform"
 
+grep -qF 'script_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"' "$distro_arch" || \
+  fail "install/packaging/distro-arch.sh must resolve the repo root, not install/, before sourcing lib/runtime-env.sh"
+
+grep -qF 'source "$script_root/lib/runtime-env.sh"' "$distro_arch" || \
+  fail "install/packaging/distro-arch.sh must source lib/runtime-env.sh from the repo root"
+
 grep -qE '^pkgname=cava-ryoku$' "$pkgbuild" || \
   fail "cava-ryoku PKGBUILD must declare pkgname=cava-ryoku"
 

@@ -15,7 +15,8 @@
 
 set -euo pipefail
 
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+script_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
+source "$script_root/lib/runtime-env.sh"
 
 LOCAL_PKGS=(cava-ryoku)
 
