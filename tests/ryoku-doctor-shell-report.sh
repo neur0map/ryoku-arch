@@ -32,9 +32,12 @@ trap 'rm -rf "$tmp"' EXIT
 
 home="$tmp/home"
 runtime="$tmp/runtime"
+legacy_runtime="$home/.config/quickshell/legacy-host-shell"
 bin_dir="$tmp/bin"
 report_tmp="$tmp/reports"
 systemctl_log="$tmp/systemctl.log"
+qs_kill_log="$tmp/qs-kill.log"
+qs_killed_marker="$tmp/qs-stale-killed"
 current_user="$(id -un)"
 current_host="$(hostname 2>/dev/null || true)"
 
@@ -48,11 +51,13 @@ mkdir -p \
   "$runtime/modules" \
   "$runtime/scripts" \
   "$runtime/services" \
+  "$legacy_runtime" \
   "$bin_dir" \
   "$report_tmp"
 
 touch \
   "$runtime/shell.qml" \
+  "$legacy_runtime/shell.qml" \
   "$runtime/modules/Shortcuts.qml" \
   "$runtime/services/Hypr.qml" \
   "$runtime/assets/systemd/ryoku-shell.service" \
@@ -134,6 +139,12 @@ if [[ -n ${QS_CONFIG_NAME:-} || -n ${QS_CONFIG_PATH:-} || -n ${QS_MANIFEST:-} ]]
   exit 9
 fi
 
+if [[ ${1:-} == "kill" ]]; then
+  printf '%s\n' "$*" >> "$RYOKU_QS_KILL_LOG"
+  touch "$RYOKU_QS_KILLED_MARKER"
+  exit 0
+fi
+
 if [[ ${1:-} == "list" ]]; then
   cat <<EOF
 Instance test:
@@ -141,6 +152,14 @@ Instance test:
   Config path: $RYOKU_TEST_RUNTIME/shell.qml
   Display connection: wayland/wayland-test
 EOF
+  if [[ -n ${RYOKU_TEST_LEGACY_RUNTIME:-} && ! -f $RYOKU_QS_KILLED_MARKER ]]; then
+    cat <<EOF
+Instance stale:
+  Process ID: 456
+  Config path: $RYOKU_TEST_LEGACY_RUNTIME/shell.qml
+  Display connection: wayland/wayland-test
+EOF
+  fi
   exit 0
 fi
 
@@ -162,11 +181,14 @@ run_shell_doctor() {
   RYOKU_PATH="$ROOT_DIR" \
   RYOKU_SHELL_RUNTIME_DIR="$runtime" \
   RYOKU_TEST_RUNTIME="$runtime" \
+  RYOKU_TEST_LEGACY_RUNTIME="$legacy_runtime" \
+  RYOKU_QS_KILL_LOG="$qs_kill_log" \
+  RYOKU_QS_KILLED_MARKER="$qs_killed_marker" \
   RYOKU_SYSTEMCTL_LOG="$systemctl_log" \
   QS_CONFIG_NAME="ryoku-rebirth-shell" \
   TMPDIR="$report_tmp" \
   PATH="$bin_dir:$home/.local/bin:/usr/bin:/bin" \
-    "$ROOT_DIR/bin/ryoku-doctor" shell 2>&1
+    "$ROOT_DIR/bin/ryoku-doctor" 2>&1
 }
 
 output="$(run_shell_doctor)" || fail "ryoku-doctor shell should pass on a healthy Hyprland runtime: $output"
@@ -177,6 +199,8 @@ assert_contains "$output" 'Checking Hyprland compositor' \
   "doctor should check the current Hyprland compositor path"
 assert_contains "$output" 'Checking Ryoku shell runtime' \
   "doctor should check the Ryoku shell runtime payload"
+assert_contains "$output" 'FIX: Stopped duplicate/stale Quickshell runtime' \
+  "doctor should repair duplicate Quickshell runtimes instead of allowing two bars"
 assert_not_contains "$output" 'Checking Niri|iNiR|inir' \
   "doctor should not advertise stale Niri/iNiR shell checks"
 assert_contains "$output" 'Doctor report:' \
@@ -185,6 +209,9 @@ assert_contains "$output" 'Repaired rebirth audio mixer self-heal service' \
   "doctor should install the rebirth audio restore service before shell diagnostics"
 assert_contains "$output" 'OK: ryoku-audio-restore-mixers.service is enabled' \
   "doctor should clear the pre-rebirth audio restore service failure"
+qs_kill_output="$(<"$qs_kill_log")"
+assert_contains "$qs_kill_output" "kill -p $legacy_runtime --any-display" \
+  "doctor should kill the stale host-shell Quickshell runtime"
 
 systemctl_output="$(<"$systemctl_log")"
 assert_contains "$systemctl_output" '--user enable --now ryoku-audio-restore-mixers.service' \
@@ -252,7 +279,7 @@ runtime_pick_output=$(
   RYOKU_TEST_RUNTIME_ARGS="$runtime_args" \
   TMPDIR="$report_tmp" \
   PATH="$bin_dir:$home/.local/bin:/usr/bin:/bin" \
-    "$ROOT_DIR/bin/ryoku-doctor" shell 2>&1
+    "$ROOT_DIR/bin/ryoku-doctor" 2>&1
 ) || fail "ryoku-doctor shell should prefer active runtime setup over stale installed setup: $runtime_pick_output"
 
 grep -Fq "runtime doctor selected" <<<"$runtime_pick_output" \

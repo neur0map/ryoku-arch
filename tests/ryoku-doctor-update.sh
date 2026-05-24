@@ -61,7 +61,7 @@ CONFIRM
 
 chmod 755 "$tmp/fake-ryoku/bin/ryoku-update-confirm"
 
-"$tmp/bin/ryoku-doctor-link" -h | grep -Fq 'ryoku-doctor [shell|update|-h]' \
+"$tmp/bin/ryoku-doctor-link" -h | grep -Fq 'Usage: ryoku-doctor [-h]' \
   || fail "ryoku-doctor should resolve its repo root when called through a symlink"
 
 git init -b main "$tmp/source" >/dev/null

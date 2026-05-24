@@ -492,6 +492,76 @@ hyprland_session_active() {
   command_present hyprctl && hyprctl monitors -j >/dev/null 2>&1
 }
 
+rebirth_shell_runtime_dir() {
+  printf '%s\n' "${RYOKU_SHELL_RUNTIME_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell}"
+}
+
+quickshell_config_runtime_dir() {
+  local config="$1"
+
+  if [[ $config == */shell.qml ]]; then
+    printf '%s\n' "${config%/shell.qml}"
+  else
+    dirname -- "$config"
+  fi
+}
+
+quickshell_config_is_stale_runtime() {
+  local config="$1"
+  local canonical_runtime
+  local runtime_path
+
+  [[ -n $config ]] || return 1
+
+  canonical_runtime="$(rebirth_shell_runtime_dir)"
+  [[ $config == "$canonical_runtime/shell.qml" ]] && return 1
+
+  runtime_path="$(quickshell_config_runtime_dir "$config")"
+  case "$runtime_path" in
+    */quickshell/ryoku-shell | */quickshell/*-shell | */quickshell/inir | */quickshell/illogical-impulse)
+      return 0
+      ;;
+  esac
+
+  return 1
+}
+
+stop_duplicate_quickshell_runtimes() {
+  local output line current_config=""
+  local stale_runtime
+  local stale_runtimes=()
+
+  command_present qs || return 0
+  hyprland_session_active || return 0
+
+  output="$(env -u QS_CONFIG_NAME -u QS_CONFIG_PATH -u QS_MANIFEST qs list --all 2>/dev/null)" || return 0
+
+  while IFS= read -r line; do
+    case "$line" in
+      Instance\ *)
+        if [[ -n $current_config ]] && quickshell_config_is_stale_runtime "$current_config"; then
+          stale_runtimes+=("$(quickshell_config_runtime_dir "$current_config")")
+        fi
+        current_config=""
+        ;;
+      *"Config path:"*)
+        current_config="${line#*Config path: }"
+        ;;
+    esac
+  done <<<"$output"
+
+  if [[ -n $current_config ]] && quickshell_config_is_stale_runtime "$current_config"; then
+    stale_runtimes+=("$(quickshell_config_runtime_dir "$current_config")")
+  fi
+
+  for stale_runtime in "${stale_runtimes[@]}"; do
+    log "Stopping stale Quickshell runtime: $stale_runtime"
+    env -u QS_CONFIG_NAME -u QS_CONFIG_PATH -u QS_MANIFEST \
+      qs kill -p "$stale_runtime" --any-display >/dev/null 2>&1 || \
+      warn "could not stop stale Quickshell runtime: $stale_runtime"
+  done
+}
+
 converge_rebirth_session_services() {
   command_present systemctl || return 0
   hyprland_session_active || return 0
@@ -519,6 +589,7 @@ converge_rebirth_session_services() {
     xdg-desktop-portal.service \
     >/dev/null 2>&1 || true
 
+  stop_duplicate_quickshell_runtimes
   restart_rebirth_ui
 }
 

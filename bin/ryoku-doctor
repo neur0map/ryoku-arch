@@ -78,10 +78,15 @@ fi
 
 usage() {
   cat <<'USAGE'
-Usage: ryoku-doctor [shell|update|-h]
+Usage: ryoku-doctor [-h]
 
-Diagnoses the latest failed Ryoku update when update state needs attention.
-Otherwise runs the desktop shell doctor.
+Runs the right Ryoku doctor automatically:
+  - update repair when the last update needs attention
+  - desktop shell health and automatic repair otherwise
+
+Advanced compatibility aliases:
+  ryoku-doctor update
+  ryoku-doctor shell
 USAGE
 }
 

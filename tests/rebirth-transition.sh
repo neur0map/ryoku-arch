@@ -39,6 +39,8 @@ home="$tmp_dir/home"
 canonical_ryoku="$home/.local/share/ryoku"
 ryoku="$home/.local/share/omarchy"
 state="$home/.local/state/ryoku"
+runtime="$home/.config/quickshell/ryoku-shell"
+legacy_runtime="$home/.config/quickshell/legacy-host-shell"
 bin_dir="$tmp_dir/bin"
 log_file="$tmp_dir/calls.log"
 
@@ -49,6 +51,8 @@ mkdir -p \
   "$ryoku/lib" \
   "$ryoku/config/hypr" \
   "$ryoku/wallpapers" \
+  "$runtime" \
+  "$legacy_runtime" \
   "$bin_dir"
 
 printf '# test runtime env\n' >"$ryoku/lib/runtime-env.sh"
@@ -62,6 +66,30 @@ touch \
 write_stub "$bin_dir/sudo" 'exit 0'
 write_stub "$bin_dir/hyprctl" 'printf "[]\n"'
 write_stub "$bin_dir/systemctl" 'printf "systemctl:%s\n" "$*" >> "$RYOKU_TEST_LOG"'
+cat >"$bin_dir/qs" <<'SH'
+#!/bin/bash
+if [[ ${1:-} == "list" ]]; then
+  cat <<EOF
+Instance ryoku:
+  Process ID: 123
+  Config path: $RYOKU_TEST_RUNTIME/shell.qml
+  Display connection: wayland/wayland-test
+Instance stale:
+  Process ID: 456
+  Config path: $RYOKU_TEST_LEGACY_RUNTIME/shell.qml
+  Display connection: wayland/wayland-test
+EOF
+  exit 0
+fi
+
+if [[ ${1:-} == "kill" ]]; then
+  printf "qs:%s\n" "$*" >> "$RYOKU_TEST_LOG"
+  exit 0
+fi
+
+exit 0
+SH
+chmod +x "$bin_dir/qs"
 write_stub "$ryoku/bin/ryoku-update-git" 'printf "update-git:%s\n" "${RYOKU_UPDATE_BRANCH:-}" >> "$RYOKU_TEST_LOG"'
 write_stub "$ryoku/bin/ryoku-rebirth-prepare-live" 'printf "prepare:%s\n" "$*" >> "$RYOKU_TEST_LOG"'
 write_stub "$ryoku/bin/ryoku-snapshot" 'printf "snapshot:%s\n" "$*" >> "$RYOKU_TEST_LOG"'
@@ -80,6 +108,8 @@ HOME="$home" \
 RYOKU_PATH="" \
 RYOKU_STATE_PATH="$state" \
 RYOKU_TEST_LOG="$log_file" \
+RYOKU_TEST_RUNTIME="$runtime" \
+RYOKU_TEST_LEGACY_RUNTIME="$legacy_runtime" \
 RYOKU_TEST_PURGE_STATUS=77 \
 PATH="$bin_dir:/usr/bin:/bin" \
   "$TRANSITION" --allow-auth-prompt >"$output" 2>&1
@@ -127,6 +157,8 @@ assert_contains "$log_file" 'systemctl:--user stop niri.service xdg-desktop-port
   "transition should stop stale Niri/GNOME portal services after purge"
 assert_contains "$log_file" 'systemctl:--user start xdg-desktop-portal-hyprland.service xdg-desktop-portal.service' \
   "transition should start the Hyprland portal after purge"
+assert_contains "$log_file" "qs:kill -p $legacy_runtime --any-display" \
+  "transition should stop stale host-shell Quickshell runtimes during rebirth cleanup"
 assert_contains "$log_file" 'purge:--confirm-niri-free --allow-auth-prompt' \
   "transition should call the guarded Niri purge"
 assert_contains "$output" 'Choose the Hyprland session.' \
