@@ -72,6 +72,10 @@ grep -Fq 'Channel: unstable-dev' <<< "$output" || \
   fail "bootstrap should use the requested update channel"
 grep -Fq "Updater: $install/bin/ryoku-update" <<< "$output" || \
   fail "bootstrap should show the refreshed updater path"
+grep -Fq "Expected doctor: $install/bin/ryoku-doctor" <<< "$output" || \
+  fail "bootstrap should show the expected installed doctor path"
+grep -Fq "Active doctor: $install/bin/ryoku-doctor" <<< "$output" || \
+  fail "bootstrap should show that PATH resolves doctor from the installed checkout"
 grep -Fq 'fresh-update:-y' "$log" || \
   fail "bootstrap should exec the refreshed installed updater with -y"
 grep -Fq 'skipped /usr/local Ryoku command shim repair' <<< "$output" || \

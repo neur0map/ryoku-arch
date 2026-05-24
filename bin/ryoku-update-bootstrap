@@ -102,6 +102,15 @@ git_in_ryoku() {
   GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=/bin/true git -C "$ryoku_path" "$@"
 }
 
+command_realpath() {
+  local command_name="$1"
+  local command_path=""
+
+  command_path="$(command -v "$command_name" 2>/dev/null || true)"
+  [[ -n $command_path ]] || return 1
+  readlink -f "$command_path" 2>/dev/null || printf '%s\n' "$command_path"
+}
+
 fetch_release_refs() {
   local branch
 
@@ -198,6 +207,7 @@ repair_command_bridges() {
   local command_path
 
   mkdir -p "$bin_home"
+  export PATH="$ryoku_path/bin:$bin_home:$PATH"
 
   if [[ -f $ryoku_path/lib/runtime-env.sh ]]; then
     lib_home="$(dirname "$bin_home")/lib"
@@ -263,15 +273,21 @@ repair_system_command_bridges() {
 print_bootstrap_summary() {
   local branch="unknown"
   local commit="unknown"
+  local active_doctor=""
+  local expected_doctor="$ryoku_path/bin/ryoku-doctor"
 
   branch="$(git_in_ryoku rev-parse --abbrev-ref HEAD 2>/dev/null || printf '%s\n' "unknown")"
   commit="$(git_in_ryoku rev-parse --short HEAD 2>/dev/null || printf '%s\n' "unknown")"
+  active_doctor="$(command_realpath ryoku-doctor || true)"
+  [[ -n $active_doctor ]] || active_doctor="missing"
 
   log "Ryoku bootstrap result:"
   log "  Path: $ryoku_path"
   log "  Channel: $release_branch"
   log "  Checkout: ${branch}@${commit}"
   log "  Updater: $ryoku_path/bin/ryoku-update"
+  log "  Expected doctor: $expected_doctor"
+  log "  Active doctor: $active_doctor"
   log "  System shims: $system_shim_status"
 }
 
