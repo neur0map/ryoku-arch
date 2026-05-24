@@ -48,16 +48,18 @@ mkdir -p \
   "$ryoku/install/config" \
   "$ryoku/lib" \
   "$ryoku/config/hypr" \
+  "$ryoku/wallpapers" \
   "$bin_dir"
 
 printf '# test runtime env\n' >"$ryoku/lib/runtime-env.sh"
+printf 'wallpaper\n' >"$ryoku/wallpapers/new-ryoku-walls-v0-jk6dv9e00s2h1.webp"
 touch \
   "$ryoku/config/hypr/colors.conf" \
   "$ryoku/config/hypr/hypridle-rebirth.conf" \
   "$ryoku/config/hypr/hyprland.conf" \
   "$ryoku/config/hypr/hyprland-gui.conf"
 
-write_stub "$bin_dir/sudo" 'exit 1'
+write_stub "$bin_dir/sudo" 'exit 0'
 write_stub "$bin_dir/hyprctl" 'exit 1'
 write_stub "$ryoku/bin/ryoku-update-git" 'printf "update-git:%s\n" "${RYOKU_UPDATE_BRANCH:-}" >> "$RYOKU_TEST_LOG"'
 write_stub "$ryoku/bin/ryoku-rebirth-prepare-live" 'printf "prepare:%s\n" "$*" >> "$RYOKU_TEST_LOG"'
@@ -65,6 +67,8 @@ write_stub "$ryoku/bin/ryoku-snapshot" 'printf "snapshot:%s\n" "$*" >> "$RYOKU_T
 write_stub "$ryoku/bin/ryoku-update-perform" 'printf "perform\n" >> "$RYOKU_TEST_LOG"'
 write_stub "$ryoku/bin/ryoku-refresh-config" 'printf "refresh:%s\n" "$1" >> "$RYOKU_TEST_LOG"'
 write_stub "$ryoku/install/config/config.sh" 'printf "config-setup\n" >> "$RYOKU_TEST_LOG"'
+write_stub "$ryoku/bin/ryoku-wallpaper-apply" 'printf "wallpaper:%s\n" "$*" >> "$RYOKU_TEST_LOG"'
+write_stub "$ryoku/bin/ryoku-install-qylock" 'printf "qylock:%s\n" "$*" >> "$RYOKU_TEST_LOG"'
 write_stub "$ryoku/bin/ryoku-restart-ui" 'printf "restart-ui:%s\n" "$*" >> "$RYOKU_TEST_LOG"'
 write_stub "$ryoku/bin/ryoku-rebirth-purge-niri-live" 'printf "purge:%s\n" "$*" >> "$RYOKU_TEST_LOG"; exit "${RYOKU_TEST_PURGE_STATUS:-0}"'
 
@@ -103,6 +107,10 @@ assert_contains "$log_file" 'config-setup' \
   "transition should run default config and wallpaper seeding for full-install parity"
 assert_contains "$log_file" 'prepare:--allow-auth-prompt' \
   "transition should pass auth prompt permission to rebirth preparation"
+assert_contains "$log_file" 'wallpaper:--type image' \
+  "transition should apply a default rebirth wallpaper when shell wallpaper state is empty"
+assert_contains "$log_file" 'qylock:--theme clockwork' \
+  "transition should install the default qylock clockwork lockscreen"
 assert_contains "$log_file" 'snapshot:create' \
   "transition should create a snapshot before update stages"
 assert_contains "$log_file" 'perform' \
@@ -117,5 +125,9 @@ assert_contains "$output" 'Choose the Hyprland session.' \
   "transition should explain the second run when purge is deferred"
 assert_contains "$output" 'After that second run finishes, reboot once more' \
   "transition should explain the required final reboot after the second Hyprland run"
+[[ -s $home/.local/state/ryoku-shell/wallpaper/path.txt ]] \
+  || fail "transition should write the Ryoku shell wallpaper state"
+[[ $(<"$home/.config/qylock/theme") == "clockwork/orbital" ]] \
+  || fail "transition should write qylock's clockwork/orbital lockscreen theme"
 
 echo "PASS: ryoku rebirth transition bootstraps stuck legacy installs"

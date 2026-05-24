@@ -30,6 +30,7 @@ What it does:
   - switches the update channel to unstable-dev
   - updates the installed Ryoku checkout
   - installs the minimal Hyprland/rebirth package set
+  - injects rebirth defaults for wallpaper and qylock clockwork lockscreen
   - runs the normal Ryoku update stages
   - refreshes the rebirth Hyprland config with backups
   - purges Niri/iNiR only when the guarded purge command proves Hyprland is active
@@ -322,6 +323,113 @@ run_rebirth_config_setup() {
   run_from_checkout install/config/config.sh
 }
 
+backup_transition_file_once() {
+  local file="$1"
+  local backup="$file.ryoku-rebirth.bak"
+
+  [[ -e $file ]] || return 0
+  [[ -e $backup ]] && return 0
+
+  cp -a "$file" "$backup" 2>/dev/null || true
+}
+
+default_rebirth_wallpaper_source() {
+  local rel
+  local candidates=(
+    new-ryoku-walls-v0-jk6dv9e00s2h1.webp
+    random_wallpaper.jpg
+    wallhaven-qrgvll.png
+  )
+
+  for rel in "${candidates[@]}"; do
+    if [[ -f $ryoku_root/wallpapers/$rel ]]; then
+      printf '%s\n' "$ryoku_root/wallpapers/$rel"
+      return 0
+    fi
+  done
+
+  find "$ryoku_root/wallpapers" -maxdepth 1 -type f \
+    \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \) \
+    -print -quit 2>/dev/null
+}
+
+apply_rebirth_wallpaper_default() {
+  local source_wallpaper target_dir target_wallpaper current_path current_file
+  local state_home="${XDG_STATE_HOME:-$HOME/.local/state}"
+
+  current_file="$state_home/ryoku-shell/wallpaper/path.txt"
+  current_path=""
+  if [[ -s $current_file ]]; then
+    read -r current_path <"$current_file" || true
+  fi
+
+  if [[ -n $current_path && -f $current_path ]]; then
+    return 0
+  fi
+
+  source_wallpaper="$(default_rebirth_wallpaper_source)"
+  [[ -n $source_wallpaper && -f $source_wallpaper ]] || {
+    warn "no bundled rebirth wallpaper was found to set as the default"
+    return 0
+  }
+
+  target_dir="${RYOKU_WALLPAPER_DIR:-${XDG_PICTURES_DIR:-$HOME/Pictures}/Wallpapers}"
+  target_wallpaper="$target_dir/$(basename "$source_wallpaper")"
+  [[ -f $target_wallpaper ]] || target_wallpaper="$source_wallpaper"
+
+  log "Applying rebirth default wallpaper: $target_wallpaper"
+  mkdir -p "$(dirname "$current_file")"
+  backup_transition_file_once "$current_file"
+  printf '%s\n' "$target_wallpaper" >"$current_file"
+
+  if [[ -f $ryoku_root/bin/ryoku-wallpaper-apply ]]; then
+    run_from_checkout bin/ryoku-wallpaper-apply --type image "$target_wallpaper" >/dev/null || \
+      warn "default wallpaper state was written, but live wallpaper apply failed"
+  elif [[ -f $ryoku_root/bin/ryoku-theme-bg-set ]]; then
+    run_from_checkout bin/ryoku-theme-bg-set "$target_wallpaper" >/dev/null || \
+      warn "default wallpaper state was written, but theme background apply failed"
+  fi
+}
+
+write_qylock_clockwork_theme_default() {
+  local theme_file="$HOME/.config/qylock/theme"
+
+  if [[ -s $theme_file ]] && grep -Fxq "clockwork/orbital" "$theme_file"; then
+    return 0
+  fi
+
+  log "Setting rebirth qylock lockscreen theme to clockwork/orbital"
+  mkdir -p "$(dirname "$theme_file")"
+  backup_transition_file_once "$theme_file"
+  printf '%s\n' "clockwork/orbital" >"$theme_file"
+}
+
+install_rebirth_lockscreen_defaults() {
+  local status
+
+  write_qylock_clockwork_theme_default
+
+  [[ -f $ryoku_root/bin/ryoku-install-qylock ]] || {
+    warn "qylock installer is unavailable; wrote the user lockscreen theme only"
+    return 0
+  }
+
+  if ! can_use_sudo; then
+    warn "skipped SDDM qylock clockwork install because sudo is not available"
+    return 0
+  fi
+
+  log "Installing rebirth qylock clockwork defaults"
+  set +e
+  run_from_checkout bin/ryoku-install-qylock --theme clockwork
+  status=$?
+  set -e
+
+  if (( status != 0 )); then
+    warn "qylock clockwork install exited with status $status; user lockscreen theme was still set"
+  fi
+}
+
 refresh_rebirth_hyprland_config() {
   local config
   local configs=(
@@ -421,6 +529,8 @@ main() {
   repair_runtime_env_bridges
   run_rebirth_config_setup
   prepare_hyprland
+  apply_rebirth_wallpaper_default
+  install_rebirth_lockscreen_defaults
   create_snapshot
   run_update_stages
   refresh_rebirth_hyprland_config
