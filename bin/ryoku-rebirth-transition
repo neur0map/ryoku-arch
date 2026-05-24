@@ -25,6 +25,9 @@ Expected transition flow:
   4. Reboot once more so the compositor, shell, DBus, and user services all
      start cleanly from the rebirth paths.
 
+If local ryoku-update or ryoku-doctor commands still look stale, first run:
+  curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/unstable-dev/bin/ryoku-update-bootstrap | bash
+
 What it does:
   - repairs legacy ~/.local/bin runtime-env resolution
   - switches the update channel to unstable-dev
@@ -638,6 +641,10 @@ Next:
      curl -fsSL $raw_script_url | bash -s -- --allow-auth-prompt
   4. After that second run finishes, reboot once more so Hyprland,
      Ryoku shell, DBus, and user services start cleanly from the rebirth paths.
+
+If ryoku-update or ryoku-doctor still looks stale after reboot, run the updater
+bootstrap first:
+  curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/unstable-dev/bin/ryoku-update-bootstrap | bash
 
 EOF
       ;;

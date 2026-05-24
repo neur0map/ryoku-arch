@@ -168,6 +168,8 @@ assert_contains "$output" 'Choose the Hyprland session.' \
   "transition should explain the second run when purge is deferred"
 assert_contains "$output" 'After that second run finishes, reboot once more' \
   "transition should explain the required final reboot after the second Hyprland run"
+assert_contains "$output" 'ryoku-update-bootstrap' \
+  "transition should point stale updater/doctor users at the raw bootstrap recovery path"
 [[ -s $home/.local/state/ryoku-shell/wallpaper/path.txt ]] \
   || fail "transition should write the Ryoku shell wallpaper state"
 [[ $(<"$home/.config/qylock/theme") == "clockwork/orbital" ]] \

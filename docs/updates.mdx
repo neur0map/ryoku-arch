@@ -91,8 +91,11 @@ ryoku-update -y
 For machines that are already too stuck to receive the fixed local doctor, run the latest doctor directly from the public repository:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/unstable-dev/bin/ryoku-doctor | bash -s -- update
+curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/unstable-dev/bin/ryoku-update-bootstrap | bash
+ryoku-doctor
 ryoku-update -y
 ```
 
-This does not require a GitHub account. The downloaded doctor reads the installed Ryoku channel, repairs only old official Ryoku branch history, preserves dirty checkout files in a git stash, and leaves arbitrary local commits untouched.
+This does not require a GitHub account. The downloaded bootstrap pulls the installed Ryoku checkout from the selected channel, defaults missing channel state to `unstable-dev` for rebirth recovery, repairs stale `~/.local/bin/ryoku-*` command shims, prints the final path/channel/commit proof, then starts the freshly installed updater.
+
+Use the bootstrap path when `ryoku-update` or `ryoku-doctor` looks stale, does not show the `Ryoku update result:` proof block, or still resolves commands from old `.local` wrappers.
