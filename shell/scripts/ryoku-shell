@@ -112,6 +112,7 @@ install_service() {
     fi
   fi
   rm -f "$systemd_dropin_dir/ryoku-dev-qs.conf"
+  rm -f "$systemd_dropin_dir/qt6-fractional-scale-workaround.conf"
   rmdir "$systemd_dropin_dir" >/dev/null 2>&1 || true
   systemctl --user daemon-reload >/dev/null 2>&1 || true
 }

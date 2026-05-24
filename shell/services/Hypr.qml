@@ -38,6 +38,9 @@ Singleton {
 
     property bool hadKeyboard
     property string lastSpecialWorkspace: ""
+    property bool refreshToplevelsPending
+    property bool refreshWorkspacesPending
+    property bool refreshMonitorsPending
 
     signal configReloaded
 
@@ -90,6 +93,13 @@ Singleton {
         extras.batchMessage(["keyword bindlni ,Caps_Lock,global,ryoku:refreshDevices", "keyword bindlni ,Num_Lock,global,ryoku:refreshDevices"]);
     }
 
+    function queueRefresh(toplevels: bool, workspaces: bool, monitors: bool): void {
+        refreshToplevelsPending = refreshToplevelsPending || toplevels;
+        refreshWorkspacesPending = refreshWorkspacesPending || workspaces;
+        refreshMonitorsPending = refreshMonitorsPending || monitors;
+        refreshTimer.restart();
+    }
+
     Component.onCompleted: reloadDynamicConfs()
 
     onCapsLockChanged: {
@@ -129,21 +139,42 @@ Singleton {
                 root.configReloaded();
                 root.reloadDynamicConfs();
             } else if (["workspace", "moveworkspace", "activespecial", "focusedmon"].includes(n)) {
-                Hyprland.refreshWorkspaces();
-                Hyprland.refreshMonitors();
+                root.queueRefresh(false, true, true);
             } else if (["openwindow", "closewindow", "movewindow"].includes(n)) {
-                Hyprland.refreshToplevels();
-                Hyprland.refreshWorkspaces();
+                root.queueRefresh(true, true, false);
             } else if (n.includes("mon")) {
-                Hyprland.refreshMonitors();
+                root.queueRefresh(false, false, true);
             } else if (n.includes("workspace")) {
-                Hyprland.refreshWorkspaces();
+                root.queueRefresh(false, true, false);
             } else if (n.includes("window") || n.includes("group") || ["pin", "fullscreen", "changefloatingmode", "minimize"].includes(n)) {
-                Hyprland.refreshToplevels();
+                root.queueRefresh(true, false, false);
             }
         }
 
         target: Hyprland
+    }
+
+    Timer {
+        id: refreshTimer
+
+        interval: 25
+        repeat: false
+        onTriggered: {
+            const refreshToplevels = root.refreshToplevelsPending;
+            const refreshWorkspaces = root.refreshWorkspacesPending;
+            const refreshMonitors = root.refreshMonitorsPending;
+
+            root.refreshToplevelsPending = false;
+            root.refreshWorkspacesPending = false;
+            root.refreshMonitorsPending = false;
+
+            if (refreshToplevels)
+                Hyprland.refreshToplevels();
+            if (refreshWorkspaces)
+                Hyprland.refreshWorkspaces();
+            if (refreshMonitors)
+                Hyprland.refreshMonitors();
+        }
     }
 
     Connections {

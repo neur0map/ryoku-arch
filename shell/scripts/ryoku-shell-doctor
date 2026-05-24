@@ -11,7 +11,7 @@ systemd_user_dir="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
 qs_bin="${RYOKU_QS_BIN:-qs}"
 
 doctor_step=0
-doctor_total=24
+doctor_total=25
 doctor_passed=0
 doctor_failed=0
 doctor_fixed=0
@@ -90,9 +90,10 @@ doctor_title() {
       --foreground 15 \
       --padding "1 3" \
       "Ryoku Doctor flight deck" \
-      "24-point shell, updater, and recovery health sweep"
+      "Hyprland shell health + automatic repair"
   else
     echo "Ryoku Doctor flight deck"
+    echo "Hyprland shell health + automatic repair"
   fi
 }
 
@@ -365,6 +366,35 @@ check_launcher() {
   fi
 }
 
+check_quickshell_qt_abi() {
+  local qs_path=""
+  local built_qt=""
+  local runtime_qt=""
+
+  qs_path="$(command -v "$qs_bin" 2>/dev/null || true)"
+  if [[ -z $qs_path || ! -x $qs_path ]]; then
+    doctor_warn "Quickshell binary unavailable; Qt ABI check skipped"
+    return 0
+  fi
+
+  if command -v strings >/dev/null 2>&1; then
+    built_qt="$(strings "$qs_path" | awk '/^[0-9]+[.][0-9]+[.][0-9]+$/ { print; exit }')"
+  fi
+
+  if command -v pacman >/dev/null 2>&1; then
+    runtime_qt="$(pacman -Q qt6-base 2>/dev/null | awk '{ print $2 }')"
+    runtime_qt="${runtime_qt%%-*}"
+  fi
+
+  if [[ -z $built_qt || -z $runtime_qt ]]; then
+    doctor_pass "Quickshell Qt ABI check skipped; version markers unavailable"
+  elif [[ $built_qt == "$runtime_qt" ]]; then
+    doctor_pass "Quickshell Qt ABI current ($runtime_qt)"
+  else
+    doctor_warn "Quickshell was built against Qt $built_qt but system Qt is $runtime_qt; rebuild quickshell"
+  fi
+}
+
 check_command_bridges() {
   local bin_home="${XDG_BIN_HOME:-$HOME/.local/bin}"
   local fixed=0
@@ -615,11 +645,48 @@ check_hyprland_config() {
 }
 
 check_service() {
+  local service_file="$systemd_user_dir/ryoku-shell.service"
+  local stale_dropin="$systemd_user_dir/ryoku-shell.service.d/qt6-fractional-scale-workaround.conf"
+  local launcher=""
+  local refresh_needed=0
   local state
 
   if ! command -v systemctl >/dev/null 2>&1; then
     doctor_warn "systemctl unavailable; service check skipped"
     return 0
+  fi
+
+  if [[ -e $stale_dropin || -L $stale_dropin ]]; then
+    if rm -f "$stale_dropin"; then
+      rmdir "$systemd_user_dir/ryoku-shell.service.d" >/dev/null 2>&1 || true
+      systemctl --user daemon-reload >/dev/null 2>&1 || true
+      doctor_fix "Removed stale Qt fractional-scale drop-in: $stale_dropin"
+    else
+      doctor_fail "Stale Qt fractional-scale drop-in remains: $stale_dropin"
+    fi
+  fi
+
+  if [[ -f $service_file ]]; then
+    grep -Fq "Environment=PATH=%h/.local/bin:%h/.local/share/ryoku/bin:" "$service_file" || refresh_needed=1
+    grep -Fq "kf.xmlgui=false" "$service_file" || refresh_needed=1
+    grep -Fq "Environment=QS_DISABLE_CRASH_HANDLER=1" "$service_file" || refresh_needed=1
+    grep -Eq '^ExecStopPost=-.*ryoku-shell-cleanup-orphans --quiet$' "$service_file" || refresh_needed=1
+    grep -Fq "IOSchedulingPriority=2" "$service_file" || refresh_needed=1
+  else
+    refresh_needed=1
+  fi
+
+  if (( refresh_needed == 1 )); then
+    launcher="$(command -v ryoku-shell 2>/dev/null || true)"
+    if [[ -z $launcher && -x $HOME/.local/bin/ryoku-shell ]]; then
+      launcher="$HOME/.local/bin/ryoku-shell"
+    fi
+
+    if [[ -n $launcher ]] && "$launcher" service install >/dev/null 2>&1; then
+      doctor_fix "Refreshed ryoku-shell.service from the current Ryoku runtime template"
+    else
+      doctor_fail "ryoku-shell.service is stale and could not be refreshed"
+    fi
   fi
 
   state="$(systemctl --user is-active ryoku-shell.service 2>/dev/null || true)"
@@ -800,16 +867,32 @@ check_audio_restore_service() {
 
 check_stale_compositor_wiring() {
   local niri_wants="$systemd_user_dir/niri.service.wants/ryoku-shell.service"
+  local stale_dropin="$systemd_user_dir/ryoku-shell.service.d/qt6-fractional-scale-workaround.conf"
   local compositor
+  local found=0
 
   if [[ -e $niri_wants || -L $niri_wants ]]; then
+    found=1
     compositor="$(detect_compositor || true)"
     if [[ $compositor == "Hyprland" ]] && rm -f "$niri_wants"; then
       doctor_fix "Removed stale Niri service wiring: $niri_wants"
     else
       doctor_fail "Stale Niri service wiring remains: $niri_wants"
     fi
-  else
+  fi
+
+  if [[ -e $stale_dropin || -L $stale_dropin ]]; then
+    found=1
+    if rm -f "$stale_dropin"; then
+      rmdir "$systemd_user_dir/ryoku-shell.service.d" >/dev/null 2>&1 || true
+      systemctl --user daemon-reload >/dev/null 2>&1 || true
+      doctor_fix "Removed stale Qt fractional-scale drop-in: $stale_dropin"
+    else
+      doctor_fail "Stale Qt fractional-scale drop-in remains: $stale_dropin"
+    fi
+  fi
+
+  if (( found == 0 )); then
     doctor_pass "No stale compositor service wiring"
   fi
 }
@@ -817,32 +900,33 @@ check_stale_compositor_wiring() {
 run_shell_doctor() {
   doctor_report_init
 
-	  doctor_title
-	  echo
-	  run_check "dependencies" check_dependencies
-	  run_check "command bridges" check_command_bridges
-	  run_check "runtime-env bridge" check_runtime_env_bridge
-	  run_check "MedEvac command" check_medevac_command
-	  run_check "update status" check_update_status
-	  run_check "snapshot tooling" check_snapshot_tooling
-	  run_check "state directories" check_state_directories
-	  run_check "script permissions" check_script_permissions
-	  run_check "shell source pointer" check_shell_source_pointer
-	  run_check "Hyprland compositor" check_hyprland_compositor
-	  run_check "Ryoku shell runtime" check_runtime_payload
-	  run_check "ryoku-shell launcher" check_launcher
-	  run_check "user config" check_user_config
-	  run_check "Hyprland config" check_hyprland_config
-	  run_check "ryoku-shell service" check_service
-	  run_check "portal services" check_portal_services
-	  run_check "Quickshell instance" check_quickshell_instance
-	  run_check "native plugin" check_native_plugin
-	  run_check "audio mixer self-heal" check_audio_restore_service
-	  run_check "stale compositor wiring" check_stale_compositor_wiring
-	  run_check "clipboard stack" check_clipboard_stack
-	  run_check "screenshot stack" check_screenshot_stack
-	  run_check "audio controls" check_audio_controls
-	  run_check "package helpers" check_package_helpers
+  doctor_title
+  echo
+  run_check "dependencies" check_dependencies
+  run_check "command bridges" check_command_bridges
+  run_check "runtime-env bridge" check_runtime_env_bridge
+  run_check "MedEvac command" check_medevac_command
+  run_check "update status" check_update_status
+  run_check "snapshot tooling" check_snapshot_tooling
+  run_check "state directories" check_state_directories
+  run_check "script permissions" check_script_permissions
+  run_check "shell source pointer" check_shell_source_pointer
+  run_check "Hyprland compositor" check_hyprland_compositor
+  run_check "Ryoku shell runtime" check_runtime_payload
+  run_check "ryoku-shell launcher" check_launcher
+  run_check "Quickshell Qt ABI" check_quickshell_qt_abi
+  run_check "user config" check_user_config
+  run_check "Hyprland config" check_hyprland_config
+  run_check "ryoku-shell service" check_service
+  run_check "portal services" check_portal_services
+  run_check "Quickshell instance" check_quickshell_instance
+  run_check "native plugin" check_native_plugin
+  run_check "audio mixer self-heal" check_audio_restore_service
+  run_check "stale compositor wiring" check_stale_compositor_wiring
+  run_check "clipboard stack" check_clipboard_stack
+  run_check "screenshot stack" check_screenshot_stack
+  run_check "audio controls" check_audio_controls
+  run_check "package helpers" check_package_helpers
   echo
 
   doctor_report_finish

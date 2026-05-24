@@ -21,6 +21,8 @@ fail() {
   fail "rebirth shell source should be removed"
 [[ -x $ROOT_DIR/bin/ryoku-toggle-floating-center ]] || \
   fail "missing executable floating center helper"
+[[ -f $ROOT_DIR/shell/services/Hypr.qml ]] || \
+  fail "missing Hyprland shell service"
 
 if rg -n 'ryoku-rebirth-shell|ryoku-vroomies-shell|shell-rebirth|QS_CONFIG_NAME,ryoku-|launcherWindow|clipboardManager|powerMenu toggle|systemPanel toggle' \
     "$ROOT_DIR/config/hypr" "$ROOT_DIR/bin" | grep -v 'bin/ryoku-rebirth-purge-niri-live' >/tmp/rebirth-shell-free.$$; then
@@ -116,5 +118,11 @@ rg -q 'bind = SUPER SHIFT, H, movewindow, l' "$ROOT_DIR/config/hypr/hyprland.con
   fail "Hyprland config should keep HJKL move navigation"
 rg -q 'bind = SUPER CTRL, 1, movetoworkspace, 1' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should keep direct workspace move binds"
+rg -q 'function queueRefresh' "$ROOT_DIR/shell/services/Hypr.qml" || \
+  fail "Hyprland shell service should debounce compositor model refreshes"
+rg -q 'root\.queueRefresh\(true, true, false\)' "$ROOT_DIR/shell/services/Hypr.qml" || \
+  fail "Window open/close/move events should coalesce toplevel/workspace refreshes"
+rg -q 'interval: 25' "$ROOT_DIR/shell/services/Hypr.qml" || \
+  fail "Hyprland refresh debounce should stay short enough for responsive UI"
 
 echo "PASS: rebirth Hyprland uses the Ryoku shell seed and keeps core binds"

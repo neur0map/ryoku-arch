@@ -72,6 +72,12 @@ assert_contains shell/modules/Shortcuts.qml 'WindowFactory.toggle' \
   "control center shortcuts should toggle the existing window"
 assert_contains shell/assets/systemd/ryoku-shell.service 'Environment=PATH=.*\.local/bin' \
   "service should expose user-installed Ryoku bridge commands"
+assert_contains config/systemd/user/ryoku-shell.service 'Environment=PATH=.*\.local/bin' \
+  "default service config should expose user-installed Ryoku bridge commands"
+assert_contains shell/assets/systemd/ryoku-shell.service 'IOSchedulingPriority=2' \
+  "runtime service template should prioritize shell startup I/O"
+assert_contains config/systemd/user/ryoku-shell.service 'IOSchedulingPriority=2' \
+  "default service config should prioritize shell startup I/O"
 assert_contains shell/scripts/ryoku 'ryoku-wallpaper-apply' \
   "compatibility bridge should delegate wallpaper application to Ryoku commands"
 assert_contains shell/scripts/ryoku 'ryoku-doctor' \

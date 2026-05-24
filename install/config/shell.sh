@@ -90,6 +90,8 @@ if [[ -n $backup_config_file ]]; then
   rm -f "$backup_config_file"
 fi
 
+env RYOKU_SHELL_RUNTIME_PATH="$SHELL_RUNTIME_DIR" "$RYOKU_PATH/install/config/ryoku-shell-branding.sh"
+
 ryoku_shell_launcher="$HOME/.local/bin/ryoku-shell"
 if [[ -x $ryoku_shell_launcher ]]; then
   env RYOKU_SHELL_RUNTIME_DIR="$SHELL_RUNTIME_DIR" "$ryoku_shell_launcher" service enable >/dev/null 2>&1 || true

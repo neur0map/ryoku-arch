@@ -124,6 +124,8 @@ done
 assert_not_contains config/systemd/user/ryoku-shell.service 'niri|Niri|iNiR|inir' \
   "Ryoku shell service should be compositor-neutral"
 assert_no_path config/systemd/user/ryoku-shell.service.d/qt6-fractional-scale-workaround.conf
+assert_not_contains install/config/ryoku-hypridle.sh 'qt6-fractional-scale-workaround|ryoku-shell\.service\.d|niri|Niri|iNiR|inir' \
+  "Hypridle setup should not stage retired compositor-specific shell drop-ins"
 assert_not_contains .github/workflows/docs-sync.yml 'niri-keybinds|config/niri|shell/defaults/niri|parse_niri_keybinds' \
   "docs sync should not depend on retired Niri keybind tooling"
 

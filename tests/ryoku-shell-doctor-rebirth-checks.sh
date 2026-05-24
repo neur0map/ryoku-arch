@@ -18,11 +18,11 @@ set -euo pipefail
 #      and the user gets "100% volume but silent speakers" with a clean
 #      PipeWire graph.
 #
-#   3. Stale Niri service wiring cleanup - pre-rebirth installs may have
-#      ~/.config/systemd/user/niri.service.wants/ryoku-shell.service
-#      symlinks that point at a compositor we no longer ship. The
-#      doctor must clean these up so the rebirth -> main merge doesn't
-#      leave stranded service references.
+#   3. Stale compositor wiring cleanup - pre-rebirth installs may have
+#      niri.service.wants symlinks or retired Qt fractional-scale drop-ins
+#      that point at compositor behavior we no longer ship. The doctor must
+#      clean these up so the rebirth -> main merge doesn't leave stranded
+#      service references.
 #
 # Also enforces that the bin/ryoku-doctor fallback no longer hunts for
 # the obsolete ~/.config/ryoku-shell/setup path (post-rebirth the only
@@ -53,12 +53,20 @@ grep -qE 'check_audio_restore_service\(\)' "$shell_doctor" || \
 grep -qE 'ryoku-audio-restore-mixers\.service' "$shell_doctor" || \
   fail "shell-doctor must reference ryoku-audio-restore-mixers.service by name"
 
+grep -qE 'check_quickshell_qt_abi\(\)' "$shell_doctor" || \
+  fail "shell-doctor must define check_quickshell_qt_abi to catch Qt rebuild drift"
+
+grep -qE 'rebuild quickshell' "$shell_doctor" || \
+  fail "shell-doctor must tell users to rebuild quickshell when Qt ABI drifts"
+
 grep -qE 'check_stale_compositor_wiring\(\)' "$shell_doctor" || \
   fail "shell-doctor must keep check_stale_compositor_wiring (cleans up niri.service.wants symlinks)"
+grep -qE 'qt6-fractional-scale-workaround\.conf' "$shell_doctor" || \
+  fail "shell-doctor must remove the retired Qt fractional-scale shell drop-in"
 
 # Verify all three checks are actually wired into run_shell_doctor's
 # pipeline, not just defined as dead functions.
-for check_name in check_native_plugin check_audio_restore_service check_stale_compositor_wiring; do
+for check_name in check_native_plugin check_audio_restore_service check_quickshell_qt_abi check_stale_compositor_wiring; do
   grep -qE "run_check.*$check_name" "$shell_doctor" || \
     fail "shell-doctor's run_shell_doctor must invoke $check_name via run_check"
 done
@@ -70,4 +78,4 @@ if grep -qE 'XDG_CONFIG_HOME.*}/ryoku-shell/setup' "$ryoku_doctor"; then
   fail "bin/ryoku-doctor must not search ~/.config/ryoku-shell/setup as a shell-doctor candidate (path is obsolete post-rebirth)"
 fi
 
-echo "PASS: shell doctor carries the three rebirth-critical checks (native plugin, audio self-heal, stale compositor wiring)"
+echo "PASS: shell doctor carries the rebirth-critical checks (native plugin, audio self-heal, stale compositor wiring)"

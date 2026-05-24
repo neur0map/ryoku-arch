@@ -313,6 +313,9 @@ grep -Fq "$current_user" "$report_path" \
 mkdir -p "$home/.config/systemd/user/niri.service.wants"
 ln -s "$home/.config/systemd/user/ryoku-shell.service" \
   "$home/.config/systemd/user/niri.service.wants/ryoku-shell.service"
+mkdir -p "$home/.config/systemd/user/ryoku-shell.service.d"
+printf '%s\n' '[Service]' 'Environment=QT_WAYLAND_DISABLE_FRACTIONAL_SCALE=1' \
+  >"$home/.config/systemd/user/ryoku-shell.service.d/qt6-fractional-scale-workaround.conf"
 
 set +e
 stale_output="$(run_shell_doctor)"
@@ -322,8 +325,12 @@ set -e
 (( stale_status == 0 )) || fail "doctor should repair stale Niri service wiring on Hyprland: $stale_output"
 assert_contains "$stale_output" 'Removed stale Niri service wiring' \
   "doctor should call out stale Niri service wiring repair after the Hyprland switch"
+assert_contains "$stale_output" 'Removed stale Qt fractional-scale drop-in' \
+  "doctor should call out retired Qt fractional-scale drop-in cleanup"
 [[ ! -e $home/.config/systemd/user/niri.service.wants/ryoku-shell.service ]] \
   || fail "doctor should remove the stale Niri service symlink"
+[[ ! -e $home/.config/systemd/user/ryoku-shell.service.d/qt6-fractional-scale-workaround.conf ]] \
+  || fail "doctor should remove the retired Qt fractional-scale drop-in"
 
 runtime_pick="$tmp/runtime-pick"
 old_repo="$tmp/old-repo"
