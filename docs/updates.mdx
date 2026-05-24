@@ -88,7 +88,7 @@ ryoku-doctor update
 ryoku-update -y
 ```
 
-For machines that are already too stuck to receive the fixed local doctor, run the latest doctor directly from the public repository:
+For machines that are already too stuck to receive the fixed local updater or doctor, run the pinned updater bootstrap directly from the public repository:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/9db89c4f87c037903cc65327e616a6f5597e431a/bin/ryoku-update-bootstrap | bash
@@ -96,6 +96,6 @@ ryoku-doctor
 ryoku-update -y
 ```
 
-This does not require a GitHub account. The downloaded bootstrap pulls the installed Ryoku checkout from the selected channel, defaults missing channel state to `unstable-dev` for rebirth recovery, repairs stale `~/.local/bin/ryoku-*` command shims, prints the final path/channel/commit proof, then starts the freshly installed updater.
+This does not require a GitHub account. The downloaded bootstrap pulls the installed Ryoku checkout from the selected channel, defaults missing channel state to `unstable-dev` for rebirth recovery, repairs stale `~/.local/bin/ryoku-*` command shims, attempts non-interactive `/usr/local/bin/ryoku-*` shim repair when sudo is already authorized, prints the final path/channel/commit proof, then starts the freshly installed updater.
 
-Use the bootstrap path when `ryoku-update` or `ryoku-doctor` looks stale, does not show the `Ryoku update result:` proof block, or still resolves commands from old `.local` wrappers.
+Use the bootstrap path when `ryoku-update` or `ryoku-doctor` looks stale, does not show the `Ryoku update result:` proof block, or still resolves commands from old `.local` or `/usr/local` wrappers. If the bootstrap prints `System shims: skipped`, run `sudo -v`, then run the bootstrap command again.

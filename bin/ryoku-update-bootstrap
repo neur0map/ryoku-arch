@@ -19,6 +19,8 @@ command_present() {
   command -v "$1" >/dev/null 2>&1
 }
 
+system_shim_status="not checked"
+
 state_home() {
   printf '%s\n' "${XDG_STATE_HOME:-$HOME/.local/state}"
 }
@@ -224,25 +226,37 @@ repair_system_command_bridges() {
 
   command_present sudo || {
     warn "sudo is unavailable; skipped /usr/local Ryoku command shim repair"
+    system_shim_status="skipped: sudo unavailable"
     return 0
   }
   sudo -n true >/dev/null 2>&1 || {
     warn "sudo is not currently authorized; skipped /usr/local Ryoku command shim repair"
+    system_shim_status="skipped: run sudo -v and bootstrap again"
     return 0
   }
 
   if [[ -f $ryoku_path/lib/runtime-env.sh ]]; then
-    sudo -n install -d "$system_lib" >/dev/null 2>&1 || return 0
+    sudo -n install -d "$system_lib" >/dev/null 2>&1 || {
+      system_shim_status="skipped: could not create $system_lib"
+      return 0
+    }
     sudo -n ln -sfn "$ryoku_path/lib/runtime-env.sh" "$system_lib/runtime-env.sh" || true
   fi
 
-  [[ -d $ryoku_path/bin ]] || return 0
-  sudo -n install -d "$system_bin" >/dev/null 2>&1 || return 0
+  [[ -d $ryoku_path/bin ]] || {
+    system_shim_status="skipped: no Ryoku bin directory"
+    return 0
+  }
+  sudo -n install -d "$system_bin" >/dev/null 2>&1 || {
+    system_shim_status="skipped: could not create $system_bin"
+    return 0
+  }
   for command_path in "$ryoku_path"/bin/ryoku-*; do
     [[ -f $command_path && -x $command_path ]] || continue
     sudo -n ln -sfn "$command_path" "$system_bin/$(basename "$command_path")" || true
   done
 
+  system_shim_status="repaired: $system_bin"
   log "Repaired system Ryoku command shims: $system_bin"
 }
 
@@ -258,6 +272,7 @@ print_bootstrap_summary() {
   log "  Channel: $release_branch"
   log "  Checkout: ${branch}@${commit}"
   log "  Updater: $ryoku_path/bin/ryoku-update"
+  log "  System shims: $system_shim_status"
 }
 
 command_present git || die "git is required to bootstrap Ryoku updates"
