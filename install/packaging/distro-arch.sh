@@ -20,6 +20,18 @@ source "$script_root/lib/runtime-env.sh"
 
 LOCAL_PKGS=(cava-ryoku)
 
+distro_libcava_present() {
+  if ryoku-cmd-present pkgconf && pkgconf --exists libcava; then
+    return 0
+  fi
+
+  if ryoku-cmd-present pkg-config && pkg-config --exists libcava; then
+    return 0
+  fi
+
+  [[ -f /usr/lib/pkgconfig/libcava.pc ]]
+}
+
 for pkg in "${LOCAL_PKGS[@]}"; do
   pkgdir="$RYOKU_PATH/distro/arch/$pkg"
   if [[ ! -f "$pkgdir/PKGBUILD" ]]; then
@@ -32,8 +44,11 @@ for pkg in "${LOCAL_PKGS[@]}"; do
   pkgrel="$(awk -F= '/^pkgrel=/{gsub(/[\047"]/,"",$2); print $2}' "$pkgdir/PKGBUILD")"
   installed="$(pacman -Q "$pkg" 2>/dev/null | awk '{print $2}' || true)"
   if [[ -n $installed && $installed == "${pkgver}-${pkgrel}" ]]; then
-    echo "distro-arch: $pkg ${pkgver}-${pkgrel} already installed"
-    continue
+    if distro_libcava_present; then
+      echo "distro-arch: $pkg ${pkgver}-${pkgrel} already installed and libcava is available"
+      continue
+    fi
+    echo "distro-arch: $pkg ${pkgver}-${pkgrel} is installed but libcava is not available; reinstalling"
   fi
 
   arch="$(uname -m)"
@@ -66,13 +81,19 @@ for pkg in "${LOCAL_PKGS[@]}"; do
   if (( use_prebuilt )); then
     echo "distro-arch: installing bundled $pkg ${pkgver}-${pkgrel} from $prebuilt_pkg"
     sudo pacman -U --noconfirm --needed "$prebuilt_pkg" || {
-      echo "distro-arch: failed to install bundled $pkg; continuing" >&2
+      echo "distro-arch: failed to install bundled $pkg" >&2
+      exit 1
     }
-    continue
+  else
+    echo "distro-arch: building $pkg ${pkgver}-${pkgrel} from $pkgdir"
+    (cd "$pkgdir" && makepkg --syncdeps --install --noconfirm --needed --clean) || {
+      echo "distro-arch: failed to build/install $pkg" >&2
+      exit 1
+    }
   fi
 
-  echo "distro-arch: building $pkg ${pkgver}-${pkgrel} from $pkgdir"
-  (cd "$pkgdir" && makepkg --syncdeps --install --noconfirm --needed --clean) || {
-    echo "distro-arch: failed to build/install $pkg; continuing" >&2
-  }
+  if ! distro_libcava_present; then
+    echo "distro-arch: $pkg did not provide libcava after install; aborting before shell build" >&2
+    exit 1
+  fi
 done

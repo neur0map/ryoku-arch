@@ -25,6 +25,13 @@ fail() {
 pkgbuild="$ROOT_DIR/distro/arch/cava-ryoku/PKGBUILD"
 [[ -f $pkgbuild ]] || fail "missing distro/arch/cava-ryoku/PKGBUILD"
 
+package_archive_rel="distro/arch/cava-ryoku/cava-ryoku-0.10.7-1-x86_64.pkg.tar.zst"
+package_archive="$ROOT_DIR/$package_archive_rel"
+[[ -f $package_archive ]] || fail "missing bundled $package_archive_rel"
+
+git -C "$ROOT_DIR" ls-files --error-unmatch "$package_archive_rel" >/dev/null 2>&1 || \
+  fail "bundled $package_archive_rel must be tracked so transition installs do not depend on local makepkg builds"
+
 distro_arch="$ROOT_DIR/install/packaging/distro-arch.sh"
 [[ -f $distro_arch ]] || fail "missing install/packaging/distro-arch.sh"
 
@@ -60,6 +67,12 @@ grep -qE 'pkg\.tar\.zst' "$distro_arch" || \
 
 grep -qE 'pacman -U --noconfirm --needed' "$distro_arch" || \
   fail "install/packaging/distro-arch.sh must install bundled cava-ryoku with pacman -U"
+
+grep -qE 'pkgconf --exists libcava|pkg-config --exists libcava' "$distro_arch" || \
+  fail "install/packaging/distro-arch.sh must verify libcava before the shell build"
+
+grep -qE 'exit 1' "$distro_arch" || \
+  fail "install/packaging/distro-arch.sh must fail the distro package stage instead of continuing to shell CMake without libcava"
 
 grep -qE 'packaging/distro-arch\.sh' "$update_perform" || \
   fail "bin/ryoku-update-perform must run distro-arch.sh before shell setup so libcava exists for CMake"
