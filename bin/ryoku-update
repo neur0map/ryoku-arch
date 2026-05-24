@@ -121,20 +121,22 @@ repair_command_bridges() {
 
 repair_system_command_bridges() {
   local command_path
+  local system_bin="/usr/local/bin"
+  local system_lib="/usr/local/lib"
 
   command -v sudo >/dev/null 2>&1 || return 0
   sudo -n true >/dev/null 2>&1 || return 0
 
   if [[ -f $RYOKU_PATH/lib/runtime-env.sh ]]; then
-    sudo -n install -d /usr/local/lib >/dev/null 2>&1 || return 0
-    sudo -n ln -sfn "$RYOKU_PATH/lib/runtime-env.sh" /usr/local/lib/runtime-env.sh || true
+    sudo -n install -d "$system_lib" >/dev/null 2>&1 || return 0
+    sudo -n ln -sfn "$RYOKU_PATH/lib/runtime-env.sh" "$system_lib/runtime-env.sh" || true
   fi
 
   [[ -d $RYOKU_PATH/bin ]] || return 0
-  sudo -n install -d /usr/local/bin >/dev/null 2>&1 || return 0
+  sudo -n install -d "$system_bin" >/dev/null 2>&1 || return 0
   for command_path in "$RYOKU_PATH"/bin/ryoku-*; do
     [[ -f $command_path && -x $command_path ]] || continue
-    sudo -n ln -sfn "$command_path" "/usr/local/bin/$(basename "$command_path")" || true
+    sudo -n ln -sfn "$command_path" "$system_bin/$(basename "$command_path")" || true
   done
 }
 

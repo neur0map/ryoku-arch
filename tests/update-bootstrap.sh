@@ -74,6 +74,8 @@ grep -Fq "Updater: $install/bin/ryoku-update" <<< "$output" || \
   fail "bootstrap should show the refreshed updater path"
 grep -Fq 'fresh-update:-y' "$log" || \
   fail "bootstrap should exec the refreshed installed updater with -y"
+grep -Fq 'skipped /usr/local Ryoku command shim repair' <<< "$output" || \
+  fail "bootstrap should report when non-interactive system shim repair is skipped"
 
 [[ $(git -C "$install" branch --show-current) == "unstable-dev" ]] || \
   fail "bootstrap should leave the checkout on the requested branch"
