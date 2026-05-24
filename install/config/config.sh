@@ -45,6 +45,25 @@ seed_default_wallpapers() {
   done < <(find "$source_dir" -type f -print0)
 }
 
+remove_retired_wallpaper_assets() {
+  local target_dir="${XDG_PICTURES_DIR:-$HOME/Pictures}/Wallpapers"
+  local cache_file="${XDG_STATE_HOME:-$HOME/.local/state}/quickshell/user/wallpaper-selector/colors.json"
+  local tmp
+
+  rm -f "$target_dir/qs-niri.jpg"
+
+  [[ -f $cache_file ]] || return 0
+  command -v jq >/dev/null 2>&1 || return 0
+
+  tmp="$(mktemp "${cache_file}.XXXXXX")" || return 0
+  if jq 'del(."qs-niri.jpg")' "$cache_file" >"$tmp"; then
+    mv "$tmp" "$cache_file"
+  else
+    rm -f "$tmp"
+  fi
+}
+
 install_default_configs
 seed_default_wallpapers
+remove_retired_wallpaper_assets
 copy_default_file_if_missing "$RYOKU_PATH/default/bashrc" "$HOME/.bashrc"

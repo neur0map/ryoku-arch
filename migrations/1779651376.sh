@@ -7,6 +7,17 @@ if [[ -f $hyprland_conf ]]; then
   sed -i '\#^exec-once = hypridle -c ~/\.config/hypr/hypridle-rebirth\.conf$#d' "$hyprland_conf"
 fi
 rm -f "${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hypridle-rebirth.conf"
+rm -f "${XDG_PICTURES_DIR:-$HOME/Pictures}/Wallpapers/qs-niri.jpg"
+
+wallpaper_cache="${XDG_STATE_HOME:-$HOME/.local/state}/quickshell/user/wallpaper-selector/colors.json"
+if [[ -f $wallpaper_cache ]] && ryoku-cmd-present jq; then
+  tmp_cache="$(mktemp "${wallpaper_cache}.XXXXXX" 2>/dev/null || true)"
+  if [[ -n $tmp_cache ]] && jq 'del(."qs-niri.jpg")' "$wallpaper_cache" >"$tmp_cache"; then
+    mv "$tmp_cache" "$wallpaper_cache"
+  else
+    rm -f "$tmp_cache"
+  fi
+fi
 
 if ryoku-cmd-present systemctl; then
   systemctl --user daemon-reload >/dev/null 2>&1 || true
