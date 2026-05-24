@@ -31,6 +31,7 @@ configured_release_branch() {
   local configured=""
   local state_file="$RYOKU_STATE_PATH/channel"
   local state_channel=""
+  local checkout_branch=""
 
   if [[ -n ${RYOKU_UPDATE_BRANCH:-} ]]; then
     configured="$RYOKU_UPDATE_BRANCH"
@@ -49,6 +50,15 @@ configured_release_branch() {
       if [[ -f $config_file ]] && command -v jq >/dev/null 2>&1; then
         configured="$(jq -r '.shellUpdates.channel // empty' "$config_file" 2>/dev/null || true)"
       fi
+    fi
+
+    if [[ -z $configured && -d ${RYOKU_PATH:-}/.git ]]; then
+      checkout_branch="$(GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=/bin/true git -C "$RYOKU_PATH" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+      case "$checkout_branch" in
+        main | unstable-dev)
+          configured="$checkout_branch"
+          ;;
+      esac
     fi
   fi
 

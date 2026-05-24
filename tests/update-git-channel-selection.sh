@@ -148,6 +148,25 @@ output=$(
 grep -qx 'stable base' "$checkout/README.md" || \
   fail "stable channel update should restore files from origin/main"
 
+rm -f "$state_dir/channel" "$home_dir/.config/ryoku-shell/config.json"
+git -C "$checkout" checkout unstable-dev >/dev/null 2>&1
+
+output=$(
+  HOME="$home_dir" \
+  RYOKU_SHELL_CONFIG_DIR="$home_dir/.config/ryoku-shell" \
+  RYOKU_PATH="$checkout" \
+  RYOKU_STATE_PATH="$state_dir" \
+  RYOKU_UPDATE_REMOTE_URL="$remote" \
+  PATH="$bin_dir:$ROOT_DIR/bin:$PATH" \
+  "$ROOT_DIR/bin/ryoku-update-git" 2>&1
+) || fail "ryoku-update-git should keep the current official checkout branch when channel state is missing: $output"
+
+[[ $(git -C "$checkout" branch --show-current) == "unstable-dev" ]] || \
+  fail "missing channel state should not move an unstable-dev checkout back to main"
+
+grep -qx 'dev-only feature' "$checkout/dev-widget.txt" || \
+  fail "missing channel state should update from the current unstable-dev checkout branch"
+
 diverged_remote="$temp_dir/diverged-remote.git"
 diverged_seed="$temp_dir/diverged-seed"
 diverged_checkout="$temp_dir/diverged-checkout"
