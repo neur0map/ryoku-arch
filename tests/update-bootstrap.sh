@@ -87,6 +87,10 @@ grep -Fq 'fresh-update:-y' "$log" || \
   fail "bootstrap should exec the refreshed installed updater with -y"
 grep -Fq "doctor-command:$install/bin/ryoku-doctor" "$log" || \
   fail "bootstrap should pass the path-safe installed doctor command to the refreshed updater"
+[[ -r $state/channel ]] || \
+  fail "bootstrap should persist the selected update channel"
+[[ $(<"$state/channel") == "unstable-dev" ]] || \
+  fail "bootstrap should persist the requested unstable-dev channel"
 grep -Fq 'skipped /usr/local Ryoku command shim repair' <<< "$output" || \
   fail "bootstrap should report when non-interactive system shim repair is skipped"
 grep -Fq 'System shims: skipped:' <<< "$output" || \
@@ -134,10 +138,42 @@ grep -Fq 'Channel: unstable-dev' <<< "$output" || \
   fail "bootstrap should default to unstable-dev when no state or config channel exists"
 [[ $(git -C "$default_install" branch --show-current) == "unstable-dev" ]] || \
   fail "unconfigured bootstrap should leave the checkout on unstable-dev"
+[[ $(<"$default_state/channel") == "unstable-dev" ]] || \
+  fail "unconfigured bootstrap should persist the rebirth recovery channel"
 grep -Fq 'fresh-update:-y' "$default_log" || \
   fail "unconfigured bootstrap should still exec the refreshed installed updater"
 
 echo "PASS: ryoku-update-bootstrap defaults to rebirth recovery channel"
+
+config_home="$tmp/config-home"
+config_install="$config_home/.local/share/ryoku"
+config_state="$config_home/.local/state/ryoku"
+config_log="$tmp/config-bootstrap.log"
+
+mkdir -p "$config_home/.config/ryoku-shell" "$config_state"
+printf '%s\n' "unstable-dev" >"$config_state/channel"
+printf '%s\n' '{"shellUpdates":{"channel":"main"}}' >"$config_home/.config/ryoku-shell/config.json"
+
+output=$(
+  HOME="$config_home" \
+  RYOKU_PATH="$config_install" \
+  RYOKU_STATE_PATH="$config_state" \
+  RYOKU_UPDATE_REMOTE_URL="$remote" \
+  RYOKU_TEST_LOG="$config_log" \
+  PATH="/usr/bin:/bin" \
+    "$ROOT_DIR/bin/ryoku-update-bootstrap" 2>&1
+) || fail "bootstrap should let explicit shell config override stale channel state: $output"
+
+grep -Fq 'Channel: main' <<< "$output" || \
+  fail "bootstrap should report the explicit configured main channel"
+[[ $(git -C "$config_install" branch --show-current) == "main" ]] || \
+  fail "configured bootstrap should leave the checkout on main"
+[[ $(<"$config_state/channel") == "main" ]] || \
+  fail "configured bootstrap should rewrite stale channel state to main"
+[[ ! -e $config_install/unstable.txt ]] || \
+  fail "configured bootstrap should not install unstable-only files when config selects main"
+
+echo "PASS: ryoku-update-bootstrap lets shell config override stale channel state"
 
 legacy_home="$tmp/legacy-home"
 legacy_install="$legacy_home/.local/share/omarchy"

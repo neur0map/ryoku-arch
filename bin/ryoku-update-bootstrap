@@ -50,18 +50,24 @@ configured_release_branch() {
   local fallback="${RYOKU_BOOTSTRAP_DEFAULT_BRANCH:-unstable-dev}"
   local state_file
   local config_file
+  local config_content
 
   state_file="$(ryoku_state_path)/channel"
 
-  if [[ -z $configured && -r $state_file ]]; then
-    configured="$(<"$state_file")"
-  fi
-
   if [[ -z $configured ]]; then
     config_file="$(ryoku_config_file)"
-    if [[ -r $config_file && $(<"$config_file") == *'"unstable-dev"'* ]]; then
-      configured="unstable-dev"
+    if [[ -r $config_file ]]; then
+      config_content="$(<"$config_file")"
+      if [[ $config_content == *'"unstable-dev"'* ]]; then
+        configured="unstable-dev"
+      elif [[ $config_content == *'"main"'* ]]; then
+        configured="main"
+      fi
     fi
+  fi
+
+  if [[ -z $configured && -r $state_file ]]; then
+    configured="$(<"$state_file")"
   fi
 
   if [[ -z $configured ]]; then
@@ -81,6 +87,14 @@ configured_release_branch() {
       printf '%s\n' "main"
       ;;
   esac
+}
+
+persist_release_branch() {
+  local state_path
+
+  state_path="$(ryoku_state_path)"
+  mkdir -p "$state_path" 2>/dev/null || return 0
+  printf '%s\n' "$release_branch" >"$state_path/channel" 2>/dev/null || true
 }
 
 default_ryoku_path() {
@@ -319,6 +333,7 @@ command_present git || die "git is required to bootstrap Ryoku updates"
 update_remote="${RYOKU_UPDATE_REMOTE_URL:-https://github.com/neur0map/ryoku-arch.git}"
 release_branch="$(configured_release_branch)"
 ryoku_path="$(default_ryoku_path)"
+persist_release_branch
 
 log "Bootstrapping Ryoku updater from $update_remote ($release_branch)"
 ensure_checkout

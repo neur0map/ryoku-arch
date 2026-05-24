@@ -34,6 +34,13 @@ update_release_branch() {
   local state_channel=""
   local checkout_branch=""
 
+  if [[ -z $configured ]]; then
+    config_file="$(update_shell_config_file)"
+    if [[ -f $config_file ]] && command -v jq >/dev/null 2>&1; then
+      configured="$(jq -r '.shellUpdates.channel // empty' "$config_file" 2>/dev/null || true)"
+    fi
+  fi
+
   if [[ -z $configured && -r $state_file ]]; then
     state_channel="$(<"$state_file")"
     case "$state_channel" in
@@ -41,13 +48,6 @@ update_release_branch() {
         configured="$state_channel"
         ;;
     esac
-  fi
-
-  if [[ -z $configured ]]; then
-    config_file="$(update_shell_config_file)"
-    if [[ -f $config_file ]] && command -v jq >/dev/null 2>&1; then
-      configured="$(jq -r '.shellUpdates.channel // empty' "$config_file" 2>/dev/null || true)"
-    fi
   fi
 
   if [[ -z $configured && -d ${RYOKU_PATH:-}/.git ]] && command -v git >/dev/null 2>&1; then

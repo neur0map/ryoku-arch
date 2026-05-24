@@ -433,15 +433,6 @@ doctor_release_branch() {
   if [[ -n ${RYOKU_UPDATE_BRANCH:-} ]]; then
     configured="$RYOKU_UPDATE_BRANCH"
   else
-    if [[ -r $state_file ]]; then
-      state_channel="$(<"$state_file")"
-      case "$state_channel" in
-        main | unstable-dev)
-          configured="$state_channel"
-          ;;
-      esac
-    fi
-
     if [[ -z $configured ]]; then
       if [[ -n ${RYOKU_SHELL_CONFIG_DIR:-} ]]; then
         config_file="$RYOKU_SHELL_CONFIG_DIR/config.json"
@@ -454,6 +445,15 @@ doctor_release_branch() {
       if [[ -f $config_file ]] && command -v jq >/dev/null 2>&1; then
         configured="$(jq -r '.shellUpdates.channel // empty' "$config_file" 2>/dev/null || true)"
       fi
+    fi
+
+    if [[ -z $configured && -r $state_file ]]; then
+      state_channel="$(<"$state_file")"
+      case "$state_channel" in
+        main | unstable-dev)
+          configured="$state_channel"
+          ;;
+      esac
     fi
   fi
 

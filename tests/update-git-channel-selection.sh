@@ -83,6 +83,8 @@ output=$(
   "$ROOT_DIR/bin/ryoku-update-git" 2>&1
 ) || fail "ryoku-update-git should follow the persisted unstable-dev channel state: $output"
 assert_update_result "$output" "$checkout" "unstable-dev"
+[[ $(<"$state_dir/channel") == "unstable-dev" ]] || \
+  fail "update should keep persisted state on unstable-dev after following state channel"
 
 [[ $(git -C "$checkout" branch --show-current) == "unstable-dev" ]] || \
   fail "checkout should switch to unstable-dev when state channel selects it"
@@ -121,6 +123,8 @@ output=$(
   "$ROOT_DIR/bin/ryoku-update-git" 2>&1
 ) || fail "ryoku-update-git should follow the configured unstable-dev channel: $output"
 
+[[ $(<"$state_dir/channel") == "unstable-dev" ]] || \
+  fail "update should persist shell-config selected unstable-dev channel"
 [[ $(git -C "$checkout" branch --show-current) == "unstable-dev" ]] || \
   fail "checkout should switch to unstable-dev when shellUpdates.channel selects it"
 
@@ -161,6 +165,8 @@ output=$(
   "$ROOT_DIR/bin/ryoku-update-git" 2>&1
 ) || fail "ryoku-update-git should keep the current official checkout branch when channel state is missing: $output"
 
+[[ $(<"$state_dir/channel") == "unstable-dev" ]] || \
+  fail "update should persist the current official checkout branch when channel state was missing"
 [[ $(git -C "$checkout" branch --show-current) == "unstable-dev" ]] || \
   fail "missing channel state should not move an unstable-dev checkout back to main"
 

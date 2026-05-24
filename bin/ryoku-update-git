@@ -36,20 +36,20 @@ configured_release_branch() {
   if [[ -n ${RYOKU_UPDATE_BRANCH:-} ]]; then
     configured="$RYOKU_UPDATE_BRANCH"
   else
-    if [[ -r $state_file ]]; then
+    if [[ -z $configured ]]; then
+      config_file="$(ryoku_shell_config_file)"
+      if [[ -f $config_file ]] && command -v jq >/dev/null 2>&1; then
+        configured="$(jq -r '.shellUpdates.channel // empty' "$config_file" 2>/dev/null || true)"
+      fi
+    fi
+
+    if [[ -z $configured && -r $state_file ]]; then
       state_channel="$(<"$state_file")"
       case "$state_channel" in
         main | unstable-dev)
           configured="$state_channel"
           ;;
       esac
-    fi
-
-    if [[ -z $configured ]]; then
-      config_file="$(ryoku_shell_config_file)"
-      if [[ -f $config_file ]] && command -v jq >/dev/null 2>&1; then
-        configured="$(jq -r '.shellUpdates.channel // empty' "$config_file" 2>/dev/null || true)"
-      fi
     fi
 
     if [[ -z $configured && -d ${RYOKU_PATH:-}/.git ]]; then
@@ -77,6 +77,13 @@ configured_release_branch() {
 }
 
 release_branch="$(configured_release_branch)"
+
+persist_release_branch() {
+  mkdir -p "$RYOKU_STATE_PATH" 2>/dev/null || return 0
+  printf '%s\n' "$release_branch" > "$RYOKU_STATE_PATH/channel" 2>/dev/null || true
+}
+
+persist_release_branch
 
 echo "Update channel: $release_branch"
 
