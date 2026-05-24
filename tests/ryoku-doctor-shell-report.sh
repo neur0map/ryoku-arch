@@ -225,6 +225,8 @@ output="$(run_shell_doctor)" || fail "ryoku-doctor shell should pass on a health
 
 assert_contains "$output" 'Ryoku Doctor' \
   "public doctor should show the gum-styled title when interactive styling is available"
+assert_contains "$output" 'Expected: .*/bin/ryoku-doctor' \
+  "public doctor should show which installed doctor path should be active"
 assert_contains "$output" 'Shell health \+ automatic repair' \
   "public doctor should describe the useful repair mode instead of looking like raw logs"
 assert_contains "$output" 'Hyprland shell health \+ automatic repair' \

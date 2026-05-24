@@ -127,8 +127,7 @@ doctor_style() {
   if doctor_pretty; then
     gum style "$@"
   else
-    shift $(( $# > 0 ? $# - 1 : 0 ))
-    printf '%s\n' "${1:-}"
+    printf '%s\n' "${@: -1}"
   fi
 }
 
@@ -145,7 +144,10 @@ doctor_banner() {
       "Ryoku Doctor" \
       "$mode"
   else
-    echo "Ryoku Doctor: $mode"
+    printf '%s\n' "========================================"
+    printf '%s\n' "Ryoku Doctor"
+    printf '%s\n' "$mode"
+    printf '%s\n' "========================================"
   fi
 }
 
@@ -181,15 +183,43 @@ doctor_checkout_summary() {
   printf '%s@%s\n' "$branch" "$commit"
 }
 
+doctor_last_update_summary() {
+  local state_file="$RYOKU_STATE_PATH/last-update"
+  local updated_at="unknown"
+  local checkout="unknown"
+  local active_doctor="unknown"
+  local gum_path="unknown"
+  local key value
+
+  [[ -r $state_file ]] || return 1
+
+  while IFS='=' read -r key value; do
+    case "$key" in
+      updated_at) updated_at="$value" ;;
+      checkout) checkout="$value" ;;
+      active_doctor) active_doctor="$value" ;;
+      gum) gum_path="$value" ;;
+    esac
+  done < "$state_file"
+
+  printf '%s %s doctor=%s gum=%s\n' "$updated_at" "$checkout" "$active_doctor" "$gum_path"
+}
+
 doctor_context_panel() {
   local command_path="${script_path:-ryoku-doctor}"
+  local expected_path="$RYOKU_PATH/bin/ryoku-doctor"
   local context
+  local last_update=""
 
   context=$(
     printf 'Command: %s\n' "$command_path"
+    printf 'Expected: %s\n' "$expected_path"
     printf 'Ryoku path: %s\n' "$RYOKU_PATH"
     printf 'Channel: %s\n' "$(doctor_release_branch)"
     printf 'Checkout: %s\n' "$(doctor_checkout_summary)"
+    if last_update="$(doctor_last_update_summary 2>/dev/null)"; then
+      printf 'Last update: %s\n' "$last_update"
+    fi
   )
 
   if doctor_pretty; then
@@ -201,6 +231,31 @@ doctor_context_panel() {
       "$context"
   else
     printf '%s\n' "$context"
+  fi
+}
+
+doctor_command_realpath() {
+  local command_name="$1"
+  local command_path=""
+
+  command_path="$(command -v "$command_name" 2>/dev/null || true)"
+  [[ -n $command_path ]] || return 1
+  readlink -f "$command_path" 2>/dev/null || printf '%s\n' "$command_path"
+}
+
+doctor_environment_warnings() {
+  local active_doctor=""
+  local expected_doctor="$RYOKU_PATH/bin/ryoku-doctor"
+
+  if ! command -v gum >/dev/null 2>&1; then
+    doctor_note "WARN" "gum is missing or not on PATH; doctor UI is using the built-in fallback"
+    doctor_report_issue "WARN gum is missing or not on PATH."
+  fi
+
+  active_doctor="$(doctor_command_realpath ryoku-doctor || true)"
+  if [[ -n $active_doctor && -x $expected_doctor && $active_doctor != "$expected_doctor" ]]; then
+    doctor_note "WARN" "ryoku-doctor resolves to $active_doctor instead of installed $expected_doctor"
+    doctor_report_issue "WARN ryoku-doctor resolves to a different path than the installed checkout."
   fi
 }
 
@@ -702,6 +757,7 @@ run_update_doctor() {
 
   doctor_banner "Update repair"
   doctor_context_panel
+  doctor_environment_warnings
   echo
   echo "Ryoku Doctor: update"
   echo
@@ -903,6 +959,7 @@ run_shell_doctor() {
 
   doctor_banner "Shell health + automatic repair"
   doctor_context_panel
+  doctor_environment_warnings
   echo
 
   doctor_converge_rebirth_session_services

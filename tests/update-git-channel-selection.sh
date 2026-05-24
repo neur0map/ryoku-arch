@@ -16,6 +16,27 @@ write_channel_config() {
   printf '{"shellUpdates":{"channel":"%s"}}\n' "$channel" >"$home_dir/.config/ryoku-shell/config.json"
 }
 
+assert_update_result() {
+  local output=$1
+  local path=$2
+  local channel=$3
+
+  grep -Fq 'Ryoku update result:' <<<"$output" || \
+    fail "update should print a post-update provenance summary"
+  grep -Fq "Path: $path" <<<"$output" || \
+    fail "update provenance should show the installed checkout path"
+  grep -Fq "Channel: $channel" <<<"$output" || \
+    fail "update provenance should show the selected channel"
+  grep -Fq "Expected doctor: $path/bin/ryoku-doctor" <<<"$output" || \
+    fail "update provenance should show the expected installed doctor path"
+  grep -Fq 'Active doctor:' <<<"$output" || \
+    fail "update provenance should show which doctor command PATH resolves"
+  grep -Fq 'Runtime bridge:' <<<"$output" || \
+    fail "update provenance should show the local runtime-env bridge state"
+  [[ -r $state_dir/last-update ]] || \
+    fail "update should persist last-update provenance for doctor/status"
+}
+
 temp_dir=$(mktemp -d)
 trap 'rm -rf "$temp_dir"' EXIT
 
@@ -61,6 +82,7 @@ output=$(
   PATH="$bin_dir:$ROOT_DIR/bin:$PATH" \
   "$ROOT_DIR/bin/ryoku-update-git" 2>&1
 ) || fail "ryoku-update-git should follow the persisted unstable-dev channel state: $output"
+assert_update_result "$output" "$checkout" "unstable-dev"
 
 [[ $(git -C "$checkout" branch --show-current) == "unstable-dev" ]] || \
   fail "checkout should switch to unstable-dev when state channel selects it"
