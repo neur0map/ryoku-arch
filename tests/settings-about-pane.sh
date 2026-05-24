@@ -51,7 +51,18 @@ assert_contains "shell/modules/controlcenter/about/AboutPane.qml" 'updateStateLa
 assert_contains "shell/modules/controlcenter/about/AboutPane.qml" 'blockReason'
 assert_contains "shell/modules/controlcenter/about/AboutPane.qml" 'readonly property real doctorOutputInset'
 assert_contains "shell/modules/controlcenter/about/AboutPane.qml" 'x: root.doctorOutputInset'
+assert_contains "shell/modules/controlcenter/about/AboutPane.qml" 'RyokuAbout.startMedevac(root.currentChannel())'
+assert_contains "shell/modules/controlcenter/about/AboutPane.qml" 'Stuck?'
+assert_contains "shell/modules/controlcenter/about/AboutPane.qml" 'Doctor first, MedEvac last'
+assert_contains "shell/services/RyokuAbout.qml" 'startingMedevac'
+assert_contains "shell/services/RyokuAbout.qml" 'medevacStartFinished'
 assert_contains "shell/scripts/ryoku-settings-about" 'update-current-run'
+assert_contains "shell/scripts/ryoku-settings-about" 'ryoku-call911now'
+assert_contains "shell/scripts/ryoku-settings-about" 'bash -lc'
+assert_contains "shell/scripts/ryoku-settings-about" 'shell_single_quote'
+assert_contains "shell/scripts/ryoku-settings-about" 'bash was not found'
+assert_contains "shell/scripts/ryoku-settings-about" 'main/bin/ryoku-call911now | env RYOKU_UPDATE_BRANCH=main bash'
+assert_contains "shell/scripts/ryoku-settings-about" 'unstable-dev/bin/ryoku-call911now | env RYOKU_UPDATE_BRANCH=unstable-dev bash'
 assert_contains "shell/setup" '.ryoku-source-path'
 
 if grep -Fq 'onClicked: RyokuAbout.switchChannel(channelButton.channel)' "$ROOT_DIR/shell/modules/controlcenter/about/AboutPane.qml"; then
@@ -318,6 +329,25 @@ cat >"$repo/bin/ryoku-update" <<'SH'
 exit 0
 SH
 chmod 755 "$repo/bin/ryoku-update"
+cat >"$repo/bin/ryoku-call911now" <<'SH'
+#!/bin/bash
+exit 0
+SH
+chmod 755 "$repo/bin/ryoku-call911now"
+
+PATH="$tmp_dir/bin:$PATH" \
+RYOKU_PATH="$repo" \
+RYOKU_STATE_PATH="$tmp_dir/state" \
+XDG_CONFIG_HOME="$tmp_dir/config" \
+  "$helper" medevac unstable-dev >"$status_json"
+
+assert_json_expr "$status_json" '.ok == true and .channel == "unstable-dev" and (.message | contains("MedEvac"))' \
+  "medevac should report that the terminal recovery was started"
+medevac_command="$(tail -n 1 "$launcher_log")"
+grep -Fq 'curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/unstable-dev/bin/ryoku-call911now | env RYOKU_UPDATE_BRANCH=unstable-dev bash' <<<"$medevac_command" || \
+  fail "medevac should launch the canonical channel-aware curl command"
+grep -Fq "$repo/bin/ryoku-call911now" <<<"$medevac_command" || \
+  fail "medevac should keep the baked local command as the no-curl fallback"
 
 PATH="$tmp_dir/bin:$PATH" \
 RYOKU_PATH="$repo" \

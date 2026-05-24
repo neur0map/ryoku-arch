@@ -9,6 +9,27 @@ fail() {
   exit 1
 }
 
+[[ -x $ROOT_DIR/bin/ryoku-call911now ]] || \
+  fail "ryoku-call911now should be the canonical portable MedEvac command"
+grep -Fq 'requested_medevac_branch="${RYOKU_UPDATE_BRANCH:-}"' "$ROOT_DIR/bin/ryoku-update-bootstrap" || \
+  fail "bootstrap compatibility wrapper should track whether the caller explicitly selected a branch"
+grep -Fq 'medevac_branch="${requested_medevac_branch:-unstable-dev}"' "$ROOT_DIR/bin/ryoku-update-bootstrap" || \
+  fail "bootstrap compatibility wrapper should default its raw MedEvac URL to unstable-dev"
+grep -Fq "WARN: ignoring invalid Ryoku MedEvac branch" "$ROOT_DIR/bin/ryoku-update-bootstrap" || \
+  fail "bootstrap compatibility wrapper should warn when correcting invalid MedEvac branches"
+grep -Fq 'requested_medevac_branch="$medevac_branch"' "$ROOT_DIR/bin/ryoku-update-bootstrap" || \
+  fail "bootstrap compatibility wrapper should pass the corrected branch after invalid input"
+grep -Fq 'medevac_env+=(RYOKU_UPDATE_BRANCH="$medevac_branch")' "$ROOT_DIR/bin/ryoku-update-bootstrap" || \
+  fail "bootstrap compatibility wrapper should pass an explicit matched channel only when the caller selected one"
+grep -Fq 'exec env "${medevac_env[@]}" "$local_medevac"' "$ROOT_DIR/bin/ryoku-update-bootstrap" || \
+  fail "bootstrap compatibility wrapper should execute local MedEvac through the compatibility environment"
+grep -Fq '$medevac_branch/bin/ryoku-call911now' "$ROOT_DIR/bin/ryoku-update-bootstrap" || \
+  fail "bootstrap compatibility wrapper should download the channel-matched MedEvac command"
+grep -Fq 'env "${medevac_env[@]}" bash' "$ROOT_DIR/bin/ryoku-update-bootstrap" || \
+  fail "bootstrap compatibility wrapper should execute downloaded MedEvac through the compatibility environment"
+grep -Fq 'set -o pipefail' "$ROOT_DIR/bin/ryoku-update-bootstrap" || \
+  fail "bootstrap compatibility wrapper should fail when the MedEvac download pipeline fails"
+
 write_executable() {
   local path="$1"
   local content="$2"
@@ -40,6 +61,8 @@ set -euo pipefail
 printf "fresh-update:%s\n" "$*" >> "$RYOKU_TEST_LOG"
 printf "doctor-command:%s\n" "${RYOKU_UPDATE_DOCTOR_COMMAND:-missing}" >> "$RYOKU_TEST_LOG"'
 write_executable "$seed/bin/ryoku-doctor" '#!/bin/bash
+exit 0'
+write_executable "$seed/bin/ryoku-call911now" '#!/bin/bash
 exit 0'
 write_executable "$seed/shell/scripts/ryoku-shell" '#!/bin/bash
 exit 0'
@@ -113,6 +136,10 @@ grep -qx 'unstable bootstrap' "$install/unstable.txt" || \
   fail "bootstrap should replace stale local ryoku bridge copies with a checkout symlink"
 [[ $(readlink "$home/.local/bin/ryoku") == "$install/shell/scripts/ryoku" ]] || \
   fail "bootstrap ryoku bridge should point to the installed checkout"
+[[ -L $home/.local/bin/ryoku-call911now ]] || \
+  fail "bootstrap should expose the canonical MedEvac command"
+[[ $(readlink "$home/.local/bin/ryoku-call911now") == "$install/bin/ryoku-call911now" ]] || \
+  fail "MedEvac command bridge should point to the installed checkout"
 [[ -L $home/.local/lib/runtime-env.sh ]] || \
   fail "bootstrap should repair the local runtime-env bridge"
 

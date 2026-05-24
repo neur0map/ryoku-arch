@@ -10,6 +10,9 @@ fail() {
   exit 1
 }
 
+grep -Fq 'unstable-dev/bin/ryoku-call911now' "$TRANSITION" || \
+  fail "rebirth transition should hand updater rescue to the unstable-dev MedEvac script"
+
 assert_contains() {
   local path="$1"
   local pattern="$2"
@@ -176,8 +179,8 @@ assert_contains "$output" 'Choose the Hyprland session.' \
   "transition should explain the second run when purge is deferred"
 assert_contains "$output" 'After that second run finishes, reboot once more' \
   "transition should explain the required final reboot after the second Hyprland run"
-assert_contains "$output" 'ryoku-update-bootstrap' \
-  "transition should point stale updater/doctor users at the raw bootstrap recovery path"
+assert_contains "$output" 'ryoku-call911now' \
+  "transition should point stale updater/doctor users at the raw MedEvac recovery path"
 [[ -s $home/.local/state/ryoku-shell/wallpaper/path.txt ]] \
   || fail "transition should write the Ryoku shell wallpaper state"
 [[ $(<"$home/.config/qylock/theme") == "clockwork/orbital" ]] \

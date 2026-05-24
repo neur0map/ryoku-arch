@@ -2,357 +2,43 @@
 
 set -euo pipefail
 
-log() {
-  printf '%s\n' "$*"
-}
-
-warn() {
-  printf 'WARN: %s\n' "$*" >&2
-}
-
-die() {
-  printf 'ERROR: %s\n' "$*" >&2
-  exit 1
-}
-
-command_present() {
-  command -v "$1" >/dev/null 2>&1
-}
-
-system_shim_status="not checked"
-
-state_home() {
-  printf '%s\n' "${XDG_STATE_HOME:-$HOME/.local/state}"
-}
-
-ryoku_state_path() {
-  printf '%s\n' "${RYOKU_STATE_PATH:-$(state_home)/ryoku}"
-}
-
-ryoku_config_file() {
-  local config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
-
-  if [[ -n ${RYOKU_SHELL_CONFIG_DIR:-} ]]; then
-    printf '%s\n' "$RYOKU_SHELL_CONFIG_DIR/config.json"
-    return
-  fi
-
-  if [[ -r $config_home/ryoku-shell/config.json ]]; then
-    printf '%s\n' "$config_home/ryoku-shell/config.json"
-    return
-  fi
-
-  printf '%s\n' "$config_home/illogical-impulse/config.json"
-}
-
-configured_release_branch() {
-  local configured="${RYOKU_UPDATE_BRANCH:-}"
-  local fallback="${RYOKU_BOOTSTRAP_DEFAULT_BRANCH:-unstable-dev}"
-  local state_file
-  local config_file
-  local config_content
-
-  state_file="$(ryoku_state_path)/channel"
-
-  if [[ -z $configured ]]; then
-    config_file="$(ryoku_config_file)"
-    if [[ -r $config_file ]]; then
-      config_content="$(<"$config_file")"
-      if [[ $config_content == *'"unstable-dev"'* ]]; then
-        configured="unstable-dev"
-      elif [[ $config_content == *'"main"'* ]]; then
-        configured="main"
-      fi
-    fi
-  fi
-
-  if [[ -z $configured && -r $state_file ]]; then
-    configured="$(<"$state_file")"
-  fi
-
-  if [[ -z $configured ]]; then
-    configured="$fallback"
-    warn "no Ryoku update channel configured; bootstrap is using $configured for rebirth recovery"
-  fi
-
-  case "$configured" in
-    main)
-      printf '%s\n' "main"
-      ;;
-    unstable-dev)
-      printf '%s\n' "unstable-dev"
-      ;;
-    *)
-      warn "ignoring invalid Ryoku update channel '$configured'; using main"
-      printf '%s\n' "main"
-      ;;
-  esac
-}
-
-persist_release_branch() {
-  local state_path
-
-  state_path="$(ryoku_state_path)"
-  mkdir -p "$state_path" 2>/dev/null || return 0
-  printf '%s\n' "$release_branch" >"$state_path/channel" 2>/dev/null || true
-}
-
-default_ryoku_path() {
-  local ryoku_default="$HOME/.local/share/ryoku"
-  local legacy_path="$HOME/.local/share/omarchy"
-
-  if [[ -n ${RYOKU_PATH:-} ]]; then
-    printf '%s\n' "$RYOKU_PATH"
-  elif [[ -e $ryoku_default ]]; then
-    printf '%s\n' "$ryoku_default"
-  elif [[ -e $legacy_path ]]; then
-    printf '%s\n' "$legacy_path"
-  else
-    printf '%s\n' "$ryoku_default"
-  fi
-}
-
-ensure_canonical_ryoku_path() {
-  local canonical_path="$HOME/.local/share/ryoku"
-
-  [[ -e $canonical_path ]] && return 0
-  [[ -e $ryoku_path ]] || return 0
-
-  mkdir -p "$(dirname "$canonical_path")"
-  ln -sfn "$ryoku_path" "$canonical_path"
-  log "Linked installed checkout into canonical Ryoku path: $canonical_path -> $ryoku_path"
-}
-
-git_in_ryoku() {
-  GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=/bin/true git -C "$ryoku_path" "$@"
-}
-
-command_realpath() {
-  local command_name="$1"
-  local command_path=""
-
-  command_path="$(command -v "$command_name" 2>/dev/null || true)"
-  [[ -n $command_path ]] || return 1
-  readlink -f "$command_path" 2>/dev/null || printf '%s\n' "$command_path"
-}
-
-fetch_release_refs() {
-  local branch
-
-  git_in_ryoku remote set-url origin "$update_remote" 2>/dev/null || \
-    git_in_ryoku remote add origin "$update_remote"
-
-  for branch in main unstable-dev; do
-    git_in_ryoku fetch --prune origin "+refs/heads/${branch}:refs/remotes/origin/${branch}" >/dev/null 2>&1 || true
-  done
-
-  git_in_ryoku rev-parse --verify --quiet "origin/$release_branch" >/dev/null || \
-    die "could not fetch origin/$release_branch from $update_remote"
-}
-
-checkout_release_branch() {
-  local current_branch=""
-
-  current_branch="$(git_in_ryoku rev-parse --abbrev-ref HEAD 2>/dev/null || printf '%s\n' "HEAD")"
-
-  if [[ $current_branch != "$release_branch" ]]; then
-    if git_in_ryoku show-ref --verify --quiet "refs/heads/$release_branch"; then
-      git_in_ryoku switch "$release_branch"
-    else
-      git_in_ryoku switch --track -c "$release_branch" "origin/$release_branch"
-    fi
-  fi
-}
-
-head_is_official_history() {
-  local ref
-
-  for ref in origin/main origin/unstable-dev; do
-    git_in_ryoku rev-parse --verify --quiet "$ref" >/dev/null || continue
-    git_in_ryoku merge-base --is-ancestor HEAD "$ref" && return 0
-  done
-
-  return 1
-}
-
-fast_forward_or_realign() {
-  local remote_ref="origin/$release_branch"
-
-  if git_in_ryoku merge-base --is-ancestor HEAD "$remote_ref"; then
-    git_in_ryoku merge --ff-only "$remote_ref"
-    return
-  fi
-
-  if head_is_official_history; then
-    warn "realigning stale Ryoku $release_branch checkout to $remote_ref"
-    git_in_ryoku switch -C "$release_branch" "$remote_ref"
-    return
-  fi
-
-  die "installed Ryoku checkout has local commits; run ryoku-doctor update or inspect git -C \"$ryoku_path\" status"
-}
-
-ensure_checkout() {
-  if [[ -d $ryoku_path/.git ]]; then
-    fetch_release_refs
-    checkout_release_branch
-    fast_forward_or_realign
-    return
-  fi
-
-  if [[ -e $ryoku_path ]]; then
-    die "$ryoku_path exists but is not a git checkout"
-  fi
-
-  mkdir -p "$(dirname "$ryoku_path")"
-  git clone --branch "$release_branch" "$update_remote" "$ryoku_path"
-  fetch_release_refs
-}
-
-command_bridge_target() {
-  local source_path="$1"
-  local target_path="$2"
-  local backup_dir
-
-  [[ -e $source_path ]] || return 0
-
-  if [[ -e $target_path && ! -L $target_path ]]; then
-    backup_dir="$(ryoku_state_path)/command-bridge-backups/$(date +%Y%m%d-%H%M%S)"
-    mkdir -p "$backup_dir"
-    mv -- "$target_path" "$backup_dir/$(basename "$target_path")"
-    warn "moved stale local command to $backup_dir/$(basename "$target_path")"
-  fi
-
-  ln -sfn "$source_path" "$target_path"
-}
-
-repair_command_bridges() {
-  local bin_home="${XDG_BIN_HOME:-$HOME/.local/bin}"
-  local lib_home
-  local command_path
-
-  mkdir -p "$bin_home"
-  export PATH="$ryoku_path/bin:$bin_home:$PATH"
-
-  if [[ -f $ryoku_path/lib/runtime-env.sh ]]; then
-    lib_home="$(dirname "$bin_home")/lib"
-    mkdir -p "$lib_home"
-    ln -sfn "$ryoku_path/lib/runtime-env.sh" "$lib_home/runtime-env.sh"
-  fi
-
-  if [[ -d $ryoku_path/bin ]]; then
-    for command_path in "$ryoku_path"/bin/ryoku-*; do
-      [[ -f $command_path && -x $command_path ]] || continue
-      command_bridge_target "$command_path" "$bin_home/$(basename "$command_path")"
-    done
-  fi
-
-  if [[ -x $ryoku_path/shell/scripts/ryoku-shell ]]; then
-    command_bridge_target "$ryoku_path/shell/scripts/ryoku-shell" "$bin_home/ryoku-shell"
-  fi
-
-  if [[ -x $ryoku_path/shell/scripts/ryoku ]]; then
-    command_bridge_target "$ryoku_path/shell/scripts/ryoku" "$bin_home/ryoku"
-  fi
-
-  repair_system_command_bridges
-}
-
-repair_system_command_bridges() {
-  local command_path
-  local system_bin="${RYOKU_SYSTEM_BIN_DIR:-/usr/local/bin}"
-  local system_lib="${RYOKU_SYSTEM_LIB_DIR:-/usr/local/lib}"
-
-  command_present sudo || {
-    warn "sudo is unavailable; skipped /usr/local Ryoku command shim repair"
-    system_shim_status="skipped: sudo unavailable"
-    return 0
-  }
-  sudo -n true >/dev/null 2>&1 || {
-    warn "sudo is not currently authorized; skipped /usr/local Ryoku command shim repair"
-    system_shim_status="skipped: run sudo -v and bootstrap again"
-    return 0
-  }
-
-  if [[ -f $ryoku_path/lib/runtime-env.sh ]]; then
-    sudo -n install -d "$system_lib" >/dev/null 2>&1 || {
-      system_shim_status="skipped: could not create $system_lib"
-      return 0
-    }
-    sudo -n ln -sfn "$ryoku_path/lib/runtime-env.sh" "$system_lib/runtime-env.sh" || true
-  fi
-
-  [[ -d $ryoku_path/bin ]] || {
-    system_shim_status="skipped: no Ryoku bin directory"
-    return 0
-  }
-  sudo -n install -d "$system_bin" >/dev/null 2>&1 || {
-    system_shim_status="skipped: could not create $system_bin"
-    return 0
-  }
-  for command_path in "$ryoku_path"/bin/ryoku-*; do
-    [[ -f $command_path && -x $command_path ]] || continue
-    sudo -n ln -sfn "$command_path" "$system_bin/$(basename "$command_path")" || true
-  done
-  if [[ -x $ryoku_path/shell/scripts/ryoku ]]; then
-    sudo -n ln -sfn "$ryoku_path/shell/scripts/ryoku" "$system_bin/ryoku" || true
-  fi
-
-  system_shim_status="repaired: $system_bin"
-  log "Repaired system Ryoku command shims: $system_bin"
-}
-
-print_bootstrap_summary() {
-  local branch="unknown"
-  local commit="unknown"
-  local remote_tip="origin/$release_branch@unknown"
-  local active_doctor=""
-  local expected_doctor="$ryoku_path/bin/ryoku-doctor"
-
-  branch="$(git_in_ryoku rev-parse --abbrev-ref HEAD 2>/dev/null || printf '%s\n' "unknown")"
-  commit="$(git_in_ryoku rev-parse --short HEAD 2>/dev/null || printf '%s\n' "unknown")"
-  if git_in_ryoku rev-parse --verify --quiet "origin/$release_branch" >/dev/null; then
-    remote_tip="origin/$release_branch@$(git_in_ryoku rev-parse --short "origin/$release_branch" 2>/dev/null || printf '%s\n' "unknown")"
-  fi
-  active_doctor="$(command_realpath ryoku-doctor || true)"
-  [[ -n $active_doctor ]] || active_doctor="missing"
-
-  log "Ryoku bootstrap result:"
-  log "  Path: $ryoku_path"
-  log "  Channel: $release_branch"
-  log "  Checkout: ${branch}@${commit}"
-  log "  Remote tip: $remote_tip"
-  log "  Updater: $ryoku_path/bin/ryoku-update"
-  log "  Expected doctor: $expected_doctor"
-  log "  Active doctor: $active_doctor"
-  log "  Doctor command: $expected_doctor"
-  log "  System shims: $system_shim_status"
-
-  if [[ $system_shim_status == skipped:* ]]; then
-    log "  System shim next step: run sudo -v and this bootstrap again if plain ryoku-doctor still looks stale"
-  fi
-}
-
-command_present git || die "git is required to bootstrap Ryoku updates"
-
-update_remote="${RYOKU_UPDATE_REMOTE_URL:-https://github.com/neur0map/ryoku-arch.git}"
-release_branch="$(configured_release_branch)"
-ryoku_path="$(default_ryoku_path)"
-persist_release_branch
-
-log "Bootstrapping Ryoku updater from $update_remote ($release_branch)"
-ensure_checkout
-ensure_canonical_ryoku_path
-repair_command_bridges
-print_bootstrap_summary
-
-if [[ ! -f $ryoku_path/bin/ryoku-update ]]; then
-  die "updated checkout does not contain bin/ryoku-update"
+script_path="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || printf '%s\n' "${BASH_SOURCE[0]}")"
+repo_root="$(cd -- "$(dirname -- "$script_path")/.." 2>/dev/null && pwd || true)"
+local_medevac="$repo_root/bin/ryoku-call911now"
+requested_medevac_branch="${RYOKU_UPDATE_BRANCH:-}"
+medevac_branch="${requested_medevac_branch:-unstable-dev}"
+medevac_env=(RYOKU_MEDEVAC_COMPAT_BOOTSTRAP=1)
+
+case "$medevac_branch" in
+  main | unstable-dev) ;;
+  *)
+    printf '%s\n' "WARN: ignoring invalid Ryoku MedEvac branch '$medevac_branch'; using main" >&2
+    medevac_branch="main"
+    requested_medevac_branch="$medevac_branch"
+    ;;
+esac
+
+if [[ -n $requested_medevac_branch ]]; then
+  medevac_env+=(RYOKU_UPDATE_BRANCH="$medevac_branch")
 fi
 
-log "Starting refreshed updater"
-if [[ -x $ryoku_path/bin/ryoku-update ]]; then
-  exec env RYOKU_UPDATE_DOCTOR_COMMAND="$ryoku_path/bin/ryoku-doctor" "$ryoku_path/bin/ryoku-update" -y
+raw_medevac_url="${RYOKU_MEDEVAC_URL:-https://raw.githubusercontent.com/neur0map/ryoku-arch/$medevac_branch/bin/ryoku-call911now}"
+
+if [[ -x $local_medevac ]]; then
+  exec env "${medevac_env[@]}" "$local_medevac" "$@"
 fi
 
-exec env RYOKU_UPDATE_DOCTOR_COMMAND="$ryoku_path/bin/ryoku-doctor" bash "$ryoku_path/bin/ryoku-update" -y
+set -o pipefail
+
+if command -v curl >/dev/null 2>&1; then
+  curl -fsSL "$raw_medevac_url" | env "${medevac_env[@]}" bash -s -- "$@"
+  exit $?
+fi
+
+if command -v wget >/dev/null 2>&1; then
+  wget -qO- "$raw_medevac_url" | env "${medevac_env[@]}" bash -s -- "$@"
+  exit $?
+fi
+
+printf '%s\n' "ERROR: ryoku-update-bootstrap now routes through ryoku-call911now, but curl/wget is missing" >&2
+exit 1

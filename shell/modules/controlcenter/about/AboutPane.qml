@@ -203,6 +203,10 @@ Item {
             root.showMessage(qsTr("Branch switch"), report.ok ? report.message : report.error, report);
         }
 
+        function onMedevacStartFinished(report: var): void {
+            root.showMessage(qsTr("Ryoku MedEvac"), report.ok ? report.message : report.error, report);
+        }
+
         function onInfoChanged(): void {
             root.syncPendingChannel();
         }
@@ -355,12 +359,14 @@ Item {
                         }
                     }
 
-                    RowLayout {
+                    GridLayout {
                         Layout.fillWidth: true
-                        spacing: Tokens.spacing.small
+                        columns: aboutFlickable.width > 900 ? 4 : aboutFlickable.width > 560 ? 2 : 1
+                        columnSpacing: Tokens.spacing.small
+                        rowSpacing: Tokens.spacing.small
 
                         ActionButton {
-                            Layout.fillWidth: aboutFlickable.width < 760
+                            Layout.fillWidth: true
                             icon: RyokuAbout.checkingUpdates ? "progress_activity" : "system_update"
                             text: RyokuAbout.checkingUpdates ? qsTr("Checking") : qsTr("Check updates")
                             filled: true
@@ -368,18 +374,32 @@ Item {
                         }
 
                         ActionButton {
-                            Layout.fillWidth: aboutFlickable.width < 760
+                            Layout.fillWidth: true
                             icon: RyokuAbout.runningDoctor ? "progress_activity" : "health_and_safety"
                             text: RyokuAbout.runningDoctor ? qsTr("Running") : qsTr("Run doctor")
                             onClicked: RyokuAbout.runDoctor()
                         }
 
                         ActionButton {
-                            Layout.fillWidth: aboutFlickable.width < 760
+                            Layout.fillWidth: true
+                            icon: RyokuAbout.startingMedevac ? "progress_activity" : "emergency_home"
+                            text: RyokuAbout.startingMedevac ? qsTr("Launching") : qsTr("Stuck?")
+                            onClicked: RyokuAbout.startMedevac(root.currentChannel())
+                        }
+
+                        ActionButton {
+                            Layout.fillWidth: true
                             icon: "refresh"
                             text: qsTr("Refresh")
                             onClicked: RyokuAbout.refreshStatus()
                         }
+                    }
+
+                    StatusLine {
+                        icon: "emergency_home"
+                        title: qsTr("Doctor first, MedEvac last")
+                        detail: qsTr("Run doctor for normal health checks. Use Stuck? only when the updater, command paths, packages, or checkout are broken.")
+                        error: false
                     }
                 }
 

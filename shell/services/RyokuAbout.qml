@@ -16,6 +16,7 @@ Singleton {
     property bool startingUpdate: false
     property bool runningDoctor: false
     property bool switchingChannel: false
+    property bool startingMedevac: false
     property var info: ({})
     property var lastUpdateReport: ({})
     property var lastDoctorReport: ({})
@@ -25,6 +26,7 @@ Singleton {
     signal updateStartFinished(var report)
     signal doctorFinished(var report)
     signal channelSwitchFinished(var report)
+    signal medevacStartFinished(var report)
 
     function parseJson(text: string): var {
         if (!text || text.trim().length === 0)
@@ -82,6 +84,14 @@ Singleton {
 
         switchingChannel = true;
         switchProc.exec([helper, "switch-channel", channel]);
+    }
+
+    function startMedevac(channel: string): void {
+        if (startingMedevac)
+            return;
+
+        startingMedevac = true;
+        medevacProc.exec([helper, "medevac", channel]);
     }
 
     function openUrl(url: string): void {
@@ -192,6 +202,26 @@ Singleton {
                 report.error = switchErr.text.trim();
             root.channelSwitchFinished(report);
             root.refreshStatus();
+        }
+    }
+
+    Process {
+        id: medevacProc
+
+        stdout: StdioCollector {
+            id: medevacOut
+        }
+
+        stderr: StdioCollector {
+            id: medevacErr
+        }
+
+        onExited: code => {
+            const report = root.parseJson(medevacOut.text);
+            root.startingMedevac = false;
+            if (!report.ok && medevacErr.text && !report.error)
+                report.error = medevacErr.text.trim();
+            root.medevacStartFinished(report);
         }
     }
 
