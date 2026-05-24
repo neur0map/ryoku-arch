@@ -76,12 +76,16 @@ grep -Fq "Expected doctor: $install/bin/ryoku-doctor" <<< "$output" || \
   fail "bootstrap should show the expected installed doctor path"
 grep -Fq "Active doctor: $install/bin/ryoku-doctor" <<< "$output" || \
   fail "bootstrap should show that PATH resolves doctor from the installed checkout"
+grep -Fq "Doctor command: $install/bin/ryoku-doctor" <<< "$output" || \
+  fail "bootstrap should print a path-safe doctor command for the next step"
 grep -Fq 'fresh-update:-y' "$log" || \
   fail "bootstrap should exec the refreshed installed updater with -y"
 grep -Fq 'skipped /usr/local Ryoku command shim repair' <<< "$output" || \
   fail "bootstrap should report when non-interactive system shim repair is skipped"
 grep -Fq 'System shims: skipped:' <<< "$output" || \
   fail "bootstrap result should include system shim status for stale PATH diagnosis"
+grep -Fq 'System shim next step: run sudo -v and this bootstrap again' <<< "$output" || \
+  fail "bootstrap should explain how to repair skipped system command shims"
 
 [[ $(git -C "$install" branch --show-current) == "unstable-dev" ]] || \
   fail "bootstrap should leave the checkout on the requested branch"

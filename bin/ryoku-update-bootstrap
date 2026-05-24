@@ -288,7 +288,12 @@ print_bootstrap_summary() {
   log "  Updater: $ryoku_path/bin/ryoku-update"
   log "  Expected doctor: $expected_doctor"
   log "  Active doctor: $active_doctor"
+  log "  Doctor command: $expected_doctor"
   log "  System shims: $system_shim_status"
+
+  if [[ $system_shim_status == skipped:* ]]; then
+    log "  System shim next step: run sudo -v and this bootstrap again if plain ryoku-doctor still looks stale"
+  fi
 }
 
 command_present git || die "git is required to bootstrap Ryoku updates"
