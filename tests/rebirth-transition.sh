@@ -45,6 +45,7 @@ log_file="$tmp_dir/calls.log"
 mkdir -p \
   "$home" \
   "$ryoku/bin" \
+  "$ryoku/install/config" \
   "$ryoku/lib" \
   "$ryoku/config/hypr" \
   "$bin_dir"
@@ -63,6 +64,8 @@ write_stub "$ryoku/bin/ryoku-rebirth-prepare-live" 'printf "prepare:%s\n" "$*" >
 write_stub "$ryoku/bin/ryoku-snapshot" 'printf "snapshot:%s\n" "$*" >> "$RYOKU_TEST_LOG"'
 write_stub "$ryoku/bin/ryoku-update-perform" 'printf "perform\n" >> "$RYOKU_TEST_LOG"'
 write_stub "$ryoku/bin/ryoku-refresh-config" 'printf "refresh:%s\n" "$1" >> "$RYOKU_TEST_LOG"'
+write_stub "$ryoku/install/config/config.sh" 'printf "config-setup\n" >> "$RYOKU_TEST_LOG"'
+write_stub "$ryoku/bin/ryoku-restart-ui" 'printf "restart-ui:%s\n" "$*" >> "$RYOKU_TEST_LOG"'
 write_stub "$ryoku/bin/ryoku-rebirth-purge-niri-live" 'printf "purge:%s\n" "$*" >> "$RYOKU_TEST_LOG"; exit "${RYOKU_TEST_PURGE_STATUS:-0}"'
 
 output="$tmp_dir/transition.out"
@@ -96,6 +99,8 @@ assert_contains "$home/.config/ryoku-shell/config.json" '"channel": "unstable-de
   "transition should persist the shell update channel"
 assert_contains "$log_file" 'update-git:unstable-dev' \
   "transition should update the checkout through the selected branch"
+assert_contains "$log_file" 'config-setup' \
+  "transition should run default config and wallpaper seeding for full-install parity"
 assert_contains "$log_file" 'prepare:--allow-auth-prompt' \
   "transition should pass auth prompt permission to rebirth preparation"
 assert_contains "$log_file" 'snapshot:create' \
@@ -104,9 +109,13 @@ assert_contains "$log_file" 'perform' \
   "transition should run the normal update stages"
 assert_contains "$log_file" 'refresh:hypr/hyprland.conf' \
   "transition should refresh the rebirth Hyprland config"
+assert_contains "$log_file" 'restart-ui:--quiet' \
+  "transition should refresh the running desktop UI after config/runtime convergence"
 assert_contains "$log_file" 'purge:--confirm-niri-free --allow-auth-prompt' \
   "transition should call the guarded Niri purge"
 assert_contains "$output" 'Choose the Hyprland session.' \
   "transition should explain the second run when purge is deferred"
+assert_contains "$output" 'After that second run finishes, reboot once more' \
+  "transition should explain the required final reboot after the second Hyprland run"
 
 echo "PASS: ryoku rebirth transition bootstraps stuck legacy installs"

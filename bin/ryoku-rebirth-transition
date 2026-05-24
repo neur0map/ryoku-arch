@@ -18,6 +18,13 @@ Usage: ryoku-rebirth-transition [--allow-auth-prompt] [--skip-purge]
 Bootstraps already-installed Ryoku/Niri systems onto the rebirth Hyprland
 stack without reinstalling the ISO.
 
+Expected transition flow:
+  1. Run this command from the old legacy/Niri desktop.
+  2. Reboot or log out, then choose the Hyprland session.
+  3. Run this same command again from Hyprland so guarded cleanup can finish.
+  4. Reboot once more so the compositor, shell, DBus, and user services all
+     start cleanly from the rebirth paths.
+
 What it does:
   - repairs legacy ~/.local/bin runtime-env resolution
   - switches the update channel to unstable-dev
@@ -308,6 +315,13 @@ run_update_stages() {
   run_from_checkout bin/ryoku-update-perform
 }
 
+run_rebirth_config_setup() {
+  [[ -f $ryoku_root/install/config/config.sh ]] || return 0
+
+  log "Installing missing rebirth default configs and wallpapers"
+  run_from_checkout install/config/config.sh
+}
+
 refresh_rebirth_hyprland_config() {
   local config
   local configs=(
@@ -327,6 +341,23 @@ refresh_rebirth_hyprland_config() {
 
   if command_present hyprctl; then
     hyprctl reload >/dev/null 2>&1 || true
+  fi
+}
+
+restart_rebirth_ui() {
+  local status
+
+  [[ -f $ryoku_root/bin/ryoku-restart-ui ]] || return 0
+  command_present hyprctl || command_present qs || return 0
+
+  log "Refreshing rebirth desktop UI"
+  set +e
+  run_from_checkout bin/ryoku-restart-ui --quiet
+  status=$?
+  set -e
+
+  if (( status != 0 )); then
+    warn "desktop UI refresh exited with status $status; reboot or log back into Hyprland if anything still looks stale"
   fi
 }
 
@@ -367,6 +398,8 @@ Next:
   2. Choose the Hyprland session.
   3. Re-run:
      curl -fsSL $raw_script_url | bash -s -- --allow-auth-prompt
+  4. After that second run finishes, reboot once more so Hyprland,
+     Ryoku shell, DBus, and user services start cleanly from the rebirth paths.
 
 EOF
       ;;
@@ -386,13 +419,16 @@ main() {
   write_update_channel
   update_checkout
   repair_runtime_env_bridges
+  run_rebirth_config_setup
   prepare_hyprland
   create_snapshot
   run_update_stages
   refresh_rebirth_hyprland_config
+  restart_rebirth_ui
   attempt_niri_purge
 
   log "Ryoku rebirth transition bootstrap finished"
+  log "Next: reboot once more to load the full rebirth Hyprland session cleanly"
 }
 
 main "$@"

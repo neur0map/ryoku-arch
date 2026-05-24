@@ -36,6 +36,8 @@ rg -q 'source = ~/.config/hypr/colors.conf' "$ROOT_DIR/config/hypr/hyprland.conf
   fail "Hyprland config should not ship the removed Super+/ keybind menu"
 rg -q 'monitor = eDP-1, preferred, 0x0, 1.25' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should use a smaller explicit laptop scale"
+rg -q 'monitor = , highrr, auto, auto' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should use the highest refresh rate for non-explicit monitor fallback"
 rg -q "[$]fileManager = nautilus" "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should launch the shipped Files app"
 rg -q "[$]menu = sh -lc '\\\$HOME/.local/bin/ryoku-shell launcher'" "$ROOT_DIR/config/hypr/hyprland.conf" || \
@@ -74,6 +76,8 @@ rg -q 'animation = fadeIn, 1, 5, smoothOpen' "$ROOT_DIR/config/hypr/hyprland.con
   fail "Hyprland config should smooth out opening fades"
 rg -q 'set_smooth_opening_animations' "$ROOT_DIR/migrations/1779504291.sh" || \
   fail "Migration should converge existing Hyprland configs to the shipped smooth opening animation"
+rg -q 'set_high_refresh_monitor_fallback' "$ROOT_DIR/migrations/1779585854.sh" || \
+  fail "Migration should converge existing Hyprland monitor fallback to high refresh"
 rg -q 'bind = SUPER SHIFT, R, exec, hyprctl reload' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland reload bind should not restart a shell"
 rg -q 'bind = SUPER, Space, exec, [$]menu' "$ROOT_DIR/config/hypr/hyprland.conf" || \
