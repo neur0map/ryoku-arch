@@ -11,15 +11,58 @@ source "$repo_root/lib/update-dashboard.sh"
 
 ryoku-cmd-caffeine start >/dev/null 2>&1 || true
 
+update_shell_config_file() {
+  local config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
+
+  if [[ -n ${RYOKU_SHELL_CONFIG_DIR:-} ]]; then
+    printf '%s\n' "$RYOKU_SHELL_CONFIG_DIR/config.json"
+    return
+  fi
+
+  if [[ -f $config_home/ryoku-shell/config.json ]]; then
+    printf '%s\n' "$config_home/ryoku-shell/config.json"
+    return
+  fi
+
+  printf '%s\n' "$config_home/illogical-impulse/config.json"
+}
+
 update_release_branch() {
   local configured="${RYOKU_UPDATE_BRANCH:-}"
+  local config_file=""
   local state_file="$RYOKU_STATE_PATH/channel"
+  local state_channel=""
+  local checkout_branch=""
 
   if [[ -z $configured && -r $state_file ]]; then
-    configured="$(<"$state_file")"
+    state_channel="$(<"$state_file")"
+    case "$state_channel" in
+      main | unstable-dev)
+        configured="$state_channel"
+        ;;
+    esac
+  fi
+
+  if [[ -z $configured ]]; then
+    config_file="$(update_shell_config_file)"
+    if [[ -f $config_file ]] && command -v jq >/dev/null 2>&1; then
+      configured="$(jq -r '.shellUpdates.channel // empty' "$config_file" 2>/dev/null || true)"
+    fi
+  fi
+
+  if [[ -z $configured && -d ${RYOKU_PATH:-}/.git ]] && command -v git >/dev/null 2>&1; then
+    checkout_branch="$(GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=/bin/true git -C "$RYOKU_PATH" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+    case "$checkout_branch" in
+      main | unstable-dev)
+        configured="$checkout_branch"
+        ;;
+    esac
   fi
 
   case "$configured" in
+    main)
+      printf '%s\n' "main"
+      ;;
     unstable-dev)
       printf '%s\n' "unstable-dev"
       ;;

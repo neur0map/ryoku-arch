@@ -42,6 +42,12 @@ exit 0'
 write_executable "$bin_dir/gum" '#!/bin/bash
 exit 0'
 
+git -C "$ryoku" init >/dev/null
+git -C "$ryoku" config user.email test@example.invalid
+git -C "$ryoku" config user.name "Ryoku Test"
+git -C "$ryoku" commit --allow-empty -m "installed checkout" >/dev/null
+git -C "$ryoku" switch -c unstable-dev >/dev/null 2>&1
+
 for command in \
   ryoku-cmd-caffeine \
   ryoku-migrate \
@@ -80,6 +86,8 @@ output=$(
 
 grep -Fq 'Ryoku update result:' <<<"$output" || \
   fail "successful update should print final provenance after all update stages"
+grep -Fq 'Channel: unstable-dev' <<<"$output" || \
+  fail "final update provenance should preserve the installed checkout channel"
 grep -Fq "Expected doctor: $ryoku/bin/ryoku-doctor" <<<"$output" || \
   fail "final update provenance should show the installed doctor path"
 grep -Fq "Active doctor: $ryoku/bin/ryoku-doctor" <<<"$output" || \
@@ -93,6 +101,8 @@ last_update="$state/last-update"
 [[ -f $last_update ]] || fail "successful update should persist final provenance"
 grep -Fxq "gum=$bin_dir/gum" "$last_update" || \
   fail "persisted update provenance should record post-package gum availability"
+grep -Fxq "channel=unstable-dev" "$last_update" || \
+  fail "persisted update provenance should preserve the installed checkout channel"
 grep -Fxq "active_doctor=$ryoku/bin/ryoku-doctor" "$last_update" || \
   fail "persisted update provenance should record the installed doctor path"
 
