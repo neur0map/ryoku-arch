@@ -196,12 +196,18 @@ PY
 
 run_from_checkout() {
   local relative_path="$1"
+  local runtime_dir
   shift
 
   [[ -f $ryoku_root/$relative_path ]] || die "missing $ryoku_root/$relative_path"
 
+  runtime_dir="$(rebirth_shell_runtime_dir)"
   env \
+    -u QS_CONFIG_NAME \
+    -u QS_CONFIG_PATH \
+    -u QS_MANIFEST \
     RYOKU_PATH="$ryoku_root" \
+    RYOKU_SHELL_RUNTIME_DIR="$runtime_dir" \
     RYOKU_UPDATE_BRANCH="$transition_branch" \
     PATH="$ryoku_root/bin:$HOME/.local/bin:$PATH" \
     bash "$ryoku_root/$relative_path" "$@"
@@ -493,7 +499,7 @@ hyprland_session_active() {
 }
 
 rebirth_shell_runtime_dir() {
-  printf '%s\n' "${RYOKU_SHELL_RUNTIME_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell}"
+  printf '%s\n' "${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell"
 }
 
 quickshell_config_runtime_dir() {

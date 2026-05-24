@@ -33,8 +33,17 @@ update_distro_packages_stage() {
   bash "$RYOKU_INSTALL/packaging/distro-arch.sh"
 }
 
+canonical_shell_runtime_dir() {
+  printf '%s\n' "${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell"
+}
+
 update_shell_stage() {
-  bash "$RYOKU_INSTALL/config/shell.sh"
+  env \
+    -u QS_CONFIG_NAME \
+    -u QS_CONFIG_PATH \
+    -u QS_MANIFEST \
+    RYOKU_SHELL_RUNTIME_DIR="$(canonical_shell_runtime_dir)" \
+    bash "$RYOKU_INSTALL/config/shell.sh"
 }
 
 update_cleanup_stage() {

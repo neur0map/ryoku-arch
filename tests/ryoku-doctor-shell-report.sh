@@ -31,7 +31,7 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
 home="$tmp/home"
-runtime="$tmp/runtime"
+runtime="$home/.config/quickshell/ryoku-shell"
 legacy_runtime="$home/.config/quickshell/legacy-host-shell"
 bin_dir="$tmp/bin"
 report_tmp="$tmp/reports"
@@ -257,19 +257,21 @@ mkdir -p "$runtime_pick" "$old_repo/shell"
 
 cat >"$runtime_pick/setup" <<'SH'
 #!/bin/bash
-printf '%s\n' "$*" >"$RYOKU_TEST_RUNTIME_ARGS"
-echo "runtime doctor selected"
+echo "stale runtime setup selected" >&2
+exit 66
 SH
 chmod 755 "$runtime_pick/setup"
 
 cat >"$old_repo/shell/setup" <<'SH'
 #!/bin/bash
-echo "stale installed setup selected" >&2
-exit 66
+printf '%s\n' "$*" >"$RYOKU_TEST_RUNTIME_ARGS"
+printf '%s\n' "${RYOKU_SHELL_RUNTIME_DIR:-}" >"$RYOKU_TEST_RUNTIME_ENV"
+echo "repo doctor selected"
 SH
 chmod 755 "$old_repo/shell/setup"
 
 runtime_args="$tmp/runtime-args"
+runtime_env="$tmp/runtime-env"
 runtime_pick_output=$(
   HOME="$home" \
   XDG_CONFIG_HOME="$home/.config" \
@@ -277,14 +279,17 @@ runtime_pick_output=$(
   RYOKU_PATH="$old_repo" \
   RYOKU_SHELL_RUNTIME_DIR="$runtime_pick" \
   RYOKU_TEST_RUNTIME_ARGS="$runtime_args" \
+  RYOKU_TEST_RUNTIME_ENV="$runtime_env" \
   TMPDIR="$report_tmp" \
   PATH="$bin_dir:$home/.local/bin:/usr/bin:/bin" \
     "$ROOT_DIR/bin/ryoku-doctor" 2>&1
-) || fail "ryoku-doctor shell should prefer active runtime setup over stale installed setup: $runtime_pick_output"
+) || fail "ryoku-doctor should prefer updated repo setup over stale runtime setup: $runtime_pick_output"
 
-grep -Fq "runtime doctor selected" <<<"$runtime_pick_output" \
-  || fail "ryoku-doctor shell should run the active runtime setup"
+grep -Fq "repo doctor selected" <<<"$runtime_pick_output" \
+  || fail "ryoku-doctor should run the repo-managed setup after updates"
 [[ $(<"$runtime_args") == "doctor -y" ]] \
   || fail "ryoku-doctor shell should call setup with command before compatibility flags"
+[[ $(<"$runtime_env") == "" ]] \
+  || fail "ryoku-doctor should not let stale RYOKU_SHELL_RUNTIME_DIR select the old host-shell runtime"
 
 echo "PASS: ryoku doctor shell mode checks the Hyprland Ryoku shell path"

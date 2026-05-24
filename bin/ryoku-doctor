@@ -800,11 +800,11 @@ doctor_repair_rebirth_audio_restore_service() {
 
 run_shell_doctor() {
   local setup
-  local runtime_dir="${RYOKU_SHELL_RUNTIME_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell}"
+  local runtime_dir="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell"
   local candidates=(
-    "$runtime_dir/setup"
     "$RYOKU_PATH/shell/setup"
     "$RYOKU_PATH/setup"
+    "$runtime_dir/setup"
   )
 
   doctor_converge_rebirth_session_services
@@ -812,7 +812,13 @@ run_shell_doctor() {
 
   for setup in "${candidates[@]}"; do
     [[ -x $setup ]] || continue
-    RYOKU_DOCTOR_INTERNAL=1 "$setup" doctor -y
+    env \
+      -u RYOKU_SHELL_RUNTIME_DIR \
+      -u QS_CONFIG_NAME \
+      -u QS_CONFIG_PATH \
+      -u QS_MANIFEST \
+      RYOKU_DOCTOR_INTERNAL=1 \
+      "$setup" doctor -y
     return $?
   done
 

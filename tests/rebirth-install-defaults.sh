@@ -20,7 +20,7 @@ assert_contains() {
   local pattern="$2"
   local message="$3"
 
-  grep -Eq "$pattern" "$ROOT_DIR/$path" || fail "$message"
+  grep -Eq -- "$pattern" "$ROOT_DIR/$path" || fail "$message"
 }
 
 assert_not_contains() {
@@ -28,7 +28,7 @@ assert_not_contains() {
   local pattern="$2"
   local message="$3"
 
-  if grep -Eq "$pattern" "$ROOT_DIR/$path"; then
+  if grep -Eq -- "$pattern" "$ROOT_DIR/$path"; then
     fail "$message"
   fi
 }
@@ -64,6 +64,12 @@ assert_not_contains bin/ryoku-sddm-autologin 'Session=niri\.desktop|straight in 
 
 assert_not_contains install/config/shell.sh 'service enable niri|niri\.service\.wants' \
   "shell install should not wire ryoku-shell to Niri"
+assert_contains install/config/shell.sh 'SHELL_RUNTIME_DIR=.*quickshell/ryoku-shell' \
+  "shell install should force the canonical ryoku-shell runtime"
+assert_contains install/config/shell.sh 'RYOKU_SHELL_RUNTIME_DIR="\$SHELL_RUNTIME_DIR"' \
+  "shell install should not inherit stale host-shell runtime paths"
+assert_contains install/config/shell.sh '-u QS_CONFIG_NAME' \
+  "shell install should clear stale Quickshell environment variables"
 assert_contains shell/scripts/ryoku-shell 'RYOKU_COMPOSITOR.*hyprland|HYPRLAND_INSTANCE_SIGNATURE' \
   "shell service detection should support an explicit Hyprland path"
 assert_contains shell/setup 'RYOKU_COMPOSITOR.*hyprland|HYPRLAND_INSTANCE_SIGNATURE' \

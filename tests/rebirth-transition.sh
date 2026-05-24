@@ -95,7 +95,7 @@ write_stub "$ryoku/bin/ryoku-rebirth-prepare-live" 'printf "prepare:%s\n" "$*" >
 write_stub "$ryoku/bin/ryoku-snapshot" 'printf "snapshot:%s\n" "$*" >> "$RYOKU_TEST_LOG"'
 write_stub "$ryoku/bin/ryoku-update-perform" 'printf "perform\n" >> "$RYOKU_TEST_LOG"'
 write_stub "$ryoku/bin/ryoku-refresh-config" 'printf "refresh:%s\n" "$1" >> "$RYOKU_TEST_LOG"'
-write_stub "$ryoku/install/config/config.sh" 'printf "config-setup\n" >> "$RYOKU_TEST_LOG"'
+write_stub "$ryoku/install/config/config.sh" 'printf "config-setup\n" >> "$RYOKU_TEST_LOG"; printf "config-runtime:%s\n" "${RYOKU_SHELL_RUNTIME_DIR:-}" >> "$RYOKU_TEST_LOG"'
 write_stub "$ryoku/install/config/ryoku-audio-restore-mixers.sh" 'printf "audio-service\n" >> "$RYOKU_TEST_LOG"'
 write_stub "$ryoku/bin/ryoku-wallpaper-apply" 'printf "wallpaper:%s\n" "$*" >> "$RYOKU_TEST_LOG"'
 write_stub "$ryoku/bin/ryoku-install-qylock" 'printf "qylock:%s\n" "$*" >> "$RYOKU_TEST_LOG"'
@@ -107,6 +107,7 @@ set +e
 HOME="$home" \
 RYOKU_PATH="" \
 RYOKU_STATE_PATH="$state" \
+RYOKU_SHELL_RUNTIME_DIR="$home/.config/quickshell/stale-host-shell" \
 RYOKU_TEST_LOG="$log_file" \
 RYOKU_TEST_RUNTIME="$runtime" \
 RYOKU_TEST_LEGACY_RUNTIME="$legacy_runtime" \
@@ -137,6 +138,8 @@ assert_contains "$log_file" 'update-git:unstable-dev' \
   "transition should update the checkout through the selected branch"
 assert_contains "$log_file" 'config-setup' \
   "transition should run default config and wallpaper seeding for full-install parity"
+assert_contains "$log_file" "config-runtime:$runtime" \
+  "transition should force canonical ryoku-shell runtime even when the old session exports a stale host-shell path"
 assert_contains "$log_file" 'audio-service' \
   "transition should install rebirth user services for full-install parity"
 assert_contains "$log_file" 'prepare:--allow-auth-prompt' \

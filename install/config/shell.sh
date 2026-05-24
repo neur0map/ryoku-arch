@@ -7,6 +7,7 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)/lib/runtime-en
 
 SHELL_PATH="${RYOKU_SHELL_PATH:-$HOME/.local/share/ryoku-shell}"
 SHELL_VENDOR="$RYOKU_PATH/shell"
+SHELL_RUNTIME_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell"
 USER_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/ryoku-shell/config.json"
 
 restore_user_shell_config() {
@@ -74,7 +75,14 @@ fi
 
 (
   cd "$SHELL_PATH"
-  RYOKU_CORE_UPDATE_CHILD=1 IS_UPDATE=true ./setup install -y -q --skip-deps --skip-setups --skip-sysupdate
+  env \
+    -u QS_CONFIG_NAME \
+    -u QS_CONFIG_PATH \
+    -u QS_MANIFEST \
+    RYOKU_CORE_UPDATE_CHILD=1 \
+    RYOKU_SHELL_RUNTIME_DIR="$SHELL_RUNTIME_DIR" \
+    IS_UPDATE=true \
+    ./setup install -y -q --skip-deps --skip-setups --skip-sysupdate
 )
 
 if [[ -n $backup_config_file ]]; then
@@ -84,10 +92,10 @@ fi
 
 ryoku_shell_launcher="$HOME/.local/bin/ryoku-shell"
 if [[ -x $ryoku_shell_launcher ]]; then
-  "$ryoku_shell_launcher" service enable >/dev/null 2>&1 || true
+  env RYOKU_SHELL_RUNTIME_DIR="$SHELL_RUNTIME_DIR" "$ryoku_shell_launcher" service enable >/dev/null 2>&1 || true
 elif ryoku-cmd-present ryoku-shell; then
-  ryoku-shell service enable >/dev/null 2>&1 || true
+  env RYOKU_SHELL_RUNTIME_DIR="$SHELL_RUNTIME_DIR" ryoku-shell service enable >/dev/null 2>&1 || true
 fi
 
-"$RYOKU_PATH/install/config/ryoku-shell-branding.sh"
+env RYOKU_SHELL_RUNTIME_PATH="$SHELL_RUNTIME_DIR" "$RYOKU_PATH/install/config/ryoku-shell-branding.sh"
 systemctl --user daemon-reload >/dev/null 2>&1 || true
