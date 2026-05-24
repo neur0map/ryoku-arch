@@ -35,6 +35,17 @@ ryoku_update_report_progress() {
   printf 'progress:%s:%s:%s\n' "$step" "$total" "$message" >"$status_file" 2>/dev/null || true
 }
 
+ryoku_update_doctor_command() {
+  local doctor_command="${RYOKU_UPDATE_DOCTOR_COMMAND:-}"
+
+  if [[ -z $doctor_command && -n ${RYOKU_PATH:-} && -x $RYOKU_PATH/bin/ryoku-doctor ]]; then
+    doctor_command="$RYOKU_PATH/bin/ryoku-doctor"
+  fi
+
+  [[ -n $doctor_command ]] || doctor_command="ryoku-doctor"
+  printf '%s\n' "$doctor_command"
+}
+
 ryoku_update_tput_number() {
   local cap="$1" fallback="$2" value
 
@@ -252,7 +263,7 @@ ryoku_update_dashboard_draw() {
       ryoku_update_dashboard_line "$RYOKU_UPDATE_DASHBOARD_TOP_LINES" "$(ryoku_update_color "32;1" "Update complete. Thanks for updating Ryoku.")"
       ;;
     failed)
-      ryoku_update_dashboard_line "$RYOKU_UPDATE_DASHBOARD_TOP_LINES" "$(ryoku_update_color "31;1" "Update failed") $(ryoku_update_color "90" "Run: ryoku-doctor")"
+      ryoku_update_dashboard_line "$RYOKU_UPDATE_DASHBOARD_TOP_LINES" "$(ryoku_update_color "31;1" "Update failed") $(ryoku_update_color "90" "Run: $(ryoku_update_doctor_command)")"
       ;;
     *)
       ryoku_update_dashboard_line "$RYOKU_UPDATE_DASHBOARD_TOP_LINES" "$(ryoku_update_color "90" "Live output scrolls below. Prompts stay interactive.")"
@@ -387,6 +398,7 @@ ryoku_update_dashboard_finish() {
       ryoku_update_print_success_footer
     else
       printf '\n%s\n' "$(ryoku_update_color "31;1" "Ryoku update failed")"
+      printf '%s\n' "$(ryoku_update_color "90" "Run: $(ryoku_update_doctor_command)")"
     fi
   fi
 

@@ -11,6 +11,114 @@ source "$repo_root/lib/update-dashboard.sh"
 
 ryoku-cmd-caffeine start >/dev/null 2>&1 || true
 
+update_release_branch() {
+  local configured="${RYOKU_UPDATE_BRANCH:-}"
+  local state_file="$RYOKU_STATE_PATH/channel"
+
+  if [[ -z $configured && -r $state_file ]]; then
+    configured="$(<"$state_file")"
+  fi
+
+  case "$configured" in
+    unstable-dev)
+      printf '%s\n' "unstable-dev"
+      ;;
+    *)
+      printf '%s\n' "main"
+      ;;
+  esac
+}
+
+update_command_realpath() {
+  local command_name="$1"
+  local command_path=""
+
+  command_path="$(command -v "$command_name" 2>/dev/null || true)"
+  [[ -n $command_path ]] || return 1
+  readlink -f "$command_path" 2>/dev/null || printf '%s\n' "$command_path"
+}
+
+update_checkout_summary() {
+  local checkout_branch="unknown"
+  local checkout_commit="unknown"
+
+  if [[ -d $RYOKU_PATH/.git ]] && command -v git >/dev/null 2>&1; then
+    checkout_branch="$(GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=/bin/true git -C "$RYOKU_PATH" rev-parse --abbrev-ref HEAD 2>/dev/null || printf '%s\n' "unknown")"
+    checkout_commit="$(GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=/bin/true git -C "$RYOKU_PATH" rev-parse --short HEAD 2>/dev/null || printf '%s\n' "unknown")"
+  fi
+
+  printf '%s@%s\n' "$checkout_branch" "$checkout_commit"
+}
+
+update_runtime_bridge_summary() {
+  local bridge="$HOME/.local/lib/runtime-env.sh"
+  local target=""
+
+  if [[ -L $bridge ]]; then
+    target="$(readlink "$bridge" 2>/dev/null || true)"
+    printf '%s -> %s\n' "$bridge" "${target:-unknown}"
+  elif [[ -e $bridge ]]; then
+    printf '%s (present, not symlink)\n' "$bridge"
+  else
+    printf '%s (missing)\n' "$bridge"
+  fi
+}
+
+write_final_update_result_state() {
+  local checkout="$1"
+  local active_doctor="$2"
+  local gum_path="$3"
+  local runtime_bridge="$4"
+
+  mkdir -p "$RYOKU_STATE_PATH" 2>/dev/null || return 0
+  {
+    printf 'updated_at=%s\n' "$(date -Iseconds 2>/dev/null || date)"
+    printf 'path=%s\n' "$RYOKU_PATH"
+    printf 'channel=%s\n' "$(update_release_branch)"
+    printf 'checkout=%s\n' "$checkout"
+    printf 'expected_doctor=%s\n' "$RYOKU_PATH/bin/ryoku-doctor"
+    printf 'active_doctor=%s\n' "$active_doctor"
+    printf 'gum=%s\n' "$gum_path"
+    printf 'runtime_bridge=%s\n' "$runtime_bridge"
+  } >"$RYOKU_STATE_PATH/last-update" || true
+}
+
+print_final_update_result() {
+  local checkout="unknown@unknown"
+  local expected_doctor="$RYOKU_PATH/bin/ryoku-doctor"
+  local active_doctor=""
+  local gum_path=""
+  local runtime_bridge=""
+
+  checkout="$(update_checkout_summary)"
+  active_doctor="$(update_command_realpath ryoku-doctor || true)"
+  gum_path="$(update_command_realpath gum || true)"
+  runtime_bridge="$(update_runtime_bridge_summary)"
+
+  [[ -n $active_doctor ]] || active_doctor="missing"
+  [[ -n $gum_path ]] || gum_path="missing"
+
+  write_final_update_result_state "$checkout" "$active_doctor" "$gum_path" "$runtime_bridge"
+
+  echo
+  echo "Ryoku update result:"
+  echo "  Path: $RYOKU_PATH"
+  echo "  Channel: $(update_release_branch)"
+  echo "  Checkout: $checkout"
+  echo "  Expected doctor: $expected_doctor"
+  echo "  Active doctor: $active_doctor"
+  echo "  Gum: $gum_path"
+  echo "  Runtime bridge: $runtime_bridge"
+
+  if [[ -x $expected_doctor && $active_doctor != "$expected_doctor" ]]; then
+    echo -e "\e[33mWarning: ryoku-doctor resolves outside the installed checkout; PATH or legacy wrappers may be stale.\e[0m"
+  fi
+
+  if [[ $gum_path == "missing" ]]; then
+    echo -e "\e[33mWarning: gum is still missing after package stages; ryoku-doctor will use fallback UI.\e[0m"
+  fi
+}
+
 update_migration_safety_stage() {
   ryoku-migrate --repair-baseline
 }
@@ -93,3 +201,5 @@ ryoku_update_run_stage 6 "$update_total" "Ryoku distro packages" update_distro_p
 ryoku_update_run_stage 7 "$update_total" "Ryoku shell" update_shell_stage
 ryoku_update_run_stage 8 "$update_total" "Migrations" ryoku-migrate
 ryoku_update_run_stage 9 "$update_total" "Cleanup and restart" update_cleanup_stage
+
+print_final_update_result
