@@ -39,13 +39,13 @@
 @define-color scrollbar_outline_color alpha(white, 0.1);
 
 headerbar {
-    background-color: #0F0E0F !important;
-    box-shadow: none !important;
-    border-bottom: none !important;
+    background-color: #0F0E0F;
+    box-shadow: none;
+    border-bottom: none;
 }
 
 headerbar separator {
-    background-color: transparent !important;
+    background-color: transparent;
 }
 
 .nautilus-window .sidebar,
@@ -53,115 +53,115 @@ headerbar separator {
 navigation-view > navigation-sidebar,
 placessidebar,
 placessidebar list {
-    background-color: #0F0E0F !important;
-    color: #E9E4E7 !important;
-    border-right: none !important;
+    background-color: #0F0E0F;
+    color: #E9E4E7;
+    border-right: none;
 }
 
 placessidebar row {
-    background-color: transparent !important;
-    color: #E9E4E7 !important;
+    background-color: transparent;
+    color: #E9E4E7;
 }
 
 placessidebar row:hover {
-    background-color: #2F2E31 !important;
+    background-color: #2F2E31;
 }
 
 placessidebar row:selected,
 placessidebar row:selected:hover {
-    background-color: #3F3D40 !important;
-    color: #E9E4E7 !important;
+    background-color: #3F3D40;
+    color: #E9E4E7;
 }
 
 placessidebar image {
-    color: inherit !important;
+    color: inherit;
 }
 
 .view,
 .nautilus-window .view {
-    background-color: #0F0E0F !important;
+    background-color: #0F0E0F;
 }
 
 separator.sidebar,
 paned > separator {
-    background-color: transparent !important;
+    background-color: transparent;
     min-width: 0;
 }
 
 /* Remove navigation pane borders */
 .navigation-sidebar {
-    border-right: none !important;
+    border-right: none;
 }
 
 /* Context menus and popovers */
 popover,
 popover > contents {
-    background-color: #1A191B !important;
-    color: #E9E4E7 !important;
+    background-color: #1A191B;
+    color: #E9E4E7;
 }
 
 popover modelbutton:hover,
 popover row:hover {
-    background-color: #2F2E31 !important;
+    background-color: #2F2E31;
 }
 
 popover modelbutton:active,
 popover row:active,
 popover modelbutton:selected:active,
 popover row:selected:active {
-    background-color: #3F3D40 !important;
-    color: #E9E4E7 !important;
+    background-color: #3F3D40;
+    color: #E9E4E7;
 }
 
 popover modelbutton:selected,
 popover row:selected {
-    background-color: #4C4A4E !important;
+    background-color: #4C4A4E;
 }
 
 popover separator {
-    background-color: alpha(#E9E4E7, 0.12) !important;
+    background-color: alpha(@window_fg_color, 0.12);
 }
 
 /* Menu styling (GtkPopoverMenu in GTK4) */
 popover.menu > contents,
 popover.menu box.inline-buttons {
-    background-color: #1A191B !important;
-    color: #E9E4E7 !important;
+    background-color: #1A191B;
+    color: #E9E4E7;
 }
 
 popover.menu modelbutton {
-    color: #E9E4E7 !important;
+    color: #E9E4E7;
 }
 
 popover.menu modelbutton:hover {
-    background-color: #2F2E31 !important;
+    background-color: #2F2E31;
 }
 
 popover.menu modelbutton:active,
 popover.menu modelbutton:selected:active {
-    background-color: #3F3D40 !important;
-    color: #E9E4E7 !important;
+    background-color: #3F3D40;
+    color: #E9E4E7;
 }
 
 entry:focus,
 textview:focus,
 spinbutton:focus,
 searchentry:focus {
-    border-color: alpha(#CAC4CF, 0.60) !important;
-    box-shadow: 0 0 0 1px alpha(#CAC4CF, 0.25) inset !important;
+    border-color: alpha(@accent_color, 0.60);
+    box-shadow: 0 0 0 1px alpha(@accent_color, 0.25) inset;
 }
 
 button:hover,
 modelbutton:hover {
-    background-color: #2F2E31 !important;
+    background-color: #2F2E31;
 }
 
 button:active,
 modelbutton:active {
-    background-color: #3F3D40 !important;
-    color: #E9E4E7 !important;
+    background-color: #3F3D40;
+    color: #E9E4E7;
 }
 
 popover.menu accelerator {
-    color: alpha(#E9E4E7, 0.55) !important;
+    color: alpha(@window_fg_color, 0.55);
 }

@@ -126,6 +126,8 @@ rg -q 'function queueRefresh' "$ROOT_DIR/shell/services/Hypr.qml" || \
   fail "Hyprland shell service should debounce compositor model refreshes"
 rg -q 'root\.queueRefresh\(true, true, false\)' "$ROOT_DIR/shell/services/Hypr.qml" || \
   fail "Window open/close/move events should coalesce toplevel/workspace refreshes"
+rg -q '\["activewindow", "windowtitle"\]\.includes\(n\)' "$ROOT_DIR/shell/services/Hypr.qml" || \
+  fail "Focus and title churn should not force full toplevel refreshes"
 rg -q 'interval: 25' "$ROOT_DIR/shell/services/Hypr.qml" || \
   fail "Hyprland refresh debounce should stay short enough for responsive UI"
 

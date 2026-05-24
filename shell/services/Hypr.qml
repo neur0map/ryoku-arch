@@ -140,6 +140,8 @@ Singleton {
                 root.reloadDynamicConfs();
             } else if (["workspace", "moveworkspace", "activespecial", "focusedmon"].includes(n)) {
                 root.queueRefresh(false, true, true);
+            } else if (["activewindow", "windowtitle"].includes(n)) {
+                return;
             } else if (["openwindow", "closewindow", "movewindow"].includes(n)) {
                 root.queueRefresh(true, true, false);
             } else if (n.includes("mon")) {
@@ -238,9 +240,7 @@ Singleton {
         target: "hypr"
     }
 
-
     CustomShortcut {
-
         name: "refreshDevices"
         description: "Reload devices"
         onPressed: extras.refreshDevices()

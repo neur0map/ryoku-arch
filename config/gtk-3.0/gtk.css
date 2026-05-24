@@ -28,97 +28,97 @@
 @define-color sidebar_backdrop_color #0F0E0F;
 
 headerbar {
-    background-color: #0F0E0F !important;
-    box-shadow: none !important;
-    border-bottom: none !important;
+    background-color: #0F0E0F;
+    box-shadow: none;
+    border-bottom: none;
 }
 
 headerbar separator {
-    background-color: transparent !important;
+    background-color: transparent;
 }
 
 .nautilus-window .sidebar,
 .nautilus-window sidebar,
 placessidebar,
 placessidebar list {
-    background-color: #0F0E0F !important;
-    color: #E9E4E7 !important;
-    border-right: none !important;
+    background-color: #0F0E0F;
+    color: #E9E4E7;
+    border-right: none;
 }
 
 placessidebar row {
-    background-color: transparent !important;
-    color: #E9E4E7 !important;
+    background-color: transparent;
+    color: #E9E4E7;
 }
 
 placessidebar row:hover {
-    background-color: #2F2E31 !important;
+    background-color: #2F2E31;
 }
 
 placessidebar row:selected,
 placessidebar row:selected:hover {
-    background-color: #3F3D40 !important;
-    color: #E9E4E7 !important;
+    background-color: #3F3D40;
+    color: #E9E4E7;
 }
 
 placessidebar image {
-    color: inherit !important;
+    color: inherit;
 }
 
 .view {
-    background-color: #0F0E0F !important;
+    background-color: #0F0E0F;
 }
 
 separator.sidebar {
-    background-color: transparent !important;
+    background-color: transparent;
     min-width: 0;
 }
 
 /* Context menus and popovers */
 popover,
 popover.background {
-    background-color: #1A191B !important;
-    color: #E9E4E7 !important;
+    background-color: #1A191B;
+    color: #E9E4E7;
 }
 
 menu,
 .context-menu,
 .popup {
-    background-color: #1A191B !important;
-    color: #E9E4E7 !important;
+    background-color: #1A191B;
+    color: #E9E4E7;
 }
 
 menuitem {
-    color: #E9E4E7 !important;
+    color: #E9E4E7;
 }
 
 menuitem:hover,
 menuitem:selected {
-    background-color: #2F2E31 !important;
+    background-color: #2F2E31;
 }
 
 menuitem:active,
 menuitem:selected:active {
-    background-color: #3F3D40 !important;
-    color: #E9E4E7 !important;
+    background-color: #3F3D40;
+    color: #E9E4E7;
 }
 
 button:hover {
-    background-color: #2F2E31 !important;
+    background-color: #2F2E31;
 }
 
 button:active {
-    background-color: #3F3D40 !important;
-    color: #E9E4E7 !important;
+    background-color: #3F3D40;
+    color: #E9E4E7;
 }
 
 entry:focus,
 textview:focus,
 spinbutton:focus {
-    border-color: alpha(#CAC4CF, 0.60) !important;
-    box-shadow: 0 0 0 1px alpha(#CAC4CF, 0.25) inset !important;
+    border-color: alpha(@accent_color, 0.60);
+    box-shadow: 0 0 0 1px alpha(@accent_color, 0.25) inset;
 }
 
 menu separator {
-    background-color: alpha(#E9E4E7, 0.12) !important;
+    background-color: alpha(@window_fg_color, 0.12);
 }

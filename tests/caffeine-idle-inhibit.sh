@@ -84,6 +84,10 @@ assert_contains "$caffeine_cmd" '--what=idle:sleep' \
   "caffeine helper should inhibit both idle locks and sleep requests"
 assert_contains "$caffeine_cmd" 'ryoku-caffeine-inhibit' \
   "caffeine helper status should track the same inhibitor it starts"
+assert_contains "$caffeine_cmd" 'systemd-run' \
+  "caffeine helper should move the long-lived inhibitor out of the shell service cgroup"
+assert_contains "$caffeine_cmd" 'RYOKU_CAFFEINE_UNIT_NAME' \
+  "caffeine helper should expose an overrideable transient unit name for tests"
 assert_contains "$caffeine_cmd" 'legacy_inhibit_pattern=' \
   "caffeine helper should clean the old QML-owned inhibitor during migration"
 assert_contains "$caffeine_cmd" 'flock -x' \
@@ -114,13 +118,36 @@ rm -f "${RYOKU_TEST_CAFFEINE_MARKER:?}"
 exit 0
 STUB
 
+cat >"$stub_bin/ryoku-cmd-present" <<'STUB'
+#!/bin/bash
+for cmd in "$@"; do
+  command -v "$cmd" >/dev/null 2>&1 || exit 1
+done
+exit 0
+STUB
+
+cat >"$stub_bin/systemctl" <<'STUB'
+#!/bin/bash
+if [[ ${1:-} == "--user" && ${2:-} == "stop" ]]; then
+  rm -f "${RYOKU_TEST_CAFFEINE_MARKER:?}"
+fi
+exit 0
+STUB
+
+cat >"$stub_bin/systemd-run" <<'STUB'
+#!/bin/bash
+touch "${RYOKU_TEST_CAFFEINE_MARKER:?}"
+exit 0
+STUB
+
 cat >"$stub_bin/setsid" <<'STUB'
 #!/bin/bash
 touch "${RYOKU_TEST_CAFFEINE_MARKER:?}"
 exit 0
 STUB
 
-chmod +x "$stub_bin/pgrep" "$stub_bin/pkill" "$stub_bin/setsid"
+chmod +x "$stub_bin/pgrep" "$stub_bin/pkill" "$stub_bin/ryoku-cmd-present" \
+  "$stub_bin/systemctl" "$stub_bin/systemd-run" "$stub_bin/setsid"
 
 PATH="$stub_bin:$PATH" \
 RYOKU_CAFFEINE_STATE_FILE="$state_file" \
