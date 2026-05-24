@@ -62,9 +62,9 @@ Commands:
   switch-channel BRANCH  Launch the branch switcher for main or unstable-dev
   open-url URL           Open an https URL in the user's browser
 
-MedEvac portable form:
-  curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/main/bin/ryoku-call911now | env RYOKU_UPDATE_BRANCH=main bash
-  curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/unstable-dev/bin/ryoku-call911now | env RYOKU_UPDATE_BRANCH=unstable-dev bash
+MedEvac installed command:
+  ryoku-call911now
+  RYOKU_UPDATE_BRANCH=unstable-dev ryoku-call911now
 EOF
 }
 
@@ -652,7 +652,7 @@ PY
 
 start_medevac() {
   local channel="${1:-main}"
-  local command command_body local_call local_call_q raw_url raw_url_q branch_env
+  local command local_call local_call_q branch_q
 
   if ! command -v ryoku-launch-floating-terminal-with-presentation >/dev/null 2>&1; then
     json_error "ryoku-launch-floating-terminal-with-presentation was not found"
@@ -672,32 +672,29 @@ start_medevac() {
       ;;
   esac
 
-  raw_url="${RYOKU_MEDEVAC_URL:-https://raw.githubusercontent.com/neur0map/ryoku-arch/$channel/bin/ryoku-call911now}"
-  raw_url_q="$(shell_quote "$raw_url")"
-  branch_env="RYOKU_UPDATE_BRANCH=$(shell_quote "$channel")"
+  branch_q="$(shell_quote "$channel")"
   local_call="$RYOKU_PATH/bin/ryoku-call911now"
 
-  if [[ ! -x $local_call ]] && ! command -v curl >/dev/null 2>&1; then
-    json_error "Ryoku MedEvac needs curl or the baked local ryoku-call911now command"
+  if [[ ! -x $local_call ]]; then
+    local_call="$(command -v ryoku-call911now 2>/dev/null || true)"
+  fi
+
+  if [[ -z $local_call || ! -x $local_call ]]; then
+    json_error "Ryoku MedEvac needs the baked ryoku-call911now command; run ryoku-update first if this install is stale"
     return 1
   fi
 
-  if [[ -x $local_call ]]; then
-    local_call_q="$(shell_quote "$local_call")"
-    command_body="set -o pipefail; if command -v curl >/dev/null 2>&1; then curl -fsSL $raw_url_q | env $branch_env bash; else env $branch_env $local_call_q; fi"
-  else
-    command_body="set -o pipefail; curl -fsSL $raw_url_q | env $branch_env bash"
-  fi
-  command="bash -lc $(shell_single_quote "$command_body")"
+  local_call_q="$(shell_quote "$local_call")"
+  command="env RYOKU_UPDATE_BRANCH=$branch_q $local_call_q"
 
   ryoku-launch-floating-terminal-with-presentation "$command" >/dev/null 2>&1 &
-  python3 - "$raw_url" "$channel" <<'PY'
+  python3 - "$local_call" "$channel" <<'PY'
 import json
 import sys
 
 print(json.dumps({
     "ok": True,
-    "url": sys.argv[1],
+    "command": sys.argv[1],
     "channel": sys.argv[2],
     "message": f"Started Ryoku MedEvac for {sys.argv[2]} in a terminal.",
 }))

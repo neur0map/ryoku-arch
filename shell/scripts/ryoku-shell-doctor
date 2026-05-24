@@ -4,11 +4,14 @@ set -euo pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 shell_root="$(cd -- "$script_dir/.." && pwd)"
+repo_root="$(cd -- "$shell_root/.." && pwd)"
 runtime_dir="${RYOKU_SHELL_RUNTIME_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell}"
 config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/ryoku-shell"
 systemd_user_dir="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
 qs_bin="${RYOKU_QS_BIN:-qs}"
 
+doctor_step=0
+doctor_total=24
 doctor_passed=0
 doctor_failed=0
 doctor_fixed=0
@@ -83,15 +86,15 @@ doctor_title() {
   if doctor_pretty; then
     gum style \
       --border rounded \
-      --border-foreground 6 \
-      --foreground 15 \
-      --padding "1 3" \
-      "Ryoku Doctor" \
-      "Hyprland shell health + automatic repair"
-  else
-    echo "Ryoku Doctor: shell"
-  fi
-}
+	      --border-foreground 6 \
+	      --foreground 15 \
+	      --padding "1 3" \
+	      "Ryoku Doctor flight deck" \
+	      "24-point shell, updater, and recovery health sweep"
+	  else
+	    echo "Ryoku Doctor flight deck"
+	  fi
+	}
 
 doctor_status_line() {
   local kind="$1"
@@ -225,10 +228,11 @@ run_check() {
   local label="$1"
   shift
 
+  ((doctor_step++)) || true
   if doctor_pretty; then
-    gum style --foreground 6 "Checking $label"
+    gum style --foreground 6 "[${doctor_step}/${doctor_total}] Checking $label"
   else
-    echo "Checking $label"
+    echo "[${doctor_step}/${doctor_total}] Checking $label"
   fi
   "$@" || true
 }
@@ -309,6 +313,223 @@ check_launcher() {
     doctor_pass "ryoku-shell launcher available"
   else
     doctor_fail "ryoku-shell launcher missing"
+  fi
+}
+
+check_command_bridges() {
+  local bin_home="${XDG_BIN_HOME:-$HOME/.local/bin}"
+  local fixed=0
+  local missing=()
+  local name source target
+
+  mkdir -p "$bin_home"
+  for name in ryoku ryoku-shell ryoku-update ryoku-doctor ryoku-call911now; do
+    case "$name" in
+      ryoku) source="$shell_root/scripts/ryoku" ;;
+      ryoku-shell) source="$shell_root/scripts/ryoku-shell" ;;
+      *) source="$repo_root/bin/$name" ;;
+    esac
+    target="$bin_home/$name"
+    [[ -e $source ]] || {
+      missing+=("$name")
+      continue
+    }
+    if [[ ! -L $target || $(readlink "$target" 2>/dev/null || true) != "$source" ]]; then
+      ln -sfn "$source" "$target" 2>/dev/null && ((fixed++)) || true
+    fi
+    [[ -e $target ]] || missing+=("$name")
+  done
+
+  if ((${#missing[@]} > 0)); then
+    doctor_fail "Command bridges missing: ${missing[*]}"
+  elif ((fixed > 0)); then
+    doctor_fix "Repaired $fixed command bridge(s)"
+  else
+    doctor_pass "Command bridges current"
+  fi
+}
+
+check_runtime_env_bridge() {
+  local bridge="${XDG_BIN_HOME:-$HOME/.local/bin}"
+  local source="$repo_root/lib/runtime-env.sh"
+  local target
+
+  target="$(dirname "$bridge")/lib/runtime-env.sh"
+  if [[ ! -f $source ]]; then
+    doctor_fail "runtime-env source missing: $source"
+    return 0
+  fi
+
+  mkdir -p "$(dirname "$target")"
+  if [[ ! -L $target || $(readlink "$target" 2>/dev/null || true) != "$source" ]]; then
+    ln -sfn "$source" "$target" 2>/dev/null || {
+      doctor_fail "runtime-env bridge cannot be repaired: $target"
+      return 0
+    }
+    doctor_fix "Repaired runtime-env bridge"
+    return 0
+  fi
+
+  doctor_pass "runtime-env bridge current"
+}
+
+check_medevac_command() {
+  local command_path=""
+
+  command_path="$(command -v ryoku-call911now 2>/dev/null || true)"
+  if [[ -n $command_path || -x $repo_root/bin/ryoku-call911now ]]; then
+    doctor_pass "MedEvac command available"
+  else
+    doctor_fail "ryoku-call911now missing from installed checkout and PATH"
+  fi
+}
+
+check_update_status() {
+  local status_file="${XDG_STATE_HOME:-$HOME/.local/state}/quickshell/user/update-status"
+  local status=""
+
+  if [[ -r $status_file ]]; then
+    status="$(<"$status_file")"
+  fi
+
+  case "$status" in
+    failed:* | updating | progress:*)
+      doctor_warn "Updater needs attention: ${status:-unknown}"
+      ;;
+    "")
+      doctor_pass "No stale update status"
+      ;;
+    *)
+      doctor_pass "Update status: $status"
+      ;;
+  esac
+}
+
+check_snapshot_tooling() {
+  if command -v ryoku-snapshot >/dev/null 2>&1 || [[ -x $repo_root/bin/ryoku-snapshot ]]; then
+    doctor_pass "Snapshot tooling available"
+  else
+    doctor_warn "Snapshot command missing; updates cannot create rollback points"
+  fi
+}
+
+check_state_directories() {
+  local dirs=(
+    "${XDG_STATE_HOME:-$HOME/.local/state}/ryoku"
+    "${XDG_STATE_HOME:-$HOME/.local/state}/quickshell/user"
+    "$config_dir"
+  )
+  local created=0
+  local dir
+
+  for dir in "${dirs[@]}"; do
+    if [[ ! -d $dir ]]; then
+      mkdir -p "$dir" 2>/dev/null && ((created++)) || true
+    fi
+  done
+
+  if ((created > 0)); then
+    doctor_fix "Created $created state/config directorie(s)"
+  else
+    doctor_pass "State/config directories present"
+  fi
+}
+
+check_script_permissions() {
+  local bad=0
+
+  bad="$(find "$shell_root/scripts" "$repo_root/bin" -maxdepth 1 -type f -name 'ryoku-*' ! -executable 2>/dev/null | wc -l)"
+  if ((bad > 0)); then
+    find "$shell_root/scripts" "$repo_root/bin" -maxdepth 1 -type f -name 'ryoku-*' ! -executable -exec chmod +x {} + 2>/dev/null || true
+    doctor_fix "Restored executable bit on $bad Ryoku script(s)"
+  else
+    doctor_pass "Ryoku script permissions OK"
+  fi
+}
+
+check_shell_source_pointer() {
+  local pointer="$runtime_dir/.ryoku-source-path"
+  local current=""
+
+  if [[ -r $pointer ]]; then
+    current="$(<"$pointer")"
+  fi
+
+  if [[ $current == "$repo_root" ]]; then
+    doctor_pass "Runtime source pointer targets installed checkout"
+    return 0
+  fi
+
+  if [[ -d $runtime_dir ]]; then
+    printf '%s\n' "$repo_root" >"$pointer" 2>/dev/null || {
+      doctor_warn "Runtime source pointer is stale and could not be rewritten"
+      return 0
+    }
+    doctor_fix "Repaired runtime source pointer"
+  else
+    doctor_warn "Runtime source pointer skipped because runtime directory is missing"
+  fi
+}
+
+check_portal_services() {
+  local hyprland_state=""
+  local portal_state=""
+
+  command -v systemctl >/dev/null 2>&1 || {
+    doctor_warn "systemctl unavailable; portal service check skipped"
+    return 0
+  }
+
+  hyprland_state="$(systemctl --user is-active xdg-desktop-portal-hyprland.service 2>/dev/null || true)"
+  portal_state="$(systemctl --user is-active xdg-desktop-portal.service 2>/dev/null || true)"
+  if [[ $hyprland_state == "active" && $portal_state == "active" ]]; then
+    doctor_pass "Hyprland portal services active"
+  else
+    doctor_warn "Portal services not fully active: hyprland=${hyprland_state:-unknown} portal=${portal_state:-unknown}"
+  fi
+}
+
+check_clipboard_stack() {
+  local missing=()
+  local cmd
+
+  for cmd in wl-copy wl-paste cliphist; do
+    command -v "$cmd" >/dev/null 2>&1 || missing+=("$cmd")
+  done
+  if ((${#missing[@]} > 0)); then
+    doctor_warn "Clipboard helpers missing: ${missing[*]}"
+  else
+    doctor_pass "Clipboard stack available"
+  fi
+}
+
+check_screenshot_stack() {
+  local missing=()
+  local cmd
+
+  for cmd in grim slurp; do
+    command -v "$cmd" >/dev/null 2>&1 || missing+=("$cmd")
+  done
+  if ((${#missing[@]} > 0)); then
+    doctor_warn "Screenshot helpers missing: ${missing[*]}"
+  else
+    doctor_pass "Screenshot stack available"
+  fi
+}
+
+check_audio_controls() {
+  if command -v wpctl >/dev/null 2>&1; then
+    doctor_pass "Audio controls available"
+  else
+    doctor_warn "wpctl missing; shell audio controls may fail"
+  fi
+}
+
+check_package_helpers() {
+  if command -v ryoku-pkg-add >/dev/null 2>&1 && command -v pacman >/dev/null 2>&1; then
+    doctor_pass "Package helpers available"
+  else
+    doctor_warn "Package helper stack incomplete"
   fi
 }
 
@@ -547,19 +768,32 @@ check_stale_compositor_wiring() {
 run_shell_doctor() {
   doctor_report_init
 
-  doctor_title
-  echo
-  run_check "dependencies" check_dependencies
-  run_check "Hyprland compositor" check_hyprland_compositor
-  run_check "Ryoku shell runtime" check_runtime_payload
-  run_check "ryoku-shell launcher" check_launcher
-  run_check "user config" check_user_config
-  run_check "Hyprland config" check_hyprland_config
-  run_check "ryoku-shell service" check_service
-  run_check "Quickshell instance" check_quickshell_instance
-  run_check "native plugin" check_native_plugin
-  run_check "audio mixer self-heal" check_audio_restore_service
-  run_check "stale compositor wiring" check_stale_compositor_wiring
+	  doctor_title
+	  echo
+	  run_check "dependencies" check_dependencies
+	  run_check "command bridges" check_command_bridges
+	  run_check "runtime-env bridge" check_runtime_env_bridge
+	  run_check "MedEvac command" check_medevac_command
+	  run_check "update status" check_update_status
+	  run_check "snapshot tooling" check_snapshot_tooling
+	  run_check "state directories" check_state_directories
+	  run_check "script permissions" check_script_permissions
+	  run_check "shell source pointer" check_shell_source_pointer
+	  run_check "Hyprland compositor" check_hyprland_compositor
+	  run_check "Ryoku shell runtime" check_runtime_payload
+	  run_check "ryoku-shell launcher" check_launcher
+	  run_check "user config" check_user_config
+	  run_check "Hyprland config" check_hyprland_config
+	  run_check "ryoku-shell service" check_service
+	  run_check "portal services" check_portal_services
+	  run_check "Quickshell instance" check_quickshell_instance
+	  run_check "native plugin" check_native_plugin
+	  run_check "audio mixer self-heal" check_audio_restore_service
+	  run_check "stale compositor wiring" check_stale_compositor_wiring
+	  run_check "clipboard stack" check_clipboard_stack
+	  run_check "screenshot stack" check_screenshot_stack
+	  run_check "audio controls" check_audio_controls
+	  run_check "package helpers" check_package_helpers
   echo
 
   doctor_report_finish

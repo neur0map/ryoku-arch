@@ -29,6 +29,19 @@ ryoku_update_default_log() {
 
 export RYOKU_UPDATE_LOG="${RYOKU_UPDATE_LOG:-$(ryoku_update_default_log)}"
 
+ryoku_update_sudo_has_terminal() {
+  ((EUID == 0)) && return 0
+  command -v sudo >/dev/null 2>&1 || return 0
+  sudo -n true >/dev/null 2>&1 && return 0
+  [[ -t 0 ]]
+}
+
+if [[ -z ${RYOKU_UPDATE_LOGGED:-} ]] && ! ryoku_update_sudo_has_terminal; then
+  echo "Ryoku update needs sudo authentication, but stdin is not a terminal."
+  echo "Run from a real terminal, or run sudo -v first and retry: ryoku-update -y"
+  exit 1
+fi
+
 if [[ -z ${RYOKU_UPDATE_INHIBITED:-} ]] && command -v systemd-inhibit >/dev/null 2>&1; then
   exec env RYOKU_UPDATE_INHIBITED=1 systemd-inhibit \
     --what=idle \
@@ -219,6 +232,7 @@ if (( update_assume_yes == 1 )) || ryoku-update-confirm; then
   repair_command_bridges
   ryoku-update-git
   repair_command_bridges
-  continue_with_refreshed_updater
-  run_post_git_update
+  if ! continue_with_refreshed_updater; then
+    run_post_git_update
+  fi
 fi

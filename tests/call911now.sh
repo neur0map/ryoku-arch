@@ -27,12 +27,12 @@ write_executable() {
 
 [[ -x $ROOT_DIR/bin/ryoku-call911now ]] || \
   fail "ryoku-call911now should be executable"
-grep -Fq '  ryoku-call911now' "$ROOT_DIR/bin/ryoku-call911now" || \
+help_output="$("$ROOT_DIR/bin/ryoku-call911now" --help)"
+grep -Fq '  ryoku-call911now' <<<"$help_output" || \
   fail "ryoku-call911now help should document the baked installed command form"
-grep -Fq 'main/bin/ryoku-call911now | env RYOKU_UPDATE_BRANCH=main bash' "$ROOT_DIR/bin/ryoku-call911now" || \
-  fail "ryoku-call911now help should document the main curl form with an explicit channel"
-grep -Fq 'unstable-dev/bin/ryoku-call911now' "$ROOT_DIR/bin/ryoku-call911now" || \
-  fail "ryoku-call911now help should document the rebirth unstable-dev curl form"
+if grep -Fq 'curl -fsSL' <<<"$help_output"; then
+  fail "ryoku-call911now help should not advertise curl pipelines as the public recovery path"
+fi
 grep -Fq 'preflight_summary()' "$ROOT_DIR/bin/ryoku-call911now" || \
   fail "ryoku-call911now should show a preflight summary before rescue mutations"
 grep -Fq 'may preserve and replace stale checkouts' "$ROOT_DIR/bin/ryoku-call911now" || \
@@ -133,8 +133,17 @@ git_state="$git_home/.local/state/ryoku"
 git_remote="$tmp/git-remote.git"
 git_seed="$tmp/git-seed"
 git_log="$tmp/git-medevac.log"
+git_bin="$tmp/git-bin"
 
-mkdir -p "$git_home/.local/share" "$git_state"
+mkdir -p "$git_home/.local/share" "$git_state" "$git_bin"
+cat >"$git_bin/sudo" <<'SH'
+#!/bin/bash
+if [[ ${1:-} == "-n" ]]; then
+  exit 0
+fi
+exit 0
+SH
+chmod 755 "$git_bin/sudo"
 git init --bare "$git_remote" >/dev/null
 git clone "$git_remote" "$git_seed" >/dev/null 2>&1
 git -C "$git_seed" config user.email test@example.invalid
@@ -174,6 +183,7 @@ git_output=$(
   RYOKU_MEDEVAC_NO_SUDO_PROMPT=1 \
   RYOKU_MEDEVAC_PLAIN=1 \
   RYOKU_TEST_LOG="$git_log" \
+  PATH="$git_bin:/usr/bin:/bin" \
     "$ROOT_DIR/bin/ryoku-call911now" 2>&1
 ) || fail "medevac should preserve dirty official checkouts before recovering: $git_output"
 
@@ -188,5 +198,65 @@ grep -Fq "update:$git_install/bin/ryoku-doctor:-y" "$git_log" || \
 preserved_line="$(grep -F 'preserved_backups=' "$git_state/last-medevac")"
 [[ $preserved_line == *medevac-backups* ]] || \
   fail "medevac should record the preserved dirty checkout backup"
+
+notty_home="$tmp/notty-home"
+notty_install="$notty_home/.local/share/ryoku"
+notty_state="$notty_home/.local/state/ryoku"
+notty_remote="$tmp/notty-remote.git"
+notty_seed="$tmp/notty-seed"
+notty_log="$tmp/notty-medevac.log"
+notty_bin="$tmp/notty-bin"
+
+mkdir -p "$notty_home/.local/share" "$notty_state" "$notty_bin"
+git init --bare "$notty_remote" >/dev/null
+git clone "$notty_remote" "$notty_seed" >/dev/null 2>&1
+git -C "$notty_seed" config user.email test@example.invalid
+git -C "$notty_seed" config user.name "Ryoku Test"
+mkdir -p "$notty_seed/bin" "$notty_seed/lib" "$notty_seed/shell/scripts"
+printf '%s\n' '# runtime env' >"$notty_seed/lib/runtime-env.sh"
+write_executable "$notty_seed/bin/ryoku-call911now" '#!/bin/bash
+exit 0'
+write_executable "$notty_seed/bin/ryoku-doctor" '#!/bin/bash
+printf "doctor:%s\n" "${RYOKU_PATH:-missing}" >> "$RYOKU_TEST_LOG"'
+write_executable "$notty_seed/bin/ryoku-update" '#!/bin/bash
+printf "update-should-not-run\n" >> "$RYOKU_TEST_LOG"'
+write_executable "$notty_seed/shell/scripts/ryoku" '#!/bin/bash
+exit 0'
+write_executable "$notty_seed/shell/scripts/ryoku-shell" '#!/bin/bash
+exit 0'
+git -C "$notty_seed" add .
+git -C "$notty_seed" commit -m "notty rescue checkout" >/dev/null
+git -C "$notty_seed" push origin HEAD:main >/dev/null 2>&1
+git clone --branch main "$notty_remote" "$notty_install" >/dev/null 2>&1
+cat >"$notty_bin/sudo" <<'SH'
+#!/bin/bash
+if [[ ${1:-} == "-n" ]]; then
+  exit 1
+fi
+exit 1
+SH
+chmod 755 "$notty_bin/sudo"
+
+notty_output=$(
+  HOME="$notty_home" \
+  RYOKU_PATH="$notty_install" \
+  RYOKU_STATE_PATH="$notty_state" \
+  RYOKU_UPDATE_BRANCH=main \
+  RYOKU_UPDATE_REMOTE_URL="$notty_remote" \
+  RYOKU_MEDEVAC_PLAIN=1 \
+  RYOKU_TEST_LOG="$notty_log" \
+  PATH="$notty_bin:/usr/bin:/bin" \
+    "$ROOT_DIR/bin/ryoku-call911now" </dev/null 2>&1
+) || true
+
+grep -Fq 'MedEvac repaired the checkout and command bridges, but skipped the updater because sudo needs a real terminal.' <<<"$notty_output" || \
+  fail "non-TTY MedEvac should skip updater handoff instead of timing out at sudo: $notty_output"
+grep -Fq "doctor:$notty_install" "$notty_log" || \
+  fail "non-TTY MedEvac should still run the latest recovered doctor"
+if grep -Fq 'update-should-not-run' "$notty_log"; then
+  fail "non-TTY MedEvac should not run updater when sudo needs terminal input"
+fi
+grep -Fxq 'update_status=skipped-no-tty' "$notty_state/last-medevac" || \
+  fail "MedEvac state should record that updater was skipped for terminal auth"
 
 printf '%s\n' "PASS: ryoku-call911now medevac"

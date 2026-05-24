@@ -337,6 +337,13 @@ sudo_authorized() {
   return 1
 }
 
+sudo_needs_terminal_input() {
+  ((EUID == 0)) && return 1
+  command_present sudo || return 1
+  sudo -n true >/dev/null 2>&1 && return 1
+  [[ ! -t 0 ]]
+}
+
 install_packages() {
   local packages=("$@")
 
@@ -793,6 +800,13 @@ run_normal_update() {
     return 127
   fi
 
+  if sudo_needs_terminal_input; then
+    update_status="skipped-no-tty"
+    warn "MedEvac repaired the checkout and command bridges, but skipped the updater because sudo needs a real terminal."
+    warn "Run ryoku-call911now from an interactive terminal, or run sudo -v first and retry ryoku-update -y."
+    return 0
+  fi
+
   step "Running normal Ryoku updater from the recovered checkout"
   set +e
   if [[ -x $update_cmd ]]; then
@@ -818,10 +832,9 @@ Usage: ryoku-call911now [--help]
 
 Last-resort Ryoku MedEvac recovery.
 
-Portable command:
+Installed emergency command:
   ryoku-call911now
-  curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/main/bin/ryoku-call911now | env RYOKU_UPDATE_BRANCH=main bash
-  curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/unstable-dev/bin/ryoku-call911now | env RYOKU_UPDATE_BRANCH=unstable-dev bash
+  RYOKU_UPDATE_BRANCH=unstable-dev ryoku-call911now
 
 Doctor versus MedEvac:
   ryoku-doctor checks and repairs a coherent Ryoku install.
@@ -869,7 +882,8 @@ main() {
   write_medevac_state
   print_final_summary
 
-  [[ $update_status == "0" ]] || return "$update_status"
+  [[ $update_status == "0" ]] && return 0
+  return 1
 }
 
 main "$@"

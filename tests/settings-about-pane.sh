@@ -58,11 +58,12 @@ assert_contains "shell/services/RyokuAbout.qml" 'startingMedevac'
 assert_contains "shell/services/RyokuAbout.qml" 'medevacStartFinished'
 assert_contains "shell/scripts/ryoku-settings-about" 'update-current-run'
 assert_contains "shell/scripts/ryoku-settings-about" 'ryoku-call911now'
-assert_contains "shell/scripts/ryoku-settings-about" 'bash -lc'
 assert_contains "shell/scripts/ryoku-settings-about" 'shell_single_quote'
 assert_contains "shell/scripts/ryoku-settings-about" 'bash was not found'
-assert_contains "shell/scripts/ryoku-settings-about" 'main/bin/ryoku-call911now | env RYOKU_UPDATE_BRANCH=main bash'
-assert_contains "shell/scripts/ryoku-settings-about" 'unstable-dev/bin/ryoku-call911now | env RYOKU_UPDATE_BRANCH=unstable-dev bash'
+assert_contains "shell/scripts/ryoku-settings-about" 'baked ryoku-call911now command'
+if grep -Fq 'curl -fsSL' "$ROOT_DIR/shell/scripts/ryoku-settings-about"; then
+  fail "settings helper should not advertise curl pipelines for MedEvac"
+fi
 assert_contains "shell/setup" '.ryoku-source-path'
 
 if grep -Fq 'onClicked: RyokuAbout.switchChannel(channelButton.channel)' "$ROOT_DIR/shell/modules/controlcenter/about/AboutPane.qml"; then
@@ -344,10 +345,16 @@ XDG_CONFIG_HOME="$tmp_dir/config" \
 assert_json_expr "$status_json" '.ok == true and .channel == "unstable-dev" and (.message | contains("MedEvac"))' \
   "medevac should report that the terminal recovery was started"
 medevac_command="$(tail -n 1 "$launcher_log")"
-grep -Fq 'curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/unstable-dev/bin/ryoku-call911now | env RYOKU_UPDATE_BRANCH=unstable-dev bash' <<<"$medevac_command" || \
-  fail "medevac should launch the canonical channel-aware curl command"
+grep -Fq 'RYOKU_UPDATE_BRANCH=unstable-dev' <<<"$medevac_command" || \
+  fail "medevac should pass the selected channel to the baked command"
 grep -Fq "$repo/bin/ryoku-call911now" <<<"$medevac_command" || \
-  fail "medevac should keep the baked local command as the no-curl fallback"
+  fail "medevac should launch the baked local command"
+if grep -Fq 'curl -fsSL' <<<"$medevac_command"; then
+  fail "settings MedEvac must not pipe curl into bash because sudo then has no terminal stdin"
+fi
+if grep -Fq 'bash -lc' <<<"$medevac_command"; then
+  fail "settings MedEvac should not add a nested shell around the emergency command"
+fi
 
 PATH="$tmp_dir/bin:$PATH" \
 RYOKU_PATH="$repo" \
