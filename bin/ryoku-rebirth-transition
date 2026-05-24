@@ -5,7 +5,7 @@ set -euo pipefail
 remote_url="${RYOKU_UPDATE_REMOTE_URL:-https://github.com/neur0map/ryoku-arch.git}"
 transition_branch="${RYOKU_REBIRTH_TRANSITION_BRANCH:-unstable-dev}"
 raw_script_url="${RYOKU_REBIRTH_TRANSITION_URL:-https://raw.githubusercontent.com/neur0map/ryoku-arch/unstable-dev/bin/ryoku-rebirth-transition}"
-update_bootstrap_url="${RYOKU_UPDATE_BOOTSTRAP_URL:-https://raw.githubusercontent.com/neur0map/ryoku-arch/937b2584e83b782a4b1fd65847ae5e76692b1a28/bin/ryoku-update-bootstrap}"
+update_bootstrap_url="${RYOKU_UPDATE_BOOTSTRAP_URL:-https://raw.githubusercontent.com/neur0map/ryoku-arch/9db89c4f87c037903cc65327e616a6f5597e431a/bin/ryoku-update-bootstrap}"
 allow_auth_prompt=false
 skip_purge=false
 ryoku_root=""
