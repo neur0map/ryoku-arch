@@ -60,7 +60,8 @@ touch \
   "$ryoku/config/hypr/hyprland-gui.conf"
 
 write_stub "$bin_dir/sudo" 'exit 0'
-write_stub "$bin_dir/hyprctl" 'exit 1'
+write_stub "$bin_dir/hyprctl" 'printf "[]\n"'
+write_stub "$bin_dir/systemctl" 'printf "systemctl:%s\n" "$*" >> "$RYOKU_TEST_LOG"'
 write_stub "$ryoku/bin/ryoku-update-git" 'printf "update-git:%s\n" "${RYOKU_UPDATE_BRANCH:-}" >> "$RYOKU_TEST_LOG"'
 write_stub "$ryoku/bin/ryoku-rebirth-prepare-live" 'printf "prepare:%s\n" "$*" >> "$RYOKU_TEST_LOG"'
 write_stub "$ryoku/bin/ryoku-snapshot" 'printf "snapshot:%s\n" "$*" >> "$RYOKU_TEST_LOG"'
@@ -119,6 +120,10 @@ assert_contains "$log_file" 'refresh:hypr/hyprland.conf' \
   "transition should refresh the rebirth Hyprland config"
 assert_contains "$log_file" 'restart-ui:--quiet' \
   "transition should refresh the running desktop UI after config/runtime convergence"
+assert_contains "$log_file" 'systemctl:--user stop niri.service xdg-desktop-portal-gnome.service' \
+  "transition should stop stale Niri/GNOME portal services after purge"
+assert_contains "$log_file" 'systemctl:--user start xdg-desktop-portal-hyprland.service xdg-desktop-portal.service' \
+  "transition should start the Hyprland portal after purge"
 assert_contains "$log_file" 'purge:--confirm-niri-free --allow-auth-prompt' \
   "transition should call the guarded Niri purge"
 assert_contains "$output" 'Choose the Hyprland session.' \

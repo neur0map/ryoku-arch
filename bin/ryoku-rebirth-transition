@@ -469,6 +469,42 @@ restart_rebirth_ui() {
   fi
 }
 
+hyprland_session_active() {
+  [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] && return 0
+  [[ ${XDG_CURRENT_DESKTOP:-} == *"Hyprland"* ]] && return 0
+  command_present hyprctl && hyprctl monitors -j >/dev/null 2>&1
+}
+
+converge_rebirth_session_services() {
+  command_present systemctl || return 0
+  hyprland_session_active || return 0
+
+  log "Converging rebirth Hyprland user services"
+  systemctl --user import-environment \
+    DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE HYPRLAND_INSTANCE_SIGNATURE \
+    XCURSOR_THEME XCURSOR_SIZE HYPRCURSOR_THEME HYPRCURSOR_SIZE PATH \
+    >/dev/null 2>&1 || true
+
+  systemctl --user stop \
+    niri.service \
+    xdg-desktop-portal-gnome.service \
+    >/dev/null 2>&1 || true
+
+  systemctl --user reset-failed \
+    niri.service \
+    xdg-desktop-portal-gnome.service \
+    xdg-desktop-portal-hyprland.service \
+    xdg-desktop-portal.service \
+    >/dev/null 2>&1 || true
+
+  systemctl --user start \
+    xdg-desktop-portal-hyprland.service \
+    xdg-desktop-portal.service \
+    >/dev/null 2>&1 || true
+
+  restart_rebirth_ui
+}
+
 attempt_niri_purge() {
   local args=(--confirm-niri-free)
   local status
@@ -534,8 +570,8 @@ main() {
   create_snapshot
   run_update_stages
   refresh_rebirth_hyprland_config
-  restart_rebirth_ui
   attempt_niri_purge
+  converge_rebirth_session_services
 
   log "Ryoku rebirth transition bootstrap finished"
   log "Next: reboot once more to load the full rebirth Hyprland session cleanly"

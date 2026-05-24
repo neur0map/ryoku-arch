@@ -14,7 +14,7 @@ assert_contains() {
   local pattern="$2"
   local message="$3"
 
-  grep -Eq "$pattern" <<<"$text" || fail "$message"
+  grep -Eq -- "$pattern" <<<"$text" || fail "$message"
 }
 
 assert_not_contains() {
@@ -22,7 +22,7 @@ assert_not_contains() {
   local pattern="$2"
   local message="$3"
 
-  if grep -Eq "$pattern" <<<"$text"; then
+  if grep -Eq -- "$pattern" <<<"$text"; then
     fail "$message"
   fi
 }
@@ -34,6 +34,7 @@ home="$tmp/home"
 runtime="$tmp/runtime"
 bin_dir="$tmp/bin"
 report_tmp="$tmp/reports"
+systemctl_log="$tmp/systemctl.log"
 current_user="$(id -un)"
 current_host="$(hostname 2>/dev/null || true)"
 
@@ -68,6 +69,10 @@ HYPR
 
 cat >"$bin_dir/systemctl" <<'SH'
 #!/bin/bash
+if [[ -n ${RYOKU_SYSTEMCTL_LOG:-} ]]; then
+  printf '%s\n' "$*" >> "$RYOKU_SYSTEMCTL_LOG"
+fi
+
 if [[ ${1:-} == "--user" && ${2:-} == "is-active" && ${3:-} == "ryoku-shell.service" ]]; then
   printf '%s\n' "active"
   exit 0
@@ -154,6 +159,7 @@ run_shell_doctor() {
   RYOKU_PATH="$ROOT_DIR" \
   RYOKU_SHELL_RUNTIME_DIR="$runtime" \
   RYOKU_TEST_RUNTIME="$runtime" \
+  RYOKU_SYSTEMCTL_LOG="$systemctl_log" \
   QS_CONFIG_NAME="ryoku-rebirth-shell" \
   TMPDIR="$report_tmp" \
   PATH="$bin_dir:$home/.local/bin:/usr/bin:/bin" \
@@ -172,6 +178,14 @@ assert_not_contains "$output" 'Checking Niri|iNiR|inir' \
   "doctor should not advertise stale Niri/iNiR shell checks"
 assert_contains "$output" 'Doctor report:' \
   "doctor should print a shareable report path"
+
+systemctl_output="$(<"$systemctl_log")"
+assert_contains "$systemctl_output" '--user import-environment .*XDG_CURRENT_DESKTOP.*HYPRLAND_INSTANCE_SIGNATURE.*PATH' \
+  "doctor should import the active Hyprland session environment into user systemd"
+assert_contains "$systemctl_output" '--user stop niri.service xdg-desktop-portal-gnome.service' \
+  "doctor should stop stale Niri/GNOME portal user services after rebirth"
+assert_contains "$systemctl_output" '--user start xdg-desktop-portal-hyprland.service xdg-desktop-portal.service' \
+  "doctor should start the Hyprland portal stack after rebirth"
 
 report_path="$(sed -n 's/.*Doctor report: //p' <<<"$output" | tail -n1)"
 [[ -f $report_path ]] || fail "doctor report should exist"
