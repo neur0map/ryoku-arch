@@ -25,6 +25,7 @@ ryoku="$tmp/ryoku"
 state="$tmp/state"
 events="$tmp/events.log"
 bin_dir="$tmp/bin"
+remote="$tmp/remote.git"
 
 mkdir -p \
   "$home/.local/lib" \
@@ -42,11 +43,14 @@ exit 0'
 write_executable "$bin_dir/gum" '#!/bin/bash
 exit 0'
 
+git init --bare "$remote" >/dev/null
 git -C "$ryoku" init >/dev/null
 git -C "$ryoku" config user.email test@example.invalid
 git -C "$ryoku" config user.name "Ryoku Test"
 git -C "$ryoku" commit --allow-empty -m "installed checkout" >/dev/null
 git -C "$ryoku" switch -c unstable-dev >/dev/null 2>&1
+git -C "$ryoku" remote add origin "$remote"
+git -C "$ryoku" push origin unstable-dev >/dev/null 2>&1
 
 for command in \
   ryoku-cmd-caffeine \
@@ -88,6 +92,9 @@ grep -Fq 'Ryoku update result:' <<<"$output" || \
   fail "successful update should print final provenance after all update stages"
 grep -Fq 'Channel: unstable-dev' <<<"$output" || \
   fail "final update provenance should preserve the installed checkout channel"
+remote_tip="$(git -C "$ryoku" rev-parse --short origin/unstable-dev)"
+grep -Fq "Remote tip: origin/unstable-dev@$remote_tip" <<<"$output" || \
+  fail "final update provenance should show the selected remote tip"
 grep -Fq "Expected doctor: $ryoku/bin/ryoku-doctor" <<<"$output" || \
   fail "final update provenance should show the installed doctor path"
 grep -Fq "Active doctor: $ryoku/bin/ryoku-doctor" <<<"$output" || \
@@ -103,6 +110,8 @@ grep -Fxq "gum=$bin_dir/gum" "$last_update" || \
   fail "persisted update provenance should record post-package gum availability"
 grep -Fxq "channel=unstable-dev" "$last_update" || \
   fail "persisted update provenance should preserve the installed checkout channel"
+grep -Fxq "remote_tip=origin/unstable-dev@$remote_tip" "$last_update" || \
+  fail "persisted update provenance should record the selected remote tip"
 grep -Fxq "active_doctor=$ryoku/bin/ryoku-doctor" "$last_update" || \
   fail "persisted update provenance should record the installed doctor path"
 

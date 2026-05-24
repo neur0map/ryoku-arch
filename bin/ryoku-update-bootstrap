@@ -305,11 +305,15 @@ repair_system_command_bridges() {
 print_bootstrap_summary() {
   local branch="unknown"
   local commit="unknown"
+  local remote_tip="origin/$release_branch@unknown"
   local active_doctor=""
   local expected_doctor="$ryoku_path/bin/ryoku-doctor"
 
   branch="$(git_in_ryoku rev-parse --abbrev-ref HEAD 2>/dev/null || printf '%s\n' "unknown")"
   commit="$(git_in_ryoku rev-parse --short HEAD 2>/dev/null || printf '%s\n' "unknown")"
+  if git_in_ryoku rev-parse --verify --quiet "origin/$release_branch" >/dev/null; then
+    remote_tip="origin/$release_branch@$(git_in_ryoku rev-parse --short "origin/$release_branch" 2>/dev/null || printf '%s\n' "unknown")"
+  fi
   active_doctor="$(command_realpath ryoku-doctor || true)"
   [[ -n $active_doctor ]] || active_doctor="missing"
 
@@ -317,6 +321,7 @@ print_bootstrap_summary() {
   log "  Path: $ryoku_path"
   log "  Channel: $release_branch"
   log "  Checkout: ${branch}@${commit}"
+  log "  Remote tip: $remote_tip"
   log "  Updater: $ryoku_path/bin/ryoku-update"
   log "  Expected doctor: $expected_doctor"
   log "  Active doctor: $active_doctor"

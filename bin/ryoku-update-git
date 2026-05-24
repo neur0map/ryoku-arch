@@ -117,9 +117,10 @@ update_runtime_bridge_summary() {
 write_update_result_state() {
   local checkout_branch="$1"
   local checkout_commit="$2"
-  local active_doctor="$3"
-  local gum_path="$4"
-  local runtime_bridge="$5"
+  local remote_tip="$3"
+  local active_doctor="$4"
+  local gum_path="$5"
+  local runtime_bridge="$6"
 
   mkdir -p "$RYOKU_STATE_PATH" 2>/dev/null || return 0
   {
@@ -127,6 +128,7 @@ write_update_result_state() {
     printf 'path=%s\n' "$RYOKU_PATH"
     printf 'channel=%s\n' "$release_branch"
     printf 'checkout=%s@%s\n' "$checkout_branch" "$checkout_commit"
+    printf 'remote_tip=%s\n' "$remote_tip"
     printf 'expected_doctor=%s\n' "$RYOKU_PATH/bin/ryoku-doctor"
     printf 'active_doctor=%s\n' "$active_doctor"
     printf 'gum=%s\n' "$gum_path"
@@ -134,9 +136,21 @@ write_update_result_state() {
   } > "$RYOKU_STATE_PATH/last-update" || true
 }
 
+update_remote_tip_summary() {
+  local remote_ref="origin/$release_branch"
+  local remote_commit="unknown"
+
+  if ryoku_git rev-parse --verify --quiet "$remote_ref" >/dev/null; then
+    remote_commit="$(ryoku_git rev-parse --short "$remote_ref" 2>/dev/null || printf '%s\n' "unknown")"
+  fi
+
+  printf '%s@%s\n' "$remote_ref" "$remote_commit"
+}
+
 print_update_result() {
   local checkout_branch="unknown"
   local checkout_commit="unknown"
+  local remote_tip=""
   local expected_doctor="$RYOKU_PATH/bin/ryoku-doctor"
   local active_doctor=""
   local gum_path=""
@@ -144,6 +158,7 @@ print_update_result() {
 
   checkout_branch="$(ryoku_git rev-parse --abbrev-ref HEAD 2>/dev/null || printf '%s\n' "unknown")"
   checkout_commit="$(ryoku_git rev-parse --short HEAD 2>/dev/null || printf '%s\n' "unknown")"
+  remote_tip="$(update_remote_tip_summary)"
   active_doctor="$(command_realpath ryoku-doctor || true)"
   gum_path="$(command_realpath gum || true)"
   runtime_bridge="$(update_runtime_bridge_summary)"
@@ -151,13 +166,14 @@ print_update_result() {
   [[ -n $active_doctor ]] || active_doctor="missing"
   [[ -n $gum_path ]] || gum_path="missing"
 
-  write_update_result_state "$checkout_branch" "$checkout_commit" "$active_doctor" "$gum_path" "$runtime_bridge"
+  write_update_result_state "$checkout_branch" "$checkout_commit" "$remote_tip" "$active_doctor" "$gum_path" "$runtime_bridge"
 
   echo
   echo "Ryoku update result:"
   echo "  Path: $RYOKU_PATH"
   echo "  Channel: $release_branch"
   echo "  Checkout: ${checkout_branch}@${checkout_commit}"
+  echo "  Remote tip: $remote_tip"
   echo "  Expected doctor: $expected_doctor"
   echo "  Active doctor: $active_doctor"
   echo "  Gum: $gum_path"

@@ -20,6 +20,7 @@ assert_update_result() {
   local output=$1
   local path=$2
   local channel=$3
+  local remote_tip
 
   grep -Fq 'Ryoku update result:' <<<"$output" || \
     fail "update should print a post-update provenance summary"
@@ -27,6 +28,9 @@ assert_update_result() {
     fail "update provenance should show the installed checkout path"
   grep -Fq "Channel: $channel" <<<"$output" || \
     fail "update provenance should show the selected channel"
+  remote_tip="$(git -C "$path" rev-parse --short "origin/$channel")"
+  grep -Fq "Remote tip: origin/$channel@$remote_tip" <<<"$output" || \
+    fail "update provenance should show the fetched remote tip for the selected channel"
   grep -Fq "Expected doctor: $path/bin/ryoku-doctor" <<<"$output" || \
     fail "update provenance should show the expected installed doctor path"
   grep -Fq 'Active doctor:' <<<"$output" || \
@@ -35,6 +39,8 @@ assert_update_result() {
     fail "update provenance should show the local runtime-env bridge state"
   [[ -r $state_dir/last-update ]] || \
     fail "update should persist last-update provenance for doctor/status"
+  grep -Fxq "remote_tip=origin/$channel@$remote_tip" "$state_dir/last-update" || \
+    fail "update should persist the fetched remote tip for doctor/status"
 }
 
 temp_dir=$(mktemp -d)

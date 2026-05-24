@@ -71,10 +71,13 @@ output=$(
     "$ROOT_DIR/bin/ryoku-update-bootstrap" 2>&1
 ) || fail "bootstrap should clone, repair command bridges, and start refreshed updater: $output"
 
+remote_tip="$(git -C "$install" rev-parse --short origin/unstable-dev)"
 grep -Fq 'Ryoku bootstrap result:' <<< "$output" || \
   fail "bootstrap should print installed checkout provenance"
 grep -Fq 'Channel: unstable-dev' <<< "$output" || \
   fail "bootstrap should use the requested update channel"
+grep -Fq "Remote tip: origin/unstable-dev@$remote_tip" <<< "$output" || \
+  fail "bootstrap should print the fetched remote tip for the selected channel"
 grep -Fq "Updater: $install/bin/ryoku-update" <<< "$output" || \
   fail "bootstrap should show the refreshed updater path"
 grep -Fq "Expected doctor: $install/bin/ryoku-doctor" <<< "$output" || \
