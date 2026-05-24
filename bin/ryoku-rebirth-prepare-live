@@ -4,30 +4,43 @@ set -euo pipefail
 
 dry_run=false
 allow_auth_prompt=false
+script_path="${BASH_SOURCE[0]}"
+script_path="$(readlink -f "$script_path" 2>/dev/null || printf '%s\n' "$script_path")"
+repo_root="$(cd -- "$(dirname -- "$script_path")/.." && pwd)"
+
+if [[ -f $repo_root/lib/runtime-env.sh ]]; then
+  # shellcheck disable=SC1091
+  source "$repo_root/lib/runtime-env.sh"
+else
+  export RYOKU_PATH="${RYOKU_PATH:-$HOME/.local/share/ryoku}"
+  export RYOKU_INSTALL="${RYOKU_INSTALL:-$RYOKU_PATH/install}"
+  case ":$PATH:" in
+    *":$RYOKU_PATH/bin:"*) ;;
+    *) export PATH="$RYOKU_PATH/bin:$PATH" ;;
+  esac
+fi
 
 packages=(
-  aubio
-  hyprland
-  qt5-wayland
-  qt6-wayland
-  ttf-cascadia-code-nerd
-  xdg-desktop-portal
-  xdg-desktop-portal-gtk
-  xdg-desktop-portal-hyprland
 )
 
 aur_packages=(
-  app2unit
 )
 
 usage() {
   cat <<'EOF'
 Usage: ryoku-rebirth-prepare-live [--dry-run] [--allow-auth-prompt]
 
-Installs the minimal package set needed to enter the rebirth Hyprland session
-and build the Ryoku shell seed.
+Installs the package set needed to enter the rebirth Hyprland session and
+build/run the current Ryoku shell.
 It never removes Niri or user applications.
 EOF
+}
+
+load_manifest() {
+  local file="$1"
+
+  [[ -f $file ]] || return 0
+  grep -v '^#' "$file" | awk 'NF { print }'
 }
 
 while (($# > 0)); do
@@ -88,6 +101,9 @@ print_sessions() {
   fi
 }
 
+mapfile -t packages < <(load_manifest "$RYOKU_INSTALL/ryoku-base.packages")
+mapfile -t aur_packages < <(load_manifest "$RYOKU_INSTALL/ryoku-aur.packages")
+
 missing=()
 missing_aur=()
 for package in "${packages[@]}"; do
@@ -129,22 +145,24 @@ EOF
 fi
 
 if command_present ryoku-pkg-add; then
-  ryoku-pkg-add "${missing[@]}" "${missing_aur[@]}"
+  ryoku-pkg-add "${missing[@]}"
 else
   if ((${#missing[@]} > 0)); then
     sudo pacman -S --needed --noconfirm "${missing[@]}"
   fi
+fi
 
-  if ((${#missing_aur[@]} > 0)); then
-    if command_present yay; then
-      yay -S --needed --noconfirm "${missing_aur[@]}"
-    else
-      cat >&2 <<'EOF'
-ryoku-rebirth-prepare-live: app2unit is required for the Ryoku shell seed.
-Install yay or restore ryoku-pkg-add, then re-run this command.
+if ((${#missing_aur[@]} > 0)); then
+  if command_present ryoku-pkg-aur-add; then
+    ryoku-pkg-aur-add "${missing_aur[@]}"
+  elif command_present yay; then
+    yay -S --needed --noconfirm "${missing_aur[@]}"
+  else
+    cat >&2 <<'EOF'
+ryoku-rebirth-prepare-live: AUR packages are required for the current Ryoku shell.
+Install yay or restore ryoku-pkg-aur-add, then re-run this command.
 EOF
-      exit 77
-    fi
+    exit 77
   fi
 fi
 

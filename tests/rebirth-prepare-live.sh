@@ -15,9 +15,36 @@ fail() {
 tmp_dir=$(mktemp -d)
 trap 'rm -rf "$tmp_dir"' EXIT
 
-mkdir -p "$tmp_dir/bin" "$tmp_dir/state"
+ryoku_root="$tmp_dir/ryoku"
+mkdir -p "$tmp_dir/bin" "$tmp_dir/state" "$ryoku_root/bin" "$ryoku_root/install" "$ryoku_root/lib"
 
-cat > "$tmp_dir/bin/ryoku-pkg-present" <<'SH'
+cat > "$ryoku_root/lib/runtime-env.sh" <<SH
+export RYOKU_PATH="$ryoku_root"
+export RYOKU_INSTALL="\$RYOKU_PATH/install"
+case ":\$PATH:" in
+  *":\$RYOKU_PATH/bin:"*) ;;
+  *) export PATH="\$RYOKU_PATH/bin:\$PATH" ;;
+esac
+SH
+
+cat > "$ryoku_root/install/ryoku-base.packages" <<'PACKAGES'
+aubio
+hyprland
+qt5-wayland
+qt6-wayland
+ttf-cascadia-code-nerd
+xdg-desktop-portal
+xdg-desktop-portal-gtk
+xdg-desktop-portal-hyprland
+playerctl
+PACKAGES
+
+cat > "$ryoku_root/install/ryoku-aur.packages" <<'PACKAGES'
+app2unit
+hyprmod
+PACKAGES
+
+cat > "$ryoku_root/bin/ryoku-pkg-present" <<'SH'
 #!/bin/bash
 case "$1" in
   xdg-desktop-portal|xdg-desktop-portal-gtk|qt6-wayland)
@@ -29,9 +56,14 @@ case "$1" in
 esac
 SH
 
-cat > "$tmp_dir/bin/ryoku-pkg-add" <<'SH'
+cat > "$ryoku_root/bin/ryoku-pkg-add" <<'SH'
 #!/bin/bash
 printf '%s\n' "$*" > "$RYOKU_TEST_STATE/pkg-add.args"
+SH
+
+cat > "$ryoku_root/bin/ryoku-pkg-aur-add" <<'SH'
+#!/bin/bash
+printf '%s\n' "$*" > "$RYOKU_TEST_STATE/pkg-aur-add.args"
 SH
 
 cat > "$tmp_dir/bin/sudo" <<'SH'
@@ -42,10 +74,11 @@ fi
 exit 1
 SH
 
-chmod +x "$tmp_dir/bin/"*
+chmod +x "$tmp_dir/bin/"* "$ryoku_root/bin/"*
 
 export PATH="$tmp_dir/bin:/usr/bin"
 export RYOKU_TEST_STATE="$tmp_dir/state"
+export RYOKU_PATH="$ryoku_root"
 
 dry_output=$("$PREP" --dry-run)
 
@@ -61,6 +94,7 @@ set -e
 
 (( status == 77 )) || fail "prepare command should refuse non-interactive root auth"
 [[ ! -f $tmp_dir/state/pkg-add.args ]] || fail "prepare command should not install without auth"
+[[ ! -f $tmp_dir/state/pkg-aur-add.args ]] || fail "prepare command should not install AUR packages without auth"
 grep -Fq -- "--allow-auth-prompt" "$tmp_dir/no-auth.err" || \
   fail "prepare command should print the interactive retry command"
 
@@ -68,8 +102,15 @@ export RYOKU_TEST_SUDO_STATUS=0
 "$PREP" >"$tmp_dir/auth.out"
 
 [[ -f $tmp_dir/state/pkg-add.args ]] || fail "prepare command should call ryoku-pkg-add when auth is available"
-grep -Fq "aubio hyprland qt5-wayland ttf-cascadia-code-nerd xdg-desktop-portal-hyprland app2unit" "$tmp_dir/state/pkg-add.args" || \
-  fail "prepare command should install only missing packages"
+[[ -f $tmp_dir/state/pkg-aur-add.args ]] || fail "prepare command should call ryoku-pkg-aur-add for AUR packages"
+grep -Fq "aubio" "$tmp_dir/state/pkg-add.args" || \
+  fail "prepare command should install missing official packages from the base manifest"
+grep -Fq "hyprland" "$tmp_dir/state/pkg-add.args" || \
+  fail "prepare command should install Hyprland from the base manifest"
+grep -Fq "app2unit" "$tmp_dir/state/pkg-aur-add.args" || \
+  fail "prepare command should install app2unit through the AUR package path"
+! grep -Fq "app2unit" "$tmp_dir/state/pkg-add.args" || \
+  fail "prepare command should not pass app2unit to ryoku-pkg-add/pacman"
 ! grep -Fq "niri" "$tmp_dir/state/pkg-add.args" || \
   fail "prepare command should never remove or install Niri"
 
