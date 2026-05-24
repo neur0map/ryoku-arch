@@ -38,6 +38,12 @@ assert_contains "component NetworkCard: StyledRect" \
   "Network settings should use compact reusable cards"
 assert_contains "component NetworkServiceDock: NetworkCard" \
   "Network settings should fill the right side with service/device controls instead of blank space"
+assert_contains "component NetworkConnectorGrid: ColumnLayout" \
+  "Network settings should replace clipped service lists with compact connector chips"
+assert_contains "component NetworkConnectorChip: StyledRect" \
+  "Network settings should expose compact VPN and ethernet connector chips"
+assert_contains "component NetworkInventoryPanel: ColumnLayout" \
+  "Network settings should keep the full VPN and ethernet inventory outside the cramped service dock"
 assert_contains "component NetworkDetailsDock: NetworkCard" \
   "Network details should be a compact dock, not a full-width deadspace block"
 assert_contains "component MetricTile: StyledRect" \
@@ -66,6 +72,10 @@ assert_not_contains "implicitHeight: 48" \
   "Network quick rows should not keep the old bulky height"
 assert_not_contains "Layout.columnSpan: 12" \
   "Network settings should not keep full-width detail bands that create deadspace"
+assert_contains "root.session.vpn.active = chip.modelData" \
+  "Network connector chips should preserve VPN selection behavior"
+assert_contains "root.session.ethernet.active = chip.modelData" \
+  "Network connector chips should preserve ethernet selection behavior"
 
 assert_contains "Nmcli.toggleWifi(null)" \
   "Network settings should preserve WiFi toggle behavior"

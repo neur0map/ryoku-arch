@@ -32,12 +32,38 @@ Item {
       flickable: page
     }
 
-    GridLayout {
+    BluetoothWorkbench {
       id: content
 
       x: Tokens.padding.normal
       y: Tokens.padding.normal
       width: page.width - Tokens.padding.normal * 2
+    }
+  }
+
+  Component {
+    id: detailsComponent
+
+    Details {
+      session: root.session
+    }
+  }
+
+  component BluetoothWorkbench: StyledRect {
+    id: workbench
+
+    implicitHeight: workbenchGrid.implicitHeight + Tokens.padding.small * 2
+    radius: Tokens.rounding.small
+    color: Colours.palette.m3surfaceContainer
+    clip: true
+
+    GridLayout {
+      id: workbenchGrid
+
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.top: parent.top
+      anchors.margins: Tokens.padding.small
       columns: page.width > 620 ? 5 : 1
       columnSpacing: Tokens.spacing.small
       rowSpacing: Tokens.spacing.small
@@ -53,8 +79,14 @@ Item {
         DeviceList {
           Layout.fillWidth: true
           Layout.preferredHeight: implicitHeight
+          visible: Bluetooth.devices.values.length > 0
           session: root.session
           showHeader: false
+        }
+
+        EmptyDevicePrompt {
+          Layout.fillWidth: true
+          visible: Bluetooth.devices.values.length === 0
         }
       }
 
@@ -68,7 +100,7 @@ Item {
 
         Settings {
           Layout.fillWidth: true
-          Layout.preferredHeight: 420
+          Layout.preferredHeight: implicitHeight
           visible: !root.session.bt.active
           session: root.session
         }
@@ -90,14 +122,6 @@ Item {
           }
         }
       }
-    }
-  }
-
-  Component {
-    id: detailsComponent
-
-    Details {
-      session: root.session
     }
   }
 
@@ -162,6 +186,140 @@ Item {
 
         Layout.fillWidth: true
         spacing: Tokens.spacing.small
+      }
+    }
+  }
+
+  component EmptyDevicePrompt: StyledRect {
+    implicitHeight: promptLayout.implicitHeight + Tokens.padding.normal * 2
+    radius: Tokens.rounding.small
+    color: Colours.palette.m3surfaceContainerHigh
+    clip: true
+
+    ColumnLayout {
+      id: promptLayout
+
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.top: parent.top
+      anchors.margins: Tokens.padding.normal
+      spacing: Tokens.spacing.small
+
+      RowLayout {
+        Layout.fillWidth: true
+        spacing: Tokens.spacing.small
+
+        MaterialIcon {
+          Layout.alignment: Qt.AlignVCenter
+          text: "bluetooth_searching"
+          color: Colours.palette.m3primary
+          fill: 1
+        }
+
+        ColumnLayout {
+          Layout.fillWidth: true
+          Layout.alignment: Qt.AlignVCenter
+          spacing: 0
+
+          StyledText {
+            Layout.fillWidth: true
+            text: qsTr("No devices")
+            font.weight: 700
+            elide: Text.ElideRight
+          }
+
+          StyledText {
+            Layout.fillWidth: true
+            text: Bluetooth.defaultAdapter?.discovering ? qsTr("Scanning nearby devices") : qsTr("Scan or make this machine visible")
+            color: Colours.palette.m3onSurfaceVariant
+            font.pointSize: Tokens.font.size.small
+            elide: Text.ElideRight
+          }
+        }
+      }
+
+      RowLayout {
+        Layout.fillWidth: true
+        spacing: Tokens.spacing.small
+
+        PromptAction {
+          Layout.fillWidth: true
+          icon: "bluetooth_searching"
+          title: Bluetooth.defaultAdapter?.discovering ? qsTr("Scanning") : qsTr("Scan")
+          active: Bluetooth.defaultAdapter?.discovering ?? false
+
+          onClicked: {
+            if (Bluetooth.defaultAdapter)
+              Bluetooth.defaultAdapter.discovering = true;
+          }
+        }
+
+        PromptAction {
+          Layout.fillWidth: true
+          icon: "group_search"
+          title: qsTr("Visible")
+          active: Bluetooth.defaultAdapter?.discoverable ?? false
+
+          onClicked: {
+            if (Bluetooth.defaultAdapter)
+              Bluetooth.defaultAdapter.discoverable = !Bluetooth.defaultAdapter.discoverable;
+          }
+        }
+
+        PromptAction {
+          Layout.fillWidth: true
+          icon: "missing_controller"
+          title: qsTr("Pair")
+          active: Bluetooth.defaultAdapter?.pairable ?? false
+
+          onClicked: {
+            if (Bluetooth.defaultAdapter)
+              Bluetooth.defaultAdapter.pairable = !Bluetooth.defaultAdapter.pairable;
+          }
+        }
+      }
+    }
+  }
+
+  component PromptAction: StyledRect {
+    id: action
+
+    required property string icon
+    required property string title
+    property bool active: false
+
+    signal clicked
+
+    implicitHeight: 36
+    radius: Tokens.rounding.small
+    color: active ? Colours.palette.m3primaryContainer : Colours.palette.m3surfaceContainerHighest
+    clip: true
+
+    StateLayer {
+      onClicked: action.clicked()
+      color: action.active ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
+      radius: parent.radius
+    }
+
+    RowLayout {
+      anchors.centerIn: parent
+      spacing: Tokens.spacing.smaller
+
+      MaterialIcon {
+        Layout.alignment: Qt.AlignVCenter
+        text: action.icon
+        color: action.active ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
+        font.pointSize: Tokens.font.size.small
+        fill: action.active ? 1 : 0
+      }
+
+      StyledText {
+        Layout.alignment: Qt.AlignVCenter
+        text: action.title
+        color: action.active ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
+        font.pointSize: Tokens.font.size.small
+        font.weight: 650
+        elide: Text.ElideRight
       }
     }
   }

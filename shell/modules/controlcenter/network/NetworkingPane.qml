@@ -282,41 +282,50 @@ Item {
   Component {
     id: overviewDetailsComponent
 
-    GridLayout {
-      columns: root.compact ? 2 : 4
-      rowSpacing: Tokens.spacing.small
-      columnSpacing: Tokens.spacing.small
+    ColumnLayout {
+      spacing: Tokens.spacing.small
 
-      MetricTile {
+      GridLayout {
         Layout.fillWidth: true
-        label: qsTr("Network")
-        value: Nmcli.active ? (Nmcli.active.ssid || qsTr("WiFi")) : (Nmcli.activeEthernet ? (Nmcli.activeEthernet.interface || qsTr("Ethernet")) : qsTr("Disconnected"))
-        icon: Nmcli.active ? "wifi" : (Nmcli.activeEthernet ? "cable" : "link_off")
-        active: Nmcli.active !== null || Nmcli.activeEthernet !== null
+        columns: root.compact ? 2 : 4
+        rowSpacing: Tokens.spacing.small
+        columnSpacing: Tokens.spacing.small
+
+        MetricTile {
+          Layout.fillWidth: true
+          label: qsTr("Network")
+          value: Nmcli.active ? (Nmcli.active.ssid || qsTr("WiFi")) : (Nmcli.activeEthernet ? (Nmcli.activeEthernet.interface || qsTr("Ethernet")) : qsTr("Disconnected"))
+          icon: Nmcli.active ? "wifi" : (Nmcli.activeEthernet ? "cable" : "link_off")
+          active: Nmcli.active !== null || Nmcli.activeEthernet !== null
+        }
+
+        MetricTile {
+          Layout.fillWidth: true
+          label: qsTr("Signal")
+          value: Nmcli.active ? qsTr("%1%").arg(Nmcli.active.strength) : qsTr("N/A")
+          icon: "network_check"
+          active: Nmcli.active !== null
+        }
+
+        MetricTile {
+          Layout.fillWidth: true
+          label: qsTr("Security")
+          value: Nmcli.active ? (Nmcli.active.isSecure ? qsTr("Secured") : qsTr("Open")) : qsTr("N/A")
+          icon: Nmcli.active && Nmcli.active.isSecure ? "lock" : "lock_open"
+          active: Nmcli.active !== null && Nmcli.active.isSecure
+        }
+
+        MetricTile {
+          Layout.fillWidth: true
+          label: qsTr("Frequency")
+          value: Nmcli.active ? qsTr("%1 MHz").arg(Nmcli.active.frequency) : qsTr("N/A")
+          icon: "settings_input_antenna"
+          active: Nmcli.active !== null
+        }
       }
 
-      MetricTile {
+      NetworkInventoryPanel {
         Layout.fillWidth: true
-        label: qsTr("Signal")
-        value: Nmcli.active ? qsTr("%1%").arg(Nmcli.active.strength) : qsTr("N/A")
-        icon: "network_check"
-        active: Nmcli.active !== null
-      }
-
-      MetricTile {
-        Layout.fillWidth: true
-        label: qsTr("Security")
-        value: Nmcli.active ? (Nmcli.active.isSecure ? qsTr("Secured") : qsTr("Open")) : qsTr("N/A")
-        icon: Nmcli.active && Nmcli.active.isSecure ? "lock" : "lock_open"
-        active: Nmcli.active !== null && Nmcli.active.isSecure
-      }
-
-      MetricTile {
-        Layout.fillWidth: true
-        label: qsTr("Frequency")
-        value: Nmcli.active ? qsTr("%1 MHz").arg(Nmcli.active.frequency) : qsTr("N/A")
-        icon: "settings_input_antenna"
-        active: Nmcli.active !== null
       }
     }
   }
@@ -482,16 +491,99 @@ Item {
       }
     }
 
-    VpnList {
+    NetworkConnectorGrid {
       Layout.fillWidth: true
-      session: root.session
-      showHeader: false
+    }
+  }
+
+  component NetworkConnectorGrid: ColumnLayout {
+    spacing: Tokens.spacing.small
+
+    StyledText {
+      Layout.fillWidth: true
+      text: qsTr("Connectors")
+      color: Colours.palette.m3onSurfaceVariant
+      font.pointSize: Tokens.font.size.small
+      font.weight: 700
+      elide: Text.ElideRight
     }
 
-    EthernetList {
+    Flow {
       Layout.fillWidth: true
-      session: root.session
-      showHeader: false
+      spacing: Tokens.spacing.smaller
+
+      Repeater {
+        model: GlobalConfig.utilities.vpn.provider.length
+
+        NetworkConnectorChip {
+          required property int index
+
+          readonly property var providerData: GlobalConfig.utilities.vpn.provider[index]
+          readonly property bool providerObject: typeof providerData === "object"
+
+          kind: "vpn"
+          icon: providerObject && providerData.enabled ? "vpn_key" : "vpn_key_off"
+          title: providerObject ? (providerData.displayName || providerData.name || qsTr("VPN")) : String(providerData)
+          detail: providerObject ? (providerData.interface || qsTr("VPN")) : qsTr("Provider")
+          active: VPN.connected && providerObject && providerData.enabled
+          modelData: providerObject ? {
+            "index": index,
+            "name": providerData.name || "custom",
+            "displayName": providerData.displayName || providerData.name || qsTr("VPN"),
+            "interface": providerData.interface || "",
+            "provider": providerData,
+            "enabled": providerData.enabled === true
+          } : {
+            "index": index,
+            "name": String(providerData),
+            "displayName": String(providerData),
+            "interface": "",
+            "provider": providerData,
+            "enabled": false
+          }
+        }
+      }
+
+      Repeater {
+        model: Nmcli.ethernetDevices
+
+        NetworkConnectorChip {
+          required property var modelData
+
+          kind: "ethernet"
+          icon: "cable"
+          title: modelData.interface || qsTr("Ethernet")
+          detail: modelData.connected ? qsTr("Connected") : qsTr("Device")
+          active: modelData.connected
+        }
+      }
+    }
+  }
+
+  component NetworkInventoryPanel: ColumnLayout {
+    id: inventoryPanel
+
+    readonly property int expandedColumns: 2
+
+    spacing: Tokens.spacing.small
+
+    GridLayout {
+      Layout.fillWidth: true
+      columns: root.compact ? 1 : inventoryPanel.expandedColumns
+      columnSpacing: Tokens.spacing.small
+      rowSpacing: Tokens.spacing.small
+
+      VpnList {
+        Layout.fillWidth: true
+        session: root.session
+        showHeader: false
+      }
+
+      EthernetList {
+        Layout.fillWidth: true
+        session: root.session
+        showHeader: false
+      }
     }
   }
 
@@ -661,6 +753,71 @@ Item {
         Layout.alignment: Qt.AlignVCenter
         checked: toggleRow.checked
         onToggled: toggleRow.toggled(checked)
+      }
+    }
+  }
+
+  component NetworkConnectorChip: StyledRect {
+    id: chip
+
+    required property string icon
+    required property string title
+    required property string detail
+    required property string kind
+    property var modelData
+    property bool active: false
+
+    implicitWidth: Math.max(126, chipContent.implicitWidth + Tokens.padding.small * 2)
+    implicitHeight: 38
+    radius: Tokens.rounding.small
+    color: active ? Colours.palette.m3primaryContainer : Colours.palette.m3surfaceContainer
+    clip: true
+
+    StateLayer {
+      onClicked: {
+        if (chip.kind === "vpn" && root.session.vpn)
+          root.session.vpn.active = chip.modelData;
+        if (chip.kind === "ethernet" && root.session.ethernet)
+          root.session.ethernet.active = chip.modelData;
+      }
+      color: chip.active ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
+      radius: parent.radius
+    }
+
+    RowLayout {
+      id: chipContent
+
+      anchors.centerIn: parent
+      spacing: Tokens.spacing.smaller
+
+      MaterialIcon {
+        Layout.alignment: Qt.AlignVCenter
+        text: chip.icon
+        color: chip.active ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
+        font.pointSize: Tokens.font.size.small
+        fill: chip.active ? 1 : 0
+      }
+
+      ColumnLayout {
+        Layout.alignment: Qt.AlignVCenter
+        spacing: 0
+
+        StyledText {
+          text: chip.title
+          color: chip.active ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
+          font.pointSize: Tokens.font.size.small
+          font.weight: 700
+          elide: Text.ElideRight
+          maximumLineCount: 1
+        }
+
+        StyledText {
+          text: chip.detail
+          color: chip.active ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
+          font.pointSize: Tokens.font.size.smaller
+          elide: Text.ElideRight
+          maximumLineCount: 1
+        }
       }
     }
   }

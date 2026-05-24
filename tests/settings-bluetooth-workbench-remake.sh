@@ -29,10 +29,18 @@ settings="shell/modules/controlcenter/bluetooth/Settings.qml"
 
 assert_not_contains "$pane" "SplitPaneWithDetails" \
   "Bluetooth settings should not keep the old split-pane frontend"
+assert_contains "$pane" "component BluetoothWorkbench: StyledRect" \
+  "Bluetooth pane should wrap devices and adapter controls in one compact workbench"
 assert_contains "$pane" "component BluetoothDock: StyledRect" \
   "Bluetooth pane should use compact docks"
+assert_contains "$pane" "component EmptyDevicePrompt: StyledRect" \
+  "Bluetooth pane should fill the no-device state with compact scan controls"
 assert_contains "$pane" "columns: page.width > 620 ? 5 : 1" \
   "Bluetooth pane should keep a compact multi-column workbench"
+assert_contains "$pane" "Bluetooth.devices.values.length === 0" \
+  "Bluetooth pane should explicitly handle the empty device state"
+assert_not_contains "$pane" "Layout.preferredHeight: 420" \
+  "Bluetooth adapter settings should not force a tall clipped right pane"
 assert_contains "$pane" "DeviceList {" \
   "Bluetooth pane should preserve the device list"
 assert_contains "$pane" "Details {" \
@@ -60,6 +68,8 @@ assert_contains "$settings" "adapter.discoverable = checked" \
   "Bluetooth settings should preserve discoverable backend behavior"
 assert_contains "$settings" "adapter.pairable = checked" \
   "Bluetooth settings should preserve pairable backend behavior"
+assert_contains "$pane" "Bluetooth.defaultAdapter.discovering = true" \
+  "Bluetooth empty state should preserve scan backend behavior"
 assert_contains "$settings" "root.session.bt.currentAdapter = chip.modelData" \
   "Bluetooth settings should preserve adapter selection behavior"
 assert_contains "$settings" "root.session.bt.currentAdapter.discoverableTimeout = value" \
