@@ -12,6 +12,7 @@ import qs.components.containers
 import qs.components.controls
 import qs.components.images
 import qs.services
+import qs.utils
 
 Item {
   id: root
@@ -122,6 +123,16 @@ Item {
     Schemes.currentScheme = `${name} ${flavour}`;
     Quickshell.execDetached(["ryoku", "scheme", "set", "-n", name, "-f", flavour]);
     schemeReloadTimer.restart();
+  }
+
+  function setRandomWallpaper(): void {
+    const entries = Wallpapers.list;
+    if (!entries || entries.length === 0)
+      return;
+
+    const entry = entries[Math.floor(Math.random() * entries.length)];
+    if (entry && entry.path)
+      Wallpapers.setWallpaper(entry.path);
   }
 
   function fontModel(current: string, preferred: var, materialOnly: bool): var {
@@ -249,81 +260,8 @@ Item {
         }
       }
 
-      GridLayout {
+      PickerBoard {
         Layout.fillWidth: true
-        columns: width > 760 ? 2 : 1
-        columnSpacing: Tokens.spacing.small
-        rowSpacing: Tokens.spacing.small
-
-        HeroPreview {
-          Layout.fillWidth: true
-          Layout.preferredHeight: 210
-        }
-
-        StyledRect {
-          Layout.fillWidth: true
-          Layout.preferredHeight: 210
-          radius: Tokens.rounding.small
-          color: Colours.palette.m3surfaceContainer
-
-          ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: Tokens.padding.normal
-            spacing: Tokens.spacing.small
-
-            CompactToggle {
-              Layout.fillWidth: true
-              icon: "image"
-              title: qsTr("Background")
-              checked: root.backgroundEnabled
-
-              onToggled: checked => {
-                root.backgroundEnabled = checked;
-                root.saveConfig();
-              }
-            }
-
-            CompactToggle {
-              Layout.fillWidth: true
-              icon: "wallpaper"
-              title: qsTr("Wallpaper")
-              checked: root.wallpaperEnabled
-
-              onToggled: checked => {
-                root.wallpaperEnabled = checked;
-                root.saveConfig();
-              }
-            }
-
-            GridLayout {
-              Layout.fillWidth: true
-              Layout.fillHeight: true
-              columns: 2
-              columnSpacing: Tokens.spacing.small
-              rowSpacing: Tokens.spacing.small
-
-              ModeCard {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                icon: "light_mode"
-                title: qsTr("Light")
-                active: Colours.currentLight
-
-                onClicked: Colours.setMode("light")
-              }
-
-              ModeCard {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                icon: "dark_mode"
-                title: qsTr("Dark")
-                active: !Colours.currentLight
-
-                onClicked: Colours.setMode("dark")
-              }
-            }
-          }
-        }
       }
 
       Flow {
@@ -366,13 +304,25 @@ Item {
         }
       }
 
+      PickerSection {
+        Layout.fillWidth: true
+        title: qsTr("Wallpapers")
+
+        WallpaperGrid {
+          Layout.fillWidth: true
+          Layout.preferredHeight: 360
+          session: root.session
+          compact: true
+        }
+      }
+
       GridLayout {
         Layout.fillWidth: true
         columns: width > 780 ? 3 : width > 520 ? 2 : 1
         columnSpacing: Tokens.spacing.small
         rowSpacing: Tokens.spacing.small
 
-        SettingsDeck {
+        PickerSection {
           Layout.fillWidth: true
           title: qsTr("Transparency")
 
@@ -419,7 +369,7 @@ Item {
           }
         }
 
-        SettingsDeck {
+        PickerSection {
           Layout.fillWidth: true
           title: qsTr("Scale")
 
@@ -469,7 +419,7 @@ Item {
           }
         }
 
-        SettingsDeck {
+        PickerSection {
           Layout.fillWidth: true
           title: qsTr("Shape")
 
@@ -520,7 +470,7 @@ Item {
         }
       }
 
-      SettingsDeck {
+      PickerSection {
         Layout.fillWidth: true
         title: qsTr("Fonts")
 
@@ -574,7 +524,7 @@ Item {
         columnSpacing: Tokens.spacing.small
         rowSpacing: Tokens.spacing.small
 
-        SettingsDeck {
+        PickerSection {
           Layout.fillWidth: true
           title: qsTr("Clock")
 
@@ -690,7 +640,7 @@ Item {
           }
         }
 
-        SettingsDeck {
+        PickerSection {
           Layout.fillWidth: true
           title: qsTr("Visualiser")
 
@@ -784,14 +734,106 @@ Item {
         }
       }
 
-      SettingsDeck {
-        Layout.fillWidth: true
-        title: qsTr("Wallpapers")
+    }
+  }
 
-        WallpaperGrid {
+  component PickerBoard: StyledRect {
+    id: board
+
+    implicitHeight: 226
+    radius: Tokens.rounding.small
+    color: Colours.palette.m3surfaceContainer
+    clip: true
+
+    RowLayout {
+      anchors.fill: parent
+      anchors.margins: Tokens.padding.normal
+      spacing: Tokens.spacing.small
+
+      HeroPreview {
+        Layout.fillWidth: false
+        Layout.preferredWidth: Math.min(360, board.width * 0.42)
+        Layout.fillHeight: true
+      }
+
+      ColumnLayout {
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        spacing: Tokens.spacing.small
+
+        GridLayout {
           Layout.fillWidth: true
-          Layout.preferredHeight: 430
-          session: root.session
+          columns: 2
+          columnSpacing: Tokens.spacing.small
+          rowSpacing: Tokens.spacing.small
+
+          PickerAction {
+            Layout.fillWidth: true
+            icon: "casino"
+            title: qsTr("Random")
+            detail: qsTr("Wallpaper")
+
+            onClicked: root.setRandomWallpaper()
+          }
+
+          PickerAction {
+            Layout.fillWidth: true
+            icon: "folder_open"
+            title: qsTr("Folder")
+            detail: Paths.shortenHome(Paths.wallsdir)
+
+            onClicked: Quickshell.execDetached(["app2unit", "--", ...GlobalConfig.general.apps.explorer, Paths.wallsdir])
+          }
+
+          CompactToggle {
+            Layout.fillWidth: true
+            icon: "image"
+            title: qsTr("Background")
+            checked: root.backgroundEnabled
+
+            onToggled: checked => {
+              root.backgroundEnabled = checked;
+              root.saveConfig();
+            }
+          }
+
+          CompactToggle {
+            Layout.fillWidth: true
+            icon: "wallpaper"
+            title: qsTr("Wallpaper")
+            checked: root.wallpaperEnabled
+
+            onToggled: checked => {
+              root.wallpaperEnabled = checked;
+              root.saveConfig();
+            }
+          }
+        }
+
+        RowLayout {
+          Layout.fillWidth: true
+          Layout.fillHeight: true
+          spacing: Tokens.spacing.small
+
+          ModeCard {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            icon: "light_mode"
+            title: qsTr("Light")
+            active: Colours.currentLight
+
+            onClicked: Colours.setMode("light")
+          }
+
+          ModeCard {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            icon: "dark_mode"
+            title: qsTr("Dark")
+            active: !Colours.currentLight
+
+            onClicked: Colours.setMode("dark")
+          }
         }
       }
     }
@@ -801,7 +843,7 @@ Item {
     id: preview
 
     radius: Tokens.rounding.small
-    color: Colours.palette.m3surfaceContainer
+    color: Colours.palette.m3surfaceContainerHigh
     clip: true
 
     CachingImage {
@@ -857,37 +899,77 @@ Item {
     }
   }
 
-  component SettingsDeck: StyledRect {
-    id: deck
+  component PickerSection: ColumnLayout {
+    id: section
 
     property string title: ""
-    default property alias content: deckContent.data
+    default property alias content: sectionContent.data
 
-    implicitHeight: deckLayout.implicitHeight + Tokens.padding.normal * 2
-    radius: Tokens.rounding.small
-    color: Colours.palette.m3surfaceContainer
-    clip: true
+    spacing: Tokens.spacing.small
+
+    StyledText {
+      Layout.fillWidth: true
+      text: section.title
+      font.pointSize: Tokens.font.size.normal
+      font.weight: 700
+      elide: Text.ElideRight
+    }
 
     ColumnLayout {
-      id: deckLayout
+      id: sectionContent
 
-      anchors.fill: parent
-      anchors.margins: Tokens.padding.normal
+      Layout.fillWidth: true
       spacing: Tokens.spacing.small
+    }
+  }
+
+  component PickerAction: StyledRect {
+    id: action
+
+    property string icon: ""
+    property string title: ""
+    property string detail: ""
+
+    signal clicked
+
+    implicitHeight: 38
+    radius: Tokens.rounding.small
+    color: Colours.palette.m3surfaceContainerHigh
+    clip: true
+
+    StateLayer {
+      onClicked: action.clicked()
+
+      color: Colours.palette.m3onSurface
+      radius: parent.radius
+    }
+
+    RowLayout {
+      anchors.fill: parent
+      anchors.margins: Tokens.padding.small
+      spacing: Tokens.spacing.small
+
+      MaterialIcon {
+        Layout.alignment: Qt.AlignVCenter
+        text: action.icon
+        color: Colours.palette.m3onSurfaceVariant
+        font.pointSize: Tokens.font.size.normal
+      }
 
       StyledText {
         Layout.fillWidth: true
-        text: deck.title
-        font.pointSize: Tokens.font.size.normal
-        font.weight: 700
+        Layout.alignment: Qt.AlignVCenter
+        text: action.title
+        font.weight: 650
         elide: Text.ElideRight
       }
 
-      ColumnLayout {
-        id: deckContent
-
-        Layout.fillWidth: true
-        spacing: Tokens.spacing.small
+      StyledText {
+        Layout.alignment: Qt.AlignVCenter
+        text: action.detail
+        color: Colours.palette.m3onSurfaceVariant
+        font.pointSize: Tokens.font.size.small
+        elide: Text.ElideRight
       }
     }
   }

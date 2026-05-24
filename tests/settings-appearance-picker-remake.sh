@@ -24,6 +24,19 @@ assert_not_contains() {
   ! grep -Fq "$needle" "$ROOT_DIR/$file" || fail "$message"
 }
 
+assert_before() {
+  local file="$1"
+  local first="$2"
+  local second="$3"
+  local message="$4"
+  local first_line second_line
+
+  first_line="$(grep -Fn "$first" "$ROOT_DIR/$file" | head -n1 | cut -d: -f1)"
+  second_line="$(grep -Fn "$second" "$ROOT_DIR/$file" | head -n1 | cut -d: -f1)"
+  [[ -n $first_line && -n $second_line ]] || fail "$message"
+  (( first_line < second_line )) || fail "$message"
+}
+
 pane="shell/modules/controlcenter/appearance/AppearancePane.qml"
 
 assert_not_contains "$pane" "SplitPaneLayout" \
@@ -37,6 +50,16 @@ assert_not_contains "$pane" "unfold_more" \
 
 assert_contains "$pane" "component HeroPreview: StyledRect" \
   "appearance should start with a compact wallpaper preview"
+assert_contains "$pane" "component PickerBoard: StyledRect" \
+  "appearance should use a picker-style header board, not separated generic cards"
+assert_contains "$pane" "function setRandomWallpaper(): void" \
+  "appearance picker should expose a real random wallpaper action"
+assert_contains "$pane" "component PickerSection: ColumnLayout" \
+  "appearance secondary controls should be unframed picker sections"
+assert_not_contains "$pane" "component SettingsDeck" \
+  "appearance should not keep generic settings deck cards"
+assert_not_contains "$pane" "SettingsDeck {" \
+  "appearance should not render generic settings deck cards"
 assert_contains "$pane" "component ModeCard: StyledRect" \
   "appearance should use light and dark mode cards"
 assert_contains "$pane" "component VariantPill: StyledRect" \
@@ -49,9 +72,19 @@ assert_contains "$pane" "component CompactRange: StyledRect" \
   "appearance should use compact range controls instead of long slider sections"
 assert_contains "$pane" "WallpaperGrid {" \
   "appearance should keep wallpaper picking directly in the page"
+assert_before "$pane" "WallpaperGrid {" "title: qsTr(\"Transparency\")" \
+  "appearance should place the wallpaper picker before secondary tuning controls"
+assert_contains "shell/modules/controlcenter/components/WallpaperGrid.qml" "property bool compact: false" \
+  "wallpaper grid should expose a compact picker mode"
+assert_contains "shell/modules/controlcenter/components/WallpaperGrid.qml" "readonly property int compactCellWidth" \
+  "wallpaper grid compact mode should reduce thumbnail width"
+assert_contains "$pane" "compact: true" \
+  "appearance should use the dense wallpaper picker grid"
 
 assert_contains "$pane" "Colours.setMode" \
   "appearance should preserve light and dark backend behavior"
+assert_contains "$pane" "Wallpapers.setWallpaper(entry.path)" \
+  "appearance random action should use the wallpaper service backend"
 assert_contains "$pane" "Quickshell.execDetached([\"ryoku\", \"scheme\", \"set\", \"-v\", variant])" \
   "appearance should preserve variant backend behavior"
 assert_contains "$pane" "Quickshell.execDetached([\"ryoku\", \"scheme\", \"set\", \"-n\", name, \"-f\", flavour])" \

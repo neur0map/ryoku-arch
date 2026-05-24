@@ -14,12 +14,15 @@ GridView {
     id: root
 
     required property Session session
+    property bool compact: false
 
-    readonly property int minCellWidth: 200 + Tokens.spacing.normal
+    readonly property int compactCellWidth: 128 + Tokens.spacing.small
+    readonly property int regularCellWidth: 200 + Tokens.spacing.normal
+    readonly property int minCellWidth: compact ? compactCellWidth : regularCellWidth
     readonly property int columnsCount: Math.max(1, Math.floor(width / minCellWidth))
 
     cellWidth: width / columnsCount
-    cellHeight: 140 + Tokens.spacing.normal
+    cellHeight: (compact ? 88 : 140) + Tokens.spacing.normal
 
     model: Wallpapers.list
 
