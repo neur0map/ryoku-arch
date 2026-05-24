@@ -177,6 +177,31 @@ grep -Fq 'Update stopped while waiting for sudo authentication.' <<<"$output" \
 grep -Fq 'Run: sudo -v' <<<"$output" \
   || fail "doctor should tell users how to refresh sudo before retrying"
 
+success_state="$tmp/state-success"
+mkdir -p "$success_state/quickshell/user"
+printf '%s\n' "success" >"$success_state/quickshell/user/update-status"
+
+set +e
+output=$(
+  TMPDIR="$tmp" \
+  RYOKU_PATH="$tmp/checkout-auth" \
+  RYOKU_UPDATE_REMOTE_URL="$tmp/remote.git" \
+  RYOKU_DOCTOR_ASSUME_NO=1 \
+  RYOKU_UPDATE_LOG="$tmp/auth-update.log" \
+  XDG_STATE_HOME="$success_state" \
+  PATH="$tmp/bin:$PATH" \
+    "$ROOT_DIR/bin/ryoku-doctor" 2>&1
+)
+success_status=$?
+set -e
+
+(( success_status != 0 )) || fail "smart doctor should fall through to shell doctor when update status is success"
+if grep -Fq 'Update stopped while waiting for sudo authentication.' <<<"$output"; then
+  fail "smart doctor should ignore stale sudo-auth log entries after a successful update"
+fi
+grep -Fq 'Ryoku shell doctor is unavailable.' <<<"$output" \
+  || fail "smart doctor should route to shell health when update status is success: $output"
+
 local_home="$tmp/local-home"
 mkdir -p "$local_home/.local/bin"
 cat >"$tmp/local-runtime-update.log" <<LOG

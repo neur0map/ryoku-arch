@@ -492,6 +492,10 @@ doctor_update_needs_attention() {
   status_file="$(update_status_file)"
   if [[ -r $status_file ]]; then
     status="$(<"$status_file")"
+    if [[ $status == "success" ]]; then
+      return 1
+    fi
+
     if [[ $status == failed:* || $status == updating || $status == progress:* ]]; then
       return 0
     fi
