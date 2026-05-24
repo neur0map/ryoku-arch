@@ -13,617 +13,670 @@ import qs.components.effects
 import qs.services
 
 Item {
-    id: root
+  id: root
 
-    required property Session session
+  required property Session session
+
+  function percent(value) {
+    return qsTr("%1%").arg(Math.round((value || 0) * 100));
+  }
+
+  function deviceName(device) {
+    return device?.description || device?.name || qsTr("Unknown");
+  }
+
+  anchors.fill: parent
+
+  ClippingRectangle {
+    id: audioClippingRect
 
     anchors.fill: parent
-
-    SplitPaneLayout {
-        anchors.fill: parent
-
-        leftContent: Component {
-            StyledFlickable {
-                id: leftAudioFlickable
-
-                flickableDirection: Flickable.VerticalFlick
-                contentHeight: leftContent.height
-
-                StyledScrollBar.vertical: StyledScrollBar {
-                    flickable: leftAudioFlickable
-                }
-
-                ColumnLayout {
-                    id: leftContent
-
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    spacing: Tokens.spacing.normal
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: Tokens.spacing.smaller
-
-                        StyledText {
-                            text: qsTr("Audio")
-                            font.pointSize: Tokens.font.size.large
-                            font.weight: 500
-                        }
-
-                        Item {
-                            Layout.fillWidth: true
-                        }
-                    }
-
-                    CollapsibleSection {
-                        id: outputDevicesSection
-
-                        Layout.fillWidth: true
-                        title: qsTr("Output devices")
-                        expanded: true
-
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: Tokens.spacing.small
-
-                            RowLayout {
-                                Layout.fillWidth: true
-                                spacing: Tokens.spacing.small
-
-                                StyledText {
-                                    text: qsTr("Devices (%1)").arg(Audio.sinks.length)
-                                    font.pointSize: Tokens.font.size.normal
-                                    font.weight: 500
-                                }
-                            }
-
-                            StyledText {
-                                Layout.fillWidth: true
-                                text: qsTr("All available output devices")
-                                color: Colours.palette.m3outline
-                            }
-
-                            Repeater {
-                                Layout.fillWidth: true
-                                model: Audio.sinks
-
-                                delegate: StyledRect {
-                                    required property var modelData
-
-                                    Layout.fillWidth: true
-
-                                    color: Audio.sink?.id === modelData.id ? Colours.layer(Colours.palette.m3surfaceContainer, 2) : "transparent"
-                                    radius: Tokens.rounding.normal
-                                    implicitHeight: outputRowLayout.implicitHeight + Tokens.padding.normal * 2
-
-                                    StateLayer {
-                                        onClicked: {
-                                            Audio.setAudioSink(modelData);
-                                        }
-                                    }
-
-                                    RowLayout {
-                                        id: outputRowLayout
-
-                                        anchors.left: parent.left
-                                        anchors.right: parent.right
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        anchors.margins: Tokens.padding.normal
-
-                                        spacing: Tokens.spacing.normal
-
-                                        MaterialIcon {
-                                            text: Audio.sink?.id === modelData.id ? "speaker" : "speaker_group"
-                                            font.pointSize: Tokens.font.size.large
-                                            fill: Audio.sink?.id === modelData.id ? 1 : 0
-                                        }
-
-                                        StyledText {
-                                            Layout.fillWidth: true
-                                            elide: Text.ElideRight
-                                            maximumLineCount: 1
-
-                                            text: modelData.description || qsTr("Unknown")
-                                            font.weight: Audio.sink?.id === modelData.id ? 500 : 400
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    CollapsibleSection {
-                        id: inputDevicesSection
-
-                        Layout.fillWidth: true
-                        title: qsTr("Input devices")
-                        expanded: true
-
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: Tokens.spacing.small
-
-                            RowLayout {
-                                Layout.fillWidth: true
-                                spacing: Tokens.spacing.small
-
-                                StyledText {
-                                    text: qsTr("Devices (%1)").arg(Audio.sources.length)
-                                    font.pointSize: Tokens.font.size.normal
-                                    font.weight: 500
-                                }
-                            }
-
-                            StyledText {
-                                Layout.fillWidth: true
-                                text: qsTr("All available input devices")
-                                color: Colours.palette.m3outline
-                            }
-
-                            Repeater {
-                                Layout.fillWidth: true
-                                model: Audio.sources
-
-                                delegate: StyledRect {
-                                    required property var modelData
-
-                                    Layout.fillWidth: true
-
-                                    color: Audio.source?.id === modelData.id ? Colours.layer(Colours.palette.m3surfaceContainer, 2) : "transparent"
-                                    radius: Tokens.rounding.normal
-                                    implicitHeight: inputRowLayout.implicitHeight + Tokens.padding.normal * 2
-
-                                    StateLayer {
-                                        onClicked: {
-                                            Audio.setAudioSource(modelData);
-                                        }
-                                    }
-
-                                    RowLayout {
-                                        id: inputRowLayout
-
-                                        anchors.left: parent.left
-                                        anchors.right: parent.right
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        anchors.margins: Tokens.padding.normal
-
-                                        spacing: Tokens.spacing.normal
-
-                                        MaterialIcon {
-                                            text: "mic"
-                                            font.pointSize: Tokens.font.size.large
-                                            fill: Audio.source?.id === modelData.id ? 1 : 0
-                                        }
-
-                                        StyledText {
-                                            Layout.fillWidth: true
-                                            elide: Text.ElideRight
-                                            maximumLineCount: 1
-
-                                            text: modelData.description || qsTr("Unknown")
-                                            font.weight: Audio.source?.id === modelData.id ? 500 : 400
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        rightContent: Component {
-            StyledFlickable {
-                id: rightAudioFlickable
-
-                flickableDirection: Flickable.VerticalFlick
-                contentHeight: contentLayout.height
-
-                StyledScrollBar.vertical: StyledScrollBar {
-                    flickable: rightAudioFlickable
-                }
-
-                ColumnLayout {
-                    id: contentLayout
-
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    spacing: Tokens.spacing.normal
-
-                    SettingsHeader {
-                        icon: "volume_up"
-                        title: qsTr("Audio Settings")
-                    }
-
-                    SectionHeader {
-                        title: qsTr("Output volume")
-                        description: qsTr("Control the volume of your output device")
-                    }
-
-                    SectionContainer {
-                        contentSpacing: Tokens.spacing.normal
-
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: Tokens.spacing.small
-
-                            RowLayout {
-                                Layout.fillWidth: true
-                                spacing: Tokens.spacing.normal
-
-                                StyledText {
-                                    text: qsTr("Volume")
-                                    font.pointSize: Tokens.font.size.normal
-                                    font.weight: 500
-                                }
-
-                                Item {
-                                    Layout.fillWidth: true
-                                }
-
-                                StyledInputField {
-                                    id: outputVolumeInput
-
-                                    Layout.preferredWidth: 70
-                                    validator: IntValidator {
-                                        bottom: 0
-                                        top: 100
-                                    }
-                                    enabled: !Audio.muted
-
-                                    Component.onCompleted: {
-                                        text = Math.round(Audio.volume * 100).toString();
-                                    }
-
-                                    onTextEdited: text => {
-                                        if (hasFocus) {
-                                            const val = parseInt(text);
-                                            if (!isNaN(val) && val >= 0 && val <= 100) {
-                                                Audio.setVolume(val / 100);
-                                            }
-                                        }
-                                    }
-
-                                    onEditingFinished: {
-                                        const val = parseInt(text);
-                                        if (isNaN(val) || val < 0 || val > 100) {
-                                            text = Math.round(Audio.volume * 100).toString();
-                                        }
-                                    }
-
-                                    Connections {
-                                        function onVolumeChanged() {
-                                            if (!outputVolumeInput.hasFocus) {
-                                                outputVolumeInput.text = Math.round(Audio.volume * 100).toString();
-                                            }
-                                        }
-
-                                        target: Audio
-                                    }
-                                }
-
-                                StyledText {
-                                    text: "%"
-                                    color: Colours.palette.m3outline
-                                    font.pointSize: Tokens.font.size.normal
-                                    opacity: Audio.muted ? 0.5 : 1
-                                }
-
-                                StyledRect {
-                                    implicitWidth: implicitHeight
-                                    implicitHeight: muteIcon.implicitHeight + Tokens.padding.normal * 2
-
-                                    radius: Tokens.rounding.normal
-                                    color: Audio.muted ? Colours.palette.m3secondary : Colours.palette.m3secondaryContainer
-
-                                    StateLayer {
-                                        onClicked: {
-                                            if (Audio.sink?.audio) {
-                                                Audio.sink.audio.muted = !Audio.sink.audio.muted;
-                                            }
-                                        }
-                                    }
-
-                                    MaterialIcon {
-                                        id: muteIcon
-
-                                        anchors.centerIn: parent
-                                        text: Audio.muted ? "volume_off" : "volume_up"
-                                        color: Audio.muted ? Colours.palette.m3onSecondary : Colours.palette.m3onSecondaryContainer
-                                    }
-                                }
-                            }
-
-                            StyledSlider {
-                                id: outputVolumeSlider
-
-                                Layout.fillWidth: true
-                                implicitHeight: Tokens.padding.normal * 3
-
-                                value: Audio.volume
-                                enabled: !Audio.muted
-                                opacity: enabled ? 1 : 0.5
-                                onMoved: {
-                                    Audio.setVolume(value);
-                                    if (!outputVolumeInput.hasFocus) {
-                                        outputVolumeInput.text = Math.round(value * 100).toString();
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    SectionHeader {
-                        title: qsTr("Input volume")
-                        description: qsTr("Control the volume of your input device")
-                    }
-
-                    SectionContainer {
-                        contentSpacing: Tokens.spacing.normal
-
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: Tokens.spacing.small
-
-                            RowLayout {
-                                Layout.fillWidth: true
-                                spacing: Tokens.spacing.normal
-
-                                StyledText {
-                                    text: qsTr("Volume")
-                                    font.pointSize: Tokens.font.size.normal
-                                    font.weight: 500
-                                }
-
-                                Item {
-                                    Layout.fillWidth: true
-                                }
-
-                                StyledInputField {
-                                    id: inputVolumeInput
-
-                                    Layout.preferredWidth: 70
-                                    validator: IntValidator {
-                                        bottom: 0
-                                        top: 100
-                                    }
-                                    enabled: !Audio.sourceMuted
-
-                                    Component.onCompleted: {
-                                        text = Math.round(Audio.sourceVolume * 100).toString();
-                                    }
-
-                                    onTextEdited: text => {
-                                        if (hasFocus) {
-                                            const val = parseInt(text);
-                                            if (!isNaN(val) && val >= 0 && val <= 100) {
-                                                Audio.setSourceVolume(val / 100);
-                                            }
-                                        }
-                                    }
-
-                                    onEditingFinished: {
-                                        const val = parseInt(text);
-                                        if (isNaN(val) || val < 0 || val > 100) {
-                                            text = Math.round(Audio.sourceVolume * 100).toString();
-                                        }
-                                    }
-
-                                    Connections {
-                                        function onSourceVolumeChanged() {
-                                            if (!inputVolumeInput.hasFocus) {
-                                                inputVolumeInput.text = Math.round(Audio.sourceVolume * 100).toString();
-                                            }
-                                        }
-
-                                        target: Audio
-                                    }
-                                }
-
-                                StyledText {
-                                    text: "%"
-                                    color: Colours.palette.m3outline
-                                    font.pointSize: Tokens.font.size.normal
-                                    opacity: Audio.sourceMuted ? 0.5 : 1
-                                }
-
-                                StyledRect {
-                                    implicitWidth: implicitHeight
-                                    implicitHeight: muteInputIcon.implicitHeight + Tokens.padding.normal * 2
-
-                                    radius: Tokens.rounding.normal
-                                    color: Audio.sourceMuted ? Colours.palette.m3secondary : Colours.palette.m3secondaryContainer
-
-                                    StateLayer {
-                                        onClicked: {
-                                            if (Audio.source?.audio) {
-                                                Audio.source.audio.muted = !Audio.source.audio.muted;
-                                            }
-                                        }
-                                    }
-
-                                    MaterialIcon {
-                                        id: muteInputIcon
-
-                                        anchors.centerIn: parent
-                                        text: "mic_off"
-                                        color: Audio.sourceMuted ? Colours.palette.m3onSecondary : Colours.palette.m3onSecondaryContainer
-                                    }
-                                }
-                            }
-
-                            StyledSlider {
-                                id: inputVolumeSlider
-
-                                Layout.fillWidth: true
-                                implicitHeight: Tokens.padding.normal * 3
-
-                                value: Audio.sourceVolume
-                                enabled: !Audio.sourceMuted
-                                opacity: enabled ? 1 : 0.5
-                                onMoved: {
-                                    Audio.setSourceVolume(value);
-                                    if (!inputVolumeInput.hasFocus) {
-                                        inputVolumeInput.text = Math.round(value * 100).toString();
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    SectionHeader {
-                        title: qsTr("Applications")
-                        description: qsTr("Control volume for individual applications")
-                    }
-
-                    SectionContainer {
-                        contentSpacing: Tokens.spacing.normal
-
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: Tokens.spacing.small
-
-                            Repeater {
-                                model: Audio.streams
-                                Layout.fillWidth: true
-
-                                delegate: ColumnLayout {
-                                    required property var modelData
-                                    required property int index
-
-                                    Layout.fillWidth: true
-                                    spacing: Tokens.spacing.smaller
-
-                                    RowLayout {
-                                        Layout.fillWidth: true
-                                        spacing: Tokens.spacing.normal
-
-                                        MaterialIcon {
-                                            text: "apps"
-                                            font.pointSize: Tokens.font.size.normal
-                                            fill: 0
-                                        }
-
-                                        StyledText {
-                                            Layout.fillWidth: true
-                                            elide: Text.ElideRight
-                                            maximumLineCount: 1
-                                            text: Audio.getStreamName(modelData)
-                                            font.pointSize: Tokens.font.size.normal
-                                            font.weight: 500
-                                        }
-
-                                        StyledInputField {
-                                            id: streamVolumeInput
-
-                                            Layout.preferredWidth: 70
-                                            validator: IntValidator {
-                                                bottom: 0
-                                                top: 100
-                                            }
-                                            enabled: !Audio.getStreamMuted(modelData)
-
-                                            Component.onCompleted: {
-                                                text = Math.round(Audio.getStreamVolume(modelData) * 100).toString();
-                                            }
-
-                                            onTextEdited: text => {
-                                                if (hasFocus) {
-                                                    const val = parseInt(text);
-                                                    if (!isNaN(val) && val >= 0 && val <= 100) {
-                                                        Audio.setStreamVolume(modelData, val / 100);
-                                                    }
-                                                }
-                                            }
-
-                                            onEditingFinished: {
-                                                const val = parseInt(text);
-                                                if (isNaN(val) || val < 0 || val > 100) {
-                                                    text = Math.round(Audio.getStreamVolume(modelData) * 100).toString();
-                                                }
-                                            }
-
-                                            Connections {
-                                                function onAudioChanged() {
-                                                    if (!streamVolumeInput.hasFocus && modelData?.audio) {
-                                                        streamVolumeInput.text = Math.round(modelData.audio.volume * 100).toString();
-                                                    }
-                                                }
-
-                                                target: modelData
-                                            }
-                                        }
-
-                                        StyledText {
-                                            text: "%"
-                                            color: Colours.palette.m3outline
-                                            font.pointSize: Tokens.font.size.normal
-                                            opacity: Audio.getStreamMuted(modelData) ? 0.5 : 1
-                                        }
-
-                                        StyledRect {
-                                            implicitWidth: implicitHeight
-                                            implicitHeight: streamMuteIcon.implicitHeight + Tokens.padding.normal * 2
-
-                                            radius: Tokens.rounding.normal
-                                            color: Audio.getStreamMuted(modelData) ? Colours.palette.m3secondary : Colours.palette.m3secondaryContainer
-
-                                            StateLayer {
-                                                onClicked: {
-                                                    Audio.setStreamMuted(modelData, !Audio.getStreamMuted(modelData));
-                                                }
-                                            }
-
-                                            MaterialIcon {
-                                                id: streamMuteIcon
-
-                                                anchors.centerIn: parent
-                                                text: Audio.getStreamMuted(modelData) ? "volume_off" : "volume_up"
-                                                color: Audio.getStreamMuted(modelData) ? Colours.palette.m3onSecondary : Colours.palette.m3onSecondaryContainer
-                                            }
-                                        }
-                                    }
-
-                                    StyledSlider {
-                                        Layout.fillWidth: true
-                                        implicitHeight: Tokens.padding.normal * 3
-
-                                        value: Audio.getStreamVolume(modelData)
-                                        enabled: !Audio.getStreamMuted(modelData)
-                                        opacity: enabled ? 1 : 0.5
-                                        onMoved: {
-                                            Audio.setStreamVolume(modelData, value);
-                                            if (!streamVolumeInput.hasFocus) {
-                                                streamVolumeInput.text = Math.round(value * 100).toString();
-                                            }
-                                        }
-
-                                        Connections {
-                                            function onAudioChanged() {
-                                                if (modelData?.audio) {
-                                                    value = modelData.audio.volume;
-                                                }
-                                            }
-
-                                            target: modelData
-                                        }
-                                    }
-                                }
-                            }
-
-                            StyledText {
-                                Layout.fillWidth: true
-                                visible: Audio.streams.length === 0
-                                text: qsTr("No applications currently playing audio")
-                                color: Colours.palette.m3outline
-                                font.pointSize: Tokens.font.size.small
-                                horizontalAlignment: Text.AlignHCenter
-                            }
-                        }
-                    }
-                }
-            }
-        }
+    anchors.margins: Tokens.padding.normal
+    anchors.leftMargin: 0
+    anchors.rightMargin: Tokens.padding.normal
+
+    radius: audioBorder.innerRadius
+    color: "transparent"
+
+    Loader {
+      anchors.fill: parent
+      anchors.margins: Tokens.padding.large + Tokens.padding.normal
+      anchors.leftMargin: Tokens.padding.large
+      anchors.rightMargin: Tokens.padding.large
+      sourceComponent: audioContentComponent
     }
+  }
+
+  InnerBorder {
+    id: audioBorder
+
+    leftThickness: 0
+    rightThickness: Tokens.padding.normal
+  }
+
+  Component {
+    id: audioContentComponent
+
+    StyledFlickable {
+      id: flickable
+
+      anchors.fill: parent
+      clip: true
+      flickableDirection: Flickable.VerticalFlick
+      boundsBehavior: Flickable.StopAtBounds
+      contentWidth: width
+      contentHeight: content.implicitHeight
+
+      StyledScrollBar.vertical: StyledScrollBar {
+        flickable: flickable
+      }
+
+      ColumnLayout {
+        id: content
+
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        spacing: Tokens.spacing.normal
+
+        RowLayout {
+          Layout.fillWidth: true
+          spacing: Tokens.spacing.small
+
+          StyledText {
+            Layout.fillWidth: true
+            text: qsTr("Audio")
+            font.pointSize: Tokens.font.size.large
+            font.weight: 700
+            elide: Text.ElideRight
+          }
+
+          ModeBadge {
+            icon: Audio.muted ? "volume_off" : "volume_up"
+            title: Audio.muted ? qsTr("Muted") : root.percent(Audio.volume)
+            active: !Audio.muted
+          }
+        }
+
+        GridLayout {
+          Layout.fillWidth: true
+          columns: root.width > 840 ? 2 : 1
+          columnSpacing: Tokens.spacing.normal
+          rowSpacing: Tokens.spacing.normal
+
+          ColumnLayout {
+            Layout.fillWidth: true
+            Layout.alignment: Qt.AlignTop
+            spacing: Tokens.spacing.normal
+
+            DeviceRail {
+              Layout.fillWidth: true
+              icon: "speaker"
+              title: qsTr("Outputs")
+              detail: qsTr("%1 devices").arg(Audio.sinks.length)
+              devices: Audio.sinks
+              activeDevice: Audio.sink
+              inputDevices: false
+            }
+
+            DeviceRail {
+              Layout.fillWidth: true
+              icon: "mic"
+              title: qsTr("Inputs")
+              detail: qsTr("%1 devices").arg(Audio.sources.length)
+              devices: Audio.sources
+              activeDevice: Audio.source
+              inputDevices: true
+            }
+          }
+
+          MixerDeck {
+            Layout.fillWidth: true
+            Layout.alignment: Qt.AlignTop
+          }
+        }
+      }
+    }
+  }
+
+  component MixerDeck: StyledRect {
+    id: mixerDeck
+
+    implicitHeight: mixerLayout.implicitHeight + Tokens.padding.normal * 2
+    radius: Tokens.rounding.small
+    color: Colours.palette.m3surfaceContainer
+    clip: true
+
+    ColumnLayout {
+      id: mixerLayout
+
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.top: parent.top
+      anchors.margins: Tokens.padding.normal
+      spacing: Tokens.spacing.small
+
+      RowLayout {
+        Layout.fillWidth: true
+        spacing: Tokens.spacing.small
+
+        MaterialIcon {
+          text: "equalizer"
+          color: Colours.palette.m3primary
+          fill: 1
+        }
+
+        ColumnLayout {
+          Layout.fillWidth: true
+          spacing: 0
+
+          StyledText {
+            Layout.fillWidth: true
+            text: qsTr("Mixer")
+            font.weight: 700
+            elide: Text.ElideRight
+          }
+
+          StyledText {
+            Layout.fillWidth: true
+            text: qsTr("Device and app levels")
+            color: Colours.palette.m3onSurfaceVariant
+            font.pointSize: Tokens.font.size.small
+            elide: Text.ElideRight
+          }
+        }
+      }
+
+      VolumeStrip {
+        Layout.fillWidth: true
+        icon: Audio.muted ? "volume_off" : "volume_up"
+        title: qsTr("Output")
+        detail: root.deviceName(Audio.sink)
+        level: Audio.volume
+        muted: Audio.muted
+
+        onMoved: value => {
+          Audio.setVolume(value);
+        }
+
+        onMuteClicked: {
+          if (Audio.sink?.audio) {
+            Audio.sink.audio.muted = !Audio.sink.audio.muted;
+          }
+        }
+      }
+
+      VolumeStrip {
+        Layout.fillWidth: true
+        icon: Audio.sourceMuted ? "mic_off" : "mic"
+        title: qsTr("Input")
+        detail: root.deviceName(Audio.source)
+        level: Audio.sourceVolume
+        muted: Audio.sourceMuted
+
+        onMoved: value => {
+          Audio.setSourceVolume(value);
+        }
+
+        onMuteClicked: {
+          if (Audio.source?.audio) {
+            Audio.source.audio.muted = !Audio.source.audio.muted;
+          }
+        }
+      }
+
+      StyledText {
+        Layout.fillWidth: true
+        Layout.topMargin: Tokens.spacing.smaller
+        text: qsTr("Applications")
+        font.weight: 700
+        elide: Text.ElideRight
+      }
+
+      Repeater {
+        model: Audio.streams
+
+        delegate: StreamStrip {
+          required property var modelData
+
+          Layout.fillWidth: true
+          stream: modelData
+
+          onMoved: value => {
+            Audio.setStreamVolume(modelData, value);
+          }
+
+          onMuteClicked: {
+            Audio.setStreamMuted(modelData, !Audio.getStreamMuted(modelData));
+          }
+        }
+      }
+
+      EmptyStreamNotice {
+        Layout.fillWidth: true
+        visible: Audio.streams.length === 0
+      }
+    }
+  }
+
+  component DeviceRail: StyledRect {
+    id: deviceRail
+
+    property string icon
+    property string title
+    property string detail
+    property var devices: []
+    property var activeDevice
+    property bool inputDevices
+
+    implicitHeight: deviceRailLayout.implicitHeight + Tokens.padding.normal * 2
+    radius: Tokens.rounding.small
+    color: Colours.palette.m3surfaceContainer
+    clip: true
+
+    ColumnLayout {
+      id: deviceRailLayout
+
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.top: parent.top
+      anchors.margins: Tokens.padding.normal
+      spacing: Tokens.spacing.small
+
+      RowLayout {
+        Layout.fillWidth: true
+        spacing: Tokens.spacing.small
+
+        MaterialIcon {
+          text: deviceRail.icon
+          color: Colours.palette.m3primary
+          fill: 1
+        }
+
+        ColumnLayout {
+          Layout.fillWidth: true
+          spacing: 0
+
+          StyledText {
+            Layout.fillWidth: true
+            text: deviceRail.title
+            font.weight: 700
+            elide: Text.ElideRight
+          }
+
+          StyledText {
+            Layout.fillWidth: true
+            text: deviceRail.detail
+            color: Colours.palette.m3onSurfaceVariant
+            font.pointSize: Tokens.font.size.small
+            elide: Text.ElideRight
+          }
+        }
+      }
+
+      Repeater {
+        model: deviceRail.devices
+
+        delegate: DeviceToken {
+          required property var modelData
+
+          Layout.fillWidth: true
+          icon: deviceRail.inputDevices ? "mic" : "speaker"
+          title: root.deviceName(modelData)
+          detail: deviceRail.activeDevice?.id === modelData.id ? qsTr("Active") : qsTr("Available")
+          selected: deviceRail.activeDevice?.id === modelData.id
+
+          onClicked: {
+            if (deviceRail.inputDevices) {
+              Audio.setAudioSource(modelData);
+            } else {
+              Audio.setAudioSink(modelData);
+            }
+          }
+        }
+      }
+
+      StyledText {
+        Layout.fillWidth: true
+        visible: deviceRail.devices.length === 0
+        text: qsTr("No devices detected")
+        color: Colours.palette.m3onSurfaceVariant
+        font.pointSize: Tokens.font.size.small
+        horizontalAlignment: Text.AlignHCenter
+        elide: Text.ElideRight
+      }
+    }
+  }
+
+  component DeviceToken: StyledRect {
+    id: deviceToken
+
+    property string icon
+    property string title
+    property string detail
+    property bool selected
+    signal clicked()
+
+    implicitHeight: 54
+    radius: Tokens.rounding.small
+    color: selected ? Colours.palette.m3primaryContainer : Colours.palette.m3surfaceContainerHigh
+    clip: true
+
+    StateLayer {
+      color: deviceToken.selected ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
+
+      onClicked: {
+        deviceToken.clicked();
+      }
+    }
+
+    RowLayout {
+      anchors.fill: parent
+      anchors.leftMargin: Tokens.padding.normal
+      anchors.rightMargin: Tokens.padding.normal
+      spacing: Tokens.spacing.small
+
+      MaterialIcon {
+        Layout.alignment: Qt.AlignVCenter
+        text: deviceToken.icon
+        color: deviceToken.selected ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
+        fill: deviceToken.selected ? 1 : 0
+      }
+
+      ColumnLayout {
+        Layout.fillWidth: true
+        Layout.alignment: Qt.AlignVCenter
+        spacing: 0
+
+        StyledText {
+          Layout.fillWidth: true
+          text: deviceToken.title
+          color: deviceToken.selected ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
+          font.weight: deviceToken.selected ? 700 : 500
+          elide: Text.ElideRight
+          maximumLineCount: 1
+        }
+
+        StyledText {
+          Layout.fillWidth: true
+          text: deviceToken.detail
+          color: deviceToken.selected ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
+          opacity: deviceToken.selected ? 0.78 : 1
+          font.pointSize: Tokens.font.size.small
+          elide: Text.ElideRight
+          maximumLineCount: 1
+        }
+      }
+    }
+  }
+
+  component VolumeStrip: StyledRect {
+    id: volumeStrip
+
+    property string icon
+    property string title
+    property string detail
+    property real level
+    property bool muted
+    signal moved(real value)
+    signal muteClicked()
+
+    implicitHeight: stripLayout.implicitHeight + Tokens.padding.normal * 2
+    radius: Tokens.rounding.small
+    color: Colours.palette.m3surfaceContainerHigh
+    clip: true
+
+    ColumnLayout {
+      id: stripLayout
+
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.top: parent.top
+      anchors.margins: Tokens.padding.normal
+      spacing: Tokens.spacing.small
+
+      RowLayout {
+        Layout.fillWidth: true
+        spacing: Tokens.spacing.small
+
+        MaterialIcon {
+          Layout.alignment: Qt.AlignVCenter
+          text: volumeStrip.icon
+          color: volumeStrip.muted ? Colours.palette.m3outline : Colours.palette.m3primary
+          fill: volumeStrip.muted ? 0 : 1
+        }
+
+        ColumnLayout {
+          Layout.fillWidth: true
+          Layout.alignment: Qt.AlignVCenter
+          spacing: 0
+
+          StyledText {
+            Layout.fillWidth: true
+            text: volumeStrip.title
+            font.weight: 700
+            elide: Text.ElideRight
+          }
+
+          StyledText {
+            Layout.fillWidth: true
+            text: volumeStrip.detail
+            color: Colours.palette.m3onSurfaceVariant
+            font.pointSize: Tokens.font.size.small
+            elide: Text.ElideRight
+            maximumLineCount: 1
+          }
+        }
+
+        LevelBadge {
+          value: root.percent(volumeStrip.level)
+          muted: volumeStrip.muted
+        }
+
+        MuteButton {
+          muted: volumeStrip.muted
+          offIcon: volumeStrip.title === qsTr("Input") ? "mic" : "volume_up"
+          onIcon: volumeStrip.title === qsTr("Input") ? "mic_off" : "volume_off"
+
+          onClicked: {
+            volumeStrip.muteClicked();
+          }
+        }
+      }
+
+      StyledSlider {
+        Layout.fillWidth: true
+        implicitHeight: Tokens.padding.normal * 3
+        value: volumeStrip.level
+        enabled: !volumeStrip.muted
+        opacity: enabled ? 1 : 0.42
+
+        onMoved: {
+          volumeStrip.moved(value);
+        }
+      }
+    }
+  }
+
+  component StreamStrip: StyledRect {
+    id: streamStrip
+
+    property var stream
+    signal moved(real value)
+    signal muteClicked()
+
+    implicitHeight: streamLayout.implicitHeight + Tokens.padding.normal * 2
+    radius: Tokens.rounding.small
+    color: Colours.palette.m3surfaceContainerHigh
+    clip: true
+
+    ColumnLayout {
+      id: streamLayout
+
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.top: parent.top
+      anchors.margins: Tokens.padding.normal
+      spacing: Tokens.spacing.small
+
+      RowLayout {
+        Layout.fillWidth: true
+        spacing: Tokens.spacing.small
+
+        MaterialIcon {
+          Layout.alignment: Qt.AlignVCenter
+          text: "apps"
+          color: Audio.getStreamMuted(streamStrip.stream) ? Colours.palette.m3outline : Colours.palette.m3tertiary
+        }
+
+        StyledText {
+          Layout.fillWidth: true
+          Layout.alignment: Qt.AlignVCenter
+          text: Audio.getStreamName(streamStrip.stream)
+          font.weight: 600
+          elide: Text.ElideRight
+          maximumLineCount: 1
+        }
+
+        LevelBadge {
+          value: root.percent(Audio.getStreamVolume(streamStrip.stream))
+          muted: Audio.getStreamMuted(streamStrip.stream)
+        }
+
+        MuteButton {
+          muted: Audio.getStreamMuted(streamStrip.stream)
+          offIcon: "volume_up"
+          onIcon: "volume_off"
+
+          onClicked: {
+            streamStrip.muteClicked();
+          }
+        }
+      }
+
+      StyledSlider {
+        Layout.fillWidth: true
+        implicitHeight: Tokens.padding.normal * 3
+        value: Audio.getStreamVolume(streamStrip.stream)
+        enabled: !Audio.getStreamMuted(streamStrip.stream)
+        opacity: enabled ? 1 : 0.42
+
+        onMoved: {
+          streamStrip.moved(value);
+        }
+      }
+    }
+  }
+
+  component MuteButton: StyledRect {
+    id: muteButton
+
+    property bool muted
+    property string offIcon
+    property string onIcon
+    signal clicked()
+
+    implicitWidth: 42
+    implicitHeight: 34
+    radius: Tokens.rounding.full
+    color: muted ? Colours.palette.m3secondary : Colours.palette.m3secondaryContainer
+    clip: true
+
+    StateLayer {
+      color: muteButton.muted ? Colours.palette.m3onSecondary : Colours.palette.m3onSecondaryContainer
+
+      onClicked: {
+        muteButton.clicked();
+      }
+    }
+
+    MaterialIcon {
+      anchors.centerIn: parent
+      text: muteButton.muted ? muteButton.onIcon : muteButton.offIcon
+      color: muteButton.muted ? Colours.palette.m3onSecondary : Colours.palette.m3onSecondaryContainer
+      font.pointSize: Tokens.font.size.normal
+    }
+  }
+
+  component LevelBadge: StyledRect {
+    id: levelBadge
+
+    property string value
+    property bool muted
+
+    implicitWidth: 58
+    implicitHeight: 30
+    radius: Tokens.rounding.full
+    color: muted ? Colours.palette.m3surfaceContainerHighest : Colours.palette.m3primaryContainer
+
+    StyledText {
+      anchors.centerIn: parent
+      text: levelBadge.muted ? qsTr("Muted") : levelBadge.value
+      color: levelBadge.muted ? Colours.palette.m3onSurfaceVariant : Colours.palette.m3onPrimaryContainer
+      font.pointSize: Tokens.font.size.small
+      font.weight: 700
+      horizontalAlignment: Text.AlignHCenter
+      elide: Text.ElideRight
+      maximumLineCount: 1
+      width: parent.width - Tokens.padding.small
+    }
+  }
+
+  component EmptyStreamNotice: StyledRect {
+    implicitHeight: 54
+    radius: Tokens.rounding.small
+    color: Colours.palette.m3surfaceContainerHigh
+
+    RowLayout {
+      anchors.fill: parent
+      anchors.leftMargin: Tokens.padding.normal
+      anchors.rightMargin: Tokens.padding.normal
+      spacing: Tokens.spacing.small
+
+      MaterialIcon {
+        text: "volume_mute"
+        color: Colours.palette.m3onSurfaceVariant
+      }
+
+      StyledText {
+        Layout.fillWidth: true
+        text: qsTr("No application streams")
+        color: Colours.palette.m3onSurfaceVariant
+        elide: Text.ElideRight
+      }
+    }
+  }
+
+  component ModeBadge: StyledRect {
+    id: modeBadge
+
+    property string icon
+    property string title
+    property bool active
+
+    implicitWidth: modeBadgeLayout.implicitWidth + Tokens.padding.normal * 2
+    implicitHeight: 34
+    radius: Tokens.rounding.full
+    color: active ? Colours.palette.m3primaryContainer : Colours.palette.m3surfaceContainerHigh
+
+    RowLayout {
+      id: modeBadgeLayout
+
+      anchors.centerIn: parent
+      spacing: Tokens.spacing.smaller
+
+      MaterialIcon {
+        text: modeBadge.icon
+        color: modeBadge.active ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
+        font.pointSize: Tokens.font.size.small
+      }
+
+      StyledText {
+        text: modeBadge.title
+        color: modeBadge.active ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
+        font.pointSize: Tokens.font.size.small
+        font.weight: 700
+      }
+    }
+  }
 }
