@@ -11,13 +11,15 @@ import qs.components.controls
 import qs.components.effects
 import qs.services
 
-ColumnLayout {
+GridLayout {
   id: root
 
   required property Session session
 
   implicitHeight: childrenRect.height
-  spacing: Tokens.spacing.small
+  columns: width > 620 ? 2 : 1
+  columnSpacing: Tokens.spacing.small
+  rowSpacing: Tokens.spacing.small
 
   AdapterDock {
     icon: "settings_bluetooth"

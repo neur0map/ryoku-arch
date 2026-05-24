@@ -71,7 +71,7 @@ Item {
       BluetoothDock {
         Layout.fillWidth: true
         Layout.alignment: Qt.AlignTop
-        Layout.columnSpan: page.width > 620 ? 2 : 1
+        Layout.columnSpan: page.width > 620 ? 5 : 1
         icon: "devices"
         title: qsTr("Devices")
         detail: qsTr("%1 available").arg(Bluetooth.devices.values.length)
@@ -93,7 +93,7 @@ Item {
       BluetoothDock {
         Layout.fillWidth: true
         Layout.alignment: Qt.AlignTop
-        Layout.columnSpan: page.width > 620 ? 3 : 1
+        Layout.columnSpan: page.width > 620 ? 5 : 1
         icon: root.session.bt.active ? "bluetooth_connected" : "settings_bluetooth"
         title: root.session.bt.active ? (root.session.bt.active.name ?? qsTr("Device")) : qsTr("Adapter")
         detail: root.session.bt.active ? qsTr("Device controls") : (Bluetooth.defaultAdapter?.name ?? qsTr("No adapter"))
@@ -127,6 +127,8 @@ Item {
 
   component BluetoothDock: StyledRect {
     id: dock
+
+    Layout.maximumHeight: implicitHeight
 
     required property string icon
     required property string title
@@ -191,7 +193,7 @@ Item {
   }
 
   component EmptyDevicePrompt: StyledRect {
-    implicitHeight: promptLayout.implicitHeight + Tokens.padding.normal * 2
+    implicitHeight: promptLayout.implicitHeight + Tokens.padding.small * 2
     radius: Tokens.rounding.small
     color: Colours.palette.m3surfaceContainerHigh
     clip: true
@@ -202,7 +204,7 @@ Item {
       anchors.left: parent.left
       anchors.right: parent.right
       anchors.top: parent.top
-      anchors.margins: Tokens.padding.normal
+      anchors.margins: Tokens.padding.small
       spacing: Tokens.spacing.small
 
       RowLayout {
@@ -238,12 +240,11 @@ Item {
         }
       }
 
-      RowLayout {
+      Flow {
         Layout.fillWidth: true
         spacing: Tokens.spacing.small
 
         PromptAction {
-          Layout.fillWidth: true
           icon: "bluetooth_searching"
           title: Bluetooth.defaultAdapter?.discovering ? qsTr("Scanning") : qsTr("Scan")
           active: Bluetooth.defaultAdapter?.discovering ?? false
@@ -255,7 +256,6 @@ Item {
         }
 
         PromptAction {
-          Layout.fillWidth: true
           icon: "group_search"
           title: qsTr("Visible")
           active: Bluetooth.defaultAdapter?.discoverable ?? false
@@ -267,7 +267,6 @@ Item {
         }
 
         PromptAction {
-          Layout.fillWidth: true
           icon: "missing_controller"
           title: qsTr("Pair")
           active: Bluetooth.defaultAdapter?.pairable ?? false
@@ -290,6 +289,7 @@ Item {
 
     signal clicked
 
+    implicitWidth: Math.max(118, actionContent.implicitWidth + Tokens.padding.small * 2)
     implicitHeight: 36
     radius: Tokens.rounding.small
     color: active ? Colours.palette.m3primaryContainer : Colours.palette.m3surfaceContainerHighest
@@ -302,6 +302,8 @@ Item {
     }
 
     RowLayout {
+      id: actionContent
+
       anchors.centerIn: parent
       spacing: Tokens.spacing.smaller
 
