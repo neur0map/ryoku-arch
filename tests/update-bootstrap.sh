@@ -37,7 +37,8 @@ mkdir -p "$seed/bin" "$seed/lib" "$seed/shell/scripts"
 printf '%s\n' '# runtime env' > "$seed/lib/runtime-env.sh"
 write_executable "$seed/bin/ryoku-update" '#!/bin/bash
 set -euo pipefail
-printf "fresh-update:%s\n" "$*" >> "$RYOKU_TEST_LOG"'
+printf "fresh-update:%s\n" "$*" >> "$RYOKU_TEST_LOG"
+printf "doctor-command:%s\n" "${RYOKU_UPDATE_DOCTOR_COMMAND:-missing}" >> "$RYOKU_TEST_LOG"'
 write_executable "$seed/bin/ryoku-doctor" '#!/bin/bash
 exit 0'
 write_executable "$seed/shell/scripts/ryoku-shell" '#!/bin/bash
@@ -80,6 +81,8 @@ grep -Fq "Doctor command: $install/bin/ryoku-doctor" <<< "$output" || \
   fail "bootstrap should print a path-safe doctor command for the next step"
 grep -Fq 'fresh-update:-y' "$log" || \
   fail "bootstrap should exec the refreshed installed updater with -y"
+grep -Fq "doctor-command:$install/bin/ryoku-doctor" "$log" || \
+  fail "bootstrap should pass the path-safe installed doctor command to the refreshed updater"
 grep -Fq 'skipped /usr/local Ryoku command shim repair' <<< "$output" || \
   fail "bootstrap should report when non-interactive system shim repair is skipped"
 grep -Fq 'System shims: skipped:' <<< "$output" || \

@@ -325,7 +325,7 @@ fi
 
 log "Starting refreshed updater"
 if [[ -x $ryoku_path/bin/ryoku-update ]]; then
-  exec "$ryoku_path/bin/ryoku-update" -y
+  exec env RYOKU_UPDATE_DOCTOR_COMMAND="$ryoku_path/bin/ryoku-doctor" "$ryoku_path/bin/ryoku-update" -y
 fi
 
-exec bash "$ryoku_path/bin/ryoku-update" -y
+exec env RYOKU_UPDATE_DOCTOR_COMMAND="$ryoku_path/bin/ryoku-doctor" bash "$ryoku_path/bin/ryoku-update" -y

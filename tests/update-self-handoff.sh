@@ -24,6 +24,7 @@ run_update() {
   RYOKU_UPDATE_LOGGED=1 \
   RYOKU_UPDATE_INHIBITED=1 \
   RYOKU_UPDATE_POWER_CHECKED=1 \
+  RYOKU_UPDATE_DOCTOR_COMMAND="${RYOKU_UPDATE_DOCTOR_COMMAND:-}" \
   RYOKU_TEST_LOG="$log" \
   PATH="$checkout/bin:$ROOT_DIR/bin:/usr/bin:/bin" \
     "$ROOT_DIR/bin/ryoku-update" "$@" 2>&1
@@ -114,5 +115,20 @@ grep -Fq 'perform' "$log" || \
 if grep -Fq 'git:' "$log"; then
   fail "resume mode should not run the git stage again"
 fi
+
+write_executable "$checkout/bin/ryoku-update-perform" '#!/bin/bash
+exit 47'
+
+doctor_command="$checkout/bin/ryoku-doctor"
+set +e
+output="$(RYOKU_UPDATE_DOCTOR_COMMAND="$doctor_command" run_update --resume-after-git -y)"
+status=$?
+set -e
+
+if (( status == 0 )); then
+  fail "failed post-git update should return a non-zero status"
+fi
+grep -Fq "Run: $doctor_command" <<< "$output" || \
+  fail "failed updates should point users at the path-safe installed doctor command: $output"
 
 echo "PASS: ryoku-update hands off to refreshed updater"
