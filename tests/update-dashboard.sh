@@ -7,6 +7,7 @@ HELPER="$ROOT_DIR/lib/update-dashboard.sh"
 UPDATE="$ROOT_DIR/bin/ryoku-update"
 PERFORM="$ROOT_DIR/bin/ryoku-update-perform"
 INSTALL_SHELL="$ROOT_DIR/install/config/shell.sh"
+DISTRO_ARCH="$ROOT_DIR/install/packaging/distro-arch.sh"
 SHELL_SETUP="$ROOT_DIR/shell/setup"
 
 fail() {
@@ -18,6 +19,7 @@ fail() {
 [[ -f $UPDATE ]] || fail "missing ryoku-update"
 [[ -f $PERFORM ]] || fail "missing ryoku-update-perform"
 [[ -f $INSTALL_SHELL ]] || fail "missing shell config installer"
+[[ -f $DISTRO_ARCH ]] || fail "missing distro Arch package installer"
 [[ -f $SHELL_SETUP ]] || fail "missing shell setup entrypoint"
 
 rg -q 'ryoku_update_brand_logo' "$HELPER" \
@@ -40,12 +42,23 @@ for label in \
   "System packages" \
   "Ryoku base packages" \
   "AUR packages" \
+  "Ryoku distro packages" \
   "Ryoku shell" \
   "Migrations" \
   "Cleanup and restart"; do
   rg -q "$label" "$PERFORM" \
     || fail "core updater should expose the '$label' stage to the dashboard"
 done
+
+rg -q 'packaging/distro-arch\.sh' "$PERFORM" \
+  || fail "core updater should run local distro packages before rebuilding the shell"
+
+distro_stage_line="$(grep -n 'Ryoku distro packages' "$PERFORM" | head -n1 | cut -d: -f1)"
+shell_stage_line="$(grep -n 'Ryoku shell' "$PERFORM" | head -n1 | cut -d: -f1)"
+[[ -n $distro_stage_line ]] || fail "core updater should expose a Ryoku distro packages stage"
+[[ -n $shell_stage_line ]] || fail "core updater should expose a Ryoku shell stage"
+(( distro_stage_line < shell_stage_line )) \
+  || fail "core updater should install cava-ryoku/libcava before rebuilding the shell"
 
 rg -q 'RYOKU_CORE_UPDATE_CHILD=1 IS_UPDATE=true ./setup install -y -q --skip-deps --skip-setups --skip-sysupdate' "$INSTALL_SHELL" \
   || fail "core shell update should run shell setup in quiet child mode"

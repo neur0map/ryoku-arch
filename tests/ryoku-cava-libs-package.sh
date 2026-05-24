@@ -25,6 +25,12 @@ fail() {
 pkgbuild="$ROOT_DIR/distro/arch/cava-ryoku/PKGBUILD"
 [[ -f $pkgbuild ]] || fail "missing distro/arch/cava-ryoku/PKGBUILD"
 
+distro_arch="$ROOT_DIR/install/packaging/distro-arch.sh"
+[[ -f $distro_arch ]] || fail "missing install/packaging/distro-arch.sh"
+
+update_perform="$ROOT_DIR/bin/ryoku-update-perform"
+[[ -f $update_perform ]] || fail "missing bin/ryoku-update-perform"
+
 grep -qE '^pkgname=cava-ryoku$' "$pkgbuild" || \
   fail "cava-ryoku PKGBUILD must declare pkgname=cava-ryoku"
 
@@ -39,6 +45,18 @@ grep -qE '^conflicts=\("?\$_upstream"?\)' "$pkgbuild" || \
 
 grep -qE 'GIT_CEILING_DIRECTORIES=' "$pkgbuild" || \
   fail "cava-ryoku PKGBUILD must isolate cava's \`git describe\` from parent repos via GIT_CEILING_DIRECTORIES (libtool ABI version leak)"
+
+grep -qE 'cava-ryoku' "$distro_arch" || \
+  fail "install/packaging/distro-arch.sh must install cava-ryoku"
+
+grep -qE 'pkg\.tar\.zst' "$distro_arch" || \
+  fail "install/packaging/distro-arch.sh must prefer bundled package archives when present"
+
+grep -qE 'pacman -U --noconfirm --needed' "$distro_arch" || \
+  fail "install/packaging/distro-arch.sh must install bundled cava-ryoku with pacman -U"
+
+grep -qE 'packaging/distro-arch\.sh' "$update_perform" || \
+  fail "bin/ryoku-update-perform must run distro-arch.sh before shell setup so libcava exists for CMake"
 
 plugin_cmake="$ROOT_DIR/shell/plugin/src/Ryoku/CMakeLists.txt"
 [[ -f $plugin_cmake ]] || fail "missing shell/plugin/src/Ryoku/CMakeLists.txt"
@@ -63,4 +81,4 @@ grep -qE 'PkgConfig::Cava' "$services_cmake" || \
 grep -qE 'RYOKU_HAS_CAVA=1' "$services_cmake" || \
   fail "shell/plugin/src/Ryoku/Services/CMakeLists.txt must define RYOKU_HAS_CAVA=1 unconditionally (otherwise CavaProcessor is compiled out)"
 
-echo "PASS: cava-ryoku PKGBUILD present and plugin CMake requires libcava"
+echo "PASS: cava-ryoku package and update path install libcava before shell build"

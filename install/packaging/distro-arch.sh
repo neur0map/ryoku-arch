@@ -19,11 +19,6 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 
 LOCAL_PKGS=(cava-ryoku)
 
-if ! ryoku-cmd-present makepkg; then
-  echo "distro-arch: makepkg missing; skipping local PKGBUILD builds (install base-devel)" >&2
-  exit 0
-fi
-
 for pkg in "${LOCAL_PKGS[@]}"; do
   pkgdir="$RYOKU_PATH/distro/arch/$pkg"
   if [[ ! -f "$pkgdir/PKGBUILD" ]]; then
@@ -35,8 +30,18 @@ for pkg in "${LOCAL_PKGS[@]}"; do
   pkgver="$(awk -F= '/^pkgver=/{gsub(/[\047"]/,"",$2); print $2}' "$pkgdir/PKGBUILD")"
   pkgrel="$(awk -F= '/^pkgrel=/{gsub(/[\047"]/,"",$2); print $2}' "$pkgdir/PKGBUILD")"
   installed="$(pacman -Q "$pkg" 2>/dev/null | awk '{print $2}' || true)"
-  if [[ -n "$installed" && "$installed" == "${pkgver}-${pkgrel}" ]]; then
+  if [[ -n $installed && $installed == "${pkgver}-${pkgrel}" ]]; then
     echo "distro-arch: $pkg ${pkgver}-${pkgrel} already installed"
+    continue
+  fi
+
+  arch="$(uname -m)"
+  prebuilt_pkg="$pkgdir/${pkg}-${pkgver}-${pkgrel}-${arch}.pkg.tar.zst"
+  use_prebuilt=0
+  if [[ -f $prebuilt_pkg ]]; then
+    use_prebuilt=1
+  elif ! ryoku-cmd-present makepkg; then
+    echo "distro-arch: makepkg missing and no bundled $pkg package found for $arch; skipping $pkg" >&2
     continue
   fi
 
@@ -50,12 +55,20 @@ for pkg in "${LOCAL_PKGS[@]}"; do
       gsub(/[()'\''"]/, "", $2); print $2
   }' "$pkgdir/PKGBUILD")"
   for c in $conflicts_line; do
-    [[ -n "$c" ]] || continue
+    [[ -n $c ]] || continue
     if pacman -Qq "$c" >/dev/null 2>&1; then
       echo "distro-arch: removing conflicting installed $c before installing $pkg"
       sudo pacman -Rdd --noconfirm "$c" || true
     fi
   done
+
+  if (( use_prebuilt )); then
+    echo "distro-arch: installing bundled $pkg ${pkgver}-${pkgrel} from $prebuilt_pkg"
+    sudo pacman -U --noconfirm --needed "$prebuilt_pkg" || {
+      echo "distro-arch: failed to install bundled $pkg; continuing" >&2
+    }
+    continue
+  fi
 
   echo "distro-arch: building $pkg ${pkgver}-${pkgrel} from $pkgdir"
   (cd "$pkgdir" && makepkg --syncdeps --install --noconfirm --needed --clean) || {
