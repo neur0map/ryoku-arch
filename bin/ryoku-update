@@ -150,7 +150,10 @@ repair_system_command_bridges() {
   local system_lib="${RYOKU_SYSTEM_LIB_DIR:-/usr/local/lib}"
 
   command -v sudo >/dev/null 2>&1 || return 0
-  sudo -n true >/dev/null 2>&1 || return 0
+  if ! sudo -n true >/dev/null 2>&1; then
+    [[ -t 0 ]] || return 0
+    sudo -v || return 0
+  fi
 
   if [[ -f $RYOKU_PATH/lib/runtime-env.sh ]]; then
     sudo -n install -d "$system_lib" >/dev/null 2>&1 || return 0
