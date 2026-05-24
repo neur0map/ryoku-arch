@@ -142,10 +142,6 @@ stop_inhibitor() {
 }
 
 hold_caffeine() {
-  if desired_inhibitor_active; then
-    return 0
-  fi
-
   start_inhibitor
   wait_for_inhibitor
 }
