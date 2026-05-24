@@ -53,10 +53,10 @@ assert_contains "shell/modules/controlcenter/NavRail.qml" "implicitWidth: 224" \
 assert_not_contains "shell/modules/controlcenter/NavRail.qml" "text: item.entry.description" \
   "settings navigation should not keep bulky description rows"
 
-assert_contains "shell/modules/controlcenter/Panes.qml" "readonly property string relatedLabel" \
-  "settings pane chrome should name related panes without owning backend state"
-assert_contains "shell/modules/controlcenter/Panes.qml" "root.session.active = tab.modelData.label" \
-  "settings pane tabs should preserve existing Session routing"
+assert_not_contains "shell/modules/controlcenter/Panes.qml" "relatedFlickable" \
+  "settings pane chrome should not duplicate the left navigation"
+assert_not_contains "shell/modules/controlcenter/Panes.qml" "root.session.active = tab.modelData.label" \
+  "settings pane chrome should leave navigation ownership to the sidebar"
 assert_contains "shell/modules/controlcenter/Panes.qml" "color: Colours.palette.m3surfaceContainerLow" \
   "settings viewport should avoid the old over-blurred transparent surface"
 assert_contains "shell/modules/controlcenter/Panes.qml" "id: activePaneLoader" \
