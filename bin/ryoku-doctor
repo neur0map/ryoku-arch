@@ -204,6 +204,7 @@ doctor_last_update_summary() {
   local state_file="$RYOKU_STATE_PATH/last-update"
   local updated_at="unknown"
   local checkout="unknown"
+  local remote_tip="unknown"
   local active_doctor="unknown"
   local gum_path="unknown"
   local key value
@@ -214,12 +215,13 @@ doctor_last_update_summary() {
     case "$key" in
       updated_at) updated_at="$value" ;;
       checkout) checkout="$value" ;;
+      remote_tip) remote_tip="$value" ;;
       active_doctor) active_doctor="$value" ;;
       gum) gum_path="$value" ;;
     esac
   done < "$state_file"
 
-  printf '%s %s doctor=%s gum=%s\n' "$updated_at" "$checkout" "$active_doctor" "$gum_path"
+  printf '%s %s remote=%s doctor=%s gum=%s\n' "$updated_at" "$checkout" "$remote_tip" "$active_doctor" "$gum_path"
 }
 
 doctor_context_panel() {

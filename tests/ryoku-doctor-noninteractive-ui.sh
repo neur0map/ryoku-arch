@@ -17,6 +17,13 @@ state="$tmp/state"
 gum_log="$tmp/gum.log"
 
 mkdir -p "$bin_dir" "$state"
+cat >"$state/last-update" <<'STATE'
+updated_at=2026-05-24T00:00:00Z
+checkout=unstable-dev@abc1234
+remote_tip=origin/unstable-dev@abc1234
+active_doctor=/tmp/ryoku/bin/ryoku-doctor
+gum=/tmp/bin/gum
+STATE
 
 cat >"$bin_dir/gum" <<'SH'
 #!/bin/bash
@@ -40,6 +47,8 @@ set -e
 (( status != 0 )) || fail "doctor update should fail when no update log is available"
 grep -Fq 'gum is available but stdout is not interactive' <<<"$output" || \
   fail "non-interactive doctor should explain why gum UI is not rendered: $output"
+grep -Fq 'Last update: 2026-05-24T00:00:00Z unstable-dev@abc1234 remote=origin/unstable-dev@abc1234' <<<"$output" || \
+  fail "doctor context should preserve the last update remote tip proof: $output"
 grep -Fq "Run: $ROOT_DIR/bin/ryoku-doctor" <<<"$output" || \
   fail "doctor update recovery should point at the installed doctor path"
 [[ ! -s $gum_log ]] || \
