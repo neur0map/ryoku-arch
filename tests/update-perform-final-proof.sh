@@ -115,4 +115,25 @@ grep -Fxq "remote_tip=origin/unstable-dev@$remote_tip" "$last_update" || \
 grep -Fxq "active_doctor=$ryoku/bin/ryoku-doctor" "$last_update" || \
   fail "persisted update provenance should record the installed doctor path"
 
+previous_head="$(git -C "$ryoku" rev-parse HEAD)"
+printf '%s\n' "remote-only update" >"$ryoku/remote-only.txt"
+git -C "$ryoku" add remote-only.txt
+git -C "$ryoku" commit -m "remote-only update" >/dev/null
+git -C "$ryoku" push origin unstable-dev >/dev/null 2>&1
+git -C "$ryoku" fetch origin "+refs/heads/unstable-dev:refs/remotes/origin/unstable-dev" >/dev/null 2>&1
+git -C "$ryoku" reset --hard "$previous_head" >/dev/null
+
+output=$(
+  HOME="$home" \
+  RYOKU_PATH="$ryoku" \
+  RYOKU_STATE_PATH="$state" \
+  RYOKU_TEST_UPDATE_EVENTS="$events" \
+  RYOKU_UPDATE_DASHBOARD=0 \
+  PATH="$ryoku/bin:$bin_dir:/usr/bin:/bin" \
+    "$ROOT_DIR/bin/ryoku-update-perform" 2>&1
+) || fail "update performer should still finish with stubbed stages on mismatched proof: $output"
+
+grep -Fq 'Warning: checkout does not match the selected remote tip' <<<"$output" || \
+  fail "final update provenance should warn when checkout and remote tip differ: $output"
+
 echo "PASS: update performer records final Ryoku provenance"
