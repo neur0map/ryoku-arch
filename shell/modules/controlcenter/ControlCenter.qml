@@ -26,8 +26,8 @@ Item {
 
   signal close
 
-  implicitWidth: Math.min(screen.width * 0.62, 1220)
-  implicitHeight: Math.min(screen.height * 0.58, 820)
+  implicitWidth: Math.min(screen.width * 0.46, 980)
+  implicitHeight: Math.min(screen.height * 0.46, 640)
 
   GridLayout {
     anchors.fill: parent

@@ -55,8 +55,8 @@ assert_contains "$ROOT_DIR/config/hypr/hyprland.conf" \
   '^\$hyprlandSettings = ryoku-launch-hyprmod$' \
   "Ryoku Hyprland config should launch HyprMod through Ryoku geometry wrapper"
 assert_contains "$ROOT_DIR/shell/modules/controlcenter/WindowTitle.qml" \
-  'text: qsTr\("Advanced settings"\)' \
-  "official settings should expose HyprMod as advanced settings"
+  'text: qsTr\("Hyprland"\)' \
+  "official settings should expose HyprMod as the Hyprland handoff"
 assert_contains "$ROOT_DIR/shell/modules/controlcenter/WindowTitle.qml" \
   'Quickshell\.execDetached\(\["ryoku-launch-hyprmod"\]\)' \
   "advanced settings button should launch HyprMod through Ryoku geometry wrapper"

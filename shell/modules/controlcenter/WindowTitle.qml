@@ -12,21 +12,21 @@ StyledRect {
     required property ShellScreen screen
     required property Session session
 
-    implicitHeight: 58
+    implicitHeight: 44
     color: Colours.palette.m3surfaceContainer
 
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: Tokens.padding.large
-        anchors.rightMargin: Tokens.padding.normal
-        spacing: Tokens.spacing.normal
+        anchors.leftMargin: Tokens.padding.normal
+        anchors.rightMargin: Tokens.padding.small
+        spacing: Tokens.spacing.small
 
         IconTextButton {
             Layout.alignment: Qt.AlignVCenter
             icon: "tune"
-            text: qsTr("Advanced settings")
+            text: qsTr("Hyprland")
             type: IconTextButton.Tonal
-            horizontalPadding: Tokens.padding.normal
+            horizontalPadding: Tokens.padding.small
             verticalPadding: Tokens.padding.smaller
             enabled: !closeAfterHyprmodLaunch.running
 

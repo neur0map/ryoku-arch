@@ -15,15 +15,15 @@ StyledRect {
   property string value
   property bool active: false
 
-  implicitHeight: 48
+  implicitHeight: 40
   radius: Tokens.rounding.small
   color: active ? Colours.palette.m3primaryContainer : Colours.palette.m3surfaceContainerHigh
   clip: true
 
   RowLayout {
     anchors.fill: parent
-    anchors.leftMargin: Tokens.padding.normal
-    anchors.rightMargin: Tokens.padding.normal
+    anchors.leftMargin: Tokens.padding.small
+    anchors.rightMargin: Tokens.padding.small
     spacing: Tokens.spacing.small
 
     MaterialIcon {

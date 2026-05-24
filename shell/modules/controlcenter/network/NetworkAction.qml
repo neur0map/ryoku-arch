@@ -20,7 +20,7 @@ StyledRect {
   readonly property color actionColor: destructive ? Colours.palette.m3errorContainer : (primary ? Colours.palette.m3secondaryContainer : Colours.palette.m3surfaceContainerHigh)
   readonly property color actionOnColor: destructive ? Colours.palette.m3onErrorContainer : (primary ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurface)
 
-  implicitHeight: 52
+  implicitHeight: 44
   radius: Tokens.rounding.small
   color: actionColor
   clip: true
@@ -35,8 +35,8 @@ StyledRect {
 
   RowLayout {
     anchors.fill: parent
-    anchors.leftMargin: Tokens.padding.normal
-    anchors.rightMargin: Tokens.padding.normal
+    anchors.leftMargin: Tokens.padding.small
+    anchors.rightMargin: Tokens.padding.small
     spacing: Tokens.spacing.small
 
     MaterialIcon {

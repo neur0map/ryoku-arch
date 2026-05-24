@@ -17,7 +17,7 @@ StyledRect {
   property bool checked
   signal toggled(bool checked)
 
-  implicitHeight: 54
+  implicitHeight: 44
   radius: Tokens.rounding.small
   color: checked ? Colours.palette.m3primaryContainer : Colours.palette.m3surfaceContainerHigh
   clip: true
@@ -32,8 +32,8 @@ StyledRect {
 
   RowLayout {
     anchors.fill: parent
-    anchors.leftMargin: Tokens.padding.normal
-    anchors.rightMargin: Tokens.padding.normal
+    anchors.leftMargin: Tokens.padding.small
+    anchors.rightMargin: Tokens.padding.small
     spacing: Tokens.spacing.small
 
     MaterialIcon {

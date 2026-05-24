@@ -15,7 +15,7 @@ StyledRect {
   property string subtitle
   default property alias content: networkPanelBody.data
 
-  implicitHeight: networkPanelLayout.implicitHeight + Tokens.padding.normal * 2
+  implicitHeight: networkPanelLayout.implicitHeight + Tokens.padding.small * 2
   radius: Tokens.rounding.small
   color: Colours.palette.m3surfaceContainer
   clip: true
@@ -26,7 +26,7 @@ StyledRect {
     anchors.left: parent.left
     anchors.right: parent.right
     anchors.top: parent.top
-    anchors.margins: Tokens.padding.normal
+    anchors.margins: Tokens.padding.small
     spacing: Tokens.spacing.small
 
     RowLayout {

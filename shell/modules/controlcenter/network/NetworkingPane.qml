@@ -17,8 +17,8 @@ Item {
 
   required property Session session
 
-  readonly property bool compact: width < 1080
-  readonly property bool medium: width < 1380
+  readonly property bool compact: width < 620
+  readonly property bool medium: width < 900
   readonly property var activeVpn: session && session.vpn ? session.vpn.active : null
   readonly property var activeEthernet: session && session.ethernet ? session.ethernet.active : null
   readonly property var activeWireless: session && session.network ? session.network.active : null
@@ -131,7 +131,7 @@ Item {
     clip: true
     boundsBehavior: Flickable.StopAtBounds
     flickableDirection: Flickable.VerticalFlick
-    contentHeight: contentGrid.implicitHeight + Tokens.padding.large * 2
+    contentHeight: contentGrid.implicitHeight + Tokens.padding.normal * 2
 
     StyledScrollBar.vertical: StyledScrollBar {
       flickable: page
@@ -140,23 +140,23 @@ Item {
     GridLayout {
       id: contentGrid
 
-      x: Tokens.padding.large
-      y: Tokens.padding.large
-      width: page.width - Tokens.padding.large * 2
+      x: Tokens.padding.normal
+      y: Tokens.padding.normal
+      width: page.width - Tokens.padding.normal * 2
       columns: 12
-      rowSpacing: Tokens.spacing.normal
-      columnSpacing: Tokens.spacing.normal
+      rowSpacing: Tokens.spacing.small
+      columnSpacing: Tokens.spacing.small
 
       NetworkCard {
         Layout.fillWidth: true
-        Layout.columnSpan: root.compact ? 12 : 5
+        Layout.columnSpan: root.compact ? 12 : 6
         icon: "router"
         title: qsTr("Network")
         subtitle: Nmcli.active ? qsTr("%1 connected").arg(Nmcli.active.ssid || qsTr("WiFi")) : (Nmcli.activeEthernet ? qsTr("%1 connected").arg(Nmcli.activeEthernet.interface || qsTr("Ethernet")) : qsTr("No active connection"))
 
         GridLayout {
           Layout.fillWidth: true
-          columns: root.compact ? 2 : 4
+          columns: width > 360 ? 2 : 1
           rowSpacing: Tokens.spacing.small
           columnSpacing: Tokens.spacing.small
 
@@ -195,14 +195,14 @@ Item {
 
       NetworkCard {
         Layout.fillWidth: true
-        Layout.columnSpan: root.compact ? 12 : 7
+        Layout.columnSpan: root.compact ? 12 : 6
         icon: "tune"
         title: qsTr("Controls")
         subtitle: qsTr("Fast network actions")
 
         GridLayout {
           Layout.fillWidth: true
-          columns: root.compact ? 1 : 2
+          columns: width > 360 ? 2 : 1
           rowSpacing: Tokens.spacing.small
           columnSpacing: Tokens.spacing.small
 
@@ -248,7 +248,7 @@ Item {
 
       NetworkCard {
         Layout.fillWidth: true
-        Layout.columnSpan: root.compact ? 12 : (root.medium ? 7 : 6)
+        Layout.columnSpan: root.compact ? 12 : 6
         icon: "wifi"
         title: qsTr("Wireless")
         subtitle: qsTr("%1 networks").arg(Nmcli.networks.length)
@@ -262,7 +262,7 @@ Item {
 
       NetworkCard {
         Layout.fillWidth: true
-        Layout.columnSpan: root.compact ? 12 : (root.medium ? 5 : 3)
+        Layout.columnSpan: root.compact ? 12 : 3
         icon: "vpn_key"
         title: qsTr("VPN")
         subtitle: GlobalConfig.utilities.vpn.enabled ? qsTr("Allowed") : qsTr("Disabled")
@@ -276,7 +276,7 @@ Item {
 
       NetworkCard {
         Layout.fillWidth: true
-        Layout.columnSpan: root.compact ? 12 : (root.medium ? 5 : 3)
+        Layout.columnSpan: root.compact ? 12 : 3
         icon: "cable"
         title: qsTr("Ethernet")
         subtitle: qsTr("%1 devices").arg(Nmcli.ethernetDevices.length)
@@ -319,7 +319,7 @@ Item {
     id: overviewDetailsComponent
 
     GridLayout {
-      columns: root.compact ? 1 : 2
+      columns: root.compact ? 2 : 4
       rowSpacing: Tokens.spacing.small
       columnSpacing: Tokens.spacing.small
 
@@ -399,8 +399,8 @@ Item {
     default property alias content: body.data
 
     Layout.fillWidth: true
-    implicitHeight: cardLayout.implicitHeight + Tokens.padding.normal * 2
-    radius: Tokens.rounding.normal
+    implicitHeight: cardLayout.implicitHeight + Tokens.padding.small * 2
+    radius: Tokens.rounding.small
     color: Colours.palette.m3surfaceContainerHigh
     clip: true
 
@@ -410,17 +410,17 @@ Item {
       anchors.left: parent.left
       anchors.right: parent.right
       anchors.top: parent.top
-      anchors.margins: Tokens.padding.normal
-      spacing: Tokens.spacing.normal
+      anchors.margins: Tokens.padding.small
+      spacing: Tokens.spacing.small
 
       RowLayout {
         Layout.fillWidth: true
-        spacing: Tokens.spacing.normal
+        spacing: Tokens.spacing.small
 
         StyledRect {
           Layout.alignment: Qt.AlignVCenter
-          implicitWidth: 38
-          implicitHeight: 38
+          implicitWidth: 30
+          implicitHeight: 30
           radius: Tokens.rounding.small
           color: Colours.palette.m3surfaceContainerHighest
 
@@ -474,20 +474,20 @@ Item {
     property string icon: "monitoring"
     property bool active: false
 
-    implicitHeight: 56
+    implicitHeight: 44
     radius: Tokens.rounding.small
     color: metric.active ? Colours.palette.m3secondaryContainer : Colours.palette.m3surfaceContainer
 
     RowLayout {
       anchors.fill: parent
-      anchors.margins: Tokens.padding.small
+      anchors.margins: Tokens.padding.smaller
       spacing: Tokens.spacing.small
 
       MaterialIcon {
         Layout.alignment: Qt.AlignVCenter
         text: metric.icon
         color: metric.active ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurfaceVariant
-        font.pointSize: Tokens.font.size.normal
+        font.pointSize: Tokens.font.size.small
         fill: metric.active ? 1 : 0
       }
 
@@ -525,7 +525,7 @@ Item {
 
     signal clicked
 
-    implicitHeight: 48
+    implicitHeight: 40
     radius: Tokens.rounding.small
     color: action.active ? Colours.palette.m3primaryContainer : Colours.palette.m3surfaceContainer
 
@@ -537,14 +537,14 @@ Item {
 
     RowLayout {
       anchors.fill: parent
-      anchors.margins: Tokens.padding.small
+      anchors.margins: Tokens.padding.smaller
       spacing: Tokens.spacing.small
 
       MaterialIcon {
         Layout.alignment: Qt.AlignVCenter
         text: action.icon
         color: action.active ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
-        font.pointSize: Tokens.font.size.normal
+        font.pointSize: Tokens.font.size.small
         fill: action.active ? 1 : 0
       }
 
@@ -581,20 +581,20 @@ Item {
 
     signal toggled(bool checked)
 
-    implicitHeight: 48
+    implicitHeight: 40
     radius: Tokens.rounding.small
     color: Colours.palette.m3surfaceContainer
 
     RowLayout {
       anchors.fill: parent
-      anchors.margins: Tokens.padding.small
+      anchors.margins: Tokens.padding.smaller
       spacing: Tokens.spacing.small
 
       MaterialIcon {
         Layout.alignment: Qt.AlignVCenter
         text: toggleRow.icon
         color: Colours.palette.m3onSurfaceVariant
-        font.pointSize: Tokens.font.size.normal
+        font.pointSize: Tokens.font.size.small
       }
 
       StyledText {

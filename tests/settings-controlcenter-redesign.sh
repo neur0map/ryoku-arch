@@ -40,15 +40,15 @@ assert_not_contains "shell/modules/controlcenter/NavRail.qml" "text: item.entry.
   "settings navigation should use compact pane entries without bulky descriptions"
 assert_not_contains "shell/modules/controlcenter/NavRail.qml" "component CategoryItem" \
   "settings navigation should no longer be the old four category buttons"
-assert_contains "shell/modules/controlcenter/ControlCenter.qml" "implicitWidth: Math.min(screen.width * 0.62, 1220)" \
+assert_contains "shell/modules/controlcenter/ControlCenter.qml" "implicitWidth: Math.min(screen.width * 0.46, 980)" \
   "settings window should default to a compact width"
-assert_contains "shell/modules/controlcenter/ControlCenter.qml" "implicitHeight: Math.min(screen.height * 0.58, 820)" \
+assert_contains "shell/modules/controlcenter/ControlCenter.qml" "implicitHeight: Math.min(screen.height * 0.46, 640)" \
   "settings window should default to a compact height"
 assert_not_contains "shell/modules/controlcenter/ControlCenter.qml" "screen.width * 0.84" \
   "settings window should not keep the old oversized width"
 assert_not_contains "shell/modules/controlcenter/ControlCenter.qml" "screen.height * 0.78" \
   "settings window should not keep the old oversized height"
-assert_contains "shell/modules/controlcenter/NavRail.qml" "implicitWidth: 224" \
+assert_contains "shell/modules/controlcenter/NavRail.qml" "implicitWidth: 168" \
   "settings navigation should be a compact rail"
 assert_not_contains "shell/modules/controlcenter/NavRail.qml" "text: item.entry.description" \
   "settings navigation should not keep bulky description rows"

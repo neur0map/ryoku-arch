@@ -50,16 +50,24 @@ assert_not_contains "$pane" "unfold_more" \
 
 assert_contains "$pane" "component HeroPreview: StyledRect" \
   "appearance should start with a compact wallpaper preview"
-assert_contains "$pane" "component PickerBoard: StyledRect" \
-  "appearance should use a picker-style header board, not separated generic cards"
+assert_contains "$pane" "component AppearanceBoard: StyledRect" \
+  "appearance should use a compact board with wallpaper and mode controls"
 assert_contains "$pane" "function setRandomWallpaper(): void" \
   "appearance picker should expose a real random wallpaper action"
-assert_contains "$pane" "component PickerSection: ColumnLayout" \
-  "appearance secondary controls should be unframed picker sections"
+assert_contains "$pane" "component ToneDock: AppearanceDock" \
+  "appearance should group tone choices in a compact dock"
+assert_contains "$pane" "component TuningDock: AppearanceDock" \
+  "appearance should group tuning controls in a compact dock"
+assert_contains "$pane" "component WallpaperDock: AppearanceDock" \
+  "appearance should keep wallpaper picking in a compact dock"
 assert_not_contains "$pane" "component SettingsDeck" \
   "appearance should not keep generic settings deck cards"
 assert_not_contains "$pane" "SettingsDeck {" \
   "appearance should not render generic settings deck cards"
+assert_not_contains "$pane" "PickerBoard {" \
+  "appearance should not render the previous vertical picker board"
+assert_not_contains "$pane" "PickerSection {" \
+  "appearance should not render the previous section stack"
 assert_contains "$pane" "component ModeCard: StyledRect" \
   "appearance should use light and dark mode cards"
 assert_contains "$pane" "component VariantPill: StyledRect" \
@@ -72,8 +80,8 @@ assert_contains "$pane" "component CompactRange: StyledRect" \
   "appearance should use compact range controls instead of long slider sections"
 assert_contains "$pane" "WallpaperGrid {" \
   "appearance should keep wallpaper picking directly in the page"
-assert_before "$pane" "WallpaperGrid {" "title: qsTr(\"Transparency\")" \
-  "appearance should place the wallpaper picker before secondary tuning controls"
+assert_not_contains "$pane" "Layout.preferredHeight: 360" \
+  "appearance should not keep the tall wallpaper block"
 assert_contains "shell/modules/controlcenter/components/WallpaperGrid.qml" "property bool compact: false" \
   "wallpaper grid should expose a compact picker mode"
 assert_contains "shell/modules/controlcenter/components/WallpaperGrid.qml" "readonly property int compactCellWidth" \

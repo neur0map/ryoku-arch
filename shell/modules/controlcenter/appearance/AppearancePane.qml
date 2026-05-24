@@ -260,480 +260,679 @@ Item {
         }
       }
 
-      PickerBoard {
+      GridLayout {
         Layout.fillWidth: true
-      }
+        columns: flickable.width > 720 ? 5 : 1
+        columnSpacing: Tokens.spacing.small
+        rowSpacing: Tokens.spacing.small
 
-      Flow {
-        Layout.fillWidth: true
-        spacing: Tokens.spacing.small
-
-        Repeater {
-          model: M3Variants.list
-
-          VariantPill {
-            required property var modelData
-
-            icon: modelData.icon
-            title: modelData.name
-            active: modelData.variant === Schemes.currentVariant
-
-            onClicked: root.setVariant(modelData.variant)
-          }
-        }
-      }
-
-      Flow {
-        Layout.fillWidth: true
-        spacing: Tokens.spacing.small
-
-        Repeater {
-          model: Schemes.list
-
-          SchemeSwatch {
-            required property var modelData
-
-            title: modelData.flavour ?? ""
-            subtitle: modelData.name ?? ""
-            surface: `#${modelData.colours?.surface ?? "202020"}`
-            primary: `#${modelData.colours?.primary ?? "ffffff"}`
-            active: `${modelData.name} ${modelData.flavour}` === Schemes.currentScheme
-
-            onClicked: root.setScheme(modelData.name, modelData.flavour)
-          }
-        }
-      }
-
-      PickerSection {
-        Layout.fillWidth: true
-        title: qsTr("Wallpapers")
-
-        WallpaperGrid {
+        AppearanceBoard {
           Layout.fillWidth: true
-          Layout.preferredHeight: 360
-          session: root.session
-          compact: true
+          Layout.columnSpan: flickable.width > 720 ? 3 : 1
         }
+
+        ToneDock {
+          Layout.fillWidth: true
+          Layout.columnSpan: flickable.width > 720 ? 2 : 1
+        }
+      }
+
+      TuningDock {
+        Layout.fillWidth: true
+      }
+
+      WallpaperDock {
+        Layout.fillWidth: true
       }
 
       GridLayout {
         Layout.fillWidth: true
-        columns: width > 780 ? 3 : width > 520 ? 2 : 1
+        columns: width > 760 ? 2 : 1
         columnSpacing: Tokens.spacing.small
         rowSpacing: Tokens.spacing.small
 
-        PickerSection {
+        FontDock {
           Layout.fillWidth: true
-          title: qsTr("Transparency")
+        }
+
+        ClockDock {
+          Layout.fillWidth: true
+        }
+      }
+
+      VisualiserDock {
+        Layout.fillWidth: true
+      }
+
+    }
+  }
+
+  component AppearanceDock: StyledRect {
+    id: dock
+
+    property string icon: ""
+    property string title: ""
+    property string subtitle: ""
+    property real bodySpacing: Tokens.spacing.small
+    default property alias content: dockBody.data
+
+    implicitHeight: dockLayout.implicitHeight + Tokens.padding.small * 2
+    radius: Tokens.rounding.small
+    color: Colours.palette.m3surfaceContainer
+    clip: true
+
+    ColumnLayout {
+      id: dockLayout
+
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.top: parent.top
+      anchors.margins: Tokens.padding.small
+      spacing: Tokens.spacing.small
+
+      RowLayout {
+        Layout.fillWidth: true
+        spacing: Tokens.spacing.small
+
+        MaterialIcon {
+          Layout.alignment: Qt.AlignVCenter
+          text: dock.icon
+          color: Colours.palette.m3primary
+          fill: 1
+        }
+
+        ColumnLayout {
+          Layout.fillWidth: true
+          Layout.alignment: Qt.AlignVCenter
+          spacing: 0
+
+          StyledText {
+            Layout.fillWidth: true
+            text: dock.title
+            font.weight: 700
+            elide: Text.ElideRight
+          }
+
+          StyledText {
+            Layout.fillWidth: true
+            visible: dock.subtitle !== ""
+            text: dock.subtitle
+            color: Colours.palette.m3onSurfaceVariant
+            font.pointSize: Tokens.font.size.small
+            elide: Text.ElideRight
+          }
+        }
+      }
+
+      ColumnLayout {
+        id: dockBody
+
+        Layout.fillWidth: true
+        spacing: dock.bodySpacing
+      }
+    }
+  }
+
+  component AppearanceBoard: StyledRect {
+    id: board
+
+    implicitHeight: 158
+    radius: Tokens.rounding.small
+    color: Colours.palette.m3surfaceContainer
+    clip: true
+
+    RowLayout {
+      anchors.fill: parent
+      anchors.margins: Tokens.padding.small
+      spacing: Tokens.spacing.small
+
+      HeroPreview {
+        Layout.fillWidth: false
+        Layout.preferredWidth: Math.min(260, board.width * 0.38)
+        Layout.fillHeight: true
+      }
+
+      ColumnLayout {
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        spacing: Tokens.spacing.small
+
+        RowLayout {
+          Layout.fillWidth: true
+          spacing: Tokens.spacing.small
+
+          PickerAction {
+            icon: "casino"
+            title: qsTr("Random")
+
+            onClicked: root.setRandomWallpaper()
+          }
+
+          PickerAction {
+            icon: "folder_open"
+            title: qsTr("Folder")
+
+            onClicked: Quickshell.execDetached(["app2unit", "--", ...GlobalConfig.general.apps.explorer, Paths.wallsdir])
+          }
+        }
+
+        Flow {
+          Layout.fillWidth: true
+          spacing: Tokens.spacing.small
 
           CompactToggle {
-            Layout.fillWidth: true
-            icon: "opacity"
-            title: qsTr("Transparent")
-            checked: root.transparencyEnabled
+            icon: "image"
+            title: qsTr("Background")
+            checked: root.backgroundEnabled
 
             onToggled: checked => {
-              root.transparencyEnabled = checked;
+              root.backgroundEnabled = checked;
               root.saveConfig();
             }
           }
 
-          CompactRange {
-            Layout.fillWidth: true
-            title: qsTr("Base")
-            value: root.percent(root.transparencyBase)
-            from: 0
-            to: 100
-            stepSize: 1
-            valueText: Math.round(value) + "%"
+          CompactToggle {
+            icon: "wallpaper"
+            title: qsTr("Wallpaper")
+            checked: root.wallpaperEnabled
 
-            onValueModified: newValue => {
-              root.transparencyBase = newValue / 100;
-              root.saveConfig();
-            }
-          }
-
-          CompactRange {
-            Layout.fillWidth: true
-            title: qsTr("Layers")
-            value: root.percent(root.transparencyLayers)
-            from: 0
-            to: 100
-            stepSize: 1
-            valueText: Math.round(value) + "%"
-
-            onValueModified: newValue => {
-              root.transparencyLayers = newValue / 100;
+            onToggled: checked => {
+              root.wallpaperEnabled = checked;
               root.saveConfig();
             }
           }
         }
 
-        PickerSection {
+        RowLayout {
           Layout.fillWidth: true
-          title: qsTr("Scale")
+          Layout.fillHeight: true
+          spacing: Tokens.spacing.small
 
-          CompactRange {
+          ModeCard {
             Layout.fillWidth: true
-            title: qsTr("Text")
-            value: root.fontSizeScale
-            from: 0.7
-            to: 1.5
-            stepSize: 0.01
-            valueText: value.toFixed(2) + "x"
+            Layout.fillHeight: true
+            icon: "light_mode"
+            title: qsTr("Light")
+            active: Colours.currentLight
 
-            onValueModified: newValue => {
-              root.fontSizeScale = newValue;
-              root.saveConfig();
-            }
+            onClicked: Colours.setMode("light")
           }
 
-          CompactRange {
+          ModeCard {
             Layout.fillWidth: true
-            title: qsTr("Padding")
-            value: root.paddingScale
-            from: 0.5
-            to: 2
-            stepSize: 0.1
-            valueText: value.toFixed(1) + "x"
+            Layout.fillHeight: true
+            icon: "dark_mode"
+            title: qsTr("Dark")
+            active: !Colours.currentLight
 
-            onValueModified: newValue => {
-              root.paddingScale = newValue;
-              root.saveConfig();
-            }
-          }
-
-          CompactRange {
-            Layout.fillWidth: true
-            title: qsTr("Spacing")
-            value: root.spacingScale
-            from: 0.1
-            to: 2
-            stepSize: 0.1
-            valueText: value.toFixed(1) + "x"
-
-            onValueModified: newValue => {
-              root.spacingScale = newValue;
-              root.saveConfig();
-            }
-          }
-        }
-
-        PickerSection {
-          Layout.fillWidth: true
-          title: qsTr("Shape")
-
-          CompactRange {
-            Layout.fillWidth: true
-            title: qsTr("Corners")
-            value: root.roundingScale
-            from: 0.1
-            to: 5
-            stepSize: 0.1
-            valueText: value.toFixed(1) + "x"
-
-            onValueModified: newValue => {
-              root.roundingScale = newValue;
-              root.saveConfig();
-            }
-          }
-
-          CompactRange {
-            Layout.fillWidth: true
-            title: qsTr("Border radius")
-            value: root.borderRounding
-            from: 0.1
-            to: 100
-            stepSize: 0.1
-            valueText: value.toFixed(1) + "px"
-
-            onValueModified: newValue => {
-              root.borderRounding = newValue;
-              root.saveConfig();
-            }
-          }
-
-          CompactRange {
-            Layout.fillWidth: true
-            title: qsTr("Border width")
-            value: root.borderThickness
-            from: 0
-            to: 100
-            stepSize: 0.1
-            valueText: value.toFixed(1) + "px"
-
-            onValueModified: newValue => {
-              root.borderThickness = newValue;
-              root.saveConfig();
-            }
+            onClicked: Colours.setMode("dark")
           }
         }
       }
+    }
+  }
 
-      PickerSection {
+  component ToneDock: AppearanceDock {
+    icon: "palette"
+    title: qsTr("Tone")
+    subtitle: Schemes.currentScheme
+
+    Flow {
+      Layout.fillWidth: true
+      spacing: Tokens.spacing.small
+
+      Repeater {
+        model: M3Variants.list
+
+        VariantPill {
+          required property var modelData
+
+          icon: modelData.icon
+          title: modelData.name
+          active: modelData.variant === Schemes.currentVariant
+
+          onClicked: root.setVariant(modelData.variant)
+        }
+      }
+    }
+
+    Flow {
+      Layout.fillWidth: true
+      spacing: Tokens.spacing.small
+
+      Repeater {
+        model: Schemes.list
+
+        SchemeSwatch {
+          required property var modelData
+
+          title: modelData.flavour ?? ""
+          subtitle: modelData.name ?? ""
+          surface: `#${modelData.colours?.surface ?? "202020"}`
+          primary: `#${modelData.colours?.primary ?? "ffffff"}`
+          active: `${modelData.name} ${modelData.flavour}` === Schemes.currentScheme
+
+          onClicked: root.setScheme(modelData.name, modelData.flavour)
+        }
+      }
+    }
+  }
+
+  component TuningDock: AppearanceDock {
+    icon: "tune"
+    title: qsTr("Tuning")
+    subtitle: qsTr("Scale, shape, transparency")
+
+    Flow {
+      Layout.fillWidth: true
+      spacing: Tokens.spacing.small
+
+      CompactToggle {
+        icon: "opacity"
+        title: qsTr("Transparent")
+        checked: root.transparencyEnabled
+
+        onToggled: checked => {
+          root.transparencyEnabled = checked;
+          root.saveConfig();
+        }
+      }
+    }
+
+    GridLayout {
+      Layout.fillWidth: true
+      columns: width > 760 ? 3 : width > 480 ? 2 : 1
+      columnSpacing: Tokens.spacing.small
+      rowSpacing: Tokens.spacing.small
+
+      CompactRange {
         Layout.fillWidth: true
-        title: qsTr("Fonts")
+        title: qsTr("Text")
+        value: root.fontSizeScale
+        from: 0.7
+        to: 1.5
+        stepSize: 0.01
+        valueText: value.toFixed(2) + "x"
 
-        GridLayout {
-          Layout.fillWidth: true
-          columns: width > 700 ? 3 : 1
-          columnSpacing: Tokens.spacing.small
-          rowSpacing: Tokens.spacing.small
-
-          FontStrip {
-            Layout.fillWidth: true
-            title: qsTr("Sans")
-            current: root.fontFamilySans
-            model: root.fontModel(root.fontFamilySans, ["Rubik", "Adwaita Sans", "Noto Sans", "DejaVu Sans"], false)
-
-            onSelected: font => {
-              root.fontFamilySans = font;
-              root.saveConfig();
-            }
-          }
-
-          FontStrip {
-            Layout.fillWidth: true
-            title: qsTr("Mono")
-            current: root.fontFamilyMono
-            model: root.fontModel(root.fontFamilyMono, ["CaskaydiaCove Nerd Font", "CaskaydiaCove NF", "JetBrainsMono Nerd Font Mono", "JetBrainsMono Nerd Font"], false)
-
-            onSelected: font => {
-              root.fontFamilyMono = font;
-              root.saveConfig();
-            }
-          }
-
-          FontStrip {
-            Layout.fillWidth: true
-            title: qsTr("Icons")
-            current: root.fontFamilyMaterial
-            model: root.fontModel(root.fontFamilyMaterial, ["Material Symbols Rounded", "Material Symbols Outlined"], true)
-
-            onSelected: font => {
-              root.fontFamilyMaterial = font;
-              root.saveConfig();
-            }
-          }
+        onValueModified: newValue => {
+          root.fontSizeScale = newValue;
+          root.saveConfig();
         }
       }
 
-      GridLayout {
+      CompactRange {
         Layout.fillWidth: true
-        columns: width > 780 ? 2 : 1
-        columnSpacing: Tokens.spacing.small
-        rowSpacing: Tokens.spacing.small
+        title: qsTr("Padding")
+        value: root.paddingScale
+        from: 0.5
+        to: 2
+        stepSize: 0.1
+        valueText: value.toFixed(1) + "x"
 
-        PickerSection {
-          Layout.fillWidth: true
-          title: qsTr("Clock")
-
-          GridLayout {
-            Layout.fillWidth: true
-            columns: 2
-            columnSpacing: Tokens.spacing.small
-            rowSpacing: Tokens.spacing.small
-
-            CompactToggle {
-              Layout.fillWidth: true
-              icon: "schedule"
-              title: qsTr("Desktop clock")
-              checked: root.desktopClockEnabled
-
-              onToggled: checked => {
-                root.desktopClockEnabled = checked;
-                root.saveConfig();
-              }
-            }
-
-            CompactToggle {
-              Layout.fillWidth: true
-              icon: "invert_colors"
-              title: qsTr("Invert")
-              checked: root.desktopClockInvertColors
-
-              onToggled: checked => {
-                root.desktopClockInvertColors = checked;
-                root.saveConfig();
-              }
-            }
-          }
-
-          PositionPad {
-            Layout.fillWidth: true
-          }
-
-          CompactRange {
-            Layout.fillWidth: true
-            title: qsTr("Clock scale")
-            value: root.desktopClockScale
-            from: 0.4
-            to: 3
-            stepSize: 0.1
-            valueText: value.toFixed(1) + "x"
-
-            onValueModified: newValue => {
-              root.desktopClockScale = newValue;
-              root.saveConfig();
-            }
-          }
-
-          GridLayout {
-            Layout.fillWidth: true
-            columns: 2
-            columnSpacing: Tokens.spacing.small
-            rowSpacing: Tokens.spacing.small
-
-            CompactToggle {
-              Layout.fillWidth: true
-              icon: "filter_drama"
-              title: qsTr("Shadow")
-              checked: root.desktopClockShadowEnabled
-
-              onToggled: checked => {
-                root.desktopClockShadowEnabled = checked;
-                root.saveConfig();
-              }
-            }
-
-            CompactToggle {
-              Layout.fillWidth: true
-              icon: "texture"
-              title: qsTr("Clock panel")
-              checked: root.desktopClockBackgroundEnabled
-
-              onToggled: checked => {
-                root.desktopClockBackgroundEnabled = checked;
-                root.saveConfig();
-              }
-            }
-          }
-
-          CompactRange {
-            Layout.fillWidth: true
-            title: qsTr("Shadow opacity")
-            value: root.percent(root.desktopClockShadowOpacity)
-            from: 0
-            to: 100
-            stepSize: 1
-            valueText: Math.round(value) + "%"
-
-            onValueModified: newValue => {
-              root.desktopClockShadowOpacity = newValue / 100;
-              root.saveConfig();
-            }
-          }
-
-          CompactRange {
-            Layout.fillWidth: true
-            title: qsTr("Panel opacity")
-            value: root.percent(root.desktopClockBackgroundOpacity)
-            from: 0
-            to: 100
-            stepSize: 1
-            valueText: Math.round(value) + "%"
-
-            onValueModified: newValue => {
-              root.desktopClockBackgroundOpacity = newValue / 100;
-              root.saveConfig();
-            }
-          }
-        }
-
-        PickerSection {
-          Layout.fillWidth: true
-          title: qsTr("Visualiser")
-
-          GridLayout {
-            Layout.fillWidth: true
-            columns: 2
-            columnSpacing: Tokens.spacing.small
-            rowSpacing: Tokens.spacing.small
-
-            CompactToggle {
-              Layout.fillWidth: true
-              icon: "graphic_eq"
-              title: qsTr("Visualiser")
-              checked: root.visualiserEnabled
-
-              onToggled: checked => {
-                root.visualiserEnabled = checked;
-                root.saveConfig();
-              }
-            }
-
-            CompactToggle {
-              Layout.fillWidth: true
-              icon: "visibility_off"
-              title: qsTr("Auto hide")
-              checked: root.visualiserAutoHide
-
-              onToggled: checked => {
-                root.visualiserAutoHide = checked;
-                root.saveConfig();
-              }
-            }
-
-            CompactToggle {
-              Layout.fillWidth: true
-              icon: "blur_on"
-              title: qsTr("Clock blur")
-              checked: root.desktopClockBackgroundBlur
-
-              onToggled: checked => {
-                root.desktopClockBackgroundBlur = checked;
-                root.saveConfig();
-              }
-            }
-          }
-
-          CompactRange {
-            Layout.fillWidth: true
-            title: qsTr("Animation")
-            value: root.animDurationsScale
-            from: 0.1
-            to: 5
-            stepSize: 0.1
-            valueText: value.toFixed(1) + "x"
-
-            onValueModified: newValue => {
-              root.animDurationsScale = newValue;
-              root.saveConfig();
-            }
-          }
-
-          CompactRange {
-            Layout.fillWidth: true
-            title: qsTr("Visualiser radius")
-            value: root.visualiserRounding
-            from: 0
-            to: 10
-            stepSize: 1
-            valueText: Math.round(value).toString()
-
-            onValueModified: newValue => {
-              root.visualiserRounding = Math.round(newValue);
-              root.saveConfig();
-            }
-          }
-
-          CompactRange {
-            Layout.fillWidth: true
-            title: qsTr("Visualiser gap")
-            value: root.visualiserSpacing
-            from: 0
-            to: 2
-            stepSize: 0.1
-            valueText: value.toFixed(1)
-
-            onValueModified: newValue => {
-              root.visualiserSpacing = newValue;
-              root.saveConfig();
-            }
-          }
+        onValueModified: newValue => {
+          root.paddingScale = newValue;
+          root.saveConfig();
         }
       }
 
+      CompactRange {
+        Layout.fillWidth: true
+        title: qsTr("Spacing")
+        value: root.spacingScale
+        from: 0.1
+        to: 2
+        stepSize: 0.1
+        valueText: value.toFixed(1) + "x"
+
+        onValueModified: newValue => {
+          root.spacingScale = newValue;
+          root.saveConfig();
+        }
+      }
+
+      CompactRange {
+        Layout.fillWidth: true
+        title: qsTr("Corners")
+        value: root.roundingScale
+        from: 0.1
+        to: 5
+        stepSize: 0.1
+        valueText: value.toFixed(1) + "x"
+
+        onValueModified: newValue => {
+          root.roundingScale = newValue;
+          root.saveConfig();
+        }
+      }
+
+      CompactRange {
+        Layout.fillWidth: true
+        title: qsTr("Border radius")
+        value: root.borderRounding
+        from: 0.1
+        to: 100
+        stepSize: 0.1
+        valueText: value.toFixed(1) + "px"
+
+        onValueModified: newValue => {
+          root.borderRounding = newValue;
+          root.saveConfig();
+        }
+      }
+
+      CompactRange {
+        Layout.fillWidth: true
+        title: qsTr("Border width")
+        value: root.borderThickness
+        from: 0
+        to: 100
+        stepSize: 0.1
+        valueText: value.toFixed(1) + "px"
+
+        onValueModified: newValue => {
+          root.borderThickness = newValue;
+          root.saveConfig();
+        }
+      }
+
+      CompactRange {
+        Layout.fillWidth: true
+        title: qsTr("Base alpha")
+        value: root.percent(root.transparencyBase)
+        from: 0
+        to: 100
+        stepSize: 1
+        valueText: Math.round(value) + "%"
+
+        onValueModified: newValue => {
+          root.transparencyBase = newValue / 100;
+          root.saveConfig();
+        }
+      }
+
+      CompactRange {
+        Layout.fillWidth: true
+        title: qsTr("Layer alpha")
+        value: root.percent(root.transparencyLayers)
+        from: 0
+        to: 100
+        stepSize: 1
+        valueText: Math.round(value) + "%"
+
+        onValueModified: newValue => {
+          root.transparencyLayers = newValue / 100;
+          root.saveConfig();
+        }
+      }
+    }
+  }
+
+  component WallpaperDock: AppearanceDock {
+    icon: "wallpaper"
+    title: qsTr("Wallpapers")
+    subtitle: Paths.shortenHome(Paths.wallsdir)
+
+    WallpaperGrid {
+      Layout.fillWidth: true
+      Layout.preferredHeight: 180
+      session: root.session
+      compact: true
+    }
+  }
+
+  component FontDock: AppearanceDock {
+    icon: "text_fields"
+    title: qsTr("Fonts")
+    subtitle: root.fontFamilySans
+
+    GridLayout {
+      Layout.fillWidth: true
+      columns: width > 640 ? 3 : 1
+      columnSpacing: Tokens.spacing.small
+      rowSpacing: Tokens.spacing.small
+
+      FontStrip {
+        Layout.fillWidth: true
+        title: qsTr("Sans")
+        current: root.fontFamilySans
+        model: root.fontModel(root.fontFamilySans, ["Rubik", "Adwaita Sans", "Noto Sans", "DejaVu Sans"], false)
+
+        onSelected: font => {
+          root.fontFamilySans = font;
+          root.saveConfig();
+        }
+      }
+
+      FontStrip {
+        Layout.fillWidth: true
+        title: qsTr("Mono")
+        current: root.fontFamilyMono
+        model: root.fontModel(root.fontFamilyMono, ["CaskaydiaCove Nerd Font", "CaskaydiaCove NF", "JetBrainsMono Nerd Font Mono", "JetBrainsMono Nerd Font"], false)
+
+        onSelected: font => {
+          root.fontFamilyMono = font;
+          root.saveConfig();
+        }
+      }
+
+      FontStrip {
+        Layout.fillWidth: true
+        title: qsTr("Icons")
+        current: root.fontFamilyMaterial
+        model: root.fontModel(root.fontFamilyMaterial, ["Material Symbols Rounded", "Material Symbols Outlined"], true)
+
+        onSelected: font => {
+          root.fontFamilyMaterial = font;
+          root.saveConfig();
+        }
+      }
+    }
+  }
+
+  component ClockDock: AppearanceDock {
+    icon: "schedule"
+    title: qsTr("Desktop clock")
+    subtitle: root.desktopClockPosition
+
+    Flow {
+      Layout.fillWidth: true
+      spacing: Tokens.spacing.small
+
+      CompactToggle {
+        icon: "schedule"
+        title: qsTr("Clock")
+        checked: root.desktopClockEnabled
+
+        onToggled: checked => {
+          root.desktopClockEnabled = checked;
+          root.saveConfig();
+        }
+      }
+
+      CompactToggle {
+        icon: "invert_colors"
+        title: qsTr("Invert")
+        checked: root.desktopClockInvertColors
+
+        onToggled: checked => {
+          root.desktopClockInvertColors = checked;
+          root.saveConfig();
+        }
+      }
+
+      CompactToggle {
+        icon: "filter_drama"
+        title: qsTr("Shadow")
+        checked: root.desktopClockShadowEnabled
+
+        onToggled: checked => {
+          root.desktopClockShadowEnabled = checked;
+          root.saveConfig();
+        }
+      }
+
+      CompactToggle {
+        icon: "texture"
+        title: qsTr("Panel")
+        checked: root.desktopClockBackgroundEnabled
+
+        onToggled: checked => {
+          root.desktopClockBackgroundEnabled = checked;
+          root.saveConfig();
+        }
+      }
+
+      CompactToggle {
+        icon: "blur_on"
+        title: qsTr("Blur")
+        checked: root.desktopClockBackgroundBlur
+
+        onToggled: checked => {
+          root.desktopClockBackgroundBlur = checked;
+          root.saveConfig();
+        }
+      }
+    }
+
+    PositionPad {
+      Layout.fillWidth: true
+    }
+
+    GridLayout {
+      Layout.fillWidth: true
+      columns: width > 560 ? 3 : 1
+      columnSpacing: Tokens.spacing.small
+      rowSpacing: Tokens.spacing.small
+
+      CompactRange {
+        Layout.fillWidth: true
+        title: qsTr("Scale")
+        value: root.desktopClockScale
+        from: 0.4
+        to: 3
+        stepSize: 0.1
+        valueText: value.toFixed(1) + "x"
+
+        onValueModified: newValue => {
+          root.desktopClockScale = newValue;
+          root.saveConfig();
+        }
+      }
+
+      CompactRange {
+        Layout.fillWidth: true
+        title: qsTr("Shadow")
+        value: root.percent(root.desktopClockShadowOpacity)
+        from: 0
+        to: 100
+        stepSize: 1
+        valueText: Math.round(value) + "%"
+
+        onValueModified: newValue => {
+          root.desktopClockShadowOpacity = newValue / 100;
+          root.saveConfig();
+        }
+      }
+
+      CompactRange {
+        Layout.fillWidth: true
+        title: qsTr("Panel alpha")
+        value: root.percent(root.desktopClockBackgroundOpacity)
+        from: 0
+        to: 100
+        stepSize: 1
+        valueText: Math.round(value) + "%"
+
+        onValueModified: newValue => {
+          root.desktopClockBackgroundOpacity = newValue / 100;
+          root.saveConfig();
+        }
+      }
+    }
+  }
+
+  component VisualiserDock: AppearanceDock {
+    icon: "graphic_eq"
+    title: qsTr("Visualiser")
+    subtitle: root.visualiserEnabled ? qsTr("Enabled") : qsTr("Disabled")
+
+    Flow {
+      Layout.fillWidth: true
+      spacing: Tokens.spacing.small
+
+      CompactToggle {
+        icon: "graphic_eq"
+        title: qsTr("Bars")
+        checked: root.visualiserEnabled
+
+        onToggled: checked => {
+          root.visualiserEnabled = checked;
+          root.saveConfig();
+        }
+      }
+
+      CompactToggle {
+        icon: "visibility_off"
+        title: qsTr("Auto hide")
+        checked: root.visualiserAutoHide
+
+        onToggled: checked => {
+          root.visualiserAutoHide = checked;
+          root.saveConfig();
+        }
+      }
+    }
+
+    GridLayout {
+      Layout.fillWidth: true
+      columns: width > 640 ? 3 : 1
+      columnSpacing: Tokens.spacing.small
+      rowSpacing: Tokens.spacing.small
+
+      CompactRange {
+        Layout.fillWidth: true
+        title: qsTr("Animation")
+        value: root.animDurationsScale
+        from: 0.1
+        to: 5
+        stepSize: 0.1
+        valueText: value.toFixed(1) + "x"
+
+        onValueModified: newValue => {
+          root.animDurationsScale = newValue;
+          root.saveConfig();
+        }
+      }
+
+      CompactRange {
+        Layout.fillWidth: true
+        title: qsTr("Radius")
+        value: root.visualiserRounding
+        from: 0
+        to: 10
+        stepSize: 1
+        valueText: Math.round(value).toString()
+
+        onValueModified: newValue => {
+          root.visualiserRounding = Math.round(newValue);
+          root.saveConfig();
+        }
+      }
+
+      CompactRange {
+        Layout.fillWidth: true
+        title: qsTr("Gap")
+        value: root.visualiserSpacing
+        from: 0
+        to: 2
+        stepSize: 0.1
+        valueText: value.toFixed(1)
+
+        onValueModified: newValue => {
+          root.visualiserSpacing = newValue;
+          root.saveConfig();
+        }
+      }
     }
   }
 
@@ -932,7 +1131,8 @@ Item {
 
     signal clicked
 
-    implicitHeight: 38
+    implicitWidth: 118
+    implicitHeight: 36
     radius: Tokens.rounding.small
     color: Colours.palette.m3surfaceContainerHigh
     clip: true
@@ -945,6 +1145,8 @@ Item {
     }
 
     RowLayout {
+      id: actionContent
+
       anchors.fill: parent
       anchors.margins: Tokens.padding.small
       spacing: Tokens.spacing.small
@@ -966,6 +1168,7 @@ Item {
 
       StyledText {
         Layout.alignment: Qt.AlignVCenter
+        Layout.maximumWidth: Math.max(42, action.width * 0.38)
         text: action.detail
         color: Colours.palette.m3onSurfaceVariant
         font.pointSize: Tokens.font.size.small
@@ -1072,8 +1275,8 @@ Item {
 
     signal clicked
 
-    implicitWidth: 148
-    implicitHeight: 42
+    implicitWidth: 124
+    implicitHeight: 38
     radius: Tokens.rounding.small
     color: active ? Colours.palette.m3primaryContainer : Colours.palette.m3surfaceContainerHigh
     border.width: active ? 1 : 0
@@ -1143,7 +1346,8 @@ Item {
 
     signal toggled(bool checked)
 
-    implicitHeight: 38
+    implicitWidth: Math.max(118, toggleContent.implicitWidth + Tokens.padding.small * 2)
+    implicitHeight: 36
     radius: Tokens.rounding.small
     color: checked ? Colours.palette.m3primaryContainer : Colours.palette.m3surfaceContainerHigh
     clip: true
@@ -1156,6 +1360,8 @@ Item {
     }
 
     RowLayout {
+      id: toggleContent
+
       anchors.fill: parent
       anchors.margins: Tokens.padding.small
       spacing: Tokens.spacing.small
@@ -1205,7 +1411,7 @@ Item {
       return Math.round(raw / range.stepSize) * range.stepSize;
     }
 
-    implicitHeight: 62
+    implicitHeight: 54
     radius: Tokens.rounding.small
     color: Colours.palette.m3surfaceContainerHigh
     clip: true
@@ -1267,7 +1473,7 @@ Item {
 
     signal selected(string font)
 
-    implicitHeight: 120
+    implicitHeight: 104
     radius: Tokens.rounding.small
     color: Colours.palette.m3surfaceContainerHigh
     clip: true
@@ -1357,7 +1563,7 @@ Item {
   component PositionPad: StyledRect {
     id: pad
 
-    implicitHeight: 106
+    implicitHeight: 92
     radius: Tokens.rounding.small
     color: Colours.palette.m3surfaceContainerHigh
     clip: true

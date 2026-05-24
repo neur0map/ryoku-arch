@@ -83,56 +83,8 @@ ClippingRectangle {
     anchors.margins: Tokens.padding.normal
     spacing: Tokens.spacing.small
 
-    RowLayout {
-      id: header
-
+    PaneToolbar {
       Layout.fillWidth: true
-      Layout.preferredHeight: Math.max(titleColumn.implicitHeight, activeIcon.implicitHeight)
-      spacing: Tokens.spacing.small
-
-      StyledRect {
-        id: activeIcon
-
-        Layout.alignment: Qt.AlignVCenter
-        implicitWidth: 34
-        implicitHeight: 34
-        radius: Tokens.rounding.small
-        color: Colours.palette.m3secondaryContainer
-
-        MaterialIcon {
-          anchors.centerIn: parent
-          text: root.activeEntry ? root.activeEntry.icon : "settings"
-          color: Colours.palette.m3onSecondaryContainer
-          font.pointSize: Tokens.font.size.normal
-          fill: 1
-        }
-      }
-
-      ColumnLayout {
-        id: titleColumn
-
-        Layout.fillWidth: true
-        Layout.alignment: Qt.AlignVCenter
-        spacing: 1
-
-        StyledText {
-          Layout.fillWidth: true
-          text: root.activeEntry ? root.activeEntry.label : root.session.active
-          font.capitalization: Font.Capitalize
-          font.pointSize: Tokens.font.size.normal
-          font.weight: 700
-          elide: Text.ElideRight
-        }
-
-        StyledText {
-          Layout.fillWidth: true
-          text: root.activeEntry ? root.activeEntry.description : ""
-          color: Colours.palette.m3onSurfaceVariant
-          font.pointSize: Tokens.font.size.small
-          elide: Text.ElideRight
-        }
-      }
-
     }
 
     ClippingRectangle {
@@ -158,6 +110,67 @@ ClippingRectangle {
         Behavior on opacity {
           Anim {}
         }
+      }
+    }
+  }
+
+  component PaneToolbar: StyledRect {
+    id: toolbar
+
+    implicitHeight: 36
+    radius: Tokens.rounding.small
+    color: Colours.palette.m3surfaceContainerLow
+
+    RowLayout {
+      anchors.fill: parent
+      anchors.leftMargin: Tokens.padding.small
+      anchors.rightMargin: Tokens.padding.small
+      spacing: Tokens.spacing.small
+
+      StyledRect {
+        Layout.alignment: Qt.AlignVCenter
+        implicitWidth: 26
+        implicitHeight: 26
+        radius: Tokens.rounding.small
+        color: Colours.palette.m3secondaryContainer
+
+        MaterialIcon {
+          anchors.centerIn: parent
+          text: root.activeEntry ? root.activeEntry.icon : "settings"
+          color: Colours.palette.m3onSecondaryContainer
+          font.pointSize: Tokens.font.size.small
+          fill: 1
+        }
+      }
+
+      StyledText {
+        Layout.alignment: Qt.AlignVCenter
+        text: root.activeEntry ? root.activeEntry.label : root.session.active
+        font.capitalization: Font.Capitalize
+        font.weight: 700
+        elide: Text.ElideRight
+      }
+
+      StyledRect {
+        Layout.alignment: Qt.AlignVCenter
+        implicitWidth: groupLabel.implicitWidth + Tokens.padding.small * 2
+        implicitHeight: 24
+        radius: Tokens.rounding.full
+        color: Colours.palette.m3surfaceContainerHigh
+
+        StyledText {
+          id: groupLabel
+
+          anchors.centerIn: parent
+          text: root.activeEntry ? PaneRegistry.groupLabel(root.activeEntry.group) : ""
+          color: Colours.palette.m3onSurfaceVariant
+          font.pointSize: Tokens.font.size.small
+          font.weight: 650
+        }
+      }
+
+      Item {
+        Layout.fillWidth: true
       }
     }
   }

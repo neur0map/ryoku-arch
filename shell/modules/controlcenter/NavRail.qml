@@ -58,15 +58,15 @@ Item {
     root.session.active = label;
   }
 
-  implicitWidth: 224
+  implicitWidth: 168
   implicitHeight: layout.implicitHeight + Tokens.padding.normal * 2
 
   ColumnLayout {
     id: layout
 
     anchors.fill: parent
-    anchors.margins: Tokens.padding.normal
-    spacing: Tokens.spacing.small
+    anchors.margins: Tokens.padding.small
+    spacing: Tokens.spacing.smaller
 
     RowLayout {
       Layout.fillWidth: true
@@ -75,8 +75,8 @@ Item {
 
       StyledRect {
         Layout.alignment: Qt.AlignVCenter
-        implicitWidth: 32
-        implicitHeight: 32
+        implicitWidth: 28
+        implicitHeight: 28
         radius: Tokens.rounding.small
         color: Colours.palette.m3primary
 
@@ -97,7 +97,7 @@ Item {
         StyledText {
           Layout.fillWidth: true
           text: qsTr("Settings")
-          font.pointSize: Tokens.font.size.large
+          font.pointSize: Tokens.font.size.normal
           font.weight: 650
           elide: Text.ElideRight
         }
@@ -106,7 +106,7 @@ Item {
 
     StyledRect {
       Layout.fillWidth: true
-      implicitHeight: 36
+      implicitHeight: 32
       radius: Tokens.rounding.small
       color: Colours.palette.m3surfaceContainerHigh
 
@@ -186,7 +186,7 @@ Item {
 
             StyledText {
               Layout.fillWidth: true
-              Layout.topMargin: paneBlock.index === 0 ? 0 : Tokens.spacing.small
+              Layout.topMargin: paneBlock.index === 0 ? 0 : Tokens.spacing.smaller
               Layout.leftMargin: Tokens.padding.smaller
               visible: root.isFirstInGroup(paneBlock.index)
               text: PaneRegistry.groupLabel(paneBlock.modelData.group)
@@ -225,7 +225,7 @@ Item {
 
       sourceComponent: StyledRect {
         Layout.fillWidth: true
-        implicitHeight: 42
+        implicitHeight: 34
         color: Colours.palette.m3secondaryContainer
         radius: Tokens.rounding.small
 
@@ -272,7 +272,7 @@ Item {
     required property var entry
     required property bool active
 
-    implicitHeight: Math.max(44, row.implicitHeight + Tokens.padding.small * 2)
+    implicitHeight: 36
     radius: Tokens.rounding.small
     color: item.active ? Colours.palette.m3primaryContainer : "transparent"
 
@@ -294,8 +294,8 @@ Item {
 
       StyledRect {
         Layout.alignment: Qt.AlignVCenter
-        implicitWidth: 28
-        implicitHeight: 28
+        implicitWidth: 24
+        implicitHeight: 24
         radius: Tokens.rounding.small
         color: item.active ? Colours.palette.m3primary : Colours.palette.m3surfaceContainerHighest
 
