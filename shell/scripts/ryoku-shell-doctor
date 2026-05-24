@@ -86,15 +86,15 @@ doctor_title() {
   if doctor_pretty; then
     gum style \
       --border rounded \
-	      --border-foreground 6 \
-	      --foreground 15 \
-	      --padding "1 3" \
-	      "Ryoku Doctor flight deck" \
-	      "24-point shell, updater, and recovery health sweep"
-	  else
-	    echo "Ryoku Doctor flight deck"
-	  fi
-	}
+      --border-foreground 6 \
+      --foreground 15 \
+      --padding "1 3" \
+      "Ryoku Doctor flight deck" \
+      "24-point shell, updater, and recovery health sweep"
+  else
+    echo "Ryoku Doctor flight deck"
+  fi
+}
 
 doctor_status_line() {
   local kind="$1"
@@ -115,7 +115,56 @@ doctor_status_line() {
   fi
 }
 
+load_hyprland_env_from_quickshell() {
+  local output
+  local line
+  local current_pid=""
+  local current_config=""
+  local pid=""
+  local key
+  local value
+
+  [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} && -n ${WAYLAND_DISPLAY:-} ]] && return 0
+
+  if ! output="$(env -u QS_CONFIG_NAME -u QS_CONFIG_PATH -u QS_MANIFEST "$qs_bin" list --all 2>/dev/null)"; then
+    return 1
+  fi
+
+  while IFS= read -r line; do
+    case "$line" in
+      Instance\ *)
+        current_pid=""
+        current_config=""
+        ;;
+      *"Process ID:"*)
+        current_pid="${line#*Process ID: }"
+        ;;
+      *"Config path:"*)
+        current_config="${line#*Config path: }"
+        if [[ $current_config == "$runtime_dir/shell.qml" && -n $current_pid ]]; then
+          pid="$current_pid"
+          break
+        fi
+        ;;
+    esac
+  done <<<"$output"
+
+  [[ -n $pid && -r /proc/$pid/environ ]] || return 1
+
+  while IFS='=' read -r key value; do
+    case "$key" in
+      HYPRLAND_INSTANCE_SIGNATURE|WAYLAND_DISPLAY|XDG_RUNTIME_DIR|XDG_CURRENT_DESKTOP)
+        export "$key=$value"
+        ;;
+    esac
+  done < <(tr '\0' '\n' <"/proc/$pid/environ")
+
+  [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} || -n ${WAYLAND_DISPLAY:-} ]]
+}
+
 detect_compositor() {
+  load_hyprland_env_from_quickshell || true
+
   if [[ ${XDG_CURRENT_DESKTOP:-} == *"Hyprland"* || -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]]; then
     printf '%s\n' "Hyprland"
     return 0

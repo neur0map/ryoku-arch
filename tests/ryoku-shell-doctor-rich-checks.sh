@@ -38,5 +38,9 @@ grep -Fq '[${doctor_step}/${doctor_total}]' "$SHELL_DOCTOR" || \
   fail "shell doctor should render numbered TUI progress for the check deck"
 grep -Fq 'Doctor flight deck' "$SHELL_DOCTOR" || \
   fail "shell doctor should have a richer TUI title"
+grep -Fq 'load_hyprland_env_from_quickshell' "$SHELL_DOCTOR" || \
+  fail "shell doctor should recover Hyprland env from the running shell before hyprctl checks"
+grep -Fq '/proc/$pid/environ' "$SHELL_DOCTOR" || \
+  fail "shell doctor should inspect the running shell process environment for SSH-safe compositor checks"
 
 echo "PASS: ryoku shell doctor exposes rich multi-check TUI"
