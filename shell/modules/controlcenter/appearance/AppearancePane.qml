@@ -260,21 +260,8 @@ Item {
         }
       }
 
-      GridLayout {
+      AppearanceStudio {
         Layout.fillWidth: true
-        columns: flickable.width > 720 ? 5 : 1
-        columnSpacing: Tokens.spacing.small
-        rowSpacing: Tokens.spacing.small
-
-        AppearanceBoard {
-          Layout.fillWidth: true
-          Layout.columnSpan: flickable.width > 720 ? 3 : 1
-        }
-
-        ToneDock {
-          Layout.fillWidth: true
-          Layout.columnSpan: flickable.width > 720 ? 2 : 1
-        }
       }
 
       TuningDock {
@@ -369,6 +356,183 @@ Item {
 
         Layout.fillWidth: true
         spacing: dock.bodySpacing
+      }
+    }
+  }
+
+  component AppearanceStudio: StyledRect {
+    id: studio
+
+    implicitHeight: Math.max(150, studioRow.implicitHeight) + Tokens.padding.small * 2
+    radius: Tokens.rounding.small
+    color: Colours.palette.m3surfaceContainer
+    clip: true
+
+    RowLayout {
+      id: studioRow
+
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.top: parent.top
+      anchors.margins: Tokens.padding.small
+      spacing: Tokens.spacing.small
+
+      HeroPreview {
+        Layout.fillWidth: false
+        Layout.preferredWidth: Math.min(180, Math.max(132, studio.width * 0.18))
+        Layout.preferredHeight: 150
+      }
+
+      ColumnLayout {
+        Layout.fillWidth: true
+        Layout.alignment: Qt.AlignTop
+        spacing: Tokens.spacing.small
+
+        Flow {
+          Layout.fillWidth: true
+          spacing: Tokens.spacing.small
+
+          PickerAction {
+            icon: "casino"
+            title: qsTr("Random")
+
+            onClicked: root.setRandomWallpaper()
+          }
+
+          PickerAction {
+            icon: "folder_open"
+            title: qsTr("Folder")
+
+            onClicked: Quickshell.execDetached(["app2unit", "--", ...GlobalConfig.general.apps.explorer, Paths.wallsdir])
+          }
+
+          CompactToggle {
+            icon: "image"
+            title: qsTr("Background")
+            checked: root.backgroundEnabled
+
+            onToggled: checked => {
+              root.backgroundEnabled = checked;
+              root.saveConfig();
+            }
+          }
+
+          CompactToggle {
+            icon: "wallpaper"
+            title: qsTr("Wallpaper")
+            checked: root.wallpaperEnabled
+
+            onToggled: checked => {
+              root.wallpaperEnabled = checked;
+              root.saveConfig();
+            }
+          }
+        }
+
+        RowLayout {
+          Layout.fillWidth: true
+          spacing: Tokens.spacing.small
+
+          ModeCard {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 58
+            icon: "light_mode"
+            title: qsTr("Light")
+            active: Colours.currentLight
+
+            onClicked: Colours.setMode("light")
+          }
+
+          ModeCard {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 58
+            icon: "dark_mode"
+            title: qsTr("Dark")
+            active: !Colours.currentLight
+
+            onClicked: Colours.setMode("dark")
+          }
+        }
+      }
+
+      ColumnLayout {
+        Layout.fillWidth: false
+        Layout.alignment: Qt.AlignTop
+        Layout.preferredWidth: Math.min(400, Math.max(280, studio.width * 0.42))
+        spacing: Tokens.spacing.small
+
+        RowLayout {
+          Layout.fillWidth: true
+          spacing: Tokens.spacing.small
+
+          MaterialIcon {
+            Layout.alignment: Qt.AlignVCenter
+            text: "palette"
+            color: Colours.palette.m3primary
+            fill: 1
+          }
+
+          ColumnLayout {
+            Layout.fillWidth: true
+            Layout.alignment: Qt.AlignVCenter
+            spacing: 0
+
+            StyledText {
+              Layout.fillWidth: true
+              text: qsTr("Tone")
+              font.weight: 700
+              elide: Text.ElideRight
+            }
+
+            StyledText {
+              Layout.fillWidth: true
+              text: Schemes.currentScheme
+              color: Colours.palette.m3onSurfaceVariant
+              font.pointSize: Tokens.font.size.small
+              elide: Text.ElideRight
+            }
+          }
+        }
+
+        Flow {
+          Layout.fillWidth: true
+          spacing: Tokens.spacing.small
+
+          Repeater {
+            model: M3Variants.list
+
+            VariantPill {
+              required property var modelData
+
+              icon: modelData.icon
+              title: modelData.name
+              active: modelData.variant === Schemes.currentVariant
+
+              onClicked: root.setVariant(modelData.variant)
+            }
+          }
+        }
+
+        Flow {
+          Layout.fillWidth: true
+          spacing: Tokens.spacing.small
+
+          Repeater {
+            model: Schemes.list
+
+            SchemeSwatch {
+              required property var modelData
+
+              title: modelData.flavour ?? ""
+              subtitle: modelData.name ?? ""
+              surface: `#${modelData.colours?.surface ?? "202020"}`
+              primary: `#${modelData.colours?.primary ?? "ffffff"}`
+              active: `${modelData.name} ${modelData.flavour}` === Schemes.currentScheme
+
+              onClicked: root.setScheme(modelData.name, modelData.flavour)
+            }
+          }
+        }
       }
     }
   }
@@ -936,108 +1100,6 @@ Item {
     }
   }
 
-  component PickerBoard: StyledRect {
-    id: board
-
-    implicitHeight: 226
-    radius: Tokens.rounding.small
-    color: Colours.palette.m3surfaceContainer
-    clip: true
-
-    RowLayout {
-      anchors.fill: parent
-      anchors.margins: Tokens.padding.normal
-      spacing: Tokens.spacing.small
-
-      HeroPreview {
-        Layout.fillWidth: false
-        Layout.preferredWidth: Math.min(360, board.width * 0.42)
-        Layout.fillHeight: true
-      }
-
-      ColumnLayout {
-        Layout.fillWidth: true
-        Layout.fillHeight: true
-        spacing: Tokens.spacing.small
-
-        GridLayout {
-          Layout.fillWidth: true
-          columns: 2
-          columnSpacing: Tokens.spacing.small
-          rowSpacing: Tokens.spacing.small
-
-          PickerAction {
-            Layout.fillWidth: true
-            icon: "casino"
-            title: qsTr("Random")
-            detail: qsTr("Wallpaper")
-
-            onClicked: root.setRandomWallpaper()
-          }
-
-          PickerAction {
-            Layout.fillWidth: true
-            icon: "folder_open"
-            title: qsTr("Folder")
-            detail: Paths.shortenHome(Paths.wallsdir)
-
-            onClicked: Quickshell.execDetached(["app2unit", "--", ...GlobalConfig.general.apps.explorer, Paths.wallsdir])
-          }
-
-          CompactToggle {
-            Layout.fillWidth: true
-            icon: "image"
-            title: qsTr("Background")
-            checked: root.backgroundEnabled
-
-            onToggled: checked => {
-              root.backgroundEnabled = checked;
-              root.saveConfig();
-            }
-          }
-
-          CompactToggle {
-            Layout.fillWidth: true
-            icon: "wallpaper"
-            title: qsTr("Wallpaper")
-            checked: root.wallpaperEnabled
-
-            onToggled: checked => {
-              root.wallpaperEnabled = checked;
-              root.saveConfig();
-            }
-          }
-        }
-
-        RowLayout {
-          Layout.fillWidth: true
-          Layout.fillHeight: true
-          spacing: Tokens.spacing.small
-
-          ModeCard {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            icon: "light_mode"
-            title: qsTr("Light")
-            active: Colours.currentLight
-
-            onClicked: Colours.setMode("light")
-          }
-
-          ModeCard {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            icon: "dark_mode"
-            title: qsTr("Dark")
-            active: !Colours.currentLight
-
-            onClicked: Colours.setMode("dark")
-          }
-        }
-      }
-    }
-  }
-
   component HeroPreview: StyledRect {
     id: preview
 
@@ -1095,30 +1157,6 @@ Item {
           elide: Text.ElideMiddle
         }
       }
-    }
-  }
-
-  component PickerSection: ColumnLayout {
-    id: section
-
-    property string title: ""
-    default property alias content: sectionContent.data
-
-    spacing: Tokens.spacing.small
-
-    StyledText {
-      Layout.fillWidth: true
-      text: section.title
-      font.pointSize: Tokens.font.size.normal
-      font.weight: 700
-      elide: Text.ElideRight
-    }
-
-    ColumnLayout {
-      id: sectionContent
-
-      Layout.fillWidth: true
-      spacing: Tokens.spacing.small
     }
   }
 

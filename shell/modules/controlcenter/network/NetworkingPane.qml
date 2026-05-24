@@ -143,13 +143,14 @@ Item {
       x: Tokens.padding.normal
       y: Tokens.padding.normal
       width: page.width - Tokens.padding.normal * 2
-      columns: 12
+      columns: root.compact ? 1 : 5
       rowSpacing: Tokens.spacing.small
       columnSpacing: Tokens.spacing.small
 
       NetworkCard {
         Layout.fillWidth: true
-        Layout.columnSpan: root.compact ? 12 : 6
+        Layout.alignment: Qt.AlignTop
+        Layout.columnSpan: root.compact ? 1 : 2
         icon: "router"
         title: qsTr("Network")
         subtitle: Nmcli.active ? qsTr("%1 connected").arg(Nmcli.active.ssid || qsTr("WiFi")) : (Nmcli.activeEthernet ? qsTr("%1 connected").arg(Nmcli.activeEthernet.interface || qsTr("Ethernet")) : qsTr("No active connection"))
@@ -195,7 +196,8 @@ Item {
 
       NetworkCard {
         Layout.fillWidth: true
-        Layout.columnSpan: root.compact ? 12 : 6
+        Layout.alignment: Qt.AlignTop
+        Layout.columnSpan: root.compact ? 1 : 3
         icon: "tune"
         title: qsTr("Controls")
         subtitle: qsTr("Fast network actions")
@@ -248,7 +250,8 @@ Item {
 
       NetworkCard {
         Layout.fillWidth: true
-        Layout.columnSpan: root.compact ? 12 : 6
+        Layout.alignment: Qt.AlignTop
+        Layout.columnSpan: root.compact ? 1 : 3
         icon: "wifi"
         title: qsTr("Wireless")
         subtitle: qsTr("%1 networks").arg(Nmcli.networks.length)
@@ -260,57 +263,18 @@ Item {
         }
       }
 
-      NetworkCard {
+      NetworkServiceDock {
         Layout.fillWidth: true
-        Layout.columnSpan: root.compact ? 12 : 3
-        icon: "vpn_key"
-        title: qsTr("VPN")
-        subtitle: GlobalConfig.utilities.vpn.enabled ? qsTr("Allowed") : qsTr("Disabled")
-
-        VpnList {
-          Layout.fillWidth: true
-          session: root.session
-          showHeader: false
-        }
+        Layout.alignment: Qt.AlignTop
+        Layout.columnSpan: root.compact ? 1 : 2
       }
 
-      NetworkCard {
-        Layout.fillWidth: true
-        Layout.columnSpan: root.compact ? 12 : 3
-        icon: "cable"
-        title: qsTr("Ethernet")
-        subtitle: qsTr("%1 devices").arg(Nmcli.ethernetDevices.length)
-
-        EthernetList {
-          Layout.fillWidth: true
-          session: root.session
-          showHeader: false
-        }
-      }
-
-      NetworkCard {
+      NetworkDetailsDock {
         id: detailsHost
 
-        property Component targetComponent: root.detailsComponent()
-        property Component nextComponent: root.detailsComponent()
-
         Layout.fillWidth: true
-        Layout.columnSpan: 12
-        icon: root.selectedIcon()
-        title: root.selectedTitle()
-        subtitle: qsTr("Details and current settings")
-
-        Loader {
-          id: detailsLoader
-
-          Layout.fillWidth: true
-          asynchronous: true
-          opacity: 1
-          scale: 1
-          transformOrigin: Item.Center
-          sourceComponent: detailsHost.targetComponent
-        }
-
+        Layout.alignment: Qt.AlignTop
+        Layout.columnSpan: root.compact ? 1 : 5
       }
     }
   }
@@ -463,6 +427,94 @@ Item {
         Layout.fillWidth: true
         spacing: Tokens.spacing.small
       }
+    }
+  }
+
+  component NetworkServiceDock: NetworkCard {
+    icon: "hub"
+    title: qsTr("Services")
+    subtitle: qsTr("VPN and wired adapters")
+
+    GridLayout {
+      Layout.fillWidth: true
+      columns: width > 360 ? 2 : 1
+      rowSpacing: Tokens.spacing.small
+      columnSpacing: Tokens.spacing.small
+
+      MetricTile {
+        Layout.fillWidth: true
+        label: qsTr("VPN")
+        value: VPN.connected ? qsTr("On") : (GlobalConfig.utilities.vpn.enabled ? qsTr("Ready") : qsTr("Off"))
+        icon: VPN.connected ? "vpn_key" : "vpn_key_off"
+        active: VPN.connected || GlobalConfig.utilities.vpn.enabled
+      }
+
+      MetricTile {
+        Layout.fillWidth: true
+        label: qsTr("Ethernet")
+        value: qsTr("%1").arg(Nmcli.ethernetDevices.length)
+        icon: "cable"
+        active: Nmcli.activeEthernet !== null
+      }
+
+      QuickToggleRow {
+        Layout.fillWidth: true
+        icon: "vpn_key"
+        title: qsTr("VPN")
+        checked: GlobalConfig.utilities.vpn.enabled
+
+        onToggled: function (checked) {
+          GlobalConfig.utilities.vpn.enabled = checked;
+        }
+      }
+
+      QuickAction {
+        Layout.fillWidth: true
+        icon: "cable"
+        title: qsTr("Ethernet")
+        value: Nmcli.activeEthernet ? qsTr("Connected") : qsTr("Devices")
+        active: Nmcli.activeEthernet !== null
+
+        onClicked: {
+          if (root.session.ethernet)
+            root.session.ethernet.active = Nmcli.ethernetDevices.length > 0 ? Nmcli.ethernetDevices[0] : null;
+        }
+      }
+    }
+
+    VpnList {
+      Layout.fillWidth: true
+      session: root.session
+      showHeader: false
+    }
+
+    EthernetList {
+      Layout.fillWidth: true
+      session: root.session
+      showHeader: false
+    }
+  }
+
+  component NetworkDetailsDock: NetworkCard {
+    id: detailsCard
+
+    property Component targetComponent: root.detailsComponent()
+    property Component nextComponent: root.detailsComponent()
+
+    icon: root.selectedIcon()
+    title: root.selectedTitle()
+    subtitle: qsTr("Current connection details")
+
+    Loader {
+      id: detailsLoader
+
+      Layout.fillWidth: true
+      Layout.preferredHeight: item ? item.implicitHeight : 0
+      asynchronous: true
+      opacity: 1
+      scale: 1
+      transformOrigin: Item.Center
+      sourceComponent: detailsCard.targetComponent
     }
   }
 

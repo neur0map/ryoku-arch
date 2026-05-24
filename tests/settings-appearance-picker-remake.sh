@@ -52,6 +52,8 @@ assert_contains "$pane" "component HeroPreview: StyledRect" \
   "appearance should start with a compact wallpaper preview"
 assert_contains "$pane" "component AppearanceBoard: StyledRect" \
   "appearance should use a compact board with wallpaper and mode controls"
+assert_contains "$pane" "component AppearanceStudio: StyledRect" \
+  "appearance should use one top-level studio surface instead of separated floating islands"
 assert_contains "$pane" "function setRandomWallpaper(): void" \
   "appearance picker should expose a real random wallpaper action"
 assert_contains "$pane" "component ToneDock: AppearanceDock" \
@@ -68,6 +70,12 @@ assert_not_contains "$pane" "PickerBoard {" \
   "appearance should not render the previous vertical picker board"
 assert_not_contains "$pane" "PickerSection {" \
   "appearance should not render the previous section stack"
+assert_not_contains "$pane" "component PickerBoard: StyledRect" \
+  "appearance should remove the unused old picker board implementation"
+assert_not_contains "$pane" "component PickerSection: ColumnLayout" \
+  "appearance should remove the unused old picker section implementation"
+assert_not_contains "$pane" "Layout.columnSpan: flickable.width > 720 ? 3 : 1" \
+  "appearance should not split wallpaper into a narrow island at the compact window size"
 assert_contains "$pane" "component ModeCard: StyledRect" \
   "appearance should use light and dark mode cards"
 assert_contains "$pane" "component VariantPill: StyledRect" \

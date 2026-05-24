@@ -36,6 +36,10 @@ assert_contains "GridLayout {" \
   "Network settings should arrange content in a dense grid"
 assert_contains "component NetworkCard: StyledRect" \
   "Network settings should use compact reusable cards"
+assert_contains "component NetworkServiceDock: NetworkCard" \
+  "Network settings should fill the right side with service/device controls instead of blank space"
+assert_contains "component NetworkDetailsDock: NetworkCard" \
+  "Network details should be a compact dock, not a full-width deadspace block"
 assert_contains "component MetricTile: StyledRect" \
   "Network settings should show compact metric tiles instead of long rows"
 assert_contains "component QuickToggleRow: StyledRect" \
@@ -44,8 +48,12 @@ assert_contains "readonly property bool compact:" \
   "Network settings should adapt the grid at narrower widths"
 assert_contains "readonly property bool compact: width < 620" \
   "Network settings should keep multi-column content in the compact settings window"
-assert_contains "Layout.columnSpan: root.compact ? 12 : 6" \
-  "Network overview and controls should share a row when the settings window is compact but usable"
+assert_contains "columns: root.compact ? 1 : 5" \
+  "Network settings should use a five-column workbench at the compact window size"
+assert_contains "Layout.columnSpan: root.compact ? 1 : 2" \
+  "Network overview should be a compact left board, not a half-page block"
+assert_contains "Layout.columnSpan: root.compact ? 1 : 3" \
+  "Network lists and controls should fill the remaining workbench columns"
 assert_contains "columns: width > 360 ? 2 : 1" \
   "Network quick actions should stay as compact tiles instead of one-column full-width rows"
 assert_not_contains "width < 1080" \
@@ -56,6 +64,8 @@ assert_not_contains "implicitHeight: 56" \
   "Network metric tiles should not keep the tall generic card height"
 assert_not_contains "implicitHeight: 48" \
   "Network quick rows should not keep the old bulky height"
+assert_not_contains "Layout.columnSpan: 12" \
+  "Network settings should not keep full-width detail bands that create deadspace"
 
 assert_contains "Nmcli.toggleWifi(null)" \
   "Network settings should preserve WiFi toggle behavior"
