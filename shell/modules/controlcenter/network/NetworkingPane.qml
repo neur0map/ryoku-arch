@@ -442,29 +442,13 @@ Item {
   component NetworkServiceDock: NetworkCard {
     icon: "hub"
     title: qsTr("Services")
-    subtitle: qsTr("VPN and wired adapters")
+    subtitle: qsTr("Quick service controls")
 
     GridLayout {
       Layout.fillWidth: true
       columns: width > 360 ? 2 : 1
       rowSpacing: Tokens.spacing.small
       columnSpacing: Tokens.spacing.small
-
-      MetricTile {
-        Layout.fillWidth: true
-        label: qsTr("VPN")
-        value: VPN.connected ? qsTr("On") : (GlobalConfig.utilities.vpn.enabled ? qsTr("Ready") : qsTr("Off"))
-        icon: VPN.connected ? "vpn_key" : "vpn_key_off"
-        active: VPN.connected || GlobalConfig.utilities.vpn.enabled
-      }
-
-      MetricTile {
-        Layout.fillWidth: true
-        label: qsTr("Ethernet")
-        value: qsTr("%1").arg(Nmcli.ethernetDevices.length)
-        icon: "cable"
-        active: Nmcli.activeEthernet !== null
-      }
 
       QuickToggleRow {
         Layout.fillWidth: true
@@ -493,6 +477,7 @@ Item {
 
     NetworkConnectorGrid {
       Layout.fillWidth: true
+      visible: GlobalConfig.utilities.vpn.provider.length > 0 || Nmcli.ethernetDevices.length > 0
     }
   }
 

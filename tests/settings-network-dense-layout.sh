@@ -38,8 +38,14 @@ assert_contains "component NetworkCard: StyledRect" \
   "Network settings should use compact reusable cards"
 assert_contains "component NetworkServiceDock: NetworkCard" \
   "Network settings should fill the right side with service/device controls instead of blank space"
+assert_contains "subtitle: qsTr(\"Quick service controls\")" \
+  "Network services dock should prioritize controls instead of duplicate metrics"
+assert_not_contains "subtitle: qsTr(\"VPN and wired adapters\")" \
+  "Network services dock should not keep the older bulky service summary"
 assert_contains "component NetworkConnectorGrid: ColumnLayout" \
   "Network settings should replace clipped service lists with compact connector chips"
+assert_contains "visible: GlobalConfig.utilities.vpn.provider.length > 0 || Nmcli.ethernetDevices.length > 0" \
+  "Network connector area should disappear when there are no connectors to show"
 assert_contains "component NetworkConnectorChip: StyledRect" \
   "Network settings should expose compact VPN and ethernet connector chips"
 assert_contains "component NetworkInventoryPanel: ColumnLayout" \
