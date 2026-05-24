@@ -263,7 +263,7 @@ Item {
                 anchors.top: parent.top
                 spacing: Tokens.spacing.large
 
-                SectionContainer {
+                AboutPanel {
                     Layout.fillWidth: true
                     alignTop: true
                     contentSpacing: Tokens.spacing.large
@@ -403,7 +403,7 @@ Item {
                     }
                 }
 
-                SectionContainer {
+                AboutPanel {
                     Layout.fillWidth: true
                     alignTop: true
                     contentSpacing: Tokens.spacing.normal
@@ -474,7 +474,7 @@ Item {
                     }
                 }
 
-                SectionContainer {
+                AboutPanel {
                     Layout.fillWidth: true
                     alignTop: true
                     contentSpacing: Tokens.spacing.normal
@@ -896,6 +896,29 @@ Item {
             title: root.modalReport.ok === true ? qsTr("Started") : qsTr("Unable to start")
             detail: root.modalSubtitle || root.modalReport.error || ""
             error: root.modalReport.ok !== true
+        }
+    }
+
+    component AboutPanel: StyledRect {
+        id: aboutPanel
+
+        property bool alignTop: false
+        property real contentSpacing: Tokens.spacing.normal
+        default property alias content: aboutPanelBody.data
+
+        implicitHeight: aboutPanelBody.implicitHeight + Tokens.padding.large * 2
+        radius: Tokens.rounding.normal
+        color: Colours.palette.m3surfaceContainer
+        clip: true
+
+        ColumnLayout {
+            id: aboutPanelBody
+
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.margins: Tokens.padding.large
+            spacing: aboutPanel.contentSpacing
         }
     }
 
