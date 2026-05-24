@@ -5,6 +5,7 @@ set -euo pipefail
 remote_url="${RYOKU_UPDATE_REMOTE_URL:-https://github.com/neur0map/ryoku-arch.git}"
 transition_branch="${RYOKU_REBIRTH_TRANSITION_BRANCH:-unstable-dev}"
 raw_script_url="${RYOKU_REBIRTH_TRANSITION_URL:-https://raw.githubusercontent.com/neur0map/ryoku-arch/unstable-dev/bin/ryoku-rebirth-transition}"
+update_bootstrap_url="${RYOKU_UPDATE_BOOTSTRAP_URL:-https://raw.githubusercontent.com/neur0map/ryoku-arch/937b2584e83b782a4b1fd65847ae5e76692b1a28/bin/ryoku-update-bootstrap}"
 allow_auth_prompt=false
 skip_purge=false
 ryoku_root=""
@@ -26,7 +27,7 @@ Expected transition flow:
      start cleanly from the rebirth paths.
 
 If local ryoku-update or ryoku-doctor commands still look stale, first run:
-  curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/unstable-dev/bin/ryoku-update-bootstrap | bash
+  curl -fsSL $update_bootstrap_url | bash
 
 What it does:
   - repairs legacy ~/.local/bin runtime-env resolution
@@ -644,7 +645,7 @@ Next:
 
 If ryoku-update or ryoku-doctor still looks stale after reboot, run the updater
 bootstrap first:
-  curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/unstable-dev/bin/ryoku-update-bootstrap | bash
+  curl -fsSL $update_bootstrap_url | bash
 
 EOF
       ;;
