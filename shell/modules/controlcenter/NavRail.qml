@@ -5,236 +5,343 @@ import QtQuick.Layouts
 import Quickshell
 import Ryoku.Config
 import qs.components
+import qs.components.containers
+import qs.components.controls
 import qs.services
 import qs.modules.controlcenter
 
 Item {
-    id: root
+  id: root
 
-    required property ShellScreen screen
-    required property Session session
-    required property bool initialOpeningComplete
+  required property ShellScreen screen
+  required property Session session
+  required property bool initialOpeningComplete
 
-    readonly property var activeEntry: PaneRegistry.getByLabel(session.active)
+  property string searchText: ""
 
-    function selectGroup(group: string): void {
-        if (!root.initialOpeningComplete)
-            return;
+  readonly property var activeEntry: PaneRegistry.getByLabel(session.active)
+  readonly property var filteredPanes: {
+    const result = [];
+    for (let groupIndex = 0; groupIndex < PaneRegistry.groups.length; groupIndex++) {
+      const group = PaneRegistry.groups[groupIndex];
+      for (let paneIndex = 0; paneIndex < PaneRegistry.panes.length; paneIndex++) {
+        const pane = PaneRegistry.panes[paneIndex];
+        if (pane.group === group && paneMatches(pane))
+          result.push(pane);
+      }
+    }
+    return result;
+  }
 
-        const panes = PaneRegistry.getByGroup(group);
-        if (panes.length > 0)
-            root.session.active = panes[0].label;
+  function paneMatches(pane: var): bool {
+    const query = root.searchText.trim().toLowerCase();
+    if (!query)
+      return true;
+
+    const group = PaneRegistry.groupLabel(pane.group) + " " + PaneRegistry.groupDescription(pane.group);
+    const haystack = [pane.label, pane.description, group].join(" ").toLowerCase();
+    return haystack.indexOf(query) >= 0;
+  }
+
+  function isFirstInGroup(index: int): bool {
+    if (index <= 0)
+      return true;
+    const current = root.filteredPanes[index];
+    const previous = root.filteredPanes[index - 1];
+    return !current || !previous || current.group !== previous.group;
+  }
+
+  function selectPane(label: string): void {
+    if (!root.initialOpeningComplete)
+      return;
+
+    root.session.active = label;
+  }
+
+  implicitWidth: 292
+  implicitHeight: layout.implicitHeight + Tokens.padding.large * 2
+
+  ColumnLayout {
+    id: layout
+
+    anchors.fill: parent
+    anchors.margins: Tokens.padding.large
+    spacing: Tokens.spacing.normal
+
+    RowLayout {
+      Layout.fillWidth: true
+      Layout.bottomMargin: Tokens.spacing.small
+      spacing: Tokens.spacing.normal
+
+      StyledRect {
+        Layout.alignment: Qt.AlignVCenter
+        implicitWidth: 38
+        implicitHeight: 38
+        radius: Tokens.rounding.small
+        color: Colours.palette.m3primary
+
+        MaterialIcon {
+          anchors.centerIn: parent
+          text: "tune"
+          color: Colours.palette.m3onPrimary
+          font.pointSize: Tokens.font.size.large
+          fill: 1
+        }
+      }
+
+      ColumnLayout {
+        Layout.fillWidth: true
+        Layout.alignment: Qt.AlignVCenter
+        spacing: 0
+
+        StyledText {
+          Layout.fillWidth: true
+          text: qsTr("Ryoku Settings")
+          font.pointSize: Tokens.font.size.larger
+          font.weight: 650
+          elide: Text.ElideRight
+        }
+
+        StyledText {
+          Layout.fillWidth: true
+          text: root.activeEntry ? PaneRegistry.groupDescription(root.activeEntry.group) : qsTr("Shell controls")
+          color: Colours.palette.m3onSurfaceVariant
+          font.pointSize: Tokens.font.size.small
+          elide: Text.ElideRight
+        }
+      }
     }
 
-    implicitWidth: 216
-    implicitHeight: layout.implicitHeight + Tokens.padding.large * 2
+    StyledRect {
+      Layout.fillWidth: true
+      implicitHeight: 42
+      radius: Tokens.rounding.small
+      color: Colours.palette.m3surfaceContainerHigh
 
-    ColumnLayout {
-        id: layout
-
+      RowLayout {
         anchors.fill: parent
-        anchors.margins: Tokens.padding.large
-        spacing: Tokens.spacing.normal
+        anchors.leftMargin: Tokens.padding.normal
+        anchors.rightMargin: Tokens.padding.smaller
+        spacing: Tokens.spacing.small
+
+        MaterialIcon {
+          Layout.alignment: Qt.AlignVCenter
+          text: "search"
+          color: searchField.activeFocus ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+          font.pointSize: Tokens.font.size.normal
+
+          Behavior on color {
+            CAnim {}
+          }
+        }
+
+        StyledTextField {
+          id: searchField
+
+          Layout.fillWidth: true
+          Layout.alignment: Qt.AlignVCenter
+          text: root.searchText
+          placeholderText: qsTr("Search settings")
+
+          onTextChanged: {
+            if (root.searchText !== text)
+              root.searchText = text;
+          }
+        }
+
+        IconButton {
+          Layout.alignment: Qt.AlignVCenter
+          visible: root.searchText !== ""
+          icon: "close"
+          type: IconButton.Text
+          padding: Tokens.padding.small / 2
+
+          onClicked: root.searchText = ""
+        }
+      }
+    }
+
+    StyledFlickable {
+      id: navFlickable
+
+      Layout.fillWidth: true
+      Layout.fillHeight: true
+      clip: true
+      boundsBehavior: Flickable.StopAtBounds
+      contentHeight: navContent.implicitHeight
+
+      StyledScrollBar.vertical: StyledScrollBar {
+        flickable: navFlickable
+      }
+
+      ColumnLayout {
+        id: navContent
+
+        width: navFlickable.width
+        spacing: Tokens.spacing.small
+
+        Repeater {
+          model: root.filteredPanes
+
+          ColumnLayout {
+            id: paneBlock
+
+            required property int index
+            required property var modelData
+
+            Layout.fillWidth: true
+            spacing: Tokens.spacing.small
+
+            StyledText {
+              Layout.fillWidth: true
+              Layout.topMargin: paneBlock.index === 0 ? 0 : Tokens.spacing.normal
+              Layout.leftMargin: Tokens.padding.small
+              visible: root.isFirstInGroup(paneBlock.index)
+              text: PaneRegistry.groupLabel(paneBlock.modelData.group)
+              color: Colours.palette.m3primary
+              font.pointSize: Tokens.font.size.small
+              font.weight: 650
+              elide: Text.ElideRight
+            }
+
+            PaneItem {
+              Layout.fillWidth: true
+              entry: paneBlock.modelData
+              active: root.session.active === paneBlock.modelData.label
+            }
+          }
+        }
+
+        StyledText {
+          Layout.fillWidth: true
+          Layout.topMargin: Tokens.spacing.large
+          Layout.leftMargin: Tokens.padding.small
+          Layout.rightMargin: Tokens.padding.small
+          visible: root.filteredPanes.length === 0
+          text: qsTr("No settings match this search")
+          color: Colours.palette.m3onSurfaceVariant
+          wrapMode: Text.WordWrap
+        }
+      }
+    }
+
+    Loader {
+      Layout.fillWidth: true
+      asynchronous: true
+      active: !root.session.floating
+      visible: active
+
+      sourceComponent: StyledRect {
+        Layout.fillWidth: true
+        implicitHeight: 42
+        color: Colours.palette.m3secondaryContainer
+        radius: Tokens.rounding.small
+
+        StateLayer {
+          onClicked: {
+            root.session.root.close();
+            WindowFactory.close();
+            WindowFactory.open(null, {
+              active: root.session.active,
+              navExpanded: root.session.navExpanded
+            });
+          }
+
+          color: Colours.palette.m3onSecondaryContainer
+          radius: parent.radius
+        }
 
         RowLayout {
-            Layout.fillWidth: true
-            Layout.bottomMargin: Tokens.spacing.normal
-            spacing: Tokens.spacing.normal
+          anchors.centerIn: parent
+          spacing: Tokens.spacing.small
 
-            StyledRect {
-                Layout.alignment: Qt.AlignVCenter
-                implicitWidth: 40
-                implicitHeight: 40
-                radius: Tokens.rounding.full
-                color: Colours.palette.m3primaryContainer
+          MaterialIcon {
+            Layout.alignment: Qt.AlignVCenter
+            text: "select_window"
+            color: Colours.palette.m3onSecondaryContainer
+            font.pointSize: Tokens.font.size.normal
+            fill: 1
+          }
 
-                MaterialIcon {
-                    anchors.centerIn: parent
-                    text: "tune"
-                    color: Colours.palette.m3onPrimaryContainer
-                    font.pointSize: Tokens.font.size.large
-                    fill: 1
-                }
-            }
-
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 0
-
-                StyledText {
-                    Layout.fillWidth: true
-                    text: qsTr("Settings")
-                    font.pointSize: Tokens.font.size.larger
-                    font.weight: 600
-                    elide: Text.ElideRight
-                }
-
-                StyledText {
-                    Layout.fillWidth: true
-                    text: qsTr("Ryoku")
-                    color: Colours.palette.m3onSurfaceVariant
-                    font.pointSize: Tokens.font.size.small
-                    elide: Text.ElideRight
-                }
-            }
+          StyledText {
+            Layout.alignment: Qt.AlignVCenter
+            text: qsTr("Float window")
+            color: Colours.palette.m3onSecondaryContainer
+            font.weight: 600
+          }
         }
+      }
+    }
+  }
 
-        Loader {
-            Layout.fillWidth: true
-            Layout.bottomMargin: Tokens.spacing.small
-            asynchronous: true
-            active: !root.session.floating
-            visible: active
+  component PaneItem: StyledRect {
+    id: item
 
-            sourceComponent: StyledRect {
-                Layout.fillWidth: true
-                implicitHeight: 42
-                color: Colours.palette.m3primaryContainer
-                radius: Tokens.rounding.small
+    required property var entry
+    required property bool active
 
-                StateLayer {
-                    id: normalWinState
+    implicitHeight: Math.max(58, row.implicitHeight + Tokens.padding.normal * 2)
+    radius: Tokens.rounding.small
+    color: item.active ? Colours.palette.m3primaryContainer : "transparent"
 
-                    onClicked: {
-                        root.session.root.close();
-                        WindowFactory.close();
-                        WindowFactory.open(null, {
-                            active: root.session.active,
-                            navExpanded: root.session.navExpanded
-                        });
-                    }
+    StateLayer {
+      onClicked: root.selectPane(item.entry.label)
 
-                    color: Colours.palette.m3onPrimaryContainer
-                }
-
-                MaterialIcon {
-                    id: normalWinIcon
-
-                    anchors.left: parent.left
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.leftMargin: Tokens.padding.normal
-
-                    text: "select_window"
-                    color: Colours.palette.m3onPrimaryContainer
-                    font.pointSize: Tokens.font.size.large
-                    fill: 1
-                }
-
-                StyledText {
-                    id: normalWinLabel
-
-                    anchors.left: normalWinIcon.right
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.leftMargin: Tokens.spacing.normal
-
-                    text: qsTr("Float window")
-                    color: Colours.palette.m3onPrimaryContainer
-                    font.weight: 500
-                }
-            }
-        }
-
-        StyledRect {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            radius: Tokens.rounding.normal
-            color: Colours.transparency.enabled ? Colours.layer(Colours.palette.m3surfaceContainer, 1) : Colours.tPalette.m3surfaceContainerLow
-
-            ColumnLayout {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.margins: Tokens.padding.normal
-                spacing: Tokens.spacing.normal
-
-                CategoryItem {
-                    Layout.fillWidth: true
-                    group: "system"
-                    icon: PaneRegistry.groupIcon("system")
-                    label: PaneRegistry.groupLabel("system")
-                }
-
-                CategoryItem {
-                    Layout.fillWidth: true
-                    group: "interface"
-                    icon: PaneRegistry.groupIcon("interface")
-                    label: PaneRegistry.groupLabel("interface")
-                }
-
-                CategoryItem {
-                    Layout.fillWidth: true
-                    group: "workflow"
-                    icon: PaneRegistry.groupIcon("workflow")
-                    label: PaneRegistry.groupLabel("workflow")
-                }
-
-                CategoryItem {
-                    Layout.fillWidth: true
-                    group: "about"
-                    icon: PaneRegistry.groupIcon("about")
-                    label: PaneRegistry.groupLabel("about")
-                }
-            }
-        }
+      color: item.active ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
+      radius: parent.radius
     }
 
-    component CategoryItem: Item {
-        id: item
+    RowLayout {
+      id: row
 
-        required property string group
-        required property string icon
-        required property string label
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.verticalCenter: parent.verticalCenter
+      anchors.margins: Tokens.padding.normal
+      spacing: Tokens.spacing.normal
 
-        readonly property bool active: root.activeEntry !== null && root.activeEntry.group === group
+      StyledRect {
+        Layout.alignment: Qt.AlignVCenter
+        implicitWidth: 34
+        implicitHeight: 34
+        radius: Tokens.rounding.small
+        color: item.active ? Colours.palette.m3primary : Colours.palette.m3surfaceContainerHighest
 
-        implicitHeight: 56
+        MaterialIcon {
+          anchors.centerIn: parent
+          text: item.entry.icon
+          color: item.active ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
+          font.pointSize: Tokens.font.size.normal
+          fill: item.active ? 1 : 0
 
-        StyledRect {
-            id: background
-
-            anchors.fill: parent
-            radius: Tokens.rounding.small
-            color: item.active ? Colours.palette.m3secondaryContainer : Qt.alpha(Colours.tPalette.m3surfaceContainer, 0)
-
-            StateLayer {
-                onClicked: {
-                    root.selectGroup(item.group);
-                }
-
-                color: item.active ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurface
-                radius: background.radius
-            }
-
-            RowLayout {
-                id: content
-
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.margins: Tokens.padding.normal
-                spacing: Tokens.spacing.normal
-
-                MaterialIcon {
-                    Layout.alignment: Qt.AlignVCenter
-                    text: item.icon
-                    color: item.active ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurface
-                    font.pointSize: Tokens.font.size.large
-                    fill: item.active ? 1 : 0
-
-                    Behavior on fill {
-                        Anim {}
-                    }
-                }
-
-                StyledText {
-                    Layout.fillWidth: true
-                    Layout.alignment: Qt.AlignVCenter
-                    text: item.label
-                    color: item.active ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurface
-                    font.weight: item.active ? 650 : 500
-                    elide: Text.ElideRight
-                }
-            }
+          Behavior on fill {
+            Anim {}
+          }
         }
+      }
+
+      ColumnLayout {
+        Layout.fillWidth: true
+        Layout.alignment: Qt.AlignVCenter
+        spacing: 1
+
+        StyledText {
+          Layout.fillWidth: true
+          text: item.entry.label
+          color: item.active ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
+          font.capitalization: Font.Capitalize
+          font.weight: item.active ? 650 : 550
+          elide: Text.ElideRight
+        }
+
+        StyledText {
+          Layout.fillWidth: true
+          text: item.entry.description
+          color: item.active ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
+          font.pointSize: Tokens.font.size.small
+          elide: Text.ElideRight
+        }
+      }
     }
+  }
 }

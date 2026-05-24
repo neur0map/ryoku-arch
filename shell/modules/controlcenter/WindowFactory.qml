@@ -54,7 +54,7 @@ Singleton {
             property alias active: cc.active
             property alias navExpanded: cc.navExpanded
 
-            color: Colours.tPalette.m3surface
+            color: Colours.palette.m3surface
 
             onVisibleChanged: {
                 if (!visible)

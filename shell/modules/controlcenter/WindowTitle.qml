@@ -13,7 +13,7 @@ StyledRect {
     required property Session session
 
     implicitHeight: 58
-    color: Colours.tPalette.m3surfaceContainer
+    color: Colours.palette.m3surfaceContainer
 
     RowLayout {
         anchors.fill: parent

@@ -26,7 +26,7 @@ Item {
 
     signal close
 
-    implicitWidth: Math.min(screen.width * 0.8, implicitHeight * Tokens.sizes.controlCenter.ratio)
+    implicitWidth: Math.min(screen.width * 0.84, implicitHeight * Tokens.sizes.controlCenter.ratio)
     implicitHeight: Math.min(screen.height * 0.78, 1180)
 
     GridLayout {
@@ -57,7 +57,7 @@ Item {
             topLeftRadius: root.rounding
             bottomLeftRadius: root.rounding
             implicitWidth: navRail.implicitWidth
-            color: Colours.tPalette.m3surfaceContainer
+            color: Colours.palette.m3surfaceContainer
 
             NavRail {
                 id: navRail

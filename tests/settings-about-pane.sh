@@ -30,7 +30,7 @@ helper="$ROOT_DIR/shell/scripts/ryoku-settings-about"
 assert_contains "shell/modules/controlcenter/PaneRegistry.qml" 'readonly property string id: "about"'
 assert_contains "shell/modules/controlcenter/PaneRegistry.qml" 'readonly property string group: "about"'
 assert_contains "shell/modules/controlcenter/Panes.qml" 'import "about"'
-assert_contains "shell/modules/controlcenter/NavRail.qml" 'group: "about"'
+assert_contains "shell/modules/controlcenter/NavRail.qml" 'PaneRegistry.groups'
 assert_contains "shell/modules/controlcenter/about/AboutPane.qml" 'https://github.com/basecamp/omarchy'
 assert_contains "shell/modules/controlcenter/about/AboutPane.qml" 'https://github.com/caelestia-dots/shell'
 assert_contains "shell/modules/controlcenter/about/AboutPane.qml" 'https://github.com/BlueManCZ/hyprmod'
