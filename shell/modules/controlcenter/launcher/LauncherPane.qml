@@ -596,71 +596,136 @@ Item {
                         anchors.top: parent.top
                         spacing: Tokens.spacing.normal
 
-                        SwitchRow {
+                        Flow {
+                            Layout.fillWidth: true
                             Layout.topMargin: Tokens.spacing.normal
                             visible: appDetailsLayout.displayedApp !== null
-                            label: qsTr("Mark as favourite")
-                            checked: root.favouriteChecked
-                            // disabled if:
-                            // * app is hidden
-                            // * app isn't in favouriteApps array but marked as favourite anyway
-                            // ^^^ This means that this app is favourited because of a regex check
-                            //     this button can not toggle regexed apps
-                            enabled: appDetailsLayout.displayedApp !== null && !root.hideFromLauncherChecked && (GlobalConfig.launcher.favouriteApps.indexOf(appDetailsLayout.displayedApp.id || appDetailsLayout.displayedApp.entry?.id) !== -1 || !root.favouriteChecked)
-                            opacity: enabled ? 1 : 0.6
-                            onToggled: checked => {
-                                root.favouriteChecked = checked;
-                                const app = appDetailsLayout.displayedApp;
-                                if (app) {
-                                    const appId = app.id || app.entry?.id;
-                                    const favouriteApps = GlobalConfig.launcher.favouriteApps ? [...GlobalConfig.launcher.favouriteApps] : [];
-                                    if (checked) {
-                                        if (!favouriteApps.includes(appId)) {
-                                            favouriteApps.push(appId);
+                            spacing: Tokens.spacing.small
+
+                            AppFlagChip {
+                                icon: "favorite"
+                                title: qsTr("Favourite")
+                                detail: qsTr("Pin in launcher")
+                                checked: root.favouriteChecked
+                                enabled: appDetailsLayout.displayedApp !== null && !root.hideFromLauncherChecked && (GlobalConfig.launcher.favouriteApps.indexOf(appDetailsLayout.displayedApp.id || appDetailsLayout.displayedApp.entry?.id) !== -1 || !root.favouriteChecked)
+
+                                onToggled: checked => {
+                                    root.favouriteChecked = checked;
+                                    const app = appDetailsLayout.displayedApp;
+                                    if (app) {
+                                        const appId = app.id || app.entry?.id;
+                                        const favouriteApps = GlobalConfig.launcher.favouriteApps ? [...GlobalConfig.launcher.favouriteApps] : [];
+                                        if (checked) {
+                                            if (!favouriteApps.includes(appId)) {
+                                                favouriteApps.push(appId);
+                                            }
+                                        } else {
+                                            const index = favouriteApps.indexOf(appId);
+                                            if (index !== -1) {
+                                                favouriteApps.splice(index, 1);
+                                            }
                                         }
-                                    } else {
-                                        const index = favouriteApps.indexOf(appId);
-                                        if (index !== -1) {
-                                            favouriteApps.splice(index, 1);
-                                        }
+                                        GlobalConfig.launcher.favouriteApps = favouriteApps;
                                     }
-                                    GlobalConfig.launcher.favouriteApps = favouriteApps;
                                 }
                             }
-                        }
-                        SwitchRow {
-                            Layout.topMargin: Tokens.spacing.normal
-                            visible: appDetailsLayout.displayedApp !== null
-                            label: qsTr("Hide from launcher")
-                            checked: root.hideFromLauncherChecked
-                            // disabled if:
-                            // * app is favourited
-                            // * app isn't in hiddenApps array but marked as hidden anyway
-                            // ^^^ This means that this app is hidden because of a regex check
-                            //     this button can not toggle regexed apps
-                            enabled: appDetailsLayout.displayedApp !== null && !root.favouriteChecked && (GlobalConfig.launcher.hiddenApps.indexOf(appDetailsLayout.displayedApp.id || appDetailsLayout.displayedApp.entry?.id) !== -1 || !root.hideFromLauncherChecked)
-                            opacity: enabled ? 1 : 0.6
-                            onToggled: checked => {
-                                root.hideFromLauncherChecked = checked;
-                                const app = appDetailsLayout.displayedApp;
-                                if (app) {
-                                    const appId = app.id || app.entry?.id;
-                                    const hiddenApps = GlobalConfig.launcher.hiddenApps ? [...GlobalConfig.launcher.hiddenApps] : [];
-                                    if (checked) {
-                                        if (!hiddenApps.includes(appId)) {
-                                            hiddenApps.push(appId);
+
+                            AppFlagChip {
+                                icon: "visibility_off"
+                                title: qsTr("Hidden")
+                                detail: qsTr("Remove from search")
+                                checked: root.hideFromLauncherChecked
+                                enabled: appDetailsLayout.displayedApp !== null && !root.favouriteChecked && (GlobalConfig.launcher.hiddenApps.indexOf(appDetailsLayout.displayedApp.id || appDetailsLayout.displayedApp.entry?.id) !== -1 || !root.hideFromLauncherChecked)
+
+                                onToggled: checked => {
+                                    root.hideFromLauncherChecked = checked;
+                                    const app = appDetailsLayout.displayedApp;
+                                    if (app) {
+                                        const appId = app.id || app.entry?.id;
+                                        const hiddenApps = GlobalConfig.launcher.hiddenApps ? [...GlobalConfig.launcher.hiddenApps] : [];
+                                        if (checked) {
+                                            if (!hiddenApps.includes(appId)) {
+                                                hiddenApps.push(appId);
+                                            }
+                                        } else {
+                                            const index = hiddenApps.indexOf(appId);
+                                            if (index !== -1) {
+                                                hiddenApps.splice(index, 1);
+                                            }
                                         }
-                                    } else {
-                                        const index = hiddenApps.indexOf(appId);
-                                        if (index !== -1) {
-                                            hiddenApps.splice(index, 1);
-                                        }
+                                        GlobalConfig.launcher.hiddenApps = hiddenApps;
                                     }
-                                    GlobalConfig.launcher.hiddenApps = hiddenApps;
                                 }
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+
+    component AppFlagChip: StyledRect {
+        id: chip
+
+        property string icon: ""
+        property string title: ""
+        property string detail: ""
+        property bool checked: false
+
+        signal toggled(bool checked)
+
+        implicitWidth: Math.max(180, label.implicitWidth + detailLabel.implicitWidth + 72)
+        implicitHeight: 58
+        radius: Tokens.rounding.normal
+        color: checked ? Colours.palette.m3primaryContainer : Colours.palette.m3surfaceContainerHigh
+        opacity: enabled ? 1 : 0.56
+        clip: true
+
+        StateLayer {
+            enabled: chip.enabled
+
+            onClicked: chip.toggled(!chip.checked)
+
+            color: chip.checked ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
+            radius: parent.radius
+        }
+
+        RowLayout {
+            anchors.fill: parent
+            anchors.margins: Tokens.padding.normal
+            spacing: Tokens.spacing.small
+
+            MaterialIcon {
+                Layout.alignment: Qt.AlignVCenter
+                text: chip.icon
+                color: chip.checked ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+                font.pointSize: Tokens.font.size.normal
+                fill: chip.checked ? 1 : 0
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignVCenter
+                spacing: 0
+
+                StyledText {
+                    id: label
+
+                    Layout.fillWidth: true
+                    text: chip.title
+                    color: chip.checked ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
+                    font.weight: 700
+                    elide: Text.ElideRight
+                }
+
+                StyledText {
+                    id: detailLabel
+
+                    Layout.fillWidth: true
+                    text: chip.detail
+                    color: Colours.palette.m3onSurfaceVariant
+                    font.pointSize: Tokens.font.size.small
+                    elide: Text.ElideRight
                 }
             }
         }
