@@ -363,7 +363,7 @@ Item {
   component AppearanceStudio: StyledRect {
     id: studio
 
-    implicitHeight: Math.max(150, studioRow.implicitHeight) + Tokens.padding.small * 2
+    implicitHeight: Math.max(132, studioRow.implicitHeight) + Tokens.padding.small * 2
     radius: Tokens.rounding.small
     color: Colours.palette.m3surfaceContainer
     clip: true
@@ -380,7 +380,7 @@ Item {
       HeroPreview {
         Layout.fillWidth: false
         Layout.preferredWidth: Math.min(180, Math.max(132, studio.width * 0.18))
-        Layout.preferredHeight: 150
+        Layout.preferredHeight: 132
       }
 
       ColumnLayout {
@@ -705,7 +705,7 @@ Item {
 
     GridLayout {
       Layout.fillWidth: true
-      columns: width > 760 ? 3 : width > 480 ? 2 : 1
+      columns: width > 520 ? 3 : width > 320 ? 2 : 1
       columnSpacing: Tokens.spacing.small
       rowSpacing: Tokens.spacing.small
 
@@ -1449,7 +1449,7 @@ Item {
       return Math.round(raw / range.stepSize) * range.stepSize;
     }
 
-    implicitHeight: 54
+    implicitHeight: 46
     radius: Tokens.rounding.small
     color: Colours.palette.m3surfaceContainerHigh
     clip: true

@@ -765,14 +765,14 @@ Item {
   component BarCanvas: StyledRect {
     id: canvas
 
-    implicitHeight: 176
+    implicitHeight: 124
     radius: Tokens.rounding.small
     color: Colours.palette.m3surfaceContainer
     clip: true
 
     ColumnLayout {
       anchors.fill: parent
-      anchors.margins: Tokens.padding.normal
+      anchors.margins: Tokens.padding.small
       spacing: Tokens.spacing.small
 
       RowLayout {
@@ -888,7 +888,7 @@ Item {
 
     Layout.alignment: Qt.AlignTop
 
-    implicitHeight: bodyLayout.implicitHeight + Tokens.padding.normal * 2
+    implicitHeight: bodyLayout.implicitHeight + Tokens.padding.small * 2
     radius: Tokens.rounding.small
     color: Colours.palette.m3surfaceContainer
     clip: true
@@ -899,7 +899,7 @@ Item {
       anchors.left: parent.left
       anchors.right: parent.right
       anchors.top: parent.top
-      anchors.margins: Tokens.padding.normal
+      anchors.margins: Tokens.padding.small
       spacing: Tokens.spacing.small
 
       RowLayout {

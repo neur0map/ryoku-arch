@@ -39,6 +39,10 @@ assert_not_contains "$pane" "component SettingsDeck" \
 
 assert_contains "$pane" "component BarCanvas: StyledRect" \
   "taskbar should expose a compact bar preview canvas"
+assert_contains "$pane" "implicitHeight: 124" \
+  "taskbar preview canvas should fit the compact settings first viewport"
+assert_not_contains "$pane" "implicitHeight: 144" \
+  "taskbar preview canvas should not keep the oversized first-screen height"
 assert_contains "$pane" "component ModuleToken: StyledRect" \
   "taskbar should expose taskbar module tokens"
 assert_contains "$pane" "component WorkspaceRail: StyledRect" \
@@ -51,6 +55,10 @@ assert_contains "$pane" "component MonitorPill: StyledRect" \
   "taskbar should expose monitor visibility pills"
 assert_contains "$pane" "component DialControl: StyledRect" \
   "taskbar should expose compact numeric controls"
+assert_contains "$pane" "implicitHeight: bodyLayout.implicitHeight + Tokens.padding.small * 2" \
+  "taskbar panels should use compact panel padding"
+assert_not_contains "$pane" "implicitHeight: bodyLayout.implicitHeight + Tokens.padding.normal * 2" \
+  "taskbar panels should not keep tall panel chrome"
 
 assert_contains "$pane" "GlobalConfig.bar.status.showAudio = root.showAudio" \
   "taskbar should preserve status icon backend writes"

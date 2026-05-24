@@ -60,6 +60,12 @@ assert_contains "$pane" "component ToneDock: AppearanceDock" \
   "appearance should group tone choices in a compact dock"
 assert_contains "$pane" "component TuningDock: AppearanceDock" \
   "appearance should group tuning controls in a compact dock"
+assert_contains "$pane" "columns: width > 520 ? 3 : width > 320 ? 2 : 1" \
+  "appearance tuning controls should use three columns in the compact settings window"
+assert_contains "$pane" "implicitHeight: 46" \
+  "appearance range controls should be short enough to keep tuning visible"
+assert_contains "$pane" "implicitHeight: Math.max(132, studioRow.implicitHeight) + Tokens.padding.small * 2" \
+  "appearance studio should not push tuning controls out of the compact first viewport"
 assert_contains "$pane" "component WallpaperDock: AppearanceDock" \
   "appearance should keep wallpaper picking in a compact dock"
 assert_not_contains "$pane" "component SettingsDeck" \
@@ -90,6 +96,10 @@ assert_contains "$pane" "WallpaperGrid {" \
   "appearance should keep wallpaper picking directly in the page"
 assert_not_contains "$pane" "Layout.preferredHeight: 360" \
   "appearance should not keep the tall wallpaper block"
+assert_not_contains "$pane" "columns: width > 760 ? 3 : width > 480 ? 2 : 1" \
+  "appearance tuning controls should not keep a threshold that clips in the compact window"
+assert_not_contains "$pane" "implicitHeight: Math.max(150, studioRow.implicitHeight) + Tokens.padding.small * 2" \
+  "appearance studio should not keep the taller first-screen block"
 assert_contains "shell/modules/controlcenter/components/WallpaperGrid.qml" "property bool compact: false" \
   "wallpaper grid should expose a compact picker mode"
 assert_contains "shell/modules/controlcenter/components/WallpaperGrid.qml" "readonly property int compactCellWidth" \
