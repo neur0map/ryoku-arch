@@ -18,7 +18,11 @@ set -euo pipefail
 #      and the user gets "100% volume but silent speakers" with a clean
 #      PipeWire graph.
 #
-#   3. Stale compositor wiring cleanup - pre-rebirth installs may have
+#   3. Stale shell env cleanup - pre-rebirth installs may have Fish env
+#      exports pointing at the old shell namespace. The doctor must remove
+#      those without removing the current Ryoku virtualenv export.
+#
+#   4. Stale compositor wiring cleanup - pre-rebirth installs may have
 #      niri.service.wants symlinks or retired Qt fractional-scale drop-ins
 #      that point at compositor behavior we no longer ship. The doctor must
 #      clean these up so the rebirth -> main merge doesn't leave stranded
@@ -61,6 +65,10 @@ grep -qE 'rebuild quickshell' "$shell_doctor" || \
 
 grep -qE 'check_stale_compositor_wiring\(\)' "$shell_doctor" || \
   fail "shell-doctor must keep check_stale_compositor_wiring (cleans up niri.service.wants symlinks)"
+grep -qE 'check_legacy_shell_env\(\)' "$shell_doctor" || \
+  fail "shell-doctor must remove stale shell env compatibility exports"
+grep -qE 'ILLOGICAL_IMPULSE_VIRTUAL_ENV' "$shell_doctor" || \
+  fail "shell-doctor must target the old shell env compatibility export"
 grep -qE 'qt6-fractional-scale-workaround\.conf' "$shell_doctor" || \
   fail "shell-doctor must remove the retired Qt fractional-scale shell drop-in"
 grep -qE 'hypridle-rebirth[.]conf' "$shell_doctor" || \
@@ -70,7 +78,7 @@ grep -qE 'hypridle[.]service' "$shell_doctor" || \
 
 # Verify all three checks are actually wired into run_shell_doctor's
 # pipeline, not just defined as dead functions.
-for check_name in check_native_plugin check_audio_restore_service check_quickshell_qt_abi check_stale_compositor_wiring; do
+for check_name in check_native_plugin check_audio_restore_service check_quickshell_qt_abi check_legacy_shell_env check_stale_compositor_wiring; do
   grep -qE "run_check.*$check_name" "$shell_doctor" || \
     fail "shell-doctor's run_shell_doctor must invoke $check_name via run_check"
 done

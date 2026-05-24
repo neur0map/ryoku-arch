@@ -43,6 +43,7 @@ current_user="$(id -un)"
 current_host="$(hostname 2>/dev/null || true)"
 
 mkdir -p \
+  "$home/.config/fish/conf.d" \
   "$home/.config/hypr" \
   "$home/.config/ryoku-shell" \
   "$home/.local/bin" \
@@ -84,8 +85,13 @@ cat >"$home/.config/ryoku-shell/config.json" <<'JSON'
   }
 }
 JSON
+# shellcheck disable=SC2088
 printf '%s\n' '~/.config/niri/config.kdl' >"$home/.config/ryoku-shell/installed_listfile"
 printf '%s\n' '{"applied":["018-modularize-niri-config"]}' >"$home/.config/ryoku-shell/migrations.json"
+cat >"$home/.config/fish/conf.d/ryoku-shell-env.fish" <<'FISH'
+set -gx RYOKU_SHELL_VENV "/tmp/ryoku-shell/.venv"
+set -gx ILLOGICAL_IMPULSE_VIRTUAL_ENV "$RYOKU_SHELL_VENV"
+FISH
 cat >"$home/.config/hypr/hyprland.conf" <<'HYPR'
 exec-once = sh -lc 'systemctl --user reset-failed ryoku-shell.service >/dev/null 2>&1 || true; exec systemctl --user start ryoku-shell.service'
 bind = SUPER, comma, exec, $systemPanel
@@ -281,9 +287,15 @@ assert_contains "$output" 'OK: ryoku-audio-restore-mixers.service is enabled' \
   "doctor should clear the pre-rebirth audio restore service failure"
 assert_contains "$output" 'Removed stale Niri-era shell config metadata' \
   "doctor should remove stale Niri-era user config and installer metadata"
+assert_contains "$output" 'Removed stale shell env compatibility export' \
+  "doctor should remove old shell namespace env exports"
 if grep -Eq 'disableNiri|niriWindow|disableNiriAnims' "$home/.config/ryoku-shell/config.json"; then
   fail "doctor should remove stale Niri-era keys from active shell config"
 fi
+grep -Fq 'ILLOGICAL_IMPULSE_VIRTUAL_ENV' "$home/.config/fish/conf.d/ryoku-shell-env.fish" \
+  && fail "doctor should remove the old shell namespace env export"
+grep -Fq 'RYOKU_SHELL_VENV' "$home/.config/fish/conf.d/ryoku-shell-env.fish" \
+  || fail "doctor should preserve the current Ryoku shell virtualenv export"
 [[ ! -e $home/.config/ryoku-shell/installed_listfile ]] || \
   fail "doctor should remove stale shell installer list metadata"
 [[ ! -e $home/.config/ryoku-shell/migrations.json ]] || \

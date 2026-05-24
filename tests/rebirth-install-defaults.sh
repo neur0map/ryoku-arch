@@ -66,6 +66,7 @@ assert_not_contains install/config/shell.sh 'service enable niri|niri\.service\.
   "shell install should not wire ryoku-shell to Niri"
 assert_contains install/config/shell.sh 'SHELL_RUNTIME_DIR=.*quickshell/ryoku-shell' \
   "shell install should force the canonical ryoku-shell runtime"
+# shellcheck disable=SC2016
 assert_contains install/config/shell.sh 'RYOKU_SHELL_RUNTIME_DIR="\$SHELL_RUNTIME_DIR"' \
   "shell install should not inherit stale host-shell runtime paths"
 assert_contains install/config/shell.sh '-u QS_CONFIG_NAME' \
@@ -74,5 +75,9 @@ assert_contains shell/scripts/ryoku-shell 'RYOKU_COMPOSITOR.*hyprland|HYPRLAND_I
   "shell service detection should support an explicit Hyprland path"
 assert_contains shell/setup 'RYOKU_COMPOSITOR.*hyprland|HYPRLAND_INSTANCE_SIGNATURE' \
   "setup service wiring should support an explicit Hyprland path"
+assert_contains shell/setup 'cleanup_legacy_shell_env' \
+  "setup should clean stale shell env exports during install"
+assert_contains shell/setup 'ILLOGICAL_IMPULSE_VIRTUAL_ENV' \
+  "setup should target the old shell namespace env export"
 
 echo "PASS: rebirth install defaults are Hyprland-first"

@@ -31,6 +31,19 @@ command_present() {
   command -v "$1" >/dev/null 2>&1
 }
 
+cleanup_legacy_shell_env() {
+  local fish_env="${XDG_CONFIG_HOME:-$HOME/.config}/fish/conf.d/ryoku-shell-env.fish"
+  local stale_env="ILLOGICAL_IMPULSE_VIRTUAL_ENV"
+
+  [[ -f $fish_env ]] || return 0
+  grep -qF "$stale_env" "$fish_env" || return 0
+
+  sed -i "/$stale_env/d" "$fish_env"
+  if [[ ! -s $fish_env ]] || ! grep -qF "RYOKU_SHELL_VENV" "$fish_env"; then
+    rm -f "$fish_env"
+  fi
+}
+
 install_runtime_files() {
   local source_root
   local source_path_file="$script_dir/.ryoku-source-path"
@@ -146,6 +159,7 @@ build_native_modules() {
 install_shell() {
   install_runtime_files
   install_first_run_state
+  cleanup_legacy_shell_env
   build_native_modules
   install_service
   printf 'Ryoku shell runtime: %s\n' "$runtime_dir"
