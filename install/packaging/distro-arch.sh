@@ -32,6 +32,22 @@ distro_libcava_present() {
   [[ -f /usr/lib/pkgconfig/libcava.pc ]]
 }
 
+pkgbuild_field() {
+  local pkgbuild=$1
+  local field=$2
+
+  bash -c '
+set -euo pipefail
+source "$1"
+case "$2" in
+  pkgver) printf "%s\n" "$pkgver" ;;
+  pkgrel) printf "%s\n" "$pkgrel" ;;
+  conflicts) printf "%s\n" "${conflicts[@]:-}" ;;
+  *) exit 2 ;;
+esac
+' _ "$pkgbuild" "$field"
+}
+
 for pkg in "${LOCAL_PKGS[@]}"; do
   pkgdir="$RYOKU_PATH/distro/arch/$pkg"
   if [[ ! -f "$pkgdir/PKGBUILD" ]]; then
@@ -40,8 +56,8 @@ for pkg in "${LOCAL_PKGS[@]}"; do
   fi
 
   # Skip if already installed at the same version-rel as the PKGBUILD declares.
-  pkgver="$(awk -F= '/^pkgver=/{gsub(/[\047"]/,"",$2); print $2}' "$pkgdir/PKGBUILD")"
-  pkgrel="$(awk -F= '/^pkgrel=/{gsub(/[\047"]/,"",$2); print $2}' "$pkgdir/PKGBUILD")"
+  pkgver="$(pkgbuild_field "$pkgdir/PKGBUILD" pkgver)"
+  pkgrel="$(pkgbuild_field "$pkgdir/PKGBUILD" pkgrel)"
   installed="$(pacman -Q "$pkg" 2>/dev/null | awk '{print $2}' || true)"
   if [[ -n $installed && $installed == "${pkgver}-${pkgrel}" ]]; then
     if distro_libcava_present; then
@@ -67,14 +83,15 @@ for pkg in "${LOCAL_PKGS[@]}"; do
   # `cava` for the base step, so it landed). Pre-remove any
   # conflicting installed package via -Rdd (no dep check; the new
   # package supplies the same provides= entry).
-  conflicts_line="$(awk -F= '/^conflicts=/{
-      gsub(/[()'\''"]/, "", $2); print $2
-  }' "$pkgdir/PKGBUILD")"
-  for c in $conflicts_line; do
+  mapfile -t conflicts < <(pkgbuild_field "$pkgdir/PKGBUILD" conflicts)
+  for c in "${conflicts[@]}"; do
     [[ -n $c ]] || continue
     if pacman -Qq "$c" >/dev/null 2>&1; then
       echo "distro-arch: removing conflicting installed $c before installing $pkg"
-      sudo pacman -Rdd --noconfirm "$c" || true
+      sudo pacman -Rdd --noconfirm "$c" || {
+        echo "distro-arch: failed to remove conflicting installed $c" >&2
+        exit 1
+      }
     fi
   done
 

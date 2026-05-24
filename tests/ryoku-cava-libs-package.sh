@@ -71,6 +71,20 @@ grep -qE 'pacman -U --noconfirm --needed' "$distro_arch" || \
 grep -qE 'pkgconf --exists libcava|pkg-config --exists libcava' "$distro_arch" || \
   fail "install/packaging/distro-arch.sh must verify libcava before the shell build"
 
+grep -qE 'source "\$1"' "$distro_arch" || \
+  fail "install/packaging/distro-arch.sh must read PKGBUILD values with Bash so conflicts=(\"\$_upstream\") expands to cava"
+
+grep -qE 'mapfile -t conflicts' "$distro_arch" || \
+  fail "install/packaging/distro-arch.sh must install after checking expanded PKGBUILD conflicts"
+
+if grep -qE 'conflicts_line=.*awk' "$distro_arch"; then
+  fail "install/packaging/distro-arch.sh must not parse PKGBUILD conflicts with awk because it misses \$_upstream expansion"
+fi
+
+if grep -qE 'pacman -Rdd --noconfirm "\$c" \|\| true' "$distro_arch"; then
+  fail "install/packaging/distro-arch.sh must not continue after failing to remove a conflicting package"
+fi
+
 grep -qE 'exit 1' "$distro_arch" || \
   fail "install/packaging/distro-arch.sh must fail the distro package stage instead of continuing to shell CMake without libcava"
 
