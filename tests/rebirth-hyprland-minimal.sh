@@ -60,8 +60,8 @@ rg -q "[$]neovimEditor = .*ryoku-launch-tui nvim" "$ROOT_DIR/config/hypr/hyprlan
   fail "Hyprland config should launch Neovim through the Ryoku TUI helper"
 rg -q "[$]obsidianNotes = obsidian" "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should define Obsidian as the notes app"
-rg -q "exec-once = sh -lc '\\\$HOME/.local/bin/ryoku-shell run --session'" "$ROOT_DIR/config/hypr/hyprland.conf" || \
-  fail "Hyprland config should start Ryoku shell"
+rg -q "exec-once = sh -lc 'systemctl --user reset-failed ryoku-shell.service" "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should start ryoku-shell.service"
 rg -q 'exec-once = hypridle -c ~/.config/hypr/hypridle-rebirth.conf' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should use the rebirth hypridle config"
 rg -q 'env = XCURSOR_THEME,Bibata-Modern-Classic' "$ROOT_DIR/config/hypr/hyprland.conf" || \

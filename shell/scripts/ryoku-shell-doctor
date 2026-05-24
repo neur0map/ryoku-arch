@@ -335,8 +335,10 @@ check_hyprland_config() {
     return 0
   fi
 
-  if grep -Fq "ryoku-shell run --session" "$hypr_conf"; then
-    doctor_pass "Hyprland starts Ryoku shell"
+  if grep -Eq "systemctl --user .*start ryoku-shell[.]service" "$hypr_conf"; then
+    doctor_pass "Hyprland starts ryoku-shell.service"
+  elif grep -Fq "ryoku-shell run --session" "$hypr_conf"; then
+    doctor_fail "Hyprland starts an unmanaged Ryoku shell; use ryoku-shell.service"
   else
     doctor_fail "Hyprland config does not start Ryoku shell"
   fi
@@ -399,6 +401,27 @@ stop_duplicate_quickshell_runtime() {
   doctor_fail "Could not stop duplicate/stale Quickshell runtime: $runtime_path"
 }
 
+restart_canonical_quickshell_runtime() {
+  if ! command -v systemctl >/dev/null 2>&1; then
+    doctor_fail "Multiple Ryoku shell runtimes found, but systemctl is unavailable for service restart"
+    return 0
+  fi
+
+  if ! env -u QS_CONFIG_NAME -u QS_CONFIG_PATH -u QS_MANIFEST \
+    "$qs_bin" kill -p "$runtime_dir" --any-display >/dev/null 2>&1; then
+    doctor_fail "Could not stop duplicate canonical Ryoku shell runtime"
+    return 0
+  fi
+
+  systemctl --user reset-failed ryoku-shell.service >/dev/null 2>&1 || true
+  if systemctl --user restart ryoku-shell.service >/dev/null 2>&1 || \
+    systemctl --user start ryoku-shell.service >/dev/null 2>&1; then
+    doctor_fix "Restarted ryoku-shell.service to collapse duplicate Ryoku bars"
+  else
+    doctor_fail "Could not restart ryoku-shell.service after duplicate runtime cleanup"
+  fi
+}
+
 check_quickshell_instance() {
   local output
   local line
@@ -442,8 +465,10 @@ check_quickshell_instance() {
     stop_duplicate_quickshell_runtime "$stale_runtime"
   done
 
-  if (( canonical_count > 0 )); then
+  if (( canonical_count == 1 )); then
     doctor_pass "Quickshell is running the Ryoku shell runtime"
+  elif (( canonical_count > 1 )); then
+    restart_canonical_quickshell_runtime
   else
     doctor_fail "No running Quickshell instance for $runtime_dir/shell.qml"
   fi

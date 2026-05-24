@@ -74,6 +74,10 @@ Instance ryoku:
   Process ID: 123
   Config path: $RYOKU_TEST_RUNTIME/shell.qml
   Display connection: wayland/wayland-test
+Instance ryoku-duplicate:
+  Process ID: 789
+  Config path: $RYOKU_TEST_RUNTIME/shell.qml
+  Display connection: wayland/wayland-test
 Instance stale:
   Process ID: 456
   Config path: $RYOKU_TEST_LEGACY_RUNTIME/shell.qml
@@ -162,6 +166,10 @@ assert_contains "$log_file" 'systemctl:--user start xdg-desktop-portal-hyprland.
   "transition should start the Hyprland portal after purge"
 assert_contains "$log_file" "qs:kill -p $legacy_runtime --any-display" \
   "transition should stop stale host-shell Quickshell runtimes during rebirth cleanup"
+assert_contains "$log_file" "qs:kill -p $runtime --any-display" \
+  "transition should restart duplicate canonical Ryoku shell runtimes during rebirth cleanup"
+assert_contains "$log_file" 'systemctl:--user restart ryoku-shell.service' \
+  "transition should restart ryoku-shell.service after collapsing duplicate canonical bars"
 assert_contains "$log_file" 'purge:--confirm-niri-free --allow-auth-prompt' \
   "transition should call the guarded Niri purge"
 assert_contains "$output" 'Choose the Hyprland session.' \

@@ -69,7 +69,7 @@ ln -s "$runtime/scripts/ryoku-shell" "$home/.local/bin/ryoku-shell"
 
 printf '%s\n' '{"shellUpdates":{"channel":"unstable-dev"}}' >"$home/.config/ryoku-shell/config.json"
 cat >"$home/.config/hypr/hyprland.conf" <<'HYPR'
-exec-once = sh -lc '$HOME/.local/bin/ryoku-shell run --session'
+exec-once = sh -lc 'systemctl --user reset-failed ryoku-shell.service >/dev/null 2>&1 || true; exec systemctl --user start ryoku-shell.service'
 bind = SUPER, comma, exec, $systemPanel
 HYPR
 
@@ -150,6 +150,10 @@ if [[ ${1:-} == "list" ]]; then
   cat <<EOF
 Instance test:
   Process ID: 123
+  Config path: $RYOKU_TEST_RUNTIME/shell.qml
+  Display connection: wayland/wayland-test
+Instance duplicate:
+  Process ID: 789
   Config path: $RYOKU_TEST_RUNTIME/shell.qml
   Display connection: wayland/wayland-test
 EOF
@@ -240,6 +244,8 @@ assert_contains "$output" 'Checking Ryoku shell runtime' \
   "doctor should check the Ryoku shell runtime payload"
 assert_contains "$output" 'FIX: Stopped duplicate/stale Quickshell runtime' \
   "doctor should repair duplicate Quickshell runtimes instead of allowing two bars"
+assert_contains "$output" 'FIX: Restarted ryoku-shell.service to collapse duplicate Ryoku bars' \
+  "doctor should repair duplicate canonical Ryoku shell runtimes instead of allowing two bars"
 assert_not_contains "$output" 'Checking Niri|iNiR|inir' \
   "doctor should not advertise stale Niri/iNiR shell checks"
 assert_contains "$output" 'Doctor report:' \
@@ -278,6 +284,8 @@ unset RYOKU_DOCTOR_GUM_INSTALLER
 qs_kill_output="$(<"$qs_kill_log")"
 assert_contains "$qs_kill_output" "kill -p $legacy_runtime --any-display" \
   "doctor should kill the stale host-shell Quickshell runtime"
+assert_contains "$qs_kill_output" "kill -p $runtime --any-display" \
+  "doctor should restart duplicate canonical Ryoku shell runtimes"
 
 systemctl_output="$(<"$systemctl_log")"
 assert_contains "$systemctl_output" '--user enable --now ryoku-audio-restore-mixers.service' \

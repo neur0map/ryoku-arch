@@ -538,19 +538,26 @@ quickshell_config_is_stale_runtime() {
 
 stop_duplicate_quickshell_runtimes() {
   local output line current_config=""
+  local canonical_count=0
+  local canonical_runtime
   local stale_runtime
   local stale_runtimes=()
 
   command_present qs || return 0
   hyprland_session_active || return 0
 
+  canonical_runtime="$(rebirth_shell_runtime_dir)"
   output="$(env -u QS_CONFIG_NAME -u QS_CONFIG_PATH -u QS_MANIFEST qs list --all 2>/dev/null)" || return 0
 
   while IFS= read -r line; do
     case "$line" in
       Instance\ *)
-        if [[ -n $current_config ]] && quickshell_config_is_stale_runtime "$current_config"; then
-          stale_runtimes+=("$(quickshell_config_runtime_dir "$current_config")")
+        if [[ -n $current_config ]]; then
+          if [[ $current_config == "$canonical_runtime/shell.qml" ]]; then
+            ((canonical_count++)) || true
+          elif quickshell_config_is_stale_runtime "$current_config"; then
+            stale_runtimes+=("$(quickshell_config_runtime_dir "$current_config")")
+          fi
         fi
         current_config=""
         ;;
@@ -560,8 +567,12 @@ stop_duplicate_quickshell_runtimes() {
     esac
   done <<<"$output"
 
-  if [[ -n $current_config ]] && quickshell_config_is_stale_runtime "$current_config"; then
-    stale_runtimes+=("$(quickshell_config_runtime_dir "$current_config")")
+  if [[ -n $current_config ]]; then
+    if [[ $current_config == "$canonical_runtime/shell.qml" ]]; then
+      ((canonical_count++)) || true
+    elif quickshell_config_is_stale_runtime "$current_config"; then
+      stale_runtimes+=("$(quickshell_config_runtime_dir "$current_config")")
+    fi
   fi
 
   for stale_runtime in "${stale_runtimes[@]}"; do
@@ -570,6 +581,24 @@ stop_duplicate_quickshell_runtimes() {
       qs kill -p "$stale_runtime" --any-display >/dev/null 2>&1 || \
       warn "could not stop stale Quickshell runtime: $stale_runtime"
   done
+
+  if (( canonical_count > 1 )); then
+    restart_canonical_ryoku_shell_runtime "$canonical_runtime"
+  fi
+}
+
+restart_canonical_ryoku_shell_runtime() {
+  local runtime_dir="$1"
+
+  log "Restarting canonical Ryoku shell runtime to collapse duplicate bars"
+  env -u QS_CONFIG_NAME -u QS_CONFIG_PATH -u QS_MANIFEST \
+    qs kill -p "$runtime_dir" --any-display >/dev/null 2>&1 || \
+    warn "could not stop duplicate canonical Ryoku shell runtime"
+
+  systemctl --user reset-failed ryoku-shell.service >/dev/null 2>&1 || true
+  systemctl --user restart ryoku-shell.service >/dev/null 2>&1 || \
+    systemctl --user start ryoku-shell.service >/dev/null 2>&1 || \
+    warn "could not restart ryoku-shell.service after duplicate runtime cleanup"
 }
 
 converge_rebirth_session_services() {

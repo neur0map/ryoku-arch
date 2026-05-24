@@ -20,4 +20,4 @@ TimeoutStopSec=15
 LimitCORE=0
 ExecStopPost=-%h/.local/share/ryoku/bin/ryoku-shell-cleanup-orphans --quiet
 
-# No [Install] section. Ryoku wires startup from the active compositor path.
+# No [Install] section. Hyprland starts this service from the Ryoku session config.

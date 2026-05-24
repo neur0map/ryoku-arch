@@ -120,7 +120,7 @@ enable_service() {
   install_service
 
   # Hyprland can be started directly or through UWSM. Keep the service file
-  # compositor-neutral and let Hyprland exec-once start it for this branch.
+  # compositor-neutral and let Hyprland exec-once start the service.
   if [[ ${RYOKU_COMPOSITOR:-} == "hyprland" || -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]]; then
     systemctl --user reset-failed ryoku-shell.service >/dev/null 2>&1 || true
   fi
