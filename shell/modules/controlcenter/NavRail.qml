@@ -58,25 +58,25 @@ Item {
     root.session.active = label;
   }
 
-  implicitWidth: 292
-  implicitHeight: layout.implicitHeight + Tokens.padding.large * 2
+  implicitWidth: 224
+  implicitHeight: layout.implicitHeight + Tokens.padding.normal * 2
 
   ColumnLayout {
     id: layout
 
     anchors.fill: parent
-    anchors.margins: Tokens.padding.large
-    spacing: Tokens.spacing.normal
+    anchors.margins: Tokens.padding.normal
+    spacing: Tokens.spacing.small
 
     RowLayout {
       Layout.fillWidth: true
-      Layout.bottomMargin: Tokens.spacing.small
-      spacing: Tokens.spacing.normal
+      Layout.bottomMargin: Tokens.spacing.smaller
+      spacing: Tokens.spacing.small
 
       StyledRect {
         Layout.alignment: Qt.AlignVCenter
-        implicitWidth: 38
-        implicitHeight: 38
+        implicitWidth: 32
+        implicitHeight: 32
         radius: Tokens.rounding.small
         color: Colours.palette.m3primary
 
@@ -84,7 +84,7 @@ Item {
           anchors.centerIn: parent
           text: "tune"
           color: Colours.palette.m3onPrimary
-          font.pointSize: Tokens.font.size.large
+          font.pointSize: Tokens.font.size.normal
           fill: 1
         }
       }
@@ -96,17 +96,9 @@ Item {
 
         StyledText {
           Layout.fillWidth: true
-          text: qsTr("Ryoku Settings")
-          font.pointSize: Tokens.font.size.larger
+          text: qsTr("Settings")
+          font.pointSize: Tokens.font.size.large
           font.weight: 650
-          elide: Text.ElideRight
-        }
-
-        StyledText {
-          Layout.fillWidth: true
-          text: root.activeEntry ? PaneRegistry.groupDescription(root.activeEntry.group) : qsTr("Shell controls")
-          color: Colours.palette.m3onSurfaceVariant
-          font.pointSize: Tokens.font.size.small
           elide: Text.ElideRight
         }
       }
@@ -114,13 +106,13 @@ Item {
 
     StyledRect {
       Layout.fillWidth: true
-      implicitHeight: 42
+      implicitHeight: 36
       radius: Tokens.rounding.small
       color: Colours.palette.m3surfaceContainerHigh
 
       RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: Tokens.padding.normal
+        anchors.leftMargin: Tokens.padding.small
         anchors.rightMargin: Tokens.padding.smaller
         spacing: Tokens.spacing.small
 
@@ -178,7 +170,7 @@ Item {
         id: navContent
 
         width: navFlickable.width
-        spacing: Tokens.spacing.small
+        spacing: Tokens.spacing.smaller
 
         Repeater {
           model: root.filteredPanes
@@ -194,8 +186,8 @@ Item {
 
             StyledText {
               Layout.fillWidth: true
-              Layout.topMargin: paneBlock.index === 0 ? 0 : Tokens.spacing.normal
-              Layout.leftMargin: Tokens.padding.small
+              Layout.topMargin: paneBlock.index === 0 ? 0 : Tokens.spacing.small
+              Layout.leftMargin: Tokens.padding.smaller
               visible: root.isFirstInGroup(paneBlock.index)
               text: PaneRegistry.groupLabel(paneBlock.modelData.group)
               color: Colours.palette.m3primary
@@ -280,7 +272,7 @@ Item {
     required property var entry
     required property bool active
 
-    implicitHeight: Math.max(58, row.implicitHeight + Tokens.padding.normal * 2)
+    implicitHeight: Math.max(44, row.implicitHeight + Tokens.padding.small * 2)
     radius: Tokens.rounding.small
     color: item.active ? Colours.palette.m3primaryContainer : "transparent"
 
@@ -297,13 +289,13 @@ Item {
       anchors.left: parent.left
       anchors.right: parent.right
       anchors.verticalCenter: parent.verticalCenter
-      anchors.margins: Tokens.padding.normal
-      spacing: Tokens.spacing.normal
+      anchors.margins: Tokens.padding.small
+      spacing: Tokens.spacing.small
 
       StyledRect {
         Layout.alignment: Qt.AlignVCenter
-        implicitWidth: 34
-        implicitHeight: 34
+        implicitWidth: 28
+        implicitHeight: 28
         radius: Tokens.rounding.small
         color: item.active ? Colours.palette.m3primary : Colours.palette.m3surfaceContainerHighest
 
@@ -311,7 +303,7 @@ Item {
           anchors.centerIn: parent
           text: item.entry.icon
           color: item.active ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
-          font.pointSize: Tokens.font.size.normal
+          font.pointSize: Tokens.font.size.small
           fill: item.active ? 1 : 0
 
           Behavior on fill {
@@ -320,27 +312,14 @@ Item {
         }
       }
 
-      ColumnLayout {
+      StyledText {
         Layout.fillWidth: true
         Layout.alignment: Qt.AlignVCenter
-        spacing: 1
-
-        StyledText {
-          Layout.fillWidth: true
-          text: item.entry.label
-          color: item.active ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
-          font.capitalization: Font.Capitalize
-          font.weight: item.active ? 650 : 550
-          elide: Text.ElideRight
-        }
-
-        StyledText {
-          Layout.fillWidth: true
-          text: item.entry.description
-          color: item.active ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
-          font.pointSize: Tokens.font.size.small
-          elide: Text.ElideRight
-        }
+        text: item.entry.label
+        color: item.active ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
+        font.capitalization: Font.Capitalize
+        font.weight: item.active ? 650 : 550
+        elide: Text.ElideRight
       }
     }
   }

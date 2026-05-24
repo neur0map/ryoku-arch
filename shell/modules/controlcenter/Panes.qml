@@ -23,15 +23,44 @@ ClippingRectangle {
 
   required property Session session
 
-  readonly property bool initialOpeningComplete: stack.initialOpeningComplete
+  property bool initialOpeningComplete: false
   readonly property var activeEntry: PaneRegistry.getByLabel(session.active)
   readonly property var activeGroupPanes: activeEntry ? PaneRegistry.getByGroup(activeEntry.group) : []
+  readonly property string activeComponent: activeEntry ? activeEntry.component : ""
   readonly property string relatedLabel: activeEntry ? PaneRegistry.groupLabel(activeEntry.group) : qsTr("Related")
+
+  function loadActivePane(): void {
+    if (root.activeComponent === "")
+      return;
+
+    activePaneLoader.opacity = 0;
+    activePaneLoader.setSource(root.activeComponent, {
+      "session": root.session
+    });
+  }
 
   color: Colours.palette.m3surface
   clip: true
   focus: false
   activeFocusOnTab: false
+
+  Component.onCompleted: {
+    Qt.callLater(root.loadActivePane);
+  }
+
+  onActiveComponentChanged: {
+    Qt.callLater(root.loadActivePane);
+  }
+
+  Timer {
+    id: initialOpeningTimer
+
+    interval: Tokens.anim.durations.normal
+    running: true
+    onTriggered: {
+      root.initialOpeningComplete = true;
+    }
+  }
 
   MouseArea {
     anchors.fill: parent
@@ -53,22 +82,22 @@ ClippingRectangle {
 
   ColumnLayout {
     anchors.fill: parent
-    anchors.margins: Tokens.padding.large
-    spacing: Tokens.spacing.normal
+    anchors.margins: Tokens.padding.normal
+    spacing: Tokens.spacing.small
 
     RowLayout {
       id: header
 
       Layout.fillWidth: true
       Layout.preferredHeight: Math.max(titleColumn.implicitHeight, activeIcon.implicitHeight)
-      spacing: Tokens.spacing.normal
+      spacing: Tokens.spacing.small
 
       StyledRect {
         id: activeIcon
 
         Layout.alignment: Qt.AlignVCenter
-        implicitWidth: 42
-        implicitHeight: 42
+        implicitWidth: 34
+        implicitHeight: 34
         radius: Tokens.rounding.small
         color: Colours.palette.m3secondaryContainer
 
@@ -76,7 +105,7 @@ ClippingRectangle {
           anchors.centerIn: parent
           text: root.activeEntry ? root.activeEntry.icon : "settings"
           color: Colours.palette.m3onSecondaryContainer
-          font.pointSize: Tokens.font.size.large
+          font.pointSize: Tokens.font.size.normal
           fill: 1
         }
       }
@@ -92,7 +121,7 @@ ClippingRectangle {
           Layout.fillWidth: true
           text: root.activeEntry ? root.activeEntry.label : root.session.active
           font.capitalization: Font.Capitalize
-          font.pointSize: Tokens.font.size.large
+          font.pointSize: Tokens.font.size.normal
           font.weight: 700
           elide: Text.ElideRight
         }
@@ -111,7 +140,7 @@ ClippingRectangle {
         visible: relatedFlickable.visible
         text: root.relatedLabel
         color: Colours.palette.m3onSurfaceVariant
-        font.pointSize: Tokens.font.size.small
+        font.pointSize: Tokens.font.size.smaller
         font.weight: 600
         elide: Text.ElideRight
       }
@@ -132,7 +161,7 @@ ClippingRectangle {
       RowLayout {
         id: tabRow
 
-        spacing: Tokens.spacing.small
+        spacing: Tokens.spacing.smaller
 
         Repeater {
           model: root.activeGroupPanes
@@ -144,9 +173,9 @@ ClippingRectangle {
             readonly property bool active: root.session.active === modelData.label
 
             Layout.alignment: Qt.AlignVCenter
-            implicitWidth: tabContent.implicitWidth + Tokens.padding.normal * 2
-            implicitHeight: 36
-            radius: Tokens.rounding.full
+            implicitWidth: tabContent.implicitWidth + Tokens.padding.small * 2
+            implicitHeight: 30
+            radius: Tokens.rounding.small
             color: active ? Colours.palette.m3primary : Colours.palette.m3surfaceContainerHigh
 
             StateLayer {
@@ -165,7 +194,7 @@ ClippingRectangle {
               id: tabContent
 
               anchors.centerIn: parent
-              spacing: Tokens.spacing.small
+              spacing: Tokens.spacing.smaller
 
               MaterialIcon {
                 Layout.alignment: Qt.AlignVCenter
@@ -194,145 +223,25 @@ ClippingRectangle {
 
       Layout.fillWidth: true
       Layout.fillHeight: true
-      radius: Tokens.rounding.normal
+      radius: Tokens.rounding.small
       color: Colours.palette.m3surfaceContainerLow
       clip: true
 
-      ColumnLayout {
-        id: stack
+      Loader {
+        id: activePaneLoader
 
-        property bool animationComplete: true
-        property bool initialOpeningComplete: false
-
-        spacing: 0
-        y: -root.session.activeIndex * viewport.height
+        anchors.fill: parent
+        asynchronous: true
         clip: true
 
-        Timer {
-          id: animationDelayTimer
-
-          interval: Tokens.anim.durations.normal
-          onTriggered: {
-            stack.animationComplete = true;
-          }
+        onLoaded: {
+          activePaneLoader.opacity = 1;
         }
 
-        Timer {
-          id: initialOpeningTimer
-
-          interval: Tokens.anim.durations.large
-          running: true
-          onTriggered: {
-            stack.initialOpeningComplete = true;
-          }
-        }
-
-        Repeater {
-          model: PaneRegistry.count
-
-          Pane {
-            required property int index
-
-            paneIndex: index
-            componentPath: PaneRegistry.getByIndex(index).component
-          }
-        }
-
-        Behavior on y {
+        Behavior on opacity {
           Anim {}
         }
-
-        Connections {
-          function onActiveIndexChanged(): void {
-            stack.animationComplete = false;
-            animationDelayTimer.restart();
-          }
-
-          target: root.session
-        }
       }
-    }
-  }
-
-  component Pane: Item {
-    id: pane
-
-    required property int paneIndex
-    required property string componentPath
-    property bool hasBeenLoaded: false
-
-    function updateActive(): void {
-      const diff = Math.abs(root.session.activeIndex - pane.paneIndex);
-      const isActivePane = diff === 0;
-      let shouldBeActive = false;
-
-      if (!stack.initialOpeningComplete) {
-        shouldBeActive = isActivePane;
-      } else {
-        if (diff <= 1) {
-          shouldBeActive = true;
-        } else if (pane.hasBeenLoaded) {
-          shouldBeActive = true;
-        } else {
-          shouldBeActive = stack.animationComplete;
-        }
-      }
-
-      loader.active = shouldBeActive;
-    }
-
-    implicitWidth: viewport.width
-    implicitHeight: viewport.height
-
-    Loader {
-      id: loader
-
-      anchors.fill: parent
-      asynchronous: true
-      clip: false
-      active: false
-
-      Component.onCompleted: {
-        Qt.callLater(pane.updateActive);
-      }
-
-      onActiveChanged: {
-        if (active && !pane.hasBeenLoaded) {
-          pane.hasBeenLoaded = true;
-        }
-
-        if (active && !item) {
-          loader.setSource(pane.componentPath, {
-            "session": root.session
-          });
-        }
-      }
-
-      onItemChanged: {
-        if (item) {
-          pane.hasBeenLoaded = true;
-        }
-      }
-    }
-
-    Connections {
-      function onActiveIndexChanged(): void {
-        pane.updateActive();
-      }
-
-      target: root.session
-    }
-
-    Connections {
-      function onInitialOpeningCompleteChanged(): void {
-        pane.updateActive();
-      }
-
-      function onAnimationCompleteChanged(): void {
-        pane.updateActive();
-      }
-
-      target: stack
     }
   }
 }

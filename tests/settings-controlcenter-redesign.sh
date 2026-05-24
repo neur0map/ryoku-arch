@@ -36,10 +36,22 @@ assert_contains "shell/modules/controlcenter/NavRail.qml" "model: root.filteredP
   "settings navigation should render filtered pane entries"
 assert_contains "shell/modules/controlcenter/NavRail.qml" "PaneRegistry.groupDescription" \
   "settings navigation should keep group context visible"
-assert_contains "shell/modules/controlcenter/NavRail.qml" "text: item.entry.description" \
-  "settings navigation should show pane-specific descriptions"
+assert_not_contains "shell/modules/controlcenter/NavRail.qml" "text: item.entry.description" \
+  "settings navigation should use compact pane entries without bulky descriptions"
 assert_not_contains "shell/modules/controlcenter/NavRail.qml" "component CategoryItem" \
   "settings navigation should no longer be the old four category buttons"
+assert_contains "shell/modules/controlcenter/ControlCenter.qml" "implicitWidth: Math.min(screen.width * 0.62, 1220)" \
+  "settings window should default to a compact width"
+assert_contains "shell/modules/controlcenter/ControlCenter.qml" "implicitHeight: Math.min(screen.height * 0.58, 820)" \
+  "settings window should default to a compact height"
+assert_not_contains "shell/modules/controlcenter/ControlCenter.qml" "screen.width * 0.84" \
+  "settings window should not keep the old oversized width"
+assert_not_contains "shell/modules/controlcenter/ControlCenter.qml" "screen.height * 0.78" \
+  "settings window should not keep the old oversized height"
+assert_contains "shell/modules/controlcenter/NavRail.qml" "implicitWidth: 224" \
+  "settings navigation should be a compact rail"
+assert_not_contains "shell/modules/controlcenter/NavRail.qml" "text: item.entry.description" \
+  "settings navigation should not keep bulky description rows"
 
 assert_contains "shell/modules/controlcenter/Panes.qml" "readonly property string relatedLabel" \
   "settings pane chrome should name related panes without owning backend state"
@@ -47,6 +59,16 @@ assert_contains "shell/modules/controlcenter/Panes.qml" "root.session.active = t
   "settings pane tabs should preserve existing Session routing"
 assert_contains "shell/modules/controlcenter/Panes.qml" "color: Colours.palette.m3surfaceContainerLow" \
   "settings viewport should avoid the old over-blurred transparent surface"
+assert_contains "shell/modules/controlcenter/Panes.qml" "id: activePaneLoader" \
+  "settings panes should load the active pane directly"
+assert_contains "shell/modules/controlcenter/Panes.qml" "activePaneLoader.setSource(root.activeComponent, {" \
+  "settings pane switching should preserve existing pane backend properties"
+assert_not_contains "shell/modules/controlcenter/Panes.qml" "model: PaneRegistry.count" \
+  "settings panes should not keep the old stacked scrolling frontend"
+assert_not_contains "shell/modules/controlcenter/Panes.qml" "y: -root.session.activeIndex * viewport.height" \
+  "settings pane switching should not look like vertical scrolling"
+assert_not_contains "shell/modules/controlcenter/Panes.qml" "Behavior on y" \
+  "settings pane switching should not animate by scrolling the stack"
 
 assert_contains "shell/modules/controlcenter/WindowFactory.qml" "color: Colours.palette.m3surface" \
   "floating settings window should use an opaque base surface"
