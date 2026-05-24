@@ -45,6 +45,7 @@ ryoku_config_file() {
 
 configured_release_branch() {
   local configured="${RYOKU_UPDATE_BRANCH:-}"
+  local fallback="${RYOKU_BOOTSTRAP_DEFAULT_BRANCH:-unstable-dev}"
   local state_file
   local config_file
 
@@ -61,8 +62,13 @@ configured_release_branch() {
     fi
   fi
 
+  if [[ -z $configured ]]; then
+    configured="$fallback"
+    warn "no Ryoku update channel configured; bootstrap is using $configured for rebirth recovery"
+  fi
+
   case "$configured" in
-    "" | main)
+    main)
       printf '%s\n' "main"
       ;;
     unstable-dev)

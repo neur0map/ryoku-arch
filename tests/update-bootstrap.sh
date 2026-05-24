@@ -87,3 +87,31 @@ grep -qx 'unstable bootstrap' "$install/unstable.txt" || \
   fail "bootstrap should repair the local runtime-env bridge"
 
 echo "PASS: ryoku-update-bootstrap repairs stale updater installs"
+
+default_home="$tmp/default-home"
+default_install="$default_home/.local/share/ryoku"
+default_state="$default_home/.local/state/ryoku"
+default_log="$tmp/default-bootstrap.log"
+
+mkdir -p "$default_home/.local/bin" "$default_state"
+
+output=$(
+  HOME="$default_home" \
+  RYOKU_PATH="$default_install" \
+  RYOKU_STATE_PATH="$default_state" \
+  RYOKU_UPDATE_REMOTE_URL="$remote" \
+  RYOKU_TEST_LOG="$default_log" \
+  PATH="/usr/bin:/bin" \
+    "$ROOT_DIR/bin/ryoku-update-bootstrap" 2>&1
+) || fail "bootstrap should default unconfigured rebirth recovery to unstable-dev: $output"
+
+grep -Fq 'no Ryoku update channel configured; bootstrap is using unstable-dev' <<< "$output" || \
+  fail "bootstrap should explain the rebirth recovery default channel"
+grep -Fq 'Channel: unstable-dev' <<< "$output" || \
+  fail "bootstrap should default to unstable-dev when no state or config channel exists"
+[[ $(git -C "$default_install" branch --show-current) == "unstable-dev" ]] || \
+  fail "unconfigured bootstrap should leave the checkout on unstable-dev"
+grep -Fq 'fresh-update:-y' "$default_log" || \
+  fail "unconfigured bootstrap should still exec the refreshed installed updater"
+
+echo "PASS: ryoku-update-bootstrap defaults to rebirth recovery channel"
