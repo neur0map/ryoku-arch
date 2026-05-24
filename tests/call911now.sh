@@ -127,4 +127,66 @@ grep -Fxq 'update_status=0' "$state/last-medevac" || \
 grep -Fq 'preserved_backups=' "$state/last-medevac" || \
   fail "medevac state should record preserved checkout backup paths"
 
+git_home="$tmp/git-home"
+git_install="$git_home/.local/share/ryoku"
+git_state="$git_home/.local/state/ryoku"
+git_remote="$tmp/git-remote.git"
+git_seed="$tmp/git-seed"
+git_log="$tmp/git-medevac.log"
+
+mkdir -p "$git_home/.local/share" "$git_state"
+git init --bare "$git_remote" >/dev/null
+git clone "$git_remote" "$git_seed" >/dev/null 2>&1
+git -C "$git_seed" config user.email test@example.invalid
+git -C "$git_seed" config user.name "Ryoku Test"
+mkdir -p "$git_seed/bin" "$git_seed/lib" "$git_seed/shell/scripts"
+printf '%s\n' '# runtime env' >"$git_seed/lib/runtime-env.sh"
+write_executable "$git_seed/bin/ryoku-doctor" '#!/bin/bash
+printf "doctor:%s\n" "${RYOKU_PATH:-missing}" >> "$RYOKU_TEST_LOG"'
+write_executable "$git_seed/bin/ryoku-update" '#!/bin/bash
+printf "update:%s:%s\n" "${RYOKU_UPDATE_DOCTOR_COMMAND:-missing}" "$*" >> "$RYOKU_TEST_LOG"'
+write_executable "$git_seed/shell/scripts/ryoku" '#!/bin/bash
+exit 0'
+write_executable "$git_seed/shell/scripts/ryoku-shell" '#!/bin/bash
+exit 0'
+git -C "$git_seed" add .
+git -C "$git_seed" commit -m "base rescue checkout" >/dev/null
+git -C "$git_seed" push origin HEAD:main >/dev/null 2>&1
+git clone --branch main "$git_remote" "$git_install" >/dev/null 2>&1
+
+write_executable "$git_seed/bin/ryoku-call911now" '#!/bin/bash
+exit 0'
+write_executable "$git_seed/bin/ryoku-toggle-floating-center" '#!/bin/bash
+exit 0'
+git -C "$git_seed" add bin/ryoku-call911now bin/ryoku-toggle-floating-center
+git -C "$git_seed" commit -m "add rescue commands" >/dev/null
+git -C "$git_seed" push origin HEAD:main >/dev/null 2>&1
+incoming_tip="$(git -C "$git_seed" rev-parse HEAD)"
+write_executable "$git_install/bin/ryoku-toggle-floating-center" '#!/bin/bash
+exit 99'
+
+git_output=$(
+  HOME="$git_home" \
+  RYOKU_PATH="$git_install" \
+  RYOKU_STATE_PATH="$git_state" \
+  RYOKU_UPDATE_BRANCH=main \
+  RYOKU_UPDATE_REMOTE_URL="$git_remote" \
+  RYOKU_MEDEVAC_NO_SUDO_PROMPT=1 \
+  RYOKU_MEDEVAC_PLAIN=1 \
+  RYOKU_TEST_LOG="$git_log" \
+    "$ROOT_DIR/bin/ryoku-call911now" 2>&1
+) || fail "medevac should preserve dirty official checkouts before recovering: $git_output"
+
+[[ $(git -C "$git_install" rev-parse HEAD) == "$incoming_tip" ]] || \
+  fail "medevac should replace a dirty checkout with the latest official tip"
+[[ -L $git_home/.local/bin/ryoku-call911now ]] || \
+  fail "medevac should repair command bridges after preserving a dirty checkout"
+grep -Fq "doctor:$git_install" "$git_log" || \
+  fail "medevac should run doctor after dirty checkout recovery"
+grep -Fq "update:$git_install/bin/ryoku-doctor:-y" "$git_log" || \
+  fail "medevac should run update after dirty checkout recovery"
+preserved_line="$(grep -F 'preserved_backups=' "$git_state/last-medevac")"
+[[ $preserved_line == *medevac-backups* ]] || \
+  fail "medevac should record the preserved dirty checkout backup"
+
 printf '%s\n' "PASS: ryoku-call911now medevac"

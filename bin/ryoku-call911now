@@ -423,6 +423,10 @@ head_is_official_history() {
   return 1
 }
 
+checkout_has_local_file_changes() {
+  [[ -n $(git_in_ryoku status --porcelain --untracked-files=normal 2>/dev/null || true) ]]
+}
+
 backup_existing_path() {
   local reason="$1"
   local backup_dir backup_path
@@ -465,6 +469,12 @@ fast_forward_or_realign() {
 ensure_git_checkout() {
   if [[ -d $ryoku_path/.git ]]; then
     fetch_release_refs
+    if checkout_has_local_file_changes; then
+      warn "installed checkout has local file changes; MedEvac will preserve it and install a clean official checkout"
+      backup_existing_path "dirty"
+      clone_fresh_checkout
+      return
+    fi
     checkout_release_branch
     fast_forward_or_realign
     return
