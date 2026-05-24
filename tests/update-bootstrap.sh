@@ -128,6 +128,36 @@ grep -Fq 'fresh-update:-y' "$default_log" || \
 
 echo "PASS: ryoku-update-bootstrap defaults to rebirth recovery channel"
 
+legacy_home="$tmp/legacy-home"
+legacy_install="$legacy_home/.local/share/omarchy"
+legacy_canonical="$legacy_home/.local/share/ryoku"
+legacy_state="$legacy_home/.local/state/ryoku"
+legacy_log="$tmp/legacy-bootstrap.log"
+
+mkdir -p "$legacy_home/.local/share" "$legacy_state"
+git clone "$remote" "$legacy_install" >/dev/null 2>&1
+git -C "$legacy_install" checkout unstable-dev >/dev/null 2>&1
+
+output=$(
+  HOME="$legacy_home" \
+  RYOKU_PATH="" \
+  RYOKU_STATE_PATH="$legacy_state" \
+  RYOKU_UPDATE_REMOTE_URL="$remote" \
+  RYOKU_UPDATE_BRANCH=unstable-dev \
+  RYOKU_TEST_LOG="$legacy_log" \
+  PATH="/usr/bin:/bin" \
+    "$ROOT_DIR/bin/ryoku-update-bootstrap" 2>&1
+) || fail "bootstrap should expose legacy omarchy installs at the canonical Ryoku path: $output"
+
+[[ -L $legacy_canonical ]] || \
+  fail "legacy bootstrap should create ~/.local/share/ryoku canonical link"
+[[ $(readlink "$legacy_canonical") == "$legacy_install" ]] || \
+  fail "legacy bootstrap canonical link should point at the legacy installed checkout"
+[[ -x $legacy_canonical/bin/ryoku-doctor ]] || \
+  fail "legacy bootstrap should make the canonical doctor path usable"
+
+echo "PASS: ryoku-update-bootstrap exposes legacy installs at canonical path"
+
 system_home="$tmp/system-home"
 system_install="$system_home/.local/share/ryoku"
 system_state="$system_home/.local/state/ryoku"

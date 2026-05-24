@@ -98,6 +98,17 @@ default_ryoku_path() {
   fi
 }
 
+ensure_canonical_ryoku_path() {
+  local canonical_path="$HOME/.local/share/ryoku"
+
+  [[ -e $canonical_path ]] && return 0
+  [[ -e $ryoku_path ]] || return 0
+
+  mkdir -p "$(dirname "$canonical_path")"
+  ln -sfn "$ryoku_path" "$canonical_path"
+  log "Linked installed checkout into canonical Ryoku path: $canonical_path -> $ryoku_path"
+}
+
 git_in_ryoku() {
   GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=/bin/true git -C "$ryoku_path" "$@"
 }
@@ -304,6 +315,7 @@ ryoku_path="$(default_ryoku_path)"
 
 log "Bootstrapping Ryoku updater from $update_remote ($release_branch)"
 ensure_checkout
+ensure_canonical_ryoku_path
 repair_command_bridges
 print_bootstrap_summary
 
