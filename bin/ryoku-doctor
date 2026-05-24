@@ -566,8 +566,37 @@ report_git_fast_forward_stall() {
   return 2
 }
 
+report_local_runtime_env_bridge_failure() {
+  local log="$1"
+  local bin_home="${XDG_BIN_HOME:-$HOME/.local/bin}"
+  local bridge_dir bridge_path source_path
+
+  grep -Eq '\.local/lib/runtime-env\.sh: No such file' "$log" || return 1
+
+  source_path="$RYOKU_PATH/lib/runtime-env.sh"
+  bridge_dir="$(dirname "$bin_home")/lib"
+  bridge_path="$bridge_dir/runtime-env.sh"
+
+  if [[ ! -f $source_path ]]; then
+    echo "Ryoku runtime environment source is missing: $source_path"
+    doctor_report_issue "FAIL Missing runtime-env source for the local command bridge."
+    return 2
+  fi
+
+  if ! mkdir -p "$bridge_dir" || ! ln -sfn "$source_path" "$bridge_path"; then
+    echo "Could not repair local command runtime bridge: $bridge_path"
+    doctor_report_issue "FAIL Could not repair local command runtime-env bridge."
+    return 2
+  fi
+
+  echo "Repaired local command runtime bridge:"
+  echo "  $bridge_path -> $source_path"
+  doctor_report_issue "FIX Repaired local command runtime-env bridge."
+  return 0
+}
+
 run_update_doctor() {
-  local log repair_status migration_status ff_status
+  local log repair_status migration_status ff_status runtime_env_status
   local fixes=0
   local safe_to_retry=0
   local unresolved=0
@@ -625,6 +654,17 @@ run_update_doctor() {
   else
     warnings=$?
     doctor_report_issue "WARN Package/update warnings detected."
+  fi
+
+  if report_local_runtime_env_bridge_failure "$log"; then
+    ((fixes++)) || true
+    echo
+  else
+    runtime_env_status=$?
+    if (( runtime_env_status == 2 )); then
+      ((unresolved++)) || true
+      echo
+    fi
   fi
 
   if report_resolved_migration_failures "$log"; then

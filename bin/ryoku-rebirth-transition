@@ -1,0 +1,398 @@
+#!/bin/bash
+
+set -euo pipefail
+
+remote_url="${RYOKU_UPDATE_REMOTE_URL:-https://github.com/neur0map/ryoku-arch.git}"
+transition_branch="${RYOKU_REBIRTH_TRANSITION_BRANCH:-unstable-dev}"
+raw_script_url="${RYOKU_REBIRTH_TRANSITION_URL:-https://raw.githubusercontent.com/neur0map/ryoku-arch/unstable-dev/bin/ryoku-rebirth-transition}"
+allow_auth_prompt=false
+skip_purge=false
+ryoku_root=""
+canonical_ryoku_root="$HOME/.local/share/ryoku"
+legacy_ryoku_root="$HOME/.local/share/omarchy"
+
+usage() {
+  cat <<'EOF'
+Usage: ryoku-rebirth-transition [--allow-auth-prompt] [--skip-purge]
+
+Bootstraps already-installed Ryoku/Niri systems onto the rebirth Hyprland
+stack without reinstalling the ISO.
+
+What it does:
+  - repairs legacy ~/.local/bin runtime-env resolution
+  - switches the update channel to unstable-dev
+  - updates the installed Ryoku checkout
+  - installs the minimal Hyprland/rebirth package set
+  - runs the normal Ryoku update stages
+  - refreshes the rebirth Hyprland config with backups
+  - purges Niri/iNiR only when the guarded purge command proves Hyprland is active
+
+Options:
+  --allow-auth-prompt  allow sudo/package prompts when root authorization is needed
+  --skip-purge         leave Niri/iNiR cleanup for a later manual run
+EOF
+}
+
+log() {
+  printf '\033[35;1m==>\033[0m %s\n' "$*"
+}
+
+warn() {
+  printf '\033[33mwarning:\033[0m %s\n' "$*" >&2
+}
+
+die() {
+  printf '\033[31;1merror:\033[0m %s\n' "$*" >&2
+  exit 1
+}
+
+command_present() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+while (($# > 0)); do
+  case "$1" in
+    --allow-auth-prompt)
+      allow_auth_prompt=true
+      ;;
+    --skip-purge)
+      skip_purge=true
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      die "unknown argument: $1"
+      ;;
+  esac
+  shift
+done
+
+resolve_ryoku_root() {
+  local candidate
+  local candidates=()
+
+  if [[ -n ${RYOKU_PATH:-} ]]; then
+    candidates+=("$RYOKU_PATH")
+  fi
+  candidates+=("$canonical_ryoku_root" "$legacy_ryoku_root")
+
+  for candidate in "${candidates[@]}"; do
+    [[ -e $candidate ]] || continue
+    ryoku_root="$(cd -- "$candidate" && pwd -P)"
+    ensure_canonical_ryoku_path
+    return 0
+  done
+
+  command_present git || die "git is required to bootstrap Ryoku when no installed checkout exists"
+
+  ryoku_root="$canonical_ryoku_root"
+  mkdir -p "$(dirname "$ryoku_root")"
+  log "No installed checkout found; cloning Ryoku $transition_branch"
+  git clone --branch "$transition_branch" "$remote_url" "$ryoku_root"
+  ryoku_root="$(cd -- "$ryoku_root" && pwd -P)"
+}
+
+ensure_canonical_ryoku_path() {
+  if [[ -e $canonical_ryoku_root ]]; then
+    return 0
+  fi
+
+  if [[ -L $canonical_ryoku_root ]]; then
+    rm -f "$canonical_ryoku_root"
+  fi
+
+  if [[ -n $ryoku_root && -e $ryoku_root ]]; then
+    mkdir -p "$(dirname "$canonical_ryoku_root")"
+    ln -sfn "$ryoku_root" "$canonical_ryoku_root"
+    log "Linked installed checkout into canonical Ryoku path: $canonical_ryoku_root -> $ryoku_root"
+  fi
+}
+
+can_use_sudo() {
+  ((EUID == 0)) && return 0
+  command_present sudo || return 1
+
+  if [[ $allow_auth_prompt == true ]]; then
+    sudo -v
+  else
+    sudo -n true >/dev/null 2>&1
+  fi
+}
+
+repair_runtime_env_bridges() {
+  local runtime_env="$ryoku_root/lib/runtime-env.sh"
+  local local_lib="$HOME/.local/lib"
+
+  [[ -f $runtime_env ]] || die "missing Ryoku runtime env: $runtime_env"
+
+  log "Repairing legacy command runtime-env bridges"
+  mkdir -p "$local_lib"
+  ln -sfn "$runtime_env" "$local_lib/runtime-env.sh"
+  printf '  %s -> %s\n' "$local_lib/runtime-env.sh" "$runtime_env"
+
+  if can_use_sudo; then
+    sudo install -d /usr/local/lib
+    sudo ln -sfn "$runtime_env" /usr/local/lib/runtime-env.sh
+    printf '  %s -> %s\n' "/usr/local/lib/runtime-env.sh" "$runtime_env"
+  else
+    warn "skipped /usr/local/lib/runtime-env.sh bridge because sudo is not available"
+  fi
+}
+
+write_update_channel() {
+  local state_path="${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}"
+  local config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
+  local config_file
+
+  if [[ -n ${RYOKU_SHELL_CONFIG_DIR:-} ]]; then
+    config_file="$RYOKU_SHELL_CONFIG_DIR/config.json"
+  else
+    config_file="$config_home/ryoku-shell/config.json"
+  fi
+
+  log "Setting Ryoku update channel to $transition_branch"
+  mkdir -p "$state_path"
+  printf '%s\n' "$transition_branch" >"$state_path/channel"
+
+  if command_present python3; then
+    python3 - "$config_file" "$transition_branch" <<'PY'
+import json
+import os
+import sys
+
+path, channel = sys.argv[1], sys.argv[2]
+try:
+    with open(path, "r", encoding="utf-8") as handle:
+        data = json.load(handle)
+except Exception:
+    data = {}
+
+shell_updates = data.get("shellUpdates")
+if not isinstance(shell_updates, dict):
+    shell_updates = {}
+data["shellUpdates"] = shell_updates
+shell_updates["channel"] = channel
+
+os.makedirs(os.path.dirname(path), exist_ok=True)
+with open(path, "w", encoding="utf-8") as handle:
+    json.dump(data, handle, indent=2)
+    handle.write("\n")
+PY
+  elif [[ ! -f $config_file ]]; then
+    mkdir -p "$(dirname "$config_file")"
+    printf '{"shellUpdates":{"channel":"%s"}}\n' "$transition_branch" >"$config_file"
+  fi
+}
+
+run_from_checkout() {
+  local relative_path="$1"
+  shift
+
+  [[ -f $ryoku_root/$relative_path ]] || die "missing $ryoku_root/$relative_path"
+
+  env \
+    RYOKU_PATH="$ryoku_root" \
+    RYOKU_UPDATE_BRANCH="$transition_branch" \
+    PATH="$ryoku_root/bin:$HOME/.local/bin:$PATH" \
+    bash "$ryoku_root/$relative_path" "$@"
+}
+
+update_checkout() {
+  local stash_ref=""
+
+  log "Updating installed Ryoku checkout to $transition_branch"
+
+  if [[ ! -d $ryoku_root/.git && -f $ryoku_root/bin/ryoku-update-git ]]; then
+    run_from_checkout bin/ryoku-update-git
+    return 0
+  fi
+
+  [[ -d $ryoku_root/.git ]] || die "installed Ryoku checkout is not a git repository: $ryoku_root"
+  command_present git || die "git is required to update the installed checkout"
+
+  if git -C "$ryoku_root" remote get-url origin >/dev/null 2>&1; then
+    git -C "$ryoku_root" remote set-url origin "$remote_url"
+  else
+    git -C "$ryoku_root" remote add origin "$remote_url"
+  fi
+
+  if [[ -n $(git -C "$ryoku_root" status --porcelain --untracked-files=normal) ]]; then
+    git -C "$ryoku_root" stash push --include-untracked -m "ryoku-rebirth-transition autostash $(date -Iseconds)"
+    stash_ref="stash@{0}"
+  fi
+
+  git -C "$ryoku_root" fetch --prune origin "+refs/heads/${transition_branch}:refs/remotes/origin/${transition_branch}"
+  git -C "$ryoku_root" fetch --prune origin "+refs/heads/main:refs/remotes/origin/main" >/dev/null 2>&1 || true
+  if git -C "$ryoku_root" show-ref --verify --quiet "refs/heads/$transition_branch"; then
+    git -C "$ryoku_root" switch "$transition_branch"
+  else
+    git -C "$ryoku_root" switch --track -c "$transition_branch" "origin/$transition_branch"
+  fi
+
+  if git -C "$ryoku_root" merge-base --is-ancestor HEAD "origin/$transition_branch"; then
+    git -C "$ryoku_root" merge --ff-only "origin/$transition_branch"
+  elif official_remote_contains_head; then
+    warn "realigning old official Ryoku checkout to origin/$transition_branch"
+    git -C "$ryoku_root" switch -C "$transition_branch" "origin/$transition_branch"
+  else
+    [[ -n $stash_ref ]] && warn "local file changes were preserved in git stash: $stash_ref"
+    die "installed checkout has local commits; refusing to overwrite them"
+  fi
+
+  if [[ -n $stash_ref ]]; then
+    if git -C "$ryoku_root" stash apply --index "$stash_ref"; then
+      git -C "$ryoku_root" stash drop "$stash_ref" >/dev/null
+    else
+      warn "local changes stayed in git stash because they conflict with the transition: $stash_ref"
+      git -C "$ryoku_root" reset --merge || true
+    fi
+  fi
+}
+
+official_remote_contains_head() {
+  local head ref reflog_head
+
+  head="$(git -C "$ryoku_root" rev-parse HEAD 2>/dev/null || true)"
+  [[ -n $head ]] || return 1
+
+  for ref in origin/main "origin/$transition_branch"; do
+    git -C "$ryoku_root" rev-parse --verify --quiet "$ref" >/dev/null || continue
+
+    if git -C "$ryoku_root" merge-base --is-ancestor HEAD "$ref"; then
+      return 0
+    fi
+
+    while IFS= read -r reflog_head; do
+      [[ $reflog_head == "$head" ]] && return 0
+    done < <(git -C "$ryoku_root" reflog show --format=%H "$ref" 2>/dev/null || true)
+  done
+
+  return 1
+}
+
+create_snapshot() {
+  local status
+
+  [[ -f $ryoku_root/bin/ryoku-snapshot ]] || return 0
+
+  log "Creating transition snapshot"
+  set +e
+  run_from_checkout bin/ryoku-snapshot create
+  status=$?
+  set -e
+
+  if (( status != 0 && status != 127 )); then
+    warn "snapshot command exited with status $status; continuing with updater behavior"
+  fi
+}
+
+prepare_hyprland() {
+  local args=()
+
+  [[ -f $ryoku_root/bin/ryoku-rebirth-prepare-live ]] || die "missing rebirth preparation command after update"
+
+  if [[ $allow_auth_prompt == true ]]; then
+    args+=(--allow-auth-prompt)
+  fi
+
+  log "Installing rebirth Hyprland prerequisites"
+  run_from_checkout bin/ryoku-rebirth-prepare-live "${args[@]}"
+}
+
+run_update_stages() {
+  [[ -f $ryoku_root/bin/ryoku-update-perform ]] || die "missing Ryoku update performer after update"
+
+  log "Running Ryoku update stages"
+  run_from_checkout bin/ryoku-update-perform
+}
+
+refresh_rebirth_hyprland_config() {
+  local config
+  local configs=(
+    hypr/colors.conf
+    hypr/hypridle-rebirth.conf
+    hypr/hyprland.conf
+    hypr/hyprland-gui.conf
+  )
+
+  [[ -f $ryoku_root/bin/ryoku-refresh-config ]] || return 0
+
+  log "Refreshing rebirth Hyprland config with backups"
+  for config in "${configs[@]}"; do
+    [[ -f $ryoku_root/config/$config ]] || continue
+    run_from_checkout bin/ryoku-refresh-config "$config"
+  done
+
+  if command_present hyprctl; then
+    hyprctl reload >/dev/null 2>&1 || true
+  fi
+}
+
+attempt_niri_purge() {
+  local args=(--confirm-niri-free)
+  local status
+
+  if [[ $skip_purge == true ]]; then
+    log "Skipping Niri/iNiR purge by request"
+    return 0
+  fi
+
+  [[ -f $ryoku_root/bin/ryoku-rebirth-purge-niri-live ]] || {
+    warn "Niri purge command is unavailable after update"
+    return 0
+  }
+
+  if [[ $allow_auth_prompt == true ]]; then
+    args+=(--allow-auth-prompt)
+  fi
+
+  log "Attempting guarded Niri/iNiR purge"
+  set +e
+  run_from_checkout bin/ryoku-rebirth-purge-niri-live "${args[@]}"
+  status=$?
+  set -e
+
+  case "$status" in
+    0)
+      log "Niri/iNiR purge completed"
+      ;;
+    77)
+      warn "Niri/iNiR purge is deferred until you are logged into the rebirth Hyprland session"
+      cat <<EOF
+
+Next:
+  1. Reboot or log out.
+  2. Choose the Hyprland session.
+  3. Re-run:
+     curl -fsSL $raw_script_url | bash -s -- --allow-auth-prompt
+
+EOF
+      ;;
+    *)
+      die "Niri/iNiR purge failed with status $status"
+      ;;
+  esac
+}
+
+main() {
+  resolve_ryoku_root
+  export RYOKU_PATH="$ryoku_root"
+  export PATH="$ryoku_root/bin:$HOME/.local/bin:$PATH"
+
+  log "Using Ryoku checkout: $ryoku_root"
+  repair_runtime_env_bridges
+  write_update_channel
+  update_checkout
+  repair_runtime_env_bridges
+  prepare_hyprland
+  create_snapshot
+  run_update_stages
+  refresh_rebirth_hyprland_config
+  attempt_niri_purge
+
+  log "Ryoku rebirth transition bootstrap finished"
+}
+
+main "$@"

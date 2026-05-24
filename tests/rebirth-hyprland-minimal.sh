@@ -19,6 +19,8 @@ fail() {
   fail "rebirth shell wrapper should be removed"
 [[ ! -d $ROOT_DIR/shell-rebirth ]] || \
   fail "rebirth shell source should be removed"
+[[ -x $ROOT_DIR/bin/ryoku-toggle-floating-center ]] || \
+  fail "missing executable floating center helper"
 
 if rg -n 'ryoku-rebirth-shell|ryoku-vroomies-shell|shell-rebirth|QS_CONFIG_NAME,ryoku-|launcherWindow|clipboardManager|powerMenu toggle|systemPanel toggle' \
     "$ROOT_DIR/config/hypr" "$ROOT_DIR/bin" | grep -v 'bin/ryoku-rebirth-purge-niri-live' >/tmp/rebirth-shell-free.$$; then
@@ -48,6 +50,8 @@ rg -q "[$]powerMenu = sh -lc '\\\$HOME/.local/bin/ryoku-shell session'" "$ROOT_D
   fail "Hyprland config should route power bind through Ryoku shell"
 rg -q "[$]heliumBrowser = sh -lc '\\\$HOME/.local/bin/helium'" "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should launch Helium through an absolute user-bin path"
+rg -q "[$]toggleFloat = sh -lc 'exec \"\\\$HOME/.local/share/ryoku/bin/ryoku-toggle-floating-center\"'" "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should route floating toggle through the Ryoku centering helper"
 rg -q "[$]yaziFileManager = .*ryoku-launch-tui yazi" "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should launch Yazi through the Ryoku TUI helper"
 rg -q "[$]neovimEditor = .*ryoku-launch-tui nvim" "$ROOT_DIR/config/hypr/hyprland.conf" || \
@@ -96,8 +100,8 @@ rg -q 'bind = SUPER, Q, killactive,' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should keep the close-window bind"
 rg -q 'bind = ALT, F4, killactive,' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should support the common close-window bind"
-rg -q 'bind = SUPER, A, togglefloating,' "$ROOT_DIR/config/hypr/hyprland.conf" || \
-  fail "Hyprland config should keep the floating toggle bind"
+rg -q 'bind = SUPER, A, exec, [$]toggleFloat' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should keep the centered floating toggle bind"
 rg -q 'bindmd = SUPER, mouse:272, Move window, movewindow' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should allow Super+left-drag to move windows"
 rg -q 'bindmd = SUPER, mouse:273, Resize window, resizewindow' "$ROOT_DIR/config/hypr/hyprland.conf" || \

@@ -93,6 +93,15 @@ EOF
     # /usr/local/lib, so a symlink there makes the source line work.
     sudo install -d /usr/local/lib
     sudo ln -sfn "$ryoku_path/lib/runtime-env.sh" /usr/local/lib/runtime-env.sh
+
+  # Older live systems also exposed ryoku-* commands from ~/.local/bin.
+  # Those commands resolve the same relative ../lib/runtime-env.sh path to
+  # ~/.local/lib/runtime-env.sh, so keep that bridge present too.
+  if [[ -f $ryoku_path/lib/runtime-env.sh ]]; then
+    xdg_bin_lib="$(dirname "$xdg_bin_home")/lib"
+    mkdir -p "$xdg_bin_lib"
+    ln -sfn "$ryoku_path/lib/runtime-env.sh" "$xdg_bin_lib/runtime-env.sh"
+  fi
 fi
 
 # (3) Deploy shell tree to ~/.config/quickshell/ryoku-shell so quickshell

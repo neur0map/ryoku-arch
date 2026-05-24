@@ -16,8 +16,9 @@ export RYOKU_STATE_PATH="$tmp/state/ryoku"
 current_user="$(id -un)"
 current_host="$(hostname 2>/dev/null || true)"
 
-mkdir -p "$XDG_CONFIG_HOME" "$tmp/bin" "$tmp/fake-ryoku/bin" "$tmp/conflicts/usr/share/example" "$tmp/backups" "$tmp/state/quickshell/user" "$RYOKU_STATE_PATH"
+mkdir -p "$XDG_CONFIG_HOME" "$tmp/bin" "$tmp/fake-ryoku/bin" "$tmp/fake-ryoku/lib" "$tmp/conflicts/usr/share/example" "$tmp/backups" "$tmp/state/quickshell/user" "$RYOKU_STATE_PATH"
 touch "$tmp/conflicts/usr/share/example/payload.sh"
+printf '# test runtime env\n' >"$tmp/fake-ryoku/lib/runtime-env.sh"
 
 cat >"$tmp/update.log" <<LOG
 warning: archlinux-keyring-20260420-1 is up to date -- skipping
@@ -175,6 +176,31 @@ grep -Fq 'Update stopped while waiting for sudo authentication.' <<<"$output" \
   || fail "doctor should explain sudo authentication stalls"
 grep -Fq 'Run: sudo -v' <<<"$output" \
   || fail "doctor should tell users how to refresh sudo before retrying"
+
+local_home="$tmp/local-home"
+mkdir -p "$local_home/.local/bin"
+cat >"$tmp/local-runtime-update.log" <<LOG
+$local_home/.local/bin/ryoku-update-time: line 3: $local_home/.local/lib/runtime-env.sh: No such file or directory
+LOG
+
+output=$(
+  HOME="$local_home" \
+  XDG_BIN_HOME="$local_home/.local/bin" \
+  RYOKU_PATH="$tmp/fake-ryoku" \
+  RYOKU_UPDATE_LOG="$tmp/local-runtime-update.log" \
+  XDG_STATE_HOME="$tmp/state" \
+  PATH="$tmp/bin:$PATH" \
+    "$ROOT_DIR/bin/ryoku-doctor" update 2>&1
+) || fail "ryoku-doctor should repair missing local runtime-env bridge: $output"
+
+[[ -L $local_home/.local/lib/runtime-env.sh ]] \
+  || fail "doctor should create the missing ~/.local/lib/runtime-env.sh bridge"
+[[ $(readlink "$local_home/.local/lib/runtime-env.sh") == "$tmp/fake-ryoku/lib/runtime-env.sh" ]] \
+  || fail "doctor should point the local runtime-env bridge at the installed Ryoku checkout"
+grep -Fq 'Repaired local command runtime bridge' <<<"$output" \
+  || fail "doctor should explain the local runtime bridge repair"
+grep -Fq 'Run: ryoku-update -y' <<<"$output" \
+  || fail "doctor should tell users to retry the update after local runtime bridge repair"
 
 checkout_ff_only="$tmp/checkout-ff-only"
 git clone "$tmp/remote.git" "$checkout_ff_only" >/dev/null 2>&1
