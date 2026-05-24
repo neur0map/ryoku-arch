@@ -52,6 +52,93 @@ update_failed() {
 
 trap update_failed ERR
 
+update_resume_after_git=0
+update_assume_yes=0
+update_args=()
+
+for arg in "$@"; do
+  case "$arg" in
+    --resume-after-git)
+      update_resume_after_git=1
+      ;;
+    -y | --yes)
+      update_assume_yes=1
+      update_args+=("$arg")
+      ;;
+    *)
+      update_args+=("$arg")
+      ;;
+  esac
+done
+
+command_bridge_backup_dir=""
+
+command_bridge_target() {
+  local source_path="$1"
+  local target_path="$2"
+
+  [[ -e $source_path ]] || return 0
+
+  if [[ -e $target_path && ! -L $target_path ]]; then
+    if [[ -z $command_bridge_backup_dir ]]; then
+      command_bridge_backup_dir="$RYOKU_STATE_PATH/command-bridge-backups/$(date +%Y%m%d-%H%M%S)"
+      mkdir -p "$command_bridge_backup_dir"
+    fi
+
+    mv -- "$target_path" "$command_bridge_backup_dir/$(basename "$target_path")"
+    echo "Moved stale local command to: $command_bridge_backup_dir/$(basename "$target_path")"
+  fi
+
+  ln -sfn "$source_path" "$target_path"
+}
+
+repair_command_bridges() {
+  local bin_home="${XDG_BIN_HOME:-$HOME/.local/bin}"
+  local lib_home
+  local command_path
+
+  mkdir -p "$bin_home"
+
+  if [[ -f $RYOKU_PATH/lib/runtime-env.sh ]]; then
+    lib_home="$(dirname "$bin_home")/lib"
+    mkdir -p "$lib_home"
+    ln -sfn "$RYOKU_PATH/lib/runtime-env.sh" "$lib_home/runtime-env.sh"
+  fi
+
+  if [[ -d $RYOKU_PATH/bin ]]; then
+    for command_path in "$RYOKU_PATH"/bin/ryoku-*; do
+      [[ -f $command_path && -x $command_path ]] || continue
+      command_bridge_target "$command_path" "$bin_home/$(basename "$command_path")"
+    done
+  fi
+
+  if [[ -x $RYOKU_PATH/shell/scripts/ryoku-shell ]]; then
+    command_bridge_target "$RYOKU_PATH/shell/scripts/ryoku-shell" "$bin_home/ryoku-shell"
+  fi
+}
+
+continue_with_refreshed_updater() {
+  local refreshed_updater="$RYOKU_PATH/bin/ryoku-update"
+
+  [[ -f $refreshed_updater ]] || return 1
+
+  echo
+  echo "Continuing through refreshed Ryoku updater:"
+  echo "  $refreshed_updater --resume-after-git"
+
+  if [[ -x $refreshed_updater ]]; then
+    exec env RYOKU_UPDATE_BOOTSTRAP_RESUMED=1 "$refreshed_updater" --resume-after-git "${update_args[@]}"
+  fi
+
+  exec env RYOKU_UPDATE_BOOTSTRAP_RESUMED=1 bash "$refreshed_updater" --resume-after-git "${update_args[@]}"
+}
+
+run_post_git_update() {
+  repair_command_bridges
+  ryoku-snapshot create || (($? == 127))
+  ryoku-update-perform
+}
+
 if [[ -z ${RYOKU_UPDATE_POWER_CHECKED:-} ]]; then
   battery_level=""
 
@@ -83,8 +170,15 @@ if [[ -z ${RYOKU_UPDATE_POWER_CHECKED:-} ]]; then
   export RYOKU_UPDATE_POWER_CHECKED=1
 fi
 
-if [[ $1 == "-y" ]] || ryoku-update-confirm; then
+if (( update_resume_after_git == 1 )); then
+  run_post_git_update
+  exit 0
+fi
+
+if (( update_assume_yes == 1 )) || ryoku-update-confirm; then
+  repair_command_bridges
   ryoku-update-git
-  ryoku-snapshot create || (($? == 127))
-  ryoku-update-perform
+  repair_command_bridges
+  continue_with_refreshed_updater
+  run_post_git_update
 fi

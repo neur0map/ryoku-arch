@@ -40,6 +40,26 @@ shell_src="$ryoku_path/shell"
 xdg_bin_home="${XDG_BIN_HOME:-$HOME/.local/bin}"
 xdg_config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
 quickshell_dir="$xdg_config_home/quickshell/ryoku-shell"
+command_bridge_backup_dir=""
+
+command_bridge_target() {
+  local source_path="$1"
+  local target_path="$2"
+
+  [[ -e $source_path ]] || return 0
+
+  if [[ -e $target_path && ! -L $target_path ]]; then
+    if [[ -z $command_bridge_backup_dir ]]; then
+      command_bridge_backup_dir="$ryoku_path/.local-command-bridge-backups/$(date +%Y%m%d-%H%M%S)"
+      mkdir -p "$command_bridge_backup_dir"
+    fi
+
+    mv -- "$target_path" "$command_bridge_backup_dir/$(basename "$target_path")"
+    echo "ensure-shell-deployment: moved stale local command to $command_bridge_backup_dir/$(basename "$target_path")"
+  fi
+
+  ln -sfn "$source_path" "$target_path"
+}
 
 if [[ ! -d $shell_src ]]; then
     echo "ensure-shell-deployment: $shell_src not found, skipping" >&2
@@ -64,13 +84,18 @@ fi
 # $HOME/.local/bin/ryoku-shell. Make sure it exists and points at the
 # real launcher.
 mkdir -p "$xdg_bin_home"
-ln -sf "$shell_src/scripts/ryoku-shell" "$xdg_bin_home/ryoku-shell"
+command_bridge_target "$shell_src/scripts/ryoku-shell" "$xdg_bin_home/ryoku-shell"
 
 # (2) System-wide PATH for ryoku-* helpers so install/login/sddm.sh and
 # anything else can call ryoku-refresh-sddm, ryoku-shell, etc. without
 # absolute paths. Use a profile.d entry so every interactive shell picks
 # it up too.
 if [[ -d $ryoku_path/bin ]]; then
+    for f in "$ryoku_path"/bin/ryoku-*; do
+        [[ -f $f && -x $f ]] || continue
+        command_bridge_target "$f" "$xdg_bin_home/$(basename "$f")"
+    done
+
     sudo install -d /usr/local/bin
     for f in "$ryoku_path"/bin/*; do
         [[ -f $f && -x $f ]] || continue
