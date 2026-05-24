@@ -198,13 +198,19 @@ fi
 SH
 chmod 755 "$bin_dir/gum"
 
-for cmd in jq rsync git wl-copy wl-paste cliphist fuzzel grim slurp gradia wpctl nmcli notify-send journalctl pgrep; do
+for cmd in jq rsync git wl-copy wl-paste cliphist fuzzel grim slurp gradia wpctl nmcli notify-send journalctl pgrep pkill; do
   cat >"$bin_dir/$cmd" <<'SH'
 #!/bin/bash
 exit 0
 SH
 done
 chmod 755 "$bin_dir/"*
+
+cat >"$bin_dir/pgrep" <<'SH'
+#!/bin/bash
+[[ ${RYOKU_TEST_STALE_HYPRIDLE_RUNNING:-0} == "1" ]]
+SH
+chmod 755 "$bin_dir/pgrep"
 
 run_shell_doctor() {
   HOME="$home" \
@@ -222,6 +228,7 @@ run_shell_doctor() {
   RYOKU_DOCTOR_GUM_INSTALLER="${RYOKU_DOCTOR_GUM_INSTALLER:-ryoku-pkg-add}" \
   RYOKU_PKG_ADD_LOG="${RYOKU_PKG_ADD_LOG:-}" \
   RYOKU_GUM_LOG="$gum_log" \
+  RYOKU_TEST_STALE_HYPRIDLE_RUNNING="${RYOKU_TEST_STALE_HYPRIDLE_RUNNING:-0}" \
   QS_CONFIG_NAME="ryoku-rebirth-shell" \
   TMPDIR="$report_tmp" \
   PATH="$bin_dir:$home/.local/bin:/usr/bin:/bin" \
@@ -316,21 +323,31 @@ ln -s "$home/.config/systemd/user/ryoku-shell.service" \
 mkdir -p "$home/.config/systemd/user/ryoku-shell.service.d"
 printf '%s\n' '[Service]' 'Environment=QT_WAYLAND_DISABLE_FRACTIONAL_SCALE=1' \
   >"$home/.config/systemd/user/ryoku-shell.service.d/qt6-fractional-scale-workaround.conf"
+printf '%s\n' 'exec-once = hypridle -c ~/.config/hypr/hypridle-rebirth.conf' \
+  >>"$home/.config/hypr/hyprland.conf"
+export RYOKU_TEST_STALE_HYPRIDLE_RUNNING=1
 
 set +e
 stale_output="$(run_shell_doctor)"
 stale_status=$?
 set -e
+unset RYOKU_TEST_STALE_HYPRIDLE_RUNNING
 
 (( stale_status == 0 )) || fail "doctor should repair stale Niri service wiring on Hyprland: $stale_output"
 assert_contains "$stale_output" 'Removed stale Niri service wiring' \
   "doctor should call out stale Niri service wiring repair after the Hyprland switch"
 assert_contains "$stale_output" 'Removed stale Qt fractional-scale drop-in' \
   "doctor should call out retired Qt fractional-scale drop-in cleanup"
+assert_contains "$stale_output" 'Removed stale Hyprland hypridle exec-once' \
+  "doctor should remove the stale Hyprland-spawned hypridle startup"
+assert_contains "$stale_output" 'Stopped stale Hyprland-spawned hypridle instance' \
+  "doctor should stop the duplicate Hyprland-spawned hypridle process when the service is active"
 [[ ! -e $home/.config/systemd/user/niri.service.wants/ryoku-shell.service ]] \
   || fail "doctor should remove the stale Niri service symlink"
 [[ ! -e $home/.config/systemd/user/ryoku-shell.service.d/qt6-fractional-scale-workaround.conf ]] \
   || fail "doctor should remove the retired Qt fractional-scale drop-in"
+! grep -Fxq 'exec-once = hypridle -c ~/.config/hypr/hypridle-rebirth.conf' "$home/.config/hypr/hyprland.conf" \
+  || fail "doctor should remove stale Hyprland hypridle exec-once lines"
 
 runtime_pick="$tmp/runtime-pick"
 old_repo="$tmp/old-repo"

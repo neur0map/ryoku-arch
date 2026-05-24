@@ -64,8 +64,10 @@ rg -q "[$]obsidianNotes = obsidian" "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should define Obsidian as the notes app"
 rg -q "exec-once = sh -lc 'systemctl --user reset-failed ryoku-shell.service" "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should start ryoku-shell.service"
-rg -q 'exec-once = hypridle -c ~/.config/hypr/hypridle-rebirth.conf' "$ROOT_DIR/config/hypr/hyprland.conf" || \
-  fail "Hyprland config should use the rebirth hypridle config"
+! rg -q '^exec-once = hypridle' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should leave hypridle lifecycle to hypridle.service"
+rg -q 'systemctl --user enable --now hypridle.service' "$ROOT_DIR/install/config/ryoku-hypridle.sh" || \
+  fail "Hypridle setup should enable the systemd user service"
 rg -q 'env = XCURSOR_THEME,Bibata-Modern-Classic' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should set the Ryoku Xcursor theme for Xwayland apps"
 rg -q 'env = HYPRCURSOR_THEME,Bibata-Modern-Classic' "$ROOT_DIR/config/hypr/hyprland.conf" || \

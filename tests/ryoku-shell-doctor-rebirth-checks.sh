@@ -63,6 +63,10 @@ grep -qE 'check_stale_compositor_wiring\(\)' "$shell_doctor" || \
   fail "shell-doctor must keep check_stale_compositor_wiring (cleans up niri.service.wants symlinks)"
 grep -qE 'qt6-fractional-scale-workaround\.conf' "$shell_doctor" || \
   fail "shell-doctor must remove the retired Qt fractional-scale shell drop-in"
+grep -qE 'hypridle-rebirth[.]conf' "$shell_doctor" || \
+  fail "shell-doctor must remove stale Hyprland-spawned hypridle wiring"
+grep -qE 'hypridle[.]service' "$shell_doctor" || \
+  fail "shell-doctor must leave hypridle lifecycle with the systemd user service"
 
 # Verify all three checks are actually wired into run_shell_doctor's
 # pipeline, not just defined as dead functions.

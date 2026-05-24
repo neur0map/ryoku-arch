@@ -868,6 +868,9 @@ check_audio_restore_service() {
 check_stale_compositor_wiring() {
   local niri_wants="$systemd_user_dir/niri.service.wants/ryoku-shell.service"
   local stale_dropin="$systemd_user_dir/ryoku-shell.service.d/qt6-fractional-scale-workaround.conf"
+  local hypr_conf="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland.conf"
+  local stale_hypridle_line="exec-once = hypridle -c ~/.config/hypr/hypridle-rebirth.conf"
+  local stale_hypridle_pattern='(^|/)hypridle -c .*/hypridle-rebirth[.]conf($| )'
   local compositor
   local found=0
 
@@ -889,6 +892,29 @@ check_stale_compositor_wiring() {
       doctor_fix "Removed stale Qt fractional-scale drop-in: $stale_dropin"
     else
       doctor_fail "Stale Qt fractional-scale drop-in remains: $stale_dropin"
+    fi
+  fi
+
+  if [[ -f $hypr_conf ]] && grep -Fxq "$stale_hypridle_line" "$hypr_conf"; then
+    found=1
+    if sed -i '\#^exec-once = hypridle -c ~/\.config/hypr/hypridle-rebirth\.conf$#d' "$hypr_conf"; then
+      hyprctl reload >/dev/null 2>&1 || true
+      doctor_fix "Removed stale Hyprland hypridle exec-once; systemd owns hypridle.service"
+    else
+      doctor_fail "Stale Hyprland hypridle exec-once remains: $hypr_conf"
+    fi
+  fi
+
+  if command -v systemctl >/dev/null 2>&1 \
+    && command -v pgrep >/dev/null 2>&1 \
+    && command -v pkill >/dev/null 2>&1 \
+    && systemctl --user is-active --quiet hypridle.service >/dev/null 2>&1 \
+    && pgrep -f "$stale_hypridle_pattern" >/dev/null 2>&1; then
+    found=1
+    if pkill -f "$stale_hypridle_pattern" >/dev/null 2>&1; then
+      doctor_fix "Stopped stale Hyprland-spawned hypridle instance"
+    else
+      doctor_fail "Stale Hyprland-spawned hypridle instance remains"
     fi
   fi
 

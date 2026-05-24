@@ -88,7 +88,7 @@ require_rebirth_hyprland() {
     exit 77
   }
 
-  grep -q 'hypridle-rebirth.conf' "$xdg_config_home/hypr/hyprland.conf" || {
+  grep -Eq 'systemctl --user .*ryoku-shell[.]service' "$xdg_config_home/hypr/hyprland.conf" || {
     echo "ryoku-rebirth-purge-niri-live: Hyprland config does not look like rebirth Hyprland" >&2
     exit 77
   }
