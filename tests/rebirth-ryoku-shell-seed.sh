@@ -74,6 +74,8 @@ assert_contains shell/assets/systemd/ryoku-shell.service 'Environment=PATH=.*\.l
   "service should expose user-installed Ryoku bridge commands"
 assert_contains shell/scripts/ryoku 'ryoku-wallpaper-apply' \
   "compatibility bridge should delegate wallpaper application to Ryoku commands"
+assert_contains shell/scripts/ryoku 'ryoku-doctor' \
+  "compatibility bridge should expose the global doctor command"
 assert_contains install/ryoku-base.packages '^aubio$' \
   "base packages should include native shell audio analysis dependency"
 assert_contains install/ryoku-base.packages '^ttf-cascadia-code-nerd$' \
@@ -105,6 +107,27 @@ HOME="$tmp_dir/home" XDG_STATE_HOME="$tmp_dir/state" \
 HOME="$tmp_dir/home" XDG_STATE_HOME="$tmp_dir/state" \
   "$ROOT_DIR/shell/scripts/ryoku" wallpaper -p "$tmp_dir/wall.png" | jq -e '.variant == "expressive" and .colours.primary == "F56E0F" and .colours.surface == "171717"' >/dev/null || \
   fail "compatibility bridge should expose preview wallpaper colours from the current mode and variant"
+
+mkdir -p "$tmp_dir/installed/bin"
+cat >"$tmp_dir/installed/bin/ryoku-doctor" <<'SH'
+#!/bin/bash
+printf '%s' "$*" >"$RYOKU_DOCTOR_ARGS"
+echo "global doctor selected"
+SH
+chmod 755 "$tmp_dir/installed/bin/ryoku-doctor"
+
+doctor_args="$tmp_dir/doctor-args"
+doctor_output=$(
+  HOME="$tmp_dir/home" \
+  XDG_STATE_HOME="$tmp_dir/state" \
+  RYOKU_PATH="$tmp_dir/installed" \
+  RYOKU_DOCTOR_ARGS="$doctor_args" \
+    "$ROOT_DIR/shell/scripts/ryoku" doctor 2>&1
+) || fail "compatibility bridge should run global ryoku doctor: $doctor_output"
+[[ $doctor_output == "global doctor selected" ]] || \
+  fail "compatibility bridge should run the installed global doctor"
+[[ ! -s $doctor_args ]] || \
+  fail "ryoku doctor should run the smart global doctor without forcing shell mode"
 
 HOME="$tmp_dir/install-home" \
 XDG_BIN_HOME="$tmp_dir/bin" \

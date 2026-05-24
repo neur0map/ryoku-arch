@@ -43,6 +43,8 @@ write_executable "$seed/bin/ryoku-doctor" '#!/bin/bash
 exit 0'
 write_executable "$seed/shell/scripts/ryoku-shell" '#!/bin/bash
 exit 0'
+write_executable "$seed/shell/scripts/ryoku" '#!/bin/bash
+exit 0'
 
 git -C "$seed" add bin lib shell
 git -C "$seed" commit -m "bootstrap payload" >/dev/null
@@ -55,6 +57,8 @@ git -C "$seed" push origin HEAD:unstable-dev >/dev/null 2>&1
 
 printf '%s\n' '# stale local doctor copy' > "$home/.local/bin/ryoku-doctor"
 chmod 755 "$home/.local/bin/ryoku-doctor"
+printf '%s\n' '# stale local ryoku bridge' > "$home/.local/bin/ryoku"
+chmod 755 "$home/.local/bin/ryoku"
 
 output=$(
   HOME="$home" \
@@ -98,6 +102,10 @@ grep -qx 'unstable bootstrap' "$install/unstable.txt" || \
   fail "bootstrap should replace stale local doctor copies with a checkout symlink"
 [[ $(readlink "$home/.local/bin/ryoku-doctor") == "$install/bin/ryoku-doctor" ]] || \
   fail "bootstrap doctor shim should point to the installed checkout"
+[[ -L $home/.local/bin/ryoku ]] || \
+  fail "bootstrap should replace stale local ryoku bridge copies with a checkout symlink"
+[[ $(readlink "$home/.local/bin/ryoku") == "$install/shell/scripts/ryoku" ]] || \
+  fail "bootstrap ryoku bridge should point to the installed checkout"
 [[ -L $home/.local/lib/runtime-env.sh ]] || \
   fail "bootstrap should repair the local runtime-env bridge"
 
@@ -203,6 +211,10 @@ grep -Fq "System shims: repaired: $system_bin" <<< "$output" || \
   fail "bootstrap should create the system doctor shim when sudo is authorized"
 [[ $(readlink "$system_bin/ryoku-doctor") == "$system_install/bin/ryoku-doctor" ]] || \
   fail "system doctor shim should point at the installed checkout"
+[[ -L $system_bin/ryoku ]] || \
+  fail "bootstrap should create the system ryoku bridge when sudo is authorized"
+[[ $(readlink "$system_bin/ryoku") == "$system_install/shell/scripts/ryoku" ]] || \
+  fail "system ryoku bridge should point at the installed checkout"
 [[ -L $system_lib/runtime-env.sh ]] || \
   fail "bootstrap should create the system runtime-env bridge when sudo is authorized"
 [[ $(readlink "$system_lib/runtime-env.sh") == "$system_install/lib/runtime-env.sh" ]] || \

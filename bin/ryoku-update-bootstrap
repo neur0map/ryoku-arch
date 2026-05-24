@@ -237,6 +237,10 @@ repair_command_bridges() {
     command_bridge_target "$ryoku_path/shell/scripts/ryoku-shell" "$bin_home/ryoku-shell"
   fi
 
+  if [[ -x $ryoku_path/shell/scripts/ryoku ]]; then
+    command_bridge_target "$ryoku_path/shell/scripts/ryoku" "$bin_home/ryoku"
+  fi
+
   repair_system_command_bridges
 }
 
@@ -276,6 +280,9 @@ repair_system_command_bridges() {
     [[ -f $command_path && -x $command_path ]] || continue
     sudo -n ln -sfn "$command_path" "$system_bin/$(basename "$command_path")" || true
   done
+  if [[ -x $ryoku_path/shell/scripts/ryoku ]]; then
+    sudo -n ln -sfn "$ryoku_path/shell/scripts/ryoku" "$system_bin/ryoku" || true
+  fi
 
   system_shim_status="repaired: $system_bin"
   log "Repaired system Ryoku command shims: $system_bin"

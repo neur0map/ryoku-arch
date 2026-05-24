@@ -48,6 +48,8 @@ mkdir -p \
 printf '%s\n' '# runtime env' > "$checkout/lib/runtime-env.sh"
 write_executable "$checkout/shell/scripts/ryoku-shell" '#!/bin/bash
 exit 0'
+write_executable "$checkout/shell/scripts/ryoku" '#!/bin/bash
+exit 0'
 
 write_executable "$checkout/bin/ryoku-update" '#!/bin/bash
 set -euo pipefail
@@ -78,6 +80,8 @@ exit 0'
 
 printf '%s\n' '# stale local doctor copy' > "$home/.local/bin/ryoku-doctor"
 chmod 755 "$home/.local/bin/ryoku-doctor"
+printf '%s\n' '# stale local ryoku bridge' > "$home/.local/bin/ryoku"
+chmod 755 "$home/.local/bin/ryoku"
 
 output="$(run_update -y)" || fail "ryoku-update should hand off to refreshed updater after git pull: $output"
 
@@ -94,6 +98,10 @@ grep -Fq 'fresh:--resume-after-git -y' "$log" || \
   fail "update should replace stale local doctor copies with a Ryoku checkout symlink"
 [[ $(readlink "$home/.local/bin/ryoku-doctor") == "$checkout/bin/ryoku-doctor" ]] || \
   fail "local ryoku-doctor shim should point at the installed checkout"
+[[ -L $home/.local/bin/ryoku ]] || \
+  fail "update should replace stale local ryoku bridge copies with a Ryoku checkout symlink"
+[[ $(readlink "$home/.local/bin/ryoku") == "$checkout/shell/scripts/ryoku" ]] || \
+  fail "local ryoku bridge should point at the installed checkout"
 [[ -L $home/.local/lib/runtime-env.sh ]] || \
   fail "update should repair the local runtime-env bridge before continuing"
 

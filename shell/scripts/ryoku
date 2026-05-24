@@ -15,6 +15,7 @@ Usage:
   ryoku scheme set [-n NAME] [-f FLAVOUR] [-v VARIANT] [-m MODE] [--notify]
   ryoku wallpaper -p PATH [--no-smart]
   ryoku wallpaper -f PATH [--no-smart]
+  ryoku doctor [args...]
 
 Compatibility bridge for the rebirth shell. Ryoku system commands keep the
 ryoku-* prefix.
@@ -480,6 +481,23 @@ wallpaper_command() {
   return 2
 }
 
+doctor_command() {
+  local doctor="$ryoku_path/bin/ryoku-doctor"
+
+  if [[ -x $doctor ]]; then
+    "$doctor" "$@"
+    return
+  fi
+
+  if command_present ryoku-doctor; then
+    ryoku-doctor "$@"
+    return
+  fi
+
+  echo "ryoku: ryoku-doctor was not found" >&2
+  return 127
+}
+
 main() {
   local command="${1:-}"
   (($# == 0)) || shift
@@ -490,6 +508,9 @@ main() {
       ;;
     wallpaper)
       wallpaper_command "$@"
+      ;;
+    doctor)
+      doctor_command "$@"
       ;;
     -h|--help|help)
       usage
