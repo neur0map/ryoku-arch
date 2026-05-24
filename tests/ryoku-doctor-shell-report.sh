@@ -251,6 +251,8 @@ assert_contains "$output" 'OK: ryoku-audio-restore-mixers.service is enabled' \
 gum_output="$(<"$gum_log")"
 assert_contains "$gum_output" 'style .*Ryoku Doctor' \
   "public doctor should invoke gum for the entrypoint UI"
+assert_contains "$gum_output" 'style .*Summary: passed=' \
+  "shell doctor should render the final summary through gum instead of raw fallback text"
 
 pkg_add_log="$tmp/pkg-add.log"
 cat >"$bin_dir/ryoku-pkg-add" <<'SH'

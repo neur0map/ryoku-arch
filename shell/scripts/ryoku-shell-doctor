@@ -183,6 +183,21 @@ doctor_report_print_path() {
   echo "Doctor report: $doctor_report_file"
 }
 
+doctor_summary() {
+  local summary="Summary: passed=$doctor_passed fixed=$doctor_fixed warnings=$doctor_warnings failed=$doctor_failed"
+
+  if doctor_pretty; then
+    gum style \
+      --border rounded \
+      --border-foreground 8 \
+      --foreground 15 \
+      --padding "1 2" \
+      "$summary"
+  else
+    echo "$summary"
+  fi
+}
+
 doctor_pass() {
   doctor_status_line "OK" "$*"
   ((doctor_passed++)) || true
@@ -526,7 +541,7 @@ run_shell_doctor() {
   doctor_report_print_path
 
   echo
-  echo "Summary: passed=$doctor_passed fixed=$doctor_fixed warnings=$doctor_warnings failed=$doctor_failed"
+  doctor_summary
 
   ((doctor_failed == 0))
 }
