@@ -84,6 +84,20 @@ can_install_without_prompt() {
   command_present sudo && sudo -n true >/dev/null 2>&1
 }
 
+refresh_package_metadata() {
+  if command_present ryoku-update-keyring; then
+    ryoku-update-keyring || true
+  elif command_present sudo; then
+    sudo pacman -Sy --noconfirm --needed archlinux-keyring >/dev/null 2>&1 || true
+  fi
+
+  if command_present sudo; then
+    sudo pacman -Sy --noconfirm
+  else
+    pacman -Sy --noconfirm
+  fi
+}
+
 print_sessions() {
   local session_dir="/usr/share/wayland-sessions"
   local found=false
@@ -143,6 +157,8 @@ Re-run while present with:
 EOF
   exit 77
 fi
+
+refresh_package_metadata
 
 if command_present ryoku-pkg-add; then
   ryoku-pkg-add "${missing[@]}"
