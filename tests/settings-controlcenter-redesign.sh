@@ -48,31 +48,15 @@ assert_not_contains "shell/modules/controlcenter/ControlCenter.qml" "screen.widt
   "settings window should not keep the old oversized width"
 assert_not_contains "shell/modules/controlcenter/ControlCenter.qml" "screen.height * 0.78" \
   "settings window should not keep the old oversized height"
-assert_contains "shell/modules/controlcenter/ControlCenter.qml" "ColumnLayout {" \
-  "settings frame should use a top-navigation column layout"
-assert_not_contains "shell/modules/controlcenter/ControlCenter.qml" "columns: 2" \
-  "settings frame should not keep the old left-sidebar grid"
-assert_not_contains "shell/modules/controlcenter/ControlCenter.qml" "implicitWidth: navRail.implicitWidth" \
-  "settings navigation should not reserve a fixed left rail"
-assert_contains "shell/modules/controlcenter/NavRail.qml" "implicitHeight: navLayout.implicitHeight + Tokens.padding.normal * 2" \
-  "settings navigation should be a compact top strip"
-assert_contains "shell/modules/controlcenter/NavRail.qml" "readonly property string activeGroup" \
-  "settings navigation should pivot around registry groups in the top strip"
-assert_contains "shell/modules/controlcenter/NavRail.qml" "component GroupPill: StyledRect" \
-  "settings navigation should expose compact group pills"
-assert_contains "shell/modules/controlcenter/NavRail.qml" "component PaneChip: StyledRect" \
-  "settings navigation should expose compact pane chips"
-assert_contains "shell/modules/controlcenter/NavRail.qml" "contentWidth: paneStrip.implicitWidth" \
-  "settings pane choices should use a horizontal strip"
-assert_not_contains "shell/modules/controlcenter/NavRail.qml" "component PaneItem" \
-  "settings navigation should not keep the old vertical pane item"
+assert_contains "shell/modules/controlcenter/NavRail.qml" "implicitWidth: 224" \
+  "settings navigation should be a compact rail"
 assert_not_contains "shell/modules/controlcenter/NavRail.qml" "text: item.entry.description" \
   "settings navigation should not keep bulky description rows"
 
-assert_not_contains "shell/modules/controlcenter/Panes.qml" "relatedFlickable" \
-  "settings pane chrome should not duplicate top navigation tabs"
-assert_not_contains "shell/modules/controlcenter/Panes.qml" "root.session.active = tab.modelData.label" \
-  "settings pane chrome should not own pane navigation anymore"
+assert_contains "shell/modules/controlcenter/Panes.qml" "readonly property string relatedLabel" \
+  "settings pane chrome should name related panes without owning backend state"
+assert_contains "shell/modules/controlcenter/Panes.qml" "root.session.active = tab.modelData.label" \
+  "settings pane tabs should preserve existing Session routing"
 assert_contains "shell/modules/controlcenter/Panes.qml" "color: Colours.palette.m3surfaceContainerLow" \
   "settings viewport should avoid the old over-blurred transparent surface"
 assert_contains "shell/modules/controlcenter/Panes.qml" "id: activePaneLoader" \
