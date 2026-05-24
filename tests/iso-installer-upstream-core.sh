@@ -5,8 +5,11 @@ set -euo pipefail
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 CONFIGURATOR="$ROOT_DIR/iso/configs/airootfs/root/configurator"
 AUTOMATED_SCRIPT="$ROOT_DIR/iso/configs/airootfs/root/.automated_script.sh"
+BASH_PROFILE="$ROOT_DIR/iso/configs/airootfs/root/.bash_profile"
 BUILD_ISO="$ROOT_DIR/iso/builder/build-iso.sh"
 GRUB_CFG="$ROOT_DIR/iso/configs/grub/grub.cfg"
+PROFILEDEF="$ROOT_DIR/iso/configs/profiledef.sh"
+ZLOGIN="$ROOT_DIR/iso/configs/airootfs/root/.zlogin"
 FINISHED_SCRIPT="$ROOT_DIR/install/post-install/finished.sh"
 
 fail() {
@@ -192,6 +195,16 @@ assert_contains "$CONFIGURATOR" 'Letters, digits, and dashes' \
   "installer should describe valid hostnames accurately"
 assert_contains "$CONFIGURATOR" '\^\[A-Za-z0-9\]\(\[A-Za-z0-9-\]\{0,61\}\[A-Za-z0-9\]\)\?\$' \
   "installer hostname validation should reject underscores and leading/trailing dashes"
+assert_contains "$BASH_PROFILE" '/root/\.automated_script\.sh' \
+  "live ISO bash root login should launch the Ryoku installer instead of leaving users at tty1"
+assert_contains "$ZLOGIN" '/root/\.automated_script\.sh' \
+  "live ISO root login should launch the Ryoku installer instead of leaving users at tty1"
+assert_contains "$PROFILEDEF" '\["/root/\.bash_profile"\]="0:0:644"' \
+  "ISO profile should preserve the bash root login fallback that launches the installer"
+assert_contains "$PROFILEDEF" '\["/root/\.zlogin"\]="0:0:644"' \
+  "ISO profile should preserve the root login hook that launches the installer"
+assert_contains "$PROFILEDEF" '\["/root/\.automated_script\.sh"\]="0:0:755"' \
+  "ISO profile should keep the installer entrypoint executable"
 
 assert_contains "$CONFIGURATOR" 'encryption_form\(\)' \
   "installer should expose an explicit disk encryption choice"
