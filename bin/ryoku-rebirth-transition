@@ -323,6 +323,23 @@ run_rebirth_config_setup() {
   run_from_checkout install/config/config.sh
 }
 
+install_rebirth_user_services() {
+  local status
+
+  [[ -f $ryoku_root/install/config/ryoku-audio-restore-mixers.sh ]] || return 0
+  command_present systemctl || return 0
+
+  log "Installing rebirth user services"
+  set +e
+  run_from_checkout install/config/ryoku-audio-restore-mixers.sh
+  status=$?
+  set -e
+
+  if (( status != 0 )); then
+    warn "rebirth user service install exited with status $status; ryoku-doctor shell can retry it after login"
+  fi
+}
+
 backup_transition_file_once() {
   local file="$1"
   local backup="$file.ryoku-rebirth.bak"
@@ -564,6 +581,7 @@ main() {
   update_checkout
   repair_runtime_env_bridges
   run_rebirth_config_setup
+  install_rebirth_user_services
   prepare_hyprland
   apply_rebirth_wallpaper_default
   install_rebirth_lockscreen_defaults

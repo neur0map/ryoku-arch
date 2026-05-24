@@ -88,8 +88,11 @@ if [[ ${1:-} == "--user" && ${2:-} == "show-environment" ]]; then
 fi
 # Stubs for the audio-restore-mixers check (added with the rebirth doctor pass).
 if [[ ${1:-} == "--user" && ${2:-} == "list-unit-files" && ${3:-} == "ryoku-audio-restore-mixers.service" ]]; then
-  printf '%s\n' "ryoku-audio-restore-mixers.service enabled enabled"
-  exit 0
+  if [[ -f $HOME/.config/systemd/user/ryoku-audio-restore-mixers.service ]]; then
+    printf '%s\n' "ryoku-audio-restore-mixers.service enabled enabled"
+    exit 0
+  fi
+  exit 1
 fi
 if [[ ${1:-} == "--user" && ${2:-} == "is-enabled" && ${3:-} == "ryoku-audio-restore-mixers.service" ]]; then
   printf '%s\n' "enabled"
@@ -178,8 +181,14 @@ assert_not_contains "$output" 'Checking Niri|iNiR|inir' \
   "doctor should not advertise stale Niri/iNiR shell checks"
 assert_contains "$output" 'Doctor report:' \
   "doctor should print a shareable report path"
+assert_contains "$output" 'Repaired rebirth audio mixer self-heal service' \
+  "doctor should install the rebirth audio restore service before shell diagnostics"
+assert_contains "$output" 'OK: ryoku-audio-restore-mixers.service is enabled' \
+  "doctor should clear the pre-rebirth audio restore service failure"
 
 systemctl_output="$(<"$systemctl_log")"
+assert_contains "$systemctl_output" '--user enable --now ryoku-audio-restore-mixers.service' \
+  "doctor should enable the rebirth audio restore service"
 assert_contains "$systemctl_output" '--user import-environment .*XDG_CURRENT_DESKTOP.*HYPRLAND_INSTANCE_SIGNATURE.*PATH' \
   "doctor should import the active Hyprland session environment into user systemd"
 assert_contains "$systemctl_output" '--user stop niri.service xdg-desktop-portal-gnome.service' \

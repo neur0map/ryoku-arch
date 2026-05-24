@@ -68,6 +68,7 @@ write_stub "$ryoku/bin/ryoku-snapshot" 'printf "snapshot:%s\n" "$*" >> "$RYOKU_T
 write_stub "$ryoku/bin/ryoku-update-perform" 'printf "perform\n" >> "$RYOKU_TEST_LOG"'
 write_stub "$ryoku/bin/ryoku-refresh-config" 'printf "refresh:%s\n" "$1" >> "$RYOKU_TEST_LOG"'
 write_stub "$ryoku/install/config/config.sh" 'printf "config-setup\n" >> "$RYOKU_TEST_LOG"'
+write_stub "$ryoku/install/config/ryoku-audio-restore-mixers.sh" 'printf "audio-service\n" >> "$RYOKU_TEST_LOG"'
 write_stub "$ryoku/bin/ryoku-wallpaper-apply" 'printf "wallpaper:%s\n" "$*" >> "$RYOKU_TEST_LOG"'
 write_stub "$ryoku/bin/ryoku-install-qylock" 'printf "qylock:%s\n" "$*" >> "$RYOKU_TEST_LOG"'
 write_stub "$ryoku/bin/ryoku-restart-ui" 'printf "restart-ui:%s\n" "$*" >> "$RYOKU_TEST_LOG"'
@@ -106,6 +107,8 @@ assert_contains "$log_file" 'update-git:unstable-dev' \
   "transition should update the checkout through the selected branch"
 assert_contains "$log_file" 'config-setup' \
   "transition should run default config and wallpaper seeding for full-install parity"
+assert_contains "$log_file" 'audio-service' \
+  "transition should install rebirth user services for full-install parity"
 assert_contains "$log_file" 'prepare:--allow-auth-prompt' \
   "transition should pass auth prompt permission to rebirth preparation"
 assert_contains "$log_file" 'wallpaper:--type image' \

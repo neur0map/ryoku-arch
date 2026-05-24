@@ -762,6 +762,37 @@ doctor_converge_rebirth_session_services() {
   echo "Checked rebirth Hyprland user service state."
 }
 
+doctor_audio_restore_service_ready() {
+  local unit="ryoku-audio-restore-mixers.service"
+  local state=""
+
+  systemctl --user list-unit-files "$unit" >/dev/null 2>&1 || return 1
+
+  state="$(systemctl --user is-enabled "$unit" 2>/dev/null || true)"
+  case "$state" in
+    enabled | static | enabled-runtime)
+      return 0
+      ;;
+  esac
+
+  return 1
+}
+
+doctor_repair_rebirth_audio_restore_service() {
+  local installer="$RYOKU_PATH/install/config/ryoku-audio-restore-mixers.sh"
+
+  doctor_command_present systemctl || return 0
+  doctor_hyprland_session_active || return 0
+  doctor_audio_restore_service_ready && return 0
+  [[ -f $installer ]] || return 0
+
+  if env RYOKU_PATH="$RYOKU_PATH" PATH="$RYOKU_PATH/bin:$PATH" bash "$installer" >/dev/null 2>&1; then
+    echo "Repaired rebirth audio mixer self-heal service."
+  else
+    echo "Warning: could not repair rebirth audio mixer self-heal service; shell doctor will report details." >&2
+  fi
+}
+
 run_shell_doctor() {
   local setup
   local runtime_dir="${RYOKU_SHELL_RUNTIME_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell}"
@@ -772,6 +803,7 @@ run_shell_doctor() {
   )
 
   doctor_converge_rebirth_session_services
+  doctor_repair_rebirth_audio_restore_service
 
   for setup in "${candidates[@]}"; do
     [[ -x $setup ]] || continue
