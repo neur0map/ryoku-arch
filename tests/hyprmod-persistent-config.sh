@@ -19,6 +19,20 @@ assert_contains() {
   grep -Eq "$pattern" "$path" || fail "$message"
 }
 
+assert_contains_fixed() {
+  local path="$1"
+  local needle="$2"
+  local message="$3"
+
+  grep -Fxq "$needle" "$path" || fail "$message"
+}
+
+hyprmod_source_line="source = ~/.config/hypr/hyprland-gui.conf"
+game_opacity_comment="# Keep games opaque while preserving HyprMod transparency for normal windows."
+game_content_rule="windowrule = opacity 1.0 override 1.0 override 1.0 override, match:content game"
+game_class_rule="windowrule = opacity 1.0 override 1.0 override 1.0 override, match:class ^(steam_app_[0-9]+|gamescope)$"
+game_initial_class_rule="windowrule = opacity 1.0 override 1.0 override 1.0 override, match:initial_class ^(steam_app_[0-9]+|gamescope)$"
+
 [[ -f $ROOT_DIR/config/hypr/hyprland-gui.conf ]] || \
   fail "Ryoku should ship HyprMod's managed config target"
 [[ -f $ROOT_DIR/shell/modules/controlcenter/WindowTitle.qml ]] || \
@@ -61,6 +75,15 @@ assert_contains "$ROOT_DIR/config/hypr/hyprland.conf" \
 assert_contains "$ROOT_DIR/config/hypr/hyprland.conf" \
   '^windowrule = match:class \^\(io\.github\.bluemancz\.hyprmod\)\$, center true$' \
   "HyprMod should open centered like Ryoku settings"
+assert_contains_fixed "$ROOT_DIR/config/hypr/hyprland.conf" \
+  "$game_content_rule" \
+  "game content should stay opaque under HyprMod transparency"
+assert_contains_fixed "$ROOT_DIR/config/hypr/hyprland.conf" \
+  "$game_class_rule" \
+  "Steam games should stay opaque even when they do not report game content"
+assert_contains_fixed "$ROOT_DIR/config/hypr/hyprland.conf" \
+  "$game_initial_class_rule" \
+  "Steam games should stay opaque when matching their initial class"
 if grep -Fq 'text: qsTr("Ryoku Settings")' "$ROOT_DIR/shell/modules/controlcenter/WindowTitle.qml"; then
   fail "floating settings title should not duplicate the Ryoku Settings label"
 fi
@@ -70,6 +93,8 @@ fi
 
 migration="$ROOT_DIR/migrations/1779515727.sh"
 [[ -f $migration ]] || fail "missing HyprMod persistence migration"
+game_opacity_migration="$ROOT_DIR/migrations/1779597877.sh"
+[[ -f $game_opacity_migration ]] || fail "missing game opacity migration"
 
 tmp_dir=$(mktemp -d)
 trap 'rm -rf "$tmp_dir"' EXIT
@@ -112,6 +137,21 @@ center_count=$(grep -Fxc 'windowrule = match:class ^(io.github.bluemancz.hyprmod
 (( center_count == 1 )) || fail "migration should add the HyprMod center rule exactly once"
 grep -Fxq 'general:gaps_in = 2' "$hyprmod_conf" || \
   fail "migration should preserve existing HyprMod-managed settings"
+
+env -u XDG_CONFIG_HOME HOME="$home_dir" RYOKU_PATH="$ROOT_DIR" bash "$game_opacity_migration" >/dev/null
+env -u XDG_CONFIG_HOME HOME="$home_dir" RYOKU_PATH="$ROOT_DIR" bash "$game_opacity_migration" >/dev/null
+
+source_line=$(grep -Fn "$hyprmod_source_line" "$hypr_conf" | head -n1 | cut -d: -f1)
+game_line=$(grep -Fn "$game_content_rule" "$hypr_conf" | head -n1 | cut -d: -f1)
+(( game_line > source_line )) || fail "game opacity rules should be applied after the HyprMod source"
+comment_count=$(grep -Fxc "$game_opacity_comment" "$hypr_conf")
+content_count=$(grep -Fxc "$game_content_rule" "$hypr_conf")
+class_count=$(grep -Fxc "$game_class_rule" "$hypr_conf")
+initial_class_count=$(grep -Fxc "$game_initial_class_rule" "$hypr_conf")
+(( comment_count == 1 )) || fail "game opacity migration should add its comment exactly once"
+(( content_count == 1 )) || fail "game opacity migration should add the content rule exactly once"
+(( class_count == 1 )) || fail "game opacity migration should add the class rule exactly once"
+(( initial_class_count == 1 )) || fail "game opacity migration should add the initial class rule exactly once"
 
 absolute_home="$tmp_dir/absolute-home"
 absolute_hypr="$absolute_home/.config/hypr"
