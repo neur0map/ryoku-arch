@@ -38,6 +38,7 @@ report_tmp="$tmp/reports"
 systemctl_log="$tmp/systemctl.log"
 qs_kill_log="$tmp/qs-kill.log"
 qs_killed_marker="$tmp/qs-stale-killed"
+gum_log="$tmp/gum.log"
 current_user="$(id -un)"
 current_host="$(hostname 2>/dev/null || true)"
 
@@ -166,6 +167,33 @@ fi
 exit 0
 SH
 
+cat >"$bin_dir/gum" <<'SH'
+#!/bin/bash
+printf '%s\n' "$*" >> "$RYOKU_GUM_LOG"
+
+if [[ ${1:-} == "style" ]]; then
+  shift
+  skip=false
+  for arg in "$@"; do
+    if [[ $skip == true ]]; then
+      skip=false
+      continue
+    fi
+    case "$arg" in
+      --border | --border-foreground | --foreground | --padding | --margin)
+        skip=true
+        ;;
+      --*)
+        ;;
+      *)
+        printf '%s\n' "$arg"
+        ;;
+    esac
+  done
+fi
+SH
+chmod 755 "$bin_dir/gum"
+
 for cmd in jq rsync git wl-copy wl-paste cliphist fuzzel grim slurp gradia wpctl nmcli notify-send journalctl pgrep; do
   cat >"$bin_dir/$cmd" <<'SH'
 #!/bin/bash
@@ -185,6 +213,8 @@ run_shell_doctor() {
   RYOKU_QS_KILL_LOG="$qs_kill_log" \
   RYOKU_QS_KILLED_MARKER="$qs_killed_marker" \
   RYOKU_SYSTEMCTL_LOG="$systemctl_log" \
+  RYOKU_DOCTOR_PRETTY=1 \
+  RYOKU_GUM_LOG="$gum_log" \
   QS_CONFIG_NAME="ryoku-rebirth-shell" \
   TMPDIR="$report_tmp" \
   PATH="$bin_dir:$home/.local/bin:/usr/bin:/bin" \
@@ -193,8 +223,12 @@ run_shell_doctor() {
 
 output="$(run_shell_doctor)" || fail "ryoku-doctor shell should pass on a healthy Hyprland runtime: $output"
 
-assert_contains "$output" 'Ryoku Doctor: shell' \
-  "doctor should expose the shell diagnostics mode"
+assert_contains "$output" 'Ryoku Doctor' \
+  "public doctor should show the gum-styled title when interactive styling is available"
+assert_contains "$output" 'Shell health \+ automatic repair' \
+  "public doctor should describe the useful repair mode instead of looking like raw logs"
+assert_contains "$output" 'Hyprland shell health \+ automatic repair' \
+  "shell doctor should expose the styled shell diagnostics mode"
 assert_contains "$output" 'Checking Hyprland compositor' \
   "doctor should check the current Hyprland compositor path"
 assert_contains "$output" 'Checking Ryoku shell runtime' \
@@ -209,6 +243,9 @@ assert_contains "$output" 'Repaired rebirth audio mixer self-heal service' \
   "doctor should install the rebirth audio restore service before shell diagnostics"
 assert_contains "$output" 'OK: ryoku-audio-restore-mixers.service is enabled' \
   "doctor should clear the pre-rebirth audio restore service failure"
+gum_output="$(<"$gum_log")"
+assert_contains "$gum_output" 'style .*Ryoku Doctor' \
+  "public doctor should invoke gum for the entrypoint UI"
 qs_kill_output="$(<"$qs_kill_log")"
 assert_contains "$qs_kill_output" "kill -p $legacy_runtime --any-display" \
   "doctor should kill the stale host-shell Quickshell runtime"

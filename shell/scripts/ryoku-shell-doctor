@@ -70,9 +70,13 @@ doctor_report_issue() {
 }
 
 doctor_pretty() {
-  [[ -t 1 ]] || return 1
   [[ ${RYOKU_DOCTOR_PLAIN:-0} == "1" ]] && return 1
-  command -v gum >/dev/null 2>&1
+  if [[ ${RYOKU_DOCTOR_PRETTY:-0} == "1" ]]; then
+    command -v gum >/dev/null 2>&1
+    return
+  fi
+
+  [[ -t 1 ]] && command -v gum >/dev/null 2>&1
 }
 
 doctor_title() {

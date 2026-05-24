@@ -113,6 +113,97 @@ print_update_status() {
 doctor_report_dir=""
 doctor_report_file=""
 
+doctor_pretty() {
+  [[ ${RYOKU_DOCTOR_PLAIN:-0} == "1" ]] && return 1
+  if [[ ${RYOKU_DOCTOR_PRETTY:-0} == "1" ]]; then
+    command -v gum >/dev/null 2>&1
+    return
+  fi
+
+  [[ -t 1 ]] && command -v gum >/dev/null 2>&1
+}
+
+doctor_style() {
+  if doctor_pretty; then
+    gum style "$@"
+  else
+    shift $(( $# > 0 ? $# - 1 : 0 ))
+    printf '%s\n' "${1:-}"
+  fi
+}
+
+doctor_banner() {
+  local mode="$1"
+
+  if doctor_pretty; then
+    gum style \
+      --border double \
+      --border-foreground 6 \
+      --foreground 15 \
+      --padding "1 3" \
+      --margin "1 0" \
+      "Ryoku Doctor" \
+      "$mode"
+  else
+    echo "Ryoku Doctor: $mode"
+  fi
+}
+
+doctor_note() {
+  local kind="$1"
+  local message="$2"
+  local color="7"
+
+  case "$kind" in
+    OK) color="2" ;;
+    WARN) color="3" ;;
+    FIX) color="6" ;;
+    FAIL) color="1" ;;
+    INFO) color="4" ;;
+  esac
+
+  if doctor_pretty; then
+    gum style --foreground "$color" "${kind}: ${message}"
+  else
+    echo "${kind}: ${message}"
+  fi
+}
+
+doctor_checkout_summary() {
+  local branch="unknown"
+  local commit="unknown"
+
+  if [[ -d $RYOKU_PATH/.git ]] && command -v git >/dev/null 2>&1; then
+    branch="$(GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=/bin/true git -C "$RYOKU_PATH" rev-parse --abbrev-ref HEAD 2>/dev/null || printf '%s\n' "unknown")"
+    commit="$(GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=/bin/true git -C "$RYOKU_PATH" rev-parse --short HEAD 2>/dev/null || printf '%s\n' "unknown")"
+  fi
+
+  printf '%s@%s\n' "$branch" "$commit"
+}
+
+doctor_context_panel() {
+  local command_path="${script_path:-ryoku-doctor}"
+  local context
+
+  context=$(
+    printf 'Command: %s\n' "$command_path"
+    printf 'Ryoku path: %s\n' "$RYOKU_PATH"
+    printf 'Channel: %s\n' "$(doctor_release_branch)"
+    printf 'Checkout: %s\n' "$(doctor_checkout_summary)"
+  )
+
+  if doctor_pretty; then
+    gum style \
+      --border rounded \
+      --border-foreground 8 \
+      --foreground 7 \
+      --padding "1 2" \
+      "$context"
+  else
+    printf '%s\n' "$context"
+  fi
+}
+
 doctor_anonymize_report_line() {
   local line="$*"
   local home_path="${HOME:-}"
@@ -609,6 +700,9 @@ run_update_doctor() {
 
   doctor_report_init
 
+  doctor_banner "Update repair"
+  doctor_context_panel
+  echo
   echo "Ryoku Doctor: update"
   echo
   print_update_status
@@ -764,7 +858,7 @@ doctor_converge_rebirth_session_services() {
     xdg-desktop-portal.service \
     >/dev/null 2>&1 || true
 
-  echo "Checked rebirth Hyprland user service state."
+  doctor_note "OK" "Checked rebirth Hyprland user service state"
 }
 
 doctor_audio_restore_service_ready() {
@@ -792,9 +886,9 @@ doctor_repair_rebirth_audio_restore_service() {
   [[ -f $installer ]] || return 0
 
   if env RYOKU_PATH="$RYOKU_PATH" PATH="$RYOKU_PATH/bin:$PATH" bash "$installer" >/dev/null 2>&1; then
-    echo "Repaired rebirth audio mixer self-heal service."
+    doctor_note "FIX" "Repaired rebirth audio mixer self-heal service"
   else
-    echo "Warning: could not repair rebirth audio mixer self-heal service; shell doctor will report details." >&2
+    doctor_note "WARN" "Could not repair rebirth audio mixer self-heal service; shell doctor will report details" >&2
   fi
 }
 
@@ -806,6 +900,10 @@ run_shell_doctor() {
     "$RYOKU_PATH/setup"
     "$runtime_dir/setup"
   )
+
+  doctor_banner "Shell health + automatic repair"
+  doctor_context_panel
+  echo
 
   doctor_converge_rebirth_session_services
   doctor_repair_rebirth_audio_restore_service
