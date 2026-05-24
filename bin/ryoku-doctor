@@ -260,6 +260,16 @@ doctor_command_realpath() {
   readlink -f "$command_path" 2>/dev/null || printf '%s\n' "$command_path"
 }
 
+doctor_command_hint() {
+  local expected_doctor="$RYOKU_PATH/bin/ryoku-doctor"
+
+  if [[ -x $expected_doctor ]]; then
+    printf '%s\n' "$expected_doctor"
+  else
+    printf '%s\n' "ryoku-doctor"
+  fi
+}
+
 doctor_environment_warnings() {
   local active_doctor=""
   local expected_doctor="$RYOKU_PATH/bin/ryoku-doctor"
@@ -267,6 +277,9 @@ doctor_environment_warnings() {
   if ! command -v gum >/dev/null 2>&1; then
     doctor_note "WARN" "gum is missing or not on PATH; doctor UI is using the built-in fallback"
     doctor_report_issue "WARN gum is missing or not on PATH."
+  elif [[ ! -t 1 && ${RYOKU_DOCTOR_PRETTY:-0} != "1" ]]; then
+    doctor_note "INFO" "gum is available but stdout is not interactive; doctor UI is using captured/plain output"
+    doctor_report_issue "INFO gum is available, but stdout is not interactive."
   fi
 
   active_doctor="$(doctor_command_realpath ryoku-doctor || true)"
@@ -792,7 +805,7 @@ run_update_doctor() {
 
   if ! log="$(latest_update_log)"; then
     echo "No readable Ryoku update log was found."
-    echo "Run: ryoku-doctor"
+    echo "Run: $(doctor_command_hint)"
     doctor_report_issue "FAIL No readable Ryoku update log was found."
     doctor_report_finish "" "$fixes" "$safe_to_retry" "$unresolved" "$warnings"
     doctor_report_print_path
