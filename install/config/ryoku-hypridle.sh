@@ -22,11 +22,12 @@ stale_rebirth_hypridle_pattern='(^|/)hypridle -c .*/hypridle-rebirth[.]conf($| )
 
 mkdir -p "$HYPR_CONFIG_DEST"
 
-for cfg in hypridle.conf hypridle-rebirth.conf hyprlock.conf; do
+for cfg in hypridle.conf hyprlock.conf; do
   if [[ -f $HYPR_CONFIG_SRC/$cfg ]]; then
     install -m 0644 "$HYPR_CONFIG_SRC/$cfg" "$HYPR_CONFIG_DEST/$cfg"
   fi
 done
+rm -f "$HYPR_CONFIG_DEST/hypridle-rebirth.conf"
 
 systemctl --user daemon-reload
 systemctl --user enable --now hypridle.service >/dev/null 2>&1 || true

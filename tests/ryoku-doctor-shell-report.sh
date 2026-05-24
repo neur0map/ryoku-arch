@@ -67,7 +67,25 @@ touch \
 chmod 755 "$runtime/scripts/ryoku-shell"
 ln -s "$runtime/scripts/ryoku-shell" "$home/.local/bin/ryoku-shell"
 
-printf '%s\n' '{"shellUpdates":{"channel":"unstable-dev"}}' >"$home/.config/ryoku-shell/config.json"
+cat >"$home/.config/ryoku-shell/config.json" <<'JSON'
+{
+  "gameMode": {
+    "disableNiriAnimations": false,
+    "niriWindowListUpdateIntervalMs": 100,
+    "niriWindowListUpdateIntervalMsGameMode": 500
+  },
+  "overlay": {
+    "recorder": {
+      "disableNiriAnims": false
+    }
+  },
+  "shellUpdates": {
+    "channel": "unstable-dev"
+  }
+}
+JSON
+printf '%s\n' '~/.config/niri/config.kdl' >"$home/.config/ryoku-shell/installed_listfile"
+printf '%s\n' '{"applied":["018-modularize-niri-config"]}' >"$home/.config/ryoku-shell/migrations.json"
 cat >"$home/.config/hypr/hyprland.conf" <<'HYPR'
 exec-once = sh -lc 'systemctl --user reset-failed ryoku-shell.service >/dev/null 2>&1 || true; exec systemctl --user start ryoku-shell.service'
 bind = SUPER, comma, exec, $systemPanel
@@ -198,7 +216,7 @@ fi
 SH
 chmod 755 "$bin_dir/gum"
 
-for cmd in jq rsync git wl-copy wl-paste cliphist fuzzel grim slurp gradia wpctl nmcli notify-send journalctl pgrep pkill; do
+for cmd in rsync git wl-copy wl-paste cliphist fuzzel grim slurp gradia wpctl nmcli notify-send journalctl pgrep pkill; do
   cat >"$bin_dir/$cmd" <<'SH'
 #!/bin/bash
 exit 0
@@ -261,6 +279,15 @@ assert_contains "$output" 'Repaired rebirth audio mixer self-heal service' \
   "doctor should install the rebirth audio restore service before shell diagnostics"
 assert_contains "$output" 'OK: ryoku-audio-restore-mixers.service is enabled' \
   "doctor should clear the pre-rebirth audio restore service failure"
+assert_contains "$output" 'Removed stale Niri-era shell config metadata' \
+  "doctor should remove stale Niri-era user config and installer metadata"
+if grep -Eq 'disableNiri|niriWindow|disableNiriAnims' "$home/.config/ryoku-shell/config.json"; then
+  fail "doctor should remove stale Niri-era keys from active shell config"
+fi
+[[ ! -e $home/.config/ryoku-shell/installed_listfile ]] || \
+  fail "doctor should remove stale shell installer list metadata"
+[[ ! -e $home/.config/ryoku-shell/migrations.json ]] || \
+  fail "doctor should remove stale shell migration metadata"
 gum_output="$(<"$gum_log")"
 assert_contains "$gum_output" 'style .*Ryoku Doctor' \
   "public doctor should invoke gum for the entrypoint UI"
@@ -323,6 +350,7 @@ ln -s "$home/.config/systemd/user/ryoku-shell.service" \
 mkdir -p "$home/.config/systemd/user/ryoku-shell.service.d"
 printf '%s\n' '[Service]' 'Environment=QT_WAYLAND_DISABLE_FRACTIONAL_SCALE=1' \
   >"$home/.config/systemd/user/ryoku-shell.service.d/qt6-fractional-scale-workaround.conf"
+printf '%s\n' 'stale hypridle config' >"$home/.config/hypr/hypridle-rebirth.conf"
 printf '%s\n' 'exec-once = hypridle -c ~/.config/hypr/hypridle-rebirth.conf' \
   >>"$home/.config/hypr/hyprland.conf"
 export RYOKU_TEST_STALE_HYPRIDLE_RUNNING=1
@@ -340,12 +368,16 @@ assert_contains "$stale_output" 'Removed stale Qt fractional-scale drop-in' \
   "doctor should call out retired Qt fractional-scale drop-in cleanup"
 assert_contains "$stale_output" 'Removed stale Hyprland hypridle exec-once' \
   "doctor should remove the stale Hyprland-spawned hypridle startup"
+assert_contains "$stale_output" 'Removed stale hypridle rebirth config' \
+  "doctor should remove the retired rebirth hypridle config"
 assert_contains "$stale_output" 'Stopped stale Hyprland-spawned hypridle instance' \
   "doctor should stop the duplicate Hyprland-spawned hypridle process when the service is active"
 [[ ! -e $home/.config/systemd/user/niri.service.wants/ryoku-shell.service ]] \
   || fail "doctor should remove the stale Niri service symlink"
 [[ ! -e $home/.config/systemd/user/ryoku-shell.service.d/qt6-fractional-scale-workaround.conf ]] \
   || fail "doctor should remove the retired Qt fractional-scale drop-in"
+[[ ! -e $home/.config/hypr/hypridle-rebirth.conf ]] \
+  || fail "doctor should remove the retired rebirth hypridle config"
 ! grep -Fxq 'exec-once = hypridle -c ~/.config/hypr/hypridle-rebirth.conf' "$home/.config/hypr/hyprland.conf" \
   || fail "doctor should remove stale Hyprland hypridle exec-once lines"
 

@@ -50,12 +50,8 @@ assert_no_path tests/qylock-lock-helper-behavior.sh
 
 assert_contains config/hypr/hypridle.conf 'lock_cmd[[:space:]]*=[[:space:]]*/bin/sh -c .*env -u QS_CONFIG_NAME -u QS_CONFIG_PATH -u QS_MANIFEST .*quickshell-lockscreen/lock\.sh' \
   "lid/idle lock should call qylock's upstream lock script directly"
-assert_contains config/hypr/hypridle-rebirth.conf 'lock_cmd[[:space:]]*=[[:space:]]*/bin/sh -c .*env -u QS_CONFIG_NAME -u QS_CONFIG_PATH -u QS_MANIFEST .*quickshell-lockscreen/lock\.sh' \
-  "rebirth lid/idle lock should call qylock's upstream lock script directly"
 assert_not_contains config/hypr/hypridle.conf 'ryoku-lock-qylock' \
   "lid/idle lock should not call the Ryoku qylock compatibility bridge"
-assert_not_contains config/hypr/hypridle-rebirth.conf 'ryoku-lock-qylock' \
-  "rebirth lid/idle lock should not call the Ryoku qylock compatibility bridge"
 assert_not_contains config/hypr/hypridle.conf 'lock_cmd[[:space:]]*=[[:space:]]*pidof hyprlock \|\| hyprlock' \
   "lid/idle lock should not go straight to hyprlock"
 

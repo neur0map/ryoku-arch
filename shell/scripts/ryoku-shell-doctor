@@ -614,16 +614,63 @@ check_package_helpers() {
 
 check_user_config() {
   local config="$config_dir/config.json"
+  local stale_metadata=(
+    "$config_dir/installed_listfile"
+    "$config_dir/migrations.json"
+  )
+  local metadata
+  local stale_count=0
+  local tmp=""
 
   if [[ ! -f $config ]]; then
     doctor_pass "User config absent; defaults will be used"
     return 0
   fi
 
-  if jq empty "$config" >/dev/null 2>&1; then
-    doctor_pass "User config JSON valid"
-  else
+  if ! jq empty "$config" >/dev/null 2>&1; then
     doctor_fail "User config JSON invalid: $config"
+    return 0
+  fi
+
+  if jq -e '
+    [
+      .gameMode.disableNiriAnimations?,
+      .gameMode.niriWindowListUpdateIntervalMs?,
+      .gameMode.niriWindowListUpdateIntervalMsGameMode?,
+      .overlay.recorder.disableNiriAnims?
+    ] | map(select(. != null)) | length > 0
+  ' "$config" >/dev/null 2>&1; then
+    tmp="$(mktemp "${config}.XXXXXX")" || {
+      doctor_warn "User config has stale Niri-era keys but no temp file could be created"
+      return 0
+    }
+    if jq '
+      del(
+        .gameMode.disableNiriAnimations,
+        .gameMode.niriWindowListUpdateIntervalMs,
+        .gameMode.niriWindowListUpdateIntervalMsGameMode,
+        .overlay.recorder.disableNiriAnims
+      )
+    ' "$config" >"$tmp" && mv "$tmp" "$config"; then
+      ((stale_count++)) || true
+    else
+      rm -f "$tmp"
+      doctor_warn "User config has stale Niri-era keys but could not be rewritten"
+      return 0
+    fi
+  fi
+
+  for metadata in "${stale_metadata[@]}"; do
+    if [[ -f $metadata ]] \
+      && grep -Eiq 'niri|inir|illogical-impulse|ryoku-rebirth-shell|ryoku-vroomies-shell' "$metadata"; then
+      rm -f "$metadata" && ((stale_count++)) || true
+    fi
+  done
+
+  if (( stale_count > 0 )); then
+    doctor_fix "Removed stale Niri-era shell config metadata"
+  else
+    doctor_pass "User config JSON valid"
   fi
 }
 
@@ -869,6 +916,7 @@ check_stale_compositor_wiring() {
   local niri_wants="$systemd_user_dir/niri.service.wants/ryoku-shell.service"
   local stale_dropin="$systemd_user_dir/ryoku-shell.service.d/qt6-fractional-scale-workaround.conf"
   local hypr_conf="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland.conf"
+  local stale_hypridle_config="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hypridle-rebirth.conf"
   local stale_hypridle_line="exec-once = hypridle -c ~/.config/hypr/hypridle-rebirth.conf"
   local stale_hypridle_pattern='(^|/)hypridle -c .*/hypridle-rebirth[.]conf($| )'
   local compositor
@@ -902,6 +950,15 @@ check_stale_compositor_wiring() {
       doctor_fix "Removed stale Hyprland hypridle exec-once; systemd owns hypridle.service"
     else
       doctor_fail "Stale Hyprland hypridle exec-once remains: $hypr_conf"
+    fi
+  fi
+
+  if [[ -e $stale_hypridle_config || -L $stale_hypridle_config ]]; then
+    found=1
+    if rm -f "$stale_hypridle_config"; then
+      doctor_fix "Removed stale hypridle rebirth config: $stale_hypridle_config"
+    else
+      doctor_fail "Stale hypridle rebirth config remains: $stale_hypridle_config"
     fi
   fi
 

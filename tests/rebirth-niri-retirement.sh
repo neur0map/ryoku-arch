@@ -42,6 +42,7 @@ assert_not_contains() {
 
 assert_no_path config/niri
 assert_no_path config/xdg-desktop-portal/niri-portals.conf
+assert_no_path config/hypr/hypridle-rebirth.conf
 assert_no_path shell/scripts/__pycache__/niri-config.cpython-314.pyc
 assert_no_path shell/scripts/__pycache__/parse_niri_keybinds.cpython-314.pyc
 assert_no_path bin/ryoku-dev-generate-keybindings-docs

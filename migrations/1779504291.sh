@@ -156,7 +156,6 @@ set_hypridle_lock_cmd() {
 set_hyprland_lock_bind "$HOME/.config/hypr/hyprland.conf"
 set_smooth_opening_animations "$HOME/.config/hypr/hyprland.conf"
 set_hypridle_lock_cmd "$HOME/.config/hypr/hypridle.conf"
-set_hypridle_lock_cmd "$HOME/.config/hypr/hypridle-rebirth.conf"
 
 if command -v hyprctl >/dev/null 2>&1; then
   hyprctl reload >/dev/null 2>&1 || true

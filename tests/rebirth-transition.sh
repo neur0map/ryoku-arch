@@ -62,7 +62,7 @@ printf '# test runtime env\n' >"$ryoku/lib/runtime-env.sh"
 printf 'wallpaper\n' >"$ryoku/wallpapers/new-ryoku-walls-v0-jk6dv9e00s2h1.webp"
 touch \
   "$ryoku/config/hypr/colors.conf" \
-  "$ryoku/config/hypr/hypridle-rebirth.conf" \
+  "$ryoku/config/hypr/hypridle.conf" \
   "$ryoku/config/hypr/hyprland.conf" \
   "$ryoku/config/hypr/hyprland-gui.conf"
 

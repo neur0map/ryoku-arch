@@ -13,8 +13,10 @@ fail() {
   fail "missing Hyprland entry config"
 [[ -f $ROOT_DIR/config/hypr/colors.conf ]] || \
   fail "missing Hyprland color fallback"
-[[ -f $ROOT_DIR/config/hypr/hypridle-rebirth.conf ]] || \
-  fail "missing rebirth hypridle config"
+[[ -f $ROOT_DIR/config/hypr/hypridle.conf ]] || \
+  fail "missing canonical Hyprland hypridle config"
+[[ ! -e $ROOT_DIR/config/hypr/hypridle-rebirth.conf ]] || \
+  fail "rebirth hypridle config should not be shipped after hypridle.service became canonical"
 [[ ! -e $ROOT_DIR/bin/ryoku-rebirth-shell ]] || \
   fail "rebirth shell wrapper should be removed"
 [[ ! -d $ROOT_DIR/shell-rebirth ]] || \

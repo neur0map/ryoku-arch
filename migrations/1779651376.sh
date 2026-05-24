@@ -6,6 +6,7 @@ stale_rebirth_hypridle_pattern='(^|/)hypridle -c .*/hypridle-rebirth[.]conf($| )
 if [[ -f $hyprland_conf ]]; then
   sed -i '\#^exec-once = hypridle -c ~/\.config/hypr/hypridle-rebirth\.conf$#d' "$hyprland_conf"
 fi
+rm -f "${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hypridle-rebirth.conf"
 
 if ryoku-cmd-present systemctl; then
   systemctl --user daemon-reload >/dev/null 2>&1 || true

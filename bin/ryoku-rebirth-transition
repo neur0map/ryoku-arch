@@ -461,7 +461,7 @@ refresh_rebirth_hyprland_config() {
   local config
   local configs=(
     hypr/colors.conf
-    hypr/hypridle-rebirth.conf
+    hypr/hypridle.conf
     hypr/hyprland.conf
     hypr/hyprland-gui.conf
   )
