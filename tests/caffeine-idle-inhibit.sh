@@ -76,6 +76,10 @@ assert_contains "$caffeine_cmd" 'RYOKU_CAFFEINE_STATE_FILE' \
   "caffeine helper should expose an overrideable state file for tests"
 assert_contains "$caffeine_cmd" 'restore_caffeine' \
   "caffeine helper should restore a persisted stay-awake request"
+assert_contains "$caffeine_cmd" 'hold_caffeine' \
+  "caffeine helper should expose a temporary update-time idle hold"
+assert_contains "$caffeine_cmd" 'release_caffeine' \
+  "caffeine helper should release temporary idle holds without clearing user requests"
 assert_contains "$caffeine_cmd" '--what=idle:sleep' \
   "caffeine helper should inhibit both idle locks and sleep requests"
 assert_contains "$caffeine_cmd" 'ryoku-caffeine-inhibit' \
@@ -145,5 +149,45 @@ bash "$caffeine_cmd" stop
 
 [[ ! -f $state_file ]] || fail "stop should clear the persisted stay-awake state"
 [[ ! -f $marker ]] || fail "stop should clear the idle inhibitor"
+
+PATH="$stub_bin:$PATH" \
+RYOKU_CAFFEINE_STATE_FILE="$state_file" \
+RYOKU_CAFFEINE_LOCK_FILE="$lock_file" \
+RYOKU_TEST_CAFFEINE_MARKER="$marker" \
+bash "$caffeine_cmd" hold
+
+[[ ! -f $state_file ]] || fail "temporary hold should not persist stay-awake state"
+[[ -f $marker ]] || fail "temporary hold should launch the idle inhibitor"
+
+PATH="$stub_bin:$PATH" \
+RYOKU_CAFFEINE_STATE_FILE="$state_file" \
+RYOKU_CAFFEINE_LOCK_FILE="$lock_file" \
+RYOKU_TEST_CAFFEINE_MARKER="$marker" \
+bash "$caffeine_cmd" release
+
+[[ ! -f $state_file ]] || fail "temporary release should not persist stay-awake state"
+[[ ! -f $marker ]] || fail "temporary release should stop the idle inhibitor when stay-awake was not requested"
+
+printf '%s\n' "enabled" > "$state_file"
+
+PATH="$stub_bin:$PATH" \
+RYOKU_CAFFEINE_STATE_FILE="$state_file" \
+RYOKU_CAFFEINE_LOCK_FILE="$lock_file" \
+RYOKU_TEST_CAFFEINE_MARKER="$marker" \
+bash "$caffeine_cmd" hold
+
+[[ -f $state_file ]] || fail "temporary hold should preserve an existing stay-awake request"
+[[ -f $marker ]] || fail "temporary hold should launch the idle inhibitor for an existing stay-awake request"
+
+rm -f "$marker"
+
+PATH="$stub_bin:$PATH" \
+RYOKU_CAFFEINE_STATE_FILE="$state_file" \
+RYOKU_CAFFEINE_LOCK_FILE="$lock_file" \
+RYOKU_TEST_CAFFEINE_MARKER="$marker" \
+bash "$caffeine_cmd" release
+
+[[ -f $state_file ]] || fail "temporary release should not clear an existing stay-awake request"
+[[ -f $marker ]] || fail "temporary release should restore the idle inhibitor for an existing stay-awake request"
 
 echo "OK: caffeine idle inhibit contract"

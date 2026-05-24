@@ -9,7 +9,7 @@ source "$repo_root/lib/runtime-env.sh"
 # shellcheck disable=SC1091
 source "$repo_root/lib/update-dashboard.sh"
 
-ryoku-cmd-caffeine start >/dev/null 2>&1 || true
+ryoku-cmd-caffeine hold >/dev/null 2>&1 || true
 
 update_shell_config_file() {
   local config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
@@ -257,7 +257,7 @@ update_cleanup_stage() {
 finish_update_perform() {
   local exit_code=$?
 
-  ryoku-cmd-caffeine stop >/dev/null 2>&1 || true
+  ryoku-cmd-caffeine release >/dev/null 2>&1 || true
 
   if (( exit_code == 0 )); then
     ryoku_update_dashboard_finish "success"

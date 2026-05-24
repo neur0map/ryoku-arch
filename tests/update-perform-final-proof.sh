@@ -114,6 +114,13 @@ grep -Fxq "remote_tip=origin/unstable-dev@$remote_tip" "$last_update" || \
   fail "persisted update provenance should record the selected remote tip"
 grep -Fxq "active_doctor=$ryoku/bin/ryoku-doctor" "$last_update" || \
   fail "persisted update provenance should record the installed doctor path"
+grep -Fq 'ryoku-cmd-caffeine:hold' "$events" || \
+  fail "update performer should use a temporary idle hold instead of mutating the Stay Awake setting"
+grep -Fq 'ryoku-cmd-caffeine:release' "$events" || \
+  fail "update performer should release the temporary idle hold when finished"
+if grep -Eq 'ryoku-cmd-caffeine:(start|stop)' "$events"; then
+  fail "update performer should not start/stop the persisted Stay Awake setting"
+fi
 
 previous_head="$(git -C "$ryoku" rev-parse HEAD)"
 printf '%s\n' "remote-only update" >"$ryoku/remote-only.txt"
