@@ -123,6 +123,23 @@ doctor_pretty() {
   [[ -t 1 ]] && command -v gum >/dev/null 2>&1
 }
 
+doctor_repair_gum() {
+  local gum_installer="${RYOKU_DOCTOR_GUM_INSTALLER:-ryoku-pkg-add}"
+
+  [[ ${RYOKU_DOCTOR_PLAIN:-0} == "1" ]] && return 0
+  if [[ ${RYOKU_DOCTOR_FORCE_GUM_REPAIR:-0} != "1" ]]; then
+    command -v gum >/dev/null 2>&1 && return 0
+  fi
+  command -v "$gum_installer" >/dev/null 2>&1 || return 0
+
+  echo "Ryoku Doctor: installing missing UI dependency: gum"
+  if "$gum_installer" gum >/dev/null 2>&1; then
+    doctor_report_issue "FIX Installed missing gum package for doctor UI."
+  else
+    doctor_report_issue "WARN Could not install missing gum package for doctor UI."
+  fi
+}
+
 doctor_style() {
   if doctor_pretty; then
     gum style "$@"
@@ -755,6 +772,7 @@ run_update_doctor() {
 
   doctor_report_init
 
+  doctor_repair_gum
   doctor_banner "Update repair"
   doctor_context_panel
   doctor_environment_warnings
@@ -957,6 +975,7 @@ run_shell_doctor() {
     "$runtime_dir/setup"
   )
 
+  doctor_repair_gum
   doctor_banner "Shell health + automatic repair"
   doctor_context_panel
   doctor_environment_warnings

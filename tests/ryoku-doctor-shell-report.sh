@@ -214,6 +214,9 @@ run_shell_doctor() {
   RYOKU_QS_KILLED_MARKER="$qs_killed_marker" \
   RYOKU_SYSTEMCTL_LOG="$systemctl_log" \
   RYOKU_DOCTOR_PRETTY=1 \
+  RYOKU_DOCTOR_FORCE_GUM_REPAIR="${RYOKU_DOCTOR_FORCE_GUM_REPAIR:-0}" \
+  RYOKU_DOCTOR_GUM_INSTALLER="${RYOKU_DOCTOR_GUM_INSTALLER:-ryoku-pkg-add}" \
+  RYOKU_PKG_ADD_LOG="${RYOKU_PKG_ADD_LOG:-}" \
   RYOKU_GUM_LOG="$gum_log" \
   QS_CONFIG_NAME="ryoku-rebirth-shell" \
   TMPDIR="$report_tmp" \
@@ -248,6 +251,28 @@ assert_contains "$output" 'OK: ryoku-audio-restore-mixers.service is enabled' \
 gum_output="$(<"$gum_log")"
 assert_contains "$gum_output" 'style .*Ryoku Doctor' \
   "public doctor should invoke gum for the entrypoint UI"
+
+pkg_add_log="$tmp/pkg-add.log"
+cat >"$bin_dir/ryoku-pkg-add" <<'SH'
+#!/bin/bash
+printf '%s\n' "$*" >> "$RYOKU_PKG_ADD_LOG"
+SH
+chmod 755 "$bin_dir/ryoku-pkg-add"
+rm -f "$gum_log"
+export RYOKU_PKG_ADD_LOG="$pkg_add_log"
+export RYOKU_DOCTOR_FORCE_GUM_REPAIR=1
+export RYOKU_DOCTOR_GUM_INSTALLER="$bin_dir/ryoku-pkg-add"
+
+output="$(run_shell_doctor)" || fail "ryoku-doctor should repair gum before rendering: $output"
+assert_contains "$output" 'Ryoku Doctor: installing missing UI dependency: gum' \
+  "doctor should explain when it self-heals the missing gum UI dependency"
+assert_contains "$output" 'Ryoku Doctor' \
+  "doctor should render the styled title after repairing gum"
+grep -Fxq 'gum' "$pkg_add_log" || \
+  fail "doctor should install gum through ryoku-pkg-add when the UI dependency is missing"
+unset RYOKU_DOCTOR_FORCE_GUM_REPAIR
+unset RYOKU_DOCTOR_GUM_INSTALLER
+
 qs_kill_output="$(<"$qs_kill_log")"
 assert_contains "$qs_kill_output" "kill -p $legacy_runtime --any-display" \
   "doctor should kill the stale host-shell Quickshell runtime"
