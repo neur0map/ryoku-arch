@@ -20,6 +20,7 @@ CustomMouseArea {
 
     property point dragStart
     property bool dashboardShortcutActive
+    property bool islandShortcutActive
     property bool osdShortcutActive
     property bool utilitiesShortcutActive
 
@@ -74,6 +75,9 @@ CustomMouseArea {
 
             if (!dashboardShortcutActive)
                 visibilities.dashboard = false;
+
+            if (!islandShortcutActive)
+                visibilities.island = false;
 
             if (!utilitiesShortcutActive)
                 visibilities.utilities = false;
@@ -172,34 +176,23 @@ CustomMouseArea {
                 visibilities.sidebar = false;
         }
 
-        // Show launcher on hover, or show/hide on drag if hover is disabled
-        if (Config.launcher.showOnHover) {
-            if (!visibilities.launcher && inBottomPanel(panels.launcher, x, y))
-                visibilities.launcher = true;
-        } else if (pressed && inBottomPanel(panels.launcher, dragStart.x, dragStart.y) && withinPanelWidth(panels.launcher, x, y)) {
-            if (dragY < -Config.launcher.dragThreshold)
-                visibilities.launcher = true;
-            else if (dragY > Config.launcher.dragThreshold)
-                visibilities.launcher = false;
+        // Top-center dashboard hover is replaced by the embedded island.
+        const showIsland = Config.dashboard.showOnHover && inTopPanel(panels.island, x, y);
+        visibilities.dashboard = false;
+
+        if (!islandShortcutActive) {
+            visibilities.island = showIsland;
+        } else if (showIsland) {
+            // If hovering over island area while in shortcut mode, transition to hover control.
+            islandShortcutActive = false;
         }
 
-        // Show dashboard on hover
-        const showDashboard = Config.dashboard.showOnHover && inTopPanel(panels.dashboard, x, y);
-
-        // Always update visibility based on hover if not in shortcut mode
-        if (!dashboardShortcutActive) {
-            visibilities.dashboard = showDashboard;
-        } else if (showDashboard) {
-            // If hovering over dashboard area while in shortcut mode, transition to hover control
-            dashboardShortcutActive = false;
-        }
-
-        // Show/hide dashboard on drag (for touchscreen devices)
-        if (pressed && inTopPanel(panels.dashboard, dragStart.x, dragStart.y) && withinPanelWidth(panels.dashboard, x, y)) {
+        // Show/hide island on the old dashboard drag gesture (touchscreen path).
+        if (pressed && inTopPanel(panels.island, dragStart.x, dragStart.y) && withinPanelWidth(panels.island, x, y)) {
             if (dragY > Config.dashboard.dragThreshold)
-                visibilities.dashboard = true;
+                visibilities.island = true;
             else if (dragY < -Config.dashboard.dragThreshold)
-                visibilities.dashboard = false;
+                visibilities.island = false;
         }
 
         // Show utilities on hover
@@ -247,14 +240,22 @@ CustomMouseArea {
 
         function onDashboardChanged() {
             if (root.visibilities.dashboard) {
-                // Dashboard became visible, immediately check if this should be shortcut mode
-                const inDashboardArea = root.inTopPanel(root.panels.dashboard, root.mouseX, root.mouseY);
-                if (!inDashboardArea) {
-                    root.dashboardShortcutActive = true;
-                }
+                // The top dashboard slot is unplugged for this live island experiment.
+                root.visibilities.dashboard = false;
+                root.visibilities.island = true;
             } else {
-                // Dashboard hidden, clear shortcut flag
                 root.dashboardShortcutActive = false;
+            }
+        }
+
+        function onIslandChanged() {
+            if (root.visibilities.island) {
+                root.visibilities.dashboard = false;
+                const inIslandArea = root.inTopPanel(root.panels.island, root.mouseX, root.mouseY);
+                if (!inIslandArea)
+                    root.islandShortcutActive = true;
+            } else {
+                root.islandShortcutActive = false;
             }
         }
 

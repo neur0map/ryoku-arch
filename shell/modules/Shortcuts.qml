@@ -24,12 +24,13 @@ Scope {
     CustomShortcut {
 
         name: "showall"
-        description: "Toggle launcher, dashboard and osd"
+        description: "Toggle launcher, top island and osd"
         onPressed: {
             if (root.hasFullscreen)
                 return;
             const v = Visibilities.getForActive();
-            v.launcher = v.dashboard = v.osd = v.utilities = !(v.launcher || v.dashboard || v.osd || v.utilities);
+            v.launcher = v.island = v.osd = v.utilities = !(v.launcher || v.island || v.osd || v.utilities);
+            v.dashboard = false;
         }
     }
 
@@ -37,12 +38,13 @@ Scope {
     CustomShortcut {
 
         name: "dashboard"
-        description: "Toggle dashboard"
+        description: "Toggle top island"
         onPressed: {
             if (root.hasFullscreen)
                 return;
             const visibilities = Visibilities.getForActive();
-            visibilities.dashboard = !visibilities.dashboard;
+            visibilities.dashboard = false;
+            visibilities.island = !visibilities.island;
         }
     }
 
@@ -111,10 +113,15 @@ Scope {
     IpcHandler {
         function toggle(drawer: string): void {
             if (list().split("\n").includes(drawer)) {
-                if (root.hasFullscreen && ["launcher", "session", "dashboard"].includes(drawer))
+                if (root.hasFullscreen && ["launcher", "session", "dashboard", "island"].includes(drawer))
                     return;
                 const visibilities = Visibilities.getForActive();
-                visibilities[drawer] = !visibilities[drawer];
+                if (drawer === "dashboard") {
+                    visibilities.dashboard = false;
+                    visibilities.island = !visibilities.island;
+                } else {
+                    visibilities[drawer] = !visibilities[drawer];
+                }
             } else {
                 console.warn(lc, `Drawer "${drawer}" does not exist`);
             }

@@ -67,7 +67,7 @@ Item {
             Anim {
                 target: root
                 property: "implicitWidth"
-                type: Anim.Emphasized
+                type: Anim.DefaultSpatial
             }
         }
     ]

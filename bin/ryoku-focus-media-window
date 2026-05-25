@@ -1,0 +1,194 @@
+#!/bin/bash
+set -u
+
+if [[ -z ${XDG_RUNTIME_DIR:-} ]]; then
+  XDG_RUNTIME_DIR="/run/user/$(id -u)"
+  export XDG_RUNTIME_DIR
+fi
+
+if [[ -z ${DBUS_SESSION_BUS_ADDRESS:-} ]]; then
+  DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
+  export DBUS_SESSION_BUS_ADDRESS
+fi
+
+if [[ -z ${HYPRLAND_INSTANCE_SIGNATURE:-} ]]; then
+  socket_path=$(ls -td "$XDG_RUNTIME_DIR"/hypr/*/.socket.sock 2>/dev/null | head -n 1)
+  if [[ -n $socket_path ]]; then
+    socket_dir=${socket_path%/.socket.sock}
+    HYPRLAND_INSTANCE_SIGNATURE=${socket_dir##*/}
+    export HYPRLAND_INSTANCE_SIGNATURE
+  fi
+fi
+
+if ! command -v playerctl >/dev/null 2>&1; then
+  exit 0
+fi
+
+mapfile -t players < <(playerctl -l 2>/dev/null)
+if ((${#players[@]} == 0)); then
+  exit 0
+fi
+
+selected=""
+for player in "${players[@]}"; do
+  status=$(playerctl -p "$player" status 2>/dev/null || true)
+  if [[ $status == "Playing" ]]; then
+    selected=$player
+    break
+  fi
+done
+
+if [[ -z $selected ]]; then
+  selected=${players[0]}
+fi
+
+desktop_entry=$(playerctl -p "$selected" metadata --format '{{mpris:desktopEntry}}' 2>/dev/null || true)
+track_title=$(playerctl -p "$selected" metadata --format '{{xesam:title}}' 2>/dev/null || true)
+track_artist=$(playerctl -p "$selected" metadata --format '{{xesam:artist}}' 2>/dev/null || true)
+
+pid_hint=""
+if [[ $selected =~ instance([0-9]+)$ ]]; then
+  pid_hint=${BASH_REMATCH[1]}
+fi
+
+candidates=()
+add_candidate() {
+  local value=$1
+  value=${value,,}
+  value=${value%.desktop}
+  if [[ -n $value ]]; then
+    candidates+=("$value")
+  fi
+}
+
+player_base=${selected%%.*}
+add_candidate "$selected"
+add_candidate "$player_base"
+add_candidate "$desktop_entry"
+
+case $player_base in
+  chromium|chrome)
+    add_candidate "chromium"
+    add_candidate "google-chrome"
+    add_candidate "google-chrome-stable"
+    add_candidate "brave-browser"
+    add_candidate "helium"
+    ;;
+  firefox)
+    add_candidate "firefox"
+    add_candidate "librewolf"
+    ;;
+esac
+
+clients_file=$(mktemp)
+trap 'rm -f "$clients_file"' EXIT
+
+if hyprctl clients -j >"$clients_file" 2>/dev/null; then
+  candidate_blob=$(printf '%s\n' "${candidates[@]}")
+  match=$(TARGET_PID="$pid_hint" TARGET_CANDIDATES="$candidate_blob" TARGET_TITLE="$track_title" TARGET_ARTIST="$track_artist" python3 - "$clients_file" <<'PY'
+import json
+import os
+import re
+import sys
+
+with open(sys.argv[1], "r", encoding="utf-8") as handle:
+  clients = json.load(handle)
+
+pid = os.environ.get("TARGET_PID", "").strip()
+candidates = [c.strip().lower() for c in os.environ.get("TARGET_CANDIDATES", "").splitlines() if c.strip()]
+target_title = os.environ.get("TARGET_TITLE", "")
+target_artist = os.environ.get("TARGET_ARTIST", "")
+
+def norm(value):
+  return re.sub(r"[^a-z0-9]+", " ", str(value or "").lower()).strip()
+
+def compact(value):
+  return norm(value).replace(" ", "")
+
+title_norm = norm(target_title)
+title_compact = compact(target_title)
+artist_norm = norm(target_artist)
+
+best = None
+best_score = 0
+
+for client in clients:
+  if not client.get("mapped", True):
+    continue
+
+  score = 0
+  client_pid = str(client.get("pid", ""))
+  if pid and client_pid == pid:
+    score += 1000
+
+  cls = norm(client.get("class", ""))
+  initial_cls = norm(client.get("initialClass", ""))
+  title = norm(client.get("title", ""))
+  title_no_space = title.replace(" ", "")
+
+  for candidate in candidates:
+    candidate_norm = norm(candidate)
+    if not candidate_norm:
+      continue
+
+    if cls == candidate_norm or initial_cls == candidate_norm:
+      score += 300
+    elif candidate_norm in cls or candidate_norm in initial_cls or cls in candidate_norm or initial_cls in candidate_norm:
+      score += 130
+
+  if len(title_norm) >= 6 and title_norm in title:
+    score += 220
+  elif len(title_compact) >= 8 and title_compact in title_no_space:
+    score += 180
+
+  if len(artist_norm) >= 3 and artist_norm in title:
+    score += 80
+
+  if client.get("hidden"):
+    score -= 50
+
+  if score > best_score:
+    best_score = score
+    best = client
+
+if best and best_score >= 120:
+  workspace = best.get("workspace") or {}
+  print("{}|{}|{}".format(best.get("address", ""), workspace.get("id", ""), workspace.get("name", "")))
+PY
+)
+
+  if [[ -n $match ]]; then
+    if [[ ${RYOKU_FOCUS_MEDIA_DRY_RUN:-0} == "1" ]]; then
+      printf '%s\n' "$match"
+      exit 0
+    fi
+
+    IFS='|' read -r address workspace_id workspace_name <<<"$match"
+    if [[ -n $workspace_name && $workspace_name == special:* ]]; then
+      special_name=${workspace_name#special:}
+      hyprctl dispatch togglespecialworkspace "$special_name" >/dev/null 2>&1 || true
+    elif [[ -n $workspace_id ]]; then
+      hyprctl dispatch workspace "$workspace_id" >/dev/null 2>&1 || true
+    fi
+
+    if [[ -n $address ]]; then
+      hyprctl dispatch focuswindow "address:$address" >/dev/null 2>&1 && exit 0
+    fi
+  fi
+fi
+
+mpris_dest="org.mpris.MediaPlayer2.$selected"
+gdbus call --session --dest "$mpris_dest" --object-path /org/mpris/MediaPlayer2 --method org.mpris.MediaPlayer2.Raise >/dev/null 2>&1 || true
+
+if [[ -n $desktop_entry ]]; then
+  desktop_file=$desktop_entry
+  if [[ $desktop_file != *.desktop ]]; then
+    desktop_file="$desktop_file.desktop"
+  fi
+
+  if command -v gtk-launch >/dev/null 2>&1; then
+    gtk-launch "$desktop_file" >/dev/null 2>&1 && exit 0
+  fi
+
+  xdg-open "$desktop_file" >/dev/null 2>&1 || true
+fi

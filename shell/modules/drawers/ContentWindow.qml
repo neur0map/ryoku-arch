@@ -59,6 +59,7 @@ StyledWindow {
         visibilities.launcher = false;
         visibilities.session = false;
         visibilities.dashboard = false;
+        visibilities.island = false;
         panels.popouts.close();
     }
 
@@ -112,6 +113,7 @@ StyledWindow {
             visibilities.session = false;
             visibilities.sidebar = false;
             visibilities.dashboard = false;
+            visibilities.island = false;
             panels.popouts.hasCurrent = false;
             bar.closeTray();
         }
@@ -170,6 +172,13 @@ StyledWindow {
             id: launcherBg
 
             panel: panels.launcher
+            deformAmount: 0.1
+        }
+
+        PanelBg {
+            id: islandBg
+
+            panel: panels.island
             deformAmount: 0.1
         }
 
@@ -268,6 +277,9 @@ StyledWindow {
             }
             launcher.transform: Matrix4x4 {
                 matrix: launcherBg.deformMatrix
+            }
+            island.transform: Matrix4x4 {
+                matrix: islandBg.deformMatrix
             }
             session.transform: Matrix4x4 {
                 matrix: sessionBg.deformMatrix

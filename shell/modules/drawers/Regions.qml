@@ -29,8 +29,13 @@ Region {
 
     R {
         panel: root.panels.launcher
-        y: root.win.height - height
-        height: panel.height * (1 - root.panels.launcher.offsetScale) + root.borderThickness
+        height: panel.height + (root.panels.launcher.openProgress > 0 ? root.borderThickness : 0)
+    }
+
+    R {
+        panel: root.panels.island
+        y: 0
+        height: panel.height * (1 - root.panels.island.offsetScale) + root.borderThickness
     }
 
     R {

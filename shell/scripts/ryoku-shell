@@ -42,7 +42,7 @@ Runtime:
 IPC:
   launcher                    Toggle launcher
   session                     Toggle session menu
-  dashboard                   Toggle dashboard
+  dashboard | island          Toggle top island
   utilities                   Toggle utilities
   settings                    Open settings
   ipc <target> <fn> [args]    Raw Quickshell IPC call
@@ -160,7 +160,7 @@ case "$command" in
   session)
     ipc_call drawers toggle session
     ;;
-  dashboard)
+  dashboard|island)
     ipc_call drawers toggle dashboard
     ;;
   utilities)

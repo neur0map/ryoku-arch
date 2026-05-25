@@ -13,35 +13,13 @@ Item {
     required property DrawerVisibilities visibilities
     required property var panels
     required property real maxHeight
+    property bool contentReady: true
 
     readonly property int padding: Tokens.padding.large
     readonly property int rounding: Tokens.rounding.large
 
-    implicitWidth: listWrapper.width + padding * 2
-    implicitHeight: searchWrapper.height + listWrapper.height + padding * 2
-
-    Item {
-        id: listWrapper
-
-        implicitWidth: list.width
-        implicitHeight: list.height + root.padding
-
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: searchWrapper.top
-        anchors.bottomMargin: root.padding
-
-        ContentList {
-            id: list
-
-            content: root
-            visibilities: root.visibilities
-            panels: root.panels
-            maxHeight: root.maxHeight - searchWrapper.implicitHeight - root.padding * 3
-            search: search
-            padding: root.padding
-            rounding: root.rounding
-        }
-    }
+    implicitWidth: Math.max(720, listWrapper.implicitWidth + padding * 2)
+    implicitHeight: searchWrapper.implicitHeight + listWrapper.implicitHeight + padding * 3
 
     StyledRect {
         id: searchWrapper
@@ -51,10 +29,11 @@ Item {
 
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.bottom: parent.bottom
+        anchors.top: parent.top
         anchors.margins: root.padding
 
         implicitHeight: Math.max(searchIcon.implicitHeight, search.implicitHeight, clearIcon.implicitHeight)
+        height: implicitHeight
 
         MaterialIcon {
             id: searchIcon
@@ -126,12 +105,26 @@ Item {
                 }
             }
 
-            Component.onCompleted: forceActiveFocus()
+            Component.onCompleted: {
+                if (root.contentReady)
+                    forceActiveFocus();
+            }
+
+            Connections {
+                function onContentReadyChanged(): void {
+                    if (root.contentReady)
+                        search.forceActiveFocus();
+                }
+
+                target: root
+            }
 
             Connections {
                 function onLauncherChanged(): void {
                     if (!root.visibilities.launcher)
                         search.text = "";
+                    else if (root.contentReady)
+                        search.forceActiveFocus();
                 }
 
                 function onSessionChanged(): void {
@@ -184,6 +177,39 @@ Item {
                 Anim {
                     type: Anim.StandardSmall
                 }
+            }
+        }
+    }
+
+    Item {
+        id: listWrapper
+
+        implicitWidth: list.implicitWidth
+        implicitHeight: list.implicitHeight + root.padding
+        width: implicitWidth
+        height: implicitHeight
+        opacity: root.contentReady ? 1 : 0
+
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: searchWrapper.bottom
+        anchors.topMargin: root.padding
+
+        ContentList {
+            id: list
+
+            content: root
+            visibilities: root.visibilities
+            panels: root.panels
+            width: implicitWidth
+            maxHeight: root.maxHeight - searchWrapper.implicitHeight - root.padding * 3
+            search: search
+            padding: root.padding
+            rounding: root.rounding
+        }
+
+        Behavior on opacity {
+            Anim {
+                type: Anim.Standard
             }
         }
     }
