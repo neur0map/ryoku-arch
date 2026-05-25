@@ -7,6 +7,7 @@ Documentation for Ryoku Arch.
 - `vision.md`: project goals, audience, non-goals.
 - `maintenance.md`: how to maintain the repo. Branch topology, shipping changes, cherry-picking from upstream, safety rules. Read this first if you are about to make a change.
 - `branding.md`: visual + verbal identity. Brand colors (Greek Noir palette), logo files and how to regenerate them, where the brand surfaces, don't-do list.
+- `pixel-mascots.md`: rules for small Ryoku sprite mascots and decorative pixel marks.
 - `iso-build-recipe.md`: working recipe for building the offline ISO end-to-end, list of fixes that have to stay applied, harmless chroot warnings to ignore, verification commands.
 - `release-pipeline.md`: how Ryoku ISOs get built, signed, and pushed to Cloudflare R2 via GitHub Actions. Secrets to configure, R2 bucket setup, GPG key generation, how users verify a downloaded ISO.
 - `keybindings.md`: current Hyprland and Ryoku shell keyboard reference.
