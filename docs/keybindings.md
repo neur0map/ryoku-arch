@@ -113,6 +113,8 @@ Source of truth: Hyprland loads shipped binds from `config/hypr/hyprland.conf`.
 | `Mod+Ctrl+0` | Move to workspace 10. |
 | `Mod+Page_Down` | Next workspace. |
 | `Mod+Page_Up` | Previous workspace. |
+| `Mod+ScrollDown` | Previous open workspace, stopping at the first. |
+| `Mod+ScrollUp` | Next open workspace, stopping at the last. |
 
 ## Media
 

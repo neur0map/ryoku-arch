@@ -86,6 +86,10 @@ rg -q 'set_high_refresh_monitor_fallback' "$ROOT_DIR/migrations/1779585854.sh" |
   fail "Migration should converge existing Hyprland monitor fallback to high refresh"
 rg -q 'bind = SUPER SHIFT, R, exec, hyprctl reload' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland reload bind should not restart a shell"
+rg -q 'pass_mouse_when_bound = false' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should consume mouse events when mouse binds trigger"
+rg -q 'scroll_event_delay = 0' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should handle every Super+scroll tick as a bind"
 rg -q 'bind = SUPER, Space, exec, [$]menu' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should keep the launcher bind"
 rg -q 'bind = SUPER, V, exec, [$]clipboard' "$ROOT_DIR/config/hypr/hyprland.conf" || \
@@ -122,6 +126,14 @@ rg -q 'bind = SUPER SHIFT, H, movewindow, l' "$ROOT_DIR/config/hypr/hyprland.con
   fail "Hyprland config should keep HJKL move navigation"
 rg -q 'bind = SUPER CTRL, 1, movetoworkspace, 1' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should keep direct workspace move binds"
+rg -q '[$]workspaceScrollNext = sh -lc .*ryoku-cmd-hypr-workspace-scroll" next' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should define the non-wrapping next workspace scroll helper"
+rg -q '[$]workspaceScrollPrev = sh -lc .*ryoku-cmd-hypr-workspace-scroll" prev' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should define the non-wrapping previous workspace scroll helper"
+rg -q 'bind = SUPER, mouse_down, exec, [$]workspaceScrollPrev' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should bind Super+scroll down to the previous open workspace"
+rg -q 'bind = SUPER, mouse_up, exec, [$]workspaceScrollNext' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should bind Super+scroll up to the next open workspace"
 rg -q 'function queueRefresh' "$ROOT_DIR/shell/services/Hypr.qml" || \
   fail "Hyprland shell service should debounce compositor model refreshes"
 rg -q 'root\.queueRefresh\(true, true, false\)' "$ROOT_DIR/shell/services/Hypr.qml" || \
