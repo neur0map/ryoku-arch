@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-# shellcheck source=lib/runtime-env.sh
+# shellcheck disable=SC1091
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
 usage() {
@@ -67,7 +67,7 @@ slurp_cmd="${RYOKU_SCREENSHOT_SLURP:-slurp}"
 wl_copy_cmd="${RYOKU_SCREENSHOT_WL_COPY:-wl-copy}"
 editor_cmd="${RYOKU_SCREENSHOT_EDITOR:-ryoku-cmd-image-edit}"
 menu_cmd="${RYOKU_SCREENSHOT_MENU:-fuzzel}"
-gradia_cmd="${RYOKU_SCREENSHOT_GRADIA:-gradia}"
+gradia_cmd="${RYOKU_SCREENSHOT_GRADIA:-ryoku-cmd-gradia}"
 systemctl_cmd="${RYOKU_SCREENSHOT_SYSTEMCTL:-systemctl}"
 shell_cmd="${RYOKU_SCREENSHOT_SHELL:-ryoku-shell}"
 

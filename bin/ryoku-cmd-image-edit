@@ -18,7 +18,9 @@ launch_detached() {
   setsid "$@" >/dev/null 2>&1 &
 }
 
-if ryoku-cmd-present gradia; then
+if ryoku-cmd-present ryoku-cmd-gradia; then
+  launch_detached ryoku-cmd-gradia "$target"
+elif ryoku-cmd-present gradia; then
   launch_detached gradia "$target"
 elif ryoku-cmd-present flatpak; then
   launch_detached flatpak run be.alexandervanhee.gradia "$target"
