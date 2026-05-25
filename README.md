@@ -147,6 +147,8 @@ trusting it. Full verification commands are in
   architecture, command shape, and early Arch desktop foundation.
 - [**Celestia Shell**](https://github.com/caelestia-dots/shell), for the shell
   ideas Ryoku is currently adapting while its own shell direction matures.
+- [**ActivSpot**](https://github.com/Devvvmn/ActivSpot) by Devvvmn, for Dynamic
+  Island code adapted into Ryoku's island work and launcher/island inspiration.
 - [**qylock**](https://github.com/Darkkal44/qylock) by Darkkal44, optional SDDM
   theme bundle.
 

@@ -36,6 +36,15 @@ is being adapted into Ryoku-owned user-facing surfaces, commands, and defaults.
 - Upstream: https://github.com/caelestia-dots/shell
 - License: GPL-3.0-only
 
+## ActivSpot
+
+Ryoku's island and launcher experiments use Dynamic Island code and interaction
+inspiration from ActivSpot by Devvvmn.
+
+- Upstream: https://github.com/Devvvmn/ActivSpot
+- Usage: Dynamic Island code adapted into Ryoku's island work, plus
+  launcher/island interaction inspiration
+
 ## HyprMod
 
 Ryoku includes Hyprland GUI configuration integration informed by HyprMod.
