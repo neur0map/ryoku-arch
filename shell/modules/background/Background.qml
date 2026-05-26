@@ -3,12 +3,13 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Services.UPower
 import Ryoku.Config
 import qs.components
 import qs.components.containers
+import qs.components.effects
 import qs.services
-import Quickshell.Services.UPower
-import "../dashboard/dash" as Dash
+import "widgets"
 
 Variants {
     model: Screens.screens.filter(s => GlobalConfig.forScreen(s.name).background.enabled)
@@ -61,15 +62,30 @@ Variants {
             visible: Config.background.widgets.enabled
 
             readonly property real leftInset: Tokens.sizes.bar.innerWidth + Math.max(Tokens.padding.smaller, Config.border.thickness)
+            readonly property bool editing: Visibilities.widgetEditMode
+
+            // Right-click anywhere on the desktop opens the context menu. Sits
+            // below the widgets (z 0); right-clicks on a widget's empty area
+            // fall through to here.
+            MouseArea {
+                anchors.fill: parent
+                z: 0
+                acceptedButtons: Qt.RightButton
+                onClicked: mouse => {
+                    desktopMenu.px = mouse.x;
+                    desktopMenu.py = mouse.y;
+                    desktopMenu.open = true;
+                }
+            }
 
             // Snap-grid overlay, shown only while editing widgets.
             Canvas {
                 id: gridOverlay
 
+                z: 1
                 anchors.fill: parent
-                visible: Visibilities.widgetEditMode && GlobalConfig.background.widgets.snap
+                visible: widgetHost.editing && GlobalConfig.background.widgets.snap
                 opacity: 0.16
-                z: -1
 
                 readonly property int gridSize: Math.max(4, GlobalConfig.background.widgets.gridSize)
 
@@ -100,10 +116,11 @@ Variants {
             DesktopWidget {
                 id: clockWidget
 
+                z: 2
                 cfg: GlobalConfig.background.desktopClock
                 canvas: widgetHost
                 leftInset: widgetHost.leftInset
-                label: "Clock"
+                label: qsTr("Clock")
                 selfScales: true
                 visible: Config.background.desktopClock.enabled
 
@@ -115,84 +132,53 @@ Variants {
             }
 
             DesktopWidget {
+                z: 2
                 cfg: GlobalConfig.background.widgets.resources
                 canvas: widgetHost
                 leftInset: widgetHost.leftInset
-                label: "Resources"
+                label: qsTr("Resources")
                 visible: GlobalConfig.background.widgets.resources.enabled
 
-                StyledRect {
-                    // dash/Resources is a vertical bar chart that fills its
-                    // parent height, so the backing sets a fixed height.
-                    implicitWidth: resContent.implicitWidth + Tokens.padding.large * 2
-                    implicitHeight: 132
-                    radius: Tokens.rounding.normal
-                    color: Qt.alpha(Colours.palette.m3surfaceContainer, 0.6)
-
-                    Dash.Resources {
-                        id: resContent
-
-                        anchors.top: parent.top
-                        anchors.bottom: parent.bottom
-                        anchors.horizontalCenter: parent.horizontalCenter
-                    }
-                }
+                ResourcesWidget {}
             }
 
             DesktopWidget {
+                z: 2
                 cfg: GlobalConfig.background.widgets.weather
                 canvas: widgetHost
                 leftInset: widgetHost.leftInset
-                label: "Weather"
+                label: qsTr("Weather")
                 visible: GlobalConfig.background.widgets.weather.enabled
 
-                StyledRect {
-                    implicitWidth: weatherContent.implicitWidth + Tokens.padding.large * 2
-                    implicitHeight: weatherContent.implicitHeight + Tokens.padding.large * 2
-                    radius: Tokens.rounding.normal
-                    color: Qt.alpha(Colours.palette.m3surfaceContainer, 0.6)
-
-                    Dash.SmallWeather {
-                        id: weatherContent
-
-                        anchors.centerIn: parent
-                    }
-                }
+                WeatherWidget {}
             }
 
             DesktopWidget {
+                z: 2
                 cfg: GlobalConfig.background.widgets.media
                 canvas: widgetHost
                 leftInset: widgetHost.leftInset
-                label: "Media"
+                label: qsTr("Media")
                 visible: GlobalConfig.background.widgets.media.enabled
 
-                StyledRect {
-                    implicitWidth: mediaContent.implicitWidth + Tokens.padding.large * 2
-                    implicitHeight: mediaContent.implicitHeight + Tokens.padding.large * 2
-                    radius: Tokens.rounding.normal
-                    color: Qt.alpha(Colours.palette.m3surfaceContainer, 0.6)
-
-                    Dash.Media {
-                        id: mediaContent
-
-                        anchors.centerIn: parent
-                    }
-                }
+                MediaWidget {}
             }
 
             DesktopWidget {
+                z: 2
                 cfg: GlobalConfig.background.widgets.battery
                 canvas: widgetHost
                 leftInset: widgetHost.leftInset
-                label: "Battery"
+                label: qsTr("Battery")
                 visible: GlobalConfig.background.widgets.battery.enabled && UPower.displayDevice.isLaptopBattery
 
                 StyledRect {
                     implicitWidth: batteryRow.implicitWidth + Tokens.padding.large * 2
                     implicitHeight: batteryRow.implicitHeight + Tokens.padding.large * 2
-                    radius: Tokens.rounding.normal
-                    color: Qt.alpha(Colours.palette.m3surfaceContainer, 0.6)
+                    radius: Tokens.rounding.large
+                    color: Qt.alpha(Colours.palette.m3surfaceContainer, 0.78)
+                    border.width: 1
+                    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.6)
 
                     Row {
                         id: batteryRow
@@ -214,6 +200,278 @@ Variants {
                             font.pointSize: Tokens.font.size.extraLarge
                             font.weight: Font.Bold
                         }
+                    }
+                }
+            }
+
+            // ── Edit-mode controls bar (Done + grid options) ───────────────
+            StyledRect {
+                id: editBar
+
+                z: 90
+                // Raised clear of the compositor's bottom-edge hover strip,
+                // which otherwise intercepts clicks on this background-layer bar.
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 140
+                visible: widgetHost.editing
+                opacity: widgetHost.editing ? 1 : 0
+                implicitWidth: editRow.implicitWidth + Tokens.padding.normal * 2
+                implicitHeight: 52
+                radius: Tokens.rounding.full
+                color: Colours.palette.m3surfaceContainerHigh
+                border.width: 1
+                border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.7)
+
+                Behavior on opacity {
+                    Anim {}
+                }
+
+                Row {
+                    id: editRow
+
+                    anchors.centerIn: parent
+                    spacing: Tokens.spacing.small
+
+                    EditBarButton {
+                        icon: GlobalConfig.background.widgets.snap ? "grid_on" : "grid_off"
+                        text: qsTr("Snap")
+                        toggled: GlobalConfig.background.widgets.snap
+                        onActivated: {
+                            GlobalConfig.background.widgets.snap = !GlobalConfig.background.widgets.snap;
+                            GlobalConfig.save();
+                        }
+                    }
+
+                    EditBarButton {
+                        icon: "grid_4x4"
+                        text: GlobalConfig.background.widgets.gridSize + qsTr("px")
+                        onActivated: {
+                            const steps = [8, 16, 24, 32, 48];
+                            const cur = GlobalConfig.background.widgets.gridSize;
+                            const idx = steps.indexOf(cur);
+                            GlobalConfig.background.widgets.gridSize = steps[(idx + 1) % steps.length];
+                            GlobalConfig.save();
+                        }
+                    }
+
+                    Rectangle {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 1
+                        height: 24
+                        color: Qt.alpha(Colours.palette.m3outlineVariant, 0.8)
+                    }
+
+                    // Done — exit edit mode without the settings round-trip.
+                    StyledRect {
+                        anchors.verticalCenter: parent.verticalCenter
+                        implicitWidth: doneRow.implicitWidth + Tokens.padding.large * 2
+                        implicitHeight: 38
+                        radius: Tokens.rounding.full
+                        color: Colours.palette.m3primary
+
+                        StateLayer {
+                            color: Colours.palette.m3onPrimary
+                            radius: parent.radius
+                            onClicked: Visibilities.widgetEditMode = false
+                        }
+
+                        Row {
+                            id: doneRow
+
+                            anchors.centerIn: parent
+                            spacing: Tokens.spacing.small
+
+                            MaterialIcon {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "check"
+                                color: Colours.palette.m3onPrimary
+                                font.pointSize: Tokens.font.size.normal
+                            }
+
+                            StyledText {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: qsTr("Done")
+                                color: Colours.palette.m3onPrimary
+                                font.pointSize: Tokens.font.size.normal
+                                font.weight: Font.DemiBold
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── Desktop context menu ───────────────────────────────────────
+            MouseArea {
+                id: menuScrim
+
+                anchors.fill: parent
+                z: 99
+                enabled: desktopMenu.open
+                acceptedButtons: Qt.AllButtons
+                onPressed: desktopMenu.open = false
+            }
+
+            Item {
+                id: desktopMenu
+
+                z: 100
+                anchors.fill: parent
+                visible: open
+
+                property bool open: false
+                property real px: 0
+                property real py: 0
+
+                Elevation {
+                    id: menuCard
+
+                    x: Math.max(8, Math.min(desktopMenu.px, widgetHost.width - width - 8))
+                    y: Math.max(8, Math.min(desktopMenu.py, widgetHost.height - height - 8))
+                    implicitWidth: 214
+                    implicitHeight: menuCol.implicitHeight + Tokens.padding.small * 2
+                    radius: Tokens.rounding.normal
+                    level: 2
+
+                    transform: Scale {
+                        origin.x: 0
+                        origin.y: 0
+                        xScale: desktopMenu.open ? 1 : 0.85
+                        yScale: desktopMenu.open ? 1 : 0.85
+
+                        Behavior on xScale {
+                            Anim {}
+                        }
+                        Behavior on yScale {
+                            Anim {}
+                        }
+                    }
+
+                    StyledRect {
+                        anchors.fill: parent
+                        radius: parent.radius
+                        color: Colours.palette.m3surfaceContainerLow
+
+                        Column {
+                            id: menuCol
+
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.margins: Tokens.padding.small
+                            spacing: 0
+
+                            CtxItem {
+                                icon: "edit"
+                                text: widgetHost.editing ? qsTr("Stop editing widgets") : qsTr("Edit widgets")
+                                onActivated: {
+                                    Visibilities.widgetEditMode = !Visibilities.widgetEditMode;
+                                    desktopMenu.open = false;
+                                }
+                            }
+
+                            CtxItem {
+                                icon: "settings"
+                                text: qsTr("Settings")
+                                onActivated: {
+                                    desktopMenu.open = false;
+                                    const v = Visibilities.getForActive();
+                                    if (v)
+                                        v.settings = true;
+                                }
+                            }
+
+                            CtxItem {
+                                icon: "refresh"
+                                text: qsTr("Reload shell")
+                                onActivated: {
+                                    desktopMenu.open = false;
+                                    Quickshell.execDetached(["systemctl", "--user", "restart", "ryoku-shell.service"]);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            component CtxItem: StyledRect {
+                id: ctx
+
+                required property string icon
+                required property string text
+                signal activated
+
+                width: menuCol.width
+                implicitHeight: 38
+                radius: Tokens.rounding.small
+                color: "transparent"
+
+                StateLayer {
+                    radius: parent.radius
+                    color: Colours.palette.m3onSurface
+                    onClicked: ctx.activated()
+                }
+
+                Row {
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.leftMargin: Tokens.padding.normal
+                    spacing: Tokens.spacing.normal
+
+                    MaterialIcon {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: ctx.icon
+                        color: Colours.palette.m3onSurfaceVariant
+                        font.pointSize: Tokens.font.size.normal
+                    }
+
+                    StyledText {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: ctx.text
+                        color: Colours.palette.m3onSurface
+                        font.pointSize: Tokens.font.size.small
+                    }
+                }
+            }
+
+            component EditBarButton: StyledRect {
+                id: ebb
+
+                required property string icon
+                required property string text
+                property bool toggled: false
+                signal activated
+
+                anchors.verticalCenter: parent?.verticalCenter
+                implicitWidth: ebbRow.implicitWidth + Tokens.padding.normal * 2
+                implicitHeight: 38
+                radius: Tokens.rounding.full
+                color: toggled ? Qt.alpha(Colours.palette.m3primary, 0.16) : "transparent"
+
+                StateLayer {
+                    radius: parent.radius
+                    color: Colours.palette.m3onSurface
+                    onClicked: ebb.activated()
+                }
+
+                Row {
+                    id: ebbRow
+
+                    anchors.centerIn: parent
+                    spacing: Tokens.spacing.smaller
+
+                    MaterialIcon {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: ebb.icon
+                        color: ebb.toggled ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+                        font.pointSize: Tokens.font.size.normal
+                    }
+
+                    StyledText {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: ebb.text
+                        color: ebb.toggled ? Colours.palette.m3primary : Colours.palette.m3onSurface
+                        font.pointSize: Tokens.font.size.small
                     }
                 }
             }
