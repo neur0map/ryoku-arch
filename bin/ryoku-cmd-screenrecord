@@ -2,30 +2,275 @@
 
 set -euo pipefail
 
+# shellcheck disable=SC1091
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-with_sound=false
-
-for arg in "$@"; do
-  case "$arg" in
-  --with-desktop-audio|--with-microphone-audio)
-    with_sound=true
-    ;;
-  --help)
-    cat <<'USAGE'
+usage() {
+  cat <<'USAGE'
 Usage:
-  ryoku-cmd-screenrecord [--with-desktop-audio] [--with-microphone-audio]
+  ryoku-cmd-screenrecord [--fullscreen|--region] [--with-desktop-audio] [--with-microphone-audio]
+  ryoku-cmd-screenrecord -r|-s|-sr
+  ryoku-cmd-screenrecord --stop|--pause|--status
 
-Starts Ryoku's region recorder. Audio flags select Ryoku's sound-capable
-recording route.
+Starts, stops, or pauses Ryoku's shell recorder using gpu-screen-recorder.
+Legacy no-argument calls stop an active recording and start a fullscreen
+recording when nothing is running.
 USAGE
+}
+
+notify() {
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send -a ryoku-cli "$@" >/dev/null 2>&1 || true
+  fi
+}
+
+require_command() {
+  local command_name="$1"
+  local label="$2"
+
+  if ! command -v "$command_name" >/dev/null 2>&1; then
+    notify -u critical "Screen recording failed" "$label is not installed"
+    echo "ryoku-cmd-screenrecord: missing command: $command_name" >&2
+    exit 1
+  fi
+}
+
+recorder_pattern='(^|/)gpu-screen-recorder( |$)'
+
+recorder_running() {
+  if command -v pgrep >/dev/null 2>&1; then
+    pgrep -f "$recorder_pattern" >/dev/null 2>&1
+    return
+  fi
+
+  if command -v pidof >/dev/null 2>&1; then
+    pidof gpu-screen-recorder >/dev/null 2>&1
+    return
+  fi
+
+  return 1
+}
+
+signal_recorder() {
+  local signal="$1"
+
+  require_command pkill pkill
+  pkill "$signal" -f "$recorder_pattern" >/dev/null 2>&1 || true
+}
+
+recordings_dir() {
+  local videos_dir
+
+  if [[ -n ${RYOKU_SHELL_RECORDINGS_DIR:-} ]]; then
+    printf '%s\n' "$RYOKU_SHELL_RECORDINGS_DIR"
+    return
+  fi
+
+  if [[ -n ${XDG_VIDEOS_DIR:-} ]]; then
+    videos_dir="$XDG_VIDEOS_DIR"
+  elif command -v xdg-user-dir >/dev/null 2>&1; then
+    videos_dir="$(xdg-user-dir VIDEOS 2>/dev/null || true)"
+  fi
+
+  videos_dir="${videos_dir:-$HOME/Videos}"
+  printf '%s/Recordings\n' "$videos_dir"
+}
+
+next_recording_path() {
+  local dir="$1"
+  local name_format="${RYOKU_SCREENRECORD_NAME_FORMAT:-recording_%Y-%m-%d_%H.%M.%S}"
+  local name
+  local path
+  local suffix=1
+
+  name="$(date +"$name_format")"
+  name="${name//\//-}"
+  name="${name//$'\n'/-}"
+  path="$dir/$name.mp4"
+
+  while [[ -e $path ]]; do
+    path="$dir/$name-$suffix.mp4"
+    ((suffix++))
+  done
+
+  printf '%s\n' "$path"
+}
+
+region_geometry() {
+  local slurp_cmd="${RYOKU_SCREENRECORD_SLURP:-slurp}"
+  local geometry
+  local pos
+  local size
+  local x
+  local y
+
+  require_command "$slurp_cmd" slurp
+  geometry="$("$slurp_cmd" -f "%wx%h+%x+%y" 2>/dev/null || true)"
+  [[ -n $geometry ]] || exit 0
+
+  if [[ $geometry == *" "* ]]; then
+    pos="${geometry%% *}"
+    size="${geometry#* }"
+    x="${pos%,*}"
+    y="${pos#*,}"
+    geometry="${size}+${x}+${y}"
+  fi
+
+  if [[ ! $geometry =~ ^[0-9]+x[0-9]+[+-][0-9]+[+-][0-9]+$ ]]; then
+    notify -u critical "Screen recording failed" "Invalid region: $geometry"
+    echo "ryoku-cmd-screenrecord: invalid region: $geometry" >&2
+    exit 1
+  fi
+
+  printf '%s\n' "$geometry"
+}
+
+stop_recording() {
+  if ! recorder_running; then
+    notify -u normal "Screen recording" "No active recording found"
+    return 0
+  fi
+
+  signal_recorder -INT
+  notify -u normal "Screen recording stopped" "Saving recording to Videos/Recordings"
+}
+
+pause_recording() {
+  if ! recorder_running; then
+    notify -u normal "Screen recording" "No active recording found"
+    return 0
+  fi
+
+  signal_recorder -USR2
+}
+
+status_recording() {
+  if recorder_running; then
+    echo "recording"
+  else
+    echo "idle"
+  fi
+}
+
+start_recording() {
+  local mode="$1"
+  local desktop_audio="$2"
+  local microphone_audio="$3"
+  local output_dir
+  local output_path
+  local capture="screen"
+  local fps="${RYOKU_SCREENRECORD_FPS:-60}"
+  local audio_source=""
+  local recorder_cmd="${RYOKU_SCREENRECORD_RECORDER:-gpu-screen-recorder}"
+  local args
+
+  require_command "$recorder_cmd" gpu-screen-recorder
+
+  if recorder_running; then
+    notify -u normal "Screen recording" "A recording is already running"
+    return 0
+  fi
+
+  if [[ $mode == "region" ]]; then
+    capture="$(region_geometry)"
+  fi
+
+  if [[ $desktop_audio == "true" && $microphone_audio == "true" ]]; then
+    audio_source="default_output|default_input"
+  elif [[ $desktop_audio == "true" ]]; then
+    audio_source="default_output"
+  elif [[ $microphone_audio == "true" ]]; then
+    audio_source="default_input"
+  fi
+
+  output_dir="$(recordings_dir)"
+  mkdir -p "$output_dir"
+  output_path="$(next_recording_path "$output_dir")"
+
+  args=("$recorder_cmd" -w "$capture" -f "$fps" -c mp4 -cursor yes)
+  if [[ -n $audio_source ]]; then
+    args+=(-a "$audio_source")
+  fi
+  args+=(-o "$output_path")
+
+  notify -u normal "Screen recording started" "$output_path"
+  exec "${args[@]}"
+}
+
+action="auto"
+mode="fullscreen"
+desktop_audio=false
+microphone_audio=false
+
+while (($# > 0)); do
+  case "$1" in
+  --fullscreen)
+    mode="fullscreen"
+    action="start"
+    ;;
+  --region|-r)
+    mode="region"
+    action="start"
+    ;;
+  -s)
+    mode="fullscreen"
+    desktop_audio=true
+    action="start"
+    ;;
+  -sr|-rs)
+    mode="region"
+    desktop_audio=true
+    action="start"
+    ;;
+  --with-desktop-audio)
+    desktop_audio=true
+    action="start"
+    ;;
+  --with-microphone-audio)
+    microphone_audio=true
+    action="start"
+    ;;
+  --stop|stop)
+    action="stop"
+    ;;
+  --pause|-p|pause)
+    action="pause"
+    ;;
+  --status|status)
+    action="status"
+    ;;
+  --help|-h|help)
+    usage
     exit 0
     ;;
+  *)
+    echo "ryoku-cmd-screenrecord: unknown argument: $1" >&2
+    usage >&2
+    exit 2
+    ;;
   esac
+  shift
 done
 
-if [[ $with_sound == "true" ]]; then
-  exec ryoku-shell region recordWithSound
+if [[ $action == "auto" ]]; then
+  if recorder_running; then
+    action="stop"
+  else
+    action="start"
+  fi
 fi
 
-exec ryoku-shell region record
+case "$action" in
+start)
+  start_recording "$mode" "$desktop_audio" "$microphone_audio"
+  ;;
+stop)
+  stop_recording
+  ;;
+pause)
+  pause_recording
+  ;;
+status)
+  status_recording
+  ;;
+esac

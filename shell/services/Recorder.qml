@@ -51,15 +51,15 @@ Singleton {
 
             if (code === 0) {
                 if (root.needsStop) {
-                    Quickshell.execDetached(["ryoku", "record"]);
+                    Quickshell.execDetached(["ryoku-cmd-screenrecord", "--stop"]);
                     props.running = false;
                     props.paused = false;
                 } else if (root.needsPause) {
-                    Quickshell.execDetached(["ryoku", "record", "-p"]);
+                    Quickshell.execDetached(["ryoku-cmd-screenrecord", "--pause"]);
                     props.paused = !props.paused;
                 }
             } else if (root.needsStart) {
-                Quickshell.execDetached(["ryoku", "record", ...root.startArgs]);
+                Quickshell.execDetached(["ryoku-cmd-screenrecord", ...root.startArgs]);
                 props.running = true;
                 props.paused = false;
                 props.elapsed = 0;

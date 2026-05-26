@@ -16,6 +16,7 @@ Usage:
   ryoku scheme set [-n NAME] [-f FLAVOUR] [-v VARIANT] [-m MODE] [--notify]
   ryoku wallpaper -p PATH [--no-smart]
   ryoku wallpaper -f PATH [--no-smart]
+  ryoku record [screen recorder args...]
   ryoku doctor [args...]
 
 Compatibility bridge for the rebirth shell. Ryoku system commands keep the
@@ -577,6 +578,21 @@ doctor_command() {
   return 127
 }
 
+record_command() {
+  local recorder="$ryoku_path/bin/ryoku-cmd-screenrecord"
+
+  if [[ -x $recorder ]]; then
+    exec "$recorder" "$@"
+  fi
+
+  if command_present ryoku-cmd-screenrecord; then
+    exec ryoku-cmd-screenrecord "$@"
+  fi
+
+  echo "ryoku: ryoku-cmd-screenrecord was not found" >&2
+  return 127
+}
+
 main() {
   local command="${1:-}"
   (($# == 0)) || shift
@@ -587,6 +603,9 @@ main() {
       ;;
     wallpaper)
       wallpaper_command "$@"
+      ;;
+    record)
+      record_command "$@"
       ;;
     doctor)
       doctor_command "$@"
