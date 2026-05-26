@@ -169,7 +169,7 @@ Global wrappers:
   - `mark-breathe` up/scale micro.
 
 ### Proof strip (`ProofStrip.vue`)
-- Grid 5 columns desktop, 3 columns @ <=940, 1 column @ <=560.
+- Grid 5 columns desktop, 3 columns @ `<=940`, 1 column @ `<=560`.
 - dt uppercase mono small; dd uses `--ryoku-font-display`.
 - subtle `data-reveal` on each cell.
 
