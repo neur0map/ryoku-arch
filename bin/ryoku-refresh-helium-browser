@@ -1,0 +1,78 @@
+#!/bin/bash
+
+set -euo pipefail
+
+script_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$script_root/lib/runtime-env.sh"
+
+case ":$PATH:" in
+  *":$script_root/bin:"*) ;;
+  *) export PATH="$script_root/bin:$PATH" ;;
+esac
+
+config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
+helium_prefs="$config_home/net.imput.helium/Default/Preferences"
+chromium_prefs="$config_home/chromium/Default/Preferences"
+
+write_default_prefs() {
+  local prefs="$1"
+
+  mkdir -p "$(dirname -- "$prefs")"
+  cat >"$prefs" <<'JSON'
+{
+  "browser": {
+    "theme": {
+      "color_scheme": 0,
+      "color_scheme2": 0
+    }
+  },
+  "extensions": {
+    "theme": {
+      "id": "",
+      "use_system": false,
+      "use_custom": false
+    }
+  }
+}
+JSON
+}
+
+refresh_prefs() {
+  local prefs="$1"
+  local tmp_file
+
+  if [[ ! -s $prefs ]]; then
+    write_default_prefs "$prefs"
+    return
+  fi
+
+  if ryoku-cmd-missing jq; then
+    return
+  fi
+
+  tmp_file="$(mktemp)"
+  if jq '
+    .browser.theme.color_scheme = 0
+    | .browser.theme.color_scheme2 = 0
+    | del(
+        .browser.theme.user_color,
+        .browser.theme.user_color2,
+        .browser.theme.color_variant2,
+        .browser.theme.is_grayscale2
+      )
+    | .extensions.theme.id = ""
+    | .extensions.theme.use_system = false
+    | .extensions.theme.use_custom = false
+  ' "$prefs" >"$tmp_file"; then
+    cat "$tmp_file" >"$prefs"
+  fi
+  rm -f "$tmp_file"
+}
+
+refresh_prefs "$helium_prefs"
+
+if [[ -f $chromium_prefs ]]; then
+  refresh_prefs "$chromium_prefs"
+fi
+
+echo "Refreshed Helium browser theme defaults"

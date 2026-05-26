@@ -1,14 +1,16 @@
 #!/bin/bash
 
 # Ryoku Arch commit-msg hook.
-# Blocks commits whose message contains generated-content attribution,
-# authorship trailers, or em-dashes. Enforces project-wide commit hygiene rules.
+# Blocks commits whose message lacks an impact label or contains generated-content
+# attribution, authorship trailers, or em-dashes. Enforces project-wide commit
+# hygiene rules.
 # Bypass with --no-verify only when you know what you are doing.
 
 set -e
 
 msg_file="$1"
 msg=$(cat "$msg_file")
+subject=$(sed -n '/^[[:space:]]*#/d; /^[[:space:]]*$/d; p; q' "$msg_file")
 
 fail() {
   echo "" >&2
@@ -22,6 +24,15 @@ fail() {
 if grep -qiE '^co-authored-by:|^[[:space:]]+co-authored-by:' <<<"$msg"; then
   fail "forbidden authorship trailer found in commit message."
 fi
+
+case "$subject" in
+  Merge\ *|Revert\ *|fixup!\ *|squash!\ *) ;;
+  *)
+    if [[ ! $subject =~ ^\[(global|system|shell|docs|test|tooling|release)\][[:space:]]+ ]]; then
+      fail "commit subject must start with one impact label: [global], [system], [shell], [docs], [test], [tooling], or [release]."
+    fi
+    ;;
+esac
 
 if grep -qiE '\b(cl[a]ude|anthr[o]pic|assist[a]nt|L[L]M|chatg[p]t|g[p]t-[0-9])\b' <<<"$msg"; then
   fail "forbidden generated-content attribution term found in commit message."

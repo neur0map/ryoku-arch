@@ -5,7 +5,8 @@
 #   1. personal machine path leak scan on staged text files
 #   2. bash syntax check on any staged shell script
 #   3. em-dash scan on staged text, docs, and config files
-#   4. live-system drift check (maintainers only; opt-in)
+#   4. default-config propagation check
+#   5. live-system drift check (maintainers only; opt-in)
 # Bypass with --no-verify only when you know what you are doing.
 
 set -e
@@ -69,7 +70,27 @@ for f in $staged; do
   esac
 done
 
-# 4. live-system drift check (maintainers only; opt-in via
+# 4. default-config propagation check. These files shape future installs but
+#    do not touch existing user config unless a migration carries the repair.
+global_default_change=0
+migration_change=0
+
+for f in $staged; do
+  case "$f" in
+    config/hypr/*|config/chromium*|config/brave*|default/*)
+      global_default_change=1
+      ;;
+    migrations/*.sh)
+      migration_change=1
+      ;;
+  esac
+done
+
+if (( global_default_change && ! migration_change )) && [[ -z ${RYOKU_ALLOW_NO_MIGRATION:-} ]]; then
+  fail "global default/config changes need a staged migration so existing installs are repaired. Set RYOKU_ALLOW_NO_MIGRATION=1 only for deliberate fresh-install-only changes."
+fi
+
+# 5. live-system drift check (maintainers only; opt-in via
 #    `git config --local ryoku.devmode true` or env RYOKU_DEV=1).
 #    Skips silently for contributors who do not run a Ryoku install.
 "$(git rev-parse --show-toplevel)/bin/ryoku-dev-check-drift"

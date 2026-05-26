@@ -145,6 +145,10 @@ hyprmod_blur_migration="$ROOT_DIR/migrations/1779660082.sh"
 [[ -f $hyprmod_blur_migration ]] || fail "missing HyprMod blur migration"
 webapp_opacity_migration="$ROOT_DIR/migrations/1779660083.sh"
 [[ -f $webapp_opacity_migration ]] || fail "missing webapp opacity migration"
+webapp_opacity_repair_migration="$ROOT_DIR/migrations/1779766329.sh"
+[[ -f $webapp_opacity_repair_migration ]] || fail "missing webapp opacity repair migration"
+assert_contains "$webapp_opacity_repair_migration" '1779660083\.sh' \
+  "repair migration should re-run the webapp opacity convergence"
 
 tmp_dir=$(mktemp -d)
 trap 'rm -rf "$tmp_dir"' EXIT
@@ -213,6 +217,7 @@ env -u XDG_CONFIG_HOME HOME="$home_dir" RYOKU_PATH="$ROOT_DIR" bash "$game_opaci
 env -u XDG_CONFIG_HOME HOME="$home_dir" RYOKU_PATH="$ROOT_DIR" bash "$game_opacity_migration" >/dev/null
 env -u XDG_CONFIG_HOME HOME="$home_dir" RYOKU_PATH="$ROOT_DIR" bash "$webapp_opacity_migration" >/dev/null
 env -u XDG_CONFIG_HOME HOME="$home_dir" RYOKU_PATH="$ROOT_DIR" bash "$webapp_opacity_migration" >/dev/null
+env -u XDG_CONFIG_HOME HOME="$home_dir" RYOKU_PATH="$ROOT_DIR" PATH="$ROOT_DIR/bin:$PATH" bash "$webapp_opacity_repair_migration" >/dev/null
 
 source_line=$(grep -Fn "$hyprmod_source_line" "$hypr_conf" | head -n1 | cut -d: -f1)
 game_line=$(grep -Fn "$game_content_rule" "$hypr_conf" | head -n1 | cut -d: -f1)

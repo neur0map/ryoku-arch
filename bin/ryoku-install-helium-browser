@@ -2,7 +2,8 @@
 
 set -euo pipefail
 
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+script_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$script_root/lib/runtime-env.sh"
 
 release_api="${HELIUM_RELEASE_API:-https://api.github.com/repos/imputnet/helium-linux/releases/latest}"
 offline_appimage="${HELIUM_OFFLINE_APPIMAGE:-/var/cache/ryoku/appimages/helium/helium.AppImage}"
@@ -115,5 +116,7 @@ xdg-settings set default-web-browser helium.desktop 2>/dev/null || true
 for mime in x-scheme-handler/http x-scheme-handler/https x-scheme-handler/mailto text/html text/xml application/xhtml+xml; do
   xdg-mime default helium.desktop "$mime" 2>/dev/null || true
 done
+
+"$script_root/bin/ryoku-refresh-helium-browser"
 
 echo "Helium installed: $bin_path"

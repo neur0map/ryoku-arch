@@ -35,6 +35,22 @@ A change that needs to reach both fresh installs and existing installs needs an 
 
 Default app replacements should not silently rewrite existing user choices. Add the new default to the fresh install path, then use `ryoku-default-app-migrate <kind> <target> [yes|no|ask]` from a migration so existing users can accept or keep their current app.
 
+### Impact labels
+
+Every commit subject starts with one impact label:
+
+| Label | Meaning |
+|---|---|
+| `[global]` | Changes Ryoku defaults or user-facing system state that existing installs must receive through a migration. Hyprland defaults, browser profile defaults, shipped config under `config/` or `default/`, and repair migrations usually belong here. |
+| `[system]` | Changes packages, services, install scripts, hardware/system commands, or update plumbing without directly changing user config defaults. |
+| `[shell]` | Changes the Quickshell UI/runtime only. |
+| `[docs]` | Documentation-only change. |
+| `[test]` | Test-only change. |
+| `[tooling]` | Repository tooling, hooks, CI, or developer helpers. |
+| `[release]` | Version, channel, changelog, or release automation change. |
+
+If a fix changes a default that Ryoku ships but also needs to repair already-installed machines, it is `[global]`, not just `[system]`. The fix needs a migration or an explicit `RYOKU_ALLOW_NO_MIGRATION=1` bypass with a short reason in the commit body.
+
 ## Repo topology
 
 ### Remotes
@@ -105,11 +121,11 @@ Because `git pull` pulls from whatever `origin` points at, and the live clone's 
 cd $HOME/prowl/ryoku-arch
 # edit files
 git add <specific paths>
-git commit -m "<type>: <description>"
+git commit -m "[shell] <description>"
 git push origin main
 ```
 
-Commit message types follow the pattern already in history: `feat:`, `fix:`, `docs:`, `refactor:`, `chore:`, `scaffold:`, etc. No authorship trailers. No heredoc commit-message block. Plain `-m` flags only.
+Commit subjects must start with an impact label, for example `[global] Repair browser opacity defaults` or `[shell] Tighten dashboard focus behavior`. No authorship trailers. No heredoc commit-message block. Plain `-m` flags only.
 
 ### Adding a migration (install a tool, enable a service, etc.)
 
@@ -328,8 +344,8 @@ Ryoku Arch ships a set of git hooks that enforce the safety rules above mechanic
 
 ### What's enforced
 
-- **commit-msg:** rejects a commit if its message contains authorship trailers, generated-content attribution phrases, or any em-dash (U+2014).
-- **pre-commit:** before the commit is recorded, scans staged text files for personal machine path leaks, scans staged text files (`.md`, `.txt`, `.sh`, config files, LICENSE, NOTICE, README, AGENTS.md) for em-dashes, and runs `bash -n` on staged shell scripts. Blocks the commit on any finding.
+- **commit-msg:** rejects a commit if its subject lacks one impact label, or if its message contains authorship trailers, generated-content attribution phrases, or any em-dash (U+2014).
+- **pre-commit:** before the commit is recorded, scans staged text files for personal machine path leaks, scans staged text files (`.md`, `.txt`, `.sh`, config files, LICENSE, NOTICE, README, AGENTS.md) for em-dashes, runs `bash -n` on staged shell scripts, and blocks staged global default/config changes when no migration is staged. Blocks the commit on any finding.
 - **pre-push:** refuses to push `upstream-dev` or `upstream-master` to `origin` (belt-and-suspenders on top of the `pushRemote=no_push` config), blocks force-pushes to `main` that would rewrite published history, and runs the same changed-file ShellCheck policy used by GitHub Actions before shell changes leave the machine.
 
 ### Activation
@@ -355,6 +371,7 @@ ls -la .githooks                       # all files executable
 - `git commit --no-verify` skips `commit-msg` and `pre-commit` for one invocation. Do not use habitually.
 - `git push --no-verify` skips `pre-push` for one invocation.
 - `RYOKU_ALLOW_FORCE_MAIN=1 git push origin main` explicitly opts in to a force-push to main. Use only for deliberate history rewrites you have thought through, and prefer to coordinate with anyone who has a live clone first.
+- `RYOKU_ALLOW_NO_MIGRATION=1 git commit ...` allows a staged default/config change without a migration. Use only for deliberate fresh-install-only changes, and explain that choice in the commit body.
 
 ### Extending
 

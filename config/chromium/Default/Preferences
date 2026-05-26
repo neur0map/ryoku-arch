@@ -8,8 +8,8 @@
   },
   "browser": {
     "theme": {
-      "color_scheme": 2,
-      "user_color": 2
+      "color_scheme": 0,
+      "color_scheme2": 0
     }
   }
 }
