@@ -24,6 +24,10 @@ bool RootConfig::recentlySaved() const {
     return m_recentlySaved;
 }
 
+bool RootConfig::autoSaveSuspended() const {
+    return m_autoSaveSuspended;
+}
+
 QStringList RootConfig::collectUnknownKeys(const ConfigObject* obj, const QJsonObject& json) {
     QStringList unknown;
     const auto* meta = obj->metaObject();
@@ -120,7 +124,7 @@ void RootConfig::setupFileBackend(const QString& path, const QString& screen) {
 
 void RootConfig::connectAutoSave(ConfigObject* obj) {
     connect(obj, &ConfigObject::propertiesChanged, this, [this] {
-        if (!m_loading)
+        if (!m_loading && !m_autoSaveSuspended)
             saveToFile();
     });
 
@@ -233,6 +237,13 @@ std::optional<QString> RootConfig::reloadFromFile() {
 
 void RootConfig::save() {
     saveToFile();
+}
+
+void RootConfig::setAutoSaveSuspended(bool suspended) {
+    if (m_autoSaveSuspended == suspended)
+        return;
+    m_autoSaveSuspended = suspended;
+    emit autoSaveSuspendedChanged();
 }
 
 void RootConfig::emitLoadSignals(const std::optional<QString>& result, bool emitLoaded) {

@@ -51,12 +51,13 @@ remote_url="${RYOKU_UPDATE_REMOTE_URL:-https://github.com/neur0map/ryoku-arch.gi
 
 usage() {
   cat <<'EOF'
-Usage: ryoku-settings-about <status|check-updates|doctor|medevac|switch-channel|open-url> [args]
+Usage: ryoku-settings-about <status|check-updates|doctor|refresh-shell|medevac|switch-channel|open-url> [args]
 
 Commands:
   status                 Print Ryoku version, checkout branch, and channel JSON
   check-updates          Fetch the checkout branch and print incoming commits JSON
   doctor                 Run global ryoku-doctor and print captured output JSON
+  refresh-shell          Restart the Ryoku shell through ryoku-restart-shell
   medevac                Launch the last-resort ryoku-call911now curl recovery
   start-update BRANCH    Launch a terminal update for the checked update branch
   switch-channel BRANCH  Launch the branch switcher for main or unstable-dev
@@ -717,6 +718,26 @@ open_url() {
   fi
 }
 
+refresh_shell() {
+  local restart_bin
+
+  restart_bin="$(command -v ryoku-restart-shell 2>/dev/null || true)"
+  if [[ -z $restart_bin ]]; then
+    json_error "ryoku-restart-shell was not found"
+    return 1
+  fi
+
+  nohup bash -c 'sleep 0.2; exec "$1"' bash "$restart_bin" >/dev/null 2>&1 &
+  python3 <<'PY'
+import json
+
+print(json.dumps({
+    "ok": True,
+    "message": "Restarting Ryoku shell.",
+}))
+PY
+}
+
 command="${1:-status}"
 (($# == 0)) || shift
 
@@ -729,6 +750,9 @@ case "$command" in
     ;;
   doctor)
     doctor_json
+    ;;
+  refresh-shell)
+    refresh_shell
     ;;
   medevac)
     start_medevac "$@"

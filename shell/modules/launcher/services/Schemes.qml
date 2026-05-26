@@ -40,7 +40,7 @@ Searcher {
         id: getSchemes
 
         running: true
-        command: ["ryoku", "scheme", "list"]
+        command: [Paths.ryokuBridge, "scheme", "list"]
         stdout: StdioCollector {
             onStreamFinished: {
                 const trimmed = text.trim();
@@ -75,7 +75,7 @@ Searcher {
         id: getCurrent
 
         running: true
-        command: ["ryoku", "scheme", "get", "-nfv"]
+        command: [Paths.ryokuBridge, "scheme", "get", "-nfv"]
         stdout: StdioCollector {
             onStreamFinished: {
                 const [name, flavour, variant] = text.trim().split("\n");
@@ -93,7 +93,7 @@ Searcher {
 
         function onClicked(list: AppList): void {
             list.visibilities.launcher = false;
-            Quickshell.execDetached(["ryoku", "scheme", "set", "-n", name, "-f", flavour]);
+            Quickshell.execDetached([Paths.ryokuBridge, "scheme", "set", "-n", name, "-f", flavour]);
         }
     }
 }

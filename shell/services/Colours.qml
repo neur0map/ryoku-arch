@@ -90,7 +90,7 @@ Singleton {
     }
 
     function setMode(mode: string): void {
-        Quickshell.execDetached(["ryoku", "scheme", "set", "--notify", "-m", mode]);
+        Quickshell.execDetached([Paths.ryokuBridge, "scheme", "set", "--notify", "-m", mode]);
     }
 
     function reloadHyprRules(): void {

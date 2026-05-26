@@ -119,11 +119,13 @@ MouseArea {
                         required property int index
                         required property MenuItem modelData
                         readonly property bool active: modelData === root.active
+                        readonly property real separatorHeight: modelData.separatorBefore ? 1 + Tokens.padding.small : 0
 
                         Layout.fillWidth: true
                         implicitWidth: menuOptionRow.implicitWidth + Tokens.padding.normal * 2
-                        implicitHeight: menuOptionRow.implicitHeight + Tokens.padding.normal * 2
+                        implicitHeight: menuOptionRow.implicitHeight + Tokens.padding.normal * 2 + separatorHeight
 
+                        opacity: modelData.enabled ? 1 : 0.45
                         radius: active ? 12 : Tokens.rounding.extraSmall // This should use a token, but tokens are currently extremely scuffed
                         topLeftRadius: index === 0 ? Tokens.rounding.small : radius
                         topRightRadius: index === 0 ? Tokens.rounding.small : radius
@@ -143,7 +145,7 @@ MouseArea {
                             bottomRightRadius: parent.bottomRightRadius
 
                             color: item.active ? Colours.palette.m3onTertiaryContainer : Colours.palette.m3onSurface
-                            disabled: !root.expanded
+                            disabled: !root.expanded || !item.modelData.enabled
                             onClicked: {
                                 root.itemSelected(item.modelData);
                                 root.active = item.modelData;
@@ -152,14 +154,34 @@ MouseArea {
                             }
                         }
 
+                        StyledRect {
+                            id: separator
+
+                            visible: item.modelData.separatorBefore
+                            anchors.top: parent.top
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.leftMargin: Tokens.padding.small
+                            anchors.rightMargin: Tokens.padding.small
+                            implicitHeight: 1
+                            color: Qt.alpha(Colours.palette.m3outlineVariant, 0.7)
+                        }
+
                         RowLayout {
                             id: menuOptionRow
 
-                            anchors.fill: parent
-                            anchors.margins: Tokens.padding.normal
+                            anchors.top: item.modelData.separatorBefore ? separator.bottom : parent.top
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.bottom: parent.bottom
+                            anchors.topMargin: Tokens.padding.normal + (item.modelData.separatorBefore ? Tokens.padding.small : 0)
+                            anchors.leftMargin: Tokens.padding.normal
+                            anchors.rightMargin: Tokens.padding.normal
+                            anchors.bottomMargin: Tokens.padding.normal
                             spacing: Tokens.spacing.small
 
                             MaterialIcon {
+                                visible: item.modelData.icon.length > 0
                                 Layout.alignment: Qt.AlignVCenter
                                 text: item.modelData.icon
                                 color: item.active ? Colours.palette.m3onTertiaryContainer : Colours.palette.m3onSurfaceVariant

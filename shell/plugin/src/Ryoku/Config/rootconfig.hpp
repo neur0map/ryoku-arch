@@ -12,6 +12,7 @@ namespace ryoku::config {
 // Provides file-backed persistence, save/reload, and lifecycle signals.
 class RootConfig : public ConfigObject {
     Q_OBJECT
+    Q_PROPERTY(bool autoSaveSuspended READ autoSaveSuspended WRITE setAutoSaveSuspended NOTIFY autoSaveSuspendedChanged)
 
 public:
     explicit RootConfig(QObject* parent = nullptr);
@@ -22,11 +23,14 @@ public:
     [[nodiscard]] std::optional<QString> reloadFromFile();
 
     [[nodiscard]] bool recentlySaved() const;
+    [[nodiscard]] bool autoSaveSuspended() const;
 
     Q_INVOKABLE void save();
     Q_INVOKABLE void reload();
+    Q_INVOKABLE void setAutoSaveSuspended(bool suspended);
 
 signals:
+    void autoSaveSuspendedChanged();
     void loaded(const QString& screen);
     void loadFailed(const QString& error, const QString& screen);
     void saved(const QString& screen);
@@ -46,6 +50,7 @@ private:
     QString m_watchedDir;
     bool m_recentlySaved = false;
     bool m_loading = false;
+    bool m_autoSaveSuspended = false;
 
     QFileSystemWatcher* m_watcher = nullptr;
     QTimer* m_saveTimer = nullptr;

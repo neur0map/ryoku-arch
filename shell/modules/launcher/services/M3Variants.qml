@@ -79,7 +79,7 @@ Searcher {
 
         function onClicked(list: AppList): void {
             list.visibilities.launcher = false;
-            Quickshell.execDetached(["ryoku", "scheme", "set", "-v", variant]);
+            Quickshell.execDetached([Paths.ryokuBridge, "scheme", "set", "-v", variant]);
         }
     }
 }

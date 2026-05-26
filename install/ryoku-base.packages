@@ -62,6 +62,7 @@ llvm
 luarocks
 nodejs
 npm
+pkgconf
 python-gobject
 python-poetry-core
 ruby
@@ -94,6 +95,7 @@ zenity
 
 # ── GUI apps - multimedia editing & screen capture ────────────────────
 ffmpeg
+fftw
 gpu-screen-recorder
 imagemagick
 libnotify
@@ -115,6 +117,7 @@ frameworkintegration
 geoclue
 git
 glib2
+gtk4
 hicolor-icon-theme
 hypridle
 hyprland
@@ -130,6 +133,7 @@ kvantum
 libdbusmenu-gtk3
 libdrm
 libpipewire
+libpulse
 libxcb
 mesa
 mission-center
@@ -161,6 +165,7 @@ quickshell
 rsync
 swaylock
 syntax-highlighting
+systemd-libs
 ttf-cascadia-code-nerd
 ttf-dejavu
 ttf-liberation

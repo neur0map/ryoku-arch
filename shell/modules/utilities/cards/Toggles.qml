@@ -117,7 +117,8 @@ StyledRect {
                         toggle: false
                         onClicked: {
                             root.visibilities.utilities = false;
-                            root.popouts.detach("network");
+                            root.visibilities.dashboard = false;
+                            root.visibilities.settings = true;
                         }
                     }
                 }

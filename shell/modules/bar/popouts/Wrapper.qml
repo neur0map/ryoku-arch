@@ -7,7 +7,6 @@ import Quickshell.Wayland
 import Ryoku.Config
 import qs.components
 import qs.services
-import qs.modules.controlcenter
 import qs.modules.windowinfo
 
 Item {
@@ -18,7 +17,6 @@ Item {
 
     readonly property alias content: content
     readonly property alias winfo: winfo
-    readonly property alias controlCenter: controlCenter
 
     readonly property real nonAnimWidth: children.find(c => c.shouldBeActive)?.implicitWidth ?? content.implicitWidth
     readonly property real nonAnimHeight: children.find(c => c.shouldBeActive)?.implicitHeight ?? content.implicitHeight
@@ -30,7 +28,6 @@ Item {
     property real currentCenter
 
     property string detachedMode
-    property string queuedMode
 
     // Dummy object so Tokens attached prop resolves to global config
     // Anim configs are not per-monitor
@@ -49,8 +46,12 @@ Item {
         if (mode === "winfo") {
             detachedMode = mode;
         } else {
-            queuedMode = mode;
-            detachedMode = "any";
+            close();
+            const visibilities = Visibilities.getForActive();
+            visibilities.launcher = false;
+            visibilities.dashboard = false;
+            visibilities.utilities = false;
+            visibilities.settings = true;
         }
         setAnims(false);
         focus = true;
@@ -124,19 +125,6 @@ Item {
         sourceComponent: WindowInfo {
             screen: root.screen
             client: Hypr.activeToplevel
-        }
-    }
-
-    Comp {
-        id: controlCenter
-
-        shouldBeActive: root.detachedMode === "any"
-        anchors.centerIn: parent
-
-        sourceComponent: ControlCenter {
-            screen: root.screen
-            active: root.queuedMode
-            onClose: root.close()
         }
     }
 

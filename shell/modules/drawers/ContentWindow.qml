@@ -60,15 +60,16 @@ StyledWindow {
         visibilities.session = false;
         visibilities.dashboard = false;
         visibilities.island = false;
+        visibilities.settings = false;
         panels.popouts.close();
     }
 
     name: "drawers"
     WlrLayershell.exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: fsTransitionProg > 0 && contentItem.Config.general.showOverFullscreen ? WlrLayer.Overlay : WlrLayer.Top
-    WlrLayershell.keyboardFocus: visibilities.launcher || visibilities.session || panels.dashboard.needsKeyboard ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: visibilities.launcher || visibilities.session || panels.dashboard.needsKeyboard || panels.settings.needsKeyboard ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
-    mask: hasFullscreen ? emptyRegion : regions
+    mask: hasFullscreen ? emptyRegion : (visibilities.settings ? null : regions)
 
     anchors.top: true
     anchors.bottom: true
@@ -106,7 +107,7 @@ StyledWindow {
     HyprlandFocusGrab {
         id: focusGrab
 
-        active: (visibilities.launcher && root.contentItem.Config.launcher.enabled) || (visibilities.session && root.contentItem.Config.session.enabled) || (visibilities.sidebar && root.contentItem.Config.sidebar.enabled) || (!root.contentItem.Config.dashboard.showOnHover && visibilities.dashboard && root.contentItem.Config.dashboard.enabled) || (panels.popouts.currentName.startsWith("traymenu") && (panels.popouts.current as StackView)?.depth > 1)
+        active: (visibilities.launcher && root.contentItem.Config.launcher.enabled) || (visibilities.session && root.contentItem.Config.session.enabled) || (visibilities.sidebar && root.contentItem.Config.sidebar.enabled) || visibilities.settings || (!root.contentItem.Config.dashboard.showOnHover && visibilities.dashboard && root.contentItem.Config.dashboard.enabled) || (panels.popouts.currentName.startsWith("traymenu") && (panels.popouts.current as StackView)?.depth > 1)
         windows: [root]
         onCleared: {
             visibilities.launcher = false;
@@ -114,6 +115,7 @@ StyledWindow {
             visibilities.sidebar = false;
             visibilities.dashboard = false;
             visibilities.island = false;
+            visibilities.settings = false;
             panels.popouts.hasCurrent = false;
             bar.closeTray();
         }
@@ -165,6 +167,13 @@ StyledWindow {
             id: dashBg
 
             panel: panels.dashboard
+            deformAmount: 0.1
+        }
+
+        PanelBg {
+            id: settingsBg
+
+            panel: panels.settings
             deformAmount: 0.1
         }
 
@@ -261,6 +270,20 @@ StyledWindow {
         borderThickness: root.borderLayoutThickness
         fullscreen: root.hasFullscreen
 
+        MouseArea {
+            anchors.fill: parent
+            visible: visibilities.settings
+            enabled: visible
+            acceptedButtons: Qt.AllButtons
+
+            onPressed: event => {
+                if (interactions.closeSettingsIfOutside(event.x, event.y))
+                    event.accepted = true;
+                else
+                    event.accepted = false;
+            }
+        }
+
         Panels {
             id: panels
 
@@ -274,6 +297,9 @@ StyledWindow {
 
             dashboard.transform: Matrix4x4 {
                 matrix: dashBg.deformMatrix
+            }
+            settings.transform: Matrix4x4 {
+                matrix: settingsBg.deformMatrix
             }
             launcher.transform: Matrix4x4 {
                 matrix: launcherBg.deformMatrix

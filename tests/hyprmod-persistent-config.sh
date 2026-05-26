@@ -47,8 +47,8 @@ game_content_force_rgbx_rule="windowrule = force_rgbx true, match:content game"
 
 [[ -f $ROOT_DIR/config/hypr/hyprland-gui.conf ]] || \
   fail "Ryoku should ship HyprMod's managed config target"
-[[ -f $ROOT_DIR/shell/modules/controlcenter/WindowTitle.qml ]] || \
-  fail "missing control center title component"
+[[ -f $ROOT_DIR/shell/modules/controlcenter/Wrapper.qml ]] || \
+  fail "missing native Ryoku settings wrapper"
 [[ -x $ROOT_DIR/bin/ryoku-launch-hyprmod ]] || \
   fail "Ryoku should ship a HyprMod launcher that matches settings geometry"
 assert_contains "$ROOT_DIR/bin/ryoku-launch-hyprmod" \
@@ -78,21 +78,12 @@ assert_contains "$ROOT_DIR/config/hypr/hyprland-gui.conf" \
 assert_contains "$ROOT_DIR/config/hypr/hyprland.conf" \
   '^\$hyprlandSettings = ryoku-launch-hyprmod$' \
   "Ryoku Hyprland config should launch HyprMod through Ryoku geometry wrapper"
-assert_contains "$ROOT_DIR/shell/modules/controlcenter/WindowTitle.qml" \
-  'text: qsTr\("Hyprland"\)' \
-  "official settings should expose HyprMod as the Hyprland handoff"
-assert_contains "$ROOT_DIR/shell/modules/controlcenter/WindowTitle.qml" \
-  'Quickshell\.execDetached\(\["ryoku-launch-hyprmod"\]\)' \
-  "advanced settings button should launch HyprMod through Ryoku geometry wrapper"
-assert_contains "$ROOT_DIR/shell/modules/controlcenter/WindowTitle.qml" \
-  'id: closeAfterHyprmodLaunch' \
-  "advanced settings should keep a handoff timer for HyprMod launch"
-assert_contains "$ROOT_DIR/shell/modules/controlcenter/WindowTitle.qml" \
-  'interval: 2200' \
-  "advanced settings should wait briefly before closing official settings"
-assert_contains "$ROOT_DIR/shell/modules/controlcenter/WindowTitle.qml" \
-  'closeAfterHyprmodLaunch\.restart\(\)' \
-  "advanced settings button should close official settings after the handoff delay"
+assert_contains "$ROOT_DIR/shell/modules/controlcenter/Wrapper.qml" \
+  'component HyprlandPage' \
+  "native settings should expose a Ryoku Hyprland page"
+assert_contains "$ROOT_DIR/shell/modules/controlcenter/Wrapper.qml" \
+  'ryoku-launch-hyprmod' \
+  "native settings should launch HyprMod through Ryoku geometry wrapper"
 assert_contains "$ROOT_DIR/config/hypr/hyprland.conf" \
   '^windowrule = match:class \^\(io\.github\.bluemancz\.hyprmod\)\$, float true$' \
   "HyprMod should open as a floating advanced settings window"
@@ -138,7 +129,8 @@ assert_contains_fixed "$ROOT_DIR/config/hypr/hyprland.conf" \
 assert_contains_fixed "$ROOT_DIR/config/hypr/hyprland.conf" \
   "$game_content_force_rgbx_rule" \
   "game content should ignore alpha channels"
-if grep -Fq 'text: qsTr("Ryoku Settings")' "$ROOT_DIR/shell/modules/controlcenter/WindowTitle.qml"; then
+if [[ -f $ROOT_DIR/shell/modules/controlcenter/WindowTitle.qml ]] \
+  && grep -Fq 'text: qsTr("Ryoku Settings")' "$ROOT_DIR/shell/modules/controlcenter/WindowTitle.qml"; then
   fail "floating settings title should not duplicate the Ryoku Settings label"
 fi
 if grep -Fq 'windowrule = match:class ^(io.github.bluemancz.hyprmod)$, size' "$ROOT_DIR/config/hypr/hyprland.conf"; then

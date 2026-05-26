@@ -3,6 +3,7 @@ import Quickshell
 import Ryoku.Config
 import qs.components
 import qs.modules.bar as Bar
+import qs.modules.controlcenter as ControlCenter
 import qs.modules.dashboard as Dashboard
 import qs.modules.island as Island
 import qs.modules.launcher as Launcher
@@ -30,6 +31,7 @@ Item {
     readonly property alias launcher: launcher
     readonly property alias island: island
     readonly property alias dashboard: dashboard
+    readonly property alias settings: settings
     readonly property alias popouts: popoutsWrapper.content
     readonly property alias popoutsWrapper: popoutsWrapper
     readonly property alias utilities: utilities
@@ -119,6 +121,16 @@ Item {
     Dashboard.Wrapper {
         id: dashboard
 
+        visibilities: root.visibilities
+
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: parent.top
+    }
+
+    ControlCenter.Wrapper {
+        id: settings
+
+        screen: root.screen
         visibilities: root.visibilities
 
         anchors.horizontalCenter: parent.horizontalCenter

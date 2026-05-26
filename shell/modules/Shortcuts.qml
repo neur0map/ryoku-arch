@@ -4,7 +4,6 @@ import Quickshell.Io
 import Ryoku
 import qs.components.misc
 import qs.services
-import qs.modules.controlcenter
 
 Scope {
     id: root
@@ -12,12 +11,40 @@ Scope {
     property bool launcherInterrupted
     readonly property bool hasFullscreen: Hypr.focusedWorkspace?.toplevels.values.some(t => t.lastIpcObject.fullscreen > 1) ?? false
 
+    function openControlCenter(): void {
+        if (root.hasFullscreen)
+            return;
+
+        const visibilities = Visibilities.getForActive();
+        visibilities.launcher = false;
+        visibilities.dashboard = false;
+        visibilities.island = false;
+        visibilities.utilities = false;
+        visibilities.settings = true;
+    }
+
+    function closeControlCenter(): void {
+        const visibilities = Visibilities.getForActive();
+        visibilities.settings = false;
+    }
+
+    function toggleControlCenter(): void {
+        if (root.hasFullscreen)
+            return;
+
+        const visibilities = Visibilities.getForActive();
+        if (visibilities.settings) {
+            closeControlCenter();
+        } else {
+            openControlCenter();
+        }
+    }
 
     CustomShortcut {
 
         name: "controlCenter"
         description: "Open control center"
-        onPressed: WindowFactory.toggle()
+        onPressed: root.toggleControlCenter()
     }
 
 
@@ -43,8 +70,11 @@ Scope {
             if (root.hasFullscreen)
                 return;
             const visibilities = Visibilities.getForActive();
+            const nextIsland = !visibilities.island;
             visibilities.dashboard = false;
-            visibilities.island = !visibilities.island;
+            if (nextIsland)
+                visibilities.settings = false;
+            visibilities.island = nextIsland;
         }
     }
 
@@ -113,13 +143,18 @@ Scope {
     IpcHandler {
         function toggle(drawer: string): void {
             if (list().split("\n").includes(drawer)) {
-                if (root.hasFullscreen && ["launcher", "session", "dashboard", "island"].includes(drawer))
+                if (root.hasFullscreen && ["launcher", "session", "dashboard", "island", "settings"].includes(drawer))
                     return;
                 const visibilities = Visibilities.getForActive();
                 if (drawer === "dashboard") {
+                    const nextIsland = !visibilities.island;
                     visibilities.dashboard = false;
-                    visibilities.island = !visibilities.island;
+                    if (nextIsland)
+                        visibilities.settings = false;
+                    visibilities.island = nextIsland;
                 } else {
+                    if (drawer === "island" && !visibilities.island)
+                        visibilities.settings = false;
                     visibilities[drawer] = !visibilities[drawer];
                 }
             } else {
@@ -137,15 +172,15 @@ Scope {
 
     IpcHandler {
         function open(): void {
-            WindowFactory.open();
+            root.openControlCenter();
         }
 
         function close(): void {
-            WindowFactory.close();
+            root.closeControlCenter();
         }
 
         function toggle(): void {
-            WindowFactory.toggle();
+            root.toggleControlCenter();
         }
 
         target: "controlCenter"

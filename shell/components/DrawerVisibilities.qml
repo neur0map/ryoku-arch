@@ -8,6 +8,7 @@ PersistentProperties {
     property bool launcher
     property bool island
     property bool dashboard
+    property bool settings
     property bool utilities
     property bool sidebar
 

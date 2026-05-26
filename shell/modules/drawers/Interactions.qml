@@ -24,18 +24,43 @@ CustomMouseArea {
     property bool osdShortcutActive
     property bool utilitiesShortcutActive
 
+    function panelWidth(panel: Item): real {
+        return Math.max(panel.width, panel.implicitWidth ?? 0);
+    }
+
+    function panelHeight(panel: Item): real {
+        return Math.max(panel.height, panel.implicitHeight ?? 0);
+    }
+
+    function inPanelBounds(panel: Item, x: real, y: real): bool {
+        const local = panel.mapFromItem(root, x, y);
+        const visibleHeight = root.panelHeight(panel) * (1 - (panel.offsetScale ?? 0));
+        return local.x >= -Config.border.rounding
+            && local.x <= root.panelWidth(panel) + Config.border.rounding
+            && local.y >= -Config.border.rounding
+            && local.y <= visibleHeight + Config.border.rounding;
+    }
+
+    function closeSettingsIfOutside(x: real, y: real): bool {
+        if (visibilities.settings && !inPanelBounds(panels.settings, x, y)) {
+            visibilities.settings = false;
+            return true;
+        }
+        return false;
+    }
+
     function withinPanelHeight(panel: Item, x: real, y: real): bool {
         const panelY = root.borderThickness + panel.y;
-        return y >= panelY - Config.border.rounding && y <= panelY + panel.height + Config.border.rounding;
+        return y >= panelY - Config.border.rounding && y <= panelY + root.panelHeight(panel) + Config.border.rounding;
     }
 
     function withinPanelWidth(panel: Item, x: real, y: real): bool {
         const panelX = bar.implicitWidth + panel.x;
-        return x >= panelX - Config.border.rounding && x <= panelX + panel.width + Config.border.rounding;
+        return x >= panelX - Config.border.rounding && x <= panelX + root.panelWidth(panel) + Config.border.rounding;
     }
 
     function inLeftPanel(panel: Item, x: real, y: real): bool {
-        return x < bar.implicitWidth + panel.x + panel.width && withinPanelHeight(panel, x, y);
+        return x < bar.implicitWidth + panel.x + root.panelWidth(panel) && withinPanelHeight(panel, x, y);
     }
 
     function inRightPanel(panel: Item, x: real, y: real): bool {
@@ -43,12 +68,12 @@ CustomMouseArea {
     }
 
     function inTopPanel(panel: Item, x: real, y: real): bool {
-        const panelHeight = panel.height * (1 - (panel.offsetScale ?? 0));
+        const panelHeight = root.panelHeight(panel) * (1 - (panel.offsetScale ?? 0));
         return y < Math.max(Config.border.minThickness, Config.border.thickness + panelHeight) && withinPanelWidth(panel, x, y);
     }
 
     function inBottomPanel(panel: Item, x: real, y: real, isCorner = false): bool {
-        const panelHeight = panel.height * (1 - (panel.offsetScale ?? 0));
+        const panelHeight = root.panelHeight(panel) * (1 - (panel.offsetScale ?? 0));
         return y > height - Math.max(Config.border.minThickness, Config.border.thickness + panelHeight) - (isCorner ? Config.border.rounding : 0) && withinPanelWidth(panel, x, y);
     }
 
@@ -64,7 +89,14 @@ CustomMouseArea {
     acceptedButtons: fullscreen ? Qt.NoButton : Qt.AllButtons
     hoverEnabled: true
 
-    onPressed: event => dragStart = Qt.point(event.x, event.y)
+    onPressed: event => {
+        dragStart = Qt.point(event.x, event.y);
+        if (closeSettingsIfOutside(event.x, event.y)) {
+            event.accepted = true;
+        } else if (visibilities.settings) {
+            event.accepted = false;
+        }
+    }
     onContainsMouseChanged: {
         if (!containsMouse) {
             // Only hide if not activated by shortcut
@@ -177,7 +209,7 @@ CustomMouseArea {
         }
 
         // Top-center dashboard hover is replaced by the embedded island.
-        const showIsland = Config.dashboard.showOnHover && inTopPanel(panels.island, x, y);
+        const showIsland = !visibilities.settings && Config.dashboard.showOnHover && inTopPanel(panels.island, x, y);
         visibilities.dashboard = false;
 
         if (!islandShortcutActive) {
@@ -188,7 +220,7 @@ CustomMouseArea {
         }
 
         // Show/hide island on the old dashboard drag gesture (touchscreen path).
-        if (pressed && inTopPanel(panels.island, dragStart.x, dragStart.y) && withinPanelWidth(panels.island, x, y)) {
+        if (!visibilities.settings && pressed && inTopPanel(panels.island, dragStart.x, dragStart.y) && withinPanelWidth(panels.island, x, y)) {
             if (dragY > Config.dashboard.dragThreshold)
                 visibilities.island = true;
             else if (dragY < -Config.dashboard.dragThreshold)
@@ -241,6 +273,7 @@ CustomMouseArea {
         function onDashboardChanged() {
             if (root.visibilities.dashboard) {
                 // The top dashboard slot is unplugged for this live island experiment.
+                root.visibilities.settings = false;
                 root.visibilities.dashboard = false;
                 root.visibilities.island = true;
             } else {
@@ -250,11 +283,21 @@ CustomMouseArea {
 
         function onIslandChanged() {
             if (root.visibilities.island) {
+                root.visibilities.settings = false;
                 root.visibilities.dashboard = false;
                 const inIslandArea = root.inTopPanel(root.panels.island, root.mouseX, root.mouseY);
                 if (!inIslandArea)
                     root.islandShortcutActive = true;
             } else {
+                root.islandShortcutActive = false;
+            }
+        }
+
+        function onSettingsChanged() {
+            if (root.visibilities.settings) {
+                root.visibilities.dashboard = false;
+                root.visibilities.island = false;
+                root.dashboardShortcutActive = false;
                 root.islandShortcutActive = false;
             }
         }

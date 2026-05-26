@@ -6,6 +6,8 @@ QtObject {
     property string trailingIcon
     property string activeIcon: icon
     property string activeText: text
+    property bool separatorBefore
+    property bool enabled: true
 
     signal clicked
 }

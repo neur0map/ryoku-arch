@@ -12,6 +12,7 @@ usage() {
 Usage:
   ryoku scheme list
   ryoku scheme get -nfv
+  ryoku scheme preview [-n NAME] [-f FLAVOUR] [-v VARIANT] [-m MODE] [--notify]
   ryoku scheme set [-n NAME] [-f FLAVOUR] [-v VARIANT] [-m MODE] [--notify]
   ryoku wallpaper -p PATH [--no-smart]
   ryoku wallpaper -f PATH [--no-smart]
@@ -211,6 +212,27 @@ select_palette_seed() {
       tertiary_light="$secondary_light"
       secondary_light="$temp"
       ;;
+    fidelity)
+      secondary_dark="$primary_dark"
+      secondary_light="$primary_light"
+      tertiary_dark="$primary_container_light"
+      tertiary_light="$primary_container_dark"
+      secondary_container_dark="$primary_container_dark"
+      secondary_container_light="$primary_container_light"
+      tertiary_container_dark="$primary_container_dark"
+      tertiary_container_light="$primary_container_light"
+      ;;
+    content)
+      secondary_dark="$primary_container_light"
+      secondary_light="$primary_container_dark"
+      tertiary_dark="$primary_dark"
+      tertiary_light="$primary_light"
+      neutral_variant="$neutral"
+      secondary_container_dark="$primary_container_dark"
+      secondary_container_light="$primary_container_light"
+      tertiary_container_dark="$primary_container_dark"
+      tertiary_container_light="$primary_container_light"
+      ;;
     fruitsalad)
       temp="$primary_dark"
       primary_dark="$secondary_dark"
@@ -343,7 +365,61 @@ scheme_get() {
     return 0
   fi
 
+  if [[ $flags == "-nfvm" ]]; then
+    read_state name ryoku
+    read_state flavour default
+    read_state variant tonalspot
+    read_state mode dark
+    return 0
+  fi
+
   cat "$scheme_file"
+}
+
+scheme_preview() {
+  local name
+  local flavour
+  local variant
+  local mode
+  local payload
+
+  name="$(read_state name ryoku)"
+  flavour="$(read_state flavour default)"
+  variant="$(read_state variant tonalspot)"
+  mode="$(read_state mode dark)"
+
+  while (($# > 0)); do
+    case "$1" in
+      -n)
+        shift
+        name="${1:-$name}"
+        ;;
+      -f)
+        shift
+        flavour="${1:-$flavour}"
+        ;;
+      -v)
+        shift
+        variant="${1:-$variant}"
+        ;;
+      -m)
+        shift
+        mode="${1:-$mode}"
+        ;;
+      --notify)
+        ;;
+      *)
+        echo "ryoku: unknown scheme preview argument: $1" >&2
+        return 2
+        ;;
+    esac
+    shift
+  done
+
+  payload="$(scheme_json "$name" "$flavour" "$variant" "$mode")"
+  mkdir -p "$state_dir"
+  printf '%s\n' "$payload" >"$scheme_file"
+  printf '%s\n' "$payload"
 }
 
 scheme_set() {
@@ -402,6 +478,9 @@ scheme_command() {
       ;;
     get)
       scheme_get "$@"
+      ;;
+    preview)
+      scheme_preview "$@"
       ;;
     set)
       scheme_set "$@"

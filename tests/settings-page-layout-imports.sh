@@ -9,7 +9,7 @@ fail() {
   exit 1
 }
 
-mapfile -t qml_files < <(rg --files shell/modules/settings -g '*.qml')
+mapfile -t qml_files < <(rg --files shell/modules/controlcenter -g '*.qml')
 
 for file in "${qml_files[@]}"; do
   [[ -f $file ]] || continue
