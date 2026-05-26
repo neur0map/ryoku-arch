@@ -6,22 +6,28 @@ old_webapp_opacity_comment="# Keep web apps and games opaque while preserving Hy
 opacity_comment="# Keep web apps and games fully opaque while preserving HyprMod transparency for normal windows."
 webapp_class_rule="windowrule = opacity 1.0 override 1.0 override 1.0 override, match:class ^(chrome|chromium|google-chrome|brave|brave-browser|microsoft-edge|opera|vivaldi)-.+-Default$"
 webapp_initial_class_rule="windowrule = opacity 1.0 override 1.0 override 1.0 override, match:initial_class ^(chrome|chromium|google-chrome|brave|brave-browser|microsoft-edge|opera|vivaldi)-.+-Default$"
-helium_class_rule="windowrule = opacity 1.0 override 1.0 override 1.0 override, match:class ^(helium)$"
-helium_initial_class_rule="windowrule = opacity 1.0 override 1.0 override 1.0 override, match:initial_class ^(helium)$"
+old_helium_class_rule="windowrule = opacity 1.0 override 1.0 override 1.0 override, match:class ^(helium)$"
+old_helium_initial_class_rule="windowrule = opacity 1.0 override 1.0 override 1.0 override, match:initial_class ^(helium)$"
+helium_class_rule="windowrule = opacity 1.0 override 1.0 override 1.0 override, match:class ^(helium|Helium)$"
+helium_initial_class_rule="windowrule = opacity 1.0 override 1.0 override 1.0 override, match:initial_class ^(helium|Helium)$"
 game_content_rule="windowrule = opacity 1.0 override 1.0 override 1.0 override, match:content game"
 game_class_rule="windowrule = opacity 1.0 override 1.0 override 1.0 override, match:class ^(steam_app_[0-9]+|gamescope)$"
 game_initial_class_rule="windowrule = opacity 1.0 override 1.0 override 1.0 override, match:initial_class ^(steam_app_[0-9]+|gamescope)$"
 webapp_class_opaque_rule="windowrule = opaque true, match:class ^(chrome|chromium|google-chrome|brave|brave-browser|microsoft-edge|opera|vivaldi)-.+-Default$"
 webapp_initial_class_opaque_rule="windowrule = opaque true, match:initial_class ^(chrome|chromium|google-chrome|brave|brave-browser|microsoft-edge|opera|vivaldi)-.+-Default$"
-helium_class_opaque_rule="windowrule = opaque true, match:class ^(helium)$"
-helium_initial_class_opaque_rule="windowrule = opaque true, match:initial_class ^(helium)$"
+old_helium_class_opaque_rule="windowrule = opaque true, match:class ^(helium)$"
+old_helium_initial_class_opaque_rule="windowrule = opaque true, match:initial_class ^(helium)$"
+helium_class_opaque_rule="windowrule = opaque true, match:class ^(helium|Helium)$"
+helium_initial_class_opaque_rule="windowrule = opaque true, match:initial_class ^(helium|Helium)$"
 game_content_opaque_rule="windowrule = opaque true, match:content game"
 game_class_opaque_rule="windowrule = opaque true, match:class ^(steam_app_[0-9]+|gamescope)$"
 game_initial_class_opaque_rule="windowrule = opaque true, match:initial_class ^(steam_app_[0-9]+|gamescope)$"
 webapp_class_force_rgbx_rule="windowrule = force_rgbx true, match:class ^(chrome|chromium|google-chrome|brave|brave-browser|microsoft-edge|opera|vivaldi)-.+-Default$"
 webapp_initial_class_force_rgbx_rule="windowrule = force_rgbx true, match:initial_class ^(chrome|chromium|google-chrome|brave|brave-browser|microsoft-edge|opera|vivaldi)-.+-Default$"
-helium_class_force_rgbx_rule="windowrule = force_rgbx true, match:class ^(helium)$"
-helium_initial_class_force_rgbx_rule="windowrule = force_rgbx true, match:initial_class ^(helium)$"
+old_helium_class_force_rgbx_rule="windowrule = force_rgbx true, match:class ^(helium)$"
+old_helium_initial_class_force_rgbx_rule="windowrule = force_rgbx true, match:initial_class ^(helium)$"
+helium_class_force_rgbx_rule="windowrule = force_rgbx true, match:class ^(helium|Helium)$"
+helium_initial_class_force_rgbx_rule="windowrule = force_rgbx true, match:initial_class ^(helium|Helium)$"
 game_content_force_rgbx_rule="windowrule = force_rgbx true, match:content game"
 game_class_force_rgbx_rule="windowrule = force_rgbx true, match:class ^(steam_app_[0-9]+|gamescope)$"
 game_initial_class_force_rgbx_rule="windowrule = force_rgbx true, match:initial_class ^(steam_app_[0-9]+|gamescope)$"
@@ -36,6 +42,8 @@ if [[ -f $hypr_conf ]]; then
     "$opacity_comment" \
     "$webapp_class_rule" \
     "$webapp_initial_class_rule" \
+    "$old_helium_class_rule" \
+    "$old_helium_initial_class_rule" \
     "$helium_class_rule" \
     "$helium_initial_class_rule" \
     "$game_content_rule" \
@@ -43,6 +51,8 @@ if [[ -f $hypr_conf ]]; then
     "$game_initial_class_rule" \
     "$webapp_class_opaque_rule" \
     "$webapp_initial_class_opaque_rule" \
+    "$old_helium_class_opaque_rule" \
+    "$old_helium_initial_class_opaque_rule" \
     "$helium_class_opaque_rule" \
     "$helium_initial_class_opaque_rule" \
     "$game_content_opaque_rule" \
@@ -50,6 +60,8 @@ if [[ -f $hypr_conf ]]; then
     "$game_initial_class_opaque_rule" \
     "$webapp_class_force_rgbx_rule" \
     "$webapp_initial_class_force_rgbx_rule" \
+    "$old_helium_class_force_rgbx_rule" \
+    "$old_helium_initial_class_force_rgbx_rule" \
     "$helium_class_force_rgbx_rule" \
     "$helium_initial_class_force_rgbx_rule" \
     "$game_content_force_rgbx_rule" \

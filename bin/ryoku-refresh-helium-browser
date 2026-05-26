@@ -11,6 +11,10 @@ case ":$PATH:" in
 esac
 
 config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
+data_home="${XDG_DATA_HOME:-$HOME/.local/share}"
+bin_dir="$HOME/.local/bin"
+appimage_path="$data_home/ryoku-apps/helium/helium.AppImage"
+bin_path="$bin_dir/helium"
 helium_profile="$config_home/net.imput.helium"
 helium_prefs="$config_home/net.imput.helium/Default/Preferences"
 chromium_prefs="$config_home/chromium/Default/Preferences"
@@ -70,6 +74,33 @@ refresh_prefs() {
   rm -f "$tmp_file"
 }
 
+write_launcher_wrapper() {
+  [[ -f $appimage_path ]] || return 0
+
+  mkdir -p "$bin_dir"
+
+  if [[ -L $bin_path ]]; then
+    rm -f "$bin_path"
+  fi
+
+  cat >"$bin_path" <<'EOF'
+#!/bin/bash
+
+set -euo pipefail
+
+data_home="${XDG_DATA_HOME:-$HOME/.local/share}"
+appimage="$data_home/ryoku-apps/helium/helium.AppImage"
+
+if [[ ! -x $appimage ]]; then
+  echo "Helium AppImage not found: $appimage" >&2
+  exit 1
+fi
+
+exec "$appimage" --ozone-platform="${HELIUM_OZONE_PLATFORM:-x11}" "$@"
+EOF
+  chmod 0755 "$bin_path"
+}
+
 profile_running() {
   local profile_dir="$1"
   local lock_pid
@@ -88,6 +119,8 @@ profile_running() {
 }
 
 helium_status=0
+
+write_launcher_wrapper
 
 if profile_running "$helium_profile"; then
   echo "Helium is still running. Quit Helium completely, then run ryoku-refresh-helium-browser again." >&2
