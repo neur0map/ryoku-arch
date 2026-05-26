@@ -1,0 +1,25 @@
+#!/bin/bash
+
+set -euo pipefail
+
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+local_root="$(cd -- "$script_dir/../.." && pwd)"
+runtime_dir="$(cd -- "$script_dir/.." && pwd)"
+source_path_file="$runtime_dir/.ryoku-source-path"
+source_root="$HOME/.local/share/ryoku"
+
+if [[ -r $local_root/lib/runtime-env.sh ]]; then
+  source "$local_root/lib/runtime-env.sh"
+else
+  if [[ -r $source_path_file ]]; then
+    read -r source_root <"$source_path_file"
+  fi
+  source "$source_root/lib/runtime-env.sh"
+fi
+
+if ryoku-cmd-missing hyprctl; then
+  echo "ryoku-reload-hyprland: hyprctl is not installed or not on PATH" >&2
+  exit 127
+fi
+
+exec hyprctl reload

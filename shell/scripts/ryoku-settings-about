@@ -252,11 +252,7 @@ def official_remote_contains_head():
             return True
     return False
 
-def incoming_commits(remote_ref):
-    code, out, _ = run_git("log", "--max-count=20", "--pretty=format:%h%x1f%s%x1f%an%x1f%cr", f"HEAD..{remote_ref}")
-    if code != 0 or not out:
-        return []
-
+def _parse_commits(out):
     commits = []
     for line in out.splitlines():
         parts = line.split("\x1f")
@@ -269,6 +265,20 @@ def incoming_commits(remote_ref):
             "relativeTime": parts[3],
         })
     return commits
+
+def incoming_commits(remote_ref):
+    code, out, _ = run_git("log", "--max-count=20", "--pretty=format:%h%x1f%s%x1f%an%x1f%cr", f"HEAD..{remote_ref}")
+    if code != 0 or not out:
+        return []
+    return _parse_commits(out)
+
+def outgoing_commits(remote_ref):
+    # Local commits that are not on the remote — these are what block a
+    # fast-forward update when the checkout has diverged.
+    code, out, _ = run_git("log", "--max-count=20", "--pretty=format:%h%x1f%s%x1f%an%x1f%cr", f"{remote_ref}..HEAD")
+    if code != 0 or not out:
+        return []
+    return _parse_commits(out)
 
 def update_state(ahead, behind, can_fast_forward, can_realign, branch):
     if behind > 0 and can_fast_forward:
@@ -371,11 +381,15 @@ def check_updates():
     can_fast_forward = ancestor_code == 0 and behind > 0
     can_realign = branch in channels and behind > 0 and not can_fast_forward and official_remote_contains_head()
     commits = incoming_commits(remote_ref)
+    local = outgoing_commits(remote_ref)
+
+    _, local_head, _ = run_git("rev-parse", "--short", "HEAD")
 
     info.update({
         "ok": True,
         "remoteBranch": remote_ref,
         "remoteHead": remote_head or "unknown",
+        "localHead": local_head or info.get("head", "unknown"),
         "aheadCount": ahead,
         "behindCount": behind,
         "updateAvailable": behind > 0,
@@ -383,6 +397,7 @@ def check_updates():
         "canRealignOfficialBranch": can_realign,
         "canStartUpdate": can_fast_forward or can_realign,
         "incoming": commits,
+        "local": local,
     })
     info.update(update_state(ahead, behind, can_fast_forward, can_realign, branch))
     return info

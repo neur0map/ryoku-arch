@@ -45,7 +45,15 @@ int AppearanceRounding::large() const {
 }
 
 int AppearanceRounding::full() const {
-    return m_tokens ? static_cast<int>(m_tokens->full() * m_scale) : 0;
+    if (!m_tokens)
+        return 0;
+    // At scale >= 1 keep the sentinel pill radius so any element renders as a
+    // full pill (the original behaviour). Below 1, ramp a pill-sufficient cap
+    // down to 0 so lowering the rounding scale visibly squares pill-shaped
+    // elements off instead of only collapsing them at exactly scale 0.
+    if (m_scale >= 1.0)
+        return static_cast<int>(m_tokens->full() * m_scale);
+    return static_cast<int>(40.0 * m_scale);
 }
 
 // AppearanceSpacing

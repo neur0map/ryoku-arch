@@ -10,7 +10,7 @@ Item {
 
     required property DrawerVisibilities visibilities
 
-    readonly property bool shouldBeActive: visibilities.island
+    readonly property bool shouldBeActive: visibilities.island && Config.dashboard.enabled
     property real offsetScale: shouldBeActive ? 0 : 1
 
     visible: offsetScale < 1

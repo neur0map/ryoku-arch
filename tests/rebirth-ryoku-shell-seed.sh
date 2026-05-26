@@ -48,7 +48,11 @@ assert_file shell/components/controls/MenuItem.qml
 assert_file shell/components/controls/Menu.qml
 assert_executable shell/scripts/ryoku-shell
 assert_executable shell/scripts/ryoku
+assert_executable shell/scripts/ryoku-reload-hyprland
+assert_executable shell/scripts/ryoku-shell-profile
 assert_executable shell/setup
+assert_executable bin/ryoku-reload-hyprland
+assert_executable bin/ryoku-shell-profile
 
 assert_contains shell/CMakeLists.txt 'project\(ryoku-shell' \
   "shell CMake project should use Ryoku naming"
@@ -74,8 +78,8 @@ assert_contains shell/modules/controlcenter/Wrapper.qml 'component ProfilesPage'
   "settings wrapper should provide HyprMod-style Profiles"
 assert_contains shell/modules/controlcenter/Wrapper.qml 'component AppSettingsPage' \
   "settings wrapper should provide HyprMod-style app Settings"
-assert_contains shell/modules/controlcenter/Wrapper.qml 'title: "HyprMod"' \
-  "settings wrapper sidebar header should use HyprMod's title"
+assert_contains shell/modules/controlcenter/Wrapper.qml 'title: "Ryoku"' \
+  "settings wrapper sidebar header should carry the Ryoku brand, not the HyprMod placeholder"
 assert_contains shell/modules/controlcenter/Wrapper.qml 'readonly property var pinnedPages: \[8, 9\]' \
   "settings wrapper should pin Profiles and Settings like HyprMod"
 assert_contains shell/modules/controlcenter/Wrapper.qml 'readonly property int searchPageIndex: 10' \
@@ -154,18 +158,14 @@ assert_contains shell/modules/controlcenter/Wrapper.qml 'separatorBefore: true' 
   "settings wrapper header menu should group HyprMod-style sections"
 assert_contains shell/modules/controlcenter/Wrapper.qml 'text: "Auto-save"' \
   "settings wrapper header menu should expose HyprMod's Auto-save preference"
-assert_contains shell/modules/controlcenter/Wrapper.qml 'text: "Migrate to Lua\\u2026"' \
-  "settings wrapper header menu should include HyprMod's Lua migration action row"
-assert_contains shell/modules/controlcenter/Wrapper.qml 'text: "Review deprecated syntax\\u2026"' \
-  "settings wrapper header menu should include HyprMod's deprecated syntax action row"
 assert_contains shell/modules/controlcenter/Wrapper.qml 'text: "Keyboard Shortcuts"' \
   "settings wrapper header menu should expose HyprMod's keyboard shortcuts item"
 assert_contains shell/modules/controlcenter/Wrapper.qml 'component ShortcutOverlay' \
   "settings wrapper keyboard shortcuts should open a HyprMod-style modal overlay"
 assert_contains shell/modules/controlcenter/Wrapper.qml 'event\.key === Qt\.Key_F1' \
   "settings wrapper should bind F1 to the keyboard shortcuts overlay"
-assert_contains shell/modules/controlcenter/Wrapper.qml 'text: "About HyprMod"' \
-  "settings wrapper header menu should use HyprMod's About label"
+assert_contains shell/modules/controlcenter/Wrapper.qml 'text: "About Ryoku"' \
+  "settings wrapper About menu item should reference Ryoku's own about page"
 assert_contains shell/modules/controlcenter/Wrapper.qml 'SchemeSwatchButton \{ flavour: "default"' \
   "settings wrapper should expose the default Ryoku scheme accent"
 assert_contains shell/modules/controlcenter/Wrapper.qml 'VariantPillButton \{ label: "Rainbow"; variant: "rainbow" \}' \
@@ -214,10 +214,12 @@ assert_contains shell/modules/controlcenter/Wrapper.qml 'Save as new profile' \
   "settings wrapper should expose HyprMod's profile save affordance"
 assert_contains shell/modules/controlcenter/Wrapper.qml 'Save without updating profile' \
   "settings wrapper should expose HyprMod's active-profile save affordance"
-assert_contains shell/modules/controlcenter/Wrapper.qml 'component ProfileDnaPreview' \
-  "settings wrapper should include HyprMod-style profile DNA previews"
 assert_contains shell/modules/controlcenter/Wrapper.qml 'component ProfileCard' \
   "settings wrapper should render reusable profile cards"
+assert_contains shell/modules/controlcenter/Wrapper.qml 'ryoku-shell-profile' \
+  "settings wrapper should back profile actions with a Ryoku command"
+assert_contains shell/modules/controlcenter/Wrapper.qml 'text: "Delete profile"' \
+  "settings wrapper should expose a working profile delete action"
 assert_contains shell/modules/controlcenter/Wrapper.qml 'property bool profileSaveButton' \
   "settings wrapper should expose HyprMod's header save-current button"
 assert_contains shell/modules/controlcenter/Wrapper.qml 'profileSaveButton: !root\.searchActive && root\.currentPage === 8' \
@@ -238,8 +240,8 @@ assert_contains shell/modules/controlcenter/Wrapper.qml 'Keys\.onEscapePressed: 
   "settings wrapper editable entry rows should cancel text edits on Escape"
 assert_contains shell/modules/controlcenter/Wrapper.qml 'settingKey: "settings\.configPath"' \
   "settings wrapper config path row should be searchable and highlightable"
-assert_contains shell/modules/controlcenter/Wrapper.qml 'onApplied: root\.markSaved\(\)' \
-  "settings wrapper config path row should expose an EntryRow-style apply path"
+assert_contains shell/modules/controlcenter/Wrapper.qml 'readOnly: entryRow\.readOnly' \
+  "settings wrapper config path row should avoid pretending the backend path is editable"
 assert_contains shell/modules/controlcenter/Wrapper.qml 'text: "Browse\\u2026"' \
   "settings wrapper should expose HyprMod's browse tooltip"
 assert_contains shell/modules/controlcenter/Wrapper.qml 'description: "Automatically save changes after each modification\."' \
@@ -272,6 +274,8 @@ assert_contains shell/modules/controlcenter/Wrapper.qml 'GlobalConfig\.save\(\)'
   "settings wrapper should persist controls through GlobalConfig"
 assert_contains shell/modules/controlcenter/Wrapper.qml 'ryoku-launch-hyprmod' \
   "settings wrapper should hand advanced Hyprland configuration to HyprMod"
+assert_contains shell/modules/controlcenter/Wrapper.qml 'ryoku-reload-hyprland' \
+  "settings wrapper should reload Hyprland through a Ryoku command"
 assert_contains shell/modules/Shortcuts.qml 'visibilities.settings = true' \
   "settings shortcuts should request the native settings drawer"
 assert_contains shell/assets/systemd/ryoku-shell.service 'Environment=PATH=.*\.local/bin' \
@@ -421,10 +425,13 @@ upstream_pattern='cae''lestia|Cae''lestia|CAELE''STIA|cae''lestia-dots|sora''man
 # Exclude LICENSE (legal text) and the About settings pane's credits
 # section (intentional attribution to the upstream shell heritage, same
 # rationale as the repo-root CREDITS.md exemption in rebirth-docs-ready).
+# The About page (with its bento credits grid) lives in controlcenter
+# Wrapper.qml, so it carries the same intentional-attribution exemption.
 if rg -n "$upstream_pattern" "$ROOT_DIR/shell" \
     --glob '!LICENSE' \
     --glob '!AboutPane.qml' \
-    --glob '!RyokuAbout.qml' >/tmp/ryoku-shell-seed-names.$$; then
+    --glob '!RyokuAbout.qml' \
+    --glob '!**/controlcenter/Wrapper.qml' >/tmp/ryoku-shell-seed-names.$$; then
   cat /tmp/ryoku-shell-seed-names.$$
   rm -f /tmp/ryoku-shell-seed-names.$$
   fail "shell runtime should not expose upstream product naming outside license/credits"

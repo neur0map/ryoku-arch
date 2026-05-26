@@ -47,6 +47,10 @@ assert_file "shell/services/Colours.qml"
 assert_file "shell/modules/launcher/services/Schemes.qml"
 assert_file "shell/modules/launcher/services/M3Variants.qml"
 assert_file "shell/scripts/ryoku-shell"
+assert_file "shell/scripts/ryoku-reload-hyprland"
+assert_file "shell/scripts/ryoku-shell-profile"
+assert_file "bin/ryoku-reload-hyprland"
+assert_file "bin/ryoku-shell-profile"
 assert_file "config/hypr/hyprland.conf"
 assert_file "install/ryoku-base.packages"
 
@@ -119,6 +123,18 @@ assert_contains "shell/modules/controlcenter/Wrapper.qml" "Keys.onUpPressed: sli
   "numeric row editors should support keyboard spin-step increases"
 assert_contains "shell/modules/controlcenter/Wrapper.qml" "onWheel" \
   "numeric rows should support mouse-wheel stepping"
+assert_contains "shell/modules/controlcenter/Wrapper.qml" "property string targetKey" \
+  "config rows should carry explicit keys when titles are duplicated across pages"
+assert_contains "shell/modules/controlcenter/Wrapper.qml" "propertyName: \"schemes\"; targetKey: \"launcher.useFuzzy.schemes\"" \
+  "launcher scheme fuzzy matching should be exposed as a backed setting"
+assert_contains "shell/modules/controlcenter/Wrapper.qml" "component IslandPage" \
+  "settings should replace the removed Dashboard settings section with Island controls"
+assert_contains "shell/modules/controlcenter/Wrapper.qml" "propertyName: \"dragThreshold\"; targetKey: \"dashboard.dragThreshold\"" \
+  "island gesture threshold should be exposed as a backed setting"
+assert_contains "shell/modules/controlcenter/Wrapper.qml" "settingKey: \"paths.wallpaperDir\"" \
+  "appearance should expose the backed wallpaper folder path"
+assert_contains "shell/modules/controlcenter/Wrapper.qml" "component WallpaperPreviewGrid" \
+  "appearance should show wallpaper previews inside settings"
 assert_contains "shell/modules/controlcenter/Wrapper.qml" "readonly property string ryokuBridge" \
   "scheme controls should use the running shell runtime bridge, not a stale PATH command"
 assert_contains "shell/utils/Paths.qml" "readonly property string ryokuBridge" \
@@ -249,10 +265,6 @@ assert_contains "shell/modules/controlcenter/Wrapper.qml" "separatorBefore: true
   "settings header menu should group HyprMod menu items into sections"
 assert_contains "shell/modules/controlcenter/Wrapper.qml" "text: \"Auto-save\"" \
   "settings header menu should expose HyprMod's Auto-save preference"
-assert_contains "shell/modules/controlcenter/Wrapper.qml" "text: \"Migrate to Lua\\u2026\"" \
-  "settings header menu should include HyprMod's Lua migration action row"
-assert_contains "shell/modules/controlcenter/Wrapper.qml" "text: \"Review deprecated syntax\\u2026\"" \
-  "settings header menu should include HyprMod's deprecated syntax action row"
 assert_contains "shell/modules/controlcenter/Wrapper.qml" "text: \"Open HyprMod\"" \
   "settings menu should expose the advanced HyprMod app"
 assert_contains "shell/modules/controlcenter/Wrapper.qml" "text: \"Keyboard Shortcuts\"" \
@@ -267,8 +279,8 @@ assert_contains "shell/modules/controlcenter/Wrapper.qml" "event.key === Qt.Key_
   "settings should bind F1 to the keyboard shortcuts overlay"
 assert_contains "shell/modules/controlcenter/Wrapper.qml" "text: \"Report a bug\"" \
   "settings header menu should expose HyprMod's bug report item"
-assert_contains "shell/modules/controlcenter/Wrapper.qml" "text: \"About HyprMod\"" \
-  "settings header menu should use HyprMod's About label"
+assert_contains "shell/modules/controlcenter/Wrapper.qml" "text: \"About Ryoku\"" \
+  "settings About menu item should reference Ryoku's own about page"
 assert_contains "shell/modules/controlcenter/Wrapper.qml" "component PreferenceGroup" \
   "settings pages should use Adwaita-style preference groups"
 assert_contains "shell/modules/controlcenter/Wrapper.qml" "readonly property int contentMaxWidth: 800" \
@@ -319,12 +331,14 @@ assert_contains "shell/modules/controlcenter/Wrapper.qml" "Save as new profile" 
   "settings split save button should expose HyprMod's profile save affordance"
 assert_contains "shell/modules/controlcenter/Wrapper.qml" "Save without updating profile" \
   "settings split save button should expose HyprMod's active-profile save affordance"
-assert_contains "shell/modules/controlcenter/Wrapper.qml" "component ProfileDnaPreview" \
-  "settings Profiles page should include HyprMod-style profile DNA previews"
 assert_contains "shell/modules/controlcenter/Wrapper.qml" "component ProfileCard" \
   "settings Profiles page should render reusable profile cards"
 assert_contains "shell/modules/controlcenter/Wrapper.qml" "text: \"Save current as new profile\"" \
   "settings Profiles page should expose HyprMod's save-current profile tooltip"
+assert_contains "shell/modules/controlcenter/Wrapper.qml" "ryoku-shell-profile" \
+  "settings Profiles page should use a real shell profile adapter"
+assert_contains "shell/modules/controlcenter/Wrapper.qml" "text: \"Delete profile\"" \
+  "settings Profiles page should expose a working delete action instead of an inert menu"
 assert_contains "shell/modules/controlcenter/Wrapper.qml" "Qt.alpha(root.accent, 0.06)" \
   "active profile cards should use HyprMod's subtle accent tint"
 assert_contains "shell/modules/controlcenter/Wrapper.qml" "width: 3" \
@@ -339,8 +353,8 @@ assert_contains "shell/modules/controlcenter/Wrapper.qml" "Keys.onEscapePressed:
   "editable entry rows should allow canceling text edits"
 assert_contains "shell/modules/controlcenter/Wrapper.qml" "settingKey: \"settings.configPath\"" \
   "settings app config path row should be searchable and highlightable"
-assert_contains "shell/modules/controlcenter/Wrapper.qml" "onApplied: root.markSaved()" \
-  "settings app config path row should expose an EntryRow-style apply path"
+assert_contains "shell/modules/controlcenter/Wrapper.qml" "readOnly: entryRow.readOnly" \
+  "settings app config path row should avoid pretending the backend path is editable"
 assert_contains "shell/modules/controlcenter/Wrapper.qml" "text: \"Browse\\u2026\"" \
   "settings app Settings page should expose HyprMod's icon-only browse tooltip"
 assert_contains "shell/modules/controlcenter/Wrapper.qml" "description: \"Automatically save changes after each modification.\"" \
@@ -375,12 +389,16 @@ assert_contains "shell/modules/controlcenter/Wrapper.qml" "if (root.schemeDirty)
   "closing settings should abandon unsaved scheme previews even without a row badge"
 assert_contains "shell/modules/controlcenter/Wrapper.qml" "accept: () =>" \
   "settings pending entries should accept the current value as the new saved baseline"
-assert_contains "shell/modules/controlcenter/Wrapper.qml" "#ff4d1f" \
-  "settings should retain Ryoku orange for branded About accents"
+assert_contains "shell/modules/controlcenter/Wrapper.qml" "#F25623" \
+  "settings should use the Ryoku brand orange (docs/branding.md) for branded About accents"
 assert_contains "shell/modules/controlcenter/Wrapper.qml" "GlobalConfig.save();" \
   "settings controls should persist through the typed GlobalConfig layer"
 assert_contains "shell/modules/controlcenter/Wrapper.qml" "target.setProperty" \
   "settings controls should write through QObject config setters when available"
+assert_contains "shell/modules/controlcenter/Wrapper.qml" "RyokuAbout.helper, \"refresh-shell\"" \
+  "Refresh Shell actions should use the runtime settings about adapter"
+assert_contains "shell/modules/controlcenter/Wrapper.qml" "ryoku-reload-hyprland" \
+  "Reload Hyprland actions should use a Ryoku command adapter"
 assert_contains "shell/modules/controlcenter/Wrapper.qml" "ryoku-launch-hyprmod" \
   "settings should hand Hyprland configuration to HyprMod"
 assert_contains "shell/modules/controlcenter/Wrapper.qml" "Built for the sake of power and beauty." \

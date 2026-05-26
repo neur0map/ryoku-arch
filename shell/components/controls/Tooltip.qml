@@ -165,6 +165,8 @@ Popup {
 
     // Monitor hover state
     Connections {
+        ignoreUnknownSignals: true
+
         function onHoveredChanged() {
             if (target.hovered) {
                 showTimer.start();

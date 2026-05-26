@@ -209,7 +209,7 @@ CustomMouseArea {
         }
 
         // Top-center dashboard hover is replaced by the embedded island.
-        const showIsland = !visibilities.settings && Config.dashboard.showOnHover && inTopPanel(panels.island, x, y);
+        const showIsland = !visibilities.settings && Config.dashboard.enabled && Config.dashboard.showOnHover && inTopPanel(panels.island, x, y);
         visibilities.dashboard = false;
 
         if (!islandShortcutActive) {
@@ -220,7 +220,7 @@ CustomMouseArea {
         }
 
         // Show/hide island on the old dashboard drag gesture (touchscreen path).
-        if (!visibilities.settings && pressed && inTopPanel(panels.island, dragStart.x, dragStart.y) && withinPanelWidth(panels.island, x, y)) {
+        if (!visibilities.settings && Config.dashboard.enabled && pressed && inTopPanel(panels.island, dragStart.x, dragStart.y) && withinPanelWidth(panels.island, x, y)) {
             if (dragY > Config.dashboard.dragThreshold)
                 visibilities.island = true;
             else if (dragY < -Config.dashboard.dragThreshold)
@@ -275,13 +275,17 @@ CustomMouseArea {
                 // The top dashboard slot is unplugged for this live island experiment.
                 root.visibilities.settings = false;
                 root.visibilities.dashboard = false;
-                root.visibilities.island = true;
+                root.visibilities.island = Config.dashboard.enabled;
             } else {
                 root.dashboardShortcutActive = false;
             }
         }
 
         function onIslandChanged() {
+            if (root.visibilities.island && !Config.dashboard.enabled) {
+                root.visibilities.island = false;
+                return;
+            }
             if (root.visibilities.island) {
                 root.visibilities.settings = false;
                 root.visibilities.dashboard = false;

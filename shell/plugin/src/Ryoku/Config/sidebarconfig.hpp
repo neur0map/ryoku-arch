@@ -10,6 +10,8 @@ class SidebarConfig : public ConfigObject {
 
     CONFIG_PROPERTY(bool, enabled, true)
     CONFIG_PROPERTY(int, dragThreshold, 80)
+    CONFIG_PROPERTY(qreal, rounding, 1)
+    CONFIG_PROPERTY(bool, shadow, false)
 
 public:
     explicit SidebarConfig(QObject* parent = nullptr)

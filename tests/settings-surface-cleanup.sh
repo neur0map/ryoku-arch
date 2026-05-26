@@ -67,6 +67,10 @@ assert_file "$panels"
 assert_file "$content_window"
 assert_file "$interactions"
 assert_file "$bar_popouts"
+assert_file "shell/scripts/ryoku-reload-hyprland"
+assert_file "shell/scripts/ryoku-shell-profile"
+assert_file "bin/ryoku-reload-hyprland"
+assert_file "bin/ryoku-shell-profile"
 
 for path in \
   shell/ryokuSettings.qml \
@@ -115,8 +119,8 @@ assert_contains "$wrapper" 'component ProfilesPage' \
   "settings wrapper should mirror HyprMod's pinned Profiles page"
 assert_contains "$wrapper" 'component AppSettingsPage' \
   "settings wrapper should mirror HyprMod's pinned Settings page"
-assert_contains "$wrapper" 'title: "HyprMod"' \
-  "settings wrapper sidebar header should use HyprMod's title"
+assert_contains "$wrapper" 'title: "Ryoku"' \
+  "settings wrapper sidebar header should carry the Ryoku brand, not the HyprMod placeholder"
 assert_contains "$wrapper" 'readonly property var pinnedPages: \[8, 9\]' \
   "settings sidebar should pin Profiles and Settings like HyprMod"
 assert_contains "$wrapper" 'readonly property int searchPageIndex: 10' \
@@ -185,10 +189,8 @@ assert_contains "$wrapper" 'separatorBefore: true' \
   "settings wrapper header menu should group HyprMod-style sections"
 assert_contains "$wrapper" 'text: "Auto-save"' \
   "settings wrapper header menu should expose HyprMod's Auto-save preference"
-assert_contains "$wrapper" 'text: "Migrate to Lua\\u2026"' \
-  "settings wrapper header menu should include HyprMod's Lua migration action row"
-assert_contains "$wrapper" 'text: "Review deprecated syntax\\u2026"' \
-  "settings wrapper header menu should include HyprMod's deprecated syntax action row"
+assert_not_contains "$wrapper" 'text: "Migrate to Lua\\u2026"' \
+  "settings wrapper should not ship the inert HyprMod Lua-migration placeholder"
 assert_contains "$wrapper" 'text: "Open HyprMod"' \
   "settings wrapper header menu should expose HyprMod"
 assert_contains "$wrapper" 'text: "Keyboard Shortcuts"' \
@@ -203,8 +205,8 @@ assert_contains "$wrapper" 'event\.key === Qt\.Key_F1' \
   "settings wrapper should bind F1 to the keyboard shortcuts overlay"
 assert_contains "$wrapper" 'text: "Report a bug"' \
   "settings wrapper header menu should expose HyprMod's bug report item"
-assert_contains "$wrapper" 'text: "About HyprMod"' \
-  "settings wrapper header menu should use HyprMod's About label"
+assert_contains "$wrapper" 'text: "About Ryoku"' \
+  "settings wrapper About menu item should reference Ryoku's own about page"
 assert_contains "$wrapper" 'component PreferenceGroup' \
   "settings wrapper should use Adwaita-style preference groups"
 assert_contains "$wrapper" 'component SwitchPreferenceRow' \
@@ -249,6 +251,18 @@ assert_contains "$wrapper" 'Keys\.onUpPressed: sliderRow\.commit\(sliderRow\.cur
   "numeric row editors should spin-step upward from the keyboard"
 assert_contains "$wrapper" 'onWheel' \
   "numeric rows should support mouse-wheel stepping"
+assert_contains "$wrapper" 'property string targetKey' \
+  "settings rows should carry explicit config keys where labels repeat"
+assert_contains "$wrapper" 'propertyName: "schemes"; targetKey: "launcher.useFuzzy.schemes"' \
+  "settings wrapper should expose launcher scheme fuzzy matching"
+assert_contains "$wrapper" 'component IslandPage' \
+  "settings wrapper should replace the removed Dashboard section with Island controls"
+assert_contains "$wrapper" 'propertyName: "dragThreshold"; targetKey: "dashboard.dragThreshold"' \
+  "settings wrapper should expose the island gesture threshold"
+assert_contains "$wrapper" 'settingKey: "paths\.wallpaperDir"' \
+  "settings wrapper Appearance page should expose the wallpaper folder path"
+assert_contains "$wrapper" 'component WallpaperPreviewGrid' \
+  "settings wrapper Appearance page should render wallpaper previews"
 assert_contains "$wrapper" 'readonly property string ryokuBridge' \
   "scheme controls should use the running shell runtime bridge"
 assert_contains "$paths" 'readonly property string ryokuBridge' \
@@ -367,12 +381,14 @@ assert_contains "$wrapper" 'Save as new profile' \
   "settings wrapper split save button should expose HyprMod's profile save affordance"
 assert_contains "$wrapper" 'Save without updating profile' \
   "settings wrapper split save button should expose HyprMod's active-profile save affordance"
-assert_contains "$wrapper" 'component ProfileDnaPreview' \
-  "settings wrapper Profiles page should include profile DNA previews"
 assert_contains "$wrapper" 'component ProfileCard' \
   "settings wrapper Profiles page should render reusable profile cards"
 assert_contains "$wrapper" 'text: "Save current as new profile"' \
   "settings wrapper Profiles page should expose HyprMod's save-current tooltip"
+assert_contains "$wrapper" 'ryoku-shell-profile' \
+  "settings wrapper Profiles page should use a real shell profile adapter"
+assert_contains "$wrapper" 'text: "Delete profile"' \
+  "settings wrapper Profiles page should replace the inert three-dot menu with a working delete action"
 assert_contains "$wrapper" 'Qt\.alpha\(root\.accent, 0\.06\)' \
   "settings wrapper active profile cards should use HyprMod's subtle accent tint"
 assert_contains "$wrapper" 'width: 3' \
@@ -387,8 +403,8 @@ assert_contains "$wrapper" 'Keys\.onEscapePressed: entryRow\.resetText\(\)' \
   "settings wrapper editable entry rows should cancel text edits on Escape"
 assert_contains "$wrapper" 'settingKey: "settings\.configPath"' \
   "settings wrapper config path row should be searchable and highlightable"
-assert_contains "$wrapper" 'onApplied: root\.markSaved\(\)' \
-  "settings wrapper config path row should expose an EntryRow-style apply path"
+assert_contains "$wrapper" 'readOnly: entryRow\.readOnly' \
+  "settings wrapper config path row should avoid pretending the backend path is editable"
 assert_contains "$wrapper" 'text: "Browse\\u2026"' \
   "settings wrapper Settings page should expose HyprMod's browse tooltip"
 assert_contains "$wrapper" 'description: "Automatically save changes after each modification\."' \
@@ -429,10 +445,14 @@ assert_contains "$wrapper" 'if \(root\.schemeDirty\)' \
   "settings wrapper close should abandon unsaved scheme previews"
 assert_contains "$wrapper" 'accept: \(\) =>' \
   "settings wrapper pending entries should accept current values as saved baselines"
-assert_contains "$wrapper" '#ff4d1f' \
-  "settings wrapper should retain Ryoku orange for branded About accents"
+assert_contains "$wrapper" '#F25623' \
+  "settings wrapper should use the Ryoku brand orange (docs/branding.md) for branded About accents"
 assert_contains "$wrapper" 'GlobalConfig\.save\(\)' \
   "settings wrapper should persist changes through GlobalConfig"
+assert_contains "$wrapper" 'RyokuAbout\.helper, "refresh-shell"' \
+  "settings wrapper should restart through the runtime settings about adapter"
+assert_contains "$wrapper" 'ryoku-reload-hyprland' \
+  "settings wrapper should reload Hyprland through a Ryoku command adapter"
 assert_contains "$wrapper" 'visible: true' \
   "settings wrapper should stay resident for immediate opens"
 assert_contains "$wrapper" 'offsetScale' \
@@ -455,6 +475,8 @@ assert_not_contains "$wrapper" 'implicitHeight: parent\.height - Tokens\.padding
   "settings wrapper should not use a thin active sidebar rail"
 assert_not_contains "$wrapper" 'ryoku-launch-wayle-settings|hyprctl clients -j|showLaunchSurface' \
   "settings wrapper should not contain external Wayle launch plumbing"
+assert_not_contains "$wrapper" '\bbar\.enabled|launcher\.itemScale|notifs\.expireTimeout|background\.clockEnabled|background\.visualiserEnabled' \
+  "settings search should not advertise shell options without backed rows"
 assert_contains "$panels" 'ControlCenter\.Wrapper' \
   "drawers should keep the settings wrapper"
 assert_contains "$content_window" 'panel: panels\.settings' \

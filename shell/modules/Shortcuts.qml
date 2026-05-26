@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Ryoku
+import Ryoku.Config
 import qs.components.misc
 import qs.services
 
@@ -56,7 +57,9 @@ Scope {
             if (root.hasFullscreen)
                 return;
             const v = Visibilities.getForActive();
-            v.launcher = v.island = v.osd = v.utilities = !(v.launcher || v.island || v.osd || v.utilities);
+            const showAll = !(v.launcher || v.island || v.osd || v.utilities);
+            v.launcher = v.osd = v.utilities = showAll;
+            v.island = Config.dashboard.enabled && showAll;
             v.dashboard = false;
         }
     }
@@ -70,6 +73,10 @@ Scope {
             if (root.hasFullscreen)
                 return;
             const visibilities = Visibilities.getForActive();
+            if (!Config.dashboard.enabled) {
+                visibilities.island = false;
+                return;
+            }
             const nextIsland = !visibilities.island;
             visibilities.dashboard = false;
             if (nextIsland)
@@ -147,12 +154,20 @@ Scope {
                     return;
                 const visibilities = Visibilities.getForActive();
                 if (drawer === "dashboard") {
+                    if (!Config.dashboard.enabled) {
+                        visibilities.island = false;
+                        return;
+                    }
                     const nextIsland = !visibilities.island;
                     visibilities.dashboard = false;
                     if (nextIsland)
                         visibilities.settings = false;
                     visibilities.island = nextIsland;
                 } else {
+                    if (drawer === "island" && !Config.dashboard.enabled) {
+                        visibilities.island = false;
+                        return;
+                    }
                     if (drawer === "island" && !visibilities.island)
                         visibilities.settings = false;
                     visibilities[drawer] = !visibilities[drawer];
