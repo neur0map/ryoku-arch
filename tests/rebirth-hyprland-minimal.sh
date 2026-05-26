@@ -108,8 +108,12 @@ rg -q 'bind = SUPER ALT, E, exec, [$]yaziFileManager' "$ROOT_DIR/config/hypr/hyp
   fail "Hyprland config should bind Super+Alt+E to Yazi"
 rg -q 'bind = SUPER, N, exec, [$]neovimEditor' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should bind Super+N to Neovim"
-rg -q 'bind = SUPER, O, exec, [$]obsidianNotes' "$ROOT_DIR/config/hypr/hyprland.conf" || \
-  fail "Hyprland config should bind Super+O to Obsidian"
+rg -q 'bind = SUPER ALT, O, exec, [$]obsidianNotes' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should bind Super+Alt+O to Obsidian"
+! rg -q 'bind = SUPER, O, exec, [$]obsidianNotes' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should not bind Obsidian to Super+O"
+rg -q 'SUPER ALT, O' "$ROOT_DIR/migrations/1779758051.sh" || \
+  fail "Migration should move Obsidian away from Super+O"
 rg -q 'bind = SUPER, Q, killactive,' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should keep the close-window bind"
 rg -q 'bind = ALT, F4, killactive,' "$ROOT_DIR/config/hypr/hyprland.conf" || \
