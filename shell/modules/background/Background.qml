@@ -139,7 +139,9 @@ Variants {
                 label: qsTr("Resources")
                 visible: GlobalConfig.background.widgets.resources.enabled
 
-                ResourcesWidget {}
+                ResourcesWidget {
+                    showBackground: GlobalConfig.background.widgets.resources.background
+                }
             }
 
             DesktopWidget {
@@ -150,7 +152,9 @@ Variants {
                 label: qsTr("Weather")
                 visible: GlobalConfig.background.widgets.weather.enabled
 
-                WeatherWidget {}
+                WeatherWidget {
+                    showBackground: GlobalConfig.background.widgets.weather.background
+                }
             }
 
             DesktopWidget {
@@ -161,7 +165,9 @@ Variants {
                 label: qsTr("Media")
                 visible: GlobalConfig.background.widgets.media.enabled
 
-                MediaWidget {}
+                MediaWidget {
+                    showBackground: GlobalConfig.background.widgets.media.background
+                }
             }
 
             DesktopWidget {
@@ -173,11 +179,13 @@ Variants {
                 visible: GlobalConfig.background.widgets.battery.enabled && UPower.displayDevice.isLaptopBattery
 
                 StyledRect {
+                    readonly property bool showBackground: GlobalConfig.background.widgets.battery.background
+
                     implicitWidth: batteryRow.implicitWidth + Tokens.padding.large * 2
                     implicitHeight: batteryRow.implicitHeight + Tokens.padding.large * 2
                     radius: Tokens.rounding.large
-                    color: Qt.alpha(Colours.palette.m3surfaceContainer, 0.78)
-                    border.width: 1
+                    color: showBackground ? Qt.alpha(Colours.palette.m3surfaceContainer, 0.78) : "transparent"
+                    border.width: showBackground ? 1 : 0
                     border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.6)
 
                     Row {

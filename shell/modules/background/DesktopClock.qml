@@ -14,10 +14,10 @@ Item {
     required property real absX
     required property real absY
 
-    property real clockScale: Config.background.desktopClock.scale
-    readonly property bool bgEnabled: Config.background.desktopClock.background.enabled
-    readonly property bool blurEnabled: bgEnabled && Config.background.desktopClock.background.blur && !GameMode.enabled
-    readonly property bool invertColors: Config.background.desktopClock.invertColors
+    property real clockScale: GlobalConfig.background.desktopClock.scale
+    readonly property bool bgEnabled: GlobalConfig.background.desktopClock.background.enabled
+    readonly property bool blurEnabled: bgEnabled && GlobalConfig.background.desktopClock.background.blur && !GameMode.enabled
+    readonly property bool invertColors: GlobalConfig.background.desktopClock.invertColors
     readonly property bool useLightSet: Colours.light ? !invertColors : invertColors
     readonly property color safePrimary: useLightSet ? Colours.palette.m3primaryContainer : Colours.palette.m3primary
     readonly property color safeSecondary: useLightSet ? Colours.palette.m3secondaryContainer : Colours.palette.m3secondary
@@ -31,12 +31,12 @@ Item {
 
         anchors.fill: parent
 
-        layer.enabled: Config.background.desktopClock.shadow.enabled
+        layer.enabled: GlobalConfig.background.desktopClock.shadow.enabled
         layer.effect: MultiEffect {
             shadowEnabled: true
             shadowColor: Colours.palette.m3shadow
-            shadowOpacity: Config.background.desktopClock.shadow.opacity
-            shadowBlur: Config.background.desktopClock.shadow.blur
+            shadowOpacity: GlobalConfig.background.desktopClock.shadow.opacity
+            shadowBlur: GlobalConfig.background.desktopClock.shadow.blur
         }
 
         Loader {
@@ -64,7 +64,7 @@ Item {
             visible: root.bgEnabled
             anchors.fill: parent
             radius: Tokens.rounding.large * root.clockScale
-            opacity: Config.background.desktopClock.background.opacity
+            opacity: GlobalConfig.background.desktopClock.background.opacity
             color: Colours.palette.m3surface
 
             layer.enabled: root.blurEnabled

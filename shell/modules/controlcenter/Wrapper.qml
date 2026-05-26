@@ -5299,7 +5299,7 @@ Item {
   component WidgetsPage: SettingsPage {
     PreferenceGroup {
       title: "Desktop widgets"
-      description: "Draggable widgets on the wallpaper. Enter edit mode to move them; right-click a widget for size, lock, and reset."
+      description: "Widgets live on the wallpaper and can be dragged anywhere at any time. Enter edit mode to resize them with corner handles and snap to a grid."
 
       SwitchPreferenceRow {
         target: GlobalConfig.background.widgets
@@ -5315,7 +5315,7 @@ Item {
         icon: "drag_pan"
         showPrefixIcon: true
         title: "Edit on desktop"
-        description: "Toggle edit mode to drag and resize widgets on the wallpaper."
+        description: "Show resize handles and the snap grid. Drag works without edit mode; a Done button exits."
         onActivated: {
           Visibilities.widgetEditMode = !Visibilities.widgetEditMode;
           if (Visibilities.widgetEditMode)
@@ -5342,15 +5342,52 @@ Item {
     }
 
     PreferenceGroup {
-      title: "Widgets"
-      description: "Enable and size individual widgets."
+      title: "Clock"
+      description: "Time and date widget."
 
-      SwitchPreferenceRow { target: GlobalConfig.background.desktopClock; propertyName: "enabled"; targetKey: "background.desktopClock.enabled"; targetPageIndex: 10; icon: "schedule"; title: "Clock"; description: "Time and date." }
-      SliderPreferenceRow { target: GlobalConfig.background.desktopClock; propertyName: "scale"; targetKey: "background.desktopClock.scale"; targetPageIndex: 10; icon: "aspect_ratio"; title: "Clock size"; description: "Clock scale."; from: 0.5; to: 2; stepSize: 0.05; decimals: 2 }
-      SwitchPreferenceRow { target: GlobalConfig.background.widgets.media; propertyName: "enabled"; targetKey: "background.widgets.media.enabled"; targetPageIndex: 10; icon: "play_circle"; title: "Media"; description: "Now-playing controls." }
-      SwitchPreferenceRow { target: GlobalConfig.background.widgets.resources; propertyName: "enabled"; targetKey: "background.widgets.resources.enabled"; targetPageIndex: 10; icon: "monitoring"; title: "Resources"; description: "CPU, memory, and network." }
-      SwitchPreferenceRow { target: GlobalConfig.background.widgets.weather; propertyName: "enabled"; targetKey: "background.widgets.weather.enabled"; targetPageIndex: 10; icon: "partly_cloudy_day"; title: "Weather"; description: "Local conditions." }
-      SwitchPreferenceRow { target: GlobalConfig.background.widgets.battery; propertyName: "enabled"; targetKey: "background.widgets.battery.enabled"; targetPageIndex: 10; icon: "battery_horiz_075"; title: "Battery"; description: "Charge level." }
+      SwitchPreferenceRow { target: GlobalConfig.background.desktopClock; propertyName: "enabled"; targetKey: "background.desktopClock.enabled"; targetPageIndex: 10; icon: "schedule"; title: "Enable clock"; description: "Show the clock on the desktop." }
+      SliderPreferenceRow { target: GlobalConfig.background.desktopClock; propertyName: "scale"; targetKey: "background.desktopClock.scale"; targetPageIndex: 10; icon: "aspect_ratio"; title: "Size"; description: "Clock scale."; from: 0.5; to: 2.5; stepSize: 0.05; decimals: 2 }
+      SwitchPreferenceRow { target: GlobalConfig.services; propertyName: "useTwelveHourClock"; targetKey: "services.useTwelveHourClock"; targetPageIndex: 10; icon: "schedule"; title: "12-hour time"; description: "Use AM/PM instead of 24-hour time." }
+      SwitchPreferenceRow { target: GlobalConfig.background.desktopClock.background; propertyName: "enabled"; targetKey: "background.desktopClock.background.enabled"; targetPageIndex: 10; icon: "rectangle"; title: "Background"; description: "Draw a panel behind the clock." }
+      SwitchPreferenceRow { target: GlobalConfig.background.desktopClock.background; propertyName: "blur"; targetKey: "background.desktopClock.background.blur"; targetPageIndex: 10; icon: "blur_on"; title: "Blur background"; description: "Frost the wallpaper behind the clock panel." }
+      SwitchPreferenceRow { target: GlobalConfig.background.desktopClock.shadow; propertyName: "enabled"; targetKey: "background.desktopClock.shadow.enabled"; targetPageIndex: 10; icon: "ev_shadow"; title: "Drop shadow"; description: "Soft shadow under the clock." }
+      SwitchPreferenceRow { target: GlobalConfig.background.desktopClock; propertyName: "invertColors"; targetKey: "background.desktopClock.invertColors"; targetPageIndex: 10; icon: "invert_colors"; title: "Invert colours"; description: "Swap light and dark colour set for contrast." }
+    }
+
+    PreferenceGroup {
+      title: "Media"
+      description: "Now-playing controls."
+
+      SwitchPreferenceRow { target: GlobalConfig.background.widgets.media; propertyName: "enabled"; targetKey: "background.widgets.media.enabled"; targetPageIndex: 10; icon: "play_circle"; title: "Enable media"; description: "Album art, title, and transport controls." }
+      SliderPreferenceRow { target: GlobalConfig.background.widgets.media; propertyName: "scale"; targetKey: "background.widgets.media.scale"; targetPageIndex: 10; icon: "aspect_ratio"; title: "Size"; description: "Media widget scale."; from: 0.5; to: 2.5; stepSize: 0.05; decimals: 2 }
+      SwitchPreferenceRow { target: GlobalConfig.background.widgets.media; propertyName: "background"; targetKey: "background.widgets.media.background"; targetPageIndex: 10; icon: "rectangle"; title: "Background"; description: "Draw the card panel behind the widget." }
+    }
+
+    PreferenceGroup {
+      title: "Resources"
+      description: "CPU, memory, and disk."
+
+      SwitchPreferenceRow { target: GlobalConfig.background.widgets.resources; propertyName: "enabled"; targetKey: "background.widgets.resources.enabled"; targetPageIndex: 10; icon: "monitoring"; title: "Enable resources"; description: "CPU, memory, and disk usage." }
+      SliderPreferenceRow { target: GlobalConfig.background.widgets.resources; propertyName: "scale"; targetKey: "background.widgets.resources.scale"; targetPageIndex: 10; icon: "aspect_ratio"; title: "Size"; description: "Resources widget scale."; from: 0.5; to: 2.5; stepSize: 0.05; decimals: 2 }
+      SwitchPreferenceRow { target: GlobalConfig.background.widgets.resources; propertyName: "background"; targetKey: "background.widgets.resources.background"; targetPageIndex: 10; icon: "rectangle"; title: "Background"; description: "Draw the card panel behind the widget." }
+    }
+
+    PreferenceGroup {
+      title: "Weather"
+      description: "Local conditions."
+
+      SwitchPreferenceRow { target: GlobalConfig.background.widgets.weather; propertyName: "enabled"; targetKey: "background.widgets.weather.enabled"; targetPageIndex: 10; icon: "partly_cloudy_day"; title: "Enable weather"; description: "Current temperature and conditions." }
+      SliderPreferenceRow { target: GlobalConfig.background.widgets.weather; propertyName: "scale"; targetKey: "background.widgets.weather.scale"; targetPageIndex: 10; icon: "aspect_ratio"; title: "Size"; description: "Weather widget scale."; from: 0.5; to: 2.5; stepSize: 0.05; decimals: 2 }
+      SwitchPreferenceRow { target: GlobalConfig.background.widgets.weather; propertyName: "background"; targetKey: "background.widgets.weather.background"; targetPageIndex: 10; icon: "rectangle"; title: "Background"; description: "Draw the card panel behind the widget." }
+    }
+
+    PreferenceGroup {
+      title: "Battery"
+      description: "Charge level (laptops only)."
+
+      SwitchPreferenceRow { target: GlobalConfig.background.widgets.battery; propertyName: "enabled"; targetKey: "background.widgets.battery.enabled"; targetPageIndex: 10; icon: "battery_horiz_075"; title: "Enable battery"; description: "Battery charge level." }
+      SliderPreferenceRow { target: GlobalConfig.background.widgets.battery; propertyName: "scale"; targetKey: "background.widgets.battery.scale"; targetPageIndex: 10; icon: "aspect_ratio"; title: "Size"; description: "Battery widget scale."; from: 0.5; to: 2.5; stepSize: 0.05; decimals: 2 }
+      SwitchPreferenceRow { target: GlobalConfig.background.widgets.battery; propertyName: "background"; targetKey: "background.widgets.battery.background"; targetPageIndex: 10; icon: "rectangle"; title: "Background"; description: "Draw the card panel behind the widget." }
     }
   }
 

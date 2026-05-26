@@ -11,11 +11,13 @@ import qs.services
 StyledRect {
     id: root
 
+    property bool showBackground: true
+
     implicitWidth: row.implicitWidth + Tokens.padding.large * 2
     implicitHeight: row.implicitHeight + Tokens.padding.large * 2
     radius: Tokens.rounding.large
-    color: Qt.alpha(Colours.palette.m3surfaceContainer, 0.78)
-    border.width: 1
+    color: showBackground ? Qt.alpha(Colours.palette.m3surfaceContainer, 0.78) : "transparent"
+    border.width: showBackground ? 1 : 0
     border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.6)
 
     Component.onCompleted: Weather.reload()

@@ -70,6 +70,7 @@ class DesktopWidgetConfig : public ConfigObject {
     CONFIG_PROPERTY(qreal, y, 0)
     CONFIG_PROPERTY(qreal, scale, 1.0)
     CONFIG_PROPERTY(bool, locked, false)
+    CONFIG_PROPERTY(bool, background, true)
 
 public:
     explicit DesktopWidgetConfig(QObject* parent = nullptr)

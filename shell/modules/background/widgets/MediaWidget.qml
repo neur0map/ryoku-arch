@@ -13,6 +13,8 @@ import qs.services
 StyledRect {
     id: root
 
+    property bool showBackground: true
+
     readonly property var active: Players.active
     readonly property bool hasMedia: active ?? false
     property real progress: active?.length ? (active.position % active.length) / active.length : 0
@@ -20,8 +22,8 @@ StyledRect {
     implicitWidth: 320
     implicitHeight: col.implicitHeight + Tokens.padding.large * 2
     radius: Tokens.rounding.large
-    color: Qt.alpha(Colours.palette.m3surfaceContainer, 0.78)
-    border.width: 1
+    color: showBackground ? Qt.alpha(Colours.palette.m3surfaceContainer, 0.78) : "transparent"
+    border.width: showBackground ? 1 : 0
     border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.6)
 
     Behavior on progress {

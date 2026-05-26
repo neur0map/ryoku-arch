@@ -26,7 +26,9 @@ Item {
 
     readonly property bool editMode: Visibilities.widgetEditMode
     readonly property bool locked: cfg.locked ?? false
-    readonly property bool draggable: editMode && !locked
+    // Widgets drag any time (not just in edit mode); edit mode only adds the
+    // resize handles, grid and toolbar.
+    readonly property bool draggable: !locked
     readonly property real scaleF: cfg.scale ?? 1.0
     readonly property real holderScale: selfScales ? 1 : scaleF
 
@@ -149,17 +151,28 @@ Item {
 
     // Content host. childrenRect drives the widget's intrinsic size; the holder
     // scales from its top-left so chrome anchored to root edges stays aligned.
+    // Sits above the body-drag MouseArea so interactive content (media buttons)
+    // still receives clicks while the empty card area falls through to drag.
     Item {
         id: holder
 
+        z: 1
         transformOrigin: Item.TopLeft
         scale: root.holderScale
         width: childrenRect.width
         height: childrenRect.height
+
+        // Render scaled-up content into a higher-resolution layer so text and
+        // icons stay crisp instead of pixelating from the Item.scale transform
+        // (the clock avoids this by re-rendering itself at its target size).
+        layer.enabled: root.holderScale > 1.01
+        layer.smooth: true
+        layer.textureSize: Qt.size(Math.ceil(holder.width * root.holderScale), Math.ceil(holder.height * root.holderScale))
     }
 
     // Snap-landing preview while dragging.
     Rectangle {
+        z: 48
         visible: bodyDrag.drag.active && root.snap
         x: root._snapTo(root.x) - root.x
         y: root._snapTo(root.y) - root.y
@@ -201,7 +214,7 @@ Item {
     MouseArea {
         id: bodyDrag
 
-        z: 1
+        z: 0
         anchors.fill: parent
         enabled: root.draggable
         acceptedButtons: Qt.LeftButton
