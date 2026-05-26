@@ -305,6 +305,7 @@ Item {
   property bool searchOpen
   property bool savedBannerVisible
   property bool shortcutsOverlayOpen
+  property bool doctorOverlayOpen
   property string highlightedSettingKey: ""
   property var profileEntries: []
   property string profileActionKind: ""
@@ -557,6 +558,12 @@ Item {
 
   function showKeyboardShortcuts(): void {
     root.shortcutsOverlayOpen = true;
+  }
+
+  function showDoctor(): void {
+    root.doctorOverlayOpen = true;
+    if (!RyokuAbout.runningDoctor)
+      RyokuAbout.runDoctor();
   }
 
   function reportBug(): void {
@@ -830,6 +837,13 @@ Item {
     if (root.shortcutsOverlayOpen) {
       if (event.key === Qt.Key_Escape)
         root.shortcutsOverlayOpen = false;
+      event.accepted = true;
+      return;
+    }
+
+    if (root.doctorOverlayOpen) {
+      if (event.key === Qt.Key_Escape)
+        root.doctorOverlayOpen = false;
       event.accepted = true;
       return;
     }
@@ -1158,6 +1172,132 @@ Item {
     visible: root.shortcutsOverlayOpen
     anchors.fill: chrome
     z: 20
+  }
+
+  DoctorOverlay {
+    visible: root.doctorOverlayOpen
+    anchors.fill: chrome
+    z: 21
+  }
+
+  component DoctorOverlay: Item {
+    id: doctorOverlay
+
+    readonly property var report: RyokuAbout.lastDoctorReport || ({})
+
+    StyledRect {
+      anchors.fill: parent
+      color: Qt.alpha(Colours.palette.m3scrim, 0.34)
+
+      StateLayer {
+        color: Colours.palette.m3onSurface
+        onClicked: root.doctorOverlayOpen = false
+      }
+    }
+
+    StyledRect {
+      anchors.centerIn: parent
+      implicitWidth: Math.min(parent.width - Tokens.padding.large * 2, 660)
+      implicitHeight: Math.min(parent.height - Tokens.padding.large * 2, 540)
+      radius: root.groupRadius
+      color: Colours.palette.m3surface
+      border.width: 1
+      border.color: Colours.palette.m3outlineVariant
+      clip: true
+
+      ColumnLayout {
+        anchors.fill: parent
+        anchors.margins: Tokens.padding.large
+        spacing: Tokens.spacing.normal
+
+        RowLayout {
+          Layout.fillWidth: true
+          spacing: Tokens.spacing.small
+
+          MaterialIcon {
+            text: RyokuAbout.runningDoctor ? "sync" : doctorOverlay.report.ok ? "check_circle" : "error"
+            color: RyokuAbout.runningDoctor ? Colours.palette.m3onSurface : doctorOverlay.report.ok ? root.accent : root.warning
+            font.pointSize: Tokens.font.size.large
+          }
+
+          StyledText {
+            Layout.fillWidth: true
+            text: "Shell Doctor"
+            color: Colours.palette.m3onSurface
+            font.pointSize: Tokens.font.size.normal
+            font.weight: Font.Bold
+            elide: Text.ElideRight
+          }
+
+          IconButton {
+            icon: "close"
+            type: IconButton.Text
+            padding: Tokens.padding.smaller
+            onClicked: root.doctorOverlayOpen = false
+          }
+        }
+
+        StyledText {
+          Layout.fillWidth: true
+          text: RyokuAbout.runningDoctor ? "Running diagnostics…" : doctorOverlay.report.ok ? "All checks passed." : "Issues detected. Review the report below; many are repaired automatically."
+          color: Colours.palette.m3outline
+          font.pointSize: Tokens.font.size.small
+          wrapMode: Text.WordWrap
+        }
+
+        StyledRect {
+          Layout.fillWidth: true
+          Layout.fillHeight: true
+          radius: Math.max(8, root.rowRadius)
+          color: Colours.palette.m3surfaceContainerLow
+          border.width: 1
+          border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.55)
+          clip: true
+
+          StyledFlickable {
+            anchors.fill: parent
+            anchors.margins: Tokens.padding.normal
+            contentWidth: width
+            contentHeight: doctorOutput.implicitHeight
+            boundsBehavior: Flickable.StopAtBounds
+
+            StyledText {
+              id: doctorOutput
+
+              width: parent.width
+              text: doctorOverlay.report.output && String(doctorOverlay.report.output).length > 0 ? String(doctorOverlay.report.output) : RyokuAbout.runningDoctor ? "" : "No output returned."
+              color: Colours.palette.m3onSurface
+              font.family: GlobalConfig.appearance.font.family.mono
+              font.pointSize: Tokens.font.size.small
+              wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+              textFormat: Text.PlainText
+            }
+          }
+        }
+
+        RowLayout {
+          Layout.fillWidth: true
+          spacing: Tokens.spacing.small
+
+          Item {
+            Layout.fillWidth: true
+          }
+
+          FlatButton {
+            text: RyokuAbout.runningDoctor ? "Running…" : "Re-run"
+            onClicked: {
+              if (!RyokuAbout.runningDoctor)
+                RyokuAbout.runDoctor();
+            }
+          }
+
+          SuggestedButton {
+            text: "Close"
+            onClicked: root.doctorOverlayOpen = false
+          }
+        }
+      }
+    }
   }
 
   component ShortcutOverlay: Item {
@@ -4159,12 +4299,17 @@ Item {
           command: [RyokuAbout.helper, "refresh-shell"]
         }
 
-        ActionPreferenceRow {
+        PreferenceRow {
           icon: "health_and_safety"
+          showPrefixIcon: true
           title: "Doctor"
-          description: "Run shell diagnostics in a terminal."
-          buttonText: "Run"
-          command: ["ryoku-launch-floating-terminal-with-presentation", "ryoku-doctor shell"]
+          description: "Run shell diagnostics and view the report."
+          onActivated: root.showDoctor()
+
+          FlatButton {
+            text: RyokuAbout.runningDoctor ? "Running…" : "Run"
+            onClicked: root.showDoctor()
+          }
         }
       }
 
@@ -4176,7 +4321,7 @@ Item {
           icon: "sos"
           showPrefixIcon: true
           title: "Medevac"
-          description: "Re-pull Ryoku from origin in a recovery terminal (ryoku-call911now)."
+          description: "Reinstall Ryoku from origin in a recovery terminal (ryoku-call911now). Your current checkout is preserved as a timestamped backup."
           managed: true
 
           FlatButton {
@@ -4265,8 +4410,8 @@ Item {
 
           FlatButton {
             Layout.alignment: Qt.AlignVCenter
-            text: "Doctor"
-            onClicked: Quickshell.execDetached(["ryoku-launch-floating-terminal-with-presentation", "ryoku-doctor shell"])
+            text: RyokuAbout.runningDoctor ? "Running…" : "Doctor"
+            onClicked: root.showDoctor()
           }
 
           FlatButton {
@@ -4292,6 +4437,41 @@ Item {
             required property var modelData
 
             commit: modelData
+          }
+        }
+      }
+
+      PreferenceGroup {
+        title: "Get unstuck"
+        description: "When an update will not fast-forward, repair it here."
+        visible: aboutPage.upd.updateState === "blocked" || aboutPage.upd.updateState === "error"
+
+        PreferenceRow {
+          icon: "healing"
+          showPrefixIcon: true
+          title: "Run Doctor"
+          description: "Diagnose and auto-repair branch state, then re-check for updates."
+          onActivated: root.showDoctor()
+
+          FlatButton {
+            text: RyokuAbout.runningDoctor ? "Running…" : "Run"
+            onClicked: root.showDoctor()
+          }
+        }
+
+        PreferenceRow {
+          icon: "sos"
+          showPrefixIcon: true
+          title: "Medevac"
+          description: "Last resort: reinstall Ryoku from origin in a recovery terminal. Your diverging checkout is preserved as a timestamped backup, not deleted."
+          managed: true
+
+          FlatButton {
+            text: RyokuAbout.startingMedevac ? "Launching…" : "Medevac"
+            onClicked: {
+              if (!RyokuAbout.startingMedevac)
+                RyokuAbout.startMedevac(aboutPage.info.configuredChannel || "");
+            }
           }
         }
       }
