@@ -11,6 +11,7 @@ case ":$PATH:" in
 esac
 
 config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
+helium_profile="$config_home/net.imput.helium"
 helium_prefs="$config_home/net.imput.helium/Default/Preferences"
 chromium_prefs="$config_home/chromium/Default/Preferences"
 
@@ -69,10 +70,38 @@ refresh_prefs() {
   rm -f "$tmp_file"
 }
 
-refresh_prefs "$helium_prefs"
+profile_running() {
+  local profile_dir="$1"
+  local lock_pid
+  local lock_target
+
+  [[ -L $profile_dir/SingletonLock ]] || return 1
+
+  lock_target="$(readlink "$profile_dir/SingletonLock" 2>/dev/null || true)"
+  lock_pid="${lock_target##*-}"
+
+  if [[ ! $lock_pid =~ ^[0-9]+$ ]]; then
+    return 0
+  fi
+
+  kill -0 "$lock_pid" 2>/dev/null
+}
+
+helium_status=0
+
+if profile_running "$helium_profile"; then
+  echo "Helium is still running. Quit Helium completely, then run ryoku-refresh-helium-browser again." >&2
+  helium_status=1
+else
+  refresh_prefs "$helium_prefs"
+fi
 
 if [[ -f $chromium_prefs ]]; then
   refresh_prefs "$chromium_prefs"
+fi
+
+if (( helium_status )); then
+  exit "$helium_status"
 fi
 
 echo "Refreshed Helium browser theme defaults"

@@ -64,6 +64,7 @@ tmp_dir=$(mktemp -d)
 trap 'rm -rf "$tmp_dir"' EXIT
 home_dir="$tmp_dir/home"
 config_home="$home_dir/.config"
+helium_profile="$config_home/net.imput.helium"
 helium_prefs="$config_home/net.imput.helium/Default/Preferences"
 
 mkdir -p "$home_dir"
@@ -73,6 +74,48 @@ RYOKU_PATH="$ROOT_DIR" \
   bin/ryoku-refresh-helium-browser >/dev/null
 assert_browser_theme_default "$helium_prefs" \
   "Helium refresh helper should seed non-black theme defaults"
+
+cat >"$helium_prefs" <<'JSON'
+{
+  "browser": {
+    "theme": {
+      "color_scheme": 2,
+      "color_scheme2": 2,
+      "user_color2": -7558172
+    }
+  },
+  "extensions": {
+    "theme": {
+      "id": "custom",
+      "use_system": true,
+      "use_custom": true
+    }
+  }
+}
+JSON
+
+sleep 30 &
+lock_pid="$!"
+ln -sfn "ryoku-$lock_pid" "$helium_profile/SingletonLock"
+
+if HOME="$home_dir" \
+  XDG_CONFIG_HOME="$config_home" \
+  RYOKU_PATH="$ROOT_DIR" \
+  bin/ryoku-refresh-helium-browser >"$tmp_dir/running.log" 2>&1; then
+  fail "Helium refresh helper should refuse to edit an open browser profile"
+fi
+
+assert_contains "$tmp_dir/running.log" 'Quit Helium completely' \
+  "Helium refresh helper should explain that the browser must be closed"
+jq -e '
+  .browser.theme.color_scheme == 2
+  and .browser.theme.user_color2 == -7558172
+' "$helium_prefs" >/dev/null \
+  || fail "Helium refresh helper should not rewrite an open browser profile"
+
+rm -f "$helium_profile/SingletonLock"
+kill "$lock_pid" 2>/dev/null || true
+wait "$lock_pid" 2>/dev/null || true
 
 cat >"$helium_prefs" <<'JSON'
 {
