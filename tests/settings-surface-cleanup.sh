@@ -123,9 +123,9 @@ assert_contains "$wrapper" 'title: "Ryoku"' \
   "settings wrapper sidebar header should carry the Ryoku brand, not the HyprMod placeholder"
 assert_contains "$wrapper" 'readonly property var pinnedPages: \[8, 9\]' \
   "settings sidebar should pin Profiles and Settings like HyprMod"
-assert_contains "$wrapper" 'readonly property int searchPageIndex: 10' \
+assert_contains "$wrapper" 'readonly property int searchPageIndex: 11' \
   "settings search should remain hidden after pinned utilities"
-assert_contains "$wrapper" 'readonly property int pendingPageIndex: 11' \
+assert_contains "$wrapper" 'readonly property int pendingPageIndex: 12' \
   "pending changes should remain off-sidebar like HyprMod"
 assert_contains "$wrapper" 'property int currentPage: 1' \
   "settings wrapper should open on the first task page"

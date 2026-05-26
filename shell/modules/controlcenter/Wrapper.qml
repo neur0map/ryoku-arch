@@ -125,6 +125,13 @@ Item {
       icon: "settings",
       title: "Settings",
       subtitle: "Config file path, auto-save, and app preferences."
+    },
+    {
+      pageIndex: 10,
+      id: "widgets",
+      icon: "widgets",
+      title: "Widgets",
+      subtitle: "Draggable widgets on the desktop wallpaper."
     }
   ]
   readonly property var searchIndex: [
@@ -226,12 +233,20 @@ Item {
     { pageIndex: 8, title: "Profiles", description: "Profiles", key: "profiles", text: "save current active profile duplicate activate" },
     { pageIndex: 8, title: "Current shell profile", description: "Profiles > Active", key: "profiles.active", text: "active current shell profile" },
     { pageIndex: 9, title: "Config file path", description: "Settings > Configuration", key: "settings.configPath", text: "hyprmod managed config file path" },
-    { pageIndex: 9, title: "Auto-save", description: "Settings > Behavior", key: "settings.autoSave", text: "automatically save changes after each modification" }
+    { pageIndex: 9, title: "Auto-save", description: "Settings > Behavior", key: "settings.autoSave", text: "automatically save changes after each modification" },
+    { pageIndex: 10, title: "Desktop widgets", description: "Widgets", key: "background.widgets.enabled", text: "desktop widgets draggable wallpaper clock media resources weather battery" },
+    { pageIndex: 10, title: "Edit on desktop", description: "Widgets", key: "widgets.editMode", text: "edit move resize drag widgets desktop" },
+    { pageIndex: 10, title: "Grid size", description: "Widgets > Grid", key: "background.widgets.gridSize", text: "snap grid size widgets" },
+    { pageIndex: 10, title: "Clock widget", description: "Widgets", key: "background.desktopClock.enabled", text: "clock widget desktop time date" }
   ]
   readonly property var navigationSections: [
     {
       title: "Look & Feel",
       pages: [1]
+    },
+    {
+      title: "Desktop",
+      pages: [10]
     },
     {
       title: "Input",
@@ -255,8 +270,8 @@ Item {
     }
   ]
   readonly property var pinnedPages: [8, 9]
-  readonly property int searchPageIndex: 10
-  readonly property int pendingPageIndex: 11
+  readonly property int searchPageIndex: 11
+  readonly property int pendingPageIndex: 12
   readonly property string searchQuery: root.normaliseText(root.searchText).trim()
   readonly property bool searchActive: root.searchQuery.length >= 2
   readonly property var searchResults: root.searchIndex.filter(entry => root.searchEntryMatches(entry))
@@ -1145,6 +1160,7 @@ Item {
           HyprlandPage {}
           ProfilesPage {}
           AppSettingsPage {}
+          WidgetsPage {}
           SearchPage {}
           PendingChangesPage {}
         }
@@ -5277,6 +5293,64 @@ Item {
 
       SwitchPreferenceRow { target: GlobalConfig.general; propertyName: "showOverFullscreen"; targetKey: "general.showOverFullscreen"; targetPageIndex: 6; icon: "fullscreen"; title: "Show over fullscreen"; description: "Allow shell surfaces to appear over fullscreen windows." }
       SliderPreferenceRow { target: GlobalConfig.general.battery; propertyName: "criticalLevel"; targetKey: "general.battery.criticalLevel"; targetPageIndex: 6; icon: "battery_alert"; title: "Critical battery"; description: "Battery percentage that triggers the critical warning."; from: 1; to: 20; stepSize: 1; decimals: 0; suffix: "%" }
+    }
+  }
+
+  component WidgetsPage: SettingsPage {
+    PreferenceGroup {
+      title: "Desktop widgets"
+      description: "Draggable widgets on the wallpaper. Enter edit mode to move them; right-click a widget for size, lock, and reset."
+
+      SwitchPreferenceRow {
+        target: GlobalConfig.background.widgets
+        propertyName: "enabled"
+        targetKey: "background.widgets.enabled"
+        targetPageIndex: 10
+        icon: "widgets"
+        title: "Enable desktop widgets"
+        description: "Master toggle for all desktop widgets."
+      }
+
+      PreferenceRow {
+        icon: "drag_pan"
+        showPrefixIcon: true
+        title: "Edit on desktop"
+        description: "Toggle edit mode to drag and resize widgets on the wallpaper."
+        onActivated: {
+          Visibilities.widgetEditMode = !Visibilities.widgetEditMode;
+          if (Visibilities.widgetEditMode)
+            root.visibilities.settings = false;
+        }
+
+        FlatButton {
+          text: Visibilities.widgetEditMode ? "Editing…" : "Edit"
+          onClicked: {
+            Visibilities.widgetEditMode = !Visibilities.widgetEditMode;
+            if (Visibilities.widgetEditMode)
+              root.visibilities.settings = false;
+          }
+        }
+      }
+    }
+
+    PreferenceGroup {
+      title: "Grid"
+      description: "Snap widgets to a grid while editing."
+
+      SwitchPreferenceRow { target: GlobalConfig.background.widgets; propertyName: "snap"; targetKey: "background.widgets.snap"; targetPageIndex: 10; icon: "grid_on"; title: "Snap to grid"; description: "Align widgets to the grid on release." }
+      SliderPreferenceRow { target: GlobalConfig.background.widgets; propertyName: "gridSize"; targetKey: "background.widgets.gridSize"; targetPageIndex: 10; icon: "grid_4x4"; title: "Grid size"; description: "Spacing of the snap grid."; from: 4; to: 64; stepSize: 4; decimals: 0; suffix: "px" }
+    }
+
+    PreferenceGroup {
+      title: "Widgets"
+      description: "Enable and size individual widgets."
+
+      SwitchPreferenceRow { target: GlobalConfig.background.desktopClock; propertyName: "enabled"; targetKey: "background.desktopClock.enabled"; targetPageIndex: 10; icon: "schedule"; title: "Clock"; description: "Time and date." }
+      SliderPreferenceRow { target: GlobalConfig.background.desktopClock; propertyName: "scale"; targetKey: "background.desktopClock.scale"; targetPageIndex: 10; icon: "aspect_ratio"; title: "Clock size"; description: "Clock scale."; from: 0.5; to: 2; stepSize: 0.05; decimals: 2 }
+      SwitchPreferenceRow { target: GlobalConfig.background.widgets.media; propertyName: "enabled"; targetKey: "background.widgets.media.enabled"; targetPageIndex: 10; icon: "play_circle"; title: "Media"; description: "Now-playing controls." }
+      SwitchPreferenceRow { target: GlobalConfig.background.widgets.resources; propertyName: "enabled"; targetKey: "background.widgets.resources.enabled"; targetPageIndex: 10; icon: "monitoring"; title: "Resources"; description: "CPU, memory, and network." }
+      SwitchPreferenceRow { target: GlobalConfig.background.widgets.weather; propertyName: "enabled"; targetKey: "background.widgets.weather.enabled"; targetPageIndex: 10; icon: "partly_cloudy_day"; title: "Weather"; description: "Local conditions." }
+      SwitchPreferenceRow { target: GlobalConfig.background.widgets.battery; propertyName: "enabled"; targetKey: "background.widgets.battery.enabled"; targetPageIndex: 10; icon: "battery_horiz_075"; title: "Battery"; description: "Charge level." }
     }
   }
 

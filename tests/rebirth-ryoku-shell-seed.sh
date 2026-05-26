@@ -82,9 +82,9 @@ assert_contains shell/modules/controlcenter/Wrapper.qml 'title: "Ryoku"' \
   "settings wrapper sidebar header should carry the Ryoku brand, not the HyprMod placeholder"
 assert_contains shell/modules/controlcenter/Wrapper.qml 'readonly property var pinnedPages: \[8, 9\]' \
   "settings wrapper should pin Profiles and Settings like HyprMod"
-assert_contains shell/modules/controlcenter/Wrapper.qml 'readonly property int searchPageIndex: 10' \
+assert_contains shell/modules/controlcenter/Wrapper.qml 'readonly property int searchPageIndex: 11' \
   "settings wrapper should keep search after pinned pages"
-assert_contains shell/modules/controlcenter/Wrapper.qml 'readonly property int pendingPageIndex: 11' \
+assert_contains shell/modules/controlcenter/Wrapper.qml 'readonly property int pendingPageIndex: 12' \
   "settings wrapper should keep pending changes off-sidebar"
 assert_contains shell/modules/controlcenter/Wrapper.qml 'property int currentPage: 1' \
   "settings wrapper should open on the first task page"

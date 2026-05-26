@@ -202,6 +202,22 @@ Scope {
     }
 
     IpcHandler {
+        function toggleEdit(): void {
+            Visibilities.widgetEditMode = !Visibilities.widgetEditMode;
+        }
+
+        function editOn(): void {
+            Visibilities.widgetEditMode = true;
+        }
+
+        function editOff(): void {
+            Visibilities.widgetEditMode = false;
+        }
+
+        target: "widgets"
+    }
+
+    IpcHandler {
         function info(title: string, message: string, icon: string): void {
             Toaster.toast(title, message, icon, Toast.Info);
         }

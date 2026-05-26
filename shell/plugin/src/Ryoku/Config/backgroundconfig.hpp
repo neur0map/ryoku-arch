@@ -40,6 +40,12 @@ class DesktopClock : public ConfigObject {
     CONFIG_PROPERTY(qreal, scale, 1.0)
     CONFIG_PROPERTY(QString, position, QStringLiteral("bottom-right"))
     CONFIG_PROPERTY(bool, invertColors, false)
+    // Desktop-widget framework: when freePosition is true the clock uses the
+    // dragged x/y; otherwise it falls back to the anchored `position` (legacy).
+    CONFIG_PROPERTY(bool, freePosition, false)
+    CONFIG_PROPERTY(qreal, x, 0)
+    CONFIG_PROPERTY(qreal, y, 0)
+    CONFIG_PROPERTY(bool, locked, false)
     CONFIG_SUBOBJECT(DesktopClockBackground, background)
     CONFIG_SUBOBJECT(DesktopClockShadow, shadow)
 
@@ -48,6 +54,47 @@ public:
         : ConfigObject(parent)
         , m_background(new DesktopClockBackground(this))
         , m_shadow(new DesktopClockShadow(this)) {}
+};
+
+// Common per-widget framework config (position/scale/lock) shared by every
+// draggable desktop widget except the clock (which carries its own render
+// settings on DesktopClock above).
+class DesktopWidgetConfig : public ConfigObject {
+    Q_OBJECT
+    QML_ANONYMOUS
+
+    CONFIG_PROPERTY(bool, enabled, false)
+    CONFIG_PROPERTY(bool, freePosition, false)
+    CONFIG_PROPERTY(QString, position, QStringLiteral("center"))
+    CONFIG_PROPERTY(qreal, x, 0)
+    CONFIG_PROPERTY(qreal, y, 0)
+    CONFIG_PROPERTY(qreal, scale, 1.0)
+    CONFIG_PROPERTY(bool, locked, false)
+
+public:
+    explicit DesktopWidgetConfig(QObject* parent = nullptr)
+        : ConfigObject(parent) {}
+};
+
+class BackgroundWidgets : public ConfigObject {
+    Q_OBJECT
+    QML_ANONYMOUS
+
+    CONFIG_PROPERTY(bool, enabled, true)
+    CONFIG_PROPERTY(int, gridSize, 16)
+    CONFIG_PROPERTY(bool, snap, true)
+    CONFIG_SUBOBJECT(DesktopWidgetConfig, media)
+    CONFIG_SUBOBJECT(DesktopWidgetConfig, resources)
+    CONFIG_SUBOBJECT(DesktopWidgetConfig, weather)
+    CONFIG_SUBOBJECT(DesktopWidgetConfig, battery)
+
+public:
+    explicit BackgroundWidgets(QObject* parent = nullptr)
+        : ConfigObject(parent)
+        , m_media(new DesktopWidgetConfig(this))
+        , m_resources(new DesktopWidgetConfig(this))
+        , m_weather(new DesktopWidgetConfig(this))
+        , m_battery(new DesktopWidgetConfig(this)) {}
 };
 
 class BackgroundVisualiser : public ConfigObject {
@@ -73,12 +120,14 @@ class BackgroundConfig : public ConfigObject {
     CONFIG_PROPERTY(bool, wallpaperEnabled, true)
     CONFIG_SUBOBJECT(DesktopClock, desktopClock)
     CONFIG_SUBOBJECT(BackgroundVisualiser, visualiser)
+    CONFIG_SUBOBJECT(BackgroundWidgets, widgets)
 
 public:
     explicit BackgroundConfig(QObject* parent = nullptr)
         : ConfigObject(parent)
         , m_desktopClock(new DesktopClock(this))
-        , m_visualiser(new BackgroundVisualiser(this)) {}
+        , m_visualiser(new BackgroundVisualiser(this))
+        , m_widgets(new BackgroundWidgets(this)) {}
 };
 
 } // namespace ryoku::config

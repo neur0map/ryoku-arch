@@ -75,9 +75,9 @@ assert_contains "shell/modules/controlcenter/Wrapper.qml" "title: \"HyprMod\"" \
   "settings sidebar header should use HyprMod's title"
 assert_contains "shell/modules/controlcenter/Wrapper.qml" "readonly property var pinnedPages: [8, 9]" \
   "settings sidebar should pin Profiles and Settings like HyprMod"
-assert_contains "shell/modules/controlcenter/Wrapper.qml" "readonly property int searchPageIndex: 10" \
+assert_contains "shell/modules/controlcenter/Wrapper.qml" "readonly property int searchPageIndex: 11" \
   "settings search should remain a hidden stack page after pinned utilities"
-assert_contains "shell/modules/controlcenter/Wrapper.qml" "readonly property int pendingPageIndex: 11" \
+assert_contains "shell/modules/controlcenter/Wrapper.qml" "readonly property int pendingPageIndex: 12" \
   "pending changes should remain off-sidebar like HyprMod"
 assert_contains "shell/modules/controlcenter/Wrapper.qml" "property int currentPage: 1" \
   "settings should open on the first task page instead of a local About landing page"
