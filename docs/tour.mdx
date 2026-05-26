@@ -1,11 +1,12 @@
 ---
 title: Desktop tour
-description: How the Hyprland + Ryoku shell desktop is arranged, what each bar island does, and which sidebar is which.
+description: How the Hyprland + Ryoku shell desktop is arranged, from taskbar and launcher to dashboards and utilities.
 ---
 
 Ryoku's desktop is Hyprland + the Ryoku shell. Hyprland handles compositing,
-input, and window layout; the Ryoku shell paints the topbar, sidebars, lock
-screen, launcher, and settings surfaces.
+input, and window layout; the Ryoku shell paints the taskbar, popouts,
+dashboard, launcher, notifications, lock-adjacent surfaces, and settings
+surfaces.
 
 ## Hyprland workspaces
 
@@ -19,44 +20,43 @@ Ryoku ships Hyprland defaults for workspace navigation, window actions, and shel
 
 Use [Keybindings](/docs/keybindings) for the full shipped list.
 
-## The topbar
+## Taskbar
 
-Three "islands" sit at the top of the screen. Each island is a self-contained surface that absorbs its own clicks and ignores everything outside.
+The taskbar is the persistent desktop frame. In the current shell it owns:
 
-### Left island
-- **Sidebar handle:** click to toggle the left sidebar.
+- **OS entry point:** the Ryoku mark and session entry points.
 - **Active window:** title and app icon of the focused window.
+- **Workspaces:** workspace buttons for the current monitor, including special workspace indicators.
+- **Tray:** third-party tray items from apps such as chat, sync, and game clients.
+- **Status icons:** audio, microphone, keyboard layout, network, bluetooth, battery, and lock-state indicators when enabled.
+- **Clock and power:** time/date, session, and power entry points.
 
-### Center island
-- **Workspaces:** one dot per workspace on the current monitor. Active workspace is the filled pill. Scroll wheel cycles workspaces.
+Taskbar behavior is configured from **Settings → Taskbar**.
 
-### Right island
-- **Resources:** CPU / memory / network at a glance. Hover for details.
-- **SecPulse:** combined VPN status pill (OpenVPN + Tailscale). Click opens the right sidebar.
-- **System tray:** third-party app trays (Discord, Steam, etc.).
-- **Clock:** date + time. Click opens the right sidebar.
+## Island and Dashboard
 
-Every bar widget can be toggled, removed, or rearranged from **Settings → Bar**. The bar is meant to be earned, not inherited.
+The island is the compact media/attention surface near the taskbar. It pairs
+with the dashboard for richer status:
 
-## The sidebars
+- **Media:** active player controls, artwork, and visualizer surfaces.
+- **Performance:** CPU, GPU, memory, storage, network, and battery cards when enabled.
+- **Weather:** current weather and forecast views when a location is configured.
+- **Calendar / date / user cards:** quick context without opening a full app.
 
-### Right sidebar (top-right click)
-- **Quick toggles:** wifi, bluetooth, night light, do-not-disturb, hotspot.
-- **OpenVPN:** pick a profile and toggle the tunnel. See [plugins](/docs/plugins).
-- **Tailscale:** connection state and exit-node picker.
-- **Calendar / Events:** month view + upcoming items.
-- **Notepad:** quick text scratchpad, persisted to `~/.local/state/quickshell/notepad.txt`.
-- **Todo:** checkboxes + categories.
-- **Pomodoro:** work / break timer.
-- **Sysmon:** live system monitor.
-- **Network monitor:** listening sockets, active connections, latency.
-- **Hosts:** `/etc/hosts` viewer / editor.
-- **Calculator**.
+## Launcher
 
-### Left sidebar (top-left click)
-- **Notifications:** history + clear-all.
-- **Wallhaven:** search and apply wallpapers from wallhaven.cc.
-- **Anime:** booru-based image search.
+Open the launcher with `Mod+Space`. It handles:
+
+- app search and launch;
+- calculator input through the launcher command prefix;
+- wallpaper selection;
+- color scheme and Material variant actions.
+
+## Drawers and Utilities
+
+- **Notifications:** the sidebar stores grouped notification history and actions.
+- **Utilities:** quick toggles, idle inhibit, screen recording controls, and a recordings list.
+- **OSD:** volume, brightness, media, and other transient feedback.
 
 ## Lock screen and login
 
@@ -66,13 +66,14 @@ Every bar widget can be toggled, removed, or rearranged from **Settings → Bar*
 ## Where things live
 
 - Hyprland config: `~/.config/hypr/hyprland.conf`.
-- Shell config: `~/.config/ryoku-shell/config.json` (the Ryoku shell reads this; Settings writes to it).
+- Shell config: `~/.config/ryoku/shell.json` (the Ryoku shell reads this; Settings writes to it).
 - Wallpapers: `~/Pictures/Wallpapers`.
+- Shell token overrides: `~/.config/ryoku/shell-tokens.json`.
 - Themes / palettes: generated under `~/.local/state/quickshell/user/generated/`.
 - Logs: `journalctl --user -u ryoku-shell` for the shell; use `hyprctl monitors` and the Hyprland user-session logs for compositor state.
 
 ## Where to go next
 
 - [Keybindings](/docs/keybindings): the full shipped reference.
-- [Customize](/docs/customize): themes, wallpapers, bar items.
+- [Customize](/docs/customize): themes, wallpapers, taskbar controls.
 - [Plugins](/docs/plugins): VPN, capture, hardware, and developer tool lanes.

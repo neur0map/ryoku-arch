@@ -1,8 +1,8 @@
 # Foundation And Heritage
 
 Ryoku is a premium Arch workstation environment. Its runtime and command
-surface are Ryoku-owned, while selected ideas were adapted from Omarchy and
-Celestia for speed and ergonomics.
+surface are Ryoku-owned, while selected ideas were adapted from upstream
+projects for speed and ergonomics.
 
 ## Where Ryoku Comes From
 
@@ -10,7 +10,7 @@ Ryoku uses three clear sources:
 
 - **Omarchy** for install architecture, command patterning, and migration-minded
   maintenance.
-- **Celestia Shell-inspired structure** for shell-level interaction patterns, then
+- **Upstream shell references** for shell-level interaction patterns, then
   adapted into Ryoku-owned layout and plugin surfaces.
 - **Ryoku core direction** for naming, branding, defaults, and command ownership.
 
@@ -52,7 +52,7 @@ re-activates them:
 | `$RYOKU_CONFIG_PATH` | Canonical Ryoku config path. |
 | `$RYOKU_STATE_PATH` | Canonical Ryoku state path. |
 | `~/.config/ryoku` | User Ryoku config and hook namespace. |
-| `~/.config/ryoku-shell/config.json` | Shell configuration and feature toggles. |
+| `~/.config/ryoku/shell.json` | Shell configuration and feature toggles. |
 | `~/.local/share/ryoku` | Installed Ryoku source tree. |
 | `~/.local/state/ryoku` | Runtime state and migration markers. |
 | `config/hypr/` | Current Hyprland compositor config source. |

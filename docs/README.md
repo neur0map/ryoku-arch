@@ -1,19 +1,47 @@
 # Documentation
 
-Documentation for Ryoku Arch.
+This directory holds the tracked Ryoku documentation. Public docs are listed in
+`docs.json`; maintainer-only docs stay here when they support release, ISO,
+shell, branding, or configuration work.
 
-## Contents
+## User Docs
 
-- `vision.md`: project goals, audience, non-goals.
-- `maintenance.md`: how to maintain the repo. Branch topology, shipping changes, cherry-picking from upstream, safety rules. Read this first if you are about to make a change.
-- `branding.md`: visual + verbal identity. Brand colors (Greek Noir palette), logo files and how to regenerate them, where the brand surfaces, don't-do list.
-- `pixel-mascots.md`: rules for small Ryoku sprite mascots and decorative pixel marks.
-- `iso-build-recipe.md`: working recipe for building the offline ISO end-to-end, list of fixes that have to stay applied, harmless chroot warnings to ignore, verification commands.
-- `release-pipeline.md`: how Ryoku ISOs get built, signed, and pushed to Cloudflare R2 via GitHub Actions. Secrets to configure, R2 bucket setup, GPG key generation, how users verify a downloaded ISO.
-- `keybindings.md`: current Hyprland and Ryoku shell keyboard reference.
-- `ui-patterns.md`: rules and footguns for working on the Ryoku shell desktop. Padding tokens, primitive reuse map, peer pattern map, one-person shell preview workflow, when to stop and rethink. Read this before touching anything in `shell/`.
-- `omarchy-heritage.md`: user-facing explanation of what remains from upstream Omarchy and what has been removed.
-- `plugins.mdx`: workflow plugin lanes and how they appear in shell surfaces.
-- `customization-inventory.md`: shipped text-based customization surfaces with repo-safe locations.
-- `../CONTRIBUTING.md`: focused ways to help while Ryoku is early.
-- `../SECURITY.md`: private reporting path for security-sensitive issues.
+- `install.mdx`: download, verify, flash, and install the ISO.
+- `first-boot.mdx`: first login expectations and initial actions.
+- `tour.mdx`: Hyprland workspace model and shell surfaces.
+- `keybindings.md`: shipped Hyprland keybinding reference.
+- `updates.mdx`: update channels, terminal update flow, recovery, and bootstrap.
+- `customize.mdx`: Settings-backed customization and safe manual config entry points.
+- `plugins.mdx`: current plugin lanes and how shell settings connect to commands.
+- `troubleshoot.mdx`: logs, common failures, and bug-report details.
+
+## Project Docs
+
+- `vision.md`: product direction, audience, and non-goals.
+- `omarchy-heritage.md`: inherited pieces, compatibility names, and active boundaries.
+- `branding.md`: name, color anchors, logos, and where branding appears.
+
+## Maintainer Docs
+
+- `maintenance.md`: branch topology, update path, migrations, CI, and safety rules.
+- `iso-build-recipe.md`: local ISO build and VM verification recipe.
+- `release-pipeline.md`: GitHub Actions ISO publishing, signing, and release manifests.
+- `ui-patterns.md`: shell runtime paths, UI patterns, and QML boundaries.
+- `customization-inventory.md`: tracked config and theme surfaces.
+
+## Accuracy Review
+
+This cleanup checked active docs against the tracked command, shell-module,
+config, keybinding, ISO, and release files in this repository. User-facing docs
+should describe the current Hyprland + Ryoku shell surface, `~/.config/ryoku`
+typed config, `ryoku-update`, `ryoku-snapshot`, and the `iso.ryoku.dev`
+artifact manifest.
+
+Before a release, re-check live website copy, latest ISO metadata, and runtime
+service behavior because those can drift faster than repo docs.
+
+## Retired Notes
+
+Retired design notes may be moved into local `docs/_archive/`. That directory is
+gitignored so old planning material stays available on this workstation without
+shipping as active documentation.

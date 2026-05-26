@@ -7,8 +7,9 @@ After install, the machine reboots into SDDM. Pick the **Ryoku** session (Hyprla
 
 ## What you see
 
-- **Top: the bar.** Three "islands" left to right: left island (sidebar handle, active window), center island (workspaces dots), right island (clock, system indicators, SecPulse).
-- **Background: the wallpaper.** A default Ryoku wallpaper ships; change it from Settings.
+- **Top: the taskbar.** It shows the Ryoku entry point, active window, workspaces, tray, status icons, clock, and power/session controls when those modules are enabled.
+- **Center and drawers: the launcher, island, dashboard, notifications, and utilities surfaces.** They open on demand instead of filling the desktop by default.
+- **Background: the wallpaper and desktop widgets.** A default Ryoku wallpaper ships; change it from Settings.
 - **No windows yet.** Hyprland is a tiling compositor; nothing is open until you open it. `Mod+T` for a terminal.
 
 `Mod` is `Super` (the Windows / Cmd key) on a normal install.
@@ -20,7 +21,7 @@ After install, the machine reboots into SDDM. Pick the **Ryoku** session (Hyprla
     `Mod+T` or `Mod+Return`. The shipped terminal is `kitty`.
   </Card>
   <Card title="Open settings" icon="settings">
-    `Mod+,`. Themes, bar items, wallpapers, lock screen, login screen.
+    `Mod+,`. Appearance, background, taskbar, widgets, lock screen, and login screen.
   </Card>
   <Card title="Open the launcher" icon="search">
     `Mod+Space`. Type to filter apps, hit Enter to launch.
@@ -30,19 +31,22 @@ After install, the machine reboots into SDDM. Pick the **Ryoku** session (Hyprla
   </Card>
 </CardGroup>
 
-## The sidebars
+## Shell surfaces
 
-- **Right sidebar** (top-right click): system controls, quick toggles, OpenVPN profile picker, calendar, notepad, todo, network monitor.
-- **Left sidebar** (top-left click): notification history, wallhaven wallpaper search, AI assistant tabs.
+- **Launcher:** app search, calculator, wallpaper selection, and theme actions.
+- **Dashboard:** media, weather, calendar/date, user, and performance panels.
+- **Notifications:** grouped notification history and actions.
+- **Utilities:** quick toggles, idle inhibit, screen recording controls, and recordings list.
 
-Both can be closed by clicking outside them or by re-pressing their trigger.
+Popup-style shell surfaces can be closed by clicking outside them or by
+re-pressing their trigger.
 
 ## Common next steps
 
 - **Change the wallpaper.** Use Settings to open the picker. Drops in `~/Pictures/Wallpapers`. Theme colors regenerate from the selected wallpaper unless you've set a static accent.
-- **Pick a panel family.** `Mod+Shift+W` cycles `ii` ↔ `waffle`. Each family has its own visual language.
-- **Pick a skin.** Settings → Appearance to switch between Material, Aurora, Angel, Ryoku-Shell, and Cards.
-- **Wire up your VPN.** Settings → Plugins → OpenVPN profiles. See [Plugins](/docs/plugins).
+- **Tune the taskbar.** Settings → Taskbar controls persistence, reveal behavior, workspaces, tray, clock, and status icons.
+- **Pick a look.** Settings → Appearance controls mode, color scheme, Material variant, transparency, geometry, font scale, and animation timing.
+- **Wire up your VPN.** Use the Ryoku VPN command family and service-backed shell surfaces. See [Plugins](/docs/plugins).
 - **Update the shell.** `ryoku-update` in a terminal, or click the update indicator when it appears in the bar.
 
 <Callout type="info">
@@ -62,7 +66,7 @@ The [troubleshooting guide](/docs/troubleshoot) covers common boot/login issues.
 
 ## Where to go next
 
-- [Desktop tour](/docs/tour): the Hyprland workspace model and the bar / sidebar surfaces in depth.
+- [Desktop tour](/docs/tour): the Hyprland workspace model and the taskbar / shell surfaces in depth.
 - [Keybindings](/docs/keybindings): every shipped binding.
 - [Plugins](/docs/plugins): OpenVPN, Tailscale, capture workflow, and other Ryoku plugin lanes.
-- [Customize](/docs/customize): themes, wallpapers, bar items, keybinds.
+- [Customize](/docs/customize): themes, wallpapers, taskbar controls, keybinds.

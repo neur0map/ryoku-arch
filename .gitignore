@@ -18,6 +18,7 @@
 .superpowers/
 .specs
 docs/superpowers/
+docs/_archive/
 # Per-run ISO build logs
 tests/logs/
 

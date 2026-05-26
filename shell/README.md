@@ -1,8 +1,8 @@
 # Ryoku Shell
 
-This is the experimental Hyprland shell seed for Ryoku. It is imported as
-source, renamed to Ryoku product surfaces, and will be adapted incrementally
-around Ryoku IPC and system commands.
+This is Ryoku's Hyprland shell source. It provides the taskbar, popouts,
+dashboard, launcher, notifications, utilities, lock-adjacent surfaces, and
+control center around Ryoku config, IPC, and system commands.
 
 Runtime entrypoint:
 

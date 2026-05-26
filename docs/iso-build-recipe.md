@@ -1,13 +1,13 @@
 # Ryoku ISO Build Recipe (Working Offline Path)
 
 > Captures the working build / install / boot recipe for the Ryoku ISO as
-> of 2026-04-27. Intended for: future contributors who want to add
+> of 2026-05-24. Intended for: future contributors who want to add
 > customizations without breaking the offline install path, and for the
 > next time the install regresses.
 >
-> Rebirth note, 2026-05-22: the active source track targets Hyprland with the
-> Ryoku shell. Older compositor and shell transition notes in this repository
-> are historical migration context, not the current ISO target.
+> Current target: Hyprland with the Ryoku shell. Older compositor and shell
+> transition notes in this repository are historical migration context, not the
+> current ISO target.
 
 ## What is verified
 
@@ -17,7 +17,7 @@
 | Live ISO boots in QEMU/UEFI VM | yes | `iso/bin/ryoku-iso-boot iso/release/ryoku-*-main.iso` opens GTK + reaches the configurator UI |
 | `archinstall` pacstraps base from the offline mirror | yes | No internet needed to reach the configurator finish line |
 | Chroot install runs `install/*` to completion | yes | Exits with `/mnt/var/tmp/ryoku-install-completed`, VM auto-reboots |
-| First-boot reaches branded boot + SDDM + Hyprland | pending | Rebirth Hyprland source landed after the earlier ISO proof. Expected path: Limine boot menu -> Plymouth decrypt prompt -> shell-provided SDDM theme -> Hyprland session |
+| First-boot reaches branded boot + SDDM + Hyprland | yes | Last VM proof: install -> reboot -> qylock SDDM greeter -> Hyprland session -> `Super+B` and `Super+Enter` keybind checks |
 | Online install (`RYOKU_ONLINE_INSTALL=1` in chroot env) | NOT smoke-tested | The live ISO currently runs the chroot in offline mode; online path is intentional fallback only |
 
 ## Local prerequisites
@@ -128,6 +128,4 @@ If any of the above breaks, the failure menu in the live ISO offers `View full l
 ## Known follow-ups (not blocking the recipe)
 
 - Online-install path (`RYOKU_ONLINE_INSTALL=1`) has not been smoke-tested end-to-end in the same way the offline path has. The fix in `5a554eee` is in place but unproven against a real online install.
-- Direct EFI UKI normal-boot path (Task 3 of `2026-04-26-ryoku-iso-parity-implementation.md`) is still pending. Limine is currently the normal path, which is fine, but the parity plan also wants a direct UKI option.
 - `limine-mkinitcpio-hook` and `limine-snapper-sync` pacman-hook noise during chroot install ("detected chroot env, skipping") is harmless but could be suppressed by reordering `mkinitcpio -P` + `limine-update` so the user-facing install transcript stays clean.
-- (resolved 2026-04-28 by `11fc74ae`, upgraded 2026-04-30) Cursor X-fallback issue is fixed by shipping `adwaita-cursors`; the active default is now `Bibata-Modern-Classic` via `bibata-cursor-theme-bin`, with Adwaita still installed as a fallback cursor family.

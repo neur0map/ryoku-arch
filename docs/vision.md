@@ -70,15 +70,15 @@ workstation system first.
 - A minimal Arch starter kit.
 - A general-purpose distro with a Ryoku wallpaper.
 - A specialist engagement-focused stack.
-- A final re-skin of Omarchy or Celestia Shell. Both are important sources, but
-  Ryoku's job is to turn the useful pieces into a Ryoku-owned workstation.
+- A final re-skin of an upstream shell. Upstream projects are important sources,
+  but Ryoku's job is to turn the useful pieces into a Ryoku-owned workstation.
 
 ## Roadmap
 
 Near-term priorities:
 
 1. Keep the Hyprland workstation stable enough for daily use on real hardware.
-2. Shape the current Celestia-derived shell into a Ryoku-owned plugin shell.
+2. Shape the current Quickshell-based shell into a Ryoku-owned plugin shell.
 3. Keep the ISO signed, downloadable, and verifiable.
 4. Move security-adjacent, developer, media, hardware, and capture workflows into clean
    plugin lanes.

@@ -4,7 +4,8 @@ The Ryoku ISO provides a guided Arch install path for Ryoku. It includes the Ryo
 
 ## Downloading the latest ISO
 
-Signed public ISO links will be added to the root README when the first release is published.
+Signed public ISO links are published through the website at `https://ryoku.dev`.
+The stable artifact manifest is `https://iso.ryoku.dev/stable/latest.json`.
 
 ## Creating the ISO
 
@@ -19,21 +20,21 @@ You can customize the repositories used during the build process by passing in v
 
 Example usage:
 ```bash
-RYOKU_INSTALLER_REPO="myuser/ryoku-fork" RYOKU_INSTALLER_REF="some-feature" ./bin/ryoku-iso-make
+RYOKU_INSTALLER_REPO="myuser/ryoku-fork" RYOKU_INSTALLER_REF="some-feature" ./iso/bin/ryoku-iso-make
 ```
 
 ## Testing the ISO
 
-Run `./bin/ryoku-iso-boot [release/ryoku.iso]`.
+Run `./iso/bin/ryoku-iso-boot [iso/release/ryoku.iso]`.
 
 ## Signing the ISO
 
-Run `./bin/ryoku-iso-sign [gpg-user] [release/ryoku.iso]`.
+Run `./iso/bin/ryoku-iso-sign [gpg-user] [iso/release/ryoku.iso]`.
 
 ## Uploading the ISO
 
-Run `./bin/ryoku-iso-upload [release/ryoku.iso]`. This requires you've configured rclone (use `rclone config`).
+Run `./iso/bin/ryoku-iso-upload [iso/release/ryoku.iso]`. This requires you've configured rclone (use `rclone config` or `./iso/bin/ryoku-iso-rclone-config`).
 
 ## Full release of the ISO
 
-Run `./bin/ryoku-iso-release VERSION` to create, test, sign, and upload the ISO in one flow.
+Run `./iso/bin/ryoku-iso-release VERSION` to create, test, sign, and upload the ISO in one flow.
