@@ -4,6 +4,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 SCRIPT="install/config/hardware/fix-audio-mixer.sh"
+HELPER="bin/ryoku-audio-restore-mixers"
 SOFT_MIXER_CONFIG="default/wireplumber/wireplumber.conf.d/alsa-soft-mixer.conf"
 MIGRATION="migrations/1777827891.sh"
 BASS_MIGRATION="migrations/1779493500.sh"
@@ -36,10 +37,13 @@ assert_contains "$SCRIPT" 'alsa-soft-mixer\.conf' \
 assert_contains "$SOFT_MIXER_CONFIG" 'api\.alsa\.soft-mixer = true' \
   "Global audio mixer fix should install WirePlumber ALSA soft-mixer config"
 # shellcheck disable=SC2016
-assert_contains "$SCRIPT" 'set "\$ctl" 100% unmute' \
-  "Global audio mixer fix should initialize hardware outputs at 100%"
-assert_contains "$SCRIPT" '"Bass Speaker"' \
-  "Global audio mixer fix should initialize laptop bass speaker switches"
+assert_contains "$SCRIPT" '\$RYOKU_PATH/bin/ryoku-audio-restore-mixers' \
+  "Global audio mixer fix should delegate hardware output initialization to the shared helper"
+# shellcheck disable=SC2016
+assert_contains "$HELPER" 'set "\$ctl" 100% unmute' \
+  "Shared audio mixer helper should initialize hardware outputs at 100%"
+assert_contains "$HELPER" '"Bass Speaker"' \
+  "Shared audio mixer helper should initialize laptop bass speaker switches"
 # shellcheck disable=SC2016
 assert_not_contains "$SCRIPT" 'set "\$ctl" 80% unmute|set Master 80% unmute' \
   "Global audio mixer fix should not leave hardware outputs attenuated"

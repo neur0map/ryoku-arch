@@ -1,7 +1,6 @@
 [Unit]
 Description=Ryoku ALSA hardware mixer unmute (self-heal silent-speakers state)
 After=pipewire.service
-PartOf=graphical-session.target
 
 [Service]
 Type=oneshot
@@ -9,4 +8,4 @@ ExecStart=%h/.local/share/ryoku/bin/ryoku-audio-restore-mixers
 LogLevelMax=warning
 
 [Install]
-WantedBy=graphical-session.target
+WantedBy=default.target

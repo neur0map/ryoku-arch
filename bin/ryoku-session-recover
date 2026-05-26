@@ -87,12 +87,21 @@ restart_session_ui() {
   fi
 }
 
+restore_audio_mixers() {
+  [[ $RESUME == "true" ]] || return 0
+
+  if command_present ryoku-audio-restore-mixers; then
+    ryoku-audio-restore-mixers >/dev/null 2>&1 || true
+  fi
+}
+
 if [[ $RESUME == "true" ]]; then
   sleep 1
 fi
 
 log "Ryoku session recovery"
 refresh_activation_environment
+restore_audio_mixers
 if hyprland_active; then
   power_on_hyprland_monitors || true
 fi

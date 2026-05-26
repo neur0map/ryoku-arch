@@ -60,6 +60,8 @@ assert_contains bin/ryoku-session-recover 'ryoku-shell-cleanup-orphans --quiet' 
   "session recovery should clean stale shell helpers"
 assert_contains bin/ryoku-session-recover 'ryoku-restart-ui --quiet' \
   "session recovery should hard-refresh the Ryoku UI"
+assert_contains bin/ryoku-session-recover 'ryoku-audio-restore-mixers' \
+  "session recovery should restore hardware audio mixers after resume"
 assert_contains bin/ryoku-session-recover 'systemctl --user import-environment' \
   "session recovery should refresh the user systemd environment"
 assert_contains bin/ryoku-session-recover 'HYPRCURSOR_THEME HYPRCURSOR_SIZE' \

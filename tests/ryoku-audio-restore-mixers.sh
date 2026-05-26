@@ -27,6 +27,16 @@ fail() {
   exit 1
 }
 
+assert_not_contains() {
+  local path="$1"
+  local pattern="$2"
+  local message="$3"
+
+  if grep -Eq "$pattern" "$path"; then
+    fail "$message"
+  fi
+}
+
 helper="$ROOT_DIR/bin/ryoku-audio-restore-mixers"
 [[ -x $helper ]] || fail "missing or non-executable bin/ryoku-audio-restore-mixers"
 
@@ -37,19 +47,32 @@ grep -qE 'Speaker.*Headphone.*Bass Speaker' "$helper" || \
   fail "ryoku-audio-restore-mixers must cover Speaker, Headphone, and Bass Speaker controls"
 
 unit="$ROOT_DIR/config/systemd/user/ryoku-audio-restore-mixers.service"
+migration="$ROOT_DIR/migrations/1779815059.sh"
 [[ -f $unit ]] || fail "missing config/systemd/user/ryoku-audio-restore-mixers.service"
 
 grep -qE '^ExecStart=.*ryoku-audio-restore-mixers$' "$unit" || \
   fail "service unit must ExecStart the ryoku-audio-restore-mixers helper"
 
-grep -qE '^WantedBy=graphical-session.target$' "$unit" || \
-  fail "service unit must be WantedBy=graphical-session.target (runs on each login)"
+grep -qE '^WantedBy=default.target$' "$unit" || \
+  fail "service unit must be WantedBy=default.target so Hyprland sessions without graphical-session.target still run it"
 
 grep -qE '^After=pipewire\.service$' "$unit" || \
   fail "service unit must order After=pipewire.service so amixer hits a live audio stack"
 
+assert_not_contains "$unit" 'graphical-session\.target' \
+  "audio mixer self-heal must not depend on graphical-session.target, which is inactive in Ryoku Hyprland sessions"
+
+[[ -f $migration ]] || fail "missing migration to retarget existing audio restore service installs"
+grep -qE 'install/config/ryoku-audio-restore-mixers\.sh' "$migration" || \
+  fail "migration must reinstall the audio mixer restore user service for existing installs"
+grep -qE 'ryoku-audio-restore-mixers' "$migration" || \
+  fail "migration must immediately restore mixers so current silent sessions recover"
+
 installer="$ROOT_DIR/install/config/ryoku-audio-restore-mixers.sh"
 [[ -x $installer ]] || fail "missing or non-executable install/config/ryoku-audio-restore-mixers.sh"
+
+grep -qE 'systemctl --user disable ryoku-audio-restore-mixers\.service' "$installer" || \
+  fail "installer must disable stale target links before enabling the audio restore service"
 
 grep -qE 'systemctl --user enable --now ryoku-audio-restore-mixers\.service' "$installer" || \
   fail "installer must enable --now the systemd-user unit"

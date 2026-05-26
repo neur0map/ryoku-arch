@@ -17,4 +17,5 @@ mkdir -p "$UNIT_DEST_DIR"
 install -m 0644 "$UNIT_SRC" "$UNIT_DEST"
 
 systemctl --user daemon-reload
+systemctl --user disable ryoku-resume-listener.service >/dev/null 2>&1 || true
 systemctl --user enable --now ryoku-resume-listener.service

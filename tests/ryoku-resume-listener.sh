@@ -30,6 +30,16 @@ assert_contains() {
   grep -Eq -- "$pattern" "$ROOT_DIR/$path" || fail "$message"
 }
 
+assert_not_contains() {
+  local path="$1"
+  local pattern="$2"
+  local message="$3"
+
+  if grep -Eq -- "$pattern" "$ROOT_DIR/$path"; then
+    fail "$message"
+  fi
+}
+
 assert_listener_installer() {
   assert_executable "install/config/ryoku-resume-listener.sh"
   assert_contains "install/config/ryoku-resume-listener.sh" 'config/systemd/user/ryoku-resume-listener\.service' \
@@ -40,6 +50,8 @@ assert_listener_installer() {
     "Installer should target the user systemd directory under XDG_CONFIG_HOME"
   assert_contains "install/config/ryoku-resume-listener.sh" 'systemctl --user daemon-reload' \
     "Installer should reload the user systemd manager"
+  assert_contains "install/config/ryoku-resume-listener.sh" 'systemctl --user disable ryoku-resume-listener\.service' \
+    "Installer should disable stale target links before enabling the listener service"
   assert_contains "install/config/ryoku-resume-listener.sh" 'systemctl --user enable --now ryoku-resume-listener\.service' \
     "Installer should enable and immediately start the listener service"
 }
@@ -54,12 +66,10 @@ assert_listener_unit() {
     "Unit should restart on failure so a bus disconnect recovers"
   assert_contains "config/systemd/user/ryoku-resume-listener.service" 'RestartSec=5' \
     "Unit should back off 5 seconds before restarting"
-  assert_contains "config/systemd/user/ryoku-resume-listener.service" 'After=graphical-session\.target' \
-    "Unit should be ordered after the graphical session"
-  assert_contains "config/systemd/user/ryoku-resume-listener.service" 'PartOf=graphical-session\.target' \
-    "Unit should be PartOf the graphical session so it stops with it"
-  assert_contains "config/systemd/user/ryoku-resume-listener.service" 'WantedBy=graphical-session\.target' \
-    "Unit should be WantedBy the graphical session for enable-time wiring"
+  assert_contains "config/systemd/user/ryoku-resume-listener.service" 'WantedBy=default\.target' \
+    "Unit should be WantedBy default.target because graphical-session.target is not active in Ryoku Hyprland sessions"
+  assert_not_contains "config/systemd/user/ryoku-resume-listener.service" 'graphical-session\.target' \
+    "Unit should not depend on graphical-session.target, or it can be enabled but never start"
   assert_contains "config/systemd/user/ryoku-resume-listener.service" 'ExecStart=.*ryoku-resume-listener$' \
     "Unit ExecStart should point at the ryoku-resume-listener binary"
 }
@@ -89,6 +99,9 @@ assert_migration_present() {
   assert_file "migrations/1777856216.sh"
   assert_contains "migrations/1777856216.sh" 'install/config/ryoku-resume-listener\.sh' \
     "Migration should re-invoke the listener installer for existing installs"
+  assert_file "migrations/1779815059.sh"
+  assert_contains "migrations/1779815059.sh" 'install/config/ryoku-resume-listener\.sh' \
+    "Current migration should re-install the listener unit after retargeting it to default.target"
 }
 
 assert_listener_installer
