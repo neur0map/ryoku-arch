@@ -161,13 +161,6 @@ Item {
         scale: root.holderScale
         width: childrenRect.width
         height: childrenRect.height
-
-        // Render scaled-up content into a higher-resolution layer so text and
-        // icons stay crisp instead of pixelating from the Item.scale transform
-        // (the clock avoids this by re-rendering itself at its target size).
-        layer.enabled: root.holderScale > 1.01
-        layer.smooth: true
-        layer.textureSize: Qt.size(Math.ceil(holder.width * root.holderScale), Math.ceil(holder.height * root.holderScale))
     }
 
     // Snap-landing preview while dragging.

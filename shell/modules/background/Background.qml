@@ -137,10 +137,12 @@ Variants {
                 canvas: widgetHost
                 leftInset: widgetHost.leftInset
                 label: qsTr("Resources")
+                selfScales: true
                 visible: GlobalConfig.background.widgets.resources.enabled
 
                 ResourcesWidget {
                     showBackground: GlobalConfig.background.widgets.resources.background
+                    sizeScale: GlobalConfig.background.widgets.resources.scale
                 }
             }
 
@@ -150,10 +152,12 @@ Variants {
                 canvas: widgetHost
                 leftInset: widgetHost.leftInset
                 label: qsTr("Weather")
+                selfScales: true
                 visible: GlobalConfig.background.widgets.weather.enabled
 
                 WeatherWidget {
                     showBackground: GlobalConfig.background.widgets.weather.background
+                    sizeScale: GlobalConfig.background.widgets.weather.scale
                 }
             }
 
@@ -163,10 +167,12 @@ Variants {
                 canvas: widgetHost
                 leftInset: widgetHost.leftInset
                 label: qsTr("Media")
+                selfScales: true
                 visible: GlobalConfig.background.widgets.media.enabled
 
                 MediaWidget {
                     showBackground: GlobalConfig.background.widgets.media.background
+                    sizeScale: GlobalConfig.background.widgets.media.scale
                 }
             }
 
@@ -176,14 +182,18 @@ Variants {
                 canvas: widgetHost
                 leftInset: widgetHost.leftInset
                 label: qsTr("Battery")
+                selfScales: true
                 visible: GlobalConfig.background.widgets.battery.enabled && UPower.displayDevice.isLaptopBattery
 
                 StyledRect {
-                    readonly property bool showBackground: GlobalConfig.background.widgets.battery.background
+                    id: batteryCard
 
-                    implicitWidth: batteryRow.implicitWidth + Tokens.padding.large * 2
-                    implicitHeight: batteryRow.implicitHeight + Tokens.padding.large * 2
-                    radius: Tokens.rounding.large
+                    readonly property bool showBackground: GlobalConfig.background.widgets.battery.background
+                    readonly property real sizeScale: GlobalConfig.background.widgets.battery.scale
+
+                    implicitWidth: batteryRow.implicitWidth + Tokens.padding.large * 2 * sizeScale
+                    implicitHeight: batteryRow.implicitHeight + Tokens.padding.large * 2 * sizeScale
+                    radius: Tokens.rounding.large * sizeScale
                     color: showBackground ? Qt.alpha(Colours.palette.m3surfaceContainer, 0.78) : "transparent"
                     border.width: showBackground ? 1 : 0
                     border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.6)
@@ -192,20 +202,20 @@ Variants {
                         id: batteryRow
 
                         anchors.centerIn: parent
-                        spacing: Tokens.spacing.small
+                        spacing: Tokens.spacing.small * batteryCard.sizeScale
 
                         MaterialIcon {
                             anchors.verticalCenter: parent.verticalCenter
                             text: UPower.displayDevice.state === UPowerDeviceState.Charging ? "battery_charging_full" : "battery_horiz_075"
                             color: UPower.displayDevice.percentage <= 0.2 ? Colours.palette.m3error : Colours.palette.m3primary
-                            font.pointSize: Tokens.font.size.extraLarge
+                            font.pointSize: Tokens.font.size.extraLarge * batteryCard.sizeScale
                         }
 
                         StyledText {
                             anchors.verticalCenter: parent.verticalCenter
                             text: Math.round(UPower.displayDevice.percentage * 100) + "%"
                             color: Colours.palette.m3onSurface
-                            font.pointSize: Tokens.font.size.extraLarge
+                            font.pointSize: Tokens.font.size.extraLarge * batteryCard.sizeScale
                             font.weight: Font.Bold
                         }
                     }
