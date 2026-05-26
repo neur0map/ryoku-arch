@@ -48,6 +48,14 @@ assert_contains "$migration" '["nautilus"]' \
 
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
+mkdir -p "$tmp_dir/bin"
+
+cat >"$tmp_dir/bin/systemctl" <<'SH'
+#!/bin/bash
+set -euo pipefail
+printf 'systemctl %s\n' "$*" >>"$RYOKU_TEST_SYSTEMCTL_LOG"
+SH
+chmod +x "$tmp_dir/bin/systemctl"
 
 run_migration() {
   local case_name="$1"
@@ -62,7 +70,8 @@ run_migration() {
   HOME="$home" \
   XDG_CONFIG_HOME="$home/.config" \
   RYOKU_PATH="$ROOT_DIR" \
-  PATH="$ROOT_DIR/bin:$PATH" \
+  RYOKU_TEST_SYSTEMCTL_LOG="$tmp_dir/systemctl.log" \
+  PATH="$tmp_dir/bin:$ROOT_DIR/bin:$PATH" \
     bash "$migration" >/dev/null
 
   printf '%s\n' "$home/.config/ryoku/shell.json"
