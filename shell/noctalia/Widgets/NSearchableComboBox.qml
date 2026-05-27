@@ -398,7 +398,9 @@ RowLayout {
       }
 
       background: Rectangle {
-        color: Color.mSurfaceVariant
+        // RYOKU: dropdown lists must be opaque/readable — the glass tone let
+        // content bleed through. Force full alpha while keeping the theme hue.
+        color: Qt.alpha(Color.mSurfaceVariant, 1.0)
         border.color: Color.mOutline
         border.width: Style.borderS
         radius: Style.iRadiusM

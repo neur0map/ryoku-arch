@@ -324,21 +324,22 @@ ColumnLayout {
     stderr: StdioCollector {}
   }
 
-  RowLayout {
+  // Ryoku identity — logo, name, version (centered)
+  ColumnLayout {
     Layout.alignment: Qt.AlignHCenter
-    spacing: Style.marginXL
+    Layout.fillWidth: true
+    spacing: Style.marginXS
 
-    // Noctalia logo
     Image {
       source: "../../../../../Assets/ryoku-logo.svg"
-      width: 96 * Style.uiScaleRatio
-      height: width
+      Layout.preferredWidth: 80 * Style.uiScaleRatio
+      Layout.preferredHeight: Layout.preferredWidth
+      Layout.alignment: Qt.AlignHCenter
       fillMode: Image.PreserveAspectFit
-      sourceSize.width: width
-      sourceSize.height: height
+      sourceSize.width: Layout.preferredWidth
+      sourceSize.height: Layout.preferredHeight
       mipmap: true
       smooth: true
-      Layout.alignment: Qt.AlignBottom
       rotation: Settings.isDebug ? 180 : 0
 
       Behavior on rotation {
@@ -359,220 +360,34 @@ ColumnLayout {
       MouseArea {
         anchors.fill: parent
         onClicked: {
-          if (parent.debugTapCount === 0) {
+          if (parent.debugTapCount === 0)
             debugTapTimer.restart();
-          }
           parent.debugTapCount++;
           if (parent.debugTapCount >= 8) {
             parent.debugTapCount = 0;
             debugTapTimer.stop();
             Settings.isDebug = !Settings.isDebug;
-            if (Settings.isDebug) {
-              ToastService.showNotice("Debug", I18n.tr("panels.about.debug-enabled"));
-            } else {
-              ToastService.showNotice("Debug", I18n.tr("panels.about.debug-disabled"));
-            }
+            ToastService.showNotice("Debug", I18n.tr(Settings.isDebug ? "panels.about.debug-enabled" : "panels.about.debug-disabled"));
           }
         }
       }
     }
 
-    ColumnLayout {
-      NHeader {
-        label: "Ryoku"
-      }
+    NText {
+      text: "Ryoku"
+      pointSize: Style.fontSizeXL
+      font.weight: Style.fontWeightSemiBold
+      color: Color.mPrimary
+      Layout.alignment: Qt.AlignHCenter
+    }
 
-      // Versions
-      GridLayout {
-        columns: 2
-        rowSpacing: Style.marginXS
-        columnSpacing: Style.marginM
-
-        // Installed Version (Shell)
-        NText {
-          text: "Ryoku:"
-          color: Color.mOnSurfaceVariant
-          Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
-        }
-
-        RowLayout {
-          spacing: Style.marginS
-
-          NText {
-            text: (RyokuAbout.info && RyokuAbout.info.version) ? RyokuAbout.info.version : I18n.tr("common.loading")
-            color: Color.mOnSurface
-            font.weight: Style.fontWeightBold
-          }
-
-          // Git commit in parentheses
-          NText {
-            id: commitText
-            visible: root.isGitVersion
-            text: "(" + (root.commitInfo || I18n.tr("common.loading")) + ")"
-            color: commitMouseArea.containsMouse ? Color.mPrimary : Color.mOnSurfaceVariant
-            pointSize: Style.fontSizeXS
-            font.underline: commitMouseArea.containsMouse && root.commitInfo
-
-            MouseArea {
-              id: commitMouseArea
-              anchors.fill: parent
-              hoverEnabled: true
-              cursorShape: root.commitInfo ? Qt.PointingHandCursor : Qt.ArrowCursor
-              onEntered: {
-                if (root.commitInfo) {
-                  TooltipService.show(commitText, I18n.tr("panels.about.view-commit"));
-                }
-              }
-              onExited: TooltipService.hide()
-              onClicked: {
-                if (root.commitInfo) {
-                  Quickshell.execDetached(["xdg-open", "https://github.com/noctalia-dev/noctalia-shell/commit/" + root.commitInfo]);
-                }
-              }
-            }
-          }
-
-          // Update status indicator
-          NIcon {
-            id: upToDateIcon
-            visible: root.isUpToDate
-            icon: "circle-check"
-            pointSize: Style.fontSizeM
-            color: Color.mPrimary
-
-            MouseArea {
-              anchors.fill: parent
-              hoverEnabled: true
-              onEntered: TooltipService.show(upToDateIcon, I18n.tr("panels.about.up-to-date"))
-              onExited: TooltipService.hide()
-            }
-          }
-
-          NIcon {
-            id: updateAvailableIcon
-            visible: root.updateAvailable
-            icon: "arrow-up-circle"
-            pointSize: Style.fontSizeS
-            color: Color.mPrimary
-
-            MouseArea {
-              anchors.fill: parent
-              hoverEnabled: true
-              onEntered: TooltipService.show(updateAvailableIcon, I18n.tr("panels.about.update-available"))
-              onExited: TooltipService.hide()
-            }
-          }
-        }
-
-        // Latest Version (Shell)
-        NText {
-          visible: root.updateAvailable
-          text: I18n.tr("panels.about.noctalia-available")
-          color: Color.mOnSurfaceVariant
-          Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
-        }
-
-        NText {
-          visible: root.updateAvailable
-          text: root.latestVersion
-          color: Color.mOnSurface
-          font.weight: Style.fontWeightBold
-        }
-
-        // Divider-like spacing
-        Item {
-          visible: root.qsUpdateAvailable || root.updateAvailable
-          Layout.columnSpan: 2
-          Layout.preferredHeight: Style.marginXS
-        }
-
-        // Quickshell Version
-        NText {
-          visible: root.qsVersion !== ""
-          text: "Noctalia QS:"
-          color: Color.mOnSurfaceVariant
-          Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
-        }
-
-        RowLayout {
-          visible: root.qsVersion !== ""
-          spacing: Style.marginS
-
-          NText {
-            text: root.qsVersion.startsWith("v") ? root.qsVersion : "v" + root.qsVersion
-            color: Color.mOnSurface
-            font.weight: Style.fontWeightBold
-          }
-
-          // Git revision in parentheses
-          NText {
-            id: qsRevisionText
-            visible: root.qsRevision !== ""
-            text: "(" + root.qsRevision + ")"
-            color: qsRevisionMouseArea.containsMouse ? Color.mPrimary : Color.mOnSurfaceVariant
-            pointSize: Style.fontSizeXS
-            font.underline: qsRevisionMouseArea.containsMouse
-
-            MouseArea {
-              id: qsRevisionMouseArea
-              anchors.fill: parent
-              hoverEnabled: true
-              cursorShape: Qt.PointingHandCursor
-              onEntered: TooltipService.show(qsRevisionText, I18n.tr("panels.about.view-commit"))
-              onExited: TooltipService.hide()
-              onClicked: {
-                Quickshell.execDetached(["xdg-open", "https://github.com/noctalia-dev/noctalia-qs/commit/" + root.qsRevision]);
-              }
-            }
-          }
-
-          // Update status indicator
-          NIcon {
-            id: qsUpToDateIcon
-            visible: root.qsIsUpToDate
-            icon: "circle-check"
-            pointSize: Style.fontSizeM
-            color: Color.mPrimary
-
-            MouseArea {
-              anchors.fill: parent
-              hoverEnabled: true
-              onEntered: TooltipService.show(qsUpToDateIcon, I18n.tr("panels.about.up-to-date"))
-              onExited: TooltipService.hide()
-            }
-          }
-
-          NIcon {
-            id: qsUpdateAvailableIcon
-            visible: root.qsUpdateAvailable
-            icon: "arrow-up-circle"
-            pointSize: Style.fontSizeS
-            color: Color.mPrimary
-
-            MouseArea {
-              anchors.fill: parent
-              hoverEnabled: true
-              onEntered: TooltipService.show(qsUpdateAvailableIcon, I18n.tr("panels.about.update-available"))
-              onExited: TooltipService.hide()
-            }
-          }
-        }
-
-        // Latest Quickshell Version
-        NText {
-          visible: root.qsUpdateAvailable
-          text: I18n.tr("panels.about.noctalia-available")
-          color: Color.mOnSurfaceVariant
-          Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
-        }
-
-        NText {
-          visible: root.qsUpdateAvailable
-          text: GitHubService.latestQSVersion
-          color: Color.mOnSurface
-          font.weight: Style.fontWeightBold
-        }
-      }
+    NText {
+      // RYOKU: single clean version line (helper version already includes the
+      // commit). Ryoku update status lives in the System Updates section below.
+      text: (RyokuAbout.info && RyokuAbout.info.version) ? RyokuAbout.info.version : (root.currentVersion.length > 0 ? root.currentVersion : "—")
+      color: Color.mOnSurfaceVariant
+      pointSize: Style.fontSizeS
+      Layout.alignment: Qt.AlignHCenter
     }
   }
 

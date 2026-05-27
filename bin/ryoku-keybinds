@@ -1,0 +1,88 @@
+#!/bin/bash
+# ryoku-keybinds — list and safely manage Hyprland keybinds for the settings UI.
+#
+# Reads all live binds from `hyprctl binds -j`. User add/edit/delete operations
+# are persisted to a dedicated overlay file (never the user's main hyprland.conf)
+# and applied live with `hyprctl keyword`, so changes take effect immediately and
+# survive a reload/restart. Editing a default bind is done by overriding it in the
+# overlay (unbind + bind).
+
+set -euo pipefail
+
+hypr_dir="${XDG_CONFIG_HOME:-$HOME/.config}/hypr"
+main_conf="$hypr_dir/hyprland.conf"
+overlay="$hypr_dir/ryoku-keybinds.conf"
+source_line="source = ~/.config/hypr/ryoku-keybinds.conf"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  ryoku-keybinds list                                 # all binds as JSON
+  ryoku-keybinds add  "<MODS>" "<KEY>" "<DISPATCHER>" "<ARG>"
+  ryoku-keybinds remove "<MODS>" "<KEY>"
+  ryoku-keybinds reload                               # hyprctl reload
+MODS is space-separated (e.g. "SUPER SHIFT") or empty. ARG may be empty.
+EOF
+}
+
+ensure_overlay() {
+  mkdir -p "$hypr_dir"
+  if [[ ! -f $overlay ]]; then
+    printf '# Managed by ryoku settings — user keybind overrides.\n# Sourced from hyprland.conf; edited via Settings > General > Keybinds.\n' >"$overlay"
+  fi
+  # Ensure the main config sources the overlay (one-time, idempotent append).
+  if [[ -f $main_conf ]] && ! grep -qF "$source_line" "$main_conf"; then
+    printf '\n%s\n' "$source_line" >>"$main_conf"
+  fi
+}
+
+# Reduce a Hyprland flag string ("SUPER SHIFT") to canonical, trimmed form.
+norm_mods() {
+  # shellcheck disable=SC2001
+  echo "$1" | tr 'a-z' 'A-Z' | sed 's/^ *//;s/ *$//;s/  */ /g'
+}
+
+cmd_list() {
+  hyprctl binds -j
+}
+
+cmd_add() {
+  (($# == 4)) || { echo "ryoku-keybinds: expected add MODS KEY DISPATCHER ARG" >&2; return 2; }
+  local mods key disp arg spec
+  mods="$(norm_mods "$1")"; key="$2"; disp="$3"; arg="$4"
+  [[ -n $key && -n $disp ]] || { echo "ryoku-keybinds: KEY and DISPATCHER are required" >&2; return 2; }
+  ensure_overlay
+  spec="$mods, $key, $disp${arg:+, $arg}"
+  # Persist, then apply live.
+  printf 'bind = %s\n' "$spec" >>"$overlay"
+  hyprctl keyword bind "$spec" >/dev/null
+  echo "added: bind = $spec"
+}
+
+cmd_remove() {
+  (($# == 2)) || { echo "ryoku-keybinds: expected remove MODS KEY" >&2; return 2; }
+  local mods key
+  mods="$(norm_mods "$1")"; key="$2"
+  [[ -n $key ]] || { echo "ryoku-keybinds: KEY is required" >&2; return 2; }
+  ensure_overlay
+  # Override/disable the bind via the overlay, then apply live.
+  printf 'unbind = %s, %s\n' "$mods" "$key" >>"$overlay"
+  hyprctl keyword unbind "$mods, $key" >/dev/null
+  echo "removed: $mods, $key"
+}
+
+cmd_reload() {
+  if command -v ryoku-reload-hyprland >/dev/null 2>&1; then
+    exec ryoku-reload-hyprland
+  fi
+  exec hyprctl reload
+}
+
+case "${1:-}" in
+  list) shift; cmd_list "$@" ;;
+  add) shift; cmd_add "$@" ;;
+  remove) shift; cmd_remove "$@" ;;
+  reload) shift; cmd_reload "$@" ;;
+  -h | --help | "") usage ;;
+  *) echo "ryoku-keybinds: unknown command: ${1:-}" >&2; usage >&2; return 2 2>/dev/null || exit 2 ;;
+esac
