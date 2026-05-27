@@ -1,61 +1,56 @@
 ---
 title: Customize
-description: Themes, wallpapers, bar items, keybinds. Most customization is reachable from Settings; advanced changes live in well-marked config files.
+description: Appearance, wallpapers, taskbar controls, widgets, and keybinds. Most customization is reachable from Settings; advanced changes live in well-marked config files.
 ---
-
-<Note>
-This page is being expanded. The skeleton is here; per-surface deep dives land next.
-</Note>
 
 ## Settings (`Mod+,`)
 
 Most knobs are here:
 
-- **Appearance:** theme family (Material, Aurora, Angel, Ryoku-Shell, Cards), accent color, panel family (`ii` ↔ `waffle`), font scale, animations on/off.
-- **Background:** wallpaper picker, color generation source, video / GIF wallpapers, dynamic parallax, vignette.
-- **Bar:** toggle every widget, rearrange order, pick which monitor each instance lives on.
-- **Sidebar:** which tabs show up, default tab, gestures.
+- **Appearance:** mode, color scheme, Material color variant, transparency, geometry, font scale, and animation timing.
+- **Background:** wallpaper source, color generation, visualizer, and desktop widget controls.
+- **Taskbar:** persistent/reveal behavior, workspaces, active-window display, tray, clock, status icons, and scroll actions.
+- **Island:** media island behavior and audio visualizer controls.
+- **Sidebar:** enablement, reveal threshold, panel rounding, and shadow.
 - **Lock / Login:** SDDM theme, lock screen layout.
-- **Updates:** auto-check interval, terminal-on-update.
-- **Interactions:** scroll speed, dead-pixel workaround, hover thresholds.
+- **System / Services:** update channel, smart color scheme, audio, and service-backed toggles.
+- **Hyprland:** compositor-facing settings that Ryoku exposes through the control center.
+- **Widgets:** desktop clock, media, resources, weather, battery, and edit-mode controls.
 
-Every bar widget is meant to be toggleable, removable, and rearrangeable from Settings → Bar. If something can't be turned off there, that's a bug: file it.
+Settings writes through typed Ryoku shell config and command adapters. If a system behavior needs package, service, network, display, power, wallpaper, or hardware changes, it should go through a named `ryoku-*` command rather than a one-off QML side effect.
 
 ## Wallpapers
 
-- Use Settings to open the wallpaper picker.
+- Use Settings to open wallpaper and background controls.
 - Drop files into `~/Pictures/Wallpapers`. The picker auto-discovers new ones.
-- The left sidebar's **Wallhaven** tab searches and applies wallpapers from wallhaven.cc directly.
+- The launcher and background controls expose the current wallpaper picker.
 - Theme colors regenerate from the selected wallpaper unless you've set a static accent in Settings → Appearance.
 
 Per-monitor wallpapers are configurable in Settings → Background → Multi-monitor.
 
-## Themes
+## Appearance
 
-Ryoku ships five panel skins:
-
-- **Material:** Material 3 default.
-- **Aurora:** translucent, blurred, dim.
-- **Angel:** bright, glass-card, high-contrast.
-- **Ryoku-Shell:** Greek Noir, brand-aligned.
-- **Cards:** flat surfaces, minimal chrome.
-
-Switch in Settings → Appearance. Each skin reads the same color tokens, so changing wallpaper changes them all at once.
+Settings → Appearance controls the active mode, generated color scheme,
+Material variant, transparency, rounding, padding, spacing, font scale, and
+animation timing. Those values flow through the typed config layer and shared
+tokens so the taskbar, panels, dashboard, launcher, lock-adjacent surfaces, and
+control center stay visually aligned.
 
 ## Keybinds
 
-The shipped binds live in `~/.config/hypr/hyprland.conf`, with user additions sourced from `~/.config/hypr/ryoku-user-binds.conf`. To override:
+The shipped binds live in `~/.config/hypr/hyprland.conf`. To customize:
 
-- Add user binds through `ryoku-keybinds add ...` or edit `~/.config/hypr/ryoku-user-binds.conf`.
-- Hyprland loads that file from the main config, so user entries stay separate from shipped defaults.
-- Use `Mod+,` to open Settings and the **Keybindings** tab there for the documented shipped binding baseline.
+- Edit `~/.config/hypr/hyprland.conf` directly if you know Hyprland syntax.
+- Keep a backup before replacing shipped binds; future Ryoku defaults may arrive through migrations or refresh commands.
+- Use `docs/keybindings.md` for the documented shipped binding baseline.
 
 ## Advanced
 
 For anything that doesn't have a Settings switch:
 
 - **Hyprland layout:** `~/.config/hypr/hyprland.conf`. Hyprland docs: https://wiki.hypr.land/
-- **Shell config (raw JSON):** `~/.config/ryoku-shell/config.json`. Settings writes here; you can hand-edit when you know what you want.
+- **Shell config (raw JSON):** `~/.config/ryoku/shell.json`. Settings writes here; you can hand-edit when you know what you want.
+- **Shell token overrides:** `~/.config/ryoku/shell-tokens.json`.
 - **Theme palette overrides:** `~/.config/matugen/templates/` and `~/.local/state/quickshell/user/generated/`. See [`docs/branding.md`](/docs/branding) for the brand-color anchors.
 
 The [customization inventory](/docs/customization-inventory) is the authoritative list of every text-based surface you can safely touch.

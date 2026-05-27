@@ -21,6 +21,19 @@ assert_no_path() {
   [[ ! -e $ROOT_DIR/$path ]] || fail "$path should not exist"
 }
 
+assert_not_active_tracked_path() {
+  local path="$1"
+
+  [[ ! -e $ROOT_DIR/$path ]] || fail "$path should not exist"
+
+  if ! git -C "$ROOT_DIR" ls-files --error-unmatch "$path" >/dev/null 2>&1; then
+    return
+  fi
+
+  git -C "$ROOT_DIR" diff --name-status -- "$path" | grep -Eq "^D[[:space:]]+$path$" || \
+    fail "$path should be removed from tracked documentation"
+}
+
 assert_contains() {
   local path="$1"
   local pattern="$2"
@@ -136,9 +149,23 @@ assert_brand_assets_are_grouped() {
   assert_no_path "logo"
 }
 
-assert_root_docs_are_grouped() {
-  assert_file "docs/TODO.md"
+assert_docs_archive_policy() {
+  assert_contains ".gitignore" '^docs/_archive/$' \
+    "Retired docs archive should be ignored"
+  assert_file "docs/README.md"
+  assert_no_path "docs/TODO.md"
   assert_no_path "todo.md"
+
+  while IFS= read -r archived_path; do
+    [[ -n $archived_path ]] || continue
+    if git -C "$ROOT_DIR" ls-files --error-unmatch "$archived_path" >/dev/null 2>&1; then
+      fail "$archived_path should be local archive material, not tracked documentation"
+    fi
+  done < <(find "$ROOT_DIR/docs/_archive" -type f -print 2>/dev/null | sed "s#^$ROOT_DIR/##")
+
+  for retired_doc in docs/pixel-mascots.md docs/ryokudesign.md; do
+    assert_not_active_tracked_path "$retired_doc"
+  done
 }
 
 assert_asset_references_are_updated() {
@@ -162,8 +189,9 @@ assert_asset_references_are_updated() {
     "Post-install finished screen should read the grouped ASCII logo"
   assert_no_path "docs/media/showcase.mp4"
   assert_no_path "docs/media/showcase-poster.jpg"
-  assert_contains "README.md" 'img\.youtube\.com/vi/u3rzJe3d49U/maxresdefault\.jpg' \
-    "README should use the current YouTube showcase thumbnail"
+  assert_file "showcase.png"
+  assert_contains "README.md" 'showcase\.png' \
+    "README should use the current local showcase image"
   assert_contains "README.md" 'https://discord\.gg/8KjBmUEyKA' \
     "README should link to the Ryoku Discord"
   assert_contains "README.md" 'https://www\.reddit\.com/r/RyokuArch/' \
@@ -183,10 +211,12 @@ assert_asset_references_are_updated() {
     "Ryoku version command should read the canonical shell version"
   assert_not_contains "bin/ryoku-version" 'shell/VERSION' \
     "Ryoku version command should not read the legacy shell version file"
-  assert_contains "shell/services/ShellUpdates.qml" ':VERSION' \
-    "Shell update UI should read the remote canonical shell version"
-  assert_not_contains "shell/services/ShellUpdates.qml" ':shell/VERSION|/shell/VERSION' \
-    "Shell update UI should not read the legacy shell version file"
+  assert_contains "shell/scripts/ryoku-settings-about" 'repo_path / "VERSION"' \
+    "Settings about helper should read the canonical release version"
+  assert_not_contains "shell/scripts/ryoku-settings-about" 'shell/VERSION' \
+    "Settings about helper should not read the legacy shell version file"
+  assert_contains "shell/noctalia/Modules/Panels/Settings/Tabs/About/VersionSubTab.qml" 'RyokuAbout\.info && RyokuAbout\.info\.version' \
+    "Noctalia About page should display the version reported by the helper"
 }
 
 assert_shellcheck_workflow
@@ -195,7 +225,7 @@ assert_woke_workflow
 assert_qmllint_workflow
 assert_trivy_noise_controls
 assert_brand_assets_are_grouped
-assert_root_docs_are_grouped
+assert_docs_archive_policy
 assert_asset_references_are_updated
 
 echo "PASS: repo hygiene"

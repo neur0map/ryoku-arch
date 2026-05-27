@@ -3,22 +3,18 @@ title: Troubleshooting
 description: Where logs live, common boot/login/network issues, and how to report a useful bug.
 ---
 
-<Note>
-This page is being expanded. Add common issues as they get reported.
-</Note>
-
 ## Where logs live
 
 | What | Where |
 |---|---|
-| Ryoku shell (the bar / sidebars / lock) | `journalctl --user -u ryoku-shell` |
+| Ryoku shell (taskbar, panels, lock-adjacent surfaces) | `journalctl --user -u ryoku-shell` |
 | Hyprland (the compositor) | `journalctl --user -u hyprland`, `hyprctl monitors` |
 | SDDM (the login screen) | `sudo journalctl -u sddm` |
 | Updater | `~/.local/state/quickshell/user/update.log` |
 | OpenVPN connections | `journalctl --user -u openvpn@<profile>` |
 | Kernel / hardware | `dmesg`, `journalctl -k` |
 
-## The bar / sidebar isn't drawing
+## The taskbar or panels are not drawing
 
 If core shell surfaces are missing, a shell or Hyprland restart path may have failed.
 
@@ -29,8 +25,8 @@ hyprctl binds
 
 The most common causes:
 
-- **Recent `ryoku-update` broke the shell**: snapshot rollback restores the last working state. `ryoku-update --list-snapshots` then `ryoku-update --restore <id>`.
-- **Custom config error**: `~/.config/ryoku-shell/config.json` got malformed (often after hand-editing). The shell will fall back to defaults if you move it aside.
+- **Recent `ryoku-update` broke the shell**: `ryoku-snapshot restore` enters the Limine/Snapper restore flow when Snapper is available.
+- **Custom config error**: `~/.config/ryoku/shell.json` got malformed (often after hand-editing). The shell will fall back to defaults if you move it aside.
 - **Quickshell binary mismatch**: a system update bumped Qt/Quickshell out of sync with the shell sources. Re-running `ryoku-update` usually fixes it.
 
 ## Login screen is broken / can't log in
@@ -45,9 +41,9 @@ If Hyprland starts fine from the TTY, SDDM is the problem. Check `sudo journalct
 
 ## Network is offline
 
-- The right sidebar's wifi toggle takes effect immediately. If it didn't, check `nmcli device status`.
-- If you're tunneled through OpenVPN and the SecPulse pill says connected but you can't reach anything, `nmcli connection show` and look for a leak or split-routing issue.
-- The right sidebar's **Network monitor** tab shows listening sockets, active connections, and ping latency in real time.
+- If the shell network toggle does not take effect immediately, check `nmcli device status`.
+- If you're tunneled through OpenVPN or Tailscale and the shell says connected but you can't reach anything, `nmcli connection show` and look for a leak or split-routing issue.
+- For low-level network state, use `nmcli`, `ip route`, and the relevant VPN service logs.
 
 ## Performance feels off
 
@@ -62,7 +58,7 @@ Open an issue at [`neur0map/ryoku-arch`](https://github.com/neur0map/ryoku-arch/
 1. **What you did** — keystrokes, clicks, or commands.
 2. **What happened** — what you saw, including screenshots when relevant.
 3. **What you expected**.
-4. **Output of `ryoku-update --check`** — pinpoints which commit you're on.
+4. **Update proof** — include the `Ryoku update result:` block from the last `ryoku-update`, or the output of `ryoku-doctor`.
 5. **Relevant log slice** — last 50 lines of `journalctl --user -u ryoku-shell` is usually enough for shell issues.
 
 Security-sensitive issues go through [SECURITY.md](https://github.com/neur0map/ryoku-arch/blob/main/SECURITY.md), not the public tracker.

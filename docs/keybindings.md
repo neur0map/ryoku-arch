@@ -41,7 +41,7 @@ Source of truth: Hyprland loads shipped binds from `config/hypr/hyprland.conf`.
 | `Mod+Alt+E` | Yazi. |
 | `Mod+B` | Helium browser. |
 | `Mod+N` | Neovim. |
-| `Mod+O` | Obsidian. |
+| `Mod+Alt+O` | Obsidian. |
 
 ## Window Management
 

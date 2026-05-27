@@ -7,7 +7,8 @@ description: Download the signed ISO, verify it, and install it onto your hardwa
 
 Signed alpha builds are published on the website at [`ryoku.dev`](https://ryoku.dev/).
 Go to the site and use the Downloads section to get the ISO, signature, and
-checksums for your exact stable or preview track.
+checksums. The direct stable artifact manifest is
+`https://iso.ryoku.dev/stable/latest.json`.
 
 ## 2. Verify the signature
 
@@ -60,7 +61,7 @@ Boot the USB on the target machine. The ISO ships a guided install path:
 1. The live environment auto-launches the **Ryoku Configurator**, a front end to [`archinstall`](https://github.com/archlinux/archinstall) tuned for Ryoku defaults.
 2. You answer a short series of prompts: keyboard layout, locale, timezone, hostname, user, password, disk, partition scheme, filesystem.
 3. The Configurator hands off to archinstall, which lays down the base Arch system on the selected disk.
-4. When archinstall finishes, the **Ryoku installer** runs automatically: it pulls down the Ryoku package set, theming pipeline, and shell layer, configures SDDM, and stages the first-boot welcome.
+4. When archinstall finishes, the **Ryoku installer** runs automatically: it installs the bundled Ryoku package set, theming pipeline, and shell layer, configures SDDM, and stages the first-boot welcome.
 5. Reboot, eject the USB, and log in.
 
 ## 6. First boot

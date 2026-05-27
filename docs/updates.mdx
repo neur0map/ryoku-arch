@@ -1,85 +1,108 @@
 ---
 title: Updates
-description: How Ryoku updates itself, how the in-shell update overlay works, and how to roll back.
+description: How Ryoku updates itself, how release channels work, and how to recover a stuck checkout.
 ---
 
-Ryoku is rolling. The shell, theme pipeline, and Hyprland config are pulled from the selected Ryoku channel in [`neur0map/ryoku-arch`](https://github.com/neur0map/ryoku-arch): `main` for Stable or `unstable-dev` for Unstable. The Arch package set is rolling too.
+Ryoku is rolling. The installed checkout at `~/.local/share/ryoku` pulls from
+the selected Ryoku channel in [`neur0map/ryoku-arch`](https://github.com/neur0map/ryoku-arch):
+`main` for Stable or `unstable-dev` for Unstable. The Arch package set is
+rolling too.
 
-## What gets updated
+## What Gets Updated
 
-- **Arch packages** — `pacman -Syu` + AUR via your chosen helper.
-- **Ryoku shell** — pulled from `~/.local/share/ryoku/shell`, synced into `~/.config/quickshell/ryoku-shell`.
-- **Migrations** — small one-shot scripts under `~/.local/share/ryoku/migrations/` that fix up config across upgrades (renaming keys, moving files, etc.).
-- **Doctor checks** — health checks for known broken states.
+- **Installed Ryoku checkout**: `ryoku-update-git` fetches the selected channel
+  and updates `~/.local/share/ryoku`.
+- **Arch packages**: `pacman -Syu` plus AUR handling through Ryoku's package
+  helpers.
+- **Ryoku shell**: `install/config/shell.sh` syncs the shell payload into
+  `~/.config/quickshell/ryoku-shell`.
+- **Migrations**: `ryoku-migrate` runs new scripts under
+  `~/.local/share/ryoku/migrations/` once per machine.
+- **Doctor and restart steps**: the update flow prints a final proof block and
+  offers recovery hints if a step fails.
 
-## The shell update overlay
+## Channels
 
-A small update indicator appears in the bar when new commits land on the selected channel. Click it to open the update overlay.
-
-The overlay shows:
-
-- Your current commit + branch.
-- How many commits you're behind.
-- The full list of incoming commits with hashes and one-line subjects.
-- A note that a snapshot of `~/.local/share/ryoku` is taken before the update so you can roll back.
-
-Buttons:
-- **Update Now** — runs the full pipeline (pacman → AUR → shell sync → migrations). Streams progress in a terminal so you see what it does.
-- **Refresh** (circular arrow) — re-runs `git fetch origin` and reloads the incoming commit list without leaving the dialog. Use this if the overlay's been open a while.
-- **Dismiss** — hides the indicator until the next new commit. Doesn't update.
-
-## Updating from a terminal
+Show the active channel:
 
 ```bash
-ryoku-update           # full pipeline
-ryoku-update -y        # full pipeline without interactive prompts
-ryoku-update --shell   # shell-only sync, skip pacman/AUR
-ryoku-update --check   # show what would update, don't apply
+ryoku-channel-current
 ```
 
-`ryoku-update` reads the same status file the overlay does, so progress is visible in both places.
-
-## Rolling back
-
-The updater snapshots `~/.local/share/ryoku` before each run. List snapshots:
+Switch channels:
 
 ```bash
-ryoku-update --list-snapshots
+ryoku-channel-set main
+ryoku-channel-set unstable-dev
 ```
 
-Restore a specific snapshot:
+`ryoku-channel-set` updates the persisted channel, refreshes the matching pacman
+mirror configuration, runs the git update for that channel, takes the normal
+snapshot when available, and then runs the remaining update stages.
+
+## Updating From A Terminal
+
+Run the normal interactive update:
 
 ```bash
-ryoku-update --restore <snapshot-id>
+ryoku-update
 ```
 
-If the shell itself is broken after an update — bar won't draw, sidebar won't open — drop to a TTY (`Ctrl+Alt+F2`), restore the snapshot, log back in.
+Run without the confirmation prompt:
 
-## Update interval
-
-The background check runs every 6 hours by default. Override in **Settings → Updates** or in `~/.config/ryoku-shell/config.json`:
-
-```json
-{
-  "shellUpdates": {
-    "enabled": true,
-    "checkIntervalMinutes": 360
-  }
-}
+```bash
+ryoku-update -y
 ```
 
-Set `enabled: false` to disable the indicator entirely. Periodic checks won't run, but `ryoku-update` still works from the terminal.
+The updater needs sudo authentication for package work. If it is launched from a
+non-interactive surface and sudo is not already authorized, run it from a real
+terminal or run `sudo -v` first.
 
-## If an update fails
+Update logs are written to:
 
-`ryoku-update` prints exactly which step failed and how to retry. The most common failures:
+```text
+~/.local/state/quickshell/user/update.log
+```
 
-- **Network**: the indicator will eventually show a persistent "fetch failed" notification after three consecutive failures. Check your VPN / firewall.
-- **AUR conflict**: a package failed to rebuild against a system library that upgraded. The doctor will surface this; the fix is usually to wait for the AUR maintainer to push a rebuild, or `yay -S --rebuild <pkg>` to force it locally.
-- **Migration error**: one of the migration scripts threw. Read `~/.local/state/quickshell/user/update.log` for the trace; file an issue with that log attached.
-- **Branch cannot fast-forward**: run `ryoku-doctor update`. The doctor can realign old official Ryoku branch history to the selected channel and will refuse arbitrary local commits.
+The final output includes a `Ryoku update result:` block with the installed path,
+channel, checkout commit, remote tip, doctor command, active doctor path, and
+runtime bridge.
 
-## Recovering a stuck checkout
+## Rollback
+
+When Snapper is available, Ryoku creates a system snapshot before the package and
+migration stages:
+
+```bash
+ryoku-snapshot create
+```
+
+To enter the configured Limine/Snapper restore flow:
+
+```bash
+ryoku-snapshot restore
+```
+
+If the shell itself is broken after an update, drop to a TTY (`Ctrl+Alt+F2`),
+log in, run the restore command, then reboot or log back into the graphical
+session.
+
+## If An Update Fails
+
+The most common failures:
+
+- **No sudo terminal**: run from a real terminal, or run `sudo -v` and retry
+  `ryoku-update -y`.
+- **Network or remote fetch failure**: check VPN/firewall state and retry.
+- **AUR or package conflict**: read the failing package line in the update log,
+  then rerun the update after the package conflict is resolved.
+- **Migration error**: read `~/.local/state/quickshell/user/update.log` and run
+  `ryoku-doctor`.
+- **Branch cannot fast-forward**: run `ryoku-doctor update`. The doctor can
+  realign old official Ryoku branch history to the selected channel and will
+  refuse arbitrary local commits.
+
+## Recovering A Stuck Checkout
 
 If `ryoku-update` says `fatal: Not possible to fast-forward, aborting.`, run:
 
@@ -88,14 +111,14 @@ ryoku-doctor update
 ryoku-update -y
 ```
 
-For machines that are already too stuck to receive the fixed local updater or doctor, run the pinned updater bootstrap directly from the public repository:
+For machines that are too stuck to receive the fixed local updater or doctor,
+run the current public bootstrap:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/417f2ea8bfe4915aa199d76c09067a77fe2e16bf/bin/ryoku-update-bootstrap | bash
-~/.local/share/ryoku/bin/ryoku-doctor
-ryoku-update -y
+curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/unstable-dev/bin/ryoku-call911now | bash
 ```
 
-This does not require a GitHub account. The downloaded bootstrap pulls the installed Ryoku checkout from the selected channel, defaults missing channel state to `unstable-dev` for rebirth recovery, repairs stale `~/.local/bin/ryoku-*` command shims, attempts non-interactive `/usr/local/bin/ryoku-*` shim repair when sudo is already authorized, prints the final path/channel/commit proof, then starts the freshly installed updater.
-
-Use the bootstrap path when `ryoku-update` or `ryoku-doctor` looks stale, does not show the `Ryoku update result:` proof block, or still resolves commands from old `.local` or `/usr/local` wrappers. If the bootstrap prints `System shims: skipped`, run `sudo -v`, then run the bootstrap command again. If plain `ryoku-doctor` still looks stale, run the `Doctor command:` path printed by the bootstrap.
+The bootstrap path does not require a GitHub account. It pulls the installed
+Ryoku checkout from the selected channel, repairs stale command shims when it
+can, prints the final path/channel/commit proof, and starts the refreshed
+updater when the environment is ready.

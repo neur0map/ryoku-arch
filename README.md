@@ -15,7 +15,7 @@ feel fast, sharp, and deliberate from first boot.
 [![Hyprland](https://img.shields.io/badge/Hyprland-58E1C2?style=for-the-badge&logoColor=white)](https://hypr.land)
 [![Status: public preview](https://img.shields.io/badge/status-public_preview-F25623?style=for-the-badge)](#status)
 [![Build ISO](https://github.com/neur0map/ryoku-arch/actions/workflows/build-iso.yml/badge.svg)](https://github.com/neur0map/ryoku-arch/actions/workflows/build-iso.yml)
-[![Latest ISO](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fryoku.dev%2Fstable%2Flatest.json&query=%24.tracking_id&label=latest%20ISO&color=F25623&style=for-the-badge)](https://ryoku.dev)
+[![Latest ISO](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fiso.ryoku.dev%2Fstable%2Flatest.json&query=%24.tracking_id&label=latest%20ISO&color=F25623&style=for-the-badge)](https://ryoku.dev)
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/8KjBmUEyKA)
 [![Reddit](https://img.shields.io/badge/Reddit-r%2FRyokuArch-FF4500?style=for-the-badge&logo=reddit&logoColor=white)](https://www.reddit.com/r/RyokuArch/)
 
@@ -37,10 +37,10 @@ The target is a strong desktop or laptop, not a budget box that needs every
 megabyte saved.
 
 The current desktop is Hyprland with a Quickshell shell layer. The install and
-core command shape still descend from Omarchy, and the shell is being shaped
-from Celestia while Ryoku grows its own plugin-first shell. That is intentional
-for now: take the useful base, make the product coherent, then replace borrowed
-parts as Ryoku-owned surfaces mature.
+core command shape still descend from Omarchy, while the active shell is being
+shaped into Ryoku's own plugin-first surface. That is intentional for now: take
+the useful base, make the product coherent, then replace borrowed parts as
+Ryoku-owned surfaces mature.
 
 The goal is simple: power and beauty in the same system. Fast windowing, a
 strict command surface, good defaults, strong visual identity, and plugins that
@@ -69,11 +69,11 @@ Ryoku is not:
 - A budget-PC profile.
 - A minimal window-manager starter kit.
 - A narrow, niche-focused workflow profile.
-- A promise that every borrowed Omarchy or Celestia piece is final.
+- A promise that every borrowed upstream piece is final.
 
 ## What ships
 
-- **Desktop:** Hyprland Wayland session, Quickshell/Celestia-derived shell
+- **Desktop:** Hyprland Wayland session, Quickshell-based shell
   surfaces, launcher, sidebars, dashboard, session controls, and SDDM theming.
 - **Ryoku core:** `ryoku-*` commands for updates, migrations, packages,
   snapshots, hardware helpers, themes, wallpaper, keybinds, and app launchers.
@@ -92,8 +92,8 @@ release is still ahead.
 
 The active workstation track is Hyprland. Development happens on
 `unstable-dev`, then stabilizes into `main` for release users. The shell is in
-transition: Ryoku is using Omarchy install/core ancestry and Celestia shell
-ideas while the Ryoku-owned plugin shell takes shape.
+transition: Ryoku is using Omarchy install/core ancestry while the Ryoku-owned
+plugin shell takes shape.
 
 | Question | Answer |
 |---|---|
@@ -125,7 +125,7 @@ trusting it. Full verification commands are in
 - `config/` Hyprland, terminal, app, and user config seeds.
 - `default/` system defaults, templates, boot assets, and service drop-ins.
 - `install/` installer, package manifests, hardware setup, and first-run flow.
-- `shell/` the current Quickshell/Celestia-derived shell sources.
+- `shell/` the current Quickshell-based Ryoku shell sources.
 - `themes/` Ryoku and user-selectable theme payloads.
 
 ## Documentation
@@ -137,7 +137,7 @@ trusting it. Full verification commands are in
 - [**Customization**](docs/customization-inventory.md) safe text-based customization surfaces.
 - [**Branding**](docs/branding.md) visual and verbal identity.
 - [**ISO build recipe**](docs/iso-build-recipe.md) build recipe and hardware notes.
-- [**Heritage**](docs/omarchy-heritage.md) Omarchy and Celestia inheritance.
+- [**Heritage**](docs/omarchy-heritage.md) upstream inheritance and compatibility boundaries.
 - [**Contributing**](CONTRIBUTING.md) focused ways to help.
 - [**Security policy**](SECURITY.md) private reporting for security-sensitive issues.
 
@@ -145,8 +145,6 @@ trusting it. Full verification commands are in
 
 - [**Omarchy**](https://github.com/basecamp/omarchy) by DHH, for the install
   architecture, command shape, and early Arch desktop foundation.
-- [**Celestia Shell**](https://github.com/caelestia-dots/shell), for the shell
-  ideas Ryoku is currently adapting while its own shell direction matures.
 - [**ActivSpot**](https://github.com/Devvvmn/ActivSpot) by Devvvmn, for Dynamic
   Island code adapted into Ryoku's island work and launcher/island inspiration.
 - [**qylock**](https://github.com/Darkkal44/qylock) by Darkkal44, optional SDDM

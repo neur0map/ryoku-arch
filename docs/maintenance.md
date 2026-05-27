@@ -64,7 +64,8 @@ If a fix changes a default that Ryoku ships but also needs to repair already-ins
 
 | Branch | Local or remote | Tracks | Role |
 |---|---|---|---|
-| `main` | local + `origin/main` | `origin/main` | The Ryoku Arch tip. Users pull this via `ryoku-update`. |
+| `main` | local + `origin/main` | `origin/main` | Stable update channel and release branch. |
+| `unstable-dev` | local + `origin/unstable-dev` | `origin/unstable-dev` | Rolling preview channel for users who selected Unstable. |
 | `upstream-dev` | local only | `upstream/dev` | A passive mirror of omarchy's `dev` branch. Used for browsing upstream state and cherry-picking. Configured `pushRemote=no_push` so it cannot be pushed to `origin` by accident. |
 | `upstream-master` | local only | `upstream/master` | Same as above but for omarchy's stable `master` branch. Configured `pushRemote=no_push`. |
 
@@ -78,16 +79,24 @@ If a fix changes a default that Ryoku ships but also needs to repair already-ins
 
 ## The update loop
 
-The short version: push to `origin/main`, users run `ryoku-update`, changes apply.
+The short version: push to the selected release channel, users run
+`ryoku-update`, and their installed checkout updates from that channel.
 
 ### What `ryoku-update` does
 
 When a user runs `ryoku-update` on their Ryoku Arch system:
 
 1. Prompts for confirmation (or `-y` skips).
-2. Takes a btrfs snapshot via `ryoku-snapshot create` for rollback insurance.
-3. Runs `ryoku-update-git`: `git -C ~/.local/share/ryoku pull --autostash`. This pulls new commits from `origin/main` (which is Ryoku Arch).
-4. Runs `ryoku-update-perform`, which in sequence runs:
+2. Repairs local command bridges so `~/.local/bin/ryoku-*` and system shims
+   point at the installed checkout when possible.
+3. Runs `ryoku-update-git`, which fetches `origin/main` and
+   `origin/unstable-dev`, chooses the persisted channel, switches the installed
+   checkout to that branch, and fast-forwards or safely realigns old official
+   history.
+4. Hands off to the refreshed updater from the updated checkout when the updater
+   itself changed.
+5. Takes a btrfs snapshot via `ryoku-snapshot create` when Snapper is available.
+6. Runs `ryoku-update-perform`, which in sequence runs:
    - `ryoku-update-keyring`: refreshes Arch signing keys.
    - `ryoku-update-system-pkgs`: pacman system upgrade.
    - `install/packaging/base.sh`: installs required repo packages.
@@ -95,9 +104,12 @@ When a user runs `ryoku-update` on their Ryoku Arch system:
    - `install/config/shell.sh`: syncs the Ryoku shell into the user's Quickshell config.
    - `ryoku-migrate`: scans `migrations/*.sh`, runs any new ones, marks them applied.
    - Orphan-package checks, post-update hooks, log analysis, and restart prompts.
-5. Restarts affected components (Hyprland reload, shell restart, etc.) if needed.
+7. Restarts affected components (Hyprland reload, shell restart, etc.) if needed.
 
-Because `git pull` pulls from whatever `origin` points at, and the live clone's `origin` was repointed to `neur0map/ryoku-arch` during the scaffolding pass, your pushes flow through automatically. No user action required to "opt in" to Ryoku changes beyond the initial migration.
+The installed checkout's `origin` should point at
+`https://github.com/neur0map/ryoku-arch.git`. `ryoku-update-git` normalizes that
+remote before fetching so stale private remotes or old branch names do not block
+normal updates.
 
 ### Three categories of changes
 
@@ -122,7 +134,7 @@ cd $HOME/prowl/ryoku-arch
 # edit files
 git add <specific paths>
 git commit -m "[shell] <description>"
-git push origin main
+git push origin <target-branch>
 ```
 
 Commit subjects must start with an impact label, for example `[global] Repair browser opacity defaults` or `[shell] Tighten dashboard focus behavior`. No authorship trailers. No heredoc commit-message block. Plain `-m` flags only.
@@ -155,8 +167,8 @@ ryoku-pkg-add nmap
 
 ```bash
 git add migrations/<timestamp>.sh
-git commit -m "feat: add nmap to baseline tooling"
-git push origin main
+git commit -m "[global] Add nmap to baseline tooling"
+git push origin <target-branch>
 ```
 
 4. On the user's next `ryoku-update`, `ryoku-migrate` runs the new migration, installs nmap, records the migration as applied, and moves on.
@@ -460,11 +472,11 @@ git branch -D main
 Or restore from the btrfs snapshot taken before the migration:
 
 ```bash
-ryoku-snapshot list
-ryoku-snapshot restore <snapshot-id>
+ryoku-snapshot restore
 ```
 
-(Exact rollback command depends on the omarchy snapshot tooling; check `ryoku-snapshot` usage on the target system.)
+`ryoku-snapshot restore` enters the Limine/Snapper restore flow on systems where
+that stack is installed.
 
 ## Mirrorlist refresh
 
