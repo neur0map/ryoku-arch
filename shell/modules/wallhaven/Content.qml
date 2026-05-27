@@ -37,6 +37,10 @@ Item {
     grid.positionViewAtBeginning();
   }
 
+  function menuOpensUp(cellY: real, contentY: real, viewportHeight: real, cellHeight: real): bool {
+    return cellY - contentY >= viewportHeight - cellHeight - 0.5;
+  }
+
   ColumnLayout {
     anchors.fill: parent
     spacing: Tokens.spacing.large
@@ -362,12 +366,14 @@ Item {
             Menu {
               id: imageMenu
 
+              readonly property bool opensUp: root.menuOpensUp(cell.y, grid.contentY, grid.height, grid.cellHeight)
+
               attachTo: tile
               attachSideX: Menu.Right
-              attachSideY: Menu.Bottom
+              attachSideY: imageMenu.opensUp ? Menu.Top : Menu.Bottom
               thisSideX: Menu.Right
-              thisSideY: Menu.Top
-              marginY: Tokens.spacing.small
+              thisSideY: imageMenu.opensUp ? Menu.Bottom : Menu.Top
+              marginY: imageMenu.opensUp ? -Tokens.spacing.small : Tokens.spacing.small
 
               items: [
                 MenuItem {

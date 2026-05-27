@@ -105,6 +105,14 @@ assert_contains shell/modules/wallhaven/Content.qml 'acceptedButtons: Qt\.LeftBu
   "Wallhaven image action button should open from left click and right click"
 assert_contains shell/modules/wallhaven/Content.qml 'onClicked: imageMenu\.expanded = true' \
   "Wallhaven image action button should open the context menu"
+assert_contains shell/modules/wallhaven/Content.qml 'function menuOpensUp\(cellY: real, contentY: real, viewportHeight: real, cellHeight: real\)' \
+  "Wallhaven image menu should detect bottom-row tiles in the visible viewport"
+assert_contains shell/modules/wallhaven/Content.qml 'attachSideY: imageMenu\.opensUp \? Menu\.Top : Menu\.Bottom' \
+  "Wallhaven image menu should attach above bottom-row tiles"
+assert_contains shell/modules/wallhaven/Content.qml 'thisSideY: imageMenu\.opensUp \? Menu\.Bottom : Menu\.Top' \
+  "Wallhaven image menu should flip its own vertical anchor for bottom-row tiles"
+assert_contains shell/modules/wallhaven/Content.qml 'marginY: imageMenu\.opensUp \? -Tokens\.spacing\.small : Tokens\.spacing\.small' \
+  "Wallhaven image menu should leave an upward gap when opened above bottom-row tiles"
 assert_contains shell/modules/wallhaven/Content.qml 'StyledScrollBar\.vertical' \
   "Wallhaven popup grid should be scrollable"
 assert_contains shell/modules/wallhaven/Content.qml 'text: qsTr\("Open in web"\)' \
