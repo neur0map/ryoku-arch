@@ -54,11 +54,20 @@ run_id=${RYOKU_ISO_RUN_ID:-}
 run_number=${RYOKU_ISO_RUN_NUMBER:-}
 run_url=${RYOKU_ISO_RUN_URL:-}
 generated_at=${RYOKU_ISO_GENERATED_AT:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}
-public_base=${RYOKU_ISO_PUBLIC_BASE:-https://iso.ryoku.dev/$channel}
+public_base=${RYOKU_ISO_PUBLIC_BASE:-}
 public_key_name=${RYOKU_ISO_PUBLIC_KEY_NAME:-ryoku-release-key.pub.asc}
 sha_name="$iso_name.sha256"
 manifest_name="$iso_name.json"
 script_name="$iso_name.js"
+
+public_url() {
+  local name=${1-}
+  [[ -n $public_base ]] || {
+    printf ''
+    return
+  }
+  printf '%s/%s' "${public_base%/}" "$name"
+}
 
 (cd "$iso_dir" && sha256sum "$iso_name" "$sig_name" >"$sha_name")
 iso_sha=$(sha256sum "$iso" | awk '{print $1}')
@@ -83,7 +92,7 @@ cat >"$manifest" <<JSON
   "run_number": $(json_string "$run_number"),
   "run_url": $(json_string "$run_url"),
   "generated_at": $(json_string "$generated_at"),
-  "url": $(json_string "$public_base/$iso_name"),
+  "url": $(json_string "$(public_url "$iso_name")"),
   "files": {
     "iso": $(json_string "$iso_name"),
     "signature": $(json_string "$sig_name"),
@@ -93,14 +102,14 @@ cat >"$manifest" <<JSON
     "public_key": $(json_string "$public_key_name")
   },
   "urls": {
-    "iso": $(json_string "$public_base/$iso_name"),
-    "signature": $(json_string "$public_base/$sig_name"),
-    "sha256": $(json_string "$public_base/$sha_name"),
-    "manifest": $(json_string "$public_base/$manifest_name"),
-    "script_manifest": $(json_string "$public_base/$script_name"),
-    "latest": $(json_string "$public_base/latest.json"),
-    "latest_script": $(json_string "$public_base/latest.js"),
-    "public_key": $(json_string "$public_base/$public_key_name")
+    "iso": $(json_string "$(public_url "$iso_name")"),
+    "signature": $(json_string "$(public_url "$sig_name")"),
+    "sha256": $(json_string "$(public_url "$sha_name")"),
+    "manifest": $(json_string "$(public_url "$manifest_name")"),
+    "script_manifest": $(json_string "$(public_url "$script_name")"),
+    "latest": $(json_string "$(public_url "latest.json")"),
+    "latest_script": $(json_string "$(public_url "latest.js")"),
+    "public_key": $(json_string "$(public_url "$public_key_name")")
   },
   "sha256": {
     "iso": $(json_string "$iso_sha"),

@@ -2,10 +2,10 @@
 
 The Ryoku ISO provides a guided Arch install path for Ryoku. It includes the Ryoku Configurator as a front end to archinstall and automatically launches the Ryoku installer after the base system is set up.
 
-## Downloading the latest ISO
+## Public ISO Availability
 
-Signed public ISO links are published through the website at `https://ryoku.dev`.
-The stable artifact manifest is `https://iso.ryoku.dev/stable/latest.json`.
+Public ISO downloads are paused while the beta desktop stack is being cleaned up.
+Use the source build flow below if you want to test a local image.
 
 ## Creating the ISO
 

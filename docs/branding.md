@@ -24,8 +24,7 @@ For documentation, use this lens:
 
 | Subdomain | Purpose |
 |---|---|
-| `ryoku.dev` | Marketing / landing page, install instructions |
-| `ryoku.dev` | Public domain for ISO download endpoints and website documentation |
+| `ryoku.dev` | Marketing / landing page, release status, install instructions |
 | `docs.ryoku.dev` | (optional) hosted version of `docs/` if it grows past README-readable |
 
 Until the site is published, use the GitHub repo URL (`https://github.com/neur0map/ryoku-arch`) as the canonical pointer.

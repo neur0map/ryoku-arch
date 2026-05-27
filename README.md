@@ -15,7 +15,6 @@ feel fast, sharp, and deliberate from first boot.
 [![Hyprland](https://img.shields.io/badge/Hyprland-58E1C2?style=for-the-badge&logoColor=white)](https://hypr.land)
 [![Status: public preview](https://img.shields.io/badge/status-public_preview-F25623?style=for-the-badge)](#status)
 [![Build ISO](https://github.com/neur0map/ryoku-arch/actions/workflows/build-iso.yml/badge.svg)](https://github.com/neur0map/ryoku-arch/actions/workflows/build-iso.yml)
-[![Latest ISO](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fiso.ryoku.dev%2Fstable%2Flatest.json&query=%24.tracking_id&label=latest%20ISO&color=F25623&style=for-the-badge)](https://ryoku.dev)
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/8KjBmUEyKA)
 [![Reddit](https://img.shields.io/badge/Reddit-r%2FRyokuArch-FF4500?style=for-the-badge&logo=reddit&logoColor=white)](https://www.reddit.com/r/RyokuArch/)
 
@@ -87,8 +86,9 @@ Ryoku is not:
 
 ## Status
 
-Public preview. Signed alpha ISOs are downloadable; the first tagged stable
-release is still ahead.
+Public preview. Alpha ISO downloads are paused while Ryoku moves from the
+Niri/iNiR setup to the Hyprland/Caelestia setup and the current bug pass wraps
+up. The first beta and stable release are still ahead.
 
 The active workstation track is Hyprland. Development happens on
 `unstable-dev`, then stabilizes into `main` for release users. The shell is in
@@ -99,15 +99,19 @@ plugin shell takes shape.
 |---|---|
 | Minimum RAM | **16GB+ required.** Use **32GB+** if you expect VMs, gaming, browser-heavy work, or creative tools. This is not a low-resource target. |
 | Target hardware | Modern desktops and stronger laptops. NVIDIA, hybrid, AMD, and Intel graphics are target classes. |
-| Is the ISO downloadable? | Yes, from the [Ryoku website](https://ryoku.dev). See [Download and verify](#download-and-verify). |
+| Is the ISO downloadable? | Not right now. Public ISO downloads are paused until beta is ready. |
+| Can I build it myself? | Yes. Use the [ISO build recipe](docs/iso-build-recipe.md) if you want to build from source. |
 | Is every bundled plugin lane installed by default? | No. Ryoku ships core productivity lanes and extras as optional add-ons. |
 | Secure Boot? | Roadmap. Not automatic yet. |
 | Stability vs. rolling Arch? | Rolling Arch base. `unstable-dev` is the fast track; `main` is the release channel. |
 
-## Download and verify
+## Build From Source
 
-Signed alpha builds are published on the website at `https://ryoku.dev`. Use the
-Download page to get the latest ISO, signature, and checksums.
+Public ISO downloads are paused for now. If you want to test Ryoku anyway, build
+from source with the repo-local ISO tooling:
+
+- [ISO build recipe](docs/iso-build-recipe.md)
+- [Release pipeline notes](docs/release-pipeline.md)
 
 Releases are signed with:
 
