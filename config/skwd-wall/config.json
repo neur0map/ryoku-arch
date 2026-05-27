@@ -1,0 +1,143 @@
+{
+  "compositor": "hyprland",
+  "monitor": "",
+  "general": {
+    "locale": "",
+    "closeOnSelection": true,
+    "reopenAtLastSelection": false
+  },
+  "paths": {
+    "wallpaper": "~/Pictures/Wallpapers",
+    "videoWallpaper": "~/videowalls",
+    "cache": "",
+    "templates": "",
+    "scripts": "",
+    "steam": "",
+    "steamWorkshop": "",
+    "steamWeAssets": ""
+  },
+  "features": {
+    "matugen": false,
+    "ollama": false,
+    "steam": false,
+    "wallhaven": true
+  },
+  "colorSource": "magick",
+  "ollama": {
+    "url": "http://localhost:11434",
+    "model": "gemma3:4b",
+    "consolidateEnabled": true
+  },
+  "steam": {
+    "apiKey": "",
+    "username": ""
+  },
+  "wallhaven": {
+    "apiKey": ""
+  },
+  "matugen": {
+    "schemeType": "scheme-fidelity",
+    "mode": "dark"
+  },
+  "integrations": [
+    {
+      "_comment": "Built-in: MD3 colors for the shell UI (always needed)",
+      "name": "skwd-wall",
+      "template": "quickshell-colors.json",
+      "output": "colors.json"
+    },
+    {
+      "_comment": "MD3 colors for the Skwd shell widgets (skwd-bar etc)",
+      "name": "skwd",
+      "template": "quickshell-colors.json",
+      "output": "~/.cache/skwd/colors.json"
+    },
+    {
+      "name": "kitty",
+      "template": "kitty.conf",
+      "output": "~/.config/kitty/skwd-theme.conf",
+      "reload": "pkill -USR1 kitty"
+    },
+    {
+      "name": "ghostty",
+      "template": "ghostty.conf",
+      "output": "~/.config/ghostty/skwd-theme",
+      "reload": "pkill -USR2 ghostty"
+    },
+    {
+      "name": "niri",
+      "template": "niri-colors.kdl",
+      "output": "niri-primary-color",
+      "reload": "~/.config/skwd-wall/scripts/reload-niri.sh"
+    },
+    {
+      "name": "kde",
+      "template": "kde-colors.colors",
+      "output": "~/.local/share/color-schemes/SkwdMatugen.colors",
+      "reload": "~/.config/skwd-wall/scripts/reload-kde.sh"
+    },
+    {
+      "name": "vscode",
+      "template": "vscode-theme.json",
+      "output": "~/.vscode/extensions/matugen.matugen-theme-1.0.0/themes/matugen-color-theme.json"
+    },
+    {
+      "name": "vesktop",
+      "template": "vesktop.css",
+      "output": "~/.config/vesktop/themes/kitty-match.css"
+    },
+    {
+      "name": "spicetify",
+      "template": "spicetify.ini",
+      "output": "~/.config/spicetify/Themes/Matugen/color.ini",
+      "reload": "~/.config/skwd-wall/scripts/reload-spicetify.sh"
+    },
+    {
+      "name": "spicetify-css",
+      "template": "spicetify.css",
+      "output": "~/.config/spicetify/Themes/Matugen/user.css"
+    },
+    {
+      "name": "yazi",
+      "template": "yazi-theme.toml",
+      "output": "~/.config/yazi/theme.toml"
+    },
+    {
+      "name": "qt6ct",
+      "template": "qt6ct-colors.conf",
+      "output": "~/.config/qt6ct/colors/matugen.conf"
+    },
+    {
+      "_comment": "Update output path with your Zen browser profile directory",
+      "name": "zen",
+      "template": "zen.css",
+      "output": "~/.config/zen/PROFILE_DIR/chrome/userChrome.css"
+    }
+  ],
+  "components": {
+    "wallpaperSelector": {
+      "displayMode": "slices",
+      "sliceSpacing": -30,
+      "hexScrollStep": 1,
+      "customPresets": {}
+    }
+  },
+  "wallpaperMute": true,
+  "pickOnlyMode": true,
+  "externalWallpaperCommand": "",
+  "postProcessing": [
+    "ryoku wallpaper -f \"%path%\""
+  ],
+  "performance": {
+    "imageOptimizePreset": "balanced",
+    "imageOptimizeResolution": "2k",
+    "videoConvertPreset": "balanced",
+    "videoConvertResolution": "2k",
+    "autoOptimizeImages": false,
+    "autoConvertVideos": false,
+    "imageTrashDays": 7,
+    "videoTrashDays": 7,
+    "autoDeleteImageTrash": false,
+    "autoDeleteVideoTrash": false
+  }
+}

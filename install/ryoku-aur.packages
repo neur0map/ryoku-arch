@@ -53,6 +53,13 @@ hyprmod
 # python-terminaltexteffects ships the `tte` binary used by
 # bin/ryoku-launch-screensaver and install/post-install/finished.sh.
 python-terminaltexteffects
+# skwd-wall is ryoku's default wallpaper switcher (SUPER+W -> ryoku-cmd-wallpaper-switcher).
+# It runs in pickOnlyMode and routes the selection back through `ryoku wallpaper -f`, so
+# ryoku stays authoritative for the wallpaper layer and scheme.json. skwd-daemon-bin (the
+# prebuilt daemon backend it talks to) must precede skwd-wall so the ISO overlay builder
+# resolves makepkg --syncdeps from the local build repo instead of the network.
+skwd-daemon-bin
+skwd-wall
 
 # ── Cursors, fonts & icon themes ──────────────────────────────────────
 bibata-cursor-theme-bin
