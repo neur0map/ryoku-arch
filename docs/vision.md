@@ -79,7 +79,7 @@ Near-term priorities:
 
 1. Keep the Hyprland workstation stable enough for daily use on real hardware.
 2. Shape the current Quickshell-based shell into a Ryoku-owned plugin shell.
-3. Keep the ISO signed, downloadable, and verifiable.
+3. Keep ISO builds signed and verifiable while public downloads stay paused for beta cleanup.
 4. Move security-adjacent, developer, media, hardware, and capture workflows into clean
    plugin lanes.
 5. Expand real-hardware install coverage before calling the ISO stable.

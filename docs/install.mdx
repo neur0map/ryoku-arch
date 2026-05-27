@@ -1,14 +1,13 @@
 ---
 title: Install Ryoku
-description: Download the signed ISO, verify it, and install it onto your hardware via the Ryoku Configurator + archinstall front end.
+description: Build a local ISO, verify it, and install it onto your hardware via the Ryoku Configurator + archinstall front end.
 ---
 
-## 1. Download
+## 1. Public ISO Status
 
-Signed alpha builds are published on the website at [`ryoku.dev`](https://ryoku.dev/).
-Go to the site and use the Downloads section to get the ISO, signature, and
-checksums. The direct stable artifact manifest is
-`https://iso.ryoku.dev/stable/latest.json`.
+Public ISO downloads are paused while the Hyprland/Caelestia beta stack is
+being cleaned up. To test Ryoku right now, build a local image from source with
+the [ISO build recipe](/docs/iso-build-recipe).
 
 ## 2. Verify the signature
 
@@ -20,7 +19,7 @@ Fingerprint: 621F 579B D155 94C4 DE84  0B7D 5329 7813 C0BE E055
 
 The canonical public key is also in the repo at [`keys/ryoku-release-key.pub.asc`](https://github.com/neur0map/ryoku-arch/blob/main/keys/ryoku-release-key.pub.asc), bound to git history.
 
-Quick verify (use the exact ISO filename you downloaded):
+Quick verify for a local or private ISO build:
 
 ```bash
 # Import the release key
@@ -38,7 +37,7 @@ sha256sum -c ryoku-<date>-<tracking-id>-x86_64-main.iso.sha256
 
 Full step-by-step verification, including a clean keyring path and the explicit "what good output looks like", is in the [release pipeline](/docs/release-pipeline) doc.
 
-## 3. Create install media
+## 3. Create install media from your local ISO
 
 Pick any of:
 

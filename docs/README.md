@@ -6,7 +6,7 @@ shell, branding, or configuration work.
 
 ## User Docs
 
-- `install.mdx`: download, verify, flash, and install the ISO.
+- `install.mdx`: build or prepare a local ISO, verify it, flash it, and install Ryoku.
 - `first-boot.mdx`: first login expectations and initial actions.
 - `tour.mdx`: Hyprland workspace model and shell surfaces.
 - `keybindings.md`: shipped Hyprland keybinding reference.
@@ -25,7 +25,7 @@ shell, branding, or configuration work.
 
 - `maintenance.md`: branch topology, update path, migrations, CI, and safety rules.
 - `iso-build-recipe.md`: local ISO build and VM verification recipe.
-- `release-pipeline.md`: GitHub Actions ISO publishing, signing, and release manifests.
+- `release-pipeline.md`: GitHub Actions ISO build, signing, artifact handling, and release manifests.
 - `ui-patterns.md`: shell runtime paths, UI patterns, and QML boundaries.
 - `customization-inventory.md`: tracked config and theme surfaces.
 
@@ -34,10 +34,10 @@ shell, branding, or configuration work.
 This cleanup checked active docs against the tracked command, shell-module,
 config, keybinding, ISO, and release files in this repository. User-facing docs
 should describe the current Hyprland + Ryoku shell surface, `~/.config/ryoku`
-typed config, `ryoku-update`, `ryoku-snapshot`, and the `iso.ryoku.dev`
-artifact manifest.
+typed config, `ryoku-update`, `ryoku-snapshot`, and the paused public ISO
+availability state.
 
-Before a release, re-check live website copy, latest ISO metadata, and runtime
+Before a release, re-check live website copy, release metadata, and runtime
 service behavior because those can drift faster than repo docs.
 
 ## Retired Notes
