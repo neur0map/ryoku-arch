@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/brand/logo-mark.png" alt="Ryoku" width="160" />
+<img src="https://raw.githubusercontent.com/neur0map/ryoku-arch/main/assets/brand/logo-mark.png" alt="Ryoku" width="160" />
 
 # Ryoku Arch
 
@@ -21,7 +21,7 @@ feel fast, sharp, and deliberate from first boot.
 <kbd>[Vision](docs/vision.md)</kbd> &middot; <kbd>[Docs](docs/)</kbd> &middot; <kbd>[Customize](docs/customization-inventory.md)</kbd> &middot; <kbd>[Keybindings](docs/keybindings.md)</kbd> &middot; <kbd>[Discord](https://discord.gg/8KjBmUEyKA)</kbd> &middot; <kbd>[Subreddit](https://www.reddit.com/r/RyokuArch/)</kbd>
 
 <p>
-  <img src="showcase.png" alt="Ryoku showcase" width="960" />
+  <img src="https://raw.githubusercontent.com/neur0map/ryoku-arch/main/showcase.png" alt="Ryoku showcase" width="960" />
 </p>
 
 </div>
