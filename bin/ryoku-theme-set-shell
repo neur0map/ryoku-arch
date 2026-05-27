@@ -255,8 +255,32 @@ sync_terminal_files() {
   sync_file "$THEME_DIR/btop.theme" "${XDG_CONFIG_HOME:-$HOME/.config}/btop/themes/ii-auto.theme"
 }
 
+write_shell_scheme() {
+  # RYOKU: write the live shell palette (~/.local/state/ryoku-shell/scheme.json)
+  # from the theme's colors.toml. Colours.qml watches this file and recolors live
+  # (no restart). This is the only palette source the new shell actually reads.
+  local state_dir scheme_file theme_name converter tmp
+  state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-shell"
+  scheme_file="$state_dir/scheme.json"
+  theme_name="$(cat "$RYOKU_CONFIG_PATH/current/theme.name" 2>/dev/null || echo custom)"
+  converter="$(command -v ryoku-theme-to-scheme || true)"
+  [[ -n $converter && -f $COLORS_FILE ]] || return 0
+  mkdir -p "$state_dir"
+  tmp="$(mktemp)"
+  if "$converter" "$COLORS_FILE" --name "$theme_name" >"$tmp" 2>/dev/null && [[ -s $tmp ]]; then
+    mv "$tmp" "$scheme_file"
+    # mark bridge state so a later dark/light toggle re-derives THIS theme
+    # (instead of reverting to a built-in flavour palette)
+    printf '%s\n' "$theme_name" >"$state_dir/scheme.name" 2>/dev/null || true
+    printf 'custom\n' >"$state_dir/scheme.flavour" 2>/dev/null || true
+  else
+    rm -f "$tmp"
+  fi
+}
+
 main() {
   read_theme_colors || exit 0
+  write_shell_scheme
   update_shell_config
   sync_terminal_files
 }

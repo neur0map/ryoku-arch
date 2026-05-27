@@ -419,7 +419,10 @@ scheme_preview() {
 
   payload="$(scheme_json "$name" "$flavour" "$variant" "$mode")"
   mkdir -p "$state_dir"
-  printf '%s\n' "$payload" >"$scheme_file"
+  local ptmp
+  ptmp="$(mktemp)"
+  printf '%s\n' "$payload" >"$ptmp"
+  mv "$ptmp" "$scheme_file"
   printf '%s\n' "$payload"
 }
 
@@ -428,6 +431,8 @@ scheme_set() {
   local flavour
   local variant
   local mode
+  local explicit_flavour=0
+  local tmp
 
   name="$(read_state name ryoku)"
   flavour="$(read_state flavour default)"
@@ -443,6 +448,7 @@ scheme_set() {
       -f)
         shift
         flavour="${1:-$flavour}"
+        explicit_flavour=1
         ;;
       -v)
         shift
@@ -462,11 +468,36 @@ scheme_set() {
     shift
   done
 
+  # RYOKU: a wallpaper-derived scheme re-derives from the current wallpaper in the
+  # requested mode, so the dark/light toggle switches wallpaper colours live.
+  if [[ $flavour == "wallpaper" && $explicit_flavour -eq 0 ]]; then
+    apply_wallpaper_scheme "$mode" && return 0
+  fi
+
+  # RYOKU: when a custom ryoku theme is the active source and the caller did not
+  # explicitly pick a built-in flavour, preserve the theme (re-derive it from its
+  # colors.toml in its native mode) instead of reverting to a flavour palette — so
+  # the dark/light toggle never wipes an applied theme. Atomic write = live reload.
+  local theme_colors="${XDG_CONFIG_HOME:-$HOME/.config}/ryoku/current/theme/colors.toml"
+  if [[ $flavour == "custom" && $explicit_flavour -eq 0 && -f $theme_colors ]] \
+    && command -v ryoku-theme-to-scheme >/dev/null 2>&1; then
+    write_state name "$name"
+    write_state flavour "custom"
+    tmp="$(mktemp)"
+    if ryoku-theme-to-scheme "$theme_colors" --name "$name" >"$tmp" 2>/dev/null && [[ -s $tmp ]]; then
+      mv "$tmp" "$scheme_file"
+      return 0
+    fi
+    rm -f "$tmp"
+  fi
+
   write_state name "$name"
   write_state flavour "$flavour"
   write_state variant "$variant"
   write_state mode "$mode"
-  scheme_json "$name" "$flavour" "$variant" "$mode" >"$scheme_file"
+  tmp="$(mktemp)"
+  scheme_json "$name" "$flavour" "$variant" "$mode" >"$tmp"
+  mv "$tmp" "$scheme_file"
 }
 
 scheme_command() {
@@ -485,6 +516,9 @@ scheme_command() {
       ;;
     set)
       scheme_set "$@"
+      ;;
+    from-wallpaper)
+      apply_wallpaper_scheme "$@"
       ;;
     *)
       usage
@@ -506,10 +540,40 @@ wallpaper_type() {
   esac
 }
 
+current_wallpaper() {
+  local wp
+  wp="$(head -n1 "$wallpaper_dir/path.txt" 2>/dev/null || true)"
+  [[ -n $wp ]] || wp="$(readlink -f "${XDG_CONFIG_HOME:-$HOME/.config}/ryoku/current/background" 2>/dev/null || true)"
+  printf '%s\n' "$wp"
+}
+
+# RYOKU: generate the live shell scheme.json from the current wallpaper's colors.
+# Atomic write so Colours.qml hot-reloads. flavour="wallpaper" keeps the dark/light
+# toggle enabled (a wallpaper scheme supports both modes).
+apply_wallpaper_scheme() {
+  local mode="${1:-$(read_state mode dark)}"
+  local wp tmp
+  command -v ryoku-wallpaper-to-scheme >/dev/null 2>&1 || return 1
+  wp="$(current_wallpaper)"
+  [[ -n $wp && -f $wp ]] || return 1
+  mkdir -p "$state_dir"
+  tmp="$(mktemp)"
+  if ryoku-wallpaper-to-scheme "$wp" --mode "$mode" >"$tmp" 2>/dev/null && [[ -s $tmp ]]; then
+    mv "$tmp" "$scheme_file"
+    write_state name wallpaper
+    write_state flavour wallpaper
+    write_state mode "$mode"
+    return 0
+  fi
+  rm -f "$tmp"
+  return 1
+}
+
 wallpaper_command() {
   local preview=false
   local apply=false
   local path=""
+  local smart=true
 
   while (($# > 0)); do
     case "$1" in
@@ -524,6 +588,7 @@ wallpaper_command() {
         path="${1:-}"
         ;;
       --no-smart)
+        smart=false
         ;;
       *)
         echo "ryoku: unknown wallpaper argument: $1" >&2
@@ -545,13 +610,22 @@ wallpaper_command() {
     }
 
     mkdir -p "$wallpaper_dir"
-    printf '%s\n' "$path" >"$wallpaper_dir/path.txt"
+    # RYOKU: atomic write so the shell's FileView watch on path.txt reliably fires
+    # (the shell then debounces + regenerates wallpaper colours — see Wallpapers.qml).
+    local wptmp
+    wptmp="$(mktemp)"
+    printf '%s\n' "$path" >"$wptmp"
+    mv "$wptmp" "$wallpaper_dir/path.txt"
 
     if [[ -x $ryoku_path/bin/ryoku-wallpaper-apply ]]; then
       "$ryoku_path/bin/ryoku-wallpaper-apply" --type "$(wallpaper_type "$path")" "$path" >/dev/null || true
     elif command_present ryoku-wallpaper-apply; then
       ryoku-wallpaper-apply --type "$(wallpaper_type "$path")" "$path" >/dev/null || true
     fi
+
+    # NOTE: wallpaper-colour regeneration is handled shell-side (debounced) on the
+    # path.txt change when smartScheme is on; $smart is kept for CLI compatibility.
+    : "$smart"
 
     printf '%s\n' "$path"
     return 0

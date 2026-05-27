@@ -19,6 +19,7 @@ Searcher {
     property string previewPath
     property string actualCurrent
     property bool previewColourLock
+    property bool smartInitialised: false
 
     function setWallpaper(path: string): void {
         actualCurrent = path;
@@ -62,6 +63,15 @@ Searcher {
         target: "wallpaper"
     }
 
+    // RYOKU: regenerate wallpaper colours a moment after the wallpaper changes,
+    // so it auto-applies on any switch (picker, rotation, CLI). Debounced to give
+    // the extractor time to think and to coalesce rapid changes.
+    Timer {
+        id: smartSchemeTimer
+        interval: 500
+        onTriggered: Quickshell.execDetached(["ryoku", "scheme", "from-wallpaper"])
+    }
+
     FileView {
         path: root.currentNamePath
         watchChanges: true
@@ -69,6 +79,14 @@ Searcher {
         onLoaded: {
             root.actualCurrent = text().trim();
             root.previewColourLock = false;
+            // Skip the very first load at startup — Colours.qml already derives
+            // wallpaper colours on launch; only react to subsequent changes.
+            if (root.smartInitialised) {
+                if (GlobalConfig.services.smartScheme)
+                    smartSchemeTimer.restart();
+            } else {
+                root.smartInitialised = true;
+            }
         }
     }
 

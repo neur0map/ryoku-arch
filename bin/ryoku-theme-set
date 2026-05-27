@@ -44,10 +44,11 @@ ryoku-theme-bg-next
 # the selected Ryoku theme instead of wallpaper-generated colors.
 ryoku-theme-set-shell
 
-# Restart components to apply new theme
+# Restart components to apply new theme.
+# RYOKU: the shell is NOT restarted — ryoku-theme-set-shell writes the live
+# scheme.json atomically and Colours.qml hot-reloads it (no jarring restart).
 ryoku-restart-terminal
 ryoku-restart-btop
-ryoku-restart-shell >/dev/null 2>&1 || true
 
 # Change app-specific themes
 ryoku-theme-set-gnome

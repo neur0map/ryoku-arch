@@ -98,7 +98,14 @@ Singleton {
         Hypr.extras.batchMessage([str.arg("blur").arg(transparency.enabled ? 1 : 0), str.arg("ignore_alpha").arg(transparency.base - 0.03)]);
     }
 
-    Component.onCompleted: debounceTimer.triggered()
+    Component.onCompleted: {
+        debounceTimer.triggered();
+        // RYOKU: when wallpaper colors are enabled, derive the scheme from the
+        // current wallpaper on startup so it auto-applies (and picks up wallpaper
+        // changes that happened while the shell was down).
+        if (GlobalConfig.services.smartScheme)
+            Quickshell.execDetached([Paths.ryokuBridge, "scheme", "from-wallpaper"]);
+    }
 
     Connections {
         function onConfigReloaded(): void {
