@@ -68,7 +68,7 @@ ColumnLayout {
       {
         "name": "Omarchy",
         "desc": "Opinionated Arch / Hyprland system — original base and workflow inspiration.",
-        "icon": "omarchy.png",
+        "icon": "omarchy.svg",
         "url": "https://github.com/basecamp/omarchy"
       },
       {
@@ -96,14 +96,8 @@ ColumnLayout {
         "url": "https://github.com/Darkkal44/qylock"
       },
       {
-        "name": "ActivSpot",
-        "desc": "Dynamic island for Hyprland — basis for ryoku's island.",
-        "icon": "activspot.png",
-        "url": "https://github.com/Devvvmn/ActivSpot"
-      },
-      {
         "name": "Ambxst",
-        "desc": "Quickshell desktop shell — dashboard, widget, and interaction inspiration.",
+        "desc": "Quickshell shell — basis for ryoku's dynamic island, weather and tools.",
         "icon": "ambxst.svg",
         "url": "https://github.com/Axenide/Ambxst"
       }
