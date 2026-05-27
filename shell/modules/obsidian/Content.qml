@@ -20,6 +20,11 @@ Item {
 
     readonly property int currMonth: visibleMonth.getMonth()
     readonly property int currYear: visibleMonth.getFullYear()
+    readonly property int minNoteHeight: Math.max(110, Math.round(panelHeight * 0.16))
+    readonly property int calendarChromeHeight: monthHeaderRow.implicitHeight + weekRow.implicitHeight + calendarContent.spacing * 2 + Tokens.padding.normal * 2
+    readonly property int nonCalendarHeight: headerRow.implicitHeight + noteStatusRow.implicitHeight + minNoteHeight + Tokens.spacing.large * 3
+    readonly property int calendarGridNaturalHeight: Math.round((panelWidth - Tokens.padding.normal * 2) * 0.7)
+    readonly property int calendarGridHeight: Math.max(170, Math.min(calendarGridNaturalHeight, panelHeight - nonCalendarHeight - calendarChromeHeight))
 
     implicitWidth: panelWidth
     implicitHeight: panelHeight
@@ -38,6 +43,8 @@ Item {
         spacing: Tokens.spacing.large
 
         RowLayout {
+            id: headerRow
+
             Layout.fillWidth: true
             spacing: Tokens.spacing.normal
 
@@ -105,6 +112,8 @@ Item {
                 spacing: Tokens.spacing.small
 
                 RowLayout {
+                    id: monthHeaderRow
+
                     Layout.fillWidth: true
                     spacing: Tokens.spacing.small
 
@@ -132,6 +141,8 @@ Item {
                 }
 
                 DayOfWeekRow {
+                    id: weekRow
+
                     Layout.fillWidth: true
                     locale: monthGrid.locale
 
@@ -150,7 +161,7 @@ Item {
                     id: monthGrid
 
                     Layout.fillWidth: true
-                    implicitHeight: Math.round((root.panelWidth - Tokens.padding.normal * 2) * 0.7)
+                    implicitHeight: root.calendarGridHeight
                     month: root.currMonth
                     year: root.currYear
                     spacing: Tokens.spacing.smaller
@@ -200,10 +211,14 @@ Item {
         }
 
         RowLayout {
+            id: noteStatusRow
+
             Layout.fillWidth: true
             spacing: Tokens.spacing.small
 
             StyledRect {
+                id: recentStrip
+
                 Layout.fillWidth: true
                 implicitHeight: Math.max(newNoteButton.implicitHeight, recentLabel.implicitHeight) + Tokens.padding.smaller * 2
                 radius: Tokens.rounding.large
@@ -325,8 +340,8 @@ Item {
             id: noteViewport
 
             Layout.fillWidth: true
-            Layout.preferredHeight: Math.max(220, root.panelHeight - calendarContent.implicitHeight - 150)
-            Layout.maximumHeight: Layout.preferredHeight
+            Layout.fillHeight: true
+            Layout.minimumHeight: root.minNoteHeight
             visible: true
             opacity: 1
             clip: true

@@ -128,6 +128,12 @@ assert_contains shell/services/ObsidianNotes.qml 'function openSelectedNote' \
   "service should open the selected Obsidian note"
 assert_contains shell/modules/obsidian/Wrapper.qml 'readonly property int expandedHeight' \
   "Obsidian wrapper should support an expanded notes height"
+assert_contains shell/modules/obsidian/Wrapper.qml 'readonly property int maxPanelHeight' \
+  "Obsidian wrapper should clamp itself to each monitor's available height"
+assert_contains shell/modules/obsidian/Wrapper.qml 'screen\.height -' \
+  "Obsidian wrapper height should be derived from monitor height"
+assert_not_contains shell/modules/obsidian/Wrapper.qml 'Math\.max\(610' \
+  "Obsidian wrapper should not force a tall minimum that clips on shorter monitors"
 assert_contains shell/modules/obsidian/Wrapper.qml 'readonly property int panelHeight: expandedHeight' \
   "Obsidian wrapper should keep the notes editor open instead of collapsing to calendar-only"
 assert_contains shell/modules/obsidian/Wrapper.qml 'ObsidianNotes\.notesExpanded = true' \
@@ -138,6 +144,10 @@ assert_contains shell/modules/obsidian/Wrapper.qml 'readonly property bool shoul
   "Obsidian wrapper visibility should be driven by the drawer state"
 assert_contains shell/modules/obsidian/Content.qml 'MonthGrid \{' \
   "Obsidian popup should use a QML MonthGrid calendar"
+assert_contains shell/modules/obsidian/Content.qml 'readonly property int calendarGridHeight' \
+  "Obsidian popup should shrink the calendar grid on shorter monitors"
+assert_contains shell/modules/obsidian/Content.qml 'implicitHeight: root\.calendarGridHeight' \
+  "Obsidian MonthGrid should use the responsive calendar grid height"
 assert_contains shell/modules/obsidian/Content.qml 'DayOfWeekRow \{' \
   "Obsidian popup should include weekday labels"
 assert_not_contains shell/modules/obsidian/Content.qml 'text: qsTr\("Notes"\)' \
@@ -166,6 +176,10 @@ assert_contains shell/modules/obsidian/Content.qml 'type: ObsidianNotes\.hasUnsa
   "save button should switch to the Ryoku primary color when text is unsaved"
 assert_not_contains shell/modules/obsidian/Content.qml 'toggle: true' \
   "notes section should stay open instead of behaving as a collapsible toggle"
+assert_contains shell/modules/obsidian/Content.qml 'Layout\.fillHeight: true' \
+  "note editor should absorb remaining popup height instead of overflowing"
+assert_not_contains shell/modules/obsidian/Content.qml 'Math\.max\(220' \
+  "note editor should not force a fixed 220px minimum that clips the popup"
 assert_contains shell/modules/obsidian/Content.qml 'StyledScrollBar\.vertical' \
   "expanded note editor should be scrollable"
 assert_contains shell/plugin/src/Ryoku/Config/userpaths.hpp 'obsidianVaultDir' \

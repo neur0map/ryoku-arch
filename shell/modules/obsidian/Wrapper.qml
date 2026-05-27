@@ -15,7 +15,8 @@ Item {
 
     readonly property bool shouldBeActive: visibilities.obsidian
     readonly property int panelWidth: Math.min(Math.max(420, Math.round(screen.width * 0.2)), Math.max(380, screen.width - 160))
-    readonly property int expandedHeight: Math.min(720, Math.max(610, screen.height - 90))
+    readonly property int maxPanelHeight: Math.max(360, screen.height - Tokens.padding.large * 2)
+    readonly property int expandedHeight: Math.min(720, maxPanelHeight)
     readonly property int panelHeight: expandedHeight
     property real offsetScale: shouldBeActive ? 0 : 1
 
