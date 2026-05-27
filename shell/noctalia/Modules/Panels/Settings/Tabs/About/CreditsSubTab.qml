@@ -100,6 +100,12 @@ ColumnLayout {
         "desc": "Quickshell shell — basis for ryoku's dynamic island, weather and tools.",
         "icon": "ambxst.svg",
         "url": "https://github.com/Axenide/Ambxst"
+      },
+      {
+        "name": "skwd-wall",
+        "desc": "Aesthetics-first Quickshell wallpaper selector — ryoku's default wallpaper switcher (MIT).",
+        "icon": "skwd-wall.svg",
+        "url": "https://github.com/liixini/skwd-wall"
       }
     ]
 

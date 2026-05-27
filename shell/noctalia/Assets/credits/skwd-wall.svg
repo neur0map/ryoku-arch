@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <!-- skwd-wall: a fanned stack of wallpaper tiles (a nod to its "slices" picker) -->
+  <rect x="34" y="32" width="72" height="56" rx="11" fill="#7c6cd1" opacity="0.40" transform="rotate(9 70 60)"/>
+  <rect x="30" y="34" width="72" height="56" rx="11" fill="#6c7bd1" opacity="0.60" transform="rotate(-5 66 62)"/>
+  <!-- front tile with a simple landscape preview -->
+  <clipPath id="tile"><rect x="22" y="40" width="84" height="60" rx="12"/></clipPath>
+  <rect x="22" y="40" width="84" height="60" rx="12" fill="#e9ecff"/>
+  <g clip-path="url(#tile)">
+    <rect x="22" y="40" width="84" height="60" fill="#dfe4ff"/>
+    <circle cx="45" cy="61" r="10" fill="#ffd166"/>
+    <path d="M22 100 L50 71 L71 92 L88 78 L106 96 L106 100 Z" fill="#5b6fd6"/>
+    <path d="M22 100 L62 79 L106 100 Z" fill="#3f51b5" opacity="0.85"/>
+  </g>
+  <rect x="22" y="40" width="84" height="60" rx="12" fill="none" stroke="#ffffff" stroke-width="2.5" opacity="0.65"/>
+</svg>
