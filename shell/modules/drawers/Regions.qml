@@ -50,6 +50,13 @@ Region {
     }
 
     R {
+        panel: root.panels.obsidian
+        y: root.win.height - height
+        width: root.panelWidth(panel) * (1 - root.panels.obsidian.offsetScale) + root.borderThickness
+        height: root.panelHeight(panel) * (1 - root.panels.obsidian.offsetScale) + root.borderThickness
+    }
+
+    R {
         panel: root.panels.launcher
         height: panel.height + (root.panels.launcher.openProgress > 0 ? root.borderThickness : 0)
     }

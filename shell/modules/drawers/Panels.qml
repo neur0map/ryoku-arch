@@ -8,6 +8,7 @@ import qs.modules.dashboard as Dashboard
 import qs.modules.island as Island
 import qs.modules.launcher as Launcher
 import qs.modules.notifications as Notifications
+import qs.modules.obsidian as Obsidian
 import qs.modules.osd as Osd
 import qs.modules.session as Session
 import qs.modules.sidebar as Sidebar
@@ -34,6 +35,7 @@ Item {
     readonly property alias dashboard: dashboard
     readonly property alias settings: settings
     readonly property alias wallhaven: wallhaven
+    readonly property alias obsidian: obsidian
     readonly property alias popouts: popoutsWrapper.content
     readonly property alias popoutsWrapper: popoutsWrapper
     readonly property alias utilities: utilities
@@ -147,6 +149,16 @@ Item {
 
         anchors.top: parent.top
         anchors.right: parent.right
+    }
+
+    Obsidian.Wrapper {
+        id: obsidian
+
+        screen: root.screen
+        visibilities: root.visibilities
+
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
     }
 
     BarPopouts.ClipWrapper {

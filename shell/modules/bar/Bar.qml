@@ -76,6 +76,11 @@ ColumnLayout {
         }
     }
 
+    function isClockHover(y: real): bool {
+        const ch = childAt(width / 2, y) as WrappedLoader;
+        return ch?.id === "clock";
+    }
+
     function handleWheel(y: real, angleDelta: point): void {
         const ch = childAt(width / 2, y) as WrappedLoader;
         if (ch?.id === "workspaces" && Config.bar.scrollActions.workspaces) {

@@ -10,6 +10,7 @@ PersistentProperties {
     property bool dashboard
     property bool settings
     property bool wallhaven
+    property bool obsidian
     property bool utilities
     property bool sidebar
 
@@ -20,6 +21,7 @@ PersistentProperties {
         island = false;
         dashboard = false;
         wallhaven = false;
+        obsidian = false;
         utilities = false;
         sidebar = false;
     }

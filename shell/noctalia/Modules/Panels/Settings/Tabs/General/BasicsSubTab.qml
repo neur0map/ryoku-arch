@@ -45,6 +45,19 @@ ColumnLayout {
     }
   }
 
+  NFilePicker {
+    id: obsidianVaultPicker
+    title: "Select Obsidian vault"
+    selectionMode: "folders"
+    initialPath: GlobalConfig.paths.obsidianVaultDir || root.homeDir + "/Documents"
+    onAccepted: paths => {
+      if (paths.length > 0) {
+        GlobalConfig.paths.obsidianVaultDir = paths[0];
+        GlobalConfig.save();
+      }
+    }
+  }
+
   // Profile — RYOKU WIRED: avatar = ~/.face
   RowLayout {
     Layout.fillWidth: true
@@ -76,6 +89,74 @@ ColumnLayout {
         buttonIcon: "photo"
         buttonTooltip: I18n.tr("panels.general.profile-tooltip")
         onButtonClicked: facePicker.openFilePicker()
+      }
+    }
+  }
+
+  NDivider {
+    Layout.fillWidth: true
+    Layout.topMargin: Style.marginM
+    Layout.bottomMargin: Style.marginM
+  }
+
+  ColumnLayout {
+    spacing: Style.marginL
+    Layout.fillWidth: true
+
+    NLabel {
+      label: "Obsidian notes"
+      description: "Default vault and markdown note paths for the calendar popup"
+      Layout.fillWidth: true
+    }
+
+    NTextInputButton {
+      label: "Vault folder"
+      description: "Leave empty to use Obsidian's active registered vault"
+      text: GlobalConfig.paths.obsidianVaultDir
+      placeholderText: "Auto-detect"
+      buttonIcon: "folder-open"
+      buttonTooltip: "Select vault folder"
+      Layout.fillWidth: true
+      onButtonClicked: obsidianVaultPicker.openFilePicker()
+      onInputEditingFinished: {
+        GlobalConfig.paths.obsidianVaultDir = text.trim();
+        GlobalConfig.save();
+      }
+    }
+
+    NTextInput {
+      label: "Daily notes folder"
+      description: "Folder inside the vault for dated notes"
+      text: GlobalConfig.paths.obsidianDailyDir || "Daily"
+      placeholderText: "Daily"
+      Layout.fillWidth: true
+      onEditingFinished: {
+        GlobalConfig.paths.obsidianDailyDir = text.trim();
+        GlobalConfig.save();
+      }
+    }
+
+    NTextInput {
+      label: "Quick note inbox"
+      description: "Fallback markdown file for undated quick notes"
+      text: GlobalConfig.paths.obsidianInboxFile || "Inbox.md"
+      placeholderText: "Inbox.md"
+      Layout.fillWidth: true
+      onEditingFinished: {
+        GlobalConfig.paths.obsidianInboxFile = text.trim();
+        GlobalConfig.save();
+      }
+    }
+
+    NTextInput {
+      label: "Vault name"
+      description: "Optional; path-based opening is used when this is empty"
+      text: GlobalConfig.paths.obsidianVaultName
+      placeholderText: "Optional"
+      Layout.fillWidth: true
+      onEditingFinished: {
+        GlobalConfig.paths.obsidianVaultName = text.trim();
+        GlobalConfig.save();
       }
     }
   }

@@ -17,6 +17,10 @@ class UserPaths : public ConfigObject {
     CONFIG_GLOBAL_PROPERTY(
         QString, wallpaperDir, QStandardPaths::writableLocation(QStandardPaths::PicturesLocation) + u"/Wallpapers"_s)
     CONFIG_GLOBAL_PROPERTY(QString, lyricsDir, QDir::homePath() + u"/Music/lyrics/"_s)
+    CONFIG_GLOBAL_PROPERTY(QString, obsidianVaultDir, QString())
+    CONFIG_GLOBAL_PROPERTY(QString, obsidianDailyDir, u"Daily"_s)
+    CONFIG_GLOBAL_PROPERTY(QString, obsidianInboxFile, u"Inbox.md"_s)
+    CONFIG_GLOBAL_PROPERTY(QString, obsidianVaultName, QString())
     CONFIG_PROPERTY(QString, sessionGif, u"root:/assets/kurukuru.gif"_s)
     CONFIG_PROPERTY(QString, mediaGif, u"root:/assets/bongocat.gif"_s)
     CONFIG_PROPERTY(QString, noNotifsPic, u"root:/assets/dino.png"_s)

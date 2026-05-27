@@ -20,6 +20,7 @@ Scope {
         visibilities.launcher = false;
         visibilities.dashboard = false;
         visibilities.island = false;
+        visibilities.obsidian = false;
         visibilities.utilities = false;
         visibilities.settings = true;
     }
@@ -150,7 +151,7 @@ Scope {
     IpcHandler {
         function toggle(drawer: string): void {
             if (list().split("\n").includes(drawer)) {
-                if (root.hasFullscreen && ["launcher", "session", "dashboard", "island", "settings", "wallhaven"].includes(drawer))
+                if (root.hasFullscreen && ["launcher", "session", "dashboard", "island", "settings", "wallhaven", "obsidian"].includes(drawer))
                     return;
                 const visibilities = Visibilities.getForActive();
                 if (drawer === "dashboard") {
@@ -169,8 +170,18 @@ Scope {
                         visibilities.settings = false;
                         visibilities.dashboard = false;
                         visibilities.island = false;
+                        visibilities.obsidian = false;
                     }
                     visibilities.wallhaven = nextWallhaven;
+                } else if (drawer === "obsidian") {
+                    const nextObsidian = !visibilities.obsidian;
+                    if (nextObsidian) {
+                        visibilities.settings = false;
+                        visibilities.dashboard = false;
+                        visibilities.island = false;
+                        visibilities.wallhaven = false;
+                    }
+                    visibilities.obsidian = nextObsidian;
                 } else {
                     if (drawer === "island" && !Config.dashboard.enabled) {
                         visibilities.island = false;

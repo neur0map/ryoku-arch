@@ -22,6 +22,7 @@ CustomMouseArea {
     property bool dashboardShortcutActive
     property bool islandShortcutActive
     property bool wallhavenShortcutActive
+    property bool obsidianShortcutActive
     property bool osdShortcutActive
     property bool utilitiesShortcutActive
     readonly property real wallhavenActivationWidth: Math.min(220, Math.max(120, width * 0.12))
@@ -84,6 +85,14 @@ CustomMouseArea {
             && x <= width + Config.border.rounding;
     }
 
+    function inObsidianPanel(panel: Item, x: real, y: real): bool {
+        if ((panel.offsetScale ?? 1) < 1 && inLeftPanel(panel, x, y))
+            return true;
+
+        return x <= bar.implicitWidth + Config.border.rounding
+            && bar.isClockHover(y);
+    }
+
     function inBottomPanel(panel: Item, x: real, y: real, isCorner = false): bool {
         const panelHeight = root.panelHeight(panel) * (1 - (panel.offsetScale ?? 0));
         return y > height - Math.max(Config.border.minThickness, Config.border.thickness + panelHeight) - (isCorner ? Config.border.rounding : 0) && withinPanelWidth(panel, x, y);
@@ -125,6 +134,9 @@ CustomMouseArea {
 
             if (!wallhavenShortcutActive)
                 visibilities.wallhaven = false;
+
+            if (!obsidianShortcutActive)
+                visibilities.obsidian = false;
 
             if (!utilitiesShortcutActive)
                 visibilities.utilities = false;
@@ -250,6 +262,14 @@ CustomMouseArea {
             wallhavenShortcutActive = false;
         }
 
+        // Show Obsidian notes/calendar on the taskbar-side corner hover.
+        const showObsidian = !visibilities.settings && inObsidianPanel(panels.obsidian, x, y);
+        if (!obsidianShortcutActive) {
+            visibilities.obsidian = showObsidian;
+        } else if (showObsidian) {
+            obsidianShortcutActive = false;
+        }
+
         // Show utilities on hover
         const showUtilities = inBottomPanel(panels.utilities, x, y, true);
 
@@ -263,7 +283,8 @@ CustomMouseArea {
 
         // Show popouts on hover
         if (x < bar.implicitWidth) {
-            bar.checkPopout(y);
+            if (!showObsidian)
+                bar.checkPopout(y);
         } else if ((!popouts.currentName.startsWith("traymenu") || ((popouts.current as StackView)?.depth ?? 0) <= 1) && !inLeftPanel(panels.popoutsWrapper, x, y)) {
             popouts.hasCurrent = false;
             bar.closeTray();
@@ -278,11 +299,13 @@ CustomMouseArea {
                 root.dashboardShortcutActive = false;
                 root.osdShortcutActive = false;
                 root.wallhavenShortcutActive = false;
+                root.obsidianShortcutActive = false;
                 root.utilitiesShortcutActive = false;
 
                 // Also hide dashboard and OSD if they're not being hovered
                 const inDashboardArea = root.inTopPanel(root.panels.dashboard, root.mouseX, root.mouseY);
                 const inWallhavenArea = root.inWallhavenPanel(root.panels.wallhaven, root.mouseX, root.mouseY);
+                const inObsidianArea = root.inObsidianPanel(root.panels.obsidian, root.mouseX, root.mouseY);
                 const inOsdArea = root.inRightPanel(root.panels.osdWrapper, root.mouseX, root.mouseY);
 
                 if (!inDashboardArea) {
@@ -290,6 +313,9 @@ CustomMouseArea {
                 }
                 if (!inWallhavenArea) {
                     root.visibilities.wallhaven = false;
+                }
+                if (!inObsidianArea) {
+                    root.visibilities.obsidian = false;
                 }
                 if (!inOsdArea) {
                     root.visibilities.osd = false;
@@ -330,9 +356,11 @@ CustomMouseArea {
                 root.visibilities.dashboard = false;
                 root.visibilities.island = false;
                 root.visibilities.wallhaven = false;
+                root.visibilities.obsidian = false;
                 root.dashboardShortcutActive = false;
                 root.islandShortcutActive = false;
                 root.wallhavenShortcutActive = false;
+                root.obsidianShortcutActive = false;
             }
         }
 
@@ -341,13 +369,32 @@ CustomMouseArea {
                 root.visibilities.dashboard = false;
                 root.visibilities.island = false;
                 root.visibilities.settings = false;
+                root.visibilities.obsidian = false;
                 root.dashboardShortcutActive = false;
                 root.islandShortcutActive = false;
+                root.obsidianShortcutActive = false;
                 const inWallhavenArea = root.inWallhavenPanel(root.panels.wallhaven, root.mouseX, root.mouseY);
                 if (!inWallhavenArea)
                     root.wallhavenShortcutActive = true;
             } else {
                 root.wallhavenShortcutActive = false;
+            }
+        }
+
+        function onObsidianChanged() {
+            if (root.visibilities.obsidian) {
+                root.visibilities.dashboard = false;
+                root.visibilities.island = false;
+                root.visibilities.settings = false;
+                root.visibilities.wallhaven = false;
+                root.dashboardShortcutActive = false;
+                root.islandShortcutActive = false;
+                root.wallhavenShortcutActive = false;
+                const inObsidianArea = root.inObsidianPanel(root.panels.obsidian, root.mouseX, root.mouseY);
+                if (!inObsidianArea)
+                    root.obsidianShortcutActive = true;
+            } else {
+                root.obsidianShortcutActive = false;
             }
         }
 
