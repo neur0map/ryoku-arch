@@ -21,6 +21,18 @@ case "$url" in
   *) fail "unexpected Wallhaven URL: $url" ;;
 esac
 
+top_week_url=$("$script" search --query "samurai city" --page 1 --top-range 1w --print-url)
+case "$top_week_url" in
+  "https://wallhaven.cc/api/v1/search"*q=samurai%20city*page=1*sorting=toplist*topRange=1w*) ;;
+  *) fail "top week search URL should use Wallhaven toplist range: $top_week_url" ;;
+esac
+
+top_month_url=$("$script" search --query "" --page 1 --top-range 1M --print-url)
+case "$top_month_url" in
+  "https://wallhaven.cc/api/v1/search"*page=1*sorting=toplist*topRange=1M*) ;;
+  *) fail "top month search URL should support empty-query toplist searches: $top_month_url" ;;
+esac
+
 keyed_url=$(WALLHAVEN_API_KEY="key with spaces+symbols" "$script" search --query "forest shrine" --page 1 --print-url)
 case "$keyed_url" in
   *apikey=key%20with%20spaces%2Bsymbols*) ;;
@@ -88,6 +100,7 @@ url=""
 retry=""
 connect_timeout=""
 max_time=""
+user_agent=""
 while (( $# )); do
   case "$1" in
     -o)
@@ -106,6 +119,10 @@ while (( $# )); do
       max_time="$2"
       shift 2
       ;;
+    -H)
+      user_agent="$2"
+      shift 2
+      ;;
     http*)
       url="$1"
       shift
@@ -121,6 +138,7 @@ if [[ $url == "https://wallhaven.cc/api/v1/search"* ]]; then
   [[ $retry == "2" ]] || exit 65
   [[ $connect_timeout == "10" ]] || exit 66
   [[ $max_time == "30" ]] || exit 67
+  [[ $user_agent == "User-Agent: "* ]] || exit 68
   cp "$MOCK_WALLHAVEN_RESPONSE" "$out"
 elif [[ ${MOCK_WALLHAVEN_FAIL_DOWNLOAD:-0} == "1" ]]; then
   printf '%s\n' "partial wallpaper" > "$out"
@@ -194,5 +212,11 @@ if "$script" search --query "x" --page 1 --bogus >/dev/null 2>"$tmpdir/error.log
 fi
 grep -q "unknown option" "$tmpdir/error.log" \
   || fail "unknown option should report a validation error"
+
+if "$script" search --query "x" --page 1 --top-range bad >/dev/null 2>"$tmpdir/error.log"; then
+  fail "invalid top range should fail"
+fi
+grep -q "invalid --top-range" "$tmpdir/error.log" \
+  || fail "invalid top range should report a validation error"
 
 pass "ryoku wallhaven search"

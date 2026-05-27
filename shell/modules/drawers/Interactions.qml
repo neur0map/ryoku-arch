@@ -21,8 +21,10 @@ CustomMouseArea {
     property point dragStart
     property bool dashboardShortcutActive
     property bool islandShortcutActive
+    property bool wallhavenShortcutActive
     property bool osdShortcutActive
     property bool utilitiesShortcutActive
+    readonly property real wallhavenActivationWidth: Math.min(220, Math.max(120, width * 0.12))
 
     function panelWidth(panel: Item): real {
         return Math.max(panel.width, panel.implicitWidth ?? 0);
@@ -72,6 +74,16 @@ CustomMouseArea {
         return y < Math.max(Config.border.minThickness, Config.border.thickness + panelHeight) && withinPanelWidth(panel, x, y);
     }
 
+    function inWallhavenPanel(panel: Item, x: real, y: real): bool {
+        if ((panel.offsetScale ?? 1) < 1 && inTopPanel(panel, x, y))
+            return true;
+
+        const activationWidth = Math.min(root.wallhavenActivationWidth, root.panelWidth(panel));
+        return y < Math.max(Config.border.minThickness, Config.border.thickness)
+            && x >= width - activationWidth - Config.border.rounding
+            && x <= width + Config.border.rounding;
+    }
+
     function inBottomPanel(panel: Item, x: real, y: real, isCorner = false): bool {
         const panelHeight = root.panelHeight(panel) * (1 - (panel.offsetScale ?? 0));
         return y > height - Math.max(Config.border.minThickness, Config.border.thickness + panelHeight) - (isCorner ? Config.border.rounding : 0) && withinPanelWidth(panel, x, y);
@@ -110,6 +122,9 @@ CustomMouseArea {
 
             if (!islandShortcutActive)
                 visibilities.island = false;
+
+            if (!wallhavenShortcutActive)
+                visibilities.wallhaven = false;
 
             if (!utilitiesShortcutActive)
                 visibilities.utilities = false;
@@ -227,6 +242,14 @@ CustomMouseArea {
                 visibilities.island = false;
         }
 
+        // Show Wallhaven on top-right frame hover.
+        const showWallhaven = !visibilities.settings && inWallhavenPanel(panels.wallhaven, x, y);
+        if (!wallhavenShortcutActive) {
+            visibilities.wallhaven = showWallhaven;
+        } else if (showWallhaven) {
+            wallhavenShortcutActive = false;
+        }
+
         // Show utilities on hover
         const showUtilities = inBottomPanel(panels.utilities, x, y, true);
 
@@ -254,14 +277,19 @@ CustomMouseArea {
             if (!root.visibilities.launcher) {
                 root.dashboardShortcutActive = false;
                 root.osdShortcutActive = false;
+                root.wallhavenShortcutActive = false;
                 root.utilitiesShortcutActive = false;
 
                 // Also hide dashboard and OSD if they're not being hovered
                 const inDashboardArea = root.inTopPanel(root.panels.dashboard, root.mouseX, root.mouseY);
+                const inWallhavenArea = root.inWallhavenPanel(root.panels.wallhaven, root.mouseX, root.mouseY);
                 const inOsdArea = root.inRightPanel(root.panels.osdWrapper, root.mouseX, root.mouseY);
 
                 if (!inDashboardArea) {
                     root.visibilities.dashboard = false;
+                }
+                if (!inWallhavenArea) {
+                    root.visibilities.wallhaven = false;
                 }
                 if (!inOsdArea) {
                     root.visibilities.osd = false;
@@ -301,8 +329,25 @@ CustomMouseArea {
             if (root.visibilities.settings) {
                 root.visibilities.dashboard = false;
                 root.visibilities.island = false;
+                root.visibilities.wallhaven = false;
                 root.dashboardShortcutActive = false;
                 root.islandShortcutActive = false;
+                root.wallhavenShortcutActive = false;
+            }
+        }
+
+        function onWallhavenChanged() {
+            if (root.visibilities.wallhaven) {
+                root.visibilities.dashboard = false;
+                root.visibilities.island = false;
+                root.visibilities.settings = false;
+                root.dashboardShortcutActive = false;
+                root.islandShortcutActive = false;
+                const inWallhavenArea = root.inWallhavenPanel(root.panels.wallhaven, root.mouseX, root.mouseY);
+                if (!inWallhavenArea)
+                    root.wallhavenShortcutActive = true;
+            } else {
+                root.wallhavenShortcutActive = false;
             }
         }
 

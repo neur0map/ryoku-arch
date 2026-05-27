@@ -11,6 +11,7 @@ import qs.modules.notifications as Notifications
 import qs.modules.osd as Osd
 import qs.modules.session as Session
 import qs.modules.sidebar as Sidebar
+import qs.modules.wallhaven as Wallhaven
 import qs.modules.utilities as Utilities
 import qs.modules.bar.popouts as BarPopouts
 import qs.modules.utilities.toasts as Toasts
@@ -32,6 +33,7 @@ Item {
     readonly property alias island: island
     readonly property alias dashboard: dashboard
     readonly property alias settings: settings
+    readonly property alias wallhaven: wallhaven
     readonly property alias popouts: popoutsWrapper.content
     readonly property alias popoutsWrapper: popoutsWrapper
     readonly property alias utilities: utilities
@@ -135,6 +137,16 @@ Item {
 
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
+    }
+
+    Wallhaven.Wrapper {
+        id: wallhaven
+
+        screen: root.screen
+        visibilities: root.visibilities
+
+        anchors.top: parent.top
+        anchors.right: parent.right
     }
 
     BarPopouts.ClipWrapper {

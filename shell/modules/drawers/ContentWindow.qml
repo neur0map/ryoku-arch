@@ -61,13 +61,14 @@ StyledWindow {
         visibilities.dashboard = false;
         visibilities.island = false;
         visibilities.settings = false;
+        visibilities.wallhaven = false;
         panels.popouts.close();
     }
 
     name: "drawers"
     WlrLayershell.exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: fsTransitionProg > 0 && contentItem.Config.general.showOverFullscreen ? WlrLayer.Overlay : WlrLayer.Top
-    WlrLayershell.keyboardFocus: visibilities.launcher || visibilities.session || panels.dashboard.needsKeyboard || panels.settings.needsKeyboard ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: visibilities.launcher || visibilities.session || panels.dashboard.needsKeyboard || panels.settings.needsKeyboard || visibilities.wallhaven ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
     mask: hasFullscreen ? emptyRegion : (visibilities.settings ? null : regions)
 
@@ -107,7 +108,7 @@ StyledWindow {
     HyprlandFocusGrab {
         id: focusGrab
 
-        active: (visibilities.launcher && root.contentItem.Config.launcher.enabled) || (visibilities.session && root.contentItem.Config.session.enabled) || (visibilities.sidebar && root.contentItem.Config.sidebar.enabled) || visibilities.settings || (!root.contentItem.Config.dashboard.showOnHover && visibilities.dashboard && root.contentItem.Config.dashboard.enabled) || (panels.popouts.currentName.startsWith("traymenu") && (panels.popouts.current as StackView)?.depth > 1)
+        active: (visibilities.launcher && root.contentItem.Config.launcher.enabled) || (visibilities.session && root.contentItem.Config.session.enabled) || (visibilities.sidebar && root.contentItem.Config.sidebar.enabled) || visibilities.settings || visibilities.wallhaven || (!root.contentItem.Config.dashboard.showOnHover && visibilities.dashboard && root.contentItem.Config.dashboard.enabled) || (panels.popouts.currentName.startsWith("traymenu") && (panels.popouts.current as StackView)?.depth > 1)
         windows: [root]
         onCleared: {
             visibilities.launcher = false;
@@ -116,6 +117,7 @@ StyledWindow {
             visibilities.dashboard = false;
             visibilities.island = false;
             visibilities.settings = false;
+            visibilities.wallhaven = false;
             panels.popouts.hasCurrent = false;
             bar.closeTray();
         }
@@ -174,6 +176,13 @@ StyledWindow {
             id: settingsBg
 
             panel: panels.settings
+            deformAmount: 0.1
+        }
+
+        PanelBg {
+            id: wallhavenBg
+
+            panel: panels.wallhaven
             deformAmount: 0.1
         }
 
@@ -300,6 +309,9 @@ StyledWindow {
             }
             settings.transform: Matrix4x4 {
                 matrix: settingsBg.deformMatrix
+            }
+            wallhaven.transform: Matrix4x4 {
+                matrix: wallhavenBg.deformMatrix
             }
             launcher.transform: Matrix4x4 {
                 matrix: launcherBg.deformMatrix

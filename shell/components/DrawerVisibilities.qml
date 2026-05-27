@@ -9,6 +9,7 @@ PersistentProperties {
     property bool island
     property bool dashboard
     property bool settings
+    property bool wallhaven
     property bool utilities
     property bool sidebar
 
@@ -18,6 +19,7 @@ PersistentProperties {
         launcher = false;
         island = false;
         dashboard = false;
+        wallhaven = false;
         utilities = false;
         sidebar = false;
     }

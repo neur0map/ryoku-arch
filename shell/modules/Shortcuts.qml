@@ -150,7 +150,7 @@ Scope {
     IpcHandler {
         function toggle(drawer: string): void {
             if (list().split("\n").includes(drawer)) {
-                if (root.hasFullscreen && ["launcher", "session", "dashboard", "island", "settings"].includes(drawer))
+                if (root.hasFullscreen && ["launcher", "session", "dashboard", "island", "settings", "wallhaven"].includes(drawer))
                     return;
                 const visibilities = Visibilities.getForActive();
                 if (drawer === "dashboard") {
@@ -163,6 +163,14 @@ Scope {
                     if (nextIsland)
                         visibilities.settings = false;
                     visibilities.island = nextIsland;
+                } else if (drawer === "wallhaven") {
+                    const nextWallhaven = !visibilities.wallhaven;
+                    if (nextWallhaven) {
+                        visibilities.settings = false;
+                        visibilities.dashboard = false;
+                        visibilities.island = false;
+                    }
+                    visibilities.wallhaven = nextWallhaven;
                 } else {
                     if (drawer === "island" && !Config.dashboard.enabled) {
                         visibilities.island = false;

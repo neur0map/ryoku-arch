@@ -42,6 +42,14 @@ Region {
     }
 
     R {
+        panel: root.panels.wallhaven
+        x: root.win.width - width
+        y: 0
+        width: root.panelWidth(panel) * (1 - root.panels.wallhaven.offsetScale) + root.borderThickness
+        height: root.panelHeight(panel) * (1 - root.panels.wallhaven.offsetScale) + root.borderThickness
+    }
+
+    R {
         panel: root.panels.launcher
         height: panel.height + (root.panels.launcher.openProgress > 0 ? root.borderThickness : 0)
     }
