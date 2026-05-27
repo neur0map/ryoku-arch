@@ -208,10 +208,18 @@ Item {
     }
 
     Item {
+      id: resultViewport
+
       Layout.fillWidth: true
-      Layout.preferredHeight: root.tileHeight * root.visibleRows + root.cellSpacing * (root.visibleRows - 1)
+      Layout.preferredHeight: Wallhaven.resultsExpanded ? root.tileHeight * root.visibleRows + root.cellSpacing * (root.visibleRows - 1) : 0
       Layout.maximumHeight: Layout.preferredHeight
+      visible: Wallhaven.resultsExpanded
       clip: true
+      opacity: Wallhaven.resultsExpanded ? 1 : 0
+
+      Behavior on opacity {
+        Anim {}
+      }
 
       GridView {
         id: grid

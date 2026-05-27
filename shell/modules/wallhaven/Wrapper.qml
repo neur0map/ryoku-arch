@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Ryoku.Config
 import qs.components
+import qs.services
 
 Item {
   id: root
@@ -18,7 +19,9 @@ Item {
   readonly property int gridTargetWidth: tileTargetWidth * 3 + Tokens.spacing.normal * 2
   readonly property int gridTargetHeight: tileTargetHeight * 3 + Tokens.spacing.normal * 2
   readonly property int panelWidth: Math.min(Math.max(680, gridTargetWidth + Tokens.padding.large * 2 + Tokens.padding.small), Math.max(640, screen.width - 180))
-  readonly property int panelHeight: Math.min(Math.max(600, gridTargetHeight + 220), Math.max(560, screen.height - 120))
+  readonly property int compactHeight: 190 + Tokens.padding.large * 2
+  readonly property int expandedHeight: Math.min(Math.max(600, gridTargetHeight + 220), Math.max(560, screen.height - 120))
+  readonly property int panelHeight: Wallhaven.resultsExpanded ? expandedHeight : compactHeight
   property real offsetScale: shouldBeActive ? 0 : 1
 
   visible: offsetScale < 1
@@ -30,6 +33,21 @@ Item {
   Behavior on offsetScale {
     Anim {
       type: Anim.DefaultSpatial
+    }
+  }
+
+  Behavior on implicitHeight {
+    Anim {
+      type: Anim.DefaultSpatial
+    }
+  }
+
+  Connections {
+    target: root.visibilities
+
+    function onWallhavenChanged(): void {
+      if (root.visibilities.wallhaven)
+        Wallhaven.resultsExpanded = false;
     }
   }
 
