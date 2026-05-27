@@ -1,0 +1,68 @@
+import QtQuick
+import qs.ambxst.modules.components
+import qs.ambxst.modules.services
+import qs.ambxst.modules.theme
+import Quickshell.Io
+
+ActionGrid {
+    id: root
+
+    signal itemSelected
+
+    layout: "row"
+    buttonSize: 48
+    iconSize: 20
+    spacing: 8
+
+    Process {
+        id: actionProcess
+        running: false
+    }
+
+    Component.onCompleted: {
+        root.forceActiveFocus();
+    }
+
+    actions: [
+        {
+            icon: Icons.lock,
+            tooltip: "Lock Session",
+            command: "loginctl lock-session"
+        },
+        {
+            icon: Icons.suspend,
+            tooltip: "Suspend",
+            command: "systemctl suspend"
+        },
+        {
+            icon: Icons.hibernate,
+            tooltip: "Hibernate",
+            command: "systemctl hibernate"
+        },
+        {
+            icon: Icons.logout,
+            tooltip: "Exit AxctlService",
+            command: "axctl system exit"
+        },
+        {
+            icon: Icons.reboot,
+            tooltip: "Reboot",
+            command: "systemctl reboot"
+        },
+        {
+            icon: Icons.shutdown,
+            tooltip: "Power Off",
+            command: "systemctl poweroff"
+        }
+    ]
+
+    onActionTriggered: action => {
+        console.log("Action triggered:", action.command);
+        if (action.command) {
+            actionProcess.command = ["/bin/bash", "-c", action.command];
+            console.log("Starting process with command:", actionProcess.command);
+            actionProcess.running = true;
+        }
+        root.itemSelected();
+    }
+}

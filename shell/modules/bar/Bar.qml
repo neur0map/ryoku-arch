@@ -83,26 +83,29 @@ ColumnLayout {
 
     function handleWheel(y: real, angleDelta: point): void {
         const ch = childAt(width / 2, y) as WrappedLoader;
+        // RYOKU: optionally reverse the interpreted scroll direction for all bar
+        // scroll actions (General > Reverse scrolling = GlobalConfig.general.reverseScroll).
+        const dy = GlobalConfig.general.reverseScroll ? -angleDelta.y : angleDelta.y;
         if (ch?.id === "workspaces" && Config.bar.scrollActions.workspaces) {
             // Workspace scroll
             const mon = (GlobalConfig.bar.workspaces.perMonitorWorkspaces ? Hypr.monitorFor(screen) : Hypr.focusedMonitor);
             const specialWs = mon?.lastIpcObject.specialWorkspace.name;
             if (specialWs?.length > 0)
                 Hypr.dispatch(`togglespecialworkspace ${specialWs.slice(8)}`);
-            else if (angleDelta.y < 0 || (GlobalConfig.bar.workspaces.perMonitorWorkspaces ? mon.activeWorkspace?.id : Hypr.activeWsId) > 1)
-                Hypr.dispatch(`workspace r${angleDelta.y > 0 ? "-" : "+"}1`);
+            else if (dy < 0 || (GlobalConfig.bar.workspaces.perMonitorWorkspaces ? mon.activeWorkspace?.id : Hypr.activeWsId) > 1)
+                Hypr.dispatch(`workspace r${dy > 0 ? "-" : "+"}1`);
         } else if (y < screen.height / 2 && Config.bar.scrollActions.volume) {
             // Volume scroll on top half
-            if (angleDelta.y > 0)
+            if (dy > 0)
                 Audio.incrementVolume();
-            else if (angleDelta.y < 0)
+            else if (dy < 0)
                 Audio.decrementVolume();
         } else if (Config.bar.scrollActions.brightness) {
             // Brightness scroll on bottom half
             const monitor = Brightness.getMonitorForScreen(screen);
-            if (angleDelta.y > 0)
+            if (dy > 0)
                 monitor.setBrightness(monitor.brightness + GlobalConfig.services.brightnessIncrement);
-            else if (angleDelta.y < 0)
+            else if (dy < 0)
                 monitor.setBrightness(monitor.brightness - GlobalConfig.services.brightnessIncrement);
         }
     }

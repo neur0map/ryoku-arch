@@ -200,37 +200,10 @@ ColumnLayout {
       }
     }
 
-    // Per-font scales: ryoku has a single global font size (User Interface >
-    // Appearance > Font size = GlobalConfig.appearance.font.size.scale), not
-    // independent sans/mono scales — greyed to avoid a non-functional duplicate.
-    ColumnLayout {
-      spacing: Style.marginL
-      Layout.fillWidth: true
-      enabled: false
-      opacity: 0.45
-
-      NValueSlider {
-        Layout.fillWidth: true
-        label: I18n.tr("panels.general.fonts-default-scale-label")
-        description: I18n.tr("panels.general.fonts-default-scale-description")
-        from: 0.75
-        to: 1.25
-        stepSize: 0.01
-        value: 1.0
-        text: "100%"
-      }
-
-      NValueSlider {
-        Layout.fillWidth: true
-        label: I18n.tr("panels.general.fonts-monospace-scale-label")
-        description: I18n.tr("panels.general.fonts-monospace-scale-description")
-        from: 0.75
-        to: 1.25
-        stepSize: 0.01
-        value: 1.0
-        text: "100%"
-      }
-    }
+    // RYOKU: no per-font (sans / mono) size sliders here — ryoku uses a single
+    // global font size (User Interface > Appearance > Font size =
+    // GlobalConfig.appearance.font.size.scale). Separate scales would be a
+    // non-functional duplicate of that control, so they are intentionally omitted.
   }
 
   NDivider {
@@ -240,23 +213,27 @@ ColumnLayout {
   }
 
   NToggle {
-    // TODO: no reverseScroll config in ryoku
+    // RYOKU WIRED: GlobalConfig.general.reverseScroll — reverses the bar scroll
+    // actions (workspace / volume / brightness); see shell/modules/bar/Bar.qml.
     Layout.fillWidth: true
     label: I18n.tr("panels.general.reverse-scrolling-label")
     description: I18n.tr("panels.general.reverse-scrolling-description")
-    checked: false
-    enabled: false
-    opacity: 0.45
+    checked: GlobalConfig.general.reverseScroll
+    onToggled: checked => {
+      GlobalConfig.general.reverseScroll = checked;
+      GlobalConfig.save();
+    }
   }
 
   NToggle {
-    // TODO: no smoothScroll config in ryoku
+    // RYOKU WIRED: Settings.data.general.smoothScrollEnabled — the vendored Noctalia
+    // scroll widgets (NScrollView / NListView / NGridView) animate wheel scrolling when
+    // on. Affects the panels built from those widgets (e.g. the Settings panel lists).
     Layout.fillWidth: true
     label: I18n.tr("panels.general.smooth-scrolling-label")
     description: I18n.tr("panels.general.smooth-scrolling-description")
-    checked: true
-    enabled: false
-    opacity: 0.45
+    checked: Settings.data.general.smoothScrollEnabled
+    onToggled: checked => Settings.data.general.smoothScrollEnabled = checked
   }
 
   NDivider {

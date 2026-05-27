@@ -51,7 +51,14 @@ ryoku-restart-terminal
 ryoku-restart-btop
 
 # Change app-specific themes
-ryoku-theme-set-gnome
+# RYOKU: gate GNOME/GTK theme sync on the shell setting (Settings > Color Scheme >
+# "Sync system theme" = services.syncSystemTheme, default on). When the user turns
+# it off, leave the system toolkit theme untouched.
+# Note: read the raw value (no `// true` — jq's `//` treats false the same as
+# null, which would ignore an explicit off). Missing key/file → "null"/"" → runs.
+if [[ "$(jq -r '.services.syncSystemTheme' "$RYOKU_CONFIG_PATH/shell.json" 2>/dev/null)" != "false" ]]; then
+  ryoku-theme-set-gnome
+fi
 ryoku-theme-set-browser
 ryoku-theme-set-vscode
 ryoku-theme-set-obsidian

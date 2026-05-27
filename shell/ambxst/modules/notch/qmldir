@@ -1,0 +1,6 @@
+module qs.ambxst.modules.notch
+NotchAnimationBehavior 1.0 NotchAnimationBehavior.qml
+NotchContent 1.0 NotchContent.qml
+NotchNotificationView 1.0 NotchNotificationView.qml
+Notch 1.0 Notch.qml
+NotchWindow 1.0 NotchWindow.qml

@@ -1,0 +1,6 @@
+module qs.ambxst.modules.bar.clock
+ClockIndicator 1.0 ClockIndicator.qml
+Clock 1.0 Clock.qml
+Pomodoro 1.0 Pomodoro.qml
+PomodoroSound 1.0 PomodoroSound.qml
+Weather 1.0 Weather.qml

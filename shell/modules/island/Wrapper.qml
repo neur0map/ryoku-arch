@@ -4,39 +4,52 @@ import QtQuick
 import Quickshell
 import Ryoku.Config
 import qs.components
+import qs.modules.bar.popouts as BarPopouts
 
 Item {
-    id: root
+  id: root
 
-    required property DrawerVisibilities visibilities
+  required property DrawerVisibilities visibilities
+  required property BarPopouts.Wrapper popouts
+  property matrix4x4 deformMatrix
 
-    readonly property bool shouldBeActive: visibilities.island && Config.dashboard.enabled
-    property real offsetScale: shouldBeActive ? 0 : 1
+  readonly property PersistentProperties props: PersistentProperties {
+    property bool recordingListExpanded: false
+    property string recordingConfirmDelete
+    property string recordingMode
 
-    visible: offsetScale < 1
-    anchors.topMargin: (-implicitHeight - 5) * offsetScale
-    implicitHeight: content.implicitHeight
-    implicitWidth: content.implicitWidth || 560
-    width: implicitWidth
-    height: implicitHeight
-    opacity: 1 - offsetScale
+    reloadableId: "islandUtilities"
+  }
+  readonly property bool shouldBeActive: visibilities.island && Config.dashboard.enabled
+  property real offsetScale: shouldBeActive ? 0 : 1
 
-    Behavior on offsetScale {
-        Anim {
-            type: Anim.DefaultSpatial
-        }
+  visible: offsetScale < 1
+  anchors.topMargin: (-implicitHeight - 5) * offsetScale
+  implicitHeight: content.implicitHeight
+  implicitWidth: content.implicitWidth || 560
+  width: implicitWidth
+  height: implicitHeight
+  opacity: 1 - offsetScale
+
+  Behavior on offsetScale {
+    Anim {
+      type: Anim.DefaultSpatial
     }
+  }
 
-    Loader {
-        id: content
+  Loader {
+    id: content
 
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: parent.bottom
+    anchors.horizontalCenter: parent.horizontalCenter
+    anchors.bottom: parent.bottom
 
-        active: root.shouldBeActive || root.visible
+    active: root.shouldBeActive || root.visible
 
-        sourceComponent: Content {
-            visibilities: root.visibilities
-        }
+    sourceComponent: Content {
+      visibilities: root.visibilities
+      popouts: root.popouts
+      props: root.props
+      deformMatrix: root.deformMatrix
     }
+  }
 }

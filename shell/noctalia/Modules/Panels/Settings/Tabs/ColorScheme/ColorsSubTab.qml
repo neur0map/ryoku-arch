@@ -189,18 +189,30 @@ ColumnLayout {
     enabled: Colours.flavour !== "custom"
     opacity: enabled ? 1.0 : 0.6
     onToggled: checked => {
-                 Colours.setMode(checked ? "dark" : "light");
+                 const mode = checked ? "dark" : "light";
+                 Colours.setMode(mode);
+                 // RYOKU: when "Sync system theme" is on, mirror the live light/dark flip
+                 // to GNOME/GTK immediately. Passes the new mode explicitly so it doesn't
+                 // depend on the per-theme marker. Mirrors Noctalia's onDarkModeChanged push.
+                 if (GlobalConfig.services.syncSystemTheme)
+                   Quickshell.execDetached(["ryoku-theme-set-gnome", mode]);
                  root.cacheVersion++;
                }
   }
 
   NToggle {
-    // TODO: wire to ryoku-theme-set-gnome bin script (no live runtime toggle in ryoku)
+    // RYOKU WIRED: GlobalConfig.services.syncSystemTheme gates the GNOME/GTK sync
+    // (ryoku-theme-set-gnome) in the ryoku-theme-set pipeline. Toggling on mirrors
+    // the system toolkit theme to the current light/dark variant immediately.
     label: I18n.tr("panels.color-scheme.sync-gsettings-label")
     description: I18n.tr("panels.color-scheme.sync-gsettings-description")
-    checked: false
-    enabled: false
-    opacity: 0.45
+    checked: GlobalConfig.services.syncSystemTheme
+    onToggled: checked => {
+                 GlobalConfig.services.syncSystemTheme = checked;
+                 GlobalConfig.save();
+                 if (checked)
+                   Quickshell.execDetached(["ryoku-theme-set-gnome", Colours.light ? "light" : "dark"]);
+               }
   }
 
   NComboBox {

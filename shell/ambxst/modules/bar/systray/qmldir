@@ -1,0 +1,4 @@
+module qs.ambxst.modules.bar.systray
+SysTrayItem 1.0 SysTrayItem.qml
+SystrayMenuItem 1.0 SystrayMenuItem.qml
+SysTray 1.0 SysTray.qml

@@ -10,6 +10,7 @@ import "modules/background"
 import "modules/areapicker"
 import Quickshell
 import qs.services
+import qs.ambxst.modules.globals as AmbxstGlobals
 
 ShellRoot {
     settings.watchFiles: true
@@ -24,4 +25,12 @@ ShellRoot {
     BatteryMonitor {}
     LockBridge {}
     IdleMonitors {}
+
+    // RYOKU PORT: webcam mirror window, toggled from the island weather-tools row
+    // (GlobalStates.mirrorWindowVisible). Registered at the shell root so it persists
+    // independently of the island.
+    LazyLoader {
+        active: AmbxstGlobals.GlobalStates.mirrorWindowVisible
+        source: "ambxst/modules/tools/MirrorWindow.qml"
+    }
 }

@@ -117,6 +117,7 @@ Item {
         id: island
 
         visibilities: root.visibilities
+        popouts: root.popouts
 
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top

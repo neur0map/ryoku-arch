@@ -54,6 +54,8 @@ for file in \
   "$about_tab" \
   "$version_tab" \
   "$credits_tab" \
+  shell/noctalia/Assets/credits/ambxst.svg \
+  shell/noctalia/Assets/credits/omarchy.png \
   "$basics_tab" \
   "$keybinds_tab" \
   legacy/controlcenter/Wrapper.qml.orig \
@@ -150,6 +152,18 @@ assert_contains "$credits_tab" "Settings UI adapted from Noctalia" \
   "credits should attribute the vendored settings UI"
 assert_contains "$credits_tab" "https://github.com/noctalia-dev/noctalia-shell" \
   "credits should link back to upstream Noctalia"
+assert_contains "$credits_tab" "\"name\": \"Omarchy\"" \
+  "credits should include Omarchy"
+assert_contains "$credits_tab" "https://github.com/basecamp/omarchy" \
+  "credits should link back to Omarchy"
+assert_contains "$credits_tab" "\"icon\": \"omarchy.png\"" \
+  "credits should use the Omarchy credit logo"
+assert_contains "$credits_tab" "\"name\": \"Ambxst\"" \
+  "credits should include Ambxst"
+assert_contains "$credits_tab" "https://github.com/Axenide/Ambxst" \
+  "credits should link back to Ambxst"
+assert_contains "$credits_tab" "\"icon\": \"ambxst.svg\"" \
+  "credits should use the Ambxst credit logo"
 
 assert_contains "$basics_tab" "GlobalConfig.appearance.font.family.sans" \
   "General basics should wire font settings through GlobalConfig"

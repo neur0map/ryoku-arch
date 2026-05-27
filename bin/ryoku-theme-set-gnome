@@ -2,8 +2,22 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
+# Resolve the light/dark mode to mirror to GNOME/GTK.
+# Optional $1 (dark|light) is passed by callers that flip the live mode — e.g. the
+# shell's dark-mode toggle — so GNOME follows a live flip. The per-theme light.mode
+# marker only tracks the theme's own default mode, not a live flip, so it is the
+# fallback for the full theme-apply path (ryoku-theme-set, no arg).
+mode="${1:-}"
+if [[ -z $mode ]]; then
+  if [[ -f $RYOKU_CONFIG_PATH/current/theme/light.mode ]]; then
+    mode="light"
+  else
+    mode="dark"
+  fi
+fi
+
 # Change gnome modes
-if [[ -f $RYOKU_CONFIG_PATH/current/theme/light.mode ]]; then
+if [[ $mode == "light" ]]; then
   gsettings set org.gnome.desktop.interface color-scheme "prefer-light"
   gsettings set org.gnome.desktop.interface gtk-theme "Adwaita"
 else

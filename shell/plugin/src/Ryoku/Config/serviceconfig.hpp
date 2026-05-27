@@ -29,6 +29,9 @@ class ServiceConfig : public ConfigObject {
     CONFIG_GLOBAL_PROPERTY(qreal, brightnessIncrement, 0.1)
     CONFIG_GLOBAL_PROPERTY(qreal, maxVolume, 1.0)
     CONFIG_GLOBAL_PROPERTY(bool, smartScheme, true)
+    // Mirror the active light/dark theme to the system (GNOME/GTK) toolkit theme.
+    // Gates the ryoku-theme-set-gnome call in the ryoku-theme-set pipeline.
+    CONFIG_GLOBAL_PROPERTY(bool, syncSystemTheme, true)
     CONFIG_GLOBAL_PROPERTY(QString, defaultPlayer, u"Spotify"_s)
     CONFIG_GLOBAL_PROPERTY(QVariantList, playerAliases,
         { vmap({ { u"from"_s, u"com.github.th_ch.youtube_music"_s }, { u"to"_s, u"YT Music"_s } }) })

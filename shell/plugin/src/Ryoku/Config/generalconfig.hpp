@@ -90,6 +90,9 @@ class GeneralConfig : public ConfigObject {
     QML_ANONYMOUS
 
     CONFIG_GLOBAL_PROPERTY(QString, logo, u"ryoku"_s)
+    // Reverse the interpreted scroll direction for bar scroll actions
+    // (workspace / volume / brightness) — see shell/modules/bar/Bar.qml.
+    CONFIG_GLOBAL_PROPERTY(bool, reverseScroll, false)
     CONFIG_PROPERTY(bool, showOverFullscreen, false)
     CONFIG_PROPERTY(qreal, mediaGifSpeedAdjustment, 300)
     CONFIG_PROPERTY(qreal, sessionGifSpeed, 0.7)

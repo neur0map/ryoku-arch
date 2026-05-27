@@ -1264,22 +1264,6 @@
     "subTab": null
   },
   {
-    "labelKey": "panels.general.fonts-default-scale-label",
-    "descriptionKey": "panels.general.fonts-default-scale-description",
-    "widget": "NValueSlider",
-    "tab": 0,
-    "tabLabel": "common.general",
-    "subTab": null
-  },
-  {
-    "labelKey": "panels.general.fonts-monospace-scale-label",
-    "descriptionKey": "panels.general.fonts-monospace-scale-description",
-    "widget": "NValueSlider",
-    "tab": 0,
-    "tabLabel": "common.general",
-    "subTab": null
-  },
-  {
     "labelKey": "panels.general.smooth-scrolling-label",
     "descriptionKey": "panels.general.smooth-scrolling-description",
     "widget": "NToggle",
@@ -2479,15 +2463,6 @@
     "visibleWhen": [
       "(Quickshell.screens.length > 1)"
     ]
-  },
-  {
-    "labelKey": "panels.user-interface.panel-background-opacity-label",
-    "descriptionKey": "panels.user-interface.panel-background-opacity-description",
-    "widget": "NValueSlider",
-    "tab": 1,
-    "tabLabel": "panels.user-interface.title",
-    "subTab": 1,
-    "subTabLabel": "common.panels"
   },
   {
     "labelKey": "panels.user-interface.dimmer-opacity-label",

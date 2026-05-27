@@ -69,6 +69,8 @@ for file in \
   shell/noctalia/Assets/settings-default.json \
   shell/noctalia/Assets/settings-search-index.json \
   shell/noctalia/Assets/ryoku-logo.svg \
+  shell/noctalia/Assets/credits/ambxst.svg \
+  shell/noctalia/Assets/credits/omarchy.png \
   shell/noctalia/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml \
   shell/noctalia/Modules/Panels/Settings/Tabs/About/VersionSubTab.qml; do
   assert_file "$file"
@@ -162,6 +164,18 @@ assert_contains "shell/noctalia/Modules/Panels/Settings/Tabs/About/CreditsSubTab
   "Noctalia credits tab should preserve upstream attribution"
 assert_contains "shell/noctalia/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml" 'noctalia-dev/noctalia-shell' \
   "Noctalia credits tab should link to the upstream project"
+assert_contains "shell/noctalia/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml" '"name": "Omarchy"' \
+  "Noctalia credits tab should include Omarchy"
+assert_contains "shell/noctalia/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml" 'basecamp/omarchy' \
+  "Noctalia credits tab should link to Omarchy"
+assert_contains "shell/noctalia/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml" '"icon": "omarchy.png"' \
+  "Noctalia credits tab should use the Omarchy logo"
+assert_contains "shell/noctalia/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml" '"name": "Ambxst"' \
+  "Noctalia credits tab should include Ambxst"
+assert_contains "shell/noctalia/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml" 'Axenide/Ambxst' \
+  "Noctalia credits tab should link to Ambxst"
+assert_contains "shell/noctalia/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml" '"icon": "ambxst.svg"' \
+  "Noctalia credits tab should use the Ambxst logo"
 
 assert_contains "$panels" 'ControlCenter\.Wrapper' \
   "drawers should keep the settings wrapper"

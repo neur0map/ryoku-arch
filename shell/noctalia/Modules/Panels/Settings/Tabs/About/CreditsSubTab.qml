@@ -66,6 +66,12 @@ ColumnLayout {
   Repeater {
     model: [
       {
+        "name": "Omarchy",
+        "desc": "Opinionated Arch / Hyprland system — original base and workflow inspiration.",
+        "icon": "omarchy.png",
+        "url": "https://github.com/basecamp/omarchy"
+      },
+      {
         "name": "Caelestia",
         "desc": "Hyprland / Quickshell desktop shell — design and widget inspiration.",
         "icon": "caelestia.svg",
@@ -94,6 +100,12 @@ ColumnLayout {
         "desc": "Dynamic island for Hyprland — basis for ryoku's island.",
         "icon": "activspot.png",
         "url": "https://github.com/Devvvmn/ActivSpot"
+      },
+      {
+        "name": "Ambxst",
+        "desc": "Quickshell desktop shell — dashboard, widget, and interaction inspiration.",
+        "icon": "ambxst.svg",
+        "url": "https://github.com/Axenide/Ambxst"
       }
     ]
 

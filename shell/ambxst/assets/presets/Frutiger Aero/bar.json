@@ -1,0 +1,16 @@
+{
+    "barColor": [
+        [
+            "surface",
+            0
+        ]
+    ],
+    "enableFirefoxPlayer": false,
+    "launcherIcon": "",
+    "launcherIconFullTint": true,
+    "launcherIconSize": 18,
+    "launcherIconTint": true,
+    "position": "top",
+    "screenList": [
+    ]
+}

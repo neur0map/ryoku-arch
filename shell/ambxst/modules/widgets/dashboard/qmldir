@@ -1,0 +1,4 @@
+module qs.ambxst.modules.widgets.dashboard
+Dashboard 1.0 Dashboard.qml
+DashboardView 1.0 DashboardView.qml
+LauncherButton 1.0 LauncherButton.qml

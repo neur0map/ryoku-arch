@@ -1,0 +1,764 @@
+{
+    "oledMode": false,
+    "lightMode": false,
+    "roundness": 16,
+    "font": "Roboto Condensed",
+    "fontSize": 14,
+    "monoFont": "Iosevka Nerd Font Mono",
+    "monoFontSize": 14,
+    "tintIcons": false,
+    "enableCorners": true,
+    "animDuration": 300,
+    "shadowOpacity": 0,
+    "shadowColor": "shadow",
+    "shadowXOffset": 0,
+    "shadowYOffset": 0,
+    "shadowBlur": 1,
+    "srBg": {
+        "label": "Background",
+        "gradient": [
+            [
+                "#99D0FC",
+                0.003
+            ],
+            [
+                "#0D75BC",
+                0.249
+            ],
+            [
+                "#1686D1",
+                0.183
+            ],
+            [
+                "#99D0FC",
+                0.994
+            ],
+            [
+                "#1686D1",
+                0.79
+            ]
+        ],
+        "gradientType": "linear",
+        "gradientAngle": 0,
+        "gradientCenterX": 0.5271337365591398,
+        "gradientCenterY": 0.44585853494623656,
+        "halftoneDotMin": 0,
+        "halftoneDotMax": 2,
+        "halftoneStart": 0,
+        "halftoneEnd": 1,
+        "halftoneDotColor": "surface",
+        "halftoneBackgroundColor": "background",
+        "border": [
+            "#4DA1DA",
+            2
+        ],
+        "itemColor": "overWhiteContainer",
+        "opacity": 0.81
+    },
+    "srPopup": {
+        "label": "Popup",
+        "gradient": [
+            [
+                "#99D0FC",
+                0.145
+            ],
+            [
+                "#1686D1",
+                0.306
+            ],
+            [
+                "#1686D1",
+                0.37
+            ],
+            [
+                "#0D75BC",
+                0.484
+            ],
+            [
+                "#1686D1",
+                0.642
+            ],
+            [
+                "#128ADB",
+                0.776
+            ],
+            [
+                "#99D0FC",
+                0.986
+            ]
+        ],
+        "gradientType": "linear",
+        "gradientAngle": 0,
+        "gradientCenterX": 0.5,
+        "gradientCenterY": 0,
+        "halftoneDotMin": 0,
+        "halftoneDotMax": 2,
+        "halftoneStart": 0,
+        "halftoneEnd": 1,
+        "halftoneDotColor": "surface",
+        "halftoneBackgroundColor": "background",
+        "border": [
+            "#4DA1DA",
+            2
+        ],
+        "itemColor": "white",
+        "opacity": 0.9
+    },
+    "srInternalBg": {
+        "label": "Internal Background",
+        "gradient": [
+            [
+                "#1686D1",
+                0
+            ],
+            [
+                "#1686D1",
+                0.402
+            ],
+            [
+                "#0D75BC",
+                0.631
+            ],
+            [
+                "#1686D1",
+                0.827
+            ],
+            [
+                "#99D0FC",
+                1
+            ]
+        ],
+        "gradientType": "radial",
+        "gradientAngle": 0,
+        "gradientCenterX": 0.5,
+        "gradientCenterY": 0,
+        "halftoneDotMin": 0,
+        "halftoneDotMax": 2,
+        "halftoneStart": 0,
+        "halftoneEnd": 1,
+        "halftoneDotColor": "surface",
+        "halftoneBackgroundColor": "background",
+        "border": [
+            "#4DA1DA",
+            2
+        ],
+        "itemColor": "white",
+        "opacity": 0.8
+    },
+    "srBarBg": {
+        "label": "Bar BG",
+        "gradient": [
+            [
+                "#769CDB",
+                0
+            ],
+            [
+                "#1A548B",
+                1
+            ],
+            [
+                "#1A548B",
+                0.387
+            ],
+            [
+                "#769CDB",
+                0.124
+            ]
+        ],
+        "gradientType": "radial",
+        "gradientAngle": 126,
+        "gradientCenterX": 0.5240780409946236,
+        "gradientCenterY": 0,
+        "halftoneDotMin": 0,
+        "halftoneDotMax": 3.910456730769231,
+        "halftoneStart": 0,
+        "halftoneEnd": 0.9996669089147286,
+        "halftoneDotColor": "#769CDB",
+        "halftoneBackgroundColor": "#154F86",
+        "border": [
+            "surfaceBright",
+            0
+        ],
+        "itemColor": "overBackground",
+        "opacity": 0.81
+    },
+    "srPane": {
+        "label": "Pane",
+        "gradient": [
+            [
+                "#99D0FC",
+                0
+            ],
+            [
+                "#1686D1",
+                0.306
+            ],
+            [
+                "#1686D1",
+                0.37
+            ],
+            [
+                "#0D75BC",
+                0.484
+            ],
+            [
+                "#1686D1",
+                0.642
+            ],
+            [
+                "#128ADB",
+                0.776
+            ],
+            [
+                "#99D0FC",
+                1
+            ]
+        ],
+        "gradientType": "radial",
+        "gradientAngle": 0,
+        "gradientCenterX": 0.5,
+        "gradientCenterY": 0,
+        "halftoneDotMin": 0,
+        "halftoneDotMax": 2,
+        "halftoneStart": 0,
+        "halftoneEnd": 1,
+        "halftoneDotColor": "surfaceBright",
+        "halftoneBackgroundColor": "surface",
+        "border": [
+            "cyan",
+            2
+        ],
+        "itemColor": "white",
+        "opacity": 0.88
+    },
+    "srCommon": {
+        "label": "Common",
+        "gradient": [
+            [
+                "#99D0FC",
+                0
+            ],
+            [
+                "#1686D1",
+                0.306
+            ],
+            [
+                "#1686D1",
+                0.37
+            ],
+            [
+                "#0D75BC",
+                0.484
+            ],
+            [
+                "#1686D1",
+                0.642
+            ],
+            [
+                "#128ADB",
+                0.776
+            ],
+            [
+                "#99D0FC",
+                1
+            ]
+        ],
+        "gradientType": "linear",
+        "gradientAngle": 0,
+        "gradientCenterX": 0.5,
+        "gradientCenterY": 0.5,
+        "halftoneDotMin": 0,
+        "halftoneDotMax": 2,
+        "halftoneStart": 0,
+        "halftoneEnd": 1,
+        "halftoneDotColor": "background",
+        "halftoneBackgroundColor": "surface",
+        "border": [
+            "cyan",
+            1
+        ],
+        "itemColor": "overBackground",
+        "opacity": 0.9
+    },
+    "srFocus": {
+        "label": "Focus",
+        "gradient": [
+            [
+                "#324CC8",
+                0
+            ],
+            [
+                "#090A3B",
+                0.987
+            ],
+            [
+                "#182183",
+                0.517
+            ],
+            [
+                "#050C2D",
+                0.592
+            ]
+        ],
+        "gradientType": "linear",
+        "gradientAngle": 0,
+        "gradientCenterX": 0.5,
+        "gradientCenterY": 0,
+        "halftoneDotMin": 0,
+        "halftoneDotMax": 2,
+        "halftoneStart": 0,
+        "halftoneEnd": 1,
+        "halftoneDotColor": "surfaceVariant",
+        "halftoneBackgroundColor": "surfaceBright",
+        "border": [
+            "#273192",
+            2
+        ],
+        "itemColor": "white",
+        "opacity": 0.8
+    },
+    "srPrimary": {
+        "label": "Primary",
+        "gradient": [
+            [
+                "#5A76C3",
+                0
+            ],
+            [
+                "#2A4083",
+                0.993
+            ],
+            [
+                "#44519F",
+                0.417
+            ],
+            [
+                "#222E89",
+                0.557
+            ],
+            [
+                "#1B2A55",
+                0.668
+            ]
+        ],
+        "gradientType": "radial",
+        "gradientAngle": 0,
+        "gradientCenterX": 0.5,
+        "gradientCenterY": 0.02842531922043011,
+        "halftoneDotMin": 0,
+        "halftoneDotMax": 2,
+        "halftoneStart": 0,
+        "halftoneEnd": 1,
+        "halftoneDotColor": "overPrimaryContainer",
+        "halftoneBackgroundColor": "primary",
+        "border": [
+            "primaryFixed",
+            2
+        ],
+        "itemColor": "white",
+        "opacity": 0.8
+    },
+    "srPrimaryFocus": {
+        "label": "Primary Focus",
+        "gradient": [
+            [
+                "overPrimaryContainer",
+                0
+            ],
+            [
+                "surfaceTint",
+                0.501
+            ],
+            [
+                "primaryFixed",
+                0.5
+            ],
+            [
+                "primaryContainer",
+                1
+            ]
+        ],
+        "gradientType": "radial",
+        "gradientAngle": 0,
+        "gradientCenterX": 0.5,
+        "gradientCenterY": 0,
+        "halftoneDotMin": 0,
+        "halftoneDotMax": 2,
+        "halftoneStart": 0,
+        "halftoneEnd": 1,
+        "halftoneDotColor": "primary",
+        "halftoneBackgroundColor": "overPrimaryContainer",
+        "border": [
+            "primaryFixed",
+            2
+        ],
+        "itemColor": "overWhite",
+        "opacity": 0.5
+    },
+    "srOverPrimary": {
+        "label": "Over Primary",
+        "gradient": [
+            [
+                "overPrimary",
+                0
+            ],
+            [
+                "surfaceBright",
+                0.5
+            ],
+            [
+                "overPrimary",
+                0.501
+            ],
+            [
+                "primaryContainer",
+                1
+            ]
+        ],
+        "gradientType": "radial",
+        "gradientAngle": 0,
+        "gradientCenterX": 0.5,
+        "gradientCenterY": 0,
+        "halftoneDotMin": 0,
+        "halftoneDotMax": 2,
+        "halftoneStart": 0,
+        "halftoneEnd": 1,
+        "halftoneDotColor": "primaryContainer",
+        "halftoneBackgroundColor": "overPrimary",
+        "border": [
+            "overPrimary",
+            2
+        ],
+        "itemColor": "white",
+        "opacity": 1
+    },
+    "srSecondary": {
+        "label": "Secondary",
+        "gradient": [
+            [
+                "secondaryFixedDim",
+                0
+            ],
+            [
+                "surfaceContainerLowest",
+                0.5
+            ],
+            [
+                "secondary",
+                0.501
+            ],
+            [
+                "secondaryContainer",
+                1
+            ]
+        ],
+        "gradientType": "radial",
+        "gradientAngle": 0,
+        "gradientCenterX": 0.5,
+        "gradientCenterY": 0,
+        "halftoneDotMin": 0,
+        "halftoneDotMax": 2,
+        "halftoneStart": 0,
+        "halftoneEnd": 1,
+        "halftoneDotColor": "overSecondaryContainer",
+        "halftoneBackgroundColor": "secondary",
+        "border": [
+            "secondary",
+            2
+        ],
+        "itemColor": "overSecondary",
+        "opacity": 1
+    },
+    "srSecondaryFocus": {
+        "label": "Secondary Focus",
+        "gradient": [
+            [
+                "overSecondaryContainer",
+                0
+            ],
+            [
+                "surfaceBright",
+                0.5
+            ],
+            [
+                "secondary",
+                0.501
+            ],
+            [
+                "secondaryFixed",
+                1
+            ]
+        ],
+        "gradientType": "radial",
+        "gradientAngle": 0,
+        "gradientCenterX": 0.5,
+        "gradientCenterY": 0,
+        "halftoneDotMin": 0,
+        "halftoneDotMax": 2,
+        "halftoneStart": 0,
+        "halftoneEnd": 1,
+        "halftoneDotColor": "secondary",
+        "halftoneBackgroundColor": "overSecondaryContainer",
+        "border": [
+            "overBackground",
+            2
+        ],
+        "itemColor": "overSecondary",
+        "opacity": 1
+    },
+    "srOverSecondary": {
+        "label": "Over Secondary",
+        "gradient": [
+            [
+                "overSecondary",
+                0
+            ],
+            [
+                "surfaceBright",
+                0.5
+            ],
+            [
+                "overSecondary",
+                0.501
+            ],
+            [
+                "secondaryContainer",
+                1
+            ]
+        ],
+        "gradientType": "radial",
+        "gradientAngle": 0,
+        "gradientCenterX": 0.5,
+        "gradientCenterY": 0,
+        "halftoneDotMin": 0,
+        "halftoneDotMax": 2,
+        "halftoneStart": 0,
+        "halftoneEnd": 1,
+        "halftoneDotColor": "secondaryContainer",
+        "halftoneBackgroundColor": "overSecondary",
+        "border": [
+            "overSecondary",
+            2
+        ],
+        "itemColor": "secondary",
+        "opacity": 1
+    },
+    "srTertiary": {
+        "label": "Tertiary",
+        "gradient": [
+            [
+                "tertiaryFixedDim",
+                0
+            ],
+            [
+                "surfaceContainerLowest",
+                0.5
+            ],
+            [
+                "tertiary",
+                0.501
+            ],
+            [
+                "tertiaryContainer",
+                1
+            ]
+        ],
+        "gradientType": "radial",
+        "gradientAngle": 0,
+        "gradientCenterX": 0.5,
+        "gradientCenterY": 0,
+        "halftoneDotMin": 0,
+        "halftoneDotMax": 2,
+        "halftoneStart": 0,
+        "halftoneEnd": 1,
+        "halftoneDotColor": "overTertiaryContainer",
+        "halftoneBackgroundColor": "tertiary",
+        "border": [
+            "tertiary",
+            2
+        ],
+        "itemColor": "overTertiary",
+        "opacity": 1
+    },
+    "srTertiaryFocus": {
+        "label": "Tertiary Focus",
+        "gradient": [
+            [
+                "overTertiaryContainer",
+                0
+            ],
+            [
+                "surfaceBright",
+                0.5
+            ],
+            [
+                "tertiary",
+                0.501
+            ],
+            [
+                "tertiaryFixed",
+                1
+            ]
+        ],
+        "gradientType": "radial",
+        "gradientAngle": 0,
+        "gradientCenterX": 0.5,
+        "gradientCenterY": 0,
+        "halftoneDotMin": 0,
+        "halftoneDotMax": 2,
+        "halftoneStart": 0,
+        "halftoneEnd": 1,
+        "halftoneDotColor": "tertiary",
+        "halftoneBackgroundColor": "overTertiaryContainer",
+        "border": [
+            "overBackground",
+            2
+        ],
+        "itemColor": "overTertiary",
+        "opacity": 1
+    },
+    "srOverTertiary": {
+        "label": "Over Tertiary",
+        "gradient": [
+            [
+                "overTertiary",
+                0
+            ],
+            [
+                "surfaceBright",
+                0.5
+            ],
+            [
+                "overTertiary",
+                0.501
+            ],
+            [
+                "tertiaryContainer",
+                1
+            ]
+        ],
+        "gradientType": "radial",
+        "gradientAngle": 0,
+        "gradientCenterX": 0.5,
+        "gradientCenterY": 0,
+        "halftoneDotMin": 0,
+        "halftoneDotMax": 2,
+        "halftoneStart": 0,
+        "halftoneEnd": 1,
+        "halftoneDotColor": "tertiaryContainer",
+        "halftoneBackgroundColor": "overTertiary",
+        "border": [
+            "overTertiary",
+            2
+        ],
+        "itemColor": "tertiary",
+        "opacity": 1
+    },
+    "srError": {
+        "label": "Error",
+        "gradient": [
+            [
+                "#F87474",
+                0
+            ],
+            [
+                "#CF1111",
+                1
+            ],
+            [
+                "#A40909",
+                0.523
+            ]
+        ],
+        "gradientType": "radial",
+        "gradientAngle": 0,
+        "gradientCenterX": 0.5,
+        "gradientCenterY": 0,
+        "halftoneDotMin": 0,
+        "halftoneDotMax": 2,
+        "halftoneStart": 0,
+        "halftoneEnd": 1,
+        "halftoneDotColor": "overErrorContainer",
+        "halftoneBackgroundColor": "error",
+        "border": [
+            "error",
+            2
+        ],
+        "itemColor": "white",
+        "opacity": 1
+    },
+    "srErrorFocus": {
+        "label": "Error Focus",
+        "gradient": [
+            [
+                "overBackground",
+                0
+            ],
+            [
+                "surfaceContainerLowest",
+                0.5
+            ],
+            [
+                "overBackground",
+                0.501
+            ],
+            [
+                "surfaceVariant",
+                1
+            ]
+        ],
+        "gradientType": "radial",
+        "gradientAngle": 0,
+        "gradientCenterX": 0.5,
+        "gradientCenterY": 0,
+        "halftoneDotMin": 0,
+        "halftoneDotMax": 2,
+        "halftoneStart": 0,
+        "halftoneEnd": 1,
+        "halftoneDotColor": "error",
+        "halftoneBackgroundColor": "overErrorContainer",
+        "border": [
+            "overBackground",
+            2
+        ],
+        "itemColor": "overError",
+        "opacity": 1
+    },
+    "srOverError": {
+        "label": "Over Error",
+        "gradient": [
+            [
+                "errorContainer",
+                0
+            ],
+            [
+                "surfaceContainerLowest",
+                1
+            ],
+            [
+                "overError",
+                0.5
+            ],
+            [
+                "errorContainer",
+                0.501
+            ]
+        ],
+        "gradientType": "radial",
+        "gradientAngle": 0,
+        "gradientCenterX": 0.5,
+        "gradientCenterY": 0,
+        "halftoneDotMin": 0,
+        "halftoneDotMax": 2,
+        "halftoneStart": 0,
+        "halftoneEnd": 1,
+        "halftoneDotColor": "errorContainer",
+        "halftoneBackgroundColor": "overError",
+        "border": [
+            "overError",
+            2
+        ],
+        "itemColor": "error",
+        "opacity": 1
+    }
+}
