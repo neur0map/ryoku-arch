@@ -33,6 +33,11 @@ else
   esac
 fi
 
+if [[ -n $repo_root && -f $repo_root/lib/ryoku-update-core.sh ]]; then
+  # shellcheck disable=SC1091
+  source "$repo_root/lib/ryoku-update-core.sh"
+fi
+
 if [[ -n $repo_root && -f $repo_root/lib/pacman-conflicts.sh ]]; then
   # shellcheck disable=SC1091
   source "$repo_root/lib/pacman-conflicts.sh"
@@ -511,7 +516,37 @@ doctor_git() {
   GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=/bin/true git -C "$RYOKU_PATH" "$@"
 }
 
+# Proactively clear the permission/ownership problems that make both updates
+# and this doctor itself fail: trust the repo dir for git even when ownership
+# looks dubious, and hand root-owned files (left by a prior sudo run) back to
+# the user before any git operation. Best-effort and quiet.
+doctor_self_heal_permissions() {
+  [[ -d $RYOKU_PATH/.git ]] || return 0
+
+  if declare -F ryoku_git_mark_safe_directory >/dev/null 2>&1; then
+    ryoku_git_mark_safe_directory
+  else
+    git config --global --add safe.directory "$RYOKU_PATH" 2>/dev/null || true
+  fi
+
+  if declare -F ryoku_repo_fix_ownership >/dev/null 2>&1; then
+    ryoku_repo_fix_ownership || true
+  fi
+}
+
+doctor_last_resort_hint() {
+  echo "If updates still fail after this, recover with: ryoku-call911now"
+  echo "  (or open Settings > About > Stuck? to launch Ryoku MedEvac)"
+}
+
 doctor_release_branch() {
+  # Single source of truth when the core lib is available; fall back to the
+  # self-contained resolver below on a degraded install.
+  if declare -F ryoku_resolve_channel >/dev/null 2>&1; then
+    ryoku_resolve_channel
+    return
+  fi
+
   local config_file=""
   local config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
   local configured=""
@@ -864,6 +899,7 @@ run_update_doctor() {
   doctor_banner "Update repair"
   doctor_context_panel
   doctor_environment_warnings
+  doctor_self_heal_permissions
   echo
   echo "Ryoku Doctor: update"
   echo
@@ -880,7 +916,9 @@ run_update_doctor() {
 
   if ! log="$(latest_update_log)"; then
     echo "No readable Ryoku update log was found."
-    echo "Run: $(doctor_command_hint)"
+    echo "Permission and path repairs above were still applied; retry the update:"
+    echo "  Run: ryoku-update -y"
+    doctor_last_resort_hint
     doctor_report_issue "FAIL No readable Ryoku update log was found."
     doctor_report_finish "" "$fixes" "$safe_to_retry" "$unresolved" "$warnings"
     doctor_report_print_path
@@ -973,7 +1011,9 @@ run_update_doctor() {
   fi
 
   echo "No known auto-fix matched this log."
+  echo "Permission and path repairs above were still applied; retry: ryoku-update -y"
   echo "If the update still fails, open an issue with this log: $log"
+  doctor_last_resort_hint
   doctor_report_finish "$log" "$fixes" "$safe_to_retry" "$unresolved" "$warnings"
   doctor_report_print_path
   return 1

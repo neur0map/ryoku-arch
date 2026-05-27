@@ -460,7 +460,7 @@ PY
 
 switch_channel() {
   local channel="${1:-}"
-  local channel_q channel_set channel_set_q command path_q
+  local channel_q command path_q update_bin update_bin_q
 
   case "$channel" in
     main | unstable-dev) ;;
@@ -475,16 +475,18 @@ switch_channel() {
     return 1
   fi
 
-  channel_set="$RYOKU_PATH/bin/ryoku-channel-set"
-  if [[ ! -x $channel_set ]]; then
-    json_error "ryoku-channel-set was not found in $RYOKU_PATH/bin"
+  update_bin="$RYOKU_PATH/bin/ryoku-update"
+  if [[ ! -x $update_bin ]]; then
+    json_error "ryoku-update was not found in $RYOKU_PATH/bin"
     return 1
   fi
 
   path_q="$(shell_quote "$RYOKU_PATH")"
-  channel_set_q="$(shell_quote "$channel_set")"
+  update_bin_q="$(shell_quote "$update_bin")"
   channel_q="$(shell_quote "$channel")"
-  command="RYOKU_PATH=$path_q $channel_set_q $channel_q"
+  # Channel switching is one command now: ryoku-update -sc shows its confirm
+  # gate in the floating terminal so the switch stays deliberate.
+  command="RYOKU_PATH=$path_q $update_bin_q -sc $channel_q"
 
   ryoku-launch-floating-terminal-with-presentation "$command" >/dev/null 2>&1 &
   python3 - "$channel" <<'PY'
