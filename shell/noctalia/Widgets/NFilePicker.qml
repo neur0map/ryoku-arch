@@ -675,7 +675,7 @@ Popup {
             color: {
               if (filePickerPanel.currentSelection.includes(model.filePath))
                 return Color.mSecondary;
-              if (mouseArea.containsMouse)
+              if (mouseAreaB.containsMouse)
                 return Color.mHover;
               return "transparent";
             }
@@ -717,7 +717,7 @@ Popup {
             }
 
             MouseArea {
-              id: mouseArea
+              id: mouseAreaB
               anchors.fill: parent
               hoverEnabled: true
               acceptedButtons: Qt.LeftButton | Qt.RightButton
