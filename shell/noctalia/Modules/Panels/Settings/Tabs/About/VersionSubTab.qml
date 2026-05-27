@@ -29,6 +29,23 @@ ColumnLayout {
     running: false
   }
 
+  // RYOKU: surface update-check and update-start results as toasts so the
+  // System Updates actions always give visible success/error feedback.
+  Connections {
+    target: RyokuAbout
+
+    function onUpdateCheckFinished(report) {
+      if (report && report.ok === false)
+        ToastService.showError("Update check failed", (report.error || "Could not reach the update channel").toString());
+    }
+    function onUpdateStartFinished(report) {
+      if (report && report.ok)
+        ToastService.showNotice("Update", (report.message || "Update started in a terminal.").toString());
+      else
+        ToastService.showError("Update failed to start", ((report && report.error) || "Could not start the update.").toString());
+    }
+  }
+
   property string latestVersion: GitHubService.latestVersion
   property string currentVersion: UpdateService.currentVersion
   property string commitInfo: ""
@@ -186,8 +203,10 @@ ColumnLayout {
   }
 
   Component.onCompleted: {
-    // RYOKU: pull real ryoku version/channel from the RyokuAbout service.
+    // RYOKU: pull real ryoku version/channel, and auto-check for updates so the
+    // System Updates panel shows live status the moment About opens.
     RyokuAbout.refreshStatus();
+    RyokuAbout.checkUpdates();
     // Check if fastfetch is available before trying to run it
     checkFastfetchProcess.running = true;
     // RYOKU: leave qsVersion empty so the Noctalia QS-version row stays hidden
@@ -425,7 +444,7 @@ ColumnLayout {
       text: I18n.tr("panels.about.support")
       outlined: true
       Layout.alignment: Qt.AlignHCenter
-      onClicked: Quickshell.execDetached(["xdg-open", "https://github.com/neur0map/ryoku-arch"])
+      onClicked: Quickshell.execDetached(["xdg-open", "https://ko-fi.com/ryokuarch"])
     }
   }
 
@@ -462,6 +481,45 @@ ColumnLayout {
     }
   }
 
+  // RYOKU: collapsible drawer listing the incoming commit descriptions
+  // (from check-updates' `incoming` array). Shown only when updates exist.
+  NCollapsible {
+    Layout.fillWidth: true
+    Layout.topMargin: Style.marginXS
+    visible: !!(RyokuAbout.lastUpdateReport && RyokuAbout.lastUpdateReport.incoming && RyokuAbout.lastUpdateReport.incoming.length > 0)
+    label: {
+      const n = (RyokuAbout.lastUpdateReport && RyokuAbout.lastUpdateReport.incoming) ? RyokuAbout.lastUpdateReport.incoming.length : 0;
+      return "View " + n + (n === 1 ? " incoming change" : " incoming changes");
+    }
+
+    Repeater {
+      model: (RyokuAbout.lastUpdateReport && RyokuAbout.lastUpdateReport.incoming) || []
+
+      delegate: ColumnLayout {
+        required property var modelData
+
+        Layout.fillWidth: true
+        spacing: 0
+
+        NText {
+          Layout.fillWidth: true
+          text: modelData.subject || ""
+          color: Color.mOnSurface
+          pointSize: Style.fontSizeS
+          font.weight: Style.fontWeightMedium
+          wrapMode: Text.WordWrap
+        }
+        NText {
+          Layout.fillWidth: true
+          text: (modelData.hash || "") + "  ·  " + (modelData.author || "") + "  ·  " + (modelData.relativeTime || "")
+          color: Color.mOnSurfaceVariant
+          pointSize: Style.fontSizeXS
+          wrapMode: Text.WordWrap
+        }
+      }
+    }
+  }
+
   GridLayout {
     id: updatesGrid
     Layout.fillWidth: true
@@ -491,25 +549,6 @@ ColumnLayout {
       onClicked: RyokuAbout.startUpdate((RyokuAbout.lastUpdateReport && RyokuAbout.lastUpdateReport.updateBranch) || (RyokuAbout.info && RyokuAbout.info.updateBranch) || (RyokuAbout.info && RyokuAbout.info.configuredChannel) || "")
     }
 
-    NButton {
-      id: doctorBtn
-      Layout.fillWidth: true
-      icon: "stethoscope"
-      text: RyokuAbout.runningDoctor ? "Running…" : "Run doctor"
-      outlined: true
-      enabled: !RyokuAbout.runningDoctor
-      onClicked: RyokuAbout.runDoctor()
-    }
-
-    NButton {
-      id: medevacBtn
-      Layout.fillWidth: true
-      icon: "ambulance"
-      text: RyokuAbout.startingMedevac ? "Starting…" : "Medevac"
-      outlined: true
-      enabled: !RyokuAbout.startingMedevac
-      onClicked: RyokuAbout.startMedevac((RyokuAbout.info && RyokuAbout.info.configuredChannel) || "")
-    }
   }
 
   // System Information Section
