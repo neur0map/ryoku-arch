@@ -60,8 +60,15 @@ shell_stage_line="$(grep -n 'Ryoku shell' "$PERFORM" | head -n1 | cut -d: -f1)"
 (( distro_stage_line < shell_stage_line )) \
   || fail "core updater should install cava-ryoku/libcava before rebuilding the shell"
 
-rg -q 'RYOKU_CORE_UPDATE_CHILD=1 IS_UPDATE=true ./setup install -y -q --skip-deps --skip-setups --skip-sysupdate' "$INSTALL_SHELL" \
-  || fail "core shell update should run shell setup in quiet child mode"
+# Allow additional env-var lines (e.g. RYOKU_SHELL_RUNTIME_DIR) between
+# RYOKU_CORE_UPDATE_CHILD=1 and IS_UPDATE=true; the invariant is just that
+# both are set when invoking the quiet child mode of ./setup install.
+rg -q 'RYOKU_CORE_UPDATE_CHILD=1' "$INSTALL_SHELL" \
+  || fail "core shell update should set RYOKU_CORE_UPDATE_CHILD=1"
+rg -q 'IS_UPDATE=true' "$INSTALL_SHELL" \
+  || fail "core shell update should set IS_UPDATE=true"
+rg -q '\./setup install -y -q --skip-deps --skip-setups --skip-sysupdate' "$INSTALL_SHELL" \
+  || fail "core shell update should invoke ./setup install in quiet child mode"
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 
@@ -225,9 +232,33 @@ grep -Fq -- "--user start ryoku-shell.service" "$restart_tmp/systemctl.log" \
 
 export RYOKU_UPDATE_DASHBOARD_ACTIVE=1
 ryoku_update_install_dashboard_gum_shim
+# Back-compat: legacy migration scripts that still call `gum confirm` get
+# intercepted by the shim and routed to ryoku_update_confirm so the prompt
+# stays interactive instead of erroring out on a missing gum binary.
 if ! printf 'y\n' | bash -c 'gum confirm "Nested migration prompt?"' >/dev/null; then
   fail "dashboard gum confirm shim should keep child Bash migration prompts interactive"
 fi
+
+# Non-confirm gum calls (e.g. `gum style ...`) now fall through to ryoku-tui.
+# Stub ryoku-tui on PATH so we can prove the shim invokes it instead of looking
+# for the removed gum binary.
+tui_stub_dir=$(mktemp -d)
+tui_log="$tui_stub_dir/calls.log"
+cat >"$tui_stub_dir/ryoku-tui" <<TUISTUB
+#!/bin/bash
+printf '%s\n' "\$*" >>"$tui_log"
+exit 0
+TUISTUB
+chmod +x "$tui_stub_dir/ryoku-tui"
+if ! PATH="$tui_stub_dir:$PATH" bash -c 'gum style --bold "hello"' >/dev/null; then
+  rm -rf "$tui_stub_dir"
+  fail "dashboard gum shim should pass non-confirm calls through to ryoku-tui"
+fi
+if ! grep -Fxq 'style --bold hello' "$tui_log"; then
+  rm -rf "$tui_stub_dir"
+  fail "dashboard gum shim should forward non-confirm args verbatim to ryoku-tui"
+fi
+rm -rf "$tui_stub_dir"
 
 ROOT_DIR="$ROOT_DIR" python - <<'PY'
 import os

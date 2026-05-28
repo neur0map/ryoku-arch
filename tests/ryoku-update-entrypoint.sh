@@ -35,7 +35,9 @@ mkstub ryoku-snapshot       'exit 0'
 mkstub ryoku-refresh-pacman 'echo "pacman:$1" >>"'"$LOG"'"; exit 0'
 mkstub ryoku-update-confirm 'exit ${RYOKU_TEST_CONFIRM_RC:-0}'
 mkstub ryoku-update-time    'exit 0'
-mkstub gum                  'case "$1" in confirm) exit ${RYOKU_TEST_GUM_RC:-0};; *) exit 0;; esac'
+# ryoku-tui replaces gum: confirm exits non-zero to simulate "decline", zero to
+# simulate "accept". Other subcommands (style, etc.) are no-ops.
+mkstub ryoku-tui            'case "$1" in confirm) exit ${RYOKU_TEST_TUI_CONFIRM_RC:-0};; *) exit 0;; esac'
 export PATH="$STUB:$PATH"
 
 run() { # args...  -> sets RC, resets log
@@ -75,7 +77,7 @@ has "perform ran" "perform"
 hasnt "no pacman channel refresh on normal update" "pacman:unstable-dev"
 
 echo "== switch without -y is gated (decline -> cancelled, no git) =="
-RYOKU_TEST_GUM_RC=1 run -sc unstable-dev    # gum confirm declines
+RYOKU_TEST_TUI_CONFIRM_RC=1 run -sc unstable-dev    # ryoku-tui confirm declines
 eq "exit 0 (clean cancel)" "$RC" "0"
 grep -q "cancelled" "$SANDBOX/out.log" && ok "prints cancelled" || no "prints cancelled"
 hasnt "git did not run on declined switch" "git:unstable-dev"
