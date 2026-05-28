@@ -39,7 +39,7 @@ packages=(
   xmlstarlet
 )
 
-if gum confirm "Remove optional preinstalled apps and tools outside the compact keep set?"; then
+if ryoku-tui confirm "Remove optional preinstalled apps and tools outside the compact keep set?"; then
   echo -e "Removing preinstalled Ryoku applications...\n"
 
   ryoku-webapp-remove "${webapps[@]}"

@@ -314,7 +314,7 @@ ask_to_install_target() {
   esac
 
   if [[ -t 0 && -t 1 ]] && ryoku-cmd-present gum; then
-    gum confirm "$fresh_install_text Install $target_label and switch this existing install?"
+    ryoku-tui confirm "$fresh_install_text Install $target_label and switch this existing install?"
     return $?
   fi
 

@@ -29,7 +29,7 @@ gpu_mode=$(supergfxctl -g)
 
 case "$gpu_mode" in
 "Integrated")
-  if gum confirm "Enable dedicated GPU and reboot?"; then
+  if ryoku-tui confirm "Enable dedicated GPU and reboot?"; then
     # Switch to hybrid mode
     sudo sed -i "s/\"mode\": \".*\"/\"mode\": \"Hybrid\"/" /etc/supergfxd.conf
 
@@ -43,7 +43,7 @@ case "$gpu_mode" in
   fi
   ;;
 "Hybrid")
-  if gum confirm "Use only integrated GPU and reboot?"; then
+  if ryoku-tui confirm "Use only integrated GPU and reboot?"; then
     # Switch to integrated mode and ensure vfio is enabled (needed for sleep/wake trick)
     sudo sed -i "s/\"mode\": \".*\"/\"mode\": \"Integrated\"/" /etc/supergfxd.conf
     sudo sed -i 's/"vfio_enable": false/"vfio_enable": true/' /etc/supergfxd.conf

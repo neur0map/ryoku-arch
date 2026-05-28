@@ -33,7 +33,7 @@ existing_entry=$(efibootmgr | grep -E "^Boot[0-9A-Fa-f]+\*? Ryoku([[:space:]]|$)
 if [[ -n $existing_entry ]]; then
   boot_num=$(echo "$existing_entry" | sed -n 's/^Boot\([0-9A-Fa-f]\+\).*/\1/p')
 
-  if gum confirm "Disable direct boot (remove Ryoku EFI entry)?"; then
+  if ryoku-tui confirm "Disable direct boot (remove Ryoku EFI entry)?"; then
     echo "Removing EFI boot entry $boot_num"
     sudo efibootmgr --bootnum "$boot_num" --delete-bootnum >/dev/null
   fi
@@ -52,7 +52,7 @@ boot_source=$(findmnt -n -o SOURCE "$BOOT_MOUNT_PATH")
 disk=$(echo "$boot_source" | sed 's/p\?[0-9]*$//')
 part=$(echo "$boot_source" | grep -o 'p\?[0-9]*$' | sed 's/^p//')
 
-if gum confirm "Setup direct boot (so snapshot booting must be done via bios)?"; then
+if ryoku-tui confirm "Setup direct boot (so snapshot booting must be done via bios)?"; then
   echo "Creating EFI boot entry for $uki_file"
 
   sudo efibootmgr --create \

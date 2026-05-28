@@ -24,7 +24,7 @@ unlock_dns_to_dhcp() {
 }
 
 if [[ -z $1 ]]; then
-  dns=$(gum choose --height 6 --header "Select DNS provider" Cloudflare Google DHCP Custom)
+  dns=$(ryoku-tui choose --height 6 --header "Select DNS provider" Cloudflare Google DHCP Custom)
 else
   dns=$1
 fi

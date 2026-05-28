@@ -4,7 +4,7 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 
 # Install voxtype and configure it for use.
 
-if gum confirm "Install Voxtype + AI model (~150MB) to enable dictation?"; then
+if ryoku-tui confirm "Install Voxtype + AI model (~150MB) to enable dictation?"; then
   ryoku-pkg-add wtype voxtype-bin
 
   # Setup voxtype

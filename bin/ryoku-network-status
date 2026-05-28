@@ -10,8 +10,8 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 
 clear
 
-if command -v gum >/dev/null 2>&1; then
-  gum style --bold --foreground 3 --padding "0 2" "  Network Status"
+if command -v ryoku-tui >/dev/null 2>&1; then
+  ryoku-tui style --bold --foreground 3 --padding "0 2" "  Network Status"
 else
   printf '\n  Network Status\n'
 fi

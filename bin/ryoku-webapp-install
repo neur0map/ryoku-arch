@@ -7,8 +7,8 @@ ICON_DIR="$HOME/.local/share/applications/icons"
 
 if (( $# < 3 )); then
   echo -e "\e[32mLet's create a new web app you can start with the app launcher.\n\e[0m"
-  APP_NAME=$(gum input --prompt "Name> " --placeholder "My favorite web app")
-  APP_URL=$(gum input --prompt "URL> " --placeholder "https://example.com")
+  APP_NAME=$(ryoku-tui input --prompt "Name> " --placeholder "My favorite web app")
+  APP_URL=$(ryoku-tui input --prompt "URL> " --placeholder "https://example.com")
   if [[ ! $APP_URL =~ ^[a-zA-Z][a-zA-Z0-9+.-]*: ]]; then
     APP_URL="https://$APP_URL"
   fi
@@ -19,7 +19,7 @@ if (( $# < 3 )); then
   if curl -fsSL -o "$ICON_DIR/$APP_NAME.png" "$FAVICON_URL" && [[ -s $ICON_DIR/$APP_NAME.png ]]; then
     ICON_REF="$APP_NAME.png"
   else
-    ICON_REF=$(gum input --prompt "Icon URL> " --placeholder "Could not fetch favicon automatically. Enter PNG icon URL (see https://dashboardicons.com)")
+    ICON_REF=$(ryoku-tui input --prompt "Icon URL> " --placeholder "Could not fetch favicon automatically. Enter PNG icon URL (see https://dashboardicons.com)")
   fi
 
   CUSTOM_EXEC=""

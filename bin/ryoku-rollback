@@ -32,8 +32,8 @@ echo "  Root snapshot:   ${root_snapshot:-(none)}"
 echo "  Home snapshot:   ${home_snapshot:-(none)}"
 echo
 
-if command -v gum >/dev/null; then
-  gum confirm \
+if command -v ryoku-tui >/dev/null; then
+  ryoku-tui confirm \
     --prompt.foreground 202 \
     --selected.background 202 --selected.foreground 0 \
     "Restore the pre-Ryoku state and reboot? Anything written to /home or / since the snapshot will be lost." \

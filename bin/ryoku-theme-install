@@ -7,7 +7,7 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 
 if [[ -z $1 ]]; then
   echo -e "\e[32mProvide a git repo URL that contains a Ryoku-compatible theme.\n\e[0m"
-  REPO_URL=$(gum input --placeholder="Git repo URL for theme" --header="")
+  REPO_URL=$(ryoku-tui input --placeholder="Git repo URL for theme" --header="")
 else
   REPO_URL="$1"
 fi
