@@ -119,5 +119,10 @@ echo "Ryoku ISO path: $iso_ref"
 # Offer to boot the new build
 if [[ -z "$NO_BOOT_OFFER" ]]; then
   echo
-  gum confirm "Boot $iso_ref?" && ryoku-iso-boot "$iso_ref"
+  if command -v ryoku-tui >/dev/null 2>&1; then
+    ryoku-tui confirm "Boot $iso_ref?" && ryoku-iso-boot "$iso_ref"
+  else
+    read -r -p "Boot $iso_ref? [y/N] " a
+    [[ $a == [yY]* ]] && ryoku-iso-boot "$iso_ref"
+  fi
 fi

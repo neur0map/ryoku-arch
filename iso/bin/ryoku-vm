@@ -13,7 +13,11 @@ save_vm() {
   local name="$1"
 
   if [[ -z "$name" ]]; then
-    name=$(gum input --placeholder "Enter VM snapshot name")
+    if command -v ryoku-tui >/dev/null 2>&1; then
+      name=$(ryoku-tui input --placeholder "Enter VM snapshot name")
+    else
+      read -r -p "Enter VM snapshot name: " name
+    fi
     [[ -z "$name" ]] && exit 1
   fi
 
@@ -26,8 +30,11 @@ save_vm() {
   local vm_path="$VM_DIR/$name"
 
   if [[ -d "$vm_path" ]]; then
-    if ! gum confirm "VM '$name' exists. Overwrite?"; then
-      exit 0
+    if command -v ryoku-tui >/dev/null 2>&1; then
+      ryoku-tui confirm "VM '$name' exists. Overwrite?" || exit 0
+    else
+      read -r -p "VM '$name' exists. Overwrite? [y/N] " a
+      [[ $a == [yY]* ]] || exit 0
     fi
   fi
 
@@ -37,7 +44,11 @@ save_vm() {
   cp "$TMP_DISK" "$vm_path/ryoku-iso-boot.qcow2"
   cp "$TMP_OVMF" "$vm_path/OVMF_VARS.4m.fd"
 
-  gum style --foreground 212 "✓ Saved to $vm_path"
+  if command -v ryoku-tui >/dev/null 2>&1; then
+    ryoku-tui style --foreground 212 "✓ Saved to $vm_path"
+  else
+    printf '%s\n' "✓ Saved to $vm_path"
+  fi
 }
 
 list_vms() {
@@ -61,7 +72,11 @@ boot_vm() {
   fi
 
   if [[ -z "$name" ]]; then
-    name=$(ls -1 "$VM_DIR" | gum choose --header "Select VM to boot:")
+    if command -v ryoku-tui >/dev/null 2>&1; then
+      name=$(ls -1 "$VM_DIR" | ryoku-tui choose --header "Select VM to boot:")
+    else
+      name=$(ls -1 "$VM_DIR" | head -n1)
+    fi
     [[ -z "$name" ]] && exit 0
   fi
 
@@ -73,15 +88,24 @@ boot_vm() {
     exit 1
   fi
 
-  if [[ -f "$TMP_DISK" ]] && ! gum confirm "Override existing /tmp VM?"; then
-    exit 0
+  if [[ -f "$TMP_DISK" ]]; then
+    if command -v ryoku-tui >/dev/null 2>&1; then
+      ryoku-tui confirm "Override existing /tmp VM?" || exit 0
+    else
+      read -r -p "Override existing /tmp VM? [y/N] " a
+      [[ $a == [yY]* ]] || exit 0
+    fi
   fi
 
   echo "Copying VM '$name' to /tmp..."
   cp "$vm_path/ryoku-iso-boot.qcow2" "$TMP_DISK"
   cp "$vm_path/OVMF_VARS.4m.fd" "$TMP_OVMF"
 
-  gum style --foreground 212 "✓ VM ready. Booting..."
+  if command -v ryoku-tui >/dev/null 2>&1; then
+    ryoku-tui style --foreground 212 "✓ VM ready. Booting..."
+  else
+    printf '%s\n' "✓ VM ready. Booting..."
+  fi
 
   exec ryoku-iso-boot /dev/null reuse
 }
@@ -97,15 +121,27 @@ case "${1:-}" in
     list_vms
     ;;
   *)
-    gum style --border rounded --padding "0 1" --border-foreground 212 \
-      "$(gum style --bold 'ryoku-vm') - VM snapshot manager" \
-      "" \
-      "$(gum style --foreground 245 'Commands:')" \
-      "  save [name]  Save current VM from /tmp" \
-      "  boot [name]  Boot saved VM (interactive if no name)" \
-      "  list         List available VMs" \
-      "" \
-      "$(gum style --foreground 245 'Current VMs:')"
+    if command -v ryoku-tui >/dev/null 2>&1; then
+      ryoku-tui style --border rounded --padding "0 1" --border-foreground 212 \
+        "$(ryoku-tui style --bold 'ryoku-vm') - VM snapshot manager" \
+        "" \
+        "$(ryoku-tui style --foreground 245 'Commands:')" \
+        "  save [name]  Save current VM from /tmp" \
+        "  boot [name]  Boot saved VM (interactive if no name)" \
+        "  list         List available VMs" \
+        "" \
+        "$(ryoku-tui style --foreground 245 'Current VMs:')"
+    else
+      printf '%s\n' \
+        "ryoku-vm - VM snapshot manager" \
+        "" \
+        "Commands:" \
+        "  save [name]  Save current VM from /tmp" \
+        "  boot [name]  Boot saved VM (interactive if no name)" \
+        "  list         List available VMs" \
+        "" \
+        "Current VMs:"
+    fi
     list_vms 2>/dev/null || echo "  None"
     ;;
 esac

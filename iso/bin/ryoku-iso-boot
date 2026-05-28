@@ -6,9 +6,13 @@ ISO="$1"
 REUSE="$2"
 
 if [ $# -eq 0 ]; then
-  ISO=$(ls -t release/*.iso 2>/dev/null | gum choose --header "Select ISO to boot")
-  if gum confirm --default=false "Reuse existing disk?"; then
-    REUSE="reuse"
+  if command -v ryoku-tui >/dev/null 2>&1; then
+    ISO=$(ls -t release/*.iso 2>/dev/null | ryoku-tui choose --header "Select ISO to boot")
+    ryoku-tui confirm --default=false "Reuse existing disk?" && REUSE="reuse"
+  else
+    ISO=$(ls -t release/*.iso 2>/dev/null | head -n1)
+    read -r -p "Reuse existing disk? [y/N] " a
+    [[ $a == [yY]* ]] && REUSE="reuse"
   fi
 fi
 
