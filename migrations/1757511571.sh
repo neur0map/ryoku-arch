@@ -1,3 +1,3 @@
 echo "Add screen recording indicator to Waybar"
 
-gum confirm "Replace current Waybar config (backup will be made)?" && ryoku-refresh-waybar
+ryoku-tui confirm "Replace current Waybar config (backup will be made)?" && ryoku-refresh-waybar
