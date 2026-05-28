@@ -519,6 +519,14 @@ func main() {
 			os.Exit(runConfirm(os.Args[2:]))
 		case "style":
 			os.Exit(runStyle(os.Args[2:]))
+		case "choose":
+			os.Exit(runChoose(os.Args[2:]))
+		case "input":
+			os.Exit(runInput(os.Args[2:]))
+		case "filter":
+			os.Exit(runFilter(os.Args[2:]))
+		case "spin":
+			os.Exit(runSpin(os.Args[2:]))
 		}
 	}
 
