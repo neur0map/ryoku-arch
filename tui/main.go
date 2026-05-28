@@ -34,6 +34,7 @@ const (
 	stateMenu viewState = iota
 	stateRunning
 	stateFinished
+	stateSudoPrompt
 )
 
 type runState int
@@ -59,11 +60,12 @@ type menuItem struct {
 
 type lineMsg string
 type doneMsg struct{ code int }
-type sudoReadyMsg struct {
-	item menuItem
-	err  error
-}
 type animTickMsg time.Time
+type sudoAuthResultMsg struct {
+	item menuItem
+	ok   bool
+	err  string
+}
 
 type model struct {
 	width, height int
@@ -87,6 +89,13 @@ type model struct {
 	out      chan tea.Msg
 
 	note string
+
+	// In-TUI sudo prompt state. We keep the typed password in memory only for
+	// as long as the prompt is on screen; on submit/cancel it is cleared and
+	// then handed once to `sudo -S -v` via stdin.
+	sudoFor    menuItem
+	sudoPasswd string
+	sudoError  string
 
 	// harmonica spring animation: a bright marker sweeps a bar while an action
 	// runs (indeterminate activity). The spring is under-damped so it eases in
@@ -118,7 +127,10 @@ func newModel() model {
 		version:  detectVersion(),
 		spin:     sp,
 		runState: runIdle,
-		spring:   harmonica.NewSpring(harmonica.FPS(animFPS), 5.0, 0.18),
+		// Smoother than the original 5.0/0.18 (which was visibly bouncy):
+		// lower angular frequency + heavier damping for a gentle, controlled
+		// ease at each end of the sweep.
+		spring:   harmonica.NewSpring(harmonica.FPS(animFPS), 4.0, 0.75),
 	}
 }
 
@@ -162,15 +174,28 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, animTick()
 
-	case sudoReadyMsg:
-		if msg.err != nil {
-			m.runState = runFail
-			m.state = stateFinished
-			m.animating = false
-			m.appendLine(styErr.Render("✗ authentication failed: " + msg.err.Error()))
+	case sudoAuthResultMsg:
+		if !msg.ok {
+			// Stay on the password screen, surface the error, allow retry.
+			m.sudoError = msg.err
 			return m, nil
 		}
-		return m, m.launchCaptured(msg.item)
+		// Auth succeeded - launch the captured action.
+		it := msg.item
+		m.sudoFor = menuItem{}
+		m.sudoError = ""
+		m.active = it
+		m.lines = nil
+		m.runState = runActive
+		m.state = stateRunning
+		m.started = time.Now()
+		m.note = ""
+		m.animating = true
+		m.sweepPos = 0
+		m.sweepVel = 0
+		m.sweepTo = float64(m.sweepWidth())
+		m.layoutViewport()
+		return m, tea.Batch(m.launchCaptured(it), animTick())
 
 	case lineMsg:
 		m.appendLine(string(msg))
@@ -216,6 +241,39 @@ func (m model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case stateSudoPrompt:
+		switch msg.String() {
+		case "esc":
+			// Cancel: wipe the secret and bounce back to the menu.
+			m.sudoPasswd = ""
+			m.sudoError = ""
+			m.sudoFor = menuItem{}
+			m.state = stateMenu
+			return m, nil
+		case "ctrl+c":
+			m.sudoPasswd = ""
+			return m, tea.Quit
+		case "enter":
+			passwd := m.sudoPasswd
+			m.sudoPasswd = "" // clear from model immediately on submit
+			m.sudoError = ""
+			return m, trySudoAuth(m.sudoFor, passwd)
+		case "backspace":
+			r := []rune(m.sudoPasswd)
+			if len(r) > 0 {
+				m.sudoPasswd = string(r[:len(r)-1])
+			}
+			return m, nil
+		case "ctrl+u":
+			m.sudoPasswd = ""
+			return m, nil
+		default:
+			if t := msg.Text; t != "" {
+				m.sudoPasswd += t
+			}
+			return m, nil
+		}
+
 	case stateRunning:
 		if msg.String() == "ctrl+c" {
 			return m, tea.Quit
@@ -253,9 +311,18 @@ func (m model) selectItem(it menuItem) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "logs":
 		m.active = it
-		m.lines = readLog()
+		// Style every log line through the same prefix highlighter, so the
+		// loaded log matches the live-streamed output's colour scheme.
+		raw := readLog()
+		m.lines = make([]string, len(raw))
+		for i, line := range raw {
+			m.lines[i] = applyLineStyle(line)
+		}
 		m.runState = runOK
 		m.state = stateFinished
+		// Set started so renderResults's `time.Since(m.started)` does not
+		// produce a 2.5-billion-hour value when an instant action finishes.
+		m.started = time.Now()
 		m.layoutViewport()
 		m.refreshViewport()
 		return m, nil
@@ -275,12 +342,45 @@ func (m model) selectItem(it menuItem) (tea.Model, tea.Cmd) {
 	m.refreshViewport()
 
 	if it.needsSudo && !sudoCached() {
-		c := exec.Command("sudo", "-v")
-		return m, tea.ExecProcess(c, func(err error) tea.Msg {
-			return sudoReadyMsg{item: it, err: err}
-		})
+		// Drop into the in-TUI password screen instead of suspending the
+		// program. The password never leaves the bubbletea event loop until
+		// it is handed once to `sudo -S -v`.
+		m.sudoFor = it
+		m.sudoPasswd = ""
+		m.sudoError = ""
+		m.state = stateSudoPrompt
+		m.animating = false
+		return m, nil
 	}
 	return m, tea.Batch(m.launchCaptured(it), animTick())
+}
+
+// trySudoAuth runs `sudo -S -v` with the supplied password piped on stdin.
+// Returns a sudoAuthResultMsg whose ok mirrors sudo's exit status. The
+// password is held only inside this closure for the lifetime of the call.
+func trySudoAuth(it menuItem, password string) tea.Cmd {
+	return func() tea.Msg {
+		c := exec.Command("sudo", "-S", "-p", "", "-v")
+		c.Stdin = strings.NewReader(password + "\n")
+		var stderr strings.Builder
+		c.Stderr = &stderr
+		err := c.Run()
+		if err == nil {
+			return sudoAuthResultMsg{item: it, ok: true}
+		}
+		msg := "authentication failed"
+		errOut := stderr.String()
+		switch {
+		case strings.Contains(errOut, "Sorry, try again") ||
+			strings.Contains(errOut, "incorrect password"):
+			msg = "incorrect password"
+		case strings.Contains(errOut, "not allowed"):
+			msg = "this user is not allowed to run sudo"
+		case strings.Contains(errOut, "no tty"):
+			msg = "sudo requires a tty (sudoers misconfiguration)"
+		}
+		return sudoAuthResultMsg{item: it, ok: false, err: msg}
+	}
 }
 
 func (m *model) launchCaptured(it menuItem) tea.Cmd {
@@ -301,8 +401,15 @@ func (m model) View() tea.View {
 	switch m.state {
 	case stateMenu:
 		body = lipgloss.JoinVertical(lipgloss.Left, header, m.renderMenu())
+	case stateSudoPrompt:
+		body = lipgloss.JoinVertical(lipgloss.Left, header, m.renderSudoPrompt())
 	default:
 		body = lipgloss.JoinVertical(lipgloss.Left, header, m.renderResults())
+	}
+	// Centre the whole frame horizontally on the terminal. Vertical anchor
+	// stays at the top so the live-results pane grows naturally downward.
+	if m.width > 0 && m.height > 0 {
+		body = lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Top, body)
 	}
 	v := tea.NewView(body)
 	v.AltScreen = true
@@ -373,6 +480,24 @@ func (m model) renderResults() string {
 	return body
 }
 
+// renderSudoPrompt is the in-TUI password screen. The typed password is
+// rendered as a row of • bullets so it never appears as plaintext on screen,
+// and the password buffer lives only in the model (never in a viewport or
+// the log).
+func (m model) renderSudoPrompt() string {
+	brand := styBrand.Render("力  Sudo password required")
+	sub := stySubtitle.Render("for: " + m.sudoFor.title)
+	mask := strings.Repeat("•", len([]rune(m.sudoPasswd)))
+	field := styMetaKey.Render("password ") + mask + styCursor.Render("▏")
+	inner := lipgloss.JoinVertical(lipgloss.Center, brand, sub, "", field)
+	if m.sudoError != "" {
+		inner = lipgloss.JoinVertical(lipgloss.Center, inner, "", styErr.Render("✗ "+m.sudoError))
+	}
+	box := styHeaderBox.Render(inner)
+	hint := styHint.Render("enter authenticate   esc cancel   ctrl+u clear")
+	return "\n" + box + "\n  " + hint
+}
+
 func (m model) sweepWidth() int {
 	w := m.width/3 - 4
 	if w < 10 {
@@ -433,12 +558,47 @@ func (m *model) layoutViewport() {
 }
 
 func (m *model) appendLine(s string) {
-	m.lines = append(m.lines, s)
+	m.lines = append(m.lines, applyLineStyle(s))
 	const maxLines = 4000
 	if len(m.lines) > maxLines {
 		m.lines = m.lines[len(m.lines)-maxLines:]
 	}
 	m.refreshViewport()
+}
+
+// applyLineStyle highlights common log prefixes in captured engine output so
+// the viewport reads at a glance instead of being a wall of plain text. The
+// bash engines run in plain mode for the TUI; this layer puts the colour back.
+func applyLineStyle(s string) string {
+	trim := strings.TrimLeft(s, " \t")
+	switch {
+	case strings.HasPrefix(trim, "ERROR:"),
+		strings.HasPrefix(trim, "ERR:"),
+		strings.HasPrefix(trim, "FAIL "),
+		strings.HasPrefix(trim, "FAIL:"),
+		strings.HasPrefix(trim, "✗"):
+		return styErr.Render(s)
+	case strings.HasPrefix(trim, "WARN "),
+		strings.HasPrefix(trim, "WARN:"),
+		strings.HasPrefix(trim, "WARNING:"),
+		strings.HasPrefix(trim, "Warning:"):
+		return styWarn.Render(s)
+	case strings.HasPrefix(trim, "OK:"),
+		strings.HasPrefix(trim, "OK "),
+		strings.HasPrefix(trim, "FIX "),
+		strings.HasPrefix(trim, "FIX:"),
+		strings.HasPrefix(trim, "✓"):
+		return styOK.Render(s)
+	case strings.HasPrefix(trim, "==>"),
+		strings.HasPrefix(trim, "INFO:"),
+		strings.HasPrefix(trim, "INFO "),
+		strings.HasPrefix(trim, "::"):
+		return styPaneTitle.Render(s)
+	case strings.HasPrefix(trim, "["):
+		// e.g. "[3/9] System packages" - stage banner from the legacy dashboard.
+		return styPaneTitle.Render(s)
+	}
+	return s
 }
 
 func (m *model) refreshViewport() {

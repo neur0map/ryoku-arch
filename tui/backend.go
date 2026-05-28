@@ -42,10 +42,26 @@ func detectChannel() string {
 }
 
 func detectVersion() string {
-	b, err := os.ReadFile(filepath.Join(ryokuPath(), "version"))
-	if err == nil {
-		if s := strings.TrimSpace(string(b)); s != "" {
+	// ryoku-version is the canonical source (it reads $RYOKU_PATH/.version,
+	// then falls back to a short git SHA + the literal "preview" if neither
+	// is present). Use it first so the header matches what `ryoku-version`
+	// prints elsewhere in the system.
+	if out, err := exec.Command("ryoku-version").Output(); err == nil {
+		if s := strings.TrimSpace(string(out)); s != "" {
 			return s
+		}
+	}
+	for _, name := range []string{".version", "version"} {
+		b, err := os.ReadFile(filepath.Join(ryokuPath(), name))
+		if err == nil {
+			if s := strings.TrimSpace(string(b)); s != "" {
+				return s
+			}
+		}
+	}
+	if out, err := exec.Command("git", "-C", ryokuPath(), "rev-parse", "--short", "HEAD").Output(); err == nil {
+		if s := strings.TrimSpace(string(out)); s != "" {
+			return "g" + s
 		}
 	}
 	return "unknown"
