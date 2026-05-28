@@ -511,8 +511,15 @@ func runCmd(name string, args []string, env []string) (chan tea.Msg, error) {
 }
 
 func main() {
-	if len(os.Args) > 1 && os.Args[1] == "confirm" {
-		os.Exit(runConfirm(os.Args[2:]))
+	// gum-free widget subcommands (drop-in for the gum subcommands of the same
+	// name). With no subcommand, launch the full control center.
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "confirm":
+			os.Exit(runConfirm(os.Args[2:]))
+		case "style":
+			os.Exit(runStyle(os.Args[2:]))
+		}
 	}
 
 	p := tea.NewProgram(newModel())
