@@ -54,6 +54,13 @@ var (
 	styDivider = lipgloss.NewStyle().Foreground(colBorder)
 	styHint    = lipgloss.NewStyle().Foreground(colMuted)
 
+	// "new version available" pill shown above the card.
+	styUpdateBanner = lipgloss.NewStyle().
+			Background(colAccent).
+			Foreground(colSelFg).
+			Bold(true).
+			Padding(0, 2)
+
 	// Used by the standalone gum-replacement widgets (confirm/input/choose/...).
 	styHeaderBox = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).

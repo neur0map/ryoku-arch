@@ -56,6 +56,11 @@ type execDoneMsg struct {
 	logPath string // captured log for this run ("" if none)
 }
 
+type updateCheckMsg struct {
+	available bool
+	behind    int
+}
+
 type model struct {
 	width, height int
 
@@ -77,6 +82,10 @@ type model struct {
 	lastLog  string // path to the most recent run's captured log
 
 	note string
+
+	// "new version available" banner, filled in by a background check at start.
+	updateAvailable bool
+	updateBehind    int
 
 	// execAfter, when set, is an external TUI (gpk) to run on the released
 	// terminal after the program quits; main() then re-opens the menu. This
@@ -101,7 +110,13 @@ func newModel() model {
 	}
 }
 
-func (m model) Init() tea.Cmd { return nil }
+func (m model) Init() tea.Cmd {
+	// Background check (non-blocking): is a newer version on the channel?
+	return func() tea.Msg {
+		a, n := checkUpdateAvailable()
+		return updateCheckMsg{available: a, behind: n}
+	}
+}
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -120,6 +135,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.lastLog = msg.logPath
 		m.finished = finishedRun
 		m.state = stateFinished
+		return m, nil
+
+	case updateCheckMsg:
+		m.updateAvailable = msg.available
+		m.updateBehind = msg.behind
 		return m, nil
 	}
 	return m, nil
@@ -236,6 +256,11 @@ func (m model) View() tea.View {
 		body = m.logsView()
 	} else {
 		card := styCard.Render(strings.Join(m.cardLines(), "\n"))
+		// "new version available" pill sits on top of the box, on the menu.
+		if m.state == stateMenu && m.updateAvailable {
+			banner := styUpdateBanner.Render(m.updateBannerText())
+			card = lipgloss.JoinVertical(lipgloss.Center, banner, "", card)
+		}
 		if m.width > 0 && m.height > 0 {
 			body = lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, card)
 		} else {
@@ -245,6 +270,13 @@ func (m model) View() tea.View {
 	v := tea.NewView(body)
 	v.AltScreen = true
 	return v
+}
+
+func (m model) updateBannerText() string {
+	if m.updateBehind > 0 {
+		return fmt.Sprintf("↑ new version available  ·  %d behind  ·  run Update", m.updateBehind)
+	}
+	return "↑ new version available  ·  run Update"
 }
 
 // cardLines builds the inner lines of the card; each is exactly cardLineW wide.

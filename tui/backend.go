@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -68,6 +69,23 @@ func detectVersion() string {
 
 func sudoCached() bool {
 	return exec.Command("sudo", "-n", "true").Run() == nil
+}
+
+// checkUpdateAvailable does a quiet fetch of the active channel and reports
+// whether the local checkout is behind origin (a newer version exists) and by
+// how many commits. Best-effort: any failure (offline, no git) reports "no
+// update" rather than erroring.
+func checkUpdateAvailable() (bool, int) {
+	ch := detectChannel()
+	_ = exec.Command("git", "-C", ryokuPath(), "-c", "gc.auto=0",
+		"fetch", "--quiet", "origin", ch).Run()
+	out, err := exec.Command("git", "-C", ryokuPath(),
+		"rev-list", "--count", "HEAD..origin/"+ch).Output()
+	if err != nil {
+		return false, 0
+	}
+	n, _ := strconv.Atoi(strings.TrimSpace(string(out)))
+	return n > 0, n
 }
 
 // commandFor maps a menu item to the engine that backs it. All of these are
