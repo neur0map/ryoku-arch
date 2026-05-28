@@ -426,11 +426,11 @@ ryoku_update_confirm() {
     return
   fi
 
-  if command -v gum >/dev/null 2>&1; then
+  if command -v ryoku-tui >/dev/null 2>&1; then
     if [[ $default == "yes" ]]; then
-      gum confirm --default=yes "$prompt"
+      ryoku-tui confirm --default=yes "$prompt"
     else
-      gum confirm --default=no "$prompt"
+      ryoku-tui confirm --default=no "$prompt"
     fi
     return
   fi
