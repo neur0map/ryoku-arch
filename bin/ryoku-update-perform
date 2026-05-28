@@ -195,6 +195,10 @@ update_shell_stage() {
 }
 
 update_cleanup_stage() {
+  # Safety net: if any earlier stage (a migration, a config rewrite) left
+  # hyprland.conf missing/empty/stubbed, restore it before the session restarts
+  # so the update can never leave the machine without keybinds or a shell.
+  ryoku-verify-hypr-config || true
   ryoku-update-orphan-pkgs
   ryoku-hook post-update
   ryoku-update-analyze-logs
