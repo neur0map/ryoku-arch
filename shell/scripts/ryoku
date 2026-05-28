@@ -10,6 +10,7 @@ ryoku_path="${RYOKU_PATH:-$HOME/.local/share/ryoku}"
 usage() {
   cat >&2 <<'EOF'
 Usage:
+  ryoku                  open the control center (update, doctor, recovery)
   ryoku scheme list
   ryoku scheme get -nfv
   ryoku scheme preview [-n NAME] [-f FLAVOUR] [-v VARIANT] [-m MODE] [--notify]
@@ -667,11 +668,33 @@ record_command() {
   return 127
 }
 
+# Launch the unified control center (ryoku-tui). Entry point for a bare `ryoku`.
+control_center_command() {
+  if command_present ryoku-tui; then
+    exec ryoku-tui "$@"
+  fi
+  echo "ryoku: control center (ryoku-tui) is not installed" >&2
+  return 127
+}
+
 main() {
   local command="${1:-}"
   (($# == 0)) || shift
 
   case "$command" in
+    "")
+      # Bare `ryoku` opens the control center when interactive; otherwise the
+      # usage text, so non-interactive callers still get a sane response.
+      if [[ -t 0 && -t 1 ]] && command_present ryoku-tui; then
+        control_center_command
+      else
+        usage
+        return 2
+      fi
+      ;;
+    tui|menu|center)
+      control_center_command "$@"
+      ;;
     scheme)
       scheme_command "$@"
       ;;
