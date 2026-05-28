@@ -37,6 +37,17 @@ Item {
 
     property bool _releaseGuard: false
 
+    // RYOKU: custom (file-backed) widgets supply a saveFn so geometry/lock persist
+    // to their own manifest.json; built-in widgets leave it null and fall back to
+    // GlobalConfig.save().
+    property var saveFn: null
+    function _save(): void {
+        if (root.saveFn)
+            root.saveFn();
+        else
+            GlobalConfig.save();
+    }
+
     function _clampScale(v: real): real {
         return Math.max(0.4, Math.min(2.5, v));
     }
@@ -44,7 +55,7 @@ Item {
     function applyScale(v: real, doSave: bool): void {
         cfg.scale = root._clampScale(v);
         if (doSave)
-            GlobalConfig.save();
+            root._save();
     }
 
     function setScale(v: real): void {
@@ -53,12 +64,12 @@ Item {
 
     function toggleLock(): void {
         cfg.locked = !cfg.locked;
-        GlobalConfig.save();
+        root._save();
     }
 
     function resetToAnchor(): void {
         cfg.freePosition = false;
-        GlobalConfig.save();
+        root._save();
         root.applyPosition();
     }
 
@@ -114,7 +125,7 @@ Item {
         cfg.y = ny;
         if (!cfg.freePosition)
             cfg.freePosition = true;
-        GlobalConfig.save();
+        root._save();
     }
 
     Component.onCompleted: applyPosition()
@@ -282,6 +293,7 @@ Item {
                 icon: "tune"
                 onActivated: {
                     Visibilities.widgetEditMode = false;
+                    Visibilities.pendingSettingsTab = "DesktopWidgets";
                     const v = Visibilities.getForActive();
                     if (v)
                         v.settings = true;
@@ -349,7 +361,7 @@ Item {
 
             onReleased: {
                 root.persist(false);
-                GlobalConfig.save();
+                root._save();
                 root._releaseGuard = false;
             }
         }

@@ -79,7 +79,7 @@ SmartPanel {
     DesktopWidgets,
     OSD,
     Display,
-    Dock,
+    Dock, // retained as an enum id only — no Dock settings tab (ryoku has no dock)
     General,
     Hooks,
     Idle,

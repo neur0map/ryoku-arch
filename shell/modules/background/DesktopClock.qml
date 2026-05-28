@@ -15,6 +15,7 @@ Item {
     required property real absY
 
     property real clockScale: GlobalConfig.background.desktopClock.scale
+    readonly property string style: GlobalConfig.background.desktopClock.style
     readonly property bool bgEnabled: GlobalConfig.background.desktopClock.background.enabled
     readonly property bool blurEnabled: bgEnabled && GlobalConfig.background.desktopClock.background.blur && !GameMode.enabled
     readonly property bool invertColors: GlobalConfig.background.desktopClock.invertColors
@@ -23,8 +24,8 @@ Item {
     readonly property color safeSecondary: useLightSet ? Colours.palette.m3secondaryContainer : Colours.palette.m3secondary
     readonly property color safeTertiary: useLightSet ? Colours.palette.m3tertiaryContainer : Colours.palette.m3tertiary
 
-    implicitWidth: layout.implicitWidth + (Tokens.padding.large * 4 * root.clockScale)
-    implicitHeight: layout.implicitHeight + (Tokens.padding.large * 2 * root.clockScale)
+    implicitWidth: content.implicitWidth + (Tokens.padding.large * 4 * root.clockScale)
+    implicitHeight: content.implicitHeight + (Tokens.padding.large * 2 * root.clockScale)
 
     Item {
         id: clockContainer
@@ -70,10 +71,30 @@ Item {
             layer.enabled: root.blurEnabled
         }
 
-        RowLayout {
-            id: layout
+        Loader {
+            id: content
 
             anchors.centerIn: parent
+            sourceComponent: {
+                switch (root.style) {
+                case "minimal":
+                    return minimalStyle;
+                case "stacked":
+                    return stackedStyle;
+                case "compact":
+                    return compactStyle;
+                default:
+                    return modernStyle;
+                }
+            }
+        }
+    }
+
+    // ── modern: time | divider | date column (default) ──────────────────────
+    Component {
+        id: modernStyle
+
+        RowLayout {
             spacing: Tokens.spacing.larger * root.clockScale
 
             RowLayout {
@@ -85,7 +106,6 @@ Item {
                     font.weight: Font.Bold
                     color: root.safePrimary
                 }
-
                 StyledText {
                     text: ":"
                     font.pointSize: Tokens.font.size.extraLarge * 3 * root.clockScale
@@ -93,22 +113,18 @@ Item {
                     opacity: 0.8
                     Layout.topMargin: -Tokens.padding.large * 1.5 * root.clockScale
                 }
-
                 StyledText {
                     text: Time.minuteStr
                     font.pointSize: Tokens.font.size.extraLarge * 3 * root.clockScale
                     font.weight: Font.Bold
                     color: root.safeSecondary
                 }
-
                 Loader {
                     asynchronous: true
                     Layout.alignment: Qt.AlignTop
                     Layout.topMargin: Tokens.padding.large * 1.4 * root.clockScale
-
                     active: GlobalConfig.services.useTwelveHourClock
                     visible: active
-
                     sourceComponent: StyledText {
                         text: Time.amPmStr
                         font.pointSize: Tokens.font.size.large * root.clockScale
@@ -129,7 +145,6 @@ Item {
 
             ColumnLayout {
                 spacing: 0
-
                 StyledText {
                     text: Time.format("MMMM").toUpperCase()
                     font.pointSize: Tokens.font.size.large * root.clockScale
@@ -137,7 +152,6 @@ Item {
                     font.weight: Font.Bold
                     color: root.safeSecondary
                 }
-
                 StyledText {
                     text: Time.format("dd")
                     font.pointSize: Tokens.font.size.extraLarge * root.clockScale
@@ -145,13 +159,95 @@ Item {
                     font.weight: Font.Medium
                     color: root.safePrimary
                 }
-
                 StyledText {
                     text: Time.format("dddd")
                     font.pointSize: Tokens.font.size.larger * root.clockScale
                     font.letterSpacing: 2
                     color: root.safeSecondary
                 }
+            }
+        }
+    }
+
+    // ── minimal: just the time ──────────────────────────────────────────────
+    Component {
+        id: minimalStyle
+
+        RowLayout {
+            spacing: Tokens.spacing.small
+
+            StyledText {
+                text: Time.hourStr + ":" + Time.minuteStr
+                font.pointSize: Tokens.font.size.extraLarge * 3.2 * root.clockScale
+                font.weight: Font.Bold
+                color: root.safePrimary
+            }
+            Loader {
+                Layout.alignment: Qt.AlignTop
+                Layout.topMargin: Tokens.padding.large * 1.4 * root.clockScale
+                active: GlobalConfig.services.useTwelveHourClock
+                visible: active
+                sourceComponent: StyledText {
+                    text: Time.amPmStr
+                    font.pointSize: Tokens.font.size.large * root.clockScale
+                    color: root.safeSecondary
+                }
+            }
+        }
+    }
+
+    // ── stacked: time over a single date line, centered ──────────────────────
+    Component {
+        id: stackedStyle
+
+        ColumnLayout {
+            spacing: Tokens.spacing.small * root.clockScale
+
+            StyledText {
+                Layout.alignment: Qt.AlignHCenter
+                text: Time.hourStr + ":" + Time.minuteStr + (GlobalConfig.services.useTwelveHourClock ? " " + Time.amPmStr : "")
+                font.pointSize: Tokens.font.size.extraLarge * 2.8 * root.clockScale
+                font.weight: Font.Bold
+                color: root.safePrimary
+            }
+            StyledText {
+                Layout.alignment: Qt.AlignHCenter
+                text: Time.format("dddd, MMMM d").toUpperCase()
+                font.pointSize: Tokens.font.size.normal * root.clockScale
+                font.letterSpacing: 3
+                font.weight: Font.Medium
+                color: root.safeSecondary
+            }
+        }
+    }
+
+    // ── compact: time · short date on one line ────────────────────────────────
+    Component {
+        id: compactStyle
+
+        RowLayout {
+            spacing: Tokens.spacing.normal * root.clockScale
+
+            StyledText {
+                text: Time.hourStr + ":" + Time.minuteStr
+                font.pointSize: Tokens.font.size.extraLarge * 1.4 * root.clockScale
+                font.weight: Font.Bold
+                color: root.safePrimary
+            }
+            StyledRect {
+                Layout.preferredWidth: 3 * root.clockScale
+                Layout.preferredHeight: parent.height * 0.6
+                Layout.alignment: Qt.AlignVCenter
+                radius: Tokens.rounding.full
+                color: root.safeTertiary
+                opacity: 0.7
+            }
+            StyledText {
+                Layout.alignment: Qt.AlignVCenter
+                text: Time.format("ddd, MMM d")
+                font.pointSize: Tokens.font.size.larger * root.clockScale
+                font.weight: Font.Medium
+                color: root.safeSecondary
             }
         }
     }

@@ -1,8 +1,8 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Ryoku.Config
 import qs.noctalia.Commons
-import qs.noctalia.Services.Compositor
 import qs.noctalia.Widgets
 
 ColumnLayout {
@@ -10,73 +10,87 @@ ColumnLayout {
   spacing: Style.marginL
   Layout.fillWidth: true
 
-  NComboBox {
-    // TODO: wire bar mouse-wheel action to ryoku (no mouseWheelAction config in ryoku barconfig)
+  // RYOKU WIRED: GlobalConfig.bar.scrollActions + GlobalConfig.bar.popouts
+  // (barconfig.hpp:13-37). Noctalia's mouse-wheel/middle-click/right-click action
+  // configs do not exist in ryoku's bar; these are ryoku's actual behaviour knobs.
+
+  NText {
+    text: qsTr("Scroll actions")
+    pointSize: Style.fontSizeM
+    font.weight: Style.fontWeightBold
+    color: Color.mOnSurface
     Layout.fillWidth: true
-    label: I18n.tr("panels.bar.behavior-workspace-scroll-label")
-    description: I18n.tr("panels.bar.behavior-workspace-scroll-description")
-    enabled: false
-    opacity: 0.45
-    model: [
-      {
-        "key": "none",
-        "name": I18n.tr("common.none")
-      }
-    ]
-    currentKey: "none"
   }
 
   NToggle {
-    // TODO: wire reverse-scroll to ryoku (no reverseScroll config in ryoku barconfig)
-    Layout.fillWidth: true
-    label: I18n.tr("panels.general.reverse-scrolling-label")
-    description: I18n.tr("panels.general.reverse-scrolling-description")
-    checked: false
-    enabled: false
-    opacity: 0.45
-    visible: false
+    label: qsTr("Scroll to switch workspace")
+    description: qsTr("Scroll over the bar to move between workspaces.")
+    checked: GlobalConfig.bar.scrollActions.workspaces
+    onToggled: checked => {
+                 GlobalConfig.bar.scrollActions.workspaces = checked;
+                 GlobalConfig.save();
+               }
   }
 
   NToggle {
-    // TODO: wire mouse-wheel wrap to ryoku (no mouseWheelWrap config in ryoku barconfig)
-    Layout.fillWidth: true
-    label: I18n.tr("panels.bar.behavior-wheel-wrap-label")
-    description: I18n.tr("panels.bar.behavior-wheel-wrap-description")
-    checked: false
-    enabled: false
-    opacity: 0.45
-    visible: false
+    label: qsTr("Scroll to change volume")
+    description: qsTr("Scroll over the audio status icon to adjust volume.")
+    checked: GlobalConfig.bar.scrollActions.volume
+    onToggled: checked => {
+                 GlobalConfig.bar.scrollActions.volume = checked;
+                 GlobalConfig.save();
+               }
   }
 
-  NComboBox {
-    // TODO: wire middle-click action to ryoku (no middleClickAction config in ryoku barconfig)
-    Layout.fillWidth: true
-    label: I18n.tr("panels.bar.behavior-middle-click-label")
-    description: I18n.tr("panels.bar.behavior-middle-click-description")
-    enabled: false
-    opacity: 0.45
-    model: [
-      {
-        "key": "none",
-        "name": I18n.tr("common.none")
-      }
-    ]
-    currentKey: "none"
+  NToggle {
+    label: qsTr("Scroll to change brightness")
+    description: qsTr("Scroll over the brightness status icon to adjust screen brightness.")
+    checked: GlobalConfig.bar.scrollActions.brightness
+    onToggled: checked => {
+                 GlobalConfig.bar.scrollActions.brightness = checked;
+                 GlobalConfig.save();
+               }
   }
 
-  NComboBox {
-    // TODO: wire right-click action to ryoku (no rightClickAction config in ryoku barconfig)
+  NDivider {
     Layout.fillWidth: true
-    label: I18n.tr("panels.bar.behavior-right-click-label")
-    description: I18n.tr("panels.bar.behavior-right-click-description")
-    enabled: false
-    opacity: 0.45
-    model: [
-      {
-        "key": "none",
-        "name": I18n.tr("common.none")
-      }
-    ]
-    currentKey: "none"
+  }
+
+  NText {
+    text: qsTr("Hover popouts")
+    pointSize: Style.fontSizeM
+    font.weight: Style.fontWeightBold
+    color: Color.mOnSurface
+    Layout.fillWidth: true
+  }
+
+  NToggle {
+    label: qsTr("Active window popout")
+    description: qsTr("Show a popout with window details when hovering the active window widget.")
+    checked: GlobalConfig.bar.popouts.activeWindow
+    onToggled: checked => {
+                 GlobalConfig.bar.popouts.activeWindow = checked;
+                 GlobalConfig.save();
+               }
+  }
+
+  NToggle {
+    label: qsTr("Tray popout")
+    description: qsTr("Show a popout when hovering the system tray.")
+    checked: GlobalConfig.bar.popouts.tray
+    onToggled: checked => {
+                 GlobalConfig.bar.popouts.tray = checked;
+                 GlobalConfig.save();
+               }
+  }
+
+  NToggle {
+    label: qsTr("Status icons popout")
+    description: qsTr("Show a popout when hovering the status icons.")
+    checked: GlobalConfig.bar.popouts.statusIcons
+    onToggled: checked => {
+                 GlobalConfig.bar.popouts.statusIcons = checked;
+                 GlobalConfig.save();
+               }
   }
 }

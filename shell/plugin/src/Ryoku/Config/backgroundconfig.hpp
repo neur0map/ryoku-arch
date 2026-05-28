@@ -39,6 +39,7 @@ class DesktopClock : public ConfigObject {
     CONFIG_PROPERTY(bool, enabled, false)
     CONFIG_PROPERTY(qreal, scale, 1.0)
     CONFIG_PROPERTY(QString, position, QStringLiteral("bottom-right"))
+    CONFIG_PROPERTY(QString, style, QStringLiteral("modern"))
     CONFIG_PROPERTY(bool, invertColors, false)
     // Desktop-widget framework: when freePosition is true the clock uses the
     // dragged x/y; otherwise it falls back to the anchored `position` (legacy).
@@ -71,6 +72,7 @@ class DesktopWidgetConfig : public ConfigObject {
     CONFIG_PROPERTY(qreal, scale, 1.0)
     CONFIG_PROPERTY(bool, locked, false)
     CONFIG_PROPERTY(bool, background, true)
+    CONFIG_PROPERTY(QString, style, QStringLiteral("default"))
 
 public:
     explicit DesktopWidgetConfig(QObject* parent = nullptr)

@@ -4,9 +4,8 @@ import QtQuick.Layouts
 import Quickshell
 import Ryoku.Config
 import qs.noctalia.Commons
-import qs.noctalia.Services.Compositor
-import qs.noctalia.Services.UI
 import qs.noctalia.Widgets
+import qs.services
 
 ColumnLayout {
   id: root
@@ -16,7 +15,6 @@ ColumnLayout {
   property var screen
 
   signal openMainFolderPicker
-  signal openMonitorFolderPicker(string monitorName)
 
   NToggle {
     // RYOKU WIRED: GlobalConfig.background.wallpaperEnabled (backgroundconfig.hpp:121)
@@ -29,129 +27,72 @@ ColumnLayout {
                }
   }
 
-  ColumnLayout {
-    // TODO: wire wallpaper panel open to ryoku launcher (no wallpaperPanel service in ryoku)
-    // TODO: wire panelPosition, viewMode, directory, showHiddenFiles, enableMultiMonitorDirectories to ryoku
-    enabled: false
-    opacity: 0.45
-    spacing: Style.marginL
-    Layout.fillWidth: true
-
-    RowLayout {
-
-      NLabel {
-        label: I18n.tr("tooltips.wallpaper-selector")
-        description: I18n.tr("panels.wallpaper.settings-selector-description")
-        Layout.alignment: Qt.AlignTop
-      }
-
-      NIconButton {
-        icon: "wallpaper-selector"
-        tooltipText: I18n.tr("tooltips.wallpaper-selector")
-      }
-    }
-
-    NComboBox {
-      label: I18n.tr("common.position")
-      description: I18n.tr("panels.wallpaper.settings-selector-position-description")
-      Layout.fillWidth: true
-      model: []
-      currentKey: ""
-    }
-
-    NComboBox {
-      label: I18n.tr("panels.wallpaper.settings-view-mode-label")
-      description: I18n.tr("panels.wallpaper.settings-view-mode-description")
-      Layout.fillWidth: true
-      model: []
-      currentKey: ""
-    }
-
-    NTextInputButton {
-      id: wallpaperPathInput
-      label: I18n.tr("panels.wallpaper.settings-folder-label")
-      description: I18n.tr("panels.wallpaper.settings-folder-description")
-      text: ""
-      buttonIcon: "folder-open"
-      buttonTooltip: I18n.tr("panels.wallpaper.settings-folder-label")
-      Layout.fillWidth: true
-    }
-
-    NToggle {
-      // TODO: wire per-monitor wallpaper dirs to ryoku (single dir only: Paths.wallsdir)
-      label: I18n.tr("panels.wallpaper.settings-monitor-specific-label")
-      description: I18n.tr("panels.wallpaper.settings-monitor-specific-description")
-      checked: false
-    }
-  }
-
   NDivider {
     Layout.fillWidth: true
   }
 
-  NToggle {
-    // TODO: wire to ryoku wallpaper cache (no useOriginalImages concept in ryoku)
-    label: I18n.tr("panels.wallpaper.settings-use-original-images-label")
-    description: I18n.tr("panels.wallpaper.settings-use-original-images-description")
-    checked: false
-    enabled: false
-    opacity: 0.45
-  }
-
+  // RYOKU WIRED: opens the main wallpaper selector, skwd-wall (the same picker
+  // bound to Super+W). Runs ryoku-cmd-wallpaper-switcher, which starts the
+  // skwd-daemon if needed then `skwd wall toggle`; the chosen wallpaper is routed
+  // back through `ryoku wallpaper -f`, so ryoku stays authoritative for the
+  // wallpaper layer and scheme.
   RowLayout {
-    // TODO: wire clear-cache to ryoku (no ImageCacheService in ryoku)
-    spacing: Style.marginM
     Layout.fillWidth: true
-    enabled: false
-    opacity: 0.45
+    spacing: Style.marginM
 
     NLabel {
-      label: I18n.tr("panels.wallpaper.settings-clear-cache-label")
-      description: I18n.tr("panels.wallpaper.settings-clear-cache-description")
+      label: I18n.tr("tooltips.wallpaper-selector")
+      description: I18n.tr("panels.wallpaper.settings-selector-description")
       Layout.fillWidth: true
+      Layout.alignment: Qt.AlignTop
     }
 
     NButton {
-      icon: "trash"
-      text: I18n.tr("panels.wallpaper.settings-clear-cache-button")
+      icon: "wallpaper-selector"
+      text: I18n.tr("tooltips.wallpaper-selector")
       outlined: true
+      onClicked: {
+        Quickshell.execDetached(["sh", "-lc", "exec \"$HOME/.local/share/ryoku/bin/ryoku-cmd-wallpaper-switcher\""]);
+        const vis = Visibilities.getForActive();
+        if (vis)
+          vis.settings = false;
+      }
     }
   }
 
-  ColumnLayout {
-    // TODO: wire overview wallpaper to ryoku (no overview wallpaper in ryoku)
-    visible: false
-    enabled: false
-    opacity: 0.45
-    spacing: Style.marginL
+  NTextInputButton {
+    // RYOKU WIRED: GlobalConfig.paths.wallpaperDir (userpaths.hpp:18) — the single
+    // wallpaper directory ryoku scans (Paths.wallsdir resolves it to absolute).
+    label: I18n.tr("panels.wallpaper.settings-folder-label")
+    description: I18n.tr("panels.wallpaper.settings-folder-description")
+    text: GlobalConfig.paths.wallpaperDir
+    buttonIcon: "folder-open"
+    buttonTooltip: I18n.tr("panels.wallpaper.settings-folder-label")
     Layout.fillWidth: true
-
-    NToggle {
-      label: I18n.tr("panels.wallpaper.settings-enable-overview-label")
-      description: I18n.tr("panels.wallpaper.settings-enable-overview-description")
-      checked: false
+    onButtonClicked: root.openMainFolderPicker()
+    onInputEditingFinished: {
+      if (text !== GlobalConfig.paths.wallpaperDir) {
+        GlobalConfig.paths.wallpaperDir = text;
+        GlobalConfig.save();
+      }
     }
+  }
 
-    NValueSlider {
-      Layout.fillWidth: true
-      label: I18n.tr("panels.wallpaper.settings-overview-blur-strength-label")
-      description: I18n.tr("panels.wallpaper.settings-overview-blur-strength-description")
-      from: 0.0
-      to: 1.0
-      stepSize: 0.01
-      value: 0
-      text: "0%"
-    }
-
-    NValueSlider {
-      Layout.fillWidth: true
-      label: I18n.tr("panels.wallpaper.settings-overview-tint-label")
-      description: I18n.tr("panels.wallpaper.settings-overview-tint-description")
-      from: 0.0
-      to: 1.0
-      stepSize: 0.01
-      value: 0
-      text: "0%"
+  NSpinBox {
+    // RYOKU WIRED: GlobalConfig.launcher.maxWallpapers (launcherconfig.hpp:35) —
+    // how many wallpapers the launcher carousel shows.
+    label: I18n.tr("panels.wallpaper.settings-selector-max-label")
+    description: I18n.tr("panels.wallpaper.settings-selector-max-description")
+    Layout.fillWidth: true
+    from: 1
+    to: 50
+    stepSize: 1
+    value: GlobalConfig.launcher.maxWallpapers
+    onValueChanged: {
+      if (GlobalConfig.launcher.maxWallpapers !== value) {
+        GlobalConfig.launcher.maxWallpapers = value;
+        GlobalConfig.save();
+      }
     }
   }
 }

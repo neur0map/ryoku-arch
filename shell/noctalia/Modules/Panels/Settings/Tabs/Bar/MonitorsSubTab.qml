@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
+import Ryoku.Config
 import qs.noctalia.Commons
 import qs.noctalia.Services.Compositor
 import qs.noctalia.Widgets
@@ -11,12 +12,27 @@ ColumnLayout {
   spacing: Style.marginL
   Layout.fillWidth: true
 
-  // Interface kept for BarTab.qml compatibility (greyed content doesn't use these).
-  property var addMonitor: null
-  property var removeMonitor: null
+  // RYOKU WIRED: GlobalConfig.bar.excludedScreens (barconfig.hpp:152). The toggle
+  // is the inverse of exclusion — checked = bar shown on this monitor.
+  function isExcluded(name) {
+    const ex = GlobalConfig.bar.excludedScreens || [];
+    for (var i = 0; i < ex.length; i++) {
+      if (ex[i] === name)
+        return true;
+    }
+    return false;
+  }
 
-  // TODO: wire bar per-monitor enable/disable to ryoku (ryoku uses GlobalConfig.bar.excludedScreens QStringList,
-  //   inverse of noctalia monitors include-list; per-screen position/density/displayMode overrides not in ryoku barconfig)
+  function setShown(name, shown) {
+    const ex = (GlobalConfig.bar.excludedScreens || []).slice();
+    const idx = ex.indexOf(name);
+    if (!shown && idx === -1)
+      ex.push(name);
+    else if (shown && idx !== -1)
+      ex.splice(idx, 1);
+    GlobalConfig.bar.excludedScreens = ex;
+    GlobalConfig.save();
+  }
 
   NText {
     text: I18n.tr("panels.bar.monitors-desc-new")
@@ -31,8 +47,6 @@ ColumnLayout {
       Layout.fillWidth: true
       implicitHeight: cardContent.implicitHeight + Style.margin2L
       color: Color.mSurface
-      enabled: false
-      opacity: 0.45
 
       required property var modelData
       readonly property string screenName: modelData.name || "Unknown"
@@ -77,9 +91,8 @@ ColumnLayout {
           }
 
           NToggle {
-            Layout.fillWidth: true
-            checked: true
-            enabled: false
+            checked: !root.isExcluded(monitorCard.screenName)
+            onToggled: checked => root.setShown(monitorCard.screenName, checked)
           }
         }
       }

@@ -1802,6 +1802,8 @@
       "settings-recursive-search-label": "Search subfolders",
       "settings-select-monitor-folder": "Select monitor wallpaper folder",
       "settings-selector-description": "Choose your wallpaper.",
+      "settings-selector-max-description": "Maximum number of wallpapers shown in the launcher's wallpaper carousel.",
+      "settings-selector-max-label": "Wallpapers shown in selector",
       "settings-selector-position-description": "Choose where the wallpaper selector panel appears.",
       "settings-show-hidden-files-tooltip-hide": "Hide hidden files",
       "settings-show-hidden-files-tooltip-show": "Show hidden files",

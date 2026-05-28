@@ -23,6 +23,9 @@ Variants {
         name: "background"
         WlrLayershell.exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: contentItem.Config.background.wallpaperEnabled ? WlrLayer.Background : WlrLayer.Bottom
+        // Allow on-demand keyboard focus only while sticky notes exist, so they can
+        // be typed into; clicking elsewhere doesn't steal focus.
+        WlrLayershell.keyboardFocus: Notes.list.length > 0 ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
         color: contentItem.Config.background.wallpaperEnabled ? "black" : "transparent"
         surfaceFormat.opaque: false
 
@@ -222,6 +225,54 @@ Variants {
                 }
             }
 
+            // ── User-defined custom widgets (CustomWidgets service) ────────
+            Repeater {
+                model: CustomWidgets.list
+
+                DesktopWidget {
+                    id: customWidget
+
+                    required property var modelData
+
+                    z: 2
+                    cfg: modelData
+                    saveFn: modelData.save
+                    canvas: widgetHost
+                    leftInset: widgetHost.leftInset
+                    label: modelData.cwName
+                    visible: modelData.enabled
+
+                    Loader {
+                        asynchronous: true
+                        source: customWidget.modelData.widgetUrl
+                        onStatusChanged: if (status === Loader.Error)
+                            console.warn("CustomWidget failed to load:", customWidget.modelData.cwId)
+                    }
+                }
+            }
+
+            // ── Sticky notes (Notes service) ──────────────────────────────
+            Repeater {
+                model: Notes.list
+
+                DesktopWidget {
+                    id: noteWidget
+
+                    required property var modelData
+
+                    z: 3
+                    cfg: modelData
+                    saveFn: modelData.save
+                    canvas: widgetHost
+                    leftInset: widgetHost.leftInset
+                    label: qsTr("Note")
+
+                    NoteWidget {
+                        cfg: noteWidget.modelData
+                    }
+                }
+            }
+
             // ── Edit-mode controls bar (Done + grid options) ───────────────
             StyledRect {
                 id: editBar
@@ -378,6 +429,15 @@ Variants {
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.margins: Tokens.padding.small
                             spacing: 0
+
+                            CtxItem {
+                                icon: "sticky_note_2"
+                                text: qsTr("Add sticky note")
+                                onActivated: {
+                                    Notes.create();
+                                    desktopMenu.open = false;
+                                }
+                            }
 
                             CtxItem {
                                 icon: "edit"

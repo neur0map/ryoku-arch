@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
+import qs.services
 import qs.noctalia.Commons
 import qs.noctalia.Modules.Panels.Settings.Tabs
 import qs.noctalia.Modules.Panels.Settings.Tabs.About
@@ -11,7 +12,6 @@ import qs.noctalia.Modules.Panels.Settings.Tabs.ColorScheme
 import qs.noctalia.Modules.Panels.Settings.Tabs.Connections
 import qs.noctalia.Modules.Panels.Settings.Tabs.ControlCenter
 import qs.noctalia.Modules.Panels.Settings.Tabs.Display
-import qs.noctalia.Modules.Panels.Settings.Tabs.Dock
 import qs.noctalia.Modules.Panels.Settings.Tabs.Hooks
 import qs.noctalia.Modules.Panels.Settings.Tabs.Idle
 import qs.noctalia.Modules.Panels.Settings.Tabs.Launcher
@@ -467,10 +467,6 @@ Item {
     IdleTab {}
   }
   Component {
-    id: dockTab
-    DockTab {}
-  }
-  Component {
     id: notificationsTab
     NotificationsTab {}
   }
@@ -536,18 +532,10 @@ Item {
             "source": barTab
           },
           {
-            "id": SettingsPanel.Tab.Dock,
-            "label": "panels.dock.title",
-            "icon": "settings-dock",
-            "source": dockTab,
-            "disabled": true // TODO: ryoku has no dock component yet
-          },
-          {
             "id": SettingsPanel.Tab.DesktopWidgets,
             "label": "panels.desktop-widgets.title",
             "icon": "clock",
-            "source": desktopWidgetsTab,
-            "disabled": true // TODO: ryoku has its own desktop-widget system; Noctalia desktopWidgets.* schema not mapped
+            "source": desktopWidgetsTab
           },
           {
             "id": SettingsPanel.Tab.ControlCenter,
@@ -678,6 +666,12 @@ Item {
     _pendingSubTab = -1;
     updateTabsModel();
     _pendingSubTab = savedPendingSubTab;
+    // RYOKU: honor a one-shot tab request (e.g. the desktop-widget edit toolbar's
+    // settings button opening straight to the Desktop Widgets tab).
+    if (Visibilities.pendingSettingsTab === "DesktopWidgets")
+      requestedTab = SettingsPanel.Tab.DesktopWidgets;
+    if (Visibilities.pendingSettingsTab.length > 0)
+      Visibilities.pendingSettingsTab = "";
     selectTabById(requestedTab);
     // Skip auto-focus on Nvidia GPUs - cursor blink causes UI choppiness
     const isNvidia = SystemStatService.gpuType === "nvidia";
