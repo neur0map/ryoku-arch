@@ -51,8 +51,9 @@ type menuItem struct {
 }
 
 type execDoneMsg struct {
-	item menuItem
-	code int
+	item    menuItem
+	code    int
+	logPath string // captured log for this run ("" if none)
 }
 
 type model struct {
@@ -73,6 +74,7 @@ type model struct {
 	active   menuItem
 	finished finishedKind
 	exitCode int
+	lastLog  string // path to the most recent run's captured log
 
 	note string
 }
@@ -109,6 +111,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case execDoneMsg:
 		m.active = msg.item
 		m.exitCode = msg.code
+		m.lastLog = msg.logPath
 		m.finished = finishedRun
 		m.state = stateFinished
 		return m, nil
@@ -166,7 +169,9 @@ func (m model) selectItem(it menuItem) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "logs":
 		m.active = it
-		raw := readLog()
+		// Show the most recent run's log (doctor/recovery/update); fall back to
+		// the update log when nothing has run yet this session.
+		raw := readLogFile(m.lastLog)
 		m.logLines = make([]string, len(raw))
 		for i, line := range raw {
 			m.logLines[i] = applyLineStyle(line)
@@ -178,8 +183,9 @@ func (m model) selectItem(it menuItem) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// Update / Doctor / Recovery: hand the terminal to the bash engine (which
-	// prompts for sudo once, on the real terminal, and renders its own output).
+	// Update / Doctor / Recovery / Packages: hand the terminal to the engine
+	// (which prompts for sudo once, on the real terminal, and renders its own
+	// full output).
 	m.active = it
 	m.note = ""
 	return m, m.execEngine(it)
@@ -187,7 +193,22 @@ func (m model) selectItem(it menuItem) (tea.Model, tea.Cmd) {
 
 func (m model) execEngine(it menuItem) tea.Cmd {
 	name, args, env := commandFor(it)
-	c := exec.Command(name, args...)
+	logPath := ""
+	var c *exec.Cmd
+	switch it.key {
+	case "packages":
+		c = exec.Command(name, args...) // gpk is an interactive TUI; no log
+	case "update":
+		c = exec.Command(name, args...) // ryoku-update logs itself to update.log
+		logPath = updateLogPath()
+	default: // doctor, recovery: tee through `script` so the run is reviewable
+		logPath = ensureRunLog(it.key)
+		cmdline := name
+		for _, a := range args {
+			cmdline += " " + a
+		}
+		c = exec.Command("script", "-q", "-f", "-e", "-c", cmdline, logPath)
+	}
 	c.Env = append(os.Environ(), env...)
 	return tea.ExecProcess(c, func(err error) tea.Msg {
 		code := 0
@@ -198,7 +219,7 @@ func (m model) execEngine(it menuItem) tea.Cmd {
 				code = 1
 			}
 		}
-		return execDoneMsg{item: it, code: code}
+		return execDoneMsg{item: it, code: code, logPath: logPath}
 	})
 }
 

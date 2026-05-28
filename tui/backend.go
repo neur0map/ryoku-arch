@@ -71,37 +71,58 @@ func sudoCached() bool {
 	return exec.Command("sudo", "-n", "true").Run() == nil
 }
 
-// commandFor maps a menu item to the bash engine that backs it. Each engine is
-// run with its own gum/dashboard UI disabled so its plain output can be
-// captured into the viewport.
+// commandFor maps a menu item to the engine that backs it. All of these are
+// handed the real terminal via tea.ExecProcess so they render full-fidelity.
 func commandFor(it menuItem) (string, []string, []string) {
 	switch it.key {
 	case "update":
-		// Dashboard ENABLED: ryoku-update draws its own scroll-region dashboard
-		// (RYOKU ascii + frozen header) and pacman/git write live to the
-		// terminal. The TUI hands the terminal over via tea.ExecProcess, so the
-		// output is full-fidelity instead of captured.
+		// ryoku-update draws its own scroll-region dashboard (RYOKU ascii) and
+		// logs itself to update.log via its internal `script` wrapper.
 		return "ryoku-update", []string{"-y"}, []string{"RYOKU_TUI=1"}
 	case "doctor":
-		// Doctor renders its own styled output on the real terminal.
 		return "ryoku-doctor", nil, []string{"RYOKU_TUI=1"}
 	case "recovery":
 		return "ryoku-call911now", nil, []string{"RYOKU_TUI=1"}
+	case "packages":
+		// gpk is itself a TUI ("eye-candy package viewer"); it needs the
+		// terminal, so it is handed over like the others (not detached).
+		return "gpk", nil, nil
 	}
 	return "true", nil, nil
 }
 
-func readLog() []string {
-	path := os.Getenv("RYOKU_UPDATE_LOG")
+func updateLogPath() string {
+	if p := os.Getenv("RYOKU_UPDATE_LOG"); p != "" {
+		return p
+	}
+	return filepath.Join(stateDir(), "quickshell", "user", "update.log")
+}
+
+// runLogPath is where the TUI tees a doctor/recovery run so the Logs view can
+// replay it (update has its own update.log; gpk has no log).
+func runLogPath(key string) string {
+	return filepath.Join(stateDir(), "quickshell", "user", "ryoku-tui-"+key+".log")
+}
+
+// ensureRunLog returns runLogPath(key) after making sure its directory exists.
+func ensureRunLog(key string) string {
+	p := runLogPath(key)
+	_ = os.MkdirAll(filepath.Dir(p), 0o755)
+	return p
+}
+
+// readLogFile loads a captured log for the Logs viewport (tail-limited, with
+// progress-bar carriage returns collapsed).
+func readLogFile(path string) []string {
 	if path == "" {
-		path = filepath.Join(stateDir(), "quickshell", "user", "update.log")
+		path = updateLogPath()
 	}
 	b, err := os.ReadFile(path)
 	if err != nil {
-		return []string{styWarn.Render("No update log found at " + path)}
+		return []string{styWarn.Render("No log found yet at " + path)}
 	}
 	lines := strings.Split(strings.TrimRight(string(b), "\n"), "\n")
-	const tail = 800
+	const tail = 1200
 	if len(lines) > tail {
 		lines = lines[len(lines)-tail:]
 	}
