@@ -245,15 +245,15 @@ confirm_channel_switch() {
   message="Switch Ryoku update channel: $from -> $to
 This checks out the '$to' branch and updates the system from it."
 
-  if command -v gum >/dev/null 2>&1; then
-    gum style --border rounded --border-foreground 3 --padding "1 3" --align center \
+  if command -v ryoku-tui >/dev/null 2>&1; then
+    ryoku-tui style --border rounded --border-foreground 3 --padding "1 3" --align center \
       "力  Ryoku Channel Switch" \
       "" \
       "$from  ->  $to" \
       "" \
       "Checks out the '$to' branch and updates from it." >&2 2>/dev/null \
       || echo -e "\n$message" >&2
-    gum confirm "Switch channel to $to and update now?"
+    ryoku-tui confirm "Switch channel to $to and update now?"
     return $?
   fi
 

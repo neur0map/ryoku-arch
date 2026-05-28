@@ -229,7 +229,7 @@ ryoku_update_install_dashboard_gum_shim() {
       return
     fi
 
-    command gum "$@"
+    command ryoku-tui "$@"
   }
 
   export -f gum ryoku_update_confirm

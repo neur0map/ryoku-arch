@@ -109,12 +109,12 @@ die() {
 }
 
 pretty_available() {
-  [[ ${RYOKU_MEDEVAC_PLAIN:-0} != "1" ]] && command_present gum && [[ -t 1 ]]
+  [[ ${RYOKU_MEDEVAC_PLAIN:-0} != "1" ]] && command_present ryoku-tui && [[ -t 1 ]]
 }
 
 pretty_style() {
   if pretty_available; then
-    gum style "$@"
+    ryoku-tui style "$@"
   else
     printf '%s\n' "${@: -1}"
   fi
@@ -132,7 +132,7 @@ banner() {
   fi
 
   if pretty_available; then
-    gum style \
+    ryoku-tui style \
       --border double \
       --border-foreground 6 \
       --foreground 15 \
@@ -161,7 +161,7 @@ mission_panel() {
   )
 
   if pretty_available; then
-    gum style \
+    ryoku-tui style \
       --border rounded \
       --border-foreground 4 \
       --foreground 7 \
@@ -189,7 +189,7 @@ preflight_summary() {
   )
 
   if pretty_available; then
-    gum style \
+    ryoku-tui style \
       --border rounded \
       --border-foreground 3 \
       --foreground 7 \
@@ -206,7 +206,7 @@ step() {
   local message="$1"
 
   if pretty_available; then
-    gum style --foreground 6 "==> $message"
+    ryoku-tui style --foreground 6 "==> $message"
   else
     printf '%s==>%s %s\n' "$(ansi 36)" "$(reset_ansi)" "$message"
   fi
@@ -730,7 +730,7 @@ print_final_summary() {
 
   if [[ $update_status == "0" ]]; then
     if pretty_available; then
-      gum style \
+      ryoku-tui style \
         --border double \
         --border-foreground 2 \
         --foreground 15 \
@@ -745,7 +745,7 @@ print_final_summary() {
     fi
   else
     if pretty_available; then
-      gum style \
+      ryoku-tui style \
         --border double \
         --border-foreground 1 \
         --foreground 15 \

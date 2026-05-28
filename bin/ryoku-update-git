@@ -50,7 +50,7 @@ write_update_result_state() {
   local checkout_commit="$2"
   local remote_tip="$3"
   local active_doctor="$4"
-  local gum_path="$5"
+  local tui_path="$5"
   local runtime_bridge="$6"
 
   mkdir -p "$RYOKU_STATE_PATH" 2>/dev/null || return 0
@@ -62,7 +62,7 @@ write_update_result_state() {
     printf 'remote_tip=%s\n' "$remote_tip"
     printf 'expected_doctor=%s\n' "$RYOKU_PATH/bin/ryoku-doctor"
     printf 'active_doctor=%s\n' "$active_doctor"
-    printf 'gum=%s\n' "$gum_path"
+    printf 'tui=%s\n' "$tui_path"
     printf 'runtime_bridge=%s\n' "$runtime_bridge"
   } > "$RYOKU_STATE_PATH/last-update" || true
 }
@@ -84,20 +84,20 @@ print_update_result() {
   local remote_tip=""
   local expected_doctor="$RYOKU_PATH/bin/ryoku-doctor"
   local active_doctor=""
-  local gum_path=""
+  local tui_path=""
   local runtime_bridge=""
 
   checkout_branch="$(ryoku_git rev-parse --abbrev-ref HEAD 2>/dev/null || printf '%s\n' "unknown")"
   checkout_commit="$(ryoku_git rev-parse --short HEAD 2>/dev/null || printf '%s\n' "unknown")"
   remote_tip="$(update_remote_tip_summary)"
   active_doctor="$(command_realpath ryoku-doctor || true)"
-  gum_path="$(command_realpath gum || true)"
+  tui_path="$(command_realpath ryoku-tui || true)"
   runtime_bridge="$(update_runtime_bridge_summary)"
 
   [[ -n $active_doctor ]] || active_doctor="missing"
-  [[ -n $gum_path ]] || gum_path="missing"
+  [[ -n $tui_path ]] || tui_path="missing"
 
-  write_update_result_state "$checkout_branch" "$checkout_commit" "$remote_tip" "$active_doctor" "$gum_path" "$runtime_bridge"
+  write_update_result_state "$checkout_branch" "$checkout_commit" "$remote_tip" "$active_doctor" "$tui_path" "$runtime_bridge"
 
   echo
   echo "Ryoku update result:"
@@ -107,15 +107,15 @@ print_update_result() {
   echo "  Remote tip: $remote_tip"
   echo "  Expected doctor: $expected_doctor"
   echo "  Active doctor: $active_doctor"
-  echo "  Gum: $gum_path"
+  echo "  TUI: $tui_path"
   echo "  Runtime bridge: $runtime_bridge"
 
   if [[ -x $expected_doctor && $active_doctor != "$expected_doctor" ]]; then
     echo -e "\e[33mWarning: ryoku-doctor resolves outside the installed checkout; PATH or legacy wrappers may be stale.\e[0m"
   fi
 
-  if [[ $gum_path == "missing" ]]; then
-    echo -e "\e[33mWarning: gum is missing, so ryoku-doctor will use fallback UI until packages finish installing.\e[0m"
+  if [[ $tui_path == "missing" ]]; then
+    echo -e "\e[33mWarning: ryoku-tui is missing, so ryoku-doctor will use fallback UI until packages finish installing.\e[0m"
   fi
 }
 
