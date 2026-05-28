@@ -1,6 +1,74 @@
 # Track if we're already handling an error to prevent double-trapping
 ERROR_HANDLING=false
 
+# Defensive UI shims. presentation.sh (sourced first) normally defines these,
+# but the error handler must never reference an unset function, so re-define
+# any that are missing. They prefer ryoku-tui and fall back to plain bash,
+# because ryoku-tui is built later in a fresh install and may be absent.
+if ! declare -F _ui_read >/dev/null 2>&1; then
+  _ui_read() {
+    local _prompt="$1"
+    local -n _out_ref="$2"
+    _out_ref=""
+    if { exec 9</dev/tty; } 2>/dev/null; then
+      read -r -p "$_prompt" _out_ref <&9 || _out_ref=""
+      exec 9<&-
+    else
+      read -r -p "$_prompt" _out_ref || _out_ref=""
+    fi
+  }
+fi
+
+if ! declare -F ui_style >/dev/null 2>&1; then
+  ui_style() {
+    if command -v ryoku-tui &>/dev/null; then
+      ryoku-tui style "$@"
+    else
+      local text=""
+      if (($#)); then
+        text="${*: -1}"
+      fi
+      printf '%s\n' "$text"
+    fi
+  }
+fi
+
+if ! declare -F ui_choose >/dev/null 2>&1; then
+  ui_choose() {
+    if command -v ryoku-tui &>/dev/null; then
+      ryoku-tui choose "$@"
+    else
+      local items=()
+      while (($#)); do
+        case "$1" in
+        --*=* | -*)
+          case "$1" in
+          --header | --height | --padding | --limit)
+            shift
+            ;;
+          esac
+          ;;
+        *)
+          items+=("$1")
+          ;;
+        esac
+        shift
+      done
+
+      local i
+      for i in "${!items[@]}"; do
+        printf '%2d) %s\n' "$((i + 1))" "${items[i]}" >&2
+      done
+
+      local reply=""
+      _ui_read "Choose [1-${#items[@]}]: " reply
+      if [[ $reply =~ ^[0-9]+$ ]] && ((reply >= 1 && reply <= ${#items[@]})); then
+        printf '%s\n' "${items[reply - 1]}"
+      fi
+    fi
+  }
+fi
+
 # Cursor is usually hidden while we install
 show_cursor() {
   printf "\033[?25h"
@@ -19,7 +87,7 @@ show_log_tail() {
         local truncated_line="$line"
       fi
 
-      gum style "$truncated_line"
+      ui_style "$truncated_line"
     done
 
     echo
@@ -29,7 +97,7 @@ show_log_tail() {
 # Display the failed command or script name
 show_failed_script_or_command() {
   if [[ -n ${CURRENT_SCRIPT:-} ]]; then
-    gum style "Failed script: $CURRENT_SCRIPT"
+    ui_style "Failed script: $CURRENT_SCRIPT"
   else
     # Truncate long command lines to fit the display
     local cmd="$BASH_COMMAND"
@@ -39,7 +107,7 @@ show_failed_script_or_command() {
       cmd="${cmd:0:$max_cmd_width}..."
     fi
 
-    gum style "$cmd"
+    ui_style "$cmd"
   fi
 }
 
@@ -74,13 +142,13 @@ catch_errors() {
   clear_logo
   show_cursor
 
-  gum style --foreground 1 --padding "1 0 1 $PADDING_LEFT" "Ryoku installation stopped!"
+  ui_style --foreground 1 --padding "1 0 1 $PADDING_LEFT" "Ryoku installation stopped!"
   show_log_tail
 
-  gum style "This command halted with exit code $exit_code:"
+  ui_style "This command halted with exit code $exit_code:"
   show_failed_script_or_command
 
-  gum style "Review the log, then file an issue at https://github.com/neur0map/ryoku-arch/issues if you need help."
+  ui_style "Review the log, then file an issue at https://github.com/neur0map/ryoku-arch/issues if you need help."
 
   # Offer options menu
   while true; do
@@ -100,7 +168,7 @@ catch_errors() {
     options+=("View full log")
     options+=("Exit")
 
-    choice=$(gum choose "${options[@]}" --header "What would you like to do?" --height 6 --padding "1 $PADDING_LEFT")
+    choice=$(ui_choose "${options[@]}" --header "What would you like to do?" --height 6 --padding "1 $PADDING_LEFT")
 
     case "$choice" in
     "Retry installation")

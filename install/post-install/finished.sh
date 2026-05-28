@@ -37,8 +37,26 @@ fi
 # loop after NOPASSWD has just been pulled.
 sudo rm -f /etc/sudoers.d/99-ryoku-installer /etc/sudoers.d/99-omarchy-installer &>/dev/null
 
-# Exit gracefully if user chooses not to reboot
-if gum confirm --padding "0 0 0 $((PADDING_LEFT + 32))" --show-help=false --default --affirmative "Reboot Now" --negative "" ""; then
+# Exit gracefully if user chooses not to reboot. This prompt defaults to
+# affirmative (Reboot Now), so the fallback must default to yes on empty input.
+# ryoku-tui is built earlier in the install and is normally present here, but
+# guard anyway so the final step never stalls if it is somehow missing.
+reboot_confirm() {
+  if command -v ryoku-tui &>/dev/null; then
+    ryoku-tui confirm --padding "0 0 0 $((PADDING_LEFT + 32))" --show-help=false --default --affirmative "Reboot Now" --negative "" ""
+  else
+    local answer=""
+    if { exec 9</dev/tty; } 2>/dev/null; then
+      read -r -p "Reboot Now? [Y/n] " answer <&9 || answer=""
+      exec 9<&-
+    else
+      read -r -p "Reboot Now? [Y/n] " answer || answer=""
+    fi
+    [[ $answer != [nN]* ]]
+  fi
+}
+
+if reboot_confirm; then
   # Clear screen to hide any shutdown messages
   clear
 
