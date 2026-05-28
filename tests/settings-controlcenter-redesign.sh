@@ -55,7 +55,7 @@ for file in \
   "$version_tab" \
   "$credits_tab" \
   shell/noctalia/Assets/credits/ambxst.svg \
-  shell/noctalia/Assets/credits/omarchy.png \
+  shell/noctalia/Assets/credits/omarchy.svg \
   "$basics_tab" \
   "$keybinds_tab" \
   legacy/controlcenter/Wrapper.qml.orig \
@@ -156,7 +156,7 @@ assert_contains "$credits_tab" "\"name\": \"Omarchy\"" \
   "credits should include Omarchy"
 assert_contains "$credits_tab" "https://github.com/basecamp/omarchy" \
   "credits should link back to Omarchy"
-assert_contains "$credits_tab" "\"icon\": \"omarchy.png\"" \
+assert_contains "$credits_tab" "\"icon\": \"omarchy.svg\"" \
   "credits should use the Omarchy credit logo"
 assert_contains "$credits_tab" "\"name\": \"Ambxst\"" \
   "credits should include Ambxst"

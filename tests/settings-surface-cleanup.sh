@@ -70,7 +70,7 @@ for file in \
   shell/noctalia/Assets/settings-search-index.json \
   shell/noctalia/Assets/ryoku-logo.svg \
   shell/noctalia/Assets/credits/ambxst.svg \
-  shell/noctalia/Assets/credits/omarchy.png \
+  shell/noctalia/Assets/credits/omarchy.svg \
   shell/noctalia/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml \
   shell/noctalia/Modules/Panels/Settings/Tabs/About/VersionSubTab.qml; do
   assert_file "$file"
@@ -168,7 +168,7 @@ assert_contains "shell/noctalia/Modules/Panels/Settings/Tabs/About/CreditsSubTab
   "Noctalia credits tab should include Omarchy"
 assert_contains "shell/noctalia/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml" 'basecamp/omarchy' \
   "Noctalia credits tab should link to Omarchy"
-assert_contains "shell/noctalia/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml" '"icon": "omarchy.png"' \
+assert_contains "shell/noctalia/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml" '"icon": "omarchy.svg"' \
   "Noctalia credits tab should use the Omarchy logo"
 assert_contains "shell/noctalia/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml" '"name": "Ambxst"' \
   "Noctalia credits tab should include Ambxst"
