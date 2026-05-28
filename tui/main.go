@@ -77,6 +77,12 @@ type model struct {
 	lastLog  string // path to the most recent run's captured log
 
 	note string
+
+	// execAfter, when set, is an external TUI (gpk) to run on the released
+	// terminal after the program quits; main() then re-opens the menu. This
+	// avoids nesting one bubbletea program inside another via ExecProcess,
+	// which does not hand the terminal over cleanly.
+	execAfter string
 }
 
 func newModel() model {
@@ -161,12 +167,11 @@ func (m model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 func (m model) selectItem(it menuItem) (tea.Model, tea.Cmd) {
 	switch it.key {
 	case "packages":
-		if err := launchDetached("gpk"); err != nil {
-			m.note = styErr.Render("could not launch gpk: " + err.Error())
-		} else {
-			m.note = styOK.Render("opened the package manager (gpk)")
-		}
-		return m, nil
+		// gpk is its own full-screen TUI; quit so main() can run it on a
+		// cleanly-released terminal, then re-open this menu. (Nesting it inside
+		// tea.ExecProcess does not hand the terminal over cleanly.)
+		m.execAfter = "gpk"
+		return m, tea.Quit
 	case "logs":
 		m.active = it
 		// Show the most recent run's log (doctor/recovery/update); fall back to
@@ -405,9 +410,22 @@ func main() {
 		}
 	}
 
-	p := tea.NewProgram(newModel())
-	if _, err := p.Run(); err != nil {
-		fmt.Fprintln(os.Stderr, "ryoku-tui:", err)
-		os.Exit(1)
+	// Control-center loop: show the menu; if the user picks an external TUI
+	// (gpk), the model quits with execAfter set, we run that program on the
+	// now-released terminal, then loop back to a fresh menu. A normal quit
+	// (execAfter empty) breaks the loop.
+	for {
+		fm, err := tea.NewProgram(newModel()).Run()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "ryoku-tui:", err)
+			os.Exit(1)
+		}
+		final, ok := fm.(model)
+		if !ok || final.execAfter == "" {
+			return
+		}
+		c := exec.Command(final.execAfter)
+		c.Stdin, c.Stdout, c.Stderr = os.Stdin, os.Stdout, os.Stderr
+		_ = c.Run()
 	}
 }

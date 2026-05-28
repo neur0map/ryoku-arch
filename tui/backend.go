@@ -5,7 +5,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"syscall"
 )
 
 // ryokuPath resolves the installed Ryoku checkout.
@@ -130,21 +129,6 @@ func readLogFile(path string) []string {
 		lines[i] = stripCarriage(lines[i])
 	}
 	return lines
-}
-
-// launchDetached starts a GUI/program in its own session so it outlives the TUI.
-func launchDetached(name string) error {
-	path, err := exec.LookPath(name)
-	if err != nil {
-		return err
-	}
-	cmd := exec.Command(path)
-	devnull, _ := os.Open(os.DevNull)
-	cmd.Stdin = devnull
-	cmd.Stdout = nil
-	cmd.Stderr = nil
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
-	return cmd.Start()
 }
 
 // stripCarriage collapses a line that used \r to redraw (progress bars) down to
