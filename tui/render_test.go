@@ -11,7 +11,7 @@ func TestMenuRenders(t *testing.T) {
 	var mm tea.Model = newModel()
 	mm, _ = mm.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
 	v := mm.(model).View()
-	for _, s := range []string{"R Y O K U", "system control center", "Update", "Doctor", "Recovery", "Logs", "Manage packages", "channel"} {
+	for _, s := range []string{"R Y O K U", "system control center", "Update", "Doctor", "Recovery", "Logs", "Packages", "·"} {
 		if !strings.Contains(v.Content, s) {
 			t.Errorf("menu view missing %q", s)
 		}

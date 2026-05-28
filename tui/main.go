@@ -1,26 +1,23 @@
 // ryoku-tui - the unified Ryoku control center.
 //
-// A bubbletea v2 / lipgloss v2 front-end: a fixed branded header (with a
-// harmonica-driven activity sweep) over a menu of actions. Selection happens
-// in the TUI; for Update / Doctor / Recovery the TUI HANDS THE TERMINAL to the
-// underlying bash engine via tea.ExecProcess, so those tools render their own
-// full-fidelity, real-time output (ryoku-update's scroll-region dashboard with
-// the RYOKU ascii art, pacman's live colour/progress, etc.) instead of being
-// captured and re-rendered. Logs and the sudo password prompt stay in the TUI.
+// A bubbletea v2 / lipgloss v2 front-end composed as ONE contained, fixed-width
+// card (the soft-serve / k9s style): a single accent colour, achromatic
+// everything-else, aligned columns, a full-row selection bar, and explicit
+// truncation so nothing wraps inside the border. Selection happens here; for
+// Update / Doctor / Recovery the TUI hands the terminal to the underlying bash
+// engine via tea.ExecProcess so those tools render their own full-fidelity,
+// real-time output (ryoku-update's scroll-region dashboard, live pacman, etc.).
 package main
 
 import (
 	"fmt"
-	"math"
 	"os"
 	"os/exec"
 	"strings"
-	"time"
 
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/harmonica"
 )
 
 type viewState int
@@ -30,12 +27,11 @@ const (
 	stateFinished
 )
 
-// what the finished screen is showing
 type finishedKind int
 
 const (
-	finishedRun  finishedKind = iota // post-run status of an ExecProcess action
-	finishedLogs                     // the loaded update log in the viewport
+	finishedRun finishedKind = iota
+	finishedLogs
 )
 
 // runState drives the status glyph (stateGlyph in theme.go).
@@ -48,19 +44,12 @@ const (
 	runFail
 )
 
-const animFPS = 60
-
 type menuItem struct {
-	key       string
-	title     string
-	desc      string
-	needsSudo bool
-	detached  bool
+	key   string
+	title string
+	desc  string
 }
 
-// ----- messages -----
-
-type animTickMsg time.Time
 type execDoneMsg struct {
 	item menuItem
 	code int
@@ -76,10 +65,9 @@ type model struct {
 	channel string
 	version string
 
-	// viewport is used only for the Logs view (a static file), never for
-	// capturing live command output.
-	vp      viewport.Model
-	vpReady bool
+	// viewport is used only for the Logs view (a static file).
+	vp       viewport.Model
+	vpReady  bool
 	logLines []string
 
 	active   menuItem
@@ -87,65 +75,36 @@ type model struct {
 	exitCode int
 
 	note string
-
-	// persistent harmonica sweep shown in the header (always animating)
-	spring   harmonica.Spring
-	sweepPos float64
-	sweepVel float64
-	sweepTo  float64
 }
 
 func newModel() model {
 	items := []menuItem{
-		{key: "update", title: "Update", desc: "fetch and apply the latest Ryoku + system packages", needsSudo: true},
-		{key: "doctor", title: "Doctor", desc: "check system health and repair common problems", needsSudo: true},
-		{key: "recovery", title: "Recovery", desc: "emergency MedEvac: rebuild a coherent install", needsSudo: true},
-		{key: "logs", title: "Logs", desc: "view the most recent update log"},
-		{key: "packages", title: "Manage packages", desc: "open the graphical package manager (gpk)", detached: true},
+		{"update", "Update", "update Ryoku and all system packages"},
+		{"doctor", "Doctor", "check system health and repair issues"},
+		{"recovery", "Recovery", "emergency MedEvac: rebuild the install"},
+		{"logs", "Logs", "view the most recent update log"},
+		{"packages", "Packages", "open the graphical package manager"},
 	}
 	return model{
 		state:   stateMenu,
 		items:   items,
 		channel: detectChannel(),
 		version: detectVersion(),
-		// gentle, smooth ease (low frequency, heavy damping)
-		spring: harmonica.NewSpring(harmonica.FPS(animFPS), 4.0, 0.75),
 	}
 }
 
-func (m model) Init() tea.Cmd {
-	return animTick()
-}
-
-func animTick() tea.Cmd {
-	return tea.Tick(time.Second/animFPS, func(t time.Time) tea.Msg {
-		return animTickMsg(t)
-	})
-}
+func (m model) Init() tea.Cmd { return nil }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.sweepTo = float64(m.sweepWidth())
 		m.layoutViewport()
 		return m, nil
 
 	case tea.KeyPressMsg:
 		return m.handleKey(msg)
-
-	case animTickMsg:
-		// The header sweep runs forever, so there is always a little life.
-		m.sweepPos, m.sweepVel = m.spring.Update(m.sweepPos, m.sweepVel, m.sweepTo)
-		if math.Abs(m.sweepPos-m.sweepTo) < 0.6 && math.Abs(m.sweepVel) < 0.6 {
-			if m.sweepTo == 0 {
-				m.sweepTo = float64(m.sweepWidth())
-			} else {
-				m.sweepTo = 0
-			}
-		}
-		return m, animTick()
 
 	case execDoneMsg:
 		m.active = msg.item
@@ -219,17 +178,13 @@ func (m model) selectItem(it menuItem) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// Update / Doctor / Recovery: hand the terminal straight to the bash
-	// engine. The engine prompts for sudo itself, on the real terminal, so the
-	// user is asked exactly once (a TUI pre-prompt would be a second, redundant
-	// ask because the engine re-execs under its own PTY).
+	// Update / Doctor / Recovery: hand the terminal to the bash engine (which
+	// prompts for sudo once, on the real terminal, and renders its own output).
 	m.active = it
 	m.note = ""
 	return m, m.execEngine(it)
 }
 
-// execEngine hands the whole terminal to the bash engine (tea.ExecProcess), so
-// it renders its own full-fidelity live output, then reports the exit code.
 func (m model) execEngine(it menuItem) tea.Cmd {
 	name, args, env := commandFor(it)
 	c := exec.Command(name, args...)
@@ -247,123 +202,98 @@ func (m model) execEngine(it menuItem) tea.Cmd {
 	})
 }
 
-// ----- view -----
+// ----- view: one contained card -----
 
 func (m model) View() tea.View {
-	header := m.renderHeader()
-	var content string
-	switch m.state {
-	case stateMenu:
-		content = m.renderMenu()
-	default:
-		content = m.renderFinished()
-	}
-	// Center-align the header over the content (so the narrow brand box sits
-	// above the wider menu instead of hugging its left edge), then place the
-	// whole block in the middle of the screen.
-	body := lipgloss.JoinVertical(lipgloss.Center, header, content)
-	if m.width > 0 && m.height > 0 {
-		vAlign := lipgloss.Center
-		if m.state == stateFinished && m.finished == finishedLogs {
-			vAlign = lipgloss.Top // a tall log viewport reads better anchored up top
+	var body string
+	if m.state == stateFinished && m.finished == finishedLogs {
+		body = m.logsView()
+	} else {
+		card := styCard.Render(strings.Join(m.cardLines(), "\n"))
+		if m.width > 0 && m.height > 0 {
+			body = lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, card)
+		} else {
+			body = card
 		}
-		body = lipgloss.Place(m.width, m.height, lipgloss.Center, vAlign, body)
 	}
 	v := tea.NewView(body)
 	v.AltScreen = true
 	return v
 }
 
-func (m model) renderHeader() string {
-	brand := styBrand.Render("力  R Y O K U")
-	sub := stySubtitle.Render("system control center")
-	inner := lipgloss.JoinVertical(lipgloss.Center, brand, sub)
-	box := styHeaderBox.Render(inner)
-
-	meta := fmt.Sprintf("%s %s   %s %s",
-		styMetaKey.Render("channel"), styMeta.Render(m.channel),
-		styMetaKey.Render("version"), styMeta.Render(m.version))
-
-	return lipgloss.JoinVertical(lipgloss.Left, box, "  "+meta, "  "+m.renderSweep(), "")
+// cardLines builds the inner lines of the card; each is exactly cardLineW wide.
+func (m model) cardLines() []string {
+	lines := []string{
+		centerLine(styBrand.Render("力  R Y O K U")),
+		centerLine(stySubtitle.Render("system control center")),
+		"",
+		centerLine(styMeta.Render(m.channel + "   ·   " + m.version)),
+		divider(),
+		"",
+	}
+	if m.state == stateMenu {
+		lines = append(lines, m.menuRows()...)
+		lines = append(lines, "", divider())
+		if m.note != "" {
+			lines = append(lines, leftLine("  "+m.note))
+		}
+		lines = append(lines, leftLine("  "+styHint.Render("↑/↓ move    enter select    q quit")))
+	} else {
+		lines = append(lines, m.finishedLines()...)
+	}
+	return lines
 }
 
-func (m model) renderMenu() string {
-	var b strings.Builder
+func (m model) menuRows() []string {
+	const titleW = 10
+	descBudget := cardLineW - 4 - titleW - 1 // indent/arrow(4) + title + gap(1)
+	rows := make([]string, len(m.items))
 	for i, it := range m.items {
-		cursor := "  "
-		title := styItemTitle.Render(it.title)
-		desc := styItemDesc.Render(it.desc)
+		title := fmt.Sprintf("%-*s", titleW, it.title)
+		desc := truncate(it.desc, descBudget)
 		if i == m.cursor {
-			cursor = styCursor.Render("▸ ")
-			title = styItemTitleSel.Render(it.title)
-			desc = styItemDescSel.Render(it.desc)
+			// Full-width accent selection bar (one uniform style, no nesting).
+			plain := "  ▸ " + title + " " + desc
+			rows[i] = styRowSel.Foreground(colSelFg).Bold(true).Width(cardLineW).Render(plain)
+		} else {
+			rows[i] = leftLine("    " + styItemTitle.Render(title) + " " + styItemDesc.Render(desc))
 		}
-		fmt.Fprintf(&b, " %s%-16s %s\n", cursor, title, desc)
 	}
-	b.WriteString("\n")
-	if m.note != "" {
-		b.WriteString("  " + m.note + "\n\n")
-	}
-	b.WriteString("  " + styHint.Render("↑/↓ move   enter select   q quit"))
-	return b.String()
+	return rows
 }
 
-func (m model) renderFinished() string {
-	if m.finished == finishedLogs {
-		title := stateGlyph(runOK) + " " + styPaneTitle.Render("Update log")
-		body := "  " + title + "\n"
-		if m.vpReady {
-			body += styPaneBorder.Render(m.vp.View()) + "\n"
-		}
-		body += "  " + styHint.Render("enter back to menu   q quit   ↑/↓ scroll")
-		return body
-	}
-
-	// post-run status (the live output already scrolled on the real terminal)
+func (m model) finishedLines() []string {
 	var status string
 	if m.exitCode == 0 {
 		status = stateGlyph(runOK) + " " + styOK.Render(m.active.title+" complete")
 	} else {
-		status = stateGlyph(runFail) + " " + styErr.Render(fmt.Sprintf("%s failed (exit %d)", m.active.title, m.exitCode))
+		status = stateGlyph(runFail) + " " + styErr.Render(fmt.Sprintf("%s failed   exit %d", m.active.title, m.exitCode))
 	}
-	tip := styHint.Render("the full output scrolled above; pick Logs to review it")
-	hint := styHint.Render("enter back to menu   q quit")
-	return "\n  " + status + "\n  " + tip + "\n\n  " + hint
+	return []string{
+		centerLine(status),
+		"",
+		centerLine(styHint.Render("the full output scrolled above")),
+		centerLine(styHint.Render("choose Logs to review it")),
+		"",
+		divider(),
+		centerLine(styHint.Render("enter  back to menu       q  quit")),
+	}
 }
 
-func (m model) sweepWidth() int {
-	w := m.width/3 - 4
-	if w < 10 {
-		w = 10
+// logsView is a separate, top-anchored layout: a brand line over a bordered,
+// scrollable viewport of the saved log.
+func (m model) logsView() string {
+	title := styBrand.Render("力  R Y O K U") + "  " + stySubtitle.Render("update log")
+	hint := styHint.Render("enter  back to menu       q  quit       ↑/↓  scroll")
+	var pane string
+	if m.vpReady {
+		pane = styPaneBorder.Render(m.vp.View())
 	}
-	if w > 40 {
-		w = 40
+	block := lipgloss.JoinVertical(lipgloss.Center, title, "", pane, "", hint)
+	if m.width > 0 && m.height > 0 {
+		return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Top, block)
 	}
-	return w
-}
-
-// renderSweep draws the harmonica-driven activity bar shown in the header.
-func (m model) renderSweep() string {
-	w := m.sweepWidth()
-	pos := int(math.Round(m.sweepPos))
-	if pos < 0 {
-		pos = 0
-	}
-	if pos >= w {
-		pos = w - 1
-	}
-	var b strings.Builder
-	for i := 0; i < w; i++ {
-		switch {
-		case i == pos:
-			b.WriteString(styBrand.Render("█"))
-		case i == pos-1 || i == pos+1:
-			b.WriteString(lipgloss.NewStyle().Foreground(colAccent2).Render("▓"))
-		default:
-			b.WriteString(styHint.Render("─"))
-		}
-	}
-	return b.String()
+	return block
 }
 
 // ----- viewport (Logs only) -----
@@ -372,14 +302,16 @@ func (m *model) layoutViewport() {
 	if m.width == 0 || m.height == 0 {
 		return
 	}
-	headerH := lipgloss.Height(m.renderHeader())
-	vpH := m.height - headerH - 4
-	if vpH < 3 {
-		vpH = 3
+	vpW := cardLineW + 6
+	if vpW > m.width-4 {
+		vpW = m.width - 4
 	}
-	vpW := m.width - 2
-	if vpW < 10 {
-		vpW = 10
+	if vpW < 20 {
+		vpW = 20
+	}
+	vpH := m.height - 8
+	if vpH < 4 {
+		vpH = 4
 	}
 	if !m.vpReady {
 		m.vp = viewport.New(viewport.WithWidth(vpW), viewport.WithHeight(vpH))
