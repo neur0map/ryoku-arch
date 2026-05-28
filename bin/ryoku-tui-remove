@@ -15,9 +15,8 @@ if (( $# == 0 )); then
   done < <(find "$DESKTOP_DIR" -name '*.desktop' -print0)
 
   if ((${#TUIS[@]})); then
-    IFS=$'\n' SORTED_TUIS=($(sort <<<"${TUIS[*]}"))
-    unset IFS
-    APP_NAMES_STRING=$(gum choose --no-limit --header "Select TUI to remove..." --selected-prefix="✗ " "${SORTED_TUIS[@]}")
+    mapfile -t SORTED_TUIS < <(printf '%s\n' "${TUIS[@]}" | sort)
+    APP_NAMES_STRING=$(ryoku-tui choose --no-limit --header "Select TUI to remove..." --selected-prefix="✗ " "${SORTED_TUIS[@]}")
     # Convert newline-separated string to array
     APP_NAMES=()
     while IFS= read -r line; do

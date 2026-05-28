@@ -5,10 +5,10 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 
 if (( $# != 4 )); then
   echo -e "\e[32mLet's create a TUI shortcut you can start with the app launcher.\n\e[0m"
-  APP_NAME=$(gum input --prompt "Name> " --placeholder "My TUI")
-  APP_EXEC=$(gum input --prompt "Launch Command> " --placeholder "lazydocker or bash -c 'dust; read -n 1 -s'")
-  WINDOW_STYLE=$(gum choose --header "Window style" float tile)
-  ICON_URL=$(gum input --prompt "Icon URL> " --placeholder "See https://dashboardicons.com (must use PNG or SVG!)")
+  APP_NAME=$(ryoku-tui input --prompt "Name> " --placeholder "My TUI")
+  APP_EXEC=$(ryoku-tui input --prompt "Launch Command> " --placeholder "lazydocker or bash -c 'dust; read -n 1 -s'")
+  WINDOW_STYLE=$(ryoku-tui choose --header "Window style" float tile)
+  ICON_URL=$(ryoku-tui input --prompt "Icon URL> " --placeholder "See https://dashboardicons.com (must use PNG or SVG!)")
 else
   APP_NAME="$1"
   APP_EXEC="$2"

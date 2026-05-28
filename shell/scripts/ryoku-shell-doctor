@@ -75,16 +75,16 @@ doctor_report_issue() {
 doctor_pretty() {
   [[ ${RYOKU_DOCTOR_PLAIN:-0} == "1" ]] && return 1
   if [[ ${RYOKU_DOCTOR_PRETTY:-0} == "1" ]]; then
-    command -v gum >/dev/null 2>&1
+    command -v ryoku-tui >/dev/null 2>&1
     return
   fi
 
-  [[ -t 1 ]] && command -v gum >/dev/null 2>&1
+  [[ -t 1 ]] && command -v ryoku-tui >/dev/null 2>&1
 }
 
 doctor_title() {
   if doctor_pretty; then
-    gum style \
+    ryoku-tui style \
       --border rounded \
       --border-foreground 6 \
       --foreground 15 \
@@ -110,7 +110,7 @@ doctor_status_line() {
   esac
 
   if doctor_pretty; then
-    gum style --foreground "$color" "${kind}: ${message}"
+    ryoku-tui style --foreground "$color" "${kind}: ${message}"
   else
     echo "${kind}: ${message}"
   fi
@@ -240,7 +240,7 @@ doctor_summary() {
   local summary="Summary: passed=$doctor_passed fixed=$doctor_fixed warnings=$doctor_warnings failed=$doctor_failed"
 
   if doctor_pretty; then
-    gum style \
+    ryoku-tui style \
       --border rounded \
       --border-foreground 8 \
       --foreground 15 \
@@ -280,7 +280,7 @@ run_check() {
 
   ((doctor_step++)) || true
   if doctor_pretty; then
-    gum style --foreground 6 "[${doctor_step}/${doctor_total}] Checking $label"
+    ryoku-tui style --foreground 6 "[${doctor_step}/${doctor_total}] Checking $label"
   else
     echo "[${doctor_step}/${doctor_total}] Checking $label"
   fi
