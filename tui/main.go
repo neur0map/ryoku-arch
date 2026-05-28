@@ -27,7 +27,6 @@ type viewState int
 
 const (
 	stateMenu viewState = iota
-	stateSudoPrompt
 	stateFinished
 )
 
@@ -62,11 +61,6 @@ type menuItem struct {
 // ----- messages -----
 
 type animTickMsg time.Time
-type sudoAuthResultMsg struct {
-	item menuItem
-	ok   bool
-	err  string
-}
 type execDoneMsg struct {
 	item menuItem
 	code int
@@ -93,11 +87,6 @@ type model struct {
 	exitCode int
 
 	note string
-
-	// in-TUI sudo prompt
-	sudoFor    menuItem
-	sudoPasswd string
-	sudoError  string
 
 	// persistent harmonica sweep shown in the header (always animating)
 	spring   harmonica.Spring
@@ -158,15 +147,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, animTick()
 
-	case sudoAuthResultMsg:
-		if !msg.ok {
-			m.sudoError = msg.err
-			return m, nil
-		}
-		m.sudoFor = menuItem{}
-		m.sudoError = ""
-		return m, m.execEngine(msg.item)
-
 	case execDoneMsg:
 		m.active = msg.item
 		m.exitCode = msg.code
@@ -195,38 +175,6 @@ func (m model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			return m.selectItem(m.items[m.cursor])
 		}
 		return m, nil
-
-	case stateSudoPrompt:
-		switch msg.String() {
-		case "esc":
-			m.sudoPasswd = ""
-			m.sudoError = ""
-			m.sudoFor = menuItem{}
-			m.state = stateMenu
-			return m, nil
-		case "ctrl+c":
-			m.sudoPasswd = ""
-			return m, tea.Quit
-		case "enter":
-			passwd := m.sudoPasswd
-			m.sudoPasswd = ""
-			m.sudoError = ""
-			return m, trySudoAuth(m.sudoFor, passwd)
-		case "backspace":
-			r := []rune(m.sudoPasswd)
-			if len(r) > 0 {
-				m.sudoPasswd = string(r[:len(r)-1])
-			}
-			return m, nil
-		case "ctrl+u":
-			m.sudoPasswd = ""
-			return m, nil
-		default:
-			if t := msg.Text; t != "" {
-				m.sudoPasswd += t
-			}
-			return m, nil
-		}
 
 	case stateFinished:
 		switch msg.String() {
@@ -271,17 +219,12 @@ func (m model) selectItem(it menuItem) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// Update / Doctor / Recovery: authenticate (in-TUI) if needed, then hand
-	// the terminal to the bash engine.
+	// Update / Doctor / Recovery: hand the terminal straight to the bash
+	// engine. The engine prompts for sudo itself, on the real terminal, so the
+	// user is asked exactly once (a TUI pre-prompt would be a second, redundant
+	// ask because the engine re-execs under its own PTY).
 	m.active = it
 	m.note = ""
-	if it.needsSudo && !sudoCached() {
-		m.sudoFor = it
-		m.sudoPasswd = ""
-		m.sudoError = ""
-		m.state = stateSudoPrompt
-		return m, nil
-	}
 	return m, m.execEngine(it)
 }
 
@@ -304,44 +247,27 @@ func (m model) execEngine(it menuItem) tea.Cmd {
 	})
 }
 
-// trySudoAuth runs `sudo -S -v` with the supplied password on stdin. The
-// password lives only inside this closure for the duration of the call.
-func trySudoAuth(it menuItem, password string) tea.Cmd {
-	return func() tea.Msg {
-		c := exec.Command("sudo", "-S", "-p", "", "-v")
-		c.Stdin = strings.NewReader(password + "\n")
-		var stderr strings.Builder
-		c.Stderr = &stderr
-		if err := c.Run(); err == nil {
-			return sudoAuthResultMsg{item: it, ok: true}
-		}
-		msg := "authentication failed"
-		errOut := stderr.String()
-		switch {
-		case strings.Contains(errOut, "Sorry, try again") || strings.Contains(errOut, "incorrect password"):
-			msg = "incorrect password"
-		case strings.Contains(errOut, "not allowed"):
-			msg = "this user is not allowed to run sudo"
-		}
-		return sudoAuthResultMsg{item: it, ok: false, err: msg}
-	}
-}
-
 // ----- view -----
 
 func (m model) View() tea.View {
 	header := m.renderHeader()
-	var body string
+	var content string
 	switch m.state {
 	case stateMenu:
-		body = lipgloss.JoinVertical(lipgloss.Left, header, m.renderMenu())
-	case stateSudoPrompt:
-		body = lipgloss.JoinVertical(lipgloss.Left, header, m.renderSudoPrompt())
-	case stateFinished:
-		body = lipgloss.JoinVertical(lipgloss.Left, header, m.renderFinished())
+		content = m.renderMenu()
+	default:
+		content = m.renderFinished()
 	}
+	// Center-align the header over the content (so the narrow brand box sits
+	// above the wider menu instead of hugging its left edge), then place the
+	// whole block in the middle of the screen.
+	body := lipgloss.JoinVertical(lipgloss.Center, header, content)
 	if m.width > 0 && m.height > 0 {
-		body = lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Top, body)
+		vAlign := lipgloss.Center
+		if m.state == stateFinished && m.finished == finishedLogs {
+			vAlign = lipgloss.Top // a tall log viewport reads better anchored up top
+		}
+		body = lipgloss.Place(m.width, m.height, lipgloss.Center, vAlign, body)
 	}
 	v := tea.NewView(body)
 	v.AltScreen = true
@@ -380,20 +306,6 @@ func (m model) renderMenu() string {
 	}
 	b.WriteString("  " + styHint.Render("↑/↓ move   enter select   q quit"))
 	return b.String()
-}
-
-func (m model) renderSudoPrompt() string {
-	brand := styBrand.Render("力  Sudo password required")
-	sub := stySubtitle.Render("for: " + m.sudoFor.title)
-	mask := strings.Repeat("•", len([]rune(m.sudoPasswd)))
-	field := styMetaKey.Render("password ") + mask + styCursor.Render("▏")
-	inner := lipgloss.JoinVertical(lipgloss.Center, brand, sub, "", field)
-	if m.sudoError != "" {
-		inner = lipgloss.JoinVertical(lipgloss.Center, inner, "", styErr.Render("✗ "+m.sudoError))
-	}
-	box := styHeaderBox.Render(inner)
-	hint := styHint.Render("enter authenticate   esc cancel   ctrl+u clear")
-	return "\n" + box + "\n  " + hint
 }
 
 func (m model) renderFinished() string {

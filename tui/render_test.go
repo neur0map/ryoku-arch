@@ -21,25 +21,6 @@ func TestMenuRenders(t *testing.T) {
 	}
 }
 
-func TestSudoPromptMasksPassword(t *testing.T) {
-	var mm tea.Model = newModel()
-	mm, _ = mm.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
-	m := mm.(model)
-	m.state = stateSudoPrompt
-	m.sudoFor = m.items[0]
-	m.sudoPasswd = "hunter2"
-	out := m.View().Content
-	if strings.Contains(out, "hunter2") {
-		t.Error("password leaked into view")
-	}
-	if !strings.Contains(out, strings.Repeat("•", 7)) {
-		t.Error("password not masked")
-	}
-	if !strings.Contains(out, "Sudo password required") {
-		t.Error("sudo prompt title missing")
-	}
-}
-
 func TestFinishedRunStatus(t *testing.T) {
 	var mm tea.Model = newModel()
 	mm, _ = mm.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
