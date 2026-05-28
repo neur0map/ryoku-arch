@@ -7,6 +7,8 @@
 #
 #   cava-ryoku        - cava + libcava (rebirth shell plugin requires
 #                       libcava; stock cava omits the shared library)
+#   ryoku-tui         - unified control-center TUI (bubbletea + lipgloss),
+#                       built from the in-tree Go module under tui/
 #
 # quickshell-ryoku and qt6-qiooperation-patch are intentionally NOT
 # listed here. quickshell-ryoku is a developer-bootstrap PKGBUILD
@@ -18,7 +20,7 @@ set -euo pipefail
 script_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 source "$script_root/lib/runtime-env.sh"
 
-LOCAL_PKGS=(cava-ryoku)
+LOCAL_PKGS=(cava-ryoku ryoku-tui)
 
 distro_libcava_present() {
   if ryoku-cmd-present pkgconf && pkgconf --exists libcava; then
