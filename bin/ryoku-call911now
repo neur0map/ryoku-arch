@@ -391,6 +391,15 @@ try_install_rescue_tools() {
   fi
 }
 
+# The shell command users can curl when the local install is too broken to run
+# MedEvac at all.
+recover_command() {
+  printf 'curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/%s/recover.sh | bash' "${release_branch:-main}"
+}
+
+# Fetch both channel refs. Returns 0 if origin/$release_branch is available
+# (fetched now or already cached from a prior run), 1 if the remote is
+# unreachable and there is no cached ref to fall back on (offline).
 fetch_release_refs() {
   local branch
 
@@ -401,8 +410,35 @@ fetch_release_refs() {
     git_in_ryoku fetch --prune origin "+refs/heads/${branch}:refs/remotes/origin/${branch}" >/dev/null 2>&1 || true
   done
 
-  git_in_ryoku rev-parse --verify --quiet "origin/$release_branch" >/dev/null || \
-    die "could not fetch origin/$release_branch from $remote_url"
+  git_in_ryoku rev-parse --verify --quiet "origin/$release_branch" >/dev/null
+}
+
+# Read-only diagnosis: tell the user exactly what state the installed checkout
+# is in (detached HEAD, wrong channel, dirty tree, behind/ahead/diverged) before
+# MedEvac acts on it. Requires origin/$release_branch to be present.
+classify_and_report() {
+  local head counts ahead behind
+
+  head="$(git_in_ryoku rev-parse --abbrev-ref HEAD 2>/dev/null || printf 'HEAD')"
+  if [[ $head == "HEAD" ]]; then
+    warn "checkout is in DETACHED HEAD state"
+  elif [[ $head != "$release_branch" ]]; then
+    warn "checkout is on '$head', not the '$release_branch' channel"
+  fi
+  checkout_has_local_file_changes && warn "checkout has uncommitted local file changes"
+
+  if counts="$(git_in_ryoku rev-list --left-right --count "HEAD...origin/$release_branch" 2>/dev/null)"; then
+    read -r ahead behind <<<"$counts"
+    if ((ahead == 0 && behind == 0)); then
+      ok "checkout is already at the latest $release_branch commit"
+    elif ((ahead == 0)); then
+      log "checkout is $behind commit(s) behind origin/$release_branch (fast-forward)"
+    elif ((behind == 0)); then
+      warn "checkout has $ahead local commit(s) not on origin/$release_branch"
+    else
+      warn "checkout has DIVERGED: $ahead local / $behind remote commit(s)"
+    fi
+  fi
 }
 
 checkout_release_branch() {
@@ -448,10 +484,26 @@ backup_existing_path() {
   warn "moved $reason Ryoku checkout to $backup_path"
 }
 
-clone_fresh_checkout() {
+# Clone a clean official checkout BESIDE the live path, then atomically swap it
+# in (preserving whatever was there). The live checkout is moved aside only
+# after the fresh clone fully succeeds, so a failed/partial clone never strands
+# the user without a checkout.
+backup_and_clone_fresh() {
+  local reason="$1"
+  local tmp_clone
+  tmp_clone="$(dirname "$ryoku_path")/.ryoku-medevac-clone.$$"
+
+  rm -rf "$tmp_clone"
+  step "Fetching a clean official $release_branch checkout"
+  if ! git clone --branch "$release_branch" "$remote_url" "$tmp_clone"; then
+    rm -rf "$tmp_clone"
+    die "could not clone $remote_url (offline?). When back online, run:
+  $(recover_command)"
+  fi
+  backup_existing_path "$reason"
   mkdir -p "$(dirname "$ryoku_path")"
-  git clone --branch "$release_branch" "$remote_url" "$ryoku_path"
-  fetch_release_refs
+  mv -- "$tmp_clone" "$ryoku_path"
+  fetch_release_refs || true
 }
 
 fast_forward_or_realign() {
@@ -468,18 +520,31 @@ fast_forward_or_realign() {
     return
   fi
 
-  warn "installed checkout has local commits; MedEvac will preserve it and install a clean official checkout"
-  backup_existing_path "local-commit"
-  clone_fresh_checkout
+  warn "checkout has local commits; preserving it and installing a clean official checkout"
+  backup_and_clone_fresh "local-commit"
 }
 
 ensure_git_checkout() {
   if [[ -d $ryoku_path/.git ]]; then
-    fetch_release_refs
+    if ! fetch_release_refs; then
+      # Remote unreachable and no cached ref. Degrade gracefully: keep the
+      # local checkout if it is already on the channel and clean; otherwise we
+      # cannot safely recover offline.
+      local head
+      head="$(git_in_ryoku rev-parse --abbrev-ref HEAD 2>/dev/null || printf 'HEAD')"
+      if [[ $head == "$release_branch" ]] && ! checkout_has_local_file_changes; then
+        warn "offline: cannot reach $remote_url; keeping the existing clean $release_branch checkout"
+        return 0
+      fi
+      die "offline and the local checkout is not in a safe state. Connect to the internet, then run:
+  $(recover_command)"
+    fi
+
+    classify_and_report
+
     if checkout_has_local_file_changes; then
-      warn "installed checkout has local file changes; MedEvac will preserve it and install a clean official checkout"
-      backup_existing_path "dirty"
-      clone_fresh_checkout
+      warn "checkout has local file changes; preserving it and installing a clean official checkout"
+      backup_and_clone_fresh "dirty"
       return
     fi
     checkout_release_branch
@@ -487,11 +552,9 @@ ensure_git_checkout() {
     return
   fi
 
-  if [[ -e $ryoku_path || -L $ryoku_path ]]; then
-    backup_existing_path "non-git"
-  fi
-
-  clone_fresh_checkout
+  # No git checkout present at all: install a fresh one (backup_and_clone_fresh
+  # preserves any non-git leftover sitting at the path first).
+  backup_and_clone_fresh "non-git"
 }
 
 download_to_file() {
@@ -754,13 +817,17 @@ print_final_summary() {
         "Checkout and command bridges were repaired as far as possible." \
         "Doctor status: $doctor_status" \
         "Updater status: $update_status" \
-        "Next: run $ryoku_path/bin/ryoku-doctor"
+        "Next: run $ryoku_path/bin/ryoku-doctor" \
+        "Still broken? Re-extract online with:" \
+        "$(recover_command)"
     else
       printf '%s\n' "$(ansi 31)${run_label} stopped$(reset_ansi)"
       printf '%s\n' "Checkout and command bridges were repaired as far as possible."
       printf '%s\n' "Doctor status: $doctor_status"
       printf '%s\n' "Updater status: $update_status"
       printf '%s\n' "Next: run $ryoku_path/bin/ryoku-doctor"
+      printf '%s\n' "Still broken? Re-extract online with:"
+      printf '%s\n' "  $(recover_command)"
     fi
   fi
 }
