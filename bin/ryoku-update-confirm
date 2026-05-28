@@ -24,7 +24,9 @@ if command -v gum >/dev/null 2>&1; then
     "" \
     "version $version    channel $channel"
   echo
-  gum style --foreground 7 \
+  # `--` terminates flag parsing: the bullet lines start with "- ", which gum
+  # (kong) would otherwise treat as an unknown flag and abort with a usage dump.
+  gum style --foreground 7 -- \
     "- ${notes[0]}" \
     "- ${notes[1]}" \
     "- ${notes[2]}" \
