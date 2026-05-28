@@ -77,19 +77,16 @@ func sudoCached() bool {
 func commandFor(it menuItem) (string, []string, []string) {
 	switch it.key {
 	case "update":
-		return "ryoku-update", []string{"-y"}, []string{
-			"RYOKU_UPDATE_DASHBOARD=0",
-			"RYOKU_TUI=1",
-		}
+		// Dashboard ENABLED: ryoku-update draws its own scroll-region dashboard
+		// (RYOKU ascii + frozen header) and pacman/git write live to the
+		// terminal. The TUI hands the terminal over via tea.ExecProcess, so the
+		// output is full-fidelity instead of captured.
+		return "ryoku-update", []string{"-y"}, []string{"RYOKU_TUI=1"}
 	case "doctor":
-		return "ryoku-doctor", nil, []string{
-			"RYOKU_DOCTOR_PLAIN=1",
-			"RYOKU_TUI=1",
-		}
+		// Doctor renders its own styled output on the real terminal.
+		return "ryoku-doctor", nil, []string{"RYOKU_TUI=1"}
 	case "recovery":
-		return "ryoku-call911now", nil, []string{
-			"RYOKU_TUI=1",
-		}
+		return "ryoku-call911now", nil, []string{"RYOKU_TUI=1"}
 	}
 	return "true", nil, nil
 }

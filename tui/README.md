@@ -8,14 +8,22 @@ extending the experience never means hunting across `bin/`, `lib/`, and
 
 ## What it does
 
-Run with **no arguments** to open the control center - a fixed branded header
-over a menu whose selection streams its live output into a viewport below:
+Run with **no arguments** to open the control center: a fixed branded header
+(with a harmonica-driven activity sweep) over a menu. Selection happens in the
+TUI; the heavy actions then HAND THE TERMINAL to their bash engine via
+`tea.ExecProcess`, so each tool renders its own full-fidelity, real-time output
+instead of being captured and re-rendered:
 
-- **Update** - runs `ryoku-update` (plain mode), captured live
-- **Doctor** - runs `ryoku-doctor` (plain mode), captured live
-- **Recovery** - runs `ryoku-call911now` (MedEvac), captured live
-- **Logs** - renders the most recent update log
+- **Update** - hands off to `ryoku-update`, whose scroll-region dashboard
+  (RYOKU ascii + frozen header) shows pacman/git output live
+- **Doctor** - hands off to `ryoku-doctor` (its own styled output)
+- **Recovery** - hands off to `ryoku-call911now` (MedEvac)
+- **Logs** - renders the most recent update log in a scrollable viewport
 - **Manage packages** - reroutes to the GUI package manager (`gpk`)
+
+Actions that need root first show an **in-TUI sudo prompt** (password masked as
+bullets, piped once to `sudo -S -v`); on success the engine runs without
+re-prompting.
 
 Run with a **widget subcommand** to get a gum-free, drop-in replacement for the
 corresponding `gum` command (same flags, same stdout/exit-code contract), so a
