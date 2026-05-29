@@ -2114,135 +2114,6 @@
     "subTabLabel": "common.sources"
   },
   {
-    "labelKey": "panels.location.date-time-use-analog-label",
-    "descriptionKey": "panels.location.date-time-use-analog-description",
-    "widget": "NToggle",
-    "tab": 17,
-    "tabLabel": "panels.region.title",
-    "subTab": 2,
-    "subTabLabel": "common.calendar-panel"
-  },
-  {
-    "labelKey": "panels.location.date-time-week-numbers-label",
-    "descriptionKey": "panels.location.date-time-week-numbers-description",
-    "widget": "NToggle",
-    "tab": 17,
-    "tabLabel": "panels.region.title",
-    "subTab": 2,
-    "subTabLabel": "common.calendar-panel"
-  },
-  {
-    "labelKey": "panels.location.date-time-show-events-label",
-    "descriptionKey": "panels.location.date-time-show-events-description",
-    "widget": "NToggle",
-    "tab": 17,
-    "tabLabel": "panels.region.title",
-    "subTab": 2,
-    "subTabLabel": "common.calendar-panel"
-  },
-  {
-    "labelKey": "panels.location.date-time-12hour-format-label",
-    "descriptionKey": "panels.location.date-time-12hour-format-description",
-    "widget": "NToggle",
-    "tab": 17,
-    "tabLabel": "panels.region.title",
-    "subTab": 1,
-    "subTabLabel": "common.date"
-  },
-  {
-    "labelKey": "panels.location.date-time-first-day-of-week-label",
-    "descriptionKey": "panels.location.date-time-first-day-of-week-description",
-    "widget": "NComboBox",
-    "tab": 17,
-    "tabLabel": "panels.region.title",
-    "subTab": 1,
-    "subTabLabel": "common.date"
-  },
-  {
-    "labelKey": "panels.general.language-select-label",
-    "descriptionKey": "panels.general.language-select-description",
-    "widget": "NComboBox",
-    "tab": 17,
-    "tabLabel": "panels.region.title",
-    "subTab": 0,
-    "subTabLabel": "common.location"
-  },
-  {
-    "labelKey": "panels.location.auto-locate-label",
-    "descriptionKey": "panels.location.auto-locate-description",
-    "widget": "NToggle",
-    "tab": 17,
-    "tabLabel": "panels.region.title",
-    "subTab": 0,
-    "subTabLabel": "common.location"
-  },
-  {
-    "labelKey": "panels.location.location-search-label",
-    "descriptionKey": "panels.location.location-search-description",
-    "widget": "NTextInput",
-    "tab": 17,
-    "tabLabel": "panels.region.title",
-    "subTab": 0,
-    "subTabLabel": "common.location",
-    "visibleWhen": [
-      "!Settings.data.location.autoLocate"
-    ]
-  },
-  {
-    "labelKey": "panels.location.weather-enabled-label",
-    "descriptionKey": "panels.location.weather-enabled-description",
-    "widget": "NToggle",
-    "tab": 17,
-    "tabLabel": "panels.region.title",
-    "subTab": 0,
-    "subTabLabel": "common.location"
-  },
-  {
-    "labelKey": "panels.location.weather-fahrenheit-label",
-    "descriptionKey": "panels.location.weather-fahrenheit-description",
-    "widget": "NToggle",
-    "tab": 17,
-    "tabLabel": "panels.region.title",
-    "subTab": 0,
-    "subTabLabel": "common.location"
-  },
-  {
-    "labelKey": "panels.location.weather-show-effects-label",
-    "descriptionKey": "panels.location.weather-show-effects-description",
-    "widget": "NToggle",
-    "tab": 17,
-    "tabLabel": "panels.region.title",
-    "subTab": 0,
-    "subTabLabel": "common.location"
-  },
-  {
-    "labelKey": "panels.location.weather-talia-mascot-always-label",
-    "descriptionKey": "panels.location.weather-talia-mascot-always-description",
-    "widget": "NToggle",
-    "tab": 17,
-    "tabLabel": "panels.region.title",
-    "subTab": 0,
-    "subTabLabel": "common.location"
-  },
-  {
-    "labelKey": "panels.location.weather-hide-city-label",
-    "descriptionKey": "panels.location.weather-hide-city-description",
-    "widget": "NToggle",
-    "tab": 17,
-    "tabLabel": "panels.region.title",
-    "subTab": 0,
-    "subTabLabel": "common.location"
-  },
-  {
-    "labelKey": "panels.location.weather-hide-timezone-label",
-    "descriptionKey": "panels.location.weather-hide-timezone-description",
-    "widget": "NToggle",
-    "tab": 17,
-    "tabLabel": "panels.region.title",
-    "subTab": 0,
-    "subTabLabel": "common.location"
-  },
-  {
     "labelKey": "panels.session-menu.large-buttons-style-label",
     "descriptionKey": "panels.session-menu.large-buttons-style-description",
     "widget": "NToggle",
@@ -2699,5 +2570,41 @@
     "tabLabel": "common.wallpaper",
     "subTab": 1,
     "subTabLabel": "common.look"
+  },
+  {
+    "labelKey": "panels.location.auto-locate-label",
+    "descriptionKey": "panels.location.auto-locate-description",
+    "widget": "NToggle",
+    "tab": 17,
+    "tabLabel": "panels.region.title",
+    "subTab": null,
+    "subTabLabel": null
+  },
+  {
+    "labelKey": "panels.location.location-search-label",
+    "descriptionKey": "panels.location.location-search-description",
+    "widget": "NTextInput",
+    "tab": 17,
+    "tabLabel": "panels.region.title",
+    "subTab": null,
+    "subTabLabel": null
+  },
+  {
+    "labelKey": "panels.location.weather-fahrenheit-label",
+    "descriptionKey": "panels.location.weather-fahrenheit-description",
+    "widget": "NToggle",
+    "tab": 17,
+    "tabLabel": "panels.region.title",
+    "subTab": null,
+    "subTabLabel": null
+  },
+  {
+    "labelKey": "panels.location.date-time-12hour-format-label",
+    "descriptionKey": "panels.location.date-time-12hour-format-description",
+    "widget": "NToggle",
+    "tab": 17,
+    "tabLabel": "panels.region.title",
+    "subTab": null,
+    "subTabLabel": null
   }
 ]
