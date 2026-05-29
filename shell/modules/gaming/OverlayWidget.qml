@@ -22,10 +22,28 @@ Item {
     readonly property bool open: Gaming.open
     readonly property bool pinned: rec.pinned === true
 
+    // True while the drag handle is actively dragging the widget. Position is
+    // applied imperatively (see applyPosition) so the live drag isn't fought,
+    // and external record/layout changes are ignored until the drag releases.
+    readonly property bool dragging: dragArea.drag.active
+
     visible: rec.enabled === true && (open || pinned)
 
-    x: centered ? Math.round((parent.width - width) / 2) : (rec.x >= 0 ? rec.x : 40 + Gaming.widgetIds.indexOf(widget.widgetId) * 30)
-    y: centered ? Math.round((parent.height - height) / 2) : (rec.y >= 0 ? rec.y : 40 + Gaming.widgetIds.indexOf(widget.widgetId) * 30)
+    // Centered widgets stay screen-centered reactively via anchors and are
+    // drag-exempt; non-centered widgets get x/y applied imperatively so a drag
+    // (which writes x/y directly) doesn't permanently kill a declarative binding.
+    anchors.centerIn: centered ? parent : undefined
+
+    function applyPosition(): void {
+        if (widget.centered || widget.dragging)
+            return;
+        widget.x = rec.x >= 0 ? rec.x : 40 + Gaming.widgetIds.indexOf(widget.widgetId) * 30;
+        widget.y = rec.y >= 0 ? rec.y : 40 + Gaming.widgetIds.indexOf(widget.widgetId) * 30;
+    }
+
+    onRecChanged: applyPosition()
+    onCenteredChanged: applyPosition()
+    Component.onCompleted: applyPosition()
 
     implicitWidth: body.implicitWidth
     implicitHeight: body.implicitHeight
