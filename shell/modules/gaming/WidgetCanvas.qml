@@ -7,4 +7,5 @@ Item {
     id: canvas
 
     Crosshair {}
+    Stats {}
 }
