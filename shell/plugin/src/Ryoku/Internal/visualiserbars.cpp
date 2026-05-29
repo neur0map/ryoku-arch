@@ -6,6 +6,8 @@
 #include <qpainter.h>
 #include <qpainterpath.h>
 #include <qpen.h>
+#include <qpoint.h>
+#include <qrect.h>
 
 namespace ryoku::internal {
 
@@ -51,6 +53,17 @@ void VisualiserBars::paint(QPainter* painter) {
     painter->setRenderHint(QPainter::Antialiasing, true);
     painter->setPen(Qt::NoPen);
 
+    // TODO: add "wave" (smooth filled waveform) and "radial" (bars around a circle)
+    // styles, then expose them in the Audio > Visualizer settings combo.
+    if (m_style == QStringLiteral("mirrored"))
+        drawMirrored(painter);
+    else if (m_style == QStringLiteral("dots"))
+        drawDots(painter);
+    else
+        drawBars(painter);
+}
+
+void VisualiserBars::drawBars(QPainter* painter) {
     const qreal h = height();
     const qreal maxBarHeight = h * 0.4;
 
@@ -61,6 +74,84 @@ void VisualiserBars::paint(QPainter* painter) {
 
     drawSide(painter, false);
     drawSide(painter, true);
+}
+
+// Center-anchored bars that grow up and down from the vertical middle, full width.
+void VisualiserBars::drawMirrored(QPainter* painter) {
+    const qreal w = width();
+    const qreal h = height();
+    const auto count = m_displayValues.size();
+
+    if (count == 0)
+        return;
+
+    const qreal slotWidth = w / static_cast<qreal>(count);
+    const qreal barWidth = slotWidth - m_spacing;
+
+    if (barWidth <= 0)
+        return;
+
+    const qreal centerY = h / 2.0;
+    const qreal maxHalf = h * 0.45;
+
+    QLinearGradient gradient(0, 0, 0, h);
+    gradient.setColorAt(0.0, m_secondaryColor);
+    gradient.setColorAt(0.5, m_primaryColor);
+    gradient.setColorAt(1.0, m_secondaryColor);
+    painter->setBrush(gradient);
+
+    for (qsizetype i = 0; i < count; ++i) {
+        const qreal value = std::clamp(m_displayValues[i], 0.0, 1.0);
+        const qreal half = value * maxHalf;
+
+        if (half <= 0)
+            continue;
+
+        const qreal x = static_cast<qreal>(i) * slotWidth;
+        const qreal barHeight = half * 2.0;
+        const qreal r = std::min({ m_rounding, barWidth / 2.0, barHeight / 2.0 });
+
+        painter->drawRoundedRect(QRectF(x, centerY - half, barWidth, barHeight), r, r);
+    }
+}
+
+// A row of dots that ride at the top of each band's level, bottom-referenced.
+void VisualiserBars::drawDots(QPainter* painter) {
+    const qreal w = width();
+    const qreal h = height();
+    const auto count = m_displayValues.size();
+
+    if (count == 0)
+        return;
+
+    const qreal slotWidth = w / static_cast<qreal>(count);
+    const qreal diameter = std::min(slotWidth - m_spacing, slotWidth * 0.8);
+
+    if (diameter <= 0)
+        return;
+
+    const qreal radius = diameter / 2.0;
+    const qreal maxRise = h * 0.4;
+
+    QLinearGradient gradient(0, h - maxRise, 0, h);
+    gradient.setColorAt(0, m_primaryColor);
+    gradient.setColorAt(1, m_secondaryColor);
+    painter->setBrush(gradient);
+
+    for (qsizetype i = 0; i < count; ++i) {
+        const qreal value = std::clamp(m_displayValues[i], 0.0, 1.0);
+
+        // Skip silent bands so the row vanishes when there's no audio, matching the
+        // bars style (otherwise the constant-size dots leave a persistent resting row
+        // and the visualizer never appears to auto-hide on silence).
+        if (value <= 0.02)
+            continue;
+
+        const qreal cx = (static_cast<qreal>(i) + 0.5) * slotWidth;
+        const qreal cy = h - radius - value * maxRise;
+
+        painter->drawEllipse(QPointF(cx, cy), radius, radius);
+    }
 }
 
 void VisualiserBars::drawSide(QPainter* painter, bool rightSide) {
@@ -193,6 +284,18 @@ void VisualiserBars::setAnimationDuration(int duration) {
         return;
     m_animationDuration = duration;
     emit animationDurationChanged();
+}
+
+QString VisualiserBars::style() const {
+    return m_style;
+}
+
+void VisualiserBars::setStyle(const QString& style) {
+    if (m_style == style)
+        return;
+    m_style = style;
+    emit styleChanged();
+    update();
 }
 
 } // namespace ryoku::internal

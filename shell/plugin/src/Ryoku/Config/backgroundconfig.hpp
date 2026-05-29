@@ -109,6 +109,9 @@ class BackgroundVisualiser : public ConfigObject {
     CONFIG_PROPERTY(bool, blur, false)
     CONFIG_PROPERTY(qreal, rounding, 1)
     CONFIG_PROPERTY(qreal, spacing, 1)
+    // Render style for VisualiserBars: "bars" (symmetric bottom bars), "mirrored"
+    // (center-out), or "dots".
+    CONFIG_PROPERTY(QString, style, QStringLiteral("bars"))
 
 public:
     explicit BackgroundVisualiser(QObject* parent = nullptr)

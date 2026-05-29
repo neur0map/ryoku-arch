@@ -75,39 +75,6 @@ ColumnLayout {
     }
   }
 
-  // Volume Feedback sound Toggle
-  ColumnLayout {
-    // TODO: wire to ryoku SoundService (no volume feedback sound system in ryoku)
-    spacing: Style.marginS
-    Layout.fillWidth: true
-    enabled: false
-    opacity: 0.45
-
-    NToggle {
-      label: I18n.tr("panels.audio.volumes-volume-feedback-label")
-      description: I18n.tr("panels.audio.volumes-volume-feedback-description")
-      checked: false
-    }
-
-    ColumnLayout {
-      spacing: Style.marginXXS
-      Layout.fillWidth: true
-
-      NLabel {
-        label: I18n.tr("panels.audio.volumes-feedback-sound-file-label")
-        description: I18n.tr("panels.audio.volumes-feedback-sound-file-description")
-      }
-
-      NTextInputButton {
-        Layout.fillWidth: true
-        placeholderText: I18n.tr("panels.notifications.sounds-files-placeholder")
-        text: ""
-        buttonIcon: "folder-open"
-        buttonTooltip: I18n.tr("panels.notifications.sounds-files-select-file")
-      }
-    }
-  }
-
   NDivider {
     Layout.fillWidth: true
   }
@@ -189,6 +156,4 @@ ColumnLayout {
                  }
     }
   }
-
-  // TODO: NFilePicker for volumeFeedbackSoundFile removed — no SoundService in ryoku
 }

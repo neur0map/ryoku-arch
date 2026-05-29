@@ -25,6 +25,10 @@ class ServiceConfig : public ConfigObject {
         bool, useTwelveHourClock, QLocale().timeFormat(QLocale::ShortFormat).toLower().contains(u"a"_s))
     CONFIG_GLOBAL_PROPERTY(QString, gpuType)
     CONFIG_GLOBAL_PROPERTY(int, visualiserBars, 45)
+    // cava noise_reduction (0.0-1.0): higher = smoother/slower bars. Lower = snappier.
+    CONFIG_GLOBAL_PROPERTY(qreal, visualiserSmoothing, 0.85)
+    // cava autosens: auto-scale levels to the signal so quiet audio still moves the bars.
+    CONFIG_GLOBAL_PROPERTY(bool, visualiserAutoSens, true)
     CONFIG_GLOBAL_PROPERTY(qreal, audioIncrement, 0.1)
     CONFIG_GLOBAL_PROPERTY(qreal, brightnessIncrement, 0.1)
     CONFIG_GLOBAL_PROPERTY(qreal, maxVolume, 1.0)

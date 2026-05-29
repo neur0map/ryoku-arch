@@ -167,6 +167,8 @@ Singleton {
         id: cava
 
         bars: GlobalConfig.services.visualiserBars
+        noiseReduction: GlobalConfig.services.visualiserSmoothing
+        autoSens: GlobalConfig.services.visualiserAutoSens
     }
 
     BeatTracker {
