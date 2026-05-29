@@ -13,6 +13,31 @@ Singleton {
 
   property var searchIndex: []
 
+  // RYOKU: Hyprland appearance/behaviour is configured in the external Hyprmod GUI, so
+  // there are no in-panel widgets to auto-index. Surface these as search entries that
+  // point at the Hyprland tab (which hosts "Open Hyprmod"), and reuse the list to render
+  // the tab. Labels live under panels.hyprland.items.* for i18n. Defined in code rather
+  // than the JSON index so they survive an upstream index re-sync.
+  readonly property var hyprmodKeys: ["cursor", "ring", "borders", "gaps", "rounding", "blur", "opacity", "shadows", "animations"]
+
+  function buildHyprmodEntries() {
+    var entries = [];
+    for (var i = 0; i < hyprmodKeys.length; i++) {
+      var k = hyprmodKeys[i];
+      entries.push({
+                     "labelKey": "panels.hyprland.items." + k,
+                     "descriptionKey": "panels.hyprland.items." + k + "-desc",
+                     "widget": "NButton",
+                     // Fallback position only; navigateToResult resolves the tab by tabLabel.
+                     "tab": 14,
+                     "tabLabel": "panels.hyprland.title",
+                     "subTab": 0,
+                     "subTabLabel": "panels.hyprland.hyprmod"
+                   });
+    }
+    return entries;
+  }
+
   FileView {
     path: Quickshell.shellDir + "/noctalia" + "/Assets/settings-search-index.json"
     watchChanges: false
@@ -20,9 +45,9 @@ Singleton {
 
     onLoaded: {
       try {
-        root.searchIndex = JSON.parse(text());
+        root.searchIndex = JSON.parse(text()).concat(root.buildHyprmodEntries());
       } catch (e) {
-        root.searchIndex = [];
+        root.searchIndex = root.buildHyprmodEntries();
       }
     }
   }

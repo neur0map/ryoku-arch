@@ -20,7 +20,6 @@ import qs.noctalia.Modules.Panels.Settings.Tabs.Notifications
 import qs.noctalia.Modules.Panels.Settings.Tabs.Osd
 import qs.noctalia.Modules.Panels.Settings.Tabs.Plugins
 import qs.noctalia.Modules.Panels.Settings.Tabs.Region
-import qs.noctalia.Modules.Panels.Settings.Tabs.SessionMenu
 import qs.noctalia.Modules.Panels.Settings.Tabs.SystemMonitor
 import qs.noctalia.Modules.Panels.Settings.Tabs.UserInterface
 import qs.noctalia.Modules.Panels.Settings.Tabs.Wallpaper
@@ -141,15 +140,26 @@ Item {
   property int _pendingSubTab: -1
 
   function navigateToResult(entry) {
-    if (entry.tab < 0 || entry.tab >= tabsModel.length)
+    // Resolve the tab by its stable tabLabel rather than the entry's positional index:
+    // the static search index numbers drift whenever tabsModel is reordered (e.g. when a
+    // tab is removed), so position is unreliable. Fall back to entry.tab if no label match.
+    var tabIndex = entry.tab;
+    for (var i = 0; i < tabsModel.length; i++) {
+      if (tabsModel[i].label === entry.tabLabel) {
+        tabIndex = i;
+        break;
+      }
+    }
+
+    if (tabIndex < 0 || tabIndex >= tabsModel.length)
       return;
 
     highlightLabelKey = entry.labelKey;
     _pendingSubTab = (entry.subTab !== null && entry.subTab !== undefined) ? entry.subTab : -1;
 
-    const alreadyOnTab = (currentTabIndex === entry.tab);
+    const alreadyOnTab = (currentTabIndex === tabIndex);
     navigatingFromSearch = true;
-    currentTabIndex = entry.tab;
+    currentTabIndex = tabIndex;
     navigatingFromSearch = false;
 
     if (alreadyOnTab && activeTabContent) {
@@ -483,10 +493,6 @@ Item {
     LockScreenTab {}
   }
   Component {
-    id: sessionMenuTab
-    SessionMenuTab {}
-  }
-  Component {
     id: systemMonitorTab
     SystemMonitorTab {}
   }
@@ -565,22 +571,13 @@ Item {
             "id": SettingsPanel.Tab.LockScreen,
             "label": "panels.lock-screen.title",
             "icon": "settings-lock-screen",
-            "source": lockScreenTab,
-            "disabled": true // TODO: ryoku uses qylock; Noctalia lock-screen appearance/behavior settings have no ryoku mapping
-          },
-          {
-            "id": SettingsPanel.Tab.SessionMenu,
-            "label": "session-menu.title",
-            "icon": "settings-session-menu",
-            "source": sessionMenuTab,
-            "disabled": true // TODO: ryoku session drawer differs; Noctalia sessionMenu.* (layout/countdown/powerOptions) has no ryoku mapping
+            "source": lockScreenTab
           },
           {
             "id": SettingsPanel.Tab.Idle,
             "label": "panels.idle.title",
             "icon": "settings-idle",
-            "source": idleTab,
-            "disabled": true // TODO: ryoku idle = Config.general.idle.timeouts (different shape); Noctalia idle.* has no direct mapping
+            "source": idleTab
           },
           {
             "id": SettingsPanel.Tab.Audio,

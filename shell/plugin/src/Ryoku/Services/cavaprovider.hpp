@@ -19,6 +19,8 @@ public:
     ~CavaProcessor();
 
     void setBars(int bars);
+    void setNoiseReduction(double noiseReduction);
+    void setAutoSens(bool autoSens);
 
 signals:
     void valuesChanged(QVector<double> values);
@@ -32,6 +34,8 @@ private:
     double* m_out;
 
     int m_bars;
+    double m_noiseReduction = 0.85;
+    bool m_autoSens = true;
     QVector<double> m_values;
 
     void reload();
@@ -45,6 +49,8 @@ class CavaProvider : public AudioProvider {
     QML_ELEMENT
 
     Q_PROPERTY(int bars READ bars WRITE setBars NOTIFY barsChanged)
+    Q_PROPERTY(qreal noiseReduction READ noiseReduction WRITE setNoiseReduction NOTIFY noiseReductionChanged)
+    Q_PROPERTY(bool autoSens READ autoSens WRITE setAutoSens NOTIFY autoSensChanged)
 
     Q_PROPERTY(QVector<double> values READ values NOTIFY valuesChanged)
 
@@ -54,14 +60,24 @@ public:
     [[nodiscard]] int bars() const;
     void setBars(int bars);
 
+    [[nodiscard]] qreal noiseReduction() const;
+    void setNoiseReduction(qreal noiseReduction);
+
+    [[nodiscard]] bool autoSens() const;
+    void setAutoSens(bool autoSens);
+
     [[nodiscard]] QVector<double> values() const;
 
 signals:
     void barsChanged();
+    void noiseReductionChanged();
+    void autoSensChanged();
     void valuesChanged();
 
 private:
     int m_bars;
+    qreal m_noiseReduction = 0.85;
+    bool m_autoSens = true;
     QVector<double> m_values;
 
     void updateValues(QVector<double> values);

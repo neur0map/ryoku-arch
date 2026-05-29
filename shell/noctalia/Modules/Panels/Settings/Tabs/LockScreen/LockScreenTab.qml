@@ -4,6 +4,9 @@ import QtQuick.Layouts
 import qs.noctalia.Commons
 import qs.noctalia.Widgets
 
+// RYOKU: the lock screen is qylock (github.com/Darkkal44/qylock). Themes subtab is the
+// preview gallery + theme selection + refresh; Customize surfaces the active theme's
+// own theme.conf options. Backed by the LockThemes service.
 ColumnLayout {
   id: root
   spacing: 0
@@ -16,19 +19,14 @@ ColumnLayout {
     currentIndex: tabView.currentIndex
 
     NTabButton {
-      text: I18n.tr("common.appearance")
+      text: qsTr("Themes")
       tabIndex: 0
       checked: subTabBar.currentIndex === 0
     }
     NTabButton {
-      text: I18n.tr("common.behavior")
+      text: qsTr("Customize")
       tabIndex: 1
       checked: subTabBar.currentIndex === 1
-    }
-    NTabButton {
-      text: I18n.tr("common.monitors")
-      tabIndex: 2
-      checked: subTabBar.currentIndex === 2
     }
   }
 
@@ -41,8 +39,7 @@ ColumnLayout {
     id: tabView
     currentIndex: subTabBar.currentIndex
 
-    AppearanceSubTab {}
-    BehaviorSubTab {}
-    MonitorsSubTab {}
+    ThemesSubTab {}
+    CustomizeSubTab {}
   }
 }

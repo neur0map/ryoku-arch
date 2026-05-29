@@ -4,11 +4,16 @@ import Quickshell
 import Quickshell.Wayland
 import Ryoku.Config
 import qs.services
+import qs.noctalia.Services.Power
 
 Scope {
     id: root
 
-    readonly property bool enabled: !IdleInhibitor.enabled && (!GlobalConfig.general.idle.inhibitWhenAudio || !Players.list.some(p => p.isPlaying))
+    // Honour BOTH keep-awake sources: the ryoku island/utilities toggle (IdleInhibitor)
+    // and the noctalia bar/control-center widget (IdleInhibitorService). The latter only
+    // runs systemd-inhibit (its native Wayland inhibitor lives in MainScreen, which ryoku
+    // does not load), so without this gate its toggle would not stop dpms/screensaver/lock.
+    readonly property bool enabled: !IdleInhibitor.enabled && !IdleInhibitorService.isInhibited && (!GlobalConfig.general.idle.inhibitWhenAudio || !Players.list.some(p => p.isPlaying))
 
     function handleIdleAction(action: var): void {
         if (!action)

@@ -4,6 +4,7 @@
 #include <qobject.h>
 #include <qqmlintegration.h>
 #include <qquickpainteditem.h>
+#include <qstring.h>
 #include <qvector.h>
 
 namespace ryoku::internal {
@@ -18,6 +19,7 @@ class VisualiserBars : public QQuickPaintedItem {
     Q_PROPERTY(qreal rounding READ rounding WRITE setRounding NOTIFY roundingChanged)
     Q_PROPERTY(qreal spacing READ spacing WRITE setSpacing NOTIFY spacingChanged)
     Q_PROPERTY(int animationDuration READ animationDuration WRITE setAnimationDuration NOTIFY animationDurationChanged)
+    Q_PROPERTY(QString style READ style WRITE setStyle NOTIFY styleChanged)
     Q_PROPERTY(bool settled READ settled NOTIFY settledChanged)
 
 public:
@@ -45,6 +47,9 @@ public:
     [[nodiscard]] int animationDuration() const;
     void setAnimationDuration(int duration);
 
+    [[nodiscard]] QString style() const;
+    void setStyle(const QString& style);
+
     [[nodiscard]] bool settled() const;
 
 signals:
@@ -54,10 +59,14 @@ signals:
     void roundingChanged();
     void spacingChanged();
     void animationDurationChanged();
+    void styleChanged();
     void settledChanged();
 
 private:
+    void drawBars(QPainter* painter);
     void drawSide(QPainter* painter, bool rightSide);
+    void drawMirrored(QPainter* painter);
+    void drawDots(QPainter* painter);
 
     QVector<double> m_targetValues;
     QVector<double> m_displayValues;
@@ -66,6 +75,7 @@ private:
     qreal m_rounding = 0.0;
     qreal m_spacing = 0.0;
     int m_animationDuration = 200;
+    QString m_style = QStringLiteral("bars");
     bool m_settled = true;
 };
 

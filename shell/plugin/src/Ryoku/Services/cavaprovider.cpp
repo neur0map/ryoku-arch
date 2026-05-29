@@ -7,6 +7,7 @@
 #include <cava/cavacore.h>
 #endif
 
+#include <algorithm>
 #include <cstddef>
 #include <qloggingcategory.h>
 
@@ -75,6 +76,21 @@ void CavaProcessor::setBars(int bars) {
     }
 }
 
+void CavaProcessor::setNoiseReduction(double noiseReduction) {
+    noiseReduction = std::clamp(noiseReduction, 0.0, 1.0);
+    if (!qFuzzyCompare(m_noiseReduction, noiseReduction)) {
+        m_noiseReduction = noiseReduction;
+        reload();
+    }
+}
+
+void CavaProcessor::setAutoSens(bool autoSens) {
+    if (m_autoSens != autoSens) {
+        m_autoSens = autoSens;
+        reload();
+    }
+}
+
 void CavaProcessor::reload() {
     cleanup();
     initCava();
@@ -97,7 +113,7 @@ void CavaProcessor::initCava() {
         return;
     }
 
-    m_plan = cava_init(m_bars, ac::SAMPLE_RATE, 1, 1, 0.85, 50, 10000);
+    m_plan = cava_init(m_bars, ac::SAMPLE_RATE, 1, m_autoSens ? 1 : 0, m_noiseReduction, 50, 10000);
     m_out = new double[static_cast<size_t>(m_bars)];
 }
 #endif
@@ -136,6 +152,43 @@ void CavaProvider::setBars(int bars) {
 #ifdef RYOKU_HAS_CAVA
     QMetaObject::invokeMethod(
         static_cast<CavaProcessor*>(m_processor), &CavaProcessor::setBars, Qt::QueuedConnection, bars);
+#endif
+}
+
+qreal CavaProvider::noiseReduction() const {
+    return m_noiseReduction;
+}
+
+void CavaProvider::setNoiseReduction(qreal noiseReduction) {
+    noiseReduction = std::clamp(noiseReduction, 0.0, 1.0);
+    if (qFuzzyCompare(m_noiseReduction, noiseReduction)) {
+        return;
+    }
+
+    m_noiseReduction = noiseReduction;
+    emit noiseReductionChanged();
+
+#ifdef RYOKU_HAS_CAVA
+    QMetaObject::invokeMethod(
+        static_cast<CavaProcessor*>(m_processor), &CavaProcessor::setNoiseReduction, Qt::QueuedConnection, noiseReduction);
+#endif
+}
+
+bool CavaProvider::autoSens() const {
+    return m_autoSens;
+}
+
+void CavaProvider::setAutoSens(bool autoSens) {
+    if (m_autoSens == autoSens) {
+        return;
+    }
+
+    m_autoSens = autoSens;
+    emit autoSensChanged();
+
+#ifdef RYOKU_HAS_CAVA
+    QMetaObject::invokeMethod(
+        static_cast<CavaProcessor*>(m_processor), &CavaProcessor::setAutoSens, Qt::QueuedConnection, autoSens);
 #endif
 }
 

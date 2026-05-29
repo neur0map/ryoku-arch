@@ -1085,6 +1085,25 @@
       "weather-show-background-description": "Show the background container for the weather widget."
     },
     "display": {
+      "layout-title": "Monitors",
+      "layout-description": "Resolution, refresh rate, scale, rotation and arrangement per display.",
+      "layout-none": "No monitors detected.",
+      "resolution": "Resolution",
+      "refresh-rate": "Refresh rate",
+      "scale": "Scale",
+      "rotation": "Rotation",
+      "rotation-normal": "Normal",
+      "position-x": "Position X",
+      "position-y": "Position Y",
+      "vrr": "Adaptive sync (VRR)",
+      "vrr-desc": "Variable refresh rate / FreeSync. Reduces tearing; some panels may flicker.",
+      "apply": "Apply",
+      "recommended": "Recommended",
+      "auto-scale": "Auto scale",
+      "confirm-title": "Keep these display settings?",
+      "confirm-body": "Reverting to the previous settings in {seconds}s unless you keep them.",
+      "confirm-keep": "Keep changes",
+      "confirm-revert": "Revert",
       "monitors-backlight-device-auto-option": "Default",
       "monitors-backlight-device-description": "Select a backlight device for this output.",
       "monitors-backlight-device-label": "Backlight device",
@@ -1818,7 +1837,33 @@
       "view-mode-single": "Root directory"
     },
     "hyprland": {
-      "title": "Hyprland"
+      "title": "Hyprland",
+      "description": "Window manager appearance and behavior",
+      "intro": "Hyprland window-manager settings are configured visually with Hyprmod. Changes are saved to ~/.config/hypr/hyprland-gui.conf and applied automatically.",
+      "open-hyprmod": "Open Hyprmod",
+      "reload": "Reload Hyprland",
+      "hyprmod": "Hyprmod",
+      "items-header": "Configured in Hyprmod",
+      "items": {
+        "cursor": "Cursor",
+        "cursor-desc": "Pointer size and theme",
+        "ring": "Active border ring",
+        "ring-desc": "Active window border gradient",
+        "borders": "Window borders",
+        "borders-desc": "Border size and color",
+        "gaps": "Gaps",
+        "gaps-desc": "Inner and outer window gaps",
+        "rounding": "Corner rounding",
+        "rounding-desc": "Window corner radius",
+        "blur": "Blur",
+        "blur-desc": "Background blur behind windows",
+        "opacity": "Window opacity",
+        "opacity-desc": "Active and inactive window opacity",
+        "shadows": "Drop shadows",
+        "shadows-desc": "Window drop shadows",
+        "animations": "Animations",
+        "animations-desc": "Window and workspace animations"
+      }
     }
   },
   "placeholders": {

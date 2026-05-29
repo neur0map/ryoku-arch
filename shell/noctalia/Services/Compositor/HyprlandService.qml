@@ -110,7 +110,18 @@ Item {
               "y": monitor.y || 0,
               "active_workspace": monitor.activeWorkspace ? monitor.activeWorkspace.id : -1,
               "vrr": monitor.vrr || false,
-              "focused": monitor.focused || false
+              "focused": monitor.focused || false,
+              // Extended fields for the Monitors settings tab (resolution/Hz/rotation/mirror).
+              "make": monitor.make || "",
+              "model": monitor.model || "",
+              "description": monitor.description || "",
+              "transform": monitor.transform || 0,
+              "disabled": monitor.disabled || false,
+              "mirrorOf": monitor.mirrorOf || "none",
+              "availableModes": monitor.availableModes || [],
+              // Physical size in mm, for DPI-based auto-scaling (Phase 2).
+              "physicalWidth": monitor.physicalWidth || 0,
+              "physicalHeight": monitor.physicalHeight || 0
             };
           }
         }

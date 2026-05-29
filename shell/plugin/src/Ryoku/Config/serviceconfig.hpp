@@ -25,8 +25,17 @@ class ServiceConfig : public ConfigObject {
         bool, useTwelveHourClock, QLocale().timeFormat(QLocale::ShortFormat).toLower().contains(u"a"_s))
     CONFIG_GLOBAL_PROPERTY(QString, gpuType)
     CONFIG_GLOBAL_PROPERTY(int, visualiserBars, 45)
+    // cava noise_reduction (0.0-1.0): higher = smoother/slower bars. Lower = snappier.
+    CONFIG_GLOBAL_PROPERTY(qreal, visualiserSmoothing, 0.85)
+    // cava autosens: auto-scale levels to the signal so quiet audio still moves the bars.
+    CONFIG_GLOBAL_PROPERTY(bool, visualiserAutoSens, true)
     CONFIG_GLOBAL_PROPERTY(qreal, audioIncrement, 0.1)
     CONFIG_GLOBAL_PROPERTY(qreal, brightnessIncrement, 0.1)
+    // Use DDC/CI (ddcutil) to control external monitor brightness. Off falls back to
+    // the internal backlight (brightnessctl).
+    CONFIG_GLOBAL_PROPERTY(bool, brightnessDdc, true)
+    // Clamp the lowest brightness to 1% so panels that switch off at 0% stay lit.
+    CONFIG_GLOBAL_PROPERTY(bool, brightnessEnforceMin, false)
     CONFIG_GLOBAL_PROPERTY(qreal, maxVolume, 1.0)
     CONFIG_GLOBAL_PROPERTY(bool, smartScheme, true)
     // Mirror the active light/dark theme to the system (GNOME/GTK) toolkit theme.

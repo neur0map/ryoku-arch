@@ -24,27 +24,4 @@ ColumnLayout {
     }
   }
 
-  // Blacklist editor
-  ColumnLayout {
-    // TODO: wire mprisBlacklist to ryoku (no mpris blacklist in ryoku)
-    spacing: Style.marginS
-    Layout.fillWidth: true
-    enabled: false
-    opacity: 0.45
-
-    NTextInputButton {
-      id: blacklistInput
-      label: I18n.tr("panels.audio.media-excluded-player-label")
-      description: I18n.tr("panels.audio.media-excluded-player-description")
-      placeholderText: I18n.tr("panels.audio.media-excluded-player-placeholder")
-      buttonIcon: "add"
-      Layout.fillWidth: true
-    }
-
-    Flow {
-      Layout.fillWidth: true
-      Layout.leftMargin: Style.marginS
-      spacing: Style.marginS
-    }
-  }
 }

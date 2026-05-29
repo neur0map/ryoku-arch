@@ -3,44 +3,83 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import qs.noctalia.Commons
 import qs.noctalia.Widgets
+import qs.services
 
+// RYOKU WIRED: Notifs (Notifs.qml). ryoku always persists history to notifs.json and
+// auto-detects markdown, so Noctalia's clear-on-dismiss / markdown / per-urgency
+// history toggles have no backend and were dropped. What ryoku does expose is the
+// stored history and a clear action, so that is what this subtab drives.
 ColumnLayout {
   id: root
   spacing: Style.marginL
   Layout.fillWidth: true
-  enabled: false
-  opacity: 0.45
 
-  // TODO: wire notification history controls to ryoku (no clearDismissed, enableMarkdown,
-  //   saveToHistory.low/normal/critical config in ryoku notifsconfig)
+  property bool confirming: false
 
-  NToggle {
-    label: I18n.tr("panels.notifications.history-clear-dismiss-label")
-    description: I18n.tr("panels.notifications.history-clear-dismiss-description")
-    checked: false
+  NText {
+    Layout.fillWidth: true
+    text: qsTr("Notifications are kept after they leave the screen and survive a shell reload. Markdown bodies render automatically.")
+    pointSize: Style.fontSizeS
+    color: Color.mOnSurfaceVariant
+    wrapMode: Text.WordWrap
   }
 
-  NToggle {
-    label: I18n.tr("panels.notifications.settings-markdown-label")
-    description: I18n.tr("panels.notifications.settings-markdown-description")
-    checked: false
+  NText {
+    Layout.fillWidth: true
+    text: qsTr("Stored notifications: %1").arg(Notifs.list.length)
+    pointSize: Style.fontSizeM
+    font.weight: Style.fontWeightBold
+    color: Color.mOnSurface
   }
 
-  NToggle {
-    label: I18n.tr("panels.notifications.history-low-urgency-label")
-    description: I18n.tr("panels.notifications.history-low-urgency-description")
-    checked: true
+  NDivider {
+    Layout.fillWidth: true
   }
 
-  NToggle {
-    label: I18n.tr("panels.notifications.history-normal-urgency-label")
-    description: I18n.tr("panels.notifications.history-normal-urgency-description")
-    checked: true
+  NText {
+    Layout.fillWidth: true
+    text: qsTr("Clear history")
+    pointSize: Style.fontSizeM
+    font.weight: Style.fontWeightBold
+    color: Color.mOnSurface
+  }
+  NText {
+    Layout.fillWidth: true
+    text: qsTr("Dismiss every stored notification. This cannot be undone.")
+    pointSize: Style.fontSizeS
+    color: Color.mOnSurfaceVariant
+    wrapMode: Text.WordWrap
   }
 
-  NToggle {
-    label: I18n.tr("panels.notifications.history-critical-urgency-label")
-    description: I18n.tr("panels.notifications.history-critical-urgency-description")
-    checked: true
+  RowLayout {
+    spacing: Style.marginM
+
+    NButton {
+      visible: !root.confirming
+      enabled: Notifs.list.length > 0
+      text: qsTr("Clear all notifications")
+      icon: "trash"
+      backgroundColor: Color.mError
+      onClicked: root.confirming = true
+    }
+    NButton {
+      visible: root.confirming
+      text: qsTr("Confirm clear")
+      icon: "trash"
+      backgroundColor: Color.mError
+      onClicked: {
+        // Snapshot first: close() mutates Notifs.list as it removes each item.
+        const items = Notifs.list;
+        for (let i = 0; i < items.length; i++)
+          items[i].close();
+        root.confirming = false;
+      }
+    }
+    NButton {
+      visible: root.confirming
+      text: qsTr("Cancel")
+      outlined: true
+      onClicked: root.confirming = false
+    }
   }
 }

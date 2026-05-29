@@ -124,6 +124,10 @@
   },
   "wallpaperMute": true,
   "pickOnlyMode": true,
+  "transition": {
+    "_comment": "ryoku owns the wallpaper (pickOnlyMode + postProcessing routes to `ryoku wallpaper -f`), so skwd-paper's GPU transition shader is redundant. With the default `random` shader it spawned a ~300MB GPU process on every picker open, making Super+W feel laggy/glitchy. Disabled for a snappy native-feeling open; the slices picker look is unaffected. Set enabled:true with a light shader (e.g. static-fade) if you want a change animation back.",
+    "enabled": false
+  },
   "externalWallpaperCommand": "",
   "postProcessing": [
     "ryoku wallpaper -f \"%path%\""

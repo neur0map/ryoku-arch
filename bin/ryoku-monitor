@@ -1,0 +1,109 @@
+#!/bin/bash
+
+# shellcheck disable=SC1091
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+# Apply and persist Hyprland monitor configuration for the Display settings tab.
+#
+# Live changes go through `hyprctl keyword monitor` (instant, session-only) so the
+# Display panel can preview a change before committing. Persistence rewrites
+# ~/.config/hypr/monitors.conf (sourced by hyprland.conf) from the current live state,
+# so a confirmed preview is captured exactly as it was applied. A catch-all rule is
+# kept last so newly plugged monitors still come up sensibly.
+#
+# The confirm-or-revert flow in the panel is: snapshot current state -> apply preview ->
+# if confirmed, persist; if not, re-apply the previous spec (no persist).
+
+set -euo pipefail
+
+monitors_conf="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/monitors.conf"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  ryoku-monitor apply "<monitor spec>"   Apply one monitor= spec live (preview).
+  ryoku-monitor persist                  Write monitors.conf from the live state.
+  ryoku-monitor reload                   Reload Hyprland (re-apply monitors.conf).
+EOF
+}
+
+require_hyprctl() {
+  ryoku-cmd-present hyprctl || {
+    echo "ryoku-monitor: hyprctl not found" >&2
+    exit 1
+  }
+}
+
+cmd="${1:-}"
+case "$cmd" in
+apply)
+  spec="${2:-}"
+  [[ -n $spec ]] || {
+    echo "ryoku-monitor apply: missing monitor spec" >&2
+    exit 1
+  }
+  require_hyprctl
+  exec hyprctl keyword monitor "$spec"
+  ;;
+persist)
+  require_hyprctl
+  ryoku-cmd-present jq || {
+    echo "ryoku-monitor persist: jq not found" >&2
+    exit 1
+  }
+
+  tmp="$(mktemp)"
+  trap 'rm -f "$tmp"' EXIT
+
+  {
+    printf '%s\n' "# Managed by Ryoku Display settings (ryoku-monitor)."
+    printf '%s\n' "# Edits here may be overwritten; use Settings > Display."
+    printf '\n'
+    hyprctl monitors all -j | jq -r '
+      .[] |
+      if .disabled then
+        "monitor = \(.name), disable"
+      else
+        "monitor = \(.name), \(.width)x\(.height)@\(.refreshRate | round), \(.x)x\(.y), \(.scale)"
+        + (if .transform != 0 then ", transform, \(.transform)" else "" end)
+        + (if .vrr then ", vrr, 1" else "" end)
+        + (if (.mirrorOf // "none") != "none" then ", mirror, \(.mirrorOf)" else "" end)
+      end
+    '
+    printf '\n'
+    printf '%s\n' "# Catch-all for monitors not configured above (hotplug-friendly)."
+    printf '%s\n' "monitor = , highrr, auto, auto"
+  } >"$tmp"
+
+  mkdir -p "$(dirname "$monitors_conf")"
+  mv "$tmp" "$monitors_conf"
+  trap - EXIT
+  echo "ryoku-monitor: wrote $monitors_conf"
+
+  # Keep GDK_SCALE in step so GTK/XWayland apps stay crisp: use the shared integer
+  # scale when every active monitor agrees on one (>=2x), else 1 (Wayland handles
+  # fractional scaling for native apps).
+  gdk_scale="$(hyprctl monitors all -j | jq -r '
+    [ .[] | select(.disabled | not) | .scale ] as $s |
+    if ($s | length) > 0 and ($s | unique | length) == 1
+       and ($s[0] == ($s[0] | floor)) and $s[0] >= 2
+    then ($s[0] | floor) else 1 end
+  ' 2>/dev/null)"
+  [[ $gdk_scale =~ ^[0-9]+$ ]] || gdk_scale=1
+
+  hyprctl keyword env "GDK_SCALE,$gdk_scale" >/dev/null 2>&1 || true
+  hypr_conf="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland.conf"
+  if [[ -f $hypr_conf ]] && grep -qE '^env = GDK_SCALE,' "$hypr_conf"; then
+    sed -i -E "s|^env = GDK_SCALE,.*|env = GDK_SCALE,$gdk_scale|" "$hypr_conf"
+    echo "ryoku-monitor: set GDK_SCALE=$gdk_scale"
+  fi
+  ;;
+reload)
+  require_hyprctl
+  exec hyprctl reload
+  ;;
+*)
+  usage
+  exit 1
+  ;;
+esac
