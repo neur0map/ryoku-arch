@@ -7,6 +7,7 @@ import qs.ambxst.modules.theme
 import qs.ambxst.modules.services
 import qs.ambxst.modules.components
 import qs.ambxst.config
+import Ryoku.Config
 
 ClippingRectangle {
     id: root
@@ -881,14 +882,12 @@ ClippingRectangle {
             font.pixelSize: Config.theme.fontSize + 10
             font.weight: Font.Bold
 
-            // RYOKU PORT: click the temperature to toggle °C / °F (re-syncs so the
-            // scene temp AND the forecast strip both convert).
             MouseArea {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
-                    Config.weather.unit = Config.weather.unit === "F" ? "C" : "F";
-                    WeatherService.syncFromRyoku();
+                    GlobalConfig.services.useFahrenheit = !GlobalConfig.services.useFahrenheit;
+                    GlobalConfig.save();
                 }
             }
         }

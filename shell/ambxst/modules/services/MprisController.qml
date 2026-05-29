@@ -12,8 +12,20 @@ Singleton {
 
     // --- Properties ---
     property var trackedPlayer: null
+
+    // skwd-music (wallpaper daemon) and playerctld are never real media sources.
+    function isJunkPlayer(player) {
+        if (!player)
+            return false;
+        const n = `${player.identity ?? ""} ${player.dbusName ?? ""} ${player.desktopEntry ?? ""}`.toLowerCase();
+        return n.includes("skwd") || n.includes("playerctld");
+    }
+
     property var filteredPlayers: {
         const filtered = Mpris.players.values.filter(player => {
+            if (root.isJunkPlayer(player)) {
+                return false;
+            }
             const dbusName = (player.dbusName || "").toLowerCase();
             if (!Config.bar.enableFirefoxPlayer && dbusName.includes("firefox")) {
                 return false;
@@ -23,7 +35,12 @@ Singleton {
         return filtered;
     }
 
-    property var activePlayer: trackedPlayer ? trackedPlayer : (filteredPlayers.length > 0 ? filteredPlayers[0] : null)
+    property var activePlayer: {
+        if (root.trackedPlayer && !root.isJunkPlayer(root.trackedPlayer))
+            return root.trackedPlayer;
+        const fp = root.filteredPlayers;
+        return fp.find(p => p.isPlaying) ?? (fp.length > 0 ? fp[0] : null);
+    }
     
     property bool isInitializing: true
     property string cachedDbusName: ""
@@ -155,7 +172,7 @@ Singleton {
 
             Component.onCompleted: {
                 const dbusName = (modelData.dbusName || "").toLowerCase();
-                const shouldIgnore = !Config.bar.enableFirefoxPlayer && dbusName.includes("firefox");
+                const shouldIgnore = root.isJunkPlayer(modelData) || (!Config.bar.enableFirefoxPlayer && dbusName.includes("firefox"));
 
                 if (!shouldIgnore && (root.trackedPlayer == null || modelData.isPlaying)) {
                     root.trackedPlayer = modelData;
