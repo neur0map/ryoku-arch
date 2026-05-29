@@ -565,8 +565,7 @@ Item {
             "id": SettingsPanel.Tab.LockScreen,
             "label": "panels.lock-screen.title",
             "icon": "settings-lock-screen",
-            "source": lockScreenTab,
-            "disabled": true // TODO: ryoku uses qylock; Noctalia lock-screen appearance/behavior settings have no ryoku mapping
+            "source": lockScreenTab
           },
           {
             "id": SettingsPanel.Tab.SessionMenu,
