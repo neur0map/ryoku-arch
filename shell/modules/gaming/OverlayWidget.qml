@@ -16,6 +16,9 @@ Item {
 
     required property string widgetId
     property bool centered: false
+    // Widgets set this false when they have no content to show; the whole
+    // widget (including the edit chrome below) is then hidden, not just collapsed.
+    property bool available: true
     default property alias content: body.data
 
     readonly property var rec: Gaming.record(widget.widgetId)
@@ -27,7 +30,7 @@ Item {
     // and external record/layout changes are ignored until the drag releases.
     readonly property bool dragging: dragArea.drag.active
 
-    visible: rec.enabled === true && (open || pinned)
+    visible: rec.enabled === true && available && (open || pinned)
 
     // Centered widgets stay screen-centered reactively via anchors and are
     // drag-exempt; non-centered widgets get x/y applied imperatively so a drag

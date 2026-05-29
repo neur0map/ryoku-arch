@@ -16,12 +16,12 @@ OverlayWidget {
     id: root
 
     widgetId: "music"
+    available: Players.active !== null
 
     readonly property MprisPlayer player: Players.active
 
     StyledRect {
         anchors.fill: parent
-        visible: root.player !== null
 
         implicitWidth: 280
         implicitHeight: contentRow.implicitHeight + Tokens.padding.large * 2
