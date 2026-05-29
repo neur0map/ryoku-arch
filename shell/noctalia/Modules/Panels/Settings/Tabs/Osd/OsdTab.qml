@@ -8,18 +8,6 @@ ColumnLayout {
   id: root
   spacing: 0
 
-  function addType(list, type) {
-    const arr = (list || []).slice();
-    if (!arr.includes(type))
-      arr.push(type);
-    return arr;
-  }
-  function removeType(list, type) {
-    return (list || []).filter(function (t) {
-      return t !== type;
-    });
-  }
-
   NTabBar {
     id: subTabBar
     Layout.fillWidth: true
@@ -49,9 +37,6 @@ ColumnLayout {
     currentIndex: subTabBar.currentIndex
 
     GeneralSubTab {}
-    EventsSubTab {
-      addType: root.addType
-      removeType: root.removeType
-    }
+    EventsSubTab {}
   }
 }
