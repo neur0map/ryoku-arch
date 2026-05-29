@@ -8,7 +8,7 @@
 # (git clone) to install. SDDM itself (the package is in ryoku-base.packages,
 # the service + graphical.target are enabled below) must come up even when that
 # download fails, or an offline/firewalled install boots to a tty with no login
-# screen. So the theme install and its sanity checks are best-effort, while the
+# screen. So the theme install and its coherence checks are best-effort, while the
 # service enablement at the bottom runs unconditionally.
 
 # Best-effort: install the qylock clockwork SDDM greeter theme. A network
