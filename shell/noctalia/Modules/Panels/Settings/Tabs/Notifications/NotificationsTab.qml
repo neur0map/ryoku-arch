@@ -9,19 +9,6 @@ ColumnLayout {
   id: root
   spacing: 0
 
-  // Helper functions to update arrays immutably
-  function addMonitor(list, name) {
-    const arr = (list || []).slice();
-    if (!arr.includes(name))
-      arr.push(name);
-    return arr;
-  }
-  function removeMonitor(list, name) {
-    return (list || []).filter(function (n) {
-      return n !== name;
-    });
-  }
-
   // File pickers for sound sub-tab
   function openUnifiedSoundPicker() {
     unifiedSoundFilePicker.open();
@@ -84,10 +71,7 @@ ColumnLayout {
     id: tabView
     currentIndex: subTabBar.currentIndex
 
-    GeneralSubTab {
-      addMonitor: root.addMonitor
-      removeMonitor: root.removeMonitor
-    }
+    GeneralSubTab {}
     DurationSubTab {}
     HistorySubTab {}
     SoundSubTab {
