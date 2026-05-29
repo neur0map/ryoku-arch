@@ -1,0 +1,214 @@
+name: Commit Notifications
+
+# Announces commit batches to the Ryoku commit-updates Discord channel.
+#
+# Batching: GitHub Actions keeps no state between runs, so the last-notified
+# commit is tracked per branch as a lightweight git ref (refs/notify/commits/<branch>).
+# On every push we count the unnotified commits since that pointer; we only send
+# once the count reaches THRESHOLD, report ALL of them in a single message, then
+# advance the pointer. A push of 15 -> one "15 new commits" message; trickling one
+# commit at a time stays silent until the 5th lands. The pointer lives in a custom
+# ref namespace, so updating it never re-triggers this workflow.
+
+on:
+  push:
+    branches:
+      - main
+      - unstable-dev
+
+permissions:
+  contents: write # push the refs/notify/commits/* state pointer
+
+concurrency:
+  # Serialise per branch so two pushes can't race on the state pointer.
+  group: commit-notifications-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    name: Notify Discord of commit batches
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      DISCORD_COMMIT_WEBHOOK_URL: ${{ secrets.DISCORD_COMMIT_WEBHOOK_URL }}
+      THRESHOLD: "5"
+      BRANCH: ${{ github.ref_name }}
+      AFTER: ${{ github.sha }}
+      EVENT_BEFORE: ${{ github.event.before }}
+      ACTOR: ${{ github.actor }}
+
+    steps:
+      - name: Checkout (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Notify commit batch
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${DISCORD_COMMIT_WEBHOOK_URL:-}" ]]; then
+            echo "::notice::DISCORD_COMMIT_WEBHOOK_URL not configured; skipping."
+            exit 0
+          fi
+
+          repo="$GITHUB_REPOSITORY"
+          server="$GITHUB_SERVER_URL"
+          threshold="${THRESHOLD:-5}"
+          state_ref="refs/notify/commits/${BRANCH}"
+          brand_mark_url="https://raw.githubusercontent.com/${repo}/main/assets/brand/logo-mark.png"
+          brand_footer="Ryoku Arch : For the sake of power and beauty."
+
+          advance_pointer() {
+            # Force-update the remote state pointer to the given sha.
+            git push origin "+${1}:${state_ref}" >/dev/null 2>&1 \
+              || echo "::warning::Failed to advance ${state_ref} to ${1:0:7}"
+          }
+
+          # Pull the existing state pointer (absent on first run).
+          git fetch origin "+${state_ref}:${state_ref}" >/dev/null 2>&1 || true
+          last="$(git rev-parse -q --verify "${state_ref}" 2>/dev/null || true)"
+
+          # No pointer yet -> baseline on the commit this push started from.
+          if [[ -z "$last" ]]; then
+            last="${EVENT_BEFORE:-}"
+          fi
+
+          # Branch creation (all-zero before) or unusable baseline: pin the pointer
+          # at HEAD and wait for the next push to start counting.
+          if [[ -z "$last" || "$last" =~ ^0+$ ]]; then
+            echo "No usable baseline; establishing pointer at ${AFTER:0:7}."
+            advance_pointer "$AFTER"
+            exit 0
+          fi
+
+          # History rewrite (force-push / rebase): fall back to this push's own base,
+          # and if that is unusable too, just re-baseline at HEAD.
+          if ! git merge-base --is-ancestor "$last" "$AFTER" 2>/dev/null; then
+            last="${EVENT_BEFORE:-}"
+            if [[ -z "$last" || "$last" =~ ^0+$ ]] || ! git merge-base --is-ancestor "$last" "$AFTER" 2>/dev/null; then
+              echo "History rewritten; re-baselining pointer at ${AFTER:0:7}."
+              advance_pointer "$AFTER"
+              exit 0
+            fi
+          fi
+
+          count="$(git rev-list --no-merges --count "${last}..${AFTER}")"
+          echo "Branch ${BRANCH}: ${count} unnotified commit(s) since ${last:0:7} (threshold ${threshold})."
+
+          if (( count < threshold )); then
+            # Keep accumulating. Make sure the pointer exists so the next push counts
+            # from this same baseline rather than from its own 'before'.
+            if ! git rev-parse -q --verify "${state_ref}" >/dev/null 2>&1; then
+              advance_pointer "$last"
+            fi
+            echo "Below threshold; not notifying."
+            exit 0
+          fi
+
+          # Build a tag-grouped description ([global], [shell], ...). Newest first.
+          declare -A group_lines group_count
+          tag_order=()
+          per_tag_cap=8
+
+          while IFS=$'\x1f' read -r sha subj; do
+            [[ -n "$sha" ]] || continue
+            if [[ "$subj" =~ ^\[([A-Za-z0-9_-]+)\][[:space:]]*(.*)$ ]]; then
+              tag="${BASH_REMATCH[1]}"
+              rest="${BASH_REMATCH[2]}"
+            else
+              tag="untagged"
+              rest="$subj"
+            fi
+            if [[ -z "${group_count[$tag]:-}" ]]; then
+              tag_order+=("$tag")
+              group_count[$tag]=0
+              group_lines[$tag]=""
+            fi
+            group_count[$tag]=$(( group_count[$tag] + 1 ))
+            if (( group_count[$tag] <= per_tag_cap )); then
+              group_lines[$tag]+="• ${rest}  (\`${sha}\`)"$'\n'
+            fi
+          done < <(git log --no-merges --format='%h%x1f%s' "${last}..${AFTER}")
+
+          description=""
+          for tag in "${tag_order[@]}"; do
+            c="${group_count[$tag]}"
+            description+="**[${tag}]** · ${c}"$'\n'
+            description+="${group_lines[$tag]}"
+            extra=$(( c - per_tag_cap ))
+            if (( extra > 0 )); then
+              description+="• … +${extra} more"$'\n'
+            fi
+            description+=$'\n'
+          done
+
+          # Branch identity: colour + label clearly separate main from unstable-dev.
+          if [[ "$BRANCH" == "main" ]]; then
+            color=3066993            # green
+            title="🟢 main · ${count} new commits"
+            branch_kind="Stable branch"
+          else
+            color=15105570           # amber
+            title="🟠 ${BRANCH} · ${count} new commits"
+            branch_kind="Development branch"
+          fi
+
+          compare_url="${server}/${repo}/compare/${last}...${AFTER}"
+          range_display="\`${last:0:7}\` → \`${AFTER:0:7}\`"
+
+          # Trim description to Discord's embed limit.
+          description="$(jq -rn --arg d "$description" '
+            $d | if length > 4000 then .[0:3997] + "..." else . end')"
+
+          jq -n \
+            --arg title "$title" \
+            --arg url "$compare_url" \
+            --arg description "$description" \
+            --arg repo "$repo" \
+            --arg actor "$ACTOR" \
+            --arg branch_kind "$branch_kind" \
+            --arg range "$range_display" \
+            --arg brand_mark_url "$brand_mark_url" \
+            --arg brand_footer "$brand_footer" \
+            --argjson color "$color" \
+            '{
+              username: "Ryoku GitHub",
+              avatar_url: $brand_mark_url,
+              allowed_mentions: { parse: [] },
+              embeds: [
+                {
+                  author: { name: $branch_kind },
+                  title: $title,
+                  url: $url,
+                  description: $description,
+                  color: $color,
+                  thumbnail: { url: $brand_mark_url },
+                  fields: [
+                    { name: "Repository", value: $repo, inline: true },
+                    { name: "Pushed by", value: $actor, inline: true },
+                    { name: "Range", value: $range, inline: true }
+                  ],
+                  footer: { text: $brand_footer, icon_url: $brand_mark_url },
+                  timestamp: (now | todateiso8601)
+                }
+              ]
+            }' > /tmp/discord-commit-payload.json
+
+          http_code="$(
+            curl -sS -o /tmp/discord-commit-response.json -w "%{http_code}" \
+              -H "Content-Type: application/json" \
+              -X POST \
+              --data-binary @/tmp/discord-commit-payload.json \
+              "$DISCORD_COMMIT_WEBHOOK_URL"
+          )"
+
+          if [[ "$http_code" != "200" && "$http_code" != "204" ]]; then
+            echo "Discord webhook returned HTTP ${http_code}" >&2
+            cat /tmp/discord-commit-response.json >&2
+            exit 1
+          fi
+
+          echo "Sent ${count}-commit notification for ${BRANCH}; advancing pointer to ${AFTER:0:7}."
+          advance_pointer "$AFTER"
