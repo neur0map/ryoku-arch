@@ -80,3 +80,8 @@ terminate_pattern '(^|/)nmcli monitor$' "network monitor"
 terminate_pattern '/quickshell/ryoku-shell/scripts/colors/switchwall\.sh' "wallpaper color worker"
 terminate_pattern '/\.local/state/quickshell/\.venv/bin/kde-material-you-colors( |$)' "KDE color worker"
 terminate_pattern '(^|/)notify-send .* -a Wallpaper switcher' "wallpaper notification action"
+# ambxst ClipboardService's clipboard watcher: it survives a shell stop/restart (it is
+# not in the cliphist-watcher set ryoku-restart-ui knows about), so reap it here to stop
+# one leaking per restart. Runs at shell stop/restart boundaries, so a fresh shell just
+# respawns its own.
+terminate_pattern '(^|/)wl-paste --watch bash -c check_clipboard$' "image clipboard watcher"
