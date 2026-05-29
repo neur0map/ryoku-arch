@@ -338,9 +338,10 @@ StyledWindow {
             launcher.transform: Matrix4x4 {
                 matrix: launcherBg.deformMatrix
             }
-            clipboard.transform: Matrix4x4 {
-                matrix: clipboardBg.deformMatrix
-            }
+            // NOTE: clipboard intentionally has NO deform transform. The ClipboardTab
+            // list selects on hover, and a Matrix4x4 item transform desyncs Qt's
+            // pointer hit-testing from the (deformed) rendering, so hovering a row
+            // highlights its neighbour. The blob background (clipboardBg) still deforms.
             island.transform: Matrix4x4 {
                 matrix: islandBg.deformMatrix
             }
