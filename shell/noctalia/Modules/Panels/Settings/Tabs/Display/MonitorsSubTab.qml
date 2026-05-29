@@ -236,6 +236,35 @@ ColumnLayout {
       return list;
     }
 
+    // The highest-resolution mode (and its highest refresh) from availableModes. More
+    // reliable than EDID "preferred", which some monitors (e.g. old SyncMasters) report
+    // wrongly as a 16:9 mode on a 16:10 panel.
+    function recommendedMode() {
+      var modes = mon.availableModes || [];
+      var best = null;
+      var bestPx = 0;
+      var bestHz = 0;
+      for (var i = 0; i < modes.length; i++) {
+        var parts = String(modes[i]).split("@");
+        var wh = String(parts[0]).split("x");
+        var w = parseInt(wh[0]);
+        var h = parseInt(wh[1]);
+        var hz = Math.round(parseFloat(parts[1]));
+        if (!w || !h)
+          continue;
+        var px = w * h;
+        if (px > bestPx || (px === bestPx && hz > bestHz)) {
+          bestPx = px;
+          bestHz = hz;
+          best = {
+            "res": parts[0],
+            "hz": String(hz)
+          };
+        }
+      }
+      return best;
+    }
+
     // Suggest a scale from the physical DPI (physical size in mm + selected resolution).
     function suggestScale() {
       var pw = mon.physicalWidth || 0;
@@ -383,6 +412,20 @@ ColumnLayout {
 
       RowLayout {
         Layout.fillWidth: true
+        NButton {
+          text: I18n.tr("panels.display.recommended")
+          icon: "star"
+          outlined: true
+          enabled: card.pendingEnabled
+          onClicked: {
+            var m = card.recommendedMode();
+            if (m) {
+              card.pendingRes = m.res;
+              card.pendingRate = m.hz;
+            }
+            card.pendingScale = card.suggestScale();
+          }
+        }
         NButton {
           text: I18n.tr("panels.display.auto-scale")
           icon: "wand"

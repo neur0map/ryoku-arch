@@ -1096,6 +1096,7 @@
       "position-x": "Position X",
       "position-y": "Position Y",
       "apply": "Apply",
+      "recommended": "Recommended",
       "auto-scale": "Auto scale",
       "confirm-title": "Keep these display settings?",
       "confirm-body": "Reverting to the previous settings in {seconds}s unless you keep them.",
