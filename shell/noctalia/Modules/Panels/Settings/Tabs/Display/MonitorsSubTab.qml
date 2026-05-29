@@ -32,6 +32,8 @@ ColumnLayout {
                  "disabled": d.disabled || false,
                  "mirrorOf": d.mirrorOf || "none",
                  "availableModes": d.availableModes || [],
+                 "physicalWidth": d.physicalWidth || 0,
+                 "physicalHeight": d.physicalHeight || 0,
                  "x": d.x || 0,
                  "y": d.y || 0
                });
@@ -234,6 +236,26 @@ ColumnLayout {
       return list;
     }
 
+    // Suggest a scale from the physical DPI (physical size in mm + selected resolution).
+    function suggestScale() {
+      var pw = mon.physicalWidth || 0;
+      var ph = mon.physicalHeight || 0;
+      var parts = String(pendingRes).split("x");
+      var w = parseInt(parts[0]);
+      var h = parseInt(parts[1]);
+      if (pw <= 0 || ph <= 0 || !w || !h)
+        return 1.0;
+      var diagIn = Math.sqrt(pw * pw + ph * ph) / 25.4;
+      var dpi = Math.sqrt(w * w + h * h) / diagIn;
+      if (dpi <= 120)
+        return 1.0;
+      if (dpi <= 160)
+        return 1.25;
+      if (dpi <= 200)
+        return 1.5;
+      return 2.0;
+    }
+
     Layout.fillWidth: true
     implicitHeight: cardCol.implicitHeight + Style.margin2L
 
@@ -361,6 +383,13 @@ ColumnLayout {
 
       RowLayout {
         Layout.fillWidth: true
+        NButton {
+          text: I18n.tr("panels.display.auto-scale")
+          icon: "wand"
+          outlined: true
+          enabled: card.pendingEnabled
+          onClicked: card.pendingScale = card.suggestScale()
+        }
         Item {
           Layout.fillWidth: true
         }

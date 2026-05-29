@@ -78,6 +78,24 @@ persist)
   mv "$tmp" "$monitors_conf"
   trap - EXIT
   echo "ryoku-monitor: wrote $monitors_conf"
+
+  # Keep GDK_SCALE in step so GTK/XWayland apps stay crisp: use the shared integer
+  # scale when every active monitor agrees on one (>=2x), else 1 (Wayland handles
+  # fractional scaling for native apps).
+  gdk_scale="$(hyprctl monitors all -j | jq -r '
+    [ .[] | select(.disabled | not) | .scale ] as $s |
+    if ($s | length) > 0 and ($s | unique | length) == 1
+       and ($s[0] == ($s[0] | floor)) and $s[0] >= 2
+    then ($s[0] | floor) else 1 end
+  ' 2>/dev/null)"
+  [[ $gdk_scale =~ ^[0-9]+$ ]] || gdk_scale=1
+
+  hyprctl keyword env "GDK_SCALE,$gdk_scale" >/dev/null 2>&1 || true
+  hypr_conf="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland.conf"
+  if [[ -f $hypr_conf ]] && grep -qE '^env = GDK_SCALE,' "$hypr_conf"; then
+    sed -i -E "s|^env = GDK_SCALE,.*|env = GDK_SCALE,$gdk_scale|" "$hypr_conf"
+    echo "ryoku-monitor: set GDK_SCALE=$gdk_scale"
+  fi
   ;;
 reload)
   require_hyprctl

@@ -31,6 +31,11 @@ class ServiceConfig : public ConfigObject {
     CONFIG_GLOBAL_PROPERTY(bool, visualiserAutoSens, true)
     CONFIG_GLOBAL_PROPERTY(qreal, audioIncrement, 0.1)
     CONFIG_GLOBAL_PROPERTY(qreal, brightnessIncrement, 0.1)
+    // Use DDC/CI (ddcutil) to control external monitor brightness. Off falls back to
+    // the internal backlight (brightnessctl).
+    CONFIG_GLOBAL_PROPERTY(bool, brightnessDdc, true)
+    // Clamp the lowest brightness to 1% so panels that switch off at 0% stay lit.
+    CONFIG_GLOBAL_PROPERTY(bool, brightnessEnforceMin, false)
     CONFIG_GLOBAL_PROPERTY(qreal, maxVolume, 1.0)
     CONFIG_GLOBAL_PROPERTY(bool, smartScheme, true)
     // Mirror the active light/dark theme to the system (GNOME/GTK) toolkit theme.

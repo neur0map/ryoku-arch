@@ -179,23 +179,28 @@ ColumnLayout {
     }
 
     NToggle {
-      // TODO: wire enforce-minimum brightness to ryoku (no enforceMinimum config in ryoku)
+      // RYOKU WIRED: GlobalConfig.services.brightnessEnforceMin (serviceconfig.hpp)
       Layout.fillWidth: true
       label: I18n.tr("panels.display.monitors-enforce-minimum-label")
       description: I18n.tr("panels.display.monitors-enforce-minimum-description")
-      checked: false
-      enabled: false
-      opacity: 0.45
+      checked: GlobalConfig.services.brightnessEnforceMin
+      onToggled: checked => {
+                   GlobalConfig.services.brightnessEnforceMin = checked;
+                   GlobalConfig.save();
+                 }
     }
 
     NToggle {
-      // TODO: wire DDC support toggle to ryoku (ryoku auto-detects DDC via ddcutil detect; no manual enable flag)
+      // RYOKU WIRED: GlobalConfig.services.brightnessDdc (serviceconfig.hpp). ryoku
+      // auto-detects DDC; this toggles whether it is used for external monitors.
       Layout.fillWidth: true
       label: I18n.tr("panels.display.monitors-external-brightness-label")
       description: I18n.tr("panels.display.monitors-external-brightness-description")
-      checked: true
-      enabled: false
-      opacity: 0.45
+      checked: GlobalConfig.services.brightnessDdc
+      onToggled: checked => {
+                   GlobalConfig.services.brightnessDdc = checked;
+                   GlobalConfig.save();
+                 }
     }
   }
 }

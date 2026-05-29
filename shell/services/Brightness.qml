@@ -166,7 +166,7 @@ Singleton {
 
         required property ShellScreen modelData
         readonly property var ddcInfo: root.ddcMonitorMap[modelData.name] ?? null
-        readonly property bool isDdc: ddcInfo !== null
+        readonly property bool isDdc: ddcInfo !== null && GlobalConfig.services.brightnessDdc
         readonly property string busNum: ddcInfo?.busNum ?? ""
         readonly property bool isAppleDisplay: root.appleDisplayPresent && modelData.model.startsWith("StudioDisplay")
         property real brightness
@@ -197,7 +197,7 @@ Singleton {
         }
 
         function setBrightness(value: real): void {
-            value = Math.max(0, Math.min(1, value));
+            value = Math.max(GlobalConfig.services.brightnessEnforceMin ? 0.01 : 0, Math.min(1, value));
             const rounded = Math.round(value * 100);
             if (Math.round(brightness * 100) === rounded)
                 return;
