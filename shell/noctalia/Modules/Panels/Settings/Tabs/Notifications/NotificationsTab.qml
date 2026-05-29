@@ -1,33 +1,21 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import Quickshell
 import qs.noctalia.Commons
 import qs.noctalia.Widgets
 
+// RYOKU: Sound and Rules subtabs were removed. ryoku's caelestia notification backend
+// has no sound playback and no per-app rule engine, so those Noctalia subtabs had no
+// backing and were dropped rather than shipped as dead UI.
 ColumnLayout {
   id: root
   spacing: 0
-
-  // File pickers for sound sub-tab
-  function openUnifiedSoundPicker() {
-    unifiedSoundFilePicker.open();
-  }
-  function openLowSoundPicker() {
-    lowSoundFilePicker.open();
-  }
-  function openNormalSoundPicker() {
-    normalSoundFilePicker.open();
-  }
-  function openCriticalSoundPicker() {
-    criticalSoundFilePicker.open();
-  }
 
   NTabBar {
     id: subTabBar
     Layout.fillWidth: true
     Layout.bottomMargin: Style.marginM
-    distributeEvenly: false // this is too cramped on this tab to split evenly
+    distributeEvenly: false
     currentIndex: tabView.currentIndex
 
     NTabButton {
@@ -41,24 +29,14 @@ ColumnLayout {
       checked: subTabBar.currentIndex === 1
     }
     NTabButton {
-      text: I18n.tr("common.history")
+      text: I18n.tr("common.toast")
       tabIndex: 2
       checked: subTabBar.currentIndex === 2
     }
     NTabButton {
-      text: I18n.tr("common.sound")
+      text: I18n.tr("common.history")
       tabIndex: 3
       checked: subTabBar.currentIndex === 3
-    }
-    NTabButton {
-      text: I18n.tr("common.toast")
-      tabIndex: 4
-      checked: subTabBar.currentIndex === 4
-    }
-    NTabButton {
-      text: I18n.tr("panels.notifications.rules-tab")
-      tabIndex: 5
-      checked: subTabBar.currentIndex === 5
     }
   }
 
@@ -73,70 +51,7 @@ ColumnLayout {
 
     GeneralSubTab {}
     DurationSubTab {}
-    HistorySubTab {}
-    SoundSubTab {
-      onOpenUnifiedPicker: root.openUnifiedSoundPicker()
-      onOpenLowPicker: root.openLowSoundPicker()
-      onOpenNormalPicker: root.openNormalSoundPicker()
-      onOpenCriticalPicker: root.openCriticalSoundPicker()
-    }
     ToastSubTab {}
-    RulesSubTab {}
-  }
-
-  // File Pickers for Sound Files
-  NFilePicker {
-    id: unifiedSoundFilePicker
-    title: I18n.tr("panels.notifications.sounds-files-unified-select-title")
-    selectionMode: "files"
-    initialPath: Quickshell.env("HOME")
-    nameFilters: ["*.wav", "*.mp3", "*.ogg", "*.flac", "*.m4a", "*.aac"]
-    onAccepted: paths => {
-                  if (paths.length > 0) {
-                    const soundPath = paths[0];
-                    Settings.data.notifications.sounds.normalSoundFile = soundPath;
-                    Settings.data.notifications.sounds.lowSoundFile = soundPath;
-                    Settings.data.notifications.sounds.criticalSoundFile = soundPath;
-                  }
-                }
-  }
-
-  NFilePicker {
-    id: lowSoundFilePicker
-    title: I18n.tr("panels.notifications.sounds-files-low-select-title")
-    selectionMode: "files"
-    initialPath: Quickshell.env("HOME")
-    nameFilters: ["*.wav", "*.mp3", "*.ogg", "*.flac", "*.m4a", "*.aac"]
-    onAccepted: paths => {
-                  if (paths.length > 0) {
-                    Settings.data.notifications.sounds.lowSoundFile = paths[0];
-                  }
-                }
-  }
-
-  NFilePicker {
-    id: normalSoundFilePicker
-    title: I18n.tr("panels.notifications.sounds-files-normal-select-title")
-    selectionMode: "files"
-    initialPath: Quickshell.env("HOME")
-    nameFilters: ["*.wav", "*.mp3", "*.ogg", "*.flac", "*.m4a", "*.aac"]
-    onAccepted: paths => {
-                  if (paths.length > 0) {
-                    Settings.data.notifications.sounds.normalSoundFile = paths[0];
-                  }
-                }
-  }
-
-  NFilePicker {
-    id: criticalSoundFilePicker
-    title: I18n.tr("panels.notifications.sounds-files-critical-select-title")
-    selectionMode: "files"
-    initialPath: Quickshell.env("HOME")
-    nameFilters: ["*.wav", "*.mp3", "*.ogg", "*.flac", "*.m4a", "*.aac"]
-    onAccepted: paths => {
-                  if (paths.length > 0) {
-                    Settings.data.notifications.sounds.criticalSoundFile = paths[0];
-                  }
-                }
+    HistorySubTab {}
   }
 }
