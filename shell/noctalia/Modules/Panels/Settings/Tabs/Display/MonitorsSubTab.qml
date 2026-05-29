@@ -235,8 +235,10 @@ ColumnLayout {
     }
 
     Layout.fillWidth: true
+    implicitHeight: cardCol.implicitHeight + Style.margin2L
 
     ColumnLayout {
+      id: cardCol
       anchors.fill: parent
       anchors.margins: Style.marginL
       spacing: Style.marginM
