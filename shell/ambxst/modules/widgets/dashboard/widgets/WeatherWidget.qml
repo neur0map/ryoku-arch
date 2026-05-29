@@ -7,7 +7,7 @@ import qs.ambxst.modules.theme
 import qs.ambxst.modules.services
 import qs.ambxst.modules.components
 import qs.ambxst.config
-import Ryoku.Config
+import Ryoku.Config as RyokuConfig
 
 ClippingRectangle {
     id: root
@@ -886,8 +886,8 @@ ClippingRectangle {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
-                    GlobalConfig.services.useFahrenheit = !GlobalConfig.services.useFahrenheit;
-                    GlobalConfig.save();
+                    RyokuConfig.GlobalConfig.services.useFahrenheit = !RyokuConfig.GlobalConfig.services.useFahrenheit;
+                    RyokuConfig.GlobalConfig.save();
                 }
             }
         }
