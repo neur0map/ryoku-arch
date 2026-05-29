@@ -96,13 +96,25 @@ ColumnLayout {
         border.color: isActive ? Color.mPrimary : Color.mOutline
 
         Image {
+          id: previewImg
           anchors.fill: parent
           anchors.margins: tile.isActive ? 3 : 1
-          source: modelData.preview ? "file://" + modelData.preview : ""
+          source: tile.modelData.preview ? "file://" + tile.modelData.preview : ""
           fillMode: Image.PreserveAspectCrop
           asynchronous: true
           cache: true
           sourceSize.width: 480
+        }
+
+        // Placeholder when the theme ships no preview.png (qylock does not track
+        // preview images in git, so freshly pulled themes can lack one).
+        NText {
+          anchors.centerIn: parent
+          anchors.verticalCenterOffset: -8
+          visible: !tile.modelData.preview || previewImg.status === Image.Error
+          text: qsTr("No preview")
+          pointSize: Style.fontSizeS
+          color: Color.mOnSurfaceVariant
         }
 
         // Name bar
