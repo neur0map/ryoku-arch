@@ -15,6 +15,7 @@ qml_module(ryoku-config
         borderconfig.hpp
         controlcenterconfig.hpp
         dashboardconfig.hpp
+        gamingconfig.hpp
         generalconfig.hpp
         launcherconfig.hpp
         lockconfig.hpp

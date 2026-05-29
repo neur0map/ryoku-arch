@@ -12,6 +12,7 @@ class BarConfig;
 class BorderConfig;
 class ControlCenterConfig;
 class DashboardConfig;
+class GamingConfig;
 class GeneralConfig;
 class LauncherConfig;
 class LockConfig;
@@ -34,6 +35,7 @@ class GlobalConfig : public RootConfig {
     Q_MOC_INCLUDE("borderconfig.hpp")
     Q_MOC_INCLUDE("controlcenterconfig.hpp")
     Q_MOC_INCLUDE("dashboardconfig.hpp")
+    Q_MOC_INCLUDE("gamingconfig.hpp")
     Q_MOC_INCLUDE("generalconfig.hpp")
     Q_MOC_INCLUDE("launcherconfig.hpp")
     Q_MOC_INCLUDE("lockconfig.hpp")
@@ -53,6 +55,7 @@ class GlobalConfig : public RootConfig {
     CONFIG_SUBOBJECT(BarConfig, bar)
     CONFIG_SUBOBJECT(BorderConfig, border)
     CONFIG_SUBOBJECT(DashboardConfig, dashboard)
+    CONFIG_SUBOBJECT(GamingConfig, gaming)
     CONFIG_SUBOBJECT(ControlCenterConfig, controlCenter)
     CONFIG_SUBOBJECT(LauncherConfig, launcher)
     CONFIG_SUBOBJECT(NotifsConfig, notifs)
