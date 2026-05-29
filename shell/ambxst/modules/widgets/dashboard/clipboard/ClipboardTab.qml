@@ -19,6 +19,14 @@ Item {
     property string prefixIcon: ""
     signal backspaceOnEmpty
 
+    // RYOKU: ambxst's Visibilities.setActiveModule() is a no-op here (no AxctlService
+    // focusedMonitor), so the close intent is bridged to the ryoku overlay via this signal.
+    signal requestClose
+    function closePanel() {
+        Visibilities.setActiveModule("");
+        root.requestClose();
+    }
+
     property int leftPanelWidth: 0
 
     Keys.onEscapePressed: {
@@ -28,7 +36,7 @@ Item {
             root.cancelAliasMode();
         } else {
             // Cerrar el dashboard
-            Visibilities.setActiveModule("");
+            root.closePanel();
         }
     }
 
@@ -740,7 +748,7 @@ Item {
                                 // Build options array dynamically
                                 let options = [function () {
                                         root.copyToClipboard(item.id);
-                                        Visibilities.setActiveModule("");
+                                        root.closePanel();
                                     }];
 
                                 // Add Open if applicable
@@ -771,7 +779,7 @@ Item {
                                 let selectedItem = root.allItems[root.selectedIndex];
                                 if (selectedItem && !root.deleteMode) {
                                     root.copyToClipboard(selectedItem.id);
-                                    Visibilities.setActiveModule("");
+                                    root.closePanel();
                                 }
                             }
                         }
@@ -839,7 +847,7 @@ Item {
                             root.selectedOptionIndex = 0;
                             root.keyboardNavigation = false;
                         } else if (!root.deleteMode) {
-                            Visibilities.setActiveModule("");
+                            root.closePanel();
                         }
                     }
 
@@ -1257,7 +1265,7 @@ Item {
 
                                     if (!root.deleteMode && !isExpanded) {
                                         root.copyToClipboard(modelData.id);
-                                        Visibilities.setActiveModule("");
+                                        root.closePanel();
                                     }
                                 } else if (mouse.button === Qt.RightButton) {
                                     if (root.deleteMode) {
@@ -1699,7 +1707,7 @@ Item {
                                 onTriggered: {
                                     if (!mouseArea.isDragging) {
                                         root.copyToClipboard(modelData.id);
-                                        Visibilities.setActiveModule("");
+                                        root.closePanel();
                                         mouseArea.longPressTriggered = true;
                                     }
                                 }
@@ -1765,7 +1773,7 @@ Item {
                                                 textColor: Styling.srItem("primary"),
                                                 action: function () {
                                                     root.copyToClipboard(modelData.id);
-                                                    Visibilities.setActiveModule("");
+                                                    root.closePanel();
                                                 }
                                             }
                                         ];

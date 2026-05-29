@@ -204,6 +204,41 @@ Scope {
         target: "drawers"
     }
 
+    // RYOKU: open the dedicated, image-capable clipboard overlay (Super+V). The
+    // history is captured by ClipboardService into clipboard.db; the overlay hosts
+    // ambxst's ClipboardTab via qs.modules.clipboard.
+    IpcHandler {
+        function open(): void {
+            if (root.hasFullscreen)
+                return;
+            const v = Visibilities.getForActive();
+            if (!v)
+                return;
+            v.settings = false;
+            v.launcher = false;
+            v.island = false;
+            v.clipboard = true;
+        }
+
+        function close(): void {
+            const v = Visibilities.getForActive();
+            if (v)
+                v.clipboard = false;
+        }
+
+        function toggle(): void {
+            const v = Visibilities.getForActive();
+            if (!v)
+                return;
+            if (v.clipboard)
+                v.clipboard = false;
+            else
+                open();
+        }
+
+        target: "clipboard"
+    }
+
     IpcHandler {
         function open(): void {
             root.openControlCenter();

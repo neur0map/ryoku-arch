@@ -3,250 +3,152 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import qs.noctalia.Commons
-import qs.noctalia.Services.Noctalia
-import qs.noctalia.Services.System
-import qs.noctalia.Services.UI
 import qs.noctalia.Widgets
 
+// RYOKU: the Control Center is a hub for what runs *underneath* the desktop —
+// packages, background processes and the system-control tools ryoku ships
+// (install/ryoku-base.packages). Frontend/appearance lives in the other settings
+// tabs; this launches the real apps rather than reimplementing them.
 ColumnLayout {
   id: root
-  spacing: 0
+  spacing: Style.marginM
+  Layout.fillWidth: true
 
-  property list<var> cardsModel: []
-  property list<var> cardsDefault: [
-    {
-      "id": "profile-card",
-      "text": "Profile",
-      "enabled": true,
-      "required": true
-    },
-    {
-      "id": "shortcuts-card",
-      "text": "Shortcuts",
-      "enabled": true,
-      "required": false
-    },
-    {
-      "id": "audio-card",
-      "text": "Audio Sliders",
-      "enabled": true,
-      "required": false
-    },
-    {
-      "id": "brightness-card",
-      "text": "Brightness",
-      "enabled": false,
-      "required": false
-    },
-    {
-      "id": "weather-card",
-      "text": "Weather",
-      "enabled": true,
-      "required": false
-    },
-    {
-      "id": "media-sysmon-card",
-      "text": "Media and System Monitor",
-      "enabled": true,
-      "required": false
-    }
-  ]
+  // gpk is a TUI (GlazePKG) → open it in the terminal; everything else is a GUI.
+  function launch(cmd) {
+    Quickshell.execDetached(["sh", "-lc", cmd]);
+  }
 
-  Component.onCompleted: {
-    // Fill out availableWidgets ListModel
-    availableWidgets.clear();
-    var sortedEntries = ControlCenterWidgetRegistry.getAvailableWidgets().slice().sort();
-    sortedEntries.forEach(entry => {
-                            const isPlugin = ControlCenterWidgetRegistry.isPluginWidget(entry);
-                            let displayName = entry;
-                            let badges = [];
-                            if (isPlugin) {
-                              const pluginId = entry.replace("plugin:", "");
-                              const manifest = PluginRegistry.getPluginManifest(pluginId);
-                              if (manifest && manifest.name) {
-                                displayName = manifest.name;
-                              } else {
-                                displayName = pluginId;
-                              }
-                              badges.push({
-                                            "icon": "plugin",
-                                            "color": Color.mSecondary
-                                          });
-                            }
-                            availableWidgets.append({
-                                                      "key": entry,
-                                                      "name": displayName,
-                                                      "badges": badges
-                                                    });
-                          });
-    // Starts empty
-    cardsModel = [];
+  NText {
+    Layout.fillWidth: true
+    Layout.bottomMargin: Style.marginS
+    text: qsTr("Manage packages, background processes and system hardware. Appearance and behaviour live in the other tabs — this opens the full tools for the deeper stuff.")
+    pointSize: Style.fontSizeS
+    color: Color.mOnSurfaceVariant
+    wrapMode: Text.WordWrap
+  }
 
-    // Add the cards available in settings
-    for (var i = 0; i < Settings.data.controlCenter.cards.length; i++) {
-      const settingCard = Settings.data.controlCenter.cards[i];
+  // ── Packages & system ────────────────────────────────────────────────────
+  SectionHeader {
+    text: qsTr("Packages & system")
+  }
+  ToolRow {
+    title: qsTr("GPK — Package manager")
+    desc: qsTr("Install, update and remove packages and their dependencies across pacman, the AUR and Flatpak — one place for every package manager.")
+    iconName: "package"
+    launchCmd: "kitty -e gpk || alacritty -e gpk || foot gpk"
+  }
+  ToolRow {
+    title: qsTr("Mission Center — System monitor")
+    desc: qsTr("Watch CPU, memory, disk and network live, and see every running service/daemon with what it's for — start, stop or restart them.")
+    iconName: "activity"
+    launchCmd: "missioncenter || mission-center || resources || gnome-system-monitor"
+  }
 
-      for (var j = 0; j < cardsDefault.length; j++) {
-        if (settingCard.id === cardsDefault[j].id) {
-          var card = cardsDefault[j];
-          card.enabled = settingCard.enabled;
-          // Auto-disable weather card if weather is disabled
-          if (card.id === "weather-card" && !Settings.data.location.weatherEnabled) {
-            card.enabled = false;
-          }
-          cardsModel.push(card);
+  // ── Devices & hardware ───────────────────────────────────────────────────
+  SectionHeader {
+    text: qsTr("Devices & hardware")
+  }
+  ToolRow {
+    title: qsTr("Network")
+    desc: qsTr("Manage Wi-Fi, wired and VPN connections, and edit connection profiles.")
+    iconName: "network"
+    launchCmd: "nm-connection-editor"
+  }
+  ToolRow {
+    title: qsTr("Bluetooth")
+    desc: qsTr("Pair, connect and manage Bluetooth devices.")
+    iconName: "bluetooth"
+    launchCmd: "blueman-manager"
+  }
+  ToolRow {
+    title: qsTr("Sound")
+    desc: qsTr("Set per-app volume and choose input/output audio devices.")
+    iconName: "volume"
+    launchCmd: "pavucontrol"
+  }
+  ToolRow {
+    title: qsTr("Disks")
+    desc: qsTr("Inspect partitions and mounts, format drives and check disk health (SMART).")
+    iconName: "server"
+    launchCmd: "gnome-disks || gnome-disk-utility"
+  }
+
+  // ── Shell ─────────────────────────────────────────────────────────────────
+  SectionHeader {
+    text: qsTr("Shell")
+  }
+  ToolRow {
+    title: qsTr("Restart Ryoku shell")
+    desc: qsTr("Restart the desktop shell (bar, desktop widgets, drawers). Use this if something gets stuck or after a manual change.")
+    iconName: "refresh"
+    buttonText: qsTr("Restart")
+    launchCmd: "systemctl --user restart ryoku-shell.service"
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  component SectionHeader: NText {
+    Layout.fillWidth: true
+    Layout.topMargin: Style.marginS
+    pointSize: Style.fontSizeM
+    font.weight: Style.fontWeightBold
+    color: Color.mOnSurface
+  }
+
+  component ToolRow: NBox {
+    id: tool
+
+    property string title: ""
+    property string desc: ""
+    property string iconName: "apps"
+    property string launchCmd: ""
+    property string buttonText: qsTr("Open")
+
+    Layout.fillWidth: true
+    implicitHeight: toolRow.implicitHeight + Style.margin2L
+    color: Color.mSurface
+
+    RowLayout {
+      id: toolRow
+      anchors.fill: parent
+      anchors.margins: Style.marginL
+      spacing: Style.marginL
+
+      NIcon {
+        Layout.alignment: Qt.AlignVCenter
+        icon: tool.iconName
+        pointSize: Style.fontSizeXXXL
+        color: Color.mPrimary
+      }
+
+      ColumnLayout {
+        Layout.fillWidth: true
+        Layout.alignment: Qt.AlignVCenter
+        spacing: Style.marginXXS
+
+        NText {
+          Layout.fillWidth: true
+          text: tool.title
+          pointSize: Style.fontSizeM
+          font.weight: Style.fontWeightBold
+          color: Color.mOnSurface
+        }
+        NText {
+          Layout.fillWidth: true
+          text: tool.desc
+          pointSize: Style.fontSizeS
+          color: Color.mOnSurfaceVariant
+          wrapMode: Text.WordWrap
         }
       }
-    }
 
-    // Add any missing cards from default
-    for (var i = 0; i < cardsDefault.length; i++) {
-      var found = false;
-      for (var j = 0; j < cardsModel.length; j++) {
-        if (cardsModel[j].id === cardsDefault[i].id) {
-          found = true;
-          break;
-        }
-      }
-
-      if (!found) {
-        var card = cardsDefault[i];
-        // Auto-disable weather card if weather is disabled
-        if (card.id === "weather-card" && !Settings.data.location.weatherEnabled) {
-          card.enabled = false;
-        }
-        cardsModel.push(card);
+      NButton {
+        Layout.alignment: Qt.AlignVCenter
+        text: tool.buttonText
+        icon: "external-link"
+        outlined: true
+        onClicked: root.launch(tool.launchCmd)
       }
     }
-  }
-
-  NTabBar {
-    id: subTabBar
-    Layout.fillWidth: true
-    Layout.bottomMargin: Style.marginM
-    distributeEvenly: true
-    currentIndex: tabView.currentIndex
-
-    NTabButton {
-      text: I18n.tr("common.appearance")
-      tabIndex: 0
-      checked: subTabBar.currentIndex === 0
-    }
-    NTabButton {
-      text: I18n.tr("common.cards")
-      tabIndex: 1
-      checked: subTabBar.currentIndex === 1
-    }
-    NTabButton {
-      text: I18n.tr("common.shortcuts")
-      tabIndex: 2
-      checked: subTabBar.currentIndex === 2
-    }
-  }
-
-  Item {
-    Layout.fillWidth: true
-    Layout.preferredHeight: Style.marginL
-  }
-
-  NTabView {
-    id: tabView
-    currentIndex: subTabBar.currentIndex
-    Layout.fillWidth: true
-    Layout.fillHeight: true
-
-    AppearanceSubTab {}
-
-    CardsSubTab {
-      cardsModel: root.cardsModel
-      cardsDefault: root.cardsDefault
-    }
-
-    ShortcutsSubTab {
-      availableWidgets: availableWidgets
-      onAddWidgetToSection: (widgetId, section) => _addWidgetToSection(widgetId, section)
-      onRemoveWidgetFromSection: (section, index) => _removeWidgetFromSection(section, index)
-      onReorderWidgetInSection: (section, fromIndex, toIndex) => _reorderWidgetInSection(section, fromIndex, toIndex)
-      onUpdateWidgetSettingsInSection: (section, index, settings) => _updateWidgetSettingsInSection(section, index, settings)
-      onMoveWidgetBetweenSections: (fromSection, index, toSection) => _moveWidgetBetweenSections(fromSection, index, toSection)
-      onOpenPluginSettingsRequested: manifest => pluginSettingsDialog.openPluginSettings(manifest)
-    }
-  }
-
-  // ---------------------------------
-  // Signal functions
-  // ---------------------------------
-  function _addWidgetToSection(widgetId, section) {
-    var newWidget = {
-      "id": widgetId
-    };
-    if (ControlCenterWidgetRegistry.widgetHasUserSettings(widgetId)) {
-      var metadata = ControlCenterWidgetRegistry.widgetMetadata[widgetId];
-      if (metadata) {
-        Object.keys(metadata).forEach(function (key) {
-          newWidget[key] = metadata[key];
-        });
-      }
-    }
-    Settings.data.controlCenter.shortcuts[section].push(newWidget);
-  }
-
-  function _removeWidgetFromSection(section, index) {
-    if (index >= 0 && index < Settings.data.controlCenter.shortcuts[section].length) {
-      var newArray = Settings.data.controlCenter.shortcuts[section].slice();
-      var removedWidgets = newArray.splice(index, 1);
-      Settings.data.controlCenter.shortcuts[section] = newArray;
-    }
-  }
-
-  function _reorderWidgetInSection(section, fromIndex, toIndex) {
-    if (fromIndex >= 0 && fromIndex < Settings.data.controlCenter.shortcuts[section].length && toIndex >= 0 && toIndex < Settings.data.controlCenter.shortcuts[section].length) {
-
-      // Create a new array to avoid modifying the original
-      var newArray = Settings.data.controlCenter.shortcuts[section].slice();
-      var item = newArray[fromIndex];
-      newArray.splice(fromIndex, 1);
-      newArray.splice(toIndex, 0, item);
-
-      Settings.data.controlCenter.shortcuts[section] = newArray;
-    }
-  }
-
-  function _moveWidgetBetweenSections(fromSection, index, toSection) {
-    // Get the widget from the source section
-    if (index >= 0 && index < Settings.data.controlCenter.shortcuts[fromSection].length) {
-      var widget = Settings.data.controlCenter.shortcuts[fromSection][index];
-
-      // Remove from source section
-      var sourceArray = Settings.data.controlCenter.shortcuts[fromSection].slice();
-      sourceArray.splice(index, 1);
-      Settings.data.controlCenter.shortcuts[fromSection] = sourceArray;
-
-      // Add to target section
-      var targetArray = Settings.data.controlCenter.shortcuts[toSection].slice();
-      targetArray.push(widget);
-      Settings.data.controlCenter.shortcuts[toSection] = targetArray;
-    }
-  }
-
-  function _updateWidgetSettingsInSection(section, index, settings) {
-    // Create a new array to trigger QML's change detection for persistence.
-    // This is crucial for Settings.data to detect the change and persist it.
-    var newSectionArray = Settings.data.controlCenter.shortcuts[section].slice();
-    newSectionArray[index] = settings;
-    Settings.data.controlCenter.shortcuts[section] = newSectionArray;
-    Settings.saveImmediate();
-  }
-
-  // Base list model for all combo boxes
-  ListModel {
-    id: availableWidgets
-  }
-
-  // Shared Plugin Settings Popup
-  NPluginSettingsPopup {
-    id: pluginSettingsDialog
-    parent: Overlay.overlay
-    showToastOnSave: false
   }
 }

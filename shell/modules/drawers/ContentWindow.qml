@@ -57,6 +57,7 @@ StyledWindow {
 
     onHasFullscreenChanged: {
         visibilities.launcher = false;
+        visibilities.clipboard = false;
         visibilities.session = false;
         visibilities.dashboard = false;
         visibilities.island = false;
@@ -69,7 +70,7 @@ StyledWindow {
     name: "drawers"
     WlrLayershell.exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: fsTransitionProg > 0 && contentItem.Config.general.showOverFullscreen ? WlrLayer.Overlay : WlrLayer.Top
-    WlrLayershell.keyboardFocus: visibilities.launcher || visibilities.session || panels.dashboard.needsKeyboard || panels.settings.needsKeyboard || visibilities.wallhaven || visibilities.obsidian ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: visibilities.launcher || visibilities.clipboard || visibilities.session || panels.dashboard.needsKeyboard || panels.settings.needsKeyboard || visibilities.wallhaven || visibilities.obsidian ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
     mask: hasFullscreen ? emptyRegion : (visibilities.settings ? null : regions)
 
@@ -109,10 +110,11 @@ StyledWindow {
     HyprlandFocusGrab {
         id: focusGrab
 
-        active: (visibilities.launcher && root.contentItem.Config.launcher.enabled) || (visibilities.session && root.contentItem.Config.session.enabled) || (visibilities.sidebar && root.contentItem.Config.sidebar.enabled) || visibilities.settings || visibilities.wallhaven || visibilities.obsidian || (!root.contentItem.Config.dashboard.showOnHover && visibilities.dashboard && root.contentItem.Config.dashboard.enabled) || (panels.popouts.currentName.startsWith("traymenu") && (panels.popouts.current as StackView)?.depth > 1)
+        active: (visibilities.launcher && root.contentItem.Config.launcher.enabled) || visibilities.clipboard || (visibilities.session && root.contentItem.Config.session.enabled) || (visibilities.sidebar && root.contentItem.Config.sidebar.enabled) || visibilities.settings || visibilities.wallhaven || visibilities.obsidian || (!root.contentItem.Config.dashboard.showOnHover && visibilities.dashboard && root.contentItem.Config.dashboard.enabled) || (panels.popouts.currentName.startsWith("traymenu") && (panels.popouts.current as StackView)?.depth > 1)
         windows: [root]
         onCleared: {
             visibilities.launcher = false;
+            visibilities.clipboard = false;
             visibilities.session = false;
             visibilities.sidebar = false;
             visibilities.dashboard = false;
@@ -199,6 +201,13 @@ StyledWindow {
             id: launcherBg
 
             panel: panels.launcher
+            deformAmount: 0.1
+        }
+
+        PanelBg {
+            id: clipboardBg
+
+            panel: panels.clipboard
             deformAmount: 0.1
         }
 
@@ -328,6 +337,9 @@ StyledWindow {
             }
             launcher.transform: Matrix4x4 {
                 matrix: launcherBg.deformMatrix
+            }
+            clipboard.transform: Matrix4x4 {
+                matrix: clipboardBg.deformMatrix
             }
             island.transform: Matrix4x4 {
                 matrix: islandBg.deformMatrix

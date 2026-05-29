@@ -62,6 +62,11 @@ Region {
     }
 
     R {
+        panel: root.panels.clipboard
+        height: panel.height + (root.panels.clipboard.openProgress > 0 ? root.borderThickness : 0)
+    }
+
+    R {
         panel: root.panels.island
         y: 0
         height: panel.height * (1 - root.panels.island.offsetScale) + root.borderThickness

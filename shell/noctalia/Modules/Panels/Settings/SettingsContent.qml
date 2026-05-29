@@ -541,15 +541,13 @@ Item {
             "id": SettingsPanel.Tab.ControlCenter,
             "label": "panels.control-center.title",
             "icon": "settings-control-center",
-            "source": controlCenterTab,
-            "disabled": true // TODO: Noctalia control-center config (cards/shortcuts/position) has no ryoku mapping
+            "source": controlCenterTab
           },
           {
             "id": SettingsPanel.Tab.Launcher,
             "label": "panels.launcher.title",
             "icon": "settings-launcher",
-            "source": launcherTab,
-            "disabled": true // TODO: ryoku uses its own launcher/overview; Noctalia appLauncher.* has no ryoku mapping
+            "source": launcherTab
           },
           {
             "id": SettingsPanel.Tab.Notifications,

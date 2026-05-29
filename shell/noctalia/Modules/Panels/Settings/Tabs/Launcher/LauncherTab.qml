@@ -21,14 +21,19 @@ ColumnLayout {
       checked: subTabBar.currentIndex === 0
     }
     NTabButton {
-      text: I18n.tr("common.clipboard")
+      text: I18n.tr("common.apps")
       tabIndex: 1
       checked: subTabBar.currentIndex === 1
     }
     NTabButton {
-      text: I18n.tr("common.execute")
+      text: I18n.tr("common.actions")
       tabIndex: 2
       checked: subTabBar.currentIndex === 2
+    }
+    NTabButton {
+      text: I18n.tr("common.clipboard")
+      tabIndex: 3
+      checked: subTabBar.currentIndex === 3
     }
   }
 
@@ -42,7 +47,8 @@ ColumnLayout {
     currentIndex: subTabBar.currentIndex
 
     GeneralSubTab {}
+    AppsSubTab {}
+    ActionsSubTab {}
     ClipboardSubTab {}
-    ExecuteSubTab {}
   }
 }

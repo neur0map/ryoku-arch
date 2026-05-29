@@ -26,6 +26,7 @@ ShellRoot {
     LockBridge {}
     IdleMonitors {}
     WallpaperRotation {}
+    ClipboardMaintenance {}
 
     // RYOKU PORT: webcam mirror window, toggled from the island weather-tools row
     // (GlobalStates.mirrorWindowVisible). Registered at the shell root so it persists

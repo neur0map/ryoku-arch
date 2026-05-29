@@ -448,6 +448,14 @@ Singleton {
       // Legacy entries omit "appearance" and use darkMode to infer light vs dark slot.
     }
 
+    // RYOKU: clipboard history management (cliphist). Enforced by
+    // qs.modules.ClipboardMaintenance (size trim + scheduled wipe).
+    property JsonObject clipboard: JsonObject {
+      property bool enabled: true
+      property int maxEntries: 100
+      property string autoCleanup: "off" // off | daily | weekly
+    }
+
     // applauncher
     property JsonObject appLauncher: JsonObject {
       property bool enableClipboardHistory: false

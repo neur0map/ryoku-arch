@@ -1,179 +1,166 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Ryoku.Config
 import qs.noctalia.Commons
 import qs.noctalia.Widgets
 
+// RYOKU WIRED: GlobalConfig.launcher.* (launcherconfig.hpp). ryoku's launcher is a
+// prefix-driven drawer (apps + >actions + @field-search + scheme/variant/wallpaper).
 ColumnLayout {
   id: root
   spacing: Style.marginL
   Layout.fillWidth: true
 
-  NComboBox {
-    label: I18n.tr("common.position")
-    description: I18n.tr("panels.launcher.settings-position-description")
+  NToggle {
     Layout.fillWidth: true
-    model: [
-      {
-        "key": "follow_bar",
-        "name": I18n.tr("positions.follow-bar")
-      },
-      {
-        "key": "center",
-        "name": I18n.tr("positions.center")
-      },
-      {
-        "key": "top_center",
-        "name": I18n.tr("positions.top-center")
-      },
-      {
-        "key": "top_left",
-        "name": I18n.tr("positions.top-left")
-      },
-      {
-        "key": "top_right",
-        "name": I18n.tr("positions.top-right")
-      },
-      {
-        "key": "bottom_left",
-        "name": I18n.tr("positions.bottom-left")
-      },
-      {
-        "key": "bottom_right",
-        "name": I18n.tr("positions.bottom-right")
-      },
-      {
-        "key": "bottom_center",
-        "name": I18n.tr("positions.bottom-center")
-      }
-    ]
-    currentKey: Settings.data.appLauncher.position
-    onSelected: function (key) {
-      Settings.data.appLauncher.position = key;
-    }
-
-    defaultValue: Settings.getDefaultValue("appLauncher.position")
+    label: qsTr("Enable launcher")
+    description: qsTr("Master switch — when off, the launcher won't open at all.")
+    checked: GlobalConfig.launcher.enabled
+    onToggled: checked => {
+                 GlobalConfig.launcher.enabled = checked;
+                 GlobalConfig.save();
+               }
   }
 
-  NToggle {
-    label: I18n.tr("panels.launcher.settings-overlay-layer-label")
-    description: I18n.tr("panels.launcher.settings-overlay-layer-description")
-    checked: Settings.data.appLauncher.overviewLayer
-    onToggled: checked => Settings.data.appLauncher.overviewLayer = checked
-    defaultValue: Settings.getDefaultValue("appLauncher.overviewLayer")
-  }
-
-  NComboBox {
-    label: I18n.tr("panels.launcher.settings-view-mode-label")
-    description: I18n.tr("panels.launcher.settings-view-mode-description")
+  NSpinBox {
     Layout.fillWidth: true
-    model: [
-      {
-        "key": "list",
-        "name": I18n.tr("options.launcher-view-mode.list")
-      },
-      {
-        "key": "grid",
-        "name": I18n.tr("options.launcher-view-mode.grid")
+    label: qsTr("Results shown")
+    description: qsTr("How many results are visible before the list scrolls.")
+    from: 1
+    to: 20
+    stepSize: 1
+    value: GlobalConfig.launcher.maxShown
+    onValueChanged: {
+      if (GlobalConfig.launcher.maxShown !== value) {
+        GlobalConfig.launcher.maxShown = value;
+        GlobalConfig.save();
       }
-    ]
-    currentKey: Settings.data.appLauncher.viewMode
-    onSelected: function (key) {
-      Settings.data.appLauncher.viewMode = key;
     }
-    defaultValue: Settings.getDefaultValue("appLauncher.viewMode")
   }
 
-  NComboBox {
-    label: I18n.tr("panels.launcher.settings-density-label")
-    description: I18n.tr("panels.launcher.settings-density-description")
+  NToggle {
     Layout.fillWidth: true
-    model: [
-      {
-        "key": "compact",
-        "name": I18n.tr("options.launcher-density.compact")
-      },
-      {
-        "key": "default",
-        "name": I18n.tr("options.launcher-density.default")
-      },
-      {
-        "key": "comfortable",
-        "name": I18n.tr("options.launcher-density.comfortable")
-      }
-    ]
-    currentKey: Settings.data.appLauncher.density || "compact"
-    onSelected: function (key) {
-      Settings.data.appLauncher.density = key;
-    }
-    defaultValue: Settings.getDefaultValue("appLauncher.density")
+    label: qsTr("Vim keybindings")
+    description: qsTr("Navigate results with Ctrl+J / Ctrl+K (and Ctrl+N/P, Tab) as well as the arrow keys.")
+    checked: GlobalConfig.launcher.vimKeybinds
+    onToggled: checked => {
+                 GlobalConfig.launcher.vimKeybinds = checked;
+                 GlobalConfig.save();
+               }
   }
 
   NToggle {
-    label: I18n.tr("panels.launcher.settings-show-categories-label")
-    description: I18n.tr("panels.launcher.settings-show-categories-description")
-    checked: Settings.data.appLauncher.showCategories
-    onToggled: checked => Settings.data.appLauncher.showCategories = checked
-    defaultValue: Settings.getDefaultValue("appLauncher.showCategories")
-  }
-
-  NToggle {
-    label: I18n.tr("panels.launcher.settings-icon-mode-label")
-    description: I18n.tr("panels.launcher.settings-icon-mode-description")
-    checked: Settings.data.appLauncher.iconMode === "native"
-    onToggled: checked => Settings.data.appLauncher.iconMode = checked ? "native" : "tabler"
-    defaultValue: Settings.getDefaultValue("appLauncher.iconMode") === "native"
-  }
-
-  NToggle {
-    label: I18n.tr("panels.launcher.settings-show-icon-background-label")
-    description: I18n.tr("panels.launcher.settings-show-icon-background-description")
-    checked: Settings.data.appLauncher.showIconBackground
-    onToggled: checked => Settings.data.appLauncher.showIconBackground = checked
-    defaultValue: Settings.getDefaultValue("appLauncher.showIconBackground")
+    Layout.fillWidth: true
+    label: qsTr("Show dangerous actions")
+    description: qsTr("Show launcher actions flagged as dangerous (e.g. power off, reset). Off hides them so they can't be triggered by accident.")
+    checked: GlobalConfig.launcher.enableDangerousActions
+    onToggled: checked => {
+                 GlobalConfig.launcher.enableDangerousActions = checked;
+                 GlobalConfig.save();
+               }
   }
 
   NDivider {
     Layout.fillWidth: true
   }
 
-  NToggle {
-    label: I18n.tr("panels.launcher.settings-sort-by-usage-label")
-    description: I18n.tr("panels.launcher.settings-sort-by-usage-description")
-    checked: Settings.data.appLauncher.sortByMostUsed
-    onToggled: checked => Settings.data.appLauncher.sortByMostUsed = checked
-    defaultValue: Settings.getDefaultValue("appLauncher.sortByMostUsed")
+  NText {
+    text: qsTr("Search prefixes")
+    pointSize: Style.fontSizeM
+    font.weight: Style.fontWeightBold
+    color: Color.mOnSurface
+    Layout.fillWidth: true
+  }
+
+  NTextInput {
+    Layout.fillWidth: true
+    label: qsTr("Action prefix")
+    description: qsTr("Type this to switch the search into commands mode (scheme, wallpaper, calc, custom actions).")
+    text: GlobalConfig.launcher.actionPrefix
+    onEditingFinished: {
+      if (text.length > 0 && text !== GlobalConfig.launcher.actionPrefix) {
+        GlobalConfig.launcher.actionPrefix = text;
+        GlobalConfig.save();
+      }
+    }
+  }
+
+  NTextInput {
+    Layout.fillWidth: true
+    label: qsTr("Advanced-search prefix")
+    description: qsTr("Prefix for field-filtered app search: e.g. @c category, @k keyword, @d description, @e exec, @w window class, @t terminal apps.")
+    text: GlobalConfig.launcher.specialPrefix
+    onEditingFinished: {
+      if (text.length > 0 && text !== GlobalConfig.launcher.specialPrefix) {
+        GlobalConfig.launcher.specialPrefix = text;
+        GlobalConfig.save();
+      }
+    }
+  }
+
+  NDivider {
+    Layout.fillWidth: true
+  }
+
+  NText {
+    text: qsTr("Fuzzy search")
+    pointSize: Style.fontSizeM
+    font.weight: Style.fontWeightBold
+    color: Color.mOnSurface
+    Layout.fillWidth: true
+  }
+  NText {
+    Layout.fillWidth: true
+    text: qsTr("Fuzzy matching is typo-tolerant (“frfx” → Firefox); off uses stricter matching.")
+    pointSize: Style.fontSizeS
+    color: Color.mOnSurfaceVariant
+    wrapMode: Text.WordWrap
   }
 
   NToggle {
-    label: I18n.tr("panels.launcher.settings-enable-settings-search-label")
-    description: I18n.tr("panels.launcher.settings-enable-settings-search-description")
-    checked: Settings.data.appLauncher.enableSettingsSearch
-    onToggled: checked => Settings.data.appLauncher.enableSettingsSearch = checked
-    defaultValue: Settings.getDefaultValue("appLauncher.enableSettingsSearch")
+    Layout.fillWidth: true
+    label: qsTr("Apps")
+    checked: GlobalConfig.launcher.useFuzzy.apps
+    onToggled: checked => {
+                 GlobalConfig.launcher.useFuzzy.apps = checked;
+                 GlobalConfig.save();
+               }
   }
-
   NToggle {
-    label: I18n.tr("panels.launcher.settings-enable-windows-search-label")
-    description: I18n.tr("panels.launcher.settings-enable-windows-search-description")
-    checked: Settings.data.appLauncher.enableWindowsSearch
-    onToggled: checked => Settings.data.appLauncher.enableWindowsSearch = checked
-    defaultValue: Settings.getDefaultValue("appLauncher.enableWindowsSearch")
+    Layout.fillWidth: true
+    label: qsTr("Actions")
+    checked: GlobalConfig.launcher.useFuzzy.actions
+    onToggled: checked => {
+                 GlobalConfig.launcher.useFuzzy.actions = checked;
+                 GlobalConfig.save();
+               }
   }
-
   NToggle {
-    label: I18n.tr("panels.launcher.settings-enable-session-search-label")
-    description: I18n.tr("panels.launcher.settings-enable-session-search-description")
-    checked: Settings.data.appLauncher.enableSessionSearch
-    onToggled: checked => Settings.data.appLauncher.enableSessionSearch = checked
-    defaultValue: Settings.getDefaultValue("appLauncher.enableSessionSearch")
+    Layout.fillWidth: true
+    label: qsTr("Color schemes")
+    checked: GlobalConfig.launcher.useFuzzy.schemes
+    onToggled: checked => {
+                 GlobalConfig.launcher.useFuzzy.schemes = checked;
+                 GlobalConfig.save();
+               }
   }
-
   NToggle {
-    label: I18n.tr("panels.launcher.settings-ignore-mouse-input-label")
-    description: I18n.tr("panels.launcher.settings-ignore-mouse-input-description")
-    checked: Settings.data.appLauncher.ignoreMouseInput
-    onToggled: checked => Settings.data.appLauncher.ignoreMouseInput = checked
-    defaultValue: Settings.getDefaultValue("appLauncher.ignoreMouseInput")
+    Layout.fillWidth: true
+    label: qsTr("Scheme variants")
+    checked: GlobalConfig.launcher.useFuzzy.variants
+    onToggled: checked => {
+                 GlobalConfig.launcher.useFuzzy.variants = checked;
+                 GlobalConfig.save();
+               }
+  }
+  NToggle {
+    Layout.fillWidth: true
+    label: qsTr("Wallpapers")
+    checked: GlobalConfig.launcher.useFuzzy.wallpapers
+    onToggled: checked => {
+                 GlobalConfig.launcher.useFuzzy.wallpapers = checked;
+                 GlobalConfig.save();
+               }
   }
 }

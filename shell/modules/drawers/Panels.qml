@@ -3,6 +3,7 @@ import Quickshell
 import Ryoku.Config
 import qs.components
 import qs.modules.bar as Bar
+import qs.modules.clipboard as Clipboard
 import qs.modules.controlcenter as ControlCenter
 import qs.modules.dashboard as Dashboard
 import qs.modules.island as Island
@@ -31,6 +32,7 @@ Item {
     readonly property alias session: session
     readonly property alias sessionWrapper: sessionWrapper
     readonly property alias launcher: launcher
+    readonly property alias clipboard: clipboard
     readonly property alias island: island
     readonly property alias dashboard: dashboard
     readonly property alias settings: settings
@@ -109,6 +111,15 @@ Item {
         screen: root.screen
         visibilities: root.visibilities
         panels: root
+
+        anchors.horizontalCenter: parent.horizontalCenter
+    }
+
+    Clipboard.Wrapper {
+        id: clipboard
+
+        screen: root.screen
+        visibilities: root.visibilities
 
         anchors.horizontalCenter: parent.horizontalCenter
     }

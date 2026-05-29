@@ -13,6 +13,7 @@ PersistentProperties {
     property bool obsidian
     property bool utilities
     property bool sidebar
+    property bool clipboard
 
     function clearTransient(): void {
         osd = false;
@@ -24,6 +25,7 @@ PersistentProperties {
         obsidian = false;
         utilities = false;
         sidebar = false;
+        clipboard = false;
     }
 
     Component.onCompleted: Qt.callLater(clearTransient)
