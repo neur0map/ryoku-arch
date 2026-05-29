@@ -1095,6 +1095,8 @@
       "rotation-normal": "Normal",
       "position-x": "Position X",
       "position-y": "Position Y",
+      "vrr": "Adaptive sync (VRR)",
+      "vrr-desc": "Variable refresh rate / FreeSync. Reduces tearing; some panels may flicker.",
       "apply": "Apply",
       "recommended": "Recommended",
       "auto-scale": "Auto scale",

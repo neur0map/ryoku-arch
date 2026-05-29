@@ -31,6 +31,7 @@ ColumnLayout {
                  "transform": d.transform || 0,
                  "disabled": d.disabled || false,
                  "mirrorOf": d.mirrorOf || "none",
+                 "vrr": d.vrr || false,
                  "availableModes": d.availableModes || [],
                  "physicalWidth": d.physicalWidth || 0,
                  "physicalHeight": d.physicalHeight || 0,
@@ -49,19 +50,21 @@ ColumnLayout {
   }
 
   // Build a Hyprland `monitor=` spec from a monitor's current/pending values.
-  function buildSpec(name, enabled, res, rate, x, y, scale, transform, mirror) {
+  function buildSpec(name, enabled, res, rate, x, y, scale, transform, mirror, vrr) {
     if (!enabled)
       return name + ", disable";
     var spec = name + ", " + res + "@" + rate + ", " + x + "x" + y + ", " + scale;
     if (transform && transform !== 0)
       spec += ", transform, " + transform;
+    if (vrr)
+      spec += ", vrr, 1";
     if (mirror && mirror !== "none")
       spec += ", mirror, " + mirror;
     return spec;
   }
 
   function currentSpecOf(m) {
-    return buildSpec(m.name, !m.disabled, m.width + "x" + m.height, roundRate(m.refresh_rate), m.x, m.y, m.scale, m.transform, m.mirrorOf);
+    return buildSpec(m.name, !m.disabled, m.width + "x" + m.height, roundRate(m.refresh_rate), m.x, m.y, m.scale, m.transform, m.mirrorOf, m.vrr);
   }
 
   // Preview a spec live, then ask to keep or revert.
@@ -185,6 +188,7 @@ ColumnLayout {
     property real pendingScale: mon.scale
     property int pendingTransform: mon.transform
     property string pendingMirror: mon.mirrorOf || "none"
+    property bool pendingVrr: mon.vrr || false
     property int pendingX: mon.x
     property int pendingY: mon.y
 
@@ -410,6 +414,15 @@ ColumnLayout {
         }
       }
 
+      NToggle {
+        Layout.fillWidth: true
+        label: I18n.tr("panels.display.vrr")
+        description: I18n.tr("panels.display.vrr-desc")
+        enabled: card.pendingEnabled
+        checked: card.pendingVrr
+        onToggled: checked => card.pendingVrr = checked
+      }
+
       RowLayout {
         Layout.fillWidth: true
         NButton {
@@ -440,7 +453,7 @@ ColumnLayout {
           text: I18n.tr("panels.display.apply")
           icon: "check"
           onClicked: {
-            var newSpec = root.buildSpec(card.mon.name, card.pendingEnabled, card.pendingRes, card.pendingRate, card.pendingX, card.pendingY, card.pendingScale, card.pendingTransform, card.pendingMirror);
+            var newSpec = root.buildSpec(card.mon.name, card.pendingEnabled, card.pendingRes, card.pendingRate, card.pendingX, card.pendingY, card.pendingScale, card.pendingTransform, card.pendingMirror, card.pendingVrr);
             root.applyWithConfirm(card.mon.name, newSpec, root.currentSpecOf(card.mon));
           }
         }

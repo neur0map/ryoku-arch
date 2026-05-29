@@ -66,6 +66,7 @@ persist)
       else
         "monitor = \(.name), \(.width)x\(.height)@\(.refreshRate | round), \(.x)x\(.y), \(.scale)"
         + (if .transform != 0 then ", transform, \(.transform)" else "" end)
+        + (if .vrr then ", vrr, 1" else "" end)
         + (if (.mirrorOf // "none") != "none" then ", mirror, \(.mirrorOf)" else "" end)
       end
     '
