@@ -63,14 +63,19 @@ ColumnLayout {
     currentIndex: tabView.currentIndex
 
     NTabButton {
-      text: I18n.tr("common.brightness")
+      text: I18n.tr("panels.display.layout-title")
       tabIndex: 0
       checked: subTabBar.currentIndex === 0
     }
     NTabButton {
-      text: I18n.tr("common.night-light")
+      text: I18n.tr("common.brightness")
       tabIndex: 1
       checked: subTabBar.currentIndex === 1
+    }
+    NTabButton {
+      text: I18n.tr("common.night-light")
+      tabIndex: 2
+      checked: subTabBar.currentIndex === 2
       opacity: 0.6 // RYOKU: greyed preview marker — night light (wlsunset) not wired yet
     }
   }
@@ -84,6 +89,7 @@ ColumnLayout {
     id: tabView
     currentIndex: subTabBar.currentIndex
 
+    MonitorsSubTab {}
     BrightnessSubTab {}
     // RYOKU: night light (wlsunset) not wired in ryoku yet — greyed, non-interactive preview (still viewable)
     NightLightSubTab {
