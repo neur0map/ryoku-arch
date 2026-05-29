@@ -30,19 +30,35 @@ class GeneralIdle : public ConfigObject {
 
     CONFIG_GLOBAL_PROPERTY(bool, lockBeforeSleep, true)
     CONFIG_GLOBAL_PROPERTY(bool, inhibitWhenAudio, true)
+    // Terminal that hosts the idle ASCII screensaver (ryoku-launch-screensaver).
+    // Defaults to kitty (ryoku's default terminal); the Idle settings tab lets the
+    // user pick another (alacritty/ghostty/kitty).
+    CONFIG_GLOBAL_PROPERTY(QString, screensaverTerminal, u"kitty"_s)
+    // The single source of truth for idle behaviour, consumed by IdleMonitors.qml.
+    // The screensaver runs here (hypridle, its old trigger, is retired) so it actually
+    // fires; its returnAction stops it on activity.
     CONFIG_GLOBAL_PROPERTY(QVariantList, timeouts,
         {
             vmap({
-                { u"timeout"_s, 180 },
+                { u"kind"_s, u"screensaver"_s },
+                { u"timeout"_s, 300 },
+                { u"idleAction"_s, QStringList{ u"ryoku-launch-screensaver"_s } },
+                { u"returnAction"_s, QStringList{ u"pkill"_s, u"-f"_s, u"org.ryoku.screensaver"_s } },
+            }),
+            vmap({
+                { u"kind"_s, u"lock"_s },
+                { u"timeout"_s, 600 },
                 { u"idleAction"_s, u"lock"_s },
             }),
             vmap({
-                { u"timeout"_s, 300 },
+                { u"kind"_s, u"dpms"_s },
+                { u"timeout"_s, 900 },
                 { u"idleAction"_s, u"dpms off"_s },
                 { u"returnAction"_s, u"dpms on"_s },
             }),
             vmap({
-                { u"timeout"_s, 600 },
+                { u"kind"_s, u"suspend"_s },
+                { u"timeout"_s, 1800 },
                 { u"idleAction"_s, QStringList{ u"systemctl"_s, u"suspend-then-hibernate"_s } },
             }),
         })

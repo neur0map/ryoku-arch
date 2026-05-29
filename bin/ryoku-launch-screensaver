@@ -26,44 +26,23 @@ fi
 
 screensaver_command="$RYOKU_PATH/bin/ryoku-cmd-screensaver"
 
-configured_terminal_command() {
-  local config_file
-
-  if declare -F ryoku_shell_config_file >/dev/null; then
-    config_file="$(ryoku_shell_config_file)"
-  else
-    config_file="${XDG_CONFIG_HOME:-$HOME/.config}/ryoku-shell/config.json"
-  fi
-
-  [[ -f $config_file ]] || return 1
-  ryoku-cmd-present jq || return 1
-
-  jq -r '.apps.terminal // empty' "$config_file" 2>/dev/null
+# The screensaver terminal is GlobalConfig.general.idle.screensaverTerminal, editable in
+# the Idle settings tab. GlobalConfig only writes non-default keys, so an absent value
+# means the default: kitty (ryoku's default terminal). Falls back to kitty for anything
+# we don't have a screensaver profile for.
+configured_screensaver_terminal() {
+  local config_file="${XDG_CONFIG_HOME:-$HOME/.config}/ryoku/shell.json"
+  [[ -f $config_file ]] || return 0
+  ryoku-cmd-present jq || return 0
+  jq -r '.general.idle.screensaverTerminal // empty' "$config_file" 2>/dev/null
 }
 
-terminal_id_from_command() {
-  local configured_command="$1"
-  local terminal_bin
-
-  read -r terminal_bin _ <<< "$configured_command"
-
-  case "$(basename "$terminal_bin")" in
-  alacritty)
-    printf '%s\n' "Alacritty.desktop"
-  ;;
-  ghostty)
-    printf '%s\n' "com.mitchellh.ghostty.desktop"
-  ;;
-  kitty)
-    printf '%s\n' "kitty.desktop"
-  ;;
-  *)
-    return 1
-  ;;
-  esac
-}
-
-terminal="$(terminal_id_from_command "$(configured_terminal_command)" || xdg-terminal-exec --print-id)"
+terminal="$(configured_screensaver_terminal)"
+case "${terminal:-kitty}" in
+alacritty) terminal="Alacritty.desktop" ;;
+ghostty) terminal="com.mitchellh.ghostty.desktop" ;;
+*) terminal="kitty.desktop" ;;
+esac
 
 build_command() {
   case $terminal in
@@ -90,6 +69,9 @@ build_command() {
       --class=org.ryoku.screensaver
       --override font_size=18
       --override window_padding_width=0
+      --override background=#000000
+      --override cursor=#000000
+      --override cursor_text_color=#000000
       -e "$screensaver_command"
     )
   ;;

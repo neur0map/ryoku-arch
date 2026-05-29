@@ -20,7 +20,6 @@ import qs.noctalia.Modules.Panels.Settings.Tabs.Notifications
 import qs.noctalia.Modules.Panels.Settings.Tabs.Osd
 import qs.noctalia.Modules.Panels.Settings.Tabs.Plugins
 import qs.noctalia.Modules.Panels.Settings.Tabs.Region
-import qs.noctalia.Modules.Panels.Settings.Tabs.SessionMenu
 import qs.noctalia.Modules.Panels.Settings.Tabs.SystemMonitor
 import qs.noctalia.Modules.Panels.Settings.Tabs.UserInterface
 import qs.noctalia.Modules.Panels.Settings.Tabs.Wallpaper
@@ -483,10 +482,6 @@ Item {
     LockScreenTab {}
   }
   Component {
-    id: sessionMenuTab
-    SessionMenuTab {}
-  }
-  Component {
     id: systemMonitorTab
     SystemMonitorTab {}
   }
@@ -568,18 +563,10 @@ Item {
             "source": lockScreenTab
           },
           {
-            "id": SettingsPanel.Tab.SessionMenu,
-            "label": "session-menu.title",
-            "icon": "settings-session-menu",
-            "source": sessionMenuTab,
-            "disabled": true // TODO: ryoku session drawer differs; Noctalia sessionMenu.* (layout/countdown/powerOptions) has no ryoku mapping
-          },
-          {
             "id": SettingsPanel.Tab.Idle,
             "label": "panels.idle.title",
             "icon": "settings-idle",
-            "source": idleTab,
-            "disabled": true // TODO: ryoku idle = Config.general.idle.timeouts (different shape); Noctalia idle.* has no direct mapping
+            "source": idleTab
           },
           {
             "id": SettingsPanel.Tab.Audio,
