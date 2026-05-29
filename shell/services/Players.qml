@@ -12,7 +12,21 @@ Singleton {
     id: root
 
     readonly property list<MprisPlayer> list: Mpris.players.values
-    readonly property MprisPlayer active: props.manualActive ?? list.find(p => getIdentity(p) === GlobalConfig.services.defaultPlayer) ?? list[0] ?? null
+
+    // Skip utility "players" that should never be shown as the active media source: the
+    // skwd wallpaper daemon (skwd-music) and the playerctld proxy. Without this, the old
+    // `list[0]` fallback could latch onto skwd-music (added with skwd-wall) instead of the
+    // browser, so browser/app media stopped being detected.
+    function isJunkPlayer(player: MprisPlayer): bool {
+        const n = `${player.identity ?? ""} ${player.dbusName ?? ""} ${player.desktopEntry ?? ""}`.toLowerCase();
+        return n.includes("skwd") || n.includes("playerctld");
+    }
+
+    readonly property MprisPlayer active: props.manualActive
+        ?? list.find(p => !isJunkPlayer(p) && getIdentity(p) === GlobalConfig.services.defaultPlayer)
+        ?? list.find(p => !isJunkPlayer(p) && p.isPlaying)
+        ?? list.find(p => !isJunkPlayer(p))
+        ?? null
     property alias manualActive: props.manualActive
 
     function getIdentity(player: MprisPlayer): string {
