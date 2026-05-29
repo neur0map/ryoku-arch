@@ -9,4 +9,5 @@ Item {
     Crosshair {}
     Stats {}
     Recorder {}
+    Music {}
 }
