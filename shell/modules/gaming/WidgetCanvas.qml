@@ -8,4 +8,5 @@ Item {
 
     Crosshair {}
     Stats {}
+    Recorder {}
 }
