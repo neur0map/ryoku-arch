@@ -1,7 +1,10 @@
 import QtQuick
+import "widgets"
 
-// RYOKU: gaming overlay widget canvas. Placeholder for now; later tasks populate
-// it with the crosshair, stats, recorder, music and game-mode widgets.
+// RYOKU: gaming overlay widget canvas. Hosts the overlay widgets; later tasks
+// add the stats, recorder, music and game-mode widgets alongside the crosshair.
 Item {
     id: canvas
+
+    Crosshair {}
 }
