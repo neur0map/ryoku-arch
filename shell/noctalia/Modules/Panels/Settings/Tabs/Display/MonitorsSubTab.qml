@@ -11,14 +11,36 @@ ColumnLayout {
   spacing: Style.marginL
   Layout.fillWidth: true
 
-  // Live list of monitors from CompositorService (hyprctl monitors -j parse).
+  // Base the list on the authoritative connected-screen list (Quickshell.screens) and
+  // enrich each with the hyprctl-parsed details (modes/refresh/transform/...).
+  // displayScales alone can be empty at first render, so never iterate it directly.
   readonly property var monitors: {
+    var screens = Quickshell.screens || [];
     var ds = CompositorService.displayScales || ({});
     var out = [];
-    for (var k in ds)
-      out.push(ds[k]);
+    for (var i = 0; i < screens.length; i++) {
+      var s = screens[i];
+      var d = ds[s.name] || ({});
+      out.push({
+                 "name": s.name,
+                 "description": d.description || s.model || s.name,
+                 "width": d.width || s.width || 0,
+                 "height": d.height || s.height || 0,
+                 "refresh_rate": d.refresh_rate || 60,
+                 "scale": d.scale || s.scale || 1.0,
+                 "transform": d.transform || 0,
+                 "disabled": d.disabled || false,
+                 "mirrorOf": d.mirrorOf || "none",
+                 "availableModes": d.availableModes || [],
+                 "x": d.x || 0,
+                 "y": d.y || 0
+               });
+    }
     return out;
   }
+
+  // Force a fresh hyprctl query so modes/refresh are populated when the tab opens.
+  Component.onCompleted: CompositorService.updateDisplayScales()
 
   function roundRate(r) {
     return Math.round(r);

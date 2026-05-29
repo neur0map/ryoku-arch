@@ -76,7 +76,6 @@ ColumnLayout {
       text: I18n.tr("common.night-light")
       tabIndex: 2
       checked: subTabBar.currentIndex === 2
-      opacity: 0.6 // RYOKU: greyed preview marker — night light (wlsunset) not wired yet
     }
   }
 
@@ -91,10 +90,7 @@ ColumnLayout {
 
     MonitorsSubTab {}
     BrightnessSubTab {}
-    // RYOKU: night light (wlsunset) not wired in ryoku yet — greyed, non-interactive preview (still viewable)
     NightLightSubTab {
-      enabled: false
-      opacity: 0.45
       timeOptions: timeOptions
       onCheckWlsunset: wlsunsetCheck.running = true
     }
