@@ -11,4 +11,10 @@ Item {
     Recorder {}
     Music {}
     GameModeButton {}
+
+    WidgetToggleBar {
+        anchors.top: parent.top
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.topMargin: 24
+    }
 }
