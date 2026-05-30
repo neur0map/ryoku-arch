@@ -21,7 +21,7 @@ StyledWindow {
     readonly property bool isActiveScreen: Hypr.focusedMonitor
         ? Hypr.focusedMonitor.name === modelData.name
         : (Screens.screens[0]?.name === modelData.name)
-    readonly property bool anyVisible: Gaming.open || Gaming.isPinned("crosshair") || Gaming.isPinned("stats") || Gaming.isPinned("recorder") || Gaming.isPinned("music") || Gaming.isPinned("gameMode")
+    readonly property bool anyVisible: Gaming.open || Gaming.widgetIds.some(id => Gaming.isPinned(id))
 
     // NOTE: lock-hide is added in a LATER task -- do NOT add a lock term here.
     visible: isActiveScreen && anyVisible
