@@ -337,9 +337,12 @@ detect_disk_layout() {
   FREE_SPACE_BYTES=0
   EXISTING_OS=""
 
-  # Only GPT disks qualify for alongside-install (UEFI).
-  sgdisk -p "$disk" >/dev/null 2>&1 || return 0
-  sgdisk -p "$disk" 2>/dev/null | grep -qiE "GPT: *present" || return 0
+  # Only GPT disks qualify for alongside-install (UEFI). blkid's PTTYPE is the
+  # canonical probe: it reports "gpt" for GPT, "dos" for MBR, empty for an
+  # unpartitioned disk. (The previous check grepped sgdisk -p output for a
+  # presence string that sgdisk never actually prints, so it silently failed
+  # and dual-boot was never offered.)
+  [[ "$(blkid -p -o value -s PTTYPE "$disk" 2>/dev/null)" == "gpt" ]] || return 0
 
   # Existing ESP: a partition carrying the EFI System Partition type GUID.
   EXISTING_ESP=$(lsblk -rpno NAME,PARTTYPE "$disk" 2>/dev/null |

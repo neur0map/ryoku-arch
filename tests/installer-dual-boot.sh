@@ -34,6 +34,12 @@ assert_in "$CONFIGURATOR" 'detect_disk_layout\(\)' \
   "configurator should detect the chosen disk's layout"
 assert_in "$CONFIGURATOR" 'c12a7328-f81f-11d2-ba4b-00a0c93ec93b' \
   "configurator should detect an existing ESP via the EFI System Partition GUID"
+# The GPT check must use blkid's PTTYPE, not the bogus "GPT: present" grep that
+# sgdisk -p never emits (which silently disabled dual-boot detection entirely).
+assert_in "$CONFIGURATOR" 'blkid -p -o value -s PTTYPE' \
+  "configurator must probe the partition-table type with blkid PTTYPE"
+refute_in "$CONFIGURATOR" 'GPT: *present' \
+  "configurator must not gate on the non-existent sgdisk 'GPT: present' string"
 assert_in "$CONFIGURATOR" 'parted .*print free' \
   "configurator should detect free space with parted"
 assert_in "$CONFIGURATOR" 'install_mode_form\(\)' \
