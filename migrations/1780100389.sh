@@ -12,7 +12,7 @@
 
 set -euo pipefail
 
-CONF="${HOME}/.config/hypr/hyprland.conf"
+CONF="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland.conf"
 
 if [[ ! -f "$CONF" ]]; then
   echo "0008: no hyprland.conf at $CONF; nothing to do."
@@ -45,6 +45,18 @@ if ! grep -q '^bind = SUPER, G, exec, \$gameBar$' "$CONF"; then
       }
     ' "$CONF" > "${CONF}.tmp" && mv "${CONF}.tmp" "$CONF"
   fi
+fi
+
+# --- append-if-anchor-missing fallback -----------------------------------
+# Heavily customised configs may lack the $clipboard var / SUPER, V bind that
+# the anchored inserts above key off. In that case the lines never landed, so
+# append them here. The grep -qF guards keep this idempotent across re-runs.
+if ! grep -qF '$gameBar = sh -lc '\''$HOME/.local/bin/ryoku-shell ipc gaming toggle'\''' "$CONF"; then
+  printf '%s\n' '$gameBar = sh -lc '\''$HOME/.local/bin/ryoku-shell ipc gaming toggle'\''' >> "$CONF"
+fi
+
+if ! grep -qF 'bind = SUPER, G, exec, $gameBar' "$CONF"; then
+  printf '%s\n' 'bind = SUPER, G, exec, $gameBar' >> "$CONF"
 fi
 
 echo "0008: gaming keybind ensured."
