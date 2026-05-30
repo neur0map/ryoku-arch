@@ -45,7 +45,13 @@ nvidia-580xx-utils
 # hardware.
 macbook12-spi-driver-dkms
 tuxedo-drivers-nocompatcheck-dkms
-yt6801-dkms
+# yt6801-dkms: temporarily dropped. Motorcomm reorganised their downloads,
+# so the AUR PKGBUILD's pinned sources are gone (1.0.31 endpoint serves
+# changed bytes whose layout no longer matches prepare(); the 1.0.30 dated
+# URL now 404s). There is no in-tree yt6801 module to fall back on. The
+# hardware-gated install/config/hardware/fix-yt6801-ethernet-adapter.sh
+# still best-effort installs it at runtime, so this re-enables itself once
+# the AUR package is buildable again. Re-add this line then.
 
 # ── Conditional hardware AUR drivers (chosen by packaging scripts) ────
 # Selected by install/packaging/{asus-rog,framework16}.sh after the
