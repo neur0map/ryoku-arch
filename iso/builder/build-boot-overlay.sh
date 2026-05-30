@@ -243,12 +243,15 @@ while IFS= read -r pkg; do
   pushd "$work_dir" >/dev/null
   # --skippgpcheck: some AUR packages (1password, etc.) sign source
   # tarballs with vendor PGP keys that aren't trusted in the empty build
-  # container keyring. Skipping verification here is acceptable for
-  # offline-mirror builds - the resulting .pkg.tar.zst is then signed by
-  # OUR ISO key downstream (ryoku-iso-sign), which is what users verify.
-  # For a hardened release flow, replace --skippgpcheck with explicit
-  # gpg --recv-keys for the vendor keys we trust.
-  sudo -u builder env PKGDEST="$output_dir" makepkg --syncdeps --clean --cleanbuild --force --noconfirm --skippgpcheck
+  # container keyring. --skipchecksums: AUR hardware/DKMS drivers
+  # (yt6801-dkms, etc.) frequently re-publish the same version with new
+  # source content, leaving the pinned sha256sums stale and breaking the
+  # build. Skipping verification here is acceptable for offline-mirror
+  # builds - the resulting .pkg.tar.zst is then signed by OUR ISO key
+  # downstream (ryoku-iso-sign), which is what users verify. For a
+  # hardened release flow, replace these with explicit gpg --recv-keys
+  # plus updpkgsums for the sources we trust.
+  sudo -u builder env PKGDEST="$output_dir" makepkg --syncdeps --clean --cleanbuild --force --noconfirm --skippgpcheck --skipchecksums
   aur_publish_build_outputs
   popd >/dev/null
 done < <(cat "${packages_files[@]}")
