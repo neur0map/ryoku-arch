@@ -607,8 +607,7 @@ Item {
             "id": SettingsPanel.Tab.Location,
             "label": "panels.region.title",
             "icon": "settings-location",
-            "source": regionTab,
-            "disabled": true // TODO: weather/clock could later wire to ryoku Weather/Time; Noctalia location/calendar schema not mapped yet
+            "source": regionTab
           },
           {
             "id": SettingsPanel.Tab.System,

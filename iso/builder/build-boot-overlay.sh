@@ -248,6 +248,11 @@ while IFS= read -r pkg; do
   # OUR ISO key downstream (ryoku-iso-sign), which is what users verify.
   # For a hardened release flow, replace --skippgpcheck with explicit
   # gpg --recv-keys for the vendor keys we trust.
+  #
+  # NOTE: source-integrity (sha256sums) checks are intentionally LEFT ON.
+  # If an AUR package's pinned source moves or changes upstream, the build
+  # should fail loudly here rather than silently bake changed bytes into
+  # the offline mirror.
   sudo -u builder env PKGDEST="$output_dir" makepkg --syncdeps --clean --cleanbuild --force --noconfirm --skippgpcheck
   aur_publish_build_outputs
   popd >/dev/null

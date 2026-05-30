@@ -27,6 +27,44 @@ Singleton {
     readonly property bool sourceMuted: !!source?.audio?.muted
     readonly property real sourceVolume: source?.audio?.volume ?? 0
 
+    // --- iNiR overlay compat (vendored volume mixer expects these names) ---
+    readonly property PwNode defaultSink: sink
+    readonly property bool micMuted: sourceMuted
+    function _toArray(l): var {
+        const a = [];
+        for (let i = 0; i < l.length; i++)
+            a.push(l[i]);
+        return a;
+    }
+    readonly property var inputAppNodes: []
+    readonly property var outputAppNodes: root._toArray(root.streams)
+    readonly property var inputDevices: root._toArray(root.sources)
+    readonly property var outputDevices: root._toArray(root.sinks)
+    function setDefaultSink(node: PwNode): void {
+        root.setAudioSink(node);
+    }
+    function setDefaultSource(node: PwNode): void {
+        root.setAudioSource(node);
+    }
+    function setSinkVolume(newVolume: real): void {
+        root.setVolume(newVolume);
+    }
+    function toggleMute(): void {
+        if (root.sink?.ready && root.sink?.audio)
+            root.sink.audio.muted = !root.sink.audio.muted;
+    }
+    function toggleMicMute(): void {
+        if (root.source?.ready && root.source?.audio)
+            root.source.audio.muted = !root.source.audio.muted;
+    }
+    function friendlyDeviceName(node: PwNode): string {
+        return node?.description || node?.name || "Unknown Device";
+    }
+    function appNodeDisplayName(node: PwNode): string {
+        return root.getStreamName(node);
+    }
+    // --- end iNiR overlay compat ---
+
     readonly property alias cava: cava
     readonly property alias beatTracker: beatTracker
 

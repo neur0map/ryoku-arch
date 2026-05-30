@@ -16,6 +16,10 @@ Searcher {
 
     property bool showPreview: false
     readonly property string current: showPreview ? previewPath : actualCurrent
+
+    // iNiR overlay compat: vendored widgets read Wallpapers.effectiveWallpaperUrl.
+    readonly property url effectiveWallpaperUrl: Qt.resolvedUrl(root.current)
+
     property string previewPath
     property string actualCurrent
     property bool previewColourLock

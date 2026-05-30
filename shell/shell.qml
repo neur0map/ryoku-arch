@@ -8,6 +8,7 @@ import "modules"
 import "modules/drawers"
 import "modules/background"
 import "modules/areapicker"
+import qs.modules.ii.overlay
 import Quickshell
 import qs.services
 import qs.ambxst.modules.globals as AmbxstGlobals
@@ -20,6 +21,8 @@ ShellRoot {
     Drawers {}
     AreaPicker {}
 
+    Overlay {}
+
     ConfigToasts {}
     Shortcuts {}
     BatteryMonitor {}
@@ -27,6 +30,7 @@ ShellRoot {
     IdleMonitors {}
     WallpaperRotation {}
     ClipboardMaintenance {}
+    WeatherUnitSync {}
 
     // RYOKU PORT: webcam mirror window, toggled from the island weather-tools row
     // (GlobalStates.mirrorWindowVisible). Registered at the shell root so it persists

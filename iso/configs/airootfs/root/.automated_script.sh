@@ -6,7 +6,8 @@ use_ryoku_helpers() {
   export RYOKU_INSTALL="/root/ryoku/install"
   export RYOKU_INSTALL_LOG_FILE="/var/log/ryoku-install.log"
   if [[ -f /root/ryoku_channel ]]; then
-    export RYOKU_CHANNEL="$(</root/ryoku_channel)"
+    RYOKU_CHANNEL="$(</root/ryoku_channel)"
+    export RYOKU_CHANNEL
   else
     export RYOKU_CHANNEL="main"
   fi
@@ -16,7 +17,16 @@ use_ryoku_helpers() {
 run_configurator() {
   set_ryoku_colors
   ./configurator
-  export RYOKU_USER="$(jq -r '.users[0].username' user_credentials.json)"
+  RYOKU_USER="$(jq -r '.users[0].username' user_credentials.json)"
+  export RYOKU_USER
+
+  # The configurator writes install_mode.sh only for an alongside (dual-boot)
+  # install; its absence means a normal full-disk install.
+  DUAL_BOOT=false
+  if [[ -f install_mode.sh ]]; then
+    # shellcheck disable=SC1091
+    source ./install_mode.sh
+  fi
 }
 
 install_arch() {
@@ -29,6 +39,7 @@ install_arch() {
   start_log_output
 
   # Set CURRENT_SCRIPT for the trap to display better when nothing is returned for some reason
+  # shellcheck disable=SC2034  # read by the error trap in install/helpers/all.sh
   CURRENT_SCRIPT="install_base_system"
   install_base_system > >(sed -u 's/\x1b\[[0-9;]*[a-zA-Z]//g' >>/var/log/ryoku-install.log) 2>&1
   unset CURRENT_SCRIPT
@@ -140,6 +151,117 @@ cleanup_install_disk() {
   udevadm settle || true
 }
 
+# Dual-boot: carve one new partition out of the largest free region on the
+# chosen disk and set up LUKS/Btrfs ourselves, then mount the tree at /mnt so
+# archinstall (pre_mounted_config) installs into it without any disk operations.
+# Existing partitions and the existing ESP are never modified  -  sgdisk -n 0:0:0
+# uses only free space, and we refuse to touch any pre-existing partition.
+setup_dual_boot_partitions() {
+  local disk="${INSTALL_DISK:-}"
+  local esp="${EXISTING_ESP:-}"
+  local target="/mnt"
+
+  [[ -b $disk ]] || { echo "Dual-boot: install disk '$disk' not found" >&2; return 1; }
+  [[ -b $esp ]] || { echo "Dual-boot: existing ESP '$esp' not found" >&2; return 1; }
+
+  echo "Dual-boot: creating a Ryoku partition in free space on $disk (existing data untouched)"
+
+  local before after newpart
+  before=$(lsblk -rpno NAME "$disk" 2>/dev/null | sort -u)
+
+  # sgdisk picks the largest free block itself (start/end 0:0). Type 8309 = Linux
+  # LUKS. No existing partition can be overwritten by this.
+  sgdisk -n 0:0:0 -t 0:8309 -c 0:"Ryoku" "$disk" || { echo "Dual-boot: sgdisk failed" >&2; return 1; }
+
+  partprobe "$disk" 2>/dev/null || true
+  udevadm settle 2>/dev/null || true
+  sleep 1
+
+  after=$(lsblk -rpno NAME "$disk" 2>/dev/null | sort -u)
+  newpart=$(comm -13 <(printf '%s\n' "$before") <(printf '%s\n' "$after") | grep -v "^${disk}$" | head -n1)
+
+  # Hard guardrails: the device we operate on must be brand new and must not be
+  # the ESP or any partition that already existed.
+  [[ -b $newpart ]] || { echo "Dual-boot: could not identify the new partition" >&2; return 1; }
+  if [[ "$newpart" == "$esp" ]] || printf '%s\n' "$before" | grep -qxF "$newpart"; then
+    echo "Dual-boot: refusing to format '$newpart' (not a freshly created partition)" >&2
+    return 1
+  fi
+  echo "Dual-boot: new Ryoku partition is $newpart"
+
+  local root_dev
+  if [[ "${ENCRYPT_INSTALLATION:-true}" == "true" ]]; then
+    local pw
+    pw=$(jq -r '.encryption_password // empty' user_credentials.json)
+    [[ -n $pw ]] || { echo "Dual-boot: encryption requested but no passphrase available" >&2; return 1; }
+    printf '%s' "$pw" | cryptsetup luksFormat --type luks2 --batch-mode "$newpart" - || return 1
+    printf '%s' "$pw" | cryptsetup open "$newpart" ryoku_root - || return 1
+    DUAL_BOOT_LUKS_UUID=$(cryptsetup luksUUID "$newpart")
+    root_dev="/dev/mapper/ryoku_root"
+  else
+    root_dev="$newpart"
+  fi
+
+  mkfs.btrfs -f "$root_dev" || return 1
+
+  local tmp
+  tmp=$(mktemp -d)
+  mount "$root_dev" "$tmp" || return 1
+  btrfs subvolume create "$tmp/@" >/dev/null
+  btrfs subvolume create "$tmp/@home" >/dev/null
+  btrfs subvolume create "$tmp/@log" >/dev/null
+  btrfs subvolume create "$tmp/@pkg" >/dev/null
+  umount "$tmp"
+  rmdir "$tmp"
+
+  # Mount the pre-mounted tree archinstall will install into.
+  findmnt -R "$target" >/dev/null 2>&1 && umount -R "$target" || true
+  mkdir -p "$target"
+  mount -o compress=zstd,subvol=@ "$root_dev" "$target"
+  mkdir -p "$target/home" "$target/var/log" "$target/var/cache/pacman/pkg" "$target/boot"
+  mount -o compress=zstd,subvol=@home "$root_dev" "$target/home"
+  mount -o compress=zstd,subvol=@log "$root_dev" "$target/var/log"
+  mount -o compress=zstd,subvol=@pkg "$root_dev" "$target/var/cache/pacman/pkg"
+
+  # Reuse the existing ESP untouched, alongside the other OS's bootloaders.
+  mount "$esp" "$target/boot"
+
+}
+
+# Dual-boot post-install: wire LUKS unlock (crypttab + initramfs encrypt hook +
+# kernel cmdline) and let Limine discover the co-installed OS. Runs after
+# archinstall has populated /mnt. All target-system commands run in the chroot.
+configure_dual_boot_post_install() {
+  local target="/mnt"
+
+  if [[ "${ENCRYPT_INSTALLATION:-true}" == "true" && -n "${DUAL_BOOT_LUKS_UUID:-}" ]]; then
+    printf 'ryoku_root UUID=%s none luks\n' "$DUAL_BOOT_LUKS_UUID" >>"$target/etc/crypttab"
+
+    # Ensure mkinitcpio unlocks LUKS at boot (add the encrypt hook after block).
+    if [[ -f $target/etc/mkinitcpio.conf ]]; then
+      if ! grep -qE '^HOOKS=.*\bencrypt\b' "$target/etc/mkinitcpio.conf"; then
+        sed -i -E 's/^(HOOKS=\([^)]*)\bblock\b/\1block encrypt/' "$target/etc/mkinitcpio.conf"
+      fi
+      arch-chroot "$target" mkinitcpio -P || true
+    fi
+
+    # Point the Limine boot entry at the encrypted root.
+    local cmdline="cryptdevice=UUID=${DUAL_BOOT_LUKS_UUID}:ryoku_root root=/dev/mapper/ryoku_root rootflags=subvol=@ rw"
+    local limine_conf
+    limine_conf=$(find "$target/boot" -maxdepth 3 -name 'limine.conf' 2>/dev/null | head -n1)
+    if [[ -n $limine_conf ]]; then
+      if grep -qE '^\s*cmdline:' "$limine_conf"; then
+        sed -i -E "s|^(\s*cmdline:).*|\1 ${cmdline}|" "$limine_conf"
+      else
+        printf '    cmdline: %s\n' "$cmdline" >>"$limine_conf"
+      fi
+    fi
+  fi
+
+  # Discover the other OS so it shows up in the Limine menu (best effort).
+  arch-chroot "$target" limine-scan 2>/dev/null || true
+}
+
 install_base_system() {
   # Initialize and populate the keyring. Ryoku currently relies on the
   # standard Arch repositories in the ISO and does not ship a signed
@@ -150,7 +272,13 @@ install_base_system() {
   # Sync the offline database so pacman can find packages
   pacman -Sy --noconfirm
 
-  cleanup_install_disk "$(install_disk)"
+  if [[ ${DUAL_BOOT:-false} == "true" ]]; then
+    # Alongside install: partition free space + mount /mnt ourselves. Never wipe.
+    setup_dual_boot_partitions
+  else
+    # Full-disk install: tear down any existing holders before archinstall wipes.
+    cleanup_install_disk "$(install_disk)"
+  fi
 
   # Workarounds for archinstall 4.2 regressions under Python 3.14:
   # 1. sync_log_to_install_medium: `self.target / absolute_logfile` drops
@@ -174,6 +302,11 @@ install_base_system() {
     --skip-ntp \
     --skip-wkd \
     --skip-wifi-check
+
+  if [[ ${DUAL_BOOT:-false} == "true" ]]; then
+    # Wire LUKS unlock + Limine co-existence for the alongside install.
+    configure_dual_boot_post_install
+  fi
 
   # After archinstall sets up the base system but before our installer runs,
   # we need to ensure the offline pacman.conf is in place

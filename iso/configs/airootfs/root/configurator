@@ -10,7 +10,7 @@ command -v tzupdate >/dev/null || true
 abort() {
   gum style "${1:-Aborted installation}"
   echo
-  gum style "You can retry later by running: ./.automated_script.sh"
+  gum style "To start over, rerun: ./.automated_script.sh"
   exit 1
 }
 
@@ -31,7 +31,7 @@ notice() {
 # STEP 1: KEYBOARD LAYOUT
 
 keyboard_form() {
-  step "Let's setup your machine..."
+  step "Pick your keyboard layout"
   keyboards=$'Azerbaijani|azerty
 Belarusian|by
 Belgian|be-latin1
@@ -101,10 +101,10 @@ keyboard_form
 # STEP 2: USER
 
 user_form() {
-  step "Let's setup your user account..."
+  step "Create your account"
 
   while true; do
-    username=$(gum input --placeholder "Alphanumeric without spaces (like dhh)" --prompt.foreground="#845DF9" --prompt "Username> ") || abort
+    username=$(gum input --placeholder "Lowercase letters, digits, or underscores; no spaces" --prompt.foreground="#F25623" --prompt "Username> ") || abort
 
     if [[ "$username" =~ ^[a-z_][a-z0-9_-]*[$]?$ ]]; then
       break
@@ -114,8 +114,8 @@ user_form() {
   done
 
   while true; do
-    password=$(gum input --placeholder "Used for user + root, and disk encryption when enabled" --prompt.foreground="#845DF9" --password --prompt "Password> ") || abort
-    password_confirmation=$(gum input --placeholder "Must match the password you just typed" --prompt.foreground="#845DF9" --password --prompt "Confirm> ") || abort
+    password=$(gum input --placeholder "Used for user + root, and disk encryption when enabled" --prompt.foreground="#F25623" --password --prompt "Password> ") || abort
+    password_confirmation=$(gum input --placeholder "Must match the password you just typed" --prompt.foreground="#F25623" --password --prompt "Confirm> ") || abort
 
     if [[ -n "$password" && "$password" == "$password_confirmation" ]]; then
       break
@@ -129,11 +129,11 @@ user_form() {
   # Hash the password using yescrypt
   password_hash=$(printf '%s' "$password" | openssl passwd -6 -stdin)
 
-  full_name=$(gum input --placeholder "Used for git authentication (hit return to skip)" --prompt.foreground="#845DF9" --prompt "Full name> ")
-  email_address=$(gum input --placeholder "Used for git authentication (hit return to skip)" --prompt.foreground="#845DF9" --prompt "Email address> ")
+  full_name=$(gum input --placeholder "Used for git authentication (hit return to skip)" --prompt.foreground="#F25623" --prompt "Full name> ")
+  email_address=$(gum input --placeholder "Used for git authentication (hit return to skip)" --prompt.foreground="#F25623" --prompt "Email address> ")
 
   while true; do
-    hostname=$(gum input --placeholder "Letters, digits, and dashes (or return for 'ryoku')" --prompt.foreground="#845DF9" --prompt "Hostname> ")
+    hostname=$(gum input --placeholder "Letters, digits, and dashes (or return for 'ryoku')" --prompt.foreground="#F25623" --prompt "Hostname> ")
 
     if [[ $hostname =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$ ]]; then
       break
@@ -170,7 +170,7 @@ Keyboard,$keyboard" |
     gum table -s "," -p | sed "s/^/${PADDING_LEFT_SPACES}/"
 
   echo
-  if gum confirm --negative "No, change it" "Does this look right?"; then
+  if gum confirm --negative "No, change it" "All correct?"; then
     break
   else
     keyboard_form
@@ -276,7 +276,7 @@ no_disk_diagnostics() {
 }
 
 disk_form() {
-  step "Let's select where to install Ryoku..."
+  step "Choose where Ryoku is installed"
 
   probe_storage_modules
 
@@ -313,6 +313,103 @@ disk_form() {
 }
 
 disk_form
+
+# STEP 3b: INSTALL MODE (full-disk vs dual-boot alongside an existing OS)
+#
+# Dual-boot is offered ONLY when the chosen disk is GPT, already has an EFI
+# System Partition, and has at least MIN_DUAL_BOOT_GIB of contiguous free space.
+# In that mode the installer never wipes the disk: it carves a single new
+# partition out of the largest free region (sgdisk picks the free block, so
+# existing partitions are never touched) and installs into it, reusing the
+# existing ESP. Anything ambiguous falls back to the safe full-disk path.
+
+MIN_DUAL_BOOT_GIB=20
+EFI_PARTTYPE_GUID="c12a7328-f81f-11d2-ba4b-00a0c93ec93b"
+
+# Globals set by detect_disk_layout:
+EXISTING_ESP=""
+FREE_SPACE_BYTES=0
+EXISTING_OS=""
+
+detect_disk_layout() {
+  local disk="$1"
+  EXISTING_ESP=""
+  FREE_SPACE_BYTES=0
+  EXISTING_OS=""
+
+  # Only GPT disks qualify for alongside-install (UEFI). blkid's PTTYPE is the
+  # canonical probe: it reports "gpt" for GPT, "dos" for MBR, empty for an
+  # unpartitioned disk. (The previous check grepped sgdisk -p output for a
+  # presence string that sgdisk never actually prints, so it silently failed
+  # and dual-boot was never offered.)
+  [[ "$(blkid -p -o value -s PTTYPE "$disk" 2>/dev/null)" == "gpt" ]] || return 0
+
+  # Existing ESP: a partition carrying the EFI System Partition type GUID.
+  EXISTING_ESP=$(lsblk -rpno NAME,PARTTYPE "$disk" 2>/dev/null |
+    awk -v g="$EFI_PARTTYPE_GUID" 'tolower($2)==tolower(g){print $1; exit}')
+
+  # Largest contiguous free region, in bytes (parted reports free regions).
+  local free_line
+  free_line=$(parted -ms "$disk" unit B print free 2>/dev/null |
+    awk -F: '$5 ~ /free/ { sz=$4; sub(/B$/,"",sz); if (sz+0 > max) max=sz+0 } END { if (max>0) print max }')
+  [[ -n $free_line ]] && FREE_SPACE_BYTES=$free_line
+
+  # Existing-OS label (installer UX only; boot correctness is handled by limine-scan).
+  if [[ -n $EXISTING_ESP ]]; then
+    local mp
+    mp=$(mktemp -d)
+    if mount -o ro "$EXISTING_ESP" "$mp" 2>/dev/null; then
+      if [[ -d "$mp/EFI/Microsoft" ]]; then EXISTING_OS="Windows"
+      elif [[ -d "$mp/EFI/ubuntu" ]]; then EXISTING_OS="Ubuntu"
+      elif [[ -d "$mp/EFI/fedora" ]]; then EXISTING_OS="Fedora"
+      elif [[ -d "$mp/EFI/Linux" || -d "$mp/EFI/systemd" ]]; then EXISTING_OS="Linux"
+      elif compgen -G "$mp/EFI/*" >/dev/null 2>&1; then EXISTING_OS="another OS"
+      fi
+      umount "$mp" 2>/dev/null || true
+    fi
+    rmdir "$mp" 2>/dev/null || true
+  fi
+}
+
+DUAL_BOOT=false
+
+install_mode_form() {
+  local disk="$1"
+  DUAL_BOOT=false
+
+  detect_disk_layout "$disk"
+
+  local min_bytes=$((MIN_DUAL_BOOT_GIB * 1024 * 1024 * 1024))
+
+  # Only offer alongside-install when it is actually safe + possible.
+  [[ -n $EXISTING_ESP && $FREE_SPACE_BYTES -ge $min_bytes ]] || return 0
+
+  step "Choose how Ryoku uses this disk"
+
+  local free_gib=$((FREE_SPACE_BYTES / 1024 / 1024 / 1024))
+  local os_label="${EXISTING_OS:-the existing system}"
+  local alongside="Install alongside ${os_label} (use ${free_gib} GB free space)"
+  local erase="Erase the entire disk and use it all for Ryoku"
+
+  gum style --bold "Install alongside ${os_label}"
+  gum style "Keeps your current OS and its files. Ryoku takes only the free space."
+  gum style --foreground 8 "Free space available: ${free_gib} GB"
+  echo
+  gum style --bold "Erase the entire disk"
+  gum style "Removes everything on ${disk}, including ${os_label}."
+  echo
+
+  local choice
+  choice=$(printf '%s\n' "$alongside" "$erase" |
+    gum choose --height 4 --selected "$alongside" --header "How should Ryoku use ${disk}?") || abort
+
+  case $choice in
+    "Install alongside"*) DUAL_BOOT=true ;;
+    *) DUAL_BOOT=false ;;
+  esac
+}
+
+install_mode_form "$disk"
 
 encryption_form() {
   local choice
@@ -360,7 +457,12 @@ encryption_form() {
 encryption_form
 
 while true; do
-  gum style "Everything will be overwritten. There is no recovery possible."
+  if [[ $DUAL_BOOT == "true" ]]; then
+    gum style "Ryoku will install into the free space on ${disk} and keep ${EXISTING_OS:-your existing system}."
+    gum style --foreground 8 "Existing partitions are left untouched; only free space is used."
+  else
+    gum style "This erases the whole disk  -  everything on it is permanently lost."
+  fi
   if [[ $encrypt_installation == "true" ]]; then
     gum style --foreground 8 "Disk encryption: enabled"
   else
@@ -368,10 +470,18 @@ while true; do
   fi
 
   echo
-  if gum confirm --affirmative "Yes, format disk" --negative "No, change it" "Confirm overwriting ${disk}"; then
+  if [[ $DUAL_BOOT == "true" ]]; then
+    confirm_affirmative="Yes, install alongside"
+    confirm_prompt="Install Ryoku alongside ${EXISTING_OS:-your existing system} on ${disk}?"
+  else
+    confirm_affirmative="Yes, format disk"
+    confirm_prompt="Confirm overwriting ${disk}"
+  fi
+  if gum confirm --affirmative "$confirm_affirmative" --negative "No, change it" "$confirm_prompt"; then
     break
   else
     disk_form
+    install_mode_form "$disk"
     encryption_form
   fi
 done
@@ -424,8 +534,8 @@ boot_partition_size=$((2 * gib))
 main_partition_start=$((boot_partition_size + boot_partition_start))
 main_partition_size=$((disk_size_in_mib - main_partition_start - gpt_backup_reserve))
 
-# Ryoku does not currently ship Omarchy's custom kernel repository in the ISO,
-# so always use the bundled stock Arch kernel for offline installs.
+# Ryoku ships the stock Arch kernel in the offline ISO (no custom kernel repo),
+# so offline installs always use the bundled linux package.
 kernel_choice="linux"
 
 if [[ $encrypt_installation == "true" ]]; then
@@ -444,6 +554,68 @@ else
   disk_encryption_config=""
 fi
 
+if [[ $DUAL_BOOT == "true" ]]; then
+  # Dual-boot: record the plan for .automated_script.sh, which carves a new
+  # partition out of free space and sets up LUKS/Btrfs itself. archinstall then
+  # installs into the pre-mounted tree and performs no disk operations.
+  cat > install_mode.sh <<IMSH
+DUAL_BOOT=true
+INSTALL_DISK=$disk
+EXISTING_ESP=$EXISTING_ESP
+ENCRYPT_INSTALLATION=$encrypt_installation
+IMSH
+
+  cat > user_configuration.json <<DBJSON
+{
+    "app_config": null,
+    "archinstall-language": "English",
+    "auth_config": {},
+    "audio_config": { "audio": "pipewire" },
+    "bootloader": "Limine",
+    "custom_commands": [],
+    "disk_config": {
+        "config_type": "pre_mounted_config",
+        "mountpoint": "/mnt"
+    },
+    "hostname": "$hostname",
+    "kernels": [ "$kernel_choice" ],
+    "network_config": { "type": "iso" },
+    "ntp": true,
+    "parallel_downloads": 8,
+    "script": null,
+    "services": [],
+    "swap": true,
+    "timezone": "$timezone",
+    "locale_config": {
+        "kb_layout": "$keyboard",
+        "sys_enc": "UTF-8",
+        "sys_lang": "en_US.UTF-8"
+    },
+    "mirror_config": {
+        "custom_repositories": [],
+        "custom_servers": [
+            {"url": "https://geo.mirror.pkgbuild.com/\$repo/os/\$arch"},
+            {"url": "https://mirror.rackspace.com/archlinux/\$repo/os/\$arch"}
+        ],
+        "mirror_regions": {},
+        "optional_repositories": []
+    },
+    "packages": [
+        "base-devel",
+        "git",
+        "snapper"
+    ],
+    "profile_config": {
+        "gfx_driver": null,
+        "greeter": null,
+        "profile": {}
+    },
+    "version": "3.0.9"
+}
+DBJSON
+
+else
+
 cat <<-_EOF_ >user_configuration.json
 {
     "app_config": null,
@@ -453,7 +625,7 @@ cat <<-_EOF_ >user_configuration.json
     "bootloader": "Limine",
     "custom_commands": [],
     "disk_config": {
-        "btrfs_options": { 
+        "btrfs_options": {
           "snapshot_config": {
             "type": "Snapper"
           }
@@ -551,6 +723,8 @@ cat <<-_EOF_ >user_configuration.json
     "version": "3.0.9"
 }
 _EOF_
+
+fi
 
 if [[ $1 == "dry" ]]; then
   echo -e "User Configuration:"

@@ -1,21 +1,21 @@
 #!/bin/bash
 
-# Copy the keyboard layout selected during install into the Hyprland config.
+# Copy the keyboard layout selected during install into the user-owned keyboard.conf.
 set -euo pipefail
 
 conf="/etc/vconsole.conf"
-hypr_conf="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland.conf"
+kbd_conf="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/keyboard.conf"
 
-[[ -f $hypr_conf ]] || exit 0
+[[ -f $kbd_conf ]] || exit 0
 
 set_hypr_input() {
   local key="$1"
   local value="$2"
 
-  if grep -q "^[[:space:]]*${key}[[:space:]]*=" "$hypr_conf"; then
-    sed -i "s|^[[:space:]]*${key}[[:space:]]*=.*|  ${key} = ${value}|" "$hypr_conf"
-  elif grep -q '^[[:space:]]*input[[:space:]]*{' "$hypr_conf"; then
-    sed -i "/^[[:space:]]*input[[:space:]]*{/a\\  ${key} = ${value}" "$hypr_conf"
+  if grep -q "^[[:space:]]*${key}[[:space:]]*=" "$kbd_conf"; then
+    sed -i "s|^[[:space:]]*${key}[[:space:]]*=.*|    ${key} = ${value}|" "$kbd_conf"
+  elif grep -q '^[[:space:]]*input[[:space:]]*{' "$kbd_conf"; then
+    sed -i "/^[[:space:]]*input[[:space:]]*{/a\\    ${key} = ${value}" "$kbd_conf"
   fi
 }
 
