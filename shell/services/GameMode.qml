@@ -12,6 +12,10 @@ Singleton {
 
     property alias enabled: props.enabled
 
+    // iNiR overlay compat: vendored Overlay.qml reads GameMode.shouldHidePanels to
+    // suppress pinned-widget input regions. ryoku never force-hides them.
+    readonly property bool shouldHidePanels: false
+
     function setDynamicConfs(): void {
         Hypr.extras.applyOptions({
             "animations:enabled": 0,

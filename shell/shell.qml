@@ -8,7 +8,7 @@ import "modules"
 import "modules/drawers"
 import "modules/background"
 import "modules/areapicker"
-import "modules/gaming"
+import qs.modules.ii.overlay
 import Quickshell
 import qs.services
 import qs.ambxst.modules.globals as AmbxstGlobals
@@ -21,11 +21,7 @@ ShellRoot {
     Drawers {}
     AreaPicker {}
 
-    Variants {
-        model: Screens.screens
-
-        GamingOverlay {}
-    }
+    Overlay {}
 
     ConfigToasts {}
     Shortcuts {}

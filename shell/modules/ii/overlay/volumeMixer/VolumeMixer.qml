@@ -1,0 +1,269 @@
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import Quickshell
+import Quickshell.Io
+import qs.services
+import qs.modules.common
+import qs.modules.common.widgets
+import qs.modules.common.functions
+import qs.modules.ii.overlay
+import qs.modules.ii.sidebarRight.volumeMixer
+import Quickshell.Services.Mpris
+
+StyledOverlayWidget {
+    id: root
+    minimumWidth: 300
+    minimumHeight: 380
+
+    contentItem: OverlayBackground {
+        radius: root.contentRadius
+        property real padding: 6
+
+        ColumnLayout {
+            id: contentColumn
+            anchors {
+                fill: parent
+                margins: parent.padding
+            }
+            spacing: 8
+
+            SecondaryTabBar {
+                id: tabBar
+
+                currentIndex: Persistent.states.overlay.volumeMixer.tabIndex
+                onCurrentIndexChanged: {
+                    Persistent.states.overlay.volumeMixer.tabIndex = tabBar.currentIndex;
+                }
+
+                SecondaryTabButton {
+                    buttonIcon: "media_output"
+                    buttonText: Translation.tr("Output")
+                }
+                SecondaryTabButton {
+                    buttonIcon: "mic"
+                    buttonText: Translation.tr("Input")
+                }
+                SecondaryTabButton {
+                    buttonIcon: "music_note"
+                    buttonText: Translation.tr("Music")
+                }
+            }
+            SwipeView {
+                id: swipeView
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                currentIndex: Persistent.states.overlay.volumeMixer.tabIndex
+                onCurrentIndexChanged: {
+                    Persistent.states.overlay.volumeMixer.tabIndex = swipeView.currentIndex;
+                }
+                clip: true
+
+                PaddedVolumeDialogContent { 
+                    isSink: true 
+                }
+                PaddedVolumeDialogContent { 
+                    isSink: false 
+                }
+                MusicControlContent {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                }
+            }
+        }
+    }
+
+    component PaddedVolumeDialogContent: Item {
+        id: paddedVolumeDialogContent
+        property alias isSink: volDialogContent.isSink
+        property real padding: 12
+        implicitWidth: volDialogContent.implicitWidth + padding * 2
+        implicitHeight: volDialogContent.implicitHeight + padding * 2
+
+        VolumeDialogContent {
+            id: volDialogContent
+            anchors {
+                fill: parent
+                margins: paddedVolumeDialogContent.padding
+            }
+        }
+    }
+
+    component MusicControlContent: Item {
+        id: musicContent
+
+        readonly property MprisPlayer activePlayer: MprisController.activePlayer
+        readonly property string cleanedTitle: StringUtils.cleanMusicTitle(activePlayer?.trackTitle) || Translation.tr("No media")
+
+        // Datos de carátula (cover art) y progreso para la pestaña Music
+        property var artUrl: activePlayer?.trackArtUrl
+        property string artDownloadLocation: Directories.coverArt
+        readonly property bool downloaded: MediaArtwork.ready
+        property string displayedArtFilePath: MediaArtwork.displaySource
+
+        function checkAndDownloadArt() {
+            MediaArtwork.refresh()
+        }
+
+        onVisibleChanged: {
+            if (visible && artUrl) {
+                checkAndDownloadArt()
+            }
+        }
+
+        Timer {
+            running: activePlayer?.playbackState == MprisPlaybackState.Playing
+            interval: Config.options?.resources?.updateInterval ?? 3000
+            repeat: true
+            onTriggered: activePlayer?.positionChanged()
+        }
+
+        ColumnLayout {
+            anchors {
+                fill: parent
+                margins: 16
+            }
+            spacing: 12
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 12
+
+                Rectangle {
+                    id: coverFrame
+                    implicitWidth: 96
+                    implicitHeight: 96
+                    radius: Appearance.rounding.small
+                    color: Appearance.colors.colLayer2
+
+                    StyledImage {
+                        anchors.fill: parent
+                        opacity: musicContent.displayedArtFilePath !== "" && status !== Image.Error ? 1 : 0
+                        visible: opacity > 0
+                        source: musicContent.displayedArtFilePath
+                        fillMode: Image.PreserveAspectCrop
+                        cache: false
+                        antialiasing: true
+                        Behavior on opacity {
+                            enabled: Appearance.animationsEnabled
+                            NumberAnimation { duration: Appearance.animation.elementMoveFast.duration; easing.type: Appearance.animation.elementMoveFast.type; easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve }
+                        }
+                    }
+
+                    MaterialSymbol {
+                        anchors.centerIn: parent
+                        opacity: musicContent.displayedArtFilePath === "" ? 1 : 0
+                        visible: opacity > 0
+                        text: "music_note"
+                        iconSize: Appearance.font.pixelSize.huge
+                        color: Appearance.colors.colOnLayer2
+                        Behavior on opacity {
+                            enabled: Appearance.animationsEnabled
+                            NumberAnimation { duration: Appearance.animation.elementMoveFast.duration; easing.type: Appearance.animation.elementMoveFast.type; easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve }
+                        }
+                    }
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 4
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        font.pixelSize: Appearance.font.pixelSize.large
+                        elide: Text.ElideRight
+                        text: musicContent.cleanedTitle
+                    }
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        font.pixelSize: Appearance.font.pixelSize.small
+                        color: Appearance.colors.colSubtext
+                        elide: Text.ElideRight
+                        text: activePlayer?.trackArtist || ""
+                    }
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        font.pixelSize: Appearance.font.pixelSize.smaller
+                        color: Appearance.colors.colSubtext
+                        elide: Text.ElideRight
+                        text: (activePlayer && activePlayer.length > 0)
+                              ? `${StringUtils.friendlyTimeForSeconds(activePlayer.position)} / ${StringUtils.friendlyTimeForSeconds(activePlayer.length)}`
+                              : ""
+                    }
+
+                    StyledProgressBar {
+                        Layout.fillWidth: true
+                        wavy: activePlayer?.isPlaying ?? false
+                        highlightColor: Appearance.colors.colPrimary
+                        trackColor: Appearance.colors.colSecondaryContainer
+                        value: (activePlayer && activePlayer.length > 0)
+                               ? (activePlayer.position / activePlayer.length)
+                               : 0
+                    }
+                }
+            }
+
+            Item {
+                Layout.fillHeight: true
+            }
+
+            RowLayout {
+                Layout.alignment: Qt.AlignHCenter
+                spacing: 12
+
+                RippleButton {
+                    enabled: MprisController.canGoPrevious
+                    colBackground: Appearance.colors.colLayer3
+                    colBackgroundHover: Appearance.colors.colLayer3Hover
+                    colRipple: Appearance.colors.colLayer3Active
+                    buttonRadius: height / 2
+                    implicitHeight: 40
+                    implicitWidth: 40
+                    onClicked: MprisController.previous()
+
+                    contentItem: MaterialSymbol {
+                        anchors.centerIn: parent
+                        text: "skip_previous"
+                        iconSize: 22
+                    }
+                }
+
+                RippleButton {
+                    enabled: MprisController.canTogglePlaying
+                    colBackground: Appearance.colors.colLayer3
+                    colBackgroundHover: Appearance.colors.colLayer3Hover
+                    colRipple: Appearance.colors.colLayer3Active
+                    buttonRadius: height / 2
+                    implicitHeight: 44
+                    implicitWidth: 44
+                    onClicked: MprisController.togglePlaying()
+
+                    contentItem: MaterialSymbol {
+                        anchors.centerIn: parent
+                        text: MprisController.isPlaying ? "pause" : "play_arrow"
+                        iconSize: 26
+                    }
+                }
+
+                RippleButton {
+                    enabled: MprisController.canGoNext
+                    colBackground: Appearance.colors.colLayer3
+                    colBackgroundHover: Appearance.colors.colLayer3Hover
+                    colRipple: Appearance.colors.colLayer3Active
+                    buttonRadius: height / 2
+                    implicitHeight: 40
+                    implicitWidth: 40
+                    onClicked: MprisController.next()
+
+                    contentItem: MaterialSymbol {
+                        anchors.centerIn: parent
+                        text: "skip_next"
+                        iconSize: 22
+                    }
+                }
+            }
+        }
+    }
+}
