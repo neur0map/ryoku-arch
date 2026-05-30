@@ -7,24 +7,80 @@ source "$RYOKU_INSTALL/helpers/all.sh"
 # tzupdate is AUR-only; skip if not present (user picks tz manually)
 command -v tzupdate >/dev/null || true
 
-abort() {
-  gum style "${1:-Aborted installation}"
+# ── Ryoku installer presentation (Greek Noir) ───────────────────────────
+# gum is always present in the live ISO (ryoku-tui is not built yet), so we
+# style directly with gum: a centered brand wordmark, tagline, and a single
+# bordered step card, all in the brand orange. This is deliberately distinct
+# from a plain logo-over-left-aligned-list installer.
+BRAND="#F25623"; INK="#CCD0CF"; BEIGE="#aeab94"; BGDARK="#171717"
+TAGLINE="For the sake of power and beauty."
+
+ui_cols() {
+  local c=""
+  c=$(tput cols 2>/dev/null </dev/tty) || c=""
+  [[ $c =~ ^[0-9]+$ ]] || c=$(stty size 2>/dev/null </dev/tty | awk '{print $2}')
+  [[ $c =~ ^[0-9]+$ ]] || c=${TERM_WIDTH:-80}
+  (( c >= 40 )) || c=80
+  printf '%s' "$c"
+}
+COLS=$(ui_cols)
+CARD=$(( COLS > 64 ? 58 : COLS - 6 )); (( CARD < 30 )) && CARD=30
+LEFT=$(( (COLS - CARD) / 2 )); (( LEFT < 0 )) && LEFT=0
+LPAD=$(printf '%*s' "$LEFT" '')
+
+# Center + brand every interactive gum widget through its environment knobs,
+# so each prompt lines up under the centered card without per-call flags.
+export GUM_CHOOSE_PADDING="0 0 0 $LEFT" GUM_CHOOSE_CURSOR="» " \
+  GUM_CHOOSE_CURSOR_FOREGROUND="$BRAND" GUM_CHOOSE_SELECTED_FOREGROUND="$BRAND" \
+  GUM_CHOOSE_HEADER_FOREGROUND="$BEIGE"
+export GUM_FILTER_PADDING="0 0 0 $LEFT" GUM_FILTER_INDICATOR_FOREGROUND="$BRAND" \
+  GUM_FILTER_MATCH_FOREGROUND="$BRAND" GUM_FILTER_PROMPT_FOREGROUND="$BRAND" \
+  GUM_FILTER_HEADER_FOREGROUND="$BEIGE"
+export GUM_CONFIRM_PADDING="0 0 0 $LEFT" GUM_CONFIRM_SELECTED_BACKGROUND="$BRAND" \
+  GUM_CONFIRM_SELECTED_FOREGROUND="$BGDARK"
+export GUM_INPUT_PROMPT_FOREGROUND="$BRAND" GUM_INPUT_CURSOR_FOREGROUND="$BRAND"
+
+# note [gum-style-flags...] TEXT: centered body text under the header card.
+note() { gum style --align center --width "$CARD" --margin "0 $LEFT" "$@"; }
+
+# brand_header [step-title]: clear screen, centered wordmark + tagline, and an
+# optional bordered step card.
+brand_header() {
+  printf '\033[H\033[2J'
+  # Raw printf for the wordmark + tagline: gum miscounts the block-glyph cell
+  # width (counts each as 2), which shifts/wraps them. The colour codes are what
+  # gum itself emits for the brand on the TERM=linux installer console (bright
+  # red 91 -> brand orange via the Greek Noir console palette; 33 -> beige), so
+  # they match the gum-rendered step card and widgets exactly.
+  local orange=$'\033[1;91m' beige=$'\033[33m' rst=$'\033[0m'
+  local lw=${LOGO_WIDTH:-53}
+  local lpad=$(( LEFT + (CARD - lw) / 2 )); (( lpad < 0 )) && lpad=0
+  local tpad=$(( LEFT + (CARD - ${#TAGLINE}) / 2 )); (( tpad < 0 )) && tpad=0
   echo
-  gum style "To start over, rerun: ./.automated_script.sh"
+  while IFS= read -r line; do
+    printf '%*s%s%s%s\n' "$lpad" '' "$orange" "$line" "$rst"
+  done <"$LOGO_PATH"
+  printf '%*s%s%s%s\n\n' "$tpad" '' "$beige" "$TAGLINE" "$rst"
+  if [[ -n ${1:-} ]]; then
+    gum style --border double --border-foreground "$BRAND" --foreground "$INK" \
+      --align center --width "$CARD" --margin "0 $LEFT" --padding "0 2" --bold "$1"
+  fi
+  echo
+}
+
+abort() {
+  brand_header
+  note --foreground 1 "${1:-Aborted installation}"
+  echo
+  note --foreground "$BEIGE" "To start over, rerun: ./.automated_script.sh"
   exit 1
 }
 
-step() {
-  clear_logo
-  echo
-  gum style "$1"
-  echo
-}
+step() { brand_header "$1"; }
 
 notice() {
-  clear_logo
-  echo
-  gum spin --spinner "pulse" --title "$1" -- sleep "${2:-2}"
+  brand_header
+  gum spin --spinner "pulse" --title "${LPAD}$1" -- sleep "${2:-2}"
   echo
 }
 
@@ -104,7 +160,7 @@ user_form() {
   step "Create your account"
 
   while true; do
-    username=$(gum input --placeholder "Lowercase letters, digits, or underscores; no spaces" --prompt.foreground="#F25623" --prompt "Username> ") || abort
+    username=$(gum input --placeholder "Lowercase letters, digits, or underscores; no spaces" --prompt "${LPAD}Username  » ") || abort
 
     if [[ "$username" =~ ^[a-z_][a-z0-9_-]*[$]?$ ]]; then
       break
@@ -114,8 +170,8 @@ user_form() {
   done
 
   while true; do
-    password=$(gum input --placeholder "Used for user + root, and disk encryption when enabled" --prompt.foreground="#F25623" --password --prompt "Password> ") || abort
-    password_confirmation=$(gum input --placeholder "Must match the password you just typed" --prompt.foreground="#F25623" --password --prompt "Confirm> ") || abort
+    password=$(gum input --placeholder "Used for user + root, and disk encryption when enabled" --password --prompt "${LPAD}Password  » ") || abort
+    password_confirmation=$(gum input --placeholder "Must match the password you just typed" --password --prompt "${LPAD}Confirm   » ") || abort
 
     if [[ -n "$password" && "$password" == "$password_confirmation" ]]; then
       break
@@ -129,11 +185,11 @@ user_form() {
   # Hash the password using yescrypt
   password_hash=$(printf '%s' "$password" | openssl passwd -6 -stdin)
 
-  full_name=$(gum input --placeholder "Used for git authentication (hit return to skip)" --prompt.foreground="#F25623" --prompt "Full name> ")
-  email_address=$(gum input --placeholder "Used for git authentication (hit return to skip)" --prompt.foreground="#F25623" --prompt "Email address> ")
+  full_name=$(gum input --placeholder "Used for git authentication (hit return to skip)" --prompt "${LPAD}Full name » ")
+  email_address=$(gum input --placeholder "Used for git authentication (hit return to skip)" --prompt "${LPAD}Email     » ")
 
   while true; do
-    hostname=$(gum input --placeholder "Letters, digits, and dashes (or return for 'ryoku')" --prompt.foreground="#F25623" --prompt "Hostname> ")
+    hostname=$(gum input --placeholder "Letters, digits, and dashes (or return for 'ryoku')" --prompt "${LPAD}Hostname  » ")
 
     if [[ $hostname =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$ ]]; then
       break
@@ -167,7 +223,7 @@ Email address,${email_address:-[Skipped]}
 Hostname,$hostname
 Timezone,$timezone
 Keyboard,$keyboard" |
-    gum table -s "," -p | sed "s/^/${PADDING_LEFT_SPACES}/"
+    gum table -s "," -p | sed "s/^/${LPAD}/"
 
   echo
   if gum confirm --negative "No, change it" "All correct?"; then
@@ -265,13 +321,13 @@ list_installable_disks() {
 }
 
 no_disk_diagnostics() {
-  gum style "No installable disks detected."
+  note "No installable disks detected."
   echo
-  gum style "Ryoku can only install to disks the live kernel can see. Current block devices:"
+  note "Ryoku can only install to disks the live kernel can see. Current block devices:"
   echo
   lsblk -o NAME,PATH,TYPE,SIZE,TRAN,RO,RM,FSTYPE,LABEL,MODEL,MOUNTPOINTS 2>/dev/null || true
   echo
-  gum style "If your internal NVMe/SATA drive is missing, check BIOS storage mode. Intel RST/VMD/RAID may need to be disabled or switched to AHCI before installing."
+  note "If your internal NVMe/SATA drive is missing, check BIOS storage mode. Intel RST/VMD/RAID may need to be disabled or switched to AHCI before installing."
   echo
 }
 
@@ -391,12 +447,12 @@ install_mode_form() {
   local alongside="Install alongside ${os_label} (use ${free_gib} GB free space)"
   local erase="Erase the entire disk and use it all for Ryoku"
 
-  gum style --bold "Install alongside ${os_label}"
-  gum style "Keeps your current OS and its files. Ryoku takes only the free space."
-  gum style --foreground 8 "Free space available: ${free_gib} GB"
+  note --bold "Install alongside ${os_label}"
+  note "Keeps your current OS and its files. Ryoku takes only the free space."
+  note --foreground 8 "Free space available: ${free_gib} GB"
   echo
-  gum style --bold "Erase the entire disk"
-  gum style "Removes everything on ${disk}, including ${os_label}."
+  note --bold "Erase the entire disk"
+  note "Removes everything on ${disk}, including ${os_label}."
   echo
 
   local choice
@@ -419,15 +475,15 @@ encryption_form() {
   while true; do
     step "Choose disk encryption..."
 
-    gum style --bold "Encrypt the disk (recommended)"
-    gum style "For laptops, portable systems, or shared machines."
-    gum style --foreground 8 "Pros: Protects data if the machine or drive is lost."
-    gum style --foreground 8 "Cons: Adds a boot unlock prompt; recovery takes more care."
+    note --bold "Encrypt the disk (recommended)"
+    note "For laptops, portable systems, or shared machines."
+    note --foreground 8 "Pros: Protects data if the machine or drive is lost."
+    note --foreground 8 "Cons: Adds a boot unlock prompt; recovery takes more care."
     echo
-    gum style --bold "Install without disk encryption"
-    gum style "For VMs, test machines, and guarded desktops."
-    gum style --foreground 8 "Pros: No boot unlock prompt. Simpler recovery and automation."
-    gum style --foreground 8 "Cons: Anyone with the disk can read the installed data."
+    note --bold "Install without disk encryption"
+    note "For VMs, test machines, and guarded desktops."
+    note --foreground 8 "Pros: No boot unlock prompt. Simpler recovery and automation."
+    note --foreground 8 "Cons: Anyone with the disk can read the installed data."
     echo
 
     choice=$(printf '%s\n' \
@@ -458,15 +514,15 @@ encryption_form
 
 while true; do
   if [[ $DUAL_BOOT == "true" ]]; then
-    gum style "Ryoku will install into the free space on ${disk} and keep ${EXISTING_OS:-your existing system}."
-    gum style --foreground 8 "Existing partitions are left untouched; only free space is used."
+    note "Ryoku will install into the free space on ${disk} and keep ${EXISTING_OS:-your existing system}."
+    note --foreground 8 "Existing partitions are left untouched; only free space is used."
   else
-    gum style "This erases the whole disk  -  everything on it is permanently lost."
+    note "This erases the whole disk  -  everything on it is permanently lost."
   fi
   if [[ $encrypt_installation == "true" ]]; then
-    gum style --foreground 8 "Disk encryption: enabled"
+    note --foreground 8 "Disk encryption: enabled"
   else
-    gum style --foreground 8 "Disk encryption: disabled"
+    note --foreground 8 "Disk encryption: disabled"
   fi
 
   echo
