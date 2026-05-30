@@ -141,10 +141,11 @@ if [[ -d "$build_cache_dir/airootfs/root/ryoku/wallpapers" ]]; then
     "$build_cache_dir/airootfs/usr/share/ryoku/wallpapers/"
 fi
 
-# Add our additional packages to packages.x86_64. Apple T2 (linux-t2)
-# is omarchy-only (DHH ships MacBooks); we use the standard linux
-# kernel that the releng base already pulls.
-arch_packages=(git gum jq neovim openssl plymouth lvm2 cryptsetup parted)
+# Add our additional packages to packages.x86_64. We ship the standard
+# linux kernel that the releng base already pulls (no custom kernel repo).
+# parted/gptfdisk/btrfs-progs/dosfstools/efibootmgr/mtools are needed by the
+# live installer for dual-boot free-space detection and partitioning.
+arch_packages=(git gum jq neovim openssl plymouth lvm2 cryptsetup parted gptfdisk btrfs-progs dosfstools efibootmgr mtools)
 printf '%s\n' "${arch_packages[@]}" >>"$build_cache_dir/packages.x86_64"
 
 nvim_config_dir="$build_cache_dir/airootfs/root/ryoku/config/nvim"
