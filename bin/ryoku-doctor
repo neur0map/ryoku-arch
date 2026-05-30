@@ -1094,6 +1094,40 @@ doctor_repair_rebirth_audio_restore_service() {
   fi
 }
 
+# RYOKU: detect + repair a wallpaper pointer whose recorded path no longer exists
+# (e.g. a ".png" path left behind after the image was re-encoded to ".webp"). A
+# broken pointer blanks the wallpaper and starves the image-derived colour scheme.
+doctor_repair_wallpaper_path() {
+  local state_home path_file recorded dir stem cand fixed=""
+  state_home="${XDG_STATE_HOME:-$HOME/.local/state}"
+  path_file="$state_home/ryoku-shell/wallpaper/path.txt"
+
+  [[ -r $path_file ]] || return 0
+  recorded="$(head -n1 "$path_file" 2>/dev/null || true)"
+  [[ -n $recorded ]] || return 0
+  [[ -e $recorded ]] && return 0
+
+  dir="$(dirname -- "$recorded")"
+  stem="$(basename -- "$recorded")"
+  stem="${stem%.*}"
+  for cand in "$dir/$stem".webp "$dir/$stem".png "$dir/$stem".jpg "$dir/$stem".jpeg "$dir/$stem".gif "$dir/$stem".jxl "$dir/$stem".*; do
+    [[ -e $cand ]] && { fixed="$cand"; break; }
+  done
+
+  if [[ -z $fixed ]]; then
+    doctor_note "WARN" "Wallpaper path points to a missing file ($recorded); no replacement image found"
+    return 0
+  fi
+
+  if env PATH="$RYOKU_PATH/bin:$PATH" ryoku wallpaper -f "$fixed" >/dev/null 2>&1; then
+    doctor_note "FIX" "Wallpaper path had a stale extension; relinked to $(basename -- "$fixed") and regenerated colours"
+  else
+    printf '%s\n' "$fixed" >"$path_file"
+    ln -sfn "$fixed" "${XDG_CONFIG_HOME:-$HOME/.config}/ryoku/current/background" 2>/dev/null || true
+    doctor_note "FIX" "Repaired stale wallpaper path -> $(basename -- "$fixed")"
+  fi
+}
+
 run_shell_doctor() {
   local setup
   local runtime_dir="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell"
@@ -1111,6 +1145,7 @@ run_shell_doctor() {
 
   doctor_converge_rebirth_session_services
   doctor_repair_rebirth_audio_restore_service
+  doctor_repair_wallpaper_path
 
   for setup in "${candidates[@]}"; do
     [[ -x $setup ]] || continue

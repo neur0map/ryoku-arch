@@ -541,10 +541,33 @@ wallpaper_type() {
   esac
 }
 
+# RYOKU: resolve a wallpaper path to a file that actually exists. Wallpaper sets
+# can record a stale extension (e.g. a ".png" path after the image was re-encoded
+# to ".webp"), which leaves the wallpaper symlink + image-derived colour pipeline
+# pointing at a missing file. When the given path is gone, fall back to a
+# same-basename sibling with a known image extension so neither the wallpaper nor
+# its colours break on an extension mismatch.
+resolve_wallpaper_path() {
+  local p="$1" dir stem cand
+  [[ -n $p ]] || { printf '%s\n' "$p"; return 0; }
+  [[ -e $p ]] && { printf '%s\n' "$p"; return 0; }
+  dir="$(dirname -- "$p")"
+  stem="$(basename -- "$p")"
+  stem="${stem%.*}"
+  for cand in "$dir/$stem".webp "$dir/$stem".png "$dir/$stem".jpg "$dir/$stem".jpeg "$dir/$stem".gif "$dir/$stem".jxl; do
+    [[ -e $cand ]] && { printf '%s\n' "$cand"; return 0; }
+  done
+  for cand in "$dir/$stem".*; do
+    [[ -e $cand ]] && { printf '%s\n' "$cand"; return 0; }
+  done
+  printf '%s\n' "$p"
+}
+
 current_wallpaper() {
   local wp
   wp="$(head -n1 "$wallpaper_dir/path.txt" 2>/dev/null || true)"
   [[ -n $wp ]] || wp="$(readlink -f "${XDG_CONFIG_HOME:-$HOME/.config}/ryoku/current/background" 2>/dev/null || true)"
+  wp="$(resolve_wallpaper_path "$wp")"
   printf '%s\n' "$wp"
 }
 
@@ -609,6 +632,10 @@ wallpaper_command() {
       echo "ryoku: wallpaper path is required" >&2
       return 2
     }
+
+    # RYOKU: correct a stale/wrong extension before recording it, so path.txt and
+    # the wallpaper symlink always point at a file that exists.
+    path="$(resolve_wallpaper_path "$path")"
 
     mkdir -p "$wallpaper_dir"
     # RYOKU: atomic write so the shell's FileView watch on path.txt reliably fires
