@@ -10,4 +10,5 @@ Item {
     Stats {}
     Recorder {}
     Music {}
+    GameModeButton {}
 }
