@@ -98,7 +98,6 @@ fftw
 gpu-screen-recorder
 imagemagick
 libnotify
-obs-studio
 x264
 
 # ── Hyprland compositor + Ryoku desktop stack ─────────────────────────

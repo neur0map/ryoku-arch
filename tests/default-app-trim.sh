@@ -92,7 +92,6 @@ kept_packages=(
   lazydocker
   localsend-bin
   obsidian
-  obs-studio
   trayscale
 )
 
