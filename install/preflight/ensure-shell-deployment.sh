@@ -73,6 +73,13 @@ fi
 # +x on install/*.sh manifests as a "Permission denied" mid-update.
 find "$shell_src" -type f -name '*.sh' -exec chmod +x {} +
 chmod +x "$shell_src/scripts/ryoku-shell" 2>/dev/null || true
+# The *.sh filter above misses the extensionless helpers (ryoku-settings-about,
+# ryoku-version, ryoku, ...) and setup. When those land non-executable, the
+# shell's RyokuAbout service cannot run ryoku-settings-about, so the About
+# page silently falls back to the vendored version string instead of the real
+# Ryoku version. Restore +x on the whole scripts dir and setup.
+find "$shell_src/scripts" -type f -exec chmod +x {} + 2>/dev/null || true
+chmod +x "$shell_src/setup" 2>/dev/null || true
 if [[ -d $ryoku_path/install ]]; then
     find "$ryoku_path/install" -type f -name '*.sh' -exec chmod +x {} +
 fi
@@ -140,6 +147,12 @@ else
     rsync -a --delete "$shell_src/" "$quickshell_dir/"
 fi
 printf '%s\n' "$ryoku_path" >"$quickshell_dir/.ryoku-source-path"
+
+# Quickshell runs the helper scripts from the deployed runtime tree
+# (RyokuAbout execs scripts/ryoku-settings-about relative to this dir), so the
+# +x bit has to survive into the deployed copy too, not just $shell_src.
+find "$quickshell_dir/scripts" -type f -exec chmod +x {} + 2>/dev/null || true
+chmod +x "$quickshell_dir/setup" 2>/dev/null || true
 
 # (5) User-service wants-links. Several install/ scripts call
 # `systemctl --user enable --now <unit>` directly:

@@ -91,6 +91,11 @@ fi
 ryoku_shell_setup_log="${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-shell-setup.log"
 mkdir -p "$(dirname "$ryoku_shell_setup_log")"
 chmod +x "$SHELL_PATH/setup" 2>/dev/null || true
+# The same +x loss hits the extensionless helpers under scripts/ (e.g.
+# ryoku-settings-about, which the shell's About page runs to show the real
+# Ryoku version). setup copies this tree into the runtime dir, so fix the bit
+# at the source before it propagates.
+find "$SHELL_PATH/scripts" -type f -exec chmod +x {} + 2>/dev/null || true
 (
   cd "$SHELL_PATH"
   env \
