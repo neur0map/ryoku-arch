@@ -565,14 +565,25 @@ current_wallpaper() {
   printf '%s\n' "$wp"
 }
 
-# RYOKU: generate the live shell scheme.json from the current wallpaper's colors.
+wallpaper_scheme_source() {
+  local t
+  t="$(head -n1 "$wallpaper_dir/type.txt" 2>/dev/null || echo image)"
+  local poster="${XDG_CONFIG_HOME:-$HOME/.config}/ryoku/current/background"
+  if [[ $t != image && -e $poster ]]; then
+    readlink -f "$poster"
+  else
+    current_wallpaper
+  fi
+}
+
+# generate the live shell scheme.json from the current wallpaper's colors.
 # Atomic write so Colours.qml hot-reloads. flavour="wallpaper" keeps the dark/light
 # toggle enabled (a wallpaper scheme supports both modes).
 apply_wallpaper_scheme() {
   local mode="${1:-$(read_state mode dark)}"
   local wp tmp
   command -v ryoku-wallpaper-to-scheme >/dev/null 2>&1 || return 1
-  wp="$(current_wallpaper)"
+  wp="$(wallpaper_scheme_source)"
   [[ -n $wp && -f $wp ]] || return 1
   mkdir -p "$state_dir"
   tmp="$(mktemp)"
