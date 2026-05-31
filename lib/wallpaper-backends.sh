@@ -20,7 +20,20 @@ ryoku_wp_write_type() {
 }
 
 ryoku_wp_stop_live_backends() {
-  pkill -x mpvpaper 2>/dev/null || true
+  if pgrep -x mpvpaper >/dev/null 2>&1; then
+    pkill -x mpvpaper 2>/dev/null || true
+    # mpvpaper with --auto-pause can ignore SIGTERM; wait briefly then SIGKILL
+    # any survivors so a new instance never stacks on top of an old one.
+    for _ in 1 2 3 4 5 6 7 8 9 10; do
+      pgrep -x mpvpaper >/dev/null 2>&1 || break
+      sleep 0.1
+    done
+    pgrep -x mpvpaper >/dev/null 2>&1 && pkill -KILL -x mpvpaper 2>/dev/null
+    for _ in 1 2 3 4 5; do
+      pgrep -x mpvpaper >/dev/null 2>&1 || break
+      sleep 0.1
+    done
+  fi
   awww kill 2>/dev/null || true
 }
 

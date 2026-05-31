@@ -108,7 +108,7 @@ apply_video() {
     ln -nsf "$poster" "$RYOKU_CONFIG_PATH/current/background"
   fi
   if [[ $live_enabled == "true" ]]; then
-    local opts="loop hwdec=auto scale=bilinear interpolation=no video-sync=display-resample panscan=1.0 load-scripts=no"
+    local opts="loop hwdec=auto scale=ewa_lanczossharp cscale=ewa_lanczossharp video-sync=display-resample panscan=1.0 load-scripts=no"
     [[ $muted == "true" ]] && opts="no-audio $opts"
     nohup mpvpaper --auto-pause -o "$opts" ALL "$path" >/tmp/ryoku-mpvpaper.log 2>&1 &
   fi
