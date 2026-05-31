@@ -67,6 +67,15 @@ else
   cp -a "$SHELL_VENDOR/." "$SHELL_PATH/"
 fi
 
+# The vendored shell tree can carry a dev-box build/ directory (it is gitignored
+# but the --local-source ISO build copies the working tree, and the sync above
+# does not exclude it). Its CMakeCache pins the source + INSTALL_QMLDIR to the
+# dev user's paths (/home/<devuser>/...), so reusing it makes setup's
+# cmake --install deploy the Ryoku QML plugins outside the install user's import
+# path - the shell then fails with `module "Ryoku.Config" is not installed`.
+# Strip it so `setup` always builds the native modules clean for this user.
+rm -rf "$SHELL_PATH/build" "$SHELL_PATH/CMakeCache.txt" "$SHELL_PATH/CMakeFiles"
+
 backup_config_file=""
 if [[ -f $USER_CONFIG ]]; then
   backup_config_file=$(mktemp)
