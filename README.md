@@ -13,7 +13,7 @@ feel fast, sharp, and deliberate from first boot.
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-F25623?style=for-the-badge)](LICENSE)
 [![Built on Arch](https://img.shields.io/badge/Arch_Linux-1793D1?style=for-the-badge&logo=archlinux&logoColor=white)](https://archlinux.org)
 [![Hyprland](https://img.shields.io/badge/Hyprland-58E1C2?style=for-the-badge&logoColor=white)](https://hypr.land)
-[![Status: public preview](https://img.shields.io/badge/status-public_preview-F25623?style=for-the-badge)](#status)
+[![Status: 0.1.0-beta1](https://img.shields.io/badge/status-0.1.0--beta1-F25623?style=for-the-badge)](#status)
 [![Build ISO](https://github.com/neur0map/ryoku-arch/actions/workflows/build-iso.yml/badge.svg)](https://github.com/neur0map/ryoku-arch/actions/workflows/build-iso.yml)
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/8KjBmUEyKA)
 [![Reddit](https://img.shields.io/badge/Reddit-r%2FRyokuArch-FF4500?style=for-the-badge&logo=reddit&logoColor=white)](https://www.reddit.com/r/RyokuArch/)
@@ -86,9 +86,11 @@ Ryoku is not:
 
 ## Status
 
-Public preview. Alpha ISO downloads are paused while Ryoku moves from the
-Niri/iNiR setup to the Hyprland/Caelestia setup and the current bug pass wraps
-up. The first beta and stable release are still ahead.
+First beta. Ryoku has cut **0.1.0-beta1**: the move from the Niri/iNiR setup to
+the Hyprland/Caelestia shell has reached beta, and the install flow runs end to
+end, including verified dual-boot alongside an existing OS. Public ISO downloads
+stay paused until a published release build is ready; build from source in the
+meantime. The stable release is the next milestone.
 
 The active workstation track is Hyprland. Development happens on
 `unstable-dev`, then stabilizes into `main` for release users. The shell is in
@@ -99,7 +101,7 @@ plugin shell takes shape.
 |---|---|
 | Minimum RAM | **16GB+ required.** Use **32GB+** if you expect VMs, gaming, browser-heavy work, or creative tools. This is not a low-resource target. |
 | Target hardware | Modern desktops and stronger laptops. NVIDIA, hybrid, AMD, and Intel graphics are target classes. |
-| Is the ISO downloadable? | Not right now. Public ISO downloads are paused until beta is ready. |
+| Is the ISO downloadable? | Not yet. `0.1.0-beta1` is cut, but public ISO downloads stay paused until a published release build is ready. Build from source meanwhile. |
 | Can I build it myself? | Yes. Use the [ISO build recipe](docs/iso-build-recipe.md) if you want to build from source. |
 | Is every bundled plugin lane installed by default? | No. Ryoku ships core productivity lanes and extras as optional add-ons. |
 | Secure Boot? | Roadmap. Not automatic yet. |
