@@ -21,6 +21,19 @@ json_ok() {
   jq -cn --arg type "$1" --arg path "$2" '{ok:true,type:$type,path:$path}'
 }
 
+_noctalia_settings="${XDG_CONFIG_HOME:-$HOME/.config}/noctalia/settings.json"
+
+_settings_get() {
+  local key="$1" default="$2"
+  if [[ -f $_noctalia_settings ]]; then
+    local val
+    val="$(jq -r --arg d "$default" "$key | if . == null then \$d else tostring end" "$_noctalia_settings" 2>/dev/null)" || val="$default"
+    printf '%s' "$val"
+  else
+    printf '%s' "$default"
+  fi
+}
+
 set_shell_wallpaper_config() {
   local path="$1"
   local thumbnail="${2:-}"
@@ -58,10 +71,20 @@ apply_image() {
 apply_animated() {
   local path="$1" poster="$RYOKU_STATE_PATH/wallpaper/current-poster.jpg" thumbnail=""
   [[ -f $path ]] || { json_error "animated file not found"; return 1; }
+  local live_enabled transition
+  live_enabled="$(_settings_get '.wallpaper.liveWallpaperEnabled' "true")"
+  transition="$(_settings_get '.wallpaper.swwwTransition' "any")"
   ryoku_wp_stop_live_backends
-  if ! awww query >/dev/null 2>&1; then awww-daemon >/dev/null 2>&1 & fi
-  for _ in 1 2 3 4 5; do awww query >/dev/null 2>&1 && break; sleep 0.1; done
-  awww img "$path" --transition-type any >/dev/null 2>&1 || { json_error "awww failed"; return 4; }
+  if [[ $live_enabled == "true" ]]; then
+    if ! awww query >/dev/null 2>&1; then awww-daemon >/dev/null 2>&1 & fi
+    for _ in 1 2 3 4 5; do awww query >/dev/null 2>&1 && break; sleep 0.1; done
+    awww img "$path" --transition-type "$transition" >/dev/null 2>&1 || { json_error "awww failed"; return 4; }
+  else
+    if ryoku_wp_make_poster "$path" "$poster" && [[ -f $poster ]]; then
+      apply_image "$poster"
+      return
+    fi
+  fi
   if ryoku_wp_make_poster "$path" "$poster"; then
     thumbnail="$poster"
     mkdir -p "$RYOKU_CONFIG_PATH/current"
@@ -75,14 +98,20 @@ apply_animated() {
 apply_video() {
   local path="$1" poster="$RYOKU_STATE_PATH/wallpaper/current-poster.jpg" thumbnail=""
   [[ -f $path ]] || { json_error "video file not found"; return 1; }
+  local live_enabled muted
+  live_enabled="$(_settings_get '.wallpaper.liveWallpaperEnabled' "true")"
+  muted="$(_settings_get '.wallpaper.videoMuted' "true")"
   ryoku_wp_stop_live_backends
   if ryoku_wp_make_poster "$path" "$poster"; then
     thumbnail="$poster"
     mkdir -p "$RYOKU_CONFIG_PATH/current"
     ln -nsf "$poster" "$RYOKU_CONFIG_PATH/current/background"
   fi
-  local opts="no-audio loop hwdec=auto scale=bilinear interpolation=no video-sync=display-resample panscan=1.0 load-scripts=no"
-  nohup mpvpaper -o "$opts" ALL "$path" >/tmp/ryoku-mpvpaper.log 2>&1 &
+  if [[ $live_enabled == "true" ]]; then
+    local opts="loop hwdec=auto scale=bilinear interpolation=no video-sync=display-resample panscan=1.0 load-scripts=no"
+    [[ $muted == "true" ]] && opts="no-audio $opts"
+    nohup mpvpaper -o "$opts" ALL "$path" >/tmp/ryoku-mpvpaper.log 2>&1 &
+  fi
   ryoku_wp_write_type video
   set_shell_wallpaper_config "$path" "$thumbnail"
   json_ok "video" "$path"

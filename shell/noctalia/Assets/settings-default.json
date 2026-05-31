@@ -235,7 +235,12 @@
     "wallhavenResolutionWidth": "",
     "wallhavenResolutionHeight": "",
     "sortOrder": "name",
-    "favorites": []
+    "favorites": [],
+    "liveWallpaperEnabled": true,
+    "videoMuted": true,
+    "videoFpsCap": 60,
+    "pauseOnFullscreen": true,
+    "swwwTransition": "any"
   },
   "appLauncher": {
     "enableClipboardHistory": false,

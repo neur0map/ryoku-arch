@@ -95,4 +95,67 @@ ColumnLayout {
       }
     }
   }
+
+  NDivider {
+    Layout.fillWidth: true
+  }
+
+  NHeader {
+    label: I18n.tr("panels.wallpaper.live-title")
+  }
+
+  NToggle {
+    label: I18n.tr("panels.wallpaper.live-enabled-label")
+    description: I18n.tr("panels.wallpaper.live-enabled-description")
+    checked: Settings.data.wallpaper.liveWallpaperEnabled ?? true
+    onToggled: checked => Settings.data.wallpaper.liveWallpaperEnabled = checked
+  }
+
+  NToggle {
+    label: I18n.tr("panels.wallpaper.live-muted-label")
+    description: I18n.tr("panels.wallpaper.live-muted-description")
+    checked: Settings.data.wallpaper.videoMuted ?? true
+    onToggled: checked => Settings.data.wallpaper.videoMuted = checked
+  }
+
+  NSpinBox {
+    label: I18n.tr("panels.wallpaper.live-fps-cap-label")
+    description: I18n.tr("panels.wallpaper.live-fps-cap-description")
+    Layout.fillWidth: true
+    from: 24
+    to: 144
+    stepSize: 1
+    suffix: " fps"
+    value: Settings.data.wallpaper.videoFpsCap ?? 60
+    onValueChanged: {
+      if ((Settings.data.wallpaper.videoFpsCap ?? 60) !== value)
+        Settings.data.wallpaper.videoFpsCap = value;
+    }
+  }
+
+  NToggle {
+    label: I18n.tr("panels.wallpaper.live-pause-on-fullscreen-label")
+    description: I18n.tr("panels.wallpaper.live-pause-on-fullscreen-description")
+    checked: Settings.data.wallpaper.pauseOnFullscreen ?? true
+    onToggled: checked => Settings.data.wallpaper.pauseOnFullscreen = checked
+  }
+
+  NComboBox {
+    label: I18n.tr("panels.wallpaper.live-transition-label")
+    description: I18n.tr("panels.wallpaper.live-transition-description")
+    Layout.fillWidth: true
+    model: [
+      { "key": "any",    "name": "Any" },
+      { "key": "none",   "name": "None" },
+      { "key": "simple", "name": "Simple" },
+      { "key": "fade",   "name": "Fade" },
+      { "key": "wipe",   "name": "Wipe" },
+      { "key": "grow",   "name": "Grow" },
+      { "key": "center", "name": "Center" },
+      { "key": "outer",  "name": "Outer" },
+      { "key": "random", "name": "Random" }
+    ]
+    currentKey: Settings.data.wallpaper.swwwTransition ?? "any"
+    onSelected: key => Settings.data.wallpaper.swwwTransition = key
+  }
 }

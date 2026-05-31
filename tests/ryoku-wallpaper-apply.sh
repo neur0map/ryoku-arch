@@ -267,6 +267,114 @@ printf '%s\n' "$SYMLINK_OUTPUT" | jq -e '.ok == true' >/dev/null \
 
 pass "backend dispatch + symlink regression"
 
+# --- Settings-driven behavior: videoMuted / swwwTransition / liveWallpaperEnabled ---
+
+_settings_bin="$tmpdir/settings-bin"
+_settings_state="$tmpdir/settings-state"
+_settings_config="$tmpdir/settings-config"
+_settings_xdg="$tmpdir/settings-xdg"
+_settings_log="$tmpdir/settings.log"
+mkdir -p "$_settings_bin" "$_settings_state" "$_settings_xdg/noctalia" "$_settings_xdg/ryoku-shell"
+printf '%s\n' '{"background":{}}' >"$_settings_xdg/ryoku-shell/config.json"
+
+for _cmd in awww awww-daemon; do
+  cat >"$_settings_bin/$_cmd" <<EOF
+#!/bin/bash
+printf '%s\n' "$_cmd \$*" >>"$_settings_log"
+exit 0
+EOF
+  chmod +x "$_settings_bin/$_cmd"
+done
+
+cat >"$_settings_bin/mpvpaper" <<'EOF'
+#!/bin/bash
+printf 'mpvpaper %s\n' "$*" >>"$SETTINGS_LOG"
+exit 0
+EOF
+chmod +x "$_settings_bin/mpvpaper"
+
+cat >"$_settings_bin/pkill" <<'EOF'
+#!/bin/bash
+exit 0
+EOF
+chmod +x "$_settings_bin/pkill"
+
+cat >"$_settings_bin/ffmpegthumbnailer" <<'EOF'
+#!/bin/bash
+exit 1
+EOF
+chmod +x "$_settings_bin/ffmpegthumbnailer"
+
+_settings_gif="$tmpdir/settings-test.gif"
+_settings_mp4="$tmpdir/settings-test.mp4"
+touch "$_settings_gif" "$_settings_mp4"
+
+run_settings() {
+  : >"$_settings_log"
+  set +e
+  SETTINGS_OUT="$(
+    SETTINGS_LOG="$_settings_log" \
+    RYOKU_PATH="$tmpdir/ryoku" \
+    RYOKU_CONFIG_PATH="$_settings_config" \
+    RYOKU_STATE_PATH="$_settings_state" \
+    XDG_CONFIG_HOME="$_settings_xdg" \
+    HOME="$tmpdir/settings-home" \
+    PATH="$_settings_bin:$tmpdir/ryoku/bin:$PATH" \
+      "$apply_bin" "$@" 2>&1
+  )"
+  SETTINGS_STATUS=$?
+  set -e
+}
+
+# Test: videoMuted=false → mpvpaper called WITHOUT no-audio
+printf '%s\n' '{"wallpaper":{"videoMuted":false}}' >"$_settings_xdg/noctalia/settings.json"
+run_settings --type video "$_settings_mp4"
+(( SETTINGS_STATUS == 0 )) \
+  || fail "settings/videoMuted=false: video apply should succeed (out: $SETTINGS_OUT)"
+grep -q 'mpvpaper' "$_settings_log" \
+  || fail "settings/videoMuted=false: mpvpaper should be invoked (log: $(cat "$_settings_log"))"
+grep -q 'no-audio' "$_settings_log" \
+  && fail "settings/videoMuted=false: mpvpaper opts should NOT include no-audio"
+pass "settings/videoMuted=false: mpvpaper omits no-audio"
+
+# Test: videoMuted=true → mpvpaper called WITH no-audio
+printf '%s\n' '{"wallpaper":{"videoMuted":true}}' >"$_settings_xdg/noctalia/settings.json"
+run_settings --type video "$_settings_mp4"
+(( SETTINGS_STATUS == 0 )) \
+  || fail "settings/videoMuted=true: video apply should succeed (out: $SETTINGS_OUT)"
+grep -q 'no-audio' "$_settings_log" \
+  || fail "settings/videoMuted=true: mpvpaper opts should include no-audio (log: $(cat "$_settings_log"))"
+pass "settings/videoMuted=true: mpvpaper includes no-audio"
+
+# Test: swwwTransition="fade" → awww img called with --transition-type fade
+printf '%s\n' '{"wallpaper":{"swwwTransition":"fade"}}' >"$_settings_xdg/noctalia/settings.json"
+run_settings --type animated "$_settings_gif"
+(( SETTINGS_STATUS == 0 )) \
+  || fail "settings/swwwTransition=fade: animated apply should succeed (out: $SETTINGS_OUT)"
+grep -q -- '--transition-type fade' "$_settings_log" \
+  || fail "settings/swwwTransition=fade: awww should pass --transition-type fade (log: $(cat "$_settings_log"))"
+pass "settings/swwwTransition=fade: awww img passes --transition-type fade"
+
+# Test: liveWallpaperEnabled=false → animated falls back to static (awww img NOT invoked)
+printf '%s\n' '{"wallpaper":{"liveWallpaperEnabled":false}}' >"$_settings_xdg/noctalia/settings.json"
+run_settings --type animated "$_settings_gif"
+(( SETTINGS_STATUS == 0 )) \
+  || fail "settings/liveWallpaperEnabled=false: animated apply should succeed (out: $SETTINGS_OUT)"
+grep -q 'awww img' "$_settings_log" \
+  && fail "settings/liveWallpaperEnabled=false: awww img should NOT be invoked when live disabled"
+pass "settings/liveWallpaperEnabled=false: animated does not invoke awww img"
+
+# Test: liveWallpaperEnabled=false → video falls back (mpvpaper NOT invoked)
+printf '%s\n' '{"wallpaper":{"liveWallpaperEnabled":false}}' >"$_settings_xdg/noctalia/settings.json"
+run_settings --type video "$_settings_mp4"
+(( SETTINGS_STATUS == 0 )) \
+  || fail "settings/liveWallpaperEnabled=false: video apply should succeed (out: $SETTINGS_OUT)"
+grep -q 'mpvpaper' "$_settings_log" \
+  && fail "settings/liveWallpaperEnabled=false: mpvpaper should NOT be invoked when live disabled"
+pass "settings/liveWallpaperEnabled=false: video does not invoke mpvpaper"
+
+pass "settings-driven behavior"
+
 direct_config="$tmpdir/direct-config"
 direct_xdg="$tmpdir/direct-xdg"
 direct_image="$tmpdir/direct image.jpg"
