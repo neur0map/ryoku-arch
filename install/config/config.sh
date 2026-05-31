@@ -63,7 +63,31 @@ remove_retired_wallpaper_assets() {
   fi
 }
 
+# Pick a random default wallpaper so a fresh desktop is not blank. The shell's
+# WallpaperService reads path.txt on first boot and applies it (and derives the
+# colour scheme from it), so writing the state here is enough - no compositor is
+# running yet during install. Respects an existing user choice.
+set_random_default_wallpaper() {
+  local wp_dir state_wp chosen
+  wp_dir="${XDG_PICTURES_DIR:-$HOME/Pictures}/Wallpapers"
+  state_wp="${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-shell/wallpaper"
+  [[ -d $wp_dir ]] || return 0
+  [[ -s "$state_wp/path.txt" ]] && return 0
+
+  chosen="$(find "$wp_dir" -type f \
+    \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \) 2>/dev/null \
+    | shuf -n1)"
+  [[ -n $chosen ]] || return 0
+
+  mkdir -p "$state_wp"
+  printf '%s\n' "$chosen" >"$state_wp/path.txt"
+  printf 'image\n' >"$state_wp/type.txt"
+  mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/ryoku/current"
+  ln -sf "$chosen" "${XDG_CONFIG_HOME:-$HOME/.config}/ryoku/current/background" 2>/dev/null || true
+}
+
 install_default_configs
 seed_default_wallpapers
+set_random_default_wallpaper
 remove_retired_wallpaper_assets
 copy_default_file_if_missing "$RYOKU_PATH/default/bashrc" "$HOME/.bashrc"
