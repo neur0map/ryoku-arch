@@ -41,7 +41,7 @@ export GUM_CONFIRM_PADDING="0 0 0 $LEFT" GUM_CONFIRM_SELECTED_BACKGROUND="$BRAND
 export GUM_INPUT_PROMPT_FOREGROUND="$BRAND" GUM_INPUT_CURSOR_FOREGROUND="$BRAND"
 
 # note [gum-style-flags...] TEXT: centered body text under the header card.
-note() { gum style --align center --width "$CARD" --margin "0 $LEFT" "$@"; }
+note() { gum style --margin "0 0 0 $LEFT" "$@"; }
 
 # brand_header [step-title]: clear screen, centered wordmark + tagline, and an
 # optional bordered step card.
