@@ -11,7 +11,9 @@ import qs.utils
 Item {
     id: root
 
-    property string source: Wallpapers.current
+    // Live backends (awww/mpvpaper) own their own WlrLayer.Background surface;
+    // yield an empty source so we paint nothing opaque over them.
+    property string source: Wallpapers.currentType === "image" ? Wallpapers.current : ""
     property Image current: one
     property bool completed
 
@@ -36,7 +38,7 @@ Item {
         asynchronous: true
         anchors.fill: parent
 
-        active: root.completed && !root.source
+        active: root.completed && !root.source && Wallpapers.currentType === "image"
 
         sourceComponent: StyledRect {
             color: Colours.palette.m3surfaceContainer

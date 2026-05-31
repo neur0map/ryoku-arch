@@ -26,7 +26,8 @@ Variants {
         // Allow on-demand keyboard focus only while sticky notes exist, so they can
         // be typed into; clicking elsewhere doesn't steal focus.
         WlrLayershell.keyboardFocus: Notes.list.length > 0 ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
-        color: contentItem.Config.background.wallpaperEnabled ? "black" : "transparent"
+        // Use transparent clear color for live backends so their surface shows through.
+        color: contentItem.Config.background.wallpaperEnabled && Wallpapers.currentType === "image" ? "black" : "transparent"
         surfaceFormat.opaque: false
 
         anchors.top: true
