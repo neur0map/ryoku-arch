@@ -136,12 +136,31 @@ install_service() {
 }
 
 build_native_modules() {
+  local _dbg="${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-shell-setup.log"
+  mkdir -p "$(dirname "$_dbg")" 2>/dev/null || true
+  _dlog() { printf '%s\n' "$*" >>"$_dbg" 2>/dev/null || true; }
+  _dlog "=== build_native_modules $(date 2>/dev/null) ==="
+  _dlog "skip_build=$skip_build script_dir=$script_dir build_dir=$build_dir qml_dir=$qml_dir"
+  _dlog "HOME=$HOME PATH=$PATH"
+  _dlog "cmake=$(command -v cmake || echo MISSING) ninja=$(command -v ninja || echo MISSING)"
+
   if [[ $skip_build == true ]]; then
+    _dlog "RESULT: skipped (skip_build)"
     return 0
   fi
 
+  # cmake + ninja are install-time build deps for the native QML plugins. If
+  # they are not on PATH yet (e.g. the shell config step ran before they were
+  # installed), pull them - a silent skip here ships a shell that cannot load
+  # its Ryoku.* modules and crash-loops on boot.
   if ! command_present cmake || ! command_present ninja; then
-    echo "setup: cmake or ninja missing; copied QML runtime only" >&2
+    if command_present ryoku-pkg-add; then
+      ryoku-pkg-add cmake ninja >/dev/null 2>&1 || true
+    fi
+  fi
+  if ! command_present cmake || ! command_present ninja; then
+    _dlog "RESULT: skipped (cmake/ninja still missing after pkg-add)"
+    echo "setup: cmake or ninja missing and could not be installed; copied QML runtime only" >&2
     return 0
   fi
 
@@ -159,8 +178,11 @@ build_native_modules() {
     -DINSTALL_LIBDIR="$lib_dir" \
     -DINSTALL_QMLDIR="$qml_dir" \
     -DINSTALL_QSCONFDIR="$runtime_dir"
-  cmake --build "$build_dir"
-  cmake --install "$build_dir"
+  _dlog "configure rc=$? (after cmake --fresh)"
+  cmake --build "$build_dir" >>"$_dbg" 2>&1
+  _dlog "build rc=$?"
+  cmake --install "$build_dir" >>"$_dbg" 2>&1
+  _dlog "install rc=$? -> $qml_dir"
 }
 
 install_shell() {
