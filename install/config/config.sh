@@ -118,6 +118,7 @@ set_update_channel() {
 
 install_default_configs
 seed_default_wallpapers
+seed_default_videowalls
 set_random_default_wallpaper
 set_update_channel
 remove_retired_wallpaper_assets
