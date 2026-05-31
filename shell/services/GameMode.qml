@@ -32,13 +32,27 @@ Singleton {
     onEnabledChanged: {
         if (enabled) {
             setDynamicConfs();
+            wallpaperPauseProc.running = true;
             if (GlobalConfig.utilities.toasts.gameModeChanged)
                 Toaster.toast(qsTr("Game mode enabled"), qsTr("Disabled Hyprland animations, blur, gaps and shadows"), "gamepad");
         } else {
             Hypr.extras.message("reload");
+            wallpaperResumeProc.running = true;
             if (GlobalConfig.utilities.toasts.gameModeChanged)
                 Toaster.toast(qsTr("Game mode disabled"), qsTr("Hyprland settings restored"), "gamepad");
         }
+    }
+
+    Process {
+        id: wallpaperPauseProc
+
+        command: ["ryoku-wallpaper-pause"]
+    }
+
+    Process {
+        id: wallpaperResumeProc
+
+        command: ["ryoku-wallpaper-resume"]
     }
 
     PersistentProperties {

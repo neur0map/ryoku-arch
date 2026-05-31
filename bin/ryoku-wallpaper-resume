@@ -1,0 +1,34 @@
+#!/bin/bash
+
+set -euo pipefail
+
+_RYOKU_SELF="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$_RYOKU_SELF/lib/runtime-env.sh"
+source "$_RYOKU_SELF/lib/wallpaper-backends.sh"
+
+_noctalia_settings="${XDG_CONFIG_HOME:-$HOME/.config}/noctalia/settings.json"
+
+_settings_get() {
+  local key="$1" default="$2"
+  if [[ -f $_noctalia_settings ]]; then
+    local val
+    val="$(jq -r --arg d "$default" "$key | if . == null then \$d else tostring end" "$_noctalia_settings" 2>/dev/null)" || val="$default"
+    printf '%s' "$val"
+  else
+    printf '%s' "$default"
+  fi
+}
+
+pause_enabled="$(_settings_get '.wallpaper.pauseOnFullscreen' "true")"
+[[ $pause_enabled == "true" ]] || exit 0
+
+type_file="$RYOKU_STATE_PATH/wallpaper/type.txt"
+type="$(head -n1 "$type_file" 2>/dev/null || echo image)"
+
+[[ $type == "image" ]] && exit 0
+
+path_file="$RYOKU_STATE_PATH/wallpaper/path.txt"
+path="$(head -n1 "$path_file" 2>/dev/null || true)"
+[[ -n $path ]] || exit 0
+
+ryoku-wallpaper-apply --type "$type" "$path"

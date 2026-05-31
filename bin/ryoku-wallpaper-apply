@@ -110,7 +110,7 @@ apply_video() {
   if [[ $live_enabled == "true" ]]; then
     local opts="loop hwdec=auto scale=bilinear interpolation=no video-sync=display-resample panscan=1.0 load-scripts=no"
     [[ $muted == "true" ]] && opts="no-audio $opts"
-    nohup mpvpaper -o "$opts" ALL "$path" >/tmp/ryoku-mpvpaper.log 2>&1 &
+    nohup mpvpaper --auto-pause -o "$opts" ALL "$path" >/tmp/ryoku-mpvpaper.log 2>&1 &
   fi
   ryoku_wp_write_type video
   set_shell_wallpaper_config "$path" "$thumbnail"
