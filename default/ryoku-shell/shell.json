@@ -36,6 +36,7 @@
         "enabled": false
       },
       "enabled": true,
+      "style": "modern",
       "invertColors": true,
       "shadow": {
         "blur": 0.8843871348002957,
