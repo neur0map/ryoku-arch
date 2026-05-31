@@ -7,6 +7,11 @@ wallpaper_dir="$state_dir/wallpaper"
 scheme_file="$state_dir/scheme.json"
 ryoku_path="${RYOKU_PATH:-$HOME/.local/share/ryoku}"
 
+_script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+source "$ryoku_path/lib/wallpaper-backends.sh" 2>/dev/null \
+  || source "$_script_dir/../../lib/wallpaper-backends.sh" 2>/dev/null \
+  || true
+
 usage() {
   cat >&2 <<'EOF'
 Usage:
@@ -528,18 +533,7 @@ scheme_command() {
   esac
 }
 
-wallpaper_type() {
-  local path="$1"
-
-  case "${path,,}" in
-    *.mp4|*.mkv|*.mov|*.webm)
-      printf 'video\n'
-      ;;
-    *)
-      printf 'image\n'
-      ;;
-  esac
-}
+wallpaper_type() { ryoku_wp_type "$path"; }
 
 # RYOKU: resolve a wallpaper path to a file that actually exists. Wallpaper sets
 # can record a stale extension (e.g. a ".png" path after the image was re-encoded
