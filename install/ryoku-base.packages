@@ -103,6 +103,7 @@ x264
 
 # ── Hyprland compositor + Ryoku desktop stack ─────────────────────────
 adwaita-icon-theme
+# awww: animated GIF/WebP + transition backend for ryoku live wallpapers (ryoku-wallpaper-apply --type animated).
 awww
 bc
 blueman
