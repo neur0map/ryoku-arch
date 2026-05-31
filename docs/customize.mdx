@@ -28,6 +28,29 @@ Settings writes through typed Ryoku shell config and command adapters. If a syst
 
 Per-monitor wallpapers are configurable in Settings → Background → Multi-monitor.
 
+### Live wallpapers
+
+Ryoku supports three wallpaper types:
+
+| Type | Formats | Backend required |
+|------|---------|-----------------|
+| Static image | png, jpg, webp, jxl, … | swww (always present) |
+| Animated | GIF, animated WebP | `awww` |
+| Video | mp4, mkv, mov, webm | `mpvpaper` |
+
+**Setting one:** drop the file in `~/Pictures/Wallpapers` and pick it with `Super+W` (wallpaper picker), or set it from the Launcher. The selection routes through `ryoku wallpaper -f` which detects the file type and hands it to the right backend.
+
+**Settings → Wallpaper → General** exposes a "Live wallpaper" section with:
+- **Enable** — turn live wallpaper on or off without losing the path.
+- **Mute** — silence audio in video wallpapers.
+- **FPS cap** — UI knob, not yet wired to the backend; reserved for a future release.
+- **Transition** — swww transition style applied when switching wallpapers.
+- **Pause on fullscreen** — pause the live wallpaper when an app goes fullscreen.
+
+**Game mode** (`Super+G`) automatically pauses live wallpapers via the same pause-on-fullscreen toggle.
+
+**NVIDIA / hybrid-GPU note:** `mpvpaper` (video) can misbehave on some NVIDIA and hybrid setups due to DMA-BUF / EGL quirks. `awww` (animated GIF/WebP) is the safer choice on those machines.
+
 ## Appearance
 
 Settings → Appearance controls the active mode, generated color scheme,

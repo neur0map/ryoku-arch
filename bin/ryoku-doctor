@@ -344,6 +344,16 @@ doctor_environment_warnings() {
     doctor_report_issue "INFO ryoku-tui is available, but stdout is not interactive."
   fi
 
+  if ! command -v awww >/dev/null 2>&1; then
+    doctor_note "WARN" "awww is missing or not on PATH; animated GIF/WebP live wallpapers will not work"
+    doctor_report_issue "WARN awww is missing or not on PATH; animated live wallpapers need it."
+  fi
+
+  if ! command -v mpvpaper >/dev/null 2>&1; then
+    doctor_note "WARN" "mpvpaper is missing or not on PATH; video live wallpapers (mp4/mkv/webm) will not work"
+    doctor_report_issue "WARN mpvpaper is missing or not on PATH; video live wallpapers need it."
+  fi
+
   active_doctor="$(doctor_command_realpath ryoku-doctor || true)"
   if [[ -n $active_doctor && -x $expected_doctor && $active_doctor != "$expected_doctor" ]]; then
     doctor_note "WARN" "ryoku-doctor resolves to $active_doctor instead of installed $expected_doctor"

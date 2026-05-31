@@ -9,6 +9,7 @@ keep stale shell files or miss new ones.
 
 ### Added
 
+- **Native live wallpapers**: animated GIF/WebP via `awww` and video (mp4/mkv/mov/webm) via `mpvpaper`, picked via `Super+W`; Settings → Wallpaper → General exposes enable, mute, transition, and pause-on-fullscreen controls; game mode pauses live wallpapers automatically.
 - **Desktop widgets**: a real widget manager, example widget support, and new
   battery, system monitor, visualizer, media, weather, and clock widget pieces.
 - **Music profile**: an opt-in RMPC + MPD profile with helper commands,
