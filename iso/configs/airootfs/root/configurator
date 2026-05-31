@@ -40,8 +40,13 @@ export GUM_CONFIRM_PADDING="0 0 0 $LEFT" GUM_CONFIRM_SELECTED_BACKGROUND="$BRAND
   GUM_CONFIRM_SELECTED_FOREGROUND="$BGDARK"
 export GUM_INPUT_PROMPT_FOREGROUND="$BRAND" GUM_INPUT_CURSOR_FOREGROUND="$BRAND"
 
-# note [gum-style-flags...] TEXT: centered body text under the header card.
-note() { gum style --margin "0 0 0 $LEFT" "$@"; }
+# note [gum-style-flags...] TEXT: body text aligned under the centered card.
+# Cap the width at the card width (not just a left margin) so long lines wrap
+# inside the card column instead of flowing off the right edge on wide consoles
+# (real-hardware framebuffer consoles report ~240 cols, which pushed the old
+# margin-only text far right and overflowed). No right margin keeps the total
+# (LEFT + CARD) within COLS on narrow consoles too, so it never collapses.
+note() { gum style --width "$CARD" --margin "0 0 0 $LEFT" "$@"; }
 
 # brand_header [step-title]: clear screen, centered wordmark + tagline, and an
 # optional bordered step card.
