@@ -145,7 +145,13 @@ build_native_modules() {
     return 0
   fi
 
-  cmake -S "$script_dir" -B "$build_dir" -G Ninja \
+  # A build/ tree from the dev box can ride along (it is gitignored but the
+  # --local-source ISO build copies the working tree). Its CMakeCache.txt pins
+  # INSTALL_QMLDIR to the dev user's $HOME, so reusing it makes cmake --install
+  # deploy the Ryoku QML plugins to /home/<devuser>/... instead of the install
+  # user's import path - the shell then fails with `module "Ryoku.Config" is
+  # not installed`. --fresh discards any stale cache so the paths below win.
+  cmake --fresh -S "$script_dir" -B "$build_dir" -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
     -DVERSION="${RYOKU_SHELL_VERSION:-0.1.0}" \
     -DGIT_REVISION="${RYOKU_SHELL_GIT_REVISION:-$(git -C "$script_dir" rev-parse --short HEAD 2>/dev/null || printf unknown)}" \
