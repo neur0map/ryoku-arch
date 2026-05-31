@@ -2,13 +2,14 @@
 
 set -euo pipefail
 
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+_RYOKU_SELF="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$_RYOKU_SELF/lib/runtime-env.sh"
+source "$_RYOKU_SELF/lib/wallpaper-backends.sh"
 
 usage() {
   cat >&2 <<'EOF'
 Usage:
-  ryoku-wallpaper-apply --type image PATH
-  ryoku-wallpaper-apply --type video PATH
+  ryoku-wallpaper-apply --type image|animated|video PATH
 EOF
 }
 
@@ -44,52 +45,46 @@ set_shell_wallpaper_config() {
 apply_image() {
   local path="$1"
 
-  if [[ ! -f $path ]]; then
-    json_error "image file not found"
-    return 1
-  fi
-
-  pkill -x mpvpaper 2>/dev/null || true
+  [[ -f $path ]] || { json_error "image file not found"; return 1; }
+  ryoku_wp_stop_live_backends
   if ! "$RYOKU_PATH/bin/ryoku-theme-bg-set" "$path" >/dev/null; then
     json_error "failed to apply image wallpaper"
     return 4
   fi
+  ryoku_wp_write_type image
   json_ok "image" "$path"
 }
 
-apply_video() {
-  local path="$1"
-  local poster="$RYOKU_STATE_PATH/wallpaper/current-video-poster.jpg"
-  local thumbnail=""
-
-  if [[ ! -f $path ]]; then
-    json_error "video file not found"
-    return 1
-  fi
-
-  mkdir -p "$(dirname "$poster")"
-  rm -f "$poster"
-  if ryoku-cmd-present ffmpegthumbnailer; then
-    ffmpegthumbnailer -i "$path" -o "$poster" -s 1280 -q 9 >/dev/null 2>&1 || true
-  fi
-
-  if [[ -f $poster ]]; then
+apply_animated() {
+  local path="$1" poster="$RYOKU_STATE_PATH/wallpaper/current-poster.jpg" thumbnail=""
+  [[ -f $path ]] || { json_error "animated file not found"; return 1; }
+  ryoku_wp_stop_live_backends
+  if ! awww query >/dev/null 2>&1; then awww-daemon >/dev/null 2>&1 & fi
+  for _ in 1 2 3 4 5; do awww query >/dev/null 2>&1 && break; sleep 0.1; done
+  awww img "$path" --transition-type any >/dev/null 2>&1 || { json_error "awww failed"; return 4; }
+  if ryoku_wp_make_poster "$path" "$poster"; then
     thumbnail="$poster"
-    if ! mkdir -p "$RYOKU_CONFIG_PATH/current" 2>/dev/null; then
-      json_error "failed to update video wallpaper poster"
-      return 4
-    fi
-    if ! ln -nsf "$poster" "$RYOKU_CONFIG_PATH/current/background" 2>/dev/null; then
-      json_error "failed to update video wallpaper poster"
-      return 4
-    fi
+    mkdir -p "$RYOKU_CONFIG_PATH/current"
+    ln -nsf "$poster" "$RYOKU_CONFIG_PATH/current/background"
   fi
+  ryoku_wp_write_type animated
+  set_shell_wallpaper_config "$path" "$thumbnail"
+  json_ok "animated" "$path"
+}
 
-  if ! set_shell_wallpaper_config "$path" "$thumbnail"; then
-    json_error "failed to update video wallpaper config"
-    return 4
+apply_video() {
+  local path="$1" poster="$RYOKU_STATE_PATH/wallpaper/current-poster.jpg" thumbnail=""
+  [[ -f $path ]] || { json_error "video file not found"; return 1; }
+  ryoku_wp_stop_live_backends
+  if ryoku_wp_make_poster "$path" "$poster"; then
+    thumbnail="$poster"
+    mkdir -p "$RYOKU_CONFIG_PATH/current"
+    ln -nsf "$poster" "$RYOKU_CONFIG_PATH/current/background"
   fi
-
+  local opts="no-audio loop hwdec=auto scale=bilinear interpolation=no video-sync=display-resample panscan=1.0 load-scripts=no"
+  nohup mpvpaper -o "$opts" ALL "$path" >/tmp/ryoku-mpvpaper.log 2>&1 &
+  ryoku_wp_write_type video
+  set_shell_wallpaper_config "$path" "$thumbnail"
   json_ok "video" "$path"
 }
 
@@ -98,7 +93,7 @@ main() {
   local path
 
   if (( $# != 3 )) || [[ ${1:-} != "--type" ]]; then
-    json_error "expected --type image|video PATH"
+    json_error "expected --type image|animated|video PATH"
     return 2
   fi
 
@@ -108,6 +103,9 @@ main() {
   case "$type" in
     image)
       apply_image "$path"
+      ;;
+    animated)
+      apply_animated "$path"
       ;;
     video)
       apply_video "$path"
