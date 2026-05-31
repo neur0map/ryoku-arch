@@ -51,7 +51,7 @@ PanelWindow {
         y: yPos
         width: currentWidth
         height: currentHeight
-        color: camera.cameraStatus === Camera.ActiveStatus ? "transparent" : "black"
+        color: camera.active ? "transparent" : "black"
         radius: Styling.radius(8)
 
         CaptureSession {
