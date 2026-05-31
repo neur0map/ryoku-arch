@@ -12,6 +12,8 @@ Searcher {
     id: root
 
     readonly property string currentNamePath: `${Paths.state}/wallpaper/path.txt`
+    readonly property string currentTypePath: `${Paths.state}/wallpaper/type.txt`
+    property string currentType: "image"
     readonly property list<string> smartArg: GlobalConfig.services.smartScheme ? [] : ["--no-smart"]
 
     property bool showPreview: false
@@ -92,6 +94,13 @@ Searcher {
                 root.smartInitialised = true;
             }
         }
+    }
+
+    FileView {
+        path: root.currentTypePath
+        watchChanges: true
+        onFileChanged: reload()
+        onLoaded: root.currentType = text().trim() || "image"
     }
 
     FileSystemModel {
