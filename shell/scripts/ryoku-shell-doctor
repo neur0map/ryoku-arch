@@ -804,14 +804,84 @@ stop_duplicate_quickshell_runtime() {
   doctor_fail "Could not stop duplicate/stale Quickshell runtime: $runtime_path"
 }
 
+# PIDs of every Quickshell instance running the canonical Ryoku runtime.
+canonical_quickshell_pids() {
+  local output line pid="" config=""
+
+  output="$(env -u QS_CONFIG_NAME -u QS_CONFIG_PATH -u QS_MANIFEST \
+    "$qs_bin" list --all 2>/dev/null)" || return 0
+
+  while IFS= read -r line; do
+    case "$line" in
+      Instance\ *) pid=""; config="" ;;
+      *"Process ID:"*) pid="${line#*Process ID: }" ;;
+      *"Config path:"*)
+        config="${line#*Config path: }"
+        if [[ $config == "$runtime_dir/shell.qml" && -n $pid ]]; then
+          printf '%s\n' "$pid"
+        fi
+        ;;
+    esac
+  done <<<"$output"
+}
+
+# True when PID is genuinely a Quickshell process for our runtime. Guards the
+# reaper from ever signalling an unrelated PID (e.g. a recycled list entry).
+# Overridable in tests.
+pid_is_our_shell() {
+  local pid="$1" cmd
+
+  [[ -n $pid && -r /proc/$pid/cmdline ]] || return 1
+  cmd="$(tr '\0' ' ' </proc/"$pid"/cmdline 2>/dev/null)"
+  [[ $cmd == *"$runtime_dir"* ]] || return 1
+  [[ $cmd == *qs* || $cmd == *quickshell* ]]
+}
+
+# A spinning shell (saturated event loop) ignores the cooperative `qs kill`
+# IPC quit, so the instances survive and accumulate one more spinning core per
+# restart. Escalate to signals, which the kernel delivers regardless of the
+# event-loop state. Returns 0 when it reaped at least one survivor.
+reap_unresponsive_canonical() {
+  local pid pids=() alive=() survivors=()
+
+  mapfile -t pids < <(canonical_quickshell_pids)
+  for pid in "${pids[@]}"; do
+    pid_is_our_shell "$pid" && alive+=("$pid")
+  done
+  ((${#alive[@]})) || return 1
+
+  for pid in "${alive[@]}"; do
+    kill -TERM "$pid" 2>/dev/null || true
+  done
+  sleep 1
+
+  for pid in "${alive[@]}"; do
+    pid_is_our_shell "$pid" && survivors+=("$pid")
+  done
+  for pid in "${survivors[@]}"; do
+    kill -KILL "$pid" 2>/dev/null || true
+  done
+
+  doctor_fix "Force-stopped unresponsive Ryoku shell runtime (PID ${alive[*]})"
+  return 0
+}
+
 restart_canonical_quickshell_runtime() {
+  local cooperative=0
+
   if ! command -v systemctl >/dev/null 2>&1; then
     doctor_fail "Multiple Ryoku shell runtimes found, but systemctl is unavailable for service restart"
     return 0
   fi
 
-  if ! env -u QS_CONFIG_NAME -u QS_CONFIG_PATH -u QS_MANIFEST \
+  if env -u QS_CONFIG_NAME -u QS_CONFIG_PATH -u QS_MANIFEST \
     "$qs_bin" kill -p "$runtime_dir" --any-display >/dev/null 2>&1; then
+    cooperative=1
+  fi
+
+  # The cooperative quit can "succeed" yet leave a spinning instance running,
+  # so always check for survivors and signal-reap them.
+  if ! reap_unresponsive_canonical && (( cooperative == 0 )); then
     doctor_fail "Could not stop duplicate canonical Ryoku shell runtime"
     return 0
   fi
@@ -1041,16 +1111,18 @@ run_shell_doctor() {
   ((doctor_failed == 0))
 }
 
-case "${1:-}" in
-  ""|-y|-q|--skip-deps|--skip-setups|--skip-sysupdate)
-    run_shell_doctor
-    ;;
-  -h|--help|help)
-    usage
-    ;;
-  *)
-    echo "ryoku-shell-doctor: unknown option: $1" >&2
-    usage >&2
-    exit 2
-    ;;
-esac
+if [[ ${BASH_SOURCE[0]} == "${0}" ]]; then
+  case "${1:-}" in
+    ""|-y|-q|--skip-deps|--skip-setups|--skip-sysupdate)
+      run_shell_doctor
+      ;;
+    -h|--help|help)
+      usage
+      ;;
+    *)
+      echo "ryoku-shell-doctor: unknown option: $1" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+fi
