@@ -79,19 +79,42 @@ ryoku-pkg-add \
   gst-plugins-bad \
   gst-plugins-ugly
 
+# Vendored, trimmed qylock (clockwork greeter + lockscreen) shipped in the repo
+# so the greeter installs with zero network. The full upstream repo is ~1.2G of
+# themes Ryoku does not use; only the clockwork theme + quickshell-lockscreen
+# are bundled here.
+BUNDLED_QYLOCK="${RYOKU_QYLOCK_BUNDLE:-$RYOKU_PATH/vendor/qylock}"
+
 clone_qylock_repo() {
   _user rm -rf "$QYLOCK_DIR"
   _user git clone --depth=1 "$QYLOCK_REPO" "$QYLOCK_DIR" >/dev/null
 }
 
+install_bundled_qylock() {
+  # Copy the bundled clockwork greeter into the user's qylock dir instead of
+  # cloning. This is the default path on a fresh install, so a no-network
+  # machine still gets the qylock greeter rather than the bare SDDM fallback.
+  [[ -f $BUNDLED_QYLOCK/themes/clockwork/orbital/Main.qml ]] || return 1
+  _user rm -rf "$QYLOCK_DIR"
+  _user mkdir -p "$QYLOCK_DIR"
+  _user cp -a "$BUNDLED_QYLOCK/." "$QYLOCK_DIR/"
+}
+
 refresh_qylock_clone() {
+  # If the user already has a real git clone (e.g. they pulled the full upstream
+  # theme set), keep it and just try to update.
   if [[ -d $QYLOCK_DIR/.git ]]; then
-    if _user git -C "$QYLOCK_DIR" pull --ff-only >/dev/null; then
-      return 0
-    fi
-    echo "  refreshing qylock clone after pull failed"
+    _user git -C "$QYLOCK_DIR" pull --ff-only >/dev/null 2>&1 || true
+    return 0
   fi
 
+  # Otherwise ship the bundled clockwork greeter offline. Fall back to a network
+  # clone only if the bundle is somehow missing.
+  if install_bundled_qylock; then
+    return 0
+  fi
+
+  echo "  qylock bundle missing; cloning from network"
   clone_qylock_repo
 }
 
