@@ -82,6 +82,15 @@ if [[ -f $USER_CONFIG ]]; then
   cp "$USER_CONFIG" "$backup_config_file"
 fi
 
+# The ISO build/squashfs/copy chain can drop setup's executable bit, so
+# `./setup` would fail with "Permission denied" (rc 126), skipping the native
+# QML plugin build entirely and leaving the shell crash-looping on
+# `module "Ryoku.Config" is not installed`. Restore the bit and invoke through
+# bash so the executable bit never matters. Output is captured to a persistent
+# log so a failed shell build is diagnosable.
+ryoku_shell_setup_log="${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-shell-setup.log"
+mkdir -p "$(dirname "$ryoku_shell_setup_log")"
+chmod +x "$SHELL_PATH/setup" 2>/dev/null || true
 (
   cd "$SHELL_PATH"
   env \
@@ -91,8 +100,9 @@ fi
     RYOKU_CORE_UPDATE_CHILD=1 \
     RYOKU_SHELL_RUNTIME_DIR="$SHELL_RUNTIME_DIR" \
     IS_UPDATE=true \
-    ./setup install -y -q --skip-deps --skip-setups --skip-sysupdate
-)
+    bash ./setup install -y --skip-deps --skip-setups --skip-sysupdate
+) >"$ryoku_shell_setup_log" 2>&1 && ryoku_shell_setup_rc=0 || ryoku_shell_setup_rc=$?
+printf '\n=== ryoku shell setup install exit rc=%s ===\n' "$ryoku_shell_setup_rc" >>"$ryoku_shell_setup_log"
 
 if [[ -n $backup_config_file ]]; then
   restore_user_shell_config "$backup_config_file" "$USER_CONFIG"
