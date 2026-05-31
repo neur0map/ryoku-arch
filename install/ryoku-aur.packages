@@ -23,6 +23,10 @@ localsend-bin
 trayscale
 tzupdate
 ufw-docker
+# yay (AUR helper) shipped prebuilt so a fully-offline install still ends up
+# with yay installed from the local mirror via aur-core.sh. Without this, the
+# yay bootstrap defers on an offline install and the machine has no AUR helper.
+yay-bin
 
 # Power / GPU management
 # supergfxctl is the canonical asus-linux.org workaround for hybrid-GPU
