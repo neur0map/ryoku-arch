@@ -512,6 +512,39 @@ encryption_form() {
 
 encryption_form
 
+# Update channel. This is the one place the channel is chosen; the desktop
+# only displays it (it is not switchable from the GUI). "main" rolls up the
+# week's tested changes; "unstable-dev" ships every push as it lands.
+channel_form() {
+  local choice
+  ryoku_channel="main"
+
+  step "Choose your update channel"
+
+  note --bold "Stable (recommended)"
+  note "One update a week with all the week's changes tested and rolled up."
+  note --foreground 8 "Best for a daily driver that wants fewer surprises."
+  echo
+  note --bold "Development"
+  note "Every change ships the moment it lands, so you get the newest first."
+  note --foreground 8 "Moves fast and can carry bugs; best for testers and tinkerers."
+  echo
+
+  choice=$(printf '%s\n' \
+    "Stable updates, tested weekly (main)" \
+    "Latest changes as they land (unstable-dev)" |
+    gum choose --height 4 \
+      --selected "Stable updates, tested weekly (main)" \
+      --header "Update channel") || abort
+
+  case $choice in
+    *"unstable-dev"*) ryoku_channel="unstable-dev" ;;
+    *) ryoku_channel="main" ;;
+  esac
+}
+
+channel_form
+
 while true; do
   if [[ $DUAL_BOOT == "true" ]]; then
     note "Ryoku will install into the free space on ${disk} and keep ${EXISTING_OS:-your existing system}."
@@ -524,6 +557,7 @@ while true; do
   else
     note --foreground 8 "Disk encryption: disabled"
   fi
+  note --foreground 8 "Update channel: ${ryoku_channel}"
 
   echo
   if [[ $DUAL_BOOT == "true" ]]; then
@@ -576,6 +610,10 @@ $credentials_encryption_line
 _EOF_
 
 printf '%s\n' "$encrypt_installation" >user_encrypt_installation.txt
+
+# Chosen update channel, consumed by .automated_script.sh to set RYOKU_CHANNEL
+# for the install (and persisted to the installed system's channel state).
+printf '%s\n' "${ryoku_channel:-main}" >ryoku_channel.txt
 
 # Setup partition layout
 disk_size=$(lsblk -bdno SIZE "$disk")
@@ -798,5 +836,5 @@ if [[ $1 == "dry" ]]; then
   echo -e "\nDisk Encryption:"
   cat user_encrypt_installation.txt
 
-  rm user_configuration.json user_credentials.json user_full_name.txt user_email_address.txt user_encrypt_installation.txt
+  rm user_configuration.json user_credentials.json user_full_name.txt user_email_address.txt user_encrypt_installation.txt ryoku_channel.txt
 fi

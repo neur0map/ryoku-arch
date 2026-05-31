@@ -20,6 +20,17 @@ run_configurator() {
   RYOKU_USER="$(jq -r '.users[0].username' user_credentials.json)"
   export RYOKU_USER
 
+  # The user picks the update channel in the configurator; honor it for the
+  # rest of the install (overriding the ISO build-time default) so it reaches
+  # the chroot and gets persisted to the installed system's channel state.
+  if [[ -f ryoku_channel.txt ]]; then
+    case "$(<ryoku_channel.txt)" in
+      unstable-dev) RYOKU_CHANNEL="unstable-dev" ;;
+      *) RYOKU_CHANNEL="main" ;;
+    esac
+    export RYOKU_CHANNEL
+  fi
+
   # The configurator writes install_mode.sh only for an alongside (dual-boot)
   # install; its absence means a normal full-disk install.
   DUAL_BOOT=false

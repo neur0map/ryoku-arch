@@ -16,8 +16,6 @@ Singleton {
     property bool startingUpdate: false
     property bool runningDoctor: false
     property bool refreshingShell: false
-    property bool switchingChannel: false
-    property bool startingMedevac: false
     property var info: ({})
     property var lastUpdateReport: ({})
     property var lastDoctorReport: ({})
@@ -27,8 +25,6 @@ Singleton {
     signal updateStartFinished(var report)
     signal doctorFinished(var report)
     signal shellRefreshFinished(var report)
-    signal channelSwitchFinished(var report)
-    signal medevacStartFinished(var report)
 
     function parseJson(text: string): var {
         if (!text || text.trim().length === 0)
@@ -86,22 +82,6 @@ Singleton {
 
         startingUpdate = true;
         updateProc.exec([helper, "start-update", branch]);
-    }
-
-    function switchChannel(channel: string): void {
-        if (switchingChannel)
-            return;
-
-        switchingChannel = true;
-        switchProc.exec([helper, "switch-channel", channel]);
-    }
-
-    function startMedevac(channel: string): void {
-        if (startingMedevac)
-            return;
-
-        startingMedevac = true;
-        medevacProc.exec([helper, "medevac", channel]);
     }
 
     function openUrl(url: string): void {
@@ -211,47 +191,6 @@ Singleton {
             if (!report.ok && updateErr.text && !report.error)
                 report.error = updateErr.text.trim();
             root.updateStartFinished(report);
-        }
-    }
-
-    Process {
-        id: switchProc
-
-        stdout: StdioCollector {
-            id: switchOut
-        }
-
-        stderr: StdioCollector {
-            id: switchErr
-        }
-
-        onExited: code => {
-            const report = root.parseJson(switchOut.text);
-            root.switchingChannel = false;
-            if (!report.ok && switchErr.text && !report.error)
-                report.error = switchErr.text.trim();
-            root.channelSwitchFinished(report);
-            root.refreshStatus();
-        }
-    }
-
-    Process {
-        id: medevacProc
-
-        stdout: StdioCollector {
-            id: medevacOut
-        }
-
-        stderr: StdioCollector {
-            id: medevacErr
-        }
-
-        onExited: code => {
-            const report = root.parseJson(medevacOut.text);
-            root.startingMedevac = false;
-            if (!report.ok && medevacErr.text && !report.error)
-                report.error = medevacErr.text.trim();
-            root.medevacStartFinished(report);
         }
     }
 

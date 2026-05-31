@@ -86,8 +86,23 @@ set_random_default_wallpaper() {
   ln -sf "$chosen" "${XDG_CONFIG_HOME:-$HOME/.config}/ryoku/current/background" 2>/dev/null || true
 }
 
+# Persist the update channel chosen in the installer. configured_channel() in
+# ryoku-settings-about and the resolver in ryoku-update-core both read
+# $RYOKU_STATE_PATH/channel first, so this makes the installer's choice the
+# authoritative channel for both the About page label and ryoku-update.
+set_update_channel() {
+  local channel="${RYOKU_CHANNEL:-main}"
+  case "$channel" in
+    main | unstable-dev) ;;
+    *) channel="main" ;;
+  esac
+  mkdir -p "$RYOKU_STATE_PATH"
+  printf '%s\n' "$channel" >"$RYOKU_STATE_PATH/channel"
+}
+
 install_default_configs
 seed_default_wallpapers
 set_random_default_wallpaper
+set_update_channel
 remove_retired_wallpaper_assets
 copy_default_file_if_missing "$RYOKU_PATH/default/bashrc" "$HOME/.bashrc"
