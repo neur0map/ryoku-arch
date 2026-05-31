@@ -45,6 +45,22 @@ seed_default_wallpapers() {
   done < <(find "$source_dir" -type f -print0)
 }
 
+seed_default_videowalls() {
+  local source_dir target_dir source_file target
+
+  source_dir="$RYOKU_PATH/videowalls"
+  target_dir="$HOME/videowalls"
+
+  [[ -d $source_dir ]] || return 0
+
+  mkdir -p "$target_dir"
+
+  while IFS= read -r -d '' source_file; do
+    target="$target_dir/$(basename "$source_file")"
+    [[ -e $target ]] || cp -a "$source_file" "$target"
+  done < <(find "$source_dir" -maxdepth 1 -type f -iname '*.mp4' -print0)
+}
+
 remove_retired_wallpaper_assets() {
   local target_dir="${XDG_PICTURES_DIR:-$HOME/Pictures}/Wallpapers"
   local cache_file="${XDG_STATE_HOME:-$HOME/.local/state}/quickshell/user/wallpaper-selector/colors.json"
