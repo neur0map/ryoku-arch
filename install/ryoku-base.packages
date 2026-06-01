@@ -161,6 +161,9 @@ qt6-wayland
 qt5-graphicaleffects
 qt6ct
 quickshell
+# matugen: wallpaper -> Material colour scheme engine the shell theming uses;
+# also a hard dependency of skwd-wall (the Super+W switcher).
+matugen
 rsync
 swaylock
 syntax-highlighting
@@ -240,6 +243,11 @@ polkit-gnome
 avahi
 inetutils
 iwd
+# kdeconnect + network-manager-applet provide the kdeconnectd /
+# kdeconnect-indicator / nm-applet tray helpers the Hyprland exec-once lines
+# start on login; without them those exec-once commands silently no-op.
+kdeconnect
+network-manager-applet
 networkmanager-openvpn
 nss-mdns
 openvpn
@@ -280,6 +288,7 @@ noto-fonts
 noto-fonts-cjk
 noto-fonts-emoji
 ttf-jetbrains-mono-nerd
+ttf-nerd-fonts-symbols
 woff2-font-awesome
 
 # ── Cursors, GTK + Qt theming ─────────────────────────────────────────
