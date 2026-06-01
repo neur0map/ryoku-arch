@@ -1,0 +1,58 @@
+#!/bin/bash
+
+# Ryoku Shell installer (experimental). Layers the Ryoku desktop shell onto an
+# existing Linux system in user scope, coexisting with the current setup and
+# reversible via shell-install/uninstall.
+#
+# Usage:
+#   shell-install/install [--dry-run] [--yes]
+#
+#   --dry-run   show the full plan and change nothing
+#   --yes       skip the confirmation prompt (still prints the plan)
+
+set -euo pipefail
+
+RSI_HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+
+for arg in "$@"; do
+  case "$arg" in
+    --dry-run) export RSI_DRY_RUN=1 ;;
+    --yes | -y) export RSI_ASSUME_YES=1 ;;
+    -h | --help)
+      sed -n '3,12p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+      exit 0
+      ;;
+    *)
+      echo "unknown argument: $arg" >&2
+      exit 2
+      ;;
+  esac
+done
+
+# shellcheck source=lib/env.sh
+. "$RSI_HERE/lib/env.sh"
+# shellcheck source=lib/ui.sh
+. "$RSI_HERE/lib/ui.sh"
+# shellcheck source=lib/manifest.sh
+. "$RSI_HERE/lib/manifest.sh"
+# shellcheck source=lib/backup.sh
+. "$RSI_HERE/lib/backup.sh"
+# shellcheck source=distros/detect.sh
+. "$RSI_HERE/distros/detect.sh"
+# shellcheck source=lib/packages.sh
+. "$RSI_HERE/lib/packages.sh"
+# shellcheck source=lib/preflight.sh
+. "$RSI_HERE/lib/preflight.sh"
+# shellcheck source=lib/deploy.sh
+. "$RSI_HERE/lib/deploy.sh"
+
+rsi_preflight
+rsi_dry && exit 0
+
+rsi_install_packages
+rsi_deploy
+
+rsi_say ""
+rsi_ok "Ryoku shell installed."
+rsi_say "Log out, pick the \"Ryoku\" session at your login screen, and log back in."
+rsi_say "To revert: $RSI_HERE/uninstall"
