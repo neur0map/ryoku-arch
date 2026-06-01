@@ -15,6 +15,7 @@ feel fast, sharp, and deliberate from first boot.
 [![Hyprland](https://img.shields.io/badge/Hyprland-58E1C2?style=for-the-badge&logoColor=white)](https://hypr.land)
 [![Status: 0.1.0-beta1](https://img.shields.io/badge/status-0.1.0--beta1-F25623?style=for-the-badge)](#status)
 [![Build ISO](https://github.com/neur0map/ryoku-arch/actions/workflows/build-iso.yml/badge.svg)](https://github.com/neur0map/ryoku-arch/actions/workflows/build-iso.yml)
+[![Latest ISO](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fiso.ryoku.dev%2Fstable%2Flatest.json&query=%24.tracking_id&label=latest%20ISO&color=F25623&style=for-the-badge)](https://ryoku.dev)
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/8KjBmUEyKA)
 [![Reddit](https://img.shields.io/badge/Reddit-r%2FRyokuArch-FF4500?style=for-the-badge&logo=reddit&logoColor=white)](https://www.reddit.com/r/RyokuArch/)
 
@@ -88,9 +89,9 @@ Ryoku is not:
 
 First beta. Ryoku has cut **0.1.0-beta1**: the move from the Niri/iNiR setup to
 the Hyprland/Caelestia shell has reached beta, and the install flow runs end to
-end, including verified dual-boot alongside an existing OS. Public ISO downloads
-stay paused until a published release build is ready; build from source in the
-meantime. The stable release is the next milestone.
+end, including verified dual-boot alongside an existing OS. Signed ISO builds are
+published at [ryoku.dev](https://ryoku.dev); see [Download and verify](#download-and-verify),
+or build from source. The stable release is the next milestone.
 
 The active workstation track is Hyprland. Development happens on
 `unstable-dev`, then stabilizes into `main` for release users. The shell is in
@@ -101,7 +102,7 @@ plugin shell takes shape.
 |---|---|
 | Minimum RAM | **16GB+ required.** Use **32GB+** if you expect VMs, gaming, browser-heavy work, or creative tools. This is not a low-resource target. |
 | Target hardware | Modern desktops and stronger laptops. NVIDIA, hybrid, AMD, and Intel graphics are target classes. |
-| Is the ISO downloadable? | Not yet. `0.1.0-beta1` is cut, but public ISO downloads stay paused until a published release build is ready. Build from source meanwhile. |
+| Is the ISO downloadable? | Yes. `0.1.0-beta1` builds are published at [ryoku.dev](https://ryoku.dev); see [Download and verify](#download-and-verify). You can also build from source. |
 | Can I build it myself? | Yes. Use the [ISO build recipe](docs/iso-build-recipe.md) if you want to build from source. |
 | Is every bundled plugin lane installed by default? | No. Ryoku ships core productivity lanes and extras as optional add-ons. |
 | Secure Boot? | Roadmap. Not automatic yet. |
@@ -147,10 +148,13 @@ It runs hard safety checks first and stops if the machine is not safe, backs up
 your current setup before any change, and is reversible with
 `shell-install/uninstall`.
 
-## Build From Source
+## Download and verify
 
-Public ISO downloads are paused for now. If you want to test Ryoku anyway, build
-from source with the repo-local ISO tooling:
+Signed builds are published on the website at [`https://ryoku.dev`](https://ryoku.dev).
+Use the Download page to get the latest ISO, signature, and checksums. The latest
+ISO badge above tracks the current published build id.
+
+Prefer to build it yourself? Use the repo-local ISO tooling:
 
 - [ISO build recipe](docs/iso-build-recipe.md)
 - [Release pipeline notes](docs/release-pipeline.md)
