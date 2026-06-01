@@ -46,7 +46,12 @@ done
 # shellcheck source=lib/deploy.sh
 . "$RSI_HERE/lib/deploy.sh"
 
-rsi_preflight
+rsi_banner
+rsi_safety
+rsi_review
+
+rsi_manifest_init
+rsi_backup_setup
 rsi_install_packages
 rsi_deploy
 

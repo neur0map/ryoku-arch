@@ -5,12 +5,20 @@
 # distro ID so every Arch derivative shares one adapter: adding CachyOS or
 # another derivative is just an ID in the case below, no new code.
 
+# rsi_os_id -> echo the os-release ID (override-aware), or "unknown".
+rsi_os_id() {
+  local osr="${RSI_OS_RELEASE:-/etc/os-release}"
+  [[ -r $osr ]] || { printf 'unknown'; return; }
+  # shellcheck disable=SC1090,SC1091
+  ( . "$osr" && printf '%s' "${ID:-unknown}" )
+}
+
 # rsi_detect_family -> echoes the family name, or "unsupported".
 rsi_detect_family() {
   local id="" id_like=""
-  if [[ -r /etc/os-release ]]; then
-    # shellcheck disable=SC1091
-    . /etc/os-release
+  if [[ -r ${RSI_OS_RELEASE:-/etc/os-release} ]]; then
+    # shellcheck disable=SC1090,SC1091
+    . "${RSI_OS_RELEASE:-/etc/os-release}"
     id="${ID:-}"
     id_like="${ID_LIKE:-}"
   fi
@@ -41,9 +49,7 @@ rsi_load_adapter() {
   export RSI_FAMILY
 
   if [[ $family == unsupported ]]; then
-    local id="unknown"
-    [[ -r /etc/os-release ]] && id="$(. /etc/os-release && printf '%s' "${ID:-unknown}")"
-    rsi_die "unsupported distro '$id'. Only the Arch family is supported today. See shell-install/distros/TEMPLATE.sh to add one."
+    rsi_die "unsupported distro '$(rsi_os_id)'. Only the Arch family is supported today. See shell-install/distros/TEMPLATE.sh to add one."
   fi
 
   adapter="$RSI_DIR/distros/$family.sh"

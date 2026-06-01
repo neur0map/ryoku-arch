@@ -43,6 +43,16 @@ bash <(curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/main/she
 After installing, log out, pick the **Ryoku** session at your login screen, and
 log back in.
 
+## Safety first
+
+Before anything is installed or changed, it runs hard safety checks and stops
+if the machine is not safe to proceed on: not running as root, an Arch-family
+system, `pacman` and `sudo` present, the pacman database not locked, enough
+free disk for the build, and network reachable. It is universal across Arch
+machines (any bootloader, filesystem, or desktop), but refuses clearly-unsafe
+conditions rather than pressing on. After you consent, it takes a full backup
+of your current setup before the first change.
+
 ## What it does
 
 - Installs the shell-critical packages in `packages/shell.deps` (compositor,

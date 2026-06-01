@@ -36,3 +36,6 @@ export RSI_ASSUME_YES="${RSI_ASSUME_YES:-0}"
 
 # Logical dependency manifest (distro-agnostic names).
 export RSI_DEPS_FILE="$RSI_DIR/packages/shell.deps"
+
+# os-release path, overridable for testing the distro-detection gate.
+export RSI_OS_RELEASE="${RSI_OS_RELEASE:-/etc/os-release}"

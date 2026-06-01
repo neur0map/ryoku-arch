@@ -1,15 +1,75 @@
 #!/bin/bash
 
-# Preflight: refuse root, detect the distro, report what already exists on the
-# system, and gate the run behind explicit consent that shows the full plan
-# (including what is deliberately never touched).
+# Two gates that run before anything is changed:
+#   rsi_safety  hard checks that STOP the install if the machine is not safe to
+#               proceed on. Universal across Arch machines (any bootloader,
+#               filesystem, or desktop), but refuses clearly-unsafe conditions.
+#   rsi_review  conflict report + the full plan + the consent prompt.
 
-rsi_preflight_root() {
-  (( EUID == 0 )) && rsi_die "do not run as root. Run as your normal user; the installer uses sudo only for the wayland session entry."
-  return 0
+RSI_MIN_FREE_KB=$((3 * 1024 * 1024)) # 3 GiB headroom for the Qt6 + shell build
+
+rsi_check_network() {
+  local host=archlinux.org
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsS --max-time 6 -o /dev/null "https://$host" 2>/dev/null && return 0
+  fi
+  if command -v ping >/dev/null 2>&1; then
+    ping -c1 -W3 "$host" >/dev/null 2>&1 && return 0
+  fi
+  if command -v timeout >/dev/null 2>&1; then
+    timeout 6 bash -c "exec 3<>/dev/tcp/$host/443" 2>/dev/null && return 0
+  fi
+  return 1
 }
 
-# Paths the installer may touch, used for the conflict report.
+# Hard safety gate. Every failure here stops the install before any change.
+rsi_safety() {
+  rsi_header "Safety checks"
+
+  if (( EUID == 0 )); then
+    rsi_die "running as root. Run as your normal user; sudo is used only where needed."
+  fi
+  rsi_ok "not running as root"
+
+  # Must be an Arch-family system; the only adapter today is arch. This both
+  # loads the adapter and stops on anything else.
+  rsi_load_adapter
+  rsi_ok "Arch-family system ($(rsi_os_id))"
+
+  command -v pacman >/dev/null 2>&1 || rsi_die "pacman not found; this does not look like an Arch system."
+  rsi_ok "pacman present"
+
+  command -v sudo >/dev/null 2>&1 || rsi_die "sudo not found; it is required for package installs and the session entry."
+  rsi_ok "sudo present"
+
+  if [[ -e /var/lib/pacman/db.lck ]]; then
+    rsi_die "pacman is locked (/var/lib/pacman/db.lck). Another package operation is running; wait for it to finish, then retry."
+  fi
+  rsi_ok "pacman database is not locked"
+
+  local free_kb
+  free_kb="$(df -Pk "$HOME" 2>/dev/null | awk 'NR==2 {print $4}')"
+  if [[ -n $free_kb ]] && (( free_kb < RSI_MIN_FREE_KB )); then
+    rsi_die "low disk space in $HOME ($(( free_kb / 1024 )) MiB free). Building Qt6 and the shell needs about 3 GiB. Free up space and retry."
+  fi
+  rsi_ok "enough free disk in $HOME"
+
+  if rsi_check_network; then
+    rsi_ok "network reachable"
+  else
+    rsi_die "no network connectivity. pacman and the AUR need internet to install the shell dependencies."
+  fi
+
+  # Non-fatal advisories: the install still proceeds.
+  [[ $(uname -m) == x86_64 ]] || rsi_warn "this is not an x86_64 machine ($(uname -m)); Ryoku targets x86_64 and is untested here."
+  if ! systemctl is-enabled display-manager.service >/dev/null 2>&1 \
+     && ! systemctl is-active display-manager.service >/dev/null 2>&1; then
+    rsi_warn "no display manager detected; you will need a way to start the Ryoku wayland session (a display manager, or your own uwsm/tty launch)."
+  fi
+}
+
+# Paths the installer may touch, used for the conflict report and the upfront
+# backup.
 rsi_conflict_targets() {
   printf '%s\n' \
     "$RSI_RYOKU_PATH" \
@@ -37,35 +97,29 @@ rsi_conflict_report() {
 }
 
 rsi_plan() {
-  cat <<EOF
-
-This experimental installer will, in your user scope:
-  - install the shell-critical packages listed in packages/shell.deps
-  - deploy the Ryoku payload to $RSI_RYOKU_PATH
-  - deploy the shell to $RSI_SHELL_PATH and $RSI_QUICKSHELL_DIR
-  - build the native QML plugins (cmake/ninja)
-  - link ryoku-* commands into $RSI_BIN_HOME
-  - seed missing configs into $RSI_CONFIG_HOME (existing files are preserved)
-  - add a "Ryoku" wayland session at $RSI_SESSION_FILE (the only sudo write)
-  - enable the hypridle and ryoku-resume-listener user services
-
-It will NOT touch any of these:
-  - your bootloader, kernel, or initramfs
-  - your filesystem, btrfs, or snapshots
-  - your display manager (it adds a session beside your existing ones)
-  - plymouth / boot splash
-  - /etc/pacman.conf, sudoers, udev rules, or other global system config
-
-Everything it changes is backed up under $RSI_BACKUP_ROOT and recorded in
-$RSI_MANIFEST, so 'shell-install/uninstall' reverses it.
-EOF
+  rsi_header "What will happen"
+  rsi_say "In your user scope, this will:"
+  rsi_will "install the shell-critical packages in packages/shell.deps"
+  rsi_will "deploy the Ryoku payload to $RSI_RYOKU_PATH"
+  rsi_will "build the native QML plugins and deploy the shell"
+  rsi_will "link ryoku-* commands into $RSI_BIN_HOME"
+  rsi_will "seed missing configs (your existing files are preserved)"
+  rsi_will "add a \"Ryoku\" wayland session beside your existing ones (the only sudo write)"
+  rsi_will "enable the ryoku-shell and hypridle user services"
+  rsi_say ""
+  rsi_say "It will NOT touch:"
+  rsi_wont "your bootloader, kernel, or initramfs"
+  rsi_wont "your filesystem, btrfs, or snapshots"
+  rsi_wont "your display manager"
+  rsi_wont "plymouth / boot splash"
+  rsi_wont "/etc/pacman.conf, sudoers, udev, or other global system config"
+  rsi_say ""
+  rsi_dim "Everything changed is backed up under $RSI_BACKUP_ROOT and recorded in"
+  rsi_dim "$RSI_MANIFEST, so 'shell-install/uninstall' reverses it."
 }
 
-rsi_preflight() {
-  rsi_banner
-  rsi_preflight_root
-  rsi_load_adapter
-  rsi_ok "detected $RSI_FAMILY family"
+rsi_review() {
+  rsi_header "Existing setup"
   rsi_conflict_report
   rsi_plan
 
