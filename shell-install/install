@@ -55,6 +55,7 @@ rsi_safety
 rsi_review
 
 rsi_sudo_prime
+rsi_system_update
 rsi_manifest_init
 rsi_backup_setup
 rsi_install_packages

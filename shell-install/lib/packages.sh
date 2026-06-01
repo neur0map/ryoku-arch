@@ -14,6 +14,12 @@ rsi_read_deps() {
   done <"$RSI_DEPS_FILE"
 }
 
+# Full system update, its own phase before anything Ryoku is pulled or built.
+rsi_system_update() {
+  rsi_header "Updating your system (avoids partial upgrades)"
+  ryoku_distro_system_update
+}
+
 rsi_install_packages() {
   rsi_header "Installing Ryoku packages"
   ryoku_distro_prereqs
