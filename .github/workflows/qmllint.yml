@@ -88,6 +88,11 @@ jobs:
               [[ -f $file ]] || continue
 
               case "$file" in
+                vendor/*)
+                  # Vendored upstream QML (e.g. qylock's bundled QtMultimedia /
+                  # QtGraphicalEffects shims) is not Ryoku-authored and is exempt from the
+                  # qmllint gate, mirroring the leak-scan / shellcheck vendored exemptions.
+                  ;;
                 *.qml)
                   printf '%s\0' "$file" >>"$files"
                   ;;
