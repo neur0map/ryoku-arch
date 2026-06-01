@@ -47,10 +47,19 @@ done
 . "$RSI_HERE/lib/deploy.sh"
 
 rsi_preflight
-rsi_dry && exit 0
-
 rsi_install_packages
 rsi_deploy
+
+if rsi_dry; then
+  rsi_say ""
+  rsi_ok "dry run complete: nothing was changed"
+  exit 0
+fi
+
+case ":$PATH:" in
+  *":$RSI_BIN_HOME:"*) ;;
+  *) rsi_warn "$RSI_BIN_HOME is not on your PATH; add it to run ryoku-* commands from a terminal (the Ryoku session itself uses absolute paths and works regardless)." ;;
+esac
 
 rsi_say ""
 rsi_ok "Ryoku shell installed."

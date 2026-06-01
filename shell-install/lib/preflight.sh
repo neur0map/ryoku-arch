@@ -71,7 +71,7 @@ rsi_preflight() {
 
   if rsi_dry; then
     rsi_say ""
-    rsi_ok "dry run: nothing was changed"
+    rsi_dim "dry run: previewing every step below; nothing will change."
     return 0
   fi
 

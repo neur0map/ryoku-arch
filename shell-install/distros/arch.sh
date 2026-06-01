@@ -11,7 +11,7 @@
 
 # logical -> "class real [real...]". class is repo or aur.
 declare -gA RSI_ARCH_PKG=(
-  [compositor]="repo hyprland hypridle hyprlock hyprpicker hyprland-qtutils"
+  [compositor]="repo hyprland hypridle hyprlock hyprpicker"
   [quickshell]="repo quickshell"
   [portal]="repo xdg-desktop-portal xdg-desktop-portal-hyprland xdg-desktop-portal-gtk xwayland-satellite"
   [build]="repo cmake ninja python git pkgconf"

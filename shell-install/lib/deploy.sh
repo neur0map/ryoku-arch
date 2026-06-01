@@ -117,77 +117,114 @@ rsi_link_commands() {
   rsi_record link "$libdir/runtime-env.sh"
 }
 
-# Copy-if-missing for app configs (never touch what the user already has),
-# except ~/.config/hypr which Ryoku must own for its session to work: that
-# one is backed up then deployed (reversible transition).
+# Seed configs. ~/.config/hypr must be owned by Ryoku for its session to work,
+# so it is backed up then deployed (reversible transition). Everything else is
+# delegated to the OS installer's config.sh, which does file-level
+# copy-if-missing (it never overwrites a file the user already has) plus
+# wallpaper and channel seeding, keeping parity with a real Ryoku seed.
 rsi_seed_configs() {
   rsi_step "seeding configs into $RSI_CONFIG_HOME"
   local src="$RSI_RYOKU_PATH/config"
-  [[ -d $src ]] || { rsi_warn "no config payload at $src"; return 0; }
+  if ! rsi_dry && [[ ! -d $src ]]; then
+    rsi_warn "no config payload at $src"
+    return 0
+  fi
 
-  local entry name dst
-  for entry in "$src"/*; do
-    [[ -e $entry ]] || continue
-    name="$(basename "$entry")"
-    dst="$RSI_CONFIG_HOME/$name"
+  local hypr="$RSI_CONFIG_HOME/hypr"
+  rsi_backup "$hypr"
+  if rsi_dry; then
+    rsi_dim "  would deploy Ryoku hypr config to $hypr (backing up any existing)"
+  else
+    mkdir -p "$hypr"
+    rsync -a "$src/hypr/" "$hypr/"
+  fi
+  rsi_record dir "$hypr"
 
-    if [[ $name == hypr ]]; then
-      rsi_backup "$dst"
-      rsi_run mkdir -p "$dst"
-      if rsi_dry; then
-        rsi_dim "  would deploy Ryoku hypr config to $dst"
-      else
-        rsync -a "$entry/" "$dst/"
-      fi
-      rsi_record dir "$dst"
-      continue
-    fi
+  local config_sh="$RSI_RYOKU_PATH/install/config/config.sh"
+  if rsi_dry; then
+    rsi_dim "  would run config.sh (file-level copy-if-missing + wallpaper seed)"
+  elif [[ -f $config_sh ]]; then
+    bash "$config_sh" || rsi_warn "config seed reported a problem; continuing"
+  else
+    rsi_warn "no config.sh at $config_sh; skipping default config seed"
+  fi
 
-    if [[ -e $dst ]]; then
-      rsi_dim "  keeping existing $dst"
-      continue
+  # Record the Ryoku-namespaced config dirs so uninstall removes them without
+  # touching the user's own app configs (which were only ever filled in where
+  # absent and are harmless to leave).
+  local d
+  for d in "$RSI_CONFIG_HOME/ryoku" "$RSI_CONFIG_HOME/ryoku-shell"; do
+    if [[ -e $d ]] || rsi_dry; then
+      rsi_record dir "$d"
     fi
-    if rsi_dry; then
-      rsi_dim "  would copy $name -> $dst"
-    else
-      cp -a "$entry" "$dst"
-    fi
-    rsi_record file "$dst"
   done
 }
 
 # Register a distinctly-named Ryoku wayland session beside the user's existing
-# sessions. The only path written with sudo.
+# sessions. Clone the installed Hyprland session entry so Exec matches the
+# packaged launcher (the hyprland package owns start-hyprland), then rebrand
+# the visible name. The only path written with sudo.
 rsi_install_session() {
   rsi_step "registering the Ryoku wayland session"
   rsi_backup "$RSI_SESSION_FILE"
-  local content="[Desktop Entry]
-Name=Ryoku
-Comment=Ryoku Hyprland desktop (experimental shell install)
-Exec=Hyprland
-Type=Application
-DesktopNames=Hyprland"
+
+  local src="" cand
+  for cand in /usr/share/wayland-sessions/hyprland.desktop \
+              /usr/share/wayland-sessions/Hyprland.desktop; do
+    [[ -f $cand ]] && { src="$cand"; break; }
+  done
+
   if rsi_dry; then
-    rsi_dim "  would sudo-write $RSI_SESSION_FILE"
+    rsi_dim "  would register $RSI_SESSION_FILE (from ${src:-built-in template})"
+    rsi_record session "$RSI_SESSION_FILE"
+    return 0
+  fi
+
+  sudo install -d "$(dirname "$RSI_SESSION_FILE")"
+  if [[ -n $src ]]; then
+    sudo sed -e 's/^Name=.*/Name=Ryoku/' \
+             -e 's/^Comment=.*/Comment=Ryoku Hyprland desktop (experimental shell install)/' \
+             "$src" | sudo tee "$RSI_SESSION_FILE" >/dev/null
   else
-    sudo install -d "$(dirname "$RSI_SESSION_FILE")"
-    printf '%s\n' "$content" | sudo tee "$RSI_SESSION_FILE" >/dev/null
+    rsi_warn "no installed Hyprland session found; writing a generic entry"
+    printf '%s\n' \
+      "[Desktop Entry]" "Name=Ryoku" \
+      "Comment=Ryoku Hyprland desktop (experimental shell install)" \
+      "Exec=Hyprland" "Type=Application" "DesktopNames=Hyprland" \
+      | sudo tee "$RSI_SESSION_FILE" >/dev/null
   fi
   rsi_record session "$RSI_SESSION_FILE"
 }
 
-# Enable the shell and idle user services if their units are present.
+# Enable the shell and supporting user services. Best-effort: a unit that is
+# absent or a user systemd that is unreachable must not abort the install.
 rsi_enable_services() {
   rsi_step "enabling user services"
   if [[ -x $RSI_BIN_HOME/ryoku-shell ]]; then
-    rsi_run env RYOKU_SHELL_RUNTIME_DIR="$RSI_QUICKSHELL_DIR" "$RSI_BIN_HOME/ryoku-shell" service enable
+    if rsi_dry; then
+      rsi_dim "  would enable ryoku-shell.service"
+    else
+      env RYOKU_SHELL_RUNTIME_DIR="$RSI_QUICKSHELL_DIR" "$RSI_BIN_HOME/ryoku-shell" service enable >/dev/null 2>&1 \
+        || rsi_warn "could not enable ryoku-shell.service now (it starts from Hyprland on first login)"
+    fi
     rsi_record service ryoku-shell.service
   fi
-  if systemctl --user list-unit-files hypridle.service >/dev/null 2>&1; then
-    rsi_run systemctl --user enable hypridle.service
-    rsi_record service hypridle.service
-  fi
-  rsi_run systemctl --user daemon-reload
+
+  local unit
+  for unit in hypridle.service ryoku-resume-listener.service; do
+    if rsi_dry; then
+      rsi_dim "  would enable $unit"
+      rsi_record service "$unit"
+      continue
+    fi
+    if systemctl --user enable "$unit" >/dev/null 2>&1; then
+      rsi_record service "$unit"
+    else
+      rsi_warn "skipped $unit (unit not present or user systemd unavailable)"
+    fi
+  done
+
+  rsi_dry || systemctl --user daemon-reload >/dev/null 2>&1 || true
 }
 
 rsi_deploy() {
