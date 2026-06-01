@@ -30,7 +30,8 @@ From a clone of the repo:
 
 ```bash
 shell-install/install --dry-run   # show the full plan, change nothing
-shell-install/install             # install (asks for confirmation)
+shell-install/install             # install (asks for confirmation, then sudo)
+shell-install/install --minimal   # shell core only, skip the full app set
 shell-install/uninstall           # revert everything it did
 ```
 
@@ -65,9 +66,14 @@ of your current setup before the first change.
 
 ## What it does
 
-- Installs the shell-critical packages in `packages/shell.deps` (compositor,
-  quickshell, the Qt6/cmake build stack, fonts, audio, matugen) via your
-  distro's adapter. Packages you already have are skipped.
+- Installs the full Ryoku app + dependency set from the same manifests the OS
+  install uses (`install/ryoku-base.packages` + `install/ryoku-aur.packages`),
+  minus the system-level packages an existing machine must not get (the display
+  manager, boot splash, and bootloader/snapshot hooks). This is what makes the
+  keybinds and `ryoku-*` commands actually work (terminal, file manager,
+  browser, mpv, screenshot tools, and so on). Packages you already have are
+  skipped (`--needed`), so your existing apps are left untouched. Pass
+  `--minimal` to install only the shell-critical subset instead.
 - Deploys the Ryoku payload to `~/.local/share/ryoku`, builds the native QML
   plugins, and deploys the shell to `~/.config/quickshell/ryoku-shell`.
 - Links `ryoku-*` commands into `~/.local/bin`.
