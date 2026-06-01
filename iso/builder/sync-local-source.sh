@@ -46,8 +46,12 @@ if [[ -d $target_dir/.git ]] && git -C "$target_dir" rev-parse --git-dir >/dev/n
     git -C "$target_dir" remote add origin "$update_remote"
   fi
 
+  # Strip anything that could carry CI credentials into the shipped .git so a
+  # fresh install's `git fetch` never tries to auth (which prompts for a
+  # username on the expired token). Covers the Actions token (http.extraheader),
+  # any credential helper, and url.insteadOf rewrites.
   while IFS= read -r key; do
     [[ -n $key ]] || continue
     git -C "$target_dir" config --unset-all "$key" || true
-  done < <(git -C "$target_dir" config --name-only --get-regexp 'extraheader' 2>/dev/null || true)
+  done < <(git -C "$target_dir" config --name-only --get-regexp 'extraheader|credential\.|insteadof' 2>/dev/null || true)
 fi

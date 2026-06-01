@@ -33,6 +33,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          # Do NOT persist the Actions token into .git/config. --local-source
+          # tars the working tree (including .git) into the ISO, so a persisted
+          # token ships inside every install and then makes `git fetch` prompt
+          # for credentials (401 on the now-expired token) during updates.
+          persist-credentials: false
 
       - name: Prepare release metadata
         run: |

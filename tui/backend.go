@@ -17,6 +17,19 @@ func ryokuPath() string {
 	return filepath.Join(home, ".local", "share", "ryoku")
 }
 
+// gitCmd builds a git command pinned to the Ryoku checkout that NEVER prompts
+// for credentials. Without this, a CI token that leaked into the shipped .git
+// makes `git fetch` 401 and hang the TUI on a username prompt at startup.
+func gitCmd(args ...string) *exec.Cmd {
+	c := exec.Command("git", append([]string{"-C", ryokuPath()}, args...)...)
+	c.Env = append(os.Environ(),
+		"GIT_TERMINAL_PROMPT=0",
+		"GIT_ASKPASS=/bin/true",
+		"GCM_INTERACTIVE=never",
+	)
+	return c
+}
+
 func stateDir() string {
 	if p := os.Getenv("XDG_STATE_HOME"); p != "" {
 		return p
@@ -32,7 +45,7 @@ func detectChannel() string {
 			return s
 		}
 	}
-	out, err := exec.Command("git", "-C", ryokuPath(), "rev-parse", "--abbrev-ref", "HEAD").Output()
+	out, err := gitCmd("rev-parse", "--abbrev-ref", "HEAD").Output()
 	if err == nil {
 		if s := strings.TrimSpace(string(out)); s != "" {
 			return s
@@ -59,7 +72,7 @@ func detectVersion() string {
 			}
 		}
 	}
-	if out, err := exec.Command("git", "-C", ryokuPath(), "rev-parse", "--short", "HEAD").Output(); err == nil {
+	if out, err := gitCmd("rev-parse", "--short", "HEAD").Output(); err == nil {
 		if s := strings.TrimSpace(string(out)); s != "" {
 			return "g" + s
 		}
@@ -77,10 +90,8 @@ func sudoCached() bool {
 // update" rather than erroring.
 func checkUpdateAvailable() (bool, int) {
 	ch := detectChannel()
-	_ = exec.Command("git", "-C", ryokuPath(), "-c", "gc.auto=0",
-		"fetch", "--quiet", "origin", ch).Run()
-	out, err := exec.Command("git", "-C", ryokuPath(),
-		"rev-list", "--count", "HEAD..origin/"+ch).Output()
+	_ = gitCmd("-c", "gc.auto=0", "fetch", "--quiet", "origin", ch).Run()
+	out, err := gitCmd("rev-list", "--count", "HEAD..origin/"+ch).Output()
 	if err != nil {
 		return false, 0
 	}
