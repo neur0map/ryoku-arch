@@ -43,8 +43,15 @@ branch=main
 RYOKU_REF="$branch" bash <(curl -fsSL "https://raw.githubusercontent.com/neur0map/ryoku-arch/$branch/shell-install/boot.sh") --dry-run
 ```
 
-After installing, log out, pick the **Ryoku** session at your login screen, and
-log back in.
+After installing, **reboot** (or fully log out), then pick the **Ryoku** session
+at your login screen and log in. Your current desktop does not change until you
+start the Ryoku session, so the live screen stays as-is until then.
+
+If the desktop comes up blank (no wallpaper, keybinds, or shell), you are almost
+certainly still in your old session: make sure you selected **Ryoku** at the
+login screen. The installer prints a verification checklist at the end; if the
+"native QML plugins (build)" line is missing, the shell could not build. Check
+`~/.local/state/ryoku-shell-setup.log` and re-run.
 
 ## Safety first
 
