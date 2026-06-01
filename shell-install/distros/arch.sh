@@ -93,17 +93,41 @@ ryoku_distro_install_full() {
     return 0
   fi
 
-  local helper
-  helper="$(rsi_arch_aur_helper)"
-  [[ -n $helper ]] || helper="yay"
-  rsi_step "installing ${#missing[@]} Ryoku packages via $helper"
-  if rsi_dry; then
-    rsi_dim "  would: $helper -S --needed --noconfirm <${#missing[@]} packages>"
-  else
-    "$helper" -S --needed --noconfirm "${missing[@]}" \
-      || rsi_warn "some packages did not install (a conflict, an AUR build error, or no network). The desktop may be missing pieces; re-run or install them by hand."
+  # Split repo vs AUR so an AUR build failure or a bad AUR name can never block
+  # the reliable repo apps (terminal, file manager, quickshell, Qt6, ...).
+  local repo_pkgs=() aur_pkgs=()
+  for p in "${missing[@]}"; do
+    if pacman -Si "$p" &>/dev/null; then repo_pkgs+=("$p"); else aur_pkgs+=("$p"); fi
+  done
+
+  if (( ${#repo_pkgs[@]} > 0 )); then
+    rsi_step "installing ${#repo_pkgs[@]} packages from the official repos"
+    if rsi_dry; then
+      rsi_dim "  would: sudo pacman -S --needed --noconfirm <${#repo_pkgs[@]} packages>"
+    elif ! sudo pacman -S --needed --noconfirm "${repo_pkgs[@]}"; then
+      rsi_warn "bulk repo install hit a snag; retrying one-by-one so a single conflict cannot block the rest"
+      for p in "${repo_pkgs[@]}"; do
+        sudo pacman -S --needed --noconfirm "$p" || rsi_warn "skipped (conflict or error): $p"
+      done
+    fi
+    for p in "${repo_pkgs[@]}"; do rsi_record pkg "$p"; done
   fi
-  for p in "${missing[@]}"; do rsi_record pkg "$p"; done
+
+  if (( ${#aur_pkgs[@]} > 0 )); then
+    local helper
+    helper="$(rsi_arch_aur_helper)"
+    [[ -n $helper ]] || helper="yay"
+    rsi_step "installing ${#aur_pkgs[@]} AUR packages via $helper (failures are skipped, not fatal)"
+    for p in "${aur_pkgs[@]}"; do
+      if rsi_dry; then
+        rsi_dim "  would: $helper -S --needed --noconfirm $p"
+      elif "$helper" -S --needed --noconfirm "$p"; then
+        rsi_record pkg "$p"
+      else
+        rsi_warn "AUR package failed (build error or not found), skipped: $p"
+      fi
+    done
+  fi
 }
 
 # rsi_arch_pkg_present NAME -> 0 if installed.
