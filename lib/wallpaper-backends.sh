@@ -11,8 +11,19 @@ ryoku_wp_type() {
   esac
 }
 
+# Canonical shell-facing wallpaper state dir for path.txt + type.txt. MUST match the
+# shell's Paths.state (~/.local/state/ryoku-shell), which Wallpapers.qml, Colours.qml and
+# the `ryoku` wallpaper/scheme commands read these files from. This is deliberately NOT
+# $RYOKU_STATE_PATH (~/.local/state/ryoku): that dir holds caches (posters/thumbs) only.
+# Writing type.txt under $RYOKU_STATE_PATH left every reader's copy stale, so the
+# wallpaper-colour pipeline picked the wrong source and stopped following the wallpaper.
+ryoku_wp_state_dir() {
+  printf '%s\n' "${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-shell/wallpaper"
+}
+
 ryoku_wp_write_type() {
-  local type="$1" dir="$RYOKU_STATE_PATH/wallpaper" tmp
+  local type="$1" dir tmp
+  dir="$(ryoku_wp_state_dir)"
   mkdir -p "$dir"
   tmp="$(mktemp "$dir/.type.XXXXXX")"
   printf '%s\n' "$type" >"$tmp"

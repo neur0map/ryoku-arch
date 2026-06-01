@@ -642,19 +642,24 @@ wallpaper_command() {
     # the wallpaper symlink always point at a file that exists.
     path="$(resolve_wallpaper_path "$path")"
 
-    mkdir -p "$wallpaper_dir"
-    # RYOKU: atomic write so the shell's FileView watch on path.txt reliably fires
-    # (the shell then debounces + regenerates wallpaper colours — see Wallpapers.qml).
-    local wptmp
-    wptmp="$(mktemp)"
-    printf '%s\n' "$path" >"$wptmp"
-    mv "$wptmp" "$wallpaper_dir/path.txt"
-
+    # Apply the wallpaper first (sets the picture, generates the video/animated poster,
+    # and records type.txt) so the colour-regen trigger below only fires once the new
+    # wallpaper is fully in place.
     if [[ -x $ryoku_path/bin/ryoku-wallpaper-apply ]]; then
       "$ryoku_path/bin/ryoku-wallpaper-apply" --type "$(wallpaper_type "$path")" "$path" >/dev/null || true
     elif command_present ryoku-wallpaper-apply; then
       ryoku-wallpaper-apply --type "$(wallpaper_type "$path")" "$path" >/dev/null || true
     fi
+
+    # RYOKU: write path.txt LAST (atomic) so the shell's FileView watch fires only after
+    # apply finished (poster + type.txt ready). The shell then debounces and regenerates
+    # wallpaper colours from the correct source (see Wallpapers.qml). Writing path.txt
+    # before apply raced the slow video poster step and recoloured from stale state.
+    mkdir -p "$wallpaper_dir"
+    local wptmp
+    wptmp="$(mktemp)"
+    printf '%s\n' "$path" >"$wptmp"
+    mv "$wptmp" "$wallpaper_dir/path.txt"
 
     # NOTE: wallpaper-colour regeneration is handled shell-side (debounced) on the
     # path.txt change when smartScheme is on; $smart is kept for CLI compatibility.

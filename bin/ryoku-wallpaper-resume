@@ -22,12 +22,12 @@ _settings_get() {
 pause_enabled="$(_settings_get '.wallpaper.pauseOnFullscreen' "true")"
 [[ $pause_enabled == "true" ]] || exit 0
 
-type_file="$RYOKU_STATE_PATH/wallpaper/type.txt"
+type_file="$(ryoku_wp_state_dir)/type.txt"
 type="$(head -n1 "$type_file" 2>/dev/null || echo image)"
 
 [[ $type == "image" ]] && exit 0
 
-path_file="$RYOKU_STATE_PATH/wallpaper/path.txt"
+path_file="$(ryoku_wp_state_dir)/path.txt"
 path="$(head -n1 "$path_file" 2>/dev/null || true)"
 [[ -n $path ]] || exit 0
 
