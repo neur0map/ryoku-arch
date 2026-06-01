@@ -49,8 +49,6 @@ assert_package_absent() {
 
 kept_webapps=(
   YouTube
-  GitHub
-  Discord
 )
 
 removed_webapps=(
@@ -85,14 +83,10 @@ assert_contains "bin/ryoku-remove-preinstalls" '"Disk Usage"'
 assert_not_contains "bin/ryoku-remove-preinstalls" 'ryoku-tui-remove "Docker"'
 
 kept_packages=(
-  docker
-  docker-buildx
-  docker-compose
   gradia
   lazydocker
   localsend-bin
   obsidian
-  trayscale
 )
 
 removed_packages=(

@@ -20,7 +20,6 @@
 limine-mkinitcpio-hook
 limine-snapper-sync
 localsend-bin
-trayscale
 tzupdate
 ufw-docker
 # yay (AUR helper) shipped prebuilt so a fully-offline install still ends up

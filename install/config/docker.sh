@@ -1,3 +1,5 @@
+command -v docker >/dev/null 2>&1 || { echo "docker not installed; skipping docker config"; exit 0; }
+
 # Configure Docker daemon:
 # - limit log size to avoid running out of disk
 # - use host's DNS resolver

@@ -48,7 +48,6 @@ lazydocker
 lazygit
 
 # ── Terminal emulator + app launcher ──────────────────────────────────
-alacritty
 fuzzel
 
 # ── Programming languages, runtimes, dev toolchains ───────────────────
@@ -72,10 +71,6 @@ libyaml
 mariadb-libs
 postgresql-libs
 
-# ── Containers ────────────────────────────────────────────────────────
-docker
-docker-buildx
-docker-compose
 
 # ── GUI apps - browsers + communication ───────────────────────────────
 fuse2
@@ -128,7 +123,6 @@ kdecoration
 kconfig
 kirigami
 kitty
-kvantum
 libdbusmenu-gtk3
 libdrm
 libpipewire
@@ -138,7 +132,6 @@ mesa
 mission-center
 mpv-mpris
 networkmanager
-nm-connection-editor
 pacman-contrib
 papirus-icon-theme
 pavucontrol
@@ -240,7 +233,6 @@ libsecret
 polkit-gnome
 
 # ── Networking ────────────────────────────────────────────────────────
-avahi
 inetutils
 iwd
 # kdeconnect + network-manager-applet provide the kdeconnectd /
@@ -249,7 +241,6 @@ iwd
 kdeconnect
 network-manager-applet
 networkmanager-openvpn
-nss-mdns
 openvpn
 tailscale
 ufw
@@ -278,10 +269,6 @@ cups-filters
 cups-pdf
 system-config-printer
 
-# ── Input methods (CJK / IME) ─────────────────────────────────────────
-fcitx5
-fcitx5-gtk
-fcitx5-qt
 
 # ── Fonts ─────────────────────────────────────────────────────────────
 noto-fonts
@@ -295,7 +282,6 @@ woff2-font-awesome
 adwaita-cursors
 fontconfig
 gnome-themes-extra
-kvantum-qt5
 qt5-wayland
 qt6-5compat
 qt6-declarative
