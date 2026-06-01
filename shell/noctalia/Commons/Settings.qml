@@ -1179,21 +1179,30 @@ Singleton {
   // -----------------------------------------------------
   // If the settings structure has changed, ensure
   // backward compatibility by upgrading the settings
-  function upgradeSettings() {
-    // Wait for PluginService to finish loading plugins first
-    // This prevents deleting plugin widgets during reload before plugins are registered
-    if (!PluginService.initialized || !PluginService.pluginsFullyLoaded) {
-      Logger.d("Settings", "Plugins not fully loaded yet, deferring upgrade");
-      Qt.callLater(upgradeSettings);
-      return;
-    }
+  // Bound the "wait for the bar registries" retry. Ryoku runs its own ambxst bar and
+  // never loads noctalia's Bar, so BarWidgetRegistry never populates; the upstream
+  // unbounded Qt.callLater retry then spins the event loop at 100% CPU forever. Pace
+  // the wait and give up (skipping only the noctalia bar-widget cleanup, unused here)
+  // instead of looping.
+  property int upgradeRetries: 0
 
-    // Wait for BarWidgetRegistry to be ready
-    if (!BarWidgetRegistry.widgets || Object.keys(BarWidgetRegistry.widgets).length === 0) {
-      Logger.d("Settings", "BarWidgetRegistry not ready, deferring upgrade");
-      Qt.callLater(upgradeSettings);
+  Timer {
+    id: upgradeRetryTimer
+    interval: 200
+    onTriggered: root.upgradeSettings()
+  }
+
+  function upgradeSettings() {
+    // The bar-widget cleanup below needs PluginService + BarWidgetRegistry ready first.
+    if (!PluginService.initialized || !PluginService.pluginsFullyLoaded || !BarWidgetRegistry.widgets || Object.keys(BarWidgetRegistry.widgets).length === 0) {
+      if (root.upgradeRetries++ < 50) {
+        upgradeRetryTimer.restart();
+      } else {
+        Logger.w("Settings", "Bar/plugin registries not ready; skipping settings upgrade");
+      }
       return;
     }
+    root.upgradeRetries = 0;
 
     // -----------------
     const sections = ["left", "center", "right"];
