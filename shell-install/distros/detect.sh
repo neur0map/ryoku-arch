@@ -10,7 +10,7 @@ rsi_os_id() {
   local osr="${RSI_OS_RELEASE:-/etc/os-release}"
   [[ -r $osr ]] || { printf 'unknown'; return; }
   # shellcheck disable=SC1090,SC1091
-  ( . "$osr" && printf '%s' "${ID:-unknown}" )
+  ( . "$osr" 2>/dev/null || true; printf '%s' "${ID:-unknown}" )
 }
 
 # rsi_detect_family -> echoes the family name, or "unsupported".

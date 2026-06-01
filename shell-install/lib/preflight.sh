@@ -93,7 +93,9 @@ rsi_conflict_report() {
   if command -v qs >/dev/null 2>&1 || command -v quickshell >/dev/null 2>&1; then
     rsi_dim "  note: quickshell already installed. Ryoku runs as 'qs -c ryoku-shell' and will not disturb your existing quickshell configs."
   fi
-  (( found == 0 )) && rsi_ok "no conflicting files found"
+  if (( found == 0 )); then
+    rsi_ok "no conflicting files found"
+  fi
 }
 
 rsi_plan() {
