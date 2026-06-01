@@ -41,12 +41,14 @@ export GUM_CONFIRM_PADDING="0 0 0 $LEFT" GUM_CONFIRM_SELECTED_BACKGROUND="$BRAND
 export GUM_INPUT_PROMPT_FOREGROUND="$BRAND" GUM_INPUT_CURSOR_FOREGROUND="$BRAND"
 
 # note [gum-style-flags...] TEXT: body text aligned under the centered card.
-# Cap the width at the card width (not just a left margin) so long lines wrap
-# inside the card column instead of flowing off the right edge on wide consoles
-# (real-hardware framebuffer consoles report ~240 cols, which pushed the old
-# margin-only text far right and overflowed). No right margin keeps the total
-# (LEFT + CARD) within COLS on narrow consoles too, so it never collapses.
-note() { gum style --width "$CARD" --margin "0 0 0 $LEFT" "$@"; }
+# Wrap to the card width with gum, then indent by LEFT ourselves. Using gum's
+# own --margin makes it emit each line as a LEFT+CARD-wide block, which a real
+# TERM=linux framebuffer console hard-wraps when that exceeds COLS, splitting
+# the tail into a tiny far-right column. Indenting the gum-wrapped output via
+# sed keeps every emitted line exactly CARD wide (LEFT+CARD = (COLS+CARD)/2 <
+# COLS), so it never overflows or collapses at any console width, and the indent
+# (plain spaces, inserted before any SGR escape) keeps colored notes colored.
+note() { gum style --width "$CARD" "$@" | sed "s/^/$LPAD/"; }
 
 # brand_header [step-title]: clear screen, centered wordmark + tagline, and an
 # optional bordered step card.
