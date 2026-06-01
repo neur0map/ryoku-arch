@@ -122,6 +122,10 @@ See [install paths](docs/install-paths.md) for the full comparison, and
 [`shell-install/README.md`](shell-install/README.md) for the experimental shell
 installer.
 
+<!-- TODO: Ryoku shell installer is currently BROKEN / NOT WORKING.
+     Commented out so it is hidden from the rendered README. Restore this
+     section once shell-install/ works again.
+
 ### Install the Ryoku shell (experimental)
 
 This works from any branch. Clone the repo and run the installer from the
@@ -147,6 +151,10 @@ RYOKU_REF="$branch" bash <(curl -fsSL "https://raw.githubusercontent.com/neur0ma
 It runs hard safety checks first and stops if the machine is not safe, backs up
 your current setup before any change, and is reversible with
 `shell-install/uninstall`.
+-->
+
+> **Note:** The experimental Ryoku shell installer is temporarily disabled while
+> `shell-install/` is fixed. ISO install is unaffected.
 
 ## Download and verify
 
