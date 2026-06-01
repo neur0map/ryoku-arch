@@ -119,6 +119,20 @@ exec "$shell_src/scripts/ryoku-shell" "\$@"
 EOF
     sudo chmod +x /usr/local/bin/ryoku-shell
 
+    # Same thin-wrapper treatment for the `ryoku` CLI itself. shell/setup only
+    # installs it to ~/.local/bin, which may not be on PATH for every shell, so
+    # `ryoku` would be "command not found" while ryoku-tui (/usr/bin) and the
+    # ryoku-* helpers (/usr/local/bin) work -- forcing users to call ryoku-tui.
+    # A /usr/local/bin wrapper makes plain `ryoku` reliably available.
+    if [[ -f $shell_src/scripts/ryoku ]]; then
+      sudo rm -f /usr/local/bin/ryoku
+      sudo tee /usr/local/bin/ryoku >/dev/null <<EOF
+#!/bin/bash
+exec "$shell_src/scripts/ryoku" "\$@"
+EOF
+      sudo chmod +x /usr/local/bin/ryoku
+    fi
+
     # And the runtime-env helper that bin/* scripts source via
     # \$(dirname \$BASH_SOURCE)/.. /lib/runtime-env.sh - when invoked via
     # the /usr/local/bin/ symlink, the relative ../lib path resolves to
