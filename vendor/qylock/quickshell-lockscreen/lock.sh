@@ -8,6 +8,7 @@ export QML2_IMPORT_PATH="$DIR/imports:$QML2_IMPORT_PATH"
 export QML_XHR_ALLOW_FILE_READ=1
 
 # Get session type
+# shellcheck disable=SC2046  # intentional: session id is passed as a single word
 export XDG_SESSION_TYPE="${XDG_SESSION_TYPE:-$(loginctl show-session $(loginctl | grep $(whoami) | awk '{print $1}') -p Type --value 2>/dev/null || echo wayland)}"
 
 # User theme preference
@@ -16,7 +17,8 @@ CONFIG_FILE="$HOME/.config/qylock/theme"
 if [ -n "$1" ]; then
     export QS_THEME="$1"
 elif [ -f "$CONFIG_FILE" ]; then
-    export QS_THEME=$(cat "$CONFIG_FILE")
+    QS_THEME=$(cat "$CONFIG_FILE")
+    export QS_THEME
 else
     export QS_THEME="nier-automata"
 fi
