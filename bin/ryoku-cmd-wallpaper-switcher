@@ -4,7 +4,7 @@ set -euo pipefail
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Open the skwd-wall wallpaper switcher (configured in pickOnlyMode — the selected
+# Open the skwd-wall wallpaper switcher (configured in pickOnlyMode; the selected
 # wallpaper is routed through `ryoku wallpaper -f` so ryoku stays authoritative for the
 # wallpaper layer and scheme.json). skwd shuts down between uses; its backend lives in
 # the skwd-daemon, which we make sure is running first.
@@ -15,7 +15,7 @@ if ! command -v skwd >/dev/null 2>&1; then
   exit 1
 fi
 
-# The daemon owns the wallpaper cache / thumbnails / list backend — the picker is inert
+# The daemon owns the wallpaper cache / thumbnails / list backend; the picker is inert
 # without it. Start it (prefer the systemd user unit) if it isn't already running.
 if ! pgrep -x skwd-daemon >/dev/null 2>&1; then
   if systemctl --user start skwd-daemon.service 2>/dev/null; then
@@ -23,11 +23,18 @@ if ! pgrep -x skwd-daemon >/dev/null 2>&1; then
   elif command -v skwd-daemon >/dev/null 2>&1; then
     skwd-daemon >/dev/null 2>&1 &
   fi
-  # give the socket a moment to come up before the picker connects
-  for _ in 1 2 3 4 5 6 7 8 9 10; do
-    [[ -S "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/skwd/daemon.sock" ]] && break
-    sleep 0.1
-  done
 fi
+
+# Wait for the daemon to be READY, not merely present. skwd-daemon binds its socket in
+# milliseconds but scans the wallpaper dir and builds its cache afterwards, so a picker
+# opened too early renders an empty/grey list and needs a second Super+W. Poll the list
+# (populated only once the daemon is actually serving) instead of the socket. Best-effort
+# ceiling (~5s) so the keybind never hangs.
+for ((i = 0; i < 50; i++)); do
+  if skwd wall list 2>/dev/null | jq -e '.count > 0' >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.1
+done
 
 exec skwd wall toggle

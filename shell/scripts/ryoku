@@ -576,6 +576,23 @@ wallpaper_scheme_source() {
   fi
 }
 
+# RYOKU: regenerate the ambxst named-accent palette (~/.cache/ambxst/colors.json) from the
+# same wallpaper. scheme.json drives the Material-3 roles (bar/notch/dashboard/launcher/
+# settings), but the named accents (dashboard metric graphs) and the external-app theme
+# generators (kitty/gtk/discord/qtct/pywal/nvchad) read this matugen file. Without it those
+# areas stay on static defaults, so wallpaper colours only apply to part of the shell.
+# Best-effort: never fail the scheme apply if matugen is missing or hiccups.
+generate_ambxst_colors() {
+  local img="$1" mode="$2"
+  local cfg="$ryoku_path/shell/ambxst/assets/matugen/config.toml"
+  command -v matugen >/dev/null 2>&1 || return 0
+  [[ -f $cfg ]] || return 0
+  local scheme="scheme-tonal-spot"
+  local wj="${XDG_CACHE_HOME:-$HOME/.cache}/ambxst/wallpapers.json"
+  [[ -f $wj ]] && scheme="$(jq -r '.matugenScheme // "scheme-tonal-spot"' "$wj" 2>/dev/null || printf 'scheme-tonal-spot')"
+  matugen image "$img" --source-color-index 0 -c "$cfg" -t "$scheme" --mode "$mode" >/dev/null 2>&1 || true
+}
+
 # generate the live shell scheme.json from the current wallpaper's colors.
 # Atomic write so Colours.qml hot-reloads. flavour="wallpaper" keeps the dark/light
 # toggle enabled (a wallpaper scheme supports both modes).
@@ -592,6 +609,7 @@ apply_wallpaper_scheme() {
     write_state name wallpaper
     write_state flavour wallpaper
     write_state mode "$mode"
+    generate_ambxst_colors "$wp" "$mode"
     return 0
   fi
   rm -f "$tmp"

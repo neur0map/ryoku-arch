@@ -124,6 +124,10 @@
   },
   "wallpaperMute": true,
   "pickOnlyMode": true,
+  "paper": {
+    "_comment": "Force the paper engine off skwd-paper. skwd-daemon prewarms a persistent skwd-paper GL background layer on every picker open (apply::on_wall_show), gated ONLY on engine==skwd-paper and ignoring pickOnlyMode + transition.enabled. That layer fights ryoku's own wallpaper layer and grey-flashes during GL init (the laggy/glitchy Super+W). engine=awww makes on_wall_show early-return so the prewarm never spawns; pickOnlyMode still routes apply through `ryoku wallpaper -f`, so skwd itself never renders.",
+    "engine": "awww"
+  },
   "transition": {
     "_comment": "ryoku owns the wallpaper (pickOnlyMode + postProcessing routes to `ryoku wallpaper -f`), so skwd-paper's GPU transition shader is redundant. With the default `random` shader it spawned a ~300MB GPU process on every picker open, making Super+W feel laggy/glitchy. Disabled for a snappy native-feeling open; the slices picker look is unaffected. Set enabled:true with a light shader (e.g. static-fade) if you want a change animation back.",
     "enabled": false
