@@ -40,15 +40,34 @@ export GUM_CONFIRM_PADDING="0 0 0 $LEFT" GUM_CONFIRM_SELECTED_BACKGROUND="$BRAND
   GUM_CONFIRM_SELECTED_FOREGROUND="$BGDARK"
 export GUM_INPUT_PROMPT_FOREGROUND="$BRAND" GUM_INPUT_CURSOR_FOREGROUND="$BRAND"
 
-# note [gum-style-flags...] TEXT: body text aligned under the centered card.
-# Wrap to the card width with gum, then indent by LEFT ourselves. Using gum's
-# own --margin makes it emit each line as a LEFT+CARD-wide block, which a real
-# TERM=linux framebuffer console hard-wraps when that exceeds COLS, splitting
-# the tail into a tiny far-right column. Indenting the gum-wrapped output via
-# sed keeps every emitted line exactly CARD wide (LEFT+CARD = (COLS+CARD)/2 <
-# COLS), so it never overflows or collapses at any console width, and the indent
-# (plain spaces, inserted before any SGR escape) keeps colored notes colored.
-note() { gum style --width "$CARD" "$@" | sed "s/^/$LPAD/"; }
+# note [--bold] [--foreground COLOR] TEXT...: body text aligned under the card.
+# gum style mis-renders on the real TERM=linux installer console (it collapses
+# the body into a tiny far-right column regardless of --width/--margin), so
+# render notes the same proven way brand_header draws the wordmark: wrap with
+# `fold` at the card width, indent by LEFT spaces, and colour via raw 16-colour
+# ANSI (TERM=linux has no truecolor). Fully deterministic, no gum involved.
+note() {
+  local sgr="" args=() fg=""
+  while (($#)); do
+    case "$1" in
+      --bold) sgr+=$'\033[1m'; shift ;;
+      --foreground) fg="$2"; shift 2 ;;
+      *) args+=("$1"); shift ;;
+    esac
+  done
+  case "$fg" in
+    "") ;;
+    "$BRAND") sgr+=$'\033[1;91m' ;;
+    "$BEIGE") sgr+=$'\033[33m' ;;
+    "$INK") sgr+=$'\033[37m' ;;
+    *[!0-9]*) sgr+=$'\033[37m' ;;
+    ?*) if ((fg < 8)); then sgr+=$'\033[3'"${fg}m"; else sgr+=$'\033[9'"$((fg - 8))m"; fi ;;
+  esac
+  local rst=$'\033[0m' line
+  printf '%s\n' "${args[@]}" | fold -s -w "$CARD" | while IFS= read -r line; do
+    printf '%s%s%s%s\n' "$LPAD" "$sgr" "$line" "$rst"
+  done
+}
 
 # brand_header [step-title]: clear screen, centered wordmark + tagline, and an
 # optional bordered step card.
