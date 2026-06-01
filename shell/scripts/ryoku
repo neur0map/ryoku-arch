@@ -761,9 +761,13 @@ main() {
 
   case "$command" in
     "")
-      # Bare `ryoku` pops the floating control-center window when interactive;
-      # otherwise the usage text, so non-interactive callers get a sane response.
+      # Bare `ryoku` in a terminal runs the control center INLINE in that
+      # terminal (reliable, what you expect). Only a non-terminal caller
+      # (e.g. a keybind) gets the floating window; a non-interactive pipe gets
+      # the usage text.
       if [[ -t 0 && -t 1 ]]; then
+        run_control_center_inline
+      elif [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]]; then
         open_control_center_window
       else
         usage
