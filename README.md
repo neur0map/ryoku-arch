@@ -121,6 +121,32 @@ See [install paths](docs/install-paths.md) for the full comparison, and
 [`shell-install/README.md`](shell-install/README.md) for the experimental shell
 installer.
 
+### Install the Ryoku shell (experimental)
+
+This works from any branch. Clone the repo and run the installer from the
+checkout you are on:
+
+```bash
+git clone https://github.com/neur0map/ryoku-arch.git
+cd ryoku-arch
+# git checkout <branch>   # optional: any branch you want to install from
+shell-install/install --dry-run   # preview the full plan, change nothing
+shell-install/install             # install (runs safety checks, asks to confirm)
+```
+
+Or bootstrap with one command. Set `branch` once so the fetched script and the
+cloned ref always match, so it stays correct on `main`, `unstable-dev`, or any
+feature branch:
+
+```bash
+branch=main
+RYOKU_REF="$branch" bash <(curl -fsSL "https://raw.githubusercontent.com/neur0map/ryoku-arch/$branch/shell-install/boot.sh")
+```
+
+It runs hard safety checks first and stops if the machine is not safe, backs up
+your current setup before any change, and is reversible with
+`shell-install/uninstall`.
+
 ## Build From Source
 
 Public ISO downloads are paused for now. If you want to test Ryoku anyway, build

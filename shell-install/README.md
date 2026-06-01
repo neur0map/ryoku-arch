@@ -34,10 +34,13 @@ shell-install/install             # install (asks for confirmation)
 shell-install/uninstall           # revert everything it did
 ```
 
-Or bootstrap directly:
+Or bootstrap directly. Set `branch` once so the fetched script and the cloned
+ref match, so it works the same on any branch (`main`, `unstable-dev`, a feature
+branch):
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/main/shell-install/boot.sh) --dry-run
+branch=main
+RYOKU_REF="$branch" bash <(curl -fsSL "https://raw.githubusercontent.com/neur0map/ryoku-arch/$branch/shell-install/boot.sh") --dry-run
 ```
 
 After installing, log out, pick the **Ryoku** session at your login screen, and
