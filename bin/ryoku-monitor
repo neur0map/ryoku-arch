@@ -86,7 +86,7 @@ persist)
     '
     printf '\n'
     printf '%s\n' "# Catch-all for monitors not configured above (hotplug-friendly)."
-    printf '%s\n' "monitor = , highrr, auto, auto"
+    printf '%s\n' "monitor = , highrr, auto, 1.25"
   } >"$tmp"
 
   mkdir -p "$(dirname "$monitors_conf")"
