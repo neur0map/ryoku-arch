@@ -107,6 +107,20 @@ plugin shell takes shape.
 | Secure Boot? | Roadmap. Not automatic yet. |
 | Stability vs. rolling Arch? | Rolling Arch base. `unstable-dev` is the fast track; `main` is the release channel. |
 
+## Install paths
+
+Ryoku ships through two separate, clearly bounded paths:
+
+- **Ryoku OS (ISO install)** the full Arch workstation: bootloader, filesystem,
+  display manager, and system config. This is the product. Code in `install/`.
+- **Ryoku Shell (experimental)** the Ryoku desktop shell layered onto an Arch
+  system you already use, in user scope, reversible, coexisting with your
+  current setup. Code in `shell-install/`.
+
+See [install paths](docs/install-paths.md) for the full comparison, and
+[`shell-install/README.md`](shell-install/README.md) for the experimental shell
+installer.
+
 ## Build From Source
 
 Public ISO downloads are paused for now. If you want to test Ryoku anyway, build
@@ -130,7 +144,8 @@ trusting it. Full verification commands are in
 - `bin/` shipped `ryoku-*` commands, one purpose per script.
 - `config/` Hyprland, terminal, app, and user config seeds.
 - `default/` system defaults, templates, boot assets, and service drop-ins.
-- `install/` installer, package manifests, hardware setup, and first-run flow.
+- `install/` OS/ISO installer, package manifests, hardware setup, first-run flow.
+- `shell-install/` experimental shell-only installer for existing Arch systems.
 - `shell/` the current Quickshell-based Ryoku shell sources.
 - `themes/` Ryoku and user-selectable theme payloads.
 
