@@ -5,10 +5,11 @@
 # reversible via shell-install/uninstall.
 #
 # Usage:
-#   shell-install/install [--dry-run] [--yes]
+#   shell-install/install [--dry-run] [--yes] [--minimal]
 #
 #   --dry-run   show the full plan and change nothing
 #   --yes       skip the confirmation prompt (still prints the plan)
+#   --minimal   install only the shell-critical packages, not the full app set
 
 set -euo pipefail
 
@@ -18,8 +19,9 @@ for arg in "$@"; do
   case "$arg" in
     --dry-run) export RSI_DRY_RUN=1 ;;
     --yes | -y) export RSI_ASSUME_YES=1 ;;
+    --minimal) export RSI_MINIMAL=1 ;;
     -h | --help)
-      sed -n '3,12p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+      sed -n '3,13p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
       exit 0
       ;;
     *)
@@ -46,10 +48,13 @@ done
 # shellcheck source=lib/deploy.sh
 . "$RSI_HERE/lib/deploy.sh"
 
+trap rsi_sudo_done EXIT
+
 rsi_banner
 rsi_safety
 rsi_review
 
+rsi_sudo_prime
 rsi_manifest_init
 rsi_backup_setup
 rsi_install_packages

@@ -15,13 +15,17 @@ rsi_read_deps() {
 }
 
 rsi_install_packages() {
-  rsi_step "resolving dependencies via the $RSI_FAMILY adapter"
+  rsi_header "Installing Ryoku packages"
   ryoku_distro_prereqs
 
-  local deps=()
-  mapfile -t deps < <(rsi_read_deps)
-  [[ ${#deps[@]} -gt 0 ]] || rsi_die "no logical deps found in $RSI_DEPS_FILE"
-
-  ryoku_distro_install "${deps[@]}"
+  if [[ ${RSI_MINIMAL:-0} == 1 ]]; then
+    rsi_step "minimal mode: shell-critical packages only"
+    local deps=()
+    mapfile -t deps < <(rsi_read_deps)
+    [[ ${#deps[@]} -gt 0 ]] || rsi_die "no logical deps found in $RSI_DEPS_FILE"
+    ryoku_distro_install "${deps[@]}"
+  else
+    ryoku_distro_install_full
+  fi
   rsi_ok "dependencies satisfied"
 }

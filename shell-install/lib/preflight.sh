@@ -101,7 +101,12 @@ rsi_conflict_report() {
 rsi_plan() {
   rsi_header "What will happen"
   rsi_say "In your user scope, this will:"
-  rsi_will "install the shell-critical packages in packages/shell.deps"
+  if [[ ${RSI_MINIMAL:-0} == 1 ]]; then
+    rsi_will "install only the shell-critical packages (minimal mode)"
+  else
+    rsi_will "install the Ryoku app + dependency set (apps the keybinds and commands need)"
+  fi
+  rsi_will "skip packages you already have (--needed), leaving your existing apps untouched"
   rsi_will "deploy the Ryoku payload to $RSI_RYOKU_PATH"
   rsi_will "build the native QML plugins and deploy the shell"
   rsi_will "link ryoku-* commands into $RSI_BIN_HOME"
@@ -118,6 +123,27 @@ rsi_plan() {
   rsi_say ""
   rsi_dim "Everything changed is backed up under $RSI_BACKUP_ROOT and recorded in"
   rsi_dim "$RSI_MANIFEST, so 'shell-install/uninstall' reverses it."
+}
+
+# Prompt for sudo upfront so package installs never silently skip or stall, and
+# keep the timestamp warm through long AUR builds. The keepalive is torn down
+# by the EXIT trap in the entrypoint.
+RSI_SUDO_PID=""
+rsi_sudo_prime() {
+  rsi_dry && return 0
+  rsi_header "Administrator access"
+  rsi_step "Ryoku needs sudo to install packages and register the login session."
+  if ! sudo -v; then
+    rsi_die "sudo authentication failed. Run as a user with sudo privileges and retry."
+  fi
+  rsi_ok "sudo authorized"
+  ( while true; do sudo -n true 2>/dev/null || exit 0; sleep 50; done ) &
+  RSI_SUDO_PID=$!
+}
+
+rsi_sudo_done() {
+  [[ -n ${RSI_SUDO_PID:-} ]] && kill "$RSI_SUDO_PID" 2>/dev/null
+  return 0
 }
 
 rsi_review() {

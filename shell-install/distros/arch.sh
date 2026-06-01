@@ -47,6 +47,11 @@ rsi_arch_bootstrap_yay() {
   rm -rf "$tmp"
 }
 
+# System-level packages that the OS install owns; never install these on an
+# existing machine (bootloader hooks, snapshots, display manager, boot splash,
+# kernel-module retention hook).
+RSI_ARCH_DENY="plymouth sddm kernel-modules-hook limine-mkinitcpio-hook limine-snapper-sync"
+
 ryoku_distro_prereqs() {
   rsi_step "ensuring base build tools"
   if rsi_dry; then
@@ -55,6 +60,50 @@ ryoku_distro_prereqs() {
     sudo pacman -S --needed --noconfirm base-devel git
   fi
   rsi_arch_bootstrap_yay
+}
+
+# Install the full Ryoku app + dependency set from the shared manifests, minus
+# the system-level denylist. The AUR helper resolves both official-repo and AUR
+# packages, and --needed leaves anything already installed untouched (so it
+# coexists with the user's existing apps). Failures are non-fatal and reported.
+ryoku_distro_install_full() {
+  local want=() p
+  while IFS= read -r p; do want+=("$p"); done < <(
+    sed -e 's/#.*//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' \
+      "$RSI_BASE_PACKAGES" "$RSI_AUR_PACKAGES" 2>/dev/null | grep -v '^$'
+  )
+  if [[ ${#want[@]} -eq 0 ]]; then
+    rsi_warn "no package manifests found; installing the minimal set instead"
+    local deps=()
+    mapfile -t deps < <(rsi_read_deps)
+    ryoku_distro_install "${deps[@]}"
+    return
+  fi
+
+  local pkgs=() missing=()
+  for p in "${want[@]}"; do
+    case " $RSI_ARCH_DENY " in *" $p "*) continue ;; esac
+    pkgs+=("$p")
+    rsi_arch_pkg_present "$p" || missing+=("$p")
+  done
+
+  rsi_say "  $(( ${#pkgs[@]} - ${#missing[@]} )) already present (kept), ${#missing[@]} to install, $(( ${#want[@]} - ${#pkgs[@]} )) system packages skipped"
+  if (( ${#missing[@]} == 0 )); then
+    rsi_ok "all Ryoku packages already present"
+    return 0
+  fi
+
+  local helper
+  helper="$(rsi_arch_aur_helper)"
+  [[ -n $helper ]] || helper="yay"
+  rsi_step "installing ${#missing[@]} Ryoku packages via $helper"
+  if rsi_dry; then
+    rsi_dim "  would: $helper -S --needed --noconfirm <${#missing[@]} packages>"
+  else
+    "$helper" -S --needed --noconfirm "${missing[@]}" \
+      || rsi_warn "some packages did not install (a conflict, an AUR build error, or no network). The desktop may be missing pieces; re-run or install them by hand."
+  fi
+  for p in "${missing[@]}"; do rsi_record pkg "$p"; done
 }
 
 # rsi_arch_pkg_present NAME -> 0 if installed.
