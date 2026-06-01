@@ -53,11 +53,17 @@ rsi_arch_bootstrap_yay() {
 RSI_ARCH_DENY="plymouth sddm kernel-modules-hook limine-mkinitcpio-hook limine-snapper-sync"
 
 ryoku_distro_prereqs() {
-  rsi_step "ensuring base build tools"
+  # A full sync + upgrade BEFORE installing anything. Installing new packages
+  # on a not-fully-updated Arch system is a partial upgrade: the new packages
+  # pull newer shared libraries while already-installed apps (including the
+  # display manager and graphics stack) still expect the old ones, which breaks
+  # them and can drop the machine to a TTY. -Syu makes everything consistent.
+  rsi_step "updating the system (pacman -Syu) and installing build tools"
   if rsi_dry; then
-    rsi_dim "  would: sudo pacman -S --needed --noconfirm base-devel git"
+    rsi_dim "  would: sudo pacman -Syu --needed --noconfirm base-devel git"
   else
-    sudo pacman -S --needed --noconfirm base-devel git
+    sudo pacman -Syu --needed --noconfirm base-devel git \
+      || rsi_die "system update failed. Resolve the pacman error above (often a manual intervention or keyring update) and re-run."
   fi
   rsi_arch_bootstrap_yay
 }
