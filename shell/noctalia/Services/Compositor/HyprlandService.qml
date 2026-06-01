@@ -139,6 +139,37 @@ Item {
     }
   }
 
+  // ---- Monitor configuration (Display settings) ----
+  // Hyprland can apply + persist monitor layout (via the ryoku-monitor helper), so the
+  // facade reports this backend as capable and the Display tab shows the controls.
+  property bool monitorConfigSupported: true
+
+  // Translate a compositor-neutral monitor config into a Hyprland `monitor=` spec.
+  function buildMonitorSpec(cfg) {
+    if (!cfg.enabled)
+      return cfg.name + ", disable";
+    var spec = cfg.name + ", " + cfg.width + "x" + cfg.height + "@" + cfg.refreshRate + ", " + cfg.x + "x" + cfg.y + ", " + cfg.scale;
+    if (cfg.transform && cfg.transform !== 0)
+      spec += ", transform, " + cfg.transform;
+    if (cfg.vrr)
+      spec += ", vrr, 1";
+    if (cfg.mirror && cfg.mirror !== "none")
+      spec += ", mirror, " + cfg.mirror;
+    return spec;
+  }
+
+  // Apply a monitor config live (session-only preview). Persistence is deferred so the
+  // Display panel can confirm-or-revert first. ryoku-monitor owns the hyprctl call and
+  // the last-active-output backstop.
+  function applyMonitorConfig(cfg) {
+    Quickshell.execDetached(["ryoku-monitor", "apply", buildMonitorSpec(cfg)]);
+  }
+
+  // Persist the current live layout to ~/.config/hypr/monitors.conf (+ GDK_SCALE sync).
+  function persistMonitors() {
+    Quickshell.execDetached(["ryoku-monitor", "persist"]);
+  }
+
   // ------------------------------------------------------------
   // Dispatch mode probe
   // This Process detects whether hyprland is using legacy

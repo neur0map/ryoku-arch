@@ -1104,6 +1104,8 @@
       "confirm-body": "Reverting to the previous settings in {seconds}s unless you keep them.",
       "confirm-keep": "Keep changes",
       "confirm-revert": "Revert",
+      "unsupported-body": "Monitor layout can only be configured on Hyprland. On other compositors, use the compositor's own display configuration.",
+      "last-output-body": "Can't disable the only active display; that would leave you with a black screen.",
       "monitors-backlight-device-auto-option": "Default",
       "monitors-backlight-device-description": "Select a backlight device for this output.",
       "monitors-backlight-device-label": "Backlight device",

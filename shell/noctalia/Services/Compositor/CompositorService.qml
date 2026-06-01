@@ -332,6 +332,33 @@ Singleton {
     return displayScales[displayName];
   }
 
+  // ---- Monitor configuration (Display settings) ----
+  // True only when the active backend can apply + persist monitor layout (Hyprland).
+  // Other backends omit these methods, so the Display tab gates on this flag instead of
+  // silently issuing commands that do nothing.
+  readonly property bool monitorConfigSupported: backend && backend.monitorConfigSupported === true
+
+  // Apply a compositor-neutral monitor config live (preview). The backend translates it
+  // into its own syntax; persistence is a separate, explicit step (persistMonitors).
+  function applyMonitorConfig(cfg) {
+    if (backend && backend.applyMonitorConfig) {
+      backend.applyMonitorConfig(cfg);
+      return true;
+    }
+    Logger.w("CompositorService", "Backend cannot apply monitor config");
+    return false;
+  }
+
+  // Persist the current live monitor layout to the compositor config.
+  function persistMonitors() {
+    if (backend && backend.persistMonitors) {
+      backend.persistMonitors();
+      return true;
+    }
+    Logger.w("CompositorService", "Backend cannot persist monitor config");
+    return false;
+  }
+
   // Get focused window
   function getFocusedWindow() {
     if (focusedWindowIndex >= 0 && focusedWindowIndex < windows.count) {

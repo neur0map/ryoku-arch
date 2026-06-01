@@ -43,6 +43,20 @@ apply)
     exit 1
   }
   require_hyprctl
+  # Refuse to disable the only active monitor: that blanks the session with no revert
+  # path. The Display panel guards too; this is the authoritative, best-effort backstop
+  # (skipped only when jq or live state is unavailable).
+  if [[ $spec == *",disable"* || $spec == *", disable"* ]] && ryoku-cmd-present jq; then
+    target="${spec%%,*}"
+    target="${target// /}"
+    mons="$(hyprctl monitors all -j 2>/dev/null || true)"
+    enabled_total="$(jq '[ .[] | select(.disabled | not) ] | length' <<<"$mons" 2>/dev/null || echo 0)"
+    target_enabled="$(jq --arg n "$target" '[ .[] | select(.name == $n and (.disabled | not)) ] | length' <<<"$mons" 2>/dev/null || echo 0)"
+    if (( enabled_total <= 1 )) && (( target_enabled >= 1 )); then
+      echo "ryoku-monitor apply: refusing to disable the only active monitor ($target)" >&2
+      exit 2
+    fi
+  fi
   exec hyprctl keyword monitor "$spec"
   ;;
 persist)

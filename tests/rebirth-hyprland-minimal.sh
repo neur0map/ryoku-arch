@@ -38,10 +38,12 @@ rg -q 'source = ~/.config/hypr/colors.conf' "$ROOT_DIR/config/hypr/hyprland.conf
   fail "Hyprland config should source a local color fallback"
 ! rg -q 'ryoku-user-binds|[$]keybinds|Ryoku Keybinds|SUPER,[[:space:]]*slash' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should not ship the removed Super+/ keybind menu"
-rg -q 'monitor = eDP-1, preferred, 0x0, 1.25' "$ROOT_DIR/config/hypr/hyprland.conf" || \
-  fail "Hyprland config should use a smaller explicit laptop scale"
-rg -q 'monitor = , highrr, auto, auto' "$ROOT_DIR/config/hypr/hyprland.conf" || \
-  fail "Hyprland config should use the highest refresh rate for non-explicit monitor fallback"
+! rg -q 'monitor = eDP-1' "$ROOT_DIR/config/hypr/monitors.conf" || \
+  fail "monitors.conf must not ship a hardcoded per-output line; baking a fractional scale blurs XWayland apps on panels that don't want it"
+rg -q 'monitor = , highrr, auto, auto' "$ROOT_DIR/config/hypr/monitors.conf" || \
+  fail "monitors.conf should keep the high-refresh, auto-scale catch-all"
+rg -q 'force_zero_scaling = true' "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should force_zero_scaling so XWayland (Helium/web-apps) stay crisp under fractional scaling"
 rg -q "[$]fileManager = nautilus" "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should launch the shipped Files app"
 rg -q "[$]menu = sh -lc '\\\$HOME/.local/bin/ryoku-shell launcher'" "$ROOT_DIR/config/hypr/hyprland.conf" || \

@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import Quickshell
 import qs.noctalia.Commons
 import qs.noctalia.Services.Compositor
+import qs.noctalia.Services.UI
 import qs.noctalia.Widgets
 
 ColumnLayout {
@@ -11,68 +12,11 @@ ColumnLayout {
   spacing: Style.marginL
   Layout.fillWidth: true
 
-  // Base the list on the authoritative connected-screen list (Quickshell.screens) and
-  // enrich each with the hyprctl-parsed details (modes/refresh/transform/...).
-  // displayScales alone can be empty at first render, so never iterate it directly.
-  readonly property var monitors: {
-    var screens = Quickshell.screens || [];
-    var ds = CompositorService.displayScales || ({});
-    var out = [];
-    for (var i = 0; i < screens.length; i++) {
-      var s = screens[i];
-      var d = ds[s.name] || ({});
-      out.push({
-                 "name": s.name,
-                 "description": d.description || s.model || s.name,
-                 "width": d.width || s.width || 0,
-                 "height": d.height || s.height || 0,
-                 "refresh_rate": d.refresh_rate || 60,
-                 "scale": d.scale || s.scale || 1.0,
-                 "transform": d.transform || 0,
-                 "disabled": d.disabled || false,
-                 "mirrorOf": d.mirrorOf || "none",
-                 "vrr": d.vrr || false,
-                 "availableModes": d.availableModes || [],
-                 "physicalWidth": d.physicalWidth || 0,
-                 "physicalHeight": d.physicalHeight || 0,
-                 "x": d.x || 0,
-                 "y": d.y || 0
-               });
-    }
-    return out;
-  }
-
-  // Force a fresh hyprctl query so modes/refresh are populated when the tab opens.
-  Component.onCompleted: CompositorService.updateDisplayScales()
+  // Force a fresh monitor query so modes/refresh populate when the tab opens.
+  Component.onCompleted: DisplayService.refresh()
 
   function roundRate(r) {
     return Math.round(r);
-  }
-
-  // Build a Hyprland `monitor=` spec from a monitor's current/pending values.
-  function buildSpec(name, enabled, res, rate, x, y, scale, transform, mirror, vrr) {
-    if (!enabled)
-      return name + ", disable";
-    var spec = name + ", " + res + "@" + rate + ", " + x + "x" + y + ", " + scale;
-    if (transform && transform !== 0)
-      spec += ", transform, " + transform;
-    if (vrr)
-      spec += ", vrr, 1";
-    if (mirror && mirror !== "none")
-      spec += ", mirror, " + mirror;
-    return spec;
-  }
-
-  function currentSpecOf(m) {
-    return buildSpec(m.name, !m.disabled, m.width + "x" + m.height, roundRate(m.refresh_rate), m.x, m.y, m.scale, m.transform, m.mirrorOf, m.vrr);
-  }
-
-  // Preview a spec live, then ask to keep or revert.
-  function applyWithConfirm(name, newSpec, prevSpec) {
-    Quickshell.execDetached(["ryoku-monitor", "apply", newSpec]);
-    confirmDialog.monitorName = name;
-    confirmDialog.prevSpec = prevSpec;
-    confirmDialog.open();
   }
 
   NHeader {
@@ -80,25 +24,42 @@ ColumnLayout {
     description: I18n.tr("panels.display.layout-description")
   }
 
+  // Non-Hyprland compositors (Niri/Sway/...) can't apply monitor layout from here.
   NText {
-    visible: root.monitors.length === 0
+    visible: !DisplayService.supported
+    Layout.fillWidth: true
+    wrapMode: Text.WordWrap
+    text: I18n.tr("panels.display.unsupported-body")
+    color: Color.mOnSurfaceVariant
+  }
+
+  NText {
+    visible: DisplayService.supported && DisplayService.monitors.length === 0
     Layout.fillWidth: true
     text: I18n.tr("panels.display.layout-none")
     color: Color.mOnSurfaceVariant
   }
 
   Repeater {
-    model: root.monitors
+    model: DisplayService.supported ? DisplayService.monitors : []
 
     MonitorCard {
       required property var modelData
       Layout.fillWidth: true
       mon: modelData
-      allMonitors: root.monitors
     }
   }
 
-  // ---- Confirm-or-revert dialog ----
+  // Surface a refused apply (unsupported compositor / last active output).
+  Connections {
+    target: DisplayService
+    function onBlocked(reasonKey) {
+      ToastService.showWarning(I18n.tr("panels.display.layout-title"), I18n.tr(reasonKey));
+    }
+  }
+
+  // Confirm-or-revert dialog. The apply state + countdown live in DisplayService so they
+  // survive even if this panel closes (a non-confirmed change safely auto-reverts).
   Popup {
     id: confirmDialog
     parent: Overlay.overlay
@@ -107,36 +68,13 @@ ColumnLayout {
     anchors.centerIn: Overlay.overlay
     padding: Style.marginL
 
-    property string monitorName: ""
-    property string prevSpec: ""
-    property int remaining: 15
-
-    onOpened: {
-      remaining = 15;
-      countdown.restart();
-    }
-    onClosed: countdown.stop()
-
-    function keep() {
-      countdown.stop();
-      Quickshell.execDetached(["ryoku-monitor", "persist"]);
-      close();
-    }
-    function revert() {
-      countdown.stop();
-      if (prevSpec.length > 0)
-        Quickshell.execDetached(["ryoku-monitor", "apply", prevSpec]);
-      close();
-    }
-
-    Timer {
-      id: countdown
-      interval: 1000
-      repeat: true
-      onTriggered: {
-        confirmDialog.remaining -= 1;
-        if (confirmDialog.remaining <= 0)
-          confirmDialog.revert();
+    Connections {
+      target: DisplayService
+      function onPendingActiveChanged() {
+        if (DisplayService.pendingActive)
+          confirmDialog.open();
+        else
+          confirmDialog.close();
       }
     }
 
@@ -156,7 +94,7 @@ ColumnLayout {
         wrapMode: Text.WordWrap
         color: Color.mOnSurfaceVariant
         text: I18n.tr("panels.display.confirm-body", {
-                        "seconds": confirmDialog.remaining
+                        "seconds": DisplayService.remaining
                       })
       }
       RowLayout {
@@ -165,11 +103,11 @@ ColumnLayout {
         NButton {
           text: I18n.tr("panels.display.confirm-revert")
           outlined: true
-          onClicked: confirmDialog.revert()
+          onClicked: DisplayService.revert()
         }
         NButton {
           text: I18n.tr("panels.display.confirm-keep")
-          onClicked: confirmDialog.keep()
+          onClicked: DisplayService.keep()
         }
       }
     }
@@ -179,7 +117,6 @@ ColumnLayout {
   component MonitorCard: NBox {
     id: card
     required property var mon
-    required property var allMonitors
 
     // Pending selections (initialised from the live values).
     property bool pendingEnabled: !mon.disabled
@@ -191,6 +128,9 @@ ColumnLayout {
     property bool pendingVrr: mon.vrr || false
     property int pendingX: mon.x
     property int pendingY: mon.y
+
+    // The only enabled output may not be turned off (would blank the session).
+    readonly property bool isLastEnabledOutput: !mon.disabled && DisplayService.enabledCount === 1
 
     // Parse availableModes ("2560x1440@240.00Hz") into resolution + rate options.
     readonly property var resolutions: {
@@ -269,24 +209,10 @@ ColumnLayout {
       return best;
     }
 
-    // Suggest a scale from the physical DPI (physical size in mm + selected resolution).
+    // Suggest a scale from physical DPI; the rule lives in DisplayService so it is shared
+    // and unit-testable.
     function suggestScale() {
-      var pw = mon.physicalWidth || 0;
-      var ph = mon.physicalHeight || 0;
-      var parts = String(pendingRes).split("x");
-      var w = parseInt(parts[0]);
-      var h = parseInt(parts[1]);
-      if (pw <= 0 || ph <= 0 || !w || !h)
-        return 1.0;
-      var diagIn = Math.sqrt(pw * pw + ph * ph) / 25.4;
-      var dpi = Math.sqrt(w * w + h * h) / diagIn;
-      if (dpi <= 120)
-        return 1.0;
-      if (dpi <= 160)
-        return 1.25;
-      if (dpi <= 200)
-        return 1.5;
-      return 2.0;
+      return DisplayService.suggestScale(mon.physicalWidth, mon.physicalHeight, pendingRes);
     }
 
     Layout.fillWidth: true
@@ -307,6 +233,8 @@ ColumnLayout {
         }
         NToggle {
           checked: card.pendingEnabled
+          // Can't disable the last active output.
+          enabled: !card.isLastEnabledOutput
           onToggled: checked => card.pendingEnabled = checked
         }
       }
@@ -453,8 +381,21 @@ ColumnLayout {
           text: I18n.tr("panels.display.apply")
           icon: "check"
           onClicked: {
-            var newSpec = root.buildSpec(card.mon.name, card.pendingEnabled, card.pendingRes, card.pendingRate, card.pendingX, card.pendingY, card.pendingScale, card.pendingTransform, card.pendingMirror, card.pendingVrr);
-            root.applyWithConfirm(card.mon.name, newSpec, root.currentSpecOf(card.mon));
+            var parts = String(card.pendingRes).split("x");
+            var cfg = {
+              "name": card.mon.name,
+              "enabled": card.pendingEnabled,
+              "width": parseInt(parts[0]),
+              "height": parseInt(parts[1]),
+              "refreshRate": parseInt(card.pendingRate),
+              "x": card.pendingX,
+              "y": card.pendingY,
+              "scale": card.pendingScale,
+              "transform": card.pendingTransform,
+              "mirror": card.pendingMirror,
+              "vrr": card.pendingVrr
+            };
+            DisplayService.applyWithConfirm(cfg, DisplayService.currentConfigOf(card.mon));
           }
         }
       }
