@@ -47,6 +47,15 @@ else
   export RYOKU_STATE_PATH="${RYOKU_STATE_PATH:-$HOME/.local/state/ryoku}"
 fi
 
+# Never let any git call in this helper block on a credential prompt: the
+# settings update panel must fail cleanly (and never demand a GitHub account)
+# when offline or when the shipped .git still carries a leaked CI auth header.
+# Exported here so both the bash git calls below and the embedded Python (which
+# copies the environment) inherit it.
+export GIT_TERMINAL_PROMPT=0
+export GIT_ASKPASS=/bin/true
+export GCM_INTERACTIVE=never
+
 remote_url="${RYOKU_UPDATE_REMOTE_URL:-https://github.com/neur0map/ryoku-arch.git}"
 
 usage() {
@@ -103,8 +112,11 @@ def run_git(*args):
     env = os.environ.copy()
     env["GIT_TERMINAL_PROMPT"] = "0"
     env["GIT_ASKPASS"] = "/bin/true"
+    env["GCM_INTERACTIVE"] = "never"
     result = subprocess.run(
-        ["git", "-C", str(repo_path), *args],
+        # -c http.extraheader= neutralizes any leaked CI auth header still in the
+        # shipped .git so a public-repo fetch never tries (and fails) to auth.
+        ["git", "-c", "http.extraheader=", "-C", str(repo_path), *args],
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -324,6 +336,25 @@ def update_state(ahead, behind, can_fast_forward, can_realign, branch):
         "blockReason": "",
     }
 
+def friendly_fetch_error(err, branch):
+    # Map raw git stderr ("fatal: unable to access ...: Could not resolve host")
+    # to a clean, reassuring line for the settings panel. No GitHub account is
+    # ever required to check for updates, so never surface an auth prompt hint.
+    text = (err or "").lower()
+    if ("could not resolve host" in text
+            or "temporary failure in name resolution" in text
+            or "name or service not known" in text):
+        return "You appear to be offline. Connect to the internet and try again."
+    if ("could not connect" in text or "failed to connect" in text
+            or "connection refused" in text or "connection timed out" in text
+            or "timed out" in text or "network is unreachable" in text):
+        return "Couldn't reach the update server. Check your connection and try again."
+    if ("authentication failed" in text or "could not read username" in text
+            or "terminal prompts disabled" in text or "permission denied" in text
+            or "403" in text or "401" in text):
+        return "Couldn't reach the update server. No GitHub account is needed; try again later."
+    return f"Couldn't check {branch} for updates right now. Try again later."
+
 def check_updates():
     info = base_info()
     branch = info["updateBranch"]
@@ -347,9 +378,10 @@ def check_updates():
 
     code, _, err = fetch_channel(branch)
     if code != 0:
+        message = friendly_fetch_error(err, branch)
         info.update({
             "ok": False,
-            "error": err or f"Unable to fetch {branch}",
+            "error": message,
             "incoming": [],
             "aheadCount": 0,
             "behindCount": 0,
@@ -357,9 +389,9 @@ def check_updates():
             "canFastForward": False,
             "canStartUpdate": False,
             "updateState": "error",
-            "updateStateLabel": "Unable to fetch",
-            "updateStateDetail": err or f"Unable to fetch {branch}",
-            "blockReason": err or f"Unable to fetch {branch}",
+            "updateStateLabel": "Couldn't check",
+            "updateStateDetail": message,
+            "blockReason": message,
         })
         return info
 
@@ -522,7 +554,7 @@ shell_single_quote() {
 fetch_settings_channel_ref() {
   local channel="$1"
 
-  git -C "$RYOKU_PATH" fetch --prune "$remote_url" "+refs/heads/$channel:refs/remotes/origin/$channel" >/dev/null 2>&1
+  git -c http.extraheader= -C "$RYOKU_PATH" fetch --prune "$remote_url" "+refs/heads/$channel:refs/remotes/origin/$channel" >/dev/null 2>&1
 }
 
 fetch_settings_peer_channel_refs() {
@@ -582,7 +614,7 @@ update_current_branch() {
   }
 
   remote_ref="origin/$branch"
-  git -C "$RYOKU_PATH" fetch --prune "$remote_url" "+refs/heads/$branch:refs/remotes/origin/$branch"
+  git -c http.extraheader= -C "$RYOKU_PATH" fetch --prune "$remote_url" "+refs/heads/$branch:refs/remotes/origin/$branch"
   git -C "$RYOKU_PATH" merge --ff-only "$remote_ref"
 
   if [[ -x $RYOKU_PATH/shell/setup ]]; then
@@ -615,7 +647,7 @@ start_update() {
   branch_q="$(shell_quote "$branch")"
   remote_ref="origin/$branch"
 
-  if ! git -C "$RYOKU_PATH" fetch --prune "$remote_url" "+refs/heads/$branch:refs/remotes/origin/$branch" >/dev/null 2>&1; then
+  if ! git -c http.extraheader= -C "$RYOKU_PATH" fetch --prune "$remote_url" "+refs/heads/$branch:refs/remotes/origin/$branch" >/dev/null 2>&1; then
     json_error "Unable to fetch $branch before starting the update"
     return 1
   fi
