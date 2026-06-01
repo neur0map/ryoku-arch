@@ -262,9 +262,37 @@ download_official_packages() {
   done
 }
 
+# The AUR packages were makepkg'd into the offline mirror above with their
+# *build* deps, but their *runtime* deps (often official packages like
+# libadwaita, lsof, the KDE frameworks darkly-bin needs, matugen, ...) are NOT
+# in the mirror unless something in official_packages happens to pull them. When
+# they are absent, `pacman -S <aurpkg>` fails offline and the app silently never
+# installs (this is exactly what dropped skwd-wall, gradia, darkly-bin,
+# localsend-bin and supergfxctl). Harvest the runtime depends from every built
+# AUR .pkg and best-effort download the official ones into the mirror too;
+# AUR-provided or soname deps just "target not found" and are skipped.
+download_aur_runtime_deps() {
+  local pkgfile dep
+  local -A seen=()
+  shopt -s nullglob
+  for pkgfile in "$offline_mirror_dir"/*.pkg.tar.zst; do
+    while IFS= read -r dep; do
+      dep="${dep%%[<>=: ]*}"   # strip version / soname / optional constraints
+      [[ -n $dep ]] || continue
+      [[ -n ${seen[$dep]:-} ]] && continue
+      seen[$dep]=1
+      pacman --config "/configs/pacman-online-${RYOKU_CHANNEL}.conf" \
+        --noconfirm -Sw "$dep" \
+        --cachedir "$offline_mirror_dir/" --dbpath /tmp/offlinedb >/dev/null 2>&1 || true
+    done < <(bsdtar -xOf "$pkgfile" .PKGINFO 2>/dev/null | sed -n 's/^depend = //p')
+  done
+  shopt -u nullglob
+}
+
 # Download all the packages to the offline mirror inside the ISO
 mkdir -p /tmp/offlinedb
 download_official_packages
+download_aur_runtime_deps
 
 # Drop any prior db so repo-add always reflects this build's actual
 # package files. With --new (skip-if-present), an overlay package
