@@ -22,8 +22,12 @@ feel fast, sharp, and deliberate from first boot.
 <kbd>[Vision](docs/vision.md)</kbd> &middot; <kbd>[Docs](docs/)</kbd> &middot; <kbd>[Customize](docs/customization-inventory.md)</kbd> &middot; <kbd>[Keybindings](docs/keybindings.md)</kbd> &middot; <kbd>[Discord](https://discord.gg/8KjBmUEyKA)</kbd> &middot; <kbd>[Subreddit](https://www.reddit.com/r/RyokuArch/)</kbd>
 
 <p>
-  <img src="https://raw.githubusercontent.com/neur0map/ryoku-arch/main/showcase.png" alt="Ryoku showcase" width="960" />
+  <a href="https://youtu.be/h18vLuERKFo">
+    <img src="https://img.youtube.com/vi/h18vLuERKFo/maxresdefault.jpg" alt="Ryoku showcase: watch on YouTube" width="960" />
+  </a>
 </p>
+
+<sub>&#9654; <a href="https://youtu.be/h18vLuERKFo">Watch the Ryoku showcase on YouTube</a></sub>
 
 </div>
 
