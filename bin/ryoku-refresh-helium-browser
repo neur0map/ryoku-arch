@@ -96,7 +96,24 @@ if [[ ! -x $appimage ]]; then
   exit 1
 fi
 
-exec "$appimage" --ozone-platform="${HELIUM_OZONE_PLATFORM:-x11}" "$@"
+# Helium runs under XWayland (avoids the Wayland black-omnibox bug). hyprland's
+# force_zero_scaling makes XWayland apps render at 1x, so on a scaled panel they
+# look tiny -- pass Chromium a device-scale-factor matching the focused monitor
+# scale so Helium renders crisp and correctly sized. Override with HELIUM_SCALE
+# or HELIUM_OZONE_PLATFORM.
+scale="${HELIUM_SCALE:-}"
+if [[ -z $scale ]] && command -v hyprctl >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
+  scale="$(hyprctl monitors -j 2>/dev/null | jq -r '[.[] | select(.focused) | .scale][0] // (.[0].scale) // 1' 2>/dev/null)"
+fi
+[[ $scale =~ ^[0-9]+(\.[0-9]+)?$ ]] || scale=1
+
+scale_args=()
+case "$scale" in
+  1 | 1.0 | 1.00 | 0 | "") ;;
+  *) scale_args=("--force-device-scale-factor=$scale") ;;
+esac
+
+exec "$appimage" --ozone-platform="${HELIUM_OZONE_PLATFORM:-x11}" "${scale_args[@]}" "$@"
 EOF
   chmod 0755 "$bin_path"
 }
