@@ -54,6 +54,7 @@ rsi_manifest_init
 rsi_backup_setup
 rsi_install_packages
 rsi_deploy
+rsi_verify
 
 if rsi_dry; then
   rsi_say ""
@@ -66,7 +67,12 @@ case ":$PATH:" in
   *) rsi_warn "$RSI_BIN_HOME is not on your PATH; add it to run ryoku-* commands from a terminal (the Ryoku session itself uses absolute paths and works regardless)." ;;
 esac
 
-rsi_say ""
+rsi_header "Done"
 rsi_ok "Ryoku shell installed."
-rsi_say "Log out, pick the \"Ryoku\" session at your login screen, and log back in."
-rsi_say "To revert: $RSI_HERE/uninstall"
+rsi_say ""
+rsi_say "  ${RSI_BOLD}Reboot now${RSI_OFF}, then at the login screen pick the ${RSI_ACCENT}Ryoku${RSI_OFF} session and log in."
+rsi_say "  Your current desktop will not change until you start the Ryoku session,"
+rsi_say "  so the live screen, wallpaper, and keybinds stay as they are until then."
+rsi_say ""
+rsi_say "  Revert any time:  $RSI_HERE/uninstall"
+rsi_say "  Build log:        ${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-shell-setup.log"

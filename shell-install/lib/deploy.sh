@@ -161,39 +161,40 @@ rsi_seed_configs() {
 }
 
 # Register a distinctly-named Ryoku wayland session beside the user's existing
-# sessions. Clone the installed Hyprland session entry so Exec matches the
-# packaged launcher (the hyprland package owns start-hyprland), then rebrand
-# the visible name. The only path written with sudo.
+# sessions. Use a reliable Exec: the hyprland package's start-hyprland wrapper
+# if present, else the Hyprland binary directly. Both read ~/.config/hypr, so
+# the Ryoku config (and its keybinds) load. Never use the uwsm entry, since
+# uwsm is not a dependency. The only path written with sudo; non-fatal.
 rsi_install_session() {
   rsi_step "registering the Ryoku wayland session"
   rsi_backup "$RSI_SESSION_FILE"
 
-  local src="" cand
-  for cand in /usr/share/wayland-sessions/hyprland.desktop \
-              /usr/share/wayland-sessions/Hyprland.desktop; do
-    [[ -f $cand ]] && { src="$cand"; break; }
-  done
+  local exec_cmd="Hyprland"
+  if [[ -x /usr/bin/start-hyprland ]]; then
+    exec_cmd="/usr/bin/start-hyprland"
+  fi
 
   if rsi_dry; then
-    rsi_dim "  would register $RSI_SESSION_FILE (from ${src:-built-in template})"
+    rsi_dim "  would register $RSI_SESSION_FILE (Exec=$exec_cmd)"
     rsi_record session "$RSI_SESSION_FILE"
     return 0
   fi
 
-  sudo install -d "$(dirname "$RSI_SESSION_FILE")"
-  if [[ -n $src ]]; then
-    sudo sed -e 's/^Name=.*/Name=Ryoku/' \
-             -e 's/^Comment=.*/Comment=Ryoku Hyprland desktop (experimental shell install)/' \
-             "$src" | sudo tee "$RSI_SESSION_FILE" >/dev/null
+  local content
+  content="[Desktop Entry]
+Name=Ryoku
+Comment=Ryoku Hyprland desktop (experimental shell install)
+Exec=$exec_cmd
+Type=Application
+DesktopNames=Hyprland"
+
+  if sudo install -d "$(dirname "$RSI_SESSION_FILE")" 2>/dev/null \
+     && printf '%s\n' "$content" | sudo tee "$RSI_SESSION_FILE" >/dev/null 2>&1; then
+    rsi_record session "$RSI_SESSION_FILE"
+    rsi_ok "added the \"Ryoku\" login session (Exec=$exec_cmd)"
   else
-    rsi_warn "no installed Hyprland session found; writing a generic entry"
-    printf '%s\n' \
-      "[Desktop Entry]" "Name=Ryoku" \
-      "Comment=Ryoku Hyprland desktop (experimental shell install)" \
-      "Exec=Hyprland" "Type=Application" "DesktopNames=Hyprland" \
-      | sudo tee "$RSI_SESSION_FILE" >/dev/null
+    rsi_warn "could not write $RSI_SESSION_FILE with sudo. Create it manually (Exec=$exec_cmd) so \"Ryoku\" appears at your login screen."
   fi
-  rsi_record session "$RSI_SESSION_FILE"
 }
 
 # Enable the shell and supporting user services. Best-effort: a unit that is
@@ -236,4 +237,39 @@ rsi_deploy() {
   rsi_install_session
   rsi_enable_services
   rsi_ok "deploy complete"
+}
+
+# Verify the critical artifacts so a blank/incomplete desktop becomes a
+# diagnosable checklist instead of a mystery. Reports each piece and points at
+# the build log if the native plugins did not build.
+rsi_verify() {
+  rsi_dry && return 0
+  rsi_header "Verifying the install"
+  local ok=1 qmldir="${RYOKU_SHELL_QML_DIR:-$HOME/.local/lib/qt6/qml}"
+
+  _v() {
+    local label="$1"
+    shift
+    if "$@" >/dev/null 2>&1; then
+      rsi_ok "$label"
+    else
+      rsi_warn "$label  (missing)"
+      ok=0
+    fi
+  }
+
+  _v "Ryoku payload"              test -d "$RSI_RYOKU_PATH/bin"
+  _v "ryoku-shell launcher"       test -e "$RSI_BIN_HOME/ryoku-shell"
+  _v "shell runtime (shell.qml)"  test -f "$RSI_QUICKSHELL_DIR/shell.qml"
+  _v "native QML plugins (build)" test -e "$qmldir/Ryoku/libryokuplugin.so"
+  _v "Hyprland config + keybinds" test -f "$RSI_CONFIG_HOME/hypr/hyprland.conf"
+  _v "shell service unit"         test -f "$RSI_CONFIG_HOME/systemd/user/ryoku-shell.service"
+  _v "Ryoku login session"        test -f "$RSI_SESSION_FILE"
+
+  if (( ok == 0 )); then
+    rsi_warn "Some pieces are missing; the desktop may be incomplete."
+    rsi_warn "If the native QML plugins failed to build, see ${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-shell-setup.log"
+    return 0
+  fi
+  rsi_ok "all components present"
 }
