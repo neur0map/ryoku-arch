@@ -65,7 +65,7 @@ for list in "$HOME/.config/xdg-terminals.list" "$RYOKU_PATH/config/xdg-terminals
 done
 
 if ((${#terminal_ids[@]} == 0)); then
-  terminal_ids=("Alacritty.desktop" "com.mitchellh.ghostty.desktop" "kitty.desktop")
+  terminal_ids=("kitty.desktop" "com.mitchellh.ghostty.desktop" "Alacritty.desktop")
 fi
 
 selected_id=""
