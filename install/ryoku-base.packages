@@ -78,6 +78,10 @@ fuse2
 # ── GUI apps - productivity, viewers, file manager ────────────────────
 evince
 gnome-calculator
+# gnome-calendar: the shell calendar (CalendarMonthCard date-click) opens it via
+# `gnome-calendar --date`, gated on ProgramCheckerService.gnomeCalendarAvailable.
+# Without it shipped, clicking a date is a silent no-op on fresh installs.
+gnome-calendar
 imv
 libqalculate
 mpv
