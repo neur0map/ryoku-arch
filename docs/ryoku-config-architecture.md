@@ -98,11 +98,17 @@ Non-`[global]` changes ship no migration and touch no existing user.
   distinguishable.
 
 ## Implementation plan
-1. **Consolidate the path.** `git mv default/ryoku-shell/* shell/rice/` and
-   repoint every reference (`ryoku-shell-branding.sh`, `config.sh`,
-   `ensure-shell-deployment.sh`, build glue) from `default/ryoku-shell/...` to
-   `shell/rice/...`. Add `shell/README.md` ("this is the Ryoku rice").
-   Net: one path - `shell/` - holds vendors + Ryoku code + rice.
+1. **Consolidate the path.**
+   `git mv default/ryoku-shell/{shell.json,config-overrides.json,branding-replacements.tsv} shell/rice/`,
+   then repoint the only three referencers (verified by grep; `config.sh` and
+   `ensure-shell-deployment.sh` do NOT reference these despite earlier notes):
+   `install/config/ryoku-shell-branding.sh` lines 9-11 (`REPLACEMENTS_FILE`,
+   `CONFIG_OVERRIDES_FILE`, `NATIVE_CONFIG_DEFAULTS_FILE`),
+   `tests/ryoku-shell-branding.sh`, and `tests/ryoku-native-shell-config-defaults.sh`.
+   This move is non-behavioral (branding reads the same files from the new
+   path), so it needs no VM: verify locally that `grep -rn default/ryoku-shell`
+   returns nothing and both tests pass. Add `shell/rice/README.md` ("this is the
+   Ryoku rice"). Net: one path - `shell/` - holds vendors + Ryoku code + rice.
 2. **Make `shell/rice/config.json` the real rice base** the active shell reads,
    with `desktopWidgets.enabled: true` + the clock widget on, applied as the
    base on fresh install (then `overrides.json` on top).
