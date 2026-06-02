@@ -84,18 +84,21 @@ Canonical layers (use these; do not add parallel surfaces elsewhere):
 
 - Config: the typed `Ryoku.Config` / `GlobalConfig` layer in
   `shell/plugin/src/Ryoku/Config/`, persisted to `~/.config/ryoku/shell.json`.
-  New user-facing config keys go HERE. Do NOT add new keys to the legacy
-  ambxst store (`~/.config/ambxst/*`, `shell/ambxst/config/Config.qml`) or the
-  noctalia store (`~/.config/noctalia/settings.json`, `shell/noctalia/Commons/Settings.qml`);
-  both are being consolidated into `Ryoku.Config` (see `docs/ryoku-config-architecture.md`).
+  New user-facing config keys go HERE (the Vicinae launcher toggle is the
+  reference example). Do NOT add new keys to the legacy ambxst store
+  (`~/.config/ambxst/*`, `shell/ambxst/config/Config.qml`) or noctalia store
+  (`~/.config/noctalia/settings.json`). Those hold the existing desktop config;
+  consolidating how its defaults ("the rice") ship is tracked in
+  `docs/ryoku-config-architecture.md`.
 - Settings UI: the noctalia-based `SettingsContent`
   (`shell/noctalia/Modules/Panels/Settings/Tabs/`), opened by `ryoku-shell settings`.
   New settings UI is a tab or sub-tab there, bound to `GlobalConfig`. The ambxst
   dashboard "Settings" tab (`shell/ambxst/modules/widgets/dashboard/controls/SettingsTab.qml`)
   is a parallel surface being retired: do NOT add settings to it.
 - IPC: Ryoku's own `ryoku-shell ipc <target> <fn>` (run `ryoku-shell ipc show`
-  for the live registry). Keybinds live only in `config/hypr/hyprland.conf`, which
-  is Ryoku-owned and refreshed on update; user overrides go in `config/hypr/custom.conf`.
+  for the live registry). Keybinds live only in `config/hypr/hyprland.conf`
+  (Ryoku-owned); per the config contract it reaches existing installs only via a
+  `[global]` migration, and user overrides go in `config/hypr/custom.conf`.
 
 Licensing: `shell/ambxst/` is AGPL-3.0 (keep its `ATTRIBUTION.md` and AGPL header
 obligations); `shell/noctalia/` is MIT. Unifying identity does not relicense
@@ -126,7 +129,11 @@ The migrated core is part of the product. Before adding shell UI for a feature, 
 
 # Ryoku Workstation Environment
 
-Use `rebirth` for Hyprland workstation work. Keep `main` untouched unless explicitly asked to release or merge.
+`main` and `unstable-dev` are the workspaces for the full product (ISO + shell):
+develop the shell and the system together here so the shell and the ISO cannot
+drift. `ryoku-shell` is a generated downstream branch for standalone installs,
+never committed to directly. See `docs/ryoku-shell-branch.md`. (The old
+`rebirth` workflow is retired.)
 
 Primary paths on this workstation:
 
@@ -141,7 +148,7 @@ Development tree:
 
 ```bash
 cd "$HOME/prowl/ryoku-arch"
-git checkout rebirth
+git switch unstable-dev   # bleeding-edge dev line (promote to main for release)
 git status --short
 ```
 

@@ -121,3 +121,25 @@ Non-`[global]` changes ship no migration and touch no existing user.
   in place.
 - `overrides.json` stays the **narrow** force-on-every-update set; the broad
   rice ships via fresh-install seeding + `[global]` migrations.
+
+## Enforcement and related work
+
+The two rules are now backed by automation and docs:
+
+- **`[global]` ⇒ migration** is CI-enforced: `.github/workflows/config-migration.yml`
+  fails a PR whose commit subject carries `[global]` without an accompanying
+  `migrations/<unix-ts>.sh`. Non-`[global]` changes stay fresh-install-only.
+- **Canonical layers** (where new config/UI/IPC go) are stated in the root
+  `AGENTS.md` ("Ryoku shell: one product, canonical layers"): new user-facing
+  keys use `Ryoku.Config`; the existing ambxst/noctalia desktop config and its
+  rice defaults are what this doc consolidates into `shell/rice/`.
+- **Shell IPC <-> keybind parity** is gated by `.github/workflows/shell-ipc-parity.yml`
+  (via `ryoku-dev-audit-shell-binds`), so a keybind can never dispatch to a
+  missing handler.
+- **Branch model** for the shipped-vs-standalone split lives in
+  `docs/ryoku-shell-branch.md`.
+
+Open: the local `.githooks/pre-commit` step 4 still requires a migration for any
+`config/hypr|default/*` change (migration-by-default), which is stricter than
+the `[global]`-by-default contract above. Reconcile the hook to the `[global]`
+rule (or decide the hook is intentionally stricter) before relying on it.

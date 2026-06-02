@@ -1,28 +1,24 @@
-name: Config migration guard
+name: Global change needs a migration
 
-# Existing installs are seeded copy-if-missing and never re-read shipped config
-# on update, so a change to Ryoku-owned default config only reaches them through
-# a migration. This gate fails a PR that changes such config without adding a
-# migration. Mirrors the rule in .githooks/pre-commit (step 4). Override for a
-# deliberate fresh-install-only change by putting [no-migration] in a commit
-# message.
+# Ryoku's config contract (docs/ryoku-config-architecture.md): changes are
+# fresh-install-only by default and DO NOT touch existing users. The only way a
+# change reaches existing installs is a migration, and a change is marked as
+# "must reach existing users" with a [global] label in its commit subject.
+#
+# This gate enforces that contract: if any commit in the PR is [global], the PR
+# must also add/modify a migrations/*.sh that carries the delta. Non-[global]
+# changes need no migration.
 
 on:
   pull_request:
-    paths:
-      - 'config/hypr/**'
-      - 'config/chromium**'
-      - 'config/brave**'
-      - 'default/**'
-      - 'migrations/**'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  require-migration:
-    name: Ryoku-owned config change needs a migration
+  global-needs-migration:
+    name: '[global] commit must ship a migration'
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
@@ -31,7 +27,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Enforce migration accompanies config change
+      - name: Enforce migration for [global] commits
         shell: bash
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -39,27 +35,21 @@ jobs:
         run: |
           set -euo pipefail
 
-          if git log --format='%B' "$BASE_SHA..$HEAD_SHA" | grep -qF '[no-migration]'; then
-            echo "Override: [no-migration] found in a commit message; skipping."
+          # Any [global]-labelled commit subject in the PR range?
+          globals="$(git log --format='%s' "$BASE_SHA..$HEAD_SHA" | grep -F '[global]' || true)"
+          if [[ -z $globals ]]; then
+            echo "No [global] commits in this PR; migration not required."
             exit 0
           fi
 
-          changed="$(git diff --name-only --diff-filter=ACMD "$BASE_SHA" "$HEAD_SHA")"
-          global=0
-          migration=0
-          while IFS= read -r f; do
-            [[ -z $f ]] && continue
-            case "$f" in
-              config/hypr/*|config/chromium*|config/brave*|default/*) global=1 ;;
-              migrations/*.sh) migration=1 ;;
-            esac
-          done <<<"$changed"
+          echo "[global] commit(s) in this PR:"
+          printf '  %s\n' "$globals"
 
-          if (( global && ! migration )); then
-            echo "Ryoku-owned config changed without a migration:" >&2
-            printf '%s\n' "$changed" | grep -E '^(config/hypr/|config/chromium|config/brave|default/)' >&2 || true
-            echo "::error::Add a migrations/<ts>.sh that repairs existing installs (e.g. ryoku-refresh-config), or put [no-migration] in a commit message for a deliberate fresh-install-only change."
-            exit 1
+          # A migration must be added or modified to carry the delta.
+          if git diff --name-only --diff-filter=ACM "$BASE_SHA" "$HEAD_SHA" | grep -qE '^migrations/[0-9]+\.sh$'; then
+            echo "OK: PR ships a migration for the [global] change(s)."
+            exit 0
           fi
 
-          echo "Config/migration parity OK."
+          echo "::error::A [global] commit must ship a migrations/<unix-ts>.sh so the change reaches existing installs (they are seeded copy-if-missing and never re-read shipped config on update). Add one with ryoku-dev-add-migration, or drop the [global] label if this is fresh-install-only."
+          exit 1
