@@ -62,7 +62,10 @@ if("plugin" IN_LIST ENABLE_MODULES)
 endif()
 
 if("shell" IN_LIST ENABLE_MODULES)
-    foreach(dir assets components modules services utils)
+    # Runtime QML/asset/script trees that shell.qml + Quickshell.shellPath() load.
+    # Must match what shell/setup rsyncs: ambxst/noctalia are integrated Ryoku
+    # components shell.qml imports; scripts/ backs shellPath("scripts/...").
+    foreach(dir assets components modules services utils ambxst noctalia scripts)
         install(DIRECTORY ${dir} DESTINATION "${INSTALL_QSCONFDIR}")
     endforeach()
 
