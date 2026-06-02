@@ -1,0 +1,39 @@
+name: Shell IPC parity
+
+# Fails when a keybind dispatches to a `ryoku-shell ipc <target> <fn>` that the
+# shell does not register (a silent no-op key), checked against the committed
+# shell/ipc-surface.txt manifest. Refresh the manifest with
+# `ryoku-dev-audit-shell-binds --refresh` after adding or renaming IPC handlers.
+
+on:
+  pull_request:
+    paths:
+      - 'config/hypr/**'
+      - 'shell/**'
+      - 'bin/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'config/hypr/**'
+      - 'shell/**'
+      - 'bin/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ipc-parity:
+    name: IPC handler vs keybind parity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check parity (manifest mode)
+        shell: bash
+        run: |
+          set -euo pipefail
+          RYOKU_AUDIT_FORCE_MANIFEST=1 RYOKU_PATH="$PWD" \
+            bin/ryoku-dev-audit-shell-binds --check

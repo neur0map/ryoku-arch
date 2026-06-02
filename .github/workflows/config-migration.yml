@@ -1,0 +1,65 @@
+name: Config migration guard
+
+# Existing installs are seeded copy-if-missing and never re-read shipped config
+# on update, so a change to Ryoku-owned default config only reaches them through
+# a migration. This gate fails a PR that changes such config without adding a
+# migration. Mirrors the rule in .githooks/pre-commit (step 4). Override for a
+# deliberate fresh-install-only change by putting [no-migration] in a commit
+# message.
+
+on:
+  pull_request:
+    paths:
+      - 'config/hypr/**'
+      - 'config/chromium**'
+      - 'config/brave**'
+      - 'default/**'
+      - 'migrations/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  require-migration:
+    name: Ryoku-owned config change needs a migration
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Enforce migration accompanies config change
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          if git log --format='%B' "$BASE_SHA..$HEAD_SHA" | grep -qF '[no-migration]'; then
+            echo "Override: [no-migration] found in a commit message; skipping."
+            exit 0
+          fi
+
+          changed="$(git diff --name-only --diff-filter=ACMD "$BASE_SHA" "$HEAD_SHA")"
+          global=0
+          migration=0
+          while IFS= read -r f; do
+            [[ -z $f ]] && continue
+            case "$f" in
+              config/hypr/*|config/chromium*|config/brave*|default/*) global=1 ;;
+              migrations/*.sh) migration=1 ;;
+            esac
+          done <<<"$changed"
+
+          if (( global && ! migration )); then
+            echo "Ryoku-owned config changed without a migration:" >&2
+            printf '%s\n' "$changed" | grep -E '^(config/hypr/|config/chromium|config/brave|default/)' >&2 || true
+            echo "::error::Add a migrations/<ts>.sh that repairs existing installs (e.g. ryoku-refresh-config), or put [no-migration] in a commit message for a deliberate fresh-install-only change."
+            exit 1
+          fi
+
+          echo "Config/migration parity OK."
