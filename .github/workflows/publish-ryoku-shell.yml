@@ -1,0 +1,52 @@
+name: Publish ryoku-shell
+
+# Regenerates the lean, shell-only distribution branch `ryoku-shell` from main
+# (main minus iso/). ryoku-shell is GENERATED, never developed on: land shell
+# changes on main/unstable-dev. See docs/ryoku-shell-branch.md.
+#
+# Manual (workflow_dispatch) until trusted. To auto-publish on every main push,
+# add a `push: { branches: [main] }` trigger below.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-ryoku-shell
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    name: Generate ryoku-shell from main
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Generate and push ryoku-shell (main minus iso/)
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          src="$(git rev-parse --short HEAD)"
+          git checkout -B ryoku-shell
+
+          if [[ -d iso ]]; then
+            git rm -r --quiet iso
+          fi
+
+          if git diff --cached --quiet; then
+            echo "Nothing to drop; ryoku-shell already matches main@${src}."
+          else
+            git commit -m "publish: ryoku-shell from main@${src} (drop iso/)"
+          fi
+
+          git push --force origin ryoku-shell
+          echo "Published ryoku-shell from main@${src}."
