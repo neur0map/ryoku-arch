@@ -68,6 +68,7 @@ If a fix changes a default that Ryoku ships but also needs to repair already-ins
 | `unstable-dev` | local + `origin/unstable-dev` | `origin/unstable-dev` | Rolling preview channel for users who selected Unstable. |
 | `upstream-dev` | local only | `upstream/dev` | A passive mirror of omarchy's `dev` branch. Used for browsing upstream state and cherry-picking. Configured `pushRemote=no_push` so it cannot be pushed to `origin` by accident. |
 | `upstream-master` | local only | `upstream/master` | Same as above but for omarchy's stable `master` branch. Configured `pushRemote=no_push`. |
+| `ryoku-shell` | `origin/ryoku-shell` | generated from `main` | Shell-only distribution branch (`main` minus `iso/`) for standalone, non-Arch installs via `shell-install/`. Generated downstream, never committed to directly. Replaces the old `shell-install` branch; see `ryoku-shell-branch.md` for the model and rename runbook. |
 
 `upstream-dev` and `upstream-master` are zero-cost: each is just a pointer to a commit. They are not additional copies of the working tree. Switching to them via `git checkout` swaps the working tree to that state; switching back to `main` restores Ryoku state.
 
