@@ -13,6 +13,11 @@
 
 ### Added
 
+- **Settings → Launcher toggle**: a switch (on by default) to choose between
+  Vicinae and the built-in Ryoku launcher. Turning it off stops the Vicinae
+  server and points `Super+Space` back at the quickshell launcher; the keybind
+  dispatches through `ryoku-launch-app` so the choice applies without editing
+  the Hyprland config.
 - **Vicinae packages**: `vicinae-bin` (default install, baked into the offline
   ISO mirror) plus its `qtkeychain-qt6`, `layer-shell-qt`, and `minizip`
   runtime dependencies.

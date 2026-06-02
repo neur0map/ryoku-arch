@@ -3,6 +3,7 @@
 var data = {
     "disks": ["/"],
     "updateServiceEnabled": true,
+    "useVicinaeLauncher": true,
     "idle": {
         "general": {
             "lock_cmd": "ambxst lock",

@@ -48,12 +48,12 @@ assert_not_contains "config/systemd/user/vicinae.service" '^WantedBy=' \
   "vicinae unit should not be enabled against a systemd target"
 
 # Hyprland wiring: launcher keybind, server autostart, layer-shell integration.
-assert_contains "config/hypr/hyprland.conf" "[$]menu = sh -lc 'vicinae toggle'" \
-  "Hyprland \$menu should toggle Vicinae"
+assert_contains "config/hypr/hyprland.conf" "[$]menu = sh -lc .*ryoku-launch-app'" \
+  "Hyprland \$menu should dispatch through ryoku-launch-app"
 assert_contains "config/hypr/hyprland.conf" 'bind = SUPER, Space, exec, [$]menu' \
   "SUPER+Space should open the launcher"
-assert_contains "config/hypr/hyprland.conf" 'exec-once = .*systemctl --user start vicinae.service' \
-  "Hyprland should autostart the Vicinae server"
+assert_contains "config/hypr/hyprland.conf" 'exec-once = .*ryoku-launch-app apply' \
+  "Hyprland should reconcile the launcher backend at login via ryoku-launch-app apply"
 assert_contains "config/hypr/hyprland.conf" 'layerrule = match:namespace .*vicinae.* blur true' \
   "Hyprland should blur the Vicinae layer surface (0.55+ match:namespace syntax)"
 assert_contains "config/hypr/hyprland.conf" 'focus_on_activate = true' \
@@ -79,11 +79,36 @@ assert_not_contains "shell/ambxst/assets/matugen/vicinae.toml" '\{\{mode\}\}' \
 
 # Migration converges existing installs onto the new launcher.
 assert_file "migrations/1780374622.sh"
-assert_contains "migrations/1780374622.sh" "vicinae toggle" \
-  "Migration should repoint \$menu to Vicinae"
+assert_contains "migrations/1780374622.sh" 'ryoku-launch-app' \
+  "Migration should repoint \$menu to the ryoku-launch-app dispatcher"
 assert_contains "migrations/1780374622.sh" 'vicinae-bin' \
   "Migration should install the launcher package"
 assert_contains "migrations/1780374622.sh" 'vicinae\.service' \
-  "Migration should deploy and start the launcher unit"
+  "Migration should deploy the launcher unit"
+
+# Runtime launcher dispatcher: $menu and the autostart both route through this so
+# the Settings toggle switches backends without rewriting the Hyprland config.
+assert_file "bin/ryoku-launch-app"
+[[ -x $ROOT_DIR/bin/ryoku-launch-app ]] || fail "bin/ryoku-launch-app should be executable"
+assert_contains "bin/ryoku-launch-app" 'useVicinaeLauncher' \
+  "ryoku-launch-app should read the useVicinaeLauncher setting"
+assert_contains "bin/ryoku-launch-app" 'vicinae toggle' \
+  "ryoku-launch-app should open Vicinae when selected"
+assert_contains "bin/ryoku-launch-app" 'ryoku-shell launcher' \
+  "ryoku-launch-app should fall back to the built-in quickshell launcher"
+assert_contains "bin/ryoku-launch-app" 'systemctl --user (start|stop) vicinae.service' \
+  "ryoku-launch-app apply should start/stop the Vicinae server"
+
+# Settings toggle: typed config key (default on) + a Launcher section bound to it.
+assert_contains "shell/ambxst/config/Config.qml" 'property bool useVicinaeLauncher: true' \
+  "ambxst Config should declare useVicinaeLauncher defaulting to true"
+assert_contains "shell/ambxst/config/defaults/system.js" '"useVicinaeLauncher": true' \
+  "ambxst system defaults should include useVicinaeLauncher: true"
+assert_contains "shell/ambxst/modules/widgets/dashboard/controls/ShellPanel.qml" 'sectionId: "launcher"' \
+  "ShellPanel should add a Launcher settings section"
+assert_contains "shell/ambxst/modules/widgets/dashboard/controls/ShellPanel.qml" 'Config.system.useVicinaeLauncher = value' \
+  "ShellPanel Launcher toggle should write useVicinaeLauncher"
+assert_contains "shell/ambxst/modules/widgets/dashboard/controls/ShellPanel.qml" 'ryoku-launch-app.*apply' \
+  "ShellPanel Launcher toggle should run ryoku-launch-app apply"
 
 echo "PASS: vicinae launcher defaults"

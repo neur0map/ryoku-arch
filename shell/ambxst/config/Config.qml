@@ -1005,6 +1005,12 @@ Singleton {
         adapter: JsonAdapter {
             property list<string> disks: ["/"]
             property bool updateServiceEnabled: true
+            // Launcher backend: true = Vicinae (default), false = the built-in
+            // Ryoku quickshell launcher. Read by bin/ryoku-launch-app, which the
+            // Super+Space keybind dispatches through; toggled in Settings >
+            // Launcher, which also runs `ryoku-launch-app apply` to start/stop
+            // the Vicinae server.
+            property bool useVicinaeLauncher: true
             property JsonObject idle: JsonObject {
                 property JsonObject general: JsonObject {
                     property string lock_cmd: "ambxst lock"

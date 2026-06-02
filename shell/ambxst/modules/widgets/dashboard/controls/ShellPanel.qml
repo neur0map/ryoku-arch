@@ -668,6 +668,10 @@ Item {
                             text: "System"
                             sectionId: "system"
                         }
+                        SectionButton {
+                            text: "Launcher"
+                            sectionId: "launcher"
+                        }
                     }
 
                     // ═══════════════════════════════════════════════════════════════
@@ -1579,6 +1583,52 @@ Item {
                                 GlobalStates.markShellChanged();
                                 Config.dock.screenList = newList;
                             }
+                        }
+                    }
+
+                    Separator {
+                        Layout.fillWidth: true
+                        visible: false
+                    }
+
+                    // ═══════════════════════════════════════════════════════════════
+                    // LAUNCHER SECTION
+                    // ═══════════════════════════════════════════════════════════════
+                    ColumnLayout {
+                        visible: root.currentSection === "launcher"
+                        Layout.fillWidth: true
+                        spacing: 8
+
+                        Text {
+                            text: "Launcher"
+                            font.family: Config.theme.font
+                            font.pixelSize: Styling.fontSize(-1)
+                            font.weight: Font.Medium
+                            color: Colors.overSurfaceVariant
+                            Layout.bottomMargin: -4
+                        }
+
+                        ToggleRow {
+                            label: "Use Vicinae launcher"
+                            checked: Config.system.useVicinaeLauncher ?? true
+                            onToggled: value => {
+                                if (value !== Config.system.useVicinaeLauncher) {
+                                    GlobalStates.markShellChanged();
+                                    Config.system.useVicinaeLauncher = value;
+                                    // Pass the chosen backend explicitly: the config save above is
+                                    // async, so apply must not re-read the not-yet-written file.
+                                    Quickshell.execDetached(["ryoku-launch-app", "apply", value ? "vicinae" : "quickshell"]);
+                                }
+                            }
+                        }
+
+                        Text {
+                            text: "On by default. When off, Super+Space opens the built-in Ryoku launcher and the Vicinae server is stopped."
+                            font.family: Config.theme.font
+                            font.pixelSize: Styling.fontSize(-1)
+                            color: Colors.overSurfaceVariant
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
                         }
                     }
 

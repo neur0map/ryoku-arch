@@ -16,8 +16,8 @@ Source of truth: Hyprland loads shipped binds from `config/hypr/hyprland.conf`.
 
 | Binding | Action |
 | --- | --- |
-| `Mod+Space` | App launcher (Vicinae). |
-| `Mod+R` | App launcher (Vicinae). |
+| `Mod+Space` | App launcher (Vicinae by default; switchable in Settings → Launcher). |
+| `Mod+R` | App launcher (Vicinae by default; switchable in Settings → Launcher). |
 | `Mod+V` | Clipboard history. |
 | `Mod+,` | Settings. |
 | `Mod+Shift+,` | Hyprland settings (HyprMod). |
