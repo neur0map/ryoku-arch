@@ -231,6 +231,17 @@ wireplumber
 gnome-keyring
 libsecret
 polkit-gnome
+# Vicinae launcher (vicinae-bin) runtime deps it does not reliably pull itself,
+# pinned here so the offline ISO mirror is guaranteed to carry them via the
+# retried official-package download path:
+#   qtkeychain-qt6 - libqt6keychain.so.1 for the server's secret storage
+#                    (backed by the gnome-keyring secret service above)
+#   layer-shell-qt - the wlr-layer-shell backend the launcher window needs
+#   minizip        - declared hard dependency of vicinae-bin
+# Without these the launcher fails to start or cannot draw its surface.
+qtkeychain-qt6
+layer-shell-qt
+minizip
 
 # ── Networking ────────────────────────────────────────────────────────
 inetutils

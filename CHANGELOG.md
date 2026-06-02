@@ -1,5 +1,22 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- **Default app launcher is now Vicinae**: `Super+Space` / `Super+R` open
+  [Vicinae](https://github.com/vicinaehq/vicinae) instead of the in-frame
+  ryoku-shell launcher. The server autostarts from the Hyprland session, the
+  launcher theme follows the active wallpaper palette via matugen, and existing
+  installs converge through a migration. The `Super+/`-style shell overview is
+  unchanged.
+
+### Added
+
+- **Vicinae packages**: `vicinae-bin` (default install, baked into the offline
+  ISO mirror) plus its `qtkeychain-qt6`, `layer-shell-qt`, and `minizip`
+  runtime dependencies.
+
 ## [0.1.0-alpha-4] - 2026-05-18
 
 This alpha is the first big Ryoku shell refresh from the live-first shell sync.

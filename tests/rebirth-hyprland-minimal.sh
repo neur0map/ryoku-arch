@@ -46,8 +46,8 @@ rg -q 'force_zero_scaling = true' "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should force_zero_scaling so XWayland (Helium/web-apps) stay crisp under fractional scaling"
 rg -q "[$]fileManager = nautilus" "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should launch the shipped Files app"
-rg -q "[$]menu = sh -lc '\\\$HOME/.local/bin/ryoku-shell launcher'" "$ROOT_DIR/config/hypr/hyprland.conf" || \
-  fail "Hyprland config should route launcher through Ryoku shell"
+rg -q "[$]menu = sh -lc 'vicinae toggle'" "$ROOT_DIR/config/hypr/hyprland.conf" || \
+  fail "Hyprland config should route the launcher through Vicinae"
 rg -q "[$]clipboard = sh -lc 'cliphist list \\| fuzzel --dmenu" "$ROOT_DIR/config/hypr/hyprland.conf" || \
   fail "Hyprland config should keep clipboard history fallback"
 rg -q "[$]systemPanel = sh -lc '\\\$HOME/.local/bin/ryoku-shell settings'" "$ROOT_DIR/config/hypr/hyprland.conf" || \

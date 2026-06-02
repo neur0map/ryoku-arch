@@ -63,6 +63,10 @@ python-terminaltexteffects
 # resolves makepkg --syncdeps from the local build repo instead of the network.
 skwd-daemon-bin
 skwd-wall
+# vicinae is Ryoku's default app launcher (SUPER+Space -> `vicinae toggle`,
+# server autostarted from the Hyprland session config). Prebuilt binary so a
+# fully-offline install lands it from the local mirror without a Qt6 compile.
+vicinae-bin
 
 # ── Cursors, fonts & icon themes ──────────────────────────────────────
 bibata-cursor-theme-bin
