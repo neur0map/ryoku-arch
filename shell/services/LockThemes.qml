@@ -23,6 +23,8 @@ Singleton {
     property var themes: []
     property string active: ""
     property bool refreshing: false
+    // Last refresh error surfaced to the UI ("" when the last refresh succeeded).
+    property string refreshError: ""
 
     // Parsed [General] options of the ACTIVE theme's theme.conf. qylock has no global
     // config; per-theme options (themeMode, background_mode/index, gameMode,
@@ -157,14 +159,38 @@ Singleton {
         onExited: root.readActiveOptions()
     }
 
-    // Stash local edits (theme.conf customisations are tracked) so pull --ff-only can
-    // fast-forward, fetch newly published themes, then restore the edits. Untracked
-    // files (preview.png images) are intentionally NOT stashed (no -u) so they survive.
+    // Refresh the catalogue. A real git checkout is fast-forwarded (stashing
+    // tracked theme.conf edits). The bundled offline greeter has no .git, so we
+    // clone the full upstream qylock and merge its themes in WITHOUT clobbering
+    // existing ones (cp -an) - that is how the user gets the full catalogue
+    // beyond the two bundled clockwork variants. Previews are always regenerated
+    // afterwards. Failure surfaces via refreshError instead of being swallowed.
     Process {
         id: refreshProc
-        command: ["sh", "-c", `cd "${root.repoDir}" 2>/dev/null || exit 0; git stash push >/dev/null 2>&1; git pull --ff-only >/dev/null 2>&1 || true; git stash pop >/dev/null 2>&1 || true`]
-        onExited: {
+        command: ["sh", "-c", `
+            repo="${root.repoDir}"
+            mkdir -p "$repo"
+            err=""
+            if [ -d "$repo/.git" ]; then
+              git -C "$repo" stash push >/dev/null 2>&1 || true
+              git -C "$repo" pull --ff-only >/dev/null 2>&1 || err="update failed"
+              git -C "$repo" stash pop >/dev/null 2>&1 || true
+            else
+              tmp=$(mktemp -d) || { echo "no temp dir" >&2; exit 1; }
+              if git clone --depth=1 https://github.com/Darkkal44/qylock.git "$tmp/qylock" >/dev/null 2>&1; then
+                mkdir -p "$repo/themes"
+                [ -d "$tmp/qylock/themes" ] && cp -an "$tmp/qylock/themes/." "$repo/themes/" 2>/dev/null || true
+              else
+                err="download failed"
+              fi
+              rm -rf "$tmp"
+            fi
+            ryoku-refresh-qylock-previews "$repo" >/dev/null 2>&1 || true
+            [ -z "$err" ] || { echo "$err" >&2; exit 3; }
+        `]
+        onExited: function (exitCode) {
             root.refreshing = false;
+            root.refreshError = (exitCode === 0) ? "" : "Refresh failed - check your connection and try again.";
             root.rescan();
         }
     }

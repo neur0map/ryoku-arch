@@ -53,9 +53,17 @@ ColumnLayout {
 
   NText {
     Layout.fillWidth: true
-    text: qsTr("Pick a lock screen from the qylock collection. Selecting one applies on the next lock; use \"Lock now\" to try it. Refresh pulls newly published themes from upstream.")
+    text: qsTr("Pick a lock screen from the qylock collection. Selecting one applies on the next lock; use \"Lock now\" to try it. Refresh downloads the full qylock collection from upstream (this can take a minute the first time).")
     pointSize: Style.fontSizeS
     color: Color.mOnSurfaceVariant
+    wrapMode: Text.WordWrap
+  }
+  NText {
+    Layout.fillWidth: true
+    visible: LockThemes.refreshError.length > 0
+    text: LockThemes.refreshError
+    pointSize: Style.fontSizeS
+    color: Color.mError
     wrapMode: Text.WordWrap
   }
 
