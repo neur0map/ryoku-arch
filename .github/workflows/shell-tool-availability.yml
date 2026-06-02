@@ -1,0 +1,38 @@
+name: Shell tool availability
+
+# Prevents the "feature wired but its tool is not shipped" class (the
+# gnome-calendar / Super+G gap): every external program ProgramCheckerService
+# gates a feature on must map to a package the ISO ships, or be allow-listed as
+# intentionally bring-your-own. See tests/shell-tool-availability.sh.
+
+on:
+  pull_request:
+    paths:
+      - 'shell/noctalia/Services/System/ProgramCheckerService.qml'
+      - 'install/ryoku-base.packages'
+      - 'install/ryoku-aur.packages'
+      - 'tests/shell-tool-availability.sh'
+  push:
+    branches:
+      - main
+    paths:
+      - 'shell/noctalia/Services/System/ProgramCheckerService.qml'
+      - 'install/ryoku-base.packages'
+      - 'install/ryoku-aur.packages'
+      - 'tests/shell-tool-availability.sh'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tool-availability:
+    name: Gated features ship their tools
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check gated tools are shipped
+        shell: bash
+        run: bash tests/shell-tool-availability.sh
