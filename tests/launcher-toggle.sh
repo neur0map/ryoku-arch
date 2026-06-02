@@ -22,7 +22,7 @@ trap 'rm -rf "$tmp"' EXIT
 # ryoku-launch-app sources ../lib/runtime-env.sh relative to itself, so place a
 # stub copy under an app/ prefix. Stub the launchers + systemctl to record what
 # the dispatcher would invoke; jq is used for real.
-mkdir -p "$tmp/app/bin" "$tmp/app/lib" "$tmp/stub" "$tmp/cfg/ambxst/config"
+mkdir -p "$tmp/app/bin" "$tmp/app/lib" "$tmp/stub" "$tmp/cfg/ryoku"
 : >"$tmp/app/lib/runtime-env.sh"
 cp "$ROOT_DIR/bin/ryoku-launch-app" "$tmp/app/bin/ryoku-launch-app"
 chmod +x "$tmp/app/bin/ryoku-launch-app"
@@ -34,8 +34,8 @@ EOF
   chmod +x "$tmp/stub/$c"
 done
 
-sys="$tmp/cfg/ambxst/config/system.json"
-set_uv() { printf '{ "useVicinaeLauncher": %s }\n' "$1" >"$sys"; }
+sys="$tmp/cfg/ryoku/shell.json"
+set_uv() { printf '{ "launcher": { "useVicinae": %s } }\n' "$1" >"$sys"; }
 dispatch() {
   : >"$tmp/calls"
   PATH="$tmp/stub:/usr/bin:/bin" XDG_CONFIG_HOME="$tmp/cfg" \

@@ -90,8 +90,8 @@ assert_contains "migrations/1780374622.sh" 'vicinae\.service' \
 # the Settings toggle switches backends without rewriting the Hyprland config.
 assert_file "bin/ryoku-launch-app"
 [[ -x $ROOT_DIR/bin/ryoku-launch-app ]] || fail "bin/ryoku-launch-app should be executable"
-assert_contains "bin/ryoku-launch-app" 'useVicinaeLauncher' \
-  "ryoku-launch-app should read the useVicinaeLauncher setting"
+assert_contains "bin/ryoku-launch-app" 'launcher.useVicinae' \
+  "ryoku-launch-app should read the launcher.useVicinae setting from shell.json"
 assert_contains "bin/ryoku-launch-app" 'vicinae toggle' \
   "ryoku-launch-app should open Vicinae when selected"
 assert_contains "bin/ryoku-launch-app" 'ryoku-shell launcher' \
@@ -99,16 +99,16 @@ assert_contains "bin/ryoku-launch-app" 'ryoku-shell launcher' \
 assert_contains "bin/ryoku-launch-app" 'systemctl --user (start|stop) vicinae.service' \
   "ryoku-launch-app apply should start/stop the Vicinae server"
 
-# Settings toggle: typed config key (default on) + a Launcher section bound to it.
-assert_contains "shell/ambxst/config/Config.qml" 'property bool useVicinaeLauncher: true' \
-  "ambxst Config should declare useVicinaeLauncher defaulting to true"
-assert_contains "shell/ambxst/config/defaults/system.js" '"useVicinaeLauncher": true' \
-  "ambxst system defaults should include useVicinaeLauncher: true"
-assert_contains "shell/ambxst/modules/widgets/dashboard/controls/ShellPanel.qml" 'sectionId: "launcher"' \
-  "ShellPanel should add a Launcher settings section"
-assert_contains "shell/ambxst/modules/widgets/dashboard/controls/ShellPanel.qml" 'Config.system.useVicinaeLauncher = value' \
-  "ShellPanel Launcher toggle should write useVicinaeLauncher"
-assert_contains "shell/ambxst/modules/widgets/dashboard/controls/ShellPanel.qml" 'ryoku-launch-app.*apply' \
-  "ShellPanel Launcher toggle should run ryoku-launch-app apply"
+# Settings toggle: typed config key (default on) in Ryoku.Config + the noctalia
+# Launcher > General settings page bound to it (the active settings UI).
+assert_contains "shell/plugin/src/Ryoku/Config/launcherconfig.hpp" 'CONFIG_PROPERTY\(bool, useVicinae, true\)' \
+  "launcherconfig.hpp should declare launcher.useVicinae defaulting to true"
+launcher_subtab="shell/noctalia/Modules/Panels/Settings/Tabs/Launcher/GeneralSubTab.qml"
+assert_contains "$launcher_subtab" 'label: qsTr\("Use Vicinae launcher"\)' \
+  "noctalia Launcher settings should add a 'Use Vicinae launcher' toggle"
+assert_contains "$launcher_subtab" 'GlobalConfig.launcher.useVicinae = checked' \
+  "the toggle should write GlobalConfig.launcher.useVicinae"
+assert_contains "$launcher_subtab" 'ryoku-launch-app.*apply' \
+  "the toggle should run ryoku-launch-app apply to reconcile the server"
 
 echo "PASS: vicinae launcher defaults"

@@ -6,8 +6,8 @@
 #   vicinae    - the Vicinae launcher (default)
 #   quickshell - the built-in Ryoku quickshell launcher
 #
-# The choice is GlobalConfig.system.useVicinaeLauncher, persisted by the ambxst
-# shell to ~/.config/ambxst/config/system.json. Absent or true selects Vicinae.
+# The choice is GlobalConfig.launcher.useVicinae, persisted by the noctalia
+# shell to ~/.config/ryoku/shell.json. Absent or true selects Vicinae.
 #
 # Modes:
 #   (no args) | open   toggle the configured launcher window
@@ -24,14 +24,16 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 # Echo the active backend: "vicinae" or "quickshell". Defaults to Vicinae unless
 # the user turned it off in Settings or Vicinae is not installed.
 launcher_backend() {
-  local config_file="${XDG_CONFIG_HOME:-$HOME/.config}/ambxst/config/system.json"
+  # GlobalConfig only writes non-default keys to shell.json, so an absent value
+  # means the default (true -> Vicinae).
+  local config_file="${XDG_CONFIG_HOME:-$HOME/.config}/ryoku/shell.json"
   local value=""
 
   if [[ -f $config_file ]] && command -v jq >/dev/null 2>&1; then
     # Strict boolean read: only an explicit `false` opts out. Absent, null, or
-    # any other shape collapses to "true" -> the Vicinae default below. (jq's
-    # `//` can't be used here: it treats a literal `false` the same as null.)
-    value="$(jq -r 'if .useVicinaeLauncher == false then "false" else "true" end' "$config_file" 2>/dev/null)"
+    # any other shape collapses to "true". (jq's `//` can't be used here: it
+    # treats a literal `false` the same as null.)
+    value="$(jq -r 'if .launcher.useVicinae == false then "false" else "true" end' "$config_file" 2>/dev/null)"
   fi
 
   if [[ $value == "false" ]] || ! command -v vicinae >/dev/null 2>&1; then

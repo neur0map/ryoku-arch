@@ -30,6 +30,10 @@ class LauncherConfig : public ConfigObject {
     QML_ANONYMOUS
 
     CONFIG_PROPERTY(bool, enabled, true)
+    // Launcher backend: true = Vicinae (default), false = this built-in launcher.
+    // Read by bin/ryoku-launch-app (the Super+Space dispatcher) from shell.json;
+    // toggled in Settings > Launcher > General.
+    CONFIG_PROPERTY(bool, useVicinae, true)
     CONFIG_PROPERTY(bool, showOnHover, false)
     CONFIG_PROPERTY(int, maxShown, 7)
     CONFIG_PROPERTY(int, maxWallpapers, 9)

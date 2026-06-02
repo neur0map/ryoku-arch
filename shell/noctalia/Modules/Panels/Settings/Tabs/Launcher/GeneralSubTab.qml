@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Quickshell
 import Ryoku.Config
 import qs.noctalia.Commons
 import qs.noctalia.Widgets
@@ -14,8 +15,22 @@ ColumnLayout {
 
   NToggle {
     Layout.fillWidth: true
+    label: qsTr("Use Vicinae launcher")
+    description: qsTr("On by default. When off, Super+Space opens the built-in Ryoku launcher (configured below) and the Vicinae server is stopped.")
+    checked: GlobalConfig.launcher.useVicinae
+    onToggled: checked => {
+                 GlobalConfig.launcher.useVicinae = checked;
+                 GlobalConfig.save();
+                 // Reconcile the server now; pass the chosen backend so it does
+                 // not depend on the save having flushed to disk yet.
+                 Quickshell.execDetached(["ryoku-launch-app", "apply", checked ? "vicinae" : "quickshell"]);
+               }
+  }
+
+  NToggle {
+    Layout.fillWidth: true
     label: qsTr("Enable launcher")
-    description: qsTr("Master switch — when off, the launcher won't open at all.")
+    description: qsTr("Master switch for the built-in launcher — when off, the built-in launcher won't open at all (only relevant when Vicinae is off above).")
     checked: GlobalConfig.launcher.enabled
     onToggled: checked => {
                  GlobalConfig.launcher.enabled = checked;
