@@ -67,6 +67,40 @@ fi
 ```
 
 
+# Ryoku shell: one product, canonical layers
+
+Ryoku is a single shell and dotfile config of its own. Code under `shell/` was
+adapted from upstream projects (caelestia, ambxst, noctalia, iNiR, end-4,
+omarchy) but NONE of them are tracked upstream: it is all Ryoku now, evolved as
+one cohesive product. Do not reason about `shell/ambxst/` or `shell/noctalia/`
+as separate shells; they are integrated Ryoku components.
+
+The ONLY vendored external kept faithful to upstream is `vendor/qylock/` (the
+lockscreen and SDDM theme). `skwd-wall` and `hyprmod` are AUR packages, not
+vendored. Leave those three alone; everything else under `shell/` is Ryoku-owned
+and may be reorganized freely.
+
+Canonical layers (use these; do not add parallel surfaces elsewhere):
+
+- Config: the typed `Ryoku.Config` / `GlobalConfig` layer in
+  `shell/plugin/src/Ryoku/Config/`, persisted to `~/.config/ryoku/shell.json`.
+  New user-facing config keys go HERE. Do NOT add new keys to the legacy
+  ambxst store (`~/.config/ambxst/*`, `shell/ambxst/config/Config.qml`) or the
+  noctalia store (`~/.config/noctalia/settings.json`, `shell/noctalia/Commons/Settings.qml`);
+  both are being consolidated into `Ryoku.Config` (see `docs/ryoku-config-architecture.md`).
+- Settings UI: the noctalia-based `SettingsContent`
+  (`shell/noctalia/Modules/Panels/Settings/Tabs/`), opened by `ryoku-shell settings`.
+  New settings UI is a tab or sub-tab there, bound to `GlobalConfig`. The ambxst
+  dashboard "Settings" tab (`shell/ambxst/modules/widgets/dashboard/controls/SettingsTab.qml`)
+  is a parallel surface being retired: do NOT add settings to it.
+- IPC: Ryoku's own `ryoku-shell ipc <target> <fn>` (run `ryoku-shell ipc show`
+  for the live registry). Keybinds live only in `config/hypr/hyprland.conf`, which
+  is Ryoku-owned and refreshed on update; user overrides go in `config/hypr/custom.conf`.
+
+Licensing: `shell/ambxst/` is AGPL-3.0 (keep its `ATTRIBUTION.md` and AGPL header
+obligations); `shell/noctalia/` is MIT. Unifying identity does not relicense
+borrowed code: keep attribution intact.
+
 # Ryoku Settings and System Architecture
 
 When working on Ryoku settings, treat settings as a control surface, not as the owner of behavior or visual truth.

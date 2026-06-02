@@ -1,3 +1,12 @@
+> **LEGACY STORE — do not extend.** This documents the ambxst-derived config
+> engine so existing ambxst-internal code stays maintainable. Do NOT add NEW
+> user-facing config keys here. New keys go in the canonical `Ryoku.Config`
+> layer (`shell/plugin/src/Ryoku/Config/`, persisted to `~/.config/ryoku/shell.json`)
+> and are surfaced in the noctalia Settings UI
+> (`shell/noctalia/Modules/Panels/Settings/Tabs/`). This store is being
+> consolidated into `Ryoku.Config`; see the root `AGENTS.md` and
+> `docs/ryoku-config-architecture.md`. "Source of truth" below is historical.
+
 # CONFIG KNOWLEDGE BASE
 
 ## OVERVIEW
