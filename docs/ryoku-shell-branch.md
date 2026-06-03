@@ -102,9 +102,13 @@ Because the branch is generated, force-push is expected; never commit shell
 changes directly to `ryoku-shell` (they would be overwritten on the next
 publish). Land shell changes on `main`/`unstable-dev`.
 
-## What needs the maintainer (not automatable here)
+## What needs the maintainer (a deliberate decision, not a tooling gap)
 
-- The branch rename and all pushes (no GitHub credentials in the dev sandbox).
+GitHub credentials ARE now available on the dev box (`gh auth git-credential`
+is wired as git's credential helper, so `git push`/`gh` work). These remain
+maintainer decisions because they mutate the public repo:
+
+- The branch rename and the push of `main` to the public remote.
 - The first `publish-ryoku-shell` run, and the decision to enable its automatic
   `push: main` trigger.
 - Confirming the v1 scope (drop `iso/` only) or scheduling the deeper split.
