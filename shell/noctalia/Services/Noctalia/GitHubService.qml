@@ -221,7 +221,7 @@ Singleton {
     property bool fetchSucceeded: false
     property bool wasRateLimited: false
 
-    command: ["curl", "-s", "https://api.github.com/repos/noctalia-dev/noctalia-shell/releases/latest"]
+    command: ["curl", "-s", "https://api.github.com/repos/neur0map/ryoku-arch/releases/latest"]
 
     stdout: StdioCollector {
       onStreamFinished: {
@@ -260,7 +260,7 @@ Singleton {
     property bool fetchSucceeded: false
     property bool wasRateLimited: false
 
-    command: ["curl", "-s", "https://api.github.com/repos/noctalia-dev/noctalia-qs/releases/latest"]
+    command: ["curl", "-s", "https://api.github.com/repos/neur0map/ryoku-arch/releases/latest"]
 
     stdout: StdioCollector {
       onStreamFinished: {
@@ -299,7 +299,7 @@ Singleton {
     property bool fetchSucceeded: false
     property bool wasRateLimited: false
 
-    command: ["curl", "-s", "https://api.github.com/repos/noctalia-dev/noctalia-shell/contributors?per_page=100"]
+    command: ["curl", "-s", "https://api.github.com/repos/neur0map/ryoku-arch/contributors?per_page=100"]
 
     stdout: StdioCollector {
       onStreamFinished: {

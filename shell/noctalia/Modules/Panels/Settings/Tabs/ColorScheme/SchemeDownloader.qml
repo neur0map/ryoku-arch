@@ -264,7 +264,7 @@ Popup {
       }
     };
 
-    xhr.open("GET", "https://raw.githubusercontent.com/noctalia-dev/noctalia-colorschemes/main/registry.json");
+    xhr.open("GET", "https://raw.githubusercontent.com/neur0map/ryoku-extras/main/colorschemes/registry.json");
     xhr.send();
   }
 
@@ -308,7 +308,7 @@ Popup {
           }
         }
       };
-      xhr.open("GET", "https://api.github.com/repos/noctalia-dev/noctalia-colorschemes");
+      xhr.open("GET", "https://api.github.com/repos/neur0map/ryoku-extras");
       xhr.send();
     }
   }
@@ -341,7 +341,7 @@ Popup {
         }
       }
     };
-    xhr.open("GET", "https://api.github.com/repos/noctalia-dev/noctalia-colorschemes/git/refs/heads/" + branch);
+    xhr.open("GET", "https://api.github.com/repos/neur0map/ryoku-extras/git/refs/heads/" + branch);
     xhr.send();
   }
 
@@ -361,7 +361,7 @@ Popup {
                 if (item.type === "blob" && item.path.startsWith(scheme.path + "/")) {
                   files.push({
                                "path": item.path,
-                               "url": "https://raw.githubusercontent.com/noctalia-dev/noctalia-colorschemes/" + branch + "/" + item.path,
+                               "url": "https://raw.githubusercontent.com/neur0map/ryoku-extras/" + branch + "/" + item.path,
                                "name": item.path.split("/").pop()
                              });
                 }
@@ -385,7 +385,7 @@ Popup {
         }
       }
     };
-    xhr.open("GET", "https://api.github.com/repos/noctalia-dev/noctalia-colorschemes/git/trees/" + sha + "?recursive=1");
+    xhr.open("GET", "https://api.github.com/repos/neur0map/ryoku-extras/git/trees/" + sha + "?recursive=1");
     xhr.send();
   }
 
@@ -424,7 +424,7 @@ Popup {
         }
       }
     };
-    xhr.open("GET", "https://api.github.com/repos/noctalia-dev/noctalia-colorschemes/contents/" + scheme.path);
+    xhr.open("GET", "https://api.github.com/repos/neur0map/ryoku-extras/contents/" + scheme.path);
     xhr.send();
   }
 
@@ -510,12 +510,16 @@ Popup {
     for (var i = 0; i < files.length; i++) {
       var file = files[i];
       var filePath = file.path;
-      // Remove scheme name and leading / from path
+      // Files live under the scheme directory, which is nested under the repo
+      // subdir (colorschemes/). Strip everything up to and including the
+      // "<scheme>/" segment so the local copy mirrors just the scheme dir.
       var relativePath = filePath;
-      if (filePath.startsWith(schemeName + "/")) {
+      var schemeMarker = "/" + schemeName + "/";
+      var markerIdx = filePath.indexOf(schemeMarker);
+      if (markerIdx !== -1) {
+        relativePath = filePath.substring(markerIdx + schemeMarker.length);
+      } else if (filePath.startsWith(schemeName + "/")) {
         relativePath = filePath.substring(schemeName.length + 1);
-      } else if (filePath.startsWith("/" + schemeName + "/")) {
-        relativePath = filePath.substring(schemeName.length + 2);
       }
       var localPath = targetDir + "/" + relativePath;
       var localDir = localPath.substring(0, localPath.lastIndexOf('/'));

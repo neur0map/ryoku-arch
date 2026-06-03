@@ -270,12 +270,16 @@ Singleton {
   // Fetch plugin registry from a source using git sparse-checkout
   function fetchPluginRegistry(source) {
     var repoUrl = source.url;
+    // The main Ryoku source keeps its catalogues in subdirs of one repo
+    // (ryoku-extras), so its plugin registry lives at plugins/registry.json.
+    // Custom sources keep registry.json at their repo root.
+    var registryPath = (source.url === PluginRegistry.mainSourceUrl) ? "plugins/registry.json" : "registry.json";
 
     Logger.d("PluginService", "Fetching registry from:", repoUrl);
 
     // Use git sparse-checkout to fetch only registry.json (--no-cone for single file)
     // GIT_TERMINAL_PROMPT=0 prevents hanging on private repos that need auth
-    var fetchCmd = "temp_dir=$(mktemp -d) && GIT_TERMINAL_PROMPT=0 git clone --filter=blob:none --sparse --depth=1 --quiet '" + repoUrl + "' \"$temp_dir\" 2>/dev/null && cd \"$temp_dir\" && git sparse-checkout set --no-cone /registry.json 2>/dev/null && cat \"$temp_dir/registry.json\"; rm -rf \"$temp_dir\"";
+    var fetchCmd = "temp_dir=$(mktemp -d) && GIT_TERMINAL_PROMPT=0 git clone --filter=blob:none --sparse --depth=1 --quiet '" + repoUrl + "' \"$temp_dir\" 2>/dev/null && cd \"$temp_dir\" && git sparse-checkout set --no-cone /" + registryPath + " 2>/dev/null && cat \"$temp_dir/" + registryPath + "\"; rm -rf \"$temp_dir\"";
 
     var fetchProcess = Qt.createQmlObject('import QtQuick; import Quickshell.Io; Process { command: ["sh", "-c", "' + fetchCmd.replace(/"/g, '\\"') + '"]; stdout: StdioCollector {} }', root, "FetchRegistry_" + Date.now());
 

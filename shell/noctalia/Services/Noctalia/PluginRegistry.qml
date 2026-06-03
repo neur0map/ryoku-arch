@@ -14,7 +14,7 @@ Singleton {
 
   readonly property int currentVersion: 2
   // Main source URL - plugins from this source keep plain IDs
-  readonly property string mainSourceUrl: "https://github.com/noctalia-dev/noctalia-plugins"
+  readonly property string mainSourceUrl: "https://github.com/neur0map/ryoku-extras"
 
   Component.onCompleted: {
     ensurePluginsDirectory();
@@ -27,7 +27,7 @@ Singleton {
     return hash.substring(0, 6);
   }
 
-  // Check if a source is the main Noctalia plugins repository
+  // Check if a source is the main Ryoku plugins repository
   function isMainSource(sourceUrl) {
     return sourceUrl === root.mainSourceUrl;
   }
@@ -119,8 +119,8 @@ Singleton {
       if (root.pluginSources.length === 0) {
         root.pluginSources = [
           {
-            "name": "Noctalia Plugins",
-            "url": "https://github.com/noctalia-dev/noctalia-plugins",
+            "name": "Ryoku Plugins",
+            "url": "https://github.com/neur0map/ryoku-extras",
             "enabled": true
           }
         ];
@@ -140,8 +140,8 @@ Singleton {
       root.pluginStates = {};
       root.pluginSources = [
             {
-              "name": "Noctalia Plugins",
-              "url": "https://github.com/noctalia-dev/noctalia-plugins",
+              "name": "Ryoku Plugins",
+              "url": "https://github.com/neur0map/ryoku-extras",
               "enabled": true
             }
           ];
@@ -180,19 +180,27 @@ Singleton {
       }
     }
 
-    // Migration: rename "Official Noctalia Plugins" -> "Noctalia Plugins"
+    // Migration: rename legacy plugin sources to Ryoku and repoint the URL.
     var newSources = [];
     var sourcesChanged = false;
     for (var i = 0; i < root.pluginSources.length; i++) {
       var source = root.pluginSources[i];
-      if (source.name === "Official Noctalia Plugins") {
+      var migratedName = source.name;
+      var migratedUrl = source.url;
+      if (migratedName === "Official Noctalia Plugins" || migratedName === "Noctalia Plugins") {
+        migratedName = "Ryoku Plugins";
+      }
+      if (migratedUrl === "https://github.com/noctalia-dev/noctalia-plugins") {
+        migratedUrl = root.mainSourceUrl;
+      }
+      if (migratedName !== source.name || migratedUrl !== source.url) {
         newSources.push({
-                          name: "Noctalia Plugins",
-                          url: source.url,
+                          name: migratedName,
+                          url: migratedUrl,
                           enabled: source.enabled
                         });
         sourcesChanged = true;
-        Logger.i("PluginRegistry", "Migrating source name: 'Official Noctalia Plugins' -> 'Noctalia Plugins'");
+        Logger.i("PluginRegistry", "Migrating plugin source to Ryoku:", source.name);
       } else {
         newSources.push(source);
       }
