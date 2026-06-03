@@ -10,6 +10,10 @@ source "$RYOKU_PATH/lib/runtime-env.sh"
 # Usage:
 #   ryoku-install-qylock                  interactive picker (qylock's sddm.sh)
 #   ryoku-install-qylock --theme <name>   non-interactive; installs <name>
+#   ryoku-install-qylock --set-theme <name>
+#                                         fast apply only: switch the greeter +
+#                                         lock to <name>; skips the clone +
+#                                         preview regen (used by the picker)
 #   ryoku-install-qylock --default        non-interactive; installs clockwork
 #                                         if no qylock theme is installed yet
 #
