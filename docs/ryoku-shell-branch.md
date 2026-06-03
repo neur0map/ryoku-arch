@@ -4,6 +4,13 @@ This is the runbook for the agreed branch layout (Option A). It explains what
 each branch is, why `ryoku-shell` is *generated* rather than developed on, the
 exact rename steps, and how the lean shell branch is published.
 
+> **Status (live as of 2026-06-03):** this model is instantiated on the remote.
+> `origin/main` + `origin/unstable-dev` carry the full product (ISO + shell);
+> `origin/ryoku-shell` is the generated shell-only branch (`main` minus `iso/`);
+> the old `shell-install` branch has been removed. `shell-install/boot.sh`
+> defaults `RYOKU_REF` to `ryoku-shell`. The steps below are kept as the
+> reference for how it was done and how to re-publish.
+
 ## The layout
 
 | Branch | Contents | Role |
@@ -63,6 +70,11 @@ Nothing references the `shell-install` *branch* by name (verified: every
 installer uses branch `main`/`RYOKU_REF` + the `shell-install/` *directory*),
 and that branch currently has zero unique commits, so the rename is safe.
 
+**This was executed** (2026-06-03): `ryoku-shell` was generated from `main` via
+the `publish-ryoku-shell` workflow and the old `shell-install` branch was
+deleted (`git push origin :shell-install`). `git branch -m` was unnecessary
+because `ryoku-shell` is generated, not a true rename.
+
 ```bash
 # GitHub UI: Settings > Branches, or:
 git branch -m shell-install ryoku-shell        # if you have it checked out
@@ -102,13 +114,13 @@ Because the branch is generated, force-push is expected; never commit shell
 changes directly to `ryoku-shell` (they would be overwritten on the next
 publish). Land shell changes on `main`/`unstable-dev`.
 
-## What needs the maintainer (a deliberate decision, not a tooling gap)
+## What needs the maintainer (ongoing)
 
-GitHub credentials ARE now available on the dev box (`gh auth git-credential`
-is wired as git's credential helper, so `git push`/`gh` work). These remain
-maintainer decisions because they mutate the public repo:
+The branch model is live (see Status at the top). What remains is ongoing
+maintenance, not one-time setup:
 
-- The branch rename and the push of `main` to the public remote.
-- The first `publish-ryoku-shell` run, and the decision to enable its automatic
-  `push: main` trigger.
-- Confirming the v1 scope (drop `iso/` only) or scheduling the deeper split.
+- **Re-publish `ryoku-shell`** after shell-affecting changes land on `main`: run
+  the `publish-ryoku-shell` workflow (or the manual equivalent above). Optionally
+  flip on its automatic `push: { branches: [main] }` trigger once trusted, so it
+  regenerates on every `main` push.
+- Confirm the v1 scope (drop `iso/` only) or schedule the deeper `install/` split.
