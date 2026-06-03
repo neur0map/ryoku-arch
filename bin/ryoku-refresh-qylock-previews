@@ -78,7 +78,8 @@ render_video_preview() {
 }
 
 image_candidates() {
-  local theme="$1" theme_dir="$2" base ext
+  local theme="$1" theme_dir="$2" base ext parent
+  parent="$(basename "$(dirname "$theme_dir")")"
   # Generic background conventions only (no theme-specific filenames).
   local paths=(
     "$theme_dir/bg.png" "$theme_dir/bg.jpg" "$theme_dir/bg.jpeg"
@@ -88,11 +89,14 @@ image_candidates() {
   )
 
   printf '%s\n' "${paths[@]}"
+  # Shared Assets/ preview matched by the theme's name variants, then (for nested
+  # variants like clockwork/orbital) its parent dir name, so they use the shared
+  # Assets/clockwork.gif instead of a flat swatch.
   while IFS= read -r base; do
     for ext in gif png jpg jpeg webp; do
       printf '%s\n' "$ASSETS_DIR/$base.$ext"
     done
-  done < <(asset_base_names "$theme")
+  done < <(asset_base_names "$theme"; [ "$parent" != "themes" ] && asset_base_names "$parent")
 
   find "$theme_dir" -maxdepth 3 -type f \
     \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.gif' -o -iname '*.webp' \) \
