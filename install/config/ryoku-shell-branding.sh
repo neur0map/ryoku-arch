@@ -6,9 +6,9 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)/lib/runtime-en
 
 SHELL_PATH="${RYOKU_SHELL_PATH:-$HOME/.local/share/ryoku-shell}"
 RUNTIME_SHELL_PATH="${RYOKU_SHELL_RUNTIME_PATH:-${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell}"
-REPLACEMENTS_FILE="$RYOKU_PATH/default/ryoku-shell/branding-replacements.tsv"
-CONFIG_OVERRIDES_FILE="$RYOKU_PATH/default/ryoku-shell/config-overrides.json"
-NATIVE_CONFIG_DEFAULTS_FILE="$RYOKU_PATH/default/ryoku-shell/shell.json"
+REPLACEMENTS_FILE="$RYOKU_PATH/shell/rice/branding-replacements.tsv"
+CONFIG_OVERRIDES_FILE="$RYOKU_PATH/shell/rice/config-overrides.json"
+NATIVE_CONFIG_DEFAULTS_FILE="$RYOKU_PATH/shell/rice/shell.json"
 
 log() {
   printf 'Ryoku branding: %s\n' "$1"

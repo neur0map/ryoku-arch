@@ -83,15 +83,15 @@ assert_ryoku_theme() {
 
 assert_shell_overlay() {
   assert_executable "install/config/ryoku-shell-branding.sh"
-  assert_file "default/ryoku-shell/config-overrides.json"
-  assert_file "default/ryoku-shell/branding-replacements.tsv"
-  assert_json_expr "default/ryoku-shell/config-overrides.json" 'has("appearance") | not' \
+  assert_file "shell/rice/config-overrides.json"
+  assert_file "shell/rice/branding-replacements.tsv"
+  assert_json_expr "shell/rice/config-overrides.json" 'has("appearance") | not' \
     "Ryoku shell config overlay should not override upstream appearance colors"
-  assert_json_expr "default/ryoku-shell/config-overrides.json" 'has("background") | not' \
+  assert_json_expr "shell/rice/config-overrides.json" 'has("background") | not' \
     "Ryoku shell config overlay should not override upstream background/theme defaults"
-  assert_contains "default/ryoku-shell/config-overrides.json" '"ssid": "Ryoku Hotspot"' \
+  assert_contains "shell/rice/config-overrides.json" '"ssid": "Ryoku Hotspot"' \
     "Ryoku shell config overlay should set the branded hotspot name"
-  assert_contains "default/ryoku-shell/branding-replacements.tsv" 'Ryoku SDDM login screen' \
+  assert_contains "shell/rice/branding-replacements.tsv" 'Ryoku SDDM login screen' \
     "Ryoku shell replacement map should include the SDDM branding"
   assert_contains "install/config/ryoku-shell-branding.sh" 'assets/brand/logo-mark\.svg.*ryoku\.svg' \
     "Ryoku shell overlay should keep the Ryoku topbar/app logo"
@@ -111,8 +111,10 @@ assert_shell_overlay_preserves_false_settings() {
   mkdir -p "$tmp_dir/shell/defaults"
   mkdir -p "$tmp_dir/runtime/defaults"
 
-  cp "$ROOT_DIR/shell/defaults/config.json" "$tmp_dir/shell/defaults/config.json"
-  cp "$ROOT_DIR/shell/defaults/config.json" "$tmp_dir/runtime/defaults/config.json"
+  # shell/defaults/config.json was retired; the runtime falls back to an empty
+  # base (ryoku-shell-branding.sh:145-148), so the fixture mirrors that.
+  printf '{}\n' >"$tmp_dir/shell/defaults/config.json"
+  printf '{}\n' >"$tmp_dir/runtime/defaults/config.json"
   cat >"$config_file" <<'JSON'
 {
   "bar": {

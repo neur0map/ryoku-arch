@@ -36,6 +36,15 @@ is being adapted into Ryoku-owned user-facing surfaces, commands, and defaults.
 - Upstream: https://github.com/caelestia-dots/shell
 - License: GPL-3.0-only
 
+## illogical-impulse / iNiR (end-4)
+
+Ryoku's earlier incarnation was a Niri-based rice ("iNiR") built on end-4's
+illogical-impulse dotfiles. That heritage informs Ryoku's `ii*` desktop panel
+system and components such as BarPopup (see the "inspired by end-4/dots-hyprland"
+notes kept in source).
+
+- Upstream: https://github.com/end-4/dots-hyprland
+
 ## ActivSpot
 
 Ryoku's island and launcher experiments use Dynamic Island code and interaction

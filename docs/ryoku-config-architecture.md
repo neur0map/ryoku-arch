@@ -31,7 +31,7 @@ and the only thing that force-applies on update is a tiny override file:
 |---|---|---|---|---|
 | ambxst (active desktop: bar, dock, **desktop widgets/clock**) | `shell/ambxst/config/defaults/*.js` | `~/.config/ryoku-shell/config.json` | yes | only if a migration writes it |
 | noctalia (settings UI, version) | `Settings.qml` defaults + `Assets/settings-default.json` | `settings.json` (not even present on disk → code defaults) | yes | no path |
-| Ryoku override | `default/ryoku-shell/config-overrides.json` (force-merged into `config.json` every install **and** update) + `shell.json` | `config.json` / `shell.json` | yes | **yes (force)** |
+| Ryoku override | `shell/rice/config-overrides.json` (force-merged into `config.json` every install **and** update) + `shell/rice/shell.json` | `config.json` / `shell.json` | yes | **yes (force)** |
 
 So today the **only** settings that reach existing users are the handful in
 `config-overrides.json` (`hotspot`, `dock`, `enabledPanels`). Desktop widgets,
@@ -77,9 +77,12 @@ The built-in component defaults still apply as a fallback, but the
 **Ryoku rice in `shell/rice/` is authoritative** and is what ships.
 
 ### B. Fresh-install path (the rice is applied in full)
-`install/config/ryoku-shell-branding.sh` seeds the user config from
-`default/ryoku-shell/config.json` (+ `settings.json`) as the **base**, then
-applies `config-overrides.json`. Fresh installs therefore get the complete rice.
+`install/config/ryoku-shell-branding.sh` seeds the native shell defaults from
+`shell/rice/shell.json` into `~/.config/ryoku/shell.json`, force-merges
+`shell/rice/config-overrides.json` into `~/.config/ryoku-shell/config.json`, and
+fill-if-missing applies the Ryoku-owned desktop defaults
+(`apply_ryoku_owned_runtime_config_to_file`). Fresh installs therefore get the
+complete rice.
 (No behavior change for the build - it already ships the working tree.)
 
 ### C. Existing-user path (migrations, gated on `[global]`)
@@ -90,7 +93,7 @@ stage 8) runs only un-run migrations; fresh installs have them pre-marked.
 Non-`[global]` changes ship no migration and touch no existing user.
 
 ### D. The separation, made legible
-- **Ryoku rice** = `default/ryoku-shell/` (in the repo, version-controlled).
+- **Ryoku rice** = `shell/rice/` (in the repo, version-controlled).
 - **User config** = `~/.config/ryoku-shell/` (on the machine).
 - An update reads the rice, writes the user dir **only** via (a) fresh-install
   seeding or (b) a `[global]` migration. A `ryoku-doctor` check can report
@@ -98,6 +101,12 @@ Non-`[global]` changes ship no migration and touch no existing user.
   distinguishable.
 
 ## Implementation plan
+> **Status:** step 1 is implemented (`shell/rice/` now holds `shell.json`,
+> `config-overrides.json`, `branding-replacements.tsv`; referencers repointed;
+> tests pass). Steps 2-3 are already satisfied in practice: a fresh ISO install
+> ships the bar clock + desktop widgets ON by default (verified by a full QEMU
+> install). Step 4 (Ryoku version surface) is done. Steps 5-6 (doctor divergence
+> check, ongoing VM-verify) remain optional follow-ups.
 1. **Consolidate the path.**
    `git mv default/ryoku-shell/{shell.json,config-overrides.json,branding-replacements.tsv} shell/rice/`,
    then repoint the only three referencers (verified by grep; `config.sh` and

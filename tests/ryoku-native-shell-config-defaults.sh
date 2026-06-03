@@ -38,7 +38,7 @@ cat >"$config_file" <<'JSON'
 }
 JSON
 
-assert_json_expr "$ROOT_DIR/default/ryoku-shell/shell.json" \
+assert_json_expr "$ROOT_DIR/shell/rice/shell.json" \
   '.appearance.spacing.scale and .background.visualiser.enabled == true and .dashboard.showWeather == true' \
   "Ryoku native shell defaults should carry local shell settings"
 
