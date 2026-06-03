@@ -23,3 +23,10 @@ when you want to change how Ryoku looks or behaves out of the box.
 Ryoku-owned *fill-if-missing* defaults (applied every update without overriding a
 user's explicit choice) live in `apply_ryoku_owned_runtime_config_to_file()` in
 `install/config/ryoku-shell-branding.sh`.
+
+## Checking divergence
+
+`ryoku-doctor-rice` reports where the live shell config
+(`~/.config/ryoku-shell/config.json`) diverges from the force-managed rice keys,
+so the "yours vs how Ryoku ships" split stays legible. Local edits to those keys
+do not persist (they reset on the next update); change the rice here instead.
