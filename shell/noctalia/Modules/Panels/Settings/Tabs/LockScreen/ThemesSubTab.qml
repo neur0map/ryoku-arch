@@ -14,6 +14,25 @@ ColumnLayout {
   spacing: Style.marginL
   Layout.fillWidth: true
 
+  // One-time first fetch: when the lockscreen themes open and only the offline
+  // bundle is present (no git checkout), pull the full catalogue once. After
+  // that, updates are the manual Refresh (an incremental git pull).
+  property bool autoFetchTried: false
+  Component.onCompleted: {
+    LockThemes.rescan();
+    firstFetchTimer.start();
+  }
+  Timer {
+    id: firstFetchTimer
+    interval: 800
+    onTriggered: {
+      if (!LockThemes.hasGit && !LockThemes.refreshing && !root.autoFetchTried) {
+        root.autoFetchTried = true;
+        LockThemes.refresh();
+      }
+    }
+  }
+
   RowLayout {
     Layout.fillWidth: true
     spacing: Style.marginM
@@ -65,6 +84,26 @@ ColumnLayout {
     pointSize: Style.fontSizeS
     color: Color.mError
     wrapMode: Text.WordWrap
+  }
+
+  // Loading state: the first fetch clones the full catalogue (can take a minute);
+  // make it obvious that work is happening in the background.
+  RowLayout {
+    Layout.fillWidth: true
+    visible: LockThemes.refreshing
+    spacing: Style.marginM
+    BusyIndicator {
+      running: LockThemes.refreshing
+      implicitWidth: 26
+      implicitHeight: 26
+    }
+    NText {
+      Layout.fillWidth: true
+      text: qsTr("Downloading the qylock collection from upstream... the first run fetches every theme and preview and can take a minute.")
+      pointSize: Style.fontSizeS
+      color: Color.mOnSurfaceVariant
+      wrapMode: Text.WordWrap
+    }
   }
 
   NText {

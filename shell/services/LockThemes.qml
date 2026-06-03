@@ -25,6 +25,9 @@ Singleton {
     property bool refreshing: false
     // Last refresh error surfaced to the UI ("" when the last refresh succeeded).
     property string refreshError: ""
+    // True once ~/.local/share/qylock is a real git checkout (the full
+    // catalogue); false for the offline bundle. Drives the one-time first fetch.
+    property bool hasGit: false
 
     // Parsed [General] options of the ACTIVE theme's theme.conf. qylock has no global
     // config; per-theme options (themeMode, background_mode/index, gameMode,
@@ -34,6 +37,7 @@ Singleton {
     function rescan(): void {
         scanProc.running = true;
         activeProc.running = true;
+        gitCheckProc.running = true;
     }
 
     function setTheme(name: string): void {
@@ -139,6 +143,16 @@ Singleton {
         }
     }
 
+    // Detect whether the catalogue is a full git checkout (vs the offline bundle)
+    // so the settings can do a one-time first fetch and skip it thereafter.
+    Process {
+        id: gitCheckProc
+        command: ["sh", "-c", `[ -d "${root.repoDir}/.git" ] && echo 1 || echo 0`]
+        stdout: StdioCollector {
+            onStreamFinished: root.hasGit = (text.trim() === "1")
+        }
+    }
+
     Process {
         id: writeProc
         running: false
@@ -159,12 +173,13 @@ Singleton {
         onExited: root.readActiveOptions()
     }
 
-    // Refresh the catalogue. A real git checkout is fast-forwarded (stashing
-    // tracked theme.conf edits). The bundled offline greeter has no .git, so we
-    // clone the qylock theme catalogue (kept faithful per vendor/qylock/) and merge its themes in WITHOUT clobbering
-    // existing ones (cp -an) - that is how the user gets the full catalogue
-    // beyond the two bundled clockwork variants. Previews are always regenerated
-    // afterwards. Failure surfaces via refreshError instead of being swallowed.
+    // Fetch the qylock catalogue from upstream. First fetch (no .git - e.g. the
+    // offline bundle) does a FULL clone of the repo (themes + Assets + the
+    // lockscreen engine) and adopts its .git, so every later refresh is an
+    // incremental `git pull --ff-only` that pulls only new/updated themes and
+    // assets (so future themes appear automatically). Local theme.conf edits are
+    // stashed across the pull. Previews are regenerated afterwards. On failure
+    // the offline bundle is left intact and the error surfaces via refreshError.
     Process {
         id: refreshProc
         command: ["sh", "-c", `
@@ -178,12 +193,12 @@ Singleton {
             else
               tmp=$(mktemp -d) || { echo "no temp dir" >&2; exit 1; }
               if git clone --depth=1 https://github.com/Darkkal44/qylock.git "$tmp/qylock" >/dev/null 2>&1; then
-                mkdir -p "$repo/themes"
-                [ -d "$tmp/qylock/themes" ] && cp -an "$tmp/qylock/themes/." "$repo/themes/" 2>/dev/null || true
+                rm -rf "$repo"
+                mv "$tmp/qylock" "$repo"
               else
                 err="download failed"
+                rm -rf "$tmp"
               fi
-              rm -rf "$tmp"
             fi
             ryoku-refresh-qylock-previews "$repo" >/dev/null 2>&1 || true
             [ -z "$err" ] || { echo "$err" >&2; exit 3; }

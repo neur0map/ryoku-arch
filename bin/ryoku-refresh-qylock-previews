@@ -18,26 +18,17 @@ valid_image() {
   [[ $mime == "image/png" || $mime == "image/jpeg" || $mime == "image/gif" || $mime == "image/webp" ]]
 }
 
+# Generic name variants for a theme's shared preview asset in Assets/ (qylock
+# names them in snake_case, kebab-case, or lowercase; no per-theme hardcoding).
 asset_base_names() {
   local theme="$1"
   local lower="${theme,,}"
   local snake="${lower//-/_}"
   local kebab="${lower//_/-}"
   local -A seen=()
-  local values=()
   local value
 
-  case "$lower" in
-    dog-samurai) values+=(dog_samurai) ;;
-    last-of-us) values+=(the_last_of_us) ;;
-    nier-automata) values+=(nier_automata) ;;
-    pixel-skyscrapers) values+=(pixel_skyscrapers) ;;
-    star-rail) values+=(star_rail) ;;
-    windows_7) values+=(win7) ;;
-  esac
-
-  values+=("$snake" "$lower" "$kebab" "$theme")
-  for value in "${values[@]}"; do
+  for value in "$snake" "$lower" "$kebab" "$theme"; do
     [[ -n $value && -z ${seen[$value]+x} ]] || continue
     seen[$value]=1
     printf '%s\n' "$value"
@@ -88,19 +79,12 @@ render_video_preview() {
 
 image_candidates() {
   local theme="$1" theme_dir="$2" base ext
+  # Generic background conventions only (no theme-specific filenames).
   local paths=(
-    "$theme_dir/bg.png"
-    "$theme_dir/background.png"
-    "$theme_dir/background.jpg"
-    "$theme_dir/background.jpeg"
-    "$theme_dir/background/A Glow.jpg"
-    "$theme_dir/avatar.png"
-    "$theme_dir/ter1.png"
-    "$theme_dir/ter2.png"
-    "$theme_dir/ter3.png"
-    "$theme_dir/ter4.png"
-    "$theme_dir/ter5.png"
-    "$theme_dir/terraria_logo.png"
+    "$theme_dir/bg.png" "$theme_dir/bg.jpg" "$theme_dir/bg.jpeg"
+    "$theme_dir/bg.gif" "$theme_dir/bg.webp"
+    "$theme_dir/background.png" "$theme_dir/background.jpg" "$theme_dir/background.jpeg"
+    "$theme_dir/background.gif" "$theme_dir/background.webp"
   )
 
   printf '%s\n' "${paths[@]}"
@@ -112,7 +96,7 @@ image_candidates() {
 
   find "$theme_dir" -maxdepth 3 -type f \
     \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.gif' -o -iname '*.webp' \) \
-    ! -name 'preview.png' \
+    ! -iname 'preview.png' ! -iname 'logo.*' ! -iname 'title.*' \
     -print 2>/dev/null | sort
 }
 
