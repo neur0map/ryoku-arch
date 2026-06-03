@@ -117,7 +117,9 @@ list_json() {
   for cat in terminal browser filemanager media mixer; do
     while IFS='|' read -r bin name; do
       [[ -n $bin ]] || continue
-      command -v "$bin" >/dev/null 2>&1 && printf '%s\t%s\t%s\n' "$cat" "$bin" "$name"
+      if command -v "$bin" >/dev/null 2>&1; then
+        printf '%s\t%s\t%s\n' "$cat" "$bin" "$name"
+      fi
     done < <(candidates "$cat")
   done | jq -Rn '
     {terminal: [], browser: [], filemanager: [], media: [], mixer: []} as $base
