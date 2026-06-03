@@ -11,7 +11,9 @@
 set -eEo pipefail
 
 RYOKU_REPO="${RYOKU_REPO:-https://github.com/neur0map/ryoku-arch.git}"
-RYOKU_REF="${RYOKU_REF:-main}"
+# The shell-only branch (Option A: generated = main minus iso/). Non-Arch users
+# get just the shell, not the ISO builder. See docs/ryoku-shell-branch.md.
+RYOKU_REF="${RYOKU_REF:-ryoku-shell}"
 
 if (( EUID == 0 )); then
   echo "Run this as your normal user, not root." >&2
