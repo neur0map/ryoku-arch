@@ -1,0 +1,43 @@
+name: Install chroot safety
+
+# Prevents the "fresh install halts in the chroot" class: a bare
+# `systemctl --user enable|start|...` in a chroot-run install phase fails (no
+# user bus) and halts the whole install before login/ (SDDM + qylock) and
+# post-install/ run. Each such call must be guarded with `|| true`.
+# See tests/install-chroot-safety.sh.
+
+on:
+  pull_request:
+    paths:
+      - 'install/preflight/**'
+      - 'install/packaging/**'
+      - 'install/config/**'
+      - 'install/login/**'
+      - 'install/post-install/**'
+      - 'tests/install-chroot-safety.sh'
+  push:
+    branches:
+      - main
+    paths:
+      - 'install/preflight/**'
+      - 'install/packaging/**'
+      - 'install/config/**'
+      - 'install/login/**'
+      - 'install/post-install/**'
+      - 'tests/install-chroot-safety.sh'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  chroot-safety:
+    name: Chroot-run install phases stay chroot-safe
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check user-service enables are chroot-guarded
+        shell: bash
+        run: bash tests/install-chroot-safety.sh
