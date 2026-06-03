@@ -16,6 +16,9 @@ fi
 mkdir -p "$UNIT_DEST_DIR"
 install -m 0644 "$UNIT_SRC" "$UNIT_DEST"
 
-systemctl --user daemon-reload
+# In the install chroot there is no user-session bus, so these no-op (|| true);
+# install/preflight/ensure-shell-deployment.sh creates the wants-link so the unit
+# still enables on first boot. On a live system this enables + starts it.
+systemctl --user daemon-reload >/dev/null 2>&1 || true
 systemctl --user disable ryoku-audio-restore-mixers.service >/dev/null 2>&1 || true
-systemctl --user enable --now ryoku-audio-restore-mixers.service
+systemctl --user enable --now ryoku-audio-restore-mixers.service >/dev/null 2>&1 || true

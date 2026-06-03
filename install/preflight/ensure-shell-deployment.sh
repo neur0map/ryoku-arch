@@ -174,6 +174,7 @@ chmod +x "$quickshell_dir/setup" 2>/dev/null || true
 #   install/config/ryoku-hypridle.sh:41        hypridle.service
 #   install/config/ryoku-resume-listener.sh:20 ryoku-resume-listener.service
 #   install/first-run/battery-monitor.sh:5     ryoku-battery-monitor.timer
+#   install/config/ryoku-audio-restore-mixers.sh:21 ryoku-audio-restore-mixers.service
 #
 # Those calls silently no-op in chroot context (no user dbus / systemd
 # user instance). Re-create each [Install] WantedBy=... wants-link
@@ -202,6 +203,10 @@ ensure_user_wants_link hypridle.service graphical-session.target \
 # won't trigger anything battery-relevant).
 ensure_user_wants_link ryoku-battery-monitor.timer timers.target \
     "$xdg_config_home/systemd/user/ryoku-battery-monitor.timer"
+
+# default.target consumer (mixer self-heal oneshot).
+ensure_user_wants_link ryoku-audio-restore-mixers.service default.target \
+    "$xdg_config_home/systemd/user/ryoku-audio-restore-mixers.service"
 
 # daemon-reload only works if a user systemd is reachable. In a chroot
 # install context it is not, silently ignore. On a real post-install

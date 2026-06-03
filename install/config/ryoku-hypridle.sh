@@ -29,7 +29,7 @@ for cfg in hypridle.conf hyprlock.conf; do
 done
 rm -f "$HYPR_CONFIG_DEST/hypridle-rebirth.conf"
 
-systemctl --user daemon-reload
+systemctl --user daemon-reload >/dev/null 2>&1 || true
 systemctl --user enable --now hypridle.service >/dev/null 2>&1 || true
 
 if systemctl --user is-active --quiet hypridle.service >/dev/null 2>&1 \
