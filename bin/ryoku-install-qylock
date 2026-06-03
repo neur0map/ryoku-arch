@@ -51,8 +51,8 @@ DEFAULT_THEME="clockwork/orbital"
 mode="${1:-interactive}"
 
 case "$mode" in
-  --theme)
-    theme="${2:?theme name required after --theme}"
+  --theme | --set-theme)
+    theme="${2:?theme name required}"
     ;;
   --default)
     theme="$DEFAULT_THEME"
@@ -61,7 +61,7 @@ case "$mode" in
     theme=""
     ;;
   *)
-    echo "Usage: ryoku-install-qylock [--theme <name> | --default]" >&2
+    echo "Usage: ryoku-install-qylock [--theme <name> | --set-theme <name> | --default]" >&2
     exit 1
     ;;
 esac
@@ -118,7 +118,9 @@ refresh_qylock_clone() {
   clone_qylock_repo
 }
 
-refresh_qylock_clone
+# --set-theme is a fast switch from the settings (already cloned + generated);
+# skip the network pull + preview regen, just apply the theme.
+if [[ $mode != "--set-theme" ]]; then refresh_qylock_clone; fi
 
 refresh_qylock_previews() {
   local preview_helper="$RYOKU_PATH/bin/ryoku-refresh-qylock-previews"
@@ -219,7 +221,7 @@ install_system_theme() {
   _priv cp -r "$src" "/usr/share/sddm/themes/$system_theme"
 }
 
-refresh_qylock_previews
+if [[ $mode != "--set-theme" ]]; then refresh_qylock_previews; fi
 
 theme=$(normalize_qylock_theme "$theme")
 

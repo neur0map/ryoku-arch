@@ -28,6 +28,10 @@ Singleton {
     // True once ~/.local/share/qylock is a real git checkout (the full
     // catalogue); false for the offline bundle. Drives the one-time first fetch.
     property bool hasGit: false
+    // Applying a theme also re-themes the SDDM greeter (root, via pkexec), so it
+    // is async and can be cancelled at the polkit prompt.
+    property bool applying: false
+    property string applyError: ""
 
     // Parsed [General] options of the ACTIVE theme's theme.conf. qylock has no global
     // config; per-theme options (themeMode, background_mode/index, gameMode,
@@ -40,12 +44,18 @@ Singleton {
         gitCheckProc.running = true;
     }
 
+    // Apply a theme to BOTH the SDDM greeter (system) and the in-session lock via
+    // the pkexec-safe `ryoku-install-qylock --set-theme` - so a polkit prompt
+    // appears and the login screen actually changes. Optimistic active update;
+    // rescan re-confirms (and reverts if the prompt was cancelled).
     function setTheme(name: string): void {
-        if (!name || name === root.active)
+        if (!name || root.applying || name === root.active)
             return;
-        root.active = name; // optimistic; activeProc re-confirms after write
-        writeProc.command = ["sh", "-c", 'mkdir -p "$HOME/.config/qylock" && printf "%s" "$1" > "$HOME/.config/qylock/theme"', "sh", name];
-        writeProc.running = true;
+        root.applying = true;
+        root.applyError = "";
+        root.active = name;
+        setThemeProc.command = ["sh", "-c", 'exec pkexec "$(command -v ryoku-install-qylock || echo /usr/local/bin/ryoku-install-qylock)" --set-theme "$1"', "sh", name];
+        setThemeProc.running = true;
     }
 
     // Pull the qylock repo so newly uploaded themes appear, then rescan. Best-effort:
@@ -153,10 +163,17 @@ Singleton {
         }
     }
 
+    // Privileged apply (pkexec ryoku-install-qylock --set-theme). On success the
+    // greeter + in-session lock are themed; on a non-zero exit (prompt cancelled
+    // or failed) surface it and rescan to revert the optimistic active.
     Process {
-        id: writeProc
+        id: setThemeProc
         running: false
-        onExited: activeProc.running = true
+        onExited: function (exitCode) {
+            root.applying = false;
+            root.applyError = (exitCode === 0) ? "" : "Theme not applied - authentication was cancelled or failed.";
+            root.rescan();
+        }
     }
 
     Process {

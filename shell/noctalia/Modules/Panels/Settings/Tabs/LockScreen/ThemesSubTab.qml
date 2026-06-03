@@ -79,8 +79,8 @@ ColumnLayout {
   }
   NText {
     Layout.fillWidth: true
-    visible: LockThemes.refreshError.length > 0
-    text: LockThemes.refreshError
+    visible: LockThemes.refreshError.length > 0 || LockThemes.applyError.length > 0
+    text: LockThemes.refreshError.length > 0 ? LockThemes.refreshError : LockThemes.applyError
     pointSize: Style.fontSizeS
     color: Color.mError
     wrapMode: Text.WordWrap
@@ -90,16 +90,16 @@ ColumnLayout {
   // make it obvious that work is happening in the background.
   RowLayout {
     Layout.fillWidth: true
-    visible: LockThemes.refreshing
+    visible: LockThemes.refreshing || LockThemes.applying
     spacing: Style.marginM
     BusyIndicator {
-      running: LockThemes.refreshing
+      running: LockThemes.refreshing || LockThemes.applying
       implicitWidth: 26
       implicitHeight: 26
     }
     NText {
       Layout.fillWidth: true
-      text: qsTr("Downloading the qylock collection from upstream... the first run fetches every theme and preview and can take a minute.")
+      text: LockThemes.refreshing ? qsTr("Downloading the qylock collection from upstream... the first run fetches every theme and preview and can take a minute.") : qsTr("Applying the theme to the login screen - confirm at the authentication prompt.")
       pointSize: Style.fontSizeS
       color: Color.mOnSurfaceVariant
       wrapMode: Text.WordWrap
