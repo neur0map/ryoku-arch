@@ -3,8 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 
-// RYOKU compat shim for iNiR's `Config.options`. Holds the overlay + crosshair
-// option defaults the vendored overlay reads (values copied from iNiR's Config).
+// Ryoku Config: holds the overlay + crosshair option defaults the overlay widgets read.
 Singleton {
     id: root
 
@@ -21,7 +20,7 @@ Singleton {
             readonly property int scrimAnimationDurationMs: 140
         }
         readonly property QtObject crosshair: QtObject {
-            // Valorant crosshair code (iNiR default).
+            // Valorant crosshair code (default).
             readonly property string code: "0;P;d;1;0l;10;0o;2;1b;0"
         }
         readonly property QtObject resources: QtObject {

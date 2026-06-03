@@ -1,4 +1,3 @@
-// Adapted from Ambxst modules/widgets/dashboard/widgets/calendar/layout.js.
 var weekDays = [
   { day: "Mo", today: 0 },
   { day: "Tu", today: 0 },

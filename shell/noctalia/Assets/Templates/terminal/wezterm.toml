@@ -28,4 +28,4 @@ selection_bg = "{{colors.surface_variant.default.hex}}"
 selection_fg = "{{colors.on_surface_variant.default.hex}}"
 
 [metadata]
-name = "Noctalia"
+name = "Ryoku"

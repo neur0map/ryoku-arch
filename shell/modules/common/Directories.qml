@@ -2,7 +2,7 @@ pragma Singleton
 
 import Quickshell
 
-// RYOKU compat shim for iNiR's `Directories` (paths the overlay widgets read).
+// Ryoku Directories: paths the overlay widgets read.
 Singleton {
     id: root
 

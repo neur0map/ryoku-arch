@@ -8,7 +8,6 @@ import qs.services
 import ".."
 import "layout.js" as CalendarLayout
 
-// Adapted from Ambxst modules/widgets/dashboard/widgets/calendar/Calendar.qml.
 StyledRect {
   id: root
 

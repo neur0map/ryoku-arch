@@ -45,11 +45,11 @@ That is the "I push changes and it does nothing" symptom.
 
 ### A. ONE path is the whole Ryoku system (rice = the path)
 There is a **single source-of-truth path** that contains *everything* that makes
-Ryoku Ryoku - the **vendors are part of Ryoku**, so they live here too:
+Ryoku Ryoku - the **integrated Ryoku components** live here too:
 
 ```
 shell/                         # <- THE path. Edit anything here to rice Ryoku.
-  ambxst/      noctalia/        #   vendored shells (fully editable, part of Ryoku)
+  ambxst/      noctalia/        #   integrated Ryoku components (fully editable)
   services/  modules/  scripts/ #   Ryoku's own shell code
   rice/                         #   the default config = "how Ryoku ships"
     config.json                 #     full desktop config (bar, dock,
@@ -64,16 +64,16 @@ Today the rice base is scattered: ambxst `config/defaults/*.js`, noctalia
 `Settings.qml` + `settings-default.json`, and `default/ryoku-shell/`. We
 **consolidate** the Ryoku default/rice into `shell/rice/` (moving
 `default/ryoku-shell/*` in) so there is exactly **one path** - `shell/` - that
-holds the vendors, the Ryoku code, and the defaults together. A user (or you)
+holds the integrated components, the Ryoku code, and the defaults together. A user (or you)
 rices by editing files under `shell/`; nothing lives anywhere else.
 
 On a machine this whole tree deploys to **`~/.config/quickshell/ryoku-shell/`**
-(already does), so an installed user finds the *same* one path - vendors,
+(already does), so an installed user finds the *same* one path - components,
 code, and rice - all editable in place. The live user config
 (`~/.config/ryoku-shell/`) is the only thing outside it, and is clearly the
 "yours, not Ryoku's" layer.
 
-The upstream behavior of the vendor defaults still applies as a fallback, but the
+The built-in component defaults still apply as a fallback, but the
 **Ryoku rice in `shell/rice/` is authoritative** and is what ships.
 
 ### B. Fresh-install path (the rice is applied in full)
@@ -108,7 +108,7 @@ Non-`[global]` changes ship no migration and touch no existing user.
    This move is non-behavioral (branding reads the same files from the new
    path), so it needs no VM: verify locally that `grep -rn default/ryoku-shell`
    returns nothing and both tests pass. Add `shell/rice/README.md` ("this is the
-   Ryoku rice"). Net: one path - `shell/` - holds vendors + Ryoku code + rice.
+   Ryoku rice"). Net: one path - `shell/` - holds the integrated components + Ryoku code + rice.
 2. **Make `shell/rice/config.json` the real rice base** the active shell reads,
    with `desktopWidgets.enabled: true` + the clock widget on, applied as the
    base on fresh install (then `overrides.json` on top).
@@ -122,9 +122,9 @@ Non-`[global]` changes ship no migration and touch no existing user.
    touch user config.
 
 ## Resolved decisions
-- Single path home = **`shell/`** (vendors + code + `shell/rice/`), not a
-  separate `default/`/`rice/` top-level. Vendors are part of Ryoku and editable
-  in place.
+- Single path home = **`shell/`** (integrated components + code + `shell/rice/`),
+  not a separate `default/`/`rice/` top-level. The integrated components are part
+  of Ryoku and editable in place.
 - `overrides.json` stays the **narrow** force-on-every-update set; the broad
   rice ships via fresh-install seeding + `[global]` migrations.
 

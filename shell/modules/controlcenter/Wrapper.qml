@@ -10,8 +10,7 @@ import qs.noctalia.Modules.Panels.Settings
 // Ryoku settings panel host.
 //
 // The previous 5,507-line inline settings UI was moved aside to
-// legacy/controlcenter/Wrapper.qml.orig. This hosts the vendored Noctalia
-// SettingsContent island (themed to ryoku's palette via qs.noctalia.Commons.Color),
+// legacy/controlcenter/Wrapper.qml.orig. Hosts the Settings panel surface,
 // opened from the top-center frame through the existing `visibilities.settings`
 // flag. The drawer contract (offsetScale / needsKeyboard) is preserved so
 // Regions.qml (exclusive zone) and ContentWindow.qml (keyboard focus) keep working.

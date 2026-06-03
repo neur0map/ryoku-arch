@@ -9,7 +9,6 @@ import qs.components
 import qs.components.controls
 import qs.services
 
-// Adapted from Ambxst modules/widgets/dashboard/widgets/FullPlayer.qml.
 StyledRect {
   id: player
 

@@ -1,7 +1,7 @@
 # Third-party code: Ambxst
 
-The contents of this `ambxst/` directory are vendored, largely verbatim, from the
-**Ambxst** desktop shell and adapted for ryoku (import roots re-rooted from `qs.*`
+The contents of this `ambxst/` subtree are integrated Ryoku code originally
+derived from the **Ambxst** desktop shell (import roots re-rooted from `qs.*`
 to `qs.ambxst.*`, and `Quickshell.shellDir` paths redirected into this
 subdirectory). The directory mirrors Ambxst's upstream root layout
 (`config/`, `modules/`, `assets/`, `scripts/`) so its relative paths resolve.

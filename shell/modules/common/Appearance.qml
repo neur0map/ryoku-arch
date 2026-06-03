@@ -5,11 +5,10 @@ import Quickshell
 import qs.services
 import Ryoku.Config
 
-// RYOKU compat shim for iNiR's `Appearance` singleton. Maps iNiR's full theme API
-// (colors/rounding/font/animation/sizes + angel/inir/aurora variants) onto ryoku's
-// Colours palette and Tokens. The angel/inir/aurora variants are disabled
-// (*Everywhere = false) so the vendored overlay takes the default Material path;
-// their objects are still stubbed so any reference resolves.
+// Ryoku Appearance: the shell-wide theme API (colors/rounding/font/animation/sizes
+// + angel/inir/aurora variants) backed by Ryoku's Colours palette and Tokens. The
+// angel/inir/aurora variants are disabled (*Everywhere = false) so the default
+// Material path is taken; their objects are still stubbed so any reference resolves.
 Singleton {
     id: root
 
@@ -91,9 +90,9 @@ Singleton {
     }
 
     readonly property QtObject font: QtObject {
-        // iNiR uses these as PIXEL sizes, but ryoku's Tokens.font.size are POINT
-        // sizes. Convert pt->px (~1.33 at 96dpi) so iNiR text/icons visually match
-        // ryoku's own widgets instead of rendering too small.
+        // These are consumed as PIXEL sizes, but Ryoku's Tokens.font.size are POINT
+        // sizes. Convert pt->px (~1.33 at 96dpi) so text/icons visually match
+        // Ryoku's own widgets instead of rendering too small.
         readonly property QtObject pixelSize: QtObject {
             readonly property real _pxScale: 96 / 72
             function _px(pt) {

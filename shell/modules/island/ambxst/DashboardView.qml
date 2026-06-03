@@ -3,7 +3,6 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import qs.components
 
-// Adapted from Ambxst modules/widgets/dashboard/DashboardView.qml.
 Item {
   id: root
 

@@ -3,7 +3,7 @@ pragma Singleton
 import Quickshell
 import qs.services
 
-// RYOKU compat shim for iNiR's `MprisController`, mapping onto ryoku's Players.
+// Ryoku MprisController: maps the media-control API onto Ryoku's Players.
 Singleton {
     readonly property var activePlayer: Players.active
     readonly property bool isPlaying: Players.active?.isPlaying ?? false

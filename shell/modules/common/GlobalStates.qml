@@ -4,9 +4,9 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// RYOKU compat shim for iNiR's `GlobalStates`. Only the members the overlay reads
-// are exposed. overlayOpen is the open/closed flag, toggled by Super+G via the
-// `gaming` IPC target (matching the existing hyprland bind).
+// Ryoku GlobalStates: exposes only the members the overlay reads. overlayOpen is
+// the open/closed flag, toggled by Super+G via the `gaming` IPC target (matching
+// the existing hyprland bind).
 Singleton {
     id: root
 

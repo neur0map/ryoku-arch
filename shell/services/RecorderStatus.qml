@@ -3,9 +3,9 @@ pragma Singleton
 import Quickshell
 import qs.services
 
-// RYOKU compat shim for iNiR's `RecorderStatus`, mapping onto ryoku's Recorder
-// service. Also exposes start/stop so the vendored Recorder widget can drive
-// ryoku's recorder without colliding with its own `Recorder` type name.
+// Ryoku RecorderStatus: maps onto Ryoku's Recorder service. Also exposes start/stop
+// so the Recorder widget can drive Ryoku's recorder without colliding with its own
+// `Recorder` type name.
 Singleton {
     readonly property bool isRecording: Recorder.running
     readonly property int elapsedSeconds: Math.floor(Recorder.elapsed)

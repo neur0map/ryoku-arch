@@ -2,9 +2,8 @@ pragma Singleton
 
 import Quickshell
 
-// RYOKU compat shim for iNiR's `Battery` (overlay taskbar). ryoku targets desktops;
-// available=false hides the taskbar battery widget. Lives in qs.modules.common to
-// avoid shadowing ryoku's own Battery components.
+// Ryoku Battery: desktop targets hide the taskbar battery widget (available=false).
+// Lives in qs.modules.common to avoid shadowing Ryoku's own Battery components.
 Singleton {
     readonly property bool available: false
     readonly property bool isCharging: false

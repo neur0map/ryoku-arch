@@ -1116,7 +1116,7 @@ Item {
                         TextInputRow {
                             label: "Custom Text"
                             visible: Config.notch.noMediaDisplay === "custom"
-                            value: Config.notch.customText ?? "Ambxst"
+                            value: Config.notch.customText ?? "Ryoku"
                             placeholder: "Enter text..."
                             onValueEdited: newValue => {
                                 if (newValue !== Config.notch.customText) {

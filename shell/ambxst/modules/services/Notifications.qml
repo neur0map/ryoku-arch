@@ -3,7 +3,7 @@ pragma ComponentBehavior: Bound
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Ambxst — AGPL-3.0-or-later
-//  Vendored into ryoku as qs.ambxst.*; original notification service from Ambxst.
+//  Ryoku notification adapter, derived from Ambxst's notification service.
 //  This file is licensed under the GNU Affero General Public License v3.0 or
 //  later. See the upstream Ambxst project for the full license text.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -14,8 +14,8 @@ pragma ComponentBehavior: Bound
 //  name, and ryoku already runs its own NotificationServer (qs.services →
 //  Notifs). This singleton therefore does NOT register a NotificationServer.
 //  Instead it is a passive ADAPTER: it reads ryoku's live `Notifs.list`
-//  (list<NotifData>) and projects each entry into the Notif shape the vendored
-//  Ambxst panel expects (string urgency, ms `time`, cached* fields, etc.).
+//  (list<NotifData>) and projects each entry into the Notif shape the
+//  Ambxst-derived panel expects (string urgency, ms `time`, cached* fields, etc.).
 //
 //  Dismiss / action-invoke are forwarded to ryoku's own mechanism, mirrored from
 //  shell/modules/sidebar/Notif* :

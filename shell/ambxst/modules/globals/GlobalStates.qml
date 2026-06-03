@@ -141,9 +141,9 @@ Singleton {
     }
 
     function getActiveDashboard() {
-        // RYOKU PORT: driven by ryoku's dynamic-island open state (see ryokuDashboardOpen).
-        // The upstream per-screen Visibilities path depends on AxctlService.focusedMonitor
-        // (the axctl daemon), which doesn't run under ryoku, so getForActive() is always null.
+        // Driven by ryoku's dynamic-island open state (see ryokuDashboardOpen).
+        // The per-screen Visibilities path depends on AxctlService.focusedMonitor
+        // (the axctl daemon), which is not used here, so getForActive() is always null.
         return root.ryokuDashboardOpen;
     }
 

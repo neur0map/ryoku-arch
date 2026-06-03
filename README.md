@@ -41,10 +41,9 @@ The target is a strong desktop or laptop, not a budget box that needs every
 megabyte saved.
 
 The current desktop is Hyprland with a Quickshell shell layer. The install and
-core command shape still descend from Omarchy, while the active shell is being
-shaped into Ryoku's own plugin-first surface. That is intentional for now: take
-the useful base, make the product coherent, then replace borrowed parts as
-Ryoku-owned surfaces mature.
+core command shape descend from Omarchy, integrated into Ryoku's own
+plugin-first surface. The product is coherent by design: one Ryoku system, with
+its surfaces continuously refined as the workstation matures.
 
 The goal is simple: power and beauty in the same system. Fast windowing, a
 strict command surface, good defaults, strong visual identity, and plugins that
@@ -73,7 +72,7 @@ Ryoku is not:
 - A budget-PC profile.
 - A minimal window-manager starter kit.
 - A narrow, niche-focused workflow profile.
-- A promise that every borrowed upstream piece is final.
+- A frozen design; Ryoku's surfaces keep evolving.
 
 ## What ships
 
@@ -98,9 +97,9 @@ published at [ryoku.dev](https://ryoku.dev); see [Download and verify](#download
 or build from source. The stable release is the next milestone.
 
 The active workstation track is Hyprland. Development happens on
-`unstable-dev`, then stabilizes into `main` for release users. The shell is in
-transition: Ryoku is using Omarchy install/core ancestry while the Ryoku-owned
-plugin shell takes shape.
+`unstable-dev`, then stabilizes into `main` for release users. The shell keeps
+evolving: Ryoku builds on its Omarchy install/core ancestry as the Ryoku-owned
+plugin shell matures.
 
 | Question | Answer |
 |---|---|

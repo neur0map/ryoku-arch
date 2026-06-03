@@ -6,9 +6,9 @@ import Quickshell.Io
 import qs.noctalia.Commons
 import qs.ambxst.modules.services
 
-// RYOKU: (1) eagerly starts the image-capable clipboard (ambxst ClipboardService) so
-// its wl-paste watcher captures text + images into clipboard.db from shell startup —
-// it's otherwise a lazy, dashboard-only singleton that never ran. (2) enforces the
+// Ryoku: (1) eagerly starts the image-capable ClipboardService so its wl-paste
+// watcher captures text + images into clipboard.db from shell startup — it's
+// otherwise a lazy, dashboard-only singleton that never ran. (2) enforces the
 // history settings (Settings.data.clipboard) on that SQLite store: trim-to-limit +
 // scheduled age cleanup. Always loaded from shell.qml.
 Item {

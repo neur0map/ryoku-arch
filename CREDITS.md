@@ -51,6 +51,26 @@ Ryoku includes Hyprland GUI configuration integration informed by HyprMod.
 
 - Upstream: https://github.com/BlueManCZ/hyprmod
 
+## Noctalia Shell
+
+Ryoku's settings UI is built on the Noctalia Shell project, bundled in source
+under the `shell/noctalia/` subtree (settings-UI subtree and its dependency
+closure).
+
+- Upstream: https://github.com/noctalia-dev/noctalia-shell
+- License: MIT — Copyright (c) 2025 noctalia-dev
+- Attribution: see `shell/noctalia/ATTRIBUTION.md` and `shell/noctalia/LICENSE`
+
+## Ambxst
+
+Ryoku's dynamic island, dashboard and notifications are built on the Ambxst
+shell, bundled in source under the `shell/ambxst/` subtree (island/dashboard/
+notifications subtree and its service/theme/component dependencies).
+
+- Upstream: https://github.com/Axenide/Ambxst
+- License: AGPL-3.0 — Copyright (c) Axenide / Adriano Tisera
+- Attribution: see `shell/ambxst/ATTRIBUTION.md` and `shell/ambxst/LICENSE`
+
 ## Bundled Shell Components
 
 Ryoku's current shell contains GPL-3.0 components that have been adapted into

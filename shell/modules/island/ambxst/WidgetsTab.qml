@@ -7,7 +7,6 @@ import qs.components
 import qs.services
 import "calendar"
 
-// Adapted from Ambxst modules/widgets/dashboard/widgets/WidgetsTab.qml.
 Rectangle {
   id: root
 

@@ -2,7 +2,7 @@ pragma Singleton
 
 import Quickshell
 
-// RYOKU compat shim for iNiR's `PolkitService` (overlay reads .flow only).
+// Ryoku PolkitService: the overlay reads .flow only.
 Singleton {
     readonly property var flow: null
 }

@@ -1,7 +1,7 @@
 # Third-party code: Noctalia Shell
 
-The contents of this `noctalia/` directory are vendored, largely verbatim, from
-the **Noctalia** desktop shell and adapted for ryoku (import roots re-rooted to
+The contents of this `noctalia/` subtree are integrated Ryoku code originally
+derived from the **Noctalia** desktop shell (import roots re-rooted to
 `qs.noctalia.*` and `Quickshell.shellDir` paths redirected to this subdirectory).
 
 - Upstream: https://github.com/noctalia-dev/noctalia-shell

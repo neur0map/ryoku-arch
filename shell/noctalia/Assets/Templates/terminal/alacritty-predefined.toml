@@ -1,4 +1,4 @@
-# Colors (Noctalia)
+# Colors (Ryoku)
 
 [colors.bright]
 black = '{{colors.terminal_bright_black.default.hex}}'

@@ -1,10 +1,10 @@
 {
   "$schema": "https://zed.dev/schema/themes/v0.2.0.json",
-  "name": "Noctalia",
-  "author": "Noctalia",
+  "name": "Ryoku",
+  "author": "Ryoku",
   "themes": [
     {
-      "name": "Noctalia Dark",
+      "name": "Ryoku Dark",
       "appearance": "dark",
       "style": {
         "accents": [
@@ -296,7 +296,7 @@
       }
     },
     {
-      "name": "Noctalia Light",
+      "name": "Ryoku Light",
       "appearance": "light",
       "style": {
         "accents": [
@@ -588,7 +588,7 @@
       }
     },
     {
-      "name": "Noctalia Dark Transparent",
+      "name": "Ryoku Dark Transparent",
       "appearance": "dark",
       "style": {
         "accents": [
@@ -880,7 +880,7 @@
       }
     },
     {
-      "name": "Noctalia Light Transparent",
+      "name": "Ryoku Light Transparent",
       "appearance": "light",
       "style": {
         "accents": [

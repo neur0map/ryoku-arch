@@ -5,7 +5,6 @@ import Ryoku.Config
 import qs.components
 import qs.services
 
-// Adapted from Ambxst modules/widgets/dashboard/Dashboard.qml.
 StyledRect {
   id: root
 

@@ -157,7 +157,7 @@ The kanji-block art used by `boot.sh` is also hand-drawn block-text (`█` and f
 | Live ISO configurator | `bin/ryoku-cmd-first-run` ANSI palette setup | Brand-orange terminal accents during install |
 | Limine boot menu | `default/limine/limine.conf` | Orange branding text "Ryoku Bootloader", Greek Noir terminal palette |
 | Plymouth decrypt | `default/plymouth/ryoku.script` + `default/plymouth/*.png` | Dark window, branded progress bar + lock icon |
-| SDDM greeter | Current shell-provided theme | Upstream login theme until the Ryoku rebrand pass |
+| SDDM greeter | Current shell-provided theme | Current SDDM greeter (ii-pixel), rebranded by `install/config/ryoku-shell-branding.sh`. |
 | Hyprland session + Ryoku shell bar | `shell/components/Logo.qml` + `shell/assets/logo.png` | The default logo module renders the raster Ryoku kanji mark so compact bar paint is not clipped by SVG text rendering. User themes may change colors, but the default bar mark stays Ryoku. |
 | Hyprland session + Ryoku shell theme | `themes/<theme>/` per active theme | Greek Noir is the brand-accurate one; other themes are user-selectable but not "the brand" |
 | First-boot welcome notification | `install/first-run/welcome.sh` | Branded notification copy |

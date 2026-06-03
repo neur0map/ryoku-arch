@@ -10,8 +10,8 @@ Ryoku uses three clear sources:
 
 - **Omarchy** for install architecture, command patterning, and migration-minded
   maintenance.
-- **Upstream shell references** for shell-level interaction patterns, then
-  adapted into Ryoku-owned layout and plugin surfaces.
+- **Shell interaction patterns** that were adapted into Ryoku-owned layout and
+  plugin surfaces.
 - **Ryoku core direction** for naming, branding, defaults, and command ownership.
 
 That means you should read docs as:

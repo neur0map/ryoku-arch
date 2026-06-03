@@ -6,10 +6,9 @@ import Quickshell
 import Quickshell.Io
 import qs.utils
 
-// RYOKU compat shim for iNiR's `Persistent`, trimmed to states.overlay (the only
-// state the overlay reads/writes). Same FileView + JsonAdapter persistence iNiR
-// uses; backed by ryoku's config dir. Per-widget defaults copied verbatim from
-// iNiR's Persistent schema.
+// Ryoku Persistent: trimmed to states.overlay (the only state the overlay
+// reads/writes). Same FileView + JsonAdapter persistence, backed by Ryoku's
+// config dir. Per-widget defaults match the overlay's Persistent schema.
 Singleton {
     id: root
 

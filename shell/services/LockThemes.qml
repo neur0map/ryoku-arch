@@ -161,7 +161,7 @@ Singleton {
 
     // Refresh the catalogue. A real git checkout is fast-forwarded (stashing
     // tracked theme.conf edits). The bundled offline greeter has no .git, so we
-    // clone the full upstream qylock and merge its themes in WITHOUT clobbering
+    // clone the qylock theme catalogue (kept faithful per vendor/qylock/) and merge its themes in WITHOUT clobbering
     // existing ones (cp -an) - that is how the user gets the full catalogue
     // beyond the two bundled clockwork variants. Previews are always regenerated
     // afterwards. Failure surfaces via refreshError instead of being swallowed.

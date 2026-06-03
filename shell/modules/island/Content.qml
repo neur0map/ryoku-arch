@@ -41,9 +41,9 @@ Item {
   implicitWidth: contentLoader.implicitWidth
   implicitHeight: contentLoader.implicitHeight
 
-  // RYOKU PORT: drive Ambxst's dashboard open/close from ryoku's island visibility, so the
-  // vendored content renders (and its dashboardOpen-gated interactions enable) only while the
-  // island is open — replacing Ambxst's axctl-based notch state machine.
+  // Drive the dashboard open/close from Ryoku's island visibility, so the content
+  // renders (and its dashboardOpen-gated interactions enable) only while the island
+  // is open.
   Binding {
     target: AmbxstGlobals.GlobalStates
     property: "ryokuDashboardOpen"
@@ -61,10 +61,9 @@ Item {
   Component {
     id: dashboardSurface
 
-    // RYOKU PORT: faithful Ambxst dashboard content (qs.ambxst.*, AGPL) mounted as a
-    // 1:1 starting point. DashboardView is self-contained (self-wires via Ambxst's own
-    // singletons), so it takes no ryoku props. The ryoku lens / color-picker / record
-    // hooks are intentionally not wired yet — to be re-added after restyle.
+    // Ryoku island dashboard content. DashboardView is self-contained (self-wires via
+    // its own singletons), so it takes no extra props. The Ryoku lens / color-picker /
+    // record hooks are intentionally not wired yet — to be re-added after restyle.
     AmbxstContent.DashboardView {}
   }
 

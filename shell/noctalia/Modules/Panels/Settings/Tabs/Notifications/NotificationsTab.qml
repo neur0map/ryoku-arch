@@ -4,7 +4,7 @@ import QtQuick.Layouts
 import qs.noctalia.Commons
 import qs.noctalia.Widgets
 
-// RYOKU: Sound and Rules subtabs were removed. ryoku's caelestia notification backend
+// RYOKU: Sound and Rules subtabs were removed. The Ryoku notification backend
 // has no sound playback and no per-app rule engine, so those Noctalia subtabs had no
 // backing and were dropped rather than shipped as dead UI.
 ColumnLayout {

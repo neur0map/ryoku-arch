@@ -89,9 +89,9 @@ NotchAnimationBehavior {
     focus: true
 
     // Usar el comportamiento estándar de animaciones del notch
-    // RYOKU PORT: GlobalStates.dashboardOpen is now driven by ryoku's island-open state
-    // (GlobalStates.ryokuDashboardOpen, set from shell/modules/island/Content.qml), since
-    // the upstream axctl-based Visibilities path doesn't run under ryoku.
+    // GlobalStates.dashboardOpen is driven by ryoku's island-open state
+    // (GlobalStates.ryokuDashboardOpen, set from shell/modules/island/Content.qml);
+    // the axctl-based Visibilities path is not used here.
     isVisible: GlobalStates.dashboardOpen
 
     // Navegar a la pestaña seleccionada cuando se abre el dashboard
@@ -335,8 +335,7 @@ NotchAnimationBehavior {
                     }
                 }
 
-                // RYOKU PORT: open ryoku's settings panel instead of Ambxst's
-                // (non-vendored) settings window. `ryoku-shell settings` -> controlCenter toggle.
+                // Open ryoku's settings panel. `ryoku-shell settings` -> controlCenter toggle.
                 onClicked: Quickshell.execDetached(["ryoku-shell", "settings"])
             }
         }

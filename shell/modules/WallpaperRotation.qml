@@ -5,11 +5,11 @@ import Ryoku.Config
 import qs.services
 import qs.noctalia.Commons
 
-// RYOKU: scheduled wallpaper rotation for the Wallpaper settings' Automation
+// Ryoku: scheduled wallpaper rotation for the Wallpaper settings' Automation
 // subtab. Always loaded from shell.qml so rotation runs whether or not settings
-// are open. Config persists in Noctalia's settings.json (Settings.data.wallpaper.*);
-// the wallpaper is applied through ryoku's own Wallpapers service (the `ryoku
-// wallpaper` CLI), not Noctalia's dormant WallpaperService.
+// are open. Config persists in settings.json (Settings.data.wallpaper.*); the
+// wallpaper is applied through Ryoku's own Wallpapers service (the `ryoku
+// wallpaper` CLI), not the dormant WallpaperService.
 Item {
     id: root
 

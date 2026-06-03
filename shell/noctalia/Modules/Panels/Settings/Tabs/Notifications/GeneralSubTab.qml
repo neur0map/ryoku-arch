@@ -9,7 +9,7 @@ import qs.services
 // RYOKU WIRED: notification appearance/behaviour backed by Notifs.dnd and
 // GlobalConfig.notifs.* (notifsconfig.hpp). Noctalia's master-enable, density,
 // position, always-on-top, background-opacity and per-monitor controls were
-// dropped here because ryoku's caelestia backend has no equivalent for them.
+// dropped here because the Ryoku notification backend has no equivalent for them.
 ColumnLayout {
   id: root
   spacing: Style.marginL

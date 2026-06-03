@@ -4,9 +4,9 @@ import QtQuick
 import Quickshell
 import qs.services
 
-// RYOKU compat shim for iNiR's `Notifications`, projecting ryoku's Notifs/NotifData
-// into iNiR's grouped notification API (groupsByAppName + per-app groups of
-// projected notification objects).
+// Ryoku Notifications: projects Ryoku's Notifs/NotifData into the grouped
+// notification API (groupsByAppName + per-app groups of projected notification
+// objects).
 Singleton {
     id: root
 

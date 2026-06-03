@@ -5,10 +5,10 @@ import Quickshell
 import qs.services
 import qs.modules.common
 
-// RYOKU compat shim for iNiR's `ResourceUsage`, mapping onto ryoku's SystemUsage.
-// Maintains the rolling history arrays the Resources graph reads. Sampling (and
-// the SystemUsage poll ref) is held only while the overlay is open, so it never
-// polls /proc in the background once the overlay closes.
+// Ryoku ResourceUsage: maps onto Ryoku's SystemUsage. Maintains the rolling history
+// arrays the Resources graph reads. Sampling (and the SystemUsage poll ref) is held
+// only while the overlay is open, so it never polls /proc in the background once the
+// overlay closes.
 Singleton {
     id: root
 
@@ -43,7 +43,7 @@ Singleton {
         }
     }
 
-    // No-op: the vendored Resources widget calls this on completion, but activity
+    // No-op: the Resources widget calls this on completion, but activity
     // is driven by overlay-open state above.
     function ensureRunning(): void {}
 

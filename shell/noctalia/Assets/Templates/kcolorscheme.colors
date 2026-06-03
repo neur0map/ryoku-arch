@@ -2,8 +2,8 @@
 contrast=4
 
 [General]
-ColorScheme=Noctalia
-Name=noctalia
+ColorScheme=Ryoku
+Name=ryoku
 
 [ColorEffects:Disabled]
 Color={{colors.surface_container_lowest.default.rgb_csv}}
