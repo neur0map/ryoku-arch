@@ -45,30 +45,17 @@ assert_gtk_icon_theme() {
     "$path should not default GTK icons to missing WhiteSur-dark"
 }
 
-assert_json_icon_theme() {
-  jq -e '.appearance.iconTheme == "Papirus"' "$ROOT_DIR/shell/defaults/config.json" >/dev/null || \
-    fail "shell defaults should set Papirus as the icon theme"
-}
-
 assert_shell_defaults() {
   grep -qxF papirus-icon-theme "$ROOT_DIR/install/ryoku-base.packages" || \
     fail "Ryoku base packages should include Papirus icons"
-  assert_json_icon_theme
-  assert_contains "shell/modules/common/Config.qml" \
-    'property string iconTheme: "Papirus"' \
-    "Config.qml should default shell iconTheme to Papirus"
   assert_gtk_icon_theme "config/gtk-3.0/settings.ini"
   assert_gtk_icon_theme "config/gtk-4.0/settings.ini"
-  assert_gtk_icon_theme "shell/defaults/gtk-3.0/settings.ini"
-  assert_gtk_icon_theme "shell/defaults/gtk-4.0/settings.ini"
-  assert_contains "shell/defaults/kde/kdeglobals" '^Theme=Papirus$' \
-    "KDE defaults should use Papirus icons"
-  assert_not_contains "shell/defaults/kde/kdeglobals" '^Theme=WhiteSur-dark$' \
-    "KDE defaults should not use missing WhiteSur-dark icons"
-  assert_contains "shell/scripts/colors/apply-gtk-theme.sh" 'icons/Papirus' \
-    "theme apply fallback should preserve Ryoku's packaged Papirus icons"
-  assert_not_contains "shell/scripts/colors/apply-gtk-theme.sh" 'icons/WhiteSur-dark' \
-    "theme apply fallback should not restore missing WhiteSur-dark icons"
+  # Qt apps (e.g. the Vicinae launcher) resolve icons through the qt6ct platform
+  # theme; without a shipped qt6ct.conf they render with no app logos.
+  assert_contains "config/qt6ct/qt6ct.conf" '^icon_theme=Papirus$' \
+    "qt6ct config should default Qt app icons to Papirus"
+  assert_not_contains "bin/ryoku-theme-set-gnome" 'icon-theme "Yaru' \
+    "gnome theme setter should not hardcode the unshipped Yaru icons"
 }
 
 assert_repair_tool() {
@@ -112,6 +99,8 @@ JSON
     fail "icon repair helper should write GTK 4 Papirus setting"
   grep -qxF 'Theme=Papirus' "$home/.config/kdeglobals" || \
     fail "icon repair helper should write KDE Papirus setting"
+  grep -qxF 'icon_theme=Papirus' "$home/.config/qt6ct/qt6ct.conf" || \
+    fail "icon repair helper should create qt6ct Papirus setting for Qt apps"
 }
 
 assert_shell_defaults

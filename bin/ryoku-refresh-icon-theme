@@ -110,7 +110,14 @@ PY
 sync_qt6ct() {
   local theme="$1" qt6ct_conf="$config_home/qt6ct/qt6ct.conf"
 
-  [[ -f $qt6ct_conf ]] || return 0
+  # Qt apps (e.g. the Vicinae launcher) resolve their icon theme through the
+  # qt6ct platform theme (QT_QPA_PLATFORMTHEME=qt6ct). Create a minimal config
+  # when absent so the icon theme actually applies; qt6ct reads icon_theme from
+  # the [Appearance] section.
+  if [[ ! -f $qt6ct_conf ]]; then
+    mkdir -p "$(dirname "$qt6ct_conf")"
+    printf '[Appearance]\nstandard_dialogs=default\nstyle=Fusion\n' >"$qt6ct_conf"
+  fi
   set_ini_key "$qt6ct_conf" "icon_theme" "$theme"
 }
 
