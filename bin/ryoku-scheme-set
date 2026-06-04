@@ -65,7 +65,10 @@ jq -r --arg mode "$mode" '
   "color12 = \"\($t.bright.blue // $v.mPrimary)\"",
   "color13 = \"\($t.bright.magenta // $v.mTertiary)\"",
   "color14 = \"\($t.bright.cyan // $v.mSecondary)\"",
-  "color15 = \"\($t.bright.white // $v.mOnSurface)\""
+  "color15 = \"\($t.bright.white // $v.mOnSurface)\"",
+  "cursor = \"\($t.cursor // $v.mOnSurface)\"",
+  "selection_background = \"\($t.selectionBg // $v.mPrimary)\"",
+  "selection_foreground = \"\($t.selectionFg // $v.mOnPrimary)\""
 ' "$scheme_json" >"$next_theme/colors.toml"
 
 if [[ ! -s $next_theme/colors.toml ]]; then

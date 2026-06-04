@@ -23,6 +23,12 @@ ColumnLayout {
 
   signal openDownloadPopup
 
+  // RYOKU: scan installed/downloaded color schemes when the tab opens so they
+  // persist across shell reloads. ColorSchemeService otherwise only scanned
+  // after a download/delete, so downloaded schemes vanished from the picker on
+  // restart (and the downloader re-offered them).
+  Component.onCompleted: ColorSchemeService.loadColorSchemes()
+
   // RYOKU: the installed ryoku themes (themes/<name>) drive the scheme picker.
   // Each applies via `ryoku-theme-set <name>` which writes the live scheme.json.
   property var ryokuThemes: []
