@@ -59,6 +59,30 @@ ColumnLayout {
       return c && c.name && !installed[c.name];
     });
   }
+
+  function normalizeSchemeName(name) {
+    return String(name || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+  }
+
+  // RYOKU: installed color schemes (ColorSchemeService = downloaded from
+  // ryoku-extras + preinstalled) surfaced as selectable picker tiles. Deduped
+  // against the ryoku themes above by normalized name so nothing shows twice.
+  readonly property var colorSchemeTiles: {
+    const themeNames = ({});
+    for (let i = 0; i < root.ryokuThemes.length; i++)
+      themeNames[root.normalizeSchemeName(root.ryokuThemes[i].name)] = true;
+    const out = [];
+    for (let j = 0; j < ColorSchemeService.schemes.length; j++) {
+      const nm = root.extractSchemeName(ColorSchemeService.schemes[j]);
+      if (!nm || nm === "Noctalia (default)")
+        continue;
+      if (!themeNames[root.normalizeSchemeName(nm)])
+        out.push({
+                   "name": nm
+                 });
+    }
+    return out;
+  }
   Process {
     id: catalogProc
     command: ["sh", "-c", "curl -fsSL \"https://raw.githubusercontent.com/neur0map/ryoku-arch/${RYOKU_THEMES_BRANCH:-main}/themes/index.json\" 2>/dev/null || cat \"$HOME/.local/share/ryoku/themes/index.json\" 2>/dev/null || true"]
@@ -609,6 +633,131 @@ ColumnLayout {
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
             onClicked: root.downloadTheme(dlItem.modelData.name)
+          }
+        }
+      }
+    }
+
+    // RYOKU: installed color schemes (downloaded from ryoku-extras + preinstalled),
+    // selectable like the themes above. Apply via ColorSchemeService (writes the
+    // live colors.json). Deduped against the themes so names never appear twice.
+    NText {
+      visible: root.colorSchemeTiles.length > 0
+      Layout.fillWidth: true
+      Layout.topMargin: Style.marginM
+      text: qsTr("Color schemes")
+      pointSize: Style.fontSizeM
+      font.weight: Style.fontWeightBold
+      color: Color.mOnSurface
+    }
+
+    GridLayout {
+      visible: root.colorSchemeTiles.length > 0
+      Layout.fillWidth: true
+      columns: 2
+      rowSpacing: Style.marginM
+      columnSpacing: Style.marginM
+
+      Repeater {
+        model: root.colorSchemeTiles
+
+        Rectangle {
+          id: csItem
+
+          required property var modelData
+          readonly property string schemeName: modelData.name
+          readonly property bool active: !GlobalConfig.services.smartScheme && Settings.data.colorSchemes.predefinedScheme === csItem.schemeName
+
+          property color cBg: root.getSchemeColor(csItem.schemeName, "mSurface")
+          property color cText: root.getSchemeColor(csItem.schemeName, "mOnSurface")
+          property color cAccent: root.getSchemeColor(csItem.schemeName, "mPrimary")
+          property color cSecondary: root.getSchemeColor(csItem.schemeName, "mSecondary")
+          property color cTertiary: root.getSchemeColor(csItem.schemeName, "mTertiary")
+
+          opacity: enabled ? 1.0 : 0.6
+          Layout.fillWidth: true
+          Layout.alignment: Qt.AlignHCenter
+          height: 50 * Style.uiScaleRatio
+          radius: Style.radiusS
+          color: csItem.cBg
+          border.width: Style.borderL
+          border.color: {
+            if (csItem.active && csItem.enabled)
+              return Color.mSecondary;
+            if (csMouse.containsMouse)
+              return Color.mHover;
+            return Color.mOutline;
+          }
+
+          RowLayout {
+            id: csRow
+            anchors.fill: parent
+            anchors.margins: Style.marginL
+            spacing: Style.marginS
+
+            property int diameter: 16 * Style.uiScaleRatio
+
+            NText {
+              text: csItem.schemeName
+              pointSize: Style.fontSizeS
+              color: csItem.cText
+              Layout.fillWidth: true
+              elide: Text.ElideRight
+              verticalAlignment: Text.AlignVCenter
+              maximumLineCount: 1
+            }
+
+            Repeater {
+              model: [csItem.cAccent, csItem.cSecondary, csItem.cTertiary]
+              delegate: Rectangle {
+                required property var modelData
+                width: csRow.diameter
+                height: csRow.diameter
+                radius: csRow.diameter * 0.5
+                color: modelData
+                border.width: Style.borderS
+                border.color: Qt.alpha(csItem.cText, 0.3)
+              }
+            }
+          }
+
+          MouseArea {
+            id: csMouse
+            anchors.fill: parent
+            enabled: csItem.enabled
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+              GlobalConfig.services.smartScheme = false;
+              GlobalConfig.save();
+              ColorSchemeService.setPredefinedScheme(csItem.schemeName);
+            }
+          }
+
+          Rectangle {
+            visible: csItem.active
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.topMargin: -3
+            width: 20
+            height: 20
+            radius: Math.min(Style.radiusL, width / 2)
+            color: Color.mSecondary
+            border.width: Style.borderS
+            border.color: Color.mOnSecondary
+
+            NIcon {
+              icon: "check"
+              pointSize: Style.fontSizeXS
+              color: Color.mOnSecondary
+              anchors.centerIn: parent
+            }
+          }
+
+          Behavior on border.color {
+            ColorAnimation {
+              duration: Style.animationNormal
+            }
           }
         }
       }
