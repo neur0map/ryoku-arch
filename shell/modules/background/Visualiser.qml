@@ -120,9 +120,13 @@ Item {
         readonly property int bandCount: barValues ? barValues.length : 0
         // Render far more columns than there are cava bands so the contour is finely
         // stepped (many thin lines) instead of a few big blocky squares.
-        readonly property int cols: Math.max(160, bandCount)
+        readonly property int cols: Math.max(120, bandCount)
         readonly property real maxBarHeight: height * 0.52
         readonly property real glowWidth: Math.max(2, height * 0.0035)
+        // Round the step corners by the slider, using the same 12x scale the C++ bars
+        // use so "Rounding" stays consistent and looks smooth at the default (1);
+        // 0 keeps crisp stair-steps, higher values smooth the contour further.
+        readonly property real cornerR: Tokens.rounding.small * Config.background.visualiser.rounding
 
         readonly property color accent: Colours.palette.m3primary
         readonly property color glowColor: Qt.lighter(accent, 1.25)
@@ -149,6 +153,37 @@ Item {
             return Math.max(0, Math.min(1, v));
         }
 
+        // Round the hard 90° step corners by cornerR so the "Rounding" slider
+        // de-blockifies the skyline. Baked into the points so the dark fill rounds too,
+        // not just the glow stroke.
+        function roundCorners(pts, r) {
+            const n = pts.length;
+            if (n < 3 || r < 0.5)
+                return pts;
+            const out = [pts[0]];
+            for (let i = 1; i < n - 1; ++i) {
+                const a = pts[i - 1], c = pts[i], b = pts[i + 1];
+                const v1x = c.x - a.x, v1y = c.y - a.y;
+                const v2x = b.x - c.x, v2y = b.y - c.y;
+                const l1 = Math.hypot(v1x, v1y) || 1, l2 = Math.hypot(v2x, v2y) || 1;
+                const rr = Math.min(r, l1 / 2, l2 / 2);
+                if (rr < 0.5) {
+                    out.push(c);
+                    continue;
+                }
+                const ax = c.x - v1x / l1 * rr, ay = c.y - v1y / l1 * rr;
+                const bx = c.x + v2x / l2 * rr, by = c.y + v2y / l2 * rr;
+                out.push(Qt.point(ax, ay));
+                for (let k = 1; k < 3; ++k) {
+                    const t = k / 3, mt = 1 - t;
+                    out.push(Qt.point(mt * mt * ax + 2 * mt * t * c.x + t * t * bx, mt * mt * ay + 2 * mt * t * c.y + t * t * by));
+                }
+                out.push(Qt.point(bx, by));
+            }
+            out.push(pts[n - 1]);
+            return out;
+        }
+
         // Fine stepped top contour — two points per column so there are lots of thin
         // steps and it reads smooth rather than blocky.
         readonly property var topPts: {
@@ -165,9 +200,12 @@ Item {
             return p;
         }
 
+        // Contour with corners rounded per the slider; drives every layer below.
+        readonly property var topLine: sky.roundCorners(sky.topPts, sky.cornerR)
+
         // Closed silhouette polygon (gapless dark body).
         readonly property var fillPts: {
-            const t = sky.topPts;
+            const t = sky.topLine;
             return t.length ? [Qt.point(0, sky.height)].concat(t, [Qt.point(sky.width, sky.height)]) : [];
         }
 
@@ -219,9 +257,9 @@ Item {
                 fillColor: "transparent"
                 capStyle: ShapePath.RoundCap
                 joinStyle: ShapePath.RoundJoin
-                startX: sky.topPts.length ? sky.topPts[0].x : 0
-                startY: sky.topPts.length ? sky.topPts[0].y : 0
-                PathPolyline { path: sky.topPts }
+                startX: sky.topLine.length ? sky.topLine[0].x : 0
+                startY: sky.topLine.length ? sky.topLine[0].y : 0
+                PathPolyline { path: sky.topLine }
             }
         }
 
@@ -237,9 +275,9 @@ Item {
                 fillColor: "transparent"
                 capStyle: ShapePath.RoundCap
                 joinStyle: ShapePath.RoundJoin
-                startX: sky.topPts.length ? sky.topPts[0].x : 0
-                startY: sky.topPts.length ? sky.topPts[0].y : 0
-                PathPolyline { path: sky.topPts }
+                startX: sky.topLine.length ? sky.topLine[0].x : 0
+                startY: sky.topLine.length ? sky.topLine[0].y : 0
+                PathPolyline { path: sky.topLine }
             }
         }
     }
