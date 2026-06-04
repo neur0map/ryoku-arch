@@ -42,10 +42,67 @@ Singleton {
     property bool refreshWorkspacesPending
     property bool refreshMonitorsPending
 
+    // RYOKU: Hyprland v0.55+ can run in Lua config mode (configProvider: lua),
+    // where the IPC `dispatch` is evaluated as Lua (hl.dispatch(hl.dsp.*)) and
+    // legacy string dispatchers like "workspace 2" fail outright. We detect the
+    // mode once at startup via a harmless `hl.dsp.no_op()` probe, then translate
+    // the dispatch verbs this shell emits into their hl.dsp.* equivalents. Legacy
+    // Hyprland is untouched (the probe fails and we keep sending raw strings).
+    property bool useLuaDispatch: false
+    property bool dispatchModeChecked: false
+
     signal configReloaded
 
     function dispatch(request: string): void {
-        Hyprland.dispatch(request);
+        if (useLuaDispatch)
+            Quickshell.execDetached(["hyprctl", "dispatch", toLuaDispatch(request)]);
+        else
+            Hyprland.dispatch(request);
+    }
+
+    // Escape a string for embedding inside a Lua double-quoted literal.
+    function luaQuote(value: string): string {
+        return String(value).replace(/\\/g, "\\\\").replace(/"/g, "\\\"");
+    }
+
+    // Translate the legacy Hyprland dispatch strings this shell emits into the Lua
+    // dispatcher syntax used by Hyprland's Lua config mode. Only the verbs the shell
+    // actually sends are mapped; unknown verbs fall back to the raw string.
+    function toLuaDispatch(request: string): string {
+        const trimmed = String(request).trim();
+        const sep = trimmed.indexOf(" ");
+        const verb = sep === -1 ? trimmed : trimmed.slice(0, sep);
+        const rest = sep === -1 ? "" : trimmed.slice(sep + 1).trim();
+        const wsArg = value => /^\d+$/.test(value) ? value : `"${luaQuote(value)}"`;
+
+        switch (verb) {
+        case "workspace":
+            return `hl.dsp.focus({ workspace = ${wsArg(rest)} })`;
+        case "togglespecialworkspace":
+            return rest ? `hl.dsp.workspace.toggle_special({ name = "${luaQuote(rest)}" })` : "hl.dsp.workspace.toggle_special()";
+        case "movetoworkspace": {
+            const comma = rest.indexOf(",");
+            const ws = (comma === -1 ? rest : rest.slice(0, comma)).trim();
+            const win = comma === -1 ? "" : rest.slice(comma + 1).trim();
+            const winPart = win ? `, window = "${luaQuote(win)}"` : "";
+            return `hl.dsp.window.move({ workspace = ${wsArg(ws)}${winPart} })`;
+        }
+        case "togglefloating":
+            return rest ? `hl.dsp.window.float({ window = "${luaQuote(rest)}" })` : "hl.dsp.window.float()";
+        case "pin":
+            return rest ? `hl.dsp.window.pin({ window = "${luaQuote(rest)}" })` : "hl.dsp.window.pin()";
+        case "killwindow":
+            return rest ? `hl.dsp.window.close({ window = "${luaQuote(rest)}" })` : "hl.dsp.window.close()";
+        default:
+            console.warn(`Hypr.dispatch: no Lua mapping for "${trimmed}"; sending as-is`);
+            return trimmed;
+        }
+    }
+
+    function detectDispatchMode(): void {
+        if (dispatchModeChecked || dispatchProbe.running)
+            return;
+        dispatchProbe.running = true;
     }
 
     function cycleSpecialWorkspace(direction: string): void {
@@ -100,7 +157,10 @@ Singleton {
         refreshTimer.restart();
     }
 
-    Component.onCompleted: reloadDynamicConfs()
+    Component.onCompleted: {
+        reloadDynamicConfs();
+        detectDispatchMode();
+    }
 
     onCapsLockChanged: {
         if (!GlobalConfig.utilities.toasts.capsLockChanged)
@@ -245,6 +305,34 @@ Singleton {
         description: "Reload devices"
         onPressed: extras.refreshDevices()
         onReleased: extras.refreshDevices()
+    }
+
+    // One-shot probe: `hl.dsp.no_op()` returns "ok" only when Hyprland evaluates
+    // dispatches as Lua (v0.55+ Lua config). In legacy mode it errors, so the flag
+    // stays false and dispatch() keeps sending raw legacy strings.
+    Process {
+        id: dispatchProbe
+
+        running: false
+        command: ["hyprctl", "dispatch", "hl.dsp.no_op()"]
+
+        property string out: ""
+        property string err: ""
+
+        stdout: SplitParser {
+            onRead: data => dispatchProbe.out += data
+        }
+
+        stderr: SplitParser {
+            onRead: data => dispatchProbe.err += data
+        }
+
+        onExited: (exitCode, exitStatus) => {
+            root.useLuaDispatch = dispatchProbe.out.includes("ok") && !dispatchProbe.err.toLowerCase().includes("error");
+            root.dispatchModeChecked = true;
+            dispatchProbe.out = "";
+            dispatchProbe.err = "";
+        }
     }
 
     HyprExtras {
