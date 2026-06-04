@@ -38,7 +38,7 @@ Popup {
   padding: Style.marginXL
   modal: true
   closePolicy: Popup.NoAutoClose
-  dim: false
+  dim: true
   anchors.centerIn: parent
 
   // Helper function to get color from cached scheme data
@@ -609,11 +609,17 @@ Popup {
     downloadProcess.running = true;
   }
 
+  function normalizeSchemeName(name) {
+    return String(name || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+  }
+
   function isSchemeInstalled(schemeName) {
-    // Check if scheme already exists in ColorSchemeService
+    // Match on a normalized name so the catalogue's display form agrees with the
+    // installed form (e.g. "Tokyo Night" vs the shipped Tokyo-Night, "Rose Pine"
+    // vs Rosepine, and the lowercase Ryoku theme names in the main grid).
+    var target = root.normalizeSchemeName(schemeName);
     for (var i = 0; i < ColorSchemeService.schemes.length; i++) {
-      var path = ColorSchemeService.schemes[i];
-      if (path.indexOf("/" + schemeName + "/") !== -1 || path.indexOf("/" + schemeName + ".json") !== -1) {
+      if (root.normalizeSchemeName(ColorSchemeService.getBasename(ColorSchemeService.schemes[i])) === target) {
         return true;
       }
     }
@@ -621,10 +627,12 @@ Popup {
   }
 
   function isSchemeDownloaded(schemeName) {
-    // Check if scheme is in the downloaded directory (not preinstalled)
+    // Downloaded (removable) schemes live under the downloaded dir; match on the
+    // normalized name as above.
+    var target = root.normalizeSchemeName(schemeName);
     for (var i = 0; i < ColorSchemeService.schemes.length; i++) {
       var path = ColorSchemeService.schemes[i];
-      if ((path.indexOf("/" + schemeName + "/") !== -1 || path.indexOf("/" + schemeName + ".json") !== -1) && path.indexOf(ColorSchemeService.downloadedSchemesDirectory) !== -1) {
+      if (path.indexOf(ColorSchemeService.downloadedSchemesDirectory) !== -1 && root.normalizeSchemeName(ColorSchemeService.getBasename(path)) === target) {
         return true;
       }
     }
@@ -903,7 +911,7 @@ Popup {
               NText {
                 text: schemeRow.schemeName
                 pointSize: Style.fontSizeS
-                color: Color.mOnSurface
+                color: root.getSchemeColor(schemeRow.schemeName, "mOnSurface")
                 Layout.fillWidth: true
                 elide: Text.ElideRight
                 Layout.alignment: Qt.AlignVCenter
@@ -918,6 +926,8 @@ Popup {
                   radius: schemeRow.diameter * 0.5
                   color: root.getSchemeColor(schemeRow.schemeName, modelData)
                   Layout.alignment: Qt.AlignVCenter
+                  border.width: Style.borderS
+                  border.color: Qt.alpha(root.getSchemeColor(schemeRow.schemeName, "mOnSurface"), 0.3)
 
                   Behavior on color {
                     ColorAnimation {
@@ -934,12 +944,16 @@ Popup {
                 property bool isInstalled: root.isSchemeInstalled(schemeRow.schemeName)
                 property bool isDownloaded: root.isSchemeDownloaded(schemeRow.schemeName)
 
-                icon: isDownloading ? "" : (isDownloaded ? "trash" : "download")
-                tooltipText: isDownloading ? I18n.tr("panels.color-scheme.download-downloading") : (isDownloaded ? I18n.tr("common.delete") : I18n.tr("common.download"))
-                enabled: !downloading
+                icon: isDownloading ? "" : (isDownloaded ? "trash" : (isInstalled ? "check" : "download"))
+                tooltipText: isDownloading ? I18n.tr("panels.color-scheme.download-downloading") : (isDownloaded ? I18n.tr("common.delete") : (isInstalled ? qsTr("Installed") : I18n.tr("common.download")))
+                enabled: !downloading && (isDownloaded || !isInstalled)
                 Layout.alignment: Qt.AlignVCenter
-                visible: !isInstalled || isDownloaded // Show button only if not installed (can download) or if downloaded (can delete)
-                onClicked: isDownloaded ? root.deleteScheme(schemeRow.schemeName) : root.downloadScheme(modelData)
+                onClicked: {
+                  if (isDownloaded)
+                    root.deleteScheme(schemeRow.schemeName);
+                  else if (!isInstalled)
+                    root.downloadScheme(modelData);
+                }
 
                 NBusyIndicator {
                   anchors.centerIn: parent
