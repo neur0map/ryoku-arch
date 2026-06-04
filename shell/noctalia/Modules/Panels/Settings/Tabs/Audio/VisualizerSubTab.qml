@@ -54,6 +54,10 @@ ColumnLayout {
         {
           "key": "dots",
           "name": "Dots"
+        },
+        {
+          "key": "skyline",
+          "name": "Skyline"
         }
       ]
       currentKey: GlobalConfig.background.visualiser.style || "bars"

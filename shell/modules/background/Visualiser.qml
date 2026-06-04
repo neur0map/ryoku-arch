@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Effects
+import QtQuick.Shapes
 import Quickshell
 import Ryoku.Config
 import Ryoku.Internal
@@ -55,30 +56,190 @@ Item {
                     service: Audio.cava
                 }
 
-                VisualiserBars {
-                    id: bars
+                Item {
+                    id: field
 
                     anchors.fill: parent
                     anchors.margins: Config.border.thickness
                     anchors.leftMargin: Visibilities.bars.get(root.screen).exclusiveZone + Tokens.spacing.small * Config.background.visualiser.spacing
 
-                    values: Audio.cava.values
-                    primaryColor: Qt.alpha(Colours.palette.m3primary, 0.7)
-                    secondaryColor: Qt.alpha(Colours.palette.m3inversePrimary, 0.7)
-                    rounding: Tokens.rounding.small * Config.background.visualiser.rounding
-                    spacing: Tokens.spacing.small * Config.background.visualiser.spacing
-                    style: Config.background.visualiser.style
-                    animationDuration: Tokens.anim.durations.normal
-
                     Behavior on anchors.leftMargin {
                         Anim {}
                     }
-                }
 
-                FrameAnimation {
-                    running: root.opacity > 0 && !bars.settled
-                    onTriggered: bars.advance(frameTime)
+                    // Painted styles (bars / mirrored / dots) come from the C++
+                    // VisualiserBars renderer.
+                    Loader {
+                        anchors.fill: parent
+                        active: Config.background.visualiser.style !== "skyline"
+
+                        sourceComponent: Item {
+                            VisualiserBars {
+                                id: bars
+
+                                anchors.fill: parent
+
+                                values: Audio.cava.values
+                                primaryColor: Qt.alpha(Colours.palette.m3primary, 0.7)
+                                secondaryColor: Qt.alpha(Colours.palette.m3inversePrimary, 0.7)
+                                rounding: Tokens.rounding.small * Config.background.visualiser.rounding
+                                spacing: Tokens.spacing.small * Config.background.visualiser.spacing
+                                style: Config.background.visualiser.style
+                                animationDuration: Tokens.anim.durations.normal
+                            }
+
+                            FrameAnimation {
+                                running: root.opacity > 0 && !bars.settled
+                                onTriggered: bars.advance(frameTime)
+                            }
+                        }
+                    }
+
+                    // "skyline" style: a continuous, symmetric filled silhouette with a
+                    // glowing top edge. Rendered in QML so the rim bloom can use
+                    // MultiEffect over the live wallpaper.
+                    Loader {
+                        anchors.fill: parent
+                        active: Config.background.visualiser.style === "skyline"
+
+                        sourceComponent: Skyline {
+                            anchors.fill: parent
+                            barValues: Audio.cava.values
+                        }
+                    }
                 }
+            }
+        }
+    }
+
+    component Skyline: Item {
+        id: sky
+
+        required property var barValues
+
+        readonly property int bandCount: barValues ? barValues.length : 0
+        // Render far more columns than there are cava bands so the contour is finely
+        // stepped (many thin lines) instead of a few big blocky squares.
+        readonly property int cols: Math.max(160, bandCount)
+        readonly property real maxBarHeight: height * 0.52
+        readonly property real glowWidth: Math.max(2, height * 0.0035)
+
+        readonly property color accent: Colours.palette.m3primary
+        readonly property color glowColor: Qt.lighter(accent, 1.25)
+        readonly property color coreColor: Qt.tint("#ffffff", Qt.alpha(accent, 0.12))
+        readonly property color fillTop: Qt.alpha(Qt.darker(accent, 2.4), 0.5)
+        readonly property color fillMid: Qt.alpha(Qt.darker(accent, 4.0), 0.55)
+        readonly property color fillBottom: Qt.alpha(Colours.palette.m3scrim, 0.6)
+
+        // Interpolated symmetric spectrum at any column: bass swells from the centre
+        // outward (a dome growing from the middle), highs taper to the edges.
+        function levelAtCol(i: int): real {
+            const n = sky.bandCount;
+            if (n < 1)
+                return 0;
+            if (n === 1)
+                return Math.max(0, Math.min(1, sky.barValues[0] ?? 0));
+            const px = (i + 0.5) / sky.cols;
+            const d = Math.abs(px - 0.5) * 2;      // 0 centre, 1 edge
+            const bandPos = d * (n - 1);           // centre -> band 0 (bass)
+            const b0 = Math.floor(bandPos);
+            const b1 = Math.min(n - 1, b0 + 1);
+            const f = bandPos - b0;
+            const v = (sky.barValues[b0] ?? 0) * (1 - f) + (sky.barValues[b1] ?? 0) * f;
+            return Math.max(0, Math.min(1, v));
+        }
+
+        // Fine stepped top contour — two points per column so there are lots of thin
+        // steps and it reads smooth rather than blocky.
+        readonly property var topPts: {
+            const c = sky.cols;
+            if (sky.bandCount < 1)
+                return [];
+            const w = sky.width, h = sky.height, bw = w / c, mh = sky.maxBarHeight;
+            const p = [];
+            for (let i = 0; i < c; ++i) {
+                const y = h - sky.levelAtCol(i) * mh;
+                p.push(Qt.point(i * bw, y));
+                p.push(Qt.point((i + 1) * bw, y));
+            }
+            return p;
+        }
+
+        // Closed silhouette polygon (gapless dark body).
+        readonly property var fillPts: {
+            const t = sky.topPts;
+            return t.length ? [Qt.point(0, sky.height)].concat(t, [Qt.point(sky.width, sky.height)]) : [];
+        }
+
+        // 1. Dark, semi-transparent body so the wallpaper shows through.
+        Shape {
+            anchors.fill: parent
+            preferredRendererType: Shape.CurveRenderer
+
+            ShapePath {
+                strokeWidth: 0
+                fillGradient: LinearGradient {
+                    x1: 0
+                    y1: sky.height - sky.maxBarHeight
+                    x2: 0
+                    y2: sky.height
+                    GradientStop { position: 0.0; color: sky.fillTop }
+                    GradientStop { position: 0.45; color: sky.fillMid }
+                    GradientStop { position: 1.0; color: sky.fillBottom }
+                }
+                startX: sky.fillPts.length ? sky.fillPts[0].x : 0
+                startY: sky.fillPts.length ? sky.fillPts[0].y : 0
+                PathPolyline { path: sky.fillPts }
+            }
+        }
+
+        // 2. Soft neon bloom behind the rim for the pop.
+        MultiEffect {
+            anchors.fill: parent
+            source: contour
+            blurEnabled: true
+            blur: 1
+            blurMax: 64
+            brightness: 0.45
+            autoPaddingEnabled: false
+        }
+
+        // 3. Wide colour glow tracing the whole fine contour; feeds the bloom.
+        Shape {
+            id: contour
+
+            anchors.fill: parent
+            layer.enabled: true
+            z: 1
+            preferredRendererType: Shape.CurveRenderer
+
+            ShapePath {
+                strokeColor: sky.glowColor
+                strokeWidth: sky.glowWidth * 1.8
+                fillColor: "transparent"
+                capStyle: ShapePath.RoundCap
+                joinStyle: ShapePath.RoundJoin
+                startX: sky.topPts.length ? sky.topPts[0].x : 0
+                startY: sky.topPts.length ? sky.topPts[0].y : 0
+                PathPolyline { path: sky.topPts }
+            }
+        }
+
+        // 4. Hot near-white core on top of the glow.
+        Shape {
+            anchors.fill: parent
+            z: 2
+            preferredRendererType: Shape.CurveRenderer
+
+            ShapePath {
+                strokeColor: sky.coreColor
+                strokeWidth: Math.max(1, sky.glowWidth)
+                fillColor: "transparent"
+                capStyle: ShapePath.RoundCap
+                joinStyle: ShapePath.RoundJoin
+                startX: sky.topPts.length ? sky.topPts[0].x : 0
+                startY: sky.topPts.length ? sky.topPts[0].y : 0
+                PathPolyline { path: sky.topPts }
             }
         }
     }
