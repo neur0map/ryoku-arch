@@ -69,10 +69,22 @@ ColumnLayout {
                 popouts.hasCurrent = false;
                 tray.expanded = true;
             }
-        } else if (id === "activeWindow" && Config.bar.popouts.activeWindow && Config.bar.activeWindow.showOnHover) {
-            popouts.currentName = id.toLowerCase();
-            popouts.currentCenter = (ch.item as Item).mapToItem(root, 0, (ch.item as Item).implicitHeight / 2).y ?? 0;
-            popouts.hasCurrent = true;
+        } else if (id === "workspaces" && Config.bar.popouts.activeWindow) {
+            // RYOKU: surface the active-window popout (icon, title, live preview)
+            // ONLY when hovering the active workspace dot, instead of the
+            // activeWindow bar item. Pointer-position only, so scroll-to-switch
+            // (handleWheel) and click-to-switch (Workspaces MouseArea) are never
+            // intercepted.
+            const ws = ch.item;
+            const lp = mapToItem(ws.wsLayout, width / 2, y);
+            const wsItem = ws.wsLayout.childAt(ws.wsLayout.width / 2, lp.y);
+            if (wsItem?.isWorkspace && wsItem.ws === ws.activeWsId) {
+                popouts.currentName = "activewindow";
+                popouts.currentCenter = wsItem.mapToItem(root, 0, wsItem.height / 2).y;
+                popouts.hasCurrent = true;
+            } else {
+                popouts.hasCurrent = false;
+            }
         }
     }
 

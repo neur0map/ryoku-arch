@@ -14,6 +14,10 @@ StyledClippingRect {
     required property ShellScreen screen
     required property bool fullscreen
 
+    // RYOKU: exposed so Bar.checkPopout can hit-test individual workspace dots
+    // (used to show the active-window popout only over the active workspace).
+    readonly property alias wsLayout: layout
+
     readonly property bool onSpecial: (GlobalConfig.bar.workspaces.perMonitorWorkspaces ? Hypr.monitorFor(screen) : Hypr.focusedMonitor)?.lastIpcObject.specialWorkspace?.name !== ""
     readonly property int activeWsId: GlobalConfig.bar.workspaces.perMonitorWorkspaces ? (Hypr.monitorFor(screen).activeWorkspace?.id ?? 1) : Hypr.activeWsId
 
