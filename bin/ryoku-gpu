@@ -1,0 +1,446 @@
+#!/bin/bash
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+set -euo pipefail
+
+# ryoku-gpu — pin the strongest GPU as Hyprland's primary render device.
+#
+# On a multi-GPU desktop (a powerful discrete Radeon/GeForce alongside the CPU's
+# integrated GPU), Hyprland and its Wayland clients render on whichever GPU drives
+# the connected display. When the monitor is wired to the weak iGPU, the whole
+# desktop renders there while the dGPU idles: a 1440p/4K high-refresh desktop
+# then thrashes the iGPU's tiny VRAM and feels sub-60Hz no matter the refresh
+# rate, getting worse the longer the session runs as buffers pile up.
+#
+# This makes the discrete GPU Hyprland's PRIMARY renderer via AQ_DRM_DEVICES.
+# Leftmost device = primary renderer; every GPU with a connected monitor MUST
+# stay in the list, so a monitor on the iGPU keeps working through render-offload
+# (reverse PRIME). Mesa clients follow the compositor's primary device, so the
+# shell and apps render on the dGPU too.
+#
+# Stable device names: AQ_DRM_DEVICES uses ':' as its separator, so the
+# colon-laden /dev/dri/by-path/pci-*-card paths cannot be used, and bare
+# /dev/dri/cardN can be reordered across boots. A udev rule symlinks each GPU by
+# its PCI slot to a colon-free, boot-stable /dev/dri/ryoku-gpu-<slot> name and we
+# reference those. When the rule is not installed yet, we fall back to the
+# currently-resolved cardN nodes so the fix still applies (boot stability then
+# depends on stable enumeration; install the udev rule for guarantees).
+
+# Test / override seams: every device and config path can be redirected so the
+# detector is unit-testable against a fake DRM tree with no real hardware.
+DRM_ROOT="${RYOKU_GPU_DRM_ROOT:-/sys/class/drm}"
+DRI_DIR="${RYOKU_GPU_DRI_DIR:-/dev/dri}"
+HYPR_DIR="${RYOKU_GPU_HYPR_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/hypr}"
+UWSM_ENV="${RYOKU_GPU_UWSM_ENV:-${XDG_CONFIG_HOME:-$HOME/.config}/uwsm/env-hyprland}"
+UDEV_RULE="${RYOKU_GPU_UDEV_RULE:-/etc/udev/rules.d/90-ryoku-gpu.rules}"
+
+GPU_CONF="$HYPR_DIR/gpu.conf"
+HYPR_CONF="$HYPR_DIR/hyprland.conf"
+SOURCE_LINE="source = ~/.config/hypr/gpu.conf"
+SYMLINK_PREFIX="ryoku-gpu-"
+
+# APU integrated-graphics UMA carveouts stay under this; discrete cards report
+# their full VRAM well above it. Used only to split AMD/Intel integrated vs
+# discrete; NVIDIA is always treated as discrete (no in-scope NVIDIA iGPUs).
+DISCRETE_VRAM_MIN=$((2 * 1024 * 1024 * 1024))
+# Bias so any discrete GPU outranks any integrated one regardless of reported
+# VRAM (e.g. an NVIDIA card with no VRAM file still beats a 4 GiB-UMA APU).
+DISCRETE_BIAS=$((1 << 60))
+
+# ── detection ───────────────────────────────────────────────────────────────
+
+gpu_field() {
+  # Read KEY=value from a card's device uevent (carries DRIVER + PCI_SLOT_NAME).
+  sed -n "s/^$2=//p" "$1/device/uevent" 2>/dev/null | head -n1 || true
+}
+
+slot_token() {
+  # PCI slot 0000:03:00.0 -> colon/dot-free 0000-03-00-0 for symlink names.
+  local s="$1"
+  printf '%s' "${s//[:.]/-}"
+}
+
+symlink_path() {
+  printf '%s/%s%s' "$DRI_DIR" "$SYMLINK_PREFIX" "$(slot_token "$1")"
+}
+
+classify() {
+  # Sets _class (discrete|integrated) and _weight (sortable strength) for a GPU.
+  local driver="$1" vram="$2"
+  case "$driver" in
+    nvidia | nouveau)
+      _class="discrete"
+      ;;
+    *)
+      if (( vram >= DISCRETE_VRAM_MIN )); then
+        _class="discrete"
+      else
+        _class="integrated"
+      fi
+      ;;
+  esac
+  if [[ $_class == "discrete" ]]; then
+    _weight=$((DISCRETE_BIAS + vram))
+  else
+    _weight=$vram
+  fi
+}
+
+gpu_records() {
+  # One TSV row per real DRM GPU, strongest first:
+  #   weight <tab> class <tab> slot <tab> card <tab> driver <tab> vram <tab> connected
+  local path base slot driver vram connected conn st
+  for path in "$DRM_ROOT"/card[0-9]*; do
+    [[ -d $path ]] || continue
+    base="$(basename "$path")"
+    [[ $base == *-* ]] && continue          # skip cardN-CONNECTOR subdevices
+    [[ -e $path/device ]] || continue
+    slot="$(gpu_field "$path" PCI_SLOT_NAME)"
+    [[ -n $slot ]] || continue
+    driver="$(gpu_field "$path" DRIVER)"
+    [[ -n $driver ]] || driver="unknown"
+    vram="$(cat "$path/device/mem_info_vram_total" 2>/dev/null || printf '0')"
+    [[ $vram =~ ^[0-9]+$ ]] || vram=0
+    connected=0
+    for conn in "$DRM_ROOT/$base"-*; do
+      [[ -r $conn/status ]] || continue
+      st="$(cat "$conn/status" 2>/dev/null || true)"
+      if [[ $st == "connected" ]]; then
+        connected=1
+        break
+      fi
+    done
+    classify "$driver" "$vram"
+    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+      "$_weight" "$_class" "$slot" "$base" "$driver" "$vram" "$connected"
+  done | sort -t$'\t' -k1,1nr -k3,3
+}
+
+analyze() {
+  # Populate _slots / _classes (strongest first) and counts from gpu_records.
+  local class slot
+  _slots=()
+  _classes=()
+  _ngpu=0
+  _ndiscrete=0
+  _nintegrated=0
+  while IFS=$'\t' read -r _ class slot _; do
+    [[ -n $slot ]] || continue
+    _slots+=("$slot")
+    _classes+=("$class")
+    _ngpu=$((_ngpu + 1))
+    if [[ $class == "discrete" ]]; then
+      _ndiscrete=$((_ndiscrete + 1))
+    else
+      _nintegrated=$((_nintegrated + 1))
+    fi
+  done < <(gpu_records)
+}
+
+is_desktop() {
+  # Auto-config only on desktops: on laptops Hyprland recommends iGPU-first for
+  # battery life, so forcing the dGPU there would hurt. --force / env overrides.
+  case "${RYOKU_GPU_ASSUME_DESKTOP:-}" in
+    1) return 0 ;;
+    0) return 1 ;;
+  esac
+  [[ ${RYOKU_GPU_FORCE:-0} == "1" ]] && return 0
+  ! ryoku-battery-present
+}
+
+beneficial() {
+  # True when pinning the strongest GPU as primary is worth doing here.
+  is_desktop || return 1
+  (( _ngpu >= 2 )) || return 1
+  [[ ${_classes[0]} == "discrete" ]] || return 1
+  return 0
+}
+
+aq_value_symlinks() {
+  local out="" slot
+  for slot in "${_slots[@]}"; do
+    out+="${out:+:}$(symlink_path "$slot")"
+  done
+  printf '%s' "$out"
+}
+
+card_node_for_slot() {
+  local want="$1" path base
+  for path in "$DRM_ROOT"/card[0-9]*; do
+    [[ -d $path ]] || continue
+    base="$(basename "$path")"
+    [[ $base == *-* ]] && continue
+    if [[ "$(gpu_field "$path" PCI_SLOT_NAME)" == "$want" ]]; then
+      printf '%s/%s' "$DRI_DIR" "$base"
+      return 0
+    fi
+  done
+  return 1
+}
+
+aq_value_cardn() {
+  local out="" slot node
+  for slot in "${_slots[@]}"; do
+    node="$(card_node_for_slot "$slot")" || return 1
+    out+="${out:+:}$node"
+  done
+  printf '%s' "$out"
+}
+
+symlinks_present() {
+  local slot
+  for slot in "${_slots[@]}"; do
+    [[ -e "$(symlink_path "$slot")" ]] || return 1
+  done
+  return 0
+}
+
+# ── config writers ──────────────────────────────────────────────────────────
+
+write_gpu_conf() {
+  local value="$1" primary="$2"
+  cat >"$GPU_CONF" <<EOF
+# Managed by ryoku-gpu — do not edit by hand (reset with: ryoku-gpu disable).
+# Pins Hyprland's primary render device to the strongest GPU so the desktop
+# renders on the discrete GPU instead of a weak integrated one. The leftmost
+# device is the primary renderer; the others stay listed so monitors attached to
+# them keep working through render-offload (reverse PRIME). The env is read once
+# at compositor start, so changes take effect on the next Hyprland login.
+# ryoku-gpu-primary: $primary
+env = AQ_DRM_DEVICES,$value
+
+# Reverse PRIME renders the cursor on the primary GPU but scans it out on the GPU
+# the monitor is wired to. Hyprland's hardware cursor plane can't reliably import
+# that cross-GPU buffer, so cursor shape changes (text, resize, pointer) stick on
+# the last shape. Compositing the cursor in software keeps it correct. HyprMod
+# owns cursor theme/size; it does not manage this rendering setting.
+cursor:no_hardware_cursors = true
+EOF
+}
+
+ensure_source_line() {
+  [[ -f $HYPR_CONF ]] || return 0
+  grep -qxF "$SOURCE_LINE" "$HYPR_CONF" && return 0
+  local tmp
+  tmp="$(mktemp)"
+  # Insert right after the first top-of-file machine include so gpu.conf is
+  # sourced before custom.conf (user overrides win on duplicate env).
+  awk -v line="$SOURCE_LINE" '
+    { print }
+    !ins && substr($0, 1, 24) == "source = ~/.config/hypr/" { print line; ins = 1 }
+    END { if (!ins) print line }
+  ' "$HYPR_CONF" >"$tmp" && cat "$tmp" >"$HYPR_CONF"
+  rm -f "$tmp"
+}
+
+write_uwsm_env() {
+  local value="$1" dir
+  dir="$(dirname "$UWSM_ENV")"
+  # Only relevant when a uwsm-managed session is in play; under uwsm, AQ_* must
+  # be exported here rather than via hyprland.conf.
+  [[ -d $dir ]] || command -v uwsm >/dev/null 2>&1 || return 0
+  mkdir -p "$dir" 2>/dev/null || return 0
+  local tmp
+  tmp="$(mktemp)"
+  if [[ -f $UWSM_ENV ]]; then
+    grep -v '^export AQ_DRM_DEVICES=' "$UWSM_ENV" >"$tmp" 2>/dev/null || true
+  fi
+  printf 'export AQ_DRM_DEVICES=%s\n' "$value" >>"$tmp"
+  cat "$tmp" >"$UWSM_ENV"
+  rm -f "$tmp"
+}
+
+# ── subcommands ─────────────────────────────────────────────────────────────
+
+cmd_detect() {
+  analyze
+  printf '%-7s %-13s %-11s %-9s %9s  %s\n' "CARD" "PCI" "CLASS" "DRIVER" "VRAM_MB" "DISPLAY"
+  local class slot card driver vram connected
+  while IFS=$'\t' read -r _ class slot card driver vram connected; do
+    [[ -n $slot ]] || continue
+    printf '%-7s %-13s %-11s %-9s %9s  %s\n' \
+      "$card" "$slot" "$class" "$driver" "$((vram / 1024 / 1024))" \
+      "$([[ $connected == 1 ]] && printf 'connected' || printf '-')"
+  done < <(gpu_records)
+  echo
+  if beneficial; then
+    echo "Recommended primary render GPU: ${_slots[0]}"
+    echo "AQ_DRM_DEVICES = $(aq_value_symlinks)"
+    return 0
+  fi
+  echo "No GPU reorder needed here (single GPU, laptop, or no discrete GPU)."
+  return 1
+}
+
+cmd_order() {
+  analyze
+  if ! beneficial; then
+    echo "ryoku-gpu: no discrete-GPU reorder needed on this machine" >&2
+    return 1
+  fi
+  aq_value_symlinks
+  echo
+}
+
+cmd_check() {
+  # Exit 0 = already pinned to the recommended primary; 1 = needs persist;
+  # 2 = not applicable (nothing to do).
+  analyze
+  beneficial || return 2
+  [[ -f $GPU_CONF ]] || return 1
+  local pinned
+  pinned="$(sed -n 's/^# ryoku-gpu-primary: //p' "$GPU_CONF" | head -n1 || true)"
+  [[ $pinned == "${_slots[0]}" ]] && return 0
+  return 1
+}
+
+cmd_install_udev() {
+  analyze
+  if ! beneficial; then
+    echo "ryoku-gpu: no discrete-GPU reorder needed; not installing a udev rule" >&2
+    return 0
+  fi
+  local content slot tok
+  content="# Managed by ryoku-gpu: stable, colon-free DRM card names by PCI slot"$'\n'
+  content+="# so Hyprland's AQ_DRM_DEVICES can pin the discrete GPU as primary."$'\n'
+  for slot in "${_slots[@]}"; do
+    tok="$(slot_token "$slot")"
+    content+="SUBSYSTEM==\"drm\", KERNEL==\"card[0-9]*\", KERNELS==\"$slot\", SYMLINK+=\"dri/${SYMLINK_PREFIX}${tok}\""$'\n'
+  done
+
+  local rule_dir
+  rule_dir="$(dirname "$UDEV_RULE")"
+  if [[ -w $rule_dir || $EUID -eq 0 ]]; then
+    mkdir -p "$rule_dir"
+    printf '%s' "$content" >"$UDEV_RULE"
+  else
+    printf '%s' "$content" | sudo tee "$UDEV_RULE" >/dev/null
+  fi
+
+  # Load the rule so it applies on the next boot (rules.d is re-read at boot
+  # regardless, so this is best-effort).
+  if [[ ${RYOKU_GPU_SKIP_UDEVADM:-0} != "1" ]] && command -v udevadm >/dev/null 2>&1; then
+    if [[ $EUID -eq 0 ]]; then
+      udevadm control --reload-rules || true
+    else
+      sudo udevadm control --reload-rules || true
+    fi
+  fi
+
+  # Materialise the symlinks for the current session by hand instead of
+  # `udevadm trigger`: triggering would re-emit DRM connector hotplug events and
+  # could perturb a live Hyprland session (the migration and doctor run this
+  # while you are logged in). udev recreates these identically on the next boot.
+  local node base
+  for slot in "${_slots[@]}"; do
+    node="$(card_node_for_slot "$slot")" || continue
+    base="$(basename "$node")"
+    tok="$(slot_token "$slot")"
+    if [[ -w $DRI_DIR || $EUID -eq 0 ]]; then
+      ln -sfn "$base" "$DRI_DIR/${SYMLINK_PREFIX}${tok}"
+    else
+      sudo ln -sfn "$base" "$DRI_DIR/${SYMLINK_PREFIX}${tok}"
+    fi
+  done
+  echo "ryoku-gpu: installed stable GPU symlinks via $UDEV_RULE"
+}
+
+cmd_persist() {
+  analyze
+  if ! beneficial; then
+    echo "ryoku-gpu: no discrete-GPU reorder needed; leaving GPU config untouched" >&2
+    return 0
+  fi
+  mkdir -p "$HYPR_DIR"
+
+  local value style
+  if symlinks_present; then
+    value="$(aq_value_symlinks)"
+    style="stable udev symlinks"
+  elif value="$(aq_value_cardn)"; then
+    style="card nodes (run 'ryoku-gpu install-udev' as root for boot-stable names)"
+  else
+    echo "ryoku-gpu: could not resolve GPU device nodes; aborting" >&2
+    return 1
+  fi
+
+  write_gpu_conf "$value" "${_slots[0]}"
+  ensure_source_line
+  write_uwsm_env "$value"
+
+  echo "ryoku-gpu: pinned primary render GPU ${_slots[0]} via $style"
+  echo "  AQ_DRM_DEVICES=$value"
+  echo "  wrote $GPU_CONF (active on next Hyprland login)"
+}
+
+cmd_disable() {
+  if [[ -f $GPU_CONF ]]; then
+    cat >"$GPU_CONF" <<'EOF'
+# Managed by ryoku-gpu. Empty: Hyprland uses its default GPU selection.
+# Pin the discrete GPU as the primary renderer with: ryoku-gpu persist
+EOF
+  fi
+  if [[ -f $UWSM_ENV ]]; then
+    local tmp
+    tmp="$(mktemp)"
+    grep -v '^export AQ_DRM_DEVICES=' "$UWSM_ENV" >"$tmp" 2>/dev/null || true
+    cat "$tmp" >"$UWSM_ENV"
+    rm -f "$tmp"
+  fi
+  if [[ -f $UDEV_RULE ]]; then
+    if [[ -w $UDEV_RULE || $EUID -eq 0 ]]; then
+      rm -f "$UDEV_RULE"
+    else
+      sudo rm -f "$UDEV_RULE"
+    fi
+  fi
+  echo "ryoku-gpu: reset to Hyprland's default GPU selection (active on next login)"
+}
+
+cmd_status() {
+  cmd_detect || true
+  echo
+  if [[ -f $GPU_CONF ]] && grep -q '^env = AQ_DRM_DEVICES,' "$GPU_CONF"; then
+    echo "Configured ($GPU_CONF):"
+    grep -E '^# ryoku-gpu-primary:|^env = AQ_DRM_DEVICES,' "$GPU_CONF" | sed 's/^/  /'
+  else
+    echo "Not configured: $GPU_CONF has no AQ_DRM_DEVICES pin."
+  fi
+}
+
+usage() {
+  cat <<'USAGE'
+Usage: ryoku-gpu <command>
+
+Pin the strongest GPU as Hyprland's primary render device on multi-GPU machines
+so the desktop renders on the discrete GPU instead of a weak integrated one.
+
+Commands:
+  detect         Show detected GPUs and the recommended primary (exit 1 if none).
+  order          Print the recommended AQ_DRM_DEVICES value (exit 1 if none).
+  status         Show detection plus the current ~/.config/hypr/gpu.conf pin.
+  check          Exit 0 if already pinned, 1 if persist needed, 2 if N/A.
+  persist        Write gpu.conf + source line (+ uwsm env) for the strongest GPU.
+  install-udev   Install the udev rule for boot-stable GPU symlinks (root).
+  disable        Reset to Hyprland's default GPU selection.
+
+Takes effect on the next Hyprland login (AQ_DRM_DEVICES is read at start).
+USAGE
+}
+
+case "${1:-status}" in
+  detect) cmd_detect ;;
+  order) cmd_order ;;
+  status) cmd_status ;;
+  check) cmd_check ;;
+  persist) cmd_persist ;;
+  install-udev) cmd_install_udev ;;
+  disable | clear) cmd_disable ;;
+  -h | --help | help) usage ;;
+  *)
+    echo "Unknown command: $1" >&2
+    usage >&2
+    exit 1
+    ;;
+esac

@@ -1138,6 +1138,43 @@ doctor_repair_wallpaper_path() {
   fi
 }
 
+# RYOKU: on multi-GPU desktops, keep the discrete GPU as Hyprland's primary
+# render device. With the monitor wired to a weak integrated GPU, the whole
+# desktop renders there while the powerful dGPU idles, so high-refresh sessions
+# thrash the iGPU's small VRAM and feel sub-60Hz. ryoku-gpu decides applicability
+# (no-op on single-GPU machines and laptops).
+doctor_repair_gpu_render_primary() {
+  doctor_command_present ryoku-gpu || return 0
+
+  local rc=0
+  ryoku-gpu check >/dev/null 2>&1 || rc=$?
+  case "$rc" in
+    0)
+      doctor_note "OK" "Discrete GPU is pinned as Hyprland's primary render device."
+      return 0
+      ;;
+    2)
+      # Single GPU, laptop, or no discrete GPU: nothing to pin.
+      return 0
+      ;;
+  esac
+
+  # rc == 1: a stronger GPU exists but the desktop is not pinned to it yet.
+  doctor_note "FIX" "Pinning the discrete GPU as Hyprland's primary renderer (the desktop was set to render on a weaker GPU)."
+  # Boot-stable GPU symlinks need root; only attempt it when sudo won't prompt
+  # (install + update migrations install the rule with cached credentials).
+  if sudo -n true >/dev/null 2>&1; then
+    ryoku-gpu install-udev >/dev/null 2>&1 || true
+  fi
+  if ryoku-gpu persist >/dev/null 2>&1; then
+    doctor_note "INFO" "Log out and back in (or reboot) to render on the discrete GPU."
+    doctor_report_issue "FIX Pinned discrete GPU as Hyprland primary render device (AQ_DRM_DEVICES); active next login."
+  else
+    doctor_note "WARN" "Could not pin the discrete GPU automatically; run: ryoku-gpu persist"
+    doctor_report_issue "WARN Discrete-GPU primary-render pin pending; run ryoku-gpu persist."
+  fi
+}
+
 run_shell_doctor() {
   local setup
   local runtime_dir="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/ryoku-shell"
@@ -1156,6 +1193,7 @@ run_shell_doctor() {
   doctor_converge_rebirth_session_services
   doctor_repair_rebirth_audio_restore_service
   doctor_repair_wallpaper_path
+  doctor_repair_gpu_render_primary
 
   for setup in "${candidates[@]}"; do
     [[ -x $setup ]] || continue
