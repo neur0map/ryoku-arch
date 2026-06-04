@@ -613,5 +613,15 @@ ColumnLayout {
         }
       }
     }
+
+    // RYOKU: browse + download color schemes from the ryoku-extras catalogue
+    // (opens SchemeDownloader, which has its own refresh-from-repo button).
+    NButton {
+      Layout.topMargin: Style.marginM
+      text: I18n.tr("panels.color-scheme.download-title")
+      icon: "download"
+      outlined: true
+      onClicked: root.openDownloadPopup()
+    }
   }
 }

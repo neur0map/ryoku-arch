@@ -771,14 +771,16 @@ Popup {
         tooltipText: I18n.tr("common.refresh")
         enabled: !fetching && !downloading
         onClicked: {
-          // Force refresh by clearing cache timestamp and fetching directly from API
+          // Force a real re-pull: clear the cached list AND reset the
+          // per-minute rate-limit so the button always re-fetches the
+          // catalogue (otherwise it silently no-ops within 60s of a fetch).
           if (typeof ShellState !== 'undefined' && ShellState.isLoaded) {
             ShellState.setColorSchemesList({
                                              schemes: [],
                                              timestamp: 0
                                            });
           }
-          // Fetch directly from API to avoid cache check delay
+          root.lastApiFetchTime = 0;
           fetchAvailableSchemesFromAPI();
         }
       }
@@ -816,10 +818,10 @@ Popup {
       }
     }
 
-    // Loading indicator - only show on initial load, not during refresh
+    // Loading indicator - shown on the initial fetch and on every manual refresh
     RowLayout {
       Layout.fillWidth: true
-      visible: fetching && !hasInitialData
+      visible: fetching
       spacing: Style.marginM
 
       NBusyIndicator {
