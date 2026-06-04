@@ -666,7 +666,7 @@ ColumnLayout {
 
           required property var modelData
           readonly property string schemeName: modelData.name
-          readonly property bool active: !GlobalConfig.services.smartScheme && Settings.data.colorSchemes.predefinedScheme === csItem.schemeName
+          readonly property bool active: Colours.scheme === csItem.schemeName
 
           property color cBg: root.getSchemeColor(csItem.schemeName, "mSurface")
           property color cText: root.getSchemeColor(csItem.schemeName, "mOnSurface")
@@ -730,7 +730,7 @@ ColumnLayout {
             onClicked: {
               GlobalConfig.services.smartScheme = false;
               GlobalConfig.save();
-              ColorSchemeService.setPredefinedScheme(csItem.schemeName);
+              Quickshell.execDetached(["ryoku-scheme-set", csItem.schemeName]);
             }
           }
 

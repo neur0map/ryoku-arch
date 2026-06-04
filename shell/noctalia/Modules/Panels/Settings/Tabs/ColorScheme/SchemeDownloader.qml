@@ -716,8 +716,9 @@ Popup {
     onTriggered: {
       if (schemeName !== "") {
         Logger.i("ColorSchemeDownload", "Auto-applying downloaded scheme:", schemeName);
-        // Use setPredefinedScheme which will apply and set it as the current scheme
-        ColorSchemeService.setPredefinedScheme(schemeName);
+        // Apply system-wide via the ryoku pipeline (shell + GTK/Qt/terminal/etc.),
+        // matching how themes apply - setPredefinedScheme only wrote colors.json.
+        Quickshell.execDetached(["ryoku-scheme-set", schemeName]);
         schemeName = "";
       }
     }
