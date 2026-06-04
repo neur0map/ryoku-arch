@@ -135,6 +135,31 @@ Item {
         readonly property color fillMid: Qt.alpha(Qt.darker(accent, 4.0), 0.55)
         readonly property color fillBottom: Qt.alpha(Colours.palette.m3scrim, 0.6)
 
+        // Auto-hide on silence. cava decays to ~0 when nothing is playing, so without
+        // this the glow/core strokes (and their bloom) trace the flat contour along the
+        // bottom edge and leave a persistent neon line. The 0.02 floor matches the dots
+        // renderer in visualiserbars.cpp so every visualiser style hides consistently.
+        readonly property real peak: {
+            const v = sky.barValues;
+            if (!v || v.length === 0)
+                return 0;
+            let m = 0;
+            for (let i = 0; i < v.length; ++i) {
+                const x = v[i] ?? 0;
+                if (x > m)
+                    m = x;
+            }
+            return m;
+        }
+        readonly property bool hasSignal: sky.peak > 0.02
+
+        opacity: sky.hasSignal ? 1 : 0
+        visible: sky.opacity > 0
+
+        Behavior on opacity {
+            Anim {}
+        }
+
         // Interpolated symmetric spectrum at any column: bass swells from the centre
         // outward (a dome growing from the middle), highs taper to the edges.
         function levelAtCol(i: int): real {
