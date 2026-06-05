@@ -2,7 +2,7 @@
 
 This is **the Ryoku rice**: the version-controlled default config that defines
 how Ryoku ships. It lives under `shell/` alongside the integrated components
-(`ambxst/`, `noctalia/`) and the shell code, so there is exactly one path to edit
+(`dashboard/`, `settingsgui/`) and the shell code, so there is exactly one path to edit
 when you want to change how Ryoku looks or behaves out of the box.
 
 | File | Role |

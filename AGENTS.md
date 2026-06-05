@@ -70,9 +70,9 @@ fi
 # Ryoku shell: one product, canonical layers
 
 Ryoku is a single shell and dotfile config of its own. Code under `shell/` was
-adapted from upstream projects (caelestia, ambxst, noctalia, iNiR, end-4,
-omarchy) but NONE of them are tracked upstream: it is all Ryoku now, evolved as
-one cohesive product. Do not reason about `shell/ambxst/` or `shell/noctalia/`
+adapted from several upstream projects (see `CREDITS.md` for attribution) but
+NONE of them are tracked upstream: it is all Ryoku now, evolved as
+one cohesive product. Do not reason about `shell/dashboard/` or `shell/settingsgui/`
 as separate shells; they are integrated Ryoku components.
 
 The ONLY vendored external kept faithful to upstream is `vendor/qylock/` (the
@@ -85,23 +85,23 @@ Canonical layers (use these; do not add parallel surfaces elsewhere):
 - Config: the typed `Ryoku.Config` / `GlobalConfig` layer in
   `shell/plugin/src/Ryoku/Config/`, persisted to `~/.config/ryoku/shell.json`.
   New user-facing config keys go HERE (the Vicinae launcher toggle is the
-  reference example). Do NOT add new keys to the legacy ambxst store
-  (`~/.config/ambxst/*`, `shell/ambxst/config/Config.qml`) or noctalia store
-  (`~/.config/noctalia/settings.json`). Those hold the existing desktop config;
+  reference example). Do NOT add new keys to the legacy dashboard store
+  (`~/.config/ryoku/dashboard/*`, `shell/dashboard/config/Config.qml`) or settings-gui store
+  (`~/.config/ryoku/settings-gui/settings.json`). Those hold the existing desktop config;
   consolidating how its defaults ("the rice") ship is tracked in
   `docs/ryoku-config-architecture.md`.
-- Settings UI: the noctalia-based `SettingsContent`
-  (`shell/noctalia/Modules/Panels/Settings/Tabs/`), opened by `ryoku-shell settings`.
-  New settings UI is a tab or sub-tab there, bound to `GlobalConfig`. The ambxst
-  dashboard "Settings" tab (`shell/ambxst/modules/widgets/dashboard/controls/SettingsTab.qml`)
+- Settings UI: the settings-gui `SettingsContent`
+  (`shell/settingsgui/Modules/Panels/Settings/Tabs/`), opened by `ryoku-shell settings`.
+  New settings UI is a tab or sub-tab there, bound to `GlobalConfig`. The Ryoku
+  dashboard "Settings" tab (`shell/dashboard/modules/widgets/dashboard/controls/SettingsTab.qml`)
   is a parallel surface being retired: do NOT add settings to it.
 - IPC: Ryoku's own `ryoku-shell ipc <target> <fn>` (run `ryoku-shell ipc show`
   for the live registry). Keybinds live only in `config/hypr/hyprland.conf`
   (Ryoku-owned); per the config contract it reaches existing installs only via a
   `[global]` migration, and user overrides go in `config/hypr/custom.conf`.
 
-Licensing: `shell/ambxst/` is AGPL-3.0 (keep its `ATTRIBUTION.md` and AGPL header
-obligations); `shell/noctalia/` is MIT. Unifying identity does not relicense
+Licensing: `shell/dashboard/` is AGPL-3.0 (keep its `ATTRIBUTION.md` and AGPL header
+obligations); `shell/settingsgui/` is MIT. Unifying identity does not relicense
 borrowed code: keep attribution intact.
 
 # Ryoku Settings and System Architecture

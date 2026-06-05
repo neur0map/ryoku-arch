@@ -1,0 +1,4 @@
+module qs.dashboard.modules.corners
+RoundCorner 1.0 RoundCorner.qml
+ScreenCornersContent 1.0 ScreenCornersContent.qml
+ScreenCorners 1.0 ScreenCorners.qml

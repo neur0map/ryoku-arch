@@ -206,7 +206,7 @@ Scope {
 
     // RYOKU: open the dedicated, image-capable clipboard overlay (Super+V). The
     // history is captured by ClipboardService into clipboard.db; the overlay hosts
-    // ambxst's ClipboardTab via qs.modules.clipboard.
+    // the dashboard's ClipboardTab via qs.modules.clipboard.
     IpcHandler {
         function open(): void {
             if (root.hasFullscreen)

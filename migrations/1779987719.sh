@@ -1,6 +1,6 @@
 echo "Repoint Super+V to the image-capable Ryoku clipboard and disable cliphist auto-start"
 
-# The image clipboard is captured by the ambxst ClipboardService (started by the
+# The image clipboard is captured by the image-capable ClipboardService (started by the
 # shell). Super+V should open that, and the old cliphist watcher is now redundant.
 # Seeded configs are never overwritten on existing installs, so the live
 # hyprland.conf has to be edited in place here. Only users whose $clipboard is
@@ -34,7 +34,7 @@ awk -v new="$new_clip" -v o1="$old_clip_1" -v o2="$old_clip_2" -v ch="$cliphist_
   { t = trim($0) }
   t == o1 || t == o2 { print new; next }
   t == ch {
-    print "# RYOKU: clipboard history now captured by the image-capable ambxst ClipboardService"
+    print "# RYOKU: clipboard history now captured by the image-capable ClipboardService"
     print "# (started by the shell); Super+V opens it. cliphist auto-start disabled."
     print "# " $0
     next

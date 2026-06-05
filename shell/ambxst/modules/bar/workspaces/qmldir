@@ -1,3 +1,0 @@
-module qs.ambxst.modules.bar.workspaces
-singleton CompositorData 1.0 CompositorData.qml
-Workspaces 1.0 Workspaces.qml

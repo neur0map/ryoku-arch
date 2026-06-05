@@ -29,14 +29,14 @@ and the only thing that force-applies on update is a tiny override file:
 
 | Layer | Default lives in | Read by | Ships on fresh? | Reaches existing users? |
 |---|---|---|---|---|
-| ambxst (active desktop: bar, dock, **desktop widgets/clock**) | `shell/ambxst/config/defaults/*.js` | `~/.config/ryoku-shell/config.json` | yes | only if a migration writes it |
-| noctalia (settings UI, version) | `Settings.qml` defaults + `Assets/settings-default.json` | `settings.json` (not even present on disk → code defaults) | yes | no path |
+| dashboard (active desktop: bar, dock, **desktop widgets/clock**) | `shell/dashboard/config/defaults/*.js` | `~/.config/ryoku-shell/config.json` | yes | only if a migration writes it |
+| settings-gui (settings UI, version) | `Settings.qml` defaults + `Assets/settings-default.json` | `settings.json` (not even present on disk → code defaults) | yes | no path |
 | Ryoku override | `shell/rice/config-overrides.json` seeds `config.json` (forced over upstream on a fresh install, **fill-if-missing on update** so user choices survive) + `shell/rice/shell.json` | `config.json` / `shell.json` | yes | new keys only; a value change for existing users needs a `[global]` migration |
 
 So today the **only** settings that reach existing users are the handful in
 `config-overrides.json` (`hotspot`, `dock`, `enabledPanels`). Desktop widgets,
 the clock, and the version string are not there, so:
-- a fresh install shows the *upstream* defaults (clock off, Noctalia version),
+- a fresh install shows the *upstream* defaults (clock off, upstream version),
 - and existing users get nothing.
 
 That is the "I push changes and it does nothing" symptom.
@@ -49,18 +49,18 @@ Ryoku Ryoku - the **integrated Ryoku components** live here too:
 
 ```
 shell/                         # <- THE path. Edit anything here to rice Ryoku.
-  ambxst/      noctalia/        #   integrated Ryoku components (fully editable)
+  dashboard/   settingsgui/     #   integrated Ryoku components (fully editable)
   services/  modules/  scripts/ #   Ryoku's own shell code
   rice/                         #   the default config = "how Ryoku ships"
     config.json                 #     full desktop config (bar, dock,
                                 #     desktopWidgets + clock ON, panels)
-    settings.json               #     noctalia/settings defaults + Ryoku version
+    settings.json               #     settings-gui defaults + Ryoku version
     overrides.json              #     NARROW force-on-every-update set
     branding-replacements.tsv
   README.md                     #   "this is the Ryoku rice; edit here"
 ```
 
-Today the rice base is scattered: ambxst `config/defaults/*.js`, noctalia
+Today the rice base is scattered: dashboard `config/defaults/*.js`, settings-gui
 `Settings.qml` + `settings-default.json`, and `default/ryoku-shell/`. We
 **consolidate** the Ryoku default/rice into `shell/rice/` (moving
 `default/ryoku-shell/*` in) so there is exactly **one path** - `shell/` - that
@@ -123,7 +123,7 @@ Non-`[global]` changes ship no migration and touch no existing user.
    base on fresh install (then `overrides.json` on top).
 3. **Migration for existing users** (`[global]`): `migrations/<ts>.sh` enables
    clock+widgets for users who haven't explicitly disabled them.
-4. **Version surface** shows a Ryoku version, not Noctalia `4.7.8`.
+4. **Version surface** shows a Ryoku version, not the upstream `4.7.8`.
 5. **Doctor check** that reports keys where `~/.config/ryoku-shell/` (user) has
    diverged from `shell/rice/` (Ryoku), so the two layers stay distinguishable.
 6. **VM-verify** all three guarantees: fresh ISO ships clock+widgets; simulated
@@ -152,7 +152,7 @@ The two rules are now backed by automation and docs:
   source of truth" rule in `AGENTS.md`.
 - **Canonical layers** (where new config/UI/IPC go) are stated in the root
   `AGENTS.md` ("Ryoku shell: one product, canonical layers"): new user-facing
-  keys use `Ryoku.Config`; the existing ambxst/noctalia desktop config and its
+  keys use `Ryoku.Config`; the existing dashboard/settings-gui desktop config and its
   rice defaults are what this doc consolidates into `shell/rice/`.
 - **Shell IPC <-> keybind parity** is gated by `.github/workflows/shell-ipc-parity.yml`
   (via `ryoku-dev-audit-shell-binds`), so a keybind can never dispatch to a

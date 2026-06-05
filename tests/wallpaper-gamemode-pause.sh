@@ -28,7 +28,7 @@ mkdir -p "$_bin"
 _log="$tmpdir/calls.log"
 _state="$tmpdir/state"
 _xdg="$tmpdir/xdg"
-mkdir -p "$_state/wallpaper" "$_xdg/noctalia"
+mkdir -p "$_state/wallpaper" "$_xdg/ryoku/settings-gui"
 
 # Stub pkill: log invocations
 cat >"$_bin/pkill" <<'EOF'
@@ -92,7 +92,7 @@ _run_resume() {
 # --- Test: pause calls stop backends (pkill mpvpaper + awww kill) ---
 printf '%s\n' 'video' >"$_state/wallpaper/type.txt"
 printf '%s\n' '/tmp/clip.mp4' >"$_state/wallpaper/path.txt"
-printf '%s\n' '{"wallpaper":{"pauseOnFullscreen":true}}' >"$_xdg/noctalia/settings.json"
+printf '%s\n' '{"wallpaper":{"pauseOnFullscreen":true}}' >"$_xdg/ryoku/settings-gui/settings.json"
 
 _run_pause
 (( PAUSE_STATUS == 0 )) || fail "pause: should exit 0 for video type (out: $PAUSE_OUT)"
@@ -103,7 +103,7 @@ grep -q 'awww kill' "$_log" \
 pass "pause: stops live backends for video type"
 
 # --- Test: pause is no-op when pauseOnFullscreen=false ---
-printf '%s\n' '{"wallpaper":{"pauseOnFullscreen":false}}' >"$_xdg/noctalia/settings.json"
+printf '%s\n' '{"wallpaper":{"pauseOnFullscreen":false}}' >"$_xdg/ryoku/settings-gui/settings.json"
 _run_pause
 (( PAUSE_STATUS == 0 )) || fail "pause/disabled: should exit 0 (out: $PAUSE_OUT)"
 grep -q 'pkill' "$_log" \
@@ -111,7 +111,7 @@ grep -q 'pkill' "$_log" \
 pass "pause: no-op when pauseOnFullscreen=false"
 
 # --- Test: pause is no-op when type is image ---
-printf '%s\n' '{"wallpaper":{"pauseOnFullscreen":true}}' >"$_xdg/noctalia/settings.json"
+printf '%s\n' '{"wallpaper":{"pauseOnFullscreen":true}}' >"$_xdg/ryoku/settings-gui/settings.json"
 printf '%s\n' 'image' >"$_state/wallpaper/type.txt"
 _run_pause
 (( PAUSE_STATUS == 0 )) || fail "pause/image: should exit 0 (out: $PAUSE_OUT)"
@@ -128,7 +128,7 @@ grep -q 'pkill' "$_log" \
 pass "pause: stops live backends for animated type"
 
 # --- Test: resume re-applies wallpaper when type is video ---
-printf '%s\n' '{"wallpaper":{"pauseOnFullscreen":true}}' >"$_xdg/noctalia/settings.json"
+printf '%s\n' '{"wallpaper":{"pauseOnFullscreen":true}}' >"$_xdg/ryoku/settings-gui/settings.json"
 printf '%s\n' 'video' >"$_state/wallpaper/type.txt"
 printf '%s\n' '/tmp/clip.mp4' >"$_state/wallpaper/path.txt"
 _run_resume
@@ -157,7 +157,7 @@ grep -q 'ryoku-wallpaper-apply' "$_log" \
 pass "resume: no-op for static image type"
 
 # --- Test: resume is no-op when pauseOnFullscreen=false ---
-printf '%s\n' '{"wallpaper":{"pauseOnFullscreen":false}}' >"$_xdg/noctalia/settings.json"
+printf '%s\n' '{"wallpaper":{"pauseOnFullscreen":false}}' >"$_xdg/ryoku/settings-gui/settings.json"
 printf '%s\n' 'video' >"$_state/wallpaper/type.txt"
 _run_resume
 (( RESUME_STATUS == 0 )) || fail "resume/disabled: should exit 0 (out: $RESUME_OUT)"

@@ -90,7 +90,6 @@ assert_old_shell_templates_removed() {
     default/themed/hyprland.conf.tpl \
     default/themed/hyprlock.conf.tpl \
     default/themed/mako.ini.tpl \
-    default/themed/noctalia-colors.json.tpl \
     default/themed/quickshell-colors.qml.tpl \
     default/themed/ryoku-shell-colors.json.tpl \
     default/themed/swayosd.css.tpl \

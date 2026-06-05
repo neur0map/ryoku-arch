@@ -9,8 +9,8 @@ import qs.components.controls
 import qs.modules.bar.popouts as BarPopouts
 import qs.modules.utilities as Utilities
 import qs.modules.utilities.cards as UtilityCards
-import qs.ambxst.modules.widgets.dashboard as AmbxstContent
-import qs.ambxst.modules.globals as AmbxstGlobals
+import qs.dashboard.modules.widgets.dashboard as DashboardContent
+import qs.dashboard.modules.globals as DashGlobals
 
 Item {
   id: root
@@ -45,7 +45,7 @@ Item {
   // renders (and its dashboardOpen-gated interactions enable) only while the island
   // is open.
   Binding {
-    target: AmbxstGlobals.GlobalStates
+    target: DashGlobals.GlobalStates
     property: "ryokuDashboardOpen"
     value: root.visibilities.island && !root.recordMode
   }
@@ -64,7 +64,7 @@ Item {
     // Ryoku island dashboard content. DashboardView is self-contained (self-wires via
     // its own singletons), so it takes no extra props. The Ryoku lens / color-picker /
     // record hooks are intentionally not wired yet — to be re-added after restyle.
-    AmbxstContent.DashboardView {}
+    DashboardContent.DashboardView {}
   }
 
   Component {

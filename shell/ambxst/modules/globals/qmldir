@@ -1,2 +1,0 @@
-module qs.ambxst.modules.globals
-singleton GlobalStates 1.0 GlobalStates.qml

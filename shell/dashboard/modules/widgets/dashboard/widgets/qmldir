@@ -1,0 +1,8 @@
+module qs.dashboard.modules.widgets.dashboard.widgets
+ControlButton 1.0 ControlButton.qml
+FullPlayer 1.0 FullPlayer.qml
+LockPlayer 1.0 LockPlayer.qml
+NotificationHistory 1.0 NotificationHistory.qml
+QuickControls 1.0 QuickControls.qml
+WeatherWidget 1.0 WeatherWidget.qml
+WidgetsTab 1.0 WidgetsTab.qml

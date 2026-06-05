@@ -63,10 +63,13 @@ endif()
 
 if("shell" IN_LIST ENABLE_MODULES)
     # Runtime QML/asset/script trees that shell.qml + Quickshell.shellPath() load.
-    # Must match what shell/setup rsyncs: ambxst/noctalia are integrated Ryoku
+    # Must match what shell/setup rsyncs: dashboard/settingsgui are integrated Ryoku
     # components shell.qml imports; scripts/ backs shellPath("scripts/...").
-    foreach(dir assets components modules services utils ambxst noctalia scripts)
-        install(DIRECTORY ${dir} DESTINATION "${INSTALL_QSCONFDIR}")
+    # USE_SOURCE_PERMISSIONS preserves the +x on scripts/ helpers; the cmake
+    # default forces 0644, which left ryoku-settings-about non-executable so the
+    # About panel fell back to the upstream version string.
+    foreach(dir assets components modules services utils dashboard settingsgui scripts)
+        install(DIRECTORY ${dir} DESTINATION "${INSTALL_QSCONFDIR}" USE_SOURCE_PERMISSIONS)
     endforeach()
 
     file(READ shell.qml SHELL_QML)

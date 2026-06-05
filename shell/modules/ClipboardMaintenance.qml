@@ -3,8 +3,8 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import qs.noctalia.Commons
-import qs.ambxst.modules.services
+import qs.settingsgui.Commons
+import qs.dashboard.modules.services
 
 // Ryoku: (1) eagerly starts the image-capable ClipboardService so its wl-paste
 // watcher captures text + images into clipboard.db from shell startup — it's

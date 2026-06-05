@@ -67,14 +67,14 @@ assert_contains "config/vicinae/settings.json" '"keyboard_interactivity": "on_de
   "settings.json should avoid exclusive keyboard interactivity under Hyprland"
 
 # matugen renders the launcher theme so it tracks the active wallpaper palette.
-assert_contains "shell/ambxst/assets/matugen/config.toml" '\[templates.vicinae\]' \
+assert_contains "shell/dashboard/assets/matugen/config.toml" '\[templates.vicinae\]' \
   "matugen config should template the Vicinae theme"
-assert_contains "shell/ambxst/assets/matugen/config.toml" 'vicinae/themes/ryoku.toml' \
+assert_contains "shell/dashboard/assets/matugen/config.toml" 'vicinae/themes/ryoku.toml' \
   "matugen should output the Ryoku theme into the official Vicinae theme dir"
-assert_file "shell/ambxst/assets/matugen/vicinae.toml"
-assert_contains "shell/ambxst/assets/matugen/vicinae.toml" '\[colors.core\]' \
+assert_file "shell/dashboard/assets/matugen/vicinae.toml"
+assert_contains "shell/dashboard/assets/matugen/vicinae.toml" '\[colors.core\]' \
   "Vicinae theme template should define core colors"
-assert_not_contains "shell/ambxst/assets/matugen/vicinae.toml" '\{\{mode\}\}' \
+assert_not_contains "shell/dashboard/assets/matugen/vicinae.toml" '\{\{mode\}\}' \
   "Vicinae theme template must not use {{mode}}; matugen does not expand it"
 
 # Migration converges existing installs onto the new launcher.
@@ -99,13 +99,13 @@ assert_contains "bin/ryoku-launch-app" 'ryoku-shell launcher' \
 assert_contains "bin/ryoku-launch-app" 'systemctl --user (start|stop) vicinae.service' \
   "ryoku-launch-app apply should start/stop the Vicinae server"
 
-# Settings toggle: typed config key (default on) in Ryoku.Config + the noctalia
+# Settings toggle: typed config key (default on) in Ryoku.Config + the settings-gui
 # Launcher > General settings page bound to it (the active settings UI).
 assert_contains "shell/plugin/src/Ryoku/Config/launcherconfig.hpp" 'CONFIG_PROPERTY\(bool, useVicinae, true\)' \
   "launcherconfig.hpp should declare launcher.useVicinae defaulting to true"
-launcher_subtab="shell/noctalia/Modules/Panels/Settings/Tabs/Launcher/GeneralSubTab.qml"
+launcher_subtab="shell/settingsgui/Modules/Panels/Settings/Tabs/Launcher/GeneralSubTab.qml"
 assert_contains "$launcher_subtab" 'label: qsTr\("Use Vicinae launcher"\)' \
-  "noctalia Launcher settings should add a 'Use Vicinae launcher' toggle"
+  "settings-gui Launcher settings should add a 'Use Vicinae launcher' toggle"
 assert_contains "$launcher_subtab" 'GlobalConfig.launcher.useVicinae = checked' \
   "the toggle should write GlobalConfig.launcher.useVicinae"
 assert_contains "$launcher_subtab" 'ryoku-launch-app.*apply' \

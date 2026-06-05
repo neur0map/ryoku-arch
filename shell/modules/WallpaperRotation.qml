@@ -3,7 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Ryoku.Config
 import qs.services
-import qs.noctalia.Commons
+import qs.settingsgui.Commons
 
 // Ryoku: scheduled wallpaper rotation for the Wallpaper settings' Automation
 // subtab. Always loaded from shell.qml so rotation runs whether or not settings

@@ -4,9 +4,9 @@ import QtQuick
 import Quickshell
 import Ryoku.Config
 import qs.components
-import "../../ambxst/modules/widgets/dashboard/clipboard" as Clip
+import "../../dashboard/modules/widgets/dashboard/clipboard" as Clip
 
-// RYOKU: dedicated, image-capable clipboard overlay (Super+V). Hosts the ambxst
+// RYOKU: dedicated, image-capable clipboard overlay (Super+V). Hosts the dashboard's
 // ClipboardTab directly — the only place in ryoku that surfaces it — and reuses
 // the launcher's open/close motion so it feels native.
 Item {

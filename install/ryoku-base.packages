@@ -189,7 +189,7 @@ yt-dlp
 cliphist
 grim
 slurp
-# sqlite: ambxst ClipboardService stores image/text clipboard history in clipboard.db
+# sqlite: the image-capable ClipboardService stores image/text clipboard history in clipboard.db
 sqlite
 tesseract
 tesseract-data-eng

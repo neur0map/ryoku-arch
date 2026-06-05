@@ -194,21 +194,21 @@ assert_contains shell/plugin/src/Ryoku/Config/userpaths.hpp 'obsidianVaultName' 
   "typed config should expose the Obsidian vault name"
 assert_contains shell/plugin/src/Ryoku/Config/userpaths.hpp 'obsidianVaultName, QString\(\)' \
   "typed config should not default to an unverified Obsidian vault name"
-assert_contains shell/noctalia/Modules/Panels/Settings/Tabs/General/BasicsSubTab.qml 'id: obsidianVaultPicker' \
+assert_contains shell/settingsgui/Modules/Panels/Settings/Tabs/General/BasicsSubTab.qml 'id: obsidianVaultPicker' \
   "settings should expose a folder picker for the Obsidian vault"
-assert_contains shell/noctalia/Modules/Panels/Settings/Tabs/General/BasicsSubTab.qml 'selectionMode: "folders"' \
+assert_contains shell/settingsgui/Modules/Panels/Settings/Tabs/General/BasicsSubTab.qml 'selectionMode: "folders"' \
   "Obsidian vault picker should select folders"
-assert_contains shell/noctalia/Modules/Panels/Settings/Tabs/General/BasicsSubTab.qml 'label: "Obsidian notes"' \
+assert_contains shell/settingsgui/Modules/Panels/Settings/Tabs/General/BasicsSubTab.qml 'label: "Obsidian notes"' \
   "settings should include an Obsidian notes section"
-assert_contains shell/noctalia/Modules/Panels/Settings/Tabs/General/BasicsSubTab.qml 'GlobalConfig\.paths\.obsidianVaultDir = text\.trim\(\)' \
+assert_contains shell/settingsgui/Modules/Panels/Settings/Tabs/General/BasicsSubTab.qml 'GlobalConfig\.paths\.obsidianVaultDir = text\.trim\(\)' \
   "settings should persist the configured Obsidian vault folder"
-assert_contains shell/noctalia/Modules/Panels/Settings/Tabs/General/BasicsSubTab.qml 'GlobalConfig\.paths\.obsidianDailyDir = text\.trim\(\)' \
+assert_contains shell/settingsgui/Modules/Panels/Settings/Tabs/General/BasicsSubTab.qml 'GlobalConfig\.paths\.obsidianDailyDir = text\.trim\(\)' \
   "settings should persist the configured daily notes folder"
-assert_contains shell/noctalia/Modules/Panels/Settings/Tabs/General/BasicsSubTab.qml 'GlobalConfig\.paths\.obsidianInboxFile = text\.trim\(\)' \
+assert_contains shell/settingsgui/Modules/Panels/Settings/Tabs/General/BasicsSubTab.qml 'GlobalConfig\.paths\.obsidianInboxFile = text\.trim\(\)' \
   "settings should persist the configured quick-note inbox file"
-assert_contains shell/noctalia/Modules/Panels/Settings/Tabs/General/BasicsSubTab.qml 'GlobalConfig\.paths\.obsidianVaultName = text\.trim\(\)' \
+assert_contains shell/settingsgui/Modules/Panels/Settings/Tabs/General/BasicsSubTab.qml 'GlobalConfig\.paths\.obsidianVaultName = text\.trim\(\)' \
   "settings should persist the optional Obsidian vault name"
-assert_contains shell/noctalia/Modules/Panels/Settings/Tabs/General/BasicsSubTab.qml 'GlobalConfig\.save\(\)' \
+assert_contains shell/settingsgui/Modules/Panels/Settings/Tabs/General/BasicsSubTab.qml 'GlobalConfig\.save\(\)' \
   "settings should save Obsidian path changes through GlobalConfig"
 
 echo "PASS: obsidian frame popup"

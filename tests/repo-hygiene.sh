@@ -215,8 +215,8 @@ assert_asset_references_are_updated() {
     "Settings about helper should read the canonical release version"
   assert_not_contains "shell/scripts/ryoku-settings-about" 'shell/VERSION' \
     "Settings about helper should not read the legacy shell version file"
-  assert_contains "shell/noctalia/Modules/Panels/Settings/Tabs/About/VersionSubTab.qml" 'RyokuAbout\.info && RyokuAbout\.info\.version' \
-    "Noctalia About page should display the version reported by the helper"
+  assert_contains "shell/settingsgui/Modules/Panels/Settings/Tabs/About/VersionSubTab.qml" 'RyokuAbout\.info && RyokuAbout\.info\.version' \
+    "Ryoku About page should display the version reported by the helper"
 }
 
 assert_shellcheck_workflow

@@ -11,7 +11,7 @@ import "modules/areapicker"
 import qs.modules.ii.overlay
 import Quickshell
 import qs.services
-import qs.ambxst.modules.globals as AmbxstGlobals
+import qs.dashboard.modules.globals as DashGlobals
 
 ShellRoot {
     settings.watchFiles: true
@@ -36,7 +36,7 @@ ShellRoot {
     // (GlobalStates.mirrorWindowVisible). Registered at the shell root so it persists
     // independently of the island.
     LazyLoader {
-        active: AmbxstGlobals.GlobalStates.mirrorWindowVisible
-        source: "ambxst/modules/tools/MirrorWindow.qml"
+        active: DashGlobals.GlobalStates.mirrorWindowVisible
+        source: "dashboard/modules/tools/MirrorWindow.qml"
     }
 }

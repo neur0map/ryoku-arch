@@ -14,7 +14,7 @@ done < <(
     ':!:docs/_archive/**' \
     ':!:distro/arch/*/src/**' \
     ':!:distro/arch/*/pkg/**' \
-    ':!:shell/noctalia/ATTRIBUTION.md'
+    ':!:**/ATTRIBUTION.md'
 )
 
 if (( ${#doc_files[@]} == 0 )); then
@@ -28,6 +28,7 @@ blocked_terms=(
   "in""ir"
   "ni""ri"
   "noc""talia"
+  "amb""xst"
 )
 
 blocked_pattern=$(IFS='|'; echo "${blocked_terms[*]}")

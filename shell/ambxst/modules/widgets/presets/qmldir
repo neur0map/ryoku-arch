@@ -1,4 +1,0 @@
-module qs.ambxst.modules.widgets.presets
-PresetsButton 1.0 PresetsButton.qml
-PresetsPopup 1.0 PresetsPopup.qml
-PresetsTab 1.0 PresetsTab.qml

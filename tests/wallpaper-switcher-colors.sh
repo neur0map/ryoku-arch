@@ -21,26 +21,26 @@ jq -e '.paper.engine == "awww"' "$ROOT_DIR/config/skwd-wall/config.json" >/dev/n
 rg -q 'skwd wall list' "$ROOT_DIR/bin/ryoku-cmd-wallpaper-switcher" \
   || fail "ryoku-cmd-wallpaper-switcher must poll 'skwd wall list' for readiness (socket existence is not readiness)"
 
-# 3. The wallpaper scheme flow must also regenerate the ambxst named-accent palette.
-rg -q 'generate_ambxst_colors\(\)' "$ROOT_DIR/shell/scripts/ryoku" \
-  || fail "shell/scripts/ryoku must define generate_ambxst_colors"
-rg -q 'generate_ambxst_colors "' "$ROOT_DIR/shell/scripts/ryoku" \
-  || fail "apply_wallpaper_scheme must call generate_ambxst_colors so named accents follow the wallpaper"
+# 3. The wallpaper scheme flow must also regenerate the dashboard named-accent palette.
+rg -q 'generate_dashboard_colors\(\)' "$ROOT_DIR/shell/scripts/ryoku" \
+  || fail "shell/scripts/ryoku must define generate_dashboard_colors"
+rg -q 'generate_dashboard_colors "' "$ROOT_DIR/shell/scripts/ryoku" \
+  || fail "apply_wallpaper_scheme must call generate_dashboard_colors so named accents follow the wallpaper"
 rg -q 'assets/matugen/config.toml' "$ROOT_DIR/shell/scripts/ryoku" \
-  || fail "generate_ambxst_colors must drive matugen with the ambxst config.toml"
+  || fail "generate_dashboard_colors must drive matugen with the dashboard config.toml"
 
 # 4. Migration behaviour: sandbox with stubbed matugen/systemctl/pkill (never touch the real daemon).
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 mkdir -p "$tmp/config/skwd-wall" "$tmp/state/ryoku-shell/wallpaper" \
-  "$tmp/config/ryoku/current" "$tmp/rp/shell/ambxst/assets/matugen" "$tmp/bin"
+  "$tmp/config/ryoku/current" "$tmp/rp/shell/dashboard/assets/matugen" "$tmp/bin"
 
 printf '{"pickOnlyMode":true,"paper":{"engine":"skwd-paper"}}\n' >"$tmp/config/skwd-wall/config.json"
 printf '%s\n' "$tmp/wall.png" >"$tmp/state/ryoku-shell/wallpaper/path.txt"
 printf 'image\n' >"$tmp/state/ryoku-shell/wallpaper/type.txt"
 printf '{"mode":"dark","colours":{}}\n' >"$tmp/state/ryoku-shell/scheme.json"
 : >"$tmp/wall.png"
-printf '[templates.ambxst]\n' >"$tmp/rp/shell/ambxst/assets/matugen/config.toml"
+printf '[templates.dashboard]\n' >"$tmp/rp/shell/dashboard/assets/matugen/config.toml"
 
 cat >"$tmp/bin/matugen" <<EOF
 #!/bin/bash
@@ -57,7 +57,7 @@ XDG_CONFIG_HOME="$tmp/config" XDG_STATE_HOME="$tmp/state" RYOKU_PATH="$tmp/rp" \
 [[ "$(jq -r '.paper.engine' "$tmp/config/skwd-wall/config.json")" == "awww" ]] \
   || fail "migration did not set live paper.engine=awww"
 [[ -f "$tmp/matugen-args" ]] || fail "migration did not invoke matugen to regenerate colors.json"
-grep -q -- '-t scheme-tonal-spot' "$tmp/matugen-args" || fail "migration matugen call missing the ambxst scheme"
+grep -q -- '-t scheme-tonal-spot' "$tmp/matugen-args" || fail "migration matugen call missing the tonal-spot scheme"
 grep -q -- '--mode dark' "$tmp/matugen-args" || fail "migration matugen call did not use the scheme mode"
 
-echo "PASS: skwd engine=awww, switcher readiness probe, and wallpaper->ambxst colour regen are wired"
+echo "PASS: skwd engine=awww, switcher readiness probe, and wallpaper->dashboard colour regen are wired"

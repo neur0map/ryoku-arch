@@ -2,7 +2,7 @@
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-# Apply a noctalia-style color scheme (Material + terminal palette) system-wide
+# Apply a Ryoku-style color scheme (Material + terminal palette) system-wide
 # through the SAME pipeline ryoku themes use, so the shell, GTK, Qt, terminals,
 # GNOME, browser, etc. all recolor - not just the shell's colors.json, which the
 # live shell does not even read (it reads ~/.local/state/ryoku-shell/scheme.json).
@@ -19,8 +19,8 @@ state_home="${XDG_STATE_HOME:-$HOME/.local/state}"
 # Locate the scheme JSON: downloaded schemes first, then shipped (preinstalled).
 scheme_json=""
 for cand in \
-  "$config_home/noctalia/colorschemes/$name/$name.json" \
-  "$config_home/quickshell/ryoku-shell/noctalia/Assets/ColorScheme/$name/$name.json"; do
+  "$config_home/ryoku/settings-gui/colorschemes/$name/$name.json" \
+  "$config_home/quickshell/ryoku-shell/settingsgui/Assets/ColorScheme/$name/$name.json"; do
   if [[ -f $cand ]]; then
     scheme_json="$cand"
     break

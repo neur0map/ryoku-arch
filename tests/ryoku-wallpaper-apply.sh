@@ -274,7 +274,7 @@ _settings_state="$tmpdir/settings-state"
 _settings_config="$tmpdir/settings-config"
 _settings_xdg="$tmpdir/settings-xdg"
 _settings_log="$tmpdir/settings.log"
-mkdir -p "$_settings_bin" "$_settings_state" "$_settings_xdg/noctalia" "$_settings_xdg/ryoku-shell"
+mkdir -p "$_settings_bin" "$_settings_state" "$_settings_xdg/ryoku/settings-gui" "$_settings_xdg/ryoku-shell"
 printf '%s\n' '{"background":{}}' >"$_settings_xdg/ryoku-shell/config.json"
 
 for _cmd in awww awww-daemon; do
@@ -327,7 +327,7 @@ run_settings() {
 }
 
 # Test: videoMuted=false → mpvpaper called WITHOUT no-audio
-printf '%s\n' '{"wallpaper":{"videoMuted":false}}' >"$_settings_xdg/noctalia/settings.json"
+printf '%s\n' '{"wallpaper":{"videoMuted":false}}' >"$_settings_xdg/ryoku/settings-gui/settings.json"
 run_settings --type video "$_settings_mp4"
 (( SETTINGS_STATUS == 0 )) \
   || fail "settings/videoMuted=false: video apply should succeed (out: $SETTINGS_OUT)"
@@ -338,7 +338,7 @@ grep -q 'no-audio' "$_settings_log" \
 pass "settings/videoMuted=false: mpvpaper omits no-audio"
 
 # Test: videoMuted=true → mpvpaper called WITH no-audio
-printf '%s\n' '{"wallpaper":{"videoMuted":true}}' >"$_settings_xdg/noctalia/settings.json"
+printf '%s\n' '{"wallpaper":{"videoMuted":true}}' >"$_settings_xdg/ryoku/settings-gui/settings.json"
 run_settings --type video "$_settings_mp4"
 (( SETTINGS_STATUS == 0 )) \
   || fail "settings/videoMuted=true: video apply should succeed (out: $SETTINGS_OUT)"
@@ -347,7 +347,7 @@ grep -q 'no-audio' "$_settings_log" \
 pass "settings/videoMuted=true: mpvpaper includes no-audio"
 
 # Test: swwwTransition="fade" → awww img called with --transition-type fade
-printf '%s\n' '{"wallpaper":{"swwwTransition":"fade"}}' >"$_settings_xdg/noctalia/settings.json"
+printf '%s\n' '{"wallpaper":{"swwwTransition":"fade"}}' >"$_settings_xdg/ryoku/settings-gui/settings.json"
 run_settings --type animated "$_settings_gif"
 (( SETTINGS_STATUS == 0 )) \
   || fail "settings/swwwTransition=fade: animated apply should succeed (out: $SETTINGS_OUT)"
@@ -356,7 +356,7 @@ grep -q -- '--transition-type fade' "$_settings_log" \
 pass "settings/swwwTransition=fade: awww img passes --transition-type fade"
 
 # Test: liveWallpaperEnabled=false → animated falls back to static (awww img NOT invoked)
-printf '%s\n' '{"wallpaper":{"liveWallpaperEnabled":false}}' >"$_settings_xdg/noctalia/settings.json"
+printf '%s\n' '{"wallpaper":{"liveWallpaperEnabled":false}}' >"$_settings_xdg/ryoku/settings-gui/settings.json"
 run_settings --type animated "$_settings_gif"
 (( SETTINGS_STATUS == 0 )) \
   || fail "settings/liveWallpaperEnabled=false: animated apply should succeed (out: $SETTINGS_OUT)"
@@ -365,7 +365,7 @@ grep -q 'awww img' "$_settings_log" \
 pass "settings/liveWallpaperEnabled=false: animated does not invoke awww img"
 
 # Test: liveWallpaperEnabled=false → video falls back (mpvpaper NOT invoked)
-printf '%s\n' '{"wallpaper":{"liveWallpaperEnabled":false}}' >"$_settings_xdg/noctalia/settings.json"
+printf '%s\n' '{"wallpaper":{"liveWallpaperEnabled":false}}' >"$_settings_xdg/ryoku/settings-gui/settings.json"
 run_settings --type video "$_settings_mp4"
 (( SETTINGS_STATUS == 0 )) \
   || fail "settings/liveWallpaperEnabled=false: video apply should succeed (out: $SETTINGS_OUT)"

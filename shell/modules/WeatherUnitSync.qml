@@ -2,18 +2,18 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Ryoku.Config
-import qs.ambxst.config as Ambxst
+import qs.dashboard.config as DashConfig
 
-// Mirror ryoku's useFahrenheit into ambxst's in-memory Config.weather.unit (what the
-// dashboard + bar weather read), re-applied each boot. The Timer waits for ambxst's
+// Mirror ryoku's useFahrenheit into the dashboard's in-memory Config.weather.unit (what the
+// dashboard + bar weather read), re-applied each boot. The Timer waits for the dashboard's
 // async config to populate Config.weather; live toggles arrive via the Connections.
 Item {
     function apply() {
-        if (!Ambxst.Config.weather)
+        if (!DashConfig.Config.weather)
             return;
         const u = GlobalConfig.services.useFahrenheit ? "F" : "C";
-        if (Ambxst.Config.weather.unit !== u)
-            Ambxst.Config.weather.unit = u;
+        if (DashConfig.Config.weather.unit !== u)
+            DashConfig.Config.weather.unit = u;
     }
 
     Connections {
@@ -28,7 +28,7 @@ Item {
         repeat: true
         running: true
         onTriggered: {
-            if (Ambxst.Config.weather) {
+            if (DashConfig.Config.weather) {
                 apply();
                 running = false;
             }

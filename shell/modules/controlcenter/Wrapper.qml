@@ -5,7 +5,7 @@ import Quickshell
 import Ryoku.Config
 import qs.components
 import qs.services
-import qs.noctalia.Modules.Panels.Settings
+import qs.settingsgui.Modules.Panels.Settings
 
 // Ryoku settings panel host.
 //

@@ -37,14 +37,14 @@ assert_not_contains() {
 }
 
 wrapper="shell/modules/controlcenter/Wrapper.qml"
-settings_content="shell/noctalia/Modules/Panels/Settings/SettingsContent.qml"
-settings_panel="shell/noctalia/Modules/Panels/Settings/SettingsPanel.qml"
-settings_window="shell/noctalia/Modules/Panels/Settings/SettingsPanelWindow.qml"
-about_tab="shell/noctalia/Modules/Panels/Settings/Tabs/About/AboutTab.qml"
-version_tab="shell/noctalia/Modules/Panels/Settings/Tabs/About/VersionSubTab.qml"
-credits_tab="shell/noctalia/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml"
-basics_tab="shell/noctalia/Modules/Panels/Settings/Tabs/General/BasicsSubTab.qml"
-keybinds_tab="shell/noctalia/Modules/Panels/Settings/Tabs/General/KeybindsSubTab.qml"
+settings_content="shell/settingsgui/Modules/Panels/Settings/SettingsContent.qml"
+settings_panel="shell/settingsgui/Modules/Panels/Settings/SettingsPanel.qml"
+settings_window="shell/settingsgui/Modules/Panels/Settings/SettingsPanelWindow.qml"
+about_tab="shell/settingsgui/Modules/Panels/Settings/Tabs/About/AboutTab.qml"
+version_tab="shell/settingsgui/Modules/Panels/Settings/Tabs/About/VersionSubTab.qml"
+credits_tab="shell/settingsgui/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml"
+basics_tab="shell/settingsgui/Modules/Panels/Settings/Tabs/General/BasicsSubTab.qml"
+keybinds_tab="shell/settingsgui/Modules/Panels/Settings/Tabs/General/KeybindsSubTab.qml"
 
 for file in \
   "$wrapper" \
@@ -54,8 +54,8 @@ for file in \
   "$about_tab" \
   "$version_tab" \
   "$credits_tab" \
-  shell/noctalia/Assets/credits/ambxst.svg \
-  shell/noctalia/Assets/credits/omarchy.svg \
+  shell/settingsgui/Assets/credits/ambxst.svg \
+  shell/settingsgui/Assets/credits/omarchy.svg \
   "$basics_tab" \
   "$keybinds_tab" \
   legacy/controlcenter/Wrapper.qml.orig \
@@ -93,24 +93,24 @@ for path in \
   assert_absent "$path"
 done
 
-assert_contains "$wrapper" "import qs.noctalia.Modules.Panels.Settings" \
-  "settings wrapper should import the vendored Noctalia settings panel"
+assert_contains "$wrapper" "import qs.settingsgui.Modules.Panels.Settings" \
+  "settings wrapper should import the vendored Ryoku settings panel"
 assert_contains "$wrapper" "legacy/controlcenter/Wrapper.qml.orig" \
   "settings wrapper should document the archived inline settings surface"
 assert_contains "$wrapper" "SettingsContent {" \
-  "settings wrapper should host the Noctalia SettingsContent island"
+  "settings wrapper should host the Ryoku SettingsContent island"
 assert_contains "$wrapper" "onCloseRequested: root.visibilities.settings = false" \
-  "Noctalia settings close requests should close the resident drawer"
+  "Ryoku settings close requests should close the resident drawer"
 assert_contains "$wrapper" "if (typeof initialize === \"function\")" \
-  "settings wrapper should initialize Noctalia content after loading"
+  "settings wrapper should initialize Ryoku content after loading"
 assert_contains "$wrapper" "readonly property bool needsKeyboard: shouldBeActive || offsetScale < 1" \
   "settings wrapper should preserve the drawer keyboard contract"
 assert_contains "$wrapper" "anchors.topMargin: (-implicitHeight - 5) * offsetScale" \
   "settings wrapper should preserve the top-frame popup animation"
 assert_contains "$wrapper" "implicitWidth: 900" \
-  "settings wrapper should use a stable Noctalia panel width"
+  "settings wrapper should use a stable Ryoku panel width"
 assert_contains "$wrapper" "implicitHeight: Math.min(950, availableHeight)" \
-  "settings wrapper should cap Noctalia panel height to the screen"
+  "settings wrapper should cap Ryoku panel height to the screen"
 
 assert_not_contains "$wrapper" "component AboutPage" \
   "settings wrapper should not keep the removed inline About page"
@@ -121,22 +121,22 @@ assert_not_contains "$wrapper" "component ProfilesPage" \
 assert_not_contains "$wrapper" "component AppSettingsPage" \
   "settings wrapper should not keep the removed inline Settings page"
 
-assert_contains "$settings_content" "import qs.noctalia.Modules.Panels.Settings.Tabs.About" \
-  "Noctalia settings content should expose the About tab"
+assert_contains "$settings_content" "import qs.settingsgui.Modules.Panels.Settings.Tabs.About" \
+  "Ryoku settings content should expose the About tab"
 assert_contains "$settings_content" "GeneralTab {}" \
-  "Noctalia settings content should expose the General tab"
+  "Ryoku settings content should expose the General tab"
 assert_contains "$settings_content" "HyprlandTab {}" \
-  "Noctalia settings content should expose the Hyprland tab"
+  "Ryoku settings content should expose the Hyprland tab"
 assert_contains "$settings_content" "WallpaperTab {}" \
-  "Noctalia settings content should expose the Wallpaper tab"
+  "Ryoku settings content should expose the Wallpaper tab"
 assert_contains "$settings_content" "AboutTab {}" \
-  "Noctalia settings content should expose the Ryoku About tab"
-assert_contains "$settings_content" "disabled\": true // TODO: ryoku has no dock component yet" \
-  "unmapped Noctalia settings tabs should be marked as disabled previews"
+  "Ryoku settings content should expose the Ryoku About tab"
+assert_contains "$settings_content" "disabled\": true // TODO: ryoku has no plugin system yet" \
+  "unmapped settings tabs should be marked as disabled previews"
 assert_contains "$settings_content" "disabled tabs render as a greyed, non-interactive preview" \
-  "disabled Noctalia tabs should be visually marked as previews"
+  "disabled settings tabs should be visually marked as previews"
 assert_contains "$settings_content" "TooltipService.show(tabItem" \
-  "disabled Noctalia tabs should explain preview-only state"
+  "disabled settings tabs should explain preview-only state"
 
 assert_contains "$about_tab" "VersionSubTab {}" \
   "About should include Ryoku version details"
@@ -146,9 +146,9 @@ assert_contains "$version_tab" "source: \"../../../../../Assets/ryoku-logo.svg\"
   "About should use the Ryoku logo"
 assert_contains "$version_tab" "text: \"Ryoku\"" \
   "About should present the Ryoku product name"
-assert_contains "$version_tab" "RYOKU: removed Noctalia telemetry" \
-  "About should remove Noctalia telemetry controls"
-assert_contains "$credits_tab" "Settings UI adapted from Noctalia" \
+assert_contains "$version_tab" "RYOKU: removed the upstream telemetry" \
+  "About should remove upstream telemetry controls"
+assert_contains "$credits_tab" "\"name\": \"Noctalia Shell\"" \
   "credits should attribute the vendored settings UI"
 assert_contains "$credits_tab" "https://github.com/noctalia-dev/noctalia-shell" \
   "credits should link back to upstream Noctalia"

@@ -4,7 +4,7 @@ import Quickshell
 import Quickshell.Wayland
 import Ryoku.Config
 import qs.services
-import qs.noctalia.Services.Power
+import qs.settingsgui.Services.Power
 
 Scope {
     id: root

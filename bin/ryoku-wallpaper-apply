@@ -21,13 +21,13 @@ json_ok() {
   jq -cn --arg type "$1" --arg path "$2" '{ok:true,type:$type,path:$path}'
 }
 
-_noctalia_settings="${XDG_CONFIG_HOME:-$HOME/.config}/noctalia/settings.json"
+_settings_gui_settings="${XDG_CONFIG_HOME:-$HOME/.config}/ryoku/settings-gui/settings.json"
 
 _settings_get() {
   local key="$1" default="$2"
-  if [[ -f $_noctalia_settings ]]; then
+  if [[ -f $_settings_gui_settings ]]; then
     local val
-    val="$(jq -r --arg d "$default" "$key | if . == null then \$d else tostring end" "$_noctalia_settings" 2>/dev/null)" || val="$default"
+    val="$(jq -r --arg d "$default" "$key | if . == null then \$d else tostring end" "$_settings_gui_settings" 2>/dev/null)" || val="$default"
     printf '%s' "$val"
   else
     printf '%s' "$default"

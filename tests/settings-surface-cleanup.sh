@@ -47,9 +47,9 @@ panels="shell/modules/drawers/Panels.qml"
 content_window="shell/modules/drawers/ContentWindow.qml"
 interactions="shell/modules/drawers/Interactions.qml"
 bar_popouts="shell/modules/bar/popouts/Wrapper.qml"
-settings_content="shell/noctalia/Modules/Panels/Settings/SettingsContent.qml"
-settings_panel="shell/noctalia/Modules/Panels/Settings/SettingsPanel.qml"
-settings_window="shell/noctalia/Modules/Panels/Settings/SettingsPanelWindow.qml"
+settings_content="shell/settingsgui/Modules/Panels/Settings/SettingsContent.qml"
+settings_panel="shell/settingsgui/Modules/Panels/Settings/SettingsPanel.qml"
+settings_window="shell/settingsgui/Modules/Panels/Settings/SettingsPanelWindow.qml"
 
 for file in \
   "$launcher" \
@@ -64,15 +64,15 @@ for file in \
   "$settings_content" \
   "$settings_panel" \
   "$settings_window" \
-  shell/noctalia/ATTRIBUTION.md \
-  shell/noctalia/LICENSE \
-  shell/noctalia/Assets/settings-default.json \
-  shell/noctalia/Assets/settings-search-index.json \
-  shell/noctalia/Assets/ryoku-logo.svg \
-  shell/noctalia/Assets/credits/ambxst.svg \
-  shell/noctalia/Assets/credits/omarchy.svg \
-  shell/noctalia/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml \
-  shell/noctalia/Modules/Panels/Settings/Tabs/About/VersionSubTab.qml; do
+  shell/settingsgui/ATTRIBUTION.md \
+  shell/settingsgui/LICENSE \
+  shell/settingsgui/Assets/settings-default.json \
+  shell/settingsgui/Assets/settings-search-index.json \
+  shell/settingsgui/Assets/ryoku-logo.svg \
+  shell/settingsgui/Assets/credits/ambxst.svg \
+  shell/settingsgui/Assets/credits/omarchy.svg \
+  shell/settingsgui/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml \
+  shell/settingsgui/Modules/Panels/Settings/Tabs/About/VersionSubTab.qml; do
   assert_file "$file"
 done
 
@@ -116,14 +116,14 @@ assert_contains "$shortcuts" 'visibilities\.settings = true' \
 assert_contains "$visibilities" 'property bool settings' \
   "settings should be tracked by drawer visibility state"
 
-assert_contains "$wrapper" 'import qs\.noctalia\.Modules\.Panels\.Settings' \
-  "settings wrapper should import the Noctalia settings module"
+assert_contains "$wrapper" 'import qs\.settingsgui\.Modules\.Panels\.Settings' \
+  "settings wrapper should import the Ryoku settings module"
 assert_contains "$wrapper" 'SettingsContent \{' \
-  "settings wrapper should render the vendored Noctalia settings content"
+  "settings wrapper should render the vendored Ryoku settings content"
 assert_contains "$wrapper" 'onCloseRequested: root\.visibilities\.settings = false' \
   "settings wrapper should close through drawer visibility state"
 assert_contains "$wrapper" 'typeof initialize === "function"' \
-  "settings wrapper should initialize the Noctalia content"
+  "settings wrapper should initialize the Ryoku content"
 assert_contains "$wrapper" 'readonly property bool needsKeyboard: shouldBeActive \|\| offsetScale < 1' \
   "settings wrapper should request keyboard focus only while open or animating"
 assert_contains "$wrapper" 'offsetScale' \
@@ -138,44 +138,44 @@ assert_not_contains "$wrapper" 'ryoku-launch-wayle-settings|hyprctl clients -j|s
   "settings wrapper should not contain external Wayle launch plumbing"
 
 assert_contains "$settings_content" 'GeneralTab \{\}' \
-  "Noctalia settings content should include General settings"
+  "Ryoku settings content should include General settings"
 assert_contains "$settings_content" 'BarTab \{\}' \
-  "Noctalia settings content should include Bar settings"
+  "Ryoku settings content should include Bar settings"
 assert_contains "$settings_content" 'HyprlandTab \{\}' \
-  "Noctalia settings content should include Hyprland settings"
+  "Ryoku settings content should include Hyprland settings"
 assert_contains "$settings_content" 'WallpaperTab \{\}' \
-  "Noctalia settings content should include Wallpaper settings"
+  "Ryoku settings content should include Wallpaper settings"
 assert_contains "$settings_content" 'AboutTab \{\}' \
-  "Noctalia settings content should include About settings"
+  "Ryoku settings content should include About settings"
 assert_contains "$settings_content" 'disabled": true // TODO: ryoku' \
-  "settings content should mark unmapped Noctalia domains as disabled previews"
+  "settings content should mark unmapped domains as disabled previews"
 assert_contains "$settings_content" 'preview only, not available in ryoku yet' \
   "settings content should explain disabled preview-only tabs"
 assert_contains "$settings_content" 'SettingsSearchService\.searchIndex' \
-  "settings content should use the Noctalia settings search service"
+  "settings content should use the settings search service"
 assert_contains "$settings_content" 'signal closeRequested' \
   "settings content should expose a close signal for the wrapper"
 
-assert_contains "shell/noctalia/Modules/Panels/Settings/Tabs/About/VersionSubTab.qml" 'text: "Ryoku"' \
-  "Noctalia About version tab should carry Ryoku branding"
-assert_contains "shell/noctalia/Modules/Panels/Settings/Tabs/About/VersionSubTab.qml" 'Assets/ryoku-logo\.svg' \
-  "Noctalia About version tab should use the Ryoku logo"
-assert_contains "shell/noctalia/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml" 'Settings UI adapted from Noctalia' \
-  "Noctalia credits tab should preserve upstream attribution"
-assert_contains "shell/noctalia/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml" 'noctalia-dev/noctalia-shell' \
-  "Noctalia credits tab should link to the upstream project"
-assert_contains "shell/noctalia/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml" '"name": "Omarchy"' \
-  "Noctalia credits tab should include Omarchy"
-assert_contains "shell/noctalia/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml" 'basecamp/omarchy' \
-  "Noctalia credits tab should link to Omarchy"
-assert_contains "shell/noctalia/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml" '"icon": "omarchy.svg"' \
-  "Noctalia credits tab should use the Omarchy logo"
-assert_contains "shell/noctalia/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml" '"name": "Ambxst"' \
-  "Noctalia credits tab should include Ambxst"
-assert_contains "shell/noctalia/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml" 'Axenide/Ambxst' \
-  "Noctalia credits tab should link to Ambxst"
-assert_contains "shell/noctalia/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml" '"icon": "ambxst.svg"' \
-  "Noctalia credits tab should use the Ambxst logo"
+assert_contains "shell/settingsgui/Modules/Panels/Settings/Tabs/About/VersionSubTab.qml" 'text: "Ryoku"' \
+  "Ryoku About version tab should carry Ryoku branding"
+assert_contains "shell/settingsgui/Modules/Panels/Settings/Tabs/About/VersionSubTab.qml" 'Assets/ryoku-logo\.svg' \
+  "Ryoku About version tab should use the Ryoku logo"
+assert_contains "shell/settingsgui/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml" '"name": "Noctalia Shell"' \
+  "credits tab should preserve upstream attribution"
+assert_contains "shell/settingsgui/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml" 'noctalia-dev/noctalia-shell' \
+  "credits tab should link to the upstream project"
+assert_contains "shell/settingsgui/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml" '"name": "Omarchy"' \
+  "credits tab should include Omarchy"
+assert_contains "shell/settingsgui/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml" 'basecamp/omarchy' \
+  "credits tab should link to Omarchy"
+assert_contains "shell/settingsgui/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml" '"icon": "omarchy.svg"' \
+  "credits tab should use the Omarchy logo"
+assert_contains "shell/settingsgui/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml" '"name": "Ambxst"' \
+  "credits tab should include Ambxst"
+assert_contains "shell/settingsgui/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml" 'Axenide/Ambxst' \
+  "credits tab should link to Ambxst"
+assert_contains "shell/settingsgui/Modules/Panels/Settings/Tabs/About/CreditsSubTab.qml" '"icon": "ambxst.svg"' \
+  "credits tab should use the Ambxst logo"
 
 assert_contains "$panels" 'ControlCenter\.Wrapper' \
   "drawers should keep the settings wrapper"

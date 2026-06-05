@@ -13,14 +13,14 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-PCS="$ROOT_DIR/shell/noctalia/Services/System/ProgramCheckerService.qml"
+PCS="$ROOT_DIR/shell/settingsgui/Services/System/ProgramCheckerService.qml"
 
 fail() {
   echo "FAIL: $1" >&2
   exit 1
 }
 
-[[ -f $PCS ]] || fail "shell/noctalia/Services/System/ProgramCheckerService.qml is missing"
+[[ -f $PCS ]] || fail "shell/settingsgui/Services/System/ProgramCheckerService.qml is missing"
 
 # Program (binary probed via `command -v`) -> the package that provides it.
 declare -A PKG=(

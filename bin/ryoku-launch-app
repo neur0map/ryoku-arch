@@ -6,7 +6,7 @@
 #   vicinae    - the Vicinae launcher (default)
 #   quickshell - the built-in Ryoku quickshell launcher
 #
-# The choice is GlobalConfig.launcher.useVicinae, persisted by the noctalia
+# The choice is GlobalConfig.launcher.useVicinae, persisted by the Ryoku
 # shell to ~/.config/ryoku/shell.json. Absent or true selects Vicinae.
 #
 # Modes:

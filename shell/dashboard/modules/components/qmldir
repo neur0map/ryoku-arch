@@ -1,0 +1,26 @@
+module qs.dashboard.modules.components
+ActionGrid 1.0 ActionGrid.qml
+BarPopup 1.0 BarPopup.qml
+BgShadow 1.0 BgShadow.qml
+CarouselProgress 1.0 CarouselProgress.qml
+CircularControl 1.0 CircularControl.qml
+CircularSeekBar 1.0 CircularSeekBar.qml
+CircularWavyProgress 1.0 CircularWavyProgress.qml
+ContextMenu 1.0 ContextMenu.qml
+DiagonalStripePattern 1.0 DiagonalStripePattern.qml
+OptionsMenu 1.0 OptionsMenu.qml
+Outline 1.0 Outline.qml
+PaneRect 1.0 PaneRect.qml
+PositionSlider 1.0 PositionSlider.qml
+SearchInput 1.0 SearchInput.qml
+SegmentedSwitch 1.0 SegmentedSwitch.qml
+Separator 1.0 Separator.qml
+Shadow 1.0 Shadow.qml
+StyledRect 1.0 StyledRect.qml
+StyledSlider 1.0 StyledSlider.qml
+StyledToolTip 1.0 StyledToolTip.qml
+Tinted 1.0 Tinted.qml
+TintedWallpaper 1.0 TintedWallpaper.qml
+ToggleButton 1.0 ToggleButton.qml
+UnifiedPanelEffect 1.0 UnifiedPanelEffect.qml
+WavyLine 1.0 WavyLine.qml
