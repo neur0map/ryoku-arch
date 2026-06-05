@@ -108,6 +108,21 @@ borrowed code: keep attribution intact.
 
 When working on Ryoku settings, treat settings as a control surface, not as the owner of behavior or visual truth.
 
+The user's files are the source of truth. Settings is a control surface over them,
+never their owner:
+
+- A hand edit to a config file is honored. The typed config round-trips keys it does
+  not model (`ConfigObject::loadFromJson`/`toJsonObject` keep unknown keys), so editing
+  `~/.config/ryoku/shell.json` by hand never loses data on the next save.
+- The Settings UI must not overwrite a value the user set. A save writes the user's
+  current state plus their untouched keys, never a fresh model that drops them.
+- The rice and `shell/rice/config-overrides.json` only *seed*: forced over upstream
+  defaults on a fresh install, fill-if-missing on update (`merge_config_overrides`).
+  They never revert a value an existing user already chose.
+- To push a changed default onto existing users, ship a `[global]` migration. That is
+  the only mechanism allowed to touch live user config (see
+  `docs/ryoku-config-architecture.md`).
+
 Required flow:
 
 ```text

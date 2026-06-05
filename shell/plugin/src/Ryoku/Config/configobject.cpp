@@ -66,6 +66,13 @@ void ConfigObject::loadFromJson(const QJsonObject& obj) {
         m_loadedKeys.insert(key);
         qCDebug(lcConfig) << "  Loaded" << key << "=" << jsonVal.toVariant();
     }
+
+    // Keep keys that match no property here so a hand edited config survives a save.
+    m_unknownKeys = QJsonObject();
+    for (auto it = obj.begin(); it != obj.end(); ++it) {
+        if (meta->indexOfProperty(it.key().toUtf8().constData()) < 0)
+            m_unknownKeys.insert(it.key(), it.value());
+    }
 }
 
 QJsonObject ConfigObject::toJsonObject() const {
@@ -120,11 +127,16 @@ QJsonObject ConfigObject::toJsonObject() const {
         obj.insert(key, QJsonValue::fromVariant(value));
     }
 
+    // Re-emit keys outside the schema so a hand edit is never silently dropped.
+    for (auto it = m_unknownKeys.begin(); it != m_unknownKeys.end(); ++it)
+        obj.insert(it.key(), it.value());
+
     return obj;
 }
 
 void ConfigObject::clearLoadedKeys() {
     m_loadedKeys.clear();
+    m_unknownKeys = QJsonObject();
 
     const auto* meta = metaObject();
     for (int i = meta->propertyOffset(); i < meta->propertyCount(); ++i) {

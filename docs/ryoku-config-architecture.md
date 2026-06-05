@@ -31,7 +31,7 @@ and the only thing that force-applies on update is a tiny override file:
 |---|---|---|---|---|
 | ambxst (active desktop: bar, dock, **desktop widgets/clock**) | `shell/ambxst/config/defaults/*.js` | `~/.config/ryoku-shell/config.json` | yes | only if a migration writes it |
 | noctalia (settings UI, version) | `Settings.qml` defaults + `Assets/settings-default.json` | `settings.json` (not even present on disk → code defaults) | yes | no path |
-| Ryoku override | `shell/rice/config-overrides.json` (force-merged into `config.json` every install **and** update) + `shell/rice/shell.json` | `config.json` / `shell.json` | yes | **yes (force)** |
+| Ryoku override | `shell/rice/config-overrides.json` seeds `config.json` (forced over upstream on a fresh install, **fill-if-missing on update** so user choices survive) + `shell/rice/shell.json` | `config.json` / `shell.json` | yes | new keys only; a value change for existing users needs a `[global]` migration |
 
 So today the **only** settings that reach existing users are the handful in
 `config-overrides.json` (`hotspot`, `dock`, `enabledPanels`). Desktop widgets,
@@ -134,8 +134,9 @@ Non-`[global]` changes ship no migration and touch no existing user.
 - Single path home = **`shell/`** (integrated components + code + `shell/rice/`),
   not a separate `default/`/`rice/` top-level. The integrated components are part
   of Ryoku and editable in place.
-- `overrides.json` stays the **narrow** force-on-every-update set; the broad
-  rice ships via fresh-install seeding + `[global]` migrations.
+- `overrides.json` is the **narrow rice seed**: forced over upstream defaults on a
+  fresh install, fill-if-missing on update so it never reverts a value the user set.
+  Changing an existing user's value ships via a `[global]` migration.
 
 ## Enforcement and related work
 
@@ -144,6 +145,11 @@ The two rules are now backed by automation and docs:
 - **`[global]` ⇒ migration** is CI-enforced: `.github/workflows/config-migration.yml`
   fails a PR whose commit subject carries `[global]` without an accompanying
   `migrations/<unix-ts>.sh`. Non-`[global]` changes stay fresh-install-only.
+- **User edits win** is implemented, not just aspirational: the typed config
+  round-trips keys it does not model (`ConfigObject::loadFromJson`/`toJsonObject`),
+  and `merge_config_overrides` is fill-if-missing on update, so neither a hand edit
+  nor the Settings UI can clobber a value the user set. See the "user's files are the
+  source of truth" rule in `AGENTS.md`.
 - **Canonical layers** (where new config/UI/IPC go) are stated in the root
   `AGENTS.md` ("Ryoku shell: one product, canonical layers"): new user-facing
   keys use `Ryoku.Config`; the existing ambxst/noctalia desktop config and its

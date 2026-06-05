@@ -128,6 +128,10 @@ assert_shell_overlay_preserves_false_settings() {
       }
     }
   },
+  "dock": {
+    "position": "top",
+    "showOnDesktop": true
+  },
   "sidebar": {
     "right": {
       "enabledWidgets": ["todo"]
@@ -147,7 +151,10 @@ JSON
     .bar.dynamicIsland.tools.buttons.darkMode == false
     and .bar.dynamicIsland.tools.buttons.osk == false
     and (.sidebar.right.enabledWidgets | index("openvpn") != null)
-  ' "$config_file" >/dev/null || fail "Ryoku shell overlay should preserve explicit false user settings"
+    and .dock.position == "top"
+    and .dock.showOnDesktop == true
+    and .hotspot.ssid == "Ryoku Hotspot"
+  ' "$config_file" >/dev/null || fail "Ryoku shell overlay must preserve user edits to override keys and still seed missing ones"
 
   rm -rf "$tmp_dir"
 }

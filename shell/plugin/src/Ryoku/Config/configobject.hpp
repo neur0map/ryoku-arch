@@ -136,6 +136,8 @@ private:
     ConfigObject* m_global = nullptr;
     QSet<QString> m_loadedKeys;
     QSet<QString> m_globalOnlyKeys;
+    // JSON keys with no matching property here, kept so hand edits survive a save.
+    QJsonObject m_unknownKeys;
     QMap<QString, QVariant> m_pendingChanges;
     QTimer* m_batchTimer = nullptr;
 };

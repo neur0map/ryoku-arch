@@ -10,6 +10,16 @@
   launcher theme follows the active wallpaper palette via matugen, and existing
   installs converge through a migration. The `Super+/`-style shell overview is
   unchanged.
+- **Config honors hand edits, never clobbers them**: the typed `Ryoku.Config`
+  layer round-trips keys it does not model, so editing
+  `~/.config/ryoku/shell.json` by hand no longer loses those keys on the next
+  Settings save. `config-overrides.json` is now fill-if-missing on update instead
+  of a force-merge, so an update never reverts a dock, panel, or hotspot value the
+  user set; changing a default for existing users goes through a `[global]`
+  migration.
+- **Leaner, human-authored comments**: removed thousands of redundant restatement
+  and narration comments across the shell, keeping license headers, pragmas, real
+  rationale, TODOs, and the "configurable in Settings" pointers.
 
 ### Added
 
@@ -21,6 +31,10 @@
 - **Vicinae packages**: `vicinae-bin` (default install, baked into the offline
   ISO mirror) plus its `qtkeychain-qt6`, `layer-shell-qt`, and `minizip`
   runtime dependencies.
+- **Shell rule: user files are the source of truth**: `AGENTS.md` and
+  `docs/ryoku-config-architecture.md` now require Settings to act as a control
+  surface that preserves hand-edited config and never overwrites a value the user
+  set; the rice and overrides only seed defaults.
 
 ## [0.1.0-alpha-4] - 2026-05-18
 

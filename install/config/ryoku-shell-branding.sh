@@ -149,8 +149,11 @@ merge_config_overrides() {
     fi
   fi
 
+  # Fill-if-missing: seed override keys the user lacks; never revert a value they set.
+  # Fresh installs still get the rice (config.json is seeded from the overridden
+  # defaults above). To change an existing user's value, ship a [global] migration.
   temp_file=$(mktemp)
-  jq -s '.[0] * .[1]' "$config_file" "$CONFIG_OVERRIDES_FILE" >"$temp_file"
+  jq -s '.[1] * .[0]' "$config_file" "$CONFIG_OVERRIDES_FILE" >"$temp_file"
   mv "$temp_file" "$config_file"
 }
 
