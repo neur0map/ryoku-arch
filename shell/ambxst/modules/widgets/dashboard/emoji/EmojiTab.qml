@@ -15,7 +15,6 @@ Rectangle {
     id: root
     focus: true
 
-    // Prefix support
     property string prefixIcon: ""
     signal backspaceOnEmpty
 
@@ -33,7 +32,6 @@ Rectangle {
     // No behavior on recentX to avoid conflict with the highlight's own behavior
     readonly property bool isAtRecent: selectedIndex === 0 && emojisModel.count > 0 && emojisModel.get(0).isRecentContainer
 
-    // Skin tone support
     property var skinTones: [
         {
             name: "Light",
@@ -62,7 +60,6 @@ Rectangle {
         }
     ]
 
-    // Options menu state
     property int expandedItemIndex: -1
     property int selectedOptionIndex: 0
     property bool keyboardNavigation: false
@@ -124,7 +121,6 @@ Rectangle {
             keyboardNavigation = false;
         }
 
-        // Reset horizontal focus when leaving recent container
         if (selectedIndex !== 0) {
             selectedRecentIndex = -1;
         } else if (selectedIndex === 0 && emojisModel.count > 0 && emojisModel.get(0).isRecentContainer) {
@@ -317,7 +313,7 @@ Rectangle {
         }
     }
 
-    implicitWidth: 464 // 8 emojis (8 * 56) + padding (2 * 8)
+    implicitWidth: 464
     implicitHeight: 296
     color: "transparent"
 
@@ -646,7 +642,6 @@ Rectangle {
                             clip: true
                             boundsBehavior: Flickable.StopAtBounds
 
-                            // Drag support
                             interactive: true
 
                             property bool enableScrollAnimation: true
@@ -659,7 +654,6 @@ Rectangle {
                                 }
                             }
 
-                            // Wheel support (Shift+Scroll)
                             MouseArea {
                                 anchors.fill: parent
                                 acceptedButtons: Qt.NoButton

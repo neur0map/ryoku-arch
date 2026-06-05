@@ -10,13 +10,11 @@ import qs.noctalia.Services.UI
 
 Singleton {
   id: root
-  // Shared core (read-only) properties
   readonly property bool wifiAvailable: _wifiAvailable
   readonly property bool ethernetAvailable: _ethernetAvailable
   readonly property bool internetConnectivity: _internetConnectivity
   readonly property string networkConnectivity: _networkConnectivity
 
-  // Supported Wi-Fi security types
   readonly property var supportedSecurityTypes: [
     {
       key: "open",
@@ -52,7 +50,6 @@ Singleton {
     }
   ]
 
-  // Core properties
   property bool _wifiAvailable: false
   property bool _ethernetAvailable: false
   property string _networkConnectivity: "unknown"
@@ -60,7 +57,6 @@ Singleton {
   property string lastError: ""
   property int activeDetailsTtlMs: 10000
 
-  // Ethernet properties
   property var ethernetInterfaces: ([])
   property var activeEthernetDetails: ({})
   property bool ethernetConnected: false
@@ -68,7 +64,6 @@ Singleton {
   property bool ethernetDetailsLoading: false
   property double activeEthernetDetailsTimestamp: 0
 
-  // Wi-Fi properties
   readonly property bool wifiEnabled: Networking.wifiEnabled
   property var networks: ({})
   property var activeWifiDetails: ({})
@@ -78,7 +73,6 @@ Singleton {
   property double activeWifiDetailsTimestamp: 0
   property bool wifiInit: false
 
-  // Wi-Fi adapter/connection properties
   property bool connecting: false
   property string connectingTo: ""
   property string disconnectingFrom: ""
@@ -87,7 +81,6 @@ Singleton {
   property bool scanningActive: false
   property var existingProfiles: ({})
 
-  // Airplane mode status
   property bool airplaneModeEnabled: false
   property bool airplaneModeToggled: false
 
@@ -101,7 +94,6 @@ Singleton {
     }
   }
 
-  // Start initial checks when nmcli becomes available
   Connections {
     target: ProgramCheckerService
     function onNmcliAvailableChanged() {
@@ -165,7 +157,6 @@ Singleton {
     }
   }
 
-  // Internet connectivity check timer
   Timer {
     id: connectivityCheckTimer
     interval: 15000
@@ -174,14 +165,12 @@ Singleton {
     onTriggered: connectivityCheckProcess.running = true
   }
 
-  // Delayed scan timer
   Timer {
     id: delayedScanTimer
     interval: 7000
     onTriggered: scan()
   }
 
-  // Core functions
   function setWifiEnabled(enabled) {
     if (!ProgramCheckerService.nmcliAvailable) {
       return;
@@ -210,7 +199,6 @@ Singleton {
       return;
     }
 
-    // Get existing profiles first, then scan
     profileCheckProcess.running = true;
     root.scanningActive = true;
     Logger.d("Network", "Scanning Wi-Fi networks...");
@@ -264,12 +252,10 @@ Singleton {
     }
     forgettingNetwork = ssid;
 
-    // Remove from system
     forgetProcess.ssid = ssid;
     forgetProcess.running = true;
   }
 
-  // Refresh details for the currently active Wi‑Fi link
   function refreshActiveWifiDetails() {
     const now = Date.now();
     if (wifiDetailsLoading || (activeWifiIf && wifiConnected && activeWifiDetails && (now - activeWifiDetailsTimestamp) < activeDetailsTtlMs)) {
@@ -281,7 +267,6 @@ Singleton {
     }
   }
 
-  // Refresh details for the currently active Ethernet link
   function refreshActiveEthernetDetails() {
     const now = Date.now();
     if (ethernetDetailsLoading || activeEthernetIf && activeEthernetDetails && (now - activeEthernetDetailsTimestamp) < activeDetailsTtlMs) {
@@ -293,22 +278,18 @@ Singleton {
     }
   }
 
-  // Helper function to immediately update network status
   function updateNetworkStatus(ssid, connected) {
     let nets = networks;
 
-    // Update all networks connected status
     for (let key in nets) {
       if (nets[key].connected && key !== ssid) {
         nets[key].connected = false;
       }
     }
-    // Update the target network if it exists
     if (nets[ssid]) {
       nets[ssid].connected = connected;
       nets[ssid].existing = true;
     } else if (connected) {
-      // Create a temporary entry if network doesn't exist yet
       nets[ssid] = {
         "ssid": ssid,
         "security": "--",
@@ -322,7 +303,6 @@ Singleton {
     networks = nets;
   }
 
-  // Helper functions
   function getSignalInfo(signal, isConnected) {
     let icon = "";
     if (isConnected) {
@@ -423,7 +403,6 @@ Singleton {
 
   // Functions used in /Modules/Panels/ControlCenter/Widgets/Network.qml & /Modules/Bar/Widgets/Network.qml
   function getStatusText(showSpeed = false) {
-    // This variable can be tied to a toggle
     if (root.connecting) {
       return root.connectingTo ? I18n.tr("common.connecting") + " " + root.connectingTo : I18n.tr("common.connecting");
     }
@@ -435,7 +414,6 @@ Singleton {
       return "";
     }
 
-    // Ethernet
     if (root.ethernetConnected) {
       const eth = root.activeEthernetDetails;
       const name = eth.connectionName || (root.ethernetInterfaces.length > 0 ? root.ethernetInterfaces[0].connectionName : "") || "";
@@ -443,7 +421,6 @@ Singleton {
       return (name + (showSpeed && speed ? " - " + speed : ""));
     }
 
-    // Wi-Fi
     if (root.wifiConnected) {
       const wl = root.activeWifiDetails;
       const speed = wl.rateShort || wl.rate || "";
@@ -491,8 +468,6 @@ Singleton {
     return (root.ethernetAvailable || root.ethernetConnected) ? "ethernet-off" : root.wifiAvailable ? "wifi-0" : "wifi-off";
   }
 
-  // Processes
-  // Discover connected interface[s] and fetch details [1]
   Process {
     id: deviceStatusProcess
     running: false
@@ -587,7 +562,6 @@ Singleton {
           }
         }
 
-        // Parse Wi-Fi details if active
         if (activeWifiIf && wifiText) {
           let rate = "";
           let freq = "";
@@ -712,7 +686,6 @@ Singleton {
     }
   }
 
-  // Process to check the internet connectivity of the connected network
   Process {
     id: connectivityCheckProcess
     running: false
@@ -736,7 +709,6 @@ Singleton {
     }
   }
 
-  // Helper process to get existing profiles
   Process {
     id: profileCheckProcess
     running: false
@@ -774,7 +746,6 @@ Singleton {
     }
   }
 
-  // Scan for Wi-Fi networks
   Process {
     id: scanProcess
     running: false
@@ -827,7 +798,6 @@ Singleton {
           }
         }
 
-        // Logging & Diffing
         const oldSSIDs = Object.keys(root.networks);
         const newSSIDs = Object.keys(networksMap);
         const newNetworks = newSSIDs.filter(s => oldSSIDs.indexOf(s) === -1);
@@ -878,14 +848,12 @@ Singleton {
     }
   }
 
-  // Connect to Wi-Fi network
   Process {
     id: connectProcess
     property string mode: "new" // "saved", "new", or "manual"
     property string ssid: ""
     property string password: ""
     property bool isHidden: false
-    // Manual properties
     property string securityKey: ""
     property string identity: ""
     property string eap: "peap"
@@ -1000,7 +968,6 @@ Singleton {
     }
   }
 
-  // Disconnect from Wi-Fi network
   Process {
     id: disconnectProcess
     property string ssid: ""
@@ -1015,11 +982,9 @@ Singleton {
                                                                   "ssid": disconnectProcess.ssid
                                                                 }), "wifi-off");
 
-        // Immediately update UI on successful disconnect
         root.updateNetworkStatus(disconnectProcess.ssid, false);
         root.disconnectingFrom = "";
 
-        // Do a scan to refresh the list
         delayedScanTimer.interval = 3000;
         delayedScanTimer.restart();
       }
@@ -1038,7 +1003,6 @@ Singleton {
     }
   }
 
-  // Forget given Wi-Fi network
   Process {
     id: forgetProcess
     property string ssid: ""
@@ -1093,7 +1057,6 @@ Singleton {
         Logger.i("Network", "Forget network: \"" + forgetProcess.ssid + "\"");
         Logger.d("Network", text.trim().replace(/[\r\n]/g, " "));
 
-        // Update existing status immediately
         let nets = root.networks;
         if (nets[forgetProcess.ssid]) {
           nets[forgetProcess.ssid].existing = false;
@@ -1104,7 +1067,6 @@ Singleton {
 
         root.forgettingNetwork = "";
 
-        // Scan to verify the profile is gone
         delayedScanTimer.interval = 5000;
         delayedScanTimer.restart();
       }

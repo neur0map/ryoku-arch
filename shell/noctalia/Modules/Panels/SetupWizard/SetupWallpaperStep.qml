@@ -34,7 +34,6 @@ ColumnLayout {
 
   spacing: Style.marginL
 
-  // Beautiful header with icon
   ColumnLayout {
     Layout.fillWidth: true
     Layout.bottomMargin: Style.marginL
@@ -77,7 +76,6 @@ ColumnLayout {
     }
   }
 
-  // Large preview area
   Rectangle {
     Layout.fillWidth: true
     Layout.fillHeight: true
@@ -85,7 +83,6 @@ ColumnLayout {
     color: Color.mSurfaceVariant
     radius: Style.radiusL
 
-    // Image with rounded corners
     NImageRounded {
       anchors.fill: parent
       visible: previewCachedPath !== ""
@@ -132,7 +129,6 @@ ColumnLayout {
     }
   }
 
-  // Wallpaper gallery strip
   Item {
     Layout.fillWidth: true
     Layout.preferredHeight: 92
@@ -206,7 +202,6 @@ ColumnLayout {
               imageFillMode: Image.PreserveAspectCrop
             }
 
-            // Loading/error state background
             Rectangle {
               anchors.fill: parent
               color: Color.mSurfaceVariant
@@ -228,7 +223,6 @@ ColumnLayout {
               size: 18
             }
 
-            // Hover overlay
             Rectangle {
               anchors.fill: parent
               radius: thumbDelegate.thumbRadius
@@ -241,7 +235,6 @@ ColumnLayout {
               }
             }
 
-            // Selection badge
             Rectangle {
               visible: selectedWallpaper === modelData
               anchors.right: parent.right
@@ -276,7 +269,6 @@ ColumnLayout {
     }
   }
 
-  // Helpful info card
   Rectangle {
     Layout.fillWidth: true
     Layout.preferredHeight: 80
@@ -319,7 +311,6 @@ ColumnLayout {
     }
   }
 
-  // Directory selection
   ColumnLayout {
     Layout.fillWidth: true
     spacing: Style.marginM
@@ -340,7 +331,6 @@ ColumnLayout {
     }
   }
 
-  // Internal properties and functions
   property list<string> wallpapersList: []
   property list<string> filteredWallpapers: []
 

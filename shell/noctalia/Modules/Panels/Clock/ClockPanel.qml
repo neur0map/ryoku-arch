@@ -27,7 +27,6 @@ SmartPanel {
       width: parent.width - Style.margin2L
       spacing: Style.marginM
 
-      // All clock panel cards
       Repeater {
         model: Settings.data.calendar.cards
         Loader {

@@ -7,7 +7,6 @@ import qs.noctalia.Widgets
 RowLayout {
   id: root
 
-  // Public properties
   property int value: 0
   property int from: 0
   property int to: 100
@@ -21,11 +20,9 @@ RowLayout {
   property var defaultValue: undefined
   property string settingsPath: ""
 
-  // Convenience properties for common naming
   property alias minimum: root.from
   property alias maximum: root.to
 
-  // Properties for repeating
   property int initialRepeatDelay: 400   // The "pause" after the first click (in ms)
   property int repeatInterval: 80        // How often to step up after fist pause (ms)
   property int rampFactor: 4             // How many ticks to wait before increasing the step multiplier
@@ -88,7 +85,6 @@ RowLayout {
     indicatorTooltip: root.indicatorTooltip
   }
 
-  // Main spinbox container
   Rectangle {
     id: spinBoxContainer
     Layout.margins: Style.borderS
@@ -105,7 +101,6 @@ RowLayout {
       }
     }
 
-    // Mouse area for hover and scroll
     MouseArea {
       anchors.fill: parent
       acceptedButtons: Qt.NoButton
@@ -131,7 +126,6 @@ RowLayout {
                }
     }
 
-    // Decrease button (left)
     Item {
       id: decreaseButton
       height: parent.height
@@ -178,7 +172,6 @@ RowLayout {
       }
     }
 
-    // Increase button (right)
     Item {
       id: increaseButton
       height: parent.height
@@ -225,7 +218,6 @@ RowLayout {
       }
     }
 
-    // Center value display with separate prefix, value, and suffix
     Item {
       id: valueContainer
       anchors.left: decreaseButton.right
@@ -238,7 +230,6 @@ RowLayout {
         anchors.centerIn: parent
         spacing: 0
 
-        // Prefix text (non-editable)
         NText {
           text: root.prefix
           family: Settings.data.ui.fontFixed
@@ -250,7 +241,6 @@ RowLayout {
           visible: root.prefix !== ""
         }
 
-        // Editable number input
         TextInput {
           id: valueInput
           text: valueInput.focus ? valueInput.text : root.value.toString()
@@ -263,7 +253,6 @@ RowLayout {
           selectByMouse: true
           enabled: root.enabled
 
-          // Only allow numeric input within range
           validator: IntValidator {
             bottom: root.from
             top: root.to
@@ -297,7 +286,6 @@ RowLayout {
           }
         }
 
-        // Suffix text (non-editable)
         NText {
           text: root.suffix
           family: Settings.data.ui.fontFixed

@@ -6,7 +6,6 @@ import qs.noctalia.Commons
 Item {
   id: root
 
-  // Public API
   property var model: []
   property var disabledIds: []
   property color activeColor: Color.mPrimary
@@ -49,7 +48,6 @@ Item {
     if (toIndex < 0 || toIndex >= root.model.length)
       return;
 
-    // Create a new array with item moved
     var newModel = root.model.slice();
     var item = newModel.splice(fromIndex, 1)[0];
     newModel.splice(toIndex, 0, item);
@@ -94,7 +92,6 @@ Item {
           spacing: Style.marginS
           opacity: isDisabled ? 0.5 : 1.0
 
-          // Drag handle
           Rectangle {
             id: dragHandle
 
@@ -154,7 +151,6 @@ Item {
                                      var dy = mouse.y - dragHandle.height / 2;
                                      var newY = delegateItem.y + dy;
 
-                                     // Constrain within bounds
                                      newY = Math.max(0, Math.min(newY, root.contentHeight - delegateItem.height));
                                      delegateItem.y = newY;
 
@@ -167,7 +163,6 @@ Item {
                                  }
 
               onReleased: {
-                // Always signal end of interaction
                 preventStealing = false;
                 root.dragPotentialEnded();
 
@@ -195,7 +190,6 @@ Item {
             }
           }
 
-          // Checkbox
           Rectangle {
             id: box
 
@@ -241,7 +235,6 @@ Item {
             }
           }
 
-          // Label
           NText {
             Layout.fillWidth: true
             text: delegateItem.text
@@ -250,7 +243,6 @@ Item {
             elide: Text.ElideRight
           }
 
-          // Required indicator
           NText {
             visible: delegateItem.required
             text: I18n.tr("common.required")
@@ -259,13 +251,11 @@ Item {
           }
         }
 
-        // Position binding for non-dragging state
         y: {
           if (delegateItem.dragging) {
             return delegateItem.y;
           }
 
-          // Check if any item is being dragged
           var draggedIndex = -1;
           var targetIndex = -1;
           for (var i = 0; i < repeater.count; i++) {
@@ -277,7 +267,6 @@ Item {
             }
           }
 
-          // If an item is being dragged, adjust positions
           if (draggedIndex !== -1 && targetIndex !== -1 && draggedIndex !== targetIndex) {
             var currentIndex = delegateItem.index;
 

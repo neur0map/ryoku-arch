@@ -70,7 +70,6 @@ Item {
   // When no label the pills are smaller
   readonly property real baseDimensionRatio: pillSize
 
-  // Grouped mode (show applications) settings
   readonly property bool showApplications: (widgetSettings.showApplications !== undefined) ? widgetSettings.showApplications : widgetMetadata.showApplications
   readonly property bool showApplicationsHover: (widgetSettings.showApplicationsHover !== undefined) ? widgetSettings.showApplicationsHover : widgetMetadata.showApplicationsHover
   readonly property bool showLabelsOnlyWhenOccupied: (widgetSettings.showLabelsOnlyWhenOccupied !== undefined) ? widgetSettings.showLabelsOnlyWhenOccupied : widgetMetadata.showLabelsOnlyWhenOccupied
@@ -94,7 +93,6 @@ Item {
   property string selectedWindowId: ""
   property string selectedAppId: ""
 
-  // Helper to get the current window object from ID
   function getSelectedWindow() {
     if (!selectedWindowId)
       return null;
@@ -125,7 +123,6 @@ Item {
   property int horizontalPadding: Style.marginS
   property int spacingBetweenPills: Style.marginXS
 
-  // Wheel scroll handling
   property int wheelAccumulatedDelta: 0
   property bool wheelCooldown: false
 
@@ -245,7 +242,6 @@ Item {
     return appId.toLowerCase().trim();
   }
 
-  // Helper function to check if an app is pinned
   function isAppPinned(appId) {
     if (!appId)
       return false;
@@ -254,7 +250,6 @@ Item {
     return pinnedApps.some(pinnedId => normalizeAppId(pinnedId) === normalizedId);
   }
 
-  // Helper function to toggle app pin/unpin
   function toggleAppPin(appId) {
     if (!appId)
       return;
@@ -347,7 +342,6 @@ Item {
         if (hideUnoccupied && !ws.isOccupied && !ws.isFocused)
           continue;
 
-        // Create a plain JS object for the workspace data
         var workspaceData = {
           id: ws.id,
           idx: ws.idx,
@@ -459,14 +453,12 @@ Item {
     model: {
       var items = [];
       if (root.selectedWindowId) {
-        // Focus item
         items.push({
                      "label": I18n.tr("common.focus"),
                      "action": "focus",
                      "icon": "eye"
                    });
 
-        // Pin/Unpin item
         const isPinned = root.isAppPinned(root.selectedAppId);
         items.push({
                      "label": !isPinned ? I18n.tr("common.pin") : I18n.tr("common.unpin"),
@@ -474,14 +466,12 @@ Item {
                      "icon": !isPinned ? "pin" : "pinned-off"
                    });
 
-        // Close item
         items.push({
                      "label": I18n.tr("common.close"),
                      "action": "close",
                      "icon": "x"
                    });
 
-        // Add desktop entry actions
         if (typeof DesktopEntries !== 'undefined' && DesktopEntries.byId && root.selectedAppId) {
           const entry = (DesktopEntries.heuristicLookup) ? DesktopEntries.heuristicLookup(root.selectedAppId) : DesktopEntries.byId(root.selectedAppId);
           if (entry != null && entry.actions) {
@@ -597,7 +587,6 @@ Item {
     }
   }
 
-  // Horizontal layout for top/bottom bars
   Row {
     id: pillRow
     spacing: spacingBetweenPills
@@ -640,7 +629,6 @@ Item {
     }
   }
 
-  // Vertical layout for left/right bars
   Column {
     id: pillColumn
     spacing: spacingBetweenPills
@@ -683,9 +671,6 @@ Item {
     }
   }
 
-  // ========================================
-  // Grouped mode (appVisible = true)
-  // ========================================
   Component {
     id: groupedWorkspaceDelegate
 
@@ -907,7 +892,6 @@ Item {
           }
         }
 
-        // Burst effect overlay for focused workspace number
         Rectangle {
           id: groupedWorkspaceNumberBurst
           anchors.centerIn: groupedWorkspaceNumberContainer

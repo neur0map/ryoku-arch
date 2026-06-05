@@ -3,7 +3,6 @@ import QtQuick.Effects
 import qs.noctalia.Commons
 import qs.noctalia.Services.Power
 
-// Unified shadow system
 Item {
   id: root
 

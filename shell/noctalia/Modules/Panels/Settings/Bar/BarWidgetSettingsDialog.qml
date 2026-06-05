@@ -6,7 +6,6 @@ import qs.noctalia.Commons
 import qs.noctalia.Services.UI
 import qs.noctalia.Widgets
 
-// Widget Settings Dialog Component
 Popup {
   id: root
 
@@ -31,7 +30,6 @@ Popup {
   anchors.centerIn: parent
 
   onOpened: {
-    // Load settings when popup opens with data
     if (widgetData && widgetId) {
       loadWidgetSettings();
     }
@@ -57,7 +55,6 @@ Popup {
       anchors.fill: parent
       spacing: Style.marginM
 
-      // Title
       RowLayout {
         id: titleRow
         Layout.fillWidth: true
@@ -80,7 +77,6 @@ Popup {
         }
       }
 
-      // Separator
       Rectangle {
         id: separator
         Layout.fillWidth: true
@@ -88,7 +84,6 @@ Popup {
         color: Color.mOutline
       }
 
-      // Scrollable settings area
       NScrollView {
         id: scrollView
         Layout.fillWidth: true
@@ -100,7 +95,6 @@ Popup {
           width: scrollView.availableWidth
           spacing: Style.marginM
 
-          // Settings based on widget type
           // Will be triggered via settingsLoader.setSource()
           Loader {
             id: settingsLoader
@@ -122,10 +116,8 @@ Popup {
             function findFirstFocusable(item) {
               if (!item)
                 return null;
-              // Check if this item can accept focus
               if (item.focus !== undefined && item.focus === true)
                 return item;
-              // Check children
               if (item.children) {
                 for (var i = 0; i < item.children.length; i++) {
                   var child = item.children[i];

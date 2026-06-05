@@ -34,7 +34,6 @@ Item {
     Logger.i("LabwcService", "Service started (ext-workspace-v1)");
   }
 
-  // Watch for windowsets being added/removed
   Connections {
     target: WindowManager
 
@@ -62,7 +61,6 @@ Item {
     }
   }
 
-  // Connect to property change signals on each native windowset object
   function connectWorkspaceSignals() {
     const nativeWs = WindowManager.windowsets;
     const newConnected = {};
@@ -135,7 +133,6 @@ Item {
       idx++;
     }
 
-    // Update windows with workspace info
     updateWindowWorkspaces();
     workspaceChanged();
   }
@@ -192,7 +189,6 @@ Item {
     let focusedIdx = -1;
     let idx = 0;
 
-    // Find active workspace id
     let activeId = "";
     for (let i = 0; i < workspaces.count; i++) {
       const ws = workspaces.get(i);
@@ -211,7 +207,6 @@ Item {
         trackedToplevels.add(toplevel);
       }
 
-      // Get output name from toplevel's screen list
       const output = (toplevel.screens && toplevel.screens.length > 0) ? (toplevel.screens[0].name || "") : "";
 
       // Use appId + title as a stable id since Toplevel has no address property
@@ -251,7 +246,6 @@ Item {
   }
 
   function switchToWorkspace(workspace) {
-    // Find the native Workspace object and activate it directly
     const nativeWs = nativeWorkspaceMap[workspace.id] || nativeWorkspaceMap[workspace.oid];
     if (nativeWs && nativeWs.canActivate) {
       nativeWs.activate();
@@ -278,7 +272,6 @@ Item {
 
   function logout() {
     try {
-      // Exit labwc by sending SIGTERM to $LABWC_PID or using --exit flag
       Quickshell.execDetached(["sh", "-c", "labwc --exit || kill -s SIGTERM $LABWC_PID"]);
     } catch (e) {
       Logger.e("LabwcService", "Failed to logout:", e);

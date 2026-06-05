@@ -103,7 +103,6 @@ StyledRect {
             }
         }
 
-        // Audio icon
         WrappedLoader {
             name: "audio"
             active: Config.bar.status.showAudio
@@ -115,7 +114,6 @@ StyledRect {
             }
         }
 
-        // Microphone icon
         WrappedLoader {
             name: "audio"
             active: Config.bar.status.showMicrophone
@@ -127,7 +125,6 @@ StyledRect {
             }
         }
 
-        // Keyboard layout icon
         WrappedLoader {
             name: "kblayout"
             active: Config.bar.status.showKbLayout
@@ -140,7 +137,6 @@ StyledRect {
             }
         }
 
-        // Network icon
         WrappedLoader {
             name: "network"
             active: Config.bar.status.showNetwork && (!Nmcli.activeEthernet || Config.bar.status.showWifi)
@@ -152,7 +148,6 @@ StyledRect {
             }
         }
 
-        // Ethernet icon
         WrappedLoader {
             name: "ethernet"
             active: Config.bar.status.showNetwork && Nmcli.activeEthernet
@@ -174,7 +169,6 @@ StyledRect {
             sourceComponent: ColumnLayout {
                 spacing: Tokens.spacing.smaller / 2
 
-                // Bluetooth icon
                 MaterialIcon {
                     animate: true
                     text: {
@@ -230,7 +224,6 @@ StyledRect {
             }
         }
 
-        // Battery icon
         WrappedLoader {
             name: "battery"
             active: Config.bar.status.showBattery

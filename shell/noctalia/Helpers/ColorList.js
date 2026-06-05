@@ -1,5 +1,4 @@
 var colors = [
-    // --- REDS ---
     { name: "MistyRose", color: "mistyrose" },
     { name: "LightPink", color: "lightpink" },
     { name: "Pink", color: "pink" },
@@ -22,7 +21,6 @@ var colors = [
     { name: "Maroon", color: "maroon" },
     { name: "Brown", color: "brown" },
 
-    // --- ORANGES & BROWNS ---
     { name: "Coral", color: "coral" },
     { name: "Tomato", color: "tomato" },
     { name: "OrangeRed", color: "orangered" },
@@ -38,7 +36,6 @@ var colors = [
     { name: "Sienna", color: "sienna" },
     { name: "Brown 500", color: "#795548" }, // Material
 
-    // --- YELLOWS, BEIGES & GOLDS ---
     { name: "LightYellow", color: "lightyellow" },
     { name: "LemonChiffon", color: "lemonchiffon" },
     { name: "LightGoldenrodYellow", color: "lightgoldenrodyellow" },
@@ -63,7 +60,6 @@ var colors = [
     { name: "Gold", color: "gold" },
     { name: "Amber 500", color: "#FFC107" }, // Material
 
-    // --- GREENS ---
     { name: "GreenYellow", color: "greenyellow" },
     { name: "Chartreuse", color: "chartreuse" },
     { name: "LawnGreen", color: "lawngreen" },
@@ -87,7 +83,6 @@ var colors = [
     { name: "Olive", color: "olive" },
     { name: "DarkOliveGreen", color: "darkolivegreen" },
 
-    // --- TEALS & CYANS ---
     { name: "MediumAquamarine", color: "mediumaquamarine" },
     { name: "DarkSeaGreen", color: "darkseagreen" },
     { name: "LightSeaGreen", color: "lightseagreen" },
@@ -107,7 +102,6 @@ var colors = [
     { name: "Teal 500", color: "#009688" }, // Material
     { name: "DarkSlateGray", color: "darkslategray" },
 
-    // --- BLUES ---
     { name: "PowderBlue", color: "powderblue" },
     { name: "LightBlue", color: "lightblue" },
     { name: "SkyBlue", color: "skyblue" },
@@ -133,7 +127,6 @@ var colors = [
     { name: "MediumSlateBlue", color: "mediumslateblue" },
     { name: "SlateBlue", color: "slateblue" },
 
-    // --- PURPLES & MAGENTAS ---
     { name: "Lavender", color: "lavender" },
     { name: "Thistle", color: "thistle" },
     { name: "Plum", color: "plum" },
@@ -153,7 +146,6 @@ var colors = [
     { name: "Deep Purple 500", color: "#673AB7" }, // Material
     { name: "Indigo", color: "indigo" },
 
-    // --- NEUTRALS ---
     { name: "White", color: "white" },
     { name: "Snow", color: "snow" },
     { name: "HoneyDew", color: "honeydew" },

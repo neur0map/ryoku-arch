@@ -6,16 +6,13 @@ import "../../Helpers/BluetoothUtils.js" as BluetoothUtils
 QtObject {
   id: root
 
-  // Controls
   property bool enabled: false
   property int intervalMs: 10000
   property var connectedDevices: []
 
-  // Output cache and version for bindings
   property var cache: ({}) // addr -> percent (0..100)
   property int version: 0
 
-  // Internal rotation state
   property int _index: 0
   property string _currentAddr: ""
 
@@ -43,7 +40,6 @@ QtObject {
     }
   }
 
-  // Periodic RSSI polling timer
   property Timer rssiTimer: Timer {
     interval: root.intervalMs
     repeat: true

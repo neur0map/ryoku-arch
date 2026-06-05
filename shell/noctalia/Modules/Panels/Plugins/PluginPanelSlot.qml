@@ -17,7 +17,6 @@ SmartPanel {
   // Currently loaded plugin ID (empty if no plugin using this slot)
   property string currentPluginId: ""
 
-  // Plugin instance
   property var pluginInstance: null
 
   // Reference to the plugin content loader (set when panel content is created)
@@ -31,7 +30,6 @@ SmartPanel {
   panelAnchorLeft: pluginInstance?.panelAnchorLeft ?? false
   panelAnchorRight: pluginInstance?.panelAnchorRight ?? false
 
-  // Panel background color
   panelBackgroundColor: pluginInstance?.panelBackgroundColor ?? Color.mSurface
 
   // Panel content is dynamically loaded
@@ -72,7 +70,6 @@ SmartPanel {
 
       anchors.fill: parent
 
-      // Dynamic plugin content
       Item {
         id: pluginContentItem
         anchors.fill: parent
@@ -89,7 +86,6 @@ SmartPanel {
         // Store reference to the loader so loadPluginPanel can access it
         root.contentLoader = pluginContentLoader;
 
-        // Load plugin panel content if assigned
         if (root.currentPluginId !== "") {
           root.loadPluginPanel(root.currentPluginId);
         }
@@ -97,7 +93,6 @@ SmartPanel {
     }
   }
 
-  // Load a plugin's panel content
   function loadPluginPanel(pluginId) {
     if (!PluginService.isPluginLoaded(pluginId)) {
       Logger.w("PluginPanelSlot", "Plugin not loaded:", pluginId);
@@ -115,7 +110,6 @@ SmartPanel {
       return false;
     }
 
-    // Check if loader is available
     if (!root.contentLoader) {
       Logger.e("PluginPanelSlot", "Content loader not available yet");
       return false;
@@ -159,9 +153,7 @@ SmartPanel {
     return false;
   }
 
-  // Helper function to finalize plugin content loading
   function finalizePluginLoad(pluginId, component) {
-    // Get plugin API
     var api = PluginService.getPluginAPI(pluginId);
 
     // Use setSource with initial properties so pluginApi is available
@@ -181,7 +173,6 @@ SmartPanel {
     }
   }
 
-  // Unload current plugin panel
   function unloadPluginPanel() {
     if (root.currentPluginId === "") {
       return;
@@ -197,12 +188,10 @@ SmartPanel {
     root.currentPluginId = "";
   }
 
-  // Register with PanelService
   Component.onCompleted: {
     PanelService.registerPanel(root);
   }
 
-  // Update plugin's panelOpenScreen when this panel opens/closes
   onOpened: {
     if (root.currentPluginId !== "") {
       var api = PluginService.getPluginAPI(root.currentPluginId);

@@ -10,7 +10,6 @@ QtObject {
 
     const configDir = Settings.configDir;
     const pamConfigDir = configDir + "pam";
-    // Remove the entire pam directory if it exists
     const script = `rm -rf '${pamConfigDir}'`;
     Quickshell.execDetached(["sh", "-c", script]);
 

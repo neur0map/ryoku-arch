@@ -66,14 +66,12 @@ Singleton {
         }
         
         if (colorNames.length > 1) {
-            // Multi-color gradient
             const formattedColors = colorNames.map(colorName => {
                 const color = getColorValue(colorName);
                 return formatColorForCompositor(color);
             }).join(" ");
             return [`${formattedColors} ${angle}deg`];
         } else {
-            // Single color
             const color = getColorValue(colorNames[0]);
             return [formatColorForCompositor(color)];
         }
@@ -85,7 +83,6 @@ Singleton {
         }
         
         if (colorNames.length > 1) {
-            // Multi-color gradient - force full opacity
             const formattedColors = colorNames.map(colorName => {
                 const color = getColorValue(colorName);
                 const colorWithFullOpacity = Qt.rgba(color.r, color.g, color.b, 1.0);
@@ -93,7 +90,6 @@ Singleton {
             }).join(" ");
             return [`${formattedColors} ${angle}deg`];
         } else {
-            // Single color - force full opacity
             const color = getColorValue(colorNames[0] || "surface");
             const colorWithFullOpacity = Qt.rgba(color.r, color.g, color.b, 1.0);
             return [formatColorForCompositor(colorWithFullOpacity)];
@@ -194,26 +190,21 @@ Singleton {
             return action.layouts.indexOf(GlobalStates.compositorLayout) !== -1;
         }
 
-        // Appearance section
         toml += "[appearance]\n";
 
-        // Gaps
         toml += "[appearance.gaps]\n";
         toml += `inner = ${Config.compositor.gapsIn}\n`;
         toml += `outer = ${Config.compositor.gapsOut}\n`;
 
-        // Border
         toml += "[appearance.border]\n";
         toml += `width = ${Config.compositorBorderSize}\n`;
 
-        // Active border colors (supports gradients)
         const borderColors = Config.compositor.syncBorderColor ? [Config.compositorBorderColor] : Config.compositor.activeBorderColor;
         const activeBorderFormatted = formatBorderColors(borderColors || ["primary"], Config.compositor.borderAngle);
         if (activeBorderFormatted.length > 0) {
             toml += `active_color = "${activeBorderFormatted[0]}"\n`;
         }
 
-        // Inactive border colors (supports gradients)
         const inactiveBorderColors = Config.compositor.inactiveBorderColor;
         const inactiveBorderFormatted = formatInactiveBorderColors(inactiveBorderColors, Config.compositor.inactiveBorderAngle);
         if (inactiveBorderFormatted.length > 0) {
@@ -222,35 +213,29 @@ Singleton {
 
         toml += `rounding = ${Config.compositorRounding}\n`;
 
-        // Opacity - placeholder (not synced in current implementation)
         toml += "[appearance.opacity]\n";
         toml += "active = 1.0\n";
         toml += "inactive = 1.0\n";
 
-        // Blur - all settings
         toml += "[appearance.blur]\n";
         toml += `enabled = ${Config.compositor.blurEnabled}\n`;
         toml += `size = ${Config.compositor.blurSize}\n`;
         toml += `passes = ${Config.compositor.blurPasses}\n`;
 
-        // Shadow - all settings
         toml += "[appearance.shadow]\n";
         toml += `enabled = ${Config.compositor.shadowEnabled}\n`;
         toml += `size = ${Config.compositor.shadowRange}\n`;
         const shadowColorFormatted = formatShadowColors(Config.compositorShadowColor, Config.compositorShadowOpacity);
         toml += `color = "${shadowColorFormatted}"\n`;
 
-        // Animations
         toml += "[appearance.animations]\n";
         toml += "enabled = true\n";
 
-        // Layout (if set)
         if (GlobalStates.compositorLayout && GlobalStates.compositorLayout.length > 0) {
             toml += "\n[general]\n";
             toml += `layout = "${GlobalStates.compositorLayout}"\n`;
         }
 
-        // Keybinds
         if (Config.keybindsLoader.loaded && Config.keybindsLoader.adapter) {
             const adapter = Config.keybindsLoader.adapter;
             const ambxst = adapter.ambxst;
@@ -322,7 +307,6 @@ Singleton {
                             }
                         }
                     } else if (bind) {
-                        // Legacy single-key format
                         const resolved = resolveBindAction(bind.action, bind);
                         if (!resolved)
                             continue;
@@ -338,7 +322,6 @@ Singleton {
             }
         }
 
-        // Layer rules for quickshell
         toml += "\n[[layer_rules]]\n";
         toml += "namespace = \"quickshell\"\n";
         toml += "no_anim = true\n";
@@ -357,7 +340,6 @@ Singleton {
         toml += "namespace = \"quickshell\"\n";
         toml += "ignore_alpha = true\n";
         toml += `ignore_alpha_value = ${ignoreAlphaValue}\n`;
-        // Additional layer rules
         toml += "\n[[layer_rules]]\n";
         toml += "namespace = \"selection\"\n";
         toml += "no_anim = true\n";
@@ -388,7 +370,6 @@ Singleton {
 
 
 
-        // Input section (placeholder for keyboard layout)
         toml += "\n[input]\n";
         toml += "[input.keyboard]\n";
         toml += 'layouts = ""\n';
@@ -434,11 +415,9 @@ Singleton {
         function onPathChanged() { writeTomlFile(); }
     }
 
-    // Compositor section connections
     property Connections compositorConnections: Connections {
         target: Config.compositor
         
-        // Border settings
         function onBorderSizeChanged() { writeTomlFile(); }
         function onRoundingChanged() { writeTomlFile(); }
         function onGapsInChanged() { writeTomlFile(); }
@@ -448,14 +427,12 @@ Singleton {
         function onBorderAngleChanged() { writeTomlFile(); }
         function onInactiveBorderAngleChanged() { writeTomlFile(); }
         
-        // Sync settings that affect derived values
         function onSyncRoundnessChanged() { writeTomlFile(); }
         function onSyncBorderWidthChanged() { writeTomlFile(); }
         function onSyncBorderColorChanged() { writeTomlFile(); }
         function onSyncShadowOpacityChanged() { writeTomlFile(); }
         function onSyncShadowColorChanged() { writeTomlFile(); }
         
-        // Shadow settings
         function onShadowEnabledChanged() { writeTomlFile(); }
         function onShadowRangeChanged() { writeTomlFile(); }
         function onShadowRenderPowerChanged() { writeTomlFile(); }
@@ -467,7 +444,6 @@ Singleton {
         function onShadowOffsetChanged() { writeTomlFile(); }
         function onShadowScaleChanged() { writeTomlFile(); }
         
-        // Blur settings
         function onBlurEnabledChanged() { writeTomlFile(); }
         function onBlurSizeChanged() { writeTomlFile(); }
         function onBlurPassesChanged() { writeTomlFile(); }
@@ -488,7 +464,6 @@ Singleton {
         function onBlurInputMethodsIgnorealphaChanged() { writeTomlFile(); }
     }
 
-    // Theme connections (for blur ignorealpha calculation and shadow color sync)
     property Connections themeConnections: Connections {
         target: Config.theme
         function onSrBarBgChanged() { writeTomlFile(); }
@@ -497,13 +472,11 @@ Singleton {
         function onShadowOpacityChanged() { writeTomlFile(); }
     }
 
-    // Bar position connection (for workspace animation orientation)
     property Connections barConnections: Connections {
         target: Config.bar
         function onPositionChanged() { writeTomlFile(); }
     }
 
-    // GlobalStates connection (for layout)
     property Connections globalStatesConnections: Connections {
         target: GlobalStates
         function onCompositorLayoutChanged() { writeTomlFile(); }

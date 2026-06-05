@@ -16,16 +16,13 @@ Item {
 
     implicitHeight: 40
 
-    // Convert currentValue to string safely
     readonly property string currentValueStr: currentValue ? currentValue.toString() : ""
 
-    // Check if current value is a hex color
     readonly property bool isHexColor: currentValueStr.startsWith("#") || currentValueStr.startsWith("rgb")
     readonly property string displayHex: {
         if (isHexColor) {
             return currentValueStr;
         }
-        // Get hex from Colors singleton
         const color = Colors[currentValueStr];
         if (color) {
             return color.toString();
@@ -37,7 +34,6 @@ Item {
         anchors.fill: parent
         spacing: 10
 
-        // Color dropdown
         ComboBox {
             id: colorDropdown
             Layout.fillWidth: true
@@ -46,14 +42,13 @@ Item {
             model: ["Custom"].concat(root.colorNames)
             currentIndex: {
                 if (root.isHexColor)
-                    return 0; // "Custom"
+                    return 0;
                 const idx = root.colorNames.indexOf(root.currentValueStr);
                 return idx >= 0 ? idx + 1 : 0;
             }
 
             onActivated: index => {
                 if (index === 0) {
-                    // Custom selected - emit current hex value to switch mode
                     root.colorChanged(root.displayHex);
                     return;
                 }
@@ -74,7 +69,6 @@ Item {
                 anchors.leftMargin: 10
                 anchors.rightMargin: 32
 
-                // Color preview square
                 Rectangle {
                     Layout.preferredWidth: 24
                     Layout.preferredHeight: 24
@@ -128,9 +122,8 @@ Item {
                     ScrollIndicator.vertical: ScrollIndicator {}
 
                     property real maxContentWidth: {
-                        let maxWidth = 150; // minimum
+                        let maxWidth = 150;
                         for (let i = 0; i < colorDropdown.model.length; i++) {
-                            // Approximate text width: fontSize * text.length * 0.6 + preview square + spacing
                             const textWidth = Config.theme.fontSize * colorDropdown.model[i].length * 0.6 + 22 + 20 + 20;
                             maxWidth = Math.max(maxWidth, textWidth);
                         }
@@ -167,7 +160,6 @@ Item {
                         border.color: Colors.outline
                         border.width: delegateItem.index === 0 ? 0 : 1
 
-                        // Diagonal line for "Custom"
                         Rectangle {
                             visible: delegateItem.index === 0
                             width: parent.width * 1.2
@@ -191,7 +183,6 @@ Item {
             }
         }
 
-        // HEX input
         Rectangle {
             id: hexInputContainer
             Layout.preferredWidth: 110
@@ -226,7 +217,7 @@ Item {
                     color: Colors.overBackground
                     verticalAlignment: Text.AlignVCenter
                     selectByMouse: true
-                    maximumLength: 8 // RRGGBBAA
+                    maximumLength: 8
                     readOnly: !root.isHexColor
 
                     validator: RegularExpressionValidator {
@@ -263,7 +254,6 @@ Item {
                     onTextChanged: {
                         if (!root.isHexColor)
                             return;
-                        // Auto-apply when 6 or 8 characters
                         if (text.length === 6 || text.length === 8) {
                             applyTimer.restart();
                         }
@@ -282,7 +272,6 @@ Item {
             }
         }
 
-        // Color picker button
         Button {
             id: pickerButton
             Layout.preferredWidth: 40

@@ -8,14 +8,12 @@ ColumnLayout {
   id: root
   spacing: Style.marginM
 
-  // Properties to receive data from parent
   property var screen: null
   property var widgetData: null
   property var widgetMetadata: null
 
   signal settingsChanged(var settings)
 
-  // Local state
   property bool valueShowUnreadBadge: widgetData.showUnreadBadge !== undefined ? widgetData.showUnreadBadge : widgetMetadata.showUnreadBadge
   property bool valueHideWhenZero: widgetData.hideWhenZero !== undefined ? widgetData.hideWhenZero : widgetMetadata.hideWhenZero
   property bool valueHideWhenZeroUnread: widgetData.hideWhenZeroUnread !== undefined ? widgetData.hideWhenZeroUnread : widgetMetadata.hideWhenZeroUnread

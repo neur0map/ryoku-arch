@@ -34,7 +34,6 @@ Rectangle {
 
         Repeater {
           model: [
-            // Common format combinations
             {
               "category": "Common",
               "token": "h:mm AP",
@@ -82,7 +81,7 @@ Rectangle {
               "token": "ddd, MMM dd",
               "description": I18n.tr("widgets.datetime-tokens.common-weekday-date"),
               "example": "Fri, Dec 12"
-            } // Hour tokens
+            }
             ,
             {
               "category": "Hour",
@@ -95,7 +94,7 @@ Rectangle {
               "token": "HH",
               "description": I18n.tr("widgets.datetime-tokens.hour-leading-zero"),
               "example": "14"
-            } // Minute tokens
+            }
             ,
             {
               "category": "Minute",
@@ -108,7 +107,7 @@ Rectangle {
               "token": "mm",
               "description": I18n.tr("widgets.datetime-tokens.minute-leading-zero"),
               "example": "30"
-            } // Second tokens
+            }
             ,
             {
               "category": "Second",
@@ -121,7 +120,7 @@ Rectangle {
               "token": "ss",
               "description": I18n.tr("widgets.datetime-tokens.second-leading-zero"),
               "example": "45"
-            } // AM/PM tokens
+            }
             ,
             {
               "category": "AM/PM",
@@ -134,14 +133,14 @@ Rectangle {
               "token": "ap",
               "description": I18n.tr("widgets.datetime-tokens.ampm-lowercase"),
               "example": "pm"
-            } // Timezone tokens
+            }
             ,
             {
               "category": "Timezone",
               "token": "t",
               "description": I18n.tr("widgets.datetime-tokens.timezone-abbreviation"),
               "example": "UTC"
-            } // Year tokens
+            }
             ,
             {
               "category": "Year",
@@ -154,7 +153,7 @@ Rectangle {
               "token": "yyyy",
               "description": I18n.tr("widgets.datetime-tokens.year-four-digit"),
               "example": "2023"
-            } // Month tokens
+            }
             ,
             {
               "category": "Month",
@@ -179,7 +178,7 @@ Rectangle {
               "token": "MMMM",
               "description": I18n.tr("widgets.datetime-tokens.month-full"),
               "example": "December"
-            } // Day tokens
+            }
             ,
             {
               "category": "Day",
@@ -219,7 +218,6 @@ Rectangle {
               return index % 2 === 0 ? Color.mSurfaceVariant : Qt.alpha(Color.mSurfaceVariant, 0.6);
             }
 
-            // Mouse area for the entire delegate
             MouseArea {
               id: tokenMouseArea
               anchors.fill: parent
@@ -232,7 +230,6 @@ Rectangle {
               }
             }
 
-            // Click animation
             SequentialAnimation {
               id: clickAnimation
               PropertyAnimation {
@@ -255,7 +252,6 @@ Rectangle {
               anchors.margins: Style.marginXS
               spacing: Style.marginM
 
-              // Category badge
               Rectangle {
                 Layout.alignment: Qt.AlignVCenter
                 width: 70
@@ -278,10 +274,9 @@ Rectangle {
                 }
               }
 
-              // Token - Made more prominent and clickable
               Rectangle {
                 id: tokenButton
-                Layout.alignment: Qt.AlignVCenter // Added this line
+                Layout.alignment: Qt.AlignVCenter
                 width: 100
                 height: 22
                 color: tokenMouseArea.containsMouse ? Color.mPrimary : Color.mOnSurface
@@ -308,10 +303,9 @@ Rectangle {
                 }
               }
 
-              // Description
               NText {
                 Layout.fillWidth: true
-                Layout.alignment: Qt.AlignVCenter // Added this line
+                Layout.alignment: Qt.AlignVCenter
                 text: modelData.description
                 color: tokenMouseArea.containsMouse ? Color.mOnSurface : Color.mOnSurfaceVariant
                 pointSize: Style.fontSizeS
@@ -324,9 +318,8 @@ Rectangle {
                 }
               }
 
-              // Live example
               Rectangle {
-                Layout.alignment: Qt.AlignVCenter // Added this line
+                Layout.alignment: Qt.AlignVCenter
                 width: 90
                 height: 22
                 color: tokenMouseArea.containsMouse ? Color.mPrimary : Color.mOnSurfaceVariant

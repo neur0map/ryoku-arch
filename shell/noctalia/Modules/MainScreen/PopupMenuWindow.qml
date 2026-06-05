@@ -14,7 +14,7 @@ PanelWindow {
   id: root
 
   required property ShellScreen screen
-  property string windowType: "popupmenu"  // Used for namespace and registration
+  property string windowType: "popupmenu"
 
   // Content item to display (set by the popup that uses this window)
   property var contentItem: null
@@ -53,14 +53,12 @@ PanelWindow {
     PanelService.unregisterPopupMenuWindow(screen);
   }
 
-  // Load TrayMenu as the default content
   Loader {
     id: trayMenuLoader
     source: Quickshell.shellDir + "/noctalia" + "/Modules/Bar/Extras/TrayMenu.qml"
     onLoaded: {
       if (item) {
         item.screen = root.screen;
-        // Set the loaded item as default content
         root.contentItem = item;
       }
     }
@@ -132,7 +130,6 @@ PanelWindow {
   function close() {
     visible = false;
     BarService.popupOpen = false;
-    // Call close/hide method on current content
     if (contentItem) {
       if (typeof contentItem.hideMenu === "function") {
         contentItem.hideMenu();
@@ -140,10 +137,8 @@ PanelWindow {
         contentItem.close();
       }
     }
-    // Hide dynamic menu
     dynamicMenu.visible = false;
     dynamicMenuCallback = null;
-    // Restore TrayMenu as default content
     if (trayMenuLoader.item) {
       contentItem = trayMenuLoader.item;
     }

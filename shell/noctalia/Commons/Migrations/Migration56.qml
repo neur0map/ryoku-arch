@@ -13,7 +13,6 @@ QtObject {
 
     logger.i("Settings", `Running color scheme migration script: ${scriptPath} with configDir: ${configDir}`);
 
-    // Run the migration script detached
     Quickshell.execDetached(["python3", scriptPath, configDir]);
 
     return true;

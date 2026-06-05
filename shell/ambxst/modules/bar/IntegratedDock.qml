@@ -21,7 +21,6 @@ StyledRect {
     readonly property bool isIntegrated: (Config.dock?.theme ?? "default") === "integrated"
     readonly property string dockPosition: Config.dock?.position ?? "center"
 
-    // Compact sizing for integrated dock
     readonly property int iconSize: 18
     readonly property int itemSpacing: 2
 
@@ -29,7 +28,6 @@ StyledRect {
 
     variant: "bg"
     
-    // Radius handling from parent
     property real startRadius: radius
     property real endRadius: radius
 
@@ -55,7 +53,6 @@ StyledRect {
         interactive: true
         boundsBehavior: Flickable.StopAtBounds
 
-        // Horizontal layout container
         Item {
             id: contentContainerHorizontal
             visible: !root.isVertical
@@ -67,7 +64,6 @@ StyledRect {
                 anchors.centerIn: parent
                 spacing: root.itemSpacing
 
-                // App buttons
                 Repeater {
                     model: TaskbarApps.apps
 
@@ -82,7 +78,6 @@ StyledRect {
             }
         }
 
-        // Vertical layout container
         Item {
             id: contentContainerVertical
             visible: root.isVertical
@@ -94,7 +89,6 @@ StyledRect {
                 anchors.centerIn: parent
                 spacing: root.itemSpacing
 
-                // App buttons
                 Repeater {
                     model: TaskbarApps.apps
 

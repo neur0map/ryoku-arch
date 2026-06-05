@@ -12,9 +12,9 @@ PopupWindow {
   property bool isGridMode: rows !== null && Array.isArray(rows) && rows.length > 0
   property int columnCount: isGridMode && rows.length > 0 ? rows[0].length : 0
   property string direction: "auto" // "auto", "left", "right", "top", "bottom"
-  property int margin: Style.marginXS // distance from target
+  property int margin: Style.marginXS
   property int padding: Style.marginM
-  property int gridPaddingVertical: Style.marginXS // extra vertical padding for grid mode
+  property int gridPaddingVertical: Style.marginXS
   property int delay: 0
   property int hideDelay: 0
   property int maxWidth: 340
@@ -44,7 +44,6 @@ PopupWindow {
     family: tooltipText.family
   }
 
-  // Internal properties
   property var targetItem: null
   property real anchorX: 0
   property real anchorY: 0
@@ -62,7 +61,6 @@ PopupWindow {
   anchor.rect.x: anchorX
   anchor.rect.y: anchorY
 
-  // Timer for showing tooltip after delay
   Timer {
     id: showTimer
     interval: root.delay
@@ -72,7 +70,6 @@ PopupWindow {
     }
   }
 
-  // Timer for hiding tooltip after delay
   Timer {
     id: hideTimer
     interval: root.hideDelay
@@ -82,7 +79,6 @@ PopupWindow {
     }
   }
 
-  // Show animation
   ParallelAnimation {
     id: showAnimation
 
@@ -106,7 +102,6 @@ PopupWindow {
     }
   }
 
-  // Hide animation
   ParallelAnimation {
     id: hideAnimation
 
@@ -115,7 +110,7 @@ PopupWindow {
       property: "opacity"
       from: 1.0
       to: 0.0
-      duration: root.animationDuration * 0.75 // Slightly faster hide
+      duration: root.animationDuration * 0.75
       easing.type: Easing.InCubic
     }
 
@@ -140,7 +135,6 @@ PopupWindow {
 
     root.delay = showDelay;
 
-    // Stop any running timers and animations
     hideTimer.stop();
     showTimer.stop();
     hideAnimation.stop();
@@ -151,7 +145,6 @@ PopupWindow {
       hideImmediately();
     }
 
-    // Set content based on type
     if (Array.isArray(content)) {
       rows = content;
       text = "";
@@ -183,7 +176,6 @@ PopupWindow {
       Logger.w("Tooltip", "No screen found for target position!");
     }
 
-    // Initialize animation state (hidden)
     tooltipContainer.opacity = 0.0;
     tooltipContainer.scale = root.animationScale;
 
@@ -228,7 +220,7 @@ PopupWindow {
     for (let i = 0; i < columnWidths.length; i++) {
       totalWidth += columnWidths[i];
     }
-    totalWidth += (numCols - 1) * Style.marginM; // columnSpacing
+    totalWidth += (numCols - 1) * Style.marginM;
 
     // Calculate total height using hidden NText for accurate row height
     const rowHeight = rowHeightMeasure.implicitHeight;
@@ -240,7 +232,6 @@ PopupWindow {
     };
   }
 
-  // Function to position and display the tooltip
   function positionAndShow() {
     if (!targetItem || !targetItem.parent) {
       return;
@@ -277,7 +268,6 @@ PopupWindow {
     var newAnchorY = 0;
 
     if (direction === "auto") {
-      // Calculate available space in each direction (screen-relative)
       const spaceLeft = targetGlobal.x;
       const spaceRight = screenWidth - (targetGlobal.x + targetWidth);
       const spaceTop = targetGlobal.y;
@@ -315,7 +305,6 @@ PopupWindow {
               }
             ];
 
-      // Find first position that fits
       var selectedPosition = null;
       for (var i = 0; i < positions.length; i++) {
         if (positions[i].fits) {
@@ -336,7 +325,6 @@ PopupWindow {
       newAnchorX = selectedPosition.x;
       newAnchorY = selectedPosition.y;
     } else {
-      // Manual direction positioning
       switch (direction) {
       case "left":
         newAnchorX = -tipWidth - margin;
@@ -416,17 +404,13 @@ PopupWindow {
     anchorY = newAnchorY < 0 ? Math.floor(newAnchorY) : Math.round(newAnchorY);
     isPositioned = true;
 
-    // Now make visible and start animation
     root.visible = true;
     showAnimation.start();
   }
 
-  // Function to hide tooltip
   function hide() {
-    // Stop show timer if it's running
     showTimer.stop();
 
-    // Stop hide timer if it's running
     hideTimer.stop();
 
     if (hideDelay > 0 && visible && !animatingOut) {
@@ -440,7 +424,7 @@ PopupWindow {
     if (!visible || animatingOut)
       return;
     animatingOut = true;
-    showAnimation.stop(); // Stop show animation if running
+    showAnimation.stop();
     hideAnimation.start();
   }
 
@@ -464,7 +448,6 @@ PopupWindow {
     completeHide();
   }
 
-  // Update content function (supports both text and rows)
   function updateContent(newContent) {
     if (visible && targetItem) {
       if (Array.isArray(newContent)) {
@@ -487,7 +470,6 @@ PopupWindow {
       return;
     }
 
-    // Recalculate dimensions based on content mode
     // Use calculateGridSize() for consistency with initial show
     let contentWidth, contentHeight;
     if (isGridMode) {
@@ -521,7 +503,6 @@ PopupWindow {
     var newAnchorY = anchorY;
 
     // Determine which direction the tooltip is currently positioned
-    // and recalculate the centering for that direction
     var isHorizontalTooltip = false;
     var isVerticalTooltip = false;
     if (anchorY > targetHeight / 2) {
@@ -533,7 +514,6 @@ PopupWindow {
       newAnchorX = (targetWidth - tipWidth) / 2;
       isHorizontalTooltip = true;
     } else if (anchorX > targetWidth / 2) {
-      // Tooltip is to the right
       newAnchorY = (targetHeight - tipHeight) / 2;
       isVerticalTooltip = true;
     } else if (anchorX < -tipWidth / 2) {
@@ -586,12 +566,10 @@ PopupWindow {
       }
     }
 
-    // Apply the new anchor positions
     // Use floor for negative values to push tooltip away from target
     anchorX = newAnchorX < 0 ? Math.floor(newAnchorX) : Math.round(newAnchorX);
     anchorY = newAnchorY < 0 ? Math.floor(newAnchorY) : Math.round(newAnchorY);
 
-    // Force anchor update
     Qt.callLater(() => {
                    if (root.anchor && root.visible) {
                      root.anchor.updateAnchor();
@@ -604,27 +582,22 @@ PopupWindow {
     updateContent(newText);
   }
 
-  // Reset function to clean up state
   function reset() {
-    // Stop all timers and animations
     showTimer.stop();
     hideTimer.stop();
     showAnimation.stop();
     hideAnimation.stop();
 
-    // Clear all state
     visible = false;
     animatingOut = false;
     text = "";
     rows = null;
     isPositioned = false;
 
-    // Reset to defaults
     direction = "auto";
     delay = 0;
     hideDelay = 0;
 
-    // Reset container state
     tooltipContainer.opacity = 1.0;
     tooltipContainer.scale = 1.0;
   }
@@ -634,7 +607,6 @@ PopupWindow {
     id: tooltipContainer
     anchors.fill: parent
 
-    // Animation properties
     opacity: 1.0
     scale: 1.0
     transformOrigin: Item.Center
@@ -647,10 +619,8 @@ PopupWindow {
       border.width: Style.borderS
       radius: Math.min(Style.radiusS, Math.min(width, height) / 3)
 
-      // Only show content when we have content
       visible: root.text !== "" || root.isGridMode
 
-      // Text content (default mode)
       NText {
         id: tooltipText
         visible: !root.isGridMode
@@ -667,7 +637,6 @@ PopupWindow {
         richTextEnabled: true
       }
 
-      // Grid content (grid mode)
       GridLayout {
         id: gridContent
         visible: root.isGridMode

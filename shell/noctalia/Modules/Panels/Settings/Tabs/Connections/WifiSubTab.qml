@@ -19,7 +19,6 @@ Item {
   // Configuration for shared use (e.g. by NetworkPanel)
   property bool showOnlyLists: false
 
-  // State properties
   property string passwordSsid: ""
   property string identity: ""
   property string enterpriseEap: "peap"
@@ -88,7 +87,6 @@ Item {
     SystemStatService.unregisterComponent("wifi-subtab");
   }
 
-  // Actions
   function requestPassword(ssid) {
     passwordSsid = ssid;
     identity = "";
@@ -127,7 +125,6 @@ Item {
     anchors.right: parent.right
     spacing: root.showOnlyLists ? Style.marginM : Style.marginL
 
-    // Master Control Section
     NBox {
       visible: !root.showOnlyLists
       Layout.fillWidth: true
@@ -176,7 +173,6 @@ Item {
       Layout.fillWidth: true
     }
 
-    // Network List [1] (Connected)
     NBox {
       id: connectedBox
       visible: root.connectedNetworks.length > 0 && NetworkService.wifiEnabled
@@ -207,7 +203,6 @@ Item {
       }
     }
 
-    // Network List [2] (Saved)
     NBox {
       id: savedBox
       visible: root.savedNetworks.length > 0 && NetworkService.wifiEnabled
@@ -238,7 +233,6 @@ Item {
       }
     }
 
-    // Network List [3] (Available)
     NBox {
       id: availableBox
       visible: root.availableNetworks.length > 0 && NetworkService.wifiEnabled
@@ -272,7 +266,6 @@ Item {
           delegate: nboxDelegate
         }
 
-        // Add hidden network button
         NBox {
           visible: !root.showOnlyLists
           Layout.fillWidth: true
@@ -348,7 +341,6 @@ Item {
     }
   }
 
-  // Add Hidden Network Popup
   Popup {
     id: addNetworkPopup
     visible: false
@@ -400,7 +392,6 @@ Item {
       width: parent.width - (Style.marginL * 2)
       spacing: Style.marginM
 
-      // Header with Icon
       RowLayout {
         Layout.fillWidth: true
         spacing: Style.marginM
@@ -427,7 +418,6 @@ Item {
         }
       }
 
-      // Input Fields
       NTextInput {
         id: customSsidInput
         Layout.fillWidth: true
@@ -593,7 +583,6 @@ Item {
         }
       }
 
-      // Actions
       RowLayout {
         Layout.fillWidth: true
         Layout.topMargin: Style.marginS
@@ -601,7 +590,7 @@ Item {
 
         Item {
           Layout.fillWidth: true
-        } // Spacer
+        }
 
         NButton {
           text: I18n.tr("common.cancel")
@@ -630,7 +619,6 @@ Item {
     }
   }
 
-  // Shared Delegate
   Component {
     id: nboxDelegate
     NBox {
@@ -859,7 +847,6 @@ Item {
           }
         }
 
-        // Connection info details
         Rectangle {
           visible: networkItem.isExpanded
           Layout.fillWidth: true
@@ -909,7 +896,6 @@ Item {
               }
             }
 
-            // --- Item 1: Interface ---
             RowLayout {
               Layout.fillWidth: true
               Layout.preferredWidth: 1
@@ -952,7 +938,6 @@ Item {
                 }
               }
             }
-            // --- Item 2: Band & Channel & Width of channel ---
             RowLayout {
               Layout.fillWidth: true
               Layout.preferredWidth: 1
@@ -974,7 +959,6 @@ Item {
                 Layout.fillWidth: true
               }
             }
-            // --- Item 3: Link Speed ---
             RowLayout {
               Layout.fillWidth: true
               Layout.preferredWidth: 1
@@ -997,7 +981,6 @@ Item {
                 Layout.fillWidth: true
               }
             }
-            // --- Item 4: IPv4 || IPv6 ---
             RowLayout {
               Layout.fillWidth: true
               Layout.preferredWidth: 1
@@ -1040,7 +1023,6 @@ Item {
                 }
               }
             }
-            // --- Item 5: DNS ---
             RowLayout {
               Layout.fillWidth: true
               Layout.preferredWidth: 1
@@ -1083,7 +1065,6 @@ Item {
                 }
               }
             }
-            // --- Item 6: Gateway ---
             RowLayout {
               Layout.fillWidth: true
               Layout.preferredWidth: 1
@@ -1145,12 +1126,10 @@ Item {
             anchors.margins: Style.marginS
             spacing: Style.marginS
 
-            // Inputs Container
             ColumnLayout {
               Layout.fillWidth: true
               spacing: Style.marginS
 
-              // Enterprise Configuration
               ColumnLayout {
                 visible: networkItem.isEnterprise
                 Layout.fillWidth: true
@@ -1312,7 +1291,6 @@ Item {
                 }
               }
 
-              // Password field
               Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: Style.baseWidgetSize * 0.9

@@ -18,7 +18,6 @@ Singleton {
     readonly property int chargeState: available ? primaryDevice.state : UPowerDevice.Unknown
     property int lastBatteryAlertThreshold: 0
 
-    // Add some helpful descriptive properties if needed
     readonly property string timeToEmpty: available && primaryDevice.timeToEmpty > 0 ? formatTime(primaryDevice.timeToEmpty) : ""
     readonly property string timeToFull: available && primaryDevice.timeToFull > 0 ? formatTime(primaryDevice.timeToFull) : ""
 

@@ -12,13 +12,11 @@ Item {
   // Screen property provided by MainScreen
   property ShellScreen screen: null
 
-  // Panel content: Text, icons, etc...
   property Component panelContent: null
 
   // PanelID for binding panels to widgets of the same type
   property var panelID: null
 
-  // Panel size properties
   property real preferredWidth: 700
   property real preferredHeight: 900
   property real preferredWidthRatio
@@ -28,7 +26,6 @@ Item {
   property var buttonItem: null
   property bool forceAttachToBar: false
 
-  // Anchoring properties
   property bool panelAnchorHorizontalCenter: false
   property bool panelAnchorVerticalCenter: false
   property bool panelAnchorTop: false
@@ -36,7 +33,6 @@ Item {
   property bool panelAnchorLeft: false
   property bool panelAnchorRight: false
 
-  // Button position properties
   property bool useButtonPosition: false
   property point buttonPosition: Qt.point(0, 0)
   property int buttonWidth: 0
@@ -45,7 +41,6 @@ Item {
   // Edge snapping: if panel is within this distance (in pixels) from a screen edge, snap
   property real edgeSnapDistance: 50
 
-  // Track whether panel is open
   property bool isPanelOpen: false
 
   // Track actual visibility (delayed until content is loaded and sized)
@@ -80,12 +75,10 @@ Item {
   // Whether blur should be applied behind this panel
   property bool blurEnabled: true
 
-  // Close with escape key
   property bool closeWithEscape: true
 
   property bool exclusiveKeyboard: true
 
-  // Keyboard event handler
   // These are called from MainScreen's centralized shortcuts
   // override these in specific panels to handle shortcuts
   function onEscapePressed() {
@@ -107,7 +100,6 @@ Item {
   readonly property real barMarginV: (barFloating && barShouldShow) ? Math.ceil(Settings.data.bar.marginVertical) : 0
   readonly property real attachmentOverlap: 1 // Panel extends into bar area to fix hairline gap with fractional scaling
 
-  // Check if bar should be visible on this screen
   readonly property bool barShouldShow: {
     if (!BarService.effectivelyVisible)
       return false;
@@ -116,7 +108,6 @@ Item {
     return monitors.length === 0 || monitors.includes(screenName);
   }
 
-  // Helper to detect if any anchor is explicitly set
   readonly property bool hasExplicitHorizontalAnchor: panelAnchorHorizontalCenter || panelAnchorLeft || panelAnchorRight
   readonly property bool hasExplicitVerticalAnchor: panelAnchorVerticalCenter || panelAnchorTop || panelAnchorBottom
 
@@ -143,12 +134,10 @@ Item {
     }
   }
 
-  // Panel visibility and sizing
   visible: isPanelVisible
   width: parent ? parent.width : 0
   height: parent ? parent.height : 0
 
-  // Panel control functions
   function toggle(buttonItem, buttonName) {
     if (!isPanelOpen) {
       open(buttonItem, buttonName);
@@ -202,7 +191,6 @@ Item {
         root.buttonHeight = 0;
         root.useButtonPosition = true;
       } else {
-        // buttonName is a widget name, look it up
         buttonItem = BarService.lookupWidget(buttonName, screen.name);
       }
     }
@@ -231,7 +219,6 @@ Item {
     // Set isPanelOpen to trigger content loading, but don't show yet
     isPanelOpen = true;
 
-    // Notify PanelService
     PanelService.willOpenPanel(root);
 
     // Position and visibility will be set by Loader.onLoaded
@@ -247,12 +234,10 @@ Item {
     sizeAnimationComplete = false;
     closeFinalized = false;
 
-    // Stop the open animation timer if it's still running
     opacityTrigger.stop();
     openWatchdogActive = false;
     openWatchdogTimer.stop();
 
-    // Start close watchdog timer
     closeWatchdogActive = true;
     closeWatchdogTimer.restart();
 
@@ -305,7 +290,6 @@ Item {
       return;
     }
 
-    // Complete the close sequence after animations finish
     root.closeFinalized = true;
     root.closeWatchdogActive = false;
     closeWatchdogTimer.stop();
@@ -402,14 +386,11 @@ Item {
         bottomBarEdgeWithOverlap = root.height - root.barHeight + root.attachmentOverlap;
     }
 
-    // Calculate position
     var calculatedX;
     var calculatedY;
 
-    // ===== X POSITIONING =====
     if (root.useButtonPosition && root.width > 0 && panelWidth > 0) {
       if (root.barIsVertical) {
-        // For vertical bars
         if (panelContent.allowAttach) {
           // Attached panels: align with bar edge (left or right side)
           if (root.barPosition === "left") {
@@ -447,7 +428,6 @@ Item {
         calculatedX = panelX;
       }
     } else {
-      // Standard anchor positioning
       if (root.panelAnchorHorizontalCenter) {
         if (root.barIsVertical) {
           if (root.barPosition === "left") {
@@ -464,9 +444,7 @@ Item {
           calculatedX = (root.width - panelWidth) / 2;
         }
       } else if (root.panelAnchorRight) {
-        // Use raw panelAnchorRight for positioning decision
         if (root.effectivePanelAnchorRight) {
-          // Attached: snap to edge/bar
           if (root.barIsVertical && root.barPosition === "right") {
             calculatedX = rightBarEdgeWithOverlap - panelWidth;
           } else {
@@ -483,9 +461,7 @@ Item {
           calculatedX = root.width - panelWidth - effMarginR;
         }
       } else if (root.panelAnchorLeft) {
-        // Use raw panelAnchorLeft for positioning decision
         if (root.effectivePanelAnchorLeft) {
-          // Attached: snap to edge/bar
           if (root.barIsVertical && root.barPosition === "left") {
             calculatedX = leftBarEdgeWithOverlap;
           } else {
@@ -536,7 +512,6 @@ Item {
       }
     }
 
-    // Edge snapping for X
     if (panelContent.allowAttach && !root.barFloating && root.width > 0 && panelWidth > 0) {
       var leftEdgePos = root.barPosition === "left" ? leftBarEdgeWithOverlap : (root.isFramed ? root.frameThickness - root.attachmentOverlap : root.barMarginH);
       var rightEdgePos = root.barPosition === "right" ? rightBarEdgeWithOverlap - panelWidth : root.width - (root.isFramed ? root.frameThickness - root.attachmentOverlap : root.barMarginH) - panelWidth;
@@ -553,7 +528,6 @@ Item {
       }
     }
 
-    // ===== Y POSITIONING =====
     if (root.useButtonPosition && root.height > 0 && panelHeight > 0) {
       if (root.barPosition === "top") {
         if (panelContent.allowAttach) {
@@ -581,7 +555,6 @@ Item {
         calculatedY = panelY;
       }
     } else {
-      // Standard anchor positioning
       var barOffset = !panelContent.allowAttach && (root.barPosition === "top" || root.barPosition === "bottom") ? (root.isFramed ? 0 : root.barMarginV) + root.barHeight + Style.marginM : 0;
 
       if (panelContent.allowAttach && !root.barIsVertical) {
@@ -624,7 +597,6 @@ Item {
             calculatedY = root.height - panelHeight - bottomBarOffset - effMarginB;
           }
         } else {
-          // No explicit vertical anchor
           if (root.barIsVertical) {
             if (panelContent.allowAttach) {
               var cornerInset = root.barFloating ? Style.radiusL * 2 : 0;
@@ -636,7 +608,6 @@ Item {
               calculatedY = (root.height - panelHeight) / 2;
             }
           } else {
-            // Horizontal bar, not attached
             if (root.barPosition === "top") {
               calculatedY = barOffset + effMarginT;
             } else if (root.barPosition === "bottom") {
@@ -649,7 +620,6 @@ Item {
       }
     }
 
-    // Edge snapping for Y
     if (panelContent.allowAttach && !root.barFloating && root.height > 0 && panelHeight > 0) {
       var topEdgePos = root.barPosition === "top" ? topBarEdgeWithOverlap : (root.isFramed ? root.frameThickness - root.attachmentOverlap : root.barMarginV);
       var bottomEdgePos = root.barPosition === "bottom" ? bottomBarEdgeWithOverlap - panelHeight : root.height - (root.isFramed ? root.frameThickness - root.attachmentOverlap : root.barMarginV) - panelHeight;
@@ -693,14 +663,12 @@ Item {
     }
   }
 
-  // Opacity animation
   // Opening: fade in after size animation reaches 75%
-  // Closing: fade out immediately
   opacity: {
     if (isClosing)
-      return 0.0; // Fade out when closing
+      return 0.0;
     if (isPanelVisible && sizeAnimationComplete)
-      return 1.0; // Fade in when opening
+      return 1.0;
     return 0.0;
   }
 
@@ -765,13 +733,12 @@ Item {
   // Watchdog timer for open sequence (safety mechanism)
   Timer {
     id: openWatchdogTimer
-    interval: Style.animationNormal * 3 // 3x normal animation time
+    interval: Style.animationNormal * 3
     repeat: false
     onTriggered: {
       if (root.openWatchdogActive) {
         Logger.w("SmartPanel", "Open watchdog timeout - forcing panel visible state", root.objectName);
         root.openWatchdogActive = false;
-        // Force completion of open sequence
         if (root.isPanelOpen && !root.isPanelVisible) {
           root.isPanelVisible = true;
           root.sizeAnimationComplete = true;
@@ -783,24 +750,20 @@ Item {
   // Watchdog timer for close sequence (safety mechanism)
   Timer {
     id: closeWatchdogTimer
-    interval: Style.animationFast * 3 // 3x fast animation time
+    interval: Style.animationFast * 3
     repeat: false
     onTriggered: {
       if (root.closeWatchdogActive && !root.closeFinalized) {
         Logger.w("SmartPanel", "Close watchdog timeout - forcing panel close", root.objectName);
-        // Force finalization
         Qt.callLater(root.finalizeClose);
       }
     }
   }
 
-  // ------------------------------------------------
-  // Panel Content
   Item {
     id: panelContent
     anchors.fill: parent
 
-    // Screen-dependent attachment properties
     // Allow panel content to override allowAttach (e.g., plugin panels)
     readonly property bool allowAttach: {
       if (contentLoader.item && contentLoader.item.allowAttach !== undefined) {
@@ -819,7 +782,6 @@ Item {
       return result;
     }
 
-    // Edge detection - detect if panel is touching screen edges
     readonly property bool touchingLeftEdge: allowAttach && panelBackground.x <= (isFramed ? frameThickness + 1 : 1)
     readonly property bool touchingRightEdge: allowAttach && (panelBackground.x + panelBackground.width) >= (root.width - (isFramed ? frameThickness + 1 : 1))
     readonly property bool touchingTopEdge: allowAttach && panelBackground.y <= (isFramed ? frameThickness + 1 : 1)
@@ -895,7 +857,6 @@ Item {
         }
         // When panel is opening, use effective anchors and calculated positions
         if (!root.isPanelVisible) {
-          // Attached to horizontal bar at top
           if (panelContent.allowAttachToBar && root.effectivePanelAnchorTop && !root.barIsVertical) {
             return true;
           }
@@ -918,7 +879,6 @@ Item {
           if (root.panelAnchorLeft || root.panelAnchorRight || root.panelAnchorBottom) {
             return false;
           }
-          // Attached to top edge
           if (panelContent.allowAttach && root.panelAnchorTop) {
             return true;
           }
@@ -943,7 +903,6 @@ Item {
           return false;
         }
         if (!root.isPanelVisible) {
-          // Attached to horizontal bar at bottom
           if (panelContent.allowAttachToBar && root.effectivePanelAnchorBottom && !root.barIsVertical) {
             return true;
           }
@@ -1118,7 +1077,6 @@ Item {
               return;
             }
 
-            // When width shrink completes during close, finalize
             if (!running && root.isClosing && panelBackground.width === 0 && panelBackground.shouldAnimateWidth) {
               Qt.callLater(root.finalizeClose);
             }
@@ -1148,7 +1106,6 @@ Item {
               return;
             }
 
-            // When height shrink completes during close, finalize
             if (!running && root.isClosing && panelBackground.height === 0 && panelBackground.shouldAnimateHeight) {
               Qt.callLater(root.finalizeClose);
             }
@@ -1162,7 +1119,6 @@ Item {
       // State 1: Horizontal inversion (outer curve on X-axis)
       // State 2: Vertical inversion (outer curve on Y-axis)
 
-      // Smart corner state calculation based on bar attachment and edge touching
       property int topLeftCornerState: {
         // If bar is not visible, don't show outer corners based on bar attachment
         if (!root.barShouldShow) {
@@ -1307,7 +1263,6 @@ Item {
       }
     }
 
-    // Panel top content: Text, icons, etc...
     Loader {
       id: contentLoader
       active: isPanelOpen

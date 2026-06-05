@@ -10,7 +10,6 @@ ColumnLayout {
   id: root
   spacing: Style.marginM
 
-  // Properties to receive data from parent
   property var screen: null
   property var widgetData: null
   property var widgetMetadata: null
@@ -103,7 +102,6 @@ ColumnLayout {
     id: tabView
     Layout.fillWidth: true
 
-    // ============ Actions Tab ============
     ColumnLayout {
       spacing: Style.marginM
 
@@ -314,7 +312,6 @@ ColumnLayout {
       }
     }
 
-    // ============ Icon Tab ============
     ColumnLayout {
       spacing: Style.marginM
 
@@ -456,7 +453,6 @@ ColumnLayout {
       }
     }
 
-    // ============ Text Tab ============
     ColumnLayout {
       spacing: Style.marginM
 

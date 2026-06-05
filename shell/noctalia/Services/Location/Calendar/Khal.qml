@@ -31,7 +31,6 @@ Singleton {
     Logger.d("Calendar", `Loading events (${daysBehind} days behind, ${daysAhead} days ahead): ${loadEventsProcess.startTime}  ${loadEventsProcess.duration}`);
   }
 
-  // Process to check for khal installation
   Process {
     id: availabilityCheckProcess
     running: false
@@ -52,7 +51,6 @@ Singleton {
     }
   }
 
-  // Process to list available calendars
   Process {
     id: listCalendarsProcess
     running: false
@@ -66,7 +64,6 @@ Singleton {
 
           Logger.d("Calendar", `Found ${calendars.length} calendar(s)`);
 
-          // Auto-load events after discovering calendars
           if (calendars.length > 0) {
             loadEvents();
           }
@@ -87,7 +84,6 @@ Singleton {
     }
   }
 
-  // Process to load events
   Process {
     id: loadEventsProcess
     running: false

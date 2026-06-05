@@ -11,7 +11,6 @@ Singleton {
   Connections {
     target: WallpaperService
 
-    // When the wallpaper changes, regenerate theme if necessary
     function onWallpaperChanged(screenName, path) {
       var effectiveMonitor = Settings.data.colorSchemes.monitorForColors;
       if (effectiveMonitor === "" || effectiveMonitor === undefined) {
@@ -51,7 +50,6 @@ Singleton {
     }
   }
 
-  // PUBLIC FUNCTIONS
   function init() {
     Logger.i("AppThemeService", "Service started");
   }

@@ -10,7 +10,6 @@ import qs.noctalia.Services.Media
 import qs.noctalia.Services.UI
 import qs.noctalia.Widgets
 
-// Unified OSD component that displays volume, input volume, and brightness changes
 Variants {
   id: osd
 
@@ -31,16 +30,13 @@ Variants {
 
     active: false
 
-    // OSD State
     property int currentOSDType: -1 // OSD.Type enum value, -1 means none
     property bool startupComplete: false
     property real currentBrightness: 0
     property bool suppressInputOSD: false
 
-    // Lock Key States
     property string lastLockKeyChanged: ""  // "caps", "num", "scroll", or ""
 
-    // Current values (computed properties)
     readonly property real currentVolume: AudioService.volume
     readonly property bool isMuted: AudioService.muted
     readonly property real currentInputVolume: AudioService.inputVolume
@@ -137,7 +133,6 @@ Variants {
       }
       // For lock keys, use a different color to indicate the lock state
       if (currentOSDType === OSD.Type.LockKey) {
-        // Check the specific lock key that was changed
         if (lastLockKeyChanged.startsWith("CAPS")) {
           return LockKeysService.capsLockOn ? Color.mPrimary : Color.mOnSurfaceVariant;
         } else if (lastLockKeyChanged.startsWith("NUM")) {
@@ -155,7 +150,6 @@ Variants {
         return Color.mError;
 
       if (currentOSDType === OSD.Type.LockKey) {
-        // Check the specific lock key that was changed
         if (lastLockKeyChanged.startsWith("CAPS")) {
           return LockKeysService.capsLockOn ? Color.mPrimary : Color.mOnSurfaceVariant;
         } else if (lastLockKeyChanged.startsWith("NUM")) {
@@ -168,7 +162,6 @@ Variants {
       return Color.mOnSurface;
     }
 
-    // Brightness Handling
     function connectBrightnessMonitors() {
       for (var i = 0; i < BrightnessService.monitors.length; i++) {
         const monitor = BrightnessService.monitors[i];
@@ -196,7 +189,6 @@ Variants {
       showOSD(OSD.Type.Brightness);
     }
 
-    // Check if a specific OSD type is enabled
     function isTypeEnabled(type) {
       const enabledTypes = Settings.data.osd.enabledTypes || [];
       // If enabledTypes is empty, no types are enabled (no OSD will be shown)
@@ -205,13 +197,11 @@ Variants {
       return enabledTypes.includes(type);
     }
 
-    // OSD Display Control
     function showOSD(type) {
       // Ignore all OSD requests during startup period
       if (!startupComplete)
         return;
 
-      // Check if this OSD type is enabled
       if (!isTypeEnabled(type))
         return;
 
@@ -252,7 +242,6 @@ Variants {
       }
     }
 
-    // AudioService monitoring
     Connections {
       target: AudioService
 
@@ -313,7 +302,6 @@ Variants {
       }
     }
 
-    // Brightness monitoring
     Connections {
       target: BrightnessService
       function onMonitorsChanged() {
@@ -335,7 +323,6 @@ Variants {
       }
     }
 
-    // LockKeys monitoring with a cleaner approach
     // Only connect when LockKey OSD is enabled to avoid starting the service unnecessarily
     Connections {
       target: root.lockKeyOSDEnabled ? LockKeysService : null
@@ -388,12 +375,10 @@ Variants {
       }
     }
 
-    // Visual Component
     sourceComponent: PanelWindow {
       id: panel
       screen: modelData
 
-      // Position configuration
       readonly property string location: Settings.data.osd?.location || "top_right"
       readonly property bool isTop: location === "top" || location.startsWith("top")
       readonly property bool isBottom: location === "bottom" || location.startsWith("bottom")
@@ -412,7 +397,6 @@ Variants {
         wrapMode: Text.NoWrap
       }
 
-      // Dimensions
       readonly property bool isShortMode: root.currentOSDType === OSD.Type.LockKey
       readonly property int longHWidth: Math.round(320 * Style.uiScaleRatio)
       readonly property int longHHeight: Math.round(72 * Style.uiScaleRatio)
@@ -444,9 +428,9 @@ Variants {
           return Math.max(shortHWidth, Math.round((estimatedWidth + iconWidth + margins + spacing + bgMargins) * 1.1));
         }
         const iconWidth = Style.fontSizeXL * Style.uiScaleRatio;
-        const margins = Style.margin2L; // Left and right content margins
-        const spacing = Style.marginM; // Spacing between icon and text
-        const bgMargins = Style.margin2M * 1.5; // Background margins
+        const margins = Style.margin2L;
+        const spacing = Style.marginM;
+        const bgMargins = Style.margin2M * 1.5;
         const totalWidth = textWidth + iconWidth + margins + spacing + bgMargins;
         // Ensure minimum width and add some buffer
         return Math.max(shortHWidth, Math.round(totalWidth * 1.1));
@@ -475,7 +459,6 @@ Variants {
         const iconSize = Style.fontSizeXL * Style.uiScaleRatio * 1.8; // Add 80% for icon rendering and padding
         // Spacing between text and icon (Style.marginM for lock keys)
         const textIconSpacing = Style.marginM;
-        // Add extra buffer to ensure everything fits comfortably
         const buffer = Style.marginL;
         const totalHeight = textHeight + bgMargins + contentMargins + iconSize + textIconSpacing + buffer;
         // Ensure minimum height and add extra padding for safety
@@ -612,7 +595,6 @@ Variants {
               text: "150%"
             }
 
-            // Common Icon for all types
             NIcon {
               icon: root.getIcon()
               color: root.getIconColor()
@@ -639,7 +621,6 @@ Variants {
               Layout.alignment: Qt.AlignVCenter
             }
 
-            // Progress Bar for Volume/Brightness
             Rectangle {
               visible: root.currentOSDType !== OSD.Type.LockKey
               Layout.fillWidth: true
@@ -671,7 +652,6 @@ Variants {
               }
             }
 
-            // Percentage Text for Volume/Brightness
             NText {
               visible: root.currentOSDType !== OSD.Type.LockKey
               text: root.getDisplayPercentage()
@@ -823,7 +803,6 @@ Variants {
 
         // Delay showing the OSD to allow the layout to settle after activation.
         // Without this, the percentage text renders outside the box on first
-        // show.
         Timer {
           id: showDelayTimer
           interval: 30

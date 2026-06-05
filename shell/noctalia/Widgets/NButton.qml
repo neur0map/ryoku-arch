@@ -7,7 +7,6 @@ import qs.noctalia.Services.UI
 Item {
   id: root
 
-  // Public properties
   property string text: ""
   property string icon: ""
   property var tooltipText
@@ -22,14 +21,12 @@ Item {
   property int horizontalAlignment: Qt.AlignHCenter
   property real buttonRadius: Style.iRadiusS
 
-  // Signals
   signal clicked
   signal rightClicked
   signal middleClicked
   signal entered
   signal exited
 
-  // Internal properties
   property bool hovered: false
   readonly property color contentColor: {
     if (!root.enabled) {
@@ -92,7 +89,6 @@ Item {
       }
     }
 
-    // Content
     RowLayout {
       id: contentRow
       anchors.verticalCenter: parent.verticalCenter
@@ -101,7 +97,6 @@ Item {
       anchors.leftMargin: root.horizontalAlignment === Qt.AlignLeft ? Style.marginL : 0
       spacing: Style.marginXS
 
-      // Icon (optional)
       NIcon {
         Layout.alignment: Qt.AlignVCenter
         visible: root.icon !== ""
@@ -118,7 +113,6 @@ Item {
         }
       }
 
-      // Text
       NText {
         Layout.alignment: Qt.AlignVCenter
         visible: root.text !== ""
@@ -137,7 +131,6 @@ Item {
       }
     }
 
-    // Mouse interaction
     MouseArea {
       id: mouseArea
       anchors.fill: parent

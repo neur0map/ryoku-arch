@@ -43,7 +43,6 @@ ColumnLayout {
     Layout.alignment: Qt.AlignHCenter
   }
 
-  // Supporter cards
   Flow {
     id: supportersFlow
     visible: root.supporters.length > 0
@@ -83,7 +82,6 @@ ColumnLayout {
           anchors.margins: Style.marginM
           spacing: Style.marginM
 
-          // Avatar with heart badge
           Item {
             id: avatarWrapper
             Layout.alignment: Qt.AlignVCenter
@@ -151,7 +149,6 @@ ColumnLayout {
               border.color: Color.mPrimary
             }
 
-            // Heart badge
             Rectangle {
               anchors.right: parent.right
               anchors.bottom: parent.bottom
@@ -171,7 +168,6 @@ ColumnLayout {
             }
           }
 
-          // Info column
           ColumnLayout {
             spacing: 2
             Layout.alignment: Qt.AlignVCenter

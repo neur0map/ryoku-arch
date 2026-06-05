@@ -7,21 +7,17 @@ import Quickshell.Io
 Singleton {
     id: root
 
-    // EasyEffects availability
     property bool available: false
     
     // Bypass: false = active, true = bypassed
     property bool bypassed: false
     
-    // Available presets
     property var outputPresets: []
     property var inputPresets: []
     
-    // Currently active presets
     property string activeOutputPreset: ""
     property string activeInputPreset: ""
 
-    // Toggle bypass state
     function toggleBypass() {
         bypassToggleProcess.command = ["easyeffects", "-b", bypassed ? "2" : "1"];
         bypassToggleProcess.running = true;
@@ -45,18 +41,15 @@ Singleton {
         loadPresetProcess.running = true;
     }
 
-    // Compatibility legacy function
     function loadPreset(name: string) {
         loadPresetProcess.command = ["easyeffects", "-l", name];
         loadPresetProcess.running = true;
     }
 
-    // Refresh all data
     function refresh() {
         checkAvailableProcess.running = true;
     }
 
-    // Open EasyEffects app
     function openApp() {
         Quickshell.execDetached(["easyeffects"]);
     }
@@ -69,7 +62,6 @@ Singleton {
         checkAvailableProcess.running = true;
     }
 
-    // Check EasyEffects availability
     Process {
         id: checkAvailableProcess
         command: ["which", "easyeffects"]
@@ -77,7 +69,6 @@ Singleton {
         onExited: (exitCode, exitStatus) => {
             root.available = (exitCode === 0);
             if (root.available) {
-                // Fetch initial state
                 bypassStateProcess.running = true;
                 presetsProcess.running = true;
                 activePresetsProcess.running = true;
@@ -85,7 +76,6 @@ Singleton {
         }
     }
 
-    // Get bypass state
     Process {
         id: bypassStateProcess
         command: ["easyeffects", "-b", "3"]
@@ -99,7 +89,6 @@ Singleton {
         }
     }
 
-    // Toggle bypass
     Process {
         id: bypassToggleProcess
         running: false
@@ -108,17 +97,14 @@ Singleton {
         }
     }
 
-    // Load preset
     Process {
         id: loadPresetProcess
         running: false
         onExited: {
-            // Delay for preset application
             refreshDelayTimer.restart();
         }
     }
 
-    // Refresh delay after preset load
     property var refreshDelayTimer: Timer {
         id: refreshDelayTimer
         interval: 100
@@ -129,7 +115,6 @@ Singleton {
         }
     }
 
-    // List presets
     Process {
         id: presetsProcess
         command: ["easyeffects", "-p"]
@@ -156,7 +141,6 @@ Singleton {
                 if (trimmed.toLowerCase().includes("output")) {
                     isOutput = true;
                     isInput = false;
-                    // Check if presets follow colon
                     const parts = trimmed.split(":");
                     if (parts.length > 1 && parts[1].trim()) {
                         outputList = parts[1].trim().split(",").map(p => p.trim()).filter(p => p);
@@ -169,7 +153,6 @@ Singleton {
                         inputList = parts[1].trim().split(",").map(p => p.trim()).filter(p => p);
                     }
                 } else if (trimmed && !trimmed.includes(":")) {
-                    // Preset name on its own line
                     if (isOutput) outputList.push(trimmed);
                     else if (isInput) inputList.push(trimmed);
                 }
@@ -180,7 +163,6 @@ Singleton {
         }
     }
 
-    // Get active presets
     Process {
         id: activePresetsProcess
         command: ["easyeffects", "-a"]
@@ -214,7 +196,6 @@ Singleton {
         }
     }
 
-    // Periodically poll state
     property var pollTimer: Timer {
         interval: 5000
         running: root.available && !SuspendManager.isSuspending

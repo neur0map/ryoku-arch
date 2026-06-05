@@ -36,7 +36,6 @@ SmartPanel {
     readonly property int totalSteps: root.telemetryOnlyMode ? 1 : 5
     property bool isCompleting: false
 
-    // Setup wizard data
     property string selectedWallpaperDirectory: Settings.defaultWallpapersDirectory
     property string selectedWallpaper: ""
     property real selectedScaleRatio: 1.0
@@ -148,7 +147,6 @@ SmartPanel {
       anchors.margins: Style.marginXL
       spacing: Style.marginL
 
-      // Step content - takes most of the space
       Item {
         Layout.fillWidth: true
         Layout.fillHeight: true
@@ -159,14 +157,12 @@ SmartPanel {
           anchors.fill: parent
           currentIndex: currentStep
 
-          // Step 0: Welcome - Beautiful centered design
           Item {
             ColumnLayout {
               anchors.centerIn: parent
               width: Math.round(Math.max(parent.width * 0.5, 420))
               spacing: Style.marginXL
 
-              // Logo with subtle glow effect
               Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 120
@@ -206,7 +202,6 @@ SmartPanel {
                     }
                   }
 
-                  // Subtle pulse animation
                   SequentialAnimation on scale {
                     running: true
                     loops: Animation.Infinite
@@ -226,7 +221,6 @@ SmartPanel {
                 }
               }
 
-              // Welcome text with gradient feel
               ColumnLayout {
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignHCenter
@@ -250,7 +244,6 @@ SmartPanel {
                   wrapMode: Text.WordWrap
                 }
 
-                // Friendly subtext
                 Rectangle {
                   Layout.fillWidth: true
                   Layout.topMargin: Style.marginL
@@ -269,7 +262,6 @@ SmartPanel {
                   }
                 }
 
-                // Telemetry toggle
                 NToggle {
                   Layout.fillWidth: true
                   Layout.topMargin: Style.marginM
@@ -282,7 +274,6 @@ SmartPanel {
             }
           }
 
-          // Step 1: Wallpaper Setup
           SetupWallpaperStep {
             id: step1
             selectedDirectory: panelContent.selectedWallpaperDirectory
@@ -297,12 +288,10 @@ SmartPanel {
             }
           }
 
-          // Step 2: Appearance - Dark mode and color source
           SetupAppearanceStep {
             id: step3
           }
 
-          // Step 3: UI Configuration
           SetupCustomizeStep {
             id: step2
             selectedScaleRatio: panelContent.selectedScaleRatio
@@ -317,14 +306,12 @@ SmartPanel {
             }
           }
 
-          // Step 4: Dock Setup
           SetupDockStep {
             id: stepDock
           }
         }
       }
 
-      // Elegant divider
       Rectangle {
         Layout.fillWidth: true
         Layout.preferredHeight: 1
@@ -333,7 +320,6 @@ SmartPanel {
         visible: !root.telemetryOnlyMode
       }
 
-      // Modern progress indicator with labels
       Item {
         Layout.fillWidth: true
         Layout.preferredHeight: 32
@@ -404,7 +390,6 @@ SmartPanel {
                 }
               }
 
-              // Connector line
               Rectangle {
                 width: 40
                 height: 2
@@ -423,7 +408,6 @@ SmartPanel {
         }
       }
 
-      // Smooth navigation buttons
       Item {
         Layout.fillWidth: true
         Layout.preferredHeight: 44

@@ -12,10 +12,8 @@ import qs.noctalia.Widgets
 SmartPanel {
   id: root
 
-  // Positioning
   readonly property string controlCenterPosition: Settings.data.controlCenter.position
 
-  // Check if there's a bar on this screen
   readonly property bool hasBarOnScreen: {
     var monitors = Settings.data.bar.monitors || [];
     return monitors.length === 0 || monitors.includes(screen?.name);
@@ -174,13 +172,11 @@ SmartPanel {
       RowLayout {
         spacing: Style.marginL
 
-        // Media card
         MediaCard {
           Layout.fillWidth: true
           Layout.fillHeight: true
         }
 
-        // System monitors combined in one card
         SystemMonitorCard {
           Layout.preferredWidth: Math.round(Style.baseWidgetSize * 2.625)
           Layout.fillHeight: true

@@ -18,7 +18,6 @@ Item {
         anchors.fill: parent
         spacing: 8
 
-        // Icon
         Text {
             text: root.icon
             font.family: Icons.font
@@ -28,7 +27,6 @@ Item {
             Layout.preferredWidth: 20
         }
 
-        // Progress bar
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 16
@@ -57,7 +55,6 @@ Item {
             }
         }
 
-        // Percentage text
         Text {
             visible: false
             text: `${Math.round(root.value * 100)}%`

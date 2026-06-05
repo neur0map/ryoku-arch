@@ -1,15 +1,12 @@
 import QtQuick
 
-// Reuses OpenAI-compatible format — identical to OpenAiApiStrategy
-// but with Mistral's default endpoint
 ApiStrategy {
     supportsStreaming: true
 
     function getEndpoint(modelObj, apiKey) {
         let base = modelObj.endpoint || "https://api.mistral.ai/v1";
-        // Remove /chat/completions if already present in endpoint
         if (base.endsWith("/chat/completions")) {
-            base = base.substring(0, base.length - 17); // remove "/chat/completions"
+            base = base.substring(0, base.length - 17);
         }
         if (base.endsWith("/v1"))
             return base + "/chat/completions";
@@ -89,7 +86,6 @@ ApiStrategy {
                     return { content: "", done: false, error: json.error.message || json.error };
                 }
             } catch (e) {
-                // Not JSON, ignore
             }
             return { content: "", done: false, error: null };
         }

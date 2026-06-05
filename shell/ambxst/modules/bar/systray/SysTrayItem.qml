@@ -42,9 +42,7 @@ MouseArea {
         anchorItem: root
         bar: root.bar
 
-        // Use a reasonable width for the menu
         contentWidth: 220
-        // Height adapts to content, with a max limit if needed.
         // Must include vertical padding (8 top + 8 bottom = 16)
         contentHeight: Math.min(itemsColumn.implicitHeight + 16, 400)
 
@@ -52,7 +50,6 @@ MouseArea {
         // 8px standard margin + 8px SysTray container padding to ensure correct offset from the main bar
         visualMargin: 16
 
-        // Using QsMenuOpener to access menu items
         QsMenuOpener {
             id: menuOpener
             menu: root.item.menu

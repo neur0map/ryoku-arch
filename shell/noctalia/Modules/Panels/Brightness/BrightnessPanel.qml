@@ -102,7 +102,6 @@ SmartPanel {
       anchors.margins: Style.marginL
       spacing: Style.marginM
 
-      // HEADER
       NBox {
         Layout.fillWidth: true
         implicitHeight: headerRow.implicitHeight + Style.margin2M
@@ -148,7 +147,6 @@ SmartPanel {
         reserveScrollbarSpace: false
         gradientColor: Color.mSurface
 
-        // AudioService Devices
         ColumnLayout {
           spacing: Style.marginM
           width: brightnessScrollView.availableWidth

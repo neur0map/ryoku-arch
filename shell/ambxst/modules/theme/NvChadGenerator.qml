@@ -113,7 +113,6 @@ QtObject {
         const home = Quickshell.env("HOME")
         const targetPath = home + "/.cache/wal/base46-dark.lua"
         
-        // Use HEREDOC to handle special characters and newlines correctly
         const cmd = `
             mkdir -p "$(dirname "${targetPath}")"
             cat <<'EOF_NVCHAD' > "${targetPath}"

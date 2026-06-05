@@ -98,7 +98,6 @@ ColumnLayout {
     GlobalConfig.save();
   }
 
-  // Live idle readout
   RowLayout {
     Layout.fillWidth: true
     visible: IdleService.nativeIdleMonitorAvailable
@@ -130,7 +129,6 @@ ColumnLayout {
     Layout.fillWidth: true
   }
 
-  // Idle action rows
   ActionRow {
     actionName: "Screensaver"
     actionDescription: "Show the ryoku ASCII screensaver after this delay."

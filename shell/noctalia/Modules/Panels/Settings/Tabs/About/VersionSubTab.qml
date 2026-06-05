@@ -56,7 +56,6 @@ ColumnLayout {
   readonly property int gigaB: (1024 * 1024 * 1024)
   readonly property int gigaD: (1000 * 1000 * 1000)
 
-  // Update status: compare versions
   readonly property bool updateAvailable: {
     if (!root.latestVersion || !root.currentVersion || root.latestVersion === I18n.tr("common.unknown"))
       return false;
@@ -80,7 +79,6 @@ ColumnLayout {
     return UpdateService.compareVersions(GitHubService.latestQSVersion, root.qsVersion) <= 0;
   }
 
-  // System info properties
   property var systemInfo: null
   property bool systemInfoLoading: true
   property bool systemInfoAvailable: true
@@ -207,7 +205,6 @@ ColumnLayout {
     // System Updates panel shows live status the moment About opens.
     RyokuAbout.refreshStatus();
     RyokuAbout.checkUpdates();
-    // Check if fastfetch is available before trying to run it
     checkFastfetchProcess.running = true;
     // RYOKU: leave qsVersion empty so the Noctalia QS-version row stays hidden
     // qsVersionProcess.running = true;
@@ -225,7 +222,6 @@ ColumnLayout {
           // Pattern matches: noctalia-shell-YYYY-MM-DD_<commit_hash>
           var match = shellDir.match(/noctalia-shell-\d{4}-\d{2}-\d{2}_([0-9a-f]{7,})/i);
           if (match && match[1]) {
-            // Use first 7 characters of the commit hash
             root.commitInfo = match[1].substring(0, 7);
             Logger.d("VersionSubTab", "Component.onCompleted - Extracted commit from NixOS path:", root.commitInfo);
             return;
@@ -296,7 +292,6 @@ ColumnLayout {
     stderr: StdioCollector {}
   }
 
-  // Check if fastfetch is available before attempting to run it
   Process {
     id: checkFastfetchProcess
     command: ["sh", "-c", "command -v fastfetch"]
@@ -304,11 +299,9 @@ ColumnLayout {
 
     onExited: function (exitCode) {
       if (exitCode === 0) {
-        // fastfetch is available, run it
         Logger.d("VersionSubTab", "fastfetch found, running it");
         fastfetchProcess.running = true;
       } else {
-        // fastfetch not found, show error state immediately
         Logger.w("VersionSubTab", "fastfetch not found");
         root.systemInfoLoading = false;
         root.systemInfoAvailable = false;
@@ -551,7 +544,6 @@ ColumnLayout {
 
   }
 
-  // System Information Section
   NDivider {
     Layout.fillWidth: true
   }
@@ -578,7 +570,6 @@ ColumnLayout {
     }
   }
 
-  // System info grid
   GridLayout {
     id: sysInfo
     readonly property real textSize: Style.fontSizeS
@@ -589,7 +580,6 @@ ColumnLayout {
     rowSpacing: Style.marginXS
     columnSpacing: Style.marginM
 
-    // OS
     NText {
       text: I18n.tr("panels.about.system-os")
       color: Color.mOnSurfaceVariant
@@ -606,7 +596,6 @@ ColumnLayout {
       wrapMode: Text.Wrap
     }
 
-    // Kernel
     NText {
       text: I18n.tr("panels.about.system-kernel")
       color: Color.mOnSurfaceVariant
@@ -623,7 +612,6 @@ ColumnLayout {
       wrapMode: Text.Wrap
     }
 
-    // Host
     NText {
       text: I18n.tr("panels.about.system-host")
       color: Color.mOnSurfaceVariant
@@ -640,7 +628,6 @@ ColumnLayout {
       wrapMode: Text.Wrap
     }
 
-    // Product name
     NText {
       text: I18n.tr("panels.about.system-product")
       color: Color.mOnSurfaceVariant
@@ -657,7 +644,6 @@ ColumnLayout {
       wrapMode: Text.Wrap
     }
 
-    // Board name
     NText {
       text: I18n.tr("panels.about.system-board")
       color: Color.mOnSurfaceVariant
@@ -674,7 +660,6 @@ ColumnLayout {
       wrapMode: Text.Wrap
     }
 
-    // Uptime
     NText {
       text: I18n.tr("panels.about.system-uptime")
       color: Color.mOnSurfaceVariant
@@ -691,7 +676,6 @@ ColumnLayout {
       wrapMode: Text.Wrap
     }
 
-    // CPU
     NText {
       text: I18n.tr("panels.about.system-cpu")
       color: Color.mOnSurfaceVariant
@@ -715,7 +699,6 @@ ColumnLayout {
       wrapMode: Text.Wrap
     }
 
-    // GPU
     NText {
       text: I18n.tr("panels.about.system-gpu")
       color: Color.mOnSurfaceVariant
@@ -734,7 +717,6 @@ ColumnLayout {
       wrapMode: Text.Wrap
     }
 
-    // Memory
     NText {
       text: I18n.tr("panels.about.system-memory")
       color: Color.mOnSurfaceVariant
@@ -755,7 +737,6 @@ ColumnLayout {
       wrapMode: Text.Wrap
     }
 
-    // Disk
     NText {
       text: I18n.tr("panels.about.system-disk")
       color: Color.mOnSurfaceVariant
@@ -779,7 +760,6 @@ ColumnLayout {
       wrapMode: Text.Wrap
     }
 
-    // WM
     NText {
       text: I18n.tr("panels.about.system-wm")
       color: Color.mOnSurfaceVariant
@@ -802,7 +782,6 @@ ColumnLayout {
       wrapMode: Text.Wrap
     }
 
-    // Packages
     NText {
       text: I18n.tr("panels.about.system-packages")
       color: Color.mOnSurfaceVariant

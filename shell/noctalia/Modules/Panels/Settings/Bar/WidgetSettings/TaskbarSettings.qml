@@ -8,7 +8,6 @@ ColumnLayout {
   id: root
   spacing: Style.marginM
 
-  // Properties to receive data from parent
   property var screen: null
   property var widgetData: null
   property var widgetMetadata: null
@@ -17,7 +16,6 @@ ColumnLayout {
 
   readonly property bool isVerticalBar: Settings.data.bar.position === "left" || Settings.data.bar.position === "right"
 
-  // Local state
   property string valueHideMode: widgetData.hideMode !== undefined ? widgetData.hideMode : widgetMetadata.hideMode
   property bool valueOnlyActiveWorkspaces: widgetData.onlyActiveWorkspaces !== undefined ? widgetData.onlyActiveWorkspaces : widgetMetadata.onlyActiveWorkspaces
   property bool valueOnlySameOutput: widgetData.onlySameOutput !== undefined ? widgetData.onlySameOutput : widgetMetadata.onlySameOutput

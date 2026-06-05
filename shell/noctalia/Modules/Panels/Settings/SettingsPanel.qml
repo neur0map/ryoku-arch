@@ -113,7 +113,6 @@ SmartPanel {
       SettingsPanelService.toggleWindow(requestedTab);
       return;
     }
-    // Call parent toggle
     if (isPanelOpen) {
       close();
     } else {
@@ -164,7 +163,6 @@ SmartPanel {
     open(buttonItem, buttonName);
   }
 
-  // When the panel opens, initialize content
   onOpened: {
     if (_settingsContent) {
       if (requestedEntry) {
@@ -184,7 +182,6 @@ SmartPanel {
     }
   }
 
-  // Scroll functions - delegate to content
   function scrollDown() {
     if (_settingsContent)
       _settingsContent.scrollDown();
@@ -205,7 +202,6 @@ SmartPanel {
       _settingsContent.scrollPageUp();
   }
 
-  // Navigation functions - delegate to content
   function selectNextTab() {
     if (_settingsContent)
       _settingsContent.selectNextTab();

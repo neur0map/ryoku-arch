@@ -60,7 +60,6 @@ Item {
         }
     }
 
-    // Main button
     StyledRect {
         id: buttonBg
         variant: root.popupOpen ? "primary" : "bg"
@@ -107,7 +106,6 @@ Item {
         }
     }
 
-    // Layout popup
     BarPopup {
         id: layoutPopup
         anchorItem: buttonBg

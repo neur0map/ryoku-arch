@@ -18,7 +18,6 @@ Item {
   property int sectionWidgetIndex: -1
   property int sectionWidgetsCount: 0
 
-  // Settings
   property var widgetMetadata: BarWidgetRegistry.widgetMetadata[widgetId] ?? {}
   // Explicit screenName property ensures reactive binding when screen changes
   readonly property string screenName: screen ? screen.name : ""
@@ -38,7 +37,6 @@ Item {
   readonly property real capsuleHeight: Style.getCapsuleHeightForScreen(screenName)
   readonly property real barFontSize: Style.getBarFontSizeForScreen(screenName)
 
-  // Widget settings
   readonly property string hideMode: widgetSettings.hideMode !== undefined ? widgetSettings.hideMode : widgetMetadata.hideMode
   readonly property bool hideWhenIdle: widgetSettings.hideWhenIdle !== undefined ? widgetSettings.hideWhenIdle : widgetMetadata.hideWhenIdle
   readonly property bool showAlbumArt: widgetSettings.showAlbumArt !== undefined ? widgetSettings.showAlbumArt : widgetMetadata.showAlbumArt
@@ -52,19 +50,16 @@ Item {
   readonly property string textColorKey: widgetSettings.textColor !== undefined ? widgetSettings.textColor : widgetMetadata.textColor
   readonly property color textColor: Color.resolveColorKey(textColorKey)
 
-  // Dimensions
   readonly property int artSize: Style.toOdd(capsuleHeight * 0.75)
   readonly property int iconSize: Style.toOdd(capsuleHeight * 0.75)
   readonly property int verticalSize: Style.toOdd(capsuleHeight * 0.85)
   readonly property int progressWidth: 2
 
-  // State
   readonly property bool hasPlayer: MediaService.currentPlayer !== null
   readonly property bool shouldHideIdle: (hideMode === "idle" || hideWhenIdle) && !MediaService.isPlaying
   readonly property bool shouldHideEmpty: !hasPlayer && hideMode === "hidden"
   readonly property bool isHidden: shouldHideIdle || shouldHideEmpty
 
-  // Title
   readonly property string title: {
     if (!hasPlayer)
       return I18n.tr("bar.media-mini.no-active-player");
@@ -100,7 +95,6 @@ Item {
     SpectrumService.unregisterComponent(root.spectrumComponentId);
   }
 
-  // Layout
   // For horizontal bars, height is always capsuleHeight (no animation needed to prevent jitter)
   // For vertical bars, collapse to 0 when hidden
   implicitWidth: isVertical ? (isHidden ? 0 : verticalSize) : (isHidden ? 0 : contentWidth)
@@ -123,7 +117,6 @@ Item {
 
     var margins = isVertical ? 0 : Style.margin2S;
 
-    // Add spacing and text width
     var textWidth = 0;
     if (titleContainer.measuredWidth > 0) {
       if (iconWidth > 0)
@@ -133,7 +126,6 @@ Item {
 
     var total = iconWidth + textWidth + margins;
 
-    // calculate the width of all elements except the scrolling text
     mainContentWidth = total - textWidth;
 
     return hasPlayer ? Math.min(total, maxWidth) : total;
@@ -158,7 +150,6 @@ Item {
     }
   }
 
-  // Context menu
   NPopupContextMenu {
     id: contextMenu
     model: {
@@ -259,7 +250,6 @@ Item {
       anchors.leftMargin: isVertical ? 0 : Style.marginS
       anchors.rightMargin: isVertical ? 0 : Style.marginS
 
-      // Visualizer
       Loader {
         x: Style.pixelAlignCenter(parent.width, width)
         y: Style.pixelAlignCenter(parent.height, height)
@@ -280,7 +270,6 @@ Item {
         }
       }
 
-      // Horizontal layout
       RowLayout {
         anchors.fill: parent
         anchors.verticalCenter: parent.verticalCenter
@@ -288,7 +277,6 @@ Item {
         visible: !isVertical
         z: 1
 
-        // Album art / Progress ring
         Item {
           visible: hasPlayer && (showAlbumArt || showProgressRing)
           Layout.preferredWidth: visible ? artSize : 0
@@ -314,7 +302,6 @@ Item {
           }
         }
 
-        // Scrolling title
         NScrollText {
           id: titleContainer
           Layout.fillWidth: true
@@ -345,7 +332,6 @@ Item {
         }
       }
 
-      // Vertical layout
       Item {
         id: verticalLayout
         visible: isVertical
@@ -373,11 +359,9 @@ Item {
         }
       }
 
-      // Mouse interaction moved to root
     }
   }
 
-  // Mouse interaction
   MouseArea {
     id: mainMouseArea
     anchors.fill: parent
@@ -422,7 +406,6 @@ Item {
     onExited: TooltipService.hide()
   }
 
-  // Components
   Component {
     id: linearSpectrum
     NLinearSpectrum {
@@ -460,7 +443,6 @@ Item {
     }
   }
 
-  // Progress Ring Component
   component ProgressRing: Canvas {
     property real progress: 0
     property real lineWidth: 2
@@ -491,14 +473,12 @@ Item {
 
       ctx.reset();
 
-      // Background
       ctx.beginPath();
       ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
       ctx.lineWidth = lineWidth;
       ctx.strokeStyle = Qt.alpha(Color.mOnSurface, 0.4);
       ctx.stroke();
 
-      // Progress
       ctx.beginPath();
       ctx.arc(centerX, centerY, radius, -Math.PI / 2, -Math.PI / 2 + progress * 2 * Math.PI);
       ctx.lineWidth = lineWidth;

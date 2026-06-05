@@ -94,24 +94,21 @@ Item {
   function calculateContentWidth() {
     // Calculate the actual content width based on visible elements
     var contentWidth = 0;
-    var margins = Style.margin2S; // Left and right margins
+    var margins = Style.margin2S;
 
-    // Icon width (if visible)
     if (showIcon) {
       contentWidth += iconSize;
       if (showText) {
-        contentWidth += Style.marginS; // Spacing after icon
+        contentWidth += Style.marginS;
       }
     }
 
     // Text width (use the measured width)
     if (showText) {
       contentWidth += titleContainer.measuredWidth;
-      // Additional small margin for text
       contentWidth += Style.margin2XXS;
     }
 
-    // Add container margins
     contentWidth += margins;
 
     return Math.ceil(contentWidth);
@@ -133,7 +130,6 @@ Item {
 
   function getAppIcon() {
     try {
-      // Try CompositorService first
       const focusedWindow = CompositorService.getFocusedWindow();
       if (focusedWindow && focusedWindow.appId) {
         try {
@@ -149,7 +145,6 @@ Item {
       }
 
       if (CompositorService.isHyprland) {
-        // Fallback to ToplevelManager
         if (ToplevelManager && ToplevelManager.activeToplevel) {
           try {
             const activeToplevel = ToplevelManager.activeToplevel;
@@ -207,7 +202,6 @@ Item {
     border.color: Style.capsuleBorderColor
     border.width: Style.capsuleBorderWidth
 
-    // Smooth width transition
     Behavior on width {
       NumberAnimation {
         duration: Style.animationNormal
@@ -221,7 +215,6 @@ Item {
       anchors.leftMargin: isVerticalBar ? 0 : Style.marginS
       anchors.rightMargin: isVerticalBar ? 0 : Style.marginS
 
-      // Horizontal layout for top/bottom bars
       RowLayout {
         id: rowLayout
         anchors.verticalCenter: parent.verticalCenter
@@ -229,7 +222,6 @@ Item {
         visible: !isVerticalBar
         z: 1
 
-        // Window icon
         Item {
           Layout.preferredWidth: iconSize
           Layout.preferredHeight: iconSize
@@ -264,7 +256,6 @@ Item {
           visible: showText
 
           maxWidth: {
-            // Calculate available width based on other elements
             var iconWidth = (showIcon && windowIcon.visible ? (iconSize + Style.marginS) : 0);
             var totalMargins = Style.margin2XXS;
             var availableWidth = mainContainer.width - iconWidth - totalMargins;
@@ -291,7 +282,6 @@ Item {
         }
       }
 
-      // Vertical layout for left/right bars - icon only
       Item {
         id: verticalLayout
         width: parent.width - Style.margin2M
@@ -301,7 +291,6 @@ Item {
         visible: isVerticalBar
         z: 1
 
-        // Window icon
         Item {
           id: verticalIconContainer
           width: root.iconSize
@@ -330,11 +319,9 @@ Item {
         }
       }
 
-      // Mouse area moved to root
     }
   }
 
-  // Mouse area for hover detection
   MouseArea {
     id: mainMouseArea
     anchors.fill: parent

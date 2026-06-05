@@ -6,7 +6,6 @@ import qs.noctalia.Services.Keyboard
 Item {
   id: root
 
-  // Provider metadata
   property string name: I18n.tr("launcher.providers.emoji")
   property var launcher: null
   property string iconMode: Settings.data.appLauncher.iconMode
@@ -20,7 +19,6 @@ Item {
   property string selectedCategory: "recent"
   property bool showsCategories: true // Default to showing categories
 
-  // Empty state message for category view
   readonly property string emptyBrowsingMessage: selectedCategory === "recent" ? I18n.tr("launcher.providers.emoji-no-recent") : ""
 
   property var categoryIcons: ({
@@ -66,7 +64,6 @@ Item {
     }
   }
 
-  // Initialize provider
   function init() {
     Logger.d("EmojiProvider", "Initialized");
   }
@@ -83,7 +80,6 @@ Item {
     selectedCategory = "recent";
   }
 
-  // Check if this provider handles the command
   function handleCommand(searchText) {
     return searchText.startsWith(">emoji");
   }
@@ -104,7 +100,6 @@ Item {
         ];
   }
 
-  // Get search results
   function getResults(searchText) {
     if (!searchText.startsWith(">emoji")) {
       return [];
@@ -134,7 +129,6 @@ Item {
     return emojis.map(formatEmojiEntry);
   }
 
-  // Format an emoji entry for the results list
   function formatEmojiEntry(emoji) {
     let title = emoji.name;
     let description = emoji.keywords.join(", ");

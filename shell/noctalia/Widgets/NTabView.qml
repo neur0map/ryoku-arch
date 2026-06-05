@@ -8,7 +8,6 @@ Item {
 
   property int currentIndex: 0
 
-  // Private
   property int previousIndex: 0
   property bool initialized: false
   property bool animating: false
@@ -86,13 +85,11 @@ Item {
   }
 
   function _animateTransition(fromIdx, toIdx) {
-    // Stop any running animations
     fromXAnim.stop();
     fromOpacityAnim.stop();
     toXAnim.stop();
     toOpacityAnim.stop();
 
-    // Reset all items to clean state (except target)
     for (let i = 0; i < contentItems.length; i++) {
       if (i !== toIdx) {
         contentItems[i].visible = false;
@@ -104,27 +101,23 @@ Item {
     const toItem = contentItems[toIdx];
     const slideLeft = toIdx > fromIdx;
 
-    // Set height to max of both items during animation
     const fromHeight = fromItem ? fromItem.implicitHeight : 0;
     const toHeight = toItem ? toItem.implicitHeight : 0;
     animatingHeight = Math.max(fromHeight, toHeight);
     animating = true;
 
-    // Position outgoing item and make visible for animation
     if (fromItem) {
       fromItem.visible = true;
       fromItem.x = 0;
       fromItem.opacity = 1.0;
     }
 
-    // Position incoming item off-screen (with gap) and set initial opacity
     if (toItem) {
       toItem.visible = true;
       toItem.x = slideLeft ? root.width + transitionGap : -root.width - transitionGap;
       toItem.opacity = 0.0;
     }
 
-    // Animate both items together (with gap)
     if (fromItem) {
       fromXAnim.target = fromItem;
       fromXAnim.to = slideLeft ? -root.width - transitionGap : root.width + transitionGap;

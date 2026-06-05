@@ -230,7 +230,6 @@ SmartPanel {
         Layout.fillWidth: true
         Layout.preferredHeight: mediaContentGrid.implicitHeight + Style.margin2M
 
-        // Visualizer background for content area
         Loader {
           anchors.fill: parent
           z: 0
@@ -526,7 +525,6 @@ SmartPanel {
     }
   }
 
-  // Visualizer Components
   Component {
     id: linearComponent
     NLinearSpectrum {

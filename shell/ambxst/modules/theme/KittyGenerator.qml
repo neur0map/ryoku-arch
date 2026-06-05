@@ -21,36 +21,27 @@ QtObject {
         const urlColor = fmt(Colors.primary);
         const backgroundOpacity = Config.theme.srBg.opacity;
 
-        // black
         const color0 = fmt(Colors.surfaceContainerLow);
         const color8 = fmt(Colors.surfaceBright);
 
-        // red
         const color1 = fmt(Colors.red);
         const color9 = fmt(Colors.lightRed);
 
-        // green
         const color2 = fmt(Colors.green);
         const color10 = fmt(Colors.lightGreen);
 
-        // yellow
         const color3 = fmt(Colors.yellow);
         const color11 = fmt(Colors.lightYellow);
 
-        // blue
-        // User requested primary for color4
         const color4 = fmt(Colors.primary);
         const color12 = fmt(Colors.lightBlue);
 
-        // magenta
         const color5 = fmt(Colors.magenta);
         const color13 = fmt(Colors.lightMagenta);
 
-        // cyan
         const color6 = fmt(Colors.cyan);
         const color14 = fmt(Colors.lightCyan);
 
-        // white
         const color7 = fmt(Colors.outline);
         const color15 = fmt(Colors.overSurface);
 
@@ -102,7 +93,6 @@ QtObject {
         // QUICKSHELL-GIT: const kittyConfPath = Quickshell.cachePath("kitty.conf");
         const kittyConfPath = Quickshell.env("HOME") + "/.cache/ambxst/kitty.conf";
 
-        // Ensure directory exists and write file
         const cmd = `
             mkdir -p "$(dirname "${kittyConfPath}")" && \\
             echo "${conf}" > "${kittyConfPath}" && \\

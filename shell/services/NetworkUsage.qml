@@ -41,7 +41,6 @@ Singleton {
     property bool _initialized: false
 
     function formatBytes(bytes: real): var {
-        // Handle negative or invalid values
         if (bytes < 0 || isNaN(bytes) || !isFinite(bytes)) {
             return {
                 value: 0,
@@ -73,7 +72,6 @@ Singleton {
     }
 
     function formatBytesTotal(bytes: real): var {
-        // Handle negative or invalid values
         if (bytes < 0 || isNaN(bytes) || !isFinite(bytes)) {
             return {
                 value: 0,
@@ -181,7 +179,6 @@ Singleton {
 
             const timeDelta = (now - root._prevTimestamp) / 1000; // seconds
             if (timeDelta > 0) {
-                // Calculate byte deltas
                 let rxDelta = data.rx - root._prevRxBytes;
                 let txDelta = data.tx - root._prevTxBytes;
 
@@ -195,7 +192,6 @@ Singleton {
                     txDelta += Math.pow(2, 64);
                 }
 
-                // Calculate speeds
                 root._downloadSpeed = rxDelta / timeDelta;
                 root._uploadSpeed = txDelta / timeDelta;
 
@@ -206,7 +202,6 @@ Singleton {
                     _uploadBuffer.push(root._uploadSpeed);
             }
 
-            // Calculate totals with overflow handling
             let downTotal = data.rx - root._initialRxBytes;
             let upTotal = data.tx - root._initialTxBytes;
 

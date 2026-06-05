@@ -26,7 +26,6 @@ Item {
     implicitHeight: size
     property real radius: Styling.radius(-8)
 
-    // Contenedor principal con recorte (Clipping)
     ClippingRectangle {
         anchors.fill: parent
         radius: root.radius
@@ -85,7 +84,6 @@ Item {
             }
         }
 
-        // Mostrar imagen de notificación si existe
         Loader {
             id: notifImageLoader
             active: root.image != ""
@@ -118,7 +116,6 @@ Item {
         }
     }
 
-    // App icon pequeño superpuesto si hay imagen
     Loader {
         id: notifImageAppIconLoader
         active: root.image != "" && root.appIcon != "" && !root.usingAppIconFallback

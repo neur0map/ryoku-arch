@@ -82,7 +82,6 @@ Variants {
         return pos;
       }
 
-      // Preview panel support
       readonly property int listPanelWidth: Math.round(500 * Style.uiScaleRatio)
       readonly property int previewPanelWidth: Math.round(400 * Style.uiScaleRatio)
       readonly property bool previewActive: {
@@ -107,21 +106,18 @@ Variants {
         }
       }
 
-      // Shadow for launcher panel
       NDropShadow {
         source: launcherPanel
         anchors.fill: launcherPanel
         autoPaddingEnabled: true
       }
 
-      // Launcher panel with position-based anchoring
       Item {
         id: launcherPanel
         width: Math.round(Math.max(parent.width * 0.25, launcherWindow.listPanelWidth + Style.margin2L * 2))
         height: Math.round(Math.max(parent.height * 0.5, 600 * Style.uiScaleRatio))
         clip: false
 
-        // Entrance animation
         opacity: 0
         transformOrigin: {
           if (touchingTop && touchingLeft)
@@ -154,12 +150,10 @@ Variants {
           }
         }
 
-        // Horizontal positioning
         anchors.horizontalCenter: (panelPosition === "center" || panelPosition.endsWith("_center")) ? parent.horizontalCenter : undefined
         anchors.left: panelPosition.endsWith("_left") ? parent.left : undefined
         anchors.right: panelPosition.endsWith("_right") ? parent.right : undefined
 
-        // Vertical positioning
         anchors.verticalCenter: (panelPosition === "center" || panelPosition.startsWith("center_")) ? parent.verticalCenter : undefined
         anchors.top: panelPosition.startsWith("top_") ? parent.top : undefined
         anchors.bottom: panelPosition.startsWith("bottom_") ? parent.bottom : undefined
@@ -176,7 +170,6 @@ Variants {
         readonly property bool touchingTop: panelPosition.startsWith("top_") && barPosition !== "top"
         readonly property bool touchingBottom: panelPosition.startsWith("bottom_") && barPosition !== "bottom"
 
-        // Corner states based on edge touching
         // State 0: Normal rounded, State 1: Horizontal inversion, State 2: Vertical inversion
         readonly property int topLeftCornerState: {
           if (touchingLeft && touchingTop)
@@ -233,7 +226,6 @@ Variants {
           readonly property real panelW: launcherPanel.width
           readonly property real panelH: launcherPanel.height
 
-          // Helper functions for corner rendering
           function getMultX(state) {
             return state === 1 ? -1 : 1;
           }
@@ -261,12 +253,10 @@ Variants {
             startX: panelShape.radius + panelShape.radius * panelShape.tlMultX
             startY: panelShape.radius
 
-            // Top edge
             PathLine {
               relativeX: panelShape.panelW - panelShape.radius * panelShape.tlMultX - panelShape.radius * panelShape.trMultX
               relativeY: 0
             }
-            // Top-right corner
             PathArc {
               relativeX: panelShape.radius * panelShape.trMultX
               relativeY: panelShape.radius * panelShape.trMultY
@@ -274,12 +264,10 @@ Variants {
               radiusY: panelShape.radius
               direction: panelShape.getArcDir(panelShape.trMultX, panelShape.trMultY)
             }
-            // Right edge
             PathLine {
               relativeX: 0
               relativeY: panelShape.panelH - panelShape.radius * panelShape.trMultY - panelShape.radius * panelShape.brMultY
             }
-            // Bottom-right corner
             PathArc {
               relativeX: -panelShape.radius * panelShape.brMultX
               relativeY: panelShape.radius * panelShape.brMultY
@@ -287,12 +275,10 @@ Variants {
               radiusY: panelShape.radius
               direction: panelShape.getArcDir(panelShape.brMultX, panelShape.brMultY)
             }
-            // Bottom edge
             PathLine {
               relativeX: -(panelShape.panelW - panelShape.radius * panelShape.brMultX - panelShape.radius * panelShape.blMultX)
               relativeY: 0
             }
-            // Bottom-left corner
             PathArc {
               relativeX: -panelShape.radius * panelShape.blMultX
               relativeY: -panelShape.radius * panelShape.blMultY
@@ -300,12 +286,10 @@ Variants {
               radiusY: panelShape.radius
               direction: panelShape.getArcDir(panelShape.blMultX, panelShape.blMultY)
             }
-            // Left edge
             PathLine {
               relativeX: 0
               relativeY: -(panelShape.panelH - panelShape.radius * panelShape.blMultY - panelShape.radius * panelShape.tlMultY)
             }
-            // Top-left corner
             PathArc {
               relativeX: panelShape.radius * panelShape.tlMultX
               relativeY: -panelShape.radius * panelShape.tlMultY
@@ -316,7 +300,6 @@ Variants {
           }
         }
 
-        // Border
         Rectangle {
           anchors.fill: parent
           color: "transparent"
@@ -413,7 +396,6 @@ Variants {
         }
       }
 
-      // Update preview when selection changes
       Connections {
         target: launcherCore
         function onSelectedIndexChanged() {

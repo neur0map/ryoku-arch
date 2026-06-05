@@ -6,13 +6,11 @@ import Quickshell
 Singleton {
   id: root
 
-  // Simple signal-based notification system
   // actionLabel: optional label for clickable action link
   // actionCallback: optional function to call when action is clicked
   signal notify(string title, string description, string icon, string type, int duration, string actionLabel, var actionCallback)
   signal dismiss
 
-  // Convenience methods
   function showNotice(title, description = "", icon = "", duration = 3000, actionLabel = "", actionCallback = null) {
     notify(title, description, icon, "notice", duration, actionLabel, actionCallback);
   }

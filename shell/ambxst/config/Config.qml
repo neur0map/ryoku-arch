@@ -40,7 +40,6 @@ Singleton {
 
     property bool pauseAutoSave: false
 
-    // Module init status
     property bool themeReady: false
     property bool barReady: false
     property bool workspacesReady: false
@@ -59,14 +58,9 @@ Singleton {
 
     property bool initialLoadComplete: themeReady && barReady && workspacesReady && overviewReady && notchReady && compositorReady && performanceReady && weatherReady && desktopReady && lockscreenReady && prefixReady && systemReady && dockReady && aiReady
 
-    // Compatibility aliases
     property alias loader: themeLoader
     property alias keybindsLoader: keybindsLoader
 
-    // ============================================
-    // BATCH INITIALIZATION
-    // ============================================
-    // Ensure config directory exists and copy preset files if missing
     Process {
         id: ensureConfigDir
         running: true
@@ -89,16 +83,12 @@ Singleton {
         ]
     }
 
-    // Auto-migrate hyprland.json → compositor.json for existing users
     Process {
         id: migrateCompositorConfig
         running: true
         command: ["bash", "-c", `test -f '${root.configDir}/hyprland.json' && ! test -f '${root.configDir}/compositor.json' && mv '${root.configDir}/hyprland.json' '${root.configDir}/compositor.json' && echo 'Migrated hyprland.json to compositor.json' || true`]
     }
 
-    // ============================================
-    // THEME MODULE
-    // ============================================
     FileView {
         id: themeLoader
         path: root.configDir + "/theme.json"
@@ -491,9 +481,6 @@ Singleton {
         }
     }
 
-    // ============================================
-    // BAR MODULE
-    // ============================================
     FileView {
         id: barLoader
         path: root.configDir + "/bar.json"
@@ -537,7 +524,6 @@ Singleton {
             property list<var> barColor: [["surface", 0.0]]
             property bool frameEnabled: false
             property int frameThickness: 6
-            // Auto-hide settings
             property bool pinnedOnStartup: true
             property bool hoverToReveal: true
             property int hoverRegionHeight: 8
@@ -550,9 +536,6 @@ Singleton {
         }
     }
 
-    // ============================================
-    // WORKSPACES MODULE
-    // ============================================
     FileView {
         id: workspacesLoader
         path: root.configDir + "/workspaces.json"
@@ -593,9 +576,6 @@ Singleton {
         }
     }
 
-    // ============================================
-    // OVERVIEW MODULE
-    // ============================================
     FileView {
         id: overviewLoader
         path: root.configDir + "/overview.json"
@@ -635,9 +615,6 @@ Singleton {
         }
     }
 
-    // ============================================
-    // NOTCH MODULE
-    // ============================================
     FileView {
         id: notchLoader
         path: root.configDir + "/notch.json"
@@ -680,9 +657,6 @@ Singleton {
         }
     }
 
-    // ============================================
-    // COMPOSITOR MODULE
-    // ============================================
     FileView {
         id: compositorLoader
         path: root.configDir + "/compositor.json"
@@ -760,9 +734,6 @@ Singleton {
         }
     }
 
-    // ============================================
-    // PERFORMANCE MODULE
-    // ============================================
     FileView {
         id: performanceLoader
         path: root.configDir + "/performance.json"
@@ -804,9 +775,6 @@ Singleton {
         }
     }
 
-    // ============================================
-    // WEATHER MODULE
-    // ============================================
     FileView {
         id: weatherLoader
         path: root.configDir + "/weather.json"
@@ -844,9 +812,6 @@ Singleton {
         }
     }
 
-    // ============================================
-    // DESKTOP MODULE
-    // ============================================
     FileView {
         id: desktopLoader
         path: root.configDir + "/desktop.json"
@@ -886,9 +851,6 @@ Singleton {
         }
     }
 
-    // ============================================
-    // LOCKSCREEN MODULE
-    // ============================================
     FileView {
         id: lockscreenLoader
         path: root.configDir + "/lockscreen.json"
@@ -925,9 +887,6 @@ Singleton {
         }
     }
 
-    // ============================================
-    // PREFIX MODULE
-    // ============================================
     FileView {
         id: prefixLoader
         path: root.configDir + "/prefix.json"
@@ -968,9 +927,6 @@ Singleton {
         }
     }
 
-    // ============================================
-    // SYSTEM MODULE
-    // ============================================
     FileView {
         id: systemLoader
         path: root.configDir + "/system.json"
@@ -1050,9 +1006,6 @@ Singleton {
         }
     }
 
-    // ============================================
-    // DOCK MODULE
-    // ============================================
     FileView {
         id: dockLoader
         path: root.configDir + "/dock.json"
@@ -1105,7 +1058,6 @@ Singleton {
         }
     }
 
-    // Pinned apps (per-user)
     property bool pinnedAppsReady: false
 
     FileView {
@@ -1140,9 +1092,6 @@ Singleton {
         }
     }
 
-    // ============================================
-    // AI MODULE
-    // ============================================
     FileView {
         id: aiLoader
         path: root.configDir + "/ai.json"
@@ -1185,8 +1134,6 @@ Singleton {
         }
     }
 
-    // Keybinds (binds.json)
-    // Timer to repair keybinds after initial load
     Timer {
         id: repairKeybindsTimer
         interval: 500
@@ -1197,7 +1144,6 @@ Singleton {
     }
 
 
-    // Timer to create binds.json if missing after initial load
     Timer {
         id: createKeybindsTimer
         interval: 1000
@@ -1211,7 +1157,6 @@ Singleton {
             }
         }
     }
-    // Repair missing binds
     function repairKeybinds() {
         const raw = keybindsLoader.text();
         if (!raw) return;
@@ -1220,18 +1165,15 @@ Singleton {
             const current = JSON.parse(raw);
             let needsUpdate = false;
 
-            // Ensure ambxst structure exists
             if (!current.ambxst) {
                 current.ambxst = {};
                 needsUpdate = true;
             }
 
-            // Migrate nested to flat structure
             if (current.ambxst.dashboard && typeof current.ambxst.dashboard === "object" && !current.ambxst.dashboard.modifiers) {
                 console.log("Migrating nested ambxst binds to flat structure...");
                 const nested = current.ambxst.dashboard;
                 
-                // Map old names to new names and update arguments
                 if (nested.widgets) {
                     current.ambxst.launcher = nested.widgets;
                     current.ambxst.launcher.argument = "ambxst run launcher";
@@ -1273,7 +1215,6 @@ Singleton {
                     current.ambxst.wallpapers.action = createAction(current.ambxst.wallpapers);
                 }
 
-                // Remove the old nested object
                 delete current.ambxst.dashboard;
                 needsUpdate = true;
             }
@@ -1283,11 +1224,9 @@ Singleton {
                 needsUpdate = true;
             }
 
-            // Get default binds from adapter
             const adapter = keybindsLoader.adapter;
             if (!adapter || !adapter.ambxst) return;
 
-            // Helper function to create clean bind object
             function createAction(bindObj) {
                 if (bindObj && bindObj.action) {
                     return KeybindActions.ensureAction(bindObj.action);
@@ -1303,7 +1242,6 @@ Singleton {
                 };
             }
 
-            // Check ambxst core binds
             const ambxstKeys = ["launcher", "dashboard", "assistant", "clipboard", "emoji", "notes", "tmux", "wallpapers"];
             for (const key of ambxstKeys) {
                 if (!current.ambxst[key] && adapter.ambxst[key]) {
@@ -1319,7 +1257,6 @@ Singleton {
                 }
             }
 
-            // Check system binds
             const systemKeys = ["overview", "powermenu", "config", "lockscreen", "tools", "screenshot", "screenrecord", "lens", "reload", "quit"];
             for (const key of systemKeys) {
                 if (!current.ambxst.system[key] && adapter.ambxst.system && adapter.ambxst.system[key]) {
@@ -1369,7 +1306,6 @@ Singleton {
                     keybindsLoader.writeAdapter();
                     repairKeybindsTimer.start();
                 } else {
-                    // File exists, check if it needs repair
                     repairKeybindsTimer.start();
                 }
                 root.keybindsInitialLoadComplete = true;
@@ -1392,7 +1328,6 @@ Singleton {
             }
         }
 
-        // Normalize custom binds
         function normalizeCustomBinds() {
             if (!adapter || !adapter.custom)
                 return;
@@ -1499,7 +1434,6 @@ Singleton {
                 }
             }
             }
-            // Default getters
             readonly property var defaultAmbxstBinds: {
                 "ambxst": {
                     "launcher": { "modifiers": ["SUPER"], "key": "Super_L", "action": { "id": "ambxst.launcher", "args": {} } },
@@ -3306,11 +3240,9 @@ Singleton {
         }
     }
 
-    // Validation helper
     function validateModule(name, loader, defaults, onComplete) {
         var raw = loader.text();
         if (!raw || raw.trim().length === 0) {
-            // File is missing or empty — create with defaults
             console.log(name + ".json missing or empty, creating default...");
             loader.setText(JSON.stringify(defaults, null, 2));
             onComplete();
@@ -3334,23 +3266,19 @@ Singleton {
         }
     }
 
-    // Handle missing config files - copy from preset or create with defaults
     function handleMissingConfig(name, loader, defaults, onComplete) {
         var presetPath = root.presetDir + "/" + name + ".json";
         var targetPath = root.configDir + "/" + name + ".json";
         console.log(name + ".json not found, checking preset: " + presetPath);
 
-        // Create a Process component dynamically to copy the file
         var copyProcess = Qt.createQmlObject(
             "import QtQuick 2.0; Process { running: true; command: ['cp', '" + presetPath + "', '" + targetPath + "']; onFinished: { console.log('Copy finished for " + name + "'); } }",
             root,
             "copyProcess"
         );
 
-        // Reload the loader to pick up the copied file
         loader.reload();
 
-        // If still not ready after reload, use defaults as fallback
         Qt.callLater(() => {
             if (!root[name + "Ready"]) {
                 console.log("Using defaults for " + name + ".json");
@@ -3361,8 +3289,6 @@ Singleton {
     }
 
 
-    // Exposed properties
-    // Theme configuration
     property QtObject theme: themeLoader.adapter
     property bool oledMode: lightMode ? false : theme.oledMode
     property bool lightMode: theme.lightMode
@@ -3372,7 +3298,6 @@ Singleton {
     property int animDuration: Services.GameModeService.toggled ? 0 : theme.animDuration
     property bool tintIcons: theme.tintIcons
 
-    // Handle lightMode changes
     onLightModeChanged: {
         console.log("lightMode changed to:", lightMode);
         if (GlobalStates.wallpaperManager) {
@@ -3384,17 +3309,13 @@ Singleton {
         }
     }
 
-    // Bar configuration
     property QtObject bar: barLoader.adapter
     property bool showBackground: theme.srBarBg.opacity > 0
 
-    // Workspace configuration
     property QtObject workspaces: workspacesLoader.adapter
 
-    // Overview configuration
     property QtObject overview: overviewLoader.adapter
 
-    // Notch configuration
     property QtObject notch: notchLoader.adapter
     property string notchTheme: notch.theme
     property string notchPosition: notch.position
@@ -3402,9 +3323,7 @@ Singleton {
     onNotchPositionChanged: {
         if (!initialLoadComplete || !dockReady) return;
 
-        // If notch moves bottom
         if (notchPosition === "bottom") {
-            // Conflict with Dock?
             if (dock.position === "bottom") {
                 console.log("Notch moved to bottom, adjusting Dock position...");
                 // Offset Dock to avoid notch
@@ -3413,13 +3332,10 @@ Singleton {
                 } else {
                     dock.position = "left";
                 }
-                // Trigger save
                 GlobalStates.markShellChanged();
             }
         } 
-        // If notch moves top
         else if (notchPosition === "top") {
-            // Restore Dock if displaced
             if (dock.position === "left" || dock.position === "right") {
                 console.log("Notch moved to top, restoring Dock to bottom...");
                 dock.position = "bottom";
@@ -3428,7 +3344,6 @@ Singleton {
         }
     }
 
-    // Compositor configuration
     property QtObject compositor: compositorLoader.adapter
     property int compositorRounding: compositor.syncRoundness ? roundness : compositor.rounding
     property int compositorBorderSize: compositor.syncBorderWidth ? (theme.srBg.border[1] || 0) : compositor.borderSize
@@ -3436,35 +3351,25 @@ Singleton {
     property real compositorShadowOpacity: compositor.syncShadowOpacity ? theme.shadowOpacity : compositor.shadowOpacity
     property string compositorShadowColor: compositor.syncShadowColor ? theme.shadowColor : compositor.shadowColor
 
-    // Performance configuration
     property QtObject performance: performanceLoader.adapter
     property bool blurTransition: performance.blurTransition
 
-    // Weather configuration
     property QtObject weather: weatherLoader.adapter
 
-    // Desktop configuration
     property QtObject desktop: desktopLoader.adapter
 
-    // Lockscreen configuration
     property QtObject lockscreen: lockscreenLoader.adapter
 
-    // Prefix configuration
     property QtObject prefix: prefixLoader.adapter
 
-    // System configuration
     property QtObject system: systemLoader.adapter
 
-    // Dock configuration
     property QtObject dock: dockLoader.adapter
 
-    // Pinned apps configuration (stored in dataPath)
     property QtObject pinnedApps: pinnedAppsLoader.adapter
 
-    // AI configuration
     property QtObject ai: aiLoader.adapter
 
-    // Module save functions
     function saveBar() {
         barLoader.writeAdapter();
     }
@@ -3508,7 +3413,6 @@ Singleton {
         aiLoader.writeAdapter();
     }
 
-    // Color helpers
     function isHexColor(colorValue) {
         if (!colorValue || typeof colorValue !== 'string')
             return false;
@@ -3517,13 +3421,12 @@ Singleton {
     }
 
     function resolveColor(colorValue) {
-        if (!colorValue) return "transparent"; // Fallback
+        if (!colorValue) return "transparent";
         
         if (isHexColor(colorValue)) {
             return colorValue;
         }
         
-        // Check Colors singleton
         if (typeof Colors === 'undefined' || !Colors) return "transparent";
         
         return Colors[colorValue] || "transparent"; 

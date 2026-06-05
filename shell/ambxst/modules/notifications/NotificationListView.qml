@@ -11,7 +11,6 @@ ListView {
 
     spacing: 8
 
-    // Mostrar todas las notificaciones individuales en lugar de grupos
     model: root.popup ? Notifications.popupNotifications : Notifications.notifications
 
     delegate: NotificationDelegate {
@@ -20,11 +19,10 @@ ListView {
         anchors.left: parent?.left
         anchors.right: parent?.right
         notificationObject: modelData
-        expanded: true // Siempre expandidas para mostrar toda la información
-        onlyNotification: true // Mostrar como notificación individual con header
+        expanded: true
+        onlyNotification: true
 
         onDestroyRequested:
-        // No necesitamos lógica especial aquí
         {}
     }
 }

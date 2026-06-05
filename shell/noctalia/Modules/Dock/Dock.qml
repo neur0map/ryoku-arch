@@ -33,7 +33,6 @@ Loader {
         }
       }
 
-      // Update dock apps when window list change
       Connections {
         target: CompositorService
         function onWindowListChanged() {
@@ -41,7 +40,6 @@ Loader {
         }
       }
 
-      // Update dock apps when toplevels change
       Connections {
         target: ToplevelManager ? ToplevelManager.toplevels : null
         function onValuesChanged() {
@@ -49,7 +47,6 @@ Loader {
         }
       }
 
-      // Update dock apps when pinned apps change
       Connections {
         target: Settings.data.dock
         function onPinnedAppsChanged() {
@@ -63,7 +60,6 @@ Loader {
         }
       }
 
-      // Initial update when component is ready
       Component.onCompleted: {
         if (ToplevelManager) {
           updateDockApps();
@@ -98,11 +94,9 @@ Loader {
       readonly property int maxWidth: modelData ? modelData.width * 0.8 : 1000
       readonly property int maxHeight: modelData ? modelData.height * 0.8 : 1000
 
-      // Dock position properties
       readonly property string dockPosition: Settings.data.dock.position
       readonly property bool isVertical: dockPosition === "left" || dockPosition === "right"
 
-      // Bar detection and positioning properties
       readonly property bool hasBar: modelData && modelData.name ? (Settings.data.bar.monitors.includes(modelData.name) || (Settings.data.bar.monitors.length === 0)) : false
       readonly property bool barAtSameEdge: hasBar && Settings.getBarPositionForScreen(modelData?.name) === dockPosition
       readonly property string barPosition: Settings.getBarPositionForScreen(modelData?.name)
@@ -175,7 +169,6 @@ Loader {
         return Math.min(padded, isVertical ? maxHeight : maxWidth);
       }
 
-      // Shared state between windows
       property bool dockHovered: false
       property bool anyAppHovered: false
       property bool menuHovered: false
@@ -185,17 +178,14 @@ Loader {
       // Separate property to control Loader - stays true during animations
       property bool dockLoaded: !autoHide // Start loaded if autoHide is off
 
-      // Track the currently open context menu
       property var currentContextMenu: null
 
-      // Combined model of running apps and pinned apps
       property var dockApps: []
       property var groupCycleIndices: ({})
 
       // Track the session order of apps (transient reordering)
       property var sessionAppOrder: []
 
-      // Drag and Drop state for visual feedback
       property int dragSourceIndex: -1
       property int dragTargetIndex: -1
 
@@ -211,7 +201,6 @@ Loader {
       // Revision counter to force icon re-evaluation
       property int iconRevision: 0
 
-      // Function to close any open context menu
       function closeAllContextMenus() {
         if (currentContextMenu && currentContextMenu.visible) {
           currentContextMenu.hide();
@@ -239,7 +228,6 @@ Loader {
         if (appData.toplevel)
           return appData.toplevel;
 
-        // fallback to appId
         return appData.appId;
       }
 
@@ -291,7 +279,6 @@ Loader {
         const newPinned = [];
         const seen = new Set();
 
-        // Extract pinned apps in their current visual order
         dockApps.forEach(app => {
                            if (app.appId && !seen.has(app.appId)) {
                              const isPinned = currentPinned.some(p => normalizeAppId(p) === normalizeAppId(app.appId));
@@ -331,7 +318,6 @@ Loader {
         if (!appId || !pinnedApps || pinnedApps.length === 0)
           return false;
         const normalizedId = normalizeAppId(appId);
-        // Direct match
         if (pinnedApps.some(pinnedId => normalizeAppId(pinnedId) === normalizedId))
           return true;
         // Resolve via desktop entry lookup (handles StartupWMClass != .desktop filename)
@@ -367,7 +353,6 @@ Loader {
         return appId;
       }
 
-      // Helper function to get app name from desktop entry
       function getAppNameFromDesktopEntry(appId) {
         if (!appId)
           return appId;
@@ -479,7 +464,6 @@ Loader {
         return grouped;
       }
 
-      // Function to update the combined dock apps model
       function updateDockApps() {
         const runningApps = ToplevelManager ? (ToplevelManager.toplevels.values || []) : [];
         const pinnedApps = Settings.data.dock.pinnedApps || [];
@@ -487,7 +471,6 @@ Loader {
         const processedToplevels = new Set();
         const processedPinnedAppIds = new Set();
 
-        //push an app onto combined with the given appType
         function pushApp(appType, toplevel, appId, title) {
           // Use canonical ID for pinned apps to ensure key stability
           const canonicalId = isAppIdPinned(appId, pinnedApps) ? (pinnedApps.find(p => normalizeAppId(p) === normalizeAppId(appId)) || appId) : appId;
@@ -527,7 +510,6 @@ Loader {
         function pushRunning(first) {
           runningApps.forEach(toplevel => {
                                 if (toplevel) {
-                                  // Use robust matching to check if pinned
                                   const isPinned = isAppIdPinned(toplevel.appId, pinnedApps);
                                   if (!first && isPinned && processedToplevels.has(toplevel)) {
                                     return; // Already added by pushPinned()
@@ -553,7 +535,6 @@ Loader {
                                                                             });
 
                                if (matchingToplevels.length > 0) {
-                                 // Add all running instances as pinned-running
                                  matchingToplevels.forEach(toplevel => {
                                                              pushApp("pinned-running", toplevel, pinnedAppId, toplevel.title);
                                                            });
@@ -586,7 +567,6 @@ Loader {
                          });
         root.groupCycleIndices = nextCycleState;
 
-        // Sync session order if needed
         // Instead of resetting everything when length changes, we reconcile the keys
         if (!sessionAppOrder || sessionAppOrder.length === 0) {
           sessionAppOrder = dockApps.map(getAppKey);
@@ -621,7 +601,7 @@ Loader {
       // Timer to unload dock after hide animation completes
       Timer {
         id: unloadTimer
-        interval: hideAnimationDuration + 50 // Add small buffer
+        interval: hideAnimationDuration + 50
         onTriggered: {
           if (hidden && autoHide) {
             dockLoaded = false;
@@ -633,7 +613,6 @@ Loader {
       property alias showTimer: showTimer
       property alias unloadTimer: unloadTimer
 
-      // Timer for auto-hide delay
       Timer {
         id: hideTimer
         interval: hideDelay
@@ -664,7 +643,7 @@ Loader {
               closeAllContextMenus();
             }
             hidden = true;
-            unloadTimer.restart(); // Start unload timer when hiding
+            unloadTimer.restart();
           } else if (autoHide && !dockHovered && !peekHovered) {
             // Restart timer if menu is closing (handles race condition)
             restart();
@@ -672,17 +651,16 @@ Loader {
         }
       }
 
-      // Timer for show delay
       Timer {
         id: showTimer
         interval: showDelay
         onTriggered: {
           if (autoHide) {
             if (!isAttachedMode) {
-              dockLoaded = true; // Load dock immediately
+              dockLoaded = true;
             }
-            hidden = false; // Then trigger show animation
-            unloadTimer.stop(); // Cancel any pending unload
+            hidden = false;
+            unloadTimer.stop();
           }
         }
       }
@@ -709,7 +687,6 @@ Loader {
           id: peekWindow
 
           screen: modelData
-          // Dynamic anchors based on dock position
           anchors.top: dockPosition === "top" || isVertical
           anchors.bottom: dockPosition === "bottom"
           anchors.left: dockPosition === "left" || !isVertical
@@ -771,7 +748,6 @@ Loader {
           id: dockIndicatorWindow
 
           screen: modelData
-          // Dynamic anchors based on dock position
           anchors.top: dockPosition === "top" || isVertical
           anchors.bottom: dockPosition === "bottom"
           anchors.left: dockPosition === "left" || !isVertical
@@ -880,7 +856,6 @@ Loader {
           implicitWidth: dockContainerWrapper.width + (isVertical ? slideDistance : 0)
           implicitHeight: dockContainerWrapper.height + (!isVertical ? slideDistance : 0)
 
-          // Position based on dock setting
           anchors.top: dockPosition === "top"
           anchors.bottom: dockPosition === "bottom"
           anchors.left: dockPosition === "left"
@@ -892,11 +867,9 @@ Loader {
           margins.left: dockPosition === "left" ? (barAtSameEdge && !exclusive ? barHeight + (barFloating ? Settings.data.bar.marginHorizontal : 0) + floatingMargin : floatingMargin) : 0
           margins.right: dockPosition === "right" ? (barAtSameEdge && !exclusive ? barHeight + (barFloating ? Settings.data.bar.marginHorizontal : 0) + floatingMargin : floatingMargin) : 0
 
-          // Container wrapper for animations
           Item {
             id: dockContainerWrapper
 
-            // Helper properties for orthogonal bar detection
             readonly property string screenBarPosition: Settings.getBarPositionForScreen(modelData?.name)
             readonly property bool barOnLeft: hasBar && screenBarPosition === "left" && !barFloating
             readonly property bool barOnRight: hasBar && screenBarPosition === "right" && !barFloating
@@ -925,7 +898,6 @@ Loader {
             anchors.left: dockPosition === "left" ? parent.left : undefined
             anchors.right: dockPosition === "right" ? parent.right : undefined
 
-            // Slide content inside the fixed window
             transform: Translate {
               x: dockWindow.slideX
               y: dockWindow.slideY

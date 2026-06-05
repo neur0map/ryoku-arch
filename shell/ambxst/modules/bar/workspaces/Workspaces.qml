@@ -39,7 +39,6 @@ Item {
 
     function updateWorkspaceOccupied() {
         if (Config.workspaces.dynamic) {
-            // Get occupied workspace IDs using the precomputed occupation map, sorted and limited by 'shown'
             const occupiedIds = AxctlService.workspaces.values.filter(ws => CompositorData.workspaceOccupationMap[ws.id]).map(ws => ws.id).sort((a, b) => a - b).slice(0, Config.workspaces.shown);
 
             // Always include active workspace, even if empty
@@ -119,7 +118,6 @@ Item {
         onTriggered: workspacesWidget.updateWorkspaceOccupied()
     }
 
-    // Initial update
     Component.onCompleted: updateTimer.restart()
 
     Connections {

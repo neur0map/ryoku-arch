@@ -8,7 +8,6 @@ Rectangle {
   id: root
   objectName: "NTabBar"
 
-  // Public properties
   property int currentIndex: 0
   property real spacing: Style.marginXS
   property real margins: 0
@@ -65,7 +64,6 @@ Rectangle {
     }
   }
 
-  // Styling
   Layout.margins: Style.borderS
   implicitWidth: tabRow.implicitWidth + (margins * 2)
   implicitHeight: tabHeight + (margins * 2)

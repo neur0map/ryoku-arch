@@ -52,7 +52,6 @@ QtObject {
 
     function getColorValue(colorName) {
         const resolved = Config.resolveColor(colorName);
-        // Convert HEX string to color, or return if already a color.
         return (typeof resolved === 'string') ? Qt.color(resolved) : resolved;
     }
 
@@ -76,25 +75,21 @@ QtObject {
     }
 
     function applyCompositorConfigInternal() {
-        // Ensure adapters are loaded before applying config.
         if (!Config.loader.loaded) {
             console.log("CompositorConfig: Esperando que se cargue Config...");
             return;
         }
 
-        // Wait for layout to be ready.
         if (!GlobalStates.compositorLayoutReady) {
             console.log("CompositorConfig: Esperando que se detecte el layout de AxctlService...");
             return;
         }
 
-        // Determine active colors.
         let activeColorFormatted = "";
         // Force compositorBorderColor if syncBorderColor is enabled, otherwise use configured list (supports gradients).
         const borderColors = Config.compositor.syncBorderColor ? null : Config.compositor.activeBorderColor;
 
         if (borderColors && borderColors.length > 1) {
-            // Multi-color gradient.
             const formattedColors = borderColors.map(colorName => {
                 const color = getColorValue(colorName);
                 return formatColorForCompositor(color);
@@ -107,12 +102,10 @@ QtObject {
             activeColorFormatted = formatColorForCompositor(activeColor);
         }
 
-        // Determine inactive colors.
         let inactiveColorFormatted = "";
         const inactiveBorderColors = Config.compositor.inactiveBorderColor;
 
         if (inactiveBorderColors && inactiveBorderColors.length > 1) {
-            // Multi-color gradient.
             const formattedColors = inactiveBorderColors.map(colorName => {
                 const color = getColorValue(colorName);
                 const colorWithFullOpacity = Qt.rgba(color.r, color.g, color.b, 1.0);
@@ -120,14 +113,12 @@ QtObject {
             }).join(" ");
             inactiveColorFormatted = `${formattedColors} ${Config.compositor.inactiveBorderAngle}deg`;
         } else {
-            // Single color.
             const singleColorName = (inactiveBorderColors && inactiveBorderColors.length === 1) ? inactiveBorderColors[0] : "surface";
             const inactiveColor = getColorValue(singleColorName);
             const inactiveColorWithFullOpacity = Qt.rgba(inactiveColor.r, inactiveColor.g, inactiveColor.b, 1.0);
             inactiveColorFormatted = formatColorForCompositor(inactiveColorWithFullOpacity);
         }
 
-        // Shadow colors.
         const shadowColor = getColorValue(Config.compositorShadowColor);
         const shadowColorInactive = getColorValue(Config.compositor.shadowColorInactive);
         const shadowColorWithOpacity = Qt.rgba(shadowColor.r, shadowColor.g, shadowColor.b, shadowColor.a * Config.compositorShadowOpacity);
@@ -150,7 +141,6 @@ QtObject {
         const workspacesAnimation = barOrientation === "vertical" ? `slidefadevert 20%` : `slidefade 20%`;
         const workspaceCommand = `keyword animation workspaces,1,${speed},${bezier},${workspacesAnimation}`;
 
-        // Calculate ignorealpha.
         let ignoreAlphaValue = 0.0;
 
         if (Config.compositor.blurExplicitIgnoreAlpha) {
@@ -395,7 +385,6 @@ QtObject {
 
 
     Component.onCompleted: {
-        // Apply immediately if Config is already loaded.
         if (Config.loader.loaded) {
             applyCompositorConfig();
         }

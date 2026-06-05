@@ -54,7 +54,6 @@ SmartPanel {
           const newSinkId = AudioService.sink.id;
           if (newSinkId !== panelContent.lastSinkId) {
             panelContent.lastSinkId = newSinkId;
-            // Immediately set local volume to current device's volume
             var vol = AudioService.volume;
             panelContent.localOutputVolume = (vol !== undefined && !isNaN(vol)) ? vol : 0;
           }
@@ -72,7 +71,6 @@ SmartPanel {
           const newSourceId = AudioService.source.id;
           if (newSourceId !== panelContent.lastSourceId) {
             panelContent.lastSourceId = newSourceId;
-            // Immediately set local volume to current device's volume
             var vol = AudioService.inputVolume;
             panelContent.localInputVolume = (vol !== undefined && !isNaN(vol)) ? vol : 0;
           }
@@ -160,7 +158,6 @@ SmartPanel {
       anchors.margins: Style.marginL
       spacing: Style.marginM
 
-      // HEADER
       NBox {
         Layout.fillWidth: true
         implicitHeight: header.implicitHeight + Style.margin2M
@@ -219,13 +216,11 @@ SmartPanel {
         }
       }
 
-      // Content Stack
       StackLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
         currentIndex: panelContent.currentTabIndex
 
-        // Applications Tab (Volume)
         NScrollView {
           id: volumeScrollView
           horizontalPolicy: ScrollBar.AlwaysOff
@@ -238,7 +233,6 @@ SmartPanel {
             spacing: Style.marginM
             width: volumeScrollView.availableWidth
 
-            // Output Volume
             NBox {
               Layout.fillWidth: true
               Layout.preferredHeight: outputVolumeColumn.implicitHeight + Style.margin2M
@@ -314,7 +308,6 @@ SmartPanel {
               }
             }
 
-            // Input Volume
             NBox {
               Layout.fillWidth: true
               Layout.preferredHeight: inputVolumeColumn.implicitHeight + Style.margin2M
@@ -436,7 +429,6 @@ SmartPanel {
                   return false;
                 }
 
-                // Helper function to validate if a fuzzy match is actually related
                 function isValidMatch(searchTerm, entry) {
                   if (!entry)
                     return false;
@@ -626,7 +618,6 @@ SmartPanel {
                   anchors.margins: Style.marginM
                   spacing: Style.marginM
 
-                  // App Icon
                   IconImage {
                     id: appIconImage
                     Layout.preferredWidth: Style.baseWidgetSize
@@ -645,7 +636,6 @@ SmartPanel {
                     }
                   }
 
-                  // App Name and Volume Slider
                   ColumnLayout {
                     Layout.fillWidth: true
                     spacing: Style.marginXS
@@ -701,7 +691,6 @@ SmartPanel {
                         enabled: !!(appBox.nodeAudio && appBox.modelData && appBox.modelData.ready === true)
                       }
 
-                      // Mute Button
                       NIconButton {
                         icon: (appBox.appMuted === true) ? "volume-mute" : "volume-high"
                         tooltipText: (appBox.appMuted === true) ? I18n.tr("tooltips.unmute") : I18n.tr("tooltips.mute")
@@ -721,7 +710,6 @@ SmartPanel {
               }
             }
 
-            // Empty state
             NText {
               visible: panelContent.appStreams.length === 0
               text: I18n.tr("panels.audio.panel-applications-empty")
@@ -734,7 +722,6 @@ SmartPanel {
           }
         }
 
-        // Devices Tab
         NScrollView {
           id: devicesScrollView
           horizontalPolicy: ScrollBar.AlwaysOff
@@ -743,13 +730,10 @@ SmartPanel {
           reserveScrollbarSpace: false
           gradientColor: Color.mSurface
 
-          // AudioService Devices
           ColumnLayout {
             spacing: Style.marginM
             width: devicesScrollView.availableWidth
 
-            // -------------------------------
-            // Output Devices
             ButtonGroup {
               id: sinks
             }
@@ -790,8 +774,6 @@ SmartPanel {
               }
             }
 
-            // -------------------------------
-            // Input Devices
             ButtonGroup {
               id: sources
             }

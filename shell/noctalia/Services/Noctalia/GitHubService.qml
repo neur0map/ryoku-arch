@@ -6,7 +6,6 @@ import Quickshell.Io
 import qs.noctalia.Commons
 import qs.noctalia.Services.UI
 
-// GitHub API logic for contributors
 Singleton {
   id: root
 
@@ -15,14 +14,12 @@ Singleton {
   property bool isFetchingData: false
   readonly property alias data: adapter // Used to access via GitHubService.data.xxx.yyy
 
-  // Public properties for easy access
   property string latestVersion: I18n.tr("common.unknown")
   property string latestQSVersion: I18n.tr("common.unknown")
   property var contributors: []
 
-  // Avatar caching properties (simplified - uses ImageCacheService)
   property var cachedAvatars: ({}) // username → file:// path
-  property bool avatarsCached: false // Track if we've already processed avatars
+  property bool avatarsCached: false
 
   property bool isInitialized: false
 
@@ -42,7 +39,6 @@ Singleton {
     }
     onLoadFailed: function (error) {
       if (error.toString().includes("No such file") || error === 2) {
-        // No cache file exists, fetch fresh data
         root.isInitialized = true;
         fetchFromGitHub();
       }
@@ -58,13 +54,11 @@ Singleton {
     }
   }
 
-  // --------------------------------
   function init() {
     Logger.i("GitHub", "Service started");
     // FileView will handle loading automatically via onLoaded
   }
 
-  // --------------------------------
   function loadFromCache() {
     const now = Time.timestamp;
     var needsRefetch = false;
@@ -94,7 +88,6 @@ Singleton {
     }
   }
 
-  // --------------------------------
   function fetchFromGitHub() {
     if (isFetchingData) {
       Logger.d("GitHub", "GitHub data is still fetching");
@@ -107,13 +100,11 @@ Singleton {
     contributorsProcess.running = true;
   }
 
-  // --------------------------------
   function saveData() {
     data.timestamp = Time.timestamp;
     Logger.d("GitHub", "Saving data to cache file:", githubDataFile, "with timestamp:", data.timestamp);
     Logger.d("GitHub", "Data to save - version:", data.version, "qsVersion:", data.qsVersion, "contributors:", data.contributors.length);
 
-    // Ensure cache directory exists
     Quickshell.execDetached(["mkdir", "-p", Settings.cacheDir]);
 
     try {
@@ -125,13 +116,11 @@ Singleton {
     }
   }
 
-  // --------------------------------
   function checkAndSaveData() {
     // Only save when all processes are finished
     if (!versionProcess.running && !qsVersionProcess.running && !contributorsProcess.running) {
       root.isFetchingData = false;
 
-      // Check results
       var anySucceeded = versionProcess.fetchSucceeded || qsVersionProcess.fetchSucceeded || contributorsProcess.fetchSucceeded;
       var wasRateLimited = versionProcess.wasRateLimited || qsVersionProcess.wasRateLimited || contributorsProcess.wasRateLimited;
 
@@ -145,7 +134,6 @@ Singleton {
         Logger.w("GitHub", "API request failed - using cached data without updating timestamp");
       }
 
-      // Reset fetch flags for next time
       versionProcess.fetchSucceeded = false;
       versionProcess.wasRateLimited = false;
       qsVersionProcess.fetchSucceeded = false;
@@ -155,20 +143,15 @@ Singleton {
     }
   }
 
-  // --------------------------------
   function resetCache() {
     data.version = I18n.tr("common.unknown");
     data.qsVersion = I18n.tr("common.unknown");
     data.contributors = [];
     data.timestamp = 0;
 
-    // Try to fetch immediately
     fetchFromGitHub();
   }
 
-  // --------------------------------
-  // Avatar Caching Functions (simplified - uses ImageCacheService)
-  // --------------------------------
 
   function getAvatarPath(username) {
     return cachedAvatars[username] || "";
@@ -197,15 +180,12 @@ Singleton {
     }
   }
 
-  // --------------------------------
-  // Hook into contributors change - only process once
   onContributorsChanged: {
     if (contributors.length > 0 && !avatarsCached && ImageCacheService.initialized) {
       Qt.callLater(cacheTopContributorAvatars);
     }
   }
 
-  // Also watch for ImageCacheService to become initialized
   Connections {
     target: ImageCacheService
     function onInitializedChanged() {
@@ -236,7 +216,6 @@ Singleton {
               versionProcess.fetchSucceeded = true;
               Logger.d("GitHub", "Latest version fetched:", version);
             } else if (data.message) {
-              // Check if it's a rate limit error
               if (data.message.includes("rate limit")) {
                 versionProcess.wasRateLimited = true;
               } else {
@@ -248,7 +227,6 @@ Singleton {
           Logger.e("GitHub", "Failed to parse version response:", e);
         }
 
-        // Check if all processes are done
         checkAndSaveData();
       }
     }
@@ -275,7 +253,6 @@ Singleton {
               qsVersionProcess.fetchSucceeded = true;
               Logger.d("GitHub", "Latest QS version fetched:", version);
             } else if (data.message) {
-              // Check if it's a rate limit error
               if (data.message.includes("rate limit")) {
                 qsVersionProcess.wasRateLimited = true;
               } else {
@@ -287,7 +264,6 @@ Singleton {
           Logger.e("GitHub", "Failed to parse QS version response:", e);
         }
 
-        // Check if all processes are done
         checkAndSaveData();
       }
     }
@@ -309,14 +285,12 @@ Singleton {
           if (response && response.trim()) {
             const data = JSON.parse(response);
             Logger.d("GitHub", "Parsed contributors data type:", typeof data, "length:", Array.isArray(data) ? data.length : "not array");
-            // Only update if we got a valid array
             if (Array.isArray(data)) {
               root.data.contributors = data;
               root.contributors = root.data.contributors;
               contributorsProcess.fetchSucceeded = true;
               Logger.d("GitHub", "Contributors fetched:", root.contributors.length);
             } else if (data.message) {
-              // Check if it's a rate limit error
               if (data.message.includes("rate limit")) {
                 contributorsProcess.wasRateLimited = true;
               } else {
@@ -328,7 +302,6 @@ Singleton {
           Logger.e("GitHub", "Failed to parse contributors response:", e);
         }
 
-        // Check if all processes are done
         checkAndSaveData();
       }
     }

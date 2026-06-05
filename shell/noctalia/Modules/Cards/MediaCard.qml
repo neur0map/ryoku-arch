@@ -12,7 +12,6 @@ import qs.noctalia.Widgets.AudioSpectrum
 NBox {
   id: root
 
-  // Track whether we have an active media player
   readonly property bool hasActivePlayer: MediaService.currentPlayer && MediaService.canPlay
 
   // SpectrumService registration for visualizer
@@ -40,7 +39,6 @@ NBox {
   property string wallpaper: WallpaperService.getWallpaper(screen.name)
   property string cachedWallpaper: ""
 
-  // External state management
   Connections {
     target: WallpaperService
     function onWallpaperChanged(screenName, path) {
@@ -75,7 +73,6 @@ NBox {
     });
   }
 
-  // Wrapper - rounded rect clipper
   Item {
     anchors.fill: parent
     layer.enabled: true
@@ -100,7 +97,6 @@ NBox {
       color: Settings.data.wallpaper.useSolidColor ? Settings.data.wallpaper.solidColor : Color.mSurface
     }
 
-    // Background image that covers everything
     Image {
       id: bgImage
       readonly property int dim: Math.round(256 * Style.uiScaleRatio)
@@ -126,7 +122,6 @@ NBox {
       radius: Style.radiusM
     }
 
-    // Border
     Rectangle {
       anchors.fill: parent
       color: "transparent"
@@ -135,7 +130,6 @@ NBox {
       radius: Style.radiusM
     }
 
-    // Background visualizer on top of the artwork
     Loader {
       anchors.fill: parent
       active: Settings.data.audio.visualizerType !== "" && Settings.data.audio.visualizerType !== "none"
@@ -188,7 +182,6 @@ NBox {
     }
   }
 
-  // Player selector
   Rectangle {
     id: playerSelectorButton
     anchors.top: parent.top
@@ -268,7 +261,6 @@ NBox {
     anchors.rightMargin: Style.marginM
     anchors.bottomMargin: Style.marginM
 
-    // No media player detected - centered disc icon
     NIcon {
       anchors.centerIn: parent
       visible: !root.hasActivePlayer && SpectrumService.isIdle
@@ -305,12 +297,10 @@ NBox {
           anchors.fill: parent
           spacing: Style.marginS
 
-          // Spacer to push content down
           Item {
             Layout.preferredHeight: Style.marginM
           }
 
-          // Metadata
           ColumnLayout {
             id: metadata
             Layout.fillWidth: true
@@ -347,7 +337,6 @@ NBox {
             }
           }
 
-          // Progress slider
           Item {
             id: progressWrapper
             visible: (MediaService.currentPlayer && MediaService.trackLength > 0)
@@ -420,12 +409,10 @@ NBox {
             }
           }
 
-          // Spacer to push media controls down
           Item {
             Layout.preferredHeight: Style.marginL
           }
 
-          // Media controls
           RowLayout {
             spacing: Style.marginS
             Layout.fillWidth: true

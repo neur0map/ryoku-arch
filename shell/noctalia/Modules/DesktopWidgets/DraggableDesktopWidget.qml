@@ -120,7 +120,6 @@ Item {
       return scale;
     }
 
-    // Get widget's base width
     var initialWidth = internal.initialWidth;
     var initialScale = internal.initialScale;
     if (initialWidth <= 0 || initialScale <= 0) {
@@ -232,7 +231,6 @@ Item {
       root.openWidgetSettings();
       return true; // Signal that we're handling close ourselves
     } else if (action === "reset") {
-      // Reset scale and position to defaults
       root.widgetScale = 1.0;
       internal.baseX = root.defaultX;
       internal.baseY = root.defaultY;
@@ -263,7 +261,6 @@ Item {
   // This prevents blurry text at fractional scale values
 
   Component.onCompleted: {
-    // Initialize scale from widgetData when component is first created
     if (widgetData && widgetData.scale !== undefined) {
       widgetScale = widgetData.scale;
     }

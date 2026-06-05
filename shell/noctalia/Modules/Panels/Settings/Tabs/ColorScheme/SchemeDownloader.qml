@@ -14,15 +14,14 @@ Popup {
   property var availableSchemes: []
   property bool fetching: false
   property bool downloading: false
-  property bool hasInitialData: false // Track if we've loaded data at least once
+  property bool hasInitialData: false
   property string downloadError: ""
   property string downloadingScheme: ""
   property string pendingApplyScheme: "" // Scheme name to apply after reload
-  property string lastStderrOutput: "" // Store stderr from download process
+  property string lastStderrOutput: ""
   property real lastApiFetchTime: 0 // Track when we last fetched from API to prevent rapid calls
   property int minApiFetchInterval: 60 // Minimum seconds between API fetches (1 minute)
 
-  // Cache for remote scheme colors
   property var schemeColorsCache: ({})
   property int cacheVersion: 0
 
@@ -41,15 +40,13 @@ Popup {
   dim: true
   anchors.centerIn: parent
 
-  // Helper function to get color from cached scheme data
   function getSchemeColor(schemeName, colorKey) {
-    var _ = cacheVersion; // Create dependency
+    var _ = cacheVersion;
 
     if (schemeColorsCache[schemeName]) {
       var entry = schemeColorsCache[schemeName];
       var variant = entry;
 
-      // Check if scheme has dark/light variants
       if (entry.dark || entry.light) {
         variant = Settings.data.colorSchemes.darkMode ? (entry.dark || entry.light) : (entry.light || entry.dark);
       }
@@ -90,7 +87,6 @@ Popup {
       const cachedSchemes = cacheData.schemes || [];
       const cachedTimestamp = cacheData.timestamp || 0;
 
-      // Check if cache is expired or missing
       if (!cachedTimestamp || (now >= cachedTimestamp + schemesCacheUpdateFrequency)) {
         // Migration is now handled in Settings.qml
 
@@ -117,7 +113,6 @@ Popup {
 
       if (cachedSchemes.length > 0) {
         availableSchemes = cachedSchemes;
-        // Restore color cache from cached schemes
         for (var i = 0; i < cachedSchemes.length; i++) {
           var cachedScheme = cachedSchemes[i];
           if (cachedScheme.dark || cachedScheme.light) {
@@ -163,7 +158,6 @@ Popup {
       return;
     }
 
-    // Try to load from ShellState cache first
     if (typeof ShellState !== 'undefined' && ShellState.isLoaded) {
       loadSchemesFromCache();
     } else {
@@ -191,7 +185,6 @@ Popup {
     // availableSchemes = [];
     downloadError = "";
 
-    // Fetch registry.json
     var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function () {
       if (xhr.readyState === XMLHttpRequest.DONE) {
@@ -201,7 +194,6 @@ Popup {
             var registry = JSON.parse(xhr.responseText);
             if (registry && registry.themes && Array.isArray(registry.themes)) {
               var schemes = [];
-              // Process themes
               for (var i = 0; i < registry.themes.length; i++) {
                 var theme = registry.themes[i];
                 schemes.push({
@@ -219,7 +211,6 @@ Popup {
               hasInitialData = true;
               cacheVersion++;
               Logger.d("ColorSchemeDownload", "Fetched", schemes.length, "available schemes from registry.json");
-              // Save to cache
               saveSchemesToCache();
             } else {
               downloadError = I18n.tr("panels.color-scheme.download-error-invalid-response");
@@ -240,7 +231,6 @@ Popup {
             const cachedSchemes = cacheData.schemes || [];
             if (cachedSchemes.length > 0) {
               availableSchemes = cachedSchemes;
-              // Restore color cache from cached schemes
               for (var j = 0; j < cachedSchemes.length; j++) {
                 var cachedScheme = cachedSchemes[j];
                 if (cachedScheme.dark || cachedScheme.light) {
@@ -281,7 +271,6 @@ Popup {
 
     // Use cached branch/SHA if available, otherwise fetch
     if (cachedBranchSha) {
-      // Use cached SHA directly
       getSchemeTreeWithSha(scheme, cachedBranch, cachedBranchSha);
     } else if (cachedBranch) {
       // We have branch name, just need SHA
@@ -296,14 +285,11 @@ Popup {
               var repoInfo = JSON.parse(xhr.responseText);
               var defaultBranch = repoInfo.default_branch || "main";
               cachedBranch = defaultBranch;
-              // Now get the tree for the scheme directory
               getSchemeTree(scheme, defaultBranch);
             } catch (e) {
-              // Fallback: try to get files directly
               getSchemeFilesDirect(scheme);
             }
           } else {
-            // Fallback: try to get files directly
             getSchemeFilesDirect(scheme);
           }
         }
@@ -314,7 +300,6 @@ Popup {
   }
 
   function getSchemeTree(scheme, branch) {
-    // First get the SHA of the branch
     var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function () {
       if (xhr.readyState === XMLHttpRequest.DONE) {
@@ -323,20 +308,15 @@ Popup {
             var refResponse = JSON.parse(xhr.responseText);
             var sha = refResponse.object ? refResponse.object.sha : null;
             if (sha) {
-              // Cache the SHA for future downloads
               cachedBranchSha = sha;
-              // Now get the tree
               getSchemeTreeWithSha(scheme, branch, sha);
             } else {
-              // Fallback to direct method
               getSchemeFilesDirect(scheme);
             }
           } catch (e) {
-            // Fallback to direct method
             getSchemeFilesDirect(scheme);
           }
         } else {
-          // Fallback to direct method
           getSchemeFilesDirect(scheme);
         }
       }
@@ -354,7 +334,6 @@ Popup {
           try {
             var response = JSON.parse(xhr.responseText);
             if (response.tree && Array.isArray(response.tree)) {
-              // Filter files that belong to this scheme
               var files = [];
               for (var i = 0; i < response.tree.length; i++) {
                 var item = response.tree[i];
@@ -368,7 +347,6 @@ Popup {
               }
               downloadSchemeFiles(scheme.name, files);
             } else {
-              // Fallback to direct method
               getSchemeFilesDirect(scheme);
             }
           } catch (e) {
@@ -380,7 +358,6 @@ Popup {
             Logger.e("ColorSchemeDownload", downloadError);
           }
         } else {
-          // Fallback to direct method
           getSchemeFilesDirect(scheme);
         }
       }
@@ -398,7 +375,6 @@ Popup {
           try {
             var response = JSON.parse(xhr.responseText);
             if (Array.isArray(response)) {
-              // Recursively get all files
               getAllFilesRecursive(scheme, response, []);
             } else {
               downloadError = I18n.tr("panels.color-scheme.download-error-invalid-response");
@@ -506,7 +482,6 @@ Popup {
     var targetDir = ColorSchemeService.downloadedSchemesDirectory + "/" + schemeName;
     var downloadScript = "mkdir -p '" + targetDir + "'\n";
 
-    // Build download script for all files
     for (var i = 0; i < files.length; i++) {
       var file = files[i];
       var filePath = file.path;
@@ -534,7 +509,6 @@ Popup {
 
     Logger.d("ColorSchemeDownload", "Downloading", files.length, "files for scheme", schemeName);
 
-    // Execute download script
     var stderrOutput = "";
     var downloadProcess = Qt.createQmlObject(`
                                              import QtQuick
@@ -562,7 +536,6 @@ Popup {
                                                                                                }), "settings-color-scheme");
         // Set pending scheme to apply after reload
         pendingApplyScheme = schemeName;
-        // Reload color schemes
         ColorSchemeService.loadColorSchemes();
         downloading = false;
         downloadingScheme = "";
@@ -628,7 +601,6 @@ Popup {
 
   function isSchemeDownloaded(schemeName) {
     // Downloaded (removable) schemes live under the downloaded dir; match on the
-    // normalized name as above.
     var target = root.normalizeSchemeName(schemeName);
     for (var i = 0; i < ColorSchemeService.schemes.length; i++) {
       var path = ColorSchemeService.schemes[i];
@@ -646,7 +618,6 @@ Popup {
 
     Logger.i("ColorSchemeDownload", "Deleting scheme:", schemeName);
 
-    // Check if the deleted scheme is the currently active one
     var currentScheme = Settings.data.colorSchemes.predefinedScheme || "";
     var deletedSchemeDisplayName = ColorSchemeService.getBasename(schemeName);
     var needsReset = (currentScheme === deletedSchemeDisplayName);
@@ -676,11 +647,9 @@ Popup {
           Logger.i("ColorSchemeDownload", "Deleted scheme was active, resetting to Noctalia (default)");
           // Clear the setting immediately so ColorSchemeService won't try to apply the deleted scheme
           Settings.data.colorSchemes.predefinedScheme = "Noctalia (default)";
-          // Apply the default scheme immediately
           ColorSchemeService.setPredefinedScheme("Noctalia (default)");
         }
 
-        // Reload color schemes
         ColorSchemeService.loadColorSchemes();
       } else {
         Logger.e("ColorSchemeDownload", "Delete failed with exit code:", exitCode);
@@ -700,7 +669,7 @@ Popup {
       // When scanning completes and we have a pending scheme, apply it
       if (!ColorSchemeService.scanning && pendingApplyScheme !== "") {
         var schemeToApply = pendingApplyScheme;
-        pendingApplyScheme = ""; // Clear pending before applying
+        pendingApplyScheme = "";
 
         // Wait a tiny bit to ensure schemes array is updated
         applyTimer.schemeName = schemeToApply;
@@ -741,7 +710,6 @@ Popup {
   onVisibleChanged: {
     preFetchSchemeColors();
 
-    // Load schemes from ShellState when popup becomes visible
     if (visible) {
       if (typeof ShellState !== 'undefined' && ShellState.isLoaded) {
         loadSchemesFromCache();
@@ -763,7 +731,6 @@ Popup {
     width: parent.width
     spacing: Style.marginL
 
-    // Header
     RowLayout {
       Layout.fillWidth: true
 
@@ -801,14 +768,12 @@ Popup {
       }
     }
 
-    // Separator
     Rectangle {
       Layout.fillWidth: true
       Layout.preferredHeight: 1
       color: Color.mOutline
     }
 
-    // Error message
     Rectangle {
       Layout.fillWidth: true
       Layout.preferredHeight: errorText.implicitHeight + Style.marginM
@@ -918,7 +883,6 @@ Popup {
                 Layout.alignment: Qt.AlignVCenter
               }
 
-              // Color swatches
               Repeater {
                 model: schemeRow.colorKeys
                 Rectangle {
@@ -939,7 +903,6 @@ Popup {
                 }
               }
 
-              // Download/Delete button
               NIconButton {
                 property bool isDownloading: downloading && downloadingScheme === schemeRow.schemeName
                 property bool isInstalled: root.isSchemeInstalled(schemeRow.schemeName)
@@ -969,7 +932,6 @@ Popup {
       }
     }
 
-    // Empty state
     ColumnLayout {
       Layout.fillWidth: true
       Layout.alignment: Qt.AlignHCenter

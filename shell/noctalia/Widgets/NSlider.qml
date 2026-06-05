@@ -39,7 +39,6 @@ Slider {
 
     readonly property real fillWidth: root.visualPosition * width
 
-    // Background track
     Shape {
       anchors.fill: parent
       visible: bgContainer.width > 0 && bgContainer.height > 0
@@ -118,7 +117,6 @@ Slider {
       }
     }
 
-    // Active/filled track
     Shape {
       width: bgContainer.fillWidth
       height: bgContainer.height
@@ -182,7 +180,6 @@ Slider {
       }
     }
 
-    // Circular cutout
     Rectangle {
       id: knobCutout
       implicitWidth: root.knobDiameter + root.cutoutExtra

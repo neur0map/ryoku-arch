@@ -51,8 +51,8 @@ Item {
         if (dockRoot.autoHide) {
           dockRoot.showTimer.stop();
           dockRoot.hideTimer.stop();
-          dockRoot.unloadTimer.stop(); // Cancel unload if hovering
-          dockRoot.hidden = false; // Make sure dock is visible
+          dockRoot.unloadTimer.stop();
+          dockRoot.hidden = false;
         }
       }
 
@@ -64,7 +64,6 @@ Item {
       }
 
       onClicked: {
-        // Close any open context menu when clicking on the dock background
         dockRoot.closeAllContextMenus();
       }
     }
@@ -84,7 +83,6 @@ Item {
       // Keep interactive dependent on overflow
       interactive: dockRoot.isVertical ? contentHeight > height : contentWidth > width
 
-      // Centering margins
       contentX: dockRoot.isVertical && contentWidth < width ? (contentWidth - width) / 2 : 0
       contentY: !dockRoot.isVertical && contentHeight < height ? (contentHeight - height) / 2 : 0
 
@@ -180,7 +178,6 @@ Item {
         rowSpacing: Style.marginS
         columnSpacing: Style.marginS
 
-        // Ensure the layout takes its full implicit size
         width: implicitWidth
         height: implicitHeight
 
@@ -479,7 +476,6 @@ Item {
               }
             }
 
-            // Listen for the toplevel being closed
             Connections {
               target: modelData?.toplevel
               function onClosed() {
@@ -487,7 +483,6 @@ Item {
               }
             }
 
-            // Draggable container for the icon
             Item {
               id: iconContainer
               width: dockRoot.iconSize
@@ -600,7 +595,6 @@ Item {
                 }
               }
 
-              // Fall back if no icon
               NIcon {
                 anchors.centerIn: parent
                 visible: !appIcon.visible
@@ -618,7 +612,6 @@ Item {
               }
             }
 
-            // Context menu popup
             DockMenu {
               id: contextMenu
               dockPosition: dockRoot.dockPosition // Pass dock position for menu placement
@@ -650,7 +643,6 @@ Item {
                   dockRoot.currentContextMenu = null;
                   dockRoot.hideTimer.stop();
                   dockRoot.menuHovered = false;
-                  // Restart hide timer after menu closes
                   if (dockRoot.autoHide && !dockRoot.dockHovered && !dockRoot.anyAppHovered && !dockRoot.peekHovered && !dockRoot.menuHovered) {
                     dockRoot.hideTimer.restart();
                   }
@@ -695,15 +687,14 @@ Item {
                 if (dockRoot.autoHide) {
                   dockRoot.showTimer.stop();
                   dockRoot.hideTimer.stop();
-                  dockRoot.unloadTimer.stop(); // Cancel unload if hovering app
-                  dockRoot.hidden = false; // Make sure dock is visible
+                  dockRoot.unloadTimer.stop();
+                  dockRoot.hidden = false;
                 }
               }
 
               onExited: {
                 dockRoot.anyAppHovered = false;
                 TooltipService.hide();
-                // Clear menuHovered if no current menu or menu not visible
                 if (!dockRoot.currentContextMenu || !dockRoot.currentContextMenu.visible) {
                   dockRoot.menuHovered = false;
                 }
@@ -720,15 +711,12 @@ Item {
                                dockRoot.closeAllContextMenus();
                                return;
                              }
-                             // Close any other existing context menu first
                              dockRoot.closeAllContextMenus();
-                             // Hide tooltip when showing context menu
                              TooltipService.hideImmediately();
                              contextMenu.show(appButton, modelData, targetScreen);
                              return;
                            }
 
-                           // Close any existing context menu for non-right-click actions
                            dockRoot.closeAllContextMenus();
 
                            const runningToplevels = dock.getValidToplevels(modelData);

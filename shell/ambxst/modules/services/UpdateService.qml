@@ -62,7 +62,7 @@ Singleton {
 
     Timer {
         id: checkTimer
-        interval: 300000 // Every 5 minutes check if it's time
+        interval: 300000
         running: false
         repeat: true
         onTriggered: {
@@ -97,7 +97,6 @@ Singleton {
                 }
                 root.lastCheckTime = Date.now();
                 
-                // If nextCheckTime is in the past or now, set it to 1 hour from now
                 if (root.nextCheckTime <= Date.now()) {
                     root.nextCheckTime = Date.now() + 3600000;
                 }

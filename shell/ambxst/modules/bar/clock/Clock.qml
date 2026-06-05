@@ -25,7 +25,6 @@ Item {
     property real startRadius: radius
     property real endRadius: radius
 
-    // Popup visibility state
     property bool popupOpen: clockPopup.isOpen
 
     readonly property bool weatherAvailable: WeatherService.dataAvailable
@@ -37,7 +36,6 @@ Item {
         onHoveredChanged: root.isHovered = hovered
     }
 
-    // Main button
     StyledRect {
         id: buttonBg
         variant: root.popupOpen ? "primary" : "bg"
@@ -154,7 +152,6 @@ Item {
         }
     }
 
-    // Clock & Weather popup
     BarPopup {
         id: clockPopup
         anchorItem: buttonBg
@@ -171,12 +168,10 @@ Item {
             }
         }
 
-        // Main popup column
         Column {
             id: popupColumn
             spacing: 4
 
-            // Mini weekly calendar
             StyledRect {
                 id: calendarWrapper
                 variant: "popup"
@@ -189,7 +184,6 @@ Item {
                 property int currentDayOfWeek: (currentDate.getDay() + 6) % 7  // Monday = 0
                 property int currentDayOfMonth: currentDate.getDate()
 
-                // Get the Monday of the current week
                 function getWeekStart(date) {
                     var d = new Date(date);
                     var day = d.getDay();
@@ -199,7 +193,6 @@ Item {
 
                 property date weekStart: getWeekStart(currentDate)
 
-                // Update date every minute
                 Timer {
                     interval: 60000
                     running: !SuspendManager.isSuspending
@@ -214,13 +207,11 @@ Item {
                     anchors.topMargin: 16
                     spacing: 4
 
-                    // Helper function to capitalize first letter
                     function capitalizeMonth(date) {
                         var month = date.toLocaleDateString(Qt.locale(), "MMMM");
                         return month.charAt(0).toUpperCase() + month.slice(1);
                     }
 
-                    // Header row: Month and events count
                     Item {
                         width: daysRow.width
                         height: monthText.height
@@ -248,7 +239,6 @@ Item {
                         }
                     }
 
-                    // Days of week row
                     Row {
                         id: daysRow
                         spacing: 4
@@ -262,7 +252,6 @@ Item {
                                 spacing: 2
                                 width: 36
 
-                                // Get the date for this day of the week
                                 property date dayDate: {
                                     var d = new Date(calendarWrapper.weekStart);
                                     d.setDate(d.getDate() + index);
@@ -270,12 +259,10 @@ Item {
                                 }
                                 property bool isToday: index === calendarWrapper.currentDayOfWeek
 
-                                // Day abbreviation from locale
                                 Text {
                                     anchors.horizontalCenter: parent.horizontalCenter
                                     text: {
                                         var dayName = dayColumn.dayDate.toLocaleDateString(Qt.locale(), "ddd");
-                                        // Capitalize first letter and limit to 2 chars
                                         return (dayName.charAt(0).toUpperCase() + dayName.slice(1, 2)).replace(".", "");
                                     }
                                     color: Colors.overBackground
@@ -284,7 +271,6 @@ Item {
                                     font.weight: Font.Medium
                                 }
 
-                                // Day number with circle for current day
                                 Item {
                                     width: 28
                                     height: 28
@@ -314,7 +300,6 @@ Item {
                 }
             }
 
-            // Weather Wrapper StyledRect
             StyledRect {
                 id: popupWrapper
                 variant: "popup"
@@ -324,13 +309,11 @@ Item {
                 height: popupContent.height + 16
                 visible: WeatherService.dataAvailable
 
-                // Content container
                 Column {
                     id: popupContent
                     anchors.centerIn: parent
                     spacing: 4
 
-                    // Weather widget with sun arc
                     WeatherWidget {
                         id: weatherWidget
                         width: 300

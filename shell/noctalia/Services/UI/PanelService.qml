@@ -8,19 +8,16 @@ import qs.noctalia.Services.Compositor
 Singleton {
   id: root
 
-  // A ref. to the lockScreen, so it's accessible from anywhere.
   property var lockScreen: null
 
-  // Panels
   property var registeredPanels: ({})
   property var openedPanel: null
   property var closingPanel: null
   property bool closedImmediately: false
 
-  // Overlay launcher state (separate from normal panels)
   property bool overlayLauncherOpen: false
   property var overlayLauncherScreen: null
-  property var overlayLauncherCore: null  // Reference to LauncherCore when overlay is active
+  property var overlayLauncherCore: null
   // Brief window after panel opens where Exclusive keyboard is allowed on Hyprland
   // This allows text inputs to receive focus, then switches to OnDemand for click-to-close
   property bool isInitializingKeyboard: false
@@ -49,13 +46,11 @@ Singleton {
   property var popupMenuWindows: ({})
   signal popupMenuWindowRegistered(var screen)
 
-  // Register this panel (called after panel is loaded)
   function registerPanel(panel) {
     registeredPanels[panel.objectName] = panel;
     Logger.d("PanelService", "Registered panel:", panel.objectName);
   }
 
-  // Register popup menu window for a screen
   function registerPopupMenuWindow(screen, window) {
     if (!screen || !window)
       return;
@@ -65,7 +60,6 @@ Singleton {
     popupMenuWindowRegistered(screen);
   }
 
-  // Unregister popup menu window for a screen (called on destruction)
   function unregisterPopupMenuWindow(screen) {
     if (!screen)
       return;
@@ -74,7 +68,6 @@ Singleton {
     Logger.d("PanelService", "Unregistered popup menu window for screen:", key);
   }
 
-  // Get popup menu window for a screen
   function getPopupMenuWindow(screen) {
     if (!screen)
       return null;
@@ -87,7 +80,6 @@ Singleton {
     if (!contextMenu || !anchorItem)
       return;
 
-    // Close any previously opened context menu first
     closeContextMenu(screen);
 
     var popupMenuWindow = getPopupMenuWindow(screen);
@@ -97,7 +89,6 @@ Singleton {
     }
   }
 
-  // Close any open context menu or popup menu window
   function closeContextMenu(screen) {
     var popupMenuWindow = getPopupMenuWindow(screen);
     if (popupMenuWindow && popupMenuWindow.visible) {
@@ -111,7 +102,6 @@ Singleton {
     if (!trayItem || !trayMenu || !anchorItem)
       return false;
 
-    // Close any previously opened menu first
     closeContextMenu(screen);
 
     trayMenu.trayItem = trayItem;
@@ -128,7 +118,6 @@ Singleton {
     return true;
   }
 
-  // Close tray menu
   function closeTrayMenu(screen) {
     var popupMenuWindow = getPopupMenuWindow(screen);
     if (popupMenuWindow) {
@@ -161,7 +150,6 @@ Singleton {
   function getPanel(name, screen, fallback = true) {
     if (!screen) {
       Logger.d("PanelService", "missing screen for getPanel:", name);
-      // If no screen specified, return the first matching panel
       for (var key in registeredPanels) {
         if (key.startsWith(name + "-")) {
           return registeredPanels[key];
@@ -172,14 +160,11 @@ Singleton {
 
     var panelKey = `${name}-${screen.name}`;
 
-    // Check if panel is already loaded
     if (registeredPanels[panelKey]) {
       return registeredPanels[panelKey];
     }
 
-    // If fallback enabled, try to find panel on another screen
     if (fallback) {
-      // First try the primary screen (0x0)
       var fallbackScreen = findFallbackScreen();
       if (fallbackScreen && fallbackScreen.name !== screen.name) {
         var fallbackKey = `${name}-${fallbackScreen.name}`;
@@ -189,7 +174,6 @@ Singleton {
         }
       }
 
-      // Try any other screen
       for (var key in registeredPanels) {
         if (key.startsWith(name + "-")) {
           Logger.d("PanelService", "Panel fallback to first available:", key);
@@ -202,7 +186,6 @@ Singleton {
     return null;
   }
 
-  // Check if a panel exists
   function hasPanel(name) {
     return name in registeredPanels;
   }
@@ -215,7 +198,6 @@ Singleton {
     return allowPanelsOnScreenWithoutBar || monitors.length === 0 || monitors.includes(name);
   }
 
-  // Find a screen that can show panels
   function findScreenForPanels() {
     for (let i = 0; i < Quickshell.screens.length; i++) {
       if (canShowPanelsOnScreen(Quickshell.screens[i])) {
@@ -237,20 +219,17 @@ Singleton {
 
   // Helper to keep only one panel open at any time
   function willOpenPanel(panel) {
-    // Close overlay launcher if open
     if (overlayLauncherOpen) {
       overlayLauncherOpen = false;
       overlayLauncherScreen = null;
     }
 
     if (openedPanel && openedPanel !== panel) {
-      // Move current panel to closing slot before closing it
       closingPanel = openedPanel;
       assignToSlot(1, closingPanel);
       openedPanel.close();
     }
 
-    // Assign new panel to open slot
     openedPanel = panel;
     assignToSlot(0, panel);
 
@@ -260,33 +239,27 @@ Singleton {
       keyboardInitTimer.restart();
     }
 
-    // emit signal
     willOpen();
   }
 
-  // Open launcher panel (handles both normal and overlay mode)
   function openLauncher(screen) {
     if (Settings.data.appLauncher.overviewLayer) {
-      // Close any regular panel first
       if (openedPanel) {
         closingPanel = openedPanel;
         assignToSlot(1, closingPanel);
         openedPanel.close();
         openedPanel = null;
       }
-      // Open overlay launcher
       overlayLauncherOpen = true;
       overlayLauncherScreen = screen;
       willOpen();
     } else {
-      // Normal mode - use the SmartPanel
       var panel = getPanel("launcherPanel", screen);
       if (panel)
         panel.open();
     }
   }
 
-  // Toggle launcher panel
   function toggleLauncher(screen) {
     if (Settings.data.appLauncher.overviewLayer) {
       if (overlayLauncherOpen && overlayLauncherScreen === screen) {
@@ -301,7 +274,6 @@ Singleton {
     }
   }
 
-  // Close overlay launcher
   function closeOverlayLauncher() {
     if (overlayLauncherOpen) {
       overlayLauncherOpen = false;
@@ -310,7 +282,6 @@ Singleton {
     }
   }
 
-  // Close overlay launcher immediately (for app launches)
   function closeOverlayLauncherImmediately() {
     if (overlayLauncherOpen) {
       closedImmediately = true;
@@ -320,8 +291,6 @@ Singleton {
     }
   }
 
-  // ==================== Unified Launcher API ====================
-  // These methods work for both normal (SmartPanel) and overlay modes
 
   function isLauncherOpen(screen) {
     if (Settings.data.appLauncher.overviewLayer) {
@@ -379,7 +348,6 @@ Singleton {
     }
   }
 
-  // Close any open panel (for general use)
   function closePanel() {
     if (overlayLauncherOpen) {
       closeOverlayLauncher();
@@ -399,11 +367,9 @@ Singleton {
       assignToSlot(1, null);
     }
 
-    // Reset keyboard init state
     isInitializingKeyboard = false;
     keyboardInitTimer.stop();
 
-    // emit signal
     didClose();
   }
 

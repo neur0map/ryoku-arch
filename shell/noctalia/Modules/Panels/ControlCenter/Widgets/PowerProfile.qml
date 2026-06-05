@@ -5,7 +5,6 @@ import qs.noctalia.Commons
 import qs.noctalia.Services.Power
 import qs.noctalia.Widgets
 
-// Performance
 NIconButtonHot {
   property ShellScreen screen
 

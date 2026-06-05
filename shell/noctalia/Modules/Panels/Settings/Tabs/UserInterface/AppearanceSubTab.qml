@@ -13,7 +13,6 @@ ColumnLayout {
   spacing: Style.marginL
   Layout.fillWidth: true
 
-  // --- Transparency (toggle + opacity sliders shown only when enabled) ---
   NToggle {
     Layout.fillWidth: true
     label: "Transparency"
@@ -61,7 +60,6 @@ ColumnLayout {
     Layout.fillWidth: true
   }
 
-  // --- Scale / sizing (multipliers over the design tokens) ---
   NValueSlider {
     Layout.fillWidth: true
     label: "UI scale"

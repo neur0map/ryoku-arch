@@ -46,11 +46,9 @@ Scope {
                 root._readyToShow = false
                 // Mark as opened so the Loader stays active forever
                 root._everOpened = true
-                // Set target screen when opening
                 const outputName = NiriService.currentOutput
                 root.targetScreen = Quickshell.screens.find(s => s.name === outputName) ?? GlobalStates.primaryScreen ?? null
                 if (Quickshell.env("QS_DEBUG") === "1") console.log("[Overlay] Opening on output:", outputName, "targetScreen:", root.targetScreen?.name)
-                // Now ready to show on correct screen
                 root._readyToShow = true
             } else {
                 root._readyToShow = false

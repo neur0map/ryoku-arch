@@ -7,7 +7,6 @@ QtObject {
   function migrate(adapter, logger, rawJson) {
     logger.i("Settings", "Migrating settings to v28");
 
-    // Check bar widgets in all sections
     const sections = ["left", "center", "right"];
 
     for (const section of sections) {
@@ -17,7 +16,6 @@ QtObject {
       const widgets = rawJson.bar.widgets[section];
       for (let i = 0; i < widgets.length; i++) {
         if (widgets[i].id === "TaskbarGrouped") {
-          // Convert TaskbarGrouped to Workspace with showApplications
           const oldWidget = widgets[i];
           adapter.bar.widgets[section][i] = {
             id: "Workspace",

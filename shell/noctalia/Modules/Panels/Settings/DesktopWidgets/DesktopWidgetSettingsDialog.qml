@@ -29,7 +29,6 @@ Popup {
   closePolicy: Popup.NoAutoClose
   dim: false
 
-  // Center in parent
   x: Math.round((parent.width - width) / 2)
   y: Math.round((parent.height - height) / 2)
 
@@ -86,7 +85,6 @@ Popup {
         color: Color.mOutline
       }
 
-      // Scrollable settings area
       NScrollView {
         id: scrollView
         Layout.fillWidth: true
@@ -137,7 +135,6 @@ Popup {
     }
   }
 
-  // Mouse area for a draggable popup
   MouseArea {
     x: titleRow.x
     y: titleRow.y
@@ -208,7 +205,6 @@ Popup {
   }
 
   function loadWidgetSettings() {
-    // Handle plugin widgets
     if (DesktopWidgetRegistry.isPluginWidget(widgetId)) {
       var pluginId = widgetId.replace("plugin:", "");
       var manifest = PluginRegistry.getPluginManifest(pluginId);
@@ -252,7 +248,6 @@ Popup {
       return;
     }
 
-    // Handle core widgets
     const source = DesktopWidgetRegistry.widgetSettingsMap[widgetId];
     if (source) {
       var currentWidgetData = widgetData;

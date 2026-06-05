@@ -31,12 +31,10 @@ Item {
         anchors.fill: parent
         spacing: 4
 
-        // First row: Icon + Slider
         RowLayout {
             Layout.fillWidth: true
             spacing: 8
 
-            // Mute button with icon
             Button {
                 id: muteButton
                 flat: true
@@ -86,7 +84,6 @@ Item {
                 }
             }
 
-            // Volume slider
             StyledSlider {
                 id: volumeSlider
                 Layout.fillWidth: true
@@ -116,12 +113,10 @@ Item {
             }
         }
 
-        // Second row: Name + Separator + Percentage
         RowLayout {
             Layout.fillWidth: true
             spacing: 8
 
-            // Source name
             Text {
                 text: root.isMainDevice ? Audio.friendlyDeviceName(root.node) : Audio.appNodeDisplayName(root.node)
                 font.family: Config.theme.font
@@ -129,12 +124,10 @@ Item {
                 color: Colors.overSurfaceVariant
             }
 
-            // Separator line
             Separator {
                 Layout.fillWidth: true
             }
 
-            // Protection indicator
             Text {
                 visible: Audio.protectionTriggered && root.isMainDevice
                 text: Icons.shieldCheck
@@ -154,7 +147,6 @@ Item {
                 }
             }
 
-            // Percentage
             Text {
                 text: `${Math.round(root.volume * 100)}%`
                 font.family: Config.theme.font

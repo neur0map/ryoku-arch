@@ -59,7 +59,6 @@ ColumnLayout {
     Layout.margins: Style.borderS
     implicitHeight: Style.baseWidgetSize * 1.1 * Style.uiScaleRatio
 
-    // This is important - makes the control accept focus
     focusPolicy: Qt.StrongFocus
     hoverEnabled: true
 
@@ -91,7 +90,6 @@ ColumnLayout {
 
         onPressed: mouse => {
                      mouse.accepted = true;
-                     // Focus the input and position cursor
                      input.forceActiveFocus();
                      var inputPos = mapToItem(inputContainer, mouse.x, mouse.y);
                      if (inputPos.x >= 0 && inputPos.x <= inputContainer.width) {
@@ -117,7 +115,6 @@ ColumnLayout {
                  }
       }
 
-      // Container for the actual text field
       Item {
         id: inputContainer
         anchors.fill: parent

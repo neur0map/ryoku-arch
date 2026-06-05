@@ -13,20 +13,17 @@ ColumnLayout {
   spacing: Style.marginL
   width: parent.width
 
-  // Shared Edit Popup
   HookEditPopup {
     id: editPopup
     parent: Overlay.overlay
   }
 
-  // Helper to open popup
   function openEdit(label, description, placeholder, value, onSave, onTest) {
     editPopup.hookLabel = label;
     editPopup.hookDescription = description;
     editPopup.hookPlaceholder = placeholder;
     editPopup.initialValue = value;
 
-    // Disconnect previous signals
     try {
       editPopup.saved.disconnect(editPopup._savedSlot);
     } catch (e) {}
@@ -34,18 +31,15 @@ ColumnLayout {
       editPopup.test.disconnect(editPopup._testSlot);
     } catch (e) {}
 
-    // Define slots
     editPopup._savedSlot = onSave;
     editPopup._testSlot = onTest;
 
-    // Connect new signals
     editPopup.saved.connect(editPopup._savedSlot);
     editPopup.test.connect(editPopup._testSlot);
 
     editPopup.open();
   }
 
-  // Startup Hook
   HookRow {
     label: I18n.tr("panels.hooks.noctalia-started-label")
     description: I18n.tr("panels.hooks.noctalia-started-description")
@@ -58,7 +52,6 @@ ColumnLayout {
                             })
   }
 
-  // Wallpaper Hook
   HookRow {
     label: I18n.tr("panels.hooks.wallpaper-changed-label")
     description: I18n.tr("panels.hooks.wallpaper-changed-description")
@@ -72,7 +65,6 @@ ColumnLayout {
                             })
   }
 
-  // Color Generation Hook
   HookRow {
     label: I18n.tr("panels.hooks.color-generation-label")
     description: I18n.tr("panels.hooks.color-generation-description")
@@ -86,7 +78,6 @@ ColumnLayout {
                             })
   }
 
-  // Theme Hook
   HookRow {
     label: I18n.tr("panels.hooks.theme-changed-label")
     description: I18n.tr("panels.hooks.theme-changed-description")
@@ -100,7 +91,6 @@ ColumnLayout {
                             })
   }
 
-  // Screen Lock Hook
   HookRow {
     label: I18n.tr("panels.hooks.screen-lock-label")
     description: I18n.tr("panels.hooks.screen-lock-description")
@@ -114,7 +104,6 @@ ColumnLayout {
                             })
   }
 
-  // Screen Unlock Hook
   HookRow {
     label: I18n.tr("panels.hooks.screen-unlock-label")
     description: I18n.tr("panels.hooks.screen-unlock-description")
@@ -128,7 +117,6 @@ ColumnLayout {
                             })
   }
 
-  // Performance Mode Enabled Hook
   HookRow {
     label: I18n.tr("panels.hooks.performance-mode-enabled-label")
     description: I18n.tr("panels.hooks.performance-mode-enabled-description")
@@ -142,7 +130,6 @@ ColumnLayout {
                             })
   }
 
-  // Performance Mode Disabled Hook
   HookRow {
     label: I18n.tr("panels.hooks.performance-mode-disabled-label")
     description: I18n.tr("panels.hooks.performance-mode-disabled-description")
@@ -156,7 +143,6 @@ ColumnLayout {
                             })
   }
 
-  // Session Hook
   HookRow {
     label: I18n.tr("panels.hooks.session-label")
     description: I18n.tr("panels.hooks.session-description")

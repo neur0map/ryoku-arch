@@ -11,7 +11,6 @@ import Quickshell.Io
 Singleton {
     id: root
 
-    // Current system power state
     property bool isSuspending: false
     
     // Delayed wake state for non-essential components
@@ -19,12 +18,11 @@ Singleton {
 
     property var wakeReadyTimer: Timer {
         id: wakeReadyTimer
-        interval: 3000 // 3s delay for stability
+        interval: 3000
         repeat: false
         onTriggered: root.wakeReady = true
     }
 
-    // Signals for other services to connect to
     signal preparingForSleep()
     signal wakingUp()
 

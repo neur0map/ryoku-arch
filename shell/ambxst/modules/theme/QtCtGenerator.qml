@@ -9,10 +9,8 @@ QtObject {
     function generate(Colors) {
         if (!Colors) return
 
-        // Helper to format color
         const fmt = (c) => c.toString()
 
-        // Core colors
         const bg = Qt.rgba(Colors.background.r, Colors.background.g, Colors.background.b, Config.theme.srBg.opacity).toString()
         const fg = fmt(Colors.overBackground)
         const surface = fmt(Colors.surface)
@@ -24,7 +22,6 @@ QtObject {
         const selection = fmt(Colors.primary)
         const selectionFg = fmt(Colors.overPrimary)
 
-        // Construct INI content
         let ini = ""
 
         ini += "[ColorEffects:Disabled]\n"
@@ -191,7 +188,6 @@ QtObject {
 
         writer.text = ini
         
-        // Single command to ensure dirs and write files
         const cmd = `
             mkdir -p "${qt5Dir}" "${qt6Dir}" && \\
             echo "${ini}" | tee "${qt5Dir}/ambxst.colors" "${qt6Dir}/ambxst.colors" > /dev/null

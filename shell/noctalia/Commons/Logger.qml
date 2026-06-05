@@ -33,19 +33,16 @@ Singleton {
     }
   }
 
-  // Info log (always visible)
   function i(...args) {
     var msg = _formatMessage(...args);
     console.info(msg);
   }
 
-  // Warning log (always visible)
   function w(...args) {
     var msg = _formatMessage(...args);
     console.warn(msg);
   }
 
-  // Error log (always visible)
   function e(...args) {
     var msg = _formatMessage(...args);
     console.error(msg);
@@ -55,12 +52,10 @@ Singleton {
     var stack = _getStackTrace();
     Logger.i("Debug", "--------------------------");
     Logger.i("Debug", "Current call stack");
-    // Split the stack into lines and log each one
     var stackLines = stack.split('\n');
     for (var i = 0; i < stackLines.length; i++) {
-      var line = stackLines[i].trim(); // Remove leading/trailing whitespace
+      var line = stackLines[i].trim();
       if (line.length > 0) {
-        // Only log non-empty lines
         Logger.i("Debug", `- ${line}`);
       }
     }

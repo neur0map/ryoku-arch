@@ -7,7 +7,6 @@ import qs.noctalia.Services.UI
 Item {
   id: root
 
-  // Provider metadata
   property string name: I18n.tr("tooltips.session-menu")
   property var launcher: null
   property bool handleSearch: Settings.data.appLauncher.enableSessionSearch
@@ -109,7 +108,6 @@ Item {
     if (enabledActions.length === 0)
       return [];
 
-    // Build searchable items with resolved translations
     var items = [];
     for (var i = 0; i < enabledActions.length; i++) {
       var action = enabledActions[i];

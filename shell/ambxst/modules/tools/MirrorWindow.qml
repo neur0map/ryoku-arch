@@ -99,7 +99,6 @@ PanelWindow {
                 }
             }
 
-            // Controls Overlay
             Row {
                 anchors.bottom: parent.bottom
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -119,7 +118,6 @@ PanelWindow {
                     id: controlHover
                 }
 
-                // Toggle Ratio Button
                 Rectangle {
                     width: 40
                     height: 40
@@ -139,19 +137,17 @@ PanelWindow {
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
                             root.isSquare = !root.isSquare;
-                            // Reset size logic
                             if (root.isSquare) {
                                 root.currentHeight = 300;
                                 root.currentWidth = 300;
                             } else {
                                 root.currentHeight = 300;
-                                root.currentWidth = 480; // Reset to default wide
+                                root.currentWidth = 480;
                             }
                         }
                     }
                 }
 
-                // Flip Button
                 Rectangle {
                     width: 40
                     height: 40
@@ -173,7 +169,6 @@ PanelWindow {
                     }
                 }
 
-                // Close Button
                 StyledRect {
                     width: 40
                     height: 40
@@ -197,7 +192,6 @@ PanelWindow {
             }
         }
 
-        // --- Resize Handles Instances ---
 
         ResizeHandle {
             id: resizeBR
@@ -228,9 +222,8 @@ PanelWindow {
         }
     }
 
-    // --- Resize Handle Component Definition ---
     component ResizeHandle: MouseArea {
-        property int mode: 0 // 0:BR, 1:BL, 2:TR, 3:TL
+        property int mode: 0
         width: 20
         height: 20
         hoverEnabled: true
@@ -264,7 +257,6 @@ PanelWindow {
                 var newX = startX;
                 var newY = startY;
 
-                // Bottom-Right
                 if (mode === 0) {
                     newW = Math.max(150, startW + dx);
                     if (root.isSquare) {
@@ -274,7 +266,6 @@ PanelWindow {
                             newH = newW / (startW / startH);
                     }
                 } else
-                // Bottom-Left
                 if (mode === 1) {
                     newW = Math.max(150, startW - dx);
                     if (root.isSquare) {
@@ -285,7 +276,6 @@ PanelWindow {
                     }
                     newX = startX + (startW - newW);
                 } else
-                // Top-Right
                 if (mode === 2) {
                     newW = Math.max(150, startW + dx);
                     if (root.isSquare) {
@@ -296,7 +286,6 @@ PanelWindow {
                     }
                     newY = startY + (startH - newH);
                 } else
-                // Top-Left
                 if (mode === 3) {
                     newW = Math.max(150, startW - dx);
                     if (root.isSquare) {

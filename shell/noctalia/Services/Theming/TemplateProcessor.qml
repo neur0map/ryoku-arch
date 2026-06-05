@@ -12,7 +12,6 @@ import qs.noctalia.Services.UI
 Singleton {
   id: root
 
-  // Signal emitted when color generation completes successfully (for wallpaper-based theming)
   signal colorsGenerated
 
   readonly property string dynamicConfigPath: Settings.cacheDir + "theming.dynamic.toml"
@@ -61,7 +60,6 @@ Singleton {
     },
   ]
 
-  // Check if a template is enabled in the activeTemplates array
   function isTemplateEnabled(templateId) {
     const activeTemplates = Settings.data.templates.activeTemplates;
     if (!activeTemplates)
@@ -127,14 +125,12 @@ Singleton {
   }
 
   function executePredefinedScheme(schemeData, mode, wallpaperPath) {
-    // 1. Build TOML config for application templates (including terminals)
     const tomlContent = buildPredefinedTemplateConfig(mode);
     if (!tomlContent && !Settings.data.templates.enableUserTheming) {
       Logger.d("TemplateProcessor", "No application templates enabled for predefined scheme");
       return;
     }
 
-    // 3. Build script to write files and run Python
     const schemeJsonPathEsc = schemeJsonPath.replace(/'/g, "'\\''");
 
     let script = "";
@@ -145,12 +141,10 @@ Singleton {
     script += JSON.stringify(schemeData, null, 2) + "\n";
     script += `${schemeDelimiter}\n`;
 
-    // Run built-in template processor only if there are templates configured
     if (tomlContent) {
       const configPathEsc = predefinedConfigPath.replace(/'/g, "'\\''");
       const tomlDelimiter = "TOML_CONFIG_EOF_" + Math.random().toString(36).substr(2, 9);
 
-      // Write TOML config
       script += `cat > '${configPathEsc}' << '${tomlDelimiter}'\n`;
       script += tomlContent + "\n";
       script += `${tomlDelimiter}\n`;
@@ -163,7 +157,6 @@ Singleton {
       script += `python3 "${templateProcessorScript}" ${wpArg} --scheme '${schemeJsonPathEsc}' --config '${configPathEsc}' --default-mode ${mode}\n`;
     }
 
-    // Add user templates if enabled
     script += buildUserTemplateCommandForPredefined(schemeData, mode, wallpaperPath);
 
     generateProcess.command = ["sh", "-c", script];
@@ -177,7 +170,6 @@ Singleton {
     var lines = [];
     const homeDir = Quickshell.env("HOME");
 
-    // Add terminal templates
     TemplateRegistry.terminals.forEach(terminal => {
                                          if (isTemplateEnabled(terminal.id)) {
                                            lines.push(`\n[templates.${terminal.id}]`);
@@ -197,9 +189,6 @@ Singleton {
     return "";
   }
 
-  // ================================================================================
-  // WALLPAPER-BASED GENERATION
-  // ================================================================================
   function buildThemeConfig() {
     var lines = [];
     var mode = Settings.data.colorSchemes.darkMode ? "dark" : "light";
@@ -218,12 +207,10 @@ Singleton {
 
   function addWallpaperTheming(lines, mode) {
     const homeDir = Quickshell.env("HOME");
-    // Noctalia colors JSON
     lines.push("[templates.noctalia]");
     lines.push('input_path = "' + Quickshell.shellDir + "/noctalia" + '/Assets/Templates/noctalia.json"');
     lines.push('output_path = "' + Settings.configDir + 'colors.json"');
 
-    // Terminal templates
     TemplateRegistry.terminals.forEach(terminal => {
                                          if (isTemplateEnabled(terminal.id)) {
                                            lines.push(`\n[templates.${terminal.id}]`);
@@ -240,7 +227,6 @@ Singleton {
     const homeDir = Quickshell.env("HOME");
     TemplateRegistry.applications.forEach(app => {
                                             if (app.id === "discord") {
-                                              // Handle Discord clients specially - multiple CSS themes
                                               if (isTemplateEnabled("discord")) {
                                                 const inputs = Array.isArray(app.input) ? app.input : [app.input];
                                                 inputs.forEach((inputFile, idx) => {
@@ -259,10 +245,8 @@ Singleton {
                                                                });
                                               }
                                             } else if (app.id === "code") {
-                                              // Handle Code clients specially
                                               if (isTemplateEnabled("code")) {
                                                 app.clients.forEach(client => {
-                                                                      // Check if this specific client is detected
                                                                       var resolvedPaths = TemplateRegistry.resolvedCodeClientPaths(client.name);
                                                                       if (isCodeClientEnabled(client.name) && resolvedPaths.length > 0) {
                                                                         resolvedPaths.forEach((resolvedPath, pathIndex) => {
@@ -288,7 +272,6 @@ Singleton {
                                                                                                     });
                                               }
                                             } else {
-                                              // Handle regular apps
                                               if (isTemplateEnabled(app.id)) {
                                                 app.outputs.forEach((output, idx) => {
                                                                       lines.push(`\n[templates.${app.id}_${idx}]`);
@@ -307,7 +290,6 @@ Singleton {
   }
 
   function isDiscordClientEnabled(clientName) {
-    // Check ProgramCheckerService to see if client is detected
     for (var i = 0; i < ProgramCheckerService.availableDiscordClients.length; i++) {
       if (ProgramCheckerService.availableDiscordClients[i].name === clientName) {
         return true;
@@ -317,7 +299,6 @@ Singleton {
   }
 
   function isCodeClientEnabled(clientName) {
-    // Check ProgramCheckerService to see if client is detected
     for (var i = 0; i < ProgramCheckerService.availableCodeClients.length; i++) {
       if (ProgramCheckerService.availableCodeClients[i].name === clientName) {
         return true;
@@ -340,7 +321,6 @@ Singleton {
     // Use heredoc for wallpaper path to avoid all escaping issues
     let script = `NOCTALIA_WP_PATH=$(cat << '${wpDelimiter}'\n${wallpaper}\n${wpDelimiter}\n)\n`;
 
-    // Run built-in template processor only if there are templates configured
     if (content) {
       const delimiter = "THEME_CONFIG_EOF_" + Math.random().toString(36).substr(2, 9);
       script += `cat > '${pathEsc}' << '${delimiter}'\n${content}\n${delimiter}\n`;
@@ -357,9 +337,6 @@ Singleton {
     return script + "\n";
   }
 
-  // ================================================================================
-  // USER TEMPLATES, advanced usage
-  // ================================================================================
   function buildUserTemplateCommand(input, mode) {
     if (!Settings.data.templates.enableUserTheming)
       return "";
@@ -406,9 +383,6 @@ Singleton {
     return (Settings.configDir + "user-templates.toml").replace(/'/g, "'\\''");
   }
 
-  // ================================================================================
-  // DEBOUNCE TIMER
-  // ================================================================================
   function executePendingRequest() {
     Logger.d("TemplateProcessor", `executePendingRequest: hasWallpaper=${!!pendingWallpaperRequest}, hasPredefined=${!!pendingPredefinedRequest}`);
     if (pendingWallpaperRequest) {
@@ -441,9 +415,6 @@ Singleton {
     }
   }
 
-  // ================================================================================
-  // PROCESSES
-  // ================================================================================
   Process {
     id: generateProcess
     workingDirectory: Quickshell.shellDir + "/noctalia"
@@ -455,7 +426,6 @@ Singleton {
         Logger.d("TemplateProcessor", "generateProcess onExited: has pending request, executing");
         executePendingRequest();
       } else if (exitCode === 0) {
-        // No pending request and successful completion - emit signal
         root.colorsGenerated();
       }
     }

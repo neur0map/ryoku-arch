@@ -48,7 +48,6 @@ Popup {
     anchors.fill: parent
     spacing: Style.marginM
 
-    // Title row
     RowLayout {
       Layout.fillWidth: true
       NText {
@@ -82,7 +81,6 @@ Popup {
       }
     }
 
-    // Icon grid
     NGridView {
       id: grid
       Layout.fillWidth: true

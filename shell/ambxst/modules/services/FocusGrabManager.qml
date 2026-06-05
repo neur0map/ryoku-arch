@@ -9,13 +9,10 @@ import Quickshell
 Singleton {
     id: root
 
-    // Whether any focus grab is currently active
     property int _activeCount: 0
     readonly property bool hasActiveGrab: _activeCount > 0
 
-    // Internal storage: grabId -> callback
     property var _grabs: ({})
-    // Ordered list for stack behavior (last-in-first-cleared)
     property var _grabOrder: []
 
     function requestGrab(grabId, clearCallback) {
@@ -41,7 +38,6 @@ Singleton {
         }
     }
 
-    // Clear the most recent (top) grab — typically called by a backdrop MouseArea
     function clearTopGrab() {
         if (_grabOrder.length === 0) return;
         const topId = _grabOrder[_grabOrder.length - 1];

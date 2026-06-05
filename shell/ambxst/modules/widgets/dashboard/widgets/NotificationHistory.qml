@@ -40,13 +40,13 @@ Item {
             return;
         }
 
-        cascadeIndex = cascadeItems.length - 1; // Start from last
+        cascadeIndex = cascadeItems.length - 1;
         cascadeTimer.restart();
     }
 
     Timer {
         id: cascadeTimer
-        interval: 100 // 0.1 seconds delay between each animation
+        interval: 100
         repeat: true
         onTriggered: {
             if (cascadeIndex >= 0) {
@@ -56,9 +56,8 @@ Item {
                 }
                 cascadeIndex--;
             } else {
-                // All animations started, schedule final discard
                 stop();
-                cascadeItems = []; // Clear
+                cascadeItems = [];
                 const totalDelay = Config.animDuration + 50;
                 discardAllTimer.interval = totalDelay;
                 discardAllTimer.restart();
@@ -68,7 +67,7 @@ Item {
 
     Timer {
         id: discardAllTimer
-        interval: Config.animDuration + 50 // Animation duration + small buffer
+        interval: Config.animDuration + 50
         repeat: false
         onTriggered: Notifications.discardAllNotifications()
     }

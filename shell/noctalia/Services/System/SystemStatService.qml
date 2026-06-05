@@ -28,7 +28,6 @@ Singleton {
   readonly property bool _lockScreenActive: PanelService.lockScreen?.active ?? false
   readonly property bool shouldRun: _registeredCount > 0 && !_lockScreenActive
 
-  // Polling intervals (hardcoded to sensible values per stat type)
   readonly property int cpuUsageIntervalMs: 1000
   readonly property int cpuFreqIntervalMs: 3000
   readonly property int memIntervalMs: 5000
@@ -37,7 +36,6 @@ Singleton {
   readonly property int diskIntervalMs: 30000
   readonly property int gpuIntervalMs: 5000
 
-  // Public values
   property real cpuUsage: 0
   property list<real> coresUsage: []
   property real cpuTemp: 0
@@ -71,7 +69,6 @@ Singleton {
   // Pre-filled with zeros so the graph scrolls smoothly from the start
   readonly property int historyDurationMs: (1 * 60 * 1000) // 1 minute
 
-  // Computed history lengths based on polling intervals
   readonly property int cpuHistoryLength: Math.ceil(historyDurationMs / cpuUsageIntervalMs)
   readonly property int gpuHistoryLength: Math.ceil(historyDurationMs / gpuIntervalMs)
   readonly property int memHistoryLength: Math.ceil(historyDurationMs / memIntervalMs)
@@ -144,7 +141,6 @@ Singleton {
   function pushDiskHistory() {
     let newHistories = {};
     for (let path in diskPercents) {
-      // Pre-fill with zeros if this is a new path
       let h = diskHistories[path] ? diskHistories[path].slice() : new Array(diskHistoryLength).fill(0);
       h.push(diskPercents[path]);
       if (h.length > diskHistoryLength)
@@ -224,7 +220,6 @@ Singleton {
     return available ? (diskAvailPercents[diskPath] || 0) <= diskAvailCriticalThreshold : (diskPercents[diskPath] || 0) >= diskCriticalThreshold;
   }
 
-  // Ready-to-use stat colors (for gauges, panels, icons)
   readonly property color cpuColor: cpuCritical ? criticalColor : (cpuWarning ? warningColor : Color.mPrimary)
   readonly property color tempColor: tempCritical ? criticalColor : (tempWarning ? warningColor : Color.mPrimary)
   readonly property color gpuColor: gpuCritical ? criticalColor : (gpuWarning ? warningColor : Color.mPrimary)
@@ -243,18 +238,15 @@ Singleton {
     return isDiskCritical(diskPath, available) ? criticalColor : (isDiskWarning(diskPath, available) ? warningColor : Color.mPrimary);
   }
 
-  // Internal state for CPU calculation
   property var prevCpuStats: null
   property var prevCpuCoresStats: null
 
-  // Internal state for network speed calculation
   // Previous Bytes need to be stored as 'real' as they represent the total of bytes transfered
   // since the computer started, so their value will easily overlfow a 32bit int.
   property real prevRxBytes: 0
   property real prevTxBytes: 0
   property real prevTime: 0
 
-  // Cpu temperature is the most complex
   readonly property var supportedTempCpuSensorNames: ["coretemp", "k10temp", "zenpower"]
   property string cpuTempSensorName: ""
   property string cpuTempHwmonPath: ""
@@ -267,7 +259,6 @@ Singleton {
   property var cpuThermalZonePaths: [] // All matching CPU zones for averaging
   property string gpuThermalZonePath: ""
 
-  // GPU temperature detection
   // On dual-GPU systems, we prioritize discrete GPUs over integrated GPUs
   // Priority: NVIDIA (opt-in) > AMD dGPU > Intel Arc > AMD iGPU
   // Note: NVIDIA requires opt-in because nvidia-smi wakes the dGPU on laptops, draining battery
@@ -276,7 +267,6 @@ Singleton {
   property var foundGpuSensors: [] // [{hwmonPath, type, hasDedicatedVram}]
   property int gpuVramCheckIndex: 0
 
-  // --------------------------------------------
   Component.onCompleted: {
     Logger.i("SystemStat", "Service started (polling deferred until a consumer registers).");
 
@@ -286,7 +276,6 @@ Singleton {
     // Kickoff the gpu sensor detection for temperature (one-time probes, not polling)
     gpuTempNameReader.checkNext();
 
-    // Get nproc on startup (one-time)
     nprocProcess.running = true;
   }
 
@@ -297,16 +286,13 @@ Singleton {
       root.prevCpuCoresStats = null;
       root.prevTime = 0;
 
-      // Trigger initial reads
       zfsArcStatsFile.reload();
       loadAvgFile.reload();
 
-      // Start persistent disk shell
       if (!dfShell.running) {
         dfShell.running = true;
       }
     } else {
-      // Stop persistent disk shell
       if (dfShell.running) {
         dfShell.running = false;
       }
@@ -334,7 +320,6 @@ Singleton {
   }
 
   function restartGpuDetection() {
-    // Reset GPU state
     root.gpuAvailable = false;
     root.gpuType = "";
     root.gpuTempHwmonPath = "";
@@ -342,13 +327,10 @@ Singleton {
     root.foundGpuSensors = [];
     root.gpuVramCheckIndex = 0;
 
-    // Restart GPU detection
     gpuTempNameReader.currentIndex = 0;
     gpuTempNameReader.checkNext();
   }
 
-  // --------------------------------------------
-  // Timer for CPU usage and temperature
   Timer {
     id: cpuTimer
     interval: root.cpuUsageIntervalMs
@@ -371,7 +353,6 @@ Singleton {
     onTriggered: cpuInfoFile.reload()
   }
 
-  // Timer for load average
   Timer {
     id: loadAvgTimer
     interval: root.loadAvgIntervalMs
@@ -381,7 +362,6 @@ Singleton {
     onTriggered: loadAvgFile.reload()
   }
 
-  // Timer for memory stats
   Timer {
     id: memoryTimer
     interval: root.memIntervalMs
@@ -394,7 +374,6 @@ Singleton {
     }
   }
 
-  // Timer for disk usage
   Timer {
     id: diskTimer
     interval: root.diskIntervalMs
@@ -408,7 +387,6 @@ Singleton {
     }
   }
 
-  // Timer for network speeds
   Timer {
     id: networkTimer
     interval: root.networkIntervalMs
@@ -418,7 +396,6 @@ Singleton {
     onTriggered: netDevFile.reload()
   }
 
-  // Timer for GPU temperature
   Timer {
     id: gpuTempTimer
     interval: root.gpuIntervalMs
@@ -428,8 +405,6 @@ Singleton {
     onTriggered: updateGpuTemperature()
   }
 
-  // --------------------------------------------
-  // FileView components for reading system files
   FileView {
     id: memInfoFile
     path: "/proc/meminfo"
@@ -467,7 +442,6 @@ Singleton {
     }
   }
 
-  // --------------------------------------------
   // Persistent shell for disk usage queries (avoids fork+exec of large Quickshell process every poll)
   // Uses 'df' aka 'disk free'
   // "-x efivarfs" skips efivarfs mountpoints, for which the `statfs` syscall may cause system-wide stuttering
@@ -526,7 +500,6 @@ Singleton {
     }
   }
 
-  // Process to get number of processors
   Process {
     id: nprocProcess
     command: ["nproc"]
@@ -579,11 +552,6 @@ Singleton {
     }
   }
 
-  // --------------------------------------------
-  // --------------------------------------------
-  // CPU Temperature
-  // It's more complex.
-  // ----
   // #1 - Find a common cpu sensor name ie: "coretemp", "k10temp", "zenpower"
   FileView {
     id: cpuTempNameReader
@@ -626,7 +594,6 @@ Singleton {
     }
   }
 
-  // ----
   // #2 - Read sensor value
   FileView {
     id: cpuTempReader
@@ -657,7 +624,6 @@ Singleton {
     }
   }
 
-  // --------------------------------------------
   // Thermal zone fallback for CPU and GPU temperature
   // Used on ARM SoCs (e.g., SCMI sensors) where hwmon doesn't expose
   // coretemp/k10temp/zenpower. Scans /sys/class/thermal/thermal_zoneN/type
@@ -721,7 +687,6 @@ Singleton {
     }
 
     function finishScan() {
-      // CPU thermal zones
       if (cpuZones.length > 0) {
         root.cpuTempSensorName = "thermal_zone";
         root.cpuThermalZonePaths = cpuZones.map(z => z.path);
@@ -731,7 +696,6 @@ Singleton {
         Logger.w("SystemStat", "No supported temperature sensor found");
       }
 
-      // GPU thermal zones
       if (gpuAvgZonePath !== "") {
         root.gpuThermalZonePath = gpuAvgZonePath;
         root.gpuAvailable = true;
@@ -808,10 +772,8 @@ Singleton {
                        });
           return;
         }
-        // All zones read, take max
         root.gpuTemp = Math.round(Math.max(...collectedTemps));
       } else {
-        // Single gpu-avg-thermal zone
         root.gpuTemp = Math.round(temp);
       }
       root.pushGpuHistory();
@@ -823,15 +785,10 @@ Singleton {
     gpuThermalZoneReader.reload();
   }
 
-  // Property to store multiple GPU thermal zone paths (when no gpu-avg is available)
   property var gpuThermalZonePaths: []
 
-  // --------------------------------------------
-  // --------------------------------------------
-  // GPU Temperature
   // On dual-GPU systems (e.g., Intel iGPU + NVIDIA dGPU, or AMD APU + AMD dGPU),
   // we scan all hwmon entries, then select the best GPU based on priority.
-  // ----
   // #1 - Scan all hwmon entries to find GPU sensors
   FileView {
     id: gpuTempNameReader
@@ -840,7 +797,6 @@ Singleton {
 
     function checkNext() {
       if (currentIndex >= 16) {
-        // Finished scanning all hwmon entries
         // Only check nvidia-smi if user has explicitly enabled dGPU monitoring (opt-in)
         // because nvidia-smi wakes up the dGPU on laptops, draining battery
         if (Settings.data.systemMonitor.enableDgpuMonitoring) {
@@ -871,7 +827,6 @@ Singleton {
                                   });
         Logger.d("SystemStat", `Found ${name} GPU sensor at ${hwmonPath}`);
       }
-      // Continue scanning regardless of whether we found a match
       currentIndex++;
       Qt.callLater(() => {
                      checkNext();
@@ -886,7 +841,6 @@ Singleton {
     }
   }
 
-  // ----
   // #2 - Read GPU sensor value (AMD/Intel via sysfs)
   FileView {
     id: gpuTempReader
@@ -899,7 +853,6 @@ Singleton {
     }
   }
 
-  // ----
   // #3 - Check if nvidia-smi is available (for NVIDIA GPUs)
   Process {
     id: nvidiaSmiCheck
@@ -923,7 +876,6 @@ Singleton {
     }
   }
 
-  // ----
   // #4 - Check VRAM for AMD GPUs to distinguish dGPU from iGPU
   // dGPUs have dedicated VRAM, iGPUs don't (use system RAM)
   FileView {
@@ -953,7 +905,6 @@ Singleton {
     }
   }
 
-  // ----
   // #4 - Read GPU temperature via nvidia-smi (NVIDIA only)
   Process {
     id: nvidiaTempProcess
@@ -970,8 +921,6 @@ Singleton {
     }
   }
 
-  // -------------------------------------------------------
-  // -------------------------------------------------------
   // Parse ZFS ARC stats from /proc/spl/kstat/zfs/arcstats
   function parseZfsArcStats(text) {
     if (!text)
@@ -998,14 +947,12 @@ Singleton {
           foundCmin = true;
         }
 
-        // If we found both, we can return early
         if (foundSize && foundCmin) {
           return;
         }
       }
     }
 
-    // If fields not found, set to 0
     if (!foundSize) {
       root.zfsArcSizeKb = 0;
     }
@@ -1014,7 +961,6 @@ Singleton {
     }
   }
 
-  // -------------------------------------------------------
   // Parse load average from /proc/loadavg
   function parseLoadAverage(text) {
     if (!text)
@@ -1027,7 +973,6 @@ Singleton {
     }
   }
 
-  // -------------------------------------------------------
   // Parse memory info from /proc/meminfo
   function parseMemoryInfo(text) {
     if (!text)
@@ -1062,7 +1007,6 @@ Singleton {
       root.pushMemHistory();
     }
 
-    // Swap usage
     root.swapTotalGb = (swapTotal / 1048576).toFixed(1);
     if (swapTotal > 0) {
       const swapUsedKb = swapTotal - swapFree;
@@ -1074,7 +1018,6 @@ Singleton {
     }
   }
 
-  // -------------------------------------------------------
   // Calculate CPU usage from /proc/stat
 
   function calculateLineUsage(line) {
@@ -1129,7 +1072,6 @@ Singleton {
     }
     root.prevCpuStats = currCpuStats;
 
-    // Find the number of CPU cores
     let nbCores = 0;
     for (let i = 1; i < lines.length; i++) {
       if (!lines[i].startsWith('cpu'))
@@ -1137,7 +1079,6 @@ Singleton {
       nbCores++;
     }
 
-    // Fallback if we did not find any cores
     if (nbCores === 0)
       return;
 
@@ -1160,7 +1101,6 @@ Singleton {
     root.prevCpuCoresStats = coresStats;
   }
 
-  // -------------------------------------------------------
   // Check whether a network interface is virtual/tunnel/bridge.
   // Only physical interfaces (eth*, en*, wl*, ww*) are kept so
   // that traffic routed through VPNs, Docker bridges, etc. is
@@ -1175,7 +1115,6 @@ Singleton {
     return false;
   }
 
-  // -------------------------------------------------------
   // Calculate RX and TX speed from /proc/net/dev
   // Sums speeds of all physical interfaces
   function calculateNetworkSpeed(text) {
@@ -1241,12 +1180,9 @@ Singleton {
     root.prevTxBytes = totalTx;
     root.prevTime = currentTime;
 
-    // Update network history after speeds are computed
     root.pushNetworkHistory();
   }
 
-  // -------------------------------------------------------
-  // Helper function to format network speeds
   function formatSpeed(bytesPerSecond) {
     const units = ["KB", "MB", "GB"];
     let value = bytesPerSecond / 1000;
@@ -1264,8 +1200,6 @@ Singleton {
     return (numStr + unit).length > 5 ? numStr + shortUnit : numStr + unit;
   }
 
-  // -------------------------------------------------------
-  // Compact speed formatter for vertical bar display
   function formatCompactSpeed(bytesPerSecond) {
     if (!bytesPerSecond || bytesPerSecond <= 0)
       return "0";
@@ -1285,9 +1219,6 @@ Singleton {
     return display + units[unitIndex];
   }
 
-  // -------------------------------------------------------
-  // Smart formatter for memory values (GB) - max 4 chars
-  // Uses decimal for < 10GB, integer otherwise
   function formatGigabytes(memGb) {
     const value = parseFloat(memGb);
     if (isNaN(value))
@@ -1298,8 +1229,6 @@ Singleton {
     return Math.round(value) + "G"; // "10G" to "999G"
   }
 
-  // -------------------------------------------------------
-  // Formatting gigabytes with optional padding
   function formatGigabytesDisplay(memGb, maxGb = null) {
     const value = formatGigabytes(memGb === null ? 0 : memGb);
     if (maxGb !== null) {
@@ -1309,14 +1238,10 @@ Singleton {
     return value;
   }
 
-  // -------------------------------------------------------
-  // Formatting percentage with optional padding
   function formatPercentageDisplay(value, padding = false) {
     return `${Math.round(value === null ? 0 : value)}%`.padStart(padding ? 4 : 0, " ");
   }
 
-  // -------------------------------------------------------
-  // Formatting disk usage
   function formatDiskDisplay(diskPath, {
                              percent = false,
                              available = false,
@@ -1332,8 +1257,6 @@ Singleton {
     }
   }
 
-  // -------------------------------------------------------
-  // Formatting ram usage
   function formatRamDisplay({
                             swap = false,
                             percent = false,
@@ -1349,8 +1272,6 @@ Singleton {
     }
   }
 
-  // -------------------------------------------------------
-  // Function to start fetching and computing the cpu temperature
   function updateCpuTemperature() {
     // For AMD sensors (k10temp and zenpower), only use Tctl sensor
     // temp1_input corresponds to Tctl (Temperature Control) on these sensors
@@ -1370,11 +1291,8 @@ Singleton {
     }
   }
 
-  // -------------------------------------------------------
-  // Function to check next Intel temperature sensor
   function checkNextIntelTemp() {
     if (root.intelTempFilesChecked >= root.intelTempMaxFiles) {
-      // Calculate average of all found temperatures
       if (root.intelTempValues.length > 0) {
         let sum = 0;
         for (var i = 0; i < root.intelTempValues.length; i++) {
@@ -1391,34 +1309,26 @@ Singleton {
       return;
     }
 
-    // Check next temperature file
     root.intelTempFilesChecked++;
     cpuTempReader.path = `${root.cpuTempHwmonPath}/temp${root.intelTempFilesChecked}_input`;
     cpuTempReader.reload();
   }
 
-  // -------------------------------------------------------
-  // Function to check VRAM for each AMD GPU to determine if it's a dGPU
   function checkNextGpuVram() {
     // Skip non-AMD GPUs (NVIDIA and Intel Arc are always discrete)
     while (root.gpuVramCheckIndex < root.foundGpuSensors.length) {
       const gpu = root.foundGpuSensors[root.gpuVramCheckIndex];
       if (gpu.type === "amd") {
-        // Check for dedicated VRAM at hwmonPath/device/mem_info_vram_total
         gpuVramChecker.path = `${gpu.hwmonPath}/device/mem_info_vram_total`;
         gpuVramChecker.reload();
         return;
       }
-      // Skip non-AMD GPUs
       root.gpuVramCheckIndex++;
     }
 
-    // All VRAM checks complete, now select the best GPU
     selectBestGpu();
   }
 
-  // -------------------------------------------------------
-  // Function to select the best GPU based on priority
   // Priority (when dGPU monitoring enabled): NVIDIA > AMD dGPU > Intel Arc > AMD iGPU
   // Priority (when dGPU monitoring disabled): AMD iGPU only (discrete GPUs skipped to preserve D3cold)
   function selectBestGpu() {
@@ -1427,7 +1337,6 @@ Singleton {
     if (root.foundGpuSensors.length === 0) {
       // No hwmon GPU sensors found, try thermal_zone fallback
       if (dgpuEnabled && root.gpuThermalZonePath === "" && root.gpuThermalZonePaths.length === 0) {
-        // Thermal zone scanner hasn't found GPU zones yet; start a scan
         thermalZoneScanner.startScan();
       }
       return;
@@ -1482,8 +1391,6 @@ Singleton {
     }
   }
 
-  // -------------------------------------------------------
-  // Function to update GPU temperature
   function updateGpuTemperature() {
     if (root.gpuType === "nvidia") {
       nvidiaTempProcess.running = true;
@@ -1497,7 +1404,6 @@ Singleton {
         gpuThermalZoneReader.collectedTemps = [];
         readNextGpuThermalZone();
       } else {
-        // Single gpu-avg-thermal zone
         gpuThermalZoneReader.path = root.gpuThermalZonePath;
         gpuThermalZoneReader.reload();
       }

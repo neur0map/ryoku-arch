@@ -65,18 +65,15 @@ Item {
     }
 
     if (replaceOnNew && isShowingToast) {
-      // Cancel current toast and clear queue for latest toast
-      messageQueue = []; // Clear existing queue
+      messageQueue = [];
       messageQueue.push(toastData);
 
-      // Hide current toast immediately
       root.dismissToast();
 
       // Process new toast after a brief delay
       isShowingToast = false;
       quickSwitchTimer.restart();
     } else {
-      // Queue the toast
       messageQueue.push(toastData);
       processQueue();
     }
@@ -125,7 +122,6 @@ Item {
     id: windowLoader
     active: false // Only active when showing a toast
 
-    // Store pending toast data
     property var pendingToast: null
 
     onStatusChanged: {
@@ -143,7 +139,6 @@ Item {
 
       screen: root.screen
 
-      // Parse location setting
       readonly property string location: Settings.data.notifications?.location || "top_right"
       readonly property bool isTop: location.startsWith("top")
       readonly property bool isBottom: location.startsWith("bottom")
@@ -158,7 +153,6 @@ Item {
       readonly property bool isFloating: Settings.data.bar.barType === "floating"
       readonly property real barHeight: Style.getBarHeightForScreen(panel.screen?.name)
 
-      // Calculate bar and frame offsets for each edge separately
       readonly property int barOffsetTop: {
         if (barPos !== "top")
           return isFramed ? frameThickness : 0;
@@ -189,7 +183,6 @@ Item {
 
       readonly property int shadowPadding: Style.shadowBlurMax + Style.marginL
 
-      // Anchoring
       anchors.top: isTop
       anchors.bottom: isBottom
       anchors.left: isLeft

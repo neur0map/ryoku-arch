@@ -10,16 +10,13 @@ import qs.noctalia.Services.UI
 Singleton {
   id: root
 
-  // Public API
   property bool active: Settings.data.appLauncher.enableClipboardHistory && cliphistAvailable
   property bool loading: false
   property var items: [] // [{id, preview, mime, isImage}]
 
-  // Check if cliphist is available on the system
   property bool cliphistAvailable: false
   property bool dependencyChecked: false
 
-  // Optional automatic watchers to feed cliphist DB
   property bool autoWatch: true
   property bool watchersStarted: false
 
@@ -33,18 +30,15 @@ Singleton {
   // This avoids relying on cliphist decode which can be unreliable
   property var contentCache: ({})
 
-  // Track the most recent clipboard content for instant access
   property string _latestTextContent: ""
   property string _latestTextId: ""
 
   // Approximate first-seen timestamps for entries this session (seconds)
   property var firstSeenById: ({})
 
-  // Internal: store callback for decode
   property var _decodeCallback: null
   property int _decodeRequestId: 0
 
-  // Queue for base64 decodes
   property var _b64Queue: []
   property var _b64CurrentCb: null
   property string _b64CurrentMime: ""
@@ -52,12 +46,10 @@ Singleton {
 
   signal listCompleted
 
-  // Check if cliphist is available
   Component.onCompleted: {
     checkCliphistAvailability();
   }
 
-  // Check dependency availability
   function checkCliphistAvailability() {
     if (dependencyChecked)
       return;
@@ -65,7 +57,6 @@ Singleton {
     dependencyCheckProcess.running = true;
   }
 
-  // Process to check if cliphist is available
   Process {
     id: dependencyCheckProcess
     stdout: StdioCollector {}
@@ -73,13 +64,11 @@ Singleton {
       root.dependencyChecked = true;
       if (exitCode === 0) {
         root.cliphistAvailable = true;
-        // Start watchers if feature is enabled
         if (root.active) {
           startWatchers();
         }
       } else {
         root.cliphistAvailable = false;
-        // Show toast notification if feature is enabled but cliphist is missing
         if (Settings.data.appLauncher.enableClipboardHistory) {
           ToastService.showWarning(I18n.tr("toast.clipboard.unavailable"), I18n.tr("toast.clipboard.unavailable-desc"), 6000);
         }
@@ -87,7 +76,6 @@ Singleton {
     }
   }
 
-  // Start/stop watchers when enabled changes
   onActiveChanged: {
     if (root.active) {
       startWatchers();
@@ -106,7 +94,6 @@ Singleton {
     onTriggered: list()
   }
 
-  // Internal process objects
   Process {
     id: listProc
     stdout: StdioCollector {}
@@ -147,7 +134,6 @@ Singleton {
                                    const assumedAge = i * 15 * 60;
                                    root.firstSeenById[id] = Time.timestamp - assumedAge;
                                  }
-                                 // Smart type detection
                                  var contentType = "text";
                                  if (isImage) {
                                    contentType = "image";
@@ -193,7 +179,6 @@ Singleton {
       items = filtered;
       loading = false;
 
-      // Try to capture current clipboard and associate with newest item
       if (filtered.length > 0 && !filtered[0].isImage && !root.contentCache[filtered[0].id]) {
         root.captureCurrentClipboard();
       }
@@ -237,7 +222,6 @@ Singleton {
     }
   }
 
-  // Base64 decode pipeline (queued)
   Process {
     id: decodeB64Proc
     stdout: StdioCollector {}
@@ -252,7 +236,6 @@ Singleton {
       if (root._b64CurrentId !== "") {
         const entryId = root._b64CurrentId;
         root.imageDataById[entryId] = `data:${root._b64CurrentMime};base64,${b64}`;
-        // Track insertion order and evict oldest entries beyond the cap
         root._imageDataInsertOrder.push(entryId);
         while (root._imageDataInsertOrder.length > root._imageDataMaxEntries) {
           const evicted = root._imageDataInsertOrder.shift();
@@ -267,7 +250,6 @@ Singleton {
     }
   }
 
-  // Text watcher - stores to cliphist and triggers content capture
   Process {
     id: watchText
     stdout: StdioCollector {}
@@ -288,7 +270,6 @@ Singleton {
     }
   }
 
-  // Image watcher
   Process {
     id: watchImage
     stdout: StdioCollector {}
@@ -309,7 +290,6 @@ Singleton {
     }
   }
 
-  // Capture current clipboard text when needed
   Process {
     id: captureTextProc
     stdout: StdioCollector {}
@@ -318,7 +298,6 @@ Singleton {
         const content = String(stdout.text);
         if (content.length > 0) {
           root._latestTextContent = content;
-          // Associate with newest item if we have one
           if (root.items.length > 0 && !root.items[0].isImage) {
             const newestId = root.items[0].id;
             if (!root.contentCache[newestId]) {
@@ -336,11 +315,9 @@ Singleton {
       return;
     watchersStarted = true;
 
-    // Text watcher
     watchText.command = ["sh", "-c", Settings.data.appLauncher.clipboardWatchTextCommand];
     watchText.running = true;
 
-    // Image watcher
     watchImage.command = ["sh", "-c", Settings.data.appLauncher.clipboardWatchImageCommand];
     watchImage.running = true;
   }

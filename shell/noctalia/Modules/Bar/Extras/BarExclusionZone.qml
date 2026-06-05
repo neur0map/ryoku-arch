@@ -24,7 +24,6 @@ PanelWindow {
 
   mask: Region {}
 
-  // Wayland layer shell configuration
   WlrLayershell.layer: WlrLayer.Top
   WlrLayershell.namespace: "noctalia-bar-exclusion-" + (screen?.name || "unknown")
   WlrLayershell.exclusionMode: ExclusionMode.Auto
@@ -37,7 +36,6 @@ PanelWindow {
     right: barPosition === "right" || barPosition === "top" || barPosition === "bottom"
   }
 
-  // Size based on bar orientation
   // When floating, only reserve space for the bar + margin on the anchored edge
   implicitWidth: {
     if (barIsVertical) {

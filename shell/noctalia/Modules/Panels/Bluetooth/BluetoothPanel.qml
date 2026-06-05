@@ -30,7 +30,6 @@ SmartPanel {
       anchors.margins: Style.marginL
       spacing: Style.marginM
 
-      // Header
       NBox {
         Layout.fillWidth: true
         Layout.preferredHeight: headerRow.implicitHeight + Style.margin2M
@@ -99,7 +98,6 @@ SmartPanel {
           width: bluetoothScrollView.availableWidth
           spacing: Style.marginM
 
-          // Adapter not available of disabled
           NBox {
             id: disabledBox
             visible: !BluetoothService.enabled

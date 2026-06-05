@@ -75,7 +75,6 @@ Singleton {
     }
   ]
 
-  // Application configurations - consolidated from Theming + AppThemeService
   readonly property var applications: [
     {
       "id": "gtk",
@@ -168,7 +167,7 @@ Singleton {
         }
       ],
       "postProcess": mode => `${templateApplyScript} pywalfox ${mode}`
-    } // CONSOLIDATED DISCORD CLIENTS
+    }
     ,
     {
       "id": "discord",
@@ -469,7 +468,6 @@ Singleton {
     return clients;
   }
 
-  // Get resolved theme paths for a code client (returns array of all matching paths)
   function resolvedCodeClientPaths(clientName) {
     if (clientName === "code")
       return resolvedCodePaths;
@@ -484,7 +482,6 @@ Singleton {
     var codeApp = applications.find(app => app.id === "code");
     if (codeApp && codeApp.clients) {
       codeApp.clients.forEach(client => {
-                                // Extract base config directory from theme path
                                 var themePath = client.path;
                                 var baseConfigDir = "";
                                 if (client.name === "code") {
@@ -504,7 +501,6 @@ Singleton {
     return clients;
   }
 
-  // Resolve VSCode extension paths dynamically
   Process {
     id: codeResolverProcess
     command: ["python3", vscodeHelperScript, "~/.vscode/extensions"]
@@ -538,7 +534,6 @@ Singleton {
       root.resolvedCodiumPaths = paths;
     }
   }
-  // Build user templates TOML content
   function buildUserTemplatesToml() {
     var lines = [];
     lines.push("[config]");
@@ -562,11 +557,9 @@ Singleton {
     return lines.join("\n") + "\n";
   }
 
-  // Write user templates TOML file (moved from Theming)
   function writeUserTemplatesToml() {
     var userConfigPath = Settings.configDir + "user-templates.toml";
 
-    // Check if file already exists
     fileCheckProcess.command = ["test", "-s", userConfigPath];
     fileCheckProcess.running = true;
   }
@@ -601,23 +594,19 @@ Singleton {
     }
   ]
 
-  // Process for checking if user templates file exists and is non-empty
   Process {
     id: fileCheckProcess
     running: false
 
     onExited: function (exitCode) {
       if (exitCode === 0) {
-        // File exists and is non-empty, skip creation
         Logger.d("TemplateRegistry", "User templates config already exists, skipping creation");
       } else {
-        // File doesn't exist or is empty, create it
         doWriteUserTemplatesToml();
       }
     }
   }
 
-  // Process for writing user templates file with error reporting
   Process {
     id: fileWriteProcess
     running: false

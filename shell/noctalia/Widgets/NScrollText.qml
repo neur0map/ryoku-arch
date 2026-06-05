@@ -81,7 +81,6 @@ Item {
     if (loopingText.item)
       loopingText.item.text = text;
 
-    // reset state
     resetState();
   }
   onMaxWidthChanged: resetState()
@@ -194,7 +193,6 @@ Item {
     }
   }
 
-  // Transparency Fade Rectangle
   Rectangle {
     id: fadeMask
     width: root.width

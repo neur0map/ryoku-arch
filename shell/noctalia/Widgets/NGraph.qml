@@ -6,29 +6,23 @@ Item {
   id: root
   clip: true
 
-  // Primary line
   property var values: []
   property color color: Color.mPrimary
 
-  // Optional secondary line
   property var values2: []
   property color color2: Color.mError
 
-  // Range settings for primary line
   property real minValue: 0
   property real maxValue: 100
 
-  // Range settings for secondary line (defaults to primary range)
   property real minValue2: minValue
   property real maxValue2: maxValue
 
-  // Style settings
   property real strokeWidth: 1
   property bool fill: true
   property real fillOpacity: 0.15
   property real antialiasing: 0.5
 
-  // Smooth scrolling interval (how often data updates)
   property int updateInterval: 1000
 
   // Animate scale changes (for network graphs with dynamic max)
@@ -40,7 +34,6 @@ Item {
   readonly property bool hasData: values.length >= 4
   readonly property bool hasData2: values2.length >= 4
 
-  // Scale animation state
   property real _targetMax1: maxValue
   property real _targetMax2: maxValue2
   property real _animMax1: maxValue
@@ -64,11 +57,9 @@ Item {
     }
   }
 
-  // Effective max values (animated or direct)
   readonly property real _effectiveMax1: animateScale ? _animMax1 : maxValue
   readonly property real _effectiveMax2: animateScale ? _animMax2 : maxValue2
 
-  // Scroll state (driven by NumberAnimation)
   property real _t1: 1.0
   property bool _ready1: false
   property real _pred1: 0

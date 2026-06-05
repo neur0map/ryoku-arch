@@ -1,9 +1,7 @@
 .pragma library
 
 function generate(paletteColors) {
-    // Safety check
     if (!paletteColors || paletteColors.length === 0) {
-        // Return a passthrough shader if no palette
         return `//!HOOK MAIN
 //!BIND HOOKED
 //!DESC Ambxst Passthrough
@@ -29,10 +27,9 @@ void main() {
         
         // Perceptual weighting (Red: 0.299, Green: 0.587, Blue: 0.114)
         // This makes the distance match human perception better than raw Euclidean
-        vec3 weightedDiff = diff * vec3(0.55, 0.77, 0.34); // Sqrt of standard luma weights roughly
+        vec3 weightedDiff = diff * vec3(0.55, 0.77, 0.34);
         float distSq = dot(weightedDiff, weightedDiff); 
         
-        // Track closest color for fallback
         if (distSq < minDistSq) {
             minDistSq = distSq;
             closestColor = pColor;
@@ -67,11 +64,8 @@ vec4 hook() {
     float minDistSq = 1000.0;
     vec3 closestColor = vec3(0.0);
     
-    // Increased sharpness for cleaner separation (was 20.0)
-    // 40.0 makes it stick tighter to palette colors
     float distributionSharpness = 40.0; 
 
-    // Unrolled palette comparison
     ${unrolledLogic}
 
     vec3 finalColor;

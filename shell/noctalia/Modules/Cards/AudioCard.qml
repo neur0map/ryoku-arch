@@ -5,7 +5,6 @@ import qs.noctalia.Commons
 import qs.noctalia.Services.Media
 import qs.noctalia.Widgets
 
-// Audio controls card: output and input volume controls
 NBox {
   id: root
 
@@ -41,7 +40,6 @@ NBox {
         const newSinkId = AudioService.sink.id;
         if (newSinkId !== lastSinkId) {
           lastSinkId = newSinkId;
-          // Immediately set local volume to current device's volume
           var vol = AudioService.volume;
           localOutputVolume = (vol !== undefined && !isNaN(vol)) ? vol : 0;
         }
@@ -59,7 +57,6 @@ NBox {
         const newSourceId = AudioService.source.id;
         if (newSourceId !== lastSourceId) {
           lastSourceId = newSourceId;
-          // Immediately set local volume to current device's volume
           var vol = AudioService.inputVolume;
           localInputVolume = (vol !== undefined && !isNaN(vol)) ? vol : 0;
         }
@@ -137,7 +134,6 @@ NBox {
     anchors.margins: Style.marginM
     spacing: Style.marginM
 
-    // Output Volume Section
     ColumnLayout {
       spacing: Style.marginXXS
       Layout.fillWidth: true
@@ -145,7 +141,6 @@ NBox {
       opacity: AudioService.sink ? 1.0 : 0.5
       enabled: AudioService.sink
 
-      // Output Volume Header
       RowLayout {
         Layout.fillWidth: true
         spacing: Style.marginXS
@@ -170,7 +165,6 @@ NBox {
         }
       }
 
-      // Output Volume Slider
       NSlider {
         id: outputVolumeSlider
         Layout.fillWidth: true
@@ -194,7 +188,7 @@ NBox {
           onWheel: wheel => {
                      if (outputVolumeSlider.enabled && AudioService.sink) {
                        const delta = wheel.angleDelta.y || wheel.angleDelta.x;
-                       const step = Settings.data.audio.volumeStep / 100.0; // Convert percentage to 0-1 range
+                       const step = Settings.data.audio.volumeStep / 100.0;
                        const increment = delta > 0 ? step : -step;
                        const maxVolume = Settings.data.audio.volumeOverdrive ? 1.5 : 1.0;
                        const newValue = Math.max(0, Math.min(maxVolume, localOutputVolume + increment));
@@ -205,7 +199,6 @@ NBox {
       }
     }
 
-    // Input Volume Section
     ColumnLayout {
       spacing: Style.marginXXS
       Layout.fillWidth: true
@@ -213,7 +206,6 @@ NBox {
       opacity: AudioService.source ? 1.0 : 0.5
       enabled: AudioService.source
 
-      // Input Volume Header
       RowLayout {
         Layout.fillWidth: true
         spacing: Style.marginXS
@@ -238,7 +230,6 @@ NBox {
         }
       }
 
-      // Input Volume Slider
       NSlider {
         id: inputVolumeSlider
         Layout.fillWidth: true
@@ -262,7 +253,7 @@ NBox {
           onWheel: wheel => {
                      if (inputVolumeSlider.enabled && AudioService.source) {
                        const delta = wheel.angleDelta.y || wheel.angleDelta.x;
-                       const step = Settings.data.audio.volumeStep / 100.0; // Convert percentage to 0-1 range
+                       const step = Settings.data.audio.volumeStep / 100.0;
                        const increment = delta > 0 ? step : -step;
                        const maxVolume = Settings.data.audio.volumeOverdrive ? 1.5 : 1.0;
                        const newValue = Math.max(0, Math.min(maxVolume, localInputVolume + increment));

@@ -17,17 +17,14 @@ Button {
     property bool iconFullTint: false
     property int iconSize: 18
     property bool enableShadow: true
-    // Radius handling
     property real radius: 0
-    property bool vertical: false // Set by parent if needed, or inferred? ToggleButton doesn't know orientation usually.
-    // We will let parent set start/end radius directly or use radius as fallback
+    property bool vertical: false
     property real startRadius: radius
     property real endRadius: radius
 
     implicitWidth: 36
     implicitHeight: 36
 
-    // Check if buttonIcon is a single character (icon font) or a file path
     readonly property bool isIconPath: buttonIcon.length > 1
 
     background: StyledRect {
@@ -57,7 +54,6 @@ Button {
     }
 
     contentItem: Item {
-        // Text icon (single character)
         Text {
             visible: !root.isIconPath
             anchors.fill: parent
@@ -70,7 +66,6 @@ Button {
             verticalAlignment: Text.AlignVCenter
         }
 
-        // Image icon (SVG/PNG)
         Item {
             id: iconImageContainer
             visible: root.isIconPath

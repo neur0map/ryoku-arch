@@ -23,7 +23,6 @@ ColumnLayout {
   }
 
   // --- Credit groups, ordered by license obligation ---
-  // Click a card to open its repository.
   Repeater {
     model: [
       {

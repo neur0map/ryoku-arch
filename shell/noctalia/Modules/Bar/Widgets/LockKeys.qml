@@ -10,7 +10,6 @@ import qs.noctalia.Services.Keyboard
 import qs.noctalia.Services.UI
 import qs.noctalia.Widgets
 
-//test
 Item {
   id: root
 
@@ -20,7 +19,6 @@ Item {
   property int sectionWidgetIndex: -1
   property int sectionWidgetsCount: 0
 
-  // Settings
   property var widgetMetadata: BarWidgetRegistry.widgetMetadata[widgetId] ?? {}
   // Explicit screenName property ensures reactive binding when screen changes
   readonly property string screenName: screen ? screen.name : ""
@@ -38,7 +36,6 @@ Item {
   readonly property bool isVertical: barPosition === "left" || barPosition === "right"
   readonly property real capsuleHeight: Style.getCapsuleHeightForScreen(screenName)
 
-  // Content dimensions for implicit sizing
   readonly property real contentWidth: isVertical ? capsuleHeight : Math.round(layout.implicitWidth + Style.margin2M)
   readonly property real contentHeight: isVertical ? Math.round(layout.implicitHeight + Style.margin2M) : capsuleHeight
 
@@ -80,7 +77,6 @@ Item {
                  }
   }
 
-  // Visual capsule centered in parent
   Rectangle {
     id: visualCapsule
     anchors.centerIn: parent
@@ -151,7 +147,6 @@ Item {
     }
   }
 
-  // MouseArea at root level for extended click area
   MouseArea {
     acceptedButtons: Qt.RightButton
     anchors.fill: parent

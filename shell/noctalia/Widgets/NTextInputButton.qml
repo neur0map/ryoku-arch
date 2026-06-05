@@ -24,7 +24,6 @@ ColumnLayout {
 
   spacing: Style.marginS
 
-  // Label and description
   NLabel {
     label: root.label
     description: root.description
@@ -32,7 +31,6 @@ ColumnLayout {
     Layout.fillWidth: true
   }
 
-  // Input field with button
   RowLayout {
     Layout.fillWidth: true
     spacing: Style.marginM
@@ -47,7 +45,6 @@ ColumnLayout {
       onEditingFinished: root.inputEditingFinished()
     }
 
-    // Button
     NIconButton {
       id: button
       baseSize: Style.baseWidgetSize

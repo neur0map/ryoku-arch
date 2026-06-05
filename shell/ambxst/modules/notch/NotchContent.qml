@@ -22,35 +22,26 @@ Item {
     required property ShellScreen screen
     property bool unifiedEffectActive: false
 
-    // Get this screen's visibility state
     readonly property var screenVisibilities: Visibilities.getForScreen(screen.name)
     readonly property bool isScreenFocused: AxctlService.focusedMonitor && AxctlService.focusedMonitor.name === screen.name
 
-    // Monitor reference and refrence to toplevels on monitor
     readonly property var compositorMonitor: AxctlService.monitorFor(screen)
     readonly property var toplevels: (!compositorMonitor || !compositorMonitor.activeWorkspace || !AxctlService.clients.values) ? [] : AxctlService.clients.values.filter(c => c.workspace.id === compositorMonitor.activeWorkspace.id)
 
-    // Check if there are any windows on the current monitor and workspace
     readonly property bool hasWindows: toplevels.length > 0
 
-    // Get the bar position for this screen
     readonly property string barPosition: (Config.bar && Config.bar.position !== undefined) ? Config.bar.position : "top"
     readonly property string notchPosition: Config.notchPosition !== undefined ? Config.notchPosition : "top"
 
-    // Get the bar panel for this screen to check its state
     readonly property var barPanelRef: Visibilities.barPanels[screen.name]
 
-    // Check if bar is pinned (use bar state directly)
     readonly property bool barPinned: {
-        // If barPanelRef exists, trust its pinned state explicitly
         if (barPanelRef && typeof barPanelRef.pinned !== 'undefined') {
             return barPanelRef.pinned;
         }
-        // Fallback to config only if panel ref is missing
         return (Config.bar && Config.bar.pinnedOnStartup !== undefined) ? Config.bar.pinnedOnStartup : true;
     }
     
-    // Check if bar is hovering (for synchronized reveal when bar is at same side)
     readonly property bool barHoverActive: {
         if (barPosition !== notchPosition)
             return false;
@@ -60,9 +51,7 @@ Item {
         return false;
     }
 
-    // Fullscreen detection - use parent panel's robust detection, fallback to ToplevelManager
     readonly property bool activeWindowFullscreen: {
-        // Prefer the parent UnifiedShellPanel's hasFullscreenWindow (checks both ToplevelManager + CompositorData)
         if (barPanelRef && typeof barPanelRef.hasFullscreenWindow !== 'undefined') {
             return barPanelRef.hasFullscreenWindow;
         }
@@ -73,9 +62,6 @@ Item {
         return toplevel.fullscreen === true;
     }
 
-    // Should auto-hide logic:
-    // 1. If notch and bar are on different sides: hide if keepHidden is ON, OR if windows/fullscreen are present
-    // 2. If notch and bar are on same side: hide only if bar is unpinned OR if fullscreen is present
     readonly property bool shouldAutoHide: {
         if (barPosition !== notchPosition) {
             if ((Config.notch && Config.notch.keepHidden !== undefined) ? Config.notch.keepHidden : false) return true;
@@ -84,38 +70,27 @@ Item {
         return !barPinned || activeWindowFullscreen;
     }
 
-    // Check if the bar for this screen is vertical
     readonly property bool isBarVertical: barPosition === "left" || barPosition === "right"
 
-    // Notch state properties
     readonly property bool screenNotchOpen: screenVisibilities ? (screenVisibilities.launcher || screenVisibilities.dashboard || screenVisibilities.powermenu || screenVisibilities.tools) : false
     readonly property bool hasActiveNotifications: Notifications.popupList.length > 0
 
     // Hover state with delay to prevent flickering
     property bool hoverActive: false
 
-    // Track if mouse is over any notch-related area
     readonly property bool isMouseOverNotch: notchMouseAreaHover.hovered || notchRegionHover.hovered
 
-    // Reveal logic:
     readonly property bool reveal: {
-        // If keepHidden is true, ONLY show on interaction
-        // UNLESS notch and bar are on same side (e.g. both top), then keepHidden is IGNORED for sync consistency
         if (((Config.notch && Config.notch.keepHidden !== undefined) ? Config.notch.keepHidden : false) && barPosition !== notchPosition) {
             return (screenNotchOpen || hasActiveNotifications || hoverActive || barHoverActive);
         }
 
-        // If fullscreen and bar is NOT available on fullscreen, hard-hide the notch too
-        // This prevents barHoverActive from leaking through when the bar itself is hidden
         if (activeWindowFullscreen && !(Config.bar && Config.bar.availableOnFullscreen !== undefined ? Config.bar.availableOnFullscreen : false)) {
             return false;
         }
 
-        // If not auto-hiding (pinned and not fullscreen), always show
         if (!shouldAutoHide) return true;
         
-        // Show on interaction (hover, open, notifications)
-        // This works even in fullscreen, ensuring hover always works
         if (screenNotchOpen || hasActiveNotifications || hoverActive || barHoverActive) {
             return true;
         }
@@ -123,7 +98,6 @@ Item {
         return false;
     }
 
-    // Timer to delay hiding the notch after mouse leaves
     Timer {
         id: hideDelayTimer
         interval: 1000
@@ -135,22 +109,17 @@ Item {
         }
     }
 
-    // Watch for mouse state changes
     onIsMouseOverNotchChanged: {
         if (isMouseOverNotch) {
-            // Immediately show when mouse enters any notch area
             hideDelayTimer.stop();
             hoverActive = true;
         } else {
-            // Delay hiding when mouse leaves
             hideDelayTimer.restart();
         }
     }
 
-    // The hitbox for the mask
     readonly property Item notchHitbox: root.reveal ? notchRegionContainer : notchHoverRegion
 
-    // Default view component - user@host text
     Component {
         id: defaultViewComponent
         DefaultView {}
@@ -169,31 +138,26 @@ Item {
         sourceComponent: Component { DashboardView { visible: false } }
     }
 
-    // Persistent power menu view
     Loader {
         id: persistentPowerMenuViewLoader
         active: false
         sourceComponent: Component { PowerMenuView { visible: false } }
     }
 
-    // Persistent tools menu view
     Loader {
         id: persistentToolsMenuViewLoader
         active: false
         sourceComponent: Component { ToolsMenuView { visible: false } }
     }
 
-    // Notification view component
     Component {
         id: notificationViewComponent
         NotchNotificationView {}
     }
 
-    // Hover region for detecting mouse when notch is hidden (doesn't block clicks)
     Item {
         id: notchHoverRegion
 
-        // Width follows the notch, height is small hover region when hidden
         width: notchRegionContainer.width + 20
         height: root.reveal ? notchRegionContainer.height : Math.max((Config.notch && Config.notch.hoverRegionHeight !== undefined) ? Config.notch.hoverRegionHeight : 8, 8)
 
@@ -208,7 +172,6 @@ Item {
             }
         }
 
-        // HoverHandler doesn't block mouse events
         HoverHandler {
             id: notchMouseAreaHover
             enabled: true
@@ -224,13 +187,11 @@ Item {
         x: (parent.width - width) / 2
         y: root.notchPosition === "top" ? 0 : parent.height - height
 
-        // HoverHandler to detect when mouse is over the revealed notch
         HoverHandler {
             id: notchRegionHover
             enabled: true
         }
 
-        // Animation container for reveal/hide
         Item {
             id: notchAnimationContainer
             anchors.horizontalCenter: parent.horizontalCenter
@@ -240,7 +201,6 @@ Item {
             width: notchContainer.width
             height: notchContainer.height + (root.notchPosition === "top" ? notchContainer.anchors.topMargin : notchContainer.anchors.bottomMargin)
 
-            // Opacity animation
             opacity: root.reveal ? 1 : 0
             Behavior on opacity {
                 enabled: Config.animDuration > 0
@@ -250,7 +210,6 @@ Item {
                 }
             }
 
-            // Slide animation (slide up when hidden)
             transform: Translate {
                 y: {
                     if (root.reveal) return 0;
@@ -268,7 +227,6 @@ Item {
                 }
             }
 
-            // Center notch
             Notch {
                 id: notchContainer
                 unifiedEffectActive: root.unifiedEffectActive
@@ -293,7 +251,6 @@ Item {
                 notificationViewComponent: notificationViewComponent
                 visibilities: root.screenVisibilities
 
-                // Handle global keyboard events
                 Keys.onPressed: event => {
                     if (event.key === Qt.Key_Escape && root.screenNotchOpen) {
                         Visibilities.setActiveModule("");
@@ -303,7 +260,6 @@ Item {
             }
         }
 
-        // Popup de notificaciones debajo del notch
         StyledRect {
             id: notificationPopupContainer
             variant: "bg"
@@ -320,7 +276,6 @@ Item {
             z: 999
             radius: Styling.radius(20)
 
-            // Apply same reveal animation as notch
             opacity: root.reveal ? 1 : 0
             Behavior on opacity {
                 enabled: Config.animDuration > 0
@@ -353,13 +308,10 @@ Item {
             property bool popupHovered: false
 
             readonly property bool shouldShowNotificationPopup: {
-                // Mostrar solo si hay notificaciones y el notch esta expandido
                 if (!root.hasActiveNotifications || !root.screenNotchOpen)
                     return false;
 
-                // NO mostrar si estamos en el launcher (widgets tab con currentTab === 0)
                 if (screenVisibilities.dashboard) {
-                    // Solo ocultar si estamos en el widgets tab (dashboard tab 0) Y mostrando el launcher (widgetsTab index 0)
                     return !(GlobalStates.dashboardCurrentTab === 0 && GlobalStates.widgetsTabCurrentIndex === 0);
                 }
 
@@ -411,7 +363,6 @@ Item {
         }
     }
 
-    // Listen for dashboard and powermenu state changes
     Connections {
         target: screenVisibilities
 

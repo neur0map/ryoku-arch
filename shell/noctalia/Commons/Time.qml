@@ -8,10 +8,8 @@ import qs.noctalia.Services.System
 Singleton {
   id: root
 
-  // Current date
   property var now: new Date()
 
-  // Unix timestamp of the last update
   property real _lastUpdateTs: Date.now()
 
   // Signal emitted when a significant time jump is detected (e.g. system resume)
@@ -22,7 +20,6 @@ Singleton {
     return Math.floor(root.now / 1000);
   }
 
-  // Timer state (for countdown/stopwatch)
   property bool timerRunning: false
   property bool timerStopwatchMode: false
   property int timerRemainingSeconds: 0
@@ -51,7 +48,6 @@ Singleton {
 
       root.now = newTime;
 
-      // Update timer if running
       if (root.timerRunning && root.timerStartTimestamp > 0) {
         const elapsedSinceStart = root.timestamp - root.timerStartTimestamp;
 
@@ -68,7 +64,6 @@ Singleton {
       // Adjust next interval to sync with the start of the next second
       var msIntoSecond = newTime.getMilliseconds();
       if (msIntoSecond > 100) {
-        // If we're more than 100ms into the second, adjust for next time
         updateTimer.interval = 1000 - msIntoSecond + 10; // +10ms buffer
         updateTimer.restart();
       } else {
@@ -126,7 +121,6 @@ Singleton {
     if (minutes)
       parts.push(`${minutes}m`);
 
-    // Only show seconds if no hours and no minutes
     if (!hours && !minutes) {
       parts.push(`${seconds}s`);
     }
@@ -134,7 +128,6 @@ Singleton {
     return parts.join(' ');
   }
 
-  // Format a date into
   function formatRelativeTime(date) {
     if (!date)
       return "";
@@ -160,7 +153,6 @@ Singleton {
                    });
   }
 
-  // Timer functions
   function timerStart() {
     if (root.timerStopwatchMode) {
       root.timerRunning = true;
@@ -179,8 +171,7 @@ Singleton {
 
   function timerPause() {
     if (root.timerRunning) {
-      // Calculate and set remainingSeconds BEFORE changing timerRunning
-      // This ensures the UI sees the correct value when it reacts to timerRunning changing
+      // Set the paused value before clearing timerRunning so the UI reads the final value.
       if (root.timerStopwatchMode) {
         root.timerPausedAt = root.timerElapsedSeconds;
       } else {
@@ -191,14 +182,12 @@ Singleton {
         const currentRemaining = root.timerTotalSeconds - elapsedSinceStart;
         root.timerPausedAt = Math.max(0, currentRemaining);
 
-        // CRITICAL: Update timerRemainingSeconds to the paused value BEFORE changing timerRunning
-        // This ensures UI sees correct value when it reacts to timerRunning change
+        // Set timerRemainingSeconds before clearing timerRunning so the UI reads the final value.
         root.timerRemainingSeconds = root.timerPausedAt;
       }
     }
     root.timerRunning = false;
     root.timerStartTimestamp = 0;
-    // Stop any repeating notification sound when pausing
     SoundService.stopSound("alarm-beep.wav");
     root.timerSoundPlaying = false;
   }
@@ -214,7 +203,6 @@ Singleton {
       root.timerTotalSeconds = 0;
       root.timerPausedAt = 0;
     }
-    // Stop any repeating notification sound
     SoundService.stopSound("alarm-beep.wav");
     root.timerSoundPlaying = false;
   }
@@ -222,7 +210,6 @@ Singleton {
   function timerOnFinished() {
     root.timerRunning = false;
     root.timerRemainingSeconds = 0;
-    // Play notification sound with repeat at lower volume
     root.timerSoundPlaying = true;
     SoundService.playSound("alarm-beep.wav", {
                              repeat: true,

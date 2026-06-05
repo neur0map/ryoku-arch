@@ -21,12 +21,10 @@ function sha256(message) {
     let h6 = 0x1f83d9ab;
     let h7 = 0x5be0cd19;
 
-    // Convert string to UTF-8 bytes manually
     const msgBytes = stringToUtf8Bytes(message);
     const msgLength = msgBytes.length;
     const bitLength = msgLength * 8;
 
-    // Calculate padding
     // Message + 1 bit (0x80) + padding zeros + 8 bytes for length = multiple of 64 bytes
     const totalBitsNeeded = bitLength + 1 + 64; // message bits + padding bit + 64-bit length
     const totalBytesNeeded = Math.ceil(totalBitsNeeded / 8);
@@ -34,7 +32,6 @@ function sha256(message) {
     
     const paddedMsg = new Array(paddedLength).fill(0);
     
-    // Copy original message
     for (let i = 0; i < msgLength; i++) {
         paddedMsg[i] = msgBytes[i];
     }
@@ -47,7 +44,6 @@ function sha256(message) {
     const highBits = Math.floor(bitLength / 0x100000000);
     const lowBits = bitLength % 0x100000000;
     
-    // Write 64-bit length in big-endian format
     paddedMsg[paddedLength - 8] = (highBits >>> 24) & 0xFF;
     paddedMsg[paddedLength - 7] = (highBits >>> 16) & 0xFF;
     paddedMsg[paddedLength - 6] = (highBits >>> 8) & 0xFF;
@@ -79,10 +75,8 @@ function sha256(message) {
             w[i] = (w[i - 16] + s0 + w[i - 7] + s1) >>> 0;
         }
 
-        // Initialize working variables for this chunk
         let a = h0, b = h1, c = h2, d = h3, e = h4, f = h5, g = h6, h = h7;
 
-        // Main loop
         for (let i = 0; i < 64; i++) {
             const S1 = rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25);
             const ch = (e & f) ^ (~e & g);
@@ -112,7 +106,6 @@ function sha256(message) {
         h7 = (h7 + h) >>> 0;
     }
 
-    // Produce the final hash value as a hex string
     return [h0, h1, h2, h3, h4, h5, h6, h7]
         .map(h => h.toString(16).padStart(8, '0'))
         .join('');
@@ -137,7 +130,7 @@ function stringToUtf8Bytes(str) {
             bytes.push(0x80 | (code & 0x3F));
         } else {
             // 4-byte character (surrogate pair)
-            i++; // Move to next character
+            i++;
             const code2 = str.charCodeAt(i);
             const codePoint = 0x10000 + (((code & 0x3FF) << 10) | (code2 & 0x3FF));
             bytes.push(0xF0 | (codePoint >> 18));

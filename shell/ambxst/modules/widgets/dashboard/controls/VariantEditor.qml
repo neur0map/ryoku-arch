@@ -19,16 +19,12 @@ Item {
 
     implicitHeight: mainColumn.implicitHeight
 
-    // Get the Config object for this variant (reads directly from Config)
     readonly property var variantConfig: {
-        // Convert variant id to sr property name (e.g., "bg" -> "srBg", "primaryfocus" -> "srPrimaryfocus")
         let srName = "sr" + variantId.charAt(0).toUpperCase() + variantId.slice(1);
-        // Try to get the property from Config.theme
         let config = Config.theme[srName];
         if (config && typeof config === "object") {
             return config;
         }
-        // Fallback: search for matching property (handles case variations)
         for (let prop in Config.theme) {
             if (prop.toLowerCase() === srName.toLowerCase()) {
                 return Config.theme[prop];
@@ -37,13 +33,10 @@ Item {
         return null;
     }
 
-    // List of available color names from Colors singleton
     readonly property var colorNames: Colors.availableColorNames
 
-    // Gradient type options
     readonly property var gradientTypes: ["linear", "radial", "halftone"]
 
-    // Helper to update a property - updates Config directly
     function updateProp(prop, value) {
         if (variantConfig) {
             GlobalStates.markThemeChanged();
@@ -58,7 +51,6 @@ Item {
         spacing: 8
         enabled: root.variantConfig !== null
 
-        // === GRADIENT TYPE SELECTOR ===
         Row {
             id: typeSelector
             Layout.fillWidth: true
@@ -133,12 +125,10 @@ Item {
             }
         }
 
-        // === MAIN PROPERTIES ROW ===
         RowLayout {
             Layout.fillWidth: true
             spacing: 8
 
-            // Item Color
             ColorButton {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 1
@@ -154,13 +144,11 @@ Item {
                 }
             }
 
-            // Opacity + Border Controls Container
             RowLayout {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 1
                 spacing: 8
 
-                // Opacity Control
                 StyledRect {
                     id: opacityControl
                     variant: "pane"
@@ -174,7 +162,6 @@ Item {
                         anchors.rightMargin: 12
                         spacing: 8
 
-                        // CircularControl
                         CircularControl {
                             icon: Icons.circleHalf
                             value: root.variantConfig ? root.variantConfig.opacity : 1.0
@@ -185,7 +172,6 @@ Item {
                             onControlValueChanged: newValue => root.updateProp("opacity", newValue)
                         }
 
-                        // Label + Value
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 2
@@ -212,7 +198,6 @@ Item {
                     }
                 }
 
-                // Border Control
                 StyledRect {
                     id: borderControl
                     variant: "pane"
@@ -226,12 +211,10 @@ Item {
                         anchors.rightMargin: 12
                         spacing: 8
 
-                        // CircularControl with ColorButton as center
                         Item {
                             width: 48
                             height: 48
 
-                            // Color button in center (behind CircularControl for visual, but we handle click separately)
                             Rectangle {
                                 id: borderColorButton
                                 anchors.centerIn: parent
@@ -270,7 +253,6 @@ Item {
                             }
                         }
 
-                        // Label + Value
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 2
@@ -299,7 +281,6 @@ Item {
             }
         }
 
-        // === GRADIENT STOPS (for linear/radial) ===
         GradientStopsEditor {
             Layout.fillWidth: true
             colorNames: root.colorNames
@@ -312,7 +293,6 @@ Item {
             }
         }
 
-        // === LINEAR SETTINGS ===
         StyledRect {
             variant: "common"
             Layout.fillWidth: true
@@ -388,7 +368,6 @@ Item {
             }
         }
 
-        // === RADIAL SETTINGS ===
         StyledRect {
             variant: "common"
             Layout.fillWidth: true
@@ -401,7 +380,6 @@ Item {
                 anchors.margins: 12
                 spacing: 12
 
-                // X Position
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 12
@@ -447,7 +425,6 @@ Item {
                     }
                 }
 
-                // Y Position
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 12
@@ -495,18 +472,15 @@ Item {
             }
         }
 
-        // === HALFTONE SETTINGS ===
         ColumnLayout {
             Layout.fillWidth: true
             spacing: 8
             visible: root.variantConfig && root.variantConfig.gradientType === "halftone"
 
-            // Colors row
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 8
 
-                // Dot Color
                 ColorButton {
                     Layout.fillWidth: true
                     colorNames: root.colorNames
@@ -522,7 +496,6 @@ Item {
                     }
                 }
 
-                // Background Color
                 ColorButton {
                     Layout.fillWidth: true
                     colorNames: root.colorNames
@@ -538,7 +511,6 @@ Item {
                 }
             }
 
-            // Halftone controls
             StyledRect {
                 variant: "common"
                 Layout.fillWidth: true
@@ -550,7 +522,6 @@ Item {
                     anchors.margins: 12
                     spacing: 12
 
-                    // Angle
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: 12
@@ -620,7 +591,6 @@ Item {
                         }
                     }
 
-                    // Dot Size Range
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: 12
@@ -713,7 +683,6 @@ Item {
                         }
                     }
 
-                    // Gradient Range
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: 12

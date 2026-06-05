@@ -66,7 +66,6 @@ Popup {
     id: mainContent
     spacing: Style.marginL
 
-    // Header
     RowLayout {
       Layout.fillWidth: true
 
@@ -97,7 +96,6 @@ Popup {
       }
     }
 
-    // Color preview section
     Rectangle {
       Layout.fillWidth: true
       Layout.preferredHeight: 80
@@ -137,7 +135,6 @@ Popup {
       }
     }
 
-    // Main Box
     NBox {
       Layout.fillWidth: true
       Layout.preferredHeight: controlsOutterColumn.implicitHeight + Style.margin2L
@@ -153,16 +150,14 @@ Popup {
         spacing: Style.marginM
 
         RowLayout {
-          spacing: Style.marginL // Ensure nice gap between Left and Right groups
+          spacing: Style.marginL
 
-          // SpinBoxes Column
           ColumnLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.alignment: Qt.AlignTop
             Layout.preferredWidth: 3
 
-            // --- RED ---
             RowLayout {
               Layout.fillWidth: true
               spacing: Style.marginM
@@ -194,7 +189,6 @@ Popup {
               }
             }
 
-            // --- GREEN ---
             RowLayout {
               Layout.fillWidth: true
               spacing: Style.marginM
@@ -225,7 +219,6 @@ Popup {
               }
             }
 
-            // --- BLUE ---
             RowLayout {
               Layout.fillWidth: true
               spacing: Style.marginM
@@ -256,13 +249,11 @@ Popup {
               }
             }
 
-            // Spacer
             Item {
               Layout.fillHeight: true
               Layout.fillWidth: true
             }
 
-            // --- HUE ---
             RowLayout {
               Layout.fillWidth: true
               spacing: Style.marginM
@@ -297,7 +288,6 @@ Popup {
               }
             }
 
-            // --- SATURATION ---
             RowLayout {
               Layout.fillWidth: true
               spacing: Style.marginM
@@ -328,7 +318,6 @@ Popup {
               }
             }
 
-            // --- VALUE ---
             RowLayout {
               spacing: Style.marginM
 
@@ -358,13 +347,11 @@ Popup {
               }
             }
 
-            // Spacer
             Item {
               Layout.fillHeight: true
               Layout.fillWidth: true
             }
 
-            // Hex input
             RowLayout {
               id: hexInput
               Layout.fillWidth: true
@@ -398,7 +385,6 @@ Popup {
 
             Layout.topMargin: Math.round(2 * Style.uiScaleRatio) //Shim to try and line up colorField with SpinBoxes
 
-            // --- SLIDER ---
             NColorSlider {
               id: selectedSlider
               Layout.fillHeight: true

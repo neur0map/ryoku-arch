@@ -9,7 +9,6 @@ import qs.noctalia.Commons
 import qs.noctalia.Services.System
 import qs.noctalia.Widgets
 
-// Simple notification popup - displays multiple notifications
 Variants {
 
   model: {
@@ -87,7 +86,6 @@ Variants {
         }
       }
 
-      // Parse location setting
       readonly property string location: Settings.data.notifications.location || "top_right"
       readonly property bool isTop: location.startsWith("top")
       readonly property bool isBottom: location.startsWith("bottom")
@@ -106,7 +104,6 @@ Variants {
       readonly property int notifWidth: Math.round((isCompact ? 320 : 440) * Style.uiScaleRatio)
       readonly property int shadowPadding: Style.shadowBlurMax + Style.marginL
 
-      // Calculate bar and frame offsets for each edge separately
       readonly property int barOffsetTop: {
         if (barPos !== "top")
           return isFramed ? frameThickness : 0;
@@ -135,7 +132,6 @@ Variants {
         return barHeight + floatMarginH;
       }
 
-      // Anchoring
       anchors.top: isTop
       anchors.bottom: isBottom
       anchors.left: isLeft
@@ -227,7 +223,6 @@ Variants {
             Layout.preferredHeight: (notifWindow.isCompact ? compactContent.implicitHeight : notificationContent.implicitHeight) + Style.margin2M + notifWindow.shadowPadding * 2
             Layout.maximumHeight: Layout.preferredHeight
 
-            // Animation properties
             property real scaleValue: 0.8
             property real opacityValue: 0.0
             property real slideOffset: 0
@@ -268,7 +263,6 @@ Variants {
               return deltaY;
             }
 
-            // Animation setup
             function triggerEntryAnimation() {
               animInDelayTimer.stop();
               removalTimer.stop();
@@ -544,7 +538,6 @@ Variants {
                 }
               }
 
-              // Background with border
               Rectangle {
                 id: cardBackground
                 anchors.fill: parent
@@ -553,7 +546,6 @@ Variants {
                 border.width: Style.borderS
                 color: Qt.alpha(Color.mSurface, Color.adaptiveOpacity(Settings.data.notifications.backgroundOpacity) || 1.0)
 
-                // Progress bar
                 Rectangle {
                   anchors.top: parent.top
                   anchors.left: parent.left
@@ -600,7 +592,6 @@ Variants {
                 autoPaddingEnabled: true
               }
 
-              // Content
               ColumnLayout {
                 id: notificationContent
                 visible: !notifWindow.isCompact
@@ -632,7 +623,6 @@ Variants {
                     Layout.fillWidth: true
                     spacing: Style.marginS
 
-                    // Header with urgency indicator
                     RowLayout {
                       Layout.fillWidth: true
                       spacing: Style.marginS
@@ -693,7 +683,6 @@ Variants {
                       Layout.rightMargin: Style.marginXL
                     }
 
-                    // Actions
                     Flow {
                       Layout.fillWidth: true
                       spacing: Style.marginS
@@ -739,7 +728,6 @@ Variants {
                 }
               }
 
-              // Close button
               NIconButton {
                 visible: !notifWindow.isCompact
                 icon: "close"
@@ -755,7 +743,6 @@ Variants {
                 }
               }
 
-              // Compact content
               RowLayout {
                 id: compactContent
                 visible: notifWindow.isCompact

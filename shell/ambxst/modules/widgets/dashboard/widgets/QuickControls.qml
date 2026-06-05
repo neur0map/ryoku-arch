@@ -31,7 +31,6 @@ StyledRect {
             anchors.centerIn: parent
             spacing: 4
 
-            // Google Lens — screenshot a selected area and search it
             ControlButton {
                 Layout.preferredWidth: 48
                 Layout.preferredHeight: 48
@@ -41,7 +40,6 @@ StyledRect {
                 onClicked: Quickshell.execDetached(["ryoku-cmd-google-lens"])
             }
 
-            // Color picker
             ControlButton {
                 Layout.preferredWidth: 48
                 Layout.preferredHeight: 48
@@ -51,7 +49,6 @@ StyledRect {
                 onClicked: Quickshell.execDetached(["ryoku-cmd-color-picker"])
             }
 
-            // OCR — select an area, text is recognised and copied
             ControlButton {
                 Layout.preferredWidth: 48
                 Layout.preferredHeight: 48
@@ -61,7 +58,6 @@ StyledRect {
                 onClicked: Quickshell.execDetached(["ryoku-cmd-ocr"])
             }
 
-            // QR code scanner
             ControlButton {
                 Layout.preferredWidth: 48
                 Layout.preferredHeight: 48

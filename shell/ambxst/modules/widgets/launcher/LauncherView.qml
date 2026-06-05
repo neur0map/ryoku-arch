@@ -25,10 +25,9 @@ Rectangle {
     focus: true
 
     property int leftPanelWidth: isCompact ? 464 : 300
-    property int currentTab: GlobalStates.widgetsTabCurrentIndex  // 0=launcher, 1=clip, 2=emoji, 3=tmux, 4=notes
+    property int currentTab: GlobalStates.widgetsTabCurrentIndex
     property bool prefixDisabled: false  // Flag to prevent re-activation after backspace
 
-    // Sync with GlobalStates
     onCurrentTabChanged: {
         GlobalStates.widgetsTabCurrentIndex = currentTab;
         focusSearchInput();
@@ -40,7 +39,6 @@ Rectangle {
         }
     }
 
-    // Force focus on start and tab change
     Timer {
         id: focusRetryTimer
         interval: 50
@@ -56,7 +54,7 @@ Rectangle {
             let focused = false;
             if (currentTab === 0) {
                 appLauncher.focusSearchInput();
-                focused = true; // Apps launcher is usually always ready
+                focused = true;
             } else {
                 let loader = internalStack.itemAt(currentTab - 1);
                 if (loader && loader.item && loader.item.focusSearchInput) {
@@ -81,30 +79,23 @@ Rectangle {
         focusSearchInput();
     }
 
-    // Handle prefix detection in launcher
     function detectPrefix(text) {
         let clipPrefix = Config.prefix.clipboard + " ";
         let emojiPrefix = Config.prefix.emoji + " ";
         let tmuxPrefix = Config.prefix.tmux + " ";
         let notesPrefix = Config.prefix.notes + " ";
 
-        // If prefix was manually disabled, don't re-enable until conditions are met
         if (prefixDisabled) {
-            // Only re-enable prefix if user deletes the prefix text or adds valid content
             if (text === clipPrefix || text === emojiPrefix || text === tmuxPrefix || text === notesPrefix) {
-                // Still at exact prefix - keep disabled
                 return 0;
             } else if (!text.startsWith(clipPrefix) && !text.startsWith(emojiPrefix) && !text.startsWith(tmuxPrefix) && !text.startsWith(notesPrefix)) {
-                // User deleted the prefix - re-enable detection
                 prefixDisabled = false;
                 return 0;
             } else {
-                // User typed something after the prefix but it's still disabled
                 return 0;
             }
         }
 
-        // Normal prefix detection - only activate if exactly "prefix " (nothing after)
         if (text === clipPrefix) {
             return 1;
         } else if (text === emojiPrefix) {
@@ -117,7 +108,6 @@ Rectangle {
         return 0;
     }
 
-    // App Launcher - shown only when currentTab === 0
     Rectangle {
         id: appLauncher
         anchors.fill: parent
@@ -128,16 +118,13 @@ Rectangle {
         property bool showResults: searchText.length > 0
         property int selectedIndex: GlobalStates.launcherSelectedIndex
 
-        // Options menu state (expandable list)
         property int expandedItemIndex: -1
         property int selectedOptionIndex: 0
         property bool keyboardNavigation: false
 
-        // Animated model for smooth filtering
         property var filteredApps: []
         property var appsById: ({})
 
-        // Incremental loading state
         property var pendingApps: []
         property int loadedCount: 0
         property int batchSize: 10
@@ -188,13 +175,11 @@ Rectangle {
         }
 
         function updateAppsModel() {
-            // Stop any existing loading
             incrementalLoader.stop();
             
             let newApps = filteredApps;
             appLauncher.pendingApps = newApps;
 
-            // Build apps by ID map for execution
             appsById = {};
             for (let i = 0; i < newApps.length; i++) {
                 appsById[newApps[i].id] = newApps[i];
@@ -202,7 +187,6 @@ Rectangle {
 
             appsModel.clear();
             
-            // Load first batch immediately for instant feedback
             let initialBatch = Math.min(appLauncher.batchSize, newApps.length);
             for (let i = 0; i < initialBatch; i++) {
                 let app = newApps[i];
@@ -219,7 +203,6 @@ Rectangle {
             
             appLauncher.loadedCount = initialBatch;
             
-            // Schedule rest if needed
             if (appLauncher.loadedCount < newApps.length) {
                 incrementalLoader.start();
             }
@@ -229,7 +212,6 @@ Rectangle {
             let app = appsById[appId];
             if (app && app.execute) {
                 app.execute();
-                // Record usage for sorting priority
                 UsageTracker.recordUsage(appId);
             }
         }
@@ -239,10 +221,8 @@ Rectangle {
         }
 
         Component.onCompleted: {
-            // Defer initial load to allow animation to start smoothly
             initialLoadTimer.start();
             
-            // Re-update when UsageTracker finishes loading
             UsageTracker.usageDataReady.connect(function() {
                 AppSearch.invalidateCache();
                 if (appLauncher.visible) {
@@ -266,21 +246,17 @@ Rectangle {
 
         onSearchTextChanged: {
             updateFilteredApps();
-            // Detect prefix and switch tab if needed
             let detectedTab = detectPrefix(searchText);
             if (detectedTab !== currentTab) {
                 if (detectedTab === 0) {
-                    // Return to launcher
                     currentTab = 0;
                     prefixDisabled = false;
                     Qt.callLater(() => {
                         appLauncher.focusSearchInput();
                     });
                 } else {
-                    // Switch to prefix tab
                     currentTab = detectedTab;
 
-                    // Extract the text after the prefix
                     let prefixLength = 0;
                     if (searchText.startsWith(Config.prefix.clipboard + " "))
                         prefixLength = Config.prefix.clipboard.length + 1;
@@ -293,7 +269,6 @@ Rectangle {
 
                     let remainingText = searchText.substring(prefixLength);
 
-                    // Wait for loader to be ready and then focus
                     Qt.callLater(() => {
                         let targetItem = null;
                         let targetLoader = null;
@@ -308,14 +283,11 @@ Rectangle {
                             targetLoader = notesLoader;
                         }
 
-                        // If loader is ready, use it immediately
                         if (targetLoader && targetLoader.item) {
                             targetItem = targetLoader.item;
-                            // Set the search text in the new tab
                             if (targetItem.searchText !== undefined) {
                                 targetItem.searchText = remainingText;
                             }
-                            // Focus the search input
                             root.focusSearchInput();
                         }
                     // Otherwise, the onLoaded handler will take care of focusing
@@ -329,7 +301,6 @@ Rectangle {
                 resultsList.contentY = 0;
             }
 
-            // Close expanded options when selection changes to a different item
             if (expandedItemIndex >= 0 && selectedIndex !== expandedItemIndex) {
                 expandedItemIndex = -1;
                 selectedOptionIndex = 0;
@@ -350,31 +321,24 @@ Rectangle {
             if (index < 0 || index >= appsModel.count)
                 return;
 
-            // Calculate Y position of the item
             var itemY = 0;
             for (var i = 0; i < index; i++) {
-                itemY += 48; // All items before are collapsed (base height)
+                itemY += 48;
             }
 
-            // Calculate expanded item height - always 3 options (Launch, Pin/Unpin, Create Shortcut)
             var listHeight = 36 * 3;
             var expandedHeight = 48 + 4 + listHeight + 8;
 
-            // Calculate max valid scroll position
             var maxContentY = Math.max(0, resultsList.contentHeight - resultsList.height);
 
-            // Current viewport bounds
             var viewportTop = resultsList.contentY;
             var viewportBottom = viewportTop + resultsList.height;
 
-            // Only scroll if item is not fully visible
             var itemBottom = itemY + expandedHeight;
 
             if (itemY < viewportTop) {
-                // Item top is above viewport - scroll up to show it
                 resultsList.contentY = itemY;
             } else if (itemBottom > viewportBottom) {
-                // Item bottom is below viewport - scroll down to show it
                 resultsList.contentY = Math.min(itemBottom - resultsList.height, maxContentY);
             }
         // Otherwise, item is already fully visible - no scroll needed
@@ -392,7 +356,6 @@ Rectangle {
             id: mainLayout
             anchors.fill: parent
 
-            // Search input
             SearchInput {
                 id: searchInput
                 width: parent.width
@@ -428,19 +391,15 @@ Rectangle {
 
                 onAccepted: {
                     if (appLauncher.expandedItemIndex >= 0) {
-                        // Execute selected option when menu is expanded
                         let selectedApp = appsModel.get(appLauncher.expandedItemIndex);
                         if (selectedApp) {
-                            // Build options array
                             let options = [function () {
                                     appLauncher.executeApp(selectedApp.appId);
                                     Visibilities.setActiveModule("");
                                 }, function () {
-                                    // Pin/Unpin from dock
                                     TaskbarApps.togglePin(selectedApp.appId);
                                     appLauncher.expandedItemIndex = -1;
                                 }, function () {
-                                    // Create shortcut
                                     let desktopDir = Quickshell.env("XDG_DESKTOP_DIR") || Quickshell.env("HOME") + "/Desktop";
                                     let timestamp = Date.now();
                                     let fileName = selectedApp.appId + "-" + timestamp + ".desktop";
@@ -471,7 +430,6 @@ Rectangle {
 
                 onShiftAccepted: {
                     if (appLauncher.selectedIndex >= 0 && appLauncher.selectedIndex < resultsList.count) {
-                        // Toggle expanded state
                         if (appLauncher.expandedItemIndex === appLauncher.selectedIndex) {
                             appLauncher.expandedItemIndex = -1;
                             appLauncher.selectedOptionIndex = 0;
@@ -496,7 +454,6 @@ Rectangle {
 
                 onDownPressed: {
                     if (appLauncher.expandedItemIndex >= 0) {
-                        // Navigate options when menu is expanded - always 3 options
                         if (appLauncher.selectedOptionIndex < 2) {
                             appLauncher.selectedOptionIndex++;
                             appLauncher.keyboardNavigation = true;
@@ -516,7 +473,6 @@ Rectangle {
 
                 onUpPressed: {
                     if (appLauncher.expandedItemIndex >= 0) {
-                        // Navigate options when menu is expanded
                         if (appLauncher.selectedOptionIndex > 0) {
                             appLauncher.selectedOptionIndex--;
                             appLauncher.keyboardNavigation = true;
@@ -575,7 +531,6 @@ Rectangle {
                 }
             }
 
-            // Results list
             ListView {
                 id: resultsList
                 width: parent.width
@@ -610,7 +565,6 @@ Rectangle {
                         appLauncher.selectedIndex = currentIndex;
                     }
 
-                    // Manual smooth auto-scroll accounting for variable height items
                     if (currentIndex >= 0) {
                         var itemY = 0;
                         for (var i = 0; i < currentIndex && i < appsModel.count; i++) {
@@ -632,10 +586,8 @@ Rectangle {
                         var viewportBottom = viewportTop + resultsList.height;
 
                         if (itemY < viewportTop) {
-                            // Item is above viewport, scroll up
                             resultsList.contentY = itemY;
                         } else if (itemY + currentItemHeight > viewportBottom) {
-                            // Item is below viewport, scroll down
                             resultsList.contentY = itemY + currentItemHeight - resultsList.height;
                         }
                     }
@@ -699,12 +651,10 @@ Rectangle {
                                     Visibilities.setActiveModule("");
                                 }
                             } else if (mouse.button === Qt.RightButton) {
-                                // Toggle expanded state
                                 if (appLauncher.expandedItemIndex === index) {
                                     appLauncher.expandedItemIndex = -1;
                                     appLauncher.selectedOptionIndex = 0;
                                     appLauncher.keyboardNavigation = false;
-                                    // Update selection to current hover position after closing
                                     GlobalStates.launcherSelectedIndex = index;
                                     appLauncher.selectedIndex = index;
                                     resultsList.currentIndex = index;
@@ -720,7 +670,6 @@ Rectangle {
                         }
                     }
 
-                    // App content (icon and text)
                     RowLayout {
                         anchors.left: parent.left
                         anchors.right: parent.right
@@ -729,7 +678,6 @@ Rectangle {
                         height: 32
                         spacing: 12
 
-                        // App icon
                         Item {
                             Layout.preferredWidth: 32
                             Layout.preferredHeight: 32
@@ -812,7 +760,6 @@ Rectangle {
                         }
                     }
 
-                    // Expandable options list
                     RowLayout {
                         anchors.left: parent.left
                         anchors.right: parent.right
@@ -834,7 +781,7 @@ Rectangle {
 
                         ClippingRectangle {
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 36 * 3 // Always 3 options
+                            Layout.preferredHeight: 36 * 3
                             color: Colors.background
                             radius: Styling.radius(0)
 
@@ -1079,14 +1026,12 @@ Rectangle {
         }
     }
 
-    // StackLayout for other tabs (clipboard, emoji, tmux, notes)
     StackLayout {
         id: internalStack
         anchors.fill: parent
         visible: currentTab !== 0
         currentIndex: currentTab - 1
 
-        // Tab 1: Clipboard
         Loader {
             id: clipboardLoader
             active: currentTab === 1 || item !== null
@@ -1113,7 +1058,6 @@ Rectangle {
             }
         }
 
-        // Tab 2: Emoji
         Loader {
             id: emojiLoader
             Layout.fillWidth: true
@@ -1139,7 +1083,6 @@ Rectangle {
             }
         }
 
-        // Tab 3: Tmux
         Loader {
             id: tmuxLoader
             Layout.fillWidth: true
@@ -1164,7 +1107,6 @@ Rectangle {
             }
         }
 
-        // Tab 4: Notes
         Loader {
             id: notesLoader
             Layout.fillWidth: true
@@ -1191,7 +1133,6 @@ Rectangle {
         }
     }
 
-    // Process for opening items from clipboard
     Process {
         id: globalOpenProcess
         running: false
@@ -1209,7 +1150,6 @@ Rectangle {
         }
     }
 
-    // Internal function to open items - called by signal handlers
     function openItemInternal(itemId, items, currentContent, getFilePathFromUri, isUrl) {
         console.log("DEBUG: LauncherView.openItemInternal called for itemId:", itemId);
         for (var i = 0; i < items.length; i++) {

@@ -6,7 +6,6 @@ import qs.noctalia.Commons
 import qs.noctalia.Services.Location
 import qs.noctalia.Widgets
 
-// Calendar header with date, month/year, location, and clock
 Rectangle {
   id: root
   Layout.fillWidth: true
@@ -16,7 +15,6 @@ Rectangle {
   radius: Style.radiusL
   color: Color.mPrimary
 
-  // Internal state
   readonly property var now: Time.now
   readonly property bool weatherReady: Settings.data.location.weatherEnabled && (LocationService.data.weather !== null)
 
@@ -35,14 +33,12 @@ Rectangle {
     anchors.leftMargin: Style.marginXL
     spacing: 0
 
-    // Combined layout for date, month year, location and time-zone
     RowLayout {
       Layout.fillWidth: true
       height: 60 * Style.uiScaleRatio
       clip: true
       spacing: Style.marginS
 
-      // Today day number
       NText {
         Layout.preferredWidth: implicitWidth
         elide: Text.ElideNone
@@ -54,7 +50,6 @@ Rectangle {
         color: Color.mOnPrimary
       }
 
-      // Month, year, location
       ColumnLayout {
         Layout.fillWidth: true
         Layout.alignment: Qt.AlignVCenter | Qt.AlignLeft
@@ -113,14 +108,12 @@ Rectangle {
         }
       }
 
-      // Spacer
       Item {
         Layout.fillWidth: true
       }
     }
   }
 
-  // Analog/Digital clock
   NClock {
     id: clockLoader
     anchors.right: parent.right

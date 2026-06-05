@@ -22,7 +22,6 @@ PopupWindow {
   // Derive menu from trayItem (only used for non-submenus)
   readonly property QsMenuHandle menu: isSubMenu ? null : (trayItem ? trayItem.menu : null)
 
-  // Compute if current tray item is pinned
   readonly property bool isPinned: {
     if (!trayItem || widgetSection === "" || widgetIndex < 0)
       return false;
@@ -64,7 +63,6 @@ PopupWindow {
     if (anchorItem && screen) {
       let baseX = anchorX;
 
-      // Calculate position relative to current screen
       let menuScreenX;
       if (isSubMenu && anchorItem.Window && anchorItem.Window.window) {
         const posInPopup = anchorItem.mapToItem(null, 0, 0);
@@ -104,7 +102,6 @@ PopupWindow {
 
       // Only apply bottom bar special positioning if:
       // 1. Not a submenu
-      // 2. Bar is at bottom
       // 3. anchorY is not already negative (if negative, it's pre-calculated from drawer)
       const shouldApplyBottomBarLogic = !isSubMenu && barPosition === "bottom" && anchorY >= 0;
 
@@ -117,11 +114,9 @@ PopupWindow {
         baseY = barHeight + Style.marginS;
       }
 
-      // Use a robust way to get screen coordinates
       const posInWindow = anchorItem.mapToItem(null, 0, 0);
       const parentWindow = anchorItem.Window.window;
 
-      // Calculate screen-relative Y of the window
       let windowYOnScreen = (parentWindow && screen) ? (parentWindow.y - screen.y) : 0;
 
       // If window reported 0 but bar is at bottom, assume it's at screen bottom
@@ -129,7 +124,6 @@ PopupWindow {
         windowYOnScreen = screen.height - (parentWindow ? parentWindow.height : Style.getBarHeightForScreen(screen.name));
       }
 
-      // Calculate the screen Y of the menu top
       // Use a small guess for height if implicitHeight is 0 to avoid covering the bar on the first frame
       const effectiveHeight = implicitHeight > 0 ? implicitHeight : 200;
       const effectiveBaseY = shouldApplyBottomBarLogic ? -(effectiveHeight + Style.marginS) : baseY;
@@ -156,7 +150,6 @@ PopupWindow {
       return finalBaseY;
     }
 
-    // Fallback if no anchor/screen
     if (isSubMenu) {
       return anchorY;
     }
@@ -182,7 +175,6 @@ PopupWindow {
     visible = true;
     forceActiveFocus();
 
-    // Force update after showing.
     Qt.callLater(() => {
                    root.anchor.updateAnchor();
                  });
@@ -191,7 +183,6 @@ PopupWindow {
   function hideMenu() {
     visible = false;
 
-    // Clean up all submenus recursively
     for (var i = 0; i < columnLayout.children.length; i++) {
       const child = columnLayout.children[i];
       if (child?.subMenu) {
@@ -219,7 +210,6 @@ PopupWindow {
     border.width: Math.max(1, Style.borderS)
     radius: Style.radiusM
 
-    // Fade-in animation
     opacity: root.visible ? 1.0 : 0.0
 
     Behavior on opacity {
@@ -237,7 +227,6 @@ PopupWindow {
     contentHeight: columnLayout.implicitHeight
     interactive: true
 
-    // Fade-in animation
     opacity: root.visible ? 1.0 : 0.0
 
     Behavior on opacity {
@@ -247,7 +236,6 @@ PopupWindow {
       }
     }
 
-    // Use a ColumnLayout to handle menu item arrangement
     ColumnLayout {
       id: columnLayout
       width: flickable.width
@@ -265,7 +253,6 @@ PopupWindow {
             if (modelData?.isSeparator) {
               return 8;
             } else {
-              // Calculate based on text content
               const textHeight = text.contentHeight || (Style.fontSizeS * 1.2);
               return Math.max(28, textHeight + Style.margin2S);
             }
@@ -293,7 +280,6 @@ PopupWindow {
               anchors.rightMargin: Style.marginM
               spacing: Style.marginS
 
-              // Indicator Container
               Item {
                 visible: (modelData?.buttonType ?? QsMenuButtonType.None) !== QsMenuButtonType.None
 
@@ -301,17 +287,14 @@ PopupWindow {
                 implicitHeight: Math.round(Style.baseWidgetSize * 0.5)
                 Layout.alignment: Qt.AlignVCenter
 
-                // Helper properties
                 readonly property int type: modelData?.buttonType ?? QsMenuButtonType.None
                 readonly property bool isRadio: type === QsMenuButtonType.RadioButton
                 readonly property bool isChecked: modelData?.checkState === Qt.Checked || (modelData?.checked ?? false)
 
-                // Color Logic
                 readonly property color activeColor: mouseArea.containsMouse ? Color.mOnHover : Color.mPrimary
                 readonly property color checkMarkColor: mouseArea.containsMouse ? Color.mHover : Color.mOnPrimary
                 readonly property color borderColor: isChecked ? activeColor : (mouseArea.containsMouse ? Color.mOnHover : Color.mOnSurface)
 
-                // Checkbox Visuals
                 Rectangle {
                   visible: !parent.isRadio
                   anchors.centerIn: parent
@@ -338,7 +321,6 @@ PopupWindow {
                   }
                 }
 
-                // RadioButton Visuals
                 Rectangle {
                   visible: parent.isRadio
                   anchors.centerIn: parent
@@ -410,14 +392,11 @@ PopupWindow {
               onClicked: mouse => {
                            if (modelData && !modelData.isSeparator) {
                              if (modelData.hasChildren) {
-                               // Click on items with children toggles submenu
                                if (entry.subMenu) {
-                                 // Close existing submenu
                                  entry.subMenu.hideMenu();
                                  entry.subMenu.destroy();
                                  entry.subMenu = null;
                                } else {
-                                 // Close any other open submenus first
                                  for (var i = 0; i < columnLayout.children.length; i++) {
                                    const sibling = columnLayout.children[i];
                                    if (sibling !== entry && sibling.subMenu) {
@@ -440,7 +419,6 @@ PopupWindow {
                                    openLeft = (root.widgetSection === "right");
                                  }
 
-                                 // Open new submenu
                                  entry.subMenu = Qt.createComponent("TrayMenu.qml").createObject(root, {
                                                                                                    "menu": modelData,
                                                                                                    "isSubMenu": true,
@@ -453,18 +431,15 @@ PopupWindow {
                                    entry.subMenu.anchorX = openLeft ? -overlap : overlap;
                                    entry.subMenu.anchorY = 0;
                                    entry.subMenu.visible = true;
-                                   // Force anchor update with new position
                                    Qt.callLater(() => {
                                                   entry.subMenu.anchor.updateAnchor();
                                                 });
                                  }
                                }
                              } else {
-                               // Click on regular items triggers them
                                modelData.triggered();
                                root.hideMenu();
 
-                               // Close the drawer if it's open
                                if (root.screen) {
                                  const panel = PanelService.getPanel("trayDrawerPanel", root.screen);
                                  if (panel && panel.visible) {
@@ -486,7 +461,6 @@ PopupWindow {
         }
       }
 
-      // PIN / UNPIN
       Rectangle {
         visible: {
           if (widgetSection === "" || widgetIndex < 0)

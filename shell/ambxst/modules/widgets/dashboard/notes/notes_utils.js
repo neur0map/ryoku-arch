@@ -1,4 +1,3 @@
-// notes_utils.js - Utility functions for notes management
 
 /**
  * Generate a UUID v4
@@ -34,7 +33,6 @@ function formatTimestamp(isoTimestamp) {
         var diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
         
         if (diffDays === 0) {
-            // Today - show time
             return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         } else if (diffDays === 1) {
             return "Yesterday";
@@ -71,18 +69,15 @@ function getPreview(content, maxLength) {
     if (!content) return "";
     maxLength = maxLength || 100;
     
-    // Remove markdown headers and get first meaningful line
     var lines = content.split('\n');
     var preview = "";
     
     for (var i = 0; i < lines.length; i++) {
         var line = lines[i].trim();
-        // Skip empty lines and headers for preview
         if (line && !line.startsWith('#')) {
             preview = line;
             break;
         }
-        // If it's a header, use it as fallback
         if (line.startsWith('#') && !preview) {
             preview = line.replace(/^#+\s*/, '');
         }

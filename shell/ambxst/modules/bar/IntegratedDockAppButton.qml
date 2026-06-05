@@ -62,7 +62,6 @@ Button {
     }
 
     contentItem: Item {
-        // Separator
         Loader {
             active: root.isSeparator
             anchors.centerIn: parent
@@ -73,14 +72,12 @@ Button {
             }
         }
 
-        // App icon and indicators
         Loader {
             active: !root.isSeparator
             anchors.fill: parent
             sourceComponent: Item {
                 anchors.fill: parent
 
-                // App icon container
                 Item {
                     id: appIconContainer
                     anchors.centerIn: parent
@@ -110,7 +107,6 @@ Button {
                     }
                 }
 
-                // Running indicators - horizontal (for horizontal bar)
                 Row {
                     anchors.bottom: parent.bottom
                     anchors.bottomMargin: -2
@@ -137,7 +133,6 @@ Button {
                     }
                 }
 
-                // Running indicators - vertical (for vertical bar)
                 Column {
                     anchors.left: parent.left
                     anchors.leftMargin: -2
@@ -167,25 +162,21 @@ Button {
         }
     }
 
-    // Left click: launch or cycle through windows
     onClicked: {
         if (isSeparator)
             return;
 
         if (appToplevel.toplevelCount === 0) {
-            // Launch the app
             if (desktopEntry) {
                 AppSearch.launchApp(desktopEntry);
             }
             return;
         }
 
-        // Cycle through running windows
         lastFocused = (lastFocused + 1) % appToplevel.toplevelCount;
         appToplevel.toplevels[lastFocused].activate();
     }
 
-    // Middle click: always launch new instance
     MouseArea {
         anchors.fill: parent
         acceptedButtons: Qt.MiddleButton | Qt.RightButton
@@ -195,18 +186,15 @@ Button {
                 return;
 
             if (mouse.button === Qt.MiddleButton) {
-                // Launch new instance
                 if (root.desktopEntry) {
                     AppSearch.launchApp(root.desktopEntry);
                 }
             } else if (mouse.button === Qt.RightButton) {
-                // Toggle pin
                 TaskbarApps.togglePin(root.appToplevel?.appId ?? "");
             }
         }
     }
 
-    // Tooltip
     StyledToolTip {
         show: root.hovered && !root.isSeparator
         tooltipText: root.desktopEntry?.name ?? root.appToplevel?.appId ?? ""

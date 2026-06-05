@@ -6,8 +6,6 @@ import qs.ambxst.modules.theme
 import qs.ambxst.modules.components
 import qs.ambxst.config
 
-// Reusable color picker button with preview and label
-// Emits openColorPicker signal for parent to handle
 StyledRect {
     id: root
 
@@ -15,8 +13,8 @@ StyledRect {
     required property string currentColor
     property string label: ""
 
-    property bool circlePreview: false  // Use circular preview (for dot colors)
-    property bool compact: false  // Compact mode for tighter spaces
+    property bool circlePreview: false
+    property bool compact: false
     property string dialogTitle: "Select Color"
 
     signal colorSelected(string color)
@@ -26,7 +24,6 @@ StyledRect {
     height: compact ? 36 : 56
     radius: Styling.radius(-1)
 
-    // Helper to get display name
     readonly property string displayName: {
         if (!currentColor) return "";
         const val = currentColor.toString();
@@ -38,7 +35,6 @@ StyledRect {
         anchors.margins: root.compact ? 6 : 8
         spacing: root.compact ? 6 : 8
 
-        // Color preview
         Rectangle {
             Layout.preferredWidth: root.compact ? 24 : 32
             Layout.preferredHeight: root.compact ? 24 : 32

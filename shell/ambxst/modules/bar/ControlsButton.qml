@@ -37,7 +37,6 @@ Item {
         onHoveredChanged: root.isHovered = hovered
     }
 
-    // Main button
     StyledRect {
         id: buttonBg
         variant: root.popupOpen ? "primary" : "bg"
@@ -87,7 +86,6 @@ Item {
         }
     }
 
-    // Controls popup
     BarPopup {
         id: controlsPopup
         anchorItem: buttonBg
@@ -104,7 +102,6 @@ Item {
             anchors.fill: parent
             spacing: 12
 
-            // Volume Slider
             ControlSliderRow {
                 id: volumeRow
                 Layout.fillWidth: true
@@ -152,7 +149,6 @@ Item {
                 }
             }
 
-            // Microphone Slider
             ControlSliderRow {
                 id: micRow
                 Layout.fillWidth: true
@@ -189,7 +185,6 @@ Item {
                 }
             }
 
-            // Brightness Slider
             ControlSliderRow {
                 id: brightnessRow
                 Layout.fillWidth: true
@@ -241,7 +236,6 @@ Item {
     }
 
     Component.onCompleted: {
-        // Initialize values
         if (Audio.sink?.audio)
             volumeRow.sliderValue = Audio.sink.audio.volume;
         if (Audio.source?.audio)

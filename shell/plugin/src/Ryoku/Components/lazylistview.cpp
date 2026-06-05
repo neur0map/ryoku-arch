@@ -13,8 +13,6 @@ constexpr int ASYNC_BATCH_DESTROY = 4;
 
 namespace ryoku::components {
 
-// --- LazyListViewAttached ---
-
 LazyListViewAttached::LazyListViewAttached(QObject* parent)
     : QObject(parent) {}
 
@@ -84,8 +82,6 @@ void LazyListViewAttached::setTrackViewport(bool track) {
     emit trackViewportChanged();
 }
 
-// --- LazyListView ---
-
 LazyListView::LazyListView(QQuickItem* parent)
     : QQuickItem(parent) {
     setFlag(ItemHasContents, false);
@@ -101,8 +97,6 @@ LazyListView::~LazyListView() {
     for (auto& entry : m_dyingDelegates)
         destroyDelegate(entry);
 }
-
-// --- Model & Delegate ---
 
 QAbstractItemModel* LazyListView::model() const {
     return m_model;
@@ -137,8 +131,6 @@ void LazyListView::setDelegate(QQmlComponent* delegate) {
     emit delegateChanged();
 }
 
-// --- Layout ---
-
 qreal LazyListView::spacing() const {
     return m_spacing;
 }
@@ -170,8 +162,6 @@ void LazyListView::setContentY(qreal contentY) {
     emit contentYChanged();
     polish();
 }
-
-// --- Viewport ---
 
 QRectF LazyListView::viewport() const {
     return m_viewport;
@@ -209,8 +199,6 @@ void LazyListView::setCacheBuffer(qreal buffer) {
     emit cacheBufferChanged();
     polish();
 }
-
-// --- Sizing ---
 
 qreal LazyListView::estimatedHeight() const {
     return m_estimatedHeight;
@@ -286,8 +274,6 @@ bool LazyListView::isDelegateReady(QQuickItem* item) {
     return !att || att->ready();
 }
 
-// --- Animation Durations ---
-
 int LazyListView::removeDuration() const {
     return m_removeDuration;
 }
@@ -310,13 +296,9 @@ void LazyListView::setReadyDelay(int delay) {
     emit readyDelayChanged();
 }
 
-// --- State ---
-
 int LazyListView::count() const {
     return m_model ? m_model->rowCount() : 0;
 }
-
-// --- QQuickItem Overrides ---
 
 void LazyListView::componentComplete() {
     QQuickItem::componentComplete();

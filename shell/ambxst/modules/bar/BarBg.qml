@@ -17,20 +17,15 @@ Item {
 
     readonly property bool effectiveContainBar: Config.bar.containBar && (Config.bar.frameEnabled ?? false)
 
-    // Corner size logic: only when at the very edge (no margins)
     readonly property int cornerSize: (Config.theme.enableCorners && !effectiveContainBar && root.outerMargin === 0) ? Styling.radius(4) : 0
     readonly property bool isHorizontal: position === "top" || position === "bottom"
     readonly property bool cornersVisible: Config.theme.enableCorners && cornerSize > 0
 
-    // New logic: padding 4 if opaque (>1%), 0 if transparent
     readonly property real bgOpacity: Config.theme.srBarBg.opacity
     readonly property int padding: bgOpacity < 0.01 ? 0 : 4
 
-    // Combined outer margin for screen/frame edges
-    // This margin (4px) should only exist when bar is floating (!effectiveContainBar)
     readonly property int outerMargin: !effectiveContainBar ? 4 : 0
 
-    // StyledRect expanded that covers bar + corners
     StyledRect {
         id: barBackground
         variant: "barbg"
@@ -38,7 +33,6 @@ Item {
         radius: Styling.radius(effectiveContainBar ? 4 : 0)
         enableBorder: !effectiveContainBar || (Config.bar.keepBarBorder ?? false)
 
-        // Position and size expanded to cover corners
         x: (position === "right") ? -cornerSize : 0
         y: (position === "bottom") ? -cornerSize : 0
         width: root.width + (isHorizontal ? 0 : cornerSize)
@@ -59,7 +53,6 @@ Item {
         anchors.margins: root.padding
     }
 
-    // Mascara combinada para la bar + corners
     Item {
         id: barMask
         visible: false
@@ -70,7 +63,6 @@ Item {
         layer.enabled: true
         layer.smooth: true
 
-        // Rectangulo central (la bar misma)
         Rectangle {
             id: centerMask
             color: "white"
@@ -80,7 +72,6 @@ Item {
             height: root.height
         }
 
-        // Corner izquierdo/superior
         Item {
             id: cornerLeftMask
             width: cornerSize
@@ -142,7 +133,6 @@ Item {
             }
         }
 
-        // Corner derecho/inferior
         Item {
             id: cornerRightMask
             width: cornerSize

@@ -36,7 +36,6 @@ PanelWindow {
 
   mask: Region {}
 
-  // Wayland layer shell configuration
   WlrLayershell.layer: WlrLayer.Top
   WlrLayershell.namespace: "noctalia-bar-exclusion-" + edge + "-" + (screen?.name || "unknown")
   // When auto-hide, non-exclusive mode is enabled, OR bar is explicitly hidden via IPC, don't reserve space
@@ -53,7 +52,6 @@ PanelWindow {
     right: edge === "right" || edge === "top" || edge === "bottom"
   }
 
-  // Size based on orientation
   implicitWidth: {
     if (edge === "left" || edge === "right") {
       return thickness + barMarginH - bleedInset;

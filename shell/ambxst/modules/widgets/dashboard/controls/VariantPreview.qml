@@ -32,7 +32,6 @@ Item {
             variant: root.variantId
             enableBorder: true
 
-            // Selection indicator
             Rectangle {
                 anchors.fill: parent
                 color: "transparent"
@@ -48,7 +47,6 @@ Item {
                 }
             }
 
-            // Cube icon
             Text {
                 anchors.centerIn: parent
                 text: Icons.cube
@@ -84,7 +82,6 @@ Item {
             }
         }
 
-        // Label
         Text {
             text: root.variantLabel
             font.family: Styling.defaultFont

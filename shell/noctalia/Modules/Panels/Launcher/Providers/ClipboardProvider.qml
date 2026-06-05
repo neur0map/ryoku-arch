@@ -7,24 +7,20 @@ import qs.noctalia.Services.Noctalia
 Item {
   id: root
 
-  // Provider metadata
   property string name: I18n.tr("launcher.providers.clipboard")
   property var launcher: null
   property string iconMode: Settings.data.appLauncher.iconMode
-  property string supportedLayouts: "list" // List view for clipboard content
+  property string supportedLayouts: "list"
   property bool wrapNavigation: false // Don't wrap at end of list
 
-  // Provider capabilities
-  property bool handleSearch: false // Don't handle regular search
+  property bool handleSearch: false
 
-  // Preview support
   property bool hasPreview: Settings.data.appLauncher.enableClipPreview
   property string previewComponentPath: "./ClipboardPreview.qml"
 
   // Image handling - expose revision for reactive updates in delegates
   readonly property int imageRevision: ClipboardService.revision
 
-  // Categories
   property var availableCategories: Settings.data.appLauncher.enableClipboardChips ? ["All", "Images", "Links", "Files", "Code", "Colors"] : []
   property string selectedCategory: "All"
 
@@ -46,12 +42,10 @@ Item {
     "Colors": iconMode === "tabler" ? "palette" : "color-picker"
   }
 
-  // Internal state
   property bool isWaitingForData: false
   property bool gotResults: false
   property string lastSearchText: ""
 
-  // Listen for clipboard data updates
   Connections {
     target: ClipboardService
     function onListCompleted() {
@@ -79,7 +73,6 @@ Item {
     }
   }
 
-  // Initialize provider
   function init() {
     Logger.d("ClipboardProvider", "Initialized");
     // Pre-load clipboard data if service is active
@@ -88,19 +81,16 @@ Item {
     }
   }
 
-  // Called when launcher opens
   function onOpened() {
     isWaitingForData = true;
     gotResults = false;
     lastSearchText = "";
 
-    // Refresh clipboard history when launcher opens
     if (ClipboardService.active) {
       ClipboardService.list(100);
     }
   }
 
-  // Check if this provider handles the command
   function handleCommand(searchText) {
     return searchText.startsWith(">clip");
   }
@@ -132,7 +122,6 @@ Item {
         ];
   }
 
-  // Get search results
   function getResults(searchText) {
     if (!searchText.startsWith(">clip")) {
       return [];
@@ -142,7 +131,6 @@ Item {
     const results = [];
     const query = searchText.slice(5).trim();
 
-    // Check if clipboard service is not active
     if (!ClipboardService.active) {
       // If dependency check hasn't completed yet, show loading instead of disabled
       if (!ClipboardService.dependencyChecked) {
@@ -186,7 +174,6 @@ Item {
           ];
     }
 
-    // Show loading state if data is being loaded
     if (ClipboardService.loading || isWaitingForData) {
       return [
             {
@@ -200,7 +187,6 @@ Item {
           ];
     }
 
-    // Get clipboard items
     const items = ClipboardService.items || [];
 
     // If no items and we haven't tried loading yet, trigger a load
@@ -219,7 +205,6 @@ Item {
           ];
     }
 
-    // Search clipboard items
     const searchTerm = query.toLowerCase();
 
     const now = Date.now() / 1000;
@@ -232,9 +217,7 @@ Item {
       "Colors": "color"
     };
 
-    // Filter and format results
     items.forEach(function (item) {
-      // Category filter
       if (Settings.data.appLauncher.enableClipboardChips && root.selectedCategory !== "All") {
         if (item.contentType !== catMap[root.selectedCategory]) {
           return;
@@ -243,14 +226,12 @@ Item {
 
       const preview = (item.preview || "").toLowerCase();
 
-      // Skip if search term doesn't match
       if (searchTerm && preview.indexOf(searchTerm) === -1) {
         return;
       }
 
       const firstSeen = ClipboardService.firstSeenById[item.id] || now;
 
-      // Format the result based on type
       let entry;
       if (item.isImage) {
         entry = formatImageEntry(item, firstSeen);
@@ -258,7 +239,6 @@ Item {
         entry = formatTextEntry(item, firstSeen);
       }
 
-      // Add activation handler
       entry.onActivate = function () {
         if (Settings.data.appLauncher.autoPasteClipboard) {
           launcher.closeImmediately();
@@ -274,7 +254,6 @@ Item {
       results.push(entry);
     });
 
-    // Show empty state if no results
     if (results.length === 0) {
       results.push({
                      "name": searchTerm ? "No matching clipboard items" : "Clipboard is empty",
@@ -282,7 +261,7 @@ Item {
                      "icon": iconMode === "tabler" ? "clipboard" : "text-x-generic",
                      "isTablerIcon": true,
                      "isImage": false,
-                     "onActivate": function () {// Do nothing
+                     "onActivate": function () {
                      }
                    });
     }
@@ -376,15 +355,12 @@ Item {
     return ClipboardService.getImageData ? ClipboardService.getImageData(clipboardId) : null;
   }
 
-  // -------------------------
-  // Item actions for launcher delegate
   function getItemActions(item) {
     if (!item || !item.clipboardId)
       return [];
 
     var actions = [];
 
-    // Annotation tool for images
     if (item.isImage && Settings.data.appLauncher.screenshotAnnotationTool.trim() !== "") {
       actions.push({
                      "icon": "pencil",
@@ -398,7 +374,6 @@ Item {
                    });
     }
 
-    // Delete action
     actions.push({
                    "icon": "trash",
                    "tooltip": I18n.tr("launcher.providers.clipboard-delete"),
@@ -423,7 +398,6 @@ Item {
     isWaitingForData = true;
     lastSearchText = launcher ? launcher.searchText : "";
 
-    // Delete the item
     ClipboardService.deleteById(String(item.clipboardId));
   }
 
@@ -443,7 +417,6 @@ Item {
     return ClipboardService.getImageData(item.clipboardId) || "";
   }
 
-  // Get preview data for the preview panel
   function getPreviewData(item) {
     if (!item)
       return null;

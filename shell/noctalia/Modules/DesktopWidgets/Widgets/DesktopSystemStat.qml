@@ -10,13 +10,11 @@ import qs.noctalia.Widgets
 DraggableDesktopWidget {
   id: root
 
-  // Widget settings
   readonly property var widgetMetadata: DesktopWidgetRegistry.widgetMetadata["SystemStat"]
   readonly property string statType: (widgetData && widgetData.statType !== undefined) ? widgetData.statType : (widgetMetadata.statType !== undefined ? widgetMetadata.statType : "CPU")
   readonly property string diskPath: (widgetData && widgetData.diskPath !== undefined) ? widgetData.diskPath : "/"
   readonly property string layout: (widgetData && widgetData.layout !== undefined) ? widgetData.layout : (widgetMetadata.layout !== undefined ? widgetMetadata.layout : "side")
 
-  // Fixed colors
   readonly property color color: Color.mPrimary
   readonly property color color2: Color.mSecondary
 
@@ -93,7 +91,6 @@ DraggableDesktopWidget {
     }
   }
 
-  // History from service
   readonly property var history: {
     switch (root.statType) {
     case "CPU":
@@ -123,7 +120,6 @@ DraggableDesktopWidget {
     }
   }
 
-  // Graph min/max values
   readonly property real graphMinValue: root.statType === "GPU" ? Math.max(SystemStatService.gpuTempHistoryMin - 5, 0) : 0
   readonly property real graphMaxValue: {
     switch (root.statType) {
@@ -166,7 +162,6 @@ DraggableDesktopWidget {
   width: implicitWidth
   height: implicitHeight
 
-  // Update interval per stat type
   readonly property int graphUpdateInterval: {
     switch (root.statType) {
     case "CPU":

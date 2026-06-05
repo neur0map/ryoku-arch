@@ -8,37 +8,29 @@ import Quickshell.Io
 Singleton {
     id: root
 
-    // Available presets
     property var presets: []
 
-    // Current preset being loaded/saved
     property string currentPreset: ""
     property string activePreset: ""
 
-    // Config directory paths
     readonly property string configDir: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ambxst"
     readonly property string presetsDir: configDir + "/presets"
     readonly property string assetsPresetsDir: Qt.resolvedUrl("../../assets/presets").toString().replace("file://", "")
     readonly property string activePresetFile: presetsDir + "/active_preset"
 
-    // Files to exclude from presets (never saved, loaded, or shown)
     readonly property var excludedFiles: ["system.json", "ai.json", "prefix.json", "weather.json"]
 
-    // Signal when presets change
     signal presetsUpdated()
 
-    // Scan presets directory
     function scanPresets() {
         scanProcess.running = true
         readActivePresetProcess.running = true
     }
 
-    // Check if a preset name is taken by an official preset
     function isOfficialName(name) {
         return presets.some(p => p.name === name && p.isOfficial)
     }
 
-    // Load a preset by name
     function loadPreset(presetName: string) {
         if (presetName === "") {
             console.warn("Cannot load empty preset name")
@@ -77,7 +69,6 @@ Singleton {
              copyCmd += `cp "${srcPath}" "${dstPath}" && `
         }
         
-        // Update active preset file
         copyCmd += `echo "${presetName}" > "${activePresetFile}"`
 
         if (copyCmd.length > 0) {
@@ -88,7 +79,6 @@ Singleton {
         }
     }
 
-    // Save current config as preset
     function savePreset(presetName: string, configFiles: var) {
         if (presetName === "") {
             console.warn("Cannot save preset with empty name")
@@ -108,7 +98,6 @@ Singleton {
 
         console.log("Saving preset:", presetName, "with files:", configFiles)
 
-        // Create preset directory and copy config files
         const presetPath = presetsDir + "/" + presetName
         const createCmd = `mkdir -p "${presetPath}"`
 
@@ -136,12 +125,10 @@ Singleton {
             copyCmd += `cp "${srcPath}" "${dstPath}" && `
         }
         
-        // Create info.json with default author
         const infoContent = JSON.stringify({ author: "User", authorUrl: "" }, null, 4)
-        // Use printf to write info.json safely
         copyCmd += `printf '${infoContent}' > "${presetPath}/info.json" && `
 
-        copyCmd = copyCmd.slice(0, -4) // Remove last " && "
+        copyCmd = copyCmd.slice(0, -4)
 
         const fullCmd = `${createCmd} && ${copyCmd}`
         saveProcess.command = ["sh", "-c", fullCmd]
@@ -150,10 +137,8 @@ Singleton {
         root.pendingPresetName = presetName
     }
 
-    // Internal properties for saving
     property string pendingPresetName: ""
 
-    // Scan presets process
     Process {
         id: scanProcess
         // Find all JSON files in subdirectories of presetsDir (depth 2) and assetsPresetsDir
@@ -166,7 +151,7 @@ Singleton {
             onStreamFinished: {
                 const lines = text.trim().split('\n');
                 const presetsMap = {}
-                const metadataMap = {} // key: presetPath, value: json string builder
+                const metadataMap = {}
 
                 let processingMetadata = false;
 
@@ -179,18 +164,15 @@ Singleton {
                     if (!processingMetadata) {
                         if (line.length === 0) continue;
                         
-                        // Config file path
                         const parts = line.split('/')
-                        const configName = parts.pop() // remove config.json, parts is now the folder path
+                        const configName = parts.pop()
                         
-                        // The path to the preset directory
                         const presetPath = parts.join('/')
                         const presetName = parts[parts.length - 1]
                         
                         // Determine if official based on path prefix
                         const isOfficial = line.startsWith(root.assetsPresetsDir)
 
-                        // Use presetPath as key to ensure uniqueness per preset folder
                         const key = presetPath
 
                         if (!presetsMap[key]) {
@@ -204,18 +186,15 @@ Singleton {
                             }
                         }
                         
-                        // Convert .json to .js for UI display
                         presetsMap[key].configFiles.push(configName.replace('.json', '.js'))
                     } else {
-                        // Metadata line: path/to/info.json: content
                         const idx = line.indexOf(':');
                         if (idx !== -1) {
                             const filePath = line.substring(0, idx);
                             const content = line.substring(idx + 1);
                             
-                            // Extract preset path from file path (remove /info.json)
                             const parts = filePath.split('/');
-                            parts.pop(); // remove info.json
+                            parts.pop();
                             const presetPath = parts.join('/');
                             
                             if (!metadataMap[presetPath]) {
@@ -226,7 +205,6 @@ Singleton {
                     }
                 }
 
-                // Process metadata
                 for (const key in metadataMap) {
                      if (presetsMap[key]) {
                          try {
@@ -239,9 +217,7 @@ Singleton {
                      }
                 }
 
-                // Convert map to array
                 const newPresets = Object.values(presetsMap)
-                // Sort: Official first (alphabetical), then Custom (alphabetical)
                 newPresets.sort((a, b) => {
                     if (a.isOfficial && !b.isOfficial) return -1;
                     if (!a.isOfficial && b.isOfficial) return 1;
@@ -262,7 +238,6 @@ Singleton {
         }
     }
 
-    // Rename a preset
     function renamePreset(oldName: string, newName: string) {
         if (oldName === "" || newName === "" || oldName === newName) {
             console.warn("Invalid rename parameters")
@@ -290,14 +265,12 @@ Singleton {
         renameProcess.running = true
     }
 
-    // Update a preset with current config files
     function updatePreset(presetName: string, configFiles: var) {
         if (presetName === "" || configFiles.length === 0) {
             console.warn("Invalid update parameters")
             return
         }
 
-        // Find the preset to check if it's official
         const preset = presets.find(p => p.name === presetName)
         if (preset && preset.isOfficial) {
             console.log("Updating official preset - creating custom copy")
@@ -319,13 +292,12 @@ Singleton {
             const dstPath = presetPath + "/" + jsonFile
             copyCmd += `cp "${srcPath}" "${dstPath}" && `
         }
-        copyCmd = copyCmd.slice(0, -4) // Remove last " && "
+        copyCmd = copyCmd.slice(0, -4)
 
         updateProcess.command = ["sh", "-c", copyCmd]
         updateProcess.running = true
     }
 
-    // Delete a preset
     function deletePreset(presetName: string) {
         if (presetName === "") {
             console.warn("Cannot delete preset with empty name")
@@ -346,12 +318,10 @@ Singleton {
         deleteProcess.running = true
     }
 
-    // Internal properties
     property var pendingRename: null
     property string pendingUpdateName: ""
     property string pendingDeleteName: ""
 
-    // Save process
     Process {
         id: saveProcess
         running: false
@@ -360,7 +330,6 @@ Singleton {
             if (exitCode === 0) {
                 console.log("Preset saved successfully:", root.pendingPresetName)
                 Quickshell.execDetached(["notify-send", "Preset Saved", `Preset "${root.pendingPresetName}" saved successfully.`])
-                // Trigger scan
                 root.scanProcess.running = true
             } else {
                 console.warn("Failed to save preset:", root.pendingPresetName)
@@ -370,7 +339,6 @@ Singleton {
         }
     }
 
-    // Rename process
     Process {
         id: renameProcess
         running: false
@@ -379,10 +347,8 @@ Singleton {
             if (exitCode === 0 && root.pendingRename) {
                 console.log("Preset renamed successfully:", root.pendingRename.oldName, "->", root.pendingRename.newName)
                 Quickshell.execDetached(["notify-send", "Preset Renamed", `Preset renamed to "${root.pendingRename.newName}".`])
-                // Update active preset if it was the renamed one
                 if (root.activePreset === root.pendingRename.oldName) {
                     root.activePreset = root.pendingRename.newName
-                    // Update active preset file
                     updateActivePresetFileProcess.command = ["sh", "-c", `echo "${root.pendingRename.newName}" > "${activePresetFile}"`]
                     updateActivePresetFileProcess.running = true
                 }
@@ -395,7 +361,6 @@ Singleton {
         }
     }
 
-    // Update process
     Process {
         id: updateProcess
         running: false
@@ -413,7 +378,6 @@ Singleton {
         }
     }
 
-    // Delete process
     Process {
         id: deleteProcess
         running: false
@@ -422,7 +386,6 @@ Singleton {
             if (exitCode === 0) {
                 console.log("Preset deleted successfully:", root.pendingDeleteName)
                 Quickshell.execDetached(["notify-send", "Preset Deleted", `Preset "${root.pendingDeleteName}" deleted.`])
-                // Clear active preset if it was the deleted one
                 if (root.activePreset === root.pendingDeleteName) {
                     root.activePreset = ""
                 }
@@ -435,13 +398,11 @@ Singleton {
         }
     }
 
-    // Update active preset file process
     Process {
         id: updateActivePresetFileProcess
         running: false
     }
 
-    // Load process
     Process {
         id: loadProcess
         running: false
@@ -459,7 +420,6 @@ Singleton {
         }
     }
 
-    // Read active preset process
     Process {
         id: readActivePresetProcess
         command: ["cat", activePresetFile]
@@ -472,7 +432,6 @@ Singleton {
         }
     }
 
-    // Directory watcher for the main presets directory (detects new/deleted presets)
     FileView {
         path: presetsDir
         watchChanges: true
@@ -484,7 +443,6 @@ Singleton {
         }
     }
 
-    // Watch individual preset directories for content changes (added/removed files inside a preset)
     Instantiator {
         model: root.presets
         delegate: FileView {
@@ -500,7 +458,6 @@ Singleton {
         }
     }
     
-    // Init process (create directory)
     Process {
         id: initProcess
         command: ["mkdir", "-p", presetsDir]

@@ -8,23 +8,19 @@ import qs.noctalia.Services.Keyboard
 Item {
   id: root
 
-  // Properties that match the facade interface
   property ListModel workspaces: ListModel {}
   property var windows: []
   property int focusedWindowIndex: -1
 
-  // Signals that match the facade interface
   signal workspaceChanged
   signal activeWindowChanged
   signal windowListChanged
   signal displayScalesChanged
 
-  // Hyprland-specific properties
   property bool initialized: false
   property var workspaceCache: ({})
   property var windowCache: ({})
 
-  // Dispatch compatibility state
   property bool dispatchModeChecked: false
   property bool useLuaDispatch: false
 
@@ -45,7 +41,6 @@ Item {
     workspaceChanged();
   }
 
-  // Initialization
   function initialize() {
     if (initialized)
       return;
@@ -57,7 +52,6 @@ Item {
                      safeUpdateWindows();
                      queryDisplayScales();
                      queryKeyboardLayout();
-                     // Detect Hyprland dispatch syntax once during startup
                      detectDispatchMode();
                    });
       initialized = true;
@@ -67,12 +61,10 @@ Item {
     }
   }
 
-  // Query display scales
   function queryDisplayScales() {
     hyprlandMonitorsProcess.running = true;
   }
 
-  // Hyprland monitors process for display scale detection
   Process {
     id: hyprlandMonitorsProcess
     running: false
@@ -82,7 +74,6 @@ Item {
 
     stdout: SplitParser {
       onRead: function (line) {
-        // Accumulate lines instead of parsing each one
         hyprlandMonitorsProcess.accumulatedOutput += line;
       }
     }
@@ -133,13 +124,11 @@ Item {
       } catch (e) {
         Logger.e("HyprlandService", "Failed to parse monitors:", e);
       } finally {
-        // Clear accumulated output for next query
         accumulatedOutput = "";
       }
     }
   }
 
-  // ---- Monitor configuration (Display settings) ----
   // Hyprland can apply + persist monitor layout (via the ryoku-monitor helper), so the
   // facade reports this backend as capable and the Display tab shows the controls.
   property bool monitorConfigSupported: true
@@ -170,7 +159,6 @@ Item {
     Quickshell.execDetached(["ryoku-monitor", "persist"]);
   }
 
-  // ------------------------------------------------------------
   // Dispatch mode probe
   // This Process detects whether hyprland is using legacy
   // hyprlang dispatch or the new Lua-based dispatch system
@@ -179,7 +167,6 @@ Item {
   // This runs a harmless dispatcher shown in the docs:
   // hl.dsp.no_op()
   // If it returns "ok", Lua dispatch is supported.
-  // ------------------------------------------------------------
   Process {
     id: dispatchProbeProcess
 
@@ -214,7 +201,6 @@ Item {
 
       Logger.i("HyprlandService", useLuaDispatch ? "Detected Lua hyprctl dispatch syntax" : "Using legacy hyprctl dispatch syntax");
 
-      // Debug output as per guidelines / troubleshooting
       if (stdout.length > 0) {
         Logger.d("HyprlandService", "Dispatch probe stdout:", stdout);
       }
@@ -223,7 +209,6 @@ Item {
         Logger.d("HyprlandService", "Dispatch probe stderr:", stderr);
       }
 
-      // Reset buffers for future runs
       accumulatedOutput = "";
       accumulatedError = "";
     }
@@ -232,7 +217,6 @@ Item {
   function queryKeyboardLayout() {
     hyprlandDevicesProcess.running = true;
   }
-  // Hyprland devices process for keyboard layout detection
   Process {
     id: hyprlandDevicesProcess
     running: false
@@ -242,7 +226,6 @@ Item {
 
     stdout: SplitParser {
       onRead: function (line) {
-        // Accumulate lines instead of parsing each one
         hyprlandDevicesProcess.accumulatedOutput += line;
       }
     }
@@ -266,13 +249,11 @@ Item {
       } catch (e) {
         Logger.e("HyprlandService", "Failed to parse devices:", e);
       } finally {
-        // Clear accumulated output for next query
         accumulatedOutput = "";
       }
     }
   }
 
-  // Safe update wrapper
   function safeUpdate() {
     safeUpdateWindows();
     safeUpdateWorkspaces();
@@ -280,7 +261,6 @@ Item {
     windowListChanged();
   }
 
-  // Safe workspace update
   function safeUpdateWorkspaces() {
     try {
       workspaces.clear();
@@ -317,7 +297,6 @@ Item {
     }
   }
 
-  // Get occupied workspace IDs safely
   function getOccupiedWorkspaceIds() {
     const occupiedIds = {};
 
@@ -349,7 +328,6 @@ Item {
     return occupiedIds;
   }
 
-  // Safe window update
   function safeUpdateWindows() {
     try {
       const windowsList = [];
@@ -364,7 +342,6 @@ Item {
       const hlToplevels = Hyprland.toplevels.values;
       let focusedWindowId = null;
 
-      // Get active workspaces to filter focus
       const activeWorkspaceIds = {};
       if (Hyprland.workspaces && Hyprland.workspaces.values) {
         const hlWorkspaces = Hyprland.workspaces.values;
@@ -431,13 +408,11 @@ Item {
     }
   }
 
-  // Extract window data safely from a toplevel
   function extractWindowData(toplevel) {
     if (!toplevel)
       return null;
 
     try {
-      // Safely extract properties
       const windowId = safeGetProperty(toplevel, "address", "");
       if (!windowId)
         return null;
@@ -448,7 +423,6 @@ Item {
       const focused = toplevel.activated === true;
       const output = toplevel.monitor?.name || "";
 
-      // Extract position
       let x = 0;
       let y = 0;
       try {
@@ -462,7 +436,6 @@ Item {
         }
       } catch (e) {}
 
-      // Normalize coordinates to safe numeric values
       const safeX = (typeof x === "number" && !isNaN(x)) ? x : 0;
       const safeY = (typeof y === "number" && !isNaN(y)) ? y : 0;
 
@@ -549,7 +522,6 @@ Item {
     return "";
   }
 
-  // Safe property getter
   function safeGetProperty(obj, prop, defaultValue) {
     try {
       const value = obj[prop];
@@ -590,7 +562,6 @@ Item {
     }
   }
 
-  // Connections to Hyprland
   Connections {
     target: Hyprland.workspaces
     enabled: initialized
@@ -631,18 +602,11 @@ Item {
     }
   }
 
-  // Dispatch helpers
   function luaQuote(str) {
     return String(str).replace(/\\/g, "\\\\").replace(/"/g, "\\\"").replace(/\n/g, "\\n").replace(/\r/g, "\\r");
   }
 
-  // ------------------------------------------------------------
-  // Triggers dispatch mode detection (once per session)
-  //
-  // Starts probe process if it hasn't already run
-  // ------------------------------------------------------------
   function detectDispatchMode() {
-    // Avoid duplicate probes
     if (dispatchModeChecked || dispatchProbeProcess.running) {
       return;
     }
@@ -673,7 +637,6 @@ Item {
     }
   }
 
-  // Public functions
   function switchToWorkspace(workspace) {
     try {
       if (workspace.name) {

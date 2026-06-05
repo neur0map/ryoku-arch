@@ -38,7 +38,6 @@ Popup {
       anchors.fill: parent
       spacing: Style.marginM
 
-      // Header
       RowLayout {
         Layout.fillWidth: true
 
@@ -59,7 +58,6 @@ Popup {
         }
       }
 
-      // Separator
       Rectangle {
         Layout.fillWidth: true
         Layout.preferredHeight: 1
@@ -81,7 +79,6 @@ Popup {
         }
       }
 
-      // Action buttons
       RowLayout {
         Layout.fillWidth: true
         Layout.topMargin: Style.marginM
@@ -136,7 +133,6 @@ Popup {
       return;
     }
 
-    // Get plugin directory
     var pluginDir = PluginRegistry.getPluginDir(pluginId);
     var settingsEntry = settingsEntryPoint ? pluginManifest.entryPoints[settingsEntryPoint] : pluginManifest.entryPoints.settings;
     var settingsPath = pluginDir + "/" + settingsEntry;

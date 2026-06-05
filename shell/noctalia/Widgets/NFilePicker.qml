@@ -10,7 +10,6 @@ import qs.noctalia.Widgets
 Popup {
   id: root
 
-  // Properties
   property string title: I18n.tr("widget.file-picker.title")
   property string initialPath: Quickshell.env("HOME") || "/home"
   property string selectionMode: "files" // "files" or "folders"
@@ -23,7 +22,6 @@ Popup {
   property string currentPath: initialPath
   property bool shouldResetSelection: false
 
-  // Signals
   signal accepted(var paths)
   signal cancelled
 
@@ -106,13 +104,10 @@ Popup {
       const fileIsDir = folderModel.get(i, "fileIsDir");
       const fileSize = folderModel.get(i, "fileSize");
 
-      // Skip hidden items if showHiddenFiles is false
-      // This additional check ensures hidden files are properly filtered
       if (!root.showHiddenFiles && fileName.startsWith(".")) {
         continue;
       }
 
-      // In folder mode, hide files
       if (root.selectionMode === "folders" && !fileIsDir)
         continue;
       if (searchText === "" || fileName.toLowerCase().includes(searchText)) {
@@ -168,7 +163,6 @@ Popup {
                       }
                     }
 
-    // Function when an item is clicked, either a folder or a file since both have the same functionality, reduces repetitive code
     function itemClicked(modifiers, path) {
       var list = currentSelection.slice();
       const index = list.indexOf(path);
@@ -239,7 +233,6 @@ Popup {
           Layout.fillWidth: true
         }
 
-        // "Select Current" button only visible in folder selection mode
         NButton {
           text: I18n.tr("widgets.file-picker.select-current")
           icon: "filepicker-folder-current"
@@ -275,7 +268,6 @@ Popup {
         Layout.fillWidth: true
       }
 
-      // Navigation toolbar
       Rectangle {
         Layout.fillWidth: true
         Layout.preferredHeight: 45

@@ -21,7 +21,6 @@ ColumnLayout {
     onToggled: checked => Settings.data.systemMonitor.enableDgpuMonitoring = checked
   }
 
-  // Colors Section
   RowLayout {
     Layout.fillWidth: true
     spacing: Style.marginM

@@ -10,11 +10,9 @@ Item {
   property bool vertical: false
   property bool mirrored: true
 
-  // Minimum signal properties
   property bool showMinimumSignal: false
   property real minimumSignalValue: 0.01 // Default to 1% of height
 
-  // Pre-compute mirroring
   readonly property int valuesCount: (values && values.length !== undefined) ? values.length : 0
   readonly property int totalBars: mirrored ? valuesCount * 2 : valuesCount
   readonly property real barSlotSize: totalBars > 0 ? (vertical ? height : width) / totalBars : 0

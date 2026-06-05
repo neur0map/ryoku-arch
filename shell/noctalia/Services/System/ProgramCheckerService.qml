@@ -6,11 +6,9 @@ import Quickshell.Io
 import qs.noctalia.Commons
 import qs.noctalia.Services.Theming
 
-// Service to check if various programs are available on the system
 Singleton {
   id: root
 
-  // Program availability properties
   property bool nmcliAvailable: false
   property bool bluetoothctlAvailable: false
   property bool wlsunsetAvailable: false
@@ -28,16 +26,12 @@ Singleton {
                                             "pythonAvailable": ["sh", "-c", "command -v python3"]
                                           })
 
-  // Discord client auto-detection
   property var availableDiscordClients: []
 
-  // Code client auto-detection
   property var availableCodeClients: []
 
-  // Emacs client auto-detection
   property var availableEmacsClients: []
 
-  // Signal emitted when all checks are complete
   signal checksCompleted
 
   // disable Night Light in settings if wlsunset is not available
@@ -53,9 +47,7 @@ Singleton {
     }
   }
 
-  // Function to detect Discord client by checking config directories
   function detectDiscordClient() {
-    // Build shell script to check each client
     var scriptParts = ["available_clients=\"\";"];
 
     for (var i = 0; i < TemplateRegistry.discordClients.length; i++) {
@@ -71,12 +63,10 @@ Singleton {
 
     scriptParts.push("echo \"$available_clients\"");
 
-    // Use a Process to check directory existence for all clients
     discordDetector.command = ["sh", "-c", scriptParts.join(" ")];
     discordDetector.running = true;
   }
 
-  // Process to detect Discord client directories
   Process {
     id: discordDetector
     running: false
@@ -90,7 +80,6 @@ Singleton {
         });
 
         if (detectedClients.length > 0) {
-          // Build list of available clients
           for (var i = 0; i < detectedClients.length; i++) {
             var clientName = detectedClients[i];
             for (var j = 0; j < TemplateRegistry.discordClients.length; j++) {
@@ -115,9 +104,7 @@ Singleton {
     stderr: StdioCollector {}
   }
 
-  // Function to detect Code client by checking config directories
   function detectCodeClient() {
-    // Build shell script to check each client
     var scriptParts = ["available_clients=\"\";"];
 
     for (var i = 0; i < TemplateRegistry.codeClients.length; i++) {
@@ -125,18 +112,15 @@ Singleton {
       var clientName = client.name;
       var configPath = client.configPath;
 
-      // Check if the config directory exists
       scriptParts.push("if [ -d \"$HOME" + configPath.substring(1) + "\" ]; then available_clients=\"$available_clients " + clientName + "\"; fi;");
     }
 
     scriptParts.push("echo \"$available_clients\"");
 
-    // Use a Process to check directory existence for all clients
     codeDetector.command = ["sh", "-c", scriptParts.join(" ")];
     codeDetector.running = true;
   }
 
-  // Process to detect Code client directories
   Process {
     id: codeDetector
     running: false
@@ -150,7 +134,6 @@ Singleton {
         });
 
         if (detectedClients.length > 0) {
-          // Build list of available clients
           for (var i = 0; i < detectedClients.length; i++) {
             var clientName = detectedClients[i];
             for (var j = 0; j < TemplateRegistry.codeClients.length; j++) {
@@ -175,9 +158,7 @@ Singleton {
     stderr: StdioCollector {}
   }
 
-  // Function to detect Emacs client by checking config directories
   function detectEmacsClient() {
-    // Build shell script to check each client
     var scriptParts = ["available_clients=\"\";"];
 
     for (var i = 0; i < TemplateRegistry.emacsClients.length; i++) {
@@ -185,18 +166,15 @@ Singleton {
       var clientName = client.name;
       var configPath = client.path;
 
-      // Check if the config directory exists
       scriptParts.push("if [ -d \"$HOME" + configPath.substring(1) + "\" ]; then available_clients=\"$available_clients " + clientName + "\"; fi;");
     }
 
     scriptParts.push("echo \"$available_clients\"");
 
-    // Use a Process to check directory existence for all clients
     emacsDetector.command = ["sh", "-c", scriptParts.join(" ")];
     emacsDetector.running = true;
   }
 
-  // Process to detect Emacs client directories
   Process {
     id: emacsDetector
     running: false
@@ -210,7 +188,6 @@ Singleton {
         });
 
         if (detectedClients.length > 0) {
-          // Build list of available clients
           for (var i = 0; i < detectedClients.length; i++) {
             var clientName = detectedClients[i];
             for (var j = 0; j < TemplateRegistry.emacsClients.length; j++) {
@@ -235,11 +212,9 @@ Singleton {
     stderr: StdioCollector {}
   }
 
-  // Internal tracking
   property int completedChecks: 0
   property int totalChecks: Object.keys(programsToCheck).length
 
-  // Single reusable Process object
   Process {
     id: checker
     running: false
@@ -247,18 +222,13 @@ Singleton {
     property string currentProperty: ""
 
     onExited: function (exitCode) {
-      // Set the availability property
       root[currentProperty] = (exitCode === 0);
 
-      // Stop the process to free resources
       running = false;
 
-      // Track completion
       root.completedChecks++;
 
-      // Check next program or emit completion signal
       if (root.completedChecks >= root.totalChecks) {
-        // Run Discord, Code and Emacs client detection after all checks are complete
         root.detectDiscordClient();
         root.detectCodeClient();
         root.detectEmacsClient();
@@ -272,11 +242,9 @@ Singleton {
     stderr: StdioCollector {}
   }
 
-  // Queue of programs to check
   property var checkQueue: []
   property int currentCheckIndex: 0
 
-  // Function to check the next program in the queue
   function checkNextProgram() {
     if (currentCheckIndex >= checkQueue.length)
       return;
@@ -290,20 +258,16 @@ Singleton {
     currentCheckIndex++;
   }
 
-  // Function to run all program checks
   function checkAllPrograms() {
-    // Reset state
     completedChecks = 0;
     currentCheckIndex = 0;
     checkQueue = Object.keys(programsToCheck);
 
-    // Start first check
     if (checkQueue.length > 0) {
       checkNextProgram();
     }
   }
 
-  // Function to check a specific program
   function checkProgram(programProperty) {
     if (!programsToCheck.hasOwnProperty(programProperty)) {
       Logger.w("ProgramChecker", "Unknown program property:", programProperty);
@@ -315,12 +279,10 @@ Singleton {
     checker.running = true;
   }
 
-  // Manual function to test Discord detection (for debugging)
   function testDiscordDetection() {
     Logger.d("ProgramChecker", "Testing Discord detection...");
     Logger.d("ProgramChecker", "HOME:", Quickshell.env("HOME"));
 
-    // Test each client directory
     for (var i = 0; i < TemplateRegistry.discordClients.length; i++) {
       var client = TemplateRegistry.discordClients[i];
       var configDir = client.configPath.replace("~", Quickshell.env("HOME"));
@@ -330,7 +292,6 @@ Singleton {
     detectDiscordClient();
   }
 
-  // Initialize checks when service is created
   Component.onCompleted: {
     checkAllPrograms();
   }

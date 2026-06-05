@@ -70,14 +70,12 @@ Item {
   readonly property real iconSize: Style.toOdd(capsuleHeight * 0.48)
   readonly property real miniGaugeWidth: Math.max(3, Style.toOdd(root.iconSize * 0.25))
 
-  // Content dimensions for implicit sizing
   readonly property real contentWidth: isVertical ? capsuleHeight : Math.round(mainGrid.implicitWidth + Style.margin2M)
   readonly property real contentHeight: isVertical ? Math.round(mainGrid.implicitHeight + Style.margin2M) : capsuleHeight
 
   readonly property color iconColor: Color.resolveColorKey(iconColorKey)
   readonly property color textColor: Color.resolveColorKey(textColorKey)
 
-  // Size: use implicit width/height
   // BarWidgetLoader sets explicit width/height to extend click area
   implicitWidth: contentWidth
   implicitHeight: contentHeight
@@ -89,11 +87,9 @@ Item {
     Quickshell.execDetached(["sh", "-c", Settings.data.systemMonitor.externalMonitor]);
   }
 
-  // Build comprehensive tooltip text with all stats
   function buildTooltipContent() {
     let rows = [];
 
-    // CPU
     rows.push([I18n.tr("system-monitor.cpu-usage"), `${Math.round(SystemStatService.cpuUsage)}% (${SystemStatService.cpuFreq.replace(/[^0-9.]/g, "")} GHz)`]);
     if (showCpuCores) {
       SystemStatService.coresUsage.forEach((usage, core) => rows.push(["  " + I18n.tr("system-monitor.core-usage", {
@@ -110,12 +106,10 @@ Item {
       rows.push([I18n.tr("system-monitor.gpu-temp"), `${Math.round(SystemStatService.gpuTemp)}°C`]);
     }
 
-    // Load Average
     if (SystemStatService.loadAvg1 >= 0) {
       rows.push([I18n.tr("system-monitor.load-average"), `${SystemStatService.loadAvg1.toFixed(2)} · ${SystemStatService.loadAvg5.toFixed(2)} · ${SystemStatService.loadAvg15.toFixed(2)}`]);
     }
 
-    // Memory
     rows.push([I18n.tr("common.memory"), `${Math.round(SystemStatService.memPercent)}% (${(SystemStatService.memGb).toFixed(1)} GiB)`]);
 
     // Swap (if available)
@@ -123,11 +117,9 @@ Item {
       rows.push([I18n.tr("bar.system-monitor.swap-usage-label"), `${Math.round(SystemStatService.swapPercent)}% (${(SystemStatService.swapGb).toFixed(1)} GiB)`]);
     }
 
-    // Network
     rows.push([I18n.tr("system-monitor.download-speed"), `${SystemStatService.formatSpeed(SystemStatService.rxSpeed).replace(/([0-9.]+)([A-Za-z]+)/, "$1 $2")}` + "/s"]);
     rows.push([I18n.tr("system-monitor.upload-speed"), `${SystemStatService.formatSpeed(SystemStatService.txSpeed).replace(/([0-9.]+)([A-Za-z]+)/, "$1 $2")}` + "/s"]);
 
-    // Disk
     const diskPercent = SystemStatService.diskPercents[diskPath];
     if (diskPercent !== undefined) {
       const usedGb = SystemStatService.diskUsedGb[diskPath] || 0;
@@ -187,7 +179,6 @@ Item {
                  }
   }
 
-  // Visual capsule centered in parent
   Rectangle {
     id: visualCapsule
     width: root.contentWidth
@@ -220,7 +211,6 @@ Item {
       rowSpacing: isVertical ? (compactMode ? Style.marginL : Style.marginXL) : 0
       columnSpacing: isVertical ? 0 : Style.marginM
 
-      // CPU Usage Component
       Item {
         id: cpuUsageContainer
         implicitWidth: cpuUsageContent.implicitWidth
@@ -258,7 +248,6 @@ Item {
             }
           }
 
-          // Text mode
           NText {
             visible: !compactMode
             text: `${Math.round(SystemStatService.cpuUsage)}%`.padStart(paddingPercent, " ")
@@ -273,7 +262,6 @@ Item {
             Layout.column: isVertical ? 0 : 1
           }
 
-          // Compact mode general cpu
           Loader {
             active: compactMode && !showCpuCores
             visible: compactMode && !showCpuCores
@@ -288,7 +276,6 @@ Item {
             }
           }
 
-          // Compact mode for cores
           Repeater {
             model: (compactMode && showCpuCores) ? SystemStatService.coresUsage : []
 
@@ -304,7 +291,6 @@ Item {
         }
       }
 
-      // CPU Frequency Component
       Item {
         id: cpuFreqContainer
         implicitWidth: cpuFreqContent.implicitWidth
@@ -340,7 +326,6 @@ Item {
             }
           }
 
-          // Text mode
           NText {
             visible: !compactMode
             text: SystemStatService.cpuFreq.replace("Hz", "").replace(" ", "").padStart(paddingCpuFreq, " ")
@@ -355,7 +340,6 @@ Item {
             Layout.column: isVertical ? 0 : 1
           }
 
-          // Compact mode
           Loader {
             active: compactMode
             visible: compactMode
@@ -371,7 +355,6 @@ Item {
         }
       }
 
-      // CPU Temperature Component
       Item {
         id: cpuTempContainer
         implicitWidth: cpuTempContent.implicitWidth
@@ -407,7 +390,6 @@ Item {
             }
           }
 
-          // Text mode
           NText {
             visible: !compactMode
             text: `${Math.round(SystemStatService.cpuTemp)}°`.padStart(paddingTemp, " ")
@@ -439,7 +421,6 @@ Item {
         }
       }
 
-      // GPU Temperature Component
       Item {
         id: gpuTempContainer
         implicitWidth: gpuTempContent.implicitWidth
@@ -475,7 +456,6 @@ Item {
             }
           }
 
-          // Text mode
           NText {
             visible: !compactMode
             text: `${Math.round(SystemStatService.gpuTemp)}°`.padStart(paddingTemp, " ")
@@ -490,7 +470,6 @@ Item {
             Layout.column: isVertical ? 0 : 1
           }
 
-          // Compact mode
           Loader {
             active: compactMode
             visible: compactMode
@@ -507,7 +486,6 @@ Item {
         }
       }
 
-      // Load Average Component
       Item {
         id: loadAvgContainer
         implicitWidth: loadAvgContent.implicitWidth
@@ -543,7 +521,6 @@ Item {
             }
           }
 
-          // Text mode
           NText {
             visible: !compactMode
             text: `${SystemStatService.loadAvg1.toFixed(1)}`.padStart(usePadding ? `${SystemStatService.nproc.toFixed(1)}`.length : 0, " ")
@@ -558,7 +535,6 @@ Item {
             Layout.column: isVertical ? 0 : 1
           }
 
-          // Compact mode
           Loader {
             active: compactMode
             visible: compactMode
@@ -574,7 +550,6 @@ Item {
         }
       }
 
-      // Memory Usage Component
       Item {
         id: memoryContainer
         implicitWidth: memoryContent.implicitWidth
@@ -610,7 +585,6 @@ Item {
             }
           }
 
-          // Text mode
           NText {
             visible: !compactMode
             text: SystemStatService.formatRamDisplay({
@@ -628,7 +602,6 @@ Item {
             Layout.column: isVertical ? 0 : 1
           }
 
-          // Compact mode
           Loader {
             active: compactMode
             visible: compactMode
@@ -645,7 +618,6 @@ Item {
         }
       }
 
-      // Swap Usage Component
       Item {
         id: swapContainer
         implicitWidth: swapContent.implicitWidth
@@ -681,7 +653,6 @@ Item {
             }
           }
 
-          // Text mode
           NText {
             visible: !compactMode
             text: SystemStatService.formatRamDisplay({
@@ -700,7 +671,6 @@ Item {
             Layout.column: isVertical ? 0 : 1
           }
 
-          // Compact mode
           Loader {
             active: compactMode
             visible: compactMode
@@ -717,7 +687,6 @@ Item {
         }
       }
 
-      // Network Download Speed Component
       Item {
         implicitWidth: downloadContent.implicitWidth
         implicitHeight: downloadContent.implicitHeight
@@ -752,7 +721,6 @@ Item {
             }
           }
 
-          // Text mode
           NText {
             visible: !compactMode
             text: isVertical ? SystemStatService.formatCompactSpeed(SystemStatService.rxSpeed) : SystemStatService.formatSpeed(SystemStatService.rxSpeed).padStart(paddingSpeed, " ")
@@ -767,7 +735,6 @@ Item {
             Layout.column: isVertical ? 0 : 1
           }
 
-          // Compact mode
           Loader {
             active: compactMode
             visible: compactMode
@@ -783,7 +750,6 @@ Item {
         }
       }
 
-      // Network Upload Speed Component
       Item {
         implicitWidth: uploadContent.implicitWidth
         implicitHeight: uploadContent.implicitHeight
@@ -818,7 +784,6 @@ Item {
             }
           }
 
-          // Text mode
           NText {
             visible: !compactMode
             text: isVertical ? SystemStatService.formatCompactSpeed(SystemStatService.txSpeed) : SystemStatService.formatSpeed(SystemStatService.txSpeed).padStart(paddingSpeed, " ")
@@ -833,7 +798,6 @@ Item {
             Layout.column: isVertical ? 0 : 1
           }
 
-          // Compact mode
           Loader {
             active: compactMode
             visible: compactMode
@@ -849,7 +813,6 @@ Item {
         }
       }
 
-      // Disk Usage Component (primary drive)
       Item {
         id: diskContainer
         implicitWidth: diskContent.implicitWidth
@@ -885,7 +848,6 @@ Item {
             }
           }
 
-          // Text mode
           NText {
             visible: !compactMode
             text: SystemStatService.formatDiskDisplay(diskPath, {
@@ -904,7 +866,6 @@ Item {
             Layout.column: isVertical ? 0 : 1
           }
 
-          // Compact mode
           Loader {
             active: compactMode
             visible: compactMode
@@ -923,7 +884,6 @@ Item {
     }
   }
 
-  // MouseArea at root level for extended click area
   MouseArea {
     id: tooltipArea
     anchors.fill: parent

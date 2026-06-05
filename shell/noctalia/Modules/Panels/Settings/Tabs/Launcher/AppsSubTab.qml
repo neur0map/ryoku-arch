@@ -73,7 +73,6 @@ ColumnLayout {
     GlobalConfig.save();
   }
 
-  // --- Default applications -------------------------------------------------
   NText {
     text: qsTr("Default applications")
     pointSize: Style.fontSizeM
@@ -132,7 +131,6 @@ ColumnLayout {
     Layout.fillWidth: true
   }
 
-  // --- Favourite / hidden apps ---------------------------------------------
   PatternEditor {
     isFav: true
     title: qsTr("Favourite apps")

@@ -113,7 +113,6 @@ Item {
       height: width
     }
 
-    // Preview for image entry
     ColumnLayout {
       anchors.fill: parent
       anchors.margins: Style.marginS
@@ -140,7 +139,6 @@ Item {
           const meta = ClipboardService.parseImageMeta(currentItem?.preview);
           if (meta)
             return `${meta.fmt} • ${meta.w}×${meta.h} • ${meta.size}`;
-          // Fallback to basic info
           const format = (currentItem?.mime || "image").split("/")[1]?.toUpperCase() || "Image";
           return `${format} • ${previewImage.implicitWidth}×${previewImage.implicitHeight}`;
         }
@@ -149,7 +147,6 @@ Item {
       }
     }
 
-    // Preview for text entry
     ColumnLayout {
       anchors.fill: parent
       anchors.margins: Style.marginS

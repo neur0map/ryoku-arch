@@ -37,7 +37,6 @@ Item {
   signal middleClicked
   signal wheel(int angleDelta)
 
-  // Calculate button size based on settings
   readonly property real buttonSize: applyUiScale ? Style.toOdd(baseSize * Style.uiScaleRatio) : Style.toOdd(baseSize)
 
   // Size: use implicit width/height which layout can override
@@ -47,7 +46,6 @@ Item {
 
   opacity: enabled ? 1.0 : 0.6
 
-  // Visual button - stays at buttonSize, centered in parent
   Rectangle {
     id: visualButton
     width: root.buttonSize
@@ -72,7 +70,6 @@ Item {
       pointSize: Style.toOdd(visualButton.width * 0.48)
       applyUiScale: root.applyUiScale
       color: root.enabled && root.hovering ? colorFgHover : colorFg
-      // Pixel-perfect centering
       x: Style.pixelAlignCenter(visualButton.width, width)
       y: Style.pixelAlignCenter(visualButton.height, contentHeight)
 

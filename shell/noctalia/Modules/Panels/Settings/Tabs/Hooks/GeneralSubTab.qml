@@ -9,7 +9,6 @@ ColumnLayout {
   spacing: Style.marginL
   width: parent.width
 
-  // Enable/Disable Toggle
   NToggle {
     label: I18n.tr("panels.hooks.system-hooks-enable-label")
     description: I18n.tr("panels.hooks.system-hooks-enable-description")
@@ -21,7 +20,6 @@ ColumnLayout {
     Layout.fillWidth: true
   }
 
-  // Info section
   ColumnLayout {
     spacing: Style.marginM
     Layout.fillWidth: true

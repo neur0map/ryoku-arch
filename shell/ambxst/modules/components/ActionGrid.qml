@@ -10,11 +10,11 @@ FocusScope {
     id: root
 
     property alias actions: repeater.model
-    property string layout: "row" // "row" or "grid"
+    property string layout: "row"
     property int buttonSize: 48
     property int iconSize: 20
     property int spacing: 4
-    property int columns: 3 // para layout grid
+    property int columns: 3
     property int textSpacing: 8
 
     signal actionTriggered(var action)
@@ -64,7 +64,6 @@ FocusScope {
                 nextIndex = getNextValidIndex(currentIndex, -1);
             }
         } else {
-            // grid layout
             if (event.key === Qt.Key_Right) {
                 nextIndex = Math.min(currentIndex + 1, actions.length - 1);
             } else if (event.key === Qt.Key_Left) {
@@ -94,23 +93,20 @@ FocusScope {
         anchors.fill: parent
         color: "transparent"
 
-        // Highlight que se desplaza entre botones
         StyledRect {
             id: highlight
             variant: (repeater.count > 0 && repeater.itemAt(root.currentIndex) && repeater.itemAt(root.currentIndex).actionModel.variant) ? repeater.itemAt(root.currentIndex).actionModel.variant : "primary"
             radius: Styling.radius(4)
-            z: 0 // Por debajo de los botones
+            z: 0
             visible: repeater.count > 0
 
             property Item targetItem: repeater.count > 0 ? repeater.itemAt(root.currentIndex) : null
 
-            // Target values (geometry relative to container)
             property real tx: targetItem ? targetItem.x : 0
             property real ty: targetItem ? targetItem.y : 0
             property real tw: targetItem ? targetItem.width : 0
             property real th: targetItem ? targetItem.height : 0
 
-            // Tracker 1 (Fast / Lead)
             property real t1x: tx
             property real t1y: ty
             property real t1w: tw
@@ -145,7 +141,6 @@ FocusScope {
                 }
             }
 
-            // Tracker 2 (Slow / Follow)
             property real t2x: tx
             property real t2y: ty
             property real t2w: tw
@@ -180,7 +175,6 @@ FocusScope {
                 }
             }
 
-            // Final geometry combining both trackers to create elastic effect
             x: Math.min(t1x, t2x) + container.x
             y: Math.min(t1y, t2y) + container.y
             width: Math.max(t1x + t1w, t2x + t2w) - Math.min(t1x, t2x)
@@ -257,7 +251,6 @@ FocusScope {
                         contentItem: Item {
                             anchors.fill: parent
 
-                            // 1. Icono centrado en el área base del botón (siempre fijo a la izquierda)
                             Text {
                                 width: root.buttonSize
                                 height: parent.height
@@ -279,12 +272,11 @@ FocusScope {
                                 }
                             }
 
-                            // 2. Texto alineado a la derecha del área base del botón
                             Text {
                                 visible: delegateWrapper.hasText
                                 text: visible ? modelData.text : ""
                                 anchors.left: parent.left
-                                anchors.leftMargin: root.buttonSize // Empieza justo después del área del icono
+                                anchors.leftMargin: root.buttonSize
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 font.family: Config.defaultFont

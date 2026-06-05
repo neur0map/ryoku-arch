@@ -11,7 +11,6 @@ ColumnLayout {
   spacing: Style.marginL
   Layout.fillWidth: true
 
-  // List of plugin sources
   ColumnLayout {
     spacing: Style.marginM
     Layout.fillWidth: true
@@ -65,7 +64,6 @@ ColumnLayout {
             }
           }
 
-          // Enable/Disable a source
           NToggle {
             checked: modelData.enabled !== false // Default to true if not set
             baseSize: Style.baseWidgetSize * 0.7
@@ -80,7 +78,6 @@ ColumnLayout {
     }
   }
 
-  // Add custom repository
   NButton {
     text: I18n.tr("panels.plugins.sources-add-custom")
     icon: "plus"
@@ -90,7 +87,6 @@ ColumnLayout {
     Layout.fillWidth: true
   }
 
-  // Add source dialog
   Popup {
     id: addSourceDialog
     parent: Overlay.overlay
@@ -164,7 +160,6 @@ ColumnLayout {
     }
   }
 
-  // Listen to plugin registry changes
   Connections {
     target: PluginRegistry
 

@@ -15,14 +15,11 @@ Singleton {
     property bool dataLoaded: false
     property bool fileReady: false
 
-    // Signal when data is ready
     signal usageDataReady
 
-    // Time-based scoring decay (favor recent apps)
     readonly property int maxBoostScore: 200
     readonly property int dayInMs: 86400000
 
-    // Ensure the file exists
     Process {
         id: ensureUsageFile
         running: true
@@ -43,7 +40,6 @@ Singleton {
         Qt.callLater(() => usageFile.reload());
     }
 
-    // Load usage data from file
     function loadUsageData() {
         try {
             const data = usageFile.text();
@@ -67,7 +63,6 @@ Singleton {
         }
     }
 
-    // Save usage data to file
     function saveUsageData() {
         if (!root.fileReady) {
             console.warn("UsageTracker: File not ready, skipping save");
@@ -78,7 +73,6 @@ Singleton {
         usageFile.setText(jsonData);
     }
 
-    // Record that an app was used
     function recordUsage(appId) {
         if (!appId) {
             console.warn("UsageTracker: recordUsage called with empty appId");
@@ -97,14 +91,11 @@ Singleton {
             };
         }
 
-        // Force property change notification
         usageData = usageData;
 
         saveUsageData();
     }
 
-    // Get usage score for an app (used for sorting)
-    // Higher score = more recently/frequently used
     function getUsageScore(appId) {
         if (!appId || !usageData[appId]) {
             return 0;
@@ -114,8 +105,6 @@ Singleton {
         var now = Date.now();
         var daysSinceLastUse = (now - data.lastUsed) / dayInMs;
 
-        // Exponential time decay: baseScore + (maxBoost * e^(-daysSinceLastUse/7))
-        // Boosts apps used within the last week.
         var timeBoost = maxBoostScore * Math.exp(-daysSinceLastUse / 7);
 
         // Frequency score: logarithmic to prevent over-weighting
@@ -124,7 +113,6 @@ Singleton {
         return timeBoost + frequencyScore;
     }
 
-    // Get all apps sorted by usage (most used/recent first)
     function getTopApps(limit) {
         if (!limit)
             limit = 10;
@@ -146,7 +134,6 @@ Singleton {
         return apps.slice(0, limit);
     }
 
-    // Clear old entries (apps not used in 90 days)
     function pruneOldEntries() {
         var now = Date.now();
         var ninetyDaysInMs = dayInMs * 90;

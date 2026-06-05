@@ -20,7 +20,6 @@ StyledOverlayWidget {
         ? Translation.tr("Recorder") + " — " + root.formatElapsed(RecorderStatus.elapsedSeconds)
         : Translation.tr("Recorder")
 
-    // Get the effective save path (config or default XDG Videos)
     readonly property string effectiveSavePath: {
         const configPath = Config.options?.screenRecord?.savePath ?? "";
         if (configPath && configPath.length > 0) return configPath;

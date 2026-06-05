@@ -14,12 +14,10 @@ Item {
     implicitHeight: content.implicitHeight + 24
     width: 300
 
-    // --- State & Logic ---
     property bool isRunning: false
     property bool isWorkSession: true
     property bool alarmActive: false
     
-    // --- IPC & Notifications ---
     IpcHandler {
         target: "pomodoro"
         function check() {
@@ -47,7 +45,6 @@ Item {
         }
     }
     
-    // Internal countdown state
     property int timeLeft: Config.system.pomodoro.workTime
     property int totalTime: Config.system.pomodoro.workTime
     property real visualProgress: 1.0
@@ -94,7 +91,6 @@ Item {
         
         if (!isRunning) {
             let configTime = isWorkSession ? Config.system.pomodoro.workTime : Config.system.pomodoro.restTime;
-            // If we are at the beginning of a session, ensure totalTime is synced
             if (timeLeft === configTime) {
                 totalTime = timeLeft;
             }
@@ -104,7 +100,6 @@ Item {
         }
     }
 
-    // Smooth progress animation
     NumberAnimation {
         id: progressAnim
         target: root
@@ -115,7 +110,6 @@ Item {
         running: root.isRunning && root.timeLeft > 0
     }
 
-    // Reset visual progress when not running and time is adjusted
     onTimeLeftChanged: {
         if (!isRunning && !alarmActive) {
             visualProgress = totalTime > 0 ? timeLeft / totalTime : 0;
@@ -135,7 +129,7 @@ Item {
         let finishedSession = isWorkSession ? "Work" : "Rest";
         isRunning = false;
         alarmActive = true;
-        visualProgress = 0; // Ensure it's exactly 0
+        visualProgress = 0;
         
         if (alarmSoundLoader.item) {
             alarmSoundLoader.item.loops = Config.system.pomodoro.autoStart ? 2 : 255; // Infinite approx
@@ -144,7 +138,6 @@ Item {
                 alarmSoundLoader.active = true;
                 alarmSoundLoader.item.play();
             } else if (Config.system.pomodoro.autoStart) {
-                // If no sound and auto, clear alarm state immediately
                 alarmActive = false;
             }
         } else {
@@ -155,7 +148,6 @@ Item {
             nextSession();
         }
 
-        // Prepare notification command before running
         let cmd = [
             "notify-send",
             "-a", "Pomodoro",
@@ -221,14 +213,12 @@ Item {
         }
     }
 
-    // --- UI Layout ---
     ColumnLayout {
         id: content
         anchors.fill: parent
         anchors.margins: 12
         spacing: 12
 
-        // Top Row: Small Configs
         RowLayout {
             Layout.fillWidth: true
             
@@ -264,7 +254,6 @@ Item {
 
             Item { Layout.fillWidth: true }
 
-            // Reset
             StyledRect {
                 variant: "common"
                 implicitWidth: 28; implicitHeight: 28
@@ -282,7 +271,6 @@ Item {
             }
         }
 
-        // Stack-like view for Timer Inputs
         Item {
             Layout.fillWidth: true
             Layout.preferredHeight: 60
@@ -336,7 +324,6 @@ Item {
                 }
             }
 
-            // Inverse Progress Bar
             StyledRect {
                 variant: "common"
                 anchors.bottom: parent.bottom
@@ -355,7 +342,6 @@ Item {
             }
         }
 
-        // Quick Adjust & Start
         RowLayout {
             Layout.fillWidth: true
             spacing: 12
@@ -410,7 +396,6 @@ Item {
             }
         }
 
-        // Settings Row
         RowLayout {
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignHCenter

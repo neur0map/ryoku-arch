@@ -48,9 +48,6 @@ Singleton {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // COMPOSITOR LAYOUT STATE (persisted via StateService)
-    // ═══════════════════════════════════════════════════════════════
     property string compositorLayout: ""
     property bool compositorLayoutReady: false
     // RYOKU PORT: ryoku's dynamic island drives dashboard open/close (see getActiveDashboard).
@@ -69,7 +66,6 @@ Singleton {
                         if (root.availableLayouts.includes(layout)) {
                             root.compositorLayout = layout;
                         } else {
-                            // Fallback if the layout isn't one of the known ones
                             root.compositorLayout = StateService.get("compositorLayout", "dwindle");
                         }
                     } else {
@@ -98,15 +94,11 @@ Singleton {
     }
 
 
-    // Ensure LockscreenService singleton is loaded
     Component.onCompleted: {
-        // Reference the singleton to ensure it loads
         LockscreenService.toString();
-        // Fetch the active layout from the compositor
         getLayoutProcess.running = true;
     }
 
-    // Persistent launcher state across monitors
     property string launcherSearchText: ""
     property int launcherSelectedIndex: -1
     property int launcherCurrentTab: 0
@@ -116,14 +108,10 @@ Singleton {
         launcherSelectedIndex = -1;
     }
 
-    // Persistent dashboard state across monitors  
     property int dashboardCurrentTab: 0
     
-    // Widgets tab internal state (for prefix-based tabs)
-    // 0=launcher, 1=clipboard, 2=emoji, 3=tmux, 4=wallpapers
     property int widgetsTabCurrentIndex: 0
 
-    // Persistent wallpaper navigation state
     property int wallpaperSelectedIndex: -1
 
     function clearWallpaperState() {
@@ -162,43 +150,35 @@ Singleton {
         return active ? (active.launcher || active.dashboard || active.overview) : false;
     }
 
-    // Legacy properties for backward compatibility - use active screen
     readonly property bool notchOpen: getActiveNotchOpen()
     readonly property bool overviewOpen: getActiveOverview()
     readonly property bool presetsOpen: getActivePresets()
     readonly property bool launcherOpen: getActiveLauncher()
     readonly property bool dashboardOpen: getActiveDashboard()
 
-    // Lockscreen state
     property bool lockscreenVisible: false
 
-    // OSD state
     property bool osdVisible: false
-    property string osdIndicator: "volume" // volume, mic, brightness
+    property string osdIndicator: "volume"
 
-    // Screenshot Tool state
     property bool screenshotToolVisible: false
     // property string screenshotToolMode: "normal" // DEPRECATED
-    property string screenshotCaptureMode: "region" // region, window, screen
+    property string screenshotCaptureMode: "region"
     
-    // Global selection state for synchronization
     property int screenshotSelectionX: 0
     property int screenshotSelectionY: 0
     property int screenshotSelectionW: 0
     property int screenshotSelectionH: 0
 
-    // Screen Record Tool state
     property bool screenRecordToolVisible: false
 
     // Mirror Tool state
     property bool mirrorWindowVisible: false
 
-    // Settings Window state
     property bool settingsWindowVisible: false
     property int settingsTargetWorkspaceId: 0
     property string settingsTargetScreenName: ""
 
-    // Theme editor state - persists across tab switches
     property bool themeHasChanges: false
     property var themeSnapshot: null
 
@@ -226,7 +206,6 @@ Singleton {
         "halftoneDotColor", "halftoneBackgroundColor", "itemColor", "opacity"
     ]
 
-    // Deep copy a single SR variant
     function _copySrVariant(src) {
         var copy = {};
         for (var i = 0; i < _srVariantProps.length; i++) {
@@ -234,7 +213,6 @@ Singleton {
                 copy[_srVariantProps[i]] = src[_srVariantProps[i]];
             }
         }
-        // Deep copy arrays with safety checks
         try {
             copy.gradient = (src.gradient !== undefined) ? JSON.parse(JSON.stringify(src.gradient)) : [];
         } catch (e) {
@@ -252,14 +230,12 @@ Singleton {
         return copy;
     }
 
-    // Restore a single SR variant from source to destination
     function _restoreSrVariant(src, dest) {
         for (var i = 0; i < _srVariantProps.length; i++) {
             if (src[_srVariantProps[i]] !== undefined) {
                 dest[_srVariantProps[i]] = src[_srVariantProps[i]];
             }
         }
-        // Deep copy arrays with safety checks
         if (src.gradient !== undefined) {
             try {
                 dest.gradient = JSON.parse(JSON.stringify(src.gradient));
@@ -273,19 +249,16 @@ Singleton {
         }
     }
 
-    // Create a deep copy of the current theme config
     function createThemeSnapshot() {
         var snapshot = {};
         var theme = Config.theme;
         var srVariantNames = _getSrVariantNames();
 
-        // Copy simple properties
         for (var i = 0; i < _simpleThemeProps.length; i++) {
             var prop = _simpleThemeProps[i];
             snapshot[prop] = theme[prop];
         }
 
-        // Copy SR variants
         for (var j = 0; j < srVariantNames.length; j++) {
             var name = srVariantNames[j];
             snapshot[name] = _copySrVariant(theme[name]);
@@ -294,20 +267,17 @@ Singleton {
         return snapshot;
     }
 
-    // Restore theme from snapshot
     function restoreThemeSnapshot(snapshot) {
         if (!snapshot) return;
 
         var theme = Config.theme;
         var srVariantNames = _getSrVariantNames();
 
-        // Restore simple properties
         for (var i = 0; i < _simpleThemeProps.length; i++) {
             var prop = _simpleThemeProps[i];
             theme[prop] = snapshot[prop];
         }
 
-        // Restore SR variants
         for (var j = 0; j < srVariantNames.length; j++) {
             var name = srVariantNames[j];
             if (snapshot[name]) {
@@ -317,7 +287,6 @@ Singleton {
     }
 
     function markThemeChanged() {
-        // Take a snapshot before the first change
         if (!themeHasChanges) {
             themeSnapshot = createThemeSnapshot();
             Config.pauseAutoSave = true;
@@ -343,13 +312,9 @@ Singleton {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // SHELL SETTINGS STATE
-    // ═══════════════════════════════════════════════════════════════
     property bool shellHasChanges: false
     property var shellSnapshot: null
 
-    // Shell config sections and their properties
     readonly property var _shellSections: {
         "bar": ["position", "launcherIcon", "launcherIconTint", "launcherIconFullTint", "launcherIconSize", "enableFirefoxPlayer", "screenList", "frameEnabled", "frameThickness", "pinnedOnStartup", "hoverToReveal", "hoverRegionHeight", "showPinButton", "availableOnFullscreen", "pillStyle", "use12hFormat", "containBar", "keepBarShadow", "keepBarBorder"],
         "notch": ["theme", "position", "hoverRegionHeight", "keepHidden"],
@@ -361,7 +326,6 @@ Singleton {
         "system": ["idle", "ocr"]
     }
 
-    // Create a deep copy of the current shell config
     function createShellSnapshot() {
         var snapshot = {};
         var sections = Object.keys(_shellSections);
@@ -372,7 +336,6 @@ Singleton {
             for (var j = 0; j < props.length; j++) {
                 var prop = props[j];
                 var val = Config[section][prop];
-                // Deep copy arrays or objects
                 if (typeof val === 'object' && val !== null) {
                     snapshot[section][prop] = JSON.parse(JSON.stringify(val));
                 } else {
@@ -383,7 +346,6 @@ Singleton {
         return snapshot;
     }
 
-    // Restore shell config from snapshot
     function restoreShellSnapshot(snapshot) {
         if (!snapshot) return;
         var sections = Object.keys(_shellSections);
@@ -394,7 +356,6 @@ Singleton {
                 var prop = props[j];
                 var val = snapshot[section][prop];
                 
-                // Special handling for system.idle (JsonObject)
                 if (section === "system" && prop === "idle" && val) {
                     if (val.general) {
                         var generalProps = ["lock_cmd", "before_sleep_cmd", "after_sleep_cmd"];
@@ -409,7 +370,6 @@ Singleton {
                         Config.system.idle.listeners = JSON.parse(JSON.stringify(val.listeners));
                     }
                 }
-                // Special handling for system.ocr (JsonObject)
                 else if (section === "system" && prop === "ocr" && val) {
                     var keys = Object.keys(val);
                     for (var k = 0; k < keys.length; k++) {
@@ -417,7 +377,6 @@ Singleton {
                         Config.system.ocr[key] = val[key];
                     }
                 }
-                // Deep copy arrays or objects
                 else if (typeof val === 'object' && val !== null) {
                     Config[section][prop] = JSON.parse(JSON.stringify(val));
                 } else {
@@ -428,7 +387,6 @@ Singleton {
     }
 
     function markShellChanged() {
-        // Take a snapshot before the first change
         if (!shellHasChanges) {
             shellSnapshot = createShellSnapshot();
             Config.pauseAutoSave = true;
@@ -462,9 +420,6 @@ Singleton {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // COMPOSITOR SETTINGS STATE
-    // ═══════════════════════════════════════════════════════════════
     property bool compositorHasChanges: false
     property var compositorSnapshot: null
 
@@ -487,13 +442,11 @@ Singleton {
         "shadowOffset", "shadowColorInactive"
     ]
 
-    // Create a deep copy of the current compositor config
     function createCompositorSnapshot() {
         var snapshot = {};
         for (var i = 0; i < _compositorProps.length; i++) {
             var prop = _compositorProps[i];
             var val = Config.compositor[prop];
-            // Deep copy arrays
             if (Array.isArray(val)) {
                 snapshot[prop] = JSON.parse(JSON.stringify(val));
             } else {
@@ -503,14 +456,12 @@ Singleton {
         return snapshot;
     }
 
-    // Restore compositor config from snapshot
     function restoreCompositorSnapshot(snapshot) {
         if (!snapshot) return;
         for (var i = 0; i < _compositorProps.length; i++) {
             var prop = _compositorProps[i];
             if (snapshot[prop] !== undefined) {
                 var val = snapshot[prop];
-                // Deep copy arrays
                 if (Array.isArray(val)) {
                     Config.compositor[prop] = JSON.parse(JSON.stringify(val));
                 } else {
@@ -521,7 +472,6 @@ Singleton {
     }
 
     function markCompositorChanged() {
-        // Take a snapshot before the first change
         if (!compositorHasChanges) {
             compositorSnapshot = createCompositorSnapshot();
             Config.pauseAutoSave = true;
@@ -547,9 +497,6 @@ Singleton {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // ASSISTANT SIDEBAR STATE
-    // ═══════════════════════════════════════════════════════════════
     property bool assistantVisible: false
     property bool assistantPinned: Config.ai.sidebarPinnedOnStartup ?? false
     property int assistantWidth: Config.ai.sidebarWidth ?? 400

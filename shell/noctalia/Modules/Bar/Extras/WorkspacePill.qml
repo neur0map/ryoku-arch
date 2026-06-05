@@ -147,7 +147,6 @@ Item {
       }
     }
 
-    // Material 3-inspired smooth animations
     Behavior on scale {
       NumberAnimation {
         duration: Style.animationNormal
@@ -200,7 +199,6 @@ Item {
     }
   }
 
-  // Full-height click area
   MouseArea {
     id: pillMouseArea
     anchors.fill: parent
@@ -211,7 +209,6 @@ Item {
     }
   }
 
-  // Burst effect overlay for focused pill
   Rectangle {
     id: pillBurst
     anchors.centerIn: pill

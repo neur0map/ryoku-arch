@@ -19,38 +19,31 @@ Item {
     property var presets: []
     property var filteredPresets: []
 
-    // Active preset (from persistent storage)
     readonly property string activePreset: PresetsService.activePreset
 
-    // Available config files
     readonly property var availableConfigFiles: ["bar.js", "desktop.js", "dock.js", "compositor.js", "lockscreen.js", "notch.js", "overview.js", "performance.js", "theme.js", "workspaces.js"]
 
-    // List model
     ListModel {
         id: presetsModel
     }
 
-    // Delete mode state
     property bool deleteMode: false
     property string presetToDelete: ""
     property int originalSelectedIndex: -1
-    property int deleteButtonIndex: 0 // 0 = cancel, 1 = confirm
+    property int deleteButtonIndex: 0
 
-    // Rename mode state
     property bool renameMode: false
     property string presetToRename: ""
     property string newPresetName: ""
     property int renameSelectedIndex: -1
-    property int renameButtonIndex: 0 // 0 = cancel, 1 = confirm
+    property int renameButtonIndex: 0
     property string pendingRenamedPreset: ""
 
-    // Update mode state
     property bool updateMode: false
     property string presetToUpdate: ""
     property var selectedConfigFiles: []
     property int updateSelectedIndex: -1
 
-    // Options menu state (expandable list)
     property int expandedItemIndex: -1
     property int selectedOptionIndex: 0
     property bool keyboardNavigation: false
@@ -58,7 +51,6 @@ Item {
     property alias flickable: resultsList
     property bool needsScrollbar: resultsList.contentHeight > resultsList.height
 
-    // Helper function to get options for a preset
     function getPresetOptions(preset) {
         if (!preset) return [];
 
@@ -129,7 +121,7 @@ Item {
         
         // Calculate height based on options
         let presetItem = presetsModel.get(index);
-        let optionsCount = 3; // default
+        let optionsCount = 3;
         if (presetItem && presetItem.presetData) {
             optionsCount = getPresetOptions(presetItem.presetData).length;
         }
@@ -269,7 +261,6 @@ Item {
         }
     }
 
-    // Delete mode functions
     function enterDeleteMode(presetName) {
         originalSelectedIndex = selectedIndex;
         deleteMode = true;
@@ -294,7 +285,6 @@ Item {
         cancelDeleteMode();
     }
 
-    // Rename mode functions
     function enterRenameMode(presetName) {
         renameSelectedIndex = selectedIndex;
         renameMode = true;
@@ -328,13 +318,11 @@ Item {
         cancelRenameMode();
     }
 
-    // Update mode functions
     function enterUpdateMode(presetName) {
         updateSelectedIndex = selectedIndex;
         updateMode = true;
         presetToUpdate = presetName;
 
-        // Pre-select the config files that are already in this preset
         const preset = presets.find(p => p.name === presetName);
         if (preset) {
             selectedConfigFiles = preset.configFiles.slice();
@@ -362,10 +350,8 @@ Item {
         cancelUpdateMode();
     }
 
-    // Create preset functions
     function createPreset(presetName) {
         if (presetName && presetName.trim() !== "") {
-            // For create, select all config files by default
             PresetsService.savePreset(presetName.trim(), availableConfigFiles);
         }
         Visibilities.setActiveModule("");
@@ -421,7 +407,6 @@ Item {
         anchors.fill: parent
         spacing: 8
 
-        // Search Input
         SearchInput {
             id: searchInput
             Layout.fillWidth: true
@@ -452,7 +437,6 @@ Item {
                             if (selectedPreset.isCreateSpecificButton) {
                                 root.createPreset(selectedPreset.presetNameToCreate);
                             } else if (selectedPreset.isCreateButton) {
-                                // Generic create - use search text if any
                                 root.createPreset(root.searchText || "New Preset");
                             } else {
                                 root.loadPreset(selectedPreset.name);
@@ -526,7 +510,6 @@ Item {
             }
         }
 
-        // List View
         ListView {
             id: resultsList
             Layout.fillWidth: true
@@ -718,7 +701,6 @@ Item {
                     }
                 }
 
-                // Expandable options list
                 RowLayout {
                     anchors.left: parent.left
                     anchors.right: parent.right
@@ -867,7 +849,6 @@ Item {
                     }
                 }
 
-                // Rename action buttons
                 Rectangle {
                     id: renameActionContainer
                     anchors.right: parent.right
@@ -1006,7 +987,6 @@ Item {
                     }
                 }
 
-                // Delete action buttons
                 Rectangle {
                     id: deleteActionContainer
                     anchors.right: parent.right
@@ -1145,7 +1125,6 @@ Item {
                     }
                 }
 
-                // Main content row
                 RowLayout {
                     id: mainContent
                     anchors.left: parent.left
@@ -1285,7 +1264,6 @@ Item {
                             }
                         }
 
-                        // Subtitle
                         Text {
                             visible: !isInRenameMode && !isInUpdateMode
                             text: {
@@ -1301,7 +1279,6 @@ Item {
                         }
                     }
 
-                        // Official badge
                         StyledRect {
                             visible: modelData.isOfficial && !modelData.isCreateButton && !modelData.isCreateSpecificButton && !isInDeleteMode && !isInRenameMode && !isInUpdateMode
                             Layout.preferredHeight: 20
@@ -1319,7 +1296,6 @@ Item {
                             }
                         }
 
-                        // Active badge
                         StyledRect {
                         id: activeBadge
                         visible: isActive && !modelData.isCreateButton && !modelData.isCreateSpecificButton && !isInDeleteMode && !isInRenameMode && !isInUpdateMode
@@ -1441,18 +1417,16 @@ Item {
                         return false;
 
                     var itemY = activeIndex * 48;
-                    // Correct Y calculation requires summing previous heights, as they are variable
                     if (activeIndex > 0) {
                          // This simple calculation (activeIndex * 48) is WRONG when items have variable heights.
                          // However, since only ONE item can be expanded at a time:
                          // 1. If the expanded item is BEFORE activeIndex, activeIndex will be pushed down.
                          // 2. If the expanded item IS activeIndex, its top is normal (unless pushed by previous).
                          
-                         // Re-calculate itemY correctly:
                          itemY = 0;
                          for (var i = 0; i < activeIndex; i++) {
                              var h = 48;
-                             if (i === root.expandedItemIndex) { // logic for expanded item
+                             if (i === root.expandedItemIndex) {
                                  let pItem = presetsModel.get(i);
                                  let optCount = pItem && pItem.presetData ? root.getPresetOptions(pItem.presetData).length : 3;
                                  var lHeight = 36 * optCount;
@@ -1519,7 +1493,6 @@ Item {
         }
     }
 
-    // Update Mode Overlay
     Rectangle {
         id: updateOverlay
         anchors.fill: parent
@@ -1572,7 +1545,6 @@ Item {
                 font.pixelSize: Styling.fontSize(-1)
             }
 
-            // File Selection Grid
             GridLayout {
                 columns: 2
                 Layout.fillWidth: true
@@ -1638,7 +1610,6 @@ Item {
                 }
             }
 
-            // Buttons
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 12

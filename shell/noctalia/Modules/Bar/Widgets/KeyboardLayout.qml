@@ -43,7 +43,6 @@ Item {
   readonly property string iconColorKey: widgetSettings.iconColor !== undefined ? widgetSettings.iconColor : widgetMetadata.iconColor
   readonly property string textColorKey: widgetSettings.textColor !== undefined ? widgetSettings.textColor : widgetMetadata.textColor
 
-  // Use the shared service for keyboard layout
   property string currentLayout: KeyboardLayoutService.currentLayout
 
   implicitWidth: pill.width

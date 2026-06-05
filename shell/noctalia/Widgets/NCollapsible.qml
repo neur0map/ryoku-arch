@@ -16,10 +16,8 @@ ColumnLayout {
   Layout.fillWidth: true
   spacing: 0
 
-  // Default property to accept children
   default property alias content: contentLayout.children
 
-  // Header with clickable area
   Rectangle {
     id: headerContainer
     Layout.fillWidth: true
@@ -29,7 +27,6 @@ ColumnLayout {
     border.color: root.expanded ? Color.mOnSecondary : Color.mOutline
     border.width: Style.borderS
 
-    // Smooth color transitions
     Behavior on color {
       enabled: root._userInteracted
       ColorAnimation {
@@ -58,12 +55,11 @@ ColumnLayout {
         root.toggled(root.expanded);
       }
 
-      // Hover effect overlay
       Rectangle {
         anchors.fill: parent
         color: headerArea.containsMouse ? Color.mOnSurface : "transparent"
         opacity: headerArea.containsMouse ? 0.08 : 0
-        radius: headerContainer.radius // Reference the container's radius directly
+        radius: headerContainer.radius
 
         Behavior on opacity {
           NumberAnimation {
@@ -79,7 +75,6 @@ ColumnLayout {
       anchors.margins: Style.marginM
       spacing: Style.marginM
 
-      // Expand/collapse icon with rotation animation
       NIcon {
         id: chevronIcon
         icon: "chevron-right"
@@ -104,7 +99,6 @@ ColumnLayout {
         }
       }
 
-      // Header text content - properly contained
       RowLayout {
         Layout.fillWidth: true
         Layout.alignment: Qt.AlignVCenter
@@ -146,7 +140,6 @@ ColumnLayout {
     }
   }
 
-  // Collapsible content with Material 3 styling
   Rectangle {
     id: contentContainer
     Layout.fillWidth: true
@@ -158,10 +151,8 @@ ColumnLayout {
     border.color: Color.mOutline
     border.width: Style.borderS
 
-    // Dynamic height based on content
     Layout.preferredHeight: expanded ? contentLayout.implicitHeight + Style.margin2L : 0
 
-    // Smooth height animation
     Behavior on Layout.preferredHeight {
       enabled: root._userInteracted
       NumberAnimation {
@@ -170,7 +161,6 @@ ColumnLayout {
       }
     }
 
-    // Content layout
     ColumnLayout {
       id: contentLayout
       anchors.fill: parent
@@ -178,7 +168,6 @@ ColumnLayout {
       spacing: root.contentSpacing
     }
 
-    // Fade in animation for content
     opacity: root.expanded ? 1.0 : 0.0
     Behavior on opacity {
       enabled: root._userInteracted

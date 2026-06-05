@@ -25,7 +25,6 @@ DraggableDesktopWidget {
   readonly property bool isPlaying: MediaService.isPlaying
   readonly property bool hasActiveTrack: hasPlayer && (MediaService.trackTitle || MediaService.trackArtist)
 
-  // State
   // Hide when idle when playback is not active
   readonly property bool shouldHideIdle: (hideMode === "idle") && !isPlaying
   readonly property bool shouldHideEmpty: !hasPlayer && hideMode === "hidden"
@@ -63,7 +62,6 @@ DraggableDesktopWidget {
   width: implicitWidth
   height: implicitHeight
 
-  // Visualizer visibility mode
   readonly property bool shouldShowVisualizer: {
     if (!root.showVisualizer)
       return false;

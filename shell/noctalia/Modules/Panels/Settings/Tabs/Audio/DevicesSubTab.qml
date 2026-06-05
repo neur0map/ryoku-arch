@@ -11,7 +11,6 @@ ColumnLayout {
   spacing: Style.marginL
   Layout.fillWidth: true
 
-  // Output Devices
   ButtonGroup {
     id: sinks
   }
@@ -41,7 +40,6 @@ ColumnLayout {
     }
   }
 
-  // Input Devices
   ButtonGroup {
     id: sources
   }

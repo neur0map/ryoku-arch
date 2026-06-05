@@ -10,13 +10,9 @@ import qs.noctalia.Commons
 Singleton {
   id: root
 
-  // -------------------------------------------------
-  // Public Properties
-  // -------------------------------------------------
   property bool imageMagickAvailable: false
   property bool initialized: false
 
-  // Cache directories
   readonly property string baseDir: Settings.cacheDir + "images/"
   readonly property string wpThumbDir: baseDir + "wallpapers/thumbnails/"
   readonly property string wpLargeDir: baseDir + "wallpapers/large/"
@@ -34,9 +30,6 @@ Singleton {
     return !basicImageFilters.includes(ext);
   }
 
-  // -------------------------------------------------
-  // Internal State
-  // -------------------------------------------------
   property var pendingRequests: ({})
   property var fallbackQueue: []
   property bool fallbackProcessing: false
@@ -51,17 +44,11 @@ Singleton {
   property int runningImageMagickProcesses: 0
   readonly property int maxConcurrentImageMagickProcesses: 4
 
-  // -------------------------------------------------
-  // Signals
-  // -------------------------------------------------
   signal cacheHit(string cacheKey, string cachedPath)
   signal cacheMiss(string cacheKey)
   signal processingComplete(string cacheKey, string cachedPath)
   signal processingFailed(string cacheKey, string error)
 
-  // -------------------------------------------------
-  // Initialization
-  // -------------------------------------------------
   function init() {
     Logger.i("ImageCache", "Service started");
     createDirectories();
@@ -84,9 +71,6 @@ Singleton {
     Logger.d("ImageCache", "Cleanup triggered for files older than 15 days");
   }
 
-  // -------------------------------------------------
-  // Public API: Get Thumbnail (384x384)
-  // -------------------------------------------------
   function getThumbnail(sourcePath, callback) {
     if (!sourcePath || sourcePath === "") {
       callback("", false);
@@ -107,9 +91,6 @@ Singleton {
     });
   }
 
-  // -------------------------------------------------
-  // Public API: Get Large Image (scaled to specified dimensions)
-  // -------------------------------------------------
   function getLarge(sourcePath, width, height, callback) {
     if (!sourcePath || sourcePath === "") {
       callback("", false);
@@ -156,16 +137,12 @@ Singleton {
     });
   }
 
-  // -------------------------------------------------
-  // Public API: Get Notification Icon (64x64)
-  // -------------------------------------------------
   function getNotificationIcon(imageUri, appName, summary, callback) {
     if (!imageUri || imageUri === "") {
       callback("", false);
       return;
     }
 
-    // Resolve bare file path for temp check
     const filePath = imageUri.startsWith("file://") ? imageUri.substring(7) : imageUri;
 
     // File paths in persistent locations are used directly, not cached
@@ -191,12 +168,10 @@ Singleton {
     });
   }
 
-  // Check if a path is in a temporary directory that may be cleaned up
   function isTemporaryPath(path) {
     return path.startsWith("/tmp/");
   }
 
-  // Copy a temporary file to the cache directory
   function copyTempFileToCache(sourcePath, destPath, cacheKey) {
     const srcEsc = sourcePath.replace(/'/g, "'\\''");
     const dstEsc = destPath.replace(/'/g, "'\\''");
@@ -230,9 +205,6 @@ Singleton {
                         });
   }
 
-  // -------------------------------------------------
-  // Public API: Get Circular Avatar (256x256)
-  // -------------------------------------------------
   function getCircularAvatar(url, username, callback) {
     if (!url || !username) {
       callback("", false);
@@ -253,9 +225,6 @@ Singleton {
     });
   }
 
-  // -------------------------------------------------
-  // Cache Key Generation
-  // -------------------------------------------------
   function generateThumbnailKey(sourcePath, mtime) {
     const keyString = sourcePath + "@384x384@" + (mtime || "unknown");
     return Checksum.sha256(keyString);
@@ -273,18 +242,13 @@ Singleton {
     return Checksum.sha256(imageUri);
   }
 
-  // -------------------------------------------------
-  // Request Processing (with coalescing)
-  // -------------------------------------------------
   function processRequest(cacheKey, cachedPath, sourcePath, callback, processFn) {
-    // Check if already processing this request
     if (pendingRequests[cacheKey]) {
       pendingRequests[cacheKey].callbacks.push(callback);
       Logger.d("ImageCache", "Coalescing request for:", cacheKey);
       return;
     }
 
-    // Check cache first
     checkFileExists(cachedPath, function (exists) {
       if (exists) {
         Logger.d("ImageCache", "Cache hit:", cachedPath);
@@ -299,7 +263,6 @@ Singleton {
         return;
       }
 
-      // Start new processing
       Logger.d("ImageCache", "Cache miss, processing:", sourcePath);
       cacheMiss(cacheKey);
       pendingRequests[cacheKey] = {
@@ -327,9 +290,6 @@ Singleton {
     }
   }
 
-  // -------------------------------------------------
-  // ImageMagick Processing: Thumbnail
-  // -------------------------------------------------
   function startThumbnailProcessing(sourcePath, outputPath, cacheKey) {
     const srcEsc = sourcePath.replace(/'/g, "'\\''");
     const dstEsc = outputPath.replace(/'/g, "'\\''");
@@ -340,9 +300,6 @@ Singleton {
     runProcess(command, cacheKey, outputPath, sourcePath);
   }
 
-  // -------------------------------------------------
-  // ImageMagick Processing: Large
-  // -------------------------------------------------
   function startLargeProcessing(sourcePath, outputPath, width, height, cacheKey) {
     const srcEsc = sourcePath.replace(/'/g, "'\\''");
     const dstEsc = outputPath.replace(/'/g, "'\\''");
@@ -353,9 +310,6 @@ Singleton {
     runProcess(command, cacheKey, outputPath, sourcePath);
   }
 
-  // -------------------------------------------------
-  // ImageMagick Processing: Circular Avatar
-  // -------------------------------------------------
   function downloadAndProcessAvatar(url, username, outputPath, cacheKey) {
     const tempPath = contributorsDir + username + "_temp.png";
     const tempEsc = tempPath.replace(/'/g, "'\\''");
@@ -383,7 +337,6 @@ Singleton {
                               notifyCallbacks(cacheKey, "", false);
                               return;
                             }
-                            // Now process with ImageMagick
                             processCircularAvatar(tempPath, outputPath, cacheKey);
                           },
                           onError: function () {
@@ -403,7 +356,6 @@ Singleton {
                               command: command,
                               cacheKey: cacheKey,
                               onComplete: function (exitCode) {
-                                // Clean up temp file
                                 Quickshell.execDetached(["rm", "-f", inputPath]);
 
                                 if (exitCode !== 0) {
@@ -421,17 +373,12 @@ Singleton {
                             });
   }
 
-  // -------------------------------------------------
-  // Generic Process Runner (with queue for ImageMagick)
-  // -------------------------------------------------
 
-  // Queue an ImageMagick process and run it when a slot is available
   function queueImageMagickProcess(request) {
     imageMagickQueue.push(request);
     processImageMagickQueue();
   }
 
-  // Process queued ImageMagick requests up to the concurrency limit
   function processImageMagickQueue() {
     while (runningImageMagickProcesses < maxConcurrentImageMagickProcesses && imageMagickQueue.length > 0) {
       const request = imageMagickQueue.shift();
@@ -439,7 +386,6 @@ Singleton {
     }
   }
 
-  // Actually run an ImageMagick process
   function runImageMagickProcess(request) {
     runningImageMagickProcesses++;
 
@@ -493,9 +439,6 @@ Singleton {
                             });
   }
 
-  // -------------------------------------------------
-  // Qt Fallback Renderer
-  // -------------------------------------------------
   PanelWindow {
     id: fallbackRenderer
     implicitWidth: 0
@@ -578,17 +521,12 @@ Singleton {
     }
   }
 
-  // -------------------------------------------------
-  // Utility Functions (with process queue to prevent fd exhaustion)
-  // -------------------------------------------------
 
-  // Queue a utility process and run it when a slot is available
   function queueUtilityProcess(request) {
     utilityProcessQueue.push(request);
     processUtilityQueue();
   }
 
-  // Process queued utility requests up to the concurrency limit
   function processUtilityQueue() {
     while (runningUtilityProcesses < maxConcurrentUtilityProcesses && utilityProcessQueue.length > 0) {
       const request = utilityProcessQueue.shift();
@@ -596,7 +534,6 @@ Singleton {
     }
   }
 
-  // Actually run a utility process
   function runUtilityProcess(request) {
     runningUtilityProcesses++;
 
@@ -700,9 +637,6 @@ Singleton {
                         });
   }
 
-  // -------------------------------------------------
-  // Cache Invalidation
-  // -------------------------------------------------
   function invalidateThumbnail(sourcePath) {
     Logger.i("ImageCache", "Invalidating thumbnail for:", sourcePath);
     // Since cache keys include hash, we'd need to track mappings
@@ -725,9 +659,6 @@ Singleton {
     Quickshell.execDetached(["rm", "-f", path]);
   }
 
-  // -------------------------------------------------
-  // Clear Cache Functions
-  // -------------------------------------------------
   function clearAll() {
     Logger.i("ImageCache", "Clearing all cache");
     clearThumbnails();
@@ -760,9 +691,6 @@ Singleton {
     Quickshell.execDetached(["mkdir", "-p", contributorsDir]);
   }
 
-  // -------------------------------------------------
-  // ImageMagick Detection
-  // -------------------------------------------------
   Process {
     id: checkMagickProcess
     command: ["sh", "-c", "command -v magick"]

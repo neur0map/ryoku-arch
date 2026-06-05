@@ -77,7 +77,6 @@ SmartPanel {
       anchors.margins: Style.marginL
       spacing: Style.marginM
 
-      // HEADER
       NBox {
         Layout.fillWidth: true
         implicitHeight: headerRow.implicitHeight + Style.margin2M
@@ -117,7 +116,6 @@ SmartPanel {
         }
       }
 
-      // Charge level + health/time
       NBox {
         Layout.fillWidth: true
         implicitHeight: chargeLayout.implicitHeight + Style.margin2L
@@ -129,7 +127,6 @@ SmartPanel {
           anchors.margins: Style.marginL
           spacing: Style.marginL
 
-          // Laptop batteries section
           Repeater {
             model: BatteryService.laptopBatteries
             delegate: ColumnLayout {
@@ -231,7 +228,6 @@ SmartPanel {
             visible: BatteryService.laptopBatteries.length > 0 && BatteryService.bluetoothBatteries.length > 0
           }
 
-          // Other devices (Bluetooth) section
           Repeater {
             model: BatteryService.bluetoothBatteries
             delegate: ColumnLayout {

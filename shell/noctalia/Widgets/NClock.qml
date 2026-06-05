@@ -16,7 +16,6 @@ Item {
   // Show seconds progress ring (digital only)
   property bool showProgress: true
 
-  // Color properties
   property color backgroundColor: Color.mPrimary
   property color clockColor: Color.mOnPrimary
 
@@ -52,7 +51,6 @@ Item {
 
   property color progressColor: root.secondHandColor
 
-  // Font size properties for digital clock
   property real hoursFontSize: Style.fontSizeXS
   property real minutesFontSize: Style.fontSizeXXS
   property int hoursFontWeight: Style.fontWeightBold
@@ -129,7 +127,6 @@ Item {
     }
   }
 
-  // Analog Clock Component
   component NClockAnalog: Item {
     property var now
     property color backgroundColor: Color.mPrimary
@@ -161,7 +158,6 @@ Item {
         ctx.translate(width / 2, height / 2);
         var radius = Math.min(width, height) / 2;
 
-        // Hour marks
         ctx.strokeStyle = Qt.alpha(clockColor, markAlpha);
         ctx.lineWidth = 2 * scaleRatio;
         var scaleFactor = 0.7;
@@ -180,7 +176,6 @@ Item {
           ctx.restore();
         }
 
-        // Hour hand
         ctx.save();
         var hourAngle = (hours % 12 + minutes / 60) * Math.PI / 6;
         ctx.rotate(hourAngle);
@@ -193,7 +188,6 @@ Item {
         ctx.stroke();
         ctx.restore();
 
-        // Minute hand
         ctx.save();
         var minuteAngle = (minutes + seconds / 60) * Math.PI / 30;
         ctx.rotate(minuteAngle);
@@ -206,7 +200,6 @@ Item {
         ctx.stroke();
         ctx.restore();
 
-        // Second hand
         ctx.save();
         var secondAngle = seconds * Math.PI / 30;
         ctx.rotate(secondAngle);
@@ -219,7 +212,6 @@ Item {
         ctx.stroke();
         ctx.restore();
 
-        // Center dot
         ctx.beginPath();
         ctx.arc(0, 0, 3 * scaleRatio, 0, 2 * Math.PI);
         ctx.fillStyle = clockColor;
@@ -230,7 +222,6 @@ Item {
     }
   }
 
-  // Digital Clock Component
   component NClockDigital: Item {
     property var now
     property color backgroundColor: Color.mPrimary
@@ -245,7 +236,6 @@ Item {
 
     anchors.fill: parent
 
-    // Digital clock's seconds circular progress
     Canvas {
       id: secondsProgress
       anchors.fill: parent
@@ -266,14 +256,12 @@ Item {
         var radius = Math.min(width, height) / 2 - 3 * scaleRatio;
         ctx.reset();
 
-        // Background circle
         ctx.beginPath();
         ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
         ctx.lineWidth = 2.5 * scaleRatio;
         ctx.strokeStyle = Qt.alpha(clockColor, 0.15);
         ctx.stroke();
 
-        // Progress arc
         ctx.beginPath();
         ctx.arc(centerX, centerY, radius, -Math.PI / 2, -Math.PI / 2 + progress * 2 * Math.PI);
         ctx.lineWidth = 2.5 * scaleRatio;
@@ -283,7 +271,6 @@ Item {
       }
     }
 
-    // Digital clock
     ColumnLayout {
       anchors.centerIn: parent
       spacing: -Style.marginXXS
@@ -312,7 +299,6 @@ Item {
     }
   }
 
-  // Binary Clock Component
   component NClockBinary: Item {
     property var now
     property color backgroundColor

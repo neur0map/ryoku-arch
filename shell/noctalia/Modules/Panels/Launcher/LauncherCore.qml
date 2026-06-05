@@ -29,7 +29,6 @@ Rectangle {
   // Expose for preview panel positioning
   readonly property var resultsView: resultsSwapView.item
 
-  // State
   property string searchText: ""
   property int selectedIndex: 0
   property var results: []
@@ -143,7 +142,6 @@ Rectangle {
     return provider && provider.wrapNavigation !== undefined ? provider.wrapNavigation : true;
   }
 
-  // Listen for plugin provider registry changes
   Connections {
     target: LauncherProviderRegistry
     function onPluginProviderRegistryUpdated() {
@@ -151,7 +149,6 @@ Rectangle {
     }
   }
 
-  // Lifecycle
   onIsOpenChanged: {
     if (isOpen) {
       onOpened();
@@ -233,7 +230,6 @@ Rectangle {
     resultsSwapView.swap(direction, () => applyCategorySelection(tabIndex, providerCategories));
   }
 
-  // Public API
   function setSearchText(text) {
     searchText = text;
   }
@@ -244,7 +240,6 @@ Rectangle {
     }
   }
 
-  // Provider registration
   function registerProvider(provider) {
     providers.push(provider);
     provider.launcher = root;
@@ -268,7 +263,6 @@ Rectangle {
       }
     }
 
-    // Adopt persistent instances from the registry
     for (var i = 0; i < registeredIds.length; i++) {
       var providerId = registeredIds[i];
       if (!pluginProviderInstances[providerId]) {
@@ -289,12 +283,10 @@ Rectangle {
     }
   }
 
-  // Search handling
   function updateResults() {
     results = [];
     var newActiveProvider = null;
 
-    // Check for command mode
     if (searchText.startsWith(">")) {
       for (let provider of providers) {
         if (provider.handleCommand && provider.handleCommand(searchText)) {
@@ -415,7 +407,6 @@ Rectangle {
         ShellState.recordLauncherUsage(item.usageKey);
       }
 
-      // Check if auto-paste is enabled and provider/item supports it
       if (Settings.data.appLauncher.autoPasteClipboard && provider && provider.supportsAutoPaste && item.autoPasteText) {
         if (item.onAutoPaste)
           item.onAutoPaste();
@@ -435,7 +426,6 @@ Rectangle {
     return Keybinds.checkKey(event, settingName, Settings);
   }
 
-  // Keyboard handler
   function handleKeyPress(event) {
     if (checkKey(event, 'escape')) {
       close();
@@ -481,7 +471,6 @@ Rectangle {
       }
     }
 
-    // Static bindings
     switch (event.key) {
     case Qt.Key_Tab:
       if (showProviderCategories) {
@@ -533,9 +522,6 @@ Rectangle {
     }
   }
 
-  // -----------------------
-  // Provider components
-  // -----------------------
   ApplicationsProvider {
     id: appsProvider
     Component.onCompleted: {
@@ -602,7 +588,6 @@ Rectangle {
     }
   }
 
-  // ==================== UI Content ====================
 
   opacity: resultsReady ? 1.0 : 0.0
 
@@ -709,7 +694,6 @@ Rectangle {
       }
     }
 
-    // Results view
     NSlideSwapView {
       id: resultsSwapView
       Layout.fillWidth: true
@@ -720,8 +704,6 @@ Rectangle {
       sourceComponent: root.isSingleView ? singleViewComponent : (root.isGridView ? gridViewComponent : listViewComponent)
     }
 
-    // --------------------------
-    // LIST VIEW
     Component {
       id: listViewComponent
       NListView {
@@ -754,8 +736,6 @@ Rectangle {
       }
     }
 
-    // --------------------------
-    // SINGLE ITEM VIEW
     Component {
       id: singleViewComponent
 
@@ -812,8 +792,6 @@ Rectangle {
       }
     }
 
-    // // --------------------------
-    // GRID VIEW
     Component {
       id: gridViewComponent
       NGridView {

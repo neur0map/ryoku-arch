@@ -51,8 +51,8 @@ Item {
   // state that occurs when Monitor QtObjects are destroyed before the
   // imperative updateMonitor() call would run.
   property var brightnessMonitor: {
-    var _ = BrightnessService.monitors; // reactive dependency
-    var __ = BrightnessService.ddcMonitors; // reactive dependency
+    var _ = BrightnessService.monitors;
+    var __ = BrightnessService.ddcMonitors;
     if (!screen)
       return null;
     return BrightnessService.getMonitorForScreen(screen) ?? null;

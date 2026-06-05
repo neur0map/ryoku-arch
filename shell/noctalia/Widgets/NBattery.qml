@@ -3,11 +3,9 @@ import QtQuick.Layouts
 import qs.noctalia.Commons
 import qs.noctalia.Widgets
 
-// Battery widget with Android 16 style rendering (horizontal or vertical)
 Item {
   id: root
 
-  // Data (must be provided by parent)
   required property real percentage
   required property bool charging
   required property bool pluggedIn
@@ -15,20 +13,16 @@ Item {
   required property bool low
   required property bool critical
 
-  // Sizing - baseSize controls overall scaleFactor for bar/panel usage
   property real baseSize: Style.fontSizeM
 
-  // Styling - no hardcoded colors, only theme colors
   property color baseColor: Color.mOnSurface
   property color lowColor: Color.mError
   property color chargingColor: Color.mPrimary
   property color textColor: Color.mSurface
 
-  // Display options
   property bool showPercentageText: true
   property bool vertical: false
 
-  // Alternating state icon display (toggles between percentage and icon when charging)
   property bool showStateIcon: false
 
   onChargingChanged: {
@@ -36,7 +30,6 @@ Item {
       showStateIcon = false;
   }
 
-  // Internal sizing calculations based on baseSize
   readonly property real scaleFactor: baseSize / Style.fontSizeM
   readonly property real bodyWidth: {
     const min = Style.toOdd(22 * scaleFactor);
@@ -44,7 +37,6 @@ Item {
       return min;
     }
 
-    // increase length when showing 100%
     if (percentage > 99) {
       const max = Style.toOdd(30 * scaleFactor);
       return max;
@@ -57,11 +49,9 @@ Item {
   readonly property real terminalHeight: Math.round(7 * scaleFactor)
   readonly property real cornerRadius: Math.round(3 * scaleFactor)
 
-  // Total size is just body + terminal (no external icon)
   readonly property real totalWidth: vertical ? bodyHeight : bodyWidth + terminalWidth
   readonly property real totalHeight: vertical ? bodyWidth + terminalWidth : bodyHeight
 
-  // Determine active color based on state
   readonly property color activeColor: {
     if (!ready) {
       return Qt.alpha(baseColor, Style.opacityMedium);
@@ -75,10 +65,8 @@ Item {
     return baseColor;
   }
 
-  // Background color for empty portion (semi-transparent)
   readonly property color emptyColor: Qt.alpha(baseColor, 0.66)
 
-  // State icon logic
   readonly property string stateIcon: {
     if (!ready)
       return "x";
@@ -89,7 +77,6 @@ Item {
     return "";
   }
 
-  // Animated percentage for smooth transitions
   property real animatedPercentage: percentage
 
   Behavior on animatedPercentage {
@@ -100,7 +87,6 @@ Item {
     }
   }
 
-  // Timer to alternate between percentage text and state icon when charging/plugged
   Timer {
     id: alternateTimer
     interval: 4000
@@ -114,7 +100,6 @@ Item {
   Layout.maximumWidth: implicitWidth
   Layout.maximumHeight: implicitHeight
 
-  // Battery body container
   Item {
     id: batteryBody
     width: root.vertical ? root.bodyHeight : root.bodyWidth + root.terminalWidth
@@ -124,7 +109,6 @@ Item {
     anchors.horizontalCenter: root.vertical ? parent.horizontalCenter : undefined
     anchors.verticalCenter: root.vertical ? undefined : parent.verticalCenter
 
-    // Battery body background
     Rectangle {
       id: bodyBackground
       y: root.vertical ? root.terminalWidth : 0
@@ -134,7 +118,6 @@ Item {
       color: root.emptyColor
     }
 
-    // Terminal cap
     Rectangle {
       x: root.vertical ? (root.bodyHeight - root.terminalHeight) / 2 : root.bodyWidth
       y: root.vertical ? 0 : (root.bodyHeight - root.terminalHeight) / 2
@@ -144,7 +127,6 @@ Item {
       color: root.critical ? root.lowColor : root.emptyColor
     }
 
-    // Fill level
     Rectangle {
       id: fillRect
       visible: root.ready && (root.animatedPercentage > 0 || root.critical)
@@ -157,7 +139,6 @@ Item {
     }
   }
 
-  // Percentage text overlaid on battery center
   NText {
     id: percentageText
     visible: opacity > 0
@@ -183,7 +164,6 @@ Item {
     }
   }
 
-  // State icon centered inside battery body (shown when alternating)
   NIcon {
     id: stateIconOverlay
     visible: opacity > 0

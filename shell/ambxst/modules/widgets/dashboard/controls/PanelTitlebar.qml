@@ -7,7 +7,6 @@ import qs.ambxst.modules.theme
 import qs.ambxst.modules.components
 import qs.ambxst.config
 
-// Titlebar for control panels with title, status, toggle and action buttons
 RowLayout {
     id: root
 
@@ -21,7 +20,6 @@ RowLayout {
     // Each action: { icon: "...", tooltip: "...", onClicked: function, enabled: true, loading: false }
     property var actions: []
 
-    // Custom content slot (appears between spacer and actions)
     default property alias customContent: customContentContainer.data
 
     signal toggleChanged(bool checked)
@@ -30,7 +28,6 @@ RowLayout {
     Layout.preferredHeight: 36
     spacing: 8
 
-    // Title
     Text {
         text: root.title
         font.family: Config.theme.font
@@ -52,7 +49,6 @@ RowLayout {
         Layout.fillWidth: true
     }
 
-    // Custom content container
     Item {
         id: customContentContainer
         Layout.preferredWidth: childrenRect.width
@@ -60,7 +56,6 @@ RowLayout {
         visible: children.length > 0
     }
 
-    // Action buttons
     Repeater {
         model: root.actions
 
@@ -111,7 +106,6 @@ RowLayout {
         }
     }
 
-    // Toggle switch
     Switch {
         id: toggleSwitch
         visible: root.showToggle

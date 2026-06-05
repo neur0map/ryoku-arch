@@ -34,7 +34,6 @@ Variants {
     id: screenLoader
     required property ShellScreen modelData
 
-    // Reactive property for widgets on this specific screen
     // Returns a fresh array whenever Settings changes
     property var screenWidgets: {
       if (!modelData || !modelData.name) {
@@ -87,14 +86,12 @@ Variants {
         Logger.d("DesktopWidgets", "Created panel window for", screen?.name);
       }
 
-      // Add a new widget to the current screen
       function addWidgetToCurrentScreen(widgetId) {
         var monitorName = window.screen.name;
         var newWidget = {
           "id": widgetId
         };
 
-        // Load default metadata if available
         var metadata = DesktopWidgetRegistry.widgetMetadata[widgetId];
         if (metadata) {
           Object.keys(metadata).forEach(function (key) {
@@ -102,12 +99,10 @@ Variants {
           });
         }
 
-        // Place at screen center
         newWidget.x = (window.screen.width / 2) - 100;
         newWidget.y = (window.screen.height / 2) - 100;
         newWidget.scale = 1.0;
 
-        // Get current widgets and add new one
         var monitorWidgets = Settings.data.desktopWidgets.monitorWidgets || [];
         var newMonitorWidgets = monitorWidgets.slice();
         var found = false;
@@ -158,11 +153,10 @@ Variants {
             // Ensures grid lines pass through the screen center on both axes
             readonly property int gridSize: {
               if (!window.screen)
-                return 30; // Fallback
+                return 30;
               var baseSize = Math.round(window.screen.width * 0.015);
               baseSize = Math.max(20, Math.min(60, baseSize));
 
-              // Calculate center coordinates
               var centerX = window.screen.width / 2;
               var centerY = window.screen.height / 2;
 
@@ -206,7 +200,6 @@ Variants {
                 return a;
               };
 
-              // Find common divisors of centerX and centerY
               var centerGcd = gcd(Math.round(centerX), Math.round(centerY));
               if (centerGcd > 0) {
                 // Find a divisor of centerGcd that's close to bestSize
@@ -231,7 +224,6 @@ Variants {
               ctx.strokeStyle = Color.mPrimary;
               ctx.lineWidth = 1;
 
-              // Draw vertical lines
               for (let x = 0; x <= width; x += gridSize) {
                 ctx.beginPath();
                 ctx.moveTo(x, 0);
@@ -239,7 +231,6 @@ Variants {
                 ctx.stroke();
               }
 
-              // Draw horizontal lines
               for (let y = 0; y <= height; y += gridSize) {
                 ctx.beginPath();
                 ctx.moveTo(0, y);
@@ -248,7 +239,6 @@ Variants {
               }
             }
 
-            // Repaint when size changes
             onWidthChanged: requestPaint()
             onHeightChanged: requestPaint()
 
@@ -276,7 +266,6 @@ Variants {
           }
         }
 
-        // Load widgets dynamically from per-monitor array
         Repeater {
           model: screenLoader.screenWidgets
 
@@ -341,7 +330,6 @@ Variants {
               }
             }
 
-            // Clean up mask region when widget unloads
             onItemChanged: {
               if (!item && _maskRegion) {
                 var region = _maskRegion;
@@ -355,7 +343,6 @@ Variants {
           }
         }
 
-        // Edit mode controls panel
         Rectangle {
           id: editModeControlsPanel
           visible: DesktopWidgetRegistry.editMode && Settings.data.desktopWidgets.enabled
@@ -388,7 +375,6 @@ Variants {
             property real baseY: editModeControlsPanel.barOffsetTop
           }
 
-          // Reset position when bar position changes
           Connections {
             target: Settings.data.bar
             function onPositionChanged() {
@@ -411,7 +397,6 @@ Variants {
           }
           z: 9999
 
-          // Drag area for relocating the panel
           MouseArea {
             id: dragArea
             anchors.fill: parent
@@ -435,7 +420,6 @@ Variants {
                                    var newX = panelInternal.baseX + deltaX;
                                    var newY = panelInternal.baseY + deltaY;
 
-                                   // Boundary clamping
                                    newX = Math.max(0, Math.min(newX, widgetsContainer.width - editModeControlsPanel.width));
                                    newY = Math.max(0, Math.min(newY, widgetsContainer.height - editModeControlsPanel.height));
 
@@ -476,7 +460,6 @@ Variants {
                 onClicked: {
                   var popupMenuWindow = PanelService.getPopupMenuWindow(window.screen);
                   if (popupMenuWindow) {
-                    // Build menu items from registry
                     var items = [];
                     var widgets = DesktopWidgetRegistry.widgets;
                     for (var id in widgets) {

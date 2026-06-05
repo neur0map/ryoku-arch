@@ -8,14 +8,12 @@ import qs.noctalia.Services.UI
 Item {
   id: root
 
-  // Provider metadata
   property string name: I18n.tr("launcher.providers.calculator")
   property var launcher: null
   property string iconMode: Settings.data.appLauncher.iconMode
-  property bool handleSearch: true // Contribute to regular search
+  property bool handleSearch: true
   property string supportedLayouts: "list"
 
-  // Initialize provider
   function init() {
     Logger.d("CalculatorProvider", "Initialized");
   }

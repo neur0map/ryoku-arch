@@ -52,7 +52,6 @@ Loader {
         if (!wallpaper)
           return;
 
-        // Check if this is a solid color path
         if (WallpaperService.isSolidColorPath(wallpaper)) {
           isSolidColor = true;
           var colorStr = WallpaperService.getSolidColor(wallpaper);
@@ -76,7 +75,6 @@ Loader {
         left: true
       }
 
-      // Solid color background
       Rectangle {
         anchors.fill: parent
         visible: isSolidColor
@@ -89,7 +87,6 @@ Loader {
         }
       }
 
-      // Image background with GPU-based blur
       Image {
         id: bgImage
         anchors.fill: parent
@@ -109,7 +106,6 @@ Loader {
           blurMax: 48
         }
 
-        // Tint overlay
         Rectangle {
           anchors.fill: parent
           color: tintColor

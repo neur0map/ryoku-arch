@@ -14,7 +14,6 @@ Singleton {
         running: false
         stdout: SplitParser {
             onRead: (data) => {
-                // wlsunset output cuando está corriendo
                 if (data) {
                     root.active = true
                 }
@@ -42,12 +41,10 @@ Singleton {
         onExited: (code) => {
             const isRunning = code === 0
             
-            // If state says active but not running, start it
             if (root.active && !isRunning) {
                 console.log("NightLightService: Starting wlsunset (state was active but not running)")
                 wlsunsetProcess.running = true
             } 
-            // If state says inactive but running, kill it
             else if (!root.active && isRunning) {
                 console.log("NightLightService: Stopping wlsunset (state was inactive but running)")
                 killProcess.running = true
@@ -81,7 +78,6 @@ Singleton {
         }
     }
 
-    // Auto-initialize on creation
     Timer {
         interval: 100
         running: true

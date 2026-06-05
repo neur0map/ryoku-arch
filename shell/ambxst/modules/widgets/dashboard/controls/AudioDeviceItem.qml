@@ -50,7 +50,6 @@ Item {
         anchors.bottomMargin: 8
         spacing: 12
 
-        // Device icon
         Text {
             text: root.isOutput ? Icons.speakerHigh : Icons.mic
             font.family: Icons.font
@@ -58,7 +57,6 @@ Item {
             color: root.isSelected ? Styling.srItem("primary") : Colors.overBackground
         }
 
-        // Device name
         Text {
             Layout.fillWidth: true
             text: Audio.friendlyDeviceName(root.node)
@@ -69,7 +67,6 @@ Item {
             elide: Text.ElideRight
         }
 
-        // Selected indicator
         Text {
             visible: root.isSelected
             text: Icons.accept

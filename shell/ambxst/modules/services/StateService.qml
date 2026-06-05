@@ -43,7 +43,6 @@ Singleton {
         }
         onExited: code => {
             if (code !== 0) {
-                // File doesn't exist yet
                 root.state = {};
                 root.initialized = true;
                 root.stateLoaded();
@@ -112,7 +111,6 @@ Singleton {
         save();
     }
 
-    // Auto-load on creation
     Timer {
         interval: 50
         running: true

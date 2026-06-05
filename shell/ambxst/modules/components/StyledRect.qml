@@ -17,7 +17,7 @@ ClippingRectangle {
     property bool enableShadow: false
     property bool enableBorder: true
     property bool animateRadius: true
-    property real backgroundOpacity: -1  // -1 means use config value
+    property real backgroundOpacity: -1
 
     readonly property var variantConfig: Styling.getStyledRectConfig(variant) || {}
 
@@ -53,17 +53,13 @@ ClippingRectangle {
 
     readonly property real rectOpacity: backgroundOpacity >= 0 ? backgroundOpacity : variantConfig.opacity
 
-    // Check if gradient is actually a single color (optimization: treat as solid)
     readonly property bool isSingleColorGradient: gradientStops && gradientStops.length === 1
     readonly property color singleGradientColor: isSingleColorGradient ? Config.resolveColor(gradientStops[0][0]) : "transparent"
 
-    // Whether we need a multi-stop gradient shader
     readonly property bool needsGradientShader: (gradientType === "linear" || gradientType === "radial") && !isSingleColorGradient && gradientStops && gradientStops.length >= 2
 
-    // Number of active stops (clamped to max 8)
     readonly property int numGradientStops: gradientStops ? Math.min(gradientStops.length, 8) : 0
 
-    // Resolve gradient stops into vec4 color array for shader uniforms
     function resolveStopColor(index) {
         if (!gradientStops || index >= gradientStops.length) return Qt.vector4d(0,0,0,0);
         const resolved = Config.resolveColor(gradientStops[index][0]);
@@ -72,7 +68,6 @@ ClippingRectangle {
         return Qt.vector4d(c.r, c.g, c.b, c.a);
     }
 
-    // Pack stop positions into two vec4s (positions 0-3 in first, 4-7 in second)
     readonly property vector4d stopPositionsPack0: Qt.vector4d(
         gradientStops && gradientStops.length > 0 ? gradientStops[0][1] : 0,
         gradientStops && gradientStops.length > 1 ? gradientStops[1][1] : 0,
@@ -88,7 +83,6 @@ ClippingRectangle {
 
     radius: variantConfig.radius !== undefined ? variantConfig.radius : Styling.radius(0)
 
-    // Helper to apply opacity to a color via alpha channel
     function applyOpacity(baseColor, opacityValue) {
         return Qt.rgba(baseColor.r, baseColor.g, baseColor.b, baseColor.a * opacityValue);
     }
@@ -112,7 +106,6 @@ ClippingRectangle {
         }
     }
 
-    // Linear gradient - procedural (no texture)
     Loader {
         anchors.fill: parent
         active: root.gradientType === "linear" && root.needsGradientShader
@@ -142,7 +135,6 @@ ClippingRectangle {
         }
     }
 
-    // Radial gradient - procedural (no texture)
     Loader {
         anchors.fill: parent
         active: root.gradientType === "radial" && root.needsGradientShader
@@ -173,7 +165,6 @@ ClippingRectangle {
         }
     }
 
-    // Halftone gradient - no texture needed, purely procedural
     Loader {
         anchors.fill: parent
         active: root.gradientType === "halftone"
@@ -202,7 +193,6 @@ ClippingRectangle {
         }
     }
 
-    // Shadow effect
     layer.enabled: enableShadow
     layer.effect: Shadow {}
 

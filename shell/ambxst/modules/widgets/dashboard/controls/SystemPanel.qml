@@ -61,7 +61,6 @@ Item {
         }
     }
 
-    // Main content
     Flickable {
         id: mainFlickable
         anchors.fill: parent
@@ -74,7 +73,6 @@ Item {
             width: mainFlickable.width
             spacing: 8
 
-            // Header wrapper
             Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: titlebar.height
@@ -103,7 +101,6 @@ Item {
                 }
             }
 
-            // Content wrapper - centered
             Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: contentColumn.implicitHeight
@@ -114,9 +111,6 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     spacing: 16
 
-                    // ═══════════════════════════════════════════════════════════════
-                    // MENU SECTION
-                    // ═══════════════════════════════════════════════════════════════
                     ColumnLayout {
                         visible: root.currentSection === ""
                         Layout.fillWidth: true
@@ -144,9 +138,6 @@ Item {
                         }
                     }
 
-                    // =====================
-                    // PREFIX SECTION
-                    // =====================
                     ColumnLayout {
                         visible: root.currentSection === "prefixes"
                         property string settingsSection: "prefixes"
@@ -170,7 +161,6 @@ Item {
                             opacity: 0.7
                         }
 
-                        // Clipboard prefix
                         PrefixRow {
                             Layout.fillWidth: true
                             label: "Clipboard"
@@ -180,7 +170,6 @@ Item {
                             }
                         }
 
-                        // Emoji prefix
                         PrefixRow {
                             Layout.fillWidth: true
                             label: "Emoji"
@@ -190,7 +179,6 @@ Item {
                             }
                         }
 
-                        // Tmux prefix
                         PrefixRow {
                             Layout.fillWidth: true
                             label: "Tmux"
@@ -200,7 +188,6 @@ Item {
                             }
                         }
 
-                        // Wallpapers prefix
                         PrefixRow {
                             Layout.fillWidth: true
                             label: "Wallpapers"
@@ -210,7 +197,6 @@ Item {
                             }
                         }
 
-                        // Notes prefix
                         PrefixRow {
                             Layout.fillWidth: true
                             label: "Notes"
@@ -221,9 +207,6 @@ Item {
                         }
                     }
 
-                    // =====================
-                    // WEATHER SECTION
-                    // =====================
                     ColumnLayout {
                         visible: root.currentSection === "weather"
                         property string settingsSection: "weather"
@@ -239,7 +222,6 @@ Item {
                             Layout.bottomMargin: -4
                         }
 
-                        // Location
                         RowLayout {
                             Layout.fillWidth: true
                             spacing: 8
@@ -296,7 +278,6 @@ Item {
                             }
                         }
 
-                        // Unit selector
                         RowLayout {
                             Layout.fillWidth: true
                             spacing: 8
@@ -361,9 +342,6 @@ Item {
                         }
                     }
 
-                    // =====================
-                    // PERFORMANCE SECTION
-                    // =====================
                     ColumnLayout {
                         visible: root.currentSection === "performance"
                         property string settingsSection: "performance"
@@ -387,7 +365,6 @@ Item {
                             opacity: 0.7
                         }
 
-                        // Blur Transition toggle
                         ToggleRow {
                             Layout.fillWidth: true
                             label: "Blur Transition"
@@ -398,7 +375,6 @@ Item {
                             }
                         }
 
-                        // Window Preview toggle
                         ToggleRow {
                             Layout.fillWidth: true
                             label: "Window Preview"
@@ -409,7 +385,6 @@ Item {
                             }
                         }
 
-                        // Wavy Line toggle
                         ToggleRow {
                             Layout.fillWidth: true
                             label: "Wavy Line"
@@ -432,9 +407,6 @@ Item {
                         }
                     }
 
-                    // =====================
-                    // SYSTEM SECTION
-                    // =====================
                     ColumnLayout {
                         visible: root.currentSection === "system"
                         property string settingsSection: "system"
@@ -458,7 +430,6 @@ Item {
                             opacity: 0.7
                         }
 
-                        // Disks list
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 4
@@ -511,7 +482,6 @@ Item {
                                         }
                                     }
 
-                                    // Remove button
                                     StyledRect {
                                         id: removeDiskButton
                                         variant: removeDiskArea.containsMouse ? "focus" : "common"
@@ -548,7 +518,6 @@ Item {
                                 }
                             }
 
-                            // Add disk button
                             StyledRect {
                                 id: addDiskButton
                                 variant: addDiskArea.containsMouse ? "primaryfocus" : "primary"
@@ -593,9 +562,6 @@ Item {
                         }
                     }
 
-                    // =====================
-                    // IDLE SECTION
-                    // =====================
                     ColumnLayout {
                         visible: root.currentSection === "idle"
                         property string settingsSection: "idle"
@@ -796,7 +762,6 @@ Item {
                         }
                     }
 
-                    // Bottom spacing
                     Item {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 16
@@ -806,11 +771,7 @@ Item {
         }
     }
 
-    // =====================
-    // HELPER COMPONENTS
-    // =====================
 
-    // Inline component for number input rows
     component NumberInputRow: RowLayout {
         id: numberInputRowRoot
         property string label: ""
@@ -853,7 +814,6 @@ Item {
                     top: numberInputRowRoot.maxValue
                 }
 
-                // Sync text when external value changes
                 readonly property int configValue: numberInputRowRoot.value
                 onConfigValueChanged: {
                     if (!activeFocus && text !== configValue.toString()) {
@@ -881,7 +841,6 @@ Item {
         }
     }
 
-    // Inline component for text input rows
     component TextInputRow: RowLayout {
         id: textInputRowRoot
         property string label: ""
@@ -917,7 +876,6 @@ Item {
                 clip: true
                 verticalAlignment: TextInput.AlignVCenter
 
-                // Sync text when external value changes
                 readonly property string configValue: textInputRowRoot.value
                 onConfigValueChanged: {
                     if (!activeFocus && text !== configValue) {
@@ -943,7 +901,6 @@ Item {
         }
     }
 
-    // PrefixRow component for prefix inputs
     component PrefixRow: RowLayout {
         id: prefixRow
         property string label: ""
@@ -1023,7 +980,6 @@ Item {
             }
         }
 
-        // Checkbox styled like in BindsPanel
         Item {
             Layout.preferredWidth: 32
             Layout.preferredHeight: 32

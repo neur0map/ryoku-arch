@@ -28,7 +28,6 @@ Canvas {
         var n = root.points
         var dx = width / (n - 1)
 
-        // Build point array, skipping gaps
         var pts = []
         for (var i = 0; i < n; ++i) {
             var vi = (root.alignment === Graph.Alignment.Right) ? root.values.length - n + i : i

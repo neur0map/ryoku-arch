@@ -113,7 +113,6 @@ ColumnLayout {
     }
   }
 
-  // ---- Per-monitor card ----
   component MonitorCard: NBox {
     id: card
     required property var mon

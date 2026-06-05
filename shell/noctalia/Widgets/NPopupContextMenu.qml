@@ -4,9 +4,7 @@ import QtQuick.Layouts
 import Quickshell
 import qs.noctalia.Commons
 
-// Simple context menu PopupWindow (similar to TrayMenu)
 // Designed to be rendered inside a PopupMenuWindow for click-outside-to-close
-// Automatically positions itself to respect screen boundaries
 PopupWindow {
   id: root
 
@@ -91,7 +89,6 @@ PopupWindow {
     if (anchorItem && screen) {
       const anchorGlobalPos = anchorItem.mapToItem(null, 0, 0);
 
-      // Use stored targetOffsetX and targetWidth for positioning
       const effectiveWidth = targetWidth > 0 ? targetWidth : anchorItem.width;
       const targetGlobalX = anchorGlobalPos.x + targetOffsetX;
 
@@ -151,7 +148,6 @@ PopupWindow {
       const effectiveHeight = targetHeight > 0 ? targetHeight : anchorItem.height;
       const effectiveOffsetY = targetOffsetY;
 
-      // Calculate base Y position based on bar orientation
       let baseY;
       if (root.barPosition === "bottom") {
         // For bottom bar: position menu above the bar

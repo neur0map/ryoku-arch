@@ -15,37 +15,31 @@ Item {
     id: root
     focus: true
 
-    // Prefix support
     property string prefixIcon: ""
     signal backspaceOnEmpty
 
     property int leftPanelWidth: 0
 
-    // Notes directory configuration
     property string notesDir: (Quickshell.env("XDG_DATA_HOME") || (Quickshell.env("HOME") + "/.local/share")) + "/ambxst-notes"
     property string indexPath: notesDir + "/index.json"
     property string notesPath: notesDir + "/notes"
-    property string noteExtension: ".html"  // Store as HTML for rich text (Markdown uses .md)
+    property string noteExtension: ".html"
 
-    // Search and selection state
     property string searchText: ""
     property bool showResults: searchText.length > 0
     property int selectedIndex: -1
     property var allNotes: []
     property var filteredNotes: []
 
-    // List model
     ListModel {
         id: notesModel
     }
 
-    // Delete mode state
     property bool deleteMode: false
     property string noteToDelete: ""
     property int originalSelectedIndex: -1
     property int deleteButtonIndex: 0
 
-    // Rename mode state
     property bool renameMode: false
     property string noteToRename: ""
     property string newNoteName: ""
@@ -53,12 +47,10 @@ Item {
     property int renameButtonIndex: 0
     property string pendingRenamedNote: ""
 
-    // Options menu state (expandable list)
     property int expandedItemIndex: -1
     property int selectedOptionIndex: 0
     property bool keyboardNavigation: false
 
-    // Current note content for editor
     property string currentNoteId: ""
     property string currentNoteContent: ""
     property string currentNoteTitle: ""
@@ -66,24 +58,19 @@ Item {
     property bool loadingNote: false
     property bool editorDirty: false
 
-    // Create menu state
     property bool showCreateMenu: false
     property int createMenuSelectedIndex: 0
 
-    // Pre-format state (for typing with format when no selection)
-    // null = inherit from cursor position, true/false = explicit state
     property var preFormatBold: null
     property var preFormatItalic: null
     property var preFormatUnderline: null
     property var preFormatStrikeout: null
     property var preFormatFontSize: null
 
-    // Check if there's a text selection
     function hasSelection() {
         return noteEditor.selectionStart !== noteEditor.selectionEnd;
     }
 
-    // Toggle bold (handles both selection and pre-format)
     function toggleBold() {
         if (hasSelection()) {
             noteEditor.cursorSelection.font.bold = !noteEditor.cursorSelection.font.bold;
@@ -94,7 +81,6 @@ Item {
         noteEditor.forceActiveFocus();
     }
 
-    // Toggle italic
     function toggleItalic() {
         if (hasSelection()) {
             noteEditor.cursorSelection.font.italic = !noteEditor.cursorSelection.font.italic;
@@ -104,7 +90,6 @@ Item {
         noteEditor.forceActiveFocus();
     }
 
-    // Toggle underline
     function toggleUnderline() {
         if (hasSelection()) {
             noteEditor.cursorSelection.font.underline = !noteEditor.cursorSelection.font.underline;
@@ -114,7 +99,6 @@ Item {
         noteEditor.forceActiveFocus();
     }
 
-    // Toggle strikeout
     function toggleStrikeout() {
         if (hasSelection()) {
             noteEditor.cursorSelection.font.strikeout = !noteEditor.cursorSelection.font.strikeout;
@@ -124,13 +108,11 @@ Item {
         noteEditor.forceActiveFocus();
     }
 
-    // Set font size preserving individual character styles
     function setFontSize(size) {
         if (hasSelection()) {
             let start = noteEditor.selectionStart;
             let end = noteEditor.selectionEnd;
 
-            // Process each character: get its font, change size, reassign
             for (let i = start; i < end; i++) {
                 noteEditor.select(i, i + 1);
                 let charFont = noteEditor.cursorSelection.font;
@@ -138,7 +120,6 @@ Item {
                 noteEditor.cursorSelection.font = charFont;
             }
 
-            // Restore original selection
             noteEditor.select(start, end);
         } else {
             preFormatFontSize = size;
@@ -146,7 +127,6 @@ Item {
         noteEditor.forceActiveFocus();
     }
 
-    // Get current bold state (selection or pre-format or cursor)
     function isBold() {
         if (hasSelection()) {
             return noteEditor.cursorSelection.font.bold;
@@ -154,11 +134,9 @@ Item {
         if (preFormatBold !== null) {
             return preFormatBold;
         }
-        // Inherit from cursor position
         return noteEditor.cursorSelection.font.bold;
     }
 
-    // Get current italic state
     function isItalic() {
         if (hasSelection()) {
             return noteEditor.cursorSelection.font.italic;
@@ -169,7 +147,6 @@ Item {
         return noteEditor.cursorSelection.font.italic;
     }
 
-    // Get current underline state
     function isUnderline() {
         if (hasSelection()) {
             return noteEditor.cursorSelection.font.underline;
@@ -180,7 +157,6 @@ Item {
         return noteEditor.cursorSelection.font.underline;
     }
 
-    // Get current strikeout state
     function isStrikeout() {
         if (hasSelection()) {
             return noteEditor.cursorSelection.font.strikeout;
@@ -191,7 +167,6 @@ Item {
         return noteEditor.cursorSelection.font.strikeout;
     }
 
-    // Get current font size
     function getCurrentFontSize() {
         if (hasSelection()) {
             return noteEditor.cursorSelection.font.pixelSize || Config.theme.fontSize;
@@ -202,12 +177,10 @@ Item {
         return noteEditor.cursorSelection.font.pixelSize || Config.theme.fontSize;
     }
 
-    // Check if any pre-format is active
     function hasActivePreFormat() {
         return preFormatBold !== null || preFormatItalic !== null || preFormatUnderline !== null || preFormatStrikeout !== null || preFormatFontSize !== null;
     }
 
-    // Reset pre-format state
     function resetPreFormat() {
         preFormatBold = null;
         preFormatItalic = null;
@@ -216,12 +189,9 @@ Item {
         preFormatFontSize = null;
     }
 
-    // --- Markdown formatting functions ---
 
-    // Property to track current heading level at cursor
     property string mdCurrentHeading: "P"
 
-    // Wrap selected text with markers, or insert markers at cursor
     function mdWrapSelection(prefix, suffix) {
         if (!mdEditor)
             return;
@@ -231,29 +201,24 @@ Item {
         let text = mdEditor.text;
 
         if (start === end) {
-            // No selection - insert markers and place cursor between them
             let newText = text.substring(0, start) + prefix + suffix + text.substring(end);
             mdEditor.text = newText;
             mdEditor.cursorPosition = start + prefix.length;
         } else {
-            // Has selection - check if already wrapped
             let selectedText = text.substring(start, end);
             let beforeStart = text.substring(Math.max(0, start - prefix.length), start);
             let afterEnd = text.substring(end, Math.min(text.length, end + suffix.length));
 
             if (beforeStart === prefix && afterEnd === suffix) {
-                // Already wrapped - unwrap
                 let newText = text.substring(0, start - prefix.length) + selectedText + text.substring(end + suffix.length);
                 mdEditor.text = newText;
                 mdEditor.select(start - prefix.length, end - prefix.length);
             } else if (selectedText.startsWith(prefix) && selectedText.endsWith(suffix)) {
-                // Selection includes markers - remove them
                 let unwrapped = selectedText.substring(prefix.length, selectedText.length - suffix.length);
                 let newText = text.substring(0, start) + unwrapped + text.substring(end);
                 mdEditor.text = newText;
                 mdEditor.select(start, start + unwrapped.length);
             } else {
-                // Wrap selection
                 let newText = text.substring(0, start) + prefix + selectedText + suffix + text.substring(end);
                 mdEditor.text = newText;
                 mdEditor.select(start + prefix.length, end + prefix.length);
@@ -291,25 +256,20 @@ Item {
         let text = mdEditor.text;
 
         if (start === end) {
-            // No selection - insert link template
             let linkTemplate = "[text](url)";
             let newText = text.substring(0, start) + linkTemplate + text.substring(end);
             mdEditor.text = newText;
-            // Select "text" for easy replacement
             mdEditor.select(start + 1, start + 5);
         } else {
-            // Use selection as link text
             let selectedText = text.substring(start, end);
             let linkText = "[" + selectedText + "](url)";
             let newText = text.substring(0, start) + linkText + text.substring(end);
             mdEditor.text = newText;
-            // Select "url" for easy replacement
             mdEditor.select(start + selectedText.length + 3, start + selectedText.length + 6);
         }
         mdEditor.forceActiveFocus();
     }
 
-    // Get current line info
     function mdGetCurrentLine() {
         if (!mdEditor)
             return {
@@ -322,13 +282,11 @@ Item {
         let text = mdEditor.text;
         let pos = mdEditor.cursorPosition;
 
-        // Find line start
         let lineStart = pos;
         while (lineStart > 0 && text[lineStart - 1] !== '\n') {
             lineStart--;
         }
 
-        // Find line end
         let lineEnd = pos;
         while (lineEnd < text.length && text[lineEnd] !== '\n') {
             lineEnd++;
@@ -341,7 +299,6 @@ Item {
         };
     }
 
-    // Get heading level of current line (0 = no heading, 1-6 = H1-H6)
     function mdGetHeadingLevel(lineText) {
         let match = lineText.match(/^(#{1,6})\s/);
         if (match) {
@@ -350,7 +307,6 @@ Item {
         return 0;
     }
 
-    // Update heading display
     function mdUpdateHeadingDisplay() {
         let line = mdGetCurrentLine();
         let level = mdGetHeadingLevel(line.text);
@@ -365,10 +321,8 @@ Item {
         let text = mdEditor.text;
         let currentLevel = mdGetHeadingLevel(line.text);
 
-        // Remove existing heading markers
         let lineContent = line.text.replace(/^#{1,6}\s*/, '');
 
-        // Add new heading markers
         let newLine;
         if (level === 0) {
             newLine = lineContent;
@@ -434,7 +388,6 @@ Item {
             itemY += 48;
         }
 
-        // 3 options: Edit, Rename, Delete
         var listHeight = 36 * 3;
         var expandedHeight = 48 + 4 + listHeight + 8;
 
@@ -461,7 +414,6 @@ Item {
             keyboardNavigation = false;
         }
 
-        // Load note content when selection changes
         if (selectedIndex >= 0 && selectedIndex < filteredNotes.length) {
             let note = filteredNotes[selectedIndex];
             if (note && !note.isCreateButton) {
@@ -599,7 +551,6 @@ Item {
 
     function confirmDeleteNote() {
         if (noteToDelete) {
-            // Find if note is markdown to use correct extension
             var isMarkdown = false;
             for (var i = 0; i < allNotes.length; i++) {
                 if (allNotes[i].id === noteToDelete) {
@@ -608,7 +559,6 @@ Item {
                 }
             }
             var extension = isMarkdown ? ".md" : noteExtension;
-            // Store the ID before cancelDeleteMode clears it
             deleteNoteProcess.deletedNoteId = noteToDelete;
             deleteNoteProcess.command = ["rm", "-f", notesPath + "/" + noteToDelete + extension];
             deleteNoteProcess.running = true;
@@ -621,7 +571,6 @@ Item {
         renameMode = true;
         noteToRename = noteId;
 
-        // Find current title
         for (var i = 0; i < allNotes.length; i++) {
             if (allNotes[i].id === noteId) {
                 newNoteName = allNotes[i].title;
@@ -662,7 +611,6 @@ Item {
         var noteTitle = title || "Untitled Note";
         var extension = isMarkdown ? ".md" : noteExtension;
 
-        // Create the note file with appropriate content
         var initialContent = isMarkdown ? "# " + noteTitle + "\n\n" : "<h1>" + noteTitle + "</h1><p></p>";
 
         createNoteProcess.noteId = noteId;
@@ -676,12 +624,10 @@ Item {
         if (!noteId || noteId === "__create__")
             return;
 
-        // Save current note before loading new one
         if (currentNoteId && editorDirty) {
             saveCurrentNote();
         }
 
-        // Find note to get isMarkdown flag
         var isMarkdown = false;
         for (var i = 0; i < allNotes.length; i++) {
             if (allNotes[i].id === noteId) {
@@ -705,18 +651,15 @@ Item {
 
         var extension = currentNoteIsMarkdown ? ".md" : noteExtension;
 
-        // Get the text content
         var content = currentNoteIsMarkdown ? mdEditor.text : noteEditor.text;
         saveNoteProcess.command = ["sh", "-c", "printf '%s' '" + content.replace(/'/g, "'\\''") + "' > '" + notesPath + "/" + currentNoteId + extension + "'"];
         saveNoteProcess.running = true;
         editorDirty = false;
 
-        // Update modified timestamp
         updateNoteModified(currentNoteId);
     }
 
     function updateNoteTitle(noteId, newTitle) {
-        // Read index, update title, save
         readIndexForUpdateProcess.noteId = noteId;
         readIndexForUpdateProcess.newTitle = newTitle;
         readIndexForUpdateProcess.command = ["cat", indexPath];
@@ -734,7 +677,6 @@ Item {
     }
 
     function openNoteInEditor(noteId) {
-        // Select the note and focus editor
         var isMarkdown = false;
         for (var i = 0; i < filteredNotes.length; i++) {
             if (filteredNotes[i].id === noteId) {
@@ -753,16 +695,14 @@ Item {
         });
     }
 
-    // Move note up/down in order
     function moveNoteUp() {
         if (selectedIndex <= 1)
-            return; // Can't move create button or first note
+            return;
 
         let note = filteredNotes[selectedIndex];
         if (note.isCreateButton)
             return;
 
-        // Find in allNotes and swap
         let noteIdx = -1;
         for (let i = 0; i < allNotes.length; i++) {
             if (allNotes[i].id === note.id) {
@@ -828,9 +768,7 @@ Item {
         initDirProcess.running = true;
     }
 
-    // --- Processes ---
 
-    // Initialize directories
     Process {
         id: initDirProcess
         command: ["sh", "-c", "mkdir -p '" + notesPath + "' && touch '" + indexPath + "'"]
@@ -840,7 +778,6 @@ Item {
         }
     }
 
-    // Read index.json
     Process {
         id: readIndexProcess
         command: ["cat", indexPath]
@@ -874,7 +811,6 @@ Item {
         }
     }
 
-    // Create note
     Process {
         id: createNoteProcess
         property string noteId: ""
@@ -883,7 +819,6 @@ Item {
 
         onExited: code => {
             if (code === 0) {
-                // Add to allNotes and save index
                 var newNote = {
                     id: noteId,
                     title: noteTitle,
@@ -896,11 +831,9 @@ Item {
                 saveNotesOrder();
                 updateFilteredNotes();
 
-                // Select the new note
                 pendingRenamedNote = noteId;
                 updateFilteredNotes();
 
-                // Focus the editor
                 Qt.callLater(() => {
                     openNoteInEditor(noteId);
                 });
@@ -911,14 +844,12 @@ Item {
         }
     }
 
-    // Delete note and update index
     Process {
         id: deleteNoteProcess
         property string deletedNoteId: ""
 
         onExited: code => {
             if (code === 0 && deletedNoteId !== "") {
-                // Remove from allNotes
                 allNotes = allNotes.filter(n => n.id !== deletedNoteId);
                 saveNotesOrder();
 
@@ -934,7 +865,6 @@ Item {
         }
     }
 
-    // Read note content
     Process {
         id: readNoteProcess
         stdout: SplitParser {
@@ -944,10 +874,8 @@ Item {
 
         onExited: code => {
             if (code === 0) {
-                // Remove trailing newline added by parser
                 currentNoteContent = stdoutData.replace(/\n$/, '');
 
-                // Find title
                 for (var i = 0; i < allNotes.length; i++) {
                     if (allNotes[i].id === currentNoteId) {
                         currentNoteTitle = allNotes[i].title;
@@ -964,19 +892,16 @@ Item {
         }
     }
 
-    // Save note content
     Process {
         id: saveNoteProcess
         onExited: code => {}
     }
 
-    // Save index
     Process {
         id: saveIndexProcess
         onExited: code => {}
     }
 
-    // Read index for title update
     Process {
         id: readIndexForUpdateProcess
         property string noteId: ""
@@ -995,7 +920,6 @@ Item {
                 indexData.notes[noteId].modified = NotesUtils.getCurrentTimestamp();
             }
 
-            // Update local allNotes
             for (var i = 0; i < allNotes.length; i++) {
                 if (allNotes[i].id === noteId) {
                     allNotes[i].title = newTitle;
@@ -1014,7 +938,6 @@ Item {
         }
     }
 
-    // Read index for modified timestamp update
     Process {
         id: readIndexForModifiedProcess
         property string noteId: ""
@@ -1046,12 +969,10 @@ Item {
         anchors.fill: parent
         spacing: 8
 
-        // Left panel: Notes list
         Item {
             Layout.preferredWidth: root.leftPanelWidth
             Layout.fillHeight: true
 
-            // Search input
             SearchInput {
                 id: searchInput
                 width: parent.width
@@ -1093,20 +1014,18 @@ Item {
                         let note = filteredNotes[root.expandedItemIndex];
                         if (note) {
                             if (note.isCreateButton) {
-                                // Create menu options
                                 let createOptions = [function () {
                                         createNewNote(note.noteNameToCreate || "", false);
-                                    }  // Rich Text
+                                    }
                                     , function () {
                                         createNewNote(note.noteNameToCreate || "", true);
-                                    }    // Markdown
+                                    }
                                 ];
                                 if (root.selectedOptionIndex >= 0 && root.selectedOptionIndex < createOptions.length) {
                                     root.expandedItemIndex = -1;
                                     createOptions[root.selectedOptionIndex]();
                                 }
                             } else {
-                                // Note options
                                 let options = [function () {
                                         openNoteInEditor(note.id);
                                     }, function () {
@@ -1127,7 +1046,6 @@ Item {
                     if (root.selectedIndex >= 0 && root.selectedIndex < filteredNotes.length) {
                         let note = filteredNotes[root.selectedIndex];
                         if (note.isCreateButton || note.isCreateSpecificButton) {
-                            // Expand to show create options instead of creating directly
                             root.expandedItemIndex = root.selectedIndex;
                             root.selectedOptionIndex = 0;
                             root.keyboardNavigation = true;
@@ -1140,7 +1058,6 @@ Item {
                 onShiftAccepted: {
                     if (root.selectedIndex >= 0 && root.selectedIndex < filteredNotes.length) {
                         let note = filteredNotes[root.selectedIndex];
-                        // Allow expanding both create button and regular notes
                         if (root.expandedItemIndex === root.selectedIndex) {
                             root.expandedItemIndex = -1;
                             root.selectedOptionIndex = 0;
@@ -1154,7 +1071,6 @@ Item {
                 }
 
                 onCtrlRPressed: {
-                    // Ctrl+R: Enter rename mode for selected note
                     if (root.selectedIndex >= 0 && root.selectedIndex < filteredNotes.length) {
                         let note = filteredNotes[root.selectedIndex];
                         if (!note.isCreateButton && !root.deleteMode && !root.renameMode) {
@@ -1185,7 +1101,6 @@ Item {
                         return;
                     }
                     if (root.expandedItemIndex >= 0) {
-                        // Max options: 2 for create button, 3 for notes
                         var isCreateBtn = root.expandedItemIndex < filteredNotes.length && filteredNotes[root.expandedItemIndex].isCreateButton;
                         var maxIndex = isCreateBtn ? 1 : 2;
                         if (root.selectedOptionIndex < maxIndex) {
@@ -1233,7 +1148,6 @@ Item {
                 }
 
                 onTabPressed: {
-                    // Focus editor when pressing Tab
                     if (currentNoteId) {
                         if (currentNoteIsMarkdown) {
                             mdEditor.forceActiveFocus();
@@ -1244,7 +1158,6 @@ Item {
                 }
             }
 
-            // Results list
             ListView {
                 id: resultsList
                 width: parent.width
@@ -1282,7 +1195,6 @@ Item {
                     height: {
                         let baseHeight = 48;
                         if (resultsList.currentIndex === root.expandedItemIndex && !root.deleteMode && !root.renameMode) {
-                            // Check if current item is create button
                             var isCreateBtn = resultsList.currentIndex >= 0 && resultsList.currentIndex < filteredNotes.length && filteredNotes[resultsList.currentIndex].isCreateButton;
                             var optionCount = isCreateBtn ? 2 : 3;
                             var listHeight = 36 * optionCount;
@@ -1369,7 +1281,6 @@ Item {
                     height: {
                         let baseHeight = 48;
                         if (index === root.expandedItemIndex && !isInDeleteMode && !isInRenameMode) {
-                            // 2 options for create button, 3 for regular notes
                             var optionCount = modelData.isCreateButton ? 2 : 3;
                             var listHeight = 36 * optionCount;
                             return baseHeight + 4 + listHeight + 8;
@@ -1435,7 +1346,6 @@ Item {
 
                                 if (!root.deleteMode && !isExpanded) {
                                     if (modelData.isCreateButton || modelData.isCreateSpecificButton) {
-                                        // Show create menu instead of creating directly
                                         if (root.expandedItemIndex === index) {
                                             root.expandedItemIndex = -1;
                                             root.selectedOptionIndex = 0;
@@ -1476,7 +1386,6 @@ Item {
                             }
                         }
 
-                        // Delete buttons
                         Rectangle {
                             id: actionContainer
                             anchors.right: parent.right
@@ -1625,7 +1534,6 @@ Item {
                         }
                     }
 
-                    // Item content
                     RowLayout {
                         id: mainContent
                         anchors.left: parent.left
@@ -1780,7 +1688,6 @@ Item {
                         }
                     }
 
-                    // Rename action buttons (cancel/confirm)
                     Rectangle {
                         id: renameActionContainer
                         anchors.right: parent.right
@@ -1931,7 +1838,6 @@ Item {
                         }
                     }
 
-                    // Expandable options list (matching TmuxTab styling)
                     RowLayout {
                         id: expandedOptionsLayout
                         anchors.left: parent.left
@@ -2162,21 +2068,18 @@ Item {
             }
         }
 
-        // Separator
         Separator {
             Layout.preferredWidth: 2
             Layout.fillHeight: true
             vert: true
         }
 
-        // Right panel: WYSIWYG Editor (Rich Text mode)
         ColumnLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
             spacing: 8
             visible: currentNoteId !== "" && !currentNoteIsMarkdown
 
-            // Formatting toolbar
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 40
@@ -2188,7 +2091,6 @@ Item {
                     anchors.rightMargin: 8
                     spacing: 4
 
-                    // Font size controls: minus button, input, plus button
                     Rectangle {
                         id: fontSizeMinusButton
                         width: 32
@@ -2316,7 +2218,6 @@ Item {
                         }
                     }
 
-                    // Separator
                     Rectangle {
                         width: 1
                         height: 24
@@ -2324,7 +2225,6 @@ Item {
                         opacity: 0.3
                     }
 
-                    // Bold button
                     Rectangle {
                         id: boldButton
                         width: 32
@@ -2364,7 +2264,6 @@ Item {
                         }
                     }
 
-                    // Italic button
                     Rectangle {
                         id: italicButton
                         width: 32
@@ -2404,7 +2303,6 @@ Item {
                         }
                     }
 
-                    // Underline button
                     Rectangle {
                         id: underlineButton
                         width: 32
@@ -2444,7 +2342,6 @@ Item {
                         }
                     }
 
-                    // Strikethrough button
                     Rectangle {
                         id: strikeButton
                         width: 32
@@ -2484,7 +2381,6 @@ Item {
                         }
                     }
 
-                    // Separator
                     Rectangle {
                         width: 1
                         height: 24
@@ -2492,7 +2388,6 @@ Item {
                         opacity: 0.3
                     }
 
-                    // Align Left
                     Rectangle {
                         id: alignLeftButton
                         width: 32
@@ -2534,7 +2429,6 @@ Item {
                         }
                     }
 
-                    // Align Center
                     Rectangle {
                         id: alignCenterButton
                         width: 32
@@ -2576,7 +2470,6 @@ Item {
                         }
                     }
 
-                    // Align Right
                     Rectangle {
                         id: alignRightButton
                         width: 32
@@ -2618,7 +2511,6 @@ Item {
                         }
                     }
 
-                    // Align Justify
                     Rectangle {
                         id: alignJustifyButton
                         width: 32
@@ -2666,13 +2558,11 @@ Item {
                 }
             }
 
-            // Separator below toolbar
             Separator {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 2
             }
 
-            // WYSIWYG Editor
             Rectangle {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -2716,7 +2606,6 @@ Item {
                         property int lastCursorPos: 0
                         property bool cursorMovedByTyping: false
 
-                        // Reset pre-format when cursor moves by navigation (not typing)
                         onCursorPositionChanged: {
                             if (applyingFormat)
                                 return;
@@ -2728,7 +2617,6 @@ Item {
                                 return;
                             }
 
-                            // Cursor moved by more than 1 position or moved backward = navigation
                             let delta = cursorPosition - lastCursorPos;
                             if (delta < 0 || delta > 1) {
                                 resetPreFormat();
@@ -2740,7 +2628,6 @@ Item {
                             searchInput.focusInput();
                         }
 
-                        // Formatting shortcuts
                         Keys.onPressed: event => {
                             if (event.modifiers & Qt.ControlModifier) {
                                 switch (event.key) {
@@ -2762,8 +2649,6 @@ Item {
                                     break;
                                 }
                             }
-                            // Alt+Up/Down to increase/decrease font size
-                            // Alt+Left/Right to cycle through alignments
                             if (event.modifiers & Qt.AltModifier) {
                                 if (event.key === Qt.Key_Up) {
                                     let currentSize = getCurrentFontSize();
@@ -2776,7 +2661,6 @@ Item {
                                     setFontSize(newSize);
                                     event.accepted = true;
                                 } else if (event.key === Qt.Key_Left) {
-                                    // Cycle alignment: Justify -> Right -> Center -> Left
                                     let current = noteEditor.cursorSelection.alignment;
                                     if (current === Qt.AlignJustify) {
                                         noteEditor.cursorSelection.alignment = Qt.AlignRight;
@@ -2785,10 +2669,8 @@ Item {
                                     } else if (current === Qt.AlignHCenter) {
                                         noteEditor.cursorSelection.alignment = Qt.AlignLeft;
                                     }
-                                    // Already at Left, do nothing
                                     event.accepted = true;
                                 } else if (event.key === Qt.Key_Right) {
-                                    // Cycle alignment: Left -> Center -> Right -> Justify
                                     let current = noteEditor.cursorSelection.alignment;
                                     if (current === Qt.AlignLeft) {
                                         noteEditor.cursorSelection.alignment = Qt.AlignHCenter;
@@ -2797,13 +2679,11 @@ Item {
                                     } else if (current === Qt.AlignRight) {
                                         noteEditor.cursorSelection.alignment = Qt.AlignJustify;
                                     }
-                                    // Already at Justify, do nothing
                                     event.accepted = true;
                                 }
                             }
                         }
 
-                        // Apply pre-format when inserting text
                         property int lastLength: 0
                         property bool applyingFormat: false
                         onLengthChanged: {
@@ -2816,15 +2696,11 @@ Item {
                                 cursorMovedByTyping = true;
                             }
 
-                            // Detect if text was inserted (not deleted)
                             if (length > lastLength && !hasSelection() && hasActivePreFormat()) {
-                                // Apply pre-format to newly typed character
                                 let pos = cursorPosition;
                                 if (pos > 0) {
                                     applyingFormat = true;
-                                    // Select the just-typed character
                                     select(pos - 1, pos);
-                                    // Apply explicit format states
                                     if (preFormatBold !== null)
                                         cursorSelection.font.bold = preFormatBold;
                                     if (preFormatItalic !== null)
@@ -2835,7 +2711,6 @@ Item {
                                         cursorSelection.font.strikeout = preFormatStrikeout;
                                     if (preFormatFontSize !== null)
                                         cursorSelection.font.pixelSize = preFormatFontSize;
-                                    // Deselect and move cursor back
                                     cursorPosition = pos;
                                     applyingFormat = false;
                                 }
@@ -2851,14 +2726,12 @@ Item {
             }
         }
 
-        // Right panel: Markdown Editor (split view)
         ColumnLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
             spacing: 8
             visible: currentNoteId !== "" && currentNoteIsMarkdown
 
-            // Markdown formatting toolbar
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 40
@@ -2870,7 +2743,6 @@ Item {
                     anchors.rightMargin: 8
                     spacing: 4
 
-                    // Heading level controls
                     Rectangle {
                         id: headingMinusButton
                         width: 32
@@ -2967,7 +2839,6 @@ Item {
                         }
                     }
 
-                    // Separator
                     Rectangle {
                         width: 1
                         height: 24
@@ -2975,7 +2846,6 @@ Item {
                         opacity: 0.3
                     }
 
-                    // Bold button
                     Rectangle {
                         id: mdBoldButton
                         width: 32
@@ -3014,7 +2884,6 @@ Item {
                         }
                     }
 
-                    // Italic button
                     Rectangle {
                         id: mdItalicButton
                         width: 32
@@ -3053,7 +2922,6 @@ Item {
                         }
                     }
 
-                    // Underline button
                     Rectangle {
                         id: mdUnderlineButton
                         width: 32
@@ -3092,7 +2960,6 @@ Item {
                         }
                     }
 
-                    // Strikethrough button
                     Rectangle {
                         id: mdStrikeButton
                         width: 32
@@ -3131,7 +2998,6 @@ Item {
                         }
                     }
 
-                    // Separator
                     Rectangle {
                         width: 1
                         height: 24
@@ -3139,7 +3005,6 @@ Item {
                         opacity: 0.3
                     }
 
-                    // Code button
                     Rectangle {
                         id: mdCodeButton
                         width: 32
@@ -3177,7 +3042,6 @@ Item {
                         }
                     }
 
-                    // Link button
                     Rectangle {
                         id: mdLinkButton
                         width: 32
@@ -3221,19 +3085,16 @@ Item {
                 }
             }
 
-            // Separator below toolbar
             Separator {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 2
             }
 
-            // Split view: Editor and Preview
             RowLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 spacing: 8
 
-                // Markdown Editor
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
@@ -3243,14 +3104,13 @@ Item {
                         id: mdEditorFlickable
                         anchors.fill: parent
                         contentWidth: width
-                        contentHeight: mdEditor.contentHeight + height * 0.5  // Extra bottom margin for scroll
+                        contentHeight: mdEditor.contentHeight + height * 0.5
                         clip: true
                         boundsBehavior: Flickable.StopAtBounds
 
                         // Flag to prevent sync loops
                         property bool syncing: false
 
-                        // Sync editor scroll to preview
                         function syncToPreview() {
                             if (syncing || !mdPreviewFlickable)
                                 return;
@@ -3292,13 +3152,11 @@ Item {
                                     saveDebounceTimer.restart();
                                 }
                                 root.mdUpdateHeadingDisplay();
-                                // Sync after text changes with small delay to let layout update
                                 mdSyncTimer.restart();
                             }
 
                             onCursorPositionChanged: {
                                 root.mdUpdateHeadingDisplay();
-                                // Ensure cursor is visible and sync preview
                                 mdSyncTimer.restart();
                             }
 
@@ -3308,14 +3166,12 @@ Item {
                                 interval: 50
                                 repeat: false
                                 onTriggered: {
-                                    // Make sure cursor is visible in editor
                                     let cursorRect = mdEditor.cursorRectangle;
                                     if (cursorRect.y < mdEditorFlickable.contentY) {
                                         mdEditorFlickable.contentY = Math.max(0, cursorRect.y - 20);
                                     } else if (cursorRect.y + cursorRect.height > mdEditorFlickable.contentY + mdEditorFlickable.height) {
                                         mdEditorFlickable.contentY = Math.min(mdEditorFlickable.contentHeight - mdEditorFlickable.height, cursorRect.y + cursorRect.height - mdEditorFlickable.height + 20);
                                     }
-                                    // Sync will happen via onContentYChanged
                                 }
                             }
 
@@ -3323,7 +3179,6 @@ Item {
                                 searchInput.focusInput();
                             }
 
-                            // Markdown formatting shortcuts
                             Keys.onPressed: event => {
                                 if (event.modifiers & Qt.ControlModifier) {
                                     switch (event.key) {
@@ -3371,14 +3226,12 @@ Item {
                     }
                 }
 
-                // Separator
                 Separator {
                     Layout.preferredWidth: 2
                     Layout.fillHeight: true
                     vert: true
                 }
 
-                // Markdown Preview
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
@@ -3388,11 +3241,10 @@ Item {
                         id: mdPreviewFlickable
                         anchors.fill: parent
                         contentWidth: width
-                        contentHeight: mdPreviewText.contentHeight + height * 0.5  // Extra bottom margin for scroll
+                        contentHeight: mdPreviewText.contentHeight + height * 0.5
                         clip: true
                         boundsBehavior: Flickable.StopAtBounds
 
-                        // Sync preview scroll to editor (only on manual interaction)
                         onContentYChanged: {
                             if ((mdPreviewFlickable.moving || mdPreviewFlickable.dragging) && !mdEditorFlickable.syncing) {
                                 mdEditorFlickable.syncing = true;
@@ -3428,7 +3280,6 @@ Item {
             }
         }
 
-        // Placeholder when no note selected
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -3469,7 +3320,6 @@ Item {
         }
     }
 
-    // Root-level key handler for delete/rename mode navigation
     Keys.onPressed: event => {
         if (root.deleteMode) {
             if (event.key === Qt.Key_Left) {

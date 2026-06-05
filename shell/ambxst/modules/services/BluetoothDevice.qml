@@ -17,12 +17,10 @@ QtObject {
 
     signal infoUpdated()
 
-    // Connect (auto-trust new devices)
     function connect() {
         connecting = true;
         let p;
         if (!trusted) {
-            // Trust first, then connect
             p = BluetoothService.runAsync(["bluetoothctl", "trust", address]).then(() => {
                 return BluetoothService.runAsync(["bluetoothctl", "connect", address]);
             });

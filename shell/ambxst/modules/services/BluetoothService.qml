@@ -16,10 +16,8 @@ Singleton {
     
     readonly property list<BluetoothDevice> devices: []
     
-    // Cached sorted device list - only updates when devices change
     property list<var> friendlyDeviceList: []
     
-    // Queue for batching updateInfo calls
     property var pendingInfoUpdates: []
     property bool isProcessingInfoQueue: false
     property bool isUpdating: false
@@ -39,7 +37,6 @@ Singleton {
             // Re-sync status after wake
             wakeSyncTimer.restart();
 
-            // Restore state if it was enabled
             if (root.wasEnabledBeforeSleep) {
                 root.setEnabled(true);
             }
@@ -60,18 +57,14 @@ Singleton {
 
     function updateFriendlyList() {
         friendlyDeviceList = [...devices].sort((a, b) => {
-            // Connected devices first
             if (a.connected && !b.connected) return -1;
             if (!a.connected && b.connected) return 1;
-            // Then paired devices
             if (a.paired && !b.paired) return -1;
             if (!a.paired && b.paired) return 1;
-            // Then by name
             return (a.name || "").localeCompare(b.name || "");
         });
     }
 
-    // Batch process info updates with delay between each
     function queueInfoUpdate(device: BluetoothDevice) {
         if (pendingInfoUpdates.indexOf(device) === -1) {
             pendingInfoUpdates.push(device);
@@ -93,13 +86,12 @@ Singleton {
         if (device) {
             device.updateInfo();
         }
-        // Process next after a small delay
         infoQueueTimer.restart();
     }
 
     Timer {
         id: infoQueueTimer
-        interval: 50  // 50ms between each info request
+        interval: 50
         running: false
         repeat: false
         onTriggered: {
@@ -146,7 +138,6 @@ Singleton {
         });
     }
 
-    // Control functions
     function setEnabled(value: bool): void {
         if (SuspendManager.isSuspending) return;
         isUpdating = true;
@@ -242,11 +233,9 @@ Singleton {
         checkPowerProcess.running = true;
     }
 
-    // Timers
     Timer {
         id: updateTimer
         interval: 5000
-        // Only poll when interface is visible
         running: root.enabled && !SuspendManager.isSuspending && (GlobalStates.dashboardOpen || GlobalStates.launcherOpen || GlobalStates.overviewOpen)
         repeat: true
         onTriggered: root.updateDevices()
@@ -333,7 +322,6 @@ Singleton {
 
                 const rDevices = root.devices;
                 
-                // 1. Remove gone devices
                 for (let i = rDevices.length - 1; i >= 0; i--) {
                     const rd = rDevices[i];
                     if (!deviceDataList.find(d => d.address === rd.address)) {
@@ -342,7 +330,6 @@ Singleton {
                     }
                 }
                 
-                // 2. Add or update devices
                 for (let i = 0; i < deviceDataList.length; i++) {
                     const data = deviceDataList[i];
                     const existing = rDevices.find(d => d.address === data.address);

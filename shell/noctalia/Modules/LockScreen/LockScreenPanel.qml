@@ -36,16 +36,13 @@ Item {
     }
   }
 
-  // Timer properties
   readonly property int timerDuration: Settings.data.general.lockScreenCountdownDuration
   property string pendingAction: ""
   property bool timerActive: false
   property int timeRemaining: 0
   readonly property bool weatherReady: Settings.data.location.weatherEnabled && (LocationService.data.weather !== null)
 
-  // Timer management functions
   function startTimer(action) {
-    // Check if global countdown is disabled
     if (!Settings.data.general.enableLockScreenCountdown) {
       executeAction(action);
       return;
@@ -74,7 +71,6 @@ Item {
     // Stop timer but don't reset other properties yet
     countdownTimer.stop();
 
-    // Execute the action
     switch (action) {
     case "logout":
       CompositorService.logout();
@@ -96,11 +92,9 @@ Item {
       break;
     }
 
-    // Reset timer state
     cancelTimer();
   }
 
-  // Countdown timer
   Timer {
     id: countdownTimer
     interval: 100
@@ -113,7 +107,6 @@ Item {
     }
   }
 
-  // Compact status indicators container (compact mode only)
   Rectangle {
     width: {
       var hasBattery = batteryIndicator.isReady;
@@ -153,7 +146,6 @@ Item {
       anchors.centerIn: parent
       spacing: Style.marginL
 
-      // Battery indicator
       RowLayout {
         spacing: Style.marginS
         visible: batteryIndicator.isReady
@@ -171,7 +163,6 @@ Item {
         }
       }
 
-      // Keyboard layout indicator
       RowLayout {
         spacing: 6
         visible: keyboardLayout.currentLayout !== "Unknown"
@@ -190,7 +181,6 @@ Item {
         }
       }
 
-      // Caps Lock indicator
       RowLayout {
         spacing: 6
         visible: batteryIndicator.isReady || keyboardLayout.currentLayout !== "Unknown" || LockKeysService.capsLockOn
@@ -238,14 +228,12 @@ Item {
       anchors.margins: 14
       spacing: Style.marginL
 
-      // Top info row
       RowLayout {
         Layout.fillWidth: true
         Layout.preferredHeight: 65
         spacing: Style.marginXL
         visible: !Settings.data.general.compactLockScreen
 
-        // Media widget with visualizer
         Item {
           Layout.preferredWidth: Style.marginM
           visible: MediaService.currentPlayer && MediaService.canPlay
@@ -349,7 +337,6 @@ Item {
               }
             }
 
-            // Media controls (when enabled)
             RowLayout {
               spacing: Style.marginXS
               visible: Settings.data.general.enableLockScreenMediaControls
@@ -482,7 +469,6 @@ Item {
           visible: !(MediaService.currentPlayer && MediaService.canPlay)
         }
 
-        // Current weather
         RowLayout {
           visible: Settings.data.location.weatherEnabled && LocationService.data.weather !== null
           Layout.preferredWidth: 180
@@ -547,7 +533,7 @@ Item {
                   var wind = LocationService.data.weather.current_weather.windspeed;
                   var unit = "km/h";
                   if (Settings.data.location.useFahrenheit) {
-                    wind = wind * 0.621371; // Convert km/h to mph
+                    wind = wind * 0.621371;
                     unit = "mph";
                   }
                   wind = Math.round(wind);
@@ -578,7 +564,6 @@ Item {
           }
         }
 
-        // Forecast
         RowLayout {
           visible: Settings.data.location.weatherEnabled && LocationService.data.weather !== null
           Layout.preferredWidth: 260
@@ -664,7 +649,6 @@ Item {
           spacing: Style.marginM
           visible: batteryIndicator.isReady || keyboardLayout.currentLayout !== "Unknown" || LockKeysService.capsLockOn
 
-          // Battery
           RowLayout {
             spacing: Style.marginXS
             visible: batteryIndicator.isReady
@@ -682,7 +666,6 @@ Item {
             }
           }
 
-          // Keyboard Layout
           RowLayout {
             spacing: Style.marginXS
             visible: keyboardLayout.currentLayout !== "Unknown"
@@ -701,7 +684,6 @@ Item {
             }
           }
 
-          // Caps Lock
           RowLayout {
             spacing: Style.marginXS
             visible: batteryIndicator.isReady || keyboardLayout.currentLayout !== "Unknown" || LockKeysService.capsLockOn
@@ -726,7 +708,6 @@ Item {
         }
       }
 
-      // Password input
       RowLayout {
         Layout.fillWidth: true
         spacing: 0
@@ -753,7 +734,6 @@ Item {
             onActivated: passwordInput.selectAll()
           }
 
-          // Esc to clear selection
           Shortcut {
             sequences: [StandardKey.Cancel]
             enabled: passwordInput.activeFocus && passwordInput.selectionStart !== passwordInput.selectionEnd
@@ -783,7 +763,6 @@ Item {
                 visible: passwordInput.activeFocus && passwordInput.text.length === 0
                 anchors.verticalCenter: parent.verticalCenter
 
-                // Smooth fade animation (when animations enabled)
                 SequentialAnimation on opacity {
                   loops: Animation.Infinite
                   running: root.animationsEnabled && passwordInput.activeFocus && passwordInput.text.length === 0
@@ -836,7 +815,6 @@ Item {
                   anchors.verticalCenter: parent.verticalCenter
                   clip: true
 
-                  // Proportional selection highlight behind the dots
                   Rectangle {
                     id: selectionHighlight
                     visible: passwordInput.selectionStart !== passwordInput.selectionEnd && passwordInput.text.length > 0
@@ -895,7 +873,6 @@ Item {
                     }
                   }
 
-                  // Mouse area for click-to-position and drag-to-select
                   MouseArea {
                     anchors.fill: parent
                     cursorShape: Qt.IBeamCursor
@@ -972,11 +949,9 @@ Item {
                   height: 20
                   x: passwordVisualHost.caretVisualX
                   color: Color.mPrimary
-                  // Hide the cursor when text is selected
                   visible: passwordInput.activeFocus && passwordInput.text.length > 0 && passwordInput.selectionStart === passwordInput.selectionEnd
                   anchors.verticalCenter: parent.verticalCenter
 
-                  // Smooth fade animation (when animations enabled)
                   SequentialAnimation on opacity {
                     loops: Animation.Infinite
                     running: root.animationsEnabled && passwordInput.activeFocus && passwordInput.text.length > 0 && passwordInput.selectionStart === passwordInput.selectionEnd
@@ -1002,7 +977,6 @@ Item {
             }
           }
 
-          // Eye button to toggle password visibility
           Rectangle {
             anchors.right: submitButton.left
             anchors.rightMargin: 4
@@ -1044,7 +1018,6 @@ Item {
             }
           }
 
-          // Submit button
           Rectangle {
             id: submitButton
             anchors.right: parent.right
@@ -1101,7 +1074,6 @@ Item {
         }
       }
 
-      // Session control buttons
       RowLayout {
         id: sessionButtonRow
         Layout.fillWidth: true

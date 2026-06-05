@@ -24,7 +24,6 @@ Rectangle {
     readonly property bool hasBattery: UPower.displayDevice.isLaptopBattery
     readonly property var primaryDisk: SystemUsage.disks.length > 0 ? SystemUsage.disks[0] : null
 
-    // CRITICAL: drive the polling timers in SystemUsage / NetworkUsage.
     Component.onCompleted: {
         SystemUsage.refCount++;
         NetworkUsage.refCount++;
@@ -55,7 +54,6 @@ Rectangle {
         anchors.margins: 8
         spacing: 8
 
-        // ===== Row 1: CPU + GPU rings =====
         RowLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -85,7 +83,6 @@ Rectangle {
             }
         }
 
-        // ===== Row 2: RAM + Disk bars =====
         RowLayout {
             Layout.fillWidth: true
             spacing: 8
@@ -109,7 +106,6 @@ Rectangle {
             }
         }
 
-        // Extra disks (beyond the primary "/" one), compact bars.
         Repeater {
             model: SystemUsage.disks.length > 1 ? SystemUsage.disks.slice(1) : []
 
@@ -124,7 +120,6 @@ Rectangle {
             }
         }
 
-        // ===== Row 3: Network (graph + live speeds) =====
         StyledRect {
             id: netCard
 
@@ -161,7 +156,6 @@ Rectangle {
                     }
                 }
 
-                // Live area graph driven by the CircularBuffers.
                 Item {
                     id: graphArea
 
@@ -218,7 +212,6 @@ Rectangle {
                             const ul = NetworkUsage.uploadBuffer.values;
                             const maxV = Math.max(NetworkUsage.downloadBuffer.maximum, NetworkUsage.uploadBuffer.maximum, 1024);
 
-                            // Baseline grid
                             ctx.strokeStyle = Qt.rgba(Colors.overSurfaceVariant.r, Colors.overSurfaceVariant.g, Colors.overSurfaceVariant.b, 0.12);
                             ctx.lineWidth = 1;
                             for (let i = 1; i < 4; i++) {
@@ -299,7 +292,6 @@ Rectangle {
                         Layout.fillWidth: true
                     }
 
-                    // Compact battery indicator (laptops only).
                     RowLayout {
                         spacing: 4
                         visible: root.hasBattery
@@ -334,9 +326,7 @@ Rectangle {
         }
     }
 
-    // ===== Reusable components =====
 
-    // Circular progress ring with an animated arc + centred percentage.
     component RingCard: StyledRect {
         id: ringCard
 
@@ -464,7 +454,6 @@ Rectangle {
         }
     }
 
-    // Horizontal usage bar with heading + detail line.
     component BarCard: StyledRect {
         id: barCard
 
@@ -519,7 +508,6 @@ Rectangle {
                 }
             }
 
-            // Track + fill
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 6

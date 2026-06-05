@@ -19,7 +19,6 @@ Singleton {
   signal availablePluginsUpdated
   signal allPluginsLoaded
 
-  // When available plugins are updated, check if we should perform update check
   onAvailablePluginsUpdated: {
     if (shouldCheckUpdatesAfterFetch && Object.keys(activeFetches).length === 0) {
       Logger.d("PluginService", "All registry fetches complete, performing update check");
@@ -27,10 +26,8 @@ Singleton {
     }
   }
 
-  // Loaded plugin instances
   property var loadedPlugins: ({}) // { pluginId: { component, instance, api } }
 
-  // Available plugins from all sources (fetched from registries)
   property var availablePlugins: ([]) // Array of plugin metadata from all sources
 
   // Plugin updates available: { pluginId: { currentVersion, availableVersion } }
@@ -50,7 +47,6 @@ Singleton {
   property var pluginFileWatchers: ({}) // { pluginId: FileView }
   property list<string> pluginHotReloadEnabled: [] // List of pluginIds that have hot reload enabled
 
-  // Track active fetches
   property var activeFetches: ({})
 
   property bool initialized: false
@@ -65,7 +61,6 @@ Singleton {
   // Track if we need to initialize once container is ready
   property bool needsInit: false
 
-  // Watch for pluginContainer to be set
   onPluginContainerChanged: {
     if (root.pluginContainer && root.needsInit) {
       Logger.d("PluginService", "Plugin container now available, initializing plugins");
@@ -74,17 +69,14 @@ Singleton {
     }
   }
 
-  // Listen for PluginRegistry to finish loading
   Connections {
     target: PluginRegistry
 
     function onPluginsChanged() {
       if (!root.initialized) {
         if (root.pluginContainer) {
-          // Container already available, init now
           root.init();
         } else {
-          // Container not ready, wait for it
           Logger.d("PluginService", "Deferring plugin init until container is ready");
           root.needsInit = true;
         }
@@ -92,14 +84,12 @@ Singleton {
     }
   }
 
-  // When debug mode is disabled, tear down all hot reload watchers
   Connections {
     target: Settings
 
     function onIsDebugChanged() {
       if (!Settings.isDebug && root.pluginHotReloadEnabled.length > 0) {
         Logger.i("PluginService", "Debug mode disabled, removing all hot reload watchers");
-        // Remove watchers for all hot-reload-enabled plugins
         var plugins = root.pluginHotReloadEnabled.slice(); // copy since we mutate
         for (var i = 0; i < plugins.length; i++) {
           removePluginFileWatcher(plugins[i]);
@@ -109,26 +99,21 @@ Singleton {
     }
   }
 
-  // Listen for language changes to reload plugin translations
   Connections {
     target: I18n
 
     function onLanguageChanged() {
       Logger.d("PluginService", "Language changed to:", I18n.langCode, "- reloading plugin translations");
 
-      // Reload translations for all loaded plugins
       for (var pluginId in root.loadedPlugins) {
         // Use IIFE to capture current loop values (avoid closure bug)
         (function (id, plugin) {
           if (plugin && plugin.api && plugin.manifest) {
-            // Update current language
             plugin.api.currentLanguage = I18n.langCode;
 
-            // Reload translations
             loadPluginTranslationsAsync(id, plugin.manifest, I18n.langCode, function (translations) {
               plugin.api.pluginTranslations = translations;
 
-              // Reload English fallback for non-English languages
               if (I18n.langCode !== "en") {
                 loadPluginTranslationsAsync(id, plugin.manifest, "en", function (fallbackTranslations) {
                   plugin.api.pluginFallbackTranslations = fallbackTranslations;
@@ -145,14 +130,12 @@ Singleton {
         })(pluginId, root.loadedPlugins[pluginId]);
       }
 
-      // Update translation file watchers to watch the new language's files
       if (root.pluginHotReloadEnabled.length > 0) {
         updateTranslationWatchers();
       }
     }
   }
 
-  // Track pending plugin loads for init completion
   property int _pendingPluginLoads: 0
 
   function init() {
@@ -164,16 +147,13 @@ Singleton {
     Logger.i("PluginService", "Initializing plugin system");
     root.initialized = true;
 
-    // Debug: Check what's in PluginRegistry
     var allInstalled = PluginRegistry.getAllInstalledPluginIds();
     Logger.d("PluginService", "All installed plugins:", JSON.stringify(allInstalled));
     Logger.d("PluginService", "Plugin states:", JSON.stringify(PluginRegistry.pluginStates));
 
-    // Load all enabled plugins
     var enabledIds = PluginRegistry.getEnabledPluginIds();
     Logger.i("PluginService", "Found", enabledIds.length, "enabled plugins:", JSON.stringify(enabledIds));
 
-    // Count plugins that need to be loaded
     var pluginsToLoad = [];
     for (var i = 0; i < enabledIds.length; i++) {
       var manifest = PluginRegistry.getPluginManifest(enabledIds[i]);
@@ -195,7 +175,6 @@ Singleton {
                                // Load the plugin since it was already enabled (state persisted but files were missing)
                                loadPlugin(registeredKey);
 
-                               // Add plugin widget to bar if it provides one
                                var manifest = PluginRegistry.getPluginManifest(registeredKey);
                                if (manifest && manifest.entryPoints && manifest.entryPoints.barWidget) {
                                  var widgetId = "plugin:" + registeredKey;
@@ -210,7 +189,6 @@ Singleton {
       }
     }
 
-    // If no plugins to load, mark as complete immediately
     if (pluginsToLoad.length === 0) {
       root.pluginsFullyLoaded = true;
       Logger.i("PluginService", "No plugins to load");
@@ -220,7 +198,6 @@ Singleton {
       return;
     }
 
-    // Track pending loads
     root._pendingPluginLoads = pluginsToLoad.length;
 
     // Load all plugins (async - they will call _onPluginLoadComplete when done)
@@ -230,25 +207,20 @@ Singleton {
     }
   }
 
-  // Called when a plugin finishes loading (success or failure)
   function _onPluginLoadComplete() {
     root._pendingPluginLoads--;
 
     if (root._pendingPluginLoads <= 0) {
-      // All plugins finished loading
       root.pluginsFullyLoaded = true;
       Logger.i("PluginService", "All plugins loaded");
       root.allPluginsLoaded();
 
-      // Fetch available plugins from all sources
       root._isStartupCheck = true;
       refreshAvailablePlugins();
     }
   }
 
-  // Refresh available plugins from all sources
   function refreshAvailablePlugins() {
-    // If fetches are already in progress, don't start new ones
     if (Object.keys(activeFetches).length > 0) {
       Logger.d("PluginService", "Refresh already in progress, skipping duplicate refresh");
       return;
@@ -257,7 +229,6 @@ Singleton {
     Logger.i("PluginService", "Refreshing available plugins");
     root.availablePlugins = [];
 
-    // Signal that we want to check for updates after refresh completes
     shouldCheckUpdatesAfterFetch = true;
 
     var enabledSources = PluginRegistry.getEnabledSources();
@@ -267,7 +238,6 @@ Singleton {
     }
   }
 
-  // Fetch plugin registry from a source using git sparse-checkout
   function fetchPluginRegistry(source) {
     var repoUrl = source.url;
     // The main Ryoku source keeps its catalogues in subdirs of one repo
@@ -288,7 +258,6 @@ Singleton {
     fetchProcess.stdout.onStreamFinished.connect(function () {
       var response = fetchProcess.stdout.text;
 
-      // Debug: log the raw response
       Logger.d("PluginService", "Registry response length:", response ? response.length : 0);
 
       if (!response || response.trim() === "") {
@@ -302,12 +271,10 @@ Singleton {
         var registry = JSON.parse(response);
 
         if (registry && registry.plugins && Array.isArray(registry.plugins)) {
-          // Add source info to each plugin
           for (var i = 0; i < registry.plugins.length; i++) {
             var plugin = registry.plugins[i];
             plugin.source = source;
 
-            // Check if already downloaded - use composite key
             var compositeKey = PluginRegistry.generateCompositeKey(plugin.id, source.url);
             plugin.downloaded = PluginRegistry.isPluginDownloaded(compositeKey);
             plugin.enabled = PluginRegistry.isPluginEnabled(compositeKey);
@@ -329,7 +296,6 @@ Singleton {
         Logger.e("PluginService", "Response was:", response ? response.substring(0, 200) : "null");
       }
 
-      // Clean up on error or empty response
       delete activeFetches[source.url];
       fetchProcess.destroy();
     });
@@ -345,12 +311,10 @@ Singleton {
     fetchProcess.running = true;
   }
 
-  // Check for plugin ID collision before installation
   function checkPluginCollision(pluginMetadata) {
     var sourceUrl = pluginMetadata.source.url;
     var compositeKey = PluginRegistry.generateCompositeKey(pluginMetadata.id, sourceUrl);
 
-    // Check if this exact composite key already exists
     if (PluginRegistry.isPluginDownloaded(compositeKey)) {
       return {
         collision: true,
@@ -396,7 +360,6 @@ Singleton {
     };
   }
 
-  // Download and install a plugin using git sparse-checkout
   // skipCollisionCheck: set to true when updating an existing plugin
   function installPlugin(pluginMetadata, skipCollisionCheck, callback) {
     var pluginId = pluginMetadata.id;
@@ -408,7 +371,6 @@ Singleton {
 
     var source = pluginMetadata.source;
 
-    // Check for collision first (skip when updating)
     if (!skipCollisionCheck) {
       var collision = checkPluginCollision(pluginMetadata);
       if (collision.collision) {
@@ -435,7 +397,6 @@ Singleton {
       }
     }
 
-    // Generate composite key for the plugin folder
     var compositeKey = PluginRegistry.generateCompositeKey(pluginId, source.url);
     Logger.i("PluginService", "Installing plugin:", compositeKey, "from", source.name);
 
@@ -448,7 +409,6 @@ Singleton {
     var downloadCmd = "temp_dir=$(mktemp -d) && GIT_TERMINAL_PROMPT=0 git clone --filter=blob:none --sparse --depth=1 --quiet '" + repoUrl + "' \"$temp_dir\" 2>/dev/null && cd \"$temp_dir\" && git sparse-checkout set '" + pluginId + "' 2>/dev/null && mkdir -p '" + pluginDir + "' && rm -f \"$temp_dir/" + pluginId + "/settings.json\" && cp -r \"$temp_dir/" + pluginId
         + "/.\" '" + pluginDir + "/'; exit_code=$?; rm -rf \"$temp_dir\"; exit $exit_code";
 
-    // Mark as installing
     var newInstalling = Object.assign({}, root.installingPlugins);
     newInstalling[pluginId] = true;
     root.installingPlugins = newInstalling;
@@ -456,7 +416,6 @@ Singleton {
     var downloadProcess = Qt.createQmlObject('import QtQuick; import Quickshell.Io; Process { command: ["sh", "-c", "' + downloadCmd.replace(/"/g, '\\"') + '"] }', root, "DownloadPlugin_" + pluginId);
 
     downloadProcess.exited.connect(function (exitCode) {
-      // Mark as finished (remove from installing)
       var currentInstalling = Object.assign({}, root.installingPlugins);
       delete currentInstalling[pluginId];
       root.installingPlugins = currentInstalling;
@@ -464,17 +423,14 @@ Singleton {
       if (exitCode === 0) {
         Logger.i("PluginService", "Downloaded plugin:", compositeKey);
 
-        // Load and validate manifest
         var manifestPath = pluginDir + "/manifest.json";
         loadManifest(manifestPath, function (success, manifest) {
           if (success) {
             var validation = PluginRegistry.validateManifest(manifest);
             if (validation.valid) {
-              // Register plugin with source URL
               var registeredKey = PluginRegistry.registerPlugin(manifest, source.url);
               Logger.i("PluginService", "Installed plugin:", registeredKey);
 
-              // Update available plugins list
               updatePluginInAvailable(pluginId, {
                                         downloaded: true
                                       });
@@ -508,7 +464,6 @@ Singleton {
   function uninstallPlugin(compositeKey, callback) {
     Logger.i("PluginService", "Uninstalling plugin:", compositeKey);
 
-    // Disable and unload first
     if (PluginRegistry.isPluginEnabled(compositeKey)) {
       disablePlugin(compositeKey);
     }
@@ -583,11 +538,9 @@ Singleton {
     return true;
   }
 
-  // Helper function to add a widget to the bar (global + all screen overrides)
   function addWidgetToBar(widgetId, section) {
-    section = section || "right"; // Default to right section
+    section = section || "right";
 
-    // Check if widget already exists in any section (global)
     var sections = ["left", "center", "right"];
     for (var s = 0; s < sections.length; s++) {
       var widgets = Settings.data.bar.widgets[sections[s]] || [];
@@ -599,20 +552,17 @@ Singleton {
       }
     }
 
-    // Add to global
     var globalWidgets = Settings.data.bar.widgets[section] || [];
     globalWidgets.push({
                          id: widgetId
                        });
     Settings.data.bar.widgets[section] = globalWidgets;
 
-    // Also add to any screen overrides that have widget configurations
     var overrides = Settings.data.bar.screenOverrides || [];
     for (var o = 0; o < overrides.length; o++) {
       if (overrides[o] && overrides[o].widgets) {
         var overrideWidgets = overrides[o].widgets;
         var sectionWidgets = overrideWidgets[section] || [];
-        // Check if widget already exists in this override
         var alreadyExists = false;
         for (var j = 0; j < sections.length; j++) {
           var owSec = overrideWidgets[sections[j]] || [];
@@ -646,7 +596,6 @@ Singleton {
       return true;
     }
 
-    // Remove plugin widget from bar before unloading
     var widgetId = "plugin:" + compositeKey;
     removeWidgetFromBar(widgetId);
 
@@ -662,12 +611,10 @@ Singleton {
     return true;
   }
 
-  // Helper function to remove a widget from all bar sections (global + screen overrides)
   function removeWidgetFromBar(widgetId) {
     var sections = ["left", "center", "right"];
     var changed = false;
 
-    // Remove from global
     for (var s = 0; s < sections.length; s++) {
       var section = sections[s];
       var widgets = Settings.data.bar.widgets[section] || [];
@@ -687,7 +634,6 @@ Singleton {
       }
     }
 
-    // Also remove from any screen overrides that have widget configurations
     var overrides = Settings.data.bar.screenOverrides || [];
     for (var o = 0; o < overrides.length; o++) {
       if (overrides[o] && overrides[o].widgets) {
@@ -724,7 +670,6 @@ Singleton {
     return changed;
   }
 
-  // Remove plugin desktop widgets from all monitors' saved settings
   function removePluginDesktopWidgetsFromSettings(pluginId) {
     var widgetId = "plugin:" + pluginId;
     var monitorWidgets = Settings.data.desktopWidgets.monitorWidgets || [];
@@ -756,14 +701,10 @@ Singleton {
     return changed;
   }
 
-  // Load plugin settings and translations before instantiating components
   // This ensures pluginApi is fully populated before being passed to createObject()
   function loadPluginData(pluginId, manifest, callback) {
-    // Load settings first
     loadPluginSettings(pluginId, function (settings) {
-      // Then load translations
       loadPluginTranslationsAsync(pluginId, manifest, I18n.langCode, function (translations) {
-        // Load English fallback for non-English languages
         if (I18n.langCode !== "en") {
           loadPluginTranslationsAsync(pluginId, manifest, "en", function (fallbackTranslations) {
             callback(settings, translations, fallbackTranslations);
@@ -775,7 +716,6 @@ Singleton {
     });
   }
 
-  // Load a plugin
   function loadPlugin(pluginId) {
     if (root.loadedPlugins[pluginId]) {
       Logger.w("PluginService", "Plugin already loaded:", pluginId);
@@ -792,12 +732,9 @@ Singleton {
 
     Logger.i("PluginService", "Loading plugin:", pluginId);
 
-    // Load settings and translations FIRST, then create API and instantiate components
     loadPluginData(pluginId, manifest, function (settings, translations, fallbackTranslations) {
-      // Create plugin API object with pre-loaded data
       var pluginApi = createPluginAPI(pluginId, manifest, settings, translations, fallbackTranslations);
 
-      // Initialize plugin entry with API and manifest
       root.loadedPlugins[pluginId] = {
         barWidget: null,
         desktopWidget: null,
@@ -807,10 +744,8 @@ Singleton {
         manifest: manifest
       };
 
-      // Clear any previous errors for this plugin
       root.clearPluginError(pluginId);
 
-      // Load Main.qml entry point if it exists
       if (manifest.entryPoints && manifest.entryPoints.main) {
         var mainPath = pluginDir + "/" + manifest.entryPoints.main;
         var loadVersion = PluginRegistry.pluginLoadVersions[pluginId] || 0;
@@ -823,7 +758,6 @@ Singleton {
             return;
           }
 
-          // Instantiate Main.qml with pluginApi passed directly in createObject
           var mainInstance = mainComponent.createObject(root.pluginContainer, {
                                                           pluginApi: pluginApi
                                                         });
@@ -850,7 +784,6 @@ Singleton {
           root.loadedPlugins[pluginId].barWidget = widgetComponent;
           pluginApi.barWidget = widgetComponent;
 
-          // Register with BarWidgetRegistry
           BarWidgetRegistry.registerPluginWidget(pluginId, widgetComponent, manifest.metadata);
           Logger.i("PluginService", "Loaded bar widget for plugin:", pluginId);
 
@@ -871,7 +804,6 @@ Singleton {
           root.loadedPlugins[pluginId].desktopWidget = desktopWidgetComponent;
           pluginApi.desktopWidget = desktopWidgetComponent;
 
-          // Register with DesktopWidgetRegistry
           DesktopWidgetRegistry.registerPluginWidget(pluginId, desktopWidgetComponent, manifest.metadata);
           Logger.i("PluginService", "Loaded desktop widget for plugin:", pluginId);
         } else if (desktopWidgetComponent.status === Component.Error) {
@@ -889,7 +821,6 @@ Singleton {
           root.loadedPlugins[pluginId].launcherProvider = launcherProviderComponent;
           pluginApi.launcherProvider = launcherProviderComponent;
 
-          // Register with LauncherProviderRegistry
           LauncherProviderRegistry.registerPluginProvider(pluginId, launcherProviderComponent, manifest.metadata);
           Logger.i("PluginService", "Loaded launcher provider for plugin:", pluginId);
         } else if (launcherProviderComponent.status === Component.Error) {
@@ -897,7 +828,6 @@ Singleton {
         }
       }
 
-      // Load control center widget component if provided
       if (manifest.entryPoints && manifest.entryPoints.controlCenterWidget) {
         var ccWidgetPath = pluginDir + "/" + manifest.entryPoints.controlCenterWidget;
         var ccWidgetLoadVersion = PluginRegistry.pluginLoadVersions[pluginId] || 0;
@@ -907,7 +837,6 @@ Singleton {
           root.loadedPlugins[pluginId].controlCenterWidget = ccWidgetComponent;
           pluginApi.controlCenterWidget = ccWidgetComponent;
 
-          // Register with ControlCenterWidgetRegistry
           ControlCenterWidgetRegistry.registerPluginWidget(pluginId, ccWidgetComponent, manifest.metadata);
           Logger.i("PluginService", "Loaded control center widget for plugin:", pluginId);
         } else if (ccWidgetComponent.status === Component.Error) {
@@ -918,15 +847,12 @@ Singleton {
       Logger.i("PluginService", "Plugin loaded:", pluginId);
       root.pluginLoaded(pluginId);
 
-      // Set up hot reload watcher if enabled
       setupPluginFileWatcher(pluginId);
 
-      // Notify that this plugin finished loading (for init tracking)
       root._onPluginLoadComplete();
     });
   }
 
-  // Unload a plugin
   // preserveSettings: if true, don't remove desktop widget settings (used for hot reload)
   function unloadPlugin(pluginId, preserveSettings) {
     var plugin = root.loadedPlugins[pluginId];
@@ -937,15 +863,12 @@ Singleton {
 
     Logger.i("PluginService", "Unloading plugin:", pluginId);
 
-    // Remove hot reload watcher
     removePluginFileWatcher(pluginId);
 
-    // Unregister from BarWidgetRegistry
     if (plugin.manifest.entryPoints && plugin.manifest.entryPoints.barWidget) {
       BarWidgetRegistry.unregisterPluginWidget(pluginId);
     }
 
-    // Unregister from DesktopWidgetRegistry
     if (plugin.manifest.entryPoints && plugin.manifest.entryPoints.desktopWidget) {
       // Only remove settings when uninstalling, not during hot reload
       if (!preserveSettings) {
@@ -954,17 +877,14 @@ Singleton {
       DesktopWidgetRegistry.unregisterPluginWidget(pluginId);
     }
 
-    // Unregister from LauncherProviderRegistry
     if (plugin.manifest.entryPoints && plugin.manifest.entryPoints.launcherProvider) {
       LauncherProviderRegistry.unregisterPluginProvider(pluginId);
     }
 
-    // Unregister from ControlCenterWidgetRegistry
     if (plugin.manifest.entryPoints && plugin.manifest.entryPoints.controlCenterWidget) {
       ControlCenterWidgetRegistry.unregisterPluginWidget(pluginId);
     }
 
-    // Destroy Main instance if any
     if (plugin.mainInstance) {
       plugin.mainInstance.destroy();
     }
@@ -974,7 +894,6 @@ Singleton {
     Logger.i("PluginService", "Unloaded plugin:", pluginId);
   }
 
-  // Create plugin API object with pre-loaded settings and translations
   function createPluginAPI(pluginId, manifest, settings, translations, fallbackTranslations) {
     var pluginDir = PluginRegistry.getPluginDir(pluginId);
 
@@ -982,13 +901,11 @@ Singleton {
       import QtQuick
 
       QtObject {
-        // Plugin-specific
         readonly property string pluginId: "${pluginId}"
         readonly property string pluginDir: "${pluginDir}"
         property var pluginSettings: ({})
         property var manifest: ({})
 
-        // Instance references (set after loading)
         property var mainInstance: null
         property var barWidget: null
         property var desktopWidget: null
@@ -998,16 +915,13 @@ Singleton {
         // Panel state: which screen the plugin's panel is currently open on (null if closed)
         property var panelOpenScreen: null
 
-        // IPC handlers storage
         property var ipcHandlers: ({})
 
-        // Translation storage
         property var pluginTranslations: ({})
         property var pluginFallbackTranslations: ({})  // English fallback for missing keys
         property string currentLanguage: ""
         property int translationVersion: 0  // Increments when translations change - plugins should depend on this
 
-        // Functions will be bound below
         property var saveSettings: null
         property var openPanel: null
         property var closePanel: null
@@ -1022,7 +936,6 @@ Singleton {
       }
     `, root, "PluginAPI_" + pluginId);
 
-    // Set manifest
     api.manifest = manifest;
 
     // Set current language (can't use binding in Qt.createQmlObject string)
@@ -1034,8 +947,6 @@ Singleton {
     api.pluginTranslations = translations || {};
     api.pluginFallbackTranslations = fallbackTranslations || {};
 
-    // ----------------------------------------
-    // Helper function to get nested property by dot notation
     var getNestedProperty = function (obj, path) {
       var keys = path.split('.');
       var current = obj;
@@ -1048,9 +959,6 @@ Singleton {
       return current;
     };
 
-    // ----------------------------------------
-    // Bind functions
-    // ----------------------------------------
     api.saveSettings = function () {
       savePluginSettings(pluginId, api.pluginSettings);
 
@@ -1059,9 +967,7 @@ Singleton {
       api.pluginSettings = Object.assign({}, api.pluginSettings);
     };
 
-    // ----------------------------------------
     api.togglePanel = function (screen, buttonItem) {
-      // Toggle this plugin's panel on the specified screen
       // buttonItem: optional, if provided the panel will position near this button
       if (!screen) {
         Logger.w("PluginAPI", "No screen available for toggling panel");
@@ -1070,9 +976,7 @@ Singleton {
       return togglePluginPanel(pluginId, screen, buttonItem);
     };
 
-    // ----------------------------------------
     api.openPanel = function (screen, buttonItem) {
-      // Open this plugin's panel on the specified screen
       // buttonItem: optional, if provided the panel will position near this button
       if (!screen) {
         Logger.w("PluginAPI", "No screen available for opening panel");
@@ -1081,9 +985,7 @@ Singleton {
       return openPluginPanel(pluginId, screen, buttonItem);
     };
 
-    // ----------------------------------------
     api.closePanel = function (screen) {
-      // Close this plugin's panel (find which slot it's in and close it)
       for (var slotNum = 1; slotNum <= 2; slotNum++) {
         var panelName = "pluginPanel" + slotNum;
         var panel = PanelService.getPanel(panelName, screen);
@@ -1095,11 +997,7 @@ Singleton {
       return false;
     };
 
-    // ----------------------------------------
-    // Launcher provider methods
-    // ----------------------------------------
 
-    // Get the search prefix for this plugin's launcher provider
     var getSearchPrefix = function () {
       var metadata = LauncherProviderRegistry.getProviderMetadata("plugin:" + pluginId);
       var prefix = (metadata && metadata.commandPrefix) ? metadata.commandPrefix : pluginId;
@@ -1107,7 +1005,6 @@ Singleton {
     };
 
     api.openLauncher = function (screen) {
-      // Open the launcher with this plugin's provider active
       if (!screen) {
         Logger.w("PluginAPI", "No screen available for opening launcher");
         return;
@@ -1116,7 +1013,6 @@ Singleton {
     };
 
     api.closeLauncher = function (screen) {
-      // Close the launcher
       if (!screen) {
         Logger.w("PluginAPI", "No screen available for closing launcher");
         return;
@@ -1125,7 +1021,6 @@ Singleton {
     };
 
     api.toggleLauncher = function (screen) {
-      // Toggle the launcher with this plugin's provider active
       if (!screen) {
         Logger.w("PluginAPI", "No screen available for toggling launcher");
         return;
@@ -1142,7 +1037,6 @@ Singleton {
       }
     };
 
-    // ----------------------------------------
     api.withCurrentScreen = function (callback) {
       // Detect which screen the cursor is on and call callback with that screen
       if (!root.screenDetector) {
@@ -1153,8 +1047,6 @@ Singleton {
       root.screenDetector.withCurrentScreen(callback);
     };
 
-    // ----------------------------------------
-    // Translation function
     api.tr = function (key, interpolations) {
       if (typeof interpolations === 'undefined') {
         interpolations = {};
@@ -1172,7 +1064,6 @@ Singleton {
         return `!!${key}!!`;
       }
 
-      // Ensure translation is a string
       if (typeof translation !== 'string') {
         return `!!${key}!!`;
       }
@@ -1187,8 +1078,6 @@ Singleton {
       return result;
     };
 
-    // ----------------------------------------
-    // Plural translation function
     api.trp = function (key, count, interpolations) {
       if (typeof interpolations === 'undefined') {
         interpolations = {};
@@ -1197,7 +1086,6 @@ Singleton {
       // Use key for singular, key-plural for plural
       const realKey = count === 1 ? key : `${key}-plural`;
 
-      // Merge interpolations with count
       var finalInterpolations = {
         'count': count
       };
@@ -1205,12 +1093,9 @@ Singleton {
         finalInterpolations[prop] = interpolations[prop];
       }
 
-      // Use tr() to look up the translation
       return api.tr(realKey, finalInterpolations);
     };
 
-    // ----------------------------------------
-    // Check if translation exists
     api.hasTranslation = function (key) {
       return getNestedProperty(api.pluginTranslations, key) !== undefined || getNestedProperty(api.pluginFallbackTranslations, key) !== undefined;
     };
@@ -1218,7 +1103,6 @@ Singleton {
     return api;
   }
 
-  // Load plugin translations asynchronously
   function loadPluginTranslationsAsync(pluginId, manifest, language, callback) {
     var pluginDir = PluginRegistry.getPluginDir(pluginId);
     var translationFile = pluginDir + "/i18n/" + language + ".json";
@@ -1256,7 +1140,6 @@ Singleton {
     readProcess.running = true;
   }
 
-  // Load plugin settings
   function loadPluginSettings(pluginId, callback) {
     var settingsFile = PluginRegistry.getPluginSettingsFile(pluginId);
 
@@ -1279,7 +1162,6 @@ Singleton {
           callback({});
         }
       } else {
-        // File doesn't exist - use defaults
         callback({});
       }
 
@@ -1289,7 +1171,6 @@ Singleton {
     readProcess.running = true;
   }
 
-  // Save plugin settings
   function savePluginSettings(pluginId, settings) {
     var settingsFile = PluginRegistry.getPluginSettingsFile(pluginId);
     var settingsJson = JSON.stringify(settings, null, 2);
@@ -1298,21 +1179,17 @@ Singleton {
     var delimiter = "PLUGIN_SETTINGS_EOF_" + Math.random().toString(36).substr(2, 9);
     var fileEsc = settingsFile.replace(/'/g, "'\\''");
 
-    // Get parent directory and ensure it exists
     var settingsDir = settingsFile.substring(0, settingsFile.lastIndexOf('/'));
     var dirEsc = settingsDir.replace(/'/g, "'\\''");
 
-    // Build the shell command with heredoc (create dir first)
     var writeCmd = "mkdir -p '" + dirEsc + "' && cat > '" + fileEsc + "' << '" + delimiter + "'\n" + settingsJson + "\n" + delimiter + "\n";
 
     Logger.d("PluginService", "Saving settings to:", settingsFile);
 
-    // Use Quickshell.execDetached to execute the command (use array syntax)
     var pid = Quickshell.execDetached(["sh", "-c", writeCmd]);
     Logger.d("PluginService", "Write process started, PID:", pid);
   }
 
-  // Load manifest from file
   function loadManifest(manifestPath, callback) {
     var readProcess = Qt.createQmlObject(`
       import QtQuick
@@ -1343,7 +1220,6 @@ Singleton {
     readProcess.running = true;
   }
 
-  // Update plugin metadata in available plugins list
   function updatePluginInAvailable(pluginId, updates) {
     for (var i = 0; i < root.availablePlugins.length; i++) {
       if (root.availablePlugins[i].id === pluginId) {
@@ -1356,7 +1232,6 @@ Singleton {
     }
   }
 
-  // Find available plugin by ID
   function findAvailablePlugin(compositeKeyOrId) {
     var parsed = PluginRegistry.parseCompositeKey(compositeKeyOrId);
     var pluginId = parsed.pluginId;
@@ -1370,37 +1245,30 @@ Singleton {
     return null;
   }
 
-  // Internal flag to track if we should check for updates after registry fetch
   property bool shouldCheckUpdatesAfterFetch: false
 
-  // Flag to track if this is the initial startup update check (for auto-update)
   property bool _isStartupCheck: false
 
-  // Check for plugin updates (call this after availablePlugins are loaded)
   function checkForUpdates() {
     Logger.i("PluginService", "Checking for plugin updates");
 
-    // If we have available plugins, check immediately regardless of active fetches
     if (root.availablePlugins.length > 0) {
       Logger.d("PluginService", "Available plugins already loaded, checking now");
       performUpdateCheck();
       return;
     }
 
-    // No plugins yet - check if fetch is in progress
     if (Object.keys(activeFetches).length > 0) {
       Logger.d("PluginService", "Registry fetch in progress, will check after fetch completes");
       shouldCheckUpdatesAfterFetch = true;
       return;
     }
 
-    // No plugins and no fetches - trigger refresh
     Logger.d("PluginService", "No available plugins yet, triggering refresh");
     shouldCheckUpdatesAfterFetch = true;
     refreshAvailablePlugins();
   }
 
-  // Perform the actual update check
   function performUpdateCheck() {
     var updates = {};
     var pendingUpdates = {};
@@ -1419,9 +1287,7 @@ Singleton {
 
         Logger.d("PluginService", "Comparing", pluginId + ":", currentVersion, "vs", availableVersion);
 
-        // Compare versions
         if (compareVersions(availableVersion, currentVersion) > 0) {
-          // Check if the available version requires a higher Noctalia version
           if (availablePlugin.minNoctaliaVersion) {
             var noctaliaVersion = UpdateService.baseVersion;
             if (compareVersions(availablePlugin.minNoctaliaVersion, noctaliaVersion) > 0) {
@@ -1459,7 +1325,6 @@ Singleton {
 
       if (Settings.data.plugins.notifyUpdates) {
         ToastService.showNotice(I18n.tr("panels.plugins.title"), I18n.trp("panels.plugins.update-available", updateCount) + "\n\n" + updatesDescription, "plugin", 5000, I18n.tr("panels.plugins.open-plugins-tab"), function () {
-          // Open settings panel to Plugins tab on the screen where the cursor is
           if (root.screenDetector) {
             root.screenDetector.withCurrentScreen(function (screen) {
               var panel = PanelService.getPanel("settingsPanel", screen);
@@ -1469,7 +1334,6 @@ Singleton {
               }
             });
           } else {
-            // Fallback to primary screen if screen detector is not available
             var panel = PanelService.getPanel("settingsPanel", Quickshell.screens[0]);
             if (panel) {
               panel.requestedTab = SettingsPanel.Tab.Plugins;
@@ -1484,7 +1348,6 @@ Singleton {
       Logger.i("PluginService", "All installed plugins are up to date");
     }
 
-    // Auto-update on startup if enabled
     if (root._isStartupCheck && Settings.data.plugins.autoUpdate && updateCount > 0) {
       Logger.i("PluginService", "Auto-updating", updateCount, "plugin(s)");
       updateAllPlugins();
@@ -1494,7 +1357,6 @@ Singleton {
     shouldCheckUpdatesAfterFetch = false;
   }
 
-  // Update all plugins sequentially
   function updateAllPlugins(callback) {
     var pluginIds = Object.keys(root.pluginUpdates);
     var currentIndex = 0;
@@ -1521,7 +1383,6 @@ Singleton {
     updateNext();
   }
 
-  // Simple version comparison (semantic versioning x.y.z)
   function compareVersions(a, b) {
     var aParts = a.split('.').map(function (x) {
       return parseInt(x) || 0;
@@ -1541,11 +1402,9 @@ Singleton {
     return 0;
   }
 
-  // Update a plugin to the latest version
   function updatePlugin(pluginId, callback) {
     Logger.i("PluginService", "Updating plugin:", pluginId);
 
-    // Find available plugin metadata
     var availablePlugin = findAvailablePlugin(pluginId);
     if (!availablePlugin) {
       Logger.e("PluginService", "Plugin not found in available plugins:", pluginId);
@@ -1554,13 +1413,11 @@ Singleton {
       return;
     }
 
-    // Check Noctalia compatibility
     if (availablePlugin.minNoctaliaVersion) {
       // Simple check: just warn, don't block (UpdateService would have more sophisticated logic)
       Logger.d("PluginService", "Plugin requires Noctalia v" + availablePlugin.minNoctaliaVersion);
     }
 
-    // Backup entire bar layout (global + screen overrides)
     var barBackup = {
       left: JSON.parse(JSON.stringify(Settings.data.bar.widgets.left || [])),
       center: JSON.parse(JSON.stringify(Settings.data.bar.widgets.center || [])),
@@ -1569,11 +1426,9 @@ Singleton {
     var screenOverridesBackup = JSON.parse(JSON.stringify(Settings.data.bar.screenOverrides || []));
     Logger.d("PluginService", "Backed up bar layout (global + screen overrides)");
 
-    // Backup desktop widget settings (includes this plugin's widgets)
     var desktopWidgetsBackup = JSON.parse(JSON.stringify(Settings.data.desktopWidgets.monitorWidgets || []));
     Logger.d("PluginService", "Backed up desktop widget settings");
 
-    // Close any open panels for this plugin before update
     for (var slotNum = 1; slotNum <= 2; slotNum++) {
       var panelName = "pluginPanel" + slotNum;
       for (var s = 0; s < Quickshell.screens.length; s++) {
@@ -1586,12 +1441,10 @@ Singleton {
       }
     }
 
-    // Disable plugin (this removes widgets and unloads code)
     if (PluginRegistry.isPluginEnabled(pluginId)) {
       disablePlugin(pluginId);
     }
 
-    // Now install the new version (reuse installPlugin logic, skip collision check since we're updating)
     installPlugin(availablePlugin, true, function (success, error) {
       if (success) {
         Logger.i("PluginService", "Plugin updated successfully:", pluginId);
@@ -1610,7 +1463,6 @@ Singleton {
         Settings.data.bar.screenOverrides = screenOverridesBackup;
         Logger.d("PluginService", "Restored bar layout (global + screen overrides)");
 
-        // Restore desktop widget settings
         Settings.data.desktopWidgets.monitorWidgets = desktopWidgetsBackup;
         Logger.d("PluginService", "Restored desktop widget settings");
 
@@ -1618,7 +1470,6 @@ Singleton {
         // (the earlier disablePlugin write triggers a reload that can overwrite the restore)
         Settings.saveImmediate();
 
-        // Remove from updates list
         var updates = Object.assign({}, root.pluginUpdates);
         delete updates[pluginId];
         root.pluginUpdates = updates;
@@ -1628,13 +1479,11 @@ Singleton {
       } else {
         Logger.e("PluginService", "Failed to update plugin:", pluginId, error);
 
-        // Restore bar layout even on failure (global + screen overrides)
         Settings.data.bar.widgets.left = barBackup.left;
         Settings.data.bar.widgets.center = barBackup.center;
         Settings.data.bar.widgets.right = barBackup.right;
         Settings.data.bar.screenOverrides = screenOverridesBackup;
 
-        // Restore desktop widget settings even on failure
         Settings.data.desktopWidgets.monitorWidgets = desktopWidgetsBackup;
         Settings.saveImmediate();
 
@@ -1644,17 +1493,14 @@ Singleton {
     });
   }
 
-  // Get plugin API for a loaded plugin
   function getPluginAPI(pluginId) {
     return root.loadedPlugins[pluginId]?.api || null;
   }
 
-  // Check if plugin is loaded
   function isPluginLoaded(pluginId) {
     return !!root.loadedPlugins[pluginId];
   }
 
-  // Open a plugin's panel (finds a free slot and loads the panel)
   function openPluginPanel(pluginId, screen, buttonItem) {
     if (!isPluginLoaded(pluginId)) {
       Logger.w("PluginService", "Cannot open panel: plugin not loaded:", pluginId);
@@ -1667,7 +1513,6 @@ Singleton {
       return false;
     }
 
-    // Try to find the plugin panel slot (pluginPanel1 or pluginPanel2)
     // Priority: 1) toggle same plugin, 2) empty slot, 3) closed slot, 4) replace open slot
     var closedSlot = null;
 
@@ -1676,34 +1521,29 @@ Singleton {
       var panel = PanelService.getPanel(panelName, screen);
 
       if (panel) {
-        // If this slot is already showing this plugin's panel, toggle it
         if (panel.currentPluginId === pluginId) {
           panel.toggle(buttonItem);
           return true;
         }
 
-        // If this slot is empty, use it
         if (panel.currentPluginId === "") {
           panel.currentPluginId = pluginId;
           panel.open(buttonItem);
           return true;
         }
 
-        // Track first closed slot (panel assigned but not showing)
         if (!closedSlot && !panel.isPanelOpen) {
           closedSlot = panel;
         }
       }
     }
 
-    // Prefer reusing a closed slot over replacing an open one
     if (closedSlot) {
       closedSlot.currentPluginId = pluginId;
       closedSlot.open(buttonItem);
       return true;
     }
 
-    // If both slots are occupied and open, use slot 1 (replace existing)
     var panel1 = PanelService.getPanel("pluginPanel1", screen);
     if (panel1) {
       var wasAlreadyOpen = panel1.isPanelOpen;
@@ -1724,7 +1564,6 @@ Singleton {
     return false;
   }
 
-  // Toggle a plugin's panel - close if open, open if closed
   // buttonItem: optional, if provided the panel will position near this button
   function togglePluginPanel(pluginId, screen, buttonItem) {
     if (!isPluginLoaded(pluginId)) {
@@ -1738,23 +1577,19 @@ Singleton {
       return false;
     }
 
-    // Check if this plugin's panel is already open in any slot
     for (var slotNum = 1; slotNum <= 2; slotNum++) {
       var panelName = "pluginPanel" + slotNum;
       var panel = PanelService.getPanel(panelName, screen);
 
       if (panel && panel.currentPluginId === pluginId) {
-        // Panel is open for this plugin - toggle it (close)
         panel.toggle(buttonItem);
         return true;
       }
     }
 
-    // Panel is not open - open it using the existing logic
     return openPluginPanel(pluginId, screen, buttonItem);
   }
 
-  // ----- Error tracking functions -----
 
   function recordPluginError(pluginId, entryPoint, errorMessage) {
     var errors = Object.assign({}, root.pluginErrors);
@@ -1784,15 +1619,12 @@ Singleton {
     return pluginId in root.pluginErrors;
   }
 
-  // ----- Hot reload functions -----
 
-  // Set up file watcher for a plugin directory
   function setupPluginFileWatcher(pluginId) {
     if (!isPluginHotReloadEnabled(pluginId)) {
       return;
     }
 
-    // Don't create duplicate watchers
     if (root.pluginFileWatchers[pluginId]) {
       return;
     }
@@ -1804,7 +1636,6 @@ Singleton {
 
     var pluginDir = PluginRegistry.getPluginDir(pluginId);
 
-    // Create a debounce timer for this plugin
     var debounceTimer = Qt.createQmlObject(`
       import QtQuick
       Timer {
@@ -1818,11 +1649,9 @@ Singleton {
       }
     `, root, "HotReloadDebounce_" + pluginId);
 
-    // Set properties after creation to pass the callback
     debounceTimer.targetPluginId = pluginId;
     debounceTimer.reloadCallback = root.reloadPlugin;
 
-    // Watch the manifest file - changes here indicate plugin updates
     var manifestWatcher = Qt.createQmlObject(`
       import Quickshell.Io
       FileView {
@@ -1870,14 +1699,12 @@ Singleton {
     `, root, "QmlWatcher_" + pluginId);
     watchers.push(qmlWatcher);
 
-    // Connect all watchers to the debounce timer
     for (var j = 0; j < watchers.length; j++) {
       watchers[j].fileChanged.connect(function () {
         debounceTimer.restart();
       });
     }
 
-    // Create a separate debounce timer for translation reloads (lighter weight)
     var translationDebounceTimer = Qt.createQmlObject(`
       import QtQuick
       Timer {
@@ -1894,7 +1721,6 @@ Singleton {
     translationDebounceTimer.targetPluginId = pluginId;
     translationDebounceTimer.reloadCallback = root.reloadPluginTranslations;
 
-    // Watch the current language's translation file
     var translationWatcher = createTranslationWatcher(pluginId, pluginDir, I18n.langCode, translationDebounceTimer);
 
     root.pluginFileWatchers[pluginId] = {
@@ -1908,7 +1734,6 @@ Singleton {
     Logger.d("PluginService", "Set up hot reload watcher for plugin:", pluginId, "(including translations)");
   }
 
-  // Create a translation file watcher for a specific language
   function createTranslationWatcher(pluginId, pluginDir, language, debounceTimer) {
     var translationFile = pluginDir + "/i18n/" + language + ".json";
 
@@ -1928,32 +1753,27 @@ Singleton {
     return watcher;
   }
 
-  // Update translation watchers when language changes
   function updateTranslationWatchers() {
     for (var pluginId in root.pluginFileWatchers) {
       var watcherData = root.pluginFileWatchers[pluginId];
       if (!watcherData || !watcherData.translationDebounceTimer)
         continue;
 
-      // Destroy old translation watcher
       if (watcherData.translationWatcher) {
         watcherData.translationWatcher.destroy();
       }
 
-      // Create new watcher for current language
       watcherData.translationWatcher = createTranslationWatcher(pluginId, watcherData.pluginDir, I18n.langCode, watcherData.translationDebounceTimer);
     }
     Logger.d("PluginService", "Updated translation watchers for language:", I18n.langCode);
   }
 
-  // Remove file watcher for a plugin
   function removePluginFileWatcher(pluginId) {
     var watcherData = root.pluginFileWatchers[pluginId];
     if (!watcherData) {
       return;
     }
 
-    // Destroy all watchers
     if (watcherData.watchers) {
       for (var i = 0; i < watcherData.watchers.length; i++) {
         if (watcherData.watchers[i]) {
@@ -1962,17 +1782,14 @@ Singleton {
       }
     }
 
-    // Destroy debounce timer
     if (watcherData.debounceTimer) {
       watcherData.debounceTimer.destroy();
     }
 
-    // Destroy translation watcher
     if (watcherData.translationWatcher) {
       watcherData.translationWatcher.destroy();
     }
 
-    // Destroy translation debounce timer
     if (watcherData.translationDebounceTimer) {
       watcherData.translationDebounceTimer.destroy();
     }
@@ -1981,7 +1798,6 @@ Singleton {
     Logger.d("PluginService", "Removed hot reload watcher for plugin:", pluginId);
   }
 
-  // Reload a plugin (hot reload)
   function reloadPlugin(pluginId) {
     if (!root.loadedPlugins[pluginId]) {
       Logger.w("PluginService", "Cannot reload: plugin not loaded:", pluginId);
@@ -1996,10 +1812,8 @@ Singleton {
       return false;
     }
 
-    // Unregister widget instances from the bar
     BarService.destroyPluginWidgetInstances(pluginId);
 
-    // Unload the plugin (destroys components and instances)
     // Pass true to preserve desktop widget settings during hot reload
     unloadPlugin(pluginId, true);
 
@@ -2009,16 +1823,13 @@ Singleton {
     // Use Qt.callLater to ensure destruction is complete before reloading
     // This prevents IPC handler conflicts and other timing issues
     Qt.callLater(function () {
-      // Reload the plugin
       loadPlugin(pluginId);
 
       // Re-setup file watcher (it was destroyed during unload)
       setupPluginFileWatcher(pluginId);
 
-      // Emit signal
       root.pluginReloaded(pluginId);
 
-      // Show toast notification
       var pluginName = manifest.name || pluginId;
       ToastService.showNotice(I18n.tr("panels.plugins.title"), I18n.tr("panels.plugins.hot-reloaded", {
                                                                          "name": pluginName
@@ -2030,7 +1841,6 @@ Singleton {
     return true;
   }
 
-  // Hot reload only translations for a plugin (lightweight, no component reload)
   function reloadPluginTranslations(pluginId) {
     var plugin = root.loadedPlugins[pluginId];
     if (!plugin || !plugin.api || !plugin.manifest) {
@@ -2043,7 +1853,6 @@ Singleton {
     loadPluginTranslationsAsync(pluginId, plugin.manifest, I18n.langCode, function (translations) {
       plugin.api.pluginTranslations = translations;
 
-      // Also reload English fallback for non-English languages
       if (I18n.langCode !== "en") {
         loadPluginTranslationsAsync(pluginId, plugin.manifest, "en", function (fallbackTranslations) {
           plugin.api.pluginFallbackTranslations = fallbackTranslations;
@@ -2070,12 +1879,10 @@ Singleton {
     return true;
   }
 
-  // Check if a certain plugin has hot reload enabled
   function isPluginHotReloadEnabled(pluginId) {
     return root.pluginHotReloadEnabled.indexOf(pluginId) !== -1;
   }
 
-  // Toggle the hot reload state of a certain plugin
   function togglePluginHotReload(pluginId) {
     const index = root.pluginHotReloadEnabled.indexOf(pluginId);
     if (index === -1) {

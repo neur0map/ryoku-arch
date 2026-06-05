@@ -5,7 +5,6 @@ ApiStrategy {
 
     function getEndpoint(modelObj, apiKey) {
         let base = modelObj.endpoint || "https://api.openai.com";
-        // Ensure we don't double-append /v1
         if (base.endsWith("/v1"))
             return base + "/chat/completions";
         return base + "/v1/chat/completions";
@@ -108,13 +107,10 @@ ApiStrategy {
                 if (delta && delta.content)
                     return { content: delta.content, done: false, error: null };
 
-                // Check for tool calls in stream
                 if (delta && delta.tool_calls) {
-                    // Accumulate tool call data — handled by Ai.qml
                     return { content: "", done: false, error: null, toolCallDelta: delta.tool_calls };
                 }
 
-                // finish_reason check
                 if (json.choices[0].finish_reason)
                     return { content: "", done: true, error: null };
             }

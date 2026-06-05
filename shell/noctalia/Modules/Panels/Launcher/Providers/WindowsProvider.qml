@@ -16,7 +16,6 @@ Item {
     Logger.d("WindowsProvider", "Initialized");
   }
 
-  // Check if this provider handles the command
   function handleCommand(searchText) {
     return searchText.startsWith(">win");
   }
@@ -46,7 +45,6 @@ Item {
     // Handle command mode: ">win" or ">win <search>"
     var isCommandMode = trimmed.startsWith(">win");
     if (isCommandMode) {
-      // Extract search term after ">win "
       var searchTerm = trimmed.substring(4).trim();
       // In command mode, show all windows if no search term
       if (searchTerm.length === 0) {
@@ -61,7 +59,6 @@ Item {
 
     var items = [];
 
-    // Collect all windows from CompositorService
     for (var i = 0; i < CompositorService.windows.count; i++) {
       var win = CompositorService.windows.get(i);
       items.push({
@@ -80,7 +77,6 @@ Item {
                                  "limit": 10
                                });
 
-    // Map to launcher items
     var launcherItems = [];
     for (var j = 0; j < results.length; j++) {
       var entry = results[j].obj;

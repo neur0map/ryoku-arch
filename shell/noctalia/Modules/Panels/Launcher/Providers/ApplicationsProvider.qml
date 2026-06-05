@@ -20,7 +20,7 @@ Item {
   property string selectedCategory: "all"
   property bool showsCategories: true // Default to showing categories
   property var categories: ["all", "Pinned", "AudioVideo", "Chat", "Development", "Education", "Game", "Graphics", "Network", "Office", "System", "Misc", "WebBrowser"]
-  property var availableCategories: ["all"] // Reactive property for available categories
+  property var availableCategories: ["all"]
 
   property var categoryIcons: ({
                                  "all": "apps",
@@ -28,13 +28,13 @@ Item {
                                  "AudioVideo": "music",
                                  "Chat": "message-circle",
                                  "Development": "code",
-                                 "Education": "school" // Includes Science
+                                 "Education": "school"
                                               ,
                                  "Game": "device-gamepad",
                                  "Graphics": "brush",
                                  "Network": "wifi",
                                  "Office": "file-text",
-                                 "System": "device-desktop" // Includes Settings and Utility
+                                 "System": "device-desktop"
                                            ,
                                  "Misc": "dots",
                                  "WebBrowser": "world"
@@ -164,17 +164,14 @@ Item {
       return "WebBrowser";
     }
 
-    // Map Science to Education
     if (appCategories.includes("Science")) {
       return "Education";
     }
 
-    // Map Settings to System
     if (appCategories.includes("Settings")) {
       return "System";
     }
 
-    // Map Utility to System
     if (appCategories.includes("Utility")) {
       return "System";
     }
@@ -195,7 +192,6 @@ Item {
     return appId.toLowerCase().trim();
   }
 
-  // Helper function to check if an app is pinned
   function isAppPinned(app) {
     if (!app)
       return false;
@@ -206,7 +202,6 @@ Item {
   }
 
   function appMatchesCategory(app, category) {
-    // Check if app matches the selected category
     if (category === "all")
       return true;
 
@@ -222,20 +217,17 @@ Item {
     if (!primaryCategory)
       return false;
 
-    // Map Audio/Video to AudioVideo
     if (category === "AudioVideo") {
       const appCategories = getAppCategories(app);
       // Show if app has AudioVideo, Audio, or Video
       return appCategories.includes("AudioVideo") || appCategories.includes("Audio") || appCategories.includes("Video");
     }
 
-    // Map Science to Education
     if (category === "Education") {
       const appCategories = getAppCategories(app);
       return appCategories.includes("Education") || appCategories.includes("Science");
     }
 
-    // Map Settings and Utility to System
     if (category === "System") {
       const appCategories = getAppCategories(app);
       return appCategories.includes("System") || appCategories.includes("Settings") || appCategories.includes("Utility");
@@ -253,10 +245,8 @@ Item {
     let hasSystem = false;
     let hasPinned = false;
 
-    // Check if there are any pinned apps
     const pinnedApps = Settings.data.appLauncher.pinnedApps || [];
     if (pinnedApps.length > 0) {
-      // Verify that at least one pinned app exists in entries
       for (let app of entries) {
         if (isAppPinned(app)) {
           hasPinned = true;
@@ -334,7 +324,6 @@ Item {
                                const appId = app.id || app.name;
                                const execCmd = getExecutableName(app);
 
-                               // Check if we've seen this app ID before
                                if (seen.has(appId)) {
                                  const previousExec = seen.get(appId);
 
@@ -392,13 +381,10 @@ Item {
     if (!app)
       return "";
 
-    // Try to get executable name from command array
     if (app.command && Array.isArray(app.command) && app.command.length > 0) {
       const cmd = app.command[0];
-      // Extract just the executable name from the full path
       const parts = cmd.split('/');
       const executable = parts[parts.length - 1];
-      // Remove any arguments or parameters
       return executable.split(' ')[0];
     }
 
@@ -436,7 +422,6 @@ Item {
       let sorted;
       if (Settings.data.appLauncher.sortByMostUsed) {
         sorted = filteredEntries.slice().sort((a, b) => {
-                                                // Pinned first
                                                 const aPinned = isAppPinned(a);
                                                 const bPinned = isAppPinned(b);
                                                 if (aPinned !== bPinned)
@@ -479,7 +464,6 @@ Item {
       }
       return pinned.concat(nonPinned).map(result => createResultEntry(result.obj, result.score));
     } else {
-      // Fallback to simple search
       const searchTerm = query.toLowerCase();
       return filteredEntries.filter(app => {
                                       const name = (app.name || "").toLowerCase();
@@ -498,13 +482,11 @@ Item {
                                               const aExecStarts = aExecutable.startsWith(searchTerm);
                                               const bExecStarts = bExecutable.startsWith(searchTerm);
 
-                                              // Prioritize name matches first
                                               if (aStarts && !bStarts)
                                               return -1;
                                               if (!aStarts && bStarts)
                                               return 1;
 
-                                              // Then prioritize executable matches
                                               if (aExecStarts && !bExecStarts)
                                               return -1;
                                               if (!aExecStarts && bExecStarts)
@@ -554,7 +536,6 @@ Item {
                        }
 
                        if (Settings.data.appLauncher.customLaunchPrefixEnabled && Settings.data.appLauncher.customLaunchPrefix.trim() !== "") {
-                         // Use custom launch prefix
                          const prefix = Settings.data.appLauncher.customLaunchPrefix.trim().split(" ");
                          Logger.d("ApplicationsProvider", `Using custom launch prefix: ${Settings.data.appLauncher.customLaunchPrefix.trim()}`);
 
@@ -590,8 +571,6 @@ Item {
     };
   }
 
-  // -------------------------
-  // Item actions for launcher delegate
   function getItemActions(item) {
     if (!item || !item.appId)
       return [];
@@ -623,8 +602,6 @@ Item {
     Settings.data.appLauncher.pinnedApps = arr;
   }
 
-  // -------------------------
-  // Usage tracking helpers
   function getAppKey(app) {
     if (app && app.id)
       return String(app.id);

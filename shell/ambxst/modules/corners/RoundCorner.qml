@@ -9,7 +9,7 @@ Item {
         BottomLeft,
         BottomRight
     }
-    property var corner: RoundCorner.CornerEnum.TopLeft // Default to TopLeft
+    property var corner: RoundCorner.CornerEnum.TopLeft
 
     property int size: 25
     property color color: "#000000"

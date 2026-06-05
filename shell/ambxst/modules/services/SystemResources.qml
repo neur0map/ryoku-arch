@@ -13,12 +13,10 @@ pragma ComponentBehavior: Bound
 Singleton {
     id: root
 
-    // CPU metrics
     property real cpuUsage: 0.0
     property string cpuModel: ""
     property int cpuTemp: -1
 
-    // RAM metrics
     property real ramUsage: 0.0
     property real ramTotal: 0
     property real ramUsed: 0
@@ -37,12 +35,10 @@ Singleton {
     property string gpuVendor: gpuVendors.length > 0 ? gpuVendors[0] : "unknown"
     property int gpuTemp: gpuTemps.length > 0 ? gpuTemps[0] : -1
 
-    // Disk metrics
     property var diskUsage: ({})
     property var diskTypes: ({})
     property var validDisks: []
 
-    // History data
     property var cpuHistory: []
     property var ramHistory: []
     property var gpuHistories: []
@@ -51,7 +47,6 @@ Singleton {
     property int maxHistoryPoints: 50
     property int totalDataPoints: 0
 
-    // Update interval
     property int updateInterval: 2000
 
     // Unified monitor process.
@@ -71,7 +66,6 @@ Singleton {
                 try {
                     const stats = JSON.parse(data);
                     
-                    // Static info (received once at start)
                     if (stats.static) {
                         root.cpuModel = stats.static.cpu_model || root.cpuModel;
                         root.gpuNames = stats.static.gpu_names || [];
@@ -82,7 +76,6 @@ Singleton {
                         return;
                     }
 
-                    // Update metrics
                     if (stats.cpu) {
                         root.cpuUsage = stats.cpu.usage;
                         root.cpuTemp = stats.cpu.temp;
@@ -144,7 +137,6 @@ Singleton {
     function updateHistory() {
         totalDataPoints++;
         
-        // Helper to update history arrays
         const pushHistory = (arr, val) => {
             let next = arr.slice();
             next.push(val);

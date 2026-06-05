@@ -18,27 +18,21 @@ Item {
 
     implicitHeight: contentColumn.implicitHeight
 
-    // Currently selected stop index for editing (default to first stop)
     property int selectedStopIndex: 0
 
-    // Drag state (kept at root level to survive delegate recreation)
     property int draggingIndex: -1
     property real dragPosition: 0
 
-    // Helper to get effective position for a stop (uses drag position if dragging)
     function getStopPosition(index) {
         if (!stops || stops.length === 0)
             return 0;
 
-        // Handle dragging
         if (draggingIndex === index)
             return dragPosition;
 
-        // If index is within bounds, use actual position
         if (index >= 0 && index < stops.length)
             return stops[index][1];
 
-        // If index is out of bounds, map to the last stop's position (clamped)
         return stops[stops.length - 1][1];
     }
 
@@ -46,15 +40,12 @@ Item {
         if (!stops || stops.length === 0)
             return "transparent";
 
-        // If index is within bounds, use actual color
         if (index >= 0 && index < stops.length)
             return stops[index][0];
 
-        // If index is out of bounds, map to the last stop's color
         return stops[stops.length - 1][0];
     }
 
-    // Get the default gradient for this variant
     readonly property var defaultGradient: {
         const variantKeyMap = {
             "bg": "srBg",
@@ -77,7 +68,6 @@ Item {
             "overerror": "srOverError"
         };
         const variantKey = variantKeyMap[variantId] || "srCommon";
-        // Guard against undefined ThemeDefaults.data
         if (!ThemeDefaults.data) {
             return [["surface", 0.0]];
         }
@@ -95,7 +85,6 @@ Item {
         anchors.top: parent.top
         spacing: 8
 
-        // Title row: "Gradient Stops (X)" + Separator + "Stop X"
         RowLayout {
             Layout.fillWidth: true
             spacing: 8
@@ -122,13 +111,11 @@ Item {
             }
         }
 
-        // Gradient bar with Add/Reset buttons on sides
         RowLayout {
             Layout.fillWidth: true
             Layout.preferredHeight: 40
             spacing: 16
 
-            // Add button
             StyledRect {
                 id: addButton
                 variant: "primary"
@@ -171,13 +158,11 @@ Item {
                 }
             }
 
-            // Gradient container
             Item {
                 id: gradientContainer
                 Layout.fillWidth: true
                 Layout.preferredHeight: 40
 
-                // The gradient bar
                 Rectangle {
                     id: gradientBar
                     anchors.left: parent.left
@@ -192,7 +177,7 @@ Item {
                     Canvas {
                         id: gradientPreviewCanvas
                         anchors.fill: parent
-                        anchors.margins: 2 // Keep inside border
+                        anchors.margins: 2
 
                         onPaint: {
                             var ctx = getContext("2d");
@@ -225,13 +210,11 @@ Item {
                             }
                         }
 
-                        // Repaint when size changes
                         onWidthChanged: requestPaint()
                         onHeightChanged: requestPaint()
                     }
                 }
 
-                // Draggable stop handles
                 Repeater {
                     model: root.stops
 
@@ -251,7 +234,6 @@ Item {
                         width: 20
                         height: gradientContainer.height
 
-                        // Top connector line
                         Rectangle {
                             width: 2
                             height: 6
@@ -260,7 +242,6 @@ Item {
                             color: stopHandle.isSelected ? Styling.srItem("overprimary") : Colors.outline
                         }
 
-                        // Handle visual (centered)
                         Rectangle {
                             id: handleCircle
                             width: 16
@@ -271,7 +252,6 @@ Item {
                             border.color: stopHandle.isSelected ? Styling.srItem("overprimary") : Colors.outline
                             border.width: stopHandle.isSelected ? 2 : 1
 
-                            // Inner highlight
                             Rectangle {
                                 anchors.centerIn: parent
                                 width: 6
@@ -289,7 +269,6 @@ Item {
                             }
                         }
 
-                        // Bottom connector line
                         Rectangle {
                             width: 2
                             height: 6
@@ -349,7 +328,6 @@ Item {
                     }
                 }
 
-                // Double-click on bar to add stop
                 MouseArea {
                     anchors.fill: gradientBar
                     z: -1
@@ -373,7 +351,6 @@ Item {
                 }
             }
 
-            // Reset button
             StyledRect {
                 id: resetButton
                 variant: "error"
@@ -410,16 +387,13 @@ Item {
             }
         }
 
-        // Selected stop editor - ColorButton + Position/Delete panel
         RowLayout {
             id: stopEditor
             Layout.fillWidth: true
             spacing: 8
 
-            // Current stop info
             readonly property var currentStop: root.selectedStopIndex >= 0 && root.selectedStopIndex < root.stops.length ? root.stops[root.selectedStopIndex] : null
 
-            // Color selector - using ColorButton
             ColorButton {
                 Layout.fillWidth: true
                 colorNames: root.colorNames
@@ -445,7 +419,6 @@ Item {
                 }
             }
 
-            // Position + Delete panel
             StyledRect {
                 id: positionPanel
                 variant: "pane"
@@ -458,7 +431,6 @@ Item {
                     anchors.margins: 6
                     spacing: 4
 
-                    // Position label
                     Text {
                         text: "Position"
                         font.family: Styling.defaultFont
@@ -469,12 +441,10 @@ Item {
                         Layout.alignment: Qt.AlignHCenter
                     }
 
-                    // Input + Delete row
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: 4
 
-                        // Position input
                         StyledRect {
                             id: positionInputContainer
                             variant: "internalbg"
@@ -516,7 +486,6 @@ Item {
                             }
                         }
 
-                        // Delete button
                         StyledRect {
                             id: deleteStopButton
                             variant: deleteStopButton.isEnabled && deleteMouseArea.containsMouse ? "focus" : "common"

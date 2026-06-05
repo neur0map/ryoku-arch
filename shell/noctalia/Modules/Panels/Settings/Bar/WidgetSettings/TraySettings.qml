@@ -7,14 +7,12 @@ import qs.noctalia.Widgets
 ColumnLayout {
   id: root
 
-  // Properties to receive data from parent
   property var screen: null
   property var widgetData: null
   property var widgetMetadata: null
 
   signal settingsChanged(var settings)
 
-  // Local state
   property var localBlacklist: widgetData.blacklist || []
   property bool valueColorizeIcons: widgetData.colorizeIcons !== undefined ? widgetData.colorizeIcons : widgetMetadata.colorizeIcons
   property string valueChevronColor: widgetData.chevronColor !== undefined ? widgetData.chevronColor : widgetMetadata.chevronColor
@@ -128,11 +126,10 @@ ColumnLayout {
     }
   }
 
-  // List of current blacklist items
   NListView {
     Layout.fillWidth: true
     Layout.preferredHeight: 150
-    Layout.topMargin: Style.marginL // Increased top margin
+    Layout.topMargin: Style.marginL
     gradientColor: Color.mSurface
 
     model: blacklistModel
@@ -144,7 +141,7 @@ ColumnLayout {
         id: itemBackground
         anchors.fill: parent
         anchors.margins: Style.marginXS
-        color: "transparent" // Make background transparent
+        color: "transparent"
         border.color: Color.mOutline
         border.width: Style.borderS
         radius: Style.radiusS
@@ -187,7 +184,6 @@ ColumnLayout {
       newBlacklist.push(blacklistModel.get(i).rule);
     }
 
-    // Return the updated settings for this widget instance
     var settings = Object.assign({}, widgetData || {});
     settings.blacklist = newBlacklist;
     settings.colorizeIcons = root.valueColorizeIcons;

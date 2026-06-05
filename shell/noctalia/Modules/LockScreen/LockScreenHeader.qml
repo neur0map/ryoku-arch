@@ -5,7 +5,6 @@ import qs.noctalia.Commons
 import qs.noctalia.Services.System
 import qs.noctalia.Widgets
 
-// Time, Date, and User Profile Container
 Rectangle {
   id: root
 
@@ -46,7 +45,6 @@ Rectangle {
     anchors.margins: Style.marginL
     spacing: Style.margin2XL
 
-    // Left side: Avatar
     Rectangle {
       Layout.preferredWidth: 70
       Layout.preferredHeight: 70
@@ -102,12 +100,10 @@ Rectangle {
       }
     }
 
-    // Center: User Info Column (left-aligned text)
     ColumnLayout {
       Layout.alignment: Qt.AlignVCenter
       spacing: Style.marginXXS
 
-      // Welcome back + Username on one line
       NText {
         text: I18n.tr("system.welcome-back") + " " + HostService.displayName + "!"
         pointSize: Style.fontSizeXXL
@@ -115,7 +111,6 @@ Rectangle {
         horizontalAlignment: Text.AlignLeft
       }
 
-      // Date below
       NText {
         text: {
           var dateString = I18n.locale.toString(root.currentDate, I18n.dateFormat());
@@ -127,18 +122,15 @@ Rectangle {
       }
     }
 
-    // Spacer to push time to the right
     Item {
       Layout.fillWidth: true
     }
 
-    // Clock
     Item {
       Layout.preferredWidth: Settings.data.general.clockStyle === "analog" ? 70 : (Settings.data.general.clockStyle === "custom" ? 90 : 70)
       Layout.preferredHeight: Settings.data.general.clockStyle === "analog" ? 70 : (Settings.data.general.clockStyle === "custom" ? 90 : 70)
       Layout.alignment: Qt.AlignVCenter
 
-      // Analog Clock
       NClock {
         anchors.centerIn: parent
         width: 70
@@ -151,7 +143,6 @@ Rectangle {
         secondHandColor: Color.mPrimary
       }
 
-      // Digital Clock (Standard)
       NClock {
         anchors.centerIn: parent
         width: 70
@@ -169,7 +160,6 @@ Rectangle {
         minutesFontWeight: Style.fontWeightBold
       }
 
-      // Custom Clock (Stacked)
       ColumnLayout {
         anchors.centerIn: parent
         width: parent.width

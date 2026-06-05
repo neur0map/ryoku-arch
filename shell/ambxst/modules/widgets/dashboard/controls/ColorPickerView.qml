@@ -7,7 +7,6 @@ import qs.ambxst.modules.theme
 import qs.ambxst.modules.components
 import qs.ambxst.config
 
-// Inline color picker view for ThemePanel
 Item {
     id: root
 
@@ -18,20 +17,17 @@ Item {
     signal colorSelected(string color)
     signal closed
 
-    // Handle Escape key to close (without closing notch)
     Keys.onEscapePressed: event => {
         root.closed();
         event.accepted = true;
     }
 
-    // Request focus when visible
     onVisibleChanged: {
         if (visible) {
             root.forceActiveFocus();
         }
     }
 
-    // Helper to check if current color is hex
     readonly property bool isHexColor: currentColor && currentColor.toString().startsWith("#")
     readonly property string currentHex: {
         if (!currentColor) return "000000";
@@ -48,7 +44,6 @@ Item {
         anchors.fill: parent
         spacing: 8
 
-        // Header with back button and title (FIXED)
         RowLayout {
             Layout.fillWidth: true
             spacing: 8
@@ -88,7 +83,6 @@ Item {
             }
         }
 
-        // Custom HEX input row (FIXED)
         StyledRect {
             variant: "common"
             Layout.fillWidth: true
@@ -210,7 +204,6 @@ Item {
             }
         }
 
-        // Separator (FIXED)
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 1
@@ -218,7 +211,6 @@ Item {
             opacity: 0.2
         }
 
-        // Color grid (SCROLLABLE)
         GridView {
             id: colorGrid
             Layout.fillWidth: true
@@ -281,7 +273,6 @@ Item {
 
                         onClicked: {
                             root.colorSelected(colorItem.modelData);
-                            // Don't close - let user continue selecting
                         }
                     }
                 }
@@ -300,7 +291,6 @@ Item {
 
         onAccepted: {
             root.colorSelected(selectedColor.toString().toUpperCase());
-            // Don't close - let user continue selecting
         }
     }
 }

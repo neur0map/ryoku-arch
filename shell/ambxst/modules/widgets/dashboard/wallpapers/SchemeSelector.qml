@@ -15,7 +15,7 @@ Item {
     onPresetsChanged: console.log("SchemeSelector received presets:", presets)
 
     property var combinedModel: {
-        var currentPresets = presets; // Explicit dependency
+        var currentPresets = presets;
         var list = [];
         for (var i = 0; i < matugenSchemes.length; i++) {
             list.push({
@@ -48,7 +48,6 @@ Item {
         updateSelectedIndex();
         keyboardNavigationActive = true;
         schemeButton.forceActiveFocus();
-        // Posicionar el ListView en el item seleccionado después de que se expanda
         positionTimer.restart();
     }
 
@@ -145,7 +144,6 @@ Item {
         return "Select Scheme";
     }
 
-    // Layout properties (can be overridden by parent)
     implicitWidth: 200
     implicitHeight: schemeListExpanded ? 40 + 4 + (40 * 3) + 8 : 48
 
@@ -168,7 +166,6 @@ Item {
             anchors.margins: 4
             spacing: 0
 
-            // Top row with scheme button and dark/light button
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 4
@@ -359,7 +356,6 @@ Item {
                         preferredHighlightBegin: 0
                         preferredHighlightEnd: height
 
-                        // Propiedad para detectar si está en movimiento
                         property bool isScrolling: dragging || flicking
 
                         onCurrentIndexChanged: {
@@ -446,7 +442,6 @@ Item {
                         highlightResizeVelocity: -1
                     }
 
-                    // Animate topMargin for ClippingRectangle
                     Behavior on Layout.topMargin {
                         enabled: Config.animDuration > 0
                         NumberAnimation {

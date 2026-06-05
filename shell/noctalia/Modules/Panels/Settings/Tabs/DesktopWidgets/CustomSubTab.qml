@@ -77,7 +77,6 @@ ColumnLayout {
     root.resetForm();
   }
 
-  // ── Existing widgets ────────────────────────────────────────────────────
   NText {
     text: qsTr("Your widgets")
     pointSize: Style.fontSizeM
@@ -148,7 +147,6 @@ ColumnLayout {
           onClicked: root.confirmDeleteId = itemCard.modelData.cwId
         }
 
-        // Inline delete confirmation.
         NButton {
           visible: root.confirmDeleteId === itemCard.modelData.cwId
           text: qsTr("Delete?")
@@ -173,7 +171,6 @@ ColumnLayout {
     Layout.fillWidth: true
   }
 
-  // ── Creator / editor form ─────────────────────────────────────────────────
   NCollapsible {
     id: formCard
     Layout.fillWidth: true
@@ -210,7 +207,6 @@ ColumnLayout {
       onSelected: key => root.formType = key
     }
 
-    // Text fields
     NTextInput {
       id: textInput
       visible: root.formType === "text"
@@ -219,7 +215,6 @@ ColumnLayout {
       text: "Hello"
     }
 
-    // Command fields
     NTextInput {
       id: cmdInput
       visible: root.formType === "command"
@@ -240,7 +235,6 @@ ColumnLayout {
       value: 5
     }
 
-    // Shared text/command styling
     NSpinBox {
       id: fontSpin
       visible: root.formType !== "qml"
@@ -267,7 +261,6 @@ ColumnLayout {
       checked: true
     }
 
-    // Custom QML editor
     NText {
       visible: root.formType === "qml"
       Layout.fillWidth: true

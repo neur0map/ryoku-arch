@@ -48,13 +48,11 @@ Item {
         anchors.topMargin: 8
         spacing: 8
 
-        // Main row with network info
         RowLayout {
             Layout.fillWidth: true
             Layout.preferredHeight: 32
             spacing: 12
 
-            // Wi-Fi signal icon with security indicator
             Item {
                 width: 24
                 height: 24
@@ -76,7 +74,6 @@ Item {
                     color: root.network?.active ? Styling.srItem("overprimary") : Colors.overBackground
                 }
 
-                // Lock icon for secure networks
                 Text {
                     anchors.right: parent.right
                     anchors.bottom: parent.bottom
@@ -89,7 +86,6 @@ Item {
                 }
             }
 
-            // Network name and status
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 0
@@ -128,7 +124,6 @@ Item {
                 }
             }
 
-            // Frequency badge (5GHz indicator)
             StyledRect {
                 visible: root.network?.is5GHz ?? false
                 variant: "common"
@@ -147,7 +142,6 @@ Item {
             }
         }
 
-        // Expanded content with connect/disconnect button and password input
         ColumnLayout {
             Layout.fillWidth: true
             visible: root.expanded
@@ -161,7 +155,6 @@ Item {
                 }
             }
 
-            // Password input (shown when required)
             SearchInput {
                 id: passwordInput
                 Layout.fillWidth: true
@@ -179,7 +172,6 @@ Item {
                 }
             }
 
-            // Action buttons
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 8

@@ -7,7 +7,6 @@ import "Backgrounds" as Backgrounds
 
 import qs.noctalia.Commons
 
-// All panels
 import qs.noctalia.Modules.Bar
 import qs.noctalia.Modules.Bar.Extras
 import qs.noctalia.Modules.Panels.Audio
@@ -101,13 +100,11 @@ PanelWindow {
     }
   }
 
-  // Check if bar should be visible on this screen
   readonly property bool barShouldShow: {
     // Check global bar visibility (includes overview state)
     if (!BarService.effectivelyVisible)
       return false;
 
-    // Check screen-specific configuration
     var monitors = Settings.data.bar.monitors || [];
     var screenName = screen?.name || "";
 
@@ -116,7 +113,6 @@ PanelWindow {
     return monitors.length === 0 || monitors.includes(screenName);
   }
 
-  // Make everything click-through except bar
   mask: Region {
     id: clickableMask
 
@@ -140,9 +136,7 @@ PanelWindow {
       readonly property real frameThickness: Settings.data.bar.frameThickness ?? 12
       readonly property string barPos: Settings.data.bar.position || "top"
 
-      // Bar / Frame Mask
       Region {
-        // Mode: Simple or Floating
         x: barPlaceholder.x
         y: barPlaceholder.y
         width: (!barMaskRegion.isFramed && root.barShouldShow) ? barPlaceholder.width : 0
@@ -150,9 +144,7 @@ PanelWindow {
         intersection: Intersection.Subtract
       }
 
-      // Mode: Framed - 4 sides
       Region {
-        // Top side
         Region {
           x: 0
           y: 0
@@ -161,7 +153,6 @@ PanelWindow {
           intersection: Intersection.Subtract
         }
 
-        // Bottom side
         Region {
           x: 0
           y: (barMaskRegion.isFramed && root.barShouldShow) ? (root.height - (barMaskRegion.barPos === "bottom" ? barMaskRegion.barThickness : barMaskRegion.frameThickness)) : 0
@@ -170,7 +161,6 @@ PanelWindow {
           intersection: Intersection.Subtract
         }
 
-        // Left side
         Region {
           x: 0
           y: 0
@@ -179,7 +169,6 @@ PanelWindow {
           intersection: Intersection.Subtract
         }
 
-        // Right side
         Region {
           x: (barMaskRegion.isFramed && root.barShouldShow) ? (root.width - (barMaskRegion.barPos === "right" ? barMaskRegion.barThickness : barMaskRegion.frameThickness)) : 0
           width: (barMaskRegion.isFramed && root.barShouldShow) ? (barMaskRegion.barPos === "right" ? barMaskRegion.barThickness : barMaskRegion.frameThickness) : 0
@@ -235,8 +224,6 @@ PanelWindow {
       }
     }
 
-    // ── Panel blur regions ──
-    // Opening panel
     Region {
       x: backgroundBlur.panelBg ? Math.round(backgroundBlur.panelBg.x) : 0
       y: backgroundBlur.panelBg ? Math.round(backgroundBlur.panelBg.y) : 0
@@ -263,14 +250,11 @@ PanelWindow {
     }
   }
 
-  // --------------------------------------
-  // Container for all UI elements
   Item {
     id: container
     width: root.width
     height: root.height
 
-    // Unified backgrounds container / unified shadow system
     // Renders all bar and panel backgrounds as ShapePaths within a single Shape
     // This allows the shadow effect to apply to all backgrounds in one render pass
     Backgrounds.AllBackgrounds {
@@ -278,10 +262,9 @@ PanelWindow {
       anchors.fill: parent
       bar: barPlaceholder.barItem || null
       windowRoot: root
-      z: 0 // Behind all content
+      z: 0
     }
 
-    // Background MouseArea for closing panels when clicking outside
     // Uses isAnyPanelOpen so clicking on any screen's background closes the panel
     MouseArea {
       anchors.fill: parent
@@ -292,12 +275,10 @@ PanelWindow {
                      PanelService.openedPanel.close();
                    }
                  }
-      z: 0 // Behind panels and bar
+      z: 0
     }
 
-    // ---------------------------------------
     // All panels always exist
-    // ---------------------------------------
     AudioPanel {
       id: audioPanel
       objectName: "audioPanel-" + (root.screen?.name || "unknown")
@@ -406,9 +387,6 @@ PanelWindow {
       screen: root.screen
     }
 
-    // ----------------------------------------------
-    // Plugin panel slots
-    // ----------------------------------------------
     PluginPanelSlot {
       id: pluginPanel1
       objectName: "pluginPanel1-" + (root.screen?.name || "unknown")
@@ -423,7 +401,6 @@ PanelWindow {
       slotNumber: 2
     }
 
-    // ----------------------------------------------
     // Bar background placeholder - just for background positioning (actual bar content is in BarContentWindow)
     Item {
       id: barPlaceholder
@@ -431,10 +408,8 @@ PanelWindow {
       // Expose self as barItem for AllBackgrounds compatibility
       readonly property var barItem: barPlaceholder
 
-      // Screen reference
       property ShellScreen screen: root.screen
 
-      // Bar background positioning properties (per-screen)
       readonly property string barPosition: Settings.getBarPositionForScreen(screen?.name)
       readonly property bool barIsVertical: barPosition === "left" || barPosition === "right"
       readonly property bool isFramed: Settings.data.bar.barType === "framed"
@@ -458,7 +433,6 @@ PanelWindow {
       }
 
       // Expose bar dimensions directly on this Item for BarBackground
-      // Use screen dimensions directly
       x: {
         if (barPosition === "right")
           return (screen?.width ?? 0) - barHeight - barMarginH;
@@ -544,11 +518,9 @@ PanelWindow {
       }
     }
 
-    // Screen Corners
     ScreenCorners {}
 
     // Blur behind the bar and open panels
-    // Helper object holding computed properties for blur regions
     QtObject {
       id: backgroundBlur
 
@@ -593,11 +565,9 @@ PanelWindow {
     }
   }
 
-  // Centralized Keyboard Shortcuts
 
   // These shortcuts delegate to the opened panel's handler functions
   // Panels can implement: onEscapePressed, onTabPressed, onBackTabPressed,
-  // onUpPressed, onDownPressed, onReturnPressed, etc...
   Instantiator {
     model: Settings.data.general.keybinds.keyEscape || []
     Shortcut {

@@ -19,7 +19,6 @@ Popup {
     height: 290
     padding: 4
 
-    // Helper to check if current color is hex
     readonly property bool isHexColor: currentColor && currentColor.toString().startsWith("#")
     readonly property string currentHex: {
         if (!currentColor)
@@ -43,7 +42,6 @@ Popup {
         anchors.fill: parent
         spacing: 4
 
-        // Custom HEX input row
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 36
@@ -160,7 +158,6 @@ Popup {
             }
         }
 
-        // Separator
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 1
@@ -170,7 +167,6 @@ Popup {
             opacity: 0.2
         }
 
-        // Color list
         ListView {
             Layout.fillWidth: true
             Layout.fillHeight: true

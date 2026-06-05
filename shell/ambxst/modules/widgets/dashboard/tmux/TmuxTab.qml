@@ -25,41 +25,34 @@ Item {
     property var tmuxSessions: []
     property var filteredSessions: []
 
-    // List model
     ListModel {
         id: sessionsModel
     }
 
-    // Delete mode state
     property bool deleteMode: false
     property string sessionToDelete: ""
     property int originalSelectedIndex: -1
-    property int deleteButtonIndex: 0 // 0 = cancel, 1 = confirm
+    property int deleteButtonIndex: 0
 
-    // Rename mode state
     property bool renameMode: false
     property string sessionToRename: ""
     property string newSessionName: ""
     property int renameSelectedIndex: -1
-    property int renameButtonIndex: 0 // 0 = cancel, 1 = confirm
-    property string pendingRenamedSession: "" // Track session to select after rename
+    property int renameButtonIndex: 0
+    property string pendingRenamedSession: ""
 
-    // Options menu state (expandable list)
     property int expandedItemIndex: -1
     property int selectedOptionIndex: 0
     property bool keyboardNavigation: false
     property bool isFiltering: false
 
-    // Session preview state
     property var sessionWindows: []
     property var sessionPanes: []
     property bool loadingSessionInfo: false
 
     onExpandedItemIndexChanged:
-    // Close expanded options when selection changes to a different item is handled in onSelectedIndexChanged
     {}
 
-    // Refresh tmux sessions when tab becomes visible
     onVisibleChanged: {
         if (visible) {
             refreshTmuxSessions();
@@ -70,31 +63,24 @@ Item {
         if (index < 0 || index >= sessionsModel.count)
             return;
 
-        // Calculate Y position of the item
         var itemY = 0;
         for (var i = 0; i < index; i++) {
-            itemY += 48; // All items before are collapsed (base height)
+            itemY += 48;
         }
 
-        // Calculate expanded item height - always 3 options (Open, Rename, Quit)
         var listHeight = 36 * 3;
         var expandedHeight = 48 + 4 + listHeight + 8;
 
-        // Calculate max valid scroll position
         var maxContentY = Math.max(0, resultsList.contentHeight - resultsList.height);
 
-        // Current viewport bounds
         var viewportTop = resultsList.contentY;
         var viewportBottom = viewportTop + resultsList.height;
 
-        // Only scroll if item is not fully visible
         var itemBottom = itemY + expandedHeight;
 
         if (itemY < viewportTop) {
-            // Item top is above viewport - scroll up to show it
             resultsList.contentY = itemY;
         } else if (itemBottom > viewportBottom) {
-            // Item bottom is below viewport - scroll down to show it
             resultsList.contentY = Math.min(itemBottom - resultsList.height, maxContentY);
         }
     // Otherwise, item is already fully visible - no scroll needed
@@ -105,14 +91,12 @@ Item {
             resultsList.positionViewAtIndex(0, ListView.Beginning);
         }
 
-        // Close expanded options when selection changes to a different item
         if (expandedItemIndex >= 0 && selectedIndex !== expandedItemIndex) {
             expandedItemIndex = -1;
             selectedOptionIndex = 0;
             keyboardNavigation = false;
         }
 
-        // Load session info when selection changes
         if (selectedIndex >= 0 && selectedIndex < filteredSessions.length) {
             let session = filteredSessions[selectedIndex];
             if (session && !session.isCreateButton && !session.isCreateSpecificButton) {
@@ -161,7 +145,7 @@ Item {
         var sessionNameToCreate = "";
 
         if (searchText.length === 0) {
-            newFilteredSessions = tmuxSessions.slice(); // Copia del array
+            newFilteredSessions = tmuxSessions.slice();
         } else {
             newFilteredSessions = tmuxSessions.filter(function (session) {
                 return session.name.toLowerCase().includes(searchText.toLowerCase());
@@ -303,17 +287,14 @@ Item {
         sessionWindows = [];
         sessionPanes = [];
 
-        // Get windows for this session
         windowsProcess.command = ["tmux", "list-windows", "-t", sessionName, "-F", "#{window_index}:#{window_name}:#{window_active}"];
         windowsProcess.running = true;
 
-        // Get panes layout and info: pane_index, width, height, top, left, active, command
         panesProcess.command = ["tmux", "list-panes", "-t", sessionName, "-F", "#{pane_index}:#{pane_width}:#{pane_height}:#{pane_top}:#{pane_left}:#{pane_active}:#{pane_current_command}"];
         panesProcess.running = true;
     }
 
     function stripAnsiCodes(text) {
-        // Remove ANSI escape sequences (CSI sequences)
         return text.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '').replace(/\x1b\][0-9;]*;[^\x07]*\x07/g, '').replace(/\x1b[=>]/g, '');
     }
 
@@ -324,7 +305,6 @@ Item {
             createProcess.command = ["bash", "-c", `cd "$HOME" && setsid kitty -e tmux < /dev/null > /dev/null 2>&1 &`];
         }
         createProcess.running = true;
-        // Cerrar el dashboard
         Visibilities.setActiveModule("");
     }
 
@@ -422,7 +402,6 @@ Item {
         running: false
 
         onStarted: function () {
-            // Cerrar el dashboard
             Visibilities.setActiveModule("");
         }
     }
@@ -433,7 +412,6 @@ Item {
 
         onExited: function (code) {
             if (code === 0) {
-                // Sesión eliminada exitosamente, refrescar la lista
                 root.refreshTmuxSessions();
             }
         }
@@ -445,7 +423,6 @@ Item {
 
         onExited: function (code) {
             if (code === 0) {
-                // Sesión renombrada exitosamente, marcar para seleccionar después del refresh
                 root.pendingRenamedSession = root.newSessionName;
                 root.refreshTmuxSessions();
             }
@@ -493,7 +470,6 @@ Item {
                 let panes = [];
                 let lines = text.trim().split('\n');
 
-                // First pass: collect all pane data and find max dimensions
                 let maxWidth = 0;
                 let maxHeight = 0;
 
@@ -522,7 +498,6 @@ Item {
                     }
                 }
 
-                // Store total dimensions and panes
                 for (let pane of panes) {
                     pane.totalWidth = maxWidth;
                     pane.totalHeight = maxHeight;
@@ -547,7 +522,6 @@ Item {
 
         onExited: function (code) {
             if (code === 0) {
-                // Refresh session info to update active window
                 let currentSession = root.selectedIndex >= 0 && root.selectedIndex < root.filteredSessions.length ? root.filteredSessions[root.selectedIndex] : null;
                 if (currentSession && !currentSession.isCreateButton && !currentSession.isCreateSpecificButton) {
                     root.loadSessionInfo(currentSession.name);
@@ -562,7 +536,6 @@ Item {
 
         onExited: function (code) {
             if (code === 0) {
-                // Refresh session info to update active pane
                 let currentSession = root.selectedIndex >= 0 && root.selectedIndex < root.filteredSessions.length ? root.filteredSessions[root.selectedIndex] : null;
                 if (currentSession && !currentSession.isCreateButton && !currentSession.isCreateSpecificButton) {
                     root.loadSessionInfo(currentSession.name);
@@ -576,12 +549,10 @@ Item {
         anchors.fill: parent
         spacing: 8
 
-        // Columna izquierda: Search + Lista
         Item {
             Layout.preferredWidth: root.leftPanelWidth
             Layout.fillHeight: true
 
-            // Search input
             SearchInput {
                 id: searchInput
                 width: parent.width
@@ -604,10 +575,8 @@ Item {
                     if (root.deleteMode) {
                         root.cancelDeleteMode();
                     } else if (root.expandedItemIndex >= 0) {
-                        // Execute selected option when menu is expanded
                         let session = root.filteredSessions[root.expandedItemIndex];
                         if (session && !session.isCreateButton && !session.isCreateSpecificButton) {
-                            // Build options array (Open, Rename, Quit)
                             let options = [function () {
                                     root.attachToSession(session.name);
                                 }, function () {
@@ -645,7 +614,6 @@ Item {
                         if (root.selectedIndex >= 0 && root.selectedIndex < resultsList.count) {
                             let selectedSession = root.filteredSessions[root.selectedIndex];
                             if (selectedSession && !selectedSession.isCreateButton && !selectedSession.isCreateSpecificButton) {
-                                // Toggle expanded state
                                 if (root.expandedItemIndex === root.selectedIndex) {
                                     root.expandedItemIndex = -1;
                                     root.selectedOptionIndex = 0;
@@ -681,7 +649,6 @@ Item {
 
                 onDownPressed: {
                     if (root.expandedItemIndex >= 0) {
-                        // Navigate options when menu is expanded - always 3 options
                         if (root.selectedOptionIndex < 2) {
                             root.selectedOptionIndex++;
                             root.keyboardNavigation = true;
@@ -699,7 +666,6 @@ Item {
 
                 onUpPressed: {
                     if (root.expandedItemIndex >= 0) {
-                        // Navigate options when menu is expanded
                         if (root.selectedOptionIndex > 0) {
                             root.selectedOptionIndex--;
                             root.keyboardNavigation = true;
@@ -766,7 +732,6 @@ Item {
                 cacheBuffer: 96
                 reuseItems: false
 
-                // Propiedad para detectar si está en movimiento (drag o flick)
                 property bool isScrolling: dragging || flicking
 
                 model: sessionsModel
@@ -787,13 +752,12 @@ Item {
                         root.selectedIndex = currentIndex;
                     }
 
-                    // Manual smooth auto-scroll (accounting for variable height items)
                     if (currentIndex >= 0) {
                         var itemY = 0;
                         for (var i = 0; i < currentIndex && i < sessionsModel.count; i++) {
                             var itemHeight = 48;
                             if (i === root.expandedItemIndex && !root.deleteMode && !root.renameMode) {
-                                var listHeight = 36 * 3; // Always 3 options
+                                var listHeight = 36 * 3;
                                 itemHeight = 48 + 4 + listHeight + 8;
                             }
                             itemY += itemHeight;
@@ -809,10 +773,8 @@ Item {
                         var viewportBottom = viewportTop + resultsList.height;
 
                         if (itemY < viewportTop) {
-                            // Item is above viewport, scroll up
                             resultsList.contentY = itemY;
                         } else if (itemY + currentItemHeight > viewportBottom) {
-                            // Item is below viewport, scroll down
                             resultsList.contentY = itemY + currentItemHeight - resultsList.height;
                         }
                     }
@@ -829,8 +791,8 @@ Item {
                     height: {
                         let baseHeight = 48;
                         if (index === root.expandedItemIndex && !isInDeleteMode && !isInRenameMode) {
-                            var listHeight = 36 * 3; // Always 3 options: Open, Rename, Quit
-                            return baseHeight + 4 + listHeight + 8; // base + spacing + list + bottom margin
+                            var listHeight = 36 * 3;
+                            return baseHeight + 4 + listHeight + 8;
                         }
                         return baseHeight;
                     }
@@ -924,12 +886,10 @@ Item {
                                 }
 
                                 if (!modelData.isCreateButton && !modelData.isCreateSpecificButton) {
-                                    // Toggle expanded state instead of opening menu
                                     if (root.expandedItemIndex === index) {
                                         root.expandedItemIndex = -1;
                                         root.selectedOptionIndex = 0;
                                         root.keyboardNavigation = false;
-                                        // Update selection to current hover position after closing
                                         root.selectedIndex = index;
                                         resultsList.currentIndex = index;
                                     } else {
@@ -960,7 +920,6 @@ Item {
                                 let deltaY = mouse.y - startY;
                                 let distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
-                                // Si se mueve más de 10 píxeles, considerar como arrastre
                                 if (distance > 10) {
                                     isDragging = true;
                                     longPressTimer.stop();
@@ -994,7 +953,6 @@ Item {
                         }
                     }
 
-                    // Expandable options list (similar to ClipboardTab)
                     RowLayout {
                         anchors.left: parent.left
                         anchors.right: parent.right
@@ -1016,7 +974,7 @@ Item {
 
                         ClippingRectangle {
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 36 * 3 // Always 3 options
+                            Layout.preferredHeight: 36 * 3
                             color: Colors.background
                             radius: Styling.radius(0)
 
@@ -1240,14 +1198,14 @@ Item {
                             property real idx2X: root.renameButtonIndex
 
                             x: {
-                                let minX = Math.min(idx1X, idx2X) * 36 + activeButtonMargin; // 32 + 4 spacing
+                                let minX = Math.min(idx1X, idx2X) * 36 + activeButtonMargin;
                                 return minX;
                             }
 
                             y: activeButtonMargin
 
                             width: {
-                                let stretchX = Math.abs(idx1X - idx2X) * 36 + 32 - activeButtonMargin * 2; // 32 + 4 spacing
+                                let stretchX = Math.abs(idx1X - idx2X) * 36 + 32 - activeButtonMargin * 2;
                                 return stretchX;
                             }
 
@@ -1274,7 +1232,6 @@ Item {
                             anchors.fill: parent
                             spacing: 4
 
-                            // Botón cancelar (cruz) para rename
                             Rectangle {
                                 id: renameCancelButton
                                 width: 32
@@ -1536,14 +1493,14 @@ Item {
                             property real idx2X: root.deleteButtonIndex
 
                             x: {
-                                let minX = Math.min(idx1X, idx2X) * 36 + activeButtonMargin; // 32 + 4 spacing
+                                let minX = Math.min(idx1X, idx2X) * 36 + activeButtonMargin;
                                 return minX;
                             }
 
                             y: activeButtonMargin
 
                             width: {
-                                let stretchX = Math.abs(idx1X - idx2X) * 36 + 32 - activeButtonMargin * 2; // 32 + 4 spacing
+                                let stretchX = Math.abs(idx1X - idx2X) * 36 + 32 - activeButtonMargin * 2;
                                 return stretchX;
                             }
 
@@ -1570,7 +1527,6 @@ Item {
                             anchors.fill: parent
                             spacing: 4
 
-                            // Botón cancelar (cruz)
                             Rectangle {
                                 id: cancelButton
                                 width: 32
@@ -1753,7 +1709,6 @@ Item {
 
                         if (root.deleteMode || root.renameMode) {
                             activeIndex = root.selectedIndex;
-                            // In delete/rename mode, height is always base height (48)
                         } else if (root.expandedItemIndex >= 0) {
                             activeIndex = root.expandedItemIndex;
                             isExpanded = true;
@@ -1767,10 +1722,8 @@ Item {
                         // all preceding items must be collapsed (height 48)
                         var itemY = activeIndex * 48;
 
-                        // Calculate item height
                         var itemHeight = 48;
                         if (isExpanded) {
-                            // Always 3 options in TmuxTab
                             var listHeight = 36 * 3;
                             itemHeight = 48 + 4 + listHeight + 8;
                         }
@@ -1820,7 +1773,6 @@ Item {
             }
         }
 
-        // Separator
         Rectangle {
             Layout.preferredWidth: 2
             Layout.fillHeight: true
@@ -1828,7 +1780,6 @@ Item {
             color: Colors.surface
         }
 
-        // Preview panel
         Item {
             id: previewPanel
             Layout.fillWidth: true
@@ -1836,7 +1787,6 @@ Item {
 
             property var currentSession: root.selectedIndex >= 0 && root.selectedIndex < root.filteredSessions.length ? root.filteredSessions[root.selectedIndex] : null
 
-            // Content when session is selected
             Item {
                 anchors.fill: parent
                 visible: {
@@ -1849,7 +1799,6 @@ Item {
                     return true;
                 }
 
-                // Panes layout preview (top section)
                 Item {
                     anchors.top: parent.top
                     anchors.left: parent.left
@@ -1860,11 +1809,9 @@ Item {
                     Item {
                         anchors.fill: parent
 
-                        // Calculate scale to maximize use of available space
                         property real totalWidth: root.sessionPanes.length > 0 ? root.sessionPanes[0].totalWidth || 1 : 1
                         property real totalHeight: root.sessionPanes.length > 0 ? root.sessionPanes[0].totalHeight || 1 : 1
 
-                        // Use individual scales - stretch to fill
                         property real scaleX: width / totalWidth
                         property real scaleY: height / totalHeight
 
@@ -1911,7 +1858,6 @@ Item {
                                     }
                                 }
 
-                                // Active border overlay
                                 Rectangle {
                                     anchors.fill: parent
                                     color: "transparent"
@@ -1941,7 +1887,6 @@ Item {
                                     spacing: 6
                                     width: parent.width - 16
 
-                                    // Command
                                     Text {
                                         width: parent.width
                                         text: modelData.command
@@ -1962,7 +1907,6 @@ Item {
                                         }
                                     }
 
-                                    // Dimensions info
                                     Text {
                                         anchors.horizontalCenter: parent.horizontalCenter
                                         text: modelData.width + "×" + modelData.height
@@ -1984,7 +1928,6 @@ Item {
                             }
                         }
 
-                        // Empty state for panes
                         Column {
                             anchors.centerIn: parent
                             spacing: 8
@@ -2008,7 +1951,6 @@ Item {
                             }
                         }
 
-                        // Loading indicator
                         Rectangle {
                             anchors.fill: parent
                             color: Colors.background
@@ -2045,7 +1987,6 @@ Item {
                     }
                 }
 
-                // Separator
                 Rectangle {
                     id: separator
                     anchors.bottom: windowsSection.top
@@ -2057,7 +1998,6 @@ Item {
                     color: Colors.surface
                 }
 
-                // Windows info section (bottom section)
                 Item {
                     id: windowsSection
                     anchors.bottom: parent.bottom
@@ -2150,7 +2090,6 @@ Item {
                 }
             }
 
-            // Empty state
             Column {
                 anchors.centerIn: parent
                 spacing: 8

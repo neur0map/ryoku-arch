@@ -9,20 +9,17 @@ QtObject {
   function migrate(adapter, logger, rawJson) {
     logger.i("Migration39", "Migrating templates from boolean format to activeTemplates array");
 
-    // Check if old format exists (any boolean template property)
     const oldTemplates = rawJson?.templates;
     if (!oldTemplates) {
       logger.d("Migration39", "No templates section found, skipping migration");
       return true;
     }
 
-    // Check if already migrated (has activeTemplates array)
     if (Array.isArray(oldTemplates.activeTemplates)) {
       logger.d("Migration39", "Already has activeTemplates array, skipping migration");
       return true;
     }
 
-    // Build the new activeTemplates array from old boolean values
     const activeTemplates = [];
     for (const templateId of templateIds) {
       if (oldTemplates[templateId] === true) {
@@ -34,7 +31,6 @@ QtObject {
       }
     }
 
-    // Write the new format
     adapter.templates.activeTemplates = activeTemplates;
     logger.i("Migration40", "Migrated " + activeTemplates.length + " templates to new array format");
 

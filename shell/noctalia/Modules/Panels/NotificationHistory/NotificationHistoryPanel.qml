@@ -11,7 +11,6 @@ import qs.noctalia.Services.System
 import qs.noctalia.Services.UI
 import qs.noctalia.Widgets
 
-// Notification History panel
 SmartPanel {
   id: root
 
@@ -27,7 +26,6 @@ SmartPanel {
     color: "transparent"
     focus: true
 
-    // Force focus when opened
     Connections {
       target: root
       function onOpened() {
@@ -36,20 +34,18 @@ SmartPanel {
     }
 
     Keys.onPressed: event => {
-                      // Tab navigation for categories
                       if (event.key === Qt.Key_Tab) {
                         currentRange = (currentRange + 1) % 4;
                         event.accepted = true;
                         return;
                       }
 
-                      if (event.key === Qt.Key_Backtab) { // Shift+Tab
+                      if (event.key === Qt.Key_Backtab) {
                         currentRange = (currentRange - 1 + 4) % 4;
                         event.accepted = true;
                         return;
                       }
 
-                      // Navigation Up/Down
                       if (checkKey(event, 'up')) {
                         moveSelection(-1);
                         event.accepted = true;
@@ -61,7 +57,6 @@ SmartPanel {
                         return;
                       }
 
-                      // Action Navigation Left/Right
                       if (checkKey(event, 'left')) {
                         moveAction(-1);
                         event.accepted = true;
@@ -73,14 +68,12 @@ SmartPanel {
                         return;
                       }
 
-                      // Activation (Enter)
                       if (checkKey(event, 'enter')) {
                         activateSelection();
                         event.accepted = true;
                         return;
                       }
 
-                      // Removal (Delete/Remove)
                       if (checkKey(event, 'remove') || event.key === Qt.Key_Delete) {
                         removeSelection();
                         event.accepted = true;
@@ -113,12 +106,10 @@ SmartPanel {
           newIndex = count;
       }
 
-      // Loop to find next visible item
       var loopCount = 0;
       while (loopCount < count) {
         newIndex += dir;
 
-        // Bounds check
         if (newIndex < 0 || newIndex >= count) {
           break; // Stop at edges
         }
@@ -133,7 +124,7 @@ SmartPanel {
 
       if (found) {
         focusIndex = newIndex;
-        actionIndex = -1; // Reset action selection
+        actionIndex = -1;
         scrollToItem(focusIndex);
       }
     }
@@ -209,7 +200,6 @@ SmartPanel {
     }
 
     function scrollToItem(index) {
-      // Find the delegate item
       if (index < 0 || index >= notificationColumn.children.length)
         return;
 
@@ -227,11 +217,9 @@ SmartPanel {
         var currentContentY = flickable.contentY;
         var viewHeight = flickable.height;
 
-        // Check if above visible area
         if (itemY < currentContentY) {
           flickable.contentY = Math.max(0, itemY - Style.marginM);
         } else
-          // Check if below visible area
           if (itemY + itemHeight > currentContentY + viewHeight) {
             flickable.contentY = (itemY + itemHeight) - viewHeight + Style.marginM;
           }
@@ -251,7 +239,7 @@ SmartPanel {
 
     // State (lazy-loaded with panelContent)
     property var rangeCounts: [0, 0, 0, 0]
-    property var lastKnownDate: null  // Track the current date to detect day changes
+    property var lastKnownDate: null
 
     // UI state (lazy-loaded with panelContent)
     // 0 = All, 1 = Today, 2 = Yesterday, 3 = Earlier
@@ -259,9 +247,8 @@ SmartPanel {
     property bool groupByDate: true
     onCurrentRangeChanged: resetFocus()
 
-    // Keyboard navigation state
     property int focusIndex: -1
-    property int actionIndex: -1  // For actions within a notification
+    property int actionIndex: -1
 
     function resetFocus() {
       focusIndex = -1;
@@ -345,7 +332,6 @@ SmartPanel {
 
     Component.onCompleted: {
       recalcRangeCounts();
-      // Initialize lastKnownDate
       lastKnownDate = getDateKey(new Date());
     }
 
@@ -359,7 +345,7 @@ SmartPanel {
     // Timer to check for day changes at midnight
     Timer {
       id: dayChangeTimer
-      interval: 60000  // Check every minute
+      interval: 60000
       repeat: true
       running: true  // Always runs when panelContent exists (panel is open)
       onTriggered: {
@@ -378,7 +364,6 @@ SmartPanel {
       anchors.margins: Style.marginL
       spacing: Style.marginM
 
-      // Header section
       NBox {
         id: headerBox
         Layout.fillWidth: true
@@ -487,7 +472,6 @@ SmartPanel {
         }
       }
 
-      // Notification list container with gradient overlay
       Item {
         Layout.fillWidth: true
         Layout.fillHeight: true
@@ -500,7 +484,6 @@ SmartPanel {
           reserveScrollbarSpace: false
           gradientColor: Color.mSurface
 
-          // Track which notification is expanded
           property string expandedId: ""
 
           ColumnLayout {
@@ -553,7 +536,6 @@ SmartPanel {
               }
             }
 
-            // Notification list container
             Item {
               visible: panelContent.hasNotificationsInCurrentRange()
               Layout.fillWidth: true
@@ -692,7 +674,6 @@ SmartPanel {
                       }
                     }
 
-                    // Parse actions safely
                     property var actionsList: parseActions(model.actionsJson)
 
                     property bool isFocused: index === panelContent.focusIndex
@@ -718,7 +699,6 @@ SmartPanel {
                       }
                     }
 
-                    // Click to expand/collapse
                     MouseArea {
                       id: historyInteractionArea
                       anchors.fill: parent
@@ -847,7 +827,6 @@ SmartPanel {
                         width: parent.width
                         spacing: Style.marginM
 
-                        // Icon
                         NImageRounded {
                           anchors.verticalCenter: notificationDelegate.isExpanded ? undefined : parent.verticalCenter
                           width: notificationDelegate.iconSize
@@ -860,17 +839,14 @@ SmartPanel {
                           fallbackIconSize: 24
                         }
 
-                        // Content
                         Column {
                           width: parent.width - notificationDelegate.iconSize - notificationDelegate.buttonClusterWidth - Style.margin2M
                           spacing: Style.marginXS
 
-                          // Header row with app name and timestamp
                           Row {
                             width: parent.width
                             spacing: Style.marginS
 
-                            // Urgency indicator
                             Rectangle {
                               width: 6
                               height: 6
@@ -903,7 +879,6 @@ SmartPanel {
                             }
                           }
 
-                          // Summary
                           NText {
                             id: summaryText
                             width: parent.width
@@ -916,7 +891,6 @@ SmartPanel {
                             elide: Text.ElideRight
                           }
 
-                          // Body
                           NText {
                             id: bodyText
                             width: parent.width
@@ -930,7 +904,6 @@ SmartPanel {
                             visible: text.length > 0
                           }
 
-                          // Actions Flow
                           Flow {
                             width: parent.width
                             spacing: Style.marginS
@@ -996,7 +969,6 @@ SmartPanel {
                               }
                             }
 
-                            // Delete button
                             NIconButton {
                               icon: "trash"
                               tooltipText: I18n.tr("tooltips.delete-notification")

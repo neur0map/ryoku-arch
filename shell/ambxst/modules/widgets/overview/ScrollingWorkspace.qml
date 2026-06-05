@@ -35,7 +35,6 @@ Item {
     property Item dragOverlay: null
     property Item overviewRoot: null
 
-    // Callbacks for search matching (set by parent)
     property var checkWindowMatched: function (addr) {
         return false;
     }
@@ -46,11 +45,9 @@ Item {
     implicitWidth: workspaceWidth
     implicitHeight: workspaceHeight
 
-    // The viewport (monitor area) is the center third of the workspace
     readonly property real viewportWidth: workspaceWidth / 3
-    readonly property real viewportOffset: viewportWidth  // Offset to center third
+    readonly property real viewportOffset: viewportWidth
 
-    // Filter windows for this workspace and monitor
     readonly property var workspaceWindows: {
         return windowList.filter(win => {
             return (win && win.workspace ? win.workspace.id : null) === workspaceId && win.monitor === monitorId;
@@ -72,7 +69,6 @@ Item {
         let maxX = -Infinity;
 
         for (const win of workspaceWindows) {
-            // Calculate window position the same way as in the delegate
             let baseX = ((win && win.at && win.at[0] !== undefined ? win.at[0] : 0) || 0) - ((monitorData && monitorData.x !== undefined ? monitorData.x : 0) || 0);
             if (barPosition === "left")
                 baseX -= barReserved;
@@ -83,10 +79,6 @@ Item {
             maxX = Math.max(maxX, scaledX + winWidth);
         }
 
-        // The full workspace width is 3x viewport (workspaceWidth = viewportWidth * 3)
-        // Content in local coords spans from minX to maxX
-        // The full scrollable area in local coords is [-viewportWidth, 2*viewportWidth]
-        // Overflow exists only if content extends beyond the full workspace width
         const hasOverflow = minX < -viewportWidth || maxX > (viewportWidth * 2);
 
         return {
@@ -101,33 +93,26 @@ Item {
     readonly property real maxHorizontalScroll: {
         if (!contentBounds.hasOverflow)
             return 0;
-        // If content extends to the right (maxX > viewportWidth), we need negative scroll to see it
-        // maxX - viewportWidth is how much we need to scroll left (negative offset)
         return Math.max(0, -contentBounds.minX);
     }
     readonly property real minHorizontalScroll: {
         if (!contentBounds.hasOverflow)
             return 0;
-        // If content extends to the left (minX < 0), we need positive scroll to see it
         return Math.min(0, viewportWidth - contentBounds.maxX);
     }
 
-    // Horizontal scroll state
     property real horizontalScrollOffset: 0
-    property bool isScrollDragging: false  // Track if any right-click drag is active
-    property bool isWheelScrolling: false  // Track if wheel is being used
+    property bool isScrollDragging: false
+    property bool isWheelScrolling: false
 
-    // Timer to reset wheel scrolling state after a brief pause
     Timer {
         id: wheelScrollTimer
         interval: 150
         onTriggered: root.isWheelScrolling = false
     }
 
-    // Reset scroll when windows change (added, removed, or moved)
     onWorkspaceWindowsChanged: resetScroll()
     onContentBoundsChanged: {
-        // If no overflow, ensure we're at center (0)
         if (!contentBounds.hasOverflow && horizontalScrollOffset !== 0) {
             horizontalScrollOffset = 0;
         }
@@ -151,18 +136,15 @@ Item {
         return Math.max(minHorizontalScroll, Math.min(maxHorizontalScroll, value));
     }
 
-    // Main workspace container
     Item {
         id: workspaceContainer
         anchors.fill: parent
 
-        // Background layer (clipped)
         Item {
             id: backgroundLayer
             anchors.fill: parent
             clip: true
 
-            // Wallpaper background
             TintedWallpaper {
                 id: workspaceWallpaper
                 anchors.fill: parent
@@ -177,7 +159,6 @@ Item {
                 source: lockscreenFramePath ? "file://" + lockscreenFramePath : ""
             }
 
-            // Semi-transparent overlay
             Rectangle {
                 anchors.fill: parent
                 radius: Styling.radius(1)
@@ -186,7 +167,6 @@ Item {
             }
         }
 
-        // Border indicator for drag target
         Rectangle {
             anchors.fill: parent
             color: "transparent"
@@ -196,13 +176,11 @@ Item {
             z: 100
         }
 
-        // Windows container
         Item {
             id: windowsContainer
             anchors.fill: parent
             anchors.margins: root.workspacePadding
 
-            // Horizontal scroll handler - right-click drag
             MouseArea {
                 id: scrollArea
                 anchors.fill: parent
@@ -240,11 +218,9 @@ Item {
                     root.isScrollDragging = false;
                 }
 
-                // Pass through clicks that we don't handle
                 onClicked: mouse => mouse.accepted = false
             }
 
-            // Wheel handler for Shift+scroll (horizontal scrolling)
             WheelHandler {
                 id: wheelHandler
                 acceptedModifiers: Qt.ShiftModifier
@@ -252,17 +228,14 @@ Item {
                 onWheel: event => {
                     if (!root.contentBounds.hasOverflow)
                         return;
-                    // Mark as wheel scrolling to disable animation
                     root.isWheelScrolling = true;
                     wheelScrollTimer.restart();
-                    // Use vertical scroll delta for horizontal movement
                     const delta = event.angleDelta.y !== 0 ? event.angleDelta.y : event.angleDelta.x;
                     root.horizontalScrollOffset = root.clampHorizontalScroll(root.horizontalScrollOffset + delta);
                     event.accepted = true;
                 }
             }
 
-            // Double-click on empty space to switch workspace
             TapHandler {
                 acceptedButtons: Qt.LeftButton
                 onDoubleTapped: {
@@ -288,12 +261,10 @@ Item {
                         return candidates.find(t => t.title === (windowData.title || "")) || candidates[0];
                     }
 
-                    // Override position tracking for immediate visual update
                     property real overrideBaseX: -1
                     property real overrideBaseY: -1
                     property bool useOverridePosition: false
 
-                    // Position calculations relative to center viewport
                     readonly property real baseX: {
                         if (useOverridePosition && overrideBaseX >= 0)
                             return overrideBaseX;
@@ -346,7 +317,6 @@ Item {
                         }
                     }
 
-                    // Watch for windowData changes
                     onWindowDataChanged: {
                         if (useOverridePosition) {
                             resetOverrideTimer.restart();
@@ -385,7 +355,6 @@ Item {
                         }
                     }
 
-                    // Background when no preview
                     Rectangle {
                         id: previewBackground
                         anchors.fill: parent
@@ -403,7 +372,6 @@ Item {
                         }
                     }
 
-                    // Icon
                     Image {
                         mipmap: true
                         id: windowIcon
@@ -418,7 +386,6 @@ Item {
                         z: 10
                     }
 
-                    // Overlay when preview is available (only show on interaction)
                     Rectangle {
                         id: previewOverlay
                         anchors.fill: parent
@@ -430,7 +397,6 @@ Item {
                         z: 5
                     }
 
-                    // Corner icon when preview available
                     Image {
                         mipmap: true
                         visible: windowPreview.hasContent && !windowDelegate.compactMode && Config.performance.windowPreview
@@ -467,7 +433,6 @@ Item {
                         drag.target: windowDelegate.dragging ? windowDelegate : null
                         drag.threshold: 0
 
-                        // Right-click drag state for horizontal scroll
                         property real rightDragStartX: 0
                         property real rightScrollStartOffset: 0
 
@@ -487,7 +452,6 @@ Item {
                         }
 
                         onPositionChanged: mouse => {
-                            // Handle right-click drag for horizontal scroll
                             if (root.isScrollDragging && (mouse.buttons & Qt.RightButton) && root.contentBounds.hasOverflow) {
                                 const delta = mouse.x - rightDragStartX;
                                 root.horizontalScrollOffset = root.clampHorizontalScroll(rightScrollStartOffset + delta);
@@ -497,18 +461,15 @@ Item {
                             if (!(mouse.buttons & Qt.LeftButton))
                                 return;
 
-                            // Check if we should start dragging
                             if (!windowDelegate.dragging) {
                                 const dx = mouse.x - windowDelegate.pressPos.x;
                                 const dy = mouse.y - windowDelegate.pressPos.y;
                                 const distance = Math.sqrt(dx * dx + dy * dy);
 
                                 if (distance > windowDelegate.dragThreshold) {
-                                    // Start dragging
                                     windowDelegate.dragging = true;
                                     root.draggingFromWorkspace = root.workspaceId;
 
-                                    // Reparent to drag overlay
                                     if (root.dragOverlay) {
                                         windowDelegate.originalParent = windowDelegate.parent;
                                         const globalPos = windowDelegate.mapToItem(root.dragOverlay, 0, 0);
@@ -518,7 +479,6 @@ Item {
                                     }
                                 }
                             } else {
-                                // Update target workspace indicator while dragging
                                 if (root.overviewRoot && root.overviewRoot.getWorkspaceAtY) {
                                     const globalPos = dragArea.mapToItem(null, mouse.x, mouse.y);
                                     const targetWs = root.overviewRoot.getWorkspaceAtY(globalPos.y);
@@ -536,8 +496,7 @@ Item {
                                 if (windowDelegate.dragging) {
                                     windowDelegate.dragging = false;
 
-                                    // Calculate target workspace from cursor position
-                                    let targetWs = root.workspaceId; // Default to current workspace
+                                    let targetWs = root.workspaceId;
                                     if (root.overviewRoot && root.overviewRoot.getWorkspaceAtY) {
                                         const globalPos = dragArea.mapToItem(null, mouse.x, mouse.y);
                                         const calculatedWs = root.overviewRoot.getWorkspaceAtY(globalPos.y);
@@ -547,9 +506,7 @@ Item {
                                     }
 
                                     if (targetWs !== root.workspaceId) {
-                                        // Moving to different workspace
                                         if ((windowDelegate.windowData && windowDelegate.windowData.floating !== undefined ? windowDelegate.windowData.floating : false)) {
-                                            // Calculate position for floating window in target workspace
                                             const draggedX = windowDelegate.x;
                                             const draggedY = windowDelegate.y;
                                             
@@ -578,21 +535,16 @@ Item {
                                             const percentageX = Math.round((actualX / adjustedMonitorWidth) * 100);
                                             const percentageY = Math.round((actualY / adjustedMonitorHeight) * 100);
                                             
-                                            // Move to workspace and set position
                                             AxctlService.dispatch(`movetoworkspacesilent ${targetWs}, address:${(windowDelegate.windowData && windowDelegate.windowData.address !== undefined ? windowDelegate.windowData.address : "")}`);
                                             AxctlService.dispatch(`movewindowpixel exact ${percentageX}% ${percentageY}%, address:${(windowDelegate.windowData && windowDelegate.windowData.address !== undefined ? windowDelegate.windowData.address : "")}`);
                                             
-                                            // Force immediate window data update
                                             CompositorData.updateWindowList();
                                         } else {
-                                            // Just move workspace without repositioning for tiled windows
                                             AxctlService.dispatch(`movetoworkspacesilent ${targetWs}, address:${(windowDelegate.windowData && windowDelegate.windowData.address !== undefined ? windowDelegate.windowData.address : "")}`);
                                             
-                                            // Force immediate window data update
                                             CompositorData.updateWindowList();
                                         }
                                         
-                                        // Restore original parent and reset position
                                         if (windowDelegate.originalParent) {
                                             windowDelegate.parent = windowDelegate.originalParent;
                                             windowDelegate.originalParent = null;
@@ -601,29 +553,21 @@ Item {
                                         windowDelegate.y = windowDelegate.initY;
                                         
                                     } else if ((windowDelegate.windowData && windowDelegate.windowData.floating !== undefined ? windowDelegate.windowData.floating : false) && (windowDelegate.x !== windowDelegate.initX || windowDelegate.y !== windowDelegate.initY)) {
-                                        // Dropped on same workspace and window is floating - reposition it
-                                        // The window is currently in the drag overlay with global coordinates
                                         
-                                        // Store current drag position
                                         const draggedX = windowDelegate.x;
                                         const draggedY = windowDelegate.y;
                                         
-                                        // Get the workspace container position
                                         const workspaceGlobalPos = windowsContainer.mapToItem(root.dragOverlay, 0, 0);
                                         
-                                        // Calculate position relative to workspace
                                         const relativeX = draggedX - workspaceGlobalPos.x;
                                         const relativeY = draggedY - workspaceGlobalPos.y;
                                         
-                                        // Remove horizontal scroll offset to get actual position in workspace
                                         const workspaceX = relativeX - root.horizontalScrollOffset - root.viewportOffset;
                                         const workspaceY = relativeY;
                                         
-                                        // Convert to percentage of workspace dimensions (in scaled space)
                                         const monitorWidth = ((monitorData && monitorData.width !== undefined ? monitorData.width : 1920) || 1920) / ((monitorData && monitorData.scale !== undefined ? monitorData.scale : 1.0) || 1.0);
                                         const monitorHeight = ((monitorData && monitorData.height !== undefined ? monitorData.height : 1080) || 1080) / ((monitorData && monitorData.scale !== undefined ? monitorData.scale : 1.0) || 1.0);
                                         
-                                        // Adjust for bar reserved space
                                         let adjustedMonitorWidth = monitorWidth;
                                         let adjustedMonitorHeight = monitorHeight;
                                         if (barPosition === "left" || barPosition === "right") {
@@ -633,40 +577,30 @@ Item {
                                             adjustedMonitorHeight -= barReserved;
                                         }
                                         
-                                        // Convert from scaled overview space to actual position
                                         const actualX = workspaceX / scale_;
                                         const actualY = workspaceY / scale_;
                                         
-                                        // Calculate percentage
                                         const percentageX = Math.round((actualX / adjustedMonitorWidth) * 100);
                                         const percentageY = Math.round((actualY / adjustedMonitorHeight) * 100);
                                         
-                                        // Dispatch movewindowpixel command
                                         AxctlService.dispatch(`movewindowpixel exact ${percentageX}% ${percentageY}%, address:${(windowDelegate.windowData && windowDelegate.windowData.address !== undefined ? windowDelegate.windowData.address : "")}`);
                                         
-                                        // Force immediate window data update
                                         CompositorData.updateWindowList();
                                         
-                                        // Restore original parent
                                         if (windowDelegate.originalParent) {
                                             windowDelegate.parent = windowDelegate.originalParent;
                                             windowDelegate.originalParent = null;
                                         }
                                         
-                                        // Set override position for immediate visual update
-                                        // Calculate what baseX/baseY should be at the dropped position
                                         windowDelegate.overrideBaseX = relativeX;
                                         windowDelegate.overrideBaseY = relativeY;
                                         windowDelegate.useOverridePosition = true;
                                         
-                                        // Force position to dropped location
                                         windowDelegate.x = relativeX;
                                         windowDelegate.y = relativeY;
                                         
-                                        // Start timer to clear override
                                         resetOverrideTimer.restart();
                                     } else {
-                                        // Not a floating window or didn't move - restore original parent and position
                                         if (windowDelegate.originalParent) {
                                             windowDelegate.parent = windowDelegate.originalParent;
                                             windowDelegate.originalParent = null;
@@ -705,7 +639,6 @@ Item {
                         }
                     }
 
-                    // Tooltip
                     Rectangle {
                         visible: dragArea.containsMouse && !windowDelegate.dragging && windowDelegate.windowData
                         anchors.bottom: parent.top

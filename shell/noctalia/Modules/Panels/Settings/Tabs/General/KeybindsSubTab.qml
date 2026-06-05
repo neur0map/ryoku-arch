@@ -6,7 +6,6 @@ import qs.noctalia.Commons
 import qs.noctalia.Widgets
 
 // RYOKU: friendly Hyprland keybind manager.
-//
 // Lists every keyboard shortcut with a plain-language description (never the raw
 // command), and offers an assisted builder: pick what the shortcut should do from
 // a list of common actions, fill in only the field that action needs, and choose
@@ -14,7 +13,6 @@ import qs.noctalia.Widgets
 // dispatcher. Mutations go through `ryoku-keybinds`, which applies them instantly
 // (`hyprctl keyword`) and persists to ~/.config/hypr/ryoku-keybinds.conf — a
 // dedicated overlay sourced from the main config, so hyprland.conf is never
-// rewritten.
 ColumnLayout {
   id: root
   spacing: Style.marginL
@@ -24,19 +22,16 @@ ColumnLayout {
   property string filterText: ""
   property bool busy: false
 
-  // Add/edit form state.
   property bool editing: false
   property string editOrigMods: ""
   property string editOrigKey: ""
   property string actionKey: "app"
   property string directionKey: "l"
   readonly property string param: root.presetParam(root.actionKey)
-  // modifier pills: Super, Ctrl, Alt, Shift
   property var modsOn: [false, false, false, false]
   readonly property var modNames: ["Super", "Ctrl", "Alt", "Shift"]
   readonly property var modFlags: ["SUPER", "CTRL", "ALT", "SHIFT"]
 
-  // ---- Friendly action catalogue (assisted builder) ----
   readonly property var actionPresets: [
     {
       "key": "app",
@@ -118,11 +113,10 @@ ColumnLayout {
     case "custom":
       return "";
     default:
-      return k; // killactive/fullscreen/togglefloating/workspace/movetoworkspace/movefocus/movewindow
+      return k;
     }
   }
 
-  // ---- Plain-language rendering of an existing bind ----
   function titleCase(s) {
     return (s || "").split(/[\s-]+/).filter(function (w) {
       return w.length > 0;
@@ -266,7 +260,6 @@ ColumnLayout {
     }
   }
 
-  // ---- Modifier bitmask <-> flag helpers ----
   function decodeMods(m) {
     var parts = [];
     if (m & 64)
@@ -301,7 +294,6 @@ ColumnLayout {
     return p.join(" + ");
   }
 
-  // ---- Form lifecycle ----
   function resetForm() {
     root.editing = false;
     root.editOrigMods = "";
@@ -455,7 +447,6 @@ ColumnLayout {
     description: "Add, edit or remove shortcuts — changes apply instantly."
   }
 
-  // ---- Assisted add / edit builder ----
   NBox {
     Layout.fillWidth: true
     implicitHeight: formColumn.implicitHeight + Style.margin2L
@@ -588,7 +579,6 @@ ColumnLayout {
         placeholderText: "Key — e.g. B, Return, F1, Space"
       }
 
-      // actions
       RowLayout {
         spacing: Style.marginM
         Layout.topMargin: Style.marginXS
@@ -621,7 +611,6 @@ ColumnLayout {
     }
   }
 
-  // ---- Filter + count ----
   RowLayout {
     Layout.fillWidth: true
     spacing: Style.marginL
@@ -638,7 +627,6 @@ ColumnLayout {
     }
   }
 
-  // ---- Shortcut list (friendly descriptions) ----
   Repeater {
     model: {
       if (root.filterText.trim().length === 0)
@@ -675,7 +663,6 @@ ColumnLayout {
         anchors.bottomMargin: Style.marginM
         spacing: Style.marginL
 
-        // key combo chip
         Rectangle {
           Layout.preferredWidth: 190 * Style.uiScaleRatio
           Layout.alignment: Qt.AlignVCenter
@@ -695,7 +682,6 @@ ColumnLayout {
           }
         }
 
-        // friendly description
         NText {
           Layout.fillWidth: true
           text: root.friendlyAction(row.modelData.dispatcher, row.modelData.arg)

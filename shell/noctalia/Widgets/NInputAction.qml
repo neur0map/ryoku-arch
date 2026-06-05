@@ -3,11 +3,9 @@ import QtQuick.Layouts
 import qs.noctalia.Commons
 import qs.noctalia.Widgets
 
-// Input and button row
 RowLayout {
   id: root
 
-  // Public properties
   property string label: ""
   property string description: ""
   property string placeholderText: ""
@@ -16,11 +14,9 @@ RowLayout {
   property string actionButtonIcon: "media-play"
   property bool actionButtonEnabled: text !== ""
 
-  // Signals
   signal editingFinished
   signal actionClicked
 
-  // Internal properties
   spacing: Style.marginM
 
   NTextInput {

@@ -22,7 +22,6 @@ QtObject {
 
         const isLight = Config.theme.lightMode
         
-        // Background derivatives
         const bg = Colors.background
         const backgroundaccent = isLight ? toRGB(Qt.darker(bg, 1.05)) : toRGB(Qt.lighter(bg, 1.66))
         const backgroundprimary = toRGB(bg)
@@ -31,7 +30,6 @@ QtObject {
         const backgroundtertiary = isLight ? toRGB(Qt.darker(bg, 1.2)) : toRGB(Qt.darker(bg, 3.0))
         const backgroundfloating = isLight ? toRGB(Qt.darker(bg, 1.05)) : "0,0,0"
 
-        // Text derivatives
         const fg = Colors.overBackground
         const textbrightest = toRGB(fg)
         const textbrighter = isLight ? toRGB(Qt.lighter(fg, 1.15)) : toRGB(Qt.darker(fg, 1.15))
@@ -46,10 +44,10 @@ QtObject {
  * @author Axenide
  * @version 1.0.0
  * @invite gHG9WHyNvH
- * @website https://axeni.de/ambxst
- * @source https://github.com/Axenide/Ambxst
+ * @website https:
+ * @source https:
  * @authorId 294856304969908224
- * @authorLink https://axeni.de
+ * @authorLink https:
 */ 
 
 @import url('https://mwittrien.github.io/BetterDiscordAddons/Themes/DiscordRecolor/DiscordRecolor.css');

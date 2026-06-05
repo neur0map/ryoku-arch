@@ -28,7 +28,6 @@ Rectangle {
             Layout.fillHeight: true
         }
 
-        // Widgets column
         ClippingRectangle {
             id: widgetsContainer
             Layout.preferredWidth: controlButtonsContainer.implicitWidth
@@ -51,7 +50,6 @@ Rectangle {
                     width: parent.width
                     spacing: 8
 
-                    // Control buttons - 5 buttons wrapped in StyledRect pane > internalbg
                     QuickControls {
                         id: controlButtonsContainer
                     }
@@ -92,7 +90,6 @@ Rectangle {
                 }
             }
 
-            // 5-day forecast strip (Today / Wed / Thu / Fri / Sat)
             StyledRect {
                 id: forecastStrip
                 variant: "pane"

@@ -36,17 +36,13 @@ Popup {
             const targetPos = target.mapToItem(parent, 0, 0);
             const targetCenterX = targetPos.x + target.width / 2;
 
-            // Get tooltip size (use width/height if available, otherwise implicit)
             const tooltipWidth = tooltipRect.width > 0 ? tooltipRect.width : tooltipRect.implicitWidth;
             const tooltipHeight = tooltipRect.height > 0 ? tooltipRect.height : tooltipRect.implicitHeight;
 
-            // Center tooltip horizontally on target
             let newX = targetCenterX - tooltipWidth / 2;
 
-            // Position tooltip above target
             let newY = targetPos.y - tooltipHeight - Tokens.spacing.small;
 
-            // Keep within bounds
             const padding = Tokens.padding.normal;
             if (newX < padding) {
                 newX = padding;
@@ -54,7 +50,6 @@ Popup {
                 newX = parent.width - tooltipWidth - padding;
             }
 
-            // Update popup position
             x = newX;
             y = newY;
         });
@@ -72,7 +67,6 @@ Popup {
             }
             p = parentItem;
         }
-        // Fallback
         return target.parent?.parent?.parent ?? target.parent?.parent ?? target.parent ?? target;
     }
 
@@ -83,7 +77,6 @@ Popup {
     margins: 0
     background: Item {}
 
-    // Update position when target moves or tooltip becomes visible
     onTooltipVisibleChanged: {
         if (tooltipVisible) {
             Qt.callLater(updatePosition);
@@ -123,7 +116,6 @@ Popup {
         radius: Tokens.rounding.small
         antialiasing: true
 
-        // Add elevation for depth
         Elevation {
             anchors.fill: parent
             radius: parent.radius

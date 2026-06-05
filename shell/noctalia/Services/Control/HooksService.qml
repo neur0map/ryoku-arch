@@ -11,7 +11,6 @@ import qs.noctalia.Services.UI
 Singleton {
   id: root
 
-  // Hook connections for automatic script execution
   Connections {
     target: Settings.data.colorSchemes
     function onDarkModeChanged() {
@@ -75,11 +74,9 @@ Singleton {
     id: lockScreenActiveConnection
     target: PanelService.lockScreen
     function onActiveChanged() {
-      // Detect lock: was unlocked, now locked
       if (!wasLocked && PanelService.lockScreen.active) {
         executeLockHook();
       }
-      // Detect unlock: was locked, now not locked
       if (wasLocked && !PanelService.lockScreen.active) {
         executeUnlockHook();
       }
@@ -95,11 +92,9 @@ Singleton {
     function onNoctaliaPerformanceModeChanged() {
       const isEnabled = PowerProfileService.noctaliaPerformanceMode;
 
-      // Detect enabled: was disabled, now enabled
       if (!wasPerformanceModeEnabled && isEnabled) {
         executePerformanceModeEnabledHook();
       }
-      // Detect disabled: was enabled, now disabled
       if (wasPerformanceModeEnabled && !isEnabled) {
         executePerformanceModeDisabledHook();
       }
@@ -107,7 +102,6 @@ Singleton {
     }
   }
 
-  // Execute wallpaper change hook
   function executeWallpaperHook(wallpaperPath, screenName) {
     if (!Settings.data.hooks?.enabled) {
       return;
@@ -130,7 +124,6 @@ Singleton {
     }
   }
 
-  // Execute dark mode change hook
   function executeDarkModeHook(isDarkMode) {
     if (!Settings.data.hooks?.enabled) {
       return;
@@ -150,7 +143,6 @@ Singleton {
     }
   }
 
-  // Execute screen lock hook
   function executeLockHook() {
     if (!Settings.data.hooks?.enabled) {
       return;
@@ -170,7 +162,6 @@ Singleton {
     }
   }
 
-  // Execute screen unlock hook
   function executeUnlockHook() {
     if (!Settings.data.hooks?.enabled) {
       return;
@@ -190,7 +181,6 @@ Singleton {
     }
   }
 
-  // Execute performance mode enabled hook
   function executePerformanceModeEnabledHook() {
     if (!Settings.data.hooks?.enabled) {
       return;
@@ -208,7 +198,6 @@ Singleton {
     }
   }
 
-  // Execute performance mode disabled hook
   function executePerformanceModeDisabledHook() {
     if (!Settings.data.hooks?.enabled) {
       return;
@@ -226,7 +215,6 @@ Singleton {
     }
   }
 
-  // Execute color generation hook
   function executeColorGenerationHook() {
     if (!Settings.data.hooks?.enabled) {
       return;
@@ -247,7 +235,6 @@ Singleton {
     }
   }
 
-  // Blocking power hook infrastructure
   property var pendingPowerCallback: null
 
   Process {
@@ -289,7 +276,6 @@ Singleton {
     runPowerHook(`${script} ${action}`, callback);
   }
 
-  // Execute startup hook
   function executeStartupHook() {
     if (!Settings.data.hooks?.enabled) {
       return;
@@ -308,18 +294,14 @@ Singleton {
     }
   }
 
-  // Initialize the service
   function init() {
     Logger.i("HooksService", "Service started");
-    // Initialize lock screen state tracking
     Qt.callLater(() => {
                    if (PanelService.lockScreen) {
                      wasLocked = PanelService.lockScreen.active;
                      lockScreenActiveConnection.target = PanelService.lockScreen;
                    }
-                   // Initialize performance mode state tracking
                    wasPerformanceModeEnabled = PowerProfileService.noctaliaPerformanceMode;
-                   // Execute startup hook
                    executeStartupHook();
                  });
   }

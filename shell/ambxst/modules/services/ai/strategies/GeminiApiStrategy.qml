@@ -89,7 +89,6 @@ ApiStrategy {
     }
 
     function getStreamBody(messages, model, tools) {
-        // Gemini streaming uses a different endpoint, not a body flag
         return getBody(messages, model, tools);
     }
 

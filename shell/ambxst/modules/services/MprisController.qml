@@ -10,7 +10,6 @@ import qs.ambxst.config
 Singleton {
     id: root
 
-    // --- Properties ---
     property var trackedPlayer: null
 
     // skwd-music (wallpaper daemon) and playerctld are never real media sources.
@@ -55,7 +54,6 @@ Singleton {
     property bool shuffleSupported: activePlayer && activePlayer.shuffleSupported && activePlayer.canControl
     property bool hasShuffle: activePlayer ? activePlayer.shuffle : false
 
-    // --- Handlers ---
     onFilteredPlayersChanged: {
         if (root.isInitializing && root.cachedDbusName && root.filteredPlayers.length > 0) {
             for (let i = 0; i < root.filteredPlayers.length; i++) {
@@ -84,7 +82,6 @@ Singleton {
         }
     }
 
-    // --- Functions ---
     function loadLastPlayer() {
         if (!root.cachedDbusName) {
             root.isInitializing = false;
@@ -162,7 +159,6 @@ Singleton {
         root.saveLastPlayer();
     }
 
-    // --- Components ---
     Instantiator {
         model: Mpris.players
 

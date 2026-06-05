@@ -37,8 +37,6 @@ Singleton {
 
         if (!cc) {
             root.dataAvailable = false;
-            // Distinguish "still loading" from "failed": if Weather has a
-            // location but no cc yet, treat as loading.
             root.isLoading = (Weather.loc && Weather.loc.length > 0);
             return;
         }
@@ -62,9 +60,6 @@ Singleton {
         if (ss.length > 0)
             root.sunset = ss;
 
-        // Build the forecast in the SAME item shape this service's own
-        // consumers expect (Clock.qml uses: dayName, emoji, maxTemp,
-        // minTemp; plus date/weatherCode for completeness).
         var forecastData = [];
         var dayCount = fc ? Math.min(7, fc.length) : 0;
         for (var i = 0; i < dayCount; i++) {
@@ -117,7 +112,6 @@ Singleton {
         }
     }
 
-    // Current weather data
     property string weatherSymbol: ""
     property real currentTemp: 0
     property real maxTemp: 0
@@ -128,26 +122,21 @@ Singleton {
     property bool isLoading: false
     property bool hasFailed: false
 
-    // 7-day forecast data
     property var forecast: []
 
-    // Sun position data
-    property string sunrise: ""  // HH:MM
-    property string sunset: ""   // HH:MM
-    property real sunProgress: 0.0  // Arc position (0.0-1.0)
+    property string sunrise: ""
+    property string sunset: ""
+    property real sunProgress: 0.0
     property bool isDay: true
-    property string timeOfDay: "Day"  // "Day", "Evening", "Night"
+    property string timeOfDay: "Day"
     property string weatherDescription: ""
 
-    // Debug mode
     property bool debugMode: false
-    property real debugHour: 12.0  // 0-24 hour (e.g. 14.5 = 2:30 PM)
+    property real debugHour: 12.0
     property int debugWeatherCode: 0
 
-    // Script path
     readonly property string scriptPath: Quickshell.shellDir + "/ambxst/scripts/weather.sh"
 
-    // Retry logic
     property int retryCount: 0
     readonly property int maxRetries: 3
     property bool wasCancelled: false
@@ -175,14 +164,14 @@ Singleton {
     }
 
     property Timer refreshTimer: Timer {
-        interval: 600000  // 10 minutes
+        interval: 600000
         running: !SuspendManager.isSuspending
         repeat: true
         onTriggered: root.updateWeather()
     }
 
     property Timer sunPositionTimer: Timer {
-        interval: 60000  // 1 minute
+        interval: 60000
         running: !SuspendManager.isSuspending && (GlobalStates.dashboardOpen || GlobalStates.launcherOpen || GlobalStates.overviewOpen)
         repeat: true
         onTriggered: root.calculateSunPosition()
@@ -194,7 +183,6 @@ Singleton {
         onTriggered: root.updateWeather()
     }
 
-    // Convert "HH:MM" to decimal hours
     function parseTime(timeStr) {
         if (!timeStr)
             return 0;
@@ -202,7 +190,6 @@ Singleton {
         return parseInt(parts[0]) + parseInt(parts[1]) / 60;
     }
 
-    // Fixed sunrise/sunset for visual consistency (sun at zenith at 12:00)
     readonly property real visualSunriseHour: 6.0
     readonly property real visualSunsetHour: 18.0
 
@@ -224,7 +211,6 @@ Singleton {
     readonly property real debugSunProgress: calculateSunProgress(debugHour, visualSunriseHour, visualSunsetHour)
     readonly property bool debugIsDay: debugHour >= visualSunriseHour && debugHour <= visualSunsetHour
 
-    // Transition scheme for time blending
     function calculateTimeBlend(hour) {
         var day = 0, evening = 0, night = 0;
 
@@ -280,7 +266,6 @@ Singleton {
         return "Night";
     }
 
-    // Effective values (use debug values when debugMode is on)
     readonly property real effectiveSunProgress: debugMode ? debugSunProgress : realSunProgress
     readonly property string effectiveTimeOfDay: debugMode ? debugTimeOfDay : timeOfDay
     readonly property bool effectiveIsDay: debugMode ? debugIsDay : realIsDay
@@ -414,7 +399,6 @@ Singleton {
         var now = new Date();
         var hour = now.getHours() + now.getMinutes() / 60;
 
-        // Update currentHour so readonly properties can react to time changes
         root.currentHour = hour;
 
         var sunriseH = sunrise.length > 0 ? parseTime(sunrise) : 6.0;
@@ -496,7 +480,6 @@ Singleton {
         stdout: StdioCollector {
             waitForEnd: true
             onStreamFinished: {
-                // Skip processing if we cancelled this request
                 if (root.wasCancelled) {
                     return;
                 }
@@ -506,7 +489,6 @@ Singleton {
                     try {
                         var data = JSON.parse(raw);
 
-                        // Check for error from script
                         if (data.error) {
                             console.warn("WeatherService:", data.error);
                             root.dataAvailable = false;
@@ -536,7 +518,6 @@ Singleton {
                                 root.sunset = daily.sunset[0].split("T")[1];
                             }
 
-                            // Parse 7-day forecast
                             var forecastData = [];
                             var dayCount = Math.min(7, daily.time ? daily.time.length : 0);
                             for (var i = 0; i < dayCount; i++) {
@@ -544,7 +525,7 @@ Singleton {
                                 // "YYYY-MM-DD"
                                 var dateParts = daily.time[i].split("-");
                                 var year = parseInt(dateParts[0]);
-                                var month = parseInt(dateParts[1]) - 1; // 0-indexed months
+                                var month = parseInt(dateParts[1]) - 1;
                                 var day = parseInt(dateParts[2]);
                                 
                                 var dayDate = new Date(year, month, day);
@@ -586,18 +567,15 @@ Singleton {
         }
 
         onExited: function (code) {
-            // SIGTERM (15) = intentional cancellation
             if (code !== 0 && code !== 15) {
                 console.warn("WeatherService: Script exited with code", code);
                 root.dataAvailable = false;
                 root.handleError();
             }
-            // Reset cancelled flag after process fully exits
             root.wasCancelled = false;
         }
     }
 
-    // Watch for config changes
     property var weatherConfig: Config.weather
     readonly property string configLocation: weatherConfig ? weatherConfig.location : ""
     readonly property string configUnit: weatherConfig ? weatherConfig.unit : "C"

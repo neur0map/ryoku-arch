@@ -42,7 +42,6 @@ ColumnLayout {
     return author;
   }
 
-  // Tag filter chips in collapsible
   NTagFilter {
     tags: root.pseudoTags.concat(root.availableTags)
     selectedTag: root.selectedTag
@@ -64,7 +63,6 @@ ColumnLayout {
     }
   }
 
-  // Search input with refresh button
   RowLayout {
     Layout.fillWidth: true
     spacing: Style.marginM
@@ -89,7 +87,6 @@ ColumnLayout {
     }
   }
 
-  // Available plugins list
   ColumnLayout {
     spacing: Style.marginM
     Layout.fillWidth: true
@@ -104,7 +101,6 @@ ColumnLayout {
         var all = PluginService.availablePlugins || [];
         var filtered = [];
 
-        // Apply filter based on selectedTag
         for (var i = 0; i < all.length; i++) {
           var plugin = all[i];
           var downloaded = plugin.downloaded || false;
@@ -118,7 +114,6 @@ ColumnLayout {
             if (plugin.official === true)
               filtered.push(plugin);
           } else if (root.selectedTag === "downloaded") {
-            // Downloaded pseudo tag
             if (downloaded)
               filtered.push(plugin);
           } else if (root.selectedTag === "notDownloaded") {
@@ -126,14 +121,12 @@ ColumnLayout {
             if (!downloaded)
               filtered.push(plugin);
           } else {
-            // Actual category tag
             if (pluginTags.indexOf(root.selectedTag) >= 0) {
               filtered.push(plugin);
             }
           }
         }
 
-        // Then apply fuzzy search if there's search text
         var query = root.pluginSearchText.trim();
         if (query !== "") {
           var results = FuzzySort.go(query, filtered, {
@@ -153,7 +146,6 @@ ColumnLayout {
           });
         }
 
-        // Move hello-world plugin to the end
         var helloWorldIndex = -1;
         for (var h = 0; h < filtered.length; h++) {
           if (filtered[h].id === "hello-world") {
@@ -228,12 +220,10 @@ ColumnLayout {
               }
             }
 
-            // Spacer
             Item {
               Layout.fillWidth: true
             }
 
-            // Open plugin page button
             NIconButton {
               icon: "external-link"
               baseSize: Style.baseWidgetSize * 0.7
@@ -244,7 +234,6 @@ ColumnLayout {
               }
             }
 
-            // Downloaded indicator
             NIcon {
               icon: "circle-check"
               pointSize: Style.baseWidgetSize * 0.5
@@ -261,7 +250,6 @@ ColumnLayout {
               onClicked: installPlugin(modelData)
             }
 
-            // Installing spinner
             NBusyIndicator {
               visible: !modelData.downloaded && (PluginService.installingPlugins[modelData.id] === true)
               size: Style.baseWidgetSize * 0.5
@@ -269,7 +257,6 @@ ColumnLayout {
             }
           }
 
-          // Description
           NText {
             visible: modelData.description
             text: modelData.description || ""
@@ -281,7 +268,6 @@ ColumnLayout {
             Layout.fillWidth: true
           }
 
-          // Details row
           RowLayout {
             spacing: Style.marginS
             Layout.fillWidth: true
@@ -375,7 +361,6 @@ ColumnLayout {
     });
   }
 
-  // Listen to plugin service signals
   Connections {
     target: PluginService
 

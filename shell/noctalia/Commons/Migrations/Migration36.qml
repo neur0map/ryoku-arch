@@ -17,7 +17,6 @@ QtObject {
     }
 
     try {
-      // Ensure dir exists then remove the file
       Quickshell.execDetached(["sh", "-c", `mkdir -p "${Settings.cacheDir}" && rm -f -- "${usagePath}"`]);
       logger.i("Settings", "Cleared legacy emoji usage file at: " + usagePath);
     } catch (e) {

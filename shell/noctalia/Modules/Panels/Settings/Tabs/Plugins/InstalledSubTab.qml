@@ -11,7 +11,6 @@ ColumnLayout {
   spacing: Style.marginL
   Layout.fillWidth: true
 
-  // Track which plugins are currently updating
   property var updatingPlugins: ({})
   property int installedPluginsRefreshCounter: 0
 
@@ -25,14 +24,12 @@ ColumnLayout {
     return author;
   }
 
-  // Check for updates when tab becomes visible
   onVisibleChanged: {
     if (visible && PluginService.pluginsFullyLoaded) {
       PluginService.checkForUpdates();
     }
   }
 
-  // Auto-update toggle
   NToggle {
     label: I18n.tr("panels.plugins.auto-update")
     description: I18n.tr("panels.plugins.auto-update-description")
@@ -40,7 +37,6 @@ ColumnLayout {
     onToggled: checked => Settings.data.plugins.autoUpdate = checked
   }
 
-  // Update notification toggle
   NToggle {
     label: I18n.tr("panels.plugins.notify-updates")
     description: I18n.tr("panels.plugins.notify-updates-description")
@@ -48,7 +44,6 @@ ColumnLayout {
     onToggled: checked => Settings.data.plugins.notifyUpdates = checked
   }
 
-  // Check for updates button
   NButton {
     property bool isChecking: Object.keys(PluginService.activeFetches).length > 0
 
@@ -60,7 +55,6 @@ ColumnLayout {
     onClicked: PluginService.checkForUpdates()
   }
 
-  // Update All button
   NButton {
     property int updateCount: Object.keys(PluginService.pluginUpdates).length
     property bool isUpdating: false
@@ -101,7 +95,6 @@ ColumnLayout {
     }
   }
 
-  // Installed plugins list
   ColumnLayout {
     spacing: Style.marginM
     Layout.fillWidth: true
@@ -110,7 +103,6 @@ ColumnLayout {
       id: installedPluginsRepeater
 
       model: {
-        // Force refresh when counter changes
         var _ = root.installedPluginsRefreshCounter;
 
         var allIds = PluginRegistry.getAllInstalledPluginIds();
@@ -126,7 +118,6 @@ ColumnLayout {
             pluginData.pendingUpdateInfo = PluginService.pluginUpdatesPending[compositeKey];
             pluginData.enabled = PluginRegistry.isPluginEnabled(compositeKey);
 
-            // Add source info
             var parsed = PluginRegistry.parseCompositeKey(compositeKey);
             pluginData.isFromOfficialRepo = parsed.isOfficial;
             if (!parsed.isOfficial) {
@@ -209,7 +200,6 @@ ColumnLayout {
               }
             }
 
-            // Spacer
             Item {
               Layout.fillWidth: true
             }
@@ -310,7 +300,6 @@ ColumnLayout {
             }
           }
 
-          // Description
           NText {
             visible: modelData.description
             text: modelData.description || ""
@@ -322,7 +311,6 @@ ColumnLayout {
             Layout.fillWidth: true
           }
 
-          // Details row
           RowLayout {
             spacing: Style.marginS
             Layout.fillWidth: true
@@ -394,7 +382,6 @@ ColumnLayout {
             }
           }
 
-          // Error indicator
           RowLayout {
             spacing: Style.marginS
             visible: PluginService.hasPluginError(modelData.compositeKey)
@@ -428,7 +415,6 @@ ColumnLayout {
     }
   }
 
-  // Uninstall confirmation dialog
   Popup {
     id: uninstallDialog
     parent: Overlay.overlay
@@ -516,7 +502,6 @@ ColumnLayout {
     });
   }
 
-  // Listen to plugin registry changes
   Connections {
     target: PluginRegistry
 
@@ -525,7 +510,6 @@ ColumnLayout {
     }
   }
 
-  // Listen to plugin service signals
   Connections {
     target: PluginService
 

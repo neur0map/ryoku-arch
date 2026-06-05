@@ -1,4 +1,3 @@
-// Helper function to stringify even if there are circular refs.
 function stringify(obj, replacer, spaces, cycleReplacer) {
   return JSON.stringify(obj, serializer(replacer, cycleReplacer), spaces)
 }

@@ -24,7 +24,6 @@ Item {
   }
   readonly property bool contentOverflows: gridView.contentHeight > gridView.height
 
-  // Gradient properties
   property bool showGradientMasks: true
   property color gradientColor: Color.mSurfaceVariant
   property int gradientHeight: 16
@@ -37,10 +36,8 @@ Item {
   // Note: Always reserves space when enabled to avoid binding loops with cellWidth calculations
   readonly property real availableWidth: width - (reserveScrollbarSpace ? handleWidth + Style.marginXS : 0)
 
-  // Expose activeFocus from internal gridView
   readonly property bool hasActiveFocus: gridView.activeFocus
 
-  // Forward GridView properties
   property alias model: gridView.model
   property alias delegate: gridView.delegate
   property alias cellWidth: gridView.cellWidth
@@ -129,45 +126,36 @@ Item {
   // Track selection index for gradient visibility (set externally)
   property int trackedSelectionIndex: -1
 
-  // Check if selection is on first visible row
   readonly property bool selectionOnFirstVisibleRow: {
     if (trackedSelectionIndex < 0 || cellHeight <= 0 || cellWidth <= 0)
       return false;
 
-    // Calculate columns per row
     var cols = Math.floor(gridView.width / cellWidth);
     if (cols <= 0)
       cols = 1;
 
-    // Calculate the row of the selection
     var selectionRow = Math.round(trackedSelectionIndex / cols);
 
-    // Calculate the first visible row
     var firstVisibleRow = Math.round(gridView.contentY / cellHeight);
 
     return selectionRow === firstVisibleRow;
   }
 
-  // Check if selection is on last visible row
   readonly property bool selectionOnLastVisibleRow: {
     if (trackedSelectionIndex < 0 || cellHeight <= 0 || cellWidth <= 0)
       return false;
 
-    // Calculate columns per row
     var cols = Math.floor(gridView.width / cellWidth);
     if (cols <= 0)
       cols = 1;
 
-    // Calculate the row of the selection
     var selectionRow = Math.round(trackedSelectionIndex / cols);
 
-    // Calculate the last visible row (might be partially visible)
     var lastVisibleRow = Math.round((gridView.contentY + gridView.height - 1) / cellHeight);
 
     return selectionRow === lastVisibleRow;
   }
 
-  // Forward GridView methods
   function positionViewAtIndex(index, mode) {
     const shouldAnimate = mode === GridView.Contain;
     if (!shouldAnimate) {
@@ -250,7 +238,6 @@ Item {
     gridView.moveCurrentIndexRight();
   }
 
-  // Set reasonable implicit sizes for Layout usage
   implicitWidth: 200
   implicitHeight: 200
 

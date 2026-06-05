@@ -9,7 +9,6 @@ import qs.noctalia.Services.Location
 Singleton {
   id: root
 
-  // Python scripts
   readonly property string checkCalendarAvailableScript: Quickshell.shellDir + "/noctalia" + '/Scripts/python/src/calendar/check-calendar.py'
   readonly property string listCalendarsScript: Quickshell.shellDir + "/noctalia" + '/Scripts/python/src/calendar/list-calendars.py'
   readonly property string calendarEventsScript: Quickshell.shellDir + "/noctalia" + '/Scripts/python/src/calendar/calendar-events.py'
@@ -35,7 +34,6 @@ Singleton {
     Logger.d("Calendar", `Loading events (${daysBehind} days behind, ${daysAhead} days ahead): ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`);
   }
 
-  // Process to check for evolution-data-server libraries
   Process {
     id: availabilityCheckProcess
     running: false
@@ -69,7 +67,6 @@ Singleton {
     }
   }
 
-  // Process to list available calendars
   Process {
     id: listCalendarsProcess
     running: false
@@ -82,7 +79,6 @@ Singleton {
           CalendarService.setCalendars(result);
           Logger.d("Calendar", `Found ${result.length} calendar(s)`);
 
-          // Auto-load events after discovering calendars
           if (result.length > 0) {
             loadEvents();
           }
@@ -103,7 +99,6 @@ Singleton {
     }
   }
 
-  // Process to load events
   Process {
     id: loadEventsProcess
     running: false

@@ -36,7 +36,6 @@ RowLayout {
       return "";
     var displayValue = "";
     if (defaultValue === "") {
-      // Try to find the display name for empty key in the model
       var found = false;
       if (root.model) {
         if (Array.isArray(root.model)) {
@@ -64,7 +63,6 @@ RowLayout {
         displayValue = I18n.tr("panels.indicator.system-default");
       }
     } else {
-      // Try to find the display name for the default key in the model
       var found = false;
       if (root.model) {
         if (Array.isArray(root.model)) {

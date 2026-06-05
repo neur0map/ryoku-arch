@@ -17,7 +17,6 @@ SmartPanel {
   preferredWidthRatio: 0.5
   preferredHeightRatio: 0.5
 
-  // Positioning
   readonly property string screenBarPosition: Settings.getBarPositionForScreen(screen?.name)
   readonly property string panelPosition: {
     if (Settings.data.wallpaper.panelPosition === "follow_bar") {
@@ -104,7 +103,6 @@ SmartPanel {
     if (!contentItem)
       return;
 
-    // Check if Wallhaven page input has focus
     if (contentItem.wallhavenView && contentItem.wallhavenView.visible && contentItem.wallhavenView.pageInput && contentItem.wallhavenView.pageInput.inputItem.activeFocus) {
       contentItem.wallhavenView.pageInput.submitPage();
       return;
@@ -149,7 +147,6 @@ SmartPanel {
       root.contentItem = panelContent;
     }
 
-    // Function to update Wallhaven resolution filter
     function updateWallhavenResolution() {
       if (typeof WallhavenService === "undefined") {
         return;
@@ -173,7 +170,6 @@ SmartPanel {
         WallhavenService.resolutions = "";
       }
 
-      // Trigger new search with updated resolution
       if (Settings.data.wallpaper.useWallhaven) {
         if (wallhavenView) {
           wallhavenView.loading = true;
@@ -184,7 +180,6 @@ SmartPanel {
 
     color: "transparent"
 
-    // Wallhaven settings popup
     Loader {
       id: wallhavenSettingsPopup
       source: "WallhavenSettingsPopup.qml"
@@ -195,7 +190,6 @@ SmartPanel {
       }
     }
 
-    // Solid color picker dialog
     NColorPickerDialog {
       id: solidColorPicker
       screen: root.screen
@@ -203,15 +197,12 @@ SmartPanel {
       onColorSelected: color => WallpaperService.setSolidColor(color.toString())
     }
 
-    // Focus management
     Connections {
       target: root
       function onOpened() {
-        // Ensure contentItem is set
         if (!root.contentItem) {
           root.contentItem = panelContent;
         }
-        // Reset grid view selections
         for (var i = 0; i < screenRepeater.count; i++) {
           let item = screenRepeater.itemAt(i);
           if (item && item.gridView) {
@@ -223,7 +214,6 @@ SmartPanel {
         }
         panelContent.appearanceTabIndex = Settings.data.colorSchemes.darkMode ? 1 : 0;
         WallpaperService.wallpaperSelectionAppearance = panelContent.appearanceTabIndex === 1 ? "dark" : "light";
-        // Give initial focus to search input
         Qt.callLater(() => {
                        if (searchInput.inputItem) {
                          searchInput.inputItem.forceActiveFocus();
@@ -238,7 +228,6 @@ SmartPanel {
       interval: 150
       onTriggered: {
         panelContent.filterText = searchInput.text;
-        // Trigger update on all screen views
         for (var i = 0; i < screenRepeater.count; i++) {
           let item = screenRepeater.itemAt(i);
           if (item && item.updateFiltered) {
@@ -266,7 +255,6 @@ SmartPanel {
         }
       }
 
-      // Header
       NBox {
         Layout.fillWidth: true
         Layout.preferredHeight: headerColumn.implicitHeight + Style.margin2L
@@ -400,7 +388,6 @@ SmartPanel {
             }
           }
 
-          // Unified search input and source
           RowLayout {
             Layout.fillWidth: true
             spacing: Style.marginM
@@ -413,13 +400,11 @@ SmartPanel {
 
               property bool initializing: true
               Component.onCompleted: {
-                // Initialize text based on current mode
                 if (Settings.data.wallpaper.useWallhaven) {
                   searchInput.text = Settings.data.wallpaper.wallhavenQuery || "";
                 } else {
                   searchInput.text = panelContent.filterText || "";
                 }
-                // Give focus to search input
                 if (searchInput.inputItem && searchInput.inputItem.visible) {
                   searchInput.inputItem.forceActiveFocus();
                 }
@@ -432,7 +417,6 @@ SmartPanel {
               Connections {
                 target: Settings.data.wallpaper
                 function onUseWallhavenChanged() {
-                  // Update text when mode changes
                   if (Settings.data.wallpaper.useWallhaven) {
                     searchInput.text = Settings.data.wallpaper.wallhavenQuery || "";
                   } else {
@@ -583,14 +567,12 @@ SmartPanel {
                             }
                             var useWallhaven = (key === "wallhaven");
                             Settings.data.wallpaper.useWallhaven = useWallhaven;
-                            // Update search input text based on mode
                             if (useWallhaven) {
                               searchInput.text = Settings.data.wallpaper.wallhavenQuery || "";
                             } else {
                               searchInput.text = panelContent.filterText || "";
                             }
                             if (useWallhaven && typeof WallhavenService !== "undefined") {
-                              // Update service properties when switching to Wallhaven
                               // Don't search here - Component.onCompleted will handle it when the component is created
                               // This prevents duplicate searches
                               WallhavenService.categories = Settings.data.wallpaper.wallhavenCategories;
@@ -598,7 +580,6 @@ SmartPanel {
                               WallhavenService.sorting = Settings.data.wallpaper.wallhavenSorting;
                               WallhavenService.order = Settings.data.wallpaper.wallhavenOrder;
 
-                              // Update resolution settings
                               panelContent.updateWallhavenResolution();
 
                               // If the view is already initialized, trigger a new search when switching to it
@@ -644,7 +625,6 @@ SmartPanel {
 
           currentIndex: Settings.data.wallpaper.useWallhaven ? 1 : 0
 
-          // Local wallpapers
           StackLayout {
             id: screenStack
             currentIndex: currentScreenIndex
@@ -658,7 +638,6 @@ SmartPanel {
             }
           }
 
-          // Wallhaven wallpapers
           WallhavenView {
             id: wallhavenView
           }
@@ -667,25 +646,22 @@ SmartPanel {
     }
   }
 
-  // Component for each screen's wallpaper view
   component WallpaperScreenView: Item {
     id: wallpaperScreenView
     property var targetScreen
     property alias gridView: wallpaperGridView
 
-    // Local reactive state for this screen
     property list<string> wallpapersList: []
     property string currentWallpaper: ""
     property var filteredItems: [] // Combined list of { path, name, isDirectory }
-    property var wallpapersWithNames: [] // Cached basenames for files
-    property var directoriesList: [] // List of directories in browse mode
+    property var wallpapersWithNames: []
+    property var directoriesList: []
 
     // ListModel for the grid — enables animated reordering via move()
     ListModel {
       id: wallpaperModel
     }
 
-    // Browse mode properties
     property string currentBrowsePath: WallpaperService.getCurrentBrowsePath(targetScreen?.name ?? "")
     property bool isBrowseMode: Settings.data.wallpaper.viewMode === "browse"
     property int _browseScanGeneration: 0
@@ -722,7 +698,6 @@ SmartPanel {
         }
       }
 
-      // Add files
       for (var i = 0; i < wallpapersList.length; i++) {
         combinedItems.push({
                              "path": wallpapersList[i],
@@ -840,7 +815,6 @@ SmartPanel {
       }
       function onWallpaperDirectoryChanged(screenName, directory) {
         if (targetScreen !== null && screenName === targetScreen.name) {
-          // Reset browse path when root directory changes
           if (isBrowseMode) {
             WallpaperService.navigateToRoot(targetScreen.name);
           }
@@ -860,7 +834,7 @@ SmartPanel {
       }
       function onFavoritesChanged(path) {
         updateFiltered(true);   // recompute filteredItems but skip full model rebuild
-        handleFavoriteMove(path); // animate the item to its new position
+        handleFavoriteMove(path);
       }
     }
 
@@ -905,7 +879,6 @@ SmartPanel {
       }
     }
 
-    // Helper function to cycle view modes
     function cycleViewMode() {
       var mode = Settings.data.wallpaper.viewMode;
       if (mode === "single") {
@@ -917,7 +890,6 @@ SmartPanel {
       }
     }
 
-    // Helper function to get icon for current view mode
     function getViewModeIcon() {
       var mode = Settings.data.wallpaper.viewMode;
       if (mode === "single")
@@ -927,7 +899,6 @@ SmartPanel {
       return "folder-open";
     }
 
-    // Helper function to get tooltip for current view mode
     function getViewModeTooltip() {
       var mode = Settings.data.wallpaper.viewMode;
       var modeName;
@@ -944,12 +915,10 @@ SmartPanel {
       anchors.fill: parent
       spacing: Style.marginM
 
-      // Combined toolbar: navigation (left) + actions (right)
       RowLayout {
         Layout.fillWidth: true
         spacing: Style.marginS
 
-        // Left side: navigation (back, home, path)
         NIconButton {
           icon: "arrow-left"
           tooltipText: I18n.tr("wallpaper.browse.go-up")
@@ -1150,7 +1119,6 @@ SmartPanel {
 
               property real imageHeight: Math.round(wallpaperGridView.itemSize * 0.67)
 
-              // Directory display
               Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right
@@ -1175,7 +1143,6 @@ SmartPanel {
                 }
               }
 
-              // Image display (for non-directories)
               NImageRounded {
                 id: img
                 anchors.left: parent.left
@@ -1198,7 +1165,6 @@ SmartPanel {
                 imageFillMode: Image.PreserveAspectCrop
               }
 
-              // Loading/error state background (for non-directories)
               Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right
@@ -1250,7 +1216,6 @@ SmartPanel {
                 }
               }
 
-              // Favorite star button (top-left)
               Rectangle {
                 anchors.top: parent.top
                 anchors.left: parent.left
@@ -1429,7 +1394,6 @@ SmartPanel {
         }
       }
 
-      // Empty / scanning state
       Rectangle {
         color: Color.mSurface
         radius: Style.radiusM
@@ -1479,7 +1443,6 @@ SmartPanel {
     }
   }
 
-  // Component for Wallhaven wallpapers view
   component WallhavenView: Item {
     id: wallhavenViewRoot
     property alias gridView: wallhavenGridView
@@ -1507,7 +1470,6 @@ SmartPanel {
     }
 
     Component.onCompleted: {
-      // Initialize service properties and perform initial search if Wallhaven is active
       if (typeof WallhavenService !== "undefined" && Settings.data.wallpaper.useWallhaven && !initialized) {
         // Set flags immediately to prevent race conditions
         if (WallhavenService.initialSearchScheduled) {
@@ -1524,7 +1486,6 @@ SmartPanel {
         WallhavenService.sorting = Settings.data.wallpaper.wallhavenSorting;
         WallhavenService.order = Settings.data.wallpaper.wallhavenOrder;
 
-        // Initialize resolution settings
         var width = Settings.data.wallpaper.wallhavenResolutionWidth || "";
         var height = Settings.data.wallpaper.wallhavenResolutionHeight || "";
         var mode = Settings.data.wallpaper.wallhavenResolutionMode || "atleast";
@@ -1572,7 +1533,6 @@ SmartPanel {
           model: wallpapers || []
 
           onModelChanged: {
-            // Reset selection and scroll position when model changes
             currentIndex = -1;
             positionViewAtBeginning();
           }
@@ -1648,7 +1608,6 @@ SmartPanel {
                   imageFillMode: Image.PreserveAspectCrop
                 }
 
-                // Loading/error state background
                 Rectangle {
                   anchors.left: parent.left
                   anchors.right: parent.right
@@ -1756,7 +1715,6 @@ SmartPanel {
           }
         }
 
-        // Error overlay
         Rectangle {
           anchors.fill: parent
           color: Color.mSurface
@@ -1797,7 +1755,6 @@ SmartPanel {
           }
         }
 
-        // Empty state overlay
         Rectangle {
           anchors.fill: parent
           color: Color.mSurface
@@ -1839,7 +1796,6 @@ SmartPanel {
         }
       }
 
-      // Pagination
       RowLayout {
         Layout.fillWidth: true
         visible: errorMessage === "" && typeof WallhavenService !== "undefined"
@@ -1917,7 +1873,6 @@ SmartPanel {
       }
     }
 
-    // -------------------------------
     function wallhavenDownloadAndApply(wallpaper, targetScreen) {
       if (typeof WallhavenService !== "undefined") {
         WallhavenService.downloadWallpaper(wallpaper, function (success, localPath) {

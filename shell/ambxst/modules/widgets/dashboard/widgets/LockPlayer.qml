@@ -36,7 +36,6 @@ StyledRect {
         }
     }
 
-    // Blurred wallpaper background fallback
     ClippingRectangle {
         anchors.fill: parent
         radius: lockPlayer.radius
@@ -141,7 +140,6 @@ StyledRect {
         spacing: 16
         visible: MprisController.activePlayer || wallpaperPath !== ""
 
-        // Album artwork con botón de play/pause superpuesto
     Connections {
         target: MprisController
         function onActivePlayerChanged() {
@@ -206,7 +204,6 @@ StyledRect {
                 }
             }
 
-            // Botón de play/pause superpuesto (visible solo en hover)
             Text {
                 anchors.centerIn: parent
                 text: lockPlayer.isPlaying ? Icons.pause : Icons.play
@@ -238,13 +235,11 @@ StyledRect {
             }
         }
 
-        // Información de la pista y controles
         ColumnLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
             spacing: 4
 
-            // Título y artista
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 0
@@ -277,7 +272,6 @@ StyledRect {
                 }
             }
 
-            // Controles
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 8

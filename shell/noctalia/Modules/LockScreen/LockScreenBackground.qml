@@ -35,7 +35,6 @@ Item {
     }
   }
 
-  // Listen for wallpaper changes
   Connections {
     target: WallpaperService
     function onWallpaperChanged(screenName, path) {
@@ -45,7 +44,6 @@ Item {
     }
   }
 
-  // Listen for display scale changes
   Connections {
     target: CompositorService
     function onDisplayScalesChanged() {
@@ -60,7 +58,6 @@ Item {
       return;
     }
 
-    // Check for solid color mode first
     if (Settings.data.wallpaper.useSolidColor) {
       resolvedWallpaperPath = "";
       return;
@@ -72,7 +69,6 @@ Item {
       return;
     }
 
-    // Handle solid color paths
     if (WallpaperService.isSolidColorPath(originalPath)) {
       resolvedWallpaperPath = "";
       return;
@@ -128,7 +124,6 @@ Item {
       blurMax: 48
     }
 
-    // Tint overlay
     Rectangle {
       anchors.fill: parent
       color: root.tintColor
@@ -168,7 +163,6 @@ Item {
     property real cornerRadius: Style.screenRadius
     property real cornerSize: Style.screenRadius
 
-    // Top-left concave corner
     Canvas {
       anchors.top: parent.top
       anchors.left: parent.left
@@ -201,7 +195,6 @@ Item {
                          requestPaint()
     }
 
-    // Top-right concave corner
     Canvas {
       anchors.top: parent.top
       anchors.right: parent.right
@@ -234,7 +227,6 @@ Item {
                          requestPaint()
     }
 
-    // Bottom-left concave corner
     Canvas {
       anchors.bottom: parent.bottom
       anchors.left: parent.left
@@ -267,7 +259,6 @@ Item {
                          requestPaint()
     }
 
-    // Bottom-right concave corner
     Canvas {
       anchors.bottom: parent.bottom
       anchors.right: parent.right

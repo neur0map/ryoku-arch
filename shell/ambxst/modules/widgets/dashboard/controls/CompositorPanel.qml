@@ -63,10 +63,8 @@ Item {
         }
     }
 
-    // Available color names for color picker
     readonly property var colorNames: Colors.availableColorNames
 
-    // Color picker state
     property bool colorPickerActive: false
     property var colorPickerColorNames: []
     property string colorPickerCurrentColor: ""
@@ -74,11 +72,8 @@ Item {
     property var colorPickerCallback: null
 
     function openColorPicker(colorNames, currentColor, dialogTitle, callback) {
-        // Ensure colorNames is a valid array for QML
         colorPickerColorNames = colorNames;
-        // Ensure currentColor is a string
         colorPickerCurrentColor = currentColor.toString();
-        // Ensure dialogTitle is a string
         colorPickerDialogTitle = dialogTitle ? dialogTitle.toString() : "";
         colorPickerCallback = callback;
         colorPickerActive = true;
@@ -96,14 +91,12 @@ Item {
         colorPickerCurrentColor = color;
     }
 
-    // Inline component for toggle rows
     component ToggleRow: RowLayout {
         id: toggleRowRoot
         property string label: ""
         property bool checked: false
         signal toggled(bool value)
 
-        // Track if we're updating from external binding
         property bool _updating: false
 
         onCheckedChanged: {
@@ -172,7 +165,6 @@ Item {
         }
     }
 
-    // Inline component for number input rows
     component NumberInputRow: RowLayout {
         id: numberInputRowRoot
         property string label: ""
@@ -216,7 +208,6 @@ Item {
                     top: numberInputRowRoot.maxValue
                 }
 
-                // Sync text when external value changes
                 readonly property int configValue: numberInputRowRoot.value
                 onConfigValueChanged: {
                     if (!activeFocus && text !== configValue.toString()) {
@@ -244,7 +235,6 @@ Item {
         }
     }
 
-    // Inline component for decimal input rows
     component DecimalInputRow: RowLayout {
         id: decimalInputRowRoot
         property string label: ""
@@ -289,13 +279,12 @@ Item {
                     decimals: 2
                 }
 
-                // Sync text when external value changes
                 readonly property real configValue: decimalInputRowRoot.value
                 onConfigValueChanged: {
                     if (!activeFocus) {
                         // Check if roughly equal to avoid formatting loops
                         if (Math.abs(parseFloat(text) - configValue) > 0.001 || text === "")
-                            text = configValue.toFixed(1); // Default format
+                            text = configValue.toFixed(1);
                     }
                 }
                 Component.onCompleted: text = configValue.toFixed(1)
@@ -319,7 +308,6 @@ Item {
         }
     }
 
-    // Inline component for Border Gradients (Multi-color list)
     component BorderGradientRow: ColumnLayout {
         id: gradientRow
         property string label: ""
@@ -332,7 +320,6 @@ Item {
         Layout.fillWidth: true
         opacity: enabled ? 1.0 : 0.5
 
-        // Header
         RowLayout {
             Layout.fillWidth: true
             Text {
@@ -351,7 +338,6 @@ Item {
             }
         }
 
-        // Color List
         Flow {
             Layout.fillWidth: true
             spacing: 8
@@ -368,7 +354,6 @@ Item {
                     required property int index
                     required property var modelData
 
-                    // Swatch
                     Rectangle {
                         anchors.fill: parent
                         radius: width / 2
@@ -376,7 +361,6 @@ Item {
                         border.width: 2
                         border.color: parent.containsMouse ? Styling.srItem("overprimary") : Colors.outline
 
-                        // Inner check for visual depth
                         Rectangle {
                             anchors.centerIn: parent
                             width: parent.width - 4
@@ -389,7 +373,6 @@ Item {
                         }
                     }
 
-                    // Tooltip
                     StyledToolTip {
                         text: parent.modelData.toString()
                         visible: parent.containsMouse && !contextMenu.visible
@@ -397,14 +380,12 @@ Item {
 
                     onClicked: mouse => {
                         if (mouse.button === Qt.RightButton) {
-                            // Remove color (if more than 1)
                             if (gradientRow.colors.length > 1) {
                                 let newColors = [...gradientRow.colors];
                                 newColors.splice(index, 1);
                                 gradientRow.colorsEdited(newColors);
                             }
                         } else {
-                            // Edit color
                             root.openColorPicker(root.colorNames, modelData, gradientRow.dialogTitle, function (selectedColor) {
                                 let newColors = [...gradientRow.colors];
                                 newColors[index] = selectedColor;
@@ -437,7 +418,6 @@ Item {
                     hoverEnabled: true
                     onClicked: {
                         let newColors = [...gradientRow.colors];
-                        // Duplicate last color or default to primary
                         let colorToAdd = newColors.length > 0 ? newColors[newColors.length - 1] : "primary";
                         newColors.push(colorToAdd);
                         gradientRow.colorsEdited(newColors);
@@ -447,7 +427,6 @@ Item {
         }
     }
 
-    // Inline component for Compositor Tabs
     component CompositorTabButton: StyledRect {
         id: tabBtn
         property string label: ""
@@ -473,7 +452,6 @@ Item {
             anchors.centerIn: parent
             spacing: 8
 
-            // Image Icon (with effect)
             Image {
                 mipmap: true
                 visible: tabBtn.image !== ""
@@ -491,7 +469,6 @@ Item {
                 }
             }
 
-            // Font Icon
             Text {
                 visible: tabBtn.icon !== "" && tabBtn.image === ""
                 text: tabBtn.icon
@@ -500,7 +477,6 @@ Item {
                 color: tabBtn.item
             }
 
-            // Label
             Text {
                 text: tabBtn.label
                 font.family: Config.theme.font
@@ -511,7 +487,6 @@ Item {
         }
     }
 
-    // Main content
     Flickable {
         id: mainFlickable
         anchors.fill: parent
@@ -520,7 +495,6 @@ Item {
         boundsBehavior: Flickable.StopAtBounds
         interactive: !root.colorPickerActive
 
-        // Horizontal slide + fade animation
         opacity: root.colorPickerActive ? 0 : 1
         transform: Translate {
             x: root.colorPickerActive ? -30 : 0
@@ -547,7 +521,6 @@ Item {
             width: mainFlickable.width
             spacing: 8
 
-            // Header wrapper
             Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: titlebar.height
@@ -597,7 +570,6 @@ Item {
                 }
             }
 
-            // Tabs Switch
             Item {
                 visible: root.currentSection === ""
                 Layout.fillWidth: true
@@ -623,7 +595,6 @@ Item {
                 }
             }
 
-            // Stack for content
             Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: stackLayout.height
@@ -635,15 +606,11 @@ Item {
                     height: currentIndex === 0 ? compositorPage.implicitHeight : placeholderPage.implicitHeight
                     currentIndex: 0
 
-                    // ═══════════════════════════════════════════════════════════════
-                    // COMPOSITOR TAB
-                    // ═══════════════════════════════════════════════════════════════
                     ColumnLayout {
                         id: compositorPage
                         Layout.fillWidth: true
                         spacing: 16
 
-                        // Menu Section
                         ColumnLayout {
                             visible: root.currentSection === ""
                             Layout.fillWidth: true
@@ -667,7 +634,6 @@ Item {
                             }
                         }
 
-                        // General Section
                         ColumnLayout {
                             visible: root.currentSection === "general"
                             Layout.fillWidth: true
@@ -780,7 +746,6 @@ Item {
                             visible: false
                         }
 
-                        // Colors Section
                         ColumnLayout {
                             visible: root.currentSection === "colors"
                             Layout.fillWidth: true
@@ -804,7 +769,6 @@ Item {
                                 }
                             }
 
-                            // Active Border Color
                             BorderGradientRow {
                                 label: "Active Border"
                                 colors: Config.compositor.activeBorderColor || ["primary"]
@@ -816,7 +780,6 @@ Item {
                                 }
                             }
 
-                            // Inactive Border Color
                             BorderGradientRow {
                                 label: "Inactive Border"
                                 colors: Config.compositor.inactiveBorderColor || ["surface"]
@@ -833,7 +796,6 @@ Item {
                             visible: false
                         }
 
-                        // Shadows Section
                         ColumnLayout {
                             visible: root.currentSection === "shadows"
                             Layout.fillWidth: true
@@ -973,7 +935,6 @@ Item {
                             visible: false
                         }
 
-                        // Blur Section
                         ColumnLayout {
                             visible: root.currentSection === "blur"
                             Layout.fillWidth: true
@@ -1112,16 +1073,12 @@ Item {
                             }
                         }
 
-                        // Bottom Padding
                         Item {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 16
                         }
                     }
 
-                    // ═══════════════════════════════════════════════════════════════
-                    // COMING SOON TAB
-                    // ═══════════════════════════════════════════════════════════════
                     Item {
                         id: placeholderPage
                         Layout.fillWidth: true
@@ -1163,13 +1120,11 @@ Item {
         }
     }
 
-    // Color picker view (shown when colorPickerActive)
     Item {
         id: colorPickerContainer
         anchors.fill: parent
         clip: true
 
-        // Horizontal slide + fade animation (enters from right)
         opacity: root.colorPickerActive ? 1 : 0
         transform: Translate {
             x: root.colorPickerActive ? 0 : 30
@@ -1194,7 +1149,6 @@ Item {
         // Prevent interaction when hidden
         enabled: root.colorPickerActive
 
-        // Block interaction with elements behind when active
         MouseArea {
             anchors.fill: parent
             enabled: root.colorPickerActive

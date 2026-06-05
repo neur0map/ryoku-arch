@@ -17,7 +17,6 @@ Singleton {
   property int _crashCount: 0
   property int _maxCrashes: 5
 
-  // Manual schedule tracking
   property bool _manualNightPhase: false
 
   // Kill any stale wlsunset processes on startup to prevent issues after shell restart
@@ -33,7 +32,6 @@ Singleton {
       if (code === 0) {
         Logger.i("NightLight", "Killed stale wlsunset process from previous session");
       }
-      // Now apply the settings after cleanup
       root.apply();
     }
   }
@@ -151,7 +149,6 @@ Singleton {
       return;
     }
 
-    // Not in manual mode - clean up manual timer
     manualScheduleTimer.stop();
 
     var command = buildCommand();
@@ -186,12 +183,10 @@ Singleton {
     return cmd;
   }
 
-  // Observe setting changes and location readiness
   Connections {
     target: Settings.data.nightLight
     function onEnabledChanged() {
       apply();
-      // Toast: night light toggled
       const enabled = !!Settings.data.nightLight.enabled;
       ToastService.showNotice(I18n.tr("common.night-light"), enabled ? I18n.tr("common.enabled") : I18n.tr("common.disabled"), enabled ? "nightlight-on" : "nightlight-off");
     }
@@ -246,7 +241,6 @@ Singleton {
     }
   }
 
-  // Foreground process runner
   Process {
     id: runner
     running: false

@@ -6,57 +6,42 @@ import qs.ambxst.modules.theme
 Item {
     id: root
 
-    // =========================================================================
-    // API Properties
-    // =========================================================================
 
-    property real value: 0           // 0.0 to 1.0
-    property real startAngleDeg: 180 // 9 o'clock
-    property real spanAngleDeg: 180  // Clockwise sweep
+    property real value: 0
+    property real startAngleDeg: 180
+    property real spanAngleDeg: 180
     
     property color accentColor: Colors.primary
     property color trackColor: Colors.outline
     
     property real lineWidth: 6
-    property real ringPadding: 12    // Padding from edge
+    property real ringPadding: 12
     
     property bool enabled: true
-    property bool dashed: false      // Enable dashed style for progress
-    property bool dashedActive: false// Animate dashes (breathing/marquee)
+    property bool dashed: false
+    property bool dashedActive: false
     
-    // Wavy properties kept for compatibility (ignored in Shape version)
     property bool wavy: false
     property real waveAmplitude: 0
     property real waveFrequency: 0
 
-    // =========================================================================
-    // Signals
-    // =========================================================================
 
     signal valueEdited(real newValue)
     signal draggingChanged(bool dragging)
 
-    // =========================================================================
-    // Internal Logic
-    // =========================================================================
 
     readonly property bool isDragging: mouseArea.isDragging
     property real dragValue: 0
     
-    // Handle Animation
     property real animatedHandleOffset: isDragging ? 9 : 6
     property real animatedHandleWidth: isDragging ? lineWidth * 0.5 : lineWidth
     Behavior on animatedHandleOffset { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
     Behavior on animatedHandleWidth { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
 
-    // Dash Configuration (Matches CarouselProgress logic)
     property real dotSize: lineWidth
     property real baseDashLength: dotSize * 2.5
     property real targetSpacing: 6
     
-    // Dynamic Dash/Gap
-    // Active:   Dash = base, Gap = target
-    // Inactive: Dash = base + target, Gap = 0 (Solid)
     
     property real currentDashLen: dashedActive ? baseDashLength : (baseDashLength + targetSpacing)
     property real currentGapLen: dashedActive ? targetSpacing : 0
@@ -64,26 +49,22 @@ Item {
     Behavior on currentDashLen { NumberAnimation { duration: Config.animDuration; easing.type: Easing.InOutQuad } }
     Behavior on currentGapLen { NumberAnimation { duration: Config.animDuration; easing.type: Easing.InOutQuad } }
 
-    // Marquee Animation
     property real phase: 0
     readonly property real cycleLength: baseDashLength + targetSpacing
     
     NumberAnimation on phase {
         running: (root.dashedActive || root.wavy) && root.visible
         from: 0
-        to: -root.cycleLength // Move forward along path
-        duration: 1000 // Adjust speed
+        to: -root.cycleLength
+        duration: 1000
         loops: Animation.Infinite
     }
 
-    // Wave Animation
     property real wavePhase: 0
     
-    // Animate phase using a Timer to control framerate (30 FPS) for performance
-    // Full 60 FPS shape regeneration can be too heavy
     Timer {
         id: waveTimer
-        interval: 32 // ~30 FPS
+        interval: 32
         running: root.wavy && root.visible && (root.value > 0 || root.isDragging)
         repeat: true
         onTriggered: {
@@ -91,11 +72,9 @@ Item {
         }
     }
 
-    // Geometry Helpers
     readonly property real radius: (Math.min(width, height) / 2) - ringPadding
     readonly property real effectiveValue: isDragging ? dragValue : value
     
-    // Handle Position & Gaps
     property real handleSpacing: 10 
     
     readonly property real gapAngleRad: (handleSpacing / 2) / Math.max(1, radius)
@@ -103,19 +82,16 @@ Item {
     
     readonly property real currentAngleRad: (startAngleDeg + (spanAngleDeg * effectiveValue)) * Math.PI / 180
 
-    // Wavy Radius at Handle - Simplified for static wave
-    // Handle stays on track, does not follow wave
     readonly property real waveOffsetAtHandle: 0 
     readonly property real effectiveRadiusAtHandle: root.radius
 
-    // Generate Wavy Arc Points
     function generateWavyArcPoints(startDeg, endDeg, phase) {
         if (phase === undefined) phase = 0;
         
-        if (startDeg >= endDeg - 0.1) return []; // Too small or invalid
+        if (startDeg >= endDeg - 0.1) return [];
 
         let points = [];
-        let step = 0.5; // Smooth enough for static
+        let step = 0.5;
         
         let centerX = root.width / 2;
         let centerY = root.height / 2;
@@ -137,10 +113,7 @@ Item {
         return points;
     }
 
-    // =========================================================================
 
-    // Input Handling
-    // =========================================================================
 
     MouseArea {
         id: mouseArea
@@ -161,7 +134,6 @@ Item {
             let startRad = root.startAngleDeg * Math.PI / 180;
             let spanRad = root.spanAngleDeg * Math.PI / 180;
             
-            // Normalize angle relative to start
             let relAngle = angle - startRad;
             while (relAngle < 0) relAngle += 2 * Math.PI;
             
@@ -169,7 +141,6 @@ Item {
             if (relAngle <= spanRad) {
                 progress = relAngle / spanRad;
             } else {
-                // Snap to nearest end
                 let distToEnd = relAngle - spanRad;
                 let distToStart = 2 * Math.PI - relAngle;
                 progress = (distToEnd < distToStart) ? 1.0 : 0.0;
@@ -199,16 +170,12 @@ Item {
     }
 
 
-    // =========================================================================
-    // Rendering (QtQuick.Shapes)
-    // =========================================================================
 
     Shape {
         id: shapeRenderer
         anchors.fill: parent
         preferredRendererType: Shape.CurveRenderer
 
-        // 1. Progress Arc (Dashed or Solid) - NORMAL
         ShapePath {
             strokeColor: (!root.wavy) ? root.accentColor : "transparent"
             strokeWidth: root.lineWidth
@@ -235,7 +202,6 @@ Item {
             }
         }
 
-        // 1b. Progress Arc - WAVY
         ShapePath {
             strokeColor: root.wavy ? root.accentColor : "transparent"
             strokeWidth: root.lineWidth
@@ -260,12 +226,11 @@ Item {
                 path: root.generateWavyArcPoints(
                     root.startAngleDeg, 
                     root.startAngleDeg + Math.max(0, (root.spanAngleDeg * root.effectiveValue) - root.gapAngleDeg),
-                    root.wavePhase // Force dependency
+                    root.wavePhase
                 )
             }
         }
 
-        // 2. Track (Background) - NORMAL
         ShapePath {
             strokeColor: (!root.wavy) ? root.trackColor : "transparent"
             strokeWidth: root.lineWidth
@@ -284,9 +249,7 @@ Item {
             }
         }
 
-        // 2b. Track (Background) - WAVY
         ShapePath {
-            // Reverted to flat background per request
             strokeColor: root.wavy ? root.trackColor : "transparent"
             strokeWidth: root.lineWidth
             strokeStyle: ShapePath.SolidLine
@@ -304,7 +267,6 @@ Item {
             }
         }
         
-        // 3. Handle (Line)
         ShapePath {
             strokeColor: Colors.overBackground
             strokeWidth: root.animatedHandleWidth
@@ -313,9 +275,6 @@ Item {
             
             fillColor: "transparent"
             
-            // Line points
-            // Start: radius - offset
-            // End: radius + offset
             
             startX: (root.width / 2) + (root.effectiveRadiusAtHandle - root.animatedHandleOffset) * Math.cos(root.currentAngleRad)
             startY: (root.height / 2) + (root.effectiveRadiusAtHandle - root.animatedHandleOffset) * Math.sin(root.currentAngleRad)

@@ -3,7 +3,7 @@ import Quickshell
 import Quickshell.Wayland
 import qs.ambxst.modules.services
 import qs.ambxst.config
-import qs.ambxst.modules.bar.workspaces // For CompositorData
+import qs.ambxst.modules.bar.workspaces
 
 PanelWindow {
     id: screenCorners
@@ -25,14 +25,12 @@ PanelWindow {
         const activeWorkspaceId = monitor.activeWorkspace.id;
         const monId = monitor.id;
 
-        // Check active toplevel first (fast path)
         const toplevel = ToplevelManager.activeToplevel;
         if (toplevel && toplevel.fullscreen && AxctlService.focusedMonitor && AxctlService.focusedMonitor.id === monId) {
             activeWindowFullscreen = true;
             return;
         }
 
-        // Check all windows on this monitor (robust path)
         const wins = CompositorData.windowList;
         for (let i = 0; i < wins.length; i++) {
             if (wins[i].monitor === monId && wins[i].fullscreen && wins[i].workspace.id === activeWorkspaceId) {

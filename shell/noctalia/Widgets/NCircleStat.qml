@@ -4,7 +4,6 @@ import qs.noctalia.Commons
 import qs.noctalia.Services.UI
 import qs.noctalia.Widgets
 
-// Compact circular statistic display using Layout management
 Item {
   id: root
 
@@ -16,7 +15,6 @@ Item {
   property var tooltipText
   property string tooltipDirection: "top"
 
-  // Arc geometry constants
   readonly property real _gaugeSize: 60 * contentScale
   readonly property real _lineWidth: 6 * contentScale
   readonly property real _arcRadius: _gaugeSize / 2 - 5 * contentScale
@@ -73,7 +71,6 @@ Item {
     anchors.horizontalCenter: parent.horizontalCenter
     y: 0
 
-    // Optimized Canvas settings for better GPU performance
     renderStrategy: Canvas.Cooperative
     renderTarget: Canvas.FramebufferObject
 

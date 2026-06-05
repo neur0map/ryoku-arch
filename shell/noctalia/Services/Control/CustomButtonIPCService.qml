@@ -15,10 +15,8 @@ Singleton {
     Logger.i("CustomButtonIPCService", "Service started");
   }
 
-  // Registry to store references to active custom buttons by their user-defined identifier
   property var customButtonRegistry: ({})
 
-  // Register a custom button instance
   function registerButton(button) {
     if (!button || !button.ipcIdentifier) {
       Logger.w("CustomButtonIPCService", "Cannot register button without ipcIdentifier");
@@ -30,7 +28,6 @@ Singleton {
     return true;
   }
 
-  // Unregister a custom button instance
   function unregisterButton(button) {
     if (!button || !button.ipcIdentifier) {
       return false;
@@ -44,7 +41,6 @@ Singleton {
     return false;
   }
 
-  // Find a button by identifier
   function findButton(identifier) {
     return customButtonRegistry[identifier] || null;
   }
@@ -124,7 +120,6 @@ Singleton {
     });
   }
 
-  // IpcHandler for custom button commands using short alias 'cb'
   IpcHandler {
     target: "cb"
 

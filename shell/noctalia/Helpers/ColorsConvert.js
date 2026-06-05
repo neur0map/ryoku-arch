@@ -1,17 +1,14 @@
-// Convert hex color to HSL
 function hexToHSL(hex) {
   const rgb = hexToRgb(hex);
   if (!rgb) return null;
   return rgbToHsl(rgb.r, rgb.g, rgb.b);
 }
 
-// Convert HSL to hex color
 function hslToHex(h, s, l) {
   const rgb = hslToRgb(h, s, l);
   return rgbToHex(rgb.r, rgb.g, rgb.b);
 }
 
-// Convert hex color to RGB
 function hexToRgb(hex) {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result ? {
@@ -21,7 +18,6 @@ function hexToRgb(hex) {
   } : { r: 0, g: 0, b: 0 };
 }
 
-// Convert RGB to hex color
 function rgbToHex(r, g, b) {
   return "#" + [r, g, b].map(x => {
     const hex = Math.round(Math.max(0, Math.min(255, x))).toString(16);
@@ -29,7 +25,6 @@ function rgbToHex(r, g, b) {
   }).join("");
 }
 
-// Convert RGB to HSL
 function rgbToHsl(r, g, b) {
   r /= 255;
   g /= 255;
@@ -55,7 +50,6 @@ function rgbToHsl(r, g, b) {
   return { h: h * 360, s: s * 100, l: l * 100 };
 }
 
-// Convert HSL to RGB
 function hslToRgb(h, s, l) {
   h /= 360;
   s /= 100;
@@ -86,7 +80,6 @@ function hslToRgb(h, s, l) {
   return { r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255) };
 }
 
-// Convert RGB to HSV
 function rgbToHsv(r, g, b) {
   r /= 255;
   g /= 255;
@@ -114,7 +107,6 @@ function rgbToHsv(r, g, b) {
   return { h: h * 360, s: s * 100, v: v * 100 };
 }
 
-// Convert HSV to RGB
 function hsvToRgb(h, s, v) {
   h /= 360;
   s /= 100;
@@ -173,7 +165,6 @@ function getLuminance(hex) {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
-// Calculate contrast ratio between two colors
 function getContrastRatio(hex1, hex2) {
   const lum1 = getLuminance(hex1);
   const lum2 = getLuminance(hex2);
@@ -182,26 +173,22 @@ function getContrastRatio(hex1, hex2) {
   return (brightest + 0.05) / (darkest + 0.05);
 }
 
-// Check if a color is considered "light"
 function isLightColor(hex) {
   return getLuminance(hex) > 0.5;
 }
 
-// Adjust color lightness
 function adjustLightness(hex, amount) {
   const hsl = hexToHSL(hex);
   hsl.l = Math.max(0, Math.min(100, hsl.l + amount));
   return hslToHex(hsl.h, hsl.s, hsl.l);
 }
 
-// Adjust color saturation
 function adjustSaturation(hex, amount) {
   const hsl = hexToHSL(hex);
   hsl.s = Math.max(0, Math.min(100, hsl.s + amount));
   return hslToHex(hsl.h, hsl.s, hsl.l);
 }
 
-// Adjust both lightness and saturation
 function adjustLightnessAndSaturation(hex, lightnessAmount, saturationAmount) {
   const hsl = hexToHSL(hex);
   hsl.l = Math.max(0, Math.min(100, hsl.l + lightnessAmount));
@@ -215,20 +202,16 @@ function generateOnColor(baseColor, isDarkMode) {
   
   // If base is light, we need dark text; if base is dark, we need light text
   if (isBaseLight) {
-    // Try darker variants
     let testColor = "#000000";
     if (getContrastRatio(baseColor, testColor) >= 4.5) {
       return testColor;
     }
-    // Fallback to dark gray
     return "#1c1b1f";
   } else {
-    // Try lighter variants
     let testColor = "#ffffff";
     if (getContrastRatio(baseColor, testColor) >= 4.5) {
       return testColor;
     }
-    // Fallback to light gray
     return "#e6e1e5";
   }
 }

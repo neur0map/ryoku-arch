@@ -28,12 +28,9 @@ Item {
         onTriggered: root.currentDate = new Date()
     }
 
-    // Helper function to get localized day abbreviation
     function getDayAbbrev(dayIndex) {
-        // Create a date for a known Monday (e.g., 2024-01-01 was a Monday)
         var d = new Date(2024, 0, 1 + dayIndex);
         var dayName = d.toLocaleDateString(Qt.locale(), "ddd");
-        // Capitalize first letter and limit to 2 chars
         return (dayName.charAt(0).toUpperCase() + dayName.slice(1, 2)).replace(".", "");
     }
 

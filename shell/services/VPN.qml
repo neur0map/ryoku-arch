@@ -129,7 +129,6 @@ Singleton {
             authUrl: ""
         };
 
-        // Handle empty or whitespace-only output
         if (!output || output.trim().length === 0) {
             return status;
         }

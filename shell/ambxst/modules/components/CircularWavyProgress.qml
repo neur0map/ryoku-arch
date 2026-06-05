@@ -3,26 +3,21 @@ import QtQuick
 Item {
     id: root
     
-    // -- Geometry (Normalized 0.0 - 1.0 relative to width/height) --
     property real radius: 0.45
-    property real startAngleRad: Math.PI // Default 180 deg (left side)
-    property real progressAngleRad: Math.PI // Default 180 deg span
+    property real startAngleRad: Math.PI
+    property real progressAngleRad: Math.PI
     
-    // -- Wave --
-    property real amplitude: 0.01  // Normalized to radius
+    property real amplitude: 0.01
     property real frequency: 20
     property real phase: 0.0
-    property real thickness: 0.02  // Normalized stroke width
+    property real thickness: 0.02
     property color color: "white"
     
-    // -- Animation control --
     property bool animating: false
-    property real animationSpeed: 1.0 // Radians per second
+    property real animationSpeed: 1.0
     
-    // Effective running state
     readonly property bool shouldAnimate: animating && visible && opacity > 0 && width > 0
     
-    // Internal computed values
     readonly property real centerX: width / 2
     readonly property real centerY: height / 2
     readonly property real baseRadius: Math.min(width, height) * radius
@@ -31,7 +26,6 @@ Item {
     
     property real _phase: phase
     
-    // Animation timer - only runs when shouldAnimate
     Timer {
         id: animTimer
         interval: 50
@@ -44,7 +38,6 @@ Item {
         }
     }
     
-    // Sync internal phase with external when not animating
     onPhaseChanged: if (!shouldAnimate) { _phase = phase; _updateStatic(); }
 
     // =========================================================================
@@ -107,9 +100,6 @@ Item {
         }
     }
 
-    // =========================================================================
-    // Canvas - only visible during animation
-    // =========================================================================
     Canvas {
         id: canvas
         anchors.fill: parent

@@ -541,13 +541,11 @@ Item {
                 animatedPercentage = currentDisk.perc;
         }
 
-        // Update diskCount and animatedPercentage when disks data changes
         Connections {
             function onDisksChanged() {
                 if (SystemUsage.disks.length !== storageGaugeCard.diskCount)
                     storageGaugeCard.diskCount = SystemUsage.disks.length;
 
-                // Update animated percentage when disk data refreshes
                 if (storageGaugeCard.currentDisk)
                     storageGaugeCard.animatedPercentage = storageGaugeCard.currentDisk.perc;
             }

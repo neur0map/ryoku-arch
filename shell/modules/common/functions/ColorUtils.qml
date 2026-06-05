@@ -340,7 +340,6 @@ Singleton {
         var main = Qt.color(mainTextColor);
         var bg = Qt.color(bgColor);
         
-        // Mix towards background to create dimmed effect
         var dimmed = mix(main, bg, dimFactor);
         
         // Ensure it's still readable (WCAG AA for large text is 3:1)

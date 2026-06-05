@@ -127,7 +127,6 @@ ScrollBar {
             else if (event.angleDelta.y < 0)
                 newPos = Math.min(1 - root.size, root.nonAnimPosition + 0.1);
             root.nonAnimPosition = newPos;
-            // Update flickable position
             // Map scrollbar position [0, 1-size] to contentY [0, maxContentY]
             if (root.flickable) {
                 const contentHeight = root.flickable.contentHeight;
@@ -149,7 +148,6 @@ ScrollBar {
             root._updatingFromUser = true;
             const newPos = Math.max(0, Math.min(1 - root.size, event.y / root.height - root.size / 2));
             root.nonAnimPosition = newPos;
-            // Update flickable position
             // Map scrollbar position [0, 1-size] to contentY [0, maxContentY]
             if (root.flickable) {
                 const contentHeight = root.flickable.contentHeight;
@@ -167,7 +165,6 @@ ScrollBar {
             root._updatingFromUser = true;
             const newPos = Math.max(0, Math.min(1 - root.size, event.y / root.height - root.size / 2));
             root.nonAnimPosition = newPos;
-            // Update flickable position
             // Map scrollbar position [0, 1-size] to contentY [0, maxContentY]
             if (root.flickable) {
                 const contentHeight = root.flickable.contentHeight;

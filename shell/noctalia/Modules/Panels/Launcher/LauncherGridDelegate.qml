@@ -48,12 +48,10 @@ Item {
 
       // Icon badge or Image preview or Emoji
       Item {
-        // Size image at 65% of cell dimensions.
         Layout.preferredWidth: Math.round(gridEntry.width * 0.65)
         Layout.preferredHeight: Math.round(gridEntry.height * 0.65)
         Layout.alignment: Qt.AlignHCenter
 
-        // Icon background
         Rectangle {
           anchors.fill: parent
           radius: Style.radiusM
@@ -71,7 +69,6 @@ Item {
           // Use provider's image revision for reactive updates
           readonly property int _rev: modelData.provider && modelData.provider.imageRevision ? modelData.provider.imageRevision : 0
 
-          // Get image URL from provider
           imagePath: {
             _rev;
             var provider = modelData.provider;
@@ -133,7 +130,6 @@ Item {
           }
         }
 
-        // String display
         NText {
           id: gridStringDisplay
           anchors.centerIn: parent
@@ -163,7 +159,6 @@ Item {
           color: modelData.displayString ? Color.mOnSurface : Color.mOnPrimary
         }
 
-        // Badge icon overlay (generic indicator for any provider)
         Rectangle {
           visible: !!modelData.badgeIcon
           anchors.bottom: parent.bottom

@@ -10,14 +10,12 @@ ColumnLayout {
   spacing: Style.marginM
   width: 700
 
-  // Properties to receive data from parent
   property var screen: null
   property var widgetData: null
   property var widgetMetadata: null
 
   signal settingsChanged(var settings)
 
-  // Local state
   property string valueIconColor: widgetData.iconColor !== undefined ? widgetData.iconColor : widgetMetadata.iconColor
 
   function saveSettings() {

@@ -13,14 +13,12 @@ import qs.noctalia.Services.Media
 import qs.noctalia.Services.UI
 import qs.noctalia.Widgets
 
-// Bar Component
 Item {
   id: root
 
   // This property will be set by MainScreen
   property ShellScreen screen: null
 
-  // Filter widgets to only include those that exist in the registry
   // This prevents errors when plugins are missing or widgets are being cleaned up
   function filterValidWidgets(widgets: list<var>): list<var> {
     if (!widgets)
@@ -69,7 +67,6 @@ Item {
   readonly property bool barIsVertical: barPosition === "left" || barPosition === "right"
   readonly property bool barFloating: Settings.data.bar.barType === "floating"
 
-  // Bar density (per-screen)
   readonly property string barDensity: Settings.getBarDensityForScreen(screen?.name)
 
   // Bar sizing based on per-screen density
@@ -96,13 +93,11 @@ Item {
   function syncWidgetModel(model, newWidgets) {
     var validWidgets = filterValidWidgets(newWidgets);
 
-    // Build list of current IDs in model
     var currentIds = [];
     for (var i = 0; i < model.count; i++) {
       currentIds.push(model.get(i).id);
     }
 
-    // Build list of new IDs
     var newIds = validWidgets.map(w => w.id);
 
     // Check if structure changed (different IDs or order)
@@ -171,10 +166,8 @@ Item {
     }
   }
 
-  // Fill the parent (the Loader)
   anchors.fill: parent
 
-  // Register bar when screen becomes available
   onScreenChanged: {
     if (screen && screen.name) {
       Logger.d("Bar", "Bar screen set to:", screen.name);
@@ -200,11 +193,9 @@ Item {
     sourceComponent: Item {
       anchors.fill: parent
 
-      // Bar container - Content
       Item {
         id: bar
 
-        // Wheel scroll handling (empty bar area)
         property int barWheelAccumulatedDelta: 0
         property bool barWheelCooldown: false
         readonly property string barWheelAction: {
@@ -218,7 +209,6 @@ Item {
         width: root.barIsVertical ? root.barHeight : parent.width
         height: root.barIsVertical ? parent.height : root.barHeight
 
-        // Corner states for new unified background system
         // State -1: No radius (flat/square corner)
         // State 0: Normal (inner curve)
         // State 1: Horizontal inversion (outer curve on X-axis)
@@ -447,7 +437,6 @@ Item {
           }
         }
 
-        // Scroll on empty bar area action
         WheelHandler {
           id: barWheelHandler
           target: bar
@@ -510,7 +499,6 @@ Item {
     }
   }
 
-  // For vertical bars
   Component {
     id: verticalBarComponent
     Item {
@@ -552,7 +540,6 @@ Item {
       // Calculate margin to center widgets vertically within the bar height
       readonly property real verticalBarMargin: Math.round((root.barHeight - root.capsuleHeight) / 2)
 
-      // Top section (left widgets)
       ColumnLayout {
         x: Style.pixelAlignCenter(parent.width, width)
         anchors.top: parent.top
@@ -578,7 +565,6 @@ Item {
         }
       }
 
-      // Center section (center widgets)
       ColumnLayout {
         x: Style.pixelAlignCenter(parent.width, width)
         anchors.verticalCenter: parent.verticalCenter
@@ -603,7 +589,6 @@ Item {
         }
       }
 
-      // Bottom section (right widgets)
       ColumnLayout {
         x: Style.pixelAlignCenter(parent.width, width)
         anchors.bottom: parent.bottom
@@ -631,7 +616,6 @@ Item {
     }
   }
 
-  // For horizontal bars
   Component {
     id: horizontalBarComponent
     Item {
@@ -673,7 +657,6 @@ Item {
       // Calculate margin to center widgets horizontally within the bar height
       readonly property real horizontalBarMargin: Math.round((root.barHeight - root.capsuleHeight) / 2)
 
-      // Left Section
       RowLayout {
         id: leftSection
         objectName: "leftSection"
@@ -701,7 +684,6 @@ Item {
         }
       }
 
-      // Center Section
       RowLayout {
         id: centerSection
         objectName: "centerSection"
@@ -728,7 +710,6 @@ Item {
         }
       }
 
-      // Right Section
       RowLayout {
         id: rightSection
         objectName: "rightSection"

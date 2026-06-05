@@ -21,7 +21,6 @@ Singleton {
     loadFontsViaFcList();
   }
 
-  // Load all fonts using fc-list in background - no main thread blocking
   function loadFontsViaFcList() {
     if (isLoading)
       return;
@@ -30,7 +29,6 @@ Singleton {
   }
 
   function populateModels(allFontsText, monoFontsText) {
-    // Parse monospace fonts into a lookup set
     // fc-list returns comma-separated family names for fonts with multiple families
     var monoLookup = {};
     var monoLines = monoFontsText.split('\n');
@@ -46,9 +44,8 @@ Singleton {
       }
     }
 
-    // Parse all fonts - split comma-separated family names
     var allLines = allFontsText.split('\n');
-    var fontSet = {}; // Deduplicate font families
+    var fontSet = {};
 
     for (var j = 0; j < allLines.length; j++) {
       var line = allLines[j].trim();
@@ -63,12 +60,10 @@ Singleton {
       }
     }
 
-    // Sort font names
     var sortedFonts = Object.keys(fontSet).sort(function (a, b) {
       return a.localeCompare(b);
     });
 
-    // Build arrays for batch insert
     var allBatch = [];
     var monoBatch = [];
 
@@ -80,13 +75,11 @@ Singleton {
       };
       allBatch.push(fontObj);
 
-      // Check if monospace
       if (monoLookup[name] || name.toLowerCase().includes("mono")) {
         monoBatch.push(fontObj);
       }
     }
 
-    // Clear and populate models (single batch operation)
     availableFonts.clear();
     monospaceFonts.clear();
 
@@ -109,7 +102,6 @@ Singleton {
     Logger.i("Font", "Loaded", availableFonts.count, "fonts,", monospaceFonts.count, "monospace");
   }
 
-  // Temporary storage for process outputs
   property string _allFontsOutput: ""
   property string _monoFontsOutput: ""
   property bool _allFontsDone: false
@@ -118,7 +110,6 @@ Singleton {
   function checkBothProcessesDone() {
     if (_allFontsDone && _monoFontsDone) {
       populateModels(_allFontsOutput, _monoFontsOutput);
-      // Clear temp storage
       _allFontsOutput = "";
       _monoFontsOutput = "";
       _allFontsDone = false;
@@ -126,7 +117,6 @@ Singleton {
     }
   }
 
-  // Process to get all font families (runs in background)
   Process {
     id: allFontsProcess
     command: ["fc-list", "--format", "%{family}\\n"]
@@ -142,7 +132,6 @@ Singleton {
 
     onRunningChanged: {
       if (running) {
-        // Start mono fonts process in parallel
         monoFontsProcess.running = true;
       }
     }
@@ -157,7 +146,6 @@ Singleton {
     }
   }
 
-  // Process to get monospace font families (runs in background, parallel)
   Process {
     id: monoFontsProcess
     command: ["fc-list", ":mono", "--format", "%{family}\\n"]

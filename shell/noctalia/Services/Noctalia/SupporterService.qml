@@ -107,7 +107,6 @@ Singleton {
       var supporter = supporters[i];
       var username = supporter.github_username;
 
-      // Only cache avatars for supporters with GitHub accounts
       if (!username)
         continue;
 

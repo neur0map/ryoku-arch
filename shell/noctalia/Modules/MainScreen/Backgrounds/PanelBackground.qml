@@ -28,7 +28,6 @@ ShapePath {
   // Default background color (used if panel doesn't specify one)
   property color defaultBackgroundColor: Color.mSurface
 
-  // Corner radius (from Style)
   readonly property real radius: Style.radiusL
 
   // Get panel's panelRegion (geometry placeholder)
@@ -63,7 +62,6 @@ ShapePath {
   // that crash qTriangulate in CurveRenderer. 0.01px is sub-pixel and invisible.
   readonly property real _minR: 0.01
 
-  // Helper function for getting corner radius based on state
   function getCornerRadius(cornerState) {
     // State -1 = flat corner — use minimum safe radius instead of 0
     // to prevent degenerate PathArc (zero displacement + zero radius)
@@ -90,7 +88,6 @@ ShapePath {
   readonly property real blMultY: panelBg ? ShapeCornerHelper.getMultY(panelBg.bottomLeftCornerState) : 1
   readonly property real blRadius: panelBg ? getCornerRadius(panelBg.bottomLeftCornerState) : 0
 
-  // ShapePath configuration
   strokeWidth: -1 // No stroke, fill only
 
   // Start point - use tiny off-screen non-degenerate fallback when not renderable.
@@ -101,8 +98,6 @@ ShapePath {
 
   fillColor: isRenderable ? effectiveBackgroundColor : "transparent"
 
-  // ========== PATH DEFINITION ==========
-  // Draws a rectangle with potentially inverted corners
   // All coordinates are relative to startX/startY
 
   // Top edge (moving right)
@@ -111,7 +106,6 @@ ShapePath {
     relativeY: 0
   }
 
-  // Top-right corner arc
   PathArc {
     relativeX: root.isRenderable ? (root.trRadius * root.trMultX) : 0
     relativeY: root.isRenderable ? (root.trRadius * root.trMultY) : 0.25
@@ -126,7 +120,6 @@ ShapePath {
     relativeY: root.isRenderable ? (root.panelHeight - root.trRadius * root.trMultY - root.brRadius * root.brMultY) : 0.75
   }
 
-  // Bottom-right corner arc
   PathArc {
     relativeX: root.isRenderable ? (-root.brRadius * root.brMultX) : -0.25
     relativeY: root.isRenderable ? (root.brRadius * root.brMultY) : 0
@@ -141,7 +134,6 @@ ShapePath {
     relativeY: 0
   }
 
-  // Bottom-left corner arc
   PathArc {
     relativeX: root.isRenderable ? (-root.blRadius * root.blMultX) : 0
     relativeY: root.isRenderable ? (-root.blRadius * root.blMultY) : -0.25

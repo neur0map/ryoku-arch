@@ -8,7 +8,6 @@ import qs.noctalia.Widgets
 Rectangle {
   id: root
 
-  // Public properties
   property string text: ""
   property string icon: ""
   property var tooltipText
@@ -18,12 +17,10 @@ Rectangle {
   property bool isFirst: false
   property bool isLast: false
 
-  // Internal state
   property bool isHovered: false
 
   signal clicked
 
-  // Sizing
   Layout.fillHeight: true
   implicitWidth: contentLayout.implicitWidth + Style.margin2M
 
@@ -44,7 +41,6 @@ Rectangle {
     }
   }
 
-  // Content
   RowLayout {
     id: contentLayout
     anchors.centerIn: parent
@@ -88,7 +84,6 @@ Rectangle {
     }
   }
 
-  // Tooltip
   Timer {
     id: tooltipTimer
     interval: 500

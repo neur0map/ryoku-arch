@@ -7,7 +7,6 @@ import qs.noctalia.Widgets
 NCollapsible {
   id: root
 
-  // Public API
   property var tags: []  // Array of tag strings
   property string selectedTag: ""
   property alias label: root.label
@@ -18,7 +17,6 @@ NCollapsible {
   property var formatTag: function (tag) {
     if (tag === "")
       return I18n.tr("launcher.categories.all");
-    // Default: capitalize first letter
     return tag.charAt(0).toUpperCase() + tag.slice(1);
   }
 

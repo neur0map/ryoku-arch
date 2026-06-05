@@ -40,7 +40,6 @@ Singleton {
         applyScheme(Settings.data.colorSchemes.predefinedScheme);
       }
       root.pushSystemColorScheme();
-      // Toast: dark/light mode switched
       const enabled = !!Settings.data.colorSchemes.darkMode;
       const label = enabled ? I18n.tr("tooltips.switch-to-dark-mode") : I18n.tr("tooltips.switch-to-light-mode");
       const description = I18n.tr("common.enabled");
@@ -48,7 +47,6 @@ Singleton {
     }
   }
 
-  // --------------------------------
   function init() {
     // does nothing but ensure the singleton is created
     // do not remove
@@ -60,10 +58,7 @@ Singleton {
     Logger.d("ColorScheme", "Load colorScheme");
     scanning = true;
     schemes = [];
-    // Use find command to locate all scheme.json files in both directories
-    // First ensure the downloaded schemes directory exists
     Quickshell.execDetached(["mkdir", "-p", downloadedSchemesDirectory]);
-    // Find in both preinstalled and downloaded directories
     findProcess.command = ["find", "-L", schemesDirectory, downloadedSchemesDirectory, "-mindepth", "2", "-name", "*.json", "-type", "f"];
     findProcess.running = true;
   }
@@ -72,10 +67,8 @@ Singleton {
     if (!path)
       return "";
     var chunks = path.split("/");
-    // Get the filename without extension
     var filename = chunks[chunks.length - 1];
     var schemeName = filename.replace(".json", "");
-    // Convert back to display names for special cases
     if (schemeName === "Noctalia-default") {
       return "Ryoku (default)"; // RYOKU: display name rebranded; file key stays Noctalia-default
     } else if (schemeName === "Noctalia-legacy") {
@@ -94,7 +87,6 @@ Singleton {
     if (nameOrPath.indexOf("/") !== -1) {
       return nameOrPath;
     }
-    // Handle special cases for Noctalia schemes
     var schemeName = nameOrPath.replace(".json", "");
     if (schemeName === "Ryoku (default)" || schemeName === "Noctalia (default)") {
       schemeName = "Noctalia-default"; // RYOKU: accept both new + legacy display names
@@ -105,10 +97,8 @@ Singleton {
     } else if (schemeName === "Rose Pine") {
       schemeName = "Rosepine";
     }
-    // Check preinstalled directory first, then downloaded directory
     var preinstalledPath = schemesDirectory + "/" + schemeName + "/" + schemeName + ".json";
     var downloadedPath = downloadedSchemesDirectory + "/" + schemeName + "/" + schemeName + ".json";
-    // Try to find the scheme in the loaded schemes list to determine which directory it's in
     for (var i = 0; i < schemes.length; i++) {
       if (schemes[i].indexOf("/" + schemeName + "/") !== -1 || schemes[i].indexOf("/" + schemeName + ".json") !== -1) {
         return schemes[i];
@@ -131,7 +121,6 @@ Singleton {
     var resolvedPath = resolveSchemePath(schemeName);
     var basename = getBasename(schemeName);
 
-    // Check if the scheme actually exists in the loaded schemes list
     var schemeExists = false;
     for (var i = 0; i < schemes.length; i++) {
       if (getBasename(schemes[i]) === basename) {
@@ -168,7 +157,6 @@ Singleton {
         schemes = files;
         scanning = false;
         Logger.d("ColorScheme", "Listed", schemes.length, "schemes");
-        // Normalize stored scheme to basename and re-apply if necessary
         var stored = Settings.data.colorSchemes.predefinedScheme;
         if (stored) {
           var basename = getBasename(stored);
@@ -190,14 +178,12 @@ Singleton {
     stderr: StdioCollector {}
   }
 
-  // Internal loader to read a scheme file
   FileView {
     id: schemeReader
     onLoaded: {
       try {
         var data = JSON.parse(text());
         var variant = data;
-        // If scheme provides dark/light variants, pick based on settings
         if (data && (data.dark || data.light)) {
           if (Settings.data.colorSchemes.darkMode) {
             variant = data.dark || data.light;
@@ -209,7 +195,6 @@ Singleton {
         lastPredefinedSchemeData = data;
         Logger.i("ColorScheme", "Applying color scheme:", getBasename(path));
 
-        // Generate templates for predefined color schemes
         if (hasEnabledTemplates() || Settings.data.templates.enableUserTheming) {
           AppThemeService.generateFromPredefinedScheme(data);
         }
@@ -219,7 +204,6 @@ Singleton {
     }
   }
 
-  // Check if any templates are enabled
   function hasEnabledTemplates() {
     const activeTemplates = Settings.data.templates.activeTemplates;
     if (!activeTemplates || activeTemplates.length === 0) {
@@ -233,7 +217,6 @@ Singleton {
     return false;
   }
 
-  // Writer to colors.json using a JsonAdapter for safety
   FileView {
     id: colorsWriter
     path: colorsJsonFilePath

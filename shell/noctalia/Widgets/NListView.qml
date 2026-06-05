@@ -32,7 +32,6 @@ Item {
   // Available width for content (excludes scrollbar space when reserveScrollbarSpace is true)
   readonly property real availableWidth: width - (reserveScrollbarSpace ? handleWidth + Style.marginXS : 0)
 
-  // Forward ListView properties
   property alias model: listView.model
   property alias delegate: listView.delegate
   property alias spacing: listView.spacing
@@ -114,7 +113,6 @@ Item {
     wheelScrollAnimation.restart();
   }
 
-  // Forward ListView methods
   function positionViewAtIndex(index, mode) {
     const shouldAnimate = mode === ListView.Contain;
     if (!shouldAnimate) {
@@ -177,7 +175,6 @@ Item {
     return listView.itemAtIndex(index);
   }
 
-  // Set reasonable implicit sizes for Layout usage
   implicitWidth: 200
   implicitHeight: 200
 
@@ -186,7 +183,6 @@ Item {
     createGradients();
   }
 
-  // Dynamically create gradient overlays
   function createGradients() {
     if (!showGradientMasks)
       return;

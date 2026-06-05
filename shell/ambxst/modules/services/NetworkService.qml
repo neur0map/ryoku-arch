@@ -178,7 +178,6 @@ Singleton {
         Quickshell.execDetached(["xdg-open", "https://nmcheck.gnome.org/"]);
     }
 
-    // WiFi icon by strength
     function wifiIconForStrength(strength: int): string {
         if (strength > 80) return Icons.wifiHigh;
         if (strength > 55) return Icons.wifiMedium;
@@ -187,7 +186,6 @@ Singleton {
         return Icons.wifiOff;
     }
 
-    // Update status
     Timer {
         id: updateDebouncer
         interval: 200
@@ -202,9 +200,6 @@ Singleton {
     function performUpdate() {
         if (isUpdating) return;
         
-        // Skip/delay updates if UI closed
-        // nmcli monitor is event-based; safe to run.
-        // Optimization: Only update signal strength when UI open
         const uiOpen = GlobalStates.dashboardOpen || GlobalStates.launcherOpen || GlobalStates.overviewOpen;
         
         isUpdating = true;
@@ -367,8 +362,6 @@ Singleton {
                 const wifiNetworksData = Array.from(networkMap.values());
                 const rNetworks = root.wifiNetworks;
 
-                // Sync with new data
-                // 1. Remove gone networks
                 for (let i = rNetworks.length - 1; i >= 0; i--) {
                     const rn = rNetworks[i];
                     const found = wifiNetworksData.find(n => n.frequency === rn.frequency && n.ssid === rn.ssid && n.bssid === rn.bssid);
@@ -378,7 +371,6 @@ Singleton {
                     }
                 }
 
-                // 2. Add/update networks
                 for (let i = 0; i < wifiNetworksData.length; i++) {
                     const data = wifiNetworksData[i];
                     const existing = rNetworks.find(n => n.frequency === data.frequency && n.ssid === data.ssid && n.bssid === data.bssid);

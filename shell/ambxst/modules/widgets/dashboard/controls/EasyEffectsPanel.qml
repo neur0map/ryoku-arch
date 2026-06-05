@@ -19,7 +19,6 @@ Item {
     readonly property int contentWidth: Math.min(width, maxContentWidth)
     readonly property real sideMargin: (width - contentWidth) / 2
 
-    // Presets section - fills entire width for scroll/drag
     Flickable {
         id: mainFlickable
         anchors.fill: parent
@@ -31,7 +30,6 @@ Item {
             width: mainFlickable.width
             spacing: 8
 
-            // Header wrapper
             Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: titlebar.height
@@ -71,7 +69,6 @@ Item {
                 }
             }
 
-            // Content wrapper - centered
             Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: presetsColumn.implicitHeight
@@ -82,7 +79,6 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     spacing: 12
 
-                    // Not available state
                     Text {
                         visible: !EasyEffectsService.available
                         text: "EasyEffects not installed"
@@ -93,7 +89,6 @@ Item {
                         Layout.topMargin: 32
                     }
 
-                    // Output presets
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 4
@@ -141,7 +136,6 @@ Item {
                                             }
                                         }
 
-                                        // Icon with reveal animation
                                         Item {
                                             width: presetButton.isActive ? presetIcon.implicitWidth : 0
                                             height: presetIcon.implicitHeight
@@ -190,7 +184,6 @@ Item {
                         }
                     }
 
-                    // Input presets
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 4
@@ -238,7 +231,6 @@ Item {
                                             }
                                         }
 
-                                        // Icon with reveal animation
                                         Item {
                                             width: inputPresetButton.isActive ? inputPresetIcon.implicitWidth : 0
                                             height: inputPresetIcon.implicitHeight
@@ -287,7 +279,6 @@ Item {
                         }
                     }
 
-                    // Empty state
                     Text {
                         visible: EasyEffectsService.available && EasyEffectsService.outputPresets.length === 0 && EasyEffectsService.inputPresets.length === 0
                         text: "No presets configured"
@@ -298,7 +289,6 @@ Item {
                         Layout.topMargin: 16
                     }
 
-                    // Current status
                     ColumnLayout {
                         Layout.fillWidth: true
                         Layout.topMargin: 16

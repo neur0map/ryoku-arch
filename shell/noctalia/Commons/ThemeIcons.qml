@@ -97,7 +97,6 @@ Singleton {
     return iconFromName(appId, fallback);
   }
 
-  // Robust lookup strategy
   function findAppEntry(str) {
     if (!str || str.length === 0)
       return null;
@@ -145,7 +144,6 @@ Singleton {
     }
   }
 
-  // --- Lookup Helpers ---
 
   function checkHeuristic(str) {
     if (typeof DesktopEntries !== 'undefined' && DesktopEntries.heuristicLookup) {

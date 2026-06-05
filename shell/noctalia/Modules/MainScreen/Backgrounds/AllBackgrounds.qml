@@ -17,17 +17,14 @@ import qs.noctalia.Widgets
 Item {
   id: root
 
-  // Reference Bar
   required property var bar
 
-  // Reference to MainScreen (for panel access)
   required property var windowRoot
 
   readonly property color panelBackgroundColor: Color.mSurface
 
   anchors.fill: parent
 
-  // Unified background container
   Item {
     anchors.fill: parent
 
@@ -89,7 +86,6 @@ Item {
         }
       }
 
-      // Apply shadow to the unified backgrounds
       NDropShadow {
         anchors.fill: parent
         source: unifiedBackgroundsShape
@@ -101,7 +97,6 @@ Item {
       anchors.fill: parent
       visible: Settings.data.bar.useSeparateOpacity
 
-      // Panel backgrounds with panel opacity
       Item {
         anchors.fill: parent
 
@@ -143,14 +138,12 @@ Item {
           }
         }
 
-        // Apply shadow to the panel backgrounds
         NDropShadow {
           anchors.fill: parent
           source: panelBackgroundsShape
         }
       }
 
-      // Bar background with separate opacity
       Item {
         anchors.fill: parent
 

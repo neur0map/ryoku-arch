@@ -48,7 +48,6 @@ Item {
             id: _toggleStdout
         }
         onExited: (code) => {
-            // Toggle complete
         }
     }
 

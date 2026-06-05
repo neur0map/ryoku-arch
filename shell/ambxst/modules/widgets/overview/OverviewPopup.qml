@@ -27,25 +27,21 @@ PanelWindow {
     WlrLayershell.namespace: "ambxst:overview"
     WlrLayershell.keyboardFocus: overviewOpen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
-    // Get this screen's visibility state
     readonly property var screenVisibilities: Visibilities.getForScreen(screen.name)
     readonly property bool overviewOpen: screenVisibilities ? screenVisibilities.overview : false
 
     visible: overviewOpen
     exclusionMode: ExclusionMode.Ignore
 
-    // Mask to capture input on the entire window when open
     mask: Region {
         item: overviewOpen ? fullMask : emptyMask
     }
 
-    // Full screen mask when open
     Item {
         id: fullMask
         anchors.fill: parent
     }
 
-    // Empty mask when hidden
     Item {
         id: emptyMask
         width: 0
@@ -67,7 +63,6 @@ PanelWindow {
         }
     }
 
-    // Semi-transparent backdrop
     Rectangle {
         id: backdrop
         anchors.fill: parent
@@ -90,7 +85,6 @@ PanelWindow {
         }
     }
 
-    // Main content column (search + overview)
     Item {
         id: mainContainer
         anchors.centerIn: parent
@@ -117,7 +111,6 @@ PanelWindow {
             }
         }
 
-        // Search input container
         StyledRect {
             id: searchContainer
             variant: "bg"
@@ -135,7 +128,6 @@ PanelWindow {
                 anchors.margins: 16
                 spacing: 8
 
-                // Icon container
                 Rectangle {
                     Layout.preferredWidth: 48
                     Layout.preferredHeight: 48
@@ -151,7 +143,6 @@ PanelWindow {
                     }
                 }
 
-                // Search input
                 SearchInput {
                     id: searchInput
                     Layout.fillWidth: true
@@ -163,7 +154,6 @@ PanelWindow {
                     handleTabNavigation: true
                     clearOnEscape: false
 
-                    // Match counter suffix
                     Text {
                         id: matchCounter
                         visible: overviewLoader.item && overviewLoader.item.searchQuery.length > 0
@@ -279,7 +269,6 @@ PanelWindow {
             }
         }
 
-        // Overview container
         Item {
             id: overviewContainer
             anchors.top: searchContainer.bottom
@@ -288,7 +277,6 @@ PanelWindow {
             width: overviewLoader.item ? overviewLoader.item.implicitWidth + 48 : 400
             height: overviewLoader.item ? overviewLoader.item.implicitHeight + 48 : 300
 
-            // Background panel
             StyledRect {
                 id: overviewBackground
                 variant: "bg"
@@ -311,7 +299,6 @@ PanelWindow {
             }
         }
 
-        // External scrollbar for scrolling mode (to the right of overview)
         StyledRect {
             id: scrollbarContainer
             visible: overviewLoader.item && overviewLoader.item.needsScrollbar
@@ -349,7 +336,6 @@ PanelWindow {
                 position: overviewLoader.item && overviewLoader.item.flickable ? overviewLoader.item.flickable.visibleArea.yPosition : 0
                 size: overviewLoader.item && overviewLoader.item.flickable ? overviewLoader.item.flickable.visibleArea.heightRatio : 1
 
-                // Notify flickable when manually scrolling to disable animation
                 onActiveChanged: {
                     if (overviewLoader.item) {
                         overviewLoader.item.isManualScrolling = active;
@@ -385,7 +371,6 @@ PanelWindow {
         }
     }
 
-    // Ensure focus when overview opens
     onOverviewOpenChanged: {
         if (overviewOpen) {
             Qt.callLater(() => {

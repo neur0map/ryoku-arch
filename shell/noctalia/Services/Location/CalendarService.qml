@@ -10,7 +10,6 @@ import qs.noctalia.Services.System
 Singleton {
   id: root
 
-  // Core state
   property var events: ([])
   property bool loading: false
   property bool available: false
@@ -19,10 +18,8 @@ Singleton {
 
   property var dataProvider: null
 
-  // Persistent cache
   property string cacheFile: Settings.cacheDir + "calendar.json"
 
-  // Cache file handling
   FileView {
     id: cacheFileView
     path: root.cacheFile
@@ -52,7 +49,6 @@ Singleton {
     checkAvailability();
   }
 
-  // Save cache with debounce
   Timer {
     id: saveDebounce
     interval: 1000
@@ -82,7 +78,6 @@ Singleton {
     saveDebounce.restart();
   }
 
-  // Load events and calendars from cache
   function loadFromCache() {
     if (cacheAdapter.cachedEvents && cacheAdapter.cachedEvents.length > 0) {
       root.events = cacheAdapter.cachedEvents;
@@ -108,7 +103,6 @@ Singleton {
     onTriggered: loadEvents()
   }
 
-  // Core functions
   function checkAvailability() {
     if (!Settings.data.location.showCalendarEvents) {
       root.available = false;

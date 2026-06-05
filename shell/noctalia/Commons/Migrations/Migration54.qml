@@ -15,7 +15,6 @@ QtObject {
     if (!keyEnter || !Array.isArray(keyEnter))
       return true;
 
-    // Only add "Enter" if the first entry is "Return" and "Enter" isn't already present
     if (keyEnter[0] === "Return" && !keyEnter.includes("Enter")) {
       var updated = Array.from(keyEnter);
       updated.splice(1, 0, "Enter");

@@ -11,12 +11,10 @@ QtObject {
     if (!powerOptions || !Array.isArray(powerOptions))
       return true;
 
-    // Check if any power option has a keybind defined
     const hasAnyKeybind = powerOptions.some(opt => opt.keybind && opt.keybind !== "");
     if (hasAnyKeybind)
       return true;
 
-    // No keybinds defined — apply defaults matching the action order
     const defaultKeybinds = {
       "lock": "1",
       "suspend": "2",

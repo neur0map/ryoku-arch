@@ -16,20 +16,16 @@ Item {
     readonly property int contentWidth: Math.min(width, maxContentWidth)
     readonly property real sideMargin: (width - contentWidth) / 2
 
-    // Current category being viewed
     property string currentCategory: "ambxst"
 
-    // Process for unbinding keybinds
     Process {
         id: unbindProcess
     }
 
-    // Function to unbind a specific keybind (supports both old and new format)
     function unbindKeybind(bind) {
         if (!bind)
             return;
 
-        // Check if new format with keys[]
         if (bind.keys && bind.keys.length > 0) {
             for (let k = 0; k < bind.keys.length; k++) {
                 const keyObj = bind.keys[k];
@@ -41,7 +37,6 @@ Item {
                 unbindProcess.running = true;
             }
         } else {
-            // Old format fallback
             const mods = bind.modifiers && bind.modifiers.length > 0 ? bind.modifiers.join(" ") : "";
             const key = bind.key || "";
             const command = `axctl config unbind-key ${mods},${key}`;
@@ -51,19 +46,17 @@ Item {
         }
     }
 
-    // Edit mode state
     property bool editMode: false
     property int editingIndex: -1
     property var editingBind: null
     property bool isEditingAmbxst: false
     property bool isCreatingNew: false
 
-    // Edit form state - new format with keys[] and actions[]
     property string editName: ""
     property var editKeys: []  // Array of { modifiers: [], key: "" }
     property var editActions: []  // Array of { id: "", args: {}, layouts: [] }
-    property int currentKeyPage: 0  // Current key page index
-    property int currentActionPage: 0  // Current action page index
+    property int currentKeyPage: 0
+    property int currentActionPage: 0
 
     // Current key being edited (derived from editKeys[currentKeyPage])
     property var editModifiers: editKeys.length > currentKeyPage ? (editKeys[currentKeyPage].modifiers || []) : []
@@ -85,7 +78,6 @@ Item {
     readonly property var availableModifiers: ["SUPER", "SHIFT", "CTRL", "ALT"]
     readonly property var availableLayouts: ["dwindle", "master", "scrolling"]
 
-    // Helper to update current key in editKeys array
     function updateCurrentKey(modifiers, key) {
         if (editKeys.length <= currentKeyPage)
             return;
@@ -103,7 +95,6 @@ Item {
         editKeys = newKeys;
     }
 
-    // Helper to update current action in editActions array
     function updateCurrentAction(actionId, args, layouts) {
         if (editActions.length <= currentActionPage)
             return;
@@ -156,7 +147,6 @@ Item {
         return "";
     }
 
-    // Helper to check if a layout is selected for current action
     function hasLayout(layout) {
         const layouts = root.editLayouts;
         if (!layouts || layouts.length === 0)
@@ -164,7 +154,6 @@ Item {
         return layouts.indexOf(layout) !== -1;
     }
 
-    // Helper to toggle a layout for current action
     function toggleLayout(layout) {
         if (root.editActions.length <= root.currentActionPage)
             return;
@@ -182,7 +171,6 @@ Item {
         updateCurrentAction(currentAction.id || "", currentAction.args || {}, layouts);
     }
 
-    // Add a new key page
     function addKeyPage() {
         let newKeys = editKeys.slice();
         newKeys.push({
@@ -193,7 +181,6 @@ Item {
         currentKeyPage = newKeys.length - 1;
     }
 
-    // Remove current key page
     function removeKeyPage() {
         if (editKeys.length <= 1)
             return;
@@ -209,7 +196,6 @@ Item {
         }
     }
 
-    // Add a new action page
     function addActionPage() {
         let newActions = editActions.slice();
         newActions.push({
@@ -221,7 +207,6 @@ Item {
         currentActionPage = newActions.length - 1;
     }
 
-    // Remove current action page
     function removeActionPage() {
         if (editActions.length <= 1)
             return;
@@ -242,9 +227,7 @@ Item {
         root.editingBind = bind;
         root.isEditingAmbxst = isAmbxst;
 
-        // Initialize edit form state
         if (isAmbxst) {
-            // Ambxst binds still use old format (single key)
             const bindData = bind.bind;
             root.editName = "";
             root.editKeys = [
@@ -258,11 +241,8 @@ Item {
                 Object.assign({ layouts: [] }, action)
             ];
         } else {
-            // Custom binds use new format
             root.editName = bind.name || "";
-            // Handle both old and new format
             if (bind.keys && bind.actions) {
-                // New format
                 root.editKeys = JSON.parse(JSON.stringify(bind.keys));
                 root.editActions = bind.actions.map(action => {
                     const fixed = KeybindActions.ensureAction(action);
@@ -270,7 +250,6 @@ Item {
                     return fixed;
                 });
             } else {
-                // Old format fallback
                 root.editKeys = [
                     {
                         "modifiers": bind.modifiers ? bind.modifiers.slice() : [],
@@ -284,11 +263,9 @@ Item {
             }
         }
 
-        // Reset pager positions
         root.currentKeyPage = 0;
         root.currentActionPage = 0;
 
-        // Reset edit flickable scroll position
         editFlickable.contentY = 0;
 
         root.editMode = true;
@@ -328,18 +305,14 @@ Item {
 
     function saveEdit() {
         if (root.isEditingAmbxst) {
-            // Save ambxst bind (still uses old format internally)
             const path = root.editingBind.path.split(".");
-            // path = ["ambxst", "section"?, "bindName"]
             
             const adapter = Config.keybindsLoader.adapter;
             if (adapter && adapter.ambxst) {
                 let bindObj = null;
                 if (path.length === 2) {
-                    // Top level: ambxst.bindName
                     bindObj = adapter.ambxst[path[1]];
                 } else if (path.length === 3) {
-                    // Nested: ambxst.system.bindName
                     bindObj = adapter.ambxst[path[1]][path[2]];
                 }
 
@@ -354,7 +327,6 @@ Item {
                 }
             }
         } else if (root.isCreatingNew) {
-            // Create new custom bind with new format
             const customBinds = Config.keybindsLoader.adapter.custom || [];
             let newBinds = customBinds.slice();
             const newBind = {
@@ -366,7 +338,6 @@ Item {
             newBinds.push(newBind);
             Config.keybindsLoader.adapter.custom = newBinds;
         } else {
-            // Update existing custom bind with new format
             const customBinds = Config.keybindsLoader.adapter.custom;
             if (customBinds && customBinds[root.editingIndex]) {
                 let newBinds = [];
@@ -418,7 +389,6 @@ Item {
     }
 
     function formatKeybind(bind) {
-        // Check if new format with keys[]
         if (bind.keys && bind.keys.length > 0) {
             let formatted = [];
             for (let i = 0; i < bind.keys.length; i++) {
@@ -426,12 +396,10 @@ Item {
             }
             return formatted.join(", ");
         }
-        // Old format fallback
         const mods = formatModifiers(bind.modifiers);
         return mods ? mods + " + " + bind.key : bind.key;
     }
 
-    // Get ambxst binds as a flat list
     function getAmbxstBinds() {
         const adapter = Config.keybindsLoader.adapter;
         if (!adapter || !adapter.ambxst)
@@ -440,7 +408,6 @@ Item {
         const binds = [];
         const ambxst = adapter.ambxst;
 
-        // Core Ambxst binds (Launcher, Dashboard, etc.)
         const coreKeys = ["launcher", "dashboard", "assistant", "clipboard", "emoji", "notes", "tmux", "wallpapers"];
         for (const key of coreKeys) {
             if (ambxst[key]) {
@@ -453,7 +420,6 @@ Item {
             }
         }
 
-        // System binds
         if (ambxst.system) {
             const systemKeys = ["overview", "powermenu", "config", "lockscreen", "tools", "screenshot", "screenrecord", "lens", "reload", "quit"];
             for (const key of systemKeys) {
@@ -471,7 +437,6 @@ Item {
         return binds;
     }
 
-    // Get custom binds
     function getCustomBinds() {
         const adapter = Config.keybindsLoader.adapter;
         if (!adapter || !adapter.custom)
@@ -479,7 +444,6 @@ Item {
         return adapter.custom;
     }
 
-    // Add a new custom bind
     function addNewBind() {
             const newBind = {
                 "name": "",
@@ -499,24 +463,19 @@ Item {
                 "enabled": true
             };
 
-        // Switch to custom category
         root.currentCategory = "custom";
 
-        // Scroll to bottom after a brief delay to let the UI update
         scrollToBottomTimer.start();
 
-        // Open edit dialog for the new bind (mark as creating new)
         root.isCreatingNew = true;
         root.openEditDialog(newBind, -1, false);
     }
 
-    // Delete a custom bind
     function deleteBind(index) {
         const customBinds = Config.keybindsLoader.adapter.custom;
         if (!customBinds || index < 0 || index >= customBinds.length)
             return;
 
-        // Get the bind to delete and unbind it first
         const bindToDelete = customBinds[index];
         unbindKeybind(bindToDelete);
 
@@ -538,7 +497,6 @@ Item {
         }
     }
 
-    // Fixed header area (titlebar + category selector)
     ColumnLayout {
         id: fixedHeader
         anchors.top: parent.top
@@ -547,7 +505,6 @@ Item {
         spacing: 8
         z: 10
 
-        // Horizontal slide + fade animation
         opacity: root.editMode ? 0 : 1
         transform: Translate {
             x: root.editMode ? -30 : 0
@@ -569,7 +526,6 @@ Item {
             }
         }
 
-        // Header
         Item {
             Layout.fillWidth: true
             Layout.preferredHeight: titlebar.height
@@ -600,7 +556,6 @@ Item {
             }
         }
 
-        // Category selector
         Item {
             Layout.fillWidth: true
             Layout.preferredHeight: categoryRow.height
@@ -665,7 +620,6 @@ Item {
         }
     }
 
-    // Scrollable content area
     Flickable {
         id: mainFlickable
         anchors.top: fixedHeader.bottom
@@ -678,7 +632,6 @@ Item {
         boundsBehavior: Flickable.StopAtBounds
         interactive: !root.editMode
 
-        // Horizontal slide + fade animation
         opacity: root.editMode ? 0 : 1
         transform: Translate {
             x: root.editMode ? -30 : 0
@@ -700,14 +653,12 @@ Item {
             }
         }
 
-        // Content area
         ColumnLayout {
             id: contentColumn
             width: root.contentWidth
             x: root.sideMargin
             spacing: 4
 
-            // Ambxst binds view
             Repeater {
                 id: ambxstRepeater
                 model: root.currentCategory === "ambxst" ? root.getAmbxstBinds() : []
@@ -729,7 +680,6 @@ Item {
                 }
             }
 
-            // Custom binds view
             Repeater {
                 id: customRepeater
                 model: root.currentCategory === "custom" ? root.getCustomBinds() : []
@@ -738,11 +688,9 @@ Item {
                     required property var modelData
                     required property int index
 
-                    // Helper to get first action's dispatcher/argument
                     readonly property string firstDispatcher: modelData.actions && modelData.actions.length > 0 ? KeybindActions.describeAction(modelData.actions[0]) : KeybindActions.describeAction(modelData)
                     readonly property string firstArgument: ""
 
-                    // Helper to get unique layouts from all actions
                     function getUniqueLayouts() {
                         if (!modelData.actions || modelData.actions.length === 0)
                             return [];
@@ -794,7 +742,6 @@ Item {
                 }
             }
 
-            // Empty state
             Text {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.topMargin: 20
@@ -807,14 +754,12 @@ Item {
         }
     }
 
-    // Edit view (shown when editMode is true) - slides in from right
     Item {
         id: editContainer
         anchors.fill: parent
         clip: true
-        z: 100  // Ensure it's above everything else
+        z: 100
 
-        // Horizontal slide + fade animation (enters from right)
         opacity: root.editMode ? 1 : 0
         visible: opacity > 0
         transform: Translate {
@@ -837,7 +782,6 @@ Item {
             }
         }
 
-        // Block interaction with elements behind when active
         MouseArea {
             anchors.fill: parent
             enabled: root.editMode
@@ -862,7 +806,6 @@ Item {
                 width: editFlickable.width
                 spacing: 8
 
-                // Header with back button
                 Item {
                     Layout.fillWidth: true
                     Layout.preferredHeight: editTitlebar.height
@@ -873,7 +816,6 @@ Item {
                         anchors.horizontalCenter: parent.horizontalCenter
                         spacing: 8
 
-                        // Back button
                         StyledRect {
                             id: backButton
                             variant: backButtonArea.containsMouse ? "focus" : "common"
@@ -898,7 +840,6 @@ Item {
                             }
                         }
 
-                        // Title
                         Text {
                             text: root.isCreatingNew ? "New Keybind" : "Edit Keybind"
                             font.family: Config.theme.font
@@ -908,7 +849,6 @@ Item {
                             Layout.fillWidth: true
                         }
 
-                        // Delete button (only for existing custom binds)
                         StyledRect {
                             id: deleteButton
                             visible: !root.isEditingAmbxst && !root.isCreatingNew
@@ -939,7 +879,6 @@ Item {
                             }
                         }
 
-                        // Reset button (only for Ambxst binds)
                         StyledRect {
                             id: resetButton
                             visible: root.isEditingAmbxst
@@ -979,11 +918,9 @@ Item {
                                 onClicked: {
                                     if (root.isEditingAmbxst && root.editingBind) {
                                         const path = root.editingBind.path.split(".");
-                                        // path = ["ambxst", "dashboard"|"system", "bindName"]
                                         const section = path[1];
                                         const bindName = path[2];
                                         
-                                        // Use the new helper in Config.qml to get the default values
                                         const defaultBind = Config.keybindsLoader.adapter.getAmbxstDefault(section, bindName);
                                         
                                         if (defaultBind) {
@@ -997,7 +934,6 @@ Item {
                                                 "flags": defaultBind.flags || ""
                                             }];
                                             
-                                            // Auto-save immediately
                                             root.saveEdit();
                                         }
                                     }
@@ -1005,7 +941,6 @@ Item {
                             }
                         }
 
-                        // Save button
                         StyledRect {
                             id: saveButton
                             variant: saveButtonArea.containsMouse ? "primaryfocus" : "primary"
@@ -1047,7 +982,6 @@ Item {
                     }
                 }
 
-                // Edit form content
                 Item {
                     Layout.fillWidth: true
                     Layout.preferredHeight: formColumn.implicitHeight
@@ -1058,7 +992,6 @@ Item {
                         anchors.horizontalCenter: parent.horizontalCenter
                         spacing: 16
 
-                        // Custom name input (only for custom binds)
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 8
@@ -1105,7 +1038,6 @@ Item {
                             }
                         }
 
-                        // Bind name/info (for ambxst binds only)
                         Text {
                             visible: root.isEditingAmbxst && root.editingBind !== null
                             text: root.editingBind ? (root.editingBind.name || "") : ""
@@ -1115,7 +1047,6 @@ Item {
                             color: Colors.overBackground
                         }
 
-                        // Preview at top - shows all keys for current bind
                         StyledRect {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 56
@@ -1146,14 +1077,10 @@ Item {
                             }
                         }
 
-                        // =====================
-                        // KEYS SECTION
-                        // =====================
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 8
 
-                            // Keys section header with pager controls
                             RowLayout {
                                 Layout.fillWidth: true
                                 spacing: 8
@@ -1167,7 +1094,6 @@ Item {
                                     Layout.fillWidth: true
                                 }
 
-                                // Page indicator
                                 Text {
                                     visible: root.editKeys.length > 1
                                     text: (root.currentKeyPage + 1) + " / " + root.editKeys.length
@@ -1176,7 +1102,6 @@ Item {
                                     color: Colors.overSurfaceVariant
                                 }
 
-                                // Remove key button
                                 StyledRect {
                                     id: removeKeyBtn
                                     visible: root.editKeys.length > 1 && !root.isEditingAmbxst
@@ -1207,7 +1132,6 @@ Item {
                                     }
                                 }
 
-                                // Previous key button
                                 StyledRect {
                                     id: prevKeyBtn
                                     visible: root.editKeys.length > 1
@@ -1238,7 +1162,6 @@ Item {
                                     }
                                 }
 
-                                // Next key button
                                 StyledRect {
                                     id: nextKeyBtn
                                     visible: root.editKeys.length > 1
@@ -1269,7 +1192,6 @@ Item {
                                     }
                                 }
 
-                                // Add key button
                                 StyledRect {
                                     id: addKeyBtn
                                     visible: !root.isEditingAmbxst
@@ -1301,7 +1223,6 @@ Item {
                                 }
                             }
 
-                            // Modifiers
                             Flow {
                                 Layout.fillWidth: true
                                 spacing: 8
@@ -1344,7 +1265,6 @@ Item {
                                 }
                             }
 
-                            // Key input
                             StyledRect {
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 44
@@ -1382,15 +1302,10 @@ Item {
                             }
                         }
 
-                        // =====================
-                        // ACTIONS SECTION (custom binds & flags for ambxst)
-                        // =====================
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 8
-                            // visible: !root.isEditingAmbxst - Removed to allow editing flags for Ambxst binds
 
-                            // Actions section header with pager controls
                             RowLayout {
                                 Layout.fillWidth: true
                                 spacing: 8
@@ -1404,7 +1319,6 @@ Item {
                                     Layout.fillWidth: true
                                 }
 
-                                // Page indicator
                                 Text {
                                     visible: root.editActions.length > 1 && !root.isEditingAmbxst
                                     text: (root.currentActionPage + 1) + " / " + root.editActions.length
@@ -1413,7 +1327,6 @@ Item {
                                     color: Colors.overSurfaceVariant
                                 }
 
-                                // Remove action button
                                 StyledRect {
                                     id: removeActionBtn
                                     visible: root.editActions.length > 1 && !root.isEditingAmbxst
@@ -1444,7 +1357,6 @@ Item {
                                     }
                                 }
 
-                                // Previous action button
                                 StyledRect {
                                     id: prevActionBtn
                                     visible: root.editActions.length > 1 && !root.isEditingAmbxst
@@ -1475,7 +1387,6 @@ Item {
                                     }
                                 }
 
-                                // Next action button
                                 StyledRect {
                                     id: nextActionBtn
                                     visible: root.editActions.length > 1 && !root.isEditingAmbxst
@@ -1506,7 +1417,6 @@ Item {
                                     }
                                 }
 
-                                // Add action button
                                 StyledRect {
                                     id: addActionBtn
                                     visible: !root.isEditingAmbxst
@@ -1845,11 +1755,10 @@ Item {
         }
     }
 
-    // BindItem component
     component BindItem: StyledRect {
         id: bindItem
 
-        property string customName: ""  // User-friendly name, if set shows only this
+        property string customName: ""
         property string bindName: ""
         property string keybindText: ""
         property string dispatcher: ""
@@ -1857,13 +1766,11 @@ Item {
         property bool isEnabled: true
         property bool isAmbxst: true
         property bool isHovered: false
-        property var layouts: []  // Layouts this bind is restricted to (empty = all layouts)
+        property var layouts: []
 
-        // Crawler properties
         property string label: displayName
         property string keywords: keybindText + " " + dispatcher + " " + argument + " bind shortcut"
 
-        // Computed display values
         readonly property bool hasCustomName: customName !== ""
         readonly property string displayName: hasCustomName ? customName : bindName
         readonly property string displaySubtitle: hasCustomName ? "" : (argument || dispatcher)
@@ -1887,7 +1794,6 @@ Item {
             anchors.bottomMargin: 8
             spacing: 12
 
-            // Checkbox for custom binds (styled like OLED Mode)
             Item {
                 id: checkboxItem
                 visible: !bindItem.isAmbxst
@@ -1940,7 +1846,6 @@ Item {
                 }
             }
 
-            // Info column - what the bind does
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 2
@@ -1969,7 +1874,6 @@ Item {
                         visible: text !== ""
                     }
 
-                    // Layout indicator
                     Row {
                         visible: !bindItem.isAmbxst
                         spacing: 4
@@ -2015,7 +1919,6 @@ Item {
                 }
             }
 
-            // Keybind display at the end
             StyledRect {
                 variant: "internalbg"
                 Layout.preferredWidth: keybindLabel.width + 24
@@ -2034,7 +1937,6 @@ Item {
             }
         }
 
-        // Click anywhere to edit (but not on checkbox)
         MouseArea {
             id: editClickArea
             anchors.fill: parent
@@ -2045,7 +1947,6 @@ Item {
             onClicked: bindItem.editRequested()
         }
 
-        // Checkbox MouseArea needs to be on top
         MouseArea {
             id: checkboxClickArea
             visible: !bindItem.isAmbxst

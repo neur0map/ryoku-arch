@@ -57,7 +57,6 @@ StyledRect {
         }
     }
 
-    // Function to sync seekBar with current media position
     function syncSeekBarPosition() {
         if (!realSeekBar.isDragging && !player.isSeeking) {
             if (player.hasActivePlayer) {
@@ -105,7 +104,6 @@ StyledRect {
         }
     }
 
-    // Background with blur effect
 
     Image {
         mipmap: true
@@ -181,13 +179,11 @@ StyledRect {
         }
     }
 
-    // Playback Controls
 
     ColumnLayout {
         anchors.centerIn: parent
         spacing: 8
 
-        // Disc Area (SeekBar + Cover Art)
 
         Item {
             id: discArea
@@ -249,7 +245,6 @@ StyledRect {
                         fillMode: Image.PreserveAspectCrop
                         asynchronous: true
 
-                        // Placeholder (with WavyLine)
                         Rectangle {
                             anchors.fill: parent
                             color: Colors.surface
@@ -275,7 +270,6 @@ StyledRect {
                 onShouldRotateChanged: {
                     if (shouldRotate) {
                         if (player.isPlaying && player.visible) {
-                            // Start
                             springAnim.stop();
                             let currentRotation = coverDiscContainer.rotation % 360;
                             if (currentRotation < 0) currentRotation += 360;
@@ -285,7 +279,6 @@ StyledRect {
                             rotateAnim.restart();
                         }
                     } else {
-                        // Always reset if disabled, regardless of running state
                         rotateAnim.stop();
                         let currentRotation = coverDiscContainer.rotation % 360;
                         if (currentRotation < 0) currentRotation += 360;
@@ -305,7 +298,6 @@ StyledRect {
                     running: false
                 }
 
-                // Standalone spring animation for inertia (can be stopped)
                 SpringAnimation {
                     id: springAnim
                     target: coverDiscContainer
@@ -319,7 +311,6 @@ StyledRect {
                     target: player
                     function onIsPlayingChanged() {
                         if (player.isPlaying && player.visible && coverDiscContainer.shouldRotate) {
-                            // Stop spring animation immediately and capture current position
                             springAnim.stop();
                             
                             // Normalize current rotation to 0-360 range to keep values sane
@@ -334,12 +325,10 @@ StyledRect {
                             // Stop continuous rotation
                             rotateAnim.stop();
                             
-                            // Normalize before snapping to ensure we snap to 0 or 360 of the CURRENT loop
                             let currentRotation = coverDiscContainer.rotation % 360;
                             if (currentRotation < 0) currentRotation += 360;
                             coverDiscContainer.rotation = currentRotation;
 
-                            // Animate to nearest rest position (0 or 360) with inertia
                             springAnim.to = currentRotation > 180 ? 360 : 0;
                             springAnim.start();
                         }
@@ -364,7 +353,6 @@ StyledRect {
             }
         }
 
-        // Metadata
 
         ColumnLayout {
             Layout.fillWidth: true
@@ -418,7 +406,6 @@ StyledRect {
             Layout.alignment: Qt.AlignHCenter
             spacing: 8
 
-        // Player Selector
         MediaIconButton {
             icon: player.getPlayerIcon(MprisController.activePlayer)
             opacity: player.hasActivePlayer ? 1.0 : 0.5
@@ -431,7 +418,6 @@ StyledRect {
             }
         }
 
-        // Previous
         MediaIconButton {
             icon: Icons.previous
             enabled: MprisController.canGoPrevious
@@ -439,7 +425,6 @@ StyledRect {
             onClicked: MprisController.previous()
         }
 
-        // Play/Pause
         StyledRect {
             id: playPauseBtn
             Layout.preferredWidth: 44
@@ -493,7 +478,6 @@ StyledRect {
             }
         }
 
-        // Next
         MediaIconButton {
             icon: Icons.next
             enabled: MprisController.canGoNext
@@ -501,7 +485,6 @@ StyledRect {
             onClicked: MprisController.next()
         }
 
-        // Mode
         MediaIconButton {
             icon: {
                 if (MprisController.hasShuffle)
@@ -528,7 +511,6 @@ StyledRect {
             }
         }
 
-        // Duration Area
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: player.hasActivePlayer ? (player.formatTime(player.position) + " / " + player.formatTime(player.length)) : "--:-- / --:--"
@@ -539,14 +521,12 @@ StyledRect {
         }
     }
 
-    // Players List Overlay
     Item {
         id: overlayLayer
         anchors.fill: parent
         visible: player.playersListExpanded
         z: 100
 
-        // Scrim
         Rectangle {
             anchors.fill: parent
             color: "black"
@@ -559,7 +539,6 @@ StyledRect {
             }
         }
 
-        // List Container
         StyledRect {
             id: playersListContainer
             anchors.left: parent.left
@@ -623,7 +602,6 @@ StyledRect {
         }
     }
 
-    // Internal component for small buttons
     component MediaIconButton: Text {
         property string icon: ""
         signal clicked(var mouse)

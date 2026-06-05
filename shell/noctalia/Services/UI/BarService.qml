@@ -43,7 +43,6 @@ Singleton {
   // Auto-hide state per screen: { screenName: { hovered: bool, hidden: bool } }
   property var screenAutoHideState: ({})
 
-  // Get or create auto-hide state for a screen
   function getOrCreateAutoHideState(screenName) {
     if (!screenAutoHideState[screenName]) {
       screenAutoHideState[screenName] = {
@@ -54,7 +53,6 @@ Singleton {
     return screenAutoHideState[screenName];
   }
 
-  // Set hover state for a screen
   function setScreenHovered(screenName, hovered) {
     var state = getOrCreateAutoHideState(screenName);
     if (state.hovered !== hovered) {
@@ -64,7 +62,6 @@ Singleton {
     }
   }
 
-  // Set hidden state for a screen
   function setScreenHidden(screenName, hidden) {
     var state = getOrCreateAutoHideState(screenName);
     if (state.hidden !== hidden) {
@@ -74,13 +71,11 @@ Singleton {
     }
   }
 
-  // Check if bar is hidden on a screen
   function isBarHidden(screenName) {
     var state = screenAutoHideState[screenName];
     return state ? state.hidden : false;
   }
 
-  // Check if bar is hovered on a screen
   function isBarHovered(screenName) {
     var state = screenAutoHideState[screenName];
     return state ? state.hovered : false;
@@ -90,7 +85,6 @@ Singleton {
   // state without touching isVisible (so hover-to-show still works).
   // For non-auto-hide screens, toggles the global isVisible flag.
   function toggleVisibility() {
-    // Check if any auto-hide screen is currently visible
     var anyAutoHideVisible = false;
     var hasAutoHideScreens = false;
     for (var screenName in screenAutoHideState) {
@@ -103,7 +97,6 @@ Singleton {
       }
     }
 
-    // Toggle auto-hide screens (per-screen hidden state only)
     if (hasAutoHideScreens) {
       for (var screenName in screenAutoHideState) {
         if (Settings.getBarDisplayModeForScreen(screenName) === "auto_hide") {
@@ -122,13 +115,11 @@ Singleton {
   // Show bar. In auto-hide mode, un-hides on screens with auto-hide enabled.
   // The bar stays visible until the user hovers and moves away.
   function show() {
-    // Show auto-hide screens
     for (var screenName in screenAutoHideState) {
       if (Settings.getBarDisplayModeForScreen(screenName) === "auto_hide") {
         setScreenHidden(screenName, false);
       }
     }
-    // Set global visibility (affects non-auto-hide screens)
     isVisible = true;
   }
 
@@ -178,13 +169,11 @@ Singleton {
     }
   }
 
-  // update bar's hidden state when mode changes
   Connections {
     target: Settings.data.bar
     function onDisplayModeChanged() {
       Logger.d("BarService", "Display mode changed to:", Settings.data.bar.displayMode);
 
-      // Only affect screens without displayMode overrides
       for (let screenName in screenAutoHideState) {
         if (!Settings.hasScreenOverride(screenName, "displayMode")) {
           var displayMode = Settings.getBarDisplayModeForScreen(screenName);
@@ -202,7 +191,6 @@ Singleton {
     function onScreenOverridesChanged() {
       Logger.d("BarService", "Screen overrides changed, re-evaluating auto-hide states");
 
-      // Re-evaluate auto-hide state for all screens
       for (let screenName in screenAutoHideState) {
         var displayMode = Settings.getBarDisplayModeForScreen(screenName);
         if (displayMode === "auto_hide") {
@@ -218,7 +206,6 @@ Singleton {
     }
   }
 
-  // Track last workspace ID to detect actual workspace changes
   property var lastWorkspaceId: null
 
   // Debounce rapid workspace switches to reduce load/unload races (SIGSEGV in QV4)
@@ -240,7 +227,6 @@ Singleton {
     }
   }
 
-  // Workspace switch handler - directly show bar on the focused workspace screen
   Connections {
     target: CompositorService
     function onWorkspaceChanged() {
@@ -254,7 +240,6 @@ Singleton {
         return;
       }
 
-      // Only trigger if workspace actually changed
       var currentWsId = ws.id;
       if (currentWsId === root.lastWorkspaceId) {
         return;
@@ -271,7 +256,6 @@ Singleton {
     }
   }
 
-  // Function for the Bar to call when it's ready
   function registerBar(screenName) {
     if (!readyBars[screenName]) {
       readyBars[screenName] = true;
@@ -280,12 +264,10 @@ Singleton {
     }
   }
 
-  // Function for the Dock to check if the bar is ready
   function isBarReady(screenName) {
     return readyBars[screenName] || false;
   }
 
-  // Register a widget instance
   function registerWidget(screenName, section, widgetId, index, instance) {
     const key = [screenName, section, widgetId, index].join("|");
     widgetInstances[key] = {
@@ -301,7 +283,6 @@ Singleton {
     root.activeWidgetsChanged();
   }
 
-  // Unregister a widget instance
   function unregisterWidget(screenName, section, widgetId, index) {
     const key = [screenName, section, widgetId, index].join("|");
     delete widgetInstances[key];
@@ -309,9 +290,7 @@ Singleton {
     root.activeWidgetsChanged();
   }
 
-  // Lookup a specific widget instance (returns the actual QML instance)
   function lookupWidget(widgetId, screenName = null, section = null, index = null) {
-    // If looking for a specific instance
     if (screenName && section !== null) {
       for (var key in widgetInstances) {
         var widget = widgetInstances[key];
@@ -327,7 +306,6 @@ Singleton {
       }
     }
 
-    // Return first match if no specific screen/section specified
     for (var key in widgetInstances) {
       var widget = widgetInstances[key];
       if (!widget)
@@ -344,7 +322,6 @@ Singleton {
     return undefined;
   }
 
-  // Get all instances of a widget type
   function getAllWidgetInstances(widgetId = null, screenName = null, section = null) {
     var instances = [];
 
@@ -369,7 +346,6 @@ Singleton {
     return instances;
   }
 
-  // Get widget with full metadata
   function getWidgetWithMetadata(widgetId, screenName = null, section = null) {
     for (var key in widgetInstances) {
       var widget = widgetInstances[key];
@@ -386,7 +362,6 @@ Singleton {
     return undefined;
   }
 
-  // Get all widgets in a specific section
   function getWidgetsBySection(section, screenName = null) {
     var widgetEntries = [];
 

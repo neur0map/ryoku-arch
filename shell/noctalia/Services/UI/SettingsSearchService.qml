@@ -114,7 +114,6 @@ Singleton {
   function _evalCondition(expr) {
     expr = expr.trim();
 
-    // Strip outer parentheses
     if (expr.startsWith("(") && expr.endsWith(")")) {
       let depth = 0;
       let allWrapped = true;
@@ -132,7 +131,6 @@ Singleton {
         return _evalCondition(expr.slice(1, -1));
     }
 
-    // AND: all parts must be true
     if (expr.includes("&&")) {
       const parts = _splitAnd(expr);
       if (parts.length > 1) {
@@ -144,35 +142,28 @@ Singleton {
       }
     }
 
-    // Negation
     if (expr.startsWith("!"))
       return !_evalCondition(expr.slice(1).trim());
 
-    // Literal false
     if (expr === "false")
       return false;
 
-    // Strip nullish coalescing fallback
     const nullishMatch = expr.match(/^(.+?)\s*\?\?\s*(?:false|true)\s*$/);
     if (nullishMatch)
       return _evalCondition(nullishMatch[1]);
 
-    // === comparison
     let m = expr.match(/^(.+?)\s*===\s*"([^"]*)"\s*$/);
     if (m)
       return _resolveValue(m[1].trim()) === m[2];
 
-    // !== comparison
     m = expr.match(/^(.+?)\s*!==\s*"([^"]*)"\s*$/);
     if (m)
       return _resolveValue(m[1].trim()) !== m[2];
 
-    // > comparison
     m = expr.match(/^(.+?)\s*>\s*(\d+)\s*$/);
     if (m)
       return _resolveValue(m[1].trim()) > parseInt(m[2]);
 
-    // Simple property path — resolve and return truthiness
     const val = _resolveValue(expr);
     if (val !== undefined)
       return !!val;

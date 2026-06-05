@@ -28,7 +28,6 @@ ColumnLayout {
     wrapMode: Text.WordWrap
   }
 
-  // ── Packages & system ────────────────────────────────────────────────────
   SectionHeader {
     text: qsTr("Packages & system")
   }
@@ -45,7 +44,6 @@ ColumnLayout {
     launchCmd: "missioncenter || mission-center || resources || gnome-system-monitor"
   }
 
-  // ── Devices & hardware ───────────────────────────────────────────────────
   SectionHeader {
     text: qsTr("Devices & hardware")
   }
@@ -74,7 +72,6 @@ ColumnLayout {
     launchCmd: "gnome-disks || gnome-disk-utility"
   }
 
-  // ── Shell ─────────────────────────────────────────────────────────────────
   SectionHeader {
     text: qsTr("Shell")
   }
@@ -86,7 +83,6 @@ ColumnLayout {
     launchCmd: "systemctl --user restart ryoku-shell.service"
   }
 
-  // ───────────────────────────────────────────────────────────────────────────
   component SectionHeader: NText {
     Layout.fillWidth: true
     Layout.topMargin: Style.marginS

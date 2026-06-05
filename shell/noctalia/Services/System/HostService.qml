@@ -8,25 +8,21 @@ import qs.noctalia.Commons
 Singleton {
   id: root
 
-  // Public properties
   property string osPretty: ""
   property string osLogo: ""
   property bool isNixOS: false
   property bool isReady: false
 
-  // User info
   readonly property string username: (Quickshell.env("USER") || "")
   readonly property string envRealName: (Quickshell.env("NOCTALIA_REALNAME") || "")
   property string realName: ""
 
-  // Machine info
   property string hostName: ""
 
   // Internal: pending logo name for fallback after probe fails
   property string pendingLogoName: ""
 
   readonly property string displayName: {
-    // Explicit override
     if (envRealName && envRealName.length > 0) {
       return envRealName;
     }
@@ -41,7 +37,6 @@ Singleton {
       return username;
     }
 
-    // Last resort: placeholder
     return "User";
   }
 
@@ -49,7 +44,6 @@ Singleton {
     Logger.i("HostService", "Service started");
   }
 
-  // Internal helpers
   function buildCandidates(name) {
     const n = (name || "").trim();
     if (!n)
@@ -59,12 +53,10 @@ Singleton {
     const exts = ["svg", "png"];
     const candidates = [];
 
-    // pixmaps
     for (const ext of exts) {
       candidates.push(`/usr/share/pixmaps/${n}.${ext}`);
     }
 
-    // hicolor scalable and raster sizes
     candidates.push(`/usr/share/icons/hicolor/scalable/apps/${n}.svg`);
     for (const s of sizes) {
       for (const ext of exts) {
@@ -80,7 +72,6 @@ Singleton {
       }
     }
 
-    // Generic icon themes under /usr/share/icons (common cases)
     for (const ext of exts) {
       candidates.push(`/usr/share/icons/${n}.${ext}`);
       candidates.push(`/usr/share/icons/${n}/${n}.${ext}`);
@@ -95,11 +86,9 @@ Singleton {
     if (!n)
       return;
 
-    // First try Quickshell's icon lookup for direct file paths
     try {
       const path = Quickshell.iconPath(n, "");
       if (path && path !== "" && !path.startsWith("image://")) {
-        // Got a direct file path - use it
         const finalPath = path.startsWith("file://") ? path : "file://" + path;
         root.osLogo = finalPath;
         Logger.d("HostService", "Found logo via icon theme:", root.osLogo);
@@ -109,7 +98,6 @@ Singleton {
       // Ignore and continue to manual probe
     }
 
-    // Try manual probing for hicolor/pixmaps paths
     // Store name for fallback to image:// URI if probe fails
     root.pendingLogoName = n;
     const all = buildCandidates(n);

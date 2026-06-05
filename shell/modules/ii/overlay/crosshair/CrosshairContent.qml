@@ -98,7 +98,6 @@ Item {
 
     }
 
-    // Update values from code
     property var code: Config.options?.crosshair?.code ?? ""
     Component.onCompleted: reloadFromCode();
     onCodeChanged: reloadFromCode();

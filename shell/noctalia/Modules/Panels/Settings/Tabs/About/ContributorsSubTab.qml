@@ -72,7 +72,6 @@ ColumnLayout {
 
             property bool isRounded: false
 
-            // Background and image container
             Item {
               anchors.fill: parent
 
@@ -82,7 +81,6 @@ ColumnLayout {
                 source: {
                   // Depend on avatarCacheVersion to trigger re-evaluation
                   var _ = root.avatarCacheVersion;
-                  // Try cached circular version first
                   var username = root.contributors[index].login;
                   var cached = GitHubService.getAvatarPath(username);
                   if (cached) {
@@ -107,7 +105,6 @@ ColumnLayout {
                 }
               }
 
-              // Fallback icon
               NIcon {
                 anchors.centerIn: parent
                 visible: !root.contributors[index].avatar_url || root.contributors[index].avatar_url === ""
@@ -127,7 +124,6 @@ ColumnLayout {
             }
           }
 
-          // Info column
           ColumnLayout {
             spacing: 2
             Layout.alignment: Qt.AlignVCenter
@@ -160,7 +156,6 @@ ColumnLayout {
             }
           }
 
-          // Hover indicator
           NIcon {
             Layout.alignment: Qt.AlignVCenter
             icon: "arrow-right"

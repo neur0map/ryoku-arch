@@ -6,7 +6,6 @@ import qs.noctalia.Services.System
 import qs.noctalia.Services.UI
 import qs.noctalia.Widgets
 
-// Unified system card: monitors CPU, temp, memory, disk
 NBox {
   id: root
 

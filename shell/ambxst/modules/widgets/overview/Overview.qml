@@ -25,12 +25,10 @@ Item {
     readonly property real workspacePadding: 8
     readonly property color activeBorderColor: Styling.srItem("overprimary")
 
-    // Use the screen's monitor instead of focused monitor for multi-monitor support
-    property var currentScreen: null  // This will be set from parent
+    property var currentScreen: null
     readonly property var monitor: currentScreen ? AxctlService.monitorFor(currentScreen) : AxctlService.focusedMonitor
     readonly property int workspaceGroup: Math.floor((monitor?.activeWorkspace?.id - 1 || 0) / workspacesShown)
 
-    // Cache these references
     readonly property var windowList: CompositorData.windowList
     readonly property var monitors: CompositorData.monitors
     readonly property int monitorId: monitor?.id ?? -1
@@ -41,23 +39,19 @@ Item {
     readonly property bool isBarPinned: barPanel ? barPanel.pinned : (Config.bar.pinnedOnStartup ?? true)
     readonly property int barReserved: isBarPinned ? (Config.showBackground ? 44 : 40) : 0
 
-    // Search functionality (controlled from parent)
     property string searchQuery: ""
     property var matchingWindows: []
     property int selectedMatchIndex: 0
 
-    // Reset search state
     function resetSearch() {
         searchQuery = "";
         matchingWindows = [];
         selectedMatchIndex = 0;
     }
 
-    // Update matching windows when search query or window list changes
     onSearchQueryChanged: updateMatchingWindows()
     onWindowListChanged: updateMatchingWindows()
 
-    // Fuzzy match: checks if all characters of query appear in order in target
     function fuzzyMatch(query, target) {
         if (query.length === 0)
             return true;
@@ -73,18 +67,15 @@ Item {
         return queryIndex === query.length;
     }
 
-    // Score a fuzzy match (higher is better)
     function fuzzyScore(query, target) {
         if (query.length === 0)
             return 0;
         if (target.length === 0)
             return -1;
 
-        // Exact match gets highest score
         if (target.includes(query))
             return 1000 + (100 - target.length);
 
-        // Check for fuzzy match
         let queryIndex = 0;
         let consecutiveMatches = 0;
         let maxConsecutive = 0;
@@ -95,7 +86,6 @@ Item {
                 queryIndex++;
                 consecutiveMatches++;
                 maxConsecutive = Math.max(maxConsecutive, consecutiveMatches);
-                // Bonus for matches at word boundaries
                 if (i === 0 || target[i - 1] === ' ' || target[i - 1] === '-' || target[i - 1] === '_') {
                     score += 10;
                 }
@@ -105,7 +95,7 @@ Item {
         }
 
         if (queryIndex !== query.length)
-            return -1; // No match
+            return -1;
 
         return score + maxConsecutive * 5;
     }
@@ -141,7 +131,6 @@ Item {
         if (!win)
             return;
 
-        // Close overview and focus the matched window
         Visibilities.setActiveModule("", true);
         Qt.callLater(() => {
             AxctlService.dispatch(`focuswindow address:${win.address}`);
@@ -172,7 +161,6 @@ Item {
         return matchingWindows[selectedMatchIndex]?.address === windowAddress;
     }
 
-    // Pre-calculate workspace dimensions once
     readonly property real workspaceImplicitWidth: {
         if (!monitorData)
             return 200;
@@ -243,7 +231,6 @@ Item {
                             border.color: hoveredWhileDragging ? hoveredBorderColor : "transparent"
                             clip: true
 
-                            // Wallpaper background for each workspace
                             TintedWallpaper {
                                 id: workspaceWallpaper
                                 anchors.fill: parent
@@ -264,13 +251,11 @@ Item {
                                 acceptedButtons: Qt.LeftButton
                                 onClicked: {
                                     if (overviewRoot.draggingTargetWorkspace === -1) {
-                                        // Only switch workspace, don't close overview
                                         AxctlService.dispatch(`workspace ${workspaceValue}`);
                                     }
                                 }
                                 onDoubleClicked: {
                                     if (overviewRoot.draggingTargetWorkspace === -1) {
-                                        // Double click closes overview and switches workspace
                                         Visibilities.setActiveModule("");
                                         AxctlService.dispatch(`workspace ${workspaceValue}`);
                                     }
@@ -303,7 +288,6 @@ Item {
             implicitWidth: workspaceColumnLayout.implicitWidth
             implicitHeight: workspaceColumnLayout.implicitHeight
 
-            // Pre-filter windows for this monitor and workspace group
             readonly property var filteredWindowData: {
                 const minWs = overviewRoot.workspaceGroup * overviewRoot.workspacesShown;
                 const maxWs = (overviewRoot.workspaceGroup + 1) * overviewRoot.workspacesShown;
@@ -340,7 +324,6 @@ Item {
                     barPosition: overviewRoot.barPosition
                     barReserved: overviewRoot.barReserved
 
-                    // Search highlighting
                     isSearchMatch: overviewRoot.isWindowMatched(windowData?.address)
                     isSearchSelected: overviewRoot.isWindowSelected(windowData?.address)
 

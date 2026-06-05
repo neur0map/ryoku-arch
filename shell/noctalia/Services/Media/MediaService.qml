@@ -59,7 +59,6 @@ Singleton {
     const genericBrowsers = ["firefox", "chromium", "chrome"];
     const blacklist = (Settings.data.audio && Settings.data.audio.mprisBlacklist) ? Settings.data.audio.mprisBlacklist : [];
 
-    // Separate players into specific and generic lists
     let specificPlayers = [];
     let genericPlayers = [];
     for (var i = 0; i < allPlayers.length; i++) {
@@ -137,14 +136,12 @@ Singleton {
       }
     }
 
-    // Add any generic players that were not matched
     for (var i = 0; i < genericPlayers.length; i++) {
       if (!matchedGenericIndices[i]) {
         finalPlayers.push(genericPlayers[i]);
       }
     }
 
-    // Filter for controllable players
     let controllablePlayers = [];
     for (var i = 0; i < finalPlayers.length; i++) {
       let player = finalPlayers[i];
@@ -162,7 +159,6 @@ Singleton {
       return null;
     }
 
-    // Prioritize the actively playing player ---
     for (var i = 0; i < availablePlayers.length; i++) {
       if (availablePlayers[i] && availablePlayers[i].playbackState === MprisPlaybackState.Playing) {
         Logger.d("Media", "Found actively playing player: " + availablePlayers[i].identity);
@@ -171,7 +167,6 @@ Singleton {
       }
     }
 
-    // fallback if nothing is playing)
     const preferred = (Settings.data.audio.preferredPlayer || "");
     if (preferred !== "") {
       for (var i = 0; i < availablePlayers.length; i++) {
@@ -208,7 +203,6 @@ Singleton {
     }
   }
 
-  // Switch to the most recently active player
   function updateCurrentPlayer() {
     let newPlayer = findActivePlayer();
     if (newPlayer !== currentPlayer) {
@@ -292,7 +286,6 @@ Singleton {
     }
   }
 
-  // Update progress bar every second while playing
   Timer {
     id: positionTimer
     interval: 1000
@@ -322,7 +315,6 @@ Singleton {
     }
   }
 
-  // Reset position when switching to inactive player
   onCurrentPlayerChanged: {
     if (!currentPlayer || !currentPlayer.isPlaying || currentPlayer.playbackState !== MprisPlaybackState.Playing) {
       currentPosition = 0;
@@ -331,21 +323,19 @@ Singleton {
 
   Timer {
     id: playerStateMonitor
-    interval: 2000 // Check every 2 seconds
+    interval: 2000
     repeat: true
     running: true
     onTriggered: {
       //Logger.d("MediaService", "playerStateMonitor triggered. autoSwitchingPaused: " + root.autoSwitchingPaused)
       if (autoSwitchingPaused)
       return;
-      // Only update if we don't have a playing player or if current player is paused
       if (!currentPlayer || !currentPlayer.isPlaying || currentPlayer.playbackState !== MprisPlaybackState.Playing) {
         updateCurrentPlayer();
       }
     }
   }
 
-  // Update current player when available players change
   Connections {
     target: Mpris.players
     function onValuesChanged() {

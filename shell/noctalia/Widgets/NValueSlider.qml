@@ -26,7 +26,6 @@ RowLayout {
   spacing: Style.marginL
   Layout.fillWidth: true
 
-  // Signals
   signal moved(real value)
   signal pressedChanged(bool pressed, real value)
 

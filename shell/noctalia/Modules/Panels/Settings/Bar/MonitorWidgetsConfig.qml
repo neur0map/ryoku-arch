@@ -8,13 +8,11 @@ import qs.noctalia.Services.Noctalia
 import qs.noctalia.Services.UI
 import qs.noctalia.Widgets
 
-// Monitor Widgets Configuration (inline)
 NBox {
   id: root
 
   required property var screen
   readonly property string screenName: screen?.name || ""
-  // determine bar orientation
   readonly property string barPosition: Settings.getBarPositionForScreen(screenName)
   readonly property bool barIsVertical: barPosition === "left" || barPosition === "right"
 
@@ -38,7 +36,6 @@ NBox {
     Settings.setScreenOverride(screenName, "widgets", widgets);
   }
 
-  // Widget manipulation functions
   function _addWidgetToSection(widgetId, section) {
     var newWidget = {
       "id": widgetId
@@ -108,7 +105,6 @@ NBox {
     }
   }
 
-  // Available widgets ListModel
   function updateAvailableWidgetsModel() {
     availableWidgetsModel.clear();
     var widgetIds = BarWidgetRegistry.getAvailableWidgets();
@@ -151,7 +147,6 @@ NBox {
     id: availableWidgetsModel
   }
 
-  // Get effective widgets for this screen
   readonly property var effectiveWidgets: Settings.getBarWidgetsForScreen(screenName)
 
   ColumnLayout {
@@ -166,7 +161,6 @@ NBox {
       Layout.fillWidth: true
     }
 
-    // Left Section
     NSectionEditor {
       sectionName: root.barIsVertical ? I18n.tr("positions.top") : I18n.tr("positions.left")
       sectionId: "left"
@@ -184,7 +178,6 @@ NBox {
       onOpenPluginSettingsRequested: manifest => pluginSettingsDialog.openPluginSettings(manifest)
     }
 
-    // Center Section
     NSectionEditor {
       sectionName: I18n.tr("positions.center")
       sectionId: "center"
@@ -202,7 +195,6 @@ NBox {
       onOpenPluginSettingsRequested: manifest => pluginSettingsDialog.openPluginSettings(manifest)
     }
 
-    // Right Section
     NSectionEditor {
       sectionName: root.barIsVertical ? I18n.tr("positions.bottom") : I18n.tr("positions.right")
       sectionId: "right"

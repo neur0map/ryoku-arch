@@ -13,7 +13,6 @@ ColumnLayout {
   spacing: Style.marginL
   Layout.fillWidth: true
 
-  // Helper to format path description
   function getDesc(fallbackPath) {
     return I18n.tr("panels.color-scheme.templates-write-path", {
                      "filepath": fallbackPath
@@ -24,7 +23,6 @@ ColumnLayout {
   readonly property var allTemplates: {
     var templates = [];
 
-    // Add terminals with category "terminal"
     for (var i = 0; i < TemplateRegistry.terminals.length; i++) {
       var t = TemplateRegistry.terminals[i];
       templates.push({
@@ -35,12 +33,10 @@ ColumnLayout {
                      });
     }
 
-    // Add applications
     for (var j = 0; j < TemplateRegistry.applications.length; j++) {
       var app = TemplateRegistry.applications[j];
       var path = "";
 
-      // Determine path to show
       if (app.outputs && app.outputs.length > 0) {
         var paths = [];
         for (var k = 0; k < app.outputs.length; k++) {
@@ -99,16 +95,13 @@ ColumnLayout {
                      });
     }
 
-    // Sort alphabetically by name
     templates.sort((a, b) => a.name.localeCompare(b.name));
 
     return templates;
   }
 
-  // Category filter
   property string selectedCategory: ""
 
-  // Build available categories dynamically
   readonly property var availableCategories: {
     var cats = {};
     for (var i = 0; i < allTemplates.length; i++) {
@@ -117,10 +110,8 @@ ColumnLayout {
     return Object.keys(cats).sort();
   }
 
-  // Filter toggle
   property bool showOnlyActive: false
 
-  // Filtered templates based on category, search, and toggle
   property string searchText: ""
   readonly property var filteredTemplates: {
     var result = allTemplates;
@@ -144,7 +135,6 @@ ColumnLayout {
     return result;
   }
 
-  // Check if a template is active
   function isTemplateActive(templateId) {
     for (var i = 0; i < Settings.data.templates.activeTemplates.length; i++) {
       if (Settings.data.templates.activeTemplates[i].id === templateId) {
@@ -154,7 +144,6 @@ ColumnLayout {
     return false;
   }
 
-  // Toggle a template on/off
   function toggleTemplate(templateId) {
     var current = Settings.data.templates.activeTemplates.slice();
     var existingIndex = -1;
@@ -167,10 +156,8 @@ ColumnLayout {
     }
 
     if (existingIndex >= 0) {
-      // Remove it
       current.splice(existingIndex, 1);
     } else {
-      // Add it
       current.push({
                      "id": templateId,
                      "enabled": true
@@ -192,7 +179,6 @@ ColumnLayout {
     Layout.fillWidth: true
   }
 
-  // Category filter chips
   NTagFilter {
     tags: root.availableCategories
     selectedTag: root.selectedCategory
@@ -202,7 +188,6 @@ ColumnLayout {
     expanded: true
   }
 
-  // Search/filter input row
   RowLayout {
     Layout.fillWidth: true
     spacing: Style.marginS
@@ -225,7 +210,6 @@ ColumnLayout {
     }
   }
 
-  // Chip grid - uniform columns
   GridLayout {
     Layout.fillWidth: true
     columns: 4
@@ -290,7 +274,6 @@ ColumnLayout {
     }
   }
 
-  // No results message
   NText {
     visible: filteredTemplates.length === 0 && searchText.trim() !== ""
     text: I18n.tr("common.no-results")
@@ -302,7 +285,6 @@ ColumnLayout {
     Layout.topMargin: Style.marginM
   }
 
-  // User templates checkbox
   NCheckbox {
     label: I18n.tr("panels.color-scheme.templates-misc-user-templates-label")
     description: I18n.tr("panels.color-scheme.templates-misc-user-templates-description")

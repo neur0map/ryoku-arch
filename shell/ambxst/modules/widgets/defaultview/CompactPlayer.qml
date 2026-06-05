@@ -252,7 +252,7 @@ Item {
                         blurEnabled: (hasArtwork || wallpaperPath !== "") && compactPlayer.notchHovered
                         blurMax: 32
                         blur: 0.75
-                        opacity: (hasArtwork || wallpaperPath !== "") ? 1.0 : 0.0 // Simplificado
+                        opacity: (hasArtwork || wallpaperPath !== "") ? 1.0 : 0.0
                         Behavior on opacity {
                             enabled: Config.animDuration > 0
                             NumberAnimation {

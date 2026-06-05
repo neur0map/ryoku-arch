@@ -48,7 +48,6 @@ Item {
     HoverHandler {
         onHoveredChanged: {
             root.isHovered = hovered;
-            // Contraer cuando el mouse sale completamente del componente
             if (!hovered && root.isExpanded && !brightnessSlider.isDragging) {
                 root.isExpanded = false;
             }

@@ -12,13 +12,11 @@ QtObject {
       return true;
     }
 
-    // Check if already migrated (has viewMode)
     if (wallpaper.viewMode !== undefined) {
       logger.d("Migration43", "Already has viewMode, skipping migration");
       return true;
     }
 
-    // Migrate recursiveSearch to viewMode
     const oldValue = wallpaper.recursiveSearch ?? false;
     const newValue = oldValue ? "recursive" : "single";
     adapter.wallpaper.viewMode = newValue;

@@ -16,7 +16,6 @@ QtObject {
         try {
             const fmt = (c) => c.toString()
             
-            // Safely get wallpaper image
             let image = ""
             if (typeof GlobalStates !== "undefined" && GlobalStates.wallpaperManager) {
                 image = GlobalStates.wallpaperManager.currentWallpaper || ""
@@ -26,18 +25,13 @@ QtObject {
 
             console.log("PywalGenerator: Using wallpaper:", image)
 
-            // Helper to escape double quotes for shell echo
             const escape = (str) => {
                 if (!str) return ""
                 return str.toString().replace(/\\/g, "\\\\").replace(/"/g, '\\"')
             }
             
-            // Helper to darken color (percent 0-100)
             const darken = (c, percent) => {
                 try {
-                    // Qt.tint takes (source, tintColor). 
-                    // To darken, we tint with black having alpha = percent/100.
-                    // Qt.rgba(r,g,b,a) takes values 0.0-1.0
                     return Qt.tint(c, Qt.rgba(0, 0, 0, percent / 100)).toString()
                 } catch (err) {
                     console.error("PywalGenerator: Error darkening color:", c, err)
@@ -45,7 +39,6 @@ QtObject {
                 }
             }
 
-            // 1. ~/.cache/wal/colors
             let c0 = fmt(Colors.background)       
             let c1 = fmt(Colors.surfaceVariant)   
             let c2 = fmt(Colors.red)              
@@ -65,7 +58,6 @@ QtObject {
 
             let colorsContent = [c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15].join("\n")
 
-            // 2. ~/.cache/wal/colors.json
             const jsonColors = {
                 "wallpaper": image,
                 "alpha": "100",
@@ -95,7 +87,6 @@ QtObject {
             }
             const jsonContent = JSON.stringify(jsonColors, null, 2)
 
-            // 3. ~/.cache/wal/colors.sh
             let shContent = ""
             shContent += `color0="${fmt(Colors.surface)}"\n`
             shContent += `color1="${darken(Colors.primary, 12.5)}"\n`
@@ -114,8 +105,6 @@ QtObject {
             shContent += `color14="${fmt(Colors.primaryFixed)}"\n`
             shContent += `color15="${fmt(Colors.overSurface)}"\n`
 
-            // 4. ~/.cache/wal/wal
-            // image variable
 
             const home = Quickshell.env("HOME")
             const walDir = home + "/.cache/wal"

@@ -41,7 +41,6 @@ Singleton {
         return getForScreen(AxctlService.focusedMonitor.name);
     }
 
-    // Helper to clone map and trigger update
     function _updateMap(map, key, value) {
         var newMap = {};
         for (var k in map) {
@@ -200,7 +199,6 @@ Singleton {
         }
     }
 
-    // Monitor focus changes
     Connections {
         target: AxctlService
         function onFocusedMonitorChanged() {

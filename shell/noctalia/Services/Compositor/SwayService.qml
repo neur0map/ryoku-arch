@@ -12,21 +12,17 @@ Item {
   // Configurable IPC command name (overridden to "scrollmsg" for Scroll)
   property string msgCommand: "swaymsg"
 
-  // Properties that match the facade interface
   property ListModel workspaces: ListModel {}
   property var windows: []
   property int focusedWindowIndex: -1
 
-  // Signals that match the facade interface
   signal workspaceChanged
   signal activeWindowChanged
   signal windowListChanged
   signal displayScalesChanged
 
-  // I3-specific properties
   property bool initialized: false
 
-  // Cache for window-to-workspace mapping
   property var windowWorkspaceMap: ({})
 
   // Track window usage counts per workspace to handle duplicates
@@ -40,7 +36,6 @@ Item {
     onTriggered: safeUpdate()
   }
 
-  // Initialization
   function initialize() {
     if (initialized)
       return;
@@ -59,12 +54,10 @@ Item {
     }
   }
 
-  // Query window-to-workspace mapping via IPC
   function queryWindowWorkspaces() {
     swayTreeProcess.running = true;
   }
 
-  // Sway tree process for getting window workspace information
   Process {
     id: swayTreeProcess
     running: false
@@ -88,14 +81,12 @@ Item {
       try {
         const treeData = JSON.parse(accumulatedOutput);
         const newMap = {};
-        const workspaceWindows = {}; // Track windows per workspace
+        const workspaceWindows = {};
 
-        // Recursively find all windows and their workspaces
         function traverseTree(node, workspaceNum) {
           if (!node)
             return;
 
-          // If this is a workspace node, update the workspace number
           if (node.type === "workspace" && node.num !== undefined) {
             workspaceNum = node.num;
             if (!workspaceWindows[workspaceNum]) {
@@ -110,7 +101,6 @@ Item {
             const id = node.id;
 
             if (appId && workspaceNum !== undefined && workspaceNum >= 0) {
-              // Store window info for this workspace
               workspaceWindows[workspaceNum].push({
                                                     appId: appId,
                                                     title: title,
@@ -119,14 +109,12 @@ Item {
             }
           }
 
-          // Traverse children
           if (node.nodes && node.nodes.length > 0) {
             for (const child of node.nodes) {
               traverseTree(child, workspaceNum);
             }
           }
 
-          // Traverse floating nodes
           if (node.floating_nodes && node.floating_nodes.length > 0) {
             for (const child of node.floating_nodes) {
               traverseTree(child, workspaceNum);
@@ -136,22 +124,19 @@ Item {
 
         traverseTree(treeData, -1);
 
-        // Now build the map with workspace-specific keys
         for (const wsNum in workspaceWindows) {
           const windows = workspaceWindows[wsNum];
-          const appTitleCounts = {}; // Count occurrences of each appId:title in this workspace
+          const appTitleCounts = {};
 
           for (const win of windows) {
             const baseKey = `${win.appId}:${win.title}`;
 
-            // Track how many times we've seen this appId:title combo in this workspace
             if (!appTitleCounts[baseKey]) {
               appTitleCounts[baseKey] = 0;
             }
             const occurrence = appTitleCounts[baseKey];
             appTitleCounts[baseKey]++;
 
-            // Create unique key with workspace and occurrence index
             const uniqueKey = `ws${wsNum}:${baseKey}[${occurrence}]`;
             newMap[uniqueKey] = parseInt(wsNum);
 
@@ -164,7 +149,6 @@ Item {
 
         windowWorkspaceMap = newMap;
 
-        // Update windows with new workspace information
         Qt.callLater(safeUpdateWindows);
       } catch (e) {
         Logger.e("SwayService", "Failed to parse tree:", e);
@@ -174,12 +158,10 @@ Item {
     }
   }
 
-  // Query display scales
   function queryDisplayScales() {
     swayOutputsProcess.running = true;
   }
 
-  // Sway outputs process for display scale detection
   Process {
     id: swayOutputsProcess
     running: false
@@ -228,7 +210,6 @@ Item {
       } catch (e) {
         Logger.e("SwayService", "Failed to parse outputs:", e);
       } finally {
-        // Clear accumulated output for next query
         accumulatedOutput = "";
       }
     }
@@ -237,7 +218,6 @@ Item {
   function queryKeyboardLayout() {
     swayInputsProcess.running = true;
   }
-  // Sway inputs process for keyboard layout detection
   Process {
     id: swayInputsProcess
     running: false
@@ -247,7 +227,6 @@ Item {
 
     stdout: SplitParser {
       onRead: function (line) {
-        // Accumulate lines instead of parsing each one
         swayInputsProcess.accumulatedOutput += line;
       }
     }
@@ -272,19 +251,16 @@ Item {
       } catch (e) {
         Logger.e("SwayService", "Failed to parse inputs:", e);
       } finally {
-        // Clear accumulated output for next query
         accumulatedOutput = "";
       }
     }
   }
 
-  // Safe update wrapper
   function safeUpdate() {
     queryWindowWorkspaces();
     safeUpdateWorkspaces();
   }
 
-  // Safe workspace update
   function safeUpdateWorkspaces() {
     try {
       workspaces.clear();
@@ -318,12 +294,10 @@ Item {
     }
   }
 
-  // Safe window update
   function safeUpdateWindows() {
     try {
       const windowsList = [];
 
-      // Reset usage counts per workspace before processing windows
       windowUsageCountsPerWorkspace = {};
 
       if (!ToplevelManager.toplevels || !ToplevelManager.toplevels.values) {
@@ -363,25 +337,20 @@ Item {
     }
   }
 
-  // Extract window data safely from a toplevel
   function extractWindowData(toplevel) {
     if (!toplevel)
       return null;
 
     try {
-      // Safely extract properties
       const appId = getAppId(toplevel);
       const title = safeGetProperty(toplevel, "title", "");
       const focused = toplevel.activated === true;
 
-      // Try to find workspace ID from our cached map by trying all workspaces
       let workspaceId = -1;
       let foundWorkspaceNum = -1;
 
-      // Build base key for this window
       const baseKey = `${appId}:${title}`;
 
-      // Try to find this window in any workspace
       for (var i = 0; i < workspaces.count; i++) {
         const ws = workspaces.get(i);
         if (!ws)
@@ -389,12 +358,10 @@ Item {
 
         const wsNum = ws.idx;
 
-        // Initialize usage count for this workspace if needed
         if (!windowUsageCountsPerWorkspace[wsNum]) {
           windowUsageCountsPerWorkspace[wsNum] = {};
         }
 
-        // Get current usage count for this appId:title in this workspace
         if (!windowUsageCountsPerWorkspace[wsNum][baseKey]) {
           windowUsageCountsPerWorkspace[wsNum][baseKey] = 0;
         }
@@ -402,12 +369,10 @@ Item {
         const occurrence = windowUsageCountsPerWorkspace[wsNum][baseKey];
         const uniqueKey = `ws${wsNum}:${baseKey}[${occurrence}]`;
 
-        // Check if this key exists in our map
         if (windowWorkspaceMap[uniqueKey] !== undefined) {
           foundWorkspaceNum = windowWorkspaceMap[uniqueKey];
           workspaceId = ws.id;
 
-          // Increment the usage count for this workspace
           windowUsageCountsPerWorkspace[wsNum][baseKey]++;
           break;
         }
@@ -432,7 +397,6 @@ Item {
     return toplevel.appId;
   }
 
-  // Safe property getter
   function safeGetProperty(obj, prop, defaultValue) {
     try {
       const value = obj[prop];
@@ -462,7 +426,6 @@ Item {
     }
   }
 
-  // Connections to I3
   Connections {
     target: I3.workspaces
     enabled: initialized
@@ -510,7 +473,6 @@ Item {
     }
   }
 
-  // Public functions
   function switchToWorkspace(workspace) {
     try {
       workspace.handle.activate();

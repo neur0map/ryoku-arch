@@ -22,7 +22,6 @@ import qs.noctalia.Services.UI
 Singleton {
   id: root
 
-  // Screen detector, set via init()
   property var screenDetector: null
 
   function init(detector) {
@@ -30,7 +29,6 @@ Singleton {
     Logger.i("IPCService", "Service started");
   }
 
-  // Helper for index-based notification lookups in IPC
   function _getNotificationByIndex(index: string, funcName: string) {
     var idx = index === "" ? 0 : parseInt(index);
     if (isNaN(idx)) {
@@ -292,7 +290,6 @@ Singleton {
     }
   }
 
-  // Idle Inhibitor / Keep Awake
   IpcHandler {
     target: "idleInhibitor"
     function toggle() {
@@ -321,13 +318,10 @@ Singleton {
                                               var searchText = PanelService.getLauncherSearchText(screen);
                                               var isInAppMode = !searchText.startsWith(">");
                                               if (!PanelService.isLauncherOpen(screen)) {
-                                                // Closed -> open in app mode
                                                 PanelService.openLauncherWithSearch(screen, "");
                                               } else if (isInAppMode) {
-                                                // Already in app mode -> close
                                                 PanelService.closeLauncher(screen);
                                               } else {
-                                                // In another mode -> switch to app mode
                                                 PanelService.setLauncherSearchText(screen, "");
                                               }
                                             }, Settings.data.appLauncher.overviewLayer);
@@ -337,13 +331,10 @@ Singleton {
                                               var searchText = PanelService.getLauncherSearchText(screen);
                                               var isInClipMode = searchText.startsWith(">clip");
                                               if (!PanelService.isLauncherOpen(screen)) {
-                                                // Closed -> open in clipboard mode
                                                 PanelService.openLauncherWithSearch(screen, ">clip ");
                                               } else if (isInClipMode) {
-                                                // Already in clipboard mode -> close
                                                 PanelService.closeLauncher(screen);
                                               } else {
-                                                // In another mode -> switch to clipboard mode
                                                 PanelService.setLauncherSearchText(screen, ">clip ");
                                               }
                                             }, Settings.data.appLauncher.overviewLayer);
@@ -366,13 +357,10 @@ Singleton {
                                               var searchText = PanelService.getLauncherSearchText(screen);
                                               var isInEmojiMode = searchText.startsWith(">emoji");
                                               if (!PanelService.isLauncherOpen(screen)) {
-                                                // Closed -> open in emoji mode
                                                 PanelService.openLauncherWithSearch(screen, ">emoji ");
                                               } else if (isInEmojiMode) {
-                                                // Already in emoji mode -> close
                                                 PanelService.closeLauncher(screen);
                                               } else {
-                                                // In another mode -> switch to emoji mode
                                                 PanelService.setLauncherSearchText(screen, ">emoji ");
                                               }
                                             }, Settings.data.appLauncher.overviewLayer);
@@ -408,7 +396,6 @@ Singleton {
   IpcHandler {
     target: "lockScreen"
 
-    // New preferred method - lock the screen
     function lock() {
       // Only lock if not already locked (prevents the red screen issue)
       if (!PanelService.lockScreen.active) {
@@ -434,7 +421,6 @@ Singleton {
       if (val > 1.0)
         val = val / 100.0;
 
-      // Clamp
       val = Math.max(0.0, Math.min(1.0, val));
 
       BrightnessService.setBrightness(val);
@@ -564,7 +550,6 @@ Singleton {
     }
 
     function lockAndSuspend() {
-      // Only lock and suspend if not already locked
       if (!PanelService.lockScreen.active) {
         CompositorService.lockAndSuspend();
       }

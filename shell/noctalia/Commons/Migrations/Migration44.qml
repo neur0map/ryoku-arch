@@ -14,15 +14,12 @@ QtObject {
     const pamConfigDirEsc = pamConfigDir.replace(/'/g, "'\\''");
     const pamConfigFileEsc = pamConfigFile.replace(/'/g, "'\\''");
 
-    // Ensure directory exists
     Quickshell.execDetached(["mkdir", "-p", pamConfigDir]);
 
-    // Generate the PAM config file content (updated version)
     var configContent = "auth sufficient pam_fprintd.so timeout=-1\n";
     configContent += "auth sufficient /run/current-system/sw/lib/security/pam_fprintd.so timeout=-1 # for NixOS\n";
     configContent += "auth required pam_unix.so\n";
 
-    // Write the config file using heredoc
     var script = `cat > '${pamConfigFileEsc}' << 'EOF'\n`;
     script += configContent;
     script += "EOF\n";

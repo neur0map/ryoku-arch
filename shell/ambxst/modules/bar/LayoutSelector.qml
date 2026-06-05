@@ -13,13 +13,11 @@ StyledRect {
 
     required property string orientation
 
-    // Calculate width/height based on number of layouts
     readonly property int buttonSize: 32
     readonly property int spacing: 2
     readonly property int padding: 2
     readonly property int totalButtons: GlobalStates.availableLayouts.length
 
-    // For vertical mode, reverse the order
     readonly property var displayLayouts: orientation === "vertical" ? GlobalStates.availableLayouts.slice().reverse() : GlobalStates.availableLayouts
 
     Layout.preferredWidth: orientation === "horizontal" ? (totalButtons * buttonSize + (totalButtons - 1) * spacing + padding * 2) : 36

@@ -23,10 +23,9 @@ PopupWindow {
   property var launcherWidgetSettings: ({})
 
   property bool hovered: menuHoverHandler.hovered
-  property var onAppClosed: null // Callback function for when an app is closed
+  property var onAppClosed: null
   property bool canAutoClose: false
 
-  // Track which menu item is hovered
   property int hoveredItem: -1 // -1: none, otherwise the index of the item in `items`
 
   property var items: []
@@ -76,7 +75,6 @@ PopupWindow {
     elide: Text.ElideNone
   }
 
-  // Calculate the maximum width needed for all menu items
   function calculateMenuWidth() {
     let maxWidth = 0; // Start with 0, we'll apply minimum later
     if (root.items && root.items.length > 0) {
@@ -84,13 +82,12 @@ PopupWindow {
         const item = root.items[i];
         if (item && item.text) {
           // Calculate width: margins + icon (if present) + spacing + text width
-          let itemWidth = Style.margin2S; // left and right margins
+          let itemWidth = Style.margin2S;
 
           if (item.icon && item.icon !== "") {
-            itemWidth += Style.fontSizeL + Style.marginS; // icon + spacing
+            itemWidth += Style.fontSizeL + Style.marginS;
           }
 
-          // Measure actual text width
           textMeasure.text = item.text;
           const textWidth = textMeasure.contentWidth;
           itemWidth += textWidth;
@@ -248,7 +245,6 @@ PopupWindow {
       }
     }
 
-    // Keep grouped list mode as a clean window switcher.
     const canAddDesktopActions = !grouped || menuModeForGroup === "extended";
 
     // Create a menu entry for each app-specific action defined in its .desktop file
@@ -288,12 +284,10 @@ PopupWindow {
     return appId.toLowerCase().trim();
   }
 
-  // Helper function to get desktop entry ID from an app ID
   function getDesktopEntryId(appId) {
     if (!appId)
       return appId;
 
-    // Try to find the desktop entry using heuristic lookup
     if (typeof DesktopEntries !== 'undefined' && DesktopEntries.heuristicLookup) {
       try {
         const entry = DesktopEntries.heuristicLookup(appId);
@@ -305,7 +299,6 @@ PopupWindow {
       {}
     }
 
-    // Try direct lookup
     if (typeof DesktopEntries !== 'undefined' && DesktopEntries.byId) {
       try {
         const entry = DesktopEntries.byId(appId);
@@ -321,7 +314,6 @@ PopupWindow {
     return appId;
   }
 
-  // Helper functions for pin/unpin functionality
   function isAppPinned(appId) {
     if (!appId)
       return false;
@@ -338,21 +330,19 @@ PopupWindow {
     const desktopEntryId = getDesktopEntryId(appId);
     const normalizedId = normalizeAppId(desktopEntryId);
 
-    let pinnedApps = (Settings.data.dock.pinnedApps || []).slice(); // Create a copy
+    let pinnedApps = (Settings.data.dock.pinnedApps || []).slice();
 
     // Find existing pinned app with case-insensitive matching
     const existingIndex = pinnedApps.findIndex(pinnedId => normalizeAppId(pinnedId) === normalizedId);
     const isPinned = existingIndex >= 0;
 
     if (isPinned) {
-      // Unpin: remove from array
       pinnedApps.splice(existingIndex, 1);
     } else {
       // Pin: add desktop entry ID to array
       pinnedApps.push(desktopEntryId);
     }
 
-    // Update the settings
     Settings.data.dock.pinnedApps = pinnedApps;
   }
 
@@ -370,7 +360,7 @@ PopupWindow {
     case "right":
       return -implicitWidth - Style.marginL; // Open to left of dock
     default:
-      return (anchorItem.width - implicitWidth) / 2; // Center horizontally
+      return (anchorItem.width - implicitWidth) / 2;
     }
   }
   anchor.rect.y: {
@@ -383,7 +373,7 @@ PopupWindow {
       return -implicitHeight - Style.marginL; // Open above dock (default)
     case "left":
     case "right":
-      return (anchorItem.height - implicitHeight) / 2; // Center vertically
+      return (anchorItem.height - implicitHeight) / 2;
     default:
       return -implicitHeight - Style.marginL;
     }
@@ -394,10 +384,8 @@ PopupWindow {
       return;
     }
 
-    // First hide completely
     visible = false;
 
-    // Then set up new data
     anchorItem = item;
     if (toplevelData && typeof toplevelData === "object" && (toplevelData.appId !== undefined || toplevelData.toplevels !== undefined)) {
       appData = toplevelData;
@@ -419,7 +407,6 @@ PopupWindow {
     gracePeriodTimer.restart();
   }
 
-  // Helper function to determine which menu item is under the mouse
   function getHoveredItem(mouseY) {
     const startY = Style.marginM;
     const localY = mouseY - startY;

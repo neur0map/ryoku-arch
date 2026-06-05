@@ -5,7 +5,6 @@ import qs.noctalia.Commons
 import qs.noctalia.Services.UI
 import qs.noctalia.Widgets
 
-// Widget Settings Dialog Component
 Popup {
   id: root
 
@@ -54,7 +53,6 @@ Popup {
     anchors.margins: dialogPadding
     spacing: Style.marginM
 
-    // Title
     RowLayout {
       id: titleRow
       Layout.fillWidth: true
@@ -77,7 +75,6 @@ Popup {
       }
     }
 
-    // Separator
     Rectangle {
       id: separator
       Layout.fillWidth: true
@@ -85,7 +82,6 @@ Popup {
       color: Color.mOutline
     }
 
-    // Scrollable settings area
     NScrollView {
       id: scrollView
       Layout.fillWidth: true

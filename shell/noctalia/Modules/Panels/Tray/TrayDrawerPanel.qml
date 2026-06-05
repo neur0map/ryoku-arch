@@ -25,7 +25,6 @@ SmartPanel {
   readonly property real outerPadding: Style.marginM
   readonly property real innerSpacing: Style.marginM
 
-  // All tray items from SystemTray
   readonly property var trayValuesAll: (SystemTray.items && SystemTray.items.values) ? SystemTray.items.values : []
 
   // Filtered items - computed in panelContent where isPinned is available
@@ -88,7 +87,6 @@ SmartPanel {
           continue;
         }
 
-        // Filter out pinned items
         if (isPinned(item)) {
           continue;
         }
@@ -98,7 +96,6 @@ SmartPanel {
       root.trayValues = filtered;
     }
 
-    // Update filtered items when dependencies change
     Component.onCompleted: updateFilteredItems()
     onPinnedListChanged: updateFilteredItems()
     onHidePassiveChanged: updateFilteredItems()
@@ -146,7 +143,6 @@ SmartPanel {
 
     readonly property var trayMenu: popupMenuWindow ? popupMenuWindow.trayMenuLoader : null
 
-    // Dynamic content sizing
     property real contentPreferredWidth: (root.columns * root.cellSize) + ((root.columns - 1) * root.innerSpacing) + (2 * root.outerPadding)
     property real contentPreferredHeight: (root.rows * root.cellSize) + ((root.rows - 1) * root.innerSpacing) + (2 * root.outerPadding)
 

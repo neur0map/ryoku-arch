@@ -5,7 +5,6 @@ import Quickshell
 import Quickshell.Io
 import qs.noctalia.Commons
 
-// Manages emoji data loading, searching, and clipboard operations
 Singleton {
   id: root
 
@@ -16,10 +15,8 @@ Singleton {
   // Format: { "emoji": { count: number, lastUsed: timestamp } }
   property var usageCounts: ({})
 
-  // File path for persisting usage data
   readonly property string usageFilePath: Settings.cacheDir + "emoji_usage.json"
 
-  // Searches emojis based on query
   function search(query) {
     if (!loaded) {
       return [];
@@ -71,7 +68,6 @@ Singleton {
       return a.emoji.name.localeCompare(b.emoji.name);
     });
 
-    // Return the emoji objects limited by the specified count
     return emojisWithUsage.slice(0, limit).map(function (item) {
       return item.emoji;
     });
@@ -118,7 +114,6 @@ Singleton {
     });
   }
 
-  // Record emoji usage
   function recordUsage(emojiChar) {
     if (emojiChar) {
       const currentData = usageCounts[emojiChar] || {
@@ -133,27 +128,22 @@ Singleton {
     }
   }
 
-  // Ensure usage file exists with default content
   function _ensureUsageFileExists() {
     Quickshell.execDetached(["sh", "-c", `mkdir -p "$(dirname "${root.usageFilePath}")" && echo '{}' > "${root.usageFilePath}"`]);
   }
 
-  // File paths
   readonly property string userEmojiPath: Settings.configDir + "emoji.json"
   readonly property string builtinEmojiPath: `${Quickshell.shellDir + "/noctalia"}/Assets/Launcher/emoji.json`
 
-  // Internal data
   property var _userEmojiData: []
   property var _builtinEmojiData: []
   property int _pendingLoads: 0
 
-  // Initialize on component completion
   Component.onCompleted: {
     _loadUsageData();
     _loadEmojis();
   }
 
-  // File loaders
   FileView {
     id: userEmojiFile
     path: root.userEmojiPath
@@ -208,14 +198,12 @@ Singleton {
     }
   }
 
-  // Load emoji files
   function _loadEmojis() {
     _pendingLoads = 2;
     userEmojiFile.reload();
     builtinEmojiFile.reload();
   }
 
-  // Called when one file finishes loading
   function _onLoadComplete() {
     _pendingLoads--;
     if (_pendingLoads <= 0) {
@@ -223,11 +211,9 @@ Singleton {
     }
   }
 
-  // Merge and deduplicate emojis
   function _finalizeEmojis() {
     const emojiMap = new Map();
 
-    // Add built-in emojis first
     for (const emoji of _builtinEmojiData) {
       if (emoji && emoji.emoji) {
         emojiMap.set(emoji.emoji, emoji);
@@ -245,7 +231,6 @@ Singleton {
     loaded = true;
   }
 
-  // FileView for usage data
   FileView {
     id: usageFile
     path: root.usageFilePath
@@ -284,17 +269,14 @@ Singleton {
     onTriggered: _doSaveUsageData()
   }
 
-  // Load usage data
   function _loadUsageData() {
     usageFile.reload();
   }
 
-  // Save usage data with debounce
   function _saveUsageData() {
     saveTimer.restart();
   }
 
-  // Actually save usage data to file
   function _doSaveUsageData() {
     try {
       const content = JSON.stringify(root.usageCounts);
@@ -304,10 +286,9 @@ Singleton {
     }
   }
 
-  // Copies emoji to clipboard
   function copy(emojiChar) {
     if (emojiChar) {
-      recordUsage(emojiChar);  // Record usage before copying
+      recordUsage(emojiChar);
       Quickshell.execDetached(["sh", "-c", `echo -n "${emojiChar}" | wl-copy`]);
     }
   }

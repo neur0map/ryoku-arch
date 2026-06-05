@@ -10,9 +10,6 @@ import "ai/strategies"
 Singleton {
     id: root
 
-    // ============================================
-    // PROPERTIES
-    // ============================================
 
     property string chatDir: Quickshell.env("HOME") + "/.local/share/ambxst/chats"
     property string tmpDir: "/tmp/ambxst-ai"
@@ -91,9 +88,6 @@ Singleton {
         createNewChat();
     }
 
-    // ============================================
-    // STRATEGIES
-    // ============================================
 
     property OpenAiApiStrategy openaiStrategy: OpenAiApiStrategy {}
     property GeminiApiStrategy geminiStrategy: GeminiApiStrategy {}
@@ -114,7 +108,7 @@ Singleton {
         case "groq": return groqStrategy;
         case "ollama": return ollamaStrategy;
         case "minimax": return minimaxStrategy;
-        case "custom": return openaiStrategy; // custom endpoints use OpenAI-compatible format by default
+        case "custom": return openaiStrategy;
         default: return openaiStrategy;
         }
     }
@@ -126,19 +120,14 @@ Singleton {
             currentStrategy = openaiStrategy;
     }
 
-    // ============================================
-    // STATE
-    // ============================================
 
     property bool isLoading: false
     property string lastError: ""
     property string responseBuffer: ""
 
-    // Current Chat
     property var currentChat: []
     property string currentChatId: ""
 
-    // Chat History List (files)
     property var chatHistory: []
 
     FileView {
@@ -151,9 +140,6 @@ Singleton {
         printErrors: false
     }
 
-    // ============================================
-    // TOOLS
-    // ============================================
 
     function regenerateResponse(index) {
         if (index < 0 || index >= currentChat.length)
@@ -197,9 +183,6 @@ Singleton {
         }
     ]
 
-    // ============================================
-    // CHAT MANAGEMENT
-    // ============================================
 
     function deleteChat(id) {
         if (id === currentChatId)
@@ -210,9 +193,6 @@ Singleton {
         deleteChatProcess.running = true;
     }
 
-    // ============================================
-    // LOGIC
-    // ============================================
 
     function setModel(modelName) {
         for (let i = 0; i < models.length; i++) {
@@ -227,7 +207,6 @@ Singleton {
         if (!model || !model.requires_key)
             return "";
 
-        // Try KeyStore first
         let ksKey = KeyStore.getKey(model.provider);
         if (ksKey)
             return ksKey;
@@ -284,7 +263,6 @@ Singleton {
         currentChat = newChat;
     }
 
-    // Function Call Handling
     function approveCommand(index) {
         let msg = currentChat[index];
         if (!msg.functionCall)
@@ -355,7 +333,6 @@ Singleton {
             return;
         }
 
-        // Determine endpoint — Gemini streaming uses a different endpoint
         let endpoint;
         let isGemini = currentModel.provider === "gemini";
         if (isGemini && geminiStrategy._getStreamEndpoint) {
@@ -366,7 +343,6 @@ Singleton {
 
         let headers = currentStrategy.getHeaders(apiKey);
 
-        // Build messages array
         let messages = [];
         if (Config.ai.systemPrompt) {
             messages.push({
@@ -392,13 +368,10 @@ Singleton {
             messages.push(apiMsg);
         }
 
-        // Build body — always use streaming
         let body = currentStrategy.getStreamBody(messages, currentModel, systemTools);
 
-        // Reset streaming buffer
         responseBuffer = "";
 
-        // Add placeholder assistant message for streaming
         let streamChat = Array.from(currentChat);
         streamChat.push({
             role: "assistant",
@@ -432,7 +405,6 @@ Singleton {
         let bodyPath = tmpDir + "/body.json";
         let headerArgs = payload.headers.map(h => "-H \"" + h + "\"").join(" ");
 
-        // Check for custom curl template
         let customCurl = "";
         if (currentModel && currentModel.customCurlTemplate) {
             customCurl = currentModel.customCurlTemplate;
@@ -442,7 +414,6 @@ Singleton {
 
         let curlCmd;
         if (customCurl) {
-            // Replace placeholders in custom curl
             curlCmd = customCurl
                 .replace("{{BODY_PATH}}", bodyPath)
                 .replace("{{ENDPOINT}}", payload.endpoint)
@@ -494,7 +465,6 @@ Singleton {
     Process {
         id: curlProcess
 
-        // Use SplitParser for streaming — emits onRead per line
         stdout: SplitParser {
             onRead: data => {
                 let result = root.currentStrategy.parseStreamChunk(data);
@@ -506,7 +476,6 @@ Singleton {
 
                 if (result.content) {
                     root.responseBuffer += result.content;
-                    // Update the last message in currentChat with accumulated text
                     let newChat = Array.from(root.currentChat);
                     if (newChat.length > 0) {
                         newChat[newChat.length - 1].content = root.responseBuffer;
@@ -514,7 +483,6 @@ Singleton {
                     }
                 }
 
-                // Note: done is handled in onExited
             }
         }
 
@@ -526,10 +494,7 @@ Singleton {
             root.isLoading = false;
 
             if (exitCode === 0) {
-                // Check if we got any content during streaming
                 if (root.responseBuffer === "" && root.currentChat.length > 0) {
-                    // No streaming data received — might be non-streaming response or error
-                    // The last message is our placeholder, leave as is
                     let lastMsg = root.currentChat[root.currentChat.length - 1];
                     if (!lastMsg.content) {
                         let newChat = Array.from(root.currentChat);
@@ -542,7 +507,6 @@ Singleton {
             } else {
                 root.lastError = "Network Request Failed: " + curlStderr.text;
 
-                // Update the placeholder message with error
                 let errChat = Array.from(root.currentChat);
                 if (errChat.length > 0) {
                     errChat[errChat.length - 1].content = "Error: " + root.lastError;
@@ -585,9 +549,6 @@ Singleton {
         }
     }
 
-    // ============================================
-    // CHAT STORAGE
-    // ============================================
 
     function createNewChat() {
         currentChat = [];
@@ -707,22 +668,18 @@ for f in files:
         }
     }
 
-    // ============================================
-    // DYNAMIC MODEL FETCHING
-    // ============================================
 
     property bool fetchingModels: false
     property int pendingFetches: 0
 
     function fetchAvailableModels() {
-        fetchingModels = false; // Force refresh
+        fetchingModels = false;
         if (fetchingModels)
             return;
 
         fetchingModels = true;
         pendingFetches = 0;
 
-        // Gemini
         let geminiKey = KeyStore.getKey("gemini");
         if (geminiKey) {
             pendingFetches++;
@@ -730,7 +687,6 @@ for f in files:
             fetchProcessGemini.running = true;
         }
 
-        // OpenAI
         let openaiKey = KeyStore.getKey("openai");
         if (openaiKey) {
             pendingFetches++;
@@ -738,7 +694,6 @@ for f in files:
             fetchProcessOpenAI.running = true;
         }
 
-        // Anthropic
         let anthropicKey = KeyStore.getKey("anthropic");
         if (anthropicKey) {
             pendingFetches++;
@@ -746,7 +701,6 @@ for f in files:
             fetchProcessAnthropic.running = true;
         }
 
-        // Mistral
         let mistralKey = KeyStore.getKey("mistral");
         if (mistralKey) {
             pendingFetches++;
@@ -754,7 +708,6 @@ for f in files:
             fetchProcessMistral.running = true;
         }
 
-        // Groq
         let groqKey = KeyStore.getKey("groq");
         if (groqKey) {
             pendingFetches++;
@@ -762,7 +715,6 @@ for f in files:
             fetchProcessGroq.running = true;
         }
 
-        // Ollama (local)
         let ollamaEnabled = KeyStore.hasKey("ollama");
         if (ollamaEnabled) {
             pendingFetches++;
@@ -770,7 +722,6 @@ for f in files:
             fetchProcessOllama.running = true;
         }
 
-        // MiniMax
         let minimaxKey = KeyStore.getKey("minimax");
         if (minimaxKey) {
             pendingFetches++;
@@ -1089,7 +1040,6 @@ for f in files:
             tryRestore();
     }
 
-    // Signals
     signal chatModelChanged
     signal historyModelChanged
     signal modelSelectionRequested

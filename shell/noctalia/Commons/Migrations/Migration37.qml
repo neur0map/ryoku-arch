@@ -14,13 +14,11 @@ QtObject {
         return;
       const len = adapterArr.length;
       for (let i = 0; i < len; i++) {
-        // Prefer raw item if present, otherwise use adapter item
         const item = rawArr && rawArr[i] !== undefined ? rawArr[i] : adapterArr[i];
 
         if (item === undefined || item === null)
           continue;
 
-        // Case 1: simple string entries
         if (typeof item === "string") {
           if (item === "WiFi") {
             setItem(i, "Network");
@@ -30,7 +28,6 @@ QtObject {
           continue;
         }
 
-        // Case 2: object entries with id
         let id = item.id !== undefined ? item.id : (item.widgetId !== undefined ? item.widgetId : undefined);
         if (id === "WiFi") {
           var newObj = {};
@@ -47,7 +44,6 @@ QtObject {
       }
     }
 
-    // --- Bar widgets: left/center/right
     const sections = ["left", "center", "right"];
     for (const section of sections) {
       const rawArr = rawJson?.bar?.widgets?.[section];
@@ -57,7 +53,6 @@ QtObject {
       });
     }
 
-    // --- Control Center shortcuts: left/right
     const rawLeft = rawJson?.controlCenter?.shortcuts?.left;
     const adLeft = adapter?.controlCenter?.shortcuts?.left;
     migrateArray("controlCenter.shortcuts.left", rawLeft, adLeft, function (i, v) {

@@ -161,7 +161,6 @@ ColumnLayout {
           color: Color.mOnSurfaceVariant
         }
 
-        // Name bar
         Rectangle {
           anchors.left: parent.left
           anchors.right: parent.right
@@ -182,7 +181,6 @@ ColumnLayout {
           }
         }
 
-        // Active badge
         Rectangle {
           visible: tile.isActive
           anchors.top: parent.top

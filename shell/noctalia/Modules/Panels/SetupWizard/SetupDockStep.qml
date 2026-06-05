@@ -11,7 +11,6 @@ ColumnLayout {
 
   spacing: Style.marginM
 
-  // Header
   RowLayout {
     Layout.fillWidth: true
     Layout.bottomMargin: Style.marginL
@@ -51,7 +50,6 @@ ColumnLayout {
     }
   }
 
-  // Options
   ColumnLayout {
     Layout.fillWidth: true
     spacing: Style.marginL
@@ -64,7 +62,6 @@ ColumnLayout {
       onToggled: checked => Settings.data.dock.enabled = checked
     }
 
-    // Display behavior
     NComboBox {
       visible: Settings.data.dock.enabled
       Layout.fillWidth: true
@@ -88,7 +85,6 @@ ColumnLayout {
       onSelected: key => Settings.data.dock.displayMode = key
     }
 
-    // Background opacity
     ColumnLayout {
       visible: Settings.data.dock.enabled
       spacing: Style.marginXXS
@@ -108,7 +104,6 @@ ColumnLayout {
       }
     }
 
-    // Floating distance
     ColumnLayout {
       visible: Settings.data.dock.enabled
       spacing: Style.marginXXS
@@ -128,7 +123,6 @@ ColumnLayout {
       }
     }
 
-    // Icon size
     ColumnLayout {
       visible: Settings.data.dock.enabled
       spacing: Style.marginXXS

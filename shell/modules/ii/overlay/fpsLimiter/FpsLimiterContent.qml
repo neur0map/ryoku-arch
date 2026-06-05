@@ -53,7 +53,6 @@ OverlayBackground {
         root.currentState = FpsLimiterContent.State.Success;
         iconResetTimer.restart();
 
-        // Clear the field after applying
         fpsField.text = "";
     }
 

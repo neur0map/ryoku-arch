@@ -5,7 +5,6 @@ import qs.noctalia.Services.UI
 Rectangle {
   id: root
 
-  // Mandatory properties for gauges
   required property int orientation // Qt.Vertical || Qt.Horizontal
   required property real ratio // 0..1
 

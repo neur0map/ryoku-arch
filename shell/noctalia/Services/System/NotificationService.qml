@@ -17,21 +17,17 @@ import qs.noctalia.Services.UI
 Singleton {
   id: root
 
-  // Configuration
   property int maxPopups: 5
   property int maxHistory: 100
   property string historyFile: Quickshell.env("NOCTALIA_NOTIF_HISTORY_FILE") || (Settings.cacheDir + "notifications.json")
 
-  // State
   property real lastSeenTs: 0
   // Volatile property that doesn't persist to settings (similar to noctaliaPerformanceMode)
   property bool doNotDisturb: false
 
-  // Models
   property ListModel popupModel: ListModel {}
   property ListModel historyModel: ListModel {}
 
-  // Internal state
   property var popupState: ({}) // Maps internal ID to {notification, watcher, cachedActions, metadata}
   property var quickshellIdToInternalId: ({})
 
@@ -39,7 +35,6 @@ Singleton {
   property var lastSoundTime: 0
   readonly property int minSoundInterval: 100
 
-  // Notification server
   property var notificationServerLoader: null
 
   Component {
@@ -99,7 +94,6 @@ Singleton {
       updateNotificationServer();
     }
 
-    // Load state from ShellState
     Qt.callLater(() => {
                    if (typeof ShellState !== 'undefined' && ShellState.isLoaded) {
                      loadState();
@@ -126,7 +120,6 @@ Singleton {
     }
   }
 
-  // Helper function to generate content-based ID for deduplication
   function getContentId(summary, body, appName) {
     return Checksum.sha256(JSON.stringify({
                                             "summary": summary || "",
@@ -135,7 +128,6 @@ Singleton {
                                           }));
   }
 
-  // Main handler
   function handleNotification(notification) {
     const quickshellId = notification.id;
     const data = createData(notification);
@@ -153,20 +145,17 @@ Singleton {
     if (root.doNotDisturb || PowerProfileService.noctaliaPerformanceMode)
       return;
 
-    // Check if this is a replacement notification
     const existingInternalId = quickshellIdToInternalId[quickshellId];
     if (existingInternalId && popupState[existingInternalId]) {
       updatePopup(existingInternalId, notification, data);
       return;
     }
 
-    // Check for duplicate content
     const duplicateId = findDuplicateNotification(data);
     if (duplicateId) {
       removePopup(duplicateId);
     }
 
-    // Add new notification
     addPopup(quickshellId, notification, data);
     if (ruleAction !== "mute")
       playNotificationSound(data.urgency, data.appName);
@@ -195,22 +184,18 @@ Singleton {
       }
     }
 
-    // Get the sound file for this urgency level
     const soundFile = getNotificationSoundFile(urgency);
     if (!soundFile || soundFile.trim() === "") {
-      // No sound file configured for this urgency level
       Logger.i("NotificationService", `No sound file configured for urgency ${urgency}`);
       return;
     }
 
-    // Rate limiting - prevent sound spam
     const now = Date.now();
     if (now - lastSoundTime < minSoundInterval) {
       return;
     }
     lastSoundTime = now;
 
-    // Play sound using existing SoundService
     const volume = Settings.data.notifications?.sounds?.volume ?? 0.5;
     SoundService.playSound(soundFile, {
                              volume: volume,
@@ -219,27 +204,22 @@ Singleton {
                            });
   }
 
-  // Get the appropriate sound file path for a given urgency level
   function getNotificationSoundFile(urgency) {
     const settings = Settings.data.notifications?.sounds;
     if (!settings) {
       return "";
     }
 
-    // Default sound file path
     const defaultSoundFile = Quickshell.shellDir + "/noctalia" + "/Assets/Sounds/notification-generic.wav";
 
-    // If separate sounds is disabled, always use normal sound for all urgencies
     if (!settings.separateSounds) {
       const soundFile = settings.normalSoundFile;
       if (soundFile && soundFile.trim() !== "") {
         return soundFile;
       }
-      // Return default if no sound file configured
       return defaultSoundFile;
     }
 
-    // Map urgency levels to sound file keys (when separate sounds is enabled)
     let soundKey;
     switch (urgency) {
     case 0:
@@ -252,7 +232,6 @@ Singleton {
       soundKey = "criticalSoundFile";
       break;
     default:
-      // Default to normal urgency for invalid values
       soundKey = "normalSoundFile";
       break;
     }
@@ -262,7 +241,6 @@ Singleton {
       return soundFile;
     }
 
-    // Return default sound file if none configured for this urgency level
     return defaultSoundFile;
   }
 
@@ -288,7 +266,6 @@ Singleton {
     popupModel.setProperty(index, "timestamp", oldTimestamp);
     popupModel.setProperty(index, "progress", oldProgress);
 
-    // Update stored notification object
     const notifData = popupState[internalId];
     notifData.notification = notification;
 
@@ -313,22 +290,18 @@ Singleton {
     notification.closed.connect(onClosed);
     notifData.onClosed = onClosed;
 
-    // Update metadata
     notifData.metadata.urgency = data.urgency;
     notifData.metadata.duration = calculateDuration(data);
   }
 
   function addPopup(quickshellId, notification, data) {
-    // Map IDs
     quickshellIdToInternalId[quickshellId] = data.id;
 
-    // Create watcher
     const watcher = notificationWatcherComponent.createObject(root, {
                                                                 "targetNotification": notification,
                                                                 "targetDataId": data.id
                                                               });
 
-    // Deep copy actions
     var safeActions = [];
     if (notification.actions) {
       for (var i = 0; i < notification.actions.length; i++) {
@@ -339,14 +312,13 @@ Singleton {
       }
     }
 
-    // Store notification data
     popupState[data.id] = {
       "notification": notification,
       "watcher": watcher,
-      "cachedActions": safeActions // Cache actions
+      "cachedActions": safeActions
                        ,
       "metadata": {
-        "originalId": data.originalId // Store original ID
+        "originalId": data.originalId
                       ,
         "timestamp": data.timestamp.getTime(),
         "duration": calculateDuration(data),
@@ -371,7 +343,6 @@ Singleton {
     Qt.callLater(() => {
                    popupModel.insert(0, data);
 
-                   // Remove overflow
                    while (popupModel.count > maxPopups) {
                      const last = popupModel.get(popupModel.count - 1);
                      // Overflow only removes from ACTIVE view, but keeps it for history

@@ -32,7 +32,7 @@ Item {
     property color progressColor: Styling.srItem("overprimary")
     property color backgroundColor: Colors.surfaceBright
     property bool wavy: false
-    property bool playing: false // Nuevo estado para controlar la animación
+    property bool playing: false
     property real wavyAmplitude: 0.8
     property real wavyFrequency: 8
     property real heightMultiplier: 8
@@ -51,11 +51,9 @@ Item {
     property bool sliderVisible: true
     property bool iconClickable: true
 
-    // Step and snap properties
-    property real stepSize: 0  // 0 means no stepping
-    property string snapMode: "none"  // "none", "always", "release"
+    property real stepSize: 0
+    property string snapMode: "none"
 
-    // Helper function to apply step snapping
     function applyStep(val: real): real {
         if (stepSize <= 0)
             return val;
@@ -100,7 +98,6 @@ Item {
         }
     }
 
-    // Horizontal Layout
     RowLayout {
         id: horizontalLayout
         visible: !root.vertical
@@ -198,7 +195,6 @@ Item {
         }
     }
 
-    // Vertical Layout
     ColumnLayout {
         id: verticalLayout
         visible: root.vertical
@@ -366,7 +362,7 @@ Item {
             const relativePos = mousePos - layoutStart;
             let ratio = Math.max(0, Math.min(1, relativePos / layoutSize));
             if (root.vertical) {
-                ratio = 1 - ratio; // Invert for vertical
+                ratio = 1 - ratio;
             }
             return ratio;
         }

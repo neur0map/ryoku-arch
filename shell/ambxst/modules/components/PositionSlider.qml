@@ -27,7 +27,6 @@ Item {
     property alias value: slider.value
     property alias isDragging: slider.isDragging
 
-    // Propiedades opcionales para sobrescribir colores
     property color customProgressColor: Styling.srItem("overprimary")
     property color customBackgroundColor: Colors.shadow
     property bool useCustomColors: false
@@ -39,8 +38,8 @@ Item {
         value: root.length > 0 ? Math.min(1.0, root.position / root.length) : 0
         progressColor: root.useCustomColors ? root.customProgressColor : Styling.srItem("overprimary")
         backgroundColor: root.useCustomColors ? root.customBackgroundColor : Colors.shadow
-        wavy: true // Always use CarouselProgress logic
-        playing: root.isPlaying // Control animation state via playing property
+        wavy: true
+        playing: root.isPlaying
         wavyAmplitude: root.isPlaying ? 1 : 0.0
         wavyFrequency: root.isPlaying ? 8 : 0
         heightMultiplier: root.player ? 8 : 4

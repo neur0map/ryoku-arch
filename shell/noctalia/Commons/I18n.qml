@@ -44,11 +44,9 @@ Singleton {
                                         "zh": "yyyy年M月d日 dddd"
                                       })
 
-  // Signals for reactive updates
   signal languageChanged(string newLanguage)
   signal translationsLoaded
 
-  // FileView to load translation files
   property FileView translationFile: FileView {
     id: fileView
     printErrors: false
@@ -106,7 +104,6 @@ Singleton {
     }
   }
 
-  // FileView to load fallback translation files
   property FileView fallbackTranslationFile: FileView {
     id: fallbackFileView
     watchChanges: true
@@ -165,7 +162,6 @@ Singleton {
     return result.join("-");
   }
 
-  // Determine the best language match against availableLanguages
   function determineFastLanguage() {
     // User preference from Settings (defaults to "" if not yet loaded from disk)
     var userLang = Settings.data.general.language;
@@ -176,7 +172,6 @@ Singleton {
       };
     }
 
-    // Match system locale against available translations
     for (var i = 0; i < Qt.locale().uiLanguages.length; i++) {
       var fullLang = Qt.locale().uiLanguages[i];
 
@@ -218,7 +213,6 @@ Singleton {
     return dateFormats[lang] || "dddd, d MMMM";
   }
 
-  // -------------------------------------------
   function setLanguage(newLangCode, fullLocale) {
     if (typeof fullLocale === "undefined") {
       fullLocale = newLangCode;
@@ -236,7 +230,6 @@ Singleton {
     }
   }
 
-  // -------------------------------------------
   function loadTranslations() {
     if (langCode === "")
       return;
@@ -245,8 +238,6 @@ Singleton {
     isLoaded = false;
   }
 
-  // -------------------------------------------
-  // Check if a translation exists
   function hasTranslation(key) {
     if (!isLoaded)
       return false;
@@ -265,8 +256,6 @@ Singleton {
     return typeof value === "string";
   }
 
-  // -------------------------------------------
-  // Get all translation keys (useful for debugging)
   function getAllKeys(obj, prefix) {
     if (typeof obj === "undefined")
       obj = translations;
@@ -286,15 +275,11 @@ Singleton {
     return keys;
   }
 
-  // -------------------------------------------
-  // Reload translations (useful for development)
   function reload() {
     Logger.d("I18n", "Reloading translations");
     loadTranslations();
   }
 
-  // -------------------------------------------
-  // Main translation function
   function tr(key, interpolations) {
     if (typeof interpolations === "undefined")
       interpolations = {};
@@ -307,7 +292,6 @@ Singleton {
     // Navigate nested keys (e.g., "menu.file.open")
     const keys = key.split(".");
 
-    // Look-up translation in the active language
     var value = translations;
     var notFound = false;
     for (var i = 0; i < keys.length; i++) {
@@ -321,7 +305,6 @@ Singleton {
       }
     }
 
-    // Fallback to english if not found
     if (notFound && availableLanguages.includes("en") && langCode !== "en") {
       value = fallbackTranslations;
       for (var i = 0; i < keys.length; i++) {
@@ -333,7 +316,6 @@ Singleton {
         }
       }
     } else if (notFound) {
-      // No fallback available
       return `!!${key}!!`;
     }
 
@@ -352,8 +334,6 @@ Singleton {
     return result;
   }
 
-  // -------------------------------------------
-  // Plural translation function
   function trp(key, count, interpolations) {
     if (typeof interpolations === "undefined") {
       interpolations = {};
@@ -362,7 +342,6 @@ Singleton {
     // Use key for singular, key-plural for plural
     const realKey = count === 1 ? key : `${key}-plural`;
 
-    // Merge interpolations with count
     var finalInterpolations = {
       "count": count
     };

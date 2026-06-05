@@ -198,7 +198,6 @@ Singleton {
             stdout: SplitParser {
                 onRead: data => {
                     const trimmed = data.trim();
-                    // Try verbose format: "current value = X, max value = Y"
                     const verboseMatch = trimmed.match(/current\s+value\s*=\s*(\d+).*max\s+value\s*=\s*(\d+)/);
                     if (verboseMatch) {
                         const currentRaw = parseInt(verboseMatch[1]);
@@ -211,7 +210,6 @@ Singleton {
                         }
                         return;
                     }
-                    // Fallback: token-based (brief format / brightnessctl)
                     const tokens = trimmed.split(/\s+/);
                     if (tokens.length < 2)
                         return;
@@ -278,7 +276,6 @@ Singleton {
 
         function set(value: real, monitorName: string) {
             if (!monitorName || monitorName === "") {
-                // Set all monitors
                 for (let i = 0; i < root.monitors.length; ++i) {
                     const mon = root.monitors[i];
                     if (mon && mon.ready) {
@@ -286,7 +283,6 @@ Singleton {
                     }
                 }
             } else {
-                // Set specific monitor
                 const monitor = root.monitors.find(m => m.screen.name === monitorName);
                 if (monitor && monitor.ready) {
                     monitor.setBrightness(value);
@@ -298,7 +294,6 @@ Singleton {
 
         function adjust(delta: real, monitorName: string) {
             if (!monitorName || monitorName === "") {
-                // Adjust all monitors
                 for (let i = 0; i < root.monitors.length; ++i) {
                     const mon = root.monitors[i];
                     if (mon && mon.ready) {
@@ -306,7 +301,6 @@ Singleton {
                     }
                 }
             } else {
-                // Adjust specific monitor
                 const monitor = root.monitors.find(m => m.screen.name === monitorName);
                 if (monitor && monitor.ready) {
                     monitor.setBrightness(monitor.brightness + delta);

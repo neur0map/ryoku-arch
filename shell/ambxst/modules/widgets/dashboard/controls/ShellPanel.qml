@@ -16,10 +16,8 @@ Item {
     readonly property int contentWidth: Math.min(width, maxContentWidth)
     readonly property real sideMargin: (width - contentWidth) / 2
 
-    // Available color names for color picker
     readonly property var colorNames: Colors.availableColorNames
 
-    // Color picker state
     property bool colorPickerActive: false
     property var colorPickerColorNames: []
     property string colorPickerCurrentColor: ""
@@ -145,14 +143,12 @@ Item {
         }
     }
 
-    // Inline component for toggle rows
     component ToggleRow: RowLayout {
         id: toggleRowRoot
         property string label: ""
         property bool checked: false
         signal toggled(bool value)
 
-        // Track if we're updating from external binding
         property bool _updating: false
 
         onCheckedChanged: {
@@ -221,7 +217,6 @@ Item {
         }
     }
 
-    // Inline component for number input rows
     component NumberInputRow: RowLayout {
         id: numberInputRowRoot
         property string label: ""
@@ -264,7 +259,6 @@ Item {
                     top: numberInputRowRoot.maxValue
                 }
 
-                // Sync text when external value changes
                 readonly property int configValue: numberInputRowRoot.value
                 onConfigValueChanged: {
                     if (!activeFocus && text !== configValue.toString()) {
@@ -292,7 +286,6 @@ Item {
         }
     }
 
-    // Inline component for text input rows
     component TextInputRow: RowLayout {
         id: textInputRowRoot
         property string label: ""
@@ -328,7 +321,6 @@ Item {
                 clip: true
                 verticalAlignment: TextInput.AlignVCenter
 
-                // Sync text when external value changes
                 readonly property string configValue: textInputRowRoot.value
                 onConfigValueChanged: {
                     if (!activeFocus && text !== configValue) {
@@ -354,7 +346,6 @@ Item {
         }
     }
 
-    // Inline component for segmented selector rows
     component SelectorRow: ColumnLayout {
         id: selectorRowRoot
         property string label: ""
@@ -439,11 +430,10 @@ Item {
         }
     }
 
-    // Inline component for screen list selection
     component ScreenListRow: ColumnLayout {
         id: screenListRowRoot
         property string label: "Screens"
-        property var selectedScreens: []  // Array of screen names
+        property var selectedScreens: []
         signal screensChanged(var newList)
 
         Layout.fillWidth: true
@@ -523,7 +513,6 @@ Item {
         }
     }
 
-    // Main content
     Flickable {
         id: mainFlickable
         anchors.fill: parent
@@ -532,7 +521,6 @@ Item {
         boundsBehavior: Flickable.StopAtBounds
         interactive: !root.colorPickerActive
 
-        // Horizontal slide + fade animation
         opacity: root.colorPickerActive ? 0 : 1
         transform: Translate {
             x: root.colorPickerActive ? -30 : 0
@@ -559,7 +547,6 @@ Item {
             width: mainFlickable.width
             spacing: 8
 
-            // Header wrapper
             Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: titlebar.height
@@ -609,7 +596,6 @@ Item {
                 }
             }
 
-            // Content wrapper - centered
             Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: contentColumn.implicitHeight
@@ -620,9 +606,6 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     spacing: 16
 
-                    // ═══════════════════════════════════════════════════════════════
-                    // MENU SECTION
-                    // ═══════════════════════════════════════════════════════════════
                     ColumnLayout {
                         visible: root.currentSection === ""
                         Layout.fillWidth: true
@@ -670,9 +653,6 @@ Item {
                         }
                     }
 
-                    // ═══════════════════════════════════════════════════════════════
-                    // BAR SECTION
-                    // ═══════════════════════════════════════════════════════════════
                     ColumnLayout {
                         visible: root.currentSection === "bar"
                         Layout.fillWidth: true
@@ -892,9 +872,6 @@ Item {
                         }
                     }
 
-                    // ═══════════════════════════════════════════════════════════════
-                    // FRAME SECTION
-                    // ═══════════════════════════════════════════════════════════════
                     ColumnLayout {
                         visible: root.currentSection === "frame"
                         Layout.fillWidth: true
@@ -975,9 +952,6 @@ Item {
                         visible: false
                     }
 
-                    // ═══════════════════════════════════════════════════════════════
-                    // NOTCH SECTION
-                    // ═══════════════════════════════════════════════════════════════
                     ColumnLayout {
                         visible: root.currentSection === "notch"
                         Layout.fillWidth: true
@@ -1132,9 +1106,6 @@ Item {
                         visible: false
                     }
 
-                    // ═══════════════════════════════════════════════════════════════
-                    // WORKSPACES SECTION
-                    // ═══════════════════════════════════════════════════════════════
                     ColumnLayout {
                         visible: root.currentSection === "workspaces"
                         Layout.fillWidth: true
@@ -1212,9 +1183,6 @@ Item {
                         visible: false
                     }
 
-                    // ═══════════════════════════════════════════════════════════════
-                    // OVERVIEW SECTION
-                    // ═══════════════════════════════════════════════════════════════
                     ColumnLayout {
                         visible: root.currentSection === "overview"
                         Layout.fillWidth: true
@@ -1274,7 +1242,7 @@ Item {
                                 progressColor: Styling.srItem("overprimary")
                                 tooltipText: `${(value * 0.2).toFixed(2)}`
                                 scroll: true
-                                stepSize: 0.05  // 0.05 * 0.2 = 0.01 scale steps
+                                stepSize: 0.05
                                 snapMode: "always"
 
                                 readonly property real configValue: (Config.overview.scale ?? 0.15) / 0.2
@@ -1288,7 +1256,7 @@ Item {
                                 Component.onCompleted: value = configValue
 
                                 onValueChanged: {
-                                    let newScale = Math.round(value * 0.2 * 100) / 100;  // Round to 2 decimals
+                                    let newScale = Math.round(value * 0.2 * 100) / 100;
                                     if (Math.abs(newScale - (Config.overview.scale ?? 0.15)) > 0.001) {
                                         GlobalStates.markShellChanged();
                                         Config.overview.scale = newScale;
@@ -1326,9 +1294,6 @@ Item {
                         visible: false
                     }
 
-                    // ═══════════════════════════════════════════════════════════════
-                    // DOCK SECTION
-                    // ═══════════════════════════════════════════════════════════════
                     ColumnLayout {
                         visible: root.currentSection === "dock"
                         Layout.fillWidth: true
@@ -1587,9 +1552,6 @@ Item {
                         visible: false
                     }
 
-                    // ═══════════════════════════════════════════════════════════════
-                    // LOCKSCREEN SECTION
-                    // ═══════════════════════════════════════════════════════════════
                     ColumnLayout {
                         visible: root.currentSection === "lockscreen"
                         Layout.fillWidth: true
@@ -1633,9 +1595,6 @@ Item {
                         visible: false
                     }
 
-                    // ═══════════════════════════════════════════════════════════════
-                    // DESKTOP SECTION
-                    // ═══════════════════════════════════════════════════════════════
                     ColumnLayout {
                         visible: root.currentSection === "desktop"
                         Layout.fillWidth: true
@@ -1689,7 +1648,6 @@ Item {
                             }
                         }
 
-                        // Text Color with ColorButton
                         RowLayout {
                             Layout.fillWidth: true
                             spacing: 8
@@ -1728,9 +1686,6 @@ Item {
                         visible: false
                     }
 
-                    // ═══════════════════════════════════════════════════════════════
-                    // SYSTEM SECTION
-                    // ═══════════════════════════════════════════════════════════════
                     ColumnLayout {
                         visible: root.currentSection === "system"
                         Layout.fillWidth: true
@@ -1855,9 +1810,6 @@ Item {
                         }
                     }
 
-                    // ═══════════════════════════════════════════════════════════════
-                    // SIDEBAR SECTION
-                    // ═══════════════════════════════════════════════════════════════
                     ColumnLayout {
                         visible: root.currentSection === "sidebar"
                         Layout.fillWidth: true
@@ -1925,13 +1877,11 @@ Item {
         }
     }
 
-    // Color picker view (shown when colorPickerActive)
     Item {
         id: colorPickerContainer
         anchors.fill: parent
         clip: true
 
-        // Horizontal slide + fade animation (enters from right)
         opacity: root.colorPickerActive ? 1 : 0
         transform: Translate {
             x: root.colorPickerActive ? 0 : 30
@@ -1956,7 +1906,6 @@ Item {
         // Prevent interaction when hidden
         enabled: root.colorPickerActive
 
-        // Block interaction with elements behind when active
         MouseArea {
             anchors.fill: parent
             enabled: root.colorPickerActive

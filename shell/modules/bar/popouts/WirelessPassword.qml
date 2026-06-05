@@ -23,12 +23,10 @@ ColumnLayout {
             return;
         }
 
-        // Check if we're connected to the target network (case-insensitive SSID comparison)
         const isConnected = root.network && Nmcli.active && Nmcli.active.ssid && Nmcli.active.ssid.toLowerCase().trim() === root.network.ssid.toLowerCase().trim();
 
         if (isConnected) {
             // Successfully connected - give it a moment for network list to update
-            // Use Timer for actual delay
             connectionSuccessTimer.start();
             return;
         }
@@ -43,7 +41,6 @@ ColumnLayout {
                 connectButton.enabled = true;
                 connectButton.text = qsTr("Connect");
                 passwordContainer.passwordBuffer = "";
-                // Delete the failed connection
                 if (root.network && root.network.ssid) {
                     Nmcli.forgetNetwork(root.network.ssid);
                 }
@@ -63,7 +60,6 @@ ColumnLayout {
         connectButton.text = qsTr("Connect");
         connectionMonitor.stop();
 
-        // Return to network popout
         if (root.popouts.currentName === "wirelesspassword") {
             root.popouts.currentName = "network";
         }
@@ -95,7 +91,6 @@ ColumnLayout {
     Connections {
         function onCurrentNameChanged() {
             if (root.popouts.currentName === "wirelesspassword") {
-                // Update network when popout becomes active
                 Qt.callLater(() => {
                     // Try to get network from parent Content's networkPopout
                     const content = root.parent?.parent?.parent;
@@ -105,7 +100,6 @@ ColumnLayout {
                             root.network = networkPopout.item.passwordNetwork;
                         }
                     }
-                    // Force focus to password container when popout becomes active
                     // Use Timer for actual delay to ensure dialog is fully rendered
                     focusTimer.start();
                 });
@@ -275,7 +269,6 @@ ColumnLayout {
                 }
 
                 Keys.onPressed: event => {
-                    // Ensure we have focus when receiving keyboard input
                     if (!activeFocus) {
                         forceActiveFocus();
                     }
@@ -285,7 +278,6 @@ ColumnLayout {
                         closeDialog();
                     }
 
-                    // Clear error when user starts typing
                     if (connectButton.hasError && event.text && event.text.length > 0) {
                         connectButton.hasError = false;
                     }
@@ -502,15 +494,12 @@ ColumnLayout {
                             return;
                         }
 
-                        // Clear any previous error
                         hasError = false;
 
-                        // Set connecting state
                         connecting = true;
                         enabled = false;
                         text = qsTr("Connecting...");
 
-                        // Connect to network
                         NetworkConnection.connectWithPassword(root.network, password, result => {
                             if (result && result.success)
                             // Connection successful, monitor will handle the rest
@@ -522,26 +511,22 @@ ColumnLayout {
                                 enabled = true;
                                 text = qsTr("Connect");
                                 passwordContainer.passwordBuffer = "";
-                                // Delete the failed connection
                                 if (root.network && root.network.ssid) {
                                     Nmcli.forgetNetwork(root.network.ssid);
                                 }
                             } else {
-                                // Connection failed immediately - show error
                                 connectionMonitor.stop();
                                 connecting = false;
                                 hasError = true;
                                 enabled = true;
                                 text = qsTr("Connect");
                                 passwordContainer.passwordBuffer = "";
-                                // Delete the failed connection
                                 if (root.network && root.network.ssid) {
                                     Nmcli.forgetNetwork(root.network.ssid);
                                 }
                             }
                         });
 
-                        // Start monitoring connection
                         connectionMonitor.start();
                     }
                 }
@@ -582,7 +567,6 @@ ColumnLayout {
                     connectionMonitor.stop();
                     connectButton.connecting = false;
                     connectButton.text = qsTr("Connect");
-                    // Return to network popout on successful connection
                     if (root.popouts.currentName === "wirelesspassword") {
                         root.popouts.currentName = "network";
                     }
@@ -607,7 +591,6 @@ ColumnLayout {
                 connectButton.enabled = true;
                 connectButton.text = qsTr("Connect");
                 passwordContainer.passwordBuffer = "";
-                // Delete the failed connection
                 Nmcli.forgetNetwork(ssid);
             }
         }

@@ -140,7 +140,6 @@ Item {
     anchors.right: parent.right
     spacing: root.showOnlyLists ? Style.marginM : Style.marginL
 
-    // Master Control Section
     NBox {
       visible: !root.showOnlyLists
       Layout.fillWidth: true
@@ -191,7 +190,6 @@ Item {
       Layout.fillWidth: true
     }
 
-    // Device List [1] (Connected)
     NBox {
       id: connectedDevicesBox
       visible: root.connectedDevices.length > 0 && BluetoothService.enabled
@@ -222,7 +220,6 @@ Item {
       }
     }
 
-    // Devices List [2] (Paired)
     NBox {
       id: pairedDevicesBox
       visible: root.pairedDevices.length > 0 && BluetoothService.enabled
@@ -253,7 +250,6 @@ Item {
       }
     }
 
-    // Device List [3] (Available)
     NBox {
       id: availableDevicesBox
       visible: !root.showOnlyLists && root.unnamedAvailableDevices.length > 0 && BluetoothService.enabled
@@ -340,7 +336,6 @@ Item {
                      }
         }
 
-        // RSSI Polling
         NToggle {
           label: I18n.tr("panels.connections.bluetooth-rssi-polling-label")
           description: I18n.tr("panels.connections.bluetooth-rssi-polling-description")
@@ -364,7 +359,6 @@ Item {
     }
   }
 
-  // Shared Delegate
   Component {
     id: nboxDelegate
     NBox {
@@ -543,7 +537,6 @@ Item {
           }
         }
 
-        // Expanded info section
         Rectangle {
           visible: device.isExpanded
           Layout.fillWidth: true
@@ -578,7 +571,6 @@ Item {
             columnSpacing: Style.marginM
             rowSpacing: Style.marginXS
 
-            // --- Item 1: Signal Strength ---
             RowLayout {
               Layout.fillWidth: true
               Layout.preferredWidth: 1
@@ -596,7 +588,6 @@ Item {
               }
             }
 
-            // --- Item 2: Battery ---
             RowLayout {
               Layout.fillWidth: true
               Layout.preferredWidth: 1
@@ -619,7 +610,6 @@ Item {
                 Layout.fillWidth: true
               }
             }
-            // --- Item 3: Pair state ---
             RowLayout {
               Layout.fillWidth: true
               Layout.preferredWidth: 1
@@ -636,7 +626,6 @@ Item {
                 Layout.fillWidth: true
               }
             }
-            // --- Item 4: Trust state ---
             RowLayout {
               Layout.fillWidth: true
               Layout.preferredWidth: 1
@@ -653,7 +642,6 @@ Item {
                 Layout.fillWidth: true
               }
             }
-            // --- Item 5: Address ---
             RowLayout {
               Layout.fillWidth: true
               Layout.preferredWidth: 1
@@ -670,7 +658,6 @@ Item {
                 Layout.fillWidth: true
               }
             }
-            // --- Item 6: Auto-connect ---
             RowLayout {
               Layout.fillWidth: true
               Layout.preferredWidth: 1

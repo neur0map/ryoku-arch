@@ -23,24 +23,20 @@ SmartPanel {
   readonly property int hideDelay: 1000
   readonly property int showDelay: 100
 
-  // Shared state with dock content
   property bool dockHovered: false
   property bool anyAppHovered: false
   property bool menuHovered: false
   property bool hidden: false
   property bool peekHovered: false
 
-  // Track the currently open context menu
   property var currentContextMenu: null
 
-  // Combined model of running apps and pinned apps
   property var dockApps: []
   property var groupCycleIndices: ({})
 
   // Track the session order of apps (transient reordering)
   property var sessionAppOrder: []
 
-  // Drag and Drop state for visual feedback
   property int dragSourceIndex: -1
   property int dragTargetIndex: -1
 
@@ -94,7 +90,6 @@ SmartPanel {
     }
   }
 
-  // Function to close any open context menu
   function closeAllContextMenus() {
     if (currentContextMenu && currentContextMenu.visible) {
       currentContextMenu.hide();
@@ -118,7 +113,6 @@ SmartPanel {
     if (appData.toplevel)
       return appData.toplevel;
 
-    // fallback to appId
     return appData.appId;
   }
 
@@ -170,7 +164,6 @@ SmartPanel {
     const newPinned = [];
     const seen = new Set();
 
-    // Extract pinned apps in their current visual order
     dockApps.forEach(app => {
                        if (app.appId && !seen.has(app.appId)) {
                          const isPinned = currentPinned.some(p => normalizeAppId(p) === normalizeAppId(app.appId));
@@ -210,7 +203,6 @@ SmartPanel {
     if (!appId || !pinnedApps || pinnedApps.length === 0)
       return false;
     const normalizedId = normalizeAppId(appId);
-    // Direct match
     if (pinnedApps.some(pinnedId => normalizeAppId(pinnedId) === normalizedId))
       return true;
     // Resolve via desktop entry lookup (handles StartupWMClass != .desktop filename)
@@ -244,7 +236,6 @@ SmartPanel {
     return appId;
   }
 
-  // Helper function to get app name from desktop entry
   function getAppNameFromDesktopEntry(appId) {
     if (!appId)
       return appId;
@@ -356,7 +347,6 @@ SmartPanel {
     return grouped;
   }
 
-  // Function to update the combined dock apps model
   function updateDockApps() {
     const runningApps = ToplevelManager ? (ToplevelManager.toplevels.values || []) : [];
     const pinnedApps = Settings.data.dock.pinnedApps || [];
@@ -364,7 +354,6 @@ SmartPanel {
     const processedToplevels = new Set();
     const processedPinnedAppIds = new Set();
 
-    // push an app onto combined with the given appType
     function pushApp(appType, toplevel, appId, title) {
       // Use canonical ID for pinned apps to ensure key stability
       const canonicalId = isAppIdPinned(appId, pinnedApps) ? (pinnedApps.find(p => normalizeAppId(p) === normalizeAppId(appId)) || appId) : appId;
@@ -404,7 +393,6 @@ SmartPanel {
     function pushRunning(first) {
       runningApps.forEach(toplevel => {
                             if (toplevel) {
-                              // Use robust matching to check if pinned
                               const isPinned = isAppIdPinned(toplevel.appId, pinnedApps);
                               if (!first && isPinned && processedToplevels.has(toplevel)) {
                                 return; // Already added by pushPinned()
@@ -430,7 +418,6 @@ SmartPanel {
                                                                         });
 
                            if (matchingToplevels.length > 0) {
-                             // Add all running instances as pinned-running
                              matchingToplevels.forEach(toplevel => {
                                                          pushApp("pinned-running", toplevel, pinnedAppId, toplevel.title);
                                                        });
@@ -463,7 +450,6 @@ SmartPanel {
                      });
     root.groupCycleIndices = nextCycleState;
 
-    // Sync session order if needed
     if (!sessionAppOrder || sessionAppOrder.length === 0) {
       sessionAppOrder = dockApps.map(getAppKey);
     } else {
@@ -494,7 +480,6 @@ SmartPanel {
     }
   }
 
-  // Update dock apps when toplevels change
   Connections {
     target: ToplevelManager ? ToplevelManager.toplevels : null
     function onValuesChanged() {
@@ -502,7 +487,6 @@ SmartPanel {
     }
   }
 
-  // Update dock apps when pinned apps change
   Connections {
     target: Settings.data.dock
     function onPinnedAppsChanged() {
@@ -516,7 +500,6 @@ SmartPanel {
     }
   }
 
-  // Initial update when component is ready
   Component.onCompleted: {
     if (ToplevelManager) {
       updateDockApps();

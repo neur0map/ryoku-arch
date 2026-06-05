@@ -45,7 +45,6 @@ SmartPanel {
     }
   }
 
-  // Effectively visible tracking
   readonly property bool effectivelyVisible: root.visible && Window.window && Window.window.visible
 
   onEffectivelyVisibleChanged: {
@@ -93,7 +92,6 @@ SmartPanel {
       anchors.margins: Style.marginL
       spacing: Style.marginM
 
-      // Header
       NBox {
         Layout.fillWidth: true
         Layout.preferredHeight: header.implicitHeight + Style.margin2M
@@ -146,7 +144,7 @@ SmartPanel {
               checked: NetworkService.wifiEnabled
               enabled: !NetworkService.airplaneModeEnabled && NetworkService.wifiAvailable
               onToggled: checked => NetworkService.setWifiEnabled(checked)
-              baseSize: Style.baseWidgetSize * 0.7 // Slightly smaller
+              baseSize: Style.baseWidgetSize * 0.7
             }
 
             NIconButton {
@@ -164,7 +162,6 @@ SmartPanel {
             }
           }
 
-          // Mode switch (Wi‑Fi / Ethernet)
           NTabBar {
             id: modeTabBar
             visible: NetworkService.ethernetAvailable && NetworkService.wifiAvailable
@@ -192,14 +189,12 @@ SmartPanel {
         }
       }
 
-      // Unified scrollable content (Wi‑Fi or Ethernet view)
       ColumnLayout {
         id: wifiSectionContainer
         visible: true
         Layout.fillWidth: true
         spacing: Style.marginM
 
-        // Error message
         Rectangle {
           visible: panelViewMode === "wifi" && NetworkService.lastError.length > 0
           Layout.fillWidth: true
@@ -237,7 +232,6 @@ SmartPanel {
           }
         }
 
-        // Unified scrollable content
         NScrollView {
           id: contentScroll
           Layout.fillWidth: true
@@ -252,7 +246,6 @@ SmartPanel {
             width: contentScroll.availableWidth
             spacing: Style.marginM
 
-            // Wi‑Fi disabled state
             NBox {
               id: disabledBox
               visible: panelViewMode === "wifi" && !NetworkService.wifiEnabled
@@ -372,7 +365,6 @@ SmartPanel {
               }
             }
 
-            // Networks list container (Wi‑Fi)
             ColumnLayout {
               id: networksList
               visible: panelViewMode === "wifi" && NetworkService.wifiEnabled && Object.keys(NetworkService.networks).length > 0
@@ -384,7 +376,6 @@ SmartPanel {
               }
             }
 
-            // Ethernet view
             NBox {
               id: ethernetSection
               visible: panelViewMode === "ethernet"
@@ -397,7 +388,6 @@ SmartPanel {
                 anchors.margins: Style.marginM
                 spacing: Style.marginM
 
-                // Section label
                 NLabel {
                   label: I18n.tr("wifi.panel.available-interfaces")
                   visible: (NetworkService.ethernetInterfaces && NetworkService.ethernetInterfaces.length > 0)
@@ -436,7 +426,6 @@ SmartPanel {
                   }
                 }
 
-                // Interfaces list
                 ColumnLayout {
                   id: ethIfacesList
                   visible: NetworkService.ethernetInterfaces && NetworkService.ethernetInterfaces.length > 0
@@ -470,7 +459,6 @@ SmartPanel {
                         y: Style.marginM
                         spacing: Style.marginS
 
-                        // Main row matching Wi‑Fi card style
                         // Click handling for the whole header row is provided by a sibling MouseArea
                         // anchored to this row (defined right after this RowLayout).
                         RowLayout {
@@ -612,7 +600,6 @@ SmartPanel {
                           }
                         }
 
-                        // Inline Ethernet details
                         Rectangle {
                           id: ethInfoInline
                           visible: ethernetInfoExpanded && NetworkService.activeEthernetIf === modelData.ifname
@@ -625,7 +612,6 @@ SmartPanel {
                           clip: true
                           Layout.topMargin: Style.marginXS
 
-                          // Grid/List toggle
                           NIconButton {
                             anchors.top: parent.top
                             anchors.right: parent.right
@@ -658,7 +644,6 @@ SmartPanel {
                               }
                             }
 
-                            // --- Item 1: Interface ---
                             RowLayout {
                               Layout.fillWidth: true
                               Layout.preferredWidth: 1
@@ -686,7 +671,6 @@ SmartPanel {
                                 maximumLineCount: ethernetDetailsGrid ? 1 : 6
                                 clip: true
 
-                                // Click-to-copy Ethernet interface name
                                 MouseArea {
                                   anchors.fill: parent
                                   // Guard against undefined by normalizing to empty strings
@@ -706,7 +690,6 @@ SmartPanel {
                               }
                             }
 
-                            // --- Item 2: Hardware Address ---
                             RowLayout {
                               Layout.fillWidth: true
                               Layout.preferredWidth: 1
@@ -752,7 +735,6 @@ SmartPanel {
                               }
                             }
 
-                            // --- Item 3: Link speed ---
                             RowLayout {
                               Layout.fillWidth: true
                               Layout.preferredWidth: 1
@@ -782,7 +764,6 @@ SmartPanel {
                               }
                             }
 
-                            // --- Item 4: IPv4 || IPv6 ---
                             RowLayout {
                               Layout.fillWidth: true
                               Layout.preferredWidth: 1
@@ -814,7 +795,6 @@ SmartPanel {
                                 maximumLineCount: ethernetDetailsGrid ? 1 : 6
                                 clip: true
 
-                                // Click-to-copy Ethernet IP address
                                 MouseArea {
                                   anchors.fill: parent
                                   enabled: root.ipVersion === 4 ? (NetworkService.activeEthernetDetails.ipv4 || "").length > 0 : (NetworkService.activeEthernetDetails.ipv6 || []).length > 0
@@ -833,7 +813,6 @@ SmartPanel {
                               }
                             }
 
-                            // --- Item 5: DNS ---
                             RowLayout {
                               Layout.fillWidth: true
                               Layout.preferredWidth: 1
@@ -865,7 +844,6 @@ SmartPanel {
                                 maximumLineCount: ethernetDetailsGrid ? 1 : 6
                                 clip: true
 
-                                // Click-to-copy Ethernet DNS
                                 MouseArea {
                                   anchors.fill: parent
                                   enabled: root.ipVersion === 4 ? (NetworkService.activeEthernetDetails.dns4 || []).length > 0 : (NetworkService.activeEthernetDetails.dns6 || []).length > 0
@@ -884,7 +862,6 @@ SmartPanel {
                               }
                             }
 
-                            // --- Item 6: Gateway ---
                             RowLayout {
                               Layout.fillWidth: true
                               Layout.preferredWidth: 1
@@ -916,7 +893,6 @@ SmartPanel {
                                 maximumLineCount: ethernetDetailsGrid ? 1 : 6
                                 clip: true
 
-                                // Click-to-copy Ethernet Gateway
                                 MouseArea {
                                   anchors.fill: parent
                                   enabled: root.ipVersion === 4 ? (NetworkService.activeEthernetDetails.gateway4 || "").length > 0 : (NetworkService.activeEthernetDetails.gateway6 || []).length > 0

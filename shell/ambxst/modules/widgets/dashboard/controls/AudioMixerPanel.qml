@@ -18,9 +18,8 @@ Item {
     readonly property int contentWidth: Math.min(width, maxContentWidth)
     readonly property real sideMargin: (width - contentWidth) / 2
 
-    property bool showOutput: true  // true = output, false = input
+    property bool showOutput: true
 
-    // Scrollable content - fills entire width for scroll/drag
     Flickable {
         id: flickable
         anchors.fill: parent
@@ -32,7 +31,6 @@ Item {
             width: flickable.width
             spacing: 8
 
-            // Header wrapper
             Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: titlebar.height
@@ -60,11 +58,9 @@ Item {
                         }
                     ]
 
-                    // Output/Input toggle buttons
                     RowLayout {
                         spacing: 4
 
-                        // Output Button
                         StyledRect {
                             id: outputBtn
                             property bool isSelected: root.showOutput
@@ -108,7 +104,6 @@ Item {
                             }
                         }
 
-                        // Input Button
                         StyledRect {
                             id: inputBtn
                             property bool isSelected: !root.showOutput
@@ -155,7 +150,6 @@ Item {
                 }
             }
 
-            // Content wrapper - centered
             Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: innerContent.implicitHeight
@@ -166,7 +160,6 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     spacing: 8
 
-                    // Section: Devices
                     Text {
                         text: root.showOutput ? "Output Device" : "Input Device"
                         font.family: Config.theme.font
@@ -175,7 +168,6 @@ Item {
                         color: Colors.overSurfaceVariant
                     }
 
-                    // Device list
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 4
@@ -193,7 +185,6 @@ Item {
                         }
                     }
 
-                    // Separator
                     Separator {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 2
@@ -201,7 +192,6 @@ Item {
                         Layout.bottomMargin: 8
                     }
 
-                    // Section: Volume Mixer
                     Text {
                         text: "Volume Mixer"
                         font.family: Config.theme.font
@@ -210,7 +200,6 @@ Item {
                         color: Colors.overSurfaceVariant
                     }
 
-                    // Main volume control
                     AudioVolumeEntry {
                         Layout.fillWidth: true
                         node: root.showOutput ? Audio.sink : Audio.source
@@ -218,7 +207,6 @@ Item {
                         isMainDevice: true
                     }
 
-                    // App volume controls
                     Repeater {
                         model: root.showOutput ? Audio.outputAppNodes : Audio.inputAppNodes
 
@@ -230,7 +218,6 @@ Item {
                         }
                     }
 
-                    // Empty state for apps
                     Text {
                         visible: (root.showOutput ? Audio.outputAppNodes : Audio.inputAppNodes).length === 0
                         text: "No applications using audio"

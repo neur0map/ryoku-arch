@@ -28,26 +28,21 @@ NotchAnimationBehavior {
     readonly property int tabSpacing: 8
 
     readonly property int tabWidth: 48
-    readonly property real nonAnimWidth: (state.currentTab === 0 ? 600 : 400) + tabWidth + 16 // unified launcher tab is wider
+    readonly property real nonAnimWidth: (state.currentTab === 0 ? 600 : 400) + tabWidth + 16
 
     implicitWidth: nonAnimWidth
     implicitHeight: 430
 
-    // Track which tabs have been loaded (for lazy loading)
-    property var loadedTabs: ({0: true}) // Tab 0 (widgets) loaded by default
+    property var loadedTabs: ({0: true})
 
-    // LRU Tab Management
-    property var lruAccessOrder: [0]  // Tracks access order: [0] means tab 0 is most recent
-    property var lruTabsLoaded: ({0: true})  // Reflects which tabs are actually loaded
+    property var lruAccessOrder: [0]
+    property var lruTabsLoaded: ({0: true})
 
-    // Update LRU on tab access
     function updateLRUAccess(tabIndex) {
-        // Remove if already in list
         const idx = lruAccessOrder.indexOf(tabIndex);
         if (idx !== -1) {
             lruAccessOrder.splice(idx, 1);
         }
-        // Add to end (most recent)
         lruAccessOrder.push(tabIndex);
         updateLoadedTabs();
     }
@@ -59,11 +54,9 @@ NotchAnimationBehavior {
         // Always load tab 0 (WidgetsTab) to avoid "jumpy" opening
         newLoadedTabs[0] = true;
         
-        // Always load current tab
         newLoadedTabs[root.state.currentTab] = true;
 
         if (Config.performance.dashboardPersistTabs) {
-            // Load up to maxPersistentTabs most recent tabs
             const maxTabs = Math.max(1, Config.performance.dashboardMaxPersistentTabs);
             const startIdx = Math.max(0, lruAccessOrder.length - maxTabs);
             for (let i = startIdx; i < lruAccessOrder.length; i++) {
@@ -74,14 +67,12 @@ NotchAnimationBehavior {
         lruTabsLoaded = newLoadedTabs;
     }
 
-    // Check if a tab should be loaded
     function shouldTabBeLoaded(tabIndex) {
-        if (tabIndex === 0) return true; // Always load WidgetsTab (Tab 0)
+        if (tabIndex === 0) return true;
 
         if (Config.performance.dashboardPersistTabs) {
             return lruTabsLoaded[tabIndex] === true;
         } else {
-            // Without persistence, only load current tab
             return root.state.currentTab === tabIndex;
         }
     }
@@ -94,12 +85,10 @@ NotchAnimationBehavior {
     // the axctl-based Visibilities path is not used here.
     isVisible: GlobalStates.dashboardOpen
 
-    // Navegar a la pestaña seleccionada cuando se abre el dashboard
     Component.onCompleted: {
         root.state.currentTab = GlobalStates.dashboardCurrentTab;
     }
 
-    // Focus search input when dashboard opens to different tabs
     onIsVisibleChanged: {
         if (isVisible) {
             // Check if current item supports focus, otherwise default logic for launcher
@@ -110,12 +99,10 @@ NotchAnimationBehavior {
                 focusUnifiedLauncherTimer.restart();
             }
         } else {
-            // Reset launcher state when dashboard closes
             GlobalStates.clearLauncherState();
         }
     }
 
-    // Timer para focus en unified launcher tab
     Timer {
         id: focusUnifiedLauncherTimer
         interval: 50
@@ -127,7 +114,6 @@ NotchAnimationBehavior {
         }
     }
 
-    // Escuchar cambios en dashboardCurrentTab para navegar automáticamente
     Connections {
         target: GlobalStates
         function onDashboardCurrentTabChanged() {
@@ -136,7 +122,6 @@ NotchAnimationBehavior {
             }
         }
 
-        // Focus cuando cambia el texto del launcher (por shortcuts con prefix)
         function onLauncherSearchTextChanged() {
             if (isVisible && GlobalStates.dashboardCurrentTab === 0) {
                 focusUnifiedLauncherTimer.restart();
@@ -149,38 +134,31 @@ NotchAnimationBehavior {
         anchors.fill: parent
         spacing: 8
 
-        // Tab buttons
         Item {
             id: tabsContainer
             width: root.tabWidth
             height: parent.height
 
-            // Manejo del scroll con rueda del mouse
             WheelHandler {
                 id: wheelHandler
                 acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
 
                 onWheel: event => {
-                    // Determinar dirección del scroll
                     let scrollUp = event.angleDelta.y > 0;
                     let newIndex = root.state.currentTab;
 
                     if (scrollUp && newIndex > 0) {
-                        // Scroll hacia arriba = pestaña anterior
                         newIndex = newIndex - 1;
                     } else if (!scrollUp && newIndex < root.tabCount - 1) {
-                        // Scroll hacia abajo = pestaña siguiente
                         newIndex = newIndex + 1;
                     }
 
-                    // Navegar solo si cambió el índice
                     if (newIndex !== root.state.currentTab) {
                         stack.navigateToTab(newIndex);
                     }
                 }
             }
 
-            // Background highlight que se desplaza verticalmente con efecto elástico
             StyledRect {
                 id: tabHighlight
                 variant: "primary"
@@ -191,12 +169,10 @@ NotchAnimationBehavior {
                 property real idx1: root.state.currentTab
                 property real idx2: root.state.currentTab
 
-                // Calcular posición Y para un índice dado
                 function getYForIndex(idx) {
                     if (idx <= 2) {
                         return idx * (width + root.tabSpacing);
                     } else {
-                        // Controls button at the bottom
                         return controlsButtonContainer.y;
                     }
                 }
@@ -281,7 +257,6 @@ NotchAnimationBehavior {
                 }
             }
 
-            // Controls button (separate at bottom)
             StyledRect {
                 id: controlsButtonContainer
                 anchors.bottom: parent.bottom
@@ -346,25 +321,22 @@ NotchAnimationBehavior {
             vert: true
         }
 
-            // Content area
         Rectangle {
             id: viewWrapper
 
             color: "transparent"
 
-            width: parent.width - root.tabWidth - 2 - 16 // Ancho total menos tabs, separador y spacings
+            width: parent.width - root.tabWidth - 2 - 16
             height: parent.height
 
             clip: true
 
-            // Custom Tab View with Lazy Loading + Persistence
             Item {
                 id: stack
                 anchors.fill: parent
 
                 property int currentIndex: GlobalStates.dashboardCurrentTab
 
-                // Update internal index when global changes
                 Connections {
                     target: GlobalStates
                     function onDashboardCurrentTabChanged() {
@@ -372,10 +344,8 @@ NotchAnimationBehavior {
                     }
                 }
 
-                // Function to navigate to a specific tab
                 function navigateToTab(index) {
                     if (index >= 0 && index < root.tabCount && index !== root.state.currentTab) {
-                        // Reset launcher state when leaving unified launcher tab (tab 0)
                         if (root.state.currentTab === 0 && index !== 0) {
                             GlobalStates.clearLauncherState();
                         }
@@ -393,16 +363,13 @@ NotchAnimationBehavior {
                     }
                 }
 
-                // Generic Tab Loader Component
                 component TabLoader : Loader {
                     anchors.fill: parent
                     // Load based on LRU strategy or if currently active
                     active: root.shouldTabBeLoaded(index) || root.state.currentTab === index
                     
-                    // Visibility handles the "switching"
                     visible: root.state.currentTab === index
                     
-                    // Transitions
                     opacity: visible ? 1 : 0
                     transform: Translate {
                         y: visible ? 0 : (root.state.currentTab > index ? -20 : 20)
@@ -417,14 +384,12 @@ NotchAnimationBehavior {
                         NumberAnimation { duration: Config.animDuration; easing.type: Easing.OutQuart }
                     }
 
-                    // Forward focus
                     onLoaded: {
                         if (visible && item && item.focusSearchInput) {
                             focusUnifiedLauncherTimer.restart();
                         }
                     }
                     
-                    // Ensure focus when becoming visible
                     onVisibleChanged: {
                         if (visible && item && item.focusSearchInput) {
                             focusUnifiedLauncherTimer.restart();
@@ -432,21 +397,18 @@ NotchAnimationBehavior {
                     }
                 }
 
-                // Tab 0: Unified Launcher
                 TabLoader {
                     property int index: 0
                     sourceComponent: unifiedLauncherComponent
                     z: visible ? 1 : 0
                 }
 
-                // Tab 1: Metrics
                 TabLoader {
                     property int index: 1
                     sourceComponent: metricsComponent
                     z: visible ? 1 : 0
                 }
 
-                // Helper to access current item for focus
                 property var currentItem: {
                     switch(root.state.currentTab) {
                         case 0: return children[0].item;
@@ -455,7 +417,6 @@ NotchAnimationBehavior {
                     }
                 }
 
-                // Gesture handling para swipe vertical
                 MouseArea {
                     anchors.fill: parent
                     property real startY: 0
@@ -463,7 +424,6 @@ NotchAnimationBehavior {
                     property bool swiping: false
                     property real swipeThreshold: 50
                     
-                    // Allow clicking through to tabs
                     propagateComposedEvents: true
                     preventStealing: false
 
@@ -471,14 +431,13 @@ NotchAnimationBehavior {
                         startY = mouse.y;
                         startX = mouse.x;
                         swiping = false;
-                        mouse.accepted = false; // Let children handle clicks
+                        mouse.accepted = false;
                     }
 
                     onPositionChanged: mouse => {
                         let deltaY = mouse.y - startY;
                         let deltaX = Math.abs(mouse.x - startX);
 
-                        // Solo considerar swipe vertical si el movimiento horizontal es mínimo
                         if (Math.abs(deltaY) > 20 && deltaX < 30) {
                             swiping = true;
                         }
@@ -489,10 +448,8 @@ NotchAnimationBehavior {
                             let deltaY = mouse.y - startY;
 
                             if (deltaY < -swipeThreshold && root.state.currentTab < root.tabCount - 1) {
-                                // Swipe hacia arriba - siguiente tab
                                 stack.navigateToTab(root.state.currentTab + 1);
                             } else if (deltaY > swipeThreshold && root.state.currentTab > 0) {
-                                // Swipe hacia abajo - tab anterior
                                 stack.navigateToTab(root.state.currentTab - 1);
                             }
                         }
@@ -504,7 +461,6 @@ NotchAnimationBehavior {
         }
     }
 
-    // Atajos de teclado para navegación
     Shortcut {
         id: nextTabShortcut
         sequence: "Ctrl+Tab"
@@ -530,14 +486,12 @@ NotchAnimationBehavior {
         }
     }
 
-    // Animated size properties for smooth transitions
     property real animatedWidth: implicitWidth
     property real animatedHeight: implicitHeight
 
     width: animatedWidth
     height: animatedHeight
 
-    // Update animated properties when implicit properties change
     onImplicitWidthChanged: animatedWidth = implicitWidth
     onImplicitHeightChanged: animatedHeight = implicitHeight
 
@@ -559,7 +513,6 @@ NotchAnimationBehavior {
         }
     }
 
-    // Component definitions for better performance (defined once, reused)
     Component {
         id: unifiedLauncherComponent
         WidgetsTab {

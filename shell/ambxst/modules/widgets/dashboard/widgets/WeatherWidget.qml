@@ -19,21 +19,18 @@ ClippingRectangle {
     // Parent components (popups, loaders) should bind this to their open/visible state
     property bool animationsEnabled: true
 
-    // Internal alias for celestial body position (used by sun rays)
     readonly property alias celestialBodyItem: celestialBody
 
     radius: Styling.radius(0)
     clip: true
     color: "transparent"
 
-    // Request weather update when widget becomes visible if no data
     onVisibleChanged: {
         if (visible && !WeatherService.dataAvailable && !WeatherService.isLoading) {
             WeatherService.updateWeather();
         }
     }
 
-    // Color blending helper function
     function blendColors(color1, color2, color3, blend) {
         var r = color1.r * blend.day + color2.r * blend.evening + color3.r * blend.night;
         var g = color1.g * blend.day + color2.g * blend.evening + color3.g * blend.night;
@@ -41,18 +38,14 @@ ClippingRectangle {
         return Qt.rgba(r, g, b, 1);
     }
 
-    // Color definitions for each time of day
-    // Day colors (sky blue)
     readonly property color dayTop: "#87CEEB"
     readonly property color dayMid: "#B0E0E6"
     readonly property color dayBot: "#E0F6FF"
 
-    // Evening colors (sunset)
     readonly property color eveningTop: "#1a1a2e"
     readonly property color eveningMid: "#e94560"
     readonly property color eveningBot: "#ffeaa7"
 
-    // Night colors (dark blue)
     readonly property color nightTop: "#0f0f23"
     readonly property color nightMid: "#1a1a3a"
     readonly property color nightBot: "#2d2d5a"
@@ -82,11 +75,9 @@ ClippingRectangle {
         }
     }
 
-    // Weather effect properties
     readonly property string weatherEffect: WeatherService.effectiveWeatherEffect
     readonly property real weatherIntensity: WeatherService.effectiveWeatherIntensity
 
-    // Check if weather is overcast (clouds, rain, drizzle, snow, thunderstorm, fog)
     readonly property bool isOvercast: weatherEffect === "clouds" || weatherEffect === "rain" || weatherEffect === "drizzle" || weatherEffect === "snow" || weatherEffect === "thunderstorm" || weatherEffect === "fog"
 
     // Overcast overlay - darkens/grays the sky based on weather
@@ -97,13 +88,12 @@ ClippingRectangle {
         visible: root.isOvercast
         opacity: root.weatherIntensity * 0.7
 
-        // Gray gradient that adapts to time of day
         gradient: Gradient {
             GradientStop {
                 position: 0.0
-                color: root.blend.night > 0.5 ? Qt.rgba(0.15, 0.15, 0.2, 0.9)   // Dark gray-blue at night
-                : root.blend.evening > 0.3 ? Qt.rgba(0.3, 0.25, 0.3, 0.85)  // Purple-gray at evening
-                : Qt.rgba(0.5, 0.52, 0.55, 0.8)  // Light gray during day
+                color: root.blend.night > 0.5 ? Qt.rgba(0.15, 0.15, 0.2, 0.9)
+                : root.blend.evening > 0.3 ? Qt.rgba(0.3, 0.25, 0.3, 0.85)
+                : Qt.rgba(0.5, 0.52, 0.55, 0.8)
             }
             GradientStop {
                 position: 0.6
@@ -111,7 +101,7 @@ ClippingRectangle {
             }
             GradientStop {
                 position: 1.0
-                color: Qt.rgba(0.5, 0.5, 0.5, 0.2)  // Fade out at bottom
+                color: Qt.rgba(0.5, 0.5, 0.5, 0.2)
             }
         }
 
@@ -123,15 +113,10 @@ ClippingRectangle {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // AMBIENT EFFECTS (stars, sun rays)
-    // ═══════════════════════════════════════════════════════════
 
-    // Stars at night (twinkling)
     Item {
         id: starsEffect
         anchors.fill: parent
-        // Show stars when night blend > 0.3 and weather is clear
         opacity: (root.blend.night > 0.3 && root.weatherEffect === "clear") ? Math.min(1, (root.blend.night - 0.3) / 0.4) : 0
         visible: opacity > 0
 
@@ -148,7 +133,7 @@ ClippingRectangle {
             Rectangle {
                 id: star
                 property real baseX: Math.random() * starsEffect.width
-                property real baseY: Math.random() * (starsEffect.height * 0.7)  // Upper 70%
+                property real baseY: Math.random() * (starsEffect.height * 0.7)
                 property real baseSize: 1 + Math.random() * 2
                 property real twinkleSpeed: 1500 + Math.random() * 2000
                 property real baseOpacity: 0.4 + Math.random() * 0.4
@@ -180,17 +165,14 @@ ClippingRectangle {
         }
     }
 
-    // Sun rays during clear day - follows celestialBody position
     Item {
         id: sunRaysEffect
 
-        // Follow the visual position of celestialBody (after animation)
         x: celestialBody.x + celestialBody.width / 2
         y: celestialBody.y + celestialBody.height / 2
         width: 0
         height: 0
 
-        // Show rays when day blend > 0.3 and weather is clear
         opacity: (root.blend.day > 0.3 && root.weatherEffect === "clear") ? Math.min(1.0, (root.blend.day - 0.3) * 1.5) : 0
         visible: opacity > 0
 
@@ -250,11 +232,7 @@ ClippingRectangle {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // WEATHER EFFECTS
-    // ═══════════════════════════════════════════════════════════
 
-    // Cloud effect (improved with layering)
     Item {
         id: cloudEffect
         anchors.fill: parent
@@ -265,15 +243,13 @@ ClippingRectangle {
         // Darker gray for stormy weather, lighter for just cloudy
         property bool isStormy: root.weatherEffect === "rain" || root.weatherEffect === "thunderstorm" || root.weatherEffect === "drizzle"
 
-        // Cloud base color adapts to time of day
-        property color cloudColorDark: root.blend.night > 0.5 ? Qt.rgba(0.2, 0.2, 0.25, 1)      // Dark blue-gray at night
-        : root.blend.evening > 0.3 ? Qt.rgba(0.35, 0.3, 0.35, 1)  // Purple-gray at evening
-        : isStormy ? Qt.rgba(0.4, 0.42, 0.45, 1)  // Dark gray for storms during day
-        : Qt.rgba(0.85, 0.87, 0.9, 1)  // Light gray-white for fair clouds
+        property color cloudColorDark: root.blend.night > 0.5 ? Qt.rgba(0.2, 0.2, 0.25, 1)
+        : root.blend.evening > 0.3 ? Qt.rgba(0.35, 0.3, 0.35, 1)
+        : isStormy ? Qt.rgba(0.4, 0.42, 0.45, 1)
+        : Qt.rgba(0.85, 0.87, 0.9, 1)
 
         property color cloudColorLight: root.blend.night > 0.5 ? Qt.rgba(0.3, 0.3, 0.35, 1) : root.blend.evening > 0.3 ? Qt.rgba(0.45, 0.4, 0.45, 1) : isStormy ? Qt.rgba(0.5, 0.52, 0.55, 1) : Qt.rgba(0.92, 0.94, 0.96, 1)
 
-        // Background layer - larger, slower, more transparent clouds
         Repeater {
             model: 4
 
@@ -282,15 +258,13 @@ ClippingRectangle {
                 required property int index
                 property real speed: 0.15 + (index * 0.05)
                 property real totalDistance: cloudEffect.width + width + 100
-                property real cycleDuration: 40000 / speed  // 40 seconds base, adjusted by speed
+                property real cycleDuration: 40000 / speed
 
-                // Start already positioned across the screen
                 x: (index * totalDistance / 4) % (cloudEffect.width + width) - width
                 y: 5 + (index * 15)
                 width: 160 + (index * 40)
                 height: 60 + (index * 16)
 
-                // Cloud shape - multiple overlapping circles
                 Rectangle {
                     anchors.centerIn: parent
                     width: parent.width * 0.8
@@ -315,26 +289,22 @@ ClippingRectangle {
                     color: Qt.rgba(cloudEffect.cloudColorLight.r, cloudEffect.cloudColorLight.g, cloudEffect.cloudColorLight.b, 0.4)
                 }
 
-                // Continuous movement animation
                 SequentialAnimation on x {
                     running: cloudEffect.visible && root.animationsEnabled
                     loops: Animation.Infinite
 
-                    // Move across screen
                     NumberAnimation {
                         to: cloudEffect.width + 50
                         duration: bgCloud.cycleDuration
                         easing.type: Easing.Linear
                     }
 
-                    // Reset to start position smoothly
                     NumberAnimation {
                         to: -bgCloud.width - 50
-                        duration: 0  // Instant reset when off-screen
+                        duration: 0
                     }
                 }
 
-                // Fade in/out when entering/leaving screen
                 PropertyAnimation on opacity {
                     running: cloudEffect.visible && root.animationsEnabled
                     from: 0
@@ -345,7 +315,6 @@ ClippingRectangle {
             }
         }
 
-        // Foreground layer - smaller, faster, more opaque clouds
         Repeater {
             model: 6
 
@@ -354,15 +323,13 @@ ClippingRectangle {
                 required property int index
                 property real speed: 0.25 + (index * 0.1)
                 property real totalDistance: cloudEffect.width + width + 100
-                property real cycleDuration: 25000 / speed  // 25 seconds base, adjusted by speed
+                property real cycleDuration: 25000 / speed
 
-                // Start already positioned across the screen
                 x: (index * totalDistance / 6) % (cloudEffect.width + width) - width
                 y: 20 + (index * 15)
                 width: 90 + (index * 24)
                 height: 36 + (index * 10)
 
-                // Cloud shape
                 Rectangle {
                     anchors.centerIn: parent
                     width: parent.width * 0.7
@@ -387,26 +354,22 @@ ClippingRectangle {
                     color: Qt.rgba(cloudEffect.cloudColorLight.r, cloudEffect.cloudColorLight.g, cloudEffect.cloudColorLight.b, 0.55 - (fgCloud.index * 0.06))
                 }
 
-                // Continuous movement animation
                 SequentialAnimation on x {
                     running: cloudEffect.visible && root.animationsEnabled
                     loops: Animation.Infinite
 
-                    // Move across screen
                     NumberAnimation {
                         to: cloudEffect.width + 50
                         duration: fgCloud.cycleDuration
                         easing.type: Easing.Linear
                     }
 
-                    // Reset to start position smoothly
                     NumberAnimation {
                         to: -fgCloud.width - 50
-                        duration: 0  // Instant reset when off-screen
+                        duration: 0
                     }
                 }
 
-                // Fade in/out when entering/leaving screen
                 PropertyAnimation on opacity {
                     running: cloudEffect.visible && root.animationsEnabled
                     from: 0
@@ -418,7 +381,6 @@ ClippingRectangle {
         }
     }
 
-    // Fog effect
     Rectangle {
         id: fogEffect
         anchors.fill: parent
@@ -440,7 +402,6 @@ ClippingRectangle {
             }
         }
 
-        // Animated fog wisps
         Repeater {
             model: 4
 
@@ -477,14 +438,13 @@ ClippingRectangle {
         }
     }
 
-    // Rain effect
     Item {
         id: rainEffect
         anchors.fill: parent
         visible: root.weatherEffect === "rain" || root.weatherEffect === "drizzle"
 
         property int dropCount: Math.round(20 * root.weatherIntensity)
-        property real angle: 15  // degrees from vertical
+        property real angle: 15
         property real angleRad: angle * Math.PI / 180
 
         Repeater {
@@ -543,7 +503,6 @@ ClippingRectangle {
         }
     }
 
-    // Snow effect
     Item {
         id: snowEffect
         anchors.fill: parent
@@ -604,16 +563,14 @@ ClippingRectangle {
         }
     }
 
-    // Thunderstorm effect (rain + lightning)
     Item {
         id: thunderstormEffect
         anchors.fill: parent
         visible: root.weatherEffect === "thunderstorm"
 
-        property real angle: 20  // degrees from vertical (stronger wind)
+        property real angle: 20
         property real angleRad: angle * Math.PI / 180
 
-        // Rain component
         Repeater {
             model: 25
 
@@ -669,7 +626,6 @@ ClippingRectangle {
             }
         }
 
-        // Lightning flash
         Rectangle {
             id: lightningFlash
             anchors.fill: parent
@@ -714,22 +670,16 @@ ClippingRectangle {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // SUN/MOON ARC
-    // ═══════════════════════════════════════════════════════════
 
-    // Sun arc container
     Item {
         id: arcContainer
         anchors.fill: parent
 
-        // Arc dimensions - elliptical arc that fits within the container
-        property real arcWidth: width - 40  // Horizontal span
-        property real arcHeight: Math.min(70, height * 0.5)  // Vertical height of the arc
+        property real arcWidth: width - 40
+        property real arcHeight: Math.min(70, height * 0.5)
         property real arcCenterX: width / 2
-        property real arcCenterY: height - 12  // Position at bottom edge
+        property real arcCenterY: height - 12
 
-        // The arc path (upper half of ellipse only) with gradient
         Canvas {
             id: arcCanvas
             anchors.fill: parent
@@ -745,19 +695,17 @@ ClippingRectangle {
                 var cy = arcContainer.arcCenterY;
                 var rx = arcContainer.arcWidth / 2;
                 var ry = arcContainer.arcHeight;
-                var lineWidth = 20;  // Same as celestialBody diameter
+                var lineWidth = 20;
 
-                // Create horizontal gradient for the arc (left to right)
                 var gradient = ctx.createLinearGradient(cx - rx, cy, cx + rx, cy);
                 gradient.addColorStop(0, Qt.rgba(arcColor.r, arcColor.g, arcColor.b, 0));
                 gradient.addColorStop(0.5, Qt.rgba(arcColor.r, arcColor.g, arcColor.b, arcColor.a));
                 gradient.addColorStop(1, Qt.rgba(arcColor.r, arcColor.g, arcColor.b, 0));
 
-                // Draw the arc as a single continuous path
                 ctx.beginPath();
                 var steps = 60;
                 for (var i = 0; i <= steps; i++) {
-                    var angle = Math.PI - (Math.PI * i / steps);  // PI to 0
+                    var angle = Math.PI - (Math.PI * i / steps);
                     var x = cx + rx * Math.cos(angle);
                     var y = cy - ry * Math.sin(angle);
 
@@ -788,7 +736,6 @@ ClippingRectangle {
             onArcColorChanged: requestPaint()
         }
 
-        // Sun/Moon indicator
         Rectangle {
             id: celestialBody
             width: 20
@@ -797,8 +744,7 @@ ClippingRectangle {
 
             property real progress: WeatherService.effectiveSunProgress
 
-            // Elliptical arc position calculation
-            property real angle: Math.PI * (1 - progress)  // PI to 0
+            property real angle: Math.PI * (1 - progress)
             property real posX: arcContainer.arcCenterX + (arcContainer.arcWidth / 2) * Math.cos(angle) - width / 2
             property real posY: arcContainer.arcCenterY - arcContainer.arcHeight * Math.sin(angle) - height / 2
 
@@ -833,7 +779,6 @@ ClippingRectangle {
                 }
             }
 
-            // Outer glow
             Rectangle {
                 anchors.centerIn: parent
                 width: parent.width + 12
@@ -845,7 +790,6 @@ ClippingRectangle {
                 z: -1
             }
 
-            // Inner glow
             Rectangle {
                 anchors.centerIn: parent
                 width: parent.width + 6
@@ -859,11 +803,7 @@ ClippingRectangle {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // TEXT CONTENT
-    // ═══════════════════════════════════════════════════════════
 
-    // Temperature (top left)
     Item {
         id: tempContainer
         anchors.left: parent.left
@@ -872,7 +812,6 @@ ClippingRectangle {
         width: tempText.width
         height: tempText.height
 
-        // Temperature or error icon
         Text {
             id: tempText
             visible: WeatherService.dataAvailable
@@ -892,7 +831,6 @@ ClippingRectangle {
             }
         }
 
-        // Error icon when no data
         Text {
             visible: !WeatherService.dataAvailable
             text: Icons.alert
@@ -911,7 +849,6 @@ ClippingRectangle {
         }
     }
 
-    // Weather description (top right)
     Item {
         id: descContainer
         anchors.right: parent.right
@@ -939,11 +876,7 @@ ClippingRectangle {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // DEBUG CONTROLS
-    // ═══════════════════════════════════════════════════════════
 
-    // Debug toggle button (hidden easter egg - visible on hover)
     Rectangle {
         id: debugToggleButton
         anchors.left: parent.left

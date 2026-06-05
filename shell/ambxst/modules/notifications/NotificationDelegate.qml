@@ -25,8 +25,7 @@ Item {
     property bool onlyNotification: false
     property bool appNameAlreadyShown: false
 
-    // Computed properties
-    property var sortedNotifications: notifications.slice().sort((a, b) => a.time - b.time) // antiguo a reciente
+    property var sortedNotifications: notifications.slice().sort((a, b) => a.time - b.time)
     property var latestNotification: sortedNotifications.length > 0 ? sortedNotifications[sortedNotifications.length - 1] : notificationObject
     property var earliestNotification: sortedNotifications.length > 0 ? sortedNotifications[0] : notificationObject
     property bool multipleNotifications: notifications.length > 1
@@ -48,7 +47,6 @@ Item {
 
         onDestroyFinished: {
             if (root.notifications.length > 0) {
-                // Discard multiple
                 const ids = root.notifications.map(notif => notif.id);
                 Notifications.discardNotifications(ids);
             } else if (root.notificationObject) {
@@ -113,7 +111,6 @@ Item {
                 anchors.rightMargin: background.criticalMargins > 0 ? 8 : 0
                 spacing: onlyNotification || expanded ? 8 : 0
 
-                // Individual notification layout (like expanded popup)
                 RowLayout {
                     id: mainContentRow
                     Layout.fillWidth: true
@@ -122,12 +119,10 @@ Item {
                     spacing: 8
                     visible: onlyNotification
 
-                    // Contenido principal
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: 8
 
-                        // App icon
                         NotificationAppIcon {
                             id: appIcon
                             Layout.preferredWidth: onlyNotification ? 48 : 32
@@ -142,19 +137,16 @@ Item {
                             urgency: latestNotification ? latestNotification.urgency : NotificationUrgency.Normal
                         }
 
-                        // Textos de la notificación
                         Column {
                             id: textColumn
                             Layout.fillWidth: true
                             Layout.alignment: Qt.AlignVCenter
                             spacing: onlyNotification ? 4 : 0
 
-                            // Fila del summary, app name y timestamp
                             RowLayout {
                                 width: parent.width
                                 spacing: 4
 
-                                // Contenedor izquierdo para summary y app name
                                 Row {
                                     id: leftTextsContainer
                                     Layout.fillWidth: true
@@ -204,7 +196,6 @@ Item {
                                     }
                                 }
 
-                                // Timestamp a la derecha
                                 Text {
                                     id: timestampText
                                     text: latestNotification ? NotificationUtils.getFriendlyNotifTimeString(latestNotification.time) : ""
@@ -233,7 +224,6 @@ Item {
                         }
                     }
 
-                    // Botón de descartar
                     Item {
                         Layout.preferredWidth: 24
                         Layout.preferredHeight: 24
@@ -247,13 +237,11 @@ Item {
                     }
                 }
 
-                // Grouped notification layout (original)
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 8
                     visible: !onlyNotification
 
-                    // Contenido principal
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: 8
@@ -286,7 +274,6 @@ Item {
                                     Layout.fillWidth: true
                                     spacing: 4
 
-                                    // Fila del summary y timestamp
                                     RowLayout {
                                         width: parent.width
                                         spacing: 4
@@ -313,7 +300,6 @@ Item {
                                         }
                                     }
 
-                                    // Mostrar todos los body ordenados antiguo a reciente con spacing 4
                                     Column {
                                         width: parent.width
                                         spacing: 4
@@ -378,7 +364,6 @@ Item {
                         }
                     }
 
-                    // Botón de descartar
                     Item {
                         Layout.preferredWidth: expanded ? 24 : 0
                         Layout.minimumWidth: 0
@@ -395,7 +380,6 @@ Item {
             }
         }
 
-        // Botones de acción (para notificaciones individuales o expandidas)
         Item {
             id: actionButtonsContainer
             width: parent.width

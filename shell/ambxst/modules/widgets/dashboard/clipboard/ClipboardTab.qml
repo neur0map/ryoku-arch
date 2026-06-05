@@ -15,7 +15,6 @@ Item {
     id: root
     focus: true
 
-    // Prefix support
     property string prefixIcon: ""
     signal backspaceOnEmpty
 
@@ -35,7 +34,6 @@ Item {
         } else if (root.aliasMode) {
             root.cancelAliasMode();
         } else {
-            // Cerrar el dashboard
             root.closePanel();
         }
     }
@@ -46,7 +44,6 @@ Item {
     property var allItems: []
     property bool hasNavigatedFromSearch: false
 
-    // List model
     ListModel {
         id: itemsModel
     }
@@ -54,32 +51,26 @@ Item {
     property bool clearButtonConfirmState: false
     property bool anyItemDragging: false
 
-    // Delete mode state
     property bool deleteMode: false
     property string itemToDelete: ""
     property int originalSelectedIndex: -1
     property int deleteButtonIndex: 0
 
-    // Alias mode state
     property bool aliasMode: false
     property string itemToAlias: ""
     property string newAlias: ""
     property int aliasSelectedIndex: -1
     property int aliasButtonIndex: 0
 
-    // Track item to restore selection after operations
     property string pendingItemIdToSelect: ""
 
-    // Options menu state (expandable list)
     property int expandedItemIndex: -1
     property int selectedOptionIndex: 0
     property bool keyboardNavigation: false
 
     onExpandedItemIndexChanged:
-    // Close expanded options when selection changes to a different item is handled in onSelectedIndexChanged
     {}
 
-    // Refresh clipboard list when tab becomes visible
     onVisibleChanged: {
         if (visible) {
             ClipboardService.list();
@@ -90,13 +81,11 @@ Item {
         if (index < 0 || index >= itemsModel.count)
             return;
 
-        // Calculate Y position of the item
         var itemY = 0;
         for (var i = 0; i < index; i++) {
-            itemY += 48; // All items before are collapsed (base height)
+            itemY += 48;
         }
 
-        // Calculate expanded item height
         var itemData = itemsModel.get(index).itemData;
         var optionsCount = 4;
         if (itemData.isFile || itemData.isImage || ClipboardUtils.isUrl(itemData.preview)) {
@@ -105,21 +94,16 @@ Item {
         var listHeight = 36 * Math.min(3, optionsCount);
         var expandedHeight = 48 + 4 + listHeight + 8;
 
-        // Calculate max valid scroll position
         var maxContentY = Math.max(0, resultsList.contentHeight - resultsList.height);
 
-        // Current viewport bounds
         var viewportTop = resultsList.contentY;
         var viewportBottom = viewportTop + resultsList.height;
 
-        // Only scroll if item is not fully visible
         var itemBottom = itemY + expandedHeight;
 
         if (itemY < viewportTop) {
-            // Item top is above viewport - scroll up to show it
             resultsList.contentY = itemY;
         } else if (itemBottom > viewportBottom) {
-            // Item bottom is below viewport - scroll down to show it
             resultsList.contentY = Math.min(itemBottom - resultsList.height, maxContentY);
         }
     // Otherwise, item is already fully visible - no scroll needed
@@ -127,29 +111,23 @@ Item {
 
     property int previewImageSize: 200
 
-    // Track the item ID for which we have loaded content/preview
-    // This ensures we never show data from a different item
     property string currentItemId: ""
     property string currentFullContent: ""
     property bool loadingLinkPreview: false
-    property int linkPreviewCacheRevision: 0  // Increments when cache updates, triggers favicon rebinding
+    property int linkPreviewCacheRevision: 0
 
-    // Get the currently selected item (convenience property)
     readonly property var currentSelectedItem: {
         if (selectedIndex < 0 || selectedIndex >= allItems.length)
             return null;
         return allItems[selectedIndex];
     }
 
-    // Check if the loaded content matches the currently selected item
     readonly property bool contentMatchesSelection: {
         if (!currentSelectedItem)
             return false;
         return currentItemId === currentSelectedItem.id;
     }
 
-    // Safe accessor for full content - returns content only if it matches selection
-    // Falls back to item.preview if content not yet loaded
     readonly property string safeCurrentContent: {
         if (!currentSelectedItem)
             return "";
@@ -158,23 +136,17 @@ Item {
         return currentSelectedItem.preview || "";
     }
 
-    // Get link preview data for the currently selected item from cache
-    // Only returns data if we have confirmed the content is for this item
     property var linkPreviewData: {
         var _rev = linkPreviewCacheRevision;  // Depend on cache revision for reactivity
 
-        // Must have a selected item
         if (!currentSelectedItem)
             return null;
 
-        // Must be a text item (not image or file)
         if (currentSelectedItem.isImage || currentSelectedItem.isFile)
             return null;
 
-        // Determine the URL to look up
         var urlToLookup = "";
 
-        // If we have loaded content for THIS item, use it
         if (contentMatchesSelection && currentFullContent) {
             urlToLookup = currentFullContent.trim();
         } else {
@@ -192,14 +164,12 @@ Item {
         return ClipboardService.linkPreviewCache[urlToLookup] || null;
     }
 
-    // Helper function to get file path from URI
     function getFilePathFromUri(content) {
         if (!content || !content.startsWith("file://"))
             return "";
         return decodeURIComponent(content.substring(7).trim());
     }
 
-    // Helper function to check if file is an image
     function isImageFile(filePath) {
         if (!filePath)
             return false;
@@ -207,20 +177,17 @@ Item {
         return ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico'].indexOf(ext) !== -1;
     }
 
-    // Helper function to get icon for item
     function getIconForItem(item) {
         if (!item)
             return Icons.clip;
 
-        // Check if it's a URL (for favicon)
         if (!item.isImage && !item.isFile) {
             var content = item.preview || "";
             if (ClipboardUtils.isUrl(content)) {
-                return "link"; // Special marker for URL
+                return "link";
             }
         }
 
-        // Default icons
         if (item.isImage)
             return Icons.image;
         if (item.isFile)
@@ -237,7 +204,6 @@ Item {
         if (!ClipboardUtils.isUrl(content))
             return "";
 
-        // Check if we have cached link preview data with a favicon
         var trimmedUrl = content.trim();
         var cachedData = ClipboardService.linkPreviewCache[trimmedUrl];
         if (cachedData && cachedData.favicon) {
@@ -248,7 +214,6 @@ Item {
         return ClipboardUtils.getFaviconFallbackUrl(content);
     }
 
-    // Helper function to get fallback favicon URL (Direct .ico as backup)
     function getFaviconFallbackUrl(item) {
         if (!item || item.isImage || item.isFile)
             return "";
@@ -256,12 +221,10 @@ Item {
         return ClipboardUtils.getFaviconUrl(content);
     }
 
-    // Helper function to get usable favicon from link preview data
     function getUsableFavicon(faviconUrl) {
         return faviconUrl || "";
     }
 
-    // Helper function to get fallback favicon for link preview
     function getUsableFaviconFallback(originalUrl) {
         return ClipboardUtils.getFaviconFallbackUrl(originalUrl);
     }
@@ -274,7 +237,6 @@ Item {
             resultsList.positionViewAtIndex(0, ListView.Beginning);
         }
 
-        // Close expanded options when selection changes to a different item
         if (expandedItemIndex >= 0 && selectedIndex !== expandedItemIndex) {
             expandedItemIndex = -1;
             selectedOptionIndex = 0;
@@ -347,7 +309,6 @@ Item {
         aliasMode = true;
         itemToAlias = itemId;
 
-        // Find current alias
         for (var i = 0; i < allItems.length; i++) {
             if (allItems[i].id === itemId) {
                 newAlias = allItems[i].alias || allItems[i].preview;
@@ -372,7 +333,6 @@ Item {
     }
 
     function confirmAliasItem() {
-        // Find the original preview to compare
         var originalPreview = "";
         for (var i = 0; i < allItems.length; i++) {
             if (allItems[i].id === itemToAlias) {
@@ -381,14 +341,11 @@ Item {
             }
         }
 
-        // Mark this item to be selected after refresh
         pendingItemIdToSelect = itemToAlias;
 
-        // Only set alias if different from original preview
         if (newAlias.trim() !== "" && newAlias.trim() !== originalPreview) {
             ClipboardService.setAlias(itemToAlias, newAlias.trim());
         } else if (newAlias.trim() === originalPreview || newAlias.trim() === "") {
-            // Clear alias if set back to original or empty
             ClipboardService.setAlias(itemToAlias, "");
         }
 
@@ -412,7 +369,6 @@ Item {
     }
 
     function updateFilteredItems() {
-        // Capture current selection to restore it if possible (handling double updates)
         var currentIdToKeep = "";
         if (selectedIndex >= 0 && selectedIndex < allItems.length) {
             currentIdToKeep = allItems[selectedIndex].id;
@@ -425,7 +381,6 @@ Item {
             var content = item.preview || "";
             var alias = item.alias || "";
 
-            // Search in both content and alias
             if (searchText.length === 0 || content.toLowerCase().includes(searchText.toLowerCase()) || alias.toLowerCase().includes(searchText.toLowerCase())) {
                 newItems.push(item);
             }
@@ -434,7 +389,6 @@ Item {
         allItems = newItems;
         // Don't reset scroll or animation state here to prevent jumps during rapid updates
 
-        // Smart sync itemsModel to minimize delegate destruction/creation
         var modelIndex = 0;
         var newIndex = 0;
 
@@ -446,7 +400,6 @@ Item {
                 var currentModelItem = itemsModel.get(modelIndex);
 
                 if (currentModelItem.itemId === newItemId) {
-                    // Match found: update data if needed and advance
                     if (currentModelItem.itemData !== newItem) {
                         itemsModel.set(modelIndex, {
                             itemData: newItem
@@ -466,7 +419,6 @@ Item {
                     }
 
                     if (foundLaterIndex !== -1) {
-                        // Found later: move it here
                         itemsModel.move(foundLaterIndex, modelIndex, 1);
                         itemsModel.set(modelIndex, {
                             itemData: newItem
@@ -474,7 +426,6 @@ Item {
                         modelIndex++;
                         newIndex++;
                     } else {
-                        // Not found later: insert here
                         itemsModel.insert(modelIndex, {
                             itemId: newItemId,
                             itemData: newItem
@@ -484,7 +435,6 @@ Item {
                     }
                 }
             } else {
-                // End of model: append
                 itemsModel.append({
                     itemId: newItemId,
                     itemData: newItem
@@ -494,7 +444,6 @@ Item {
             }
         }
 
-        // Remove excess items at the end
         if (modelIndex < itemsModel.count) {
             var itemsToRemove = itemsModel.count - modelIndex;
             itemsModel.remove(modelIndex, itemsToRemove);
@@ -503,7 +452,6 @@ Item {
         // Only trigger later scroll animation enable if strictly needed,
         // but since we aren't clearing, we might not need to toggle it at all.
 
-        // If we have a pending item to select (after pin/alias operations), find it
         if (pendingItemIdToSelect !== "") {
             for (var i = 0; i < newItems.length; i++) {
                 if (newItems[i].id === pendingItemIdToSelect) {
@@ -513,11 +461,9 @@ Item {
                     return;
                 }
             }
-            // If not found, clear the pending selection
             pendingItemIdToSelect = "";
         }
 
-        // Try to maintain current selection if no pending item was forced
         if (currentIdToKeep !== "") {
             for (var i = 0; i < newItems.length; i++) {
                 if (newItems[i].id === currentIdToKeep) {
@@ -528,20 +474,16 @@ Item {
             }
         }
 
-        // Default behavior when no pending item
         if (searchText.length > 0 && allItems.length > 0) {
-            // Only force selection to 0 if we were previously unselected or invalid
             if (selectedIndex < 0 || selectedIndex >= allItems.length) {
                 selectedIndex = 0;
                 resultsList.currentIndex = 0;
             }
         } else if (searchText.length === 0) {
-            // When clearing search, only reset if we haven't navigated or if list is empty
             if (!hasNavigatedFromSearch || allItems.length === 0) {
                 selectedIndex = -1;
                 resultsList.currentIndex = -1;
             } else {
-                // Keep current selection valid, or default to first item
                 if (selectedIndex >= allItems.length) {
                     selectedIndex = Math.max(0, allItems.length - 1);
                     resultsList.currentIndex = selectedIndex;
@@ -588,22 +530,17 @@ Item {
     }
 
     function copyToClipboard(itemId) {
-        // Find the item to determine its type
         for (var i = 0; i < root.allItems.length; i++) {
             if (root.allItems[i].id === itemId) {
                 var item = root.allItems[i];
                 if (item.isImage && item.binaryPath) {
-                    // Copy image with correct MIME type
                     copyProcess.command = ["sh", "-c", "cat '" + item.binaryPath + "' | wl-copy --type '" + item.mime + "'"];
                 } else if (item.isFile) {
-                    // Copy file URI with text/uri-list MIME type, removing carriage returns
                     copyProcess.command = ["sh", "-c", "sqlite3 '" + ClipboardService.dbPath + "' \"SELECT full_content FROM clipboard_items WHERE id = " + itemId + ";\" | tr -d '\\r' | wl-copy --type text/uri-list"];
                 } else {
-                    // Optimized path for text: use the already loaded safeCurrentContent if it matches
                     if (root.contentMatchesSelection && root.currentItemId === itemId && root.currentFullContent) {
                         copyProcess.command = ["sh", "-c", "printf '%s' " + ClipboardUtils.escapeShellArg(root.currentFullContent) + " | wl-copy"];
                     } else {
-                        // Fallback: Copy text as plain text from DB
                         copyProcess.command = ["sh", "-c", "sqlite3 '" + ClipboardService.dbPath + "' \"SELECT full_content FROM clipboard_items WHERE id = " + itemId + ";\" | wl-copy"];
                     }
                 }
@@ -613,14 +550,12 @@ Item {
         }
     }
 
-    // Signal to request opening an item
     signal requestOpenItem(string itemId, var items, string currentContent, var filePathGetter, var urlChecker)
 
     function openItem(itemId) {
         requestOpenItem(itemId, root.allItems, root.safeCurrentContent, getFilePathFromUri, ClipboardUtils.isUrl);
     }
 
-    // MouseArea global para detectar clicks en cualquier espacio vacío
     MouseArea {
         anchors.fill: parent
         enabled: root.deleteMode
@@ -633,7 +568,6 @@ Item {
         }
     }
 
-    // Conexiones al servicio
     Connections {
         target: ClipboardService
         function onListCompleted() {
@@ -641,7 +575,6 @@ Item {
         }
     }
 
-    // Conexión para cargar imágenes cuando cambia la selección
     Connections {
         target: root
         function onSelectedIndexChanged() {
@@ -656,24 +589,20 @@ Item {
                 if (item.isImage && !ClipboardService.getImageData(item.id)) {
                     ClipboardService.decodeToDataUrl(item.id, item.mime);
                 } else if (!item.isImage) {
-                    // Obtener contenido completo para texto
                     ClipboardService.getFullContent(item.id);
                 }
             }
         }
     }
 
-    // Conexión para recibir el contenido completo
     Connections {
         target: ClipboardService
         function onFullContentRetrieved(itemId, content) {
-            // Only update if this is for the currently selected item
             if (root.currentSelectedItem && root.currentSelectedItem.id === itemId) {
                 // Set both the item ID and content atomically
                 root.currentItemId = itemId;
                 root.currentFullContent = content;
 
-                // Si es una URL, obtener preview
                 if (ClipboardUtils.isUrl(content)) {
                     root.loadingLinkPreview = true;
                     ClipboardService.fetchLinkPreview(content.trim(), itemId);
@@ -682,17 +611,14 @@ Item {
         }
 
         function onLinkPreviewFetched(url, metadata, requestItemId) {
-            // Increment cache revision to trigger rebinding of linkPreviewData and favicons
             root.linkPreviewCacheRevision++;
 
-            // Only clear loading state if this response is for the currently selected item
             if (root.currentSelectedItem && root.currentSelectedItem.id === requestItemId) {
                 root.loadingLinkPreview = false;
             }
         }
     }
 
-    // Proceso para copiar al portapapeles
     Process {
         id: copyProcess
         running: false
@@ -709,12 +635,10 @@ Item {
         anchors.fill: parent
         spacing: 8
 
-        // Columna izquierda: Search + Lista
         Item {
             Layout.preferredWidth: root.leftPanelWidth
             Layout.fillHeight: true
 
-            // Barra de búsqueda con botón de limpiar
             Row {
                 id: searchRow
                 width: parent.width
@@ -742,16 +666,13 @@ Item {
                         if (root.deleteMode) {
                             root.cancelDeleteMode();
                         } else if (root.expandedItemIndex >= 0) {
-                            // Execute selected option when menu is expanded
                             let item = root.allItems[root.expandedItemIndex];
                             if (item) {
-                                // Build options array dynamically
                                 let options = [function () {
                                         root.copyToClipboard(item.id);
                                         root.closePanel();
                                     }];
 
-                                // Add Open if applicable
                                 if (item.isFile || item.isImage || ClipboardUtils.isUrl(item.preview)) {
                                     options.push(function () {
                                         root.openItem(item.id);
@@ -788,7 +709,6 @@ Item {
                     onShiftAccepted: {
                         if (!root.deleteMode && !root.aliasMode) {
                             if (root.selectedIndex >= 0 && root.selectedIndex < root.allItems.length) {
-                                // Toggle expanded state
                                 if (root.expandedItemIndex === root.selectedIndex) {
                                     root.expandedItemIndex = -1;
                                     root.selectedOptionIndex = 0;
@@ -853,12 +773,11 @@ Item {
 
                     onDownPressed: {
                         if (root.expandedItemIndex >= 0) {
-                            // Navigate options when menu is expanded - get dynamic count
                             let item = root.allItems[root.expandedItemIndex];
                             if (item) {
-                                let maxOptions = 4; // Base: Copy, Pin, Alias, Delete
+                                let maxOptions = 4;
                                 if (item.isFile || item.isImage || ClipboardUtils.isUrl(item.preview)) {
-                                    maxOptions++; // Add Open
+                                    maxOptions++;
                                 }
                                 if (root.selectedOptionIndex < maxOptions - 1) {
                                     root.selectedOptionIndex++;
@@ -872,19 +791,16 @@ Item {
 
                     onUpPressed: {
                         if (root.expandedItemIndex >= 0) {
-                            // Navigate options when menu is expanded
                             if (root.selectedOptionIndex > 0) {
                                 root.selectedOptionIndex--;
                                 root.keyboardNavigation = true;
                             }
-                            // Stay on first option if already at index 0
                         } else {
                             root.onUpPressed();
                         }
                     }
                 }
 
-                // Botón de limpiar historial
                 StyledRect {
                     id: clearButton
                     width: root.clearButtonConfirmState ? 120 : 48
@@ -996,7 +912,6 @@ Item {
                 }
             }
 
-            // Lista del clipboard
             Item {
                 width: parent.width
                 anchors.top: searchRow.bottom
@@ -1013,7 +928,6 @@ Item {
                     reuseItems: false
                     boundsBehavior: Flickable.StopAtBounds
 
-                    // Propiedad para detectar si está en movimiento (drag o flick)
                     property bool isScrolling: dragging || flicking
 
                     model: itemsModel
@@ -1034,7 +948,6 @@ Item {
                             root.selectedIndex = currentIndex;
                         }
 
-                        // Manual smooth auto-scroll (simplified for variable height items)
                         if (currentIndex >= 0) {
                             var itemY = 0;
                             for (var i = 0; i < currentIndex && i < itemsModel.count; i++) {
@@ -1066,10 +979,8 @@ Item {
                             var viewportBottom = viewportTop + resultsList.height;
 
                             if (itemY < viewportTop) {
-                                // Item is above viewport, scroll up
                                 resultsList.contentY = itemY;
                             } else if (itemY + currentItemHeight > viewportBottom) {
-                                // Item is below viewport, scroll down
                                 resultsList.contentY = itemY + currentItemHeight - resultsList.height;
                             }
                         }
@@ -1173,12 +1084,12 @@ Item {
                         height: {
                             let baseHeight = 48;
                             if (index === root.expandedItemIndex && !isInDeleteMode && !isInAliasMode) {
-                                var optionsCount = 4; // Base: Copy, Pin, Alias, Delete
+                                var optionsCount = 4;
                                 if (modelData.isFile || modelData.isImage || ClipboardUtils.isUrl(modelData.preview)) {
-                                    optionsCount++; // Add Open
+                                    optionsCount++;
                                 }
                                 var listHeight = 36 * Math.min(3, optionsCount);
-                                return baseHeight + 4 + listHeight + 8; // base + spacing + list + bottom margin
+                                return baseHeight + 4 + listHeight + 8;
                             }
                             return baseHeight;
                         }
@@ -1220,14 +1131,12 @@ Item {
                         property string displayText: {
                             if (isInDeleteMode) {
                                 let preview = modelData.alias || modelData.preview || "";
-                                // Replace newlines with spaces for single-line display
                                 preview = preview.replace(/\n/g, ' ').replace(/\r/g, '');
                                 return "Delete \"" + preview.substring(0, 20) + (preview.length > 20 ? '...' : '') + "\"?";
                             } else if (modelData.isImage) {
                                 return modelData.alias || "Image";
                             } else {
                                 let preview = modelData.alias || modelData.preview || "";
-                                // Replace newlines with spaces for single-line display
                                 return preview.replace(/\n/g, ' ').replace(/\r/g, '');
                             }
                         }
@@ -1249,7 +1158,6 @@ Item {
                             property bool isVerticalDrag: false
 
                             onEntered: {
-                                // Don't change selection if there's an expanded menu open or dragging or scrolling
                                 if (!root.deleteMode && root.expandedItemIndex === -1 && !isDraggingForReorder && !resultsList.isScrolling) {
                                     root.selectedIndex = index;
                                     resultsList.currentIndex = index;
@@ -1273,12 +1181,10 @@ Item {
                                         return;
                                     }
 
-                                    // Toggle expanded state instead of opening menu
                                     if (root.expandedItemIndex === index) {
                                         root.expandedItemIndex = -1;
                                         root.selectedOptionIndex = 0;
                                         root.keyboardNavigation = false;
-                                        // Update selection to current hover position after closing
                                         root.selectedIndex = index;
                                         resultsList.currentIndex = index;
                                     } else {
@@ -1313,9 +1219,7 @@ Item {
                                         isDragging = true;
                                         longPressTimer.stop();
 
-                                        // Determine drag direction: horizontal (delete) or vertical (reorder)
                                         if (!isVerticalDrag && Math.abs(deltaX) > Math.abs(deltaY)) {
-                                            // Horizontal drag for delete
                                             if (deltaX < -50 && Math.abs(deltaY) < 30) {
                                                 if (!longPressTriggered) {
                                                     root.enterDeleteMode(modelData.id);
@@ -1323,7 +1227,6 @@ Item {
                                                 }
                                             }
                                         } else if (Math.abs(deltaY) > Math.abs(deltaX)) {
-                                            // Vertical drag for reorder
                                             isVerticalDrag = true;
                                             isDraggingForReorder = true;
                                             root.anyItemDragging = true;
@@ -1333,26 +1236,22 @@ Item {
                                             let targetIndex = index;
 
                                             if (deltaY > itemHeight / 2 && index < root.allItems.length - 1) {
-                                                // Check if next item has same pinned status
                                                 let nextItem = root.allItems[index + 1];
                                                 if (nextItem && nextItem.pinned === modelData.pinned) {
                                                     targetIndex = index + 1;
                                                 }
                                             } else if (deltaY < -itemHeight / 2 && index > 0) {
-                                                // Check if previous item has same pinned status
                                                 let prevItem = root.allItems[index - 1];
                                                 if (prevItem && prevItem.pinned === modelData.pinned) {
                                                     targetIndex = index - 1;
                                                 }
                                             }
 
-                                            // Visual feedback could be added here
                                         }
                                     }
                                 }
                             }
 
-                            // Botones de acción que aparecen desde la derecha
                             Rectangle {
                                 id: actionContainer
                                 anchors.right: parent.right
@@ -1510,7 +1409,6 @@ Item {
                                 }
                             }
 
-                            // Alias mode action buttons
                             Rectangle {
                                 width: 76
                                 height: 36
@@ -1669,21 +1567,18 @@ Item {
                             onReleased: mouse => {
                                 longPressTimer.stop();
 
-                                // Handle reorder on release if vertical drag occurred
                                 if (isVerticalDrag && isDraggingForReorder) {
                                     let deltaY = mouse.y - startY;
                                     let itemHeight = 48;
 
                                     if (Math.abs(deltaY) > itemHeight / 2) {
                                         if (deltaY > 0 && index < root.allItems.length - 1) {
-                                            // Dragged down
                                             let nextItem = root.allItems[index + 1];
                                             if (nextItem && nextItem.pinned === modelData.pinned) {
                                                 root.pendingItemIdToSelect = modelData.id;
                                                 ClipboardService.moveItemDown(modelData.id);
                                             }
                                         } else if (deltaY < 0 && index > 0) {
-                                            // Dragged up
                                             let prevItem = root.allItems[index - 1];
                                             if (prevItem && prevItem.pinned === modelData.pinned) {
                                                 root.pendingItemIdToSelect = modelData.id;
@@ -1714,7 +1609,6 @@ Item {
                             }
                         }
 
-                        // Expandable options list (similar to SchemeSelector/FullPlayer)
                         RowLayout {
                             anchors.left: parent.left
                             anchors.right: parent.right
@@ -1737,9 +1631,9 @@ Item {
                             ClippingRectangle {
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: {
-                                    var count = 4; // Copy, Pin, Alias, Delete
+                                    var count = 4;
                                     if (modelData.isFile || ClipboardUtils.isUrl(modelData.preview)) {
-                                        count++; // Add Open
+                                        count++;
                                     }
                                     return 36 * Math.min(3, count);
                                 }
@@ -1761,7 +1655,6 @@ Item {
                                     interactive: true
                                     boundsBehavior: Flickable.StopAtBounds
 
-                                    // Propiedad para detectar si está en movimiento
                                     property bool isScrolling: dragging || flicking
 
                                     model: {
@@ -1778,7 +1671,6 @@ Item {
                                             }
                                         ];
 
-                                        // Add Open option for files, images, and URLs
                                         if (modelData.isFile || modelData.isImage || ClipboardUtils.isUrl(modelData.preview)) {
                                             options.push({
                                                 text: "Open",
@@ -1956,7 +1848,6 @@ Item {
                                     }
                                 }
 
-                                // MouseArea to handle wheel events for scrolling
                                 MouseArea {
                                     anchors.fill: parent
                                     propagateComposedEvents: true
@@ -2078,7 +1969,6 @@ Item {
                                     }
 
                                     property string faviconUrl: {
-                                        // Depend on cache revision to rebind when new previews are fetched
                                         var _rev = root.linkPreviewCacheRevision;
                                         if (iconType !== "link")
                                             return "";
@@ -2095,7 +1985,6 @@ Item {
                                     property bool faviconLoaded: false
                                     property bool triedFallback: false
 
-                                    // Update favicon when URL changes (e.g., from cache update)
                                     onFaviconUrlChanged: {
                                         if (faviconUrl !== "" && faviconUrl !== faviconImage.source) {
                                             faviconLoaded = false;
@@ -2114,13 +2003,12 @@ Item {
                                                 return Icons.edit;
                                             }
                                             var iconStr = iconBackground.iconType;
-                                            // Fallback to Icons object
                                             if (iconStr === "image")
                                                 return Icons.image;
                                             if (iconStr === "file")
                                                 return Icons.file;
                                             if (iconStr === "link")
-                                                return Icons.globe; // Fallback for URLs (failed favicon or no favicon)
+                                                return Icons.globe;
                                             return Icons.clip;
                                         }
                                         color: iconBackground.item
@@ -2130,7 +2018,6 @@ Item {
                                     }
                                 }
 
-                                // Favicon for URLs (now outside StyledRect for independent sizing/background)
                                 Image {
                                     mipmap: true
                                     id: faviconImage
@@ -2146,7 +2033,6 @@ Item {
                                         if (status === Image.Ready) {
                                             iconBackground.faviconLoaded = true;
                                         } else if (status === Image.Error) {
-                                            // Try fallback URL if not already tried
                                             if (!iconBackground.triedFallback && iconBackground.faviconFallbackUrl !== "") {
                                                 iconBackground.triedFallback = true;
                                                 faviconImage.source = iconBackground.faviconFallbackUrl;
@@ -2336,7 +2222,6 @@ Item {
 
                         if (root.deleteMode || root.aliasMode) {
                             activeIndex = root.selectedIndex;
-                            // In delete/alias mode, height is always base height (48)
                         } else if (root.expandedItemIndex >= 0) {
                             activeIndex = root.expandedItemIndex;
                             isExpanded = true;
@@ -2345,10 +2230,8 @@ Item {
                         if (activeIndex < 0)
                             return false;
 
-                        // Calculate Y position of the item
                         var itemY = activeIndex * 48;
 
-                        // Calculate item height
                         var itemHeight = 48;
                         if (isExpanded) {
                             var itemData = itemsModel.get(activeIndex).itemData;
@@ -2435,7 +2318,6 @@ Item {
             vert: true
         }
 
-        // Preview panel (toda la altura, resto del ancho)
         Item {
             id: previewPanel
             Layout.fillWidth: true
@@ -2443,12 +2325,10 @@ Item {
 
             property var currentItem: root.selectedIndex >= 0 && root.selectedIndex < root.allItems.length ? root.allItems[root.selectedIndex] : null
 
-            // Content when item is selected
             Item {
                 anchors.fill: parent
                 visible: previewPanel.currentItem
 
-                // Preview area
                 Item {
                     anchors.top: parent.top
                     anchors.left: parent.left
@@ -2456,7 +2336,6 @@ Item {
                     anchors.bottom: separator.top
                     anchors.bottomMargin: 8
 
-                    // Preview para imagen estática
                     Image {
                         mipmap: true
                         id: previewImage
@@ -2491,10 +2370,8 @@ Item {
                         property bool isGifImage: {
                             if (!previewPanel.currentItem)
                                 return false;
-                            // Check direct image mime type
                             if (previewPanel.currentItem.mime === "image/gif")
                                 return true;
-                            // Check file extension for text/uri-list
                             if (previewPanel.currentItem.isFile) {
                                 var content = root.safeCurrentContent;
                                 var filePath = root.getFilePathFromUri(content);
@@ -2507,7 +2384,6 @@ Item {
                         }
                     }
 
-                    // Preview para GIF animado
                     AnimatedImage {
                         id: previewGif
                         anchors.fill: parent
@@ -2542,10 +2418,8 @@ Item {
                         property bool isGifImage: {
                             if (!previewPanel.currentItem)
                                 return false;
-                            // Check direct image mime type
                             if (previewPanel.currentItem.mime === "image/gif")
                                 return true;
-                            // Check file extension for text/uri-list
                             if (previewPanel.currentItem.isFile) {
                                 var content = root.safeCurrentContent;
                                 var filePath = root.getFilePathFromUri(content);
@@ -2558,7 +2432,6 @@ Item {
                         }
                     }
 
-                    // Placeholder cuando la imagen no está lista
                     Rectangle {
                         anchors.centerIn: parent
                         width: 120
@@ -2590,7 +2463,6 @@ Item {
                         }
                     }
 
-                    // Preview para texto con scroll
                     Flickable {
                         anchors.fill: parent
                         visible: previewPanel.currentItem && !previewPanel.currentItem.isImage && !previewPanel.currentItem.isFile
@@ -2604,11 +2476,9 @@ Item {
                             width: parent.width
                             spacing: 12
 
-                            // Link embed preview (Discord-style)
                             Rectangle {
                                 width: parent.width
                                 height: {
-                                    // For videos (YouTube), use a larger layout
                                     if (root.linkPreviewData && root.linkPreviewData.type === 'video' && root.linkPreviewData.image) {
                                         return videoEmbedContent.height + 24;
                                     }
@@ -2617,7 +2487,6 @@ Item {
                                 visible: root.linkPreviewData && !root.linkPreviewData.error && (root.linkPreviewData.title || root.linkPreviewData.description || root.linkPreviewData.image)
                                 color: linkPreviewMouseArea.containsMouse ? Colors.surfaceBright : Colors.surface
 
-                                // Rounded corners only on the right side
                                 topLeftRadius: 0
                                 topRightRadius: Config.roundness > 0 ? Config.roundness + 4 : 0
                                 bottomLeftRadius: 0
@@ -2644,7 +2513,6 @@ Item {
                                     }
                                 }
 
-                                // Left accent bar
                                 Rectangle {
                                     x: 0
                                     y: 0
@@ -2652,14 +2520,12 @@ Item {
                                     height: parent.height
                                     color: Styling.srItem("overprimary")
 
-                                    // Rounded corners only on the left side
                                     topLeftRadius: Config.roundness > 0 ? Config.roundness + 4 : 0
                                     topRightRadius: 0
                                     bottomLeftRadius: Config.roundness > 0 ? Config.roundness + 4 : 0
                                     bottomRightRadius: 0
                                 }
 
-                                // Video embed layout (YouTube, etc.)
                                 Column {
                                     id: videoEmbedContent
                                     anchors.left: parent.left
@@ -2670,7 +2536,6 @@ Item {
                                     spacing: 10
                                     visible: root.linkPreviewData && root.linkPreviewData.type === 'video'
 
-                                    // Site name with favicon
                                     Row {
                                         width: parent.width
                                         spacing: 8
@@ -2727,11 +2592,10 @@ Item {
                                         }
                                     }
 
-                                    // Video thumbnail with play overlay
                                     ClippingRectangle {
                                         id: videoThumbnailContainer
                                         width: parent.width
-                                        height: width * 9 / 16  // 16:9 aspect ratio
+                                        height: width * 9 / 16
                                         color: Colors.surfaceBright
                                         radius: Styling.radius(-4)
                                         visible: root.linkPreviewData && root.linkPreviewData.image
@@ -2746,14 +2610,12 @@ Item {
                                             cache: true
                                             smooth: true
 
-                                            // Dark overlay
                                             Rectangle {
                                                 anchors.fill: parent
                                                 color: "#40000000"
                                                 radius: videoThumbnailContainer.radius
                                             }
 
-                                            // Play button overlay
                                             Rectangle {
                                                 anchors.centerIn: parent
                                                 width: 60
@@ -2772,7 +2634,6 @@ Item {
                                                 }
                                             }
 
-                                            // Loading indicator
                                             Rectangle {
                                                 id: imageLoadingRect
                                                 anchors.fill: parent
@@ -2800,7 +2661,6 @@ Item {
                                         }
                                     }
 
-                                    // Title
                                     Text {
                                         width: parent.width
                                         text: root.linkPreviewData && root.linkPreviewData.title ? root.linkPreviewData.title : ""
@@ -2814,7 +2674,6 @@ Item {
                                         visible: text.length > 0
                                     }
 
-                                    // Author/Description
                                     Text {
                                         width: parent.width
                                         text: root.linkPreviewData && root.linkPreviewData.description ? root.linkPreviewData.description : ""
@@ -2828,7 +2687,6 @@ Item {
                                     }
                                 }
 
-                                // Regular link embed layout
                                 Row {
                                     id: linkEmbedContent
                                     anchors.left: parent.left
@@ -2839,12 +2697,10 @@ Item {
                                     spacing: 12
                                     visible: !root.linkPreviewData || root.linkPreviewData.type !== 'video'
 
-                                    // Text content column
                                     Column {
                                         width: root.linkPreviewData && root.linkPreviewData.image ? parent.width - 100 - parent.spacing : parent.width
                                         spacing: 6
 
-                                        // Site name with favicon
                                         Row {
                                             width: parent.width
                                             spacing: 8
@@ -2901,7 +2757,6 @@ Item {
                                             }
                                         }
 
-                                        // Title
                                         Text {
                                             width: parent.width
                                             text: root.linkPreviewData && root.linkPreviewData.title ? root.linkPreviewData.title : ""
@@ -2915,7 +2770,6 @@ Item {
                                             visible: text.length > 0
                                         }
 
-                                        // Description
                                         Text {
                                             width: parent.width
                                             text: root.linkPreviewData && root.linkPreviewData.description ? root.linkPreviewData.description : ""
@@ -2929,7 +2783,6 @@ Item {
                                         }
                                     }
 
-                                    // Preview image (thumbnail)
                                     Rectangle {
                                         id: linkThumbnailContainer
                                         width: 100
@@ -2968,7 +2821,6 @@ Item {
                                 }
                             }
 
-                            // Loading indicator for link preview
                             Rectangle {
                                 id: linkPreviewLoadingRect
                                 width: parent.width
@@ -3006,7 +2858,6 @@ Item {
                                 }
                             }
 
-                            // URL preview with favicon (fallback when no embed available)
                             Item {
                                 width: parent.width
                                 height: urlPreview.visible ? 60 : 0
@@ -3046,7 +2897,6 @@ Item {
                                         anchors.margins: 12
                                         spacing: 12
 
-                                        // Favicon or fallback icon
                                         Rectangle {
                                             width: 36
                                             height: 36
@@ -3084,7 +2934,6 @@ Item {
                                                         if (!triedFallback) {
                                                             triedFallback = true;
                                                             var content = root.safeCurrentContent;
-                                                            // Fallback to direct .ico if Google fails
                                                             source = ClipboardUtils.getFaviconUrl(content);
                                                         }
                                                     }
@@ -3156,7 +3005,6 @@ Item {
                         }
                     }
 
-                    // Preview para archivos (text/uri-list) - solo no-imágenes
                     Item {
                         anchors.fill: parent
                         visible: previewPanel.currentItem && previewPanel.currentItem.isFile && !isImage
@@ -3180,7 +3028,6 @@ Item {
                             }
                         }
 
-                        // Preview genérico para archivos no-imagen
                         Column {
                             anchors.centerIn: parent
                             spacing: 16
@@ -3215,7 +3062,6 @@ Item {
                                         if (content.startsWith("file://")) {
                                             var filePath = content.substring(7).trim();
                                             var fileName = filePath.split('/').pop();
-                                            // Decode URL encoding (e.g., %20 -> space)
                                             return decodeURIComponent(fileName);
                                         }
                                         return content;
@@ -3237,8 +3083,7 @@ Item {
                                         if (content.startsWith("file://")) {
                                             var filePath = content.substring(7).trim();
                                             var parts = filePath.split('/');
-                                            parts.pop(); // Remove filename
-                                            // Decode each part of the path
+                                            parts.pop();
                                             var decodedParts = parts.map(function (part) {
                                                 return decodeURIComponent(part);
                                             });
@@ -3259,7 +3104,6 @@ Item {
                     }
                 }
 
-                // Separator
                 Separator {
                     id: separator
                     anchors.bottom: metadataSection.top
@@ -3270,7 +3114,6 @@ Item {
                     vert: false
                 }
 
-                // Metadata section
                 Item {
                     id: metadataSection
                     anchors.bottom: parent.bottom
@@ -3284,13 +3127,11 @@ Item {
 
                         Column {
                             width: {
-                                // Always reserve space for buttons if there's an item
                                 return parent.width - (previewPanel.currentItem ? 36 + 8 : 0);
                             }
                             height: parent.height
                             spacing: 4
 
-                            // Row 1: MIME and Size
                             Row {
                                 width: parent.width
                                 spacing: 16
@@ -3349,7 +3190,6 @@ Item {
                                 }
                             }
 
-                            // Row 2: Date and Checksum
                             Row {
                                 width: parent.width
                                 spacing: 16
@@ -3397,7 +3237,6 @@ Item {
                                             if (!previewPanel.currentItem || !previewPanel.currentItem.hash)
                                                 return "N/A";
                                             var hash = previewPanel.currentItem.hash;
-                                            // Show first 8 and last 8 characters
                                             if (hash.length > 16) {
                                                 return hash.substring(0, 8) + "..." + hash.substring(hash.length - 8);
                                             }
@@ -3414,14 +3253,12 @@ Item {
                             }
                         }
 
-                        // Action buttons column (Open and Drag)
                         Column {
                             width: 36
                             height: parent.height
                             spacing: 4
                             visible: previewPanel.currentItem !== null
 
-                            // Open button (for files, images, and URLs)
                             StyledRect {
                                 width: height
                                 height: 36
@@ -3474,7 +3311,6 @@ Item {
                                 }
                             }
 
-                            // Drag button
                             StyledRect {
                                 id: dragButton
                                 width: height
@@ -3491,11 +3327,9 @@ Item {
                                     }
                                 }
 
-                                // Invisible drag target
                                 Item {
                                     id: dragTarget
 
-                                    // Drag properties on the invisible item
                                     Drag.active: metadataDragArea.drag.active
                                     Drag.dragType: Drag.Automatic
                                     Drag.supportedActions: Qt.CopyAction
@@ -3507,17 +3341,14 @@ Item {
                                         var content = root.safeCurrentContent.trim();
 
                                         if (item.isFile) {
-                                            // File: send as URI list
                                             return {
                                                 "text/uri-list": content
                                             };
                                         } else if (item.isImage && item.binaryPath) {
-                                            // Image from clipboard: send as file URI
                                             return {
                                                 "text/uri-list": "file://" + item.binaryPath
                                             };
                                         } else {
-                                            // Text: send as plain text
                                             return {
                                                 "text/plain": content
                                             };
@@ -3555,7 +3386,6 @@ Item {
                 }
             }
 
-            // Placeholder cuando no hay nada seleccionado
             Column {
                 anchors.centerIn: parent
                 spacing: 16
@@ -3573,7 +3403,6 @@ Item {
         }
     }
 
-    // Handler de teclas global para manejar navegación en modo eliminar y alias
     Keys.onPressed: event => {
         if (root.deleteMode) {
             if (event.key === Qt.Key_Left) {

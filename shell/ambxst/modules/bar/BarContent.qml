@@ -28,7 +28,6 @@ Item {
     property string barPosition: (Config.bar && Config.bar.position !== undefined && ["top", "bottom", "left", "right"].includes(Config.bar.position) ? Config.bar.position : "top")
     property string orientation: barPosition === "left" || barPosition === "right" ? "vertical" : "horizontal"
 
-    // Auto-hide properties
     onPinnedChanged: {
         if (Config.bar && Config.bar.pinnedOnStartup !== pinned) {
             Config.bar.pinnedOnStartup = pinned;
@@ -37,7 +36,6 @@ Item {
 
     property bool pinned: (Config.bar && Config.bar.pinnedOnStartup !== undefined ? Config.bar.pinnedOnStartup : true)
 
-    // Monitor reference and reference to toplevels on monitor
     readonly property var compositorMonitor: AxctlService.monitorFor(screen)
     readonly property var toplevels: (!compositorMonitor || !compositorMonitor.activeWorkspace || !AxctlService.clients.values) ? [] : AxctlService.clients.values.filter(c => c.workspace.id === compositorMonitor.activeWorkspace.id)
 
@@ -50,7 +48,6 @@ Item {
     }
 
 
-    // Whether auto-hide should be active (not pinned, or fullscreen forces it)
     readonly property bool shouldAutoHide: !pinned || activeWindowFullscreen
 
     onShouldAutoHideChanged: {
@@ -60,10 +57,8 @@ Item {
         }
     }
 
-    // Hover state with delay to prevent flickering
     property bool hoverActive: false
 
-    // Track if mouse is over bar area
     readonly property bool isMouseOverBar: barMouseArea.containsMouse
 
     // Check if notch hover is active (for synchronized reveal when bar is at same side)
@@ -76,7 +71,6 @@ Item {
         
         if (notchPanelRef) {
             // UnifiedShellPanel exposes 'notchHoverActive' property alias pointing to notchContent.hoverActive
-            // We need to check if that property exists on the panel object
             if (typeof notchPanelRef.notchHoverActive !== 'undefined') {
                 return notchPanelRef.notchHoverActive;
             }
@@ -88,32 +82,25 @@ Item {
         return false;
     }
 
-    // Check if notch is open (dashboard, powermenu, etc.)
     readonly property var screenVisibilities: Visibilities.getForScreen(screen.name)
     readonly property bool notchOpen: screenVisibilities ? (screenVisibilities.launcher || screenVisibilities.dashboard || screenVisibilities.powermenu || screenVisibilities.tools) : false
 
-    // Radius logic for "Squished" style
     readonly property real outerRadius: Styling.radius(0)
     readonly property real innerRadius: (Config.bar && Config.bar.pillStyle === "squished") ? Styling.radius(0) / 2 : Styling.radius(0)
     readonly property bool pinButtonVisible: (Config.bar && Config.bar.showPinButton !== undefined ? Config.bar.showPinButton : true)
 
-    // Reveal logic
     readonly property bool reveal: {
-        // If not auto-hiding, always reveal
         if (!shouldAutoHide)
             return true;
 
-        // If fullscreen and not available on fullscreen, hide
         if (activeWindowFullscreen && !(Config.bar && Config.bar.availableOnFullscreen !== undefined ? Config.bar.availableOnFullscreen : false)) {
             return false;
         }
 
-        // Show if: hovering, notch hovering (when at top), notch open
         // IMPORTANT: notchHoverActive must be checked to synchronize with notch
         return isMouseOverBar || hoverActive || notchHoverActive || notchOpen;
     }
 
-    // Timer to delay hiding the bar after mouse leaves
     Timer {
         id: hideDelayTimer
         interval: 1000
@@ -125,14 +112,11 @@ Item {
         }
     }
 
-    // Watch for mouse state changes
     onIsMouseOverBarChanged: {
         if (isMouseOverBar) {
             hideDelayTimer.stop();
             hoverActive = true;
         } else {
-            // Si está fijada, podemos resetear el hoverActive inmediatamente
-            // Si está en auto-hide, usamos el timer para dar margen
             if (shouldAutoHide) {
                 hideDelayTimer.restart();
             } else {
@@ -141,9 +125,7 @@ Item {
         }
     }
 
-    // Integrated dock configuration
     readonly property bool integratedDockEnabled: (Config.dock && Config.dock.enabled !== undefined ? Config.dock.enabled : false) && (Config.dock && Config.dock.theme !== undefined ? Config.dock.theme : "default") === "integrated"
-    // Map dock position for integrated based on orientation
     readonly property string integratedDockPosition: {
         const pos = (Config.dock && Config.dock.position !== undefined ? Config.dock.position : "center");
 
@@ -159,13 +141,11 @@ Item {
         return "center";
     }
 
-    // Radius helpers for dock connections
     readonly property bool dockAtStart: integratedDockEnabled && integratedDockPosition === "start"
     readonly property bool dockAtEnd: integratedDockEnabled && integratedDockPosition === "end"
 
     readonly property int frameOffset: (Config.bar && Config.bar.frameEnabled !== undefined ? Config.bar.frameEnabled : false) ? (Config.bar && Config.bar.frameThickness !== undefined ? Config.bar.frameThickness : 6) : 0
 
-    // Size derived from barBg properties
     readonly property int barPadding: barBg.padding
     readonly property int topOuterMargin: (orientation === "vertical" || barPosition === "top") ? barBg.outerMargin : 0
     readonly property int bottomOuterMargin: (orientation === "vertical" || barPosition === "bottom") ? barBg.outerMargin : 0
@@ -187,26 +167,20 @@ Item {
         ((root.barPosition === "top" || root.orientation === "vertical") ? (root.frameOffset + root.topOuterMargin) : 0) +
         ((root.barPosition === "bottom" || root.orientation === "vertical") ? (root.frameOffset + root.bottomOuterMargin) : 0)
 
-    // Base outer margin for reservation logic (4px + border when !containBar)
     readonly property int baseOuterMargin: barBg.outerMargin
 
-    // Shadow logic for bar components
     readonly property bool shadowsEnabled: Config.showBackground && (!actualContainBar || (Config.bar && Config.bar.keepBarShadow !== undefined ? Config.bar.keepBarShadow : false))
 
-    // The hitbox for the mask
     property alias barHitbox: barMouseArea
 
-    // MouseArea for hover detection - contains bar content (like Dock)
     MouseArea {
         id: barMouseArea
         hoverEnabled: true
 
-        // Size includes margins
         width: root.orientation === "horizontal" ? root.width : (root.reveal ? root.totalBarWidth : Math.max((Config.bar && Config.bar.hoverRegionHeight !== undefined ? Config.bar.hoverRegionHeight : 8), 4) + root.frameOffset)
         height: root.orientation === "vertical" ? root.height : (root.reveal ? root.totalBarHeight : Math.max((Config.bar && Config.bar.hoverRegionHeight !== undefined ? Config.bar.hoverRegionHeight : 8), 4) + root.frameOffset)
 
 
-        // Position using x/y
         x: {
             if (root.barPosition === "right") return parent.width - width;
             return 0;
@@ -246,7 +220,6 @@ Item {
             }
         }
 
-        // Bar content inside MouseArea (clicks pass through to children)
         Item {
             id: bar
 
@@ -266,7 +239,6 @@ Item {
             // layer.enabled: true
             // layer.effect: Shadow {}
 
-            // Opacity animation
             opacity: root.reveal ? 1 : 0
             Behavior on opacity {
                 enabled: (Config.animDuration !== undefined ? Config.animDuration : 0) > 0
@@ -276,7 +248,6 @@ Item {
                 }
             }
 
-            // Slide animation
             transform: Translate {
                 x: {
                     if (!root.shouldAutoHide)
@@ -359,7 +330,6 @@ Item {
                     sourceComponent: RowLayout {
                         spacing: 4
 
-                        // Obtener referencia al notch de esta pantalla
                         readonly property var notchContainer: Visibilities.getNotchForScreen(root.screen.name)
 
                         LauncherButton {
@@ -386,7 +356,6 @@ Item {
                             endRadius: (root.pinButtonVisible) ? root.innerRadius : (root.dockAtStart ? root.innerRadius : root.outerRadius)
                         }
 
-                        // Pin button (horizontal)
                         Loader {
                             active: (Config.bar && Config.bar.showPinButton !== undefined ? Config.bar.showPinButton : true)
                             visible: active
@@ -470,23 +439,19 @@ Item {
                                 anchors.verticalCenter: parent.verticalCenter
                                 enableShadow: root.shadowsEnabled
 
-                                // Connect to left/right groups if at start/end
                                 startRadius: root.dockAtStart ? root.innerRadius : root.outerRadius
                                 endRadius: root.dockAtEnd ? root.innerRadius : root.outerRadius
 
-                                // Calculate target position based on config
                                 property real targetX: {
                                     if (integratedDockPosition === "start")
                                         return 0;
                                     if (integratedDockPosition === "end")
                                         return parent.width - width;
 
-                                    // Center logic (reactive using parent.x + margin offset)
                                     // RowLayout has anchors.margins: 4, so offset is 4
                                     return (bar.width - width) / 2 - (parent.x + 4);
                                 }
 
-                                // Clamp the x position so it never leaves the container (preventing overlap)
                                 x: Math.max(0, Math.min(parent.width - width, targetX))
 
                                 width: Math.min(implicitWidth, parent.width)
@@ -592,7 +557,6 @@ Item {
                             enableShadow: root.shadowsEnabled
                         }
 
-                        // Center Group Container
                         Item {
                             Layout.fillHeight: true
                             Layout.fillWidth: true
@@ -600,7 +564,6 @@ Item {
                             ColumnLayout {
                                 anchors.horizontalCenter: parent.horizontalCenter
 
-                                // Calculate target position to be absolutely centered in the bar (vertically)
                                 property real targetY: {
                                     if (!parent || !bar)
                                         return 0;
@@ -612,7 +575,6 @@ Item {
                                     return (bar.height - height) / 2 - parentPos.y;
                                 }
 
-                                // Clamp y position
                                 y: Math.max(0, Math.min(parent.height - height, targetY))
 
                                 height: Math.min(parent.height, implicitHeight)
@@ -640,7 +602,6 @@ Item {
                                     endRadius: root.innerRadius
                                 }
 
-                                // Pin button (vertical)
                                 Loader {
                                     active: (Config.bar && Config.bar.showPinButton !== undefined ? Config.bar.showPinButton : true)
                                     visible: active

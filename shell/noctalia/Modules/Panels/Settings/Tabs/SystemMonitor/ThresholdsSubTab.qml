@@ -22,7 +22,6 @@ ColumnLayout {
     columnSpacing: Style.marginM
     rowSpacing: Style.marginM
 
-    // Header row
     Item {
       Layout.fillWidth: true
     }
@@ -43,7 +42,6 @@ ColumnLayout {
       color: Color.mOnSurfaceVariant
     }
 
-    // CPU Usage
     NText {
       text: I18n.tr("bar.system-monitor.cpu-usage-label")
       pointSize: Style.fontSizeM
@@ -76,7 +74,6 @@ ColumnLayout {
       onValueChanged: Settings.data.systemMonitor.cpuCriticalThreshold = value
     }
 
-    // CPU Temperature
     NText {
       text: I18n.tr("bar.system-monitor.cpu-temperature-label")
       pointSize: Style.fontSizeM
@@ -109,7 +106,6 @@ ColumnLayout {
       onValueChanged: Settings.data.systemMonitor.tempCriticalThreshold = value
     }
 
-    // GPU Temperature
     NText {
       visible: SystemStatService.gpuAvailable
       text: I18n.tr("panels.system-monitor.gpu-section-label")
@@ -145,7 +141,6 @@ ColumnLayout {
       onValueChanged: Settings.data.systemMonitor.gpuCriticalThreshold = value
     }
 
-    // Memory Usage
     NText {
       text: I18n.tr("bar.system-monitor.memory-usage-label")
       pointSize: Style.fontSizeM
@@ -178,7 +173,6 @@ ColumnLayout {
       onValueChanged: Settings.data.systemMonitor.memCriticalThreshold = value
     }
 
-    // Swap Usage
     NText {
       text: I18n.tr("bar.system-monitor.swap-usage-label")
       pointSize: Style.fontSizeM
@@ -211,7 +205,6 @@ ColumnLayout {
       onValueChanged: Settings.data.systemMonitor.swapCriticalThreshold = value
     }
 
-    // Disk Usage
     NText {
       text: I18n.tr("panels.system-monitor.disk-section-label")
       pointSize: Style.fontSizeM
@@ -244,7 +237,6 @@ ColumnLayout {
       onValueChanged: Settings.data.systemMonitor.diskCriticalThreshold = value
     }
 
-    // Disk Available
     NText {
       text: I18n.tr("panels.system-monitor.disk-available-label")
       pointSize: Style.fontSizeM
@@ -277,7 +269,6 @@ ColumnLayout {
       onValueChanged: Settings.data.systemMonitor.diskAvailCriticalThreshold = value
     }
 
-    // Battery
     NText {
       text: I18n.tr("panels.notifications.toast-battery-label")
       pointSize: Style.fontSizeM

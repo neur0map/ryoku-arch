@@ -91,7 +91,6 @@ ActionGrid {
 
     Process {
         id: openFolderProc
-        // Usamos nohup para desvincular el proceso de visualización de carpetas
         command: ["bash", "-c", "nohup xdg-open \"$0\" > /dev/null 2>&1 &"]
     }
 
@@ -110,7 +109,6 @@ ActionGrid {
             ScreenRecorder.toggleRecording();
             root.itemSelected();
         } else if (action.tooltip === "Open Screenshots") {
-            // Usamos xdg-user-dir en el comando bash para respetar las rutas del sistema
             var cmd = "dir=\"$(xdg-user-dir PICTURES)/Screenshots\"; mkdir -p \"$dir\"; nohup xdg-open \"$dir\" > /dev/null 2>&1 &";
             
             openFolderProc.command = ["bash", "-c", cmd];
@@ -118,7 +116,6 @@ ActionGrid {
             
             root.itemSelected();
         } else if (action.tooltip === "Open Recordings") {
-            // Usamos xdg-user-dir para videos, manteniendo la subcarpeta Recordings
             var cmd = "dir=\"$(xdg-user-dir VIDEOS)/Recordings\"; mkdir -p \"$dir\"; nohup xdg-open \"$dir\" > /dev/null 2>&1 &";
             
             openFolderProc.command = ["bash", "-c", cmd];
@@ -127,20 +124,18 @@ ActionGrid {
              root.itemSelected();
         } else if (action.tooltip === "Color Picker") {
             var scriptPath = Qt.resolvedUrl("../../../scripts/colorpicker.py").toString().replace("file://", "");
-            // Run detached so it survives when the menu closes
             colorPickerProc.command = ["bash", "-c", "nohup python3 \"" + scriptPath + "\" > /dev/null 2>&1 &"];
             colorPickerProc.running = true;
             root.itemSelected();
         } else if (action.tooltip === "OCR") {
             var scriptPath = Qt.resolvedUrl("../../../scripts/ocr.sh").toString().replace("file://", "");
             
-            // Build languages string from Config
             var ocrConfig = Config.system.ocr;
             var langs = [];
             
             if (ocrConfig) {
-                if (ocrConfig.eng !== false) langs.push("eng"); // Default true
-                if (ocrConfig.spa !== false) langs.push("spa"); // Default true
+                if (ocrConfig.eng !== false) langs.push("eng");
+                if (ocrConfig.spa !== false) langs.push("spa");
                 if (ocrConfig.lat === true) langs.push("lat");
                 if (ocrConfig.jpn === true) langs.push("jpn");
                 if (ocrConfig.chi_sim === true) langs.push("chi_sim");

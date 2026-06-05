@@ -85,7 +85,6 @@ Popup {
       opacity: modelData.enabled !== false ? 1.0 : 0.5
       enabled: modelData.enabled !== false
 
-      // Store reference to the popup
       property var popup: root
 
       background: Rectangle {
@@ -102,7 +101,6 @@ Popup {
       contentItem: RowLayout {
         spacing: Style.marginS
 
-        // Optional icon
         NIcon {
           visible: modelData.icon !== undefined
           icon: modelData.icon || ""
@@ -142,7 +140,6 @@ Popup {
     }
   }
 
-  // Helper function to open at mouse position
   function openAt(x, y) {
     if (root.parent) {
       var menuWidth = root.width;
@@ -163,7 +160,6 @@ Popup {
     root.open();
   }
 
-  // Helper function to open at item
   function openAtItem(item, mouseX, mouseY) {
     if (!root.constrainTo) {
       root._detectedConstraint = null;

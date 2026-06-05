@@ -39,7 +39,6 @@ ColumnLayout {
     Qt.callLater(populateTimeOptions);
   }
 
-  // Download popup
   Loader {
     id: downloadPopupLoader
     active: false

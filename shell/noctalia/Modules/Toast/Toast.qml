@@ -98,7 +98,6 @@ Item {
     radius: Style.radiusL
     color: Qt.alpha(Color.mSurface, Color.adaptiveOpacity(Settings.data.notifications.backgroundOpacity) || 1.0)
 
-    // Colored border based on type
     border.width: Style.borderS
     border.color: {
       var baseColor;
@@ -113,7 +112,6 @@ Item {
       return Qt.alpha(baseColor, Color.adaptiveOpacity(Settings.data.notifications.backgroundOpacity) || 1.0);
     }
 
-    // Progress bar
     Rectangle {
       anchors.top: parent.top
       anchors.left: parent.left
@@ -139,7 +137,7 @@ Item {
             baseColor = Color.mError;
             break;
           default:
-            baseColor = Color.mPrimary; // Match standard notification color
+            baseColor = Color.mPrimary;
             break;
           }
           return Qt.alpha(baseColor, Color.adaptiveOpacity(Settings.data.notifications.backgroundOpacity) || 1.0);
@@ -210,7 +208,6 @@ Item {
     }
   }
 
-  // Cleanup on destruction
   Component.onDestruction: {
     progressAnimation.stop();
     hideAnimation.stop();
@@ -289,7 +286,6 @@ Item {
     anchors.rightMargin: isCompact ? Style.marginM : Style.margin2M
     spacing: isCompact ? Style.marginM : Style.marginL
 
-    // Icon
     NIcon {
       icon: if (root.icon !== "") {
               return root.icon;
@@ -314,7 +310,6 @@ Item {
       Layout.alignment: Qt.AlignVCenter
     }
 
-    // Label and description
     ColumnLayout {
       spacing: Style.marginXXS
       Layout.fillWidth: true
@@ -341,7 +336,6 @@ Item {
         visible: text.length > 0
       }
 
-      // Action button
       NButton {
         text: root.actionLabel
         visible: root.actionLabel.length > 0 && root.actionCallback !== null
@@ -364,7 +358,6 @@ Item {
   }
 
   function show(msgTitle, msgDescription, msgIcon, msgType, msgDuration, msgActionLabel, msgActionCallback) {
-    // Stop all timers first
     progressAnimation.stop();
     hideAnimation.stop();
 
@@ -385,7 +378,6 @@ Item {
     swipeOffset = 0;
     swipeOffsetY = 0;
 
-    // Configure and start animation
     progressAnimation.duration = duration;
     progressAnimation.from = 1.0;
     progressAnimation.to = 0.0;

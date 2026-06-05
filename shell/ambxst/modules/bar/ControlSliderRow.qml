@@ -5,7 +5,6 @@ import qs.ambxst.modules.theme
 import qs.ambxst.modules.components
 import qs.ambxst.config
 
-// A horizontal slider row with icon for use in popup controls
 Item {
     id: root
 
@@ -21,13 +20,11 @@ Item {
     property real iconRotation: 0
     property real iconScale: 1
 
-    // Internal animated properties
     property real _animatedWavyAmplitude: wavyAmplitude
     property real _animatedWavyFrequency: wavyFrequency
     property real _animatedIconRotation: iconRotation
     property real _animatedIconScale: iconScale
 
-    // Animate wavy properties
     Behavior on _animatedWavyAmplitude {
         enabled: Config.animDuration > 0
         NumberAnimation {
@@ -57,7 +54,6 @@ Item {
         }
     }
 
-    // Sync animated properties
     onWavyAmplitudeChanged: _animatedWavyAmplitude = wavyAmplitude
     onWavyFrequencyChanged: _animatedWavyFrequency = wavyFrequency
     onIconRotationChanged: _animatedIconRotation = iconRotation
@@ -70,7 +66,6 @@ Item {
         anchors.fill: parent
         spacing: 8
 
-        // Icon button
         Item {
             Layout.preferredWidth: 24
             Layout.preferredHeight: 24
@@ -104,7 +99,6 @@ Item {
             }
         }
 
-        // Slider
         Item {
             id: sliderContainer
             Layout.fillWidth: true
@@ -121,7 +115,6 @@ Item {
                 }
             }
 
-            // Background track
             Rectangle {
                 anchors.left: dragHandle.right
                 anchors.leftMargin: 4
@@ -132,7 +125,6 @@ Item {
                 color: Colors.surfaceBright
             }
 
-            // Progress fill (wavy or solid)
             Loader {
                 active: root.wavy
                 anchors.left: parent.left
@@ -164,7 +156,6 @@ Item {
                 z: 1
             }
 
-            // Drag handle
             Rectangle {
                 id: dragHandle
                 anchors.verticalCenter: parent.verticalCenter
@@ -191,7 +182,6 @@ Item {
                 }
             }
 
-            // Tooltip
             StyledToolTip {
                 tooltipText: `${Math.round(root.sliderValue * 100)}%`
                 visible: mouseArea.pressed

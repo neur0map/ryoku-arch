@@ -53,7 +53,6 @@ NBox {
         Layout.preferredWidth: modelData.hideIcon ? 0 : launcher.badgeSize
         Layout.preferredHeight: modelData.hideIcon ? 0 : launcher.badgeSize
 
-        // Icon background
         Rectangle {
           anchors.fill: parent
           radius: Style.radiusXS
@@ -74,7 +73,6 @@ NBox {
           // Use provider's image revision for reactive updates
           readonly property int _rev: modelData.provider && modelData.provider.imageRevision ? modelData.provider.imageRevision : 0
 
-          // Get image URL from provider
           imagePath: {
             _rev;
             var provider = modelData.provider;
@@ -162,7 +160,6 @@ NBox {
           color: modelData.displayString ? Color.mOnSurface : Color.mOnPrimary
         }
 
-        // Image type indicator overlay
         Rectangle {
           visible: !!modelData.isImage && imagePreview.visible
           anchors.bottom: parent.bottom
@@ -187,7 +184,6 @@ NBox {
           }
         }
 
-        // Badge icon overlay (generic indicator for any provider)
         Rectangle {
           visible: !!modelData.badgeIcon
           anchors.bottom: parent.bottom
@@ -206,7 +202,6 @@ NBox {
         }
       }
 
-      // Text content
       ColumnLayout {
         Layout.fillWidth: true
         spacing: 0
@@ -234,7 +229,6 @@ NBox {
         }
       }
 
-      // Action buttons row - dynamically populated from provider
       RowLayout {
         Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
         spacing: Style.marginXS

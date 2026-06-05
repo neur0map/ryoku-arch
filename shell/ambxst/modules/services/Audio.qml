@@ -21,12 +21,10 @@ Singleton {
     readonly property real hardMaxValue: 2.00
     property real value: sink?.audio?.volume ?? 0
 
-    // Volume protection (persisted)
     property bool protectionEnabled: true
-    readonly property real maxVolumeJump: 0.15  // 15% max jump
+    readonly property real maxVolumeJump: 0.15
     property bool protectionTriggered: false
 
-    // Load state
     Connections {
         target: StateService
         function onStateLoaded() {
@@ -34,7 +32,6 @@ Singleton {
         }
     }
 
-    // Persist protection
     function setProtectionEnabled(enabled: bool) {
         root.protectionEnabled = enabled;
         StateService.set("volumeProtectionEnabled", enabled);
@@ -48,7 +45,6 @@ Singleton {
         objects: [sink, source]
     }
 
-    // Volume signals for OSD
     Connections {
         target: root.sink?.audio ?? null
         ignoreUnknownSignals: true
@@ -79,7 +75,6 @@ Singleton {
         }
     }
 
-    // Helpers
     function friendlyDeviceName(node) {
         return (node?.nickname || node?.description || "Unknown");
     }
@@ -88,7 +83,6 @@ Singleton {
         return (node?.properties?.["application.name"] || node?.description || node?.name || "Unknown");
     }
 
-    // Node filters
     function correctType(node, isSink) {
         return (node?.isSink === isSink) && node?.audio;
     }
@@ -105,13 +99,11 @@ Singleton {
         });
     }
 
-    // IO lists
     readonly property list<var> outputAppNodes: root.appNodes(true)
     readonly property list<var> inputAppNodes: root.appNodes(false)
     readonly property list<var> outputDevices: root.devices(true)
     readonly property list<var> inputDevices: root.devices(false)
 
-    // Volume jump limiter
     function protectedSetVolume(node, targetVolume: real, currentVolume: real) {
         if (!root.protectionEnabled) {
             return targetVolume;
@@ -119,18 +111,15 @@ Singleton {
 
         const jump = targetVolume - currentVolume;
         
-        // Limit increases only
         if (jump <= 0) {
             root.protectionTriggered = false;
             return targetVolume;
         }
 
-        // Limit excessive jumps
         if (jump > root.maxVolumeJump) {
             root.protectionTriggered = true;
             root.sinkProtectionTriggered("Volume jump limited");
             
-            // Reset trigger after delay
             protectionResetTimer.restart();
             
             return currentVolume + root.maxVolumeJump;
@@ -146,7 +135,6 @@ Singleton {
         onTriggered: root.protectionTriggered = false
     }
 
-    // Controls
     function toggleMute() {
         if (sink?.audio) {
             sink.audio.muted = !sink.audio.muted;
@@ -189,7 +177,6 @@ Singleton {
         }
     }
 
-    // Protected volume set
     function setNodeVolume(node, volume: real) {
         if (node?.audio) {
             const current = node.audio.volume;
@@ -206,7 +193,6 @@ Singleton {
         Pipewire.preferredDefaultAudioSource = node;
     }
 
-    // Icon helper
     function volumeIcon(volume: real, muted: bool): string {
         if (muted) return Icons.speakerX;
         if (volume <= 0) return Icons.speakerNone;

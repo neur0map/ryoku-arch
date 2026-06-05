@@ -13,15 +13,13 @@ import qs.ambxst.config
 Item {
     id: scrollingOverviewRoot
 
-    // Config values
     readonly property real scale: Config.overview.scale
     readonly property int totalWorkspaces: Config.overview.rows * Config.overview.columns
-    readonly property int visibleWorkspaces: 3  // Show 3 workspaces at a time in viewport
+    readonly property int visibleWorkspaces: 3
     readonly property real workspaceSpacing: Config.overview.workspaceSpacing
     readonly property real workspacePadding: 4
     readonly property color activeBorderColor: Styling.srItem("overprimary")
 
-    // Monitor info
     property var currentScreen: null
     readonly property var monitor: currentScreen ? AxctlService.monitorFor(currentScreen) : AxctlService.focusedMonitor
     readonly property int monitorId: monitor?.id ?? -1
@@ -33,13 +31,10 @@ Item {
     readonly property bool isBarPinned: barPanel ? barPanel.pinned : (Config.bar.pinnedOnStartup ?? true)
     readonly property int barReserved: isBarPinned ? (Config.showBackground ? 44 : 40) : 0
 
-    // Window data
     readonly property var windowList: CompositorData.windowList
 
-    // Focused window address for centering
     readonly property string focusedWindowAddress: AxctlService.focusedClient?.address ?? ""
 
-    // Search functionality
     property string searchQuery: ""
     property var matchingWindows: []
     property int selectedMatchIndex: 0
@@ -152,8 +147,6 @@ Item {
         return matchingWindows[selectedMatchIndex]?.address === windowAddress;
     }
 
-    // Calculate workspace dimensions
-    // Triple the width for scrolling mode to take advantage of horizontal space
     readonly property real workspaceWidth: {
         if (!monitorData)
             return 800;
@@ -164,7 +157,7 @@ Item {
         if (barPosition === "left" || barPosition === "right") {
             scaledWidth -= barReserved * scale;
         }
-        return Math.max(0, Math.round(scaledWidth * 3));  // Triple width
+        return Math.max(0, Math.round(scaledWidth * 3));
     }
 
     readonly property real workspaceHeight: {
@@ -180,43 +173,33 @@ Item {
         return Math.max(0, Math.round(scaledHeight + workspacePadding * 2));
     }
 
-    // Dragging state
     property int draggingFromWorkspace: -1
     property int draggingTargetWorkspace: -1
 
-    // Calculate which workspace is at a given Y position (relative to flickable content)
     function getWorkspaceAtY(globalY) {
-        // Convert global Y to content Y (accounting for flickable position and margins)
         const flickableGlobalY = workspaceFlickable.mapToItem(null, 0, 0).y;
         const contentY = globalY - flickableGlobalY + workspaceFlickable.contentY;
 
-        // Calculate workspace index
         const wsIndex = Math.floor(contentY / workspaceRowHeight);
         if (wsIndex >= 0 && wsIndex < totalWorkspaces) {
-            return wsIndex + 1;  // Workspace IDs are 1-based
+            return wsIndex + 1;
         }
         return -1;
     }
 
-    // Size for the overview
     implicitWidth: workspaceWidth + workspacePadding * 2
     implicitHeight: workspaceHeight * 3 + workspaceSpacing * 3
 
-    // Expose flickable for external scrollbar
     property alias flickable: workspaceFlickable
     readonly property bool needsScrollbar: workspaceFlickable.contentHeight > workspaceFlickable.height
 
-    // Track if user is manually scrolling (set externally by scrollbar)
     property bool isManualScrolling: false
 
-    // Calculate target scroll position to center active workspace
     readonly property int activeWorkspaceId: monitor?.activeWorkspace?.id || 1
     readonly property real workspaceRowHeight: workspaceHeight + workspaceSpacing
 
-    // Scroll to center active workspace when it changes
     onActiveWorkspaceIdChanged: workspaceFlickable.scrollToActiveWorkspace()
 
-    // Vertical flickable containing all workspaces
     Flickable {
         id: workspaceFlickable
         anchors.fill: parent
@@ -243,7 +226,6 @@ Item {
             contentY = Math.max(0, Math.min(centeredY, contentHeight - height));
         }
 
-        // Content item containing workspaces and indicator
         Item {
             id: contentItem
             width: parent.width
@@ -274,12 +256,10 @@ Item {
                         activeBorderColor: scrollingOverviewRoot.activeBorderColor
                         focusedWindowAddress: scrollingOverviewRoot.focusedWindowAddress
 
-                        // Search integration
                         searchQuery: scrollingOverviewRoot.searchQuery
                         checkWindowMatched: scrollingOverviewRoot.isWindowMatched
                         checkWindowSelected: scrollingOverviewRoot.isWindowSelected
 
-                        // Dragging - use bidirectional binding
                         draggingFromWorkspace: scrollingOverviewRoot.draggingFromWorkspace
                         onDraggingFromWorkspaceChanged: {
                             if (draggingFromWorkspace !== scrollingOverviewRoot.draggingFromWorkspace) {
@@ -293,7 +273,6 @@ Item {
                             }
                         }
 
-                        // Provide drag overlay reference
                         dragOverlay: dragOverlayItem
                         overviewRoot: scrollingOverviewRoot
 
@@ -303,7 +282,6 @@ Item {
                 }
             }
 
-            // Floating active workspace indicator (inside content, moves with scroll)
             Rectangle {
                 id: focusedWorkspaceIndicator
                 readonly property int activeWorkspaceId: scrollingOverviewRoot.monitor?.activeWorkspace?.id || 1
@@ -329,7 +307,6 @@ Item {
         }
     }
 
-    // Drag overlay - windows being dragged are reparented here to escape clipping
     Item {
         id: dragOverlayItem
         anchors.fill: parent

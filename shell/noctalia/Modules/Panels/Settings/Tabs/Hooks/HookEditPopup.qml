@@ -11,7 +11,6 @@ Popup {
   dim: true
   anchors.centerIn: parent
 
-  // Use a reasonable width/height relative to parent or fixed
   width: Math.min(600 * Style.uiScaleRatio, parent.width * 0.9)
   height: Math.min(contentLayout.implicitHeight + padding * 2, parent.height * 0.9)
   padding: Style.marginL
@@ -43,7 +42,6 @@ Popup {
     id: contentLayout
     spacing: Style.marginL
 
-    // Header
     RowLayout {
       Layout.fillWidth: true
       NText {
@@ -58,7 +56,6 @@ Popup {
       }
     }
 
-    // Description/Help
     NText {
       text: root.hookDescription
       color: Color.mOnSurfaceVariant
@@ -66,7 +63,6 @@ Popup {
       Layout.fillWidth: true
     }
 
-    // Input Area
     ColumnLayout {
       Layout.fillWidth: true
       spacing: Style.marginS
@@ -80,7 +76,6 @@ Popup {
       }
     }
 
-    // Action Buttons
     RowLayout {
       Layout.fillWidth: true
       spacing: Style.marginM
@@ -95,7 +90,7 @@ Popup {
 
       Item {
         Layout.fillWidth: true
-      } // Spacer
+      }
 
       NButton {
         text: I18n.tr("common.cancel")

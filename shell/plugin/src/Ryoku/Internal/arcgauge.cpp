@@ -27,14 +27,12 @@ void ArcGauge::paint(QPainter* painter) {
 
     painter->setRenderHint(QPainter::Antialiasing, true);
 
-    // Draw track arc
     QPen trackPen(m_trackColor, m_lineWidth);
     trackPen.setCapStyle(Qt::RoundCap);
     painter->setPen(trackPen);
     painter->setBrush(Qt::NoBrush);
     painter->drawArc(arcRect, startAngle16, sweepAngle16);
 
-    // Draw value arc
     if (m_percentage > 0.0) {
         const int valueSweep16 = qRound(static_cast<qreal>(sweepAngle16) * m_percentage);
         QPen valuePen(m_accentColor, m_lineWidth);

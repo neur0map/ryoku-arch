@@ -4,9 +4,6 @@ import qs.ambxst.modules.theme
 Canvas {
     id: root
 
-    // =========================================================================
-    // API Properties
-    // =========================================================================
     property color color: Styling.srItem("overprimary")
     property real lineWidth: 2
     property real frequency: 2
@@ -14,14 +11,10 @@ Canvas {
     property real fullLength: width
     property bool running: true
 
-    // Legacy compatibility
     property real amplitude: lineWidth * amplitudeMultiplier
     property real speed: 5  // Not used with Date.now() technique, kept for API compat
     property bool animationsEnabled: true
 
-    // =========================================================================
-    // Rendering
-    // =========================================================================
     readonly property bool shouldAnimate: running && animationsEnabled && 
                                           visible && width > 0 && opacity > 0
 

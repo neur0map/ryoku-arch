@@ -19,11 +19,10 @@ NBox {
   property var sectionIcons: ({}) // Map of sectionId -> icon name
   property bool barIsVertical: false // When true, map left/right to top/bottom in labels
   property int maxWidgets: -1 // -1 means unlimited
-  property bool draggable: true // Enable/disable drag reordering
+  property bool draggable: true
   property bool crossSectionDraggable: false
   property alias dropTargetArea: gridContainer
 
-  // Get display label for a section
   function getSectionLabel(sectionId) {
     if (sectionLabels && sectionLabels[sectionId]) {
       return sectionLabels[sectionId];
@@ -31,7 +30,6 @@ NBox {
     return sectionId; // Fallback to section ID
   }
 
-  // Get icon for a section
   function getSectionIcon(sectionId) {
     if (sectionIcons && sectionIcons[sectionId]) {
       return sectionIcons[sectionId];
@@ -124,7 +122,6 @@ NBox {
   Layout.fillWidth: true
   z: flowDragArea.dragStarted ? 5000 : 0
 
-  // Calculate width to fit gridColumns widgets with spacing
   function calculateWidgetWidth(gridWidth) {
     var columnSpacing = (root.gridColumns - 1) * Style.marginM;
     var widgetWidth = (gridWidth - columnSpacing) / root.gridColumns;
@@ -167,18 +164,15 @@ NBox {
       return absoluteMin;
     }
 
-    // Calculate rows based on grid layout
     // Use actual parent width if available, otherwise estimate
     var availableWidth = (parent && parent.width > 0) ? (parent.width - Style.margin2L) : 400;
     var rows = Math.ceil(widgetCount / root.gridColumns);
 
-    // Calculate widget width for height calculation
     var containerWidth = availableWidth;
     var widgetWidth = calculateWidgetWidth(containerWidth);
 
     // Header height + spacing + (rows * widget height) + (spacing between rows) + margins
     var headerHeight = Style.fontSizeL * 2;
-    // Account for grid margins
     var gridTopMargin = Style.marginS;
     var gridBottomMargin = Style.marginL;
     var widgetAreaHeight = gridTopMargin + (rows * widgetItemHeight) + ((rows - 1) * Style.marginL) + gridBottomMargin;

@@ -64,7 +64,6 @@ ScrollView {
   implicitWidth: Math.max(implicitBackgroundWidth + leftInset + rightInset, contentWidth + leftPadding + rightPadding)
   implicitHeight: Math.max(implicitBackgroundHeight + topInset + bottomInset, contentHeight + topPadding + bottomPadding)
 
-  // Configure the internal flickable when it becomes available
   Component.onCompleted: {
     configureFlickable();
     createGradients();
@@ -118,7 +117,6 @@ ScrollView {
     `, root, "bottomGradient");
   }
 
-  // Reference to the internal Flickable for wheel handling
   property Flickable _internalFlickable: null
 
   NumberAnimation {
@@ -155,7 +153,6 @@ ScrollView {
     }
   }
 
-  // Function to configure the underlying Flickable
   function configureFlickable() {
     // Find the internal Flickable (it's usually the first child)
     for (var i = 0; i < children.length; i++) {
@@ -186,7 +183,6 @@ ScrollView {
              }
   }
 
-  // Watch for changes in horizontalPolicy
   onHorizontalPolicyChanged: {
     preventHorizontalScroll = (horizontalPolicy === ScrollBar.AlwaysOff);
     configureFlickable();

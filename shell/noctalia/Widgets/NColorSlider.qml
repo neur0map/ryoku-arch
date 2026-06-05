@@ -153,7 +153,6 @@ Slider {
       }
     }
 
-    // Circular cutout
     Rectangle {
       id: knobCutout
       implicitWidth: root.knobDiameter + root.cutoutExtra
@@ -178,10 +177,8 @@ Slider {
       radius: Math.min(Style.iRadiusL, width / 2)
       color: {
         if (root.rainbowMode) {
-          // Hue Logic: Map position (0.0 to 1.0) directly to Hue
           return Qt.hsva(1 - root.visualPosition, 1, 1, 1);
         } else {
-          // Linear Interpolation for Standard Gradients
           // visualPosition 0.0 = Top, 1.0 = Bottom
           var t = root.visualPosition;
           var r = root.topColor.r * (1 - t) + root.bottomColor.r * t;

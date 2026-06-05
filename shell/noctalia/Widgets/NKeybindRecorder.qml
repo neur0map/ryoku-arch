@@ -87,7 +87,6 @@ Item {
     width: parent.width
     spacing: Style.marginL
 
-    // Label and Description (optional)
     NLabel {
       id: labelContainer
       label: root.label

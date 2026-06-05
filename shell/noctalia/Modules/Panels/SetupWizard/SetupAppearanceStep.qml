@@ -47,7 +47,6 @@ ColumnLayout {
     }
   }
 
-  // Beautiful header with icon
   RowLayout {
     Layout.fillWidth: true
     Layout.bottomMargin: Style.marginL
@@ -98,7 +97,6 @@ ColumnLayout {
       width: appearanceScrollView.availableWidth
       spacing: Style.marginM
 
-      // Dark Mode Toggle
       RowLayout {
         Layout.fillWidth: true
         spacing: Style.marginM
@@ -143,7 +141,6 @@ ColumnLayout {
         }
       }
 
-      // Divider
       Rectangle {
         Layout.fillWidth: true
         Layout.preferredHeight: 1
@@ -153,7 +150,6 @@ ColumnLayout {
         Layout.bottomMargin: Style.marginS
       }
 
-      // Wallpaper Colors Toggle
       RowLayout {
         Layout.fillWidth: true
         spacing: Style.marginM
@@ -208,7 +204,6 @@ ColumnLayout {
         }
       }
 
-      // Divider
       Rectangle {
         Layout.fillWidth: true
         Layout.preferredHeight: 1
@@ -362,7 +357,6 @@ ColumnLayout {
         }
       }
 
-      // Bottom spacer
       Item {
         Layout.fillWidth: true
         Layout.preferredHeight: Style.marginL

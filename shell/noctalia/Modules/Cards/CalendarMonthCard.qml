@@ -8,13 +8,11 @@ import qs.noctalia.Services.System
 import qs.noctalia.Services.UI
 import qs.noctalia.Widgets
 
-// Calendar month grid with navigation
 NBox {
   id: root
   Layout.fillWidth: true
   implicitHeight: calendarContent.implicitHeight + Style.margin2M
 
-  // Internal state - independent from header
   readonly property var now: Time.now
   property int calendarMonth: now.getMonth()
   property int calendarYear: now.getFullYear()
@@ -32,7 +30,6 @@ NBox {
     return weekNumber;
   }
 
-  // Helper function to check if an event is all-day
   function isAllDayEvent(event) {
     const duration = event.end - event.start;
     const startDate = new Date(event.start * 1000);
@@ -40,7 +37,6 @@ NBox {
     return duration === 86400 && isAtMidnight;
   }
 
-  // Navigation functions
   function navigateToPreviousMonth() {
     let newDate = new Date(root.calendarYear, root.calendarMonth - 1, 1);
     root.calendarYear = newDate.getFullYear();
@@ -65,7 +61,6 @@ NBox {
     CalendarService.loadEvents(daysAhead + 30, daysBehind + 30);
   }
 
-  // Wheel handler for month navigation
   WheelHandler {
     id: wheelHandler
     target: root
@@ -89,7 +84,6 @@ NBox {
     anchors.margins: Style.marginM
     spacing: Style.marginS
 
-    // Navigation row
     RowLayout {
       Layout.fillWidth: true
       spacing: Style.marginS
@@ -129,7 +123,6 @@ NBox {
       }
     }
 
-    // Day names header
     RowLayout {
       Layout.fillWidth: true
       spacing: 0
@@ -169,12 +162,10 @@ NBox {
       }
     }
 
-    // Calendar grid with week numbers
     RowLayout {
       Layout.fillWidth: true
       spacing: 0
 
-      // Helper functions
       function hasEventsOnDate(year, month, day) {
         if (!CalendarService.available || CalendarService.events.length === 0)
           return false;
@@ -218,7 +209,6 @@ NBox {
         }
       }
 
-      // Week numbers column
       ColumnLayout {
         visible: Settings.data.location.showWeekNumberInCalendar
         Layout.preferredWidth: visible ? Style.baseWidgetSize * 0.7 : 0
@@ -266,7 +256,6 @@ NBox {
         }
       }
 
-      // Calendar grid
       GridLayout {
         id: grid
         Layout.fillWidth: true
@@ -289,7 +278,6 @@ NBox {
           const days = [];
           const today = new Date();
 
-          // Previous month days
           const prevMonth = new Date(year, month, 0);
           const prevMonthDays = prevMonth.getDate();
           for (var i = daysBefore - 1; i >= 0; i--) {
@@ -303,7 +291,6 @@ NBox {
                       });
           }
 
-          // Current month days
           for (var day = 1; day <= daysInMonth; day++) {
             const date = new Date(year, month, day);
             const isToday = date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth() && date.getDate() === today.getDate();
@@ -316,7 +303,6 @@ NBox {
                       });
           }
 
-          // Next month days
           for (var i = 1; i <= daysAfter; i++) {
             days.push({
                         "day": i,
@@ -359,7 +345,6 @@ NBox {
                 font.weight: modelData.today ? Style.fontWeightBold : Style.fontWeightMedium
               }
 
-              // Event indicator dots
               Row {
                 visible: Settings.data.location.showCalendarEvents && parent.parent.parent.parent.hasEventsOnDate(modelData.year, modelData.month, modelData.day)
                 spacing: 2

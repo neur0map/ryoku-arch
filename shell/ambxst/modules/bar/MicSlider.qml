@@ -10,10 +10,8 @@ Item {
 
     required property var bar
 
-    // Orientación derivada de la barra
     property bool vertical: bar.orientation === "vertical"
 
-    // Estado de hover para activar wavy
     property bool isHovered: false
     property bool externalVolumeChange: false
     property bool isExpanded: false
@@ -23,14 +21,12 @@ Item {
     HoverHandler {
         onHoveredChanged: {
             root.isHovered = hovered;
-            // Contraer cuando el mouse sale completamente del componente
             if (!hovered && root.isExpanded && !micSlider.isDragging) {
                 root.isExpanded = false;
             }
         }
     }
 
-    // Tamaño basado en hover para StyledRect con animación
     Layout.preferredWidth: root.vertical ? 36 : 36
     Layout.preferredHeight: root.vertical ? 36 : 36
 

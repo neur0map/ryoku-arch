@@ -24,15 +24,12 @@ Singleton {
             && !iconName.includes("image-missing");
     }
 
-    // Validate icon and return fallback if needed
     function validateIcon(iconName) {
         if (!iconName || iconName.length === 0) {
             return "image-missing";
         }
         
-        // If it's an absolute path, check if file exists
         if (iconName.startsWith("/")) {
-            // Use Quickshell.iconPath to check if the path is valid
             const resolvedPath = Quickshell.iconPath(iconName, true);
             if (resolvedPath.length === 0) {
                 return "image-missing";
@@ -40,7 +37,6 @@ Singleton {
             return iconName;
         }
         
-        // For icon names (not paths), check if they exist in the theme
         if (iconExists(iconName)) {
             return iconName;
         }
@@ -140,7 +136,6 @@ Singleton {
     readonly property list<DesktopEntry> list: Array.from(DesktopEntries.applications.values)
         .sort((a, b) => a.name.localeCompare(b.name))
     
-    // Index structure: [{ name: "lower", command: "lower", keywords: ["lower"], original: appObject }, ...]
     property var searchIndex: []
     
     function buildIndex() {
@@ -173,7 +168,6 @@ Singleton {
     
     Component.onCompleted: {
         buildIndex();
-        // Pre-build cache in background if possible, or just wait for first access
     }
     
 
@@ -218,8 +212,6 @@ Singleton {
         for (let i = 0; i < list.length; i++) {
             const app = list[i];
             const usageScore = UsageTracker.getUsageScore(app.id);
-            // Use getCachedIcon which uses iconCache, but we want a simpler validater here maybe?
-            // validateIcon is "safer" but slower. Let's cache the validation result too.
             
             let iconToUse = app.icon || "application-x-executable";
             if (iconCache[iconToUse]) {
@@ -245,7 +237,6 @@ Singleton {
             });
         }
         
-        // Sort by usage score (most used/recent first), then alphabetically
         results.sort((a, b) => {
             if (a.usageScore !== b.usageScore) {
                 return b.usageScore - a.usageScore;
@@ -254,7 +245,7 @@ Singleton {
         });
         
         allAppsCache = results;
-        return results; // Show all apps
+        return results;
     }
     
     function fuzzyQuery(search) {
@@ -263,7 +254,6 @@ Singleton {
         const searchLower = search.toLowerCase();
         const results = [];
         
-        // Ensure index exists
         if (searchIndex.length === 0 && list.length > 0) buildIndex();
         
         for (let i = 0; i < searchIndex.length; i++) {
@@ -271,47 +261,42 @@ Singleton {
             let score = 0;
             let matchFound = false;
             
-            // Search in name (highest priority)
             if (entry.name === searchLower) {
-                score += 100; // Exact name match
+                score += 100;
                 matchFound = true;
             } else if (entry.name.startsWith(searchLower)) {
-                score += 80; // Name starts with search
+                score += 80;
                 matchFound = true;
             } else if (entry.name.includes(searchLower)) {
-                score += 60; // Name contains search
+                score += 60;
                 matchFound = true;
             }
             
-            // Search in command (high priority)
             if (entry.command) {
                 if (entry.command.includes(searchLower)) {
-                    score += 40; // Command contains search
+                    score += 40;
                     matchFound = true;
                 }
                 if (entry.executable.includes(searchLower)) {
-                    score += 50; // Executable name contains search
+                    score += 50;
                     matchFound = true;
                 }
             }
             
-            // Search in comment/description (medium priority)
             if (entry.comment && entry.comment.includes(searchLower)) {
-                score += 30; // Comment contains search
+                score += 30;
                 matchFound = true;
             }
             
-            // Search in genericName (medium priority)
             if (entry.genericName && entry.genericName.includes(searchLower)) {
-                score += 25; // Generic name contains search
+                score += 25;
                 matchFound = true;
             }
             
-            // Search in keywords (medium priority)
             if (entry.keywords.length > 0) {
                 for (let j = 0; j < entry.keywords.length; j++) {
                     if (entry.keywords[j].includes(searchLower)) {
-                        score += 20; // Keyword contains search
+                        score += 20;
                         matchFound = true;
                         break;
                     }
@@ -347,9 +332,7 @@ Singleton {
             }
         }
         
-        // Sort by combined score (search match + usage), then by name
         results.sort((a, b) => {
-            // Combine search score with usage score (usage score is already 0-200+)
             const totalScoreA = a.score + a.usageScore;
             const totalScoreB = b.score + b.usageScore;
             
@@ -359,6 +342,6 @@ Singleton {
             return (a.name || "").localeCompare(b.name || "");
         });
         
-        return results.slice(0, 10); // Limit results
+        return results.slice(0, 10);
     }
 }

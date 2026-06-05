@@ -20,7 +20,6 @@ QtObject {
     function getStyledRectConfig(variant) {
         switch (variant) {
         case "transparent":
-            // Internal variant: uses bg config but with opacity, border and radius forced to 0
             const bgConfig = Config.theme.srBg;
             return {
                 gradient: bgConfig.gradient,

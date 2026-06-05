@@ -36,7 +36,6 @@ SmartPanel {
       anchors.margins: Style.marginL
       spacing: Style.marginM
 
-      // HEADER
       NBox {
         Layout.fillWidth: true
         implicitHeight: headerRow.implicitHeight + Style.margin2M
@@ -72,7 +71,6 @@ SmartPanel {
         }
       }
 
-      // CPU Card (dual-line: usage % + temperature °C)
       NBox {
         Layout.fillWidth: true
         Layout.preferredHeight: panelContent.cardHeight
@@ -271,7 +269,6 @@ SmartPanel {
         }
       }
 
-      // Detailed Stats section
       NBox {
         Layout.fillWidth: true
         implicitHeight: detailsColumn.implicitHeight + Style.margin2M
@@ -284,7 +281,6 @@ SmartPanel {
           anchors.margins: Style.marginM
           spacing: Style.marginXS
 
-          // Load Average
           RowLayout {
             Layout.fillWidth: true
             spacing: Style.marginS
@@ -338,7 +334,6 @@ SmartPanel {
             }
           }
 
-          // Disk usage
           RowLayout {
             Layout.fillWidth: true
             spacing: Style.marginS

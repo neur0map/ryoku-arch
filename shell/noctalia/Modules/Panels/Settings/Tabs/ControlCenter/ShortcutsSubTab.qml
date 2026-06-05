@@ -29,19 +29,16 @@ ColumnLayout {
     };
   }
 
-  // Widgets Management Section
   ColumnLayout {
     spacing: Style.marginXXS
     Layout.fillWidth: true
 
-    // Sections
     ColumnLayout {
       Layout.fillWidth: true
       Layout.fillHeight: true
       Layout.topMargin: Style.marginM
       spacing: Style.marginM
 
-      // Left
       NSectionEditor {
         sectionName: I18n.tr("positions.left")
         sectionId: "left"
@@ -60,7 +57,6 @@ ColumnLayout {
         onOpenPluginSettingsRequested: manifest => root.openPluginSettingsRequested(manifest)
       }
 
-      // Right
       NSectionEditor {
         sectionName: I18n.tr("positions.right")
         sectionId: "right"

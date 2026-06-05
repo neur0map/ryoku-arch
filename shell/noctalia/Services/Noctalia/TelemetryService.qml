@@ -29,7 +29,6 @@ Singleton {
       return;
     }
 
-    // Get or generate instance ID from ShellState
     instanceId = ShellState.getTelemetryInstanceId();
     if (!instanceId) {
       instanceId = generateRandomId();
@@ -39,7 +38,6 @@ Singleton {
       Logger.d("Telemetry", "Using stored instance ID");
     }
 
-    // Read RAM info, then send ping
     memInfoProcess.running = true;
   }
 

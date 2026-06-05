@@ -42,7 +42,6 @@ Loader {
   }
 
   Component.onCompleted: {
-    // Register with panel service
     PanelService.lockScreen = this;
   }
 
@@ -119,7 +118,6 @@ Loader {
                 property string currentLayout: KeyboardLayoutService.currentLayout
               }
 
-              // Background with wallpaper, gradient, and screen corners
               LockScreenBackground {
                 id: backgroundComponent
                 screen: lockSurface.screen
@@ -142,12 +140,10 @@ Loader {
                   }
                 }
 
-                // Header with avatar, welcome, time, date
                 LockScreenHeader {
                   id: headerComponent
                 }
 
-                // Info notification
                 Rectangle {
                   width: infoRowLayout.implicitWidth + Style.marginXL * 1.5
                   height: 50
@@ -186,7 +182,6 @@ Loader {
                   }
                 }
 
-                // Error notification
                 Rectangle {
                   width: errorRowLayout.implicitWidth + Style.marginXL * 1.5
                   height: 50
@@ -225,7 +220,6 @@ Loader {
                   }
                 }
 
-                // Countdown notification
                 Rectangle {
                   width: countdownRowLayout.implicitWidth + Style.marginXL * 1.5
                   height: 50
@@ -320,7 +314,6 @@ Loader {
                   Component.onCompleted: forceActiveFocus()
                 }
 
-                // Main panel with password, weather, media, session controls
                 LockScreenPanel {
                   id: panelComponent
                   lockControl: lockContext

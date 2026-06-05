@@ -67,7 +67,6 @@ Singleton {
         Quickshell.execDetached(["sh", "-c", `mkdir -p "${root.dir}/${cfg.cwId}" && printf %s '${b64}' | base64 -d > "${path}"`]);
     }
 
-    // ---- Templates ---------------------------------------------------------
     function _bgHeader(bg: bool): string {
         return bg ? `    radius: 14
     color: Qt.alpha(Colours.palette.m3surfaceContainer, 0.78)
@@ -186,7 +185,6 @@ StyledRect {
 `;
     }
 
-    // ---- CRUD --------------------------------------------------------------
     // opts: { name, type, background, params, qml (raw, for type:"qml") }
     function create(opts): void {
         const id = root._uniqueId(root._slug(opts.name));

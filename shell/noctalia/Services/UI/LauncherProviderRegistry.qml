@@ -10,7 +10,6 @@ Singleton {
 
   signal pluginProviderRegistryUpdated
 
-  // Plugin provider storage
   property var pluginProviders: ({}) // { "plugin:pluginId": component }
   property var pluginProviderMetadata: ({}) // { "plugin:pluginId": metadata }
 
@@ -22,7 +21,6 @@ Singleton {
     Logger.i("LauncherProviderRegistry", "Service started");
   }
 
-  // Register a plugin launcher provider and instantiate it immediately
   function registerPluginProvider(pluginId, component, metadata) {
     if (!pluginId || !component) {
       Logger.e("LauncherProviderRegistry", "Cannot register plugin provider: invalid parameters");
@@ -54,7 +52,6 @@ Singleton {
     return true;
   }
 
-  // Unregister a plugin launcher provider
   function unregisterPluginProvider(pluginId) {
     var providerId = "plugin:" + pluginId;
 
@@ -76,32 +73,26 @@ Singleton {
     return true;
   }
 
-  // Get list of registered plugin provider IDs
   function getPluginProviders() {
     return Object.keys(pluginProviders);
   }
 
-  // Get the live provider instance by ID
   function getProviderInstance(providerId) {
     return providerInstances[providerId] || null;
   }
 
-  // Get provider component by ID
   function getProviderComponent(providerId) {
     return pluginProviders[providerId] || null;
   }
 
-  // Get provider metadata by ID
   function getProviderMetadata(providerId) {
     return pluginProviderMetadata[providerId] || null;
   }
 
-  // Check if ID is a plugin provider
   function isPluginProvider(id) {
     return id.startsWith("plugin:");
   }
 
-  // Check if provider exists
   function hasProvider(providerId) {
     return providerId in pluginProviders;
   }

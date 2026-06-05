@@ -351,7 +351,6 @@ QSGNode* BlobShape::updatePaintNode(QSGNode* oldNode, UpdatePaintNodeData*) {
         node->setFlag(QSGNode::OwnsMaterial);
     }
 
-    // Update geometry
     auto* geometry = node->geometry();
     auto* v = geometry->vertexDataAsTexturedPoint2D();
 
@@ -367,7 +366,6 @@ QSGNode* BlobShape::updatePaintNode(QSGNode* oldNode, UpdatePaintNodeData*) {
 
     node->markDirty(QSGNode::DirtyGeometry);
 
-    // Update material
     auto* material = static_cast<BlobMaterial*>(node->material());
     material->m_paddedX = m_cachedPaddedX;
     material->m_paddedY = m_cachedPaddedY;

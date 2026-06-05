@@ -27,25 +27,21 @@ PanelWindow {
     WlrLayershell.namespace: "ambxst:presets"
     WlrLayershell.keyboardFocus: presetsOpen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
-    // Get this screen's visibility state
     readonly property var screenVisibilities: Visibilities.getForScreen(screen.name)
     readonly property bool presetsOpen: screenVisibilities ? screenVisibilities.presets : false
 
     visible: presetsOpen
     exclusionMode: ExclusionMode.Ignore
 
-    // Mask to capture input on the entire window when open
     mask: Region {
         item: presetsOpen ? fullMask : emptyMask
     }
 
-    // Full screen mask when open
     Item {
         id: fullMask
         anchors.fill: parent
     }
 
-    // Empty mask when hidden
     Item {
         id: emptyMask
         width: 0
@@ -67,7 +63,6 @@ PanelWindow {
         }
     }
 
-    // Semi-transparent backdrop
     Rectangle {
         id: backdrop
         anchors.fill: parent
@@ -90,7 +85,6 @@ PanelWindow {
         }
     }
 
-    // Main content column (search + presets)
     Item {
         id: mainContainer
         anchors.centerIn: parent
@@ -117,14 +111,12 @@ PanelWindow {
             }
         }
 
-        // Presets container
         Item {
             id: presetsContainer
             anchors.centerIn: parent
             width: presetsLoader.item ? presetsLoader.item.implicitWidth + 48 : 400
             height: presetsLoader.item ? presetsLoader.item.implicitHeight + 48 : 300
 
-            // Background panel
             StyledRect {
                 id: presetsBackground
                 variant: "bg"
@@ -135,7 +127,6 @@ PanelWindow {
                 layer.effect: Shadow {}
             }
 
-            // Loader for PresetsTab
             Loader {
                 id: presetsLoader
                 anchors.centerIn: parent
@@ -145,7 +136,6 @@ PanelWindow {
             }
         }
 
-        // External scrollbar (if needed)
         StyledRect {
             id: scrollbarContainer
             visible: presetsLoader.item && presetsLoader.item.needsScrollbar
@@ -183,7 +173,6 @@ PanelWindow {
                 position: presetsLoader.item && presetsLoader.item.flickable ? presetsLoader.item.flickable.visibleArea.yPosition : 0
                 size: presetsLoader.item && presetsLoader.item.flickable ? presetsLoader.item.flickable.visibleArea.heightRatio : 1
 
-                // Notify flickable when manually scrolling
                 onActiveChanged: {
                     if (presetsLoader.item) {
                         presetsLoader.item.isManualScrolling = active;
@@ -219,7 +208,6 @@ PanelWindow {
         }
     }
 
-    // Ensure focus when presets opens
     onPresetsOpenChanged: {
         if (presetsOpen) {
             Qt.callLater(() => {

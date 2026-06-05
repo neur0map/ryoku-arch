@@ -12,10 +12,8 @@ Singleton {
   // Transient state - not persisted, resets on shell restart
   property bool editMode: false
 
-  // Signal emitted when plugin widgets are registered/unregistered
   signal pluginWidgetRegistryUpdated
 
-  // Component definitions
   property Component clockComponent: Component {
     DesktopClock {}
   }
@@ -32,7 +30,6 @@ Singleton {
     DesktopAudioVisualizer {}
   }
 
-  // Widget registry object mapping widget names to components
   // Created in Component.onCompleted to ensure Components are ready
   property var widgets: ({})
 
@@ -43,7 +40,6 @@ Singleton {
   property var widgetUrls: ({})
 
   Component.onCompleted: {
-    // Initialize widgets object after Components are ready
     var widgetsObj = {};
     widgetsObj["Clock"] = clockComponent;
     widgetsObj["MediaPlayer"] = mediaPlayerComponent;
@@ -122,24 +118,20 @@ Singleton {
     Logger.i("DesktopWidgetRegistry", "Service started");
   }
 
-  // Helper function to get widget component by name
   function getWidget(id) {
     return widgets[id] || null;
   }
 
-  // Helper function to check if widget exists
   function hasWidget(id) {
     return id in widgets;
   }
 
-  // Get list of available widget ids
   function getAvailableWidgets() {
     var keys = Object.keys(widgets);
     Logger.d("DesktopWidgetRegistry", "getAvailableWidgets() called, returning:", keys);
     return keys;
   }
 
-  // Helper function to check if widget has user settings
   function widgetHasUserSettings(id) {
     return widgetMetadata[id] !== undefined;
   }
@@ -150,17 +142,14 @@ Singleton {
     return cpuIntensiveWidgets.indexOf(id) >= 0;
   }
 
-  // Check if a widget is a plugin widget
   function isPluginWidget(id) {
     return id.startsWith("plugin:");
   }
 
-  // Get list of plugin widget IDs
   function getPluginWidgets() {
     return Object.keys(pluginWidgets);
   }
 
-  // Get display name for a widget ID
   function getWidgetDisplayName(widgetId) {
     if (widgetId.startsWith("plugin:")) {
       var pluginId = widgetId.replace("plugin:", "");
@@ -171,7 +160,6 @@ Singleton {
     return widgetId;
   }
 
-  // Register a plugin desktop widget
   function registerPluginWidget(pluginId, component, metadata) {
     if (!pluginId || !component) {
       Logger.e("DesktopWidgetRegistry", "Cannot register plugin widget: invalid parameters");
@@ -205,7 +193,6 @@ Singleton {
     return true;
   }
 
-  // Unregister a plugin desktop widget
   function unregisterPluginWidget(pluginId) {
     var widgetId = "plugin:" + pluginId;
 

@@ -59,7 +59,6 @@ Singleton {
         deleteProcess.running = true;
     }
 
-    // List all keys
     Process {
         id: listProcess
         stdout: StdioCollector {
@@ -89,7 +88,6 @@ Singleton {
         }
     }
 
-    // Set key
     Process {
         id: setProcess
         stdout: StdioCollector {
@@ -104,7 +102,6 @@ Singleton {
         }
     }
 
-    // Delete key
     Process {
         id: deleteProcess
         stdout: StdioCollector {

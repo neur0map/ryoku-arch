@@ -18,14 +18,12 @@ FloatingWindow {
 
   visible: false
 
-  // Register with SettingsPanelService
   Component.onCompleted: {
     SettingsPanelService.settingsWindow = root;
   }
 
   property bool isInitialized: false
 
-  // Navigate to a specific tab and optional subtab.
   // Works whether the window is already visible or just becoming visible.
   function navigateTo(tab, subTab) {
     const tabId = tab !== undefined ? tab : 0;
@@ -45,7 +43,6 @@ FloatingWindow {
     }
   }
 
-  // Navigate to a search result entry.
   // Works whether the window is already visible or just becoming visible.
   function navigateToEntry(entry) {
     if (isInitialized) {
@@ -58,7 +55,6 @@ FloatingWindow {
     }
   }
 
-  // Sync visibility with service
   onVisibleChanged: {
     if (visible) {
       SettingsPanelService.isWindowOpen = true;
@@ -68,7 +64,6 @@ FloatingWindow {
     }
   }
 
-  // Keyboard shortcuts
   Shortcut {
     sequence: "Escape"
     enabled: !PanelService.isKeybindRecording
@@ -115,7 +110,6 @@ FloatingWindow {
     }
   }
 
-  // Main content
   Rectangle {
     anchors.fill: parent
     color: Qt.alpha(Color.mSurface, Settings.data.ui.panelBackgroundOpacity)

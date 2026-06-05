@@ -16,7 +16,6 @@ ColumnLayout {
 
   spacing: Style.marginM
 
-  // Beautiful header with icon
   RowLayout {
     Layout.fillWidth: true
     Layout.bottomMargin: Style.marginL
@@ -67,7 +66,6 @@ ColumnLayout {
       width: customizeScrollView.availableWidth
       spacing: Style.marginM
 
-      // Bar Position section
       ColumnLayout {
         Layout.fillWidth: true
         spacing: Style.marginM
@@ -188,7 +186,6 @@ ColumnLayout {
         }
       }
 
-      // Divider
       Rectangle {
         Layout.fillWidth: true
         Layout.preferredHeight: 1
@@ -198,7 +195,6 @@ ColumnLayout {
         Layout.bottomMargin: Style.marginS
       }
 
-      // Bar Density section
       RowLayout {
         Layout.fillWidth: true
         spacing: Style.marginM
@@ -311,7 +307,6 @@ ColumnLayout {
         }
       }
 
-      // Divider
       Rectangle {
         Layout.fillWidth: true
         Layout.preferredHeight: 1
@@ -321,7 +316,6 @@ ColumnLayout {
         Layout.bottomMargin: Style.marginS
       }
 
-      // UI Scale section
       ColumnLayout {
         Layout.fillWidth: true
         spacing: Style.marginM
@@ -372,7 +366,6 @@ ColumnLayout {
         }
       }
 
-      // Divider
       Rectangle {
         Layout.fillWidth: true
         Layout.preferredHeight: 1
@@ -382,7 +375,6 @@ ColumnLayout {
         Layout.bottomMargin: Style.marginS
       }
 
-      // Bar Type section
       ColumnLayout {
         Layout.fillWidth: true
         spacing: Style.marginM
@@ -494,7 +486,6 @@ ColumnLayout {
         }
       }
 
-      // Divider
       Rectangle {
         Layout.fillWidth: true
         Layout.preferredHeight: 1
@@ -504,7 +495,6 @@ ColumnLayout {
         Layout.bottomMargin: Style.marginS
       }
 
-      // Divider
       Rectangle {
         Layout.fillWidth: true
         Layout.preferredHeight: 1
@@ -514,7 +504,6 @@ ColumnLayout {
         Layout.bottomMargin: Style.marginS
       }
 
-      // Dim Desktop opacity
       RowLayout {
         Layout.fillWidth: true
         spacing: Style.marginM
@@ -559,7 +548,6 @@ ColumnLayout {
         }
       }
 
-      // Divider
       Rectangle {
         Layout.fillWidth: true
         Layout.preferredHeight: 1
@@ -569,7 +557,6 @@ ColumnLayout {
         Layout.bottomMargin: Style.marginS
       }
 
-      // Drop Shadows toggle
       RowLayout {
         Layout.fillWidth: true
         spacing: Style.marginM

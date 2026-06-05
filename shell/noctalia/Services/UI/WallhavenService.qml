@@ -7,7 +7,6 @@ import qs.noctalia.Commons
 Singleton {
   id: root
 
-  // State
   property bool fetching: false
   property bool initialSearchScheduled: false
   property var currentResults: []
@@ -17,7 +16,6 @@ Singleton {
   property int currentPage: 1
   property int lastPage: 1
 
-  // Search parameters
   property string categories: "111" // general,anime,people (all enabled by default)
   property string purity: "100" // sfw
   property string sorting: "relevance" // date_added, relevance, random, views, favorites, toplist
@@ -33,21 +31,17 @@ Singleton {
   readonly property string apiKey: envApiKey !== "" ? envApiKey : (Settings.data.wallpaper.wallhavenApiKey || "")
   readonly property bool apiKeyManagedByEnv: envApiKey !== ""
 
-  // Signals
   signal searchCompleted(var results, var meta)
   signal searchFailed(string error)
   signal wallpaperDownloaded(string wallpaperId, string localPath)
 
-  // Base API URL
   readonly property string apiBaseUrl: "https://wallhaven.cc/api/v1"
 
-  // -------------------------------------------------
   function search(query, page) {
     if (fetching) {
       return;
     }
 
-    // Reset initial search flag once we start a search
     if (initialSearchScheduled) {
       initialSearchScheduled = false;
     }
@@ -117,7 +111,6 @@ Singleton {
               currentMeta = response.meta || {};
               lastPage = currentMeta.last_page || 1;
 
-              // Store seed for random sorting
               if (currentMeta.seed) {
                 seed = currentMeta.seed;
               }
@@ -159,13 +152,11 @@ Singleton {
     xhr.send();
   }
 
-  // -------------------------------------------------
   function getWallpaperUrl(wallpaper) {
     // Use the 'path' field which contains the full resolution image URL
     if (wallpaper.path) {
       return wallpaper.path;
     }
-    // Fallback to constructing URL from ID
     if (wallpaper.id) {
       var idPrefix = wallpaper.id.substring(0, 2);
       return "https://w.wallhaven.cc/full/" + idPrefix + "/wallhaven-" + wallpaper.id + ".jpg";
@@ -173,13 +164,11 @@ Singleton {
     return "";
   }
 
-  // -------------------------------------------------
   function getThumbnailUrl(wallpaper, size) {
     // size: "small", "large", "original"
     if (wallpaper.thumbs && wallpaper.thumbs[size]) {
       return wallpaper.thumbs[size];
     }
-    // Fallback
     if (wallpaper.id) {
       var idPrefix = wallpaper.id.substring(0, 2);
       var sizeMap = {
@@ -193,7 +182,6 @@ Singleton {
     return "";
   }
 
-  // -------------------------------------------------
   function downloadWallpaper(wallpaper, callback) {
     var url = getWallpaperUrl(wallpaper);
     if (!url) {
@@ -205,13 +193,11 @@ Singleton {
 
     var wallpaperId = wallpaper.id;
 
-    // Get the user's wallpaper directory
     var wallpaperDir = Settings.preprocessPath(Settings.data.wallpaper.directory);
     if (!wallpaperDir || wallpaperDir === "") {
       wallpaperDir = Settings.defaultWallpapersDirectory;
     }
 
-    // Ensure directory ends with /
     if (!wallpaperDir.endsWith("/")) {
       wallpaperDir += "/";
     }
@@ -220,7 +206,6 @@ Singleton {
 
     Logger.d("Wallhaven", "Downloading wallpaper", wallpaperId, "to", localPath);
 
-    // Use curl or wget to download the file, ensuring directory exists first
     var downloadProcess = Qt.createQmlObject(`
                                              import QtQuick
                                              import Quickshell.Io
@@ -247,7 +232,6 @@ Singleton {
     downloadProcess.running = true;
   }
 
-  // -------------------------------------------------
   function reset() {
     currentResults = [];
     currentMeta = {};
@@ -258,14 +242,12 @@ Singleton {
     lastError = "";
   }
 
-  // -------------------------------------------------
   function nextPage() {
     if (currentPage < lastPage && !fetching) {
       search(currentQuery, currentPage + 1);
     }
   }
 
-  // -------------------------------------------------
   function previousPage() {
     if (currentPage > 1 && !fetching) {
       search(currentQuery, currentPage - 1);

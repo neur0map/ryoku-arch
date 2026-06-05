@@ -23,7 +23,6 @@ ColumnLayout {
   property string valueCustomFont: widgetData.customFont !== undefined ? widgetData.customFont : widgetMetadata.custonFont
   property string valueFormat: widgetData.format !== undefined ? widgetData.format : widgetMetadata.format
 
-  // Track the currently focused input field
   property var focusedInput: null
 
   readonly property bool isMinimalMode: valueClockStyle === "minimal"
@@ -41,7 +40,6 @@ ColumnLayout {
     settingsChanged(settings);
   }
 
-  // Function to insert token at cursor position in the focused input
   function insertToken(token) {
     if (!focusedInput || !focusedInput.inputItem) {
       // If no input is focused, default to format input
@@ -56,14 +54,12 @@ ColumnLayout {
       var cursorPos = input.cursorPosition;
       var currentText = input.text;
 
-      // Insert token at cursor position
       var newText = currentText.substring(0, cursorPos) + token + currentText.substring(cursorPos);
       input.text = newText + " ";
 
       // Move cursor after the inserted token
       input.cursorPosition = cursorPos + token.length + 1;
 
-      // Ensure the input keeps focus
       input.focus = true;
       saveSettings();
     }
@@ -191,7 +187,6 @@ ColumnLayout {
       }
     }
 
-    // Preview
     ColumnLayout {
       Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
       Layout.fillWidth: false

@@ -21,7 +21,6 @@ Item {
     property var validNotifications: notifications.filter(n => n != null && n.summary != null)
 
     property var groupedNotifications: {
-        // Ordenar notificaciones por tiempo descendente (más recientes primero)
         const sortedNotifications = root.validNotifications.slice().sort((a, b) => b.time - a.time);
         const groups = {};
         sortedNotifications.forEach(notif => {
@@ -31,7 +30,6 @@ Item {
             }
             groups[summary].push(notif);
         });
-        // Limitar cada grupo a máximo 5 notificaciones visibles
         return Object.values(groups).map(notifications => ({
                     summary: notifications[0].summary,
                     notifications: notifications.slice(0, 5)
@@ -75,7 +73,6 @@ Item {
 
         onDestroyFinished: {
             if (!notificationAnimation.isDiscardAll) {
-                // Usar discard masivo para mejor rendimiento
                 const ids = root.notifications.map(notif => notif.id);
                 Notifications.discardNotifications(ids);
             }
@@ -88,11 +85,9 @@ Item {
         }
     }
 
-    // Escuchar cuando las notificaciones van a hacer timeout
     Connections {
         target: Notifications
         function onTimeoutWithAnimation(id) {
-            // Verificar si la notificación que va a hacer timeout pertenece a este grupo
             const notifExists = root.notifications.some(notif => notif.id === id);
             if (notifExists && root.popup) {
                 root.destroyWithAnimation();
@@ -100,7 +95,6 @@ Item {
         }
     }
 
-    // HoverHandler dedicado para pausar/reanudar timers
     HoverHandler {
         id: hoverHandler
 
@@ -201,7 +195,6 @@ Item {
                         spacing: 5
                         visible: root.multipleNotifications
 
-                        // Small app icon similar to NotificationAppIcon's overlay
                         Image {
                             mipmap: true
                             id: groupSmallAppIcon

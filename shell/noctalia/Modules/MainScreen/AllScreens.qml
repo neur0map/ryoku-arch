@@ -6,8 +6,6 @@ import qs.noctalia.Commons
 import qs.noctalia.Modules.MainScreen
 import qs.noctalia.Services.UI
 
-// ------------------------------
-// MainScreen for each screen (manages bar + all panels)
 // Wrapped in Loader to optimize memory - only loads when screen needs it
 Variants {
   model: Quickshell.screens
@@ -22,7 +20,6 @@ Variants {
 
       let shouldLoad = true;
       if (!Settings.data.general.allowPanelsOnScreenWithoutBar) {
-        // Check if bar is configured for this screen
         var monitors = Settings.data.bar.monitors || [];
         shouldLoad = monitors.length === 0 || monitors.includes(modelData?.name);
       }
@@ -35,7 +32,6 @@ Variants {
 
     property bool windowLoaded: false
 
-    // Main Screen loader - Bar and panels backgrounds
     Loader {
       id: windowLoader
       active: parent.shouldBeActive
@@ -62,7 +58,6 @@ Variants {
         if (!parent.windowLoaded || !parent.shouldBeActive)
           return false;
 
-        // Check if bar is configured for this screen
         var monitors = Settings.data.bar.monitors || [];
         return monitors.length === 0 || monitors.includes(modelData?.name);
       }
@@ -88,7 +83,6 @@ Variants {
         if (Settings.getBarDisplayModeForScreen(modelData?.name) !== "auto_hide")
           return false;
 
-        // Check if bar is configured for this screen
         var monitors = Settings.data.bar.monitors || [];
         return monitors.length === 0 || monitors.includes(modelData?.name);
       }
@@ -115,7 +109,6 @@ Variants {
           if (!windowItem.windowLoaded || !windowItem.shouldBeActive)
             return false;
 
-          // Check if bar is configured for this screen
           var monitors = Settings.data.bar.monitors || [];
           return monitors.length === 0 || monitors.includes(windowItem.modelData?.name);
         }
@@ -132,7 +125,6 @@ Variants {
       }
     }
 
-    // PopupMenuWindow - reusable popup window for both tray menus and context menus
     // Stays alive when bar is hidden to avoid Wayland surface churn crashes.
     // PopupMenuWindow manages its own visibility internally.
     Loader {
@@ -142,11 +134,9 @@ Variants {
           return true;
         }
 
-        // Normal bar-based condition
         if (!parent.windowLoaded || !parent.shouldBeActive)
           return false;
 
-        // Check if bar is configured for this screen
         var monitors = Settings.data.bar.monitors || [];
         return monitors.length === 0 || monitors.includes(modelData?.name);
       }

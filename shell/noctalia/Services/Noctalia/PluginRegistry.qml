@@ -21,13 +21,11 @@ Singleton {
     ensurePluginsFile();
   }
 
-  // Generate a short hash (6 characters) from a source URL
   function generateSourceHash(sourceUrl) {
     var hash = Crypto.sha256(sourceUrl);
     return hash.substring(0, 6);
   }
 
-  // Check if a source is the main Ryoku plugins repository
   function isMainSource(sourceUrl) {
     return sourceUrl === root.mainSourceUrl;
   }
@@ -41,7 +39,6 @@ Singleton {
     return hash + ":" + pluginId;
   }
 
-  // Parse composite key back to components
   function parseCompositeKey(compositeKey) {
     var colonIndex = compositeKey.indexOf(":");
     // If no colon or colon is after position 6 (hash length), it's a plain ID
@@ -60,7 +57,6 @@ Singleton {
     };
   }
 
-  // Get source name by URL
   function getSourceNameByUrl(sourceUrl) {
     for (var i = 0; i < root.pluginSources.length; i++) {
       if (root.pluginSources[i].url === sourceUrl) {
@@ -70,7 +66,6 @@ Singleton {
     return null;
   }
 
-  // Get source name by hash
   function getSourceNameByHash(hash) {
     for (var i = 0; i < root.pluginSources.length; i++) {
       if (generateSourceHash(root.pluginSources[i].url) === hash) {
@@ -80,13 +75,11 @@ Singleton {
     return null;
   }
 
-  // Get source URL from plugin state
   function getPluginSourceUrl(compositeKey) {
     var state = root.pluginStates[compositeKey];
     return state?.sourceUrl || root.mainSourceUrl;
   }
 
-  // Signals
   signal pluginsChanged
 
   // In-memory plugin cache (populated by scanning disk)
@@ -95,7 +88,6 @@ Singleton {
   property var pluginSources: [] // Array of { name, url }
   property var pluginLoadVersions: ({}) // { pluginId: versionNumber } - for cache busting
 
-  // Track async loading
   property int pendingManifests: 0
 
   // File storage (minimal - only states and sources)
@@ -115,7 +107,6 @@ Singleton {
       root.pluginStates = adapter.states || {};
       root.pluginSources = adapter.sources || [];
 
-      // Ensure default repo is in sources
       if (root.pluginSources.length === 0) {
         root.pluginSources = [
           {
@@ -127,16 +118,13 @@ Singleton {
         root.save();
       }
 
-      // Migrate from v1 to v2 (add sourceUrl to states)
       root.migratePluginData();
 
-      // Scan plugin folder to discover installed plugins
       scanPluginFolder();
     }
 
     onLoadFailed: function (error) {
       Logger.w("PluginRegistry", "Failed to load plugins.json, will create it:", error);
-      // Initialize defaults and continue
       root.pluginStates = {};
       root.pluginSources = [
             {
@@ -145,7 +133,6 @@ Singleton {
               "enabled": true
             }
           ];
-      // Scan for installed plugins
       root.scanPluginFolder();
     }
   }
@@ -156,7 +143,6 @@ Singleton {
     PluginService.initialized;
   }
 
-  // Migrate plugin data from older versions
   function migratePluginData() {
     var needsSave = false;
 
@@ -216,7 +202,6 @@ Singleton {
     }
   }
 
-  // Ensure plugins directory exists
   function ensurePluginsDirectory() {
     var mkdirProcess = Qt.createQmlObject(`
       import QtQuick
@@ -238,7 +223,6 @@ Singleton {
     mkdirProcess.running = true;
   }
 
-  // Ensure plugins.json exists (create minimal one if it doesn't)
   function ensurePluginsFile() {
     var checkProcess = Qt.createQmlObject(`
       import QtQuick
@@ -318,7 +302,6 @@ Singleton {
     });
   }
 
-  // Load a single plugin's manifest from disk
   function loadPluginManifest(pluginId) {
     var manifestPath = root.pluginsDir + "/" + pluginId + "/manifest.json";
 
@@ -344,7 +327,6 @@ Singleton {
             root.installedPlugins[pluginId] = manifest;
             Logger.i("PluginRegistry", "Loaded plugin:", pluginId, "-", manifest.name);
 
-            // Ensure state exists (default to disabled)
             if (!root.pluginStates[pluginId]) {
               root.pluginStates[pluginId] = {
                 enabled: false
@@ -360,7 +342,6 @@ Singleton {
         Logger.d("PluginRegistry", "No manifest found for:", pluginId);
       }
 
-      // Decrement pending count and emit signal when all are done
       root.pendingManifests--;
       Logger.d("PluginRegistry", "Pending manifests remaining:", root.pendingManifests);
       if (root.pendingManifests === 0) {
@@ -374,7 +355,6 @@ Singleton {
     });
   }
 
-  // Save registry to disk (only states and sources)
   function save() {
     adapter.version = root.currentVersion;
     adapter.states = root.pluginStates;
@@ -386,7 +366,6 @@ Singleton {
                  });
   }
 
-  // Enable/disable a plugin
   function setPluginEnabled(pluginId, enabled) {
     if (!root.installedPlugins[pluginId]) {
       Logger.w("PluginRegistry", "Cannot set state for non-existent plugin:", pluginId);
@@ -406,41 +385,34 @@ Singleton {
     Logger.i("PluginRegistry", "Plugin", pluginId, enabled ? "enabled" : "disabled");
   }
 
-  // Check if plugin is enabled
   function isPluginEnabled(pluginId) {
     return root.pluginStates[pluginId]?.enabled || false;
   }
 
-  // Check if plugin is downloaded/installed
   function isPluginDownloaded(pluginId) {
     return pluginId in root.installedPlugins;
   }
 
-  // Get plugin manifest from cache
   function getPluginManifest(pluginId) {
     return root.installedPlugins[pluginId] || null;
   }
 
-  // Get ALL installed plugin IDs (discovered from disk)
   function getAllInstalledPluginIds() {
     return Object.keys(root.installedPlugins);
   }
 
-  // Get enabled plugin IDs only
   function getEnabledPluginIds() {
     return Object.keys(root.pluginStates).filter(function (id) {
       return root.pluginStates[id].enabled === true;
     });
   }
 
-  // Register a plugin (add to installed plugins after download)
   // sourceUrl is required for new plugins to generate composite key
   function registerPlugin(manifest, sourceUrl) {
     var compositeKey = generateCompositeKey(manifest.id, sourceUrl);
     manifest.compositeKey = compositeKey;
     root.installedPlugins[compositeKey] = manifest;
 
-    // Ensure state exists (default to disabled, store sourceUrl)
     if (!root.pluginStates[compositeKey]) {
       root.pluginStates[compositeKey] = {
         enabled: false,
@@ -457,7 +429,6 @@ Singleton {
     return compositeKey;
   }
 
-  // Unregister a plugin (remove from registry)
   function unregisterPlugin(pluginId) {
     delete root.pluginStates[pluginId];
     delete root.installedPlugins[pluginId];
@@ -466,7 +437,6 @@ Singleton {
     Logger.i("PluginRegistry", "Unregistered plugin:", pluginId);
   }
 
-  // Increment plugin load version (for cache busting when plugin is updated)
   function incrementPluginLoadVersion(pluginId) {
     var versions = Object.assign({}, root.pluginLoadVersions);
     versions[pluginId] = (versions[pluginId] || 0) + 1;
@@ -475,7 +445,6 @@ Singleton {
     return versions[pluginId];
   }
 
-  // Remove plugin state (call after deleting plugin folder)
   function removePluginState(pluginId) {
     delete root.pluginStates[pluginId];
     delete root.installedPlugins[pluginId];
@@ -484,7 +453,6 @@ Singleton {
     Logger.i("PluginRegistry", "Removed plugin state:", pluginId);
   }
 
-  // Add a plugin source
   function addPluginSource(name, url) {
     for (var i = 0; i < root.pluginSources.length; i++) {
       if (root.pluginSources[i].url === url) {
@@ -506,7 +474,6 @@ Singleton {
     return true;
   }
 
-  // Remove a plugin source
   function removePluginSource(url) {
     var newSources = [];
     for (var i = 0; i < root.pluginSources.length; i++) {
@@ -526,7 +493,6 @@ Singleton {
     return true;
   }
 
-  // Set source enabled/disabled state
   function setSourceEnabled(url, enabled) {
     var newSources = [];
     var found = false;
@@ -554,7 +520,6 @@ Singleton {
     return true;
   }
 
-  // Check if source is enabled
   function isSourceEnabled(url) {
     for (var i = 0; i < root.pluginSources.length; i++) {
       if (root.pluginSources[i].url === url) {
@@ -564,7 +529,6 @@ Singleton {
     return false;
   }
 
-  // Get enabled sources only
   function getEnabledSources() {
     var enabledSources = [];
     for (var i = 0; i < root.pluginSources.length; i++) {
@@ -575,17 +539,14 @@ Singleton {
     return enabledSources;
   }
 
-  // Get plugin directory path
   function getPluginDir(pluginId) {
     return root.pluginsDir + "/" + pluginId;
   }
 
-  // Get plugin settings file path
   function getPluginSettingsFile(pluginId) {
     return getPluginDir(pluginId) + "/settings.json";
   }
 
-  // Validate manifest
   function validateManifest(manifest) {
     if (!manifest) {
       return {
@@ -611,7 +572,6 @@ Singleton {
       };
     }
 
-    // Check version format (simple x.y.z check)
     var versionRegex = /^\d+\.\d+\.\d+$/;
     if (!versionRegex.test(manifest.version)) {
       return {

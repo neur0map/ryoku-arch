@@ -6,10 +6,9 @@ import qs.ambxst.config
 
 Item {
     id: root
-    property var sourceItem: null  // The icon item to tint
-    property bool fullTint: false  // If true, apply solid primary color instead of shader
+    property var sourceItem: null
+    property bool fullTint: false
 
-    // Subset of colors for optimization (consistent with TintedWallpaper.qml)
     readonly property var optimizedPalette: [
         "background", "overBackground", "shadow",
         "surface", "surfaceBright", "surfaceDim",
@@ -23,7 +22,6 @@ Item {
         "magenta", "lightMagenta"
     ]
 
-    // Palette generation for the shader
     Item {
         id: paletteSourceItem
         visible: true 
@@ -67,24 +65,21 @@ Item {
                 id: internalSource
                 sourceItem: root.sourceItem
                 hideSource: true
-                live: false  // Static content - use scheduleUpdate() when source changes
+                live: false
             }
             
-            // Update texture when sourceItem changes
             Connections {
                 target: root.sourceItem
                 function onSourceChanged() { internalSource.scheduleUpdate(); }
                 function onStatusChanged() { internalSource.scheduleUpdate(); }
             }
             
-            // Also update when this component becomes visible or sourceItem changes
             Connections {
                 target: root
                 function onSourceItemChanged() { internalSource.scheduleUpdate(); }
                 function onVisibleChanged() { if (root.visible) internalSource.scheduleUpdate(); }
             }
 
-            // Full tint fallback (solid color)
             MultiEffect {
                 visible: root.fullTint
                 anchors.fill: parent
@@ -94,7 +89,6 @@ Item {
                 colorizationColor: Styling.srItem("overprimary")
             }
 
-            // Shader-based tint
             ShaderEffect {
                 visible: !root.fullTint
                 anchors.fill: parent

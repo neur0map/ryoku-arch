@@ -20,7 +20,6 @@ Singleton {
   readonly property real fontSizeXXL: 18 * _fontScale
   readonly property real fontSizeXXXL: 24 * _fontScale
 
-  // Font weight
   readonly property int fontWeightRegular: 400
   readonly property int fontWeightMedium: 500
   readonly property int fontWeightSemiBold: 600
@@ -44,12 +43,10 @@ Singleton {
 
   readonly property int screenRadius: Math.round(20 * Settings.data.general.screenRadiusRatio)
 
-  // Border
   readonly property int borderS: Math.max(1, Math.round(1 * uiScaleRatio))
   readonly property int borderM: Math.max(1, Math.round(2 * uiScaleRatio))
   readonly property int borderL: Math.max(1, Math.round(3 * uiScaleRatio))
 
-  // Margins (for margins and spacing)
   readonly property int marginXXXS: Math.round(1 * uiScaleRatio)
   readonly property int marginXXS: Math.round(2 * uiScaleRatio)
   readonly property int marginXS: Math.round(4 * uiScaleRatio)
@@ -67,7 +64,6 @@ Singleton {
   readonly property int margin2L: marginL * 2
   readonly property int margin2XL: marginXL * 2
 
-  // Opacity
   readonly property real opacityNone: 0.0
   readonly property real opacityLight: 0.25
   readonly property real opacityMedium: 0.5
@@ -78,14 +74,12 @@ Singleton {
   readonly property real effectivePanelOpacity: PowerProfileService.noctaliaPerformanceMode ? 1.0 : Color.adaptiveOpacity(Settings.data.ui.panelBackgroundOpacity)
   readonly property real effectiveBarOpacity: PowerProfileService.noctaliaPerformanceMode ? 1.0 : Settings.data.bar.backgroundOpacity
 
-  // Shadows
   readonly property real shadowOpacity: 0.85
   readonly property real shadowBlur: 1.0
   readonly property int shadowBlurMax: 22
   readonly property real shadowHorizontalOffset: Settings.data.general.shadowOffsetX
   readonly property real shadowVerticalOffset: Settings.data.general.shadowOffsetY
 
-  // Animation duration (ms)
   // RYOKU: durations scaled by GlobalConfig.appearance.anim.durations.scale (0 = instant)
   readonly property int animationFaster: PowerProfileService.noctaliaPerformanceMode ? 0 : Math.round(75 * GlobalConfig.appearance.anim.durations.scale)
   readonly property int animationFast: PowerProfileService.noctaliaPerformanceMode ? 0 : Math.round(150 * GlobalConfig.appearance.anim.durations.scale)
@@ -93,12 +87,10 @@ Singleton {
   readonly property int animationSlow: PowerProfileService.noctaliaPerformanceMode ? 0 : Math.round(450 * GlobalConfig.appearance.anim.durations.scale)
   readonly property int animationSlowest: PowerProfileService.noctaliaPerformanceMode ? 0 : Math.round(750 * GlobalConfig.appearance.anim.durations.scale)
 
-  // Delays
   readonly property int tooltipDelay: 300
   readonly property int tooltipDelayLong: 1200
   readonly property int pillDelay: 500
 
-  // Widgets base size
   readonly property real baseWidgetSize: 33
   readonly property real sliderWidth: 200
 
@@ -106,7 +98,6 @@ Singleton {
   // settings panel's margins/borders/sizing — so the UI scale slider works here).
   readonly property real uiScaleRatio: GlobalConfig.appearance.deformScale
 
-  // Bar Height
   readonly property real barHeight: {
     let h;
     switch (Settings.data.bar.density) {
@@ -129,7 +120,6 @@ Singleton {
     return toOdd(h);
   }
 
-  // Capsule Height
   // Note: capsule must always be smaller than barHeight to account for border rendering
   // Qt Quick Rectangle borders are drawn centered on edges (half inside, half outside)
   readonly property real capsuleHeight: {
@@ -154,7 +144,6 @@ Singleton {
     return toOdd(h);
   }
 
-  // The base/default font size for all texts in the bar
   readonly property real _barBaseFontSize: Math.max(1, (Style.barHeight / Style.capsuleHeight) * Style.fontSizeXXS)
   readonly property real barFontSize: (Settings.data.bar.position === "left" || Settings.data.bar.position === "right") ? _barBaseFontSize * 0.9 * Settings.data.bar.fontScale : _barBaseFontSize * Settings.data.bar.fontScale
 
@@ -180,7 +169,6 @@ Singleton {
     return Math.floor(n / 2) * 2;
   }
 
-  // Get bar height for a specific density and orientation
   function getBarHeightForDensity(density, isVertical) {
     let h;
     switch (density) {
@@ -203,7 +191,6 @@ Singleton {
     return toOdd(h);
   }
 
-  // Get capsule height for a specific density and bar height
   function getCapsuleHeightForDensity(density, barHeight) {
     let h;
     switch (density) {
@@ -226,13 +213,11 @@ Singleton {
     return toOdd(h);
   }
 
-  // Get bar font size for a specific bar height, capsule height, and orientation
   function getBarFontSizeForDensity(barHeight, capsuleHeight, isVertical) {
     const baseFontSize = Math.max(1, (barHeight / capsuleHeight) * Style.fontSizeXXS);
     return isVertical ? baseFontSize * 0.9 * Settings.data.bar.fontScale : baseFontSize * Settings.data.bar.fontScale;
   }
 
-  // Convenience functions for per-screen bar sizing
   function getBarHeightForScreen(screenName) {
     var density = Settings.getBarDensityForScreen(screenName);
     var position = Settings.getBarPositionForScreen(screenName);

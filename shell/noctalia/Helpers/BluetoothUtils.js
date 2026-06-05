@@ -1,6 +1,5 @@
 .pragma library
 
-// Address helpers
 var macFromDevice = (dev) => {
   if (!dev) return "";
   if (dev.address && dev.address.length > 0) return dev.address;
@@ -30,7 +29,6 @@ var dedupeDevices = (list) => {
   return out;
 };
 
-// RSSI parsing
 var parseRssiOutput = (text) => {
   try {
     text = text || "";
@@ -58,7 +56,6 @@ var dbmToPercent = (dbm) => {
   return Math.max(0, Math.min(100, pct));
 };
 
-// Signal helpers
 var signalPercent = (device, cache, _version) => {
   if (!device) return null;
   try {
@@ -83,7 +80,6 @@ var signalIcon = (p) => {
   return "antenna-bars-1";
 };
 
-// Icon mapping
 var deviceIcon = (name, icon) => {
   var s1 = String(name || "").toLowerCase();
   var s2 = String(icon || "").toLowerCase();
@@ -118,7 +114,6 @@ var deviceIcon = (name, icon) => {
   return "bt-device-generic";
 };
 
-// Battery percent helper
 var batteryPercent = (device) => {
   if (!device || !device.batteryAvailable || device.battery === undefined) return null;
   var val = Math.round(Number(device.battery) * 100);

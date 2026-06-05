@@ -3,19 +3,15 @@ pragma Singleton
 import QtQuick
 
 QtObject {
-    // Icon font
     readonly property string font: "Phosphor-Bold"
 
-    // Overview button
     readonly property string overview: ""
 
-    // Layouts
     readonly property string layout: ""
     readonly property string dwindle: ""
     readonly property string master: ""
     readonly property string scrolling: ""
 
-    // Powermenu
     readonly property string lock: ""
     readonly property string suspend: ""
     readonly property string logout: ""
@@ -23,7 +19,6 @@ QtObject {
     readonly property string shutdown: ""
     readonly property string hibernate: ""
 
-    // Caret
     readonly property string caretLeft: ""
     readonly property string caretRight: ""
     readonly property string caretUp: ""
@@ -39,7 +34,6 @@ QtObject {
     readonly property string caretLineUp: ""
     readonly property string caretLineDown: ""
 
-    // Dashboard
     readonly property string widgets: ""
     readonly property string kanban: ""
     readonly property string wallpapers: ""
@@ -72,7 +66,6 @@ QtObject {
     readonly property string robot: ""
     readonly property string minusCircle: ""
 
-    // Wi-Fi
     readonly property string wifiOff: ""
     readonly property string wifiNone: ""
     readonly property string wifiLow: ""
@@ -80,7 +73,6 @@ QtObject {
     readonly property string wifiHigh: ""
     readonly property string wifiX: ""
 
-    // Bluetooth
     readonly property string bluetooth: ""
     readonly property string bluetoothConnected: ""
     readonly property string bluetoothOff: ""
@@ -91,7 +83,6 @@ QtObject {
     readonly property string caffeine: ""
     readonly property string gameMode: ""
 
-    // Toolbox
     readonly property string toolbox: ""
     readonly property string regionScreenshot: ""
     readonly property string windowScreenshot: ""
@@ -101,13 +92,11 @@ QtObject {
     readonly property string recordScreen: ""
     readonly property string recordings: ""
 
-    // Notifications
     readonly property string bell: ""
     readonly property string bellRinging: ""
     readonly property string bellSlash: ""
     readonly property string bellZ: ""
 
-    // Player
     readonly property string play: ""
     readonly property string pause: ""
     readonly property string stop: ""
@@ -124,12 +113,10 @@ QtObject {
     readonly property string chromium: "<font face='Symbols Nerd Font Mono'></font>"
     readonly property string telegram: "<font face='Symbols Nerd Font Mono'></font>"
 
-    // Clock
     readonly property string clock: ""
     readonly property string alarm: ""
     readonly property string timer: ""
 
-    // Volume
     readonly property string speakerSlash: ""
     readonly property string speakerX: ""
     readonly property string speakerNone: ""
@@ -139,17 +126,14 @@ QtObject {
     readonly property string mic: ""
     readonly property string micSlash: ""
 
-    // Battery
     readonly property string lightning: ""
     readonly property string plug: ""
 
-    // Power-profiles
     readonly property string powerSave: ""
     readonly property string power: ""
     readonly property string balanced: ""
     readonly property string performance: ""
 
-    // Keyboard
     readonly property string keyboard: ""
     readonly property string backspace: ""
     readonly property string enter: ""
@@ -159,7 +143,6 @@ QtObject {
     readonly property string arrowLeft: ""
     readonly property string arrowRight: ""
 
-    // Misc
     readonly property string accept: ""
     readonly property string cancel: ""
     readonly property string plus: ""
@@ -253,7 +236,6 @@ QtObject {
     readonly property string magicWand: ""
     readonly property string google: ""
 
-    // Aliases for missing icons
     readonly property string palette: paintBrush
     readonly property string cornersOut: arrowsOut
     readonly property string drop: sparkle

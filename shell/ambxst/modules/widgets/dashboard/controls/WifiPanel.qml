@@ -28,7 +28,6 @@ Item {
         onTriggered: NetworkService.rescanWifi()
     }
 
-    // Network list - fills entire width for scroll/drag
     ListView {
         id: networkList
         anchors.fill: parent
@@ -102,7 +101,6 @@ Item {
             }
         }
 
-        // Empty state
         Text {
             anchors.centerIn: parent
             visible: networkList.count === 0 && !NetworkService.wifiScanning

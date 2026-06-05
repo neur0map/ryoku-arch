@@ -26,13 +26,12 @@ Item {
       anchors.fill: parent
       preferredRendererType: Shape.CurveRenderer
       asynchronous: true
-      enabled: false // Disable mouse input
+      enabled: false
       visible: cornersPath.cornerRadius > 0 && width > 0 && height > 0
 
       ShapePath {
         id: cornersPath
 
-        // Corner configuration
         readonly property color cornerColor: Settings.data.general.forceBlackScreenCorners ? "black" : Color.mSurface
         readonly property real cornerRadius: Style.screenRadius
         readonly property real cornerSize: Style.screenRadius
@@ -43,14 +42,12 @@ Item {
         readonly property real leftMargin: 0
         readonly property real rightMargin: 0
 
-        // Screen dimensions
         readonly property real screenWidth: cornersShape.width
         readonly property real screenHeight: cornersShape.height
 
         // Only show screen corners if enabled and appropriate conditions are met
         readonly property bool shouldShow: Settings.data.general.showScreenCorners
 
-        // ShapePath configuration
         strokeWidth: -1 // No stroke, fill only
         fillColor: shouldShow ? cornerColor : "transparent"
 
@@ -62,13 +59,9 @@ Item {
           }
         }
 
-        // ========== PATH DEFINITION ==========
-        // Draws 4 separate corner squares at screen edges
         // Each corner square has a concave arc on the inner diagonal
 
-        // ========== TOP-LEFT CORNER ==========
         // Arc is at the bottom-right of this square (inner diagonal)
-        // Start at top-left screen corner
         startX: leftMargin
         startY: topMargin
 
@@ -105,7 +98,6 @@ Item {
           relativeY: -cornersPath.cornerSize
         }
 
-        // ========== TOP-RIGHT CORNER ==========
         // Arc is at the bottom-left of this square (inner diagonal)
         PathMove {
           x: cornersPath.screenWidth - cornersPath.rightMargin - cornersPath.cornerSize
@@ -145,7 +137,6 @@ Item {
           relativeY: -(cornersPath.cornerSize - cornersPath.cornerRadius)
         }
 
-        // ========== BOTTOM-LEFT CORNER ==========
         // Arc is at the top-right of this square (inner diagonal)
         PathMove {
           x: cornersPath.leftMargin
@@ -185,7 +176,6 @@ Item {
           relativeY: -cornersPath.cornerSize
         }
 
-        // ========== BOTTOM-RIGHT CORNER ==========
         // Arc is at the top-left of this square (inner diagonal)
         // Start at bottom-right of square (different from other corners!)
         PathMove {

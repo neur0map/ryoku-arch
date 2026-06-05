@@ -49,7 +49,6 @@ Singleton {
   signal lockRequested
   signal suspendRequested
 
-  // -------------------------------------------------------
   function init() {
     Logger.i("IdleService", "Service started");
     _applyTimeouts();
@@ -85,7 +84,6 @@ Singleton {
     onTriggered: root.idleSeconds++
   }
 
-  // -------------------------------------------------------
   function cancelFade() {
     if (fadePending === "") {
       _queuedStages = [];
@@ -214,8 +212,6 @@ Singleton {
     }
   }
 
-  // -------------------------------------------------------
-  // Re-apply when settings change
   Connections {
     target: Settings
     function onSettingsLoaded() {
@@ -254,7 +250,6 @@ Singleton {
   }
 
   function _applyCustomMonitors() {
-    // Destroy all existing custom monitors
     for (var key in _customMonitors) {
       if (_customMonitors[key]) {
         _customMonitors[key].destroy();

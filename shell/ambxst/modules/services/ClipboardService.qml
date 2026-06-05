@@ -45,14 +45,12 @@ QtObject {
 
     signal listCompleted()
 
-    // Clipboard watcher using custom script that monitors changes
     property Process clipboardWatcher: Process {
         running: root._initialized && !SuspendManager.isSuspending
         command: [watchScriptPath, checkScriptPath, dbPath, insertScriptPath, binaryDataDir]
         
         stdout: StdioCollector {
             onStreamFinished: {
-                // When watcher outputs something, refresh the list
                 var lines = text.trim().split('\n');
                 for (var i = 0; i < lines.length; i++) {
                     if (lines[i] === "REFRESH_LIST") {
@@ -83,7 +81,6 @@ QtObject {
         }
     }
 
-    // Initialize database
     property Process initDbProcess: Process {
         running: false
         
@@ -108,7 +105,6 @@ QtObject {
         running: false
     }
 
-    // Single process to check and insert clipboard content (used for manual checks)
     property Process checkAndInsertProcess: Process {
         running: false
         
@@ -128,7 +124,6 @@ QtObject {
         }
     }
 
-    // List all items from database
     property Process listProcess: Process {
         running: false
         
@@ -153,14 +148,12 @@ QtObject {
                         var item = jsonArray[i];
                         var isFile = item.mime_type === "text/uri-list";
                         
-                        // For files, extract the filename from the URI for preview
                         var preview = item.preview;
                         if (isFile && item.full_content) {
                             var uriContent = item.full_content.trim();
                             if (uriContent.startsWith("file://")) {
-                                var filePath = uriContent.substring(7); // Remove "file://"
+                                var filePath = uriContent.substring(7);
                                 var fileName = filePath.split('/').pop();
-                                // Decode URL encoding (e.g., %20 -> space)
                                 fileName = root.decodeUriString(fileName);
                                 preview = "[File] " + fileName;
                             }
@@ -211,7 +204,6 @@ QtObject {
         }
     }
 
-    // Insert item into database - kept for backwards compatibility but deprecated
     property Process insertProcess: Process {
         property string itemHash: ""
         property string itemContent: ""
@@ -240,7 +232,6 @@ QtObject {
         }
     }
 
-    // Get full content of an item
     property Process getContentProcess: Process {
         property string itemId: ""
         running: false
@@ -260,7 +251,6 @@ QtObject {
         }
     }
 
-    // Delete item
     property Process deleteProcess: Process {
         property string itemId: ""
         running: false
@@ -271,7 +261,6 @@ QtObject {
             onStreamFinished: {
                 var deletedHash = text.trim();
                 if (deletedHash.length > 0) {
-                    // Check if current clipboard content matches the deleted item
                     clearClipboardIfMatches.deletedHash = deletedHash;
                     clearClipboardIfMatches.running = true;
                 }
@@ -295,7 +284,6 @@ QtObject {
         }
     }
     
-    // Clear system clipboard if it matches deleted item
     property Process clearClipboardIfMatches: Process {
         property string deletedHash: ""
         running: false
@@ -325,21 +313,17 @@ QtObject {
         }
     }
 
-    // Clear all items
     property Process clearProcess: Process {
         running: false
         
         onExited: function(code) {
             if (code === 0) {
-                // Refresh list to show only pinned items
                 Qt.callLater(root.list);
-                // Clean binary data directory (will only remove files not referenced by pinned items)
                 cleanBinaryDataDirProcess.running = true;
             }
         }
     }
     
-    // Toggle pin status
     property Process togglePinProcess: Process {
         property string itemId: ""
         running: false
@@ -361,7 +345,6 @@ QtObject {
         }
     }
     
-    // Set alias for item
     property Process setAliasProcess: Process {
         property string itemId: ""
         running: false
@@ -383,7 +366,6 @@ QtObject {
         }
     }
     
-    // Clean binary data directory - only remove orphaned files
     property Process cleanBinaryDataDirProcess: Process {
         running: false
         command: ["sh", "-c", 
@@ -395,7 +377,6 @@ QtObject {
         ]
     }
 
-    // Load image data
     property Process loadImageProcess: Process {
         property string itemId: ""
         property string mimeType: ""
@@ -415,7 +396,6 @@ QtObject {
         }
     }
     
-    // Link preview metadata fetcher
     property Process linkPreviewProcess: Process {
         property string requestUrl: ""
         property string requestItemId: ""
@@ -432,7 +412,6 @@ QtObject {
                     // by a subsequent request before this response arrived
                     var responseUrl = metadata.request_url || metadata.url || linkPreviewProcess.requestUrl;
                     
-                    // Cache the result if successful, using the URL from the response
                     if (!metadata.error && responseUrl) {
                         root.linkPreviewCache[responseUrl] = metadata;
                     }
@@ -463,12 +442,10 @@ QtObject {
     signal fullContentRetrieved(string itemId, string content)
     signal linkPreviewFetched(string url, var metadata, string itemId)
     
-    // Function to decode URL-encoded strings
     function decodeUriString(str) {
         try {
             return decodeURIComponent(str);
         } catch (e) {
-            // If decoding fails, return original string
             return str;
         }
     }
@@ -491,15 +468,12 @@ QtObject {
     }
 
     function getImageHash(mimeType) {
-        // Deprecated - now handled by clipboard_check.sh
     }
 
     function insertTextItemFromFile(hash, tmpFile) {
-        // Deprecated - now handled by clipboard_check.sh
     }
     
     function insertFileItemFromFile(hash, tmpFile) {
-        // Deprecated - now handled by clipboard_check.sh
     }
     
     property Process writeTmpProcess: Process {
@@ -511,13 +485,11 @@ QtObject {
             waitForEnd: true
             
             onStreamFinished: {
-                // Deprecated
             }
         }
     }
 
     function insertImageItem(hash, mimeType) {
-        // Deprecated - now handled by clipboard_check.sh
     }
 
     function list() {
@@ -543,7 +515,6 @@ QtObject {
         _operationInProgress = true;
         deleteProcess.itemId = id;
         
-        // First, get the item's hash to check if it's currently in clipboard
         deleteProcess.command = ["sh", "-c", 
             "HASH=$(sqlite3 '" + dbPath + "' '.timeout 5000' 'SELECT content_hash FROM clipboard_items WHERE id = " + id + ";'); " +
             "sqlite3 '" + dbPath + "' '.timeout 5000' 'DELETE FROM clipboard_items WHERE id = " + id + ";'; " +
@@ -599,7 +570,6 @@ QtObject {
         if (!_initialized) return;
         _operationInProgress = true;
         setAliasProcess.itemId = id;
-        // Escape single quotes in alias by replacing ' with ''
         var escapedAlias = alias.replace(/'/g, "''");
         if (alias.trim() === "") {
             setAliasProcess.command = ["sh", "-c", "sqlite3 '" + dbPath + "' '.timeout 5000' 'UPDATE clipboard_items SET alias = NULL WHERE id = " + id + ";'"];
@@ -635,7 +605,6 @@ QtObject {
     function fetchLinkPreview(url, itemId) {
         if (!_initialized) return;
         
-        // Check cache first
         if (linkPreviewCache[url]) {
             Qt.callLater(function() {
                 root.linkPreviewFetched(url, linkPreviewCache[url], itemId);
@@ -649,11 +618,9 @@ QtObject {
         linkPreviewProcess.running = true;
     }
     
-    // Reorder item by moving it to a new index
     function reorderItem(itemId, newIndex) {
         if (!_initialized) return;
         
-        // Get current item info
         var item = null;
         for (var i = 0; i < items.length; i++) {
             if (items[i].id === itemId) {
@@ -666,10 +633,8 @@ QtObject {
         
         var isPinned = item.pinned ? 1 : 0;
         
-        // Validate newIndex is non-negative
         if (newIndex < 0) newIndex = 0;
         
-        // Execute reordering with conflict resolution
         reorderProcess.command = ["sh", "-c", 
             "sqlite3 '" + dbPath + "' <<'EOSQL'\n" +
             ".timeout 5000\n" +
@@ -690,7 +655,6 @@ QtObject {
         reorderProcess.running = true;
     }
     
-    // Move item up (decrease index)
     function moveItemUp(itemId) {
         var item = null;
         var currentIdx = -1;
@@ -704,10 +668,8 @@ QtObject {
         
         if (!item || currentIdx < 0) return;
         
-        // Can't move up if first item
         if (currentIdx === 0) return;
         
-        // Check if previous item has same pinned status
         var prevItem = items[currentIdx - 1];
         if (prevItem.pinned !== item.pinned) return;
         
@@ -716,14 +678,11 @@ QtObject {
         items[currentIdx] = items[currentIdx - 1];
         items[currentIdx - 1] = temp;
         
-        // Notify UI to update immediately
         listCompleted();
         
-        // Swap indices with previous item
         swapItems(itemId, prevItem.id);
     }
     
-    // Move item down (increase index)
     function moveItemDown(itemId) {
         var item = null;
         var currentIdx = -1;
@@ -737,10 +696,8 @@ QtObject {
         
         if (!item || currentIdx < 0) return;
         
-        // Can't move down if last item
         if (currentIdx >= items.length - 1) return;
         
-        // Check if next item has same pinned status
         var nextItem = items[currentIdx + 1];
         if (nextItem.pinned !== item.pinned) return;
         
@@ -749,14 +706,11 @@ QtObject {
         items[currentIdx] = items[currentIdx + 1];
         items[currentIdx + 1] = temp;
         
-        // Notify UI to update immediately
         listCompleted();
         
-        // Swap indices with next item
         swapItems(itemId, nextItem.id);
     }
     
-    // Swap display indices between two items
     function swapItems(itemId1, itemId2) {
         if (!_initialized) return;
         
@@ -823,7 +777,6 @@ QtObject {
         }
     }
     
-    // Emoji paste process - persists even when dashboard closes
     property Process emojiTypeProcess: Process {
         running: false
         
@@ -846,21 +799,17 @@ QtObject {
         interval: 250
         repeat: false
         onTriggered: {
-            // Simulate Ctrl+V: press Ctrl, press V, release V, release Ctrl
             emojiTypeProcess.command = ["wtype", "-M", "ctrl", "-P", "v", "-p", "v", "-m", "ctrl"];
             emojiTypeProcess.running = true;
         }
     }
     
-    // Function to copy and paste emoji via Ctrl+V
     function copyAndTypeEmoji(emojiText) {
-        // Copy to clipboard
         var copyCmd = ["bash", "-c", "echo -n '" + emojiText.replace(/'/g, "'\\''") + "' | wl-copy"];
         var copyProc = Qt.createQmlObject('import Quickshell.Io; Process {}', root);
         copyProc.command = copyCmd;
         copyProc.running = true;
         
-        // Schedule Ctrl+V paste
         emojiTypeTimer.start();
     }
 

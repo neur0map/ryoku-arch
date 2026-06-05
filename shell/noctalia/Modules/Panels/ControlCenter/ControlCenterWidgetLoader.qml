@@ -28,7 +28,7 @@ Item {
     var comp = ControlCenterWidgetRegistry.getWidget(widgetId);
     if (!comp)
       return;
-    var pluginId = widgetId.substring(7); // Remove "plugin:" prefix
+    var pluginId = widgetId.substring(7);
     var api = PluginService.getPluginAPI(pluginId);
     loader.setSource(comp.url, api ? {
                                        "pluginApi": api
@@ -56,14 +56,12 @@ Item {
       if (!item)
         return;
 
-      // Apply properties to loaded widget
       for (var prop in widgetProps) {
         if (item.hasOwnProperty(prop)) {
           item[prop] = widgetProps[prop];
         }
       }
 
-      // Set screen property
       if (item.hasOwnProperty("screen")) {
         item.screen = widgetScreen;
       }
@@ -75,12 +73,10 @@ Item {
     }
 
     Component.onDestruction: {
-      // Explicitly clear references
       widgetProps = null;
     }
   }
 
-  // Error handling
   Component.onCompleted: {
     if (!ControlCenterWidgetRegistry.hasWidget(widgetId)) {
       Logger.w("ControlCenterWidgetLoader", "Widget not found in registry:", widgetId);

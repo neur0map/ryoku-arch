@@ -17,7 +17,6 @@ Singleton {
     return monitors.find(m => m.modelData === screen);
   }
 
-  // Signal emitted when a specific monitor's brightness changes, includes monitor context
   signal monitorBrightnessChanged(var monitor, real newBrightness)
 
   function getAvailableMethods(): list<string> {
@@ -168,11 +167,9 @@ Singleton {
     target: Settings.data.brightness
     function onEnableDdcSupportChanged() {
       if (Settings.data.brightness.enableDdcSupport) {
-        // Re-detect DDC monitors when enabled
         ddcMonitors = [];
         ddcProc.running = true;
       } else {
-        // Clear DDC monitors when disabled
         ddcMonitors = [];
       }
     }
@@ -268,13 +265,11 @@ Singleton {
     readonly property bool isAppleDisplay: root.appleDisplayPresent && modelData.model.startsWith("StudioDisplay")
     readonly property string method: isAppleDisplay ? "apple" : (isDdc ? "ddcutil" : "internal")
 
-    // Check if brightness control is available for this monitor
     readonly property bool brightnessControlAvailable: {
       if (isAppleDisplay)
       return true;
       if (isDdc)
       return true;
-      // For internal displays, check if we have a brightness path
       return brightnessPath !== "";
     }
 
@@ -283,7 +278,6 @@ Singleton {
     property real queuedBrightness: NaN
     property bool commandRunning: false
 
-    // For internal displays - store the backlight device path
     property string backlightDevice: ""
     property string brightnessPath: ""
     property string maxBrightnessPath: ""
@@ -291,10 +285,8 @@ Singleton {
     property bool ignoreNextChange: false
     property bool initInProgress: false
 
-    // Signal for brightness changes
     signal brightnessUpdated(real newBrightness)
 
-    // Execute a system command to get the current brightness value directly
     readonly property Process refreshProc: Process {
       stdout: StdioCollector {
         onStreamFinished: {
@@ -334,7 +326,6 @@ Singleton {
             }
           }
 
-          // Update if we got a valid brightness value
           if (!isNaN(newBrightness) && (Math.abs(newBrightness - monitor.brightness) > 0.001 || monitor.brightness === 0)) {
             monitor.brightness = newBrightness;
             monitor.brightnessUpdated(monitor.brightness);
@@ -349,7 +340,6 @@ Singleton {
       stdout: StdioCollector {}
       onExited: (exitCode, exitStatus) => {
         monitor.commandRunning = false;
-        // If there's a queued brightness change, process it now
         if (!isNaN(monitor.queuedBrightness)) {
           Qt.callLater(() => {
                          monitor.setBrightness(monitor.queuedBrightness);
@@ -359,18 +349,14 @@ Singleton {
       }
     }
 
-    // Function to actively refresh the brightness from system
     function refreshBrightnessFromSystem() {
       if (!monitor.isDdc && !monitor.isAppleDisplay) {
-        // For internal displays, query the system directly
         refreshProc.command = ["sh", "-c", "cat " + monitor.brightnessPath + " && " + "cat " + monitor.maxBrightnessPath];
         refreshProc.running = true;
       } else if (monitor.isDdc && monitor.busNum !== "") {
-        // For DDC displays, get the current value
         refreshProc.command = ["ddcutil", "-b", monitor.busNum, "--enable-dynamic-sleep", "--sleep-multiplier=0.05", "getvcp", "10", "--brief"];
         refreshProc.running = true;
       } else if (monitor.isAppleDisplay) {
-        // For Apple displays, get the current value
         refreshProc.command = ["asdbctl", "get"];
         refreshProc.running = true;
       }
@@ -379,19 +365,15 @@ Singleton {
     // FileView to watch for external brightness changes (internal displays only)
     readonly property FileView brightnessWatcher: FileView {
       id: brightnessWatcher
-      // Only set path for internal displays with a valid brightness path
       path: (!monitor.isDdc && !monitor.isAppleDisplay && monitor.brightnessPath !== "") ? monitor.brightnessPath : ""
       watchChanges: path !== ""
       onFileChanged: {
-        // When a file change is detected, actively refresh from system
-        // to ensure we get the most up-to-date value
         Qt.callLater(() => {
                        monitor.refreshBrightnessFromSystem();
                      });
       }
     }
 
-    // Initialize brightness
     readonly property Process initProc: Process {
       stdout: StdioCollector {
         onStreamFinished: {
@@ -492,13 +474,11 @@ Singleton {
         return;
       }
 
-      // If a command is already running, queue this value
       if (monitor.commandRunning) {
         monitor.queuedBrightness = value;
         return;
       }
 
-      // Execute the brightness change command
       if (isAppleDisplay) {
         monitor.commandRunning = true;
         monitor.ignoreNextChange = true;

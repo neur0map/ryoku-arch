@@ -18,7 +18,6 @@ NBox {
   // Test mode: set to "clear_day", "clear_night", "rain", "snow", "cloud" or "fog"
   property string testEffects: ""
 
-  // Weather condition detection
   readonly property int currentWeatherCode: weatherReady ? LocationService.data.weather.current_weather.weathercode : 0
   readonly property bool isDayTime: weatherReady ? LocationService.data.weather.current_weather.is_day : true
   readonly property bool isRaining: testEffects === "rain" || (testEffects === "" && ((currentWeatherCode >= 51 && currentWeatherCode <= 67) || (currentWeatherCode >= 80 && currentWeatherCode <= 82)))
@@ -31,7 +30,6 @@ NBox {
   visible: Settings.data.location.weatherEnabled
   implicitHeight: Math.max(100 * Style.uiScaleRatio, content.implicitHeight + Style.margin2XL)
 
-  // Weather effect layer (rain/snow)
   Loader {
     id: weatherEffectLoader
     anchors.fill: parent

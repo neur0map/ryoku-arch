@@ -9,7 +9,6 @@ import qs.ambxst.config
 Singleton {
     id: root
 
-    // General Idle Settings
     property string lockCmd: Config.system.idle.general.lock_cmd ?? "ambxst lock"
     property string beforeSleepCmd: Config.system.idle.general.before_sleep_cmd ?? "loginctl lock-session"
     property string afterSleepCmd: Config.system.idle.general.after_sleep_cmd ?? "ambxst screen on"
@@ -68,14 +67,12 @@ Singleton {
         onTriggered: sleepMonitorProc.running = true
     }
 
-    // Master Idle Logic
     property int elapsedIdleTime: 0
-    property var triggeredListeners: [] // Keeps track of indices that have fired
+    property var triggeredListeners: []
 
-    // Master Monitor: Detects "absence of activity" almost immediately
     property var masterMonitor: IdleMonitor {
         id: masterMonitor
-        timeout: 1 // 1 second threshold to consider the session "idle"
+        timeout: 1
         respectInhibitors: true
 
         onIsIdleChanged: {
@@ -90,7 +87,7 @@ Singleton {
 
     property var idleTimer: Timer {
         id: idleTimer
-        interval: 1000 // 1 second tick
+        interval: 1000
         repeat: true
         onTriggered: {
             root.elapsedIdleTime += 1;
@@ -101,7 +98,6 @@ Singleton {
     function executeCommand(cmd) {
         if (!cmd) return;
         
-        // Escape backslashes and quotes for the QML string
         let escapedCmd = cmd.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
         
         try {
@@ -124,7 +120,6 @@ Singleton {
             let listener = listeners[i];
             let tVal = listener.timeout || 60;
 
-            // If time matches and hasn't been triggered yet
             if (root.elapsedIdleTime >= tVal && !root.triggeredListeners.includes(i)) {
                 if (listener.onTimeout) {
                     console.log("Idle timer " + tVal + "s reached: " + listener.onTimeout);
@@ -138,8 +133,6 @@ Singleton {
     function resetIdleState() {
         let listeners = Config.system.idle.listeners;
 
-        // Execute resume commands for all triggered listeners
-        // We iterate backwards to undo latest states first (optional preference)
         for (let i = root.triggeredListeners.length - 1; i >= 0; i--) {
             let idx = root.triggeredListeners[i];
             let listener = listeners[idx];
@@ -150,7 +143,6 @@ Singleton {
             }
         }
 
-        // Reset counters
         root.elapsedIdleTime = 0;
         root.triggeredListeners = [];
     }

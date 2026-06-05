@@ -239,7 +239,6 @@ Item {
     customIconColor: iconColor
     customTextColor: textColor
 
-    // Helper function to build tooltip content
     function _buildTooltipContent() {
       var lines = [];
 
@@ -311,7 +310,6 @@ Item {
     onWheel: delta => root.wheeled(delta)
   }
 
-  // Internal state for dynamic text
   property string _dynamicText: ""
   property string _dynamicIcon: ""
   property string _dynamicTooltip: ""
@@ -357,7 +355,6 @@ Item {
     onTriggered: root.runTextCommand()
   }
 
-  // Timer for scrolling text display
   Timer {
     id: scrollTimer
     interval: 300
@@ -367,15 +364,13 @@ Item {
       if (_scrollState.needsScrolling && _scrollState.originalText.length > currentMaxTextLength) {
         // Traditional marquee with pause at beginning and end
         if (_scrollState.phase === 0) {
-          // Static at beginning
           _dynamicText = _scrollState.originalText.substring(0, Math.min(currentMaxTextLength, _scrollState.originalText.length));
           _scrollState.phaseCounter++;
           if (_scrollState.phaseCounter >= _staticDuration) {
             _scrollState.phaseCounter = 0;
-            _scrollState.phase = 1;  // Move to scrolling
+            _scrollState.phase = 1;
           }
         } else if (_scrollState.phase === 1) {
-          // Scrolling
           _scrollState.offset++;
           var start = _scrollState.offset;
           var end = start + currentMaxTextLength;
@@ -385,14 +380,12 @@ Item {
             var textEnd = _scrollState.originalText.length;
             var textStart = Math.max(0, textEnd - currentMaxTextLength);
             _dynamicText = _scrollState.originalText.substring(textStart, textEnd);
-            _scrollState.phase = 2;  // Move to static end phase
+            _scrollState.phase = 2;
             _scrollState.phaseCounter = 0;
           } else {
             _dynamicText = _scrollState.originalText.substring(start, end);
           }
         } else if (_scrollState.phase === 2) {
-          // Static at end
-          // Ensure end text is displayed correctly
           var textEnd = _scrollState.originalText.length;
           var textStart = Math.max(0, textEnd - currentMaxTextLength);
           _dynamicText = _scrollState.originalText.substring(textStart, textEnd);
@@ -545,7 +538,6 @@ Item {
     }
 
     if (textCollapse.startsWith("/") && textCollapse.endsWith("/") && textCollapse.length > 1) {
-      // Treat as regex
       var pattern = textCollapse.substring(1, textCollapse.length - 1);
       try {
         var regex = new RegExp(pattern);
@@ -555,7 +547,6 @@ Item {
         return (textCollapse === text); // Fallback to exact match on invalid regex
       }
     } else {
-      // Treat as plain string
       return (textCollapse === text);
     }
   }

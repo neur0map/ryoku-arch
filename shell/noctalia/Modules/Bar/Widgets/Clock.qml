@@ -47,11 +47,9 @@ Item {
 
   readonly property color textColor: Color.resolveColorKey(clockColor)
 
-  // Content dimensions for implicit sizing
   readonly property real contentWidth: isBarVertical ? capsuleHeight : Math.round((isBarVertical ? verticalLoader.implicitWidth : horizontalLoader.implicitWidth) + Style.margin2M)
   readonly property real contentHeight: isBarVertical ? Math.round(verticalLoader.implicitHeight + Style.margin2S) : capsuleHeight
 
-  // Size: use implicit width/height
   // BarWidgetLoader sets explicit width/height to extend click area
   implicitWidth: contentWidth
   implicitHeight: contentHeight
@@ -72,7 +70,6 @@ Item {
       id: clockContainer
       anchors.centerIn: parent
 
-      // Horizontal
       Loader {
         id: horizontalLoader
         active: !isBarVertical
@@ -113,11 +110,10 @@ Item {
         }
       }
 
-      // Vertical
       Loader {
         id: verticalLoader
         active: isBarVertical
-        anchors.centerIn: parent // Now this works without layout conflicts
+        anchors.centerIn: parent
         sourceComponent: ColumnLayout {
           anchors.centerIn: parent
           spacing: -2
@@ -159,7 +155,6 @@ Item {
     ]
 
     onTriggered: action => {
-                   // Close the context menu
                    contextMenu.close();
                    PanelService.closeContextMenu(screen);
 
@@ -171,13 +166,11 @@ Item {
                  }
   }
 
-  // Build tooltip text with formatted time/date
   function buildTooltipText() {
     if (tooltipFormat && tooltipFormat.trim() !== "") {
       return I18n.locale.toString(now, tooltipFormat.trim());
     }
-    // Fallback to default if no format is set
-    return I18n.tr("common.calendar"); // Defaults to "Calendar"
+    return I18n.tr("common.calendar");
   }
 
   MouseArea {

@@ -8,19 +8,16 @@ import qs.noctalia.Services.UI
 Singleton {
   id: root
 
-  // Track if the settings window is open
   property bool isWindowOpen: false
 
   // Reference to the window (set by SettingsPanelWindow)
   property var settingsWindow: null
 
-  // Requested tab when opening
   property int requestedTab: 0
 
   // Requested subtab when opening (-1 means no specific subtab)
   property int requestedSubTab: -1
 
-  // Requested entry for search navigation
   property var requestedEntry: null
 
   signal windowOpened
@@ -129,7 +126,6 @@ Singleton {
     }
   }
 
-  // Unified close for both modes
   function close(screen) {
     if (Settings.data.ui.settingsPanelMode === "window") {
       closeWindow();

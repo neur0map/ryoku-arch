@@ -8,7 +8,6 @@ import qs.noctalia.Services.UI
 Rectangle {
   id: root
 
-  // Public properties
   property real baseSize: Style.baseWidgetSize
   property bool applyUiScale: true
   property string icon
@@ -17,11 +16,9 @@ Rectangle {
   property bool allowClickWhenDisabled: false
   property bool hot: false
 
-  // Internal properties
   property bool hovering: false
   property bool pressed: false
 
-  // Color properties
   property color colorBg: Color.smartAlpha(Color.mSurfaceVariant)
   property color colorFg: Color.mPrimary
   property color colorBgHover: Color.mHover
@@ -29,22 +26,18 @@ Rectangle {
   property color colorBorder: Color.mOutline
   property color colorBorderHover: Color.mOutline
 
-  // Hot state colors
   property color colorBgHot: Color.mPrimary
   property color colorFgHot: Color.mOnPrimary
 
-  // Signals
   signal entered
   signal exited
   signal clicked
   signal rightClicked
   signal middleClicked
 
-  // Dimensions
   implicitWidth: applyUiScale ? Math.round(baseSize * Style.uiScaleRatio) : Math.round(baseSize)
   implicitHeight: applyUiScale ? Math.round(baseSize * Style.uiScaleRatio) : Math.round(baseSize)
 
-  // Appearance
   opacity: enabled ? 1.0 : 0.6
   color: {
     if (root.enabled && root.hovering || pressed) {
@@ -68,7 +61,6 @@ Rectangle {
     }
   }
 
-  // Icon
   NIcon {
     icon: root.icon
     pointSize: Math.max(1, Math.round(root.width * 0.48))
@@ -82,7 +74,6 @@ Rectangle {
       }
       return colorFg;
     }
-    // Center horizontally
     x: (root.width - width) / 2
     // Center vertically accounting for font metrics
     y: (root.height - height) / 2 + (height - contentHeight) / 2

@@ -31,7 +31,6 @@ SmartPanel {
       launcherCoreRef.setSearchText(text);
   }
 
-  // Preview panel support
   readonly property bool previewActive: {
     if (!launcherCoreRef)
       return false;
@@ -44,7 +43,6 @@ SmartPanel {
   }
   readonly property int previewPanelWidth: Math.round(400 * Style.uiScaleRatio)
 
-  // Panel sizing
   readonly property int listPanelWidth: Math.round(500 * Style.uiScaleRatio)
   readonly property int totalBaseWidth: listPanelWidth + Style.margin2L
 
@@ -53,7 +51,6 @@ SmartPanel {
   preferredWidthRatio: 0.25
   preferredHeightRatio: 0.5
 
-  // Positioning
   readonly property string screenBarPosition: Settings.getBarPositionForScreen(screen?.name)
   readonly property string panelPosition: {
     if (Settings.data.appLauncher.position === "follow_bar") {
@@ -101,7 +98,7 @@ SmartPanel {
       visible: root.previewActive
       width: root.previewPanelWidth
       height: Math.round(400 * Style.uiScaleRatio)
-      forceOpaque: true // no blur for now
+      forceOpaque: true
       x: root.panelAnchorRight ? -(root.previewPanelWidth + Style.marginM) : ui.width + Style.marginM
       y: {
         var view = launcherCore.resultsView;
@@ -158,7 +155,6 @@ SmartPanel {
       }
     }
 
-    // Core launcher (state, providers, UI)
     LauncherCore {
       id: launcherCore
       anchors.fill: parent
@@ -170,7 +166,6 @@ SmartPanel {
       onRequestCloseImmediately: Qt.callLater(root.closeImmediately)
     }
 
-    // Update preview when selection changes
     Connections {
       target: launcherCore
       function onSelectedIndexChanged() {

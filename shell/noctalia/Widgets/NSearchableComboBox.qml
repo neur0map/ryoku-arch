@@ -34,7 +34,6 @@ RowLayout {
       return "";
     var displayValue = "";
     if (defaultValue === "") {
-      // Try to find the display name for empty key in the model
       if (model && model.count > 0) {
         for (var i = 0; i < model.count; i++) {
           var item = model.get(i);
@@ -51,7 +50,6 @@ RowLayout {
         displayValue = I18n.tr("panels.indicator.system-default");
       }
     } else {
-      // Try to find the display name for the default key in the model
       if (model && model.count > 0) {
         for (var i = 0; i < model.count; i++) {
           var item = model.get(i);
@@ -72,7 +70,6 @@ RowLayout {
                    });
   }
 
-  // Filtered model for search results
   property ListModel filteredModel: ListModel {}
   property string searchText: ""
 
@@ -87,7 +84,6 @@ RowLayout {
     return -1;
   }
 
-  // The active model used for the popup list (source model or filtered results)
   readonly property var activeModel: isFiltered ? filteredModel : root.model
 
   function findIndexInActiveModel(key) {
@@ -101,11 +97,9 @@ RowLayout {
     return -1;
   }
 
-  // Whether we're using filtered results or the source model directly
   property bool isFiltered: false
 
   function filterModel() {
-    // Check if model exists and has items
     if (!root.model || root.model.count === undefined || root.model.count === 0) {
       filteredModel.clear();
       isFiltered = false;
@@ -120,7 +114,6 @@ RowLayout {
       return;
     }
 
-    // We have search text - need to filter
     isFiltered = true;
     filteredModel.clear();
 
@@ -137,12 +130,10 @@ RowLayout {
                                         "limit": 50
                                       });
 
-      // Add results in order of relevance
       for (var j = 0; j < fuzzyResults.length; j++) {
         filteredModel.append(fuzzyResults[j].obj);
       }
     } else {
-      // Fallback to simple search
       var searchLower = query.toLowerCase();
       for (var i = 0; i < items.length; i++) {
         var item = items[i];
@@ -208,7 +199,6 @@ RowLayout {
       verticalAlignment: Text.AlignVCenter
       elide: Text.ElideRight
 
-      // Look up current selection directly in source model by key
       readonly property int sourceIndex: root.findIndexByKey(root.currentKey)
       readonly property bool hasSelection: root.model && sourceIndex >= 0 && sourceIndex < root.model.count
 
@@ -232,7 +222,6 @@ RowLayout {
       contentItem: ColumnLayout {
         spacing: Style.marginS
 
-        // Search input
         NTextInput {
           id: searchInput
           inputIconName: "search"
@@ -289,7 +278,6 @@ RowLayout {
           id: listView
           Layout.fillWidth: true
           Layout.fillHeight: true
-          // Use activeModel (source model when not filtering, filtered results when searching)
           model: combo.popup.visible ? root.activeModel : null
           horizontalPolicy: ScrollBar.AlwaysOff
           verticalPolicy: ScrollBar.AsNeeded
@@ -342,7 +330,6 @@ RowLayout {
                   spacing: Style.marginXXS
                   Layout.alignment: Qt.AlignRight
 
-                  // Generic badge renderer
                   Repeater {
                     model: {
                       if (typeof badges === 'undefined' || badges === null)

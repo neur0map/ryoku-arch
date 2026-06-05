@@ -13,7 +13,6 @@ Singleton {
   property int weatherUpdateFrequency: 30 * 60
   property bool isFetchingWeather: false
 
-  // Talia weather
   readonly property int taliaMascotWeatherMonth: 3
   readonly property int taliaMascotWeatherDay: 1
 
@@ -26,7 +25,6 @@ Singleton {
 
   readonly property alias data: adapter
 
-  // True when the user has set a location name or enabled auto-locate
   readonly property bool locationConfigured: Settings.data.location.name !== "" || Settings.data.location.autoLocate
 
   // Stable UI properties - only updated when location is successfully geocoded
@@ -65,7 +63,6 @@ Singleton {
     }
   }
 
-  // Formatted coordinates for UI display
   readonly property string displayCoordinates: {
     if (!root.coordinatesReady || root.stableLatitude === "" || root.stableLongitude === "") {
       return "";
@@ -75,7 +72,6 @@ Singleton {
     return `${lat}, ${lon}`;
   }
 
-  // Auto-geolocate timer - periodically updates location via IP geolocation
   Timer {
     id: autoLocateTimer
     interval: 30 * 60 * 1000
@@ -124,7 +120,6 @@ Singleton {
     update();
   }
 
-  // Main update function - geocodes location if needed, then fetches weather if enabled
   function update() {
     updateLocation();
 
@@ -172,7 +167,6 @@ Singleton {
     }, errorCallback);
   }
 
-  // Fetch weather data if enabled and coordinates are available
   function updateWeatherData() {
     if (!Settings.data.location.weatherEnabled) {
       return;
@@ -194,7 +188,6 @@ Singleton {
     }
   }
 
-  // Query geocoding API to convert location name to coordinates
   function geocodeLocation(locationName, callback, errorCallback) {
     if (locationName === "") {
       isFetchingWeather = false;
@@ -226,7 +219,6 @@ Singleton {
     xhr.send();
   }
 
-  // Fetch weather data from Open-Meteo API
   function fetchWeatherData(latitude, longitude, errorCallback) {
     Logger.d("Location", "Fetching weather from api.open-meteo.com");
     var url = "https://api.open-meteo.com/v1/forecast?latitude=" + latitude + "&longitude=" + longitude + "&current_weather=true&current=relativehumidity_2m,surface_pressure,is_day&daily=temperature_2m_max,temperature_2m_min,weathercode,sunset,sunrise&timezone=auto";
@@ -238,7 +230,6 @@ Singleton {
             var weatherData = JSON.parse(xhr.responseText);
             //console.log(JSON.stringify(weatherData))
 
-            // Save core data
             data.weather = weatherData;
             data.weatherLastFetch = Time.timestamp;
 
@@ -261,7 +252,6 @@ Singleton {
     xhr.send();
   }
 
-  // Geolocate via IP address using the Noctalia API
   function geolocate(callback, errorCallback) {
     Logger.d("Location", "Geolocating via IP");
     var url = "https://api.noctalia.dev/geolocate";
@@ -288,7 +278,6 @@ Singleton {
     xhr.send();
   }
 
-  // Geolocate via IP and apply the result as the current location
   function geolocateAndApply() {
     if (isFetchingWeather) {
       Logger.w("Location", "Geolocate skipped, fetch already in progress");
@@ -318,13 +307,11 @@ Singleton {
     }, errorCallback);
   }
 
-  // --------------------------------
   function errorCallback(module, message) {
     Logger.w(module, message);
     isFetchingWeather = false;
   }
 
-  // --------------------------------
   function weatherSymbolFromCode(code) {
     var isDay = data.weather ? data.weather.current_weather.is_day : true;
     if (code === 0)
@@ -350,7 +337,6 @@ Singleton {
     return "weather-cloud";
   }
 
-  // --------------------------------
   function taliaWeatherImageFromCode(code) {
     var isDay = data.weather ? data.weather.current_weather.is_day : true;
     if (code >= 40 && code <= 49)
@@ -367,7 +353,6 @@ Singleton {
     return Quickshell.shellDir + "/noctalia" + "/Assets/Talia/TaliaBlank.png";
   }
 
-  // --------------------------------
   function weatherDescriptionFromCode(code) {
     if (code === 0)
       return "Clear sky";
@@ -390,7 +375,6 @@ Singleton {
     return "Unknown";
   }
 
-  // --------------------------------
   function celsiusToFahrenheit(celsius) {
     return 32 + celsius * 1.8;
   }

@@ -151,7 +151,7 @@ AbstractOverlayWidget {
         id: dragHandler
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         target: (root.draggable && !root.resizing) ? root : null
-        onActiveChanged: { // Handle drag release
+        onActiveChanged: {
             if (!active) {
                 root.resizing = false;
                 root.savePosition();
@@ -266,7 +266,6 @@ AbstractOverlayWidget {
             anchors.fill: parent
             spacing: 0
 
-            // Title bar
             Rectangle {
                 id: titleBar
                 opacity: GlobalStates.overlayOpen ? 1 : 0

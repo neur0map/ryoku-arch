@@ -20,10 +20,8 @@ Item {
     property real startRadius: radius
     property real endRadius: radius
 
-    // Popup visibility state
     property bool popupOpen: batteryPopup.isOpen
 
-    // Function to interpolate color between green and red based on battery percentage
     function getBatteryColor() {
         if (!Battery.available)
             return Colors.overBackground;
@@ -48,7 +46,6 @@ Item {
         onHoveredChanged: root.isHovered = hovered
     }
 
-    // Main button with circular progress
     StyledRect {
         id: buttonBg
         variant: root.popupOpen ? "primary" : "bg"
@@ -60,7 +57,6 @@ Item {
         bottomLeftRadius: root.vertical ? root.endRadius : root.startRadius
         bottomRightRadius: root.vertical ? root.endRadius : root.endRadius
 
-        // Background highlight on hover
         Rectangle {
             anchors.fill: parent
             color: Styling.srItem("overprimary")
@@ -75,7 +71,6 @@ Item {
             }
         }
 
-        // Circular progress indicator (only if battery available)
         Item {
             id: progressCanvas
             anchors.centerIn: parent
@@ -108,7 +103,6 @@ Item {
                     let baseStartAngle = (Math.PI / 2) + (progressCanvas.gapAngle * Math.PI / 180);
                     let progressAngleRad = progressCanvas.angle * Math.PI / 180;
 
-                    // Draw background track (remaining part)
                     let totalAngleRad = (360 - 2 * progressCanvas.gapAngle) * Math.PI / 180;
 
                     ctx.strokeStyle = Colors.outlineVariant;
@@ -117,7 +111,6 @@ Item {
                     ctx.arc(centerX, centerY, radius, baseStartAngle + progressAngleRad, baseStartAngle + totalAngleRad, false);
                     ctx.stroke();
 
-                    // Draw progress
                     if (progressCanvas.angle > 0) {
                         ctx.strokeStyle = root.getBatteryColor();
                         ctx.lineWidth = lineWidth;
@@ -151,7 +144,6 @@ Item {
             }
         }
 
-        // Central icon (Lightning/Plug for battery, PowerProfile icon otherwise)
         Text {
             id: batteryIcon
             anchors.centerIn: parent
@@ -190,7 +182,6 @@ Item {
         }
     }
 
-    // Battery popup with Power Profiles
     BarPopup {
         id: batteryPopup
         anchorItem: buttonBg
@@ -258,7 +249,6 @@ Item {
                         }
                     }
 
-                    // Battery percentage display
                     Text {
                         Layout.alignment: Qt.AlignVCenter
                         text: Math.round(Battery.percentage) + "%"

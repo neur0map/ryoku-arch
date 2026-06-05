@@ -10,7 +10,6 @@ import qs.noctalia.Services.UI
 Singleton {
   id: root
 
-  // Compositor detection
   property bool isHyprland: false
   property bool isNiri: false
   property bool isSway: false
@@ -19,12 +18,10 @@ Singleton {
   property bool isExtWorkspace: false
   property bool isScroll: false
 
-  // Generic workspace and window data
   property ListModel workspaces: ListModel {}
   property ListModel windows: ListModel {}
   property int focusedWindowIndex: -1
 
-  // Display scale data
   property var displayScales: ({})
   property bool displayScalesLoaded: false
 
@@ -35,16 +32,13 @@ Singleton {
   // True for LabWC (stacking compositor), false for tiling WMs with per-output workspaces
   property bool globalWorkspaces: false
 
-  // Generic events
   signal workspaceChanged
   signal activeWindowChanged
   signal windowListChanged
 
-  // Backend service loader
   property var backend: null
 
   Component.onCompleted: {
-    // Load display scales from ShellState
     Qt.callLater(() => {
                    if (typeof ShellState !== 'undefined' && ShellState.isLoaded) {
                      loadDisplayScalesFromState();
@@ -70,7 +64,6 @@ Singleton {
     const currentDesktop = Quickshell.env("XDG_CURRENT_DESKTOP");
     const labwcPid = Quickshell.env("LABWC_PID");
 
-    // Check for MangoWC using XDG_CURRENT_DESKTOP environment variable
     // MangoWC sets XDG_CURRENT_DESKTOP=mango
     if (currentDesktop && currentDesktop.toLowerCase().includes("mango")) {
       isHyprland = false;
@@ -141,7 +134,6 @@ Singleton {
     }
   }
 
-  // Load display scales from ShellState
   function loadDisplayScalesFromState() {
     try {
       const cached = ShellState.getDisplay();
@@ -159,7 +151,6 @@ Singleton {
     }
   }
 
-  // Hyprland backend component
   Component {
     id: hyprlandComponent
     HyprlandService {
@@ -167,7 +158,6 @@ Singleton {
     }
   }
 
-  // Niri backend component
   Component {
     id: niriComponent
     NiriService {
@@ -175,7 +165,6 @@ Singleton {
     }
   }
 
-  // Sway backend component
   Component {
     id: swayComponent
     SwayService {
@@ -183,7 +172,6 @@ Singleton {
     }
   }
 
-  // Mango backend component
   Component {
     id: mangoComponent
     MangoService {
@@ -191,7 +179,6 @@ Singleton {
     }
   }
 
-  // Labwc backend component
   Component {
     id: labwcComponent
     LabwcService {

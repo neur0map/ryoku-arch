@@ -10,7 +10,6 @@ import qs.noctalia.Services.UI
 Singleton {
   id: root
 
-  // Version properties
   readonly property string baseVersion: "4.7.8"
   readonly property bool isDevelopment: true
   readonly property string developmentSuffix: "-git"
@@ -19,12 +18,10 @@ Singleton {
   // Telemetry was introduced in this version - users upgrading from earlier need to see the wizard
   readonly property string telemetryIntroVersion: "4.0.2"
 
-  // URLs
   readonly property string discordUrl: "https://discord.noctalia.dev"
   readonly property string feedbackUrl: Quickshell.env("NOCTALIA_CHANGELOG_FEEDBACK_URL") || ""
   readonly property string upgradeLogBaseUrl: Quickshell.env("NOCTALIA_UPGRADELOG_URL") || "https://api.noctalia.dev/upgradelog"
 
-  // Changelog properties
   property bool initialized: false
   property bool changelogPending: false
   property string changelogFromVersion: ""
@@ -66,7 +63,6 @@ Singleton {
     initialized = true;
     Logger.i("UpdateService", "Version:", root.currentVersion);
 
-    // Load changelog state from ShellState
     Qt.callLater(() => {
                    if (typeof ShellState !== 'undefined' && ShellState.isLoaded) {
                      loadChangelogState();
@@ -113,7 +109,6 @@ Singleton {
     previousVersion = fromVersion;
     changelogCurrentVersion = toVersion;
 
-    // Fetch the upgrade log from the server
     fetchUpgradeLog(fromVersion, toVersion);
 
     popupScheduled = true;
@@ -123,11 +118,9 @@ Singleton {
   }
 
   function fetchUpgradeLog(fromVersion, toVersion) {
-    // Normalize and ensure "v" prefix for consistent URL format
     let from = ensureVersionPrefix(fromVersion || changelogLastSeenVersion || "3.0.0");
     let to = ensureVersionPrefix(toVersion);
 
-    // Strip -git suffix
     from = from.replace(root.developmentSuffix, "");
     to = to.replace(root.developmentSuffix, "");
 
@@ -207,7 +200,6 @@ Singleton {
     return 0;
   }
 
-  // Check if user is upgrading from a version before telemetry was introduced
   function shouldShowTelemetryWizard() {
     if (!changelogStateLoaded)
       return false;
@@ -221,7 +213,6 @@ Singleton {
     if (!changelogLastSeenVersion || changelogLastSeenVersion === "")
       return true;
 
-    // Check if last seen version is before telemetry introduction
     return compareVersions(changelogLastSeenVersion, telemetryIntroVersion) < 0;
   }
 
@@ -230,14 +221,12 @@ Singleton {
   function checkTelemetryWizardOrChangelog() {
     Logger.d("UpdateService", "checkTelemetryWizardOrChangelog called, stateLoaded:", changelogStateLoaded);
     if (!changelogStateLoaded) {
-      // State not loaded yet, set pending flags
       Logger.d("UpdateService", "State not loaded yet, setting pending flags");
       pendingTelemetryWizardCheck = true;
       pendingShowRequest = true;
       return;
     }
 
-    // State is already loaded, check immediately
     const needsTelemetryWizard = shouldShowTelemetryWizard();
     Logger.d("UpdateService", "shouldShowTelemetryWizard:", needsTelemetryWizard, "lastSeenVersion:", changelogLastSeenVersion);
     if (needsTelemetryWizard) {
@@ -259,7 +248,6 @@ Singleton {
     let targetScreen = viewChangelogTargetScreen;
 
     if (targetScreen) {
-      // Explicit screen requested - validate it
       if (!PanelService.canShowPanelsOnScreen(targetScreen)) {
         Logger.w("UpdateService", "Changelog cannot be shown on screen without bar:", targetScreen.name);
         popupScheduled = false;
@@ -267,7 +255,6 @@ Singleton {
         return;
       }
     } else {
-      // No explicit screen - find one that can show panels
       targetScreen = PanelService.findScreenForPanels();
       if (!targetScreen) {
         Logger.w("UpdateService", "No screen available to show changelog");
@@ -311,7 +298,6 @@ Singleton {
       return;
     }
 
-    // Normalize versions for comparison (strip -git, ensure v prefix)
     const lastSeen = ensureVersionPrefix(changelogLastSeenVersion.replace(developmentSuffix, ""));
     const target = ensureVersionPrefix(currentVersion.replace(developmentSuffix, ""));
 
@@ -373,7 +359,6 @@ Singleton {
     }
     changelogStateLoaded = true;
 
-    // Handle pending telemetry wizard check first
     if (pendingTelemetryWizardCheck) {
       pendingTelemetryWizardCheck = false;
       if (shouldShowTelemetryWizard()) {
@@ -392,7 +377,6 @@ Singleton {
   }
 
   function debouncedSaveChangelogState() {
-    // Queue a save and restart the debounce timer
     pendingSave = true;
     saveDebouncer.restart();
   }
@@ -403,7 +387,6 @@ Singleton {
 
     // Prevent concurrent saves
     if (saveInProgress) {
-      // Retry after a short delay
       saveDebouncer.start();
       return;
     }

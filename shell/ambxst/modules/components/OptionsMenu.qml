@@ -6,10 +6,8 @@ import qs.ambxst.config
 Menu {
     id: root
 
-    // Propiedades principales
     property var items: []
 
-    // Update menu width when items change
     onItemsChanged: {
         hoveredIndex = -1;
         previousHoveredIndex = -1;
@@ -17,7 +15,6 @@ Menu {
     }
     property int menuWidth: 140
 
-    // Function to update menu width when items change
     function updateMenuWidth() {
         if (!items || items.length === 0) {
             menuWidth = 120;
@@ -42,22 +39,18 @@ Menu {
     }
     property int itemHeight: 36
 
-    // Propiedades de estilo del menú
     property color backgroundColor: Colors.background
     property color borderColor: Colors.surfaceBright
     property int borderWidth: 2
     property int menuRadius: Config.roundness
 
-    // Propiedades de highlight por defecto
     property color defaultHighlightColor: Styling.srItem("overprimary")
     property color defaultTextColor: Colors.overPrimary
     property color normalTextColor: Colors.overBackground
 
-    // Propiedades internas
     property int hoveredIndex: -1
     property int previousHoveredIndex: -1
 
-    // Detectar si algún item tiene iconos para ajustar el layout
     property bool hasIcons: {
         for (let i = 0; i < items.length; i++) {
             if (items[i].icon && items[i].icon !== "") {
@@ -67,7 +60,6 @@ Menu {
         return false;
     }
 
-    // TextMetrics para medir el texto
     TextMetrics {
         id: textMetrics
         font.family: Config.theme.font
@@ -80,16 +72,13 @@ Menu {
         }
     }
 
-    // Configuración del menú
     width: menuWidth  // Use fixed width instead of calculated to avoid binding loop
     padding: 8
     spacing: 0
 
-    // Estilo del menú principal
     background: Item {
         implicitWidth: root.menuWidth
 
-        // Fondo principal
         Rectangle {
             anchors.fill: parent
             color: root.backgroundColor
@@ -98,7 +87,6 @@ Menu {
             border.color: root.borderColor
         }
 
-        // Highlight animado que sigue al hover
         Rectangle {
             id: menuHighlight
             width: root.menuWidth - 16
@@ -118,7 +106,7 @@ Menu {
             }
             opacity: visible ? 1.0 : 0
 
-            x: 8 // Padding offset
+            x: 8
             y: {
                 if (root.hoveredIndex === -1 || root.hoveredIndex >= root.items.length)
                     return 8;
@@ -161,7 +149,6 @@ Menu {
         }
     }
 
-    // Generar MenuItems dinámicamente
     Instantiator {
         model: root.items
         delegate: MenuItem {
@@ -172,10 +159,9 @@ Menu {
 
             text: itemData.text || ""
             width: root.menuWidth
-            height: isSeparatorItem ? 10 : root.itemHeight // 2px separador + 4px margen arriba + 4px margen abajo
+            height: isSeparatorItem ? 10 : root.itemHeight
             enabled: !isSeparatorItem
 
-            // Fondo - diferente para separadores
             background: Rectangle {
                 anchors.fill: parent
                 anchors.topMargin: isSeparatorItem ? 4 : 0
@@ -184,7 +170,6 @@ Menu {
                 radius: isSeparatorItem ? 0 : (root.menuRadius > 6 ? root.menuRadius - 6 : 0)
             }
 
-            // Manejo del hover - desactivado para separadores
             onHoveredChanged: {
                 if (isSeparatorItem)
                     return;
@@ -204,7 +189,6 @@ Menu {
                 }
             }
 
-            // Contenido del item
             contentItem: Item {
                 anchors.fill: parent
 
@@ -214,7 +198,6 @@ Menu {
                     spacing: root.hasIcons ? 8 : 0
                     visible: !menuItem.isSeparatorItem
 
-                    // Icono (opcional) - Puede ser fuente o imagen
                     Loader {
                         id: iconLoader
                         width: root.hasIcons ? 16 : 0
@@ -277,7 +260,6 @@ Menu {
                         }
                     }
 
-                    // Texto
                     Text {
                         text: menuItem.itemData.text || ""
                         color: {
@@ -304,7 +286,6 @@ Menu {
                 }
             }
 
-            // Acción al hacer click
             onTriggered: {
                 if (itemData && itemData.onTriggered) {
                     let callback = itemData.onTriggered;

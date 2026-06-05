@@ -8,7 +8,6 @@ import qs.ambxst.modules.components
     variant: "bg"
     id: root
 
-    // Hide when no tray items
     visible: hasItems
 
     topLeftRadius: root.vertical ? root.startRadius : root.startRadius
@@ -22,13 +21,10 @@ import qs.ambxst.modules.components
     property real startRadius: radius
     property real endRadius: radius
 
-    // Orientación derivada de la barra
     property bool vertical: bar.orientation === "vertical"
 
-    // Hide completely when empty - check both orientations
     readonly property bool hasItems: rowRepeater.count > 0 || columnRepeater.count > 0
 
-    // Ajustes de tamaño dinámicos según orientación
     height: vertical ? implicitHeight : parent.height
     Layout.preferredWidth: hasItems ? ((vertical ? columnLayout.implicitWidth : rowLayout.implicitWidth) + 16) : 0
     implicitWidth: hasItems ? ((vertical ? columnLayout.implicitWidth : rowLayout.implicitWidth) + 16) : 0

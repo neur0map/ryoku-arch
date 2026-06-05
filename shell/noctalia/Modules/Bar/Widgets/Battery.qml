@@ -44,7 +44,6 @@ Item {
   readonly property bool hideIfNotDetected: widgetSettings.hideIfNotDetected !== undefined ? widgetSettings.hideIfNotDetected : widgetMetadata.hideIfNotDetected
   readonly property bool hideIfIdle: widgetSettings.hideIfIdle !== undefined ? widgetSettings.hideIfIdle : widgetMetadata.hideIfIdle
 
-  // Check if selected device is actually present/connected
   readonly property bool isReady: BatteryService.isDeviceReady(selectedDevice)
   readonly property bool isPresent: BatteryService.isDevicePresent(selectedDevice)
   readonly property real percent: isReady ? BatteryService.getPercentage(selectedDevice) : -1
@@ -66,7 +65,6 @@ Item {
     let rows = [];
     const isInternal = selectedDevice.isLaptopBattery;
     if (isInternal) {
-      // Show charge percentage
       rows.push([I18n.tr("battery.battery-level"), `${percent}%`]);
 
       let timeText = BatteryService.getTimeRemainingText(selectedDevice);
@@ -105,7 +103,7 @@ Item {
       var external = BatteryService.bluetoothBatteries;
       if (external.length > 0) {
         if (rows.length > 0) {
-          rows.push(["---", "---"]); // Separator
+          rows.push(["---", "---"]);
         }
         for (var j = 0; j < external.length; j++) {
           var dev = external[j];
@@ -146,9 +144,7 @@ Item {
                  }
   }
 
-  // ==================== GRAPHIC MODE ====================
 
-  // Capsule background (graphic mode only)
   Rectangle {
     id: capsule
     visible: root.useGraphicMode
@@ -224,7 +220,6 @@ Item {
     }
   }
 
-  // ==================== ICON MODE ====================
 
   BarPill {
     id: pill
@@ -244,7 +239,6 @@ Item {
     onRightClicked: PanelService.showContextMenu(contextMenu, pill, screen)
   }
 
-  // ==================== SHARED ====================
 
   function getBatteryPanel() {
     var panel = PanelService.getPanel("batteryPanel", screen);

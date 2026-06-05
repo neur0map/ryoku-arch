@@ -84,7 +84,6 @@ Singleton {
     function applyState(state) {
         if (!state) return;
 
-        // --- Windows ---
         if (state.windows) {
             let existingClients = root.clients.values || [];
             let mappedClients = state.windows.map(win => {
@@ -115,7 +114,6 @@ Singleton {
             }
         }
 
-        // --- Workspaces ---
         if (state.workspaces) {
             let mappedWorkspaces = state.workspaces.map(ws => ({
                 id: parseInt(ws.id) || 0,
@@ -131,7 +129,6 @@ Singleton {
             }
         }
 
-        // --- Monitors ---
         if (state.monitors) {
             let mappedMonitors = state.monitors.map(mon => ({
                 id: parseInt(mon.id) || 0,
@@ -177,7 +174,6 @@ Singleton {
         onTriggered: axctlSubscribe.running = true
     }
 
-    // Auto-reconnect on unexpected subscribe exit
     Timer {
         id: reconnectTimer
         interval: 1000
@@ -193,12 +189,10 @@ Singleton {
                 try {
                     let parsedJson = JSON.parse(data);
 
-                    // Apply inline state immediately (every event carries full state)
                     if (parsedJson.state) {
                         root.applyState(parsedJson.state);
                     }
 
-                    // Emit raw event for consumers
                     parsedJson.name = parsedJson.method ? parsedJson.method.split('.').pop().toLowerCase() : "";
                     parsedJson.data = parsedJson.params;
                     root.rawEvent(parsedJson);

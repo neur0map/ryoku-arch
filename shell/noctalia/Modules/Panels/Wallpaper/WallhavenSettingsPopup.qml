@@ -93,7 +93,6 @@ Popup {
     id: contentColumn
     spacing: Style.marginM
 
-    // Header
     RowLayout {
       Layout.fillWidth: true
       spacing: Style.marginM
@@ -124,7 +123,6 @@ Popup {
       Layout.fillWidth: true
     }
 
-    // API Key
     ColumnLayout {
       Layout.fillWidth: true
       spacing: Style.marginS
@@ -169,7 +167,6 @@ Popup {
       Layout.fillWidth: true
     }
 
-    // Sorting
     RowLayout {
       Layout.fillWidth: true
       spacing: Style.marginM
@@ -222,7 +219,6 @@ Popup {
       }
     }
 
-    // Order
     RowLayout {
       Layout.fillWidth: true
       spacing: Style.marginM
@@ -260,7 +256,6 @@ Popup {
       }
     }
 
-    // Purity selector
     RowLayout {
       Layout.fillWidth: true
       spacing: Style.marginM
@@ -288,7 +283,6 @@ Popup {
         function updatePurity(sfw, sketchy, nsfw) {
           var purity = (sfw ? "1" : "0") + (sketchy ? "1" : "0") + (nsfw ? "1" : "0");
           Settings.data.wallpaper.wallhavenPurity = purity;
-          // Update checkboxes immediately
           sfwToggle.checked = sfw;
           sketchyToggle.checked = sketchy;
           nsfwToggle.checked = nsfw;
@@ -319,7 +313,6 @@ Popup {
           nsfwToggle.checked = purityRow.getPurityValue(2);
         }
 
-        // SFW checkbox
         Item {
           Layout.preferredWidth: sfwCheckboxRow.implicitWidth
           Layout.preferredHeight: sfwCheckboxRow.implicitHeight
@@ -417,7 +410,6 @@ Popup {
           }
         }
 
-        // NSFW checkbox
         Item {
           Layout.preferredWidth: nsfwCheckboxRow.implicitWidth
           Layout.preferredHeight: nsfwCheckboxRow.implicitHeight
@@ -467,7 +459,6 @@ Popup {
           }
         }
 
-        // Invisible objects for logic
         QtObject {
           id: sfwToggle
           property bool checked: false
@@ -497,7 +488,6 @@ Popup {
       }
     }
 
-    // Aspect Ratio
     RowLayout {
       Layout.fillWidth: true
       spacing: Style.marginM
@@ -586,7 +576,6 @@ Popup {
       }
     }
 
-    // Categories
     RowLayout {
       Layout.fillWidth: true
       spacing: Style.marginM
@@ -614,7 +603,6 @@ Popup {
         function updateCategories(general, anime, people) {
           var categories = (general ? "1" : "0") + (anime ? "1" : "0") + (people ? "1" : "0");
           Settings.data.wallpaper.wallhavenCategories = categories;
-          // Update checkboxes immediately
           generalToggle.checked = general;
           animeToggle.checked = anime;
           peopleToggle.checked = people;
@@ -639,7 +627,6 @@ Popup {
           peopleToggle.checked = categoriesRow.getCategoryValue(2);
         }
 
-        // General checkbox
         Item {
           Layout.preferredWidth: generalCheckboxRow.implicitWidth
           Layout.preferredHeight: generalCheckboxRow.implicitHeight
@@ -688,7 +675,6 @@ Popup {
           }
         }
 
-        // Anime checkbox
         Item {
           Layout.preferredWidth: animeCheckboxRow.implicitWidth
           Layout.preferredHeight: animeCheckboxRow.implicitHeight
@@ -737,7 +723,6 @@ Popup {
           }
         }
 
-        // People checkbox
         Item {
           Layout.preferredWidth: peopleCheckboxRow.implicitWidth
           Layout.preferredHeight: peopleCheckboxRow.implicitHeight
@@ -816,7 +801,6 @@ Popup {
       }
     }
 
-    // Resolution filter
     ColumnLayout {
       Layout.fillWidth: true
       spacing: Style.marginS
@@ -884,12 +868,10 @@ Popup {
           Component.onCompleted: {
             if (resolutionWidthInput.inputItem) {
               resolutionWidthInput.inputItem.focusPolicy = Qt.StrongFocus;
-              // Ensure the TextField can receive keyboard input
               resolutionWidthInput.inputItem.activeFocusOnPress = true;
             }
           }
 
-          // Ensure focus when clicked
           onActiveFocusChanged: {
             if (activeFocus && resolutionWidthInput.inputItem) {
               resolutionWidthInput.inputItem.forceActiveFocus();
@@ -932,7 +914,6 @@ Popup {
             }
           }
 
-          // Ensure focus when clicked
           onActiveFocusChanged: {
             if (activeFocus && resolutionHeightInput.inputItem) {
               resolutionHeightInput.inputItem.forceActiveFocus();
@@ -956,7 +937,6 @@ Popup {
       }
     }
 
-    // Apply button
     NDivider {
       Layout.fillWidth: true
       Layout.topMargin: Style.marginM
@@ -966,9 +946,7 @@ Popup {
       Layout.fillWidth: true
       text: I18n.tr("common.apply")
       onClicked: {
-        // Ensure all settings are synced to the service
         if (typeof WallhavenService !== "undefined" && Settings.data.wallpaper.useWallhaven) {
-          // Sync all settings to the service
           WallhavenService.categories = Settings.data.wallpaper.wallhavenCategories;
           WallhavenService.purity = Settings.data.wallpaper.wallhavenPurity;
           WallhavenService.sorting = Settings.data.wallpaper.wallhavenSorting;
@@ -979,7 +957,6 @@ Popup {
           // Update resolution settings (without triggering search)
           updateResolution(false);
 
-          // Refresh the wallpaper search with current settings
           WallhavenService.search(Settings.data.wallpaper.wallhavenQuery || "", 1);
 
           // Close the popup after applying (delay to prevent click propagation)

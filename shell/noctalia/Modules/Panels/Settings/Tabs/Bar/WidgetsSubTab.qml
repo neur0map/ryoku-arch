@@ -81,7 +81,6 @@ ColumnLayout {
     writeEntries(arr);
   }
 
-  // ---- Bar layout (entries) ----------------------------------------------
   NText {
     text: qsTr("Bar layout")
     pointSize: Style.fontSizeM
@@ -191,7 +190,6 @@ ColumnLayout {
     Layout.fillWidth: true
   }
 
-  // ---- Per-widget settings ------------------------------------------------
   NText {
     text: qsTr("Widget settings")
     pointSize: Style.fontSizeM

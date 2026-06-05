@@ -14,34 +14,26 @@ import qs.ambxst.config
 PopupWindow {
     id: root
 
-    // Required: the item this popup anchors to
     required property Item anchorItem
-    // Required: the bar panel for position detection
     required property var bar
 
-    // Content to display inside the popup
     default property alias contentData: contentContainer.data
 
-    // Visual configuration
     property int popupPadding: 8
-    property int visualMargin: 8  // Distance from bar
-    property int shadowMargin: 16  // Extra margin for shadow
-    property string variant: "popup"  // StyledRect variant for background
+    property int visualMargin: 8
+    property int shadowMargin: 16
+    property string variant: "popup"
 
-    // Behavior configuration
     property bool closeOnFocusLost: true
 
     // Logical open state (changes immediately, not after animation)
     property bool isOpen: false
 
-    // Signal emitted when popup is closed externally (click outside)
     signal closedExternally
 
-    // Animation state
     property real popupOpacity: 0
     property real popupScale: 0.9
 
-    // Bar position detection
     readonly property string barPosition: bar?.barPosition ?? "top"
     readonly property bool barAtTop: barPosition === "top"
     readonly property bool barAtBottom: barPosition === "bottom"
@@ -49,7 +41,6 @@ PopupWindow {
     readonly property bool barAtRight: barPosition === "right"
     readonly property bool barVertical: barAtLeft || barAtRight
 
-    // Total size including shadow margin
     readonly property int totalWidth: contentWidth + shadowMargin * 2
     readonly property int totalHeight: contentHeight + shadowMargin * 2
     property int contentWidth: 220
@@ -58,37 +49,27 @@ PopupWindow {
     implicitWidth: totalWidth
     implicitHeight: totalHeight
 
-    // Frame detection
     readonly property bool frameEnabled: Config.bar?.frameEnabled ?? false
     readonly property bool containBar: Config.bar?.containBar ?? false
     readonly property int frameThickness: Config.bar?.frameThickness ?? 0
     readonly property int frameOffset: (frameEnabled && containBar) ? frameThickness : 0
     readonly property int effectiveFrameOffset: (frameEnabled && containBar) ? frameOffset : 0
 
-    // Anchor positioning
-    // The anchor.rect defines where the popup window's top-left corner will be placed
-    // relative to the anchorItem's top-left corner
     anchor.item: anchorItem
     anchor.rect.x: {
         if (barVertical) {
-            // Left bar: popup appears to the right of the button
             if (barAtLeft)
                 return anchorItem.width + visualMargin + effectiveFrameOffset - shadowMargin;
-            // Right bar: popup appears to the left of the button
             return -totalWidth + shadowMargin - visualMargin - effectiveFrameOffset;
         }
-        // Top/Bottom bar: center horizontally relative to button
         return (anchorItem.width - totalWidth) / 2;
     }
     anchor.rect.y: {
         if (barVertical) {
-            // Left/Right bar: center vertically relative to button
             return (anchorItem.height - totalHeight) / 2;
         }
-        // Top bar: popup appears below the button
         if (barAtTop)
             return anchorItem.height + visualMargin + effectiveFrameOffset - shadowMargin;
-        // Bottom bar: popup appears above the button
         return -totalHeight + shadowMargin - visualMargin - effectiveFrameOffset;
     }
     anchor.rect.width: 0
@@ -97,7 +78,6 @@ PopupWindow {
     color: "transparent"
     visible: false
 
-    // Focus grab for click-outside-to-close behavior
     property bool focusActive: false
 
     FocusGrab {
@@ -114,7 +94,6 @@ PopupWindow {
         }
     }
 
-    // Animation behaviors
     Behavior on popupOpacity {
         enabled: Config.animDuration > 0
         NumberAnimation {
@@ -131,7 +110,6 @@ PopupWindow {
         }
     }
 
-    // Main content wrapper
     Item {
         id: popupContainer
         anchors.fill: parent
@@ -169,20 +147,16 @@ PopupWindow {
         if (visible)
             return;
 
-        // Debug positioning
         console.log("BarPopup OPEN - position:", barPosition, "anchorItem:", anchorItem.width, "x", anchorItem.height, "rect.x:", anchor.rect.x, "rect.y:", anchor.rect.y);
 
         // Set logical state immediately
         isOpen = true;
 
-        // Reset animation state
         popupOpacity = 0;
         popupScale = 0.9;
 
-        // Show popup
         visible = true;
 
-        // Start animation after a frame
         Qt.callLater(() => {
             popupOpacity = 1;
             popupScale = 1;
@@ -198,11 +172,9 @@ PopupWindow {
         isOpen = false;
         focusActive = false;
 
-        // Animate out
         popupOpacity = 0;
         popupScale = 0.9;
 
-        // Hide after animation
         closeTimer.restart();
     }
 

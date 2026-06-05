@@ -15,7 +15,7 @@ Item {
 
     property bool expanded: false
 
-    implicitHeight: contentColumn.implicitHeight + 16  // 8px margins top + bottom
+    implicitHeight: contentColumn.implicitHeight + 16
 
     Behavior on implicitHeight {
         enabled: Config.animDuration > 0
@@ -48,13 +48,11 @@ Item {
         anchors.topMargin: 8
         spacing: 8
 
-        // Main row with device info
         RowLayout {
             Layout.fillWidth: true
             Layout.preferredHeight: 32
             spacing: 12
 
-            // Device icon
             Text {
                 text: {
                     const icon = root.device?.icon ?? "bluetooth";
@@ -83,7 +81,6 @@ Item {
                 color: root.device?.connected ? Styling.srItem("overprimary") : Colors.overBackground
             }
 
-            // Device name and status
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 0
@@ -131,7 +128,6 @@ Item {
                 }
             }
 
-            // Battery indicator
             Row {
                 visible: root.device?.batteryAvailable ?? false
                 spacing: 4
@@ -165,7 +161,6 @@ Item {
             }
         }
 
-        // Expanded content with action buttons
         RowLayout {
             Layout.fillWidth: true
             visible: root.expanded
@@ -179,7 +174,6 @@ Item {
                 }
             }
 
-            // Forget button (for paired devices)
             Button {
                 id: forgetButton
                 visible: root.device?.paired ?? false
@@ -208,7 +202,6 @@ Item {
                 Layout.fillWidth: true
             }
 
-            // Connect/Disconnect button
             Button {
                 id: actionButton
                 flat: true

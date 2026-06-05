@@ -32,14 +32,12 @@ QtObject {
     function run(command) {
         console.log("IPC run command received:", command);
         switch (command) {
-            // Launcher (Standalone Notch Module)
             case "launcher": toggleLauncher(); break;
             case "clipboard": toggleLauncherWithPrefix(1, Config.prefix.clipboard + " "); break;
             case "emoji": toggleLauncherWithPrefix(2, Config.prefix.emoji + " "); break;
             case "tmux": toggleLauncherWithPrefix(3, Config.prefix.tmux + " "); break;
             case "notes": toggleLauncherWithPrefix(4, Config.prefix.notes + " "); break;
 
-            // Dashboard
             case "dashboard": toggleDashboardTab(0); break;
             case "wallpapers": toggleDashboardTab(1); break;
             case "assistant": toggleAssistant(); break;
@@ -49,7 +47,6 @@ QtObject {
             case "dashboard-assistant": toggleAssistant(); break;
             case "dashboard-controls": toggleSettings(); break;
 
-            // System
             case "overview": toggleSimpleModule("overview"); break;
             case "powermenu": toggleSimpleModule("powermenu"); break;
             case "tools": toggleSimpleModule("tools"); break;
@@ -63,7 +60,6 @@ QtObject {
                 break;
             case "lockscreen": GlobalStates.lockscreenVisible = true; break;
             
-            // Media
             case "media-seek-backward": seekActivePlayer(-mediaSeekStepMs); break;
             case "media-seek-forward": seekActivePlayer(mediaSeekStepMs); break;
             case "media-play-pause": 
@@ -138,10 +134,8 @@ QtObject {
     function toggleDashboardTab(tabIndex) {
         const isActive = Visibilities.currentActiveModule === "dashboard";
         
-        // Special handling for widgets tab (launcher)
         if (tabIndex === 0) {
             if (isActive && GlobalStates.dashboardCurrentTab === 0 && GlobalStates.launcherSearchText === "") {
-                // Only toggle off if we're already in launcher without prefix
                 Visibilities.setActiveModule("");
                 return;
             }
@@ -156,7 +150,6 @@ QtObject {
             return;
         }
         
-        // For other tabs, normal toggle behavior
         if (isActive && GlobalStates.dashboardCurrentTab === tabIndex) {
             Visibilities.setActiveModule("");
             return;

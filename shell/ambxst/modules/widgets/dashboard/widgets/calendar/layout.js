@@ -1,4 +1,4 @@
-var weekDays = [ // MONDAY IS THE FIRST DAY OF THE WEEK :HESRIGHTYOUKNOW:
+var weekDays = [
     { day: 'Mo', today: 0 },
     { day: 'Tu', today: 0 },
     { day: 'We', today: 0 },
@@ -41,17 +41,15 @@ function getPrevMonthDays(month, year) {
 }
 
 function getDateInXMonthsTime(x, baseDate) {
-    var currentDate = baseDate || new Date(); // Get the current date
-    if (x == 0) return currentDate; // If x is 0, return the current date
+    var currentDate = baseDate || new Date();
+    if (x == 0) return currentDate;
 
-    var targetMonth = currentDate.getMonth() + x; // Calculate the target month
-    var targetYear = currentDate.getFullYear(); // Get the current year
+    var targetMonth = currentDate.getMonth() + x;
+    var targetYear = currentDate.getFullYear();
 
-    // Adjust the year and month if necessary
     targetYear += Math.floor(targetMonth / 12);
     targetMonth = (targetMonth % 12 + 12) % 12;
 
-    // Create a new date object with the target year and month
     var targetDate = new Date(targetYear, targetMonth, 1);
 
     // Set the day to the last day of the month to get the desired date
@@ -62,7 +60,7 @@ function getDateInXMonthsTime(x, baseDate) {
 
 function getCalendarLayout(dateObject, highlight) {
     if (!dateObject) dateObject = new Date();
-    const weekday = (dateObject.getDay() + 6) % 7; // MONDAY IS THE FIRST DAY OF THE WEEK
+    const weekday = (dateObject.getDay() + 6) % 7;
     const day = dateObject.getDate();
     const month = dateObject.getMonth() + 1;
     const year = dateObject.getFullYear();
@@ -71,7 +69,6 @@ function getCalendarLayout(dateObject, highlight) {
     const daysInNextMonth = getNextMonthDays(month, year);
     const daysInPrevMonth = getPrevMonthDays(month, year);
 
-    // Fill
     var monthDiff = (weekdayOfMonthFirst == 0 ? 0 : -1);
     var toFill, dim;
     if(weekdayOfMonthFirst == 0) {
@@ -96,9 +93,8 @@ function getCalendarLayout(dateObject, highlight) {
         if (toFill == day && monthDiff == 0 && highlight) {
             currentWeekRow = i;
         }
-        // Increment
         toFill++;
-        if (toFill > dim) { // Next month?
+        if (toFill > dim) {
             monthDiff++;
             if (monthDiff == 0)
                 dim = daysInMonth;
@@ -106,7 +102,6 @@ function getCalendarLayout(dateObject, highlight) {
                 dim = daysInNextMonth;
             toFill = 1;
         }
-        // Next tile
         j++;
         if (j == 7) {
             j = 0;

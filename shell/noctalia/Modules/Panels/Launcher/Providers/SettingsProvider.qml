@@ -5,7 +5,6 @@ import qs.noctalia.Services.UI
 Item {
   id: root
 
-  // Provider metadata
   property string name: I18n.tr("common.settings")
   property var launcher: null
   property bool handleSearch: Settings.data.appLauncher.enableSettingsSearch
@@ -16,7 +15,6 @@ Item {
     Logger.d("SettingsProvider", "Initialized");
   }
 
-  // Check if this provider handles the command
   function handleCommand(searchText) {
     return searchText.startsWith(">settings");
   }
@@ -46,7 +44,6 @@ Item {
     // Handle command mode: ">settings" or ">settings <search>"
     var isCommandMode = trimmed.startsWith(">settings");
     if (isCommandMode) {
-      // Extract search term after ">settings "
       var searchTerm = trimmed.substring(9).trim();
       // In command mode, show all settings if no search term
       if (searchTerm.length === 0) {
@@ -59,7 +56,6 @@ Item {
         return [];
     }
 
-    // Build searchable items with resolved translations, filtering out invisible entries
     let items = [];
     for (let j = 0; j < SettingsSearchService.searchIndex.length; j++) {
       const entry = SettingsSearchService.searchIndex[j];

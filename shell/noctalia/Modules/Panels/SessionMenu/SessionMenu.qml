@@ -21,14 +21,13 @@ SmartPanel {
   // Large buttons style is fullscreen — disable blur behind it
   blurEnabled: !largeButtonsStyle
 
-  // Make panel background transparent for large buttons style
   panelBackgroundColor: largeButtonsStyle ? "transparent" : Color.mSurface
 
   preferredWidth: largeButtonsStyle ? 0 : Math.round(440 * Style.uiScaleRatio)
   preferredWidthRatio: largeButtonsStyle ? 1.0 : 0
   preferredHeight: {
     if (largeButtonsStyle) {
-      return 0; // Use ratio instead
+      return 0;
     }
     var headerHeight = Settings.data.sessionMenu.showHeader ? Style.baseWidgetSize * 0.6 : 0;
 
@@ -58,13 +57,11 @@ SmartPanel {
   // SessionMenu handle it's own closing logic
   property bool closeWithEscape: false
 
-  // Timer properties
   readonly property int timerDuration: Settings.data.sessionMenu.countdownDuration
   property string pendingAction: ""
   property bool timerActive: false
   property int timeRemaining: 0
 
-  // Navigation properties
   property int selectedIndex: -1
   property bool ignoreMouseHover: true // Transient flag, should always be true on init
 
@@ -84,7 +81,6 @@ SmartPanel {
     }
   }
 
-  // Action metadata mapping
   readonly property var actionMetadata: {
     "lock": {
       "icon": "lock",
@@ -128,7 +124,6 @@ SmartPanel {
     }
   }
 
-  // Build powerOptions from settings, filtering enabled ones and adding metadata
   // _powerOptionsVersion forces re-evaluation when settings change
   property int _powerOptionsVersion: 0
   property var powerOptions: {
@@ -163,7 +158,6 @@ SmartPanel {
     }
   }
 
-  // Lifecycle handlers
   onOpened: {
     if (powerOptions.length > 0) {
       selectedIndex = -1;
@@ -183,15 +177,12 @@ SmartPanel {
     ignoreMouseHover = true;
   }
 
-  // Timer management
   function startTimer(action) {
-    // Check if global countdown is disabled
     if (!Settings.data.sessionMenu.enableCountdown) {
       executeAction(action);
       return;
     }
 
-    // Check per-item countdown setting
     var option = null;
     for (var i = 0; i < powerOptions.length; i++) {
       if (powerOptions[i].action === action) {
@@ -262,12 +253,10 @@ SmartPanel {
       break;
     }
 
-    // Reset timer state and close panel
     cancelTimer();
     root.close();
   }
 
-  // Navigation functions
   function selectNextWrapped() {
     if (powerOptions.length > 0) {
       if (selectedIndex < 0) {
@@ -323,7 +312,6 @@ SmartPanel {
     };
   }
 
-  // Unified navigation function
   function navigateGrid(direction) {
     if (powerOptions.length === 0)
       return;
@@ -474,7 +462,6 @@ SmartPanel {
     return false;
   }
 
-  // Countdown timer
   Timer {
     id: countdownTimer
     interval: 100
@@ -496,7 +483,6 @@ SmartPanel {
     readonly property var contentPreferredWidth: largeButtonsStyle ? (root.screen?.width || root.width || 0) : undefined
     readonly property var contentPreferredHeight: largeButtonsStyle ? (root.screen?.height || root.height || 0) : undefined
 
-    // Focus management
     Connections {
       target: root
       function onOpened() {
@@ -513,7 +499,6 @@ SmartPanel {
                         return;
                       }
 
-                      // Check global navigation keybinds
                       if (checkKey(event, 'up')) {
                         handleUp();
                         event.accepted = true;
@@ -606,13 +591,11 @@ SmartPanel {
       }
     }
 
-    // Large buttons style layout container
     ColumnLayout {
       id: largeButtonsContainer
       visible: largeButtonsStyle
       anchors.centerIn: parent
 
-      // Large buttons style layout (grid)
       GridLayout {
         id: largeButtonsGrid
         Layout.alignment: Qt.AlignHCenter
@@ -644,7 +627,6 @@ SmartPanel {
       }
     }
 
-    // Normal style layout
     NBox {
       visible: !largeButtonsStyle
       anchors.fill: parent
@@ -656,7 +638,6 @@ SmartPanel {
         anchors.margins: Style.marginL
         spacing: Style.marginL
 
-        // Header with title and close button
         RowLayout {
           visible: Settings.data.sessionMenu.showHeader
           Layout.fillWidth: true
@@ -701,7 +682,6 @@ SmartPanel {
           Layout.fillWidth: true
         }
 
-        // Power options
         ColumnLayout {
           Layout.fillWidth: true
           spacing: Style.marginS
@@ -728,7 +708,6 @@ SmartPanel {
       }
     }
 
-    // Background MouseArea for large buttons style - closes panel when clicking outside buttons
     MouseArea {
       visible: largeButtonsStyle
       anchors.fill: parent
@@ -738,7 +717,6 @@ SmartPanel {
                    // Only close if not clicking on a button
                    // The buttons are above this MouseArea, so clicks on them won't reach here
                    if (timerActive) {
-                     // Cancel countdown if active
                      cancelTimer();
                    } else {
                      root.close();
@@ -747,7 +725,6 @@ SmartPanel {
     }
   }
 
-  // Custom power button component
   component PowerButton: Rectangle {
     id: buttonRoot
 
@@ -792,7 +769,6 @@ SmartPanel {
       anchors.fill: parent
       anchors.margins: Style.marginM
 
-      // Icon on the left
       NIcon {
         id: iconElement
         anchors.left: parent.left
@@ -841,7 +817,6 @@ SmartPanel {
           font.weight: Style.fontWeightBold
         }
 
-        // Keybind indicator
         Rectangle {
           id: numberIndicatorRect
           anchors.left: countdownText.visible ? countdownText.right : parent.left
@@ -872,7 +847,6 @@ SmartPanel {
         }
       }
 
-      // Text content in the middle
       ColumnLayout {
         anchors.left: iconElement.right
         anchors.right: indicatorGroup.left
@@ -927,7 +901,6 @@ SmartPanel {
     }
   }
 
-  // Large buttons style button component
   component LargeButton: Rectangle {
     id: largeButtonRoot
 
@@ -967,7 +940,6 @@ SmartPanel {
     layer.smooth: true
     layer.textureSize: Qt.size(Math.ceil(width * 2), Math.ceil(height * 2))
 
-    // Scale transform for hover effect
     transform: Scale {
       origin.x: largeButtonRoot.width / 2
       origin.y: largeButtonRoot.height / 2
@@ -1002,7 +974,6 @@ SmartPanel {
       anchors.margins: Style.marginL
       spacing: Style.marginM
 
-      // Large icon with scale animation
       NIcon {
         id: iconElement
         Layout.alignment: Qt.AlignHCenter
@@ -1053,7 +1024,6 @@ SmartPanel {
         }
       }
 
-      // Title text
       NText {
         Layout.alignment: Qt.AlignHCenter
         text: largeButtonRoot.title

@@ -6,13 +6,11 @@ import QtQuick.Controls
 import qs.ambxst.modules.theme
 import qs.ambxst.config
 
-// A segmented switch with sliding highlight, similar to iOS segmented control
 StyledRect {
     id: root
     variant: "common"
     radius: Styling.radius(-4)
 
-    // Model: array of { icon: "...", tooltip: "..." } or just strings for text labels
     property var options: []
     property int currentIndex: 0
     property int buttonSize: 28
@@ -28,7 +26,6 @@ StyledRect {
         anchors.fill: parent
         anchors.margins: root.padding
 
-        // Sliding highlight
         StyledRect {
             id: highlight
             variant: "focus"
@@ -57,7 +54,6 @@ StyledRect {
             }
         }
 
-        // Buttons
         RowLayout {
             id: buttonsRow
             anchors.fill: parent
@@ -75,7 +71,7 @@ StyledRect {
 
                     Layout.fillHeight: true
                     Layout.minimumWidth: root.buttonSize
-                    Layout.preferredWidth: contentRow.implicitWidth + 16 // Add some padding
+                    Layout.preferredWidth: contentRow.implicitWidth + 16
 
                     focusPolicy: Qt.NoFocus
                     hoverEnabled: true
@@ -90,7 +86,6 @@ StyledRect {
                         anchors.centerIn: parent
                         spacing: 8
 
-                        // Image Icon
                         Image {
                             mipmap: true
                             visible: typeof optionButton.modelData === "object" && !!optionButton.modelData.image
@@ -103,7 +98,6 @@ StyledRect {
                             opacity: root.currentIndex === optionButton.index ? 1.0 : 0.7
                         }
 
-                        // Font Icon
                         Text {
                             visible: typeof optionButton.modelData === "object" && !!optionButton.modelData.icon && !optionButton.modelData.image
                             text: visible ? optionButton.modelData.icon : ""
@@ -122,7 +116,6 @@ StyledRect {
                             }
                         }
 
-                        // Label
                         Text {
                             visible: typeof optionButton.modelData !== "object" || !!optionButton.modelData.label
                             text: typeof optionButton.modelData === "object" ? (optionButton.modelData.label || "") : optionButton.modelData

@@ -83,7 +83,6 @@ Item {
   property string selectedWindowId: ""
   property string selectedAppId: ""
 
-  // Helper to get the current window object from ID
   function getSelectedWindow() {
     if (!selectedWindowId)
       return null;
@@ -97,16 +96,12 @@ Item {
   }
   property int modelUpdateTrigger: 0  // Dummy property to force model re-evaluation
 
-  // Hover state
   property var hoveredWindowId: ""
-  // Combined model of running windows and pinned apps
   property var combinedModel: []
 
-  // Wheel scroll handling
   property int wheelAccumulatedDelta: 0
   property bool wheelCooldown: false
 
-  // Drag and Drop state for visual feedback
   property int dragSourceIndex: -1
   property int dragTargetIndex: -1
 
@@ -141,7 +136,6 @@ Item {
       }
     }
 
-    // 2. Append any new/remaining apps
     remaining.forEach(app => sorted.push(app));
 
     return sorted;
@@ -166,7 +160,6 @@ Item {
     const newPinned = [];
     const seen = new Set();
 
-    // Extract pinned apps in their current visual order
     combinedModel.forEach(app => {
                             if (app.appId && !seen.has(app.appId)) {
                               const isPinned = currentPinned.some(p => normalizeAppId(p) === normalizeAppId(app.appId));
@@ -203,7 +196,6 @@ Item {
     if (!appId || !pinnedApps || pinnedApps.length === 0)
       return false;
     const normalizedId = normalizeAppId(appId);
-    // Direct match
     if (pinnedApps.some(pinnedId => normalizeAppId(pinnedId) === normalizedId))
       return true;
     // Resolve via desktop entry lookup (handles StartupWMClass != .desktop filename)
@@ -237,7 +229,6 @@ Item {
     return appId;
   }
 
-  // Helper function to get app name from desktop entry
   function getAppNameFromDesktopEntry(appId) {
     if (!appId)
       return appId;
@@ -264,12 +255,10 @@ Item {
     return appId;
   }
 
-  // Helper function to get desktop entry ID from an app ID
   function getDesktopEntryId(appId) {
     if (!appId)
       return appId;
 
-    // Try to find the desktop entry using heuristic lookup
     if (typeof DesktopEntries !== 'undefined' && DesktopEntries.heuristicLookup) {
       try {
         const entry = DesktopEntries.heuristicLookup(appId);
@@ -281,7 +270,6 @@ Item {
       {}
     }
 
-    // Try direct lookup
     if (typeof DesktopEntries !== 'undefined' && DesktopEntries.byId) {
       try {
         const entry = DesktopEntries.byId(appId);
@@ -297,7 +285,6 @@ Item {
     return appId;
   }
 
-  // Helper function to check if an app is pinned
   function isAppPinned(appId) {
     if (!appId)
       return false;
@@ -313,7 +300,6 @@ Item {
     return false;
   }
 
-  // Helper function to toggle app pin/unpin
   function toggleAppPin(appId) {
     if (!appId)
       return;
@@ -322,25 +308,22 @@ Item {
     const desktopEntryId = getDesktopEntryId(appId);
     const normalizedId = normalizeAppId(desktopEntryId);
 
-    let pinnedApps = (Settings.data.dock.pinnedApps || []).slice(); // Create a copy
+    let pinnedApps = (Settings.data.dock.pinnedApps || []).slice();
 
     // Find existing pinned app with case-insensitive matching
     const existingIndex = pinnedApps.findIndex(pinnedId => normalizeAppId(pinnedId) === normalizedId);
     const isPinned = existingIndex >= 0;
 
     if (isPinned) {
-      // Unpin: remove from array
       pinnedApps.splice(existingIndex, 1);
     } else {
       // Pin: add desktop entry ID to array
       pinnedApps.push(desktopEntryId);
     }
 
-    // Update the settings
     Settings.data.dock.pinnedApps = pinnedApps;
   }
 
-  // Function to update the combined model
   function updateCombinedModel() {
     const runningWindows = [];
     const pinnedApps = Settings.data.dock.pinnedApps || [];
@@ -376,7 +359,6 @@ Item {
         }
       }
     } catch (e)
-      // Ignore errors
     {}
 
     // Second pass: Add non-running pinned apps (only if showPinnedApps is enabled)
@@ -405,7 +387,6 @@ Item {
     updateHasWindow();
   }
 
-  // Function to launch a pinned app
   function launchPinnedApp(appId) {
     if (!appId)
       return;
@@ -414,7 +395,6 @@ Item {
       const app = DesktopEntries.byId(appId);
 
       if (Settings.data.appLauncher.customLaunchPrefixEnabled && Settings.data.appLauncher.customLaunchPrefix.trim() !== "") {
-        // Use custom launch prefix
         const prefix = Settings.data.appLauncher.customLaunchPrefix.trim().split(" ");
 
         if (app.runInTerminal && Settings.data.appLauncher.terminalCommand.trim() !== "") {
@@ -452,7 +432,6 @@ Item {
 
       var items = [];
       if (root.selectedWindowId) {
-        // Focus item (for running apps)
         items.push({
                      "label": I18n.tr("common.focus"),
                      "action": "focus",
@@ -467,7 +446,6 @@ Item {
                      "icon": !isPinned ? "pin" : "unpin"
                    });
 
-        // Close item (for running apps)
         items.push({
                      "label": I18n.tr("common.close"),
                      "action": "close",
@@ -524,7 +502,6 @@ Item {
   }
 
   function updateHasWindow() {
-    // Check if we have any items in the combined model (windows or pinned apps)
     hasWindow = combinedModel.length > 0;
   }
 
@@ -580,7 +557,6 @@ Item {
       var step = 120;
       if (Math.abs(root.wheelAccumulatedDelta) >= step) {
         var direction = root.wheelAccumulatedDelta > 0 ? -1 : 1;
-        // Find the focused window or first running window
         var currentIndex = -1;
         for (var i = 0; i < root.combinedModel.length; i++) {
           if (root.combinedModel[i].window && root.combinedModel[i].window.isFocused) {
@@ -626,7 +602,6 @@ Item {
     }
   }
 
-  // Content dimensions for implicit sizing
   readonly property real contentWidth: {
     if (!visible)
       return 0;
@@ -647,7 +622,6 @@ Item {
   implicitWidth: contentWidth
   implicitHeight: contentHeight
 
-  // Visual capsule centered in parent
   Rectangle {
     id: visualCapsule
     width: root.contentWidth
@@ -661,7 +635,6 @@ Item {
     GridLayout {
       id: taskbarLayout
 
-      // Pixel-perfect centering
       x: isVerticalBar ? Style.pixelAlignCenter(parent.width, width) : ((root.showTitle) ? Style.pixelAlignCenter(parent.width, width) : Style.marginM)
       y: Style.pixelAlignCenter(parent.height, height)
 
@@ -694,11 +667,10 @@ Item {
           readonly property color titleBgColor: (isHovered || isFocused) ? Color.mHover : Style.capsuleColor
           readonly property color titleFgColor: (isHovered || isFocused) ? Color.mOnHover : Color.mOnSurface
 
-          Layout.preferredWidth: root.isVerticalBar ? root.barHeight : (root.showTitle ? Math.round(contentWidth + Style.margin2M) : Math.round(contentWidth)) // Add margins for both pinned and running apps
+          Layout.preferredWidth: root.isVerticalBar ? root.barHeight : (root.showTitle ? Math.round(contentWidth + Style.margin2M) : Math.round(contentWidth))
           Layout.preferredHeight: root.isVerticalBar ? root.itemSize : root.barHeight
           Layout.alignment: Qt.AlignCenter
 
-          // Ensure dragged item is on top
           z: (root.dragSourceIndex === index) ? 1000 : 1
 
           property int modelIndex: index
@@ -739,7 +711,6 @@ Item {
             readonly property bool isDragged: root.dragSourceIndex === index
             property real shiftOffset: 0
 
-            // Calculate shift based on drag state
             // If I am NOT the dragged item, but I am in the path of the drag
             Binding on shiftOffset {
               value: {
@@ -857,7 +828,6 @@ Item {
                     smooth: true
                     asynchronous: true
 
-                    // Apply dock shader to all taskbar icons
                     layer.enabled: widgetSettings.colorizeIcons !== false
                     layer.effect: ShaderEffect {
                       property color targetColor: Settings.data.colorSchemes.darkMode ? Color.mOnSurface : Color.mSurfaceVariant
@@ -971,17 +941,14 @@ Item {
   }
 
   function openTaskbarContextMenu(item) {
-    // Build menu model directly
     var items = [];
     if (root.selectedWindowId) {
-      // Focus item (for running apps)
       items.push({
                    "label": I18n.tr("common.focus"),
                    "action": "focus",
                    "icon": "eye"
                  });
 
-      // Pin/Unpin item
       const isPinned = root.isAppPinned(root.selectedAppId);
       items.push({
                    "label": !isPinned ? I18n.tr("common.pin") : I18n.tr("common.unpin"),
@@ -989,7 +956,6 @@ Item {
                    "icon": !isPinned ? "pin" : "unpin"
                  });
 
-      // Close item
       items.push({
                    "label": I18n.tr("common.close"),
                    "action": "close",
@@ -1017,7 +983,6 @@ Item {
                  "icon": "settings"
                });
 
-    // Set the model directly
     contextMenu.model = items;
 
     // Anchor to root (stable) but center horizontally on the clicked item

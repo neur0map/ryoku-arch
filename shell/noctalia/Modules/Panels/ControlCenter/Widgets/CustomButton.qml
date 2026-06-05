@@ -13,16 +13,16 @@ Item {
   property string onClickedCommand: ""
   property string onRightClickedCommand: ""
   property string onMiddleClickedCommand: ""
-  property string stateChecksJson: "[]" // Store state checks as JSON string
+  property string stateChecksJson: "[]"
 
   property string generalTooltipText: ""
   property bool enableOnStateLogic: false
   property bool showExecTooltip: true
   property bool _hasCustomTooltip: false
 
-  property string _currentIcon: "heart" // Default icon
+  property string _currentIcon: "heart"
   property bool _isHot: false
-  property var _parsedStateChecks: [] // Local array for parsed state checks
+  property var _parsedStateChecks: []
 
   property int _currentStateCheckIndex: -1
   property string _activeStateIcon: ""
@@ -41,7 +41,7 @@ Item {
       onClickedCommand = widgetSettings.onClicked || "";
       onRightClickedCommand = widgetSettings.onRightClicked || "";
       onMiddleClickedCommand = widgetSettings.onMiddleClicked || "";
-      stateChecksJson = widgetSettings.stateChecksJson || "[]"; // Populate from widgetSettings
+      stateChecksJson = widgetSettings.stateChecksJson || "[]";
       try {
         _parsedStateChecks = JSON.parse(stateChecksJson);
       } catch (e) {
@@ -108,7 +108,6 @@ Item {
         _checkNextState();
       }
     } else {
-      // All checks failed
       _isHot = false;
       _activeStateIcon = widgetSettings.icon || "heart";
     }
@@ -124,7 +123,6 @@ Item {
   }
 
   function _buildTooltipText() {
-    // Build tooltip based on settings
     let tooltip = "";
 
     // If user set custom text, always show it

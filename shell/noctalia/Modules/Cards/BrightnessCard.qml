@@ -5,14 +5,12 @@ import qs.noctalia.Commons
 import qs.noctalia.Services.Hardware
 import qs.noctalia.Widgets
 
-// Brightness control card for the ControlCenter
 NBox {
   id: root
 
   Layout.fillWidth: true
   clip: true
 
-  // Get the primary monitor (first screen)
   readonly property var brightnessMonitor: {
     if (Quickshell.screens.length > 0) {
       return BrightnessService.getMonitorForScreen(Quickshell.screens[0]);
@@ -29,7 +27,6 @@ NBox {
     }
   }
 
-  // Update local brightness when monitor changes
   Connections {
     target: BrightnessService
     function onMonitorBrightnessChanged(monitor, newBrightness) {
@@ -39,7 +36,6 @@ NBox {
     }
   }
 
-  // Update local brightness when monitor's brightness property changes
   Connections {
     target: brightnessMonitor
     ignoreUnknownSignals: true
@@ -68,7 +64,6 @@ NBox {
     anchors.margins: Style.marginM
     spacing: Style.marginM
 
-    // Brightness Section
     ColumnLayout {
       spacing: Style.marginXXS
       Layout.fillWidth: true
@@ -76,7 +71,6 @@ NBox {
       opacity: brightnessMonitor && brightnessMonitor.brightnessControlAvailable ? 1.0 : 0.5
       enabled: brightnessMonitor && brightnessMonitor.brightnessControlAvailable
 
-      // Brightness Header
       RowLayout {
         Layout.fillWidth: true
         spacing: Style.marginXS
@@ -114,7 +108,6 @@ NBox {
         }
       }
 
-      // Brightness Slider
       NSlider {
         id: brightnessSlider
         Layout.fillWidth: true
@@ -141,7 +134,7 @@ NBox {
           onWheel: wheel => {
                      if (brightnessSlider.enabled && brightnessMonitor && brightnessMonitor.brightnessControlAvailable) {
                        const delta = wheel.angleDelta.y || wheel.angleDelta.x;
-                       const step = Settings.data.brightness.brightnessStep / 100.0; // Convert percentage to 0-1 range
+                       const step = Settings.data.brightness.brightnessStep / 100.0;
                        const increment = delta > 0 ? step : -step;
                        const newValue = Math.max(0, Math.min(1, localBrightness + increment));
                        localBrightness = newValue;

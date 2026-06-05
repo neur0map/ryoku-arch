@@ -29,7 +29,6 @@ PanelWindow {
   WlrLayershell.layer: WlrLayer.Top
   WlrLayershell.exclusionMode: ExclusionMode.Ignore
 
-  // Anchor to bar's edge
   anchors {
     top: barPosition === "top" || barIsVertical
     bottom: barPosition === "bottom" || barIsVertical

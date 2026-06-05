@@ -51,7 +51,6 @@ Singleton {
     }
 
     function connectToNetwork(ssid: string, password: string, bssid: string, callback: var): void {
-        // Set up pending connection tracking if callback provided
         if (callback) {
             const hasBssid = bssid !== undefined && bssid !== null && bssid.length > 0;
             root.pendingConnection = {
@@ -63,7 +62,6 @@ Singleton {
 
         Nmcli.connectToNetwork(ssid, password, bssid, result => {
             if (result && result.success) {
-                // Connection successful
                 if (callback)
                     callback(result);
                 root.pendingConnection = null;
@@ -72,7 +70,6 @@ Singleton {
                 if (callback)
                     callback(result);
             } else {
-                // Connection failed
                 if (result && result.error) {
                     root.connectionFailed(ssid);
                 }
@@ -84,7 +81,6 @@ Singleton {
     }
 
     function connectToNetworkWithPasswordCheck(ssid: string, isSecure: bool, callback: var, bssid: string): void {
-        // Set up pending connection tracking
         const hasBssid = bssid !== undefined && bssid !== null && bssid.length > 0;
         root.pendingConnection = {
             ssid: ssid,
@@ -126,11 +122,8 @@ Singleton {
     }
 
     function forgetNetwork(ssid: string): void {
-        // Delete the connection profile for this network
-        // This will remove the saved password and connection settings
         Nmcli.forgetNetwork(ssid, result => {
             if (result.success) {
-                // Refresh network list after deletion
                 Qt.callLater(() => {
                     Nmcli.getNetworks(() => {
                         syncNetworksFromNmcli();
@@ -144,21 +137,18 @@ Singleton {
         const rNetworks = root.networks;
         const nNetworks = Nmcli.networks;
 
-        // Build a map of existing networks by key
         const existingMap = new Map();
         for (const rn of rNetworks) {
             const key = `${rn.frequency}:${rn.ssid}:${rn.bssid}`;
             existingMap.set(key, rn);
         }
 
-        // Build a map of new networks by key
         const newMap = new Map();
         for (const nn of nNetworks) {
             const key = `${nn.frequency}:${nn.ssid}:${nn.bssid}`;
             newMap.set(key, nn);
         }
 
-        // Remove networks that no longer exist
         for (const [key, network] of existingMap) {
             if (!newMap.has(key)) {
                 const index = rNetworks.indexOf(network);
@@ -169,14 +159,11 @@ Singleton {
             }
         }
 
-        // Add or update networks from Nmcli
         for (const [key, nNetwork] of newMap) {
             const existing = existingMap.get(key);
             if (existing) {
-                // Update existing network's lastIpcObject
                 existing.lastIpcObject = nNetwork.lastIpcObject;
             } else {
-                // Create new AccessPoint from Nmcli's data
                 rNetworks.push(apComp.createObject(root, {
                     lastIpcObject: nNetwork.lastIpcObject
                 }));
@@ -225,7 +212,6 @@ Singleton {
         Nmcli.disconnectEthernet(connectionName, result => {
             if (result.success) {
                 getEthernetDevices();
-                // Clear device details after disconnection
                 Qt.callLater(() => {
                     root.ethernetDeviceDetails = null;
                 });
@@ -240,7 +226,6 @@ Singleton {
     }
 
     function updateWirelessDeviceDetails(): void {
-        // Find the wireless interface by looking for wifi devices
         // Pass empty string to let Nmcli find the active interface automatically
         Nmcli.getWirelessDeviceDetails("", details => {
             root.wirelessDeviceDetails = details;
@@ -261,11 +246,9 @@ Singleton {
     }
 
     Component.onCompleted: {
-        // Trigger ethernet device detection after initialization
         Qt.callLater(() => {
             getEthernetDevices();
         });
-        // Load saved connections on startup
         Nmcli.loadSavedConnections(() => {
             root.savedConnections = Nmcli.savedConnections;
             root.savedConnectionSsids = Nmcli.savedConnectionSsids;

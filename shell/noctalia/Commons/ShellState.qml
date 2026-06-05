@@ -15,10 +15,8 @@ Singleton {
   property string stateFile: ""
   property bool isLoaded: false
 
-  // State properties for different services
   readonly property alias data: adapter
 
-  // Signals for state changes
   signal displayStateChanged
   signal notificationsStateChanged
   signal changelogStateChanged
@@ -34,7 +32,6 @@ Singleton {
                  });
   }
 
-  // FileView for shell state
   FileView {
     id: stateFileView
     printErrors: false
@@ -83,7 +80,6 @@ Singleton {
 
     onLoadFailed: error => {
       if (error === 2) {
-        // File doesn't exist, will be created on first write
         root.isLoaded = true;
         Logger.d("ShellState", "State file doesn't exist, will create on first write");
       } else {
@@ -93,7 +89,6 @@ Singleton {
     }
   }
 
-  // Launcher usage
   function getLauncherUsageCount(key) {
     const m = adapter.launcherUsage;
     if (!m)
@@ -109,7 +104,6 @@ Singleton {
     save();
   }
 
-  // Migrate usage from one key to another, merging counts in a single save
   function migrateLauncherUsage(fromKey, toKey) {
     let counts = Object.assign({}, adapter.launcherUsage || {});
     const fromCount = typeof counts[fromKey] === 'number' && isFinite(counts[fromKey]) ? counts[fromKey] : 0;
@@ -120,7 +114,6 @@ Singleton {
     save();
   }
 
-  // Debounced save timer
   Timer {
     id: saveTimer
     interval: 500
@@ -142,7 +135,6 @@ Singleton {
     saveQueued = false;
 
     try {
-      // Ensure cache directory exists
       Quickshell.execDetached(["mkdir", "-p", Settings.cacheDir]);
 
       Qt.callLater(() => {
@@ -158,9 +150,7 @@ Singleton {
     }
   }
 
-  // Convenience functions for each service
 
-  // Display state (CompositorService)
   function setDisplay(displayData) {
     adapter.display = displayData;
     save();
@@ -171,7 +161,6 @@ Singleton {
     return adapter.display || {};
   }
 
-  // Notifications state (NotificationService)
   function setNotificationsState(stateData) {
     adapter.notificationsState = stateData;
     save();
@@ -184,7 +173,6 @@ Singleton {
     };
   }
 
-  // Changelog state (UpdateService)
   function setChangelogState(stateData) {
     adapter.changelogState = stateData;
     save();
@@ -197,7 +185,6 @@ Singleton {
     };
   }
 
-  // Color schemes list (SchemeDownloader)
   function setColorSchemesList(listData) {
     adapter.colorSchemesList = listData;
     save();
@@ -211,7 +198,6 @@ Singleton {
     };
   }
 
-  // UI state
   function setUiState(stateData) {
     adapter.ui = stateData;
     save();
@@ -233,7 +219,6 @@ Singleton {
     return getUiState().settingsSidebarExpanded !== false; // default to true
   }
 
-  // Telemetry state
   function setTelemetryState(stateData) {
     adapter.telemetry = stateData;
     save();
@@ -255,7 +240,6 @@ Singleton {
     setTelemetryState(state);
   }
 
-  // -----------------------------------------------------
   function buildStateSnapshot() {
     try {
       const settingsData = QtObj2JS.qtObjectToPlainObject(Settings.data);
@@ -271,7 +255,6 @@ Singleton {
           lockScreenActive: PanelService.lockScreen?.active || false,
           wallpapers: WallpaperService.getWallpapersEffectiveMap(),
           desktopWidgetsEditMode: DesktopWidgetRegistry.editMode || false,
-          // -------------
           display: shellStateData.display || {},
           notificationsState: shellStateData.notificationsState || {},
           changelogState: shellStateData.changelogState || {},

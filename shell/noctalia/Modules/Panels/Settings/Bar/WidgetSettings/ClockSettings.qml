@@ -10,14 +10,12 @@ ColumnLayout {
   spacing: Style.marginM
   width: 700
 
-  // Properties to receive data from parent
   property var screen: null
   property var widgetData: null
   property var widgetMetadata: null
 
   signal settingsChanged(var settings)
 
-  // Local state
   property string valueClockColor: widgetData.clockColor !== undefined ? widgetData.clockColor : widgetMetadata.clockColor
   property bool valueUseCustomFont: widgetData.useCustomFont !== undefined ? widgetData.useCustomFont : widgetMetadata.useCustomFont
   property string valueCustomFont: widgetData.customFont !== undefined ? widgetData.customFont : widgetMetadata.customFont
@@ -27,7 +25,6 @@ ColumnLayout {
 
   readonly property color textColor: Color.resolveColorKey(valueClockColor)
 
-  // Track the currently focused input field
   property var focusedInput: null
   property int focusedLineIndex: -1
 
@@ -44,7 +41,6 @@ ColumnLayout {
     settingsChanged(settings);
   }
 
-  // Function to insert token at cursor position in the focused input
   function insertToken(token) {
     if (!focusedInput || !focusedInput.inputItem) {
       // If no input is focused, default to horiz
@@ -59,14 +55,12 @@ ColumnLayout {
       var cursorPos = input.cursorPosition;
       var currentText = input.text;
 
-      // Insert token at cursor position
       var newText = currentText.substring(0, cursorPos) + token + currentText.substring(cursorPos);
       input.text = newText + " ";
 
       // Move cursor after the inserted token
       input.cursorPosition = cursorPos + token.length + 1;
 
-      // Ensure the input keeps focus
       input.focus = true;
     }
   }
@@ -130,7 +124,7 @@ ColumnLayout {
       spacing: Style.marginM
 
       Layout.fillWidth: true
-      Layout.preferredWidth: 1 // Equal sizing hint
+      Layout.preferredWidth: 1
       Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
 
       NTextInput {
@@ -208,8 +202,6 @@ ColumnLayout {
       }
     }
 
-    // --------------
-    // Preview
     ColumnLayout {
       Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
       Layout.fillWidth: false
@@ -242,7 +234,6 @@ ColumnLayout {
             spacing: -2
             Layout.alignment: Qt.AlignHCenter
 
-            // Horizontal
             Repeater {
               Layout.topMargin: Style.marginM
               model: I18n.locale.toString(now, valueFormatHorizontal.trim()).split("\\n")
@@ -269,7 +260,6 @@ ColumnLayout {
             Layout.fillWidth: true
           }
 
-          // Vertical
           ColumnLayout {
             spacing: -2
             Layout.alignment: Qt.AlignHCenter

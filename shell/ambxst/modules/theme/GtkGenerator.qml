@@ -36,8 +36,6 @@ QtObject {
         css += `@define-color card_bg_color ${surfaceContainer};\n`
         css += `@define-color card_fg_color ${onSurface};\n`
         
-        // Sidebar typically matches window or has slight contrast. 
-        // Using window variables as reference.
         css += `@define-color sidebar_bg_color @window_bg_color;\n`
         css += `@define-color sidebar_fg_color @window_fg_color;\n`
         css += `@define-color sidebar_border_color @window_bg_color;\n`
@@ -49,7 +47,6 @@ QtObject {
 
         writer.text = css
         
-        // Write to GTK 3/4 and reload theme
         const cmd = `
             mkdir -p "${gtk3Dir}" "${gtk4Dir}" && \\
             echo "${css}" | tee "${gtk3Dir}/gtk.css" "${gtk4Dir}/gtk.css" > /dev/null && \\

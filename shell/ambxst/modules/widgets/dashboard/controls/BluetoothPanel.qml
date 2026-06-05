@@ -18,7 +18,6 @@ Item {
     readonly property real sideMargin: (width - contentWidth) / 2
 
     Component.onCompleted: {
-        // Only refresh device list, don't start scanning automatically
         if (BluetoothService.enabled) {
             // Defer update to avoid blocking UI initialization
             initialUpdateTimer.start();
@@ -36,7 +35,6 @@ Item {
         BluetoothService.stopDiscovery();
     }
 
-    // Device list - fills entire width for scroll/drag
     ListView {
         id: deviceList
         anchors.fill: parent
@@ -100,7 +98,6 @@ Item {
             }
         }
 
-        // Empty state
         Text {
             anchors.centerIn: parent
             visible: deviceList.count === 0 && !BluetoothService.discovering

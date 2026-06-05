@@ -21,7 +21,6 @@ Rectangle {
   border.color: Color.mOutline
   border.width: Style.borderS
 
-  // Minimized Look
   MouseArea {
     anchors.fill: parent
     cursorShape: Qt.PointingHandCursor
@@ -31,7 +30,6 @@ Rectangle {
                                                                                "parent": Overlay.overlay,
                                                                                "screen": root.screen
                                                                              });
-      // Connect the dialog's signal to the picker's signal
       dialog.colorSelected.connect(function (color) {
         root.selectedColor = color;
         root.colorSelected(color);
@@ -48,7 +46,6 @@ Rectangle {
       }
       spacing: Style.marginS
 
-      // Color preview circle
       Rectangle {
         Layout.preferredWidth: root.height * 0.6
         Layout.preferredHeight: root.height * 0.6

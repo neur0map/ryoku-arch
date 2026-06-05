@@ -189,7 +189,6 @@ FileView {
     property color surfaceTint: Colours.palette.m3surfaceTint
     property color surfaceVariant: Colours.palette.m3surfaceVariant
 
-    // Named accents with no M3 equivalent keep adapter defaults
     property color blue: adapter.blue
     property color blueContainer: adapter.blueContainer
     property color blueSource: adapter.blueSource
@@ -281,10 +280,8 @@ FileView {
     property color criticalText: "#FF6B08"
     property color criticalRed: "#FF0028"
 
-    // Semantic aliases
     property color warning: Colours.palette.m3tertiary
     property color success: Colours.palette.m3success
 
-    // List of available color names for color pickers (excludes internal/source colors)
     readonly property var availableColorNames: ["background", "surface", "surfaceBright", "surfaceContainer", "surfaceContainerHigh", "surfaceContainerHighest", "surfaceContainerLow", "surfaceContainerLowest", "surfaceDim", "surfaceTint", "surfaceVariant", "primary", "primaryContainer", "primaryFixed", "primaryFixedDim", "secondary", "secondaryContainer", "secondaryFixed", "secondaryFixedDim", "tertiary", "tertiaryContainer", "tertiaryFixed", "tertiaryFixedDim", "error", "errorContainer", "overBackground", "overSurface", "overSurfaceVariant", "overPrimary", "overPrimaryContainer", "overPrimaryFixed", "overPrimaryFixedVariant", "overSecondary", "overSecondaryContainer", "overSecondaryFixed", "overSecondaryFixedVariant", "overTertiary", "overTertiaryContainer", "overTertiaryFixed", "overTertiaryFixedVariant", "overError", "overErrorContainer", "outline", "outlineVariant", "inversePrimary", "inverseSurface", "inverseOnSurface", "shadow", "scrim", "blue", "blueContainer", "overBlue", "overBlueContainer", "lightBlue", "cyan", "cyanContainer", "overCyan", "overCyanContainer", "lightCyan", "green", "greenContainer", "overGreen", "overGreenContainer", "lightGreen", "magenta", "magentaContainer", "overMagenta", "overMagentaContainer", "lightMagenta", "red", "redContainer", "overRed", "overRedContainer", "lightRed", "yellow", "yellowContainer", "overYellow", "overYellowContainer", "lightYellow", "white", "whiteContainer", "overWhite", "overWhiteContainer"]
 }

@@ -11,7 +11,7 @@ Singleton {
     property var availableProfiles: []
     property string currentProfile: ""
     property bool isAvailable: false
-    property string backendType: "" // "powerprofilesctl" atau "tlp"
+    property string backendType: ""
 
     signal profileChanged(string profile)
 
@@ -31,9 +31,6 @@ Singleton {
         checkPowerProfilesCtl.running = true;
     }
 
-    // ============================================
-    // POWERPROFILESCTL CHECK
-    // ============================================
     Process {
         id: checkPowerProfilesCtl
         workingDirectory: "/"
@@ -47,7 +44,6 @@ Singleton {
                 backendType = "powerprofilesctl";
                 isAvailable = true;
 
-                // Delay untuk ensure process ready
                 Qt.callLater(() => {
                     console.info("PowerProfile: Getting profiles...");
                     getProc.running = true;
@@ -64,9 +60,6 @@ Singleton {
         }
     }
 
-    // ============================================
-    // TLP CHECK (FALLBACK)
-    // ============================================
     Process {
         id: checkTLP
         workingDirectory: "/"
@@ -94,9 +87,6 @@ Singleton {
         }
     }
 
-    // ============================================
-    // POWERPROFILESCTL - Get current profile
-    // ============================================
     Process {
         id: getProc
         workingDirectory: "/"
@@ -114,9 +104,6 @@ Singleton {
         }
     }
 
-    // ============================================
-    // POWERPROFILESCTL - List available profiles
-    // ============================================
     Process {
         id: listProc
         workingDirectory: "/"
@@ -164,7 +151,6 @@ Singleton {
                 availableProfiles = profiles;
                 console.info("PowerProfile: powerprofilesctl profiles loaded:", availableProfiles);
             } else {
-                // Fallback ke TLP jika powerprofilesctl gagal
                 console.warn("PowerProfile: powerprofilesctl list failed, falling back to TLP...");
                 backendType = "";
                 isAvailable = false;
@@ -174,9 +160,6 @@ Singleton {
         }
     }
 
-    // ============================================
-    // TLP - Get current profile
-    // ============================================
     Process {
         id: getTLPProc
         workingDirectory: "/"
@@ -213,9 +196,6 @@ Singleton {
         }
     }
 
-    // ============================================
-    // SET PROFILE - Support both backends
-    // ============================================
     Process {
         id: setProc
         workingDirectory: "/"
@@ -265,7 +245,6 @@ Singleton {
             availableProfiles = [];
             listProc.running = true;
         } else if (backendType === "tlp") {
-            // TLP profiles sudah hardcoded
             console.info("PowerProfile: Available profiles:", availableProfiles);
         }
     }

@@ -25,7 +25,7 @@ Item {
       id: canvas
       anchors.fill: parent
       renderStrategy: Canvas.Cooperative // Better performance than Threaded for simple shapes
-      renderTarget: Canvas.FramebufferObject // GPU texture
+      renderTarget: Canvas.FramebufferObject
 
       // Enable layer caching - critical for performance!
       layer.enabled: true

@@ -11,19 +11,16 @@ Item {
     anchors.top: parent.top
     focus: false
 
-    // Layout constants
     readonly property int notificationPadding: 16
     readonly property int notificationPaddingBottom: Config.notchTheme === "island" ? 20 : 16
     readonly property int notificationPaddingTop: 8
 
-    // State
     readonly property bool hasActiveNotifications: Notifications.popupList.length > 0
     readonly property var activePlayer: MprisController.activePlayer
     property bool notchHovered: false
     property bool parentHoverActive: false
     property bool isNavigating: false
 
-    // Position detection
     readonly property string notchPosition: Config.notchPosition ?? "top"
     readonly property bool isBottom: notchPosition === "bottom"
 
@@ -65,7 +62,6 @@ Item {
         }
     }
 
-    // Computed dimensions
     readonly property real mainRowContentWidth: 200 + userInfo.width + separator1.width + separator2.width + notifIndicator.width + (mainRow.spacing * 4) + mainRowMargin
     readonly property real mainRowHeight: Config.showBackground ? (Config.notchTheme === "island" ? 36 : 44) : (Config.notchTheme === "island" ? 36 : 40)
     readonly property real notificationMinWidth: expandedState ? 420 : 320
@@ -109,13 +105,6 @@ Item {
         anchors.fill: parent
         spacing: 0
 
-        // If bottom position, we populate content bottom-up.
-        // But Column fills top-down. 
-        // We can move the mainRow to the bottom of this Column or use a different layout strategy.
-        // Easiest is to reverse the visual order by using move property or just conditionally rendering order? 
-        // QML items can be reordered visually? No.
-        // We can use States or just conditional anchoring if not using Column.
-        // But this uses Column.
 
         // Reorder children based on position:
         // Top: mainRow then notificationContainer
@@ -129,7 +118,6 @@ Item {
     Item {
         anchors.fill: parent
 
-        // mainRow container
         Row {
             id: mainRow
             anchors.horizontalCenter: parent.horizontalCenter
@@ -138,7 +126,7 @@ Item {
             width: parent.width - mainRowMargin
             height: mainRowHeight
             spacing: 4
-            z: 2 // Ensure it stays above notifications if overlap occurs (though they shouldn't)
+            z: 2
 
             UserInfo {
                 id: userInfo
@@ -171,14 +159,12 @@ Item {
             }
         }
 
-        // Notification container with its own padding
         Item {
             id: notificationContainer
             width: parent.width
             height: hasActiveNotifications ? notificationContainerHeight : 0
             visible: hasActiveNotifications
             
-            // Position relative to mainRow
             anchors.top: isBottom ? undefined : mainRow.bottom
             anchors.bottom: isBottom ? mainRow.top : undefined
             

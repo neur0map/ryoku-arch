@@ -11,7 +11,6 @@ ColumnLayout {
   spacing: Style.marginL
   Layout.fillWidth: true
 
-  // Preferred player
   NTextInput {
     // RYOKU WIRED: GlobalConfig.services.defaultPlayer (serviceconfig.hpp:32)
     label: I18n.tr("panels.audio.media-primary-player-label")

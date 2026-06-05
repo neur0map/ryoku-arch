@@ -6,7 +6,6 @@ import qs.noctalia.Commons
 RowLayout {
   id: root
 
-  // Public API
   property string label: ""
   property string description: ""
   property bool checked: false

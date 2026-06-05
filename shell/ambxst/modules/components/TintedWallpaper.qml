@@ -9,8 +9,6 @@ Item {
     property real radius: 0
     property bool tintEnabled: false
     
-    // Subset of colors for optimization (approx 25 colors vs 98)
-    // Copied from Wallpaper.qml to ensure consistency
     readonly property var optimizedPalette: [
         "background", "overBackground", "shadow",
         "surface", "surfaceBright", "surfaceDim",
@@ -24,7 +22,6 @@ Item {
         "magenta", "lightMagenta"
     ]
 
-    // Palette generation for the shader
     Item {
         id: paletteSourceItem
         visible: true 
@@ -54,7 +51,6 @@ Item {
         recursive: false
     }
 
-    // Container for masking (rounded corners)
     Item {
         anchors.fill: parent
         layer.enabled: root.radius > 0
@@ -80,7 +76,6 @@ Item {
             asynchronous: true
             smooth: true
             
-            // Tint layer
             layer.enabled: root.tintEnabled
             layer.effect: ShaderEffect {
                 property var paletteTexture: paletteTextureSource

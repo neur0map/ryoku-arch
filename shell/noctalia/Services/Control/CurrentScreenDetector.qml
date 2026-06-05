@@ -22,14 +22,11 @@ import qs.noctalia.Services.Compositor
 Item {
   id: root
 
-  // Pending callback to execute once screen is detected
   property var pendingCallback: null
   property bool pendingSkipBarCheck: false
 
-  // Detected screen
   property var detectedScreen: null
 
-  // Signal emitted when screen is detected from the PanelWindow
   signal screenDetected(var detectedScreen)
 
   onScreenDetected: function (detectedScreen) {
@@ -55,7 +52,6 @@ Item {
       if (s.x === 0 && s.y === 0) {
         primaryCandidate = s;
       }
-        // Track first screen with bar as fallback
         if (!firstWithBar) {
           firstWithBar = s;
         }
@@ -114,7 +110,6 @@ Item {
                       onTriggered: {
                         Logger.d("CurrentScreenDetector", "Screen debounced to:", root.detectedScreen?.name || "null");
 
-                        // Execute pending callback if any
                         if (root.pendingCallback) {
                           if (!root.pendingSkipBarCheck && !Settings.data.general.allowPanelsOnScreenWithoutBar) {
                             // If we explicitly disabled panels on screen without bar, check if bar is configured
@@ -139,7 +134,6 @@ Item {
                           }
                         }
 
-                        // Clean up
                         screenDetectorLoader.active = false;
                       }
                     }

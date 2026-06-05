@@ -62,19 +62,19 @@ Item {
   readonly property bool density: Settings.data.bar.density
   readonly property int iconSize: Style.toOdd(capsuleHeight * 0.65)
 
-  property var blacklist: widgetSettings.blacklist || widgetMetadata.blacklist || [] // Read from settings
+  property var blacklist: widgetSettings.blacklist || widgetMetadata.blacklist || []
   property var pinned: widgetSettings.pinned || widgetMetadata.pinned || [] // Pinned items (shown inline)
-  property bool drawerEnabled: widgetSettings.drawerEnabled !== undefined ? widgetSettings.drawerEnabled : (widgetMetadata.drawerEnabled !== undefined ? widgetMetadata.drawerEnabled : true) // Enable drawer panel
-  property bool hidePassive: widgetSettings.hidePassive !== undefined ? widgetSettings.hidePassive : true // Hide passive status items
+  property bool drawerEnabled: widgetSettings.drawerEnabled !== undefined ? widgetSettings.drawerEnabled : (widgetMetadata.drawerEnabled !== undefined ? widgetMetadata.drawerEnabled : true)
+  property bool hidePassive: widgetSettings.hidePassive !== undefined ? widgetSettings.hidePassive : true
   readonly property string chevronColorKey: widgetSettings.chevronColor !== undefined ? widgetSettings.chevronColor : widgetMetadata.chevronColor
   readonly property color chevronColor: Color.resolveColorKey(chevronColorKey)
   property var filteredItems: [] // Items to show inline (pinned)
   property var dropdownItems: [] // Items to show in drawer (unpinned)
-  property int hoveredItemIndex: -1 // Track hovered item for dot indicator
+  property int hoveredItemIndex: -1
 
   Timer {
     id: updateDebounceTimer
-    interval: 100 // milliseconds
+    interval: 100
     running: false
     repeat: false
     onTriggered: _performFilteredItemsUpdate()
@@ -127,7 +127,6 @@ Item {
       }
     }
 
-    // Update local properties with fresh data
     if (currentSettings.blacklist !== undefined)
       root.blacklist = currentSettings.blacklist;
     if (currentSettings.pinned !== undefined)
@@ -149,7 +148,6 @@ Item {
           continue;
         }
 
-        // Check if blacklisted
         let isBlacklisted = false;
         if (root.blacklist && root.blacklist.length > 0) {
           for (var j = 0; j < root.blacklist.length; j++) {
@@ -246,7 +244,6 @@ Item {
   function toggleDrawer(button) {
     TooltipService.hideImmediately();
 
-    // Close the popup menu if it's open
     if (popupMenuWindow && popupMenuWindow.visible) {
       popupMenuWindow.close();
     }
@@ -287,10 +284,9 @@ Item {
   }
 
   Component.onCompleted: {
-    root.updateFilteredItems(); // Initial update
+    root.updateFilteredItems();
   }
 
-  // Content dimensions for implicit sizing
   readonly property int visibleItemCount: (root.drawerEnabled && dropdownItems.length > 0 ? 1 : 0) + filteredItems.length
   readonly property real capsulePadding: 0
   readonly property real capsuleWidth: isVertical ? capsuleHeight : Math.round(trayFlow.implicitWidth + capsulePadding * 2)
@@ -301,7 +297,6 @@ Item {
   visible: filteredItems.length > 0 || dropdownItems.length > 0
   opacity: (filteredItems.length > 0 || dropdownItems.length > 0) ? 1.0 : 0.0
 
-  // Visual capsule centered in parent
   Rectangle {
     id: visualCapsule
     width: capsuleWidth
@@ -340,7 +335,6 @@ Item {
     spacing: 0
     flow: isVertical ? Flow.TopToBottom : Flow.LeftToRight
 
-    // Position centered in capsule
     anchors.centerIn: visualCapsule
 
     // Drawer opener (before items if opposite direction)
@@ -381,7 +375,6 @@ Item {
       onRightClicked: PanelService.showContextMenu(chevronContextMenu, this, screen)
     }
 
-    // Pinned items
     Repeater {
       id: repeater
       model: root.filteredItems
@@ -419,7 +412,6 @@ Item {
               return "";
             }
 
-            // Process icon path
             if (icon.includes("?path=")) {
               const chunks = icon.split("?path=");
               const name = chunks[0];
@@ -482,7 +474,6 @@ Item {
                        }
 
                        if (mouse.button === Qt.LeftButton) {
-                         // Close any open menu first
                          if (popupMenuWindow) {
                            popupMenuWindow.close();
                          }
@@ -491,7 +482,6 @@ Item {
                            modelData.activate();
                          }
                        } else if (mouse.button === Qt.MiddleButton) {
-                         // Close the menu if it was visible
                          if (popupMenuWindow && popupMenuWindow.visible) {
                            popupMenuWindow.close();
                            return;
@@ -500,13 +490,11 @@ Item {
                        } else if (mouse.button === Qt.RightButton) {
                          TooltipService.hideImmediately();
 
-                         // Close the menu if it was visible
                          if (popupMenuWindow && popupMenuWindow.visible) {
                            popupMenuWindow.close();
                            return;
                          }
 
-                         // Close any opened panel
                          if ((PanelService.openedPanel !== null) && !PanelService.openedPanel.isClosing) {
                            PanelService.openedPanel.close();
                          }
@@ -576,5 +564,5 @@ Item {
       onClicked: toggleDrawer(this)
       onRightClicked: PanelService.showContextMenu(chevronContextMenu, this, screen)
     }
-  } // closes Flow
+  }
 }

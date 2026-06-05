@@ -35,7 +35,6 @@ Button {
     implicitHeight: isSeparator ? 10 : 36
     enabled: !isSeparator
 
-    // Reset default styling
     padding: 0
     background: Rectangle {
         color: {
@@ -44,7 +43,6 @@ Button {
         }
         radius: Styling.radius(0)
 
-        // Separator line
         Rectangle {
             visible: root.isSeparator
             height: 1
@@ -58,18 +56,15 @@ Button {
         spacing: 8
         visible: !root.isSeparator
 
-        // Add margins for content
         anchors.fill: parent
         anchors.leftMargin: 8 + root.depth * 12
         anchors.rightMargin: 8
 
-        // Check/Radio indicator
         Item {
             visible: root.buttonType > 0
             Layout.preferredWidth: 16
             Layout.preferredHeight: 16
 
-            // Checkbox
             Rectangle {
                 visible: root.buttonType === 1
                 anchors.centerIn: parent
@@ -90,7 +85,6 @@ Button {
                 }
             }
 
-            // RadioButton
             Rectangle {
                 visible: root.buttonType === 2
                 anchors.centerIn: parent
@@ -112,7 +106,6 @@ Button {
             }
         }
 
-        // Icon
         Loader {
             Layout.preferredWidth: 16
             Layout.preferredHeight: 16
@@ -141,7 +134,6 @@ Button {
             }
         }
 
-        // Text
         Text {
             Layout.fillWidth: true
             text: root.cleanText
@@ -152,7 +144,6 @@ Button {
             verticalAlignment: Text.AlignVCenter
         }
 
-        // Submenu chevron
         Text {
             visible: root.hasSubmenu
             text: root.expanded ? "\u25BE" : "\u25B8"

@@ -8,13 +8,11 @@ Item {
     id: root
     property var currentScreen
 
-    // Detect if we're in scrolling layout mode
     readonly property bool isScrollingLayout: GlobalStates.compositorLayout === "scrolling"
 
     implicitWidth: overviewLoader.item ? overviewLoader.item.implicitWidth : 400
     implicitHeight: overviewLoader.item ? overviewLoader.item.implicitHeight : 300
 
-    // Expose flickable and scrollbar needs for scrolling mode
     readonly property var flickable: isScrollingLayout && overviewLoader.item ? overviewLoader.item.flickable : null
     readonly property bool needsScrollbar: isScrollingLayout && overviewLoader.item ? overviewLoader.item.needsScrollbar : false
 
@@ -42,7 +40,6 @@ Item {
         }
     }
 
-    // Dynamic loader for the appropriate overview component
     Loader {
         id: overviewLoader
         anchors.centerIn: parent
@@ -51,7 +48,6 @@ Item {
         sourceComponent: isScrollingLayout ? scrollingOverviewComponent : standardOverviewComponent
     }
 
-    // Standard grid overview
     Component {
         id: standardOverviewComponent
         Overview {
@@ -70,7 +66,6 @@ Item {
         }
     }
 
-    // Scrolling tape overview
     Component {
         id: scrollingOverviewComponent
         ScrollingOverview {
@@ -89,11 +84,9 @@ Item {
         }
     }
 
-    // Expose search-related properties for parent components (read from child)
     readonly property var matchingWindows: overviewLoader.item ? overviewLoader.item.matchingWindows : []
     readonly property int selectedMatchIndex: overviewLoader.item ? overviewLoader.item.selectedMatchIndex : 0
 
-    // Search query - writable, synced to child
     property string searchQuery: ""
     onSearchQueryChanged: {
         if (overviewLoader.item) {

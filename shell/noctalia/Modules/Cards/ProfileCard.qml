@@ -10,7 +10,6 @@ import qs.noctalia.Services.System
 import qs.noctalia.Services.UI
 import qs.noctalia.Widgets
 
-// Header card with avatar, user and quick actions
 NBox {
   id: root
 
@@ -94,8 +93,6 @@ NBox {
     }
   }
 
-  // ----------------------------------
-  // Uptime
   Timer {
     interval: 60000
     repeat: true

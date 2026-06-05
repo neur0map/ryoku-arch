@@ -62,15 +62,10 @@ Singleton {
     externalReloadTimer.restart();
   }
 
-  // -----------------------------------------------------
-  // -----------------------------------------------------
-  // Ensure directories exist before FileView tries to read files
   Component.onCompleted: {
-    // ensure settings dir exists
     Quickshell.execDetached(["mkdir", "-p", configDir]);
     Quickshell.execDetached(["mkdir", "-p", cacheDir]);
 
-    // Mark directories as created and trigger file loading
     directoriesCreated = true;
 
     // This should only be activated once when the settings structure has changed
@@ -81,13 +76,11 @@ Singleton {
       generateWidgetDefaultSettings();
     }
 
-    // Patch-in the local default, resolved to user's home
     adapter.general.avatarImage = defaultAvatar;
     adapter.wallpaper.directory = defaultWallpapersDirectory;
     adapter.ui.fontDefault = Qt.application.font.family;
     adapter.ui.fontFixed = "monospace";
 
-    // Set the adapter to the settingsFileView to trigger the real settings load
     settingsFileView.adapter = adapter;
   }
 
@@ -111,7 +104,6 @@ Singleton {
 
     onFileChanged: scheduleExternalReload()
 
-    // Trigger initial load when path changes from empty to actual path
     onPathChanged: {
       if (path !== undefined) {
         reload();
@@ -132,10 +124,8 @@ Singleton {
         // Run versioned migrations immediately, don't move it in upgradeSettings
         runVersionedMigrations(rawJson);
 
-        // Finally, update our local settings version
         adapter.settingsVersion = settingsVersion;
 
-        // Emit the signal
         root.isLoaded = true;
         root.settingsLoaded();
 
@@ -151,11 +141,9 @@ Singleton {
         return;
       }
       if (error.toString().includes("No such file") || error === 2) {
-        // File doesn't exist, create it with default values
         root.isFreshInstall = true;
         writeAdapter();
 
-        // We started without settings, we should open the setupWizard
         root.shouldOpenSetupWizard = true;
       }
     }
@@ -171,7 +159,6 @@ Singleton {
     onFileChanged: scheduleExternalReload()
   }
 
-  // FileView to load default settings for comparison
   FileView {
     id: defaultSettingsFileView
     path: Quickshell.shellDir + "/noctalia" + "/Assets/settings-default.json"
@@ -179,10 +166,8 @@ Singleton {
     watchChanges: false
   }
 
-  // Cached default settings object
   property var _defaultSettings: null
 
-  // Load default settings when file is loaded
   Connections {
     target: defaultSettingsFileView
     function onLoaded() {
@@ -200,7 +185,6 @@ Singleton {
 
     property int settingsVersion: 0
 
-    // bar
     property JsonObject bar: JsonObject {
       property string barType: "simple" // "simple", "floating", "framed"
       property string position: "top" // "top", "bottom", "left", or "right"
@@ -215,31 +199,25 @@ Singleton {
       property real fontScale: 1.0
       property bool enableExclusionZoneInset: true
 
-      // Bar background opacity settings
       property real backgroundOpacity: 0.93
       property bool useSeparateOpacity: false
 
-      // Floating bar settings
       property int marginVertical: 4
       property int marginHorizontal: 4
 
-      // Framed bar settings
       property int frameThickness: 8
       property int frameRadius: 12
 
       // Bar outer corners (inverted/concave corners at bar edges when not floating)
       property bool outerCorners: true
 
-      // Hide bar/panels when compositor overview is active
       property bool hideOnOverview: false
 
-      // Auto-hide settings
       property string displayMode: "always_visible"
       property int autoHideDelay: 500 // ms before hiding after mouse leaves
       property int autoShowDelay: 150 // ms before showing when mouse enters
       property bool showOnWorkspaceSwitch: true // show bar briefly on workspace switch
 
-      // Widget configuration for modular bar system
       property JsonObject widgets
       widgets: JsonObject {
         property list<var> left: [
@@ -299,7 +277,6 @@ Singleton {
       property list<var> screenOverrides: []
     }
 
-    // general
     property JsonObject general: JsonObject {
       property string avatarImage: ""
       property real dimmerOpacity: 0.2
@@ -350,7 +327,6 @@ Singleton {
       property bool smoothScrollEnabled: true
     }
 
-    // ui
     property JsonObject ui: JsonObject {
       property string fontDefault: ""
       property string fontFixed: ""
@@ -366,7 +342,6 @@ Singleton {
       property bool settingsPanelSideBarCardStyle: false
     }
 
-    // location
     property JsonObject location: JsonObject {
       property string name: ""
       property bool weatherEnabled: true
@@ -384,7 +359,6 @@ Singleton {
       property bool autoLocate: false
     }
 
-    // calendar
     property JsonObject calendar: JsonObject {
       property list<var> cards: [
         {
@@ -402,7 +376,6 @@ Singleton {
       ]
     }
 
-    // wallpaper
     property JsonObject wallpaper: JsonObject {
       property bool enabled: true
       property bool overviewEnabled: false
@@ -429,7 +402,6 @@ Singleton {
       property bool useOriginalImages: false
       property real overviewBlur: 0.4
       property real overviewTint: 0.6
-      // Wallhaven settings
       property bool useWallhaven: false
       property string wallhavenQuery: ""
       property string wallhavenSorting: "relevance"
@@ -456,7 +428,6 @@ Singleton {
       property string autoCleanup: "off" // off | daily | weekly
     }
 
-    // applauncher
     property JsonObject appLauncher: JsonObject {
       property bool enableClipboardHistory: false
       property bool autoPasteClipboard: false
@@ -487,7 +458,6 @@ Singleton {
       property string density: "default" // "compact", "default", "comfortable"
     }
 
-    // control center
     property JsonObject controlCenter: JsonObject {
       // Position: close_to_bar_button, center, top_left, top_right, bottom_left, bottom_right, bottom_center, top_center
       property string position: "close_to_bar_button"
@@ -551,7 +521,6 @@ Singleton {
       ]
     }
 
-    // system monitor
     property JsonObject systemMonitor: JsonObject {
       property int cpuWarningThreshold: 80
       property int cpuCriticalThreshold: 90
@@ -576,13 +545,11 @@ Singleton {
       property string externalMonitor: "resources || missioncenter || jdsystemmonitor || corestats || system-monitoring-center || gnome-system-monitor || plasma-systemmonitor || mate-system-monitor || ukui-system-monitor || deepin-system-monitor || pantheon-system-monitor"
     }
 
-    // performance
     property JsonObject noctaliaPerformance: JsonObject {
       property bool disableWallpaper: true
       property bool disableDesktopWidgets: true
     }
 
-    // dock
     property JsonObject dock: JsonObject {
       property bool enabled: true
       property string position: "bottom" // "top", "bottom", "left", "right"
@@ -615,7 +582,6 @@ Singleton {
       property real indicatorOpacity: 0.6
     }
 
-    // network
     property JsonObject network: JsonObject {
       property bool bluetoothRssiPollingEnabled: false  // Opt-in Bluetooth RSSI polling (uses bluetoothctl)
       property int bluetoothRssiPollIntervalMs: 60000 // Polling interval in milliseconds for RSSI queries
@@ -627,7 +593,6 @@ Singleton {
       property bool bluetoothAutoConnect: true
     }
 
-    // session menu
     property JsonObject sessionMenu: JsonObject {
       property bool enableCountdown: true
       property int countdownDuration: 10000
@@ -675,7 +640,6 @@ Singleton {
       ]
     }
 
-    // notifications
     property JsonObject notifications: JsonObject {
       property bool enabled: true
       property bool enableMarkdown: false
@@ -708,7 +672,6 @@ Singleton {
       property bool enableBatteryToast: true
     }
 
-    // on-screen display
     property JsonObject osd: JsonObject {
       property bool enabled: true
       property string location: "top_right"
@@ -719,7 +682,6 @@ Singleton {
       property list<string> monitors: [] // holds osd visibility per monitor
     }
 
-    // audio
     property JsonObject audio: JsonObject {
       property int volumeStep: 5
       property bool volumeOverdrive: false
@@ -732,7 +694,6 @@ Singleton {
       property string volumeFeedbackSoundFile: ""
     }
 
-    // brightness
     property JsonObject brightness: JsonObject {
       property int brightnessStep: 5
       property bool enforceMinimum: true
@@ -753,14 +714,12 @@ Singleton {
       property bool syncGsettings: true
     }
 
-    // templates toggles
     property JsonObject templates: JsonObject {
       property list<var> activeTemplates: []
       // Format: [{ "id": "gtk", "enabled": true }, { "id": "qt", "enabled": true }, ...]
       property bool enableUserTheming: false
     }
 
-    // night light
     property JsonObject nightLight: JsonObject {
       property bool enabled: false
       property bool forced: false
@@ -771,7 +730,6 @@ Singleton {
       property string manualSunset: "18:30"
     }
 
-    // hooks
     property JsonObject hooks: JsonObject {
       property bool enabled: false
       property string wallpaperChange: ""
@@ -785,13 +743,11 @@ Singleton {
       property string colorGeneration: ""
     }
 
-    // plugins
     property JsonObject plugins: JsonObject {
       property bool autoUpdate: false
       property bool notifyUpdates: true
     }
 
-    // idle management
     property JsonObject idle: JsonObject {
       property bool enabled: false
       property int screenOffTimeout: 600    // seconds, 0 = disabled
@@ -807,7 +763,6 @@ Singleton {
       property string customCommands: "[]" // JSON array of {timeout, command, resumeCommand}
     }
 
-    // desktop widgets
     property JsonObject desktopWidgets: JsonObject {
       property bool enabled: false
       property bool overviewEnabled: true
@@ -818,20 +773,15 @@ Singleton {
     }
   }
 
-  // -----------------------------------------------------
-  // Preprocess paths by adding trailing "/"
   function ensureTrailingSlash(path) {
     return path.endsWith("/") ? path : path + "/";
   }
 
-  // -----------------------------------------------------
-  // Preprocess paths by expanding "~" to user's home directory
   function preprocessPath(path) {
     if (typeof path !== "string" || path === "") {
       return path;
     }
 
-    // Expand "~" to user's home directory
     if (path.startsWith("~/")) {
       return Quickshell.env("HOME") + path.substring(1);
     } else if (path === "~") {
@@ -841,9 +791,6 @@ Singleton {
     return path;
   }
 
-  // -----------------------------------------------------
-  // Get default value for a setting path (e.g., "general.scaleRatio" or "bar.position")
-  // Returns undefined if not found
   function getDefaultValue(path) {
     if (!root._defaultSettings) {
       return undefined;
@@ -862,34 +809,25 @@ Singleton {
     return current;
   }
 
-  // -----------------------------------------------------
-  // Compare current value with default value
-  // Returns true if values differ, false if they match or default is not found
   function isValueChanged(path, currentValue) {
     var defaultValue = getDefaultValue(path);
     if (defaultValue === undefined) {
-      return false; // Can't compare if default not found
+      return false;
     }
 
-    // Deep comparison for objects and arrays
     if (typeof currentValue === "object" && typeof defaultValue === "object") {
       return JSON.stringify(currentValue) !== JSON.stringify(defaultValue);
     }
 
-    // Simple comparison for primitives
     return currentValue !== defaultValue;
   }
 
-  // -----------------------------------------------------
-  // Format default value for tooltip display
-  // Returns a human-readable string representation of the default value
   function formatDefaultValueForTooltip(path) {
     var defaultValue = getDefaultValue(path);
     if (defaultValue === undefined) {
       return "";
     }
 
-    // Format based on type
     if (typeof defaultValue === "boolean") {
       return defaultValue ? "true" : "false";
     } else if (typeof defaultValue === "number") {
@@ -905,8 +843,6 @@ Singleton {
     return String(defaultValue);
   }
 
-  // -----------------------------------------------------
-  // Helper to find a screen override entry by name in the array
   // Format: [{ "name": "HDMI-A-1", "position": "left" }, ...]
   // Note: QML's list<var> is not a true JS array, so we check for .length instead of Array.isArray()
   function _findScreenOverride(screenName) {
@@ -922,7 +858,6 @@ Singleton {
     return null;
   }
 
-  // Helper to find index of a screen override entry
   function _findScreenOverrideIndex(screenName) {
     var overrides = data.bar.screenOverrides;
     if (!screenName || !overrides || overrides.length === undefined) {
@@ -936,8 +871,6 @@ Singleton {
     return -1;
   }
 
-  // -----------------------------------------------------
-  // Check if a screen's overrides are enabled
   // Returns true if enabled flag is true or undefined (backward compat)
   // Returns false only if enabled is explicitly false
   function isScreenOverrideEnabled(screenName) {
@@ -948,9 +881,6 @@ Singleton {
     return override.enabled !== false;
   }
 
-  // -----------------------------------------------------
-  // Get effective bar position for a screen (with inheritance)
-  // If the screen has a position override and overrides are enabled, use it; otherwise use global default
   function getBarPositionForScreen(screenName) {
     var override = _findScreenOverride(screenName);
     if (override && override.enabled !== false && override.position !== undefined) {
@@ -959,9 +889,6 @@ Singleton {
     return data.bar.position || "top";
   }
 
-  // -----------------------------------------------------
-  // Get effective bar widgets for a screen (with inheritance)
-  // If the screen has widget overrides and overrides are enabled, use them; otherwise use global defaults
   function getBarWidgetsForScreen(screenName) {
     var override = _findScreenOverride(screenName);
     if (override && override.enabled !== false && override.widgets !== undefined) {
@@ -970,9 +897,6 @@ Singleton {
     return data.bar.widgets;
   }
 
-  // -----------------------------------------------------
-  // Get effective bar density for a screen (with inheritance)
-  // If the screen has a density override and overrides are enabled, use it; otherwise use global default
   function getBarDensityForScreen(screenName) {
     var override = _findScreenOverride(screenName);
     if (override && override.enabled !== false && override.density !== undefined) {
@@ -981,9 +905,6 @@ Singleton {
     return data.bar.density || "default";
   }
 
-  // -----------------------------------------------------
-  // Get effective bar display mode for a screen (with inheritance)
-  // If the screen has a displayMode override and overrides are enabled, use it; otherwise use global default
   function getBarDisplayModeForScreen(screenName) {
     var override = _findScreenOverride(screenName);
     if (override && override.enabled !== false && override.displayMode !== undefined) {
@@ -992,8 +913,6 @@ Singleton {
     return data.bar.displayMode || "always_visible";
   }
 
-  // -----------------------------------------------------
-  // Check if a screen has any overrides, optionally for a specific property
   function hasScreenOverride(screenName, property) {
     var override = _findScreenOverride(screenName);
     if (!override) {
@@ -1002,20 +921,15 @@ Singleton {
     if (property) {
       return override[property] !== undefined;
     }
-    // Check if screen has any override property (besides "name")
     var keys = Object.keys(override);
     return keys.length > 1 || (keys.length === 1 && keys[0] !== "name");
   }
 
-  // -----------------------------------------------------
-  // Get the screen override entry directly (for in-place modifications)
   // Returns the actual entry object from the array, not a copy
   function getScreenOverrideEntry(screenName) {
     return _findScreenOverride(screenName);
   }
 
-  // -----------------------------------------------------
-  // Set a per-screen override
   function setScreenOverride(screenName, property, value) {
     if (!screenName)
       return;
@@ -1034,21 +948,17 @@ Singleton {
     }
 
     if (index === -1) {
-      // Create new entry
       var newEntry = {
         "name": screenName
       };
       newEntry[property] = value;
       overrides.push(newEntry);
     } else {
-      // Update existing entry
       overrides[index][property] = value;
     }
     data.bar.screenOverrides = overrides;
   }
 
-  // -----------------------------------------------------
-  // Clear a per-screen override (revert to global default)
   // If property is null, clears all overrides for that screen
   function clearScreenOverride(screenName, property) {
     if (!screenName)
@@ -1075,7 +985,6 @@ Singleton {
 
     if (property) {
       delete overrides[index][property];
-      // Remove screen entry if only "name" remains
       var keys = Object.keys(overrides[index]);
       if (keys.length <= 1 && (keys.length === 0 || keys[0] === "name")) {
         overrides.splice(index, 1);
@@ -1086,20 +995,16 @@ Singleton {
     data.bar.screenOverrides = overrides;
   }
 
-  // -----------------------------------------------------
-  // Public function to trigger immediate settings saving
   function saveImmediate() {
     settingsFileView.writeAdapter();
-    root.settingsSaved(); // Emit signal after saving
+    root.settingsSaved();
   }
 
-  // -----------------------------------------------------
   // Generate default settings: for reference only, not used by the shell
   function generateDefaultSettings() {
     try {
       Logger.d("Settings", "Generating settings-default.json");
 
-      // Prepare a clean JSON
       var plainAdapter = QtObj2JS.qtObjectToPlainObject(adapter);
       var jsonData = JSON.stringify(plainAdapter, null, 2);
 
@@ -1111,7 +1016,6 @@ Singleton {
     }
   }
 
-  // -----------------------------------------------------
   // Generate default widget settings: for reference only, not used by the shell
   function generateWidgetDefaultSettings() {
     try {
@@ -1132,11 +1036,8 @@ Singleton {
     }
   }
 
-  // -----------------------------------------------------
-  // Run versioned migrations using MigrationRegistry
   // rawJson is the parsed JSON file content (before adapter filtering)
   function runVersionedMigrations(rawJson) {
-    // Skip migrations on fresh installs (no prior settings file)
     if (!rawJson || root.isFreshInstall) {
       Logger.i("Settings", "Fresh install detected, skipping migrations");
       return;
@@ -1147,15 +1048,12 @@ Singleton {
 
     Logger.i("Settings", "adapter.settingsVersion:", adapter.settingsVersion);
 
-    // Get all migration versions and sort them
     const versions = Object.keys(migrations).map(v => parseInt(v)).sort((a, b) => a - b);
 
-    // Run migrations in order for versions newer than current
     for (var i = 0; i < versions.length; i++) {
       const version = versions[i];
 
       if (currentVersion < version) {
-        // Create migration instance and run it
         const migrationComponent = migrations[version];
         const migration = migrationComponent.createObject(root);
 
@@ -1168,7 +1066,6 @@ Singleton {
           Logger.e("Settings", "Invalid migration for v" + version);
         }
 
-        // Clean up migration instance
         if (migration) {
           migration.destroy();
         }
@@ -1176,9 +1073,6 @@ Singleton {
     }
   }
 
-  // -----------------------------------------------------
-  // If the settings structure has changed, ensure
-  // backward compatibility by upgrading the settings
   // Bound the "wait for the bar registries" retry. Ryoku runs its own ambxst bar and
   // never loads noctalia's Bar, so BarWidgetRegistry never populates; the upstream
   // unbounded Qt.callLater retry then spins the event loop at 100% CPU forever. Pace
@@ -1204,10 +1098,8 @@ Singleton {
     }
     root.upgradeRetries = 0;
 
-    // -----------------
     const sections = ["left", "center", "right"];
 
-    // 1. remove any non existing bar widget type
     var removedWidget = false;
     for (var s = 0; s < sections.length; s++) {
       const sectionName = sections[s];
@@ -1223,8 +1115,6 @@ Singleton {
       }
     }
 
-    // -----------------
-    // 2. remove any non existing control center widget type
     const ccSections = ["left", "right"];
     for (var s = 0; s < ccSections.length; s++) {
       const sectionName = ccSections[s];
@@ -1239,8 +1129,6 @@ Singleton {
       }
     }
 
-    // -----------------
-    // 3. remove any non existing desktop widget type
     const monitorWidgets = adapter.desktopWidgets.monitorWidgets;
     for (var m = 0; m < monitorWidgets.length; m++) {
       const monitor = monitorWidgets[m];
@@ -1256,14 +1144,11 @@ Singleton {
       }
     }
 
-    // -----------------
-    // 4. upgrade user widget settings
     for (var s = 0; s < sections.length; s++) {
       const sectionName = sections[s];
       for (var i = 0; i < adapter.bar.widgets[sectionName].length; i++) {
         var widget = adapter.bar.widgets[sectionName][i];
 
-        // Check if widget registry supports user settings, if it does not, then there is nothing to do
         if (BarWidgetRegistry.widgetMetadata[widget.id] === undefined) {
           continue;
         }
@@ -1275,16 +1160,11 @@ Singleton {
     }
   }
 
-  // -----------------------------------------------------
-  // Function to clean up deprecated user/custom bar widgets settings
   function upgradeWidget(widget) {
-    // Backup the widget definition before altering
     const widgetBefore = JSON.stringify(widget);
 
-    // Get all existing custom settings keys
     const keys = Object.keys(BarWidgetRegistry.widgetMetadata[widget.id]);
 
-    // Delete deprecated user settings from the wiget
     for (const k of Object.keys(widget)) {
       if (k === "id") {
         continue;
@@ -1294,7 +1174,6 @@ Singleton {
       }
     }
 
-    // Inject missing default setting (metaData) from BarWidgetRegistry
     for (var i = 0; i < keys.length; i++) {
       const k = keys[i];
       if (k === "id") {
@@ -1306,7 +1185,6 @@ Singleton {
       }
     }
 
-    // Compare settings, to detect if something has been upgraded
     const widgetAfter = JSON.stringify(widget);
     return (widgetAfter !== widgetBefore);
   }

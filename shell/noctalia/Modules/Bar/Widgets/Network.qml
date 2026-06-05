@@ -3,7 +3,7 @@ import QtQuick.Controls
 import Quickshell
 import qs.noctalia.Commons
 import qs.noctalia.Modules.Bar.Extras
-import qs.noctalia.Modules.Panels.Settings // For SettingsPanel
+import qs.noctalia.Modules.Panels.Settings
 import qs.noctalia.Services.Networking
 import qs.noctalia.Services.UI
 import qs.noctalia.Widgets

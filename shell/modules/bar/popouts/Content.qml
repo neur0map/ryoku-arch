@@ -61,9 +61,7 @@ Item {
 
             Connections {
                 function onCurrentNameChanged() {
-                    // Update network immediately when password popout becomes active
                     if (root.popouts.currentName === "wirelesspassword") {
-                        // Set network immediately if available
                         if ((networkPopout.item as Network)?.passwordNetwork) {
                             if (passwordPopout.item) {
                                 (passwordPopout.item as WirelessPassword).network = (networkPopout.item as Network).passwordNetwork;

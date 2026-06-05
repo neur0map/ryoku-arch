@@ -92,7 +92,6 @@ QSGNode* BlobInvertedRect::updatePaintNode(QSGNode* oldNode, UpdatePaintNodeData
     const float w = x1 - x0;
     const float h = y1 - y0;
 
-    // Update vertex positions and texture coordinates
     auto* v = node->geometry()->vertexDataAsTexturedPoint2D();
 
     // Outer corners
@@ -108,7 +107,6 @@ QSGNode* BlobInvertedRect::updatePaintNode(QSGNode* oldNode, UpdatePaintNodeData
 
     node->markDirty(QSGNode::DirtyGeometry);
 
-    // Update material uniforms
     auto* material = static_cast<BlobMaterial*>(node->material());
     material->m_paddedX = m_cachedPaddedX;
     material->m_paddedY = m_cachedPaddedY;

@@ -29,8 +29,6 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
-// Quickshell.Services.Notifications is kept for the NotificationUrgency enum
-// (used by callers such as Battery.qml) and the Notification type reference.
 import Quickshell.Services.Notifications
 import qs.services
 
@@ -102,7 +100,6 @@ Singleton {
 
     property bool popupInhibited: silent
 
-    // ── Grouping (unchanged shape; reads off the projected `list`) ───────────
     property var latestTimeForApp: ({})
 
     onListChanged: {
@@ -154,7 +151,6 @@ Singleton {
     property var appNameList: appNameListForGroups(root.groupsByAppName)
     property var popupAppNameList: appNameListForGroups(root.popupGroupsByAppName)
 
-    // ── Programmatic notifications (no DBus) ─────────────────────────────────
     function notifyInternal(options) {
         if (!options || (!options.summary && !options.body)) {
             return null;
@@ -190,7 +186,6 @@ Singleton {
         return obj;
     }
 
-    // ── Dismiss / discard ────────────────────────────────────────────────────
     function findNotif(id) {
         return root.list.find(notif => notif.id === id) ?? null;
     }
@@ -204,7 +199,6 @@ Singleton {
             // Live ryoku notification: mirror shell/modules/sidebar/Notif.qml.
             notif._src.close();
         } else {
-            // Local internal notification.
             root.internalNotifs = root.internalNotifs.filter(n => n.id !== id);
         }
     }
@@ -222,11 +216,9 @@ Singleton {
         root.internalNotifs = [];
     }
 
-    // ── Action invocation ─────────────────────────────────────────────────────
     function attemptInvokeAction(id, notifIdentifier, autoDiscard = true) {
         const notif = root.findNotif(id);
         if (notif) {
-            // Local handler (internal notifications).
             const localHandlers = notif.localActionHandlers || {};
             const localHandler = localHandlers[notifIdentifier];
             if (typeof localHandler === "function") {

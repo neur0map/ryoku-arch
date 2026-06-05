@@ -6,7 +6,6 @@ import Quickshell
 Singleton {
   id: root
 
-  // Public API
   function go(search, targets, options) {
     return _go(search, targets, options);
   }
@@ -31,7 +30,6 @@ Singleton {
     return _cleanup();
   }
 
-  // Internal implementation
   readonly property var _INFINITY: Infinity
   readonly property var _NEGATIVE_INFINITY: -Infinity
   readonly property var _NULL: null

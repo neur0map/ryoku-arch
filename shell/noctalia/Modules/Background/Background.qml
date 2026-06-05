@@ -19,7 +19,6 @@ Variants {
     sourceComponent: PanelWindow {
       id: root
 
-      // Internal state management
       property string transitionType: "fade"
       property real transitionProgress: 0
       property bool isStartupTransition: true
@@ -34,18 +33,14 @@ Variants {
       // Wipe direction: 0=left, 1=right, 2=up, 3=down
       property real wipeDirection: 0
 
-      // Disc
       property real discCenterX: 0.5
       property real discCenterY: 0.5
 
-      // Stripe
       property real stripesCount: 16
       property real stripesAngle: 0
 
-      // Pixelate
       property real pixelateMaxBlockSize: 64.0
 
-      // Honeycomb
       property real honeycombCellSize: 0.04
       property real honeycombCenterX: 0.5
       property real honeycombCenterY: 0.5
@@ -85,7 +80,6 @@ Variants {
         }
       }
 
-      // External state management
       Connections {
         target: WallpaperService
         function onWallpaperChanged(screenName, path) {
@@ -234,7 +228,6 @@ Variants {
           property variant source2: nextWallpaper.status === Image.Ready ? nextWallpaper : currentWallpaper.status === Image.Ready ? nextWallpaper : currentWallpaper
           property real progress: root.transitionProgress
 
-          // Fill mode properties
           property real fillMode: root.fillMode
           property vector4d fillColor: root.fillColor
           property real imageWidth1: source1.sourceSize.width
@@ -244,7 +237,6 @@ Variants {
           property real screenWidth: width
           property real screenHeight: height
 
-          // Solid color mode
           property real isSolid1: root.isSolid1 ? 1.0 : 0.0
           property real isSolid2: root.isSolid2 ? 1.0 : 0.0
           property vector4d solidColor1: root.solidColor1
@@ -254,7 +246,6 @@ Variants {
         }
       }
 
-      // Wipe transition shader component
       Component {
         id: wipeShaderComponent
         ShaderEffect {
@@ -266,7 +257,6 @@ Variants {
           property real smoothness: root.edgeSmoothness
           property real direction: root.wipeDirection
 
-          // Fill mode properties
           property real fillMode: root.fillMode
           property vector4d fillColor: root.fillColor
           property real imageWidth1: source1.sourceSize.width
@@ -276,7 +266,6 @@ Variants {
           property real screenWidth: width
           property real screenHeight: height
 
-          // Solid color mode
           property real isSolid1: root.isSolid1 ? 1.0 : 0.0
           property real isSolid2: root.isSolid2 ? 1.0 : 0.0
           property vector4d solidColor1: root.solidColor1
@@ -286,7 +275,6 @@ Variants {
         }
       }
 
-      // Disc reveal transition shader component
       Component {
         id: discShaderComponent
         ShaderEffect {
@@ -300,7 +288,6 @@ Variants {
           property real centerX: root.discCenterX
           property real centerY: root.discCenterY
 
-          // Fill mode properties
           property real fillMode: root.fillMode
           property vector4d fillColor: root.fillColor
           property real imageWidth1: source1.sourceSize.width
@@ -310,7 +297,6 @@ Variants {
           property real screenWidth: width
           property real screenHeight: height
 
-          // Solid color mode
           property real isSolid1: root.isSolid1 ? 1.0 : 0.0
           property real isSolid2: root.isSolid2 ? 1.0 : 0.0
           property vector4d solidColor1: root.solidColor1
@@ -320,7 +306,6 @@ Variants {
         }
       }
 
-      // Diagonal stripes transition shader component
       Component {
         id: stripesShaderComponent
         ShaderEffect {
@@ -334,7 +319,6 @@ Variants {
           property real stripeCount: root.stripesCount
           property real angle: root.stripesAngle
 
-          // Fill mode properties
           property real fillMode: root.fillMode
           property vector4d fillColor: root.fillColor
           property real imageWidth1: source1.sourceSize.width
@@ -344,7 +328,6 @@ Variants {
           property real screenWidth: width
           property real screenHeight: height
 
-          // Solid color mode
           property real isSolid1: root.isSolid1 ? 1.0 : 0.0
           property real isSolid2: root.isSolid2 ? 1.0 : 0.0
           property vector4d solidColor1: root.solidColor1
@@ -354,7 +337,6 @@ Variants {
         }
       }
 
-      // Pixelate transition shader component
       Component {
         id: pixelateShaderComponent
         ShaderEffect {
@@ -365,7 +347,6 @@ Variants {
           property real progress: root.transitionProgress
           property real maxBlockSize: root.pixelateMaxBlockSize
 
-          // Fill mode properties
           property real fillMode: root.fillMode
           property vector4d fillColor: root.fillColor
           property real imageWidth1: source1.sourceSize.width
@@ -375,7 +356,6 @@ Variants {
           property real screenWidth: width
           property real screenHeight: height
 
-          // Solid color mode
           property real isSolid1: root.isSolid1 ? 1.0 : 0.0
           property real isSolid2: root.isSolid2 ? 1.0 : 0.0
           property vector4d solidColor1: root.solidColor1
@@ -385,7 +365,6 @@ Variants {
         }
       }
 
-      // Honeycomb transition shader component
       Component {
         id: honeycombShaderComponent
         ShaderEffect {
@@ -399,7 +378,6 @@ Variants {
           property real centerY: root.honeycombCenterY
           property real aspectRatio: root.width / root.height
 
-          // Fill mode properties
           property real fillMode: root.fillMode
           property vector4d fillColor: root.fillColor
           property real imageWidth1: source1.sourceSize.width
@@ -409,7 +387,6 @@ Variants {
           property real screenWidth: width
           property real screenHeight: height
 
-          // Solid color mode
           property real isSolid1: root.isSolid1 ? 1.0 : 0.0
           property real isSolid2: root.isSolid2 ? 1.0 : 0.0
           property vector4d solidColor1: root.solidColor1
@@ -419,7 +396,6 @@ Variants {
         }
       }
 
-      // Animation for the transition progress
       NumberAnimation {
         id: transitionAnimation
         target: root
@@ -435,10 +411,8 @@ Variants {
             isStartupTransition = false;
           }
 
-          // Clear the tracking of what we're transitioning to
           transitioningToOriginalPath = "";
 
-          // Transfer solid color state from next to current
           isSolid1 = isSolid2;
           _solidColor1 = _solidColor2;
 
@@ -471,7 +445,6 @@ Variants {
         return s;
       }
 
-      // ------------------------------------------------------
       function setWallpaperInitial() {
         // On startup, defer assigning wallpaper until the services are ready
         if (!WallpaperService || !WallpaperService.isInitialized) {
@@ -483,7 +456,6 @@ Variants {
           return;
         }
 
-        // Check if we're in solid color mode
         if (Settings.data.wallpaper.useSolidColor) {
           var solidPath = WallpaperService.createSolidColorPath(Settings.data.wallpaper.solidColor.toString());
           futureWallpaper = solidPath;
@@ -494,7 +466,6 @@ Variants {
 
         const wallpaperPath = WallpaperService.getWallpaper(modelData.name);
 
-        // Check if the path is a solid color
         if (WallpaperService.isSolidColorPath(wallpaperPath)) {
           futureWallpaper = wallpaperPath;
           performStartupTransition();
@@ -510,7 +481,6 @@ Variants {
           if (success) {
             futureWallpaper = cachedPath;
           } else {
-            // Fallback to original
             futureWallpaper = wallpaperPath;
           }
           performStartupTransition();
@@ -519,7 +489,6 @@ Variants {
         });
       }
 
-      // ------------------------------------------------------
       function requestPreprocessedWallpaper(originalPath) {
         // If we're already transitioning to this exact wallpaper, skip the request
         if (transitioning && originalPath === transitioningToOriginalPath) {
@@ -565,12 +534,10 @@ Variants {
         });
       }
 
-      // ------------------------------------------------------
       function setWallpaperImmediate(source) {
         transitionAnimation.stop();
         transitionProgress = 0.0;
 
-        // Check if this is a solid color
         var isSolidSource = WallpaperService.isSolidColorPath(source);
         isSolid1 = isSolidSource;
         isSolid2 = false;
@@ -598,9 +565,7 @@ Variants {
                      });
       }
 
-      // ------------------------------------------------------
       function setWallpaperWithTransition(source) {
-        // Check if this is a solid color transition
         var isSolidSource = WallpaperService.isSolidColorPath(source);
 
         // For solid colors, check if we're already showing the same color
@@ -626,7 +591,6 @@ Variants {
           transitionAnimation.stop();
           transitionProgress = 0;
 
-          // Transfer next state to current
           isSolid1 = isSolid2;
           _solidColor1 = _solidColor2;
           const newCurrentSource = nextWallpaper.source;
@@ -648,7 +612,6 @@ Variants {
         _startTransitionTo(source, isSolidSource);
       }
 
-      // Helper to start transition to a new source
       function _startTransitionTo(source, isSolidSource) {
         isSolid2 = isSolidSource;
 
@@ -676,8 +639,6 @@ Variants {
         }
       }
 
-      // ------------------------------------------------------
-      // Main method that actually trigger the wallpaper change
       function changeWallpaper() {
         // Pick a transition from the user's selected list
         var selected = Settings.data.wallpaper.transitionType;
@@ -730,8 +691,6 @@ Variants {
         }
       }
 
-      // ------------------------------------------------------
-      // Dedicated function for startup animation
       // Sets up transition params, then defers the actual animation
       // to allow the compositor time to map the window.
       function performStartupTransition() {

@@ -12,7 +12,7 @@ import qs.noctalia.Services.UI
 Singleton {
   id: root
 
-  readonly property var primaryDevice: _laptopBattery || _bluetoothBattery || null // Primary battery device (prioritizes laptop over Bluetooth)
+  readonly property var primaryDevice: _laptopBattery || _bluetoothBattery || null
   readonly property real batteryPercentage: getPercentage(primaryDevice)
   readonly property bool batteryCharging: isCharging(primaryDevice)
   readonly property bool batteryPluggedIn: isPluggedIn(primaryDevice)
@@ -103,7 +103,6 @@ Singleton {
       return device.connected === true;
     }
 
-    // Handle UPower devices
     if (device.type !== undefined) {
       if (device.type === UPowerDeviceType.Battery && device.isPresent !== undefined) {
         return device.isPresent === true;
@@ -185,7 +184,6 @@ Singleton {
     }
 
     if (!isBluetoothDevice(device) && device.isLaptopBattery) {
-      // If there is more than one battery explicitly name them
       // Logger.e("BatteryDebug", "Available Battery count: " + laptopBatteries.length); // can be useful for debugging
       if (laptopBatteries.length > 1 && device.nativePath) {
         if (device.nativePath === "DisplayDevice") {
@@ -194,10 +192,9 @@ Singleton {
         var match = device.nativePath.match(/(\d+)$/);
         if (match) {
           // In case of 2 batteries: bat0 => bat1  bat1 => bat2
-          return I18n.tr("common.battery") + " " + (parseInt(match[1]) + 1);  // Append numbers
+          return I18n.tr("common.battery") + " " + (parseInt(match[1]) + 1);
         }
       }
-      // Return Battery if there is only one
       return I18n.tr("common.battery");
     }
 
@@ -247,7 +244,7 @@ Singleton {
           ];
 
     const match = icons.find(tier => percent >= tier.threshold);
-    return match ? match.icon : "battery-off"; // New fallback icon clearly represent if nothing is true here.
+    return match ? match.icon : "battery-off";
   }
 
   function getRateText(device) {

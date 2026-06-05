@@ -14,7 +14,6 @@ Singleton {
 
   readonly property BluetoothAdapter adapter: Bluetooth.defaultAdapter
 
-  // Power/availability state
   readonly property bool bluetoothAvailable: !!adapter
   readonly property bool enabled: adapter?.enabled ?? false
   readonly property bool blocked: adapter?.state === BluetoothAdapter.Blocked
@@ -37,7 +36,6 @@ Singleton {
   property bool rssiPollingEnabled: Settings?.data?.network?.bluetoothRssiPollingEnabled || Settings?.isDebug || false
   // Interval can be configured from Settings; defaults to 60s
   property int rssiPollIntervalMs: Settings?.data?.network?.bluetoothRssiPollIntervalMs || 60000
-  // RSSI helper sub‑component
   property BluetoothRssi rssi: BluetoothRssi {
     enabled: root.enabled && root.rssiPollingEnabled
     intervalMs: root.rssiPollIntervalMs
@@ -49,10 +47,8 @@ Singleton {
   property int connectAttempts: 5
   property int connectRetryIntervalMs: 2000
 
-  // Interaction state
   property bool pinRequired: false
 
-  // Internal variables
   property bool _discoveryWasRunning: false
   property bool _ctlInit: false
   property var _autoConnectQueue: []
@@ -79,7 +75,6 @@ Singleton {
     }
   }
 
-  // Track adapter state changes
   Connections {
     target: adapter
     function onStateChanged() {
@@ -146,7 +141,6 @@ Singleton {
     }
   }
 
-  // Adapter power (enable/disable) via bluetoothctl
   function setBluetoothEnabled(state) {
     if (!adapter) {
       Logger.d("Bluetooth", "Enable/Disable skipped: no adapter");
@@ -161,7 +155,6 @@ Singleton {
     }
   }
 
-  // Check if airplane mode has been toggled
   function checkAirplaneMode() {
     var isAirplaneModeActive = !NetworkService.wifiEnabled && adapter.state === BluetoothAdapter.Blocked;
     if (isAirplaneModeActive && !NetworkService.airplaneModeEnabled) {
@@ -183,7 +176,6 @@ Singleton {
     }
   }
 
-  // Unify discovery controls
   function setScanActive(active) {
     if (!adapter) {
       Logger.d("Bluetooth", "Scan request ignored: adapter unavailable");
@@ -198,7 +190,6 @@ Singleton {
     }
   }
 
-  // Toggle adapter discoverability (advertising visibility) via bluetoothctl
   function setDiscoverable(state) {
     if (!adapter) {
       Logger.d("Bluetooth", "Discoverable change skipped: no adapter");
@@ -255,7 +246,6 @@ Singleton {
     return device.connected && !device.pairing && !device.blocked;
   }
 
-  // Textual signal quality (translated)
   function getSignalStrength(device) {
     var p = getSignalPercent(device);
     if (p === null) {
@@ -276,7 +266,6 @@ Singleton {
     return I18n.tr("bluetooth.panel.signal-text-very-poor");
   }
 
-  // Numeric helpers for UI rendering
   function getSignalPercent(device) {
     // Establish binding dependency so UI updates when RSSI cache changes
     var _v = rssi.version;
@@ -299,17 +288,14 @@ Singleton {
     return device.pairing || device.state === BluetoothDevice.Disconnecting || device.state === BluetoothDevice.Connecting;
   }
 
-  // Return a stable unique key for a device (prefer MAC address)
   function deviceKey(device) {
     return BluetoothUtils.deviceKey(device);
   }
 
-  // Deduplicate a list of devices using the stable key
   function dedupeDevices(devList) {
     return BluetoothUtils.dedupeDevices(devList);
   }
 
-  // Separate capability helpers
   function canPair(device) {
     if (!device) {
       return false;
@@ -317,7 +303,6 @@ Singleton {
     return !device.connected && !device.paired && !device.trusted && !device.pairing && !device.blocked;
   }
 
-  // Pairing and unpairing helpers
   function pairDevice(device) {
     if (!device) {
       return;
@@ -379,7 +364,6 @@ Singleton {
     pairingProcess.running = true;
   }
 
-  // Helper to run bluetoothctl and scripts with consistent error logging
   function btExec(args) {
     try {
       Quickshell.execDetached(args);
@@ -388,7 +372,6 @@ Singleton {
     }
   }
 
-  // Status key for a device (untranslated)
   function getStatusKey(device) {
     if (!device) {
       return "";
@@ -513,7 +496,6 @@ Singleton {
     }
   }
 
-  // Interactive pairing process
   Process {
     id: pairingProcess
     stdout: SplitParser {
@@ -528,7 +510,6 @@ Singleton {
     onExited: {
       root.pinRequired = false;
       Logger.i("Bluetooth", "Pairing process exited.");
-      // Restore discovery if we paused it
       if (root._discoveryWasRunning) {
         root.setScanActive(true);
       }

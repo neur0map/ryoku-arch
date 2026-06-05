@@ -32,7 +32,6 @@ ColumnLayout {
     }
   }
 
-  // Output Volume
   ColumnLayout {
     spacing: Style.marginXXS
     Layout.fillWidth: true
@@ -62,7 +61,6 @@ ColumnLayout {
     }
   }
 
-  // Mute Toggle
   ColumnLayout {
     spacing: Style.marginS
     Layout.fillWidth: true
@@ -79,7 +77,6 @@ ColumnLayout {
     Layout.fillWidth: true
   }
 
-  // Input Volume
   ColumnLayout {
     spacing: Style.marginXS
     Layout.fillWidth: true
@@ -98,7 +95,6 @@ ColumnLayout {
     }
   }
 
-  // Input Mute Toggle
   ColumnLayout {
     spacing: Style.marginS
     Layout.fillWidth: true
@@ -111,7 +107,6 @@ ColumnLayout {
     }
   }
 
-  // Volume Step Size
   ColumnLayout {
     spacing: Style.marginS
     Layout.fillWidth: true

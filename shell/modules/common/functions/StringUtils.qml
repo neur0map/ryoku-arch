@@ -89,7 +89,6 @@ Singleton {
             }
             lastIndex = regex.lastIndex;
         }
-        // Handle any remaining text after the last match
         if (lastIndex < markdown.length) {
             const text = markdown.slice(lastIndex);
             // Check for unfinished <think> block

@@ -34,13 +34,11 @@ Item {
 
   Component.onDestruction: SystemStatService.unregisterComponent("settings")
 
-  // Screen reference for child components
   property var screen
 
   // Input: which tab to show initially
   property int requestedTab: 0
 
-  // Exposed state for parent to access
   property int currentTabIndex: 0
   property var tabsModel: []
   property var activeScrollView: null
@@ -49,7 +47,6 @@ Item {
   // Track if sidebar was collapsed before searching started
   property bool wasCollapsedBeforeSearch: false
 
-  // Search state
   property string searchText: ""
   property var searchResults: []
   property int searchSelectedIndex: 0
@@ -70,10 +67,8 @@ Item {
     _mouseInitialized = false;
   }
 
-  // Signal when close button is clicked
   signal closeRequested
 
-  // Search function
   onSearchTextChanged: {
     if (searchText.trim() === "") {
       searchResults = [];
@@ -96,7 +91,6 @@ Item {
     if (SettingsSearchService.searchIndex.length === 0)
       return;
 
-    // Build searchable items with resolved translations, filtering out invisible entries
     let items = [];
     for (let j = 0; j < SettingsSearchService.searchIndex.length; j++) {
       const entry = SettingsSearchService.searchIndex[j];
@@ -136,7 +130,6 @@ Item {
     searchResults = extracted;
   }
 
-  // Navigate to a search result
   property int _pendingSubTab: -1
 
   function navigateToResult(entry) {
@@ -173,13 +166,11 @@ Item {
       highlightScrollTimer.restart();
     }
 
-    // Clear highlight after a delay
     highlightClearTimer.restart();
   }
 
   // Navigate to a tab and optionally a subtab (simpler than navigateToResult, no highlighting)
   function navigateToTab(tabId, subTabIndex) {
-    // Find the tab index by tab ID
     let tabIndex = -1;
     for (let i = 0; i < tabsModel.length; i++) {
       if (tabsModel[i].id === tabId) {
@@ -194,7 +185,6 @@ Item {
     const hasSubTab = subTabIndex !== null && subTabIndex !== undefined && subTabIndex >= 0;
     _pendingSubTab = hasSubTab ? subTabIndex : -1;
 
-    // Check if we're already on this tab
     const alreadyOnTab = (currentTabIndex === tabIndex);
 
     currentTabIndex = tabIndex;
@@ -334,7 +324,6 @@ Item {
     return true;
   }
 
-  // Find and highlight a widget by its label key.
   function findAndHighlightWidget(item, labelKey) {
     if (!item)
       return null;
@@ -343,12 +332,10 @@ Item {
     if (!isEffectivelyVisible(item))
       return null;
 
-    // Check if this item has a matching label.
     if (item.hasOwnProperty("label") && item.label === I18n.tr(labelKey) && item.width > 0 && item.height > 0) {
       return item;
     }
 
-    // Recursively search children
     if (item.children) {
       for (let i = 0; i < item.children.length; i++) {
         const found = findAndHighlightWidget(item.children[i], labelKey);
@@ -415,11 +402,9 @@ Item {
 
   Component.onCompleted: {
     SystemStatService.registerComponent("settings");
-    // Restore sidebar state
     sidebarExpanded = ShellState.getSettingsSidebarExpanded();
   }
 
-  // Tab components
   Component {
     id: generalTab
     GeneralTab {}
@@ -706,7 +691,6 @@ Item {
                     }
                   }
 
-  // Scroll functions
   function scrollDown() {
     if (activeScrollView && activeScrollView.ScrollBar.vertical) {
       const scrollBar = activeScrollView.ScrollBar.vertical;
@@ -739,7 +723,6 @@ Item {
     }
   }
 
-  // Tab navigation functions
   function selectNextTab() {
     if (tabsModel.length > 0) {
       currentTabIndex = (currentTabIndex + 1) % tabsModel.length;
@@ -752,7 +735,6 @@ Item {
     }
   }
 
-  // Main UI
   ColumnLayout {
     anchors.fill: parent
     anchors.margins: Style.marginL
@@ -763,7 +745,6 @@ Item {
       Layout.fillHeight: true
       spacing: Style.marginL
 
-      // Sidebar
       NBox {
         id: sidebar
 
@@ -783,13 +764,11 @@ Item {
           }
         }
 
-        // Sidebar content
         ColumnLayout {
           anchors.fill: parent
           spacing: Style.marginS
           anchors.margins: root.sidebarCardStyle ? Style.marginM : 0
 
-          // Sidebar toggle button
           Item {
             id: toggleContainer
             Layout.fillWidth: true
@@ -850,7 +829,6 @@ Item {
             Layout.fillWidth: true
             Layout.preferredHeight: searchInput.implicitHeight > 0 ? searchInput.implicitHeight : (Style.fontSizeXL + Style.margin2M)
 
-            // Search input
             NTextInput {
               id: searchInput
               anchors.left: parent.left
@@ -875,7 +853,6 @@ Item {
               }
             }
 
-            // Search button for collapsed sidebar
             Item {
               id: searchCollapsedContainer
               anchors.left: parent.left
@@ -948,7 +925,6 @@ Item {
             Layout.fillHeight: true
             Layout.bottomMargin: Style.marginXL
 
-            // Search results list
             NListView {
               id: searchResultsList
               anchors.fill: parent
@@ -1047,7 +1023,6 @@ Item {
               }
             }
 
-            // Tab list
             NListView {
               id: sidebarList
               visible: root.searchText.trim() === ""
@@ -1173,7 +1148,6 @@ Item {
         }
       }
 
-      // Content pane
       NBox {
         id: contentPane
         Layout.fillWidth: true
@@ -1191,7 +1165,6 @@ Item {
           width: Math.min(parent.width - Style.marginL * 2, 780 * Style.uiScaleRatio)
           spacing: Style.marginS
 
-          // Header row
           RowLayout {
             id: headerRow
             Layout.fillWidth: true
@@ -1220,7 +1193,6 @@ Item {
             }
           }
 
-          // Tab content area
           Rectangle {
             id: tabContentArea
             Layout.fillWidth: true
@@ -1300,7 +1272,6 @@ Item {
               }
             }
 
-            // Highlight overlay for search results
             Rectangle {
               id: highlightOverlay
               visible: opacity > 0

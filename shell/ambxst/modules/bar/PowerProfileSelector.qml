@@ -13,13 +13,11 @@ StyledRect {
 
     required property string orientation
 
-    // Calculate width/height based on number of profiles
     readonly property int buttonSize: 32
     readonly property int spacing: 2
     readonly property int padding: 2
     readonly property int totalButtons: PowerProfile.availableProfiles.length
 
-    // For vertical mode, reverse the order (performance, balanced, power-saver)
     readonly property var displayProfiles: orientation === "vertical" ? PowerProfile.availableProfiles.slice().reverse() : PowerProfile.availableProfiles
 
     Layout.preferredWidth: orientation === "horizontal" ? (totalButtons * buttonSize + (totalButtons - 1) * spacing + padding * 2) : 36
@@ -53,7 +51,6 @@ StyledRect {
     }
 
     Component.onCompleted: {
-        // Refresh profile data after a short delay
         Qt.callLater(() => {
             PowerProfile.updateCurrentProfile();
             PowerProfile.updateAvailableProfiles();
@@ -64,7 +61,6 @@ StyledRect {
         anchors.fill: parent
         anchors.margins: padding
 
-        // Sliding highlight indicator (behind buttons)
         StyledRect {
             id: highlight
             variant: "primary"
@@ -103,7 +99,6 @@ StyledRect {
             }
         }
 
-        // Buttons layout (in front of highlight)
         Loader {
             id: contentLoader
             anchors.fill: parent

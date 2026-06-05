@@ -18,7 +18,6 @@ Singleton {
   // initial onVolumeChanged that fires on startup and device switches.
   property PwNode _lastFeedbackSink: null
 
-  // Devices
   readonly property var sink: Pipewire.ready ? Pipewire.defaultAudioSink : null
   readonly property var source: validatedSource
   readonly property bool hasInput: !!source
@@ -243,7 +242,6 @@ Singleton {
     var connectedStreamIds = {};
     var connectedStreams = [];
 
-    // Use PwNodeLinkTracker to get properly bound link groups
     if (!sinkLinkTracker.linkGroups) {
       return [];
     }
@@ -278,23 +276,19 @@ Singleton {
 
       var sourceNode = linkGroup.source;
 
-      // Filter out quickshell
       const name = sourceNode.name || "";
       const mediaName = (sourceNode.properties && sourceNode.properties["media.name"]) || "";
       if (name === "quickshell" || mediaName === "quickshell") {
         continue;
       }
 
-      // Filter out filter (intermediate) streams
       const isVirtual = (sourceNode.properties && sourceNode.properties["node.virtual"]) || "";
-      // If it's an application stream node, add it directly
       if (sourceNode.isStream && sourceNode.audio && !isVirtual) {
         if (!connectedStreamIds[sourceNode.id]) {
           connectedStreamIds[sourceNode.id] = true;
           connectedStreams.push(sourceNode);
         }
       } else {
-        // Not a stream - this is an intermediate node, track it
         intermediateNodeIds[sourceNode.id] = true;
         nodesToCheck.push(sourceNode);
       }
@@ -305,21 +299,18 @@ Singleton {
       try {
         var allNodes = Pipewire.nodes.values || [];
 
-        // Find all stream nodes
         for (var j = 0; j < allNodes.length; j++) {
           var node = allNodes[j];
           if (!node || !node.isStream || !node.audio) {
             continue;
           }
 
-          // Filter out quickshell
           const nodeName = node.name || "";
           const nodeMediaName = (node.properties && node.properties["media.name"]) || "";
           if (nodeName === "quickshell" || nodeMediaName === "quickshell") {
             continue;
           }
 
-          // Filter out filter streams
           const nodeIsVirtual = (node.properties && node.properties["node.virtual"]) || "";
           if (nodeIsVirtual) {
             continue;
@@ -899,7 +890,6 @@ Singleton {
     }
   }
 
-  // Watch output device changes for clamping
   Connections {
     target: sink?.audio ?? null
 
@@ -928,7 +918,6 @@ Singleton {
         playVolumeFeedback(clampOutputVolume(vol));
       }
 
-      // If volume exceeds max, clamp it (but only if we didn't just set it)
       if (vol > root.maxVolume) {
         root.isSettingOutputVolume = true;
         Qt.callLater(() => {
@@ -947,7 +936,6 @@ Singleton {
     }
   }
 
-  // Watch input device changes for clamping
   Connections {
     target: source?.audio ?? null
 
@@ -970,7 +958,6 @@ Singleton {
         return;
       }
 
-      // If volume exceeds max, clamp it (but only if we didn't just set it)
       if (vol > root.maxVolume) {
         root.isSettingInputVolume = true;
         Qt.callLater(() => {
@@ -989,7 +976,6 @@ Singleton {
     }
   }
 
-  // Output Control
   function increaseVolume() {
     if (!Pipewire.ready || (!sink?.audio && !wpctlAvailable)) {
       return;
@@ -1098,7 +1084,6 @@ Singleton {
     return "volume-high";
   }
 
-  // Input Control
   function increaseInputVolume() {
     if (!Pipewire.ready || (!source?.audio && !wpctlAvailable)) {
       return;
@@ -1222,7 +1207,6 @@ Singleton {
     return "microphone";
   }
 
-  // Device Selection
   function setAudioSink(newSink: PwNode): void {
     if (!Pipewire.ready) {
       Logger.w("AudioService", "Pipewire not ready");

@@ -150,7 +150,6 @@ QtObject {
 
     const searchKey = String(keyStr).trim().toLowerCase();
 
-    // 1. Check navigation keybinds
     const navKeybinds = data.general ? data.general.keybinds : null;
     const navMap = {
       "keyUp": "Navigation: Up",
@@ -178,7 +177,6 @@ QtObject {
       }
     }
 
-    // 2. Check session menu power options
     const sessionMenu = data.sessionMenu;
     if (sessionMenu && sessionMenu.powerOptions) {
       const powerOptions = sessionMenu.powerOptions;
@@ -189,7 +187,6 @@ QtObject {
           continue;
 
         if (entry.keybind && String(entry.keybind).trim().toLowerCase() === searchKey) {
-          // Capitalize action name
           const actionName = entry.action ? entry.action.charAt(0).toUpperCase() + entry.action.slice(1) : "Unknown";
           return "Session Menu: " + actionName;
         }

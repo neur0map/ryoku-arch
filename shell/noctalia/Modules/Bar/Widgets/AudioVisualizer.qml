@@ -62,7 +62,6 @@ Item {
     }
   }
 
-  // Content dimensions for implicit sizing
   readonly property real contentWidth: !shouldShow ? 0 : isVerticalBar ? capsuleHeight : visualizerWidth
   readonly property real contentHeight: !shouldShow ? 0 : isVerticalBar ? visualizerWidth : capsuleHeight
 
@@ -87,7 +86,6 @@ Item {
   // Store visualizer type to force re-evaluation
   readonly property string currentVisualizerType: Settings.data.audio.visualizerType
 
-  // Visual capsule centered in parent
   Rectangle {
     id: background
     width: root.contentWidth
@@ -155,7 +153,6 @@ Item {
                  }
   }
 
-  // Click to cycle through visualizer types
   MouseArea {
     id: mouseArea
     anchors.fill: parent

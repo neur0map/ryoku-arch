@@ -37,11 +37,9 @@ Item {
   signal middleClicked
   signal wheel(int delta)
 
-  // Internal state
   property bool showPill: false
   property bool shouldAnimateHide: false
 
-  // Sizing logic for vertical bars
   readonly property int buttonSize: Style.getCapsuleHeightForScreen(screen?.name)
   readonly property real barFontSize: Style.getBarFontSizeForScreen(screen?.name)
   readonly property int pillHeight: buttonSize
@@ -66,7 +64,6 @@ Item {
 
   readonly property real iconSize: Style.toOdd(pillHeight * 0.48)
 
-  // Content height calculation (for implicit sizing)
   readonly property real contentHeight: {
     if (collapseToIcon) {
       return hasIcon ? buttonSize : 0;
@@ -201,7 +198,6 @@ Item {
       pointSize: iconSize
       applyUiScale: false
       color: root.iconFgColor
-      // Center horizontally
       x: (iconCircle.width - width) / 2
       // Center vertically accounting for font metrics
       y: (iconCircle.height - height) / 2 + (height - contentHeight) / 2

@@ -64,7 +64,6 @@ Item {
         }
     }
 
-    // Color picker state
     property bool colorPickerActive: false
     property var colorPickerColorNames: []
     property string colorPickerCurrentColor: ""
@@ -104,21 +103,16 @@ Item {
         }
     }
 
-    // Convert sr property name to variant id (srBg -> bg, srPrimaryFocus -> primaryfocus)
     function srNameToId(srName: string): string {
         return srName.substring(2).toLowerCase();
     }
 
-    // Dynamically generate allVariants from Config.theme properties starting with "sr"
-    // Reads the label property from each variant config
     readonly property var allVariants: {
         let variants = [];
         let theme = Config.theme;
 
-        // Get all property names from theme that start with "sr"
         for (let prop in theme) {
             if (prop.startsWith("sr") && theme[prop] && typeof theme[prop] === "object") {
-                // Read label from the variant config itself, fallback to property name
                 let label = theme[prop].label || prop.substring(2);
                 variants.push({
                     id: srNameToId(prop),
@@ -139,7 +133,6 @@ Item {
         return variantId;
     }
 
-    // Main content - single Flickable for everything, fills entire width
     Flickable {
         id: mainFlickable
         anchors.fill: parent
@@ -148,7 +141,6 @@ Item {
         boundsBehavior: Flickable.StopAtBounds
         interactive: !root.colorPickerActive
 
-        // Horizontal slide + fade animation
         opacity: root.colorPickerActive ? 0 : 1
         transform: Translate {
             id: mainTranslate
@@ -176,7 +168,6 @@ Item {
             width: mainFlickable.width
             spacing: 8
 
-            // Header wrapper
             Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: titlebar.height
@@ -226,7 +217,6 @@ Item {
                 }
             }
 
-            // Content wrapper - centered
             Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: contentColumn.implicitHeight
@@ -237,9 +227,6 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     spacing: 12
 
-                    // ═══════════════════════════════════════════════════════════════
-                    // MENU SECTION
-                    // ═══════════════════════════════════════════════════════════════
                     ColumnLayout {
                         visible: root.currentSection === ""
                         Layout.fillWidth: true
@@ -259,7 +246,6 @@ Item {
                         }
                     }
 
-                    // General section
                     Item {
                         visible: root.currentSection === "general"
                         Layout.fillWidth: true
@@ -281,7 +267,6 @@ Item {
                                 Layout.bottomMargin: -4
                             }
 
-                            // Wallpaper Path
                             RowLayout {
                                 Layout.fillWidth: true
                                 spacing: 8
@@ -311,7 +296,6 @@ Item {
                                         clip: true
                                         verticalAlignment: TextInput.AlignVCenter
 
-                                        // Placeholder for default path
                                         Text {
                                             anchors.fill: parent
                                             verticalAlignment: Text.AlignVCenter
@@ -333,7 +317,6 @@ Item {
                                 }
                             }
 
-                            // Tint Icons toggle
                             RowLayout {
                                 Layout.fillWidth: true
                                 spacing: 8
@@ -402,7 +385,6 @@ Item {
                                 }
                             }
 
-                            // Enable Corners toggle
                             RowLayout {
                                 Layout.fillWidth: true
                                 spacing: 8
@@ -471,7 +453,6 @@ Item {
                                 }
                             }
 
-                            // Animation Duration slider
                             RowLayout {
                                 Layout.fillWidth: true
                                 spacing: 8
@@ -491,7 +472,7 @@ Item {
                                     progressColor: Styling.srItem("overprimary")
                                     tooltipText: `${Math.round(value * 1000)}ms`
                                     scroll: true
-                                    stepSize: 0.01  // 10ms steps (1/100 of 1000ms)
+                                    stepSize: 0.01
                                     snapMode: "always"
 
                                     readonly property real configValue: Config.theme.animDuration / 1000
@@ -536,7 +517,6 @@ Item {
                                 Layout.bottomMargin: -4
                             }
 
-                            // UI Font row
                             RowLayout {
                                 Layout.fillWidth: true
                                 spacing: 8
@@ -635,7 +615,6 @@ Item {
                                 }
                             }
 
-                            // Mono Font row
                             RowLayout {
                                 Layout.fillWidth: true
                                 spacing: 8
@@ -758,13 +737,11 @@ Item {
                                     progressColor: Styling.srItem("overprimary")
                                     tooltipText: `${Math.round(value * 20)}`
                                     scroll: true
-                                    stepSize: 0.05  // 1/20 = 0.05 for integer steps in 0-20 range
+                                    stepSize: 0.05
                                     snapMode: "always"
 
-                                    // Use a computed property that always reads from Config
                                     readonly property real configValue: Config.theme.roundness / 20
 
-                                    // Sync value when configValue changes (e.g., after discard)
                                     onConfigValueChanged: {
                                         if (Math.abs(value - configValue) > 0.001) {
                                             value = configValue;
@@ -794,7 +771,6 @@ Item {
                         }
                     }
 
-                    // Shadow section
                     Item {
                         visible: root.currentSection === "shadow"
                         Layout.fillWidth: true
@@ -816,7 +792,6 @@ Item {
                                 Layout.bottomMargin: -4
                             }
 
-                            // Opacity row
                             RowLayout {
                                 Layout.fillWidth: true
                                 spacing: 8
@@ -867,7 +842,6 @@ Item {
                                 }
                             }
 
-                            // Blur row
                             RowLayout {
                                 Layout.fillWidth: true
                                 spacing: 8
@@ -919,7 +893,6 @@ Item {
                                 }
                             }
 
-                            // Offset row (X and Y)
                             RowLayout {
                                 Layout.fillWidth: true
                                 spacing: 8
@@ -939,7 +912,7 @@ Item {
                                     progressColor: Styling.srItem("overprimary")
                                     tooltipText: `${Math.round((value - 0.5) * 40)}`
                                     scroll: true
-                                    stepSize: 0.025  // 1/40 for integer steps in -20 to +20 range
+                                    stepSize: 0.025
                                     snapMode: "always"
 
                                     readonly property real configValue: (Config.theme.shadowXOffset + 20) / 40
@@ -990,7 +963,7 @@ Item {
                                     progressColor: Styling.srItem("overprimary")
                                     tooltipText: `${Math.round((value - 0.5) * 40)}`
                                     scroll: true
-                                    stepSize: 0.025  // 1/40 for integer steps in -20 to +20 range
+                                    stepSize: 0.025
                                     snapMode: "always"
 
                                     readonly property real configValue: (Config.theme.shadowYOffset + 20) / 40
@@ -1022,7 +995,6 @@ Item {
                                 }
                             }
 
-                            // Color row
                             RowLayout {
                                 Layout.fillWidth: true
                                 spacing: 8
@@ -1103,7 +1075,6 @@ Item {
                         }
                     }
 
-                    // Variant selector section
                     Item {
                         id: variantSelectorPane
                         visible: root.currentSection === "colors"
@@ -1142,7 +1113,6 @@ Item {
                                 spacing: 8
                                 Layout.alignment: Qt.AlignTop
 
-                                // Collapsed mode: horizontal scrollable row with scrollbar
                                 ColumnLayout {
                                     Layout.fillWidth: true
                                     spacing: 4
@@ -1310,7 +1280,6 @@ Item {
                                     }
                                 }
 
-                                // Expanded mode: Flow grid
                                 Flow {
                                     id: variantsFlow
                                     Layout.fillWidth: true
@@ -1431,7 +1400,6 @@ Item {
                                     }
                                 }
 
-                                // Toggle expand/collapse button
                                 StyledRect {
                                     id: expandToggleButton
                                     variant: isHovered ? "focus" : "common"
@@ -1466,7 +1434,6 @@ Item {
                         }
                     }
 
-                    // Editor section
                     Item {
                         visible: root.currentSection === "colors"
                         property string settingsSection: "colors"
@@ -1504,13 +1471,11 @@ Item {
         }
     }
 
-    // Color picker view (shown when colorPickerActive)
     Item {
         id: colorPickerContainer
         anchors.fill: parent
         clip: true
 
-        // Horizontal slide + fade animation (enters from right)
         opacity: root.colorPickerActive ? 1 : 0
         transform: Translate {
             id: pickerTranslate
@@ -1536,7 +1501,6 @@ Item {
         // Prevent interaction when hidden
         enabled: root.colorPickerActive
 
-        // Block interaction with elements behind when active
         MouseArea {
             anchors.fill: parent
             enabled: root.colorPickerActive

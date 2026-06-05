@@ -10,10 +10,8 @@ Singleton {
   // Map to track active sound players: resolvedPath -> MediaPlayer instance
   property var activePlayers: ({})
 
-  // Check if QtMultimedia is available
   property bool multimediaAvailable: false
 
-  // Container for dynamically created players
   Item {
     id: playersContainer
   }
@@ -74,15 +72,12 @@ Singleton {
     const fallback = opts.fallback !== undefined ? opts.fallback : false;
     const repeat = opts.repeat !== undefined ? opts.repeat : false;
 
-    // Resolve path
     const resolvedPath = resolvePath(soundPath);
 
-    // Stop any existing player for this path if it's looping
     if (repeat && activePlayers[resolvedPath]) {
       stopSound(soundPath);
     }
 
-    // Create MediaPlayer instance dynamically with QtMultimedia import
     const loopsValue = repeat ? "MediaPlayer.Infinite" : "1";
     const escapedPath = resolvedPath.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
     const playerQml = `
@@ -137,7 +132,6 @@ Singleton {
 
       if (!player) {
         Logger.w("SoundService", "Failed to create MediaPlayer for:", resolvedPath);
-        // Try fallback if requested
         if (fallback && !repeat) {
           const defaultSound = Quickshell.shellDir + "/noctalia" + "/Assets/Sounds/notification.mp3";
           if (defaultSound !== resolvedPath) {
@@ -151,13 +145,11 @@ Singleton {
         return;
       }
 
-      // Store player in activePlayers map
       activePlayers[resolvedPath] = player;
 
       Logger.d("SoundService", "Playing sound:", resolvedPath, `(volume: ${Math.round(volume * 100)}%)`, repeat ? "(repeat)" : "");
     } catch (e) {
       Logger.w("SoundService", "Failed to create MediaPlayer:", e);
-      // Try fallback if requested
       if (fallback && !repeat) {
         const defaultSound = Quickshell.shellDir + "/noctalia" + "/Assets/Sounds/notification.mp3";
         if (defaultSound !== resolvedPath) {
@@ -173,15 +165,12 @@ Singleton {
 
   function stopSound(soundPath) {
     if (!multimediaAvailable) {
-      // If multimedia isn't available, there are no active players to stop
       return;
     }
 
     if (soundPath) {
-      // Resolve path the same way as playSound
       const resolvedPath = resolvePath(soundPath);
 
-      // Stop and remove the player for this specific sound
       if (activePlayers[resolvedPath]) {
         const player = activePlayers[resolvedPath];
         player.stop();
@@ -190,7 +179,6 @@ Singleton {
         Logger.d("SoundService", "Stopped sound:", resolvedPath);
       }
     } else {
-      // Stop all active players (typically used for repeating sounds)
       const paths = Object.keys(activePlayers);
       for (let i = 0; i < paths.length; i++) {
         const path = paths[i];

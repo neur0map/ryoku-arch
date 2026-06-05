@@ -23,13 +23,10 @@ QtObject {
         applyTimer.restart();
     }
 
-    // Helper function to check if an action is compatible with the current layout
     function isActionCompatibleWithLayout(action) {
-        // If no layouts specified or empty array, action works in all layouts
         if (!action.layouts || action.layouts.length === 0)
             return true;
 
-        // Check if current layout is in the allowed list
         const currentLayout = GlobalStates.compositorLayout;
         return action.layouts.indexOf(currentLayout) !== -1;
     }
@@ -47,7 +44,6 @@ QtObject {
 
         const ambxst = Config.keybindsLoader.adapter.ambxst;
 
-        // Store ambxst core keybinds
         previousAmbxstBinds = {
             ambxst: {
                 launcher: cloneKeybind(ambxst.launcher),
@@ -73,7 +69,6 @@ QtObject {
             }
         };
 
-        // Store custom keybinds
         const customBinds = Config.keybindsLoader.adapter.custom;
         previousCustomBinds = [];
         if (customBinds && customBinds.length > 0) {
@@ -96,7 +91,6 @@ QtObject {
         hasPreviousBinds = true;
     }
 
-    // Build an unbind target object (modifiers + key only).
     function makeUnbindTarget(keybind) {
         return {
             modifiers: keybind.modifiers || [],
@@ -104,7 +98,6 @@ QtObject {
         };
     }
 
-    // Build a structured bind object from a core keybind (has all fields inline).
     function resolveBindAction(action, fallback) {
         const resolved = KeybindActions.resolveAction(action || fallback);
         if (!resolved) return null;
@@ -128,7 +121,6 @@ QtObject {
         };
     }
 
-    // Build a structured bind object from a key + action pair (custom keybinds).
     function makeBindFromKeyAction(keyObj, action) {
         const resolved = resolveBindAction(action, action);
         if (!resolved) return null;
@@ -143,13 +135,11 @@ QtObject {
     }
 
     function applyKeybindsInternal() {
-        // Ensure adapter is loaded.
         if (!Config.keybindsLoader.loaded) {
             console.log("CompositorKeybinds: Esperando que se cargue el adapter...");
             return;
         }
 
-        // Wait for layout to be ready.
         if (!GlobalStates.compositorLayoutReady) {
             console.log("CompositorKeybinds: Esperando que se detecte el layout de AxctlService...");
             return;
@@ -157,12 +147,9 @@ QtObject {
 
         console.log("CompositorKeybinds: Aplicando keybindings (layout: " + GlobalStates.compositorLayout + ")...");
 
-        // Build structured payload.
         let payload = { binds: [], unbinds: [] };
 
-        // First, unbind previous keybinds if we have them stored
         if (hasPreviousBinds) {
-            // Unbind previous ambxst core keybinds
             if (previousAmbxstBinds.ambxst) {
                 payload.unbinds.push(makeUnbindTarget(previousAmbxstBinds.ambxst.launcher));
                 payload.unbinds.push(makeUnbindTarget(previousAmbxstBinds.ambxst.dashboard));
@@ -174,7 +161,6 @@ QtObject {
                 payload.unbinds.push(makeUnbindTarget(previousAmbxstBinds.ambxst.wallpapers));
             }
 
-            // Unbind previous ambxst system keybinds
             if (previousAmbxstBinds.system) {
                 payload.unbinds.push(makeUnbindTarget(previousAmbxstBinds.system.overview));
                 payload.unbinds.push(makeUnbindTarget(previousAmbxstBinds.system.powermenu));
@@ -188,7 +174,6 @@ QtObject {
                 if (previousAmbxstBinds.system.quit) payload.unbinds.push(makeUnbindTarget(previousAmbxstBinds.system.quit));
             }
 
-            // Unbind previous custom keybinds
             for (let i = 0; i < previousCustomBinds.length; i++) {
                 const prev = previousCustomBinds[i];
                 if (prev.keys) {
@@ -201,10 +186,8 @@ QtObject {
             }
         }
 
-        // Process core keybinds.
         const ambxst = Config.keybindsLoader.adapter.ambxst;
 
-        // Unbind current core keybinds (ensures clean state before rebinding)
         payload.unbinds.push(makeUnbindTarget(ambxst.launcher));
         payload.unbinds.push(makeUnbindTarget(ambxst.dashboard));
         payload.unbinds.push(makeUnbindTarget(ambxst.assistant));
@@ -214,16 +197,13 @@ QtObject {
         payload.unbinds.push(makeUnbindTarget(ambxst.tmux));
         payload.unbinds.push(makeUnbindTarget(ambxst.wallpapers));
 
-        // Bind current core keybinds
         [ambxst.launcher, ambxst.dashboard, ambxst.assistant, ambxst.clipboard, ambxst.emoji, ambxst.notes, ambxst.tmux, ambxst.wallpapers].forEach(bind => {
             const resolved = makeBindFromCore(bind);
             if (resolved) payload.binds.push(resolved);
         });
 
-        // System keybinds
         const system = ambxst.system;
 
-        // Unbind current system keybinds
         payload.unbinds.push(makeUnbindTarget(system.overview));
         payload.unbinds.push(makeUnbindTarget(system.powermenu));
         payload.unbinds.push(makeUnbindTarget(system.config));
@@ -235,33 +215,26 @@ QtObject {
         if (system.reload) payload.unbinds.push(makeUnbindTarget(system.reload));
         if (system.quit) payload.unbinds.push(makeUnbindTarget(system.quit));
 
-        // Bind current system keybinds
         [system.overview, system.powermenu, system.config, system.lockscreen, system.tools, system.screenshot, system.screenrecord, system.lens, system.reload, system.quit].forEach(bind => {
             if (!bind) return;
             const resolved = makeBindFromCore(bind);
             if (resolved) payload.binds.push(resolved);
         });
 
-        // Process custom keybinds (keys[] and actions[] format).
         const customBinds = Config.keybindsLoader.adapter.custom;
         if (customBinds && customBinds.length > 0) {
             for (let i = 0; i < customBinds.length; i++) {
                 const bind = customBinds[i];
 
-                // Check if bind has the new format
                 if (bind.keys && bind.actions) {
-                    // Unbind all keys first (always unbind regardless of layout)
                     for (let k = 0; k < bind.keys.length; k++) {
                         payload.unbinds.push(makeUnbindTarget(bind.keys[k]));
                     }
 
-                    // Only create binds if enabled
                     if (bind.enabled !== false) {
-                        // For each key, bind only compatible actions
                         for (let k = 0; k < bind.keys.length; k++) {
                             for (let a = 0; a < bind.actions.length; a++) {
                                 const action = bind.actions[a];
-                                // Check if this action is compatible with the current layout
                                 if (isActionCompatibleWithLayout(action)) {
                                     const resolved = makeBindFromKeyAction(bind.keys[k], action);
                                     if (resolved) payload.binds.push(resolved);
@@ -270,7 +243,6 @@ QtObject {
                         }
                     }
                 } else {
-                    // Fallback for old format (shouldn't happen after normalization)
                     payload.unbinds.push(makeUnbindTarget(bind));
                     if (bind.enabled !== false) {
                         const resolved = makeBindFromCore(bind);
@@ -301,7 +273,6 @@ QtObject {
         }
     }
 
-    // Re-apply keybinds when layout changes
     property Connections globalStatesConnections: Connections {
         target: GlobalStates
         function onCompositorLayoutChanged() {
@@ -326,7 +297,6 @@ QtObject {
     // }
 
     Component.onCompleted: {
-        // Apply immediately if loader is ready.
         if (Config.keybindsLoader.loaded) {
             applyKeybinds();
         }

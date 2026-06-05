@@ -22,7 +22,6 @@ Singleton {
     Logger.i("IdleInhibitor", "Service started");
   }
 
-  // Add an inhibitor
   function addInhibitor(id, reason = "Application request") {
     if (activeInhibitors.includes(id)) {
       Logger.w("IdleInhibitor", "Inhibitor already active:", id);
@@ -35,7 +34,6 @@ Singleton {
     return true;
   }
 
-  // Remove an inhibitor
   function removeInhibitor(id) {
     const index = activeInhibitors.indexOf(id);
     if (index === -1) {
@@ -49,13 +47,11 @@ Singleton {
     return true;
   }
 
-  // Update the actual system inhibition
   function updateInhibition(newReason = reason) {
     const shouldInhibit = activeInhibitors.length > 0;
 
     if (shouldInhibit === isInhibited) {
       return;
-      // No change needed
     }
 
     if (shouldInhibit) {
@@ -65,7 +61,6 @@ Singleton {
     }
   }
 
-  // Start system inhibition
   function startInhibition(newReason) {
     reason = newReason;
 
@@ -80,7 +75,6 @@ Singleton {
     Logger.i("IdleInhibitor", "Started inhibition:", reason);
   }
 
-  // Stop system inhibition
   function stopInhibition() {
     if (!isInhibited)
       return;
@@ -93,13 +87,11 @@ Singleton {
     Logger.i("IdleInhibitor", "Stopped inhibition");
   }
 
-  // Subprocess fallback using systemd-inhibit
   function startSubprocessInhibition() {
     inhibitorProcess.command = ["systemd-inhibit", "--what=idle", "--why=" + reason, "--mode=block", "sleep", "infinity"];
     inhibitorProcess.running = true;
   }
 
-  // Process for maintaining the inhibition (subprocess fallback only)
   Process {
     id: inhibitorProcess
     running: false
@@ -134,9 +126,7 @@ Singleton {
     }
   }
 
-  // Manual toggle for user control
   function manualToggle() {
-    // clear any existing timeout
     timeout = null;
     if (activeInhibitors.includes("manual")) {
       removeManualInhibitor();
@@ -149,24 +139,20 @@ Singleton {
 
   function changeTimeout(delta) {
     if (timeout == null && delta < 0) {
-      // no inhibitor, ignored
       return;
     }
 
     if (timeout == null && delta > 0) {
-      // enable manual inhibitor and set timeout
       addManualInhibitor(timeout + delta);
       return;
     }
 
     if (timeout + delta <= 0) {
-      // disable manual inhibitor
       removeManualInhibitor();
       return;
     }
 
     if (timeout + delta > 0) {
-      // change timeout
       addManualInhibitor(timeout + delta);
       return;
     }

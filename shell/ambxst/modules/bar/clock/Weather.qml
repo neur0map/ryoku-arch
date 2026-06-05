@@ -10,17 +10,15 @@ StyledRect {
     variant: "bg"
     visible: weatherVisible
 
-    // Day + weather raw values
     property string currentDayAbbrev: ""
-    property string weatherSymbol: ""            // weather icon / emoji
-    property string weatherTemp: ""              // temperature text
+    property string weatherSymbol: ""
+    property string weatherTemp: ""
 
     property bool weatherVisible: false
     required property var bar
     property string orientation: "horizontal"
     property bool vertical: orientation === "vertical"
 
-    // Weather retry / backoff
     property int weatherRetryCount: 0
     property int weatherMaxRetries: 5
 
@@ -31,7 +29,7 @@ StyledRect {
     implicitHeight: vertical ? columnLayout.implicitHeight + 20 : 36
     Layout.preferredHeight: implicitHeight
 
-    RowLayout { // horizontal layout
+    RowLayout {
         id: rowLayout
         visible: !vertical
         anchors.centerIn: parent
@@ -63,7 +61,7 @@ StyledRect {
         }
     }
 
-    ColumnLayout { // vertical layout
+    ColumnLayout {
         id: columnLayout
         visible: vertical
         anchors.centerIn: parent
@@ -312,7 +310,7 @@ StyledRect {
         }
     }
 
-    Timer { // retry weather with exponential backoff on failure
+    Timer {
         id: weatherRetryTimer
         repeat: false
         running: false
@@ -320,14 +318,13 @@ StyledRect {
     }
 
     Timer {
-        // periodic weather refresh (every 10 minutes)
         interval: 600000
         running: true
         repeat: true
         onTriggered: updateWeather()
     }
 
-    Timer { // schedule-based day update (fires at next midnight + 1s)
+    Timer {
         id: dayUpdateTimer
         repeat: false
         running: false

@@ -31,7 +31,6 @@ PanelWindow {
       contentLoaded = true;
   }
 
-  // Wayland layer configuration
   WlrLayershell.namespace: "noctalia-bar-content-" + (barWindow.screen?.name || "unknown")
   WlrLayershell.layer: WlrLayer.Top
   WlrLayershell.exclusionMode: ExclusionMode.Ignore // Don't reserve space - BarExclusionZone in MainScreen handles that
@@ -46,19 +45,15 @@ PanelWindow {
   readonly property real barMarginV: Math.ceil(barFloating ? Settings.data.bar.marginVertical : 0)
   readonly property real barHeight: Style.getBarHeightForScreen(barWindow.screen?.name)
 
-  // Auto-hide properties
   readonly property bool autoHide: Settings.getBarDisplayModeForScreen(barWindow.screen?.name) === "auto_hide"
   readonly property int hideDelay: Settings.data.bar.autoHideDelay || 500
   readonly property int showDelay: Settings.data.bar.autoShowDelay || 100
   property bool isHidden: autoHide
 
-  // Hover tracking
   property bool barHovered: false
 
-  // Check if any panel is open on this screen
   readonly property bool panelOpen: PanelService.openedPanel !== null
 
-  // Timer for delayed hide
   Timer {
     id: hideTimer
     interval: barWindow.hideDelay
@@ -69,7 +64,6 @@ PanelWindow {
     }
   }
 
-  // Timer for delayed show
   Timer {
     id: showTimer
     interval: barWindow.showDelay
@@ -81,7 +75,6 @@ PanelWindow {
     }
   }
 
-  // React to auto-hide state changes from BarService
   Connections {
     target: BarService
     function onBarAutoHideStateChanged(screenName, hidden) {
@@ -119,7 +112,6 @@ PanelWindow {
     }
   }
 
-  // React to popup menu closing
   Connections {
     target: BarService
     function onPopupOpenChanged() {
@@ -129,7 +121,6 @@ PanelWindow {
     }
   }
 
-  // React to displayMode changes
   onAutoHideChanged: {
     if (!autoHide) {
       // Show bar when auto-hide is disabled
@@ -140,7 +131,6 @@ PanelWindow {
     // When auto-hide is enabled, don't immediately hide - wait for mouse to leave
   }
 
-  // Anchor to the bar's edge
   anchors {
     top: barPosition === "top" || barIsVertical
     bottom: barPosition === "bottom" || barIsVertical
@@ -195,7 +185,6 @@ PanelWindow {
     right: (barPosition === "right") ? barMarginH : (isFramed ? frameThickness : barMarginH)
   }
 
-  // Set a tight window size
   implicitWidth: barIsVertical ? barHeight : barWindow.screen.width
   implicitHeight: barIsVertical ? barWindow.screen.height : barHeight
 
@@ -208,7 +197,6 @@ PanelWindow {
     sourceComponent: Item {
       anchors.fill: parent
 
-      // Fade animation
       opacity: barWindow.isHidden ? 0 : 1
 
       Behavior on opacity {

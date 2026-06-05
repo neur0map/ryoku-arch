@@ -11,7 +11,6 @@ Item {
   required property var widgetScreen
   required property var widgetProps
 
-  // Extract section info from widgetProps
   readonly property string section: widgetProps ? (widgetProps.section || "") : ""
   readonly property int sectionIndex: widgetProps ? (widgetProps.sectionWidgetIndex || 0) : 0
 
@@ -182,7 +181,6 @@ Item {
     }
   }
 
-  // Error handling
   Component.onCompleted: {
     if (!BarWidgetRegistry.hasWidget(widgetId)) {
       Logger.w("BarWidgetLoader", "Widget not found in registry:", widgetId);

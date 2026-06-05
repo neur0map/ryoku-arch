@@ -40,7 +40,6 @@ Item {
   signal middleClicked
   signal wheel(int delta)
 
-  // Internal state
   property bool showPill: false
   property bool shouldAnimateHide: false
 
@@ -58,7 +57,6 @@ Item {
 
   readonly property real iconSize: Style.toOdd(pillHeight * 0.48)
 
-  // Content width calculation (for implicit sizing)
   readonly property real contentWidth: {
     if (collapseToIcon) {
       return hasIcon ? pillHeight : 0;
@@ -69,7 +67,6 @@ Item {
   }
 
   // Fill parent to extend click area to full bar height
-  // Visual content is centered vertically within
   anchors.fill: parent
   implicitWidth: contentWidth
   implicitHeight: pillHeight
@@ -137,7 +134,6 @@ Item {
         if (!hasIcon)
           return (parent.width - width) / 2;
 
-        // Better text horizontal centering
         var centerX = (parent.width - width) / 2;
         // iconPosition takes precedence, fallback to oppositeDirection
         var offset;
@@ -193,7 +189,6 @@ Item {
       pointSize: iconSize
       applyUiScale: false
       color: root.iconFgColor
-      // Center horizontally
       x: (iconCircle.width - width) / 2
       // Center vertically accounting for font metrics
       y: (iconCircle.height - height) / 2 + (height - contentHeight) / 2
