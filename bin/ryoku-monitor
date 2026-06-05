@@ -11,18 +11,25 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 # so a confirmed preview is captured exactly as it was applied. A catch-all rule is
 # kept last so newly plugged monitors still come up sensibly.
 #
+# Scale is never hardcoded: `autoscale` derives a per-output scale from each
+# monitor's real pixel density (resolution / physical size) so high-DPI panels are
+# zoomed and low-DPI external monitors are left at 1x. It runs at session start and
+# only touches monitors the user has not explicitly configured.
+#
 # The confirm-or-revert flow in the panel is: snapshot current state -> apply preview ->
 # if confirmed, persist; if not, re-apply the previous spec (no persist).
 
 set -euo pipefail
 
 monitors_conf="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/monitors.conf"
+hypr_conf="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland.conf"
 
 usage() {
   cat <<'EOF'
 Usage:
   ryoku-monitor apply "<monitor spec>"   Apply one monitor= spec live (preview).
   ryoku-monitor persist                  Write monitors.conf from the live state.
+  ryoku-monitor autoscale                Apply DPI-derived scale to unconfigured monitors.
   ryoku-monitor reload                   Reload Hyprland (re-apply monitors.conf).
 EOF
 }
@@ -32,6 +39,68 @@ require_hyprctl() {
     echo "ryoku-monitor: hyprctl not found" >&2
     exit 1
   }
+}
+
+require_jq() {
+  ryoku-cmd-present jq || {
+    echo "ryoku-monitor: jq not found" >&2
+    exit 1
+  }
+}
+
+# Emit "name|WxH@rate|XxY|wanted_scale|current_scale" for each enabled monitor,
+# where wanted_scale is derived from DPI (px / physical-size-in-mm). Hyprland's
+# "auto" over-zooms high-DPI panels and a flat default over-scales low-DPI ones;
+# DPI buckets avoid hardcoding while fitting every panel. Implausible or missing
+# physical size (EDID lies, virtual outputs) falls back to 1x.
+dpi_specs() {
+  jq -r '
+    def dpiscale(w; pw):
+      if (pw // 0) <= 0 then 1.0
+      else (w * 25.4 / pw) as $d
+      | if   ($d < 40 or $d > 700) then 1.0
+        elif $d <= 120 then 1.0
+        elif $d <= 150 then 1.25
+        elif $d <= 230 then 1.5
+        elif $d <= 290 then 1.75
+        else 2.0 end
+      end;
+    .[] | select(.disabled | not)
+    | "\(.name)|\(.width)x\(.height)@\(.refreshRate | round)|\(.x)x\(.y)|\(dpiscale(.width; .physicalWidth))|\(.scale)"
+  '
+}
+
+# Keep GDK_SCALE in step so GTK/XWayland apps stay crisp: use the shared integer
+# scale when every active monitor agrees on one (>=2x), else 1 (Wayland handles
+# fractional scaling for native apps). Echoes the chosen value.
+sync_gdk_scale() {
+  local gdk_scale
+  gdk_scale="$(hyprctl monitors all -j | jq -r '
+    [ .[] | select(.disabled | not) | .scale ] as $s |
+    if ($s | length) > 0 and ($s | unique | length) == 1
+       and ($s[0] == ($s[0] | floor)) and $s[0] >= 2
+    then ($s[0] | floor) else 1 end
+  ' 2>/dev/null)"
+  [[ $gdk_scale =~ ^[0-9]+$ ]] || gdk_scale=1
+  hyprctl keyword env "GDK_SCALE,$gdk_scale" >/dev/null 2>&1 || true
+  if [[ -f $hypr_conf ]] && grep -qE '^env = GDK_SCALE,' "$hypr_conf"; then
+    sed -i -E "s|^env = GDK_SCALE,.*|env = GDK_SCALE,$gdk_scale|" "$hypr_conf"
+  fi
+  printf '%s\n' "$gdk_scale"
+}
+
+# Monitor names with an explicit per-output line in monitors.conf (the catch-all
+# has an empty name) so autoscale never overrides a user-chosen scale.
+configured_names() {
+  [[ -f $monitors_conf ]] || return 0
+  awk '/^[[:space:]]*monitor[[:space:]]*=/ {
+    line = $0
+    sub(/^[[:space:]]*monitor[[:space:]]*=[[:space:]]*/, "", line)
+    split(line, parts, ",")
+    name = parts[1]
+    gsub(/[[:space:]]/, "", name)
+    if (name != "") print name
+  }' "$monitors_conf"
 }
 
 cmd="${1:-}"
@@ -59,12 +128,32 @@ apply)
   fi
   exec hyprctl keyword monitor "$spec"
   ;;
+autoscale)
+  require_hyprctl
+  require_jq
+  mapfile -t skip < <(configured_names)
+  changed=0
+  while IFS='|' read -r name mode pos wanted current; do
+    [[ -n $name ]] || continue
+    skipme=0
+    for s in "${skip[@]:-}"; do
+      [[ $s == "$name" ]] && skipme=1 && break
+    done
+    (( skipme )) && continue
+    # Only re-apply when the scale actually differs (idempotent, avoids a flicker).
+    if awk -v a="$current" -v b="$wanted" 'BEGIN { exit (a == b) ? 1 : 0 }'; then
+      if hyprctl keyword monitor "$name, $mode, $pos, $wanted" >/dev/null 2>&1; then
+        echo "ryoku-monitor autoscale: $name -> scale $wanted"
+        changed=1
+      fi
+    fi
+  done < <(hyprctl monitors all -j | dpi_specs)
+  (( changed )) && sync_gdk_scale >/dev/null
+  exit 0
+  ;;
 persist)
   require_hyprctl
-  ryoku-cmd-present jq || {
-    echo "ryoku-monitor persist: jq not found" >&2
-    exit 1
-  }
+  require_jq
 
   tmp="$(mktemp)"
   trap 'rm -f "$tmp"' EXIT
@@ -86,7 +175,9 @@ persist)
     '
     printf '\n'
     printf '%s\n' "# Catch-all for monitors not configured above (hotplug-friendly)."
-    printf '%s\n' "monitor = , highrr, auto, 1.25"
+    printf '%s\n' "# Scale 1 is the safe default; ryoku-monitor autoscale bumps high-DPI"
+    printf '%s\n' "# panels by their real pixel density, so this is never hardcoded per panel."
+    printf '%s\n' "monitor = , highrr, auto, 1"
   } >"$tmp"
 
   mkdir -p "$(dirname "$monitors_conf")"
@@ -94,23 +185,8 @@ persist)
   trap - EXIT
   echo "ryoku-monitor: wrote $monitors_conf"
 
-  # Keep GDK_SCALE in step so GTK/XWayland apps stay crisp: use the shared integer
-  # scale when every active monitor agrees on one (>=2x), else 1 (Wayland handles
-  # fractional scaling for native apps).
-  gdk_scale="$(hyprctl monitors all -j | jq -r '
-    [ .[] | select(.disabled | not) | .scale ] as $s |
-    if ($s | length) > 0 and ($s | unique | length) == 1
-       and ($s[0] == ($s[0] | floor)) and $s[0] >= 2
-    then ($s[0] | floor) else 1 end
-  ' 2>/dev/null)"
-  [[ $gdk_scale =~ ^[0-9]+$ ]] || gdk_scale=1
-
-  hyprctl keyword env "GDK_SCALE,$gdk_scale" >/dev/null 2>&1 || true
-  hypr_conf="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland.conf"
-  if [[ -f $hypr_conf ]] && grep -qE '^env = GDK_SCALE,' "$hypr_conf"; then
-    sed -i -E "s|^env = GDK_SCALE,.*|env = GDK_SCALE,$gdk_scale|" "$hypr_conf"
-    echo "ryoku-monitor: set GDK_SCALE=$gdk_scale"
-  fi
+  gdk_scale="$(sync_gdk_scale)"
+  echo "ryoku-monitor: set GDK_SCALE=$gdk_scale"
   ;;
 reload)
   require_hyprctl

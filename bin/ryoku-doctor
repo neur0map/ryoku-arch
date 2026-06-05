@@ -1138,6 +1138,29 @@ doctor_repair_wallpaper_path() {
   fi
 }
 
+# RYOKU: HyprMod (the AUR Hyprland settings GUI) can serialise a multimedia key by
+# its bare name (e.g. "Tools") into hyprland-gui.{lua,conf}. Hyprland only accepts
+# the XF86-prefixed keysym, so one bare name fails the ENTIRE config load and the
+# session falls back to defaults: dead keybinds and an unscaled monitor. Rewrite the
+# known bare keynames to their XF86 keysyms so the config parses again.
+doctor_repair_hypr_keysyms() {
+  local fixer="$RYOKU_PATH/bin/ryoku-hypr-fix-keysyms"
+  [[ -x $fixer ]] || return 0
+
+  if "$fixer" --check >/dev/null 2>&1; then
+    doctor_note "OK" "Hyprland keybind keysyms are valid (HyprMod config)."
+    return 0
+  fi
+
+  doctor_note "FIX" "Repairing invalid bare keysyms in HyprMod's Hyprland config (e.g. Tools -> XF86Tools)."
+  if "$fixer" >/dev/null 2>&1; then
+    doctor_report_issue "FIX Rewrote invalid bare keysyms in hyprland-gui.* to XF86* (HyprMod serialization gap)."
+  else
+    doctor_note "WARN" "Could not repair HyprMod keysyms automatically; run: ryoku-hypr-fix-keysyms"
+    doctor_report_issue "WARN HyprMod keysym repair pending; run ryoku-hypr-fix-keysyms."
+  fi
+}
+
 # RYOKU: on multi-GPU desktops, keep the discrete GPU as Hyprland's primary
 # render device. With the monitor wired to a weak integrated GPU, the whole
 # desktop renders there while the powerful dGPU idles, so high-refresh sessions
@@ -1193,6 +1216,7 @@ run_shell_doctor() {
   doctor_converge_rebirth_session_services
   doctor_repair_rebirth_audio_restore_service
   doctor_repair_wallpaper_path
+  doctor_repair_hypr_keysyms
   doctor_repair_gpu_render_primary
 
   for setup in "${candidates[@]}"; do
