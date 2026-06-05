@@ -34,17 +34,49 @@ if ryoku-cmd-missing hyprctl || ryoku-cmd-missing jq; then
   exit 1
 fi
 
+# HyprMod 0.3+ runs Hyprland in Lua config mode, where `hyprctl dispatch` is
+# evaluated as Lua and legacy string dispatchers (togglefloating, ...) fail.
+# Probe once and translate to the hl.dsp.* forms when in that mode.
+lua_dispatch=false
+if [[ "$(hyprctl dispatch 'hl.dsp.no_op()' 2>/dev/null)" == ok* ]]; then
+  lua_dispatch=true
+fi
+
+hypr_toggle_floating() {
+  if [[ $lua_dispatch == true ]]; then
+    hyprctl dispatch 'hl.dsp.window.float({ action = "toggle" })' >/dev/null 2>&1 || true
+  else
+    hyprctl dispatch togglefloating >/dev/null 2>&1 || true
+  fi
+}
+
+hypr_resize_exact() { # width height address
+  if [[ $lua_dispatch == true ]]; then
+    hyprctl dispatch "hl.dsp.window.resize({ exact = true, x = $1, y = $2, window = \"address:$3\" })" >/dev/null 2>&1 || true
+  else
+    hyprctl dispatch resizewindowpixel exact "$1" "$2,address:$3" >/dev/null 2>&1 || true
+  fi
+}
+
+hypr_center() { # address
+  if [[ $lua_dispatch == true ]]; then
+    hyprctl dispatch "hl.dsp.window.center({ window = \"address:$1\" })" >/dev/null 2>&1 || true
+  else
+    hyprctl dispatch centerwindow "address:$1" >/dev/null 2>&1 || true
+  fi
+}
+
 read -r address _ < <(hyprctl activewindow -j 2>/dev/null | jq -r '"\(.address // empty) \(.floating // false)"')
 
 if [[ -z $address ]]; then
   exit 0
 fi
 
-hyprctl dispatch togglefloating >/dev/null 2>&1 || true
+hypr_toggle_floating
 sleep 0.05
 
 new_floating="$(hyprctl activewindow -j 2>/dev/null | jq -r '.floating // false')"
 if [[ $new_floating == "true" ]]; then
-  hyprctl dispatch resizewindowpixel exact "$floating_width" "$floating_height,address:$address" >/dev/null 2>&1 || true
-  hyprctl dispatch centerwindow "address:$address" >/dev/null 2>&1 || true
+  hypr_resize_exact "$floating_width" "$floating_height" "$address"
+  hypr_center "$address"
 fi
