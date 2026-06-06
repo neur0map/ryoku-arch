@@ -36,6 +36,19 @@
   surface that preserves hand-edited config and never overwrites a value the user
   set; the rice and overrides only seed defaults.
 
+### Fixed
+
+- **Audio no longer ships dimmed ("100% volume but barely audible")**: Ryoku no
+  longer forces WirePlumber software mixing on every machine. That override
+  decoupled the volume slider from the codec's hardware "Master", so any device
+  whose hardware Master shipped attenuated played ~20dB down on laptop
+  speakers, headphones, and external/USB outputs alike. WirePlumber now manages
+  the hardware mixer natively (the slider drives the hardware level), and the
+  per-login self-heal only unmutes output switches instead of pinning them to
+  100% (which fought WirePlumber and overrode the chosen volume). The universal
+  WirePlumber 40% default-sink-volume override stays; existing installs recover
+  through a `[global]` migration.
+
 ## [0.1.0-alpha-4] - 2026-05-18
 
 This alpha is the first big Ryoku shell refresh from the live-first shell sync.

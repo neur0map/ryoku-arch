@@ -40,8 +40,8 @@ assert_not_contains() {
 helper="$ROOT_DIR/bin/ryoku-audio-restore-mixers"
 [[ -x $helper ]] || fail "missing or non-executable bin/ryoku-audio-restore-mixers"
 
-grep -qE 'amixer -c "\$card" set "\$ctl" 100% unmute' "$helper" || \
-  fail "ryoku-audio-restore-mixers must unmute each control to 100% via amixer"
+grep -qE 'amixer -c "\$card" set "\$ctl" unmute' "$helper" || \
+  fail "ryoku-audio-restore-mixers must unmute each control via amixer (WirePlumber owns the level)"
 
 grep -qE 'Speaker.*Headphone.*Bass Speaker' "$helper" || \
   fail "ryoku-audio-restore-mixers must cover Speaker, Headphone, and Bass Speaker controls"

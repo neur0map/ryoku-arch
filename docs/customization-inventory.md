@@ -100,7 +100,6 @@ there are no machine-specific absolute paths here.
 | `default/systemd/system/supergfxd.service.d/delay-start.conf` | `/etc/systemd/system/supergfxd.service.d/delay-start.conf` | Systemd drop-in that delays `supergfxd` startup. |
 | `default/systemd/user@.service.d/faster-shutdown.conf` | `/etc/systemd/system/user@.service.d/faster-shutdown.conf` | User-manager systemd override for faster shutdown. |
 | `default/udev/framework16-qmk-hid.rules` | `/etc/udev/rules.d/50-framework16-qmk-hid.rules` | udev access rule for Framework 16 QMK HID devices. |
-| `default/wireplumber/wireplumber.conf.d/alsa-soft-mixer.conf` | `~/.config/wireplumber/wireplumber.conf.d/alsa-soft-mixer.conf` | WirePlumber rule forcing software volume control on ALSA devices. |
 | `default/xcompose` | `~/.XCompose` | Custom compose-key definitions. |
 
 ## Theme Pipeline
