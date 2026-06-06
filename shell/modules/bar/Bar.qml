@@ -100,12 +100,16 @@ ColumnLayout {
         const dy = GlobalConfig.general.reverseScroll ? -angleDelta.y : angleDelta.y;
         if (ch?.id === "workspaces" && Config.bar.scrollActions.workspaces) {
             // Workspace scroll
-            const mon = (GlobalConfig.bar.workspaces.perMonitorWorkspaces ? Hypr.monitorFor(screen) : Hypr.focusedMonitor);
+            const perMon = GlobalConfig.bar.workspaces.perMonitorWorkspaces;
+            const mon = perMon ? Hypr.monitorFor(screen) : Hypr.focusedMonitor;
+            // RYOKU: dispatch on this bar's monitor so scrolling a secondary
+            // display cycles that display's workspaces, not the focused one.
+            const targetMon = perMon ? mon : null;
             const specialWs = mon?.lastIpcObject.specialWorkspace.name;
             if (specialWs?.length > 0)
-                Hypr.dispatch(`togglespecialworkspace ${specialWs.slice(8)}`);
-            else if (dy < 0 || (GlobalConfig.bar.workspaces.perMonitorWorkspaces ? mon.activeWorkspace?.id : Hypr.activeWsId) > 1)
-                Hypr.dispatch(`workspace r${dy > 0 ? "-" : "+"}1`);
+                Hypr.dispatchOnMonitor(targetMon, `togglespecialworkspace ${specialWs.slice(8)}`);
+            else if (dy < 0 || (perMon ? mon.activeWorkspace?.id : Hypr.activeWsId) > 1)
+                Hypr.dispatchOnMonitor(targetMon, `workspace r${dy > 0 ? "-" : "+"}1`);
         } else if (y < screen.height / 2 && Config.bar.scrollActions.volume) {
             // Volume scroll on top half
             if (dy > 0)

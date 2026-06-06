@@ -60,6 +60,28 @@ Singleton {
             Hyprland.dispatch(request);
     }
 
+    // RYOKU: run a dispatch as if `monitor` were focused, so a bar on a secondary
+    // display drives its own monitor instead of the focused one (native
+    // multi-monitor workspace switching). Ordered/atomic in both dispatch modes:
+    // Lua mode batches the monitor focus and the action into one hyprctl call;
+    // legacy mode sends the two ordered IPC dispatches. Falls back to a plain
+    // dispatch when there is no distinct target monitor.
+    function dispatchOnMonitor(monitor: HyprlandMonitor, request: string): void {
+        if (!monitor || monitor.id === focusedMonitor?.id) {
+            dispatch(request);
+            return;
+        }
+
+        if (useLuaDispatch) {
+            const focus = toLuaDispatch(`focusmonitor ${monitor.name}`);
+            const action = toLuaDispatch(request);
+            Quickshell.execDetached(["hyprctl", "--batch", `dispatch ${focus} ; dispatch ${action}`]);
+        } else {
+            Hyprland.dispatch(`focusmonitor ${monitor.name}`);
+            Hyprland.dispatch(request);
+        }
+    }
+
     // Escape a string for embedding inside a Lua double-quoted literal.
     function luaQuote(value: string): string {
         return String(value).replace(/\\/g, "\\\\").replace(/"/g, "\\\"");
@@ -93,6 +115,8 @@ Singleton {
             return rest ? `hl.dsp.window.pin({ window = "${luaQuote(rest)}" })` : "hl.dsp.window.pin()";
         case "killwindow":
             return rest ? `hl.dsp.window.close({ window = "${luaQuote(rest)}" })` : "hl.dsp.window.close()";
+        case "focusmonitor":
+            return rest ? `hl.dsp.focus({ monitor = "${luaQuote(rest)}" })` : "hl.dsp.focus()";
         default:
             console.warn(`Hypr.dispatch: no Lua mapping for "${trimmed}"; sending as-is`);
             return trimmed;

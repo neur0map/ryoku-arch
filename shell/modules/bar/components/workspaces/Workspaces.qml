@@ -100,10 +100,15 @@ StyledClippingRect {
             anchors.fill: layout
             onClicked: event => {
                 const ws = (layout.childAt(event.x, event.y) as Workspace)?.ws;
-                if (Hypr.activeWsId !== ws)
-                    Hypr.dispatch(`workspace ${ws}`);
+                if (ws === undefined)
+                    return;
+                // RYOKU: target this bar's monitor so clicking a dot on a secondary
+                // display switches that display instead of the focused one.
+                const mon = GlobalConfig.bar.workspaces.perMonitorWorkspaces ? Hypr.monitorFor(root.screen) : null;
+                if (root.activeWsId !== ws)
+                    Hypr.dispatchOnMonitor(mon, `workspace ${ws}`);
                 else
-                    Hypr.dispatch("togglespecialworkspace special");
+                    Hypr.dispatchOnMonitor(mon, "togglespecialworkspace special");
             }
         }
 

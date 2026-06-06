@@ -48,6 +48,15 @@
   100% (which fought WirePlumber and overrode the chosen volume). The universal
   WirePlumber 40% default-sink-volume override stays; existing installs recover
   through a `[global]` migration.
+- **Multi-monitor workspace switching targets the right display**: clicking or
+  scrolling the workspace dots on a bar on a second or third monitor now switches
+  that monitor's own workspace instead of the focused one. The bar already showed
+  per-monitor state but dispatched a plain `workspace N` (or relative `workspace
+  r+1`), which Hyprland applies to the focused monitor, so interacting with an
+  extended display switched the primary instead. Bar workspace actions now route
+  through a monitor-targeted dispatch that focuses the bar's monitor first,
+  atomically: one `hyprctl --batch` under Hyprland Lua config mode, ordered IPC
+  dispatches under legacy Hyprland.
 
 ## [0.1.0-alpha-4] - 2026-05-18
 

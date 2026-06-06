@@ -73,6 +73,9 @@ const cases = [
   ["togglefloating address:0x5d",    'hl.dsp.window.float({ window = "address:0x5d" })'],
   ["pin address:0x5d",               'hl.dsp.window.pin({ window = "address:0x5d" })'],
   ["killwindow address:0x5d",        'hl.dsp.window.close({ window = "address:0x5d" })'],
+  // monitor focus (multi-monitor: bar targets its own monitor before switching)
+  ["focusmonitor DP-2",              'hl.dsp.focus({ monitor = "DP-2" })'],
+  ["focusmonitor eDP-1",             'hl.dsp.focus({ monitor = "eDP-1" })'],
 ];
 
 let failed = 0;
