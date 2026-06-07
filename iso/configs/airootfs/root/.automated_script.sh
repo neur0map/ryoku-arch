@@ -175,6 +175,23 @@ setup_dual_boot_partitions() {
   [[ -b $disk ]] || { echo "Dual-boot: install disk '$disk' not found" >&2; return 1; }
   [[ -b $esp ]] || { echo "Dual-boot: existing ESP '$esp' not found" >&2; return 1; }
 
+  # Defense in depth: the configurator already refuses alongside-install on a
+  # BitLocker disk, but re-verify before any destructive operation. A BitLocker
+  # volume reports TYPE=BitLocker, or carries "-FVE-FS-" at offset 3.
+  local p sig
+  while read -r p; do
+    [[ -n $p ]] || continue
+    if [[ "$(blkid -o value -s TYPE "$p" 2>/dev/null)" == "BitLocker" ]]; then
+      echo "Dual-boot: refusing to modify a disk with BitLocker active ($p)" >&2
+      return 1
+    fi
+    sig=$(dd if="$p" bs=1 skip=3 count=8 2>/dev/null | tr -d '\0')
+    if [[ "$sig" == "-FVE-FS-" ]]; then
+      echo "Dual-boot: refusing to modify a disk with BitLocker active ($p)" >&2
+      return 1
+    fi
+  done < <(lsblk -rpno NAME,TYPE "$disk" 2>/dev/null | awk '$2=="part"{print $1}')
+
   echo "Dual-boot: creating a Ryoku partition in free space on $disk (existing data untouched)"
 
   local before after newpart
