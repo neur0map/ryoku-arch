@@ -28,6 +28,11 @@ detect_power_source() {
 }
 
 if [[ -z $action || $action == "autodetect" ]]; then
+  # On plug/unplug, udev fires the power_supply rule before sysfs `online`
+  # is updated on some laptops (notably USB-C charging). A short settle
+  # delay lets the kernel catch up before we read state. Explicit ac/battery
+  # invocations skip this and stay instant.
+  sleep 0.3
   action=$(detect_power_source)
 fi
 
