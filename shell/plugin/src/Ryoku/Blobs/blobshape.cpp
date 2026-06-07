@@ -32,6 +32,17 @@ static float cpuSmoothstep(float edge0, float edge1, float x) {
     return t * t * (3.0f - 2.0f * t);
 }
 
+static float cornerFillFactor(float sd, float smoothFactor) {
+    // Continuous two-sided window. The corner is squared (factor -> 0) only within
+    // ±smoothFactor of the neighbour's edge (the visible junction); it keeps its full
+    // radius both far outside the neighbour and deep inside it (where it is buried and
+    // squaring would only crease the interior). C0-continuous across sd = 0, so the
+    // radius no longer collapses to square for every buried corner.
+    const float outside = cpuSmoothstep(0.0f, smoothFactor, sd);  // 0 at edge, ->1 far outside
+    const float inside = cpuSmoothstep(0.0f, -smoothFactor, sd);  // 0 at edge, ->1 deep inside
+    return std::max(outside, inside);
+}
+
 BlobShape::BlobShape(QQuickItem* parent)
     : QQuickItem(parent) {
     setFlag(ItemHasContents);
@@ -305,10 +316,10 @@ void BlobShape::updatePolish() {
             if (riExcludeMask & (1 << j))
                 continue;
             const auto& rj = m_cachedRects[j];
-            fTr = std::min(fTr, cpuSmoothstep(0.0f, smoothFactor, cpuSdBox(cTrX, cTrY, rj.cx, rj.cy, rj.hw, rj.hh)));
-            fBr = std::min(fBr, cpuSmoothstep(0.0f, smoothFactor, cpuSdBox(cBrX, cBrY, rj.cx, rj.cy, rj.hw, rj.hh)));
-            fBl = std::min(fBl, cpuSmoothstep(0.0f, smoothFactor, cpuSdBox(cBlX, cBlY, rj.cx, rj.cy, rj.hw, rj.hh)));
-            fTl = std::min(fTl, cpuSmoothstep(0.0f, smoothFactor, cpuSdBox(cTlX, cTlY, rj.cx, rj.cy, rj.hw, rj.hh)));
+            fTr = std::min(fTr, cornerFillFactor(cpuSdBox(cTrX, cTrY, rj.cx, rj.cy, rj.hw, rj.hh), smoothFactor));
+            fBr = std::min(fBr, cornerFillFactor(cpuSdBox(cBrX, cBrY, rj.cx, rj.cy, rj.hw, rj.hh), smoothFactor));
+            fBl = std::min(fBl, cornerFillFactor(cpuSdBox(cBlX, cBlY, rj.cx, rj.cy, rj.hw, rj.hh), smoothFactor));
+            fTl = std::min(fTl, cornerFillFactor(cpuSdBox(cTlX, cTlY, rj.cx, rj.cy, rj.hw, rj.hh), smoothFactor));
         }
 
         if (m_cachedHasInverted) {
