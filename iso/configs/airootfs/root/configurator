@@ -408,16 +408,44 @@ disk_form
 MIN_DUAL_BOOT_GIB=20
 EFI_PARTTYPE_GUID="c12a7328-f81f-11d2-ba4b-00a0c93ec93b"
 
+# A shared ESP must keep room for one Ryoku kernel + initramfs + Limine next to
+# the existing OS's boot files. Below the hard floor we refuse alongside-install;
+# below the warn line we still allow it but caution the user.
+ESP_MIN_FREE_MIB=64
+ESP_WARN_FREE_MIB=100
+
 # Globals set by detect_disk_layout:
 EXISTING_ESP=""
 FREE_SPACE_BYTES=0
 EXISTING_OS=""
+ESP_FREE_BYTES=0
+HAS_PARTITIONS=false
+BITLOCKER_DETECTED=false
+
+# True if a partition carries a BitLocker/FVE signature. blkid reports
+# TYPE=BitLocker for these volumes; as a fallback we read the 8-byte signature
+# at offset 3 ("-FVE-FS-" for BitLocker vs "NTFS    " for plain NTFS).
+partition_is_bitlocker() {
+  local part="$1"
+  [[ "$(blkid -o value -s TYPE "$part" 2>/dev/null)" == "BitLocker" ]] && return 0
+  local sig
+  sig=$(dd if="$part" bs=1 skip=3 count=8 2>/dev/null | tr -d '\0')
+  [[ "$sig" == "-FVE-FS-" ]]
+}
 
 detect_disk_layout() {
   local disk="$1"
   EXISTING_ESP=""
   FREE_SPACE_BYTES=0
   EXISTING_OS=""
+  ESP_FREE_BYTES=0
+  HAS_PARTITIONS=false
+  BITLOCKER_DETECTED=false
+
+  # Whether the disk already carries partitions. Lets us decide later whether to
+  # explain a missing alongside option (existing layout) or stay quiet (a blank
+  # disk, where erase is the only sensible choice).
+  [[ -n "$(lsblk -rpno NAME,TYPE "$disk" 2>/dev/null | awk '$2=="part"{print; exit}')" ]] && HAS_PARTITIONS=true
 
   # Only GPT disks qualify for alongside-install (UEFI). blkid's PTTYPE is the
   # canonical probe: it reports "gpt" for GPT, "dos" for MBR, empty for an
@@ -436,7 +464,20 @@ detect_disk_layout() {
     awk -F: '$5 ~ /free/ { sz=$4; sub(/B$/,"",sz); if (sz+0 > max) max=sz+0 } END { if (max>0) print max }')
   [[ -n $free_line ]] && FREE_SPACE_BYTES=$free_line
 
-  # Existing-OS label (installer UX only; boot correctness is handled by limine-scan).
+  # BitLocker scan: an alongside install adds a partition to the disk, which can
+  # change the firmware/boot state enough that Windows demands the BitLocker
+  # recovery key on the next boot. Detect it so we can refuse before any change.
+  local part
+  while read -r part; do
+    [[ -n $part ]] || continue
+    if partition_is_bitlocker "$part"; then
+      BITLOCKER_DETECTED=true
+      break
+    fi
+  done < <(lsblk -rpno NAME,TYPE "$disk" 2>/dev/null | awk '$2=="part"{print $1}')
+
+  # Existing-OS label + ESP free space (installer UX only; boot correctness is
+  # handled by limine-scan).
   if [[ -n $EXISTING_ESP ]]; then
     local mp
     mp=$(mktemp -d)
@@ -447,6 +488,8 @@ detect_disk_layout() {
       elif [[ -d "$mp/EFI/Linux" || -d "$mp/EFI/systemd" ]]; then EXISTING_OS="Linux"
       elif compgen -G "$mp/EFI/*" >/dev/null 2>&1; then EXISTING_OS="another OS"
       fi
+      ESP_FREE_BYTES=$(df -B1 --output=avail "$mp" 2>/dev/null | awk 'NR==2{print $1}')
+      [[ -n $ESP_FREE_BYTES ]] || ESP_FREE_BYTES=0
       umount "$mp" 2>/dev/null || true
     fi
     rmdir "$mp" 2>/dev/null || true
@@ -462,33 +505,89 @@ install_mode_form() {
   detect_disk_layout "$disk"
 
   local min_bytes=$((MIN_DUAL_BOOT_GIB * 1024 * 1024 * 1024))
-
-  # Only offer alongside-install when it is actually safe + possible.
-  [[ -n $EXISTING_ESP && $FREE_SPACE_BYTES -ge $min_bytes ]] || return 0
-
-  step "Choose how Ryoku uses this disk"
-
+  local esp_min_free=$((ESP_MIN_FREE_MIB * 1024 * 1024))
+  local esp_warn_free=$((ESP_WARN_FREE_MIB * 1024 * 1024))
   local free_gib=$((FREE_SPACE_BYTES / 1024 / 1024 / 1024))
-  local os_label="${EXISTING_OS:-the existing system}"
-  local alongside="Install alongside ${os_label} (use ${free_gib} GB free space)"
-  local erase="Erase the entire disk and use it all for Ryoku"
 
-  note --bold "Install alongside ${os_label}"
-  note "Keeps your current OS and its files. Ryoku takes only the free space."
-  note --foreground 8 "Free space available: ${free_gib} GB"
-  echo
-  note --bold "Erase the entire disk"
-  note "Removes everything on ${disk}, including ${os_label}."
-  echo
+  # Work out whether alongside-install is safe and possible, collecting plain
+  # reasons when it is not so the user is never silently dropped into erase-only.
+  local eligible=true
+  local reasons=()
 
-  local choice
-  choice=$(printf '%s\n' "$alongside" "$erase" |
-    gum choose --height 4 --selected "$alongside" --header "How should Ryoku use ${disk}?") || abort
+  if [[ $BITLOCKER_DETECTED == "true" ]]; then
+    eligible=false
+    reasons+=("BitLocker is enabled on this disk")
+  fi
+  if [[ -z $EXISTING_ESP ]]; then
+    eligible=false
+    reasons+=("no EFI system partition was found")
+  fi
+  if [[ $FREE_SPACE_BYTES -lt $min_bytes ]]; then
+    eligible=false
+    reasons+=("less than ${MIN_DUAL_BOOT_GIB} GB of unallocated free space is available")
+  fi
+  if [[ -n $EXISTING_ESP && $ESP_FREE_BYTES -lt $esp_min_free ]]; then
+    eligible=false
+    reasons+=("the EFI system partition has under ${ESP_MIN_FREE_MIB} MB free")
+  fi
 
-  case $choice in
-    "Install alongside"*) DUAL_BOOT=true ;;
-    *) DUAL_BOOT=false ;;
-  esac
+  if [[ $eligible == "true" ]]; then
+    step "Choose how Ryoku uses this disk"
+
+    local os_label="${EXISTING_OS:-the existing system}"
+    local alongside="Install alongside ${os_label} (use ${free_gib} GB free space)"
+    local erase="Erase the entire disk and use it all for Ryoku"
+
+    note --bold "Install alongside ${os_label}"
+    note "Keeps your current OS and its files. Ryoku takes only the free space."
+    note --foreground 8 "Free space available: ${free_gib} GB"
+    if [[ $ESP_FREE_BYTES -lt $esp_warn_free ]]; then
+      note --foreground 3 "Note: the shared EFI partition is almost full ($((ESP_FREE_BYTES / 1024 / 1024)) MB free); boot snapshots may be limited."
+    fi
+    echo
+    note --bold "Erase the entire disk"
+    note "Removes everything on ${disk}, including ${os_label}."
+    echo
+
+    local choice
+    choice=$(printf '%s\n' "$alongside" "$erase" |
+      gum choose --height 4 --selected "$alongside" --header "How should Ryoku use ${disk}?") || abort
+
+    case $choice in
+      "Install alongside"*) DUAL_BOOT=true ;;
+      *) DUAL_BOOT=false ;;
+    esac
+    return 0
+  fi
+
+  # Not eligible. BitLocker gets a dedicated, actionable message; any other
+  # existing layout gets the list of reasons. A blank disk stays quiet so the
+  # normal erase-and-confirm flow is unchanged.
+  if [[ $BITLOCKER_DETECTED == "true" ]]; then
+    step "Installing alongside ${EXISTING_OS:-Windows} is not available"
+    note --foreground 3 --bold "BitLocker drive encryption is active on this disk."
+    note "Adding a partition can make Windows ask for its BitLocker recovery key on the next boot, and many people do not have it saved."
+    note "To install alongside safely: boot Windows, turn BitLocker off, wait for it to finish decrypting, then run this installer again."
+    note --foreground 8 "You can still erase the entire disk below, which removes Windows and everything on it."
+    echo
+    return 0
+  fi
+
+  if [[ $HAS_PARTITIONS == "true" ]]; then
+    step "Installing alongside the existing system is not available"
+    note "This disk already holds data, but Ryoku cannot install alongside it because:"
+    local r
+    for r in "${reasons[@]}"; do
+      note --foreground 8 "  - ${r}"
+    done
+    note "Make room for a second OS from inside your current system first (for example, shrink a partition with Windows Disk Management), then run this installer again."
+    note --foreground 8 "You can still erase the entire disk below, which removes everything on it."
+    echo
+    return 0
+  fi
+
+  # Blank disk: nothing to preserve, keep the original quiet behavior.
+  return 0
 }
 
 install_mode_form "$disk"
