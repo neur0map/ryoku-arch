@@ -12,8 +12,14 @@ pass() {
   echo "OK: $1"
 }
 
-script="bin/ryoku-wallhaven-search"
-[[ -x $script ]] || fail "ryoku-wallhaven-search should be executable"
+# The command ships with the wallhaven plugin now, not the shell repo.
+extras="${RYOKU_EXTRAS_DIR:-$HOME/Work/ryoku-extras}"
+[[ -d $extras ]] || extras="../ryoku-extras"
+script="$extras/plugins/wallhaven/bin/ryoku-wallhaven-search"
+if [[ ! -x $script ]]; then
+  echo "SKIP: wallhaven plugin command not found at $script"
+  exit 0
+fi
 
 url=$("$script" search --query "samurai city #1" --page 2 --print-url)
 case "$url" in

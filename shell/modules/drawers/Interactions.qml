@@ -21,11 +21,10 @@ CustomMouseArea {
     property point dragStart
     property bool dashboardShortcutActive
     property bool islandShortcutActive
-    property bool wallhavenShortcutActive
     property bool obsidianShortcutActive
     property bool osdShortcutActive
     property bool utilitiesShortcutActive
-    readonly property real wallhavenActivationWidth: Math.min(220, Math.max(120, width * 0.12))
+    readonly property real frameActivationWidth: Math.min(220, Math.max(120, width * 0.12))
 
     function panelWidth(panel: Item): real {
         return Math.max(panel.width, panel.implicitWidth ?? 0);
@@ -75,14 +74,31 @@ CustomMouseArea {
         return y < Math.max(Config.border.minThickness, Config.border.thickness + panelHeight) && withinPanelWidth(panel, x, y);
     }
 
-    function inWallhavenPanel(panel: Item, x: real, y: real): bool {
-        if ((panel.offsetScale ?? 1) < 1 && inTopPanel(panel, x, y))
-            return true;
+    function inFramePanel(panel: var, x: real, y: real): bool {
+        const edge = panel.edge || "top";
+        const align = panel.align || "end";
 
-        const activationWidth = Math.min(root.wallhavenActivationWidth, root.panelWidth(panel));
-        return y < Math.max(Config.border.minThickness, Config.border.thickness)
-            && x >= width - activationWidth - Config.border.rounding
-            && x <= width + Config.border.rounding;
+        if ((panel.offsetScale ?? 1) < 1) {
+            if (edge === "bottom" ? inBottomPanel(panel, x, y) : inTopPanel(panel, x, y))
+                return true;
+        }
+
+        const stripH = panel.activationHeight > 0 ? panel.activationHeight : Math.max(Config.border.minThickness, Config.border.thickness);
+        const inStrip = edge === "bottom" ? y > height - stripH : y < stripH;
+        if (!inStrip)
+            return false;
+
+        // The author can size the hover zone via frame.activationWidth; otherwise fall back to
+        // the full strip width (panelWidth is 0 while the popout's content is lazy-loaded).
+        const pw = root.panelWidth(panel);
+        const activationWidth = panel.activationWidth > 0 ? panel.activationWidth : (pw > 0 ? Math.min(root.frameActivationWidth, pw) : root.frameActivationWidth);
+        if (align === "start")
+            return x >= bar.implicitWidth - Config.border.rounding && x <= bar.implicitWidth + activationWidth + Config.border.rounding;
+        if (align === "center") {
+            const cx = bar.implicitWidth + (width - bar.implicitWidth) / 2;
+            return x >= cx - activationWidth / 2 && x <= cx + activationWidth / 2;
+        }
+        return x >= width - activationWidth - Config.border.rounding && x <= width + Config.border.rounding;
     }
 
     function inObsidianPanel(panel: Item, x: real, y: real): bool {
@@ -132,8 +148,7 @@ CustomMouseArea {
             if (!islandShortcutActive)
                 visibilities.island = false;
 
-            if (!wallhavenShortcutActive)
-                visibilities.wallhaven = false;
+            panels.framePlugins.clearHover();
 
             if (!obsidianShortcutActive)
                 visibilities.obsidian = false;
@@ -254,12 +269,22 @@ CustomMouseArea {
                 visibilities.island = false;
         }
 
-        // Show Wallhaven on top-right frame hover.
-        const showWallhaven = !visibilities.settings && inWallhavenPanel(panels.wallhaven, x, y);
-        if (!wallhavenShortcutActive) {
-            visibilities.wallhaven = showWallhaven;
-        } else if (showWallhaven) {
-            wallhavenShortcutActive = false;
+        // Show installed frame plugins on their frame-corner hover.
+        if (!visibilities.settings) {
+            const framePanels = panels.framePlugins.panels;
+            let frameHit = "";
+            for (let i = 0; i < framePanels.length; i++) {
+                if (inFramePanel(framePanels[i], x, y)) {
+                    frameHit = framePanels[i].pluginId;
+                    break;
+                }
+            }
+            panels.framePlugins.hover(frameHit);
+            if (frameHit.length > 0) {
+                visibilities.dashboard = false;
+                visibilities.island = false;
+                visibilities.obsidian = false;
+            }
         }
 
         // Show Obsidian notes/calendar on the taskbar-side corner hover.
@@ -298,22 +323,27 @@ CustomMouseArea {
             if (!root.visibilities.launcher) {
                 root.dashboardShortcutActive = false;
                 root.osdShortcutActive = false;
-                root.wallhavenShortcutActive = false;
+                root.panels.framePlugins.shortcutActive = false;
                 root.obsidianShortcutActive = false;
                 root.utilitiesShortcutActive = false;
 
                 // Also hide dashboard and OSD if they're not being hovered
                 const inDashboardArea = root.inTopPanel(root.panels.dashboard, root.mouseX, root.mouseY);
-                const inWallhavenArea = root.inWallhavenPanel(root.panels.wallhaven, root.mouseX, root.mouseY);
                 const inObsidianArea = root.inObsidianPanel(root.panels.obsidian, root.mouseX, root.mouseY);
                 const inOsdArea = root.inRightPanel(root.panels.osdWrapper, root.mouseX, root.mouseY);
 
                 if (!inDashboardArea) {
                     root.visibilities.dashboard = false;
                 }
-                if (!inWallhavenArea) {
-                    root.visibilities.wallhaven = false;
+                const fps = root.panels.framePlugins.panels;
+                let frameHovered = "";
+                for (let i = 0; i < fps.length; i++) {
+                    if (root.inFramePanel(fps[i], root.mouseX, root.mouseY)) {
+                        frameHovered = fps[i].pluginId;
+                        break;
+                    }
                 }
+                root.panels.framePlugins.hover(frameHovered);
                 if (!inObsidianArea) {
                     root.visibilities.obsidian = false;
                 }
@@ -330,6 +360,7 @@ CustomMouseArea {
                 root.visibilities.settings = false;
                 root.visibilities.dashboard = false;
                 root.visibilities.island = Config.dashboard.enabled;
+                root.panels.framePlugins.closeAll();
             } else {
                 root.dashboardShortcutActive = false;
             }
@@ -343,6 +374,7 @@ CustomMouseArea {
             if (root.visibilities.island) {
                 root.visibilities.settings = false;
                 root.visibilities.dashboard = false;
+                root.panels.framePlugins.closeAll();
                 const inIslandArea = root.inTopPanel(root.panels.island, root.mouseX, root.mouseY);
                 if (!inIslandArea)
                     root.islandShortcutActive = true;
@@ -355,29 +387,11 @@ CustomMouseArea {
             if (root.visibilities.settings) {
                 root.visibilities.dashboard = false;
                 root.visibilities.island = false;
-                root.visibilities.wallhaven = false;
-                root.visibilities.obsidian = false;
-                root.dashboardShortcutActive = false;
-                root.islandShortcutActive = false;
-                root.wallhavenShortcutActive = false;
-                root.obsidianShortcutActive = false;
-            }
-        }
-
-        function onWallhavenChanged() {
-            if (root.visibilities.wallhaven) {
-                root.visibilities.dashboard = false;
-                root.visibilities.island = false;
-                root.visibilities.settings = false;
+                root.panels.framePlugins.closeAll();
                 root.visibilities.obsidian = false;
                 root.dashboardShortcutActive = false;
                 root.islandShortcutActive = false;
                 root.obsidianShortcutActive = false;
-                const inWallhavenArea = root.inWallhavenPanel(root.panels.wallhaven, root.mouseX, root.mouseY);
-                if (!inWallhavenArea)
-                    root.wallhavenShortcutActive = true;
-            } else {
-                root.wallhavenShortcutActive = false;
             }
         }
 
@@ -386,10 +400,9 @@ CustomMouseArea {
                 root.visibilities.dashboard = false;
                 root.visibilities.island = false;
                 root.visibilities.settings = false;
-                root.visibilities.wallhaven = false;
+                root.panels.framePlugins.closeAll();
                 root.dashboardShortcutActive = false;
                 root.islandShortcutActive = false;
-                root.wallhavenShortcutActive = false;
                 const inObsidianArea = root.inObsidianPanel(root.panels.obsidian, root.mouseX, root.mouseY);
                 if (!inObsidianArea)
                     root.obsidianShortcutActive = true;

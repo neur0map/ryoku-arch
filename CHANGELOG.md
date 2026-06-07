@@ -20,6 +20,10 @@
 - **Leaner, human-authored comments**: removed thousands of redundant restatement
   and narration comments across the shell, keeping license headers, pragmas, real
   rationale, TODOs, and the "configurable in Settings" pointers.
+- **Wallhaven is now a plugin**: the wallpaper popout moved out of the shell into the
+  `ryoku-extras` catalogue (`plugins/wallhaven/`); the shell no longer hardcodes it and
+  loads it through the new generic frame-plugin host. The old `shell/modules/wallhaven/`,
+  `shell/services/Wallhaven.qml` and `bin/ryoku-wallhaven-search` are gone.
 
 ### Added
 
@@ -35,6 +39,27 @@
   `docs/ryoku-config-architecture.md` now require Settings to act as a control
   surface that preserves hand-edited config and never overwrites a value the user
   set; the rice and overrides only seed defaults.
+- **Shell plugins with frame popouts**: the plugin system is activated and wired into the
+  running scene (`PluginService.pluginContainer`). A new `framePanel` entry point lets any
+  plugin register a frame-edge popout; a generic host in `shell/modules/drawers/`
+  (`FramePlugins`/`FramePanelWrapper`) owns the hover, slide, input region, focus and blob
+  deform, so a plugin only ships a service and a panel and names a corner. Authoring guide:
+  `plugins/AUTHORING.md` in ryoku-extras.
+- **Author- and user-controlled frame plugins**: a plugin's manifest `frame` block sets its
+  hover-zone size (`activationWidth`/`activationHeight`) and a shortcut `key`. Shortcuts open
+  through a leader menu: `Super+X` shows an in-shell HUD of installed plugins and their keys;
+  pressing a key toggles that popout (no per-plugin Hyprland binds, so it works under
+  HyprMod's Lua config too). Users rebind or clear a plugin's key in **Settings → Plugins →
+  Edit**, and their choice wins over the author default.
+- **Settings → Plugins** is reachable again (Installed / Available / Sources), and a new
+  **Settings → Extras** tab replaces the unused Hooks tab. One Refresh git-pulls the
+  `ryoku-extras` catalogue (new `RyokuExtras` service) for both plugins and bundles, the
+  way lock-screen themes work.
+- **The Ricer bundle + smart installer**: `ryoku-extras-install` installs a bundle or a
+  single item, de-duping packages into one `ryoku-pkg-add` call and auto-skipping anything
+  already present; curl-style installs use small `installers/*.sh` scripts. The first
+  bundle, **The Ricer**, adds aether, cbonsai, cmatrix, pipes.sh and tty-clock plus the
+  Wallhaven plugin.
 
 ### Fixed
 

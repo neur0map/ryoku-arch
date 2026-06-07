@@ -402,11 +402,16 @@ Singleton {
 
     var pluginDir = PluginRegistry.getPluginDir(compositeKey);
     var repoUrl = source.url;
+    // Plugins from the main catalogue live in a subfolder (e.g. plugins/<id>); the
+    // registry entry's `path` says where. Custom sources keep plugins at the repo root,
+    // so fall back to the bare id there.
+    var pluginPath = pluginMetadata.path || pluginId;
 
     // Use git sparse-checkout to clone only the plugin subfolder
     // GIT_TERMINAL_PROMPT=0 prevents hanging on private repos that need auth
-    // Note: We download from the original pluginId folder in the repo, but save to compositeKey folder
-    var downloadCmd = "temp_dir=$(mktemp -d) && GIT_TERMINAL_PROMPT=0 git clone --filter=blob:none --sparse --depth=1 --quiet '" + repoUrl + "' \"$temp_dir\" 2>/dev/null && cd \"$temp_dir\" && git sparse-checkout set '" + pluginId + "' 2>/dev/null && mkdir -p '" + pluginDir + "' && rm -f \"$temp_dir/" + pluginId + "/settings.json\" && cp -r \"$temp_dir/" + pluginId
+    // Note: we download from the repo's plugin folder (pluginPath) but save to the
+    // compositeKey folder so custom-source plugins never collide with official ones.
+    var downloadCmd = "temp_dir=$(mktemp -d) && GIT_TERMINAL_PROMPT=0 git clone --filter=blob:none --sparse --depth=1 --quiet '" + repoUrl + "' \"$temp_dir\" 2>/dev/null && cd \"$temp_dir\" && git sparse-checkout set '" + pluginPath + "' 2>/dev/null && mkdir -p '" + pluginDir + "' && rm -f \"$temp_dir/" + pluginPath + "/settings.json\" && cp -r \"$temp_dir/" + pluginPath
         + "/.\" '" + pluginDir + "/'; exit_code=$?; rm -rf \"$temp_dir\"; exit $exit_code";
 
     var newInstalling = Object.assign({}, root.installingPlugins);

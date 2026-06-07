@@ -13,7 +13,6 @@ import qs.modules.obsidian as Obsidian
 import qs.modules.osd as Osd
 import qs.modules.session as Session
 import qs.modules.sidebar as Sidebar
-import qs.modules.wallhaven as Wallhaven
 import qs.modules.utilities as Utilities
 import qs.modules.bar.popouts as BarPopouts
 import qs.modules.utilities.toasts as Toasts
@@ -36,7 +35,7 @@ Item {
     readonly property alias island: island
     readonly property alias dashboard: dashboard
     readonly property alias settings: settings
-    readonly property alias wallhaven: wallhaven
+    readonly property alias framePlugins: framePlugins
     readonly property alias obsidian: obsidian
     readonly property alias popouts: popoutsWrapper.content
     readonly property alias popoutsWrapper: popoutsWrapper
@@ -153,14 +152,11 @@ Item {
         anchors.top: parent.top
     }
 
-    Wallhaven.Wrapper {
-        id: wallhaven
+    FramePlugins {
+        id: framePlugins
 
         screen: root.screen
-        visibilities: root.visibilities
-
-        anchors.top: parent.top
-        anchors.right: parent.right
+        anchors.fill: parent
     }
 
     Obsidian.Wrapper {

@@ -1269,6 +1269,9 @@
       "tab-basics": "Basics",
       "tab-keybinds": "Keybinds"
     },
+    "extras": {
+      "title": "Extras"
+    },
     "hooks": {
       "color-generation-description": "Command to be executed when color generation completes (e.g. after wallpaper-based theming).",
       "color-generation-label": "Colors generated",

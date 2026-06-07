@@ -150,8 +150,15 @@ Scope {
 
     IpcHandler {
         function toggle(drawer: string): void {
+            const fp = Visibilities.framePluginsForActive();
+            if (fp && fp.panelById(drawer)) {
+                if (root.hasFullscreen)
+                    return;
+                fp.toggle(drawer);
+                return;
+            }
             if (list().split("\n").includes(drawer)) {
-                if (root.hasFullscreen && ["launcher", "session", "dashboard", "island", "settings", "wallhaven", "obsidian"].includes(drawer))
+                if (root.hasFullscreen && ["launcher", "session", "dashboard", "island", "settings", "obsidian"].includes(drawer))
                     return;
                 const visibilities = Visibilities.getForActive();
                 if (drawer === "dashboard") {
@@ -164,22 +171,13 @@ Scope {
                     if (nextIsland)
                         visibilities.settings = false;
                     visibilities.island = nextIsland;
-                } else if (drawer === "wallhaven") {
-                    const nextWallhaven = !visibilities.wallhaven;
-                    if (nextWallhaven) {
-                        visibilities.settings = false;
-                        visibilities.dashboard = false;
-                        visibilities.island = false;
-                        visibilities.obsidian = false;
-                    }
-                    visibilities.wallhaven = nextWallhaven;
                 } else if (drawer === "obsidian") {
                     const nextObsidian = !visibilities.obsidian;
                     if (nextObsidian) {
                         visibilities.settings = false;
                         visibilities.dashboard = false;
                         visibilities.island = false;
-                        visibilities.wallhaven = false;
+                        fp?.closeAll();
                     }
                     visibilities.obsidian = nextObsidian;
                 } else {
@@ -198,7 +196,12 @@ Scope {
 
         function list(): string {
             const visibilities = Visibilities.getForActive();
-            return Object.keys(visibilities).filter(k => typeof visibilities[k] === "boolean").join("\n");
+            const keys = Object.keys(visibilities).filter(k => typeof visibilities[k] === "boolean");
+            const fp = Visibilities.framePluginsForActive();
+            if (fp)
+                for (let i = 0; i < fp.panels.length; i++)
+                    keys.push(fp.panels[i].pluginId);
+            return keys.join("\n");
         }
 
         target: "drawers"

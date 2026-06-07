@@ -62,7 +62,7 @@ StyledWindow {
         visibilities.dashboard = false;
         visibilities.island = false;
         visibilities.settings = false;
-        visibilities.wallhaven = false;
+        panels.framePlugins.closeAll();
         visibilities.obsidian = false;
         panels.popouts.close();
     }
@@ -70,7 +70,7 @@ StyledWindow {
     name: "drawers"
     WlrLayershell.exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: fsTransitionProg > 0 && contentItem.Config.general.showOverFullscreen ? WlrLayer.Overlay : WlrLayer.Top
-    WlrLayershell.keyboardFocus: visibilities.launcher || visibilities.clipboard || visibilities.session || panels.dashboard.needsKeyboard || panels.settings.needsKeyboard || visibilities.wallhaven || visibilities.obsidian ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: visibilities.launcher || visibilities.clipboard || visibilities.session || panels.dashboard.needsKeyboard || panels.settings.needsKeyboard || panels.framePlugins.anyNeedsKeyboard || visibilities.obsidian ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
     mask: hasFullscreen ? emptyRegion : (visibilities.settings ? null : regions)
 
@@ -110,7 +110,7 @@ StyledWindow {
     HyprlandFocusGrab {
         id: focusGrab
 
-        active: (visibilities.launcher && root.contentItem.Config.launcher.enabled) || visibilities.clipboard || (visibilities.session && root.contentItem.Config.session.enabled) || (visibilities.sidebar && root.contentItem.Config.sidebar.enabled) || visibilities.settings || visibilities.wallhaven || visibilities.obsidian || (!root.contentItem.Config.dashboard.showOnHover && visibilities.dashboard && root.contentItem.Config.dashboard.enabled) || (panels.popouts.currentName.startsWith("traymenu") && (panels.popouts.current as StackView)?.depth > 1)
+        active: (visibilities.launcher && root.contentItem.Config.launcher.enabled) || visibilities.clipboard || (visibilities.session && root.contentItem.Config.session.enabled) || (visibilities.sidebar && root.contentItem.Config.sidebar.enabled) || visibilities.settings || panels.framePlugins.anyActive || visibilities.obsidian || (!root.contentItem.Config.dashboard.showOnHover && visibilities.dashboard && root.contentItem.Config.dashboard.enabled) || (panels.popouts.currentName.startsWith("traymenu") && (panels.popouts.current as StackView)?.depth > 1)
         windows: [root]
         onCleared: {
             visibilities.launcher = false;
@@ -120,7 +120,7 @@ StyledWindow {
             visibilities.dashboard = false;
             visibilities.island = false;
             visibilities.settings = false;
-            visibilities.wallhaven = false;
+            panels.framePlugins.closeAll();
             visibilities.obsidian = false;
             panels.popouts.hasCurrent = false;
             bar.closeTray();
@@ -183,11 +183,21 @@ StyledWindow {
             deformAmount: 0.1
         }
 
-        PanelBg {
-            id: wallhavenBg
+        Repeater {
+            model: panels.framePlugins.panels
 
-            panel: panels.wallhaven
-            deformAmount: 0.1
+            PanelBg {
+                required property var modelData
+
+                panel: modelData
+                deformAmount: 0.1
+
+                Binding {
+                    target: modelData
+                    property: "deformMatrix"
+                    value: deformMatrix
+                }
+            }
         }
 
         PanelBg {
@@ -329,9 +339,6 @@ StyledWindow {
             settings.transform: Matrix4x4 {
                 matrix: settingsBg.deformMatrix
             }
-            wallhaven.transform: Matrix4x4 {
-                matrix: wallhavenBg.deformMatrix
-            }
             obsidian.transform: Matrix4x4 {
                 matrix: obsidianBg.deformMatrix
             }
@@ -382,14 +389,14 @@ StyledWindow {
     }
 
     component PanelBg: BlobRect {
-        required property Item panel
+        property Item panel: null
         property real deformAmount: 0.15
 
         group: blobGroup
-        x: panel.x + bar.implicitWidth
-        y: panel.y + root.borderThickness
-        implicitWidth: panel.width
-        implicitHeight: panel.height
+        x: panel ? panel.x + bar.implicitWidth : 0
+        y: panel ? panel.y + root.borderThickness : 0
+        implicitWidth: panel ? panel.width : 0
+        implicitHeight: panel ? panel.height : 0
         radius: Tokens.rounding.large
         deformScale: (deformAmount * Config.appearance.deformScale) / 10000
     }

@@ -14,6 +14,7 @@ Region {
 
     readonly property real borderThickness: win.contentItem.Config.border.thickness
     readonly property real clampedThickness: win.contentItem.Config.border.clampedThickness
+    readonly property real frameActivationWidth: Math.min(220, Math.max(120, win.width * 0.12))
 
     function panelWidth(panel: Item): real {
         return Math.max(panel.width, panel.implicitWidth ?? 0);
@@ -41,12 +42,16 @@ Region {
         height: root.panelHeight(panel) * (1 - root.panels.settings.offsetScale) + root.borderThickness
     }
 
-    R {
-        panel: root.panels.wallhaven
-        x: root.win.width - width
-        y: 0
-        width: root.panelWidth(panel) * (1 - root.panels.wallhaven.offsetScale) + root.borderThickness
-        height: root.panelHeight(panel) * (1 - root.panels.wallhaven.offsetScale) + root.borderThickness
+    FrameR {
+        panel: root.panels.framePlugins.panels.length > 0 ? root.panels.framePlugins.panels[0] : null
+    }
+
+    FrameR {
+        panel: root.panels.framePlugins.panels.length > 1 ? root.panels.framePlugins.panels[1] : null
+    }
+
+    FrameR {
+        panel: root.panels.framePlugins.panels.length > 2 ? root.panels.framePlugins.panels[2] : null
     }
 
     R {
@@ -118,6 +123,26 @@ Region {
         y: panel.y + root.borderThickness
         width: root.panelWidth(panel)
         height: root.panelHeight(panel)
+        intersection: Intersection.Subtract
+    }
+
+    // Input region for a plugin frame popout: covers the author's activation zone while closed
+    // (so the whole hover area opens it) and grows to the full panel as it slides in.
+    component FrameR: Region {
+        property var panel: null
+
+        readonly property real vis: panel ? 1 - (panel.offsetScale ?? 1) : 0
+        readonly property string edge: panel ? (panel.edge || "top") : "top"
+        readonly property string align: panel ? (panel.align || "end") : "end"
+        readonly property real closedW: panel ? (panel.activationWidth > 0 ? panel.activationWidth : root.frameActivationWidth) : 0
+        readonly property real closedH: panel ? (panel.activationHeight > 0 ? panel.activationHeight : root.borderThickness) : 0
+        readonly property real w: panel ? closedW + Math.max(0, root.panelWidth(panel) - closedW) * vis : 0
+        readonly property real h: panel ? closedH + Math.max(0, root.panelHeight(panel) - closedH) * vis : 0
+
+        x: !panel ? 0 : align === "start" ? root.bar.clampedWidth : align === "center" ? Math.round((root.win.width - w) / 2) : root.win.width - w
+        y: !panel ? 0 : edge === "bottom" ? root.win.height - h : 0
+        width: w
+        height: h
         intersection: Intersection.Subtract
     }
 }

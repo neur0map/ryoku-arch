@@ -7,6 +7,7 @@ import qs.services
 Singleton {
     property var screens: new Map()
     property var bars: new Map()
+    property var framePlugins: new Map()
 
     // Global desktop-widget edit mode: when true, desktop widgets show edit
     // chrome and become draggable on the background layer.
@@ -24,5 +25,13 @@ Singleton {
 
     function getForActive(): DrawerVisibilities {
         return screens.get(Hypr.focusedMonitor);
+    }
+
+    function loadFramePlugins(screen: ShellScreen, host: var): void {
+        framePlugins.set(Hypr.monitorFor(screen), host);
+    }
+
+    function framePluginsForActive(): var {
+        return framePlugins.get(Hypr.focusedMonitor);
     }
 }

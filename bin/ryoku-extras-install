@@ -1,0 +1,205 @@
+#!/bin/bash
+
+# Install extras bundles/items from the ryoku-extras catalogue. Autodetects what is
+# already present, dedupes packages into one ryoku-pkg-add call, and runs script
+# installers. Plugins are handed to the shell (Settings -> Plugins), not installed here.
+
+set -euo pipefail
+
+CATALOGUE="${RYOKU_EXTRAS_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/ryoku-extras}"
+
+usage() {
+  cat >&2 <<'EOF'
+Usage:
+  ryoku-extras-install list
+  ryoku-extras-install bundle <id> [--dry-run]
+  ryoku-extras-install item <type> <name> [--dry-run]
+
+Commands:
+  list                 List available bundles (id and name).
+  bundle <id>          Install every item in bundles/<id>/bundle.json.
+  item <type> <name>   Install a single item (type: package|script|plugin).
+
+Options:
+  --dry-run            Print the plan and exit without changing anything.
+  -h, --help           Show this help.
+
+Item types:
+  package   Installed via ryoku-pkg-add (pacman + AUR).
+  script    Installed by running installers/<name>.sh from the catalogue.
+  plugin    Not installed here - add it from Settings -> Plugins.
+EOF
+}
+
+die() {
+  echo "ryoku-extras-install: $1" >&2
+  exit 2
+}
+
+# Dedup-tracked plan, filled by classify(); drained by execute().
+declare -a pkg_missing=()
+declare -A pkg_seen=()
+declare -a script_missing=()
+declare -a installed=() present=() skipped=() failed=()
+
+join_list() {
+  local IFS=", "
+  echo "$*"
+}
+
+# classify TYPE NAME DETECT -> sort one item into the plan (present/skip/queue).
+classify() {
+  local type="$1" name="$2" detect="$3"
+  [[ -n $detect ]] || detect="$name"
+
+  case "$type" in
+    package)
+      if ryoku-pkg-present "$name" || ryoku-cmd-present "$detect"; then
+        present+=("$name")
+      elif [[ -z ${pkg_seen[$name]:-} ]]; then
+        pkg_seen[$name]=1
+        pkg_missing+=("$name")
+      fi
+      ;;
+    script)
+      if ryoku-cmd-present "$detect"; then
+        present+=("$name")
+      else
+        script_missing+=("$name")
+      fi
+      ;;
+    plugin)
+      echo "plugin $name: install from Settings -> Plugins"
+      skipped+=("$name")
+      ;;
+    *)
+      die "unknown item type: $type"
+      ;;
+  esac
+}
+
+print_plan() {
+  echo "Plan:"
+  (( ${#pkg_missing[@]} )) && echo "  Install packages: $(join_list "${pkg_missing[@]}")"
+  (( ${#script_missing[@]} )) && echo "  Run installers:   $(join_list "${script_missing[@]}")"
+  (( ${#present[@]} )) && echo "  Already present:  $(join_list "${present[@]}")"
+  (( ${#skipped[@]} )) && echo "  Skipped:          $(join_list "${skipped[@]}")"
+  if (( ${#pkg_missing[@]} == 0 && ${#script_missing[@]} == 0 )); then
+    echo "  Nothing to install."
+  fi
+}
+
+execute() {
+  if (( ${#pkg_missing[@]} )); then
+    if ryoku-pkg-add "${pkg_missing[@]}"; then
+      installed+=("${pkg_missing[@]}")
+    else
+      failed+=("${pkg_missing[@]}")
+    fi
+  fi
+
+  local name script
+  for name in "${script_missing[@]}"; do
+    script="$CATALOGUE/installers/$name.sh"
+    if [[ ! -f $script ]]; then
+      echo "ryoku-extras-install: installer not found: $script" >&2
+      failed+=("$name")
+      continue
+    fi
+    if bash "$script"; then
+      installed+=("$name")
+    else
+      failed+=("$name")
+    fi
+  done
+}
+
+print_summary() {
+  echo
+  echo "Installed:       $(join_list "${installed[@]}")"
+  echo "Already present: $(join_list "${present[@]}")"
+  echo "Skipped:         $(join_list "${skipped[@]}")"
+  echo "Failed:          $(join_list "${failed[@]}")"
+}
+
+# run_plan DRY_RUN -- caller fills the plan via classify() before calling.
+run_plan() {
+  local dry_run="$1"
+  if (( dry_run )); then
+    print_plan
+    exit 0
+  fi
+  execute
+  print_summary
+  (( ${#failed[@]} == 0 )) || exit 1
+}
+
+cmd_list() {
+  local registry="$CATALOGUE/bundles/registry.json"
+  [[ -f $registry ]] || die "no bundle registry at $registry"
+  jq -r '.bundles[] | "\(.id)\t\(.name)"' "$registry"
+}
+
+cmd_bundle() {
+  local id="" dry_run=0
+  while (( $# )); do
+    case "$1" in
+      --dry-run) dry_run=1 ;;
+      --*) die "unknown option: $1" ;;
+      *) [[ -z $id ]] && id="$1" || die "unexpected argument: $1" ;;
+    esac
+    shift
+  done
+  [[ -n $id ]] || die "bundle requires an id"
+
+  local bundle="$CATALOGUE/bundles/$id/bundle.json"
+  [[ -f $bundle ]] || die "no such bundle: $id"
+
+  local type name detect
+  while IFS=$'\t' read -r type name detect; do
+    [[ -n $type ]] || continue
+    classify "$type" "$name" "$detect"
+  done < <(jq -r '.items[] | "\(.type)\t\(.name)\t\(.detect // "")"' "$bundle")
+
+  run_plan "$dry_run"
+}
+
+cmd_item() {
+  local type="" name="" dry_run=0
+  while (( $# )); do
+    case "$1" in
+      --dry-run) dry_run=1 ;;
+      --*) die "unknown option: $1" ;;
+      *)
+        if [[ -z $type ]]; then
+          type="$1"
+        elif [[ -z $name ]]; then
+          name="$1"
+        else
+          die "unexpected argument: $1"
+        fi
+        ;;
+    esac
+    shift
+  done
+  [[ -n $type && -n $name ]] || die "item requires a type and a name"
+
+  classify "$type" "$name" ""
+  run_plan "$dry_run"
+}
+
+case "${1:-}" in
+  -h|--help|"")
+    usage
+    [[ -n ${1:-} ]] || exit 1
+    ;;
+  *)
+    [[ -d $CATALOGUE ]] || die "extras catalogue not found at $CATALOGUE - refresh extras first (Settings -> Plugins -> Refresh)"
+    case "$1" in
+      list)   shift; cmd_list "$@" ;;
+      bundle) shift; cmd_bundle "$@" ;;
+      item)   shift; cmd_item "$@" ;;
+      *)      die "unknown command: $1" ;;
+    esac
+    ;;
+esac

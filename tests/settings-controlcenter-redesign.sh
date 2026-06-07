@@ -131,12 +131,16 @@ assert_contains "$settings_content" "WallpaperTab {}" \
   "Ryoku settings content should expose the Wallpaper tab"
 assert_contains "$settings_content" "AboutTab {}" \
   "Ryoku settings content should expose the Ryoku About tab"
-assert_contains "$settings_content" "disabled\": true // TODO: ryoku has no plugin system yet" \
+assert_contains "$settings_content" "disabled\": true // TODO: upstream system-monitor" \
   "unmapped settings tabs should be marked as disabled previews"
 assert_contains "$settings_content" "disabled tabs render as a greyed, non-interactive preview" \
   "disabled settings tabs should be visually marked as previews"
 assert_contains "$settings_content" "TooltipService.show(tabItem" \
   "disabled settings tabs should explain preview-only state"
+assert_contains "$settings_content" "ExtrasTab {}" \
+  "Ryoku settings content should expose the Extras (bundles) tab"
+assert_not_contains "$settings_content" "ryoku has no plugin system yet" \
+  "the Plugins tab should be activated (no longer a disabled preview)"
 
 assert_contains "$about_tab" "VersionSubTab {}" \
   "About should include Ryoku version details"

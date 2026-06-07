@@ -9,9 +9,11 @@ import "modules/drawers"
 import "modules/background"
 import "modules/areapicker"
 import qs.modules.ii.overlay
+import QtQuick
 import Quickshell
 import qs.services
 import qs.dashboard.modules.globals as DashGlobals
+import qs.settingsgui.Services.Platform
 
 ShellRoot {
     settings.watchFiles: true
@@ -31,6 +33,36 @@ ShellRoot {
     WallpaperRotation {}
     ClipboardMaintenance {}
     WeatherUnitSync {}
+    PluginMenu {}
+
+    // Bridge the plugin system into the running scene: `main` entry points (e.g. the
+    // wallhaven service) are created under pluginContainer; withCurrentScreen resolves
+    // the focused monitor for plugin APIs.
+    Item {
+        id: pluginContainer
+    }
+
+    QtObject {
+        id: pluginScreenDetector
+
+        function withCurrentScreen(callback): void {
+            const mon = Hypr.focusedMonitor;
+            if (mon) {
+                for (let i = 0; i < Quickshell.screens.length; i++) {
+                    if (Quickshell.screens[i].name === mon.name) {
+                        callback(Quickshell.screens[i]);
+                        return;
+                    }
+                }
+            }
+            callback(Quickshell.screens.length > 0 ? Quickshell.screens[0] : null);
+        }
+    }
+
+    Component.onCompleted: {
+        PluginService.pluginContainer = pluginContainer;
+        PluginService.screenDetector = pluginScreenDetector;
+    }
 
     // RYOKU PORT: webcam mirror window, toggled from the island weather-tools row
     // (GlobalStates.mirrorWindowVisible). Registered at the shell root so it persists

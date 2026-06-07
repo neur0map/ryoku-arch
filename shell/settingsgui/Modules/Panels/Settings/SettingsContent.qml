@@ -12,7 +12,7 @@ import qs.settingsgui.Modules.Panels.Settings.Tabs.ColorScheme
 import qs.settingsgui.Modules.Panels.Settings.Tabs.Connections
 import qs.settingsgui.Modules.Panels.Settings.Tabs.ControlCenter
 import qs.settingsgui.Modules.Panels.Settings.Tabs.Display
-import qs.settingsgui.Modules.Panels.Settings.Tabs.Hooks
+import qs.settingsgui.Modules.Panels.Settings.Tabs.Extras
 import qs.settingsgui.Modules.Panels.Settings.Tabs.Idle
 import qs.settingsgui.Modules.Panels.Settings.Tabs.Launcher
 import qs.settingsgui.Modules.Panels.Settings.Tabs.LockScreen
@@ -454,8 +454,8 @@ Item {
     AboutTab {}
   }
   Component {
-    id: hooksTab
-    HooksTab {}
+    id: extrasTab
+    ExtrasTab {}
   }
   Component {
     id: idleTab
@@ -606,14 +606,12 @@ Item {
             "label": "panels.plugins.title",
             "icon": "plugin",
             "source": pluginsTab,
-            "disabled": true // TODO: ryoku has no plugin system yet
           },
           {
-            "id": SettingsPanel.Tab.Hooks,
-            "label": "panels.hooks.title",
-            "icon": "settings-hooks",
-            "source": hooksTab,
-            "disabled": true // TODO: ryoku has no hooks runner yet
+            "id": SettingsPanel.Tab.Extras,
+            "label": "panels.extras.title",
+            "icon": "package",
+            "source": extrasTab
           },
           {
             "id": SettingsPanel.Tab.About,

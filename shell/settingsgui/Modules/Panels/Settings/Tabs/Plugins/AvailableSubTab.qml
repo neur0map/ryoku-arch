@@ -15,6 +15,12 @@ ColumnLayout {
   property int tagsRefreshCounter: 0
   property int availablePluginsRefreshCounter: 0
 
+  // Pull the live catalogue when the tab is opened and nothing has fetched yet.
+  onVisibleChanged: {
+    if (visible && (PluginService.availablePlugins || []).length === 0 && Object.keys(PluginService.activeFetches).length === 0)
+      PluginService.refreshAvailablePlugins();
+  }
+
   // Pseudo tags for filtering
   readonly property var pseudoTags: ["official", "downloaded", "notDownloaded"]
 
@@ -144,18 +150,6 @@ ColumnLayout {
             var dateB = b.lastUpdated ? new Date(b.lastUpdated).getTime() : 0;
             return dateB - dateA;
           });
-        }
-
-        var helloWorldIndex = -1;
-        for (var h = 0; h < filtered.length; h++) {
-          if (filtered[h].id === "hello-world") {
-            helloWorldIndex = h;
-            break;
-          }
-        }
-        if (helloWorldIndex >= 0) {
-          var helloWorld = filtered.splice(helloWorldIndex, 1)[0];
-          filtered.push(helloWorld);
         }
 
         return filtered;

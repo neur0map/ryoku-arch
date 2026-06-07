@@ -238,6 +238,17 @@ ColumnLayout {
             }
 
             NIconButton {
+              icon: "keyboard"
+              tooltipText: qsTr("Edit shortcut")
+              baseSize: Style.baseWidgetSize * 0.7
+              visible: modelData.entryPoints?.framePanel !== undefined
+              onClicked: {
+                keybindDialog.pluginToEdit = modelData;
+                keybindDialog.open();
+              }
+            }
+
+            NIconButton {
               icon: "trash"
               tooltipText: I18n.tr("common.uninstall")
               baseSize: Style.baseWidgetSize * 0.7
@@ -479,6 +490,99 @@ ColumnLayout {
     id: pluginSettingsDialog
     parent: Overlay.overlay
     showToastOnSave: true
+  }
+
+  // Per-plugin shortcut editor: the user's key wins over the author's manifest default.
+  Popup {
+    id: keybindDialog
+    parent: Overlay.overlay
+    modal: true
+    dim: false
+    anchors.centerIn: parent
+    width: 420 * Style.uiScaleRatio
+    padding: Style.marginL
+
+    property var pluginToEdit: null
+    readonly property string compositeKey: pluginToEdit?.compositeKey || ""
+    readonly property string defaultKey: pluginToEdit?.frame?.key || ""
+
+    onOpened: keyField.text = PluginRegistry.getPluginKeybind(compositeKey) || defaultKey
+
+    background: Rectangle {
+      color: Color.mSurface
+      radius: Style.radiusS
+      border.color: Color.mPrimary
+      border.width: Style.borderM
+    }
+
+    contentItem: ColumnLayout {
+      width: parent.width
+      spacing: Style.marginL
+
+      NHeader {
+        label: qsTr("Edit shortcut")
+        description: qsTr("Press the leader (Super+X), then this key, to toggle %1.").arg(keybindDialog.pluginToEdit?.name || "")
+      }
+
+      ColumnLayout {
+        Layout.fillWidth: true
+        spacing: Style.marginXS
+
+        NText {
+          text: qsTr("Key")
+          pointSize: Style.fontSizeS
+          color: Color.mOnSurfaceVariant
+        }
+
+        NTextInput {
+          id: keyField
+          Layout.fillWidth: true
+          placeholderText: qsTr("e.g. w")
+          inputIconName: "keyboard"
+        }
+
+        NText {
+          Layout.fillWidth: true
+          visible: keybindDialog.defaultKey.length > 0
+          text: qsTr("Author default: %1").arg(keybindDialog.defaultKey)
+          pointSize: Style.fontSizeXS
+          color: Color.mOnSurfaceVariant
+        }
+      }
+
+      RowLayout {
+        Layout.fillWidth: true
+        spacing: Style.marginM
+
+        NButton {
+          text: qsTr("Reset to default")
+          visible: PluginRegistry.getPluginKeybind(keybindDialog.compositeKey).length > 0
+          onClicked: {
+            PluginRegistry.setPluginKeybind(keybindDialog.compositeKey, "");
+            keybindDialog.close();
+          }
+        }
+
+        Item {
+          Layout.fillWidth: true
+        }
+
+        NButton {
+          text: qsTr("Cancel")
+          onClicked: keybindDialog.close()
+        }
+
+        NButton {
+          text: qsTr("Save")
+          backgroundColor: Color.mPrimary
+          textColor: Color.mOnPrimary
+          onClicked: {
+            PluginRegistry.setPluginKeybind(keybindDialog.compositeKey, keyField.text.trim().toLowerCase());
+            keybindDialog.close();
+          }
+        }
+      }
+    }
   }
 
   function uninstallPlugin(pluginId) {

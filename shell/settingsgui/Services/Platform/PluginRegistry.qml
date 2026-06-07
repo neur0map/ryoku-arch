@@ -81,6 +81,7 @@ Singleton {
   }
 
   signal pluginsChanged
+  signal pluginKeybindChanged(string pluginId)
 
   // In-memory plugin cache (populated by scanning disk)
   property var installedPlugins: ({}) // { pluginId: manifest }
@@ -405,6 +406,27 @@ Singleton {
     return Object.keys(root.pluginStates).filter(function (id) {
       return root.pluginStates[id].enabled === true;
     });
+  }
+
+  // User's per-plugin shortcut key override (in the Super+X plugins menu). Empty = use the
+  // author default from the manifest's frame.key.
+  function getPluginKeybind(pluginId) {
+    var s = root.pluginStates[pluginId];
+    return (s && s.keybind) ? s.keybind : "";
+  }
+
+  function setPluginKeybind(pluginId, keybind) {
+    if (!root.pluginStates[pluginId])
+      root.pluginStates[pluginId] = {
+        enabled: false
+      };
+    if (keybind && keybind.length > 0)
+      root.pluginStates[pluginId].keybind = keybind;
+    else
+      delete root.pluginStates[pluginId].keybind;
+    save();
+    root.pluginKeybindChanged(pluginId);
+    root.pluginsChanged();
   }
 
   // sourceUrl is required for new plugins to generate composite key
