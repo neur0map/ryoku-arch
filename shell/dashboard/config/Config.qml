@@ -18,7 +18,6 @@ import "defaults/desktop.js" as DesktopDefaults
 import "defaults/lockscreen.js" as LockscreenDefaults
 import "defaults/prefix.js" as PrefixDefaults
 import "defaults/system.js" as SystemDefaults
-import "defaults/ai.js" as AiDefaults
 import "ConfigValidator.js" as ConfigValidator
 
 Singleton {
@@ -41,9 +40,8 @@ Singleton {
     property bool lockscreenReady: false
     property bool prefixReady: false
     property bool systemReady: false
-    property bool aiReady: false
 
-    property bool initialLoadComplete: themeReady && barReady && workspacesReady && overviewReady && notchReady && compositorReady && performanceReady && weatherReady && desktopReady && lockscreenReady && prefixReady && systemReady && aiReady
+    property bool initialLoadComplete: themeReady && barReady && workspacesReady && overviewReady && notchReady && compositorReady && performanceReady && weatherReady && desktopReady && lockscreenReady && prefixReady && systemReady
 
     property alias loader: themeLoader
 
@@ -62,7 +60,6 @@ Singleton {
             "cp -n '" + root.presetDir + "/performance.json' '" + root.configDir + "/performance.json' 2>/dev/null || true; " +
             "cp -n '" + root.presetDir + "/desktop.json' '" + root.configDir + "/desktop.json' 2>/dev/null || true; " +
             "cp -n '" + root.presetDir + "/lockscreen.json' '" + root.configDir + "/lockscreen.json' 2>/dev/null || true; " +
-            "cp -n '" + root.presetDir + "/ai.json' '" + root.configDir + "/ai.json' 2>/dev/null || true; " +
             "cp -n '" + root.presetDir + "/system.json' '" + root.configDir + "/system.json' 2>/dev/null || true; " +
             "echo 'Preset files copied if missing'"
         ]
@@ -1025,47 +1022,6 @@ Singleton {
         }
     }
 
-    FileView {
-        id: aiLoader
-        path: root.configDir + "/ai.json"
-        atomicWrites: true
-        watchChanges: true
-        onLoaded: {
-            if (!root.aiReady) {
-                validateModule("ai", aiLoader, AiDefaults.data, () => {
-                    root.aiReady = true;
-                });
-            }
-        }
-        onLoadFailed: {
-            if (error.toString().includes("FileNotFound") && !root.aiReady) {
-                handleMissingConfig("ai", aiLoader, AiDefaults.data, () => {
-                    root.aiReady = true;
-                });
-            }
-        }
-        onFileChanged: {
-            root.pauseAutoSave = true;
-            reload();
-            root.pauseAutoSave = false;
-        }
-        onPathChanged: reload()
-        onAdapterUpdated: {
-            if (root.aiReady && !root.pauseAutoSave) {
-                aiLoader.writeAdapter();
-            }
-        }
-
-        adapter: JsonAdapter {
-            property string systemPrompt: "You are a helpful assistant running on a Linux system. You have access to some tools to control the system."
-            property string tool: "none"
-            property list<var> extraModels: []
-            property string defaultModel: "gemini-2.0-flash"
-            property int sidebarWidth: 400
-            property string sidebarPosition: "right"
-            property bool sidebarPinnedOnStartup: false
-        }
-    }
 
 
     function validateModule(name, loader, defaults, onComplete) {
@@ -1171,7 +1127,6 @@ Singleton {
 
     property QtObject pinnedApps: pinnedAppsLoader.adapter
 
-    property QtObject ai: aiLoader.adapter
 
     function saveBar() {
         barLoader.writeAdapter();
@@ -1208,9 +1163,6 @@ Singleton {
     }
     function savePinnedApps() {
         pinnedAppsLoader.writeAdapter();
-    }
-    function saveAi() {
-        aiLoader.writeAdapter();
     }
 
     function isHexColor(colorValue) {
