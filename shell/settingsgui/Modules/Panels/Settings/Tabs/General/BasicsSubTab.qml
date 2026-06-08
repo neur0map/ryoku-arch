@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
+import Ryoku
 import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.System
@@ -68,6 +69,7 @@ ColumnLayout {
       Layout.preferredHeight: width
       radius: width / 2
       imagePath: root.avatarSource
+      cache: false // avatar changes at runtime (~/.face); reload from disk, not cache
       fallbackIcon: "person"
       borderColor: Color.mPrimary
       borderWidth: Style.borderM

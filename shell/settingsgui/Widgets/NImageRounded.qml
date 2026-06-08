@@ -14,6 +14,9 @@ Item {
   property real borderWidth: 0
   property color borderColor: "transparent"
   property int imageFillMode: Image.PreserveAspectCrop
+  // Opt-out of Qt's URL-keyed pixmap cache. Needed when the file at a fixed
+  // path changes at runtime (e.g. the avatar ~/.face) so a reload shows new content.
+  property bool cache: true
 
   readonly property bool _isAnimated: imagePath.toLowerCase().endsWith(".gif")
   readonly property Item imageSource: imageSourceLoader.item
@@ -40,6 +43,7 @@ Item {
       Image {
         visible: false
         source: root.imagePath
+        cache: root.cache
         mipmap: true
         smooth: true
         asynchronous: true
@@ -53,6 +57,7 @@ Item {
       AnimatedImage {
         visible: false
         source: root.imagePath
+        cache: root.cache
         mipmap: true
         smooth: true
         asynchronous: true
