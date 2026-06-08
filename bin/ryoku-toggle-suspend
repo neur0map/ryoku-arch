@@ -1,8 +1,0 @@
-#!/bin/bash
-
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
-
-ryoku-toggle \
-  --enabled-notification "󰒲   Suspend removed from system menu" \
-  --disabled-notification "󰒲   Suspend now available in system menu" \
-  suspend-off

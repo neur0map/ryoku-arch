@@ -1,9 +1,0 @@
-#!/bin/bash
-
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
-
-# Unblock and restart the bluetooth service.
-
-echo -e "Unblocking bluetooth...\n"
-rfkill unblock bluetooth
-rfkill list bluetooth

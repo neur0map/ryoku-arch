@@ -1,6 +1,0 @@
-#!/bin/bash
-
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
-
-# Channel identity now lives in the Ryoku state file, not pacman config.
-exec ryoku-channel-current

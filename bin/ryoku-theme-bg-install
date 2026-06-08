@@ -1,6 +1,0 @@
-#!/bin/bash
-
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
-
-mkdir -p "$RYOKU_WALLPAPER_DIR"
-nautilus "$RYOKU_WALLPAPER_DIR"
