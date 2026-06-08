@@ -283,6 +283,8 @@ main() {
   write_shell_scheme
   update_shell_config
   sync_terminal_files
+  # Recolor Hyprland borders/shadows from the freshly written scheme (best-effort).
+  ryoku-hypr-colors >/dev/null 2>&1 || true
 }
 
 main "$@"

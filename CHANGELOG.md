@@ -2,8 +2,20 @@
 
 ## [Unreleased]
 
+## [0.1.0-beta2] - 2026-06-08
+
 ### Changed
 
+- **Hyprland now runs on its native Lua config**: the compositor config ships as
+  `config/hypr/hyprland.lua` (+ `colors.lua`, `monitors.lua`, `keyboard.lua`,
+  `gpu.lua`, `custom.lua`, `hyprland-gui.lua`), which Hyprland 0.55+ loads instead of
+  `hyprland.conf`. `ryoku-monitor`, `ryoku-gpu`, `ryoku-cursor-set`/`-list`,
+  `ryoku-keybinds`, the NVIDIA/keyboard install steps, and the verify-and-restore
+  safety net all emit and read the Lua format (with a hyprlang fallback for
+  not-yet-migrated boxes). Theme switches recolor the window borders via the new
+  `ryoku-hypr-colors`. Existing installs convert their config in place through a
+  `[global]` migration (the old `.conf` is kept as a fallback); the hypr* tools
+  (hyprlock, hypridle) stay on hyprlang.
 - **Default app launcher is now Vicinae**: `Super+Space` / `Super+R` open
   [Vicinae](https://github.com/vicinaehq/vicinae) instead of the in-frame
   ryoku-shell launcher. The server autostarts from the Hyprland session, the

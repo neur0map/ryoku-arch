@@ -1,57 +1,72 @@
 #!/bin/bash
 
-# ryoku-verify-hypr-config — safety net against a missing/empty/stub hyprland.conf.
+# ryoku-verify-hypr-config — safety net against a missing/empty/stub Hyprland config.
 #
-# A failed config rewrite during an update (or any tool that moves hyprland.conf
-# aside without writing a valid replacement) leaves the file absent. Hyprland
-# then generates its built-in STUB on next start, which strips every Ryoku
-# keybind and the exec-once that launches the shell — the system looks "reset".
+# A failed config rewrite during an update (or any tool that moves the config aside
+# without writing a valid replacement) leaves it absent. Hyprland then generates its
+# built-in STUB hyprland.conf on next start, which strips every Ryoku keybind and the
+# exec-once that launches the shell — the system looks "reset".
 #
-# This guard detects exactly that catastrophic state and restores the canonical
-# config from the installed repo default, preserving whatever broken file was
-# there. It never touches a valid (customized) config: it only acts when the
-# file is missing, empty, or carries Hyprland's own stub signature.
+# Hyprland 0.55+ loads hyprland.lua (Lua) over hyprland.conf when present; Ryoku ships
+# the Lua config. This guard treats EITHER a valid hyprland.lua OR a valid (non-stub)
+# hyprland.conf as healthy, so it never forces a format on a not-yet-migrated box. It
+# only acts when neither entrypoint is usable, restoring the canonical Lua tree from
+# the installed repo default (and seeding any required sub-module that is missing, so
+# the entrypoint's require()s resolve). It never overwrites a valid customized config.
 
 set -euo pipefail
 
 # shellcheck disable=SC1091
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
-hypr_conf="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland.conf"
-default_conf="$RYOKU_PATH/config/hypr/hyprland.conf"
+hypr_dir="${XDG_CONFIG_HOME:-$HOME/.config}/hypr"
+lua_entry="$hypr_dir/hyprland.lua"
+conf_entry="$hypr_dir/hyprland.conf"
+default_lua="$RYOKU_PATH/config/hypr/hyprland.lua"
 stub_signature="This config is a STUB"
+# Sub-modules hyprland.lua require()s; a missing one is a config error, so seed it.
+modules=(colors monitors keyboard gpu hyprland-gui custom)
 
-config_is_broken() {
-  # Missing or unreadable.
-  [[ -f $hypr_conf ]] || return 0
-  # Empty (no non-whitespace content).
-  [[ -s $hypr_conf ]] || return 0
-  grep -Eq '[^[:space:]]' "$hypr_conf" || return 0
+entry_is_valid() {
+  local f="$1"
+  [[ -f $f && -s $f ]] || return 1
+  grep -Eq '[^[:space:]]' "$f" || return 1
   # Hyprland's auto-generated stub (written only when the real file was absent).
-  grep -qF "$stub_signature" "$hypr_conf" && return 0
-  return 1
+  grep -qF "$stub_signature" "$f" && return 1
+  return 0
 }
 
-if ! config_is_broken; then
+# Healthy when either entrypoint is usable.
+if entry_is_valid "$lua_entry" || entry_is_valid "$conf_entry"; then
   exit 0
 fi
 
-if [[ ! -f $default_conf ]]; then
-  echo "ryoku-verify-hypr-config: hyprland.conf is broken but no default to restore from ($default_conf)" >&2
+if [[ ! -f $default_lua ]]; then
+  echo "ryoku-verify-hypr-config: Hyprland config is broken but no Lua default to restore from ($default_lua)" >&2
   exit 1
 fi
 
-mkdir -p "$(dirname "$hypr_conf")"
+mkdir -p "$hypr_dir"
 
-# Preserve the broken file for forensics before overwriting.
-if [[ -f $hypr_conf ]]; then
-  broken_copy="$hypr_conf.broken.$(date +%s)"
-  cp -a "$hypr_conf" "$broken_copy" 2>/dev/null \
-    && echo "ryoku-verify-hypr-config: saved broken config to $broken_copy"
-fi
+# Preserve a broken entrypoint for forensics before overwriting.
+for broken in "$lua_entry" "$conf_entry"; do
+  if [[ -f $broken ]]; then
+    cp -a "$broken" "$broken.broken.$(date +%s)" 2>/dev/null \
+      && echo "ryoku-verify-hypr-config: saved broken config to $broken.broken.*"
+  fi
+done
 
-cp -a "$default_conf" "$hypr_conf"
-echo "ryoku-verify-hypr-config: restored hyprland.conf from $default_conf"
+cp -a "$default_lua" "$lua_entry"
+echo "ryoku-verify-hypr-config: restored hyprland.lua from $default_lua"
+
+# Seed any required sub-module that is missing so every require() resolves; never
+# overwrite an existing (possibly customized) module.
+for m in "${modules[@]}"; do
+  if [[ ! -f $hypr_dir/$m.lua && -f $RYOKU_PATH/config/hypr/$m.lua ]]; then
+    cp -a "$RYOKU_PATH/config/hypr/$m.lua" "$hypr_dir/$m.lua"
+    echo "ryoku-verify-hypr-config: seeded missing $m.lua"
+  fi
+done
 
 # Apply live if a Hyprland instance is reachable (best-effort).
 if command -v hyprctl >/dev/null 2>&1 && hyprctl reload >/dev/null 2>&1; then

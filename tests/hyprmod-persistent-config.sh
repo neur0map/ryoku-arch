@@ -31,21 +31,21 @@ hyprmod_source_line="source = ~/.config/hypr/hyprland-gui.conf"
 old_game_opacity_comment="# Keep games opaque while preserving HyprMod transparency for normal windows."
 old_webapp_opacity_comment="# Keep web apps and games opaque while preserving HyprMod transparency for normal windows."
 opacity_comment="# Keep web apps and games fully opaque while preserving HyprMod transparency for normal windows."
-webapp_class_rule="windowrule = opacity 1.0 override 1.0 override 1.0 override, match:class ^(chrome|chromium|google-chrome|brave|brave-browser|microsoft-edge|opera|vivaldi)-.+-Default$"
-webapp_initial_class_rule="windowrule = opacity 1.0 override 1.0 override 1.0 override, match:initial_class ^(chrome|chromium|google-chrome|brave|brave-browser|microsoft-edge|opera|vivaldi)-.+-Default$"
-helium_class_rule="windowrule = opacity 1.0 override 1.0 override 1.0 override, match:class ^(helium|Helium)$"
-helium_initial_class_rule="windowrule = opacity 1.0 override 1.0 override 1.0 override, match:initial_class ^(helium|Helium)$"
-game_content_rule="windowrule = opacity 1.0 override 1.0 override 1.0 override, match:content game"
-game_class_rule="windowrule = opacity 1.0 override 1.0 override 1.0 override, match:class ^(steam_app_[0-9]+|gamescope)$"
-game_initial_class_rule="windowrule = opacity 1.0 override 1.0 override 1.0 override, match:initial_class ^(steam_app_[0-9]+|gamescope)$"
-webapp_class_opaque_rule="windowrule = opaque true, match:class ^(chrome|chromium|google-chrome|brave|brave-browser|microsoft-edge|opera|vivaldi)-.+-Default$"
-helium_class_opaque_rule="windowrule = opaque true, match:class ^(helium|Helium)$"
-game_content_opaque_rule="windowrule = opaque true, match:content game"
-webapp_class_force_rgbx_rule="windowrule = force_rgbx true, match:class ^(chrome|chromium|google-chrome|brave|brave-browser|microsoft-edge|opera|vivaldi)-.+-Default$"
-helium_class_force_rgbx_rule="windowrule = force_rgbx true, match:class ^(helium|Helium)$"
-game_content_force_rgbx_rule="windowrule = force_rgbx true, match:content game"
+webapp_class_rule='        class = "^(chrome|chromium|google-chrome|brave|brave-browser|microsoft-edge|opera|vivaldi)-.+-Default$",'
+webapp_initial_class_rule='        initial_class = "^(chrome|chromium|google-chrome|brave|brave-browser|microsoft-edge|opera|vivaldi)-.+-Default$",'
+helium_class_rule='        class = "^(helium|Helium)$",'
+helium_initial_class_rule='        initial_class = "^(helium|Helium)$",'
+game_content_rule='        content = "game",'
+game_class_rule='        class = "^(steam_app_[0-9]+|gamescope)$",'
+game_initial_class_rule='        initial_class = "^(steam_app_[0-9]+|gamescope)$",'
+webapp_class_opaque_rule='    opaque = true,'
+helium_class_opaque_rule='    opaque = true,'
+game_content_opaque_rule='    opaque = true,'
+webapp_class_force_rgbx_rule='    force_rgbx = true,'
+helium_class_force_rgbx_rule='    force_rgbx = true,'
+game_content_force_rgbx_rule='    force_rgbx = true,'
 
-[[ -f $ROOT_DIR/config/hypr/hyprland-gui.conf ]] || \
+[[ -f $ROOT_DIR/config/hypr/hyprland-gui.lua ]] || \
   fail "Ryoku should ship HyprMod's managed config target"
 [[ -f $ROOT_DIR/shell/modules/controlcenter/Wrapper.qml ]] || \
   fail "missing native Ryoku settings wrapper"
@@ -60,23 +60,23 @@ assert_contains "$ROOT_DIR/bin/ryoku-launch-hyprmod" \
 assert_contains "$ROOT_DIR/bin/ryoku-launch-hyprmod" \
   'height \* 0\.78' \
   "HyprMod launcher should match Ryoku settings height ratio"
-assert_contains "$ROOT_DIR/config/hypr/hyprland.conf" \
-  '^source = ~/\.config/hypr/hyprland-gui\.conf$' \
+assert_contains "$ROOT_DIR/config/hypr/hyprland.lua" \
+  '^require\("hyprland-gui"\)$' \
   "Ryoku Hyprland config should source HyprMod's managed config"
-assert_contains "$ROOT_DIR/config/hypr/hyprland-gui.conf" \
-  '^decoration:blur:brightness = 1\.0$' \
+assert_contains "$ROOT_DIR/config/hypr/hyprland-gui.lua" \
+  '^[[:space:]]*brightness = 1\.0,$' \
   "HyprMod defaults should preserve neutral blur brightness"
-assert_contains "$ROOT_DIR/config/hypr/hyprland-gui.conf" \
-  '^decoration:blur:contrast = 1\.0$' \
+assert_contains "$ROOT_DIR/config/hypr/hyprland-gui.lua" \
+  '^[[:space:]]*contrast = 1\.0,$' \
   "HyprMod defaults should avoid high-contrast blur filtering"
-assert_contains "$ROOT_DIR/config/hypr/hyprland-gui.conf" \
-  '^decoration:blur:vibrancy = 0\.0$' \
+assert_contains "$ROOT_DIR/config/hypr/hyprland-gui.lua" \
+  '^[[:space:]]*vibrancy = 0\.0,$' \
   "HyprMod defaults should avoid tinting transparent content"
-assert_contains "$ROOT_DIR/config/hypr/hyprland-gui.conf" \
-  '^decoration:blur:vibrancy_darkness = 0\.0$' \
+assert_contains "$ROOT_DIR/config/hypr/hyprland-gui.lua" \
+  '^[[:space:]]*vibrancy_darkness = 0\.0,$' \
   "HyprMod defaults should avoid dark vibrancy filtering"
-assert_contains "$ROOT_DIR/config/hypr/hyprland.conf" \
-  '^\$hyprlandSettings = ryoku-launch-hyprmod$' \
+assert_contains "$ROOT_DIR/config/hypr/hyprland.lua" \
+  '^local var_hyprlandSettings = "ryoku-launch-hyprmod"$' \
   "Ryoku Hyprland config should launch HyprMod through Ryoku geometry wrapper"
 assert_contains "$ROOT_DIR/shell/modules/controlcenter/Wrapper.qml" \
   'component HyprlandPage' \
@@ -84,56 +84,54 @@ assert_contains "$ROOT_DIR/shell/modules/controlcenter/Wrapper.qml" \
 assert_contains "$ROOT_DIR/shell/modules/controlcenter/Wrapper.qml" \
   'ryoku-launch-hyprmod' \
   "native settings should launch HyprMod through Ryoku geometry wrapper"
-assert_contains "$ROOT_DIR/config/hypr/hyprland.conf" \
-  '^windowrule = match:class \^\(io\.github\.bluemancz\.hyprmod\)\$, float true$' \
-  "HyprMod should open as a floating advanced settings window"
-assert_contains "$ROOT_DIR/config/hypr/hyprland.conf" \
-  '^windowrule = match:class \^\(io\.github\.bluemancz\.hyprmod\)\$, center true$' \
-  "HyprMod should open centered like Ryoku settings"
-assert_contains_fixed "$ROOT_DIR/config/hypr/hyprland.conf" \
+rg -qU 'class = "\^\(io\.github\.bluemancz\.hyprmod\)\$",\n\s*\},\n\s*float = true' "$ROOT_DIR/config/hypr/hyprland.lua" || \
+  fail "HyprMod should open as a floating advanced settings window"
+rg -qU 'class = "\^\(io\.github\.bluemancz\.hyprmod\)\$",\n\s*\},\n\s*center = true' "$ROOT_DIR/config/hypr/hyprland.lua" || \
+  fail "HyprMod should open centered like Ryoku settings"
+assert_contains_fixed "$ROOT_DIR/config/hypr/hyprland.lua" \
   "$webapp_class_rule" \
   "Chromium web apps should stay opaque under HyprMod transparency"
-assert_contains_fixed "$ROOT_DIR/config/hypr/hyprland.conf" \
+assert_contains_fixed "$ROOT_DIR/config/hypr/hyprland.lua" \
   "$webapp_initial_class_rule" \
   "Chromium web apps should stay opaque when matching their initial class"
-assert_contains_fixed "$ROOT_DIR/config/hypr/hyprland.conf" \
+assert_contains_fixed "$ROOT_DIR/config/hypr/hyprland.lua" \
   "$helium_class_rule" \
   "Helium surfaces should stay opaque under HyprMod transparency"
-assert_contains_fixed "$ROOT_DIR/config/hypr/hyprland.conf" \
+assert_contains_fixed "$ROOT_DIR/config/hypr/hyprland.lua" \
   "$helium_initial_class_rule" \
   "Helium surfaces should stay opaque when matching their initial class"
-assert_contains_fixed "$ROOT_DIR/config/hypr/hyprland.conf" \
+assert_contains_fixed "$ROOT_DIR/config/hypr/hyprland.lua" \
   "$game_content_rule" \
   "game content should stay opaque under HyprMod transparency"
-assert_contains_fixed "$ROOT_DIR/config/hypr/hyprland.conf" \
+assert_contains_fixed "$ROOT_DIR/config/hypr/hyprland.lua" \
   "$game_class_rule" \
   "Steam games should stay opaque even when they do not report game content"
-assert_contains_fixed "$ROOT_DIR/config/hypr/hyprland.conf" \
+assert_contains_fixed "$ROOT_DIR/config/hypr/hyprland.lua" \
   "$game_initial_class_rule" \
   "Steam games should stay opaque when matching their initial class"
-assert_contains_fixed "$ROOT_DIR/config/hypr/hyprland.conf" \
+assert_contains_fixed "$ROOT_DIR/config/hypr/hyprland.lua" \
   "$webapp_class_opaque_rule" \
   "Chromium web apps should be forced to opaque surfaces"
-assert_contains_fixed "$ROOT_DIR/config/hypr/hyprland.conf" \
+assert_contains_fixed "$ROOT_DIR/config/hypr/hyprland.lua" \
   "$helium_class_opaque_rule" \
   "Helium surfaces should be forced to opaque surfaces"
-assert_contains_fixed "$ROOT_DIR/config/hypr/hyprland.conf" \
+assert_contains_fixed "$ROOT_DIR/config/hypr/hyprland.lua" \
   "$game_content_opaque_rule" \
   "game content should be forced to opaque surfaces"
-assert_contains_fixed "$ROOT_DIR/config/hypr/hyprland.conf" \
+assert_contains_fixed "$ROOT_DIR/config/hypr/hyprland.lua" \
   "$webapp_class_force_rgbx_rule" \
   "Chromium web apps should ignore alpha channels"
-assert_contains_fixed "$ROOT_DIR/config/hypr/hyprland.conf" \
+assert_contains_fixed "$ROOT_DIR/config/hypr/hyprland.lua" \
   "$helium_class_force_rgbx_rule" \
   "Helium surfaces should ignore alpha channels"
-assert_contains_fixed "$ROOT_DIR/config/hypr/hyprland.conf" \
+assert_contains_fixed "$ROOT_DIR/config/hypr/hyprland.lua" \
   "$game_content_force_rgbx_rule" \
   "game content should ignore alpha channels"
 if [[ -f $ROOT_DIR/shell/modules/controlcenter/WindowTitle.qml ]] \
   && grep -Fq 'text: qsTr("Ryoku Settings")' "$ROOT_DIR/shell/modules/controlcenter/WindowTitle.qml"; then
   fail "floating settings title should not duplicate the Ryoku Settings label"
 fi
-if grep -Fq 'windowrule = match:class ^(io.github.bluemancz.hyprmod)$, size' "$ROOT_DIR/config/hypr/hyprland.conf"; then
+if rg -qU 'class = "\^\(io\.github\.bluemancz\.hyprmod\)\$",\n\s*\},\n\s*size =' "$ROOT_DIR/config/hypr/hyprland.lua"; then
   fail "HyprMod sizing should be handled by the Ryoku launcher, not a stale window rule"
 fi
 
@@ -150,6 +148,23 @@ webapp_opacity_repair_migration="$ROOT_DIR/migrations/1779766329.sh"
 assert_contains "$webapp_opacity_repair_migration" '1779660083\.sh' \
   "repair migration should re-run the webapp opacity convergence"
 
+# The section below exercises the legacy hyprlang migrations (1779*), which still
+# converge an existing .conf and emit hyprlang windowrules. Re-bind the rule needles
+# to their hyprlang forms for these temp-.conf assertions; the Lua forms above are
+# what the shipped hyprland.lua assertions match.
+webapp_class_rule="windowrule = opacity 1.0 override 1.0 override 1.0 override, match:class ^(chrome|chromium|google-chrome|brave|brave-browser|microsoft-edge|opera|vivaldi)-.+-Default$"
+webapp_initial_class_rule="windowrule = opacity 1.0 override 1.0 override 1.0 override, match:initial_class ^(chrome|chromium|google-chrome|brave|brave-browser|microsoft-edge|opera|vivaldi)-.+-Default$"
+helium_class_rule="windowrule = opacity 1.0 override 1.0 override 1.0 override, match:class ^(helium|Helium)$"
+helium_initial_class_rule="windowrule = opacity 1.0 override 1.0 override 1.0 override, match:initial_class ^(helium|Helium)$"
+game_content_rule="windowrule = opacity 1.0 override 1.0 override 1.0 override, match:content game"
+game_class_rule="windowrule = opacity 1.0 override 1.0 override 1.0 override, match:class ^(steam_app_[0-9]+|gamescope)$"
+game_initial_class_rule="windowrule = opacity 1.0 override 1.0 override 1.0 override, match:initial_class ^(steam_app_[0-9]+|gamescope)$"
+webapp_class_opaque_rule="windowrule = opaque true, match:class ^(chrome|chromium|google-chrome|brave|brave-browser|microsoft-edge|opera|vivaldi)-.+-Default$"
+helium_class_opaque_rule="windowrule = opaque true, match:class ^(helium|Helium)$"
+game_content_opaque_rule="windowrule = opaque true, match:content game"
+webapp_class_force_rgbx_rule="windowrule = force_rgbx true, match:class ^(chrome|chromium|google-chrome|brave|brave-browser|microsoft-edge|opera|vivaldi)-.+-Default$"
+helium_class_force_rgbx_rule="windowrule = force_rgbx true, match:class ^(helium|Helium)$"
+game_content_force_rgbx_rule="windowrule = force_rgbx true, match:content game"
 tmp_dir=$(mktemp -d)
 trap 'rm -rf "$tmp_dir"' EXIT
 

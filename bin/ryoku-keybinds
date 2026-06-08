@@ -9,10 +9,14 @@
 
 set -euo pipefail
 
+# shellcheck disable=SC1091
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/hypr-config.sh"
+
 hypr_dir="${XDG_CONFIG_HOME:-$HOME/.config}/hypr"
-main_conf="$hypr_dir/hyprland.conf"
-overlay="$hypr_dir/ryoku-keybinds.conf"
+main_conf="$(hypr_entrypoint)"
 source_line="source = ~/.config/hypr/ryoku-keybinds.conf"
+# Hyprland loads hyprland.lua over hyprland.conf when present; match the overlay.
+if hypr_is_lua; then overlay="$hypr_dir/ryoku-keybinds.lua"; else overlay="$hypr_dir/ryoku-keybinds.conf"; fi
 
 usage() {
   cat <<'EOF'
@@ -28,11 +32,19 @@ EOF
 ensure_overlay() {
   mkdir -p "$hypr_dir"
   if [[ ! -f $overlay ]]; then
-    printf '# Managed by ryoku settings — user keybind overrides.\n# Sourced from hyprland.conf; edited via Settings > General > Keybinds.\n' >"$overlay"
+    if [[ $overlay == *.lua ]]; then
+      printf -- '-- Managed by ryoku settings — user keybind overrides.\n-- Loaded from hyprland.lua; edited via Settings > General > Keybinds.\n' >"$overlay"
+    else
+      printf '# Managed by ryoku settings — user keybind overrides.\n# Sourced from hyprland.conf; edited via Settings > General > Keybinds.\n' >"$overlay"
+    fi
   fi
-  # Ensure the main config sources the overlay (one-time, idempotent append).
-  if [[ -f $main_conf ]] && ! grep -qF "$source_line" "$main_conf"; then
-    printf '\n%s\n' "$source_line" >>"$main_conf"
+  # Ensure the entrypoint loads the overlay LAST (one-time, idempotent append) so
+  # the user's Settings-UI binds win over the shipped defaults.
+  [[ -f $main_conf ]] || return 0
+  if [[ $main_conf == *.lua ]]; then
+    grep -qF 'require("ryoku-keybinds")' "$main_conf" || printf '\nrequire("ryoku-keybinds")\n' >>"$main_conf"
+  else
+    grep -qF "$source_line" "$main_conf" || printf '\n%s\n' "$source_line" >>"$main_conf"
   fi
 }
 
@@ -54,7 +66,15 @@ cmd_add() {
   ensure_overlay
   spec="$mods, $key, $disp${arg:+, $arg}"
   # Persist, then apply live.
-  printf 'bind = %s\n' "$spec" >>"$overlay"
+  # Persist (format-aware), then apply live.
+  if [[ $overlay == *.lua ]]; then
+    local lua_line
+    lua_line="$(printf '%s' "$spec" | python3 -c 'import sys; from hyprland_config._lua._emit._bind import emit_bind; print(emit_bind("bind", sys.stdin.read()) or "", end="")')" || lua_line=""
+    [[ -n $lua_line ]] || { echo "ryoku-keybinds: could not translate bind to Lua: $spec" >&2; return 1; }
+    printf '%s\n' "$lua_line" >>"$overlay"
+  else
+    printf 'bind = %s\n' "$spec" >>"$overlay"
+  fi
   hyprctl keyword bind "$spec" >/dev/null
   echo "added: bind = $spec"
 }
@@ -66,7 +86,14 @@ cmd_remove() {
   [[ -n $key ]] || { echo "ryoku-keybinds: KEY is required" >&2; return 2; }
   ensure_overlay
   # Override/disable the bind via the overlay, then apply live.
-  printf 'unbind = %s, %s\n' "$mods" "$key" >>"$overlay"
+  if [[ $overlay == *.lua ]]; then
+    local lua_line
+    lua_line="$(printf '%s, %s' "$mods" "$key" | python3 -c 'import sys; from hyprland_config._lua._emit._bind import emit_unbind; print(emit_unbind(sys.stdin.read()) or "", end="")')" || lua_line=""
+    [[ -n $lua_line ]] || { echo "ryoku-keybinds: could not translate unbind to Lua: $mods, $key" >&2; return 1; }
+    printf '%s\n' "$lua_line" >>"$overlay"
+  else
+    printf 'unbind = %s, %s\n' "$mods" "$key" >>"$overlay"
+  fi
   hyprctl keyword unbind "$mods, $key" >/dev/null
   echo "removed: $mods, $key"
 }

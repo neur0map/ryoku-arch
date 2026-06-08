@@ -198,4 +198,30 @@ grep -Eq "^env = AQ_DRM_DEVICES,$DRI/ryoku-gpu-0000-03-00-0:$DRI/ryoku-gpu-0000-
   || fail "persist must use stable symlink paths once they exist; got: $(grep AQ_DRM "$HYPRD/gpu.conf")"
 unset RULE
 
+# ── 7. Lua mode: persist writes gpu.lua + require("gpu") into hyprland.lua ─────
+# When the box has migrated to native Lua (hyprland.lua present), persist must
+# emit the Lua-format pin (gpu.lua with hl.env/hl.config) and ensure the entry
+# point require()s it, instead of the hyprlang gpu.conf + source line.
+fresh_drm
+make_card card1 "0000:03:00.0" amdgpu $((24 * GiB))
+make_card card2 "0000:13:00.0" amdgpu $((512 * 1024 * 1024))
+make_conn card2 DP-5 connected
+
+DRI="$WORK/dri7"
+HYPRD="$WORK/hypr7"
+mkdir -p "$DRI" "$HYPRD"
+: >"$DRI/card1"
+: >"$DRI/card2"
+printf 'require("custom")\n' >"$HYPRD/hyprland.lua"
+
+run_gpu persist >/dev/null || fail "persist should succeed in Lua mode"
+[[ -f $HYPRD/gpu.lua ]] || fail "persist must create gpu.lua when hyprland.lua is present"
+grep -qF 'hl.env("AQ_DRM_DEVICES",' "$HYPRD/gpu.lua" \
+  || fail "gpu.lua must pin AQ_DRM_DEVICES via hl.env"
+grep -qF 'no_hardware_cursors = true' "$HYPRD/gpu.lua" \
+  || fail "gpu.lua must disable HW cursors on multi-GPU (reverse PRIME breaks the cursor plane)"
+grep -qF 'require("gpu")' "$HYPRD/hyprland.lua" \
+  || fail "persist must add require(\"gpu\") to hyprland.lua instead of a source line"
+unset DRI HYPRD
+
 echo "PASS: gpu-render-primary (detection, ordering, persist, idempotency, gates)"

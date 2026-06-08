@@ -12,9 +12,9 @@ if [[ -z $config_file ]]; then
   Usage: $0 [config_file]
 
   Must provide a file path from the .config directory to be refreshed.
-  To copy \$RYOKU_PATH/config/hypr/hyprland.conf to ~/.config/hypr/hyprland.conf
+  To copy \$RYOKU_PATH/config/hypr/hyprland.lua to ~/.config/hypr/hyprland.lua
 
-    $0 hypr/hyprland.conf
+    $0 hypr/hyprland.lua
 USAGE
   exit 1
 fi

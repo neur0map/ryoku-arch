@@ -1,6 +1,8 @@
 #!/bin/bash
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+# shellcheck disable=SC1091
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/hypr-config.sh"
 
 set -euo pipefail
 
@@ -35,9 +37,12 @@ HYPR_DIR="${RYOKU_GPU_HYPR_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/hypr}"
 UWSM_ENV="${RYOKU_GPU_UWSM_ENV:-${XDG_CONFIG_HOME:-$HOME/.config}/uwsm/env-hyprland}"
 UDEV_RULE="${RYOKU_GPU_UDEV_RULE:-/etc/udev/rules.d/90-ryoku-gpu.rules}"
 
-GPU_CONF="$HYPR_DIR/gpu.conf"
 HYPR_CONF="$HYPR_DIR/hyprland.conf"
+HYPR_LUA="$HYPR_DIR/hyprland.lua"
 SOURCE_LINE="source = ~/.config/hypr/gpu.conf"
+# Hyprland loads hyprland.lua over hyprland.conf when present; write the matching
+# format so the pin is actually read.
+if [[ -f $HYPR_LUA ]]; then GPU_CONF="$HYPR_DIR/gpu.lua"; else GPU_CONF="$HYPR_DIR/gpu.conf"; fi
 SYMLINK_PREFIX="ryoku-gpu-"
 
 # APU integrated-graphics UMA carveouts stay under this; discrete cards report
@@ -200,7 +205,26 @@ symlinks_present() {
 
 write_gpu_conf() {
   local value="$1" primary="$2"
-  cat >"$GPU_CONF" <<EOF
+  if [[ $GPU_CONF == *.lua ]]; then
+    cat >"$GPU_CONF" <<EOF
+-- Managed by ryoku-gpu — do not edit by hand (reset with: ryoku-gpu disable).
+-- Pins Hyprland's primary render device to the strongest GPU so the desktop
+-- renders on the discrete GPU instead of a weak integrated one. The leftmost
+-- device is the primary renderer; the others stay listed so monitors attached to
+-- them keep working through render-offload (reverse PRIME). The env is read once
+-- at compositor start, so changes take effect on the next Hyprland login.
+-- ryoku-gpu-primary: $primary
+hl.env("AQ_DRM_DEVICES", "$value")
+
+-- Reverse PRIME renders the cursor on the primary GPU but scans it out on the GPU
+-- the monitor is wired to. Hyprland's hardware cursor plane can't reliably import
+-- that cross-GPU buffer, so cursor shape changes (text, resize, pointer) stick on
+-- the last shape. Compositing the cursor in software keeps it correct. HyprMod
+-- owns cursor theme/size; it does not manage this rendering setting.
+hl.config({ cursor = { no_hardware_cursors = true } })
+EOF
+  else
+    cat >"$GPU_CONF" <<EOF
 # Managed by ryoku-gpu — do not edit by hand (reset with: ryoku-gpu disable).
 # Pins Hyprland's primary render device to the strongest GPU so the desktop
 # renders on the discrete GPU instead of a weak integrated one. The leftmost
@@ -217,9 +241,15 @@ env = AQ_DRM_DEVICES,$value
 # owns cursor theme/size; it does not manage this rendering setting.
 cursor:no_hardware_cursors = true
 EOF
+  fi
 }
 
 ensure_source_line() {
+  # Lua entrypoint: ensure require("gpu") is present (idempotent).
+  if [[ -f $HYPR_LUA ]]; then
+    hypr_ensure_require "$HYPR_LUA" gpu
+    return 0
+  fi
   [[ -f $HYPR_CONF ]] || return 0
   grep -qxF "$SOURCE_LINE" "$HYPR_CONF" && return 0
   local tmp
@@ -290,7 +320,7 @@ cmd_check() {
   beneficial || return 2
   [[ -f $GPU_CONF ]] || return 1
   local pinned
-  pinned="$(sed -n 's/^# ryoku-gpu-primary: //p' "$GPU_CONF" | head -n1 || true)"
+  pinned="$(sed -n -E 's/^(#|--) ryoku-gpu-primary: //p' "$GPU_CONF" | head -n1 || true)"
   [[ $pinned == "${_slots[0]}" ]] && return 0
   return 1
 }
@@ -376,10 +406,17 @@ cmd_persist() {
 
 cmd_disable() {
   if [[ -f $GPU_CONF ]]; then
-    cat >"$GPU_CONF" <<'EOF'
+    if [[ $GPU_CONF == *.lua ]]; then
+      cat >"$GPU_CONF" <<'EOF'
+-- Managed by ryoku-gpu. Empty: Hyprland uses its default GPU selection.
+-- Pin the discrete GPU as the primary renderer with: ryoku-gpu persist
+EOF
+    else
+      cat >"$GPU_CONF" <<'EOF'
 # Managed by ryoku-gpu. Empty: Hyprland uses its default GPU selection.
 # Pin the discrete GPU as the primary renderer with: ryoku-gpu persist
 EOF
+    fi
   fi
   if [[ -f $UWSM_ENV ]]; then
     local tmp
@@ -401,9 +438,9 @@ EOF
 cmd_status() {
   cmd_detect || true
   echo
-  if [[ -f $GPU_CONF ]] && grep -q '^env = AQ_DRM_DEVICES,' "$GPU_CONF"; then
+  if [[ -f $GPU_CONF ]] && grep -qE '^(env = AQ_DRM_DEVICES,|hl\.env\("AQ_DRM_DEVICES")' "$GPU_CONF"; then
     echo "Configured ($GPU_CONF):"
-    grep -E '^# ryoku-gpu-primary:|^env = AQ_DRM_DEVICES,' "$GPU_CONF" | sed 's/^/  /'
+    grep -E 'ryoku-gpu-primary:|AQ_DRM_DEVICES' "$GPU_CONF" | sed 's/^/  /'
   else
     echo "Not configured: $GPU_CONF has no AQ_DRM_DEVICES pin."
   fi
@@ -419,9 +456,9 @@ so the desktop renders on the discrete GPU instead of a weak integrated one.
 Commands:
   detect         Show detected GPUs and the recommended primary (exit 1 if none).
   order          Print the recommended AQ_DRM_DEVICES value (exit 1 if none).
-  status         Show detection plus the current ~/.config/hypr/gpu.conf pin.
+  status         Show detection plus the current gpu.lua/gpu.conf GPU pin.
   check          Exit 0 if already pinned, 1 if persist needed, 2 if N/A.
-  persist        Write gpu.conf + source line (+ uwsm env) for the strongest GPU.
+  persist        Write gpu.lua/gpu.conf + require/source line (+ uwsm env) for the strongest GPU.
   install-udev   Install the udev rule for boot-stable GPU symlinks (root).
   disable        Reset to Hyprland's default GPU selection.
 

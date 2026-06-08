@@ -11,8 +11,9 @@ import qs.settingsgui.Widgets
 // a list of common actions, fill in only the field that action needs, and choose
 // the keys. Power users can pick "Custom command" to type a full Hyprland
 // dispatcher. Mutations go through `ryoku-keybinds`, which applies them instantly
-// (`hyprctl keyword`) and persists to ~/.config/hypr/ryoku-keybinds.conf — a
-// dedicated overlay sourced from the main config, so hyprland.conf is never
+// (`hyprctl keyword`) and persists to a dedicated overlay (ryoku-keybinds.lua in
+// Lua mode, ryoku-keybinds.conf otherwise) loaded from the main config, so the
+// shipped hyprland.lua is never hand-edited.
 ColumnLayout {
   id: root
   spacing: Style.marginL

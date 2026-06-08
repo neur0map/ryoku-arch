@@ -10,6 +10,7 @@ if command -v ryoku-gpu >/dev/null 2>&1; then
   # Boot-stable, colon-free /dev/dri symlinks by PCI slot (needs root; the
   # installer already holds a cached sudo credential at this point).
   ryoku-gpu install-udev || echo "ryoku-gpu: udev rule install skipped/failed (non-fatal)"
-  # Write ~/.config/hypr/gpu.conf (+ source line, + uwsm env) for the strongest GPU.
+  # Write the GPU pin (gpu.lua / gpu.conf, whichever Hyprland loads) + the matching
+  # require()/source line + uwsm env for the strongest GPU.
   ryoku-gpu persist || echo "ryoku-gpu: persist skipped/failed (non-fatal)"
 fi

@@ -127,7 +127,9 @@ assert_contains config/hypr/hypridle.conf 'pkill -f org\.ryoku\.screensaver' \
 assert_not_contains config/hypr/hypridle.conf 'on-timeout = .*power-off-monitors' \
   "idle config should not black the display while the screensaver is running"
 
-assert_contains config/hypr/hyprland.conf 'match:class \^\(org\.ryoku\.screensaver\)\$.*fullscreen true' \
+assert_contains config/hypr/hyprland.lua 'class = "\^\(org\.ryoku\.screensaver\)\$"' \
+  "Hyprland config should match screensaver windows"
+assert_contains config/hypr/hyprland.lua 'fullscreen = true' \
   "Hyprland config should open screensaver windows fullscreen"
 
 bash -n bin/ryoku-launch-screensaver bin/ryoku-cmd-screensaver tests/screensaver-sleep-flow.sh

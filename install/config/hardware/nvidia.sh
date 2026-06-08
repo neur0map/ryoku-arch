@@ -1,16 +1,10 @@
+# shellcheck disable=SC1091
+source "$RYOKU_PATH/lib/hypr-config.sh"
 if lspci | grep -qi 'nvidia'; then
+  # Persist NVIDIA env to whichever config Hyprland loads (hyprland.lua or .conf).
+  hypr_entry="$(hypr_entrypoint)"
   set_hyprland_env() {
-    local key="$1"
-    local value="$2"
-    local file="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland.conf"
-
-    [[ -f $file ]] || return 0
-
-    if grep -Eq "^[[:space:]]*env[[:space:]]*=[[:space:]]*$key," "$file"; then
-      sed -i "s|^[[:space:]]*env[[:space:]]*=[[:space:]]*$key,.*|env = $key,$value|" "$file"
-    else
-      printf 'env = %s,%s\n' "$key" "$value" >>"$file"
-    fi
+    hypr_set_env "$hypr_entry" "$1" "$2"
   }
 
   # Check which kernel is installed and set appropriate headers package

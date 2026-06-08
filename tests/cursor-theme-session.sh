@@ -90,4 +90,26 @@ assert_contains "$hypr_conf" '^env = HYPRCURSOR_THEME,Bibata-Modern-Classic$' \
 assert_contains migrations/1779493501.sh 'ryoku-cursor-set' \
   "cursor migration should reuse the shared cursor setter"
 
+# Lua mode: when the box ships native Lua (hyprland.lua present), the setter must
+# upsert the cursor env via hl.env(...) into hyprland.lua, not the hyprlang config.
+hypr_lua="$test_home/.config/hypr/hyprland.lua"
+cat >"$hypr_lua" <<'EOF'
+hl.env("GDK_SCALE", "1")
+require("custom")
+EOF
+
+HOME="$test_home" \
+XDG_CONFIG_HOME="$test_home/.config" \
+XDG_DATA_HOME="$test_home/.local/share" \
+RYOKU_PATH="$PWD" \
+RYOKU_STATE_PATH="$test_home/.local/state/ryoku" \
+RYOKU_TEST_COMMAND_LOG="$command_log" \
+PATH="$PWD/bin:$fake_bin:/usr/bin:/bin" \
+  bash bin/ryoku-cursor-set Bibata-Modern-Classic 24
+
+assert_contains "$hypr_lua" '^hl\.env\("XCURSOR_THEME", "Bibata-Modern-Classic"\)$' \
+  "cursor setter should persist the Xcursor theme via hl.env in the Lua config"
+assert_contains "$hypr_lua" '^hl\.env\("HYPRCURSOR_THEME", "Bibata-Modern-Classic"\)$' \
+  "cursor setter should persist the Hyprcursor theme via hl.env in the Lua config"
+
 echo "cursor-theme-session: ok"

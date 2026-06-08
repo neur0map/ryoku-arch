@@ -48,15 +48,17 @@ assert_not_contains "config/systemd/user/vicinae.service" '^WantedBy=' \
   "vicinae unit should not be enabled against a systemd target"
 
 # Hyprland wiring: launcher keybind, server autostart, layer-shell integration.
-assert_contains "config/hypr/hyprland.conf" "[$]menu = sh -lc .*ryoku-launch-app'" \
+assert_contains "config/hypr/hyprland.lua" "var_menu = .*ryoku-launch-app'" \
   "Hyprland \$menu should dispatch through ryoku-launch-app"
-assert_contains "config/hypr/hyprland.conf" 'bind = SUPER, Space, exec, [$]menu' \
+assert_contains "config/hypr/hyprland.lua" 'hl\.bind\("SUPER \+ Space", hl\.dsp\.exec_cmd\(var_menu\)\)' \
   "SUPER+Space should open the launcher"
-assert_contains "config/hypr/hyprland.conf" 'exec-once = .*ryoku-launch-app apply' \
+assert_contains "config/hypr/hyprland.lua" 'hl\.exec_cmd\(.*ryoku-launch-app apply' \
   "Hyprland should reconcile the launcher backend at login via ryoku-launch-app apply"
-assert_contains "config/hypr/hyprland.conf" 'layerrule = match:namespace .*vicinae.* blur true' \
-  "Hyprland should blur the Vicinae layer surface (0.55+ match:namespace syntax)"
-assert_contains "config/hypr/hyprland.conf" 'focus_on_activate = true' \
+assert_contains "config/hypr/hyprland.lua" 'namespace = "\^\(vicinae\)\$"' \
+  "Hyprland should target the Vicinae layer surface (0.55+ match:namespace syntax)"
+assert_contains "config/hypr/hyprland.lua" 'blur = true' \
+  "Hyprland should blur the Vicinae layer surface"
+assert_contains "config/hypr/hyprland.lua" 'focus_on_activate = true' \
   "Hyprland should let the launcher take activation focus"
 
 # Default config, seeded into ~/.config by install/config/config.sh.

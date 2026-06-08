@@ -1855,7 +1855,7 @@
     "hyprland": {
       "title": "Hyprland",
       "description": "Window manager appearance and behavior",
-      "intro": "Hyprland window-manager settings are configured visually with Hyprmod. Changes are saved to ~/.config/hypr/hyprland-gui.conf and applied automatically.",
+      "intro": "Hyprland window-manager settings are configured visually with Hyprmod. Changes are saved to ~/.config/hypr/hyprland-gui.lua and applied automatically.",
       "open-hyprmod": "Open Hyprmod",
       "reload": "Reload Hyprland",
       "hyprmod": "Hyprmod",

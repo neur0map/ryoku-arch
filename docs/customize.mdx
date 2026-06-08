@@ -61,9 +61,9 @@ control center stay visually aligned.
 
 ## Keybinds
 
-The shipped binds live in `~/.config/hypr/hyprland.conf`. To customize:
+The shipped binds live in `~/.config/hypr/hyprland.lua`. To customize:
 
-- Edit `~/.config/hypr/hyprland.conf` directly if you know Hyprland syntax.
+- Add your own binds and overrides in `~/.config/hypr/custom.lua`; that file is yours and survives updates. The config is now native Lua (`hl.bind(...)`), not hyprlang.
 - Keep a backup before replacing shipped binds; future Ryoku defaults may arrive through migrations or refresh commands.
 - Use `docs/keybindings.md` for the documented shipped binding baseline.
 
@@ -71,7 +71,7 @@ The shipped binds live in `~/.config/hypr/hyprland.conf`. To customize:
 
 For anything that doesn't have a Settings switch:
 
-- **Hyprland layout:** `~/.config/hypr/hyprland.conf`. Hyprland docs: https://wiki.hypr.land/
+- **Hyprland layout:** `~/.config/hypr/hyprland.lua` (native Lua); put personal overrides in `~/.config/hypr/custom.lua`. Hyprland docs: https://wiki.hypr.land/
 - **Shell config (raw JSON):** `~/.config/ryoku/shell.json`. Settings writes here; you can hand-edit when you know what you want.
 - **Shell token overrides:** `~/.config/ryoku/shell-tokens.json`.
 - **Theme palette overrides:** `~/.config/matugen/templates/` and `~/.local/state/quickshell/user/generated/`. See [`docs/branding.md`](/docs/branding) for the brand-color anchors.

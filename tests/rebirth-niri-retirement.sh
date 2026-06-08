@@ -86,7 +86,9 @@ assert_contains bin/ryoku-cmd-screensaver 'tte -i "\$RYOKU_CONFIG_PATH/branding/
   "ASCII screensaver should keep rendering the configured branding with TTE"
 assert_contains config/hypr/hypridle.conf 'ryoku-launch-screensaver' \
   "Hyprland idle config should keep launching the ASCII screensaver"
-assert_contains config/hypr/hyprland.conf 'org\.ryoku\.screensaver.*fullscreen true' \
+assert_contains config/hypr/hyprland.lua 'class = "\^\(org\.ryoku\.screensaver\)\$"' \
+  "Hyprland config should keep matching the ASCII screensaver"
+assert_contains config/hypr/hyprland.lua 'fullscreen = true' \
   "Hyprland config should keep fullscreening the ASCII screensaver"
 assert_contains install/config/branding.sh 'branding/screensaver\.txt' \
   "branding setup should keep seeding the ASCII screensaver text"

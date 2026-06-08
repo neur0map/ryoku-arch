@@ -122,7 +122,7 @@ normal updates.
 
 ### What will NOT auto-propagate
 
-- **Config files the user has customized.** If they edited `~/.config/hypr/hyprland.conf` or related files under `~/.config/hypr/` and you ship a new default, they keep their version. Use a migration to offer a merge or document a refresh command.
+- **Config files the user has customized.** If they edited `~/.config/hypr/hyprland.lua` or related files under `~/.config/hypr/` and you ship a new default, they keep their version. Use a migration to offer a merge or document a refresh command.
 - **Changes outside `~/.local/share/ryoku/`.** System services, `/etc/` configs, boot config, kernel params. Touch via a migration script that uses sudo.
 - **User-installed binaries outside the clone.** Not affected by updates.
 
@@ -414,7 +414,7 @@ The installed `pre-push` hook runs `bin/ryoku-dev-shellcheck-changed --push-stdi
 
 False-positive rule: prefer narrowing the scanned file set before adding broad ignores. Technical terms required by upstream config formats, generated files, binary assets, package caches, media, and vendored/inherited documentation should be skipped explicitly instead of making the linter less strict everywhere.
 
-`.github/workflows/docs-sync.yml` keeps Mintlify-facing docs honest. It parses `docs.json`, then runs the Mintlify CLI validation and broken-link checks. `.mintignore` excludes vendored shell docs that are not part of the public docs site. If you edit keybindings, keep `docs/keybindings.md` aligned with `config/hypr/hyprland.conf` and the live shell keybind legend.
+`.github/workflows/docs-sync.yml` keeps Mintlify-facing docs honest. It parses `docs.json`, then runs the Mintlify CLI validation and broken-link checks. `.mintignore` excludes vendored shell docs that are not part of the public docs site. If you edit keybindings, keep `docs/keybindings.md` aligned with `config/hypr/hyprland.lua` and the live shell keybind legend.
 
 The hosted docs are connected through the Mintlify GitHub App. GitHub deployments show `mintlify[bot]` deploying `main` to `https://docs.ryoku.dev`; that deployment happens after committed changes reach the connected branch. The repo-side job above catches stale generated docs before Mintlify deploys them.
 

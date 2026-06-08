@@ -154,7 +154,7 @@ Item {
     Quickshell.execDetached(["ryoku-monitor", "apply", buildMonitorSpec(cfg)]);
   }
 
-  // Persist the current live layout to ~/.config/hypr/monitors.conf (+ GDK_SCALE sync).
+  // Persist the current live layout via ryoku-monitor (monitors.lua / monitors.conf) + GDK_SCALE sync.
   function persistMonitors() {
     Quickshell.execDetached(["ryoku-monitor", "persist"]);
   }

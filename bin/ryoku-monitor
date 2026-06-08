@@ -2,12 +2,15 @@
 
 # shellcheck disable=SC1091
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+# shellcheck disable=SC1091
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/hypr-config.sh"
 
 # Apply and persist Hyprland monitor configuration for the Display settings tab.
 #
 # Live changes go through `hyprctl keyword monitor` (instant, session-only) so the
-# Display panel can preview a change before committing. Persistence rewrites
-# ~/.config/hypr/monitors.conf (sourced by hyprland.conf) from the current live state,
+# Display panel can preview a change before committing. Persistence rewrites the
+# monitor file Hyprland loads (~/.config/hypr/monitors.lua, or monitors.conf in
+# legacy hyprlang mode) from the current live state,
 # so a confirmed preview is captured exactly as it was applied. A catch-all rule is
 # kept last so newly plugged monitors still come up sensibly.
 #
@@ -21,8 +24,11 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 
 set -euo pipefail
 
-monitors_conf="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/monitors.conf"
-hypr_conf="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland.conf"
+hypr_dir="${XDG_CONFIG_HOME:-$HOME/.config}/hypr"
+hypr_conf="$(hypr_entrypoint)"
+# Hyprland loads hyprland.lua over hyprland.conf when present; persist monitors to
+# the matching format so the saved layout is actually read.
+if hypr_is_lua; then monitors_conf="$hypr_dir/monitors.lua"; else monitors_conf="$hypr_dir/monitors.conf"; fi
 
 usage() {
   cat <<'EOF'
@@ -83,9 +89,7 @@ sync_gdk_scale() {
   ' 2>/dev/null)"
   [[ $gdk_scale =~ ^[0-9]+$ ]] || gdk_scale=1
   hyprctl keyword env "GDK_SCALE,$gdk_scale" >/dev/null 2>&1 || true
-  if [[ -f $hypr_conf ]] && grep -qE '^env = GDK_SCALE,' "$hypr_conf"; then
-    sed -i -E "s|^env = GDK_SCALE,.*|env = GDK_SCALE,$gdk_scale|" "$hypr_conf"
-  fi
+  hypr_set_env "$hypr_conf" GDK_SCALE "$gdk_scale"
   printf '%s\n' "$gdk_scale"
 }
 
@@ -93,6 +97,10 @@ sync_gdk_scale() {
 # has an empty name) so autoscale never overrides a user-chosen scale.
 configured_names() {
   [[ -f $monitors_conf ]] || return 0
+  if [[ $monitors_conf == *.lua ]]; then
+    sed -n -E 's/^[[:space:]]*output[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' "$monitors_conf"
+    return 0
+  fi
   awk '/^[[:space:]]*monitor[[:space:]]*=/ {
     line = $0
     sub(/^[[:space:]]*monitor[[:space:]]*=[[:space:]]*/, "", line)
@@ -158,27 +166,52 @@ persist)
   tmp="$(mktemp)"
   trap 'rm -f "$tmp"' EXIT
 
-  {
-    printf '%s\n' "# Managed by Ryoku Display settings (ryoku-monitor)."
-    printf '%s\n' "# Edits here may be overwritten; use Settings > Display."
-    printf '\n'
-    hyprctl monitors all -j | jq -r '
-      .[] |
-      if .disabled then
-        "monitor = \(.name), disable"
-      else
-        "monitor = \(.name), \(.width)x\(.height)@\(.refreshRate | round), \(.x)x\(.y), \(.scale)"
-        + (if .transform != 0 then ", transform, \(.transform)" else "" end)
-        + (if .vrr then ", vrr, 1" else "" end)
-        + (if (.mirrorOf // "none") != "none" then ", mirror, \(.mirrorOf)" else "" end)
-      end
-    '
-    printf '\n'
-    printf '%s\n' "# Catch-all for monitors not configured above (hotplug-friendly)."
-    printf '%s\n' "# Scale 1 is the safe default; ryoku-monitor autoscale bumps high-DPI"
-    printf '%s\n' "# panels by their real pixel density, so this is never hardcoded per panel."
-    printf '%s\n' "monitor = , highrr, auto, 1"
-  } >"$tmp"
+  if [[ $monitors_conf == *.lua ]]; then
+    {
+      printf '%s\n' "-- Managed by Ryoku Display settings (ryoku-monitor)."
+      printf '%s\n' "-- Edits here may be overwritten; use Settings > Display."
+      printf '\n'
+      hyprctl monitors all -j | jq -r '
+        .[] |
+        if .disabled then
+          "hl.monitor({ output = \"\(.name)\", disabled = true })"
+        else
+          "hl.monitor({ output = \"\(.name)\", mode = \"\(.width)x\(.height)@\(.refreshRate | round)\", position = \"\(.x)x\(.y)\", scale = \(.scale)"
+          + (if .transform != 0 then ", transform = \(.transform)" else "" end)
+          + (if .vrr then ", vrr = 1" else "" end)
+          + (if (.mirrorOf // "none") != "none" then ", mirror = \"\(.mirrorOf)\"" else "" end)
+          + " })"
+        end
+      '
+      printf '\n'
+      printf '%s\n' "-- Catch-all for monitors not configured above (hotplug-friendly)."
+      printf '%s\n' "-- Scale 1 is the safe default; ryoku-monitor autoscale bumps high-DPI"
+      printf '%s\n' "-- panels by their real pixel density, so this is never hardcoded per panel."
+      printf '%s\n' "hl.monitor({ output = \"\", mode = \"highrr\", position = \"auto\", scale = 1 })"
+    } >"$tmp"
+  else
+    {
+      printf '%s\n' "# Managed by Ryoku Display settings (ryoku-monitor)."
+      printf '%s\n' "# Edits here may be overwritten; use Settings > Display."
+      printf '\n'
+      hyprctl monitors all -j | jq -r '
+        .[] |
+        if .disabled then
+          "monitor = \(.name), disable"
+        else
+          "monitor = \(.name), \(.width)x\(.height)@\(.refreshRate | round), \(.x)x\(.y), \(.scale)"
+          + (if .transform != 0 then ", transform, \(.transform)" else "" end)
+          + (if .vrr then ", vrr, 1" else "" end)
+          + (if (.mirrorOf // "none") != "none" then ", mirror, \(.mirrorOf)" else "" end)
+        end
+      '
+      printf '\n'
+      printf '%s\n' "# Catch-all for monitors not configured above (hotplug-friendly)."
+      printf '%s\n' "# Scale 1 is the safe default; ryoku-monitor autoscale bumps high-DPI"
+      printf '%s\n' "# panels by their real pixel density, so this is never hardcoded per panel."
+      printf '%s\n' "monitor = , highrr, auto, 1"
+    } >"$tmp"
+  fi
 
   mkdir -p "$(dirname "$monitors_conf")"
   mv "$tmp" "$monitors_conf"

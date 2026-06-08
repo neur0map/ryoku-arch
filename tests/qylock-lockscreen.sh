@@ -55,11 +55,11 @@ assert_not_contains config/hypr/hypridle.conf 'ryoku-lock-qylock' \
 assert_not_contains config/hypr/hypridle.conf 'lock_cmd[[:space:]]*=[[:space:]]*pidof hyprlock \|\| hyprlock' \
   "lid/idle lock should not go straight to hyprlock"
 
-assert_contains config/hypr/hyprland.conf '^[$]lockscreen[[:space:]]*=.*env -u QS_CONFIG_NAME -u QS_CONFIG_PATH -u QS_MANIFEST .*quickshell-lockscreen/lock\.sh' \
+assert_contains config/hypr/hyprland.lua '^local var_lockscreen[[:space:]]*=.*env -u QS_CONFIG_NAME -u QS_CONFIG_PATH -u QS_MANIFEST .*quickshell-lockscreen/lock\.sh' \
   "manual lock command should point at qylock's upstream lock script"
-assert_contains config/hypr/hyprland.conf 'bind = SUPER ALT, L, exec, [$]lockscreen' \
+assert_contains config/hypr/hyprland.lua 'hl\.bind\("SUPER \+ ALT \+ L", hl\.dsp\.exec_cmd\(var_lockscreen\)\)' \
   "manual Super+Alt+L lock should call qylock directly"
-assert_not_contains config/hypr/hyprland.conf 'bind = SUPER ALT, L, exec, loginctl lock-session' \
+assert_not_contains config/hypr/hyprland.lua 'hl\.bind\("SUPER \+ ALT \+ L", hl\.dsp\.exec_cmd\("[^"]*loginctl lock-session' \
   "manual Super+Alt+L lock should not depend on hypridle to launch qylock"
 
 assert_no_path shell/modules/lock

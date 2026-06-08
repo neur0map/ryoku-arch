@@ -379,18 +379,13 @@ Singleton {
       "id": "hyprland",
       "name": "Hyprland",
       "category": "compositor",
-      "input": "hyprland.conf",
+      "input": "hyprland.lua",
       "outputs": [
         {
-          "path": "~/.config/hypr/ryoku/ryoku-colors.conf",
-          "postProcess": false
-        },
-        {
-          "path": "~/.config/hypr/ryoku/ryoku-colors.lua",
-          "input": "hyprland.lua"
-        },
+          "path": "~/.config/hypr/colors.lua"
+        }
       ],
-      "postProcess": () => `${templateApplyScript} hyprland`
+      "postProcess": () => "hyprctl reload"
     },
     {
       "id": "hyprtoolkit",

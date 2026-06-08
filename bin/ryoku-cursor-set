@@ -4,6 +4,8 @@ set -e
 
 # shellcheck disable=SC1091
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+# shellcheck disable=SC1091
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/hypr-config.sh"
 
 cursor_theme="${1:-}"
 cursor_size="${2:-24}"
@@ -51,24 +53,13 @@ if ryoku-cmd-present hyprctl; then
   hyprctl setcursor "$cursor_theme" "$cursor_size" || true
 fi
 
-set_hypr_env() {
-  local key="$1"
-  local value="$2"
-  local hypr_conf="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland.conf"
-
-  [[ -f $hypr_conf ]] || return 0
-
-  if grep -Eq "^[[:space:]]*env[[:space:]]*=[[:space:]]*$key," "$hypr_conf"; then
-    sed -i "s|^[[:space:]]*env[[:space:]]*=[[:space:]]*$key,.*|env = $key,$value|" "$hypr_conf"
-  else
-    printf 'env = %s,%s\n' "$key" "$value" >>"$hypr_conf"
-  fi
-}
-
-set_hypr_env XCURSOR_THEME "$cursor_theme"
-set_hypr_env XCURSOR_SIZE "$cursor_size"
-set_hypr_env HYPRCURSOR_THEME "$cursor_theme"
-set_hypr_env HYPRCURSOR_SIZE "$cursor_size"
+# Persist cursor env to whichever config Hyprland loads (hyprland.lua or .conf).
+# Live apply already happened above via hyprctl/gsettings; this is for next login.
+hypr_conf="$(hypr_entrypoint)"
+hypr_set_env "$hypr_conf" XCURSOR_THEME "$cursor_theme"
+hypr_set_env "$hypr_conf" XCURSOR_SIZE "$cursor_size"
+hypr_set_env "$hypr_conf" HYPRCURSOR_THEME "$cursor_theme"
+hypr_set_env "$hypr_conf" HYPRCURSOR_SIZE "$cursor_size"
 
 if ryoku-cmd-present systemctl; then
   systemctl --user import-environment XCURSOR_THEME XCURSOR_SIZE HYPRCURSOR_THEME HYPRCURSOR_SIZE >/dev/null 2>&1 || true

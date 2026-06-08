@@ -17,6 +17,7 @@ if command -v rsync >/dev/null 2>&1; then
     --exclude='niri' \
     --exclude='xdg-desktop-portal/niri-portals.conf' \
     --exclude='hypr/keyboard.conf' \
+    --exclude='hypr/keyboard.lua' \
     "$RYOKU_PATH/config/" ~/.config/
 else
   find "$RYOKU_PATH/config" -mindepth 1 -maxdepth 1 \
@@ -24,7 +25,7 @@ else
   rm -f ~/.config/xdg-desktop-portal/niri-portals.conf
 fi
 # User-owned keyboard layout: keep an existing one, seed the default only if absent.
-[[ -f ~/.config/hypr/keyboard.conf ]] || cp "$RYOKU_PATH/config/hypr/keyboard.conf" ~/.config/hypr/keyboard.conf
+[[ -f ~/.config/hypr/keyboard.lua ]] || cp "$RYOKU_PATH/config/hypr/keyboard.lua" ~/.config/hypr/keyboard.lua
 cp "$RYOKU_PATH/default/bashrc" ~/.bashrc
 echo '[[ -f ~/.bashrc ]] && . ~/.bashrc' | tee ~/.bash_profile >/dev/null
 

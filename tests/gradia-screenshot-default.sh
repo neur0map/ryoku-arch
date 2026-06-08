@@ -43,25 +43,25 @@ assert_executable bin/ryoku-cmd-screenshot
 bash -n bin/ryoku-cmd-screenshot || fail "screenshot helper should have valid bash syntax"
 
 # shellcheck disable=SC2016
-assert_contains config/hypr/hyprland.conf '$screenshot = sh -lc '\''exec "$HOME/.local/share/ryoku/bin/ryoku-cmd-screenshot" screen'\''' \
+assert_contains config/hypr/hyprland.lua 'local var_screenshot = "sh -lc '\''exec \"$HOME/.local/share/ryoku/bin/ryoku-cmd-screenshot\" screen'\''"' \
   "Print should use the installed Ryoku screenshot helper"
 # shellcheck disable=SC2016
-assert_contains config/hypr/hyprland.conf '$regionScreenshot = sh -lc '\''exec "$HOME/.local/share/ryoku/bin/ryoku-cmd-screenshot" region'\''' \
+assert_contains config/hypr/hyprland.lua 'local var_regionScreenshot = "sh -lc '\''exec \"$HOME/.local/share/ryoku/bin/ryoku-cmd-screenshot\" region'\''"' \
   "Region screenshot binds should use the installed Ryoku screenshot helper"
 # shellcheck disable=SC2016
-assert_contains config/hypr/hyprland.conf '$screenshotChooser = sh -lc '\''exec "$HOME/.local/share/ryoku/bin/ryoku-cmd-screenshot" choose'\''' \
+assert_contains config/hypr/hyprland.lua 'local var_screenshotChooser = "sh -lc '\''exec \"$HOME/.local/share/ryoku/bin/ryoku-cmd-screenshot\" choose'\''"' \
   "Super+S should use the installed Ryoku screenshot chooser"
 # shellcheck disable=SC2016
-assert_contains config/hypr/hyprland.conf 'bind = , Print, exec, $screenshot' \
+assert_contains config/hypr/hyprland.lua 'hl.bind("Print", hl.dsp.exec_cmd(var_screenshot))' \
   "Print should be bound to the screenshot helper"
 # shellcheck disable=SC2016
-assert_contains config/hypr/hyprland.conf 'bind = SHIFT, Print, exec, $regionScreenshot' \
+assert_contains config/hypr/hyprland.lua 'hl.bind("SHIFT + Print", hl.dsp.exec_cmd(var_regionScreenshot))' \
   "Shift+Print should be bound to the region screenshot helper"
 # shellcheck disable=SC2016
-assert_contains config/hypr/hyprland.conf 'bind = SUPER, S, exec, $screenshotChooser' \
+assert_contains config/hypr/hyprland.lua 'hl.bind("SUPER + S", hl.dsp.exec_cmd(var_screenshotChooser))' \
   "Super+S should be bound to the screenshot chooser"
 # shellcheck disable=SC2016
-assert_not_contains config/hypr/hyprland.conf 'bind = SUPER SHIFT, S, exec, $screenshotChooser' \
+assert_not_contains config/hypr/hyprland.lua 'hl.bind("SUPER + SHIFT + S", hl.dsp.exec_cmd(var_screenshotChooser))' \
   "Super+Shift+S should not be the screenshot chooser bind"
 
 assert_contains shell/modules/areapicker/Picker.qml 'wl-copy --type image/png < ' \

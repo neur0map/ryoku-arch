@@ -4,6 +4,8 @@ set -e
 
 # shellcheck disable=SC1091
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+# shellcheck disable=SC1091
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/hypr-config.sh"
 trap 'exit 0' PIPE
 
 if [[ ${1:-} != "--jsonl" ]]; then
@@ -18,8 +20,8 @@ if [[ -f $cursor_dropin ]]; then
   current_cursor="$(sed -n 's/^XCURSOR_THEME=//p' "$cursor_dropin" | tail -1)"
 fi
 
-if [[ -z $current_cursor && -f ${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland.conf ]]; then
-  current_cursor="$(sed -n 's/^[[:space:]]*env[[:space:]]*=[[:space:]]*XCURSOR_THEME,\(.*\)$/\1/p' "${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland.conf" | tail -1)"
+if [[ -z $current_cursor ]]; then
+  current_cursor="$(hypr_get_env "$(hypr_entrypoint)" XCURSOR_THEME)"
 fi
 
 cursor_installed() {

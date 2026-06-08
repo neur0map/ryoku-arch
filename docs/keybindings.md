@@ -1,6 +1,6 @@
 # Ryoku Keybindings
 
-Source of truth: Hyprland loads shipped binds from `config/hypr/hyprland.conf`.
+Source of truth: Hyprland loads shipped binds from `config/hypr/hyprland.lua`.
 
 `Mod` means `Super` on a normal Ryoku install.
 
