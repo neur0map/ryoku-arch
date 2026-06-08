@@ -62,8 +62,8 @@ assert_listener_unit() {
     "Unit should have a Description"
   assert_contains "config/systemd/user/ryoku-resume-listener.service" 'Type=simple' \
     "Unit should be Type=simple (gdbus monitor is long-running)"
-  assert_contains "config/systemd/user/ryoku-resume-listener.service" 'Restart=on-failure' \
-    "Unit should restart on failure so a bus disconnect recovers"
+  assert_contains "config/systemd/user/ryoku-resume-listener.service" 'Restart=always' \
+    "Unit should always restart so a clean gdbus/bus exit (exit 0, which on-failure ignores) still re-arms the listener"
   assert_contains "config/systemd/user/ryoku-resume-listener.service" 'RestartSec=5' \
     "Unit should back off 5 seconds before restarting"
   assert_contains "config/systemd/user/ryoku-resume-listener.service" 'WantedBy=default\.target' \
@@ -102,6 +102,9 @@ assert_migration_present() {
   assert_file "migrations/1779815059.sh"
   assert_contains "migrations/1779815059.sh" 'install/config/ryoku-resume-listener\.sh' \
     "Current migration should re-install the listener unit after retargeting it to default.target"
+  assert_file "migrations/1780885932.sh"
+  assert_contains "migrations/1780885932.sh" 'install/config/ryoku-resume-listener\.sh' \
+    "Re-arm migration should re-invoke the listener installer so enabled-but-dead live sessions get started"
 }
 
 assert_listener_installer
