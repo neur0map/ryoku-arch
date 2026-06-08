@@ -90,8 +90,8 @@ Ryoku is not:
 
 ## Status
 
-First beta. Ryoku has cut **0.1.0-beta1**: the move from the Niri/iNiR setup to
-the Hyprland/Caelestia shell has reached beta, and the install flow runs end to
+First beta. Ryoku has cut **0.1.0-beta1**: the move from the previous setup to the
+Hyprland Ryoku shell has reached beta, and the install flow runs end to
 end, including verified dual-boot alongside an existing OS. Signed ISO builds are
 published at [ryoku.dev](https://ryoku.dev); see [Download and verify](#download-and-verify),
 or build from source. The stable release is the next milestone.

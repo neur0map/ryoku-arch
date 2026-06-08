@@ -18,10 +18,14 @@ there are no machine-specific absolute paths here.
 
 | Repo Path | Runtime / Install Target | What It Controls |
 | --- | --- | --- |
-| `config/hypr/hyprland.conf` | `~/.config/hypr/hyprland.conf` | Current Hyprland session config, shell launch wiring, window behavior, and shipped binds. |
-| `config/hypr/colors.conf` | `~/.config/hypr/colors.conf` | Hyprland color defaults generated from the active theme. |
+| `config/hypr/hyprland.lua` | `~/.config/hypr/hyprland.lua` | Hyprland session config (native Lua, 0.55+): shell launch wiring, window behavior, shipped binds. `require()`s the colors/monitors/keyboard/gpu/custom/hyprland-gui modules below. |
+| `config/hypr/colors.lua` | `~/.config/hypr/colors.lua` | Hyprland border/shadow palette (`var_*` globals), regenerated from the active theme by `ryoku-hypr-colors`. |
+| `config/hypr/monitors.lua` | `~/.config/hypr/monitors.lua` | Monitor layout (`hl.monitor{}`), written by `ryoku-monitor` (Settings > Display). |
+| `config/hypr/keyboard.lua` | `~/.config/hypr/keyboard.lua` | User-owned keyboard layout (`hl.config{input=…}`). |
+| `config/hypr/gpu.lua` | `~/.config/hypr/gpu.lua` | GPU render-device pin (`hl.env(AQ_DRM_DEVICES)`), written by `ryoku-gpu`. |
+| `config/hypr/custom.lua` | `~/.config/hypr/custom.lua` | User-owned overrides; `require()`d last so it wins. |
+| `config/hypr/hyprland-gui.lua` | `~/.config/hypr/hyprland-gui.lua` | HyprMod-managed look-and-feel (transparency, blur, cursor, rounding). |
 | `config/hypr/hypridle.conf` | `~/.config/hypr/hypridle.conf` | Current idle behavior. |
-| `config/hypr/hypridle-rebirth.conf` | `~/.config/hypr/hypridle-rebirth.conf` | Rebirth Hyprland idle behavior used by the active shell path. |
 | `config/hypr/hyprlock.conf` | `~/.config/hypr/hyprlock.conf` | Hyprlock fallback lock screen config. |
 | `config/fuzzel/fuzzel.ini` | `~/.config/fuzzel/fuzzel.ini` | Fuzzel launcher defaults retained as a lightweight fallback. |
 | `config/fuzzel/fuzzel_theme.ini` | `~/.config/fuzzel/fuzzel_theme.ini` | Fuzzel color/theme include. |

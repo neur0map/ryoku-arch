@@ -65,12 +65,6 @@
       "reload": "pkill -USR2 ghostty"
     },
     {
-      "name": "niri",
-      "template": "niri-colors.kdl",
-      "output": "niri-primary-color",
-      "reload": "~/.config/skwd-wall/scripts/reload-niri.sh"
-    },
-    {
       "name": "kde",
       "template": "kde-colors.colors",
       "output": "~/.local/share/color-schemes/SkwdMatugen.colors",
