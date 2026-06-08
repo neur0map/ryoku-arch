@@ -156,6 +156,64 @@ ryoku_distro_install_full() {
 # rsi_arch_pkg_present NAME -> 0 if installed.
 rsi_arch_pkg_present() { pacman -Qq "$1" >/dev/null 2>&1; }
 
+# rsi_arch_libcava_present -> 0 if libcava.pc is visible to pkg-config.
+rsi_arch_libcava_present() {
+  if command -v pkgconf >/dev/null 2>&1 && pkgconf --exists libcava 2>/dev/null; then
+    return 0
+  fi
+  if command -v pkg-config >/dev/null 2>&1 && pkg-config --exists libcava 2>/dev/null; then
+    return 0
+  fi
+  [[ -f /usr/lib/pkgconfig/libcava.pc ]]
+}
+
+# Build and install cava-ryoku from the in-tree PKGBUILD so the shell plugin
+# can link libcava. Stock `cava` (official repo) is binary-only; it does not
+# ship libcava.so or libcava.pc, so CMake's pkg_check_modules(Cava libcava)
+# fails and the audio visualiser is silently disabled.
+ryoku_distro_install_local_pkgs() {
+  rsi_step "checking for libcava (required by the shell audio visualizer plugin)"
+
+  if rsi_arch_libcava_present; then
+    rsi_ok "libcava already available"
+    return 0
+  fi
+
+  local pkgbuild_dir="$RSI_REPO/distro/arch/cava-ryoku"
+  if [[ ! -f "$pkgbuild_dir/PKGBUILD" ]]; then
+    rsi_warn "cava-ryoku PKGBUILD not found at $pkgbuild_dir; audio visualizer will be disabled"
+    return 0
+  fi
+
+  rsi_step "building cava-ryoku from $pkgbuild_dir (replaces stock cava, adds libcava)"
+
+  if rsi_dry; then
+    rsi_dim "  would: pacman -Rdd cava (if installed, conflicts with cava-ryoku)"
+    rsi_dim "  would: cd $pkgbuild_dir && makepkg --syncdeps --install --noconfirm --needed --clean"
+    return 0
+  fi
+
+  # cava-ryoku declares conflicts=(cava); pre-remove the stock package so
+  # pacman -U does not abort on the conflict.
+  if rsi_arch_pkg_present cava; then
+    rsi_step "removing stock cava (conflicts with cava-ryoku)"
+    sudo pacman -Rdd --noconfirm cava || {
+      rsi_warn "could not remove stock cava; cava-ryoku install may fail"
+    }
+  fi
+
+  (cd "$pkgbuild_dir" && makepkg --syncdeps --install --noconfirm --needed --clean) || {
+    rsi_warn "cava-ryoku build failed; audio visualizer will be disabled (check output above)"
+    return 0
+  }
+
+  if rsi_arch_libcava_present; then
+    rsi_ok "libcava available"
+  else
+    rsi_warn "cava-ryoku installed but libcava.pc not found; plugin build may still fail"
+  fi
+}
+
 ryoku_distro_map() {
   printf '%s' "${RSI_ARCH_PKG[$1]:-}"
 }

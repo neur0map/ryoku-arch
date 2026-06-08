@@ -35,3 +35,11 @@ rsi_install_packages() {
   fi
   rsi_ok "dependencies satisfied"
 }
+
+# Build and install in-tree packages that are not on official repos or the AUR
+# (currently: cava-ryoku, which provides libcava needed by the shell plugin).
+# Must run after rsi_install_packages so makedepends are already present.
+rsi_install_local_packages() {
+  rsi_header "Building local packages"
+  ryoku_distro_install_local_pkgs
+}
