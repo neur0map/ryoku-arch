@@ -1,3 +1,0 @@
-module qs.dashboard.modules.widgets.tools
-ToolsMenu 1.0 ToolsMenu.qml
-ToolsMenuView 1.0 ToolsMenuView.qml

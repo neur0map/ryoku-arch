@@ -1,5 +1,0 @@
-module qs.dashboard.modules.widgets.defaultview
-CompactPlayer 1.0 CompactPlayer.qml
-DefaultView 1.0 DefaultView.qml
-NotificationIndicator 1.0 NotificationIndicator.qml
-UserInfo 1.0 UserInfo.qml

@@ -1,4 +1,0 @@
-module qs.dashboard.modules.widgets.powermenu
-PowerButton 1.0 PowerButton.qml
-PowerMenu 1.0 PowerMenu.qml
-PowerMenuView 1.0 PowerMenuView.qml
