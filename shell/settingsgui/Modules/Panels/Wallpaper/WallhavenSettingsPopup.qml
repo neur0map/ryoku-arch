@@ -79,7 +79,7 @@ Popup {
 
   background: Rectangle {
     id: backgroundRect
-    color: Color.mSurface
+    color: Color.mSurfaceOpaque
     radius: Style.radiusL
     border.color: Color.mOutline
     border.width: Style.borderM

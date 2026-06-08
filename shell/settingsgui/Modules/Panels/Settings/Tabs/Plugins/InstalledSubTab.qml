@@ -440,7 +440,7 @@ ColumnLayout {
     property var pluginToUninstall: null
 
     background: Rectangle {
-      color: Color.mSurface
+      color: Color.mSurfaceOpaque
       radius: Style.radiusS
       border.color: Color.mPrimary
       border.width: Style.borderM
@@ -509,7 +509,7 @@ ColumnLayout {
     onOpened: keyField.text = PluginRegistry.getPluginKeybind(compositeKey) || defaultKey
 
     background: Rectangle {
-      color: Color.mSurface
+      color: Color.mSurfaceOpaque
       radius: Style.radiusS
       border.color: Color.mPrimary
       border.width: Style.borderM

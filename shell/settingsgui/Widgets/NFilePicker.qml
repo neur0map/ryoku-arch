@@ -128,7 +128,7 @@ Popup {
   anchors.centerIn: Overlay.overlay
 
   background: Rectangle {
-    color: Color.mSurfaceVariant
+    color: Color.mSurfaceVariantOpaque
     radius: Style.iRadiusL
     border.color: Color.mOutline
     border.width: Style.borderS

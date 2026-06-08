@@ -54,6 +54,13 @@ Singleton {
   readonly property color mSurfaceVariant: Colours.tPalette.m3surfaceContainerHigh
   readonly property color mOnSurfaceVariant: Colours.palette.m3onSurfaceVariant
 
+  // Opaque variants of the surface tones, for floating popups/modals. The
+  // settings window is translucent + blurred, but a Qt Popup floats with no
+  // blur backdrop, so the glass surface tones above render see-through over
+  // whatever sits behind. Popups use these full-alpha tones to stay readable.
+  readonly property color mSurfaceOpaque: Qt.alpha(root.mSurface, 1.0)
+  readonly property color mSurfaceVariantOpaque: Qt.alpha(root.mSurfaceVariant, 1.0)
+
   readonly property color mOutline: Colours.palette.m3outline
   readonly property color mShadow: Colours.palette.m3shadow
 

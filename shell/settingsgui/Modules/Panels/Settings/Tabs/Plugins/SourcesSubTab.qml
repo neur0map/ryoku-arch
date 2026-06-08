@@ -97,7 +97,7 @@ ColumnLayout {
     padding: Style.marginL
 
     background: Rectangle {
-      color: Color.mSurface
+      color: Color.mSurfaceOpaque
       radius: Style.radiusS
       border.color: Color.mPrimary
       border.width: Style.borderM

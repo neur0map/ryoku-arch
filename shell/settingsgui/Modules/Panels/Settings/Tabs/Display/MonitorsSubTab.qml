@@ -78,7 +78,10 @@ ColumnLayout {
       }
     }
 
-    background: NBox {}
+    background: NBox {
+      forceOpaque: true
+      color: Color.mSurfaceVariantOpaque
+    }
 
     contentItem: ColumnLayout {
       spacing: Style.marginM
