@@ -1,0 +1,206 @@
+#!/bin/bash
+
+# Ryoku Arch AI-slop comment scanner.
+# Flags added comment lines that match known low-value filler: placeholder stubs,
+# chat residue, AI attribution, and self-narration. Scoped to comment lines (and
+# Markdown prose) so code and string literals do not false-positive. Operates on
+# ADDED lines only, so pre-existing text never blocks an unrelated change.
+#
+# Modes:
+#   --staged            scan the staged diff (used by the pre-commit hook)
+#   --range BASE HEAD   scan a commit range (used by CI)
+#   --stdin             scan a unified diff piped on stdin
+#   --files FILE...     scan whole files (every comment line; manual/tests)
+#
+# The phrase list below is intentionally tunable: trim or extend it to taste.
+
+set -euo pipefail
+
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# git's well-known empty-tree object, used as a base when a range has none.
+empty_tree="4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+
+failures=0
+
+usage() {
+  cat <<'EOF'
+Usage:
+  ryoku-dev-scan-slop --staged
+  ryoku-dev-scan-slop --range BASE HEAD
+  ryoku-dev-scan-slop --stdin < unified.diff
+  ryoku-dev-scan-slop --files FILE [FILE...]
+
+Flags AI-slop phrases in added comment lines. Exits non-zero on a hit.
+EOF
+}
+
+# Phrases that read like generated filler. Matched case-insensitively (grep -E).
+patterns=(
+  '\.\.\.[[:space:]]*existing[[:space:]]+code'
+  '\brest[[:space:]]+of[[:space:]]+the[[:space:]]+(code|implementation|file|function|method|logic)\b'
+  '\byour[[:space:]]+(code|logic|implementation)[[:space:]]+(goes[[:space:]]+)?here\b'
+  '\b(code|implementation|logic)[[:space:]]+goes[[:space:]]+here\b'
+  '\b(claude|anthropic|chatgpt|copilot)\b'
+  '\bgpt-[0-9]'
+  '\bas[[:space:]]+an[[:space:]]+ai\b'
+  '\bgenerated[[:space:]]+by[[:space:]]+(an[[:space:]]+)?(ai|llm|claude|chatgpt|gpt|copilot)\b'
+  '\bwritten[[:space:]]+by[[:space:]]+(an[[:space:]]+)?(ai|llm|claude|chatgpt)\b'
+  '\bi.ll[[:space:]]+help[[:space:]]+you\b'
+  '\bi[[:space:]]+can[[:space:]]+help[[:space:]]+you\b'
+  '\bhope[[:space:]]+this[[:space:]]+helps\b'
+  '\bas[[:space:]]+you[[:space:]]+can[[:space:]]+see\b'
+  '\bworth[[:space:]]+noting\b'
+  '\bnote[[:space:]]+that\b'
+  '\b(here|now)[[:space:]]+we[[:space:]]+(will|can|are|need|have|just|simply|then|first|next)\b'
+  '\bthis[[:space:]]+(function|method|class|script|module|file|code|block|section|variable|loop|line)[[:space:]]+(is[[:space:]]+responsible[[:space:]]+for|simply|just|basically|will|does)\b'
+  '\bwe[[:space:]]+(then|now|first|next|simply|just)[[:space:]]'
+  '\blet.s[[:space:]]+(create|add|define|write|make|start|begin|build|set[[:space:]]+up|take[[:space:]]+a[[:space:]]+look)\b'
+  '\bfeel[[:space:]]+free[[:space:]]+to\b'
+)
+
+# Paths exempt from scanning: this scanner's own fixtures plus the vendored trees
+# (adapted upstream code carries its original prose).
+is_allowlisted() {
+  case "$1" in
+    tests/ryoku-dev-scan-slop.sh) return 0 ;;
+    shell/*|vendor/*) return 0 ;;
+  esac
+  return 1
+}
+
+# Comment style for a path: hash | dash | slash | prose | "" (unsupported).
+comment_class() {
+  case "$1" in
+    *.lua) printf 'dash\n' ;;
+    *.md|*.mdx|*.markdown|*.txt) printf 'prose\n' ;;
+    *.qml|*.js|*.mjs|*.cjs|*.ts|*.css|*.c|*.h|*.cc|*.cpp|*.hpp|*.cxx|*.qs) printf 'slash\n' ;;
+    *.sh|*.bash|*.zsh|*.fish|*.py|*.yml|*.yaml|*.toml|*.ini|*.conf|*.desktop|*.service|*.timer|*.rules|*.tpl) printf 'hash\n' ;;
+    *)
+      case "$1" in
+        bin/*|iso/bin/*|migrations/*) printf 'hash\n' ;;
+        *) printf '\n' ;;
+      esac
+      ;;
+  esac
+}
+
+# True when a line is a comment for the given style (Markdown prose counts every
+# non-blank line).
+is_comment() {
+  local class="$1" content="$2" trimmed
+  trimmed="${content#"${content%%[![:space:]]*}"}"
+  case "$class" in
+    prose) [[ -n $trimmed ]] ;;
+    hash) [[ $trimmed == '#'* ]] ;;
+    dash) [[ $trimmed == '--'* ]] ;;
+    slash) [[ $trimmed == '//'* || $trimmed == '/*'* || $trimmed == '*'* ]] ;;
+    *) return 1 ;;
+  esac
+}
+
+check_line() {
+  local path="$1" lineno="$2" content="$3" pattern
+  for pattern in "${patterns[@]}"; do
+    if grep -qiE -- "$pattern" <<<"$content"; then
+      echo "ryoku-dev-scan-slop: $path:$lineno: AI-slop comment" >&2
+      echo "  ${content#"${content%%[![:space:]]*}"}" >&2
+      failures=1
+      return 0
+    fi
+  done
+}
+
+# Parse a unified diff (stdin), checking added comment lines against the phrases.
+scan_unified_diff() {
+  local file="" class="" newno=0 line hunk content path
+  while IFS= read -r line || [[ -n $line ]]; do
+    case "$line" in
+      '+++ '*)
+        path="${line#+++ }"
+        [[ $path == [abciwo]/* ]] && path="${path#[abciwo]/}"
+        if [[ $path == /dev/null ]] || is_allowlisted "$path"; then
+          file=""; class=""
+        else
+          file="$path"; class="$(comment_class "$path")"
+        fi
+        ;;
+      '@@ '*)
+        hunk="${line#*+}"
+        hunk="${hunk%% *}"
+        newno="${hunk%%,*}"
+        [[ $newno =~ ^[0-9]+$ ]] || newno=0
+        ;;
+      '+'*)
+        [[ -n $file && -n $class ]] || continue
+        content="${line:1}"
+        if is_comment "$class" "$content"; then
+          check_line "$file" "$newno" "$content"
+        fi
+        newno=$((newno + 1))
+        ;;
+      *) : ;;
+    esac
+  done
+}
+
+scan_full_file() {
+  local path="$1" class lineno=0 line
+  is_allowlisted "$path" && return 0
+  [[ -f $path ]] || return 0
+  class="$(comment_class "$path")"
+  [[ -n $class ]] || return 0
+  while IFS= read -r line || [[ -n $line ]]; do
+    lineno=$((lineno + 1))
+    if is_comment "$class" "$line"; then
+      check_line "$path" "$lineno" "$line"
+    fi
+  done <"$path"
+}
+
+main() {
+  (( $# != 0 )) || { usage >&2; exit 2; }
+  case "$1" in
+    --staged)
+      shift
+      (( $# == 0 )) || { usage >&2; exit 2; }
+      scan_unified_diff < <(git -C "$repo_root" -c diff.mnemonicPrefix=false -c diff.noprefix=false diff --cached -U0 --diff-filter=ACM)
+      ;;
+    --range)
+      shift
+      (( $# == 2 )) || { usage >&2; exit 2; }
+      local base="$1" head="$2"
+      [[ -z $base || $base =~ ^0+$ ]] && base="$empty_tree"
+      scan_unified_diff < <(git -C "$repo_root" -c diff.mnemonicPrefix=false -c diff.noprefix=false diff -U0 --diff-filter=ACM "$base" "$head")
+      ;;
+    --stdin)
+      shift
+      scan_unified_diff
+      ;;
+    --files)
+      shift
+      (( $# != 0 )) || { usage >&2; exit 2; }
+      local f
+      for f in "$@"; do
+        scan_full_file "$f"
+      done
+      ;;
+    -h|--help)
+      usage
+      return 0
+      ;;
+    *)
+      usage >&2
+      exit 2
+      ;;
+  esac
+
+  if (( failures != 0 )); then
+    echo "" >&2
+    echo "ryoku-dev-scan-slop: AI-slop comment(s) detected in added lines." >&2
+    echo "Rewrite or remove them, or bypass with --no-verify." >&2
+    exit 1
+  fi
+}
+
+main "$@"

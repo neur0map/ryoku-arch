@@ -1,0 +1,136 @@
+#!/bin/bash
+
+# Ryoku Arch Lua linter.
+# Runs lua-language-server in --check mode over the staged (or given) Lua files
+# and fails when any of them carries a diagnostic (undefined global, unused, dead
+# code, syntax error). Used by the pre-commit hook.
+#
+# lua-language-server checks a whole workspace directory, not single files, so we
+# resolve each target's workspace root (the nearest ancestor with a .luarc.json,
+# else the file's own directory), check those roots once each, and then report
+# only the diagnostics that belong to the requested files. That keeps pre-existing
+# issues in untouched files from blocking an unrelated commit.
+#
+# The .luarc.json files stay developer-local (gitignored): config/hypr declares
+# the Hyprland `hl` global, config/nvim declares `vim`/`LazyVim`. Contributors
+# without lua-language-server are skipped rather than blocked.
+
+set -euo pipefail
+
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  ryoku-dev-lint-lua --staged
+  ryoku-dev-lint-lua --files FILE [FILE...]
+
+Lints Lua with lua-language-server --check. Exits non-zero when a target file
+carries a diagnostic. Skips silently when lua-language-server is not installed.
+EOF
+}
+
+# Collect the target .lua paths (repo-relative) into the targets array.
+targets=()
+
+collect_staged() {
+  local path
+  while IFS= read -r -d '' path; do
+    [[ $path == *.lua ]] || continue
+    targets+=("$path")
+  done < <(git -C "$repo_root" diff --cached --name-only --diff-filter=ACM -z)
+}
+
+collect_files() {
+  local f rel
+  (( $# != 0 )) || { usage >&2; exit 2; }
+  for f in "$@"; do
+    [[ $f == *.lua ]] || continue
+    [[ -f $f ]] || continue
+    case "$f" in
+      "$repo_root"/*) rel="${f#"$repo_root"/}" ;;
+      /*) rel="$f" ;;
+      *) rel="$f" ;;
+    esac
+    targets+=("$rel")
+  done
+}
+
+# Workspace root for a path: nearest ancestor holding a .luarc.json, else the
+# file's own directory (always a directory so --check stays reliable).
+find_root() {
+  local d
+  d="$(dirname -- "$1")"
+  while [[ -n $d && $d != "." && $d != "/" ]]; do
+    [[ -f "$repo_root/$d/.luarc.json" ]] && { printf '%s\n' "$d"; return 0; }
+    d="$(dirname -- "$d")"
+  done
+  dirname -- "$1"
+}
+
+main() {
+  (( $# != 0 )) || { usage >&2; exit 2; }
+  case "$1" in
+    --staged)
+      shift
+      (( $# == 0 )) || { usage >&2; exit 2; }
+      collect_staged
+      ;;
+    --files)
+      shift
+      collect_files "$@"
+      ;;
+    -h|--help)
+      usage
+      return 0
+      ;;
+    *)
+      usage >&2
+      exit 2
+      ;;
+  esac
+
+  (( ${#targets[@]} != 0 )) || return 0
+
+  if ! command -v lua-language-server >/dev/null 2>&1; then
+    echo "ryoku-dev-lint-lua: lua-language-server not installed; skipping Lua lint." >&2
+    return 0
+  fi
+
+  cd "$repo_root"
+
+  # Membership set of requested files, and the unique workspace roots to check.
+  local -A want=()
+  local -A roots=()
+  local t
+  for t in "${targets[@]}"; do
+    want["$t"]=1
+    roots["$(find_root "$t")"]=1
+  done
+
+  local logdir
+  logdir="$(mktemp -d)"
+  trap 'rm -rf "${logdir:-}"' EXIT
+
+  local failures=0
+  local root out line path
+  for root in "${!roots[@]}"; do
+    out="$(lua-language-server --check "$root" --checklevel Warning --logpath "$logdir" 2>&1 | tr '\r' '\n' || true)"
+    while IFS= read -r line; do
+      [[ -n $line ]] || continue
+      path="${line%%:*}"
+      if [[ -n ${want["$path"]:-} ]]; then
+        echo "ryoku-dev-lint-lua: $line" >&2
+        failures=1
+      fi
+    done < <(printf '%s\n' "$out" | grep -oE '[A-Za-z0-9_./-]+\.lua:[0-9]+:[0-9]+ \[[A-Za-z]+\][^[:cntrl:]]*' || true)
+  done
+
+  if (( failures != 0 )); then
+    echo "" >&2
+    echo "ryoku-dev-lint-lua: Lua diagnostics found. Fix them, or bypass with --no-verify." >&2
+    exit 1
+  fi
+}
+
+main "$@"

@@ -7,6 +7,8 @@
 #   3. em-dash scan on staged text, docs, and config files
 #   4. default-config propagation check
 #   5. live-system drift check (maintainers only; opt-in)
+#   6. Lua lint on staged Lua files (lua-language-server; skipped if absent)
+#   7. AI-slop comment scan on staged additions
 # Bypass with --no-verify only when you know what you are doing.
 
 set -e
@@ -94,5 +96,11 @@ fi
 #    `git config --local ryoku.devmode true` or env RYOKU_DEV=1).
 #    Skips silently for contributors who do not run a Ryoku install.
 "$(git rev-parse --show-toplevel)/bin/ryoku-dev-check-drift"
+
+# 6. Lua lint on staged Lua files (skips if lua-language-server is absent).
+"$(git rev-parse --show-toplevel)/bin/ryoku-dev-lint-lua" --staged
+
+# 7. AI-slop comment scan on staged additions.
+"$(git rev-parse --show-toplevel)/bin/ryoku-dev-scan-slop" --staged
 
 exit 0

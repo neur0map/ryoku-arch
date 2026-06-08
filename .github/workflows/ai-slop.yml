@@ -1,0 +1,67 @@
+name: AI Slop Scan
+
+# Fails a PR or push that adds AI-slop comments (placeholder stubs, chat
+# residue, attribution, self-narration). Mirrors the pre-commit
+# ryoku-dev-scan-slop check; scans added lines in the event range only.
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: Range to scan
+        required: true
+        default: changed
+        type: choice
+        options:
+          - changed
+          - all
+
+permissions:
+  contents: read
+
+jobs:
+  ai-slop:
+    name: Scan added comments for AI slop
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan added comments
+        shell: bash
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+          SCOPE: ${{ github.event.inputs.scope || 'changed' }}
+        run: |
+          set -euo pipefail
+
+          base=""
+          head="$SHA"
+          case "$EVENT" in
+            pull_request)
+              base="$PR_BASE"
+              head="$PR_HEAD"
+              ;;
+            push)
+              base="$PUSH_BEFORE"
+              ;;
+            *)
+              if [[ $SCOPE != "all" ]]; then
+                base="$(git rev-parse HEAD~1 2>/dev/null || true)"
+              fi
+              ;;
+          esac
+
+          echo "Scanning range: ${base:-<empty-tree>}..$head"
+          bin/ryoku-dev-scan-slop --range "$base" "$head"
