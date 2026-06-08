@@ -1,26 +1,27 @@
 import QtQuick
-import QtQuick.Controls
 import QtQuick.Layouts
-import Quickshell
-import Quickshell.Io
 import qs.services
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.Platform
 import qs.settingsgui.Services.UI
 import qs.settingsgui.Widgets
 
-// Extras bundles (e.g. The Ricer): curated apps, CLI/TUI tools and plugins. One Refresh
-// git-pulls the ryoku-extras catalogue (and re-fetches plugins); installs run through the
-// ryoku-extras-install command (packages/scripts) and PluginService (plugin items), both
-// of which skip anything already present.
+// Extras bundles (e.g. The Ricer): curated apps, CLI/TUI tools and plugins.
+//
+// Each item shows its own state - already present, installing (loader), installed
+// (check) or failed (with the reason) - mirroring the Plugins tab. Package/script
+// items install through RyokuExtras, which runs ryoku-extras-install in a floating
+// terminal (so the sudo/yay prompt has a TTY) and reports per-item results back.
+// Plugin items go through PluginService, exactly like Settings -> Plugins.
 ColumnLayout {
   id: root
   spacing: Style.marginL
   Layout.fillWidth: true
 
-  property bool busy: false
-
   property bool autoFetchTried: false
+  // Bumped when plugin availability/installs change so the plugin-item state below re-evaluates.
+  property int pluginCounter: 0
+
   Component.onCompleted: {
     RyokuExtras.rescan();
     firstFetchTimer.start();
@@ -36,6 +37,20 @@ ColumnLayout {
     }
   }
 
+  Connections {
+    target: PluginService
+    function onAvailablePluginsUpdated() {
+      root.pluginCounter++;
+    }
+  }
+  Connections {
+    target: PluginRegistry
+    function onPluginsChanged() {
+      root.pluginCounter++;
+    }
+  }
+
+  // --- plugin items (handled by PluginService, like the Plugins tab) ---
   function availablePluginFor(id) {
     var list = PluginService.availablePlugins || [];
     for (var i = 0; i < list.length; i++)
@@ -44,10 +59,27 @@ ColumnLayout {
     return null;
   }
 
+  function pluginKey(id) {
+    var meta = availablePluginFor(id);
+    if (!meta)
+      return "";
+    return PluginRegistry.generateCompositeKey(id, meta.source ? meta.source.url : PluginRegistry.mainSourceUrl);
+  }
+
+  function pluginDownloaded(id) {
+    void root.pluginCounter;
+    var key = pluginKey(id);
+    return key ? PluginRegistry.isPluginDownloaded(key) : false;
+  }
+
+  function pluginInstalling(id) {
+    return PluginService.installingPlugins[id] === true;
+  }
+
   function installPluginItem(id) {
     var meta = availablePluginFor(id);
     if (!meta) {
-      ToastService.showError(qsTr("Extras"), qsTr("Plugin '%1' is not in the catalogue. Refresh and try again.").arg(id));
+      ToastService.showError(qsTr("Extras"), qsTr("Plugin '%1' is not in the catalogue yet. Refresh and try again.").arg(id));
       return;
     }
     var key = PluginRegistry.generateCompositeKey(id, meta.source ? meta.source.url : PluginRegistry.mainSourceUrl);
@@ -57,6 +89,7 @@ ColumnLayout {
       return;
     }
     PluginService.installPlugin(meta, false, function (ok, err, registeredKey) {
+      root.pluginCounter++;
       if (ok)
         PluginService.enablePlugin(registeredKey);
       else
@@ -64,16 +97,31 @@ ColumnLayout {
     });
   }
 
-  // Run the smart installer for packages/scripts, then hand plugin items to PluginService.
-  function installBundle(bundle) {
-    if (!RyokuExtras.hasGit) {
-      ToastService.showNotice(qsTr("Extras"), qsTr("Refresh first to download the catalogue."));
-      return;
-    }
-    root.busy = true;
-    installProc.pendingPlugins = (bundle.items || []).filter(it => it.type === "plugin").map(it => it.name);
-    installProc.command = ["ryoku-extras-install", "bundle", bundle.id];
-    installProc.running = true;
+  // --- package/script items (handled by RyokuExtras) ---
+  // -> "present" | "installing" | "installed" | "failed" | "idle"
+  function pkgState(name) {
+    if (RyokuExtras.installing[name] === true)
+      return "installing";
+    if (RyokuExtras.presence[name] === true)
+      return "present";
+    var r = RyokuExtras.results[name];
+    if (r && r.status === "installed")
+      return "present";
+    if (r && r.status === "failed")
+      return "failed";
+    return "idle";
+  }
+
+  function pkgError(name) {
+    var r = RyokuExtras.results[name];
+    return (r && r.error) ? r.error : qsTr("Install failed - see the terminal output.");
+  }
+
+  // -> "downloaded" | "installing" | "idle"
+  function itemState(item) {
+    if (item.type === "plugin")
+      return pluginInstalling(item.name) ? "installing" : (pluginDownloaded(item.name) ? "present" : "idle");
+    return pkgState(item.name);
   }
 
   function installItem(item) {
@@ -85,27 +133,51 @@ ColumnLayout {
       ToastService.showNotice(qsTr("Extras"), qsTr("Refresh first to download the catalogue."));
       return;
     }
-    root.busy = true;
-    installProc.pendingPlugins = [];
-    installProc.command = ["ryoku-extras-install", "item", item.type, item.name];
-    installProc.running = true;
+    if (!RyokuExtras.installItem(item.type, item.name))
+      ToastService.showNotice(qsTr("Extras"), qsTr("Another install is already running."));
   }
 
-  Process {
-    id: installProc
-    property var pendingPlugins: []
-    stderr: StdioCollector {}
-    onExited: function (exitCode) {
-      root.busy = false;
-      for (var i = 0; i < pendingPlugins.length; i++)
-        root.installPluginItem(pendingPlugins[i]);
-      if (exitCode === 0)
-        ToastService.showNotice(qsTr("Extras"), qsTr("Done. Tools already present were skipped."));
-      else
-        ToastService.showError(qsTr("Extras"), stderr.text.trim() || qsTr("Some items failed to install."));
+  function installBundle(bundle) {
+    if (!RyokuExtras.hasGit) {
+      ToastService.showNotice(qsTr("Extras"), qsTr("Refresh first to download the catalogue."));
+      return;
     }
+    var items = bundle.items || [];
+    for (var i = 0; i < items.length; i++)
+      if (items[i].type === "plugin")
+        installPluginItem(items[i].name);
+    RyokuExtras.installBundle(bundle.id);
   }
 
+  function uninstallPluginItem(id) {
+    var key = pluginKey(id);
+    if (!key)
+      return;
+    PluginService.uninstallPlugin(key, function (ok, err) {
+      root.pluginCounter++;
+      if (!ok)
+        ToastService.showError(qsTr("Extras"), qsTr("Failed to remove %1: %2").arg(id).arg(err || qsTr("unknown error")));
+    });
+  }
+
+  function uninstallItem(item) {
+    if (item.type === "plugin") {
+      uninstallPluginItem(item.name);
+      return;
+    }
+    if (!RyokuExtras.uninstallItem(item.type, item.name))
+      ToastService.showNotice(qsTr("Extras"), qsTr("Another task is already running."));
+  }
+
+  function uninstallBundle(bundle) {
+    var items = bundle.items || [];
+    for (var i = 0; i < items.length; i++)
+      if (items[i].type === "plugin" && pluginDownloaded(items[i].name))
+        uninstallPluginItem(items[i].name);
+    RyokuExtras.uninstallBundle(bundle.id);
+  }
+
+  // --- header ---
   RowLayout {
     Layout.fillWidth: true
     spacing: Style.marginM
@@ -113,7 +185,6 @@ ColumnLayout {
     ColumnLayout {
       Layout.fillWidth: true
       spacing: 2
-
       NText {
         text: qsTr("Extras")
         pointSize: Style.fontSizeL
@@ -122,7 +193,7 @@ ColumnLayout {
       }
       NText {
         Layout.fillWidth: true
-        text: qsTr("Curated bundles of apps, terminal tools and plugins. Installing skips anything you already have.")
+        text: qsTr("Curated bundles of apps, terminal tools and plugins. Already-installed tools are skipped.")
         pointSize: Style.fontSizeS
         color: Color.mOnSurfaceVariant
         wrapMode: Text.WordWrap
@@ -149,18 +220,18 @@ ColumnLayout {
     wrapMode: Text.WordWrap
   }
 
+  // --- live status banner ---
   RowLayout {
     Layout.fillWidth: true
-    visible: RyokuExtras.refreshing || root.busy
+    visible: RyokuExtras.refreshing || RyokuExtras.busy
     spacing: Style.marginM
-    BusyIndicator {
-      running: RyokuExtras.refreshing || root.busy
-      implicitWidth: 26
-      implicitHeight: 26
+    NBusyIndicator {
+      size: Style.baseWidgetSize * 0.7
+      running: visible
     }
     NText {
       Layout.fillWidth: true
-      text: RyokuExtras.refreshing ? qsTr("Downloading the extras catalogue...") : qsTr("Installing - already-present tools are skipped.")
+      text: RyokuExtras.refreshing ? qsTr("Downloading the extras catalogue...") : qsTr("Installing in the terminal window - enter your password there if prompted.")
       pointSize: Style.fontSizeS
       color: Color.mOnSurfaceVariant
       wrapMode: Text.WordWrap
@@ -176,6 +247,7 @@ ColumnLayout {
     wrapMode: Text.WordWrap
   }
 
+  // --- bundle cards ---
   Repeater {
     model: RyokuExtras.bundles
 
@@ -212,11 +284,17 @@ ColumnLayout {
             elide: Text.ElideRight
           }
           NButton {
+            text: qsTr("Uninstall all")
+            icon: "trash"
+            enabled: !RyokuExtras.busy && !RyokuExtras.refreshing
+            onClicked: root.uninstallBundle(bundleCard.modelData)
+          }
+          NButton {
             text: qsTr("Install all")
             icon: "download"
             backgroundColor: Color.mPrimary
             textColor: Color.mOnPrimary
-            enabled: !root.busy
+            enabled: !RyokuExtras.busy && !RyokuExtras.refreshing
             onClicked: root.installBundle(bundleCard.modelData)
           }
         }
@@ -236,6 +314,7 @@ ColumnLayout {
           delegate: RowLayout {
             id: itemRow
             required property var modelData
+            readonly property string installState: root.itemState(itemRow.modelData)
 
             Layout.fillWidth: true
             Layout.topMargin: Style.marginXS
@@ -263,11 +342,57 @@ ColumnLayout {
                 elide: Text.ElideRight
               }
             }
+
+            // present -> check
+            NIcon {
+              visible: itemRow.installState === "present"
+              icon: "circle-check"
+              pointSize: Style.baseWidgetSize * 0.5
+              color: Color.mPrimary
+            }
+
+            // present -> uninstall (packages + plugins; scripts cannot be auto-removed)
             NIconButton {
+              visible: itemRow.installState === "present" && itemRow.modelData.type !== "script"
+              icon: "trash"
+              tooltipText: qsTr("Uninstall")
+              baseSize: Style.baseWidgetSize * 0.7
+              enabled: !RyokuExtras.busy
+              onClicked: root.uninstallItem(itemRow.modelData)
+            }
+
+            // installing -> loader
+            NBusyIndicator {
+              visible: itemRow.installState === "installing"
+              size: Style.baseWidgetSize * 0.5
+              running: visible
+            }
+
+            // failed -> reason + retry
+            NText {
+              visible: itemRow.installState === "failed"
+              text: qsTr("Failed")
+              pointSize: Style.fontSizeXXS
+              color: Color.mError
+            }
+            NIconButton {
+              visible: itemRow.installState === "failed"
+              icon: "refresh"
+              tooltipText: root.pkgError(itemRow.modelData.name)
+              colorBg: Color.mError
+              colorFg: Color.mOnError
+              baseSize: Style.baseWidgetSize * 0.7
+              enabled: !RyokuExtras.busy
+              onClicked: root.installItem(itemRow.modelData)
+            }
+
+            // idle -> install
+            NIconButton {
+              visible: itemRow.installState === "idle"
               icon: "download"
               tooltipText: qsTr("Install just this")
               baseSize: Style.baseWidgetSize * 0.7
-              enabled: !root.busy
+              enabled: !RyokuExtras.busy
               onClicked: root.installItem(itemRow.modelData)
             }
           }
