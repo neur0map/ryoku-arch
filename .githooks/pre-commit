@@ -21,7 +21,7 @@ fail() {
 
 # Text-file types where em-dashes are forbidden. Binary files, images,
 # and asset directories are skipped.
-text_pattern='\.(md|txt|sh|bash|yml|yaml|toml|json|conf|tpl)$|^LICENSE$|^NOTICE$|^README$|^AGENTS\.md$'
+text_pattern='\.(md|txt|sh|bash|yml|yaml|toml|json|conf|lua|tpl)$|^LICENSE$|^NOTICE$|^README$|^AGENTS\.md$'
 
 # Build the list of staged Added/Copied/Modified paths once.
 staged=$(git diff --cached --name-only --diff-filter=ACM || true)

@@ -5,7 +5,7 @@ on:
     paths:
       - '.github/workflows/docs-sync.yml'
       - '.mintignore'
-      - 'config/hypr/hyprland.conf'
+      - 'config/hypr/hyprland.lua'
       - 'docs/**'
       - 'docs.json'
       - 'index.mdx'
@@ -15,7 +15,7 @@ on:
     paths:
       - '.github/workflows/docs-sync.yml'
       - '.mintignore'
-      - 'config/hypr/hyprland.conf'
+      - 'config/hypr/hyprland.lua'
       - 'docs/**'
       - 'docs.json'
       - 'index.mdx'
