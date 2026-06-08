@@ -42,6 +42,8 @@ assert_contains shell/modules/drawers/FramePanelWrapper.qml 'source: "file://" \
   "FramePanelWrapper should load the plugin's framePanel QML"
 assert_contains shell/modules/drawers/FramePanelWrapper.qml 'property matrix4x4 deformMatrix' \
   "FramePanelWrapper should accept the frame deform transform"
+assert_contains shell/modules/drawers/FramePanelWrapper.qml 'active: true' \
+  "FramePanelWrapper should build the panel eagerly so hovering opens it instantly, not lazily on first hover"
 
 # Wiring into the drawer frame.
 assert_contains shell/modules/drawers/Panels.qml 'FramePlugins \{' \
@@ -93,6 +95,12 @@ if [[ -d $extras ]]; then
     || fail "wallhaven plugin command should be executable"
   jq -e '[.plugins[] | select(.id == "wallhaven") | .path] == ["plugins/wallhaven"]' "$extras/plugins/registry.json" >/dev/null \
     || fail "wallhaven should be listed in the plugins registry at plugins/wallhaven"
+  panel="$extras/plugins/wallhaven/ui/Panel.qml"
+  [[ -f $panel ]] || fail "wallhaven plugin panel missing"
+  menus=$(grep -c 'Menu {' "$panel" || true)
+  (( menus == 1 )) || fail "wallhaven Panel.qml should declare one shared Menu, not one per grid delegate (found $menus)"
+  grep -q 'function openImageMenu' "$panel" || fail "wallhaven Panel.qml should target the shared menu via openImageMenu()"
+  grep -Eq 'imageMenu\.expanded = false' "$panel" || fail "wallhaven Panel.qml should dismiss the context menu when the popout closes"
 else
   echo "SKIP: ryoku-extras not found; skipping wallhaven plugin assertions"
 fi

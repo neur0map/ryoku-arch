@@ -28,7 +28,10 @@ Item {
   readonly property bool shouldBeActive: active
   readonly property real slideHidden: implicitHeight + 5
 
-  property real offsetScale: shouldBeActive ? 0 : 1
+  // Only slide in once the panel has actually loaded, so the host never animates an
+  // empty zero-sized surface in (which looks like squashed/overlapping content and
+  // gives the hover tracker the wrong bounds, closing the popout as the cursor moves in).
+  property real offsetScale: shouldBeActive && content.item ? 0 : 1
 
   x: align === "start" ? 0 : align === "center" ? Math.max(0, Math.round((parent.width - width) / 2)) : Math.max(0, parent.width - width)
   y: edge === "bottom" ? parent.height - implicitHeight + slideHidden * offsetScale : -slideHidden * offsetScale
@@ -36,7 +39,10 @@ Item {
   implicitWidth: content.item ? content.item.implicitWidth : 0
   implicitHeight: content.item ? content.item.implicitHeight : 0
   visible: offsetScale < 1
-  opacity: 1 - offsetScale
+  // Fade content in only over the back half of the slide. The blob surface lives in a
+  // separate blurred layer that composites a frame or two behind this directly-rendered
+  // content; ramping opacity late guarantees the wrapper is on screen before its UI shows.
+  opacity: Math.max(0, 1 - offsetScale * 2)
 
   transform: Matrix4x4 {
     matrix: root.deformMatrix
@@ -59,7 +65,11 @@ Item {
 
     anchors.fill: parent
     asynchronous: true
-    active: root.shouldBeActive || root.visible
+    // Build the panel as soon as the plugin registers (off-screen) rather than on first
+    // hover. Lazy loading made the corner feel broken: the popout appeared slowly and,
+    // until content.item existed, implicitWidth/Height were 0 so the hover zone collapsed
+    // and moving toward the content closed it. Async keeps startup non-blocking.
+    active: true
     source: "file://" + root.panelPath
 
     onLoaded: {
