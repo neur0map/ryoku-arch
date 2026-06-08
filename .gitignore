@@ -14,6 +14,10 @@
 /.claude/
 /.codex
 
+# LSP / language-server config stays developer-local
+.luarc.json
+.luarc.jsonc
+
 # Superpowers brainstorming session artifacts
 .superpowers/
 .specs
