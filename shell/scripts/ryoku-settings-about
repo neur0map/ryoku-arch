@@ -551,52 +551,6 @@ shell_single_quote() {
   printf "'%s'" "$(printf '%s' "$value" | sed "s/'/'\\\\''/g")"
 }
 
-fetch_settings_channel_ref() {
-  local channel="$1"
-
-  git -c http.extraheader= -C "$RYOKU_PATH" fetch --prune "$remote_url" "+refs/heads/$channel:refs/remotes/origin/$channel" >/dev/null 2>&1
-}
-
-fetch_settings_peer_channel_refs() {
-  local channel
-
-  for channel in main unstable-dev; do
-    [[ $channel == "$1" ]] && continue
-    fetch_settings_channel_ref "$channel" || true
-  done
-}
-
-settings_official_remote_contains_head() {
-  local head ref reflog_head
-
-  head="$(git -C "$RYOKU_PATH" rev-parse HEAD 2>/dev/null || true)"
-  [[ -n $head ]] || return 1
-
-  for ref in origin/main origin/unstable-dev; do
-    git -C "$RYOKU_PATH" rev-parse --verify --quiet "$ref" >/dev/null || continue
-    if git -C "$RYOKU_PATH" merge-base --is-ancestor HEAD "$ref"; then
-      return 0
-    fi
-
-    while IFS= read -r reflog_head; do
-      [[ $reflog_head == "$head" ]] && return 0
-    done < <(git -C "$RYOKU_PATH" reflog show --format=%H "$ref" 2>/dev/null || true)
-  done
-
-  return 1
-}
-
-settings_can_realign_official_branch() {
-  local branch="$1"
-
-  case "$branch" in
-    main | unstable-dev) ;;
-    *) return 1 ;;
-  esac
-
-  settings_official_remote_contains_head
-}
-
 update_current_branch() {
   local branch="${1:-}"
   local current_branch=""
@@ -624,8 +578,7 @@ update_current_branch() {
 
 start_update() {
   local branch="${1:-}"
-  local current_branch command counts helper_q path_q branch_q remote_ref remote_q update_bin update_q
-  local behind=0
+  local current_branch command helper_q path_q branch_q remote_q update_bin update_q
 
   valid_branch_name "$branch" || {
     json_error "Invalid update branch: $branch"
@@ -645,31 +598,12 @@ start_update() {
 
   path_q="$(shell_quote "$RYOKU_PATH")"
   branch_q="$(shell_quote "$branch")"
-  remote_ref="origin/$branch"
 
-  if ! git -c http.extraheader= -C "$RYOKU_PATH" fetch --prune "$remote_url" "+refs/heads/$branch:refs/remotes/origin/$branch" >/dev/null 2>&1; then
-    json_error "Unable to fetch $branch before starting the update"
-    return 1
-  fi
-  fetch_settings_peer_channel_refs "$branch"
-
-  counts="$(git -C "$RYOKU_PATH" rev-list --left-right --count "HEAD...$remote_ref" 2>/dev/null || true)"
-  if [[ -n $counts ]]; then
-    read -r _ behind <<<"$counts"
-  fi
-
-  if (( behind == 0 )); then
-    json_error "No updates are available for $branch"
-    return 1
-  fi
-
-  if ! git -C "$RYOKU_PATH" merge-base --is-ancestor HEAD "$remote_ref"; then
-    if ! settings_can_realign_official_branch "$branch"; then
-      json_error "Cannot start update for $branch because this checkout cannot fast-forward to $remote_ref"
-      return 1
-    fi
-  fi
-
+  # One updater: hand straight off to ryoku-update in the terminal. It owns the fetch,
+  # fast-forward / realign and decides what to run — including the system, AUR and shell
+  # stages when the Ryoku git tree is already current. Pre-gating here on the git delta
+  # (behind == 0) made the GUI refuse to even open the terminal whenever only packages,
+  # not Ryoku itself, had updates, so the update button looked like it never did anything.
   case "$branch" in
     main | unstable-dev)
       update_bin="$RYOKU_PATH/bin/ryoku-update"

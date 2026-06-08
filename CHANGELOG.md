@@ -63,6 +63,23 @@
 
 ### Fixed
 
+- **Frame-plugin popouts open reliably on hover**: the drawer host now builds a
+  plugin's `framePanel` when the plugin registers (off-screen) instead of on first
+  hover. Lazy loading made the corner feel broken: the popout appeared slowly and,
+  until its content existed the panel reported zero size, so the hover zone collapsed
+  and moving toward the content closed it again; its content also now fades in over the
+  back half of the slide so the blurred blob surface lands before the UI. The Wallhaven plugin also dropped a
+  duplicate height animation that squashed its header while opening, hoisted its
+  per-tile context menu into one shared instance (ending a storm of null-`modelData`
+  warnings from menus living inside the recycling grid), and now dismisses that menu
+  together with the popout so it can no longer be left orphaned on screen.
+- **One updater, reachable from the GUI**: Settings to About "Update now" is now a thin
+  launcher for `ryoku-update`: the same updater the CLI runs. It no longer pre-fetches
+  and refuses with "No updates are available" when only the Ryoku git tree is current,
+  and the button no longer hides itself on the git delta, so the GUI can run a full
+  system/AUR update (not just Ryoku) and the terminal reports "already up to date" when
+  there is nothing to do. Removed the now-dead duplicate fetch/realign helpers that had
+  diverged from the updater.
 - **Audio no longer ships dimmed ("100% volume but barely audible")**: Ryoku no
   longer forces WirePlumber software mixing on every machine. That override
   decoupled the volume slider from the codec's hardware "Master", so any device

@@ -495,8 +495,10 @@ ColumnLayout {
     NButton {
       id: updateBtn
       Layout.fillWidth: true
-      // RYOKU: only show when a check found an actual update (report.updateAvailable === behind > 0)
-      visible: !!(RyokuAbout.lastUpdateReport && RyokuAbout.lastUpdateReport.updateAvailable === true)
+      // RYOKU: one updater. Always offer it — clicking opens the terminal and runs
+      // ryoku-update (Ryoku + system + AUR), which reports when there is nothing to do.
+      // Gating visibility on the Ryoku git delta hid the action whenever the shell was current.
+      visible: true
       icon: "arrow-up-circle"
       text: RyokuAbout.startingUpdate ? "Updating…" : "Update now"
       enabled: !RyokuAbout.startingUpdate
