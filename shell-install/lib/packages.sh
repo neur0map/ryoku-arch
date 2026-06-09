@@ -30,10 +30,22 @@ rsi_install_packages() {
   rsi_ok "dependencies satisfied"
 }
 
-# Build and install in-tree packages that are not on official repos or the AUR
-# (currently: cava-ryoku, which provides libcava needed by the shell plugin).
-# Must run after rsi_install_packages so makedepends are already present.
-rsi_install_local_packages() {
-  rsi_header "Building local packages"
-  ryoku_distro_install_local_pkgs
+# Build and install the in-tree distro packages (cava-ryoku -> libcava for the
+# music visualizer, ryoku-tui) through the SAME script the OS install and
+# ryoku-update use, so there is exactly one cava-build path. Prebuilt-first
+# (pacman -U the tracked .pkg.tar.zst), makepkg fallback. Runs before the shell
+# build so CMake finds libcava. Non-fatal: a missing libcava only disables the
+# visualizer.
+rsi_install_distro_packages() {
+  rsi_header "Building local packages (cava-ryoku, ryoku-tui)"
+  local script="$RSI_REPO/install/packaging/distro-arch.sh"
+  if [[ ! -f $script ]]; then
+    rsi_warn "no $script; skipping in-tree packages (audio visualizer may be disabled)"
+    return 0
+  fi
+  if rsi_dry; then
+    rsi_dim "  would run install/packaging/distro-arch.sh (prebuilt cava-ryoku via pacman -U, else makepkg)"
+    return 0
+  fi
+  RYOKU_PATH="$RSI_REPO" bash "$script" || rsi_warn "distro packaging reported a problem; audio visualizer may be disabled"
 }
