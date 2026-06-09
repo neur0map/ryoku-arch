@@ -15,6 +15,7 @@ fail() {
 # boot path.
 scripts=(
   nvidia.sh
+  gpu-render-primary.sh
   fix-fkeys.sh
   usb-autosuspend.sh
   fix-surface-keyboard.sh
