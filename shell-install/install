@@ -35,6 +35,8 @@ done
 . "$RSI_HERE/lib/env.sh"
 # shellcheck source=lib/ui.sh
 . "$RSI_HERE/lib/ui.sh"
+# shellcheck source=lib/tui.sh
+. "$RSI_HERE/lib/tui.sh"
 # shellcheck source=lib/manifest.sh
 . "$RSI_HERE/lib/manifest.sh"
 # shellcheck source=lib/backup.sh
@@ -51,10 +53,13 @@ done
 trap rsi_sudo_done EXIT
 
 rsi_banner
+tui_verdict
 rsi_safety
 rsi_review
 
 rsi_sudo_prime
+tui_ensure_gum
+tui_snapshot
 rsi_system_update
 rsi_manifest_init
 rsi_backup_setup
@@ -74,12 +79,10 @@ case ":$PATH:" in
   *) rsi_warn "$RSI_BIN_HOME is not on your PATH; add it to run ryoku-* commands from a terminal (the Ryoku session itself uses absolute paths and works regardless)." ;;
 esac
 
-rsi_header "Done"
-rsi_ok "Ryoku shell installed."
-rsi_say ""
-rsi_say "  ${RSI_BOLD}Reboot now${RSI_OFF}, then at the login screen pick the ${RSI_ACCENT}Ryoku${RSI_OFF} session and log in."
-rsi_say "  Your current desktop will not change until you start the Ryoku session,"
-rsi_say "  so the live screen, wallpaper, and keybinds stay as they are until then."
-rsi_say ""
-rsi_say "  Revert any time:  $RSI_HERE/uninstall"
-rsi_say "  Build log:        ${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-shell-setup.log"
+tui_done \
+  "" \
+  "Reboot, then pick the Ryoku session at your login screen and log in." \
+  "Your current desktop is untouched until you start that session." \
+  "" \
+  "Revert any time:  $RSI_HERE/uninstall" \
+  "Build log:        ${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-shell-setup.log"

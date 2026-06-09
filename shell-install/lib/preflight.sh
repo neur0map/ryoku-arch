@@ -31,11 +31,6 @@ rsi_safety() {
   fi
   rsi_ok "not running as root"
 
-  # Must be an Arch-family system; the only adapter today is arch. This both
-  # loads the adapter and stops on anything else.
-  rsi_load_adapter
-  rsi_ok "Arch-family system ($(rsi_os_id))"
-
   command -v pacman >/dev/null 2>&1 || rsi_die "pacman not found; this does not look like an Arch system."
   rsi_ok "pacman present"
 
@@ -164,5 +159,5 @@ rsi_review() {
   fi
 
   rsi_say ""
-  rsi_confirm "Proceed with the experimental shell install?" || rsi_die "aborted by user"
+  tui_confirm "Proceed with the experimental shell install?" || rsi_die "aborted by user"
 }

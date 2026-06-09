@@ -22,7 +22,8 @@ if HOME="$tmp_dir" RSI_OS_RELEASE="$tmp_dir/os-release" \
   fail "installer should have exited non-zero on a non-Arch system"
 fi
 
-grep -qi "unsupported distro 'fedora'" "$out" || fail "should name the unsupported distro and stop"
+grep -qi 'fedora' "$out" || fail "should name the unsupported distro (fedora)"
+grep -qi 'not an arch-family\|unsupported\|not supported' "$out" || fail "should state the Arch-family requirement and stop"
 grep -qi "deploy complete" "$out" && fail "must not reach the deploy stage on an unsupported system"
 
 [[ ! -e $tmp_dir/.local/share/ryoku ]] || fail "unsafe stop must not deploy anything"

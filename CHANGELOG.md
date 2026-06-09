@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Added
+
+- **Guided installer TUI**: `shell-install/install` opens a `gum` interface: a
+  styled support verdict (every distro is told whether it is supported, with the
+  reason and a clean exit if not), a recommended pre-install snapshot (detects
+  and offers `snapper`/`timeshift`), the confirm, and a closing summary. `gum` is
+  installed on the fly; without it everything falls back to plain output. Cards
+  are gum-rendered, so the borders always close.
+
 ### Changed
 
 - **One installer source of truth; the standalone installs everything Ryoku uses**:

@@ -34,6 +34,11 @@ shell-install/install             # install (asks for confirmation, then sudo)
 shell-install/uninstall           # revert everything it did
 ```
 
+The installer is guided: it shows whether your distro is supported (and why, if
+not), recommends a snapshot before touching anything (offering `snapper`/`timeshift`
+if present), asks once to confirm, then installs. It renders with `gum` (installed
+automatically) and falls back to plain text without it.
+
 Or bootstrap directly. Set `branch` once so the fetched script and the cloned
 ref match, so it works the same on any branch (`main`, `unstable-dev`, a feature
 branch):
