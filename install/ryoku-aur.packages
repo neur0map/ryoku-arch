@@ -17,8 +17,10 @@
 #   iso/builder/ryoku-boot-overlay.packages AUR, conditional hardware + boot
 
 # ── Networking / system ───────────────────────────────────────────────
+# @os-only  (limine bootloader hooks; the OS install owns the boot path)
 limine-mkinitcpio-hook
 limine-snapper-sync
+# @end
 localsend-bin
 tzupdate
 ufw-docker

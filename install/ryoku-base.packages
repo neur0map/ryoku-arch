@@ -207,8 +207,10 @@ cmake
 ninja
 
 # ── Display manager + boot splash ─────────────────────────────────────
+# @os-only  (boot splash + display manager; the OS install owns these)
 plymouth
 sddm
+# @end
 
 # ── Audio system + visualizer ─────────────────────────────────────────
 # `cava` here pulls the stock Arch package for the offline mirror. The
@@ -305,4 +307,6 @@ qt6-multimedia-ffmpeg
 qt6-svg
 
 # ── Bootloader + initramfs (limine snapshot-aware stack) ──────────────
+# @os-only  (kernel-module retention hook; the OS install owns the boot path)
 kernel-modules-hook
+# @end
