@@ -33,17 +33,10 @@ export RSI_SESSION_FILE="/usr/share/wayland-sessions/ryoku.desktop"
 # Run flags, overridable from the entrypoints.
 export RSI_DRY_RUN="${RSI_DRY_RUN:-0}"
 export RSI_ASSUME_YES="${RSI_ASSUME_YES:-0}"
-# Minimal mode installs only the shell-critical subset (packages/shell.deps);
-# the default installs the full Ryoku app+dependency set from the manifests so
-# keybinds and ryoku-* commands have the apps they call.
-export RSI_MINIMAL="${RSI_MINIMAL:-0}"
 
 # Ryoku package manifests (the source of truth shared with the OS installer).
 export RSI_BASE_PACKAGES="$RSI_REPO/install/ryoku-base.packages"
 export RSI_AUR_PACKAGES="$RSI_REPO/install/ryoku-aur.packages"
-
-# Logical dependency manifest (distro-agnostic names).
-export RSI_DEPS_FILE="$RSI_DIR/packages/shell.deps"
 
 # os-release path, overridable for testing the distro-detection gate.
 export RSI_OS_RELEASE="${RSI_OS_RELEASE:-/etc/os-release}"

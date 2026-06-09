@@ -102,11 +102,7 @@ rsi_plan() {
   rsi_header "What will happen"
   rsi_say "In your user scope, this will:"
   rsi_will "run a full system update (pacman -Syu), required so new apps match your libraries"
-  if [[ ${RSI_MINIMAL:-0} == 1 ]]; then
-    rsi_will "install only the shell-critical packages (minimal mode)"
-  else
-    rsi_will "install the Ryoku app + dependency set (apps the keybinds and commands need)"
-  fi
+  rsi_will "install the Ryoku app + dependency set (apps the keybinds and commands need)"
   rsi_will "skip packages you already have (--needed), leaving your existing apps untouched"
   rsi_will "deploy the Ryoku payload to $RSI_RYOKU_PATH"
   rsi_will "build the native QML plugins and deploy the shell"

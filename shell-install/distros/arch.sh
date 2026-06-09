@@ -1,29 +1,14 @@
 #!/bin/bash
 
 # Arch-family adapter. Implements the distro contract for arch and its
-# derivatives (cachyos, endeavouros, manjaro, garuda, ...). Maps logical
-# dependency names to real pacman/AUR packages and installs them.
+# derivatives (cachyos, endeavouros, manjaro, garuda, ...). It installs the
+# packages listed in the shared manifests (install/ryoku-*.packages); it never
+# names a package itself.
 #
 # Contract (see TEMPLATE.sh):
+#   ryoku_distro_system_update
 #   ryoku_distro_prereqs
-#   ryoku_distro_map <logical>          -> "repo|aur  pkg [pkg...]"
-#   ryoku_distro_install <logical...>
-
-# logical -> "class real [real...]". class is repo or aur.
-declare -gA RSI_ARCH_PKG=(
-  [compositor]="repo hyprland hypridle hyprlock hyprpicker"
-  [quickshell]="repo quickshell"
-  [portal]="repo xdg-desktop-portal xdg-desktop-portal-hyprland xdg-desktop-portal-gtk xwayland-satellite"
-  [build]="repo cmake ninja python git pkgconf"
-  [qt]="repo qt6-base qt6-declarative qt6-wayland qt6-svg qt6-imageformats qt6-5compat qt6-multimedia qt6-quicktimeline qt6-positioning qt6-sensors qt6-tools"
-  [theme]="repo qt6ct kvantum adwaita-icon-theme papirus-icon-theme hicolor-icon-theme"
-  [fonts]="repo ttf-cascadia-code-nerd ttf-material-symbols-variable noto-fonts noto-fonts-emoji noto-fonts-cjk ttf-dejavu"
-  [audio]="repo pipewire pipewire-pulse pipewire-alsa wireplumber cava playerctl aubio"
-  [color]="repo matugen wlsunset"
-  [tools]="repo jq rsync curl bc fish brightnessctl imagemagick"
-  [cursors]="aur bibata-cursor-theme-bin"
-  [wallpaper]="aur skwd-daemon-bin skwd-wall"
-)
+#   ryoku_distro_install_full
 
 # rsi_arch_aur_helper -> echo yay or paru if present, empty otherwise.
 rsi_arch_aur_helper() {
@@ -46,11 +31,6 @@ rsi_arch_bootstrap_yay() {
   ( cd "$tmp/yay-bin" && makepkg -si --noconfirm )
   rm -rf "$tmp"
 }
-
-# System-level packages that the OS install owns; never install these on an
-# existing machine (bootloader hooks, snapshots, display manager, boot splash,
-# kernel-module retention hook).
-RSI_ARCH_DENY="plymouth sddm kernel-modules-hook limine-mkinitcpio-hook limine-snapper-sync"
 
 # Full system update, run as its own phase BEFORE anything Ryoku is pulled or
 # installed. Installing new packages on a not-fully-updated Arch system is a
@@ -85,27 +65,22 @@ ryoku_distro_prereqs() {
   rsi_arch_bootstrap_yay
 }
 
-# Install the full Ryoku app + dependency set from the shared manifests, minus
-# the system-level denylist. The AUR helper resolves both official-repo and AUR
+# Install the full Ryoku app + dependency set from the shared manifests, skipping
+# any `# @os-only` region (packages the OS install owns: bootloader, display
+# manager, kernel hooks). The AUR helper resolves both official-repo and AUR
 # packages, and --needed leaves anything already installed untouched (so it
 # coexists with the user's existing apps). Failures are non-fatal and reported.
 ryoku_distro_install_full() {
   local want=() p
   while IFS= read -r p; do want+=("$p"); done < <(
-    sed -e 's/#.*//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' \
-      "$RSI_BASE_PACKAGES" "$RSI_AUR_PACKAGES" 2>/dev/null | grep -v '^$'
+    rsi_read_manifest "$RSI_BASE_PACKAGES" "$RSI_AUR_PACKAGES"
   )
   if [[ ${#want[@]} -eq 0 ]]; then
-    rsi_warn "no package manifests found; installing the minimal set instead"
-    local deps=()
-    mapfile -t deps < <(rsi_read_deps)
-    ryoku_distro_install "${deps[@]}"
-    return
+    rsi_die "no package manifests found at $RSI_BASE_PACKAGES / $RSI_AUR_PACKAGES"
   fi
 
   local pkgs=() missing=()
   for p in "${want[@]}"; do
-    case " $RSI_ARCH_DENY " in *" $p "*) continue ;; esac
     pkgs+=("$p")
     rsi_arch_pkg_present "$p" || missing+=("$p")
   done
@@ -211,53 +186,5 @@ ryoku_distro_install_local_pkgs() {
     rsi_ok "libcava available"
   else
     rsi_warn "cava-ryoku installed but libcava.pc not found; plugin build may still fail"
-  fi
-}
-
-ryoku_distro_map() {
-  printf '%s' "${RSI_ARCH_PKG[$1]:-}"
-}
-
-# ryoku_distro_install LOGICAL... -> resolve, split repo/aur, install missing.
-ryoku_distro_install() {
-  local logical class entry repo=() aur=() name
-  for logical in "$@"; do
-    entry="${RSI_ARCH_PKG[$logical]:-}"
-    [[ -n $entry ]] || { rsi_warn "no Arch mapping for '$logical', skipping"; continue; }
-    class="${entry%% *}"
-    for name in ${entry#* }; do
-      if [[ $class == aur ]]; then aur+=("$name"); else repo+=("$name"); fi
-    done
-  done
-
-  local missing=()
-  for name in "${repo[@]}"; do
-    rsi_arch_pkg_present "$name" || missing+=("$name")
-  done
-  if ((${#missing[@]})); then
-    rsi_step "repo packages: ${missing[*]}"
-    if rsi_dry; then
-      rsi_dim "  would: sudo pacman -S --needed --noconfirm ${missing[*]}"
-    else
-      sudo pacman -S --needed --noconfirm "${missing[@]}"
-    fi
-    for name in "${missing[@]}"; do rsi_record pkg "$name"; done
-  fi
-
-  local aur_missing=()
-  for name in "${aur[@]}"; do
-    rsi_arch_pkg_present "$name" || aur_missing+=("$name")
-  done
-  if ((${#aur_missing[@]})); then
-    local helper
-    helper="$(rsi_arch_aur_helper)"
-    [[ -n $helper ]] || helper="yay"
-    rsi_step "AUR packages: ${aur_missing[*]}"
-    if rsi_dry; then
-      rsi_dim "  would: $helper -S --needed --noconfirm ${aur_missing[*]}"
-    else
-      "$helper" -S --needed --noconfirm "${aur_missing[@]}"
-    fi
-    for name in "${aur_missing[@]}"; do rsi_record pkg "$name"; done
   fi
 }

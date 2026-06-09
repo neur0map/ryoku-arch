@@ -31,7 +31,6 @@ From a clone of the repo:
 ```bash
 shell-install/install --dry-run   # show the full plan, change nothing
 shell-install/install             # install (asks for confirmation, then sudo)
-shell-install/install --minimal   # shell core only, skip the full app set
 shell-install/uninstall           # revert everything it did
 ```
 
@@ -72,8 +71,7 @@ of your current setup before the first change.
   manager, boot splash, and bootloader/snapshot hooks). This is what makes the
   keybinds and `ryoku-*` commands actually work (terminal, file manager,
   browser, mpv, screenshot tools, and so on). Packages you already have are
-  skipped (`--needed`), so your existing apps are left untouched. Pass
-  `--minimal` to install only the shell-critical subset instead.
+  skipped (`--needed`), so your existing apps are left untouched.
 - Deploys the Ryoku payload to `~/.local/share/ryoku`, builds the native QML
   plugins, and deploys the shell to `~/.config/quickshell/ryoku-shell`.
 - Links `ryoku-*` commands into `~/.local/bin`.
@@ -101,9 +99,9 @@ Support for new distros attaches here, never to the OS installer:
 1. Add the distro's `/etc/os-release` `ID` to `rsi_detect_family` in
    `distros/detect.sh` (Arch derivatives already map to the `arch` family).
 2. For a new family, copy `distros/TEMPLATE.sh` to `distros/<family>.sh` and
-   implement the three contract functions (`ryoku_distro_prereqs`,
-   `ryoku_distro_map`, `ryoku_distro_install`).
+   implement the contract functions (`ryoku_distro_system_update`,
+   `ryoku_distro_prereqs`, `ryoku_distro_install_full`).
 
-The logical dependency names in `packages/shell.deps` stay the same; only the
-adapter's mapping to real packages changes. Nix, if added later, is a separate
+The shared manifests (`install/ryoku-*.packages`) are the only package data; an
+adapter only changes how packages get installed. Nix, if added later, is a separate
 declarative path (flake + home-manager), not an imperative adapter here.
