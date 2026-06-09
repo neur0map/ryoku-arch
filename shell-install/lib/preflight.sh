@@ -103,6 +103,11 @@ rsi_plan() {
   rsi_say "In your user scope, this will:"
   rsi_will "run a full system update (pacman -Syu), required so new apps match your libraries"
   rsi_will "install the Ryoku app + dependency set (apps the keybinds and commands need)"
+  if [[ ${RYOKU_BOOT_CONFIG:-0} == 1 ]]; then
+    rsi_will "install GPU/firmware drivers and apply their boot config (RYOKU_BOOT_CONFIG=1: mkinitcpio/modprobe; only safe on Arch with the Ryoku boot stack)"
+  else
+    rsi_will "install GPU/firmware driver packages only (RYOKU_BOOT_CONFIG=0: no boot or initramfs changes)"
+  fi
   rsi_will "skip packages you already have (--needed), leaving your existing apps untouched"
   rsi_will "deploy the Ryoku payload to $RSI_RYOKU_PATH"
   rsi_will "build the native QML plugins and deploy the shell"
@@ -112,7 +117,11 @@ rsi_plan() {
   rsi_will "enable the ryoku-shell and hypridle user services"
   rsi_say ""
   rsi_say "It will NOT touch:"
-  rsi_wont "your bootloader, kernel, or initramfs"
+  if [[ ${RYOKU_BOOT_CONFIG:-0} == 1 ]]; then
+    rsi_wont "your bootloader or kernel (driver boot config IS written; rerun mkinitcpio to apply)"
+  else
+    rsi_wont "your bootloader, kernel, or initramfs"
+  fi
   rsi_wont "your filesystem, btrfs, or snapshots"
   rsi_wont "your display manager"
   rsi_wont "plymouth / boot splash"

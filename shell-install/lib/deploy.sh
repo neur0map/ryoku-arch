@@ -228,12 +228,64 @@ rsi_enable_services() {
   rsi_dry || systemctl --user daemon-reload >/dev/null 2>&1 || true
 }
 
+# GPU/firmware driver scripts the OS install runs that a standalone install
+# should run too. Each is hardware-gated (a no-op when the hardware is absent),
+# so the whole list is safe to attempt on any machine.
+RSI_DRIVER_SCRIPTS=(
+  hardware/nvidia.sh
+  hardware/vulkan.sh
+  hardware/gpu-render-primary.sh
+  hardware/intel/video-acceleration.sh
+  hardware/intel/sof-firmware.sh
+  hardware/fix-bcm43xx.sh
+  hardware/fix-surface-keyboard.sh
+  hardware/fix-yt6801-ethernet-adapter.sh
+  hardware/fix-tuxedo-backlight.sh
+  hardware/apple/fix-t2.sh
+  hardware/apple/fix-spi-keyboard.sh
+)
+
+# Run the shared hardware driver scripts against the deployed tree. Default is
+# packages-only (RYOKU_BOOT_CONFIG=0): driver packages + per-user Hyprland env,
+# but no /etc/mkinitcpio, /etc/modprobe.d, or bootloader writes, so a foreign
+# system's boot path is never touched. --with-boot-config sets it to 1 for full
+# ISO parity. Each script runs in its own subshell with the runtime env plus the
+# boot-config and chroot helpers sourced (they export the functions the scripts
+# call). Failures are non-fatal.
+rsi_install_drivers() {
+  rsi_header "Installing hardware drivers"
+  local mode="packages only (no boot or initramfs changes)"
+  [[ ${RYOKU_BOOT_CONFIG:-0} == 1 ]] && mode="full boot config (ISO parity)"
+  rsi_step "RYOKU_BOOT_CONFIG=${RYOKU_BOOT_CONFIG:-0}: $mode"
+  local cfg="$RSI_RYOKU_PATH/install/config"
+  local s path
+  for s in "${RSI_DRIVER_SCRIPTS[@]}"; do
+    if rsi_dry; then
+      rsi_dim "  would run install/config/$s"
+      continue
+    fi
+    path="$cfg/$s"
+    [[ -f $path ]] || continue
+    rsi_step "  install/config/$s"
+    (
+      export RYOKU_PATH="$RSI_RYOKU_PATH"
+      export RYOKU_BOOT_CONFIG="${RYOKU_BOOT_CONFIG:-0}"
+      # shellcheck disable=SC1091
+      source "$RYOKU_PATH/lib/runtime-env.sh"
+      source "$RYOKU_INSTALL/helpers/chroot.sh"
+      source "$RYOKU_INSTALL/helpers/boot-config.sh"
+      bash -c "source '$path'"
+    ) || rsi_warn "driver script reported a problem: $s"
+  done
+}
+
 rsi_deploy() {
   rsi_manifest_init
   rsi_deploy_payload
   rsi_deploy_shell
   rsi_link_commands
   rsi_seed_configs
+  rsi_install_drivers
   rsi_install_session
   rsi_enable_services
   rsi_ok "deploy complete"

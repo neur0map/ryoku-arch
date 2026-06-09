@@ -34,6 +34,11 @@ export RSI_SESSION_FILE="/usr/share/wayland-sessions/ryoku.desktop"
 export RSI_DRY_RUN="${RSI_DRY_RUN:-0}"
 export RSI_ASSUME_YES="${RSI_ASSUME_YES:-0}"
 
+# Driver boot config: 0 = install driver packages only (never rewrite this
+# machine's boot path); 1 = full ISO parity (mkinitcpio/modprobe/bootloader).
+# Default off for a user-scope install; --with-boot-config sets it to 1.
+export RYOKU_BOOT_CONFIG="${RYOKU_BOOT_CONFIG:-0}"
+
 # Ryoku package manifests (the source of truth shared with the OS installer).
 export RSI_BASE_PACKAGES="$RSI_REPO/install/ryoku-base.packages"
 export RSI_AUR_PACKAGES="$RSI_REPO/install/ryoku-aur.packages"

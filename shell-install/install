@@ -5,10 +5,11 @@
 # reversible via shell-install/uninstall.
 #
 # Usage:
-#   shell-install/install [--dry-run] [--yes]
+#   shell-install/install [--dry-run] [--yes] [--with-boot-config]
 #
 #   --dry-run   show the full plan and change nothing
 #   --yes       skip the confirmation prompt (still prints the plan)
+#   --with-boot-config  also apply driver boot config (mkinitcpio/modprobe); only safe on Arch with the Ryoku boot stack
 
 set -euo pipefail
 
@@ -18,8 +19,9 @@ for arg in "$@"; do
   case "$arg" in
     --dry-run) export RSI_DRY_RUN=1 ;;
     --yes | -y) export RSI_ASSUME_YES=1 ;;
+    --with-boot-config) export RYOKU_BOOT_CONFIG=1 ;;
     -h | --help)
-      sed -n '3,11p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+      sed -n '3,12p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
       exit 0
       ;;
     *)

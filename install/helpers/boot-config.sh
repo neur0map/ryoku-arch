@@ -7,3 +7,7 @@
 # apply. `shell-install/install --with-boot-config` flips it back on for users
 # who want exact ISO parity and accept the risk.
 ryoku_boot_config_enabled() { [[ ${RYOKU_BOOT_CONFIG:-1} == 1 ]]; }
+
+# Exported so it is available inside run_logged's `bash -c "source script"`
+# subshell and the standalone driver runner's subshell.
+export -f ryoku_boot_config_enabled
