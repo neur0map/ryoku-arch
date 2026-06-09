@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **One installer source of truth; the standalone installs everything Ryoku uses**:
+  the standalone `shell-install/` no longer keeps its own package map or build
+  logic. It reads the shared `install/ryoku-*.packages` (skipping `# @os-only`
+  regions), builds `cava-ryoku`/libcava through the same
+  `install/packaging/distro-arch.sh` the ISO install and `ryoku-update` use, and
+  installs the GPU/firmware drivers from `install/config/hardware/*.sh`. Drivers
+  default to packages-only (`RYOKU_BOOT_CONFIG=0`: no mkinitcpio/modprobe/bootloader
+  writes, safe on any existing system); `shell-install/install --with-boot-config`
+  opts into full ISO parity. The `--minimal` flag is removed (a full install is the point).
+- **Standalone installs update like ISO installs**: `shell-install` deploys a git
+  checkout of the channel branch to `~/.local/share/ryoku`, so `ryoku-update`
+  (git-based) works and `distro/` ships for cava rebuilds. Previously the rsync
+  deploy stripped `.git`, leaving standalone installs unable to update.
+- **Dropped the generated `ryoku-shell` branch**: only `main` and `unstable-dev`
+  remain. `shell-install/boot.sh` defaults `RYOKU_REF=main` (override with
+  `unstable-dev`), and the `publish-ryoku-shell` workflow is removed.
+  `docs/ryoku-shell-branch.md` now documents the product vs provisioning boundary.
+
 ## [0.1.0-beta2] - 2026-06-08
 
 ### Changed
