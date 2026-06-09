@@ -59,6 +59,7 @@ rsi_system_update
 rsi_manifest_init
 rsi_backup_setup
 rsi_install_packages
+rsi_install_local_packages
 rsi_deploy
 rsi_verify
 

@@ -37,3 +37,10 @@ ryoku_distro_map() {
 ryoku_distro_install() {
   rsi_die "ryoku_distro_install not implemented for this distro"
 }
+
+# ryoku_distro_install_local_pkgs
+#   Build and install any in-tree packages that are not on official repos or
+#   the AUR (e.g. patched forks that provide additional libraries). Called
+#   after ryoku_distro_install so repo deps are already present. No-op on
+#   distros that do not need local builds.
+ryoku_distro_install_local_pkgs() { :; }
