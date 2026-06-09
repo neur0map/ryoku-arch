@@ -70,5 +70,7 @@ jobs:
           EOF
           # shell.ryoku.dev is the bucket's custom domain, so the bucket root is
           # the site root: shell.ryoku.dev/install.sh == <bucket>/install.sh.
-          rclone copyto shell-install/boot.sh "Ryoku:${R2_SHELL_BUCKET}/install.sh" -P
+          # Always overwrite install.sh; skip the HeadObject/list pre-check so a
+          # write-only-scoped R2 token (no ListBucket) still works.
+          rclone copyto shell-install/boot.sh "Ryoku:${R2_SHELL_BUCKET}/install.sh" --no-check-dest -P
           echo "::notice::Published shell-install/boot.sh -> shell.ryoku.dev/install.sh (R2: ${R2_SHELL_BUCKET}/install.sh)"
