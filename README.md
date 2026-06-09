@@ -125,39 +125,35 @@ See [install paths](docs/install-paths.md) for the full comparison, and
 [`shell-install/README.md`](shell-install/README.md) for the experimental shell
 installer.
 
-<!-- TODO: Ryoku shell installer is currently BROKEN / NOT WORKING.
-     Commented out so it is hidden from the rendered README. Restore this
-     section once shell-install/ works again.
-
 ### Install the Ryoku shell (experimental)
 
-This works from any branch. Clone the repo and run the installer from the
-checkout you are on:
+Layer just the Ryoku shell onto an Arch-family system you already use. The
+installer is a guided `gum` interface: it tells you whether your distro is
+supported (and why not, if it isn't), recommends a system snapshot, installs
+every dependency and driver the shell uses, and stays reversible.
+
+From a clone of the repo:
 
 ```bash
 git clone https://github.com/neur0map/ryoku-arch.git
 cd ryoku-arch
-# git checkout <branch>   # optional: any branch you want to install from
 shell-install/install --dry-run   # preview the full plan, change nothing
-shell-install/install             # install (runs safety checks, asks to confirm)
+shell-install/install             # guided install (verdict, snapshot, confirm)
+shell-install/uninstall           # revert everything it did
 ```
 
-Or bootstrap with one command. Set `branch` once so the fetched script and the
-cloned ref always match, so it stays correct on `main`, `unstable-dev`, or any
-feature branch:
+Or bootstrap with one command. It defaults to `main`; set
+`RYOKU_REF=unstable-dev` for the dev channel:
 
 ```bash
-branch=main
-RYOKU_REF="$branch" bash <(curl -fsSL "https://raw.githubusercontent.com/neur0map/ryoku-arch/$branch/shell-install/boot.sh")
+bash <(curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/main/shell-install/boot.sh)
 ```
 
-It runs hard safety checks first and stops if the machine is not safe, backs up
-your current setup before any change, and is reversible with
-`shell-install/uninstall`.
--->
-
-> **Note:** The experimental Ryoku shell installer is temporarily disabled while
-> `shell-install/` is fixed. ISO install is unaffected.
+It hard-stops with the reason on anything outside the Arch family, backs up
+whatever it would replace, installs GPU/firmware drivers as packages (boot
+config is opt-in with `--with-boot-config`), and adds the shell as a separate
+login session, so your current desktop is untouched until you pick **Ryoku** at
+the login screen. See [`shell-install/README.md`](shell-install/README.md).
 
 ## Download and verify
 

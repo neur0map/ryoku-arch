@@ -23,9 +23,10 @@ Just the Ryoku desktop **shell** (the Quickshell shell, a Hyprland session,
 the `ryoku-*` commands, and theming) layered onto a system you already run.
 
 - Code: `shell-install/` (and only there).
-- Installs into **user scope** and adds one wayland session entry. It never
-  touches your bootloader, filesystem, display manager, plymouth, or global
-  system config.
+- Installs into **user scope** plus the dependencies and GPU/firmware packages
+  the shell needs, and adds one wayland session entry. By default it makes no
+  boot, initramfs, or bootloader changes (driver boot config is opt-in via
+  `--with-boot-config`), and it recommends a system snapshot before starting.
 - Coexists with your current setup and is **reversible**: every change is
   backed up and recorded in a manifest, and `shell-install/uninstall` replays
   it in reverse.
