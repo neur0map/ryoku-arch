@@ -14,6 +14,11 @@ export RSI_DIR RSI_REPO
 export RSI_RYOKU_PATH="${RSI_RYOKU_PATH:-$HOME/.local/share/ryoku}"
 export RSI_SHELL_PATH="${RSI_SHELL_PATH:-$HOME/.local/share/ryoku-shell}"
 
+# Update channel to deploy and track (maps 1:1 to a git branch in
+# lib/ryoku-update-core.sh: main or unstable-dev). Empty = follow the branch you
+# bootstrapped, else main. ryoku-update pulls this channel on later updates.
+export RSI_CHANNEL="${RSI_CHANNEL:-}"
+
 CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 BIN_HOME="${XDG_BIN_HOME:-$HOME/.local/bin}"

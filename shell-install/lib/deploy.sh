@@ -14,27 +14,46 @@ rsi_run() {
   "$@"
 }
 
-# Deploy the repo payload to the canonical RYOKU_PATH so the deployed ryoku-*
-# commands and lib/runtime-env.sh resolve. Back up any prior install.
+# Deploy the repo to the canonical RYOKU_PATH as a git checkout of the update
+# channel, so the deployed ryoku-* commands and lib/runtime-env.sh resolve AND
+# `ryoku-update` (which is git-based) can pull future updates. Carrying the full
+# repo (incl. distro/) also lets ryoku-update rebuild cava-ryoku on a version bump.
 rsi_deploy_payload() {
-  rsi_step "deploying Ryoku payload to $RSI_RYOKU_PATH"
+  # Channel: explicit RSI_CHANNEL wins; else the branch the user bootstrapped;
+  # else main.
+  local channel="${RSI_CHANNEL:-}"
+  if [[ -z $channel ]] && git -C "$RSI_REPO" rev-parse --git-dir >/dev/null 2>&1; then
+    channel="$(git -C "$RSI_REPO" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+  fi
+  [[ -n $channel && $channel != "HEAD" ]] || channel="main"
+
+  rsi_step "deploying Ryoku to $RSI_RYOKU_PATH (git checkout, channel: $channel)"
   rsi_backup "$RSI_RYOKU_PATH"
-  rsi_run mkdir -p "$RSI_RYOKU_PATH"
   if rsi_dry; then
-    rsi_dim "  would rsync $RSI_REPO/ -> $RSI_RYOKU_PATH/ (minus installer/iso/docs/vcs)"
+    rsi_dim "  would git-clone the repo to $RSI_RYOKU_PATH and check out $channel"
+    rsi_record dir "$RSI_RYOKU_PATH"
+    return 0
+  fi
+
+  local url="${RYOKU_REPO:-https://github.com/neur0map/ryoku-arch.git}"
+  rm -rf "$RSI_RYOKU_PATH"
+  mkdir -p "$(dirname "$RSI_RYOKU_PATH")"
+  if git -C "$RSI_REPO" rev-parse --git-dir >/dev/null 2>&1; then
+    # Clone from the local bootstrap checkout (fast, offline-friendly: it already
+    # carries .git and every dir), then repoint origin at the real remote so
+    # ryoku-update pulls upstream, not the temporary clone.
+    git clone "$RSI_REPO" "$RSI_RYOKU_PATH"
+    url="$(git -C "$RSI_REPO" remote get-url origin 2>/dev/null || echo "$url")"
+    git -C "$RSI_RYOKU_PATH" remote set-url origin "$url"
   else
-    rsync -a --delete \
-      --exclude='.git' \
-      --exclude='.github' \
-      --exclude='shell-install' \
-      --exclude='iso' \
-      --exclude='legacy' \
-      --exclude='distro' \
-      --exclude='tests' \
-      --exclude='docs' \
-      --exclude='videowalls' \
-      --exclude='showcase.png' \
-      "$RSI_REPO/." "$RSI_RYOKU_PATH/"
+    git clone "$url" "$RSI_RYOKU_PATH"
+  fi
+
+  # Track the channel branch and wire its upstream so `ryoku-update` can pull.
+  # Best-effort fetch: an offline machine still has the bootstrap content.
+  if git -C "$RSI_RYOKU_PATH" fetch origin "$channel" 2>/dev/null; then
+    git -C "$RSI_RYOKU_PATH" checkout -B "$channel" "origin/$channel"
+    git -C "$RSI_RYOKU_PATH" branch --set-upstream-to="origin/$channel" "$channel" 2>/dev/null || true
   fi
   rsi_record dir "$RSI_RYOKU_PATH"
 }
