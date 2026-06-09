@@ -146,9 +146,9 @@ The migrated core is part of the product. Before adding shell UI for a feature, 
 
 `main` and `unstable-dev` are the workspaces for the full product (ISO + shell):
 develop the shell and the system together here so the shell and the ISO cannot
-drift. `ryoku-shell` is a generated downstream branch for standalone installs,
-never committed to directly. See `docs/ryoku-shell-branch.md`. (The old
-`rebirth` workflow is retired.)
+drift. Standalone shell installs (`shell-install/`) pull a channel branch
+directly; there is no separate generated branch. See `docs/ryoku-shell-branch.md`
+for the product vs provisioning boundary. (The old `rebirth` workflow is retired.)
 
 Primary paths on this workstation:
 

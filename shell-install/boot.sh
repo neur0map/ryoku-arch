@@ -11,9 +11,10 @@
 set -eEo pipefail
 
 RYOKU_REPO="${RYOKU_REPO:-https://github.com/neur0map/ryoku-arch.git}"
-# The shell-only branch (Option A: generated = main minus iso/). Non-Arch users
-# get just the shell, not the ISO builder. See docs/ryoku-shell-branch.md.
-RYOKU_REF="${RYOKU_REF:-ryoku-shell}"
+# Pull from the repo channels directly (no generated shell-only branch). Default
+# to main; override with RYOKU_REF=unstable-dev for the dev line. The deployed
+# tree tracks this branch so ryoku-update follows the same channel.
+RYOKU_REF="${RYOKU_REF:-main}"
 
 if (( EUID == 0 )); then
   echo "Run this as your normal user, not root." >&2

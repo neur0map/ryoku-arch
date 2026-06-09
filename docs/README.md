@@ -28,7 +28,7 @@ shell, branding, or configuration work.
 - `release-pipeline.md`: GitHub Actions ISO build, signing, artifact handling, and release manifests.
 - `ui-patterns.md`: shell runtime paths, UI patterns, and QML boundaries.
 - `customization-inventory.md`: tracked config and theme surfaces.
-- `ryoku-shell-branch.md`: branch model. `main`/`unstable-dev` carry the full product (ISO + shell); `ryoku-shell` is a generated shell-only branch for standalone installs. Includes the `shell-install`->`ryoku-shell` rename runbook.
+- `ryoku-shell-branch.md`: the product (shell) vs provisioning (install) boundary, and how the ISO and standalone `shell-install/` share one source of truth. `main`/`unstable-dev` are the only branches; standalone installs track a channel directly (no generated `ryoku-shell` branch).
 - `ryoku-config-architecture.md`: the rice/default-config consolidation plan (`shell/rice/`) and the `[global]` migration contract that governs which changes reach existing installs.
 
 ## Accuracy Review
