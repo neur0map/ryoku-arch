@@ -18,6 +18,8 @@ if ryoku-hw-surface; then
     echo "Detected pinctrl module: $pinctrl_module"
   fi
 
-  echo "MODULES=(${pinctrl_module} surface_aggregator surface_aggregator_registry surface_aggregator_hub surface_hid_core surface_hid surface_kbd intel_lpss_pci 8250_dw)" | sudo tee /etc/mkinitcpio.conf.d/surface_device_modules.conf >/dev/null
+  if ryoku_boot_config_enabled; then
+    echo "MODULES=(${pinctrl_module} surface_aggregator surface_aggregator_registry surface_aggregator_hub surface_hid_core surface_hid surface_kbd intel_lpss_pci 8250_dw)" | sudo tee /etc/mkinitcpio.conf.d/surface_device_modules.conf >/dev/null
+  fi
 
 fi

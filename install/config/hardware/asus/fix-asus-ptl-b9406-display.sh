@@ -4,9 +4,11 @@
 # wake for later commits. Disable Panel Replay only for this confirmed model.
 
 if ryoku-hw-asus-expertbook-b9406; then
-  sudo mkdir -p /etc/limine-entry-tool.d
-  cat <<EOF | sudo tee /etc/limine-entry-tool.d/ryoku-asus-expertbook-b9406-display.conf >/dev/null
+  if ryoku_boot_config_enabled; then
+    sudo mkdir -p /etc/limine-entry-tool.d
+    cat <<EOF | sudo tee /etc/limine-entry-tool.d/ryoku-asus-expertbook-b9406-display.conf >/dev/null
 # ASUS ExpertBook B9406 display workaround
 KERNEL_CMDLINE[default]+=" xe.enable_panel_replay=0"
 EOF
+  fi
 fi

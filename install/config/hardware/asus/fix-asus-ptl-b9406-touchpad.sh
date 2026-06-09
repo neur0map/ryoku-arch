@@ -4,8 +4,9 @@
 # all motion while button events still work. Mask pressure axes for this model.
 
 if ryoku-hw-asus-expertbook-b9406; then
-  sudo mkdir -p /etc/libinput
-  sudo tee /etc/libinput/ryoku-asus-expertbook-b9406.quirks >/dev/null <<EOF
+  if ryoku_boot_config_enabled; then
+    sudo mkdir -p /etc/libinput
+    sudo tee /etc/libinput/ryoku-asus-expertbook-b9406.quirks >/dev/null <<EOF
 [ASUS ExpertBook B9406 Touchpad]
 MatchBus=i2c
 MatchUdevType=touchpad
@@ -14,4 +15,5 @@ MatchProduct=0x4F05
 MatchDMIModalias=dmi:*svnASUS*:pn*B9406*
 AttrEventCode=-ABS_MT_PRESSURE;-ABS_PRESSURE;
 EOF
+  fi
 fi

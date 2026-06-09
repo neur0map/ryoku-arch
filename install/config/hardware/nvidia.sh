@@ -25,15 +25,17 @@ if lspci | grep -qi 'nvidia'; then
 
   ryoku-pkg-add "$KERNEL_HEADERS" "${PACKAGES[@]}"
 
-  # Configure modprobe for early KMS
-  sudo tee /etc/modprobe.d/nvidia.conf <<EOF >/dev/null
+  if ryoku_boot_config_enabled; then
+    # Configure modprobe for early KMS
+    sudo tee /etc/modprobe.d/nvidia.conf <<EOF >/dev/null
 options nvidia_drm modeset=1
 EOF
 
-  # Configure mkinitcpio for early loading
-  sudo tee /etc/mkinitcpio.conf.d/nvidia.conf <<EOF >/dev/null
+    # Configure mkinitcpio for early loading
+    sudo tee /etc/mkinitcpio.conf.d/nvidia.conf <<EOF >/dev/null
 MODULES+=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)
 EOF
+  fi
 
   # Add NVIDIA environment variables based on GPU architecture.
   if [[ $GPU_ARCH = "turing_plus" ]]; then
