@@ -1,13 +1,13 @@
 ---
 title: Plugins
-description: Optional and built-in workflow modules that extend Ryoku beyond the base desktop.
+description: Plugins extend Ryoku's workflows and are native, open, and yours to fork; extras install apps and the drivers and dependencies they need.
 ---
 
-Ryoku uses a plugin-first direction for workstation workflows. A plugin is any
-feature family that has a clear module surface and its own ownership path, not
-just a script behind an always-visible tray icon.
+Ryoku is modular: a lean base plus plugins and extras. Plugins extend the
+workstation's workflows; they feel native to the shell rather than bolted on,
+and they are open source, so anyone can read them, fork them, or write their own.
 
-## What Ryoku calls a plugin today
+## What Ryoku calls a plugin
 
 A Ryoku plugin can be one of three things:
 
@@ -16,8 +16,18 @@ A Ryoku plugin can be one of three things:
 - a pair of config/state values written to `~/.config/ryoku` or
   `~/.config/ryoku-shell`.
 
-At the moment, plugins are delivered through Ryoku's built-in shell and
-command layer. There is no separate plugin marketplace yet.
+Plugins ship through Ryoku's shell and command layer today, and the contract is
+open: the same surfaces and config Ryoku's own plugins use are available to
+community plugins. A curated catalogue is the planned direction.
+
+## Extras
+
+Where plugins add workflows, **extras** add software. The extras catalogue
+(`ryoku-extras-install`, surfaced in Settings -> Extras) installs apps and tools
+and pulls in the compatible drivers and dependencies they need, routed to the
+right backend automatically (official repos via `ryoku-pkg-add`, AUR via
+`ryoku-pkg-aur-add`). Adding a tool does not mean hunting for the matching driver
+or dependency by hand.
 
 ## Current plugin lanes
 

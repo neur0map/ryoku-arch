@@ -6,9 +6,10 @@
 
 **力と美のために** &middot; *For the sake of power and beauty.*
 
-Ryoku is a premium Arch workstation for powerful desktops and laptops. It is
-pre-riced, plugin-minded, and built for people who want their Linux machine to
-feel fast, sharp, and deliberate from first boot.
+Ryoku is a modular Arch distro: a polished, pre-riced base you extend with open
+plugins and an extras catalogue. The base stays lean, and you scale it up with the
+modules and tools you actually use, so the machine feels fast, sharp, and
+deliberate from first boot.
 
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-F25623?style=for-the-badge)](LICENSE)
 [![Built on Arch](https://img.shields.io/badge/Arch_Linux-1793D1?style=for-the-badge&logo=archlinux&logoColor=white)](https://archlinux.org)
@@ -35,56 +36,59 @@ feel fast, sharp, and deliberate from first boot.
 
 ## About
 
-Ryoku is not trying to be the lightest Arch setup in the room. It takes the
-other lane: a polished workstation that assumes the machine has room to breathe.
-The target is a strong desktop or laptop, not a budget box that needs every
-megabyte saved.
+Ryoku is modular by design. The base install is lean enough to browse and do
+everyday work on a modest machine, and grows only as you add plugins (workflow
+modules) and extras (apps, tools, and the drivers and dependencies they need).
+You decide how heavy your Ryoku is.
 
 The current desktop is Hyprland with a Quickshell shell layer. The install and
 core command shape descend from Omarchy, integrated into Ryoku's own
-plugin-first surface. The product is coherent by design: one Ryoku system, with
-its surfaces continuously refined as the workstation matures.
+plugin-first surface. The product is coherent by design: one Ryoku system whose
+surfaces are continuously refined as the workstation matures.
 
 The goal is simple: power and beauty in the same system. Fast windowing, a
-strict command surface, good defaults, strong visual identity, and plugins that
-add real workstation behavior instead of turning the desktop into a pile of
-loose tray apps.
+strict command surface, good defaults, strong visual identity, and a plugin and
+extras model that adds real capability instead of turning the desktop into a
+pile of loose tray apps.
 
 ## Position
 
-Omarchy is a lean, opinionated Arch install that can fit modest laptops well.
-Ryoku is the opposite side of that family tree: heavier, more visual, more
-integrated, and aimed at capable hardware.
+Ryoku is a modular Arch distro: a polished base, extended by open plugins and an
+extras catalogue, that scales from a light everyday setup to a fully loaded
+workstation.
 
 Ryoku is:
 
-- **Premium Arch, not a separate distro.** It is an Arch environment with its
-  own defaults, install flow, shell, commands, and branding.
-- **Pre-riced by default.** The first boot should already feel intentional.
-- **Plugin-minded.** VPN, capture, media, developer, hardware, and security
-  operations can become clean Ryoku plugins and shell surfaces.
-- **Built for powerful desktops and laptops.** The baseline is 16GB RAM or
-  better; 32GB+ is the comfortable target for VMs, gaming, creative tools, and
-  heavy multitasking.
+- **Modular Arch, not a separate kernel.** An Arch environment with its own
+  defaults, install flow, shell, commands, and branding, built to be extended.
+- **Pre-riced by default.** The first boot already feels intentional.
+- **Plugin-first and open.** Plugins feel native to the shell and are open
+  source, so anyone can read them, fork them, or write their own. VPN, capture,
+  media, developer, hardware, and security workflows are plugins, not bolt-ons.
+- **Extras-aware.** The extras catalogue installs apps and tools and pulls in the
+  compatible drivers and dependencies they need, so adding capability does not
+  mean hunting packages by hand.
+- **Scales with you.** A lean base for browsing and everyday use; heavier only as
+  you add the plugins and extras you want.
 
 Ryoku is not:
 
-- A budget-PC profile.
-- A minimal window-manager starter kit.
-- A narrow, niche-focused workflow profile.
+- A fixed, one-size image you cannot shape.
+- A minimal window-manager starter kit with no direction.
 - A frozen design; Ryoku's surfaces keep evolving.
 
 ## What ships
 
-- **Desktop:** Hyprland Wayland session, Quickshell-based shell
-  surfaces, launcher, sidebars, dashboard, session controls, and SDDM theming.
+- **Base desktop:** Hyprland Wayland session, the Quickshell-based Ryoku shell
+  (launcher, sidebars, dashboard, session controls), and SDDM theming.
 - **Ryoku core:** `ryoku-*` commands for updates, migrations, packages,
   snapshots, hardware helpers, themes, wallpaper, keybinds, and app launchers.
-- **Plugin lanes:** shell and command hooks for VPN, Tailscale, screenshots,
-  media, developer tools, hardware controls, and future workflow modules.
-- **Workstation defaults:** Kitty, Helium/Chromium, Nautilus, Yazi, Neovim,
-  Obsidian, Docker tooling, media tools, gaming-ready packages, and AUR-backed
-  extras.
+- **Plugins:** native, open-source shell and command modules for VPN, Tailscale,
+  screenshots, media, developer tools, and hardware controls. Read them, fork
+  them, or write your own.
+- **Extras:** a catalogue that installs apps and tools plus the compatible
+  drivers and dependencies they need, routed to the right backend (official
+  repos, AUR) automatically.
 - **Brand:** Greek Noir, the Ryoku `力` mark, and the slogan:
   **力と美のために** - *For the sake of power and beauty.*
 
@@ -103,11 +107,11 @@ plugin shell matures.
 
 | Question | Answer |
 |---|---|
-| Minimum RAM | **16GB+ required.** Use **32GB+** if you expect VMs, gaming, browser-heavy work, or creative tools. This is not a low-resource target. |
-| Target hardware | Modern desktops and stronger laptops. NVIDIA, hybrid, AMD, and Intel graphics are target classes. |
+| Minimum RAM | **8GB for the base install** (browser and everyday use). RAM scales with what you add: plugins and extras like VMs, gaming, or creative tools want 16GB+, and 32GB+ for heavy multitasking. |
+| Target hardware | Modern desktops and laptops. The base runs on modest machines and scales up; NVIDIA, hybrid, AMD, and Intel graphics are all target classes. |
 | Is the ISO downloadable? | Yes. `0.1.0-beta1` builds are published at [ryoku.dev](https://ryoku.dev); see [Download and verify](#download-and-verify). You can also build from source. |
 | Can I build it myself? | Yes. Use the [ISO build recipe](docs/iso-build-recipe.md) if you want to build from source. |
-| Is every bundled plugin lane installed by default? | No. Ryoku ships core productivity lanes and extras as optional add-ons. |
+| Are plugins and extras installed by default? | No. The base ships lean; you add plugins and extras as you need them. |
 | Secure Boot? | Roadmap. Not automatic yet. |
 | Stability vs. rolling Arch? | Rolling Arch base. `unstable-dev` is the fast track; `main` is the release channel. |
 
@@ -142,11 +146,12 @@ shell-install/install             # guided install (verdict, snapshot, confirm)
 shell-install/uninstall           # revert everything it did
 ```
 
-Or bootstrap with one command. It defaults to `main`; set
-`RYOKU_REF=unstable-dev` for the dev channel:
+Or bootstrap with one command. It pulls the live installer straight from the
+repo (channel `main` by default; set `RYOKU_REF=unstable-dev` for the dev
+channel), so the link never needs updating:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/neur0map/ryoku-arch/main/shell-install/boot.sh)
+curl -fsSL https://shell.ryoku.dev/install.sh | bash
 ```
 
 It hard-stops with the reason on anything outside the Arch family, backs up

@@ -39,13 +39,12 @@ not), recommends a snapshot before touching anything (offering `snapper`/`timesh
 if present), asks once to confirm, then installs. It renders with `gum` (installed
 automatically) and falls back to plain text without it.
 
-Or bootstrap directly. Set `branch` once so the fetched script and the cloned
-ref match, so it works the same on any branch (`main`, `unstable-dev`, a feature
-branch):
+Or bootstrap with one command. It pulls the live installer straight from the
+repo, so the link never goes stale (channel `main` by default; set
+`RYOKU_REF=unstable-dev` for the dev channel):
 
 ```bash
-branch=main
-RYOKU_REF="$branch" bash <(curl -fsSL "https://raw.githubusercontent.com/neur0map/ryoku-arch/$branch/shell-install/boot.sh") --dry-run
+curl -fsSL https://shell.ryoku.dev/install.sh | bash
 ```
 
 After installing, **reboot** (or fully log out), then pick the **Ryoku** session

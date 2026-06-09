@@ -10,9 +10,19 @@
   and offers `snapper`/`timeshift`), the confirm, and a closing summary. `gum` is
   installed on the fly; without it everything falls back to plain output. Cards
   are gum-rendered, so the borders always close.
+- **`shell.ryoku.dev/install.sh` bootstrap**: the standalone installer has a
+  one-command public entry hosted on R2 (`curl -fsSL https://shell.ryoku.dev/install.sh | bash`).
+  The `Publish shell installer` workflow uploads `shell-install/boot.sh` there as
+  `install.sh`; the bootstrap pulls the live installer from the repo, so the link
+  never needs updating.
 
 ### Changed
 
+- **Repositioned as a modular Arch distro**: docs frame Ryoku as a lean base
+  (8GB covers a browser and everyday use) that scales with plugins and extras,
+  not a 16GB-minimum, premium-only workstation. Plugins are framed as native,
+  open-source, and user-extensible; extras as the catalogue that installs apps
+  and tools with the compatible drivers and dependencies they need.
 - **One installer source of truth; the standalone installs everything Ryoku uses**:
   the standalone `shell-install/` no longer keeps its own package map or build
   logic. It reads the shared `install/ryoku-*.packages` (skipping `# @os-only`

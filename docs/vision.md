@@ -13,14 +13,14 @@ Keep this line. It is the heart of the project.
 
 ## What it is
 
-Ryoku is a premium Arch workstation environment for powerful desktops and
-laptops. It ships a pre-riced Hyprland desktop, a Ryoku command layer, an
-installer, a theme system, and a shell direction built around plugins and
-first-class workflow surfaces.
+Ryoku is a modular Arch distro for desktops and laptops. It ships a pre-riced
+Hyprland desktop, a Ryoku command layer, a guided installer, a theme system, and
+a shell built around plugins and an extras catalogue.
 
-Ryoku is not trying to be the smallest possible Arch setup. It assumes capable
-hardware and uses that headroom for polish, visual detail, integration, and
-workstation behavior.
+The base is deliberately lean: it runs for browsing and everyday work on modest
+hardware, and scales up with the plugins and extras you actually use. Ryoku uses
+that headroom, when you want it, for polish, integration, and workstation
+behavior.
 
 ## Who it is for
 
@@ -52,13 +52,14 @@ workstation system first.
 
 ## What distinguishes it
 
-- A premium, visual Arch workstation target: 16GB minimum, 32GB+ preferred for
-  the kind of machine Ryoku wants to live on.
+- A modular Arch distro: a lean, pre-riced base (8GB covers browsing and everyday
+  use) that scales up with the plugins and extras you add.
 - A pre-riced Hyprland desktop where the default look is a product choice, not
   a placeholder.
-- A plugin-first shell direction: controls for VPN, screenshots, hardware,
-  updates, media, developer tools, and future workflows should become Ryoku
-  plugins with matching shell surfaces.
+- A plugin-first, open shell: VPN, screenshots, hardware, updates, media, and
+  developer workflows are native-feeling, open-source plugins anyone can read,
+  fork, or write, with an extras catalogue that installs apps and tools plus the
+  drivers and dependencies they need.
 - A strict Ryoku command and config surface: `ryoku-*` commands,
   `~/.config/ryoku`, `~/.config/ryoku-shell`, and `~/.local/share/ryoku`.
 - A visual system that treats boot, login, lock, shell, terminal, and app
@@ -66,12 +67,12 @@ workstation system first.
 
 ## What it is not
 
-- A budget-PC profile.
-- A minimal Arch starter kit.
+- A fixed, one-size image you cannot shape.
+- A bare window-manager starter kit with no defaults or direction.
 - A general-purpose distro with a Ryoku wallpaper.
 - A specialist engagement-focused stack.
 - A final re-skin of an upstream shell. Upstream projects are important sources,
-  but Ryoku's job is to turn the useful pieces into a Ryoku-owned workstation.
+  but Ryoku's job is to turn the useful pieces into a Ryoku-owned, modular system.
 
 ## Roadmap
 
