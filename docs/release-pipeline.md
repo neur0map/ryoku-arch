@@ -91,9 +91,9 @@ Configure under **Settings -> Secrets and variables -> Actions** in the repo.
 | `R2_SECRET_ACCESS_KEY` | yes | Cloudflare R2 API token, secret access key |
 | `R2_ENDPOINT` | yes | Account-scoped R2 endpoint, e.g. `https://<account>.r2.cloudflarestorage.com` |
 | `R2_BUCKET` | optional | Bucket + prefix to upload into. Defaults to `ryoku/stable`. Set to e.g. `ryoku-iso/stable` if you use a different bucket name. |
-| `R2_SHELL_BUCKET` | optional | Bucket the standalone shell installer is published to (mapped to `shell.ryoku.dev`). The Publish shell installer workflow uploads `boot.sh` to it as `install.sh`. |
-| `R2_SHELL_ACCESS_KEY_ID` | optional | Access key ID of an R2 token with Object Read & Write on the shell bucket. Kept separate from the ISO token so the two buckets stay isolated. |
-| `R2_SHELL_SECRET_ACCESS_KEY` | optional | Secret access key for that shell-bucket token. |
+| `R2_SHELL_BUCKET` | optional | Bucket served at `shell.ryoku.dev`, where the shell installer's `install.sh` is published. Can be the ISO bucket (`ryoku-iso`) with `shell.ryoku.dev` added as a second custom domain, or a separate bucket. |
+| `R2_SHELL_ACCESS_KEY_ID` | optional | Access key ID for a dedicated shell-bucket token. If unset, the publish falls back to `R2_ACCESS_KEY_ID` (works when the shell shares the ISO bucket). |
+| `R2_SHELL_SECRET_ACCESS_KEY` | optional | Secret for that dedicated token; falls back to `R2_SECRET_ACCESS_KEY`. |
 | `GPG_PRIVATE_KEY` | yes | Armored private GPG signing key, full block including `-----BEGIN PGP PRIVATE KEY BLOCK-----` and `-----END PGP PRIVATE KEY BLOCK-----` |
 | `GPG_PASSPHRASE` | optional | Passphrase for the GPG key, omit if the key has no passphrase |
 | `DISCORD_ISO_WEBHOOK_URL` | optional | Discord webhook for ISO build-complete notices. If unset, the ISO still builds and uploads, but no Discord message is sent. |
@@ -114,25 +114,23 @@ runs the live installer, so the hosted file rarely changes and the URL is
 permanent (the installer always pulls the current repo, nothing is hardcoded).
 
 `.github/workflows/publish-shell-installer.yml` re-uploads `boot.sh` as
-`install.sh` whenever it changes on `main` (or on manual dispatch). It uses
-`R2_SHELL_ACCESS_KEY_ID` / `R2_SHELL_SECRET_ACCESS_KEY` (a token scoped to the
-shell bucket) plus the shared `R2_ENDPOINT` and `R2_SHELL_BUCKET`. With any of
-those unset it logs a warning and skips, so the workflow is safe to merge before
-the bucket and token exist.
+`install.sh` whenever it changes on `main` (or on manual dispatch). It uploads to
+`R2_SHELL_BUCKET` using `R2_SHELL_ACCESS_KEY_ID` / `R2_SHELL_SECRET_ACCESS_KEY` if
+set, otherwise the ISO token (`R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY`). With
+no credentials or bucket it logs a warning and skips, so it is safe to merge
+before the bucket exists.
 
 One-time setup (Cloudflare side, not scriptable from CI):
 
-1. R2 -> Create bucket, e.g. `ryoku-shell`.
+1. Pick the bucket. Simplest is to reuse the ISO bucket (`ryoku-iso`): its token
+   already has write access, so no new credentials are needed. Or create a
+   separate bucket and dedicated token (then set the `R2_SHELL_*` secrets).
 2. Bucket -> Settings -> Public access -> Connect a custom domain -> `shell.ryoku.dev`.
    Cloudflare adds the DNS record; the bucket root then serves at
    `https://shell.ryoku.dev/`, so `shell.ryoku.dev/install.sh` maps to
    `<bucket>/install.sh`.
-3. R2 -> Manage R2 API Tokens -> Create a token with "Object Read & Write" on the
-   shell bucket. Add its access key ID and secret to GitHub Secrets as
-   `R2_SHELL_ACCESS_KEY_ID` and `R2_SHELL_SECRET_ACCESS_KEY`, and set
-   `R2_SHELL_BUCKET` to the bucket name.
-4. Push a `boot.sh` change (or run the workflow manually) to publish the first
-   `install.sh`.
+3. Set the `R2_SHELL_BUCKET` secret to the bucket name.
+4. Push a `boot.sh` change (or run the workflow manually) to publish `install.sh`.
 
 Unlike the ISO, this object is meant to be public: it is a one-line bootstrap,
 so the custom domain's public access is expected.
