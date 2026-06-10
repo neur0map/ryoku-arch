@@ -9,6 +9,57 @@
 
 Q_LOGGING_CATEGORY(lcHypr, "ryoku.internal.hypr", QtInfoMsg)
 
+namespace {
+
+// Serialize a QVariant as a Lua literal. Hyprland's hl.config coerces numeric
+// 0/1 into bools where needed (verified live), so numbers pass through as-is.
+QString luaValue(const QVariant& value) {
+    switch (value.typeId()) {
+    case QMetaType::Bool:
+        return value.toBool() ? QStringLiteral("true") : QStringLiteral("false");
+    case QMetaType::Int:
+    case QMetaType::UInt:
+    case QMetaType::LongLong:
+    case QMetaType::ULongLong:
+    case QMetaType::Double:
+        return value.toString();
+    default: {
+        QString s = value.toString();
+        s.replace(QLatin1Char('\\'), QLatin1String("\\\\"));
+        s.replace(QLatin1Char('"'), QLatin1String("\\\""));
+        return QLatin1Char('"') + s + QLatin1Char('"');
+    }
+    }
+}
+
+// Insert a flat "a:b:c" option into a nested map tree: a = { b = { c = value } }.
+void insertOption(QVariantMap& node, const QStringList& path, qsizetype index, const QVariant& value) {
+    if (index == path.size() - 1) {
+        node.insert(path[index], value);
+        return;
+    }
+    QVariantMap child = node.value(path[index]).toMap();
+    insertOption(child, path, index + 1, value);
+    node.insert(path[index], child);
+}
+
+QString luaTable(const QVariantMap& node) {
+    QString out = QStringLiteral("{ ");
+    for (auto it = node.constBegin(); it != node.constEnd(); ++it) {
+        out += it.key() + QStringLiteral(" = ");
+        if (it.value().typeId() == QMetaType::QVariantMap) {
+            out += luaTable(it.value().toMap());
+        } else {
+            out += luaValue(it.value());
+        }
+        out += QStringLiteral(", ");
+    }
+    out += QLatin1Char('}');
+    return out;
+}
+
+} // namespace
+
 namespace ryoku::internal::hypr {
 
 HyprExtras::HyprExtras(QObject* parent)
@@ -37,6 +88,24 @@ HyprExtras::HyprExtras(QObject* parent)
     m_requestSocket = hyprDir + "/.socket.sock";
     m_eventSocket = hyprDir + "/.socket2.sock";
 
+    // RYOKU: Hyprland 0.55+ in Lua config mode rejects `keyword` IPC requests
+    // ("keyword can't work with non-legacy parsers. Use eval."). Probe the parser
+    // mode once, synchronously — QML callers fire option writes from
+    // Component.onCompleted, so an async probe would race them. Parser mode is
+    // fixed for the compositor's lifetime, so once is enough.
+    {
+        QLocalSocket probe;
+        probe.connectToServer(m_requestSocket);
+        if (probe.waitForConnected(1000)) {
+            probe.write("eval return 0");
+            probe.flush();
+            if (probe.waitForReadyRead(1000)) {
+                m_luaMode = probe.readAll().startsWith("ok");
+            }
+            probe.close();
+        }
+    }
+
     refreshOptions();
     refreshDevices();
 
@@ -55,6 +124,10 @@ QVariantHash HyprExtras::options() const {
 
 HyprDevices* HyprExtras::devices() const {
     return m_devices;
+}
+
+bool HyprExtras::luaMode() const {
+    return m_luaMode;
 }
 
 void HyprExtras::message(const QString& message) {
@@ -87,17 +160,39 @@ void HyprExtras::applyOptions(const QVariantHash& options) {
     }
 
     QString request;
-    request.reserve(12 + options.size() * 40);
-    request += QLatin1String("[[BATCH]]");
-    for (auto it = options.constBegin(); it != options.constEnd(); ++it) {
-        request += QLatin1String("keyword ") + it.key() + QLatin1Char(' ') + it.value().toString() + QLatin1Char(';');
+    if (m_luaMode) {
+        QVariantMap tree;
+        for (auto it = options.constBegin(); it != options.constEnd(); ++it) {
+            insertOption(tree, it.key().split(QLatin1Char(':')), 0, it.value());
+        }
+        request = QStringLiteral("eval hl.config(") + luaTable(tree) + QLatin1Char(')');
+    } else {
+        request.reserve(12 + options.size() * 40);
+        request += QLatin1String("[[BATCH]]");
+        for (auto it = options.constBegin(); it != options.constEnd(); ++it) {
+            request += QLatin1String("keyword ") + it.key() + QLatin1Char(' ') + it.value().toString() + QLatin1Char(';');
+        }
     }
 
     makeRequest(request, [this](bool success, const QByteArray& res) {
-        if (success) {
+        if (success && (!m_luaMode || res.startsWith("ok"))) {
             refreshOptions();
         } else {
             qCWarning(lcHypr) << "applyOptions: request error" << QString::fromUtf8(res);
+        }
+    });
+}
+
+void HyprExtras::evalLua(const QString& lua) {
+    if (lua.isEmpty()) {
+        return;
+    }
+
+    // The compositor answers "ok" or an "error: ..." string; the socket call
+    // itself succeeding does not mean the Lua ran.
+    makeRequest(QStringLiteral("eval ") + lua, [](bool success, const QByteArray& res) {
+        if (!success || !res.startsWith("ok")) {
+            qCWarning(lcHypr) << "evalLua: request error:" << QString::fromUtf8(res);
         }
     });
 }
