@@ -15,8 +15,10 @@ Singleton {
     readonly property bool angelEverywhere: false
     readonly property bool inirEverywhere: false
     readonly property bool auroraEverywhere: false
-    readonly property bool animationsEnabled: true
-    readonly property bool effectsEnabled: true
+    // Game mode freezes every Behavior/animation gated on these (config-gated).
+    readonly property bool gameModeQuiet: GameMode.enabled && GlobalConfig.gameMode.shellAnimations
+    readonly property bool animationsEnabled: !gameModeQuiet
+    readonly property bool effectsEnabled: !gameModeQuiet
     readonly property real backgroundTransparency: 0
 
     function calcEffectiveDuration(d) {
