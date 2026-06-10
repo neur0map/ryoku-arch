@@ -19,6 +19,22 @@ Singleton {
 
   property bool _manualNightPhase: false
 
+  // Game mode: temporarily stop wlsunset (it resets gamma on exit) without
+  // touching the user's persisted night light settings. Releasing the inhibit
+  // re-applies whatever schedule/forced mode the user had.
+  property bool inhibited: false
+
+  onInhibitedChanged: {
+    if (inhibited) {
+      manualScheduleTimer.stop();
+      restartTimer.stop();
+      lastCommand = [];
+      runner.running = false;
+    } else {
+      apply(true);
+    }
+  }
+
   // Kill any stale wlsunset processes on startup to prevent issues after shell restart
   Component.onCompleted: {
     killStaleProcess.running = true;
@@ -136,6 +152,10 @@ Singleton {
   }
 
   function apply(force = false) {
+    if (inhibited) {
+      return;
+    }
+
     // If using LocationService, wait for it to be ready
     if (!params.forced && params.autoSchedule && !LocationService.coordinatesReady) {
       return;
@@ -252,6 +272,11 @@ Singleton {
       }
     }
     onExited: function (code, status) {
+      if (root.inhibited) {
+        Logger.i("NightLight", "Wlsunset exited (inhibited by game mode):", code, status);
+        root._crashCount = 0;
+        return;
+      }
       if (root.params.enabled && root.isManualMode()) {
         // Manual mode: only treat as crash if we're in the night phase
         if (root._manualNightPhase) {
