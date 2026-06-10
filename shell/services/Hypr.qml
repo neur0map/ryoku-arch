@@ -48,6 +48,9 @@ Singleton {
     // mode once at startup via a harmless `hl.dsp.no_op()` probe, then translate
     // the dispatch verbs this shell emits into their hl.dsp.* equivalents. Legacy
     // Hyprland is untouched (the probe fails and we keep sending raw strings).
+    // Distinct from `extras.luaMode`: that one probes the *parser* synchronously in
+    // the plugin constructor (option/keyword translation must be settled before
+    // Component.onCompleted callers fire); this async probe only covers dispatchers.
     property bool useLuaDispatch: false
     property bool dispatchModeChecked: false
 
@@ -173,7 +176,9 @@ Singleton {
     function reloadDynamicConfs(): void {
         if (extras.luaMode) {
             // bindlni flags map to locked / non_consuming / ignore_mods
-            // (verified live: the bind registers with dispatcher __lua).
+            // (verified live: the bind registers with dispatcher __lua). Re-evaling
+            // does not stack duplicates: `reload config-only` wipes eval-registered
+            // binds and the configreloaded handler re-adds exactly one (probed live).
             extras.evalLua(`hl.bind("Caps_Lock", hl.dsp.global("ryoku:refreshDevices"), { locked = true, non_consuming = true, ignore_mods = true })`);
             extras.evalLua(`hl.bind("Num_Lock", hl.dsp.global("ryoku:refreshDevices"), { locked = true, non_consuming = true, ignore_mods = true })`);
             return;
