@@ -18,6 +18,10 @@ import qs.settingsgui.Services.Platform
 ShellRoot {
     settings.watchFiles: true
     readonly property bool idleInhibitorLoaded: IdleInhibitor.enabled
+    // Eager-instantiate the lazy GameMode singleton: its IpcHandler, startup
+    // reconcile and gamemoded watcher must live from shell start, not from the
+    // first utilities-drawer open. Same trick as idleInhibitorLoaded above.
+    readonly property bool gameModeLoaded: GameMode.enabled
 
     Background {}
     Drawers {}
