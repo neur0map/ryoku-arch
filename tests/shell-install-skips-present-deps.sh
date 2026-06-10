@@ -31,8 +31,10 @@ exit 0
 EOF
 cat >"$tmp/bin/pacman" <<EOF
 #!/bin/bash
-# Classify any queried package as a repo package; log everything else.
+# Repo-classify queries (-Si), report the real quickshell as the qs owner
+# (-Qoq) so the conflict guard is a no-op here, and log everything else.
 if [[ \${1:-} == -Si ]]; then exit 0; fi
+if [[ \${1:-} == -Qoq ]]; then printf 'quickshell\n'; exit 0; fi
 echo "pacman \$*" >>"$calls"
 exit 0
 EOF

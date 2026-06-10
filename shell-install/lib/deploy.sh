@@ -298,6 +298,34 @@ rsi_install_drivers() {
   done
 }
 
+# Theme the existing display manager's login greeter with qylock, matching the
+# OS install (install/login/sddm.sh). SDDM-only and non-fatal: a foreign display
+# manager or a failed theme must never break the install, and the user's login
+# still works with its default greeter.
+rsi_install_greeter() {
+  rsi_step "setting up the qylock login greeter"
+  if ! command -v sddm >/dev/null 2>&1 && ! pacman -Qq sddm >/dev/null 2>&1; then
+    rsi_say "  no SDDM detected; leaving the existing greeter untouched"
+    return 0
+  fi
+  local qylock="$RSI_RYOKU_PATH/bin/ryoku-install-qylock"
+  if [[ ! -x $qylock ]]; then
+    rsi_warn "ryoku-install-qylock missing; skipping greeter theme"
+    return 0
+  fi
+  if rsi_dry; then
+    rsi_dim "  would: sudo ryoku-install-qylock --theme clockwork"
+    return 0
+  fi
+  if sudo env RYOKU_PATH="$RSI_RYOKU_PATH" SUDO_USER="${USER:-$(id -un)}" \
+       PATH="$RSI_RYOKU_PATH/bin:$RSI_BIN_HOME:/usr/bin:/usr/local/bin" \
+       "$qylock" --theme clockwork; then
+    rsi_ok "qylock greeter installed (clockwork)"
+  else
+    rsi_warn "qylock greeter setup failed; SDDM will use its default theme"
+  fi
+}
+
 rsi_deploy() {
   rsi_manifest_init
   rsi_deploy_payload
@@ -307,6 +335,7 @@ rsi_deploy() {
   rsi_install_drivers
   rsi_install_session
   rsi_enable_services
+  rsi_install_greeter
   rsi_ok "deploy complete"
 }
 
@@ -328,19 +357,22 @@ rsi_verify() {
       ok=0
     fi
   }
+  _qs_real() { pacman -Qoq /usr/bin/qs 2>/dev/null | grep -q quickshell; }
+  _hypr_cfg() { [[ -f "$RSI_CONFIG_HOME/hypr/hyprland.lua" || -f "$RSI_CONFIG_HOME/hypr/hyprland.conf" ]]; }
 
   _v "Ryoku payload"              test -d "$RSI_RYOKU_PATH/bin"
   _v "ryoku-shell launcher"       test -e "$RSI_BIN_HOME/ryoku-shell"
   _v "shell runtime (shell.qml)"  test -f "$RSI_QUICKSHELL_DIR/shell.qml"
   _v "native QML plugins (build)" test -e "$qmldir/Ryoku/libryokuplugin.so"
-  _v "Hyprland config + keybinds" test -f "$RSI_CONFIG_HOME/hypr/hyprland.conf"
+  _v "quickshell (real package)"  _qs_real
+  _v "Hyprland config + keybinds" _hypr_cfg
   _v "shell service unit"         test -f "$RSI_CONFIG_HOME/systemd/user/ryoku-shell.service"
   _v "Ryoku login session"        test -f "$RSI_SESSION_FILE"
 
   if (( ok == 0 )); then
     rsi_warn "Some pieces are missing; the desktop may be incomplete."
     rsi_warn "If the native QML plugins failed to build, see ${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-shell-setup.log"
-    return 0
+    return 1
   fi
   rsi_ok "all components present"
 }

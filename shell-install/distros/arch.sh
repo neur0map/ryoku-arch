@@ -49,8 +49,10 @@ ryoku_distro_system_update() {
   rsi_step "refreshing archlinux-keyring"
   sudo pacman -Sy --noconfirm archlinux-keyring \
     || rsi_warn "could not refresh archlinux-keyring; continuing (the upgrade may still work)"
-  rsi_step "running a full system upgrade (pacman -Syu)"
-  sudo pacman -Syu --noconfirm \
+  # Force-refresh the db (-Syy): on rolling mirrors the local db can list a
+  # build the CDN already replaced (404 on install); a forced refresh realigns it.
+  rsi_step "running a full system upgrade (pacman -Syyu)"
+  sudo pacman -Syyu --noconfirm \
     || rsi_die "system update failed (pacman -Syu). Fix the pacman error above (often a stale keyring or a manual intervention) and re-run."
   rsi_ok "system is up to date"
 }
@@ -63,6 +65,35 @@ ryoku_distro_prereqs() {
     sudo pacman -S --needed --noconfirm base-devel git
   fi
   rsi_arch_bootstrap_yay
+}
+
+# Guarantee the real quickshell is installed. Ryoku's shell.qml uses Quickshell
+# pragmas (e.g. DefaultEnv) that forks such as noctalia-qs (the CachyOS
+# Niri+Noctalia base) do not implement. noctalia-qs `provides` AND `conflicts`
+# quickshell and owns /usr/bin/qs, so the manifest's `quickshell` looks
+# already-satisfied and is skipped, leaving the shell to crash on launch (black
+# screen). Replace any conflicting provider with the real package.
+rsi_arch_ensure_real_quickshell() {
+  local owner=""
+  owner="$(pacman -Qoq /usr/bin/qs 2>/dev/null || true)"
+  # A real quickshell (quickshell / -git / -ryoku) already owns the binary.
+  [[ $owner == *quickshell* ]] && return 0
+  if rsi_dry; then
+    [[ -n $owner ]] && rsi_dim "  would replace conflicting quickshell provider: $owner"
+    rsi_dim "  would: sudo pacman -S --needed --noconfirm quickshell"
+    return 0
+  fi
+  if [[ -n $owner ]]; then
+    rsi_step "replacing conflicting quickshell provider ($owner) with the real quickshell"
+    sudo pacman -Rdd --noconfirm "$owner" \
+      || rsi_warn "could not remove $owner; the real quickshell may still conflict"
+  fi
+  rsi_step "installing the real quickshell (Ryoku's shell requires it)"
+  if sudo pacman -S --needed --noconfirm quickshell; then
+    rsi_record pkg quickshell
+  else
+    rsi_warn "could not install the real quickshell; the shell may not start"
+  fi
 }
 
 # Install the full Ryoku app + dependency set from the shared manifests, skipping
@@ -78,6 +109,10 @@ ryoku_distro_install_full() {
   if [[ ${#want[@]} -eq 0 ]]; then
     rsi_die "no package manifests found at $RSI_BASE_PACKAGES / $RSI_AUR_PACKAGES"
   fi
+
+  # Resolve the quickshell provider conflict before the package loop, since a
+  # conflicting provider makes `quickshell` look already-present below.
+  rsi_arch_ensure_real_quickshell
 
   local pkgs=() missing=()
   for p in "${want[@]}"; do

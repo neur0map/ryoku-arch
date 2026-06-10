@@ -66,7 +66,8 @@ rsi_backup_setup
 rsi_install_packages
 rsi_install_distro_packages
 rsi_deploy
-rsi_verify
+rsi_verify_ok=1
+rsi_verify || rsi_verify_ok=0
 
 if rsi_dry; then
   rsi_say ""
@@ -79,10 +80,22 @@ case ":$PATH:" in
   *) rsi_warn "$RSI_BIN_HOME is not on your PATH; add it to run ryoku-* commands from a terminal (the Ryoku session itself uses absolute paths and works regardless)." ;;
 esac
 
-tui_done \
-  "" \
-  "Reboot, then pick the Ryoku session at your login screen and log in." \
-  "Your current desktop is untouched until you start that session." \
-  "" \
-  "Revert any time:  $RSI_HERE/uninstall" \
-  "Build log:        ${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-shell-setup.log"
+if (( rsi_verify_ok )); then
+  tui_done \
+    "" \
+    "Reboot, then pick the Ryoku session at your login screen and log in." \
+    "Your current desktop is untouched until you start that session." \
+    "" \
+    "Revert any time:  $RSI_HERE/uninstall" \
+    "Build log:        ${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-shell-setup.log"
+else
+  tui_done \
+    "" \
+    "Install INCOMPLETE: components listed above are missing (see warnings)." \
+    "Do NOT reboot into the Ryoku session yet; it would come up blank." \
+    "Fix the reported issues and re-run shell-install/install." \
+    "" \
+    "Revert any time:  $RSI_HERE/uninstall" \
+    "Build log:        ${XDG_STATE_HOME:-$HOME/.local/state}/ryoku-shell-setup.log"
+  exit 1
+fi

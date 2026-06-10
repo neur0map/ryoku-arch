@@ -41,6 +41,24 @@
   `unstable-dev`), and the `publish-ryoku-shell` workflow is removed.
   `docs/ryoku-shell-branch.md` now documents the product vs provisioning boundary.
 
+### Fixed
+
+- **Standalone shell renders on a CachyOS Niri+Noctalia base**: that edition
+  ships `noctalia-qs`, which `provides` and `conflicts` `quickshell` and owns
+  `/usr/bin/qs`, so the manifest's `quickshell` silently failed to install and
+  the shell ran on an incompatible fork that rejects its QML pragmas (a black
+  screen). The Arch adapter now detects a conflicting `quickshell` provider and
+  replaces it with the real package before installing the deps.
+- **Standalone installs theme the SDDM greeter with qylock**: the deploy runs
+  `ryoku-install-qylock` (SDDM-only, non-fatal), matching the OS install, so the
+  login screen is the Ryoku greeter instead of the distro default.
+- **The installer no longer reports success over a broken shell**: `rsi_verify`
+  checks the real `quickshell` package and `hyprland.lua` (not the stale
+  `hyprland.conf`), and the install exits with an "incomplete" notice instead of
+  sending the user to reboot into a session that would come up blank.
+- **System update force-refreshes the package db** (`pacman -Syyu`) so a stale
+  local db cannot 404 on packages the mirror has already rebuilt.
+
 ## [0.1.0-beta2] - 2026-06-08
 
 ### Changed
