@@ -15,10 +15,13 @@ Singleton {
     readonly property bool angelEverywhere: false
     readonly property bool inirEverywhere: false
     readonly property bool auroraEverywhere: false
-    // Game mode freezes every Behavior/animation gated on these (config-gated).
-    readonly property bool gameModeQuiet: GameMode.enabled && GlobalConfig.gameMode.shellAnimations
-    readonly property bool animationsEnabled: !gameModeQuiet
-    readonly property bool effectsEnabled: !gameModeQuiet
+    // Game mode freezes every Behavior/animation gated on these. Note the key's
+    // polarity: gameMode.shellAnimations names the bundled ACTION ("freeze shell
+    // animations"), like its dnd/pauseWallpaper siblings — true ⇒ quiet, NOT
+    // "animations stay on".
+    readonly property bool _gameModeQuiet: GameMode.enabled && GlobalConfig.gameMode.shellAnimations
+    readonly property bool animationsEnabled: !_gameModeQuiet
+    readonly property bool effectsEnabled: !_gameModeQuiet
     readonly property real backgroundTransparency: 0
 
     function calcEffectiveDuration(d) {
