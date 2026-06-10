@@ -4,6 +4,8 @@
 
 namespace ryoku::config {
 
+// Game mode toggle behavior (what the one-click performance toggle bundles).
+// The crosshair / game-bar overlay config lives in GamingConfig — keep them apart.
 class GameModeConfig : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
