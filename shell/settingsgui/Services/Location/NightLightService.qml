@@ -26,11 +26,13 @@ Singleton {
 
   onInhibitedChanged: {
     if (inhibited) {
+      Logger.i("NightLight", "Inhibited - stopping wlsunset");
       manualScheduleTimer.stop();
       restartTimer.stop();
       lastCommand = [];
       runner.running = false;
     } else {
+      Logger.i("NightLight", "Inhibit released - re-applying");
       apply(true);
     }
   }
@@ -152,6 +154,7 @@ Singleton {
   }
 
   function apply(force = false) {
+    // Inhibited (e.g. game mode): onInhibitedChanged re-applies on release.
     if (inhibited) {
       return;
     }
@@ -273,7 +276,7 @@ Singleton {
     }
     onExited: function (code, status) {
       if (root.inhibited) {
-        Logger.i("NightLight", "Wlsunset exited (inhibited by game mode):", code, status);
+        Logger.i("NightLight", "Wlsunset exited (inhibited):", code, status);
         root._crashCount = 0;
         return;
       }
