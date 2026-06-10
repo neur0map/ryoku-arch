@@ -11,6 +11,16 @@ Q_LOGGING_CATEGORY(lcHypr, "ryoku.internal.hypr", QtInfoMsg)
 
 namespace {
 
+// Escape a string for embedding in a Lua double-quoted literal. A literal
+// newline inside a Lua "..." string is a syntax error, so it must be escaped
+// alongside backslash and quote.
+QString escapeLuaString(QString s) {
+    s.replace(QLatin1Char('\\'), QLatin1String("\\\\"));
+    s.replace(QLatin1Char('"'), QLatin1String("\\\""));
+    s.replace(QLatin1Char('\n'), QLatin1String("\\n"));
+    return s;
+}
+
 // Serialize a QVariant as a Lua literal. Hyprland's hl.config coerces numeric
 // 0/1 into bools where needed (verified live), so numbers pass through as-is.
 QString luaValue(const QVariant& value) {
@@ -24,10 +34,11 @@ QString luaValue(const QVariant& value) {
     case QMetaType::Double:
         return value.toString();
     default: {
-        QString s = value.toString();
-        s.replace(QLatin1Char('\\'), QLatin1String("\\\\"));
-        s.replace(QLatin1Char('"'), QLatin1String("\\\""));
-        return QLatin1Char('"') + s + QLatin1Char('"');
+        QString out;
+        out += QLatin1Char('"');
+        out += escapeLuaString(value.toString());
+        out += QLatin1Char('"');
+        return out;
     }
     }
 }
@@ -46,7 +57,14 @@ void insertOption(QVariantMap& node, const QStringList& path, qsizetype index, c
 QString luaTable(const QVariantMap& node) {
     QString out = QStringLiteral("{ ");
     for (auto it = node.constBegin(); it != node.constEnd(); ++it) {
-        out += it.key() + QStringLiteral(" = ");
+        // Bracket-quoted keys: segments like `device[epic-mouse-v1]` or Lua
+        // reserved words (`repeat`) are not valid bare identifiers.
+        out += QLatin1Char('[');
+        out += QLatin1Char('"');
+        out += escapeLuaString(it.key());
+        out += QLatin1Char('"');
+        out += QLatin1Char(']');
+        out += QStringLiteral(" = ");
         if (it.value().typeId() == QMetaType::QVariantMap) {
             out += luaTable(it.value().toMap());
         } else {
@@ -96,13 +114,20 @@ HyprExtras::HyprExtras(QObject* parent)
     {
         QLocalSocket probe;
         probe.connectToServer(m_requestSocket);
+        bool probed = false;
         if (probe.waitForConnected(1000)) {
             probe.write("eval return 0");
             probe.flush();
             if (probe.waitForReadyRead(1000)) {
                 m_luaMode = probe.readAll().startsWith("ok");
+                probed = true;
             }
             probe.close();
+        }
+        if (probed) {
+            qCInfo(lcHypr) << "parser mode:" << (m_luaMode ? "lua" : "legacy");
+        } else {
+            qCWarning(lcHypr) << "parser-mode probe timed out; assuming legacy keywords";
         }
     }
 
@@ -175,10 +200,14 @@ void HyprExtras::applyOptions(const QVariantHash& options) {
     }
 
     makeRequest(request, [this](bool success, const QByteArray& res) {
-        if (success && (!m_luaMode || res.startsWith("ok"))) {
+        if (success) {
+            // Refresh on any transport success: a partially-applied hl.config
+            // error must not leave m_options stale (GameMode.qml derives its
+            // state from options).
             refreshOptions();
-        } else {
-            qCWarning(lcHypr) << "applyOptions: request error" << QString::fromUtf8(res);
+        }
+        if (!success || (m_luaMode && !res.startsWith("ok"))) {
+            qCWarning(lcHypr) << "applyOptions: request error:" << QString::fromUtf8(res);
         }
     });
 }
