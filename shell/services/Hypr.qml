@@ -171,6 +171,13 @@ Singleton {
     }
 
     function reloadDynamicConfs(): void {
+        if (extras.luaMode) {
+            // bindlni flags map to locked / non_consuming / ignore_mods
+            // (verified live: the bind registers with dispatcher __lua).
+            extras.evalLua(`hl.bind("Caps_Lock", hl.dsp.global("ryoku:refreshDevices"), { locked = true, non_consuming = true, ignore_mods = true })`);
+            extras.evalLua(`hl.bind("Num_Lock", hl.dsp.global("ryoku:refreshDevices"), { locked = true, non_consuming = true, ignore_mods = true })`);
+            return;
+        }
         extras.batchMessage(["keyword bindlni ,Caps_Lock,global,ryoku:refreshDevices", "keyword bindlni ,Num_Lock,global,ryoku:refreshDevices"]);
     }
 

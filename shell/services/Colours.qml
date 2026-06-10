@@ -94,6 +94,13 @@ Singleton {
     }
 
     function reloadHyprRules(): void {
+        if (Hypr.extras.luaMode) {
+            // Lua mode: `keyword layerrule` is rejected; hl.layer_rule is the
+            // dynamic equivalent (verified live on Hyprland 0.55.3).
+            Hypr.extras.evalLua(`hl.layer_rule({ match = { namespace = "^(ryoku-drawers)$" }, blur = ${transparency.enabled} })`);
+            Hypr.extras.evalLua(`hl.layer_rule({ match = { namespace = "^(ryoku-drawers)$" }, ignore_alpha = ${transparency.base - 0.03} })`);
+            return;
+        }
         const str = "keyword layerrule %1 %2, match:namespace ryoku-drawers";
         Hypr.extras.batchMessage([str.arg("blur").arg(transparency.enabled ? 1 : 0), str.arg("ignore_alpha").arg(transparency.base - 0.03)]);
     }
