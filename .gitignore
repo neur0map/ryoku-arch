@@ -36,3 +36,4 @@ distro/arch/*/*.tar.gz
 distro/arch/*/*.tar.xz
 distro/arch/*/*.tar.zst
 !distro/arch/cava-ryoku/cava-ryoku-[0-9]*.pkg.tar.zst
+.prowl/
