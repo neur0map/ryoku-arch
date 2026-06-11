@@ -18,7 +18,7 @@ Backend singletons bridging Wayland protocols and CLI tools (upower, wpctl, brig
 | **Visibility** | `Visibilities.qml` | Per-screen UI visibility/layering orchestration |
 | **State** | `StateService.qml` | JSON persistence for session state |
 | **Suspend** | `SuspendManager.qml` | Sleep/resume coordination |
-| **Game mode** | `GameModeService.qml` | Game-mode toggles and tweaks |
+| **Game mode** | `GameModeService.qml` | Read-only mirror of the shell game-mode state file |
 | **Lock screen** | `LockscreenService.qml` | IPC bridge for lock state |
 
 ## CONVENTIONS
