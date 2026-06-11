@@ -50,6 +50,8 @@ run_helper "$tmp" enable full
   || fail "enable should save the dpm pre-state for restore"
 grep -q -- '-lgc 0,2370' "$tmp/events" \
   || fail "enable full should lock NVIDIA graphics clocks to the queried max"
+[[ ! -e "$tmp/state/dpm-card1" ]] \
+  || fail "card1 has no dpm knob and must be skipped (no pre-state saved)"
 
 run_helper "$tmp" disable full
 [[ "$(cat "$tmp/drm/card0/device/power_dpm_force_performance_level")" == "auto" ]] \
@@ -83,6 +85,69 @@ RYOKU_GAMEMODE_STATE_DIR="$tmp/state" \
 RYOKU_GAMEMODE_NVIDIA_SMI="$tmp/bin/does-not-exist" \
   bash "$ROOT_DIR/bin/ryoku-gamemode-perf" enable full \
   || fail "enable must not fail when no knob exists on this hardware"
+rm -rf "$tmp"
+
+# ── double-enable must not clobber the saved pre-state (save-guard teeth) ─────
+tmp="$(mktemp -d)"
+make_env "$tmp"
+run_helper "$tmp" enable full
+# Live files are now already-applied; enabling a SECOND time must NOT re-save
+# the now-mutated values over the genuine pre-state.
+printf 'high\n' >"$tmp/drm/card0/device/power_dpm_force_performance_level"
+printf '1\n' >"$tmp/cpufreq/boost"
+run_helper "$tmp" enable full
+run_helper "$tmp" disable full
+[[ "$(cat "$tmp/drm/card0/device/power_dpm_force_performance_level")" == "auto" ]] \
+  || fail "double-enable must keep the ORIGINAL dpm pre-state for restore"
+[[ "$(cat "$tmp/cpufreq/boost")" == "0" ]] \
+  || fail "double-enable must keep the ORIGINAL boost pre-state for restore"
+[[ ! -d "$tmp/state" || -z "$(ls -A "$tmp/state")" ]] \
+  || fail "disable should clear the saved pre-state"
+rm -rf "$tmp"
+
+# ── amd_pstate: per-policy boost when no global cpufreq/boost exists ──────────
+tmp="$(mktemp -d)"
+make_env "$tmp"
+rm -f "$tmp/cpufreq/boost"   # force the per-policy (amd_pstate) branch
+run_helper "$tmp" enable full
+[[ "$(cat "$tmp/cpufreq/policy0/boost")" == "1" ]] \
+  || fail "enable should force the per-policy amd_pstate boost on"
+[[ "$(cat "$tmp/state/boost-policy0")" == "0" ]] \
+  || fail "enable should save the per-policy boost pre-state"
+run_helper "$tmp" disable full
+[[ "$(cat "$tmp/cpufreq/policy0/boost")" == "0" ]] \
+  || fail "disable should restore the per-policy boost value"
+rm -rf "$tmp"
+
+# ── nvidia-smi multi-GPU: query prints one line per GPU, head/SIGPIPE safe ────
+tmp="$(mktemp -d)"
+make_env "$tmp"
+cat >"$tmp/bin/nvidia-smi" <<'EOF'
+#!/bin/bash
+printf 'nvidia-smi:%s\n' "$*" >>"$RYOKU_TEST_EVENTS"
+if [[ $* == *clocks.max.graphics* ]]; then printf '2370\n1800\n'; fi
+EOF
+chmod 755 "$tmp/bin/nvidia-smi"
+run_helper "$tmp" enable full \
+  || fail "enable full must survive a multi-GPU nvidia-smi query"
+grep -q -- '-lgc 0,2370' "$tmp/events" \
+  || fail "enable full should lock to the first GPU's max clock"
+rm -rf "$tmp"
+
+# ── nvidia-smi query failure: best-effort, no lock attempted ──────────────────
+tmp="$(mktemp -d)"
+make_env "$tmp"
+cat >"$tmp/bin/nvidia-smi" <<'EOF'
+#!/bin/bash
+printf 'nvidia-smi:%s\n' "$*" >>"$RYOKU_TEST_EVENTS"
+if [[ $* == *clocks.max.graphics* ]]; then exit 1; fi
+EOF
+chmod 755 "$tmp/bin/nvidia-smi"
+run_helper "$tmp" enable full \
+  || fail "enable full must survive a failing nvidia-smi query"
+if grep -q -- '-lgc' "$tmp/events"; then
+  fail "enable full must not attempt a clock lock when the query fails"
+fi
 rm -rf "$tmp"
 
 echo "PASS: gamemode perf helper"

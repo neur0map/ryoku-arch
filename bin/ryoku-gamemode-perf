@@ -28,18 +28,19 @@ usage() {
 }
 
 [[ $action == "enable" || $action == "disable" ]] || usage
+[[ $instance == "full" || $instance == "base" ]] || usage
 
 save_and_write() { # sysfs_file state_name new_value
   local file="$1" name="$2" value="$3"
   [[ -w $file ]] || return 0
   [[ -f $STATE_DIR/$name ]] || cat "$file" >"$STATE_DIR/$name"
-  printf '%s\n' "$value" >"$file"
+  printf '%s\n' "$value" >"$file" 2>/dev/null || { rm -f "$STATE_DIR/$name"; return 0; }
 }
 
 restore() { # sysfs_file state_name
   local file="$1" name="$2"
   [[ -f $STATE_DIR/$name && -w $file ]] || return 0
-  cat "$STATE_DIR/$name" >"$file"
+  cat "$STATE_DIR/$name" >"$file" 2>/dev/null || return 0
   rm -f "$STATE_DIR/$name"
 }
 
@@ -56,7 +57,7 @@ dpm_cards() {
 
 nvidia_max_graphics_clock() {
   "$NVIDIA_SMI" --query-gpu=clocks.max.graphics --format=csv,noheader,nounits 2>/dev/null \
-    | head -n1 | tr -dc '0-9'
+    | awk 'NR==1' | tr -dc '0-9'
 }
 
 if [[ $action == "enable" ]]; then
@@ -79,7 +80,7 @@ if [[ $action == "enable" ]]; then
 
   # NVIDIA: lock graphics clocks to the card's max (full instance only).
   if [[ $instance == "full" ]] && command -v "$NVIDIA_SMI" >/dev/null 2>&1; then
-    max="$(nvidia_max_graphics_clock)"
+    max="$(nvidia_max_graphics_clock || true)"
     if [[ -n $max ]]; then
       "$NVIDIA_SMI" -lgc "0,$max" >/dev/null 2>&1 && touch "$STATE_DIR/nvidia-locked" || true
     fi
