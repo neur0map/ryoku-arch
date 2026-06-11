@@ -33,6 +33,7 @@ run_logged $RYOKU_INSTALL/config/input-group.sh
 run_logged $RYOKU_INSTALL/config/ryoku-toggles.sh
 run_logged $RYOKU_INSTALL/config/kernel-modules-hook.sh
 run_logged $RYOKU_INSTALL/config/powerprofilesctl-rules.sh
+run_logged $RYOKU_INSTALL/config/gamemode-perf.sh
 run_logged $RYOKU_INSTALL/config/wifi-powersave-rules.sh
 run_logged $RYOKU_INSTALL/config/plocate-ac-only.sh
 
