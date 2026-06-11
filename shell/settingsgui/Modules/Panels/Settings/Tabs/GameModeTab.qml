@@ -5,91 +5,143 @@ import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Widgets
 
+// RYOKU WIRED: GlobalConfig.gameMode.* (gamemodeconfig.hpp). One toggle per key;
+// the game mode toggle itself lives in the shell frame's Quick Toggles (and
+// `ryoku-shell ipc gameMode toggle`). Writes use explicit property assignment
+// (bracket-indexed writes on the C++ config object are unreliable).
 ColumnLayout {
   id: root
   spacing: Style.marginL
   Layout.fillWidth: true
-
-  // One NToggle per GlobalConfig.gameMode key; the toggle itself lives in the
-  // shell frame's Quick Toggles (and `ryoku-shell ipc gameMode toggle`).
-  component GameModeToggle: NToggle {
-    required property string configKey
-    Layout.fillWidth: true
-    checked: GlobalConfig.gameMode[configKey]
-    onToggled: checked => {
-                 GlobalConfig.gameMode[configKey] = checked;
-                 GlobalConfig.save();
-               }
-  }
 
   NHeader {
     label: I18n.tr("panels.game-mode.title")
     description: I18n.tr("panels.game-mode.description")
   }
 
-  GameModeToggle {
-    configKey: "hyprlandVisuals"
+  NToggle {
+    Layout.fillWidth: true
     label: I18n.tr("panels.game-mode.hyprland-visuals-label")
     description: I18n.tr("panels.game-mode.hyprland-visuals-description")
+    checked: GlobalConfig.gameMode.hyprlandVisuals
+    onToggled: checked => {
+                 GlobalConfig.gameMode.hyprlandVisuals = checked;
+                 GlobalConfig.save();
+               }
   }
-  GameModeToggle {
-    configKey: "vrr"
+  NToggle {
+    Layout.fillWidth: true
     label: I18n.tr("panels.game-mode.vrr-label")
     description: I18n.tr("panels.game-mode.vrr-description")
+    checked: GlobalConfig.gameMode.vrr
+    onToggled: checked => {
+                 GlobalConfig.gameMode.vrr = checked;
+                 GlobalConfig.save();
+               }
   }
-  GameModeToggle {
-    configKey: "directScanout"
+  NToggle {
+    Layout.fillWidth: true
     label: I18n.tr("panels.game-mode.direct-scanout-label")
     description: I18n.tr("panels.game-mode.direct-scanout-description")
+    checked: GlobalConfig.gameMode.directScanout
+    onToggled: checked => {
+                 GlobalConfig.gameMode.directScanout = checked;
+                 GlobalConfig.save();
+               }
   }
-  GameModeToggle {
-    configKey: "shellAnimations"
+  NToggle {
+    Layout.fillWidth: true
     label: I18n.tr("panels.game-mode.shell-animations-label")
     description: I18n.tr("panels.game-mode.shell-animations-description")
+    checked: GlobalConfig.gameMode.shellAnimations
+    onToggled: checked => {
+                 GlobalConfig.gameMode.shellAnimations = checked;
+                 GlobalConfig.save();
+               }
   }
-  GameModeToggle {
-    configKey: "dnd"
+  NToggle {
+    Layout.fillWidth: true
     label: I18n.tr("panels.game-mode.dnd-label")
     description: I18n.tr("panels.game-mode.dnd-description")
+    checked: GlobalConfig.gameMode.dnd
+    onToggled: checked => {
+                 GlobalConfig.gameMode.dnd = checked;
+                 GlobalConfig.save();
+               }
   }
-  GameModeToggle {
-    configKey: "idleInhibit"
+  NToggle {
+    Layout.fillWidth: true
     label: I18n.tr("panels.game-mode.idle-inhibit-label")
     description: I18n.tr("panels.game-mode.idle-inhibit-description")
+    checked: GlobalConfig.gameMode.idleInhibit
+    onToggled: checked => {
+                 GlobalConfig.gameMode.idleInhibit = checked;
+                 GlobalConfig.save();
+               }
   }
-  GameModeToggle {
-    configKey: "nightLightOff"
+  NToggle {
+    Layout.fillWidth: true
     label: I18n.tr("panels.game-mode.night-light-off-label")
     description: I18n.tr("panels.game-mode.night-light-off-description")
+    checked: GlobalConfig.gameMode.nightLightOff
+    onToggled: checked => {
+                 GlobalConfig.gameMode.nightLightOff = checked;
+                 GlobalConfig.save();
+               }
   }
-  GameModeToggle {
-    configKey: "pauseWallpaper"
+  NToggle {
+    Layout.fillWidth: true
     label: I18n.tr("panels.game-mode.pause-wallpaper-label")
     description: I18n.tr("panels.game-mode.pause-wallpaper-description")
+    checked: GlobalConfig.gameMode.pauseWallpaper
+    onToggled: checked => {
+                 GlobalConfig.gameMode.pauseWallpaper = checked;
+                 GlobalConfig.save();
+               }
   }
 
   NDivider {
     Layout.fillWidth: true
   }
 
-  GameModeToggle {
-    configKey: "hardwarePerf"
+  NToggle {
+    Layout.fillWidth: true
     label: I18n.tr("panels.game-mode.hardware-perf-label")
     description: I18n.tr("panels.game-mode.hardware-perf-description")
+    checked: GlobalConfig.gameMode.hardwarePerf
+    onToggled: checked => {
+                 GlobalConfig.gameMode.hardwarePerf = checked;
+                 GlobalConfig.save();
+               }
   }
-  GameModeToggle {
-    configKey: "nvidiaClockLock"
+  NToggle {
+    Layout.fillWidth: true
     label: I18n.tr("panels.game-mode.nvidia-clock-lock-label")
     description: I18n.tr("panels.game-mode.nvidia-clock-lock-description")
+    checked: GlobalConfig.gameMode.nvidiaClockLock
+    onToggled: checked => {
+                 GlobalConfig.gameMode.nvidiaClockLock = checked;
+                 GlobalConfig.save();
+               }
   }
-  GameModeToggle {
-    configKey: "autoDetect"
+  NToggle {
+    Layout.fillWidth: true
     label: I18n.tr("panels.game-mode.auto-detect-label")
     description: I18n.tr("panels.game-mode.auto-detect-description")
+    checked: GlobalConfig.gameMode.autoDetect
+    onToggled: checked => {
+                 GlobalConfig.gameMode.autoDetect = checked;
+                 GlobalConfig.save();
+               }
   }
-  GameModeToggle {
-    configKey: "hidePanels"
+  NToggle {
+    Layout.fillWidth: true
     label: I18n.tr("panels.game-mode.hide-panels-label")
     description: I18n.tr("panels.game-mode.hide-panels-description")
+    checked: GlobalConfig.gameMode.hidePanels
+    onToggled: checked => {
+                 GlobalConfig.gameMode.hidePanels = checked;
+                 GlobalConfig.save();
+               }
   }
 }
