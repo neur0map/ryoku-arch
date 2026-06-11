@@ -78,6 +78,7 @@ SmartPanel {
     ControlCenter,
     DesktopWidgets,
     Extras,
+    GameMode,
     OSD,
     Display,
     Dock, // retained as an enum id only — no Dock settings tab (ryoku has no dock)

@@ -458,6 +458,10 @@ Item {
     ExtrasTab {}
   }
   Component {
+    id: gameModeTab
+    GameModeTab {}
+  }
+  Component {
     id: idleTab
     IdleTab {}
   }
@@ -612,6 +616,12 @@ Item {
             "label": "panels.extras.title",
             "icon": "package",
             "source": extrasTab
+          },
+          {
+            "id": SettingsPanel.Tab.GameMode,
+            "label": "panels.game-mode.tab",
+            "icon": "device-gamepad",
+            "source": gameModeTab
           },
           {
             "id": SettingsPanel.Tab.About,
