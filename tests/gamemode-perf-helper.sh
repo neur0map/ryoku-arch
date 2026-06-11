@@ -34,6 +34,7 @@ run_helper() { # tmp_dir args...
   RYOKU_GAMEMODE_CPUFREQ_ROOT="$tmp/cpufreq" \
   RYOKU_GAMEMODE_STATE_DIR="$tmp/state" \
   RYOKU_GAMEMODE_NVIDIA_SMI="$tmp/bin/nvidia-smi" \
+  RYOKU_GAMEMODE_INTEL_PSTATE_ROOT="$tmp/intel_pstate" \
     bash "$ROOT_DIR/bin/ryoku-gamemode-perf" "$@"
 }
 
@@ -148,6 +149,21 @@ run_helper "$tmp" enable full \
 if grep -q -- '-lgc' "$tmp/events"; then
   fail "enable full must not attempt a clock lock when the query fails"
 fi
+rm -rf "$tmp"
+# ── Intel intel_pstate: turbo via no_turbo (inverted), no cpufreq boost ───────
+tmp="$(mktemp -d)"
+make_env "$tmp"
+rm -f "$tmp/cpufreq/boost" "$tmp/cpufreq/policy0/boost"   # intel_pstate has neither
+mkdir -p "$tmp/intel_pstate"
+printf '1\n' >"$tmp/intel_pstate/no_turbo"                # turbo currently disabled
+run_helper "$tmp" enable full
+[[ "$(cat "$tmp/intel_pstate/no_turbo")" == "0" ]] \
+  || fail "enable should clear intel_pstate no_turbo (turbo on)"
+[[ "$(cat "$tmp/state/no-turbo")" == "1" ]] \
+  || fail "enable should save the intel no_turbo pre-state"
+run_helper "$tmp" disable full
+[[ "$(cat "$tmp/intel_pstate/no_turbo")" == "1" ]] \
+  || fail "disable should restore the intel no_turbo pre-state"
 rm -rf "$tmp"
 
 echo "PASS: gamemode perf helper"

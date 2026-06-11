@@ -18,6 +18,7 @@ DRM_ROOT="${RYOKU_GAMEMODE_DRM_ROOT:-/sys/class/drm}"
 CPUFREQ_ROOT="${RYOKU_GAMEMODE_CPUFREQ_ROOT:-/sys/devices/system/cpu/cpufreq}"
 STATE_DIR="${RYOKU_GAMEMODE_STATE_DIR:-/run/ryoku-gamemode}"
 NVIDIA_SMI="${RYOKU_GAMEMODE_NVIDIA_SMI:-nvidia-smi}"
+INTEL_PSTATE_ROOT="${RYOKU_GAMEMODE_INTEL_PSTATE_ROOT:-/sys/devices/system/cpu/intel_pstate}"
 
 action="${1:-}"
 instance="${2:-full}"
@@ -78,6 +79,9 @@ if [[ $action == "enable" ]]; then
     done
   fi
 
+  # Intel CPUs (intel_pstate driver) gate turbo via no_turbo (inverted: 0 = on).
+  save_and_write "$INTEL_PSTATE_ROOT/no_turbo" no-turbo 0
+
   # NVIDIA: lock graphics clocks to the card's max (full instance only).
   if [[ $instance == "full" ]] && command -v "$NVIDIA_SMI" >/dev/null 2>&1; then
     max="$(nvidia_max_graphics_clock || true)"
@@ -86,11 +90,13 @@ if [[ $action == "enable" ]]; then
     fi
   fi
 else
-  # Restore in reverse: NVIDIA, boost, dpm. Each step is independent.
+  # Restore in reverse: NVIDIA, turbo, boost, dpm. Each step is independent.
   if [[ -f $STATE_DIR/nvidia-locked ]]; then
     command -v "$NVIDIA_SMI" >/dev/null 2>&1 && "$NVIDIA_SMI" -rgc >/dev/null 2>&1 || true
     rm -f "$STATE_DIR/nvidia-locked"
   fi
+
+  restore "$INTEL_PSTATE_ROOT/no_turbo" no-turbo
 
   restore "$CPUFREQ_ROOT/boost" boost
   for policy in "$CPUFREQ_ROOT"/policy[0-9]*; do
