@@ -19,6 +19,13 @@ fi
 # Exit early if screensave is already running
 pgrep -f org.ryoku.screensaver && exit 0
 
+# Never run the screensaver over the lockscreen. qylock owns the screen when the
+# session is locked; a screensaver behind it just burns CPU (tte at 120fps) and
+# can starve and crash the ext-session lock client.
+if pgrep -f 'lock_shell\.qml' >/dev/null 2>&1; then
+  exit 0
+fi
+
 # Allow screensaver to be turned off but also force started
 if ryoku-toggle-enabled screensaver-off && [[ ${1:-} != "force" ]]; then
   exit 1

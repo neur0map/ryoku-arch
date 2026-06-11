@@ -6,9 +6,10 @@
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
 
 screensaver_in_focus() {
-  hyprctl activewindow -j 2>/dev/null |
-    jq -e '(.class // .initialClass // "") == "org.ryoku.screensaver"' >/dev/null 2>&1 ||
-    return 0
+  # True only when our window is the active one. An empty/other active window
+  # (another app, or an ext-session lock surface) counts as NOT in focus, so the
+  # screensaver exits instead of running tte forever behind the lock.
+  [[ "$(hyprctl activewindow -j 2>/dev/null | jq -r '(.class // .initialClass // "")' 2>/dev/null)" == "org.ryoku.screensaver" ]]
 }
 
 exit_screensaver() {
