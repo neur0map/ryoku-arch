@@ -179,11 +179,17 @@ Singleton {
         persistState();
     }
 
-    onGamesRunningChanged: {
+    // Drive auto-detect directly from the polled client count rather than a
+    // gamesRunning transition: a game that exits during shell downtime leaves
+    // no transition at startup, so a signal-only handler would never auto-disable
+    // a recovered session.
+    function reconcileAutoDetect(running: bool): void {
         if (!GlobalConfig.gameMode.autoDetect)
             return;
 
-        if (gamesRunning) {
+        root.gamesRunning = running;
+
+        if (running) {
             if (!props.enabled && !manualLatch) {
                 root._changeFromWatcher = true;
                 props.enabled = true;
@@ -318,7 +324,7 @@ Singleton {
                 // GVariant's default numeric type — or "(<int32 2>,)".
                 const m = text.match(/\(<(?:int32 )?(\d+)>/);
                 if (m)
-                    root.gamesRunning = parseInt(m[1], 10) > 0;
+                    root.reconcileAutoDetect(parseInt(m[1], 10) > 0);
             }
         }
     }
@@ -333,11 +339,15 @@ Singleton {
                 root.prevDnd = !!(s.prev?.dnd);
                 root.prevIdleInhibit = !!(s.prev?.idleInhibit);
                 root.prevPerformanceMode = !!(s.prev?.performanceMode);
-                root._persistedEnabled = !!s.enabled;
                 if (s.enabled) {
                     root._recoveredSession = true;
                     root.autoEnabled = !!s.autoEnabled;
                 }
+                // Assign _persistedEnabled LAST: the props.enabled binding depends
+                // on it and re-evaluates synchronously, so recovery must be armed
+                // before it can flip (else the enable runs as a non-recovery and
+                // clobbers the file-loaded prev* state).
+                root._persistedEnabled = !!s.enabled;
             } catch (e) {
                 console.warn("GameMode: failed to parse state file:", e);
             }
