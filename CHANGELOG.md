@@ -4,6 +4,18 @@
 
 ### Added
 
+- **Game mode is now a full performance bundle**: one click on the Quick Toggles
+  gamepad button (or `ryoku-shell ipc gameMode toggle`) disables compositor
+  visuals (animations, blur, shadows, gaps, rounding), enables fullscreen VRR,
+  direct scanout and tearing, freezes shell animations, silences notifications,
+  keeps the machine awake, pauses night light and live wallpapers, switches to
+  the performance power profile, and, through a polkit-scoped root unit
+  (`ryoku-gamemode-perf@`) shipped by a `[global]` migration, forces AMD GPU
+  dpm levels high, CPU boost on, and locks NVIDIA clocks. Everything restores on
+  the second click, with pre-toggle state remembered across shell restarts. Games
+  launched via `gamemoderun` (gaming profile) auto-toggle it. Every piece is
+  configurable in Settings → Game Mode.
+
 - **Guided installer TUI**: `shell-install/install` opens a `gum` interface: a
   styled support verdict (every distro is told whether it is supported, with the
   reason and a clean exit if not), a recommended pre-install snapshot (detects
@@ -46,6 +58,19 @@
   `docs/ryoku-shell-branch.md` now documents the product vs provisioning boundary.
 
 ### Fixed
+
+- **Game mode toggle works again on the Lua Hyprland config**: the shell sent
+  legacy `keyword` IPC requests, which Hyprland 0.55+ rejects in Lua mode
+  ("keyword can't work with non-legacy parsers"), so the Quick Toggles gamepad
+  button silently did nothing. `HyprExtras` now probes the parser once and speaks
+  `eval hl.config(...)` in Lua mode (legacy `.conf` boxes keep the keyword path).
+  The same fix revives the drawer transparency layerrules and the caps/num-lock
+  toast binds, broken by the same root cause.
+- **Hyprland option reads (`Hypr.options`) repaired for 0.55**: the plugin parsed
+  `descriptions` by the pre-0.55 keys (`value`/`data.current`), so the live option
+  map was permanently empty: game mode state detection and the area picker's
+  border/rounding silently fell back to defaults. It now reads `name`/`current`
+  (with the old keys as a fallback).
 
 - **Standalone shell renders on a CachyOS Niri+Noctalia base**: that edition
   ships `noctalia-qs`, which `provides` and `conflicts` `quickshell` and owns
