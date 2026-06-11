@@ -31,6 +31,21 @@ assert_contains "install/config/gamemode-perf.sh" \
   'ryoku-gamemode-perf@\.service' \
   "install script must write the template unit"
 assert_contains "install/config/gamemode-perf.sh" \
+  'install -Dm755 -o root -g root' \
+  "install script must place a root-owned helper copy"
+assert_contains "install/config/gamemode-perf.sh" \
+  '/usr/local/lib/ryoku/ryoku-gamemode-perf' \
+  "helper must be installed under the root-owned /usr/local/lib/ryoku path"
+assert_contains "install/config/gamemode-perf.sh" \
+  '^ExecStart=/usr/local/lib/ryoku/ryoku-gamemode-perf ' \
+  "unit ExecStart must run the root-owned helper path"
+assert_contains "install/config/gamemode-perf.sh" \
+  'NoNewPrivileges=' \
+  "unit must set NoNewPrivileges to block privilege escalation"
+grep -Eq '^ExecStart=.*\.local/share/ryoku/bin/ryoku-gamemode-perf' \
+  "$ROOT_DIR/install/config/gamemode-perf.sh" \
+  && fail "ExecStart must not reference the user-writable ~/.local/share helper path"
+assert_contains "install/config/gamemode-perf.sh" \
   'TimeoutStartSec=' \
   "template unit must bound ExecStart so a hung nvidia-smi cannot block it"
 assert_contains "install/config/gamemode-perf.sh" \
