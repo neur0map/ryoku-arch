@@ -22,20 +22,38 @@ Singleton {
     property bool gamesRunning: false
     property bool manualLatch: false
     property bool autoEnabled: false
-    property bool _autoFlip: false
+    // Routes watcher-driven flips into onEnabledChanged: works because QML
+    // change handlers run synchronously within the assignment.
+    property bool _changeFromWatcher: false
+
+    // Restart recovery: the state file is the primary "was enabled" signal;
+    // _recoveredSession marks the next enable as a recovery (re-apply effects,
+    // but skip the pre-state capture and the toast).
+    property bool _persistedEnabled: false
+    property bool _recoveredSession: false
+
+    // Restore-only-what-we-touched flags. Not persisted: recovery re-applies
+    // the effects and rebuilds them.
+    property bool _visualsApplied: false
+    property bool _wallpaperPaused: false
+    property bool _nightLightInhibited: false
 
     // Pre-toggle states, restored on disable. Persisted in the state file so a
     // restarted shell process still restores correctly.
     property string prevProfile: ""
     property bool prevDnd: false
-    property bool prevIdle: false
-    property bool prevPerfMode: false
+    property bool prevIdleInhibit: false
+    property bool prevPerformanceMode: false
 
     readonly property string stateDir: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/ryoku"
     readonly property string stateFile: stateDir + "/gamemode.json"
 
     function perfUnits(): list<string> {
         return ["ryoku-gamemode-perf@full.service", "ryoku-gamemode-perf@base.service"];
+    }
+
+    function pollClientCount(): void {
+        clientCountProc.exec(["gdbus", "call", "--session", "--dest", "com.feralinteractive.GameMode", "--object-path", "/com/feralinteractive/GameMode", "--method", "org.freedesktop.DBus.Properties.Get", "com.feralinteractive.GameMode", "ClientCount"]);
     }
 
     function setDynamicConfs(): void {
@@ -57,37 +75,43 @@ Singleton {
         if (GlobalConfig.gameMode.directScanout)
             opts["render:direct_scanout"] = 1;
         Hypr.extras.applyOptions(opts);
+        root._visualsApplied = true;
     }
 
     function persistState(): void {
         const payload = JSON.stringify({
             enabled: props.enabled,
+            autoEnabled: root.autoEnabled,
             prev: {
                 profile: root.prevProfile,
                 dnd: root.prevDnd,
-                idleInhibit: root.prevIdle,
-                performanceMode: root.prevPerfMode
+                idleInhibit: root.prevIdleInhibit,
+                performanceMode: root.prevPerformanceMode
             }
         });
-        // The payload cannot contain single quotes (profile names are plain
-        // words, the rest are booleans), so the sh single-quote wrap is safe.
-        writeStateProc.command = ["sh", "-c", `mkdir -p '${stateDir}' && printf '%s' '${payload}' > '${stateFile}'`];
-        writeStateProc.running = true;
+        // Payload travels as argv, immune to quoting and apostrophe-in-$HOME issues.
+        writeStateProc.exec(["sh", "-c", "mkdir -p \"$1\" && printf %s \"$3\" > \"$2\"", "_", stateDir, stateFile, payload]);
     }
 
     onEnabledChanged: {
-        const fromWatcher = root._autoFlip;
-        root._autoFlip = false;
-        root.autoEnabled = fromWatcher && enabled;
+        const fromWatcher = root._changeFromWatcher;
+        root._changeFromWatcher = false;
+        const recovery = root._recoveredSession;
+        root._recoveredSession = false;
+        root.autoEnabled = recovery ? root.autoEnabled : (fromWatcher && enabled);
 
         if (enabled) {
             if (!fromWatcher)
                 root.manualLatch = false;
 
-            // Capture pre-toggle session states before stomping them.
-            root.prevDnd = Notifs.dnd;
-            root.prevIdle = IdleInhibitor.enabled;
-            root.prevPerfMode = SGPower.PowerProfileService.performanceMode;
+            // Capture pre-toggle session states before stomping them. On
+            // recovery the file values are the truth (loaded together with the
+            // flag) — capturing now would record our own stomped state.
+            if (!recovery) {
+                root.prevDnd = Notifs.dnd;
+                root.prevIdleInhibit = IdleInhibitor.enabled;
+                root.prevPerformanceMode = SGPower.PowerProfileService.performanceMode;
+            }
 
             setDynamicConfs();
 
@@ -95,40 +119,58 @@ Singleton {
                 Notifs.dnd = true;
             if (GlobalConfig.gameMode.idleInhibit)
                 IdleInhibitor.enabled = true;
-            if (GlobalConfig.gameMode.nightLightOff)
+            if (GlobalConfig.gameMode.nightLightOff) {
                 SGLocation.NightLightService.inhibited = true;
+                root._nightLightInhibited = true;
+            }
             // Converge with the settingsgui performance mode (its notification
             // pipeline, wallpaper automation and desktop widgets follow it).
             SGPower.PowerProfileService.setPerformanceMode(true);
 
-            if (GlobalConfig.gameMode.pauseWallpaper)
-                wallpaperPauseProc.running = true;
-
-            if (GlobalConfig.gameMode.hardwarePerf) {
-                profileCaptureProc.running = true;
-                const unit = GlobalConfig.gameMode.nvidiaClockLock ? "ryoku-gamemode-perf@full.service" : "ryoku-gamemode-perf@base.service";
-                perfUnitProc.command = ["systemctl", "start", unit];
-                perfUnitProc.running = true;
+            if (GlobalConfig.gameMode.pauseWallpaper) {
+                wallpaperPauseProc.exec(["ryoku-wallpaper-pause"]);
+                root._wallpaperPaused = true;
             }
 
-            if (GlobalConfig.utilities.toasts.gameModeChanged)
-                Toaster.toast(qsTr("Game mode enabled"), qsTr("Maximum performance: visuals off, hardware at full tilt"), "gamepad");
+            if (GlobalConfig.gameMode.hardwarePerf) {
+                profileCaptureProc.exec(["powerprofilesctl", "get"]);
+                const unit = GlobalConfig.gameMode.nvidiaClockLock ? "ryoku-gamemode-perf@full.service" : "ryoku-gamemode-perf@base.service";
+                perfUnitProc.exec(["systemctl", "start", unit]);
+            }
+
+            if (!recovery && GlobalConfig.utilities.toasts.gameModeChanged)
+                Toaster.toast(qsTr("Game mode enabled"), GlobalConfig.gameMode.hardwarePerf ? qsTr("Maximum performance: visuals off, hardware at full tilt") : qsTr("Visuals off, distractions silenced"), "gamepad");
         } else {
             if (!fromWatcher && root.gamesRunning)
                 root.manualLatch = true;
 
-            Hypr.extras.message("reload");
+            // Reload only when we applied visuals: a full compositor reload
+            // wipes unrelated runtime keywords.
+            if (root._visualsApplied) {
+                Hypr.extras.message("reload");
+                root._visualsApplied = false;
+            }
 
-            Notifs.dnd = root.prevDnd;
-            IdleInhibitor.enabled = root.prevIdle;
-            SGLocation.NightLightService.inhibited = false;
-            SGPower.PowerProfileService.setPerformanceMode(root.prevPerfMode);
+            // Restore session states only if they are still what we set — a
+            // user who deliberately changed these mid-game keeps their choice.
+            if (GlobalConfig.gameMode.dnd && Notifs.dnd)
+                Notifs.dnd = root.prevDnd;
+            if (GlobalConfig.gameMode.idleInhibit && IdleInhibitor.enabled)
+                IdleInhibitor.enabled = root.prevIdleInhibit;
+            if (root._nightLightInhibited) {
+                SGLocation.NightLightService.inhibited = false;
+                root._nightLightInhibited = false;
+            }
+            if (SGPower.PowerProfileService.performanceMode)
+                SGPower.PowerProfileService.setPerformanceMode(root.prevPerformanceMode);
 
-            wallpaperResumeProc.running = true;
+            if (root._wallpaperPaused) {
+                wallpaperResumeProc.exec(["ryoku-wallpaper-resume"]);
+                root._wallpaperPaused = false;
+            }
 
-            profileRestoreCheckProc.running = true;
-            perfUnitProc.command = ["systemctl", "stop"].concat(perfUnits());
-            perfUnitProc.running = true;
+            profileRestoreCheckProc.exec(["powerprofilesctl", "get"]);
+            perfUnitProc.exec(["systemctl", "stop"].concat(perfUnits()));
 
             if (GlobalConfig.utilities.toasts.gameModeChanged)
                 Toaster.toast(qsTr("Game mode disabled"), qsTr("Settings restored"), "gamepad");
@@ -143,13 +185,13 @@ Singleton {
 
         if (gamesRunning) {
             if (!props.enabled && !manualLatch) {
-                root._autoFlip = true;
+                root._changeFromWatcher = true;
                 props.enabled = true;
             }
         } else {
             root.manualLatch = false;
             if (props.enabled && root.autoEnabled) {
-                root._autoFlip = true;
+                root._changeFromWatcher = true;
                 props.enabled = false;
             }
         }
@@ -157,40 +199,67 @@ Singleton {
 
     Process {
         id: writeStateProc
+
+        stderr: StdioCollector {
+            onStreamFinished: {
+                if (text.trim())
+                    console.warn("GameMode: state write:", text.trim());
+            }
+        }
+        onExited: code => {
+            if (code !== 0)
+                console.warn("GameMode: state write exited", code);
+        }
     }
 
     Process {
         id: wallpaperPauseProc
-
-        command: ["ryoku-wallpaper-pause"]
     }
 
     Process {
         id: wallpaperResumeProc
-
-        command: ["ryoku-wallpaper-resume"]
     }
 
     Process {
         id: perfUnitProc
+
+        stderr: StdioCollector {
+            onStreamFinished: {
+                if (text.trim())
+                    console.warn("GameMode: perf unit:", text.trim());
+            }
+        }
+        onExited: code => {
+            if (code !== 0)
+                console.warn("GameMode: perf unit exited", code);
+        }
     }
 
     Process {
         id: profileSetProc
+
+        stderr: StdioCollector {
+            onStreamFinished: {
+                if (text.trim())
+                    console.warn("GameMode: profile set:", text.trim());
+            }
+        }
+        onExited: code => {
+            if (code !== 0)
+                console.warn("GameMode: profile set exited", code);
+        }
     }
 
     // Capture the current power profile, then switch to performance.
     Process {
         id: profileCaptureProc
 
-        command: ["powerprofilesctl", "get"]
         stdout: StdioCollector {
             onStreamFinished: {
                 const current = text.trim();
                 if (current && current !== "performance")
                     root.prevProfile = current;
-                profileSetProc.command = ["powerprofilesctl", "set", "performance"];
-                profileSetProc.running = true;
+                profileSetProc.exec(["powerprofilesctl", "set", "performance"]);
                 root.persistState();
             }
         }
@@ -202,13 +271,10 @@ Singleton {
     Process {
         id: profileRestoreCheckProc
 
-        command: ["powerprofilesctl", "get"]
         stdout: StdioCollector {
             onStreamFinished: {
-                if (text.trim() === "performance" && root.prevProfile) {
-                    profileSetProc.command = ["powerprofilesctl", "set", root.prevProfile];
-                    profileSetProc.running = true;
-                }
+                if (text.trim() === "performance" && root.prevProfile)
+                    profileSetProc.exec(["powerprofilesctl", "set", root.prevProfile]);
                 root.prevProfile = "";
                 root.persistState();
             }
@@ -222,10 +288,8 @@ Singleton {
 
         command: ["sh", "-c", "systemctl is-active --quiet ryoku-gamemode-perf@full.service || systemctl is-active --quiet ryoku-gamemode-perf@base.service"]
         onExited: code => {
-            if (code === 0 && !props.enabled) {
-                perfUnitProc.command = ["systemctl", "stop"].concat(root.perfUnits());
-                perfUnitProc.running = true;
-            }
+            if (code === 0 && !props.enabled)
+                perfUnitProc.exec(["systemctl", "stop"].concat(root.perfUnits()));
         }
     }
 
@@ -240,7 +304,7 @@ Singleton {
         stdout: SplitParser {
             onRead: data => {
                 if (data.includes("GameRegistered") || data.includes("GameUnregistered"))
-                    clientCountProc.running = true;
+                    root.pollClientCount();
             }
         }
     }
@@ -248,10 +312,11 @@ Singleton {
     Process {
         id: clientCountProc
 
-        command: ["gdbus", "call", "--session", "--dest", "com.feralinteractive.GameMode", "--object-path", "/com/feralinteractive/GameMode", "--method", "org.freedesktop.DBus.Properties.Get", "com.feralinteractive.GameMode", "ClientCount"]
         stdout: StdioCollector {
             onStreamFinished: {
-                const m = text.match(/int32 (\d+)/);
+                // gdbus prints "(<2>,)" — the int32 annotation is omitted for
+                // GVariant's default numeric type — or "(<int32 2>,)".
+                const m = text.match(/\(<(?:int32 )?(\d+)>/);
                 if (m)
                     root.gamesRunning = parseInt(m[1], 10) > 0;
             }
@@ -266,8 +331,13 @@ Singleton {
                 const s = JSON.parse(text());
                 root.prevProfile = s.prev?.profile ?? "";
                 root.prevDnd = !!(s.prev?.dnd);
-                root.prevIdle = !!(s.prev?.idleInhibit);
-                root.prevPerfMode = !!(s.prev?.performanceMode);
+                root.prevIdleInhibit = !!(s.prev?.idleInhibit);
+                root.prevPerformanceMode = !!(s.prev?.performanceMode);
+                root._persistedEnabled = !!s.enabled;
+                if (s.enabled) {
+                    root._recoveredSession = true;
+                    root.autoEnabled = !!s.autoEnabled;
+                }
             } catch (e) {
                 console.warn("GameMode: failed to parse state file:", e);
             }
@@ -279,8 +349,13 @@ Singleton {
 
         // Detect from the compositor itself: animations:enabled is off only
         // while game mode's live tweaks are applied. The Lua parser reports a
-        // bool, the legacy parser an int — accept both.
-        property bool enabled: Hypr.options["animations:enabled"] === 0 || Hypr.options["animations:enabled"] === false
+        // bool, the legacy parser an int — accept both. The persisted state
+        // file is the primary signal; the compositor state merely corroborates
+        // it, so a user whose own Hyprland config disables animations does not
+        // trigger full activation at every login. The binding is intentionally
+        // one-shot: any write (IPC, quick toggle, watcher) replaces it — it
+        // exists only for fresh-process recovery.
+        property bool enabled: root._persistedEnabled && (Hypr.options["animations:enabled"] === 0 || Hypr.options["animations:enabled"] === false)
 
         reloadableId: "gameMode"
     }
@@ -294,7 +369,14 @@ Singleton {
         target: Hypr
     }
 
-    Component.onCompleted: reconcileProc.running = true
+    Component.onCompleted: {
+        reconcileProc.running = true;
+        // Prime auto-detect: a game already registered before a shell restart
+        // is seen immediately (auto-disable then works after recovery thanks
+        // to the persisted autoEnabled).
+        if (GlobalConfig.gameMode.autoDetect)
+            pollClientCount();
+    }
 
     IpcHandler {
         function isEnabled(): bool {

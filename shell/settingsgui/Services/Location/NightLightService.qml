@@ -22,6 +22,7 @@ Singleton {
   // Game mode: temporarily stop wlsunset (it resets gamma on exit) without
   // touching the user's persisted night light settings. Releasing the inhibit
   // re-applies whatever schedule/forced mode the user had.
+  // Single-writer: game mode owns this today; add ref-counting before introducing a second inhibitor.
   property bool inhibited: false
 
   onInhibitedChanged: {
