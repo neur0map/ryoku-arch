@@ -194,8 +194,6 @@ ensure_user_wants_link() {
 # graphical-session consumers.
 ensure_user_wants_link ryoku-resume-listener.service graphical-session.target \
     "$xdg_config_home/systemd/user/ryoku-resume-listener.service"
-ensure_user_wants_link hypridle.service graphical-session.target \
-    /usr/lib/systemd/user/hypridle.service
 
 # timers.target consumer (only wired if the host has a battery; the
 # original first-run/battery-monitor.sh gated on ryoku-battery-present,

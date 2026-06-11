@@ -95,8 +95,8 @@ restore_audio_mixers() {
   fi
 }
 
-# Serialize concurrent recoveries. hypridle fires this twice on resume
-# (after_sleep_cmd + the on-resume listener); without a guard the two runs race in
+# Serialize concurrent recoveries. On resume this can fire more than once (the
+# user-bus resume listener plus the root system-sleep hook); without a guard the runs race in
 # ryoku-restart-shell (status-then-try-restart TOCTOU) and can leave the shell stopped
 # with no restart. Hold a non-blocking lock so a second concurrent run skips cleanly;
 # flock releases it automatically when this process exits.

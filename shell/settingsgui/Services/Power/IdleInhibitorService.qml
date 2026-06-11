@@ -2,205 +2,103 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
-import Quickshell.Io
+import qs.services
 import qs.settingsgui.Commons
 import qs.settingsgui.Services.UI
 
+// Keep-awake control surface for the bar and control-center widgets.
+//
+// This is an ADAPTER over the single keep-awake source of truth, qs.services
+// IdleInhibitor (backed by ryoku-cmd-caffeine: one systemd idle:sleep inhibitor
+// plus the Wayland idle-inhibitor, persisted across restarts). It owns no
+// inhibitor of its own — every toggle drives IdleInhibitor.enabled — so the bar,
+// the control center and the island "Keep Awake" card can no longer diverge (the
+// bug where one read "off" while a stale second inhibitor still blocked the
+// screensaver / DPMS / lock). The optional countdown timer just flips
+// IdleInhibitor off when it expires.
 Singleton {
   id: root
 
-  property bool isInhibited: false
+  // Single source of truth: mirror the shared inhibitor.
+  readonly property bool isInhibited: IdleInhibitor.enabled
   property string reason: I18n.tr("system.user-requested")
-  property var activeInhibitors: []
-  property var timeout: null // in seconds
+  property var timeout: null // seconds remaining; null = indefinite / off
 
-  // True when the native Wayland IdleInhibitor is handling inhibition
-  // (set by the IdleInhibitor element in MainScreen via the nativeInhibitor property)
+  // Set true by MainScreen's native Wayland inhibitor when that surface is
+  // loaded. Ryoku does not load MainScreen, so it stays false; kept for parity
+  // with the upstream settings shell.
   property bool nativeInhibitorAvailable: false
 
   function init() {
     Logger.i("IdleInhibitor", "Service started");
   }
 
-  function addInhibitor(id, reason = "Application request") {
-    if (activeInhibitors.includes(id)) {
-      Logger.w("IdleInhibitor", "Inhibitor already active:", id);
-      return false;
-    }
+  function setInhibited(on, why) {
+    if (why !== undefined)
+      reason = why;
+    if (IdleInhibitor.enabled !== on)
+      IdleInhibitor.enabled = on;
+  }
 
-    activeInhibitors.push(id);
-    updateInhibition(reason);
-    Logger.d("IdleInhibitor", "Added inhibitor:", id);
+  // Compatibility shims for any application-driven inhibition. Nothing currently
+  // calls these, but keep the API: they drive the same shared inhibitor.
+  function addInhibitor(id, why) {
+    setInhibited(true, why ?? reason);
     return true;
   }
 
   function removeInhibitor(id) {
-    const index = activeInhibitors.indexOf(id);
-    if (index === -1) {
-      Logger.w("IdleInhibitor", "Inhibitor not found:", id);
-      return false;
-    }
-
-    activeInhibitors.splice(index, 1);
-    updateInhibition();
-    Logger.d("IdleInhibitor", "Removed inhibitor:", id);
+    clearTimer();
+    setInhibited(false);
     return true;
   }
 
-  function updateInhibition(newReason = reason) {
-    const shouldInhibit = activeInhibitors.length > 0;
+  function manualToggle() {
+    clearTimer();
+    const next = !IdleInhibitor.enabled;
+    setInhibited(next);
+    ToastService.showNotice(I18n.tr("tooltips.keep-awake"), next ? I18n.tr("common.enabled") : I18n.tr("common.disabled"), next ? "keep-awake-on" : "keep-awake-off");
+    return next;
+  }
 
-    if (shouldInhibit === isInhibited) {
+  // Mouse-wheel timed keep-awake from the bar pill.
+  function changeTimeout(delta) {
+    if (timeout === null && delta < 0)
+      return; // nothing to wind down
+
+    const next = (timeout === null ? 0 : timeout) + delta;
+    if (next <= 0) {
+      clearTimer();
+      setInhibited(false);
       return;
     }
 
-    if (shouldInhibit) {
-      startInhibition(newReason);
-    } else {
-      stopInhibition();
-    }
+    timeout = next;
+    setInhibited(true);
+    if (!countdown.running)
+      countdown.start();
   }
 
-  function startInhibition(newReason) {
-    reason = newReason;
-
-    if (nativeInhibitorAvailable) {
-      // Native IdleInhibitor in MainScreen handles it via isInhibited binding
-      Logger.d("IdleInhibitor", "Native inhibitor active");
-    } else {
-      startSubprocessInhibition();
-    }
-
-    isInhibited = true;
-    Logger.i("IdleInhibitor", "Started inhibition:", reason);
-  }
-
-  function stopInhibition() {
-    if (!isInhibited)
-      return;
-
-    if (!nativeInhibitorAvailable && inhibitorProcess.running) {
-      inhibitorProcess.signal(15); // SIGTERM
-    }
-
-    isInhibited = false;
-    Logger.i("IdleInhibitor", "Stopped inhibition");
-  }
-
-  function startSubprocessInhibition() {
-    inhibitorProcess.command = ["systemd-inhibit", "--what=idle", "--why=" + reason, "--mode=block", "sleep", "infinity"];
-    inhibitorProcess.running = true;
-  }
-
-  Process {
-    id: inhibitorProcess
-    running: false
-
-    onExited: function (exitCode, exitStatus) {
-      if (isInhibited) {
-        Logger.w("IdleInhibitor", "Inhibitor process exited unexpectedly:", exitCode);
-        isInhibited = false;
-      }
-    }
-
-    onStarted: function () {
-      Logger.d("IdleInhibitor", "Inhibitor process started successfully");
-    }
+  function clearTimer() {
+    timeout = null;
+    countdown.stop();
   }
 
   Timer {
-    id: inhibitorTimeout
+    id: countdown
     repeat: true
-    interval: 1000 // 1 second
-    onTriggered: function () {
-      if (timeout == null) {
-        inhibitorTimeout.stop();
+    interval: 1000
+    onTriggered: {
+      if (root.timeout === null) {
+        stop();
         return;
       }
-
-      timeout -= 1;
-      if (timeout <= 0) {
-        removeManualInhibitor();
-        return;
+      root.timeout -= 1;
+      if (root.timeout <= 0) {
+        root.timeout = null;
+        stop();
+        root.setInhibited(false);
       }
     }
-  }
-
-  function manualToggle() {
-    timeout = null;
-    if (activeInhibitors.includes("manual")) {
-      removeManualInhibitor();
-      return false;
-    } else {
-      addManualInhibitor(null);
-      return true;
-    }
-  }
-
-  function changeTimeout(delta) {
-    if (timeout == null && delta < 0) {
-      return;
-    }
-
-    if (timeout == null && delta > 0) {
-      addManualInhibitor(timeout + delta);
-      return;
-    }
-
-    if (timeout + delta <= 0) {
-      removeManualInhibitor();
-      return;
-    }
-
-    if (timeout + delta > 0) {
-      addManualInhibitor(timeout + delta);
-      return;
-    }
-  }
-
-  function removeManualInhibitor() {
-    if (timeout !== null) {
-      timeout = null;
-      if (inhibitorTimeout.running) {
-        inhibitorTimeout.stop();
-      }
-    }
-
-    if (activeInhibitors.includes("manual")) {
-      removeInhibitor("manual");
-      ToastService.showNotice(I18n.tr("tooltips.keep-awake"), I18n.tr("common.disabled"), "keep-awake-off");
-      Logger.i("IdleInhibitor", "Manual inhibition disabled");
-    }
-  }
-
-  function addManualInhibitor(timeoutSec) {
-    if (!activeInhibitors.includes("manual")) {
-      addInhibitor("manual", "Manually activated by user");
-      ToastService.showNotice(I18n.tr("tooltips.keep-awake"), I18n.tr("common.enabled"), "keep-awake-on");
-    }
-
-    if (timeoutSec === null && timeout === null) {
-      Logger.i("IdleInhibitor", "Manual inhibition enabled");
-      return;
-    } else if (timeoutSec !== null && timeout === null) {
-      timeout = timeoutSec;
-      inhibitorTimeout.start();
-      Logger.i("IdleInhibitor", "Manual inhibition enabled with timeout:", timeoutSec);
-      return;
-    } else if (timeoutSec !== null && timeout !== null) {
-      timeout = timeoutSec;
-      Logger.i("IdleInhibitor", "Manual inhibition timeout changed to:", timeoutSec);
-      return;
-    } else if (timeoutSec === null && timeout !== null) {
-      timeout = null;
-      inhibitorTimeout.stop();
-      Logger.i("IdleInhibitor", "Manual inhibition timeout cleared");
-      return;
-    }
-  }
-
-  // Clean up on shutdown
-  Component.onDestruction: {
-    stopInhibition();
   }
 }

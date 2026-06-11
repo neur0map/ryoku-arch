@@ -1,16 +1,15 @@
 #!/bin/bash
 
-# Stages the Ryoku hyprlock + hypridle configs into ~/.config/hypr/ and
-# lets the system-shipped hypridle.service own the idle daemon lifecycle.
-# hypridle replaces swayidle
-# (Ryoku's Idle.qml is patched by ryoku-shell-branding.sh to skip its
-# internal swayidle spawn). On lid-close / suspend-prep, hypridle's
-# before_sleep_cmd fires `loginctl lock-session`, which triggers lock_cmd
-# via DBus. The lock command calls qylock's upstream Quickshell lockscreen
-# directly so qylock stays updateable from its own Git checkout.
+# Idle and lock are owned by the Ryoku shell now:
+#   - shell/modules/IdleMonitors.qml drives screensaver / DPMS / lock / suspend
+#     from GlobalConfig.general.idle (the single source of truth), and
+#   - shell/modules/LockBridge.qml renders qylock on logind Session Lock and
+#     before sleep via the C++ LogindManager (Ryoku.Internal).
 #
-# See config/hypr/hypridle.conf header for the full architecture rationale
-# and compositor-specific caveats around inhibit_sleep.
+# hypridle is retired: leaving it enabled double-fires the screensaver/lock
+# timers and its graphical-session.target gating left it dead on plain
+# start-hyprland sessions. This step masks it and removes its stale config, and
+# still stages the hyprlock config the lock keybind references.
 
 set -euo pipefail
 
@@ -18,23 +17,21 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)/lib/runtime-en
 
 HYPR_CONFIG_SRC="$RYOKU_PATH/config/hypr"
 HYPR_CONFIG_DEST="${XDG_CONFIG_HOME:-$HOME/.config}/hypr"
-stale_rebirth_hypridle_pattern='(^|/)hypridle -c .*/hypridle-rebirth[.]conf($| )'
+USER_SYSTEMD="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
 
 mkdir -p "$HYPR_CONFIG_DEST"
 
-for cfg in hypridle.conf hyprlock.conf; do
-  if [[ -f $HYPR_CONFIG_SRC/$cfg ]]; then
-    install -m 0644 "$HYPR_CONFIG_SRC/$cfg" "$HYPR_CONFIG_DEST/$cfg"
-  fi
-done
-rm -f "$HYPR_CONFIG_DEST/hypridle-rebirth.conf"
+if [[ -f $HYPR_CONFIG_SRC/hyprlock.conf ]]; then
+  install -m 0644 "$HYPR_CONFIG_SRC/hyprlock.conf" "$HYPR_CONFIG_DEST/hyprlock.conf"
+fi
 
-systemctl --user daemon-reload >/dev/null 2>&1 || true
-systemctl --user enable --now hypridle.service >/dev/null 2>&1 || true
+# Drop the retired hypridle config + its graphical-session autostart link.
+rm -f "$HYPR_CONFIG_DEST/hypridle.conf" "$HYPR_CONFIG_DEST/hypridle-rebirth.conf"
+rm -f "$USER_SYSTEMD/graphical-session.target.wants/hypridle.service"
 
-if systemctl --user is-active --quiet hypridle.service >/dev/null 2>&1 \
-  && command -v pgrep >/dev/null 2>&1 \
-  && command -v pkill >/dev/null 2>&1 \
-  && pgrep -f "$stale_rebirth_hypridle_pattern" >/dev/null 2>&1; then
-  pkill -f "$stale_rebirth_hypridle_pattern" >/dev/null 2>&1 || true
+# Stop + mask the service so nothing (dependency or hand-enable) revives it.
+if command -v systemctl >/dev/null 2>&1; then
+  systemctl --user disable --now hypridle.service >/dev/null 2>&1 || true
+  systemctl --user mask hypridle.service >/dev/null 2>&1 || true
+  systemctl --user daemon-reload >/dev/null 2>&1 || true
 fi

@@ -7,13 +7,15 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.s
 
 FORCE=false
 NO_REBUILD=false
+WRITE_STH_ONLY=false
 
 for arg in "$@"; do
   case $arg in
     --force) FORCE=true ;;
     --no-rebuild) NO_REBUILD=true ;;
+    --write-sth-config) WRITE_STH_ONLY=true ;;
     *)
-      echo "Usage: ryoku-hibernation-setup [--force] [--no-rebuild]" >&2
+      echo "Usage: ryoku-hibernation-setup [--force] [--no-rebuild] [--write-sth-config]" >&2
       exit 2
       ;;
   esac
@@ -24,7 +26,7 @@ if [[ ! -f /sys/power/image_size ]]; then
   exit 0
 fi
 
-if ! $NO_REBUILD && ! command -v limine-mkinitcpio &>/dev/null; then
+if ! $WRITE_STH_ONLY && ! $NO_REBUILD && ! command -v limine-mkinitcpio &>/dev/null; then
   echo "Skipping hibernation setup (requires Limine bootloader)"
   exit 0
 fi
@@ -32,6 +34,72 @@ fi
 MKINITCPIO_CONF="/etc/mkinitcpio.conf.d/ryoku_resume.conf"
 SWAP_FILE="/swap/swapfile"
 RESUME_DROP_IN="/etc/limine-entry-tool.d/resume.conf"
+
+# --- suspend-then-hibernate trigger -----------------------------------------
+# The groundwork above (swap, resume=, RTC alarm) is inert without a request to
+# actually suspend-then-hibernate: a plain lid suspend just rots in s2idle, and
+# on s2idle-only AMD laptops a long overnight sleep intermittently never wakes.
+# These drop-ins wire the trigger. Idempotent (Ryoku owns the 10-ryoku-* files).
+# RYOKU_ETC_PREFIX lets tests target a scratch dir without sudo.
+sth_etc_prefix="${RYOKU_ETC_PREFIX:-}"
+
+write_root() { # write_root <dest> ; file content on stdin
+  local dest="$1"
+  if [[ -n $sth_etc_prefix ]]; then
+    mkdir -p "$(dirname "$dest")"
+    cat >"$dest"
+  else
+    sudo mkdir -p "$(dirname "$dest")"
+    sudo tee "$dest" >/dev/null
+  fi
+}
+
+hibernation_ready() {
+  case "${RYOKU_ASSUME_HIBERNATION_READY:-}" in 1) return 0 ;; 0) return 1 ;; esac
+  [[ -f $MKINITCPIO_CONF ]] && grep -q "^HOOKS+=(resume)$" "$MKINITCPIO_CONF" || return 1
+  swapon --show 2>/dev/null | grep -q . || return 1
+  return 0
+}
+
+configure_suspend_then_hibernate() {
+  # No usable hibernate image -> requesting s-t-h would fail; skip quietly.
+  hibernation_ready || return 0
+
+  local logind_dir="$sth_etc_prefix/etc/systemd/logind.conf.d"
+  local sleep_dir="$sth_etc_prefix/etc/systemd/sleep.conf.d"
+  local delay="${RYOKU_HIBERNATE_DELAY_SEC:-50min}"
+
+  # Universal: how long to sit in s2idle before hibernating to disk. Short
+  # enough to dodge the s2idle long-sleep resume hang, long enough that a brief
+  # lid-close (meeting, transit) still fast-resumes from s2idle.
+  echo "Configuring suspend-then-hibernate (HibernateDelaySec=$delay)"
+  write_root "$sleep_dir/10-ryoku-hibernate-delay.conf" <<EOF
+# Managed by ryoku-hibernation-setup. Re-run the command to change.
+[Sleep]
+HibernateDelaySec=$delay
+EOF
+
+  # Laptop-only: route the lid + suspend key through suspend-then-hibernate.
+  # Desktops have no lid; leave their logind handling untouched.
+  if ryoku-hw-laptop; then
+    echo "Laptop: lid + suspend key -> suspend-then-hibernate"
+    write_root "$logind_dir/10-ryoku-lid.conf" <<'EOF'
+# Managed by ryoku-hibernation-setup. Re-run the command to change.
+[Login]
+HandleLidSwitch=suspend-then-hibernate
+HandleLidSwitchExternalPower=suspend-then-hibernate
+HandleSuspendKey=suspend-then-hibernate
+EOF
+    if [[ -z $sth_etc_prefix ]] && command -v systemctl >/dev/null 2>&1; then
+      sudo systemctl reload systemd-logind 2>/dev/null || true
+    fi
+  fi
+}
+
+if $WRITE_STH_ONLY; then
+  configure_suspend_then_hibernate
+  exit 0
+fi
 
 # Check if hibernation is already configured
 if [[ -f $MKINITCPIO_CONF ]] && grep -q "^HOOKS+=(resume)$" "$MKINITCPIO_CONF"; then
@@ -45,6 +113,7 @@ if [[ -f $MKINITCPIO_CONF ]] && grep -q "^HOOKS+=(resume)$" "$MKINITCPIO_CONF"; 
       $NO_REBUILD || sudo limine-mkinitcpio
     fi
   fi
+  configure_suspend_then_hibernate
   echo "Hibernation is already set up"
   exit 0
 fi
@@ -119,6 +188,8 @@ if grep -q "\[s2idle\]" /sys/power/mem_sleep 2>/dev/null; then
     sudo tee -a /etc/default/limine < "$LIMINE_DROP_IN" >/dev/null
   fi
 fi
+
+configure_suspend_then_hibernate
 
 if ! $NO_REBUILD; then
   # limine-mkinitcpio rebuilds initramfs/UKI and updates entries through

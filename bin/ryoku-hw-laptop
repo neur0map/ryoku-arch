@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# Detect whether this machine is a laptop (portable chassis with a lid) rather
+# than a desktop. Exit 0 on a laptop, 1 otherwise, so it reads in conditionals:
+#
+#   if ryoku-hw-laptop; then ... ; fi
+#
+# Used to gate laptop-only power behaviour (lid suspend, suspend-then-hibernate).
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/lib/runtime-env.sh"
+
+# Explicit override (tests, VMs, user choice): 1 = laptop, 0 = desktop.
+case "${RYOKU_ASSUME_LAPTOP:-}" in
+  1) exit 0 ;;
+  0) exit 1 ;;
+esac
+
+# DMI chassis type is authoritative on physical machines. SMBIOS portable types:
+# 8 Portable, 9 Laptop, 10 Notebook, 11 Hand Held, 14 Sub Notebook,
+# 30 Tablet, 31 Convertible, 32 Detachable.
+chassis_file="${RYOKU_CHASSIS_TYPE_FILE:-/sys/class/dmi/id/chassis_type}"
+if [[ -r $chassis_file ]]; then
+  case "$(<"$chassis_file")" in
+    8|9|10|11|14|30|31|32) exit 0 ;;
+    3|4|5|6|7|13|23|24|25) exit 1 ;;  # Desktop/tower/server/blade: not a laptop.
+  esac
+fi
+
+# Fallback for VMs / firmware that misreport chassis: a lid switch means laptop.
+# (A battery alone is not conclusive; some desktops/UPS expose BAT*.)
+if grep -qsi 'Lid Switch' /sys/class/input/event*/device/name 2>/dev/null; then
+  exit 0
+fi
+[[ -d /proc/acpi/button/lid ]] && compgen -G '/proc/acpi/button/lid/*' >/dev/null && exit 0
+
+exit 1

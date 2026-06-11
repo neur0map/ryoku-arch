@@ -15,6 +15,10 @@
   The `Publish shell installer` workflow uploads `shell-install/boot.sh` there as
   `install.sh`; the bootstrap pulls the live installer from the repo, so the link
   never needs updating.
+- **`ryoku-hw-laptop`**: chassis/lid-based laptop-vs-desktop detection that
+  returns an exit code for use in conditionals (`if ryoku-hw-laptop; then …`).
+  Gates laptop-only power behaviour (lid suspend-then-hibernate). Honours
+  `RYOKU_ASSUME_LAPTOP` / `RYOKU_CHASSIS_TYPE_FILE` overrides for VMs and tests.
 
 ### Changed
 
@@ -58,6 +62,42 @@
   sending the user to reboot into a session that would come up blank.
 - **System update force-refreshes the package db** (`pacman -Syyu`) so a stale
   local db cannot 404 on packages the mirror has already rebuilt.
+- **Laptops no longer rot in s2idle on lid-close** (the overnight "dead keyboard
+  on wake" hang): `ryoku-hibernation-setup` now wires the suspend-then-hibernate
+  it always prepared the groundwork for. On laptops a `logind.conf.d` drop-in
+  routes the lid + suspend key through `suspend-then-hibernate`, and a
+  `sleep.conf.d` `HibernateDelaySec` (50min) bounds the s2idle window so the
+  machine hibernates to disk instead of sitting in (and intermittently failing
+  to wake from) modern standby. A `[global]` migration backfills installs that
+  already have hibernation set up; desktops only get the (harmless) delay.
+- **Idle fires again** (screensaver, screen-off/DPMS, lock, idle-suspend): three
+  separate bugs silently pinned the screen on. (1) `inhibitWhenAudio` inhibited
+  idle on a *stream existing*, not on audio actually playing: it counted MPRIS
+  "Playing" sessions and even capture streams, so a browser/game tab reporting
+  "Playing" with no sound, or the shell's own Cava visualiser/beat-tracker audio
+  *capture* stream, blocked every idle action indefinitely. It now inhibits only
+  on an actual playback stream (`media.class` `Stream/Output/Audio`), ignoring
+  capture streams; genuine no-idle apps (fullscreen video) stay covered by the
+  per-monitor Wayland idle-inhibit (`respectInhibitors`). (2) The two competing
+  keep-awake toggles are unified onto one source of truth: `IdleInhibitorService`
+  (bar/control-center) is now a thin adapter over the persisted `IdleInhibitor`
+  (caffeine), and `IdleMonitors` gates on that single state, so turning
+  keep-awake "off" can no longer leave a second, stuck inhibitor blocking idle.
+  (3) The idle screensaver was killed the instant it appeared: opening its
+  fullscreen window resets `ext_idle`, and the monitor's `returnAction`
+  (`pkill org.ryoku.screensaver`) fired on that self-generated activity: a
+  self-kill loop, so it never stayed visible. The screensaver now dismisses
+  itself (`ryoku-cmd-screensaver` reads input and checks focus, like Omarchy)
+  and is no longer killed by the idle monitor.
+- **Idle-lock and lock-before-sleep render the lockscreen without hypridle**:
+  `LockBridge` wires the shell's logind watcher (`Ryoku.Internal.LogindManager`)
+  so `loginctl lock-session` (idle timeout, manual, or any client) and pre-sleep
+  locking launch qylock directly, honouring `lockBeforeSleep`. hypridle is retired.
+  It was left half-migrated (enabled but dead on plain `start-hyprland` sessions,
+  and double-firing the shell's screensaver/lock timers where it did run); it is
+  now masked, un-autostarted, and no longer the lock bridge.
+- **`ryoku-toggle-idle` works again**: it toggled a retired `swayidle`; it now
+  flips the unified keep-awake inhibitor through the shell IPC.
 
 ## [0.1.0-beta2] - 2026-06-08
 

@@ -35,15 +35,15 @@ class GeneralIdle : public ConfigObject {
     // user pick another (alacritty/ghostty/kitty).
     CONFIG_GLOBAL_PROPERTY(QString, screensaverTerminal, u"kitty"_s)
     // The single source of truth for idle behaviour, consumed by IdleMonitors.qml.
-    // The screensaver runs here (hypridle, its old trigger, is retired) so it actually
-    // fires; its returnAction stops it on activity.
+    // The screensaver runs here (hypridle, its old trigger, is retired). It has no
+    // returnAction: ryoku-cmd-screensaver dismisses itself on input, and an external
+    // kill would fire on the activity its own fullscreen launch generates (self-kill).
     CONFIG_GLOBAL_PROPERTY(QVariantList, timeouts,
         {
             vmap({
                 { u"kind"_s, u"screensaver"_s },
                 { u"timeout"_s, 300 },
                 { u"idleAction"_s, QStringList{ u"ryoku-launch-screensaver"_s } },
-                { u"returnAction"_s, QStringList{ u"pkill"_s, u"-f"_s, u"org.ryoku.screensaver"_s } },
             }),
             vmap({
                 { u"kind"_s, u"lock"_s },
