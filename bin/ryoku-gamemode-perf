@@ -1,0 +1,105 @@
+#!/bin/bash
+
+# Ryoku game mode hardware-performance helper. Runs as ROOT, invoked only by
+# ryoku-gamemode-perf@.service (ExecStart=enable %i, ExecStop=disable %i) — the
+# shell starts/stops that unit through a scoped polkit rule. Never a user-facing
+# command.
+#
+#   enable  full|base   Apply the knobs (base skips the NVIDIA clock lock).
+#   disable full|base   Restore every saved pre-state.
+#
+# Every knob is best-effort: missing sysfs paths are skipped so one absent file
+# never fails the unit. Pre-states are saved under a /run state dir (volatile),
+# so a reboot always self-heals. All roots are env-overridable for tests.
+
+set -euo pipefail
+
+DRM_ROOT="${RYOKU_GAMEMODE_DRM_ROOT:-/sys/class/drm}"
+CPUFREQ_ROOT="${RYOKU_GAMEMODE_CPUFREQ_ROOT:-/sys/devices/system/cpu/cpufreq}"
+STATE_DIR="${RYOKU_GAMEMODE_STATE_DIR:-/run/ryoku-gamemode}"
+NVIDIA_SMI="${RYOKU_GAMEMODE_NVIDIA_SMI:-nvidia-smi}"
+
+action="${1:-}"
+instance="${2:-full}"
+
+usage() {
+  echo "usage: ryoku-gamemode-perf enable|disable full|base" >&2
+  exit 1
+}
+
+[[ $action == "enable" || $action == "disable" ]] || usage
+
+save_and_write() { # sysfs_file state_name new_value
+  local file="$1" name="$2" value="$3"
+  [[ -w $file ]] || return 0
+  [[ -f $STATE_DIR/$name ]] || cat "$file" >"$STATE_DIR/$name"
+  printf '%s\n' "$value" >"$file"
+}
+
+restore() { # sysfs_file state_name
+  local file="$1" name="$2"
+  [[ -f $STATE_DIR/$name && -w $file ]] || return 0
+  cat "$STATE_DIR/$name" >"$file"
+  rm -f "$STATE_DIR/$name"
+}
+
+dpm_cards() {
+  local path base
+  for path in "$DRM_ROOT"/card[0-9]*; do
+    [[ -d $path ]] || continue
+    base="$(basename "$path")"
+    [[ $base == *-* ]] && continue   # skip cardN-CONNECTOR subdevices
+    [[ -f $path/device/power_dpm_force_performance_level ]] || continue
+    printf '%s\n' "$base"
+  done
+}
+
+nvidia_max_graphics_clock() {
+  "$NVIDIA_SMI" --query-gpu=clocks.max.graphics --format=csv,noheader,nounits 2>/dev/null \
+    | head -n1 | tr -dc '0-9'
+}
+
+if [[ $action == "enable" ]]; then
+  mkdir -p "$STATE_DIR"
+
+  # AMD GPUs: pin the power state to its highest level.
+  while IFS= read -r card; do
+    save_and_write "$DRM_ROOT/$card/device/power_dpm_force_performance_level" "dpm-$card" high
+  done < <(dpm_cards)
+
+  # CPU boost: global file (acpi-cpufreq) or per-policy files (amd_pstate).
+  if [[ -w $CPUFREQ_ROOT/boost ]]; then
+    save_and_write "$CPUFREQ_ROOT/boost" boost 1
+  else
+    for policy in "$CPUFREQ_ROOT"/policy[0-9]*; do
+      [[ -w $policy/boost ]] || continue
+      save_and_write "$policy/boost" "boost-$(basename "$policy")" 1
+    done
+  fi
+
+  # NVIDIA: lock graphics clocks to the card's max (full instance only).
+  if [[ $instance == "full" ]] && command -v "$NVIDIA_SMI" >/dev/null 2>&1; then
+    max="$(nvidia_max_graphics_clock)"
+    if [[ -n $max ]]; then
+      "$NVIDIA_SMI" -lgc "0,$max" >/dev/null 2>&1 && touch "$STATE_DIR/nvidia-locked" || true
+    fi
+  fi
+else
+  # Restore in reverse: NVIDIA, boost, dpm. Each step is independent.
+  if [[ -f $STATE_DIR/nvidia-locked ]]; then
+    command -v "$NVIDIA_SMI" >/dev/null 2>&1 && "$NVIDIA_SMI" -rgc >/dev/null 2>&1 || true
+    rm -f "$STATE_DIR/nvidia-locked"
+  fi
+
+  restore "$CPUFREQ_ROOT/boost" boost
+  for policy in "$CPUFREQ_ROOT"/policy[0-9]*; do
+    [[ -d $policy ]] || continue
+    restore "$policy/boost" "boost-$(basename "$policy")"
+  done
+
+  while IFS= read -r card; do
+    restore "$DRM_ROOT/$card/device/power_dpm_force_performance_level" "dpm-$card"
+  done < <(dpm_cards)
+
+  rmdir "$STATE_DIR" 2>/dev/null || true
+fi
