@@ -37,6 +37,8 @@ Singleton {
     property bool _visualsApplied: false
     property bool _wallpaperPaused: false
     property bool _nightLightInhibited: false
+    property bool _dndApplied: false
+    property bool _idleApplied: false
 
     // Pre-toggle states, restored on disable. Persisted in the state file so a
     // restarted shell process still restores correctly.
@@ -57,23 +59,25 @@ Singleton {
     }
 
     function setDynamicConfs(): void {
-        if (!GlobalConfig.gameMode.hyprlandVisuals)
-            return;
-
-        const opts = {
-            "animations:enabled": 0,
-            "decoration:shadow:enabled": 0,
-            "decoration:blur:enabled": 0,
-            "general:gaps_in": 0,
-            "general:gaps_out": 0,
-            "general:border_size": 1,
-            "decoration:rounding": 0,
-            "general:allow_tearing": 1
-        };
+        const opts = {};
+        if (GlobalConfig.gameMode.hyprlandVisuals) {
+            opts["animations:enabled"] = 0;
+            opts["decoration:shadow:enabled"] = 0;
+            opts["decoration:blur:enabled"] = 0;
+            opts["general:gaps_in"] = 0;
+            opts["general:gaps_out"] = 0;
+            opts["general:border_size"] = 1;
+            opts["decoration:rounding"] = 0;
+            opts["general:allow_tearing"] = 1;
+        }
+        // vrr and directScanout are independent toggles, not part of the
+        // visuals-off bundle — apply them regardless of hyprlandVisuals.
         if (GlobalConfig.gameMode.vrr)
             opts["misc:vrr"] = 2;
         if (GlobalConfig.gameMode.directScanout)
             opts["render:direct_scanout"] = 1;
+        if (Object.keys(opts).length === 0)
+            return;
         Hypr.extras.applyOptions(opts);
         root._visualsApplied = true;
     }
@@ -99,6 +103,9 @@ Singleton {
         const recovery = root._recoveredSession;
         root._recoveredSession = false;
         root.autoEnabled = recovery ? root.autoEnabled : (fromWatcher && enabled);
+        // Suppress the standalone perf-mode/profile toasts while game mode is
+        // the one flipping them (one gamepad toast is enough).
+        SGPower.PowerProfileService.beginGameModeSync();
 
         if (enabled) {
             if (!fromWatcher)
@@ -115,10 +122,14 @@ Singleton {
 
             setDynamicConfs();
 
-            if (GlobalConfig.gameMode.dnd)
+            if (GlobalConfig.gameMode.dnd) {
                 Notifs.dnd = true;
-            if (GlobalConfig.gameMode.idleInhibit)
+                root._dndApplied = true;
+            }
+            if (GlobalConfig.gameMode.idleInhibit) {
                 IdleInhibitor.enabled = true;
+                root._idleApplied = true;
+            }
             if (GlobalConfig.gameMode.nightLightOff) {
                 SGLocation.NightLightService.inhibited = true;
                 root._nightLightInhibited = true;
@@ -153,10 +164,14 @@ Singleton {
 
             // Restore session states only if they are still what we set — a
             // user who deliberately changed these mid-game keeps their choice.
-            if (GlobalConfig.gameMode.dnd && Notifs.dnd)
+            if (root._dndApplied && Notifs.dnd) {
                 Notifs.dnd = root.prevDnd;
-            if (GlobalConfig.gameMode.idleInhibit && IdleInhibitor.enabled)
+                root._dndApplied = false;
+            }
+            if (root._idleApplied && IdleInhibitor.enabled) {
                 IdleInhibitor.enabled = root.prevIdleInhibit;
+                root._idleApplied = false;
+            }
             if (root._nightLightInhibited) {
                 SGLocation.NightLightService.inhibited = false;
                 root._nightLightInhibited = false;

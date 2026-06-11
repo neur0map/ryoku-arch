@@ -16,6 +16,21 @@ Singleton {
   // Not a power profile but a volatile property to quickly disable shadows, animations, etc..
   property bool performanceMode: false
 
+  // Game mode drives performanceMode and the power profile together; it calls
+  // beginGameModeSync() so the standalone toasts below stay quiet while game
+  // mode is the change source (the profile PropertiesChanged is async and can
+  // land after game mode's handler returns, so we suppress on a short window).
+  property bool gameModeSync: false
+  Timer {
+    id: gameModeSyncTimer
+    interval: 2000
+    onTriggered: root.gameModeSync = false
+  }
+  function beginGameModeSync() {
+    root.gameModeSync = true;
+    gameModeSyncTimer.restart();
+  }
+
   function getName(p) {
     if (!available)
       return "Unknown";
@@ -100,6 +115,8 @@ Singleton {
     target: powerProfiles
     function onProfileChanged() {
       root.profile = powerProfiles.profile;
+      if (root.gameModeSync)
+        return;
       const profileName = root.getName();
       if (profileName !== "Unknown") {
         ToastService.showNotice(I18n.tr("toast.power-profile.profile-name", {
@@ -122,6 +139,8 @@ Singleton {
   }
 
   onPerformanceModeChanged: {
+    if (root.gameModeSync)
+      return;
     if (performanceMode) {
       ToastService.showNotice(I18n.tr("toast.performance-mode.label"), I18n.tr("toast.performance-mode.enabled"), "rocket");
     } else {
