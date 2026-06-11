@@ -242,8 +242,13 @@ void HyprExtras::refreshOptions() {
 
         for (const auto& o : std::as_const(options)) {
             const auto obj = o.toObject();
-            const auto key = obj.value("value").toString();
-            const auto value = obj.value("data").toObject().value("current").toVariant();
+            // Hyprland 0.55 keys descriptions by "name" with the live value at
+            // the top-level "current"; older builds used "value" + "data.current".
+            const auto key = obj.contains("name") ? obj.value("name").toString() : obj.value("value").toString();
+            const auto value = obj.contains("current") ? obj.value("current").toVariant() : obj.value("data").toObject().value("current").toVariant();
+            if (key.isEmpty()) {
+                continue;
+            }
             if (m_options.value(key) != value) {
                 dirty = true;
                 m_options.insert(key, value);
