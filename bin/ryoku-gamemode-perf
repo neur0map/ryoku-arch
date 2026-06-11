@@ -56,6 +56,17 @@ dpm_cards() {
   done
 }
 
+intel_gpu_cards() {
+  local path base
+  for path in "$DRM_ROOT"/card[0-9]*; do
+    [[ -d $path ]] || continue
+    base="$(basename "$path")"
+    [[ $base == *-* ]] && continue   # skip cardN-CONNECTOR subdevices
+    [[ -f $path/gt_min_freq_mhz ]] || continue   # i915 Intel iGPU marker
+    printf '%s\n' "$base"
+  done
+}
+
 nvidia_max_graphics_clock() {
   "$NVIDIA_SMI" --query-gpu=clocks.max.graphics --format=csv,noheader,nounits 2>/dev/null \
     | awk 'NR==1' | tr -dc '0-9'
@@ -68,6 +79,17 @@ if [[ $action == "enable" ]]; then
   while IFS= read -r card; do
     save_and_write "$DRM_ROOT/$card/device/power_dpm_force_performance_level" "dpm-$card" high
   done < <(dpm_cards)
+
+  # Intel iGPUs (i915): pin the GT clock to the hardware max (gt_RP0). Raise the
+  # ceiling first so the floor can follow without violating min <= max.
+  while IFS= read -r card; do
+    cdir="$DRM_ROOT/$card"
+    rp0="$(cat "$cdir/gt_RP0_freq_mhz" 2>/dev/null || cat "$cdir/gt_max_freq_mhz" 2>/dev/null || true)"
+    [[ -n $rp0 ]] || continue
+    save_and_write "$cdir/gt_max_freq_mhz" "igpu-max-$card" "$rp0"
+    save_and_write "$cdir/gt_boost_freq_mhz" "igpu-boost-$card" "$rp0"
+    save_and_write "$cdir/gt_min_freq_mhz" "igpu-min-$card" "$rp0"
+  done < <(intel_gpu_cards)
 
   # CPU boost: global file (acpi-cpufreq) or per-policy files (amd_pstate).
   if [[ -w $CPUFREQ_ROOT/boost ]]; then
@@ -90,7 +112,7 @@ if [[ $action == "enable" ]]; then
     fi
   fi
 else
-  # Restore in reverse: NVIDIA, turbo, boost, dpm. Each step is independent.
+  # Restore in reverse: NVIDIA, turbo, boost, iGPU, dpm. Each step is independent.
   if [[ -f $STATE_DIR/nvidia-locked ]]; then
     command -v "$NVIDIA_SMI" >/dev/null 2>&1 && "$NVIDIA_SMI" -rgc >/dev/null 2>&1 || true
     rm -f "$STATE_DIR/nvidia-locked"
@@ -103,6 +125,14 @@ else
     [[ -d $policy ]] || continue
     restore "$policy/boost" "boost-$(basename "$policy")"
   done
+
+  # Intel iGPUs: lower the floor before the ceiling so min <= max holds.
+  while IFS= read -r card; do
+    cdir="$DRM_ROOT/$card"
+    restore "$cdir/gt_min_freq_mhz" "igpu-min-$card"
+    restore "$cdir/gt_max_freq_mhz" "igpu-max-$card"
+    restore "$cdir/gt_boost_freq_mhz" "igpu-boost-$card"
+  done < <(intel_gpu_cards)
 
   while IFS= read -r card; do
     restore "$DRM_ROOT/$card/device/power_dpm_force_performance_level" "dpm-$card"

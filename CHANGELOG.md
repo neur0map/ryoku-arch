@@ -10,8 +10,9 @@
   direct scanout and tearing, freezes shell animations, silences notifications,
   keeps the machine awake, pauses night light and live wallpapers, switches to
   the performance power profile, and, through a polkit-scoped root unit
-  (`ryoku-gamemode-perf@`) shipped by a `[global]` migration, forces AMD GPU
-  dpm levels high, CPU boost on, and locks NVIDIA clocks. Everything restores on
+  (`ryoku-gamemode-perf@`) shipped by a `[global]` migration, pins GPU clocks
+  (AMD dpm high, Intel iGPU to max, NVIDIA clock lock) and forces CPU turbo on
+  across AMD/Intel/acpi-cpufreq. Everything restores on
   the second click, with pre-toggle state remembered across shell restarts. Games
   launched via `gamemoderun` (gaming profile) auto-toggle it. Every piece is
   configurable in Settings → Game Mode.

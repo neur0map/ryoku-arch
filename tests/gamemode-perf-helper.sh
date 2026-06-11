@@ -166,4 +166,26 @@ run_helper "$tmp" disable full
   || fail "disable should restore the intel no_turbo pre-state"
 rm -rf "$tmp"
 
+# ── Intel iGPU (i915): pin GT clock to gt_RP0, restore on disable ─────────────
+tmp="$(mktemp -d)"
+make_env "$tmp"
+igpu="$tmp/drm/card1"   # give card1 the i915 gt_* knobs (no dpm knob = not AMD)
+printf '300\n' >"$igpu/gt_min_freq_mhz"
+printf '1100\n' >"$igpu/gt_max_freq_mhz"
+printf '1100\n' >"$igpu/gt_boost_freq_mhz"
+printf '1300\n' >"$igpu/gt_RP0_freq_mhz"
+run_helper "$tmp" enable full
+[[ "$(cat "$igpu/gt_min_freq_mhz")" == "1300" ]] \
+  || fail "enable should raise the Intel iGPU min freq to gt_RP0"
+[[ "$(cat "$igpu/gt_max_freq_mhz")" == "1300" ]] \
+  || fail "enable should raise the Intel iGPU max freq to gt_RP0"
+[[ "$(cat "$tmp/state/igpu-min-card1")" == "300" ]] \
+  || fail "enable should save the Intel iGPU min pre-state"
+run_helper "$tmp" disable full
+[[ "$(cat "$igpu/gt_min_freq_mhz")" == "300" ]] \
+  || fail "disable should restore the Intel iGPU min freq"
+[[ "$(cat "$igpu/gt_max_freq_mhz")" == "1100" ]] \
+  || fail "disable should restore the Intel iGPU max freq"
+rm -rf "$tmp"
+
 echo "PASS: gamemode perf helper"
