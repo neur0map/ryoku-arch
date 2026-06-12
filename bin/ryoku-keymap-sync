@@ -1,0 +1,209 @@
+#!/bin/bash
+
+set -euo pipefail
+
+# Sync the graphical (X11/greeter) keyboard layout to the console keymap.
+#
+# The SDDM greeter authenticates the typed password through the X11/XKB layout.
+# The LUKS disk-unlock prompt and the TTYs use the console keymap. The installer
+# only sets the console keymap (archinstall's locale_config.kb_layout writes
+# /etc/vconsole.conf KEYMAP=), so the X11 layout is never configured and the
+# greeter falls back to "us". A non-US user then sets their account/disk password
+# with their real layout, unlocks the disk and logs in on a TTY just fine, but the
+# qylock SDDM greeter rejects the very same password because it reads different
+# characters under the "us" layout.
+#
+# This derives the X11 layout/model/variant/options from the console keymap and
+# writes /etc/X11/xorg.conf.d/00-keyboard.conf (what the SDDM greeter and Xorg
+# read) plus XKBLAYOUT/XKBVARIANT in /etc/vconsole.conf, so the greeter, TTY and
+# disk-unlock prompt all agree on what the keys mean.
+#
+# Usage:
+#   ryoku-keymap-sync [--root DIR] [--keymap NAME] [--force] [--quiet]
+#     --root DIR     operate on DIR instead of / (the install chroot, e.g. /mnt)
+#     --keymap NAME  console keymap to convert (default: KEYMAP from vconsole.conf)
+#     --force        set the X11 layout even if a non-"us" one is already present
+#     --quiet        only print on changes or errors
+
+root="/"
+keymap=""
+force=0
+quiet=0
+
+while (( $# > 0 )); do
+  case "$1" in
+    --root) root="${2:?--root needs a path}"; shift 2 ;;
+    --keymap) keymap="${2:?--keymap needs a name}"; shift 2 ;;
+    --force) force=1; shift ;;
+    --quiet) quiet=1; shift ;;
+    -h | --help)
+      sed -n '6,28p' "$0" | sed 's/^# \{0,1\}//'
+      exit 0
+      ;;
+    *) echo "ryoku-keymap-sync: unknown argument '$1'" >&2; exit 2 ;;
+  esac
+done
+
+root="${root%/}"
+[[ -z $root ]] && root="/"
+
+vconsole="$root/etc/vconsole.conf"
+x11_conf="$root/etc/X11/xorg.conf.d/00-keyboard.conf"
+model_map="$root/usr/share/systemd/kbd-model-map"
+# Fall back to the running system's map when the target root doesn't ship one
+# yet (e.g. very early in an install chroot).
+[[ -f $model_map ]] || model_map="/usr/share/systemd/kbd-model-map"
+
+log() { (( quiet )) || printf '%s\n' "$*"; }
+warn() { printf 'ryoku-keymap-sync: %s\n' "$*" >&2; }
+
+# Elevate file writes only when the target tree is not already writable. This
+# keeps us sudo-free as root (install chroot) and when --root points at a tree
+# we own, while still elevating for the live system run as a normal user.
+_priv_cmd=()
+if (( EUID != 0 )) && ! { [[ -w $root/etc ]] || { [[ ! -e $root/etc ]] && [[ -w $root ]]; }; }; then
+  _priv_cmd=(sudo)
+fi
+_priv() { "${_priv_cmd[@]}" "$@"; }
+
+read_vconsole_value() {
+  local key="$1"
+  [[ -f $vconsole ]] || return 0
+  sed -n -E "s/^[[:space:]]*${key}=\"?([^\"]*)\"?[[:space:]]*$/\1/p" "$vconsole" | tail -n1
+}
+
+# Resolve the console keymap to use.
+if [[ -z $keymap ]]; then
+  keymap="$(read_vconsole_value KEYMAP)"
+fi
+if [[ -z $keymap ]]; then
+  log "no console keymap configured ($vconsole); nothing to sync"
+  exit 0
+fi
+
+# Console keymaps the configurator offers that systemd's kbd-model-map does not
+# carry an exact row for. Maps console keymap -> "layout model variant options"
+# ("-" means unset). Keeps the greeter in step with the disk-unlock keymap for
+# layouts kbd-model-map misses.
+supplement_map() {
+  case "$1" in
+    cz)            printf '%s' "cz pc105 - terminate:ctrl_alt_bksp" ;;
+    pl)            printf '%s' "pl pc105 - terminate:ctrl_alt_bksp" ;;
+    no-latin1)     printf '%s' "no pc105 - terminate:ctrl_alt_bksp" ;;
+    de_CH-latin1)  printf '%s' "ch pc105 de_nodeadkeys terminate:ctrl_alt_bksp" ;;
+    bg-cp1251)     printf '%s' "bg,us pc105 - terminate:ctrl_alt_bksp,grp:shifts_toggle" ;;
+    kyrgyz)        printf '%s' "kg pc105 - terminate:ctrl_alt_bksp" ;;
+    colemak)       printf '%s' "us pc105 colemak terminate:ctrl_alt_bksp" ;;
+    ua)            printf '%s' "ua,us pc105 - terminate:ctrl_alt_bksp,grp:shifts_toggle" ;;
+    az | azerty)   printf '%s' "az pc105 - terminate:ctrl_alt_bksp" ;;
+    *)             return 1 ;;
+  esac
+}
+
+# Look a console keymap up in kbd-model-map (first column == keymap).
+model_map_row() {
+  local key="$1"
+  [[ -f $model_map ]] || return 1
+  # Note: an `exit` inside the match rule still runs END, and an `exit` in END
+  # would override our status, so signal success/failure via a flag instead.
+  awk -v k="$key" '$1==k { print $2, $3, $4, $5; f=1; exit } END { exit !f }' "$model_map"
+}
+
+resolve_xkb() {
+  local key="$1" row=""
+
+  if row="$(model_map_row "$key")"; then printf '%s' "$row"; return 0; fi
+  if row="$(supplement_map "$key")"; then printf '%s' "$row"; return 0; fi
+
+  # Strip encoding/layout-detail suffixes that do not change the letters and
+  # retry, so e.g. "fr-latin1" resolves like "fr".
+  local stripped="$key"
+  stripped="${stripped%-latin1}"
+  stripped="${stripped%-latin9}"
+  stripped="${stripped%-cp1251}"
+  stripped="${stripped%-utf8}"
+  stripped="${stripped%-utf}"
+  stripped="${stripped%_alt-UTF8}"
+  if [[ $stripped != "$key" ]]; then
+    if row="$(model_map_row "$stripped")"; then printf '%s' "$row"; return 0; fi
+    if row="$(supplement_map "$stripped")"; then printf '%s' "$row"; return 0; fi
+  fi
+
+  return 1
+}
+
+if ! resolved="$(resolve_xkb "$keymap")"; then
+  warn "could not map console keymap '$keymap' to an X11 layout; leaving the greeter keymap unchanged"
+  exit 0
+fi
+
+read -r xlayout xmodel xvariant xoptions <<<"$resolved"
+[[ $xmodel == "-" ]] && xmodel=""
+[[ $xvariant == "-" ]] && xvariant=""
+[[ $xoptions == "-" ]] && xoptions=""
+
+# A plain "us" layout is the inherited default. With nothing configured yet
+# there is nothing to correct (and us-layout users are unaffected by the bug),
+# so stay a no-op rather than writing a redundant config.
+if [[ $xlayout == "us" && -z $xvariant && ! -f $x11_conf ]] && (( ! force )); then
+  log "console keymap '$keymap' uses the default us layout; greeter keymap already correct"
+  exit 0
+fi
+
+# Decide whether to (re)write. Without --force, only fix the broken case: no X11
+# layout configured, or the inherited default "us" while the user types a
+# non-"us" layout. Never clobber a deliberate non-"us" X11 choice.
+current_xlayout=""
+if [[ -f $x11_conf ]]; then
+  current_xlayout="$(sed -n -E 's/^[[:space:]]*Option[[:space:]]+"XkbLayout"[[:space:]]+"([^"]*)".*$/\1/p' "$x11_conf" | tail -n1)"
+fi
+
+if [[ $current_xlayout == "$xlayout" ]] && (( ! force )); then
+  log "greeter keymap already matches console keymap '$keymap' (X11 layout '$xlayout')"
+  exit 0
+fi
+
+if [[ -n $current_xlayout && $current_xlayout != "us" && $current_xlayout != "$xlayout" ]] && (( ! force )); then
+  warn "X11 layout '$current_xlayout' differs from console keymap '$keymap' (-> '$xlayout'); not overriding a deliberate choice. Re-run with --force to override."
+  exit 0
+fi
+
+# Build the InputClass block.
+tmp_x11="$(mktemp)"
+trap 'rm -f "$tmp_x11"' EXIT
+{
+  printf '%s\n' '# Written by ryoku-keymap-sync: keep the SDDM greeter in step with the'
+  printf '%s\n' '# console keymap so passwords set/typed at the disk-unlock prompt and on a'
+  printf '%s\n' '# TTY also work at the graphical login. Re-run ryoku-keymap-sync to refresh.'
+  printf '%s\n' 'Section "InputClass"'
+  printf '%s\n' '        Identifier "system-keyboard"'
+  printf '%s\n' '        MatchIsKeyboard "on"'
+  printf '        Option "XkbLayout" "%s"\n' "$xlayout"
+  [[ -n $xmodel ]] && printf '        Option "XkbModel" "%s"\n' "$xmodel"
+  [[ -n $xvariant ]] && printf '        Option "XkbVariant" "%s"\n' "$xvariant"
+  [[ -n $xoptions ]] && printf '        Option "XkbOptions" "%s"\n' "$xoptions"
+  printf '%s\n' 'EndSection'
+} >"$tmp_x11"
+
+_priv mkdir -p "$root/etc/X11/xorg.conf.d"
+_priv cp "$tmp_x11" "$x11_conf"
+_priv chmod 644 "$x11_conf"
+
+# Mirror the layout into vconsole.conf's XKB* keys. localed and Ryoku's
+# detect-keyboard-layout.sh read these to keep Hyprland's input layout in step.
+if [[ -f $vconsole ]]; then
+  tmp_vc="$(mktemp)"
+  trap 'rm -f "$tmp_x11" "$tmp_vc"' EXIT
+  # Drop any existing XKB* lines, then append the fresh ones.
+  grep -vE '^[[:space:]]*XKB(LAYOUT|VARIANT|MODEL|OPTIONS)=' "$vconsole" >"$tmp_vc" || true
+  {
+    printf 'XKBLAYOUT="%s"\n' "$xlayout"
+    [[ -n $xvariant ]] && printf 'XKBVARIANT="%s"\n' "$xvariant"
+    [[ -n $xmodel ]] && printf 'XKBMODEL="%s"\n' "$xmodel"
+    [[ -n $xoptions ]] && printf 'XKBOPTIONS="%s"\n' "$xoptions"
+  } >>"$tmp_vc"
+  _priv cp "$tmp_vc" "$vconsole"
+  _priv chmod 644 "$vconsole"
+fi
+
+log "synced greeter keymap: console '$keymap' -> X11 layout '$xlayout'${xvariant:+ ($xvariant)}"

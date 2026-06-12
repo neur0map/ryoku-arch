@@ -60,6 +60,20 @@
 
 ### Fixed
 
+- **Graphical login accepts the password set at install (qylock SDDM greeter)**:
+  the installer configured only the console keymap (vconsole `KEYMAP`, used by the
+  LUKS disk-unlock prompt and the TTYs) and left the X11/XKB layout the SDDM
+  greeter authenticates through at the inherited `us` default. A non-US user could
+  unlock the encrypted disk and log in on a TTY, but the greeter rejected the very
+  same password because it read the keys under `us`: "credentials work on tty,
+  not on the lockscreen". A new `ryoku-keymap-sync` derives the matching X11
+  layout/variant from the console keymap (systemd's `kbd-model-map` plus a
+  supplement for the handful it omits, e.g. `cz`/`pl`/`no-latin1`/`de_CH-latin1`)
+  and writes `/etc/X11/xorg.conf.d/00-keyboard.conf` (and `XKBLAYOUT`, so Hyprland
+  inherits it). It runs at install before the first greeter, a migration repairs
+  existing installs, and `ryoku-call911now` re-runs it so a user locked out of the
+  greeter can fix it from a TTY. It is a no-op on us-layout systems and never
+  overrides a deliberate X11 keymap choice.
 - **Game mode toggle works again on the Lua Hyprland config**: the shell sent
   legacy `keyword` IPC requests, which Hyprland 0.55+ rejects in Lua mode
   ("keyword can't work with non-legacy parsers"), so the Quick Toggles gamepad

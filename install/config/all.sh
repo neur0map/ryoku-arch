@@ -11,6 +11,7 @@ run_logged $RYOKU_INSTALL/config/increase-lockout-limit.sh
 run_logged $RYOKU_INSTALL/config/ssh-flakiness.sh
 run_logged $RYOKU_INSTALL/config/increase-file-watchers.sh
 run_logged $RYOKU_INSTALL/config/increase-fd-limit.sh
+run_logged $RYOKU_INSTALL/config/sync-greeter-keymap.sh
 run_logged $RYOKU_INSTALL/config/detect-keyboard-layout.sh
 run_logged $RYOKU_INSTALL/config/xcompose.sh
 run_logged $RYOKU_INSTALL/config/mise-work.sh

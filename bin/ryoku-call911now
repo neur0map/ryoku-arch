@@ -950,6 +950,13 @@ main() {
     RYOKU_PATH="$ryoku_path" bash "$ryoku_path/bin/ryoku-verify-hypr-config" || true
   fi
 
+  step "Repairing graphical-login keymap (so a TTY-valid password also works at the greeter)"
+  if [[ -x $ryoku_path/bin/ryoku-keymap-sync ]]; then
+    RYOKU_PATH="$ryoku_path" "$ryoku_path/bin/ryoku-keymap-sync" || true
+  elif [[ -f $ryoku_path/bin/ryoku-keymap-sync ]]; then
+    RYOKU_PATH="$ryoku_path" bash "$ryoku_path/bin/ryoku-keymap-sync" || true
+  fi
+
   print_result
   run_latest_doctor
   run_normal_update || true
