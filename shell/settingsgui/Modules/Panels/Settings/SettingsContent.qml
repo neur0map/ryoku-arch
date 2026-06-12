@@ -657,6 +657,8 @@ Item {
     // settings button opening straight to the Desktop Widgets tab).
     if (Visibilities.pendingSettingsTab === "DesktopWidgets")
       requestedTab = SettingsPanel.Tab.DesktopWidgets;
+    if (Visibilities.pendingSettingsTab === "Connections")
+      requestedTab = SettingsPanel.Tab.Connections;
     if (Visibilities.pendingSettingsTab.length > 0)
       Visibilities.pendingSettingsTab = "";
     selectTabById(requestedTab);

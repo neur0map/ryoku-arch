@@ -170,7 +170,6 @@ Item {
         anchors.centerIn: parent
 
         opacity: 0
-        scale: 0.8
         active: false
 
         states: State {
@@ -180,7 +179,6 @@ Item {
             PropertyChanges {
                 popout.active: true
                 popout.opacity: 1
-                popout.scale: 1
             }
         }
 
@@ -191,7 +189,7 @@ Item {
 
                 SequentialAnimation {
                     Anim {
-                        properties: "opacity,scale"
+                        property: "opacity"
                         type: Anim.StandardSmall
                     }
                     PropertyAction {
@@ -210,7 +208,7 @@ Item {
                         property: "active"
                     }
                     Anim {
-                        properties: "opacity,scale"
+                        property: "opacity"
                     }
                 }
             }

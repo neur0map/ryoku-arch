@@ -4,6 +4,23 @@
 
 ### Added
 
+- **Swappable bar designs**: the visible bar is now a selectable *design*, chosen
+  in Settings → Bar → Appearance. Ships `sidebar-left` (the original vertical bar,
+  unchanged default), `sidebar-compact`, and a Brain_Shell-inspired `top-notch`
+  three-notch top bar (left: logo + workspaces; center: a dynamic island showing
+  now-playing or the clock; right: tray + status + power). Designs are declarative
+  data (`bar.design`/`bar.edge`); switching is non-destructive (only `bar.design`
+  changes, so your widget tweaks survive). The frame, wrappers, plugins and IPC
+  remain shell infrastructure; only the visible bar's template/edge change, with
+  the frame/wrappers/regions now edge-aware. Third-party "rice" designs import as
+  validated JSON via `ryoku-bar-design-import`, which hard-rejects any runtime
+  (IPC, daemons, commands, embedded code) so a foreign design can only contribute
+  declarative style. (Top-notch popout-on-click and bar-scroll are a follow-up.)
+- **Bar popouts emerge from the frame**: status, tray, network/bluetooth/battery
+  and window-peek popouts now slide out of, and retract back into, the bar's
+  edge on one synchronized spatial timeline, instead of zooming in from their own
+  centre and fading out before the slide finishes. The top-notch drops them down
+  from the strip; the sidebar still slides them out sideways.
 - **Game mode is now a full performance bundle**: one click on the Quick Toggles
   gamepad button (or `ryoku-shell ipc gameMode toggle`) disables compositor
   visuals (animations, blur, shadows, gaps, rounding), enables fullscreen VRR,

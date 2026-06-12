@@ -40,6 +40,25 @@ StyledWindow {
     readonly property real borderRounding: contentItem.Config.border.rounding * (1 - fsTransitionProg)
     readonly property real shadowOpacity: 0.7 * (1 - fsTransitionProg)
     readonly property real borderLayoutThickness: hasFullscreen ? 0 : contentItem.Config.border.thickness
+    // Per-edge inset: the bar's edge reserves the bar's thickness, the other
+    // three reserve the border thickness. For edge === "left" these reduce to
+    // the original (bar.implicitWidth on the left, borderThickness elsewhere).
+    readonly property real barInsetLeft: bar.edge === "left" ? bar.thickness : root.borderThickness
+    readonly property real barInsetTop: bar.edge === "top" ? bar.thickness : root.borderThickness
+    readonly property real barInsetRight: bar.edge === "right" ? bar.thickness : root.borderThickness
+    readonly property real barInsetBottom: bar.edge === "bottom" ? bar.thickness : root.borderThickness
+    // Frame-border inset: like barInset, but only thickens the border when the
+    // bar fills its edge (sidebar). A non-filling bar (top-notch) keeps a thin
+    // border and draws its own notches, so wallpaper shows in the gaps.
+    readonly property real barBorderInsetLeft: bar.edge === "left" && bar.fillsEdge ? bar.thickness : root.borderThickness
+    readonly property real barBorderInsetTop: bar.edge === "top" && bar.fillsEdge ? bar.thickness : root.borderThickness
+    readonly property real barBorderInsetRight: bar.edge === "right" && bar.fillsEdge ? bar.thickness : root.borderThickness
+    readonly property real barBorderInsetBottom: bar.edge === "bottom" && bar.fillsEdge ? bar.thickness : root.borderThickness
+    // True when the bar fills its edge (sidebar). A non-filling bar (top-notch)
+    // shows wallpaper in the gaps between notches, so a fully-closed panel must
+    // contribute nothing to the blob field — otherwise its tucked-under blob
+    // bulges through the thin top border into those gaps.
+    readonly property bool barFillsEdge: bar.fillsEdge
 
     readonly property int dragMaskPadding: {
         if (focusGrab.active || panels.popouts.isDetached)
@@ -86,8 +105,8 @@ StyledWindow {
     Region {
         id: emptyRegion
 
-        x: panels.notifications.x + bar.implicitWidth
-        y: panels.notifications.y + root.borderThickness
+        x: panels.notifications.x + root.barInsetLeft
+        y: panels.notifications.y + root.barInsetTop
         width: panels.notifications.width
         height: panels.notifications.height
 
@@ -163,10 +182,10 @@ StyledWindow {
             anchors.margins: -50 // Make border thicker to smooth out bulge from closed drawers
             group: blobGroup
             radius: root.borderRounding
-            borderLeft: bar.implicitWidth - anchors.margins - root.sdfBorderOffset
-            borderRight: root.borderThickness - anchors.margins - root.sdfBorderOffset
-            borderTop: root.borderThickness - anchors.margins - root.sdfBorderOffset
-            borderBottom: root.borderThickness - anchors.margins - root.sdfBorderOffset
+            borderLeft: root.barBorderInsetLeft - anchors.margins - root.sdfBorderOffset
+            borderRight: root.barBorderInsetRight - anchors.margins - root.sdfBorderOffset
+            borderTop: root.barBorderInsetTop - anchors.margins - root.sdfBorderOffset
+            borderBottom: root.barBorderInsetBottom - anchors.margins - root.sdfBorderOffset
         }
 
         PanelBg {
@@ -174,6 +193,7 @@ StyledWindow {
 
             panel: panels.dashboard
             deformAmount: 0.1
+            attachTop: true
         }
 
         PanelBg {
@@ -181,6 +201,7 @@ StyledWindow {
 
             panel: panels.settings
             deformAmount: 0.1
+            attachTop: true
         }
 
         Repeater {
@@ -191,6 +212,7 @@ StyledWindow {
 
                 panel: modelData
                 deformAmount: 0.1
+                attachTop: (modelData?.edge ?? "top") === "top"
 
                 Binding {
                     target: modelData
@@ -226,6 +248,7 @@ StyledWindow {
 
             panel: panels.island
             deformAmount: 0.1
+            attachTop: true
         }
 
         PanelBg {
@@ -233,7 +256,7 @@ StyledWindow {
 
             panel: panels.sessionWrapper
             deformAmount: 0.2
-            x: panels.sessionWrapper.x + panels.session.x + bar.implicitWidth
+            x: panels.sessionWrapper.x + panels.session.x + root.barInsetLeft
             implicitWidth: panels.session.width
         }
 
@@ -252,7 +275,7 @@ StyledWindow {
 
             panel: panels.osdWrapper
             deformAmount: 0.25
-            x: panels.osdWrapper.x + panels.osd.x + bar.implicitWidth
+            x: panels.osdWrapper.x + panels.osd.x + root.barInsetLeft
             implicitWidth: panels.osd.width
         }
 
@@ -260,6 +283,7 @@ StyledWindow {
             id: notifsBg
 
             panel: panels.notifications
+            attachTop: true
         }
 
         PanelBg {
@@ -279,7 +303,8 @@ StyledWindow {
 
             panel: panels.popoutsWrapper
             deformAmount: panels.popouts.isDetached ? 0.05 : panels.popouts.hasCurrent ? 0.15 : 0.1
-            x: panels.popoutsWrapper.x + panels.popouts.x + bar.implicitWidth - panels.popouts.width * extraWidth
+            attachTop: true
+            x: panels.popoutsWrapper.x + panels.popouts.x + root.barInsetLeft - panels.popouts.width * extraWidth
             implicitWidth: panels.popouts.width * (1 + extraWidth)
 
             Behavior on extraWidth {
@@ -375,9 +400,6 @@ StyledWindow {
         BarWrapper {
             id: bar
 
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-
             screen: root.screen
             visibilities: visibilities
             popouts: panels.popouts
@@ -391,13 +413,26 @@ StyledWindow {
     component PanelBg: BlobRect {
         property Item panel: null
         property real deformAmount: 0.15
+        // A panel that drops from a non-filling top bar (top-notch) must reach up
+        // into the bar region so its blob fuses with the thin top border; without
+        // this it floats below the notches with a wallpaper gap above it.
+        property bool attachTop: false
+        // Grows with the panel's open progress so the neck never pops in/out a
+        // fixed slab on a frame or two — the open/close reads as one smooth slide.
+        readonly property real topReach: attachTop && root.bar.edge === "top" && !root.barFillsEdge ? (root.barInsetTop - root.borderThickness) * (1 - (panel?.offsetScale ?? 0)) : 0
 
         group: blobGroup
-        x: panel ? panel.x + bar.implicitWidth : 0
-        y: panel ? panel.y + root.borderThickness : 0
-        implicitWidth: panel ? panel.width : 0
-        implicitHeight: panel ? panel.height : 0
+        x: panel ? panel.x + root.barInsetLeft : 0
+        y: panel ? panel.y + root.barInsetTop - topReach : 0
+        implicitWidth: panel && (root.barFillsEdge || panel.visible) ? panel.width : 0
+        implicitHeight: panel && (root.barFillsEdge || panel.visible) ? panel.height + topReach : 0
         radius: Tokens.rounding.large
         deformScale: (deformAmount * Config.appearance.deformScale) / 10000
+
+        // Animate the metaball deform so it never jumps a frame when a panel's
+        // open state flips (e.g. a popout becoming current).
+        Behavior on deformAmount {
+            Anim {}
+        }
     }
 }

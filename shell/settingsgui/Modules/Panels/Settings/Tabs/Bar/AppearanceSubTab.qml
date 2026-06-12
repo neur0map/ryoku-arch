@@ -1,14 +1,41 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Quickshell
 import Ryoku.Config
 import qs.settingsgui.Commons
 import qs.settingsgui.Widgets
+import qs.services
 
 ColumnLayout {
   id: root
   spacing: Style.marginL
   Layout.fillWidth: true
+
+  NComboBox {
+    // RYOKU WIRED: GlobalConfig.bar.design (barconfig.hpp). Selects the bar's
+    // visual design; sidebar-left is the user's customisable default, others
+    // are presets. Non-destructive — only bar.design changes.
+    Layout.fillWidth: true
+    label: qsTr("Bar design")
+    description: qsTr("Switch the bar's visual design. Sidebar (left) is your customisable default; others are presets.")
+    model: BarDesign.available
+    currentKey: GlobalConfig.bar.design
+    onSelected: key => {
+                  if (key === GlobalConfig.bar.design)
+                    return;
+                  GlobalConfig.bar.design = key;
+                  GlobalConfig.save();
+                  // Switching the design changes edge anchoring, exclusion zones and
+                  // the blob frame; a hot swap leaves stale layout state, so reload
+                  // the shell cleanly (same idiom as the desktop menu's restart).
+                  Quickshell.execDetached(["systemctl", "--user", "restart", "ryoku-shell.service"]);
+                }
+  }
+
+  NDivider {
+    Layout.fillWidth: true
+  }
 
   NComboBox {
     // RYOKU WIRED: GlobalConfig.bar.persistent + showOnHover (barconfig.hpp:130-131)

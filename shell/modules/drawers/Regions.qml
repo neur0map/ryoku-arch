@@ -15,6 +15,12 @@ Region {
     readonly property real borderThickness: win.contentItem.Config.border.thickness
     readonly property real clampedThickness: win.contentItem.Config.border.clampedThickness
     readonly property real frameActivationWidth: Math.min(220, Math.max(120, win.width * 0.12))
+    readonly property real barClampLeft: bar.edge === "left" ? bar.clampedThickness : clampedThickness
+    readonly property real barClampTop: bar.edge === "top" ? bar.clampedThickness : clampedThickness
+    readonly property real barClampRight: bar.edge === "right" ? bar.clampedThickness : clampedThickness
+    readonly property real barClampBottom: bar.edge === "bottom" ? bar.clampedThickness : clampedThickness
+    readonly property real barInsetLeft: bar.edge === "left" ? bar.thickness : borderThickness
+    readonly property real barInsetTop: bar.edge === "top" ? bar.thickness : borderThickness
 
     function panelWidth(panel: Item): real {
         return Math.max(panel.width, panel.implicitWidth ?? 0);
@@ -24,22 +30,22 @@ Region {
         return Math.max(panel.height, panel.implicitHeight ?? 0);
     }
 
-    x: bar.clampedWidth + win.dragMaskPadding
-    y: clampedThickness + win.dragMaskPadding
-    width: win.width - bar.clampedWidth - clampedThickness - win.dragMaskPadding * 2
-    height: win.height - clampedThickness * 2 - win.dragMaskPadding * 2
+    x: barClampLeft + win.dragMaskPadding
+    y: barClampTop + win.dragMaskPadding
+    width: win.width - barClampLeft - barClampRight - win.dragMaskPadding * 2
+    height: win.height - barClampTop - barClampBottom - win.dragMaskPadding * 2
     intersection: Intersection.Xor
 
     R {
         panel: root.panels.dashboard
         y: 0
-        height: root.panelHeight(panel) * (1 - root.panels.dashboard.offsetScale) + root.borderThickness
+        height: root.panelHeight(panel) * (1 - root.panels.dashboard.offsetScale) + root.barInsetTop
     }
 
     R {
         panel: root.panels.settings
         y: 0
-        height: root.panelHeight(panel) * (1 - root.panels.settings.offsetScale) + root.borderThickness
+        height: root.panelHeight(panel) * (1 - root.panels.settings.offsetScale) + root.barInsetTop
     }
 
     FrameR {
@@ -74,7 +80,7 @@ Region {
     R {
         panel: root.panels.island
         y: 0
-        height: panel.height * (1 - root.panels.island.offsetScale) + root.borderThickness
+        height: panel.height * (1 - root.panels.island.offsetScale) + root.barInsetTop
     }
 
     R {
@@ -102,7 +108,7 @@ Region {
     R {
         panel: root.panels.notifications
         y: 0
-        height: root.panelHeight(panel) + root.borderThickness
+        height: root.panelHeight(panel) + root.barInsetTop
     }
 
     R {
@@ -119,8 +125,8 @@ Region {
     component R: Region {
         required property Item panel
 
-        x: panel.x + root.bar.implicitWidth
-        y: panel.y + root.borderThickness
+        x: panel.x + root.barInsetLeft
+        y: panel.y + root.barInsetTop
         width: root.panelWidth(panel)
         height: root.panelHeight(panel)
         intersection: Intersection.Subtract
@@ -139,8 +145,8 @@ Region {
         readonly property real w: panel ? closedW + Math.max(0, root.panelWidth(panel) - closedW) * vis : 0
         readonly property real h: panel ? closedH + Math.max(0, root.panelHeight(panel) - closedH) * vis : 0
 
-        x: !panel ? 0 : align === "start" ? root.bar.clampedWidth : align === "center" ? Math.round((root.win.width - w) / 2) : root.win.width - w
-        y: !panel ? 0 : edge === "bottom" ? root.win.height - h : 0
+        x: !panel ? 0 : align === "start" ? root.barClampLeft : align === "center" ? Math.round((root.win.width - w) / 2) : root.win.width - w
+        y: !panel ? 0 : edge === "bottom" ? root.win.height - h - (root.bar.edge === "bottom" ? root.bar.thickness : 0) : (root.bar.edge === "top" ? root.bar.thickness : 0)
         width: w
         height: h
         intersection: Intersection.Subtract

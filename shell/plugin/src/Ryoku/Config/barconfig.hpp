@@ -130,6 +130,8 @@ class BarConfig : public ConfigObject {
     CONFIG_PROPERTY(bool, persistent, true)
     CONFIG_PROPERTY(bool, showOnHover, true)
     CONFIG_PROPERTY(int, dragThreshold, 20)
+    CONFIG_PROPERTY(QString, design, u"sidebar-left"_s)
+    CONFIG_PROPERTY(QString, edge, u"left"_s)
     CONFIG_SUBOBJECT(BarScrollActions, scrollActions)
     CONFIG_SUBOBJECT(BarPopouts, popouts)
     CONFIG_SUBOBJECT(BarWorkspaces, workspaces)

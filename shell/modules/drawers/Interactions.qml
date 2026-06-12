@@ -26,6 +26,51 @@ CustomMouseArea {
     property bool utilitiesShortcutActive
     readonly property real frameActivationWidth: Math.min(220, Math.max(120, width * 0.12))
 
+    // Per-edge inset mirroring ContentWindow/Panels: the bar's edge reserves the
+    // bar's thickness; the other three reserve the border thickness. For
+    // edge === "left" these reduce to the original bar.implicitWidth on the left.
+    readonly property real barInsetLeft: bar.edge === "left" ? bar.thickness : borderThickness
+    readonly property real barInsetTop: bar.edge === "top" ? bar.thickness : borderThickness
+    readonly property real barInsetRight: bar.edge === "right" ? bar.thickness : borderThickness
+    readonly property real barInsetBottom: bar.edge === "bottom" ? bar.thickness : borderThickness
+
+    // Cursor is over the bar's own band (its thickness, on its edge). Reduces to
+    // x < bar.implicitWidth for the original left bar.
+    function overBar(x: real, y: real): bool {
+        if (bar.edge === "right")
+            return x > width - barInsetRight;
+        if (bar.edge === "top")
+            return y < barInsetTop;
+        if (bar.edge === "bottom")
+            return y > height - barInsetBottom;
+        return x < barInsetLeft;
+    }
+
+    // Cursor is within the clamped (collapsed) band at the bar's edge — drives the
+    // showOnHover reveal and drag gestures (reduces to x < bar.clampedWidth on the left).
+    function nearBarEdge(x: real, y: real): bool {
+        const t = bar.clampedThickness;
+        if (bar.edge === "right")
+            return x > width - t;
+        if (bar.edge === "top")
+            return y < t;
+        if (bar.edge === "bottom")
+            return y > height - t;
+        return x < t;
+    }
+
+    // The coordinate along the bar's long axis that templates hit-test
+    // (x for a horizontal bar, y for a vertical one).
+    function alongBar(x: real, y: real): real {
+        return bar.horizontal ? x : y;
+    }
+
+    // Cursor is within the popout hanging off the bar — for a horizontal bar it drops
+    // below (inTopPanel), for a vertical one it slides beside it (inLeftPanel).
+    function inPopout(panel: Item, x: real, y: real): bool {
+        return bar.horizontal ? inTopPanel(panel, x, y) : inLeftPanel(panel, x, y);
+    }
+
     function panelWidth(panel: Item): real {
         return Math.max(panel.width, panel.implicitWidth ?? 0);
     }
@@ -52,26 +97,26 @@ CustomMouseArea {
     }
 
     function withinPanelHeight(panel: Item, x: real, y: real): bool {
-        const panelY = root.borderThickness + panel.y;
+        const panelY = root.barInsetTop + panel.y;
         return y >= panelY - Config.border.rounding && y <= panelY + root.panelHeight(panel) + Config.border.rounding;
     }
 
     function withinPanelWidth(panel: Item, x: real, y: real): bool {
-        const panelX = bar.implicitWidth + panel.x;
+        const panelX = root.barInsetLeft + panel.x;
         return x >= panelX - Config.border.rounding && x <= panelX + root.panelWidth(panel) + Config.border.rounding;
     }
 
     function inLeftPanel(panel: Item, x: real, y: real): bool {
-        return x < bar.implicitWidth + panel.x + root.panelWidth(panel) && withinPanelHeight(panel, x, y);
+        return x < root.barInsetLeft + panel.x + root.panelWidth(panel) && withinPanelHeight(panel, x, y);
     }
 
     function inRightPanel(panel: Item, x: real, y: real): bool {
-        return x > Math.min(width - Config.border.minThickness, bar.implicitWidth + panel.x) && withinPanelHeight(panel, x, y);
+        return x > Math.min(width - Config.border.minThickness, root.barInsetLeft + panel.x) && withinPanelHeight(panel, x, y);
     }
 
     function inTopPanel(panel: Item, x: real, y: real): bool {
         const panelHeight = root.panelHeight(panel) * (1 - (panel.offsetScale ?? 0));
-        return y < Math.max(Config.border.minThickness, Config.border.thickness + panelHeight) && withinPanelWidth(panel, x, y);
+        return y < Math.max(Config.border.minThickness, root.barInsetTop + panelHeight) && withinPanelWidth(panel, x, y);
     }
 
     function inFramePanel(panel: var, x: real, y: real): bool {
@@ -84,7 +129,9 @@ CustomMouseArea {
         }
 
         const stripH = panel.activationHeight > 0 ? panel.activationHeight : Math.max(Config.border.minThickness, Config.border.thickness);
-        const inStrip = edge === "bottom" ? y > height - stripH : y < stripH;
+        const edgeInsetTop = bar.edge === "top" ? bar.thickness : 0;
+        const edgeInsetBottom = bar.edge === "bottom" ? bar.thickness : 0;
+        const inStrip = edge === "bottom" ? (y > height - edgeInsetBottom - stripH && y < height - edgeInsetBottom) : (y >= edgeInsetTop && y < edgeInsetTop + stripH);
         if (!inStrip)
             return false;
 
@@ -93,9 +140,9 @@ CustomMouseArea {
         const pw = root.panelWidth(panel);
         const activationWidth = panel.activationWidth > 0 ? panel.activationWidth : (pw > 0 ? Math.min(root.frameActivationWidth, pw) : root.frameActivationWidth);
         if (align === "start")
-            return x >= bar.implicitWidth - Config.border.rounding && x <= bar.implicitWidth + activationWidth + Config.border.rounding;
+            return x >= root.barInsetLeft - Config.border.rounding && x <= root.barInsetLeft + activationWidth + Config.border.rounding;
         if (align === "center") {
-            const cx = bar.implicitWidth + (width - bar.implicitWidth) / 2;
+            const cx = root.barInsetLeft + (width - root.barInsetLeft) / 2;
             return x >= cx - activationWidth / 2 && x <= cx + activationWidth / 2;
         }
         return x >= width - activationWidth - Config.border.rounding && x <= width + Config.border.rounding;
@@ -105,20 +152,21 @@ CustomMouseArea {
         if ((panel.offsetScale ?? 1) < 1 && inLeftPanel(panel, x, y))
             return true;
 
-        return x <= bar.implicitWidth + Config.border.rounding
-            && bar.isClockHover(y);
+        const r = Config.border.rounding;
+        const overBand = bar.edge === "right" ? x >= width - root.barInsetRight - r : bar.edge === "top" ? y <= root.barInsetTop + r : bar.edge === "bottom" ? y >= height - root.barInsetBottom - r : x <= root.barInsetLeft + r;
+        return !bar.horizontal && overBand && bar.isClockHover(root.alongBar(x, y));
     }
 
     function inBottomPanel(panel: Item, x: real, y: real, isCorner = false): bool {
         const panelHeight = root.panelHeight(panel) * (1 - (panel.offsetScale ?? 0));
-        return y > height - Math.max(Config.border.minThickness, Config.border.thickness + panelHeight) - (isCorner ? Config.border.rounding : 0) && withinPanelWidth(panel, x, y);
+        return y > height - Math.max(Config.border.minThickness, root.barInsetBottom + panelHeight) - (isCorner ? Config.border.rounding : 0) && withinPanelWidth(panel, x, y);
     }
 
     function onWheel(event: WheelEvent): void {
         if (fullscreen)
             return;
-        if (event.x < bar.implicitWidth) {
-            bar.handleWheel(event.y, event.angleDelta);
+        if (root.overBar(event.x, event.y)) {
+            bar.handleWheel(root.alongBar(event.x, event.y), event.angleDelta);
         }
     }
 
@@ -181,14 +229,15 @@ CustomMouseArea {
         }
 
         // Show bar in non-exclusive mode on hover
-        if (!visibilities.bar && Config.bar.showOnHover && x < bar.clampedWidth)
+        if (!visibilities.bar && Config.bar.showOnHover && root.nearBarEdge(x, y))
             bar.isHovered = true;
 
-        // Show/hide bar on drag
-        if (pressed && dragStart.x < bar.clampedWidth) {
-            if (dragX > Config.bar.dragThreshold)
+        // Show/hide bar on drag — dragging inward (away from the bar's edge) reveals it.
+        if (pressed && root.nearBarEdge(dragStart.x, dragStart.y)) {
+            const dragInward = bar.edge === "right" ? -dragX : bar.edge === "top" ? dragY : bar.edge === "bottom" ? -dragY : dragX;
+            if (dragInward > Config.bar.dragThreshold)
                 visibilities.bar = true;
-            else if (dragX < -Config.bar.dragThreshold)
+            else if (dragInward < -Config.bar.dragThreshold)
                 visibilities.bar = false;
         }
 
@@ -206,7 +255,7 @@ CustomMouseArea {
                 root.panels.osd.hovered = true;
             }
 
-            const showSidebar = pressed && dragStart.x > Math.min(width - Config.border.minThickness, bar.implicitWidth + panels.sidebar.x);
+            const showSidebar = pressed && dragStart.x > Math.min(width - Config.border.minThickness, root.barInsetLeft + panels.sidebar.x);
 
             // Show/hide session on drag
             if (pressed && inRightPanel(panels.sessionWrapper, dragStart.x, dragStart.y) && withinPanelHeight(panels.sessionWrapper, x, y)) {
@@ -250,19 +299,18 @@ CustomMouseArea {
                 visibilities.sidebar = false;
         }
 
-        // Top-center dashboard hover is replaced by the embedded island.
+        // Top-centre hover opens the Ryoku island dashboard on every layout: the
+        // horizontal top-notch drops it from the centre notch, the vertical
+        // sidebar from the top-centre edge.
         const showIsland = !visibilities.settings && Config.dashboard.enabled && Config.dashboard.showOnHover && inTopPanel(panels.island, x, y);
         visibilities.dashboard = false;
-
-        if (!islandShortcutActive) {
+        if (!islandShortcutActive)
             visibilities.island = showIsland;
-        } else if (showIsland) {
-            // If hovering over island area while in shortcut mode, transition to hover control.
+        else if (showIsland)
             islandShortcutActive = false;
-        }
 
         // Show/hide island on the old dashboard drag gesture (touchscreen path).
-        if (!visibilities.settings && Config.dashboard.enabled && pressed && inTopPanel(panels.island, dragStart.x, dragStart.y) && withinPanelWidth(panels.island, x, y)) {
+        if (!bar.horizontal && !visibilities.settings && Config.dashboard.enabled && pressed && inTopPanel(panels.island, dragStart.x, dragStart.y) && withinPanelWidth(panels.island, x, y)) {
             if (dragY > Config.dashboard.dragThreshold)
                 visibilities.island = true;
             else if (dragY < -Config.dashboard.dragThreshold)
@@ -284,6 +332,10 @@ CustomMouseArea {
                 visibilities.dashboard = false;
                 visibilities.island = false;
                 visibilities.obsidian = false;
+                if (bar.horizontal) {
+                    popouts.hasCurrent = false;
+                    bar.closeTray();
+                }
             }
         }
 
@@ -307,10 +359,12 @@ CustomMouseArea {
         }
 
         // Show popouts on hover
-        if (x < bar.implicitWidth) {
+        if (root.overBar(x, y)) {
             if (!showObsidian)
-                bar.checkPopout(y);
-        } else if ((!popouts.currentName.startsWith("traymenu") || ((popouts.current as StackView)?.depth ?? 0) <= 1) && !inLeftPanel(panels.popoutsWrapper, x, y)) {
+                bar.checkPopout(root.alongBar(x, y));
+            if (bar.horizontal && popouts.hasCurrent)
+                panels.framePlugins.closeAll();
+        } else if ((!popouts.currentName.startsWith("traymenu") || ((popouts.current as StackView)?.depth ?? 0) <= 1) && !root.inPopout(panels.popoutsWrapper, x, y)) {
             popouts.hasCurrent = false;
             bar.closeTray();
         }
@@ -356,11 +410,12 @@ CustomMouseArea {
 
         function onDashboardChanged() {
             if (root.visibilities.dashboard) {
-                // The top dashboard slot is unplugged for this live island experiment.
                 root.visibilities.settings = false;
+                root.panels.framePlugins.closeAll();
+                // The caelestia dashboard slot is retired; the Ryoku island
+                // dashboard takes over on every bar layout.
                 root.visibilities.dashboard = false;
                 root.visibilities.island = Config.dashboard.enabled;
-                root.panels.framePlugins.closeAll();
             } else {
                 root.dashboardShortcutActive = false;
             }

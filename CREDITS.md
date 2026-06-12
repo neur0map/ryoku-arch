@@ -67,7 +67,7 @@ under the `shell/noctalia/` subtree (settings-UI subtree and its dependency
 closure).
 
 - Upstream: https://github.com/noctalia-dev/noctalia-shell
-- License: MIT — Copyright (c) 2025 noctalia-dev
+- License: MIT, Copyright (c) 2025 noctalia-dev
 - Attribution: see `shell/noctalia/ATTRIBUTION.md` and `shell/noctalia/LICENSE`
 
 ## Ambxst
@@ -77,8 +77,19 @@ shell, bundled in source under the `shell/ambxst/` subtree (island/dashboard/
 notifications subtree and its service/theme/component dependencies).
 
 - Upstream: https://github.com/Axenide/Ambxst
-- License: AGPL-3.0 — Copyright (c) Axenide / Adriano Tisera
+- License: AGPL-3.0, Copyright (c) Axenide / Adriano Tisera
 - Attribution: see `shell/ambxst/ATTRIBUTION.md` and `shell/ambxst/LICENSE`
+
+## Brain_Shell
+
+Ryoku's optional `top-notch` bar design (a Ryoku-native QML template) takes its
+three-notch top-bar layout and proportions as visual inspiration from Brain_Shell
+by Brainitech. No Brain_Shell code, IPC, daemons, or runtime are used, only the
+declarative look was reinterpreted with Ryoku's own widgets and services.
+
+- Upstream: https://github.com/Brainitech/Brain_Shell
+- License: MIT, Copyright (c) 2026 Venkat Saahit Kamu (Brainitech)
+- Usage: visual/layout inspiration for the `top-notch` bar design only
 
 ## Bundled Shell Components
 

@@ -174,6 +174,7 @@ Item {
                     }
                     Anim {
                         property: "opacity"
+                        type: Anim.DefaultSpatial
                     }
                 }
             },
@@ -184,6 +185,7 @@ Item {
                 SequentialAnimation {
                     Anim {
                         property: "opacity"
+                        type: Anim.DefaultSpatial
                     }
                     PropertyAction {
                         property: "active"
