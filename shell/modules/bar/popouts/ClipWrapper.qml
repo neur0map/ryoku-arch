@@ -64,7 +64,10 @@ Item {
     }
 
     Behavior on x {
-        enabled: root.horizontal ? root.offsetScale < 1 : true
+        // During the open/close morph (offsetScale > 0) x must track the morphing
+        // width directly; animating it here would lag the width and make the box
+        // stretch/jitter. Only animate x when fully open (icon-to-icon slides).
+        enabled: root.horizontal ? root.offsetScale <= 0 : true
 
         Anim {
             duration: content.animLength

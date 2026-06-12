@@ -112,7 +112,8 @@ Item {
     Comp {
         id: content
 
-        shouldBeActive: root.hasCurrent && !root.detachedMode
+        shouldBeActive: !root.detachedMode && (root.hasCurrent || root.offsetScale < 1)
+        fade: false
         anchors.fill: parent
 
         sourceComponent: Content {
@@ -153,9 +154,13 @@ Item {
         id: comp
 
         property bool shouldBeActive
+        // Docked popouts are revealed by the clip morph (like the centre dropdowns),
+        // so they must not also fade in/out; the detached window-info panel has no
+        // clip morph, so it keeps the opacity fade as its open/close animation.
+        property bool fade: true
 
         active: false
-        opacity: 0
+        opacity: fade ? 0 : 1
 
         // Makes the loader load on the same frame shouldBeActive becomes true, which ensures size is set
         states: State {
