@@ -24,7 +24,11 @@ Item {
     visible: width > 0 && height > 0
     clip: true
 
-    implicitWidth: root.horizontal ? content.implicitWidth : content.implicitWidth * (1 - offsetScale)
+    // Horizontal: the popout box morphs out of the hovered icon - width from the
+    // icon's width to full (cross-axis), height from 0 to full (away-axis) - so it
+    // expands from the icon, the same effect as the centre dropdowns. Vertical
+    // keeps its sideways grow (away-axis width) with a full-height cross-axis.
+    implicitWidth: root.horizontal ? (content.currentWidth + (content.implicitWidth - content.currentWidth) * (1 - offsetScale)) : content.implicitWidth * (1 - offsetScale)
     implicitHeight: root.horizontal ? content.implicitHeight * (1 - offsetScale) : content.implicitHeight
 
     x: {
@@ -33,8 +37,9 @@ Item {
         if (content.isDetached)
             return (parent.width - content.nonAnimWidth) / 2;
 
-        const off = content.currentCenter - borderThickness - content.nonAnimWidth / 2;
-        const diff = parent.width - Math.floor(off + content.nonAnimWidth);
+        const w = implicitWidth;
+        const off = content.currentCenter - borderThickness - w / 2;
+        const diff = parent.width - Math.floor(off + w);
         if (diff < 0)
             return off + diff;
         return Math.max(off, 0);
@@ -87,6 +92,6 @@ Item {
         anchors.left: root.horizontal ? undefined : parent.left
         anchors.top: root.horizontal ? parent.top : undefined
         anchors.leftMargin: root.horizontal ? 0 : (-implicitWidth - 5) * root.offsetScale
-        anchors.topMargin: root.horizontal ? (-implicitHeight - 5) * root.offsetScale : 0
+        anchors.topMargin: 0
     }
 }

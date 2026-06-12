@@ -130,14 +130,15 @@ pops; the clock and other notch content keep painting on top.
   `PanelBg.deformMatrix`. A plugin authors only the panel content; the wrapper
   owns position, animation, and the blob deform.
 - **Bar popouts (right-side status icons, tray menus, and the workspace activewindow peek).**
-  They share one host: `shell/modules/bar/popouts/ClipWrapper.qml` pins the
-  bar-facing edge and grows the away-axis (height for a top bar, width for a side
-  bar) from `0` to full, centered on the hovered item; the inner
-  `shell/modules/bar/popouts/Wrapper.qml` gates its size `Behavior`s so it snaps to
-  full and unrolls rather than ballooning from an empty pill. Their shared
-  `popoutBg` uses `attachTop: true` with `pinReach: !isDetached`, so a docked
-  popout expands out of the bar edge under its icon; detached popouts (settings,
-  window info) float centered and keep the default growing reach.
+  They share one host. On a horizontal (top) bar
+  `shell/modules/bar/popouts/ClipWrapper.qml` morphs the box out of the hovered
+  item: width from the item's width (`Wrapper.currentWidth`, set by the bar's
+  `openPopout`) to full, height from `0` to full, centered on the item, top pinned.
+  Their shared `popoutBg` uses `attachTop: true` with `pinReach: !isDetached` and,
+  on a horizontal bar, tracks the morphing clip so the blob grows from the icon
+  with the popout, the same effect as the centre dropdowns. A vertical (sidebar)
+  bar keeps its sideways away-axis grow and full-content blob unchanged; detached
+  popouts (settings, window info) float centered and keep the default growing reach.
 
 ## Adding a new frame-anchored popup
 

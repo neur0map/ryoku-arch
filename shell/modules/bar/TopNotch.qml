@@ -56,6 +56,7 @@ Item {
     function openPopout(name: string, item: Item): void {
         popouts.currentName = name;
         popouts.currentCenter = Qt.binding(() => item.mapToItem(root, item.width / 2, 0).x);
+        popouts.currentWidth = Qt.binding(() => item.width);
         popouts.hasCurrent = true;
     }
 

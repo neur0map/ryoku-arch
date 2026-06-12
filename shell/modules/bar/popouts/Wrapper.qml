@@ -26,6 +26,10 @@ Item {
     property alias currentName: popoutState.currentName
     property alias hasCurrent: popoutState.hasCurrent
     property real currentCenter
+    // Width of the bar item the popout drops from (the hovered icon); the popout's
+    // cross-axis morphs out of this, so it expands from the icon like the centre
+    // dropdowns expand from the notch. Set by the bar's openPopout.
+    property real currentWidth
 
     property string detachedMode
 

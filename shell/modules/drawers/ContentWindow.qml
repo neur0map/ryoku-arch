@@ -302,6 +302,11 @@ StyledWindow {
 
             // Extra width to prevent vertical movement deformation partially detaching panel from bar
             property real extraWidth: panels.popouts.isDetached ? 0 : 0.2
+            // On a horizontal bar the blob tracks the morphing clip (popoutsWrapper),
+            // so it grows out of the icon with the popout, same as the centre
+            // dropdowns. On a vertical bar it keeps the full inner-content width with
+            // the extra-width margin (sidebar behaviour unchanged).
+            readonly property bool horizontalBar: root.bar.edge === "top" || root.bar.edge === "bottom"
 
             panel: panels.popoutsWrapper
             deformAmount: panels.popouts.isDetached ? 0.05 : panels.popouts.hasCurrent ? 0.15 : 0.1
@@ -311,8 +316,8 @@ StyledWindow {
             // the centre dropdowns. Detached popouts float centred, so they keep
             // the default growing reach instead.
             pinReach: !panels.popouts.isDetached
-            x: panels.popoutsWrapper.x + panels.popouts.x + root.barInsetLeft - panels.popouts.width * extraWidth
-            implicitWidth: panels.popouts.width * (1 + extraWidth)
+            x: horizontalBar ? panels.popoutsWrapper.x + root.barInsetLeft : panels.popoutsWrapper.x + panels.popouts.x + root.barInsetLeft - panels.popouts.width * extraWidth
+            implicitWidth: horizontalBar ? panels.popoutsWrapper.width : panels.popouts.width * (1 + extraWidth)
 
             Behavior on extraWidth {
                 Anim {

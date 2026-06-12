@@ -19,10 +19,11 @@
 - **Bar popouts emerge from the frame**: status, tray, network/bluetooth/battery
   and window-peek popouts now slide out of, and retract back into, the bar's
   edge on one synchronized spatial timeline, instead of zooming in from their own
-  centre and fading out before the slide finishes. On the top-notch they drop down
-  from the strip with the blob neck pinned to the bar edge under the hovered icon
-  (`popoutBg.pinReach`), so they expand out of the bar like the centre dropdowns;
-  the sidebar still slides them out sideways.
+  centre and fading out before the slide finishes. On the top-notch each popout now
+  morphs straight out of the hovered icon (width and height grow from the icon to
+  full, centered on it, with the blob neck pinned to the bar edge via
+  `popoutBg.pinReach`), the same expand effect as the centre dropdowns; the sidebar
+  still slides them out sideways.
 - **Center dropdowns expand out of the notch**: on the top-notch design the island
   and dashboard now grow straight down out of the clock pill (the panel's top edge
   stays fused to the notch from the first frame while its width and height grow out
