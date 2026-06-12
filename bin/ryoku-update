@@ -140,13 +140,17 @@ repair_command_bridges() {
   local bin_home="${XDG_BIN_HOME:-$HOME/.local/bin}"
   local lib_home
   local command_path
+  local lib_file
 
   mkdir -p "$bin_home"
 
-  if [[ -f $RYOKU_PATH/lib/runtime-env.sh ]]; then
+  if [[ -d $RYOKU_PATH/lib ]]; then
     lib_home="$(dirname "$bin_home")/lib"
     mkdir -p "$lib_home"
-    ln -sfn "$RYOKU_PATH/lib/runtime-env.sh" "$lib_home/runtime-env.sh"
+    for lib_file in "$RYOKU_PATH"/lib/*.sh; do
+      [[ -f $lib_file ]] || continue
+      ln -sfn "$lib_file" "$lib_home/$(basename "$lib_file")"
+    done
   fi
 
   if [[ -d $RYOKU_PATH/bin ]]; then
@@ -171,6 +175,7 @@ repair_system_command_bridges() {
   local command_path
   local system_bin="${RYOKU_SYSTEM_BIN_DIR:-/usr/local/bin}"
   local system_lib="${RYOKU_SYSTEM_LIB_DIR:-/usr/local/lib}"
+  local lib_file
 
   command -v sudo >/dev/null 2>&1 || return 0
   if ! sudo -n true >/dev/null 2>&1; then
@@ -178,9 +183,12 @@ repair_system_command_bridges() {
     sudo -v || return 0
   fi
 
-  if [[ -f $RYOKU_PATH/lib/runtime-env.sh ]]; then
+  if [[ -d $RYOKU_PATH/lib ]]; then
     sudo -n install -d "$system_lib" >/dev/null 2>&1 || return 0
-    sudo -n ln -sfn "$RYOKU_PATH/lib/runtime-env.sh" "$system_lib/runtime-env.sh" || true
+    for lib_file in "$RYOKU_PATH"/lib/*.sh; do
+      [[ -f $lib_file ]] || continue
+      sudo -n ln -sfn "$lib_file" "$system_lib/$(basename "$lib_file")" || true
+    done
   fi
 
   [[ -d $RYOKU_PATH/bin ]] || return 0
