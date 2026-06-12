@@ -38,7 +38,7 @@ Item {
         const r = mapToItem(rightContent, pos, 0);
         const rch = rightContent.childAt(r.x, rightContent.height / 2);
         if (rch?.popoutName) {
-            root.openPopout(rch.popoutName, rch);
+            root.openPopout(rch.popoutName, rightNotch);
             return;
         }
         // Left notch — hovering the active workspace dot peeks the active window.
@@ -47,16 +47,18 @@ Item {
         const l = mapToItem(leftContent, pos, 0);
         const lch = leftContent.childAt(l.x, leftContent.height / 2);
         if (lch?.isWorkspaceDot && lch.active && Hypr.activeToplevel) {
-            root.openPopout("activewindow", lch);
+            root.openPopout("activewindow", leftNotch);
             return;
         }
         popouts.hasCurrent = false;
     }
 
-    function openPopout(name: string, item: Item): void {
+    // The popout morphs out of the notch it belongs to (left/centre/right), so its
+    // collapsed size and position are that notch's, not the hovered icon's.
+    function openPopout(name: string, notch: Item): void {
         popouts.currentName = name;
-        popouts.currentCenter = Qt.binding(() => item.mapToItem(root, item.width / 2, 0).x);
-        popouts.currentWidth = Qt.binding(() => item.width);
+        popouts.currentCenter = Qt.binding(() => notch.mapToItem(root, notch.width / 2, 0).x);
+        popouts.currentWidth = Qt.binding(() => notch.width);
         popouts.hasCurrent = true;
     }
 

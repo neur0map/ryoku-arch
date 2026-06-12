@@ -302,7 +302,11 @@ CustomMouseArea {
         // Top-centre hover opens the Ryoku island dashboard on every layout: the
         // horizontal top-notch drops it from the centre notch, the vertical
         // sidebar from the top-centre edge.
-        const showIsland = !visibilities.settings && Config.dashboard.enabled && Config.dashboard.showOnHover && inTopPanel(panels.island, x, y);
+        // Open the island only from the centre notch (the clock/island) on a
+        // horizontal bar, not the whole top strip; once open, keep it while the
+        // cursor is over the dropped panel so moving down into it doesn't close it.
+        const overIslandTrigger = bar.horizontal ? ((root.overBar(x, y) && bar.isClockHover(root.alongBar(x, y))) || (panels.island.offsetScale < 1 && inTopPanel(panels.island, x, y))) : inTopPanel(panels.island, x, y);
+        const showIsland = !visibilities.settings && Config.dashboard.enabled && Config.dashboard.showOnHover && overIslandTrigger;
         visibilities.dashboard = false;
         if (!islandShortcutActive)
             visibilities.island = showIsland;

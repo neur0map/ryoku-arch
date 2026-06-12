@@ -317,7 +317,12 @@ StyledWindow {
             // the default growing reach instead.
             pinReach: !panels.popouts.isDetached
             x: horizontalBar ? panels.popoutsWrapper.x + root.barInsetLeft : panels.popoutsWrapper.x + panels.popouts.x + root.barInsetLeft - panels.popouts.width * extraWidth
-            implicitWidth: horizontalBar ? panels.popoutsWrapper.width : panels.popouts.width * (1 + extraWidth)
+            // Gate width by visibility exactly like the base PanelBg (islandBg): a
+            // closed panel must contribute 0 width. Without this, when visible flips
+            // false the pinned neck snaps to 0 while width stays non-zero, leaving a
+            // width-by-zero-height capsule at the bar edge as a 2-3px line that never
+            // merges away — the close flicker. The island never had this (it gates).
+            implicitWidth: panel && (root.barFillsEdge || panel.visible) ? (horizontalBar ? panels.popoutsWrapper.width : panels.popouts.width * (1 + extraWidth)) : 0
 
             Behavior on extraWidth {
                 Anim {

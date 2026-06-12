@@ -20,20 +20,22 @@
   and window-peek popouts now slide out of, and retract back into, the bar's
   edge on one synchronized spatial timeline, instead of zooming in from their own
   centre and fading out before the slide finishes. On the top-notch each popout now
-  morphs straight out of the hovered icon (width and height grow from the icon to
-  full, centered on it, content revealed crisply by the clip with no opacity fade,
-  the box position tracking the growth without lag, and the blob neck pinned to the
-  bar edge via `popoutBg.pinReach`), the same expand effect as the centre dropdowns;
-  the sidebar still slides them out sideways.
+  morphs straight out of its notch (left, centre or right): width and height grow
+  from the notch to full, centred on it, content revealed crisply by the clip with
+  no opacity fade, position tracking the growth without lag, the blob neck pinned to
+  the bar edge (`popoutBg.pinReach`), and the blob width gated by visibility so it
+  fully merges back into the bar on close with no leftover edge line. The same
+  expand effect as the centre dropdowns; the sidebar still slides them out sideways.
 - **Center dropdowns expand out of the notch**: on the top-notch design the island
   and dashboard now grow straight down out of the clock pill (the panel's top edge
   stays fused to the notch from the first frame while its width and height grow out
   to the full panel, then reverse on close) instead of a separate surface appearing
   below the bar and rising up to connect. The notch-origin blob neck stays pinned to
   the frame the whole time the panel is open (`PanelBg.pinReach`), so the clock keeps
-  painting on top with no flicker. The frame popout animation contract that every
-  popup, plugin, and bar/frame addition must follow is documented in
-  `docs/popup-animations.md`.
+  painting on top with no flicker, and it opens only while hovering the centre notch
+  (the clock/island), not anywhere along the top strip. The frame popout animation
+  contract that every popup, plugin, and bar/frame addition must follow is documented
+  in `docs/popup-animations.md`.
 - **Game mode is now a full performance bundle**: one click on the Quick Toggles
   gamepad button (or `ryoku-shell ipc gameMode toggle`) disables compositor
   visuals (animations, blur, shadows, gaps, rounding), enables fullscreen VRR,

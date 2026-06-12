@@ -114,6 +114,15 @@ The pin is safe because at the open and close extremes the panel's own height is
 coincides with the bar's notch (same surface color, same position), so nothing
 pops; the clock and other notch content keep painting on top.
 
+Whatever geometry a `PanelBg` (or its subclass) uses, gate **both** `implicitWidth`
+and `implicitHeight` on `panel.visible` (the base `PanelBg` does this:
+`panel.visible ? panel.width : 0`). A closed panel must contribute zero size. If
+only the height is gated and the width is left non-zero, then when `visible` flips
+false the pinned neck snaps to 0 and a width-by-zero-height rounded capsule lingers
+at the bar edge as a 2-3px line that never merges away (the close flicker). If you
+override the blob's `implicitWidth` or `x` (e.g. to track a clip), keep the
+`panel.visible` gate.
+
 ## Variants
 
 - **Center dropdowns (island, dashboard).** Origin is the center notch (the clock
