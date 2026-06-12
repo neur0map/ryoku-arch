@@ -306,6 +306,11 @@ StyledWindow {
             panel: panels.popoutsWrapper
             deformAmount: panels.popouts.isDetached ? 0.05 : panels.popouts.hasCurrent ? 0.15 : 0.1
             attachTop: true
+            // Keep the neck fused to the bar edge while open (the icon/notch the
+            // popout drops from), so it reads as expanding out of the bar, same as
+            // the centre dropdowns. Detached popouts float centred, so they keep
+            // the default growing reach instead.
+            pinReach: !panels.popouts.isDetached
             x: panels.popoutsWrapper.x + panels.popouts.x + root.barInsetLeft - panels.popouts.width * extraWidth
             implicitWidth: panels.popouts.width * (1 + extraWidth)
 

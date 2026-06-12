@@ -95,10 +95,10 @@ properties control how it attaches at a top-notch bar:
   border instead of floating below the notches with a wallpaper gap above it.
   Set this on any top-edge panel.
 - `pinReach`: keep that upward reach fully extended the whole time the panel is
-  open, so the blob's top edge stays fused to the notch from the first frame.
-  Set this on surfaces that originate from a notch (the center dropdowns), so
-  they read as the notch pill expanding straight down rather than a surface
-  rising up to meet a static notch.
+  open, so the blob's top edge stays fused to the bar/notch from the first frame.
+  Set this on surfaces that originate from the bar itself (the center dropdowns
+  and the bar status-icon popouts), so they read as the notch/bar expanding
+  straight down rather than a surface rising up to meet a static bar.
 
 ```qml
 readonly property real maxReach: attachTop && bar.edge === "top" && !barFillsEdge
@@ -129,10 +129,15 @@ pops; the clock and other notch content keep painting on top.
   the plugin panel at full size, and binds its `transform` to the
   `PanelBg.deformMatrix`. A plugin authors only the panel content; the wrapper
   owns position, animation, and the blob deform.
-- **Status-icon popouts (audio, network, tray, and similar).**
-  `shell/modules/bar/popouts/Wrapper.qml` grows from the hovered icon's position.
-  Its size `Behavior`s are gated so it snaps to full size and unrolls rather than
-  ballooning from an empty pill.
+- **Bar popouts (right-side status icons, tray menus, and the workspace activewindow peek).**
+  They share one host: `shell/modules/bar/popouts/ClipWrapper.qml` pins the
+  bar-facing edge and grows the away-axis (height for a top bar, width for a side
+  bar) from `0` to full, centered on the hovered item; the inner
+  `shell/modules/bar/popouts/Wrapper.qml` gates its size `Behavior`s so it snaps to
+  full and unrolls rather than ballooning from an empty pill. Their shared
+  `popoutBg` uses `attachTop: true` with `pinReach: !isDetached`, so a docked
+  popout expands out of the bar edge under its icon; detached popouts (settings,
+  window info) float centered and keep the default growing reach.
 
 ## Adding a new frame-anchored popup
 
@@ -149,7 +154,7 @@ For a new built-in shell surface:
 2. Instantiate it in `Panels.qml` anchored to the frame edge. Pass
    `collapsedWidth: bar.islandWidth` only if it originates from the center notch.
 3. Register a `PanelBg` for it in `ContentWindow.qml`. Set `attachTop: true` for a
-   top-edge surface. Add `pinReach: true` only if it originates from a notch.
+   top-edge surface. Add `pinReach: true` if it originates from the bar itself (a notch or a bar icon).
 4. Wire the deform: bind the wrapper's `transform` to that `PanelBg.deformMatrix`
    (see the `Matrix4x4` bindings in `ContentWindow.qml`).
 5. Use `Anim { type: Anim.DefaultSpatial }` for `offsetScale` so it matches the
