@@ -105,6 +105,10 @@ Current shell surfaces live in these areas:
 
 If a change affects a shared service or global behavior, trace the flow from config or IPC into every consumer instead of patching one visible page.
 
+## Popout animations
+
+Every popup that emerges from the screen frame (the bar's inner edge, a frame border, or a top-notch tab) must animate as the frame expanding: pin the frame-side edge, grow only the size, clip and reveal full-size content, and fuse to the frame with a `PanelBg` blob neck. Never slide a full panel in from off-screen, fade with `opacity`, or center-zoom the whole panel. Plugin and bar/frame additions follow the same contract through `FramePanelWrapper`. See `docs/popup-animations.md`.
+
 ## System Boundaries
 
 QML should not own system mutations directly. For package, service, display, compositor, power, network, update, rollback, cursor, font, wallpaper, or hardware work, use a named `ryoku-*` command and call it through a narrow service or IPC boundary.

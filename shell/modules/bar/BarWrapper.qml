@@ -43,6 +43,11 @@ Item {
     readonly property Bar tplSidebar: content.item as Bar
     readonly property TopNotch tplTopNotch: content.item as TopNotch
 
+    // Collapsed dynamic-island pill width (top-notch centre notch); 0 for designs
+    // without an island (e.g. the vertical sidebar). Morph origin for the centre
+    // dropdowns (island/dashboard).
+    readonly property real islandWidth: tplTopNotch ? tplTopNotch.centerW : 0
+
     function closeTray(): void {
         if (tplSidebar)
             tplSidebar.closeTray();

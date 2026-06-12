@@ -194,6 +194,7 @@ StyledWindow {
             panel: panels.dashboard
             deformAmount: 0.1
             attachTop: true
+            pinReach: true
         }
 
         PanelBg {
@@ -249,6 +250,7 @@ StyledWindow {
             panel: panels.island
             deformAmount: 0.1
             attachTop: true
+            pinReach: true
         }
 
         PanelBg {
@@ -417,9 +419,19 @@ StyledWindow {
         // into the bar region so its blob fuses with the thin top border; without
         // this it floats below the notches with a wallpaper gap above it.
         property bool attachTop: false
-        // Grows with the panel's open progress so the neck never pops in/out a
-        // fixed slab on a frame or two — the open/close reads as one smooth slide.
-        readonly property real topReach: attachTop && root.bar.edge === "top" && !root.barFillsEdge ? (root.barInsetTop - root.borderThickness) * (1 - (panel?.offsetScale ?? 0)) : 0
+        // Max upward reach: the gap between the panel's top (the bar's inner edge)
+        // and the frame border — i.e. the notch interior. 0 unless this is a
+        // top-edge panel on a non-filling (top-notch) bar.
+        readonly property real maxReach: attachTop && root.bar.edge === "top" && !root.barFillsEdge ? root.barInsetTop - root.borderThickness : 0
+        // pinReach keeps the neck fully extended to the notch the whole time the
+        // panel is open (the centre dropdowns), so the panel's top edge stays
+        // fused to the notch from frame one and the notch/clock pill reads as
+        // expanding straight down — not a separate surface rising up to meet it.
+        // At the open/close extremes the panel's own height is ~0, so the pinned
+        // neck IS the notch; snapping it to full reach shows no popped slab. The
+        // default (grow with open progress) suits panels with no notch origin.
+        property bool pinReach: false
+        readonly property real topReach: pinReach ? ((panel?.visible ?? false) ? maxReach : 0) : maxReach * (1 - (panel?.offsetScale ?? 0))
 
         group: blobGroup
         x: panel ? panel.x + root.barInsetLeft : 0

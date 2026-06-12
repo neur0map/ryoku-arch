@@ -23,13 +23,20 @@ Item {
   readonly property bool shouldBeActive: visibilities.island && Config.dashboard.enabled
   property real offsetScale: shouldBeActive ? 0 : 1
 
+  // The panel's own box grows from a zero-height strip at the bar's centre-notch
+  // width to the full panel (width: notch → full, height: 0 → full), top pinned
+  // at the bar's inner edge. The blob behind it (islandBg, pinReach) keeps the
+  // neck fused to the notch the whole time, so the clock/notch pill reads as
+  // expanding straight down into the panel, not a surface appearing below it.
+  property real collapsedWidth: 0
+  readonly property real startWidth: collapsedWidth > 0 ? collapsedWidth : implicitWidth
+
   visible: offsetScale < 1
-  anchors.topMargin: (-implicitHeight - 5) * offsetScale
   implicitHeight: content.implicitHeight
   implicitWidth: content.implicitWidth || 560
-  width: implicitWidth
-  height: implicitHeight
-  opacity: 1 - offsetScale
+  width: startWidth + (implicitWidth - startWidth) * (1 - offsetScale)
+  height: implicitHeight * (1 - offsetScale)
+  clip: true
 
   Behavior on offsetScale {
     Anim {
@@ -41,7 +48,7 @@ Item {
     id: content
 
     anchors.horizontalCenter: parent.horizontalCenter
-    anchors.bottom: parent.bottom
+    anchors.top: parent.top
 
     active: root.shouldBeActive || root.visible
 

@@ -130,6 +130,7 @@ Item {
 
         visibilities: root.visibilities
         popouts: root.popouts
+        collapsedWidth: root.bar.islandWidth
 
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
@@ -139,6 +140,7 @@ Item {
         id: dashboard
 
         visibilities: root.visibilities
+        collapsedWidth: root.bar.islandWidth
 
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top

@@ -21,6 +21,15 @@
   edge on one synchronized spatial timeline, instead of zooming in from their own
   centre and fading out before the slide finishes. The top-notch drops them down
   from the strip; the sidebar still slides them out sideways.
+- **Center dropdowns expand out of the notch**: on the top-notch design the island
+  and dashboard now grow straight down out of the clock pill (the panel's top edge
+  stays fused to the notch from the first frame while its width and height grow out
+  to the full panel, then reverse on close) instead of a separate surface appearing
+  below the bar and rising up to connect. The notch-origin blob neck stays pinned to
+  the frame the whole time the panel is open (`PanelBg.pinReach`), so the clock keeps
+  painting on top with no flicker. The frame popout animation contract that every
+  popup, plugin, and bar/frame addition must follow is documented in
+  `docs/popup-animations.md`.
 - **Game mode is now a full performance bundle**: one click on the Quick Toggles
   gamepad button (or `ryoku-shell ipc gameMode toggle`) disables compositor
   visuals (animations, blur, shadows, gaps, rounding), enables fullscreen VRR,

@@ -129,6 +129,7 @@ Item {
     }
 
     Behavior on implicitWidth {
+        enabled: root.offsetScale <= 0
         Anim {
             duration: root.animLength
             easing: root.animCurve
@@ -136,7 +137,7 @@ Item {
     }
 
     Behavior on implicitHeight {
-        enabled: root.offsetScale < 1
+        enabled: root.offsetScale <= 0
 
         Anim {
             duration: root.animLength
