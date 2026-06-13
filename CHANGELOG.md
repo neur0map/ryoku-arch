@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.1.0-beta3] - 2026-06-13
+
 ### Added
 
 - **Swappable bar designs**: the visible bar is now a selectable *design*, chosen
@@ -64,6 +66,18 @@
   returns an exit code for use in conditionals (`if ryoku-hw-laptop; then …`).
   Gates laptop-only power behaviour (lid suspend-then-hibernate). Honours
   `RYOKU_ASSUME_LAPTOP` / `RYOKU_CHASSIS_TYPE_FILE` overrides for VMs and tests.
+- **Pick which GPU renders the desktop (Settings → Display → GPU)**: on multi-GPU
+  machines a new GPU sub-tab lists every detected GPU and lets you pin the primary
+  render device (or leave it Automatic), so the desktop, games and screen sharing
+  run on the strong discrete/external GPU instead of a weak integrated one. Backed
+  by `ryoku-gpu` (new `detect-json`/`auto`/`persist <slot>`); the pin is read at the
+  next login.
+- **Resolution-like scale options on single-mode panels**: laptop eDP panels expose
+  only their native mode, so the Display tab now offers each valid scale as the
+  logical resolution it produces (e.g. 2560×1600 → 2048×1280 / 1600×1000 / 1280×800),
+  the Wayland-correct way to "lower resolution". Only scales that land on a clean
+  pixel divisor are listed, and a chosen scale snaps to one so the change applies
+  exactly instead of being silently rounded.
 
 ### Changed
 
@@ -92,6 +106,27 @@
 
 ### Fixed
 
+- **Multi-GPU detection picks the real discrete GPU**: `ryoku-gpu` classified an
+  AMD/Intel APU with a large UMA carveout (e.g. a 4 GiB Radeon 780M) as "discrete"
+  and read NVIDIA VRAM as 0, so the weak iGPU could outrank the dGPU and be pinned as
+  Hyprland's primary renderer. It now treats a fully CPU-visible carveout
+  (`mem_info_vis_vram_total == mem_info_vram_total`) as integrated, always ranks
+  NVIDIA/nouveau as discrete, recovers real NVIDIA VRAM via `nvidia-smi`, and
+  auto-pins a hot-plugged eGPU (`/sys/.../device/removable`) even on a laptop.
+- **Display "Apply" surfaces rejected changes instead of doing nothing**: the panel
+  ran `ryoku-monitor apply` detached and armed the keep/revert dialog unconditionally,
+  so a mode/scale Hyprland rejected silently left the screen unchanged ("I change the
+  resolution and it doesn't let me"). The apply result is now captured: the confirm
+  countdown only arms when the live change actually took, and a rejection toasts the
+  compositor's reason. Fractional scales Hyprland would snap (e.g. 175% on a 2560-wide
+  panel) are no longer offered.
+- **Discord/OBS screen sharing works again**: dropping `hyprland-preview-share-picker`
+  left a dangling `custom_picker_binary` pin in `~/.config/hypr/xdph.conf` (and fresh
+  installs shipped no `xdph.conf` at all), so the portal launched a missing picker and
+  screen-share source selection failed or showed black. Ryoku ships a clean `xdph.conf`
+  (default picker, `allow_token_by_default`); a migration strips the stale pin and
+  restarts the portal, and Electron apps get `ELECTRON_OZONE_PLATFORM_HINT=auto` so
+  their Wayland PipeWire capture works.
 - **Graphical login accepts the password set at install (qylock SDDM greeter)**:
   the installer configured only the console keymap (vconsole `KEYMAP`, used by the
   LUKS disk-unlock prompt and the TTYs) and left the X11/XKB layout the SDDM

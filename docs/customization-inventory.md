@@ -22,11 +22,12 @@ there are no machine-specific absolute paths here.
 | `config/hypr/colors.lua` | `~/.config/hypr/colors.lua` | Hyprland border/shadow palette (`var_*` globals), regenerated from the active theme by `ryoku-hypr-colors`. |
 | `config/hypr/monitors.lua` | `~/.config/hypr/monitors.lua` | Monitor layout (`hl.monitor{}`), written by `ryoku-monitor` (Settings > Display). |
 | `config/hypr/keyboard.lua` | `~/.config/hypr/keyboard.lua` | User-owned keyboard layout (`hl.config{input=…}`). |
-| `config/hypr/gpu.lua` | `~/.config/hypr/gpu.lua` | GPU render-device pin (`hl.env(AQ_DRM_DEVICES)`), written by `ryoku-gpu`. |
+| `config/hypr/gpu.lua` | `~/.config/hypr/gpu.lua` | GPU render-device pin (`hl.env(AQ_DRM_DEVICES)`), written by `ryoku-gpu` (chosen in Settings → Display → GPU). |
 | `config/hypr/custom.lua` | `~/.config/hypr/custom.lua` | User-owned overrides; `require()`d last so it wins. |
 | `config/hypr/hyprland-gui.lua` | `~/.config/hypr/hyprland-gui.lua` | HyprMod-managed look-and-feel (transparency, blur, cursor, rounding). |
 | `config/hypr/hypridle.conf` | `~/.config/hypr/hypridle.conf` | Current idle behavior. |
 | `config/hypr/hyprlock.conf` | `~/.config/hypr/hyprlock.conf` | Hyprlock fallback lock screen config. |
+| `config/hypr/xdph.conf` | `~/.config/hypr/xdph.conf` | `xdg-desktop-portal-hyprland` screencast config (`allow_token_by_default`, default share picker) for screen sharing (Discord/OBS/Meet). |
 | `config/fuzzel/fuzzel.ini` | `~/.config/fuzzel/fuzzel.ini` | Fuzzel launcher defaults retained as a lightweight fallback. |
 | `config/fuzzel/fuzzel_theme.ini` | `~/.config/fuzzel/fuzzel_theme.ini` | Fuzzel color/theme include. |
 

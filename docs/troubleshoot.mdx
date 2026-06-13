@@ -51,6 +51,37 @@ If Hyprland starts fine from the TTY, SDDM is the problem. Check `sudo journalct
 - Wallpaper video / GIF: turning off animated wallpaper is the single biggest GPU win.
 - Hyprland animations and blur can be tuned in `~/.config/hypr/hyprland.lua` (or via HyprMod / Settings) if integrated graphics feel choppy.
 
+## Screen sharing is black or has no window to pick
+
+Discord/OBS/Meet share through `xdg-desktop-portal-hyprland`. If the picker never
+appears or you only get a black frame:
+
+- Refresh the portal config and restart it:
+  `ryoku-refresh-config hypr/xdph.conf` then
+  `systemctl --user restart xdg-desktop-portal-hyprland xdg-desktop-portal`.
+  (A stale `custom_picker_binary` in `~/.config/hypr/xdph.conf` that points at an
+  uninstalled picker breaks source selection.)
+- For the official Discord, prefer Vesktop, or log out and back in so
+  `ELECTRON_OZONE_PLATFORM_HINT` takes effect (Electron needs Wayland for PipeWire
+  capture).
+- On a multi-GPU box a black share usually means the compositor and the app are on
+  different GPUs; pin one in `Settings → Display → GPU`.
+
+## The wrong GPU is used, or I can't pick a GPU
+
+`Settings → Display → GPU` lists every detected GPU and pins the primary render device
+(via `ryoku-gpu`). On a laptop the integrated GPU is the battery-friendly default;
+choose the discrete or external GPU there to render the desktop (and streams) on it.
+The pin is read at login, so log out and back in to apply it. `ryoku-gpu detect` prints
+what was detected and which GPU is recommended.
+
+## Only one resolution, or a display change won't apply
+
+Laptop (eDP) panels expose only their native resolution; use the scale options instead:
+they are labelled with the logical resolution they produce (e.g. 2048×1280) and are the
+Wayland way to get a smaller desktop. If `Apply` toasts a rejection, the compositor
+refused that mode/scale; pick one of the offered (clean-divisor) scales.
+
 ## Filing a useful bug
 
 Open an issue at [`neur0map/ryoku-arch`](https://github.com/neur0map/ryoku-arch/issues) with:
