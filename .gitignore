@@ -13,6 +13,14 @@
 # Editor / agent metadata
 /.claude/
 /.codex
+# Local editor / AI-tooling configs (per-developer, wire up MCP servers; not shell source)
+/.cursor/
+/.factory/
+/.helix/
+/.omp/
+/.vscode/
+/.mcp.json
+/opencode.json
 
 # LSP / language-server config stays developer-local
 .luarc.json
