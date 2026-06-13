@@ -107,6 +107,10 @@ Current shell surfaces live in these areas:
 
 If a change affects a shared service or global behavior, trace the flow from config or IPC into every consumer instead of patching one visible page.
 
+## Bar designs
+
+Bar designs are data: `shell/services/BarDesign.qml` resolves `bar.design` to a template (`sidebar-left` or `top-notch`), and `BarWrapper.qml` loads the matching template. Their settings live in `settingsgui/.../Tabs/Bar/`, split into `common/` (design picker, behavior, monitors) plus one folder per design (`sidebar/`, `topnotch/`); `BarTab.qml` shows the common subtabs plus the active design's, chosen by `BarDesign.templateId`. To add a design, add its folder and a branch in `BarTab`. The top-notch reads its own `bar.topNotch.*` config, whose defaults match its built-in look, so the settings only let users edit what the notch already shows. Each design reads the config it supports; controls for one design don't affect another.
+
 ## Popout animations
 
 Every popup that emerges from the screen frame (the bar's inner edge, a frame border, or a top-notch tab) must animate as the frame expanding: pin the frame-side edge, grow only the size, clip and reveal full-size content, and fuse to the frame with a `PanelBg` blob neck. Never slide a full panel in from off-screen, fade with `opacity`, or center-zoom the whole panel. Plugin and bar/frame additions follow the same contract through `FramePanelWrapper`. See `docs/popup-animations.md`.

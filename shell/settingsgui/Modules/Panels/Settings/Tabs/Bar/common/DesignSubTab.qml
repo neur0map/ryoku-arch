@@ -13,9 +13,7 @@ ColumnLayout {
   Layout.fillWidth: true
 
   NComboBox {
-    // RYOKU WIRED: GlobalConfig.bar.design (barconfig.hpp). Selects the bar's
-    // visual design; sidebar-left is the user's customisable default, others
-    // are presets. Non-destructive — only bar.design changes.
+    // Picks the bar design. sidebar-left is the editable default; the rest are presets.
     Layout.fillWidth: true
     label: qsTr("Bar design")
     description: qsTr("Switch the bar's visual design. Sidebar (left) is your customisable default; others are presets.")
@@ -38,8 +36,7 @@ ColumnLayout {
   }
 
   NComboBox {
-    // RYOKU WIRED: GlobalConfig.bar.persistent + showOnHover (barconfig.hpp:130-131)
-    // always_visible = persistent:true, auto_hide = persistent:false showOnHover:true
+    // always_visible keeps the bar shown; auto_hide reveals it on hover.
     Layout.fillWidth: true
     label: I18n.tr("common.display-mode")
     description: I18n.tr("panels.bar.appearance-display-mode-description")
@@ -62,8 +59,7 @@ ColumnLayout {
   }
 
   NSpinBox {
-    // RYOKU WIRED: GlobalConfig.bar.dragThreshold (barconfig.hpp:132) — only relevant
-    // while auto-hiding (how far to drag from the screen edge to reveal the bar).
+    // How far to drag from the edge to reveal the bar while auto-hiding.
     Layout.fillWidth: true
     label: qsTr("Reveal drag threshold")
     description: qsTr("How far to drag from the top edge to reveal the bar while auto-hiding.")

@@ -10,9 +10,7 @@ ColumnLayout {
   spacing: Style.marginL
   Layout.fillWidth: true
 
-  // RYOKU WIRED: GlobalConfig.bar.scrollActions + GlobalConfig.bar.popouts
-  // (barconfig.hpp:13-37). the upstream mouse-wheel/middle-click/right-click action
-  // configs do not exist in ryoku's bar; these are ryoku's actual behaviour knobs.
+  // Scroll actions and hover popouts.
 
   NText {
     text: qsTr("Scroll actions")

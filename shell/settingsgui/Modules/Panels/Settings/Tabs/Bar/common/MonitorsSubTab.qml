@@ -12,8 +12,7 @@ ColumnLayout {
   spacing: Style.marginL
   Layout.fillWidth: true
 
-  // RYOKU WIRED: GlobalConfig.bar.excludedScreens (barconfig.hpp:152). The toggle
-  // is the inverse of exclusion — checked = bar shown on this monitor.
+  // The toggle is checked when the bar shows on that monitor.
   function isExcluded(name) {
     const ex = GlobalConfig.bar.excludedScreens || [];
     for (var i = 0; i < ex.length; i++) {
