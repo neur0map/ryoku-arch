@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import Quickshell.Bluetooth
 import Quickshell.Services.SystemTray
 import Quickshell.Services.UPower
 import Ryoku.Config
@@ -298,6 +299,43 @@ Item {
                         root.visibilities.settings = true;
                     }
                 }
+            }
+
+            // Microphone
+            MaterialIcon {
+                readonly property string popoutName: "audio"
+                visible: Config.bar.topNotch.status.microphone
+                text: Icons.getMicVolumeIcon(Audio.sourceVolume, Audio.sourceMuted)
+                color: root.fg
+            }
+
+            // Keyboard layout
+            StyledText {
+                visible: Config.bar.topNotch.status.keyboard
+                text: Hypr.kbLayout
+                font.family: Tokens.font.family.mono
+                color: root.fg
+            }
+
+            // Bluetooth
+            MaterialIcon {
+                readonly property string popoutName: "bluetooth"
+                visible: Config.bar.topNotch.status.bluetooth
+                text: {
+                    if (!Bluetooth.defaultAdapter?.enabled)
+                        return "bluetooth_disabled";
+                    if (Bluetooth.devices.values.some(d => d.connected))
+                        return "bluetooth_connected";
+                    return "bluetooth";
+                }
+                color: root.fg
+            }
+
+            // Lock keys (caps / num)
+            MaterialIcon {
+                visible: Config.bar.topNotch.status.lockStatus && (Hypr.capsLock || Hypr.numLock)
+                text: Hypr.capsLock ? "keyboard_capslock_badge" : "looks_one"
+                color: root.fg
             }
 
             MaterialIcon {
