@@ -310,11 +310,21 @@ StyledWindow {
 
             panel: panels.popoutsWrapper
             deformAmount: panels.popouts.isDetached ? 0.05 : panels.popouts.hasCurrent ? 0.15 : 0.1
-            attachTop: true
-            // Keep the neck fused to the bar edge while open (the icon/notch the
-            // popout drops from), so it reads as expanding out of the bar, same as
-            // the centre dropdowns. Detached popouts float centred, so they keep
-            // the default growing reach instead.
+            // Docked top-notch popouts reach UP into their notch and stay pinned
+            // there the whole time (attachTop + pinReach), exactly like the centre
+            // island/dashboard (islandBg/dashBg). So as the popout closes, the body
+            // retracts up INTO the notch and is hidden by the bar's notch pill
+            // (painted on top) — it never resolves into a pinched sliver in the open
+            // wallpaper gap just below the notch, which was the close flicker. This
+            // is viable because the box now MORPHS its width down to the notch width
+            // on close (ClipWrapper): the reaching-up region is full-width only while
+            // open (a strip bridging the panel to the bar, like the island) and
+            // narrows to exactly the notch width by the end, so the close lands under
+            // the pill with no inter-notch spill. The old below-the-bar body + a
+            // separate notch-width neck blob was a workaround from before the width
+            // morphed. Detached popouts have no notch origin, so they keep the base
+            // reach (grown with open progress; pinReach false).
+            attachTop: !panels.popouts.isDetached
             pinReach: !panels.popouts.isDetached
             x: horizontalBar ? panels.popoutsWrapper.x + root.barInsetLeft : panels.popoutsWrapper.x + panels.popouts.x + root.barInsetLeft - panels.popouts.width * extraWidth
             // Gate width by visibility exactly like the base PanelBg (islandBg): a
@@ -330,6 +340,7 @@ StyledWindow {
                 }
             }
         }
+
     }
 
     DrawerVisibilities {

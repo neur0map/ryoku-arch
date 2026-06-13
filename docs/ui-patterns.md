@@ -109,6 +109,44 @@ If a change affects a shared service or global behavior, trace the flow from con
 
 Every popup that emerges from the screen frame (the bar's inner edge, a frame border, or a top-notch tab) must animate as the frame expanding: pin the frame-side edge, grow only the size, clip and reveal full-size content, and fuse to the frame with a `PanelBg` blob neck. Never slide a full panel in from off-screen, fade with `opacity`, or center-zoom the whole panel. Plugin and bar/frame additions follow the same contract through `FramePanelWrapper`. See `docs/popup-animations.md`.
 
+### Top-notch popouts must collapse onto the idle island (no flicker)
+
+A popout that drops from a top-notch tab (bar status-icon popouts, tray menus, the
+workspace active-window peek, the centre island/dashboard) must, on close, retract
+**exactly onto the idle notch/island footprint** and disappear *behind the notch pill*
+- so the last rendered frame is the idle island and the hand-off is seamless. The
+canonical implementation is the centre island/dashboard wrapper
+(`shell/modules/island/Wrapper.qml`); the bar popouts
+(`shell/modules/bar/popouts/ClipWrapper.qml`) follow the same three rules. Getting any
+one wrong produces an end-of-close flicker where the popout's final shape doesn't match
+the corner island:
+
+1. **Gate visibility on animation progress, never on geometry.** Use
+   `visible: offsetScale < 1`, not `visible: width > 0 && height > 0`. The spatial
+   easing (`expressiveDefaultSpatial`, control point `y = 1.21`) overshoots past its
+   target, so on close `offsetScale` springs above `1.0` before settling - driving
+   width below the notch and height negative for a frame. A geometry gate reads width
+   and height as two independent bindings that update on different sub-frames, so it
+   can latch that degenerate half-state as *visible* for one frame. An `offsetScale`
+   gate hides the whole overshoot region by construction.
+
+2. **Morph the width down to the notch width on close**, not just the height. Hold
+   full width and animate height alone and the popout closes as a content-width band
+   wider than the island, leaving a gap beside the notch on the last frames. Morph
+   `notchWidth → fullWidth` (e.g. `notchW + (full - notchW) * (1 - offsetScale)`).
+
+3. **Reach the blob UP into the notch and keep it pinned there** (`PanelBg` with
+   `attachTop: true`, `pinReach: true`), exactly like `islandBg`/`dashBg`. The body
+   then retracts up *into* the notch and is hidden by the bar's notch pill (painted on
+   top) as it vanishes. A body that lives *below* the bar edge can never be covered by
+   the pill, so its shrinking sliver resolves into a pinched rounded-rect in the open
+   wallpaper gap just under the notch - the flicker. Pinning the reach (rule 3) is only
+   spill-free because the width morphs (rule 2): the reaching-up strip is full width
+   only while open (a bridge to the bar, like the island) and narrows to the notch
+   width by the end, landing under the pill with no inter-notch spill. Do **not** use a
+   separate below-the-bar body plus a notch-width "neck" blob - that was a workaround
+   from before the width morphed and reintroduces the pinch.
+
 ## System Boundaries
 
 QML should not own system mutations directly. For package, service, display, compositor, power, network, update, rollback, cursor, font, wallpaper, or hardware work, use a named `ryoku-*` command and call it through a narrow service or IPC boundary.

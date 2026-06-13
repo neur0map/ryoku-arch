@@ -139,15 +139,36 @@ override the blob's `implicitWidth` or `x` (e.g. to track a clip), keep the
   `PanelBg.deformMatrix`. A plugin authors only the panel content; the wrapper
   owns position, animation, and the blob deform.
 - **Bar popouts (right-side status icons, tray menus, and the workspace activewindow peek).**
-  They share one host. On a horizontal (top) bar
-  `shell/modules/bar/popouts/ClipWrapper.qml` morphs the box out of the hovered
-  item: width from the item's width (`Wrapper.currentWidth`, set by the bar's
-  `openPopout`) to full, height from `0` to full, centered on the item, top pinned.
-  Their shared `popoutBg` uses `attachTop: true` with `pinReach: !isDetached` and,
-  on a horizontal bar, tracks the morphing clip so the blob grows from the icon
-  with the popout, the same effect as the centre dropdowns. A vertical (sidebar)
-  bar keeps its sideways away-axis grow and full-content blob unchanged; detached
-  popouts (settings, window info) float centered and keep the default growing reach.
+  They share one host and follow the same mechanism as the centre island/dashboard
+  above. On a horizontal (top-notch) bar `shell/modules/bar/popouts/ClipWrapper.qml`
+  morphs the box out of the notch it belongs to - width from the notch's width
+  (`Wrapper.currentNotchWidth`) to full, height from `0` to full, centred on the notch
+  (`Wrapper.currentCenter`, both set by the bar's `openPopout`) - and the close
+  retracts back onto the notch footprint, so the end of the close IS the idle island.
+  Three rules make the close land cleanly with no end-of-close flicker (the same three
+  documented in `docs/ui-patterns.md` → *Top-notch popouts must collapse onto the idle
+  island*):
+  1. Visibility is `visible: offsetScale < 1`, NOT a geometry gate - the spatial easing
+     overshoots past `1.0` on close, and a `width > 0 && height > 0` gate latches that
+     degenerate overshoot frame as visible for one frame.
+  2. The box width morphs down to the notch width on close (not height alone), so it
+     never closes as a band wider than the island.
+  3. The shared `popoutBg` reaches UP into the notch and stays pinned there
+     (`attachTop: !isDetached`, `pinReach: !isDetached`), exactly like `islandBg`: the
+     body retracts up into the notch and is hidden by the bar's notch pill (painted on
+     top) as it vanishes, instead of pinching into a sliver in the open wallpaper gap
+     below the notch. This is spill-free precisely because of rule 2 - the reaching-up
+     strip is full width only while open (a bridge to the bar, like the island) and
+     narrows to the notch width by the end. (There is no separate "neck" blob; that was
+     a pre-morph workaround and is gone.)
+
+  Horizontally the content is pinned in screen space at the fully-open position
+  (`openX`) so the morphing box clips it in place rather than dragging it toward the
+  notch, and the content-area x-clamp relaxes by `borderThickness × morphProg` because
+  an edge island overlaps the frame's side-border stub. A vertical (sidebar) bar keeps
+  its sideways away-axis grow and full-content blob unchanged; detached popouts
+  (settings, window info) float centred and keep the default growing reach
+  (`attachTop`/`pinReach` false).
 
 ## Adding a new frame-anchored popup
 

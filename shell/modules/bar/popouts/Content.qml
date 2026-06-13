@@ -13,6 +13,12 @@ Item {
     required property PopoutState popouts
     readonly property Popout currentPopout: content.children.find(c => c.shouldBeActive) ?? null
     readonly property Item current: currentPopout?.item ?? null
+    // True while a previous popout is still fading out (active but no longer current):
+    // an icon-to-icon switch. Gates the incoming popout's fade-in delay so the wait
+    // only happens when there's actually an outgoing popout to clear — a fresh open
+    // from idle (nothing fading) fades in immediately instead of flashing an empty
+    // container for the delay (see the "" -> "active" transition below).
+    readonly property bool hasFadingPopout: content.children.some(c => c.active === true && c.shouldBeActive === false)
 
     implicitWidth: (currentPopout?.implicitWidth ?? 0) + Tokens.padding.large * 2
     implicitHeight: (currentPopout?.implicitHeight ?? 0) + Tokens.padding.large * 2
@@ -207,8 +213,20 @@ Item {
                         target: popout
                         property: "active"
                     }
+                    // Wait for the outgoing popout to finish fading out before this one
+                    // fades in, so two different-content popouts never ghost through each
+                    // other at half opacity while switching icons. The box keeps morphing
+                    // between their sizes the whole time (Dynamic-Island container morph),
+                    // so a brief empty container shows instead of a double-exposure flicker.
+                    // Only delay when there IS an outgoing popout fading (a switch); a
+                    // fresh open from idle has nothing to wait for, so it skips the pause
+                    // and fades in immediately instead of flashing an empty container.
+                    PauseAnimation {
+                        duration: root.hasFadingPopout ? Tokens.anim.durations.small : 0
+                    }
                     Anim {
                         property: "opacity"
+                        type: Anim.StandardSmall
                     }
                 }
             }

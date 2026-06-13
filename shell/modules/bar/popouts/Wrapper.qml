@@ -25,11 +25,15 @@ Item {
 
     property alias currentName: popoutState.currentName
     property alias hasCurrent: popoutState.hasCurrent
+    // X of the centre of the notch the popout drops from (left/centre/right); the
+    // popout box is centred on this. Set by the bar's openPopout.
     property real currentCenter
-    // Width of the notch the popout drops from (left/centre/right); the popout's
-    // cross-axis morphs out of this, so it expands from its notch like the centre
-    // dropdowns expand from the centre notch. Set by the bar's openPopout.
-    property real currentWidth
+    // Width of that notch (the idle SeamlessBarShape tab). The popout box morphs
+    // between this and its full content width (ClipWrapper), so the close narrows
+    // onto the idle island footprint and the pinned-reach popoutBg blob retracts up
+    // under the notch pill. Only meaningful on the top-notch bar; the vertical
+    // sidebar bar leaves it 0 (its popouts slide sideways).
+    property real currentNotchWidth
 
     property string detachedMode
 

@@ -28,6 +28,11 @@ Item {
 
     readonly property bool hasMedia: (Players.active?.trackTitle ?? "") !== ""
 
+    // The notch that owns the currently open popout (set by openPopout). checkPopout
+    // holds the popout open while the cursor stays within this notch's bounds so the
+    // gaps between status icons don't flicker it closed.
+    property Item activeNotch
+
     // BarTemplate interface — hit-test notch content by X (the position along a
     // horizontal bar) and route to the shared popout/scroll machinery, mirroring
     // the sidebar-left Bar. The tray here is never compact, so closeTray is a no-op.
@@ -50,15 +55,24 @@ Item {
             root.openPopout("activewindow", leftNotch);
             return;
         }
+        // Crossing the spacing between icons within a notch hits a gap where childAt
+        // returns null; closing there and reopening on the next icon flickers the
+        // panel. While a popout is open, hold it as long as the cursor is still over
+        // the notch that owns it; only close when the cursor leaves that notch.
+        if (popouts.hasCurrent && activeNotch && pos >= activeNotch.x && pos <= activeNotch.x + activeNotch.width)
+            return;
         popouts.hasCurrent = false;
     }
 
-    // The popout morphs out of the notch it belongs to (left/centre/right), so its
-    // collapsed size and position are that notch's, not the hovered icon's.
+    // The popout morphs out of the notch it belongs to (left/centre/right) — width
+    // from the notch's width to full, height from 0 — and retracts back into it on
+    // close; activeNotch records which notch owns the open popout so checkPopout
+    // can hold it while the cursor roams that notch (see above).
     function openPopout(name: string, notch: Item): void {
+        activeNotch = notch;
         popouts.currentName = name;
         popouts.currentCenter = Qt.binding(() => notch.mapToItem(root, notch.width / 2, 0).x);
-        popouts.currentWidth = Qt.binding(() => notch.width);
+        popouts.currentNotchWidth = Qt.binding(() => notch.width);
         popouts.hasCurrent = true;
     }
 
