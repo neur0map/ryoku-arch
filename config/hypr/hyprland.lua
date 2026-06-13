@@ -4,7 +4,7 @@
 local var_terminal = "kitty"
 local var_fileManager = "nautilus"
 local var_yaziFileManager = "sh -lc '$HOME/.local/share/ryoku/bin/ryoku-launch-tui yazi'"
-local var_heliumBrowser = "sh -lc '$HOME/.local/bin/helium'"
+local var_browser = "chromium"
 local var_neovimEditor = "sh -lc '$HOME/.local/share/ryoku/bin/ryoku-launch-tui nvim'"
 local var_obsidianNotes = "obsidian"
 local var_menu = "sh -lc '$HOME/.local/share/ryoku/bin/ryoku-launch-app'"
@@ -34,6 +34,15 @@ require("keyboard")
 -- GPU render-device selection is managed by ryoku-gpu (pins the strongest GPU on
 -- multi-GPU machines so the desktop renders on the discrete GPU, not a weak iGPU).
 require("gpu")
+
+-- Bring up graphical-session.target so xdg-desktop-portal can start. A bare
+-- (non-uwsm) Hyprland launch never activates it, yet xdg-desktop-portal ships
+-- Requisite=graphical-session.target -- without it the portal frontend never
+-- starts and ALL Wayland screen sharing / file pickers silently fail. Import
+-- the session env first so portal-activated services inherit WAYLAND_DISPLAY.
+hl.on("hyprland.start", function()
+    hl.exec_cmd("sh -lc 'systemctl --user import-environment WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP XDG_SESSION_TYPE DISPLAY XAUTHORITY 2>/dev/null; command -v dbus-update-activation-environment >/dev/null 2>&1 && dbus-update-activation-environment --systemd WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP XDG_SESSION_TYPE DISPLAY XAUTHORITY 2>/dev/null; systemctl --user start hyprland-session.target'")
+end)
 
 -- DPI-aware monitor scaling: size each panel by its real pixel density (resolution /
 -- physical size) so low-DPI external monitors stay 1x and high-DPI laptop panels get
@@ -97,6 +106,8 @@ hl.config({
             size = 8,
             passes = 3,
             new_optimizations = true,
+            popups = true,
+            popups_ignorealpha = 0.2,
         },
     },
     animations = {
@@ -176,7 +187,7 @@ hl.bind("SUPER + Return", hl.dsp.exec_cmd(var_terminal))
 hl.bind("SUPER + T", hl.dsp.exec_cmd(var_terminal))
 hl.bind("SUPER + E", hl.dsp.exec_cmd(var_fileManager))
 hl.bind("SUPER + ALT + E", hl.dsp.exec_cmd(var_yaziFileManager))
-hl.bind("SUPER + B", hl.dsp.exec_cmd(var_heliumBrowser))
+hl.bind("SUPER + B", hl.dsp.exec_cmd(var_browser))
 hl.bind("SUPER + N", hl.dsp.exec_cmd(var_neovimEditor))
 hl.bind("SUPER + ALT + O", hl.dsp.exec_cmd(var_obsidianNotes))
 hl.bind("SUPER + R", hl.dsp.exec_cmd(var_menu))
@@ -355,6 +366,29 @@ hl.window_rule({
         class = "^(ryoku-update)$",
     },
     center = true,
+})
+
+-- Chromium/Chrome screen-share indicator ("<site> is sharing a window/your screen"):
+-- its own "Hide" button is a no-op under Wayland (it tries to minimize, which Hyprland
+-- does not do), and the bar otherwise sits dead-center over the shared screen. Float +
+-- pin it and park it at the bottom edge so it stays out of the way.
+hl.window_rule({
+    match = {
+        title = ".*is sharing (a window|your screen).*",
+    },
+    float = true,
+})
+hl.window_rule({
+    match = {
+        title = ".*is sharing (a window|your screen).*",
+    },
+    pin = true,
+})
+hl.window_rule({
+    match = {
+        title = ".*is sharing (a window|your screen).*",
+    },
+    move = { "(monitor_w*.5-window_w*.5)", "(monitor_h-window_h-12)" },
 })
 
 -- HyprMod managed settings (transparency, blur, cursor, rounding, bezier).

@@ -11,6 +11,7 @@ target_label=""
 target_command=""
 target_desktop=""
 install_command=""
+install_package=""
 fresh_install_text=""
 mime_types=()
 fallback_commands=()
@@ -37,6 +38,22 @@ load_spec() {
     )
     fallback_commands=(chromium firefox)
     ;;
+  browser:chromium)
+    target_label="Chromium"
+    target_command="chromium"
+    target_desktop="chromium.desktop"
+    install_package="chromium"
+    fresh_install_text="Ryoku now uses Chromium as the browser."
+    mime_types=(
+      x-scheme-handler/http
+      x-scheme-handler/https
+      x-scheme-handler/mailto
+      text/html
+      text/xml
+      application/xhtml+xml
+    )
+    fallback_commands=(helium firefox)
+    ;;
   *)
     usage
     echo "Unsupported default app migration: $kind $target_id" >&2
@@ -50,6 +67,9 @@ old_default_desktop() {
 
   case "$kind:$target_id:$desktop_file" in
   browser:helium:firefox.desktop | browser:helium:chromium.desktop | browser:helium:org.mozilla.firefox.desktop | browser:helium:org.chromium.Chromium.desktop)
+    return 0
+    ;;
+  browser:chromium:helium.desktop | browser:chromium:firefox.desktop | browser:chromium:org.mozilla.firefox.desktop)
     return 0
     ;;
   *)
@@ -70,6 +90,16 @@ def old_default:
   or . == "";
 EOF
     ;;
+  browser:chromium)
+    cat <<'EOF'
+def old_default:
+  . == "helium"
+  or . == "/usr/bin/helium"
+  or . == "firefox"
+  or . == "/usr/bin/firefox"
+  or . == "";
+EOF
+    ;;
   esac
 }
 
@@ -85,6 +115,12 @@ command_for_desktop() {
     echo "chromium"
     ;;
   browser:helium:*firefox*)
+    echo "firefox"
+    ;;
+  browser:chromium:*helium*)
+    echo "helium"
+    ;;
+  browser:chromium:*firefox*)
     echo "firefox"
     ;;
   *)
@@ -155,6 +191,18 @@ fallback_command() {
       return 0
       ;;
     browser:helium:chromium | browser:helium:firefox)
+      echo "$command_name"
+      return 0
+      ;;
+    browser:chromium:/usr/bin/helium)
+      echo "helium"
+      return 0
+      ;;
+    browser:chromium:/usr/bin/firefox)
+      echo "firefox"
+      return 0
+      ;;
+    browser:chromium:helium | browser:chromium:firefox)
       echo "$command_name"
       return 0
       ;;
@@ -400,7 +448,14 @@ main() {
   fi
 
   if ! has_target_app; then
-    if ! "$install_command"; then
+    # Plain packages install via ryoku-pkg-add (no per-browser command needed);
+    # only special cases (e.g. Helium's AppImage) ship a dedicated installer.
+    if [[ -n $install_package ]]; then
+      ryoku-pkg-add "$install_package" || true
+    elif [[ -n $install_command ]]; then
+      "$install_command" || true
+    fi
+    if ! has_target_app; then
       echo "$target_label could not be installed. The migration will be retried later." >&2
       return "$deferred_exit"
     fi

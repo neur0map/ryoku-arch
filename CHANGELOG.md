@@ -2,6 +2,39 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **Default browser is now Chromium (was Helium)**: Helium ran under XWayland to
+  dodge a Chromium-on-Wayland rendering bug, but XWayland clients cannot capture
+  native Wayland surfaces, so screen sharing (Discord/Meet/OBS) showed a black
+  screen for windows and the whole desktop. Chromium runs on Wayland and drives
+  the PipeWire screencast portal, so screen sharing works. Fresh installs get
+  Chromium; existing installs that still default to Helium are offered the switch
+  on update (a browser you chose yourself is left untouched), and `SUPER+B` plus
+  the xdg/mimetype defaults follow. Helium stays available via
+  `ryoku-install-helium-browser`.
+
+### Fixed
+
+- **Wayland screen sharing was broken for every portal app** (black screen / empty
+  source picker in Discord, OBS, Meet, and any Wayland client). `xdg-desktop-portal`
+  >= 1.20 ships `Requisite=graphical-session.target`, and a bare (non-uwsm) Hyprland
+  session never brought that target up, so the portal frontend
+  (`org.freedesktop.portal.Desktop`) could never activate. A new
+  `hyprland-session.target` wrapper pulls `graphical-session.target` up at login
+  (and a migration does so for the running session on existing installs), restoring
+  all portal-based screen sharing and file pickers. This was not a GPU problem: the
+  NVIDIA/wlroots capture path was healthy throughout.
+- **Bundled Chromium `copy-url` extension no longer errors on launch**: its manifest
+  referenced an `icon.png` symlink that dangled (it pointed at a root icon that does
+  not exist), so Chromium logged "Could not load icon" on every start. Dropped the
+  cosmetic icon reference: the extension is a keyboard command whose notification
+  uses an inline icon, so it needs none.
+- **Chromium "is sharing your screen" bar no longer blocks the screen center**: the
+  bar's own Hide button is a no-op under Wayland (it tries to minimize, which Hyprland
+  does not do), so a Hyprland window rule floats, pins and parks it at the bottom edge
+  instead. Matches both "sharing a window" and "sharing your screen".
+
 ## [0.1.0-beta3] - 2026-06-13
 
 ### Added

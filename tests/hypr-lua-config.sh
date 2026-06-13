@@ -159,4 +159,13 @@ else
   echo "skip: python-hyprland-config not importable; migration conversion not checked"
 fi
 
+# 9. The Chromium screen-share indicator rule must use only valid native-Lua fields.
+#    Hyprland's lua window_rule rejects `no_border` (unknown field), which aborts the
+#    whole config load, and `move` must be an expression table, not a string.
+grep -q 'is sharing (a window|your screen)' "$HYPR/hyprland.lua" \
+  || fail "hyprland.lua should keep the screen-share indicator window rule"
+! grep -q 'no_border' "$HYPR/hyprland.lua" \
+  || fail "hyprland.lua must not use no_border (Hyprland lua window_rule rejects it)"
+ok "screen-share indicator rule present and uses valid lua fields"
+
 echo "hypr-lua-config: ok"

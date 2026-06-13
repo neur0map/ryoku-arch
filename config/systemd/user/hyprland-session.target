@@ -1,0 +1,13 @@
+[Unit]
+# Ryoku: wrapper target that brings up graphical-session.target for a bare
+# (non-uwsm) Hyprland session. xdg-desktop-portal >= 1.20 ships
+# Requisite=graphical-session.target, so without this target active the portal
+# frontend (org.freedesktop.portal.Desktop) never activates and ALL Wayland
+# screen sharing / file pickers fail. Hyprland starts this target on launch
+# (see config/hypr/hyprland.lua); RefuseManualStart on graphical-session.target
+# means it must be pulled in via BindsTo=, never started directly.
+Description=Hyprland session
+BindsTo=graphical-session.target
+Before=graphical-session.target
+Wants=graphical-session-pre.target
+After=graphical-session-pre.target
