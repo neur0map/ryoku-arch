@@ -21,7 +21,7 @@ fail() {
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
-# make_card <card> <pci-slot> <driver> [vram-bytes]
+# make_card <card> <pci-slot> <driver> [vram-bytes] [vis-vram-bytes] [removable]
 make_card() {
   local d="$DRM/$1"
   mkdir -p "$d/device"
@@ -30,6 +30,8 @@ make_card() {
     printf 'PCI_SLOT_NAME=%s\n' "$2"
   } >"$d/device/uevent"
   [[ -n ${4:-} ]] && printf '%s\n' "$4" >"$d/device/mem_info_vram_total"
+  [[ -n ${5:-} ]] && printf '%s\n' "$5" >"$d/device/mem_info_vis_vram_total"
+  [[ -n ${6:-} ]] && printf '%s\n' "$6" >"$d/device/removable"
   return 0
 }
 
@@ -222,6 +224,58 @@ grep -qF 'no_hardware_cursors = true' "$HYPRD/gpu.lua" \
   || fail "gpu.lua must disable HW cursors on multi-GPU (reverse PRIME breaks the cursor plane)"
 grep -qF 'require("gpu")' "$HYPRD/hyprland.lua" \
   || fail "persist must add require(\"gpu\") to hyprland.lua instead of a source line"
+unset DRI HYPRD
+
+# ── 8. AMD APU (4 GiB fully-visible UMA) beside an NVIDIA dGPU -> NVIDIA primary ─
+# The APU's whole VRAM is CPU-visible (vis == total), so it must rank as integrated
+# and never outrank the NVIDIA dGPU (which reports no sysfs VRAM in the fake tree).
+fresh_drm
+make_card card0 "0000:01:00.0" nvidia                          # dGPU, no DRM VRAM file
+make_card card1 "0000:65:00.0" amdgpu $((4 * GiB)) $((4 * GiB)) # APU: vram == vis == 4 GiB
+make_conn card1 eDP-1 connected
+order="$(run_gpu order)" || fail "order should succeed on NVIDIA + AMD-APU desktop"
+[[ $order == "/dev/dri/ryoku-gpu-0000-01-00-0:"* ]] \
+  || fail "NVIDIA dGPU must outrank a 4 GiB-UMA APU, got '$order'"
+det="$(run_gpu detect)" || fail "detect should succeed"
+grep -q "0000:65:00.0  integrated" <<<"$det" \
+  || fail "a fully-visible 4 GiB UMA carveout must classify as integrated, got: $det"
+
+# ── 9. eGPU (removable) on a laptop -> auto-pin it despite the iGPU-first default ─
+fresh_drm
+make_card card0 "0000:00:02.0" i915 0                                  # Intel iGPU
+make_card card1 "0000:0c:00.0" amdgpu $((16 * GiB)) "" removable       # external GPU
+make_conn card0 eDP-1 connected
+order="$(ASSUME_DESKTOP=0 run_gpu order)" \
+  || fail "an eGPU must be auto-pinned even on a laptop (battery default does not apply)"
+[[ $order == "/dev/dri/ryoku-gpu-0000-0c-00-0:"* ]] \
+  || fail "the eGPU must be the primary in the AQ list, got '$order'"
+
+# ── 10. manual slot pin forces a GPU on a laptop (auto would bail there) ───────
+fresh_drm
+make_card card0 "0000:01:00.0" nvidia $((8 * GiB))   # dGPU
+make_card card1 "0000:00:02.0" i915 0                # Intel iGPU
+make_conn card1 eDP-1 connected
+DRI="$WORK/dri10"
+HYPRD="$WORK/hypr10"
+mkdir -p "$DRI" "$HYPRD"
+: >"$DRI/card0"
+: >"$DRI/card1"
+printf 'require("custom")\n' >"$HYPRD/hyprland.lua"
+# auto (no slot) must leave a laptop untouched ...
+ASSUME_DESKTOP=0 run_gpu persist >/dev/null || fail "auto persist should succeed (no-op) on a laptop"
+[[ ! -f $HYPRD/gpu.lua ]] || fail "auto persist must not pin a GPU on a hybrid laptop"
+# ... but an explicit slot forces it even on a laptop.
+ASSUME_DESKTOP=0 run_gpu persist "0000:01:00.0" >/dev/null \
+  || fail "explicit-slot persist should succeed on a laptop"
+[[ -f $HYPRD/gpu.lua ]] || fail "explicit-slot persist must write gpu.lua"
+grep -qF -- "-- ryoku-gpu-primary: 0000:01:00.0" "$HYPRD/gpu.lua" \
+  || fail "gpu.lua must record the user-chosen dGPU as primary"
+grep -Eq "hl\.env\(\"AQ_DRM_DEVICES\", \"$DRI/card0:$DRI/card1\"\)" "$HYPRD/gpu.lua" \
+  || fail "chosen GPU must lead the AQ list; got: $(grep AQ_DRM "$HYPRD/gpu.lua")"
+# an unknown slot must be rejected.
+if ASSUME_DESKTOP=0 run_gpu persist "9999:99:99.9" >/dev/null 2>&1; then
+  fail "persist must reject an unknown GPU slot"
+fi
 unset DRI HYPRD
 
 echo "PASS: gpu-render-primary (detection, ordering, persist, idempotency, gates)"

@@ -46,18 +46,63 @@ if [[ -f $HYPR_LUA ]]; then GPU_CONF="$HYPR_DIR/gpu.lua"; else GPU_CONF="$HYPR_D
 SYMLINK_PREFIX="ryoku-gpu-"
 
 # APU integrated-graphics UMA carveouts stay under this; discrete cards report
-# their full VRAM well above it. Used only to split AMD/Intel integrated vs
-# discrete; NVIDIA is always treated as discrete (no in-scope NVIDIA iGPUs).
+# their full VRAM well above it. Used only as a fallback to split AMD/Intel
+# integrated vs discrete when the UMA tell below is unavailable; NVIDIA is always
+# treated as discrete (no in-scope NVIDIA iGPUs).
 DISCRETE_VRAM_MIN=$((2 * 1024 * 1024 * 1024))
-# Bias so any discrete GPU outranks any integrated one regardless of reported
-# VRAM (e.g. an NVIDIA card with no VRAM file still beats a 4 GiB-UMA APU).
+# AMD/Intel APUs carve their "VRAM" out of system RAM, so the whole carveout is
+# CPU-visible (vis_vram == vram). Consumer BIOSes cap that carveout; treat a fully
+# visible carveout at or below this as integrated even when it tops DISCRETE_VRAM_MIN
+# (a 4 GiB-UMA Radeon 780M must not outrank a real dGPU). Real dGPUs are 8 GiB+.
+APU_UMA_CEIL=$((8 * 1024 * 1024 * 1024))
+# Bias so any discrete GPU outranks any integrated one regardless of reported VRAM
+# (an NVIDIA card with no sysfs VRAM file still beats a 4 GiB-UMA APU), and an
+# external GPU outranks an internal discrete one (it was hot-plugged for power).
 DISCRETE_BIAS=$((1 << 60))
+EGPU_BIAS=$((1 << 61))
 
 # ── detection ───────────────────────────────────────────────────────────────
 
 gpu_field() {
   # Read KEY=value from a card's device uevent (carries DRIVER + PCI_SLOT_NAME).
   sed -n "s/^$2=//p" "$1/device/uevent" 2>/dev/null | head -n1 || true
+}
+
+hw_probe_ok() {
+  # Only probe real hardware tools (nvidia-smi/lspci) against the real DRM tree;
+  # unit tests redirect DRM_ROOT to a synthesized tree and must stay hermetic.
+  [[ $DRM_ROOT == "/sys/class/drm" ]]
+}
+
+gpu_uint() {
+  # Read a non-negative integer sysfs field for a card, defaulting to 0.
+  local v
+  v="$(cat "$1/device/$2" 2>/dev/null || printf '0')"
+  [[ $v =~ ^[0-9]+$ ]] && printf '%s' "$v" || printf '0'
+}
+
+gpu_removable() {
+  # "removable" marks a hot-pluggable (Thunderbolt/USB4) GPU, i.e. an eGPU.
+  cat "$1/device/removable" 2>/dev/null || true
+}
+
+nvidia_vram_bytes() {
+  # NVIDIA cards expose no mem_info_vram_total (that is an amdgpu node), so ranking
+  # and the UI see 0. Recover the real size from nvidia-smi, keyed by PCI slot.
+  hw_probe_ok || { printf '0'; return; }
+  command -v nvidia-smi >/dev/null 2>&1 || { printf '0'; return; }
+  local bdf="${1#*:}" mib
+  mib="$(nvidia-smi --query-gpu=pci.bus_id,memory.total --format=csv,noheader,nounits 2>/dev/null \
+    | awk -F', *' -v s="$bdf" 'index(tolower($1), tolower(s)) {print $2; exit}')"
+  [[ $mib =~ ^[0-9]+$ ]] && printf '%s' "$((mib * 1024 * 1024))" || printf '0'
+}
+
+gpu_model() {
+  # Best-effort human label for the UI (empty when lspci is unavailable).
+  hw_probe_ok || return 0
+  command -v lspci >/dev/null 2>&1 || return 0
+  lspci -s "$1" 2>/dev/null | head -n1 \
+    | sed -E 's/^[0-9a-fA-F:.]+ [^:]+: //; s/ \(rev [0-9a-fA-F]+\)$//'
 }
 
 slot_token() {
@@ -71,31 +116,41 @@ symlink_path() {
 }
 
 classify() {
-  # Sets _class (discrete|integrated) and _weight (sortable strength) for a GPU.
-  local driver="$1" vram="$2"
-  case "$driver" in
-    nvidia | nouveau)
-      _class="discrete"
-      ;;
-    *)
-      if (( vram >= DISCRETE_VRAM_MIN )); then
-        _class="discrete"
-      else
-        _class="integrated"
-      fi
-      ;;
-  esac
-  if [[ $_class == "discrete" ]]; then
-    _weight=$((DISCRETE_BIAS + vram))
+  # Sets _class (egpu|discrete|integrated) and _weight (sortable strength).
+  # Args: driver vram vis_vram removable
+  local driver="$1" vram="$2" vis_vram="${3:-0}" removable="${4:-}"
+  if [[ $removable == "removable" ]]; then
+    _class="egpu"   # hot-pluggable external GPU: attached on purpose for power
   else
-    _weight=$vram
+    case "$driver" in
+      nvidia | nouveau)
+        _class="discrete"   # no in-scope NVIDIA iGPUs
+        ;;
+      *)
+        # An APU/iGPU's whole VRAM is a CPU-visible UMA carveout (vis == total) and
+        # stays under APU_UMA_CEIL; a discrete card has dedicated VRAM (vis < total)
+        # or far more of it. Fall back to the VRAM threshold when the tell is absent.
+        if (( vis_vram > 0 )) && (( vis_vram == vram )) && (( vram <= APU_UMA_CEIL )); then
+          _class="integrated"
+        elif (( vram >= DISCRETE_VRAM_MIN )); then
+          _class="discrete"
+        else
+          _class="integrated"
+        fi
+        ;;
+    esac
   fi
+  case "$_class" in
+    egpu)     _weight=$((EGPU_BIAS + vram)) ;;
+    discrete) _weight=$((DISCRETE_BIAS + vram)) ;;
+    *)        _weight=$vram ;;
+  esac
 }
 
 gpu_records() {
   # One TSV row per real DRM GPU, strongest first:
-  #   weight <tab> class <tab> slot <tab> card <tab> driver <tab> vram <tab> connected
-  local path base slot driver vram connected conn st
+  #   weight <tab> class <tab> slot <tab> card <tab> driver <tab> vram <tab> connected <tab> model
+  local path base slot driver vram vis removable connected conn st model
   for path in "$DRM_ROOT"/card[0-9]*; do
     [[ -d $path ]] || continue
     base="$(basename "$path")"
@@ -105,8 +160,13 @@ gpu_records() {
     [[ -n $slot ]] || continue
     driver="$(gpu_field "$path" DRIVER)"
     [[ -n $driver ]] || driver="unknown"
-    vram="$(cat "$path/device/mem_info_vram_total" 2>/dev/null || printf '0')"
-    [[ $vram =~ ^[0-9]+$ ]] || vram=0
+    vram="$(gpu_uint "$path" mem_info_vram_total)"
+    vis="$(gpu_uint "$path" mem_info_vis_vram_total)"
+    # NVIDIA exposes no amdgpu VRAM node; recover the real size for ranking + the UI.
+    if (( vram == 0 )) && [[ $driver == nvidia || $driver == nouveau ]]; then
+      vram="$(nvidia_vram_bytes "$slot")"
+    fi
+    removable="$(gpu_removable "$path")"
     connected=0
     for conn in "$DRM_ROOT/$base"-*; do
       [[ -r $conn/status ]] || continue
@@ -116,9 +176,10 @@ gpu_records() {
         break
       fi
     done
-    classify "$driver" "$vram"
-    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
-      "$_weight" "$_class" "$slot" "$base" "$driver" "$vram" "$connected"
+    model="$(gpu_model "$slot")"
+    classify "$driver" "$vram" "$vis" "$removable"
+    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+      "$_weight" "$_class" "$slot" "$base" "$driver" "$vram" "$connected" "$model"
   done | sort -t$'\t' -k1,1nr -k3,3
 }
 
@@ -135,7 +196,7 @@ analyze() {
     _slots+=("$slot")
     _classes+=("$class")
     _ngpu=$((_ngpu + 1))
-    if [[ $class == "discrete" ]]; then
+    if [[ $class == "discrete" || $class == "egpu" ]]; then
       _ndiscrete=$((_ndiscrete + 1))
     else
       _nintegrated=$((_nintegrated + 1))
@@ -155,9 +216,14 @@ is_desktop() {
 }
 
 beneficial() {
-  # True when pinning the strongest GPU as primary is worth doing here.
-  is_desktop || return 1
+  # True when auto-pinning the strongest GPU as primary is worth doing here.
   (( _ngpu >= 2 )) || return 1
+  # An external GPU is hot-plugged on purpose for power, so pin it even on a laptop
+  # (the iGPU-first battery default does not apply to a deliberately attached eGPU).
+  [[ ${_classes[0]} == "egpu" ]] && return 0
+  # Otherwise only auto-pin a discrete GPU on desktops; laptops keep iGPU-first for
+  # battery (users can still force the dGPU from Settings > Display > GPU).
+  is_desktop || return 1
   [[ ${_classes[0]} == "discrete" ]] || return 1
   return 0
 }
@@ -199,6 +265,34 @@ symlinks_present() {
     [[ -e "$(symlink_path "$slot")" ]] || return 1
   done
   return 0
+}
+
+slot_known() {
+  local want="$1" s
+  for s in "${_slots[@]}"; do
+    [[ $s == "$want" ]] && return 0
+  done
+  return 1
+}
+
+reorder_primary_first() {
+  # Move $1 to the front of _slots (the primary renderer). The rest stay in the
+  # list so monitors wired to other GPUs keep working via reverse PRIME.
+  local want="$1" s new=("$1")
+  for s in "${_slots[@]}"; do
+    [[ $s == "$want" ]] || new+=("$s")
+  done
+  _slots=("${new[@]}")
+}
+
+current_primary_slot() {
+  # PCI slot recorded in the current pin, or empty when not configured.
+  [[ -f $GPU_CONF ]] || return 0
+  sed -n -E 's/^(#|--) ryoku-gpu-primary: //p' "$GPU_CONF" | head -n1 || true
+}
+
+is_configured() {
+  [[ -f $GPU_CONF ]] && grep -qE '^(env = AQ_DRM_DEVICES,|hl\.env\("AQ_DRM_DEVICES")' "$GPU_CONF"
 }
 
 # ── config writers ──────────────────────────────────────────────────────────
@@ -285,13 +379,13 @@ write_uwsm_env() {
 
 cmd_detect() {
   analyze
-  printf '%-7s %-13s %-11s %-9s %9s  %s\n' "CARD" "PCI" "CLASS" "DRIVER" "VRAM_MB" "DISPLAY"
-  local class slot card driver vram connected
-  while IFS=$'\t' read -r _ class slot card driver vram connected; do
+  printf '%-7s %-13s %-11s %-9s %9s %-10s %s\n' "CARD" "PCI" "CLASS" "DRIVER" "VRAM_MB" "DISPLAY" "MODEL"
+  local class slot card driver vram connected model
+  while IFS=$'\t' read -r _ class slot card driver vram connected model; do
     [[ -n $slot ]] || continue
-    printf '%-7s %-13s %-11s %-9s %9s  %s\n' \
+    printf '%-7s %-13s %-11s %-9s %9s %-10s %s\n' \
       "$card" "$slot" "$class" "$driver" "$((vram / 1024 / 1024))" \
-      "$([[ $connected == 1 ]] && printf 'connected' || printf '-')"
+      "$([[ $connected == 1 ]] && printf 'connected' || printf '-')" "$model"
   done < <(gpu_records)
   echo
   if beneficial; then
@@ -377,10 +471,28 @@ cmd_install_udev() {
 }
 
 cmd_persist() {
+  local want="${1:-}"
   analyze
-  if ! beneficial; then
-    echo "ryoku-gpu: no discrete-GPU reorder needed; leaving GPU config untouched" >&2
-    return 0
+  local primary
+  if [[ -n $want ]]; then
+    # Explicit choice (Settings > Display > GPU): pin this GPU even on a laptop,
+    # overriding the iGPU-first battery default. Needs >=2 GPUs to mean anything.
+    slot_known "$want" || {
+      echo "ryoku-gpu: unknown GPU slot '$want'" >&2
+      return 1
+    }
+    if (( _ngpu < 2 )); then
+      echo "ryoku-gpu: only one GPU present; nothing to pin" >&2
+      return 0
+    fi
+    reorder_primary_first "$want"
+    primary="$want"
+  else
+    if ! beneficial; then
+      echo "ryoku-gpu: no discrete-GPU reorder needed; leaving GPU config untouched" >&2
+      return 0
+    fi
+    primary="${_slots[0]}"
   fi
   mkdir -p "$HYPR_DIR"
 
@@ -395,11 +507,11 @@ cmd_persist() {
     return 1
   fi
 
-  write_gpu_conf "$value" "${_slots[0]}"
+  write_gpu_conf "$value" "$primary"
   ensure_source_line
   write_uwsm_env "$value"
 
-  echo "ryoku-gpu: pinned primary render GPU ${_slots[0]} via $style"
+  echo "ryoku-gpu: pinned primary render GPU $primary via $style"
   echo "  AQ_DRM_DEVICES=$value"
   echo "  wrote $GPU_CONF (active on next Hyprland login)"
 }
@@ -446,6 +558,48 @@ cmd_status() {
   fi
 }
 
+cmd_auto() {
+  # The automatic policy used by the "Automatic" choice in Settings > Display > GPU:
+  # pin the strongest GPU where beneficial (desktop or eGPU), otherwise clear any
+  # stale pin so the box falls back to Hyprland's default (iGPU-first on laptops).
+  analyze
+  if beneficial; then
+    cmd_persist
+  else
+    cmd_disable
+  fi
+}
+
+cmd_detect_json() {
+  # Machine-readable detection for the settings UI: the GPU list plus the current
+  # pin, the auto recommendation, and whether this is a laptop.
+  ryoku-cmd-present jq || {
+    echo "ryoku-gpu: jq required for detect-json" >&2
+    return 1
+  }
+  analyze
+  local pinned recommended is_laptop conf
+  pinned="$(current_primary_slot)"
+  recommended=""
+  beneficial && recommended="${_slots[0]}"
+  is_laptop=false
+  is_desktop || is_laptop=true
+  conf=false
+  is_configured && conf=true
+  {
+    while IFS=$'\t' read -r _ class slot card driver vram connected model; do
+      [[ -n $slot ]] || continue
+      jq -n --arg slot "$slot" --arg card "$card" --arg driver "$driver" \
+        --arg class "$class" --arg model "$model" \
+        --argjson vramMb "$((vram / 1024 / 1024))" \
+        --argjson connected "$([[ $connected == 1 ]] && echo true || echo false)" \
+        '{slot:$slot, card:$card, driver:$driver, class:$class, model:$model, vramMb:$vramMb, connected:$connected}'
+    done < <(gpu_records)
+  } | jq -s --arg pinned "$pinned" --arg recommended "$recommended" \
+    --argjson ngpu "$_ngpu" --argjson configured "$conf" --argjson isLaptop "$is_laptop" \
+    '{ngpu:$ngpu, pinned:$pinned, recommended:$recommended, configured:$configured, isLaptop:$isLaptop, gpus:.}'
+}
+
 usage() {
   cat <<'USAGE'
 Usage: ryoku-gpu <command>
@@ -455,10 +609,12 @@ so the desktop renders on the discrete GPU instead of a weak integrated one.
 
 Commands:
   detect         Show detected GPUs and the recommended primary (exit 1 if none).
+  detect-json    Machine-readable GPU list + current pin (for Settings > Display).
   order          Print the recommended AQ_DRM_DEVICES value (exit 1 if none).
   status         Show detection plus the current gpu.lua/gpu.conf GPU pin.
   check          Exit 0 if already pinned, 1 if persist needed, 2 if N/A.
-  persist        Write gpu.lua/gpu.conf + require/source line (+ uwsm env) for the strongest GPU.
+  auto           Apply the automatic policy (strongest on desktop/eGPU; iGPU on laptop).
+  persist [SLOT] Pin the strongest GPU, or the given PCI slot (forces it even on a laptop).
   install-udev   Install the udev rule for boot-stable GPU symlinks (root).
   disable        Reset to Hyprland's default GPU selection.
 
@@ -468,10 +624,12 @@ USAGE
 
 case "${1:-status}" in
   detect) cmd_detect ;;
+  detect-json | --json) cmd_detect_json ;;
   order) cmd_order ;;
   status) cmd_status ;;
   check) cmd_check ;;
-  persist) cmd_persist ;;
+  auto) cmd_auto ;;
+  persist) cmd_persist "${2:-}" ;;
   install-udev) cmd_install_udev ;;
   disable | clear) cmd_disable ;;
   -h | --help | help) usage ;;

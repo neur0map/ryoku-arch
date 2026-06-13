@@ -77,6 +77,11 @@ ColumnLayout {
       tabIndex: 2
       checked: subTabBar.currentIndex === 2
     }
+    NTabButton {
+      text: I18n.tr("panels.display.gpu-tab")
+      tabIndex: 3
+      checked: subTabBar.currentIndex === 3
+    }
   }
 
   Item {
@@ -94,5 +99,6 @@ ColumnLayout {
       timeOptions: timeOptions
       onCheckWlsunset: wlsunsetCheck.running = true
     }
+    GpuSubTab {}
   }
 }
